@@ -36,3 +36,26 @@
   assets, duplicates git's job); upstream's updater.py as-is (rejected:
   tied to upstream GitHub releases, no heal/verify step).
 - **Status:** flagged for user sign-off when #4 is designed.
+
+## 2026-07-17 — Two-folder fork layout + daily upstream sync (user directive)
+- **Decision:** Restructure to (a) `40cakes repo/` holding a PRISTINE
+  upstream mirror (`pokebot-gen3/`, git subtree re-added at the new
+  prefix) plus all documentation about the original program
+  (`DOCUMENTATION/`, with `_history/` snapshots and an append-only
+  `UPDATE-LOG.md`); and (b) `custom-pokebot/` holding our enhanced fork
+  with its own `DOCUMENTATION/` and `DIVERGENCE-LOG.md`. Upstream is
+  checked DAILY (session-start directive in CLAUDE.md); updates are pulled
+  into the mirror and its docs updated (old versions snapshotted), but
+  NEVER auto-applied to the custom fork — they're listed for user review.
+- **Context:** Direct user instruction 2026-07-17: keep a running,
+  up-to-date record of the original repo separate from our custom version,
+  with original-docs and custom-docs cleanly separated and historical doc
+  versions retained.
+- **Alternatives rejected:** single vendored copy enhanced in place
+  (previous layout — conflated upstream tracking with our changes);
+  git branches for original-vs-custom (invisible on disk, user wants
+  folder-level separation).
+- **Consequence:** the subtree prefix moved, so the pull command is now
+  `git subtree pull --prefix="40cakes repo/pokebot-gen3" upstream-pokebot main --squash`.
+  Custom and mirror start identical at upstream `5dd898f8` (git stores the
+  duplicate blobs once, so repo size is unaffected).

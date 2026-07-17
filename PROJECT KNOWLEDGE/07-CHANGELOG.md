@@ -32,3 +32,13 @@
   `PROJECT KNOWLEDGE/REFERENCE-INSTALLER-PATTERN.md` for punch-list #4.
 - Filled in `01-VISION-AND-DESIGN.md`, `02-ARCHITECTURE.md`, seeded
   `03-PUNCH-LIST.md` (#2–#6).
+
+## 2026-07-17 — Restructure: two-folder fork layout + daily upstream sync
+- Moved the upstream mirror to `40cakes repo/pokebot-gen3/` (subtree
+  re-added at the new prefix) and the codebase docs to
+  `40cakes repo/DOCUMENTATION/` (with `_history/` for versioned snapshots).
+- Created `custom-pokebot/` — our fork, an exact copy of upstream
+  `5dd898f8` — with `DOCUMENTATION/` and `DIVERGENCE-LOG.md`.
+- Added `40cakes repo/UPDATE-LOG.md` (append-only upstream sync record)
+  and the daily upstream-check standing directive to CLAUDE.md.
+- Updated vision/architecture docs and decisions log for the new layout.

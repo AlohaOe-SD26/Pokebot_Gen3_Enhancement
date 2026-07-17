@@ -155,3 +155,29 @@ unpushed work?
   which wins (`/reconcile` exists for exactly this). Record the ruling in
   the decisions log so it never has to be asked twice.
 <!-- END PROJECT-KIT DIRECTIVES -->
+
+## Project rules (outside the managed block — this project's own directives)
+
+### Two-folder fork layout (user directive, 2026-07-17)
+- `40cakes repo/pokebot-gen3/` is a PRISTINE mirror of upstream
+  40Cakes/pokebot-gen3 (git subtree, remote `upstream-pokebot`). NEVER
+  edit files inside it; it only changes via upstream pulls.
+- `40cakes repo/DOCUMENTATION/` documents the ORIGINAL program only.
+  `40cakes repo/UPDATE-LOG.md` is the append-only record of upstream syncs.
+- `custom-pokebot/` is OUR enhanced fork — all enhancements happen there,
+  documented in `custom-pokebot/DOCUMENTATION/`, with every intentional
+  difference from upstream logged in `custom-pokebot/DIVERGENCE-LOG.md`.
+
+### Daily upstream update check (user directive, 2026-07-17)
+Once per calendar day, at session start (after the kit sync ritual): run
+`git fetch upstream-pokebot` and compare `upstream-pokebot/main` against
+the newest commit recorded in `40cakes repo/UPDATE-LOG.md`.
+- If unchanged: append nothing; update the "Last daily check" date on the
+  newest UPDATE-LOG entry.
+- If upstream moved: (1) snapshot current `40cakes repo/DOCUMENTATION/*.md`
+  into `DOCUMENTATION/_history/<YYYY-MM-DD>-<old-commit>/`; (2)
+  `git subtree pull --prefix="40cakes repo/pokebot-gen3" upstream-pokebot main --squash`;
+  (3) read the upstream diff and update the DOCUMENTATION files to match;
+  (4) append an UPDATE-LOG entry (old -> new commit, summary, docs touched,
+  changes pending review for custom-pokebot); (5) NEVER auto-apply
+  upstream changes to `custom-pokebot/` — list them for the user to decide.

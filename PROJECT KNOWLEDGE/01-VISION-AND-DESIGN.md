@@ -10,11 +10,15 @@ documented for developers. To enhance it confidently (and to reuse its
 techniques elsewhere), we first need a complete, human-language map of what
 every part does, why it exists, and where it plugs in. This project:
 1. **Documents** the entire upstream codebase (intent + mechanics, tied to
-   code with file:line references) under `PROJECT KNOWLEDGE/CODEBASE/`.
-2. **Enhances** the bot in this repo (the vendored copy in `pokebot-gen3/`
-   is our working codebase, imported via `git subtree` so upstream updates
-   can still be pulled).
-3. **Feeds a sibling project**: key findings useful to the separate
+   code with file:line references) under `40cakes repo/DOCUMENTATION/`.
+2. **Mirrors** upstream in `40cakes repo/pokebot-gen3/` (git subtree,
+   pristine, checked for upstream updates DAILY per the CLAUDE.md
+   directive; sync history in `40cakes repo/UPDATE-LOG.md`, superseded
+   docs snapshotted in `DOCUMENTATION/_history/`).
+3. **Enhances** the bot in `custom-pokebot/` — our fork, documented in
+   `custom-pokebot/DOCUMENTATION/`, with every intentional difference from
+   upstream tracked in `custom-pokebot/DIVERGENCE-LOG.md`.
+4. **Feeds a sibling project**: key findings useful to the separate
    "Pokémon Emerald AI" project (an AI that plays Emerald) are collected in
    `Pokemon_Emerald_AI_Notes.md` at the repo root.
 
@@ -46,19 +50,29 @@ it.
 
 ## Components & their individual intent
 
-### Vendored upstream bot (`pokebot-gen3/`)
-- **Purpose:** the working codebase we enhance. Imported at upstream commit
-  `5dd898f8` via `git subtree` (prefix `pokebot-gen3`, remote
-  `upstream-pokebot`, squashed).
-- **Must do:** remain runnable; keep upstream-pullable where practical.
-- **Must not do / constraints:** never commit ROMs, saves, or profiles
-  (upstream `.gitignore` covers these — keep it that way).
+### Upstream mirror (`40cakes repo/pokebot-gen3/`)
+- **Purpose:** pristine, always-current copy of upstream (git subtree,
+  remote `upstream-pokebot`, squashed; currently at `5dd898f8`).
+- **Must do:** be checked against upstream daily; only change via
+  `git subtree pull`.
+- **Must not do / constraints:** NEVER hand-edited; never commit ROMs,
+  saves, or profiles (upstream `.gitignore` covers these).
 
-### Codebase documentation (`PROJECT KNOWLEDGE/CODEBASE/`)
-- **Purpose:** the human-language developer map of the bot — per-layer docs
-  with intent, mechanics, file:line references, plug-in points, and
-  enhancement notes. `00-CODEBASE-OVERVIEW.md` is the entry point.
-- **Must do:** stay truthful to the code as we change it.
+### Upstream documentation (`40cakes repo/DOCUMENTATION/`)
+- **Purpose:** the human-language developer map of the ORIGINAL bot —
+  per-layer docs with intent, mechanics, file:line references, plug-in
+  points. `00-CODEBASE-OVERVIEW.md` is the entry point.
+- **Must do:** track the mirrored commit; snapshot superseded versions to
+  `_history/` before updating; log every sync in `../UPDATE-LOG.md`.
+
+### Our fork (`custom-pokebot/` + its `DOCUMENTATION/`)
+- **Purpose:** the codebase we actually enhance and ship. Forked from
+  upstream `5dd898f8` on 2026-07-17.
+- **Must do:** log every intentional difference from upstream in
+  `DIVERGENCE-LOG.md`; document only the CUSTOM parts in its
+  `DOCUMENTATION/` (link to upstream docs for inherited behavior).
+- **Must not do / constraints:** upstream updates are never auto-applied
+  here — they're reviewed per the UPDATE-LOG ritual.
 
 ### Emerald AI notes (`Pokemon_Emerald_AI_Notes.md`)
 - **Purpose:** cross-project transfer file — everything in this codebase
