@@ -4,11 +4,13 @@
 > off with `[x]` and move them to Done with the completion date).
 
 ## Now (active focus)
-- (queue up next: #3)
+- [ ] #3 — Custom automations/bots: framework + first custom mode BUILT
+      (custom_modes drop-in loader + "Patrol (Custom)" waypoint-loop mode,
+      structurally smoke-tested 2026-07-17). REMAINING: live verification on
+      a machine with Python 3.11+, deps, a ROM and a profile — then mark
+      done.
 
 ## Next
-- [ ] #3 — Custom automations/bots: design doc + first custom bot mode
-      (build on the BotMode/plugin extension points mapped in #2).
 - [ ] #4 — Easy setup/install/update script (reference:
       `PROJECT KNOWLEDGE/REFERENCE-INSTALLER-PATTERN.md`; must reconcile the
       installer-as-codebase pattern with this repo being git-based —

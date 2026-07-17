@@ -56,3 +56,15 @@
   dead code; stale `disable_default_battle_handler` docstring).
 - Lesson logged as ML-1 in 08-MISTAKES.md (verify agent-written docs
   before building on them).
+
+## 2026-07-17 — Custom-automations framework + Patrol mode (punch-list #3, partial)
+- Built the drop-in custom-modes platform in `custom-pokebot/`:
+  `plugins/custom_modes_loader.py` (auto-registers BotMode subclasses from
+  the new `plugins/custom_modes/` folder via the stock plugin API) and the
+  first custom bot: "Patrol (Custom)" (`plugins/custom_modes/patrol.py`) —
+  waypoint-loop shiny hunting configured by a per-profile `patrol.yml`.
+- Zero upstream files modified (logged in custom-pokebot/DIVERGENCE-LOG.md).
+- Verified: py_compile + structural smoke test (loader discovers PatrolMode
+  through the real files with bot modules stubbed; config validation
+  failure/success paths pass). Live run pending ROM/deps — #3 stays open.
+- How-to documented in `custom-pokebot/DOCUMENTATION/01-custom-automations.md`.

@@ -6,6 +6,14 @@
 **Last updated:** 2026-07-17
 
 ## Current state
+Punch-list #3 (custom automations) is CODE-COMPLETE but not live-verified:
+`custom-pokebot/plugins/custom_modes_loader.py` auto-registers custom bot
+modes from `custom-pokebot/plugins/custom_modes/`; first mode is
+"Patrol (Custom)" (waypoint-loop shiny hunt, per-profile `patrol.yml`).
+Structurally smoke-tested (discovery + config validation); needs a live run
+with deps + ROM + profile to close. How-to:
+`custom-pokebot/DOCUMENTATION/01-custom-automations.md`.
+
 This project documents and enhances 40Cakes/pokebot-gen3 (Python
 shiny-hunting bot driving Gen-3 Pokémon games via libmgba). Layout
 (user directive — details in CLAUDE.md "Project rules"):
@@ -38,10 +46,11 @@ No code enhancements built yet.
 ## Next steps (in order)
 1. DAILY (every new calendar day, session start): upstream update check —
    ritual in CLAUDE.md "Daily upstream update check" / UPDATE-LOG.md header.
-2. #3 Custom automations: read `40cakes repo/DOCUMENTATION/03-bot-modes-
-   and-battle.md` (mode contract + walkthrough) and `01-core-runtime-and-
-   emulator.md` (plugin system); design the first custom bot mode with the
-   user; build it in `custom-pokebot/plugins/`.
+2. #3 close-out: live-verify "Patrol (Custom)" — on a machine with the
+   user's ROM: `cd custom-pokebot; python pokebot.py` (deps self-install,
+   needs Python 3.11-3.13), create a profile, stand on a grassy map, write
+   `patrol.yml` (2-3 nearby waypoints) into the profile folder, select the
+   mode, confirm it loops and handles an encounter. Then mark #3 done.
 3. #4 Installer script: design against
    `PROJECT KNOWLEDGE/REFERENCE-INSTALLER-PATTERN.md` + bootstrap facts in
    `40cakes repo/DOCUMENTATION/05-stats-config-data-tests.md`; get user
