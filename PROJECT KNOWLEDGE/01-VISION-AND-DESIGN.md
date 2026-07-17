@@ -2,27 +2,78 @@
 > Current-state file: edit in place. Source of truth for INTENT.
 
 ## One-liner
-<!-- What is this program, in one sentence? -->
+An enhanced, deeply documented fork of [40Cakes/pokebot-gen3](https://github.com/40Cakes/pokebot-gen3) — a Python shiny-hunting bot that drives Gen-3 Pokémon games (Ruby/Sapphire/Emerald/FireRed/LeafGreen) through libmgba — maintained in this repo with custom automations, a one-script installer, and a fully custom interface.
 
 ## Problem & purpose
-<!-- What problem does it solve? For whom? Why does it exist? -->
+The upstream pokebot-gen3 is powerful but its inner workings are only lightly
+documented for developers. To enhance it confidently (and to reuse its
+techniques elsewhere), we first need a complete, human-language map of what
+every part does, why it exists, and where it plugs in. This project:
+1. **Documents** the entire upstream codebase (intent + mechanics, tied to
+   code with file:line references) under `PROJECT KNOWLEDGE/CODEBASE/`.
+2. **Enhances** the bot in this repo (the vendored copy in `pokebot-gen3/`
+   is our working codebase, imported via `git subtree` so upstream updates
+   can still be pulled).
+3. **Feeds a sibling project**: key findings useful to the separate
+   "Pokémon Emerald AI" project (an AI that plays Emerald) are collected in
+   `Pokemon_Emerald_AI_Notes.md` at the repo root.
 
 ## Goals
-- 
+- Complete developer documentation of the upstream codebase (every module's
+  intent described in human language, tied to code).
+- Custom automations/bots (new bot modes beyond the stock ones).
+- Easy setup/install/update script (see
+  `PROJECT KNOWLEDGE/REFERENCE-INSTALLER-PATTERN.md` — Nick's
+  installer-as-codebase pattern is the reference for how installers should
+  feel; the final design must be reconciled with this repo being git-based).
+- A total custom interface (replace/augment the stock Tkinter GUI, likely
+  building on or extending the bot's HTTP API).
+- Many more custom features over time (punch list is the queue).
 
 ## Non-goals (explicitly out of scope)
-- 
+- Cheating beyond upstream's philosophy is not a design goal by default —
+  upstream deliberately plays "as if human" (no RNG manipulation, no memory
+  writes for outcomes). Deviations from this are per-feature decisions.
+- Contributing back upstream is not required (we maintain our own fork),
+  though clean separation of our changes keeps `git subtree pull` viable.
 
 ## Whole-program intent
-<!-- The experience/outcome the finished program should deliver. -->
+A user should be able to: install the bot on a fresh Windows machine with
+one script; pick a game profile; choose from stock AND custom automation
+modes; watch/control everything from a modern custom interface; and trust
+that the documentation explains how any part works when they want to extend
+it.
 
 ## Components & their individual intent
-<!-- One subsection per major part. Add a new one BEFORE or WITH the code. -->
 
-### <Component name>
-- **Purpose:** what this part is for
-- **Must do:** 
-- **Must not do / constraints:** 
+### Vendored upstream bot (`pokebot-gen3/`)
+- **Purpose:** the working codebase we enhance. Imported at upstream commit
+  `5dd898f8` via `git subtree` (prefix `pokebot-gen3`, remote
+  `upstream-pokebot`, squashed).
+- **Must do:** remain runnable; keep upstream-pullable where practical.
+- **Must not do / constraints:** never commit ROMs, saves, or profiles
+  (upstream `.gitignore` covers these — keep it that way).
+
+### Codebase documentation (`PROJECT KNOWLEDGE/CODEBASE/`)
+- **Purpose:** the human-language developer map of the bot — per-layer docs
+  with intent, mechanics, file:line references, plug-in points, and
+  enhancement notes. `00-CODEBASE-OVERVIEW.md` is the entry point.
+- **Must do:** stay truthful to the code as we change it.
+
+### Emerald AI notes (`Pokemon_Emerald_AI_Notes.md`)
+- **Purpose:** cross-project transfer file — everything in this codebase
+  useful to the separate Pokémon Emerald AI project (memory reading, input
+  injection, state decoding, battle logic, headless control), written so
+  that project can consume it without reading this repo.
+
+### Future: custom automations, installer, custom interface
+- Intent recorded in Goals above; each gets its own component section here
+  when built.
 
 ## Design principles & style
-<!-- Conventions, tone, UX rules, visual style — whatever guides choices. -->
+- Upstream code style: Python 3.12, `black` formatting — match it when
+  editing vendored code.
+- Documentation style: intent first ("what is this FOR"), then mechanics,
+  always tied to code with `file:line` references; explain why, not just what.
+- Enhancements should prefer extension points (plugins, bot modes, HTTP API)
+  over invasive edits to upstream files, to keep upstream merges cheap.
