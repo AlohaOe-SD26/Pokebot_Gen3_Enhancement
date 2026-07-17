@@ -2,7 +2,7 @@
 > Current-state file: edit in place, CONTINUOUSLY. A new agent with zero
 > context must be able to resume from this file alone.
 
-**Repository:** _not set_
+**Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
 **Last updated:** 2026-07-17
 
 ## Current state
