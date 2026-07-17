@@ -67,10 +67,12 @@ the GUI/headless wrapper after a profile is selected). Each iteration:
    `next(context.controller_stack[-1])` resumes the topmost generator until its next
    `yield`.
 6. **Error policy** (`modules/main.py:119-137`): `StopIteration`/`GeneratorExit` pops
-   the stack (a sub-generator or the mode finished); `BotModeError` prints the message
-   and drops to Manual mode (buttons released); any other exception prints a traceback
+   the stack (a sub-generator or the mode finished); `BotModeError` sets
+   `context.message` (shown in the GUI status) and drops to Manual mode (buttons
+   released); any other exception prints a traceback
    and drops to Manual (or debug stepping mode with `--debug`). `TimeoutError` kills
-   the process — it is used by the test harness.
+   the process (nothing in-tree currently raises it; the test harness's
+   `with_frame_timeout` raises `AssertionError` instead).
 7. **Emulate the frame** (`modules/main.py:139-140`): the pressed-input bitfield is
    recorded into `inputs_each_frame` (a 128-entry deque the HTTP server streams), then
    `context.emulator.run_single_frame()` actually advances mGBA by one frame.
@@ -170,7 +172,7 @@ layers), this is the bot's "turbo" configuration.
   3. `register_exception_hook()`; `load_plugins()` (user plugins load *before* arg
      parsing because they may register bot modes that must appear in `--bot-mode`
      choices).
-  4. On Windows, `win32api.SetConsoleCtrlHandler` (`pokebot.py:134`) catches
+  4. On Windows, `win32api.SetConsoleCtrlHandler` (`pokebot.py:141`) catches
      console-close so the emulator state still gets saved.
   5. If not bundled **and** not a git checkout → `run_updater()` (`pokebot.py:146`).
   6. Construct `PokebotHeadless` or `PokebotGui`, assign to `context.gui`, and call
@@ -262,8 +264,8 @@ Gotchas:
 ### `modules/tasks.py` — the game's coroutine system
 
 Gen-3 games schedule work as "Tasks" (up to 16 entries in `gTasks`, 40 bytes each:
-function pointer, active flag, priority, 16 bytes of data) and run scripted events via
-a bytecode "script context".
+function pointer, active flag, priority, 16 two-byte data slots) and run scripted
+events via a bytecode "script context".
 
 - `Task` (:15) / `TaskList` (:46): parsed view of `gTasks`; keyed by resolved function
   symbol name (lowercased). `get_tasks()` (:164) is frame-cached; `task_is_active(name)`
@@ -352,7 +354,9 @@ Profile-independent config lives directly in `profiles/*.yml` (copied from
 For savestates it identifies the matching ROM automatically via the CRC32 mGBA embeds
 at state offset 8 (:63), scanning `roms/`. Writes `current_state.ss1` and/or
 `current_save.sav` into the fresh profile. This is the backend of the GUI's import flow
-and the standalone `import.py`/`import.exe`.
+(`modules/gui/create_profile_screen.py`). Note: `pokebot.spec` still builds an
+`import.exe` from a root-level `import.py`, but that file does not exist in this
+checkout, so only the GUI flow is functional here.
 
 ### `modules/files.py` — small file helpers
 
@@ -385,9 +389,9 @@ logged encounter. Import it instead of `print`.
 ### `modules/keyboard.py` (skim)
 
 Models the in-game naming-screen keyboard (pages/rows/columns loaded from
-`modules/data` JSON per game+language) and provides a generator that navigates the
-cursor and types a nickname — used when a plugin's `on_should_nickname_pokemon`
-returns a name.
+`modules/data/keyboard.json`, keyed per language) and provides a generator
+(`handle_naming_screen`) that navigates the cursor and types a nickname — used when a
+plugin's `on_should_nickname_pokemon` returns a name.
 
 ### `updater.py`, `requirements.py`, `pokebot.spec` — install/update flow
 
@@ -416,7 +420,9 @@ Current flow, relevant to building a custom installer:
    partial-file protection — a custom installer could improve on this substantially.
 3. **Bundled build:** `pokebot.spec` builds `pokebot.exe` + `import.exe` via
    PyInstaller (it first runs `update_requirements(ask_for_confirmation=False)` so all
-   deps exist in the build env). Data files bundled: `sprites/`, `modules/data/`.
+   deps exist in the build env). Caveat: the spec references a root-level `import.py`
+   that is absent from this checkout, so the `import.exe` part of the build would fail
+   as-is. Data files bundled: `sprites/`, `modules/data/`.
    The dist folder is post-processed to include LICENSE, Readme, a `profiles/` dir with
    the template `*.yml`/`*.py`, and an empty `roms/` dir. In a bundle, requirements
    checking and the updater are both disabled (`is_bundled_app()` gates).
@@ -459,7 +465,7 @@ Current flow, relevant to building a custom installer:
 
 **The generator-return convention is the key extension mechanism**: any hook documented
 as "may return a Generator" gets that generator spliced into the frame loop via the
-dispatcher functions in `modules/plugins.py` (:98-163) — the current bot mode is
+dispatcher functions in `modules/plugins.py` (:98-180) — the current bot mode is
 suspended, your generator's `yield`s each advance one frame (you can press buttons,
 wait for tasks, etc.), and when it finishes the mode resumes. Dispatchers iterate all
 plugins in order; for `on_judge_encounter`/`on_should_nickname_pokemon` the first
@@ -521,9 +527,10 @@ zip, preserved by the in-place updater since release zips don't include user fil
   (savestate-rollback lookahead) but under-used; they enable "simulate n frames into
   the future, inspect RNG/task state, roll back" strategies — ideal for frame-perfect
   RNG manipulation features.
-- **Work queue has no error handling** (`modules/main.py:74-77`): an exception in a
-  queued callback propagates into the frame loop's generic handler and drops the bot to
-  Manual. Wrapping callbacks would isolate HTTP-triggered work.
+- **Work queue has no error handling** (`modules/main.py:74-77`): the drain runs
+  *outside* the per-frame `try`, so an exception in a queued callback escapes to
+  `main_loop`'s outer handler, which prints the traceback and kills the whole process
+  (`sys.exit(1)`). Wrapping callbacks would isolate HTTP-triggered work.
 - **Per-frame overhead**: `get_tasks()` re-reads and re-parses all 640 bytes of
   `gTasks` every frame plus a symbol lookup per task; the state cache helps within a
   frame but not across frames. A dirty-check on raw bytes before re-parsing would cut

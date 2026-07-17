@@ -48,7 +48,7 @@ version 0) is brought up to date in one pass. A `schema_version` table stores th
 version; a DB *newer* than the code raises `StatsDatabaseSchemaTooNew`
 (stats.py:605-608), which matters because profiles are shared between machines.
 
-Five tables:
+Six tables:
 
 - **`schema_version`** — single row, `version INT`.
 - **`encounters`** (stats.py:1390-1407) — one row per logged encounter:
@@ -61,7 +61,7 @@ Five tables:
   data structure**, so the entire Pokémon (IVs, moves, OT, everything) can be
   reconstructed later via `Pokemon(row[13])` (stats.py:141).
   Important: **not every encounter is inserted**. `log_encounter`
-  (stats.py:668) only inserts the row if `logging.log_encounters` is true OR the
+  (stats.py:644; the insert check is at 668) only inserts the row if `logging.log_encounters` is true OR the
   encounter is "of interest" (shiny/custom-filter match). Aggregates are always
   updated regardless.
 - **`shiny_phases`** (stats.py:1361-1387, + v2/v3 columns) — one row per "phase"
@@ -241,7 +241,7 @@ from native ones. Old files are left in place (not deleted) after migration.
   `replay_buffer_delay`, `screenshot`, `shiny_delay`, and `obs_websocket`
   (`host: 127.0.0.1`, `port: 4455`, `password`) for stream automation.
 
-**http.yml — `HTTP`/`HTTPServer` (schemas_v1.py:209-242)**
+**http.yml — `HTTP`/`HTTPServer` (schemas_v1.py:209-213, 237-242)**
 - `http_server: {enable: false, ip: 127.0.0.1, port: 8888}` — REST/stream API
   (aiohttp) used by stream overlays.
 
@@ -277,9 +277,11 @@ PyInstaller bundles (`pokebot.spec` includes `modules/data`).
 
 Note: **wild encounter tables are not in `modules/data/`** — they are read from
 ROM at runtime (see the map/encounter agent's doc); and "TCG data" is not data
-either — `modules/tcg_card.py` generates card images from `sprites/` assets.
-The `sprites/` directory (repo root) holds all Pokémon/item sprite images and is
-bundled alongside `modules/data` in PyInstaller builds.
+either — `modules/tcg_card.py` generates card images from sprite assets.
+Sprites do **not** live at the repo root: `get_sprites_path()`
+(modules/runtime.py:38-43) points at `modules/web/static/sprites/`, which holds
+all Pokémon/item/TCG sprite images. (`pokebot.spec` still lists a repo-root
+`sprites/` as bundled data — a stale reference, see the packaging section.)
 
 ---
 
@@ -319,7 +321,7 @@ True end-to-end suite driving the real emulator (docs: tests/README.md).
     console (utility.py:375-382); config comes from the *templates* directory,
     with logging tweaked for tests (utility.py:232-240).
 - **Coverage**: mode Spin (encounters + shiny catch), mode Starters, battle
-  evolution handling (4 cases), move learning (4 cases), pathfinding (14 cases:
+  evolution handling (4 cases), move learning (4 cases), pathfinding (13 cases:
   warps, connected maps, surf, waterfalls, dive, currents, muddy slopes, acro
   bike rails), and `test_map.py` (non-emulator-heavy: encounter-table math with
   repel/Pressure/Intimidate/Magnet Pull/Static level filtering).
@@ -391,7 +393,9 @@ click / `py pokebot.py`:
   `update_requirements(ask_for_confirmation=False)` (pokebot.spec:9-11) so the
   build env has all deps + libmgba.
 - Builds `pokebot.exe` (console app) with `sprites/` and `modules/data/` as
-  bundled datas, collects into `dist/pokebot/`, copies LICENSE/Readme, creates
+  bundled datas (pokebot.spec:17 — but the repo-root `sprites/` it names no
+  longer exists; sprites moved to `modules/web/static/sprites/`), collects into
+  `dist/pokebot/`, copies LICENSE/Readme, creates
   empty `profiles/` (with template YMLs + .py files copied from a repo-root
   `profiles/` dir) and `roms/`.
 - At runtime, `is_bundled_app()` (modules/runtime.py:5-9) short-circuits both
@@ -399,7 +403,9 @@ click / `py pokebot.py`:
   directory.
 - **Currently broken/stale**: the spec also builds an `import.exe` from
   `import.py` (pokebot.spec:27-34), but `import.py` does not exist in the repo
-  — the spec would fail as-is. Also note it expects a repo-root `profiles/`
+  — the spec would fail as-is. Its `('sprites', 'sprites')` data entry points
+  at a repo-root `sprites/` directory that also does not exist (sprites are at
+  `modules/web/static/sprites/`), and it expects a repo-root `profiles/`
   directory that is not checked in (it's created at first run). No CI job
   builds this bundle; releases are source ZIPs.
 
@@ -448,7 +454,8 @@ per topic. Quick map:
   non-git, non-bundled installs. A git-based or manifest-based updater (with
   the profile dir explicitly excluded) would be safer and also serve the
   PyInstaller path, which today has *no* update mechanism at all.
-- **pokebot.spec is stale** (references missing `import.py` and a repo-root
+- **pokebot.spec is stale** (references missing `import.py`, a repo-root
+  `sprites/` dir that moved to `modules/web/static/sprites/`, and a repo-root
   `profiles/` template dir); fixing it plus adding a CI build job would enable
   a true no-Python Windows distribution — likely the cleanest end state for a
   one-click installer.

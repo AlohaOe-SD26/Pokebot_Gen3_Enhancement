@@ -42,3 +42,17 @@
 - Added `40cakes repo/UPDATE-LOG.md` (append-only upstream sync record)
   and the daily upstream-check standing directive to CLAUDE.md.
 - Updated vision/architecture docs and decisions log for the new layout.
+
+## 2026-07-17 — Documentation verification pass (sanity check)
+- Six adversarial verifier agents re-checked every claim in the seven docs
+  against source: ~975 claims verified, 39 errors fixed (8 in doc 01, 7 in
+  doc 02, 7 in doc 03, 6 in doc 04, 5 in doc 05, 6 in AI notes; overview
+  clean). Highest-value fixes: inverted LoseOnPurpose/Explosion behavior,
+  navigate_to warp/surf limits, `decide_turn` returns a tuple, OBS uses
+  obs-websocket not hotkeys, `/stream_video` sends nothing while video is
+  disabled, work-queue errors exit the process.
+- Three upstream bugs discovered and recorded as KI-1..KI-3 in
+  05-KNOWN-ISSUES.md (stale pokebot.spec; `modified_stats()` TypeError
+  dead code; stale `disable_default_battle_handler` docstring).
+- Lesson logged as ML-1 in 08-MISTAKES.md (verify agent-written docs
+  before building on them).

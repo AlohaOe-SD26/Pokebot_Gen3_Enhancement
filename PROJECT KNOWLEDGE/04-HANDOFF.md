@@ -24,8 +24,10 @@ No code enhancements built yet.
 
 ## What was just done (last session)
 - Vendored upstream (#1), completed the deep documentation pass (#2),
-  then restructured to the two-folder fork layout with the daily
-  upstream-sync ritual (CLAUDE.md directive + UPDATE-LOG.md).
+  restructured to the two-folder fork layout with the daily upstream-sync
+  ritual (CLAUDE.md directive + UPDATE-LOG.md), then ran a full
+  adversarial verification of all seven docs (~975 claims, 39 errors
+  fixed — docs are now build-on-able; upstream bugs found are KI-1..KI-3).
 
 ## In progress (and how far along)
 - Nothing mid-flight.

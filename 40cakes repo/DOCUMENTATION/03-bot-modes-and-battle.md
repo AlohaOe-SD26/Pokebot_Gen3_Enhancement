@@ -1,6 +1,6 @@
 # 03 — Bot Modes and the Battle Engine
 
-Scope: `modules/modes/` (mode contract, listeners, asserts, util helpers, all ~24 concrete
+Scope: `modules/modes/` (mode contract, listeners, asserts, util helpers, all 23 concrete
 modes), `modules/battle_strategies/`, the battle engine (`battle_handler.py`,
 `battle_action_selection.py`, `battle_menuing.py`, `battle_move_replacing.py`,
 `battle_evolution_scene.py`), the encounter pipeline (`encounter.py`), and the supporting
@@ -57,9 +57,9 @@ deliberately small; a mode only ever *needs* to implement `name()` and `run()`.
 
 ### Identity & availability
 
-- `name() -> str` (static, `:25`) — the label shown in the GUI's mode drop-down. Also the
+- `name() -> str` (static, `:26`) — the label shown in the GUI's mode drop-down. Also the
   string stored in `context.bot_mode`.
-- `is_selectable() -> bool` (static, `:32`) — a *rough* sanity check ("is the player on
+- `is_selectable() -> bool` (static, `:33`) — a *rough* sanity check ("is the player on
   the right map / facing water?") that decides whether the mode appears in the drop-down.
   The docstring is explicit about the philosophy: keep this coarse and put the *precise*
   checks in `run()` as `BotModeError`s, so users see a meaningful error message instead of
@@ -76,7 +76,10 @@ deliberately small; a mode only ever *needs* to implement `name()` and `run()`.
   the top of the controller stack*. Crucially, per its docstring: **when a battle starts,
   the battle handler takes over by default** and `run()` is not advanced until the battle
   is done. A mode can opt out of that by returning `BattleAction.CustomAction` from
-  `on_battle_started()`, in which case in-battle frames flow to `run()` too.
+  `on_battle_started()`, in which case in-battle frames flow to `run()` too. (Beware: the
+  docstring itself names a `self.disable_default_battle_handler()` method as the opt-out —
+  that method exists nowhere in the codebase; the stale docstring predates the
+  `BattleAction.CustomAction` mechanism.)
 
 ### Event hooks (all optional overrides)
 
@@ -376,7 +379,8 @@ All `run()` line references are to the mode file named.
 - **Puzzle Solver** (`puzzle_solver.py:107`) — R/S/E + FR/LG. Scripted walkthroughs of
   environmental puzzles: Mirage Tower, Sky Pillar, the three Regi chambers (including the
   Braille interactions, Dig/Fly requirements), Birth Island's Deoxys triangle, Pacifidlog
-  currents, Seafloor Cavern, Tanoby Key. Each map gets a `path()` generator of
+  currents, Seafloor Cavern, Tanoby Key, plus Route 113 ash collecting for the Glass
+  Workshop (1,000 ashes, then hands back to Manual). Each map gets a `path()` generator of
   navigation + `use_rock_smash`/`use_strength`/`dive()` calls; `on_battle_started`
   auto-battles interruptions. Not a loop — it ends back in Manual when solved.
 
@@ -488,7 +492,7 @@ Pokémon in doubles).
 
 ### The `BattleStrategy` interface (`modules/battle_strategies/_interface.py`)
 
-Nine decision points (`_interface.py:8-101`): `party_can_battle()`,
+Ten decision points (`_interface.py:8-101`): `party_can_battle()`,
 `pokemon_can_battle(pokemon)`, `which_move_should_be_replaced(pokemon, new_move)`
 (return 0–3 to replace, 4 to refuse), `should_allow_evolution(pokemon, index)`,
 `should_flee_after_faint(battle_state)`, `choose_new_lead_after_battle()` (post-battle
@@ -539,10 +543,13 @@ rotation), `choose_new_lead_after_faint(battle_state)`, `decide_turn(battle_stat
   twice); respects Sticky Hold, Substitute, and Ghost-type immunity to Covet; rotates the
   strongest remaining "thief" in as needed, then escapes when there is nothing to steal.
 - **LoseOnPurposeBattleStrategy** (`lose_on_purpose.py`) — inverse move scoring
-  (`_get_weakest_move_against`): prefers Splash, penalizes healing/multi-hit/Roar,
-  rewards being damaged (semi-invulnerable turns doubled *against* it), avoids Explosion
-  when it would end the battle on the last Pokémon; never allows new leads to be
-  meaningful — the goal is a controlled whiteout (Nugget Bridge, Kecleon).
+  (`_get_weakest_move_against`): prefers Splash (score −1), heavily penalizes
+  healing/multi-hit/Roar/OHKO moves and moves with a semi-invulnerable turn (it *wants*
+  to be hit, so Fly/Dig scores are doubled to select against them), and actively
+  **prefers** Explosion/Selfdestruct when it is down to the last non-fainted Pokémon —
+  a guaranteed loss is exactly the goal, so that case scores −2, below even Splash
+  (plus a general ×0.85 bonus for self-fainting moves); after a faint it simply sends
+  out the next body — the goal is a controlled whiteout (Nugget Bridge, Kecleon).
 - **BattleStrategyUtil** (`_util.py:40`) — the shared math engine: exact Gen-3 escape
   odds (`get_escape_chance`, `:44`, including Smoke Ball / Run Away ability / trap
   abilities and the escape-attempts counter read from game RAM), escape method selection
@@ -576,7 +583,7 @@ rotation), `choose_new_lead_after_faint(battle_state)`, `decide_turn(battle_stat
 The judging/logging/alerting funnel every wild Pokémon, gift, and hatched egg passes
 through:
 
-1. **`EncounterInfo.create(pokemon, type)`** (`:44`) snapshots the Pokémon, timestamp,
+1. **`EncounterInfo.create(pokemon, type)`** (`:45`) snapshots the Pokémon, timestamp,
    encounter type (grass/surf/fishing/gift/hatched/…, from `battle_state.get_encounter_type`),
    map + coordinates, current bot mode, and immediately runs the custom catch filters.
 2. **`judge_encounter(pokemon) -> EncounterValue`** (`:124`) classifies:

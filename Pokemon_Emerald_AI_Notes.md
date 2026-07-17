@@ -1,13 +1,14 @@
 # Pokémon Emerald AI — Transfer Notes from pokebot-gen3
 
 > Purpose: everything discovered in the pokebot-gen3 codebase (vendored in
-> this repo at `pokebot-gen3/`) that is useful to the separate **Pokémon
-> Emerald AI** project — an AI that plays Pokémon Emerald. Written to be
-> consumed standalone: paths below are relative to `pokebot-gen3/` in the
+> this repo at `40cakes repo/pokebot-gen3/`) that is useful to the separate
+> **Pokémon Emerald AI** project — an AI that plays Pokémon Emerald. Written
+> to be consumed standalone: paths below are relative to
+> `40cakes repo/pokebot-gen3/` in the
 > https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement repo (upstream:
 > https://github.com/40Cakes/pokebot-gen3).
 >
-> Deep-dive docs behind every claim: `PROJECT KNOWLEDGE/CODEBASE/00–05` in
+> Deep-dive docs behind every claim: `40cakes repo/DOCUMENTATION/00–05` in
 > this repo (all statements verified against source at upstream commit
 > `5dd898f8`, 2026-07-17).
 
@@ -42,7 +43,8 @@ free, or these techniques can be lifted individually.
   manager literally implements "simulate N frames ahead, observe, roll
   back". Same state + same inputs = deterministic trajectory.
 - **Deterministic RNG on demand**: the test harness forces outcomes by
-  writing `gRngValue` (`tests/utility.py:271-324`) — that file is
+  writing `gRngValue` (`set_next_rng_seed`, `tests/utility.py:385-394`;
+  the frame-step loop is `_run_test`, `:271-324`) — that file is
   effectively a ready-made gym environment: headless libmgba, save-state
   injection, deterministic RNG, frame-step loop with task/script
   introspection.
@@ -89,7 +91,7 @@ free, or these techniques can be lifted individually.
   probability** — usable directly as a battle-AI evaluation function or as
   ground truth for training.
 - A custom battle brain reduces to one method:
-  `decide_turn(battle_state) -> TurnAction` — menu execution, faints, move
+  `decide_turn(battle_state) -> (TurnAction, extra)` — menu execution, faints, move
   learning, evolutions are all handled by `handle_battle()`
   (`modules/battle_handler.py`).
 - Outcomes are knowable before they render (useful for planning/reward
@@ -106,7 +108,9 @@ free, or these techniques can be lifted individually.
   waterfalls, currents, ice, ledges, live-NPC avoidance, event-trigger
   avoidance. Emits waypoints with attached actions (Surf/Waterfall/bike).
 - Higher-level primitives already exist as generator helpers (doc 03):
-  `navigate_to(map, coords)` (crosses maps/warps/Surf), `talk_to_npc`,
+  `navigate_to(map, coords)` (crosses directly-connected maps; a warp/door
+  can be the *destination* but is not routed through, and surf entry/exit
+  must be handled separately), `talk_to_npc`,
   `heal_in_pokemon_center`, `buy_in_shop`, `interact_with_pc`, `fly_to`,
   `use_field_move` — a ready-made **tool library for a planner/LLM agent**.
 - Map decoding (`modules/map.py`, 2299 lines): ~200 tile behaviours,
@@ -132,7 +136,7 @@ free, or these techniques can be lifted individually.
    custom `BotMode`; its `run()` generator IS the agent's policy loop
    (each `yield` = one frame). Inherits GUI, stats, HTTP server, Discord.
    Goal injection seams: `on_battle_started` (return a `BattleStrategy`),
-   `judge_encounter` plugin hook, `customcatchfilters.py`.
+   `on_judge_encounter` plugin hook, `customcatchfilters.py`.
 2. **Out-of-process via HTTP** (enable `http.yml`): observation is
    complete — PNG frame stream (`/stream_video`), decoded state (`/party`,
    `/opponent` incl. IVs, `/map` tile passability, `/game_state`, event
@@ -148,8 +152,9 @@ free, or these techniques can be lifted individually.
 ## 7. Scenario construction for training/eval
 
 - `modules/debug_utilities.py` is a scenario factory: fabricate fully
-  valid encrypted Pokémon, rewrite party/bag/Pokédex, import/export event
-  flags/vars, and create PNG savestates with embedded battery saves —
+  valid encrypted Pokémon, rewrite party/bag/Pokédex, and import/export
+  event flags/vars; the debug GUI menu (`modules/gui/debug_menu.py:54-57`)
+  additionally exports PNG savestates with embedded battery saves —
   ideal for constructing reproducible eval situations (specific teams,
   specific map states) without playing to them.
 - Profiles are self-contained folders (save + savestates + config +

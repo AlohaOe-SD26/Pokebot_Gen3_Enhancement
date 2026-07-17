@@ -137,8 +137,9 @@ Other notable decoders: `original_trainer` (:988, incl. gender bit from the orig
   checksum-valid; this is the standard "is this really a Pokémon?" gate.
 - `get_opponent()` (:1500) — first Pokémon of `gEnemyParty` (delegates to pokemon_party).
 - `opponent_changed()` (:1521) — ultra-cheap change detector: reads only the first 4 bytes
-  (PID) of `gEnemyParty` and compares with the previous call. Used by the encounter loop to
-  notice new trainer battles without decoding 600 bytes every frame.
+  (PID) of `gEnemyParty` plus `gBattleTypeFlags`, and reports a change only when the PID
+  differs from the previous call *and* the trainer/tutorial battle-type bits are set. Used by
+  the encounter loop to notice new trainer battles without decoding 600 bytes every frame.
 
 **Consumers:** virtually everything — encounter judging (`modules/encounter.py`), battle
 strategies, the web API, stats/logging, the GUI, daycare/breeding modes.
@@ -244,7 +245,7 @@ matrix). Consumed by the Daycare (egg hatching) bot mode.
 
 ---
 
-## modules/roamer.py — Latios/Latias/legendary-bird roamer (180 lines)
+## modules/roamer.py — Latios/Latias/legendary-beast roamer (180 lines)
 
 The roamer (Latias/Latios in RSE, the legendary beasts in FRLG) is stored in SaveBlock1
 (offset 0x30D0 FRLG / 0x31DC E / 0x3144 RS; `get_roamer` :148), *not* as a normal Pokémon
@@ -389,7 +390,7 @@ custom overworld automation.
   - `needs_acro_bike` / `needs_bunny_hop` for rails and bumpy slopes (:187-196);
   - `on_enter_event_triggers` (trigger var → value from coord events),
     `dynamic_collision_flag`/`dynamic_object_id` for NPCs/objects (:331-340),
-  - `has_encounters`, `cannot_run` (:324-328).
+  - `has_encounters` (:313), `cannot_run` (:324-328).
   - `_is_optional_blocker` (`:357`) — hardcoded list of tiles that appear/disappear with
     event flags (Shoal Cave items) which the ROM data can't express.
 
@@ -463,9 +464,11 @@ Decodes the live battle engine state. Central symbol: `gBattleMons`, an array of
   species, **live battle stats** (:496), IVs (:507), moves with current PP (:519),
   `can_use_move` (:547 — accounts for Disable and Encore), ability (:566), current
   types (:577 — can change via e.g. Transform), **stat stages** `stats_modifiers`
-  (:587, -6..+6) and `modified_stats()` (:590 — applies the exact stage multiplier table),
+  (:587, -6..+6) and `modified_stats()` (:590 — carries the exact stage multiplier table, but
+  beware: the table is written as Python *set* literals, so indexing it raises `TypeError`;
+  the method is currently broken and unused anywhere in the codebase),
   HP (:623-634), level, held item, PID, `status_permanent` (:705) and `status_temporary`
-  (:709 — ~35 volatile statuses decoded from `status2` + `gStatuses3` bitfields via
+  (:709 — 37 volatile statuses decoded from `status2` + `gStatuses3` bitfields via
   `TemporaryStatus.from_bitfield` :117), plus the whole per-battler *disable struct*:
   disabled/encored move and remaining turns, Substitute HP, Stockpile/Fury Cutter counters,
   Perish Song / Taunt / Rollout / Charge / recharge timers, Truant "loafing" flag
@@ -541,7 +544,7 @@ source of lifetime counters (the bot's own stats DB tracks per-session data sepa
 ## modules/tasks.py — the game's coroutine system (215 lines)
 
 The game engine runs "tasks" (`gTasks`, 16 slots × 40 bytes: function pointer, is_active,
-priority, 16 bytes of data) and up to two script-interpreter contexts. Since the bot cannot
+priority, 32 bytes of data = 16 u16 values) and up to two script-interpreter contexts. Since the bot cannot
 ask the game "what are you doing?", **resolving these function pointers back to pret symbol
 names is the primary way of inferring game mode**:
 
@@ -593,8 +596,8 @@ blindly pressing buttons:
   window structs on R/S) into a `TextPrinter` state machine
   (PrintingCharacter/Scrolling/WaitForButton, :8-58) so dialogue advancement can be timed
   precisely. `get_text_printer()` (:92).
-- `fonts/` — just `pokemon-rs.ttf`, the pixel font used by the TCG-card renderer
-  (`tcg_card.py:39`); no code.
+- `fonts/` — just `pokemon-rs.ttf` (plus its license file), the pixel font used by the
+  TCG-card renderer (`tcg_card.py:39`); no code.
 
 ---
 
@@ -645,7 +648,8 @@ version-aware. The AI never needs to touch raw memory — it should consume thes
    items (`map.py:700`) and undefeated trainers (`map.py:1638`).
 2. **Agent observation, battle**: `get_battle_state()` (`battle_state.py:808`) is a
    near-complete battle observation: both actives' live stats, stat stages
-   (`modified_stats()` `battle_state.py:590`), moves + PP + Disable/Encore legality
+   (`stats_modifiers` `battle_state.py:587`; `modified_stats()` :590 is currently broken —
+   see above), moves + PP + Disable/Encore legality
    (`can_use_move` `battle_state.py:547`), volatile statuses (`battle_state.py:709`),
    screens/spikes timers, weather, turn number. Pair with `get_opponent_party()`
    (`pokemon_party.py:155`) for full enemy-team knowledge (the game keeps the whole enemy

@@ -11,4 +11,34 @@
 - **Workaround:** if any
 -->
 
-_No known issues._
+These are UPSTREAM bugs in pokebot-gen3 (found during the 2026-07-17 doc
+verification pass). They exist identically in `40cakes repo/pokebot-gen3/`
+(pristine — do not fix there) and `custom-pokebot/` (fix candidates; any
+fix goes in DIVERGENCE-LOG).
+
+## KI-1 — Upstream pokebot.spec (PyInstaller) is stale/broken   (opened 2026-07-17, severity: low)
+- **Symptom:** `pokebot.spec` references `import.py` (file doesn't exist in
+  the repo) and a repo-root `sprites/` dir (sprites actually live at
+  `modules/web/static/sprites/`); a PyInstaller build would fail as-is.
+- **Repro:** `pyinstaller pokebot.spec`.
+- **Suspected cause:** spec never updated after upstream restructures;
+  upstream releases are source ZIPs, so the spec is unexercised.
+- **Workaround:** run from source (our normal path). Relevant to punch-list
+  #4 only if we ever want packaged builds.
+
+## KI-2 — Upstream `BattleStateSide.modified_stats()` raises TypeError   (opened 2026-07-17, severity: low)
+- **Symptom:** `modules/battle_state.py:590` builds its stage-multiplier
+  table from set literals (`{10, 40}`), which can't be indexed — calling
+  `modified_stats()` raises `TypeError`. Zero callers in the repo (dead
+  code), so nothing breaks today.
+- **Workaround:** use `stats_modifiers` (battle_state.py:587) and apply
+  multipliers yourself. Must be fixed in custom-pokebot before any custom
+  battle brain relies on it.
+
+## KI-3 — Upstream stale docstring names nonexistent battle opt-out   (opened 2026-07-17, severity: low)
+- **Symptom:** `modules/modes/_interface.py:62` docstring tells mode
+  authors to call `self.disable_default_battle_handler()` — that method
+  doesn't exist anywhere. The real mechanism is returning
+  `BattleAction.CustomAction` from `on_battle_started()`.
+- **Workaround:** documented in `40cakes repo/DOCUMENTATION/03`; keep in
+  mind when writing custom modes.

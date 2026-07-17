@@ -19,4 +19,22 @@
 
 ---
 
-_No mistakes logged yet. (That's fine — this fills in as the project runs.)_
+## 2026-07-17 — Agent-written docs contained ~4% wrong claims  (ML-1)
+- **Symptom:** The initial deep-documentation pass (written by 5 parallel
+  agents) read convincingly but contained 39 factual errors across ~975
+  verifiable claims (~4%): off-by-N line refs, an inverted behavior claim
+  (LoseOnPurpose/Explosion), invented capabilities (navigate_to crossing
+  warps; a repo-root sprites/ dir; OBS "hotkey" mechanism), wrong return
+  types, and a wrong error-handling claim (work-queue errors exit the
+  process, not drop to Manual).
+- **Context:** `40cakes repo/DOCUMENTATION/00–05`, `Pokemon_Emerald_AI_Notes.md`.
+- **Root cause:** First-pass documentation states plausible inferences with
+  the same confidence as verified facts; some errors even originated from
+  stale comments/docstrings in the upstream source itself (e.g. the
+  obs.py header, the `disable_default_battle_handler` docstring).
+- **Fix:** A second adversarial verification pass (6 agents, one per doc,
+  instructed to open every cited file:line and re-derive every behavioral
+  claim from code) fixed all 39 and flagged what remained unverifiable.
+- **Prevention:** Never build on agent-written technical docs until they
+  have survived an adversarial verify pass; and treat upstream
+  comments/docstrings as claims to verify, not facts.

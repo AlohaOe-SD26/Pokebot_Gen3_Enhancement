@@ -91,7 +91,8 @@ for debugging bot modes frame-by-frame.
 - **Bot Mode dropdown** (lines 144-200): lists Manual plus every registered mode from
   `get_bot_modes()`; each mode's `is_selectable()` is checked against the current game state and
   non-selectable ones are greyed out (lines 172-190). Selecting writes `context.bot_mode`.
-- **Speed controls** (lines 202-248): 1× / menu (2-32×) / ∞ (unthrottled = speed 0).
+- **Speed controls** (lines 202-248): a 1× button, a "…" menu button (menu lists all of
+  1×-32× plus unthrottled, lines 211-220), and an ∞ button (unthrottled = speed 0).
 - **Video / Audio toggle buttons** (lines 250-267), purple-highlighted when active.
 - **Message area** (lines 269-274): displays `context.message` — the bot's one-line status string
   that modes set to communicate with the user.
@@ -173,7 +174,7 @@ A menu-bar cascade (debug mode only) offering active cheats/tools:
 Started from the core loop, *not* the GUI: `modules/main.py:60-66` — if
 `config.http.http_server.enable` (default **off**, `modules/config/schemas_v1.py:237-242`,
 default `127.0.0.1:8888`, configured in `profiles/<name>/http.yml` or global `profiles/http.yml`)
-then `start_http_server()` (`http.py:965-977`) spins up an aiohttp `AppRunner` in its own thread
+then `start_http_server()` (`http.py:965-976`) spins up an aiohttp `AppRunner` in its own thread
 with its own asyncio loop. Because it starts inside `main_loop`, **the API only exists after a
 profile is loaded** — profile selection cannot be done over HTTP.
 
@@ -212,12 +213,12 @@ All responses are JSON unless noted. "(cached)" = served via the state cache + w
 | `/input` | GET | – | Currently pressed buttons as strings — `:662` |
 | `/input` | **POST** | JSON array, e.g. `["B","Right"]`; `[]` releases all | **Set held buttons** — replaces all held inputs via the work queue. *Silently ignored unless bot mode is Manual* (`update_inputs`, lines 713-719). Returns 204 — `:677` |
 | `/stream_events` | GET (SSE) | `?topic=X&topic=Y` (≥1 required) | Server-sent events stream, see §2.3 — `:723` |
-| `/stream_video` | GET | `?fps=1-60` (default 30) | `multipart/x-mixed-replace` PNG frame stream of the emulator screen — `:860-903` |
+| `/stream_video` | GET | `?fps=1-60` (default 30, capped at 60) | `multipart/x-mixed-replace` PNG frame stream of the emulator screen. **Sends frames only while video is enabled** (`context.video` check, line 894) — `:860-903` |
 | `/rtc` | POST | WebRTC SDP offer | WebRTC peer connection streaming **video + audio** (only if `aiortc` installed, else 503) — `:759-858` |
 | `/api.json` | GET | – | Generated OpenAPI spec — `:936` |
 | `/docs` | GET | – | Redirect to Swagger UI — `:943` |
 | `/` | GET | – | Redirect to `/static/index.html` demo dashboard — `:953` |
-| `/stream-overlay` | GET | – | Redirect to `/static/stream-overlay/index.html` — `:947` |
+| `/stream-overlay` | GET | – | Redirect to `/static/stream-overlay/index.html` (same handler also bound to `/static/stream-overlay` and `/static/stream-overlay/`) — `:947-951` |
 | `/static/*` | GET | – | Static assets (below) — `:957` |
 
 ### 2.3 The event stream (SSE) mechanism (`modules/web/http_stream.py`)
@@ -319,8 +320,12 @@ lines 125-307), fired from the encounter-logging pipeline:
 | TCG card | if TCG-card generation enabled | Generated card image |
 
 The **OBS plugin** (`built_in_plugins/obs.py`) is the streaming sibling: connects to
-obs-websocket, can trigger the replay buffer hotkey and take OBS screenshots of the scene on
-shiny encounters, optionally posting those screenshots to their own Discord webhook.
+obs-websocket and, on encounters "of interest", can take OBS screenshots of the current scene
+(`obs.py:120-129`) and save the OBS replay buffer via the `SaveReplayBuffer` websocket request
+(shinies only, lines 96-99, 131-133 — despite the file's header comment, no hotkey is emulated).
+Shiny screenshots are optionally posted to their own Discord webhook
+(`config.obs.discord_webhook_url`, lines 84-94); a configurable `shiny_delay` pauses the bot on
+shinies so livestream chat can react (lines 112-118).
 
 ---
 
@@ -397,7 +402,8 @@ symbol, §1.5) plus raw `read_symbol`/`get_save_block` used throughout. Note `_s
 - **The HTTP API is a nearly ready-made AI observation/actuation harness**: an external agent can
   poll `/game_state`, `/map` (full tile passability/encounter data), `/player_avatar`, `/party`,
   `/opponent`, subscribe to `/stream_events` for push updates, watch the screen via
-  `/stream_video` (PNG frames — directly consumable by a vision model), and act via
+  `/stream_video` (PNG frames — directly consumable by a vision model; requires video output
+  to be enabled), and act via
   POST `/input` (button holds, Manual mode) — i.e. observe + control loops need **no emulator
   integration work at all**, just `http.yml` enable.
 - **Structured state beats pixels here**: the API exposes decoded RAM (exact tile collision maps,
