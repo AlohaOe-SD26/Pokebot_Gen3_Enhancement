@@ -1,0 +1,7 @@
+# Project Kit: keep the phone launcher byte-verbatim (its line endings are original)
+"REMOTE START/Remote-Start.ps1" -text
+"REMOTE START/Remote-Start.bat" -text
+# Project Kit: append-only logs - on conflicting appends, keep BOTH sides
+"PROJECT KNOWLEDGE/06-DECISIONS-LOG.md" merge=union
+"PROJECT KNOWLEDGE/07-CHANGELOG.md" merge=union
+"PROJECT KNOWLEDGE/08-MISTAKES.md" merge=union
