@@ -55,3 +55,23 @@
   verify they are actually tracked (`git ls-files <path>`) — a clean
   status is not proof. The installer's fresh-clone test now also catches
   this class of bug (critical-files smoke check includes the plugin files).
+
+## 2026-07-18 — Agent-built features carried 16 bugs past their own tests  (ML-3)
+- **Symptom:** The sandbox round (built by 3 fork agents, each with green
+  self-written test batteries and live GUI runs) still contained 16 real
+  defects on adversarial review — including 2 critical (backup backend
+  committing unrelated staged files; macro "once" mode looping forever).
+- **Context:** sandbox-pokebot round #7 (backup, macros, patrol, GUI).
+- **Root cause:** Self-written tests validate the author's mental model;
+  the criticals lived in INTEGRATION CONTRACTS the authors never tested:
+  the main loop re-instantiating finished modes, and git's index being
+  shared global state. One original test was a tautology that always
+  passed.
+- **Fix:** Independent adversarial verifiers per slice, instructed to
+  re-derive contracts from upstream code and attack edge cases; 16 fixes,
+  batteries extended (backup 12→31 checks; macros rewritten to drive the
+  REAL mode under a simulated main loop).
+- **Prevention:** Feature code from agents ships only after an independent
+  adversarial pass that specifically tests INTEGRATION contracts (main
+  loop, git index, Tk lifecycle) — green self-tests are not evidence;
+  and never `git commit` without a pathspec in automation.

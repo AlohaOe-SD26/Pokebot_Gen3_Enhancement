@@ -30,6 +30,7 @@ import yaml
 
 from modules.battle_state import BattleOutcome
 from modules.context import context
+from modules.map_data import MapFRLG, MapRSE
 from modules.modes import BotMode, BotModeError
 from modules.modes._asserts import assert_boxes_or_party_can_fit_pokemon, assert_player_has_poke_balls
 from modules.modes.util import apply_white_flute_if_available, navigate_to
@@ -45,6 +46,11 @@ class PatrolMode(BotMode):
 
     @staticmethod
     def is_selectable() -> bool:
+        # A multi-map route may legitimately START on a map without encounters
+        # (e.g. a town between two grass routes), so a configured patrol.yml
+        # also makes the mode selectable.
+        if context.profile is not None and (context.profile.path / CONFIG_FILE_NAME).exists():
+            return True
         return get_player_avatar().map_location.has_encounters
 
     def on_battle_ended(self, outcome: "BattleOutcome") -> None:
@@ -106,6 +112,14 @@ class PatrolMode(BotMode):
                         "`{map: [group, number], at: [x, y]}`."
                     )
                 waypoint_map = _coordinate_pair(entry["map"], index, "`map`")
+                map_enum = MapRSE if context.rom.is_rse else MapFRLG
+                try:
+                    map_enum(waypoint_map)
+                except ValueError:
+                    raise BotModeError(
+                        f"`{CONFIG_FILE_NAME}` waypoint #{index + 1}: map "
+                        f"[{waypoint_map[0]}, {waypoint_map[1]}] does not exist in this game."
+                    )
                 coordinates = _coordinate_pair(entry["at"], index, "`at`")
                 waypoints.append((waypoint_map, coordinates))
             else:

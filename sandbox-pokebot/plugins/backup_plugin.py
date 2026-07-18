@@ -3,14 +3,22 @@ Sandbox addition (A1): automatic backup triggers.
 
 - Every logged SHINY encounter -> immediate backup (reason "shiny"),
   if `auto_on_shiny` is enabled in backup.yml.
-- A frame listener fires a timed backup every `interval_hours` while the
-  bot runs (0 disables). Checks are throttled to once every ~minute of
-  emulated frames, so per-frame cost is a counter increment.
+- A frame listener fires a timed backup once `interval_hours` of WALL time
+  has passed since the newest local backup (0 disables). Checks are
+  throttled to once per 3600 frames AND at most once per minute of wall
+  time (so fast-forwarded emulation does not check more often), keeping
+  the per-frame cost at a counter increment.
+
+Both triggers are wrapped so that a failing backup can never take the
+frame loop down (an uncaught listener exception would kick the bot into
+Manual mode and stop the hunt).
 
 Manual backups + restore live in the dashboard GUI ("BACKUPS" card).
 Configuration: backup.yml (bot root, or per-profile override).
 """
 
+import logging
+import time
 from typing import TYPE_CHECKING, Iterable
 
 from modules.plugin_interface import BotPlugin
@@ -23,10 +31,12 @@ if TYPE_CHECKING:
 class _IntervalBackupListener:
     """BotListener (duck-typed): timed auto-backups while the bot runs."""
 
-    CHECK_EVERY_FRAMES = 3600  # ~1 minute of emulated time at 60 fps
+    CHECK_EVERY_FRAMES = 3600  # 1 minute of emulated time at 1x speed
+    MIN_SECONDS_BETWEEN_CHECKS = 60.0  # wall-time floor for fast-forwarded emulation
 
     def __init__(self):
         self._frame_counter = 0
+        self._last_check_at = 0.0
 
     def handle_frame(self, bot_mode: "BotMode", frame: "FrameInfo") -> None:
         self._frame_counter += 1
@@ -34,18 +44,30 @@ class _IntervalBackupListener:
             return
         self._frame_counter = 0
 
-        from modules import backup_manager
-        from modules.context import context
+        now = time.monotonic()
+        if now - self._last_check_at < self.MIN_SECONDS_BETWEEN_CHECKS:
+            return
+        self._last_check_at = now
 
-        if context.profile is None:
-            return
-        config = backup_manager.load_config(context.profile.path)
-        interval_hours = float(config.get("interval_hours", 0) or 0)
-        if not config.get("enabled", True) or interval_hours <= 0:
-            return
-        elapsed = backup_manager.seconds_since_last_backup(context.profile.path.name)
-        if elapsed is None or elapsed >= interval_hours * 3600:
-            backup_manager.create_backup(context.profile.path, reason="auto")
+        try:
+            from modules import backup_manager
+            from modules.context import context
+
+            if context.profile is None:
+                return
+            config = backup_manager.load_config(context.profile.path)
+            try:
+                interval_hours = float(config.get("interval_hours") or 0)
+            except (TypeError, ValueError):
+                interval_hours = 0.0
+            if not config.get("enabled", True) or interval_hours <= 0:
+                return
+            elapsed = backup_manager.seconds_since_last_backup(context.profile.path.name)
+            if elapsed is None or elapsed >= interval_hours * 3600:
+                backup_manager.create_backup(context.profile.path, reason="auto")
+        except Exception:
+            # A failed backup must never interfere with the frame loop.
+            logging.getLogger("backup").exception("timed auto-backup failed")
 
 
 class BackupPlugin(BotPlugin):
@@ -65,6 +87,4 @@ class BackupPlugin(BotPlugin):
                 backup_manager.create_backup(context.profile.path, reason="shiny")
         except Exception:
             # A failed backup must never interfere with encounter handling.
-            import logging
-
             logging.getLogger("backup").exception("shiny auto-backup failed")

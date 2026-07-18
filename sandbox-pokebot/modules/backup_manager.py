@@ -72,6 +72,14 @@ def _console_log(message: str, level: str = "info") -> None:
     getattr(_logger, level, _logger.info)(message)
 
 
+def _to_int(value, default: int) -> int:
+    """Config values come from hand-edited YAML — never trust their type."""
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
 def load_config(profile_path: "Path | None" = None) -> dict:
     """Global backup.yml, whole-file-overridden by profiles/<name>/backup.yml
     (matching upstream's config layering convention). Malformed or missing
@@ -129,7 +137,12 @@ def create_backup(profile_path: "Path | str", reason: str = "manual") -> "Path |
     target_dir = LOCAL_BACKUP_ROOT / profile_name
     target_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    zip_path = target_dir / f"{timestamp}_{re.sub(r'[^A-Za-z0-9_-]', '', reason) or 'manual'}.zip"
+    reason_slug = re.sub(r"[^A-Za-z0-9_-]", "", reason) or "manual"
+    zip_path = target_dir / f"{timestamp}_{reason_slug}.zip"
+    suffix = 1
+    while zip_path.exists():  # two backups in the same second must not overwrite each other
+        zip_path = target_dir / f"{timestamp}_{reason_slug}-{suffix}.zip"
+        suffix += 1
 
     archived = 0
     skipped = 0
@@ -157,18 +170,18 @@ def create_backup(profile_path: "Path | str", reason: str = "manual") -> "Path |
         f"backed up '{profile_name}' ({archived} files, {size_kb} KB, reason: {reason})"
         + (f", {skipped} unreadable file(s) skipped" if skipped else "")
     )
-    _prune(target_dir, int(config.get("retention", 10)))
+    _prune(target_dir, _to_int(config.get("retention"), 10))
 
-    cloud = config.get("cloud", {})
+    cloud = config.get("cloud") or {}
     try:
         if cloud.get("github"):
-            _cloud_github(zip_path, profile_name, int(cloud.get("github_retention", 3)))
+            _cloud_github(zip_path, profile_name, _to_int(cloud.get("github_retention"), 3))
     except Exception as error:  # never let cloud problems undo a good local backup
         _console_log(f"GitHub cloud backup failed (local backup is safe): {error}", "warning")
     try:
         folder = cloud.get("synced_folder")
         if folder:
-            _cloud_synced_folder(zip_path, profile_name, Path(folder), int(cloud.get("synced_retention", 10)))
+            _cloud_synced_folder(zip_path, profile_name, Path(folder), _to_int(cloud.get("synced_retention"), 10))
     except Exception as error:
         _console_log(f"synced-folder backup failed (local backup is safe): {error}", "warning")
 
@@ -194,23 +207,35 @@ def _cloud_github(zip_path: Path, profile_name: str, keep: int) -> None:
     shutil.copy2(zip_path, cloud_dir / zip_path.name)
     _prune(cloud_dir, keep)
 
-    def _git(*args: str) -> subprocess.CompletedProcess:
-        result = subprocess.run(["git", "-C", str(REPO_ROOT), *args], capture_output=True, text=True)
+    def _git(*args: str, timeout: int = 120) -> "subprocess.CompletedProcess | None":
+        try:
+            result = subprocess.run(["git", "-C", str(REPO_ROOT), *args], capture_output=True, text=True, timeout=timeout)
+        except (OSError, subprocess.TimeoutExpired) as error:
+            _logger.warning("git %s failed to run (%s)", " ".join(args), error)
+            return None
         _logger.info("git %s -> %s %s", " ".join(args), result.returncode, (result.stderr or "").strip()[:400])
         return result
 
     # Stage only the cloud-backups tree (additions AND prunes), nothing else.
-    if _git("add", "-A", "--", "cloud-backups").returncode != 0:
+    add = _git("add", "-A", "--", "cloud-backups")
+    if add is None or add.returncode != 0:
         _console_log("git add failed for cloud backup", "warning")
         return
-    commit = _git("commit", "-m", f"backup: {profile_name} {zip_path.stem}")
-    if commit.returncode != 0:
-        if "nothing to commit" in (commit.stdout + commit.stderr):
-            _logger.info("cloud backup produced no changes to commit")
-        else:
-            _console_log("git commit failed for cloud backup", "warning")
+    status = _git("status", "--porcelain", "--", "cloud-backups")
+    if status is None or status.returncode != 0:
+        _console_log("git status failed for cloud backup", "warning")
         return
-    if _git("push").returncode == 0:
+    if not status.stdout.strip():
+        _logger.info("cloud backup produced no changes to commit")
+        return
+    # Commit ONLY the cloud-backups pathspec: anything the user had staged
+    # elsewhere in the repo stays staged and untouched.
+    commit = _git("commit", "-m", f"backup: {profile_name} {zip_path.stem}", "--", "cloud-backups")
+    if commit is None or commit.returncode != 0:
+        _console_log("git commit failed for cloud backup", "warning")
+        return
+    push = _git("push", timeout=300)
+    if push is not None and push.returncode == 0:
         _console_log(f"cloud backup pushed to repo (cloud-backups/{profile_name}/{zip_path.name})")
     else:
         _console_log("git push failed — backup is committed locally and will push next time", "warning")
@@ -232,11 +257,15 @@ def list_backups(profile_name: str) -> list:
         directory = root / profile_name
         if directory.is_dir():
             for zip_file in directory.glob("*.zip"):
+                try:
+                    size_kb = zip_file.stat().st_size // 1024
+                except OSError:
+                    continue  # pruned/deleted between glob and stat
                 entries.append(
                     {
                         "path": zip_file,
                         "source": source,
-                        "label": f"[{source}] {zip_file.stem}  ({zip_file.stat().st_size // 1024} KB)",
+                        "label": f"[{source}] {zip_file.stem}  ({size_kb} KB)",
                     }
                 )
     entries.sort(key=lambda entry: entry["path"].name, reverse=True)
@@ -262,23 +291,38 @@ def restore_backup(zip_path: "Path | str", new_profile_name: str) -> Path:
     zip_path = Path(zip_path)
     if not zip_path.is_file():
         raise ValueError(f"Backup file not found: {zip_path}")
-    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9 _-]{0,38}", new_profile_name or ""):
+    name = new_profile_name or ""
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9 _-]{0,38}", name) or name != name.strip():
         raise ValueError("Profile names may only contain letters, digits, spaces, '-' and '_' (max 39 chars).")
+    if name.upper() in {"CON", "PRN", "AUX", "NUL", *(f"COM{i}" for i in range(1, 10)), *(f"LPT{i}" for i in range(1, 10))}:
+        raise ValueError(f"'{name}' is a reserved name on Windows — pick another profile name.")
 
-    target = BOT_ROOT / "profiles" / new_profile_name
+    target = BOT_ROOT / "profiles" / name
     if target.exists():
-        raise ValueError(f"Profile '{new_profile_name}' already exists — restores only go into a NEW profile.")
+        raise ValueError(f"Profile '{name}' already exists — restores only go into a NEW profile.")
 
-    target.mkdir(parents=True)
     try:
+        target.mkdir(parents=True)
+    except OSError as error:
+        raise ValueError(f"Could not create profile folder '{name}': {error}") from error
+    try:
+        resolved_target = target.resolve()
         with zipfile.ZipFile(zip_path) as archive:
             for member in archive.namelist():
                 destination = (target / member).resolve()
-                if not str(destination).startswith(str(target.resolve())):
+                # Proper containment check — plain startswith() would accept
+                # sibling folders sharing a name prefix ("…/newX" vs "…/new").
+                if destination != resolved_target and resolved_target not in destination.parents:
                     raise ValueError(f"Backup contains an unsafe path: {member}")
             archive.extractall(target)
-    except Exception:
+    except ValueError:
         shutil.rmtree(target, ignore_errors=True)  # never leave a half-restored profile
+        raise
+    except (zipfile.BadZipFile, OSError) as error:
+        shutil.rmtree(target, ignore_errors=True)
+        raise ValueError(f"Restore failed — backup archive unreadable: {error}") from error
+    except Exception:
+        shutil.rmtree(target, ignore_errors=True)
         raise
 
     _console_log(f"restored {zip_path.name} into new profile '{new_profile_name}'")

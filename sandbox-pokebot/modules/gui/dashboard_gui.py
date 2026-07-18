@@ -14,6 +14,14 @@ Hotkeys (on top of the stock key bindings from keys.yml):
   H   — enter handheld mode / toggle the tool drawer while in it
   F11 — toggle handheld mode
   Esc — close the drawer; if it is already closed, leave handheld mode
+
+Dialogs vs. emulation: there is no Tk mainloop — the Tk event queue is
+pumped from `update()`, which the emulator calls once per frame. The
+Restore dialog is therefore deliberately non-modal (no grab/wait_window):
+emulation keeps running while it is open. The macro name prompt
+(simpledialog.askstring) IS modal — wait_window runs a nested event loop
+inside the frame callback, so emulation pauses until it is closed. That is
+harmless by design: recording has already stopped before the prompt opens.
 """
 
 import json
@@ -90,6 +98,7 @@ class DashboardScreen:
         self._frame_counter = 0
         self._last_kpi_refresh = 0.0
         self._plugin_registered = False
+        self._mousewheel_bound = False
 
         self._handheld = False
         self._drawer_open = False
@@ -180,22 +189,60 @@ class DashboardScreen:
         if self.frame is not None:
             self.frame.destroy()
             self.frame = None
+        # The video canvas and the Pokéball overlay are children of the root
+        # window (not of `frame`), so they must be destroyed explicitly or
+        # they would linger over whatever screen comes next.
+        if self.canvas is not None:
+            self.canvas.destroy()
+            self.canvas = None
+        if self._pokeball_button is not None:
+            self._pokeball_button.destroy()
+            self._pokeball_button = None
         if self._debug_window is not None:
             self._debug_window.destroy()
             self._debug_window = None
+        # Drop references to destroyed widgets so refresh paths (guarded by
+        # `self.frame is None`) can never .config() a dead widget, and so a
+        # later enable() starts from a clean slate.
+        self._current_canvas_image = None
+        self._current_canvas_image_id = None
+        self._mode_button = None
+        self._speed_buttons = {}
+        self._video_button = None
+        self._audio_button = None
+        self._kpi_values = {}
+        self._party_rows = []
+        self._sprite_cache = {}
+        self._shiny_log_label = None
+        self._event_list = None
+        self._message_label = None
+        self._state_label = None
+        self._fps_label = None
+        self._debug_tabs = []
 
     def on_settings_updated(self) -> None:
         self._refresh_controls()
 
     def update(self) -> None:
         """Called by the emulator once per emulated frame."""
+        if self.frame is None:
+            # Screen is disabled — never touch destroyed widgets.
+            return
         if context.emulator._performance_tracker.time_since_last_render() >= (1 / 60) * 1_000_000_000:
             if context.emulator.get_video_enabled():
                 self._update_video(context.emulator.get_current_screen_image())
 
             self._frame_counter += 1
             if self._frame_counter % SIDEBAR_REFRESH_FRAMES == 0:
-                self._refresh_sidebar()
+                try:
+                    self._refresh_sidebar()
+                except Exception:
+                    # A transient stats/party/memory read failure must never
+                    # kill the emulator frame loop; the next cycle retries.
+                    if context.debug:
+                        from modules.console import console
+
+                        console.print_exception()
             if self._debug_window is not None:
                 self._update_debug_tabs()
 
@@ -326,7 +373,12 @@ class DashboardScreen:
             "<Configure>",
             lambda event: self._cards_canvas.itemconfigure(self._cards_window, width=event.width),
         )
-        self.window.bind_all("<MouseWheel>", self._on_tool_mousewheel, add="+")
+        # Bind exactly once for the lifetime of the process: enable() may run
+        # again after a disable(), and stacking bind_all handlers would make
+        # each wheel notch scroll multiple units.
+        if not self._mousewheel_bound:
+            self.window.bind_all("<MouseWheel>", self._on_tool_mousewheel, add="+")
+            self._mousewheel_bound = True
 
         # --- controls card ---
         controls = self._card(tools, "CONTROLS")
@@ -889,20 +941,20 @@ class DashboardScreen:
             return
         try:
             phases = context.stats.get_shiny_log()[:5]
+            lines = []
+            for phase in phases:
+                encounter = phase.shiny_encounter
+                species = encounter.pokemon.species_name_for_stats if encounter is not None else "?"
+                lines.append(f"✨ {species} — {phase.encounters:,} enc")
         except Exception:
             return
-        lines = []
-        for phase in phases:
-            encounter = phase.shiny_encounter
-            species = encounter.pokemon.species_name_for_stats if encounter is not None else "?"
-            lines.append(f"✨ {species} — {phase.encounters:,} enc")
         if lines:
             self._shiny_log_label.config(text="\n".join(lines), foreground=COLOR_SHINY)
         else:
             self._shiny_log_label.config(text="No shinies yet — keep hunting!", foreground=COLOR_MUTED)
 
     def _on_tool_mousewheel(self, event) -> None:
-        if not event.delta:
+        if not event.delta or self.frame is None:
             return
         try:
             widget = self.window.winfo_containing(event.x_root, event.y_root)
@@ -1037,13 +1089,16 @@ class DashboardScreen:
         def do_restore() -> None:
             selection = listbox.curselection()
             if not backups or not selection:
-                feedback.config(text="Select a backup from the list first.")
+                feedback.config(text="Select a backup from the list first.", foreground=COLOR_WARNING)
                 return
             entry = backups[selection[0]]
             try:
                 target = backup_manager.restore_backup(entry["path"], name_variable.get().strip())
-            except ValueError as error:
-                feedback.config(text=str(error))
+            except Exception as error:
+                # ValueError carries a user-readable refusal; anything else
+                # (corrupt zip, disk error) must surface here too instead of
+                # dying silently in Tk's callback handler.
+                feedback.config(text=str(error) or error.__class__.__name__, foreground=COLOR_WARNING)
                 return
             feedback.config(
                 text=f"Restored to '{target.name}'. Close the bot and relaunch with that profile to use it.",

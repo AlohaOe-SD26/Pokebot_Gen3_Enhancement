@@ -10,6 +10,8 @@ filters, stats — still runs). Afterwards:
   - loop mode:  the macro RESTARTS from step 1 (the world state after a
                 battle rarely matches wherever mid-macro you were);
   - once mode:  the mode stops and the bot returns to Manual.
+A once-mode macro that finishes normally also returns the bot to Manual
+(otherwise the main loop would re-instantiate the mode and replay it).
 """
 
 from typing import Generator
@@ -71,9 +73,13 @@ class MacroPlayerMode(BotMode):
                         restart = True
                         break
                     context.message = f"Macro `{macro.name}` interrupted by a battle — stopping."
+                    # Without this, the main loop would re-instantiate the mode as
+                    # soon as its controller stack empties and replay the macro again.
+                    context.set_manual_mode()
                     return
             if restart:
                 continue
             if not loop:
                 context.message = f"Macro `{macro.name}` finished."
+                context.set_manual_mode()
                 return

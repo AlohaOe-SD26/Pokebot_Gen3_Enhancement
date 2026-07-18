@@ -106,8 +106,10 @@ def load_macro(file_path: Path) -> Macro:
 def save_macro(profile_path: Path, macro: Macro) -> Path:
     directory = macros_dir(profile_path)
     directory.mkdir(parents=True, exist_ok=True)
-    safe_name = "".join(c for c in macro.name if c.isalnum() or c in ("-", "_", " ")).strip()
-    if not safe_name:
+    # Leading underscores are stripped because `list_macros()` treats `_*.yml`
+    # as reserved (e.g. `_selected.yml`) — such a file would be invisible.
+    safe_name = "".join(c for c in macro.name if c.isalnum() or c in ("-", "_", " ")).strip().lstrip("_").strip()
+    if not any(c.isalnum() for c in safe_name):
         raise MacroError("Macro name must contain at least one letter or digit.")
     file_path = directory / f"{safe_name}.yml"
     body = {
@@ -195,8 +197,11 @@ recorder = MacroRecorder()
 
 class MacroRecorderListener:
     """BotListener (duck-typed): feeds the recorder one input sample per frame.
-    Recording is only meaningful in Manual mode (human at the controls)."""
+    Only Manual-mode frames are captured (a macro records HUMAN play): if a bot
+    mode is driving the game while the recorder is armed — e.g. the user hits
+    ▶ Play mid-recording — those bot-generated inputs must not leak into the
+    macro."""
 
     def handle_frame(self, bot_mode, frame) -> None:
-        if recorder.armed:
+        if recorder.armed and context.bot_mode == "Manual":
             recorder.sample(context.emulator.get_inputs())
