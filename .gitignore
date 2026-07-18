@@ -31,3 +31,5 @@ REMOTE START/logs/
 # installer run logs (machine-local)
 install.log
 install.log.old
+install_sandbox.log
+install_sandbox.log.old

@@ -1,11 +1,7 @@
 # Custom Interface
 
-> ⚠ **FLAGGED TO REVIEW (2026-07-18):** the native dashboard GUI below is
-> machine-verified (live run + screenshots, approved by the user from
-> screenshots only) but NOT yet visually checked hands-on by the user.
-> Remove this flag after the user's real-play test (see punch list #5).
-
 ## Native dashboard GUI (the program's own window — DEFAULT)
+> ✅ User-confirmed hands-on 2026-07-18 ("worked!").
 
 Since 2026-07-18 the bot's own window (the one the emulator embeds into)
 uses the dashboard layout: `modules/gui/dashboard_gui.py`, launched by

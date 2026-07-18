@@ -59,8 +59,17 @@ in CLAUDE.md "Project rules"):
   on a live run; browser auto-open defaulted off per user preference.
 
 ## In progress (and how far along)
-- #5: native GUI built + machine-verified; awaiting user's real-play test
-  (esp. on the Ally) and a progressed save to exercise party/KPI panels.
+- #7 SANDBOX ROUND (user-directed 2026-07-18; user away ~6 h, returns to
+  review): `sandbox-pokebot/` = isolated copy of custom (tracked; ROM
+  force-added) + `install_sandbox.py` (wrapper around install.py). Plan in
+  `sandbox-pokebot/SANDBOX-PROPOSALS.md`: A1 backup/restore system with
+  local + GitHub-repo + synced-folder cloud backends and GUI panel; A2
+  macro record/replay; A3 multi-map Patrol; A4 GUI pack (party sprites,
+  shiny log). Being implemented by sequential fork agents (A1 → A2/A3 →
+  A4+live test). DO NOT touch custom-pokebot or the mirror in this round;
+  promotion into custom only after user approval (rule C in proposals).
+- #5/#4 CONFIRMED WORKING by user hands-on 2026-07-18 ("worked!") — flags
+  cleared. #3 Patrol still awaiting explicit user play-test.
 
 ## If stopped mid-task
 - Nothing pending — last stop was clean.

@@ -181,3 +181,11 @@ the newest commit recorded in `40cakes repo/UPDATE-LOG.md`.
   (4) append an UPDATE-LOG entry (old -> new commit, summary, docs touched,
   changes pending review for custom-pokebot); (5) NEVER auto-apply
   upstream changes to `custom-pokebot/` — list them for the user to decide.
+
+### Sandbox area (user directive, 2026-07-18)
+- `sandbox-pokebot/` is the EXPERIMENTAL copy of custom-pokebot where new
+  enhancement rounds are built and tested (`install_sandbox.py` sets it up
+  and runs it). During a sandbox round, do NOT modify `custom-pokebot/` or
+  the mirror. Sandbox features are promoted into custom-pokebot ONLY after
+  explicit user approval, together with their DIVERGENCE-LOG entries and
+  docs; after promotion the sandbox is re-based on the new custom.

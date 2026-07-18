@@ -11,14 +11,13 @@
 
 ## Next
 
-- [ ] #5 — Total custom interface: NATIVE dashboard GUI built per user
-      direction (the program's own window; `--classic-gui` = stock) with
-      resizable layout + ROG Ally X handheld mode (fullscreen, Pokéball
-      drawer, F11/H/Esc). Machine-verified on a live ROM run; user approved
-      from screenshots. **FLAGGED TO REVIEW: awaiting the user's hands-on
-      visual test** (esp. on the Ally + with a progressed save for
-      party/KPI panels). Browser dashboard demoted to opt-in remote
-      viewing. Later v2: trend charts, shiny log browser, API additions.
+- [ ] #7 — Sandbox enhancement round (user-directed 2026-07-18, in
+      progress): `sandbox-pokebot/` (copy of custom, isolated) + its own
+      `install_sandbox.py`; implementing: profile/save/savestate BACKUP
+      system with local + cloud (GitHub/synced-folder) storage and restore,
+      GUI upgrades (backup panel, party sprites, shiny log), macro
+      record/replay system, multi-map Patrol. User reviews on return; only
+      approved items get promoted into custom-pokebot.
 
 ## Later / icebox
 - [ ] #6 — Additional custom features (collect ideas here as they come up).
@@ -29,6 +28,10 @@
 - [x] #2 — Deep documentation pass over the vendored codebase:
       `PROJECT KNOWLEDGE/CODEBASE/00–05` + `Pokemon_Emerald_AI_Notes.md`
       (done 2026-07-17).
-- [x] #4 — Easy setup/install/update script: `install.py` (git-driven
-      install/update/heal, tested incl. fresh-clone + heal + deps on this
-      machine; design in 06-DECISIONS-LOG) (done 2026-07-17).
+- [x] #4 — Easy setup/install/update script: `install.py` V2 (robust
+      7-step setup/update/heal + ROM handling + install.log; user-confirmed
+      "worked!" 2026-07-18) (done 2026-07-18).
+- [x] #5 — Total custom interface: native dashboard GUI (program's own
+      window, `--classic-gui` fallback) + ROG Ally X handheld mode +
+      opt-in browser dashboard; user-confirmed hands-on "worked!"
+      (done 2026-07-18). v2 ideas continue under #7.

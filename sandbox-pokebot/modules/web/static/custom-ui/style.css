@@ -1,0 +1,383 @@
+/* PokéBot Dashboard — dark-first, light supported via prefers-color-scheme.
+   Color roles follow the project's dataviz reference palette. */
+
+:root {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --surface-2: #232322;
+  --ink: #ffffff;
+  --ink-2: #c3c2b7;
+  --muted: #898781;
+  --hairline: #2c2c2a;
+  --border: rgba(255, 255, 255, 0.10);
+  --accent: #3987e5;
+  --good: #0ca30c;
+  --warning: #fab219;
+  --critical: #d03b3b;
+  --shiny: #c98500;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --surface-2: #f0efec;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --hairline: #e1e0d9;
+    --border: rgba(11, 11, 11, 0.10);
+    --accent: #2a78d6;
+    --good: #006300;
+    --shiny: #eda100;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--hairline);
+  background: var(--surface);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.brand { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.brand-name { font-size: 17px; font-weight: 650; }
+.brand-accent { color: var(--accent); }
+.profile-line { color: var(--ink-2); font-size: 13px; }
+
+.topbar-right { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.bot-message {
+  color: var(--ink-2);
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 40vw;
+}
+
+.conn { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
+.conn-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.conn.ok .conn-dot { background: var(--good); }
+.conn.err .conn-dot { background: var(--critical); }
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(340px, 520px) 1fr;
+  gap: 16px;
+  padding: 16px 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+@media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+.col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+.card h2 {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+/* ------- video ------- */
+.video-card { padding: 10px; }
+.video-wrap { position: relative; background: #000; border-radius: 6px; overflow: hidden; }
+#video-stream {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;           /* GBA 240x160 */
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.video-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  text-align: center;
+  padding: 16px;
+}
+.hidden { display: none !important; }
+.video-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 6px 2px;
+  flex-wrap: wrap;
+}
+.pill {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.muted { color: var(--muted); font-size: 12px; }
+
+/* ------- controls ------- */
+.control-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+.control-row > label { width: 72px; color: var(--ink-2); font-size: 13px; flex-shrink: 0; }
+
+select {
+  background: var(--surface-2);
+  color: var(--ink);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font: inherit;
+  min-width: 180px;
+}
+
+.btn {
+  background: var(--surface-2);
+  color: var(--ink);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+.btn:hover { border-color: var(--accent); }
+.btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.segmented { display: flex; flex-wrap: wrap; gap: 4px; }
+.segmented .btn { padding: 5px 10px; font-size: 13px; min-width: 38px; }
+
+.toggle-row { display: flex; gap: 8px; }
+.toggle.off { opacity: 0.55; text-decoration: line-through; }
+
+/* ------- manual pad ------- */
+.manual-pad { border-top: 1px solid var(--hairline); margin-top: 4px; padding-top: 10px; }
+.pad-hint { margin: 0 0 8px; color: var(--muted); font-size: 12px; }
+.manual-pad.enabled .pad-hint { display: none; }
+.pad-grid { display: flex; justify-content: space-around; align-items: center; gap: 18px; flex-wrap: wrap; }
+.manual-pad:not(.enabled) .pad-grid { opacity: 0.35; pointer-events: none; }
+
+.dpad { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.dpad-mid { display: flex; align-items: center; gap: 2px; }
+.dpad-center { width: 34px; height: 34px; }
+
+.pad-btn {
+  width: 38px;
+  height: 38px;
+  background: var(--surface-2);
+  color: var(--ink);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+  touch-action: none;
+}
+.pad-btn:active, .pad-btn.held { background: var(--accent); border-color: var(--accent); color: #fff; }
+.pad-btn.round { border-radius: 50%; width: 44px; height: 44px; font-weight: 650; }
+.pad-btn.small { width: auto; height: 28px; padding: 0 10px; font-size: 11px; border-radius: 999px; }
+
+.face-buttons { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+.ab-row { display: flex; gap: 10px; }
+.meta-row { display: flex; gap: 8px; }
+
+/* ------- KPIs ------- */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+.kpi {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.kpi-label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.kpi-value { font-size: 28px; font-weight: 650; color: var(--ink); }
+
+/* ------- party ------- */
+.party-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.party-member {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 10px;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border-radius: 8px;
+}
+.pm-name { font-weight: 600; }
+.pm-name .shiny-badge { color: var(--shiny); font-weight: 650; margin-left: 6px; font-size: 12px; }
+.pm-level { color: var(--ink-2); font-size: 13px; text-align: right; }
+.pm-hp-row { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; }
+.hp-bar { display: block; flex: 1; height: 4px; border-radius: 4px; background: var(--hairline); overflow: hidden; }
+.hp-fill { display: block; height: 100%; border-radius: 4px; background: var(--good); }
+.hp-fill.mid { background: var(--warning); }
+.hp-fill.low { background: var(--critical); }
+.pm-hp-text { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.pm-status {
+  font-size: 11px;
+  color: var(--critical);
+  border: 1px solid var(--critical);
+  border-radius: 999px;
+  padding: 0 8px;
+}
+.pm-egg { color: var(--muted); }
+
+/* ------- opponent ------- */
+.opponent-body { display: flex; flex-direction: column; gap: 6px; }
+.opp-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.opp-name { font-size: 16px; font-weight: 650; }
+.opp-detail { color: var(--ink-2); font-size: 13px; }
+.opp-shiny { color: var(--shiny); font-weight: 650; }
+
+/* ------- event log ------- */
+.event-log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 300px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+.event-log li { display: flex; gap: 10px; align-items: baseline; }
+.event-time { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.event-text { color: var(--ink-2); overflow-wrap: anywhere; }
+.event-text.highlight { color: var(--shiny); font-weight: 600; }
+
+/* ================= handheld mode (ROG Ally X) =================
+   Fullscreen video; every tool lives in a slide-in drawer toggled by the
+   Pokéball button / H key; "Hide" collapses it again. */
+
+.meta-btn { margin-left: auto; font-size: 12px; padding: 4px 10px; }
+.drawer-header { display: none; }
+.pokeball-btn { display: none; }
+
+body.handheld .topbar { display: none; }
+body.handheld .layout { display: block; padding: 0; max-width: none; }
+
+body.handheld .video-card {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: #000;
+}
+body.handheld .video-wrap { position: absolute; inset: 0; border-radius: 0; }
+body.handheld #video-stream {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  object-fit: contain;
+}
+body.handheld .video-meta {
+  position: absolute;
+  left: 12px;
+  bottom: 10px;
+  z-index: 2;
+  padding: 0;
+  opacity: 0.85;
+}
+body.handheld .video-meta .pill { background: rgba(20, 20, 19, 0.75); color: #e8e7e0; border-color: rgba(255,255,255,0.18); }
+body.handheld .video-meta .muted { color: #cfcec6; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
+body.handheld #btn-handheld { display: none; }
+
+/* the drawer */
+body.handheld .tool-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  width: min(430px, 94vw);
+  padding: 14px;
+  overflow-y: auto;
+  background: rgba(26, 26, 25, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-left: 1px solid var(--border);
+  box-shadow: -12px 0 32px rgba(0, 0, 0, 0.45);
+  transform: translateX(105%);
+  transition: transform 0.22s ease;
+}
+@media (prefers-color-scheme: light) {
+  body.handheld .tool-drawer { background: rgba(252, 252, 251, 0.94); }
+}
+body.handheld.drawer-open .tool-drawer { transform: none; }
+body.handheld .drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.drawer-title {
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+/* the Pokéball toggle */
+body.handheld .pokeball-btn {
+  display: block;
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 11;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  opacity: 0.45;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.pokeball-btn:hover, .pokeball-btn:focus-visible { opacity: 1; transform: scale(1.06); }
+.pokeball-btn svg { width: 100%; height: 100%; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5)); }
+body.handheld.drawer-open .pokeball-btn { display: none; }
