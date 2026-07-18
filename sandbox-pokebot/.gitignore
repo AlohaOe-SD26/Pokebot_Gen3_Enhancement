@@ -25,6 +25,7 @@ plugins/*
 !plugins/.gitkeep
 !plugins/custom_modes_loader.py
 !plugins/dashboard_autoopen.py
+!plugins/gamepad_plugin.py
 !plugins/macro_plugin.py
 !plugins/backup_plugin.py
 !plugins/custom_modes/

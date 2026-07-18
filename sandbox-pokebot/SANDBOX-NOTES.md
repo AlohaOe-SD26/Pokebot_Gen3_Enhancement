@@ -263,3 +263,32 @@ semantics); (4) manual "Back up now" during emulator writes can catch a
 torn .sav (plugin-triggered backups are safe; a pause-during-backup
 option would close it); (5) Tk menu bar stays visible in handheld
 fullscreen (cosmetic).
+
+## 2026-07-18 — Handheld menu-hide + XInput gamepad support (#10, user-requested)
+**Menu-hide:** handheld fullscreen now also hides the Tk menu bar
+(Emulator/Profile/View/Help) for a truly clean screen; opening the tool
+drawer (Pokeball / H / Back+Start) brings the menu back, closing the
+drawer hides it again, leaving handheld mode restores it permanently.
+Implemented in dashboard_gui.py (_apply_menu_visibility, called from
+_apply_handheld_layout AFTER the fullscreen attribute change because Tk
+fullscreen recreates the native hwnd on Windows). Live-verified through
+all orderings incl. exiting handheld with the drawer open (screenshots
+mh_1..mh_6 in the session scratchpad).
+
+**Gamepad (answers "controller integration does not seem to work" — it
+did not exist; upstream is keyboard-only):** new modules/gamepad.py
+(ctypes XInput, XInput1_4.dll -> XInput9_1_0.dll fallback, graceful
+"unavailable" without them) + plugins/gamepad_plugin.py registering a
+per-frame listener. Mapping: D-Pad/left stick -> GBA D-pad; A->A; B->B;
+X->B; Y->A; Start->Start; Back->Select; LB->L; RB->R; Back+Start
+together toggles the handheld tool drawer (suppressed from game input).
+Injection only in Manual mode via the same hold/release API as the
+keyboard (so macro recording captures pad play automatically); edge-based
+press/release; releases everything on disconnect/mode change/error;
+disconnected pads polled only ~1x/s. Status line ("Controller:
+connected / not detected / unavailable") added to the STATUS card.
+Verified: 19/19 stubbed-XInput unit tests (mapping, edges, deadzone,
+disconnect backoff + release-all, combo edge + suppression, mode gate,
+broken-context survival); live run shows "not detected" without a pad and
+a clean exit. CAVEAT: real-controller end-to-end needs the user's Ally —
+no pad exists on the dev machine.

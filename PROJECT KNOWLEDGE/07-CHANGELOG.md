@@ -214,3 +214,16 @@
   scrolled the shrunken column, F11+H reached handheld drawer; clean exit.
   Remaining caveats (need real gameplay) recorded in SANDBOX-NOTES.md and
   SANDBOX-PROPOSALS.md.
+
+## 2026-07-18 — Sandbox: handheld menu-hide + XInput gamepad (#10, user feedback)
+- Handheld fullscreen now hides the Tk menu bar; the tool drawer
+  (Pokeball/H/Back+Start) brings it back; exiting handheld restores it.
+  Live-verified through every ordering (Windows hwnd-recreation quirk
+  handled by re-asserting the menu after the fullscreen toggle).
+- Root-caused "controller integration does not seem to work": there WAS
+  none (upstream is keyboard-only). Built modules/gamepad.py + plugin:
+  XInput polling per frame (main thread, edge-based, Manual-mode-gated,
+  release-all on disconnect/mode change, 1 s backoff when no pad),
+  documented Xbox->GBA mapping, Back+Start = drawer toggle, controller
+  status line in the STATUS card. 19/19 stubbed-XInput unit tests; real
+  Ally pad test remains user-side.

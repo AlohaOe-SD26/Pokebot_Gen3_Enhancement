@@ -59,6 +59,19 @@ be pathed *through*).
 - **Shiny log panel**: recent shinies with species + phase length.
 - (All present in handheld drawer too.)
 
+### A5. Handheld menu-hide + gamepad support (user-requested 2026-07-18)
+- **Menu-hide**: handheld fullscreen hides the top menu bar entirely;
+  opening the tool drawer (Pokéball/H/Back+Start) brings it back; closing
+  hides it again; exiting handheld restores it. Live-verified.
+- **Gamepad (XInput)**: the Ally's controller (or any Xbox pad) plays the
+  game in Manual mode — D-Pad/left stick = movement, A/B (+X/Y as
+  B/A seconds), Start/Back = Start/Select, LB/RB = L/R, and **Back+Start
+  toggles the tool drawer** from the couch. Status shown in the STATUS
+  card. Pad play records into macros automatically. Unit-tested with a
+  stubbed controller; **needs the user's Ally for a real-pad test** (no
+  controller exists on the dev machine — note: there was no controller
+  support before this; upstream is keyboard-only).
+
 ## B. PROPOSED — discuss on your return (not built yet)
 
 | Idea | What it gives you | Effort |

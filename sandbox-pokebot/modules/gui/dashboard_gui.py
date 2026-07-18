@@ -116,7 +116,9 @@ class DashboardScreen:
         self._message_label: tkinter.Label | None = None
         self._state_label: tkinter.Label | None = None
         self._fps_label: tkinter.Label | None = None
+        self._controller_label: tkinter.Label | None = None
         self._pokeball_button: Canvas | None = None
+        self._menu_bar: Menu | None = None
 
         # Debug support (stock debug tabs in a separate window)
         self._debug_window: tkinter.Toplevel | None = None
@@ -218,6 +220,8 @@ class DashboardScreen:
         self._message_label = None
         self._state_label = None
         self._fps_label = None
+        self._controller_label = None
+        self._menu_bar = None
         self._debug_tabs = []
 
     def on_settings_updated(self) -> None:
@@ -297,6 +301,7 @@ class DashboardScreen:
 
             menu_bar.add_cascade(label="Debug", menu=DebugMenu(self.window))
 
+        self._menu_bar = menu_bar
         self.window.config(menu=menu_bar)
 
     def _explain_classic_gui(self) -> None:
@@ -607,6 +612,10 @@ class DashboardScreen:
         self._state_label.pack(fill="x")
         self._fps_label = tkinter.Label(status_card, text="", background=COLOR_CARD, foreground=COLOR_MUTED, anchor="w")
         self._fps_label.pack(fill="x")
+        self._controller_label = tkinter.Label(
+            status_card, text="", background=COLOR_CARD, foreground=COLOR_MUTED, anchor="w", font=("Segoe UI", 8)
+        )
+        self._controller_label.pack(fill="x")
         self._message_label = tkinter.Label(
             status_card,
             text="",
@@ -700,6 +709,7 @@ class DashboardScreen:
             self.window.attributes("-fullscreen", self._handheld)
         except tkinter.TclError:
             pass
+        self._apply_menu_visibility()
 
         if self._handheld:
             self.frame.grid_remove()
@@ -716,6 +726,21 @@ class DashboardScreen:
             self._pokeball_button.place_forget()
             self._drawer_header.pack_forget()
             self.frame.grid(row=0, column=1, sticky="NSE")
+
+    def _apply_menu_visibility(self) -> None:
+        """Handheld fullscreen hides the Tk menu bar for a truly clean
+        screen; opening the tool drawer (Pokéball/H) brings it back, and
+        leaving handheld mode restores it permanently. Applied AFTER the
+        fullscreen attribute change — on Windows, toggling fullscreen
+        recreates the native window, so the menu must be (re)asserted on
+        the new hwnd."""
+        if self._menu_bar is None:
+            return
+        show_menu = (not self._handheld) or self._drawer_open
+        try:
+            self.window.config(menu=self._menu_bar if show_menu else "")
+        except tkinter.TclError:
+            pass
 
     def _persist_ui_state(self) -> None:
         try:
@@ -802,6 +827,14 @@ class DashboardScreen:
             stats.append(f"{current_fps:,} fps ({current_fps / 59.727500569606:0.1f}×)")
         self._fps_label.config(text=" | ".join(stats))
         self._message_label.config(text=context.message or "")
+
+        if self._controller_label is not None:
+            try:
+                from modules.gamepad import get_status_text
+
+                self._controller_label.config(text=get_status_text())
+            except Exception:
+                pass
 
     def _refresh_kpis(self) -> None:
         self._last_kpi_refresh = time.monotonic()

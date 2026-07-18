@@ -28,8 +28,10 @@
 - [ ] #9 — Hunt planner: pick a target species → GUI suggests best
       map/mode/method from the bot's own encounter tables, one click to
       configure + start the hunt. Pairs with #8. (M)
-- [ ] #10 — Gamepad/controller support: XInput → Manual-mode inputs, so
-      the Ally (or any Xbox pad) plays natively in handheld mode. (M)
+- [ ] #10 — Gamepad/controller support: BUILT IN SANDBOX 2026-07-18
+      (XInput → Manual-mode inputs, Back+Start toggles the drawer; 19/19
+      stubbed-pad unit tests). Remaining: user's real-pad test on the
+      Ally, then promote.
 - [ ] #11 — Analytics suite: stats browser window (sortable per-species
       table from stats.db) + encounter-rate trend sparkline in the GUI +
       per-phase history view. (M)
