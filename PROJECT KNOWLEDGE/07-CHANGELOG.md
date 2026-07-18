@@ -227,3 +227,17 @@
   documented Xbox->GBA mapping, Back+Start = drawer toggle, controller
   status line in the STATUS card. 19/19 stubbed-XInput unit tests; real
   Ally pad test remains user-side.
+
+## 2026-07-18 — Warp-aware global pathfinding (punch-list #8, sandbox)
+- `modules/warp_graph.py`: world graph from the game's own map headers
+  (union-find regions over map connections + directed warp edges; Dive and
+  dynamic warps excluded), cached per ROM; Emerald extraction: 518 maps,
+  461 regions, 1268 warp edges in 0.02 s at the title screen.
+- `modules/modes/util/global_navigation.py`: navigate_to_anywhere() — BFS
+  route over regions, per-leg navigate_to onto the warp tile (upstream
+  follows the warp), settle + verify + re-plan; friendly errors for
+  unroutable targets and non-firing (locked) warps.
+- Patrol v3: world-spanning waypoints. Verified 23/23 against the real ROM
+  headless (ground truths, cache round-trip, planner semantics, dry-run
+  generator); real cross-warp walk pending user save. Emerald-AI notes
+  updated (global navigation now exists for the sibling project).

@@ -19,9 +19,11 @@ Setup: create `patrol.yml` in your profile folder (profiles/<name>/):
       - [10, 14]
       - {map: [1, 4], at: [15, 20]}
 
-Waypoints must be reachable by walking/surfing across directly CONNECTED
-maps (the pathfinder cannot route through warps/doors — an upstream
-limitation; a warp tile may only be a final destination).
+Waypoints may be ANYWHERE in the world: routes are planned through warps
+(doors, stairs, cave entrances) automatically via the warp graph. Not
+supported: routes that would require Dive, and locked/event-gated doors
+fail with a clear error. Surf transitions still need surfable waypoints
+(upstream limitation).
 """
 
 from typing import Generator
@@ -33,7 +35,8 @@ from modules.context import context
 from modules.map_data import MapFRLG, MapRSE
 from modules.modes import BotMode, BotModeError
 from modules.modes._asserts import assert_boxes_or_party_can_fit_pokemon, assert_player_has_poke_balls
-from modules.modes.util import apply_white_flute_if_available, navigate_to
+from modules.modes.util import apply_white_flute_if_available
+from modules.modes.util.global_navigation import navigate_to_anywhere
 from modules.player import get_player_avatar
 
 CONFIG_FILE_NAME = "patrol.yml"
@@ -65,12 +68,13 @@ class PatrolMode(BotMode):
         yield from apply_white_flute_if_available()
 
         # Waypoints without an explicit map use the map the player is on when
-        # the mode starts; `navigate_to` re-routes from wherever a battle
+        # the mode starts. `navigate_to_anywhere` routes through warps when a
+        # waypoint is in another region, and re-plans from wherever a battle
         # left the player.
         start_map = get_player_avatar().map_group_and_number
         while True:
             for waypoint_map, (x, y) in waypoints:
-                yield from navigate_to(waypoint_map or start_map, (x, y), avoid_encounters=False)
+                yield from navigate_to_anywhere(waypoint_map or start_map, (x, y), avoid_encounters=False)
 
     def _load_waypoints(self) -> list[tuple[tuple[int, int] | None, tuple[int, int]]]:
         config_path = context.profile.path / CONFIG_FILE_NAME

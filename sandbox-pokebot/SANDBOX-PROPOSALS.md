@@ -72,6 +72,16 @@ be pathed *through*).
   controller exists on the dev machine — note: there was no controller
   support before this; upstream is keyboard-only).
 
+### A7. Warp-aware global pathfinding (punch-list #8)
+Bots can now navigate ANYWHERE: `navigate_to_anywhere(map, coords)` plans
+through doors, stairs, and cave entrances using a world graph extracted
+from the game's own map data (518 maps / 1,268 warp edges for Emerald,
+built in 0.02 s and cached per ROM). Patrol v3 uses it automatically —
+waypoints can span the whole world. Excluded on purpose: Dive routes and
+save-data ("dynamic") warps; locked doors fail with a clear error.
+Verified 23/23 against the real ROM (graph ground truths, cache, planner,
+dry-run walking); an actual cross-warp walk needs a real save (user test).
+
 ## B. PROPOSED — discuss on your return (not built yet)
 
 | Idea | What it gives you | Effort |

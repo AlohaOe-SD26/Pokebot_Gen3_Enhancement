@@ -168,3 +168,16 @@ free, or these techniques can be lifted individually.
 *Maintained as part of Pokebot_Gen3_Enhancement. Update this file whenever
 new AI-relevant findings surface (it is referenced by the Emerald AI
 project).*
+
+## 8. Update (2026-07-18): global navigation now exists in our fork
+
+The warp limitation in §4 is SOLVED in the enhanced fork
+(sandbox-pokebot, pending promotion): `modules/warp_graph.py` extracts the
+full world graph from map headers via the emulator (518 maps / 1268
+directed warp edges for Emerald, 0.02 s, disk-cached per ROM — works at
+the title screen, no save needed), and
+`modules/modes/util/global_navigation.py::navigate_to_anywhere()` walks
+any-map-to-any-map through doors/stairs/cave entrances (BFS over
+connection-regions, per-leg warp traversal with verification). For the AI
+project this means true world-scale macro-actions; Dive routes and
+save-data dynamic warps remain excluded.

@@ -292,3 +292,32 @@ disconnect backoff + release-all, combo edge + suppression, mode gate,
 broken-context survival); live run shows "not detected" without a pad and
 a clean exit. CAVEAT: real-controller end-to-end needs the user's Ally —
 no pad exists on the dev machine.
+
+## 2026-07-18 — A7: warp-aware global pathfinding (#8)
+- **Added** `modules/warp_graph.py`: world graph extracted from the game's
+  own map headers via the emulator (ROM data — works at the title screen,
+  no save needed). Maps joined by N/S/E/W connections collapse into
+  regions (union-find); every warp is a directed edge (from-tile ->
+  arrival-tile). Dive/Emerge connections and dynamic warps (save-data
+  destinations, 127/127) are excluded on purpose. Cached per ROM at
+  `cache/warp_graph_<rom>.json` (gitignored); extraction measured at
+  0.02 s for Emerald: 518 maps, 461 regions, 1268 warp edges.
+- **Added** `modules/modes/util/global_navigation.py`:
+  `navigate_to_anywhere(map, coords)` — BFS plan over regions, then per
+  leg: upstream `navigate_to` TO the warp tile (upstream already follows a
+  warp when it is the final waypoint — walking.py:367-375 + 280-frame warp
+  timeout), settle, verify the region changed (friendly BotModeError for
+  locked/event-gated warps), re-plan from the actual position each leg.
+- **Modified** `plugins/custom_modes/patrol.py` (v3): waypoints may now be
+  anywhere in the world; docstring updated.
+- **Verified** (scratchpad test_warp_graph.py, 23/23 with the REAL ROM
+  headless): extraction ground truths (Littleroot's three door warps both
+  directions, Brendan's stairs pair, outdoor Hoenn one region, 2-warp plan
+  from Brendan's 2F to Route 101, multi-leg Littleroot->Granite Cave B1F,
+  Faraway Island honestly unreachable), cache round-trip + lazy singleton,
+  one-way/unreachable planner semantics, dry-run generator (warp leg +
+  final navigate, direct same-region, unroutable and non-firing-warp
+  errors). Mode discovery still green.
+- **Pending real gameplay**: an actual cross-warp walk (no in-game save on
+  this machine); locked-door behavior in the wild; surf-transition routes
+  (upstream limitation carried over).
