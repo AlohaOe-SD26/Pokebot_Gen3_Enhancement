@@ -32,3 +32,12 @@
   from commits (discovered by the installer's fresh-clone test; ML-2).
 - **Merge note:** if upstream changes its `.gitignore`, re-apply the
   negation block.
+
+## 2026-07-17 — Custom web dashboard (additive only)
+- **Added** `modules/web/static/custom-ui/` (index.html, style.css, app.js):
+  a self-contained web dashboard served by the bot's existing static route —
+  live video, KPI tiles, party/opponent panels, mode/speed controls, manual
+  pad, SSE live updates. See `DOCUMENTATION/02-custom-interface.md`.
+- **Why:** punch-list #5 (total custom interface), v1. The static folder is
+  served as-is by upstream (`modules/web/http.py` static route), so no
+  upstream code was modified — upstream merges stay clean.

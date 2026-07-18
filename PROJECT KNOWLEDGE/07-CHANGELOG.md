@@ -87,3 +87,15 @@
   negation rules added (divergence logged), files now tracked (ML-2).
 - Upgraded #3 verification: real-import discovery test passed (actual bot
   modules under Python 3.12, PatrolMode registers).
+
+## 2026-07-17 — Custom web dashboard v1 (punch-list #5, partial)
+- Built `custom-pokebot/modules/web/static/custom-ui/` (additive; no
+  upstream code edits): live video with disabled-video overlay, KPI tiles,
+  party panel (HP bars/status/shiny/egg), opponent card, mode/speed/AV
+  controls, manual controller pad (Manual mode only), SSE live updates +
+  event log. Docs: `custom-pokebot/DOCUMENTATION/02-custom-interface.md`.
+- API contract taken from verified doc 04 + source (endpoint shapes,
+  SSE format, /stats keys, Pokemon property names).
+- Verified against a mock bot API (aiohttp, canned payloads, SSE, video)
+  with headless-Edge screenshots; fixed an inline-span HP-bar bug. Live
+  run with real bot pending → #5 stays open (v2 roadmap in the doc).

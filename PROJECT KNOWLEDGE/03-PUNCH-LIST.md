@@ -12,9 +12,13 @@
 
 ## Next
 
+- [ ] #5 — Total custom interface: v1 web dashboard BUILT (served at
+      /static/custom-ui/ via the bot's HTTP API; mock-tested + screenshot-
+      verified 2026-07-17). REMAINING: live verification with ROM +
+      http.yml enabled; then v2 (API additions: savestates/screenshot/
+      pause endpoints, auth, trend charts, shiny log browser).
+
 ## Later / icebox
-- [ ] #5 — Total custom interface (evaluate: extend the bot's HTTP API +
-      build a new frontend vs. replace the Tkinter GUI).
 - [ ] #6 — Additional custom features (collect ideas here as they come up).
 
 ## Done

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PokéBot Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-name">PokéBot <span class="brand-accent">Dashboard</span></span>
+      <span class="profile-line" id="profile-line">connecting…</span>
+    </div>
+    <div class="topbar-right">
+      <span class="bot-message" id="bot-message"></span>
+      <span class="conn" id="conn-indicator"><span class="conn-dot"></span><span id="conn-label">connecting</span></span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="col col-left">
+      <div class="card video-card">
+        <div class="video-wrap">
+          <img id="video-stream" alt="Emulator video" draggable="false">
+          <div class="video-overlay hidden" id="video-overlay">
+            <p>Video output is disabled — the stream sends no frames.</p>
+            <button class="btn" id="btn-enable-video">Enable video</button>
+          </div>
+        </div>
+        <div class="video-meta">
+          <span id="game-state-label" class="pill">—</span>
+          <span id="fps-label" class="muted"></span>
+          <span id="location-label" class="muted"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Controls</h2>
+        <div class="control-row">
+          <label for="mode-select">Bot mode</label>
+          <select id="mode-select"><option>loading…</option></select>
+        </div>
+        <div class="control-row">
+          <label>Speed</label>
+          <div class="segmented" id="speed-buttons" data-values="1,2,3,4,8,16,32,0"></div>
+        </div>
+        <div class="control-row">
+          <label>Output</label>
+          <div class="toggle-row">
+            <button class="btn toggle" id="toggle-video">Video</button>
+            <button class="btn toggle" id="toggle-audio">Audio</button>
+          </div>
+        </div>
+        <div class="manual-pad" id="manual-pad">
+          <p class="pad-hint" id="pad-hint">Switch to Manual mode to use the controller.</p>
+          <div class="pad-grid">
+            <div class="dpad">
+              <button class="pad-btn" data-button="Up">▲</button>
+              <div class="dpad-mid">
+                <button class="pad-btn" data-button="Left">◀</button>
+                <span class="dpad-center"></span>
+                <button class="pad-btn" data-button="Right">▶</button>
+              </div>
+              <button class="pad-btn" data-button="Down">▼</button>
+            </div>
+            <div class="face-buttons">
+              <div class="ab-row">
+                <button class="pad-btn round" data-button="B">B</button>
+                <button class="pad-btn round" data-button="A">A</button>
+              </div>
+              <div class="meta-row">
+                <button class="pad-btn small" data-button="Select">Select</button>
+                <button class="pad-btn small" data-button="Start">Start</button>
+              </div>
+              <div class="meta-row">
+                <button class="pad-btn small" data-button="L">L</button>
+                <button class="pad-btn small" data-button="R">R</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="col col-right">
+      <div class="kpi-row">
+        <div class="kpi"><span class="kpi-label">Total encounters</span><span class="kpi-value" id="kpi-total">—</span></div>
+        <div class="kpi"><span class="kpi-label">Shinies ✨</span><span class="kpi-value" id="kpi-shinies">—</span></div>
+        <div class="kpi"><span class="kpi-label">Phase encounters</span><span class="kpi-value" id="kpi-phase">—</span></div>
+        <div class="kpi"><span class="kpi-label">Encounters / hr</span><span class="kpi-value" id="kpi-rate">—</span></div>
+      </div>
+
+      <div class="card" id="opponent-card" hidden>
+        <h2>Opponent</h2>
+        <div class="opponent-body" id="opponent-body"></div>
+      </div>
+
+      <div class="card">
+        <h2>Party</h2>
+        <ul class="party-list" id="party-list"><li class="muted">No data yet.</li></ul>
+      </div>
+
+      <div class="card">
+        <h2>Event log</h2>
+        <ul class="event-log" id="event-log"></ul>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

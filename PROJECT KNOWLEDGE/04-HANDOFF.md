@@ -6,6 +6,11 @@
 **Last updated:** 2026-07-17
 
 ## Current state
+Punch-list #5 (custom interface) v1 is BUILT, pending live test: web
+dashboard at `custom-pokebot/modules/web/static/custom-ui/` (additive, no
+upstream edits; open http://127.0.0.1:8888/static/custom-ui/index.html with
+`http.yml` enabled). Mock-tested + screenshot-verified; details + v2
+roadmap in `custom-pokebot/DOCUMENTATION/02-custom-interface.md`.
 Punch-list #4 (installer) is DONE: `install.py` at repo root = one-script
 install/update/heal (git-driven; tested on this machine incl. fresh-clone,
 corrupt→heal, full dep install into Python 3.12; see 06-DECISIONS-LOG).
@@ -53,11 +58,16 @@ No code enhancements built yet.
 ## Next steps (in order)
 1. DAILY (every new calendar day, session start): upstream update check —
    ritual in CLAUDE.md "Daily upstream update check" / UPDATE-LOG.md header.
-2. #3 close-out: live-verify "Patrol (Custom)" — on a machine with the
-   user's ROM: `cd custom-pokebot; python pokebot.py` (deps self-install,
-   needs Python 3.11-3.13), create a profile, stand on a grassy map, write
-   `patrol.yml` (2-3 nearby waypoints) into the profile folder, select the
-   mode, confirm it loops and handles an encounter. Then mark #3 done.
+2. #3 + #5 close-out (one live session, needs the user's ROM in
+   `custom-pokebot/roms/`): launch via `python install.py` or
+   `cd custom-pokebot; python pokebot.py`; create a profile; enable
+   `http.yml`; (a) Patrol: stand on a grassy map, write `patrol.yml` (2-3
+   nearby waypoints) into the profile folder, select "Patrol (Custom)",
+   confirm it loops and handles an encounter; (b) Dashboard: open
+   http://127.0.0.1:8888/static/custom-ui/index.html, confirm video/party/
+   KPIs/controls/manual pad against the real API (POST actions were only
+   mock-tested; key names in app.js may need small tweaks vs real
+   payloads). Then mark #3 done and #5 v1 done.
 3. #4 Installer script: design against
    `PROJECT KNOWLEDGE/REFERENCE-INSTALLER-PATTERN.md` + bootstrap facts in
    `40cakes repo/DOCUMENTATION/05-stats-config-data-tests.md`; get user
