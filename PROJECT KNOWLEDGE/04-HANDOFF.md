@@ -6,12 +6,19 @@
 **Last updated:** 2026-07-17
 
 ## Current state
+Punch-list #4 (installer) is DONE: `install.py` at repo root = one-script
+install/update/heal (git-driven; tested on this machine incl. fresh-clone,
+corrupt→heal, full dep install into Python 3.12; see 06-DECISIONS-LOG).
+Dependencies + libmgba are now installed on THIS machine, so the bot is
+ready to launch here as soon as a ROM is added to `custom-pokebot/roms/`.
+Root README.md added (install + layout).
 Punch-list #3 (custom automations) is CODE-COMPLETE but not live-verified:
 `custom-pokebot/plugins/custom_modes_loader.py` auto-registers custom bot
 modes from `custom-pokebot/plugins/custom_modes/`; first mode is
 "Patrol (Custom)" (waypoint-loop shiny hunt, per-profile `patrol.yml`).
-Structurally smoke-tested (discovery + config validation); needs a live run
-with deps + ROM + profile to close. How-to:
+Verified: structural smoke test + REAL-import discovery under Python 3.12
+(actual bot modules; PatrolMode registers). Only a live gameplay run
+(needs a ROM + profile) remains to close #3. How-to:
 `custom-pokebot/DOCUMENTATION/01-custom-automations.md`.
 
 This project documents and enhances 40Cakes/pokebot-gen3 (Python

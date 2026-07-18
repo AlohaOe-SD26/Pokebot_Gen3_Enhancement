@@ -38,3 +38,20 @@
 - **Prevention:** Never build on agent-written technical docs until they
   have survived an adversarial verify pass; and treat upstream
   comments/docstrings as claims to verify, not facts.
+
+## 2026-07-17 — gitignore silently dropped the custom-modes framework from commits  (ML-2)
+- **Symptom:** A fresh clone (installer test) was missing all of punch-list
+  #3's plugin files; the "committed and pushed" framework existed only on
+  this machine.
+- **Context:** `custom-pokebot/plugins/` — upstream's `.gitignore` ignores
+  `plugins/` wholesale (it treats plugins as user-private), so `git add -A`
+  skipped the new files without any warning, and the drift/heal check
+  (which only sees tracked files) was blind to them too.
+- **Root cause:** Assumed `git add -A` + clean `git status` meant "all new
+  files are in the commit"; ignored files never show in either.
+- **Fix:** `.gitignore` negation block (`plugins/*` + `!` rules, logged in
+  DIVERGENCE-LOG) + explicit `git add`; verified with `git ls-files`.
+- **Prevention:** After adding files inside a vendored/upstream tree,
+  verify they are actually tracked (`git ls-files <path>`) — a clean
+  status is not proof. The installer's fresh-clone test now also catches
+  this class of bug (critical-files smoke check includes the plugin files).

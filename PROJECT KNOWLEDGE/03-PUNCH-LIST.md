@@ -11,10 +11,6 @@
       done.
 
 ## Next
-- [ ] #4 — Easy setup/install/update script (reference:
-      `PROJECT KNOWLEDGE/REFERENCE-INSTALLER-PATTERN.md`; must reconcile the
-      installer-as-codebase pattern with this repo being git-based —
-      decision to record in 06-DECISIONS-LOG when designed).
 
 ## Later / icebox
 - [ ] #5 — Total custom interface (evaluate: extend the bot's HTTP API +
@@ -27,3 +23,6 @@
 - [x] #2 — Deep documentation pass over the vendored codebase:
       `PROJECT KNOWLEDGE/CODEBASE/00–05` + `Pokemon_Emerald_AI_Notes.md`
       (done 2026-07-17).
+- [x] #4 — Easy setup/install/update script: `install.py` (git-driven
+      install/update/heal, tested incl. fresh-clone + heal + deps on this
+      machine; design in 06-DECISIONS-LOG) (done 2026-07-17).

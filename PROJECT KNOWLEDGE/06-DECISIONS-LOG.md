@@ -59,3 +59,26 @@
   `git subtree pull --prefix="40cakes repo/pokebot-gen3" upstream-pokebot main --squash`.
   Custom and mirror start identical at upstream `5dd898f8` (git stores the
   duplicate blobs once, so repo size is unaffected).
+
+## 2026-07-17 — Installer implemented as git-driven one-script (supersedes provisional entry)
+- **Decision:** `install.py` at repo root implements the installer-as-
+  codebase UX (one script = install + update + heal, colored 6-step output,
+  SCRIPT_VERSION, idempotent) with git as the integrity mechanism instead
+  of base64+SHA-256 dicts: drift detection = `git status --porcelain`
+  against tracked files; heal = consent-gated `git checkout --`; update =
+  `git fetch` + fast-forward-only pull; user data protected by being
+  untracked/gitignored (profiles/, roms/, saves). It additionally locates
+  (or offers to winget-install) the 64-bit Python 3.11-3.13 the bot needs
+  — the installer itself runs on any Python 3.8+ — and pre-runs the bot's
+  own `check_requirements()` bootstrap for dependencies.
+- **Context:** REFERENCE-INSTALLER-PATTERN.md assumes a no-git ~50-file
+  pure-source program; this repo is git-based, ~9,000 files with binary
+  assets. Embedding as base64 was infeasible; git already provides
+  hash-verified content.
+- **Alternatives rejected:** literal base64 single-file (size, binary
+  assets, duplicates git); upstream updater.py alone (release-zip based,
+  no heal, self-disabled in git checkouts anyway).
+- **Verified on this machine:** check-only, corrupt→heal→restore, full dep
+  install into Python 3.12, fresh-empty-folder clone (caught and fixed the
+  Windows MAX_PATH clone failure via core.longpaths), unattended --yes
+  mode, EOF/BOM-safe prompts.

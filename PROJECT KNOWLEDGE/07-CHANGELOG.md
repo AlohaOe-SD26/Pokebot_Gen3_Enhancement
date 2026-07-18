@@ -68,3 +68,22 @@
   through the real files with bot modules stubbed; config validation
   failure/success paths pass). Live run pending ROM/deps — #3 stays open.
 - How-to documented in `custom-pokebot/DOCUMENTATION/01-custom-automations.md`.
+
+## 2026-07-17 — One-script installer/updater/healer (punch-list #4)
+- Added `install.py` (repo root): 6-step git-driven adaptation of the
+  installer-as-codebase pattern — finds/offers 64-bit Python 3.11-3.13,
+  clones or fast-forward-updates the repo, detects + consent-restores
+  drifted tracked files (user data untracked → never touched), pre-runs
+  the bot's dependency bootstrap, smoke-checks critical files, offers
+  launch. `--check-only` (read-only) and `--yes` (unattended) modes.
+- Tested end-to-end on this machine: heal restored a deliberately
+  corrupted file; dependencies + libmgba installed into Python 3.12;
+  fresh-empty-folder clone succeeded after fixing Windows MAX_PATH
+  ("Filename too long") via `core.longpaths=true` (+ partial-clone
+  cleanup); cp1252 console crash and PowerShell piped-BOM prompt bugs
+  fixed. Decision recorded in 06; also added root README.md.
+- FIXED CRITICAL: upstream's `.gitignore` was silently excluding the #3
+  custom-modes framework from commits (found by the fresh-clone test) —
+  negation rules added (divergence logged), files now tracked (ML-2).
+- Upgraded #3 verification: real-import discovery test passed (actual bot
+  modules under Python 3.12, PatrolMode registers).

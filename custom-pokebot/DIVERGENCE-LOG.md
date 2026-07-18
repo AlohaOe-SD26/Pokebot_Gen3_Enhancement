@@ -21,3 +21,14 @@
   subtree merges stay clean).
 - **No upstream files modified.** Upstream ships `plugins/` empty except
   `.gitkeep`, so collisions with future upstream changes are unlikely.
+
+## 2026-07-17 — .gitignore: track our plugins framework (first upstream-file edit)
+- **Modified** `.gitignore`: upstream's blanket `plugins/` ignore became
+  `plugins/*` + negations for `.gitkeep`, `custom_modes_loader.py`, and
+  `custom_modes/`. Upstream ignores plugins/ because it treats them as
+  user-private; our framework lives there and must ship with the repo.
+  User-dropped private plugins remain ignored, as upstream intended.
+- **Why:** without this, the custom-modes framework was silently excluded
+  from commits (discovered by the installer's fresh-clone test; ML-2).
+- **Merge note:** if upstream changes its `.gitignore`, re-apply the
+  negation block.

@@ -18,6 +18,12 @@ roms/*
 !roms/.gitkeep
 stats/
 stream/
-plugins/
+# Fork divergence: upstream ignores plugins/ entirely (user-private files).
+# Our custom-automation framework LIVES there and must be tracked; anything
+# else a user drops in plugins/ stays ignored, like upstream intended.
+plugins/*
+!plugins/.gitkeep
+!plugins/custom_modes_loader.py
+!plugins/custom_modes/
 tests/last_frame_timeout.png
 modules/web/static/stream-overlay/config.js
