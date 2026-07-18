@@ -113,3 +113,19 @@
   (Ally-native): handheld closed, drawer open, desktop regression.
 - Daily upstream check ran (new day): upstream main unchanged at
   `5dd898f8`; UPDATE-LOG stamped.
+
+## 2026-07-18 — Smart dependency bootstrap + dashboard discoverability (user feedback)
+- requirements.py (custom fork): now detects installed packages first and
+  pip-installs only what's missing/outdated (verified: satisfied first run
+  = ~2 s, no prompt, no pip; injected-fake-package test correctly flags
+  only the fakes). Found + fixed an upstream dependency conflict in the
+  process: cffi pin loosened `~=1.17.1` → `>=1.17.1` (aiortc→cryptography
+  can force cffi 2.x; upstream's loop was downgrading/re-upgrading it).
+- Dashboard now works out of the box: `http.yml` template defaults to
+  enabled (127.0.0.1 only), new `dashboard_autoopen.py` plugin opens the
+  dashboard in the browser after profile load, and the UI assets got a
+  `?v=` cache-buster so updates always reach the browser.
+- Root-caused "GUI changes don't exist" report: the resize/handheld
+  features live in the BROWSER dashboard (not the Tkinter window), and the
+  handheld commit postdated the user's test; auto-open + cache-busting
+  remove both failure modes.

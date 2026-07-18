@@ -4,7 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PokéBot Dashboard</title>
-  <link rel="stylesheet" href="style.css">
+  <!-- ?v= is a cache-buster: bump it whenever style.css/app.js change, so
+       browsers never serve a stale dashboard after an update. -->
+  <link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>
   <header class="topbar">
@@ -126,6 +128,6 @@
     </svg>
   </button>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=2"></script>
 </body>
 </html>

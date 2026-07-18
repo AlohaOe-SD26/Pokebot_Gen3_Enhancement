@@ -20,7 +20,11 @@ required_modules = [
     "obsws-python~=1.6.0",
     "discord-webhook~=1.2.1",
     "rich~=13.5.2",
-    "cffi~=1.17.1",
+    # Fork divergence: upstream pins cffi~=1.17.1, but aiortc's cryptography
+    # dependency can require cffi>=2.0 on the same machine — upstream's
+    # install loop visibly downgrades and re-upgrades cffi because of this.
+    # cffi's API is stable across 1.17/2.x, so accept both.
+    "cffi>=1.17.1",
     "Pillow~=10.4.0",
     "sounddevice~=0.4.6",
     "pyperclip3~=0.4.1",
@@ -57,6 +61,40 @@ def get_requirements_hash() -> str:
         ]
     )
     return hashlib.sha1(requirements_block.encode("utf-8")).hexdigest()
+
+
+def find_missing_modules() -> list[str]:
+    """
+    Fork enhancement: figures out which required modules are actually missing
+    (not installed, or installed in a version that does not satisfy the
+    requirement) by inspecting the installed-package metadata, so that
+    `update_requirements()` only runs `pip install` for those instead of
+    blindly installing everything on every first run.
+
+    If the metadata inspection is unavailable for any reason, every module is
+    reported as missing — which reproduces the original upstream behaviour.
+    """
+    try:
+        from importlib import metadata
+
+        try:
+            from packaging.requirements import Requirement
+        except ImportError:
+            from pip._vendor.packaging.requirements import Requirement
+
+        missing: list[str] = []
+        for module in required_modules:
+            requirement = Requirement(module)
+            try:
+                installed_version = metadata.version(requirement.name)
+            except metadata.PackageNotFoundError:
+                missing.append(module)
+                continue
+            if requirement.specifier and not requirement.specifier.contains(installed_version, prereleases=True):
+                missing.append(module)
+        return missing
+    except Exception:
+        return list(required_modules)
 
 
 def update_requirements(ask_for_confirmation: bool = True) -> bool:
@@ -106,29 +144,38 @@ def update_requirements(ask_for_confirmation: bool = True) -> bool:
         print(f"You are currently running a {platform.architecture()[0]} version.")
         sys.exit(1)
 
-    # To avoid surprising the user by installing packages in the global Python environment,
-    # we ask for confirmation first. This is skipped if we're inside a virtualenv.
-    if ask_for_confirmation and not is_virtualenv():
-        print(f"The following Python modules need to be checked and possibly installed:\n")
-        for module in required_modules:
-            print(f"  * {module}")
-        print("")
-        response = input("Install those modules? [y/N] ")
-        print("")
-        if response.lower() != "y":
-            print("Not installing any requirements -- the bot might not work this way!")
-            return False
+    # Fork enhancement: only install modules that are actually missing/outdated.
+    missing_modules = find_missing_modules()
+    if not missing_modules:
+        print("All required Python modules are already installed -- nothing to install.")
+    else:
+        # To avoid surprising the user by installing packages in the global Python environment,
+        # we ask for confirmation first. This is skipped if we're inside a virtualenv.
+        if ask_for_confirmation and not is_virtualenv():
+            already_installed = len(required_modules) - len(missing_modules)
+            print(
+                f"{already_installed} of {len(required_modules)} required modules are already "
+                f"installed.\nThe following Python modules are missing or outdated and need to "
+                f"be installed:\n"
+            )
+            for module in missing_modules:
+                print(f"  * {module}")
+            print("")
+            response = input("Install those modules? [y/N] ")
+            print("")
+            if response.lower() != "y":
+                print("Not installing any requirements -- the bot might not work this way!")
+                return False
 
-    # Run `pip install` on all required modules.
-    import subprocess
+        # Run `pip install` on the missing modules (one call, so pip can resolve them together).
+        import subprocess
 
-    pip_flags = ["--disable-pip-version-check", "--no-python-version-warning"]
-    if not is_virtualenv():
-        pip_flags.append("--user")
+        pip_flags = ["--disable-pip-version-check", "--no-python-version-warning"]
+        if not is_virtualenv():
+            pip_flags.append("--user")
 
-    for module in required_modules:
         subprocess.check_call(
-            [sys.executable, "-m", "pip", "install", *pip_flags, module],
+            [sys.executable, "-m", "pip", "install", *pip_flags, *missing_modules],
             stderr=sys.stderr,
             stdout=sys.stdout,
         )

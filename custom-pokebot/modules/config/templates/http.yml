@@ -1,6 +1,10 @@
 # See wiki for documentation: https://github.com/40Cakes/pokebot-gen3/tree/main/wiki/pages/Configuration%20-%20HTTP%20Server.md
+#
+# Fork divergence: enabled by default so the custom web dashboard
+# (http://127.0.0.1:8888/static/custom-ui/index.html) works out of the box.
+# Bound to 127.0.0.1, so it is only reachable from this machine.
 
 http_server:
-  enable: false
+  enable: true
   ip: 127.0.0.1
   port: 8888

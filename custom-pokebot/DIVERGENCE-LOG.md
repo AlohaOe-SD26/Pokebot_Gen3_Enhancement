@@ -33,6 +33,33 @@
 - **Merge note:** if upstream changes its `.gitignore`, re-apply the
   negation block.
 
+## 2026-07-18 — Smart dependency check + cffi pin fix (requirements.py)
+- **Modified** `requirements.py`: added `find_missing_modules()` (inspects
+  installed-package metadata via importlib.metadata + packaging) and made
+  `update_requirements()` install ONLY missing/outdated modules — first run
+  with everything present now takes ~2 s with no prompt and no pip calls
+  (upstream unconditionally ran `pip install` per module). Falls back to
+  upstream behavior if metadata inspection fails.
+- **Modified** the `cffi` pin `~=1.17.1` → `>=1.17.1`: upstream's own
+  aiortc→cryptography chain can require cffi 2.x on the same machine,
+  which made upstream's install loop downgrade/re-upgrade cffi and made
+  any version check permanently "unsatisfied". cffi's API is stable across
+  1.17/2.x. (Requirements hash changes → one-time re-check for everyone.)
+- **Merge note:** upstream changes to requirements.py must be re-merged
+  around `find_missing_modules()` and the install block.
+
+## 2026-07-18 — Dashboard out-of-the-box (http.yml default + auto-open plugin)
+- **Modified** `modules/config/templates/http.yml`: `enable: true` by
+  default (bound to 127.0.0.1 — local only) so the dashboard works without
+  manual config on new profiles/global-config setups.
+- **Added** `plugins/dashboard_autoopen.py`: opens the dashboard in the
+  default browser ~2.5 s after profile load when the HTTP server is
+  enabled (set `AUTO_OPEN = False` in the file to disable). Added to the
+  .gitignore negation list.
+- **Modified** `modules/web/static/custom-ui/index.html`: `?v=` cache-buster
+  on style.css/app.js so browsers never serve a stale dashboard after
+  updates (bump on every asset change).
+
 ## 2026-07-17 — Custom web dashboard (additive only)
 - **Added** `modules/web/static/custom-ui/` (index.html, style.css, app.js):
   a self-contained web dashboard served by the bot's existing static route —
