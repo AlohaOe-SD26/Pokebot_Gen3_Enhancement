@@ -38,10 +38,13 @@ in CLAUDE.md "Project rules"):
   Toplevel tabs; the user's on-device Ally test. Browser dashboard
   (`modules/web/static/custom-ui/`) remains as opt-in remote viewing
   (auto-open plugin defaults OFF).
-- **#4 installer — DONE**: `install.py` (git-driven one-script
-  install/update/heal, fully tested). Deps + libmgba installed on this
-  machine; the user's Emerald ROM is in `custom-pokebot/roms/` (tracked by
-  user ruling — see gotchas), so the bot runs for real here.
+- **#4 installer — DONE (V2, 2026-07-18)**: `install.py` = the CUSTOM
+  bot's one-script setup/update/heal per user spec: 7 fault-isolated
+  steps, ✓/⚠/✗ summary + exit codes, full trace to `install.log`
+  (gitignored), full-repo self-heal (incl. quoted-path fix), ROM step
+  (whitelist-verifies repo ROM / sideloads a .gba placed next to the
+  script), incremental updates (never re-downloads the repo). All paths
+  tested on this machine; user confirmation of a real-world run pending.
 - **#3 custom automations — WIP**: framework + "Patrol (Custom)" built,
   real-import verified; awaiting the user's in-game play-test.
 - requirements.py (fork) now installs only missing modules; cffi pin

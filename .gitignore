@@ -28,3 +28,6 @@ obj/
 # Project Kit run logs (local diagnostics)
 PROJECT KIT/logs/
 REMOTE START/logs/
+# installer run logs (machine-local)
+install.log
+install.log.old

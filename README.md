@@ -15,11 +15,14 @@ python install.py --yes        # unattended (auto-confirm, never launches)
 
 `install.py` runs on any Python 3.8+ and takes care of everything else:
 finds (or offers to install) the 64-bit Python 3.11–3.13 the bot needs,
-clones/updates this repository, detects and repairs modified or corrupted
-bot files via git (never touching your profiles, saves, or ROMs), and
-pre-installs the bot's dependencies. Re-run it anytime.
-
-ROMs are not included — put your own `.gba` dumps in `custom-pokebot/roms/`.
+clones this repository ONCE (updates are incremental — only the diff is
+ever downloaded), detects and repairs any modified/corrupted/deleted
+tracked file via git (never touching your profiles or saves), handles the
+game ROM (verifies the repo's copy against the bot's known-good list, or
+copies in a `.gba` placed next to the script), and pre-installs only the
+dependencies that are actually missing. Every run writes a full trace to
+`install.log`, ends with a per-step ✓/⚠/✗ summary, and is safe to re-run
+anytime — that IS the update and repair mechanism.
 
 ## Repository layout
 

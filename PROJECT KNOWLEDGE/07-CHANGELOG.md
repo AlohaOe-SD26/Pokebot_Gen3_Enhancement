@@ -153,3 +153,21 @@
   **FLAGGED TO REVIEW** (user approved from screenshots only; no hands-on
   visual test yet). Flags live in 03-PUNCH-LIST #5, 04-HANDOFF, and
   custom-pokebot/DOCUMENTATION/02 — clear all three after the user's test.
+
+## 2026-07-18 — Installer V2: robust custom setup/update/heal + ROM handling (punch-list #4)
+- Rewrote `install.py` per user requirements (SCRIPT_VERSION
+  2026-07-18-CUSTOM-ROBUST-V2): 7 steps with per-step exception capture
+  (one broken step logs its traceback and the run continues), a ✓/⚠/✗
+  step summary, meaningful exit codes, and hybrid logging (full trace to
+  `install.log`, auto-rotated, gitignored).
+- Self-heal widened from custom-pokebot/ to ALL tracked files (mirror,
+  docs, the installer itself); fixed git-porcelain quoted-path/rename
+  parsing (paths with spaces previously could not be restored).
+- New ROM step: verifies ROMs in `custom-pokebot/roms/` against the
+  whitelist regex-parsed from `modules/roms.py` (works before deps
+  exist); if the repo provides none, sideloads `.gba` files found next to
+  the script (never overwrites, warns on non-whitelisted dumps).
+- Verified: clean check-only; sideload path (fake ROM copied + correctly
+  flagged unknown); heal restored the deliberately-deleted 16 MB ROM
+  (spaces-in-path case) and re-verified it; log/summary/exit codes all
+  exercised. Updates confirmed incremental (fetch + ff-only).
