@@ -15,7 +15,9 @@ from modules.plugin_interface import BotPlugin
 if TYPE_CHECKING:
     from modules.profiles import Profile
 
-AUTO_OPEN: bool = True
+# Default OFF: the native dashboard GUI is now the main interface; flip this
+# to True if you want the browser dashboard to open automatically as well.
+AUTO_OPEN: bool = False
 
 # The HTTP server starts just after the profile loads, so give it a moment
 # to bind before pointing a browser at it.

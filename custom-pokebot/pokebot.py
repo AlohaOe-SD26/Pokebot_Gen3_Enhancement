@@ -48,6 +48,7 @@ class StartupSettings:
     emulation_speed: int
     always_on_top: bool
     config_path: str
+    classic_gui: bool = False  # fork addition: opt back into upstream's GUI
 
 
 def directory_arg(value: str) -> pathlib.Path:
@@ -89,6 +90,8 @@ def parse_arguments(bot_mode_names: list[str]) -> StartupSettings:
         "-t", "--always-on-top", action="store_true", help="Keep the bot window always on top of other windows."
     )
     parser.add_argument("-d", "--debug", action="store_true", help="Enable extra debug options and a debug menu.")
+    # Fork addition: the dashboard GUI is the default; this restores upstream's window.
+    parser.add_argument("-cg", "--classic-gui", action="store_true", help="Use the original (upstream) GUI.")
     parser.add_argument("-c", "--config", type=directory_arg, dest="config_path", help=argparse.SUPPRESS)
     args = parser.parse_args()
 
@@ -108,6 +111,7 @@ def parse_arguments(bot_mode_names: list[str]) -> StartupSettings:
         emulation_speed=int(args.emulation_speed or "1"),
         always_on_top=bool(args.always_on_top),
         config_path=args.config_path,
+        classic_gui=bool(args.classic_gui),
     )
 
 
@@ -150,7 +154,7 @@ if __name__ == "__main__":
         from modules.gui.headless import PokebotHeadless
 
         gui = PokebotHeadless(main_loop, on_exit)
-    else:
+    elif startup_settings.classic_gui:
         from modules.gui import PokebotGui
 
         # Previously, theming could _only_ be disabled through an environment flag. Now, it can
@@ -158,6 +162,12 @@ if __name__ == "__main__":
         # accept either.
         no_theme = os.getenv("POKEBOT_UNTHEMED") == "1" or startup_settings.no_theme
         gui = PokebotGui(main_loop, on_exit, no_theme=no_theme, use_opengl=startup_settings.use_opengl)
+    else:
+        # Fork default: the dashboard GUI (use --classic-gui for the upstream window).
+        from modules.gui.dashboard_gui import PokebotDashboardGui
+
+        no_theme = os.getenv("POKEBOT_UNTHEMED") == "1" or startup_settings.no_theme
+        gui = PokebotDashboardGui(main_loop, on_exit, no_theme=no_theme)
     context.gui = gui
 
     gui.run(startup_settings)

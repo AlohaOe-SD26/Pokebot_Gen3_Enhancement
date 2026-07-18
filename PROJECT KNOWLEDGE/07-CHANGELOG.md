@@ -129,3 +129,18 @@
   features live in the BROWSER dashboard (not the Tkinter window), and the
   handheld commit postdated the user's test; auto-open + cache-busting
   remove both failure modes.
+
+## 2026-07-18 — Native dashboard GUI (punch-list #5, user direction change)
+- Per user: the dashboard layout belongs in the PROGRAM's own window, not
+  a browser. Built `modules/gui/dashboard_gui.py` — new default GUI
+  (`--classic-gui` restores upstream's): resizable letterboxed video +
+  tool column (mode/speed/AV, KPI tiles, party HP bars, status, event
+  log), handheld mode (F11/H/Esc, canvas-drawn Pokéball toggle, per-profile
+  persistence), stock menu bar kept, debug tabs in a separate window.
+- Verified on a REAL run (Emerald ROM, fresh test-dashboard profile, game
+  at title screen): all four UI states screenshot-confirmed at 4K/300%
+  scaling; fixed en route: window off-screen on scaled displays (clamp +
+  re-assert position), speed-row clipping, DPI-aware capture tooling,
+  and learned Tk fullscreen recreates the native hwnd on Windows.
+- Browser dashboard remains as opt-in remote viewing (autoopen now
+  defaults off).

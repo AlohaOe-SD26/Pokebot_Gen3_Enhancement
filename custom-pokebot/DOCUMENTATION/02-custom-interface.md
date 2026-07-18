@@ -1,4 +1,33 @@
-# Custom Interface — web dashboard (v1)
+# Custom Interface
+
+## Native dashboard GUI (the program's own window — DEFAULT)
+
+Since 2026-07-18 the bot's own window (the one the emulator embeds into)
+uses the dashboard layout: `modules/gui/dashboard_gui.py`, launched by
+default; `--classic-gui` restores upstream's original window (also the
+place for OpenGL rendering and frame-stepping mode).
+
+- **Layout:** resizable window; emulator video letterboxed left; tool
+  column right with Controls (bot mode incl. custom modes, speed 1×–32×/∞,
+  Video/Audio toggles), KPI tiles (total/shinies/phase/rate), Party (HP
+  bars colored by fraction, status, shiny ✨, eggs), Status (game state,
+  fps, bot message) and an Event log (shiny encounters highlighted).
+- **Handheld mode (ROG Ally X):** the "Handheld mode" button, `F11`, or
+  double-click on the video → true fullscreen video. A semi-transparent
+  Pokéball button (top-right) or `H` opens the overlay tool drawer;
+  "Hide"/`H`/`Esc` closes it; `Esc` (drawer closed) exits handheld mode.
+  The mode persists per profile (`dashboard_ui.json`).
+- **Stock features kept:** menu bar (save states, screenshots, reset,
+  profile folder), keys.yml bindings, Manual-mode keyboard input; with
+  `-d` the stock debug tabs open in a separate "Debug" window (map tab
+  clicks on the video still work).
+- **Verified 2026-07-18** on a real run (Emerald ROM, test-dashboard
+  profile): desktop layout, F11 handheld, Pokéball → drawer, Esc-out, and
+  return to desktop — all screenshot-confirmed. Not yet verified: party
+  panel with a non-empty party, live encounter KPIs (needs a save with
+  progress), debug window tabs.
+
+## Web dashboard (v1 — remote viewing, opt-in)
 
 > Part of the `custom-pokebot/` fork docs. The upstream HTTP API this builds
 > on is fully documented in

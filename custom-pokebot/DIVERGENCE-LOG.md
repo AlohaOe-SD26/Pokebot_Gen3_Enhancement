@@ -33,6 +33,27 @@
 - **Merge note:** if upstream changes its `.gitignore`, re-apply the
   negation block.
 
+## 2026-07-18 — Native dashboard GUI (new default window)
+- **Added** `modules/gui/dashboard_gui.py`: `PokebotDashboardGui`
+  (subclasses stock `PokebotGui`) + `DashboardScreen` — the fork's default
+  emulator window with the web-dashboard layout: freely resizable video
+  (letterboxed, nearest-neighbour), right tool column (bot mode, speed
+  1×-32×/∞, video/audio, KPI tiles, party with colored HP bars, status,
+  event log fed by a BotPlugin adapter), and a handheld mode (true
+  fullscreen video + overlay tool drawer toggled by a canvas-drawn Pokéball
+  button / H; F11 toggles the mode; Esc backs out; state persisted per
+  profile in `dashboard_ui.json`). Stock menu bar preserved; in debug mode
+  the stock debug tabs open in a separate "Debug" window.
+- **Modified** `pokebot.py`: `--classic-gui` flag (upstream window,
+  incl. OpenGL/stepping); default non-headless launch now uses the
+  dashboard GUI. `StartupSettings` gained `classic_gui` field.
+- **Modified** `plugins/dashboard_autoopen.py`: AUTO_OPEN now defaults to
+  False (browser dashboard is opt-in; the native GUI is the interface).
+- **Merge note:** upstream changes to `modules/gui/__init__.py`
+  (PokebotGui) flow into the dashboard GUI via inheritance; re-check the
+  overridden `_handle_key_down_event` and the `_emulator_screen` swap
+  after upstream GUI refactors.
+
 ## 2026-07-18 — Smart dependency check + cffi pin fix (requirements.py)
 - **Modified** `requirements.py`: added `find_missing_modules()` (inspects
   installed-package metadata via importlib.metadata + packaging) and made
