@@ -202,3 +202,15 @@
   semantics, patrol parse semantics incl. 5 rejections), live GUI
   screenshot of the MACROS card. Real record→replay needs hands-on play
   (test save sits at the title screen). Details: SANDBOX-NOTES.md.
+
+## 2026-07-18 — Sandbox A4: GUI pack + round verification (punch-list #7)
+- Dashboard GUI (sandbox): scrollable tool column (fixes clipping at small
+  heights/high DPI, works in the handheld drawer, mousewheel-driven),
+  32px party sprites via upstream sprites.py (shiny/anti-shiny/Unown/Egg
+  handled, PhotoImages cached), new SHINY LOG card (last 5 phases), card
+  order reworked (interactive first), bounded event log.
+- Round exit gate passed: headless sprite/path/import batteries,
+  install_sandbox.py --check-only, and a LIVE run — real mousewheel input
+  scrolled the shrunken column, F11+H reached handheld drawer; clean exit.
+  Remaining caveats (need real gameplay) recorded in SANDBOX-NOTES.md and
+  SANDBOX-PROPOSALS.md.

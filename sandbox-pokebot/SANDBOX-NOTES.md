@@ -77,3 +77,29 @@
 - **Verified**: py_compile + discovery; parse semantics test (mixed
   old/new formats accepted; 5 malformed variants rejected).
 - **Not verified**: live multi-map walk (needs a progressed save).
+## 2026-07-18 — A4: GUI pack + round verification
+- **Modified** `modules/gui/dashboard_gui.py`:
+  - Scrollable tool column: all cards now live inside a Canvas-hosted frame
+    with a slim scrollbar; mousewheel scrolls whenever the pointer is over
+    the column (the event log Listbox keeps its own scrolling). Fixes the
+    clipping both A1 and A2 hit at small heights / high DPI; works in the
+    handheld drawer too (same widget).
+  - Party sprites: 32px pixel-art sprite per party row via upstream
+    `modules/sprites.get_sprite()` (shiny/anti-shiny/Unown handled by
+    upstream; eggs use `sprites/pokemon/Egg.png`); PhotoImages cached.
+  - New SHINY LOG card: last 5 shiny phases ("✨ species — N enc") from
+    `context.stats.get_shiny_log()`, refreshed on the KPI cycle.
+  - Card order is now Controls, Macros, Stats, Party, Shiny log, Backups,
+    Status, Event log (interactive first, telemetry last); event log has a
+    bounded height inside the scroll area.
+- **Verification (round exit gate):** headless — sprite paths resolve for
+  edge-case names (Mr. Mime, Nidoran♀, Farfetch’d, Unown, Egg), ≤32px
+  PhotoImage loads, GUI/plugins/modes all real-import, both custom modes
+  discovered; `install_sandbox.py --check-only` passes (8 critical files).
+  Live — real WM_MOUSEWHEEL input scrolled the column in a deliberately
+  shrunken window (bottom cards reachable), and F11 + H produced handheld
+  fullscreen with the drawer (screenshots: a4_desktop / a4_scrolled /
+  a4_handheld_drawer in the session scratchpad); bot closed cleanly.
+- **Still untested (needs real gameplay):** party sprites with a live
+  party, shiny log with real entries, shiny-triggered backup, macro
+  record→replay cycle, multi-map patrol run.

@@ -8,6 +8,15 @@
 
 ## A. IMPLEMENTED IN THIS SANDBOX (ready for review)
 
+> **Status (end of round, 2026-07-18):** A1–A4 all BUILT and machine-
+> verified (headless test batteries + live GUI runs with the real ROM;
+> evidence in SANDBOX-NOTES.md per item). Honest caveats needing REAL
+> GAMEPLAY on the user's side: shiny-triggered backup, a full macro
+> record→replay cycle, a live multi-map patrol, party sprites/shiny log
+> with a progressed save. Everything else — backup/restore/cloud push,
+> macro engine + YAML, GUI cards, scrollable column, handheld drawer —
+> is verified working.
+
 ### A1. Backup & Restore system (user-requested)
 Protects the three things that matter: **save files, savestates, profiles**
 (incl. stats.db and per-profile configs like patrol.yml).

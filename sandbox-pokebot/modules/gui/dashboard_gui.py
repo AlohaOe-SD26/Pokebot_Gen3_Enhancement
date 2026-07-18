@@ -101,6 +101,8 @@ class DashboardScreen:
         self._audio_button: tkinter.Button | None = None
         self._kpi_values: dict[str, tkinter.Label] = {}
         self._party_rows: list[dict] = []
+        self._sprite_cache: dict = {}  # Tk needs live references to PhotoImages
+        self._shiny_log_label: tkinter.Label | None = None
         self._event_list: tkinter.Listbox | None = None
         self._message_label: tkinter.Label | None = None
         self._state_label: tkinter.Label | None = None
@@ -277,13 +279,13 @@ class DashboardScreen:
         self.frame.grid(row=0, column=1, sticky="NSE")
         self.frame.grid_propagate(False)
 
-        tools = tkinter.Frame(self.frame, background=COLOR_SURFACE, width=TOOL_COLUMN_WIDTH)
-        tools.pack(fill="both", expand=True)
-        tools.pack_propagate(False)
-        self._tools_container = tools
+        column = tkinter.Frame(self.frame, background=COLOR_SURFACE, width=TOOL_COLUMN_WIDTH)
+        column.pack(fill="both", expand=True)
+        column.pack_propagate(False)
+        self._tools_container = column
 
         # --- drawer header (only visible in handheld mode) ---
-        self._drawer_header = tkinter.Frame(tools, background=COLOR_SURFACE)
+        self._drawer_header = tkinter.Frame(column, background=COLOR_SURFACE)
         tkinter.Label(
             self._drawer_header, text="TOOLS", background=COLOR_SURFACE, foreground=COLOR_INK_2, font=("Segoe UI", 9, "bold")
         ).pack(side="left", padx=10, pady=6)
@@ -299,6 +301,32 @@ class DashboardScreen:
             padx=10,
         ).pack(side="right", padx=10, pady=4)
         # (packed on demand in _apply_handheld_layout)
+
+        # --- scrollable card area (A4): all cards live inside `tools`, which
+        # sits in a canvas window so the column can never clip off-screen at
+        # small window heights or high DPI — desktop and handheld drawer alike.
+        self._scroll_area = tkinter.Frame(column, background=COLOR_SURFACE)
+        self._scroll_area.pack(fill="both", expand=True)
+        self._cards_canvas = Canvas(
+            self._scroll_area, background=COLOR_SURFACE, highlightthickness=0, borderwidth=0
+        )
+        scrollbar = tkinter.Scrollbar(
+            self._scroll_area, orient="vertical", command=self._cards_canvas.yview, width=10
+        )
+        scrollbar.pack(side="right", fill="y")
+        self._cards_canvas.pack(side="left", fill="both", expand=True)
+        tools = tkinter.Frame(self._cards_canvas, background=COLOR_SURFACE)
+        self._cards_window = self._cards_canvas.create_window((0, 0), window=tools, anchor="nw")
+        self._cards_canvas.configure(yscrollcommand=scrollbar.set)
+        tools.bind(
+            "<Configure>",
+            lambda _event: self._cards_canvas.configure(scrollregion=self._cards_canvas.bbox("all")),
+        )
+        self._cards_canvas.bind(
+            "<Configure>",
+            lambda event: self._cards_canvas.itemconfigure(self._cards_window, width=event.width),
+        )
+        self.window.bind_all("<MouseWheel>", self._on_tool_mousewheel, add="+")
 
         # --- controls card ---
         controls = self._card(tools, "CONTROLS")
@@ -474,24 +502,18 @@ class DashboardScreen:
         self._party_container = tkinter.Frame(party_card, background=COLOR_CARD)
         self._party_container.pack(fill="x")
 
-        # --- status line + message ---
-        status_card = self._card(tools, "STATUS")
-        self._state_label = tkinter.Label(
-            status_card, text="—", background=COLOR_CARD, foreground=COLOR_INK_2, anchor="w"
-        )
-        self._state_label.pack(fill="x")
-        self._fps_label = tkinter.Label(status_card, text="", background=COLOR_CARD, foreground=COLOR_MUTED, anchor="w")
-        self._fps_label.pack(fill="x")
-        self._message_label = tkinter.Label(
-            status_card,
-            text="",
+        # --- shiny log card (sandbox A4) ---
+        shiny_card = self._card(tools, "SHINY LOG")
+        self._shiny_log_label = tkinter.Label(
+            shiny_card,
+            text="No shinies yet — keep hunting!",
             background=COLOR_CARD,
-            foreground=COLOR_INK_2,
+            foreground=COLOR_MUTED,
             anchor="w",
-            wraplength=TOOL_COLUMN_WIDTH - 40,
             justify="left",
+            font=("Segoe UI", 8),
         )
-        self._message_label.pack(fill="x")
+        self._shiny_log_label.pack(fill="x")
 
         # --- backups card (sandbox A1) ---
         backup_card = self._card(tools, "BACKUPS")
@@ -525,8 +547,29 @@ class DashboardScreen:
             padx=8,
         ).pack(side="left")
 
+        # --- status line + message ---
+        status_card = self._card(tools, "STATUS")
+        self._state_label = tkinter.Label(
+            status_card, text="—", background=COLOR_CARD, foreground=COLOR_INK_2, anchor="w"
+        )
+        self._state_label.pack(fill="x")
+        self._fps_label = tkinter.Label(status_card, text="", background=COLOR_CARD, foreground=COLOR_MUTED, anchor="w")
+        self._fps_label.pack(fill="x")
+        self._message_label = tkinter.Label(
+            status_card,
+            text="",
+            background=COLOR_CARD,
+            foreground=COLOR_INK_2,
+            anchor="w",
+            wraplength=TOOL_COLUMN_WIDTH - 40,
+            justify="left",
+        )
+        self._message_label.pack(fill="x")
+
         # --- event log ---
-        log_card = self._card(tools, "EVENT LOG", expand=True)
+        # Fixed height: inside the scrollable column the card cannot expand
+        # to fill leftover space; a bounded list keeps the scrollregion sane.
+        log_card = self._card(tools, "EVENT LOG")
         self._event_list = tkinter.Listbox(
             log_card,
             background=COLOR_CARD,
@@ -535,6 +578,7 @@ class DashboardScreen:
             highlightthickness=0,
             borderwidth=0,
             font=("Segoe UI", 8),
+            height=9,
         )
         self._event_list.pack(fill="both", expand=True)
 
@@ -609,7 +653,7 @@ class DashboardScreen:
             self.frame.grid_remove()
             self._drawer_header.pack_forget()
             if self._drawer_open:
-                self._drawer_header.pack(in_=self._tools_container, fill="x", before=self._tools_container.winfo_children()[1])
+                self._drawer_header.pack(in_=self._tools_container, fill="x", before=self._scroll_area)
                 self.frame.place(relx=1.0, rely=0.0, relheight=1.0, anchor="ne", width=TOOL_COLUMN_WIDTH)
                 self._pokeball_button.place_forget()
             else:
@@ -681,6 +725,7 @@ class DashboardScreen:
         if time.monotonic() - self._last_kpi_refresh >= KPI_REFRESH_SECONDS:
             self._refresh_kpis()
             self._refresh_backup_label()
+            self._refresh_shiny_log()
 
     def _refresh_controls(self) -> None:
         if self._mode_button is None:
@@ -737,6 +782,8 @@ class DashboardScreen:
                 row_frame.pack(fill="x", pady=2)
                 top = tkinter.Frame(row_frame, background=COLOR_SURFACE)
                 top.pack(fill="x")
+                sprite = tkinter.Label(top, background=COLOR_SURFACE)
+                sprite.pack(side="left", padx=(0, 6))
                 name = tkinter.Label(
                     top, text="", background=COLOR_SURFACE, foreground=COLOR_INK, font=("Segoe UI", 9, "bold"), anchor="w"
                 )
@@ -757,6 +804,8 @@ class DashboardScreen:
                 self._party_rows.append(
                     {
                         "frame": row_frame,
+                        "sprite": sprite,
+                        "sprite_key": None,
                         "name": name,
                         "level": level,
                         "bar_fill": bar_fill,
@@ -768,6 +817,7 @@ class DashboardScreen:
             self._update_party_row(pokemon, row)
 
     def _update_party_row(self, pokemon: "Pokemon", row: dict) -> None:
+        self._set_row_sprite(pokemon, row)
         if pokemon.is_egg:
             row["name"].config(text="Egg", foreground=COLOR_MUTED)
             row["level"].config(text="")
@@ -799,6 +849,72 @@ class DashboardScreen:
             text=f"{current_hp}/{total_hp}{status_text}",
             foreground=COLOR_CRITICAL if status_text else COLOR_INK_2,
         )
+
+    # ------------------------------------------------------------------
+    # Sprites & shiny log (sandbox A4)
+    # ------------------------------------------------------------------
+
+    def _set_row_sprite(self, pokemon: "Pokemon", row: dict) -> None:
+        key = "egg" if pokemon.is_egg else f"{pokemon.species_name_for_stats}|{pokemon.is_shiny}|{pokemon.is_anti_shiny}"
+        if row.get("sprite_key") == key:
+            return
+        image = self._get_sprite_image(pokemon, key)
+        row["sprite"].config(image=image if image is not None else "")
+        row["sprite_key"] = key
+
+    def _get_sprite_image(self, pokemon: "Pokemon", cache_key: str) -> "PIL.ImageTk.PhotoImage | None":
+        if cache_key in self._sprite_cache:
+            return self._sprite_cache[cache_key]
+        try:
+            from modules.runtime import get_sprites_path
+            from modules.sprites import get_sprite
+
+            path = get_sprites_path() / "pokemon" / "Egg.png" if pokemon.is_egg else get_sprite(pokemon)
+            if not path.is_file():
+                self._sprite_cache[cache_key] = None
+                return None
+            image = PIL.Image.open(path)
+            if image.mode != "RGBA":
+                image = image.convert("RGBA")
+            image.thumbnail((32, 32), PIL.Image.NEAREST)
+            photo = PIL.ImageTk.PhotoImage(image)
+        except Exception:
+            self._sprite_cache[cache_key] = None
+            return None
+        self._sprite_cache[cache_key] = photo
+        return photo
+
+    def _refresh_shiny_log(self) -> None:
+        if self._shiny_log_label is None:
+            return
+        try:
+            phases = context.stats.get_shiny_log()[:5]
+        except Exception:
+            return
+        lines = []
+        for phase in phases:
+            encounter = phase.shiny_encounter
+            species = encounter.pokemon.species_name_for_stats if encounter is not None else "?"
+            lines.append(f"✨ {species} — {phase.encounters:,} enc")
+        if lines:
+            self._shiny_log_label.config(text="\n".join(lines), foreground=COLOR_SHINY)
+        else:
+            self._shiny_log_label.config(text="No shinies yet — keep hunting!", foreground=COLOR_MUTED)
+
+    def _on_tool_mousewheel(self, event) -> None:
+        if not event.delta:
+            return
+        try:
+            widget = self.window.winfo_containing(event.x_root, event.y_root)
+        except (KeyError, tkinter.TclError):
+            return
+        while widget is not None:
+            if isinstance(widget, tkinter.Listbox):
+                return  # the event log scrolls itself
+            if widget is self._tools_container:
+                self._cards_canvas.yview_scroll(int(-event.delta / 120), "units")
+                return
+            widget = widget.master
 
     # ------------------------------------------------------------------
     # Events
