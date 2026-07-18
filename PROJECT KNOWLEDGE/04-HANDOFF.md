@@ -59,15 +59,18 @@ in CLAUDE.md "Project rules"):
   on a live run; browser auto-open defaulted off per user preference.
 
 ## In progress (and how far along)
-- #7 SANDBOX ROUND (user-directed 2026-07-18; user away ~6 h, returns to
-  review): `sandbox-pokebot/` = isolated copy of custom (tracked; ROM
-  force-added) + `install_sandbox.py` (wrapper around install.py). Plan in
-  `sandbox-pokebot/SANDBOX-PROPOSALS.md`: A1 backup/restore system with
-  local + GitHub-repo + synced-folder cloud backends and GUI panel; A2
-  macro record/replay; A3 multi-map Patrol; A4 GUI pack (party sprites,
-  shiny log). Being implemented by sequential fork agents (A1 → A2/A3 →
-  A4+live test). DO NOT touch custom-pokebot or the mirror in this round;
-  promotion into custom only after user approval (rule C in proposals).
+- #7 SANDBOX ROUND — BUILD COMPLETE, AWAITING USER REVIEW (2026-07-18).
+  All four items (A1 backup/restore + local/GitHub/synced-folder cloud, A2
+  macro record/replay, A3 multi-map Patrol, A4 GUI pack incl. scrollable
+  tool column, party sprites, shiny log) are built, machine-verified, and
+  pushed (commits 2e933129, 2124b20e/38a0e207, 8f605513, 02057b26).
+  Status + honest caveats: `sandbox-pokebot/SANDBOX-PROPOSALS.md` (top
+  block); per-item detail in `sandbox-pokebot/SANDBOX-NOTES.md`. USER
+  REVIEW PATH: `python install_sandbox.py` → launch sandbox → test with a
+  real save (macro record→replay, shiny backup trigger, multi-map patrol,
+  party sprites with a real party). Then: approve items → promote into
+  custom-pokebot (rule C in proposals); pick next items from proposals
+  section B. Promotion needs explicit user OK per item.
 - #5/#4 CONFIRMED WORKING by user hands-on 2026-07-18 ("worked!") — flags
   cleared. #3 Patrol still awaiting explicit user play-test.
 
