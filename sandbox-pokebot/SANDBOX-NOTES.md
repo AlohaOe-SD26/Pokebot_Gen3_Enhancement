@@ -321,3 +321,23 @@ no pad exists on the dev machine.
 - **Pending real gameplay**: an actual cross-warp walk (no in-game save on
   this machine); locked-door behavior in the wild; surf-transition routes
   (upstream limitation carried over).
+
+## 2026-07-18 — A6: shiny alerts (#12) + update notice (#18)
+- Added `plugins/shiny_alert_plugin.py` + `alerts.yml` (root template,
+  per-profile whole-file override, backup.yml conventions): shiny ->
+  toast (notify-py, non-blocking) + Windows system ding (async) +
+  optional auto_pause->Manual (default off). All paths swallowed; logger
+  "alerts". Added `modules/update_check.py`: once-per-launch daemon
+  thread (git fetch + rev-list with timeouts, walk-up .git discovery),
+  result polled by the sidebar refresh -> Status-card accent line
+  "N update(s) available - run install.py" + highlighted event-log entry.
+  GUI: `_update_label` in Status card (packed on demand), teardown-safe.
+- Verified: 21-check headless battery (config layering/malformed, stubbed
+  toast/sound firing + swallowing, stubbed-git behind/up-to-date/offline/
+  detached/garbage, poll gating); real notify-py toast fired on this
+  machine; live runs x2 (unforced: no banner, 3 s startup; forced-behind
+  wrapper: banner + event entry, screenshots au_*.png). Gitignore
+  negation verified via git ls-files.
+- Honest gaps: end-to-end toast/ding needs a REAL in-game shiny; the
+  banner path was forced via a test launcher (real "behind" state not
+  reproduced against the remote to avoid resetting the working repo).

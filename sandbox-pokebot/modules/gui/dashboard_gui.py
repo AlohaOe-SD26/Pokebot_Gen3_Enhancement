@@ -117,6 +117,8 @@ class DashboardScreen:
         self._state_label: tkinter.Label | None = None
         self._fps_label: tkinter.Label | None = None
         self._controller_label: tkinter.Label | None = None
+        self._update_label: tkinter.Label | None = None
+        self._update_notice_logged = False
         self._pokeball_button: Canvas | None = None
         self._menu_bar: Menu | None = None
 
@@ -124,6 +126,16 @@ class DashboardScreen:
         self._debug_window: tkinter.Toplevel | None = None
         self._debug_notebook: ttk.Notebook | None = None
         self._debug_tabs: list = []
+
+        # Sandbox #18: once-per-launch update check in a daemon thread; the
+        # result is polled from the sidebar refresh (Tk stays on this thread).
+        try:
+            from modules.runtime import get_base_path
+            from modules.update_check import start_background_check
+
+            start_background_check(get_base_path())
+        except Exception:
+            pass  # the notice is best-effort; launch must never be affected
 
     # ------------------------------------------------------------------
     # Interface expected by PokebotGui / the rest of the bot
@@ -221,6 +233,8 @@ class DashboardScreen:
         self._state_label = None
         self._fps_label = None
         self._controller_label = None
+        self._update_label = None
+        self._update_notice_logged = False  # re-show the notice if re-enabled
         self._menu_bar = None
         self._debug_tabs = []
 
@@ -616,6 +630,10 @@ class DashboardScreen:
             status_card, text="", background=COLOR_CARD, foreground=COLOR_MUTED, anchor="w", font=("Segoe UI", 8)
         )
         self._controller_label.pack(fill="x")
+        self._update_label = tkinter.Label(
+            status_card, text="", background=COLOR_CARD, foreground=COLOR_ACCENT, anchor="w", font=("Segoe UI", 8, "bold")
+        )
+        # Packed on demand when the update check reports something.
         self._message_label = tkinter.Label(
             status_card,
             text="",
@@ -833,6 +851,21 @@ class DashboardScreen:
                 from modules.gamepad import get_status_text
 
                 self._controller_label.config(text=get_status_text())
+            except Exception:
+                pass
+
+        # Sandbox #18: surface the async update-check result exactly once.
+        if not self._update_notice_logged and self._update_label is not None:
+            try:
+                from modules.update_check import get_pending_update_count
+
+                behind = get_pending_update_count()
+                if behind:
+                    self._update_notice_logged = True
+                    notice = f"⬆ {behind} update(s) available — run install.py"
+                    self._update_label.config(text=notice)
+                    self._update_label.pack(fill="x")
+                    self._log_event(notice, highlight=True)
             except Exception:
                 pass
 

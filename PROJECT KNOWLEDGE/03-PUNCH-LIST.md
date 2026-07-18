@@ -36,9 +36,10 @@
 - [ ] #11 — Analytics suite: stats browser window (sortable per-species
       table from stats.db) + encounter-rate trend sparkline in the GUI +
       per-phase history view. (M)
-- [ ] #12 — Shiny alerts: desktop toast + sound via notify-py (already a
-      dependency) even when the window is hidden/fullscreen; optional
-      auto-pause-on-shiny toggle. (S)
+- [ ] #12 — Shiny alerts: BUILT IN SANDBOX 2026-07-18 (toast + async
+      ding + optional auto-pause via alerts.yml; 21-check battery + real
+      toast fired). Remaining: user sees a real in-game shiny fire it,
+      then promote.
 - [ ] #13 — Macro composer v2: chain macros + repeat counts + simple
       conditions (e.g. "until party full", "until item count"), building
       toward a no-code automation builder on the mode framework. (M-L)
@@ -50,8 +51,10 @@
       the GUI (upstream already writes pk3s on shinies). (S)
 - [ ] #17 — Multi-instance manager: run several profiles at once with an
       aggregating dashboard (multi-process; big but very "idle-game"). (L)
-- [ ] #18 — Auto-update toast: dashboard checks the repo at launch and
-      shows "updates available — run install.py". (S)
+- [ ] #18 — Auto-update notice: BUILT IN SANDBOX 2026-07-18 (non-blocking
+      launch check; Status-card line + event-log entry; live-verified via
+      forced-behind run). Remaining: user observes it on a genuinely
+      stale checkout, then promote.
 - [ ] #19 — Stream overlay theme refresh: restyle the OBS overlay to the
       dashboard's design language. (S-M)
 - [ ] #20 — Cloud save-sync v2: two-way profile sync via the GitHub

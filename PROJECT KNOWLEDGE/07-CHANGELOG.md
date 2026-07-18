@@ -241,3 +241,11 @@
   headless (ground truths, cache round-trip, planner semantics, dry-run
   generator); real cross-warp walk pending user save. Emerald-AI notes
   updated (global navigation now exists for the sibling project).
+
+## 2026-07-18 — Sandbox A6: shiny alerts + update notice (punch-list #12, #18)
+- Shiny alerts plugin (toast via notify-py, async system ding, optional
+  auto-pause; alerts.yml global/per-profile) and a launch-time
+  updates-available notice (daemon-thread git check, Status-card line +
+  event-log entry; silent when offline/up-to-date). 21-check headless
+  battery + real-toast proof + live forced/unforced GUI runs. Both
+  pending user end-to-end (real shiny; real behind-remote state).

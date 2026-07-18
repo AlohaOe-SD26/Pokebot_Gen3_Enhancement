@@ -72,6 +72,24 @@ be pathed *through*).
   controller exists on the dev machine — note: there was no controller
   support before this; upstream is keyboard-only).
 
+### A6. Shiny alerts + update notice (punch-list #12 + #18)
+- **Shiny alerts** (`plugins/shiny_alert_plugin.py`, config `alerts.yml`
+  global or per-profile): on every logged shiny — desktop toast
+  (notify-py), audible ding (Windows system sound, async), and an optional
+  `auto_pause` that drops the bot to Manual so the shiny stays on screen
+  (off by default; the bot's normal catch flow already applies). All
+  failure paths swallowed — alerts can never disturb the frame loop.
+  21-check battery green; a real toast was fired on this machine. **Needs
+  a real in-game shiny for the end-to-end trigger** (same caveat as the
+  shiny auto-backup).
+- **Update notice** (`modules/update_check.py` + Status card): once per
+  launch, a daemon thread asks git whether the repo is behind (timeouts;
+  offline/no-git = silent). If behind, the Status card shows
+  "⬆ N update(s) available — run install.py" and the event log gets a
+  highlighted entry. Live-verified both ways: up-to-date run shows
+  nothing; forced-behind run shows the notice; window up in 3 s in both
+  (the check never blocks launch).
+
 ### A7. Warp-aware global pathfinding (punch-list #8)
 Bots can now navigate ANYWHERE: `navigate_to_anywhere(map, coords)` plans
 through doors, stairs, and cave entrances using a world graph extracted
@@ -89,14 +107,12 @@ dry-run walking); an actual cross-warp walk needs a real save (user test).
 | Encounter-rate trend chart | small canvas sparkline of enc/hr over the session | S |
 | Stats browser window | sortable per-species table (encounters, shinies, IVs) from stats.db | M |
 | Hunt planner | pick a target species → best mode + location suggested from the bot's own encounter tables | M |
-| Shiny desktop notifications | toast + sound on shiny even when window is hidden (notify-py already a dep) | S |
 | Catch-filter editor GUI | form-based editor for customcatchfilters.py / catch_block.yml | M |
 | Profile manager UI | create/duplicate/rename/delete profiles from the GUI | S-M |
 | Gamepad support | map an Xbox/Ally controller to Manual-mode inputs (XInput) — native handheld play | M |
 | Multi-instance manager | run several profiles/bots at once, one aggregating dashboard | L |
 | PKHeX quick-export button | one click → .pk3 of selected party/box mon | S |
 | Stream overlay themes | restyle the OBS overlay to match the dashboard | S-M |
-| Auto-update toast in GUI | "repo has updates — run install.py" notice at launch | S |
 
 ## C. Promotion rule
 Approved sandbox features are copied into `custom-pokebot/` with their
