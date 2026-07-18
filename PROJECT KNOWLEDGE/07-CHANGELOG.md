@@ -249,3 +249,21 @@
   event-log entry; silent when offline/up-to-date). 21-check headless
   battery + real-toast proof + live forced/unforced GUI runs. Both
   pending user end-to-end (real shiny; real behind-remote state).
+
+## 2026-07-18 - Cloud save-sync v2 (punch-list #20, sandbox A8)
+- New sandbox-pokebot/modules/cloud_sync.py + wiring: exit-side push of
+  the profile save to cloud-backups/ (zip + manifest) and launch-side
+  apply of newer cloud saves, gated to run BEFORE the emulator exists
+  (pokebot.py, right after load_plugins) - the only provably safe point.
+  Exit hook lives in the dashboard close path after emulator.shutdown()
+  because the stock close ends in os._exit (atexit never runs).
+- Conflict protection: apply only when local matches the last-synced
+  baseline; otherwise local wins + GUI "Import cloud save as new
+  profile..." escape hatch; pre-apply safety backup always taken;
+  rollback guard against older cloud manifests. Opt-in via backup.yml
+  sync block (default off).
+- Verified 23/23 in a two-machine simulation over a real bare git remote;
+  the battery caught two data-safety bugs pre-commit (pull-before-write
+  ordering; baseline recorded on failed push enabling a rollback) - both
+  fixed. A1 backup battery still green; live GUI run confirms the sync
+  status line and a clean close. Real desktop-Ally run = user test.

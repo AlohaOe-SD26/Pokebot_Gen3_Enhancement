@@ -341,3 +341,39 @@ no pad exists on the dev machine.
 - Honest gaps: end-to-end toast/ding needs a REAL in-game shiny; the
   banner path was forced via a test launcher (real "behind" state not
   reproduced against the remote to avoid resetting the working repo).
+
+## 2026-07-18 — A8: cloud save-sync v2 (#20)
+New `modules/cloud_sync.py` + wiring: exit-side sync pushes the profile
+save to `cloud-backups/<profile>/` (zip + sync_manifest.json: machine,
+UTC timestamp, save SHA-1) via pathspec-scoped, time-boxed git; launch-side
+sync applies a newer cloud save. SAFE APPLICATION POINT: run_launch_sync()
+is called in pokebot.py immediately after load_plugins() — before any GUI,
+profile or emulator exists — so an apply can never race a live save file
+(this is also why it is synchronous; it is fully gated on the opt-in
+`sync.enabled` config, default false, so out of the box it costs nothing
+and touches no network). EXIT POINT: the dashboard close path AFTER
+emulator.shutdown() flushed the save — the stock close ends in os._exit(0),
+so atexit never runs; killing the console window bypasses sync (documented).
+CONFLICT SEMANTICS: apply only when the local save hash equals the
+last-synced baseline (or the profile is fresh); otherwise local ALWAYS
+wins, the GUI shows a warning line and offers "Import cloud save as new
+profile…" (materialized from origin's object DB via git show — no pull of
+the working tree needed). A pre-apply safety backup (reason "presync") is
+always taken. Cloud state is read from origin/<branch> refs after a fetch,
+falling back to the working tree when offline.
+BUGS THE BATTERY CAUGHT PRE-COMMIT (both fixed): (1) exit-sync wrote its
+cloud files before pulling — a second machine's ff-only pull then refused
+("untracked files would be overwritten"), breaking every cross-machine
+push; (2) the sync baseline was recorded even when the push FAILED, after
+which a later launch believed local was "unchanged since sync" and applied
+the OLDER cloud save over newer local progress (data loss). Baseline now
+records only after a successful push, plus a rollback guard (cloud
+manifest must be strictly newer than the baseline).
+Verified: 23/23 two-machine battery over a real bare git remote (push,
+apply, continuity round-trip, divergence conflict, import escape hatch,
+up-to-date, offline fail-soft, disabled no-op, malformed manifest,
+zip-slip refusal); A1 backup battery still fully green; live GUI run
+(sync line renders, clean close, disabled = zero sync activity).
+Pending real-world: an actual two-PC run over GitHub (user's desktop +
+Ally) — the git transport is identical, but network auth/latency is not
+exercised by the local bare remote.

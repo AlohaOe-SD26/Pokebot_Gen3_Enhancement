@@ -25,6 +25,7 @@ harmless by design: recording has already stopped before the prompt opens.
 """
 
 import json
+import os
 import time
 import tkinter
 import tkinter.font
@@ -235,6 +236,9 @@ class DashboardScreen:
         self._controller_label = None
         self._update_label = None
         self._update_notice_logged = False  # re-show the notice if re-enabled
+        self._sync_label = None
+        self._sync_import_button = None
+        self._sync_status_logged = False
         self._menu_bar = None
         self._debug_tabs = []
 
@@ -593,6 +597,25 @@ class DashboardScreen:
             font=("Segoe UI", 8),
         )
         self._backup_label.pack(fill="x")
+        # A8 cloud sync status + (conflict-only) import button
+        self._sync_label = tkinter.Label(
+            backup_card, text="", background=COLOR_CARD, foreground=COLOR_MUTED, anchor="w",
+            font=("Segoe UI", 8),
+        )
+        self._sync_label.pack(fill="x")
+        self._sync_import_button = tkinter.Button(
+            backup_card,
+            text="Import cloud save as new profile…",
+            command=self._import_cloud_conflict,
+            background=COLOR_SURFACE,
+            foreground=COLOR_WARNING,
+            activebackground=COLOR_ACCENT,
+            activeforeground=COLOR_INK,
+            relief="flat",
+            padx=8,
+        )
+        # packed on demand by _refresh_sync_line when a conflict exists
+        self._sync_status_logged = False
         backup_buttons = tkinter.Frame(backup_card, background=COLOR_CARD)
         backup_buttons.pack(fill="x", pady=(4, 2))
         tkinter.Button(
@@ -1080,6 +1103,66 @@ class DashboardScreen:
                 self._backup_label.config(text=f"Last backup: {elapsed / 3600:.1f} h ago")
         except Exception:
             pass
+        self._refresh_sync_line()
+
+    def _refresh_sync_line(self) -> None:
+        """A8: reflect the launch-sync outcome in the Backups card (once per
+        enable for the event log; label refreshed on the normal cycle)."""
+        if getattr(self, "_sync_label", None) is None or context.profile is None:
+            return
+        try:
+            from modules import cloud_sync
+
+            status = cloud_sync.get_status(context.profile.path.name)
+            if status is None or status["state"] == "disabled":
+                self._sync_label.config(text="Sync: off (enable in backup.yml)", foreground=COLOR_MUTED)
+                return
+            state = status["state"]
+            if state == "up-to-date":
+                self._sync_label.config(text="Sync: up to date with the cloud", foreground=COLOR_MUTED)
+            elif state == "applied":
+                self._sync_label.config(text=f"Sync: cloud save applied {status['detail']}", foreground=COLOR_GOOD)
+            elif state == "conflict":
+                self._sync_label.config(
+                    text=f"Sync CONFLICT: local kept ({status['detail']})", foreground=COLOR_WARNING
+                )
+                if self._sync_import_button is not None and not self._sync_import_button.winfo_ismapped():
+                    self._sync_import_button.pack(fill="x", pady=(2, 2))
+            elif state == "offline":
+                self._sync_label.config(text="Sync: cloud unreachable (offline?)", foreground=COLOR_MUTED)
+            elif state == "no-cloud":
+                self._sync_label.config(text="Sync: on — first push happens when you close the bot", foreground=COLOR_MUTED)
+            else:
+                self._sync_label.config(text=f"Sync: {state} {status['detail']}", foreground=COLOR_WARNING)
+            if not self._sync_status_logged and state in ("applied", "conflict"):
+                self._sync_status_logged = True
+                if state == "applied":
+                    self._log_event(f"Cloud sync: newest save applied ({status['detail']})")
+                else:
+                    self._log_event("Cloud sync CONFLICT — local save kept; import available in Backups", highlight=True)
+        except Exception:
+            pass
+
+    def _import_cloud_conflict(self) -> None:
+        """A8 conflict escape hatch: cloud version -> brand-new profile."""
+        if context.profile is None:
+            return
+        from tkinter import simpledialog
+
+        name = simpledialog.askstring(
+            "Import cloud save",
+            "Name for the NEW profile that will hold the cloud version:",
+            parent=self.window,
+        )
+        if not name:
+            return
+        try:
+            from modules import cloud_sync
+
+            target = cloud_sync.import_cloud_as_new_profile(context.profile.path.name, name.strip())
+            self._log_event(f"Cloud save imported as new profile '{target.name}' — restart to play it.")
+        except Exception as error:
+            self._log_event(f"Cloud import failed: {error}", highlight=True)
 
     def _backup_now(self) -> None:
         if context.profile is None:
@@ -1379,3 +1462,27 @@ class PokebotDashboardGui(PokebotGui):
         ):
             return "break"
         return super()._handle_key_down_event(event)
+
+    def _close_window(self) -> None:
+        """A8: the stock close path ends in os._exit(0), so atexit handlers
+        never run — the exit-side cloud sync MUST happen right here, after
+        `emulator.shutdown()` has flushed the save to disk and before the
+        process dies. Sync is config-gated and time-boxed; any failure only
+        prints a warning. (Killing the console window bypasses this — that
+        path only flushes the save; the next clean exit will sync it.)"""
+        profile = context.profile
+        if context.emulator:
+            context.emulator.shutdown()
+            context.emulator = None
+
+        try:
+            from modules.cloud_sync import sync_on_exit
+
+            result = sync_on_exit(profile)
+            if result is not None:
+                print(f"[sync] {result}")
+        except Exception as error:
+            print(f"[sync] exit sync failed: {error}")
+
+        self._on_exit()
+        os._exit(0)

@@ -100,6 +100,19 @@ save-data ("dynamic") warps; locked doors fail with a clear error.
 Verified 23/23 against the real ROM (graph ground truths, cache, planner,
 dry-run walking); an actual cross-warp walk needs a real save (user test).
 
+### A8. Cloud save-sync v2 (punch-list #20)
+Play on the desktop, close the bot, open it on the Ally — the profile
+continues where it left off. Exit pushes the save (zip + manifest) to
+`cloud-backups/` in the private repo; launch applies a newer cloud save
+**before the emulator starts** (always safe) — but ONLY when the local
+save hasn't changed since its last sync. If both machines progressed,
+nothing is overwritten: the Backups card shows a conflict warning and a
+one-click "Import cloud save as new profile…" escape hatch. A pre-apply
+safety backup is always taken. Opt-in: `backup.yml` → `sync.enabled: true`
+on each machine. Verified 23/23 in a two-machine simulation over a real
+git remote (incl. divergence, offline, rollback protection); a real
+desktop↔Ally run over GitHub is the user's test.
+
 ## B. PROPOSED — discuss on your return (not built yet)
 
 | Idea | What it gives you | Effort |
@@ -109,7 +122,6 @@ dry-run walking); an actual cross-warp walk needs a real save (user test).
 | Hunt planner | pick a target species → best mode + location suggested from the bot's own encounter tables | M |
 | Catch-filter editor GUI | form-based editor for customcatchfilters.py / catch_block.yml | M |
 | Profile manager UI | create/duplicate/rename/delete profiles from the GUI | S-M |
-| Gamepad support | map an Xbox/Ally controller to Manual-mode inputs (XInput) — native handheld play | M |
 | Multi-instance manager | run several profiles/bots at once, one aggregating dashboard | L |
 | PKHeX quick-export button | one click → .pk3 of selected party/box mon | S |
 | Stream overlay themes | restyle the OBS overlay to match the dashboard | S-M |

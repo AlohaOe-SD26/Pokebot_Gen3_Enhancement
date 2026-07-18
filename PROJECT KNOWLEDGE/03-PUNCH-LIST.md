@@ -57,9 +57,11 @@
       stale checkout, then promote.
 - [ ] #19 — Stream overlay theme refresh: restyle the OBS overlay to the
       dashboard's design language. (S-M)
-- [ ] #20 — Cloud save-sync v2: two-way profile sync via the GitHub
-      backend (pull newest backup on launch, push on exit) = seamless
-      desktop↔Ally continuity. Builds on A1. (M)
+- [ ] #20 — Cloud save-sync v2: BUILT IN SANDBOX 2026-07-18 (exit-push +
+      safe pre-emulator launch-apply + conflict protection with
+      import-as-new-profile; 23/23 two-machine battery over a real git
+      remote; two data-safety bugs caught and fixed pre-commit).
+      Remaining: user's real desktop↔Ally run, then promote.
 - [ ] #6 — Additional custom features (collect new ideas here).
 
 ## Done

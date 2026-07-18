@@ -52,6 +52,12 @@ DEFAULT_CONFIG: dict = {
         "synced_folder": None,     # e.g. C:/Users/you/OneDrive/PokebotBackups
         "synced_retention": 10,
     },
+    "sync": {                      # A8 cloud save-sync (desktop <-> Ally continuity)
+        "enabled": False,          # opt-in: push save on exit, apply newer cloud save on launch
+        "machine_name": None,      # defaults to this computer's hostname
+        "sync_on_exit": True,
+        "sync_on_launch": True,
+    },
 }
 
 _logger = logging.getLogger("backup")
@@ -106,6 +112,8 @@ def load_config(profile_path: "Path | None" = None) -> dict:
 
     config = {**DEFAULT_CONFIG, **raw}
     config["cloud"] = {**DEFAULT_CONFIG["cloud"], **(raw.get("cloud") or {})}
+    raw_sync = raw.get("sync")
+    config["sync"] = {**DEFAULT_CONFIG["sync"], **(raw_sync if isinstance(raw_sync, dict) else {})}
     return config
 
 
