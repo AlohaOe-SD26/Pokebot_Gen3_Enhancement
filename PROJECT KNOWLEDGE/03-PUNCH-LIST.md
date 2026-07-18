@@ -11,11 +11,14 @@
 
 ## Next
 
-- [ ] #5 — Total custom interface: v1 dashboard LIVE-VERIFIED by the user
-      2026-07-18 ("seems to work well"). IN PROGRESS: resizable layout +
-      "ROG Ally X" handheld mode (fullscreen video, collapsible tool drawer,
-      Pokéball toggle + hotkey). Later v2: savestate/screenshot/pause API
-      endpoints, auth, trend charts, shiny log browser.
+- [ ] #5 — Total custom interface: NATIVE dashboard GUI built per user
+      direction (the program's own window; `--classic-gui` = stock) with
+      resizable layout + ROG Ally X handheld mode (fullscreen, Pokéball
+      drawer, F11/H/Esc). Machine-verified on a live ROM run; user approved
+      from screenshots. **FLAGGED TO REVIEW: awaiting the user's hands-on
+      visual test** (esp. on the Ally + with a progressed save for
+      party/KPI panels). Browser dashboard demoted to opt-in remote
+      viewing. Later v2: trend charts, shiny log browser, API additions.
 
 ## Later / icebox
 - [ ] #6 — Additional custom features (collect ideas here as they come up).

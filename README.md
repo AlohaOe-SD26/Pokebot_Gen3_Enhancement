@@ -34,13 +34,20 @@ ROMs are not included — put your own `.gba` dumps in `custom-pokebot/roms/`.
 
 ```
 cd custom-pokebot
-python pokebot.py              # profile GUI; deps self-install on first run
+python pokebot.py              # dashboard window (default); deps self-install on first run
+python pokebot.py --classic-gui   # upstream's original window
 ```
 
-**Web dashboard**: enable the HTTP server (`http.yml`: `enabled: true`),
-then open http://127.0.0.1:8888/static/custom-ui/index.html — live video,
-encounter stats, party/opponent panels, bot-mode and speed controls, and a
-manual controller pad, all in the browser.
+**The bot's window IS a dashboard** (our native GUI, default since
+2026-07-18): resizable emulator video plus a tool column with bot-mode and
+speed controls, encounter stat tiles, party HP bars, and an event log.
+**Handheld mode** (built for the ROG Ally X): `F11` or double-click the
+video for fullscreen; the semi-transparent Pokéball button (or `H`) slides
+the tools in as an overlay drawer; "Hide"/`Esc` collapses it.
+
+**Web dashboard** (optional remote viewing): with the HTTP server enabled
+(`http.yml`), open http://127.0.0.1:8888/static/custom-ui/index.html for
+the same layout in a browser.
 
 See `40cakes repo/DOCUMENTATION/00-CODEBASE-OVERVIEW.md` for how the whole
 program works, and `custom-pokebot/DOCUMENTATION/` for our enhancements.

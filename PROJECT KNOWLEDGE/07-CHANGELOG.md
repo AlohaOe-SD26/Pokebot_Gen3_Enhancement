@@ -144,3 +144,12 @@
   and learned Tk fullscreen recreates the native hwnd on Windows.
 - Browser dashboard remains as opt-in remote viewing (autoopen now
   defaults off).
+
+## 2026-07-18 — Docs aligned to the native GUI; update FLAGGED TO REVIEW
+- README, 02-ARCHITECTURE (folder map + run commands), punch list #5,
+  handoff, and custom DOCUMENTATION/02 updated for the native dashboard
+  GUI as the default interface (browser dashboard = opt-in remote viewing).
+- Per the user: everything about the native-GUI update is marked
+  **FLAGGED TO REVIEW** (user approved from screenshots only; no hands-on
+  visual test yet). Flags live in 03-PUNCH-LIST #5, 04-HANDOFF, and
+  custom-pokebot/DOCUMENTATION/02 — clear all three after the user's test.

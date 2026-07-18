@@ -31,6 +31,9 @@ in CLAUDE.md "Project rules"):
   tabs open in a separate Toplevel. VERIFIED on a real run with the
   Emerald ROM (test-dashboard profile, title screen): desktop, handheld,
   drawer, Esc-out, and `--classic-gui` regression all screenshot-confirmed.
+  **FLAGGED TO REVIEW (user, 2026-07-18): approved from screenshots only —
+  hands-on visual test still pending; clear this flag (and the matching
+  ones in 03-PUNCH-LIST and custom-pokebot/DOCUMENTATION/02) after it.**
   Not yet verified: party/KPI panels with a progressed save; debug
   Toplevel tabs; the user's on-device Ally test. Browser dashboard
   (`modules/web/static/custom-ui/`) remains as opt-in remote viewing

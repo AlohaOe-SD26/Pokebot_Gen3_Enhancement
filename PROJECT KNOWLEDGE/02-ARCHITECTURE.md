@@ -38,7 +38,10 @@ Pokebot_Gen3_Enhancement/
 └── custom-pokebot/                # ★ OUR enhanced fork (from upstream 5dd898f8)
     ├── DIVERGENCE-LOG.md          # append-only: every intentional diff vs upstream
     ├── DOCUMENTATION/             # docs about the CUSTOM parts only
-    └── (same program layout as the mirror; plugins/ is where custom automations go)
+    ├── modules/gui/dashboard_gui.py   # native dashboard GUI (default window)
+    ├── modules/web/static/custom-ui/  # browser dashboard (opt-in remote viewing)
+    ├── plugins/custom_modes/      # drop-in custom bot modes (Patrol, …)
+    └── (otherwise same program layout as the mirror)
 ```
 
 ## How the pieces talk
@@ -72,8 +75,10 @@ Custom-only behavior is documented in `custom-pokebot/DOCUMENTATION/`.
 ## How to run / build / test
 ```powershell
 cd custom-pokebot          # our fork; use "40cakes repo/pokebot-gen3" to run pristine upstream
-python pokebot.py                      # first run: self-installs deps + libmgba, profile GUI
+python pokebot.py                      # dashboard GUI (default); first run self-installs deps
 python pokebot.py <profile> -m Spin    # straight into a mode
+python pokebot.py <profile> --classic-gui   # upstream's original window (OpenGL/stepping)
 python pokebot.py --headless --no-video
 python -m unittest discover tests      # needs specific ROM dumps in roms/
+python ..\install.py                   # repo root: one-script install/update/heal
 ```
