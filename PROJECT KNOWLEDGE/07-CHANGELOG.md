@@ -153,6 +153,7 @@
   **FLAGGED TO REVIEW** (user approved from screenshots only; no hands-on
   visual test yet). Flags live in 03-PUNCH-LIST #5, 04-HANDOFF, and
   custom-pokebot/DOCUMENTATION/02 — clear all three after the user's test.
+  (Cleared later the same day after the user's hands-on "worked!".)
 
 ## 2026-07-18 — Installer V2: robust custom setup/update/heal + ROM handling (punch-list #4)
 - Rewrote `install.py` per user requirements (SCRIPT_VERSION
@@ -171,3 +172,14 @@
   flagged unknown); heal restored the deliberately-deleted 16 MB ROM
   (spaces-in-path case) and re-verified it; log/summary/exit codes all
   exercised. Updates confirmed incremental (fetch + ff-only).
+
+## 2026-07-18 — Sandbox A1: Backup & Restore system (punch-list #7)
+- Built in sandbox-pokebot only: modules/backup_manager.py (local zip
+  backups with retention; GitHub-repo cloud backend committing ONLY
+  cloud-backups/ and pushing; synced-folder backend; restore-to-new-profile
+  with zip-slip guard), plugins/backup_plugin.py (auto-backup on shiny +
+  timed interval listener), backup.yml config template, and a BACKUPS card
+  in the sandbox dashboard GUI (Back up now / Restore dialog).
+- Verified: 12-check headless battery all PASS; real cloud backup pushed
+  (commit 38a0e207, only cloud-backups/ in it — left as demo); live GUI
+  screenshot confirms the card. Details: sandbox-pokebot/SANDBOX-NOTES.md.

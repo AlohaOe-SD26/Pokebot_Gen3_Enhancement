@@ -25,6 +25,10 @@ plugins/*
 !plugins/.gitkeep
 !plugins/custom_modes_loader.py
 !plugins/dashboard_autoopen.py
+!plugins/backup_plugin.py
 !plugins/custom_modes/
+
+# Sandbox A1: local backup archives are user data — never committed.
+backups/
 tests/last_frame_timeout.png
 modules/web/static/stream-overlay/config.js

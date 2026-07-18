@@ -433,6 +433,38 @@ class DashboardScreen:
         )
         self._message_label.pack(fill="x")
 
+        # --- backups card (sandbox A1) ---
+        backup_card = self._card(tools, "BACKUPS")
+        self._backup_label = tkinter.Label(
+            backup_card, text="No backups yet.", background=COLOR_CARD, foreground=COLOR_MUTED, anchor="w",
+            font=("Segoe UI", 8),
+        )
+        self._backup_label.pack(fill="x")
+        backup_buttons = tkinter.Frame(backup_card, background=COLOR_CARD)
+        backup_buttons.pack(fill="x", pady=(4, 2))
+        tkinter.Button(
+            backup_buttons,
+            text="Back up now",
+            command=self._backup_now,
+            background=COLOR_SURFACE,
+            foreground=COLOR_INK,
+            activebackground=COLOR_ACCENT,
+            activeforeground=COLOR_INK,
+            relief="flat",
+            padx=8,
+        ).pack(side="left", padx=(0, 4))
+        tkinter.Button(
+            backup_buttons,
+            text="Restore…",
+            command=self._open_restore_dialog,
+            background=COLOR_SURFACE,
+            foreground=COLOR_INK,
+            activebackground=COLOR_ACCENT,
+            activeforeground=COLOR_INK,
+            relief="flat",
+            padx=8,
+        ).pack(side="left")
+
         # --- event log ---
         log_card = self._card(tools, "EVENT LOG", expand=True)
         self._event_list = tkinter.Listbox(
@@ -588,6 +620,7 @@ class DashboardScreen:
         self._refresh_party()
         if time.monotonic() - self._last_kpi_refresh >= KPI_REFRESH_SECONDS:
             self._refresh_kpis()
+            self._refresh_backup_label()
 
     def _refresh_controls(self) -> None:
         if self._mode_button is None:
@@ -731,6 +764,128 @@ class DashboardScreen:
         self._event_list.itemconfig(0, foreground=COLOR_SHINY if highlight else COLOR_INK_2)
         if self._event_list.size() > 100:
             self._event_list.delete(100, "end")
+
+    # ------------------------------------------------------------------
+    # Backups (sandbox A1)
+    # ------------------------------------------------------------------
+
+    def _refresh_backup_label(self) -> None:
+        if getattr(self, "_backup_label", None) is None or context.profile is None:
+            return
+        try:
+            from modules import backup_manager
+
+            elapsed = backup_manager.seconds_since_last_backup(context.profile.path.name)
+            if elapsed is None:
+                self._backup_label.config(text="No backups yet.")
+            elif elapsed < 90:
+                self._backup_label.config(text="Last backup: just now")
+            elif elapsed < 5400:
+                self._backup_label.config(text=f"Last backup: {int(elapsed // 60)} min ago")
+            else:
+                self._backup_label.config(text=f"Last backup: {elapsed / 3600:.1f} h ago")
+        except Exception:
+            pass
+
+    def _backup_now(self) -> None:
+        if context.profile is None:
+            return
+        try:
+            from modules import backup_manager
+
+            result = backup_manager.create_backup(context.profile.path, reason="manual")
+            if result is not None:
+                self._log_event(f"Backup created: {result.name}")
+            else:
+                self._log_event("Backup skipped/failed — see logs/backup.log", highlight=True)
+            self._refresh_backup_label()
+        except Exception as error:
+            self._log_event(f"Backup error: {error}", highlight=True)
+
+    def _open_restore_dialog(self) -> None:
+        if context.profile is None:
+            return
+        from modules import backup_manager
+
+        backups = backup_manager.list_backups(context.profile.path.name)
+
+        dialog = tkinter.Toplevel(self.window)
+        dialog.title("Restore a backup")
+        dialog.configure(background=COLOR_SURFACE)
+        dialog.geometry("460x360")
+        dialog.transient(self.window)
+
+        tkinter.Label(
+            dialog,
+            text="Restores create a NEW profile — the current one stays untouched.",
+            background=COLOR_SURFACE,
+            foreground=COLOR_INK_2,
+            anchor="w",
+            wraplength=430,
+            justify="left",
+        ).pack(fill="x", padx=10, pady=(10, 4))
+
+        listbox = tkinter.Listbox(
+            dialog,
+            background=COLOR_CARD,
+            foreground=COLOR_INK_2,
+            selectbackground=COLOR_ACCENT,
+            highlightthickness=0,
+            borderwidth=0,
+            font=("Segoe UI", 9),
+        )
+        listbox.pack(fill="both", expand=True, padx=10, pady=4)
+        if backups:
+            for entry in backups:
+                listbox.insert("end", entry["label"])
+        else:
+            listbox.insert("end", "(no backups for this profile yet)")
+
+        name_row = tkinter.Frame(dialog, background=COLOR_SURFACE)
+        name_row.pack(fill="x", padx=10, pady=4)
+        tkinter.Label(
+            name_row, text="New profile name:", background=COLOR_SURFACE, foreground=COLOR_INK_2
+        ).pack(side="left")
+        name_variable = tkinter.StringVar(value=f"{context.profile.path.name}-restored")
+        tkinter.Entry(
+            name_row, textvariable=name_variable, background=COLOR_CARD, foreground=COLOR_INK,
+            insertbackground=COLOR_INK, relief="flat",
+        ).pack(side="left", fill="x", expand=True, padx=(6, 0))
+
+        feedback = tkinter.Label(
+            dialog, text="", background=COLOR_SURFACE, foreground=COLOR_WARNING, anchor="w", wraplength=430,
+            justify="left",
+        )
+        feedback.pack(fill="x", padx=10)
+
+        def do_restore() -> None:
+            selection = listbox.curselection()
+            if not backups or not selection:
+                feedback.config(text="Select a backup from the list first.")
+                return
+            entry = backups[selection[0]]
+            try:
+                target = backup_manager.restore_backup(entry["path"], name_variable.get().strip())
+            except ValueError as error:
+                feedback.config(text=str(error))
+                return
+            feedback.config(
+                text=f"Restored to '{target.name}'. Close the bot and relaunch with that profile to use it.",
+                foreground=COLOR_GOOD,
+            )
+            self._log_event(f"Backup restored into new profile '{target.name}'")
+
+        tkinter.Button(
+            dialog,
+            text="Restore into new profile",
+            command=do_restore,
+            background=COLOR_ACCENT,
+            foreground=COLOR_INK,
+            activebackground=COLOR_ACCENT,
+            activeforeground=COLOR_INK,
+            relief="flat",
+            padx=10,
+        ).pack(pady=(2, 10))
 
     # ------------------------------------------------------------------
     # Controls

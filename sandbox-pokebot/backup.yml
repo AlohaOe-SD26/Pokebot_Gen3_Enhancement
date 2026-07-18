@@ -1,0 +1,28 @@
+# Backup & Restore configuration (sandbox feature A1).
+# A copy of this file inside a profile folder (profiles/<name>/backup.yml)
+# overrides this global one entirely for that profile.
+
+# Master switch for all backups (manual button included).
+enabled: true
+
+# How many local backup zips to keep per profile (backups/<profile>/).
+retention: 10
+
+# Back up automatically every time a shiny encounter is logged.
+auto_on_shiny: true
+
+# Timed auto-backup while the bot runs, in hours. 0 disables.
+interval_hours: 2
+
+cloud:
+  # Push the newest backups to this private GitHub repo (cloud-backups/).
+  # Your repo is the cloud: restoring on another machine = git pull.
+  github: false
+
+  # How many backups to keep in the repo per profile (keeps the repo lean).
+  github_retention: 3
+
+  # Any locally-synced cloud folder (OneDrive / Dropbox / Google Drive),
+  # e.g.: C:/Users/you/OneDrive/PokebotBackups  — null disables.
+  synced_folder: null
+  synced_retention: 10
