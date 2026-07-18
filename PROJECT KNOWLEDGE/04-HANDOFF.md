@@ -59,7 +59,9 @@ in CLAUDE.md "Project rules"):
   on a live run; browser auto-open defaulted off per user preference.
 
 ## In progress (and how far along)
-- #7 SANDBOX ROUND — BUILD COMPLETE, AWAITING USER REVIEW (2026-07-18).
+- #7 SANDBOX ROUND — BUILT + ADVERSARIALLY VERIFIED (16 bugs found and
+  fixed, 2 critical — see ML-3 and SANDBOX-NOTES), AWAITING USER REVIEW.
+  Punch-list icebox now carries the future roadmap #8–#20.
   All four items (A1 backup/restore + local/GitHub/synced-folder cloud, A2
   macro record/replay, A3 multi-map Patrol, A4 GUI pack incl. scrollable
   tool column, party sprites, shiny log) are built, machine-verified, and
