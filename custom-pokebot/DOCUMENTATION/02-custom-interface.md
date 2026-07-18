@@ -35,6 +35,27 @@ code edits, no external CDNs (works fully offline).
 Dark theme by default (follows OS `prefers-color-scheme`); colors follow
 the project's validated dataviz reference palette.
 
+## Handheld mode (ROG Ally X)
+
+Built for playing on a handheld: the emulator video goes fullscreen
+(letterboxed, pixel-perfect scaling) and every tool collapses into a
+slide-in drawer.
+
+- **Enter**: the "Handheld mode" button in the video bar, double-click/tap
+  the video, press `H`, or bookmark `…/index.html?handheld=1` on the
+  device (boots straight into it; `&drawer=1` also opens the tools).
+  Entering via button/tap also requests browser fullscreen.
+- **Open tools**: tap the semi-transparent Pokéball button (custom inline
+  SVG, top-right; brightens on hover/focus) or press `H`. The drawer is a
+  translucent blurred panel with ALL tools (controls, pad, KPIs, party,
+  opponent, event log).
+- **Close tools**: the drawer's "Hide" button, `H`, or `Esc`.
+- **Exit handheld mode**: double-click the video or `Esc` (with drawer
+  closed). The mode persists across reloads (localStorage).
+
+The layout is fully responsive in both modes (grid collapses to one column
+under 900 px; handheld video scales to any window size).
+
 ## Files
 
 - `modules/web/static/custom-ui/index.html` — structure

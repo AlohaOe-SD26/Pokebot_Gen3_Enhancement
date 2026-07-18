@@ -285,3 +285,99 @@ select {
 .event-time { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; flex-shrink: 0; }
 .event-text { color: var(--ink-2); overflow-wrap: anywhere; }
 .event-text.highlight { color: var(--shiny); font-weight: 600; }
+
+/* ================= handheld mode (ROG Ally X) =================
+   Fullscreen video; every tool lives in a slide-in drawer toggled by the
+   Pokéball button / H key; "Hide" collapses it again. */
+
+.meta-btn { margin-left: auto; font-size: 12px; padding: 4px 10px; }
+.drawer-header { display: none; }
+.pokeball-btn { display: none; }
+
+body.handheld .topbar { display: none; }
+body.handheld .layout { display: block; padding: 0; max-width: none; }
+
+body.handheld .video-card {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: #000;
+}
+body.handheld .video-wrap { position: absolute; inset: 0; border-radius: 0; }
+body.handheld #video-stream {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  object-fit: contain;
+}
+body.handheld .video-meta {
+  position: absolute;
+  left: 12px;
+  bottom: 10px;
+  z-index: 2;
+  padding: 0;
+  opacity: 0.85;
+}
+body.handheld .video-meta .pill { background: rgba(20, 20, 19, 0.75); color: #e8e7e0; border-color: rgba(255,255,255,0.18); }
+body.handheld .video-meta .muted { color: #cfcec6; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
+body.handheld #btn-handheld { display: none; }
+
+/* the drawer */
+body.handheld .tool-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  width: min(430px, 94vw);
+  padding: 14px;
+  overflow-y: auto;
+  background: rgba(26, 26, 25, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-left: 1px solid var(--border);
+  box-shadow: -12px 0 32px rgba(0, 0, 0, 0.45);
+  transform: translateX(105%);
+  transition: transform 0.22s ease;
+}
+@media (prefers-color-scheme: light) {
+  body.handheld .tool-drawer { background: rgba(252, 252, 251, 0.94); }
+}
+body.handheld.drawer-open .tool-drawer { transform: none; }
+body.handheld .drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.drawer-title {
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+/* the Pokéball toggle */
+body.handheld .pokeball-btn {
+  display: block;
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 11;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  opacity: 0.45;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.pokeball-btn:hover, .pokeball-btn:focus-visible { opacity: 1; transform: scale(1.06); }
+.pokeball-btn svg { width: 100%; height: 100%; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5)); }
+body.handheld.drawer-open .pokeball-btn { display: none; }

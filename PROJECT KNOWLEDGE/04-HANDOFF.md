@@ -6,11 +6,15 @@
 **Last updated:** 2026-07-17
 
 ## Current state
-Punch-list #5 (custom interface) v1 is BUILT, pending live test: web
-dashboard at `custom-pokebot/modules/web/static/custom-ui/` (additive, no
-upstream edits; open http://127.0.0.1:8888/static/custom-ui/index.html with
-`http.yml` enabled). Mock-tested + screenshot-verified; details + v2
-roadmap in `custom-pokebot/DOCUMENTATION/02-custom-interface.md`.
+Punch-list #5 (custom interface): v1 dashboard LIVE-VERIFIED by the user
+(2026-07-18); handheld mode (ROG Ally X: fullscreen video + Pokéball-toggled
+tool drawer, `?handheld=1` bookmark) built and mock/screenshot-verified,
+awaiting the user's on-device test. Dashboard at
+`custom-pokebot/modules/web/static/custom-ui/`
+(http://127.0.0.1:8888/static/custom-ui/index.html, `http.yml` enabled);
+details + v2 roadmap in `custom-pokebot/DOCUMENTATION/02-custom-interface.md`.
+The user's Emerald ROM is now in `custom-pokebot/roms/` (tracked — see
+gotchas), so this machine can run the bot for real.
 Punch-list #4 (installer) is DONE: `install.py` at repo root = one-script
 install/update/heal (git-driven; tested on this machine incl. fresh-clone,
 corrupt→heal, full dep install into Python 3.12; see 06-DECISIONS-LOG).
@@ -85,6 +89,9 @@ python -m unittest discover tests      # needs specific ROM dumps in roms/
 ```
 
 ## Gotchas / unpushed work
+- The user's Emerald ROM is TRACKED in the (private) repo by explicit user
+  ruling (2026-07-18, see 06-DECISIONS-LOG) — do not remove it and do not
+  re-raise; but never commit any additional ROMs/saves/profiles.
 - NEVER edit files under `40cakes repo/pokebot-gen3/` — it's the pristine
   mirror; all enhancement work happens in `custom-pokebot/`.
 - ROMs/profiles/saves are user-supplied and must never be committed

@@ -162,6 +162,59 @@ function reportError(error) {
   logEvent(`Error: ${error.message}`);
 }
 
+// ---------- handheld mode (ROG Ally X) ----------
+function isHandheld() {
+  return document.body.classList.contains("handheld");
+}
+
+function setDrawer(open) {
+  document.body.classList.toggle("drawer-open", open);
+}
+
+function setHandheld(on, { fullscreen = true } = {}) {
+  document.body.classList.toggle("handheld", on);
+  localStorage.setItem("ui-handheld", on ? "1" : "0");
+  setDrawer(false);
+  // Browser fullscreen only works from a user gesture; ignore failures
+  // (e.g. on restore-at-boot) — the CSS fullscreen layout works regardless.
+  if (on && fullscreen) {
+    document.documentElement.requestFullscreen?.().catch(() => {});
+  } else if (!on && document.fullscreenElement) {
+    document.exitFullscreen?.().catch(() => {});
+  }
+}
+
+function setupHandheldMode() {
+  $("btn-handheld").addEventListener("click", () => setHandheld(true));
+  $("pokeball-btn").addEventListener("click", () => setDrawer(true));
+  $("btn-hide-drawer").addEventListener("click", () => setDrawer(false));
+
+  // Double-click/double-tap the video toggles handheld mode either way.
+  $("video-stream").addEventListener("dblclick", () => setHandheld(!isHandheld()));
+
+  document.addEventListener("keydown", (event) => {
+    if (event.target instanceof HTMLSelectElement || event.target instanceof HTMLInputElement) return;
+    if (event.key === "h" || event.key === "H") {
+      if (isHandheld()) {
+        setDrawer(!document.body.classList.contains("drawer-open"));
+      } else {
+        setHandheld(true);
+      }
+    } else if (event.key === "Escape" && isHandheld()) {
+      if (document.body.classList.contains("drawer-open")) setDrawer(false);
+      else setHandheld(false, { fullscreen: false });
+    }
+  });
+
+  // ?handheld=1 boots straight into handheld mode (bookmark this on the
+  // Ally); ?drawer=1 additionally opens the tool drawer.
+  const params = new URLSearchParams(location.search);
+  if (params.get("handheld") === "1" || localStorage.getItem("ui-handheld") === "1") {
+    setHandheld(true, { fullscreen: false });
+  }
+  if (params.get("drawer") === "1") setDrawer(true);
+}
+
 // ---------- party ----------
 function hpClass(fraction) {
   if (fraction <= 0.2) return "low";
@@ -359,6 +412,7 @@ function connectStream() {
 // ---------- boot ----------
 async function boot() {
   $("video-stream").src = `${API}/stream_video?fps=30`;
+  setupHandheldMode();
   await setupControls();
   try {
     renderEmulator(await getJson("/emulator"));

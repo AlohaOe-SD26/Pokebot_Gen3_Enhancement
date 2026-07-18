@@ -99,3 +99,17 @@
 - Verified against a mock bot API (aiohttp, canned payloads, SSE, video)
   with headless-Edge screenshots; fixed an inline-span HP-bar bug. Live
   run with real bot pending → #5 stays open (v2 roadmap in the doc).
+
+## 2026-07-18 — Dashboard: handheld mode for ROG Ally X (punch-list #5)
+- User live-verified dashboard v1 ("seems to work well"); Patrol (#3)
+  marked WIP pending user play-test.
+- Added handheld mode: fullscreen pixel-perfect video, all tools in a
+  translucent slide-in drawer, custom semi-transparent Pokéball SVG toggle,
+  `H`/`Esc` hotkeys, Hide button, double-tap toggle, `?handheld=1`
+  bookmark param, localStorage persistence, browser-fullscreen request.
+  Desktop layout reorganized (all tools in one right column) and stays
+  fully responsive.
+- Verified via mock server + headless-Edge screenshots at 1920×1080
+  (Ally-native): handheld closed, drawer open, desktop regression.
+- Daily upstream check ran (new day): upstream main unchanged at
+  `5dd898f8`; UPDATE-LOG stamped.

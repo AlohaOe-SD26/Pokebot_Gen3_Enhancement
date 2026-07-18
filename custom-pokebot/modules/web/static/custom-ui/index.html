@@ -32,7 +32,15 @@
           <span id="game-state-label" class="pill">—</span>
           <span id="fps-label" class="muted"></span>
           <span id="location-label" class="muted"></span>
+          <button class="btn meta-btn" id="btn-handheld" title="Fullscreen video with a collapsible tool drawer (H)">Handheld mode</button>
         </div>
+      </div>
+    </section>
+
+    <aside class="col col-right tool-drawer" id="tool-drawer">
+      <div class="drawer-header">
+        <span class="drawer-title">Tools</span>
+        <button class="btn" id="btn-hide-drawer">Hide</button>
       </div>
 
       <div class="card">
@@ -81,9 +89,7 @@
           </div>
         </div>
       </div>
-    </section>
 
-    <section class="col col-right">
       <div class="kpi-row">
         <div class="kpi"><span class="kpi-label">Total encounters</span><span class="kpi-value" id="kpi-total">—</span></div>
         <div class="kpi"><span class="kpi-label">Shinies ✨</span><span class="kpi-value" id="kpi-shinies">—</span></div>
@@ -105,8 +111,20 @@
         <h2>Event log</h2>
         <ul class="event-log" id="event-log"></ul>
       </div>
-    </section>
+    </aside>
   </main>
+
+  <button class="pokeball-btn" id="pokeball-btn" title="Open tools (H)" aria-label="Open tools menu">
+    <svg viewBox="0 0 100 100" role="img" aria-hidden="true">
+      <circle cx="50" cy="50" r="47" fill="#f4f4f2"/>
+      <path d="M 3 50 A 47 47 0 0 1 97 50 L 3 50 Z" fill="#e34948"/>
+      <rect x="3" y="46.5" width="94" height="7" fill="#1c1c1c"/>
+      <circle cx="50" cy="50" r="14" fill="#1c1c1c"/>
+      <circle cx="50" cy="50" r="10" fill="#f4f4f2"/>
+      <circle cx="50" cy="50" r="5"  fill="#dddbd3"/>
+      <circle cx="50" cy="50" r="47" fill="none" stroke="#1c1c1c" stroke-width="5"/>
+    </svg>
+  </button>
 
   <script src="app.js"></script>
 </body>

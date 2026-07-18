@@ -20,4 +20,6 @@
 - **Upstream commit:** `5dd898f8` (40Cakes/pokebot-gen3 `main`)
 - Mirrored via `git subtree add --squash` at `40cakes repo/pokebot-gen3/`.
 - DOCUMENTATION/ 00–05 written against this commit (docs v1).
-- Last daily check: 2026-07-17 (up to date at time of import).
+- Last daily check: 2026-07-18 (upstream main still `5dd898f8` — no
+  changes; fetched new upstream branch `update-symbols` + release tags,
+  main unaffected).

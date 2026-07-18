@@ -82,3 +82,16 @@
   install into Python 3.12, fresh-empty-folder clone (caught and fixed the
   Windows MAX_PATH clone failure via core.longpaths), unattended --yes
   mode, EOF/BOM-safe prompts.
+
+## 2026-07-18 — Emerald ROM stays tracked in the repo (user ruling)
+- **Decision:** The user uploaded their Emerald ROM (`custom-pokebot/roms/`,
+  SHA-1 matches the bot's whitelist) to the PRIVATE repo via GitHub web and,
+  when presented with purge/untrack/keep options, chose **keep it as is**.
+  Do not re-raise this for THIS file.
+- **Context:** Convenience — every clone of the private repo is instantly
+  runnable/testable. Risk (repo carries copyrighted game data; matters if
+  the repo ever goes public) was explained and accepted by the user.
+- **Consequences:** `.gitignore` still blocks accidental *local* ROM
+  commits (`roms/*`); the tracked file is unaffected by ignore rules. If
+  the repo is ever made public, this decision MUST be revisited first.
+  Agents must still never commit additional ROMs/saves/profiles themselves.

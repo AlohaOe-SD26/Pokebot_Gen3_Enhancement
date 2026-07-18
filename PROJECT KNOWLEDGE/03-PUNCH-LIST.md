@@ -4,19 +4,18 @@
 > off with `[x]` and move them to Done with the completion date).
 
 ## Now (active focus)
-- [ ] #3 — Custom automations/bots: framework + first custom mode BUILT
-      (custom_modes drop-in loader + "Patrol (Custom)" waypoint-loop mode,
-      structurally smoke-tested 2026-07-17). REMAINING: live verification on
-      a machine with Python 3.11+, deps, a ROM and a profile — then mark
-      done.
+- [ ] #3 — WIP (user confirmation 2026-07-18): custom-automations framework
+      + "Patrol (Custom)" built and verified through real-import discovery;
+      user has NOT yet play-tested Patrol in-game. Remaining: user runs
+      Patrol on a grassy map with a patrol.yml and confirms behavior.
 
 ## Next
 
-- [ ] #5 — Total custom interface: v1 web dashboard BUILT (served at
-      /static/custom-ui/ via the bot's HTTP API; mock-tested + screenshot-
-      verified 2026-07-17). REMAINING: live verification with ROM +
-      http.yml enabled; then v2 (API additions: savestates/screenshot/
-      pause endpoints, auth, trend charts, shiny log browser).
+- [ ] #5 — Total custom interface: v1 dashboard LIVE-VERIFIED by the user
+      2026-07-18 ("seems to work well"). IN PROGRESS: resizable layout +
+      "ROG Ally X" handheld mode (fullscreen video, collapsible tool drawer,
+      Pokéball toggle + hotkey). Later v2: savestate/screenshot/pause API
+      endpoints, auth, trend charts, shiny log browser.
 
 ## Later / icebox
 - [ ] #6 — Additional custom features (collect ideas here as they come up).
