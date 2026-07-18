@@ -9,16 +9,19 @@ catch filters, stats, notifications all apply, exactly like stock modes).
 
 Setup: create `patrol.yml` in your profile folder (profiles/<name>/):
 
-    # Map-local coordinates, visited in order, then looping back to the first.
-    # Read the current tile from the GUI's map debug tab, or the HTTP API's /map.
+    # Waypoints are visited in order, then loop back to the first.
+    # Two forms (mixable):
+    #   - [x, y]                      -> tile on the CURRENT map (where you
+    #                                    stand when the mode starts)
+    #   - {map: [group, number], at: [x, y]}   -> tile on a specific map
+    # Read tiles/maps from the GUI's map debug tab (-d), or the HTTP API's /map.
     waypoints:
       - [10, 14]
-      - [15, 14]
-      - [15, 20]
+      - {map: [1, 4], at: [15, 20]}
 
-All waypoints must be on the map the player is standing on when the mode is
-started, and must be reachable by walking (the pathfinder handles corners —
-consecutive waypoints don't need to share a row/column).
+Waypoints must be reachable by walking/surfing across directly CONNECTED
+maps (the pathfinder cannot route through warps/doors — an upstream
+limitation; a warp tile may only be a final destination).
 """
 
 from typing import Generator
@@ -55,14 +58,15 @@ class PatrolMode(BotMode):
         assert_boxes_or_party_can_fit_pokemon()
         yield from apply_white_flute_if_available()
 
-        # The map the player is on when the mode starts is the patrol map;
-        # `navigate_to` re-routes from wherever a battle left the player.
-        patrol_map = get_player_avatar().map_group_and_number
+        # Waypoints without an explicit map use the map the player is on when
+        # the mode starts; `navigate_to` re-routes from wherever a battle
+        # left the player.
+        start_map = get_player_avatar().map_group_and_number
         while True:
-            for x, y in waypoints:
-                yield from navigate_to(patrol_map, (x, y), avoid_encounters=False)
+            for waypoint_map, (x, y) in waypoints:
+                yield from navigate_to(waypoint_map or start_map, (x, y), avoid_encounters=False)
 
-    def _load_waypoints(self) -> list[tuple[int, int]]:
+    def _load_waypoints(self) -> list[tuple[tuple[int, int] | None, tuple[int, int]]]:
         config_path = context.profile.path / CONFIG_FILE_NAME
         if not config_path.exists():
             raise BotModeError(
@@ -81,16 +85,29 @@ class PatrolMode(BotMode):
         if not isinstance(raw_waypoints, list) or len(raw_waypoints) < 2:
             raise BotModeError(f"`{CONFIG_FILE_NAME}` must contain a `waypoints` list with at least two entries.")
 
-        waypoints: list[tuple[int, int]] = []
-        for index, entry in enumerate(raw_waypoints):
-            if (
-                not isinstance(entry, list)
-                or len(entry) != 2
-                or not all(isinstance(coordinate, int) for coordinate in entry)
+        def _coordinate_pair(value, index: int, what: str) -> tuple:
+            if not isinstance(value, list) or len(value) != 2 or not all(
+                isinstance(coordinate, int) and not isinstance(coordinate, bool) for coordinate in value
             ):
                 raise BotModeError(
-                    f"`{CONFIG_FILE_NAME}` waypoint #{index + 1} is invalid: each entry must be `[x, y]` "
-                    "with whole-number map-local coordinates."
+                    f"`{CONFIG_FILE_NAME}` waypoint #{index + 1}: {what} must be two whole numbers, e.g. `[12, 7]`."
                 )
-            waypoints.append((entry[0], entry[1]))
+            return value[0], value[1]
+
+        # Each parsed waypoint is (map | None, (x, y)); None = the map the
+        # player is standing on when the mode starts.
+        waypoints: list = []
+        for index, entry in enumerate(raw_waypoints):
+            if isinstance(entry, dict):
+                unknown_keys = set(entry.keys()) - {"map", "at"}
+                if unknown_keys or "map" not in entry or "at" not in entry:
+                    raise BotModeError(
+                        f"`{CONFIG_FILE_NAME}` waypoint #{index + 1} is invalid: a mapping entry must be exactly "
+                        "`{map: [group, number], at: [x, y]}`."
+                    )
+                waypoint_map = _coordinate_pair(entry["map"], index, "`map`")
+                coordinates = _coordinate_pair(entry["at"], index, "`at`")
+                waypoints.append((waypoint_map, coordinates))
+            else:
+                waypoints.append((None, _coordinate_pair(entry, index, "each `[x, y]` entry")))
         return waypoints

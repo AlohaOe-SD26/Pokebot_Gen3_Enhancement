@@ -141,7 +141,9 @@ class DashboardScreen:
         screen_width = self.window.winfo_screenwidth()
         screen_height = self.window.winfo_screenheight()
         width = min(1280, screen_width - 40)
-        height = min(720, screen_height - 100)
+        # 860: tall enough for every tool card (incl. Backups + Macros) with
+        # some event log visible; still clamped to small screens.
+        height = min(860, screen_height - 100)
         x = max(0, (screen_width - width) // 2 - 20)
         y = max(0, (screen_height - height) // 2 - 40)
         self.window.geometry(f"{width}x{height}+{x}+{y}")
@@ -385,6 +387,64 @@ class DashboardScreen:
             relief="flat",
             padx=8,
         ).pack(fill="x")
+
+        # --- macros card (sandbox A2; kept right under Controls so the
+        # interactive cards never get clipped on short windows) ---
+        macro_card = self._card(tools, "MACROS")
+        macro_row = tkinter.Frame(macro_card, background=COLOR_CARD)
+        macro_row.pack(fill="x", pady=(0, 2))
+        self._macro_record_button = tkinter.Button(
+            macro_row,
+            text="● Rec",
+            command=self._toggle_macro_recording,
+            background=COLOR_SURFACE,
+            foreground=COLOR_INK,
+            activebackground=COLOR_ACCENT,
+            activeforeground=COLOR_INK,
+            relief="flat",
+            font=("Segoe UI", 8),
+            padx=6,
+        )
+        self._macro_record_button.pack(side="left", padx=(0, 4))
+        self._macro_variable = tkinter.StringVar(self.window, value="(no macros)")
+        self._macro_menu = tkinter.OptionMenu(macro_row, self._macro_variable, "(no macros)")
+        self._macro_menu.config(
+            background=COLOR_SURFACE,
+            foreground=COLOR_INK,
+            activebackground=COLOR_ACCENT,
+            activeforeground=COLOR_INK,
+            relief="flat",
+            highlightthickness=0,
+            font=("Segoe UI", 8),
+            anchor="w",
+        )
+        self._macro_menu["menu"].config(background=COLOR_SURFACE, foreground=COLOR_INK)
+        self._macro_menu.pack(side="left", fill="x", expand=True, padx=(0, 4))
+        self._macro_loop_variable = tkinter.BooleanVar(self.window, value=True)
+        tkinter.Checkbutton(
+            macro_row,
+            text="Loop",
+            variable=self._macro_loop_variable,
+            background=COLOR_CARD,
+            foreground=COLOR_INK_2,
+            activebackground=COLOR_CARD,
+            activeforeground=COLOR_INK,
+            selectcolor=COLOR_SURFACE,
+            font=("Segoe UI", 8),
+        ).pack(side="left", padx=(0, 4))
+        tkinter.Button(
+            macro_row,
+            text="▶",
+            command=self._play_selected_macro,
+            background=COLOR_SURFACE,
+            foreground=COLOR_INK,
+            activebackground=COLOR_ACCENT,
+            activeforeground=COLOR_INK,
+            relief="flat",
+            font=("Segoe UI", 8),
+            padx=8,
+        ).pack(side="left")
+        self._refresh_macro_menu()
 
         # --- KPI card ---
         kpis = self._card(tools, "STATS")
@@ -951,6 +1011,76 @@ class DashboardScreen:
     # ------------------------------------------------------------------
     # Debug support
     # ------------------------------------------------------------------
+
+    # ------------------------------------------------------------------
+    # Macros (sandbox A2)
+    # ------------------------------------------------------------------
+    def _refresh_macro_menu(self) -> None:
+        from modules.macros import list_macros
+
+        if context.profile is None:
+            return
+        names = list_macros(context.profile.path)
+        menu = self._macro_menu["menu"]
+        menu.delete(0, "end")
+        if not names:
+            self._macro_variable.set("(no macros)")
+            menu.add_command(label="(no macros)", command=lambda: None)
+            return
+        for name in names:
+            menu.add_command(label=name, command=lambda n=name: self._macro_variable.set(n))
+        if self._macro_variable.get() not in names:
+            self._macro_variable.set(names[0])
+
+    def _toggle_macro_recording(self) -> None:
+        import tkinter.simpledialog
+
+        from modules.macros import MacroError, recorder, save_macro
+
+        if not recorder.armed:
+            if context.bot_mode != "Manual":
+                self._log_event("Switch to Manual mode to record a macro.", highlight=True)
+                return
+            recorder.start()
+            self._macro_record_button.config(text="■ Stop", foreground=COLOR_CRITICAL)
+            self._log_event("Recording macro — play in Manual, then press Stop.")
+            return
+
+        macro = recorder.stop()
+        self._macro_record_button.config(text="● Rec", foreground=COLOR_INK)
+        if macro is None:
+            self._log_event("Recording stopped — no button presses captured, nothing saved.")
+            return
+        name = tkinter.simpledialog.askstring(
+            "Save macro", f"Recorded {len(macro.steps)} step(s) / {macro.total_frames} frames.\nMacro name:",
+            parent=self.window,
+        )
+        if not name:
+            self._log_event("Recording discarded (no name given).")
+            return
+        macro.name = name
+        try:
+            file_path = save_macro(context.profile.path, macro)
+        except MacroError as error:
+            self._log_event(f"Could not save macro: {error}", highlight=True)
+            return
+        self._refresh_macro_menu()
+        self._macro_variable.set(file_path.stem)
+        self._log_event(f"Macro `{file_path.stem}` saved ({macro.total_frames} frames).")
+
+    def _play_selected_macro(self) -> None:
+        from modules.macros import list_macros, save_selection
+
+        if context.profile is None:
+            return
+        selected = self._macro_variable.get()
+        if selected not in list_macros(context.profile.path):
+            self._log_event("No macro selected — record one first (● Rec in Manual mode).", highlight=True)
+            return
+        save_selection(context.profile.path, selected, self._macro_loop_variable.get())
+        context.bot_mode = "Macro (Custom)"
+        self._log_event(f"Playing macro `{selected}` ({'looping' if self._macro_loop_variable.get() else 'once'}).")
+        self._refresh_controls()
 
     def _build_debug_window(self) -> None:
         from modules.gui.debug_tabs import (

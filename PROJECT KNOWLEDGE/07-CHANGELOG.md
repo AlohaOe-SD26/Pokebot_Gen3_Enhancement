@@ -183,3 +183,22 @@
 - Verified: 12-check headless battery all PASS; real cloud backup pushed
   (commit 38a0e207, only cloud-backups/ in it — left as demo); live GUI
   screenshot confirms the card. Details: sandbox-pokebot/SANDBOX-NOTES.md.
+
+## 2026-07-18 — Sandbox A2+A3: macro record/replay + multi-map Patrol (punch-list #7)
+- A2: macro engine (`modules/macros.py`) — record human play in Manual
+  mode frame-accurately (input-bitfield RLE), save as human-editable YAML
+  per profile, replay via new "Macro (Custom)" bot mode (loop/once;
+  battles interrupt → loop restarts the macro, once stops to Manual; the
+  default encounter pipeline stays active). GUI: compact MACROS card
+  (● Rec / dropdown / Loop / ▶) under CONTROLS; recorder listener
+  registered by `plugins/macro_plugin.py`.
+- A3: Patrol v2 — `patrol.yml` waypoints may target specific maps
+  (`{map: [g, n], at: [x, y]}`), mixed freely with plain `[x, y]` entries.
+- Layout: default dashboard window height 720→860 (clamped to screen)
+  after the A1 column-clipping note; interactive cards ordered above
+  passive ones so short windows clip only the event log.
+- Verified: compile + discovery (both custom modes + listener register),
+  headless battery (RLE, YAML round-trip, 6 malformed rejections, recorder
+  semantics, patrol parse semantics incl. 5 rejections), live GUI
+  screenshot of the MACROS card. Real record→replay needs hands-on play
+  (test save sits at the title screen). Details: SANDBOX-NOTES.md.
