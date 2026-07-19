@@ -65,9 +65,13 @@
       research-first flow as #34 (10-DEX-RESEARCH.md).
 
 ## First wave (after #30-#32 + #33-#35 — agreed direction 2026-07-19)
-- [ ] #22 — ★ Watchdog / auto-recovery: detect "stuck" (no encounters N min,
-      softlock, crash) → reload savestate / restart / safe-state + alert.
-      Biggest 24/7 reliability win. (M)
+- [ ] #22 — ★ Watchdog / auto-recovery: BUILT IN SANDBOX 2026-07-19
+      (c7d25305; encounter-stall + drop-to-Manual + frame-freeze detection,
+      bounded recovery ladder [re-assert → savestate-reload w/ safety backup
+      → give up to Manual], overworld-gated, alerts, GUI status line; 17/17
+      self-tests + recovery-path safety confirmed). Remaining: live-hunt
+      softlock recovery needs a progressed save; independent adversarial
+      pass to bundle with the batch verification before promotion.
 - [ ] #9 — Hunt planner: pick a target species → GUI suggests best map/mode/
       method from the bot's encounter tables, one click to start. Leverages
       the now-built #8 global pathfinding. (M)

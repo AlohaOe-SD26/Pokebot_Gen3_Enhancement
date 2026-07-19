@@ -71,6 +71,11 @@ in CLAUDE.md "Project rules"):
   caught/shiny dex counts, controller feel on the Ally).
 
 ## In progress (and how far along)
+- #22 WATCHDOG / auto-recovery BUILT in sandbox (c7d25305, self-verified
+  17/17 + recovery-path safety confirmed by main session). Awaiting: live
+  softlock recovery on a progressed save; independent adversarial pass at
+  promotion time. Sandbox now holds an UNPROMOTED batch: #30/#31/#32/#33
+  (verified clean) + #22.
 - DEX DATA (#34/#35): Phase 1 (research/inventory) + Phase 2 (assemble +
   fact-check the static datasets: 386 species / 309 items, integrity PASS)
   DONE in sandbox (`d6211e32`; build_dex_data.py + modules/data/generated/).
