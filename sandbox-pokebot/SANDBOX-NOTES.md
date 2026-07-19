@@ -555,3 +555,30 @@ exercised by the local bare remote.
   (n33_4). Reopen path is code-trivial (Pokéball → _set_tools_hidden(False),
   same as the open state); the live reopen click landed near the title bar
   so that one shot fell back — not a code issue.
+
+## 2026-07-19 — Watchdog / auto-recovery (#22)
+- **Added** modules/watchdog.py (singleton, survives listener rebuilds),
+  plugins/watchdog_plugin.py (per-frame listener + on_logging_encounter +
+  bg-thread start), watchdog.yml (config template), a "Watchdog" line in the
+  GUI STATUS card. .gitignore negation for the plugin.
+- **Detection signals (each guarded vs false-trips):**
+  - Encounter stall — a mode that WAS producing encounters stops for
+    `encounter_stall_minutes`; keyed off had-an-encounter so non-encounter
+    modes never trip. The primary recoverable fault.
+  - Fault drop-to-Manual — error message coincident with hunting→Manual;
+    always alerts, auto-restarts if `auto_restart_on_error`.
+  - Frame freeze — bg thread; frame counter frozen `softlock_seconds` =
+    main loop hung → ALERT-ONLY (a hung main thread can't be safely
+    auto-recovered; honest scope).
+- **Recovery ladder** (main thread, safe point): re-assert mode → reload a
+  recent healthy save state (in-memory snapshot or current_state.ss1, with a
+  safety backup first) → after max_recovery_attempts give up (drop to Manual
+  + loud alert; never hammer). note_encounter() = progress → clears fault.
+- Everything safe-state (OVERWORLD) gated + exception-guarded; disabled
+  config = fully inert. Alerts reuse notify-py toast + winsound.
+- **Verified:** 17/17 headless battery (ladder, no-false-trip Manual/
+  no-encounter/disabled, drop-to-Manual restart, safe-state gate, exception
+  safety, malformed-config defaults, frame-freeze once/cleared/Manual-
+  ignored); plugin discovery loads all 8 plugins; backup battery still green;
+  live launch shows "Watchdog: OK" at 60 fps, clean close. GAP: real softlock
+  recovery on a live hunt needs a progressed save.

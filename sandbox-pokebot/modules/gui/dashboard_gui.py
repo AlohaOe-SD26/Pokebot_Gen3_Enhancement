@@ -142,6 +142,7 @@ class DashboardScreen:
         self._state_label: tkinter.Label | None = None
         self._fps_label: tkinter.Label | None = None
         self._controller_label: tkinter.Label | None = None
+        self._watchdog_label: tkinter.Label | None = None
         self._update_label: tkinter.Label | None = None
         self._update_notice_logged = False
         self._pokeball_button: Canvas | None = None
@@ -301,6 +302,7 @@ class DashboardScreen:
         self._state_label = None
         self._fps_label = None
         self._controller_label = None
+        self._watchdog_label = None
         self._update_label = None
         self._update_notice_logged = False  # re-show the notice if re-enabled
         self._sync_label = None
@@ -837,6 +839,10 @@ class DashboardScreen:
             status_card, text="", background=COLOR_CARD, foreground=COLOR_MUTED, anchor="w", font=("Segoe UI", 8)
         )
         self._controller_label.pack(fill="x")
+        self._watchdog_label = tkinter.Label(
+            status_card, text="", background=COLOR_CARD, foreground=COLOR_MUTED, anchor="w", font=("Segoe UI", 8)
+        )
+        self._watchdog_label.pack(fill="x")
         self._update_label = tkinter.Label(
             status_card, text="", background=COLOR_CARD, foreground=COLOR_ACCENT, anchor="w", font=("Segoe UI", 8, "bold")
         )
@@ -1975,6 +1981,18 @@ class DashboardScreen:
                 from modules.gamepad import get_status_text
 
                 self._controller_label.config(text=get_status_text())
+            except Exception:
+                pass
+
+        if getattr(self, "_watchdog_label", None) is not None:
+            try:
+                from modules.watchdog import watchdog
+
+                line = watchdog.get_status_line()
+                self._watchdog_label.config(
+                    text=line,
+                    foreground=COLOR_CRITICAL if "FAULT" in line else COLOR_MUTED,
+                )
             except Exception:
                 pass
 

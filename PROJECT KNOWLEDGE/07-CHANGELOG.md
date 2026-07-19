@@ -380,3 +380,12 @@
   Caught bug: family/evolves_from/evolution targets are Gen-3 INTERNAL
   species IDs (array indices), not national-dex numbers — resolver fixed.
 - Live counts (caught/shiny/held) stay runtime-merged from stats.db + save.
+
+## 2026-07-19 — Watchdog / auto-recovery (sandbox, #22)
+- modules/watchdog.py + plugins/watchdog_plugin.py + watchdog.yml + GUI
+  STATUS line: detect encounter-stall / fault-drop-to-Manual / frame-freeze
+  and auto-recover (re-assert mode → reload healthy savestate w/ safety
+  backup → give up + loud alert). Safe-state gated, exception-guarded,
+  disabled=inert. 17/17 headless battery + plugin discovery + backup
+  regression green; live "Watchdog: OK" at 60 fps. Live-hunt recovery
+  pending a progressed save.

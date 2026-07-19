@@ -1,0 +1,30 @@
+# Watchdog / auto-recovery (fork enhancement, punch-list #22).
+# Makes unattended 24/7 hunting trustworthy: detect a stuck/faulted bot and
+# recover automatically instead of silently wasting hours.
+# Global defaults; a copy in a profile folder (profiles/<name>/watchdog.yml)
+# overrides these for that profile (whole-file override).
+
+# Master switch. false = fully inert (no per-frame cost, no background thread).
+enabled: true
+
+# Frame counter frozen this many seconds while a mode is running => the main
+# loop is hung. ALERT-ONLY (a hung main thread can't be safely auto-recovered).
+softlock_seconds: 45
+
+# A hunting mode that WAS producing encounters stops for this long => recover.
+# (A mode that never produced an encounter can't stall-trip.)
+encounter_stall_minutes: 20
+
+# Recovery ladder: attempt 1 = re-assert the mode; attempt 2 = reload a
+# recent healthy save state + re-assert; after this many attempts => give up,
+# drop to Manual, and alert loudly (never hammer a broken state).
+max_recovery_attempts: 3
+recovery_cooldown_seconds: 90   # wait after an attempt before escalating
+
+reload_savestate: true          # enable ladder step 2
+backup_before_reload: true      # take a safety backup before a savestate reload
+auto_restart_on_error: true     # restart the mode after a fault drop-to-Manual
+
+healthy_snapshot_minutes: 10    # capture an in-memory good state this often
+
+alerts: true                    # desktop toast + sound on fault/recovery
