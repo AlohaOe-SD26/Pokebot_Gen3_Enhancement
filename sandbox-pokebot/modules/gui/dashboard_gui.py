@@ -63,6 +63,7 @@ COLOR_CRITICAL = "#d03b3b"
 COLOR_SHINY = "#c98500"
 
 TOOL_COLUMN_WIDTH = 360
+TAB_ORDER = ["Play", "Party", "Stats", "Cheats", "Backups"]
 SIDEBAR_REFRESH_FRAMES = 30  # refresh party/labels every N rendered frames
 KPI_REFRESH_SECONDS = 5.0  # stats DB reads are not free — refresh sparsely
 UI_STATE_FILE = "dashboard_ui.json"
@@ -103,6 +104,19 @@ class DashboardScreen:
 
         self._handheld = False
         self._drawer_open = False
+
+        # Tabbed tool column: a row of category tabs, each holding a subset
+        # of the cards, so nothing needs scrolling to reach on a handheld.
+        self._tab_buttons: dict = {}
+        self._tab_frames: dict = {}
+        self._active_tab: "str | None" = None
+        self._tab_bar: "tkinter.Frame | None" = None
+
+        # Cheat species picker (sprite dropdown)
+        self._species_picker_button: "tkinter.Button | None" = None
+        self._species_sprite_cache: dict = {}  # Tk needs live PhotoImage refs
+        self._species_names_cache: "list | None" = None
+        self._force_species_name: "str | None" = None
 
         # Widgets that get updated live
         self._mode_button: tkinter.Button | None = None
@@ -241,6 +255,14 @@ class DashboardScreen:
         self._sync_status_logged = False
         self._menu_bar = None
         self._debug_tabs = []
+        # Tabs + species picker: drop refs so a later enable() starts clean.
+        self._tab_buttons = {}
+        self._tab_frames = {}
+        self._active_tab = None
+        self._tab_bar = None
+        self._species_picker_button = None
+        self._species_sprite_cache = {}
+        self._force_species_name = None
 
     def on_settings_updated(self) -> None:
         self._refresh_controls()
@@ -372,9 +394,34 @@ class DashboardScreen:
         ).pack(side="right", padx=10, pady=4)
         # (packed on demand in _apply_handheld_layout)
 
+        # --- category tab bar: one row of buttons, each showing a subset of
+        # the cards, so you don't have to scroll to find a setting (works the
+        # same in the handheld drawer). Sits above the scrollable area.
+        self._tab_bar = tkinter.Frame(column, background=COLOR_SURFACE)
+        self._tab_bar.pack(fill="x", padx=6, pady=(6, 2))
+        for index, tab_name in enumerate(TAB_ORDER):
+            self._tab_bar.columnconfigure(index, weight=1, uniform="tab")
+            button = tkinter.Button(
+                self._tab_bar,
+                text=tab_name,
+                command=lambda name=tab_name: self._show_tab(name),
+                background=COLOR_SURFACE,
+                foreground=COLOR_INK_2,
+                activebackground=COLOR_ACCENT,
+                activeforeground=COLOR_INK,
+                relief="flat",
+                font=("Segoe UI", 8, "bold"),
+                padx=2,
+                pady=4,
+            )
+            button.grid(row=0, column=index, sticky="ew", padx=1)
+            self._tab_buttons[tab_name] = button
+
         # --- scrollable card area (A4): all cards live inside `tools`, which
         # sits in a canvas window so the column can never clip off-screen at
         # small window heights or high DPI — desktop and handheld drawer alike.
+        # With tabs, only the active tab's cards are packed, but the scroll
+        # area stays as a safety net for very short windows / high DPI.
         self._scroll_area = tkinter.Frame(column, background=COLOR_SURFACE)
         self._scroll_area.pack(fill="both", expand=True)
         self._cards_canvas = Canvas(
@@ -403,8 +450,16 @@ class DashboardScreen:
             self.window.bind_all("<MouseWheel>", self._on_tool_mousewheel, add="+")
             self._mousewheel_bound = True
 
+        # One content frame per tab; only the active one is packed (_show_tab).
+        self._tab_frames = {name: tkinter.Frame(tools, background=COLOR_SURFACE) for name in TAB_ORDER}
+        play_tab = self._tab_frames["Play"]
+        party_tab = self._tab_frames["Party"]
+        stats_tab = self._tab_frames["Stats"]
+        cheats_tab = self._tab_frames["Cheats"]
+        backups_tab = self._tab_frames["Backups"]
+
         # --- controls card ---
-        controls = self._card(tools, "CONTROLS")
+        controls = self._card(play_tab, "CONTROLS")
 
         mode_row = tkinter.Frame(controls, background=COLOR_CARD)
         mode_row.pack(fill="x", pady=(2, 6))
@@ -491,9 +546,8 @@ class DashboardScreen:
             padx=8,
         ).pack(fill="x")
 
-        # --- macros card (sandbox A2; kept right under Controls so the
-        # interactive cards never get clipped on short windows) ---
-        macro_card = self._card(tools, "MACROS")
+        # --- macros card (sandbox A2; grouped with Controls on the Play tab) ---
+        macro_card = self._card(play_tab, "MACROS")
         macro_row = tkinter.Frame(macro_card, background=COLOR_CARD)
         macro_row.pack(fill="x", pady=(0, 2))
         self._macro_record_button = tkinter.Button(
@@ -550,7 +604,7 @@ class DashboardScreen:
         self._refresh_macro_menu()
 
         # --- KPI card ---
-        kpis = self._card(tools, "STATS")
+        kpis = self._card(stats_tab, "STATS")
         kpi_grid = tkinter.Frame(kpis, background=COLOR_CARD)
         kpi_grid.pack(fill="x")
         kpi_grid.columnconfigure((0, 1), weight=1, uniform="kpi")
@@ -573,12 +627,12 @@ class DashboardScreen:
             self._kpi_values[key] = value_label
 
         # --- party card ---
-        party_card = self._card(tools, "PARTY")
+        party_card = self._card(party_tab, "PARTY")
         self._party_container = tkinter.Frame(party_card, background=COLOR_CARD)
         self._party_container.pack(fill="x")
 
         # --- shiny log card (sandbox A4) ---
-        shiny_card = self._card(tools, "SHINY LOG")
+        shiny_card = self._card(party_tab, "SHINY LOG")
         self._shiny_log_label = tkinter.Label(
             shiny_card,
             text="No shinies yet — keep hunting!",
@@ -591,7 +645,7 @@ class DashboardScreen:
         self._shiny_log_label.pack(fill="x")
 
         # --- backups card (sandbox A1) ---
-        backup_card = self._card(tools, "BACKUPS")
+        backup_card = self._card(backups_tab, "BACKUPS")
         self._backup_label = tkinter.Label(
             backup_card, text="No backups yet.", background=COLOR_CARD, foreground=COLOR_MUTED, anchor="w",
             font=("Segoe UI", 8),
@@ -642,10 +696,10 @@ class DashboardScreen:
         ).pack(side="left")
 
         # --- cheats card (sandbox) ---
-        self._build_cheats_card(tools)
+        self._build_cheats_card(cheats_tab)
 
         # --- status line + message ---
-        status_card = self._card(tools, "STATUS")
+        status_card = self._card(stats_tab, "STATUS")
         self._state_label = tkinter.Label(
             status_card, text="—", background=COLOR_CARD, foreground=COLOR_INK_2, anchor="w"
         )
@@ -674,7 +728,7 @@ class DashboardScreen:
         # --- event log ---
         # Fixed height: inside the scrollable column the card cannot expand
         # to fill leftover space; a bounded list keeps the scrollregion sane.
-        log_card = self._card(tools, "EVENT LOG")
+        log_card = self._card(stats_tab, "EVENT LOG")
         self._event_list = tkinter.Listbox(
             log_card,
             background=COLOR_CARD,
@@ -687,6 +741,10 @@ class DashboardScreen:
         )
         self._event_list.pack(fill="both", expand=True)
 
+        # Show the default tab now that every card exists (persist=False so
+        # it doesn't clobber a saved tab before _restore_ui_state reads it).
+        self._show_tab(TAB_ORDER[0], persist=False)
+
     def _card(self, parent: tkinter.Widget, title: str, expand: bool = False) -> tkinter.Frame:
         outer = tkinter.Frame(parent, background=COLOR_SURFACE)
         outer.pack(fill="both" if expand else "x", expand=expand, padx=8, pady=(8, 0))
@@ -696,6 +754,36 @@ class DashboardScreen:
             card, text=title, background=COLOR_CARD, foreground=COLOR_INK_2, font=("Segoe UI", 8, "bold"), anchor="w"
         ).pack(fill="x", pady=(0, 4))
         return card
+
+    def _show_tab(self, name: str, persist: bool = True) -> None:
+        """Show one category tab's cards and hide the rest; highlight the
+        active tab button. Resets the scroll position so a taller previous
+        tab can't leave the new one scrolled out of view.
+
+        `persist=False` for the initial build call, so it doesn't overwrite
+        the saved tab before _restore_ui_state has had a chance to read it."""
+        if name not in self._tab_frames:
+            return
+        for tab_name, frame in self._tab_frames.items():
+            if tab_name == name:
+                frame.pack(fill="both", expand=True)
+            else:
+                frame.pack_forget()
+        for tab_name, button in self._tab_buttons.items():
+            active = tab_name == name
+            button.config(
+                background=COLOR_ACCENT if active else COLOR_SURFACE,
+                foreground=COLOR_INK if active else COLOR_INK_2,
+            )
+        self._active_tab = name
+        try:
+            self._cards_canvas.update_idletasks()
+            self._cards_canvas.yview_moveto(0.0)
+            self._cards_canvas.configure(scrollregion=self._cards_canvas.bbox("all"))
+        except tkinter.TclError:
+            pass
+        if persist:
+            self._persist_ui_state()
 
     def _build_pokeball_button(self) -> None:
         size = 46
@@ -759,7 +847,7 @@ class DashboardScreen:
             self.frame.grid_remove()
             self._drawer_header.pack_forget()
             if self._drawer_open:
-                self._drawer_header.pack(in_=self._tools_container, fill="x", before=self._scroll_area)
+                self._drawer_header.pack(in_=self._tools_container, fill="x", before=self._tab_bar)
                 self.frame.place(relx=1.0, rely=0.0, relheight=1.0, anchor="ne", width=TOOL_COLUMN_WIDTH)
                 self._pokeball_button.place_forget()
             else:
@@ -853,22 +941,31 @@ class DashboardScreen:
 
         force_row = tkinter.Frame(card, background=COLOR_CARD)
         force_row.pack(fill="x")
-        species_variable = tkinter.StringVar(value=str(cheat_manager.get("force_wild_species_name")))
         level_variable = tkinter.StringVar(value=str(cheat_manager.get("force_wild_species_level")))
-
-        def commit_species(*_event) -> None:
-            cheat_manager.set_toggle("force_wild_species_name", species_variable.get().strip())
 
         def commit_level(*_event) -> None:
             cheat_manager.set_toggle("force_wild_species_level", level_variable.get().strip())
 
-        species_entry = tkinter.Entry(
-            force_row, textvariable=species_variable, background=COLOR_SURFACE, foreground=COLOR_INK,
-            insertbackground=COLOR_INK, relief="flat", font=("Segoe UI", 8), width=14,
+        # Sprite dropdown (replaces the old free-text species field): a button
+        # showing the selected species' sprite + name that opens a searchable,
+        # sprite-illustrated picker (_open_species_picker).
+        self._force_species_name = str(cheat_manager.get("force_wild_species_name"))
+        self._species_picker_button = tkinter.Button(
+            force_row,
+            text=f" {self._force_species_name} ▾",
+            compound="left",
+            command=self._open_species_picker,
+            background=COLOR_SURFACE,
+            foreground=COLOR_INK,
+            activebackground=COLOR_ACCENT,
+            activeforeground=COLOR_INK,
+            relief="flat",
+            font=("Segoe UI", 8),
+            anchor="w",
+            padx=4,
         )
-        species_entry.pack(side="left", padx=(18, 4))
-        species_entry.bind("<FocusOut>", commit_species)
-        species_entry.bind("<Return>", commit_species)
+        self._species_picker_button.pack(side="left", padx=(18, 4))
+        self._update_species_picker_button()
         tkinter.Label(
             force_row, text="Lv", background=COLOR_CARD, foreground=COLOR_MUTED, font=("Segoe UI", 8)
         ).pack(side="left")
@@ -881,6 +978,167 @@ class DashboardScreen:
         level_entry.bind("<Return>", commit_level)
 
         toggle_checkbox(card, "Guaranteed shiny wild", "guaranteed_shiny_wild")
+
+    # ------------------------------------------------------------------
+    # Cheat species picker (sprite dropdown)
+    # ------------------------------------------------------------------
+
+    def _all_species_names(self) -> list:
+        """All selectable species names (skips the index-0 '??????????'
+        placeholder). Cached; sourced from the bot's own species data."""
+        if self._species_names_cache is None:
+            try:
+                from modules.pokemon import _species_by_index
+
+                self._species_names_cache = [
+                    species.name
+                    for species in _species_by_index
+                    if species and species.name and not species.name.startswith("?")
+                ]
+            except Exception:
+                self._species_names_cache = []
+        return self._species_names_cache
+
+    def _get_species_sprite(self, species_name: str, shiny: bool = False, size: int = 20):
+        """A cached ~size-px PhotoImage of a species' sprite (shiny variant if
+        requested). Returns None if the sprite is missing. Tk needs the
+        reference kept alive, so the cache holds it."""
+        cache_key = f"{species_name}|{shiny}|{size}"
+        if cache_key in self._species_sprite_cache:
+            return self._species_sprite_cache[cache_key]
+        photo = None
+        try:
+            from modules.pokemon import get_species_by_name
+            from modules.sprites import get_regular_sprite, get_shiny_sprite
+
+            species = get_species_by_name(species_name)
+            path = get_shiny_sprite(species) if shiny else get_regular_sprite(species)
+            if path.is_file():
+                image = PIL.Image.open(path)
+                if image.mode != "RGBA":
+                    image = image.convert("RGBA")
+                image.thumbnail((size, size), PIL.Image.NEAREST)
+                photo = PIL.ImageTk.PhotoImage(image)
+        except Exception:
+            photo = None
+        self._species_sprite_cache[cache_key] = photo
+        return photo
+
+    def _force_species_is_shiny(self) -> bool:
+        try:
+            from modules.game_cheats import cheat_manager
+
+            return bool(cheat_manager.get("guaranteed_shiny_wild"))
+        except Exception:
+            return False
+
+    def _update_species_picker_button(self) -> None:
+        if self._species_picker_button is None:
+            return
+        name = self._force_species_name or "Bulbasaur"
+        image = self._get_species_sprite(name, shiny=self._force_species_is_shiny(), size=20)
+        self._species_picker_button.config(
+            text=f" {name} ▾", image=image if image is not None else "", compound="left"
+        )
+        # Belt-and-suspenders ref (the cache already holds it).
+        self._species_picker_button.image = image
+
+    def _set_force_species(self, name: str) -> None:
+        try:
+            from modules.game_cheats import cheat_manager
+
+            cheat_manager.set_toggle("force_wild_species_name", name)
+        except Exception:
+            pass
+        self._force_species_name = name
+        self._update_species_picker_button()
+
+    def _open_species_picker(self) -> None:
+        """Searchable, sprite-illustrated species dropdown. Type to filter
+        (handy across ~400 species); click a row to select. Floats above the
+        emulator in handheld fullscreen via _prepare_dialog."""
+        dialog = tkinter.Toplevel(self.window)
+        dialog.title("Choose a species")
+        dialog.configure(background=COLOR_SURFACE)
+        dialog.geometry("300x470")
+
+        shiny = self._force_species_is_shiny()
+
+        filter_variable = tkinter.StringVar()
+        filter_entry = tkinter.Entry(
+            dialog, textvariable=filter_variable, background=COLOR_CARD, foreground=COLOR_INK,
+            insertbackground=COLOR_INK, relief="flat", font=("Segoe UI", 11),
+        )
+        filter_entry.pack(fill="x", padx=8, pady=8, ipady=4)
+
+        list_area = tkinter.Frame(dialog, background=COLOR_SURFACE)
+        list_area.pack(fill="both", expand=True, padx=8, pady=(0, 8))
+        list_canvas = Canvas(list_area, background=COLOR_SURFACE, highlightthickness=0, borderwidth=0)
+        scrollbar = tkinter.Scrollbar(list_area, orient="vertical", command=list_canvas.yview, width=10)
+        scrollbar.pack(side="right", fill="y")
+        list_canvas.pack(side="left", fill="both", expand=True)
+        rows_frame = tkinter.Frame(list_canvas, background=COLOR_SURFACE)
+        rows_window = list_canvas.create_window((0, 0), window=rows_frame, anchor="nw")
+        list_canvas.configure(yscrollcommand=scrollbar.set)
+        rows_frame.bind(
+            "<Configure>", lambda _event: list_canvas.configure(scrollregion=list_canvas.bbox("all"))
+        )
+        list_canvas.bind(
+            "<Configure>", lambda event: list_canvas.itemconfigure(rows_window, width=event.width)
+        )
+        # This picker is modal (grab_set via _prepare_dialog), so route the
+        # wheel straight to its own canvas; the global tool-column wheel
+        # handler no-ops here (pointer isn't over the tool container).
+        dialog.bind("<MouseWheel>", lambda event: (list_canvas.yview_scroll(int(-event.delta / 120), "units"), "break")[1])
+
+        def choose(name: str) -> None:
+            self._set_force_species(name)
+            dialog.destroy()
+
+        # Cap the unfiltered list so opening is instant (each row loads a
+        # sprite); typing narrows to all matches. ~400 species -> filter is
+        # the intended way to reach the long tail.
+        unfiltered_cap = 60
+
+        def render(*_args) -> None:
+            for widget in rows_frame.winfo_children():
+                widget.destroy()
+            needle = filter_variable.get().strip().lower()
+            names = [n for n in self._all_species_names() if needle in n.lower()] if needle else self._all_species_names()
+            capped = names if needle else names[:unfiltered_cap]
+            for name in capped:
+                image = self._get_species_sprite(name, shiny=shiny, size=22)
+                row_button = tkinter.Button(
+                    rows_frame,
+                    text=f"  {name}",
+                    image=image if image is not None else "",
+                    compound="left",
+                    anchor="w",
+                    background=COLOR_SURFACE,
+                    foreground=COLOR_INK,
+                    activebackground=COLOR_ACCENT,
+                    activeforeground=COLOR_INK,
+                    relief="flat",
+                    font=("Segoe UI", 9),
+                    command=lambda n=name: choose(n),
+                )
+                row_button.image = image
+                row_button.pack(fill="x", pady=1)
+            if not needle and len(names) > unfiltered_cap:
+                tkinter.Label(
+                    rows_frame, text=f"… type to search all {len(names)} species",
+                    background=COLOR_SURFACE, foreground=COLOR_MUTED, anchor="w", font=("Segoe UI", 8, "italic"),
+                ).pack(fill="x", pady=4)
+            if not capped:
+                tkinter.Label(
+                    rows_frame, text="No match.", background=COLOR_SURFACE, foreground=COLOR_MUTED, anchor="w",
+                ).pack(fill="x", pady=4)
+            list_canvas.yview_moveto(0.0)
+
+        filter_variable.trace_add("write", render)
+        render()
+        self._prepare_dialog(dialog)
+        filter_entry.focus_set()
 
     def _prepare_dialog(self, dialog: tkinter.Toplevel) -> None:
         """Force a popup ABOVE the emulator and center it over the window.
@@ -965,7 +1223,9 @@ class DashboardScreen:
     def _persist_ui_state(self) -> None:
         try:
             state_file = context.profile.path / UI_STATE_FILE
-            state_file.write_text(json.dumps({"handheld": self._handheld}), encoding="utf-8")
+            state_file.write_text(
+                json.dumps({"handheld": self._handheld, "active_tab": self._active_tab}), encoding="utf-8"
+            )
         except Exception:
             pass
 
@@ -974,6 +1234,9 @@ class DashboardScreen:
             state_file = context.profile.path / UI_STATE_FILE
             if state_file.is_file():
                 state = json.loads(state_file.read_text(encoding="utf-8"))
+                tab = state.get("active_tab")
+                if tab in self._tab_frames:
+                    self._show_tab(tab)
                 if state.get("handheld"):
                     self._handheld = True
                     self._apply_handheld_layout()

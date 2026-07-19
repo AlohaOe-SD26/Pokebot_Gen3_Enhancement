@@ -438,3 +438,30 @@ exercised by the local bare remote.
   debug_create_pokemon, so every rebuild WIPED custom nicknames back to the
   species default. Fixed by adding `nickname=mon.nickname` to the rebuild kwargs;
   regression-covered in the adversarial battery.
+
+## 2026-07-19 — Tabbed tool column + sprite species picker (user feedback)
+- **Tabbed tool column**: the single scrolling card stack is now a 5-tab
+  interface (Play / Party / Stats / Cheats / Backups), so nothing needs
+  scrolling to reach — in desktop AND the handheld Pokéball drawer. Tab bar
+  above the (still-present, as a small-screen safety net) scroll area;
+  active tab highlighted in accent; default "Play"; last tab persisted per
+  profile in dashboard_ui.json. Grouping: Play = Controls + Macros;
+  Party = Party (HP/XP/sprites) + Shiny log; Stats = KPIs + Status +
+  Event log; Cheats = CHEATS card; Backups = Backups/Sync.
+  - Fixed a latent bug found while wiring persistence: the initial build's
+    `_show_tab("Play")` was persisting before `_restore_ui_state` read the
+    saved tab, so a saved tab could never restore — build now calls it with
+    `persist=False`.
+- **Cheat species picker with sprites**: the force-wild-species free-text
+  field is replaced by a dropdown button showing the selected species'
+  sprite + name; clicking opens a searchable, sprite-illustrated picker
+  (type-to-filter across ~400 species; unfiltered list capped at 60 for
+  instant open; sprites lazy-loaded + cached). Feeds the same
+  force_wild_species_name value as before. Sprites reuse the bot's own
+  get_regular_sprite/get_shiny_sprite (shiny variant shown when the
+  guaranteed-shiny toggle is on).
+- Verified: py_compile + real-import + mode/plugin discovery; headless
+  picker screenshots (default + filtered "char" → Charmander/Charmeleon/
+  Charizard with sprites); live-ROM screenshots of all 5 tabs + the
+  handheld drawer showing tabs. Scratchpad: picker_default/filtered.png,
+  tab_{play,party,stats,cheats,backups,handheld_drawer}.png.

@@ -285,3 +285,13 @@
   + 15/15 live-ROM byte checks (fabricated mons decode to exact species/level/shiny,
   valid checksum; money round-trips) + GUI screenshot. In-game effect pending a real
   save. Design + honesty: sandbox-pokebot/CHEATS-DESIGN.md.
+
+## 2026-07-19 — Tabbed tool column + sprite species picker (sandbox, user feedback)
+- Sandbox dashboard GUI: converted the tool column into a 5-tab interface
+  (Play/Party/Stats/Cheats/Backups) so the handheld Pokéball drawer needs
+  no scrolling; active tab persisted per profile; fixed a save/restore
+  ordering bug on the tab state. Replaced the cheat force-wild-species text
+  field with a searchable sprite dropdown (sprite+name button + filterable
+  sprite-illustrated picker). Verified via py_compile, real-import,
+  headless picker screenshots, and live-ROM screenshots of every tab +
+  the handheld drawer.
