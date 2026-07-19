@@ -21,6 +21,12 @@
 
 ## Later / icebox (future development — agent-recommended 2026-07-18,
 ## ordered by my suggested priority; user re-orders/culls at will)
+- [ ] #21 — Game cheat menu: BUILT IN SANDBOX + adversarially verified
+      2026-07-18 (game_cheats.py + CHEATS card; actions: heal/max-level/
+      perfect-IVs/max-friendship/max-money/item-pack/max-balls/rare-candy;
+      toggles: infinite money, auto-heal, force-wild-species, guaranteed-
+      shiny-wild. 32+15+77 checks green; nickname-preservation bug fixed).
+      Remaining: user's in-game effect test on a real save; then promote.
 - [ ] #8 — Warp-aware global pathfinding: BUILT IN SANDBOX 2026-07-18
       (warp_graph.py + navigate_to_anywhere + Patrol v3; 23/23 checks vs
       the real ROM — full Emerald graph extracted: 518 maps, 1268 warp
