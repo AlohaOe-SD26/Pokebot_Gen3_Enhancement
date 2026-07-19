@@ -489,3 +489,79 @@ national-dex only by coincidence. Resolved via array index in the build script.
 - Pokédex: `dex_artwork`, `flavor_text`, `height_m`, `weight_kg`, `category`.
 - Item-Dex: `map_locations`, `mart_stock`, `pickup_chance`.
 - Plus the **4 missing item icons** (Rm. N Keys) if those items ever need a bag sprite.
+
+---
+
+## Phase 3a — Standard Pokédex info from the ROM (DONE, 2026-07-19)
+
+**Goal:** fill the four previously-null Pokédex text/measurement fields
+(`category`, `height_m`, `weight_kg`, `flavor_text`) for all 386 species, sourced
+**directly from the Emerald ROM** (authoritative, offline). No GUI.
+
+**Deliverable:** `sandbox-pokebot/tools/extract_pokedex_entries.py` — boots the
+ROM headlessly via libmgba (mirroring `tests/utility.py`'s emulator setup, but
+with **no save state** since only immutable ROM data is read), reads
+`gPokedexEntries`, decodes each field with the bot's own Gen-3 text decoder
+(`modules.game.decode_string` — same decoder used for Pokémon/trainer names),
+and **merges** the results into `modules/data/generated/pokedex_data.json`,
+preserving everything else. Deterministic + idempotent (re-running yields a
+byte-identical file; verified via md5).
+
+**Pipeline:** `build_dex_data.py` (Phase 2, pure JSON, re-nulls these fields) →
+`extract_pokedex_entries.py` (Phase 3a, ROM fill). Re-run step 2 after step 1.
+
+### `gPokedexEntries` layout (Emerald, verified empirically from the ROM)
+- Symbol `gPokedexEntries` @ `0x0856b5b0`, size `0x3060` = 12384 bytes.
+  12384 / 32 = **387 entries** of **32 bytes** each, indexed by **National-Dex
+  number** (index 0 = dummy "UNKNOWN"; real species = 1..386 == national_dex).
+- Per 32-byte entry (confirmed by hex dump of Bulbasaur/Charizard):
+  - `0x00` `categoryName` `u8[12]`, Gen-3 encoded, `0xFF`-terminated (e.g. "SEED")
+  - `0x0C` `height` `u16` — **decimeters**
+  - `0x0E` `weight` `u16` — **hectograms**
+  - `0x10` `description` `u32` — ROM pointer (`0x08……`) to the flavor string
+  - remainder: sprite scale/offset display fields (unused here)
+- The `read_bytes()` bus reader resolves ROM pointers directly (bank ≥ 0x8),
+  so the description string is read straight from its pointer.
+
+### Unit conversions (Gen-3 convention)
+`height_m = decimeters / 10` · `weight_kg = hectograms / 10` (rounded to 1 dp).
+
+### Category casing
+The ROM stores categories **ALL-CAPS** ("SEED", "SKY HIGH", "DNA"); the game
+appends " POKéMON" at display time. We emit `category` as the proper-cased
+classification ("Seed Pokémon", "Sky High Pokémon") — title-case each word +
+" Pokémon" — and preserve the exact ROM string verbatim in a new `category_raw`
+field ("SEED"). Scanning all 386 categories, the **only** all-caps acronym that
+breaks a plain title-case is **DNA** (Deoxys → "DNA Pokémon"), handled by an
+explicit exception; every other category (incl. "Psi", "Symbol", "Genetic",
+"Wood Gecko") title-cases cleanly.
+
+### Fact-check results — **PASS**
+- **Coverage: 386/386** for every field — non-empty `category` + `category_raw`
+  + `flavor_text`, and positive `height_m` + `weight_kg`. **0** species failed to
+  resolve. **0** mojibake (no U+FFFD) across all decoded strings.
+- **Known Emerald values verified exactly** (10 spot-checks): Bulbasaur (Seed,
+  0.7 m, 6.9 kg, flavor mentions seed/back ✓), Charizard (Flame, 1.7 m, 90.5 kg),
+  Pikachu (Mouse, 0.4 m, 6.0 kg), Wailord (Float Whale, 14.5 m, 398.0 kg),
+  Rayquaza (Sky High, 7.0 m, 206.5 kg), Unown (Symbol, 0.5 m, 5.0 kg), Deoxys
+  (DNA, 1.7 m, 60.8 kg), Treecko (Wood Gecko, 0.5 m, 5.0 kg), Mewtwo (Genetic,
+  2.0 m, 122.0 kg), Kyogre (Sea Basin, 4.5 m, 352.0 kg).
+- **Extremes sanity:** tallest = Wailord 14.5 m; heaviest = Groudon 950.0 kg
+  (both correct for Gen-3 Emerald — Wailord is the tallest, Groudon the heaviest).
+- **Flavor text decodes cleanly** with proper Unicode (curly `’`, `é`), e.g.
+  Bulbasaur "…By soaking up the sun’s rays, the seed grows progressively larger."
+
+**No indexing or decoding issues encountered.** Two things worth recording for
+the next agent: (1) `gPokedexEntries` is indexed by National-Dex number (unlike
+`species.json`'s internal-id indexing used in Phase 2) — verified against known
+values, not assumed. (2) The struct's category field is 12 bytes, not the 13
+some references cite — the true offsets were confirmed by hex-dumping the ROM
+(height at 0x0C, not 0x0D) rather than trusting a struct definition.
+
+### What STILL remains after Phase 3a
+- **Pokédex:** only `dex_artwork` (Sugimori/box art) — **needs user decision**
+  (source & license for the artwork set; the ROM ships battle sprites only).
+- **Item-Dex:** `map_locations` (item balls / hidden items / gifts), `mart_stock`
+  (per-town catalogs), `pickup_chance` (Pickup level-band table) — **need
+  decisions** on sourcing (Bulbapedia vs decomp map dump), plus the 4 missing
+  FR/LG "Rm. N Key" item icons.

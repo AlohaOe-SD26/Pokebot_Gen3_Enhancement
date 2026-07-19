@@ -9,19 +9,34 @@ artifacts** — do not hand-edit them; regenerate instead (see below).
 
 ## Regenerate
 
+Two-step pipeline (run in order):
+
 ```
 cd sandbox-pokebot
-py -3.12 tools/build_dex_data.py
+py -3.12 tools/build_dex_data.py           # Phase 2 — BOT-sourced fields (no ROM)
+py -3.12 tools/extract_pokedex_entries.py  # Phase 3a — ROM-sourced dex fields
 ```
 
-The build script reads `modules/data/{species,moves,items,abilities,types,
-natures}.json` and the sprite folders under `modules/web/static/sprites/`,
-resolves every move/ability/type/item cross-reference to a name, inverts wild
-held-items into `held_by`, cross-references TM/HM → `learnable_by`, applies the
-sprite name-normalization map, and writes the two JSON files here. It prints a
-validation summary and exits non-zero if referential integrity or the required
-species sprites (normal + shiny + cropped) ever fail. Rerun it whenever
-`modules/data/*.json` or the sprite sets change.
+**Step 1 — `build_dex_data.py`** reads `modules/data/{species,moves,items,
+abilities,types,natures}.json` and the sprite folders under
+`modules/web/static/sprites/`, resolves every move/ability/type/item
+cross-reference to a name, inverts wild held-items into `held_by`,
+cross-references TM/HM → `learnable_by`, applies the sprite name-normalization
+map, and writes the two JSON files here (research fields left `null`). It prints
+a validation summary and exits non-zero if referential integrity or the required
+species sprites (normal + shiny + cropped) ever fail.
+
+**Step 2 — `extract_pokedex_entries.py`** boots the Emerald ROM headlessly
+(libmgba, no GUI), reads the ROM's `gPokedexEntries` table for all 386
+National-Dex species, and MERGES four previously-null fields into
+`pokedex_data.json`: `category`, `height_m`, `weight_kg`, `flavor_text` (plus
+`category_raw`, the exact ALL-CAPS ROM string). It preserves everything else,
+is deterministic + idempotent (re-runnable in any order — if step 1 is re-run it
+re-nulls these fields; just re-run step 2 to repopulate), and prints a
+fact-check report (known Emerald values + 386-species completeness) that exits
+non-zero on any failure.
+
+Rerun the pipeline whenever `modules/data/*.json` or the sprite sets change.
 
 ## Static vs. runtime-merged
 
@@ -90,15 +105,26 @@ existing `/pokedex`, `/items`, and global-stats HTTP endpoints.
     "animated_shiny":  "pokemon-animated/shiny/Pikachu.gif"
   },   // paths are relative to modules/web/static/sprites/
 
-  // ---- Phase-3 RESEARCH GAPS (null until sourced externally) ----
-  "_phase3_gaps": ["dex_artwork","flavor_text","height_m","weight_kg","category"],
-  "dex_artwork": null,
-  "flavor_text": null,
-  "height_m":    null,
-  "weight_kg":   null,
-  "category":    null
+  // ---- ROM-sourced dex fields (Phase 3a — from gPokedexEntries) ----
+  "category":     "Mouse Pokémon",   // classification ("___ Pokémon"), proper-cased
+  "category_raw": "MOUSE",           // exact ALL-CAPS string as stored in the ROM
+  "height_m":     0.4,               // ROM decimeters / 10
+  "weight_kg":    6.0,               // ROM hectograms / 10
+  "flavor_text":  "It stores electricity in the electric sacs on its cheeks. ...",
+
+  // ---- Phase-3 RESEARCH GAP (still null — needs external sourcing) ----
+  "_phase3_gaps": ["dex_artwork"],
+  "dex_artwork":  null
 }
 ```
+
+**Source note (Phase 3a):** `category` / `category_raw` / `height_m` /
+`weight_kg` / `flavor_text` are extracted from the Emerald ROM's
+`gPokedexEntries` table (indexed by National-Dex number; 32-byte entries:
+category `u8[12]` @ 0x00, height `u16` decimeters @ 0x0C, weight `u16`
+hectograms @ 0x0E, description `u32` pointer @ 0x10). Text is decoded with the
+bot's own Gen-3 decoder (`modules.game.decode_string`). Only `dex_artwork`
+remains a gap for the Pokédex.
 
 **Keying note:** in `species.json`, the `family`, `evolves_from`, and evolution
 `target_species` fields are **array indices (Gen-3 internal species IDs), not
@@ -138,11 +164,12 @@ national-dex numbers** — the build script resolves them via the array index.
 
 ## Phase-3 gap fields (awaiting external Gen-3 research)
 
-Left `null` by design — they are **not** in the bot's shipped data:
+Left `null` by design — they are **not** in the bot's shipped JSON:
 
-- **Pokédex:** `dex_artwork` (only battle sprites ship — Sugimori/box art must be
-  sourced), `flavor_text`, `height_m`, `weight_kg`, `category` ("Mouse Pokémon").
-  The four text fields are cleanly available in the pokeemerald decomp.
+- **Pokédex:** `dex_artwork` only (Sugimori/box art must be sourced — the ROM
+  ships battle sprites only). **`category` / `height_m` / `weight_kg` /
+  `flavor_text` are now POPULATED** from the ROM's `gPokedexEntries` table
+  (Phase 3a — see step 2 of Regenerate).
 - **Item-Dex:** `map_locations` (item balls / hidden items / gifts), `mart_stock`
   (per-town mart catalogs), `pickup_chance` (the Pickup-ability level-band table).
 
@@ -188,3 +215,47 @@ Wurmple #265 (both Silcoon & Cascoon evolutions, family of 5); Vaporeon #134
 (berry, restore_hp, held by 18 incl. Pikachu 50%), Master Ball (poke_balls, price 0),
 Leftovers (held by Snorlax 100%), Rare Candy, Light Ball (held by Pikachu 5%),
 Devon Scope (key item). All fields match the source JSON.
+
+---
+
+## Phase 3a report — ROM dex fields (`tools/extract_pokedex_entries.py`)
+
+Source = the Emerald ROM's `gPokedexEntries` table, read headlessly via libmgba;
+text decoded with `modules.game.decode_string`. Unit conversions: height_m =
+decimeters/10, weight_kg = hectograms/10 (Gen-3 convention).
+
+### Coverage — all 386 populated
+- `category` + `category_raw`: **386/386**
+- `flavor_text`: **386/386** (all non-empty, **0** U+FFFD mojibake)
+- `height_m` > 0: **386/386** · `weight_kg` > 0: **386/386**
+
+### Fact-check (known Emerald values) — **PASS**
+| # | Species | category | height | weight |
+|---|---|---|---|---|
+| 1 | Bulbasaur | Seed Pokémon | 0.7 m | 6.9 kg (flavor mentions seed/back ✓) |
+| 6 | Charizard | Flame Pokémon | 1.7 m | 90.5 kg |
+| 25 | Pikachu | Mouse Pokémon | 0.4 m | 6.0 kg |
+| 321 | Wailord | Float Whale Pokémon | 14.5 m (tallest ✓) | 398.0 kg |
+| 384 | Rayquaza | Sky High Pokémon | 7.0 m | 206.5 kg |
+| 201 | Unown | Symbol Pokémon | 0.5 m | 5.0 kg |
+| 386 | Deoxys | DNA Pokémon | 1.7 m | 60.8 kg |
+| 252 | Treecko | Wood Gecko Pokémon | 0.5 m | 5.0 kg |
+| 150 | Mewtwo | Genetic Pokémon | 2.0 m | 122.0 kg |
+| 382 | Kyogre | Sea Basin Pokémon | 4.5 m | 352.0 kg |
+
+Extremes sanity: tallest = Wailord 14.5 m; heaviest = Groudon 950.0 kg (both
+correct for Gen-3 Emerald).
+
+**Category casing:** the ROM stores categories ALL-CAPS ("SEED", "DNA"). We
+title-case each word and append " Pokémon"; the only all-caps acronym across all
+386 categories is **DNA** (Deoxys), kept upper by an explicit exception. The
+exact ROM string is preserved verbatim in `category_raw`.
+
+**Sample decoded flavor text** (clean Unicode — curly `’`, `é`):
+- Bulbasaur: "BULBASAUR can be seen napping in bright sunlight. There is a seed
+  on its back. By soaking up the sun’s rays, the seed grows progressively larger."
+- Pikachu: "It stores electricity in the electric sacs on its cheeks. When it
+  releases pent-up energy in a burst, the electric power is equal to a lightning
+  bolt."
+- Deoxys: "A POKéMON that mutated from an extraterrestrial virus exposed to a
+  laser beam. Its body is configured for superior agility and speed."
