@@ -72,9 +72,13 @@
       self-tests + recovery-path safety confirmed). Remaining: live-hunt
       softlock recovery needs a progressed save; independent adversarial
       pass to bundle with the batch verification before promotion.
-- [ ] #9 — Hunt planner: pick a target species → GUI suggests best map/mode/
-      method from the bot's encounter tables, one click to start. Leverages
-      the now-built #8 global pathfinding. (M)
+- [ ] #9 — Hunt planner: v1 BUILT IN SANDBOX 2026-07-19 (6141d96f;
+      encounter_index from ROM: 132 species/805 locations, 19/19 fact-check;
+      Hunt tab shows ranked locations + recommended mode). GAPS: (a)
+      auto-TRAVEL is v2 — v1 sets the mode but doesn't walk you there (needs
+      a travel bot-mode wrapping navigate_to_anywhere); (b) the 6th tab
+      overcrowds the tab bar → KI-6, fix before promoting; (c) live
+      navigate+hunt needs a progressed save.
 - [ ] #23 — Living-Dex / hunt-queue orchestrator: target list → auto-pick
       mode+location per species and move between hunts autonomously (uses
       #9 + #8). The "ultimate idle" payoff. (L)

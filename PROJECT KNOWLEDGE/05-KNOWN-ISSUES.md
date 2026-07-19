@@ -56,3 +56,10 @@ fix goes in DIVERGENCE-LOG).
 - **Mitigation in place:** all such calls are timeout-bounded on daemon
   threads, so startup is never blocked. Fix candidate: set
   `GIT_TERMINAL_PROMPT=0` in the subprocess env.
+
+## KI-6 — Tab bar overcrowds with 6 tabs (opened 2026-07-19, severity: med, sandbox)
+- **Symptom:** Adding the Hunt tab (#9) makes 6 tabs (Play/Party/Hunt/Stats/
+  Cheats/Backups) overflow the ~360px tool-column width — labels overlap
+  and truncate ("Hun Stat hea cku"). Visible in scratchpad/hunt_planner_*.
+- **Fix candidate:** scrollable/wrapping tab bar, icon tabs, an overflow
+  "⋯" menu, or regrouping. Must fix before promoting #9.
