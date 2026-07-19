@@ -295,3 +295,9 @@
   sprite-illustrated picker). Verified via py_compile, real-import,
   headless picker screenshots, and live-ROM screenshots of every tab +
   the handheld drawer.
+
+## 2026-07-19 — Cheat species picker: show full dex by default (sandbox, user feedback)
+- Removed the 60-row cap on the wild-species cheat picker; it now lists all
+  386 Gen-3/Emerald species scrollable by default (typing still filters).
+  Confirmed the species source is complete (386 unique, spot-checked
+  legendaries/starters present). py_compile + headless screenshot verified.

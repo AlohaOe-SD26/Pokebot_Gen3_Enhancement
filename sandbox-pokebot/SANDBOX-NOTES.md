@@ -465,3 +465,13 @@ exercised by the local bare remote.
   Charizard with sprites); live-ROM screenshots of all 5 tabs + the
   handheld drawer showing tabs. Scratchpad: picker_default/filtered.png,
   tab_{play,party,stats,cheats,backups,handheld_drawer}.png.
+
+## 2026-07-19 — Cheat species picker shows the FULL dex (user feedback)
+- Removed the 60-item unfiltered cap in `_open_species_picker`: the picker
+  now shows all selectable species (scrollable) by default; typing still
+  filters. Verified the source is complete — `_species_by_index` yields
+  exactly **386 unique species** (full Gen-3 National Dex, every Emerald
+  Pokémon: all 3 Hoenn starters, Rayquaza/Kyogre/Groudon/Deoxys/Jirachi/
+  Latios/Latias/Mew/Milotic/etc.), no placeholders, no duplicates.
+- Verified: py_compile + completeness count + headless picker screenshot
+  (default list opens on Bulbasaur→Venusaur→Charmander with scrollbar).

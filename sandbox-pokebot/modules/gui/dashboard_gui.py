@@ -1095,18 +1095,15 @@ class DashboardScreen:
             self._set_force_species(name)
             dialog.destroy()
 
-        # Cap the unfiltered list so opening is instant (each row loads a
-        # sprite); typing narrows to all matches. ~400 species -> filter is
-        # the intended way to reach the long tail.
-        unfiltered_cap = 60
-
+        # Show the FULL species list (scrollable) by default; typing filters
+        # it. Every row loads a sprite, but sprites are cached after first
+        # open, so the whole list stays scrollable and responsive.
         def render(*_args) -> None:
             for widget in rows_frame.winfo_children():
                 widget.destroy()
             needle = filter_variable.get().strip().lower()
             names = [n for n in self._all_species_names() if needle in n.lower()] if needle else self._all_species_names()
-            capped = names if needle else names[:unfiltered_cap]
-            for name in capped:
+            for name in names:
                 image = self._get_species_sprite(name, shiny=shiny, size=22)
                 row_button = tkinter.Button(
                     rows_frame,
@@ -1124,12 +1121,7 @@ class DashboardScreen:
                 )
                 row_button.image = image
                 row_button.pack(fill="x", pady=1)
-            if not needle and len(names) > unfiltered_cap:
-                tkinter.Label(
-                    rows_frame, text=f"… type to search all {len(names)} species",
-                    background=COLOR_SURFACE, foreground=COLOR_MUTED, anchor="w", font=("Segoe UI", 8, "italic"),
-                ).pack(fill="x", pady=4)
-            if not capped:
+            if not names:
                 tkinter.Label(
                     rows_frame, text="No match.", background=COLOR_SURFACE, foreground=COLOR_MUTED, anchor="w",
                 ).pack(fill="x", pady=4)
