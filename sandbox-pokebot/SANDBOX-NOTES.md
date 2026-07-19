@@ -508,3 +508,29 @@ exercised by the local bare remote.
   drawer (no menu, TOOLS+Windowed+Hide header, menu in Play tab), Cheats tab
   (money field + Lock). Honest gap: filled-slot composite + live hover tooltip
   need a progressed save (empty party at title screen).
+
+## 2026-07-19 — Gamepad-driven GUI navigation (#32)
+- **What:** the ROG/Xbox controller can now drive the DASHBOARD (navigate +
+  activate widgets), separate from the existing in-GAME Manual input.
+- **Activation scheme:** Handheld — opening the Pokéball drawer (Back+Start,
+  or H) turns GUI-nav ON; closing it returns control to the game (wired in
+  `_set_drawer`). Desktop — Back+Start toggles GUI-nav directly.
+- **Mapping (GUI-nav active):** D-pad/left-stick = move focus (edge-detected,
+  one move per press); A = activate (invoke button / toggle); B = back
+  (close picker/dialog → close drawer → exit nav); LB/RB = previous/next
+  tab. While active, game-input injection is suppressed (mutually exclusive).
+- **Focus model (DashboardScreen):** ordered registry = persistent Handheld
+  button → 6 left-party slots (controller "hover" any mon on any tab, shows
+  the stats tooltip via `_show_party_tooltip(index)`) → the active tab's
+  enabled buttons/checkboxes (disabled skipped). Focus draws a thick accent
+  ring + accent background tint (unmistakable on a handheld). Rebuilds on
+  tab change / activation; guarded against destroyed widgets.
+- **Thread-safety:** the gamepad listener's handle_frame runs on the Tk main
+  thread, so `gui_focus_*` are called directly (no cross-thread Tk).
+- **Verify:** 23/23 stubbed unit tests (focus move/wrap/activate/highlight/
+  party-tooltip + gamepad routing: edge-fire, activate, tab cycle, game-
+  injection suppressed while nav active, drawer/desktop activation). Live
+  launch (real ROM): handheld → drawer opens → nav activates → focus ring
+  on the real Handheld button, no crash, clean layout (screenshot
+  n32_1_drawer_navring.png). GAP: real-pad feel + moving the ring across the
+  full tab with a physical controller need the user's Ally.

@@ -155,10 +155,16 @@ class DashboardScreen:
         self._party_icon_cache: dict = {}  # keep PhotoImage refs alive
         self._current_party: list = []
 
-        # #30(d) hover-stats tooltip (also driven by the future gamepad nav)
+        # #30(d) hover-stats tooltip (also driven by the gamepad nav, #32)
         self._party_tooltip: "tkinter.Toplevel | None" = None
         self._party_tooltip_label: "tkinter.Label | None" = None
         self._tooltip_hide_after = None
+
+        # #32 gamepad-driven GUI navigation: when active, the controller moves
+        # a focus ring across widgets instead of playing the game.
+        self._gui_nav_active: bool = False
+        self._focus_targets: list = []  # ordered [{"kind","widget",...}]
+        self._focus_index: int = -1
 
         # #31 adjustable money cheat widgets
         self._money_entry: "tkinter.Entry | None" = None
@@ -314,6 +320,10 @@ class DashboardScreen:
         self._party_slots = []
         self._party_icon_cache = {}
         self._current_party = []
+        # #32 gamepad-nav state
+        self._gui_nav_active = False
+        self._focus_targets = []
+        self._focus_index = -1
         self._party_tooltip_label = None
         self._money_entry = None
         self._money_variable = None
@@ -1044,6 +1054,185 @@ class DashboardScreen:
         self._tooltip_hide_after = None
         self._hide_party_tooltip()
 
+    # ------------------------------------------------------------------
+    # #32 Gamepad-driven GUI navigation
+    #
+    # When GUI-nav is active the controller drives a focus ring across the
+    # dashboard instead of playing the game (the gamepad layer suppresses
+    # game input while active — see modules/gamepad.py). Activation:
+    #   - Handheld: opening the Pokéball drawer turns nav ON; closing it OFF
+    #     (wired in _set_drawer). Back+Start opens/closes the drawer.
+    #   - Desktop: Back+Start toggles nav on/off directly.
+    # Mapping (nav active): D-pad/stick = move focus, A = activate,
+    # B = back/close, LB/RB = previous/next tab.
+    # Every method here runs on the Tk main thread (the gamepad listener's
+    # handle_frame is called on the main thread), so direct Tk calls are safe.
+    # ------------------------------------------------------------------
+
+    def set_gui_nav_active(self, active: bool) -> None:
+        active = bool(active)
+        if active == self._gui_nav_active:
+            return
+        self._gui_nav_active = active
+        try:
+            if active:
+                self._rebuild_focus_targets()
+                self._set_focus_index(0)
+            else:
+                self._clear_focus_highlight()
+                self._hide_party_tooltip()
+                self._focus_targets = []
+                self._focus_index = -1
+        except Exception:
+            pass
+
+    @property
+    def gui_nav_active(self) -> bool:
+        return self._gui_nav_active
+
+    def _collect_interactive(self, widget, out: list) -> None:
+        """Recursively collect activatable widgets (buttons/checkbuttons) of a
+        tab frame, in child (≈ top-to-bottom) order."""
+        try:
+            children = widget.winfo_children()
+        except Exception:
+            return
+        for child in children:
+            if isinstance(child, (tkinter.Button, tkinter.Checkbutton)):
+                if child.winfo_exists() and str(child.cget("state")) != "disabled":
+                    out.append({"kind": "button", "widget": child})
+            self._collect_interactive(child, out)
+
+    def _rebuild_focus_targets(self) -> None:
+        """Focus order: persistent Handheld button → 6 left-party slots
+        (controller 'hover' any mon on any tab) → the active tab's buttons."""
+        targets: list = []
+        if self._handheld_button is not None and self._handheld_button.winfo_exists():
+            targets.append({"kind": "button", "widget": self._handheld_button})
+        for index, slot in enumerate(self._party_slots):
+            try:
+                if slot.winfo_exists():
+                    targets.append({"kind": "party", "index": index, "widget": slot})
+            except Exception:
+                pass
+        active_frame = self._tab_frames.get(self._active_tab) if self._active_tab else None
+        if active_frame is not None:
+            self._collect_interactive(active_frame, targets)
+        self._focus_targets = targets
+        if self._focus_index >= len(targets):
+            self._focus_index = len(targets) - 1
+
+    def _clear_focus_highlight(self) -> None:
+        for target in self._focus_targets:
+            widget = target.get("widget")
+            try:
+                if widget is not None and widget.winfo_exists():
+                    widget.config(highlightthickness=0)
+                    if "_orig_bg" in target:
+                        widget.config(background=target.pop("_orig_bg"))
+            except Exception:
+                pass
+
+    def _set_focus_index(self, index: int) -> None:
+        self._clear_focus_highlight()
+        if not self._focus_targets:
+            self._focus_index = -1
+            self._hide_party_tooltip()
+            return
+        index = index % len(self._focus_targets)
+        self._focus_index = index
+        target = self._focus_targets[index]
+        widget = target.get("widget")
+        try:
+            if widget is not None and widget.winfo_exists():
+                # A thick accent ring PLUS an accent background tint, so the
+                # focused widget is unmistakable on a handheld screen / from
+                # across the room with a controller.
+                target["_orig_bg"] = widget.cget("background")
+                widget.config(
+                    highlightthickness=3, highlightbackground=COLOR_ACCENT,
+                    highlightcolor=COLOR_ACCENT, background=COLOR_ACCENT,
+                )
+        except Exception:
+            pass
+        # Focusing a party slot shows that mon's stats (the controller "hover").
+        if target.get("kind") == "party":
+            try:
+                slot = target["widget"]
+                x = slot.winfo_rootx() + slot.winfo_width() + 8
+                y = slot.winfo_rooty()
+                self._show_party_tooltip(target["index"], x, y)
+            except Exception:
+                pass
+        else:
+            self._hide_party_tooltip()
+
+    def gui_focus_move(self, direction: str) -> None:
+        """direction: 'next'/'down'/'right' → forward; 'prev'/'up'/'left' → back."""
+        if not self._gui_nav_active:
+            return
+        if not self._focus_targets:
+            self._rebuild_focus_targets()
+        if not self._focus_targets:
+            return
+        step = -1 if direction in ("prev", "up", "left") else 1
+        base = self._focus_index if self._focus_index >= 0 else 0
+        self._set_focus_index(base + step)
+
+    def gui_focus_activate(self) -> None:
+        if not self._gui_nav_active or not (0 <= self._focus_index < len(self._focus_targets)):
+            return
+        target = self._focus_targets[self._focus_index]
+        try:
+            if target["kind"] == "button":
+                widget = target["widget"]
+                if widget.winfo_exists():
+                    widget.invoke()
+                    # Activating may have changed the tab/cards or opened a
+                    # dialog; rebuild so focus stays valid.
+                    self.window.after_idle(self._rebuild_focus_targets)
+            elif target["kind"] == "party":
+                # Re-show the tooltip (toggle-friendly).
+                self._set_focus_index(self._focus_index)
+        except Exception:
+            pass
+
+    def gui_focus_back(self) -> None:
+        # Close an open picker/dialog first; else close the drawer (handheld);
+        # else exit GUI-nav.
+        try:
+            for child in self.window.winfo_children():
+                if isinstance(child, tkinter.Toplevel) and child.winfo_exists() and child is not self._party_tooltip:
+                    child.destroy()
+                    return
+        except Exception:
+            pass
+        if self._handheld and self._drawer_open:
+            self._set_drawer(False)
+        else:
+            self.set_gui_nav_active(False)
+
+    def gui_tab_next(self) -> None:
+        self._cycle_tab(1)
+
+    def gui_tab_prev(self) -> None:
+        self._cycle_tab(-1)
+
+    def _cycle_tab(self, step: int) -> None:
+        if not self._gui_nav_active or not TAB_ORDER:
+            return
+        try:
+            current = self._active_tab if self._active_tab in TAB_ORDER else TAB_ORDER[0]
+            new_tab = TAB_ORDER[(TAB_ORDER.index(current) + step) % len(TAB_ORDER)]
+            self._show_tab(new_tab)
+            self._rebuild_focus_targets()
+            # Land focus on the first widget of the new tab (after the header
+            # button + party slots) if there is one, else the header.
+            first_tab_widget = 1 + len(self._party_slots)
+            self._set_focus_index(first_tab_widget if first_tab_widget < len(self._focus_targets) else 0)
+        except Exception:
+            pass
+
     def _show_party_tooltip(self, index: int, x: "int | None" = None, y: "int | None" = None) -> None:
         """Show all stats for party member `index`. Index-based so the future
         gamepad-GUI navigation (#32) can show stats for the focused slot."""
@@ -1161,6 +1350,11 @@ class DashboardScreen:
     def _set_drawer(self, open_: bool) -> None:
         self._drawer_open = open_
         self._apply_handheld_layout()
+        # #32: in handheld, the open drawer IS the gamepad-nav context — the
+        # controller navigates the tools while it's open, and returns to
+        # playing the game when it closes.
+        if self._handheld:
+            self.set_gui_nav_active(open_)
 
     def _apply_handheld_layout(self) -> None:
         try:

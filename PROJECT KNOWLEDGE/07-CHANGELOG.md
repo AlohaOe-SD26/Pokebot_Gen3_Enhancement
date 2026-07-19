@@ -348,3 +348,13 @@
   Set action, and a Lock toggle that freezes money at the typed value.
 - py_compile + real-import + unit tests + live-ROM screenshots verified;
   filled-slot composite + live hover need a progressed save.
+
+## 2026-07-19 — Gamepad-driven GUI navigation (sandbox, #32)
+- The controller now drives the dashboard GUI (focus ring across tabs/
+  buttons/party, A=activate, B=back, LB/RB=tabs, D-pad/stick=move),
+  distinct from in-game Manual input and mutually exclusive with it.
+  Handheld: the open drawer is the nav context; desktop: Back+Start toggles.
+  Focusing a party slot shows its stats tooltip (the controller "hover" the
+  user asked for). modules/gui/dashboard_gui.py + modules/gamepad.py.
+- Verified: 23/23 stubbed unit tests + live launch (focus ring on real
+  widgets, no crash). Real-pad feel pending the user's Ally.

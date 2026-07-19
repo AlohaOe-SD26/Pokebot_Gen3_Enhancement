@@ -165,10 +165,14 @@ class GamepadListener:
     """BotListener (duck-typed): polls the pad once per frame on the main
     thread and drives the emulator's Manual-mode inputs edge-based."""
 
+    # Buttons meaningful to GUI navigation (#32).
+    _NAV_TOKENS = {"Up", "Down", "Left", "Right", "A", "B", "L", "R"}
+
     def __init__(self, poller: "GamepadPoller | None" = None):
         self._poller = poller if poller is not None else GamepadPoller()
         self._held: set[str] = set()
         self._combo_was_down = False
+        self._nav_prev: set[str] = set()  # #32 edge-detection for GUI nav
 
     @property
     def poller(self) -> GamepadPoller:
@@ -183,22 +187,50 @@ class GamepadListener:
                     pass
         self._held = set()
 
-    def _toggle_drawer(self) -> None:
-        # Back+Start opens/closes the handheld tool drawer — couch-friendly.
-        # UI action only; only meaningful when the dashboard screen is up
-        # and in handheld mode.
+    def _active_dashboard_screen(self):
+        """The dashboard screen, only if it is the GUI's current screen."""
         try:
             gui = context.gui
             screen = getattr(gui, "_emulator_screen", None)
-            if (
-                screen is not None
-                and getattr(gui, "_current_screen", None) is screen
-                and getattr(screen, "_handheld", False)
-                and hasattr(screen, "_set_drawer")
-            ):
-                screen._set_drawer(not screen._drawer_open)
+            if screen is not None and getattr(gui, "_current_screen", None) is screen:
+                return screen
         except Exception:
             pass
+        return None
+
+    def _toggle_ui(self) -> None:
+        # Back+Start — couch-friendly UI toggle. Handheld: open/close the tool
+        # drawer (which turns gamepad GUI-nav on/off, #32). Desktop: toggle
+        # gamepad GUI-nav directly (there is no drawer to open).
+        try:
+            screen = self._active_dashboard_screen()
+            if screen is None:
+                return
+            if getattr(screen, "_handheld", False):
+                if hasattr(screen, "_set_drawer"):
+                    screen._set_drawer(not screen._drawer_open)
+            elif hasattr(screen, "set_gui_nav_active"):
+                screen.set_gui_nav_active(not getattr(screen, "_gui_nav_active", False))
+        except Exception:
+            pass
+
+    def _dispatch_nav(self, screen, newly: "set[str]") -> None:
+        # #32: translate newly-pressed nav buttons into GUI focus actions
+        # (runs on the main thread, so direct Tk calls are safe).
+        for token in newly:
+            try:
+                if token in ("Up", "Down", "Left", "Right"):
+                    screen.gui_focus_move(token.lower())
+                elif token == "A":
+                    screen.gui_focus_activate()
+                elif token == "B":
+                    screen.gui_focus_back()
+                elif token == "L":
+                    screen.gui_tab_prev()
+                elif token == "R":
+                    screen.gui_tab_next()
+            except Exception:
+                pass
 
     def handle_frame(self, bot_mode, frame) -> None:
         try:
@@ -206,6 +238,7 @@ class GamepadListener:
             if result is None:
                 self._release_everything()
                 self._combo_was_down = False
+                self._nav_prev = set()
                 return
             held, raw_buttons = result
 
@@ -216,8 +249,20 @@ class GamepadListener:
             if combo_down:
                 held = held - {"Start", "Select"}
                 if not self._combo_was_down:
-                    self._toggle_drawer()
+                    self._toggle_ui()
             self._combo_was_down = combo_down
+
+            # #32: if GUI navigation is active, the controller drives the
+            # dashboard focus ring instead of the game — suppress game input.
+            screen = self._active_dashboard_screen()
+            if screen is not None and getattr(screen, "_gui_nav_active", False):
+                self._release_everything()
+                nav_tokens = held & self._NAV_TOKENS
+                newly = nav_tokens - self._nav_prev
+                self._nav_prev = nav_tokens
+                self._dispatch_nav(screen, newly)
+                return
+            self._nav_prev = set()
 
             gui_inputs_enabled = getattr(context.gui, "inputs_enabled", True)
             if context.bot_mode != "Manual" or context.emulator is None or not gui_inputs_enabled:
