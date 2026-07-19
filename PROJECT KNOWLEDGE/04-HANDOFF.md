@@ -58,7 +58,25 @@ in CLAUDE.md "Project rules"):
 - Built the native dashboard GUI (fork agent; ~860 lines) and verified it
   on a live run; browser auto-open defaulted off per user preference.
 
+## Awaiting the USER (nothing blocked on me)
+- **Promotion OK** for the sandbox batch #30/#31/#32 (verified clean) +
+  #33 (GUI fixes) → promote to custom on the user's word.
+- **4 dex decisions** (steer Phase 3, see 10-DEX-RESEARCH.md / punch #34-#35):
+  (1) Pokémon dex artwork — source Sugimori art or reuse battle sprites?
+  (2) flavor text + height/weight/category from the decomp — yes?
+  (3) historical item totals — track going forward / current-only / omit?
+  (4) item map-location scope — full Emerald or a subset?
+- **Past-the-menu SAVE** from the user → unblocks live tests (filled-slot
+  party composites, hover stats with real data, money cheat in-game,
+  caught/shiny dex counts, controller feel on the Ally).
+
 ## In progress (and how far along)
+- DEX DATA (#34/#35): Phase 1 (research/inventory) + Phase 2 (assemble +
+  fact-check the static datasets: 386 species / 309 items, integrity PASS)
+  DONE in sandbox (`d6211e32`; build_dex_data.py + modules/data/generated/).
+  Phase 3 (fill gap fields: dex artwork, flavor/height/weight, item
+  locations) BLOCKED on the 4 user decisions above. Phase 5 = build the
+  two GUI tabs on the data.
 - PROMOTION DONE 2026-07-19 (`f0b275f3`): the ENTIRE sandbox round is now in
   custom-pokebot (user approved "all updates"): backup/restore + cloud,
   macros, Patrol v3 (multi-map/global-nav), gamepad + handheld menu-hide,

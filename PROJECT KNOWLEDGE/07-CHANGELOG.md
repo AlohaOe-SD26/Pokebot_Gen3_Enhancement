@@ -366,3 +366,17 @@
 - Desktop gains the handheld drawer's paradigm: a "Hide" button collapses the
   tool column (video fills the window), the Pokéball reopens it; state
   persisted per profile. Verified live (4 states screenshotted).
+
+## 2026-07-19 — Dex data Phase 2: assemble static Pokédex/Item-Dex datasets (sandbox, #34/#35)
+- tools/build_dex_data.py compiles modules/data/generated/pokedex_data.json
+  (386 species) + itemdex_data.json (309 items) from the shipped data:
+  types, stats, abilities, dex numbers, evolutions/family, wild held items,
+  full learnset resolved to move names (level-up/TM-HM/tutor/egg), resolved
+  sprite paths. Gap fields (dex artwork, flavor/height/weight/category,
+  item map locations/mart/pickup) left null for Phase 3.
+- Fact-check: 386/386 species + 309/309 items; referential integrity PASS
+  (every move/ability/type/evolution/held-by resolves); species sprites
+  386/386 exist; item icons 305/309 (4 obscure FR/LG keys have none).
+  Caught bug: family/evolves_from/evolution targets are Gen-3 INTERNAL
+  species IDs (array indices), not national-dex numbers — resolver fixed.
+- Live counts (caught/shiny/held) stay runtime-merged from stats.db + save.
