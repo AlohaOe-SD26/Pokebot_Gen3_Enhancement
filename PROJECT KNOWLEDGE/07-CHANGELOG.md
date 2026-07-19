@@ -320,3 +320,20 @@
 - Honest debt: #8/#12/#18/#20 + 2026-07-19 GUI polish had builder self-
   verification only (no independent adversarial pass) — verification sweep
   queued as the "Now" punch-list item.
+
+## 2026-07-19 — Post-promotion verification sweep (independent adversarial pass)
+- Two adversarial verifiers on the promoted-but-not-independently-verified
+  features (custom-pokebot). 4 real bugs fixed:
+  - warp_graph.py: corrupt/non-dict cache crashed the bot on first warp use
+    → now rebuilds gracefully (medium).
+  - global_navigation.py: navigate_to_anywhere counted per-frame non-
+    overworld waits against its warp-leg budget → false route abort to
+    Manual during long cutscenes; decoupled the counters (medium).
+  - dashboard_gui.py: handheld-mode per-profile preference was overwritten
+    to false on restore (tab-restore persisted before applying the saved
+    flag) → Ally relaunched windowed; fixed (medium).
+  - dashboard_gui.py: stale module docstring on dialog modality corrected.
+- All batteries green (cloud-sync 23, alerts/update 21, backup, warp-graph
+  23) + new adversarial batteries. Cloud-sync save-safety contract
+  confirmed (save flushes before exit-sync; local never clobbered/rolled
+  back). Two minor observations logged as KI-4/KI-5.

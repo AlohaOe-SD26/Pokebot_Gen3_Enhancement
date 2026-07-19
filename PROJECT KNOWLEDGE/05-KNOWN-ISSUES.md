@@ -42,3 +42,17 @@ fix goes in DIVERGENCE-LOG).
   `BattleAction.CustomAction` from `on_battle_started()`.
 - **Workaround:** documented in `40cakes repo/DOCUMENTATION/03`; keep in
   mind when writing custom modes.
+
+## KI-4 — Cloud-sync requires backups enabled (opened 2026-07-19, severity: low)
+- **Symptom:** If `backups enabled: false` but `sync.enabled: true`, every
+  clean exit logs "sync FAILED (backup could not be created)" — cloud-sync
+  is built on the backup system. Honest failure, NOT data corruption.
+- **Workaround:** enable backups when using cloud-sync. Fix candidate: a
+  config-validation warning at load.
+
+## KI-5 — Background git calls could wait on a credential prompt (opened 2026-07-19, severity: low)
+- **Symptom:** cloud-sync/update-check git fetch/push could block up to its
+  timeout if a remote interactively prompts for credentials.
+- **Mitigation in place:** all such calls are timeout-bounded on daemon
+  threads, so startup is never blocked. Fix candidate: set
+  `GIT_TERMINAL_PROMPT=0` in the subprocess env.

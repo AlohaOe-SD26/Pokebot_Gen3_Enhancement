@@ -31,6 +31,14 @@ if TYPE_CHECKING:
 # guards against planner/runtime disagreement causing an endless loop.
 _MAX_LEGS = 32
 
+# Frame-waits while the game is not in the overworld (a warp-arrival cutscene,
+# an evolution, etc.) must NOT count against the warp-leg budget above — a
+# single scripted event is easily more than _MAX_LEGS frames long, and counting
+# them there would abort a perfectly good route with a misleading "looping"
+# error. This separate, generous cap only exists to break a genuine softlock
+# (the game never returning to the overworld) rather than yield forever.
+_MAX_NON_OVERWORLD_FRAMES = 60 * 60 * 5  # ~5 minutes at 60 fps
+
 
 def _map_name(map_group_and_number: tuple[int, int]) -> str:
     enum = MapRSE if context.rom.is_rse else MapFRLG
@@ -66,12 +74,23 @@ def navigate_to_anywhere(
     if graph.region_of(target_map) is None:
         raise BotModeError(f"Unknown destination map {_map_name(target_map)} — cannot navigate there.")
 
-    for _ in range(_MAX_LEGS):
+    legs_taken = 0
+    non_overworld_frames = 0
+    while legs_taken < _MAX_LEGS:
         if get_game_state() is not GameState.OVERWORLD:
             # Let whatever is going on (battle/evolution handled by listeners)
-            # settle before reading the avatar.
+            # settle before reading the avatar. These waits are counted against
+            # a separate, generous cap — NOT the warp-leg budget — so a normal
+            # arrival cutscene can never masquerade as a "looping route".
+            non_overworld_frames += 1
+            if non_overworld_frames > _MAX_NON_OVERWORLD_FRAMES:
+                raise BotModeError(
+                    f"Navigation to {_map_name(target_map)} stalled: the game stayed out of the "
+                    "overworld for too long (possible softlock). Aborting."
+                )
             yield
             continue
+        non_overworld_frames = 0
 
         current_map = tuple(get_player_avatar().map_group_and_number)
         if graph.region_of(current_map) == graph.region_of(target_map):
@@ -112,6 +131,7 @@ def navigate_to_anywhere(
                 f"(locked or event-gated?). Aborting navigation to {_map_name(target_map)}."
             )
         # Loop continues: re-plan from wherever we actually arrived.
+        legs_taken += 1
 
     raise BotModeError(
         f"Gave up navigating to {_map_name(target_map)} after {_MAX_LEGS} warp legs — "

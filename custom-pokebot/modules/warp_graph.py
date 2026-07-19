@@ -202,12 +202,12 @@ class WarpGraph:
     def load_cache(cls, path: Path) -> "WarpGraph | None":
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
-            if payload.get("version") != CACHE_VERSION:
-                return None
+            if not isinstance(payload, dict) or payload.get("version") != CACHE_VERSION:
+                return None  # not our object / wrong version -> rebuild
             regions = {tuple(entry[0]): entry[1] for entry in payload["regions"]}
             edges = [WarpEdge.from_json(entry) for entry in payload["edges"]]
             return cls(regions, edges)
-        except (OSError, ValueError, KeyError, IndexError, TypeError):
+        except (OSError, ValueError, KeyError, IndexError, TypeError, AttributeError):
             return None  # corrupt/missing cache -> rebuild
 
 
