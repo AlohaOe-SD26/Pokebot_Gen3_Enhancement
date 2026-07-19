@@ -130,3 +130,10 @@ desktop↔Ally run over GitHub is the user's test.
 Approved sandbox features are copied into `custom-pokebot/` with their
 DIVERGENCE-LOG entries and docs; the sandbox then rebases on the new
 custom. Nothing is promoted without the user's explicit OK.
+
+## A9. Game cheat menu (user-requested 2026-07-18) — BUILT
+CHEATS card: one-shot actions (heal/max-level/perfect-IVs/max-friendship/max-money/
+item-pack/max-balls/99× rare candy) + toggles (infinite money, auto-heal, force wild
+species@level, guaranteed shiny wild). Built on the bot's own memory-write toolkit;
+byte-verified live against the real ROM; in-game effect pending the user's save.
+See CHEATS-DESIGN.md + SANDBOX-NOTES.

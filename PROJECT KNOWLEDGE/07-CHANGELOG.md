@@ -275,3 +275,13 @@
   topmost/modal/centered and replacing simpledialog.askstring with a
   touch-friendly `_ask_text` modal. py_compile + real-import verified;
   XP-with-real-party and live fullscreen dialog stacking pending user test.
+
+## 2026-07-18 — Game cheat menu (sandbox, user request)
+- Added a CHEATS card + modules/game_cheats.py + plugins/game_cheats_plugin.py +
+  game_cheats.yml to sandbox-pokebot: toggleable game cheats (max level, perfect IVs,
+  max friendship, heal, max money, item pack, max balls, rare candy; infinite money,
+  auto-heal, force wild species/level, guaranteed shiny wild), built on the bot's own
+  debug_utilities write toolkit and gated on safe game state. Verified: 32/32 headless
+  + 15/15 live-ROM byte checks (fabricated mons decode to exact species/level/shiny,
+  valid checksum; money round-trips) + GUI screenshot. In-game effect pending a real
+  save. Design + honesty: sandbox-pokebot/CHEATS-DESIGN.md.

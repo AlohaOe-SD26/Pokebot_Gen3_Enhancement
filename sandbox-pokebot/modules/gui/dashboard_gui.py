@@ -641,6 +641,9 @@ class DashboardScreen:
             padx=8,
         ).pack(side="left")
 
+        # --- cheats card (sandbox) ---
+        self._build_cheats_card(tools)
+
         # --- status line + message ---
         status_card = self._card(tools, "STATUS")
         self._state_label = tkinter.Label(
@@ -782,6 +785,102 @@ class DashboardScreen:
             self.window.config(menu=self._menu_bar if show_menu else "")
         except tkinter.TclError:
             pass
+
+    def _build_cheats_card(self, tools: tkinter.Widget) -> None:
+        """CHEATS card: one-shot action buttons + persistent toggles that
+        modify the live game via modules/game_cheats.py. See CHEATS-DESIGN.md."""
+        from modules.game_cheats import cheat_manager
+
+        try:
+            cheat_manager.load_config()
+        except Exception:
+            pass
+
+        card = self._card(tools, "CHEATS")
+        tkinter.Label(
+            card, text="⚠ Modifies your live game — back up first.",
+            background=COLOR_CARD, foreground=COLOR_WARNING, anchor="w",
+            font=("Segoe UI", 8), wraplength=TOOL_COLUMN_WIDTH - 40, justify="left",
+        ).pack(fill="x", pady=(0, 4))
+
+        def run_action(method_name: str, *args) -> None:
+            try:
+                message = getattr(cheat_manager, method_name)(*args)
+            except Exception as error:  # defensive: the manager already guards, but never let the GUI die
+                message = f"Cheat failed: {error}"
+            self._log_event(f"Cheat: {message}")
+
+        def small_button(parent: tkinter.Widget, text: str, command) -> tkinter.Button:
+            return tkinter.Button(
+                parent, text=text, command=command, background=COLOR_SURFACE, foreground=COLOR_INK,
+                activebackground=COLOR_ACCENT, activeforeground=COLOR_INK, relief="flat",
+                font=("Segoe UI", 8), padx=4, pady=2,
+            )
+
+        actions = [
+            ("Heal party", lambda: run_action("heal_party")),
+            ("Max level", lambda: run_action("max_level")),
+            ("Perfect IVs", lambda: run_action("perfect_ivs")),
+            ("Max friendship", lambda: run_action("max_friendship")),
+            ("Max money", lambda: run_action("max_money")),
+            ("Item pack", lambda: run_action("give_item_pack")),
+            ("Max Poké Balls", lambda: run_action("max_poke_balls")),
+            ("99× Rare Candy", lambda: run_action("give_item", "Rare Candy", 99)),
+        ]
+        grid = tkinter.Frame(card, background=COLOR_CARD)
+        grid.pack(fill="x")
+        grid.columnconfigure(0, weight=1, uniform="cheat")
+        grid.columnconfigure(1, weight=1, uniform="cheat")
+        for index, (text, command) in enumerate(actions):
+            small_button(grid, text, command).grid(row=index // 2, column=index % 2, sticky="ew", padx=2, pady=2)
+
+        def toggle_checkbox(parent: tkinter.Widget, text: str, key: str) -> None:
+            variable = tkinter.BooleanVar(value=bool(cheat_manager.get(key)))
+
+            def on_change() -> None:
+                cheat_manager.set_toggle(key, variable.get())
+
+            tkinter.Checkbutton(
+                parent, text=text, variable=variable, command=on_change,
+                background=COLOR_CARD, foreground=COLOR_INK_2, selectcolor=COLOR_SURFACE,
+                activebackground=COLOR_CARD, activeforeground=COLOR_INK, anchor="w",
+                font=("Segoe UI", 8), highlightthickness=0, borderwidth=0,
+            ).pack(fill="x", pady=(4, 0) if key == "infinite_money" else 0)
+
+        toggle_checkbox(card, "Infinite money", "infinite_money")
+        toggle_checkbox(card, "Auto-heal party (overworld)", "auto_heal_party")
+        toggle_checkbox(card, "Force wild species", "force_wild_species")
+
+        force_row = tkinter.Frame(card, background=COLOR_CARD)
+        force_row.pack(fill="x")
+        species_variable = tkinter.StringVar(value=str(cheat_manager.get("force_wild_species_name")))
+        level_variable = tkinter.StringVar(value=str(cheat_manager.get("force_wild_species_level")))
+
+        def commit_species(*_event) -> None:
+            cheat_manager.set_toggle("force_wild_species_name", species_variable.get().strip())
+
+        def commit_level(*_event) -> None:
+            cheat_manager.set_toggle("force_wild_species_level", level_variable.get().strip())
+
+        species_entry = tkinter.Entry(
+            force_row, textvariable=species_variable, background=COLOR_SURFACE, foreground=COLOR_INK,
+            insertbackground=COLOR_INK, relief="flat", font=("Segoe UI", 8), width=14,
+        )
+        species_entry.pack(side="left", padx=(18, 4))
+        species_entry.bind("<FocusOut>", commit_species)
+        species_entry.bind("<Return>", commit_species)
+        tkinter.Label(
+            force_row, text="Lv", background=COLOR_CARD, foreground=COLOR_MUTED, font=("Segoe UI", 8)
+        ).pack(side="left")
+        level_entry = tkinter.Entry(
+            force_row, textvariable=level_variable, background=COLOR_SURFACE, foreground=COLOR_INK,
+            insertbackground=COLOR_INK, relief="flat", font=("Segoe UI", 8), width=4,
+        )
+        level_entry.pack(side="left", padx=(2, 0))
+        level_entry.bind("<FocusOut>", commit_level)
+        level_entry.bind("<Return>", commit_level)
+
+        toggle_checkbox(card, "Guaranteed shiny wild", "guaranteed_shiny_wild")
 
     def _prepare_dialog(self, dialog: tkinter.Toplevel) -> None:
         """Force a popup ABOVE the emulator and center it over the window.

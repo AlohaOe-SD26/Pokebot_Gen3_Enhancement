@@ -395,3 +395,31 @@ exercised by the local bare remote.
   dialog-on-top behavior in actual handheld fullscreen (title-screen test
   save has no party and this session is credit-constrained for a live
   driven screenshot; the fix uses the standard Windows topmost technique).
+
+## 2026-07-18 — Game cheat menu (user request)
+- **Added** modules/game_cheats.py (CheatManager singleton), plugins/game_cheats_plugin.py
+  (BotListener: throttled overworld toggles + Task_BattleStart wild overrides),
+  game_cheats.yml (tracked template; per-profile override), a "CHEATS" card in
+  modules/gui/dashboard_gui.py, and CHEATS-DESIGN.md. Built on the bot's own
+  verified write toolkit (debug_utilities.debug_create_pokemon / debug_write_party /
+  debug_write_item_bag / debug_give_max_coins_and_money) — the same code the stock
+  Debug menu uses. Distinct from upstream cheats.yml (bot-behaviour cheats).
+- **Cheats**: actions (overworld-gated) — Heal party, Max level 100, Perfect IVs,
+  Max friendship, Max money, Item pack, Max Poké Balls, 99× Rare Candy; toggles —
+  Infinite money, Auto-heal party (overworld, surgical HP/status writes outside the
+  encrypted region), Force wild species=X@Lv, Guaranteed shiny wild (both mirror the
+  stock ForceShinyEncounterListener: overwrite gEnemyParty at Task_BattleStart).
+- **Deferred (honest)**: no/guaranteed-encounter toggles (needs RNG hook), PP restore
+  (encrypted substruct), fast-egg-hatch/safari/always-bite.
+- **Verified**: py_compile + real-import + plugin/listener subclass checks; 32/32
+  headless battery (config layering/override/malformed, coercion, persistence,
+  encryption XOR round-trip, guard-safety: toggles & wild-override never raise without
+  an emulator, action off-overworld refusal); 15/15 LIVE emulator byte-verification
+  (real Emerald ROM) — debug_create_pokemon(force species) decodes back to the exact
+  species/level/shiny with a valid checksum for Bulbasaur L5 shiny, Gyarados L100,
+  Zigzagoon L23 shiny, Pikachu L42; money encodes/decodes to 900000 with the real key.
+  Live GUI screenshot (scratchpad cheats_card.png): card renders, 59fps (no per-frame
+  cost). PENDING USER SAVE: actual in-game effect (party really L100, wild really
+  replaced) — the title-screen test save has no party/bag to round-trip in-game.
+- Every cheat is fully exception-guarded (logs to logs/game_cheats.log); one-shot
+  actions are irreversible except by restoring — the card warns "back up first".

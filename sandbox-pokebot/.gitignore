@@ -29,6 +29,7 @@ plugins/*
 !plugins/gamepad_plugin.py
 !plugins/macro_plugin.py
 !plugins/backup_plugin.py
+!plugins/game_cheats_plugin.py
 !plugins/custom_modes/
 
 # Sandbox A1: local backup archives are user data — never committed.
