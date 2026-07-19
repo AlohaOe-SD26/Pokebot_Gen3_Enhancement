@@ -420,3 +420,10 @@
   fact-check (132 wild targets; starters/legendaries excluded), import +
   discovery + all-plugins-load, live in-process run. Gap: autonomous
   catch-and-advance needs a progressed save.
+
+## 2026-07-19 — Analytics suite v1 (sandbox, #11)
+- modules/analytics.py (pure) + Stats-tab ANALYTICS card: enc/hr sparkline,
+  luck meter (actual vs binomial-expected shinies, 1/8192), and a pop-out
+  sortable/filterable per-species stats browser with sprites. Sourced from
+  stats.db. 26/26 unit tests + live screenshots. Live-meaningful data needs
+  a populated stats.db (title-screen profile empty; verified via stub).

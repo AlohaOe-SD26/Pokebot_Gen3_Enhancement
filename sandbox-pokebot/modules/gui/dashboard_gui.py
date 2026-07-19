@@ -145,6 +145,16 @@ class DashboardScreen:
         self._watchdog_label: tkinter.Label | None = None
         self._update_label: tkinter.Label | None = None
         self._update_notice_logged = False
+
+        # #11 analytics (Stats tab): enc/hr trend sparkline + luck meter +
+        # the pop-out sortable stats browser.
+        from modules.analytics import TrendBuffer
+
+        self._analytics_trend = TrendBuffer(capacity=120)
+        self._trend_canvas: "Canvas | None" = None
+        self._luck_label: "tkinter.Label | None" = None
+        self._stats_browser: "tkinter.Toplevel | None" = None
+
         self._pokeball_button: Canvas | None = None
         self._menu_bar: Menu | None = None
 
@@ -339,6 +349,16 @@ class DashboardScreen:
         self._livingdex_label = None
         self._livingdex_custom_button = None
         self._livingdex_pending = []
+        # #11 analytics widgets
+        self._trend_canvas = None
+        self._luck_label = None
+        if self._stats_browser is not None:
+            try:
+                self._stats_browser.destroy()
+            except Exception:
+                pass
+        self._stats_browser = None
+        self._analytics_trend.clear()
 
     def on_settings_updated(self) -> None:
         self._refresh_controls()
@@ -765,6 +785,27 @@ class DashboardScreen:
             )
             value_label.pack(fill="x")
             self._kpi_values[key] = value_label
+
+        # --- analytics card (#11): enc/hr trend + luck meter + browser ---
+        analytics = self._card(stats_tab, "ANALYTICS")
+        tkinter.Label(
+            analytics, text="Encounters / hr", background=COLOR_CARD, foreground=COLOR_INK_2,
+            font=("Segoe UI", 7, "bold"), anchor="w",
+        ).pack(fill="x")
+        self._trend_canvas = Canvas(
+            analytics, height=44, background=COLOR_SURFACE, highlightthickness=0, borderwidth=0,
+        )
+        self._trend_canvas.pack(fill="x", pady=(2, 6))
+        self._luck_label = tkinter.Label(
+            analytics, text="Luck: no encounters yet.", background=COLOR_CARD, foreground=COLOR_MUTED,
+            anchor="w", justify="left", wraplength=TOOL_COLUMN_WIDTH - 44, font=("Segoe UI", 8),
+        )
+        self._luck_label.pack(fill="x")
+        tkinter.Button(
+            analytics, text="Open stats browser…", command=self._open_stats_browser,
+            background=COLOR_SURFACE, foreground=COLOR_INK, activebackground=COLOR_ACCENT,
+            activeforeground=COLOR_INK, relief="flat", font=("Segoe UI", 9),
+        ).pack(fill="x", pady=(6, 0))
 
         # --- party card ---
         party_card = self._card(party_tab, "PARTY")
@@ -2175,6 +2216,7 @@ class DashboardScreen:
             self._refresh_shiny_log()
             self._refresh_money_field()
             self._refresh_living_dex()
+            self._refresh_analytics()
 
     def _refresh_money_field(self) -> None:
         """#31: keep the money field showing the character's current money —
@@ -2265,6 +2307,168 @@ class DashboardScreen:
             self._kpi_values["rate"].config(text=f"{context.stats.encounter_rate:,}")
         except Exception:
             pass
+
+    # ------------------------------------------------------------------
+    # Analytics (#11): enc/hr trend sparkline + luck meter + stats browser
+    # ------------------------------------------------------------------
+    def _refresh_analytics(self) -> None:
+        if self._trend_canvas is None or not self._trend_canvas.winfo_exists():
+            return
+        try:
+            from modules.analytics import luck_meter
+
+            # Sample the current enc/hr into the trend ring buffer.
+            rate = int(getattr(context.stats, "encounter_rate", 0) or 0)
+            self._analytics_trend.add(rate)
+            self._draw_trend()
+
+            global_stats = context.stats.get_global_stats()
+            totals = global_stats.totals
+            result = luck_meter(totals.total_encounters, totals.shiny_encounters)
+            if result.encounters == 0:
+                self._luck_label.config(text="Luck: no encounters yet.", foreground=COLOR_MUTED)
+            else:
+                color = {
+                    "lucky": COLOR_GOOD,
+                    "unlucky": COLOR_CRITICAL,
+                    "on track": COLOR_INK_2,
+                }.get(result.verdict, COLOR_INK_2)
+                self._luck_label.config(text=f"Luck: {result.summary}", foreground=color)
+        except Exception:
+            pass
+
+    def _draw_trend(self) -> None:
+        canvas = self._trend_canvas
+        if canvas is None or not canvas.winfo_exists():
+            return
+        try:
+            canvas.delete("all")
+            width = max(canvas.winfo_width(), 1)
+            height = max(canvas.winfo_height(), 1)
+            samples = self._analytics_trend.samples()
+            if len(samples) < 2:
+                canvas.create_text(
+                    6, height / 2, anchor="w", text="collecting…", fill=COLOR_MUTED, font=("Segoe UI", 8)
+                )
+                return
+            peak = max(self._analytics_trend.peak(), 1.0)
+            pad = 3
+            plot_w = width - pad * 2
+            plot_h = height - pad * 2
+            step = plot_w / (len(samples) - 1)
+            points = []
+            for i, value in enumerate(samples):
+                x = pad + i * step
+                y = pad + plot_h - (min(value, peak) / peak) * plot_h
+                points.extend((x, y))
+            canvas.create_line(*points, fill=COLOR_ACCENT, width=2, smooth=True)
+            # Peak label, top-right.
+            canvas.create_text(
+                width - 4, 8, anchor="e", text=f"peak {int(peak):,}", fill=COLOR_MUTED, font=("Segoe UI", 7)
+            )
+        except Exception:
+            pass
+
+    def _open_stats_browser(self) -> None:
+        """Sortable, filterable per-species stats table in a floating window."""
+        if self._stats_browser is not None and self._stats_browser.winfo_exists():
+            self._stats_browser.lift()
+            return
+        try:
+            from tkinter import ttk
+
+            from modules.analytics import build_stats_rows, filter_rows, sort_rows
+
+            rows_all = build_stats_rows(context.stats.get_global_stats())
+        except Exception as error:
+            self._log_event(f"Could not open stats browser: {error}", highlight=True)
+            return
+
+        dialog = tkinter.Toplevel(self.window)
+        dialog.title("Per-species stats")
+        dialog.configure(background=COLOR_SURFACE)
+        dialog.geometry("560x520")
+        self._stats_browser = dialog
+
+        def _on_close() -> None:
+            self._stats_browser = None
+            dialog.destroy()
+
+        dialog.protocol("WM_DELETE_WINDOW", _on_close)
+
+        top = tkinter.Frame(dialog, background=COLOR_SURFACE)
+        top.pack(fill="x", padx=8, pady=8)
+        tkinter.Label(
+            top, text="Filter:", background=COLOR_SURFACE, foreground=COLOR_INK_2, font=("Segoe UI", 10)
+        ).pack(side="left")
+        filter_var = tkinter.StringVar()
+        tkinter.Entry(
+            top, textvariable=filter_var, background=COLOR_CARD, foreground=COLOR_INK,
+            insertbackground=COLOR_INK, relief="flat", font=("Segoe UI", 11),
+        ).pack(side="left", fill="x", expand=True, padx=(6, 0), ipady=3)
+
+        # Dark ttk styling for the Treeview.
+        style = ttk.Style(dialog)
+        try:
+            style.theme_use("clam")
+        except tkinter.TclError:
+            pass
+        style.configure(
+            "Dex.Treeview", background=COLOR_CARD, fieldbackground=COLOR_CARD, foreground=COLOR_INK,
+            rowheight=26, borderwidth=0, font=("Segoe UI", 9),
+        )
+        style.configure(
+            "Dex.Treeview.Heading", background=COLOR_SURFACE, foreground=COLOR_INK_2,
+            font=("Segoe UI", 9, "bold"), relief="flat",
+        )
+        style.map("Dex.Treeview", background=[("selected", COLOR_ACCENT)])
+
+        columns = ("total", "shinies", "catches", "best_iv", "best_sv")
+        headings = {
+            "total": "Enc", "shinies": "✨", "catches": "Caught", "best_iv": "Best IV", "best_sv": "Best SV",
+        }
+        tree = ttk.Treeview(dialog, columns=columns, show="tree headings", style="Dex.Treeview")
+        tree.heading("#0", text="Species", command=lambda: _sort("species"))
+        tree.column("#0", width=200, anchor="w")
+        for col in columns:
+            tree.heading(col, text=headings[col], command=lambda c=col: _sort(c))
+            tree.column(col, width=64, anchor="center")
+        scroll = ttk.Scrollbar(dialog, orient="vertical", command=tree.yview)
+        tree.configure(yscrollcommand=scroll.set)
+        scroll.pack(side="right", fill="y")
+        tree.pack(fill="both", expand=True, padx=8, pady=(0, 8))
+
+        state = {"key": "total", "reverse": True}
+        sprite_refs: list = []  # keep PhotoImages alive for the tree
+
+        def _populate() -> None:
+            tree.delete(*tree.get_children())
+            sprite_refs.clear()
+            rows = filter_rows(rows_all, filter_var.get())
+            rows = sort_rows(rows, state["key"], state["reverse"])
+            for r in rows:
+                img = self._get_species_sprite(r["species"], shiny=False, size=22)
+                if img is not None:
+                    sprite_refs.append(img)
+                tree.insert(
+                    "", "end", text=f" {r['species']}", image=img if img is not None else "",
+                    values=(f"{r['total']:,}", r["shinies"], r["catches"], r["best_iv"], r["best_sv"]),
+                )
+            if not rows:
+                tree.insert("", "end", text="  (no matching species yet)", values=("", "", "", "", ""))
+            dialog._sprite_refs = sprite_refs  # anchor on the window too
+
+        def _sort(key: str) -> None:
+            if state["key"] == key:
+                state["reverse"] = not state["reverse"]
+            else:
+                state["key"] = key
+                state["reverse"] = key != "species"  # names A→Z, numbers high→low
+            _populate()
+
+        filter_var.trace_add("write", lambda *_a: _populate())
+        _populate()
+        self._prepare_dialog(dialog)
 
     def _refresh_party(self) -> None:
         try:

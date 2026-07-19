@@ -663,3 +663,23 @@ exercised by the local bare remote.
   + catch-intent verified by unit tests + code only. Clean card SCREENSHOT
   not captured (post-#33 bare-Tk harness geometry expands the grab region);
   card uses the same verified pattern as the Hunt Planner card.
+
+## 2026-07-19 — Analytics suite v1 (#11)
+- **Added** `modules/analytics.py` (pure, GUI-free): `luck_meter` (binomial
+  expectation vs actual shinies at full-odds 1/8192 → expected/sigma/z/
+  verdict), `TrendBuffer` (capped enc/hr ring buffer), `build_stats_rows`/
+  `sort_rows`/`filter_rows` (per-species table from GlobalStats).
+- **GUI** (`modules/gui/dashboard_gui.py`): an ANALYTICS card in the Stats
+  tab — a Tk-Canvas enc/hr **sparkline** (sampled on the existing KPI cycle,
+  no per-frame cost) + a **luck meter** line (colored by verdict) + an
+  "Open stats browser…" button that pops a sortable/filterable ttk.Treeview
+  of per-species stats WITH sprites (floats above the emulator via
+  _prepare_dialog). All sources are stats.db (get_global_stats /
+  encounter_rate); nothing baked. disable() clears the new widgets +
+  destroys the browser + clears the trend buffer.
+- Verified: 26/26 unit battery (luck math incl. N=0/S=0/lucky/unlucky/on-
+  track, trend cap/decimation, row assembly/sort/filter); py_compile +
+  real-import; mode+plugin discovery intact; live screenshots (empty state,
+  populated sparkline+luck, browser with sprites). Gap: meaningful data
+  needs a real hunt's stats.db (title-screen profile is empty — verified
+  with a stub).
