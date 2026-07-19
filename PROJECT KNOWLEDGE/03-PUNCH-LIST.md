@@ -80,9 +80,12 @@
       REMAINING: live navigate+hunt on a progressed save; Rock Smash has no
       auto-tile finder (degrades to manual). Independent adversarial pass at
       promotion time.
-- [ ] #23 — Living-Dex / hunt-queue orchestrator: target list → auto-pick
-      mode+location per species and move between hunts autonomously (uses
-      #9 + #8). The "ultimate idle" payoff. (L)
+- [ ] #23 — Living-Dex orchestrator: v1 BUILT IN SANDBOX 2026-07-19
+      (34c5f461; living_dex.py target derivation + "Living Dex (Custom)"
+      mode: travel→hunt→catch-first-uncaught→advance; catch-intent verified;
+      16/16 units + real-ROM fact-check 132 targets). REMAINING: live
+      autonomous run needs a progressed save; screenshot harness needs a fix
+      after #33 layout change; independent adversarial pass at promotion.
 - [ ] #25 — Pokémon detail + PC box viewer: click a party/box mon → full
       stats (IVs/nature/ability/moves); browse PC boxes with sprites. (M)
 - [ ] #11 — Analytics suite: stats browser (sortable per-species table) +
