@@ -88,9 +88,12 @@
       after #33 layout change; independent adversarial pass at promotion.
 - [ ] #25 — Pokémon detail + PC box viewer: click a party/box mon → full
       stats (IVs/nature/ability/moves); browse PC boxes with sprites. (M)
-- [ ] #11 — Analytics suite: stats browser (sortable per-species table) +
-      encounter-rate trend sparkline + phase history + a "luck meter"
-      (actual vs binomial-expected shiny odds). (M)
+- [ ] #11 — Analytics suite: v1 BUILT IN SANDBOX 2026-07-19 (8094bb05;
+      analytics.py + ANALYTICS card in Stats tab: encounter-rate sparkline,
+      luck meter [actual vs binomial 1/8192, σ/z/verdict], sortable+
+      filterable stats browser w/ sprites; 26/26 units). REMAINING:
+      meaningful values need a populated stats.db (real hunt); independent
+      pass at promotion.
 - [ ] #27 — Battery-aware mode (ROG Ally): throttle speed/fps on low
       battery, pause on critical, resume on charge. (S-M)
 - [ ] #28 — Polished mobile remote: phone-optimized web dashboard view to
