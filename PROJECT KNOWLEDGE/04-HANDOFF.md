@@ -71,12 +71,17 @@ in CLAUDE.md "Project rules"):
   caught/shiny dex counts, controller feel on the Ally).
 
 ## In progress (and how far along)
-- #22 WATCHDOG / auto-recovery BUILT in sandbox (c7d25305, self-verified
-  17/17 + recovery-path safety confirmed by main session). Awaiting: live
-  softlock recovery on a progressed save; independent adversarial pass at
-  promotion time. Sandbox now holds an UNPROMOTED batch: #30/#31/#32/#33
-  (verified clean) + #22.
-- DEX DATA (#34/#35): Phase 1 (research/inventory) + Phase 2 (assemble +
+- SANDBOX now holds a LARGE unpromoted, self-verified batch (2026-07-19),
+  awaiting the user's review/promotion + a progressed save for live tests:
+  #30/#31/#32/#33 (GUI + money cheat, adversarially verified clean), #22
+  Watchdog, #9 Hunt Planner v1+v2, #23 Living-Dex Orchestrator, #11
+  Analytics. Each has unit/fact-check/screenshot verification; live in-game
+  behavior + a promotion-time independent adversarial pass are pending.
+- DEX DATA (#34/#35): Phases 1, 2, 3a DONE. pokedex_data.json is complete
+  EXCEPT dex_artwork (386 species w/ full stats/learnsets/flavor/dims).
+  itemdex_data.json has core data; gaps = map_locations/mart/pickup/
+  historical. Phase 3b + the two GUI tabs BLOCKED on the 4 user decisions.
+- (older #34/#35 line retained below) Phase 1 (research/inventory) + Phase 2 (assemble +
   fact-check the static datasets: 386 species / 309 items, integrity PASS)
   DONE in sandbox (`d6211e32`; build_dex_data.py + modules/data/generated/).
   Phase 3 (fill gap fields: dex artwork, flavor/height/weight, item

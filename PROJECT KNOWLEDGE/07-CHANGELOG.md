@@ -427,3 +427,16 @@
   sortable/filterable per-species stats browser with sprites. Sourced from
   stats.db. 26/26 unit tests + live screenshots. Live-meaningful data needs
   a populated stats.db (title-screen profile empty; verified via stub).
+
+## 2026-07-19 — First-wave features + dex Phase 3a (all in sandbox, awaiting user)
+- #22 Watchdog/auto-recovery (c7d25305), #9 Hunt Planner v1+v2 (6141d96f/
+  4df17747; encounter index + travel-and-hunt + KI-6 tab-bar fix), #23
+  Living-Dex Orchestrator (34c5f461), #11 Analytics suite (8094bb05; stats
+  browser + trend + luck meter). Each self-verified (unit batteries + real-
+  ROM fact-checks + live screenshots); live in-game behavior + independent
+  adversarial pass pending (needs a progressed save + promotion).
+- Dex Phase 3a (1b2ff82c): extracted category/height/weight/flavor for all
+  386 species from the ROM's gPokedexEntries (national-dex indexed; offsets
+  hex-verified; 0 mojibake; fact-checked exact). pokedex_data.json now only
+  missing dex_artwork. Item-Dex still needs map_locations/mart/pickup +
+  historical-tracking decision.
