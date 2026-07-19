@@ -337,3 +337,14 @@
   23) + new adversarial batteries. Cloud-sync save-safety contract
   confirmed (save flushes before exit-sync; local never clobbered/rolled
   back). Two minor observations logged as KI-4/KI-5.
+
+## 2026-07-19 — #30 handheld/GUI refinements + #31 adjustable money (sandbox)
+- Persistent Handheld toggle in a header above the tabs (every tab); handheld
+  drops the Tk menu bar entirely and surfaces its commands in a Play-tab GAME
+  MENU card; new Left Party Section (6 icons left of the video, empty=Poké
+  Ball, filled=mon over caught-ball composite) with index-based hover-stats
+  tooltips (controller-ready for #32) on the strip AND party rows.
+- #31 adjustable money cheat: editable field defaulting to current money, a
+  Set action, and a Lock toggle that freezes money at the typed value.
+- py_compile + real-import + unit tests + live-ROM screenshots verified;
+  filled-slot composite + live hover need a progressed save.

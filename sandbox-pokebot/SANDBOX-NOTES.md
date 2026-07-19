@@ -475,3 +475,36 @@ exercised by the local bare remote.
   Latios/Latias/Mew/Milotic/etc.), no placeholders, no duplicates.
 - Verified: py_compile + completeness count + headless picker screenshot
   (default list opens on Bulbasaur→Venusaur→Charmander with scrollbar).
+
+## 2026-07-19 — #30 handheld/GUI refinements + #31 adjustable money cheat
+- **#30a** Persistent Handheld toggle: moved out of the Controls card into a
+  new persistent column header (`_column_header`) shown above the tabs on
+  every tab. In the handheld drawer it sits right of the "TOOLS" text
+  (labelled "⛶ Windowed", exits handheld); desktop shows just "⛶ Handheld".
+- **#30b** Handheld menu relocation: `_apply_menu_visibility` now hides the
+  Tk menu bar ENTIRELY in handheld (even with the drawer open); the stock
+  menu commands were refactored into `_menu_commands()` (single source of
+  truth) and surfaced as a "GAME MENU" card in the Play tab (also visible on
+  desktop). Desktop keeps the normal menu bar.
+- **#30c** Left Party Section: a 6-slot vertical strip left of the video
+  (grid column 0 desktop; left overlay in handheld via `_layout_party_strip`).
+  Empty slot = dimmed Poké Ball; filled = mon sprite alpha-composited over its
+  caught-ball sprite (`_build_party_icon`, PIL); egg = egg sprite. Cached by
+  species|shiny|ball. Video moved to grid column 1, tools to column 2.
+- **#30d** Hover stats: `_show_party_tooltip(index)` / `_hide_party_tooltip()`
+  (topmost borderless Toplevel) driven by Enter/Leave on both the strip slots
+  and the party-tab rows (bound recursively; debounced). INDEX-BASED so the
+  future gamepad-GUI nav (#32) can show stats for the focused slot.
+- **#31** Adjustable money: `game_cheats.py` gained `get_current_money`,
+  `set_money(value)` (one-shot, overworld-gated, clamped 0..999,999), and a
+  `lock_money`/`locked_money_value` toggle applied in `apply_persistent_toggles`
+  (lock takes precedence over infinite-money). CHEATS card gained a Money
+  entry (pre-filled with current money when a save is loaded), "Set" button,
+  and "Lock" checkbox; `_refresh_money_field` keeps it live unless locked/edited.
+- Verified: py_compile + real-import (all new methods present), stat-format +
+  empty/egg unit tests, mode discovery green, ball/egg sprite paths resolve,
+  money API round-trip; LIVE launch (real ROM, test-dashboard) screenshots —
+  desktop Play (party strip + persistent Handheld + GAME MENU), handheld
+  drawer (no menu, TOOLS+Windowed+Hide header, menu in Play tab), Cheats tab
+  (money field + Lock). Honest gap: filled-slot composite + live hover tooltip
+  need a progressed save (empty party at title screen).

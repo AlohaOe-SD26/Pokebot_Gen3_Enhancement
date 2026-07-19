@@ -30,9 +30,13 @@ DEFAULT_TOGGLES: dict = {
     "force_wild_species_name": "Bulbasaur",
     "force_wild_species_level": 5,
     "guaranteed_shiny_wild": False,
+    # Adjustable money (#31): lock money to a user-typed value each tick.
+    "lock_money": False,
+    "locked_money_value": 0,
 }
 
 MONEY_TARGET = 900_000
+MONEY_MAX = 999_999  # Gen-3 money cap
 
 _log = logging.getLogger("game_cheats")
 _log.setLevel(logging.INFO)
@@ -140,7 +144,39 @@ class CheatManager:
             or self.get("auto_heal_party")
             or self.get("force_wild_species")
             or self.get("guaranteed_shiny_wild")
+            or self.get("lock_money")
         )
+
+    # ------------------------------------------------------------------ money
+    def _money_offset(self) -> int:
+        return 0x490 if context.rom.is_rse else 0x290
+
+    def get_current_money(self):
+        """The character's current money, or None if it can't be read (e.g. no
+        save loaded / not in the overworld). Used to pre-fill the money field."""
+        try:
+            if not self._in_overworld():
+                return None
+            from modules.memory import decrypt32, get_save_block, unpack_uint32
+
+            return decrypt32(unpack_uint32(get_save_block(1, self._money_offset(), 4)))
+        except Exception:
+            return None
+
+    def set_money(self, value) -> str:
+        """One-shot: write a specific money value (overworld-gated)."""
+        try:
+            amount = max(0, min(MONEY_MAX, int(value)))
+        except (TypeError, ValueError):
+            return "Enter a whole number for money."
+
+        def _write() -> str:
+            from modules.memory import decrypt32, pack_uint32, write_to_save_block
+
+            write_to_save_block(pack_uint32(decrypt32(amount)), 1, self._money_offset())
+            return ""
+
+        return self._action(_write, f"Money set to {amount:,}.")
 
     # ------------------------------------------------------------- safe state
     @staticmethod
@@ -311,16 +347,32 @@ class CheatManager:
         """Called by the listener on a throttled cadence. Overworld-only, fully
         guarded."""
         try:
-            if not (self.get("infinite_money") or self.get("auto_heal_party")):
+            if not (self.get("infinite_money") or self.get("auto_heal_party") or self.get("lock_money")):
                 return
             if not self._in_overworld():
                 return
-            if self.get("infinite_money"):
+            # Lock takes precedence over infinite (both write money): a locked
+            # value is the user's explicit number, infinite just tops up to max.
+            if self.get("lock_money"):
+                self._lock_money_value()
+            elif self.get("infinite_money"):
                 self._keep_money()
             if self.get("auto_heal_party"):
                 self._keep_party_healed()
         except Exception:
             _log.exception("Persistent cheat toggle failed")
+
+    def _lock_money_value(self) -> None:
+        from modules.memory import decrypt32, get_save_block, pack_uint32, unpack_uint32, write_to_save_block
+
+        try:
+            target = max(0, min(MONEY_MAX, int(self.get("locked_money_value"))))
+        except (TypeError, ValueError):
+            return
+        offset = self._money_offset()
+        current = decrypt32(unpack_uint32(get_save_block(1, offset, 4)))
+        if current != target:
+            write_to_save_block(pack_uint32(decrypt32(target)), 1, offset)
 
     def _keep_money(self) -> None:
         from modules.memory import decrypt32, get_save_block, pack_uint32, unpack_uint32, write_to_save_block
