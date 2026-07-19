@@ -136,4 +136,5 @@ CHEATS card: one-shot actions (heal/max-level/perfect-IVs/max-friendship/max-mon
 item-pack/max-balls/99× rare candy) + toggles (infinite money, auto-heal, force wild
 species@level, guaranteed shiny wild). Built on the bot's own memory-write toolkit;
 byte-verified live against the real ROM; in-game effect pending the user's save.
-See CHEATS-DESIGN.md + SANDBOX-NOTES.
+Adversarially re-verified 2026-07-18 (77-check battery; one medium nickname-loss
+bug found & fixed). See CHEATS-DESIGN.md + SANDBOX-NOTES.

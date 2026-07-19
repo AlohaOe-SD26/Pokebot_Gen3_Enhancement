@@ -170,6 +170,7 @@ class CheatManager:
                 species=mon.species,
                 level=mon.level,
                 original_pokemon=mon,
+                nickname=mon.nickname,
                 is_shiny=mon.is_shiny,
                 gender=mon.gender,
                 nature=mon.nature,

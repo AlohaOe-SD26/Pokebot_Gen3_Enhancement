@@ -423,3 +423,18 @@ exercised by the local bare remote.
   replaced) — the title-screen test save has no party/bag to round-trip in-game.
 - Every cheat is fully exception-guarded (logs to logs/game_cheats.log); one-shot
   actions are irreversible except by restoring — the card warns "back up first".
+- **Adversarial verification (2026-07-18)** — 77-check live battery added
+  (scratchpad/test_cheats_adversarial.py) on top of the 32 headless + 15 live:
+  negative controls (corrupted mon/checksum → invalid), edge species
+  (Unown/Deoxys/Mew/Wurmple/held-item/L1/L100 all fabricate valid), party rebuild
+  driven through the REAL CheatManager (captures debug_write_party) proving
+  nickname/PV(form)/IV/friendship/level survive + egg pass-through, auto-heal
+  surgical write byte-verified live against gPlayerParty (HP+status fixed, checksum
+  intact, egg untouched), trainer-battle no-override vs wild clone/force gating,
+  listener throttle (1/15 frames) + single battle-start fire, unsafe-state refusal.
+  All green. Backup battery (31) + module imports still pass.
+- **BUG FIXED (medium, data-loss not corruption)**: party rebuild actions
+  (heal/max-level/perfect-IVs/max-friendship) did not pass `nickname=` to
+  debug_create_pokemon, so every rebuild WIPED custom nicknames back to the
+  species default. Fixed by adding `nickname=mon.nickname` to the rebuild kwargs;
+  regression-covered in the adversarial battery.

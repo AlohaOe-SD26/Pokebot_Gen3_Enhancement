@@ -24,7 +24,10 @@ the bot's own verified memory-write toolkit (`modules/debug_utilities.py`,
 ### Party actions (rebuild via `debug_create_pokemon` + `debug_write_party`)
 Rebuilding through the bot's own valid-Pokémon generator (not raw byte pokes)
 keeps the encrypted growth/misc substructs + checksum correct. Each rebuild
-preserves species/IVs/EVs/nature/gender/moves/PV unless the cheat changes them.
+preserves species/nickname/IVs/EVs/nature/gender/moves/PV (and therefore
+PV-derived traits: Unown letter, Spinda spots, Wurmple evolution) unless the
+cheat changes them. (The `nickname=mon.nickname` pass-through is required —
+without it `debug_create_pokemon` resets the name to the species default.)
 
 | Cheat | Type | Mechanism | Verified |
 |---|---|---|---|
@@ -65,8 +68,19 @@ opponent is a **wild** mon (its OT id/secret id equal the player's), overwrite
   specific. Deferred to avoid duplicating or half-doing them.
 
 ## Verification honesty
-"byte ✓" = the bytes written were decoded back and asserted correct in a
-headless test. "in-game pending" = the actual in-game effect (party really at
+"byte ✓" = the bytes written were decoded back through the bot's own reader and
+asserted correct. "in-game pending" = the actual in-game effect (party really at
 L100, wild really replaced) needs the user's real save — the title-screen test
 save has no party/bag to round-trip. Nothing here claims an unproven in-game
 result.
+
+Adversarial verification pass (2026-07-18): the party-rebuild actions are now
+byte-verified through the *real* CheatManager code (capturing `debug_write_party`)
+for nickname/PV(form)/IV/friendship/level survival + egg pass-through; the
+auto-heal surgical write is byte-verified live against `gPlayerParty` (HP
+restored, status cleared, checksum still valid, egg untouched); negative controls
+confirm a corrupted mon reads as invalid; edge species (Unown/Deoxys/Mew/Wurmple/
+held-item/level-1/level-100) fabricate valid; the wild override is confirmed to
+skip trainer battles and clone/force only wild ones; listener throttle (1 write /
+15 frames) and battle-start single-fire are unit-checked. Batteries: 32 headless +
+15 live + 77 adversarial, all green.
