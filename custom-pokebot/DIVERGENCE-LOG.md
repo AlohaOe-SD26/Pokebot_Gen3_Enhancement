@@ -144,3 +144,12 @@ sandbox-pokebot; sandbox remains for future rounds. New/changed files:
   (save-touching, though OFF by default) and the pathfinding walk.
 - **Live in-game effects still user-pending**: cheats on a real save, macro
   record->replay, multi-map patrol walk, shiny-trigger backup/alert.
+
+## 2026-07-19 — Disable stock auto-updater for the root-level git checkout
+- **Modified** `pokebot.py`: upstream disables `run_updater()` only when
+  `.git` is INSIDE the bot folder. Our `.git` is at the REPO ROOT, so the
+  stock updater stayed active and (once upstream tagged release 20260504.1)
+  would offer to download a 40Cakes release zip over our fork, clobbering
+  divergences. Fixed to walk ancestors for `.git`. Same fix applied in
+  sandbox-pokebot/pokebot.py.
+- **Merge note:** re-apply if upstream refactors the updater guard.

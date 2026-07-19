@@ -75,3 +75,18 @@
   adversarial pass that specifically tests INTEGRATION contracts (main
   loop, git index, Tk lifecycle) — green self-tests are not evidence;
   and never `git commit` without a pathspec in automation.
+
+## 2026-07-19 — Stock auto-updater silently active in the fork  (ML-4)
+- **Symptom:** Launching custom-pokebot could offer to download a 40Cakes
+  upstream *release* zip and extract it over our fork, clobbering all
+  divergences. Went unnoticed until upstream tagged a new release, making
+  the prompt appear on launch.
+- **Context:** `pokebot.py` run_updater() guard.
+- **Root cause:** Upstream disables the updater when `.git` is INSIDE the
+  bot folder; our git repo's `.git` is at the REPO ROOT (parent), so the
+  guard never matched and the updater stayed on. A structural consequence
+  of the two-folder fork layout that nobody checked at vendoring time.
+- **Fix:** Guard now walks ancestor dirs for `.git` (custom + sandbox).
+- **Prevention:** When vendoring an app that self-updates, audit its
+  update/self-modify triggers against the actual repo layout — a nested
+  `.git` assumption breaks in a monorepo/subtree layout.

@@ -59,8 +59,26 @@ in CLAUDE.md "Project rules"):
   on a live run; browser auto-open defaulted off per user preference.
 
 ## In progress (and how far along)
-- #7 SANDBOX ROUND (A1-A4) — BUILT + ADVERSARIALLY VERIFIED (16 bugs found
-  and fixed, 2 critical — see ML-3 and SANDBOX-NOTES), AWAITING USER REVIEW.
+- PROMOTION DONE 2026-07-19 (`f0b275f3`): the ENTIRE sandbox round is now in
+  custom-pokebot (user approved "all updates"): backup/restore + cloud,
+  macros, Patrol v3 (multi-map/global-nav), gamepad + handheld menu-hide,
+  shiny alerts, update notice, cloud save-sync v2 (off by default), game
+  cheats, tabbed GUI + XP bars + topmost dialogs + full-dex sprite picker.
+  Verified: import/discovery/install-check/live-launch. Also fixed the
+  stock-updater footgun (ML-4) in custom + sandbox. sandbox-pokebot retained
+  (now == custom) for future rounds.
+- OPEN VERIFICATION DEBT (punch-list "Now" item #V): #8/#12/#18/#20 + the
+  2026-07-19 GUI polish were promoted with builder self-verification only —
+  run an independent adversarial sweep on custom before relying on them
+  (cloud-sync is off by default, so inert). Twice interrupted by credit limits.
+- FIRST-WAVE features agreed (punch-list "Next"): #22 watchdog → #9 hunt
+  planner + #23 orchestrator → #25 detail/box viewer + #11 analytics →
+  #27 battery-aware + #28 mobile remote. Full idea catalog: 09-FEATURE-BRAINSTORM.md.
+- USER IN-GAME TESTS still pending on the promoted features (cheats on a
+  real save, macro record→replay, multi-map patrol walk, shiny alert/backup,
+  gamepad on the Ally, cloud-sync desktop↔Ally).
+- (historical) #7 SANDBOX ROUND (A1-A4) — BUILT + ADVERSARIALLY VERIFIED
+  (16 bugs found and fixed, 2 critical — see ML-3 and SANDBOX-NOTES).
 - ROUND 2 (roadmap items, all in sandbox, all committed+pushed):
   - #10 gamepad + handheld menu-hide (293854d3) — self-verified, user
     testing gamepad now.

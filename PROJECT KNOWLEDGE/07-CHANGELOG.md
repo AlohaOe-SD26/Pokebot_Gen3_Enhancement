@@ -301,3 +301,22 @@
   386 Gen-3/Emerald species scrollable by default (typing still filters).
   Confirmed the species source is complete (386 unique, spot-checked
   legendaries/starters present). py_compile + headless screenshot verified.
+
+## 2026-07-19 — Promote sandbox round into custom + fix stock-updater footgun
+- Promoted ALL approved sandbox features into custom-pokebot (user-approved):
+  backup/restore + cloud, macros, Patrol v3 multi-map/global-nav, gamepad +
+  handheld menu-hide, shiny alerts, update notice, cloud save-sync v2, game
+  cheats, tabbed GUI + XP bars + topmost dialogs + full-dex sprite picker.
+  22 files (18 new, 4 modified); DIVERGENCE-LOG + DOCUMENTATION/02/03/04
+  updated. Verified: py_compile, real-import + plugin discovery (no load
+  errors), install.py --check-only, live launch of custom (tabbed GUI +
+  cheats tab), git tracking of all new files. Commit f0b275f3.
+- FIXED (footgun surfaced during promotion): stock auto-updater was active
+  in the fork because pokebot.py only checked for `.git` inside the bot
+  folder while ours is at the repo root — it would download a 40Cakes
+  release over the fork. Guard now walks ancestors (custom + sandbox). ML-4.
+- Refined 03-PUNCH-LIST (promoted items, first-wave direction) + wrote
+  09-FEATURE-BRAINSTORM.md (curated future-feature catalog).
+- Honest debt: #8/#12/#18/#20 + 2026-07-19 GUI polish had builder self-
+  verification only (no independent adversarial pass) — verification sweep
+  queued as the "Now" punch-list item.

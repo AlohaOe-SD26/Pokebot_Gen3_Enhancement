@@ -158,7 +158,15 @@ if __name__ == "__main__":
     startup_settings = parse_arguments(get_bot_mode_names())
     console.print(f"Starting [bold cyan]{pokebot_name} {pokebot_version}![/]")
 
-    if not is_bundled_app() and not (get_base_path() / ".git").is_dir():
+    # Fork divergence: this repo's `.git` lives at the REPO ROOT (a parent of
+    # the bot folder), not inside get_base_path(). Upstream only checked
+    # get_base_path(), so the stock auto-updater stayed ACTIVE in the fork and
+    # would offer to download a 40Cakes *release* zip over our fork (clobbering
+    # our divergences). Walk up so a `.git` at ANY ancestor disables the stock
+    # updater — we manage updates via install.py.
+    _base = get_base_path()
+    _is_git_checkout = any((parent / ".git").exists() for parent in [_base, *_base.parents])
+    if not is_bundled_app() and not _is_git_checkout:
         run_updater()
 
     if startup_settings.headless:
