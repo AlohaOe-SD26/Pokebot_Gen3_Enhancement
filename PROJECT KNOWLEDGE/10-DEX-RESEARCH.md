@@ -436,3 +436,56 @@ confirmed present under normalized filenames.
   `pokedex_data.json` + `itemdex_data.json` from bot JSON (all BOT-sourced fields), with a
   fact-check pass; this proves out ~90% of the datasets before committing to the Phase-3
   external research (which is bounded and dominated by item locations + dex artwork).
+
+---
+
+## Phase 2 — Static dataset assembly + fact-check (DONE, 2026-07-19)
+
+**Deliverables (in `sandbox-pokebot/`):**
+- `tools/build_dex_data.py` — deterministic build script (pure data; no ROM/emulator).
+- `modules/data/generated/pokedex_data.json` — **386** species (1.6 MB, national-dex order).
+- `modules/data/generated/itemdex_data.json` — **309** items (496 KB).
+- `modules/data/generated/README.md` — schema, static-vs-runtime split, Phase-3 gap
+  fields, regenerate steps, and the full validation report.
+
+**What was assembled (all BOT-sourced, research fields left `null`):**
+- Per species: dex numbers (national + Hoenn), name + localised names, types, abilities,
+  base stats + derived BST, EV yield, catch rate, base exp, gender (raw byte + derived
+  %/genderless), egg groups/cycles, base friendship, growth rate, safari flee, evolutions
+  (method + resolved target + item), evolves_from, full family, wild held-items (item +
+  prob + game), **full learnset resolved to move NAMES** per bucket (level_up w/ levels,
+  tm_hm w/ TM/HM label, tutor, egg), and resolved sprite paths (normal/shiny/cropped +
+  animated normal/shiny).
+- Per item: index, name + localised names, pocket, price + derived sell, hold effect,
+  English + localised descriptions, TM/HM→move link, icon sprite path, `held_by` (inverted
+  from species held_items_rse/frlg), and `learnable_by` for TM/HM items (species that can
+  learn the move).
+
+**Key data-shape discovery:** in `species.json`, `family` / `evolves_from` /
+evolution `target_species` are **array indices (Gen-3 internal species IDs), NOT
+national-dex numbers**. They coincide for Gen 1/2 but diverge for Hoenn (Ralts internal
+392 vs national-dex 280). The Phase-1 doc's Pikachu example (`family:[25,26,172]`) matched
+national-dex only by coincidence. Resolved via array index in the build script.
+
+**Validation results:**
+- **Counts:** 386 / 386 species, 309 / 309 real items (68 `????????` placeholder item slots
+  excluded; 412 species-array and 377 item-array total entries).
+- **Referential integrity — PASS:** 0 orphan move ids; all abilities/types resolve; all
+  evolution targets, family members, evolves_from resolve; all held-item names resolve; all
+  held_by species exist; all TM/HM links resolve.
+- **Sprite existence — species PASS:** all 386 have normal + shiny + cropped + animated
+  (name-normalization via `make_string_safe_for_file_name`; animated needed a fuzzy
+  case/apostrophe fallback for `Ho-oh.gif` and `Farfetch'd.gif`).
+- **Sprite existence — items 305/309:** 14 items needed a manual override map (e.g.
+  `Thunderstone`→`Thunder Stone.png`, `King’s Rock`→`Kings Rock.png`); **4 genuinely have
+  no shipped icon** → `sprite: null`: `Rm. 1/2/4/6 Key` (idx 281–284, obscure FR/LG
+  Rocket-Hideout keys). Recorded as a Phase-3 asset gap.
+- **Spot-checks (8 species + 8 items) all correct** vs source — Unown (sprite→`Unown (P)`),
+  Deoxys, Wurmple (dual silcoon/cascoon evo), Vaporeon (evolves_from Eevee), Charmander,
+  Rayquaza; TM26/HM01 (learnable_by counts), Oran Berry, Master Ball, Leftovers, Rare Candy,
+  Light Ball (held_by Pikachu 5%), Devon Scope.
+
+**Remaining Phase-3 gaps (null fields carried by the datasets):**
+- Pokédex: `dex_artwork`, `flavor_text`, `height_m`, `weight_kg`, `category`.
+- Item-Dex: `map_locations`, `mart_stock`, `pickup_chance`.
+- Plus the **4 missing item icons** (Rm. N Keys) if those items ever need a bag sprite.
