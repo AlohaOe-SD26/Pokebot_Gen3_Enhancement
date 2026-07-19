@@ -14,6 +14,10 @@
       save-touching bits (cloud-sync ships off-by-default, so inert).
 
 ## Next (user-set order 2026-07-19: #30 → #31 → #32, THEN the first wave below)
+> #30/#31/#32 are BUILT + ADVERSARIALLY VERIFIED in sandbox (clean pass:
+> money cheat byte-safe 56/56, GUI nav 28/28, no code bugs). AWAITING USER
+> OK to promote to custom. In-game confirms still pending (filled-slot
+> composites, hover with real stats, money effect, controller feel on Ally).
 - [ ] #30 — Handheld & GUI refinements (user-specified 2026-07-19):
       (a) Persistent "Handheld Mode" button — move it out of the Play/
       Controls tab into an always-visible header (in the drawer: right of

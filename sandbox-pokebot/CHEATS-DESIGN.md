@@ -46,6 +46,8 @@ Eggs are left untouched by party rebuilds.
 | 99× Rare Candy | action | bag rewrite via `debug_write_item_bag` | byte ✓ / pending |
 | Max Poké Balls | action | fill Poké Ball pocket, bag rewrite | byte ✓ / pending |
 | Infinite money | toggle | overworld frames: if money < 900k → set 900k | mechanism ✓ / pending |
+| Set money = X (#31) | action | overworld-gated write of `pack_uint32(decrypt32(clamp(X,0..999999)))` to SaveBlock1 money offset (`0x490` RSE / `0x290` FRLG — same offset the verified `player.money` reader uses); exactly the 4-byte money field, coins `[+4:+6]` / registered-item `[+6:+8]` untouched | byte ✓ / pending |
+| Lock money = X (#31) | toggle | overworld frames: re-write the clamped **locked** value each tick; takes precedence over Infinite money (both write money) | byte ✓ / pending |
 | Auto-heal party | toggle | overworld frames: surgical `current_hp=max`, `status=0` per slot (HP/status live OUTSIDE the encrypted region — no re-encryption needed) | byte ✓ / pending |
 
 ### Encounters (the "change wild spawns" headline)
@@ -84,3 +86,20 @@ held-item/level-1/level-100) fabricate valid; the wild override is confirmed to
 skip trainer battles and clone/force only wild ones; listener throttle (1 write /
 15 frames) and battle-start single-fire are unit-checked. Batteries: 32 headless +
 15 live + 77 adversarial, all green.
+
+Adversarial verification pass (2026-07-19, #30–#32 batch): the #31 adjustable
+money cheat is byte-verified through the *real* `CheatManager` code by routing
+its `get_save_block`/`write_to_save_block`/`decrypt32` calls through an in-memory
+save block with a real non-zero XOR key — the money field round-trips exactly
+for 0/1/12345/999999, over-range and negative inputs clamp to `[0, 999999]` on
+BOTH `set_money` and lock, the write is exactly 4 bytes wide (coins +
+registered-item neighbour bytes proven byte-identical), lock re-applies the
+LOCKED value and beats Infinite money, off/overworld gating stops writes, and
+malformed input / raising primitives are fully swallowed (56 checks green). The
+#30/#32 GUI is adversarially checked headless (destroyed-widget focus, tooltip
+destroy-while-shown, out-of-range/negative/empty tooltip index, focus-registry
+churn, all seven GAME-MENU buttons proven to be the real stock callbacks — 28
+checks green) and confirmed live (real ROM): focus ring renders on the first
+target, GAME MENU works from the Play tab, handheld hides the Tk menu bar,
+overworld input is suppressed while GUI-nav is active, and window close tears
+down cleanly (rc=0, save state written). No code bugs found in this pass.

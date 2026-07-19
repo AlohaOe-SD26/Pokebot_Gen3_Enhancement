@@ -71,6 +71,13 @@ in CLAUDE.md "Project rules"):
   2026-07-19 GUI polish were promoted with builder self-verification only —
   run an independent adversarial sweep on custom before relying on them
   (cloud-sync is off by default, so inert). Twice interrupted by credit limits.
+- #30/#31/#32 BUILT + ADVERSARIALLY VERIFIED in sandbox (2026-07-19, clean:
+  money byte-safe 56/56, GUI-nav 28/28, no code bugs): (#30) persistent
+  Handheld button + handheld menu→Play-tab GAME MENU + Left Party Section
+  (ball-behind composites) + hover-stats tooltip; (#31) adjustable money +
+  Lock; (#32) gamepad-driven GUI navigation (drawer-open → controller
+  drives the dashboard; focus ring; party-slot focus pops the tooltip).
+  AWAITING USER OK to promote to custom (last commits 78715773 / 78bfef1a).
 - FIRST-WAVE features agreed (punch-list "Next"): #22 watchdog → #9 hunt
   planner + #23 orchestrator → #25 detail/box viewer + #11 analytics →
   #27 battery-aware + #28 mobile remote. Full idea catalog: 09-FEATURE-BRAINSTORM.md.
