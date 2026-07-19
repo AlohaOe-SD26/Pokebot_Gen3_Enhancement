@@ -358,3 +358,11 @@
   user asked for). modules/gui/dashboard_gui.py + modules/gamepad.py.
 - Verified: 23/23 stubbed unit tests + live launch (focus ring on real
   widgets, no crash). Real-pad feel pending the user's Ally.
+
+## 2026-07-19 — #33 GUI fixes (sandbox): left party always visible + unified show/hide
+- Left Party strip now visible in handheld (was hidden behind the fullscreen
+  video canvas — added lift()); stays visible on desktop including when the
+  tool column is hidden.
+- Desktop gains the handheld drawer's paradigm: a "Hide" button collapses the
+  tool column (video fills the window), the Pokéball reopens it; state
+  persisted per profile. Verified live (4 states screenshotted).

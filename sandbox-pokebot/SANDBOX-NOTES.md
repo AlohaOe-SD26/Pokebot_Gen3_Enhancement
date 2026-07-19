@@ -534,3 +534,24 @@ exercised by the local bare remote.
   on the real Handheld button, no crash, clean layout (screenshot
   n32_1_drawer_navring.png). GAP: real-pad feel + moving the ring across the
   full tab with a physical controller need the user's Ally.
+
+## 2026-07-19 — #33 GUI fixes: left party always visible + unified show/hide
+- **Fix A (left party always visible):** in handheld the strip was `place()`d
+  over the video canvas, but the canvas is created AFTER the strip so it
+  stacked on top and hid it. Added `_party_strip.lift()` in the handheld
+  branch of `_layout_party_strip`. Now visible on the left edge of the
+  fullscreen video (and unchanged/visible on desktop, incl. when the tool
+  column is hidden — it lives in its own grid column 0).
+- **Fix B (unified open/close in both modes):** desktop can now hide the
+  tool column so the emulator fills the window, reopened by the Pokéball —
+  same paradigm as the handheld drawer. New `_tools_hidden` state (persisted
+  per profile in dashboard_ui.json); `_on_pokeball_clicked`/`_on_hide_clicked`
+  route per mode (handheld→drawer, desktop→tool column); the desktop header
+  now shows both the Handheld toggle and a "Hide" button; the Pokéball
+  appears top-right when tools are hidden.
+- Verified: py_compile + real-import; live launch screenshots — desktop
+  open (n33_1), desktop hidden w/ Pokéball + left party (n33_2), handheld
+  drawer closed w/ left party now visible (n33_3), handheld drawer open
+  (n33_4). Reopen path is code-trivial (Pokéball → _set_tools_hidden(False),
+  same as the open state); the live reopen click landed near the title bar
+  so that one shot fell back — not a code issue.

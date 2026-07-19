@@ -110,6 +110,10 @@ class DashboardScreen:
 
         self._handheld = False
         self._drawer_open = False
+        # Desktop: the tool column can be hidden (Pokéball reopens it) so the
+        # emulator can fill the window — the handheld drawer's paradigm,
+        # brought to desktop. Handheld uses `_drawer_open` instead.
+        self._tools_hidden = False
 
         # Tabbed tool column: a row of category tabs, each holding a subset
         # of the cards, so nothing needs scrolling to reach on a handheld.
@@ -320,6 +324,7 @@ class DashboardScreen:
         self._party_slots = []
         self._party_icon_cache = {}
         self._current_party = []
+        self._tools_hidden = False
         # #32 gamepad-nav state
         self._gui_nav_active = False
         self._focus_targets = []
@@ -513,7 +518,7 @@ class DashboardScreen:
         self._hide_button = tkinter.Button(
             self._column_header,
             text="Hide",
-            command=lambda: self._set_drawer(False),
+            command=self._on_hide_clicked,
             background=COLOR_CARD,
             foreground=COLOR_INK,
             activebackground=COLOR_ACCENT,
@@ -918,7 +923,7 @@ class DashboardScreen:
         ball.create_rectangle(pad, band - 2, size - pad, band + 2, fill="#1c1c1c", outline="#1c1c1c")
         ball.create_oval(band - 7, band - 7, band + 7, band + 7, fill="#1c1c1c", outline="#1c1c1c")
         ball.create_oval(band - 5, band - 5, band + 5, band + 5, fill="#f4f4f2", outline="#1c1c1c")
-        ball.bind("<Button-1>", lambda _event: self._set_drawer(True))
+        ball.bind("<Button-1>", lambda _event: self._on_pokeball_clicked())
         ball.configure(cursor="hand2")
         self._pokeball_button = ball
         # placed/hidden by _apply_handheld_layout
@@ -1356,6 +1361,31 @@ class DashboardScreen:
         if self._handheld:
             self.set_gui_nav_active(open_)
 
+    def _on_pokeball_clicked(self) -> None:
+        """The Pokéball reopens the side menu — the drawer in handheld, the
+        docked tool column on desktop."""
+        if self._handheld:
+            self._set_drawer(True)
+        else:
+            self._set_tools_hidden(False)
+
+    def _on_hide_clicked(self) -> None:
+        """The "Hide" button collapses the side menu — closing the drawer in
+        handheld, hiding the tool column on desktop."""
+        if self._handheld:
+            self._set_drawer(False)
+        else:
+            self._set_tools_hidden(True)
+
+    def _set_tools_hidden(self, hidden: bool) -> None:
+        """Desktop: hide/show the tool column so the emulator can fill the
+        window; the Pokéball reopens it. (Handheld uses the drawer instead.)
+        The Left Party strip stays visible either way."""
+        self._tools_hidden = hidden
+        if not self._handheld:
+            self._apply_handheld_layout()
+        self._persist_ui_state()
+
     def _apply_handheld_layout(self) -> None:
         try:
             self.window.attributes("-fullscreen", self._handheld)
@@ -1374,9 +1404,17 @@ class DashboardScreen:
                 self.frame.place_forget()
                 self._pokeball_button.place(relx=1.0, x=-12, y=12, anchor="ne")
         else:
+            # Desktop: tools docked in column 2, OR hidden (Pokéball reopens),
+            # letting the video fill the freed space. Column 0 (party strip)
+            # is untouched, so the Left Party stays visible either way.
             self.frame.place_forget()
-            self._pokeball_button.place_forget()
-            self.frame.grid(row=0, column=2, sticky="NSE")  # column 0=party, 1=video
+            if self._tools_hidden:
+                self.frame.grid_remove()
+                self._pokeball_button.place(relx=1.0, x=-12, y=12, anchor="ne")
+                self._pokeball_button.lift()
+            else:
+                self._pokeball_button.place_forget()
+                self.frame.grid(row=0, column=2, sticky="NSE")  # column 0=party, 1=video
 
     def _layout_column_header(self) -> None:
         """#30a: arrange the persistent header. Handheld drawer shows
@@ -1392,7 +1430,12 @@ class DashboardScreen:
             self._hide_button.pack(side="right", padx=10, pady=4)
             self._handheld_button.config(text="⛶ Windowed")
         else:
-            self._handheld_button.pack(side="right", padx=8, pady=4)
+            # Desktop: show both the Handheld toggle AND a "Hide" that
+            # collapses the tool column (Pokéball reopens it) — same paradigm
+            # as the handheld drawer.
+            self._tools_label.pack(side="left", padx=10, pady=6)
+            self._hide_button.pack(side="right", padx=8, pady=4)
+            self._handheld_button.pack(side="right", padx=6, pady=4)
             self._handheld_button.config(text="⛶ Handheld")
 
     def _layout_party_strip(self) -> None:
@@ -1403,6 +1446,10 @@ class DashboardScreen:
         if self._handheld:
             self._party_strip.grid_remove()
             self._party_strip.place(relx=0.0, rely=0.0, relheight=1.0, anchor="nw")
+            # The video canvas was created AFTER the strip, so it stacks above
+            # it; raise the strip (and its live contents) so the overlay is
+            # actually visible over the fullscreen video.
+            self._party_strip.lift()
         else:
             self._party_strip.place_forget()
             self._party_strip.grid(row=0, column=0, sticky="ns")
@@ -1802,7 +1849,14 @@ class DashboardScreen:
         try:
             state_file = context.profile.path / UI_STATE_FILE
             state_file.write_text(
-                json.dumps({"handheld": self._handheld, "active_tab": self._active_tab}), encoding="utf-8"
+                json.dumps(
+                    {
+                        "handheld": self._handheld,
+                        "active_tab": self._active_tab,
+                        "tools_hidden": self._tools_hidden,
+                    }
+                ),
+                encoding="utf-8",
             )
         except Exception:
             pass
@@ -1819,10 +1873,12 @@ class DashboardScreen:
                 # so the persist inside _show_tab writes the correct value.
                 if state.get("handheld"):
                     self._handheld = True
+                if state.get("tools_hidden"):
+                    self._tools_hidden = True
                 tab = state.get("active_tab")
                 if tab in self._tab_frames:
                     self._show_tab(tab)
-                if self._handheld:
+                if self._handheld or self._tools_hidden:
                     self._apply_handheld_layout()
         except Exception:
             pass
