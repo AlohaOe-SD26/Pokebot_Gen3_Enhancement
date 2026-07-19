@@ -389,3 +389,13 @@
   disabled=inert. 17/17 headless battery + plugin discovery + backup
   regression green; live "Watchdog: OK" at 60 fps. Live-hunt recovery
   pending a progressed save.
+
+## 2026-07-19 — Hunt Planner v1 (sandbox, #9)
+- modules/encounter_index.py: species→where-to-hunt reverse index from the
+  ROM's wild-encounter tables (per-ROM cached). GUI "Hunt" tab: pick a target
+  → ranked locations (map, method, rate%, levels) + recommended bot mode,
+  one click sets the mode. Reuses the sprite species picker (generalized to
+  take a callback). Fact-checked 19/19 vs the real Emerald ROM (known
+  encounters + no-wild for starters/legendaries); 132 species / 805 rows.
+  Auto-travel-to-map deferred to v2 (needs a travel mode). Fixed a
+  str.index name-resolution shadowing bug found in testing.

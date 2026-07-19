@@ -69,7 +69,7 @@ COLOR_CRITICAL = "#d03b3b"
 COLOR_SHINY = "#c98500"
 
 TOOL_COLUMN_WIDTH = 360
-TAB_ORDER = ["Play", "Party", "Stats", "Cheats", "Backups"]
+TAB_ORDER = ["Play", "Party", "Hunt", "Stats", "Cheats", "Backups"]
 SIDEBAR_REFRESH_FRAMES = 30  # refresh party/labels every N rendered frames
 KPI_REFRESH_SECONDS = 5.0  # stats DB reads are not free — refresh sparsely
 UI_STATE_FILE = "dashboard_ui.json"
@@ -873,6 +873,9 @@ class DashboardScreen:
             height=9,
         )
         self._event_list.pack(fill="both", expand=True)
+
+        # --- Hunt tab (#9) ---
+        self._build_hunt_card(self._tab_frames["Hunt"])
 
         # Show the default tab now that every card exists (persist=False so
         # it doesn't clobber a saved tab before _restore_ui_state reads it).
@@ -1692,16 +1695,107 @@ class DashboardScreen:
         self._force_species_name = name
         self._update_species_picker_button()
 
-    def _open_species_picker(self) -> None:
+    def _build_hunt_card(self, parent: tkinter.Widget) -> None:
+        """Hunt Planner (#9): pick a target → ranked wild locations + the
+        recommended bot mode, one click to set that mode."""
+        card = self._card(parent, "HUNT PLANNER")
+        tkinter.Label(
+            card, text="Pick a target — see where it's found and the mode to use.",
+            background=COLOR_CARD, foreground=COLOR_MUTED, anchor="w", wraplength=320, font=("Segoe UI", 8),
+        ).pack(fill="x", pady=(0, 4))
+        self._hunt_target_button = tkinter.Button(
+            card, text="Choose target ▾",
+            command=lambda: self._open_species_picker(on_choose=self._plan_hunt, shiny=False),
+            background=COLOR_SURFACE, foreground=COLOR_INK, activebackground=COLOR_ACCENT,
+            activeforeground=COLOR_INK, relief="flat", anchor="w", padx=8,
+        )
+        self._hunt_target_button.pack(fill="x")
+        self._hunt_results = tkinter.Frame(card, background=COLOR_CARD)
+        self._hunt_results.pack(fill="x", pady=(6, 0))
+        tkinter.Label(
+            self._hunt_results, text="No target selected.",
+            background=COLOR_CARD, foreground=COLOR_MUTED, anchor="w",
+        ).pack(fill="x")
+
+    def _plan_hunt(self, species_name: str) -> None:
+        try:
+            self._hunt_target_button.config(text=f"{species_name} ▾")
+            for widget in self._hunt_results.winfo_children():
+                widget.destroy()
+        except tkinter.TclError:
+            return
+        try:
+            from modules import encounter_index
+            from modules.modes import get_bot_mode_names
+
+            try:
+                modes = get_bot_mode_names()
+            except Exception:
+                modes = []
+            locations = encounter_index.locations_for_species(species_name)
+        except Exception as error:
+            tkinter.Label(
+                self._hunt_results, text=f"Could not load encounter data: {error}",
+                background=COLOR_CARD, foreground=COLOR_WARNING, anchor="w", wraplength=320,
+            ).pack(fill="x")
+            return
+        if not locations:
+            tkinter.Label(
+                self._hunt_results,
+                text=f"{species_name}: no wild locations (legendary / gift / evolve-only).",
+                background=COLOR_CARD, foreground=COLOR_INK_2, anchor="w", wraplength=320,
+            ).pack(fill="x")
+            return
+        for loc in locations[:12]:
+            mode = encounter_index.recommended_mode_for_method(loc["method"], modes)
+            level = f"Lv {loc['min_level']}" + ("" if loc["min_level"] == loc["max_level"] else f"-{loc['max_level']}")
+            row = tkinter.Frame(self._hunt_results, background=COLOR_SURFACE, padx=6, pady=3)
+            row.pack(fill="x", pady=1)
+            tkinter.Label(
+                row, text=loc["map_name"], background=COLOR_SURFACE, foreground=COLOR_INK,
+                anchor="w", font=("Segoe UI", 9, "bold"),
+            ).pack(fill="x")
+            bottom = tkinter.Frame(row, background=COLOR_SURFACE)
+            bottom.pack(fill="x")
+            tkinter.Label(
+                bottom, text=f"{loc['method']} · {loc['rate']}% · {level} · {mode}",
+                background=COLOR_SURFACE, foreground=COLOR_INK_2, anchor="w", font=("Segoe UI", 8),
+            ).pack(side="left")
+            tkinter.Button(
+                bottom, text="Hunt", command=lambda m=mode, n=loc["map_name"]: self._start_hunt(m, n),
+                background=COLOR_ACCENT, foreground=COLOR_INK, relief="flat", font=("Segoe UI", 8), padx=8,
+            ).pack(side="right")
+
+    def _start_hunt(self, mode: str, map_name: str) -> None:
+        # v1: set the recommended bot mode (main-thread, same as the mode
+        # picker). If already at the spot it runs immediately; otherwise the
+        # mode's own asserts guide the user. Auto-TRAVEL to the map is v2 — it
+        # needs a travel bot mode wrapping navigate_to_anywhere driven by the
+        # main loop (a GUI button can't drive that generator directly).
+        try:
+            if mode == "Manual":
+                self._log_event(f"{map_name}: no bot mode for this method — hunt manually.")
+                return
+            context.bot_mode = mode
+            self._refresh_controls()
+            self._log_event(f"Hunt: set mode '{mode}' for {map_name} (travel there if not already; auto-travel is v2).")
+        except Exception as error:
+            self._log_event(f"Could not start hunt: {error}", highlight=True)
+
+    def _open_species_picker(self, on_choose=None, shiny: "bool | None" = None) -> None:
         """Searchable, sprite-illustrated species dropdown. Type to filter
         (handy across ~400 species); click a row to select. Floats above the
-        emulator in handheld fullscreen via _prepare_dialog."""
+        emulator in handheld fullscreen via _prepare_dialog.
+
+        on_choose(name) is called with the chosen species (default: set the
+        force-wild-species cheat). Reused by the Hunt tab (#9)."""
         dialog = tkinter.Toplevel(self.window)
         dialog.title("Choose a species")
         dialog.configure(background=COLOR_SURFACE)
         dialog.geometry("300x470")
 
-        shiny = self._force_species_is_shiny()
+        if shiny is None:
+            shiny = self._force_species_is_shiny()
 
         filter_variable = tkinter.StringVar()
         filter_entry = tkinter.Entry(
@@ -1731,7 +1825,7 @@ class DashboardScreen:
         dialog.bind("<MouseWheel>", lambda event: (list_canvas.yview_scroll(int(-event.delta / 120), "units"), "break")[1])
 
         def choose(name: str) -> None:
-            self._set_force_species(name)
+            (on_choose or self._set_force_species)(name)
             dialog.destroy()
 
         # Show the FULL species list (scrollable) by default; typing filters

@@ -582,3 +582,23 @@ exercised by the local bare remote.
   ignored); plugin discovery loads all 8 plugins; backup battery still green;
   live launch shows "Watchdog: OK" at 60 fps, clean close. GAP: real softlock
   recovery on a live hunt needs a progressed save.
+
+## 2026-07-19 — Hunt Planner v1 (#9)
+- `modules/encounter_index.py`: reverse wild-encounter index built headlessly
+  from the ROM's gWildMonHeaders (via modules.map.get_wild_encounters_for_map)
+  — species → [{map, pretty name, method, rate%, level range}], best-rate
+  first. Per-ROM JSON cache at cache/ (corrupt/non-dict → rebuild, warp_graph
+  lesson). `locations_for_species()`, `recommended_mode_for_method()`.
+- Method→mode: Grass/Surfing→Spin, rods→Fishing, Rock Smash→Rock Smash;
+  only offered if the mode exists (else Manual).
+- GUI: new **Hunt** tab (TAB_ORDER). `_open_species_picker` generalized to
+  take an on_choose callback (default = cheat) — reused for target pick.
+  `_plan_hunt` shows ranked locations + recommended mode; each row's "Hunt"
+  button sets that mode (`_start_hunt`). v1 sets the mode; AUTO-TRAVEL to the
+  map is v2 (needs a travel bot-mode wrapping navigate_to_anywhere — a GUI
+  button can't drive that generator).
+- Verified: 19/19 fact-check vs the real Emerald ROM (Poochyena Route
+  103/101/104 grass, Tentacool/Wingull surf, Magikarp fishing, Zubat caves,
+  Treecko/Rayquaza no-wild, sorting, cache round-trip + corrupt rebuild,
+  method→mode). Index: 132 species / 805 location rows. Live screenshot of
+  the populated Hunt tab. Bug fixed: str.index shadowed name resolution.
