@@ -59,9 +59,26 @@ in CLAUDE.md "Project rules"):
   on a live run; browser auto-open defaulted off per user preference.
 
 ## In progress (and how far along)
-- #7 SANDBOX ROUND — BUILT + ADVERSARIALLY VERIFIED (16 bugs found and
-  fixed, 2 critical — see ML-3 and SANDBOX-NOTES), AWAITING USER REVIEW.
-  Punch-list icebox now carries the future roadmap #8–#20.
+- #7 SANDBOX ROUND (A1-A4) — BUILT + ADVERSARIALLY VERIFIED (16 bugs found
+  and fixed, 2 critical — see ML-3 and SANDBOX-NOTES), AWAITING USER REVIEW.
+- ROUND 2 (roadmap items, all in sandbox, all committed+pushed):
+  - #10 gamepad + handheld menu-hide (293854d3) — self-verified, user
+    testing gamepad now.
+  - #8 warp-aware global pathfinding (58a044fd) — self-verified (real-ROM
+    graph extract 518 maps/1268 warps, 23/23 checks).
+  - #12 shiny alerts + #18 update notice (58803096) — self-verified,
+    real toast fired.
+  - #20 cloud save-sync v2 (791b8d62) — self-verified via two-machine sim
+    (its own battery caught 2 data-safety bugs, fixed pre-commit).
+  ⚠ NOT YET INDEPENDENTLY VERIFIED: the adversarial verification pass for
+  #8 and for #12/#18/#20 was STARTED but both verifier agents died on an
+  API usage-credit limit (2026-07-18) before finding/fixing anything.
+  Per ML-3, treat these four features as UNVERIFIED (self-tests are not
+  sufficient). NEXT SESSION FIRST TASK: re-run the two adversarial
+  verifiers (warp slice: warp_graph.py/global_navigation.py/patrol.py;
+  alerts/update/sync slice: shiny_alert_plugin/update_check/cloud_sync +
+  dashboard_gui) before promoting anything to custom-pokebot.
+  Punch-list icebox carries the remaining roadmap (#9,#11,#13-#17,#19).
   All four items (A1 backup/restore + local/GitHub/synced-folder cloud, A2
   macro record/replay, A3 multi-map Patrol, A4 GUI pack incl. scrollable
   tool column, party sprites, shiny log) are built, machine-verified, and
