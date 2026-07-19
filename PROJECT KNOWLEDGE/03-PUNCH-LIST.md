@@ -13,7 +13,38 @@
       credit limits; run it against custom-pokebot before relying on the
       save-touching bits (cloud-sync ships off-by-default, so inert).
 
-## Next (first wave — agreed direction 2026-07-19)
+## Next (user-set order 2026-07-19: #30 → #31 → #32, THEN the first wave below)
+- [ ] #30 — Handheld & GUI refinements (user-specified 2026-07-19):
+      (a) Persistent "Handheld Mode" button — move it out of the Play/
+      Controls tab into an always-visible header (in the drawer: right of
+      the "TOOLS" text; desktop: a header row above the tabs) so it shows on
+      every tab.
+      (b) Handheld menu relocation — in handheld mode the Tk top menu
+      (Emulator/Profile/View/Help) must NOT appear at all (even with the
+      drawer open; reverses the earlier "menu shows with drawer" behavior
+      for handheld). Surface those commands as buttons/sections inside the
+      PLAY tab instead. Desktop keeps the normal menu bar.
+      (c) Left Party Section — a vertical party strip to the LEFT of the
+      emulator video, in BOTH desktop and handheld: 6 slots, 1 mon/row.
+      Empty slot = Poké Ball sprite; filled slot = the mon's sprite
+      composited over its caught-ball sprite (ball BEHIND, from
+      `pokemon.poke_ball`; ball art at sprites/items/<Ball>.png).
+      (d) Hover stats — hovering (mouse) over a Left Party slot shows ALL
+      that mon's stats (level/IVs/nature/ability/moves/…) in a tooltip;
+      SAME hover-stats on the Party tab rows; must also be reachable via the
+      gamepad-GUI navigation (#32).
+- [ ] #31 — Adjustable money cheat: in the CHEATS card, a money entry
+      pre-filled with the character's CURRENT money (read live), editable to
+      any value, + a "Lock" toggle that freezes money at the typed value
+      (on = keep re-applying that exact value; off = stop). Refines the
+      existing Max/Infinite money.
+- [ ] #32 — ★ Gamepad-driven GUI navigation (roadmap F2, PRIORITIZED by
+      user to come right after #30/#31): drive the dashboard with the ROG/
+      Xbox controller (D-pad/stick move focus across tabs/cards/buttons/
+      party, A activates, incl. triggering the party hover-stats). Distinct
+      from the existing in-GAME gamepad input (Manual mode).
+
+## First wave (after #30-#32 — agreed direction 2026-07-19)
 - [ ] #22 — ★ Watchdog / auto-recovery: detect "stuck" (no encounters N min,
       softlock, crash) → reload savestate / restart / safe-state + alert.
       Biggest 24/7 reliability win. (M)
