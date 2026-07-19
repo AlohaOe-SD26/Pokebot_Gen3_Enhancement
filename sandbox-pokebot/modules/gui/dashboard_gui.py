@@ -16,12 +16,18 @@ Hotkeys (on top of the stock key bindings from keys.yml):
   Esc — close the drawer; if it is already closed, leave handheld mode
 
 Dialogs vs. emulation: there is no Tk mainloop — the Tk event queue is
-pumped from `update()`, which the emulator calls once per frame. The
-Restore dialog is therefore deliberately non-modal (no grab/wait_window):
-emulation keeps running while it is open. The macro name prompt
-(simpledialog.askstring) IS modal — wait_window runs a nested event loop
+pumped from `update()`, which the emulator calls once per frame. Every
+popup is floated above the emulator and made input-modal by
+`_prepare_dialog` (-topmost + lift + grab_set); this matters most in
+handheld fullscreen, where a plain Toplevel would otherwise open BEHIND the
+video and look like nothing happened. A grab only redirects INPUT — it does
+NOT pause emulation. The Restore dialog and the species picker therefore
+keep emulation running while they are open (they never call wait_window).
+The text prompt (`_ask_text`, used for the macro name and the cloud-import
+profile name) additionally calls `wait_window`, whose nested event loop runs
 inside the frame callback, so emulation pauses until it is closed. That is
-harmless by design: recording has already stopped before the prompt opens.
+harmless by design: recording/importing has already finished before the
+prompt opens.
 """
 
 import json
@@ -1226,11 +1232,17 @@ class DashboardScreen:
             state_file = context.profile.path / UI_STATE_FILE
             if state_file.is_file():
                 state = json.loads(state_file.read_text(encoding="utf-8"))
+                # Apply the saved handheld flag BEFORE _show_tab: _show_tab
+                # persists the UI state, and if _handheld were still False at
+                # that point it would clobber a saved handheld=True back to
+                # False on disk (lost on the next launch). Set the flag first
+                # so the persist inside _show_tab writes the correct value.
+                if state.get("handheld"):
+                    self._handheld = True
                 tab = state.get("active_tab")
                 if tab in self._tab_frames:
                     self._show_tab(tab)
-                if state.get("handheld"):
-                    self._handheld = True
+                if self._handheld:
                     self._apply_handheld_layout()
         except Exception:
             pass
