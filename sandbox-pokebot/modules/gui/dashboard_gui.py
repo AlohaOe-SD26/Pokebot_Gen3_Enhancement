@@ -335,6 +335,10 @@ class DashboardScreen:
         self._money_entry = None
         self._money_variable = None
         self._money_lock_variable = None
+        # #23 living-dex panel widgets (cleared so a post-disable refresh no-ops)
+        self._livingdex_label = None
+        self._livingdex_custom_button = None
+        self._livingdex_pending = []
 
     def on_settings_updated(self) -> None:
         self._refresh_controls()
@@ -883,6 +887,8 @@ class DashboardScreen:
 
         # --- Hunt tab (#9) ---
         self._build_hunt_card(self._tab_frames["Hunt"])
+        # --- Living Dex orchestrator (#23) ---
+        self._build_living_dex_card(self._tab_frames["Hunt"])
 
         # Show the default tab now that every card exists (persist=False so
         # it doesn't clobber a saved tab before _restore_ui_state reads it).
@@ -1812,6 +1818,117 @@ class DashboardScreen:
         except Exception as error:
             self._log_event(f"Could not start hunt: {error}", highlight=True)
 
+    def _build_living_dex_card(self, parent: tkinter.Widget) -> None:
+        """Living Dex orchestrator (#23): run through a target list, catching
+        the first of each species, autonomously."""
+        card = self._card(parent, "LIVING DEX")
+        self._livingdex_pending: list = []
+        self._livingdex_label = tkinter.Label(
+            card, text="No run.", background=COLOR_CARD, foreground=COLOR_INK_2,
+            anchor="w", justify="left", wraplength=300, font=("Segoe UI", 9),
+        )
+        self._livingdex_label.pack(fill="x")
+
+        tkinter.Button(
+            card, text="Start — all uncaught wild", command=self._livingdex_start_all,
+            background=COLOR_ACCENT, foreground=COLOR_INK, activebackground=COLOR_ACCENT,
+            relief="flat", font=("Segoe UI", 9),
+        ).pack(fill="x", pady=(6, 2))
+
+        custom_row = tkinter.Frame(card, background=COLOR_CARD)
+        custom_row.pack(fill="x")
+        tkinter.Button(
+            custom_row, text="＋ Add species", command=self._livingdex_add_species,
+            background=COLOR_SURFACE, foreground=COLOR_INK, relief="flat", font=("Segoe UI", 9),
+        ).pack(side="left", fill="x", expand=True, padx=(0, 3))
+        self._livingdex_custom_button = tkinter.Button(
+            custom_row, text="Start custom (0)", command=self._livingdex_start_custom,
+            background=COLOR_SURFACE, foreground=COLOR_MUTED, relief="flat", font=("Segoe UI", 9),
+        )
+        self._livingdex_custom_button.pack(side="left", fill="x", expand=True)
+
+        tkinter.Button(
+            card, text="Stop & clear run", command=self._livingdex_stop,
+            background=COLOR_SURFACE, foreground=COLOR_INK_2, relief="flat", font=("Segoe UI", 9),
+        ).pack(fill="x", pady=(2, 0))
+
+    def _livingdex_add_species(self) -> None:
+        def _add(name: str) -> None:
+            if name not in self._livingdex_pending:
+                self._livingdex_pending.append(name)
+            self._livingdex_custom_button.config(
+                text=f"Start custom ({len(self._livingdex_pending)})",
+                foreground=COLOR_INK if self._livingdex_pending else COLOR_MUTED,
+            )
+            self._log_event(f"Living Dex custom list: {', '.join(self._livingdex_pending)}")
+
+        self._open_species_picker(on_choose=_add, shiny=False)
+
+    def _livingdex_start_all(self) -> None:
+        self._livingdex_begin(explicit_names=None)
+
+    def _livingdex_start_custom(self) -> None:
+        if not self._livingdex_pending:
+            self._log_event("Living Dex: add at least one species first.")
+            return
+        self._livingdex_begin(explicit_names=list(self._livingdex_pending))
+
+    def _livingdex_begin(self, explicit_names: "list | None") -> None:
+        try:
+            from modules import living_dex
+
+            run = living_dex.derive_targets(explicit_names=explicit_names)
+            if not run.get("targets"):
+                self._log_event("Living Dex: nothing to catch (all owned, or none are wild-catchable).")
+                return
+            living_dex.save_run(run)
+            context.bot_mode = "Living Dex (Custom)"
+            self._refresh_controls()
+            skipped = f" ({len(run['skipped'])} skipped)" if run.get("skipped") else ""
+            self._log_event(f"Living Dex started: {len(run['targets'])} targets{skipped}.")
+        except Exception as error:
+            self._log_event(f"Could not start Living Dex: {error}", highlight=True)
+
+    def _livingdex_stop(self) -> None:
+        try:
+            from modules import living_dex
+
+            living_dex.clear_run()
+            self._livingdex_pending = []
+            if hasattr(self, "_livingdex_custom_button") and self._livingdex_custom_button.winfo_exists():
+                self._livingdex_custom_button.config(text="Start custom (0)", foreground=COLOR_MUTED)
+            if context.bot_mode == "Living Dex (Custom)":
+                context.set_manual_mode()
+                self._refresh_controls()
+            self._log_event("Living Dex run cleared.")
+        except Exception as error:
+            self._log_event(f"Could not stop Living Dex: {error}", highlight=True)
+
+    def _refresh_living_dex(self) -> None:
+        label = getattr(self, "_livingdex_label", None)
+        if label is None or not label.winfo_exists():
+            return
+        try:
+            from modules import living_dex
+            from modules.pokemon import get_species_by_index
+
+            run = living_dex.load_run()
+            if run is None:
+                label.config(text="No run.")
+                return
+            done, total = living_dex.progress(run)
+            nxt = living_dex.next_target_index(run)
+            if nxt is None:
+                label.config(text=f"Complete — {done}/{total} owned.")
+                return
+            try:
+                name = get_species_by_index(nxt).name
+            except Exception:
+                name = f"#{nxt}"
+            label.config(text=f"{done}/{total} owned · next: {name}")
+        except Exception:
+            pass
+
     def _open_species_picker(self, on_choose=None, shiny: "bool | None" = None) -> None:
         """Searchable, sprite-illustrated species dropdown. Type to filter
         (handy across ~400 species); click a row to select. Floats above the
@@ -2057,6 +2174,7 @@ class DashboardScreen:
             self._refresh_backup_label()
             self._refresh_shiny_log()
             self._refresh_money_field()
+            self._refresh_living_dex()
 
     def _refresh_money_field(self) -> None:
         """#31: keep the money field showing the character's current money —

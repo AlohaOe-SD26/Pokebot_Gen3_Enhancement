@@ -627,3 +627,39 @@ exercised by the local bare remote.
   (handheld drawer) show 6 tabs legible.
 - HONEST GAP: actually walking the route + hunting needs a progressed save
   (title-screen save can't); Rock Smash has no auto-tile (degrades).
+
+## 2026-07-19 — Living-Dex orchestrator v1 (#23)
+- `modules/living_dex.py`: target-list derivation. Default source
+  "uncaught_wild" = every species with a wild encounter (from
+  encounter_index) that the player does NOT own (from pokedex.py owned
+  flags), in National-Dex order; species with no wild location
+  (legendaries/statics/starters/trade/evolve-only) are excluded. Also
+  accepts an explicit picked list (non-wild/unknown → `skipped` w/ reason).
+  Run + progress persisted per profile to `living_dex.json`
+  (targets/done/skipped). Helpers: is_owned, progress, next_target_index.
+- `plugins/custom_modes/living_dex_mode.py` — "Living Dex (Custom)" BotMode:
+  iterates targets; per target resolves best location+tile
+  (encounter_index.find_encounter_tile), travels via navigate_to_anywhere,
+  then spin()/fish() with a stop_condition of "target now owned". CATCH
+  INTENT: on_battle_started returns BattleAction.Catch only for the current
+  target species when not yet owned (else None → default pipeline, so
+  shinies of anything are still caught). Advances on catch (owned flip),
+  SKIPS (and records) targets with no location/unreachable, STOPS to Manual
+  when the list is exhausted OR boxes/party are full (never loses a catch).
+  Fully exception-guarded.
+- GUI: LIVING DEX card in the Hunt tab — progress ("N/M owned · next: X"),
+  "Start — all uncaught wild", a custom-list builder (＋ Add species /
+  Start custom (N)), and Stop & clear. disable() clears the new refs.
+- Verified: py_compile + real-import; "Living Dex (Custom)" discovered
+  alongside Hunt/Macro/Patrol; all 8 plugins load; 16/16 unit battery
+  (derivation incl. owned-drop/no-wild-exclude/custom-skip, next-target
+  sequencing, progress, catch-intent: Catch only for uncaught target, None
+  for non-target/owned/trainer); real-ROM fact-check (empty pokedex → 132
+  wild targets, Poochyena/Zigzagoon/Wingull/Tentacool/Zubat in, Treecko/
+  Rayquaza/Mew out); live in-process run of derive→save→refresh→clear
+  against the real emulator, no error.
+- Honest gaps: an actual autonomous catch-and-advance RUN needs a
+  progressed save (title-screen save can't walk the overworld) — sequencing
+  + catch-intent verified by unit tests + code only. Clean card SCREENSHOT
+  not captured (post-#33 bare-Tk harness geometry expands the grab region);
+  card uses the same verified pattern as the Hunt Planner card.

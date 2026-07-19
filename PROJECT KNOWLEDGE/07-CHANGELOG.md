@@ -409,3 +409,14 @@
   via global nav then hunts (spin/fish). Hunt tab button = one-click
   travel+hunt. 15/15 v2 battery + live screenshots. Gap: live walk needs a
   progressed save.
+
+## 2026-07-19 — Living-Dex orchestrator v1 (sandbox, #23)
+- modules/living_dex.py (target-list derivation from encounter_index +
+  pokedex owned flags, per-profile persistence) + plugins/custom_modes/
+  living_dex_mode.py ("Living Dex (Custom)" mode: travel+hunt+catch each
+  target then advance; catch-intent via on_battle_started; stop on
+  exhausted/box-full) + a Living Dex card in the Hunt tab.
+- Verified: 16/16 unit (derivation/sequencing/catch-intent), real-ROM
+  fact-check (132 wild targets; starters/legendaries excluded), import +
+  discovery + all-plugins-load, live in-process run. Gap: autonomous
+  catch-and-advance needs a progressed save.
