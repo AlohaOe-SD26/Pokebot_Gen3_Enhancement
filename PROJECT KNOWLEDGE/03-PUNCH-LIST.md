@@ -48,7 +48,23 @@
       party, A activates, incl. triggering the party hover-stats). Distinct
       from the existing in-GAME gamepad input (Manual mode).
 
-## First wave (after #30-#32 — agreed direction 2026-07-19)
+## Now-ish (user-added 2026-07-19, ahead of first wave)
+- [ ] #33 — GUI fixes (in sandbox): Left Party Section ALWAYS visible in
+      both modes regardless of drawer state; unified open/close — Pokéball
+      opens the side tool menu + a Close/Hide collapses it in BOTH handheld
+      AND desktop (desktop can hide tools to see more emulator).
+- [ ] #34 — Living POKÉDEX tab: search all Emerald species; caught mark +
+      shinies-caught count (from stats.db) + full dex info (types/abilities/
+      base stats/dex#/category/flavor) + learnable moves (level-up/TM/HM/
+      tutor/egg) — offline Bulbapedia. Needs battle sprite + dex artwork.
+      RESEARCH-FIRST (see 10-DEX-RESEARCH.md): inventory bot data → gap-fill
+      → fact-check → THEN build.
+- [ ] #35 — ITEM-DEX tab: search all items; total-collected-historically +
+      currently-held counters + item info + map locations + used/held/
+      dropped-by Pokémon. Needs item sprite + inventory image. Same
+      research-first flow as #34 (10-DEX-RESEARCH.md).
+
+## First wave (after #30-#32 + #33-#35 — agreed direction 2026-07-19)
 - [ ] #22 — ★ Watchdog / auto-recovery: detect "stuck" (no encounters N min,
       softlock, crash) → reload savestate / restart / safe-state + alert.
       Biggest 24/7 reliability win. (M)
