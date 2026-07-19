@@ -132,6 +132,17 @@ if __name__ == "__main__":
     register_exception_hook()
     load_plugins()
 
+    # Sandbox A8 (cloud save-sync): the launch-side check MUST run here —
+    # before any GUI, profile or emulator exists — so applying a newer cloud
+    # save can never race a live save file. Opt-in via backup.yml `sync:`;
+    # when disabled (default) this returns immediately without any network.
+    try:
+        from modules.cloud_sync import run_launch_sync
+
+        run_launch_sync()
+    except Exception as sync_error:
+        console.print(f"[yellow]Cloud sync check failed (continuing normally): {sync_error}[/]")
+
     # This catches the signal Windows emits when the underlying console window is closed
     # by the user. We still want to save the emulator state in that case, which would not
     # happen by default!

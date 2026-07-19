@@ -25,6 +25,15 @@ plugins/*
 !plugins/.gitkeep
 !plugins/custom_modes_loader.py
 !plugins/dashboard_autoopen.py
+!plugins/shiny_alert_plugin.py
+!plugins/gamepad_plugin.py
+!plugins/macro_plugin.py
+!plugins/backup_plugin.py
+!plugins/game_cheats_plugin.py
 !plugins/custom_modes/
+
+# Local backup archives are user data — never committed.
+backups/
 tests/last_frame_timeout.png
 modules/web/static/stream-overlay/config.js
+cache/

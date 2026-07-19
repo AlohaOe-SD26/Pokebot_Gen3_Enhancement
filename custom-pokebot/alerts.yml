@@ -1,0 +1,16 @@
+# Shiny alert settings (sandbox #12).
+# Global file; a profile can override it wholesale with its own
+# profiles/<name>/alerts.yml (whole-file override, like backup.yml).
+
+# Master switch for all shiny alerts.
+enabled: true
+
+# Desktop toast notification when a shiny is logged.
+toast: true
+
+# Audible ding (Windows system sound) when a shiny is logged.
+sound: true
+
+# Switch the bot to Manual mode on a shiny so it stays on screen.
+# Off by default: the bot's normal catch/stop behavior already applies.
+auto_pause: false

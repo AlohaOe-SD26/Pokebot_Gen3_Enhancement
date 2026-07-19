@@ -1,0 +1,25 @@
+# Game cheat toggles (SANDBOX feature).
+#
+# These MODIFY YOUR LIVE GAME via memory writes. Back up your profile first
+# (Backups card / backup.yml). One-shot cheat ACTIONS (Heal, Max level, Max
+# money, …) are triggered from the CHEATS card in the GUI — this file only
+# persists the on/off TOGGLES below.
+#
+# A per-profile override may be placed at profiles/<name>/game_cheats.yml
+# (whole-file override, same convention as backup.yml / alerts.yml).
+
+toggles:
+  # Keep the player's money at 900,000 while in the overworld.
+  infinite_money: false
+
+  # Keep every party member at full HP and status-free while in the overworld
+  # (a hands-off auto-heal; does not affect the temporary in-battle HP copy).
+  auto_heal_party: false
+
+  # Replace every WILD encounter with a chosen species/level.
+  force_wild_species: false
+  force_wild_species_name: Bulbasaur
+  force_wild_species_level: 5
+
+  # Make every WILD encounter shiny.
+  guaranteed_shiny_wild: false

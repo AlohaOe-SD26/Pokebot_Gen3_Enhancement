@@ -89,3 +89,58 @@
 - **Why:** punch-list #5 (total custom interface), v1. The static folder is
   served as-is by upstream (`modules/web/http.py` static route), so no
   upstream code was modified — upstream merges stay clean.
+
+## 2026-07-19 — PROMOTED sandbox enhancement round into custom (user-approved)
+The user approved ALL sandbox work for promotion. Files copied from
+sandbox-pokebot; sandbox remains for future rounds. New/changed files:
+
+- **Backup & restore + cloud** (`modules/backup_manager.py`,
+  `plugins/backup_plugin.py`, `backup.yml`): zip a profile's saves/
+  savestates/stats/configs with retention; auto-backup on shiny + timer;
+  GitHub-repo (`cloud-backups/`) and synced-folder cloud backends; restore
+  into a NEW profile only. Runtime dirs `backups/`, `logs/` gitignored.
+- **Macros** (`modules/macros.py`, `plugins/macro_plugin.py`,
+  `plugins/custom_modes/macro_player.py`): frame-accurate record in Manual
+  mode -> per-profile YAML macros -> "Macro (Custom)" replay mode (once/loop).
+- **Patrol v2/v3 + global navigation** (`plugins/custom_modes/patrol.py`,
+  `modules/modes/util/global_navigation.py`, `modules/warp_graph.py`):
+  multi-map waypoints routed across warps via a ROM-extracted warp graph
+  (cached in `cache/`, gitignored). Old `[x,y]` format still works.
+- **Gamepad + handheld menu-hide** (`modules/gamepad.py`,
+  `plugins/gamepad_plugin.py`, `modules/gui/dashboard_gui.py`): XInput ->
+  Manual-mode input; Back+Start toggles the drawer; handheld fullscreen
+  hides the Tk menu bar (returns with the Pokéball drawer).
+- **Shiny alerts** (`plugins/shiny_alert_plugin.py`, `alerts.yml`): desktop
+  toast + sound on shiny, optional auto-pause.
+- **Update notice** (`modules/update_check.py` + `dashboard_gui.py`):
+  background launch check -> "updates available" banner.
+- **Cloud save-sync v2** (`modules/cloud_sync.py`, `pokebot.py` launch hook
+  + GUI exit hook): opt-in desktop<->device profile continuity via the
+  GitHub backend; applies only pre-emulator, never overwrites a diverged
+  local save (conflict -> import-as-new-profile). Default OFF.
+- **Game cheats** (`modules/game_cheats.py`, `plugins/game_cheats_plugin.py`,
+  `game_cheats.yml`, `dashboard_gui.py` CHEATS card): actions (heal/max-
+  level/perfect-IVs/max-friendship/max-money/item-pack/max-balls/rare-candy)
+  + toggles (infinite money, auto-heal, force-wild-species, guaranteed-shiny)
+  via the bot's own memory-write toolkit; overworld-gated, exception-safe.
+  See `DOCUMENTATION/03-cheats.md`.
+- **GUI** (`modules/gui/dashboard_gui.py`): tabbed tool column
+  (Play/Party/Stats/Cheats/Backups), party XP bars under HP, topmost/touch-
+  friendly popups (fixes dialogs hiding behind the emulator in handheld),
+  full 386-species sprite picker for the wild-species cheat.
+- **.gitignore**: added `!` negations for the 5 new top-level plugins
+  (ML-2), and ignores for `backups/` and `cache/` (runtime user data).
+
+### Verification status at promotion (HONEST — not all independently verified)
+- **Independent adversarial pass (bugs found+fixed): YES** — backup/macros/
+  patrol/GUI (the 16-bug round), and game cheats (77-check adversarial pass,
+  fixed a nickname-wipe bug). Gamepad + menu-hide: builder self-tests + live.
+- **Builder self-verification + main-session review ONLY, NOT an independent
+  adversarial pass: #8 warp pathfinding, #12 shiny alerts, #18 update notice,
+  #20 cloud-sync, and the 2026-07-19 GUI polish (tabs / full-dex picker /
+  XP bars / topmost dialogs).** These are byte/compile/import/live-screenshot
+  verified but a dedicated adversarial verifier has NOT re-checked them.
+  RECOMMENDED next: run that pass on custom before relying on cloud-sync
+  (save-touching, though OFF by default) and the pathfinding walk.
+- **Live in-game effects still user-pending**: cheats on a real save, macro
+  record->replay, multi-map patrol walk, shiny-trigger backup/alert.

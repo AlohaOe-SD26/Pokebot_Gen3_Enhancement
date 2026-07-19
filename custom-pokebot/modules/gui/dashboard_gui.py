@@ -14,9 +14,18 @@ Hotkeys (on top of the stock key bindings from keys.yml):
   H   — enter handheld mode / toggle the tool drawer while in it
   F11 — toggle handheld mode
   Esc — close the drawer; if it is already closed, leave handheld mode
+
+Dialogs vs. emulation: there is no Tk mainloop — the Tk event queue is
+pumped from `update()`, which the emulator calls once per frame. The
+Restore dialog is therefore deliberately non-modal (no grab/wait_window):
+emulation keeps running while it is open. The macro name prompt
+(simpledialog.askstring) IS modal — wait_window runs a nested event loop
+inside the frame callback, so emulation pauses until it is closed. That is
+harmless by design: recording has already stopped before the prompt opens.
 """
 
 import json
+import os
 import time
 import tkinter
 import tkinter.font
@@ -54,6 +63,7 @@ COLOR_CRITICAL = "#d03b3b"
 COLOR_SHINY = "#c98500"
 
 TOOL_COLUMN_WIDTH = 360
+TAB_ORDER = ["Play", "Party", "Stats", "Cheats", "Backups"]
 SIDEBAR_REFRESH_FRAMES = 30  # refresh party/labels every N rendered frames
 KPI_REFRESH_SECONDS = 5.0  # stats DB reads are not free — refresh sparsely
 UI_STATE_FILE = "dashboard_ui.json"
@@ -90,9 +100,23 @@ class DashboardScreen:
         self._frame_counter = 0
         self._last_kpi_refresh = 0.0
         self._plugin_registered = False
+        self._mousewheel_bound = False
 
         self._handheld = False
         self._drawer_open = False
+
+        # Tabbed tool column: a row of category tabs, each holding a subset
+        # of the cards, so nothing needs scrolling to reach on a handheld.
+        self._tab_buttons: dict = {}
+        self._tab_frames: dict = {}
+        self._active_tab: "str | None" = None
+        self._tab_bar: "tkinter.Frame | None" = None
+
+        # Cheat species picker (sprite dropdown)
+        self._species_picker_button: "tkinter.Button | None" = None
+        self._species_sprite_cache: dict = {}  # Tk needs live PhotoImage refs
+        self._species_names_cache: "list | None" = None
+        self._force_species_name: "str | None" = None
 
         # Widgets that get updated live
         self._mode_button: tkinter.Button | None = None
@@ -101,16 +125,32 @@ class DashboardScreen:
         self._audio_button: tkinter.Button | None = None
         self._kpi_values: dict[str, tkinter.Label] = {}
         self._party_rows: list[dict] = []
+        self._sprite_cache: dict = {}  # Tk needs live references to PhotoImages
+        self._shiny_log_label: tkinter.Label | None = None
         self._event_list: tkinter.Listbox | None = None
         self._message_label: tkinter.Label | None = None
         self._state_label: tkinter.Label | None = None
         self._fps_label: tkinter.Label | None = None
+        self._controller_label: tkinter.Label | None = None
+        self._update_label: tkinter.Label | None = None
+        self._update_notice_logged = False
         self._pokeball_button: Canvas | None = None
+        self._menu_bar: Menu | None = None
 
         # Debug support (stock debug tabs in a separate window)
         self._debug_window: tkinter.Toplevel | None = None
         self._debug_notebook: ttk.Notebook | None = None
         self._debug_tabs: list = []
+
+        # Sandbox #18: once-per-launch update check in a daemon thread; the
+        # result is polled from the sidebar refresh (Tk stays on this thread).
+        try:
+            from modules.runtime import get_base_path
+            from modules.update_check import start_background_check
+
+            start_background_check(get_base_path())
+        except Exception:
+            pass  # the notice is best-effort; launch must never be affected
 
     # ------------------------------------------------------------------
     # Interface expected by PokebotGui / the rest of the bot
@@ -141,7 +181,9 @@ class DashboardScreen:
         screen_width = self.window.winfo_screenwidth()
         screen_height = self.window.winfo_screenheight()
         width = min(1280, screen_width - 40)
-        height = min(720, screen_height - 100)
+        # 860: tall enough for every tool card (incl. Backups + Macros) with
+        # some event log visible; still clamped to small screens.
+        height = min(860, screen_height - 100)
         x = max(0, (screen_width - width) // 2 - 20)
         y = max(0, (screen_height - height) // 2 - 40)
         self.window.geometry(f"{width}x{height}+{x}+{y}")
@@ -176,22 +218,75 @@ class DashboardScreen:
         if self.frame is not None:
             self.frame.destroy()
             self.frame = None
+        # The video canvas and the Pokéball overlay are children of the root
+        # window (not of `frame`), so they must be destroyed explicitly or
+        # they would linger over whatever screen comes next.
+        if self.canvas is not None:
+            self.canvas.destroy()
+            self.canvas = None
+        if self._pokeball_button is not None:
+            self._pokeball_button.destroy()
+            self._pokeball_button = None
         if self._debug_window is not None:
             self._debug_window.destroy()
             self._debug_window = None
+        # Drop references to destroyed widgets so refresh paths (guarded by
+        # `self.frame is None`) can never .config() a dead widget, and so a
+        # later enable() starts from a clean slate.
+        self._current_canvas_image = None
+        self._current_canvas_image_id = None
+        self._mode_button = None
+        self._speed_buttons = {}
+        self._video_button = None
+        self._audio_button = None
+        self._kpi_values = {}
+        self._party_rows = []
+        self._sprite_cache = {}
+        self._shiny_log_label = None
+        self._event_list = None
+        self._message_label = None
+        self._state_label = None
+        self._fps_label = None
+        self._controller_label = None
+        self._update_label = None
+        self._update_notice_logged = False  # re-show the notice if re-enabled
+        self._sync_label = None
+        self._sync_import_button = None
+        self._sync_status_logged = False
+        self._menu_bar = None
+        self._debug_tabs = []
+        # Tabs + species picker: drop refs so a later enable() starts clean.
+        self._tab_buttons = {}
+        self._tab_frames = {}
+        self._active_tab = None
+        self._tab_bar = None
+        self._species_picker_button = None
+        self._species_sprite_cache = {}
+        self._force_species_name = None
 
     def on_settings_updated(self) -> None:
         self._refresh_controls()
 
     def update(self) -> None:
         """Called by the emulator once per emulated frame."""
+        if self.frame is None:
+            # Screen is disabled — never touch destroyed widgets.
+            return
         if context.emulator._performance_tracker.time_since_last_render() >= (1 / 60) * 1_000_000_000:
             if context.emulator.get_video_enabled():
                 self._update_video(context.emulator.get_current_screen_image())
 
             self._frame_counter += 1
             if self._frame_counter % SIDEBAR_REFRESH_FRAMES == 0:
-                self._refresh_sidebar()
+                try:
+                    self._refresh_sidebar()
+                except Exception:
+                    # A transient stats/party/memory read failure must never
+                    # kill the emulator frame loop; the next cycle retries.
+                    if context.debug:
+                        from modules.console import console
+
+                        console.print_exception()
             if self._debug_window is not None:
                 self._update_debug_tabs()
 
@@ -246,6 +341,7 @@ class DashboardScreen:
 
             menu_bar.add_cascade(label="Debug", menu=DebugMenu(self.window))
 
+        self._menu_bar = menu_bar
         self.window.config(menu=menu_bar)
 
     def _explain_classic_gui(self) -> None:
@@ -275,13 +371,13 @@ class DashboardScreen:
         self.frame.grid(row=0, column=1, sticky="NSE")
         self.frame.grid_propagate(False)
 
-        tools = tkinter.Frame(self.frame, background=COLOR_SURFACE, width=TOOL_COLUMN_WIDTH)
-        tools.pack(fill="both", expand=True)
-        tools.pack_propagate(False)
-        self._tools_container = tools
+        column = tkinter.Frame(self.frame, background=COLOR_SURFACE, width=TOOL_COLUMN_WIDTH)
+        column.pack(fill="both", expand=True)
+        column.pack_propagate(False)
+        self._tools_container = column
 
         # --- drawer header (only visible in handheld mode) ---
-        self._drawer_header = tkinter.Frame(tools, background=COLOR_SURFACE)
+        self._drawer_header = tkinter.Frame(column, background=COLOR_SURFACE)
         tkinter.Label(
             self._drawer_header, text="TOOLS", background=COLOR_SURFACE, foreground=COLOR_INK_2, font=("Segoe UI", 9, "bold")
         ).pack(side="left", padx=10, pady=6)
@@ -298,8 +394,72 @@ class DashboardScreen:
         ).pack(side="right", padx=10, pady=4)
         # (packed on demand in _apply_handheld_layout)
 
+        # --- category tab bar: one row of buttons, each showing a subset of
+        # the cards, so you don't have to scroll to find a setting (works the
+        # same in the handheld drawer). Sits above the scrollable area.
+        self._tab_bar = tkinter.Frame(column, background=COLOR_SURFACE)
+        self._tab_bar.pack(fill="x", padx=6, pady=(6, 2))
+        for index, tab_name in enumerate(TAB_ORDER):
+            self._tab_bar.columnconfigure(index, weight=1, uniform="tab")
+            button = tkinter.Button(
+                self._tab_bar,
+                text=tab_name,
+                command=lambda name=tab_name: self._show_tab(name),
+                background=COLOR_SURFACE,
+                foreground=COLOR_INK_2,
+                activebackground=COLOR_ACCENT,
+                activeforeground=COLOR_INK,
+                relief="flat",
+                font=("Segoe UI", 8, "bold"),
+                padx=2,
+                pady=4,
+            )
+            button.grid(row=0, column=index, sticky="ew", padx=1)
+            self._tab_buttons[tab_name] = button
+
+        # --- scrollable card area (A4): all cards live inside `tools`, which
+        # sits in a canvas window so the column can never clip off-screen at
+        # small window heights or high DPI — desktop and handheld drawer alike.
+        # With tabs, only the active tab's cards are packed, but the scroll
+        # area stays as a safety net for very short windows / high DPI.
+        self._scroll_area = tkinter.Frame(column, background=COLOR_SURFACE)
+        self._scroll_area.pack(fill="both", expand=True)
+        self._cards_canvas = Canvas(
+            self._scroll_area, background=COLOR_SURFACE, highlightthickness=0, borderwidth=0
+        )
+        scrollbar = tkinter.Scrollbar(
+            self._scroll_area, orient="vertical", command=self._cards_canvas.yview, width=10
+        )
+        scrollbar.pack(side="right", fill="y")
+        self._cards_canvas.pack(side="left", fill="both", expand=True)
+        tools = tkinter.Frame(self._cards_canvas, background=COLOR_SURFACE)
+        self._cards_window = self._cards_canvas.create_window((0, 0), window=tools, anchor="nw")
+        self._cards_canvas.configure(yscrollcommand=scrollbar.set)
+        tools.bind(
+            "<Configure>",
+            lambda _event: self._cards_canvas.configure(scrollregion=self._cards_canvas.bbox("all")),
+        )
+        self._cards_canvas.bind(
+            "<Configure>",
+            lambda event: self._cards_canvas.itemconfigure(self._cards_window, width=event.width),
+        )
+        # Bind exactly once for the lifetime of the process: enable() may run
+        # again after a disable(), and stacking bind_all handlers would make
+        # each wheel notch scroll multiple units.
+        if not self._mousewheel_bound:
+            self.window.bind_all("<MouseWheel>", self._on_tool_mousewheel, add="+")
+            self._mousewheel_bound = True
+
+        # One content frame per tab; only the active one is packed (_show_tab).
+        self._tab_frames = {name: tkinter.Frame(tools, background=COLOR_SURFACE) for name in TAB_ORDER}
+        play_tab = self._tab_frames["Play"]
+        party_tab = self._tab_frames["Party"]
+        stats_tab = self._tab_frames["Stats"]
+        cheats_tab = self._tab_frames["Cheats"]
+        backups_tab = self._tab_frames["Backups"]
+
         # --- controls card ---
-        controls = self._card(tools, "CONTROLS")
+        controls = self._card(play_tab, "CONTROLS")
 
         mode_row = tkinter.Frame(controls, background=COLOR_CARD)
         mode_row.pack(fill="x", pady=(2, 6))
@@ -386,8 +546,65 @@ class DashboardScreen:
             padx=8,
         ).pack(fill="x")
 
+        # --- macros card (sandbox A2; grouped with Controls on the Play tab) ---
+        macro_card = self._card(play_tab, "MACROS")
+        macro_row = tkinter.Frame(macro_card, background=COLOR_CARD)
+        macro_row.pack(fill="x", pady=(0, 2))
+        self._macro_record_button = tkinter.Button(
+            macro_row,
+            text="● Rec",
+            command=self._toggle_macro_recording,
+            background=COLOR_SURFACE,
+            foreground=COLOR_INK,
+            activebackground=COLOR_ACCENT,
+            activeforeground=COLOR_INK,
+            relief="flat",
+            font=("Segoe UI", 8),
+            padx=6,
+        )
+        self._macro_record_button.pack(side="left", padx=(0, 4))
+        self._macro_variable = tkinter.StringVar(self.window, value="(no macros)")
+        self._macro_menu = tkinter.OptionMenu(macro_row, self._macro_variable, "(no macros)")
+        self._macro_menu.config(
+            background=COLOR_SURFACE,
+            foreground=COLOR_INK,
+            activebackground=COLOR_ACCENT,
+            activeforeground=COLOR_INK,
+            relief="flat",
+            highlightthickness=0,
+            font=("Segoe UI", 8),
+            anchor="w",
+        )
+        self._macro_menu["menu"].config(background=COLOR_SURFACE, foreground=COLOR_INK)
+        self._macro_menu.pack(side="left", fill="x", expand=True, padx=(0, 4))
+        self._macro_loop_variable = tkinter.BooleanVar(self.window, value=True)
+        tkinter.Checkbutton(
+            macro_row,
+            text="Loop",
+            variable=self._macro_loop_variable,
+            background=COLOR_CARD,
+            foreground=COLOR_INK_2,
+            activebackground=COLOR_CARD,
+            activeforeground=COLOR_INK,
+            selectcolor=COLOR_SURFACE,
+            font=("Segoe UI", 8),
+        ).pack(side="left", padx=(0, 4))
+        tkinter.Button(
+            macro_row,
+            text="▶",
+            command=self._play_selected_macro,
+            background=COLOR_SURFACE,
+            foreground=COLOR_INK,
+            activebackground=COLOR_ACCENT,
+            activeforeground=COLOR_INK,
+            relief="flat",
+            font=("Segoe UI", 8),
+            padx=8,
+        ).pack(side="left")
+        self._refresh_macro_menu()
+
         # --- KPI card ---
-        kpis = self._card(tools, "STATS")
+        kpis = self._card(stats_tab, "STATS")
         kpi_grid = tkinter.Frame(kpis, background=COLOR_CARD)
         kpi_grid.pack(fill="x")
         kpi_grid.columnconfigure((0, 1), weight=1, uniform="kpi")
@@ -410,18 +627,93 @@ class DashboardScreen:
             self._kpi_values[key] = value_label
 
         # --- party card ---
-        party_card = self._card(tools, "PARTY")
+        party_card = self._card(party_tab, "PARTY")
         self._party_container = tkinter.Frame(party_card, background=COLOR_CARD)
         self._party_container.pack(fill="x")
 
+        # --- shiny log card (sandbox A4) ---
+        shiny_card = self._card(party_tab, "SHINY LOG")
+        self._shiny_log_label = tkinter.Label(
+            shiny_card,
+            text="No shinies yet — keep hunting!",
+            background=COLOR_CARD,
+            foreground=COLOR_MUTED,
+            anchor="w",
+            justify="left",
+            font=("Segoe UI", 8),
+        )
+        self._shiny_log_label.pack(fill="x")
+
+        # --- backups card (sandbox A1) ---
+        backup_card = self._card(backups_tab, "BACKUPS")
+        self._backup_label = tkinter.Label(
+            backup_card, text="No backups yet.", background=COLOR_CARD, foreground=COLOR_MUTED, anchor="w",
+            font=("Segoe UI", 8),
+        )
+        self._backup_label.pack(fill="x")
+        # A8 cloud sync status + (conflict-only) import button
+        self._sync_label = tkinter.Label(
+            backup_card, text="", background=COLOR_CARD, foreground=COLOR_MUTED, anchor="w",
+            font=("Segoe UI", 8),
+        )
+        self._sync_label.pack(fill="x")
+        self._sync_import_button = tkinter.Button(
+            backup_card,
+            text="Import cloud save as new profile…",
+            command=self._import_cloud_conflict,
+            background=COLOR_SURFACE,
+            foreground=COLOR_WARNING,
+            activebackground=COLOR_ACCENT,
+            activeforeground=COLOR_INK,
+            relief="flat",
+            padx=8,
+        )
+        # packed on demand by _refresh_sync_line when a conflict exists
+        self._sync_status_logged = False
+        backup_buttons = tkinter.Frame(backup_card, background=COLOR_CARD)
+        backup_buttons.pack(fill="x", pady=(4, 2))
+        tkinter.Button(
+            backup_buttons,
+            text="Back up now",
+            command=self._backup_now,
+            background=COLOR_SURFACE,
+            foreground=COLOR_INK,
+            activebackground=COLOR_ACCENT,
+            activeforeground=COLOR_INK,
+            relief="flat",
+            padx=8,
+        ).pack(side="left", padx=(0, 4))
+        tkinter.Button(
+            backup_buttons,
+            text="Restore…",
+            command=self._open_restore_dialog,
+            background=COLOR_SURFACE,
+            foreground=COLOR_INK,
+            activebackground=COLOR_ACCENT,
+            activeforeground=COLOR_INK,
+            relief="flat",
+            padx=8,
+        ).pack(side="left")
+
+        # --- cheats card (sandbox) ---
+        self._build_cheats_card(cheats_tab)
+
         # --- status line + message ---
-        status_card = self._card(tools, "STATUS")
+        status_card = self._card(stats_tab, "STATUS")
         self._state_label = tkinter.Label(
             status_card, text="—", background=COLOR_CARD, foreground=COLOR_INK_2, anchor="w"
         )
         self._state_label.pack(fill="x")
         self._fps_label = tkinter.Label(status_card, text="", background=COLOR_CARD, foreground=COLOR_MUTED, anchor="w")
         self._fps_label.pack(fill="x")
+        self._controller_label = tkinter.Label(
+            status_card, text="", background=COLOR_CARD, foreground=COLOR_MUTED, anchor="w", font=("Segoe UI", 8)
+        )
+        self._controller_label.pack(fill="x")
+        self._update_label = tkinter.Label(
+            status_card, text="", background=COLOR_CARD, foreground=COLOR_ACCENT, anchor="w", font=("Segoe UI", 8, "bold")
+        )
+        # Packed on demand when the update check reports something.
         self._message_label = tkinter.Label(
             status_card,
             text="",
@@ -434,7 +726,9 @@ class DashboardScreen:
         self._message_label.pack(fill="x")
 
         # --- event log ---
-        log_card = self._card(tools, "EVENT LOG", expand=True)
+        # Fixed height: inside the scrollable column the card cannot expand
+        # to fill leftover space; a bounded list keeps the scrollregion sane.
+        log_card = self._card(stats_tab, "EVENT LOG")
         self._event_list = tkinter.Listbox(
             log_card,
             background=COLOR_CARD,
@@ -443,8 +737,13 @@ class DashboardScreen:
             highlightthickness=0,
             borderwidth=0,
             font=("Segoe UI", 8),
+            height=9,
         )
         self._event_list.pack(fill="both", expand=True)
+
+        # Show the default tab now that every card exists (persist=False so
+        # it doesn't clobber a saved tab before _restore_ui_state reads it).
+        self._show_tab(TAB_ORDER[0], persist=False)
 
     def _card(self, parent: tkinter.Widget, title: str, expand: bool = False) -> tkinter.Frame:
         outer = tkinter.Frame(parent, background=COLOR_SURFACE)
@@ -455,6 +754,36 @@ class DashboardScreen:
             card, text=title, background=COLOR_CARD, foreground=COLOR_INK_2, font=("Segoe UI", 8, "bold"), anchor="w"
         ).pack(fill="x", pady=(0, 4))
         return card
+
+    def _show_tab(self, name: str, persist: bool = True) -> None:
+        """Show one category tab's cards and hide the rest; highlight the
+        active tab button. Resets the scroll position so a taller previous
+        tab can't leave the new one scrolled out of view.
+
+        `persist=False` for the initial build call, so it doesn't overwrite
+        the saved tab before _restore_ui_state has had a chance to read it."""
+        if name not in self._tab_frames:
+            return
+        for tab_name, frame in self._tab_frames.items():
+            if tab_name == name:
+                frame.pack(fill="both", expand=True)
+            else:
+                frame.pack_forget()
+        for tab_name, button in self._tab_buttons.items():
+            active = tab_name == name
+            button.config(
+                background=COLOR_ACCENT if active else COLOR_SURFACE,
+                foreground=COLOR_INK if active else COLOR_INK_2,
+            )
+        self._active_tab = name
+        try:
+            self._cards_canvas.update_idletasks()
+            self._cards_canvas.yview_moveto(0.0)
+            self._cards_canvas.configure(scrollregion=self._cards_canvas.bbox("all"))
+        except tkinter.TclError:
+            pass
+        if persist:
+            self._persist_ui_state()
 
     def _build_pokeball_button(self) -> None:
         size = 46
@@ -512,12 +841,13 @@ class DashboardScreen:
             self.window.attributes("-fullscreen", self._handheld)
         except tkinter.TclError:
             pass
+        self._apply_menu_visibility()
 
         if self._handheld:
             self.frame.grid_remove()
             self._drawer_header.pack_forget()
             if self._drawer_open:
-                self._drawer_header.pack(in_=self._tools_container, fill="x", before=self._tools_container.winfo_children()[1])
+                self._drawer_header.pack(in_=self._tools_container, fill="x", before=self._tab_bar)
                 self.frame.place(relx=1.0, rely=0.0, relheight=1.0, anchor="ne", width=TOOL_COLUMN_WIDTH)
                 self._pokeball_button.place_forget()
             else:
@@ -529,10 +859,365 @@ class DashboardScreen:
             self._drawer_header.pack_forget()
             self.frame.grid(row=0, column=1, sticky="NSE")
 
+    def _apply_menu_visibility(self) -> None:
+        """Handheld fullscreen hides the Tk menu bar for a truly clean
+        screen; opening the tool drawer (Pokéball/H) brings it back, and
+        leaving handheld mode restores it permanently. Applied AFTER the
+        fullscreen attribute change — on Windows, toggling fullscreen
+        recreates the native window, so the menu must be (re)asserted on
+        the new hwnd."""
+        if self._menu_bar is None:
+            return
+        show_menu = (not self._handheld) or self._drawer_open
+        try:
+            self.window.config(menu=self._menu_bar if show_menu else "")
+        except tkinter.TclError:
+            pass
+
+    def _build_cheats_card(self, tools: tkinter.Widget) -> None:
+        """CHEATS card: one-shot action buttons + persistent toggles that
+        modify the live game via modules/game_cheats.py. See CHEATS-DESIGN.md."""
+        from modules.game_cheats import cheat_manager
+
+        try:
+            cheat_manager.load_config()
+        except Exception:
+            pass
+
+        card = self._card(tools, "CHEATS")
+        tkinter.Label(
+            card, text="⚠ Modifies your live game — back up first.",
+            background=COLOR_CARD, foreground=COLOR_WARNING, anchor="w",
+            font=("Segoe UI", 8), wraplength=TOOL_COLUMN_WIDTH - 40, justify="left",
+        ).pack(fill="x", pady=(0, 4))
+
+        def run_action(method_name: str, *args) -> None:
+            try:
+                message = getattr(cheat_manager, method_name)(*args)
+            except Exception as error:  # defensive: the manager already guards, but never let the GUI die
+                message = f"Cheat failed: {error}"
+            self._log_event(f"Cheat: {message}")
+
+        def small_button(parent: tkinter.Widget, text: str, command) -> tkinter.Button:
+            return tkinter.Button(
+                parent, text=text, command=command, background=COLOR_SURFACE, foreground=COLOR_INK,
+                activebackground=COLOR_ACCENT, activeforeground=COLOR_INK, relief="flat",
+                font=("Segoe UI", 8), padx=4, pady=2,
+            )
+
+        actions = [
+            ("Heal party", lambda: run_action("heal_party")),
+            ("Max level", lambda: run_action("max_level")),
+            ("Perfect IVs", lambda: run_action("perfect_ivs")),
+            ("Max friendship", lambda: run_action("max_friendship")),
+            ("Max money", lambda: run_action("max_money")),
+            ("Item pack", lambda: run_action("give_item_pack")),
+            ("Max Poké Balls", lambda: run_action("max_poke_balls")),
+            ("99× Rare Candy", lambda: run_action("give_item", "Rare Candy", 99)),
+        ]
+        grid = tkinter.Frame(card, background=COLOR_CARD)
+        grid.pack(fill="x")
+        grid.columnconfigure(0, weight=1, uniform="cheat")
+        grid.columnconfigure(1, weight=1, uniform="cheat")
+        for index, (text, command) in enumerate(actions):
+            small_button(grid, text, command).grid(row=index // 2, column=index % 2, sticky="ew", padx=2, pady=2)
+
+        def toggle_checkbox(parent: tkinter.Widget, text: str, key: str) -> None:
+            variable = tkinter.BooleanVar(value=bool(cheat_manager.get(key)))
+
+            def on_change() -> None:
+                cheat_manager.set_toggle(key, variable.get())
+
+            tkinter.Checkbutton(
+                parent, text=text, variable=variable, command=on_change,
+                background=COLOR_CARD, foreground=COLOR_INK_2, selectcolor=COLOR_SURFACE,
+                activebackground=COLOR_CARD, activeforeground=COLOR_INK, anchor="w",
+                font=("Segoe UI", 8), highlightthickness=0, borderwidth=0,
+            ).pack(fill="x", pady=(4, 0) if key == "infinite_money" else 0)
+
+        toggle_checkbox(card, "Infinite money", "infinite_money")
+        toggle_checkbox(card, "Auto-heal party (overworld)", "auto_heal_party")
+        toggle_checkbox(card, "Force wild species", "force_wild_species")
+
+        force_row = tkinter.Frame(card, background=COLOR_CARD)
+        force_row.pack(fill="x")
+        level_variable = tkinter.StringVar(value=str(cheat_manager.get("force_wild_species_level")))
+
+        def commit_level(*_event) -> None:
+            cheat_manager.set_toggle("force_wild_species_level", level_variable.get().strip())
+
+        # Sprite dropdown (replaces the old free-text species field): a button
+        # showing the selected species' sprite + name that opens a searchable,
+        # sprite-illustrated picker (_open_species_picker).
+        self._force_species_name = str(cheat_manager.get("force_wild_species_name"))
+        self._species_picker_button = tkinter.Button(
+            force_row,
+            text=f" {self._force_species_name} ▾",
+            compound="left",
+            command=self._open_species_picker,
+            background=COLOR_SURFACE,
+            foreground=COLOR_INK,
+            activebackground=COLOR_ACCENT,
+            activeforeground=COLOR_INK,
+            relief="flat",
+            font=("Segoe UI", 8),
+            anchor="w",
+            padx=4,
+        )
+        self._species_picker_button.pack(side="left", padx=(18, 4))
+        self._update_species_picker_button()
+        tkinter.Label(
+            force_row, text="Lv", background=COLOR_CARD, foreground=COLOR_MUTED, font=("Segoe UI", 8)
+        ).pack(side="left")
+        level_entry = tkinter.Entry(
+            force_row, textvariable=level_variable, background=COLOR_SURFACE, foreground=COLOR_INK,
+            insertbackground=COLOR_INK, relief="flat", font=("Segoe UI", 8), width=4,
+        )
+        level_entry.pack(side="left", padx=(2, 0))
+        level_entry.bind("<FocusOut>", commit_level)
+        level_entry.bind("<Return>", commit_level)
+
+        toggle_checkbox(card, "Guaranteed shiny wild", "guaranteed_shiny_wild")
+
+    # ------------------------------------------------------------------
+    # Cheat species picker (sprite dropdown)
+    # ------------------------------------------------------------------
+
+    def _all_species_names(self) -> list:
+        """All selectable species names (skips the index-0 '??????????'
+        placeholder). Cached; sourced from the bot's own species data."""
+        if self._species_names_cache is None:
+            try:
+                from modules.pokemon import _species_by_index
+
+                self._species_names_cache = [
+                    species.name
+                    for species in _species_by_index
+                    if species and species.name and not species.name.startswith("?")
+                ]
+            except Exception:
+                self._species_names_cache = []
+        return self._species_names_cache
+
+    def _get_species_sprite(self, species_name: str, shiny: bool = False, size: int = 20):
+        """A cached ~size-px PhotoImage of a species' sprite (shiny variant if
+        requested). Returns None if the sprite is missing. Tk needs the
+        reference kept alive, so the cache holds it."""
+        cache_key = f"{species_name}|{shiny}|{size}"
+        if cache_key in self._species_sprite_cache:
+            return self._species_sprite_cache[cache_key]
+        photo = None
+        try:
+            from modules.pokemon import get_species_by_name
+            from modules.sprites import get_regular_sprite, get_shiny_sprite
+
+            species = get_species_by_name(species_name)
+            path = get_shiny_sprite(species) if shiny else get_regular_sprite(species)
+            if path.is_file():
+                image = PIL.Image.open(path)
+                if image.mode != "RGBA":
+                    image = image.convert("RGBA")
+                image.thumbnail((size, size), PIL.Image.NEAREST)
+                photo = PIL.ImageTk.PhotoImage(image)
+        except Exception:
+            photo = None
+        self._species_sprite_cache[cache_key] = photo
+        return photo
+
+    def _force_species_is_shiny(self) -> bool:
+        try:
+            from modules.game_cheats import cheat_manager
+
+            return bool(cheat_manager.get("guaranteed_shiny_wild"))
+        except Exception:
+            return False
+
+    def _update_species_picker_button(self) -> None:
+        if self._species_picker_button is None:
+            return
+        name = self._force_species_name or "Bulbasaur"
+        image = self._get_species_sprite(name, shiny=self._force_species_is_shiny(), size=20)
+        self._species_picker_button.config(
+            text=f" {name} ▾", image=image if image is not None else "", compound="left"
+        )
+        # Belt-and-suspenders ref (the cache already holds it).
+        self._species_picker_button.image = image
+
+    def _set_force_species(self, name: str) -> None:
+        try:
+            from modules.game_cheats import cheat_manager
+
+            cheat_manager.set_toggle("force_wild_species_name", name)
+        except Exception:
+            pass
+        self._force_species_name = name
+        self._update_species_picker_button()
+
+    def _open_species_picker(self) -> None:
+        """Searchable, sprite-illustrated species dropdown. Type to filter
+        (handy across ~400 species); click a row to select. Floats above the
+        emulator in handheld fullscreen via _prepare_dialog."""
+        dialog = tkinter.Toplevel(self.window)
+        dialog.title("Choose a species")
+        dialog.configure(background=COLOR_SURFACE)
+        dialog.geometry("300x470")
+
+        shiny = self._force_species_is_shiny()
+
+        filter_variable = tkinter.StringVar()
+        filter_entry = tkinter.Entry(
+            dialog, textvariable=filter_variable, background=COLOR_CARD, foreground=COLOR_INK,
+            insertbackground=COLOR_INK, relief="flat", font=("Segoe UI", 11),
+        )
+        filter_entry.pack(fill="x", padx=8, pady=8, ipady=4)
+
+        list_area = tkinter.Frame(dialog, background=COLOR_SURFACE)
+        list_area.pack(fill="both", expand=True, padx=8, pady=(0, 8))
+        list_canvas = Canvas(list_area, background=COLOR_SURFACE, highlightthickness=0, borderwidth=0)
+        scrollbar = tkinter.Scrollbar(list_area, orient="vertical", command=list_canvas.yview, width=10)
+        scrollbar.pack(side="right", fill="y")
+        list_canvas.pack(side="left", fill="both", expand=True)
+        rows_frame = tkinter.Frame(list_canvas, background=COLOR_SURFACE)
+        rows_window = list_canvas.create_window((0, 0), window=rows_frame, anchor="nw")
+        list_canvas.configure(yscrollcommand=scrollbar.set)
+        rows_frame.bind(
+            "<Configure>", lambda _event: list_canvas.configure(scrollregion=list_canvas.bbox("all"))
+        )
+        list_canvas.bind(
+            "<Configure>", lambda event: list_canvas.itemconfigure(rows_window, width=event.width)
+        )
+        # This picker is modal (grab_set via _prepare_dialog), so route the
+        # wheel straight to its own canvas; the global tool-column wheel
+        # handler no-ops here (pointer isn't over the tool container).
+        dialog.bind("<MouseWheel>", lambda event: (list_canvas.yview_scroll(int(-event.delta / 120), "units"), "break")[1])
+
+        def choose(name: str) -> None:
+            self._set_force_species(name)
+            dialog.destroy()
+
+        # Show the FULL species list (scrollable) by default; typing filters
+        # it. Every row loads a sprite, but sprites are cached after first
+        # open, so the whole list stays scrollable and responsive.
+        def render(*_args) -> None:
+            for widget in rows_frame.winfo_children():
+                widget.destroy()
+            needle = filter_variable.get().strip().lower()
+            names = [n for n in self._all_species_names() if needle in n.lower()] if needle else self._all_species_names()
+            for name in names:
+                image = self._get_species_sprite(name, shiny=shiny, size=22)
+                row_button = tkinter.Button(
+                    rows_frame,
+                    text=f"  {name}",
+                    image=image if image is not None else "",
+                    compound="left",
+                    anchor="w",
+                    background=COLOR_SURFACE,
+                    foreground=COLOR_INK,
+                    activebackground=COLOR_ACCENT,
+                    activeforeground=COLOR_INK,
+                    relief="flat",
+                    font=("Segoe UI", 9),
+                    command=lambda n=name: choose(n),
+                )
+                row_button.image = image
+                row_button.pack(fill="x", pady=1)
+            if not names:
+                tkinter.Label(
+                    rows_frame, text="No match.", background=COLOR_SURFACE, foreground=COLOR_MUTED, anchor="w",
+                ).pack(fill="x", pady=4)
+            list_canvas.yview_moveto(0.0)
+
+        filter_variable.trace_add("write", render)
+        render()
+        self._prepare_dialog(dialog)
+        filter_entry.focus_set()
+
+    def _prepare_dialog(self, dialog: tkinter.Toplevel) -> None:
+        """Force a popup ABOVE the emulator and center it over the window.
+
+        In handheld fullscreen the main window sits at the top of the Windows
+        z-order, so a plain Toplevel opens *behind* the emulator video and
+        looks like nothing happened. `-topmost` + `lift` + `focus_force`
+        float it above even the fullscreen window; `grab_set` makes it modal;
+        centering keeps it thumb-reachable on a handheld."""
+        dialog.transient(self.window)
+        try:
+            dialog.attributes("-topmost", True)
+        except tkinter.TclError:
+            pass
+        dialog.update_idletasks()
+        try:
+            width = dialog.winfo_width()
+            height = dialog.winfo_height()
+            pos_x = self.window.winfo_rootx() + max(0, (self.window.winfo_width() - width) // 2)
+            pos_y = self.window.winfo_rooty() + max(0, (self.window.winfo_height() - height) // 2)
+            dialog.geometry(f"+{pos_x}+{pos_y}")
+        except tkinter.TclError:
+            pass
+        dialog.lift()
+        dialog.focus_force()
+        try:
+            dialog.grab_set()
+        except tkinter.TclError:
+            pass
+
+    def _ask_text(self, title: str, prompt: str, initial: str = "") -> "str | None":
+        """Touch-friendly, always-on-top replacement for
+        simpledialog.askstring (which sinks behind the emulator in handheld
+        fullscreen). Modal; returns the entered string, or None if cancelled.
+        Like the stock prompt, this pauses emulation while it is open."""
+        dialog = tkinter.Toplevel(self.window)
+        dialog.title(title)
+        dialog.configure(background=COLOR_SURFACE)
+        result: dict = {"value": None}
+
+        tkinter.Label(
+            dialog, text=prompt, background=COLOR_SURFACE, foreground=COLOR_INK_2,
+            justify="left", anchor="w", wraplength=420, font=("Segoe UI", 11),
+        ).pack(fill="x", padx=16, pady=(16, 8))
+
+        variable = tkinter.StringVar(value=initial)
+        entry = tkinter.Entry(
+            dialog, textvariable=variable, background=COLOR_CARD, foreground=COLOR_INK,
+            insertbackground=COLOR_INK, relief="flat", font=("Segoe UI", 14),
+        )
+        entry.pack(fill="x", padx=16, ipady=6)
+
+        def _accept() -> None:
+            result["value"] = variable.get()
+            dialog.destroy()
+
+        def _cancel() -> None:
+            result["value"] = None
+            dialog.destroy()
+
+        button_row = tkinter.Frame(dialog, background=COLOR_SURFACE)
+        button_row.pack(fill="x", padx=16, pady=16)
+        tkinter.Button(
+            button_row, text="Cancel", command=_cancel, background=COLOR_CARD,
+            foreground=COLOR_INK, relief="flat", font=("Segoe UI", 12), padx=16, pady=8,
+        ).pack(side="right", padx=(8, 0))
+        tkinter.Button(
+            button_row, text="OK", command=_accept, background=COLOR_ACCENT,
+            foreground="#ffffff", relief="flat", font=("Segoe UI", 12, "bold"), padx=20, pady=8,
+        ).pack(side="right")
+
+        entry.bind("<Return>", lambda _event: _accept())
+        dialog.bind("<Escape>", lambda _event: _cancel())
+        dialog.protocol("WM_DELETE_WINDOW", _cancel)
+        dialog.geometry("460x210")
+        entry.focus_set()
+        entry.select_range(0, "end")
+        self._prepare_dialog(dialog)
+        self.window.wait_window(dialog)
+        return result["value"]
+
     def _persist_ui_state(self) -> None:
         try:
             state_file = context.profile.path / UI_STATE_FILE
-            state_file.write_text(json.dumps({"handheld": self._handheld}), encoding="utf-8")
+            state_file.write_text(
+                json.dumps({"handheld": self._handheld, "active_tab": self._active_tab}), encoding="utf-8"
+            )
         except Exception:
             pass
 
@@ -541,6 +1226,9 @@ class DashboardScreen:
             state_file = context.profile.path / UI_STATE_FILE
             if state_file.is_file():
                 state = json.loads(state_file.read_text(encoding="utf-8"))
+                tab = state.get("active_tab")
+                if tab in self._tab_frames:
+                    self._show_tab(tab)
                 if state.get("handheld"):
                     self._handheld = True
                     self._apply_handheld_layout()
@@ -588,6 +1276,8 @@ class DashboardScreen:
         self._refresh_party()
         if time.monotonic() - self._last_kpi_refresh >= KPI_REFRESH_SECONDS:
             self._refresh_kpis()
+            self._refresh_backup_label()
+            self._refresh_shiny_log()
 
     def _refresh_controls(self) -> None:
         if self._mode_button is None:
@@ -612,6 +1302,29 @@ class DashboardScreen:
             stats.append(f"{current_fps:,} fps ({current_fps / 59.727500569606:0.1f}×)")
         self._fps_label.config(text=" | ".join(stats))
         self._message_label.config(text=context.message or "")
+
+        if self._controller_label is not None:
+            try:
+                from modules.gamepad import get_status_text
+
+                self._controller_label.config(text=get_status_text())
+            except Exception:
+                pass
+
+        # Sandbox #18: surface the async update-check result exactly once.
+        if not self._update_notice_logged and self._update_label is not None:
+            try:
+                from modules.update_check import get_pending_update_count
+
+                behind = get_pending_update_count()
+                if behind:
+                    self._update_notice_logged = True
+                    notice = f"⬆ {behind} update(s) available — run install.py"
+                    self._update_label.config(text=notice)
+                    self._update_label.pack(fill="x")
+                    self._log_event(notice, highlight=True)
+            except Exception:
+                pass
 
     def _refresh_kpis(self) -> None:
         self._last_kpi_refresh = time.monotonic()
@@ -644,6 +1357,8 @@ class DashboardScreen:
                 row_frame.pack(fill="x", pady=2)
                 top = tkinter.Frame(row_frame, background=COLOR_SURFACE)
                 top.pack(fill="x")
+                sprite = tkinter.Label(top, background=COLOR_SURFACE)
+                sprite.pack(side="left", padx=(0, 6))
                 name = tkinter.Label(
                     top, text="", background=COLOR_SURFACE, foreground=COLOR_INK, font=("Segoe UI", 9, "bold"), anchor="w"
                 )
@@ -661,13 +1376,30 @@ class DashboardScreen:
                     bar_row, text="", background=COLOR_SURFACE, foreground=COLOR_INK_2, font=("Segoe UI", 8), anchor="e"
                 )
                 hp_text.pack(side="right", padx=(6, 0))
+                # XP bar — a thinner accent bar directly under the HP bar,
+                # showing progress toward the next level.
+                xp_row = tkinter.Frame(row_frame, background=COLOR_SURFACE)
+                xp_row.pack(fill="x", pady=(2, 0))
+                xp_bg = tkinter.Frame(xp_row, background=COLOR_HAIRLINE, height=3)
+                xp_bg.pack(side="left", fill="x", expand=True)
+                xp_bg.pack_propagate(False)
+                xp_fill = tkinter.Frame(xp_bg, background=COLOR_ACCENT, height=3)
+                xp_fill.place(x=0, y=0, relheight=1.0, relwidth=0.0)
+                xp_text = tkinter.Label(
+                    xp_row, text="", background=COLOR_SURFACE, foreground=COLOR_MUTED, font=("Segoe UI", 8), anchor="e"
+                )
+                xp_text.pack(side="right", padx=(6, 0))
                 self._party_rows.append(
                     {
                         "frame": row_frame,
+                        "sprite": sprite,
+                        "sprite_key": None,
                         "name": name,
                         "level": level,
                         "bar_fill": bar_fill,
                         "hp_text": hp_text,
+                        "xp_fill": xp_fill,
+                        "xp_text": xp_text,
                     }
                 )
 
@@ -675,11 +1407,14 @@ class DashboardScreen:
             self._update_party_row(pokemon, row)
 
     def _update_party_row(self, pokemon: "Pokemon", row: dict) -> None:
+        self._set_row_sprite(pokemon, row)
         if pokemon.is_egg:
             row["name"].config(text="Egg", foreground=COLOR_MUTED)
             row["level"].config(text="")
             row["bar_fill"].place_configure(relwidth=0.0)
             row["hp_text"].config(text="")
+            row["xp_fill"].place_configure(relwidth=0.0)
+            row["xp_text"].config(text="")
             return
 
         name = pokemon.name
@@ -707,6 +1442,79 @@ class DashboardScreen:
             foreground=COLOR_CRITICAL if status_text else COLOR_INK_2,
         )
 
+        try:
+            xp_fraction = float(pokemon.exp_fraction_to_next_level)
+        except Exception:
+            xp_fraction = 0.0
+        row["xp_fill"].place_configure(relwidth=max(0.0, min(1.0, xp_fraction)))
+        row["xp_text"].config(text=f"XP {int(round(xp_fraction * 100))}%")
+
+    # ------------------------------------------------------------------
+    # Sprites & shiny log (sandbox A4)
+    # ------------------------------------------------------------------
+
+    def _set_row_sprite(self, pokemon: "Pokemon", row: dict) -> None:
+        key = "egg" if pokemon.is_egg else f"{pokemon.species_name_for_stats}|{pokemon.is_shiny}|{pokemon.is_anti_shiny}"
+        if row.get("sprite_key") == key:
+            return
+        image = self._get_sprite_image(pokemon, key)
+        row["sprite"].config(image=image if image is not None else "")
+        row["sprite_key"] = key
+
+    def _get_sprite_image(self, pokemon: "Pokemon", cache_key: str) -> "PIL.ImageTk.PhotoImage | None":
+        if cache_key in self._sprite_cache:
+            return self._sprite_cache[cache_key]
+        try:
+            from modules.runtime import get_sprites_path
+            from modules.sprites import get_sprite
+
+            path = get_sprites_path() / "pokemon" / "Egg.png" if pokemon.is_egg else get_sprite(pokemon)
+            if not path.is_file():
+                self._sprite_cache[cache_key] = None
+                return None
+            image = PIL.Image.open(path)
+            if image.mode != "RGBA":
+                image = image.convert("RGBA")
+            image.thumbnail((32, 32), PIL.Image.NEAREST)
+            photo = PIL.ImageTk.PhotoImage(image)
+        except Exception:
+            self._sprite_cache[cache_key] = None
+            return None
+        self._sprite_cache[cache_key] = photo
+        return photo
+
+    def _refresh_shiny_log(self) -> None:
+        if self._shiny_log_label is None:
+            return
+        try:
+            phases = context.stats.get_shiny_log()[:5]
+            lines = []
+            for phase in phases:
+                encounter = phase.shiny_encounter
+                species = encounter.pokemon.species_name_for_stats if encounter is not None else "?"
+                lines.append(f"✨ {species} — {phase.encounters:,} enc")
+        except Exception:
+            return
+        if lines:
+            self._shiny_log_label.config(text="\n".join(lines), foreground=COLOR_SHINY)
+        else:
+            self._shiny_log_label.config(text="No shinies yet — keep hunting!", foreground=COLOR_MUTED)
+
+    def _on_tool_mousewheel(self, event) -> None:
+        if not event.delta or self.frame is None:
+            return
+        try:
+            widget = self.window.winfo_containing(event.x_root, event.y_root)
+        except (KeyError, tkinter.TclError):
+            return
+        while widget is not None:
+            if isinstance(widget, tkinter.Listbox):
+                return  # the event log scrolls itself
+            if widget is self._tools_container:
+                self._cards_canvas.yview_scroll(int(-event.delta / 120), "units")
+                return
+            widget = widget.master
+
     # ------------------------------------------------------------------
     # Events
     # ------------------------------------------------------------------
@@ -731,6 +1539,191 @@ class DashboardScreen:
         self._event_list.itemconfig(0, foreground=COLOR_SHINY if highlight else COLOR_INK_2)
         if self._event_list.size() > 100:
             self._event_list.delete(100, "end")
+
+    # ------------------------------------------------------------------
+    # Backups (sandbox A1)
+    # ------------------------------------------------------------------
+
+    def _refresh_backup_label(self) -> None:
+        if getattr(self, "_backup_label", None) is None or context.profile is None:
+            return
+        try:
+            from modules import backup_manager
+
+            elapsed = backup_manager.seconds_since_last_backup(context.profile.path.name)
+            if elapsed is None:
+                self._backup_label.config(text="No backups yet.")
+            elif elapsed < 90:
+                self._backup_label.config(text="Last backup: just now")
+            elif elapsed < 5400:
+                self._backup_label.config(text=f"Last backup: {int(elapsed // 60)} min ago")
+            else:
+                self._backup_label.config(text=f"Last backup: {elapsed / 3600:.1f} h ago")
+        except Exception:
+            pass
+        self._refresh_sync_line()
+
+    def _refresh_sync_line(self) -> None:
+        """A8: reflect the launch-sync outcome in the Backups card (once per
+        enable for the event log; label refreshed on the normal cycle)."""
+        if getattr(self, "_sync_label", None) is None or context.profile is None:
+            return
+        try:
+            from modules import cloud_sync
+
+            status = cloud_sync.get_status(context.profile.path.name)
+            if status is None or status["state"] == "disabled":
+                self._sync_label.config(text="Sync: off (enable in backup.yml)", foreground=COLOR_MUTED)
+                return
+            state = status["state"]
+            if state == "up-to-date":
+                self._sync_label.config(text="Sync: up to date with the cloud", foreground=COLOR_MUTED)
+            elif state == "applied":
+                self._sync_label.config(text=f"Sync: cloud save applied {status['detail']}", foreground=COLOR_GOOD)
+            elif state == "conflict":
+                self._sync_label.config(
+                    text=f"Sync CONFLICT: local kept ({status['detail']})", foreground=COLOR_WARNING
+                )
+                if self._sync_import_button is not None and not self._sync_import_button.winfo_ismapped():
+                    self._sync_import_button.pack(fill="x", pady=(2, 2))
+            elif state == "offline":
+                self._sync_label.config(text="Sync: cloud unreachable (offline?)", foreground=COLOR_MUTED)
+            elif state == "no-cloud":
+                self._sync_label.config(text="Sync: on — first push happens when you close the bot", foreground=COLOR_MUTED)
+            else:
+                self._sync_label.config(text=f"Sync: {state} {status['detail']}", foreground=COLOR_WARNING)
+            if not self._sync_status_logged and state in ("applied", "conflict"):
+                self._sync_status_logged = True
+                if state == "applied":
+                    self._log_event(f"Cloud sync: newest save applied ({status['detail']})")
+                else:
+                    self._log_event("Cloud sync CONFLICT — local save kept; import available in Backups", highlight=True)
+        except Exception:
+            pass
+
+    def _import_cloud_conflict(self) -> None:
+        """A8 conflict escape hatch: cloud version -> brand-new profile."""
+        if context.profile is None:
+            return
+
+        name = self._ask_text(
+            "Import cloud save",
+            "Name for the NEW profile that will hold the cloud version:",
+        )
+        if not name:
+            return
+        try:
+            from modules import cloud_sync
+
+            target = cloud_sync.import_cloud_as_new_profile(context.profile.path.name, name.strip())
+            self._log_event(f"Cloud save imported as new profile '{target.name}' — restart to play it.")
+        except Exception as error:
+            self._log_event(f"Cloud import failed: {error}", highlight=True)
+
+    def _backup_now(self) -> None:
+        if context.profile is None:
+            return
+        try:
+            from modules import backup_manager
+
+            result = backup_manager.create_backup(context.profile.path, reason="manual")
+            if result is not None:
+                self._log_event(f"Backup created: {result.name}")
+            else:
+                self._log_event("Backup skipped/failed — see logs/backup.log", highlight=True)
+            self._refresh_backup_label()
+        except Exception as error:
+            self._log_event(f"Backup error: {error}", highlight=True)
+
+    def _open_restore_dialog(self) -> None:
+        if context.profile is None:
+            return
+        from modules import backup_manager
+
+        backups = backup_manager.list_backups(context.profile.path.name)
+
+        dialog = tkinter.Toplevel(self.window)
+        dialog.title("Restore a backup")
+        dialog.configure(background=COLOR_SURFACE)
+        dialog.geometry("460x360")
+
+        tkinter.Label(
+            dialog,
+            text="Restores create a NEW profile — the current one stays untouched.",
+            background=COLOR_SURFACE,
+            foreground=COLOR_INK_2,
+            anchor="w",
+            wraplength=430,
+            justify="left",
+        ).pack(fill="x", padx=10, pady=(10, 4))
+
+        listbox = tkinter.Listbox(
+            dialog,
+            background=COLOR_CARD,
+            foreground=COLOR_INK_2,
+            selectbackground=COLOR_ACCENT,
+            highlightthickness=0,
+            borderwidth=0,
+            font=("Segoe UI", 9),
+        )
+        listbox.pack(fill="both", expand=True, padx=10, pady=4)
+        if backups:
+            for entry in backups:
+                listbox.insert("end", entry["label"])
+        else:
+            listbox.insert("end", "(no backups for this profile yet)")
+
+        name_row = tkinter.Frame(dialog, background=COLOR_SURFACE)
+        name_row.pack(fill="x", padx=10, pady=4)
+        tkinter.Label(
+            name_row, text="New profile name:", background=COLOR_SURFACE, foreground=COLOR_INK_2
+        ).pack(side="left")
+        name_variable = tkinter.StringVar(value=f"{context.profile.path.name}-restored")
+        tkinter.Entry(
+            name_row, textvariable=name_variable, background=COLOR_CARD, foreground=COLOR_INK,
+            insertbackground=COLOR_INK, relief="flat",
+        ).pack(side="left", fill="x", expand=True, padx=(6, 0))
+
+        feedback = tkinter.Label(
+            dialog, text="", background=COLOR_SURFACE, foreground=COLOR_WARNING, anchor="w", wraplength=430,
+            justify="left",
+        )
+        feedback.pack(fill="x", padx=10)
+
+        def do_restore() -> None:
+            selection = listbox.curselection()
+            if not backups or not selection:
+                feedback.config(text="Select a backup from the list first.", foreground=COLOR_WARNING)
+                return
+            entry = backups[selection[0]]
+            try:
+                target = backup_manager.restore_backup(entry["path"], name_variable.get().strip())
+            except Exception as error:
+                # ValueError carries a user-readable refusal; anything else
+                # (corrupt zip, disk error) must surface here too instead of
+                # dying silently in Tk's callback handler.
+                feedback.config(text=str(error) or error.__class__.__name__, foreground=COLOR_WARNING)
+                return
+            feedback.config(
+                text=f"Restored to '{target.name}'. Close the bot and relaunch with that profile to use it.",
+                foreground=COLOR_GOOD,
+            )
+            self._log_event(f"Backup restored into new profile '{target.name}'")
+
+        tkinter.Button(
+            dialog,
+            text="Restore into new profile",
+            command=do_restore,
+            background=COLOR_ACCENT,
+            foreground=COLOR_INK,
+            activebackground=COLOR_ACCENT,
+            activeforeground=COLOR_INK,
+            relief="flat",
+            padx=10,
+        ).pack(pady=(2, 10))
+
+        # Float above the emulator (critical in handheld fullscreen) + center.
+        self._prepare_dialog(dialog)
 
     # ------------------------------------------------------------------
     # Controls
@@ -797,6 +1790,74 @@ class DashboardScreen:
     # Debug support
     # ------------------------------------------------------------------
 
+    # ------------------------------------------------------------------
+    # Macros (sandbox A2)
+    # ------------------------------------------------------------------
+    def _refresh_macro_menu(self) -> None:
+        from modules.macros import list_macros
+
+        if context.profile is None:
+            return
+        names = list_macros(context.profile.path)
+        menu = self._macro_menu["menu"]
+        menu.delete(0, "end")
+        if not names:
+            self._macro_variable.set("(no macros)")
+            menu.add_command(label="(no macros)", command=lambda: None)
+            return
+        for name in names:
+            menu.add_command(label=name, command=lambda n=name: self._macro_variable.set(n))
+        if self._macro_variable.get() not in names:
+            self._macro_variable.set(names[0])
+
+    def _toggle_macro_recording(self) -> None:
+        from modules.macros import MacroError, recorder, save_macro
+
+        if not recorder.armed:
+            if context.bot_mode != "Manual":
+                self._log_event("Switch to Manual mode to record a macro.", highlight=True)
+                return
+            recorder.start()
+            self._macro_record_button.config(text="■ Stop", foreground=COLOR_CRITICAL)
+            self._log_event("Recording macro — play in Manual, then press Stop.")
+            return
+
+        macro = recorder.stop()
+        self._macro_record_button.config(text="● Rec", foreground=COLOR_INK)
+        if macro is None:
+            self._log_event("Recording stopped — no button presses captured, nothing saved.")
+            return
+        name = self._ask_text(
+            "Save macro",
+            f"Recorded {len(macro.steps)} step(s) / {macro.total_frames} frames.\nMacro name:",
+        )
+        if not name:
+            self._log_event("Recording discarded (no name given).")
+            return
+        macro.name = name
+        try:
+            file_path = save_macro(context.profile.path, macro)
+        except MacroError as error:
+            self._log_event(f"Could not save macro: {error}", highlight=True)
+            return
+        self._refresh_macro_menu()
+        self._macro_variable.set(file_path.stem)
+        self._log_event(f"Macro `{file_path.stem}` saved ({macro.total_frames} frames).")
+
+    def _play_selected_macro(self) -> None:
+        from modules.macros import list_macros, save_selection
+
+        if context.profile is None:
+            return
+        selected = self._macro_variable.get()
+        if selected not in list_macros(context.profile.path):
+            self._log_event("No macro selected — record one first (● Rec in Manual mode).", highlight=True)
+            return
+        save_selection(context.profile.path, selected, self._macro_loop_variable.get())
+        context.bot_mode = "Macro (Custom)"
+        self._log_event(f"Playing macro `{selected}` ({'looping' if self._macro_loop_variable.get() else 'once'}).")
+        self._refresh_controls()
+
     def _build_debug_window(self) -> None:
         from modules.gui.debug_tabs import (
             BattleTab,
@@ -857,3 +1918,27 @@ class PokebotDashboardGui(PokebotGui):
         ):
             return "break"
         return super()._handle_key_down_event(event)
+
+    def _close_window(self) -> None:
+        """A8: the stock close path ends in os._exit(0), so atexit handlers
+        never run — the exit-side cloud sync MUST happen right here, after
+        `emulator.shutdown()` has flushed the save to disk and before the
+        process dies. Sync is config-gated and time-boxed; any failure only
+        prints a warning. (Killing the console window bypasses this — that
+        path only flushes the save; the next clean exit will sync it.)"""
+        profile = context.profile
+        if context.emulator:
+            context.emulator.shutdown()
+            context.emulator = None
+
+        try:
+            from modules.cloud_sync import sync_on_exit
+
+            result = sync_on_exit(profile)
+            if result is not None:
+                print(f"[sync] {result}")
+        except Exception as error:
+            print(f"[sync] exit sync failed: {error}")
+
+        self._on_exit()
+        os._exit(0)

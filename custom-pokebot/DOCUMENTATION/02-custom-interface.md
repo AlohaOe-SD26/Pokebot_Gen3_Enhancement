@@ -1,5 +1,16 @@
 # Custom Interface
 
+> **Current GUI (2026-07-19):** the tool column is now a **tabbed**
+> interface — **Play** (bot mode, speed, video/audio, macros), **Party**
+> (party with HP + XP bars and sprites, shiny log), **Stats** (KPIs,
+> status, event log), **Cheats** (see `03-cheats.md`), **Backups**
+> (backup/restore + cloud sync). Tabs work in the handheld Pokéball drawer
+> too (no scrolling to find a setting). Popups (restore, macro-name,
+> species picker) are now forced above the emulator and touch-formatted so
+> they no longer hide behind the video in handheld fullscreen. Gamepad
+> (XInput) drives Manual mode; Back+Start toggles the drawer. Automation /
+> backup / sync features are documented in `04-automation-and-sync.md`.
+
 ## Native dashboard GUI (the program's own window — DEFAULT)
 > ✅ User-confirmed hands-on 2026-07-18 ("worked!").
 
