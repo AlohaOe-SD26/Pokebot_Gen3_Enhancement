@@ -377,3 +377,21 @@ zip-slip refusal); A1 backup battery still fully green; live GUI run
 Pending real-world: an actual two-PC run over GitHub (user's desktop +
 Ally) — the git transport is identical, but network auth/latency is not
 exercised by the local bare remote.
+
+## 2026-07-18 — Handheld polish: party XP bars + popups forced on top (user feedback)
+- **Party XP bar**: each party row now shows a thin accent-blue experience
+  bar (progress to next level, `exp_fraction_to_next_level`) with an
+  "XP NN%" label, directly under the HP bar. Reuses the HP bar's proven
+  place()-based fill pattern; eggs render it empty. modules/gui/dashboard_gui.py.
+- **Popups behind the emulator (handheld) fixed**: in handheld fullscreen a
+  plain Toplevel opened *behind* the emulator video. New `_prepare_dialog()`
+  (transient + `-topmost` + lift + focus_force + grab_set + center-over-
+  window) is applied to the Restore dialog. The two macro/cloud name
+  prompts moved off `simpledialog.askstring` (which sank behind fullscreen)
+  onto a new `_ask_text()` — a topmost, touch-friendly modal (large entry,
+  big OK/Cancel, Enter/Esc bound) formatted for handheld.
+- Verified: py_compile + real-import (DashboardScreen methods present).
+  PENDING USER HANDS-ON: XP bar with a real (non-empty) party, and the
+  dialog-on-top behavior in actual handheld fullscreen (title-screen test
+  save has no party and this session is credit-constrained for a live
+  driven screenshot; the fix uses the standard Windows topmost technique).

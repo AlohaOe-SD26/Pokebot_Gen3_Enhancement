@@ -783,6 +783,86 @@ class DashboardScreen:
         except tkinter.TclError:
             pass
 
+    def _prepare_dialog(self, dialog: tkinter.Toplevel) -> None:
+        """Force a popup ABOVE the emulator and center it over the window.
+
+        In handheld fullscreen the main window sits at the top of the Windows
+        z-order, so a plain Toplevel opens *behind* the emulator video and
+        looks like nothing happened. `-topmost` + `lift` + `focus_force`
+        float it above even the fullscreen window; `grab_set` makes it modal;
+        centering keeps it thumb-reachable on a handheld."""
+        dialog.transient(self.window)
+        try:
+            dialog.attributes("-topmost", True)
+        except tkinter.TclError:
+            pass
+        dialog.update_idletasks()
+        try:
+            width = dialog.winfo_width()
+            height = dialog.winfo_height()
+            pos_x = self.window.winfo_rootx() + max(0, (self.window.winfo_width() - width) // 2)
+            pos_y = self.window.winfo_rooty() + max(0, (self.window.winfo_height() - height) // 2)
+            dialog.geometry(f"+{pos_x}+{pos_y}")
+        except tkinter.TclError:
+            pass
+        dialog.lift()
+        dialog.focus_force()
+        try:
+            dialog.grab_set()
+        except tkinter.TclError:
+            pass
+
+    def _ask_text(self, title: str, prompt: str, initial: str = "") -> "str | None":
+        """Touch-friendly, always-on-top replacement for
+        simpledialog.askstring (which sinks behind the emulator in handheld
+        fullscreen). Modal; returns the entered string, or None if cancelled.
+        Like the stock prompt, this pauses emulation while it is open."""
+        dialog = tkinter.Toplevel(self.window)
+        dialog.title(title)
+        dialog.configure(background=COLOR_SURFACE)
+        result: dict = {"value": None}
+
+        tkinter.Label(
+            dialog, text=prompt, background=COLOR_SURFACE, foreground=COLOR_INK_2,
+            justify="left", anchor="w", wraplength=420, font=("Segoe UI", 11),
+        ).pack(fill="x", padx=16, pady=(16, 8))
+
+        variable = tkinter.StringVar(value=initial)
+        entry = tkinter.Entry(
+            dialog, textvariable=variable, background=COLOR_CARD, foreground=COLOR_INK,
+            insertbackground=COLOR_INK, relief="flat", font=("Segoe UI", 14),
+        )
+        entry.pack(fill="x", padx=16, ipady=6)
+
+        def _accept() -> None:
+            result["value"] = variable.get()
+            dialog.destroy()
+
+        def _cancel() -> None:
+            result["value"] = None
+            dialog.destroy()
+
+        button_row = tkinter.Frame(dialog, background=COLOR_SURFACE)
+        button_row.pack(fill="x", padx=16, pady=16)
+        tkinter.Button(
+            button_row, text="Cancel", command=_cancel, background=COLOR_CARD,
+            foreground=COLOR_INK, relief="flat", font=("Segoe UI", 12), padx=16, pady=8,
+        ).pack(side="right", padx=(8, 0))
+        tkinter.Button(
+            button_row, text="OK", command=_accept, background=COLOR_ACCENT,
+            foreground="#ffffff", relief="flat", font=("Segoe UI", 12, "bold"), padx=20, pady=8,
+        ).pack(side="right")
+
+        entry.bind("<Return>", lambda _event: _accept())
+        dialog.bind("<Escape>", lambda _event: _cancel())
+        dialog.protocol("WM_DELETE_WINDOW", _cancel)
+        dialog.geometry("460x210")
+        entry.focus_set()
+        entry.select_range(0, "end")
+        self._prepare_dialog(dialog)
+        self.window.wait_window(dialog)
+        return result["value"]
+
     def _persist_ui_state(self) -> None:
         try:
             state_file = context.profile.path / UI_STATE_FILE
@@ -942,6 +1022,19 @@ class DashboardScreen:
                     bar_row, text="", background=COLOR_SURFACE, foreground=COLOR_INK_2, font=("Segoe UI", 8), anchor="e"
                 )
                 hp_text.pack(side="right", padx=(6, 0))
+                # XP bar — a thinner accent bar directly under the HP bar,
+                # showing progress toward the next level.
+                xp_row = tkinter.Frame(row_frame, background=COLOR_SURFACE)
+                xp_row.pack(fill="x", pady=(2, 0))
+                xp_bg = tkinter.Frame(xp_row, background=COLOR_HAIRLINE, height=3)
+                xp_bg.pack(side="left", fill="x", expand=True)
+                xp_bg.pack_propagate(False)
+                xp_fill = tkinter.Frame(xp_bg, background=COLOR_ACCENT, height=3)
+                xp_fill.place(x=0, y=0, relheight=1.0, relwidth=0.0)
+                xp_text = tkinter.Label(
+                    xp_row, text="", background=COLOR_SURFACE, foreground=COLOR_MUTED, font=("Segoe UI", 8), anchor="e"
+                )
+                xp_text.pack(side="right", padx=(6, 0))
                 self._party_rows.append(
                     {
                         "frame": row_frame,
@@ -951,6 +1044,8 @@ class DashboardScreen:
                         "level": level,
                         "bar_fill": bar_fill,
                         "hp_text": hp_text,
+                        "xp_fill": xp_fill,
+                        "xp_text": xp_text,
                     }
                 )
 
@@ -964,6 +1059,8 @@ class DashboardScreen:
             row["level"].config(text="")
             row["bar_fill"].place_configure(relwidth=0.0)
             row["hp_text"].config(text="")
+            row["xp_fill"].place_configure(relwidth=0.0)
+            row["xp_text"].config(text="")
             return
 
         name = pokemon.name
@@ -990,6 +1087,13 @@ class DashboardScreen:
             text=f"{current_hp}/{total_hp}{status_text}",
             foreground=COLOR_CRITICAL if status_text else COLOR_INK_2,
         )
+
+        try:
+            xp_fraction = float(pokemon.exp_fraction_to_next_level)
+        except Exception:
+            xp_fraction = 0.0
+        row["xp_fill"].place_configure(relwidth=max(0.0, min(1.0, xp_fraction)))
+        row["xp_text"].config(text=f"XP {int(round(xp_fraction * 100))}%")
 
     # ------------------------------------------------------------------
     # Sprites & shiny log (sandbox A4)
@@ -1147,12 +1251,10 @@ class DashboardScreen:
         """A8 conflict escape hatch: cloud version -> brand-new profile."""
         if context.profile is None:
             return
-        from tkinter import simpledialog
 
-        name = simpledialog.askstring(
+        name = self._ask_text(
             "Import cloud save",
             "Name for the NEW profile that will hold the cloud version:",
-            parent=self.window,
         )
         if not name:
             return
@@ -1190,7 +1292,6 @@ class DashboardScreen:
         dialog.title("Restore a backup")
         dialog.configure(background=COLOR_SURFACE)
         dialog.geometry("460x360")
-        dialog.transient(self.window)
 
         tkinter.Label(
             dialog,
@@ -1266,6 +1367,9 @@ class DashboardScreen:
             relief="flat",
             padx=10,
         ).pack(pady=(2, 10))
+
+        # Float above the emulator (critical in handheld fullscreen) + center.
+        self._prepare_dialog(dialog)
 
     # ------------------------------------------------------------------
     # Controls
@@ -1353,8 +1457,6 @@ class DashboardScreen:
             self._macro_variable.set(names[0])
 
     def _toggle_macro_recording(self) -> None:
-        import tkinter.simpledialog
-
         from modules.macros import MacroError, recorder, save_macro
 
         if not recorder.armed:
@@ -1371,9 +1473,9 @@ class DashboardScreen:
         if macro is None:
             self._log_event("Recording stopped — no button presses captured, nothing saved.")
             return
-        name = tkinter.simpledialog.askstring(
-            "Save macro", f"Recorded {len(macro.steps)} step(s) / {macro.total_frames} frames.\nMacro name:",
-            parent=self.window,
+        name = self._ask_text(
+            "Save macro",
+            f"Recorded {len(macro.steps)} step(s) / {macro.total_frames} frames.\nMacro name:",
         )
         if not name:
             self._log_event("Recording discarded (no name given).")

@@ -267,3 +267,11 @@
   ordering; baseline recorded on failed push enabling a rollback) - both
   fixed. A1 backup battery still green; live GUI run confirms the sync
   status line and a clean close. Real desktop-Ally run = user test.
+
+## 2026-07-18 — Handheld polish: party XP bars + dialogs forced on top (sandbox, user feedback)
+- Sandbox dashboard GUI: added an XP-to-next-level bar under each party
+  member's HP bar; fixed popup dialogs (Restore, macro-name, cloud-import)
+  opening BEHIND the emulator in handheld fullscreen by forcing them
+  topmost/modal/centered and replacing simpledialog.askstring with a
+  touch-friendly `_ask_text` modal. py_compile + real-import verified;
+  XP-with-real-party and live fullscreen dialog stacking pending user test.
