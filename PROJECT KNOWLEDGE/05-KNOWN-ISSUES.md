@@ -57,9 +57,9 @@ fix goes in DIVERGENCE-LOG).
   threads, so startup is never blocked. Fix candidate: set
   `GIT_TERMINAL_PROMPT=0` in the subprocess env.
 
-## KI-6 — Tab bar overcrowds with 6 tabs (opened 2026-07-19, severity: med, sandbox)
-- **Symptom:** Adding the Hunt tab (#9) makes 6 tabs (Play/Party/Hunt/Stats/
-  Cheats/Backups) overflow the ~360px tool-column width — labels overlap
-  and truncate ("Hun Stat hea cku"). Visible in scratchpad/hunt_planner_*.
-- **Fix candidate:** scrollable/wrapping tab bar, icon tabs, an overflow
-  "⋯" menu, or regrouping. Must fix before promoting #9.
+## KI-6 — Tab bar overcrowds with 6 tabs — RESOLVED 2026-07-19 (sandbox)
+- **Symptom:** Adding the Hunt tab (#9) made 6 tabs overflow the ~360px
+  tool-column width — labels overlapped/truncated.
+- **Fix (done):** tab bar wraps to two balanced rows when there are >4 tabs
+  (3+3 for six), legible in both desktop and the handheld drawer
+  (screenshots ki6_1/ki6_2). Gamepad focus-nav + tab persist unaffected.

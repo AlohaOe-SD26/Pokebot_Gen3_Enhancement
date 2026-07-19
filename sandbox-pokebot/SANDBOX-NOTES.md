@@ -602,3 +602,28 @@ exercised by the local bare remote.
   Treecko/Rayquaza no-wild, sorting, cache round-trip + corrupt rebuild,
   method→mode). Index: 132 species / 805 location rows. Live screenshot of
   the populated Hunt tab. Bug fixed: str.index shadowed name resolution.
+
+## 2026-07-19 — KI-6 tab fix + Hunt Planner v2 (auto travel-and-hunt)
+- KI-6: tab bar now wraps to 2 balanced rows when >4 tabs (3+3 for six) —
+  legible in desktop + handheld drawer (dashboard_gui.py). Gamepad nav /
+  tab persist unaffected.
+- Hunt Planner v2: real one-click travel+hunt.
+  - `encounter_index.find_encounter_tile(map, method)` reads a map's tiles
+    from ROM (works pre-save) and returns a representative WALKABLE tile:
+    Grass = land encounter tile; Surfing = surfable encounter tile; rods =
+    land tile adjacent to water; else None (degrade). Scan-capped (4000).
+  - `set/get_hunt_target()` store the selection (species/map/tile/method),
+    persisted to profiles/<n>/hunt_target.json.
+  - New `plugins/custom_modes/hunt_mode.py` "Hunt (Custom)": navigates to
+    the tile via navigate_to_anywhere (avoid_encounters en route) then hunts
+    (spin for grass/surf, fish loop for rods). Default encounter pipeline
+    applies. No tile / no target → friendly BotModeError.
+  - Hunt tab "Hunt" button now sets the target + switches to Hunt (Custom).
+- Verified: py_compile + import + mode discovery (Hunt (Custom) listed) +
+  all 8 plugins load; 15/15 v2 battery (real-ROM tile finder incl. Route
+  103 grass tile validated as a real encounter tile + a surfable tile;
+  target round-trip; mocked-nav mode plan: grass→nav+spin, rod→nav+fish,
+  no-target/no-tile→error); live screenshots ki6_1 (desktop) + ki6_2
+  (handheld drawer) show 6 tabs legible.
+- HONEST GAP: actually walking the route + hunting needs a progressed save
+  (title-screen save can't); Rock Smash has no auto-tile (degrades).

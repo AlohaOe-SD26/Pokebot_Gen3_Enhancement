@@ -535,8 +535,15 @@ class DashboardScreen:
         # same in the handheld drawer). Sits above the scrollable area.
         self._tab_bar = tkinter.Frame(column, background=COLOR_SURFACE)
         self._tab_bar.pack(fill="x", padx=6, pady=(6, 2))
+        # Wrap tabs to two balanced rows when there are more than 4, so 6+
+        # tabs stay legible at the ~360px tool-column width instead of
+        # overlapping/truncating (KI-6). One row for <=4 tabs.
+        tab_count = len(TAB_ORDER)
+        per_row = tab_count if tab_count <= 4 else (tab_count + 1) // 2
+        for col in range(per_row):
+            self._tab_bar.columnconfigure(col, weight=1, uniform="tab")
         for index, tab_name in enumerate(TAB_ORDER):
-            self._tab_bar.columnconfigure(index, weight=1, uniform="tab")
+            row, col = divmod(index, per_row)
             button = tkinter.Button(
                 self._tab_bar,
                 text=tab_name,
@@ -550,7 +557,7 @@ class DashboardScreen:
                 padx=2,
                 pady=4,
             )
-            button.grid(row=0, column=index, sticky="ew", padx=1)
+            button.grid(row=row, column=col, sticky="ew", padx=1, pady=1)
             self._tab_buttons[tab_name] = button
 
         # --- scrollable card area (A4): all cards live inside `tools`, which
@@ -1718,6 +1725,7 @@ class DashboardScreen:
         ).pack(fill="x")
 
     def _plan_hunt(self, species_name: str) -> None:
+        self._hunt_species = species_name
         try:
             self._hunt_target_button.config(text=f"{species_name} ▾")
             for widget in self._hunt_results.winfo_children():
@@ -1762,23 +1770,45 @@ class DashboardScreen:
                 background=COLOR_SURFACE, foreground=COLOR_INK_2, anchor="w", font=("Segoe UI", 8),
             ).pack(side="left")
             tkinter.Button(
-                bottom, text="Hunt", command=lambda m=mode, n=loc["map_name"]: self._start_hunt(m, n),
+                bottom, text="Hunt", command=lambda l=loc: self._start_hunt(l),
                 background=COLOR_ACCENT, foreground=COLOR_INK, relief="flat", font=("Segoe UI", 8), padx=8,
             ).pack(side="right")
 
-    def _start_hunt(self, mode: str, map_name: str) -> None:
-        # v1: set the recommended bot mode (main-thread, same as the mode
-        # picker). If already at the spot it runs immediately; otherwise the
-        # mode's own asserts guide the user. Auto-TRAVEL to the map is v2 — it
-        # needs a travel bot mode wrapping navigate_to_anywhere driven by the
-        # main loop (a GUI button can't drive that generator directly).
+    def _start_hunt(self, location: dict) -> None:
+        # v2: one click = travel to the encounter tile + hunt. We resolve a
+        # representative tile now (reads the target map's tiles from the ROM),
+        # store the selection, then switch to the "Hunt (Custom)" mode which
+        # walks there via global navigation and hunts. Falls back gracefully
+        # if no tile can be auto-found.
         try:
-            if mode == "Manual":
-                self._log_event(f"{map_name}: no bot mode for this method — hunt manually.")
-                return
-            context.bot_mode = mode
+            from modules import encounter_index
+
+            method = location["method"]
+            map_key = tuple(location["map"])
+            map_name = location["map_name"]
+            species = getattr(self, "_hunt_species", None) or "target"
+            try:
+                tile = encounter_index.find_encounter_tile(map_key, method)
+            except Exception:
+                tile = None
+            encounter_index.set_hunt_target(
+                {
+                    "species": species,
+                    "map": [map_key[0], map_key[1]],
+                    "map_name": map_name,
+                    "method": method,
+                    "tile": list(tile) if tile else None,
+                }
+            )
+            context.bot_mode = "Hunt (Custom)"
             self._refresh_controls()
-            self._log_event(f"Hunt: set mode '{mode}' for {map_name} (travel there if not already; auto-travel is v2).")
+            if tile:
+                self._log_event(f"Hunt: travelling to {map_name} ({method}) to hunt {species}.")
+            else:
+                self._log_event(
+                    f"Hunt: set target {species} on {map_name}, but couldn't auto-find a "
+                    f"{method} tile — walk to the encounter area, then it'll hunt."
+                )
         except Exception as error:
             self._log_event(f"Could not start hunt: {error}", highlight=True)
 

@@ -399,3 +399,13 @@
   encounters + no-wild for starters/legendaries); 132 species / 805 rows.
   Auto-travel-to-map deferred to v2 (needs a travel mode). Fixed a
   str.index name-resolution shadowing bug found in testing.
+
+## 2026-07-19 — Fix tab overcrowd (KI-6) + Hunt Planner v2 auto-travel (sandbox, #9)
+- KI-6 fixed: tab bar wraps to two rows for >4 tabs (legible desktop +
+  handheld drawer).
+- Hunt Planner v2: encounter_index.find_encounter_tile (reads map tiles
+  from ROM to pick a walkable grass/water/fishing tile), hunt-target
+  storage, and a new "Hunt (Custom)" bot mode that navigates to the tile
+  via global nav then hunts (spin/fish). Hunt tab button = one-click
+  travel+hunt. 15/15 v2 battery + live screenshots. Gap: live walk needs a
+  progressed save.

@@ -207,3 +207,105 @@ def index_stats() -> dict:
         "species_with_locations": len(index),
         "total_location_rows": sum(len(v) for v in index.values()),
     }
+
+
+# --------------------------------------------------------------------------
+# Hunt Planner v2 — encounter-tile finder + selected-target storage
+# --------------------------------------------------------------------------
+
+def find_encounter_tile(map_key, method: str, max_scan: int = 4000) -> "tuple[int, int] | None":
+    """Find a representative WALKABLE tile on `map_key` for `method`, closest
+    to the map centre (more likely reachable). Reads the map's tiles straight
+    from the ROM via map.get_map_data, so it works even before a save exists.
+
+    - Grass       -> a walkable land tile flagged as an encounter tile.
+    - Surfing     -> a surfable (water) encounter tile.
+    - Old/Good/Super Rod -> a walkable land tile adjacent to water (fish from).
+    - Anything else (e.g. Rock Smash) -> None (caller degrades to manual).
+
+    Returns (x, y) local coordinates, or None if nothing suitable / unreadable.
+    """
+    from modules import map as map_module
+
+    try:
+        origin = map_module.get_map_data(tuple(map_key), (0, 0))
+        width, height = origin.map_size
+    except Exception as error:
+        _log.warning("find_encounter_tile: cannot read %s: %s", map_key, error)
+        return None
+
+    center_x, center_y = width // 2, height // 2
+    best: "tuple[int, int] | None" = None
+    best_distance: "int | None" = None
+    scanned = 0
+
+    def _tile(x: int, y: int):
+        try:
+            return map_module.get_map_data(tuple(map_key), (x, y))
+        except Exception:
+            return None
+
+    for y in range(height):
+        for x in range(width):
+            scanned += 1
+            if scanned > max_scan and best is not None:
+                return best
+            tile = _tile(x, y)
+            if tile is None:
+                continue
+            ok = False
+            try:
+                if method == "Grass":
+                    ok = tile.has_encounters and not tile.is_surfable and tile.collision == 0
+                elif method == "Surfing":
+                    ok = tile.has_encounters and tile.is_surfable
+                elif method in ("Old Rod", "Good Rod", "Super Rod"):
+                    if tile.collision == 0 and not tile.is_surfable:
+                        for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                            if 0 <= nx < width and 0 <= ny < height:
+                                neighbour = _tile(nx, ny)
+                                if neighbour is not None and neighbour.is_surfable:
+                                    ok = True
+                                    break
+            except Exception:
+                ok = False
+            if ok:
+                distance = (x - center_x) ** 2 + (y - center_y) ** 2
+                if best_distance is None or distance < best_distance:
+                    best, best_distance = (x, y), distance
+    return best
+
+
+_hunt_target: "dict | None" = None
+
+
+def set_hunt_target(target: "dict | None") -> None:
+    """Store the Hunt tab's selection (species/map/tile/method). Persisted to
+    the profile so the Hunt (Custom) mode reads it at run() start."""
+    global _hunt_target
+    _hunt_target = target
+    try:
+        if context.profile is not None:
+            path = context.profile.path / "hunt_target.json"
+            if target is None:
+                path.unlink(missing_ok=True)
+            else:
+                path.write_text(json.dumps(target), encoding="utf-8")
+    except Exception as error:
+        _log.warning("could not persist hunt target: %s", error)
+
+
+def get_hunt_target() -> "dict | None":
+    global _hunt_target
+    if _hunt_target is not None:
+        return _hunt_target
+    try:
+        if context.profile is not None:
+            path = context.profile.path / "hunt_target.json"
+            if path.is_file():
+                data = json.loads(path.read_text(encoding="utf-8"))
+                if isinstance(data, dict):
+                    _hunt_target = data
+    except Exception:
+        pass
+    return _hunt_target
