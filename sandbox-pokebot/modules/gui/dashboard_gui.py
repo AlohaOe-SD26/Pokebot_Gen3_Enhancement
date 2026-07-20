@@ -378,6 +378,7 @@ class DashboardScreen:
         self._money_lock_variable = None
         # #23 living-dex panel widgets (cleared so a post-disable refresh no-ops)
         self._livingdex_label = None
+        self._livingdex_plan_label = None
         self._livingdex_custom_button = None
         self._livingdex_pending = []
         # #11 analytics widgets
@@ -2127,6 +2128,13 @@ class DashboardScreen:
         )
         self._livingdex_label.pack(fill="x")
 
+        # #41/#42: how the remaining dex is obtained + what the player can do now.
+        self._livingdex_plan_label = tkinter.Label(
+            card, text="", background=COLOR_CARD, foreground=COLOR_MUTED,
+            anchor="w", justify="left", wraplength=300, font=("Segoe UI", 8),
+        )
+        self._livingdex_plan_label.pack(fill="x", pady=(2, 0))
+
         tkinter.Button(
             card, text="Start — all uncaught wild", command=self._livingdex_start_all,
             background=COLOR_ACCENT, foreground=COLOR_INK, activebackground=COLOR_ACCENT,
@@ -2203,6 +2211,9 @@ class DashboardScreen:
             self._log_event(f"Could not stop Living Dex: {error}", highlight=True)
 
     def _refresh_living_dex(self) -> None:
+        # The obtainability/capability line is independent of whether a run is
+        # configured, so refresh it always.
+        self._refresh_living_dex_plan()
         label = getattr(self, "_livingdex_label", None)
         if label is None or not label.winfo_exists():
             return
@@ -2226,6 +2237,39 @@ class DashboardScreen:
             label.config(text=f"{done}/{total} owned · next: {name}")
         except Exception:
             pass
+
+    def _refresh_living_dex_plan(self) -> None:
+        """#41/#42: obtainability breakdown of the uncaught dex + the player's
+        current capabilities (what field moves / rods / badges they have)."""
+        label = getattr(self, "_livingdex_plan_label", None)
+        if label is None or not label.winfo_exists():
+            return
+        try:
+            from modules import living_dex, capabilities
+
+            breakdown = living_dex.obtainability_breakdown()
+            caps = capabilities.capability_report()
+            have = []
+            if caps.get("surf"):
+                have.append("Surf")
+            for rod, key in (("Old Rod", "old_rod"), ("Good Rod", "good_rod"), ("Super Rod", "super_rod")):
+                if caps.get(key):
+                    have.append(rod)
+            if caps.get("rock_smash"):
+                have.append("Rock Smash")
+            have_text = ", ".join(have) if have else "none yet"
+            label.config(
+                text=(
+                    f"Uncaught: {len(breakdown['wild'])} wild · {len(breakdown['evolution'])} evolve · "
+                    f"{len(breakdown['special'])} special/trade\n"
+                    f"You can use: {have_text}"
+                )
+            )
+        except Exception:
+            try:
+                label.config(text="")
+            except Exception:
+                pass
 
     def _open_species_picker(self, on_choose=None, shiny: "bool | None" = None) -> None:
         """Searchable, sprite-illustrated species dropdown. Type to filter

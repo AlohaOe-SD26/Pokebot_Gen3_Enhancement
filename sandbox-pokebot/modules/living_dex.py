@@ -154,3 +154,66 @@ def next_target_index(run: dict) -> int | None:
         if sid not in owned and sid not in done:
             return sid
     return None
+
+
+def best_reachable_location(species_index: int):
+    """The best (highest-rate) wild location for a species whose ENCOUNTER
+    METHOD the player can currently use (#42 capability gate), preferring a
+    reachable method over an unreachable one.
+
+    Returns (location_dict, "") when a reachable location exists, else
+    (None, reason) where `reason` explains the capability the player lacks
+    (from the best location). (None, "no wild location") when there are none.
+    """
+    from modules import capabilities
+
+    locations = encounter_index.locations_for_species(species_index)
+    if not locations:
+        return None, "no wild location"
+    first_reason = ""
+    for location in locations:  # best-rate first
+        allowed, reason = capabilities.can_use_method(location.get("method", "Grass"))
+        if allowed:
+            return location, ""
+        if not first_reason:
+            first_reason = reason
+    return None, first_reason or "not currently reachable"
+
+
+_breakdown_cache: dict = {"owned_count": -1, "value": None}
+
+
+def obtainability_breakdown() -> dict:
+    """How EVERY not-yet-owned species is obtained (#41 view), independent of the
+    (wild-only) run targets. Returns
+      {"wild": [(sid, name)], "evolution": [(sid, name, reason)],
+       "special": [(sid, name, reason)]}
+    where 'special' = gift/static/roamer/trade/event/unobtainable (needs the
+    research list). Lightly cached by owned-count so a GUI refresh is cheap."""
+    from modules import obtainability
+    from modules.pokemon import get_species_by_national_dex
+
+    owned = owned_indices()
+    if _breakdown_cache["owned_count"] == len(owned) and _breakdown_cache["value"] is not None:
+        return _breakdown_cache["value"]
+
+    wild: list = []
+    evolution: list = []
+    special: list = []
+    for national_dex in range(1, 387):
+        try:
+            species = get_species_by_national_dex(national_dex)
+        except Exception:
+            continue
+        if species.index in owned:
+            continue
+        info = obtainability.classify(species.index)
+        if info["kind"] == "wild":
+            wild.append((species.index, species.name))
+        elif info["kind"] == "evolution":
+            evolution.append((species.index, species.name, info.get("reason", "")))
+        else:
+            special.append((species.index, species.name, info.get("reason", "")))
+    value = {"wild": wild, "evolution": evolution, "special": special}
+    _breakdown_cache.update(owned_count=len(owned), value=value)
+    return value

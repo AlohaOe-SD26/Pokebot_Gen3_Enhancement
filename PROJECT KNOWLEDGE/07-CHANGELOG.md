@@ -480,3 +480,12 @@
   the hover tooltip as a proper icon+name row ("Caught in: <Ball>").
   Verified live on the real save (clean strip; save untouched, md5 match)
   + stub tooltip render (Ultra Ball icon + row).
+
+## 2026-07-19 — Living-dex obtainability (evolution) + capability gating (sandbox, #41-evo/#42-easy)
+- New modules/obtainability.py (evolution/wild classifier, internal-id) +
+  modules/capabilities.py (save-readable Surf/rod/Rock-Smash/badge gate).
+  living_dex now defers targets needing a missing capability (retried later)
+  and exposes an obtainability breakdown; GUI Living Dex panel shows both.
+- 30/30 offline units + live-verified on the real save (128 wild/147 evolve/
+  102 special uncaught; rods detected; save md5-identical). Research half of
+  #41 + #42-hard reachability still to do.

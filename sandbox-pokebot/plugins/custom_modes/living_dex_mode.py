@@ -44,6 +44,10 @@ class LivingDexMode(BotMode):
         super().__init__()
         self._current_target_index: int | None = None
         self._run: dict | None = None
+        # Targets deferred THIS session because the player lacks a capability
+        # (e.g. Surf / a specific rod) — sid -> reason. Not persisted to `done`,
+        # so a later run (after earning the badge/rod) retries them.
+        self._deferred: dict = {}
 
     def on_battle_started(self, encounter):
         # OPPORTUNISTIC catch (#43): catch ANY un-owned species that is part of
@@ -78,14 +82,15 @@ class LivingDexMode(BotMode):
                 "(all-uncaught or a custom list)."
             )
         self._run = run  # cached so on_battle_started checks the plan without a disk read
+        self._deferred = {}
         assert_player_has_poke_balls()
 
         from modules.pokemon import get_species_by_index
 
         while True:
-            sid = living_dex.next_target_index(run)
+            sid = self._pick_target(run)
             if sid is None:
-                break  # every target owned/done
+                break  # every target owned/done/deferred
 
             self._current_target_index = sid
             try:
@@ -94,16 +99,24 @@ class LivingDexMode(BotMode):
             except Exception:
                 species_name = f"#{sid}"
 
-            locations = encounter_index.locations_for_species(sid)
-            if not locations:
-                self._skip(run, sid, f"{species_name}: no wild location")
+            # #42 capability gate: pick the best location whose ENCOUNTER METHOD
+            # the player can actually use now (e.g. don't pick a Surf slot with
+            # no Surf, or a Super-Rod slot with no Super Rod). Defer — not
+            # permanently skip — a target that needs a capability we lack.
+            location, reason = living_dex.best_reachable_location(sid)
+            if location is None:
+                if reason == "no wild location":
+                    self._skip(run, sid, f"{species_name}: no wild location")
+                else:
+                    self._deferred[sid] = reason
+                    context.message = f"Living Dex: {species_name} deferred — {reason}"
+                    self._alert(f"Living Dex deferring {species_name} — {reason}")
                 continue
 
-            best = locations[0]
-            method = best.get("method", "Grass")
-            target_map = tuple(best["map"])
-            map_name = best.get("map_name", f"{target_map[0]}.{target_map[1]}")
-            tile = best.get("tile") or encounter_index.find_encounter_tile(target_map, method)
+            method = location.get("method", "Grass")
+            target_map = tuple(location["map"])
+            map_name = location.get("map_name", f"{target_map[0]}.{target_map[1]}")
+            tile = location.get("tile") or encounter_index.find_encounter_tile(target_map, method)
             if tile is None:
                 self._skip(run, sid, f"{species_name}: no reachable {method} tile on {map_name}")
                 continue
@@ -138,12 +151,30 @@ class LivingDexMode(BotMode):
             living_dex.save_run(run)
             self._alert(f"Living Dex: caught {species_name}!")
 
-        # Exhausted.
-        context.message = "Living Dex run complete — every wild target owned."
-        self._alert("Living Dex run complete!")
+        # Exhausted (owned/done/deferred all consumed).
+        if self._deferred:
+            reasons = "; ".join(sorted(set(self._deferred.values())))
+            context.message = (
+                f"Living Dex: caught everything reachable. {len(self._deferred)} target(s) deferred — {reasons}."
+            )
+            self._alert(f"Living Dex done for now — {len(self._deferred)} deferred (e.g. {reasons}).")
+        else:
+            context.message = "Living Dex run complete — every wild target owned."
+            self._alert("Living Dex run complete!")
         context.set_manual_mode()
 
     # -- helpers --
+    def _pick_target(self, run: dict) -> int | None:
+        """First target that is not owned, not done, and not deferred this
+        session (deferred = a capability the player lacks; retried next run)."""
+        owned = living_dex.owned_indices()
+        done = set(run.get("done", []))
+        for sid in run.get("targets", []):
+            if sid in owned or sid in done or sid in self._deferred:
+                continue
+            return sid
+        return None
+
     def _can_fit_pokemon(self) -> bool:
         try:
             from modules.modes._asserts import assert_boxes_or_party_can_fit_pokemon

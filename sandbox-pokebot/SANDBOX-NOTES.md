@@ -785,3 +785,32 @@ process.
   Bulbasaur/Ultra Ball → ball row + icon shown); LIVE on the real
   Nick - Emerald save → clean strip (mon sprites, no ball backdrop),
   save md5-identical after run.
+
+## 2026-07-19 — #41 obtainability (evolution half) + #42 capability gate (easy half)
+- `modules/obtainability.py`: classify(species_index) in INTERNAL ids (per
+  11-LIVINGDEX-DESIGN §0.1) → kind wild/evolution/unknown, evolution chain to
+  base + method, automatable/needs_user (trade & item & beauty → needs_user;
+  all-level + wild base → automatable). plan_for() targets the wild BASE for
+  evolve-only species. The static/gift/roamer/trade/event/unobtainable split
+  is left "unknown" honestly (research half, still to compile).
+- `modules/capabilities.py`: can_use_method() reads the save — Surf needs the
+  Surf move + Balance Badge (BADGE05); rods need the matching rod key item;
+  Rock Smash needs the move + Dynamo Badge (BADGE03); Grass always ok;
+  unknown methods permissive (never wrongly skip). capability_report() for GUI.
+- `modules/living_dex.py`: best_reachable_location() prefers a location whose
+  method the player can use now, defers (with reason) otherwise;
+  obtainability_breakdown() classifies the whole uncaught dex (cached by
+  owned-count).
+- `plugins/custom_modes/living_dex_mode.py`: target selection now capability-
+  gated — defers targets needing a capability the player lacks (retried a
+  later session, NOT marked done); reports deferrals when the run pauses.
+- GUI: LIVING DEX panel shows the obtainability breakdown + "You can use: …"
+  capability line.
+- Verified: 30/30 offline unit battery (evolution classify incl. Gyarados/
+  Crobat/Vaporeon/Alakazam/Milotic/Caterpie; capability gate; best-reachable
+  preference); live on the REAL Nick-Emerald save → panel showed "Uncaught:
+  128 wild · 147 evolve · 102 special/trade" + "You can use: Old Rod, Good
+  Rod, Super Rod" (real reads); save md5-identical.
+- STILL TODO: #41 research-list compile (gift/static/roamer/trade/event/
+  unobtainable) + honesty denominator; #42-HARD HM-gated map reachability;
+  auto-evolve helper (level/stone) so evolve-only species auto-complete.
