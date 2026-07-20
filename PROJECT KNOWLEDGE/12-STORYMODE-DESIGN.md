@@ -1508,8 +1508,22 @@ actual open exit tile + identify the (4,13) script — do NOT blind-guess coords
   NORTH warp (Woods 14-15,5) onto Route 104 north. Deterministic (16123 frames,
   x2). Checkpoint `route104_north.ss1` (Route 104 north (11,29)).
 - Woods warps (from mapdump): south doors (16-17,38)&(36-37,38)→Route104; north
-  exit (14-15,5)→Route104. Both StoryMode-wired (ends "Route 104 north").
-- Legs 4 (Route104 north→Rustboro) + Gym 1 remain.
+  exit (14-15,5)→Route104.
+- **Leg 4** `travel_route104_north_to_rustboro()`: single navigate (Route 104
+  north connects DIRECTLY to Rustboro, no warp split), no-flee strategy for route
+  trainers. Deterministic (3166 frames, x2). Checkpoint `rustboro.ss1`.
+- **GYM 1** `do_rustboro_gym()`: heal at Rustboro PC → enter gym → navigate up to
+  (5,4) fighting the two gym Youngsters inline → step to (5,3) and face-up+A to
+  challenge ROXANNE (object id=1 at gym (5,2)) → ride out battle+dialogue until
+  BADGE01_GET. Deterministic (21505 frames, x2; Mudkip Lv13→Lv16, won at 21 HP).
+  Checkpoint `gym1_done.ss1`. **A FRESH GAME NOW PLAYS THROUGH TO THE STONE BADGE.**
+  All of legs 1-4 + Gym 1 are StoryMode-wired.
+- **STARTER CAVEAT (Gym 1):** verified with **Mudkip** (Water Gun = 4x on Roxanne's
+  Rock/Ground Geodudes, 2x on Nosepass — ideal). **Treecko** (Grass) resists Rock
+  and is fine. **TORCHIC** (Fire) is WEAK to Rock with no super-effective move here
+  — a Torchic run likely needs extra grinding and/or a caught helper (e.g. a
+  Route-104 Lotad / a Ground move). `do_rustboro_gym` currently assumes a
+  favourable/leveled starter; the Torchic path is an OPEN TODO (see punch list).
 
 **HARNESS FIDELITY (companion to ML-5):** the listener test harness must READ
 map/player state each frame (e.g. `get_player_avatar()` +

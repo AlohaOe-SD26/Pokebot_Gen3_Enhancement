@@ -933,3 +933,58 @@ def travel_route104_north_to_rustboro() -> Generator:
             yield from _ride_out_scripted_scene("B")
     yield from wait_for_player_avatar_to_be_controllable()
     context.message = "Story: arrived in Rustboro City."
+
+
+# Roxanne (the Rustboro gym leader) stands at gym tile (5,2); the challenge tile
+# right below her is (5,3), approached from (5,4):
+RUSTBORO_GYM_ROXANNE_APPROACH = (5, 4)
+
+
+def do_rustboro_gym() -> Generator:
+    """Rustboro Gym — beat Roxanne for the Stone Badge (BADGE01, Gym 1).
+
+    INTENT: clear the first gym.
+    STORY CONDITION: in Rustboro City with a starter strong enough to win.
+    Mudkip/Treecko are favourable (Mudkip's Water Gun is 4x on Roxanne's
+    Rock/Ground Geodudes and 2x on Nosepass); TORCHIC is Fire = weak to Rock and
+    has no super-effective move here, so a Torchic run may need extra training or
+    a caught helper (TODO — see design notes / punch list).
+    HOW IT WORKS: heal at the Rustboro Poké Center first (full-HP buffer for the
+    un-fleeable gym-trainer + leader battles — a lone starter can't rotate),
+    enter the gym, navigate up to the challenge tile below Roxanne (fighting the
+    two gym Youngsters inline with the no-flee travel strategy), then face up and
+    press A to challenge Roxanne. Advance dialogue until BADGE01_GET is set (the
+    battle itself is driven by the battle listener / on_battle_started).
+    GOAL/END STATE: BADGE01_GET set (Stone Badge earned), gym cleared."""
+    from modules.memory import get_event_flag
+
+    context.message = "Story: healing before challenging Rustboro Gym (Roxanne)..."
+    yield from heal_in_pokemon_center(PokemonCenter.RustboroCity)
+
+    context.message = "Story: entering Rustboro Gym to challenge Roxanne..."
+    yield from navigate_to_anywhere(
+        MapRSE.RUSTBORO_CITY_GYM,
+        RUSTBORO_GYM_ROXANNE_APPROACH,
+        avoid_encounters=True,
+        avoid_scripted_events=False,
+    )
+
+    # Step up to the challenge tile (5,3) directly below Roxanne (5,2). Stop early
+    # if a battle/script already engaged (a gym trainer's sight line, or Roxanne).
+    for _ in range(40):
+        if get_event_flag("BADGE01_GET") or get_global_script_context().is_active:
+            break
+        context.emulator.press_button("Up")
+        yield
+
+    # Challenge Roxanne (face up + A) and ride out the whole battle + dialogue
+    # until the Stone Badge flag is set. The battle listener fights it (no-flee).
+    frames = 0
+    while not get_event_flag("BADGE01_GET"):
+        context.emulator.press_button("B" if frames % 3 else "A")
+        frames += 1
+        if frames > 12000:
+            raise BotModeError("Did not earn the Stone Badge from Roxanne.")
+        yield
+    yield from _wait_until_cutscene_over("B")
+    context.message = "Story: earned the STONE BADGE — Gym 1 cleared!"

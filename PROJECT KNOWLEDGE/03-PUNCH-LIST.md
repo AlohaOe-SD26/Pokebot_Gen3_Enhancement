@@ -86,6 +86,13 @@
       team; enumerate EVERY key event/interaction/item/requirement to
       progress + how to obtain progression items. Design → 12-STORYMODE-
       DESIGN.md, several verification passes before building.
+      - PROGRESS (2026-07-20): a fresh game auto-plays through **GYM 1 (Stone
+        Badge)** — intro→starter→first battle→Pokédex→train→rival→Petalburg→
+        Dad/Wally→Route104→Petalburg Woods (Aqua scene)→Rustboro→Roxanne.
+        Legs 1-2 promoted to custom; legs 3-4 + Gym 1 in sandbox (awaiting
+        test→promote). NEXT: Chapter 4 (deliver Devon Goods → Rusturf Tunnel →
+        Dewford / Gym 2). OPEN: Torchic-vs-Roxanne needs a training/helper plan;
+        chapters.py Ch2 completion-flag bug (low pri).
 
 ## Living-Dex deepening (user-requested 2026-07-19; DESIGN-FIRST, no cutting corners)
 - [ ] #41 — Obtainability model: classify every species — wild / evolution

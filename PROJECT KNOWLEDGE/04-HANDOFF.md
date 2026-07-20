@@ -58,16 +58,23 @@ flavor all done, Phases 1/2/3a). `itemdex_data.json` = core (309 items);
 gaps = map_locations/mart/pickup/historical.
 
 ## Most recent work (2026-07-20)
-- **AUTONOMOUS RUN in progress** (user granted full autonomy to build story
-  chunks until a wall). Done this run: (a) documented the Story bot's PURPOSE —
-  it's the deterministic REFERENCE/scaffold for the SEPARATE Pokémon Emerald AI
-  project (design §P, 01-VISION); (b) built the reusable recon tool
-  `sandbox-pokebot/tools/mapdump.py` + a RECON PLAYBOOK (design §R); (c)
-  PROMOTED Petalburg→Woods (legs 1-2) to custom (`8686a8d8`); (d) built + verified
-  **leg 3 `cross_petalburg_woods()`** (Woods maze + Aqua/Devon scene → Route 104
-  north, 16123 frames ×2, deterministic; `route104_north.ss1`). NEXT: leg 4
-  (Route 104 north → Rustboro), then Gym 1 (Roxanne). Story functions must be
-  tested with a per-frame state-refresh harness (design §16 harness-fidelity note).
+- **AUTONOMOUS RUN (2026-07-20): a fresh game now auto-plays through GYM 1
+  (Stone Badge).** User granted full autonomy to build story chunks until a wall.
+  Done this run: (a) documented the Story bot's PURPOSE — it's the deterministic
+  REFERENCE/scaffold for the SEPARATE Pokémon Emerald AI project (design §P,
+  01-VISION); (b) built the reusable recon tool `sandbox-pokebot/tools/mapdump.py`
+  + a RECON PLAYBOOK (design §R); (c) PROMOTED Petalburg→Woods (legs 1-2) to
+  custom (`8686a8d8`); (d) built + verified (all deterministic, ×2, via the
+  listener harness with per-frame state refresh):
+  **leg 3** `cross_petalburg_woods()` (Woods maze + Aqua/Devon scene → Route 104
+  north), **leg 4** `travel_route104_north_to_rustboro()` (→ Rustboro), and
+  **GYM 1** `do_rustboro_gym()` (heal → gym → beat Roxanne → BADGE01_GET). All
+  wired into StoryMode. Checkpoints: route104_north / rustboro / gym1_done .ss1.
+  **NOT yet promoted** (legs 3-4 + Gym 1 await user test→promote).
+  NEXT: Chapter 4 (deliver Devon Goods → Rusturf Tunnel → Dewford / Gym 2).
+  OPEN: Torchic-vs-Roxanne needs a training/helper plan (do_rustboro_gym assumes
+  a favourable starter; verified with Mudkip). Story functions MUST be tested
+  with a per-frame state-refresh harness (design §16 harness-fidelity note).
 - **Story travel Petalburg → Petalburg Woods BUILT + verified (sandbox, not
   promoted).** `travel_to_petalburg_woods()` (early_game.py) + new
   `LevelUpTravelBattleStrategy` (story_mode.py), wired into StoryMode. Chain:

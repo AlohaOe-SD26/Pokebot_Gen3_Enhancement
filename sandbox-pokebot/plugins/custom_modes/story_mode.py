@@ -141,6 +141,7 @@ class StoryMode(BotMode):
             go_upstairs_and_set_clock,
             help_birch_and_choose_starter,
             cross_petalburg_woods,
+            do_rustboro_gym,
             return_to_lab_and_get_pokedex,
             train_lead_to_level,
             travel_route104_north_to_rustboro,
@@ -175,10 +176,12 @@ class StoryMode(BotMode):
         yield from travel_to_petalburg_woods()
         yield from cross_petalburg_woods()
         yield from travel_route104_north_to_rustboro()
+        yield from do_rustboro_gym()
 
         context.message = (
-            "Story: reached Rustboro City! Gym 1 (Roxanne) is still being "
-            "built; handing to manual."
+            "Story: earned the STONE BADGE (Gym 1 / Roxanne)! The next chapter "
+            "(deliver the Devon Goods -> Rusturf Tunnel -> Dewford) is still "
+            "being built; handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()

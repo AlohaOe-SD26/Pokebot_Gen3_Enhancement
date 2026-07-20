@@ -842,3 +842,13 @@ Added `travel_route104_north_to_rustboro()` (early_game.py), wired into StoryMod
 trainers). Verified deterministically (route104_north.ss1 -> Rustboro (20,42),
 3166 frames, x2) using the reusable harness (tools pattern) with per-frame state
 refresh. Checkpoint rustboro.ss1. Sandbox-only.
+
+## 2026-07-20 — Story: GYM 1 (Roxanne) — Stone Badge (#24, sandbox)
+Added `do_rustboro_gym()` (early_game.py), wired into StoryMode. Heals at the
+Rustboro Poké Center, enters the gym, navigates up to Roxanne fighting the two
+gym Youngsters inline (no-flee strategy), then challenges Roxanne (face-up + A)
+and rides out the battle+dialogue until BADGE01_GET. Verified deterministically
+(rustboro.ss1 -> BADGE01_GET True, 21505 frames, x2; Mudkip Lv13->16, won at
+21 HP). **A fresh game now auto-plays all the way to the Stone Badge.** Starter
+caveat: verified with Mudkip (ideal); Torchic (Fire, weak to Rock) is an open
+TODO. Checkpoint gym1_done.ss1. Sandbox-only.
