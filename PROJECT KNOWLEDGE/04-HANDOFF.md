@@ -72,9 +72,22 @@ gaps = map_locations/mart/pickup/historical.
   wired into StoryMode. Checkpoints: route104_north / rustboro / gym1_done .ss1.
   **NOT yet promoted** (legs 3-4 + Gym 1 await user test→promote).
   NEXT: Chapter 4 (deliver Devon Goods → Rusturf Tunnel → Dewford / Gym 2).
-  OPEN: Torchic-vs-Roxanne needs a training/helper plan (do_rustboro_gym assumes
-  a favourable starter; verified with Mudkip). Story functions MUST be tested
-  with a per-frame state-refresh harness (design §16 harness-fidelity note).
+- **FIX (2026-07-20, user-reported): Petalburg Woods STALL** — the real bot got
+  "stuck" in the Woods (all my tests passed). Root cause ML-9: door entry
+  hand-stepped onto the warp tile (flaky → BotModeError → main.py Manual mode =
+  "stuck"), AND my harness masked it by reading player/map every frame. FIX: warp
+  via `navigate_to(map, door_tile)` (`_pass_through_door`, like
+  heal_in_pokemon_center). Re-verified with a MAIN.PY-FAITHFUL harness
+  (scratch `faithful.py`): wally_done → Woods → Rustboro → Gym 1 → BADGE01_GET
+  True, no error. Fixed in BOTH builds (sandbox + custom — leg 2 was promoted).
+  **Test harness rule CORRECTED (design §16 / ML-9): match main.py — do NOT read
+  player/map every frame (it hides timing bugs); catch BotModeError→manual.**
+- **NEW punch-list items** (both user-requested, future): **#24-team** organic
+  team-building / helper acquisition (design §TB), and **#24-ui** a Story-bot
+  pre-run settings popup (name / starter / nickname). #24-ui is explicitly
+  "after the bot is finished + tested 100%".
+- OPEN: Torchic-vs-Roxanne needs the #24-team helper model (do_rustboro_gym
+  assumes a favourable starter; verified with Mudkip).
 - **Story travel Petalburg → Petalburg Woods BUILT + verified (sandbox, not
   promoted).** `travel_to_petalburg_woods()` (early_game.py) + new
   `LevelUpTravelBattleStrategy` (story_mode.py), wired into StoryMode. Chain:

@@ -150,6 +150,44 @@ while frames < CAP:
 
 ---
 
+## §TB. ORGANIC TEAM-BUILDING & HELPER MODEL (design — future, punch-list #24-team)
+
+**Goal (user, 2026-07-20):** the bot should build a team to beat gyms/trainers,
+but the decision to go catch a "helper" must look **organic, not mechanical** —
+a human adapting, not an optimizer. It ties directly to the AI-reference purpose
+(§P): a trajectory that *adapts under pressure* is far richer training data than
+one that always pre-counters. NOT needed for Gym 1 with Mudkip/Treecko; it becomes
+necessary for **Torchic vs Roxanne** and for later type-hard gyms.
+
+**Model — a rising "recruit urge", not a rule:**
+- Maintain a **pressure score** that RISES on struggle and decays on success:
+  a battle lost / near-wipe / lead fainting / a gym attempt failed all add
+  weight (more weight = bigger setback). Winning comfortably lets it decay.
+- Each time the bot is about to tackle a hard fight (or between fights), it
+  **re-rolls**: `P(go catch a helper) = f(pressure, current team gaps)`. Low at
+  first (it tries with what it has — organic), rising with repeated failure so a
+  stuck run self-rescues. Randomness means it won't always grab the obvious
+  counter, and sometimes tries again first — human-like.
+- The re-roll is **weighted by real team gaps**, so when it DOES recruit, the
+  choice is *logical*: prefer a species that (a) covers the upcoming/again-lost
+  type matchup, (b) adds **type diversity** to the team (avoid stacking one
+  type), (c) brings **move-type coverage** the team lacks. Pull candidates from
+  the **obtainability + reachability data we already built** (#41/#42,
+  `emerald_obtainability.json`) filtered to what's catchable on routes reached so
+  far (e.g. pre-Roxanne: a **Lotad** on Route 102/103/104, a **Marill** Water,
+  or a Ground move) — never a mon we can't yet reach.
+- Then it **goes and catches it organically** (travel to the route, encounter,
+  weaken, throw balls) and optionally trains it, before re-attempting the fight.
+
+**Why this shape:** increasing odds on failure guarantees eventual progress
+(no hard stuck), while the low starting odds + randomness + gap-weighting keep it
+from looking like a min-maxer. Tunable knobs: base P, pressure gain/decay,
+gap-weight mix. Details (exact scoring, candidate tables per chapter, catch
+routine) to be settled when implemented. Reuses: the no-flee travel strategy,
+`navigate_to_anywhere`, the recon tools, and the obtainability model.
+
+---
+
 ## 0. TL;DR for a future agent
 
 The bot is a **shiny-hunting automation** whose primitives happen to be exactly

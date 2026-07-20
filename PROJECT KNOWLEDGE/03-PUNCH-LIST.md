@@ -90,9 +90,24 @@
         Badge)** — intro→starter→first battle→Pokédex→train→rival→Petalburg→
         Dad/Wally→Route104→Petalburg Woods (Aqua scene)→Rustboro→Roxanne.
         Legs 1-2 promoted to custom; legs 3-4 + Gym 1 in sandbox (awaiting
-        test→promote). NEXT: Chapter 4 (deliver Devon Goods → Rusturf Tunnel →
-        Dewford / Gym 2). OPEN: Torchic-vs-Roxanne needs a training/helper plan;
-        chapters.py Ch2 completion-flag bug (low pri).
+        test→promote). Fixed the Woods-door stall (ML-9) in BOTH builds. NEXT:
+        Chapter 4 (deliver Devon Goods → Rusturf Tunnel → Dewford / Gym 2).
+        Low-pri OPEN: chapters.py Ch2 completion-flag bug.
+- [ ] #24-team — ORGANIC TEAM-BUILDING / helper acquisition (user 2026-07-20;
+      design in 12-STORYMODE-DESIGN §TB). Bot builds a team to beat gyms/trainers
+      but decides to catch "helpers" ORGANICALLY: a rising "recruit urge" that
+      grows with failed/struggled battles (increasing re-rolls/odds), weighted by
+      real team gaps (type matchup vs the fight, team type-diversity, move
+      coverage), pulling candidates from the obtainability+reachability data
+      (#41/#42). Random/human-like, not a min-maxer. Needed for Torchic-vs-Roxanne
+      and later type-hard gyms; implement when a gym requires it.
+- [ ] #24-ui — STORY-BOT PRE-RUN SETTINGS POPUP (user 2026-07-20). A popup/menu
+      shown BEFORE the Story bot runs to set: player name; starter nickname mode
+      (none / defined / random); starter choice (specific / random); + other
+      settings TBD. Front-end for the existing `<profile>/story.yml`
+      (character_name/gender/starter/starter_nickname already read by
+      modules/story/config.py). WORK ON THIS ONLY AFTER the bot is finished and
+      tested 100% (user directive).
 
 ## Living-Dex deepening (user-requested 2026-07-19; DESIGN-FIRST, no cutting corners)
 - [ ] #41 — Obtainability model: classify every species — wild / evolution
