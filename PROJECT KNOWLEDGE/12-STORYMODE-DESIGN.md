@@ -188,6 +188,41 @@ routine) to be settled when implemented. Reuses: the no-flee travel strategy,
 
 ---
 
+## §RS. RESUME MODEL — pick up from wherever the save is (user 2026-07-20)
+
+**Goal:** run the bot from ANY point — a fresh game, a resumed save, or a game
+you hand-played partway — and it figures out what's already done, what the next
+task is, and continues. Never re-do finished steps (the "it thinks I still need
+Wally" bug), and eventually navigate to the next task from anywhere (walk / fly /
+teleport / escape rope).
+
+**Implemented (v1):** `StoryMode.run()` is now SEGMENTED. The story is linear, so
+each segment runs only if its completion signal isn't set:
+- Chapter 0 intro — title screen only (mid-intro isn't a resumable point; it must
+  run from the truck). A title screen WITH a save should Continue first (TODO).
+- Seg 1 truck→Pokédex — gated by `RECEIVED_POKEDEX_FROM_BIRCH`.
+- Seg 2 Petalburg+Wally — gated by `HIDE_PETALBURG_CITY_WALLYS_MOM` (the intended
+  `THANKED_FOR_PLAYING_WITH_WALLY` is never set — found by flag-diffing pre/post
+  Wally saves; chapters.py Ch2 milestone updated to match, fixing detection).
+- Seg 3 Woods→Rustboro — done if in Rustboro or `BADGE01_GET`; picks its
+  SUB-ENTRY by current map (resume inside the Woods → start at
+  `cross_petalburg_woods`, don't backtrack to Petalburg).
+- Seg 4 Gym 1 — gated by `BADGE01_GET`.
+Verified: gym1_done → skips all → manual; woods_entered → skips intro+Wally,
+resumes the Woods crossing; petalburg → skips intro, does Wally. Segments
+self-locate via `navigate_to_anywhere`.
+
+**TODO (refinements → punch-list #24-resume):**
+- Finer per-STEP resume + each step self-locating from ANY tile (currently
+  segment-level; a resume in an odd spot may relocate sub-optimally).
+- FAST travel: use Fly / Teleport / Escape Rope / dig when available instead of
+  always walking (needs the HM/badge/item gating from #42).
+- Title-screen-with-save → auto-select Continue (today the title path assumes a
+  save-less New Game).
+- Reliable per-chapter completion flags for chapters beyond Gym 1.
+
+---
+
 ## 0. TL;DR for a future agent
 
 The bot is a **shiny-hunting automation** whose primitives happen to be exactly

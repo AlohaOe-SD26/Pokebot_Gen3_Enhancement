@@ -115,7 +115,12 @@ CHAPTERS: list[Chapter] = [
             "Rescue Birch (pick a starter on Route 101), beat the rival on "
             "Route 103, receive the Pokédex + Poké Balls from Birch."),
     Chapter("2", 2, "Petalburg & Wally", "Petalburg City",
-            flag("THANKED_FOR_PLAYING_WITH_WALLY"),
+            # NB: THANKED_FOR_PLAYING_WITH_WALLY (the "intended" flag) is NEVER set
+            # by the tutorial (ML-9-era finding). The reliable completion signal is
+            # Wally's mum leaving Petalburg afterwards — verified by diffing flags
+            # before/after the tutorial (only HIDE_PETALBURG_CITY_WALLYS_MOM and a
+            # Birch's-lab-rival hide flag flip). Use it so resume detects Wally-done.
+            flag("HIDE_PETALBURG_CITY_WALLYS_MOM"),
             "Meet Dad (Norman) at the Petalburg Gym and do the catching "
             "tutorial with Wally."),
     Chapter("3", 3, "Woods (rescue) & Cut", "Rt 104 / Petalburg Woods / Rustboro",

@@ -100,6 +100,20 @@
       In both builds, unit-verified. REMAINING (folds into #24-team): status-move
       UTILITY ranking (value Sleep Powder/heal over Growl) rather than treating
       all status moves as equal.
+- [~] #24-resume — RESUME-FROM-ANYWHERE (user 2026-07-20): v1 DONE — segmented
+      flag-gated run() resumes from a fresh game / resumed save / hand-played
+      state, skipping finished segments (fixed the "thinks I need Wally"
+      mis-detection via the HIDE_PETALBURG_CITY_WALLYS_MOM flag). REMAINING:
+      finer per-STEP resume with each step self-locating from any tile; FAST
+      travel (Fly/Teleport/Escape Rope when available, gated by HMs/badges/items
+      per #42); title-screen-with-save auto-Continue; reliable completion flags
+      for chapters past Gym 1. Design §RS.
+- [ ] #24-evo — EVOLUTION policy (noted 2026-07-20): the stock default
+      `stop_evolution: True` means the Story bot NEVER evolves its starter —
+      bad for gym strength (and worsens the Torchic problem). Decide/implement an
+      evolution policy (default: allow evolution for a story auto-completer;
+      maybe expose in the #24-ui popup). Interacts with move-learning at the
+      evolution level (e.g. Treecko/Grovyle + Pursuit at Lv16) — verify together.
 - [ ] #24-team — ORGANIC TEAM-BUILDING / helper acquisition (user 2026-07-20;
       design in 12-STORYMODE-DESIGN §TB). Bot builds a team to beat gyms/trainers
       but decides to catch "helpers" ORGANICALLY: a rising "recruit urge" that

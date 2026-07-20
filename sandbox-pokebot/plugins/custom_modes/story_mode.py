@@ -193,46 +193,23 @@ class StoryMode(BotMode):
         return LevelUpTravelBattleStrategy()
 
     def run(self) -> Generator:
+        import random
+
+        from modules.memory import get_event_flag
+        from modules.map import get_map_data_for_current_position
+        from modules.map_data import MapRSE
         from modules.story import detect_live
         from modules.story.config import get_story_config
         from modules.story.intro import run_intro
-
-        # --- Existing game already loaded: detect & report progress. --------
-        if game_has_started() and get_game_state() is not GameState.TITLE_SCREEN:
-            progress = detect_live()
-            console.print("[bold cyan]Story Mode — detected progress:[/]")
-            console.print(progress.summary())
-            context.message = (
-                f"Story: {progress.chapter_key} — {progress.chapter_name}. "
-                "Chapter execution beyond the intro isn't built yet; back to manual."
-            )
-            # Chapter 0 here means we're already in-game but pre-adventure (e.g.
-            # in the truck) — that's the end of what chunk 1 automates.
-            context.set_manual_mode()
-            return
-
-        # --- Fresh boot (title/main menu): run the New Game intro. ----------
-        cfg = get_story_config(context.profile.path)
-        console.print(
-            f"[bold cyan]Story Mode — new game[/] as [bold]{cfg.character_name}[/] "
-            f"({cfg.gender}). Running the intro..."
-        )
-        yield from run_intro(cfg.character_name, cfg.gender)
-
-        # --- Chapter 0 tail: step off the truck → Mom's greeting into the
-        #     house → upstairs → set the wall clock. (Downstairs/Mom, Route 101,
-        #     starter + first battle are WIP.) ------------------------------
-        import random
-
         from modules.story.early_game import (
+            cross_petalburg_woods,
             descend_and_leave_players_house,
             do_petalburg_gym_and_wally_tutorial,
+            do_rustboro_gym,
             finish_birch_lab,
             fight_route103_rival,
             go_upstairs_and_set_clock,
             help_birch_and_choose_starter,
-            cross_petalburg_woods,
-            do_rustboro_gym,
             return_to_lab_and_get_pokedex,
             train_lead_to_level,
             travel_route104_north_to_rustboro,
@@ -243,36 +220,100 @@ class StoryMode(BotMode):
             walk_off_truck_and_into_house,
         )
 
-        yield from walk_off_truck_and_into_house()
-        yield from go_upstairs_and_set_clock()
-        yield from descend_and_leave_players_house()
-        yield from visit_rivals_house()
-        yield from help_birch_and_choose_starter(cfg.starter)
-        yield from finish_birch_lab(cfg.starter_nickname)
+        cfg = get_story_config(context.profile.path)
 
-        # Head to Route 103 (training en route), grind the starter to a random
-        # Lv 8-10, battle the rival, then return to Birch for the Pokédex.
-        target_level = random.randint(8, 10)
-        console.print(f"[cyan]Story: training the starter to Lv {target_level} before the rival.[/]")
-        yield from travel_to_route103()
-        yield from train_lead_to_level(target_level)
-        yield from fight_route103_rival()
-        yield from return_to_lab_and_get_pokedex()
-        yield from travel_to_petalburg()
-        yield from do_petalburg_gym_and_wally_tutorial()
+        def _done(flag: str) -> bool:
+            try:
+                return bool(get_event_flag(flag))
+            except Exception:
+                return False
 
-        # Chapter 3: heal, cross west to Route 104 (Scott cutscene), beat the
-        # route trainer, enter Petalburg Woods, then cross it (Aqua-grunt/Devon
-        # scene + Bug Catchers) and exit north onto Route 104 north.
-        yield from travel_to_petalburg_woods()
-        yield from cross_petalburg_woods()
-        yield from travel_route104_north_to_rustboro()
-        yield from do_rustboro_gym()
+        def _cur_map():
+            try:
+                d = get_map_data_for_current_position()
+                return (d.map_group, d.map_number)
+            except Exception:
+                return None
+
+        # RESUME MODEL: the story is linear, so we run each SEGMENT only if its
+        # completion signal isn't already set — a fresh game runs everything; a
+        # resumed save (or one you hand-played partway) skips what's done and
+        # continues from the right place. See design §RS. (Segments self-locate
+        # via navigation; the Woods segment also picks its sub-entry by current
+        # map so a resume mid-Woods doesn't backtrack to Petalburg.)
+        at_title = get_game_state() is GameState.TITLE_SCREEN or not game_has_started()
+        if not at_title:
+            try:
+                progress = detect_live()
+                console.print(
+                    f"[bold cyan]Story Mode — resuming[/] (detected {progress.chapter_key}: "
+                    f"{progress.chapter_name}); skipping what's already done."
+                )
+            except Exception:
+                pass
+
+        # --- Chapter 0: New Game intro. Title screen only — mid-intro isn't a
+        #     resumable point (it must run from the truck). A title screen WITH an
+        #     existing save should be loaded via Continue first (TODO §RS). ---
+        if at_title:
+            console.print(
+                f"[bold cyan]Story Mode — new game[/] as [bold]{cfg.character_name}[/] ({cfg.gender})."
+            )
+            yield from run_intro(cfg.character_name, cfg.gender)
+
+        # --- Segment 1: truck → house → clock → rival → starter → first battle →
+        #     lab → train → rival → Pokédex. (Runs from the truck; gated by the
+        #     Pokédex flag so a resumed game past this point skips it.) ---
+        if not _done("RECEIVED_POKEDEX_FROM_BIRCH"):
+            yield from walk_off_truck_and_into_house()
+            yield from go_upstairs_and_set_clock()
+            yield from descend_and_leave_players_house()
+            yield from visit_rivals_house()
+            yield from help_birch_and_choose_starter(cfg.starter)
+            yield from finish_birch_lab(cfg.starter_nickname)
+            target_level = random.randint(8, 10)
+            console.print(f"[cyan]Story: training the starter to Lv {target_level} before the rival.[/]")
+            yield from travel_to_route103()
+            yield from train_lead_to_level(target_level)
+            yield from fight_route103_rival()
+            yield from return_to_lab_and_get_pokedex()
+        else:
+            console.print("[dim]Story: already have the Pokédex — skipping the intro chapters.[/]")
+
+        # --- Segment 2: Petalburg City — Dad (Norman) + Wally catching tutorial.
+        #     Completion signal: Wally's mum leaves Petalburg (HIDE_..._WALLYS_MOM);
+        #     the "intended" THANKED_FOR_PLAYING_WITH_WALLY is never set (ML-9). ---
+        if not _done("HIDE_PETALBURG_CITY_WALLYS_MOM"):
+            yield from travel_to_petalburg()
+            yield from do_petalburg_gym_and_wally_tutorial()
+        else:
+            console.print("[dim]Story: Petalburg / Wally tutorial already done — skipping.[/]")
+
+        # --- Segment 3: Route 104 → Petalburg Woods → Rustboro. Enter at the
+        #     right sub-step by current map so a mid-Woods resume doesn't backtrack. ---
+        rustboro = MapRSE.RUSTBORO_CITY.value
+        woods = MapRSE.PETALBURG_WOODS.value
+        if _cur_map() == rustboro or _done("BADGE01_GET"):
+            console.print("[dim]Story: already in Rustboro — skipping the Woods travel.[/]")
+        elif _cur_map() == woods:
+            console.print("[cyan]Story: resuming inside Petalburg Woods — finishing the crossing.[/]")
+            yield from cross_petalburg_woods()
+            yield from travel_route104_north_to_rustboro()
+        else:
+            yield from travel_to_petalburg_woods()
+            yield from cross_petalburg_woods()
+            yield from travel_route104_north_to_rustboro()
+
+        # --- Segment 4: Gym 1 — Roxanne (Stone Badge). ---
+        if not _done("BADGE01_GET"):
+            yield from do_rustboro_gym()
+        else:
+            console.print("[dim]Story: Stone Badge already earned — Gym 1 skipped.[/]")
 
         context.message = (
-            "Story: earned the STONE BADGE (Gym 1 / Roxanne)! The next chapter "
-            "(deliver the Devon Goods -> Rusturf Tunnel -> Dewford) is still "
-            "being built; handing to manual."
+            "Story: caught up to the end of the built content (through Gym 1 / "
+            "Stone Badge). The next chapter (Devon Goods -> Rusturf Tunnel -> "
+            "Dewford) isn't built yet; handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()

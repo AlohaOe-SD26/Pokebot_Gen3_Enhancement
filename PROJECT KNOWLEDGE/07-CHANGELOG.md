@@ -880,3 +880,16 @@ STAB. Unit-verified with real game objects across both branches (status-slot and
 all-damaging kits) — sensible, coverage-preserving, combat-guaranteeing decisions.
 Applied to BOTH builds (the strategy is promoted). Status-move UTILITY ranking is
 a future refinement (#24-team).
+
+## 2026-07-20 — Story: resume-from-anywhere (v1) + fix Wally detection flag (#24)
+User-reported: resuming a save (they were in Petalburg Woods) mis-detected as
+"still needs Wally". TWO fixes: (1) chapters.py Ch2 milestone changed from the
+never-set THANKED_FOR_PLAYING_WITH_WALLY to HIDE_PETALBURG_CITY_WALLYS_MOM (the
+real post-tutorial signal — Wally's mum leaves; found by flag-diffing pre/post
+saves). (2) StoryMode.run() rebuilt as SEGMENTED resume: runs each segment only
+if its completion flag isn't set, so a fresh game runs all, a resumed/hand-played
+save skips what's done and continues; the Woods segment picks its sub-entry by
+current map (no backtrack). Verified: gym1_done skips all -> manual;
+woods_entered skips intro+Wally and resumes the crossing; petalburg skips intro.
+Design §RS. Refinements (per-step resume, fly/teleport fast-travel, title Continue)
+= punch-list #24-resume. Sandbox-only (depends on unpromoted legs 3-4 + gym).
