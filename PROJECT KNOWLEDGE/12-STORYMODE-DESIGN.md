@@ -1207,3 +1207,20 @@ produced Mudkip and Treecko across runs. Checkpoint `birch_lab.ss1` saved.
 head north to **Oldale Town (0,10)** → **train the starter to a random Lv 8-10**
 → Route 103 → **rival battle**. Order still to verify in-game for the lab
 dialogue (watch for a possible nickname/Pokédex prompt) and the rival trigger.
+
+### §15.1 — Birch's lab conversation (2026-07-20)
+`finish_birch_lab(nickname_mode)` — INTENT: close the give-starter scene so the
+player can leave. STORY: starts in the lab (1,4) with the starter, running
+`GiveStarterEvent`. HOW: Birch asks "give a nickname?" (a Std_MsgboxYesNo that
+**B does NOT dismiss** — needs the Yes/No handler). Then advance the rest by
+waiting for the `GiveStarterEvent` script to leave the stack while mashing **A**
+(B doesn't advance these boxes; and the wait stops the instant the script ends,
+BEFORE another A could re-open Birch's repeatable talk — A while facing him
+re-triggers `EventScript_Birch` in a loop, the bug that first stalled this).
+- **NICKNAME feature GATED OFF for now:** the Yes→naming path reaches the
+  keyboard and types, but the typed name does NOT persist (post-naming confirm
+  subtlety unsolved), and the user deprioritised nicknames. So we always answer
+  No (keep species name). Config (`starter_nickname`) + `_resolve_nickname()` +
+  a nickname pool remain for the future fix. **TODO: nickname persistence.**
+- Verified from the `birch_lab` checkpoint: "none" → Torchic Lv5, controllable
+  in the lab (6,5). Checkpoint `lab_done.ss1` saved.

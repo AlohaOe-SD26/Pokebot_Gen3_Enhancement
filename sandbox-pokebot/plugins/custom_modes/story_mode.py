@@ -78,6 +78,7 @@ class StoryMode(BotMode):
         #     starter + first battle are WIP.) ------------------------------
         from modules.story.early_game import (
             descend_and_leave_players_house,
+            finish_birch_lab,
             go_upstairs_and_set_clock,
             help_birch_and_choose_starter,
             visit_rivals_house,
@@ -89,11 +90,12 @@ class StoryMode(BotMode):
         yield from descend_and_leave_players_house()
         yield from visit_rivals_house()
         yield from help_birch_and_choose_starter(cfg.starter)
+        yield from finish_birch_lab(cfg.starter_nickname)
 
         context.message = (
-            "Story: got the starter and won the first battle! Next (finish "
-            "Birch's lab -> Oldale -> train -> rival) is still being built; "
-            "handing to manual."
+            "Story: got the starter, won the first battle, and finished Birch's "
+            "lab. Next (Oldale -> train -> rival) is still being built; handing "
+            "to manual."
         )
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()

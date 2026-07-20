@@ -726,3 +726,13 @@ real listeners verified: 15,425 frames → NICK/male, random starter Lv5, in
 Birch's lab (1,4); random produced all 3 starters across runs. Detailed
 step docs in design §15. Sandbox only. Next: finish lab → Oldale → train Lv8-10
 → rival battle.
+
+## 2026-07-20 — Story: finish Birch's lab conversation (#24, sandbox)
+`early_game.finish_birch_lab()`: answers the "give a nickname?" prompt (Yes/No
+handler; B can't dismiss it), then advances the give-starter script to its end
+by waiting for it to leave the stack while mashing A (stops before re-triggering
+Birch's repeatable dialogue). Wired into StoryMode after help_birch. Nickname
+application GATED OFF (types but doesn't persist; user-deprioritised) — always
+keeps the species name; config kept for the future fix. Verified: Torchic Lv5,
+controllable in the lab. Also: sandbox pokebot.py now forces audio off at
+startup (reliable regardless of launch). Design §15.1.

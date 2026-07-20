@@ -14,12 +14,17 @@ import random
 from typing import Generator
 
 from modules.context import context
+from modules.keyboard import get_naming_screen_data, type_in_naming_screen
 from modules.map import get_map_data_for_current_position
 from modules.map_data import MapRSE
 from modules.map_path import Direction
 from modules.memory import GameState, get_game_state
 from modules.modes import BotModeError
-from modules.modes.util.tasks_scripts import wait_until_task_is_active
+from modules.modes.util.tasks_scripts import (
+    wait_for_yes_no_question,
+    wait_until_script_is_no_longer_active,
+    wait_until_task_is_active,
+)
 from modules.modes.util.sleep import wait_for_n_frames
 from modules.modes.util.walking import (
     navigate_to,
@@ -396,3 +401,61 @@ def help_birch_and_choose_starter(starter: str = "random") -> Generator:
         yield
     yield from wait_for_n_frames(30)
     context.message = "Story: in Professor Birch's lab — got the starter, won the first battle!"
+
+
+# A small pool of friendly nicknames for the "random" nickname option (nicer
+# than random gibberish from the keyboard).
+_RANDOM_NICKNAMES = [
+    "Sparky", "Ziggy", "Bolt", "Blaze", "Coco", "Pip", "Nova", "Ace",
+    "Fern", "Rocky", "Sunny", "Milo", "Kiki", "Turbo", "Gizmo", "Pixel",
+]
+
+
+def _resolve_nickname(nickname_mode: str) -> str:
+    if nickname_mode == "random":
+        return random.choice(_RANDOM_NICKNAMES)
+    return str(nickname_mode)[:10]  # a literal nickname
+
+
+def finish_birch_lab(nickname_mode: str = "none") -> Generator:
+    """Finish Professor Birch's lab conversation after the first battle.
+
+    INTENT: complete the "receive your starter officially" scene so the player
+    is free to leave the lab and head toward the rival.
+    STORY CONDITION: begins right after arriving in the lab (map 1,4) with the
+    starter in the party; `GiveStarterEvent` is running.
+    GOAL/END STATE: the lab conversation is fully closed and the player is
+    controllable in the lab, free to walk out; the starter is nicknamed per the
+    config (or keeps its species name).
+    HOW IT WORKS: Birch asks "give a nickname?" (a `Std_MsgboxYesNo`). We answer
+    via the proper Yes/No handler (B does NOT dismiss this menu). For "none" we
+    answer No; otherwise Yes → the naming screen → type the nickname. The rest
+    of Birch's speech is then advanced with B — importantly NOT A, because A
+    while facing Birch re-opens his repeatable dialogue in a loop.
+
+    :param nickname_mode: "none" | "random" | a literal nickname string.
+    """
+    context.message = "Story: Professor Birch is giving you your first Pokémon..."
+    # NICKNAME: Birch asks "give a nickname?" (a Std_MsgboxYesNo).
+    # For now we always keep the species name (answer No). The Yes → naming
+    # path below reaches the keyboard and types, but the typed name does not
+    # persist (a post-naming confirm subtlety still to be worked out), and the
+    # user has deprioritised nicknames, so it is gated OFF until fixed. The
+    # config (`starter_nickname`) and `_resolve_nickname()` remain in place for
+    # when it is revisited. See design doc / punch list.
+    if nickname_mode != "none":
+        context.message = (
+            "Story: (starter nickname not wired up yet - keeping the species "
+            "name for now.)"
+        )
+    yield from wait_for_yes_no_question("No")
+
+    # Advance the remainder of the give-starter script until it leaves the
+    # stack. We mash A (B does not advance these message boxes), and this helper
+    # stops the instant `GiveStarterEvent` ends — BEFORE another A could
+    # re-open Birch's repeatable dialogue (A while facing him talks to him).
+    context.message = "Story: finishing up in the lab..."
+    yield from wait_until_script_is_no_longer_active(
+        "LittlerootTown_ProfessorBirchsLab_EventScript_GiveStarterEvent", "A"
+    )
+    context.message = "Story: got the starter and left Birch to it — heading north next."
