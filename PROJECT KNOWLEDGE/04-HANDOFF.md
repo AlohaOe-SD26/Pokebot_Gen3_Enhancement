@@ -58,6 +58,24 @@ flavor all done, Phases 1/2/3a). `itemdex_data.json` = core (309 items);
 gaps = map_locations/mart/pickup/historical.
 
 ## Most recent work (2026-07-20)
+- **Story mode now runs a fresh game → through Professor Birch's lab** (sandbox,
+  awaiting user test → promote). Full chain (verified with real battle
+  listeners, ~17.5k frames): title → intro → house → clock → rival → Birch
+  rescue on Route 101 → **random starter** → **first battle won** → **finish
+  lab conversation** → hands to manual in the lab. `early_game.py` functions +
+  StoryMode wiring. Config: `starter` (random/specific) live; `starter_nickname`
+  GATED OFF (types but doesn't persist — TODO, user-deprioritised).
+- **Sandbox audio off at startup** (sandbox `pokebot.py` forces `no_audio`;
+  reliable regardless of launch; GUI-toggleable). Custom unaffected.
+- **NEXT CHUNK (in progress): leave lab → Oldale → train starter to random
+  Lv 8-10 → Route 103 rival battle.** Scouted: use `navigate_to_anywhere` for
+  cross-map travel; blockers found = lab exit needs approach+step-through-warp,
+  and a persistent lab script blocks nav (handle like other scripted scenes);
+  training loop (spin-in-grass + battle listener, watch for fainting/healing)
+  is a NEW mechanic to build carefully; rival is on Route 103 (0,18).
+- Iteration save-states in scratchpad: truck/house1f/house2f/clockset/
+  outside_town/rival_*/birch_rescue/birch_free/first_battle/birch_lab/lab_done.
+
 - **Story chunk B COMPLETE (sandbox, awaiting user test → promote):** a new game
   now auto-plays intro → into house → set clock → downstairs (rides Mom + the
   Petalburg-Gym TV scene) → outside → rival's house (auto mom greeting → upstairs
