@@ -738,3 +738,19 @@ GUI/data areas render correctly on real data — NO bugs found:
   it reads is confirmed present. Needs a human mouse hover to see live.
 Save left byte-identical (backed up + restored; md5 MATCH). No lingering
 process.
+
+## 2026-07-19 — Poké Ball allowlist (#40) + bigger party balls (#36 refine)
+- Party balls enlarged 104→140px; ball drawn at full opacity as a backdrop,
+  mon shrunk to 55% bottom-anchored so the ball's dome/band show clearly
+  behind it (verified on the real Nick - Emerald party). Large mons still
+  partly cover the ball — acceptable.
+- #40 catch-ball allowlist: modules/catch_balls.py (config-backed set of
+  allowed balls; default = all except Master Ball; global catch_balls.yml
+  + per-profile override; safe default on malformed). Filtered in
+  battle_strategies/catch.py `_get_best_poke_ball` (skips disallowed balls;
+  no-allowed-ball falls back to the existing "no balls" behavior). GUI:
+  CATCH BALLS card in the Hunt tab — a checkbox+icon per Gen-3 ball, saves
+  on toggle. Master Ball also stays never-auto-thrown via catch.py's -1.
+- Verified: compile/import, allowlist unit logic (default excludes Master),
+  mode discovery green, live real-save screenshots (balls_1_play,
+  balls_2_catchballs), save md5 unchanged.

@@ -1,0 +1,16 @@
+# Poké Balls the bot is allowed to throw when catching (fork feature #40).
+# Edit here or via the dashboard's "Catch balls" editor (Hunt tab).
+# Master Ball is protected by default (omit it to keep it safe).
+# A per-profile override may live at profiles/<name>/catch_balls.yml.
+allowed_balls:
+  - Poké Ball
+  - Great Ball
+  - Ultra Ball
+  - Safari Ball
+  - Net Ball
+  - Dive Ball
+  - Nest Ball
+  - Repeat Ball
+  - Timer Ball
+  - Luxury Ball
+  - Premier Ball

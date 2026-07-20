@@ -961,6 +961,8 @@ class DashboardScreen:
         self._build_hunt_card(self._tab_frames["Hunt"])
         # --- Living Dex orchestrator (#23) ---
         self._build_living_dex_card(self._tab_frames["Hunt"])
+        # --- Catch-ball allowlist (#40) ---
+        self._build_catch_balls_card(self._tab_frames["Hunt"])
 
         # Show the default tab now that every card exists (persist=False so
         # it doesn't clobber a saved tab before _restore_ui_state reads it).
@@ -1026,7 +1028,7 @@ class DashboardScreen:
     # Left Party Section (#30c) + hover stats (#30d)
     # ------------------------------------------------------------------
 
-    _PARTY_ICON_SIZE = 104
+    _PARTY_ICON_SIZE = 140
 
     def _build_party_strip(self) -> None:
         """A vertical strip of 6 party icons to the left of the video (both
@@ -1040,7 +1042,7 @@ class DashboardScreen:
         self._party_slots = []
         for index in range(6):
             slot = tkinter.Label(strip, background=COLOR_SURFACE, borderwidth=0)
-            slot.pack(pady=2, padx=5)
+            slot.pack(pady=1, padx=5)
             slot.bind("<Enter>", lambda event, i=index: self._party_hover_enter(i, event.x_root, event.y_root))
             slot.bind("<Leave>", lambda _event: self._party_hover_leave())
             self._party_slots.append(slot)
@@ -1108,20 +1110,20 @@ class DashboardScreen:
             y = size - image.height - 2 if anchor == "bottom" else (size - image.height) // 2
             canvas.alpha_composite(image, (x, y))
 
-        mon_box = int(size * 0.62)  # mon noticeably smaller than the ball backdrop
+        mon_box = int(size * 0.55)  # mon clearly smaller so the ball frames it
         if key == "empty":
-            paste(load(items_dir / "Poké Ball.png", size), alpha_mul=0.55)
+            paste(load(items_dir / "Poké Ball.png", size), alpha_mul=0.7)
         elif key == "egg":
-            paste(load(get_sprites_path() / "pokemon" / "Egg.png", int(size * 0.82)), anchor="bottom")
+            paste(load(get_sprites_path() / "pokemon" / "Egg.png", int(size * 0.7)), anchor="bottom")
         else:
             ball_name = key.split("|")[-1]
             ball_image = load(items_dir / f"{ball_name}.png", size) or load(items_dir / "Poké Ball.png", size)
-            paste(ball_image, alpha_mul=0.9)  # large ball fills the slot as a BACKDROP
+            paste(ball_image, alpha_mul=1.0)  # large ball fills the slot as a bold BACKDROP
             try:
                 from modules.sprites import get_sprite
 
                 # Mon stands in FRONT of the ball, bottom-anchored so the ball's
-                # dome stays visible above it.
+                # full dome + band stay clearly visible above and around it.
                 paste(load(get_sprite(pokemon), mon_box), anchor="bottom")
             except Exception:
                 pass
@@ -1916,6 +1918,60 @@ class DashboardScreen:
             pass
         self._force_species_name = name
         self._update_species_picker_button()
+
+    def _ball_icon(self, path) -> "PIL.ImageTk.PhotoImage | None":
+        cache = getattr(self, "_ball_icon_cache", None)
+        if cache is None:
+            cache = self._ball_icon_cache = {}
+        key = str(path)
+        if key in cache:
+            return cache[key]
+        icon = None
+        try:
+            if path.is_file():
+                image = PIL.Image.open(path)
+                if image.mode != "RGBA":
+                    image = image.convert("RGBA")
+                image.thumbnail((18, 18), PIL.Image.NEAREST)
+                icon = PIL.ImageTk.PhotoImage(image)
+        except Exception:
+            icon = None
+        cache[key] = icon
+        return icon
+
+    def _build_catch_balls_card(self, parent: tkinter.Widget) -> None:
+        """#40: choose which Poké Balls the bot may throw when catching."""
+        from modules.catch_balls import ALL_BALLS, allowed_ball_names, set_allowed_ball_names
+        from modules.runtime import get_sprites_path
+
+        card = self._card(parent, "CATCH BALLS")
+        tkinter.Label(
+            card, text="Balls the bot may use for catching (unchecked = never thrown; protects your Master Ball).",
+            background=COLOR_CARD, foreground=COLOR_MUTED, anchor="w", wraplength=320, font=("Segoe UI", 8),
+        ).pack(fill="x", pady=(0, 4))
+
+        items_dir = get_sprites_path() / "items"
+        allowed = allowed_ball_names()
+        self._catch_ball_vars = {}
+        grid = tkinter.Frame(card, background=COLOR_CARD)
+        grid.pack(fill="x")
+
+        def save() -> None:
+            names = [ball for ball, var in self._catch_ball_vars.items() if var.get()]
+            set_allowed_ball_names(names)
+            self._log_event(f"Catch balls updated ({len(names)} allowed).")
+
+        for i, ball in enumerate(ALL_BALLS):
+            var = tkinter.BooleanVar(value=(ball in allowed))
+            self._catch_ball_vars[ball] = var
+            icon = self._ball_icon(items_dir / f"{ball}.png")
+            checkbox = tkinter.Checkbutton(
+                grid, text=f" {ball}", variable=var, command=save, image=icon, compound="left",
+                background=COLOR_CARD, foreground=COLOR_INK, selectcolor=COLOR_SURFACE,
+                activebackground=COLOR_CARD, activeforeground=COLOR_INK, font=("Segoe UI", 8), anchor="w",
+            )
+            checkbox.image = icon
+            checkbox.grid(row=i // 2, column=i % 2, sticky="w", padx=2, pady=1)
 
     def _build_hunt_card(self, parent: tkinter.Widget) -> None:
         """Hunt Planner (#9): pick a target → ranked wild locations + the

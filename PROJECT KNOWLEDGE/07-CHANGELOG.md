@@ -459,3 +459,10 @@
   gating unit test; rendered screenshots of the enlarged ball composite +
   the themed tooltip. Filled-slot live view + controller feel need a real
   save/pad.
+
+## 2026-07-19 — Poké Ball allowlist (#40) + larger party balls (sandbox)
+- #40: catch_balls.py allowlist (default all-except-Master) filters
+  catch.py's best-ball selection; CATCH BALLS GUI editor (icon checkboxes)
+  in the Hunt tab; global + per-profile catch_balls.yml.
+- #36 refine: party balls 104→140px, ball a bold backdrop behind the mon.
+- Verified on the real Nick - Emerald save (screenshots; save md5 unchanged).

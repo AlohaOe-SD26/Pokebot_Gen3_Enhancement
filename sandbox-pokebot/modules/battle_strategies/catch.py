@@ -210,9 +210,20 @@ class CatchStrategy(DefaultBattleStrategy):
         return status_move_index
 
     def _get_best_poke_ball(self, battle_state: BattleState) -> Item | None:
+        # Fork #40: only consider balls the user has allowed (default: all
+        # except Master Ball). Falls back to all-except-Master on any error.
+        try:
+            from modules.catch_balls import allowed_ball_names
+
+            allowed = allowed_ball_names()
+        except Exception:
+            allowed = None
+
         best_poke_ball: Item | None = None
         best_catch_rate_multiplier: float = 0
         for ball in get_item_bag().poke_balls:
+            if allowed is not None and ball.item.name not in allowed:
+                continue
             catch_rate_multiplier = self._get_poke_ball_catch_rate_multiplier(battle_state, ball.item)
 
             if best_catch_rate_multiplier < catch_rate_multiplier:
