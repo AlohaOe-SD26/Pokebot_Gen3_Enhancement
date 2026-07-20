@@ -59,9 +59,14 @@
       seam for future move-intelligence at
       DefaultBattleStrategy.which_move_should_be_replaced) (25fac025).
       User's placed battle.yml also set to cancel.
-- [ ] #40 — Hunt: configurable "which Poké Balls are OK to use" allowlist
-      the catch/ball-selection respects (e.g. protect Master Ball). [next,
-      after the live-test fork finishes on dashboard_gui].
+- [x] #40 — Catch-ball allowlist (d5573234): "CATCH BALLS" card (checkbox+
+      icon per ball) filters catch.py::_get_best_poke_ball; catch_balls.yml
+      global+per-profile; default protects Master Ball. Live-verified on the
+      real save. (Live catch in a real battle still pending.)
+- [~] #36b — Party balls enlarged further to 140px (~2.7×); reads clearly
+      behind smaller mons, big sprites (Celebi/Sceptile) still partly cover.
+      Capped by column height — could go scrollable for a true 5× if the
+      user wants. (d5573234)
 - [x] #S — User's real save placed: "Nick - Emerald" (progressed) +
       "-restored" + global configs into custom/sandbox profiles/
       (gitignored). LIVE TEST on real party running.
