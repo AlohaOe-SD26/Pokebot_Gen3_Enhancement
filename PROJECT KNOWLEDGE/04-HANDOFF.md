@@ -82,6 +82,13 @@ gaps = map_locations/mart/pickup/historical.
   True, no error. Fixed in BOTH builds (sandbox + custom — leg 2 was promoted).
   **Test harness rule CORRECTED (design §16 / ML-9): match main.py — do NOT read
   player/map every frame (it hides timing bugs); catch BotModeError→manual.**
+- **Smart MOVE-LEARNING implemented (both builds)** — user-reported the "learn a
+  new move / delete an old one?" prompt. Added `LevelUpTravelBattleStrategy.
+  which_move_should_be_replaced()`: never trades a damaging move for a status move
+  (a Pokémon can't end up with only non-combat moves), preserves type coverage,
+  skips no-gain moves; overrides the stock `new_move: cancel` decline-all.
+  Unit-verified with real game objects (both status-slot and all-damaging kits).
+  Remaining refinement (status-move utility ranking) folded into #24-team.
 - **NEW punch-list items** (both user-requested, future): **#24-team** organic
   team-building / helper acquisition (design §TB), and **#24-ui** a Story-bot
   pre-run settings popup (name / starter / nickname). #24-ui is explicitly

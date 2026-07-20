@@ -46,6 +46,97 @@ class LevelUpTravelBattleStrategy(LevelUpLeadBattleStrategy):
                 return TurnAction.use_move(move)
         return super().decide_turn(battle_state)
 
+    def which_move_should_be_replaced(self, pokemon, new_move) -> int:
+        """Story move-learning policy — keep every Pokémon COMBAT-CAPABLE.
+
+        Called when a Pokémon with 4 moves is about to learn a new one (the stock
+        config default `new_move: cancel` would just decline everything, so the
+        starter would never improve — hence this override). Returns 0-3 to
+        overwrite that slot, or 4 to DECLINE (keep the current moves).
+
+        PRIORITY / RULES (in order):
+          1. Never replace an HM move (can't anyway, and Cut/Surf/... are needed
+             for field use); never learn a block-listed move.
+          2. GUARANTEE combat capability: a damaging move is NEVER replaced by a
+             status move, so a Pokémon can't end up with only non-combat moves.
+             (Damaging-move count never decreases.)
+          3. New STATUS move: accept it only by overwriting an existing (non-HM)
+             STATUS slot; if every non-HM slot is a damaging move, DECLINE — don't
+             trade attacking power for utility.
+          4. New DAMAGING move: (a) upgrade a non-combat/status slot first (pure
+             win). Else, among damaging slots, PRESERVE TYPE COVERAGE:
+             - if the new move's type is ALREADY covered, only overwrite a WEAKER
+               same-type move (a STAB/power upgrade); otherwise DECLINE — don't
+               churn or lose a different type for a redundant one;
+             - if the new move adds a type we LACK, free a redundant-type slot
+               first (so no unique type is lost), else replace the weakest move.
+
+        "Effective power" = base power x (Attack or Sp.Atk) x STAB — the same
+        yardstick the stock `learn_best` uses, so choices stay sensible.
+        Status-move *utility* ranking (e.g. valuing Sleep Powder over Growl) is a
+        future refinement (punch-list #24-team); for now combat moves win."""
+        DECLINE = 4
+        if new_move.name in context.config.battle.banned_moves:
+            return DECLINE
+
+        moves = [lm.move if lm is not None else None for lm in pokemon.moves]
+
+        def is_hm(m):
+            return m is not None and m.tm_hm is not None and m.tm_hm.name.startswith("HM")
+
+        def is_damaging(m):
+            return m is not None and m.base_power > 0
+
+        def effective_power(m):
+            if m is None or not is_damaging(m):
+                return 0.0
+            if m.type.kind == "Physical":
+                stat = pokemon.stats.attack
+            elif m.type.kind == "Special":
+                stat = pokemon.stats.special_attack
+            else:
+                stat = 1
+            stab = 1.5 if m.type in pokemon.species.types else 1.0
+            return m.base_power * stat * stab
+
+        status_slots = [i for i, m in enumerate(moves) if m is not None and not is_damaging(m) and not is_hm(m)]
+        damaging_slots = [i for i, m in enumerate(moves) if is_damaging(m) and not is_hm(m)]
+
+        # New STATUS move: only ever replace another status slot (never a
+        # damaging move or an HM). If no spare status slot, keep our attacks.
+        if not is_damaging(new_move):
+            return status_slots[0] if status_slots else DECLINE
+
+        # New DAMAGING move.
+        # (a) Overwrite a non-combat slot first — strictly upgrades the kit.
+        if status_slots:
+            return status_slots[0]
+        # Every non-HM slot is now a damaging move; never touch an HM.
+        if not damaging_slots:
+            return DECLINE
+        new_power = effective_power(new_move)
+        current_types = [moves[i].type for i in damaging_slots]
+
+        if new_move.type in current_types:
+            # Redundant type: only take it to UPGRADE a weaker same-type move;
+            # otherwise decline (don't lose a different type for a redundant one).
+            weaker_same_type = [
+                i for i in damaging_slots
+                if moves[i].type == new_move.type and effective_power(moves[i]) < new_power
+            ]
+            if weaker_same_type:
+                return min(weaker_same_type, key=lambda i: effective_power(moves[i]))
+            return DECLINE
+
+        # New TYPE coverage: free a redundant-type slot first (keep every unique
+        # type), else replace the weakest damaging move.
+        type_counts: dict = {}
+        for t in current_types:
+            type_counts[t] = type_counts.get(t, 0) + 1
+        redundant_slots = [i for i in damaging_slots if type_counts[moves[i].type] > 1]
+        pool = redundant_slots if redundant_slots else damaging_slots
+        return min(pool, key=lambda i: effective_power(moves[i]))
+
 
 class StoryMode(BotMode):
     @staticmethod

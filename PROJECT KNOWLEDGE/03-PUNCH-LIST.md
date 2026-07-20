@@ -93,6 +93,13 @@
         test→promote). Fixed the Woods-door stall (ML-9) in BOTH builds. NEXT:
         Chapter 4 (deliver Devon Goods → Rusturf Tunnel → Dewford / Gym 2).
         Low-pri OPEN: chapters.py Ch2 completion-flag bug.
+- [~] #24-move — SMART MOVE-LEARNING (user 2026-07-20): DONE — Story strategy
+      `which_move_should_be_replaced` override keeps every Pokémon combat-capable
+      (never trades a damaging move for a status move), preserves type coverage,
+      and skips no-gain moves; overrides the stock `new_move: cancel` decline.
+      In both builds, unit-verified. REMAINING (folds into #24-team): status-move
+      UTILITY ranking (value Sleep Powder/heal over Growl) rather than treating
+      all status moves as equal.
 - [ ] #24-team — ORGANIC TEAM-BUILDING / helper acquisition (user 2026-07-20;
       design in 12-STORYMODE-DESIGN §TB). Bot builds a team to beat gyms/trainers
       but decides to catch "helpers" ORGANICALLY: a rising "recruit urge" that

@@ -864,3 +864,19 @@ replaced the hand-stepping in both Woods doors. Re-verified with a MAIN.PY-FAITH
 harness (no per-frame state reads, catches BotModeError): full chain wally_done ->
 Woods -> cross -> Rustboro -> Gym 1 -> BADGE01_GET True, no error, 46590 frames.
 The south-door fix also applies to CUSTOM (leg 2 was promoted).
+
+## 2026-07-20 — Story: smart move-learning policy (keep Pokémon combat-capable) (#24)
+User-reported gap: the bot got the "learn a new move / delete an old one?" prompt.
+Stock config default is `new_move: cancel` (decline everything → starter never
+improves). Added `LevelUpTravelBattleStrategy.which_move_should_be_replaced()` (a
+decision override, so the config gate is bypassed for Story battles). Policy:
+never touch HMs/banned moves; NEVER replace a damaging move with a status move
+(guarantees a Pokémon can't end up with only non-combat moves); a new status move
+only overwrites an existing status slot (else decline); a new damaging move
+upgrades a status slot first, else preserves type coverage (redundant new type ->
+only upgrade a weaker same-type move else decline; new-type coverage -> free a
+redundant slot first, else drop the weakest). Effective power = base x Atk/SpAtk x
+STAB. Unit-verified with real game objects across both branches (status-slot and
+all-damaging kits) — sensible, coverage-preserving, combat-guaranteeing decisions.
+Applied to BOTH builds (the strategy is promoted). Status-move UTILITY ranking is
+a future refinement (#24-team).
