@@ -67,16 +67,21 @@ class StoryMode(BotMode):
         )
         yield from run_intro(cfg.character_name, cfg.gender)
 
-        # --- Chapter 0 tail: step off the truck, ride Mom's greeting into the
-        #     house. (Room/clock, Route 101, starter + first battle are WIP.) --
-        from modules.story.early_game import walk_off_truck_and_into_house
+        # --- Chapter 0 tail: step off the truck → Mom's greeting into the
+        #     house → upstairs → set the wall clock. (Downstairs/Mom, Route 101,
+        #     starter + first battle are WIP.) ------------------------------
+        from modules.story.early_game import (
+            go_upstairs_and_set_clock,
+            walk_off_truck_and_into_house,
+        )
 
         yield from walk_off_truck_and_into_house()
+        yield from go_upstairs_and_set_clock()
 
         context.message = (
-            "Story: arrived and walked into the house. Next chunk (set the "
-            "clock upstairs → Route 101 → starter → first battle) is still "
-            "being built; handing back to manual."
+            "Story: arrived, moved in, and set the bedroom clock. Next (back "
+            "downstairs → outside → rival's house → starter → first battle) is "
+            "still being built; handing back to manual."
         )
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()

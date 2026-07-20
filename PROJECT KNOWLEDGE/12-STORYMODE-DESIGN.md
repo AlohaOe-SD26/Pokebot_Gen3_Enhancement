@@ -1101,3 +1101,26 @@ the whole intro every test. `modules/story/early_game.py`.
 - `ADVENTURE_STARTED` (116) is still FALSE through all of this — it sets later.
 - **NEXT (B2):** up the stairs (8,2) → 2F → interact with the wall clock → set
   the time. Then downstairs → Route 101 → Birch's bag → starter → first battle.
+
+### §14.1 — Clock + downstairs findings (2026-07-20, chunk B continued)
+- **Upstairs + clock** (`go_upstairs_and_set_clock()`, DONE + tested): 1F
+  stairs (8,2) → 2F. Wall clock bg_event at **(5,1)** = `..._EventScript_
+  WallClock` (stand (5,2) facing North). Flow: interact → mash A to
+  `Task_SetClock_HandleInput` → let it fade (~40f) → **A accepts the shown
+  time** → `Task_SetClock_HandleConfirmInput` (**cursor DEFAULTS TO NO**) → so
+  **Up then A picks Yes** → done. Ends controllable on 2F (5,2). "Accept the
+  default time" = never touch the D-pad on HandleInput, just Up+A on confirm.
+- **After the clock, MOM COMES UPSTAIRS** (`PlayersHouse_2F_EventScript_
+  MomComesUpstairsMale`), triggered when the player moves — talk plays in the
+  bedroom, not downstairs.
+- **BLOCKER for next turn — the 1F "movers" scene:** on the ground floor the
+  Vigoroth movers (`PlayersHouse_1F_EventScript_Vigoroth1/2`) + a script are
+  active while moving in; `navigate_to` toward the front door
+  ((8,8)/(9,8) warps) **consistently times out at waypoint (8,4)** even with
+  `avoid_scripted_events=False` and retries — so (8,4) is a persistent block,
+  not a transient one. The downstairs→exit step must handle this (likely wait
+  the movers/Mom scene out until the floor clears, or find the real walkable
+  route). Player's-house 1F objects: Mom (2,6), Vigoroth (1,3)/(4,5).
+- **NEXT (this chunk):** downstairs → clear the 1F Mom/movers scene → out the
+  front door → rival's house → rival's mom → 2F Poké Ball → rival talk →
+  outside. (Save-state checkpoints: truck/house1f/house2f/clockset in scratch.)

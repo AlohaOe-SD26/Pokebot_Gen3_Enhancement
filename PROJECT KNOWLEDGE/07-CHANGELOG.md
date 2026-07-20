@@ -679,3 +679,12 @@ User tested it live ("worked perfectly"). Copied early_game.py + the wired
 story_mode.py sandbox → custom; verified in custom (compile + full fresh-run
 smoke test lands NICK/male inside PlayersHouse_1F (8,7)). DIVERGENCE-LOG (j) +
 docs updated. Sandbox == custom for story files again.
+
+## 2026-07-20 — Story chunk B part 2: upstairs + set the clock (#24, sandbox)
+`early_game.go_upstairs_and_set_clock()`: 1F stairs → 2F bedroom → interact
+with the wall clock (5,1) → accept the default time (A) → confirm Yes (the
+confirm cursor defaults to NO, so Up+A). Ends controllable on 2F. Wired into
+StoryMode after step-off, so a new game now runs intro → house → clock. Tested
+from the clock checkpoint and full fresh run (lands NICK/male on 2F). Downstairs
+→ exit is next; the 1F Vigoroth "movers" scene blocks pathfinding and needs
+handling (design §14.1). Sandbox only.
