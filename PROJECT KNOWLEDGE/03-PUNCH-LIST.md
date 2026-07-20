@@ -48,6 +48,20 @@
       party, A activates, incl. triggering the party hover-stats). Distinct
       from the existing in-GAME gamepad input (Manual mode).
 
+## Adjustments (user-requested 2026-07-19, do before more punch-list)
+- [ ] #36 — Left Party balls ~5× larger (visible behind the mon). [building]
+- [ ] #37 — Party hover tooltip: Pokémon-themed/colored/organized, pro
+      formatting (type badges, IV grid, moves), not plain. [building]
+- [ ] #38 — Gamepad GUI-nav active ONLY while the Pokéball drawer is open
+      (was glitching/interrupting gameplay). [building]
+- [ ] #39 — Auto-DECLINE new move learning for all leveling bots (keep
+      current moves); leave a seam for future intelligent move eval. [building]
+- [ ] #40 — Hunt: configurable "which Poké Balls are OK to use" allowlist
+      the catch/ball-selection respects (e.g. protect Master Ball). [queued
+      after #36-38 GUI fork].
+- [ ] #S — User to send a zipped SAVE PROFILE folder → extract into
+      custom/sandbox `profiles/<name>/` (gitignored). Unblocks live tests.
+
 ## Now-ish (user-added 2026-07-19, ahead of first wave)
 - [ ] #33 — GUI fixes (in sandbox): Left Party Section ALWAYS visible in
       both modes regardless of drawer state; unified open/close — Pokéball
