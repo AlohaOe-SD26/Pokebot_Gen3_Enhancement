@@ -48,19 +48,23 @@
       party, A activates, incl. triggering the party hover-stats). Distinct
       from the existing in-GAME gamepad input (Manual mode).
 
-## Adjustments (user-requested 2026-07-19, do before more punch-list)
-- [ ] #36 — Left Party balls ~5× larger (visible behind the mon). [building]
-- [ ] #37 — Party hover tooltip: Pokémon-themed/colored/organized, pro
-      formatting (type badges, IV grid, moves), not plain. [building]
-- [ ] #38 — Gamepad GUI-nav active ONLY while the Pokéball drawer is open
-      (was glitching/interrupting gameplay). [building]
-- [ ] #39 — Auto-DECLINE new move learning for all leveling bots (keep
-      current moves); leave a seam for future intelligent move eval. [building]
+## Adjustments (user-requested 2026-07-19)
+- [x] #36 — Left Party balls enlarged 52→104px (ball visible behind mon)
+      (ce66eb78).
+- [x] #37 — Party hover tooltip restyled Pokémon-themed (type badges, IV
+      grid, moves, sprite) (ce66eb78).
+- [x] #38 — Gamepad GUI-nav gated to drawer-open only (no more gameplay
+      interruption) (ce66eb78).
+- [x] #39 — Auto-DECLINE new move learning (default `new_move: cancel`;
+      seam for future move-intelligence at
+      DefaultBattleStrategy.which_move_should_be_replaced) (25fac025).
+      User's placed battle.yml also set to cancel.
 - [ ] #40 — Hunt: configurable "which Poké Balls are OK to use" allowlist
-      the catch/ball-selection respects (e.g. protect Master Ball). [queued
-      after #36-38 GUI fork].
-- [ ] #S — User to send a zipped SAVE PROFILE folder → extract into
-      custom/sandbox `profiles/<name>/` (gitignored). Unblocks live tests.
+      the catch/ball-selection respects (e.g. protect Master Ball). [next,
+      after the live-test fork finishes on dashboard_gui].
+- [x] #S — User's real save placed: "Nick - Emerald" (progressed) +
+      "-restored" + global configs into custom/sandbox profiles/
+      (gitignored). LIVE TEST on real party running.
 
 ## Now-ish (user-added 2026-07-19, ahead of first wave)
 - [ ] #33 — GUI fixes (in sandbox): Left Party Section ALWAYS visible in
