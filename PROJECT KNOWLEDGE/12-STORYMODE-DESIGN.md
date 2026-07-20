@@ -1381,6 +1381,16 @@ Route 104) and any NPC/script there still need pinning down. Manual walk west al
 y=11 dead-ended at (4,11). Petalburg's West connection has offset -50, so its full
 west edge (x=0, y=0..29) maps to Route 104's east edge at y≈50..79 (the beach).
 
+**Leg-1 probe result (2026-07-20):** from the gym-exit tile Petalburg (15,9),
+`navigate_to_anywhere(PETALBURG,(x,y))` FAILS "Could not find a path" for EVERY
+west-edge tile x=0/1/2 at y=15..28 — the pathfinder won't route to the west edge
+from there. Yet manually pressing Left from (15,11) walks to (4,11) before hitting
+a wall, and navigating toward a far target paths the player to ~(4,13) then fires a
+scripted event. So: the walkable west limit is ~x=4, the true Route-104 exit tile
+is NOT any of x=0-2 at those y's, and a script triggers near (4,13). NEXT SESSION
+should DUMP the Petalburg collision/passability grid (or watch it live) to find the
+actual open exit tile + identify the (4,13) script — do NOT blind-guess coords (ML-7).
+
 **LEG PLAN for next session (build + verify each via the LISTENER harness):**
 1. Petalburg → Route 104 (south/beach): find the west-edge exit tile (probe y at
    x=0), cross west. Grass on Route 104 ⇒ keep the battle listener attached.
