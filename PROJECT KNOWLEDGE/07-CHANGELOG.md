@@ -777,3 +777,8 @@ DEFEATED_RIVAL_ROUTE103 True, Mudkip Lv8, clean). Chapter 1 fully in custom now.
 helper: head back to Birch's lab after the rival (riding out the Oldale rival
 intercept), receive the Pokédex + Poké Balls. Wired into StoryMode. Verified
 from the post-rival checkpoint (SYS_POKEDEX_GET True). Design §16. Sandbox.
+
+## 2026-07-20 — PROMOTED Pokédex sequence to custom (#24)
+User tested ("runs perfectly to the PokeDex"). return_to_lab_and_get_pokedex +
+_navigate_through_scripts copied sandbox → custom; verified (SYS_POKEDEX_GET
+True). StoryMode in custom now plays fresh game → rival → Pokédex.

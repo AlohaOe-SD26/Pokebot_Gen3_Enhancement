@@ -566,3 +566,81 @@ def fight_route103_rival() -> Generator:
     #    out the post-battle dialogue (the rival runs off to the lab).
     yield from _ride_out_scripted_scene("B", engage_timeout=1500)
     context.message = "Story: beat the rival! (End of the currently-built story.)"
+
+
+# --- Return to Birch's lab, receive the Pokédex ------------------------------
+def _navigate_through_scripts(dest_map, coordinates, *, avoid_encounters: bool = True,
+                              max_rounds: int = 25) -> Generator:
+    """navigate_to_anywhere, but ride out any scripted scene that interrupts the
+    trip (e.g. the rival stopping you in Oldale after the Route 103 battle) and
+    then continue, until the destination map is reached."""
+    dest = dest_map.value if hasattr(dest_map, "value") else dest_map
+    rounds = 0
+    while _map_group_number() != dest:
+        rounds += 1
+        if rounds > max_rounds:
+            raise BotModeError(f"Could not reach {dest} (too many scripted interruptions).")
+        try:
+            yield from navigate_to_anywhere(dest_map, coordinates, avoid_encounters=avoid_encounters)
+        except BotModeError:
+            # A scene fired mid-path (a one-shot story event) — ride it out, then retry.
+            yield from _ride_out_scripted_scene("B")
+
+
+def return_to_lab_and_get_pokedex() -> Generator:
+    """After beating the rival, head back to Professor Birch's lab to receive the
+    Pokédex (and Poké Balls). The rival intercepts you in Oldale on the way
+    (`RivalFinish`) — that's ridden out automatically.
+
+    STORY CONDITION: `DEFEATED_RIVAL_ROUTE103` is set; the player is on Route 103.
+    GOAL/END STATE: `RECEIVED_POKEDEX_FROM_BIRCH` is set and the player is
+    controllable, free to head off toward Petalburg."""
+    context.message = "Story: heading back to Professor Birch's lab for the Pokédex..."
+    yield from _navigate_through_scripts(
+        MapRSE.LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB, (6, 8), avoid_encounters=True
+    )
+
+    # In the lab: Birch gives the Pokédex + Poké Balls. Advance the dialogue with
+    # A until the Pokédex flag is set, then ride out the rest of the scene.
+    context.message = "Story: Professor Birch is giving you the Pokédex..."
+    frames = 0
+    from modules.memory import get_event_flag
+
+    while not get_event_flag("RECEIVED_POKEDEX_FROM_BIRCH"):
+        context.emulator.press_button("A")
+        frames += 1
+        if frames > 6000:
+            raise BotModeError("Never received the Pokédex in Birch's lab.")
+        yield
+    yield from _wait_until_cutscene_over("B")
+    context.message = "Story: got the Pokédex! Time to start the journey to Petalburg."
+
+
+def _navigate_leg(dest_map, coordinates, *, avoid_encounters: bool = True, max_rounds: int = 12) -> Generator:
+    """One leg of a cross-region journey using `navigate_to` (which, unlike the
+    global navigator, doesn't loop on Route 101), retrying around any scripted
+    scene that interrupts it (running-shoes gift, city-entry events, etc.)."""
+    dest = dest_map.value if hasattr(dest_map, "value") else dest_map
+    rounds = 0
+    while _map_group_number() != dest:
+        rounds += 1
+        if rounds > max_rounds:
+            raise BotModeError(f"Stuck trying to reach {dest} (too many interruptions).")
+        try:
+            yield from navigate_to(dest_map, coordinates, avoid_encounters=avoid_encounters)
+            return
+        except BotModeError:
+            yield from _ride_out_scripted_scene("B")
+
+
+def travel_to_petalburg() -> Generator:
+    """Journey from Birch's lab to Petalburg City: Littleroot -> Route 101 ->
+    Oldale -> Route 102 -> Petalburg. Mom's Running-Shoes gift fires in
+    Littleroot on the way and is ridden out automatically. Ends in Petalburg."""
+    context.message = "Story: setting off for Petalburg City..."
+    yield from navigate_to_anywhere(MAP_LITTLEROOT_TOWN, (6, 9))  # exit the lab into town
+    yield from _navigate_leg(MapRSE.ROUTE101, (9, 9))
+    yield from _navigate_leg(MapRSE.OLDALE_TOWN, (4, 9))
+    yield from _navigate_leg(MapRSE.ROUTE102, (14, 8))
+    yield from _navigate_leg(MapRSE.PETALBURG_CITY, (20, 18))
+    context.message = "Story: arrived in Petalburg City."

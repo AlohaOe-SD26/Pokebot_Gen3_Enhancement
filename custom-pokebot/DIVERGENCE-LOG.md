@@ -304,3 +304,10 @@ Poké Center, LevelUpLeadBattleStrategy) + fight_route103_rival (heal to full
 then battle). StoryMode.on_battle_started → LevelUpLeadBattleStrategy. A fresh
 game now plays through the first rival battle. Verified in custom (train + rival
 from the Route 103 checkpoint → DEFEATED_RIVAL_ROUTE103 True, no crash).
+
+### (j-update 2026-07-20d) Story: return to lab + Pokédex
+`return_to_lab_and_get_pokedex()` + `_navigate_through_scripts()`: after the
+rival, back to Birch's lab (riding out the Oldale rival intercept), receive the
+Pokédex + Poké Balls. Wired into StoryMode (which now ends at the Pokédex).
+Verified in custom (SYS_POKEDEX_GET True). (early_game.py also carries WIP
+`travel_to_petalburg`/`_navigate_leg`, not yet wired.)

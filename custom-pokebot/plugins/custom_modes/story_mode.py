@@ -115,6 +115,7 @@ class StoryMode(BotMode):
             fight_route103_rival,
             go_upstairs_and_set_clock,
             help_birch_and_choose_starter,
+            return_to_lab_and_get_pokedex,
             train_lead_to_level,
             travel_to_route103,
             visit_rivals_house,
@@ -129,16 +130,18 @@ class StoryMode(BotMode):
         yield from finish_birch_lab(cfg.starter_nickname)
 
         # Head to Route 103 (training en route), grind the starter to a random
-        # Lv 8-10, then battle the rival.
+        # Lv 8-10, battle the rival, then return to Birch for the Pokédex.
         target_level = random.randint(8, 10)
         console.print(f"[cyan]Story: training the starter to Lv {target_level} before the rival.[/]")
         yield from travel_to_route103()
         yield from train_lead_to_level(target_level)
         yield from fight_route103_rival()
+        yield from return_to_lab_and_get_pokedex()
 
         context.message = (
-            "Story: trained the starter and beat the rival on Route 103! "
-            "That's the end of the currently-built story; handing to manual."
+            "Story: beat the rival and got the Pokédex! The next stretch (Route "
+            "102 -> Petalburg -> Dad & Wally) is still being built; handing to "
+            "manual."
         )
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()
