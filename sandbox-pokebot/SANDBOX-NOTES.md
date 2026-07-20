@@ -700,3 +700,19 @@ exercised by the local bare remote.
 - NOTE: existing profiles that already copied `new_move: stop` keep it —
   set their profile/global battle.yml `new_move: cancel` (or delete the line
   to inherit the new default) to get the no-interrupt behavior.
+
+## 2026-07-19 — Party visuals + gamepad-nav gating (#36/#37/#38)
+- #36 Larger party balls: _PARTY_ICON_SIZE 52 → 104; the caught-ball is a
+  full-slot backdrop (alpha 0.9), the mon rendered smaller (~62%) and
+  BOTTOM-anchored so the ball's dome shows above it = clearly "behind the
+  Pokémon". Empty slot = a large Poké Ball. (dashboard_gui.py _build_party_icon)
+- #37 Themed hover tooltip: replaced the plain text Label with a Pokémon-
+  themed card — sprite + shiny-gold name + colored TYPE badges (TYPE_COLORS
+  map, luminance-based text color) + a color-coded IV grid (_iv_color
+  green→red) + nature/ability/held/ball/HP + moves list. Same
+  _show_party_tooltip(index)/_hide API (still gamepad-triggerable), topmost,
+  rebuilt each show, on-screen clamped. Applies to left strip + Party tab.
+- #38 Gamepad GUI-nav gated: removed the DESKTOP Back+Start "toggle nav"
+  path (gamepad.py _toggle_ui) that was stealing gameplay control. GUI-nav
+  is now active ⟺ the handheld Pokéball drawer is open; closed/desktop →
+  the controller plays the game, never the GUI. Unit-verified.

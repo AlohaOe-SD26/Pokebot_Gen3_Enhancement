@@ -68,6 +68,37 @@ COLOR_WARNING = "#fab219"
 COLOR_CRITICAL = "#d03b3b"
 COLOR_SHINY = "#c98500"
 
+# Gen-3 type colours (for the party hover tooltip's type badges). Text on a
+# badge is dark or light depending on the badge's luminance.
+TYPE_COLORS = {
+    "Normal": "#A8A878", "Fire": "#F08030", "Water": "#6890F0", "Grass": "#78C850",
+    "Electric": "#F8D030", "Ice": "#98D8D8", "Fighting": "#C03028", "Poison": "#A040A0",
+    "Ground": "#E0C068", "Flying": "#A890F0", "Psychic": "#F85888", "Bug": "#A8B820",
+    "Rock": "#B8A038", "Ghost": "#705898", "Dragon": "#7038F8", "Dark": "#705848",
+    "Steel": "#B8B8D0", "???": "#68A090", "Fairy": "#EE99AC",
+}
+
+
+def _readable_text_on(hex_color: str) -> str:
+    """Black or white text for legibility on a coloured badge."""
+    try:
+        r, g, b = (int(hex_color[i : i + 2], 16) for i in (1, 3, 5))
+        return "#1a1a19" if (0.299 * r + 0.587 * g + 0.114 * b) > 150 else "#ffffff"
+    except Exception:
+        return "#ffffff"
+
+
+def _iv_color(value: int) -> str:
+    """Colour an individual IV (0-31) green→red by quality."""
+    if value >= 28:
+        return COLOR_GOOD
+    if value >= 20:
+        return "#7bbf3a"
+    if value >= 10:
+        return COLOR_WARNING
+    return COLOR_CRITICAL
+
+
 TOOL_COLUMN_WIDTH = 360
 TAB_ORDER = ["Play", "Party", "Hunt", "Stats", "Cheats", "Backups"]
 SIDEBAR_REFRESH_FRAMES = 30  # refresh party/labels every N rendered frames
@@ -995,20 +1026,21 @@ class DashboardScreen:
     # Left Party Section (#30c) + hover stats (#30d)
     # ------------------------------------------------------------------
 
-    _PARTY_ICON_SIZE = 52
+    _PARTY_ICON_SIZE = 104
 
     def _build_party_strip(self) -> None:
         """A vertical strip of 6 party icons to the left of the video (both
-        desktop and handheld). Empty slot = a dimmed Poké Ball; filled slot =
-        the mon over its caught ball. Hovering a slot shows its stats."""
-        strip = tkinter.Frame(self.window, background=COLOR_SURFACE, width=self._PARTY_ICON_SIZE + 12)
+        desktop and handheld). Empty slot = a large Poké Ball; filled slot =
+        the mon over its caught ball (ball a clear backdrop behind the mon).
+        Hovering a slot shows its stats."""
+        strip = tkinter.Frame(self.window, background=COLOR_SURFACE, width=self._PARTY_ICON_SIZE + 14)
         strip.grid(row=0, column=0, sticky="ns")
         strip.grid_propagate(False)
         self._party_strip = strip
         self._party_slots = []
         for index in range(6):
             slot = tkinter.Label(strip, background=COLOR_SURFACE, borderwidth=0)
-            slot.pack(pady=3, padx=6)
+            slot.pack(pady=2, padx=5)
             slot.bind("<Enter>", lambda event, i=index: self._party_hover_enter(i, event.x_root, event.y_root))
             slot.bind("<Leave>", lambda _event: self._party_hover_leave())
             self._party_slots.append(slot)
@@ -1065,27 +1097,32 @@ class DashboardScreen:
             image.thumbnail((box, box), PIL.Image.NEAREST)
             return image
 
-        def paste_centered(image, dim: bool = False) -> None:
+        def paste(image, alpha_mul: float = 1.0, anchor: str = "center") -> None:
             if image is None:
                 return
-            if dim:
-                alpha = image.split()[3].point(lambda a: int(a * 0.5))
+            if alpha_mul < 1.0:
+                faded = image.split()[3].point(lambda a: int(a * alpha_mul))
                 image = image.copy()
-                image.putalpha(alpha)
-            canvas.alpha_composite(image, ((size - image.width) // 2, (size - image.height) // 2))
+                image.putalpha(faded)
+            x = (size - image.width) // 2
+            y = size - image.height - 2 if anchor == "bottom" else (size - image.height) // 2
+            canvas.alpha_composite(image, (x, y))
 
+        mon_box = int(size * 0.62)  # mon noticeably smaller than the ball backdrop
         if key == "empty":
-            paste_centered(load(items_dir / "Poké Ball.png", 34), dim=True)
+            paste(load(items_dir / "Poké Ball.png", size), alpha_mul=0.55)
         elif key == "egg":
-            paste_centered(load(get_sprites_path() / "pokemon" / "Egg.png", 44))
+            paste(load(get_sprites_path() / "pokemon" / "Egg.png", int(size * 0.82)), anchor="bottom")
         else:
             ball_name = key.split("|")[-1]
-            ball_image = load(items_dir / f"{ball_name}.png", 46) or load(items_dir / "Poké Ball.png", 46)
-            paste_centered(ball_image, dim=True)  # ball behind, slightly faded
+            ball_image = load(items_dir / f"{ball_name}.png", size) or load(items_dir / "Poké Ball.png", size)
+            paste(ball_image, alpha_mul=0.9)  # large ball fills the slot as a BACKDROP
             try:
                 from modules.sprites import get_sprite
 
-                paste_centered(load(get_sprite(pokemon), 42))  # mon in front
+                # Mon stands in FRONT of the ball, bottom-anchored so the ball's
+                # dome stays visible above it.
+                paste(load(get_sprite(pokemon), mon_box), anchor="bottom")
             except Exception:
                 pass
         return PIL.ImageTk.PhotoImage(canvas)
@@ -1309,8 +1346,7 @@ class DashboardScreen:
             self._hide_party_tooltip()
             return
         mon = party[index]
-        text = self._format_pokemon_stats(mon)
-        if not text:
+        if mon is None or getattr(mon, "is_empty", False):
             self._hide_party_tooltip()
             return
         try:
@@ -1318,22 +1354,154 @@ class DashboardScreen:
                 tip = tkinter.Toplevel(self.window)
                 tip.overrideredirect(True)
                 tip.attributes("-topmost", True)
-                tip.configure(background=COLOR_HAIRLINE)
-                label = tkinter.Label(
-                    tip, justify="left", anchor="w", background=COLOR_CARD, foreground=COLOR_INK,
-                    font=("Segoe UI", 8), padx=8, pady=6,
-                )
-                label.pack(padx=1, pady=1)
+                tip.configure(background=COLOR_ACCENT)  # 1px accent border
                 self._party_tooltip = tip
-                self._party_tooltip_label = label
-            self._party_tooltip_label.config(text=text)
+            tip = self._party_tooltip
+            for child in tip.winfo_children():
+                child.destroy()
+            body = tkinter.Frame(tip, background=COLOR_CARD)
+            body.pack(padx=1, pady=1)
+            self._build_tooltip_body(body, mon)
+            tip.update_idletasks()
             if x is None:
                 x = self.window.winfo_pointerx() + 16
-                y = self.window.winfo_pointery() + 10
-            self._party_tooltip.geometry(f"+{int(x)}+{int(y)}")
-            self._party_tooltip.deiconify()
-            self._party_tooltip.lift()
+                y = self.window.winfo_pointery() + 12
+            # Keep the card on-screen (it can be tall).
+            try:
+                sh = self.window.winfo_screenheight()
+                if int(y) + tip.winfo_height() > sh - 8:
+                    y = max(8, sh - tip.winfo_height() - 8)
+            except Exception:
+                pass
+            tip.geometry(f"+{int(x)}+{int(y)}")
+            tip.deiconify()
+            tip.lift()
         except tkinter.TclError:
+            pass
+
+    def _tooltip_sprite(self, mon) -> "PIL.ImageTk.PhotoImage | None":
+        try:
+            key = f"tip|{mon.species_name_for_stats}|{bool(mon.is_shiny)}"
+        except Exception:
+            key = None
+        if key and key in self._party_icon_cache:
+            return self._party_icon_cache[key]
+        image = None
+        try:
+            from modules.sprites import get_sprite
+
+            path = get_sprite(mon)
+            if path and path.is_file():
+                pic = PIL.Image.open(path)
+                if pic.mode != "RGBA":
+                    pic = pic.convert("RGBA")
+                pic.thumbnail((56, 56), PIL.Image.NEAREST)
+                image = PIL.ImageTk.PhotoImage(pic)
+        except Exception:
+            image = None
+        if key:
+            self._party_icon_cache[key] = image
+        return image
+
+    def _build_tooltip_body(self, parent, mon) -> None:
+        """Pokémon-themed hover card: sprite + name + type badges + a
+        colour-coded IV grid + nature/ability/item/HP + moves."""
+        def safe(func, default="?"):
+            try:
+                value = func()
+                return value if value is not None else default
+            except Exception:
+                return default
+
+        try:
+            if mon.is_egg:
+                tkinter.Label(parent, text="Egg", background=COLOR_CARD, foreground=COLOR_MUTED,
+                              font=("Segoe UI", 11, "bold"), padx=14, pady=10).pack()
+                return
+        except Exception:
+            pass
+
+        pad = 10
+        header = tkinter.Frame(parent, background=COLOR_CARD)
+        header.pack(fill="x", padx=pad, pady=(pad, 4))
+        sprite_img = self._tooltip_sprite(mon)
+        if sprite_img is not None:
+            sprite_label = tkinter.Label(header, image=sprite_img, background=COLOR_CARD)
+            sprite_label.image = sprite_img
+            sprite_label.pack(side="left", padx=(0, 8))
+        name_col = tkinter.Frame(header, background=COLOR_CARD)
+        name_col.pack(side="left", anchor="w")
+        is_shiny = safe(lambda: bool(mon.is_shiny), False)
+        name_row = tkinter.Frame(name_col, background=COLOR_CARD)
+        name_row.pack(anchor="w")
+        tkinter.Label(name_row, text=safe(lambda: mon.name), background=COLOR_CARD,
+                      foreground=COLOR_SHINY if is_shiny else COLOR_INK,
+                      font=("Segoe UI", 13, "bold")).pack(side="left")
+        if is_shiny:
+            tkinter.Label(name_row, text=" ✨", background=COLOR_CARD, foreground=COLOR_SHINY,
+                          font=("Segoe UI", 11)).pack(side="left")
+        gender = safe(lambda: mon.gender, "")
+        tkinter.Label(name_col, text=f"Lv {safe(lambda: mon.level)}    {gender}".rstrip(),
+                      background=COLOR_CARD, foreground=COLOR_INK_2, font=("Segoe UI", 9)).pack(anchor="w")
+
+        # Type badges (de-duplicated for mono-type mons).
+        types = []
+        try:
+            for kind in mon.species.types:
+                if kind.name not in types:
+                    types.append(kind.name)
+        except Exception:
+            types = []
+        if types:
+            badges = tkinter.Frame(parent, background=COLOR_CARD)
+            badges.pack(fill="x", padx=pad, pady=(0, 6))
+            for kind in types:
+                color = TYPE_COLORS.get(kind, COLOR_MUTED)
+                tkinter.Label(badges, text=kind.upper(), background=color, foreground=_readable_text_on(color),
+                              font=("Segoe UI", 8, "bold"), padx=8, pady=2).pack(side="left", padx=(0, 4))
+
+        info = tkinter.Frame(parent, background=COLOR_CARD)
+        info.pack(fill="x", padx=pad, pady=(0, 4))
+
+        def info_line(text):
+            tkinter.Label(info, text=text, background=COLOR_CARD, foreground=COLOR_INK_2,
+                          font=("Segoe UI", 9), anchor="w", justify="left").pack(fill="x")
+
+        info_line(f"{safe(lambda: mon.nature.name)} nature")
+        info_line(f"Ability: {safe(lambda: mon.ability.name)}")
+        held = safe(lambda: mon.held_item.name if mon.held_item is not None else "—", "—")
+        info_line(f"Held: {held}     Ball: {safe(lambda: mon.poke_ball.name)}")
+        info_line(f"HP: {safe(lambda: mon.current_hp)}/{safe(lambda: mon.total_hp)}")
+
+        try:
+            ivs = mon.ivs
+            iv_cells = [("HP", ivs.hp), ("Atk", ivs.attack), ("Def", ivs.defence),
+                        ("SpA", ivs.special_attack), ("SpD", ivs.special_defence), ("Spe", ivs.speed)]
+            tkinter.Label(parent, text="IVs", background=COLOR_CARD, foreground=COLOR_MUTED,
+                          font=("Segoe UI", 8, "bold"), anchor="w").pack(fill="x", padx=pad)
+            grid = tkinter.Frame(parent, background=COLOR_CARD)
+            grid.pack(padx=pad, pady=(1, 6))
+            for i, (tag, val) in enumerate(iv_cells):
+                cell = tkinter.Frame(grid, background=COLOR_SURFACE)
+                cell.grid(row=i // 3, column=i % 3, padx=2, pady=2, sticky="nsew")
+                tkinter.Label(cell, text=tag, background=COLOR_SURFACE, foreground=COLOR_MUTED,
+                              font=("Segoe UI", 7), width=5).pack()
+                tkinter.Label(cell, text=str(val), background=COLOR_SURFACE, foreground=_iv_color(val),
+                              font=("Segoe UI", 11, "bold")).pack()
+        except Exception:
+            pass
+
+        try:
+            moves = [move.move.name for move in mon.moves if move is not None]
+            if moves:
+                tkinter.Label(parent, text="Moves", background=COLOR_CARD, foreground=COLOR_MUTED,
+                              font=("Segoe UI", 8, "bold"), anchor="w").pack(fill="x", padx=pad)
+                move_box = tkinter.Frame(parent, background=COLOR_CARD)
+                move_box.pack(fill="x", padx=pad, pady=(0, pad))
+                for name in moves:
+                    tkinter.Label(move_box, text=f"•  {name}", background=COLOR_CARD, foreground=COLOR_INK_2,
+                                  font=("Segoe UI", 9), anchor="w").pack(fill="x")
+        except Exception:
             pass
 
     def _hide_party_tooltip(self) -> None:

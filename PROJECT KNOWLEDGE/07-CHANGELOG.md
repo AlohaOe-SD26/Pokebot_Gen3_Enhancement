@@ -448,3 +448,14 @@
   inherited by all leveling strategies); future move-intelligence seam
   documented in default.py. Verified: cancel→decline, stop→decline+Manual.
   Existing profiles need battle.yml new_move set to cancel.
+
+## 2026-07-19 — Party visuals + gamepad-nav gating (sandbox, user adjustments)
+- Larger party-strip balls (104px) with the caught-ball as a clear backdrop
+  behind a bottom-anchored mon (#36); Pokémon-themed hover tooltip with type
+  badges + color-coded IV grid + moves, replacing the plain text (#37);
+  gamepad GUI-nav now only engages while the handheld Pokéball drawer is
+  open — desktop toggle removed so it never interrupts gameplay (#38).
+- Verified: py_compile + real-import + plugin/mode discovery; gamepad
+  gating unit test; rendered screenshots of the enlarged ball composite +
+  the themed tooltip. Filled-slot live view + controller feel need a real
+  save/pad.

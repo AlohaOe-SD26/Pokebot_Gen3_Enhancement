@@ -199,18 +199,18 @@ class GamepadListener:
         return None
 
     def _toggle_ui(self) -> None:
-        # Back+Start — couch-friendly UI toggle. Handheld: open/close the tool
-        # drawer (which turns gamepad GUI-nav on/off, #32). Desktop: toggle
-        # gamepad GUI-nav directly (there is no drawer to open).
+        # Back+Start — couch-friendly drawer toggle, HANDHELD ONLY. Opening the
+        # Pokéball drawer turns gamepad GUI-nav ON; closing it turns it OFF
+        # (wired in DashboardScreen._set_drawer). On DESKTOP this does nothing:
+        # GUI-nav must never engage while you're playing, or it steals control
+        # from the game — so the controller only drives the dashboard while the
+        # handheld drawer (opened via the Pokéball) is open. (#5a)
         try:
             screen = self._active_dashboard_screen()
             if screen is None:
                 return
-            if getattr(screen, "_handheld", False):
-                if hasattr(screen, "_set_drawer"):
-                    screen._set_drawer(not screen._drawer_open)
-            elif hasattr(screen, "set_gui_nav_active"):
-                screen.set_gui_nav_active(not getattr(screen, "_gui_nav_active", False))
+            if getattr(screen, "_handheld", False) and hasattr(screen, "_set_drawer"):
+                screen._set_drawer(not screen._drawer_open)
         except Exception:
             pass
 
