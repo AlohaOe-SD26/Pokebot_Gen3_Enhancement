@@ -1074,3 +1074,30 @@ watching `GameState` + named tasks. Facts that will matter for later chunks:
   (chunk B territory: stepping off / entering Littleroot).
 - The whole intro is deterministic (~4593 frames boy / ~4627 girl) with no RNG
   dependence, so it replays reliably.
+
+---
+
+## §14 — Early-game (post-intro) live facts (2026-07-20, chunk B in progress)
+
+Building forward from the truck. Iteration uses save states parked at each
+sub-step (scratchpad `truck_base.ss1`, `house1f_base.ss1`) so we don't replay
+the whole intro every test. `modules/story/early_game.py`.
+
+- **Step-off sequence** (`walk_off_truck_and_into_house()`, DONE + tested):
+  from INSIDE OF TRUCK, walk **east** (player starts local (2,2); exit warps are
+  the x=4 column) → LITTLEROOT TOWN → `LittlerootTown_EventScript_StepOffTruck
+  Male` → `...GoInsideWithMom` (Mom escorts you) → **warp into the house** →
+  `PlayersHouse_1F_EventScript_MomFacePlayerMovingInMale` + her "set the clock"
+  speech → control returns **inside PlayersHouse_1F at local (8,7)**.
+- **`map_name` is STALE across warps** (still reads "LITTLEROOT TOWN" inside the
+  house). Use the map **group/number** instead: PlayersHouse_1F = **(1, 0)**;
+  Littleroot Town = (0, 9).
+- **Cutscene end-detection:** require `player_avatar_is_controllable()` AND
+  `not get_global_script_context().is_active` for ~15 consecutive frames. A
+  single-frame check stops too early — there's a window where Mom's script is
+  "active" but the avatar isn't locked yet (would stop at (3,10), wrong).
+- **House 1F (1,0) warps:** stairs to 2F = **(8,2)**; the front door = (8,8)/
+  (9,8). Player lands at (8,7). So B2 = walk to (8,2) → 2F → clock.
+- `ADVENTURE_STARTED` (116) is still FALSE through all of this — it sets later.
+- **NEXT (B2):** up the stairs (8,2) → 2F → interact with the wall clock → set
+  the time. Then downstairs → Route 101 → Birch's bag → starter → first battle.

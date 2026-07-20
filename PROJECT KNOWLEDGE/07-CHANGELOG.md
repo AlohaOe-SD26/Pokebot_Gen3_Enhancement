@@ -663,3 +663,13 @@ emulator_controls.py) with the title-screen selection fix. Verified in custom:
 compile clean, 12/12 story tests, live intro smoke test lands NICK/male INSIDE
 OF TRUCK. DIVERGENCE-LOG (j) + DOCUMENTATION/01-custom-automations.md updated.
 Sandbox and custom are now in sync for all story files.
+
+## 2026-07-20 — Story-mode chunk B part 1: step off truck → into the house (#24, sandbox)
+`modules/story/early_game.py` `walk_off_truck_and_into_house()`: from the truck,
+walks out east into Littleroot, rides Mom's greeting cutscene (escort + warp
+into the house + her speech), and stops controllable inside PlayersHouse_1F at
+(8,7). Robust cutscene-end detection (controllable AND no-script for 15
+consecutive frames — a 1-frame check stopped too early). Wired into StoryMode
+after the intro. Verified from the truck-parked base and full-run from a fresh
+profile. Map facts + next steps in design doc §14. Sandbox only; next: B2
+(upstairs → set clock).
