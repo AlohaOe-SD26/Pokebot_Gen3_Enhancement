@@ -1127,8 +1127,9 @@ class DashboardScreen:
         return PIL.ImageTk.PhotoImage(canvas)
 
     def _tooltip_ball_icon(self, ball_name: str) -> "PIL.ImageTk.PhotoImage | None":
-        """Small (~18px) caught-ball icon for the hover tooltip, cached per
-        ball name. Falls back to the plain Poké Ball if the asset is missing."""
+        """~54px caught-ball icon for the hover tooltip (#46: ~3× the old
+        18px), cached per ball name. Falls back to the plain Poké Ball if the
+        asset is missing."""
         if not hasattr(self, "_tooltip_ball_cache"):
             self._tooltip_ball_cache = {}
         if ball_name in self._tooltip_ball_cache:
@@ -1145,7 +1146,9 @@ class DashboardScreen:
                 image = PIL.Image.open(path)
                 if image.mode != "RGBA":
                     image = image.convert("RGBA")
-                image.thumbnail((18, 18), PIL.Image.NEAREST)
+                # resize (not thumbnail) so the 24px item icon UPSCALES to ~3×
+                # (thumbnail only shrinks). NEAREST keeps the pixel art crisp.
+                image = image.resize((54, 54), PIL.Image.NEAREST)
                 photo = PIL.ImageTk.PhotoImage(image)
         except Exception:
             photo = None

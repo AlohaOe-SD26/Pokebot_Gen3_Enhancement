@@ -148,11 +148,11 @@
   },
   "381": {
    "name": "Latios",
-   "kind": "static",
-   "emerald_reachable": false,
-   "automatable": false,
-   "needs_user": true,
-   "note": "Southern Island — requires the EON TICKET (event-distribution item). Which of Latias/Latios sits here vs roams depends on the post-Championship TV answer; convention here: Latios=Southern Island, Latias=roamer. Per save only ONE Eon Pokemon is obtainable without the Eon Ticket."
+   "kind": "roamer",
+   "emerald_reachable": true,
+   "automatable": true,
+   "needs_user": false,
+   "note": "Eon Pokemon. Depending on the post-Championship TV answer, EITHER Latios or Latias roams Hoenn (catchable in normal play); the other needs the Eon Ticket (event) for Southern Island. Per USER RULING both are marked obtainable so the bot targets whichever actually roams in THIS save via get_roamer()."
   },
   "380": {
    "name": "Latias",
@@ -160,7 +160,7 @@
    "emerald_reachable": true,
    "automatable": true,
    "needs_user": false,
-   "note": "Roams Hoenn after the post-Championship TV question. Convention here: Latias roams, Latios sits on Southern Island. get_roamer() reads the live species. Catchable in normal play (no event item needed)."
+   "note": "Eon Pokemon. Depending on the post-Championship TV answer, EITHER Latias or Latios roams Hoenn (catchable in normal play); the other needs the Eon Ticket (event) for Southern Island. Per USER RULING both are marked obtainable so the bot targets whichever actually roams in THIS save via get_roamer()."
   },
   "151": {
    "name": "Mew",

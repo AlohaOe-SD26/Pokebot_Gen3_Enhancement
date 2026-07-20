@@ -517,3 +517,10 @@
 - Files: modules/obtainability.py, modules/data/emerald_obtainability.json,
   modules/living_dex.py, modules/gui/dashboard_gui.py, tests/test_obtainability.py.
   Full lists + citations + validation report: 11-LIVINGDEX-DESIGN.md (Phase #41-research).
+
+## 2026-07-19 — Rulings + tooltip ball 3× + shiny opportunistic catch (sandbox)
+- Latias+Latios both marked obtainable (roamer) per user ruling; obtainable
+  denominator 217→218/386; test_obtainability updated, 16/16 pass.
+- #46 hover tooltip caught-ball icon upscaled ~3× (24→54px via resize).
+- #47 Living Dex catches any SHINY encounter even of an already-owned
+  species (storage-gated); stub-verified.

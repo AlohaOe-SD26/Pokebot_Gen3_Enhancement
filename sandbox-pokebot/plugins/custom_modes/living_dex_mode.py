@@ -60,10 +60,15 @@ class LivingDexMode(BotMode):
         try:
             if encounter is None:
                 return None
+            opponent = encounter.pokemon
+            # SHINY (#47): always catch a shiny, even of an already-owned
+            # species — a shiny is worth stopping for regardless of dex status.
+            if opponent.is_shiny and self._can_fit_pokemon():
+                return BattleAction.Catch
             run = self._run if self._run is not None else living_dex.load_run()
             if run is None:
                 return None
-            opponent_index = encounter.pokemon.species.index
+            opponent_index = opponent.species.index
             if living_dex.is_wanted(opponent_index, run) and not living_dex.is_owned(opponent_index):
                 # Only commit to a catch we can actually store, so one is never
                 # lost; if full, the run loop's per-target space check pauses.

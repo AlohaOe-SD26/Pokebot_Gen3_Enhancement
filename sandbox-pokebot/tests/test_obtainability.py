@@ -71,14 +71,16 @@ class TestObtainability(unittest.TestCase):
     def test_category_counts(self):
         self.assertEqual(
             self.census["by_kind"],
-            {"wild": 132, "evolution": 149, "gift": 7, "static": 8, "roamer": 1,
+            # User ruling 2026-07-19: both Lati@s obtainable (roamer) → static 7 / roamer 2.
+            {"wild": 132, "evolution": 149, "gift": 7, "static": 7, "roamer": 2,
              "event": 6, "breeding": 3, "special": 1, "unobtainable": 79},
         )
 
     def test_emerald_reachable_denominator(self):
         # obtainable in Emerald WITHOUT trading (the 2nd living-dex denominator)
-        self.assertEqual(self.census["emerald_reachable"], 217)
-        self.assertEqual(self.census["not_reachable"], 169)
+        # 218 after the Latias+Latios-both-obtainable ruling (Latios flipped +1).
+        self.assertEqual(self.census["emerald_reachable"], 218)
+        self.assertEqual(self.census["not_reachable"], 168)
 
     # -- override integrity ----------------------------------------------
     def test_override_natdex_roundtrip(self):
@@ -93,9 +95,12 @@ class TestObtainability(unittest.TestCase):
             self.assertEqual(self._kind(n), "static", n)
 
     def test_lati_pair(self):
+        # User ruling 2026-07-19: BOTH obtainable (bot targets whichever roams
+        # in the actual save via get_roamer()). Both classified roamer+reachable.
         self.assertEqual(self._kind("Latias"), "roamer")
-        self.assertEqual(self._kind("Latios"), "static")  # Southern Island / Eon Ticket
-        self.assertFalse(self._info("Latios")["emerald_reachable"])  # event-gated
+        self.assertEqual(self._kind("Latios"), "roamer")
+        self.assertTrue(self._info("Latias")["emerald_reachable"])
+        self.assertTrue(self._info("Latios")["emerald_reachable"])
 
     def test_gifts(self):
         for n in ["Treecko", "Torchic", "Mudkip", "Castform", "Lileep", "Anorith", "Beldum"]:

@@ -849,3 +849,15 @@ process.
   surfaced-not-hunted; add Sudowoodo + Ho-Oh to the static reset seed; auto-evolve
   helper. Verify on the REAL save when a session can boot the emulator (this pass
   was pure-data, validated against the ROM header + cache only).
+
+## 2026-07-19 — Rulings + #46/#47 (user round)
+- RULING: Latias(380) + Latios(381) BOTH set roamer + emerald_reachable=true
+  in emerald_obtainability.json (bot targets whichever roams this save via
+  get_roamer). Census now static 7 / roamer 2; obtainable 217→218/386.
+  test_obtainability updated (16/16 pass).
+- #46: hover tooltip caught-ball icon now UPSCALED to 54px (~3×) via
+  image.resize (thumbnail only shrinks — that was why 54px looked unchanged).
+- #47: living_dex_mode.on_battle_started now returns Catch for ANY SHINY
+  encounter (even an already-owned species), gated on storage — before the
+  wanted-uncaught check. Stub-verified: shiny-owned→Catch, wanted-uncaught→
+  Catch, owned-non-shiny→fall-through, trainer→None.
