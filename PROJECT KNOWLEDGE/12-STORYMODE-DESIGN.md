@@ -1391,7 +1391,14 @@ is NOT any of x=0-2 at those y's, and a script triggers near (4,13). NEXT SESSIO
 should DUMP the Petalburg collision/passability grid (or watch it live) to find the
 actual open exit tile + identify the (4,13) script — do NOT blind-guess coords (ML-7).
 
-**LEG PLAN for next session (build + verify each via the LISTENER harness):**
+**STATUS (2026-07-20): Legs 1-2 IMPLEMENTED + verified** — `travel_to_petalburg_woods()`
+does heal(Petalburg PC) → cross west to Route 104 (Scott ride-out) → fight the
+Route 104 trainer (no-flee `LevelUpTravelBattleStrategy`, ML-8) → enter the Woods
+south door (10-11,38) via discrete up-steps. Deterministic (6251 frames, x2).
+Wired into StoryMode (ends "reached Petalburg Woods"). Legs 3-4 (below) remain.
+Checkpoint: `woods_entered.ss1` (in the Woods at (17,38)).
+
+**LEG PLAN (build + verify each via the LISTENER harness):**
 1. Petalburg → Route 104 (south/beach): find the west-edge exit tile (probe y at
    x=0), cross west. Grass on Route 104 ⇒ keep the battle listener attached.
 2. Route 104 south → Petalburg Woods: navigate to the Woods SOUTH-entrance warp,

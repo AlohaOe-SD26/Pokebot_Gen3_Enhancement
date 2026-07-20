@@ -58,6 +58,20 @@ flavor all done, Phases 1/2/3a). `itemdex_data.json` = core (309 items);
 gaps = map_locations/mart/pickup/historical.
 
 ## Most recent work (2026-07-20)
+- **Story travel Petalburg → Petalburg Woods BUILT + verified (sandbox, not
+  promoted).** `travel_to_petalburg_woods()` (early_game.py) + new
+  `LevelUpTravelBattleStrategy` (story_mode.py), wired into StoryMode. Chain:
+  heal at Petalburg PC → cross WEST onto Route 104 riding out the one-time
+  `PetalburgCity_EventScript_Scott` cutscene at (4,12) → fight the Route 104
+  trainer (no-flee strategy) → enter the Woods south door (10-11,38) via
+  discrete up-steps. Deterministic via the listener harness (fresh gym save →
+  Woods, 6251 frames, ×2). KEY FIXES: single-mon party can't flee/rotate a
+  trainer → crash (ML-8, fixed with heal + no-flee strategy); Scott script runs
+  while state stays OVERWORLD (advance on `script.is_active`); navigate walks
+  OVER door warps without triggering (step up into it discretely). Full map
+  facts in design §16. Checkpoint `woods_entered.ss1` (in Woods at (17,38)).
+  **NEXT: leg 3 — cross the Woods past the mandatory Aqua-grunt/researcher scene
+  → north warp → Route 104 north → Rustboro (leg 4) → HM01 Cut → Gym 1.**
 - **Dashboard GUI bug fixed (BOTH builds, committed `27189794`):** clicking
   "Hide" threw `_tkinter.TclError: wrong # args … raise tagOrId` from
   `_pokeball_button.lift()`. `_pokeball_button` is a **Canvas**, and Tkinter's

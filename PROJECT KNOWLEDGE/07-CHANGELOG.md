@@ -814,3 +814,13 @@ back in gym). Custom StoryMode now plays fresh game → ... → Dad + Wally tuto
 lift AND tkraise to tag_raise, which needs a tag). Replaced with
 `tkinter.Misc.tkraise(self._pokeball_button)`. Non-fatal but noisy; fixed in
 both builds. See ML entry.
+
+## 2026-07-20 — Story: Petalburg -> Route 104 -> Petalburg Woods travel (#24, sandbox)
+Added `travel_to_petalburg_woods()` (modules/story/early_game.py): heal at
+Petalburg PC -> cross WEST to Route 104 riding out the one-time Scott cutscene
+-> fight the Route 104 trainer -> enter the Woods south door. Added
+`LevelUpTravelBattleStrategy` (no-flee for trainer battles; fixes the single-mon
+flee-crash, ML-8) and wired both into StoryMode. Verified deterministically via
+the listener harness (fresh gym save -> Petalburg Woods, 6251 frames, x2).
+Map facts (collision grid, Scott script, Woods warps, door quirk) in design §16
+/ ML-7 / ML-8. Sandbox-only; not yet promoted.

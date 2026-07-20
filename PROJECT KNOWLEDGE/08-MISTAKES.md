@@ -152,3 +152,37 @@
   warps — don't guess target coords. Read connections with get_map_data(M).connections
   (each has .direction/.offset/.destination_map); warps via .warps (`MapWarp` =
   `.local_coordinates` + `.destination_warp_id`).
+
+## 2026-07-20 — Single-mon party can't flee a trainer → travel battle crash  (ML-8)
+- **Symptom:** Story travel across Route 104 crashed with
+  `RuntimeError: Tried to run away from a trainer battle` — the lead (Mudkip
+  Lv11) dropped below the 20% HP flee threshold mid-fight and the strategy
+  tried to escape.
+- **Root cause:** At this point the party is a SINGLE Pokémon.
+  `LevelUpLeadBattleStrategy` flees (or rotates) when the lead's HP is too low —
+  but you cannot flee a TRAINER battle, and with one mon there is nothing to
+  rotate to, so it calls `TurnAction.run_away()` which raises. The lead was also
+  entering at 28% HP (unhealed).
+- **Fix:** (1) `LevelUpTravelBattleStrategy` (subclass) — in a TRAINER battle it
+  never escapes; it fights on with the strongest move (`is_trainer_battle`
+  guard). Used for ALL story battles now (wild battles keep the flee-at-low-HP
+  behaviour, which is fine — wilds CAN be fled and the training loop heals).
+  (2) Travel HEALS at a Poké Center before the trainer zone so full HP carries
+  the fight. Both in `travel_to_petalburg_woods()` / story_mode on_battle_started.
+- **Prevention:** Any route travel with a single-/small-mon party must pre-heal
+  AND use a no-flee strategy for trainers — a trainer battle can never be fled.
+
+## 2026-07-20 — Hidden coord scripts + door-warp quirks block travel (companion to ML-7)
+- **Scott gate:** Petalburg's ONLY west exit to Route 104 is row y=12/13; walking
+  there fires a ONE-TIME cutscene `PetalburgCity_EventScript_Scott` at (4,12)
+  that runs WHILE game_state stays OVERWORLD (so a "press B only when not
+  overworld" ride-out never advances it). Advance dialogue whenever
+  `get_global_script_context().is_active`, not just on a state change.
+- **Door warps:** navigate_to_anywhere walks OVER a 'Non-Animated Door' warp
+  tile WITHOUT triggering it (warp fires only on a genuine player step onto the
+  door from below). And a held direction won't cleanly enter it. Fix: navigate
+  to a tile BELOW the door, then step UP with DISCRETE steps (press, let the
+  ~16-frame step complete); if navigate stopped ON the door, drop south first.
+- **Finding hidden blockers:** dump the map collision grid (get_map_data per
+  tile → `.collision`/`.tile_type`) to find the real opening, and read
+  `get_global_script_context().stack` at the stall tile to name the script.

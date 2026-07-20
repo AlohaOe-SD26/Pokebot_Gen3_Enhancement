@@ -21,6 +21,30 @@ from modules.console import console
 from modules.context import context
 from modules.memory import GameState, game_has_started, get_game_state
 from modules.modes import BattleAction, BotMode
+from modules.battle_strategies import BattleStrategyUtil, TurnAction
+from modules.battle_strategies.level_up import LevelUpLeadBattleStrategy
+
+
+class LevelUpTravelBattleStrategy(LevelUpLeadBattleStrategy):
+    """Fights to win like LevelUpLead, but NEVER flees a TRAINER battle.
+
+    Story travel crosses routes that have trainers, and at this point the party
+    is often a SINGLE Pokémon — so when its HP dips, the parent strategy tries
+    to flee/rotate, and in a trainer battle (which you cannot flee) that raises
+    ``RuntimeError: Tried to run away from a trainer battle`` (ML-8). Here a
+    trainer battle always fights on with the strongest move instead; the caller
+    heals to full first so the lead can win. WILD battles keep the parent
+    behaviour (flee at low HP — the training loop heals for that)."""
+
+    def decide_turn(self, battle_state):
+        if battle_state.is_trainer_battle:
+            util = BattleStrategyUtil(battle_state)
+            move = util.get_strongest_move_against(
+                battle_state.own_side.active_battler, battle_state.opponent.active_battler
+            )
+            if move is not None:
+                return TurnAction.use_move(move)
+        return super().decide_turn(battle_state)
 
 
 class StoryMode(BotMode):
@@ -71,11 +95,11 @@ class StoryMode(BotMode):
         except Exception:
             pass
         # Fight to WIN and level the lead (strongest move; flees only at low HP,
-        # which the training loop covers by healing). Used for training wilds and
-        # the rival; the scripted first battle is a Tutorial (framework-handled).
-        from modules.battle_strategies.level_up import LevelUpLeadBattleStrategy
-
-        return LevelUpLeadBattleStrategy()
+        # which the training loop covers by healing). The travel variant also
+        # refuses to flee a TRAINER battle (single-mon party can't — see ML-8),
+        # fighting on instead; used for training wilds, the rival, and route
+        # trainers. The scripted first battle is a Tutorial (framework-handled).
+        return LevelUpTravelBattleStrategy()
 
     def run(self) -> Generator:
         from modules.story import detect_live
@@ -119,6 +143,7 @@ class StoryMode(BotMode):
             return_to_lab_and_get_pokedex,
             train_lead_to_level,
             travel_to_petalburg,
+            travel_to_petalburg_woods,
             travel_to_route103,
             visit_rivals_house,
             walk_off_truck_and_into_house,
@@ -142,10 +167,14 @@ class StoryMode(BotMode):
         yield from travel_to_petalburg()
         yield from do_petalburg_gym_and_wally_tutorial()
 
+        # Chapter 3: heal, cross west to Route 104 (Scott cutscene), beat the
+        # route trainer, and enter Petalburg Woods.
+        yield from travel_to_petalburg_woods()
+
         context.message = (
-            "Story: met Dad and finished the Wally catching tutorial in "
-            "Petalburg! The next stretch (Route 104 -> Petalburg Woods -> "
-            "Rustboro / Gym 1) is still being built; handing to manual."
+            "Story: reached Petalburg Woods (via Route 104). The rest (crossing "
+            "the Woods past the Aqua-grunt scene -> Rustboro -> Gym 1) is still "
+            "being built; handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()
