@@ -84,17 +84,21 @@ gaps = map_locations/mart/pickup/historical.
   (riding out the Oldale rival intercept), receive the Pokédex + Poké Balls.
   Verified (SYS_POKEDEX_GET True). StoryMode now ends cleanly at the Pokédex.
   NOT yet promoted (test then promote).
-- **Petalburg travel = WIP, NOT wired** (`travel_to_petalburg` + `_navigate_leg`
-  in early_game.py): reaches Oldale (handles the running-shoes gift) but the
-  **Oldale→Route 102 leg fails** — needs the correct Oldale-west/Route 102 coords
-  (ROUTE102=(0,17), PETALBURG_CITY=(0,0)). See design §16.1.
-- **NEXT SESSION:** fix the Route 102 leg → reach Petalburg → wire it → then
-  Chapter 2 proper: enter the Petalburg Gym (meet Dad/Norman) → the **Wally
-  catching tutorial** (big scripted sequence to explore). Note: cross-region nav
-  is finicky — `navigate_to_anywhere` loops on Route 101; use `_navigate_leg`
-  (per-leg navigate_to + ride-out). Training is slow in headless (Oldale heal
-  round-trips) — could add Potions later. Checkpoints in scratchpad:
-  lab_done/route103/rival_beaten/pokedex_done.
+- **Pokédex sequence PROMOTED to custom** (user-tested "runs perfectly to the
+  PokeDex").
+- **Petalburg travel DONE + wired (sandbox)**: `travel_to_petalburg` reaches
+  Petalburg — `_navigate_leg` to Oldale (past the Route 101 loop) then
+  `navigate_to_anywhere(PETALBURG)`. Verified with listeners (22.1k frames).
+  StoryMode now ends "reached Petalburg." NOT yet promoted (test then promote).
+- **NEXT SESSION — Chapter 2 (Petalburg Gym):** Gym door (15,8)→map (8,1); the
+  gym is tall (Norman @ (4,2), entrance ~(4,110)); walking up to **(4,108)**
+  fires `Norman`→`WallyArrive`→`NormanAddressPlayer`. Trigger is finicky (fires
+  when stepping Up from the entrance, NOT when navigate drops you there) — build
+  = enter gym, step Up tile-by-tile until the Norman script engages, ride out,
+  then the **Wally catching tutorial** (Ralts on Route 102 — check if it
+  auto-plays), back to gym, then Route 104→Woods→Rustboro (Gym 1). Full findings
+  in design §17. Checkpoint `petalburg.ss1`. Nav note: `navigate_to_anywhere`
+  loops on Route 101 → use `_navigate_leg` to get past it first.
 - Iteration save-states in scratchpad: truck/house1f/house2f/clockset/
   outside_town/rival_*/birch_rescue/birch_free/first_battle/birch_lab/lab_done.
 
