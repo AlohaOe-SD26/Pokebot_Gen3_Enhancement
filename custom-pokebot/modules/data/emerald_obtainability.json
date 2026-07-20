@@ -1,0 +1,878 @@
+{
+ "meta": {
+  "_comment": "Emerald obtainability override for the base-non-wild ('unknown') species. Keyed by National Dex number. Applied only for the Emerald ROM. Wild + evolution species are handled by the derivable classifier and are NOT listed here. Compiled + fact-checked against the BPEE0 ROM encounter tables and Bulbapedia (see 11-LIVINGDEX-DESIGN.md Phase 41-research).",
+  "_ingame_trades": [
+   {
+    "give": "Seedot",
+    "receive": "Ralts",
+    "where": "Rustboro City (Kobe)",
+    "rescues_unobtainable": false,
+    "note": "Ralts is wild anyway."
+   },
+   {
+    "give": "Plusle",
+    "receive": "Volbeat",
+    "where": "Fortree City (Roman)",
+    "rescues_unobtainable": false,
+    "note": "Volbeat is wild anyway."
+   },
+   {
+    "give": "Horsea",
+    "receive": "Bagon",
+    "where": "Pacifidlog Town (Skylar)",
+    "rescues_unobtainable": false,
+    "note": "Bagon is wild (Meteor Falls) anyway."
+   },
+   {
+    "give": "Meowth",
+    "receive": "Skitty",
+    "where": "Battle Frontier (Isis)",
+    "rescues_unobtainable": false,
+    "note": "Skitty is wild; and the required Meowth is itself unobtainable in Emerald."
+   }
+  ],
+  "_note_ingame_trade_count": 0
+ },
+ "species": {
+  "252": {
+   "name": "Treecko",
+   "kind": "gift",
+   "emerald_reachable": true,
+   "automatable": true,
+   "needs_user": false,
+   "note": "Starter — pick at Route 101 (Prof. Birch's bag). The other two starters are trade-only per save. Bot: Starters mode."
+  },
+  "255": {
+   "name": "Torchic",
+   "kind": "gift",
+   "emerald_reachable": true,
+   "automatable": true,
+   "needs_user": false,
+   "note": "Starter — pick at Route 101. Bot: Starters mode."
+  },
+  "258": {
+   "name": "Mudkip",
+   "kind": "gift",
+   "emerald_reachable": true,
+   "automatable": true,
+   "needs_user": false,
+   "note": "Starter — pick at Route 101. Bot: Starters mode."
+  },
+  "351": {
+   "name": "Castform",
+   "kind": "gift",
+   "emerald_reachable": true,
+   "automatable": true,
+   "needs_user": false,
+   "note": "Gift at the Weather Institute (Route 119) after clearing Team Aqua/Magma. Bot: Static Gift Resets."
+  },
+  "345": {
+   "name": "Lileep",
+   "kind": "gift",
+   "emerald_reachable": true,
+   "automatable": true,
+   "needs_user": false,
+   "note": "Revived from the Root Fossil (Devon Corp, Rustboro). Root vs Claw Fossil is a one-per-game choice at Mirage Tower — the other needs a 2nd playthrough or trade. Bot: Static Gift Resets (Hoenn Fossils)."
+  },
+  "347": {
+   "name": "Anorith",
+   "kind": "gift",
+   "emerald_reachable": true,
+   "automatable": true,
+   "needs_user": false,
+   "note": "Revived from the Claw Fossil (Devon Corp). See Lileep — only one fossil per playthrough. Bot: Static Gift Resets (Hoenn Fossils)."
+  },
+  "374": {
+   "name": "Beldum",
+   "kind": "gift",
+   "emerald_reachable": true,
+   "automatable": true,
+   "needs_user": false,
+   "note": "Gift in Steven's house, Mossdeep, after becoming Champion. Bot: Static Gift Resets."
+  },
+  "185": {
+   "name": "Sudowoodo",
+   "kind": "static",
+   "emerald_reachable": true,
+   "automatable": true,
+   "needs_user": false,
+   "note": "Route 111 — blocks the path; interact with the Wailmer Pail. NOTE: not in the bot's static_soft_resets seed (a gap to add)."
+  },
+  "377": {
+   "name": "Regirock",
+   "kind": "static",
+   "emerald_reachable": true,
+   "automatable": true,
+   "needs_user": false,
+   "note": "Desert Ruins, after the Sealed Chamber puzzle (Braille/Relicanth+Wailord). Bot: Static Soft Resets seed."
+  },
+  "378": {
+   "name": "Regice",
+   "kind": "static",
+   "emerald_reachable": true,
+   "automatable": true,
+   "needs_user": false,
+   "note": "Island Cave, after the Sealed Chamber puzzle. Bot: Static Soft Resets seed."
+  },
+  "379": {
+   "name": "Registeel",
+   "kind": "static",
+   "emerald_reachable": true,
+   "automatable": true,
+   "needs_user": false,
+   "note": "Ancient Tomb, after the Sealed Chamber puzzle. Bot: Static Soft Resets seed."
+  },
+  "382": {
+   "name": "Kyogre",
+   "kind": "static",
+   "emerald_reachable": true,
+   "automatable": true,
+   "needs_user": false,
+   "note": "Marine Cave (appears post-game via the roaming weather). Emerald-specific — BOTH Kyogre and Groudon are catchable, unlike R/S. Bot: Static Soft Resets handles 'Groudon/Kyogre'."
+  },
+  "383": {
+   "name": "Groudon",
+   "kind": "static",
+   "emerald_reachable": true,
+   "automatable": true,
+   "needs_user": false,
+   "note": "Terra Cave (post-game roaming weather). Emerald-specific. Bot: Static Soft Resets."
+  },
+  "384": {
+   "name": "Rayquaza",
+   "kind": "static",
+   "emerald_reachable": true,
+   "automatable": true,
+   "needs_user": false,
+   "note": "Sky Pillar top. Bot: Static Soft Resets seed."
+  },
+  "381": {
+   "name": "Latios",
+   "kind": "roamer",
+   "emerald_reachable": true,
+   "automatable": true,
+   "needs_user": false,
+   "note": "Eon Pokemon. Depending on the post-Championship TV answer, EITHER Latios or Latias roams Hoenn (catchable in normal play); the other needs the Eon Ticket (event) for Southern Island. Per USER RULING both are marked obtainable so the bot targets whichever actually roams in THIS save via get_roamer()."
+  },
+  "380": {
+   "name": "Latias",
+   "kind": "roamer",
+   "emerald_reachable": true,
+   "automatable": true,
+   "needs_user": false,
+   "note": "Eon Pokemon. Depending on the post-Championship TV answer, EITHER Latias or Latios roams Hoenn (catchable in normal play); the other needs the Eon Ticket (event) for Southern Island. Per USER RULING both are marked obtainable so the bot targets whichever actually roams in THIS save via get_roamer()."
+  },
+  "151": {
+   "name": "Mew",
+   "kind": "event",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "Event distribution only (Old Sea Map -> Faraway Island). No standard in-game route in Emerald."
+  },
+  "251": {
+   "name": "Celebi",
+   "kind": "event",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "Event distribution only. No in-game route in Emerald."
+  },
+  "385": {
+   "name": "Jirachi",
+   "kind": "event",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "Event distribution only (Pokemon Colosseum Bonus Disc). No in-game route."
+  },
+  "386": {
+   "name": "Deoxys",
+   "kind": "event",
+   "emerald_reachable": false,
+   "automatable": true,
+   "needs_user": true,
+   "note": "Birth Island via the AURORA TICKET (event item). Bot static-reset can catch it, but ONLY once the area is unlocked. In the bot's static_soft_resets seed."
+  },
+  "249": {
+   "name": "Lugia",
+   "kind": "event",
+   "emerald_reachable": false,
+   "automatable": true,
+   "needs_user": true,
+   "note": "Navel Rock via the MYSTIC TICKET (event item). In the bot's static_soft_resets seed, but the area needs the ticket."
+  },
+  "250": {
+   "name": "Ho-Oh",
+   "kind": "event",
+   "emerald_reachable": false,
+   "automatable": true,
+   "needs_user": true,
+   "note": "Navel Rock via the MYSTIC TICKET (event item). NOT in the bot's Emerald static seed (a gap)."
+  },
+  "172": {
+   "name": "Pichu",
+   "kind": "breeding",
+   "emerald_reachable": true,
+   "automatable": false,
+   "needs_user": true,
+   "note": "Breed a wild Pikachu (Safari Zone). Emerald-alone obtainable; no auto-breeder in the bot."
+  },
+  "174": {
+   "name": "Igglybuff",
+   "kind": "breeding",
+   "emerald_reachable": true,
+   "automatable": false,
+   "needs_user": true,
+   "note": "Breed a wild Jigglypuff (Safari Zone extension). Emerald-alone obtainable; no auto-breeder."
+  },
+  "298": {
+   "name": "Azurill",
+   "kind": "breeding",
+   "emerald_reachable": true,
+   "automatable": false,
+   "needs_user": true,
+   "note": "Breed Marill/Azumarill holding a Sea Incense (Sea Incense at Mt. Pyre). Marill is wild. Emerald-alone obtainable; no auto-breeder."
+  },
+  "349": {
+   "name": "Feebas",
+   "kind": "special",
+   "emerald_reachable": true,
+   "automatable": false,
+   "needs_user": true,
+   "note": "Fish (any rod) on the 6 random Feebas tiles of Route 119. Not in gWildMonHeaders; tiles shift with the Dewford trend seed. Emerald-alone obtainable but not a normal encounter table."
+  },
+  "1": {
+   "name": "Bulbasaur",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "4": {
+   "name": "Charmander",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "7": {
+   "name": "Squirtle",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "10": {
+   "name": "Caterpie",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "13": {
+   "name": "Weedle",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "16": {
+   "name": "Pidgey",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "19": {
+   "name": "Rattata",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "21": {
+   "name": "Spearow",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "23": {
+   "name": "Ekans",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "29": {
+   "name": "Nidoran♀",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "32": {
+   "name": "Nidoran♂",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "46": {
+   "name": "Paras",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "48": {
+   "name": "Venonat",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "50": {
+   "name": "Diglett",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "52": {
+   "name": "Meowth",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "56": {
+   "name": "Mankey",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "58": {
+   "name": "Growlithe",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "60": {
+   "name": "Poliwag",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "69": {
+   "name": "Bellsprout",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "77": {
+   "name": "Ponyta",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "79": {
+   "name": "Slowpoke",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "83": {
+   "name": "Farfetch’d",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "86": {
+   "name": "Seel",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "90": {
+   "name": "Shellder",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "92": {
+   "name": "Gastly",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "95": {
+   "name": "Onix",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "96": {
+   "name": "Drowzee",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "98": {
+   "name": "Krabby",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "102": {
+   "name": "Exeggcute",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "104": {
+   "name": "Cubone",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "108": {
+   "name": "Lickitung",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "113": {
+   "name": "Chansey",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "114": {
+   "name": "Tangela",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "115": {
+   "name": "Kangaskhan",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "122": {
+   "name": "Mr. Mime",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "123": {
+   "name": "Scyther",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "128": {
+   "name": "Tauros",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "131": {
+   "name": "Lapras",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "133": {
+   "name": "Eevee",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "137": {
+   "name": "Porygon",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "138": {
+   "name": "Omanyte",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "Kanto fossil (FR/LG only). Emerald revives the Hoenn fossils (Lileep/Anorith). Trade required."
+  },
+  "140": {
+   "name": "Kabuto",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "Kanto fossil (FR/LG only). Trade required."
+  },
+  "142": {
+   "name": "Aerodactyl",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "Kanto fossil (Old Amber, FR/LG only). Trade required."
+  },
+  "143": {
+   "name": "Snorlax",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "144": {
+   "name": "Articuno",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "145": {
+   "name": "Zapdos",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "146": {
+   "name": "Moltres",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "147": {
+   "name": "Dratini",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "150": {
+   "name": "Mewtwo",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "152": {
+   "name": "Chikorita",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "155": {
+   "name": "Cyndaquil",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "158": {
+   "name": "Totodile",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "161": {
+   "name": "Sentret",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "173": {
+   "name": "Cleffa",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "175": {
+   "name": "Togepi",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "187": {
+   "name": "Hoppip",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "193": {
+   "name": "Yanma",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "198": {
+   "name": "Murkrow",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "200": {
+   "name": "Misdreavus",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "201": {
+   "name": "Unown",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "206": {
+   "name": "Dunsparce",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "211": {
+   "name": "Qwilfish",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "215": {
+   "name": "Sneasel",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "220": {
+   "name": "Swinub",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "225": {
+   "name": "Delibird",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "226": {
+   "name": "Mantine",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "236": {
+   "name": "Tyrogue",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "238": {
+   "name": "Smoochum",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "239": {
+   "name": "Elekid",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "240": {
+   "name": "Magby",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "243": {
+   "name": "Raikou",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "244": {
+   "name": "Entei",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "245": {
+   "name": "Suicune",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "246": {
+   "name": "Larvitar",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "No wild table, gift, static, roamer, or in-game trade gives this species in Emerald. Obtain by trading from FR/LG or Colosseum/XD."
+  },
+  "283": {
+   "name": "Surskit",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "Only via a daily SWARM after Record Mixing with Ruby/Sapphire (needs a second cartridge). Not obtainable Emerald-alone."
+  },
+  "307": {
+   "name": "Meditite",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "R/S wild encounter (Mt. Pyre in R/S); in Emerald obtainable only by trade/event."
+  },
+  "315": {
+   "name": "Roselia",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "R/S wild encounter; in Emerald obtainable only by trade/event."
+  },
+  "335": {
+   "name": "Zangoose",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "Version-exclusive: Emerald has the counterpart Seviper. Trade from another game."
+  },
+  "337": {
+   "name": "Lunatone",
+   "kind": "unobtainable",
+   "emerald_reachable": false,
+   "automatable": false,
+   "needs_user": true,
+   "note": "Version-exclusive: Emerald has the counterpart Solrock (Meteor Falls). Trade from another game."
+  }
+ }
+}

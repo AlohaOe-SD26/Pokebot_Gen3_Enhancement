@@ -153,3 +153,104 @@ sandbox-pokebot; sandbox remains for future rounds. New/changed files:
   divergences. Fixed to walk ancestors for `.git`. Same fix applied in
   sandbox-pokebot/pokebot.py.
 - **Merge note:** re-apply if upstream refactors the updater guard.
+
+## 2026-07-19 — PROMOTION BATCH-2 (approved): hunting/living-dex/analytics/watchdog + GUI evolution
+Promoted the full sandbox round built after the first promotion (f0b275f3).
+Each area below states WHAT it is, WHY it exists (user intent), and files.
+
+### (a) Watchdog / auto-recovery (#22)
+- WHAT: a health monitor that detects when the bot is stuck and recovers.
+- WHY: the user runs 24/7 unattended hunts; a softlock/crash/encounter-stall
+  silently wastes hours. This makes long runs trustworthy.
+- HOW: detects encounter-stall (a hunting mode stops producing encounters
+  for N min), an unexpected drop-to-Manual (crash), and frame-freeze
+  (alert-only — a hung main thread can't be safely auto-recovered). Bounded
+  recovery ladder: re-assert the mode → reload a healthy savestate (safety
+  backup taken first, overworld-gated) → after max attempts give up to
+  Manual + loud alert (never hammers a broken state). Config `watchdog.yml`.
+- FILES: modules/watchdog.py, plugins/watchdog_plugin.py, watchdog.yml,
+  GUI "Watchdog" status line in dashboard_gui.py.
+
+### (b) Hunt Planner (#9)
+- WHAT: pick a target species → see the best place(s) to hunt it + the
+  recommended mode; one click travels there (global nav) and hunts.
+- WHY: turns "I want species X" into an automated hunt without the user
+  knowing routes/methods/encounter rates.
+- HOW: modules/encounter_index.py builds a species→locations reverse index
+  from the ROM's wild tables (per-ROM JSON cache), find_encounter_tile
+  locates a real grass/water/fishing tile; plugins/custom_modes/hunt_mode.py
+  ("Hunt (Custom)") navigates + hunts. GUI "Hunt" tab.
+- MERGE NOTE: encounter_index mirrors warp_graph's headless-ROM-read + cache.
+
+### (c) Living-Dex Orchestrator (#23, #43, #47)
+- WHAT: works through a target list catching what's needed to complete the
+  Pokédex, moving between hunts autonomously.
+- WHY: the "ultimate idle" — set targets, walk away.
+- HOW: modules/living_dex.py derives targets (uncaught + obtainable);
+  plugins/custom_modes/living_dex_mode.py ("Living Dex (Custom)") travels via
+  Hunt logic. #43 OPPORTUNISTIC: catches ANY wanted-uncaught species en
+  route (target only drives travel). #47: also catches a SHINY even of an
+  already-owned species (goal = don't miss a shiny). Reads the live dex so
+  failed catches self-heal.
+
+### (d) Obtainability model + capability gating (#41, #42-easy)
+- WHAT: knows HOW each species is obtained (wild/evolution/gift/static/
+  roamer/event/breeding/trade/unobtainable) and whether the player can
+  currently reach a location.
+- WHY: so the bot never hunts something not catchable in the wild (plans
+  evolutions instead, points at reset modes for gifts/statics, marks
+  trade/event/unobtainable honestly) and never targets a location gated by
+  a capability (rod/HM/badge) the player lacks.
+- HOW: modules/obtainability.py + modules/data/emerald_obtainability.json
+  (fact-checked Emerald census, sums to 386; Latias+Latios BOTH obtainable
+  per user ruling). SHOW BOTH denominators: N/386 National Dex AND 218/386
+  obtainable-in-Emerald-without-trading (an honest reality — ~79 Gen-3
+  species can't be caught in Emerald alone). modules/capabilities.py reads
+  owned HMs/rods/badges from the save. #42-hard (HM-gated map reachability)
+  is deferred to a future round.
+
+### (e) Analytics suite (#11)
+- WHAT: stats browser (sortable per-species table), encounter-rate
+  sparkline, and a luck meter (actual vs binomial-expected shinies).
+- WHY: shiny hunters want to see their odds/luck and per-species history.
+- HOW: modules/analytics.py (pure math) + ANALYTICS card in the Stats tab.
+  Sourced live from stats.db; nothing baked.
+
+### (f) Catch-ball allowlist (#40)
+- WHAT: choose which Poké Balls the bot may throw when catching.
+- WHY: protect the Master Ball (and restrict to preferred balls).
+- HOW: modules/catch_balls.py + catch_balls.yml (default excludes Master
+  Ball); filters battle_strategies/catch.py ball selection; "CATCH BALLS"
+  GUI card (checkbox+icon per ball).
+
+### (g) Auto-decline move learning (#39)
+- WHAT: when a Pokémon levels into a new move, decline by default (keep the
+  4 current moves) instead of dropping the bot to Manual.
+- WHY: the previous default (`stop`) interrupted every hunt on a level-up.
+- HOW: battle config `new_move` default → `cancel`; the decision point is
+  DefaultBattleStrategy.which_move_should_be_replaced with a `learn_best`
+  seam for FUTURE intelligent move evaluation (and story mode).
+- FILES: battle_strategies/default.py, config/schemas_v1.py, templates/battle.yml.
+
+### (h) GUI evolution (#30–#38, #44, #46, tabs/handheld/cheats)
+- WHAT: the dashboard's current shape.
+- WHY: usability on desktop + the ROG Ally handheld.
+- HOW (dashboard_gui.py): two-row tabbed tool column (Play/Party/Hunt/Stats/
+  Cheats/Backups); handheld hides the Tk menu (its commands move into a
+  Play-tab GAME MENU); Left Party Section = clean mon sprites with the
+  caught ball shown in the themed HOVER TOOLTIP (type badges, IV grid,
+  moves, 3× ball icon); gamepad GUI-navigation gated to the open drawer
+  ONLY (never interrupts gameplay); adjustable money cheat + Lock.
+
+### (i) Generated dex datasets + build tools (#34/#35 data foundation)
+- WHAT: modules/data/generated/pokedex_data.json (386 species: stats,
+  learnsets, evolutions, sprites, category/height/weight/flavor) +
+  itemdex_data.json (309 items). tools/build_dex_data.py +
+  extract_pokedex_entries.py regenerate them.
+- WHY: the data backbone for the future Pokédex/Item-Dex TABS (#34/#35,
+  not built yet — awaiting the user's dex-artwork/item-location decisions).
+
+MERGE NOTES: all new plugins have .gitignore negations. gamepad.py edit =
+GUI-nav gating. game_cheats.py = money field/lock + catch-adjacent. Upstream
+edits to catch.py/default.py must be re-merged around the allowlist filter /
+the new_move decision point.

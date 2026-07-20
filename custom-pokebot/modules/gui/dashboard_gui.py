@@ -68,8 +68,39 @@ COLOR_WARNING = "#fab219"
 COLOR_CRITICAL = "#d03b3b"
 COLOR_SHINY = "#c98500"
 
+# Gen-3 type colours (for the party hover tooltip's type badges). Text on a
+# badge is dark or light depending on the badge's luminance.
+TYPE_COLORS = {
+    "Normal": "#A8A878", "Fire": "#F08030", "Water": "#6890F0", "Grass": "#78C850",
+    "Electric": "#F8D030", "Ice": "#98D8D8", "Fighting": "#C03028", "Poison": "#A040A0",
+    "Ground": "#E0C068", "Flying": "#A890F0", "Psychic": "#F85888", "Bug": "#A8B820",
+    "Rock": "#B8A038", "Ghost": "#705898", "Dragon": "#7038F8", "Dark": "#705848",
+    "Steel": "#B8B8D0", "???": "#68A090", "Fairy": "#EE99AC",
+}
+
+
+def _readable_text_on(hex_color: str) -> str:
+    """Black or white text for legibility on a coloured badge."""
+    try:
+        r, g, b = (int(hex_color[i : i + 2], 16) for i in (1, 3, 5))
+        return "#1a1a19" if (0.299 * r + 0.587 * g + 0.114 * b) > 150 else "#ffffff"
+    except Exception:
+        return "#ffffff"
+
+
+def _iv_color(value: int) -> str:
+    """Colour an individual IV (0-31) green→red by quality."""
+    if value >= 28:
+        return COLOR_GOOD
+    if value >= 20:
+        return "#7bbf3a"
+    if value >= 10:
+        return COLOR_WARNING
+    return COLOR_CRITICAL
+
+
 TOOL_COLUMN_WIDTH = 360
-TAB_ORDER = ["Play", "Party", "Stats", "Cheats", "Backups"]
+TAB_ORDER = ["Play", "Party", "Hunt", "Stats", "Cheats", "Backups"]
 SIDEBAR_REFRESH_FRAMES = 30  # refresh party/labels every N rendered frames
 KPI_REFRESH_SECONDS = 5.0  # stats DB reads are not free — refresh sparsely
 UI_STATE_FILE = "dashboard_ui.json"
@@ -110,6 +141,10 @@ class DashboardScreen:
 
         self._handheld = False
         self._drawer_open = False
+        # Desktop: the tool column can be hidden (Pokéball reopens it) so the
+        # emulator can fill the window — the handheld drawer's paradigm,
+        # brought to desktop. Handheld uses `_drawer_open` instead.
+        self._tools_hidden = False
 
         # Tabbed tool column: a row of category tabs, each holding a subset
         # of the cards, so nothing needs scrolling to reach on a handheld.
@@ -138,10 +173,49 @@ class DashboardScreen:
         self._state_label: tkinter.Label | None = None
         self._fps_label: tkinter.Label | None = None
         self._controller_label: tkinter.Label | None = None
+        self._watchdog_label: tkinter.Label | None = None
         self._update_label: tkinter.Label | None = None
         self._update_notice_logged = False
+
+        # #11 analytics (Stats tab): enc/hr trend sparkline + luck meter +
+        # the pop-out sortable stats browser.
+        from modules.analytics import TrendBuffer
+
+        self._analytics_trend = TrendBuffer(capacity=120)
+        self._trend_canvas: "Canvas | None" = None
+        self._luck_label: "tkinter.Label | None" = None
+        self._stats_browser: "tkinter.Toplevel | None" = None
+
         self._pokeball_button: Canvas | None = None
         self._menu_bar: Menu | None = None
+
+        # #30(a) persistent column header (Handheld toggle always visible)
+        self._column_header: "tkinter.Frame | None" = None
+        self._tools_label: "tkinter.Label | None" = None
+        self._hide_button: "tkinter.Button | None" = None
+        self._handheld_button: "tkinter.Button | None" = None
+
+        # #30(c) Left Party Section (strip of icons left of the video)
+        self._party_strip: "tkinter.Frame | None" = None
+        self._party_slots: list = []
+        self._party_icon_cache: dict = {}  # keep PhotoImage refs alive
+        self._current_party: list = []
+
+        # #30(d) hover-stats tooltip (also driven by the gamepad nav, #32)
+        self._party_tooltip: "tkinter.Toplevel | None" = None
+        self._party_tooltip_label: "tkinter.Label | None" = None
+        self._tooltip_hide_after = None
+
+        # #32 gamepad-driven GUI navigation: when active, the controller moves
+        # a focus ring across widgets instead of playing the game.
+        self._gui_nav_active: bool = False
+        self._focus_targets: list = []  # ordered [{"kind","widget",...}]
+        self._focus_index: int = -1
+
+        # #31 adjustable money cheat widgets
+        self._money_entry: "tkinter.Entry | None" = None
+        self._money_variable: "tkinter.StringVar | None" = None
+        self._money_lock_variable: "tkinter.BooleanVar | None" = None
 
         # Debug support (stock debug tabs in a separate window)
         self._debug_window: tkinter.Toplevel | None = None
@@ -199,10 +273,12 @@ class DashboardScreen:
         self.window.after(250, lambda: self.window.geometry(f"+{x}+{y}"))
 
         self.window.rowconfigure(0, weight=1)
-        self.window.columnconfigure(0, weight=1)
-        self.window.columnconfigure(1, weight=0)
+        self.window.columnconfigure(0, weight=0)  # left party strip
+        self.window.columnconfigure(1, weight=1)  # emulator video
+        self.window.columnconfigure(2, weight=0)  # tool column
 
         self._build_menu_bar()
+        self._build_party_strip()
         self._build_video_area()
         self._build_tool_column()
         self._build_pokeball_button()
@@ -233,6 +309,19 @@ class DashboardScreen:
         if self._pokeball_button is not None:
             self._pokeball_button.destroy()
             self._pokeball_button = None
+        # Left party strip + hover tooltip are also root-window children.
+        if self._party_strip is not None:
+            self._party_strip.destroy()
+            self._party_strip = None
+        if self._party_tooltip is not None:
+            self._party_tooltip.destroy()
+            self._party_tooltip = None
+        if self._tooltip_hide_after is not None:
+            try:
+                self.window.after_cancel(self._tooltip_hide_after)
+            except Exception:
+                pass
+            self._tooltip_hide_after = None
         if self._debug_window is not None:
             self._debug_window.destroy()
             self._debug_window = None
@@ -254,6 +343,7 @@ class DashboardScreen:
         self._state_label = None
         self._fps_label = None
         self._controller_label = None
+        self._watchdog_label = None
         self._update_label = None
         self._update_notice_logged = False  # re-show the notice if re-enabled
         self._sync_label = None
@@ -269,6 +359,38 @@ class DashboardScreen:
         self._species_picker_button = None
         self._species_sprite_cache = {}
         self._force_species_name = None
+        # #30/#31 widgets
+        self._column_header = None
+        self._tools_label = None
+        self._hide_button = None
+        self._handheld_button = None
+        self._party_slots = []
+        self._party_icon_cache = {}
+        self._current_party = []
+        self._tools_hidden = False
+        # #32 gamepad-nav state
+        self._gui_nav_active = False
+        self._focus_targets = []
+        self._focus_index = -1
+        self._party_tooltip_label = None
+        self._money_entry = None
+        self._money_variable = None
+        self._money_lock_variable = None
+        # #23 living-dex panel widgets (cleared so a post-disable refresh no-ops)
+        self._livingdex_label = None
+        self._livingdex_plan_label = None
+        self._livingdex_custom_button = None
+        self._livingdex_pending = []
+        # #11 analytics widgets
+        self._trend_canvas = None
+        self._luck_label = None
+        if self._stats_browser is not None:
+            try:
+                self._stats_browser.destroy()
+            except Exception:
+                pass
+        self._stats_browser = None
+        self._analytics_trend.clear()
 
     def on_settings_updated(self) -> None:
         self._refresh_controls()
@@ -304,38 +426,68 @@ class DashboardScreen:
     # Layout construction
     # ------------------------------------------------------------------
 
-    def _build_menu_bar(self) -> None:
-        # Same menus as the stock GUI (emulator_controls.py) so no stock
-        # functionality is lost.
-        import webbrowser
-
-        from showinfm import show_in_file_manager
-
+    # Menu command callbacks — shared by the Tk menu bar (desktop) AND the
+    # in-tab "GAME MENU" card (#30b), so handheld can drop the menu bar
+    # entirely while keeping every command reachable.
+    def _menu_load_save_state(self) -> None:
         from modules.gui.load_state_window import LoadStateWindow
 
+        LoadStateWindow(self.window)
+
+    def _menu_new_save_state(self) -> None:
+        context.emulator.create_save_state("Manual")
+
+    def _menu_screenshot(self) -> None:
+        context.emulator.take_screenshot("manual")
+
+    def _menu_reset(self) -> None:
+        context.emulator.reset()
+
+    def _menu_open_profile_folder(self) -> None:
+        from showinfm import show_in_file_manager
+
+        show_in_file_manager(str(context.profile.path))
+
+    def _menu_wiki(self) -> None:
+        import webbrowser
+
+        webbrowser.open_new_tab("https://github.com/40Cakes/pokebot-gen3/tree/main/wiki")
+
+    def _menu_commands(self) -> list:
+        """(label, callback) for every stock menu command — the single source
+        of truth for both the menu bar and the in-tab menu card."""
+        return [
+            ("Load Save State", self._menu_load_save_state),
+            ("New Save State", self._menu_new_save_state),
+            ("Take Screenshot", self._menu_screenshot),
+            ("Reset", self._menu_reset),
+            ("Open Profile Folder", self._menu_open_profile_folder),
+            ("Classic GUI", self._explain_classic_gui),
+            ("Wiki", self._menu_wiki),
+        ]
+
+    def _build_menu_bar(self) -> None:
+        # Same menus as the stock GUI (emulator_controls.py) so no stock
+        # functionality is lost. Shown on desktop; in handheld mode the bar is
+        # hidden entirely and these commands live in the Play tab's menu card.
         menu_bar = Menu(self.window)
 
         emulator_menu = Menu(self.window, tearoff=0)
-        emulator_menu.add_command(label="Load Save State", command=lambda: LoadStateWindow(self.window))
-        emulator_menu.add_command(label="New Save State", command=lambda: context.emulator.create_save_state("Manual"))
-        emulator_menu.add_command(label="Take Screenshot", command=lambda: context.emulator.take_screenshot("manual"))
+        emulator_menu.add_command(label="Load Save State", command=self._menu_load_save_state)
+        emulator_menu.add_command(label="New Save State", command=self._menu_new_save_state)
+        emulator_menu.add_command(label="Take Screenshot", command=self._menu_screenshot)
         emulator_menu.add_separator()
-        emulator_menu.add_command(label="Reset", command=lambda: context.emulator.reset())
+        emulator_menu.add_command(label="Reset", command=self._menu_reset)
 
         profile_menu = Menu(self.window, tearoff=0)
-        profile_menu.add_command(
-            label="Open Profile Folder", command=lambda: show_in_file_manager(str(context.profile.path))
-        )
+        profile_menu.add_command(label="Open Profile Folder", command=self._menu_open_profile_folder)
 
         view_menu = Menu(self.window, tearoff=0)
         view_menu.add_command(label="Handheld Mode (F11)", command=self.toggle_handheld)
         view_menu.add_command(label="Classic GUI", command=self._explain_classic_gui)
 
         help_menu = Menu(self.window, tearoff=0)
-        help_menu.add_command(
-            label=f"{pokebot_name} Wiki",
-            command=lambda: webbrowser.open_new_tab("https://github.com/40Cakes/pokebot-gen3/tree/main/wiki"),
-        )
+        help_menu.add_command(label=f"{pokebot_name} Wiki", command=self._menu_wiki)
 
         menu_bar.add_cascade(label="Emulator", menu=emulator_menu)
         menu_bar.add_cascade(label="Profile", menu=profile_menu)
@@ -350,12 +502,27 @@ class DashboardScreen:
         self._menu_bar = menu_bar
         self.window.config(menu=menu_bar)
 
+    def _build_menu_card(self, parent: tkinter.Widget) -> None:
+        """#30b: the stock menu's commands as a grid of buttons in the Play
+        tab, so handheld mode (no menu bar) keeps them one tap away."""
+        card = self._card(parent, "GAME MENU")
+        grid = tkinter.Frame(card, background=COLOR_CARD)
+        grid.pack(fill="x")
+        grid.columnconfigure(0, weight=1, uniform="menu")
+        grid.columnconfigure(1, weight=1, uniform="menu")
+        for index, (label, command) in enumerate(self._menu_commands()):
+            tkinter.Button(
+                grid, text=label, command=command, background=COLOR_SURFACE, foreground=COLOR_INK,
+                activebackground=COLOR_ACCENT, activeforeground=COLOR_INK, relief="flat",
+                font=("Segoe UI", 8), padx=4, pady=2,
+            ).grid(row=index // 2, column=index % 2, sticky="ew", padx=2, pady=2)
+
     def _explain_classic_gui(self) -> None:
         context.message = "Restart the bot with --classic-gui to use the original interface."
 
     def _build_video_area(self) -> None:
         self.canvas = Canvas(self.window, background="#000000", highlightthickness=0)
-        self.canvas.grid(row=0, column=0, sticky="NSWE")
+        self.canvas.grid(row=0, column=1, sticky="NSWE")  # column 0 = party strip
         self.canvas.bind("<Configure>", self._on_video_resized)
         self.canvas.bind("<Double-Button-1>", lambda _event: self.toggle_handheld())
 
@@ -382,31 +549,57 @@ class DashboardScreen:
         column.pack_propagate(False)
         self._tools_container = column
 
-        # --- drawer header (only visible in handheld mode) ---
-        self._drawer_header = tkinter.Frame(column, background=COLOR_SURFACE)
-        tkinter.Label(
-            self._drawer_header, text="TOOLS", background=COLOR_SURFACE, foreground=COLOR_INK_2, font=("Segoe UI", 9, "bold")
-        ).pack(side="left", padx=10, pady=6)
-        tkinter.Button(
-            self._drawer_header,
+        # --- persistent column header (#30a) ---
+        # Always visible above the tabs, so the Handheld toggle is reachable
+        # from every tab. In the handheld drawer it also carries the "TOOLS"
+        # label (left) and the "Hide" button (right); on desktop only the
+        # Handheld button shows (right-aligned). Layout is arranged by
+        # _layout_column_header().
+        self._column_header = tkinter.Frame(column, background=COLOR_SURFACE)
+        self._column_header.pack(fill="x")
+        self._tools_label = tkinter.Label(
+            self._column_header, text="TOOLS", background=COLOR_SURFACE, foreground=COLOR_INK_2,
+            font=("Segoe UI", 9, "bold"),
+        )
+        self._handheld_button = tkinter.Button(
+            self._column_header,
+            text="⛶ Handheld",
+            command=self.toggle_handheld,
+            background=COLOR_CARD,
+            foreground=COLOR_INK_2,
+            activebackground=COLOR_ACCENT,
+            activeforeground=COLOR_INK,
+            relief="flat",
+            font=("Segoe UI", 8),
+            padx=8,
+        )
+        self._hide_button = tkinter.Button(
+            self._column_header,
             text="Hide",
-            command=lambda: self._set_drawer(False),
+            command=self._on_hide_clicked,
             background=COLOR_CARD,
             foreground=COLOR_INK,
             activebackground=COLOR_ACCENT,
             activeforeground=COLOR_INK,
             relief="flat",
             padx=10,
-        ).pack(side="right", padx=10, pady=4)
-        # (packed on demand in _apply_handheld_layout)
+        )
+        self._layout_column_header()
 
         # --- category tab bar: one row of buttons, each showing a subset of
         # the cards, so you don't have to scroll to find a setting (works the
         # same in the handheld drawer). Sits above the scrollable area.
         self._tab_bar = tkinter.Frame(column, background=COLOR_SURFACE)
         self._tab_bar.pack(fill="x", padx=6, pady=(6, 2))
+        # Wrap tabs to two balanced rows when there are more than 4, so 6+
+        # tabs stay legible at the ~360px tool-column width instead of
+        # overlapping/truncating (KI-6). One row for <=4 tabs.
+        tab_count = len(TAB_ORDER)
+        per_row = tab_count if tab_count <= 4 else (tab_count + 1) // 2
+        for col in range(per_row):
+            self._tab_bar.columnconfigure(col, weight=1, uniform="tab")
         for index, tab_name in enumerate(TAB_ORDER):
-            self._tab_bar.columnconfigure(index, weight=1, uniform="tab")
+            row, col = divmod(index, per_row)
             button = tkinter.Button(
                 self._tab_bar,
                 text=tab_name,
@@ -420,7 +613,7 @@ class DashboardScreen:
                 padx=2,
                 pady=4,
             )
-            button.grid(row=0, column=index, sticky="ew", padx=1)
+            button.grid(row=row, column=col, sticky="ew", padx=1, pady=1)
             self._tab_buttons[tab_name] = button
 
         # --- scrollable card area (A4): all cards live inside `tools`, which
@@ -538,19 +731,12 @@ class DashboardScreen:
         )
         self._audio_button.pack(side="left", padx=1)
 
-        handheld_row = tkinter.Frame(controls, background=COLOR_CARD)
-        handheld_row.pack(fill="x", pady=(4, 2))
-        tkinter.Button(
-            handheld_row,
-            text="Handheld mode  (F11)",
-            command=self.toggle_handheld,
-            background=COLOR_SURFACE,
-            foreground=COLOR_INK_2,
-            activebackground=COLOR_ACCENT,
-            activeforeground=COLOR_INK,
-            relief="flat",
-            padx=8,
-        ).pack(fill="x")
+        # (The Handheld toggle now lives in the persistent column header so it
+        # is visible on every tab — see _build_tool_column / #30a.)
+
+        # --- game menu card (#30b): stock menu commands, always in Play tab
+        # so handheld mode can drop the Tk menu bar entirely. ---
+        self._build_menu_card(play_tab)
 
         # --- macros card (sandbox A2; grouped with Controls on the Play tab) ---
         macro_card = self._card(play_tab, "MACROS")
@@ -631,6 +817,27 @@ class DashboardScreen:
             )
             value_label.pack(fill="x")
             self._kpi_values[key] = value_label
+
+        # --- analytics card (#11): enc/hr trend + luck meter + browser ---
+        analytics = self._card(stats_tab, "ANALYTICS")
+        tkinter.Label(
+            analytics, text="Encounters / hr", background=COLOR_CARD, foreground=COLOR_INK_2,
+            font=("Segoe UI", 7, "bold"), anchor="w",
+        ).pack(fill="x")
+        self._trend_canvas = Canvas(
+            analytics, height=44, background=COLOR_SURFACE, highlightthickness=0, borderwidth=0,
+        )
+        self._trend_canvas.pack(fill="x", pady=(2, 6))
+        self._luck_label = tkinter.Label(
+            analytics, text="Luck: no encounters yet.", background=COLOR_CARD, foreground=COLOR_MUTED,
+            anchor="w", justify="left", wraplength=TOOL_COLUMN_WIDTH - 44, font=("Segoe UI", 8),
+        )
+        self._luck_label.pack(fill="x")
+        tkinter.Button(
+            analytics, text="Open stats browser…", command=self._open_stats_browser,
+            background=COLOR_SURFACE, foreground=COLOR_INK, activebackground=COLOR_ACCENT,
+            activeforeground=COLOR_INK, relief="flat", font=("Segoe UI", 9),
+        ).pack(fill="x", pady=(6, 0))
 
         # --- party card ---
         party_card = self._card(party_tab, "PARTY")
@@ -716,6 +923,10 @@ class DashboardScreen:
             status_card, text="", background=COLOR_CARD, foreground=COLOR_MUTED, anchor="w", font=("Segoe UI", 8)
         )
         self._controller_label.pack(fill="x")
+        self._watchdog_label = tkinter.Label(
+            status_card, text="", background=COLOR_CARD, foreground=COLOR_MUTED, anchor="w", font=("Segoe UI", 8)
+        )
+        self._watchdog_label.pack(fill="x")
         self._update_label = tkinter.Label(
             status_card, text="", background=COLOR_CARD, foreground=COLOR_ACCENT, anchor="w", font=("Segoe UI", 8, "bold")
         )
@@ -746,6 +957,13 @@ class DashboardScreen:
             height=9,
         )
         self._event_list.pack(fill="both", expand=True)
+
+        # --- Hunt tab (#9) ---
+        self._build_hunt_card(self._tab_frames["Hunt"])
+        # --- Living Dex orchestrator (#23) ---
+        self._build_living_dex_card(self._tab_frames["Hunt"])
+        # --- Catch-ball allowlist (#40) ---
+        self._build_catch_balls_card(self._tab_frames["Hunt"])
 
         # Show the default tab now that every card exists (persist=False so
         # it doesn't clobber a saved tab before _restore_ui_state reads it).
@@ -802,10 +1020,576 @@ class DashboardScreen:
         ball.create_rectangle(pad, band - 2, size - pad, band + 2, fill="#1c1c1c", outline="#1c1c1c")
         ball.create_oval(band - 7, band - 7, band + 7, band + 7, fill="#1c1c1c", outline="#1c1c1c")
         ball.create_oval(band - 5, band - 5, band + 5, band + 5, fill="#f4f4f2", outline="#1c1c1c")
-        ball.bind("<Button-1>", lambda _event: self._set_drawer(True))
+        ball.bind("<Button-1>", lambda _event: self._on_pokeball_clicked())
         ball.configure(cursor="hand2")
         self._pokeball_button = ball
         # placed/hidden by _apply_handheld_layout
+
+    # ------------------------------------------------------------------
+    # Left Party Section (#30c) + hover stats (#30d)
+    # ------------------------------------------------------------------
+
+    _PARTY_ICON_SIZE = 140
+
+    def _build_party_strip(self) -> None:
+        """A vertical strip of 6 party icons to the left of the video (both
+        desktop and handheld). Empty slot = a large Poké Ball; filled slot =
+        the mon over its caught ball (ball a clear backdrop behind the mon).
+        Hovering a slot shows its stats."""
+        strip = tkinter.Frame(self.window, background=COLOR_SURFACE, width=self._PARTY_ICON_SIZE + 14)
+        strip.grid(row=0, column=0, sticky="ns")
+        strip.grid_propagate(False)
+        self._party_strip = strip
+        self._party_slots = []
+        for index in range(6):
+            slot = tkinter.Label(strip, background=COLOR_SURFACE, borderwidth=0)
+            slot.pack(pady=1, padx=5)
+            slot.bind("<Enter>", lambda event, i=index: self._party_hover_enter(i, event.x_root, event.y_root))
+            slot.bind("<Leave>", lambda _event: self._party_hover_leave())
+            self._party_slots.append(slot)
+        self._refresh_party_strip()
+
+    def _refresh_party_strip(self) -> None:
+        if not self._party_slots:
+            return
+        party = self._current_party
+        for index, slot in enumerate(self._party_slots):
+            mon = party[index] if index < len(party) else None
+            icon = self._party_icon(mon)
+            slot.config(image=icon if icon is not None else "")
+            slot.image = icon  # keep a ref (cache also holds it)
+
+    def _party_icon(self, pokemon) -> "PIL.ImageTk.PhotoImage | None":
+        if pokemon is None or getattr(pokemon, "is_empty", False):
+            key = "empty"
+        elif pokemon.is_egg:
+            key = "egg"
+        else:
+            try:
+                species = pokemon.species_name_for_stats
+            except Exception:
+                species = pokemon.name
+            # The strip no longer draws the caught ball (moved to the hover
+            # tooltip), so the ball is not part of the cache key.
+            key = f"{species}|{bool(pokemon.is_shiny)}"
+        if key in self._party_icon_cache:
+            return self._party_icon_cache[key]
+        photo = None
+        try:
+            photo = self._build_party_icon(pokemon, key)
+        except Exception:
+            photo = None
+        self._party_icon_cache[key] = photo
+        return photo
+
+    def _build_party_icon(self, pokemon, key: str) -> "PIL.ImageTk.PhotoImage | None":
+        from modules.runtime import get_sprites_path
+
+        size = self._PARTY_ICON_SIZE
+        canvas = PIL.Image.new("RGBA", (size, size), (0, 0, 0, 0))
+        items_dir = get_sprites_path() / "items"
+
+        def load(path, box) -> "PIL.Image.Image | None":
+            if path is None or not path.is_file():
+                return None
+            image = PIL.Image.open(path)
+            if image.mode != "RGBA":
+                image = image.convert("RGBA")
+            image.thumbnail((box, box), PIL.Image.NEAREST)
+            return image
+
+        def paste(image, alpha_mul: float = 1.0, anchor: str = "center") -> None:
+            if image is None:
+                return
+            if alpha_mul < 1.0:
+                faded = image.split()[3].point(lambda a: int(a * alpha_mul))
+                image = image.copy()
+                image.putalpha(faded)
+            x = (size - image.width) // 2
+            y = size - image.height - 2 if anchor == "bottom" else (size - image.height) // 2
+            canvas.alpha_composite(image, (x, y))
+
+        mon_box = int(size * 0.9)  # clean, prominent mon sprite (no ball backdrop)
+        if key == "empty":
+            # Empty slot: a faded Poké Ball just denotes "no Pokémon here".
+            paste(load(items_dir / "Poké Ball.png", int(size * 0.7)), alpha_mul=0.55)
+        elif key == "egg":
+            paste(load(get_sprites_path() / "pokemon" / "Egg.png", mon_box))
+        else:
+            try:
+                from modules.sprites import get_sprite
+
+                # Just the Pokémon, centered and large — the caught ball now
+                # lives in the hover tooltip instead of behind the sprite.
+                paste(load(get_sprite(pokemon), mon_box))
+            except Exception:
+                pass
+        return PIL.ImageTk.PhotoImage(canvas)
+
+    def _tooltip_ball_icon(self, ball_name: str) -> "PIL.ImageTk.PhotoImage | None":
+        """~54px caught-ball icon for the hover tooltip (#46: ~3× the old
+        18px), cached per ball name. Falls back to the plain Poké Ball if the
+        asset is missing."""
+        if not hasattr(self, "_tooltip_ball_cache"):
+            self._tooltip_ball_cache = {}
+        if ball_name in self._tooltip_ball_cache:
+            return self._tooltip_ball_cache[ball_name]
+        photo = None
+        try:
+            from modules.runtime import get_sprites_path
+
+            items_dir = get_sprites_path() / "items"
+            path = items_dir / f"{ball_name}.png"
+            if not path.is_file():
+                path = items_dir / "Poké Ball.png"
+            if path.is_file():
+                image = PIL.Image.open(path)
+                if image.mode != "RGBA":
+                    image = image.convert("RGBA")
+                # resize (not thumbnail) so the 24px item icon UPSCALES to ~3×
+                # (thumbnail only shrinks). NEAREST keeps the pixel art crisp.
+                image = image.resize((54, 54), PIL.Image.NEAREST)
+                photo = PIL.ImageTk.PhotoImage(image)
+        except Exception:
+            photo = None
+        self._tooltip_ball_cache[ball_name] = photo
+        return photo
+
+    def _bind_party_row_hover(self, widget, index: int) -> None:
+        """Bind hover-stats on a party-tab row and all its children (Tk
+        Enter/Leave don't bubble, so every child must be bound)."""
+        widget.bind("<Enter>", lambda event, i=index: self._party_hover_enter(i, event.x_root, event.y_root), add="+")
+        widget.bind("<Leave>", lambda _event: self._party_hover_leave(), add="+")
+        for child in widget.winfo_children():
+            self._bind_party_row_hover(child, index)
+
+    # --- hover-stats tooltip (also called by the future gamepad nav, #32) ---
+    def _party_hover_enter(self, index: int, x_root: int, y_root: int) -> None:
+        if self._tooltip_hide_after is not None:
+            try:
+                self.window.after_cancel(self._tooltip_hide_after)
+            except Exception:
+                pass
+            self._tooltip_hide_after = None
+        self._show_party_tooltip(index, x_root + 16, y_root + 10)
+
+    def _party_hover_leave(self) -> None:
+        # Debounced: moving between a row and its child widgets fires
+        # Leave/Enter; a short delay (cancelled by the next Enter) avoids flicker.
+        if self._tooltip_hide_after is not None:
+            return
+        try:
+            self._tooltip_hide_after = self.window.after(120, self._do_hide_tooltip)
+        except Exception:
+            self._hide_party_tooltip()
+
+    def _do_hide_tooltip(self) -> None:
+        self._tooltip_hide_after = None
+        self._hide_party_tooltip()
+
+    # ------------------------------------------------------------------
+    # #32 Gamepad-driven GUI navigation
+    #
+    # When GUI-nav is active the controller drives a focus ring across the
+    # dashboard instead of playing the game (the gamepad layer suppresses
+    # game input while active — see modules/gamepad.py). Activation:
+    #   - Handheld: opening the Pokéball drawer turns nav ON; closing it OFF
+    #     (wired in _set_drawer). Back+Start opens/closes the drawer.
+    #   - Desktop: Back+Start toggles nav on/off directly.
+    # Mapping (nav active): D-pad/stick = move focus, A = activate,
+    # B = back/close, LB/RB = previous/next tab.
+    # Every method here runs on the Tk main thread (the gamepad listener's
+    # handle_frame is called on the main thread), so direct Tk calls are safe.
+    # ------------------------------------------------------------------
+
+    def set_gui_nav_active(self, active: bool) -> None:
+        active = bool(active)
+        if active == self._gui_nav_active:
+            return
+        self._gui_nav_active = active
+        try:
+            if active:
+                self._rebuild_focus_targets()
+                self._set_focus_index(0)
+            else:
+                self._clear_focus_highlight()
+                self._hide_party_tooltip()
+                self._focus_targets = []
+                self._focus_index = -1
+        except Exception:
+            pass
+
+    @property
+    def gui_nav_active(self) -> bool:
+        return self._gui_nav_active
+
+    def _collect_interactive(self, widget, out: list) -> None:
+        """Recursively collect activatable widgets (buttons/checkbuttons) of a
+        tab frame, in child (≈ top-to-bottom) order."""
+        try:
+            children = widget.winfo_children()
+        except Exception:
+            return
+        for child in children:
+            if isinstance(child, (tkinter.Button, tkinter.Checkbutton)):
+                if child.winfo_exists() and str(child.cget("state")) != "disabled":
+                    out.append({"kind": "button", "widget": child})
+            self._collect_interactive(child, out)
+
+    def _rebuild_focus_targets(self) -> None:
+        """Focus order: persistent Handheld button → 6 left-party slots
+        (controller 'hover' any mon on any tab) → the active tab's buttons."""
+        targets: list = []
+        if self._handheld_button is not None and self._handheld_button.winfo_exists():
+            targets.append({"kind": "button", "widget": self._handheld_button})
+        for index, slot in enumerate(self._party_slots):
+            try:
+                if slot.winfo_exists():
+                    targets.append({"kind": "party", "index": index, "widget": slot})
+            except Exception:
+                pass
+        active_frame = self._tab_frames.get(self._active_tab) if self._active_tab else None
+        if active_frame is not None:
+            self._collect_interactive(active_frame, targets)
+        self._focus_targets = targets
+        if self._focus_index >= len(targets):
+            self._focus_index = len(targets) - 1
+
+    def _clear_focus_highlight(self) -> None:
+        for target in self._focus_targets:
+            widget = target.get("widget")
+            try:
+                if widget is not None and widget.winfo_exists():
+                    widget.config(highlightthickness=0)
+                    if "_orig_bg" in target:
+                        widget.config(background=target.pop("_orig_bg"))
+            except Exception:
+                pass
+
+    def _set_focus_index(self, index: int) -> None:
+        self._clear_focus_highlight()
+        if not self._focus_targets:
+            self._focus_index = -1
+            self._hide_party_tooltip()
+            return
+        index = index % len(self._focus_targets)
+        self._focus_index = index
+        target = self._focus_targets[index]
+        widget = target.get("widget")
+        try:
+            if widget is not None and widget.winfo_exists():
+                # A thick accent ring PLUS an accent background tint, so the
+                # focused widget is unmistakable on a handheld screen / from
+                # across the room with a controller.
+                target["_orig_bg"] = widget.cget("background")
+                widget.config(
+                    highlightthickness=3, highlightbackground=COLOR_ACCENT,
+                    highlightcolor=COLOR_ACCENT, background=COLOR_ACCENT,
+                )
+        except Exception:
+            pass
+        # Focusing a party slot shows that mon's stats (the controller "hover").
+        if target.get("kind") == "party":
+            try:
+                slot = target["widget"]
+                x = slot.winfo_rootx() + slot.winfo_width() + 8
+                y = slot.winfo_rooty()
+                self._show_party_tooltip(target["index"], x, y)
+            except Exception:
+                pass
+        else:
+            self._hide_party_tooltip()
+
+    def gui_focus_move(self, direction: str) -> None:
+        """direction: 'next'/'down'/'right' → forward; 'prev'/'up'/'left' → back."""
+        if not self._gui_nav_active:
+            return
+        if not self._focus_targets:
+            self._rebuild_focus_targets()
+        if not self._focus_targets:
+            return
+        step = -1 if direction in ("prev", "up", "left") else 1
+        base = self._focus_index if self._focus_index >= 0 else 0
+        self._set_focus_index(base + step)
+
+    def gui_focus_activate(self) -> None:
+        if not self._gui_nav_active or not (0 <= self._focus_index < len(self._focus_targets)):
+            return
+        target = self._focus_targets[self._focus_index]
+        try:
+            if target["kind"] == "button":
+                widget = target["widget"]
+                if widget.winfo_exists():
+                    widget.invoke()
+                    # Activating may have changed the tab/cards or opened a
+                    # dialog; rebuild so focus stays valid.
+                    self.window.after_idle(self._rebuild_focus_targets)
+            elif target["kind"] == "party":
+                # Re-show the tooltip (toggle-friendly).
+                self._set_focus_index(self._focus_index)
+        except Exception:
+            pass
+
+    def gui_focus_back(self) -> None:
+        # Close an open picker/dialog first; else close the drawer (handheld);
+        # else exit GUI-nav.
+        try:
+            for child in self.window.winfo_children():
+                if isinstance(child, tkinter.Toplevel) and child.winfo_exists() and child is not self._party_tooltip:
+                    child.destroy()
+                    return
+        except Exception:
+            pass
+        if self._handheld and self._drawer_open:
+            self._set_drawer(False)
+        else:
+            self.set_gui_nav_active(False)
+
+    def gui_tab_next(self) -> None:
+        self._cycle_tab(1)
+
+    def gui_tab_prev(self) -> None:
+        self._cycle_tab(-1)
+
+    def _cycle_tab(self, step: int) -> None:
+        if not self._gui_nav_active or not TAB_ORDER:
+            return
+        try:
+            current = self._active_tab if self._active_tab in TAB_ORDER else TAB_ORDER[0]
+            new_tab = TAB_ORDER[(TAB_ORDER.index(current) + step) % len(TAB_ORDER)]
+            self._show_tab(new_tab)
+            self._rebuild_focus_targets()
+            # Land focus on the first widget of the new tab (after the header
+            # button + party slots) if there is one, else the header.
+            first_tab_widget = 1 + len(self._party_slots)
+            self._set_focus_index(first_tab_widget if first_tab_widget < len(self._focus_targets) else 0)
+        except Exception:
+            pass
+
+    def _show_party_tooltip(self, index: int, x: "int | None" = None, y: "int | None" = None) -> None:
+        """Show all stats for party member `index`. Index-based so the future
+        gamepad-GUI navigation (#32) can show stats for the focused slot."""
+        party = self._current_party
+        if index < 0 or index >= len(party):
+            self._hide_party_tooltip()
+            return
+        mon = party[index]
+        if mon is None or getattr(mon, "is_empty", False):
+            self._hide_party_tooltip()
+            return
+        try:
+            if self._party_tooltip is None or not self._party_tooltip.winfo_exists():
+                tip = tkinter.Toplevel(self.window)
+                tip.overrideredirect(True)
+                tip.attributes("-topmost", True)
+                tip.configure(background=COLOR_ACCENT)  # 1px accent border
+                self._party_tooltip = tip
+            tip = self._party_tooltip
+            for child in tip.winfo_children():
+                child.destroy()
+            body = tkinter.Frame(tip, background=COLOR_CARD)
+            body.pack(padx=1, pady=1)
+            self._build_tooltip_body(body, mon)
+            tip.update_idletasks()
+            if x is None:
+                x = self.window.winfo_pointerx() + 16
+                y = self.window.winfo_pointery() + 12
+            # Keep the card on-screen (it can be tall).
+            try:
+                sh = self.window.winfo_screenheight()
+                if int(y) + tip.winfo_height() > sh - 8:
+                    y = max(8, sh - tip.winfo_height() - 8)
+            except Exception:
+                pass
+            tip.geometry(f"+{int(x)}+{int(y)}")
+            tip.deiconify()
+            tip.lift()
+        except tkinter.TclError:
+            pass
+
+    def _tooltip_sprite(self, mon) -> "PIL.ImageTk.PhotoImage | None":
+        try:
+            key = f"tip|{mon.species_name_for_stats}|{bool(mon.is_shiny)}"
+        except Exception:
+            key = None
+        if key and key in self._party_icon_cache:
+            return self._party_icon_cache[key]
+        image = None
+        try:
+            from modules.sprites import get_sprite
+
+            path = get_sprite(mon)
+            if path and path.is_file():
+                pic = PIL.Image.open(path)
+                if pic.mode != "RGBA":
+                    pic = pic.convert("RGBA")
+                pic.thumbnail((56, 56), PIL.Image.NEAREST)
+                image = PIL.ImageTk.PhotoImage(pic)
+        except Exception:
+            image = None
+        if key:
+            self._party_icon_cache[key] = image
+        return image
+
+    def _build_tooltip_body(self, parent, mon) -> None:
+        """Pokémon-themed hover card: sprite + name + type badges + a
+        colour-coded IV grid + nature/ability/item/HP + moves."""
+        def safe(func, default="?"):
+            try:
+                value = func()
+                return value if value is not None else default
+            except Exception:
+                return default
+
+        try:
+            if mon.is_egg:
+                tkinter.Label(parent, text="Egg", background=COLOR_CARD, foreground=COLOR_MUTED,
+                              font=("Segoe UI", 11, "bold"), padx=14, pady=10).pack()
+                return
+        except Exception:
+            pass
+
+        pad = 10
+        header = tkinter.Frame(parent, background=COLOR_CARD)
+        header.pack(fill="x", padx=pad, pady=(pad, 4))
+        sprite_img = self._tooltip_sprite(mon)
+        if sprite_img is not None:
+            sprite_label = tkinter.Label(header, image=sprite_img, background=COLOR_CARD)
+            sprite_label.image = sprite_img
+            sprite_label.pack(side="left", padx=(0, 8))
+        name_col = tkinter.Frame(header, background=COLOR_CARD)
+        name_col.pack(side="left", anchor="w")
+        is_shiny = safe(lambda: bool(mon.is_shiny), False)
+        name_row = tkinter.Frame(name_col, background=COLOR_CARD)
+        name_row.pack(anchor="w")
+        tkinter.Label(name_row, text=safe(lambda: mon.name), background=COLOR_CARD,
+                      foreground=COLOR_SHINY if is_shiny else COLOR_INK,
+                      font=("Segoe UI", 13, "bold")).pack(side="left")
+        if is_shiny:
+            tkinter.Label(name_row, text=" ✨", background=COLOR_CARD, foreground=COLOR_SHINY,
+                          font=("Segoe UI", 11)).pack(side="left")
+        gender = safe(lambda: mon.gender, "")
+        tkinter.Label(name_col, text=f"Lv {safe(lambda: mon.level)}    {gender}".rstrip(),
+                      background=COLOR_CARD, foreground=COLOR_INK_2, font=("Segoe UI", 9)).pack(anchor="w")
+
+        # Type badges (de-duplicated for mono-type mons).
+        types = []
+        try:
+            for kind in mon.species.types:
+                if kind.name not in types:
+                    types.append(kind.name)
+        except Exception:
+            types = []
+        if types:
+            badges = tkinter.Frame(parent, background=COLOR_CARD)
+            badges.pack(fill="x", padx=pad, pady=(0, 6))
+            for kind in types:
+                color = TYPE_COLORS.get(kind, COLOR_MUTED)
+                tkinter.Label(badges, text=kind.upper(), background=color, foreground=_readable_text_on(color),
+                              font=("Segoe UI", 8, "bold"), padx=8, pady=2).pack(side="left", padx=(0, 4))
+
+        info = tkinter.Frame(parent, background=COLOR_CARD)
+        info.pack(fill="x", padx=pad, pady=(0, 4))
+
+        def info_line(text):
+            tkinter.Label(info, text=text, background=COLOR_CARD, foreground=COLOR_INK_2,
+                          font=("Segoe UI", 9), anchor="w", justify="left").pack(fill="x")
+
+        info_line(f"{safe(lambda: mon.nature.name)} nature")
+        info_line(f"Ability: {safe(lambda: mon.ability.name)}")
+        held = safe(lambda: mon.held_item.name if mon.held_item is not None else "—", "—")
+        info_line(f"Held: {held}")
+        # Caught-ball row: small ball icon + name (moved here from the party strip).
+        ball_name = safe(lambda: mon.poke_ball.name, "Poké Ball")
+        ball_row = tkinter.Frame(info, background=COLOR_CARD)
+        ball_row.pack(fill="x")
+        ball_icon = self._tooltip_ball_icon(ball_name)
+        if ball_icon is not None:
+            icon_label = tkinter.Label(ball_row, image=ball_icon, background=COLOR_CARD)
+            icon_label.image = ball_icon
+            icon_label.pack(side="left", padx=(0, 4))
+        tkinter.Label(ball_row, text=f"Caught in: {ball_name}", background=COLOR_CARD,
+                      foreground=COLOR_INK_2, font=("Segoe UI", 9), anchor="w").pack(side="left")
+        info_line(f"HP: {safe(lambda: mon.current_hp)}/{safe(lambda: mon.total_hp)}")
+
+        try:
+            ivs = mon.ivs
+            iv_cells = [("HP", ivs.hp), ("Atk", ivs.attack), ("Def", ivs.defence),
+                        ("SpA", ivs.special_attack), ("SpD", ivs.special_defence), ("Spe", ivs.speed)]
+            tkinter.Label(parent, text="IVs", background=COLOR_CARD, foreground=COLOR_MUTED,
+                          font=("Segoe UI", 8, "bold"), anchor="w").pack(fill="x", padx=pad)
+            grid = tkinter.Frame(parent, background=COLOR_CARD)
+            grid.pack(padx=pad, pady=(1, 6))
+            for i, (tag, val) in enumerate(iv_cells):
+                cell = tkinter.Frame(grid, background=COLOR_SURFACE)
+                cell.grid(row=i // 3, column=i % 3, padx=2, pady=2, sticky="nsew")
+                tkinter.Label(cell, text=tag, background=COLOR_SURFACE, foreground=COLOR_MUTED,
+                              font=("Segoe UI", 7), width=5).pack()
+                tkinter.Label(cell, text=str(val), background=COLOR_SURFACE, foreground=_iv_color(val),
+                              font=("Segoe UI", 11, "bold")).pack()
+        except Exception:
+            pass
+
+        try:
+            moves = [move.move.name for move in mon.moves if move is not None]
+            if moves:
+                tkinter.Label(parent, text="Moves", background=COLOR_CARD, foreground=COLOR_MUTED,
+                              font=("Segoe UI", 8, "bold"), anchor="w").pack(fill="x", padx=pad)
+                move_box = tkinter.Frame(parent, background=COLOR_CARD)
+                move_box.pack(fill="x", padx=pad, pady=(0, pad))
+                for name in moves:
+                    tkinter.Label(move_box, text=f"•  {name}", background=COLOR_CARD, foreground=COLOR_INK_2,
+                                  font=("Segoe UI", 9), anchor="w").pack(fill="x")
+        except Exception:
+            pass
+
+    def _hide_party_tooltip(self) -> None:
+        if self._party_tooltip is not None:
+            try:
+                self._party_tooltip.withdraw()
+            except tkinter.TclError:
+                pass
+
+    def _format_pokemon_stats(self, mon) -> str:
+        if mon is None or getattr(mon, "is_empty", False):
+            return ""
+
+        def safe(func, default="?"):
+            try:
+                value = func()
+                return value if value is not None else default
+            except Exception:
+                return default
+
+        try:
+            if mon.is_egg:
+                return "Egg"
+        except Exception:
+            pass
+
+        shiny = safe(lambda: " ✨" if mon.is_shiny else "", "")
+        lines = [f"{safe(lambda: mon.name)}{shiny}   Lv {safe(lambda: mon.level)}"]
+        gender = safe(lambda: mon.gender, "")
+        lines.append(f"{safe(lambda: mon.nature.name)} nature   {gender}".rstrip())
+        lines.append(f"Ability: {safe(lambda: mon.ability.name)}")
+        held = safe(lambda: mon.held_item.name if mon.held_item is not None else "—", "—")
+        lines.append(f"Item: {held}    Ball: {safe(lambda: mon.poke_ball.name)}")
+        lines.append(f"HP: {safe(lambda: mon.current_hp)}/{safe(lambda: mon.total_hp)}")
+        try:
+            ivs = mon.ivs
+            lines.append(
+                f"IVs  HP {ivs.hp}  Atk {ivs.attack}  Def {ivs.defence}  "
+                f"SpA {ivs.special_attack}  SpD {ivs.special_defence}  Spe {ivs.speed}"
+            )
+        except Exception:
+            pass
+        try:
+            moves = [move.move.name for move in mon.moves if move is not None]
+            if moves:
+                lines.append("Moves: " + ", ".join(moves))
+        except Exception:
+            pass
+        return "\n".join(lines)
 
     # ------------------------------------------------------------------
     # Handheld mode
@@ -841,6 +1625,36 @@ class DashboardScreen:
     def _set_drawer(self, open_: bool) -> None:
         self._drawer_open = open_
         self._apply_handheld_layout()
+        # #32: in handheld, the open drawer IS the gamepad-nav context — the
+        # controller navigates the tools while it's open, and returns to
+        # playing the game when it closes.
+        if self._handheld:
+            self.set_gui_nav_active(open_)
+
+    def _on_pokeball_clicked(self) -> None:
+        """The Pokéball reopens the side menu — the drawer in handheld, the
+        docked tool column on desktop."""
+        if self._handheld:
+            self._set_drawer(True)
+        else:
+            self._set_tools_hidden(False)
+
+    def _on_hide_clicked(self) -> None:
+        """The "Hide" button collapses the side menu — closing the drawer in
+        handheld, hiding the tool column on desktop."""
+        if self._handheld:
+            self._set_drawer(False)
+        else:
+            self._set_tools_hidden(True)
+
+    def _set_tools_hidden(self, hidden: bool) -> None:
+        """Desktop: hide/show the tool column so the emulator can fill the
+        window; the Pokéball reopens it. (Handheld uses the drawer instead.)
+        The Left Party strip stays visible either way."""
+        self._tools_hidden = hidden
+        if not self._handheld:
+            self._apply_handheld_layout()
+        self._persist_ui_state()
 
     def _apply_handheld_layout(self) -> None:
         try:
@@ -848,35 +1662,78 @@ class DashboardScreen:
         except tkinter.TclError:
             pass
         self._apply_menu_visibility()
+        self._layout_column_header()
+        self._layout_party_strip()
 
         if self._handheld:
             self.frame.grid_remove()
-            self._drawer_header.pack_forget()
             if self._drawer_open:
-                self._drawer_header.pack(in_=self._tools_container, fill="x", before=self._tab_bar)
                 self.frame.place(relx=1.0, rely=0.0, relheight=1.0, anchor="ne", width=TOOL_COLUMN_WIDTH)
                 self._pokeball_button.place_forget()
             else:
                 self.frame.place_forget()
                 self._pokeball_button.place(relx=1.0, x=-12, y=12, anchor="ne")
         else:
+            # Desktop: tools docked in column 2, OR hidden (Pokéball reopens),
+            # letting the video fill the freed space. Column 0 (party strip)
+            # is untouched, so the Left Party stays visible either way.
             self.frame.place_forget()
-            self._pokeball_button.place_forget()
-            self._drawer_header.pack_forget()
-            self.frame.grid(row=0, column=1, sticky="NSE")
+            if self._tools_hidden:
+                self.frame.grid_remove()
+                self._pokeball_button.place(relx=1.0, x=-12, y=12, anchor="ne")
+                self._pokeball_button.lift()
+            else:
+                self._pokeball_button.place_forget()
+                self.frame.grid(row=0, column=2, sticky="NSE")  # column 0=party, 1=video
+
+    def _layout_column_header(self) -> None:
+        """#30a: arrange the persistent header. Handheld drawer shows
+        TOOLS + Handheld + Hide; desktop shows just the Handheld toggle."""
+        if self._column_header is None:
+            return
+        for widget in (self._tools_label, self._handheld_button, self._hide_button):
+            if widget is not None:
+                widget.pack_forget()
+        if self._handheld and self._drawer_open:
+            self._tools_label.pack(side="left", padx=10, pady=6)
+            self._handheld_button.pack(side="left", padx=6, pady=4)
+            self._hide_button.pack(side="right", padx=10, pady=4)
+            self._handheld_button.config(text="⛶ Windowed")
+        else:
+            # Desktop: show both the Handheld toggle AND a "Hide" that
+            # collapses the tool column (Pokéball reopens it) — same paradigm
+            # as the handheld drawer.
+            self._tools_label.pack(side="left", padx=10, pady=6)
+            self._hide_button.pack(side="right", padx=8, pady=4)
+            self._handheld_button.pack(side="right", padx=6, pady=4)
+            self._handheld_button.config(text="⛶ Handheld")
+
+    def _layout_party_strip(self) -> None:
+        """#30c: desktop = a grid column left of the video; handheld = an
+        overlay strip on the left edge of the fullscreen video."""
+        if self._party_strip is None:
+            return
+        if self._handheld:
+            self._party_strip.grid_remove()
+            self._party_strip.place(relx=0.0, rely=0.0, relheight=1.0, anchor="nw")
+            # The video canvas was created AFTER the strip, so it stacks above
+            # it; raise the strip (and its live contents) so the overlay is
+            # actually visible over the fullscreen video.
+            self._party_strip.lift()
+        else:
+            self._party_strip.place_forget()
+            self._party_strip.grid(row=0, column=0, sticky="ns")
 
     def _apply_menu_visibility(self) -> None:
-        """Handheld fullscreen hides the Tk menu bar for a truly clean
-        screen; opening the tool drawer (Pokéball/H) brings it back, and
-        leaving handheld mode restores it permanently. Applied AFTER the
-        fullscreen attribute change — on Windows, toggling fullscreen
-        recreates the native window, so the menu must be (re)asserted on
-        the new hwnd."""
+        """#30b: in handheld mode the Tk menu bar is hidden ENTIRELY (even
+        with the drawer open) — the menu's commands live in the Play tab's
+        GAME MENU card instead. Desktop always shows the bar. Applied AFTER
+        the fullscreen toggle: on Windows, toggling fullscreen recreates the
+        native window, so the menu must be (re)asserted on the new hwnd."""
         if self._menu_bar is None:
             return
-        show_menu = (not self._handheld) or self._drawer_open
         try:
-            self.window.config(menu=self._menu_bar if show_menu else "")
+            self.window.config(menu=self._menu_bar if not self._handheld else "")
         except tkinter.TclError:
             pass
 
@@ -942,6 +1799,46 @@ class DashboardScreen:
             ).pack(fill="x", pady=(4, 0) if key == "infinite_money" else 0)
 
         toggle_checkbox(card, "Infinite money", "infinite_money")
+
+        # Adjustable money (#31): field defaults to current money; "Set" applies
+        # it once; "Lock" freezes the game at the typed value every tick.
+        money_row = tkinter.Frame(card, background=COLOR_CARD)
+        money_row.pack(fill="x", pady=(2, 0))
+        tkinter.Label(
+            money_row, text="Money", background=COLOR_CARD, foreground=COLOR_INK_2, font=("Segoe UI", 8)
+        ).pack(side="left")
+        self._money_variable = tkinter.StringVar()
+        self._money_entry = tkinter.Entry(
+            money_row, textvariable=self._money_variable, background=COLOR_SURFACE, foreground=COLOR_INK,
+            insertbackground=COLOR_INK, relief="flat", font=("Segoe UI", 8), width=8,
+        )
+        self._money_entry.pack(side="left", padx=(4, 4))
+
+        def set_money_now() -> None:
+            run_action("set_money", self._money_variable.get().strip())
+
+        small_button(money_row, "Set", set_money_now).pack(side="left", padx=(0, 6))
+        self._money_lock_variable = tkinter.BooleanVar(value=bool(cheat_manager.get("lock_money")))
+
+        def on_money_lock() -> None:
+            locked = self._money_lock_variable.get()
+            if locked:
+                cheat_manager.set_toggle("locked_money_value", self._money_variable.get().strip())
+            cheat_manager.set_toggle("lock_money", locked)
+            self._log_event("Money lock " + (f"ON @ {self._money_variable.get().strip()}" if locked else "OFF"))
+
+        tkinter.Checkbutton(
+            money_row, text="Lock", variable=self._money_lock_variable, command=on_money_lock,
+            background=COLOR_CARD, foreground=COLOR_INK_2, selectcolor=COLOR_SURFACE,
+            activebackground=COLOR_CARD, activeforeground=COLOR_INK, font=("Segoe UI", 8),
+            highlightthickness=0, borderwidth=0,
+        ).pack(side="left")
+
+        initial_money = cheat_manager.get_current_money()
+        if initial_money is None:
+            initial_money = cheat_manager.get("locked_money_value") or ""
+        self._money_variable.set(str(initial_money))
+
         toggle_checkbox(card, "Auto-heal party (overworld)", "auto_heal_party")
         toggle_checkbox(card, "Force wild species", "force_wild_species")
 
@@ -1059,16 +1956,350 @@ class DashboardScreen:
         self._force_species_name = name
         self._update_species_picker_button()
 
-    def _open_species_picker(self) -> None:
+    def _ball_icon(self, path) -> "PIL.ImageTk.PhotoImage | None":
+        cache = getattr(self, "_ball_icon_cache", None)
+        if cache is None:
+            cache = self._ball_icon_cache = {}
+        key = str(path)
+        if key in cache:
+            return cache[key]
+        icon = None
+        try:
+            if path.is_file():
+                image = PIL.Image.open(path)
+                if image.mode != "RGBA":
+                    image = image.convert("RGBA")
+                image.thumbnail((18, 18), PIL.Image.NEAREST)
+                icon = PIL.ImageTk.PhotoImage(image)
+        except Exception:
+            icon = None
+        cache[key] = icon
+        return icon
+
+    def _build_catch_balls_card(self, parent: tkinter.Widget) -> None:
+        """#40: choose which Poké Balls the bot may throw when catching."""
+        from modules.catch_balls import ALL_BALLS, allowed_ball_names, set_allowed_ball_names
+        from modules.runtime import get_sprites_path
+
+        card = self._card(parent, "CATCH BALLS")
+        tkinter.Label(
+            card, text="Balls the bot may use for catching (unchecked = never thrown; protects your Master Ball).",
+            background=COLOR_CARD, foreground=COLOR_MUTED, anchor="w", wraplength=320, font=("Segoe UI", 8),
+        ).pack(fill="x", pady=(0, 4))
+
+        items_dir = get_sprites_path() / "items"
+        allowed = allowed_ball_names()
+        self._catch_ball_vars = {}
+        grid = tkinter.Frame(card, background=COLOR_CARD)
+        grid.pack(fill="x")
+
+        def save() -> None:
+            names = [ball for ball, var in self._catch_ball_vars.items() if var.get()]
+            set_allowed_ball_names(names)
+            self._log_event(f"Catch balls updated ({len(names)} allowed).")
+
+        for i, ball in enumerate(ALL_BALLS):
+            var = tkinter.BooleanVar(value=(ball in allowed))
+            self._catch_ball_vars[ball] = var
+            icon = self._ball_icon(items_dir / f"{ball}.png")
+            checkbox = tkinter.Checkbutton(
+                grid, text=f" {ball}", variable=var, command=save, image=icon, compound="left",
+                background=COLOR_CARD, foreground=COLOR_INK, selectcolor=COLOR_SURFACE,
+                activebackground=COLOR_CARD, activeforeground=COLOR_INK, font=("Segoe UI", 8), anchor="w",
+            )
+            checkbox.image = icon
+            checkbox.grid(row=i // 2, column=i % 2, sticky="w", padx=2, pady=1)
+
+    def _build_hunt_card(self, parent: tkinter.Widget) -> None:
+        """Hunt Planner (#9): pick a target → ranked wild locations + the
+        recommended bot mode, one click to set that mode."""
+        card = self._card(parent, "HUNT PLANNER")
+        tkinter.Label(
+            card, text="Pick a target — see where it's found and the mode to use.",
+            background=COLOR_CARD, foreground=COLOR_MUTED, anchor="w", wraplength=320, font=("Segoe UI", 8),
+        ).pack(fill="x", pady=(0, 4))
+        self._hunt_target_button = tkinter.Button(
+            card, text="Choose target ▾",
+            command=lambda: self._open_species_picker(on_choose=self._plan_hunt, shiny=False),
+            background=COLOR_SURFACE, foreground=COLOR_INK, activebackground=COLOR_ACCENT,
+            activeforeground=COLOR_INK, relief="flat", anchor="w", padx=8,
+        )
+        self._hunt_target_button.pack(fill="x")
+        self._hunt_results = tkinter.Frame(card, background=COLOR_CARD)
+        self._hunt_results.pack(fill="x", pady=(6, 0))
+        tkinter.Label(
+            self._hunt_results, text="No target selected.",
+            background=COLOR_CARD, foreground=COLOR_MUTED, anchor="w",
+        ).pack(fill="x")
+
+    def _plan_hunt(self, species_name: str) -> None:
+        self._hunt_species = species_name
+        try:
+            self._hunt_target_button.config(text=f"{species_name} ▾")
+            for widget in self._hunt_results.winfo_children():
+                widget.destroy()
+        except tkinter.TclError:
+            return
+        try:
+            from modules import encounter_index
+            from modules.modes import get_bot_mode_names
+
+            try:
+                modes = get_bot_mode_names()
+            except Exception:
+                modes = []
+            locations = encounter_index.locations_for_species(species_name)
+        except Exception as error:
+            tkinter.Label(
+                self._hunt_results, text=f"Could not load encounter data: {error}",
+                background=COLOR_CARD, foreground=COLOR_WARNING, anchor="w", wraplength=320,
+            ).pack(fill="x")
+            return
+        if not locations:
+            tkinter.Label(
+                self._hunt_results,
+                text=f"{species_name}: no wild locations (legendary / gift / evolve-only).",
+                background=COLOR_CARD, foreground=COLOR_INK_2, anchor="w", wraplength=320,
+            ).pack(fill="x")
+            return
+        for loc in locations[:12]:
+            mode = encounter_index.recommended_mode_for_method(loc["method"], modes)
+            level = f"Lv {loc['min_level']}" + ("" if loc["min_level"] == loc["max_level"] else f"-{loc['max_level']}")
+            row = tkinter.Frame(self._hunt_results, background=COLOR_SURFACE, padx=6, pady=3)
+            row.pack(fill="x", pady=1)
+            tkinter.Label(
+                row, text=loc["map_name"], background=COLOR_SURFACE, foreground=COLOR_INK,
+                anchor="w", font=("Segoe UI", 9, "bold"),
+            ).pack(fill="x")
+            bottom = tkinter.Frame(row, background=COLOR_SURFACE)
+            bottom.pack(fill="x")
+            tkinter.Label(
+                bottom, text=f"{loc['method']} · {loc['rate']}% · {level} · {mode}",
+                background=COLOR_SURFACE, foreground=COLOR_INK_2, anchor="w", font=("Segoe UI", 8),
+            ).pack(side="left")
+            tkinter.Button(
+                bottom, text="Hunt", command=lambda l=loc: self._start_hunt(l),
+                background=COLOR_ACCENT, foreground=COLOR_INK, relief="flat", font=("Segoe UI", 8), padx=8,
+            ).pack(side="right")
+
+    def _start_hunt(self, location: dict) -> None:
+        # v2: one click = travel to the encounter tile + hunt. We resolve a
+        # representative tile now (reads the target map's tiles from the ROM),
+        # store the selection, then switch to the "Hunt (Custom)" mode which
+        # walks there via global navigation and hunts. Falls back gracefully
+        # if no tile can be auto-found.
+        try:
+            from modules import encounter_index
+
+            method = location["method"]
+            map_key = tuple(location["map"])
+            map_name = location["map_name"]
+            species = getattr(self, "_hunt_species", None) or "target"
+            try:
+                tile = encounter_index.find_encounter_tile(map_key, method)
+            except Exception:
+                tile = None
+            encounter_index.set_hunt_target(
+                {
+                    "species": species,
+                    "map": [map_key[0], map_key[1]],
+                    "map_name": map_name,
+                    "method": method,
+                    "tile": list(tile) if tile else None,
+                }
+            )
+            context.bot_mode = "Hunt (Custom)"
+            self._refresh_controls()
+            if tile:
+                self._log_event(f"Hunt: travelling to {map_name} ({method}) to hunt {species}.")
+            else:
+                self._log_event(
+                    f"Hunt: set target {species} on {map_name}, but couldn't auto-find a "
+                    f"{method} tile — walk to the encounter area, then it'll hunt."
+                )
+        except Exception as error:
+            self._log_event(f"Could not start hunt: {error}", highlight=True)
+
+    def _build_living_dex_card(self, parent: tkinter.Widget) -> None:
+        """Living Dex orchestrator (#23): run through a target list, catching
+        the first of each species, autonomously."""
+        card = self._card(parent, "LIVING DEX")
+        self._livingdex_pending: list = []
+        self._livingdex_label = tkinter.Label(
+            card, text="No run.", background=COLOR_CARD, foreground=COLOR_INK_2,
+            anchor="w", justify="left", wraplength=300, font=("Segoe UI", 9),
+        )
+        self._livingdex_label.pack(fill="x")
+
+        # #41/#42: how the remaining dex is obtained + what the player can do now.
+        self._livingdex_plan_label = tkinter.Label(
+            card, text="", background=COLOR_CARD, foreground=COLOR_MUTED,
+            anchor="w", justify="left", wraplength=300, font=("Segoe UI", 8),
+        )
+        self._livingdex_plan_label.pack(fill="x", pady=(2, 0))
+
+        tkinter.Button(
+            card, text="Start — all uncaught wild", command=self._livingdex_start_all,
+            background=COLOR_ACCENT, foreground=COLOR_INK, activebackground=COLOR_ACCENT,
+            relief="flat", font=("Segoe UI", 9),
+        ).pack(fill="x", pady=(6, 2))
+
+        custom_row = tkinter.Frame(card, background=COLOR_CARD)
+        custom_row.pack(fill="x")
+        tkinter.Button(
+            custom_row, text="＋ Add species", command=self._livingdex_add_species,
+            background=COLOR_SURFACE, foreground=COLOR_INK, relief="flat", font=("Segoe UI", 9),
+        ).pack(side="left", fill="x", expand=True, padx=(0, 3))
+        self._livingdex_custom_button = tkinter.Button(
+            custom_row, text="Start custom (0)", command=self._livingdex_start_custom,
+            background=COLOR_SURFACE, foreground=COLOR_MUTED, relief="flat", font=("Segoe UI", 9),
+        )
+        self._livingdex_custom_button.pack(side="left", fill="x", expand=True)
+
+        tkinter.Button(
+            card, text="Stop & clear run", command=self._livingdex_stop,
+            background=COLOR_SURFACE, foreground=COLOR_INK_2, relief="flat", font=("Segoe UI", 9),
+        ).pack(fill="x", pady=(2, 0))
+
+    def _livingdex_add_species(self) -> None:
+        def _add(name: str) -> None:
+            if name not in self._livingdex_pending:
+                self._livingdex_pending.append(name)
+            self._livingdex_custom_button.config(
+                text=f"Start custom ({len(self._livingdex_pending)})",
+                foreground=COLOR_INK if self._livingdex_pending else COLOR_MUTED,
+            )
+            self._log_event(f"Living Dex custom list: {', '.join(self._livingdex_pending)}")
+
+        self._open_species_picker(on_choose=_add, shiny=False)
+
+    def _livingdex_start_all(self) -> None:
+        self._livingdex_begin(explicit_names=None)
+
+    def _livingdex_start_custom(self) -> None:
+        if not self._livingdex_pending:
+            self._log_event("Living Dex: add at least one species first.")
+            return
+        self._livingdex_begin(explicit_names=list(self._livingdex_pending))
+
+    def _livingdex_begin(self, explicit_names: "list | None") -> None:
+        try:
+            from modules import living_dex
+
+            run = living_dex.derive_targets(explicit_names=explicit_names)
+            if not run.get("targets"):
+                self._log_event("Living Dex: nothing to catch (all owned, or none are wild-catchable).")
+                return
+            living_dex.save_run(run)
+            context.bot_mode = "Living Dex (Custom)"
+            self._refresh_controls()
+            skipped = f" ({len(run['skipped'])} skipped)" if run.get("skipped") else ""
+            self._log_event(f"Living Dex started: {len(run['targets'])} targets{skipped}.")
+        except Exception as error:
+            self._log_event(f"Could not start Living Dex: {error}", highlight=True)
+
+    def _livingdex_stop(self) -> None:
+        try:
+            from modules import living_dex
+
+            living_dex.clear_run()
+            self._livingdex_pending = []
+            if hasattr(self, "_livingdex_custom_button") and self._livingdex_custom_button.winfo_exists():
+                self._livingdex_custom_button.config(text="Start custom (0)", foreground=COLOR_MUTED)
+            if context.bot_mode == "Living Dex (Custom)":
+                context.set_manual_mode()
+                self._refresh_controls()
+            self._log_event("Living Dex run cleared.")
+        except Exception as error:
+            self._log_event(f"Could not stop Living Dex: {error}", highlight=True)
+
+    def _refresh_living_dex(self) -> None:
+        # The obtainability/capability line is independent of whether a run is
+        # configured, so refresh it always.
+        self._refresh_living_dex_plan()
+        label = getattr(self, "_livingdex_label", None)
+        if label is None or not label.winfo_exists():
+            return
+        try:
+            from modules import living_dex
+            from modules.pokemon import get_species_by_index
+
+            run = living_dex.load_run()
+            if run is None:
+                label.config(text="No run.")
+                return
+            done, total = living_dex.progress(run)
+            nxt = living_dex.next_target_index(run)
+            if nxt is None:
+                label.config(text=f"Complete — {done}/{total} owned.")
+                return
+            try:
+                name = get_species_by_index(nxt).name
+            except Exception:
+                name = f"#{nxt}"
+            label.config(text=f"{done}/{total} owned · next: {name}")
+        except Exception:
+            pass
+
+    def _refresh_living_dex_plan(self) -> None:
+        """#41/#42: obtainability breakdown of the uncaught dex + the player's
+        current capabilities (what field moves / rods / badges they have)."""
+        label = getattr(self, "_livingdex_plan_label", None)
+        if label is None or not label.winfo_exists():
+            return
+        try:
+            from modules import living_dex, capabilities
+
+            breakdown = living_dex.obtainability_breakdown()
+            caps = capabilities.capability_report()
+            have = []
+            if caps.get("surf"):
+                have.append("Surf")
+            for rod, key in (("Old Rod", "old_rod"), ("Good Rod", "good_rod"), ("Super Rod", "super_rod")):
+                if caps.get(key):
+                    have.append(rod)
+            if caps.get("rock_smash"):
+                have.append("Rock Smash")
+            have_text = ", ".join(have) if have else "none yet"
+            cats = breakdown.get("categories", {})
+            dens = breakdown.get("denominators", {})
+
+            def _n(kind):
+                return len(cats.get(kind, ()))
+
+            gift_static = _n("gift") + _n("static") + _n("roamer")
+            trade_event = _n("ingame_trade") + _n("event") + _n("unobtainable")
+            owned = dens.get("owned", 0)
+            obtainable = dens.get("obtainable_in_emerald", 0)
+            owned_obtainable = dens.get("owned_obtainable", 0)
+            label.config(
+                text=(
+                    f"Owned: {owned}/386 National Dex · {owned_obtainable}/{obtainable} obtainable in Emerald\n"
+                    f"Uncaught: {len(breakdown['wild'])} wild · {len(breakdown['evolution'])} evolve · "
+                    f"{gift_static} gift/static/roam · {trade_event} trade/event/blocked\n"
+                    f"You can use: {have_text}"
+                )
+            )
+        except Exception:
+            try:
+                label.config(text="")
+            except Exception:
+                pass
+
+    def _open_species_picker(self, on_choose=None, shiny: "bool | None" = None) -> None:
         """Searchable, sprite-illustrated species dropdown. Type to filter
         (handy across ~400 species); click a row to select. Floats above the
-        emulator in handheld fullscreen via _prepare_dialog."""
+        emulator in handheld fullscreen via _prepare_dialog.
+
+        on_choose(name) is called with the chosen species (default: set the
+        force-wild-species cheat). Reused by the Hunt tab (#9)."""
         dialog = tkinter.Toplevel(self.window)
         dialog.title("Choose a species")
         dialog.configure(background=COLOR_SURFACE)
         dialog.geometry("300x470")
 
-        shiny = self._force_species_is_shiny()
+        if shiny is None:
+            shiny = self._force_species_is_shiny()
 
         filter_variable = tkinter.StringVar()
         filter_entry = tkinter.Entry(
@@ -1098,7 +2329,7 @@ class DashboardScreen:
         dialog.bind("<MouseWheel>", lambda event: (list_canvas.yview_scroll(int(-event.delta / 120), "units"), "break")[1])
 
         def choose(name: str) -> None:
-            self._set_force_species(name)
+            (on_choose or self._set_force_species)(name)
             dialog.destroy()
 
         # Show the FULL species list (scrollable) by default; typing filters
@@ -1222,7 +2453,14 @@ class DashboardScreen:
         try:
             state_file = context.profile.path / UI_STATE_FILE
             state_file.write_text(
-                json.dumps({"handheld": self._handheld, "active_tab": self._active_tab}), encoding="utf-8"
+                json.dumps(
+                    {
+                        "handheld": self._handheld,
+                        "active_tab": self._active_tab,
+                        "tools_hidden": self._tools_hidden,
+                    }
+                ),
+                encoding="utf-8",
             )
         except Exception:
             pass
@@ -1239,10 +2477,12 @@ class DashboardScreen:
                 # so the persist inside _show_tab writes the correct value.
                 if state.get("handheld"):
                     self._handheld = True
+                if state.get("tools_hidden"):
+                    self._tools_hidden = True
                 tab = state.get("active_tab")
                 if tab in self._tab_frames:
                     self._show_tab(tab)
-                if self._handheld:
+                if self._handheld or self._tools_hidden:
                     self._apply_handheld_layout()
         except Exception:
             pass
@@ -1290,6 +2530,27 @@ class DashboardScreen:
             self._refresh_kpis()
             self._refresh_backup_label()
             self._refresh_shiny_log()
+            self._refresh_money_field()
+            self._refresh_living_dex()
+            self._refresh_analytics()
+
+    def _refresh_money_field(self) -> None:
+        """#31: keep the money field showing the character's current money —
+        unless it is locked (show the locked value) or being edited."""
+        if self._money_entry is None or self._money_variable is None:
+            return
+        try:
+            from modules.game_cheats import cheat_manager
+
+            if cheat_manager.get("lock_money"):
+                return
+            if self.window.focus_get() is self._money_entry:
+                return  # don't clobber while the user is typing
+            current = cheat_manager.get_current_money()
+            if current is not None:
+                self._money_variable.set(str(current))
+        except Exception:
+            pass
 
     def _refresh_controls(self) -> None:
         if self._mode_button is None:
@@ -1323,6 +2584,18 @@ class DashboardScreen:
             except Exception:
                 pass
 
+        if getattr(self, "_watchdog_label", None) is not None:
+            try:
+                from modules.watchdog import watchdog
+
+                line = watchdog.get_status_line()
+                self._watchdog_label.config(
+                    text=line,
+                    foreground=COLOR_CRITICAL if "FAULT" in line else COLOR_MUTED,
+                )
+            except Exception:
+                pass
+
         # Sandbox #18: surface the async update-check result exactly once.
         if not self._update_notice_logged and self._update_label is not None:
             try:
@@ -1351,6 +2624,168 @@ class DashboardScreen:
         except Exception:
             pass
 
+    # ------------------------------------------------------------------
+    # Analytics (#11): enc/hr trend sparkline + luck meter + stats browser
+    # ------------------------------------------------------------------
+    def _refresh_analytics(self) -> None:
+        if self._trend_canvas is None or not self._trend_canvas.winfo_exists():
+            return
+        try:
+            from modules.analytics import luck_meter
+
+            # Sample the current enc/hr into the trend ring buffer.
+            rate = int(getattr(context.stats, "encounter_rate", 0) or 0)
+            self._analytics_trend.add(rate)
+            self._draw_trend()
+
+            global_stats = context.stats.get_global_stats()
+            totals = global_stats.totals
+            result = luck_meter(totals.total_encounters, totals.shiny_encounters)
+            if result.encounters == 0:
+                self._luck_label.config(text="Luck: no encounters yet.", foreground=COLOR_MUTED)
+            else:
+                color = {
+                    "lucky": COLOR_GOOD,
+                    "unlucky": COLOR_CRITICAL,
+                    "on track": COLOR_INK_2,
+                }.get(result.verdict, COLOR_INK_2)
+                self._luck_label.config(text=f"Luck: {result.summary}", foreground=color)
+        except Exception:
+            pass
+
+    def _draw_trend(self) -> None:
+        canvas = self._trend_canvas
+        if canvas is None or not canvas.winfo_exists():
+            return
+        try:
+            canvas.delete("all")
+            width = max(canvas.winfo_width(), 1)
+            height = max(canvas.winfo_height(), 1)
+            samples = self._analytics_trend.samples()
+            if len(samples) < 2:
+                canvas.create_text(
+                    6, height / 2, anchor="w", text="collecting…", fill=COLOR_MUTED, font=("Segoe UI", 8)
+                )
+                return
+            peak = max(self._analytics_trend.peak(), 1.0)
+            pad = 3
+            plot_w = width - pad * 2
+            plot_h = height - pad * 2
+            step = plot_w / (len(samples) - 1)
+            points = []
+            for i, value in enumerate(samples):
+                x = pad + i * step
+                y = pad + plot_h - (min(value, peak) / peak) * plot_h
+                points.extend((x, y))
+            canvas.create_line(*points, fill=COLOR_ACCENT, width=2, smooth=True)
+            # Peak label, top-right.
+            canvas.create_text(
+                width - 4, 8, anchor="e", text=f"peak {int(peak):,}", fill=COLOR_MUTED, font=("Segoe UI", 7)
+            )
+        except Exception:
+            pass
+
+    def _open_stats_browser(self) -> None:
+        """Sortable, filterable per-species stats table in a floating window."""
+        if self._stats_browser is not None and self._stats_browser.winfo_exists():
+            self._stats_browser.lift()
+            return
+        try:
+            from tkinter import ttk
+
+            from modules.analytics import build_stats_rows, filter_rows, sort_rows
+
+            rows_all = build_stats_rows(context.stats.get_global_stats())
+        except Exception as error:
+            self._log_event(f"Could not open stats browser: {error}", highlight=True)
+            return
+
+        dialog = tkinter.Toplevel(self.window)
+        dialog.title("Per-species stats")
+        dialog.configure(background=COLOR_SURFACE)
+        dialog.geometry("560x520")
+        self._stats_browser = dialog
+
+        def _on_close() -> None:
+            self._stats_browser = None
+            dialog.destroy()
+
+        dialog.protocol("WM_DELETE_WINDOW", _on_close)
+
+        top = tkinter.Frame(dialog, background=COLOR_SURFACE)
+        top.pack(fill="x", padx=8, pady=8)
+        tkinter.Label(
+            top, text="Filter:", background=COLOR_SURFACE, foreground=COLOR_INK_2, font=("Segoe UI", 10)
+        ).pack(side="left")
+        filter_var = tkinter.StringVar()
+        tkinter.Entry(
+            top, textvariable=filter_var, background=COLOR_CARD, foreground=COLOR_INK,
+            insertbackground=COLOR_INK, relief="flat", font=("Segoe UI", 11),
+        ).pack(side="left", fill="x", expand=True, padx=(6, 0), ipady=3)
+
+        # Dark ttk styling for the Treeview.
+        style = ttk.Style(dialog)
+        try:
+            style.theme_use("clam")
+        except tkinter.TclError:
+            pass
+        style.configure(
+            "Dex.Treeview", background=COLOR_CARD, fieldbackground=COLOR_CARD, foreground=COLOR_INK,
+            rowheight=26, borderwidth=0, font=("Segoe UI", 9),
+        )
+        style.configure(
+            "Dex.Treeview.Heading", background=COLOR_SURFACE, foreground=COLOR_INK_2,
+            font=("Segoe UI", 9, "bold"), relief="flat",
+        )
+        style.map("Dex.Treeview", background=[("selected", COLOR_ACCENT)])
+
+        columns = ("total", "shinies", "catches", "best_iv", "best_sv")
+        headings = {
+            "total": "Enc", "shinies": "✨", "catches": "Caught", "best_iv": "Best IV", "best_sv": "Best SV",
+        }
+        tree = ttk.Treeview(dialog, columns=columns, show="tree headings", style="Dex.Treeview")
+        tree.heading("#0", text="Species", command=lambda: _sort("species"))
+        tree.column("#0", width=200, anchor="w")
+        for col in columns:
+            tree.heading(col, text=headings[col], command=lambda c=col: _sort(c))
+            tree.column(col, width=64, anchor="center")
+        scroll = ttk.Scrollbar(dialog, orient="vertical", command=tree.yview)
+        tree.configure(yscrollcommand=scroll.set)
+        scroll.pack(side="right", fill="y")
+        tree.pack(fill="both", expand=True, padx=8, pady=(0, 8))
+
+        state = {"key": "total", "reverse": True}
+        sprite_refs: list = []  # keep PhotoImages alive for the tree
+
+        def _populate() -> None:
+            tree.delete(*tree.get_children())
+            sprite_refs.clear()
+            rows = filter_rows(rows_all, filter_var.get())
+            rows = sort_rows(rows, state["key"], state["reverse"])
+            for r in rows:
+                img = self._get_species_sprite(r["species"], shiny=False, size=22)
+                if img is not None:
+                    sprite_refs.append(img)
+                tree.insert(
+                    "", "end", text=f" {r['species']}", image=img if img is not None else "",
+                    values=(f"{r['total']:,}", r["shinies"], r["catches"], r["best_iv"], r["best_sv"]),
+                )
+            if not rows:
+                tree.insert("", "end", text="  (no matching species yet)", values=("", "", "", "", ""))
+            dialog._sprite_refs = sprite_refs  # anchor on the window too
+
+        def _sort(key: str) -> None:
+            if state["key"] == key:
+                state["reverse"] = not state["reverse"]
+            else:
+                state["key"] = key
+                state["reverse"] = key != "species"  # names A→Z, numbers high→low
+            _populate()
+
+        filter_var.trace_add("write", lambda *_a: _populate())
+        _populate()
+        self._prepare_dialog(dialog)
+
     def _refresh_party(self) -> None:
         try:
             from modules.pokemon_party import get_party
@@ -1358,6 +2793,8 @@ class DashboardScreen:
             party = list(get_party())
         except Exception:
             party = []
+
+        self._current_party = party  # shared by the party tab rows + left strip hover
 
         # Rebuild rows only when the party size changes; otherwise update in place.
         if len(party) != len(self._party_rows):
@@ -1401,6 +2838,8 @@ class DashboardScreen:
                     xp_row, text="", background=COLOR_SURFACE, foreground=COLOR_MUTED, font=("Segoe UI", 8), anchor="e"
                 )
                 xp_text.pack(side="right", padx=(6, 0))
+                # Hover any part of the row (#30d) — bind after all children exist.
+                self._bind_party_row_hover(row_frame, len(self._party_rows))
                 self._party_rows.append(
                     {
                         "frame": row_frame,
@@ -1417,6 +2856,8 @@ class DashboardScreen:
 
         for pokemon, row in zip(party, self._party_rows):
             self._update_party_row(pokemon, row)
+
+        self._refresh_party_strip()
 
     def _update_party_row(self, pokemon: "Pokemon", row: dict) -> None:
         self._set_row_sprite(pokemon, row)

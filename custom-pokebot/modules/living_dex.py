@@ -1,0 +1,249 @@
+"""
+Living-Dex orchestrator support (#23).
+
+Derives an ordered list of target species to catch — by default every species
+that HAS a wild encounter in this game and that the player does NOT yet own —
+and persists the run's progress per profile so the "Living Dex (Custom)" bot
+mode can work through it and resume across launches.
+
+Species with no wild location (legendaries/statics/gift/trade/evolve-only) are
+excluded from the auto list and reported under `skipped`, since this mode
+catches only WILD encounters.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+
+from modules.context import context
+from modules import encounter_index
+
+_log = logging.getLogger("living_dex")
+RUN_FILE = "living_dex.json"
+
+
+def owned_indices() -> set:
+    """Species indices the player currently owns (from the in-game Pokédex)."""
+    try:
+        from modules.pokedex import get_pokedex
+
+        return {species.index for species in get_pokedex().owned_species}
+    except Exception as error:  # no save loaded yet, etc.
+        _log.debug("owned_indices unavailable: %s", error)
+        return set()
+
+
+def is_owned(species_index: int) -> bool:
+    return species_index in owned_indices()
+
+
+def is_wanted(species_index: int, run: dict) -> bool:
+    """True if this species is part of the given run's plan, so the Living Dex
+    should catch it opportunistically when it is not already owned. (Whether it
+    is owned is checked separately via `is_owned` — the goal is dex completion,
+    so any un-owned species in the plan is worth catching on sight, regardless
+    of which target is currently driving travel.)"""
+    try:
+        return species_index in run.get("targets", [])
+    except Exception:
+        return False
+
+
+def _all_wild_species_indices() -> list:
+    """Every species with >=1 wild location, in National-Dex order."""
+    index = encounter_index.get_encounter_index()
+    from modules.pokemon import get_species_by_index
+
+    entries = []
+    for species_index in index.keys():
+        try:
+            species = get_species_by_index(int(species_index))
+            entries.append((species.national_dex_number, int(species_index)))
+        except Exception:
+            continue
+    entries.sort()
+    return [sid for _, sid in entries]
+
+
+def derive_targets(source: str = "uncaught_wild", explicit_names: list | None = None) -> dict:
+    """Build a fresh run.
+
+    - source "uncaught_wild" (default): all wild-catchable species not owned.
+    - explicit_names: a user-picked list (names); non-wild/unknown ones are
+      dropped into `skipped` with a reason.
+    Returns {source, targets:[species_index], skipped:[{name,reason}], done:[]}.
+    """
+    skipped: list = []
+    if explicit_names:
+        from modules.pokemon import get_species_by_name
+
+        targets: list = []
+        for name in explicit_names:
+            try:
+                species = get_species_by_name(name)
+            except Exception:
+                skipped.append({"name": name, "reason": "unknown species"})
+                continue
+            if not encounter_index.locations_for_species(species.index):
+                skipped.append({"name": name, "reason": "no wild location"})
+                continue
+            if species.index not in targets:
+                targets.append(species.index)
+        source = "custom_list"
+    else:
+        owned = owned_indices()
+        targets = [sid for sid in _all_wild_species_indices() if sid not in owned]
+    return {"source": source, "targets": targets, "skipped": skipped, "done": []}
+
+
+def _run_path():
+    if context.profile is None:
+        return None
+    return context.profile.path / RUN_FILE
+
+
+def save_run(run: dict) -> None:
+    path = _run_path()
+    if path is None:
+        return
+    try:
+        path.write_text(json.dumps(run), encoding="utf-8")
+    except Exception as error:
+        _log.warning("could not persist living-dex run: %s", error)
+
+
+def load_run() -> dict | None:
+    path = _run_path()
+    if path is None or not path.is_file():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(data, dict) and isinstance(data.get("targets"), list):
+            data.setdefault("done", [])
+            data.setdefault("skipped", [])
+            data.setdefault("source", "uncaught_wild")
+            return data
+    except Exception as error:
+        _log.warning("could not read living-dex run (%s) — ignoring", error)
+    return None
+
+
+def clear_run() -> None:
+    path = _run_path()
+    if path is not None:
+        try:
+            path.unlink(missing_ok=True)
+        except Exception:
+            pass
+
+
+def progress(run: dict) -> tuple:
+    """(#done, #total) for display. 'done' includes anything already owned."""
+    total = len(run.get("targets", []))
+    owned = owned_indices()
+    done = sum(1 for sid in run.get("targets", []) if sid in owned or sid in run.get("done", []))
+    return done, total
+
+
+def next_target_index(run: dict) -> int | None:
+    """The first target that is neither owned nor already marked done."""
+    owned = owned_indices()
+    done = set(run.get("done", []))
+    for sid in run.get("targets", []):
+        if sid not in owned and sid not in done:
+            return sid
+    return None
+
+
+def best_reachable_location(species_index: int):
+    """The best (highest-rate) wild location for a species whose ENCOUNTER
+    METHOD the player can currently use (#42 capability gate), preferring a
+    reachable method over an unreachable one.
+
+    Returns (location_dict, "") when a reachable location exists, else
+    (None, reason) where `reason` explains the capability the player lacks
+    (from the best location). (None, "no wild location") when there are none.
+    """
+    from modules import capabilities
+
+    locations = encounter_index.locations_for_species(species_index)
+    if not locations:
+        return None, "no wild location"
+    first_reason = ""
+    for location in locations:  # best-rate first
+        allowed, reason = capabilities.can_use_method(location.get("method", "Grass"))
+        if allowed:
+            return location, ""
+        if not first_reason:
+            first_reason = reason
+    return None, first_reason or "not currently reachable"
+
+
+_breakdown_cache: dict = {"owned_count": -1, "value": None}
+
+
+def obtainability_breakdown() -> dict:
+    """How EVERY not-yet-owned species is obtained (#41 view), independent of the
+    (wild-only) run targets. Returns:
+      {
+        "wild":       [(sid, name)],           # backward-compatible keys
+        "evolution":  [(sid, name, reason)],
+        "special":    [(sid, name, reason)],   # every non-wild/non-evolution kind
+        "categories": {kind: [(sid, name, reason)]},   # the honest #41 split
+        "denominators": {                      # the "SHOW BOTH denominators" data
+            "national_dex": 386,
+            "obtainable_in_emerald": M,        # obtainable WITHOUT trading
+            "owned": int, "owned_obtainable": int,
+        },
+      }
+    'special' aggregates gift/static/roamer/ingame_trade/breeding/event/
+    unobtainable so old callers keep working; 'categories' gives the real split.
+    Lightly cached by owned-count so a GUI refresh is cheap."""
+    from modules import obtainability
+    from modules.pokemon import get_species_by_national_dex
+
+    owned = owned_indices()
+    if _breakdown_cache["owned_count"] == len(owned) and _breakdown_cache["value"] is not None:
+        return _breakdown_cache["value"]
+
+    wild: list = []
+    evolution: list = []
+    special: list = []
+    categories: dict = {}
+    obtainable_total = 0
+    owned_obtainable = 0
+    for national_dex in range(1, 387):
+        try:
+            species = get_species_by_national_dex(national_dex)
+        except Exception:
+            continue
+        info = obtainability.classify(species.index)
+        if info.get("emerald_reachable"):
+            obtainable_total += 1
+            if species.index in owned:
+                owned_obtainable += 1
+        if species.index in owned:
+            continue
+        row = (species.index, species.name, info.get("reason", ""))
+        categories.setdefault(info["kind"], []).append(row)
+        if info["kind"] == "wild":
+            wild.append((species.index, species.name))
+        elif info["kind"] == "evolution":
+            evolution.append(row)
+        else:
+            special.append(row)
+    value = {
+        "wild": wild,
+        "evolution": evolution,
+        "special": special,
+        "categories": categories,
+        "denominators": {
+            "national_dex": 386,
+            "obtainable_in_emerald": obtainable_total,
+            "owned": len(owned),
+            "owned_obtainable": owned_obtainable,
+        },
+    }
+    _breakdown_cache.update(owned_count=len(owned), value=value)
+    return value

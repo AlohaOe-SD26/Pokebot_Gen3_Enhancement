@@ -30,6 +30,7 @@ plugins/*
 !plugins/macro_plugin.py
 !plugins/backup_plugin.py
 !plugins/game_cheats_plugin.py
+!plugins/watchdog_plugin.py
 !plugins/custom_modes/
 
 # Local backup archives are user data — never committed.

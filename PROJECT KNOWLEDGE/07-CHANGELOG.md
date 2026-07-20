@@ -524,3 +524,18 @@
 - #46 hover tooltip caught-ball icon upscaled ~3× (24→54px via resize).
 - #47 Living Dex catches any SHINY encounter even of an already-owned
   species (storage-gated); stub-verified.
+
+## 2026-07-19 — PROMOTION BATCH-2 to custom (approved)
+- Promoted the post-f0b275f3 sandbox round into custom-pokebot: #22 Watchdog,
+  #9 Hunt Planner (encounter_index/hunt_mode/Hunt tab), #23 Living-Dex
+  Orchestrator + #43 opportunistic + #47 shiny-of-owned, #41 obtainability
+  model + census (218/386 obtainable, both denominators) + #42-easy
+  capability gating, #11 Analytics, #40 catch-ball allowlist, #39 move-
+  decline, the GUI evolution (#30-#38/#44/#46: tabs, handheld menu→Play,
+  clean party strip + ball-in-hover 3×, gamepad-nav-gated, money+lock), and
+  the generated dex datasets + tools (#34/#35 data foundation).
+- 24 files promoted (17 new, 7 modified). Extensive intent-level docs:
+  DIVERGENCE-LOG batch-2 entries + new DOCUMENTATION/05-hunting-and-livingdex
+  + refreshed 02-custom-interface. Verified: py_compile, real-import +
+  4 custom modes discovered, install --check-only, git tracking of all new
+  files, live launch on the real "Nick - Emerald" save.

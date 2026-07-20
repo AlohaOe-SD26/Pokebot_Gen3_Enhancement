@@ -23,6 +23,16 @@ class DefaultBattleStrategy(BattleStrategy):
         return any(self._move_is_usable(move) for move in pokemon.moves)
 
     def which_move_should_be_replaced(self, pokemon: Pokemon, new_move: Move) -> int:
+        # SINGLE decision point for move-learning, used by every leveling bot
+        # (all inherit DefaultBattleStrategy). Returns 0-3 = replace that slot,
+        # or 4 = decline (keep current moves). Config `battle.new_move`:
+        #   "cancel" (fork default) -> always decline, hunt is never interrupted
+        #   "stop"                  -> drop to Manual on a new move
+        #   "learn_best"            -> power-based auto-replace (below)
+        # FUTURE-INTELLIGENCE SEAM: smarter "is this move worth keeping / what
+        # to replace" logic belongs in the `learn_best` branch below (or a new
+        # `new_move` value); the config gate + this method are the only place
+        # the whole bot decides move learning.
         if context.config.battle.new_move == "stop":
             context.message = f"{pokemon.name} is attempting to learn {new_move.name}. Switching to manual mode."
             context.set_manual_mode()
