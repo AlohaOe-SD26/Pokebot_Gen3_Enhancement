@@ -71,6 +71,28 @@
       "-restored" + global configs into custom/sandbox profiles/
       (gitignored). LIVE TEST on real party running.
 
+## Living-Dex deepening (user-requested 2026-07-19; DESIGN-FIRST, no cutting corners)
+- [ ] #41 — Obtainability model: classify every species — wild / evolution
+      (method+from) / in-game trade / gift / static / roamer / event — so the
+      Living Dex knows trade-evolutions and evolve-only / trade-only mons
+      (must obtain pre-evo + evolve, or manual trade), not just "no wild →
+      skip". (design: 11-LIVINGDEX-DESIGN.md)
+- [ ] #42 — Reachability/requirement gating: hunt + living-dex must skip a
+      target when the area/encounter needs a capability the player lacks
+      (Surf/Cut/Rock Smash/Dive/Waterfall HMs, the right fishing rod, badges
+      for HM use, story-flag area access). Read owned HMs/rods/badges/flags
+      from the save.
+- [ ] #43 — Living Dex OPPORTUNISTIC catching: currently targets ONE species
+      and ignores other uncaught mons until it hits that one. Fix: keep a
+      target to drive travel, but CATCH ANY uncaught species encountered
+      en route (goal = complete the dex), advancing progress on each.
+- [ ] #44 — Party ball rework: the ball-behind-mon in the left strip is
+      problematic — REMOVE it from the strip (clean mon sprites) and show the
+      caught ball sensibly in the HOVER tooltip instead.
+- [ ] #45 — (FUTURE, with story-mode bot #24) enumerate story instances the
+      bot can automate, and let hunt/living-dex progress the story to unlock
+      areas/capabilities needed for dex completion.
+
 ## Now-ish (user-added 2026-07-19, ahead of first wave)
 - [ ] #33 — GUI fixes (in sandbox): Left Party Section ALWAYS visible in
       both modes regardless of drawer state; unified open/close — Pokéball
