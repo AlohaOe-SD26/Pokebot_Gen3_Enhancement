@@ -1152,3 +1152,58 @@ The whole "moved-in → met the rival → back outside" sequence now runs. Facts
 - **CHUNK B COMPLETE.** NEXT CHUNK: Route 101 → Birch's bag → **choose a
   starter** → **first battle** (vs the wild Poochyena). Then the config pass
   (starter choice + nickname; name already in story.yml).
+
+---
+
+## §15 — Chapter 1: Route 101 → starter → first battle → Birch's lab (2026-07-20)
+
+Verified order of operations (confirmed IN-GAME before coding) and built. A
+fresh game now auto-plays all the way from the title screen to standing in
+Professor Birch's lab with a starter, first battle won. `early_game.py`.
+
+**Order of operations (verified):**
+1. From outside the rival's house, walk **north**. At Littleroot (11,1) the
+   `GoSaveBirch` coord-trigger fires (brief "you hear a scream" dialogue); the
+   game then crosses to **Route 101 (0,16)**.
+2. `Route101_EventScript_StartBirchRescue` fires and **AUTO-WALKS** the player
+   up the route (to ~(11,15)) while Birch yells, then returns control.
+3. Walk to **Birch's bag at (7,14)** (stand (8,14) facing West) and open it →
+   `Task_HandleStarterChooseInput`.
+4. Choose starter: Left=Treecko, none=Torchic, Right=Mudkip; mash A to confirm
+   "Do you choose this?" → the **first battle** (starter vs the wild Pokémon).
+5. Win the battle (bot's normal BattleListener; `StoryMode.on_battle_started`
+   returns Fight). Birch thanks you and **warps you to his lab (1,4)**.
+
+**Functions (each has a full INTENT / STORY CONDITION / GOAL / HOW-IT-WORKS
+docstring in early_game.py):**
+- `_go_north_to_birch_rescue()` — INTENT: reach Route 101 in the bag-ready
+  state. GOTCHA: there is a false "free control" window at (11,19) right after
+  crossing the border, BEFORE StartBirchRescue fires — do NOT stop there (you
+  get boxed in). We wait until the `StartBirchRescue` script is actually on the
+  stack, then ride the auto-walk out. Ends controllable at ~(11,15).
+- `_choose_starter(species)` — INTENT: pick the configured starter. The bag
+  cursor starts on the middle ball (Torchic); Left/Right pick the sides;
+  mashing A confirms into the battle.
+- `help_birch_and_choose_starter(starter)` — orchestrates 1–5. The battle is
+  fought by the framework while this generator is paused; on resume it advances
+  Birch's thanks with **B** (B also answers "No" to any incidental Yes/No such
+  as a nickname prompt, matching the default of keeping the species name) until
+  arriving in the lab. GOAL/END STATE: starter in party, wild Pokémon beaten,
+  standing controllable in Birch's lab (1,4). Config: `starter` = random |
+  treecko | torchic | mudkip (from `<profile>/story.yml`).
+
+**Config added** (`modules/story/config.py`, `story.yml`): `starter` (default
+random) and `starter_nickname` (default none | random | literal). Starter
+selection is live; **nickname application is TODO** — verify whether/where the
+game offers a starter-nickname prompt (this early sequence did not appear to),
+otherwise it needs the Name Rater later. `on_battle_started` → Fight added to
+StoryMode so story battles are always fought.
+
+**Verified:** full fresh run with real battle listeners → 15,425 frames →
+NICK/male, random Torchic Lv5, in Birch's lab (1,4). Random selection also
+produced Mudkip and Treecko across runs. Checkpoint `birch_lab.ss1` saved.
+
+**NEXT (remaining in the user's chunk):** finish Birch's lab conversation →
+head north to **Oldale Town (0,10)** → **train the starter to a random Lv 8-10**
+→ Route 103 → **rival battle**. Order still to verify in-game for the lab
+dialogue (watch for a possible nickname/Pokédex prompt) and the rival trigger.

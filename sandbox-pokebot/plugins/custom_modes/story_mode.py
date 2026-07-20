@@ -20,7 +20,7 @@ from typing import Generator
 from modules.console import console
 from modules.context import context
 from modules.memory import GameState, game_has_started, get_game_state
-from modules.modes import BotMode
+from modules.modes import BattleAction, BotMode
 
 
 class StoryMode(BotMode):
@@ -39,6 +39,12 @@ class StoryMode(BotMode):
         # Unlike stock modes, Story Mode is MEANT to start at the title/main
         # menu — that's where it runs the New Game intro.
         return True
+
+    def on_battle_started(self, encounter):
+        # Story battles (the first Birch battle, training, the rival) are meant
+        # to be FOUGHT and won with the default battle strategy — never run from
+        # or auto-caught. The BattleListener handles the fight while run() pauses.
+        return BattleAction.Fight
 
     def run(self) -> Generator:
         from modules.story import detect_live
@@ -73,6 +79,7 @@ class StoryMode(BotMode):
         from modules.story.early_game import (
             descend_and_leave_players_house,
             go_upstairs_and_set_clock,
+            help_birch_and_choose_starter,
             visit_rivals_house,
             walk_off_truck_and_into_house,
         )
@@ -81,11 +88,12 @@ class StoryMode(BotMode):
         yield from go_upstairs_and_set_clock()
         yield from descend_and_leave_players_house()
         yield from visit_rivals_house()
+        yield from help_birch_and_choose_starter(cfg.starter)
 
         context.message = (
-            "Story: moved in, set the clock, met the rival - now back outside "
-            "the rival's house. Next (Route 101 -> help Birch -> choose a "
-            "starter -> first battle) is still being built; handing to manual."
+            "Story: got the starter and won the first battle! Next (finish "
+            "Birch's lab -> Oldale -> train -> rival) is still being built; "
+            "handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()

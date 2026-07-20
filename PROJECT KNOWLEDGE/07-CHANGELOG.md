@@ -714,3 +714,15 @@ wrapper sets it to `["--no-audio"]` so the sandbox test build starts quiet
 User tested ("worked perfectly!"). early_game.py (descend + visit_rivals_house)
 + wired story_mode.py copied sandbox → custom; verified (fresh run → Littleroot
 14,9). Divergence log + changelog updated.
+
+## 2026-07-20 — Story Chapter 1: Route 101 → random starter → first battle → lab (#24, sandbox)
+`early_game.help_birch_and_choose_starter()` (+ `_go_north_to_birch_rescue`,
+`_choose_starter`): walk north → Birch rescue on Route 101 → open the bag →
+choose a starter (config: random/treecko/torchic/mudkip) → win the first battle
+(BattleListener; StoryMode.on_battle_started→Fight) → arrive in Birch's lab.
+Order of operations verified in-game first. Config added: `starter` +
+`starter_nickname` in story.yml (nickname application TODO). Full fresh run with
+real listeners verified: 15,425 frames → NICK/male, random starter Lv5, in
+Birch's lab (1,4); random produced all 3 starters across runs. Detailed
+step docs in design §15. Sandbox only. Next: finish lab → Oldale → train Lv8-10
+→ rival battle.
