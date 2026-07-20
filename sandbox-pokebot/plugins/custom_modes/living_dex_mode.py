@@ -6,11 +6,14 @@ wild spot, hunts there, and CATCHES the first one of that species — then
 advances to the next target. Configure the run from the dashboard's Hunt tab
 (Living Dex panel): "all uncaught wild" or a custom picked list.
 
-Catch intent: a wild battle against the CURRENT target species (that you don't
-already own) is caught automatically; everything else goes through the bot's
-normal pipeline, so shinies of any species are still caught and your custom
-catch filters still apply. The run stops cleanly when the list is exhausted or
-if box/party space runs out (so a catch is never lost).
+Catch intent (OPPORTUNISTIC, #43): the goal is to COMPLETE the dex, so a wild
+battle against ANY un-owned species that is part of the run's plan is caught
+automatically — not only the species currently being travelled to. The target
+only steers where the bot walks; every uncaught wanted species it runs into
+along the way is grabbed. Everything else goes through the bot's normal
+pipeline, so shinies of any species are still caught and your custom catch
+filters still apply. The run stops cleanly when the list is exhausted or if
+box/party space runs out (so a catch is never lost).
 """
 
 from typing import Generator
@@ -40,18 +43,29 @@ class LivingDexMode(BotMode):
     def __init__(self):
         super().__init__()
         self._current_target_index: int | None = None
+        self._run: dict | None = None
 
     def on_battle_started(self, encounter):
-        # Catch the current target species (if not already owned); otherwise
-        # let the default pipeline decide (it still catches shinies / CCF).
+        # OPPORTUNISTIC catch (#43): catch ANY un-owned species that is part of
+        # this run's plan — not just the driving target. The driving target only
+        # steers travel; bonus catches happen right here and are reflected
+        # automatically (is_owned reads the live Pokédex, so progress advances
+        # and the species is never re-targeted). Trainer battles (encounter is
+        # None) are never auto-caught. Anything not wanted falls through to the
+        # default pipeline, so shinies / custom catch filters still apply.
         try:
-            if encounter is None or self._current_target_index is None:
+            if encounter is None:
                 return None
-            opponent = encounter.pokemon
-            if opponent.species.index == self._current_target_index and not living_dex.is_owned(
-                self._current_target_index
-            ):
-                return BattleAction.Catch
+            run = self._run if self._run is not None else living_dex.load_run()
+            if run is None:
+                return None
+            opponent_index = encounter.pokemon.species.index
+            if living_dex.is_wanted(opponent_index, run) and not living_dex.is_owned(opponent_index):
+                # Only commit to a catch we can actually store, so one is never
+                # lost; if full, the run loop's per-target space check pauses.
+                if self._can_fit_pokemon():
+                    return BattleAction.Catch
+                return None
         except Exception:
             pass
         return None
@@ -63,6 +77,7 @@ class LivingDexMode(BotMode):
                 "No Living Dex run configured — open the dashboard's Hunt tab and start one "
                 "(all-uncaught or a custom list)."
             )
+        self._run = run  # cached so on_battle_started checks the plan without a disk read
         assert_player_has_poke_balls()
 
         from modules.pokemon import get_species_by_index
@@ -165,4 +180,9 @@ class LivingDexMode(BotMode):
             pass
 
     def on_battle_ended(self, outcome: "BattleOutcome") -> None:
+        # No bookkeeping needed for opportunistic catches: is_owned reads the
+        # live Pokédex, so a bonus catch is immediately reflected in progress()
+        # and excluded by next_target_index() — and a FAILED catch (fled/fainted)
+        # simply leaves the species un-owned, so it stays wanted for a later
+        # encounter. Outcome-gating is therefore implicit and correct.
         pass

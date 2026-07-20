@@ -38,6 +38,18 @@ def is_owned(species_index: int) -> bool:
     return species_index in owned_indices()
 
 
+def is_wanted(species_index: int, run: dict) -> bool:
+    """True if this species is part of the given run's plan, so the Living Dex
+    should catch it opportunistically when it is not already owned. (Whether it
+    is owned is checked separately via `is_owned` — the goal is dex completion,
+    so any un-owned species in the plan is worth catching on sight, regardless
+    of which target is currently driving travel.)"""
+    try:
+        return species_index in run.get("targets", [])
+    except Exception:
+        return False
+
+
 def _all_wild_species_indices() -> list:
     """Every species with >=1 wild location, in National-Dex order."""
     index = encounter_index.get_encounter_index()

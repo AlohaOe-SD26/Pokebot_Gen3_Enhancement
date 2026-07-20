@@ -466,3 +466,10 @@
   in the Hunt tab; global + per-profile catch_balls.yml.
 - #36 refine: party balls 104→140px, ball a bold backdrop behind the mon.
 - Verified on the real Nick - Emerald save (screenshots; save md5 unchanged).
+
+## 2026-07-19 — Living Dex opportunistic catching (#43, sandbox)
+- Living Dex catches any un-owned planned species on sight (target only drives
+  travel), per 11-LIVINGDEX-DESIGN. living_dex.is_wanted() +
+  living_dex_mode.on_battle_started broadened, box-space-gated, outcome-gating
+  implicit via live is_owned. 22/22 unit tests. Files: modules/living_dex.py,
+  plugins/custom_modes/living_dex_mode.py.

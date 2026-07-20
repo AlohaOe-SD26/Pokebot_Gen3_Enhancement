@@ -754,3 +754,20 @@ process.
 - Verified: compile/import, allowlist unit logic (default excludes Master),
   mode discovery green, live real-save screenshots (balls_1_play,
   balls_2_catchballs), save md5 unchanged.
+
+## 2026-07-19 — Living Dex OPPORTUNISTIC catching (#43)
+- The Living Dex now catches ANY un-owned species that is part of the run's
+  plan when it's encountered — not just the single species it's travelling to.
+  The driving target only steers movement; bonus catches happen in
+  on_battle_started. modules/living_dex.py gained `is_wanted(index, run)`
+  (species in run["targets"]); plugins/custom_modes/living_dex_mode.py:
+  on_battle_started returns Catch for any wanted+un-owned opponent (gated on
+  box space so a catch is never lost), and caches the run for cheap checks.
+- No on_battle_ended bookkeeping needed: is_owned reads the live Pokédex, so
+  a bonus catch auto-advances progress()/next_target_index() and a FAILED
+  catch simply stays wanted (outcome-gating is implicit). Trainer battles and
+  species not in the plan (custom lists) are untouched → default pipeline
+  (shinies/CCF still apply).
+- Verified: 22/22 unit battery (incl. non-target-but-wanted→Catch,
+  owned→None, not-in-plan→None, boxes-full→None, is_wanted edge cases);
+  compile + discovery green. Live catch-and-advance needs a real battle.
