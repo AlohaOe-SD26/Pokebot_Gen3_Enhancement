@@ -1732,7 +1732,11 @@ class DashboardScreen:
             if self._tools_hidden:
                 self.frame.grid_remove()
                 self._pokeball_button.place(relx=1.0, x=-12, y=12, anchor="ne")
-                self._pokeball_button.lift()
+                # NB: `_pokeball_button` is a Canvas, and Canvas aliases BOTH
+                # `.lift()` AND `.tkraise()` to `tag_raise` (raise a canvas ITEM,
+                # needs a tag) — either errors with no args. Call the base
+                # `Misc.tkraise` directly to raise the whole widget's stacking.
+                tkinter.Misc.tkraise(self._pokeball_button)
             else:
                 self._pokeball_button.place_forget()
                 self.frame.grid(row=0, column=2, sticky="NSE")  # column 0=party, 1=video

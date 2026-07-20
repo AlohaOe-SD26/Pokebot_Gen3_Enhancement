@@ -116,3 +116,18 @@
 - **Retire when:** covered by `tests/test_story_progress.py`
   (`test_current_chapter_never_leaves_its_badge_bracket`,
   `test_hacked_save_stone_plus_stray_magma_emblem`).
+
+## 2026-07-20 — Tkinter Canvas .lift()/.tkraise() both mean tag_raise  (ML-6)
+- **Symptom:** Clicking "Hide" in the dashboard threw `_tkinter.TclError:
+  wrong # args: should be ".!canvas2 raise tagOrId ?aboveThis?"` from
+  `self._pokeball_button.lift()` (dashboard_gui.py ~line 1735). Non-fatal
+  (Tk swallows it) but noisy in the console.
+- **Context:** `_pokeball_button` is a **Canvas** (image button). GUI restack.
+- **Root cause:** Tkinter's `Canvas` aliases **BOTH** `lift` AND `tkraise`
+  to `tag_raise` (raise a canvas ITEM, which needs a tagOrId) — so calling
+  either with no args on a Canvas errors. (On normal widgets `.lift()` is the
+  widget-stacking raise.)
+- **Fix:** Call the base method directly: `tkinter.Misc.tkraise(canvas_widget)`
+  — raises the whole widget's stacking, no tag needed. Fixed in sandbox+custom.
+- **Prevention:** To restack a **Canvas** widget, never `.lift()`/`.tkraise()`
+  — use `tkinter.Misc.tkraise(widget)` (or `.lower` → `Misc.lower`).

@@ -808,3 +808,9 @@ cache gives wrong results). Design §17.1. Sandbox.
 User tested ("it worked"). do_petalburg_gym_and_wally_tutorial copied sandbox →
 custom; verified via listener harness (petalburg.ss1 -> done, visited Route 102,
 back in gym). Custom StoryMode now plays fresh game → ... → Dad + Wally tutorial.
+
+## 2026-07-20 — Fix: dashboard "Hide" threw a Tkinter TclError (#gui, sandbox+custom)
+`_pokeball_button.lift()` errored because it's a Canvas (Canvas aliases both
+lift AND tkraise to tag_raise, which needs a tag). Replaced with
+`tkinter.Misc.tkraise(self._pokeball_button)`. Non-fatal but noisy; fixed in
+both builds. See ML entry.
