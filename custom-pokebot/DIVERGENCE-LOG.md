@@ -336,3 +336,12 @@ story battles (wild battles keep the flee-at-low-HP behaviour). Verified in
 sandbox via the listener harness (fresh gym save -> Petalburg Woods, 6251 frames,
 x2, deterministic); promoted as byte-identical source (custom compile + wiring
 smoke OK). Map facts / recon in PROJECT KNOWLEDGE/12-STORYMODE-DESIGN §16 + §R.
+
+### (j-update 2026-07-20h) FIX: Petalburg Woods south-door stall (ML-9)
+The promoted `travel_to_petalburg_woods` (j-update g) hand-stepped onto the Woods
+south-door warp tile — flaky in the real bot (warp didn't fire -> BotModeError ->
+main.py Manual mode = "stuck in the Woods", user-reported). Fixed with the new
+`_pass_through_door(tile, from_map)` helper, which warps by navigating ONTO the
+door tile (like heal_in_pokemon_center) instead of hand-stepping. Byte-identical
+to the sandbox fix, which was re-verified with a main.py-faithful harness
+(wally_done -> Woods -> ... -> Gym 1 -> BADGE01_GET True, no error). Custom compiles.
