@@ -104,11 +104,22 @@ gaps = map_locations/mart/pickup/historical.
 - **DETECTOR BUG (low priority):** `chapters.py` Ch2 flag
   `THANKED_FOR_PLAYING_WITH_WALLY` is NOT set by the Wally tutorial — find the
   real flag (badge-anchored detection makes this low-impact).
-- **NEXT SESSION:** Route 104 → Petalburg Woods (Aqua grunt / researcher) →
-  Rustboro City → HM01 Cut → **Gym 1 (Roxanne, Rock)**. Nav notes:
-  `navigate_to_anywhere` loops on Route 101 (use `_navigate_leg` past it);
-  cross-region travel needs the battle listener (grass encounters). Checkpoints:
-  petalburg.ss1, wally_done.ss1.
+- **Chapter 2 PROMOTED to custom** (user-tested "it worked").
+- **NEXT SESSION — Route 104 → Woods → Rustboro → HM01 Cut → Gym 1 (Roxanne):**
+  Map ids: ROUTE104=(0,19), PETALBURG_WOODS=(24,11), RUSTBORO_CITY=(0,3),
+  RUSTBORO_CITY_GYM=(11,3). KEY GEOGRAPHY FINDING: **Route 104 is WEST of
+  Petalburg** (Petalburg connections: West→Route104, East→Route102) — walking
+  north from the gym-exit just re-enters the gym door (15,8). The travel needs:
+  exit gym → go WEST to Route 104 → north through Petalburg Woods (has a
+  MANDATORY scripted Aqua-grunt/researcher scene, design §3) → Route 104 north
+  → Rustboro. TRAVEL IS FINICKY: `navigate_to`/`navigate_to_anywhere` fail on
+  wrong target coords (guessing coords errors → "too many interruptions") and
+  navigate_to_anywhere may not route that far; recommend walking cardinal
+  directions to find valid connection coords first, or a robust
+  "walk-through-connection" helper. GYM 1 NOTE: Roxanne has Geodude Lv12/12 +
+  Nosepass Lv15; the starter is only Lv8-10 → will need TRAINING before the gym,
+  and Torchic (fire) is weak vs Rock (type matters). Checkpoints: petalburg.ss1,
+  wally_done.ss1 (post-tutorial, in the gym at (8,1)/(4,108)).
 - Iteration save-states in scratchpad: truck/house1f/house2f/clockset/
   outside_town/rival_*/birch_rescue/birch_free/first_battle/birch_lab/lab_done.
 
