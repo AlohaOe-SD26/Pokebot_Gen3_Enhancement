@@ -673,3 +673,9 @@ consecutive frames — a 1-frame check stopped too early). Wired into StoryMode
 after the intro. Verified from the truck-parked base and full-run from a fresh
 profile. Map facts + next steps in design doc §14. Sandbox only; next: B2
 (upstairs → set clock).
+
+## 2026-07-20 — PROMOTED story chunk B part 1 (step off → into house) to custom (#24)
+User tested it live ("worked perfectly"). Copied early_game.py + the wired
+story_mode.py sandbox → custom; verified in custom (compile + full fresh-run
+smoke test lands NICK/male inside PlayersHouse_1F (8,7)). DIVERGENCE-LOG (j) +
+docs updated. Sandbox == custom for story files again.

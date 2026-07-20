@@ -264,7 +264,8 @@ the new_move decision point.
      gym badge = the reliable spine; finer flags/items refine within the
      bracket; anything met ahead of the badge count is flagged as a hacked/
      test-save anomaly). `tests/test_story_progress.py` (12 tests).
-  2. **Chapter 0 New Game intro** (`modules/story/intro.py`): title → New Game
+  2. **Chapter 0 intro + into the house** (`modules/story/intro.py`,
+     `early_game.py`): title → New Game
      → Birch's speech → gender → name entry → lands controllable INSIDE the
      moving truck. Task/GameState-driven, fully bounded.
 - WHY: the roadmap goal of an unattended story-completion bot, built in
