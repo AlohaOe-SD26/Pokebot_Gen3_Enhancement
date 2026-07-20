@@ -564,3 +564,15 @@
   Rustboro return. Confirmed all 8 gyms/badges/HM-gates, late-game order,
   and the fly_to KI-7 bug. Sources agree post-fix. §9 audit table added.
   Verdict: high-confidence, safe to build against.
+
+## 2026-07-20 — Story-mode design Pass 4 (independent re-derivation → CONVERGED)
+- Re-derived gym/HM/key-item/chapter facts from scratch (ROM tables +
+  menuing.py gates + 2-3 external walkthroughs), then diffed vs the doc.
+  Found only 2 localized detail fixes (Petalburg Woods grunt = researcher
+  rescue, Devon theft belongs to Ch5; HM01 Cut = Rustboro Cutter's House
+  not Route 104). Pass 3's 5 corrections all re-confirmed (no regression).
+  Resolved: Magma Emblem is a KEY ITEM (gate on bag, no flag); Mt. Pyre var
+  = MT_PYRE_STATE(185). ROM vs external walkthroughs: ZERO disagreements.
+  §10 audit added. VERDICT: strategic backbone CONVERGED, high-confidence,
+  safe to build. Remaining unknowns are live-only (NPC tile ids, gym
+  waypoints, intro timing) — engineering, not plot accuracy.

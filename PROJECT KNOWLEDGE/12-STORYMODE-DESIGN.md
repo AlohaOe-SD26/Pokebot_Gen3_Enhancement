@@ -1,4 +1,13 @@
-# Story-Mode Bot — Deep Design (Pass 1 + Pass 2 + Pass 3 verified)
+# Story-Mode Bot — Deep Design (Pass 1 + Pass 2 + Pass 3 + Pass 4 verified)
+
+> **Pass 4 (2026-07-20)** re-derived every fact independently from ROM + two/three
+> external walkthroughs and diffed against the doc. It **confirmed all five Pass-3
+> corrections** (no regressions) and found **two NEW content-detail errors** (the
+> Petalburg-Woods Devon-Goods flag misattribution and the Cut "Route 104 vs
+> Rustboro" contradiction), now fixed and tagged **[P4]**. It also resolved two
+> former verify-live items (Magma Emblem = key item, not a flag; `MT_PYRE_STATE`
+> var). Full table + convergence verdict in the new **§10**. The strategic
+> backbone has **converged**; residual unknowns are live-only where-to-stand/timing.
 
 > **Pass 3 (2026-07-20)** independently triple-checked every factual claim
 > against BOTH (A) the bot's own ROM ground truth (`event_flags/emerald.txt`,
@@ -142,7 +151,7 @@ the Emerald event flag that proves completion (names from
 | 0 | Intro & Identity | Truck → Littleroot | (none) | — | — | `ADVENTURE_STARTED` (116) |
 | 1 | Starter & first steps | Route 101 / Oldale / Rt 102-103 | Birch rescue; Rival (Rt 103) | — | — | `RESCUED_BIRCH` (82), `DEFEATED_RIVAL_ROUTE103` (130), var `STARTER_MON` (35), `RECEIVED_POKEDEX_FROM_BIRCH` (2276) |
 | 2 | Petalburg & Wally | Petalburg City | Catch tutorial w/ Wally | — | — | (meet Dad/Wally scripts) |
-| 3 | Woods & Devon Goods | Rt 104 / Petalburg Woods | Aqua Grunt (Devon Goods) | — | **Cut** (HM01) obtained | `DEVON_GOODS_STOLEN`→`RECOVERED_DEVON_GOODS`, `RECEIVED_HM_CUT` (137) |
+| 3 | Woods (researcher rescue) & Cut | Rt 104 / Petalburg Woods / Rustboro | **[P4 FIX]** Aqua Grunt in Petalburg Woods is a **RESEARCHER-RESCUE, NOT a goods theft** — grunt flees, researcher gives a Great Ball (Bulbapedia Part 2) | — | **Cut** (HM01) obtained in **Rustboro City** (Cutter's House, W of the PC) **[P4]** | **[P4 FIX]** `RECEIVED_HM_CUT` (137). **`DEVON_GOODS_STOLEN` (142) / `RECOVERED_DEVON_GOODS` (143) do NOT belong here** — the theft (Rustboro) & recovery (Rusturf) happen AFTER Gym 1, in row 5 |
 | 4 | **Gym 1 — Roxanne** | Rustboro City | Roxanne (Rock) | **Stone** | **Cut usable** ✅ (`menuing.py:812`) | `DEFEATED_RUSTBORO_GYM` (1264), `BADGE01_GET` (2151) |
 | 5 | Devon errand, **Peeko rescue** & Rival | Rustboro / Rt 116 / **Rusturf Tunnel** | Aqua grunt (Rusturf); Rival (Rustboro) | — | — | **[P3 FIX]** `RETURNED_DEVON_GOODS` (144 — returned to Devon Corp Rustboro; the Rusturf grunt also drops the goods & frees Peeko, `RECOVERED_DEVON_GOODS` 143), `RECEIVED_POKENAV` (188), `DEFEATED_RIVAL_RUSTBORO` (211). **149 does NOT belong here** — that's the Slateport delivery (row 8) |
 | **5b** | **[P2 MADE EXPLICIT] Mr. Briney & Peeko** — MANDATORY gate to the boat | Rt 116 → Rusturf Tunnel → Briney's cottage (Rt 104) | rescue Peeko from Aqua grunt | — | — | `MR_BRINEY_SAILING_INTRO` (147); Peeko/Briney hide-flags 738-744, 879-881 — *verify exact gate ordering live* |
@@ -158,9 +167,9 @@ the Emerald event flag that proves completion (names from
 | **14b** | **[P3 REORDER — PREREQUISITE TO GYM 6]** Devon Scope & Fortree Kecleon | Fortree City / **Route 120** (east of Fortree) | **Steven** gives **Devon Scope** (after a Lv30 Kecleon battle on Rt 120); then reveal & battle the **invisible Kecleon blocking the Fortree Gym door** | — | **Devon Scope** (reveals Kecleon) | `RECEIVED_DEVON_SCOPE` (285), `KECLEON_FLED_FORTREE` (295) — **the Fortree Gym CANNOT be entered until this is done** (Bulbapedia/Thonky/PokéBase) |
 | 15 | **Gym 6 — Winona** | Fortree City | Winona (Flying) — **rotating-gate gym puzzle** (§2.4) — **[P3] gym entry is GATED behind row 14b (Devon Scope + Kecleon reveal)** | **Feather** | **Fly usable** ✅ **[P2] Feather/BADGE06** (`menuing.py:826`; NOT `fly_to`'s BADGE03 — that's a fork bug, §2.1) | `DEFEATED_FORTREE_GYM` (1269), `BADGE06_GET` (2156) |
 | 16 | Rt 120/121 → Lilycove (post-Winona travel) | Rt 120 / 121 / Lilycove | route trainers; Team Magma/Aqua sighting in Lilycove | — | (Devon Scope/Kecleon already done in row 14b) | reach Lilycove (Mt. Pyre & Aqua-Hideout arc begins next) |
-| **16b** | **[P2 ADDED] Mt. Pyre** (was MISSING) | Rt 122/123 (Surf) / Mt. Pyre | Team Magma/Aqua at summit; orb theft | — | Surf to reach | `MET_ARCHIE_METEOR_FALLS`? no → orb-theft scripts; `HIDE_MT_PYRE_SUMMIT_MAXIE` (856) — *verify exact completion flag live* |
+| **16b** | **[P2 ADDED] Mt. Pyre** (was MISSING) | Rt 122/123 (Surf) / Mt. Pyre | Team Magma/Aqua at summit; orb theft; **summit caretaker gives the Magma Emblem** | — | Surf to reach | `HIDE_MT_PYRE_SUMMIT_MAXIE` (856). **[P4]** Progress tracked by **var `MT_PYRE_STATE` (185)**; the summit yields the **Magma Emblem key item** (gates row 16d). Exact completion value still *verify live* |
 | **16c** | **[P2 ADDED] Slateport Harbor submarine theft** (was MISSING) | Slateport Harbor | Team Aqua grunts + Archie steal sub | — | — | `EVIL_TEAM_ESCAPED_STERN_SPOKE` (271); NPC-hide flags 845-848, 860 |
-| **16d** | **[P2 ADDED] Magma Hideout — Groudon** (was MISSING) | Jagged Pass / Route 112 → Magma Hideout | Team Magma; Maxie; **Groudon awakened** | — | **[P3] Entry gated by the MAGMA EMBLEM** obtained at Mt. Pyre summit (row 16b); Rock Smash/Strength used inside | `GROUDON_AWAKENED_MAGMA_HIDEOUT` (111); `HIDE_MAGMA_HIDEOUT_4F_GROUDON` (853); *no `RECEIVED_MAGMA_EMBLEM` flag in the repo table — verify live* |
+| **16d** | **[P2 ADDED] Magma Hideout — Groudon** (was MISSING) | Jagged Pass / Route 112 → Magma Hideout | Team Magma; Maxie; **Groudon awakened** | — | **[P3] Entry gated by the MAGMA EMBLEM** obtained at Mt. Pyre summit (row 16b); Rock Smash/Strength used inside | `GROUDON_AWAKENED_MAGMA_HIDEOUT` (111); `HIDE_MAGMA_HIDEOUT_4F_GROUDON` (853). **[P4 RESOLVED] The Magma Emblem is a KEY ITEM, not a flag** — `items.json` "Magma Emblem" (index `MAGMAEMBLEM`); the Jagged Pass entrance auto-appears when it is in the bag (Bulbapedia). Gate via `get_item_bag()`, not a flag. Mt. Pyre progress is tracked by **var `MT_PYRE_STATE` (185)** |
 | 17 | Team Aqua — Hideout & Submarine | Lilycove / Aqua Hideout | Team Aqua; room-key + Electrode puzzle | — | — | `TEAM_AQUA_ESCAPED_IN_SUBMARINE` (112), `USED_ROOM_1/2/4/6_KEY` (240-243), `DEFEATED_ELECTRODE_1/2_AQUA_HIDEOUT` (452/453) |
 | 18 | Mossdeep + Space Center | Rt 124/125 (Surf) / Mossdeep | Magma at Space Center; Steven tag (**DOUBLE**) | — | **Dive** (HM08) given in **Steven's house, Mossdeep** (`ITEM_MOSSDEEP_STEVENS_HOUSE_HM08` 1133) | `DEFEATED_MAGMA_SPACE_CENTER` (117), `RECEIVED_HM_DIVE` (123), `INTERACTED_WITH_STEVEN_SPACE_CENTER` (205) |
 | 19 | **Gym 7 — Tate & Liza** | Mossdeep City | Tate & Liza (Psychic, **DOUBLE**) | **Mind** | **Dive usable** ✅ (`map_path.py:690` = `BADGE07_GET`) | `DEFEATED_MOSSDEEP_GYM` (1270), `BADGE07_GET` (2157) |
@@ -370,16 +379,22 @@ automation can key off them directly (not pixels). Real names below.**
 
 ### Chapter 3 — Route 104 / Petalburg Woods / Devon Goods + Cut
 1. Route 104 (south) → **Petalburg Woods**. Auto-battle trainers/bug-catchers.
-2. **Team Aqua Grunt event:** a Devon researcher is accosted; a scripted battle
-   vs an Aqua Grunt triggers (`DEVON_GOODS_STOLEN` context). Fight (auto). After,
-   `RECOVERED_DEVON_GOODS`.
-3. Exit Woods north → Route 104 (north) → **Cutter's House**: talk to the NPC to
-   receive **HM01 Cut** (`RECEIVED_HM_CUT`, 137).
-4. **Teach Cut** to a party member with `teach_hm_or_tm(get_item_by_name("HM01"),
+2. **[P4 FIX] Team Aqua Grunt event = a RESEARCHER RESCUE, not the Devon-Goods
+   theft:** a Devon researcher is accosted; a scripted battle vs an Aqua Grunt
+   triggers; on win the **grunt flees** and the researcher hands you a **Great
+   Ball**. **The `DEVON_GOODS_STOLEN` (142) / `RECOVERED_DEVON_GOODS` (143) flags
+   are NOT set here** — the actual theft (a grunt bolts from the Devon Corp
+   building in Rustboro) and recovery (Rusturf Tunnel, which also frees Peeko)
+   both happen AFTER Gym 1, in Chapter 5 (Bulbapedia Emerald Part 2).
+3. Exit Woods north → Route 104 (north) → **Rustboro City**.
+4. **[P4 FIX] Cutter's House is in RUSTBORO CITY** (west of the Pokémon Center,
+   not on Route 104 — corrects the earlier "Route 104" claim; matches §2.3):
+   talk to the man to receive **HM01 Cut** (`RECEIVED_HM_CUT`, 137). Cut's item
+   can be obtained now; **field use still waits on the Stone Badge** (Gym 1).
+5. **Teach Cut** to a party member with `teach_hm_or_tm(get_item_by_name("HM01"),
    party_index, move_index_to_replace)` (`modules/modes/util/items.py:160`). The
    helper validates `can_learn_tm_hm` and refuses to overwrite existing HM slots.
    Choose a bulky non-lead HM-mule or the starter (see §4 move policy).
-5. Continue north to **Rustboro City**.
 
 `is_complete()` Ch3: `get_event_flag("RECEIVED_HM_CUT")` AND a party mon
 `has_pokemon_with_move("Cut")` (`pokemon_party.py:76`).
@@ -853,3 +868,123 @@ engineering risks unrelated to accuracy (per-map authoring surface, boss AI,
 `navigate_to_anywhere` gating). The doc is safe to build against.
 
 **Sources (external, Pass 3):** [pokemondb gym list](https://pokemondb.net/emerald/gymleaders-elitefour) · [pokemondb HM chart](https://pokemondb.net/ruby-sapphire/hms) · [Bulbapedia Emerald walkthrough](https://bulbapedia.bulbagarden.net/wiki/Walkthrough:Pok%C3%A9mon_Emerald) · [Thonky RSE walkthrough](https://www.thonky.com/pokemon-ruby-sapphire-emerald/) · [psypokes Emerald walkthrough](https://www.psypokes.com/emerald/walkthrough.php) · [GameFAQs Emerald](https://gamefaqs.gamespot.com/gba/921905-pokemon-emerald-version) · [PokéCoders Rock Smash](https://www.pokemoncoders.com/how-to-get-rock-smash-in-pokemon-emerald/)
+
+---
+
+## 10. PASS 4 — INDEPENDENT RE-DERIVATION (2026-07-20)
+
+**Method:** facts were re-derived **from scratch** — (A) directly from the bot's
+in-repo ROM ground truth (`event_flags/emerald.txt`, `event_vars/emerald.txt`,
+`menuing.py:810-833`, `modes/rock_smash.py:143`, `map_path.py:684-704`,
+`modes/util/higher_level_actions.py:50-61`, `items.json`) and (B) two-to-three
+independent external walkthroughs (Bulbapedia, Thonky, pokemondb, PokéBase,
+StrategyWiki) — **without** reading the doc's own conclusions first, then diffed
+against the doc. Goal: catch NEW errors AND re-check that Pass 3's own five
+corrections were not themselves wrong.
+
+### 10.1 Re-audit of Pass 3's five corrections (each independently re-derived)
+
+| Pass-3 correction | Pass-4 verdict | Independent basis |
+|---|---|---|
+| HM06 Rock Smash = **Mauville City** SE house (reversing Pass-2's "Route 111") | **STILL CORRECT** | PokéCoders + Thonky Mauville page + Bulbapedia: house right/SE of the Poké Mart, needs Stone+Knuckle badges |
+| **Fortree Gym gated by Devon Scope + Kecleon reveal** (row 14b before Winona) | **STILL CORRECT** | PokéBase + Thonky Fortree + StrategyWiki Rt 120: Steven gives Devon Scope after a Lv30 Kecleon battle on Rt 120; invisible Kecleon blocks the gym door until revealed |
+| **`DELIVERED_DEVON_GOODS` (149) = Slateport/Capt. Stern** (not Rustboro); Rustboro = `RETURNED_DEVON_GOODS` (144) | **STILL CORRECT** | Flag table 142→143→144→148→149 chain matches Bulbapedia Part 4 / Neoseeker: Rustboro president = return (144); Stern at Slateport Oceanic Museum = deliver (149), Dock-rejected first (148) |
+| **HM02 Fly given by the RIVAL** after the Rt 119 battle | **STILL CORRECT** | Bulbapedia Part 10 + StrategyWiki Rt 119: rival (Brendan/May) battle on the north Rt 119 bridge past the Weather Institute yields HM02 Fly |
+| **Magma Hideout gated by the Magma Emblem** from Mt. Pyre summit | **STILL CORRECT (upgraded)** | Bulbapedia Magma Hideout + Mt. Pyre pages: summit caretaker gives the Emblem; the Jagged Pass entrance auto-appears only with it in the bag. **Upgraded**: the Emblem is a **KEY ITEM** (`items.json`), not a flag — see 10.3 |
+
+**All five Pass-3 corrections independently reconfirmed. Pass 3 introduced no
+new errors.**
+
+### 10.2 Independently-derived facts → diff against the doc
+
+| Independently-derived fact | Source | Verdict vs doc |
+|---|---|---|
+| 8 gyms: Roxanne/Rock/Stone → Brawly/Fighting/Knuckle → Wattson/Electric/Dynamo → Flannery/Fire/Heat → Norman/Normal/Balance → Winona/Flying/Feather → Tate&Liza/Psychic/Mind → Juan/Water/Rain | pokemondb + `DEFEATED_*_GYM` 1264-1271, `BADGE0N_GET` 2151-2158 | **AGREES** |
+| HM field-use badge gates: Cut=B1, Flash=B2, RockSmash=B3, Strength=B4, Surf=B5, Fly=B6, Dive=B7, Waterfall=B8 | `menuing.py:811-833` (re-read every `case`) | **AGREES** |
+| `can_surf`=BADGE05, `can_dive`=BADGE07, `can_waterfall`=BADGE08 | `map_path.py:687/693/701` | **AGREES** |
+| Rock Smash field gate re-checked | `modes/rock_smash.py:143` = `BADGE03_GET` | **AGREES** |
+| `fly_to()` fork bug: **both** RSE and FRLG branches read `BADGE03_GET` (wrong for Emerald, should be BADGE06) | `modes/util/higher_level_actions.py:52 & 55` (path is `modes/util/`, not repo root — doc's citation omits the subdir) | **AGREES** (bug real; minor citation-path nit noted) |
+| Devon Goods chain 142 STOLEN / 143 RECOVERED / 144 RETURNED / 148 DOCK_REJECTED / 149 DELIVERED | `event_flags/emerald.txt:91-98` | **AGREES** |
+| HM receipt flags: Cut 137, Flash 109, RockSmash 107, Strength 106, Surf 122, Fly 110, Dive 123, Waterfall 312 | `event_flags/emerald.txt` | **AGREES** |
+| Key items: Bike 90, Meteorite 115, PokéNav 188, Steven Letter 189, Basement Key 208, Go-Goggles 221, Devon Scope 285, Kecleon-fled 295 | `event_flags/emerald.txt` | **AGREES** |
+| Vars: STARTER_MON 35, PETALBURG_GYM_STATE 133, MT_PYRE_STATE 185 | `event_vars/emerald.txt` | **AGREES** |
+| Endgame: E4 1275-1278, SYS_GAME_CLEAR 2148, IS_CHAMPION 2175 | `event_flags/emerald.txt` | **AGREES** |
+| **Petalburg Woods grunt = researcher-rescue, NOT a Devon-Goods theft** (grunt flees, Great Ball reward); theft/recovery happen post-Gym-1 | Bulbapedia Part 2 | **DOC WRONG → FIXED [P4]** (overview row 3 + Ch3 step 2) |
+| **HM01 Cut is in RUSTBORO CITY** (Cutter's House, W of the PC), not Route 104 | Thonky Rustboro + pokemondb | **DOC WRONG → FIXED [P4]** (Ch3 step 3 contradicted §2.3, which was right) |
+| **Magma Emblem is a KEY ITEM** (`items.json` "Magma Emblem"), not a flag; no `RECEIVED_MAGMA_EMBLEM` flag exists | `items.json` + `event_flags/emerald.txt` (no match) | **NEW-RESOLUTION [P4]** (was VERIFY-LIVE; mechanism now known — gate on bag item) |
+| Mt. Pyre progress var `MT_PYRE_STATE` (185) exists | `event_vars/emerald.txt:186` | **NEW-RESOLUTION [P4]** (var identified; exact completion value still live) |
+| Exact NPC object-ids / trigger tiles (Surf house, Fly rival tile, Rock Smash house, Go-Goggles giver, Waterfall trigger, gym-interior waypoints) | — | **STILL-VERIFY-LIVE** (unchanged; flags prove receipt, not where-to-stand) |
+| Intro cursor deltas / frame-timing (gender/name/clock) | — | **STILL-VERIFY-LIVE** (symbols known; timing needs a live New Game) |
+
+### 10.3 NEW errors found & fixed in Pass 4
+
+1. **Petalburg Woods Devon-Goods flag misattribution.** Overview row 3 and Ch3
+   step 2 attributed `DEVON_GOODS_STOLEN` (142) / `RECOVERED_DEVON_GOODS` (143)
+   to the Petalburg Woods grunt. **Reality:** the Woods grunt is a *researcher
+   rescue* — the grunt flees and the researcher gives a **Great Ball**; the
+   Devon Goods theft (a grunt bolts from Devon Corp in Rustboro **after Gym 1**)
+   and the Rusturf-Tunnel recovery (which also frees Peeko) both belong to
+   **Chapter 5**. Fixed in both places, tagged **[P4 FIX]**. *(Source: Bulbapedia
+   Emerald Part 2.)*
+2. **HM01 Cut location — internal contradiction.** Ch3 step 3 said Cut comes
+   from a "**Route 104** (north) → Cutter's House"; §2.3 said "**Rustboro City**".
+   §2.3 was right — the Cutter's House is **in Rustboro City, west of the Poké
+   Center**. Fixed Ch3 to Rustboro, tagged **[P4 FIX]**. *(Source: Thonky
+   Rustboro + pokemondb.)*
+
+Both are **content-detail** errors (mislabeled event / wrong town for one HM
+giver); **neither changes the chapter spine** (Cut still before Gym 1; Devon
+theft/recovery still after Gym 1) nor any of the 8-gym / 8-HM / late-game facts.
+
+### 10.4 verify-live items newly resolved
+
+- **Magma Emblem gate** — moved VERIFY-LIVE → **RESOLVED**: it is a **key item**
+  (`items.json` "Magma Emblem"), so the bot gates the Magma Hideout on
+  *item-in-bag* (`get_item_bag()`), not on a nonexistent flag. Rows 16b/16d updated.
+- **Mt. Pyre progress** — the var **`MT_PYRE_STATE` (185)** exists and tracks the
+  arc (exact completion value still to be read on a parked save). Row 16b updated.
+
+### 10.5 Remaining genuine live-only unknowns (unchanged, small)
+
+Exact NPC object-ids & trigger tiles for the "verify live" givers (Surf house in
+Petalburg, Fly rival tile on Rt 119, Rock Smash house in Mauville, Go-Goggles
+giver in Lavaridge, Waterfall trigger in Sootopolis) and all per-map gym-interior
+waypoints/puzzle solutions; the Magma Emblem/Mt-Pyre exact completion value;
+intro cursor deltas & frame-timing. These are **where-to-stand / timing** facts,
+not plot facts — they need a parked save, exactly as Pass 3 concluded.
+
+### 10.6 Source disagreements
+
+**None.** Every external walkthrough agreed with every other and with the ROM
+ground truth on all audited points. The only prior "gap" — the Magma Emblem
+having no flag — is now explained (it is a key item, not a flag), so it is no
+longer even a gap.
+
+### 10.7 Convergence statement
+
+Pass 4 **did find NEW errors** — **two content-detail mistakes** that survived
+Passes 1-3 (the Petalburg-Woods Devon-Goods flag misattribution and the Cut
+"Route 104 vs Rustboro" contradiction), now fixed. It **also confirmed** that
+**all five Pass-3 corrections were correct** (Pass 3 introduced no regressions),
+resolved **two former verify-live items** (Magma Emblem = key item; `MT_PYRE_STATE`
+var), and re-verified the entire factual backbone (8 gyms, 8 HM gates, HM/key-item
+givers & flags, villain-arc beats, late-game order) against ROM + two external
+sources with **zero disagreements**.
+
+**Verdict:** the doc's **strategic backbone has fully converged and is
+high-confidence**; the two Pass-4 fixes were localized detail corrections, not
+structural. After four passes the only residual uncertainty is live-only
+where-to-stand/timing data, which cannot be settled from repo + walkthroughs and
+is correctly flagged as such. **Confidence: HIGH — safe to build against.**
+
+**Sources (external, Pass 4):**
+[Bulbapedia Emerald Part 2](https://bulbapedia.bulbagarden.net/wiki/Walkthrough:Pok%C3%A9mon_Emerald/Part_2) ·
+[Bulbapedia Part 4](https://bulbapedia.bulbagarden.net/wiki/Walkthrough:Pok%C3%A9mon_Emerald/Part_4) ·
+[Bulbapedia Part 10](https://bulbapedia.bulbagarden.net/wiki/Walkthrough:Pok%C3%A9mon_Emerald/Part_10) ·
+[Bulbapedia Magma Hideout](https://bulbapedia.bulbagarden.net/wiki/Magma_Hideout_(Jagged_Pass)) ·
+[Thonky Rustboro City](https://www.thonky.com/pokemon-ruby-sapphire-emerald/rustboro-city) ·
+[Thonky Mauville City](https://www.thonky.com/pokemon-ruby-sapphire-emerald/mauville-city) ·
+[Thonky Fortree City](https://www.thonky.com/pokemon-ruby-sapphire-emerald/fortree-city) ·
+[PokéBase Kecleon/Fortree](https://pokemondb.net/pokebase/406508/how-do-i-get-past-the-invisible-kecleon-blocking-fortree-gym) ·
+[StrategyWiki Route 120](https://strategywiki.org/wiki/Pok%C3%A9mon_Ruby_and_Sapphire/Route_120) ·
+[PokéCoders Rock Smash](https://www.pokemoncoders.com/how-to-get-rock-smash-in-pokemon-emerald/)
