@@ -604,3 +604,148 @@ fully-explored ROM / confirm map coverage before trusting the 132/254 split.
   Ho-Oh) — depend on distributions the bot cannot conjure.
 - **Species with no Emerald obtain path at all** — honestly un-completable
   without importing from another game.
+
+---
+
+## PHASE: #41-research — COMPILED + FACT-CHECKED obtainability lists (2026-07-19)
+
+**Status:** DONE (sandbox). The static/gift/roamer/trade/event/unobtainable
+"research half" of #41 is now compiled, fact-checked against the **BPEE0 ROM's
+own encounter tables** and Bulbapedia, and folded into `modules/obtainability.py`
+via a data file `modules/data/emerald_obtainability.json` (National-Dex-keyed,
+Emerald-only). 16/16 unit tests (`tests/test_obtainability.py`).
+
+### Method (authoritative sources first)
+1. **ROM is ground truth for "wild".** The encounter index
+   (`cache/encounter_index_BPEE0.json`) is built by walking the *entire*
+   `gWildMonHeaders` table to its `0xFF` sentinel (`modules/map.py:1898-1904`) —
+   i.e. **every** Emerald wild table, not just visited maps. Confirmed complete:
+   the Safari-Zone National-Dex *extension* areas are present with their
+   Emerald-only species (Heracross, Pinsir, Miltank, Pikachu, Girafarig, Aipom,
+   Houndour, …). So "not in the index" == "genuinely no wild encounter in Emerald."
+2. **Corrected a census enumeration trap.** `species.json` index **0** is the
+   `"??????????"` placeholder and *also* carries National-Dex **151**, colliding
+   with Mew (internal 151). Enumerate the 386 via
+   `get_species_by_national_dex(1..386)` (last-wins -> real Mew), NOT `setdefault`
+   over internal order. Counts were unchanged (both classify identically) but the
+   *identity* was wrong.
+3. **Cross-referenced the bot's own seeds** (`static_soft_resets.py`,
+   `static_gift_resets.py`, `roamer.py`) — see Discrepancies below.
+4. **Web-verified every surprising ROM result** against Bulbapedia before
+   trusting it (Roselia/Meditite/Surskit/Azurill/Zangoose/Lunatone, the
+   Latias/Latios roamer mechanic, the in-game trade list).
+
+### FINAL CATEGORY CENSUS (sums to 386, one kind per species)
+| kind | count | emerald-reachable (no trade)? | bot-automatable? |
+|---|---:|---|---|
+| **wild** | 132 | yes | yes (hunt) |
+| **evolution** | 149 | 66 yes / 83 no* | level->yes, item/beauty->partial, trade->no |
+| **gift** | 7 | yes | yes (Static Gift / Starters resets) |
+| **static** | 8 | 7 yes / 1 no (Latios = Eon Ticket) | yes (Static Soft Resets) |
+| **roamer** | 1 | yes | partial (roamer read exists) |
+| **event** | 6 | no | conditional (only after ticket area unlocked) |
+| **breeding** | 3 | yes | no auto-breeder |
+| **special** | 1 | yes | no (Feebas special tiles) |
+| **unobtainable** | 79 | no | no (trade from another game) |
+| **TOTAL** | **386** | **217 reachable / 169 not** | — |
+
+\* 83 non-reachable evolutions = the 12 trade / trade-with-item lines + every
+evolution whose family base is itself unobtainable in Emerald (e.g. Ivysaur /
+Venusaur from Bulbasaur). Reachability is derived recursively: an evolution is
+`emerald_reachable` iff its base is reachable AND no step is a trade evolution.
+
+**Two living-dex denominators (the "show both" requirement):**
+`N / 386` (National Dex) **and** `M / 217` (obtainable in Emerald without
+trading). Exposed by `obtainability.census()` and
+`living_dex.obtainability_breakdown()["denominators"]`.
+
+### THE EXACT LISTS
+**GIFT (7):** Treecko, Torchic, Mudkip (starters, Route 101) - Castform (Weather
+Institute) - Lileep + Anorith (Root/Claw Fossil revive; *one per playthrough* —
+the fossil pick is exclusive at Mirage Tower) - Beldum (Steven's house, Mossdeep).
+
+**STATIC (8):** Sudowoodo (Route 111, Wailmer Pail) - Regirock/Regice/Registeel
+(Sealed Chamber puzzle -> Desert Ruins/Island Cave/Ancient Tomb) - Kyogre
+(Marine Cave) - Groudon (Terra Cave) — *both* catchable in Emerald, unlike R/S -
+Rayquaza (Sky Pillar) - **Latios** (Southern Island — **event-gated**, needs the
+Eon Ticket; see roamer note).
+
+**ROAMER (1):** **Latias** by convention. Emerald mechanic (verified,
+Serebii/Bulbapedia): the post-Championship TV answer sets which Eon Pokemon sits
+on **Southern Island** (needs the **Eon Ticket** event item) and which **roams**
+the routes. `roamer.py:get_roamer()` reads the live species. Per save only ONE
+Eon Pokemon is obtainable without the Eon Ticket; the classifier tags
+Latias=roamer (reachable) and Latios=static/event-gated (not reachable) as a
+fixed convention — in reality the pair flips with the TV answer.
+
+**EVENT (6):** Mew, Celebi, Jirachi (pure distributions) - Deoxys (Birth Island /
+Aurora Ticket) - Lugia + Ho-Oh (Navel Rock / Mystic Ticket). All
+`emerald_reachable=false`; Deoxys/Lugia/Ho-Oh are bot-catchable *only after* the
+ticket area is unlocked.
+
+**BREEDING (3):** Pichu (breed wild Pikachu) - Igglybuff (breed wild Jigglypuff) -
+Azurill (breed Marill/Azumarill + Sea Incense). All Emerald-alone obtainable; the
+bot has no auto-breeder. (Wynaut is NOT here — it is **wild** on Route 130.)
+
+**SPECIAL (1):** Feebas — the 6 random Route 119 tiles (not in `gWildMonHeaders`;
+tiles shift with the Dewford trend seed). Emerald-alone obtainable.
+
+**IN-GAME TRADES (4, documented; rescue NOTHING):** Seedot->Ralts (Rustboro),
+Plusle->Volbeat (Fortree), Horsea->Bagon (Pacifidlog), Meowth->Skitty (Battle
+Frontier). **Every received species (Ralts/Volbeat/Bagon/Skitty) is already
+wild**, so no otherwise-unobtainable species is rescued -> `ingame_trade` count = 0.
+(And the Meowth the last trade *requires* is itself unobtainable in Emerald.)
+
+**UNOBTAINABLE-WITHOUT-TRADE (79):** Bulbasaur, Charmander, Squirtle, Caterpie,
+Weedle, Pidgey, Rattata, Spearow, Ekans, Nidoran-F, Nidoran-M, Paras, Venonat,
+Diglett, Meowth, Mankey, Growlithe, Poliwag, Bellsprout, Ponyta, Slowpoke,
+Farfetch'd, Seel, Shellder, Gastly, Onix, Drowzee, Krabby, Exeggcute, Cubone,
+Lickitung, Chansey, Tangela, Kangaskhan, Mr. Mime, Scyther, Tauros, Lapras,
+Eevee, Porygon, Omanyte, Kabuto, Aerodactyl, Snorlax, Articuno, Zapdos, Moltres,
+Dratini, Mewtwo, Chikorita, Cyndaquil, Totodile, Sentret, Cleffa, Togepi, Hoppip,
+Yanma, Murkrow, Misdreavus, Unown, Dunsparce, Qwilfish, Sneasel, Swinub,
+Delibird, Mantine, Tyrogue, Smoochum, Elekid, Magby, Raikou, Entei, Suicune,
+Larvitar, Surskit, Meditite, Roselia, Zangoose, Lunatone. Notable sub-groups:
+Kanto fossils (Omanyte/Kabuto/Aerodactyl — Emerald revives Hoenn fossils only);
+version-exclusives (Zangoose -> Emerald has Seviper; Lunatone -> Emerald has
+Solrock); R/S-only wilds now trade-only (Roselia, Meditite); swarm-only
+(Surskit — daily swarm needs Record-Mix with a R/S cartridge, so not Emerald-alone).
+
+### VALIDATION / FACT-CHECK REPORT (`tests/test_obtainability.py`, 16/16 PASS)
+- **Census integrity:** all 386 resolve to a kind; kinds sum to 386; **zero**
+  left "unknown"; `by_kind` exactly matches the table above.
+- **Round-trip:** all 105 override entries' National-Dex -> species names match.
+- **Spot-checks (all pass):** Rayquaza/Kyogre/Groudon/Regirock/Sudowoodo=static;
+  Latias=roamer, Latios=static(event-gated); Beldum/Treecko/Castform/Lileep=gift;
+  Mew/Jirachi/Deoxys/Lugia=event; Bulbasaur/Meowth/Zangoose/Lunatone/Roselia=
+  unobtainable; Wailmer/Ralts/Wynaut/Poochyena=wild; Feebas=special;
+  Azurill/Pichu=breeding; Alakazam/Machamp/Metagross=evolution.
+- **Reachability:** all 12 trade evolutions `emerald_reachable=false`; Venusaur /
+  Raticate not reachable (unobtainable base); Raichu reachable (Pikachu wild in
+  Safari). 217/386 reachable, 169 not.
+- **plan_for GATE:** `wild_huntable` True only for wild + evolution-with-wild-base;
+  False (target None) for gift/static/roamer/event/breeding/special/unobtainable —
+  the bot never wild-hunts a non-wild species. Alakazam -> hunts base Abra but is
+  flagged `needs_user` + `emerald_reachable=false` (honest trade signal).
+
+### DISCREPANCIES vs the bot's own seeds (flagged, not silently reconciled)
+- **Sudowoodo** is a real Emerald static (Route 111) but is **absent** from
+  `static_soft_resets.py`'s seed — a gap to add if shiny-resetting it is wanted.
+- **Ho-Oh** (Navel Rock) is absent from the Emerald branch of the static seed
+  (only Lugia + Deoxys are seeded); classifier still tags it event.
+- **Wynaut** is in the *gift* seed (Lavaridge egg) but the classifier tags it
+  **wild** — it genuinely has a wild table (Route 130, 100% @ Lv5-50). Both true;
+  wild takes precedence as the primary obtain path.
+- Kyogre/Groudon/Kecleon live under the seed's *non-Emerald* branch but apply to
+  Emerald; the classifier tags Kyogre/Groudon static and Kecleon **wild** (it has
+  a real wild table on Routes 119/120 etc.).
+
+### HONEST UNCERTAINTIES (flagged, not guessed)
+- **Latias vs Latios roamer/static assignment is a convention.** The real roamer
+  flips with the TV answer; only one is obtainable per save without the Eon Ticket.
+- **Surskit** is filed *unobtainable* (Emerald-alone) though it IS obtainable via
+  a daily swarm after Record-Mixing with R/S — that needs a second cartridge, so
+  it is not truly "Emerald without external hardware." Borderline; flagged.
+- **Deoxys/Lugia/Ho-Oh/Latios (Eon)** are "obtainable" *if* you have the event
+  ticket. Filed event / event-gated-static with `emerald_reachable=false` for the
+  normal no-event playthrough — a deliberate honesty choice.

@@ -58,6 +58,21 @@ in CLAUDE.md "Project rules"):
 - Built the native dashboard GUI (fork agent; ~860 lines) and verified it
   on a live run; browser auto-open defaulted off per user preference.
 
+## Latest (2026-07-19) — #41 obtainability RESEARCH HALF done (sandbox)
+- Compiled + fact-checked the Emerald gift/static/roamer/in-game-trade/event/
+  breeding/special/unobtainable lists against the BPEE0 ROM's own `gWildMonHeaders`
+  (authoritative — the encounter-index cache is complete) + Bulbapedia, and folded
+  them into `modules/obtainability.py` via `modules/data/emerald_obtainability.json`.
+- CENSUS (sums to 386): wild 132 / evolution 149 / gift 7 / static 8 / roamer 1 /
+  event 6 / breeding 3 / special 1 / unobtainable 79. Second honest denominator:
+  **217/386 obtainable in Emerald without trading**. Both denominators exposed to
+  the GUI. 16/16 units (`tests/test_obtainability.py`). Full lists + citations +
+  validation report: 11-LIVINGDEX-DESIGN.md (Phase #41-research).
+- NOT yet done for full #41: wire `living_dex_mode` target selection to plan_for's
+  `wild_huntable` gate (route gift/static/roamer to the reset modes; surface
+  trade/event/unobtainable instead of silently skipping); auto-evolve helper. This
+  pass was pure-data, validated against the ROM header + cache (no emulator boot).
+
 ## Awaiting the USER (nothing blocked on me)
 - **Promotion OK** for the sandbox batch #30/#31/#32 (verified clean) +
   #33 (GUI fixes) → promote to custom on the user's word.

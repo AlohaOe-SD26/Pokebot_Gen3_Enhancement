@@ -2258,10 +2258,22 @@ class DashboardScreen:
             if caps.get("rock_smash"):
                 have.append("Rock Smash")
             have_text = ", ".join(have) if have else "none yet"
+            cats = breakdown.get("categories", {})
+            dens = breakdown.get("denominators", {})
+
+            def _n(kind):
+                return len(cats.get(kind, ()))
+
+            gift_static = _n("gift") + _n("static") + _n("roamer")
+            trade_event = _n("ingame_trade") + _n("event") + _n("unobtainable")
+            owned = dens.get("owned", 0)
+            obtainable = dens.get("obtainable_in_emerald", 0)
+            owned_obtainable = dens.get("owned_obtainable", 0)
             label.config(
                 text=(
+                    f"Owned: {owned}/386 National Dex · {owned_obtainable}/{obtainable} obtainable in Emerald\n"
                     f"Uncaught: {len(breakdown['wild'])} wild · {len(breakdown['evolution'])} evolve · "
-                    f"{len(breakdown['special'])} special/trade\n"
+                    f"{gift_static} gift/static/roam · {trade_event} trade/event/blocked\n"
                     f"You can use: {have_text}"
                 )
             )

@@ -814,3 +814,38 @@ process.
 - STILL TODO: #41 research-list compile (gift/static/roamer/trade/event/
   unobtainable) + honesty denominator; #42-HARD HM-gated map reachability;
   auto-evolve helper (level/stone) so evolve-only species auto-complete.
+
+## 2026-07-19 — #41 obtainability RESEARCH HALF compiled + fact-checked
+- `modules/data/emerald_obtainability.json` (NEW): the compiled + fact-checked
+  Emerald override for the 105 base-non-wild species — kind / emerald_reachable /
+  automatable / needs_user / note per species (National-Dex-keyed). Also carries
+  the 4 documented in-game trades (none rescue an unobtainable species).
+- `modules/obtainability.py`: classify() now consults the Emerald override for the
+  base-non-wild bucket (gated on `context.rom.is_emerald`) instead of returning
+  "unknown". Adds `emerald_reachable` (recursive for evolutions: base reachable
+  AND no trade step), enriches the evolution reason, and adds `census()` +
+  `ingame_trades()`. plan_for() adds a `wild_huntable` gate flag + `emerald_reachable`.
+  Non-Emerald ROMs skip the override (those lists were only compiled for Emerald).
+- `modules/living_dex.py`: obtainability_breakdown() keeps the old
+  wild/evolution/special keys (backward-compat for the GUI) and ADDS the honest
+  per-kind `categories` split + a `denominators` block (national_dex 386,
+  obtainable_in_emerald 217, owned, owned_obtainable).
+- `modules/gui/dashboard_gui.py`: Living-Dex panel label now shows BOTH
+  denominators ("Owned N/386 National Dex - M/217 obtainable in Emerald") and a
+  gift/static/roam vs trade/event/blocked uncaught split.
+- `tests/test_obtainability.py` (NEW): 16 offline units; wires the Emerald ROM
+  header via load_rom_data (no emulator) and skips cleanly if the ROM/cache is
+  absent. Census sum, no-unknown, exact category counts, denominator 217/169,
+  natdex round-trip, per-category spot-checks, trade-evo reachability, plan_for gate.
+- CENSUS: wild 132 / evolution 149 / gift 7 / static 8 / roamer 1 / event 6 /
+  breeding 3 / special 1 / unobtainable 79 = 386. 217 obtainable without trading.
+- METHOD NOTE: the ROM's `gWildMonHeaders` (via the encounter-index cache) is the
+  authoritative wild set and beat human memory every time — Roselia/Meditite/
+  Zangoose/Lunatone = trade-only, Surskit = swarm-only, Azurill = breeding-only,
+  Wynaut = wild (Route 130). Fixed a census trap: species.json index 0 placeholder
+  shares Mew's dex #151 — enumerate via get_species_by_national_dex, not setdefault.
+- STILL TODO: wire living_dex_mode target selection to plan_for's gate so
+  gift/static/roamer route to the reset modes and trade/event/unobtainable are
+  surfaced-not-hunted; add Sudowoodo + Ho-Oh to the static reset seed; auto-evolve
+  helper. Verify on the REAL save when a session can boot the emulator (this pass
+  was pure-data, validated against the ROM header + cache only).

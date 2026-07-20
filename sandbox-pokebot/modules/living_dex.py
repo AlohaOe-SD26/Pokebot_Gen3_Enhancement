@@ -185,11 +185,21 @@ _breakdown_cache: dict = {"owned_count": -1, "value": None}
 
 def obtainability_breakdown() -> dict:
     """How EVERY not-yet-owned species is obtained (#41 view), independent of the
-    (wild-only) run targets. Returns
-      {"wild": [(sid, name)], "evolution": [(sid, name, reason)],
-       "special": [(sid, name, reason)]}
-    where 'special' = gift/static/roamer/trade/event/unobtainable (needs the
-    research list). Lightly cached by owned-count so a GUI refresh is cheap."""
+    (wild-only) run targets. Returns:
+      {
+        "wild":       [(sid, name)],           # backward-compatible keys
+        "evolution":  [(sid, name, reason)],
+        "special":    [(sid, name, reason)],   # every non-wild/non-evolution kind
+        "categories": {kind: [(sid, name, reason)]},   # the honest #41 split
+        "denominators": {                      # the "SHOW BOTH denominators" data
+            "national_dex": 386,
+            "obtainable_in_emerald": M,        # obtainable WITHOUT trading
+            "owned": int, "owned_obtainable": int,
+        },
+      }
+    'special' aggregates gift/static/roamer/ingame_trade/breeding/event/
+    unobtainable so old callers keep working; 'categories' gives the real split.
+    Lightly cached by owned-count so a GUI refresh is cheap."""
     from modules import obtainability
     from modules.pokemon import get_species_by_national_dex
 
@@ -200,20 +210,40 @@ def obtainability_breakdown() -> dict:
     wild: list = []
     evolution: list = []
     special: list = []
+    categories: dict = {}
+    obtainable_total = 0
+    owned_obtainable = 0
     for national_dex in range(1, 387):
         try:
             species = get_species_by_national_dex(national_dex)
         except Exception:
             continue
+        info = obtainability.classify(species.index)
+        if info.get("emerald_reachable"):
+            obtainable_total += 1
+            if species.index in owned:
+                owned_obtainable += 1
         if species.index in owned:
             continue
-        info = obtainability.classify(species.index)
+        row = (species.index, species.name, info.get("reason", ""))
+        categories.setdefault(info["kind"], []).append(row)
         if info["kind"] == "wild":
             wild.append((species.index, species.name))
         elif info["kind"] == "evolution":
-            evolution.append((species.index, species.name, info.get("reason", "")))
+            evolution.append(row)
         else:
-            special.append((species.index, species.name, info.get("reason", "")))
-    value = {"wild": wild, "evolution": evolution, "special": special}
+            special.append(row)
+    value = {
+        "wild": wild,
+        "evolution": evolution,
+        "special": special,
+        "categories": categories,
+        "denominators": {
+            "national_dex": 386,
+            "obtainable_in_emerald": obtainable_total,
+            "owned": len(owned),
+            "owned_obtainable": owned_obtainable,
+        },
+    }
     _breakdown_cache.update(owned_count=len(owned), value=value)
     return value

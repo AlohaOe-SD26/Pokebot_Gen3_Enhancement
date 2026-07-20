@@ -92,10 +92,14 @@
       built (ceb7343e; 30/30 units; live save read Old/Good/Super Rod;
       panel shows 128 wild/147 evolve/102 special-trade). obtainability.py
       + capabilities.py.
-- [~] #41-research — compile+fact-check Emerald obtainability lists (gift/
-      static/roamer/in-game-trade/event/unobtainable) to break down the 102
-      "special/trade" bucket; "show both" denominators; auto-evolve helper.
-      BUILDING.
+- [x] #41-research — compiled + fact-checked Emerald obtainability lists
+      (gift 7/static 8/roamer 1/event 6/breeding 3/special 1/unobtainable 79;
+      in-game trades rescue nothing). Census sums to 386; "show both"
+      denominators exposed (217/386 obtainable without trading). 16/16 units.
+      modules/data/emerald_obtainability.json + obtainability.py. Fact-check
+      report + citations: 11-LIVINGDEX-DESIGN.md (Phase #41-research). REMAINING
+      for full #41: wire living_dex_mode target selection to plan_for's gate +
+      route gift/static/roamer to reset modes; auto-evolve helper.
 - [ ] #42-hard — HM-gated cross-map reachability in the nav graph (v2).
 - [ ] #45 — (FUTURE, with story-mode bot #24) enumerate story instances the
       bot can automate, and let hunt/living-dex progress the story to unlock

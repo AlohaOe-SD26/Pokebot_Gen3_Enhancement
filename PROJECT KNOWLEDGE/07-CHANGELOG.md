@@ -489,3 +489,31 @@
 - 30/30 offline units + live-verified on the real save (128 wild/147 evolve/
   102 special uncaught; rods detected; save md5-identical). Research half of
   #41 + #42-hard reachability still to do.
+
+## 2026-07-19 — #41 obtainability research half: compiled + fact-checked (sandbox)
+- Compiled the gift/static/roamer/in-game-trade/event/breeding/special/
+  unobtainable lists for Emerald and folded them into the classifier, replacing
+  the "unknown" catch-all. New data file `modules/data/emerald_obtainability.json`
+  (National-Dex-keyed, Emerald-only). Fact-checked against the BPEE0 ROM's own
+  `gWildMonHeaders` (the encounter index is complete — verified via the Safari
+  extension) + Bulbapedia web checks; cross-checked the bot's own static/gift/
+  roamer seeds.
+- FINAL CENSUS (sums to 386): wild 132 · evolution 149 · gift 7 · static 8 ·
+  roamer 1 · event 6 · breeding 3 · special 1 · unobtainable 79. Second honest
+  denominator: 217/386 obtainable in Emerald WITHOUT trading (169 need a trade).
+- `obtainability.classify()` now returns the real kind + `emerald_reachable`
+  (recursive: evolution reachable iff base reachable AND no trade step);
+  `plan_for()` gates wild hunting (`wild_huntable` True only for wild +
+  evolution-with-wild-base — the bot never wild-hunts a gift/static/roamer/
+  event/unobtainable species); new `obtainability.census()` + `ingame_trades()`.
+- `living_dex.obtainability_breakdown()` now exposes the honest category split +
+  BOTH denominators; the GUI Living-Dex panel shows "Owned N/386 · M/217
+  obtainable in Emerald" and a gift/static/roam vs trade/event/blocked split.
+- Verified: 16/16 new offline units (`tests/test_obtainability.py`) via the ROM
+  header (no emulator boot). Key facts corrected against my own memory: Roselia/
+  Meditite/Zangoose/Lunatone are TRADE-ONLY in Emerald; Surskit is swarm-only;
+  Azurill is breeding-only; Wynaut IS wild (Route 130). Discrepancies flagged:
+  Sudowoodo + Ho-Oh missing from the bot's static seed; Wynaut also a gift seed.
+- Files: modules/obtainability.py, modules/data/emerald_obtainability.json,
+  modules/living_dex.py, modules/gui/dashboard_gui.py, tests/test_obtainability.py.
+  Full lists + citations + validation report: 11-LIVINGDEX-DESIGN.md (Phase #41-research).
