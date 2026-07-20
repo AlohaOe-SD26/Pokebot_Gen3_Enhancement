@@ -782,3 +782,10 @@ from the post-rival checkpoint (SYS_POKEDEX_GET True). Design §16. Sandbox.
 User tested ("runs perfectly to the PokeDex"). return_to_lab_and_get_pokedex +
 _navigate_through_scripts copied sandbox → custom; verified (SYS_POKEDEX_GET
 True). StoryMode in custom now plays fresh game → rival → Pokédex.
+
+## 2026-07-20 — Story: travel to Petalburg City (fixed + wired) (#24, sandbox)
+travel_to_petalburg now works: _navigate_leg to Oldale (past the Route 101 loop),
+then navigate_to_anywhere(PETALBURG) from Oldale. Wired into StoryMode (fresh
+game now plays through to arriving in Petalburg). Verified with listeners
+(pokedex_done -> Petalburg, 22.1k frames). Petalburg Gym / Dad-Wally findings
+captured in design §17 for the next build. Sandbox.

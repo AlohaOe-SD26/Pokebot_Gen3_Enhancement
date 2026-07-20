@@ -1274,7 +1274,7 @@ checkpoint: dex + `SYS_POKEDEX_GET` True, controllable in the lab (4.1k frames).
 Checkpoint `pokedex_done.ss1`. NEXT: leave lab -> Route 102 -> Petalburg (meet
 Dad/Norman + Wally catching tutorial = Chapter 2 proper).
 
-### §16.1 — Petalburg journey (WIP, 2026-07-20) — NOT wired into StoryMode yet
+### §16.1 — Petalburg journey (DONE + wired, 2026-07-20)
 `travel_to_petalburg()` + `_navigate_leg()` (navigate_to per leg with ride-out
 retry, since `navigate_to_anywhere` LOOPS on Route 101). Handles Mom's
 Running-Shoes gift in Littleroot. STATUS: reaches Oldale reliably; the
@@ -1286,3 +1286,29 @@ to meet Dad/Norman, then the **Wally catching tutorial** (a big scripted
 sequence to explore). StoryMode currently ends at the Pokédex (§16); wire the
 Petalburg travel only once it reaches Petalburg cleanly. Checkpoints:
 pokedex_done.ss1, rival_beaten.ss1.
+
+### §16.1 UPDATE — travel_to_petalburg FIXED & wired
+The Oldale->Route102 leg failed because per-leg `navigate_to` needs the exact
+crossing coords AND the travel REQUIRES the battle listener (Route 101/102 grass
+triggers wilds that must be fought or navigation stalls). WORKING approach:
+`_navigate_leg` to Oldale (past the Route 101 loop), then
+`navigate_to_anywhere(PETALBURG_CITY, (20,18))` from Oldale (the global nav
+routes Oldale->Route102->Petalburg fine once past Route 101). Verified with
+listeners: pokedex_done -> Petalburg (0,0), 22.1k frames. Wired into StoryMode
+(now ends "reached Petalburg"). Checkpoint `petalburg.ss1`.
+
+### §17 — Chapter 2 (Petalburg Gym: Dad/Norman + Wally) — findings for next build
+- Petalburg **Gym door = (15,8)** -> map PETALBURG_CITY_GYM (8,1). Wally's house
+  door (7,5)->(8,0); PC (20,16)->(8,4).
+- The gym is TALL (Norman at (4,2), entrance ~ (4,110)). Walking up to **(4,108)**
+  fires the scene: `PetalburgCity_Gym_EventScript_Norman` -> `WallyArriveNorth`
+  -> `NormanAddressPlayerNorth` (Norman notices you, Wally arrives, Norman asks
+  you to help Wally catch a Pokémon).
+- The trigger is finicky: it fired when walking UP from the entrance with A
+  presses, but NOT when navigate_to_anywhere dropped the player at (4,108) — so
+  the build should ENTER the gym, then step Up tile-by-tile from the entrance
+  until the Norman script engages, then ride it out.
+- TODO next session: build enter-gym -> Norman/Wally scene -> the Wally catching
+  tutorial (Wally catches a Ralts on Route 102 — determine if it auto-plays or
+  needs navigation) -> back to the gym -> free. Then Route 104 -> Petalburg Woods
+  -> Rustboro (Gym 1). Checkpoint `petalburg.ss1` to iterate from.

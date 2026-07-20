@@ -638,9 +638,13 @@ def travel_to_petalburg() -> Generator:
     Oldale -> Route 102 -> Petalburg. Mom's Running-Shoes gift fires in
     Littleroot on the way and is ridden out automatically. Ends in Petalburg."""
     context.message = "Story: setting off for Petalburg City..."
-    yield from navigate_to_anywhere(MAP_LITTLEROOT_TOWN, (6, 9))  # exit the lab into town
+    # Exit the lab and get north to Oldale with per-leg navigate_to (the global
+    # navigator LOOPS on Route 101). Mom's Running-Shoes gift fires in Littleroot
+    # and is ridden out by _navigate_leg.
+    yield from navigate_to_anywhere(MAP_LITTLEROOT_TOWN, (6, 9))
     yield from _navigate_leg(MapRSE.ROUTE101, (9, 9))
-    yield from _navigate_leg(MapRSE.OLDALE_TOWN, (4, 9))
-    yield from _navigate_leg(MapRSE.ROUTE102, (14, 8))
-    yield from _navigate_leg(MapRSE.PETALBURG_CITY, (20, 18))
+    yield from _navigate_leg(MapRSE.OLDALE_TOWN, (6, 9))
+    # From Oldale (past the Route 101 loop) the global navigator reliably routes
+    # Oldale -> Route 102 -> Petalburg.
+    yield from navigate_to_anywhere(MapRSE.PETALBURG_CITY, (20, 18))
     context.message = "Story: arrived in Petalburg City."
