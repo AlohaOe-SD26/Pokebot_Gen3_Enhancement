@@ -211,6 +211,11 @@ class DashboardScreen:
         self._gui_nav_active: bool = False
         self._focus_targets: list = []  # ordered [{"kind","widget",...}]
         self._focus_index: int = -1
+        # KI-9 safety valve: master switch for controller GUI menu-control.
+        # When False the gamepad NEVER drives the dashboard — it only plays the
+        # game (Manual) — regardless of drawer state. Toggle via the View menu
+        # or F10. Default on; flip off if GUI-nav ever misbehaves.
+        self._gamepad_gui_control_enabled: bool = True
 
         # #31 adjustable money cheat widgets
         self._money_entry: "tkinter.Entry | None" = None
@@ -484,6 +489,12 @@ class DashboardScreen:
 
         view_menu = Menu(self.window, tearoff=0)
         view_menu.add_command(label="Handheld Mode (F11)", command=self.toggle_handheld)
+        self._gamepad_gui_control_var = tkinter.BooleanVar(value=self._gamepad_gui_control_enabled)
+        view_menu.add_checkbutton(
+            label="Controller GUI Control (F10)",
+            variable=self._gamepad_gui_control_var,
+            command=self._menu_toggle_gamepad_gui_control,
+        )
         view_menu.add_command(label="Classic GUI", command=self._explain_classic_gui)
 
         help_menu = Menu(self.window, tearoff=0)
@@ -1029,7 +1040,7 @@ class DashboardScreen:
     # Left Party Section (#30c) + hover stats (#30d)
     # ------------------------------------------------------------------
 
-    _PARTY_ICON_SIZE = 140
+    _PARTY_ICON_SIZE = 84
 
     def _build_party_strip(self) -> None:
         """A vertical strip of 6 party icons to the left of the video (both
@@ -1222,6 +1233,39 @@ class DashboardScreen:
     @property
     def gui_nav_active(self) -> bool:
         return self._gui_nav_active
+
+    def gamepad_gui_nav_engaged(self) -> bool:
+        """KI-9: authoritative, DERIVED answer to 'should the controller drive
+        the menu right now?' — never a cached flag that can desync. The gamepad
+        suppresses game input only when ALL hold: the master toggle is on, we're
+        in handheld, and the drawer is actually open. The moment the drawer
+        closes (or handheld exits), this is False and the controller plays the
+        game again."""
+        return bool(
+            self._gamepad_gui_control_enabled
+            and self._handheld
+            and self._drawer_open
+            and self._gui_nav_active
+        )
+
+    def set_gamepad_gui_control(self, enabled: bool) -> None:
+        """KI-9 safety valve. Flipping this off immediately drops any active
+        GUI-nav so the controller returns to the game."""
+        self._gamepad_gui_control_enabled = bool(enabled)
+        var = getattr(self, "_gamepad_gui_control_var", None)
+        if var is not None and var.get() != self._gamepad_gui_control_enabled:
+            var.set(self._gamepad_gui_control_enabled)
+        if not self._gamepad_gui_control_enabled:
+            self.set_gui_nav_active(False)
+        state = "ON" if self._gamepad_gui_control_enabled else "OFF"
+        context.message = f"Controller GUI control: {state}"
+
+    def _menu_toggle_gamepad_gui_control(self) -> None:
+        # The checkbutton has already flipped the bound var; honor its new value.
+        self.set_gamepad_gui_control(self._gamepad_gui_control_var.get())
+
+    def toggle_gamepad_gui_control(self) -> None:
+        self.set_gamepad_gui_control(not self._gamepad_gui_control_enabled)
 
     def _collect_interactive(self, widget, out: list) -> None:
         """Recursively collect activatable widgets (buttons/checkbuttons) of a
@@ -1598,6 +1642,10 @@ class DashboardScreen:
     def toggle_handheld(self) -> None:
         self._handheld = not self._handheld
         self._drawer_open = False
+        # KI-9: leaving/entering handheld force-closes the drawer, so GUI-nav
+        # must be cleared too — otherwise the gamepad stays stuck driving the
+        # menu and can never return control to the game.
+        self.set_gui_nav_active(False)
         self._apply_handheld_layout()
         self._persist_ui_state()
 
@@ -1606,6 +1654,9 @@ class DashboardScreen:
         key = keysym.lower()
         if key == "f11":
             self.toggle_handheld()
+            return True
+        if key == "f10":
+            self.toggle_gamepad_gui_control()
             return True
         if key == "h":
             if self._handheld:

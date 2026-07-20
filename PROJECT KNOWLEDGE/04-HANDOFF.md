@@ -57,6 +57,15 @@ Rod. Save left md5-identical after every test.
 flavor all done, Phases 1/2/3a). `itemdex_data.json` = core (309 items);
 gaps = map_locations/mart/pickup/historical.
 
+## Most recent work (2026-07-20)
+- Story-mode design Pass 4 → CONVERGED (see 12-STORYMODE-DESIGN §10). Safe to
+  build against; remaining unknowns are live-only (tile ids, waypoints, timing).
+- Fixed KI-8 (party strip 140→84px, no longer overlaps video) and KI-9
+  (controller stuck in menu: `toggle_handheld` leaked `_gui_nav_active`; now
+  cleared + gamepad uses a DERIVED gate `gamepad_gui_nav_engaged()`; added a
+  "Controller GUI Control" master toggle — View menu + F10). Both PROMOTED to
+  custom, live-verified on the real save (md5 identical). See 07-CHANGELOG.
+
 ## AWAITING THE USER (nothing blocked on me)
 1. **PROMOTE** the sandbox batch → custom (with a promotion-time independent
    adversarial sweep; also fold in the OPEN VERIFICATION DEBT below).

@@ -209,6 +209,10 @@ class GamepadListener:
             screen = self._active_dashboard_screen()
             if screen is None:
                 return
+            # KI-9: honor the master switch — if controller GUI control is off,
+            # Back+Start does nothing and the pad stays a pure game controller.
+            if not getattr(screen, "_gamepad_gui_control_enabled", True):
+                return
             if getattr(screen, "_handheld", False) and hasattr(screen, "_set_drawer"):
                 screen._set_drawer(not screen._drawer_open)
         except Exception:
@@ -254,8 +258,18 @@ class GamepadListener:
 
             # #32: if GUI navigation is active, the controller drives the
             # dashboard focus ring instead of the game — suppress game input.
+            # KI-9: ask the screen's DERIVED gate (toggle on + handheld + drawer
+            # open), never the raw _gui_nav_active flag, which could desync and
+            # strand the controller in menu-mode with the drawer closed.
             screen = self._active_dashboard_screen()
-            if screen is not None and getattr(screen, "_gui_nav_active", False):
+            nav_engaged = False
+            if screen is not None:
+                engaged_fn = getattr(screen, "gamepad_gui_nav_engaged", None)
+                if callable(engaged_fn):
+                    nav_engaged = bool(engaged_fn())
+                else:
+                    nav_engaged = bool(getattr(screen, "_gui_nav_active", False))
+            if nav_engaged:
                 self._release_everything()
                 nav_tokens = held & self._NAV_TOKENS
                 newly = nav_tokens - self._nav_prev

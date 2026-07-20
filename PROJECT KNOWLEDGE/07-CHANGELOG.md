@@ -576,3 +576,26 @@
   §10 audit added. VERDICT: strategic backbone CONVERGED, high-confidence,
   safe to build. Remaining unknowns are live-only (NPC tile ids, gym
   waypoints, intro timing) — engineering, not plot accuracy.
+
+## 2026-07-20 — Fix KI-8 (party strip overlap) + KI-9 (controller stuck in menu)
+Both fixed in sandbox, verified, and PROMOTED to custom (files were in sync;
+only these edits differ). Live-launched on the real save "Nick - Emerald";
+save md5 byte-identical after.
+- **KI-8 — party strip too large.** `_PARTY_ICON_SIZE` 140 → 84 in
+  dashboard_gui.py. After #44 moved the caught-ball to the hover tooltip the
+  140px bare sprites were oversized and crowded the video. Screenshot confirms
+  the left party column now sits clear of the emulator.
+- **KI-9 — controller stuck "in menu."** Root cause: `toggle_handheld()`
+  force-closed the drawer but never cleared `_gui_nav_active`, so leaving
+  handheld while the drawer was open stranded the gamepad in GUI-nav mode —
+  it kept stealing input and the game became unplayable. Fixes:
+  1. `toggle_handheld()` now calls `set_gui_nav_active(False)`.
+  2. Gamepad suppression is now DERIVED, not a cached flag: new
+     `gamepad_gui_nav_engaged()` = (master toggle on AND handheld AND drawer
+     open AND nav flag). `gamepad.py` calls it instead of reading
+     `_gui_nav_active` directly, so the state can no longer desync.
+  3. Safety valve: new "Controller GUI Control" master toggle (View menu
+     checkbutton + F10 hotkey). Off = the pad is a pure game controller and
+     Back+Start does nothing. Flipping off instantly drops any active GUI-nav.
+  Verified by a headless state-machine battery (10/10 pass) covering the exact
+  leak scenario and the toggle. (No physical-pad test available; logic-verified.)

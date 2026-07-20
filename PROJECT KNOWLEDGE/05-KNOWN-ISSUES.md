@@ -69,12 +69,3 @@ fix goes in DIVERGENCE-LOG).
   BADGE03_GET (Dynamo) — correct for FR/LG but WRONG for Emerald, where Fly
   needs the Feather Badge (BADGE06). Inherited from upstream. Story-mode #24
   must not rely on fly_to as-is; fix when wiring Fly into story navigation.
-
-## KI-8 — Left Party strip mons too large, overlap the emulator (opened 2026-07-20, sandbox+custom, med)
-- After #44 the strip mon sprites (~0.9× of the 140px slot) are too big and
-  overlap the video. Reduce slot/mon size so they sit clear of the emulator.
-## KI-9 — Controller GUI-nav stuck "in menu" (opened 2026-07-20, sandbox+custom, HIGH)
-- Using a bot, the gamepad GUI-nav state stays active as if the drawer is
-  open even when it's closed, so the controller can't play the game. #38's
-  drawer-gating has a state bug. Fix + add a user "GUI Control" toggle
-  (enable/disable controller menu-control) as a safety valve.
