@@ -553,3 +553,14 @@
   room; ADDED Mr.Briney/Mt.Pyre/Slateport-sub/Magma-Hideout; resolved all
   HM→badge gates + gym puzzles + intro symbols from the ROM). Found KI-7
   (fly_to wrong-badge bug). Build order: progress-detector → Gym1 → intro.
+
+## 2026-07-20 — Story-mode design Pass 3 (accuracy triple-check)
+- Cross-referenced every claim in 12-STORYMODE-DESIGN.md vs (A) the bot's
+  ROM ground-truth (flags/vars/symbols/map/menuing badge-gates) and (B) an
+  external Emerald walkthrough. Fixed 3 substantive errors incl. a Pass-2
+  REGRESSION: HM06 Rock Smash is Mauville (not Route 111 as Pass 2 wrongly
+  "corrected"); Fortree Gym (Ch15) needs the Devon Scope/Kecleon beat first
+  (new row 14b); DELIVERED_DEVON_GOODS flag 149 = Slateport delivery not
+  Rustboro return. Confirmed all 8 gyms/badges/HM-gates, late-game order,
+  and the fly_to KI-7 bug. Sources agree post-fix. §9 audit table added.
+  Verdict: high-confidence, safe to build against.
