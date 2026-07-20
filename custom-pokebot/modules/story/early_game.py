@@ -10,13 +10,21 @@ is almost entirely scripted. Verified against a save state parked in the truck.
 
 from __future__ import annotations
 
+import random
 from typing import Generator
 
 from modules.context import context
+from modules.keyboard import get_naming_screen_data, type_in_naming_screen
 from modules.map import get_map_data_for_current_position
+from modules.map_data import MapRSE
 from modules.map_path import Direction
+from modules.memory import GameState, get_game_state
 from modules.modes import BotModeError
-from modules.modes.util.tasks_scripts import wait_until_task_is_active
+from modules.modes.util.tasks_scripts import (
+    wait_for_yes_no_question,
+    wait_until_script_is_no_longer_active,
+    wait_until_task_is_active,
+)
 from modules.modes.util.sleep import wait_for_n_frames
 from modules.modes.util.walking import (
     navigate_to,
@@ -264,4 +272,190 @@ def visit_rivals_house() -> Generator:
     yield from navigate_to(MAP_RIVAL_HOUSE_1F, RIVAL_1F_DOOR_APPROACH)
     yield from _walk_through_warp("Down", MAP_RIVAL_HOUSE_1F)
     yield from wait_for_player_avatar_to_be_controllable("B")
-    context.message = "Story: back outside the rival's house — chunk complete!"
+    context.message = "Story: back outside the rival's house - rival intro done!"
+
+
+# --- Route 101: help Birch, choose a starter, win the first battle ----------
+LITTLEROOT_NORTH_APPROACH = (11, 3)   # walk here, then step North through the GoSaveBirch trigger
+ROUTE101_BAG_FACE = (8, 14)           # stand here facing West; Birch's bag is at (7,14)
+STARTER_BY_NAME = {"treecko": "Treecko", "torchic": "Torchic", "mudkip": "Mudkip"}
+
+
+def _go_north_to_birch_rescue() -> Generator:
+    """Leave Littleroot to the north to trigger Professor Birch's rescue.
+
+    INTENT: get the player onto Route 101 and into the state where Birch's bag
+    is interactable.
+    STORY CONDITION: the player has met the rival but has no Pokémon yet, so the
+    north edge of Littleroot fires `GoSaveBirch` (not the `NeedPokemon` block).
+    HOW IT WORKS: walk to the north approach, then step North through the
+    trigger at (11,1). The game crosses to Route 101 (0,16) and
+    `Route101_EventScript_StartBirchRescue` AUTO-WALKS the player up the route
+    (to ~(11,15)) while Birch yells, then returns control. We alternate Up (to
+    keep walking north in town) with B (to advance dialogue), and stop once we
+    are on Route 101, controllable, and no script is running for a sustained
+    stretch - the moment free control is genuinely handed over near the bag."""
+    context.message = "Story: heading north - Professor Birch needs help!"
+    yield from navigate_to(MAP_LITTLEROOT_TOWN, LITTLEROOT_NORTH_APPROACH)
+
+    # Keep walking North (advancing dialogue with B) until the Route 101 rescue
+    # script actually FIRES. There is a brief window right after crossing the
+    # border where the player is momentarily "free" at (11,19) but the rescue
+    # hasn't triggered yet — we must NOT stop there, or we get boxed in before
+    # the scene auto-walks us up to the bag.
+    frames = 0
+    while True:
+        script = get_global_script_context()
+        on_route_101 = _map_group_number() == MapRSE.ROUTE101.value
+        rescue_firing = on_route_101 and any(
+            "StartBirchRescue" in s for s in (script.stack or [])
+        )
+        if rescue_firing:
+            break
+        context.emulator.press_button("Up" if frames % 2 == 0 else "B")
+        frames += 1
+        if frames > 3000:
+            raise BotModeError("Never triggered the Birch rescue on Route 101.")
+        yield
+
+    # Ride out the rescue: it auto-walks the player up the route and plays
+    # Birch's dialogue, then hands back control near the bag (~(11,15)).
+    yield from _wait_until_cutscene_over("B")
+
+
+def _choose_starter(resolved_species: str) -> Generator:
+    """Open Birch's bag and select the given starter, then confirm into battle.
+
+    HOW IT WORKS (Emerald bag menu, `Task_HandleStarterChooseInput`): the three
+    Poké Balls are laid out Treecko | Torchic | Mudkip with the cursor starting
+    on the middle (Torchic). Left picks Treecko, Right picks Mudkip, no move
+    keeps Torchic. Mashing A then confirms the "Do you choose this POKéMON?"
+    prompt, which starts the battle vs the wild Pokémon attacking Birch."""
+    context.message = f"Story: choosing {resolved_species}!"
+    yield from wait_until_task_is_active("Task_HandleStarterChooseInput", "A")
+    yield
+    if resolved_species == "Treecko":
+        context.emulator.press_button("Left")
+        yield
+    elif resolved_species == "Mudkip":
+        context.emulator.press_button("Right")
+        yield
+    # else Torchic: leave the cursor on the middle ball.
+
+    # Confirm through to the battle start (BATTLE_STARTING/BATTLE).
+    frames = 0
+    while get_game_state() not in (GameState.BATTLE, GameState.BATTLE_STARTING):
+        context.emulator.press_button("A")
+        frames += 1
+        if frames > 600:
+            raise BotModeError("Confirming the starter never started the first battle.")
+        yield
+
+
+def help_birch_and_choose_starter(starter: str = "random") -> Generator:
+    """Chapter 1 core: rescue Birch on Route 101, choose a starter, win the
+    first battle.
+
+    INTENT: give the player their first Pokémon and clear the tutorial battle,
+    the gate to the rest of the game.
+    STORY CONDITION: begins outside in Littleroot after meeting the rival;
+    the player still has an empty party.
+    GOAL/END STATE: the chosen starter is in the party and the wild Pokémon has
+    been defeated; the post-battle scene (Birch thanks you and warps you to his
+    lab) has played out and control has returned.
+    HOW IT WORKS: `_go_north_to_birch_rescue()` gets us to the bag; `_choose_
+    starter()` picks the species (config: "random" or a specific one) and
+    confirms into battle. The battle itself is fought by the bot's normal
+    BattleListener (StoryMode.on_battle_started returns Fight), during which this
+    generator is paused; when it resumes we ride out the post-battle Birch/lab
+    transition until control returns.
+
+    :param starter: "random" | "treecko" | "torchic" | "mudkip".
+    """
+    resolved = STARTER_BY_NAME.get(str(starter).strip().lower())
+    if resolved is None:
+        resolved = random.choice(list(STARTER_BY_NAME.values()))
+
+    yield from _go_north_to_birch_rescue()
+    yield from navigate_to(
+        MapRSE.ROUTE101, ROUTE101_BAG_FACE,
+        final_facing_direction=Direction.West,
+        avoid_encounters=False, expecting_script=True,
+    )
+    yield from _choose_starter(resolved)
+
+    # The battle is handled by the framework while this generator is paused.
+    # When it resumes, the wild Pokémon is beaten and Birch's post-battle scene
+    # plays: he thanks you and warps you to his lab. Advance that with B (which
+    # also answers 'No' to any incidental Yes/No, e.g. a nickname prompt, which
+    # matches the default of keeping the species name) until we arrive in the
+    # lab. The lab conversation itself is handled by the next step.
+    context.message = "Story: won the first battle! Birch is taking you to his lab..."
+    lab = MapRSE.LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB.value
+    frames = 0
+    while _map_group_number() != lab:
+        context.emulator.press_button("B")
+        frames += 1
+        if frames > 6000:
+            raise BotModeError("Never arrived in Professor Birch's lab after the first battle.")
+        yield
+    yield from wait_for_n_frames(30)
+    context.message = "Story: in Professor Birch's lab — got the starter, won the first battle!"
+
+
+# A small pool of friendly nicknames for the "random" nickname option (nicer
+# than random gibberish from the keyboard).
+_RANDOM_NICKNAMES = [
+    "Sparky", "Ziggy", "Bolt", "Blaze", "Coco", "Pip", "Nova", "Ace",
+    "Fern", "Rocky", "Sunny", "Milo", "Kiki", "Turbo", "Gizmo", "Pixel",
+]
+
+
+def _resolve_nickname(nickname_mode: str) -> str:
+    if nickname_mode == "random":
+        return random.choice(_RANDOM_NICKNAMES)
+    return str(nickname_mode)[:10]  # a literal nickname
+
+
+def finish_birch_lab(nickname_mode: str = "none") -> Generator:
+    """Finish Professor Birch's lab conversation after the first battle.
+
+    INTENT: complete the "receive your starter officially" scene so the player
+    is free to leave the lab and head toward the rival.
+    STORY CONDITION: begins right after arriving in the lab (map 1,4) with the
+    starter in the party; `GiveStarterEvent` is running.
+    GOAL/END STATE: the lab conversation is fully closed and the player is
+    controllable in the lab, free to walk out; the starter is nicknamed per the
+    config (or keeps its species name).
+    HOW IT WORKS: Birch asks "give a nickname?" (a `Std_MsgboxYesNo`). We answer
+    via the proper Yes/No handler (B does NOT dismiss this menu). For "none" we
+    answer No; otherwise Yes → the naming screen → type the nickname. The rest
+    of Birch's speech is then advanced with B — importantly NOT A, because A
+    while facing Birch re-opens his repeatable dialogue in a loop.
+
+    :param nickname_mode: "none" | "random" | a literal nickname string.
+    """
+    context.message = "Story: Professor Birch is giving you your first Pokémon..."
+    # NICKNAME: Birch asks "give a nickname?" (a Std_MsgboxYesNo).
+    # For now we always keep the species name (answer No). The Yes → naming
+    # path below reaches the keyboard and types, but the typed name does not
+    # persist (a post-naming confirm subtlety still to be worked out), and the
+    # user has deprioritised nicknames, so it is gated OFF until fixed. The
+    # config (`starter_nickname`) and `_resolve_nickname()` remain in place for
+    # when it is revisited. See design doc / punch list.
+    if nickname_mode != "none":
+        context.message = (
+            "Story: (starter nickname not wired up yet - keeping the species "
+            "name for now.)"
+        )
+    yield from wait_for_yes_no_question("No")
+
+    # Advance the remainder of the give-starter script until it leaves the
+    # stack. We mash A (B does not advance these message boxes), and this helper
+    # stops the instant `GiveStarterEvent` ends — BEFORE another A could
+    # re-open Birch's repeatable dialogue (A while facing him talks to him).
+    context.message = "Story: finishing up in the lab..."
+    yield from wait_until_script_is_no_longer_active(
+        "LittlerootTown_ProfessorBirchsLab_EventScript_GiveStarterEvent", "A"
+    )
+    context.message = "Story: got the starter and left Birch to it — heading north next."

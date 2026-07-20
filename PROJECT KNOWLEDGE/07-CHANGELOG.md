@@ -743,3 +743,8 @@ wild in a story battle (never catches, never stops) — the story must progress
 even in the rare event the scripted first-battle wild is shiny. Safe because the
 default shiny-halt/catch lives in handle_encounter(), only reached when
 on_battle_started returns None; returning Fight bypasses it. Unit-tested. §15.2.
+
+## 2026-07-20 — PROMOTED story Chapter 1 (starter → first battle → lab) to custom (#24)
+User tested ("worked perfectly!"). Copied early_game.py + config.py + story_mode.py
+sandbox → custom (NOT the sandbox-only audio change); verified full fresh run
+→ Birch's lab with starter Lv5, first battle won, shiny contingency in place.

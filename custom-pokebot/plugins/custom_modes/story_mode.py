@@ -20,7 +20,7 @@ from typing import Generator
 from modules.console import console
 from modules.context import context
 from modules.memory import GameState, game_has_started, get_game_state
-from modules.modes import BotMode
+from modules.modes import BattleAction, BotMode
 
 
 class StoryMode(BotMode):
@@ -39,6 +39,38 @@ class StoryMode(BotMode):
         # Unlike stock modes, Story Mode is MEANT to start at the title/main
         # menu — that's where it runs the New Game intro.
         return True
+
+    def on_battle_started(self, encounter):
+        # Story battles (the first Birch battle, training, the rival) are meant
+        # to be FOUGHT and won with the default battle strategy — never run from
+        # or auto-caught. The BattleListener handles the fight while run() pauses.
+        #
+        # SHINY CONTINGENCY: if the wild in the scripted first battle (or any
+        # story battle) happens to be shiny — extremely rare — we must NOT try
+        # to catch it and must NOT stop; the story has to progress normally.
+        # Returning Fight guarantees this: the default "shiny → stop the bot"
+        # logic lives in handle_encounter(), which the framework only calls when
+        # on_battle_started returns None. By returning Fight we bypass it
+        # entirely (and the first battle is a Tutorial encounter, which the
+        # framework forces to CustomAction anyway — also no halt).
+        try:
+            if encounter is not None and encounter.is_shiny:
+                from modules.console import console
+
+                species = getattr(getattr(encounter, "pokemon", None), "species", None)
+                name = getattr(species, "name", "Pokémon")
+                console.print(
+                    f"[bold yellow]Story Mode: a SHINY {name} appeared in a story "
+                    f"battle — fighting through as normal (NOT catching, NOT "
+                    f"stopping), per the contingency.[/]"
+                )
+                context.message = (
+                    f"Story: a shiny {name} appeared in a story battle — fighting "
+                    "through (not catching)."
+                )
+        except Exception:
+            pass
+        return BattleAction.Fight
 
     def run(self) -> Generator:
         from modules.story import detect_live
@@ -72,7 +104,9 @@ class StoryMode(BotMode):
         #     starter + first battle are WIP.) ------------------------------
         from modules.story.early_game import (
             descend_and_leave_players_house,
+            finish_birch_lab,
             go_upstairs_and_set_clock,
+            help_birch_and_choose_starter,
             visit_rivals_house,
             walk_off_truck_and_into_house,
         )
@@ -81,11 +115,13 @@ class StoryMode(BotMode):
         yield from go_upstairs_and_set_clock()
         yield from descend_and_leave_players_house()
         yield from visit_rivals_house()
+        yield from help_birch_and_choose_starter(cfg.starter)
+        yield from finish_birch_lab(cfg.starter_nickname)
 
         context.message = (
-            "Story: moved in, set the clock, met the rival - now back outside "
-            "the rival's house. Next (Route 101 -> help Birch -> choose a "
-            "starter -> first battle) is still being built; handing to manual."
+            "Story: got the starter, won the first battle, and finished Birch's "
+            "lab. Next (Oldale -> train -> rival) is still being built; handing "
+            "to manual."
         )
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()

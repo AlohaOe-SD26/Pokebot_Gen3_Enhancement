@@ -288,3 +288,12 @@ the new_move decision point.
 Petalburg-Gym TV scene) → out → rival's house (auto mom greeting → upstairs →
 touch Poké Ball → meet the rival) → back outside in Littleroot. Full chain wired
 into StoryMode. Verified in custom (fresh run → Littleroot (14,9)).
+
+### (j-update 2026-07-20b) Story Mode: Chapter 1 (Route 101 → starter → first battle → lab)
+`early_game.py` extended with `help_birch_and_choose_starter()` +
+`finish_birch_lab()`: north to Route 101 → Birch rescue → choose a starter
+(config `starter`: random/specific) → win the first battle → finish the lab
+conversation. `on_battle_started` returns Fight (shiny contingency: story
+battles are always fought through, never caught/halted). Config `starter` +
+`starter_nickname` (nickname gated off / TODO). Verified in custom (full fresh
+run → Birch's lab with starter, first battle won).
