@@ -637,3 +637,18 @@ First piece of the story bot that actually PLAYS the game.
   reads as MAIN_MENU state; gender is position-based; naming struct lag; first
   control = INSIDE OF TRUCK). Next chunk: step off truck → room/clock → Route
   101 rescue → choose starter → first battle.
+
+## 2026-07-20 — Fix: Story mode couldn't be selected at the title/main menu (#24)
+User hit this testing chunk 2: on a fresh, save-less game at the main menu the
+Story mode showed but was greyed out. Root cause: both mode pickers
+(`dashboard_gui.py:_open_mode_menu`, `emulator_controls.py`) force EVERY mode
+to non-selectable while game_state is TITLE_SCREEN/MAIN_MENU (stock modes all
+need an in-game overworld). But Story mode is designed to start there.
+- Added `BotMode.is_selectable_from_title_screen()` (default False) as an
+  opt-in; `StoryMode` overrides it to True.
+- Both pickers now, at the title/main menu, offer modes where
+  `is_selectable_from_title_screen() and is_selectable()` — so only Story is
+  available there; all other modes stay greyed as before.
+- Verified via the custom-mode loader: Story is selectable at title, sibling
+  custom modes (Hunt/etc.) are not. Main loop has no game-state gate, so once
+  selected the mode runs. Sandbox only.

@@ -34,6 +34,12 @@ class StoryMode(BotMode):
         # so it is always offered; run() sorts out which path applies.
         return True
 
+    @staticmethod
+    def is_selectable_from_title_screen() -> bool:
+        # Unlike stock modes, Story Mode is MEANT to start at the title/main
+        # menu — that's where it runs the New Game intro.
+        return True
+
     def run(self) -> Generator:
         from modules.story import detect_live
         from modules.story.config import get_story_config

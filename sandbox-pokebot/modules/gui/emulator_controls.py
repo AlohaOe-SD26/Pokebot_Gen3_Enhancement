@@ -169,15 +169,23 @@ class EmulatorControls:
                     self.bot_mode_menu.add_command(label=mode.name(), font=bold_font)
                     continue
 
-                if get_game_state() not in (GameState.TITLE_SCREEN, GameState.MAIN_MENU):
+                if get_game_state() in (GameState.TITLE_SCREEN, GameState.MAIN_MENU):
+                    # Only modes that opt in (e.g. Story Mode's New Game intro)
+                    # are offered at the title/main menu; the rest need an
+                    # in-game overworld and stay greyed out.
+                    try:
+                        is_selectable = mode.is_selectable_from_title_screen() and mode.is_selectable()
+                    except Exception:
+                        if context.debug:
+                            console.print_exception()
+                        is_selectable = False
+                else:
                     try:
                         is_selectable = mode.is_selectable()
                     except Exception:
                         if context.debug:
                             console.print_exception()
                         is_selectable = False
-                else:
-                    is_selectable = False
 
                 if is_selectable:
                     self.bot_mode_menu.add_command(label=mode.name(), command=lambda m=mode: select_bot_mode(m.name()))
