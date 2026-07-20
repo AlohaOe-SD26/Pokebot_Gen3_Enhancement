@@ -1352,3 +1352,50 @@ listener drive (petalburg.ss1 -> done, back in gym, ~8.4k frames).
   POKENAV_CALL were set either). Low priority (badge-anchored detection).
 - Checkpoint `wally_done.ss1`. NEXT: Route 104 -> Petalburg Woods -> Rustboro
   (HM01 Cut, then Gym 1 Roxanne).
+
+## §16 — Petalburg → Rustboro corridor: VERIFIED map geometry + travel plan (2026-07-20)
+Read directly from the ROM (get_map_data connections/dims) — no more guessing.
+
+**Connection graph (group/number, dims = width×height):**
+- PETALBURG_CITY (0,0) 30×30: **West → Route 104** (offset -50), East → Route 102.
+- ROUTE 104 (0,19) 40×80: **North → Rustboro City**, East → Petalburg (offset 50),
+  South → Route 105.
+- PETALBURG_WOODS (24,11) 48×44: **NO map connections** — entered only by WARPS
+  (doorways) off Route 104.
+- RUSTBORO_CITY (0,3) 40×60: **South → Route 104**, North → Route 115, East → Route 116.
+
+**WHY `navigate_to_anywhere` CANNOT do Petalburg→Rustboro (root cause):**
+Route 104 is one map ID but is PHYSICALLY SPLIT by the Petalburg Woods building.
+The south half (the Petalburg/beach entrance, ~y50-79) and the north half (the
+Rustboro connection, ~y0) are joined ONLY by walking THROUGH the Woods via warps.
+The global navigator routes over the connection GRAPH (Petalburg→Route104→Rustboro
+all look edge-connected) but then fails the LOCAL path across Route 104 — it errors
+`Could not find a path from (…@PETALBURG) to (…@ROUTE104)` or picks an unreachable
+Route104 waypoint like (10,30). A warp barrier is invisible to connection routing.
+=> The trip MUST be built in LEGS with explicit warp traversal. See ML-7.
+
+**West-exit blocker (observed):** navigating from Petalburg toward Route 104 paths
+the player to the west edge (reached ~(4,13)) but then triggers a scripted event /
+hits a wall right at the exit. The exact west-edge exit tile (which y crosses to
+Route 104) and any NPC/script there still need pinning down. Manual walk west along
+y=11 dead-ended at (4,11). Petalburg's West connection has offset -50, so its full
+west edge (x=0, y=0..29) maps to Route 104's east edge at y≈50..79 (the beach).
+
+**LEG PLAN for next session (build + verify each via the LISTENER harness):**
+1. Petalburg → Route 104 (south/beach): find the west-edge exit tile (probe y at
+   x=0), cross west. Grass on Route 104 ⇒ keep the battle listener attached.
+2. Route 104 south → Petalburg Woods: navigate to the Woods SOUTH-entrance warp,
+   step onto it. (Enumerate Route 104 warps — `MapWarp` has `.local_coordinates`
+   and `.destination_warp_id`, NOT `.destination_map`; match the warp whose dest
+   is the Woods.)
+3. Cross Petalburg Woods: ride out the MANDATORY Team-Aqua-grunt / Devon-researcher
+   scripted scene (design §3 [P4]: grunt battles then flees, researcher gives a
+   Great Ball), exit the NORTH warp back to Route 104 (north half).
+4. Route 104 north → Rustboro: navigate north to Rustboro's South connection, cross.
+5. Enter Rustboro City.
+Checkpoints to reuse: wally_done.ss1 (in the gym at (8,1)/(4,108)). Save a
+route104_south.ss1 / woods_done.ss1 / rustboro.ss1 as each leg lands.
+
+**GYM 1 (Roxanne) reminder:** Geodude Lv12/12 + Nosepass Lv15 — starter is only
+Lv 8-10 out of Chapter 1, so TRAIN before the gym; Torchic (Fire) is weak vs Rock.
+Also need HM01 Cut (from the Rustboro/Route 104 cuttable tree area) before some paths.

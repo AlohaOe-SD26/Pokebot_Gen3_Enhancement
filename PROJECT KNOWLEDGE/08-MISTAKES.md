@@ -131,3 +131,24 @@
   — raises the whole widget's stacking, no tag needed. Fixed in sandbox+custom.
 - **Prevention:** To restack a **Canvas** widget, never `.lift()`/`.tkraise()`
   — use `tkinter.Misc.tkraise(widget)` (or `.lower` → `Misc.lower`).
+
+## 2026-07-20 — Global navigator can't cross a warp-split map  (ML-7)
+- **Symptom:** `navigate_to_anywhere(RUSTBORO/ROUTE104, …)` from Petalburg always
+  failed — `Could not find a path from (…@PETALBURG_CITY) to (…@ROUTE104)`, or it
+  picked an unreachable Route104 waypoint, or "too many scripted interruptions"
+  after 25 retries. Hours of coord-guessing (41,20)/(16,38)/(10,65) all failed.
+- **Root cause:** Route 104 is ONE map ID but is physically split into a south
+  (Petalburg) half and a north (Rustboro) half, joined only by walking THROUGH
+  Petalburg Woods via WARPS. The global navigator routes over the map-CONNECTION
+  graph (which shows Petalburg→Route104→Rustboro as edge-connected) then fails the
+  LOCAL path across Route104 because a warp barrier is invisible to connection
+  routing. NO target coordinate can fix this — it's structural.
+- **Fix (plan):** build the trip in LEGS with explicit warp traversal (Petalburg →
+  Route104-south → Woods-south-warp → cross Woods → Woods-north-warp → Route104-north
+  → Rustboro). See design §16.
+- **Prevention:** Before trusting `navigate_to_anywhere` across regions, check the
+  ROM connection graph AND whether any intermediate map is warp-split (a route that
+  routes THROUGH a cave/woods/building). If so, drive it leg-by-leg through the
+  warps — don't guess target coords. Read connections with get_map_data(M).connections
+  (each has .direction/.offset/.destination_map); warps via .warps (`MapWarp` =
+  `.local_coordinates` + `.destination_warp_id`).

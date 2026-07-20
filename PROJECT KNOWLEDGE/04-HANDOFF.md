@@ -3,7 +3,7 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-07-19
+**Last updated:** 2026-07-20
 
 ## What this project is
 Documents and enhances 40Cakes/pokebot-gen3 (Python shiny-hunting bot for
@@ -58,6 +58,20 @@ flavor all done, Phases 1/2/3a). `itemdex_data.json` = core (309 items);
 gaps = map_locations/mart/pickup/historical.
 
 ## Most recent work (2026-07-20)
+- **Dashboard GUI bug fixed (BOTH builds, committed `27189794`):** clicking
+  "Hide" threw `_tkinter.TclError: wrong # args … raise tagOrId` from
+  `_pokeball_button.lift()`. `_pokeball_button` is a **Canvas**, and Tkinter's
+  Canvas aliases BOTH `.lift()` AND `.tkraise()` to `tag_raise` (raise a canvas
+  ITEM, needs a tag). Fix = `tkinter.Misc.tkraise(self._pokeball_button)` (base
+  widget-stacking raise). Non-fatal but noisy; fixed in sandbox+custom. The
+  other `.lift()` calls in the file are on Toplevel/Frame (safe). See ML-6.
+- **Petalburg→Rustboro travel — DIAGNOSED, NOT yet built.** Read the ROM
+  connection graph: **Route 104 is one map ID split by the Petalburg Woods
+  warp barrier**, so `navigate_to_anywhere` structurally CANNOT do
+  Petalburg→Rustboro (it routes the connection graph, then fails the local path
+  across the split Route 104). Must build LEG-BY-LEG through the Woods warps.
+  Full verified geometry + 5-leg plan in design §16; root cause in ML-7. This
+  is the immediate next build.
 - **Story mode now runs a fresh game → through Professor Birch's lab** (sandbox,
   awaiting user test → promote). Full chain (verified with real battle
   listeners, ~17.5k frames): title → intro → house → clock → rival → Birch
@@ -105,21 +119,22 @@ gaps = map_locations/mart/pickup/historical.
   `THANKED_FOR_PLAYING_WITH_WALLY` is NOT set by the Wally tutorial — find the
   real flag (badge-anchored detection makes this low-impact).
 - **Chapter 2 PROMOTED to custom** (user-tested "it worked").
-- **NEXT SESSION — Route 104 → Woods → Rustboro → HM01 Cut → Gym 1 (Roxanne):**
-  Map ids: ROUTE104=(0,19), PETALBURG_WOODS=(24,11), RUSTBORO_CITY=(0,3),
-  RUSTBORO_CITY_GYM=(11,3). KEY GEOGRAPHY FINDING: **Route 104 is WEST of
-  Petalburg** (Petalburg connections: West→Route104, East→Route102) — walking
-  north from the gym-exit just re-enters the gym door (15,8). The travel needs:
-  exit gym → go WEST to Route 104 → north through Petalburg Woods (has a
-  MANDATORY scripted Aqua-grunt/researcher scene, design §3) → Route 104 north
-  → Rustboro. TRAVEL IS FINICKY: `navigate_to`/`navigate_to_anywhere` fail on
-  wrong target coords (guessing coords errors → "too many interruptions") and
-  navigate_to_anywhere may not route that far; recommend walking cardinal
-  directions to find valid connection coords first, or a robust
-  "walk-through-connection" helper. GYM 1 NOTE: Roxanne has Geodude Lv12/12 +
-  Nosepass Lv15; the starter is only Lv8-10 → will need TRAINING before the gym,
-  and Torchic (fire) is weak vs Rock (type matters). Checkpoints: petalburg.ss1,
-  wally_done.ss1 (post-tutorial, in the gym at (8,1)/(4,108)).
+- **NEXT SESSION — build Route 104 → Woods → Rustboro travel (leg-based).**
+  Full verified geometry + 5-leg plan is in **design §16**; root cause of why
+  `navigate_to_anywhere` fails is **ML-7**. Verified connection graph:
+  Petalburg(30×30) West→Route104(offset-50); Route104(40×80) North→Rustboro,
+  East→Petalburg, South→Route105; Petalburg Woods(24,11 / 48×44) has NO map
+  connections (WARP-entered only); Rustboro(0,3 / 40×60) South→Route104.
+  **Route 104 is warp-split by the Woods** — so travel MUST go leg-by-leg:
+  (1) Petalburg west-edge exit → Route104 south [find the exact west-exit y at
+  x=0; a script/wall triggers near (4,13)], (2) → Woods south warp, (3) cross
+  Woods riding out the mandatory Aqua-grunt/researcher scene → north warp,
+  (4) Route104 north → Rustboro south connection, (5) into Rustboro. Keep the
+  battle listener attached through grass. Warps: `MapWarp` has
+  `.local_coordinates` + `.destination_warp_id` (NOT `.destination_map`).
+  GYM 1: Roxanne = Geodude Lv12/12 + Nosepass Lv15; starter is only Lv8-10 →
+  TRAIN first; Torchic (Fire) weak vs Rock. Also need HM01 Cut. Checkpoints:
+  petalburg.ss1, wally_done.ss1 (post-tutorial, in the gym at (8,1)/(4,108)).
 - Iteration save-states in scratchpad: truck/house1f/house2f/clockset/
   outside_town/rival_*/birch_rescue/birch_free/first_battle/birch_lab/lab_done.
 
@@ -220,4 +235,6 @@ python ..\install_sandbox.py           # same for sandbox
 - Never `git commit` without a pathspec in automation (ML-3).
 - Stock auto-updater is disabled for our root-`.git` layout (ML-4 fix).
 - Known issues: KI-1 (stale pokebot.spec), KI-4/5 (cloud-sync minor),
-  KI-6 fixed (two-row tab bar). Mistakes: ML-1..ML-4 in 08-MISTAKES.
+  KI-6 fixed (two-row tab bar). Mistakes: ML-1..ML-7 in 08-MISTAKES
+  (ML-6 = Canvas .lift/.tkraise both = tag_raise; ML-7 = global navigator
+  can't cross a warp-split map like Route 104 through the Woods).
