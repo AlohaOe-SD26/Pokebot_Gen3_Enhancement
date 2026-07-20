@@ -648,3 +648,54 @@ def travel_to_petalburg() -> Generator:
     # Oldale -> Route 102 -> Petalburg.
     yield from navigate_to_anywhere(MapRSE.PETALBURG_CITY, (20, 18))
     context.message = "Story: arrived in Petalburg City."
+
+
+# --- Chapter 2: Petalburg Gym (Dad/Norman) + Wally catching tutorial --------
+PETALBURG_GYM_NORMAN_TRIGGER_APPROACH = (4, 110)  # enter the gym here; step Up to fire the Norman scene
+
+
+def do_petalburg_gym_and_wally_tutorial() -> Generator:
+    """Enter the Petalburg Gym to meet Dad (Norman), then ride out the Wally
+    catching tutorial.
+
+    INTENT: clear the mandatory Petalburg beat so the player can head north.
+    STORY CONDITION: begins in Petalburg City with the Pokédex, gym not yet
+    visited (`THANKED_FOR_PLAYING_WITH_WALLY` unset).
+    HOW IT WORKS: enter the gym near the entrance and step Up until the Norman
+    coord-trigger at (4,108) fires (it only fires when stepped onto from the
+    entrance, not when navigation drops you there). From there the whole
+    sequence is AUTO-SCRIPTED — Norman addresses you, `ExitGymWithWally` walks
+    you out, `WallyTutorial` auto-walks you and Wally to Route 102 where Wally
+    catches a Ralts, then back. We just ride it out (advancing with B) until
+    control genuinely returns.
+    GOAL/END STATE: `THANKED_FOR_PLAYING_WITH_WALLY` set, controllable."""
+    context.message = "Story: heading into the Petalburg Gym to see Dad..."
+    yield from navigate_to_anywhere(MapRSE.PETALBURG_CITY_GYM, PETALBURG_GYM_NORMAN_TRIGGER_APPROACH)
+
+    # Step up toward the Norman coord-trigger tile (4,108) (you get blocked
+    # there), then ride out the whole Dad + Wally tutorial by alternating A/B.
+    # The Norman scene engages once we start pressing A/B at the trigger tile,
+    # and the tutorial then AUTO-WALKS the player to Route 102 for the Ralts
+    # catch and back. This scene has mid-scene pauses where control briefly
+    # returns, so the generic "controllable + no script" check stops too early —
+    # ride until the completion flag `THANKED_FOR_PLAYING_WITH_WALLY` is set.
+    from modules.memory import get_event_flag
+
+    frames = 0
+    while get_player_avatar().local_coordinates != (4, 108):
+        context.emulator.press_button("Up")
+        frames += 1
+        if frames > 160:  # ~16 frames per tile; a few tiles up from the entrance
+            break
+        yield
+
+    context.message = "Story: Dad and the Wally catching tutorial (Route 102)..."
+    frames = 0
+    while not get_event_flag("THANKED_FOR_PLAYING_WITH_WALLY"):
+        context.emulator.press_button("A" if frames % 2 == 0 else "B")
+        frames += 1
+        if frames > 40000:
+            raise BotModeError("The Wally catching tutorial never completed.")
+        yield
+    yield from _wait_until_cutscene_over("B")
+    context.message = "Story: finished the Wally tutorial in Petalburg."

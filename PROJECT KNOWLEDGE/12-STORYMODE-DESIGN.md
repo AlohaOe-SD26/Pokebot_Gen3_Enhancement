@@ -1312,3 +1312,22 @@ listeners: pokedex_done -> Petalburg (0,0), 22.1k frames. Wired into StoryMode
   tutorial (Wally catches a Ralts on Route 102 — determine if it auto-plays or
   needs navigation) -> back to the gym -> free. Then Route 104 -> Petalburg Woods
   -> Rustboro (Gym 1). Checkpoint `petalburg.ss1` to iterate from.
+
+### §17.1 — Wally tutorial (WIP, trigger finicky) — NOT wired into StoryMode
+`do_petalburg_gym_and_wally_tutorial()` (early_game.py, unwired). KNOWN GOOD:
+the tutorial is ENTIRELY AUTO-SCRIPTED — enter the gym, the Norman coord-scene at
+(4,108) fires (`Norman`→`WallyArrive`→`NormanAddressPlayer`→`ExitGymWithWally`→
+`BeginWallyTutorial`→`WallyTutorial` auto-walks you+Wally to Route 102 for the
+Ralts catch and back). So the build is: reach (4,108), then RIDE OUT until
+`THANKED_FOR_PLAYING_WITH_WALLY` (135) is set.
+BLOCKER: getting the Norman scene to TRIGGER reliably from the built function.
+In the raw observation (`$TEMP/wally_obs.py`: navigate_to_anywhere(GYM,(4,110))
+-> step Up ~40 frames to (4,108) -> ride out mashing "B if i%3 else A") it FIRED
+(Norman active on the first ride-out frame) and auto-walked to (25,17)+. But the
+built function (reach (4,108) via a `while != (4,108)` loop, then A/B) does NOT
+fire it — 40k frames stuck at (4,108). Suspect a timing/step-completion nuance
+(the coord-event vs. the exact frame the Up-mash stops / the A/B starts).
+NEXT SESSION: re-run wally_obs to confirm it still fires; diff the exact
+frame-level input sequence; possibly step to (4,109) then a single Up onto
+(4,108) then release + ride out. Also verify petalburg.ss1 is a clean
+"just arrived" state. Checkpoint: petalburg.ss1.
