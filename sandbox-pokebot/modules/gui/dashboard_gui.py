@@ -1065,14 +1065,12 @@ class DashboardScreen:
             key = "egg"
         else:
             try:
-                ball = pokemon.poke_ball.name
-            except Exception:
-                ball = "Poké Ball"
-            try:
                 species = pokemon.species_name_for_stats
             except Exception:
                 species = pokemon.name
-            key = f"{species}|{bool(pokemon.is_shiny)}|{ball}"
+            # The strip no longer draws the caught ball (moved to the hover
+            # tooltip), so the ball is not part of the cache key.
+            key = f"{species}|{bool(pokemon.is_shiny)}"
         if key in self._party_icon_cache:
             return self._party_icon_cache[key]
         photo = None
@@ -1110,24 +1108,48 @@ class DashboardScreen:
             y = size - image.height - 2 if anchor == "bottom" else (size - image.height) // 2
             canvas.alpha_composite(image, (x, y))
 
-        mon_box = int(size * 0.55)  # mon clearly smaller so the ball frames it
+        mon_box = int(size * 0.9)  # clean, prominent mon sprite (no ball backdrop)
         if key == "empty":
-            paste(load(items_dir / "Poké Ball.png", size), alpha_mul=0.7)
+            # Empty slot: a faded Poké Ball just denotes "no Pokémon here".
+            paste(load(items_dir / "Poké Ball.png", int(size * 0.7)), alpha_mul=0.55)
         elif key == "egg":
-            paste(load(get_sprites_path() / "pokemon" / "Egg.png", int(size * 0.7)), anchor="bottom")
+            paste(load(get_sprites_path() / "pokemon" / "Egg.png", mon_box))
         else:
-            ball_name = key.split("|")[-1]
-            ball_image = load(items_dir / f"{ball_name}.png", size) or load(items_dir / "Poké Ball.png", size)
-            paste(ball_image, alpha_mul=1.0)  # large ball fills the slot as a bold BACKDROP
             try:
                 from modules.sprites import get_sprite
 
-                # Mon stands in FRONT of the ball, bottom-anchored so the ball's
-                # full dome + band stay clearly visible above and around it.
-                paste(load(get_sprite(pokemon), mon_box), anchor="bottom")
+                # Just the Pokémon, centered and large — the caught ball now
+                # lives in the hover tooltip instead of behind the sprite.
+                paste(load(get_sprite(pokemon), mon_box))
             except Exception:
                 pass
         return PIL.ImageTk.PhotoImage(canvas)
+
+    def _tooltip_ball_icon(self, ball_name: str) -> "PIL.ImageTk.PhotoImage | None":
+        """Small (~18px) caught-ball icon for the hover tooltip, cached per
+        ball name. Falls back to the plain Poké Ball if the asset is missing."""
+        if not hasattr(self, "_tooltip_ball_cache"):
+            self._tooltip_ball_cache = {}
+        if ball_name in self._tooltip_ball_cache:
+            return self._tooltip_ball_cache[ball_name]
+        photo = None
+        try:
+            from modules.runtime import get_sprites_path
+
+            items_dir = get_sprites_path() / "items"
+            path = items_dir / f"{ball_name}.png"
+            if not path.is_file():
+                path = items_dir / "Poké Ball.png"
+            if path.is_file():
+                image = PIL.Image.open(path)
+                if image.mode != "RGBA":
+                    image = image.convert("RGBA")
+                image.thumbnail((18, 18), PIL.Image.NEAREST)
+                photo = PIL.ImageTk.PhotoImage(image)
+        except Exception:
+            photo = None
+        self._tooltip_ball_cache[ball_name] = photo
+        return photo
 
     def _bind_party_row_hover(self, widget, index: int) -> None:
         """Bind hover-stats on a party-tab row and all its children (Tk
@@ -1472,7 +1494,18 @@ class DashboardScreen:
         info_line(f"{safe(lambda: mon.nature.name)} nature")
         info_line(f"Ability: {safe(lambda: mon.ability.name)}")
         held = safe(lambda: mon.held_item.name if mon.held_item is not None else "—", "—")
-        info_line(f"Held: {held}     Ball: {safe(lambda: mon.poke_ball.name)}")
+        info_line(f"Held: {held}")
+        # Caught-ball row: small ball icon + name (moved here from the party strip).
+        ball_name = safe(lambda: mon.poke_ball.name, "Poké Ball")
+        ball_row = tkinter.Frame(info, background=COLOR_CARD)
+        ball_row.pack(fill="x")
+        ball_icon = self._tooltip_ball_icon(ball_name)
+        if ball_icon is not None:
+            icon_label = tkinter.Label(ball_row, image=ball_icon, background=COLOR_CARD)
+            icon_label.image = ball_icon
+            icon_label.pack(side="left", padx=(0, 4))
+        tkinter.Label(ball_row, text=f"Caught in: {ball_name}", background=COLOR_CARD,
+                      foreground=COLOR_INK_2, font=("Segoe UI", 9), anchor="w").pack(side="left")
         info_line(f"HP: {safe(lambda: mon.current_hp)}/{safe(lambda: mon.total_hp)}")
 
         try:

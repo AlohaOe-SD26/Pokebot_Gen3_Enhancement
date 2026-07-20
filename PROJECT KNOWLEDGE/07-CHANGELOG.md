@@ -473,3 +473,10 @@
   living_dex_mode.on_battle_started broadened, box-space-gated, outcome-gating
   implicit via live is_owned. 22/22 unit tests. Files: modules/living_dex.py,
   plugins/custom_modes/living_dex_mode.py.
+
+## 2026-07-19 — #44 party ball: strip cleaned, ball moved to hover tooltip (sandbox)
+- Left Party strip now shows clean, larger mon sprites (no ball-behind
+  composite — the sizing was fighting the sprite). The caught ball moved to
+  the hover tooltip as a proper icon+name row ("Caught in: <Ball>").
+  Verified live on the real save (clean strip; save untouched, md5 match)
+  + stub tooltip render (Ultra Ball icon + row).

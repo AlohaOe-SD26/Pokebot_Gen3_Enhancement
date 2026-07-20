@@ -771,3 +771,17 @@ process.
 - Verified: 22/22 unit battery (incl. non-target-but-wanted→Catch,
   owned→None, not-in-plan→None, boxes-full→None, is_wanted edge cases);
   compile + discovery green. Live catch-and-advance needs a real battle.
+
+## 2026-07-19 — #44 party ball moved from strip to hover tooltip
+- Left Party strip (`dashboard_gui.py _build_party_icon`): removed the
+  ball-backdrop composite; now draws just the mon sprite at 0.9× centered
+  (clean/legible). Empty slot = faded Poké Ball; egg = egg sprite. Dropped
+  `ball` from the strip sprite-cache key (species|shiny only).
+- Hover tooltip (`_build_tooltip_body`): the old text-only "Ball:" is now a
+  proper row — a ~18px caught-ball icon + "Caught in: <Ball>" — via new
+  cached `_tooltip_ball_icon()`. Held-item on its own line. Themed styling
+  (type badges / IV grid / moves) unchanged; same _show_party_tooltip API.
+- Verified: py_compile + real-import + mode discovery; tooltip render (stub
+  Bulbasaur/Ultra Ball → ball row + icon shown); LIVE on the real
+  Nick - Emerald save → clean strip (mon sprites, no ball backdrop),
+  save md5-identical after run.
