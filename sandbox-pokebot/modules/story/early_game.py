@@ -895,3 +895,41 @@ def cross_petalburg_woods() -> Generator:
     # Settle onto Route 104 north.
     yield from wait_for_player_avatar_to_be_controllable()
     context.message = "Story: exited Petalburg Woods to Route 104 (north)."
+
+
+# A reachable central tile in Rustboro City (from mapdump; the gym is at warp
+# (27,19), the Poké Center at (16,38)):
+RUSTBORO_ARRIVAL_TILE = (20, 42)
+
+
+def travel_route104_north_to_rustboro() -> Generator:
+    """Route 104 (north half) -> Rustboro City.
+
+    INTENT: final travel leg of Chapter 3 (Petalburg -> Rustboro).
+    STORY CONDITION: standing on Route 104 north (having exited Petalburg Woods
+    via `cross_petalburg_woods`), no-flee travel strategy active.
+    HOW IT WORKS: Route 104's north half connects DIRECTLY to Rustboro (no warp
+    split), so the global navigator can route it in one shot. We head for a
+    central Rustboro tile, fighting any Route 104 north trainers inline
+    (`avoid_scripted_events=False`) and riding out any cutscene that aborts the
+    path, until we're standing in Rustboro City.
+    GOAL/END STATE: standing in Rustboro City (0,3)."""
+    context.message = "Story: heading up Route 104 to Rustboro City..."
+    rustboro = MapRSE.RUSTBORO_CITY.value
+    rounds = 0
+    while _map_group_number() != rustboro:
+        rounds += 1
+        if rounds > 15:
+            raise BotModeError("Stuck reaching Rustboro from Route 104 north.")
+        try:
+            yield from navigate_to_anywhere(
+                MapRSE.RUSTBORO_CITY,
+                RUSTBORO_ARRIVAL_TILE,
+                avoid_encounters=True,
+                avoid_scripted_events=False,
+            )
+            break
+        except BotModeError:
+            yield from _ride_out_scripted_scene("B")
+    yield from wait_for_player_avatar_to_be_controllable()
+    context.message = "Story: arrived in Rustboro City."

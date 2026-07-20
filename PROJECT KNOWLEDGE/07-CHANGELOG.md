@@ -834,3 +834,11 @@ Verified deterministically via the listener harness (woods_entered.ss1 -> Route
 104 north, 16123 frames, x2). Recon via the new tools/mapdump.py. Documented a
 harness-fidelity rule (per-frame state refresh; companion to ML-5) in design §16.
 Sandbox-only; not yet promoted.
+
+## 2026-07-20 — Story: Route 104 north -> Rustboro City (leg 4) (#24, sandbox)
+Added `travel_route104_north_to_rustboro()` (early_game.py), wired into StoryMode
+(now ends "reached Rustboro City"). Route 104 north connects directly to Rustboro
+(no warp split) so a single navigate routes it (no-flee strategy for any route
+trainers). Verified deterministically (route104_north.ss1 -> Rustboro (20,42),
+3166 frames, x2) using the reusable harness (tools pattern) with per-frame state
+refresh. Checkpoint rustboro.ss1. Sandbox-only.
