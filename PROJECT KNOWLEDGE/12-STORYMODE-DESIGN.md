@@ -1273,3 +1273,16 @@ reached. In the lab, advance with A until `RECEIVED_POKEDEX_FROM_BIRCH` is set
 checkpoint: dex + `SYS_POKEDEX_GET` True, controllable in the lab (4.1k frames).
 Checkpoint `pokedex_done.ss1`. NEXT: leave lab -> Route 102 -> Petalburg (meet
 Dad/Norman + Wally catching tutorial = Chapter 2 proper).
+
+### §16.1 — Petalburg journey (WIP, 2026-07-20) — NOT wired into StoryMode yet
+`travel_to_petalburg()` + `_navigate_leg()` (navigate_to per leg with ride-out
+retry, since `navigate_to_anywhere` LOOPS on Route 101). Handles Mom's
+Running-Shoes gift in Littleroot. STATUS: reaches Oldale reliably; the
+**Oldale -> Route 102 leg fails** ("Stuck trying to reach (0,17)") — the target
+coord (14,8)/approach is wrong OR navigate_to won't cross that connection.
+NEXT SESSION: find the correct Oldale west-exit / Route 102 coords (ROUTE102 =
+(0,17), PETALBURG_CITY = (0,0)); then Chapter 2 proper — enter the Petalburg Gym
+to meet Dad/Norman, then the **Wally catching tutorial** (a big scripted
+sequence to explore). StoryMode currently ends at the Pokédex (§16); wire the
+Petalburg travel only once it reaches Petalburg cleanly. Checkpoints:
+pokedex_done.ss1, rival_beaten.ss1.

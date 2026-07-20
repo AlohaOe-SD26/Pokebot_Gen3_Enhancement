@@ -614,3 +614,33 @@ def return_to_lab_and_get_pokedex() -> Generator:
         yield
     yield from _wait_until_cutscene_over("B")
     context.message = "Story: got the Pokédex! Time to start the journey to Petalburg."
+
+
+def _navigate_leg(dest_map, coordinates, *, avoid_encounters: bool = True, max_rounds: int = 12) -> Generator:
+    """One leg of a cross-region journey using `navigate_to` (which, unlike the
+    global navigator, doesn't loop on Route 101), retrying around any scripted
+    scene that interrupts it (running-shoes gift, city-entry events, etc.)."""
+    dest = dest_map.value if hasattr(dest_map, "value") else dest_map
+    rounds = 0
+    while _map_group_number() != dest:
+        rounds += 1
+        if rounds > max_rounds:
+            raise BotModeError(f"Stuck trying to reach {dest} (too many interruptions).")
+        try:
+            yield from navigate_to(dest_map, coordinates, avoid_encounters=avoid_encounters)
+            return
+        except BotModeError:
+            yield from _ride_out_scripted_scene("B")
+
+
+def travel_to_petalburg() -> Generator:
+    """Journey from Birch's lab to Petalburg City: Littleroot -> Route 101 ->
+    Oldale -> Route 102 -> Petalburg. Mom's Running-Shoes gift fires in
+    Littleroot on the way and is ridden out automatically. Ends in Petalburg."""
+    context.message = "Story: setting off for Petalburg City..."
+    yield from navigate_to_anywhere(MAP_LITTLEROOT_TOWN, (6, 9))  # exit the lab into town
+    yield from _navigate_leg(MapRSE.ROUTE101, (9, 9))
+    yield from _navigate_leg(MapRSE.OLDALE_TOWN, (4, 9))
+    yield from _navigate_leg(MapRSE.ROUTE102, (14, 8))
+    yield from _navigate_leg(MapRSE.PETALBURG_CITY, (20, 18))
+    context.message = "Story: arrived in Petalburg City."
