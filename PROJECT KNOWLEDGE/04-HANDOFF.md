@@ -58,8 +58,14 @@ flavor all done, Phases 1/2/3a). `itemdex_data.json` = core (309 items);
 gaps = map_locations/mart/pickup/historical.
 
 ## Most recent work (2026-07-20)
-- Story-mode design Pass 4 → CONVERGED (see 12-STORYMODE-DESIGN §10). Safe to
-  build against; remaining unknowns are live-only (tile ids, waypoints, timing).
+- **Story-mode chunk 1 BUILT (sandbox):** `modules/story/` read-only progress
+  detector + 30-chapter registry + `tests/test_story_progress.py` (12/12).
+  Live-tested on the real save → correctly reports **ch5, 1 badge**, flags the
+  save's stray Magma Emblem as a test-save anomaly (`.sav` md5 unchanged).
+  Detection is **badge-anchored** (see design doc §12 + ML-5 — two naive
+  strategies rejected). NOT promoted (new dev). Next: Gym 1 (ch4) isolation
+  (design §6.3 step 2).
+- Story-mode design Pass 4 → CONVERGED (see 12-STORYMODE-DESIGN §10).
 - Fixed KI-8 (party strip 140→84px, no longer overlaps video) and KI-9
   (controller stuck in menu: `toggle_handheld` leaked `_gui_nav_active`; now
   cleared + gamepad uses a DERIVED gate `gamepad_gui_nav_engaged()`; added a

@@ -608,10 +608,12 @@ routing (Cut trees, Strength/Rock Smash obstacles, gym-interior puzzles);
 - **In-battle item use policy** for bosses (buy & use X-items / Full Restores?).
 
 ### 6.3 Recommended CHUNKED build order (each independently testable)
-1. **Read-only progress detector + chapter registry** — a `StoryProgress` reader
-   that prints "current chapter" from flags/badges for any save (test against the
-   real `Nick - Emerald` save; no risk). Validates the whole detection model
-   first.
+1. **Read-only progress detector + chapter registry** — ✅ **DONE 2026-07-20**
+   (`modules/story/`: `chapters.py` registry of 30 chapters + `progress.py`
+   `detect_progress()`; unit battery `tests/test_story_progress.py`, 12/12).
+   Live-tested on the real `Nick - Emerald` save (read-only; `.sav` md5
+   unchanged). **See §12 for the detection-model finding — this chunk did its
+   job and reshaped the model.**
 2. **Chapter 4 (Gym 1) in isolation** — start from a save parked in Rustboro;
    author the gym route + Roxanne id; prove "navigate → auto-win gym → badge
    detected → heal." This exercises the core loop with the least new work.
@@ -988,3 +990,48 @@ is correctly flagged as such. **Confidence: HIGH — safe to build against.**
 [PokéBase Kecleon/Fortree](https://pokemondb.net/pokebase/406508/how-do-i-get-past-the-invisible-kecleon-blocking-fortree-gym) ·
 [StrategyWiki Route 120](https://strategywiki.org/wiki/Pok%C3%A9mon_Ruby_and_Sapphire/Route_120) ·
 [PokéCoders Rock Smash](https://www.pokemoncoders.com/how-to-get-rock-smash-in-pokemon-emerald/)
+
+---
+
+## §12 — Detection-model finding (from building chunk 1, 2026-07-20)
+
+Building the read-only detector and running it against the real `Nick -
+Emerald` save produced a model-shaping result — exactly what a read-only
+chunk-1 is for.
+
+**The save is a hand-built test save, not a natural playthrough:** party is
+shiny Celebi Lv100 + Sceptile Lv100 alongside a Lv9 shiny Bulbasaur, Lv6
+Lotad, etc.; `BADGE01_GET` (Stone) is set but the Wally-tutorial and Cut-HM
+flags are NOT, and a stray **Magma Emblem** key item is in the bag. Its event
+flags are therefore **non-linear** — no single naive scan places it correctly.
+
+**Two detection strategies were tried and REJECTED:**
+1. *First-incomplete scan* (current = first chapter whose flag is unmet) —
+   placed the save at **ch2 (Wally)** because an early flag was unset, ignoring
+   the Stone Badge that proves it's past ch2. Wrong.
+2. *Furthest-proof* (current = after the highest-order met milestone) — the
+   stray Magma Emblem threw it to **ch16c (chapter 21/30)**. Wrong the other
+   way; a single stray item dominated.
+
+**Adopted model — the badge spine.** The 8 gym badges are earned strictly in
+order and can't be skipped in normal play, so they are the reliable anchor.
+Detection: take the **highest badge set** → its **bracket** (the chapters
+played while holding exactly that many badges) → the first chapter in the
+bracket whose finer milestone is unmet. Finer flags/items only refine *within*
+the bracket and can never move placement outside it. Anything met ahead of the
+badge count is reported as an **anomaly** (the test-save signature), not used
+for placement. Result on the real save: **ch5 (Devon errand), 1 badge**, with
+the Magma Emblem flagged as an anomaly. Correct and honest.
+
+**Two registry data corrections this surfaced:**
+- `HIDE_MT_PYRE_SUMMIT_MAXIE` is an **unreliable** completion proxy (read True
+  on a save nowhere near Mt. Pyre). ch16b now uses the **Magma Emblem key item
+  in bag** (the [P4] authoritative signal), matching how the bot will gate the
+  Magma Hideout.
+- `badges_before` per chapter is **derived** from which chapter earns each
+  badge (the `badge` field), not hand-entered — one source of truth.
+
+**Implication for later chunks:** the bot must not trust any single non-badge
+flag as ground truth for "where am I"; badge level is the coarse gate and fine
+flags refine. This is the same discipline the HM→badge gate table (§2.1)
+already encodes.

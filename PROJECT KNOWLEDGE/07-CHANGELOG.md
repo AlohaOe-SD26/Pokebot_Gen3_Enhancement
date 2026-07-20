@@ -599,3 +599,22 @@ save md5 byte-identical after.
      Back+Start does nothing. Flipping off instantly drops any active GUI-nav.
   Verified by a headless state-machine battery (10/10 pass) covering the exact
   leak scenario and the toggle. (No physical-pad test available; logic-verified.)
+
+## 2026-07-20 — Story-mode chunk 1: read-only progress detector (#24, sandbox)
+New `modules/story/` package — the first buildable piece of the story bot:
+- `chapters.py` — machine-readable registry of all 30 Emerald story chapters
+  (0-24 + sub-chapters), each with a completion milestone (flag/var/**item**).
+  `validate_registry()` confirms every name resolves (no emulator needed).
+- `progress.py` — `detect_progress(reader)` → `StoryProgress` (current chapter,
+  badges, HMs, objective, anomalies). Reads live memory (`detect_live()`) or the
+  last save (`detect_from_save_data()`); writes nothing.
+- `tests/test_story_progress.py` — 12 synthetic-reader tests, all pass.
+- **Detection model (badge-anchored):** highest gym badge → chapter bracket →
+  first unmet finer milestone within it. Robust to legit saves missing a stray
+  flag AND to hand-edited saves with out-of-order flags/items. See design doc
+  §12 + ML-5 for the two rejected strategies this replaced.
+- Live-verified on the real `Nick - Emerald` save (a hand-built TEST save):
+  correctly reports **ch5 (Devon errand), 1 badge**, and flags the stray Magma
+  Emblem key item as an anomaly. Save `.sav` md5 unchanged (read-only).
+- Sandbox only — new dev work, not promoted. Next chunk: Gym 1 (ch4) in
+  isolation (design doc §6.3 step 2).

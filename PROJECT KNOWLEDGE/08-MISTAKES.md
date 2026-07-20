@@ -90,3 +90,29 @@
 - **Prevention:** When vendoring an app that self-updates, audit its
   update/self-modify triggers against the actual repo layout — a nested
   `.git` assumption breaks in a monorepo/subtree layout.
+
+## 2026-07-20 — Story detection: naive single-signal scans mis-place saves  (ML-5)
+- **Symptom:** The read-only story progress detector, tested on the real
+  `Nick - Emerald` save, gave two different WRONG chapters depending on
+  strategy: "first-incomplete flag scan" said ch2 (an early flag was unset
+  despite the Stone Badge proving it's past ch2); "furthest-proof" said
+  ch16c/chapter 21 (a stray Magma Emblem key item in a hand-edited save
+  dominated placement).
+- **Context:** `modules/story/chapters.py`, `modules/story/progress.py`.
+  The save turned out to be a hand-built TEST save (shiny Lv100 Celebi/Sceptile
+  beside Lv6 mons; badge + key item set out of natural order).
+- **Root cause:** Individual event flags / key items are NOT reliable
+  monotonic proofs of story position on real saves. Only the 8 gym badges are
+  earned strictly in order and unskippable.
+- **Fix:** Badge-anchored detection — highest set badge → its chapter bracket →
+  first unmet finer milestone WITHIN the bracket. Finer flags/items only refine
+  within the bracket and can't move placement outside it; anything met ahead of
+  the badge count is reported as an anomaly, not used for placement. Also
+  replaced the unreliable `HIDE_MT_PYRE_SUMMIT_MAXIE` proxy with the Magma
+  Emblem key-item check. 12/12 unit tests; correct result (ch5) on the save.
+- **Prevention:** For "where am I in the story", anchor on badge level first;
+  treat any single non-badge flag/item as a refinement or an anomaly, never as
+  the primary position signal.
+- **Retire when:** covered by `tests/test_story_progress.py`
+  (`test_current_chapter_never_leaves_its_badge_bracket`,
+  `test_hacked_save_stone_plus_stray_magma_emblem`).
