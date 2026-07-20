@@ -458,4 +458,13 @@ def finish_birch_lab(nickname_mode: str = "none") -> Generator:
     yield from wait_until_script_is_no_longer_active(
         "LittlerootTown_ProfessorBirchsLab_EventScript_GiveStarterEvent", "A"
     )
-    context.message = "Story: got the starter and left Birch to it — heading north next."
+
+    # Birch immediately follows with `GoSeeRival`: he asks you to go find his
+    # kid (your rival) on Route 103 — a Yes/No ("will you go?"). Answer YES; No
+    # just keeps you stuck in the lab. (The Pokédex is NOT given here; it comes
+    # after the rival battle.) Then ride the closing lines out with B (never A —
+    # A re-triggers Birch) until control returns and we can walk out.
+    context.message = "Story: Birch asks you to go find the rival on Route 103..."
+    yield from wait_for_yes_no_question("Yes")
+    yield from _wait_until_cutscene_over("B")
+    context.message = "Story: done with Birch — free to head north to the rival."

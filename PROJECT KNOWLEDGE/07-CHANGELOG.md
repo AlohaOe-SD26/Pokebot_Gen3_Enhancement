@@ -748,3 +748,11 @@ on_battle_started returns None; returning Fight bypasses it. Unit-tested. §15.2
 User tested ("worked perfectly!"). Copied early_game.py + config.py + story_mode.py
 sandbox → custom (NOT the sandbox-only audio change); verified full fresh run
 → Birch's lab with starter Lv5, first battle won, shiny contingency in place.
+
+## 2026-07-20 — Fix: finish_birch_lab was stopping mid-conversation (#24, sandbox+custom)
+The lab has TWO events: GiveStarterEvent then GoSeeRival (Birch asks you to find
+the rival on Route 103, a Yes/No — answer Yes; No keeps you stuck). finish_birch
+_lab() only handled the first, leaving a live Yes/No when it handed to manual.
+Now handles both; ends with the player controllable and able to walk out (script
+inactive). Pokédex confirmed NOT given here (comes after the rival battle).
+Verified full fresh run → clean handoff. Fixed in sandbox + custom.
