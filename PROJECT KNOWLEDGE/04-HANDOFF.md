@@ -3,198 +3,109 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-07-18
+**Last updated:** 2026-07-19
 
 ## What this project is
-Documents and enhances 40Cakes/pokebot-gen3 (Python shiny-hunting bot
-driving Gen-3 Pokémon games via libmgba). Layout (user directive — details
-in CLAUDE.md "Project rules"):
+Documents and enhances 40Cakes/pokebot-gen3 (Python shiny-hunting bot for
+Gen-3 Pokémon via libmgba). Layout (details in CLAUDE.md "Project rules"):
 - `40cakes repo/pokebot-gen3/` — PRISTINE upstream mirror (git subtree,
-  remote `upstream-pokebot`, upstream commit `5dd898f8`). Checked against
-  upstream DAILY; sync record: `40cakes repo/UPDATE-LOG.md`.
-- `40cakes repo/DOCUMENTATION/` — complete, adversarially verified dev docs
-  of the ORIGINAL program (superseded versions go to `_history/`).
-- `custom-pokebot/` — OUR fork; every divergence logged in
-  `DIVERGENCE-LOG.md`, custom docs in its `DOCUMENTATION/`.
-- `Pokemon_Emerald_AI_Notes.md` (root) — transfer notes for the sibling
-  Pokémon Emerald AI project.
+  remote `upstream-pokebot`, commit `5dd898f8`). Daily upstream check;
+  record in `40cakes repo/UPDATE-LOG.md` (last check 2026-07-19, unchanged).
+- `40cakes repo/DOCUMENTATION/` — verified dev docs of the ORIGINAL program.
+- `custom-pokebot/` — OUR PRODUCTION fork; divergences in `DIVERGENCE-LOG.md`.
+- `sandbox-pokebot/` — experimental copy; new work is built + verified here,
+  then PROMOTED into custom on the user's explicit OK.
+- `install.py` (repo root) = custom installer; `install_sandbox.py` = sandbox.
+- `Pokemon_Emerald_AI_Notes.md` — transfer notes for the sibling AI project.
 
-## Current state
-- **#5 custom interface — the program's OWN WINDOW is now the dashboard**
-  (user direction 2026-07-18): `custom-pokebot/modules/gui/dashboard_gui.py`
-  (`PokebotDashboardGui`, default GUI; `--classic-gui` = upstream window,
-  also home of OpenGL/frame-stepping). Resizable letterboxed video + tool
-  column (mode/speed/AV, KPI tiles, party HP bars, status, event log);
-  handheld mode for ROG Ally X (F11/H/double-click → fullscreen; canvas
-  Pokéball opens overlay drawer; Hide/H/Esc closes; per-profile
-  persistence in `dashboard_ui.json`). Stock menu bar kept; `-d` debug
-  tabs open in a separate Toplevel. VERIFIED on a real run with the
-  Emerald ROM (test-dashboard profile, title screen): desktop, handheld,
-  drawer, Esc-out, and `--classic-gui` regression all screenshot-confirmed.
-  **FLAGGED TO REVIEW (user, 2026-07-18): approved from screenshots only —
-  hands-on visual test still pending; clear this flag (and the matching
-  ones in 03-PUNCH-LIST and custom-pokebot/DOCUMENTATION/02) after it.**
-  Not yet verified: party/KPI panels with a progressed save; debug
-  Toplevel tabs; the user's on-device Ally test. Browser dashboard
-  (`modules/web/static/custom-ui/`) remains as opt-in remote viewing
-  (auto-open plugin defaults OFF).
-- **#4 installer — DONE (V2, 2026-07-18)**: `install.py` = the CUSTOM
-  bot's one-script setup/update/heal per user spec: 7 fault-isolated
-  steps, ✓/⚠/✗ summary + exit codes, full trace to `install.log`
-  (gitignored), full-repo self-heal (incl. quoted-path fix), ROM step
-  (whitelist-verifies repo ROM / sideloads a .gba placed next to the
-  script), incremental updates (never re-downloads the repo). All paths
-  tested on this machine; user confirmation of a real-world run pending.
-- **#3 custom automations — WIP**: framework + "Patrol (Custom)" built,
-  real-import verified; awaiting the user's in-game play-test.
-- requirements.py (fork) now installs only missing modules; cffi pin
-  loosened to `>=1.17.1` (upstream conflict); http.yml template defaults
-  enabled (127.0.0.1).
+## Current state (what's WHERE)
+### In custom-pokebot (PROMOTED, production) — big promotion `f0b275f3` (2026-07-19)
+Native dashboard GUI (default; `--classic-gui` = stock), handheld mode,
+backup/restore + cloud + cloud-save-sync (off by default), macros, Patrol
+v3 (multi-map/global-nav), gamepad in-game input, shiny alerts, update
+notice, game cheats, tabbed GUI, full-dex sprite picker. Stock auto-updater
+footgun fixed (ML-4). Installer V2 done. Requirements install-only-missing.
+User confirmed the native GUI + installer hands-on ("worked!").
 
-## What was just done (this session, 2026-07-18)
-- Daily upstream check (unchanged at `5dd898f8`); pulled the user's ROM
-  upload; user ruling logged to keep it tracked.
-- Smart dependency bootstrap + dashboard discoverability fixes.
-- Built the native dashboard GUI (fork agent; ~860 lines) and verified it
-  on a live run; browser auto-open defaulted off per user preference.
+### In sandbox-pokebot ONLY (BUILT + self/fact-verified, NOT yet promoted)
+All 2026-07-19, awaiting user review/promotion:
+- #33 GUI fixes (left party always visible; Pokéball-open/Hide both modes)
+- #22 Watchdog/auto-recovery · #9 Hunt Planner v1+v2 (encounter index +
+  travel-and-hunt) · #23 Living-Dex Orchestrator · #11 Analytics (stats
+  browser/trend/luck meter)
+- #30 handheld menu→Play-tab + Left Party Section + hover · #31 money cheat
+  + Lock · #32 gamepad GUI-nav (adversarially verified clean)
+- Adjustments #36–#40: bigger party balls (140px), themed hover tooltip,
+  gamepad-nav gated to drawer, auto-decline move learning (`new_move:
+  cancel`), catch-ball allowlist (protects Master Ball)
+- Living-Dex deepening: #43 opportunistic catching · #44 party ball moved
+  to hover (strip now clean) · #41-evo obtainability(evolution) + #42-easy
+  capability gating · #41-research Emerald obtainability lists.
+  **Census (sums to 386): wild 132/evolution 149/gift 7/static 8/roamer 1/
+  event 6/breeding 3/special 1/unobtainable 79 → 217/386 obtainable in
+  Emerald without trading.** `modules/data/emerald_obtainability.json`.
 
-## Latest (2026-07-19) — #41 obtainability RESEARCH HALF done (sandbox)
-- Compiled + fact-checked the Emerald gift/static/roamer/in-game-trade/event/
-  breeding/special/unobtainable lists against the BPEE0 ROM's own `gWildMonHeaders`
-  (authoritative — the encounter-index cache is complete) + Bulbapedia, and folded
-  them into `modules/obtainability.py` via `modules/data/emerald_obtainability.json`.
-- CENSUS (sums to 386): wild 132 / evolution 149 / gift 7 / static 8 / roamer 1 /
-  event 6 / breeding 3 / special 1 / unobtainable 79. Second honest denominator:
-  **217/386 obtainable in Emerald without trading**. Both denominators exposed to
-  the GUI. 16/16 units (`tests/test_obtainability.py`). Full lists + citations +
-  validation report: 11-LIVINGDEX-DESIGN.md (Phase #41-research).
-- NOT yet done for full #41: wire `living_dex_mode` target selection to plan_for's
-  `wild_huntable` gate (route gift/static/roamer to the reset modes; surface
-  trade/event/unobtainable instead of silently skipping); auto-evolve helper. This
-  pass was pure-data, validated against the ROM header + cache (no emulator boot).
+### Live-verified on the USER'S REAL SAVE (`Nick - Emerald`, placed in both
+bots' gitignored profiles/): real shiny party renders (Celebi/Sceptile
+Lv100…), money cheat read real 7,908, analytics read real 57,436
+encounters/10 shinies ("lucky"), capability gate read real Old/Good/Super
+Rod. Save left md5-identical after every test.
 
-## Awaiting the USER (nothing blocked on me)
-- **Promotion OK** for the sandbox batch #30/#31/#32 (verified clean) +
-  #33 (GUI fixes) → promote to custom on the user's word.
-- **4 dex decisions** (steer Phase 3, see 10-DEX-RESEARCH.md / punch #34-#35):
-  (1) Pokémon dex artwork — source Sugimori art or reuse battle sprites?
-  (2) flavor text + height/weight/category from the decomp — yes?
-  (3) historical item totals — track going forward / current-only / omit?
-  (4) item map-location scope — full Emerald or a subset?
-- **Past-the-menu SAVE** from the user → unblocks live tests (filled-slot
-  party composites, hover stats with real data, money cheat in-game,
-  caught/shiny dex counts, controller feel on the Ally).
+### Dex data (#34/#35 tabs not built yet)
+`modules/data/generated/pokedex_data.json` = 386 species COMPLETE except
+`dex_artwork` (stats/learnsets/evolutions/sprites/category/height/weight/
+flavor all done, Phases 1/2/3a). `itemdex_data.json` = core (309 items);
+gaps = map_locations/mart/pickup/historical.
 
-## In progress (and how far along)
-- SANDBOX now holds a LARGE unpromoted, self-verified batch (2026-07-19),
-  awaiting the user's review/promotion + a progressed save for live tests:
-  #30/#31/#32/#33 (GUI + money cheat, adversarially verified clean), #22
-  Watchdog, #9 Hunt Planner v1+v2, #23 Living-Dex Orchestrator, #11
-  Analytics. Each has unit/fact-check/screenshot verification; live in-game
-  behavior + a promotion-time independent adversarial pass are pending.
-- DEX DATA (#34/#35): Phases 1, 2, 3a DONE. pokedex_data.json is complete
-  EXCEPT dex_artwork (386 species w/ full stats/learnsets/flavor/dims).
-  itemdex_data.json has core data; gaps = map_locations/mart/pickup/
-  historical. Phase 3b + the two GUI tabs BLOCKED on the 4 user decisions.
-- (older #34/#35 line retained below) Phase 1 (research/inventory) + Phase 2 (assemble +
-  fact-check the static datasets: 386 species / 309 items, integrity PASS)
-  DONE in sandbox (`d6211e32`; build_dex_data.py + modules/data/generated/).
-  Phase 3 (fill gap fields: dex artwork, flavor/height/weight, item
-  locations) BLOCKED on the 4 user decisions above. Phase 5 = build the
-  two GUI tabs on the data.
-- PROMOTION DONE 2026-07-19 (`f0b275f3`): the ENTIRE sandbox round is now in
-  custom-pokebot (user approved "all updates"): backup/restore + cloud,
-  macros, Patrol v3 (multi-map/global-nav), gamepad + handheld menu-hide,
-  shiny alerts, update notice, cloud save-sync v2 (off by default), game
-  cheats, tabbed GUI + XP bars + topmost dialogs + full-dex sprite picker.
-  Verified: import/discovery/install-check/live-launch. Also fixed the
-  stock-updater footgun (ML-4) in custom + sandbox. sandbox-pokebot retained
-  (now == custom) for future rounds.
-- OPEN VERIFICATION DEBT (punch-list "Now" item #V): #8/#12/#18/#20 + the
-  2026-07-19 GUI polish were promoted with builder self-verification only —
-  run an independent adversarial sweep on custom before relying on them
-  (cloud-sync is off by default, so inert). Twice interrupted by credit limits.
-- #30/#31/#32 BUILT + ADVERSARIALLY VERIFIED in sandbox (2026-07-19, clean:
-  money byte-safe 56/56, GUI-nav 28/28, no code bugs): (#30) persistent
-  Handheld button + handheld menu→Play-tab GAME MENU + Left Party Section
-  (ball-behind composites) + hover-stats tooltip; (#31) adjustable money +
-  Lock; (#32) gamepad-driven GUI navigation (drawer-open → controller
-  drives the dashboard; focus ring; party-slot focus pops the tooltip).
-  AWAITING USER OK to promote to custom (last commits 78715773 / 78bfef1a).
-- FIRST-WAVE features agreed (punch-list "Next"): #22 watchdog → #9 hunt
-  planner + #23 orchestrator → #25 detail/box viewer + #11 analytics →
-  #27 battery-aware + #28 mobile remote. Full idea catalog: 09-FEATURE-BRAINSTORM.md.
-- USER IN-GAME TESTS still pending on the promoted features (cheats on a
-  real save, macro record→replay, multi-map patrol walk, shiny alert/backup,
-  gamepad on the Ally, cloud-sync desktop↔Ally).
-- (historical) #7 SANDBOX ROUND (A1-A4) — BUILT + ADVERSARIALLY VERIFIED
-  (16 bugs found and fixed, 2 critical — see ML-3 and SANDBOX-NOTES).
-- ROUND 2 (roadmap items, all in sandbox, all committed+pushed):
-  - #10 gamepad + handheld menu-hide (293854d3) — self-verified, user
-    testing gamepad now.
-  - #8 warp-aware global pathfinding (58a044fd) — self-verified (real-ROM
-    graph extract 518 maps/1268 warps, 23/23 checks).
-  - #12 shiny alerts + #18 update notice (58803096) — self-verified,
-    real toast fired.
-  - #20 cloud save-sync v2 (791b8d62) — self-verified via two-machine sim
-    (its own battery caught 2 data-safety bugs, fixed pre-commit).
-  ⚠ NOT YET INDEPENDENTLY VERIFIED: the adversarial verification pass for
-  #8 and for #12/#18/#20 was STARTED but both verifier agents died on an
-  API usage-credit limit (2026-07-18) before finding/fixing anything.
-  Per ML-3, treat these four features as UNVERIFIED (self-tests are not
-  sufficient). NEXT SESSION FIRST TASK: re-run the two adversarial
-  verifiers (warp slice: warp_graph.py/global_navigation.py/patrol.py;
-  alerts/update/sync slice: shiny_alert_plugin/update_check/cloud_sync +
-  dashboard_gui) before promoting anything to custom-pokebot.
-  Punch-list icebox carries the remaining roadmap (#9,#11,#13-#17,#19).
-  All four items (A1 backup/restore + local/GitHub/synced-folder cloud, A2
-  macro record/replay, A3 multi-map Patrol, A4 GUI pack incl. scrollable
-  tool column, party sprites, shiny log) are built, machine-verified, and
-  pushed (commits 2e933129, 2124b20e/38a0e207, 8f605513, 02057b26).
-  Status + honest caveats: `sandbox-pokebot/SANDBOX-PROPOSALS.md` (top
-  block); per-item detail in `sandbox-pokebot/SANDBOX-NOTES.md`. USER
-  REVIEW PATH: `python install_sandbox.py` → launch sandbox → test with a
-  real save (macro record→replay, shiny backup trigger, multi-map patrol,
-  party sprites with a real party). Then: approve items → promote into
-  custom-pokebot (rule C in proposals); pick next items from proposals
-  section B. Promotion needs explicit user OK per item.
-- #5/#4 CONFIRMED WORKING by user hands-on 2026-07-18 ("worked!") — flags
-  cleared. #3 Patrol still awaiting explicit user play-test.
-
-## If stopped mid-task
-- Nothing pending — last stop was clean.
+## AWAITING THE USER (nothing blocked on me)
+1. **PROMOTE** the sandbox batch → custom (with a promotion-time independent
+   adversarial sweep; also fold in the OPEN VERIFICATION DEBT below).
+2. **Ball size** — keep 140px (~2.7×) or make the left strip scrollable for a
+   true 5×? (Note: #44 moved the ball to the hover, so the strip is clean now
+   anyway — may be moot; confirm.)
+3. **4 dex-tab decisions** (build #34/#35): (a) Pokémon dex artwork — source
+   Sugimori art or reuse battle sprites? (b) item historical totals — track
+   going forward/current-only/omit? (c) item map-location scope? (proceeding
+   default: flavor/dims already done from ROM.)
+4. **#41 honesty policy** — proceeding "show BOTH denominators" (386 National
+   + 217 Emerald-obtainable) unless told to exclude. Two flagged
+   uncertainties for the user: Latias-vs-Latios roamer/static (flips with the
+   in-game TV answer), and Surskit (Emerald-alone unobtainable but
+   record-mix swarm with a 2nd cart) — filed unobtainable; confirm.
 
 ## Next steps (in order)
-1. DAILY (every new calendar day, session start): upstream update check —
-   ritual in CLAUDE.md "Daily upstream update check" / UPDATE-LOG.md header.
-2. User tests the native GUI (`cd custom-pokebot; python pokebot.py` →
-   dashboard window; F11 for handheld on the Ally) with a real save, and
-   play-tests Patrol (#3): grassy map + `patrol.yml` (2-3 waypoints) in the
-   profile folder + select "Patrol (Custom)". Fix whatever they report.
-3. After user sign-off: mark #3 done and #5's native-GUI milestone done;
-   then #5 v2 backlog (trend charts, shiny log browser, API additions) and
-   #6 icebox.
+1. DAILY upstream check at session start (CLAUDE.md ritual; last 2026-07-19).
+2. On user "promote": merge sandbox→custom carefully + run the independent
+   adversarial sweep (see debt below) + live-launch check.
+3. Full #41 finish: wire `living_dex_mode` target selection to
+   `obtainability.plan_for` (route gift/static/roamer to the reset modes,
+   surface trade/event/unobtainable) + an auto-evolve helper.
+4. Dex tabs #34/#35 once the 4 decisions land.
+5. Remaining first wave: #27 battery-aware (Ally), #28 mobile remote;
+   then #42-hard (HM-gated map reachability), #24 story auto-player (+#45).
 
-## How to run / build / test
+## OPEN VERIFICATION DEBT
+The big promotion's #8/#12/#18/#20 + the 2026-07-19 GUI polish went to custom
+with builder self-verification; a partial independent sweep on custom fixed
+4 bugs (`75e02cab`). The post-#f0b275f3 sandbox batch (above) is self/fact/
+live-verified but wants an independent adversarial pass at promotion time.
+
+## How to run / test
 ```powershell
-cd custom-pokebot                      # our fork ("40cakes repo/pokebot-gen3" = pristine upstream)
-python pokebot.py                      # dashboard GUI (native); profile GUI on first run
-python pokebot.py <profile> --classic-gui   # upstream's original window
-python pokebot.py --headless --no-video
-python -m unittest discover tests      # needs specific ROM dumps in roms/
-python ..\install.py                   # from repo root: update + heal + deps
+cd custom-pokebot          # production; sandbox-pokebot = experimental
+python pokebot.py                      # dashboard GUI (default)
+python pokebot.py "Nick - Emerald"     # the user's real save (progressed)
+python pokebot.py <profile> --classic-gui
+python ..\install.py                   # setup/update/heal (custom)
+python ..\install_sandbox.py           # same for sandbox
 ```
 
 ## Gotchas / unpushed work
-- The user's Emerald ROM is TRACKED in the (private) repo by explicit user
-  ruling (2026-07-18, see 06-DECISIONS-LOG) — do not remove it and do not
-  re-raise; but never commit any additional ROMs/saves/profiles.
-- NEVER edit files under `40cakes repo/pokebot-gen3/` — pristine mirror;
-  all enhancement work happens in `custom-pokebot/`.
-- New files under `custom-pokebot/plugins/` need .gitignore negations and
-  a `git ls-files` check (ML-2).
-- Upstream pull (daily ritual, mirror only):
-  `git subtree pull --prefix="40cakes repo/pokebot-gen3" upstream-pokebot main --squash`
-- Upstream's `pokebot.spec` (PyInstaller) is stale/broken (KI-1); the
-  bot's auto-updater self-disables for git checkouts (good for us).
-- A gitignored `test-dashboard` profile exists locally for GUI testing.
+- Tree clean, all pushed. NEVER edit `40cakes repo/pokebot-gen3/` (mirror).
+- `profiles/` (incl. the user's real save) + `roms/` are gitignored — never
+  commit them. The Emerald ROM IS tracked by user ruling (private repo).
+- New `plugins/*.py` need `.gitignore` negations + `git ls-files` check (ML-2).
+- Never `git commit` without a pathspec in automation (ML-3).
+- Stock auto-updater is disabled for our root-`.git` layout (ML-4 fix).
+- Known issues: KI-1 (stale pokebot.spec), KI-4/5 (cloud-sync minor),
+  KI-6 fixed (two-row tab bar). Mistakes: ML-1..ML-4 in 08-MISTAKES.
