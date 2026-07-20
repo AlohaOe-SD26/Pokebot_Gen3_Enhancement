@@ -756,3 +756,13 @@ _lab() only handled the first, leaving a live Yes/No when it handed to manual.
 Now handles both; ends with the player controllable and able to walk out (script
 inactive). Pokédex confirmed NOT given here (comes after the rival battle).
 Verified full fresh run → clean handoff. Fixed in sandbox + custom.
+
+## 2026-07-20 — Story Chapter 1 COMPLETE: travel, train Lv8-10, beat the rival (#24, sandbox)
+travel_to_route103 + train_lead_to_level + fight_route103_rival. A fresh game
+now plays through the first rival battle: north to Route 103 (fighting wilds en
+route), grind to a random Lv 8-10 with Oldale Poké Center healing, heal to full,
+beat the rival. Fixes: use LevelUpLeadBattleStrategy (DefaultBattleStrategy fled
+wilds → no XP); hard-target PokemonCenter.OldaleTown (find_closest_pokemon_center
+is broken); heal-to-full before the rival (trainer battle can't be fled).
+StoryMode.on_battle_started → LevelUpLeadBattleStrategy. Verified piecewise with
+real listeners. Design §15.3. Sandbox only.

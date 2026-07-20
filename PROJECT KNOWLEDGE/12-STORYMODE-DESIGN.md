@@ -1235,3 +1235,30 @@ the default "shiny → stop the bot" (and any auto-catch) lives in
 first battle is also an `EncounterType.Tutorial`, which the framework forces to
 `CustomAction` (also never calls handle_encounter). Unit-tested: shiny/normal/
 None encounters all return Fight and never raise.
+
+### §15.3 — Oldale/Route 103: travel, training, rival battle (2026-07-20) — CHAPTER 1 COMPLETE
+`travel_to_route103()` + `train_lead_to_level()` + `fight_route103_rival()`.
+A fresh game now plays through the FIRST RIVAL BATTLE.
+- **travel_to_route103**: map-by-map chain (lab → Littleroot via warp →
+  Route 101 → Oldale → Route 103) with `avoid_encounters=False`, so wild
+  encounters en route are fought (starting training). Uses `navigate_to` for
+  the direct connections (works WITH listeners fighting the encounters; the
+  one-shot `navigate_to_anywhere(OLDALE)` from the lab LOOPS, so the chain is
+  used). Ends on a Route 103 grass tile (5,7).
+- **train_lead_to_level(target)**: `spin()` on the grass triggers wilds fought
+  by `LevelUpLeadBattleStrategy` (strongest move; flees only at low HP). Stop
+  spinning at target level OR when HP <= hp_threshold+8; on low HP, heal at
+  **Oldale's Poké Center** and loop back (`navigate_to_anywhere` for the
+  cross-map return). KEY FIXES: (1) `BattleAction.Fight`/DefaultBattleStrategy
+  FLED wilds (no XP) — switched to `LevelUpLeadBattleStrategy`; (2)
+  `find_closest_pokemon_center()` is BROKEN (fails even from Oldale) — hard-
+  target `PokemonCenter.OldaleTown` instead. StoryMode.on_battle_started now
+  returns `LevelUpLeadBattleStrategy()`.
+- **fight_route103_rival**: HEAL TO FULL first (the rival at (10,3) is a TRAINER
+  battle — cannot be fled; a low-HP LevelUpLead would try to flee and the
+  framework RAISES). Then navigate to (10,4), face North, A to talk → battle.
+  At full HP with a Lv 8-10 starter the (Lv5) rival loses decisively.
+- **Random target Lv 8-10** (`random.randint(8,10)`) per user spec.
+- **VERIFIED (piecewise, headless): fresh→lab (18.9k frames); route103→train
+  Lv8→heal→beat rival (31.1k frames, done, no crash).** Full single-run
+  exceeds the headless timeout but is the sum of validated pieces.

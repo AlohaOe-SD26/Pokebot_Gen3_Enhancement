@@ -16,7 +16,7 @@ from typing import Generator
 from modules.context import context
 from modules.keyboard import get_naming_screen_data, type_in_naming_screen
 from modules.map import get_map_data_for_current_position
-from modules.map_data import MapRSE
+from modules.map_data import MapRSE, PokemonCenter
 from modules.map_path import Direction
 from modules.memory import GameState, get_game_state
 from modules.modes import BotModeError
@@ -26,11 +26,15 @@ from modules.modes.util.tasks_scripts import (
     wait_until_task_is_active,
 )
 from modules.modes.util.sleep import wait_for_n_frames
+from modules.modes.util import spin
+from modules.modes.util.global_navigation import navigate_to_anywhere
+from modules.modes.util.higher_level_actions import heal_in_pokemon_center
 from modules.modes.util.walking import (
     navigate_to,
     wait_for_player_avatar_to_be_controllable,
 )
-from modules.player import player_avatar_is_controllable
+from modules.player import get_player_avatar, player_avatar_is_controllable
+from modules.pokemon_party import get_party
 from modules.tasks import get_global_script_context, task_is_active
 
 MAP_INSIDE_OF_TRUCK = "INSIDE OF TRUCK"
@@ -468,3 +472,97 @@ def finish_birch_lab(nickname_mode: str = "none") -> Generator:
     yield from wait_for_yes_no_question("Yes")
     yield from _wait_until_cutscene_over("B")
     context.message = "Story: done with Birch — free to head north to the rival."
+
+
+# --- Oldale / Route 103: train the starter, then battle the rival -----------
+ROUTE103_GRASS_TILE = (5, 7)     # a tall-grass tile on Route 103 (spin here to train)
+ROUTE103_RIVAL_TILE = (10, 3)    # the rival stands here
+ROUTE103_RIVAL_APPROACH = (10, 4)  # stand here facing North to talk to the rival
+
+
+def _lead_hp_pct() -> float:
+    party = get_party()
+    if not party:
+        return 100.0
+    try:
+        return float(party[0].current_hp_percentage)
+    except Exception:
+        return 100.0
+
+
+def _lead_level() -> int:
+    party = get_party()
+    return party[0].level if party else 0
+
+
+def travel_to_route103() -> Generator:
+    """Travel from Birch's lab up to Route 103 (where the rival is), fighting any
+    wild encounters along the way (which starts training the starter). Uses the
+    map-by-map chain because the one-shot global route loops on Route 101.
+
+    STORY CONDITION: starts controllable in the lab (1,4) with the starter.
+    END STATE: standing on a tall-grass tile on Route 103 (0,18)."""
+    context.message = "Story: heading north to Route 103 (training on the way)..."
+    yield from navigate_to_anywhere(MAP_LITTLEROOT_TOWN, (6, 9))  # out of the lab, into town
+    yield from navigate_to(MapRSE.ROUTE101, (9, 9), avoid_encounters=False)
+    yield from navigate_to(MapRSE.OLDALE_TOWN, (9, 9), avoid_encounters=False)
+    yield from navigate_to(MapRSE.ROUTE103, ROUTE103_GRASS_TILE, avoid_encounters=False)
+
+
+def train_lead_to_level(target_level: int) -> Generator:
+    """Grind wild battles on Route 103 until the lead reaches ``target_level``,
+    healing at the nearest Poké Center (Oldale) whenever HP drops near the
+    battle-flee threshold.
+
+    HOW IT WORKS: `spin()` on a grass tile triggers wild encounters, which the
+    BattleListener fights with `LevelUpLeadBattleStrategy` (fights the strongest
+    move, flees only when HP is low). We stop spinning when either the target
+    level is hit or HP falls to the heal threshold; on low HP we walk to the
+    Oldale Poké Center, heal, and return to the grass. Prevents the stall where
+    a low-HP lead flees every battle and never gains XP."""
+    heal_at = float(getattr(context.config.battle, "hp_threshold", 20)) + 8.0
+    context.message = f"Story: training the starter to Lv {target_level}..."
+    guard = 0
+    while _lead_level() < target_level:
+        guard += 1
+        if guard > 200:
+            raise BotModeError("Training did not reach the target level (too many rounds).")
+        # Get onto the Route 103 grass (navigate_to_anywhere handles the cross-map
+        # trip back from the Poké Center; the built-in find_closest_pokemon_center
+        # is unreliable here, so we hard-target Oldale's centre below).
+        yield from navigate_to_anywhere(MapRSE.ROUTE103, ROUTE103_GRASS_TILE, avoid_encounters=False)
+        yield from spin(stop_condition=lambda: _lead_level() >= target_level or _lead_hp_pct() <= heal_at)
+        if _lead_level() >= target_level:
+            break
+        # Low HP: heal at Oldale's Poké Center (the closest one), then loop back.
+        context.message = "Story: starter is low on HP — healing at Oldale's Poké Center..."
+        yield from heal_in_pokemon_center(PokemonCenter.OldaleTown)
+    context.message = f"Story: trained to Lv {_lead_level()} — off to the rival!"
+
+
+def fight_route103_rival() -> Generator:
+    """Heal to full, then walk to the rival on Route 103 and start the battle
+    (fought by the listener). Ends after the post-battle scene.
+
+    WHY HEAL FIRST: the rival is a TRAINER battle, which cannot be fled. The
+    LevelUpLead strategy tries to flee at low HP, and the framework raises if
+    that happens in a trainer battle. Entering at full HP with a Lv 8-10 starter
+    means the (Lv5) rival is beaten decisively without ever reaching the flee
+    threshold."""
+    # 1. Top up HP at Oldale's Poké Center so the trainer battle is safe.
+    context.message = "Story: healing up before the rival..."
+    yield from heal_in_pokemon_center(PokemonCenter.OldaleTown)
+
+    # 2. Go to the rival on Route 103, face them, and talk to start the battle.
+    context.message = "Story: challenging the rival..."
+    yield from navigate_to_anywhere(MapRSE.ROUTE103, ROUTE103_RIVAL_APPROACH, avoid_encounters=False)
+    context.emulator.press_button("Up")  # turn to face the rival at (10,3)
+    yield
+    yield from wait_for_n_frames(4)
+    context.emulator.press_button("A")
+    yield
+
+    # 3. The rival battle is fought by the framework; when control returns, ride
+    #    out the post-battle dialogue (the rival runs off to the lab).
+    yield from _ride_out_scripted_scene("B", engage_timeout=1500)
+    context.message = "Story: beat the rival! (End of the currently-built story.)"
