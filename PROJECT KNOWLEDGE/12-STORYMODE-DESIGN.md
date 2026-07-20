@@ -1525,13 +1525,16 @@ actual open exit tile + identify the (4,13) script — do NOT blind-guess coords
   Route-104 Lotad / a Ground move). `do_rustboro_gym` currently assumes a
   favourable/leveled starter; the Torchic path is an OPEN TODO (see punch list).
 
-**HARNESS FIDELITY (companion to ML-5):** the listener test harness must READ
-map/player state each frame (e.g. `get_player_avatar()` +
-`get_map_data_for_current_position()` post-`run_single_frame`) to match the real
-main loop's per-frame state refresh. Without it, TIGHT map/warp checks (the
-discrete door/warp step-in loops) read STALE state and mis-fire in the harness
-even though the code is correct in the real bot. Keep the per-frame refresh
-(or the position-logging that incidentally does it) in every travel test.
+**HARNESS FIDELITY — CORRECTED (ML-9 supersedes the earlier note here):** test
+with a harness that MATCHES `main.py`. Per frame, read ONLY
+`get_game_state()` / `get_global_script_context()` / `get_tasks()` to build the
+FrameInfo — do NOT read `get_player_avatar()` / `get_map_data_for_current_position()`
+every frame, and CATCH `BotModeError` the way main.py does (→ set_manual_mode).
+Reading extra state each frame subtly shifts battle/warp timing and HIDES
+timing-sensitive bugs (it hid the Woods-door stall — the bot went to Manual mode
+= "stuck" in the real run while every over-refreshed test passed). Scratchpad
+`faithful.py` is the reference harness. (This reverses the earlier, wrong advice.)
+Also: never hand-step onto a warp tile — `navigate_to(map, door_tile)` it.
 
 **LEG PLAN (build + verify each via the LISTENER harness):**
 1. Petalburg → Route 104 (south/beach): find the west-edge exit tile (probe y at

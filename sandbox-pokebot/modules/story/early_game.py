@@ -69,6 +69,26 @@ def _walk_through_warp(direction: str, from_map: tuple[int, int], *, timeout_fra
         yield
 
 
+def _pass_through_door(door_tile: tuple[int, int], from_map: tuple[int, int]) -> Generator:
+    """Robustly warp through a door/warp tile by making it a NAVIGATION target.
+
+    A warp fires on a genuine *step onto* the tile. `navigate_to(map, door_tile)`
+    triggers it (this is exactly how `heal_in_pokemon_center` enters the Poké
+    Center door) — whereas stopping SHORT of the door and hand-stepping onto it
+    was flaky (the Petalburg-Woods stall, ML-9: map reads flicker during the warp
+    fade, and single-frame presses don't complete a tile step). If a prior
+    navigate left us standing ON the door without warping, step one tile south
+    first so the next navigate makes a fresh step onto it."""
+    x, y = door_tile
+    # If we're already sitting on the door (a previous navigate walked over it
+    # without warping), step off it (south) so navigate_to re-enters it cleanly.
+    if _map_group_number() == from_map and tuple(get_player_avatar().local_coordinates) == (x, y):
+        yield from navigate_to(from_map, (x, y + 1))
+    # Walk onto the door tile as the destination — navigate_to fires the warp.
+    if _map_group_number() == from_map:
+        yield from navigate_to(from_map, door_tile)
+
+
 def _ride_out_scripted_scene(button: str = "B", *, engage_timeout: int = 240) -> Generator:
     """Wait for a scripted scene to ENGAGE (bounded) then ride it out until
     control returns. Waiting for engagement first avoids treating the calm
@@ -805,27 +825,9 @@ def travel_to_petalburg_woods() -> Generator:
     )
     yield from wait_for_player_avatar_to_be_standing_still()
 
-    # The trainer battle makes navigate's stop point non-deterministic: it may
-    # leave us just south of the door OR walk us onto the door tile (y=38)
-    # WITHOUT warping (navigate walks over door tiles as plain ground). The warp
-    # only fires on a genuine player step ONTO the door from below — so if we are
-    # on/above the door row, drop back south of it first.
-    for _ in range(4):
-        if _map_group_number() != route104 or get_player_avatar().local_coordinates[1] >= 39:
-            break
-        context.emulator.press_button("Down")
-        yield from wait_for_n_frames(18)
-
-    # Now step UP into the door with DISCRETE steps (press, let the step
-    # complete), checking each frame for the warp into the Woods.
-    for _ in range(6):
-        if _map_group_number() == woods:
-            break
-        context.emulator.press_button("Up")
-        for _ in range(18):
-            yield
-            if _map_group_number() == woods:
-                break
+    # Walk UP through the Woods south door (row 38). Robust to navigate stopping
+    # ON the door tile without warping (see _pass_through_door_going_up / ML-9).
+    yield from _pass_through_door((11, 38), route104)
     if _map_group_number() != woods:
         raise BotModeError("Reached the Petalburg Woods south door but did not enter.")
     context.message = "Story: entered Petalburg Woods."
@@ -872,24 +874,10 @@ def cross_petalburg_woods() -> Generator:
             # handled by the battle listener), then retry the path.
             yield from _ride_out_scripted_scene("B")
 
-    # Exit through the north warp (14-15,5). As with the south door, navigate may
-    # stop ON the warp tile WITHOUT triggering it (the warp fires only on a
-    # genuine step onto it from below) — so if we ended on/above the warp row,
-    # drop one tile south to the approach (y>=6) first, then step UP into it.
+    # Exit UP through the north warp (row 5). Robust to navigate stopping ON the
+    # warp tile without triggering it (see _pass_through_door_going_up / ML-9).
     yield from wait_for_player_avatar_to_be_standing_still()
-    for _ in range(4):
-        if _map_group_number() != woods or get_player_avatar().local_coordinates[1] >= 6:
-            break
-        context.emulator.press_button("Down")
-        yield from wait_for_n_frames(18)
-    for _ in range(6):
-        if _map_group_number() != woods:
-            break
-        context.emulator.press_button("Up")
-        for _ in range(18):
-            yield
-            if _map_group_number() != woods:
-                break
+    yield from _pass_through_door((15, 5), woods)
     if _map_group_number() == woods:
         raise BotModeError("Reached the Petalburg Woods north door but did not exit.")
     # Settle onto Route 104 north.

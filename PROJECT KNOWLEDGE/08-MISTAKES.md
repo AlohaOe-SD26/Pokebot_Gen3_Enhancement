@@ -186,3 +186,31 @@
 - **Finding hidden blockers:** dump the map collision grid (get_map_data per
   tile → `.collision`/`.tile_type`) to find the real opening, and read
   `get_global_script_context().stack` at the stall tile to name the script.
+
+## 2026-07-20 — Petalburg Woods stall: fragile door-stepping + a TEST HARNESS that hid it (ML-9)
+- **Symptom:** In the REAL bot (install_sandbox), Story mode got "stuck" inside
+  Petalburg Woods and stopped progressing — but every one of my test runs passed.
+- **Two root causes:**
+  1. **Fragile door entry.** My Woods door/warp entry stopped SHORT of the door
+     and hand-stepped onto it with single-frame button presses + a per-frame
+     `_map_group_number()` check. Single-frame presses don't reliably complete a
+     tile step, and the map read FLICKERS during the warp fade, so the warp often
+     didn't fire → `BotModeError` → and main.py catches BotModeError and
+     **switches to Manual mode** (main.py:121) = the player just stops = "stuck".
+  2. **The harness masked it.** My verification harness read `get_player_avatar()`
+     + `get_map_data_for_current_position()` EVERY frame (for logging/stall
+     detection). main.py does NOT — it only reads game_state/script/tasks per
+     frame. Those extra reads subtly shifted battle/warp timing so the flaky door
+     happened to fire. So the bug reproduced ONLY without the extra reads.
+- **Fix:** warp through a door by making the door tile a NAVIGATION TARGET —
+  `navigate_to(map, door_tile)` — exactly how `heal_in_pokemon_center` enters the
+  Poké Center. navigate_to completes the step and fires the warp reliably. New
+  helper `_pass_through_door(door_tile, from_map)` (steps one tile off the door
+  first if a prior navigate parked us on it). Verified with a MAIN.PY-FAITHFUL
+  harness (below). Applies to both Woods doors; the south door is in custom too.
+- **Prevention (supersedes the earlier §16 note):** test story steps with a
+  harness that MATCHES main.py — per frame read ONLY game_state / script_context
+  / tasks (to build FrameInfo), NOT player/avatar/map; and catch `BotModeError`
+  the way main.py does (→ set_manual_mode) so a raise shows up as "stuck", not a
+  crash. Reading extra state each frame HIDES timing-sensitive bugs. Never
+  hand-step onto a warp tile — navigate_to it.

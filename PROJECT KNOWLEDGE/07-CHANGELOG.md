@@ -852,3 +852,15 @@ and rides out the battle+dialogue until BADGE01_GET. Verified deterministically
 21 HP). **A fresh game now auto-plays all the way to the Stone Badge.** Starter
 caveat: verified with Mudkip (ideal); Torchic (Fire, weak to Rock) is an open
 TODO. Checkpoint gym1_done.ss1. Sandbox-only.
+
+## 2026-07-20 — FIX: Petalburg Woods stall (door warp) — real-bot repro (#24, ML-9)
+User-reported: Story mode got stuck in Petalburg Woods in the real bot (all my
+tests passed). Root cause (ML-9): (1) fragile door entry — hand-stepping onto the
+warp tile with single-frame presses + per-frame map checks was flaky (warp didn't
+fire → BotModeError → main.py switches to Manual = "stuck"); (2) my test harness
+read player/map every frame, which masked it. Fix: new `_pass_through_door(tile,
+from_map)` warps by navigating ONTO the door tile (like heal_in_pokemon_center);
+replaced the hand-stepping in both Woods doors. Re-verified with a MAIN.PY-FAITHFUL
+harness (no per-frame state reads, catches BotModeError): full chain wally_done ->
+Woods -> cross -> Rustboro -> Gym 1 -> BADGE01_GET True, no error, 46590 frames.
+The south-door fix also applies to CUSTOM (leg 2 was promoted).
