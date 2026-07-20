@@ -90,15 +90,25 @@ gaps = map_locations/mart/pickup/historical.
   Petalburg — `_navigate_leg` to Oldale (past the Route 101 loop) then
   `navigate_to_anywhere(PETALBURG)`. Verified with listeners (22.1k frames).
   StoryMode now ends "reached Petalburg." NOT yet promoted (test then promote).
-- **NEXT SESSION — Chapter 2 (Petalburg Gym):** Gym door (15,8)→map (8,1); the
-  gym is tall (Norman @ (4,2), entrance ~(4,110)); walking up to **(4,108)**
-  fires `Norman`→`WallyArrive`→`NormanAddressPlayer`. Trigger is finicky (fires
-  when stepping Up from the entrance, NOT when navigate drops you there) — build
-  = enter gym, step Up tile-by-tile until the Norman script engages, ride out,
-  then the **Wally catching tutorial** (Ralts on Route 102 — check if it
-  auto-plays), back to gym, then Route 104→Woods→Rustboro (Gym 1). Full findings
-  in design §17. Checkpoint `petalburg.ss1`. Nav note: `navigate_to_anywhere`
-  loops on Route 101 → use `_navigate_leg` to get past it first.
+- **Petalburg travel PROMOTED to custom** (user-tested).
+- **Chapter 2 DONE + wired (sandbox): Petalburg Gym (Dad/Norman) + Wally
+  catching tutorial.** `do_petalburg_gym_and_wally_tutorial()`: enter gym → fire
+  the Norman scene at (4,108) → ride out the fully-auto tutorial (Route 102
+  Ralts catch + back). Completion = back in the gym + controllable after
+  visiting Route 102 (NOT a flag). Verified via the listener harness. NOT yet
+  promoted (test then promote).
+- **CRITICAL TESTING LESSON:** test story steps ONLY via the listener-driven
+  harness (build FrameInfo + call get_bot_listeners each frame, like main.py) —
+  a bare `next(gen)+run_single_frame()` loop reads STALE state (no state-cache
+  update) and gives WRONG results for scripted scenes. This cost hours.
+- **DETECTOR BUG (low priority):** `chapters.py` Ch2 flag
+  `THANKED_FOR_PLAYING_WITH_WALLY` is NOT set by the Wally tutorial — find the
+  real flag (badge-anchored detection makes this low-impact).
+- **NEXT SESSION:** Route 104 → Petalburg Woods (Aqua grunt / researcher) →
+  Rustboro City → HM01 Cut → **Gym 1 (Roxanne, Rock)**. Nav notes:
+  `navigate_to_anywhere` loops on Route 101 (use `_navigate_leg` past it);
+  cross-region travel needs the battle listener (grass encounters). Checkpoints:
+  petalburg.ss1, wally_done.ss1.
 - Iteration save-states in scratchpad: truck/house1f/house2f/clockset/
   outside_town/rival_*/birch_rescue/birch_free/first_battle/birch_lab/lab_done.
 
