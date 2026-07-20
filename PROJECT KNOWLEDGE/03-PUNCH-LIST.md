@@ -88,11 +88,15 @@
 - [x] #44 — Party ball rework: strip now clean mon sprites (no ball
       backdrop); caught ball moved to the hover tooltip as an icon+name row.
       Live-verified on the real save (9c2b1f94).
-- [~] #41/#42 — obtainability (evolution half) + capability gating (rod/HM/
-      badge from save) BUILDING (design in 11-LIVINGDEX-DESIGN). Research
-      half of #41 (static/gift/trade/roamer/unobtainable lists) + #42-hard
-      (HM-gated map reachability) still to do. HONESTY POLICY: proceeding
-      "show both denominators" unless user says exclude.
+- [x] #41-evo/#42-easy — obtainability (evolution) + capability gating
+      built (ceb7343e; 30/30 units; live save read Old/Good/Super Rod;
+      panel shows 128 wild/147 evolve/102 special-trade). obtainability.py
+      + capabilities.py.
+- [~] #41-research — compile+fact-check Emerald obtainability lists (gift/
+      static/roamer/in-game-trade/event/unobtainable) to break down the 102
+      "special/trade" bucket; "show both" denominators; auto-evolve helper.
+      BUILDING.
+- [ ] #42-hard — HM-gated cross-map reachability in the nav graph (v2).
 - [ ] #45 — (FUTURE, with story-mode bot #24) enumerate story instances the
       bot can automate, and let hunt/living-dex progress the story to unlock
       areas/capabilities needed for dex completion.
