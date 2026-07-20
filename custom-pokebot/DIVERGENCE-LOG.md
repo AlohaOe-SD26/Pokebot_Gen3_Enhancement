@@ -311,3 +311,9 @@ rival, back to Birch's lab (riding out the Oldale rival intercept), receive the
 Pokédex + Poké Balls. Wired into StoryMode (which now ends at the Pokédex).
 Verified in custom (SYS_POKEDEX_GET True). (early_game.py also carries WIP
 `travel_to_petalburg`/`_navigate_leg`, not yet wired.)
+
+### (j-update 2026-07-20e) Story: travel to Petalburg City
+`travel_to_petalburg()` + `_navigate_leg()`: lab -> Route 101 -> Oldale (per-leg
+navigate_to) then navigate_to_anywhere(PETALBURG) from Oldale (the global nav
+loops on Route 101, so we get past it first). Wired into StoryMode (now ends at
+Petalburg). Verified in custom (pokedex_done -> Petalburg (0,0), 22.1k frames).

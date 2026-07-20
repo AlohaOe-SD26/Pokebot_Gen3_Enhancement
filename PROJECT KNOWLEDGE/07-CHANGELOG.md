@@ -789,3 +789,8 @@ then navigate_to_anywhere(PETALBURG) from Oldale. Wired into StoryMode (fresh
 game now plays through to arriving in Petalburg). Verified with listeners
 (pokedex_done -> Petalburg, 22.1k frames). Petalburg Gym / Dad-Wally findings
 captured in design §17 for the next build. Sandbox.
+
+## 2026-07-20 — PROMOTED travel to Petalburg to custom (#24)
+User tested ("got to Petalburg fine from a fresh save"). travel_to_petalburg +
+_navigate_leg copied sandbox → custom; verified (reaches Petalburg (0,0)).
+Custom StoryMode now plays fresh game → rival → Pokédex → Petalburg City.

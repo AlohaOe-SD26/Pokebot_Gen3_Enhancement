@@ -117,6 +117,7 @@ class StoryMode(BotMode):
             help_birch_and_choose_starter,
             return_to_lab_and_get_pokedex,
             train_lead_to_level,
+            travel_to_petalburg,
             travel_to_route103,
             visit_rivals_house,
             walk_off_truck_and_into_house,
@@ -137,10 +138,11 @@ class StoryMode(BotMode):
         yield from train_lead_to_level(target_level)
         yield from fight_route103_rival()
         yield from return_to_lab_and_get_pokedex()
+        yield from travel_to_petalburg()
 
         context.message = (
-            "Story: beat the rival and got the Pokédex! The next stretch (Route "
-            "102 -> Petalburg -> Dad & Wally) is still being built; handing to "
+            "Story: reached Petalburg City! The Petalburg Gym scene (Dad/Norman "
+            "+ the Wally catching tutorial) is still being built; handing to "
             "manual."
         )
         console.print(f"[bold green]{context.message}")
