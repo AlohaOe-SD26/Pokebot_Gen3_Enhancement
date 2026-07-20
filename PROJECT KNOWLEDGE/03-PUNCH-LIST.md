@@ -71,6 +71,24 @@
       "-restored" + global configs into custom/sandbox profiles/
       (gitignored). LIVE TEST on real party running.
 
+## User rulings + new round (2026-07-19)
+- [ ] RULINGS: Latias/Latios → make BOTH obtainable (bot detects which the
+      save has, does either). Surskit → stays unobtainable (confirmed).
+- [ ] #46 — Hover tooltip: make the caught-ball icon ~3× larger.
+- [ ] #47 — Opportunistic catching: also catch an already-OWNED species if
+      it is SHINY (currently catches uncaught wanted species; ensure shiny-
+      of-owned is also caught).
+- [ ] PROMOTE-2: promote the whole sandbox batch (since f0b275f3) into
+      custom with EXTENSIVE intent-level documentation; then BACKUP
+      everything (git tag milestone + note).
+- [ ] #24 — STORY-MODE BOT (design-first, multi-pass/triple-check): play
+      from a fresh save (user-set name; Oak intro/gender/name; Littleroot
+      start) OR continue existing; goal = beat Elite 4 + complete the game
+      (eventually pokedex); CHUNKED into chapters; must build+maintain a
+      team; enumerate EVERY key event/interaction/item/requirement to
+      progress + how to obtain progression items. Design → 12-STORYMODE-
+      DESIGN.md, several verification passes before building.
+
 ## Living-Dex deepening (user-requested 2026-07-19; DESIGN-FIRST, no cutting corners)
 - [ ] #41 — Obtainability model: classify every species — wild / evolution
       (method+from) / in-game trade / gift / static / roamer / event — so the
