@@ -82,6 +82,21 @@ gaps = map_locations/mart/pickup/historical.
   True, no error. Fixed in BOTH builds (sandbox + custom — leg 2 was promoted).
   **Test harness rule CORRECTED (design §16 / ML-9): match main.py — do NOT read
   player/map every frame (it hides timing bugs); catch BotModeError→manual.**
+- **RESUME-FROM-ANYWHERE v1 + Wally-detection fix (sandbox)** — user-reported a
+  resumed save (in Petalburg Woods) mis-detected as "still needs Wally".
+  StoryMode.run() rebuilt as a SEGMENTED flag-gated resume (fresh game runs all;
+  resumed/hand-played save skips finished segments; Woods segment enters by
+  current map). Fixed chapters.py Ch2 flag → HIDE_PETALBURG_CITY_WALLYS_MOM (the
+  never-set THANKED_FOR_PLAYING_WITH_WALLY was the bug). Verified across
+  checkpoints. Design §RS; refinements (per-step, fly/teleport, title-Continue,
+  evolution) = punch-list #24-resume/#24-evo. Sandbox-only (needs legs 3-4+gym
+  promoted first).
+- **MOVE-LEARNING re-checked** — user reported "still has issues (Pursuit/Treecko)".
+  The decision logic is verified correct (Mudkip + Treecko/Pursuit, never throws,
+  declines status moves) and on the real path (_listeners→handle_battle→
+  handle_move_replacement_dialogue); most likely their test predated the
+  move-learning commit. NOTE evolution is OFF (stop_evolution default True) →
+  #24-evo. Ask user to re-test with latest.
 - **Smart MOVE-LEARNING implemented (both builds)** — user-reported the "learn a
   new move / delete an old one?" prompt. Added `LevelUpTravelBattleStrategy.
   which_move_should_be_replaced()`: never trades a damaging move for a status move
