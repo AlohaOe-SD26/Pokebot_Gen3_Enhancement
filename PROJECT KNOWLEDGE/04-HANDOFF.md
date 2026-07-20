@@ -67,12 +67,20 @@ gaps = map_locations/mart/pickup/historical.
   GATED OFF (types but doesn't persist — TODO, user-deprioritised).
 - **Sandbox audio off at startup** (sandbox `pokebot.py` forces `no_audio`;
   reliable regardless of launch; GUI-toggleable). Custom unaffected.
-- **NEXT CHUNK (in progress): leave lab → Oldale → train starter to random
-  Lv 8-10 → Route 103 rival battle.** Scouted: use `navigate_to_anywhere` for
-  cross-map travel; blockers found = lab exit needs approach+step-through-warp,
-  and a persistent lab script blocks nav (handle like other scripted scenes);
-  training loop (spin-in-grass + battle listener, watch for fainting/healing)
-  is a NEW mechanic to build carefully; rival is on Route 103 (0,18).
+- **Chapter 1 fully PROMOTED to custom** (starter → first battle → full lab
+  conversation incl. `GoSeeRival` → shiny contingency). `finish_birch_lab` was
+  found incomplete (stopped mid-lab, left a live Yes/No) and FIXED — now ends
+  with the player controllable and walkable. Pokédex is NOT given in the lab
+  (comes after the rival battle).
+- **NEXT CHUNK (in progress): Oldale → train starter to random Lv 8-10 →
+  Route 103 rival battle.** Progress: `finish_birch_lab` leaves the player free;
+  `navigate_to_anywhere(OLDALE_TOWN)` travels lab → Littleroot → Route 101 but
+  then LOOPS on Route 101 (a `(0,0)` map blip) without reaching Oldale — the
+  cross-map nav needs debugging there (maybe chain map-by-map, or avoid the
+  grass loop). Then the training loop (spin-in-grass + battle listener; MUST
+  handle the starter fainting → heal at Oldale Poké Center) is a NEW mechanic;
+  rival battle is on Route 103 (0,18). Checkpoints: lab_done.ss1 (clean),
+  oldale attempt states in scratchpad.
 - Iteration save-states in scratchpad: truck/house1f/house2f/clockset/
   outside_town/rival_*/birch_rescue/birch_free/first_battle/birch_lab/lab_done.
 
