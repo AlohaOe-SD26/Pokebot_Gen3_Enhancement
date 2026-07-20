@@ -46,6 +46,110 @@
 
 ---
 
+## §P. PURPOSE & PROJECT CONTEXT (read this first — it shapes HOW we build)
+
+**What this Story bot is.** A *scripted, deterministic* bot that plays Pokémon
+Emerald from a fresh save all the way to the end of the story by itself. It is
+driven by observed game state (maps, coordinates, script names, flags) and hard
+sequences — NOT by learning. Its job is to be a **reliable, repeatable reference
+playthrough**.
+
+**Why it exists (the bigger goal).** It is the **scaffold/reference for a
+SEPARATE Pokémon-playing AI program** (a different project — the "Emerald AI"
+sibling). That AI is meant to *learn to play the game organically, like a human*.
+This Story bot and its documentation exist to **accelerate that AI's training**:
+the bot provides a known-good trajectory (what to do, where, in what order) and
+this documentation captures the game's mechanics, map facts, and decision points.
+The AI will **not call this bot at runtime** — it learns from the *reference and
+the notes*, then plays on its own. Getting a bot that can complete the story end-
+to-end by itself is step 1; layering in more human-like behaviour comes later
+(to be detailed separately).
+
+**What this means for HOW we work (documentation is a first-class deliverable):**
+- Write down not just *what* the code does but **WHY**, the **game facts** behind
+  it (map ids, coords, script names, flags, level thresholds, type matchups), and
+  **HOW we discovered them** (the recon that found the fact). Those notes are
+  what the AI project consumes — they are as important as the code.
+- Every chunk's function carries a docstring in the INTENT / STORY CONDITION /
+  HOW IT WORKS / GOAL-END-STATE format (see `modules/story/early_game.py`) so the
+  trajectory reads as a documented sequence of game states.
+- Prefer *discovering ground truth* (dump the map, read the script name, read the
+  flag) over guessing — see **§R. RECON PLAYBOOK**. Recorded facts compound; a
+  guess that happens to work teaches the AI project nothing.
+- Log the hard-won lessons in `08-MISTAKES.md` (they double as "gotchas the AI
+  will also hit").
+
+---
+
+## §R. RECON PLAYBOOK (the standard way to build a chunk — do this FIRST)
+
+Cross-region travel and scripted scenes bit us repeatedly (ML-7/ML-8) whenever we
+GUESSED coordinates. The reliable, fast way is to **dump ground truth first, then
+write code against it.** This playbook is now the default build loop.
+
+### 1. Static map recon — `tools/mapdump.py` (the "map dump")
+One command prints a map's dimensions, connections, warps (with destinations),
+NPCs (if a state is loaded), and an ASCII collision/tile grid:
+```
+py -3.12 tools/mapdump.py <MAP_NAME> --profile story-b-test [--state PATH.ss1]
+# e.g. py -3.12 tools/mapdump.py PETALBURG_WOODS --state /tmp/woods_entered.ss1 --profile story-b-test
+```
+Read from it: the **only** walkable openings (a fenced edge with one gap → the
+exit), which warp leads where (find a door's destination map/`warp_id`), whether
+an intermediate map is **warp-split** (a route that only continues THROUGH a
+building/cave → connection-routing will fail, go leg-by-leg — ML-7), and whether
+a "silent blocker" is a wanderer or stationary NPC.
+
+### 2. Dynamic recon — name the script that stalls you
+When the player stops at a tile for no visible reason, it is almost always a
+coordinate-trigger script (Scott gate, a trainer sight-line, a cutscene). Walk
+into it and read the active script's name:
+```python
+from modules.tasks import get_global_script_context
+sc = get_global_script_context()
+if sc and sc.is_active:
+    print(sc.stack)   # e.g. ['PetalburgCity_EventScript_Scott'] or ['EventScript_TrainerApproach']
+```
+`EventScript_TrainerApproach` ⇒ a TRAINER (must FIGHT, not ride out — use the
+no-flee travel strategy + pre-heal, ML-8). A `*_EventScript_*` cutscene ⇒ ride it
+out. NB some overworld scripts run while `game_state` stays OVERWORLD, so gate the
+ride-out on `script.is_active`, not on a state change (ML-8 companion note).
+
+### 3. Test EVERYTHING via the listener-driven harness (never a bare next()+frame)
+Scripted scenes read STALE state under a bare `next(gen)+run_single_frame()` loop
+and give WRONG results (this cost hours — ML-5). Drive each step exactly like the
+real main loop: build a `FrameInfo` and call the `get_bot_listeners()` each frame,
+with a mode whose `on_battle_started` returns the strategy. Skeleton:
+```python
+context.controller_stack = [mode.run()]
+context.bot_listeners = get_bot_listeners(context.rom)
+prev = None
+while frames < CAP:
+    sc = get_global_script_context(); ss = sc.stack if sc and sc.is_active else []
+    fi = FrameInfo(frame_count=..., game_state=get_game_state(), active_tasks=[...],
+                   script_stack=ss, controller_stack=[c.__qualname__ for c in context.controller_stack],
+                   previous_frame=prev)
+    for L in context.bot_listeners.copy(): L.handle_frame(context.bot_mode_instance, fi)
+    try: next(context.controller_stack[-1])
+    except StopIteration: context.controller_stack.pop() ...
+    context.emulator.run_single_frame(); prev = fi
+```
+(Full working copies live in the scratchpad harnesses; reuse one.)
+
+### 4. Reusable patterns learned (apply these, don't re-derive)
+- **Leg-by-leg travel** past a warp-split map: navigate each leg with
+  `navigate_to_anywhere(..., avoid_scripted_events=False)` so trainer approaches
+  become battles the listener wins, and the no-flee strategy prevents the flee-crash.
+- **Door warps:** navigate STOPS ON a door tile without triggering it; step UP into
+  the door with DISCRETE steps (press, let the ~16-frame step finish), and if you
+  ended on the door, drop one tile south first. See `travel_to_petalburg_woods`.
+- **Checkpoints:** save a `.ss1` at each leg boundary (scratchpad) so the next leg
+  iterates in seconds, not minutes. WRITE the save AFTER the harness loop ends
+  (writing mid-emulation raises PermissionError).
+- **Pre-heal** before any trainer route while the party is tiny (ML-8).
+
+---
+
 ## 0. TL;DR for a future agent
 
 The bot is a **shiny-hunting automation** whose primitives happen to be exactly

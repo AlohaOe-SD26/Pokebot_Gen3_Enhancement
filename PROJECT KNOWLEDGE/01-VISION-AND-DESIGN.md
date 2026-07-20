@@ -74,11 +74,31 @@ it.
 - **Must not do / constraints:** upstream updates are never auto-applied
   here — they're reviewed per the UPDATE-LOG ritual.
 
+### Story-Mode bot (`plugins/custom_modes/story_mode.py` + `modules/story/`)
+- **Purpose:** a *scripted, deterministic* bot that plays Emerald from a fresh
+  save through the whole story by itself (punch-list #24). Driven by observed
+  game state (maps, coords, script names, flags) and hard sequences — NOT by
+  learning.
+- **Why it matters (its role in the bigger picture):** it is the **reference /
+  scaffold for the SEPARATE "Pokémon Emerald AI" project** — an AI meant to
+  learn to play the game *organically, like a human*. The Story bot provides a
+  known-good, repeatable trajectory (what to do, where, in what order) and its
+  documentation captures the game mechanics/map-facts/decision-points, so the AI
+  project can **learn from the reference + notes to speed up its training**. The
+  AI does NOT call the bot at runtime; the two never share code. "Complete the
+  story unattended" is step 1; human-like behaviour is a later, separate layer.
+- **Consequence for our practice:** documentation quality is a first-class
+  deliverable here — capture the WHY, the game facts, and HOW they were
+  discovered (recon), not just the code. Deep design + recon method live in
+  `12-STORYMODE-DESIGN.md` (see its §P purpose note and §R recon playbook).
+
 ### Emerald AI notes (`Pokemon_Emerald_AI_Notes.md`)
 - **Purpose:** cross-project transfer file — everything in this codebase
   useful to the separate Pokémon Emerald AI project (memory reading, input
   injection, state decoding, battle logic, headless control), written so
   that project can consume it without reading this repo.
+- The Story-Mode bot (above) is the main body of that transfer: a documented
+  end-to-end playthrough for the AI project to learn from.
 
 ### Future: custom automations, installer, custom interface
 - Intent recorded in Goals above; each gets its own component section here
