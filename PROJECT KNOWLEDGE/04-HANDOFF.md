@@ -79,11 +79,22 @@ gaps = map_locations/mart/pickup/historical.
   un-fleeable rival trainer battle. VERIFIED piecewise (fresh→lab 18.9k frames;
   route103→rival-beaten 31.1k frames). Earlier Chapter-1 parts (→lab) already
   in custom; the travel/train/rival is NOT yet promoted.
-- **NEXT:** after the rival, the game continues: return to Birch's lab → get the
-  Pokédex + Poké Balls → Route 102 → Petalburg → ... (Chapter 2+). Training is
-  slow in headless (frequent Oldale heal round-trips) — could optimise later
-  (potions, or fight lower-damage). Checkpoints in scratchpad: lab_done,
-  route103, (train states).
+- **Pokédex sequence DONE + wired + committed** (`return_to_lab_and_get_pokedex`
+  + `_navigate_through_scripts` helper): after the rival, back to Birch's lab
+  (riding out the Oldale rival intercept), receive the Pokédex + Poké Balls.
+  Verified (SYS_POKEDEX_GET True). StoryMode now ends cleanly at the Pokédex.
+  NOT yet promoted (test then promote).
+- **Petalburg travel = WIP, NOT wired** (`travel_to_petalburg` + `_navigate_leg`
+  in early_game.py): reaches Oldale (handles the running-shoes gift) but the
+  **Oldale→Route 102 leg fails** — needs the correct Oldale-west/Route 102 coords
+  (ROUTE102=(0,17), PETALBURG_CITY=(0,0)). See design §16.1.
+- **NEXT SESSION:** fix the Route 102 leg → reach Petalburg → wire it → then
+  Chapter 2 proper: enter the Petalburg Gym (meet Dad/Norman) → the **Wally
+  catching tutorial** (big scripted sequence to explore). Note: cross-region nav
+  is finicky — `navigate_to_anywhere` loops on Route 101; use `_navigate_leg`
+  (per-leg navigate_to + ride-out). Training is slow in headless (Oldale heal
+  round-trips) — could add Potions later. Checkpoints in scratchpad:
+  lab_done/route103/rival_beaten/pokedex_done.
 - Iteration save-states in scratchpad: truck/house1f/house2f/clockset/
   outside_town/rival_*/birch_rescue/birch_free/first_battle/birch_lab/lab_done.
 
