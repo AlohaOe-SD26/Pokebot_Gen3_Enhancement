@@ -58,7 +58,14 @@ flavor all done, Phases 1/2/3a). `itemdex_data.json` = core (309 items);
 gaps = map_locations/mart/pickup/historical.
 
 ## Most recent work (2026-07-20)
-- **Story-mode chunk 2 BUILT (sandbox): Chapter 0 New Game intro AUTOMATED.**
+- **PROMOTED Story Mode (chunks 1-2) to custom** after the user tested the
+  intro live ("worked perfectly"). custom now has modules/story/, the StoryMode
+  plugin, the title-screen selection fix (BotMode.is_selectable_from_title_
+  screen + both pickers), and story tests. Verified in custom (compile, 12/12
+  tests, intro smoke test → NICK/male in truck). DIVERGENCE-LOG (j) + docs
+  updated. Sandbox == custom for all story files. **Next work (chunk B) starts
+  in SANDBOX again** per the sandbox→promote workflow.
+- **Story-mode chunk 2 BUILT: Chapter 0 New Game intro AUTOMATED.**
   `modules/story/intro.py` (`run_intro`) + `config.py` (story.yml name/gender)
   + `plugins/custom_modes/story_mode.py` (`StoryMode` bot). Drives title → New
   Game → Birch speech → gender → name → **controllable INSIDE the truck**.

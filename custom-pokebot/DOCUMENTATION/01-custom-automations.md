@@ -70,3 +70,28 @@ PatrolMode is discovered by the loader, and exercises `_load_waypoints()`
 failure/success paths. This catches import-name drift and discovery bugs
 without needing deps or a ROM. A real end-to-end test should follow the
 upstream pattern (`tests/utility.py`) once ROMs are available on a machine.
+
+## Story Mode (#24) — story auto-player
+
+**Mode name:** `Story`. Plays Emerald's story from a fresh save, or reports
+progress on an existing one. Built in verifiable chunks; current status:
+
+- **Chapter 0 — New Game intro (working):** from a fresh, save-less boot,
+  select `Story` at the title/main menu. It drives: title screen → New Game →
+  Professor Birch's welcome speech → gender selection → name entry → and stops
+  with the player controllable **inside the moving truck** (the clean end of
+  the intro). It then hands back to manual.
+- **Progress detection (working):** if you launch `Story` while a save is
+  already loaded in the overworld, it reads your flags/badges/items and reports
+  which of the 30 story chapters you're on (e.g. "ch5 — Devon errand, 1 badge")
+  instead of starting a new game.
+
+**Your character name & gender** come from `story.yml` in the profile folder
+(auto-created with `character_name: NICK`, `gender: boy`). Edit it before
+starting a new game (name ≤ 7 letters; gender `boy` or `girl`).
+
+**Notes / limits:**
+- The intro assumes a save-less boot (it selects "New Game"). Continuing an
+  existing save straight from the title screen is not wired yet.
+- Chapters 1–24 (stepping off the truck onward) are still being built.
+- Design & rationale: `PROJECT KNOWLEDGE/12-STORYMODE-DESIGN.md`.

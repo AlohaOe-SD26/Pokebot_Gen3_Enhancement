@@ -3269,15 +3269,25 @@ class DashboardScreen:
                 game_state = get_game_state()
             except Exception:
                 game_state = None
-            if game_state not in (GameState.TITLE_SCREEN, GameState.MAIN_MENU, None):
+            if game_state in (GameState.TITLE_SCREEN, GameState.MAIN_MENU):
+                # At the title/main menu only modes that opt in (e.g. Story Mode,
+                # which drives the New Game intro) are offered; everything else
+                # needs an in-game overworld and stays greyed out.
+                try:
+                    is_selectable = mode.is_selectable_from_title_screen() and mode.is_selectable()
+                except Exception:
+                    if context.debug:
+                        console.print_exception()
+                    is_selectable = False
+            elif game_state is None:
+                is_selectable = False
+            else:
                 try:
                     is_selectable = mode.is_selectable()
                 except Exception:
                     if context.debug:
                         console.print_exception()
                     is_selectable = False
-            else:
-                is_selectable = False
             if is_selectable:
                 menu.add_command(label=mode.name(), command=lambda m=mode: select_bot_mode(m.name()))
             else:

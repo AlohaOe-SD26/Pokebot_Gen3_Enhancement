@@ -652,3 +652,14 @@ need an in-game overworld). But Story mode is designed to start there.
 - Verified via the custom-mode loader: Story is selectable at title, sibling
   custom modes (Hunt/etc.) are not. Main loop has no game-state gate, so once
   selected the mode runs. Sandbox only.
+
+## 2026-07-20 — PROMOTED Story Mode (chunks 1-2) to custom (#24)
+User tested the Chapter 0 intro live on real hardware ("worked perfectly") and
+approved promotion. Copied sandbox → custom: modules/story/ (detector + intro +
+config + registry), plugins/custom_modes/story_mode.py, tests/
+test_story_progress.py, modules/modes/_interface.py
+(is_selectable_from_title_screen), and the two mode pickers (dashboard_gui.py,
+emulator_controls.py) with the title-screen selection fix. Verified in custom:
+compile clean, 12/12 story tests, live intro smoke test lands NICK/male INSIDE
+OF TRUCK. DIVERGENCE-LOG (j) + DOCUMENTATION/01-custom-automations.md updated.
+Sandbox and custom are now in sync for all story files.

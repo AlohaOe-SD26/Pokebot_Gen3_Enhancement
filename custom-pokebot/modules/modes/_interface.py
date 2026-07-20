@@ -49,6 +49,21 @@ class BotMode:
         """
         return True
 
+    @staticmethod
+    def is_selectable_from_title_screen() -> bool:
+        """
+        Whether this mode may be selected while the game is still at the title
+        screen / main menu (i.e. before a save is loaded or a new game begun).
+
+        Almost every mode needs an in-game overworld and returns False here, so
+        the mode picker greys them out until the game has started. Story Mode is
+        the exception: it drives the New Game intro from the title screen, so it
+        overrides this to True.
+
+        :return: Whether this mode is offered at the title/main menu.
+        """
+        return False
+
     def run(self) -> Generator:
         """
         Contains the actual handling code.

@@ -254,3 +254,30 @@ MERGE NOTES: all new plugins have .gitignore negations. gamepad.py edit =
 GUI-nav gating. game_cheats.py = money field/lock + catch-adjacent. Upstream
 edits to catch.py/default.py must be re-merged around the allowlist filter /
 the new_move decision point.
+
+### (j) Story Mode — auto-player (#24), Chapter 0 intro + progress detector
+- WHAT: a new "Story" bot mode that plays Emerald's story. Promoted
+  2026-07-20 with two chunks working:
+  1. **Read-only progress detector** (`modules/story/chapters.py` +
+     `progress.py`): reads a save's flags/badges/items and reports the current
+     story chapter (30-chapter registry). Badge-anchored placement (highest
+     gym badge = the reliable spine; finer flags/items refine within the
+     bracket; anything met ahead of the badge count is flagged as a hacked/
+     test-save anomaly). `tests/test_story_progress.py` (12 tests).
+  2. **Chapter 0 New Game intro** (`modules/story/intro.py`): title → New Game
+     → Birch's speech → gender → name entry → lands controllable INSIDE the
+     moving truck. Task/GameState-driven, fully bounded.
+- WHY: the roadmap goal of an unattended story-completion bot, built in
+  verifiable chunks (design in PROJECT KNOWLEDGE/12-STORYMODE-DESIGN.md).
+- HOW: `plugins/custom_modes/story_mode.py` = the `StoryMode` bot — fresh boot
+  runs the intro (name/gender from `<profile>/story.yml` via
+  `modules/story/config.py`); an already-loaded save is detected & reported.
+  To let the mode be picked at the title screen, `BotMode` gained
+  `is_selectable_from_title_screen()` (default False; StoryMode overrides True)
+  and both mode pickers (`dashboard_gui.py`, `emulator_controls.py`) honor it.
+- FILES: modules/story/*, plugins/custom_modes/story_mode.py,
+  modules/modes/_interface.py, modules/gui/dashboard_gui.py,
+  modules/gui/emulator_controls.py, tests/test_story_progress.py.
+- STATUS: chunks 1–2 done & live-verified (user tested the intro on real
+  hardware). Chapters 1–24 execution is WIP. Intro currently assumes a
+  save-less boot (Continue-from-title path is TODO).
