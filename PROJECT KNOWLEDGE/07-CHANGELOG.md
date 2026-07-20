@@ -771,3 +771,9 @@ real listeners. Design §15.3. Sandbox only.
 User tested ("that worked!"). early_game.py + story_mode.py copied sandbox →
 custom; verified in custom (12/12 story tests; train+rival from Route 103 →
 DEFEATED_RIVAL_ROUTE103 True, Mudkip Lv8, clean). Chapter 1 fully in custom now.
+
+## 2026-07-20 — Story: return to lab + receive the Pokédex (#24, sandbox)
+`early_game.return_to_lab_and_get_pokedex()` + `_navigate_through_scripts()`
+helper: head back to Birch's lab after the rival (riding out the Oldale rival
+intercept), receive the Pokédex + Poké Balls. Wired into StoryMode. Verified
+from the post-rival checkpoint (SYS_POKEDEX_GET True). Design §16. Sandbox.

@@ -1262,3 +1262,14 @@ A fresh game now plays through the FIRST RIVAL BATTLE.
 - **VERIFIED (piecewise, headless): fresh→lab (18.9k frames); route103→train
   Lv8→heal→beat rival (31.1k frames, done, no crash).** Full single-run
   exceeds the headless timeout but is the sum of validated pieces.
+
+### §16 — Chapter 2 start: return to lab, get the Pokédex (2026-07-20)
+`return_to_lab_and_get_pokedex()`: after the rival, head back to Birch's lab.
+On the way, the rival intercepts you in **Oldale** (`OldaleTown_EventScript_
+RivalFinish`, "go see my dad") — new helper `_navigate_through_scripts()` rides
+out any scene that interrupts navigation and retries until the destination is
+reached. In the lab, advance with A until `RECEIVED_POKEDEX_FROM_BIRCH` is set
+(Pokédex + Poké Balls given), then ride out. Verified from the post-rival
+checkpoint: dex + `SYS_POKEDEX_GET` True, controllable in the lab (4.1k frames).
+Checkpoint `pokedex_done.ss1`. NEXT: leave lab -> Route 102 -> Petalburg (meet
+Dad/Norman + Wally catching tutorial = Chapter 2 proper).
