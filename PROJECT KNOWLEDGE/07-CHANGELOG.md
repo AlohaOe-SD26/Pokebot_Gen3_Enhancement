@@ -709,3 +709,8 @@ Sandbox only. Next chunk: Route 101 → starter → first battle.
 Added `install.LAUNCH_EXTRA_ARGS` (default empty; custom unaffected); the sandbox
 wrapper sets it to `["--no-audio"]` so the sandbox test build starts quiet
 (audio stays toggleable in-GUI). install.py + install_sandbox.py.
+
+## 2026-07-20 — PROMOTED story chunk B (downstairs + rival's house) to custom (#24)
+User tested ("worked perfectly!"). early_game.py (descend + visit_rivals_house)
++ wired story_mode.py copied sandbox → custom; verified (fresh run → Littleroot
+14,9). Divergence log + changelog updated.

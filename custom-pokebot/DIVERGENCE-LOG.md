@@ -282,3 +282,9 @@ the new_move decision point.
 - STATUS: chunks 1–2 done & live-verified (user tested the intro on real
   hardware). Chapters 1–24 execution is WIP. Intro currently assumes a
   save-less boot (Continue-from-title path is TODO).
+
+### (j-update 2026-07-20) Story Mode Chapter 0 now runs through the rival intro
+`early_game.py` extended: after the clock → downstairs (rides Mom's chat + the
+Petalburg-Gym TV scene) → out → rival's house (auto mom greeting → upstairs →
+touch Poké Ball → meet the rival) → back outside in Littleroot. Full chain wired
+into StoryMode. Verified in custom (fresh run → Littleroot (14,9)).

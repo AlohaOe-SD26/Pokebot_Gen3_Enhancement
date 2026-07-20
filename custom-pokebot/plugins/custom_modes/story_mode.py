@@ -71,17 +71,21 @@ class StoryMode(BotMode):
         #     house → upstairs → set the wall clock. (Downstairs/Mom, Route 101,
         #     starter + first battle are WIP.) ------------------------------
         from modules.story.early_game import (
+            descend_and_leave_players_house,
             go_upstairs_and_set_clock,
+            visit_rivals_house,
             walk_off_truck_and_into_house,
         )
 
         yield from walk_off_truck_and_into_house()
         yield from go_upstairs_and_set_clock()
+        yield from descend_and_leave_players_house()
+        yield from visit_rivals_house()
 
         context.message = (
-            "Story: arrived, moved in, and set the bedroom clock. Next (back "
-            "downstairs → outside → rival's house → starter → first battle) is "
-            "still being built; handing back to manual."
+            "Story: moved in, set the clock, met the rival - now back outside "
+            "the rival's house. Next (Route 101 -> help Birch -> choose a "
+            "starter -> first battle) is still being built; handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()

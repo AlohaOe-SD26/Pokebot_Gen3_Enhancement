@@ -29,8 +29,44 @@ MAP_INSIDE_OF_TRUCK = "INSIDE OF TRUCK"
 # Map group/number constants (map_name reads stale across warps; use these).
 MAP_PLAYERS_HOUSE_1F = (1, 0)
 MAP_PLAYERS_HOUSE_2F = (1, 1)
-HOUSE_1F_STAIRS = (8, 2)   # warp up to 2F
-CLOCK_FACE_TILE = (5, 2)   # stand here facing North to use the wall clock at (5,1)
+MAP_LITTLEROOT_TOWN = (0, 9)
+HOUSE_1F_STAIRS = (8, 2)          # 1F warp up to 2F
+CLOCK_FACE_TILE = (5, 2)          # stand here facing North to use the wall clock at (5,1)
+HOUSE_2F_STAIRS_DOWN = (7, 1)     # 2F warp down to 1F
+HOUSE_1F_DOOR_APPROACH = (8, 7)   # tile above the front door; step South to exit
+
+
+def _map_group_number() -> tuple[int, int] | None:
+    try:
+        md = get_map_data_for_current_position()
+        return (md.map_group, md.map_number)
+    except Exception:
+        return None
+
+
+def _walk_through_warp(direction: str, from_map: tuple[int, int], *, timeout_frames: int = 240) -> Generator:
+    """Step in ``direction`` until the current map changes (i.e. a warp/door was
+    used). Used for doors that can't be a pathfinding destination."""
+    frames = 0
+    while _map_group_number() == from_map:
+        context.emulator.press_button(direction)
+        frames += 1
+        if frames > timeout_frames:
+            raise BotModeError(f"Did not pass through the {direction} warp from map {from_map}.")
+        yield
+
+
+def _ride_out_scripted_scene(button: str = "B", *, engage_timeout: int = 240) -> Generator:
+    """Wait for a scripted scene to ENGAGE (bounded) then ride it out until
+    control returns. Waiting for engagement first avoids treating the calm
+    moment before a scene as 'already over'."""
+    frames = 0
+    while not get_global_script_context().is_active:
+        frames += 1
+        if frames > engage_timeout:
+            break  # no scene fired; nothing to ride out
+        yield
+    yield from _wait_until_cutscene_over(button)
 
 
 def _wait_for_task(task_name: str, button: str | None = None, *, timeout_frames: int = 1200) -> Generator:
@@ -150,3 +186,82 @@ def go_upstairs_and_set_clock() -> Generator:
     # 6. Ride out the closing dialogue until control returns in the bedroom.
     yield from wait_for_player_avatar_to_be_controllable("B")
     context.message = "Story: clock set — bedroom done."
+
+
+def descend_and_leave_players_house() -> Generator:
+    """After the clock: Mom comes upstairs to talk (triggered by moving); go
+    back down, where the Petalburg-Gym TV report scene auto-plays (walks you to
+    the TV, Mom comments on your dad); then leave through the front door into
+    Littleroot Town. Ends controllable outside the player's house."""
+    # 1. Nudge to trigger Mom coming upstairs, then ride out her chat.
+    context.message = "Story: Mom's chat, then downstairs..."
+    frames = 0
+    while not get_global_script_context().is_active:
+        context.emulator.press_button("Down")
+        frames += 1
+        if frames > 180:
+            break  # no Mom event (revision differences) — proceed anyway
+        yield
+    yield from _wait_until_cutscene_over("B")
+
+    # 2. Down the stairs to the ground floor.
+    yield from navigate_to(MAP_PLAYERS_HOUSE_2F, HOUSE_2F_STAIRS_DOWN)
+
+    # 3. The Petalburg-Gym TV scene auto-plays on arrival (it walks the player to
+    #    the TV at (4,5)). Ride it out — do NOT navigate during it or the moving
+    #    player fights the pathfinder.
+    context.message = "Story: watching the Gym report on TV..."
+    yield from _ride_out_scripted_scene("B")
+
+    # 4. Out the front door into Littleroot Town.
+    context.message = "Story: heading outside..."
+    yield from navigate_to(MAP_PLAYERS_HOUSE_1F, HOUSE_1F_DOOR_APPROACH)
+    yield from _walk_through_warp("Down", MAP_PLAYERS_HOUSE_1F)
+    yield from wait_for_player_avatar_to_be_controllable("B")
+    context.message = "Story: outside — heading to the rival's house."
+
+
+RIVAL_HOUSE_DOOR_TOWN = (14, 8)     # Littleroot warp into the rival's house
+MAP_RIVAL_HOUSE_1F = (1, 2)
+MAP_RIVAL_HOUSE_2F = (1, 3)
+RIVAL_1F_STAIRS = (2, 2)            # 1F warp up to 2F
+RIVAL_2F_STAIRS_DOWN = (1, 1)       # 2F warp down to 1F
+RIVAL_POKEBALL_FACE = (5, 5)        # stand here facing North; the Poké Ball is at (5,4)
+RIVAL_1F_DOOR_APPROACH = (2, 7)     # tile above the rival-house door; step South to exit
+
+
+def visit_rivals_house() -> Generator:
+    """Go next door to the rival's house: the rival's mom greets you on entry
+    (automatic), then upstairs, touch the Poké Ball to trigger the rival's
+    introduction, and come back out. Ends controllable outside in Littleroot —
+    the end of this chunk (next up: Route 101, help Birch, choose a starter)."""
+    # 1. Enter the rival's house (walk onto the door warp).
+    context.message = "Story: going to the rival's house..."
+    yield from navigate_to(MAP_LITTLEROOT_TOWN, RIVAL_HOUSE_DOOR_TOWN, expecting_script=True)
+
+    # 2. The rival's mom greets you automatically on entry — ride it out.
+    context.message = "Story: the neighbor's mom says hello..."
+    yield from _ride_out_scripted_scene("B")
+
+    # 3. Upstairs to the rival's room.
+    yield from navigate_to(MAP_RIVAL_HOUSE_1F, RIVAL_1F_STAIRS, expecting_script=True)
+
+    # 4. Touch the Poké Ball -> the rival rushes in and introduces themselves.
+    context.message = "Story: meeting the rival..."
+    yield from navigate_to(
+        MAP_RIVAL_HOUSE_2F, RIVAL_POKEBALL_FACE,
+        final_facing_direction=Direction.North, expecting_script=True,
+    )
+    context.emulator.press_button("A")
+    yield
+    yield from _ride_out_scripted_scene("B")
+
+    # 5. Back downstairs.
+    context.message = "Story: heading back out..."
+    yield from navigate_to(MAP_RIVAL_HOUSE_2F, RIVAL_2F_STAIRS_DOWN, expecting_script=True)
+
+    # 6. Out the front door into Littleroot.
+    yield from navigate_to(MAP_RIVAL_HOUSE_1F, RIVAL_1F_DOOR_APPROACH)
+    yield from _walk_through_warp("Down", MAP_RIVAL_HOUSE_1F)
+    yield from wait_for_player_avatar_to_be_controllable("B")
+    context.message = "Story: back outside the rival's house — chunk complete!"
