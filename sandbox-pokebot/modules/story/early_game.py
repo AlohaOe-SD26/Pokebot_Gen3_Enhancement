@@ -681,21 +681,46 @@ def do_petalburg_gym_and_wally_tutorial() -> Generator:
     # ride until the completion flag `THANKED_FOR_PLAYING_WITH_WALLY` is set.
     from modules.memory import get_event_flag
 
-    frames = 0
-    while get_player_avatar().local_coordinates != (4, 108):
-        context.emulator.press_button("Up")
-        frames += 1
-        if frames > 160:  # ~16 frames per tile; a few tiles up from the entrance
+    # Step up toward the Norman coord-trigger tile (breaking if the scene fires
+    # early), matching the observed trigger sequence.
+    for _ in range(45):
+        if get_global_script_context().is_active:
             break
+        context.emulator.press_button("Up")
         yield
 
+    # Ride out the whole Dad + Wally tutorial with B (advances the message boxes
+    # without re-triggering Norman's repeatable dialogue the way A does), until
+    # the completion flag `THANKED_FOR_PLAYING_WITH_WALLY` is set. The tutorial
+    # auto-walks the player to Route 102 for the Ralts catch and back.
+    # The tutorial auto-walks the player out of the gym, across Petalburg, to
+    # Route 102 (for the Ralts catch), and back into the gym for Norman's closing
+    # words. It is DONE once we are back in the gym and controllable AFTER having
+    # visited Route 102. We advance dialogue with A/B while a script runs (and to
+    # fire the initial Norman scene), but press NOTHING once genuinely free at
+    # the end — otherwise A re-triggers Norman's repeatable dialogue and loops.
     context.message = "Story: Dad and the Wally catching tutorial (Route 102)..."
+    gym = MapRSE.PETALBURG_CITY_GYM.value
+    visited_route_102 = False
+    stable = 0
     frames = 0
-    while not get_event_flag("THANKED_FOR_PLAYING_WITH_WALLY"):
-        context.emulator.press_button("A" if frames % 2 == 0 else "B")
+    while True:
+        here = _map_group_number()
+        if here == MapRSE.ROUTE102.value:
+            visited_route_102 = True
+        free = player_avatar_is_controllable() and not get_global_script_context().is_active
+        if visited_route_102 and here == gym and free:
+            stable += 1
+            if stable >= 45:
+                break
+        else:
+            stable = 0
+        # Press A/B to advance dialogue / fire the initial scene; but once free
+        # after the tutorial (back in the gym) press nothing.
+        if not free or not visited_route_102:
+            context.emulator.press_button("B" if frames % 3 else "A")
         frames += 1
-        if frames > 40000:
+        if frames > 70000:
             raise BotModeError("The Wally catching tutorial never completed.")
         yield
-    yield from _wait_until_cutscene_over("B")
     context.message = "Story: finished the Wally tutorial in Petalburg."

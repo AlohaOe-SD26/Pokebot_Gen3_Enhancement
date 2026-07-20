@@ -1313,7 +1313,7 @@ listeners: pokedex_done -> Petalburg (0,0), 22.1k frames. Wired into StoryMode
   needs navigation) -> back to the gym -> free. Then Route 104 -> Petalburg Woods
   -> Rustboro (Gym 1). Checkpoint `petalburg.ss1` to iterate from.
 
-### §17.1 — Wally tutorial (WIP, trigger finicky) — NOT wired into StoryMode
+### §17.1 — Wally tutorial (DONE + wired)
 `do_petalburg_gym_and_wally_tutorial()` (early_game.py, unwired). KNOWN GOOD:
 the tutorial is ENTIRELY AUTO-SCRIPTED — enter the gym, the Norman coord-scene at
 (4,108) fires (`Norman`→`WallyArrive`→`NormanAddressPlayer`→`ExitGymWithWally`→
@@ -1331,3 +1331,24 @@ NEXT SESSION: re-run wally_obs to confirm it still fires; diff the exact
 frame-level input sequence; possibly step to (4,109) then a single Up onto
 (4,108) then release + ride out. Also verify petalburg.ss1 is a clean
 "just arrived" state. Checkpoint: petalburg.ss1.
+
+### §17.1 UPDATE — Wally tutorial DONE + wired (2026-07-20)
+`do_petalburg_gym_and_wally_tutorial()`: enter the gym, step Up to (4,108) to
+fire the Norman scene, then ride out the fully-auto tutorial (auto-walks to
+Route 102 for the Ralts catch and back). COMPLETION DETECTION: NOT a flag —
+`THANKED_FOR_PLAYING_WITH_WALLY` is NOT set by this tutorial (it's a later
+event). Instead: advance dialogue with A/B while a script runs (and to fire the
+initial scene), and STOP once back in the gym (8,1) AND controllable AFTER having
+visited Route 102 (0,17) — pressing nothing when free at the end so A doesn't
+re-trigger Norman's repeatable dialogue in a loop. Verified via the real
+listener drive (petalburg.ss1 -> done, back in gym, ~8.4k frames).
+- KEY LESSON: a simple `next(gen)+run_single_frame()` test harness gives WRONG
+  results for scripted scenes (stale state cache) — story steps MUST be tested
+  via the listener-driven harness (FrameInfo + get_bot_listeners), like the real
+  main loop. This wasted a lot of debugging; use the listener harness always.
+- DETECTOR FIX TODO: `chapters.py` uses `THANKED_FOR_PLAYING_WITH_WALLY` (135)
+  as Ch2's completion flag — it's WRONG (not set by the tutorial). Find the real
+  flag (none of MET_WALLY_IN_PETALBURG / WALLY_SPEECH / ENABLE_FIRST_WALLY_
+  POKENAV_CALL were set either). Low priority (badge-anchored detection).
+- Checkpoint `wally_done.ss1`. NEXT: Route 104 -> Petalburg Woods -> Rustboro
+  (HM01 Cut, then Gym 1 Roxanne).

@@ -794,3 +794,12 @@ captured in design §17 for the next build. Sandbox.
 User tested ("got to Petalburg fine from a fresh save"). travel_to_petalburg +
 _navigate_leg copied sandbox → custom; verified (reaches Petalburg (0,0)).
 Custom StoryMode now plays fresh game → rival → Pokédex → Petalburg City.
+
+## 2026-07-20 — Story Chapter 2: Petalburg Gym (Dad) + Wally catching tutorial (#24, sandbox)
+do_petalburg_gym_and_wally_tutorial(): enter the gym, fire the Norman scene at
+(4,108), ride out the fully-auto Wally tutorial (Route 102 Ralts catch + back).
+Completion = back in the gym + controllable after visiting Route 102 (the
+THANKED_FOR_PLAYING_WITH_WALLY flag is NOT set by this tutorial). Wired into
+StoryMode. Verified via the listener-driven harness. KEY LESSON: test story
+steps via the listener harness, not a bare next()+run_frame loop (stale state
+cache gives wrong results). Design §17.1. Sandbox.
