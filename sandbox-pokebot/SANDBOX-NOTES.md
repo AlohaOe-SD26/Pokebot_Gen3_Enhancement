@@ -683,3 +683,20 @@ exercised by the local bare remote.
   populated sparkline+luck, browser with sprites). Gap: meaningful data
   needs a real hunt's stats.db (title-screen profile is empty — verified
   with a stub).
+
+## 2026-07-19 — Auto-decline new move learning (default, all leveling bots) (#39)
+- Root cause of the user's "learning a move interrupts the hunt": the battle
+  config `new_move` defaulted to `stop` → dropped to Manual on every level-up
+  move. Changed the fork DEFAULT to `cancel` (decline, keep the current
+  moveset, hunt continues) in `modules/config/schemas_v1.py` (schema default)
+  and `modules/config/templates/battle.yml` (template comment updated).
+- Applies to ALL leveling bots: the single decision point is
+  `DefaultBattleStrategy.which_move_should_be_replaced` (returns 0-3 = replace
+  that slot, 4 = decline); every leveling strategy (LevelUp, LevelBalancing,
+  Catch, etc.) inherits it. Verified: cancel→4 (decline), stop→4+Manual.
+- FUTURE-INTELLIGENCE SEAM documented in default.py: smarter "is this move
+  worth keeping / what to replace" logic goes in the `learn_best` branch (or
+  a new `new_move` value). Config-gated so the user can switch behavior.
+- NOTE: existing profiles that already copied `new_move: stop` keep it —
+  set their profile/global battle.yml `new_move: cancel` (or delete the line
+  to inherit the new default) to get the no-interrupt behavior.

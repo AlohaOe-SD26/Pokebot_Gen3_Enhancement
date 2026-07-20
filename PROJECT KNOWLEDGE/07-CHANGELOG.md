@@ -440,3 +440,11 @@
   hex-verified; 0 mojibake; fact-checked exact). pokedex_data.json now only
   missing dex_artwork. Item-Dex still needs map_locations/mart/pickup +
   historical-tracking decision.
+
+## 2026-07-19 — Auto-decline new move learning for leveling bots (sandbox, #39)
+- battle.new_move default flipped `stop` → `cancel`: leveling bots now
+  DECLINE new moves (keep moveset) instead of dropping to Manual, so hunts
+  aren't interrupted. Single decision point (which_move_should_be_replaced,
+  inherited by all leveling strategies); future move-intelligence seam
+  documented in default.py. Verified: cancel→decline, stop→decline+Manual.
+  Existing profiles need battle.yml new_move set to cancel.

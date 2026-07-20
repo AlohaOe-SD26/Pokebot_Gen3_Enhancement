@@ -21,7 +21,12 @@ class Battle(BaseConfig):
     hp_threshold: Annotated[float, Field(ge=0, le=100)] = 20
     lead_cannot_battle_action: Literal["stop", "flee", "rotate"] = "flee"
     faint_action: Literal["stop", "flee", "rotate"] = "flee"
-    new_move: Literal["stop", "cancel", "learn_best"] = "stop"
+    # Fork divergence: default DECLINE (`cancel`) new moves so leveling bots
+    # keep their moveset and DON'T interrupt the hunt (upstream default `stop`
+    # dropped to Manual on every level-up move). `learn_best` (power-based
+    # auto-replace) is the current "intelligence"; future smarter move
+    # evaluation extends DefaultBattleStrategy.which_move_should_be_replaced.
+    new_move: Literal["stop", "cancel", "learn_best"] = "cancel"
     stop_evolution: bool = True
     switch_strategy: Literal["first_available", "lowest_level"] = "first_available"
     banned_moves: list[str] = [
