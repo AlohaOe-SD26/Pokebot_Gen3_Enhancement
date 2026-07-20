@@ -70,7 +70,12 @@ class StoryMode(BotMode):
                 )
         except Exception:
             pass
-        return BattleAction.Fight
+        # Fight to WIN and level the lead (strongest move; flees only at low HP,
+        # which the training loop covers by healing). Used for training wilds and
+        # the rival; the scripted first battle is a Tutorial (framework-handled).
+        from modules.battle_strategies.level_up import LevelUpLeadBattleStrategy
+
+        return LevelUpLeadBattleStrategy()
 
     def run(self) -> Generator:
         from modules.story import detect_live
@@ -102,11 +107,16 @@ class StoryMode(BotMode):
         # --- Chapter 0 tail: step off the truck → Mom's greeting into the
         #     house → upstairs → set the wall clock. (Downstairs/Mom, Route 101,
         #     starter + first battle are WIP.) ------------------------------
+        import random
+
         from modules.story.early_game import (
             descend_and_leave_players_house,
             finish_birch_lab,
+            fight_route103_rival,
             go_upstairs_and_set_clock,
             help_birch_and_choose_starter,
+            train_lead_to_level,
+            travel_to_route103,
             visit_rivals_house,
             walk_off_truck_and_into_house,
         )
@@ -118,10 +128,17 @@ class StoryMode(BotMode):
         yield from help_birch_and_choose_starter(cfg.starter)
         yield from finish_birch_lab(cfg.starter_nickname)
 
+        # Head to Route 103 (training en route), grind the starter to a random
+        # Lv 8-10, then battle the rival.
+        target_level = random.randint(8, 10)
+        console.print(f"[cyan]Story: training the starter to Lv {target_level} before the rival.[/]")
+        yield from travel_to_route103()
+        yield from train_lead_to_level(target_level)
+        yield from fight_route103_rival()
+
         context.message = (
-            "Story: got the starter, won the first battle, and finished Birch's "
-            "lab. Next (Oldale -> train -> rival) is still being built; handing "
-            "to manual."
+            "Story: trained the starter and beat the rival on Route 103! "
+            "That's the end of the currently-built story; handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()

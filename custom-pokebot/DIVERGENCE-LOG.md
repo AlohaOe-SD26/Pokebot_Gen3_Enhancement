@@ -297,3 +297,10 @@ conversation. `on_battle_started` returns Fight (shiny contingency: story
 battles are always fought through, never caught/halted). Config `starter` +
 `starter_nickname` (nickname gated off / TODO). Verified in custom (full fresh
 run → Birch's lab with starter, first battle won).
+
+### (j-update 2026-07-20c) Story Chapter 1 COMPLETE — travel/train/rival
+`early_game.py`: travel_to_route103 + train_lead_to_level (spin+heal at Oldale
+Poké Center, LevelUpLeadBattleStrategy) + fight_route103_rival (heal to full
+then battle). StoryMode.on_battle_started → LevelUpLeadBattleStrategy. A fresh
+game now plays through the first rival battle. Verified in custom (train + rival
+from the Route 103 checkpoint → DEFEATED_RIVAL_ROUTE103 True, no crash).

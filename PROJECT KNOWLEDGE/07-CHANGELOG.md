@@ -766,3 +766,8 @@ wilds → no XP); hard-target PokemonCenter.OldaleTown (find_closest_pokemon_cen
 is broken); heal-to-full before the rival (trainer battle can't be fled).
 StoryMode.on_battle_started → LevelUpLeadBattleStrategy. Verified piecewise with
 real listeners. Design §15.3. Sandbox only.
+
+## 2026-07-20 — PROMOTED story Chapter 1 completion (travel/train/rival) to custom (#24)
+User tested ("that worked!"). early_game.py + story_mode.py copied sandbox →
+custom; verified in custom (12/12 story tests; train+rival from Route 103 →
+DEFEATED_RIVAL_ROUTE103 True, Mudkip Lv8, clean). Chapter 1 fully in custom now.
