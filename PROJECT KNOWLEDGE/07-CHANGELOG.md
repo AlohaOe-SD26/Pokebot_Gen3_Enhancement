@@ -688,3 +688,8 @@ StoryMode after step-off, so a new game now runs intro → house → clock. Test
 from the clock checkpoint and full fresh run (lands NICK/male on 2F). Downstairs
 → exit is next; the 1F Vigoroth "movers" scene blocks pathfinding and needs
 handling (design §14.1). Sandbox only.
+
+## 2026-07-20 — PROMOTED story chunk B part 2 (upstairs + clock) to custom (#24)
+User tested it ("setting the clock worked!"). Copied early_game.py + wired
+story_mode.py sandbox → custom; verified in custom (fresh-run smoke test lands
+NICK/male on 2F, clock set). DIVERGENCE-LOG (j) + changelog updated.

@@ -14,11 +14,35 @@ from typing import Generator
 
 from modules.context import context
 from modules.map import get_map_data_for_current_position
+from modules.map_path import Direction
 from modules.modes import BotModeError
+from modules.modes.util.tasks_scripts import wait_until_task_is_active
+from modules.modes.util.sleep import wait_for_n_frames
+from modules.modes.util.walking import (
+    navigate_to,
+    wait_for_player_avatar_to_be_controllable,
+)
 from modules.player import player_avatar_is_controllable
-from modules.tasks import get_global_script_context
+from modules.tasks import get_global_script_context, task_is_active
 
 MAP_INSIDE_OF_TRUCK = "INSIDE OF TRUCK"
+# Map group/number constants (map_name reads stale across warps; use these).
+MAP_PLAYERS_HOUSE_1F = (1, 0)
+MAP_PLAYERS_HOUSE_2F = (1, 1)
+HOUSE_1F_STAIRS = (8, 2)   # warp up to 2F
+CLOCK_FACE_TILE = (5, 2)   # stand here facing North to use the wall clock at (5,1)
+
+
+def _wait_for_task(task_name: str, button: str | None = None, *, timeout_frames: int = 1200) -> Generator:
+    """Bounded wait for a task to become active (raises on timeout)."""
+    frames = 0
+    while not task_is_active(task_name):
+        if button is not None:
+            context.emulator.press_button(button)
+        frames += 1
+        if frames > timeout_frames:
+            raise BotModeError(f"Timed out waiting for task '{task_name}'.")
+        yield
 
 
 def _current_map_name() -> str:
@@ -84,3 +108,45 @@ def walk_off_truck_and_into_house() -> Generator:
     yield from _wait_until_cutscene_over("B")
 
     context.message = "Story: inside the house — next, set the clock upstairs."
+
+
+def go_upstairs_and_set_clock() -> Generator:
+    """From the ground floor of the player's house, go up to the bedroom and set
+    the wall clock, accepting whatever time it defaults to (no adjustment).
+
+    Clock flow (Emerald `Task_SetClock_*`): interact -> `HandleInput` (the
+    time-set UI) -> press A to accept the shown time -> `HandleConfirmInput`
+    (Yes/No, whose cursor DEFAULTS TO NO) -> move Up to Yes + A -> done. Ends
+    with the player controllable in the 2F bedroom."""
+    # 1. Up the stairs (a warp) to the 2F bedroom.
+    context.message = "Story: heading upstairs to the bedroom..."
+    yield from navigate_to(MAP_PLAYERS_HOUSE_1F, HOUSE_1F_STAIRS)
+
+    # 2. Stand below the wall clock, facing it.
+    yield from navigate_to(
+        MAP_PLAYERS_HOUSE_2F, CLOCK_FACE_TILE,
+        final_facing_direction=Direction.North, expecting_script=True,
+    )
+
+    # 3. Interact and advance the intro dialogue to the time-set UI.
+    context.message = "Story: setting the clock (accepting the default time)..."
+    context.emulator.press_button("A")
+    yield
+    yield from _wait_for_task("Task_SetClock_HandleInput", "A")
+    yield from wait_for_n_frames(40)  # let the clock UI finish fading in
+
+    # 4. Accept the shown time -> opens the Yes/No confirm.
+    context.emulator.press_button("A")
+    yield
+    yield from _wait_for_task("Task_SetClock_HandleConfirmInput")
+
+    # 5. Select YES (cursor defaults to No, so move Up first), then confirm.
+    context.emulator.press_button("Up")
+    yield
+    yield from wait_for_n_frames(6)
+    context.emulator.press_button("A")
+    yield
+
+    # 6. Ride out the closing dialogue until control returns in the bedroom.
+    yield from wait_for_player_avatar_to_be_controllable("B")
+    context.message = "Story: clock set — bedroom done."
