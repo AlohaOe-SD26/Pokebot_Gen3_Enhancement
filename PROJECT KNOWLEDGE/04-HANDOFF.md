@@ -58,13 +58,24 @@ flavor all done, Phases 1/2/3a). `itemdex_data.json` = core (309 items);
 gaps = map_locations/mart/pickup/historical.
 
 ## Most recent work (2026-07-20)
-- **Story-mode chunk 1 BUILT (sandbox):** `modules/story/` read-only progress
+- **Story-mode chunk 2 BUILT (sandbox): Chapter 0 New Game intro AUTOMATED.**
+  `modules/story/intro.py` (`run_intro`) + `config.py` (story.yml name/gender)
+  + `plugins/custom_modes/story_mode.py` (`StoryMode` bot). Drives title → New
+  Game → Birch speech → gender → name → **controllable INSIDE the truck**.
+  Verified on fresh throwaway profiles (boy/NICK, girl/MAY, config/ASH),
+  deterministic ~4600 frames, real save untouched. Live facts → design §13.
+  **NEXT CHUNK:** step off truck → room + set clock → Route 101 rescue →
+  choose starter → first battle (design §6.3 step 4 / user's "chunk B").
+  Intro TODO: the "existing save → Continue from title" path (intro currently
+  assumes a save-less boot).
+- **Story-mode chunk 1 (sandbox):** `modules/story/` read-only progress
   detector + 30-chapter registry + `tests/test_story_progress.py` (12/12).
-  Live-tested on the real save → correctly reports **ch5, 1 badge**, flags the
-  save's stray Magma Emblem as a test-save anomaly (`.sav` md5 unchanged).
-  Detection is **badge-anchored** (see design doc §12 + ML-5 — two naive
-  strategies rejected). NOT promoted (new dev). Next: Gym 1 (ch4) isolation
-  (design §6.3 step 2).
+  Badge-anchored (design §12 + ML-5). On the real save → **ch5, 1 badge**,
+  flags the stray Magma Emblem anomaly.
+- Story build is sandbox-only, NOT promoted. How to run: set bot mode to
+  "Story" (fresh profile → intro; loaded save → detects chapter). Test harness
+  pattern: `create_profile` + `LibmgbaEmulator` + drive the generator with
+  `run_single_frame()` (see this session's scratch harnesses).
 - Story-mode design Pass 4 → CONVERGED (see 12-STORYMODE-DESIGN §10).
 - Fixed KI-8 (party strip 140→84px, no longer overlaps video) and KI-9
   (controller stuck in menu: `toggle_handheld` leaked `_gui_nav_active`; now

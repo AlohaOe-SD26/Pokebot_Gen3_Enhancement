@@ -617,9 +617,17 @@ routing (Cut trees, Strength/Rock Smash obstacles, gym-interior puzzles);
 2. **Chapter 4 (Gym 1) in isolation** — start from a save parked in Rustboro;
    author the gym route + Roxanne id; prove "navigate → auto-win gym → badge
    detected → heal." This exercises the core loop with the least new work.
-3. **Intro (Chapter 0-1)** — the hardest NEW piece (New Game, gender, name, clock,
-   starter). Test from a truly fresh ROM. Once this + step 2 work, the "fresh →
-   Badge 1" spine is proven.
+3. **Intro (Chapter 0)** — ✅ **DONE 2026-07-20** (built ahead of step 2, per
+   user request to start with the intro). `modules/story/intro.py`
+   (`run_intro(name, gender)`) drives title → New Game → Birch's speech →
+   gender → name → **lands controllable INSIDE the moving truck**.
+   `plugins/custom_modes/story_mode.py` = the `StoryMode` bot (fresh boot →
+   intro; existing save → detect & report). Name/gender from
+   `<profile>/story.yml` (`modules/story/config.py`). Verified on fresh
+   throwaway profiles: boy/NICK, girl/MAY, config/ASH — all land in the truck
+   with correct name+gender, deterministic (~4600 frames). **Key live facts
+   learned (§13).** Still TODO for the intro: the "existing save" Continue path
+   from the title screen (currently the intro path assumes a save-less boot).
 4. **Chapters 2-3** — fill Petalburg/Woods/Cut, including the **first HM teach**
    (`teach_hm_or_tm`) and first field-move routing (Cut). Proves the HM pipeline.
 5. **Wire + harden `navigate_to_anywhere`** — export it, add gate-aware retry,
@@ -1035,3 +1043,34 @@ the Magma Emblem flagged as an anomaly. Correct and honest.
 flag as ground truth for "where am I"; badge level is the coarse gate and fine
 flags refine. This is the same discipline the HM→badge gate table (§2.1)
 already encodes.
+
+---
+
+## §13 — Intro (Chapter 0) live facts learned (2026-07-20)
+
+Built by driving the intro headlessly against fresh throwaway profiles and
+watching `GameState` + named tasks. Facts that will matter for later chunks:
+
+- **Drive by tasks, not flags.** The intro sets almost no event flags. The
+  named tasks are the ground truth: `Task_NewGameBirchSpeech_BoyOrGirl` (just
+  before the gender menu), `Task_NewGameBirchSpeech_ChooseGender` (the menu),
+  naming via `GameState.NAMING_SCREEN`.
+- **Birch's speech reports as `GameState.MAIN_MENU`**, not OVERWORLD — so
+  "advance the speech" means "mash A while state is not OVERWORLD."
+- **Gender is position-based, NOT `sIntroCharacterGender`.** Reading that byte
+  live gave the wrong result; the reliable method is: menu opens on BOY (top),
+  press Down once for a girl, then A. (Confirmed: boy→male, girl→female.)
+- **Naming:** `GameState.NAMING_SCREEN` flips a few frames BEFORE the keyboard
+  struct pointer is populated — wait for `get_naming_screen_data() is not None`
+  before calling `type_in_naming_screen()` (which raises on a null struct).
+  Player names cap at **7** characters.
+- **Name confirm ("is this okay?") is consumed by mashing A** (default = YES);
+  a separate `wait_for_yes_no_question` HUNG (the confirm had already passed).
+  Lesson: for a linear cutscene, mash A to a state target, don't wait on a
+  specific transient task.
+- **First controllable moment = `INSIDE OF TRUCK`** (map name), before the
+  truck auto-drives to Littleroot. This is the clean, detectable end of
+  Chapter 0. `ADVENTURE_STARTED` (116) is still FALSE here — it sets later
+  (chunk B territory: stepping off / entering Littleroot).
+- The whole intro is deterministic (~4593 frames boy / ~4627 girl) with no RNG
+  dependence, so it replays reliably.

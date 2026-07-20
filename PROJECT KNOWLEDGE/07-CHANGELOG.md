@@ -618,3 +618,22 @@ New `modules/story/` package — the first buildable piece of the story bot:
   Emblem key item as an anomaly. Save `.sav` md5 unchanged (read-only).
 - Sandbox only — new dev work, not promoted. Next chunk: Gym 1 (ch4) in
   isolation (design doc §6.3 step 2).
+
+## 2026-07-20 — Story-mode chunk 2: Chapter 0 New Game intro AUTOMATED (#24, sandbox)
+First piece of the story bot that actually PLAYS the game.
+- `modules/story/intro.py` — `run_intro(name, gender)`: title screen → New
+  Game → Professor Birch's speech → gender select → name entry → lands the
+  player controllable INSIDE the moving truck. Task/GameState-driven, fully
+  bounded (raises BotModeError instead of hanging).
+- `modules/story/config.py` — reads name/gender from `<profile>/story.yml`
+  (auto-writes a default template), 7-char cap, boy/girl.
+- `plugins/custom_modes/story_mode.py` — `StoryMode` bot: fresh boot → runs the
+  intro; existing save loaded → detects & reports the current chapter (chunk-1
+  detector), then hands back to manual (chapters > 0 not built yet).
+- Verified end-to-end on fresh throwaway profiles (never the real save):
+  boy/NICK, girl/MAY, config/ASH — each lands in the truck with the correct
+  name + gender; deterministic (~4600 frames). Real `.sav` untouched.
+- Live facts captured in design doc §13 (drive by tasks not flags; Birch speech
+  reads as MAIN_MENU state; gender is position-based; naming struct lag; first
+  control = INSIDE OF TRUCK). Next chunk: step off truck → room/clock → Route
+  101 rescue → choose starter → first battle.
