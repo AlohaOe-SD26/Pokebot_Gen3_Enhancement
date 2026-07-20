@@ -704,3 +704,8 @@ downstairs → rival's house → meet rival → outside (Littleroot 14,9), NICK/
 ~11,800 frames. Key lesson: ride out auto-move scripts, never navigate during
 them (the phantom "(8,4) block" was the TV scene). Map facts in design §14.2.
 Sandbox only. Next chunk: Route 101 → starter → first battle.
+
+## 2026-07-20 — Sandbox launches with audio off by default (#testing)
+Added `install.LAUNCH_EXTRA_ARGS` (default empty; custom unaffected); the sandbox
+wrapper sets it to `["--no-audio"]` so the sandbox test build starts quiet
+(audio stays toggleable in-GUI). install.py + install_sandbox.py.

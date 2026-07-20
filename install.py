@@ -48,6 +48,10 @@ SCRIPT_VERSION: str = "2026-07-18-CUSTOM-ROBUST-V2"
 REPO_URL: str = "https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git"
 REPO_DIR_NAME: str = "Pokebot_Gen3_Enhancement"
 BOT_DIR_NAME: str = "custom-pokebot"
+# Extra CLI args appended to the `pokebot.py` launch. Empty for the normal
+# (custom) installer; install_sandbox.py sets this (e.g. ["--no-audio"]) so the
+# sandbox test build launches quietly. Kept here so custom behaviour is unchanged.
+LAUNCH_EXTRA_ARGS: list = []
 HERE: Path = Path(__file__).resolve().parent
 LOG_FILE: Path = HERE / "install.log"
 LOG_MAX_BYTES: int = 1_000_000  # rotate to install.log.old past this
@@ -495,10 +499,11 @@ def main() -> None:
     print("  " + "=" * 62)
 
     if repo is not None and not args.check_only and bot_python is not None:
-        print(f"\n  To launch:  cd {BOT_DIR_NAME} && \"{bot_python}\" pokebot.py\n")
+        launch_hint = " ".join(["pokebot.py", *LAUNCH_EXTRA_ARGS]).strip()
+        print(f"\n  To launch:  cd {BOT_DIR_NAME} && \"{bot_python}\" {launch_hint}\n")
         # Never auto-launch in --yes/unattended mode - the GUI would block forever.
         if not ASSUME_YES and sys.stdin.isatty() and _ask_yes_no("  Launch the bot now? [y/N] "):
-            subprocess.run([str(bot_python), "pokebot.py"], cwd=repo / BOT_DIR_NAME)
+            subprocess.run([str(bot_python), "pokebot.py", *LAUNCH_EXTRA_ARGS], cwd=repo / BOT_DIR_NAME)
 
     sys.exit(1 if worst == "FAIL" else 0)
 

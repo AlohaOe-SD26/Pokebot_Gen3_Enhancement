@@ -19,6 +19,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import install
 
 install.BOT_DIR_NAME = "sandbox-pokebot"
+# Launch the sandbox test build with audio OFF by default (quiet for testing at
+# work); audio stays toggleable in the GUI. Custom is unaffected.
+install.LAUNCH_EXTRA_ARGS = ["--no-audio"]
 install.LOG_FILE = install.HERE / "install_sandbox.log"
 install.SCRIPT_VERSION = install.SCRIPT_VERSION + "-SANDBOX"
 install.CRITICAL_FILES = install.CRITICAL_FILES + [
