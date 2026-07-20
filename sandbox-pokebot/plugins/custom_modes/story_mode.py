@@ -44,6 +44,32 @@ class StoryMode(BotMode):
         # Story battles (the first Birch battle, training, the rival) are meant
         # to be FOUGHT and won with the default battle strategy — never run from
         # or auto-caught. The BattleListener handles the fight while run() pauses.
+        #
+        # SHINY CONTINGENCY: if the wild in the scripted first battle (or any
+        # story battle) happens to be shiny — extremely rare — we must NOT try
+        # to catch it and must NOT stop; the story has to progress normally.
+        # Returning Fight guarantees this: the default "shiny → stop the bot"
+        # logic lives in handle_encounter(), which the framework only calls when
+        # on_battle_started returns None. By returning Fight we bypass it
+        # entirely (and the first battle is a Tutorial encounter, which the
+        # framework forces to CustomAction anyway — also no halt).
+        try:
+            if encounter is not None and encounter.is_shiny:
+                from modules.console import console
+
+                species = getattr(getattr(encounter, "pokemon", None), "species", None)
+                name = getattr(species, "name", "Pokémon")
+                console.print(
+                    f"[bold yellow]Story Mode: a SHINY {name} appeared in a story "
+                    f"battle — fighting through as normal (NOT catching, NOT "
+                    f"stopping), per the contingency.[/]"
+                )
+                context.message = (
+                    f"Story: a shiny {name} appeared in a story battle — fighting "
+                    "through (not catching)."
+                )
+        except Exception:
+            pass
         return BattleAction.Fight
 
     def run(self) -> Generator:

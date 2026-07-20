@@ -736,3 +736,10 @@ application GATED OFF (types but doesn't persist; user-deprioritised) — always
 keeps the species name; config kept for the future fix. Verified: Torchic Lv5,
 controllable in the lab. Also: sandbox pokebot.py now forces audio off at
 startup (reliable regardless of launch). Design §15.1.
+
+## 2026-07-20 — Story: shiny contingency for the first battle (#24, sandbox)
+StoryMode.on_battle_started() now explicitly logs and fights-through a shiny
+wild in a story battle (never catches, never stops) — the story must progress
+even in the rare event the scripted first-battle wild is shiny. Safe because the
+default shiny-halt/catch lives in handle_encounter(), only reached when
+on_battle_started returns None; returning Fight bypasses it. Unit-tested. §15.2.

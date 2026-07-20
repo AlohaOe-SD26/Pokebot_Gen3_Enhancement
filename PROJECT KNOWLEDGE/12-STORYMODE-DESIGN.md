@@ -1224,3 +1224,14 @@ re-triggers `EventScript_Birch` in a loop, the bug that first stalled this).
   a nickname pool remain for the future fix. **TODO: nickname persistence.**
 - Verified from the `birch_lab` checkpoint: "none" → Torchic Lv5, controllable
   in the lab (6,5). Checkpoint `lab_done.ss1` saved.
+
+### §15.2 — Shiny contingency for story battles (2026-07-20)
+`StoryMode.on_battle_started()` always returns `BattleAction.Fight`. If the wild
+in a story battle (notably the scripted first Birch battle) is shiny — very rare
+— we log it and fight through WITHOUT catching or stopping. WHY this is safe:
+the default "shiny → stop the bot" (and any auto-catch) lives in
+`modules/encounter.handle_encounter()`, which `_listeners.py` only calls when
+`on_battle_started` returns None (line 114-115). Returning Fight bypasses it; the
+first battle is also an `EncounterType.Tutorial`, which the framework forces to
+`CustomAction` (also never calls handle_encounter). Unit-tested: shiny/normal/
+None encounters all return Fight and never raise.
