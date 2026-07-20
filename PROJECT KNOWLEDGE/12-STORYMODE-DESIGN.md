@@ -1,0 +1,757 @@
+# Story-Mode Bot — Deep Design (Pass 1 + Pass 2 verified)
+
+> Design-only document. NO code was written or changed producing this. **Pass 2
+> (2026-07-19)** adversarially re-audited the Pass-1 skeleton against the bot's
+> own ground-truth data (`modules/data/event_flags/emerald.txt`,
+> `event_vars/emerald.txt`, `modules/data/symbols/pokeemerald.sym`,
+> `modules/menuing.py`, `modules/map_path.py`) and caught several errors and
+> missed mandatory beats — see **§8 "Pass 2 verification"** at the end for the
+> full change list. Inline Pass-2 corrections are tagged **[P2]**. This remains
+> a design doc for punch-list **#24** (Story-Mode Bot), grounded in the **real**
+> capabilities of the working fork at `sandbox-pokebot/`, cited as `file:line`.
+> Emerald-only for v1 (profile `Nick - Emerald`, game code `BPE`).
+>
+> **[P2] Headline corrections:** (1) **Gym 8 leader is JUAN, not Wallace** —
+> Wallace is the *Champion*. (2) **Fly's field-use gate is the Feather Badge
+> (BADGE06), code-confirmed** — the doc's earlier uncertainty is resolved, and a
+> real fork bug was found in `fly_to`. (3) Three **mandatory late-game beats were
+> missing** from the skeleton: **Mt. Pyre**, the **Slateport Harbor submarine
+> theft**, and the **Magma Hideout / Groudon awakening**. (4) **Mr. Briney &
+> the Peeko rescue** (the gate to the Dewford/Slateport boat) needed to be made
+> explicit. (5) HM04 **Strength comes from Rusturf Tunnel, not Mt. Chimney**.
+> (6) **Brawly's gym IS a puzzle** (dark room). All resolved below.
+>
+> **Reading note on citations:** all `modules/...:NNN` paths are relative to
+> `C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\`. Line numbers
+> were read on 2026-07-19; treat them as anchors, not guarantees across future
+> upstream pulls.
+
+---
+
+## 0. TL;DR for a future agent
+
+The bot is a **shiny-hunting automation** whose primitives happen to be exactly
+what a story-player needs: it already **auto-wins wild AND trainer battles to
+completion**, **pathfinds across connected maps** (auto-surfs/waterfalls),
+**advances scripted dialogue by reading the game's own task/script scheduler
+(not pixels)**, **types on the naming keyboard**, **teaches HMs/TMs**, **uses
+every field move**, **shops, heals, talks to NPCs, manages the PC**, and can
+**read every story flag/var/badge/item** to know where in the plot a save is.
+
+The story bot is therefore **mostly a composition + sequencing layer**, plus a
+handful of genuinely-new pieces:
+
+1. **Intro automation** — Birch speech, **gender select**, **player-name entry**
+   (none exist; keyboard typer exists but is wired only to nicknames).
+2. **A chapter/objective orchestrator** — every existing mode is a self-contained
+   map-specific routine; there is no cross-map "advance the plot" driver.
+3. **Per-obstacle field-move routing on the critical path** — the *execution*
+   of Cut/Strength/etc. exists, but nothing routes the avatar to the specific
+   story-critical tree/boulder and detects it. `puzzle_solver.py` only covers
+   end-game puzzle maps.
+4. **Cross-region warp navigation is built but unwired** (`navigate_to_anywhere`)
+   and cannot open locked/HM/story-gated doors — it fails at runtime instead.
+5. **Better boss-battle AI** — move selection is competent but naive (pure
+   max-damage; no status/setup/switching). Serviceable for most trainers;
+   risky for gyms/Elite Four without a stronger `decide_turn`.
+
+---
+
+## 1. Goal + Approach
+
+### 1.1 Goal
+From a **fresh save** (or a **continued** one), drive Pokémon Emerald all the way
+to **beating the Elite Four + Champion Wallace** (endgame flag `SYS_GAME_CLEAR`
+/ `IS_CHAMPION`). Full living-dex completion is explicitly a *later* concern
+(punch-list #45); v1 stops at Hall of Fame.
+
+### 1.2 Fresh-or-continue + user-set identity
+- **Fresh:** start a New Game, drive Birch's intro, set **gender** (user choice)
+  and **player name** (user string), through to stepping out in Littleroot.
+- **Continue:** load an existing save and **detect the current chapter** from
+  event flags/badges, then jump into the correct chapter mid-stream.
+- **Character name/gender** are stored as story-mode config, applied only on the
+  fresh-start path. They are readable back afterward via `Player.name`
+  (`modules/player.py:187`) and `Player.gender` (`modules/player.py:191`).
+
+### 1.3 The Chapter model (discrete, resumable milestones)
+Progress is modeled as an **ordered list of Chapters**, each a small state
+machine with:
+
+- **`is_complete()`** — a predicate over event flags/vars/badges/items/party/map
+  that returns true when the chapter's outcome already exists in the save. This
+  is what makes the bot **resumable**: on start, walk the chapter list and skip
+  every already-complete chapter; begin at the first incomplete one.
+- **`preconditions()`** — asserts that must hold to *run* the chapter (right
+  badge, HM taught, key item in bag, party can battle). Reuses `modules/modes/
+  _asserts.py` helpers.
+- **`run()`** — a generator that performs the chapter (navigate, battle, talk,
+  teach HM, heal, shop), exactly like an existing `BotMode.run()`.
+- **`on_battle_started()` / listeners** — inherited from the `BotMode` contract
+  so involuntary events (battles, whiteouts, eggs, repel) are handled by the
+  existing reflex listeners (`modules/modes/_listeners.py`).
+
+**Progress detection** is read-only and cheap — no separate save file is
+strictly required because *the game's own flags are the source of truth*:
+- `get_event_flag(name)` — `modules/memory.py:336` (returns False for unknown).
+- `get_event_var(name)` — `modules/memory.py:393` (returns -1 for unknown).
+- Badges are **not** a Player field — they are the eight flags
+  `BADGE01_GET`…`BADGE08_GET` (`modules/data/event_flags/emerald.txt`, numbers
+  2151–2158); badge count = number of those flags true.
+- Endgame: `SYS_GAME_CLEAR` (flag 2148), `IS_CHAMPION` (2175).
+
+**Progress persistence:** the bot's own bookkeeping (which sub-step inside a
+chapter it was on, retry counts, chosen starter) is small and can live in a
+JSON in the profile dir (mirrors how `hunt_target.json` / `soft_reset_frames.json`
+already sit in `profiles/<name>/`). But the **authoritative** resume signal is
+always re-derived from game flags on launch — the JSON is only a within-chapter
+optimization, never trusted over the ROM state (matches the CLAUDE.md
+"trust-but-verify" doctrine).
+
+### 1.4 Why this fits the existing architecture
+The upstream/dev docs already bless this shape: *"An AI agent playing Emerald can
+be implemented as just another `BotMode`: `run()` becomes the policy loop
+(observe → decide → `yield from` an action helper), and the existing listeners
+already handle the involuntary events"* (`40cakes repo/DOCUMENTATION/
+03-bot-modes-and-battle.md:686-691`). Story-mode is that agent, but with a
+scripted (not learned) policy: a hand-authored chapter list.
+
+---
+
+## 2. FULL CHAPTER SKELETON (new-game → Champion)
+
+**Legend:** *Gate* = the hard requirement to leave the chapter. *Key flag* =
+the Emerald event flag that proves completion (names from
+`modules/data/event_flags/emerald.txt`). HM **badge gates** that are
+**confirmed in code** are marked ✅ (from `modules/map_path.py` /
+`modules/menuing.py` / `modules/modes/rock_smash.py`).
+
+### Overview table — 8 gyms, HM tie-ins, endgame
+
+| # | Chapter | City / Area | Boss / Key battle | Badge | HM unlocked (field-use gate) | Key completion flag |
+|---|---------|-------------|-------------------|-------|------------------------------|---------------------|
+| 0 | Intro & Identity | Truck → Littleroot | (none) | — | — | `ADVENTURE_STARTED` (116) |
+| 1 | Starter & first steps | Route 101 / Oldale / Rt 102-103 | Birch rescue; Rival (Rt 103) | — | — | `RESCUED_BIRCH` (82), `DEFEATED_RIVAL_ROUTE103` (130), var `STARTER_MON` (35), `RECEIVED_POKEDEX_FROM_BIRCH` (2276) |
+| 2 | Petalburg & Wally | Petalburg City | Catch tutorial w/ Wally | — | — | (meet Dad/Wally scripts) |
+| 3 | Woods & Devon Goods | Rt 104 / Petalburg Woods | Aqua Grunt (Devon Goods) | — | **Cut** (HM01) obtained | `DEVON_GOODS_STOLEN`→`RECOVERED_DEVON_GOODS`, `RECEIVED_HM_CUT` (137) |
+| 4 | **Gym 1 — Roxanne** | Rustboro City | Roxanne (Rock) | **Stone** | **Cut usable** ✅ (`menuing.py:812`) | `DEFEATED_RUSTBORO_GYM` (1264), `BADGE01_GET` (2151) |
+| 5 | Devon errand, **Peeko rescue** & Rival | Rustboro / Rt 116 / **Rusturf Tunnel** | Aqua grunt (Rusturf); Rival (Rustboro) | — | — | `DELIVERED_DEVON_GOODS` (149), `RECEIVED_POKENAV` (188), `DEFEATED_RIVAL_RUSTBORO` (211) |
+| **5b** | **[P2 MADE EXPLICIT] Mr. Briney & Peeko** — MANDATORY gate to the boat | Rt 116 → Rusturf Tunnel → Briney's cottage (Rt 104) | rescue Peeko from Aqua grunt | — | — | `MR_BRINEY_SAILING_INTRO` (147); Peeko/Briney hide-flags 738-744, 879-881 — *verify exact gate ordering live* |
+| 6 | To Dewford + Steven letter (**Briney's boat**) | Rt 104/105 (Mr. Briney sails) / Granite Cave | (cave; Steven) | — | **Flash** (HM05) in Granite Cave | `DELIVERED_STEVEN_LETTER` (189), `RECEIVED_HM_FLASH` (109) |
+| 7 | **Gym 2 — Brawly** | Dewford Town | Brawly (Fighting) | **Knuckle** | **Flash usable** | `DEFEATED_DEWFORD_GYM` (1265), `BADGE02_GET` (2152) |
+| 8 | Slateport & Oceanic Museum | Rt 109 / Slateport | **[P2]** Aqua grunts (Museum) + Archie; deliver Devon parts to Capt. Stern | — | — | `OCEANIC_MUSEUM_MET_REPORTER` (105); Museum Aqua-grunt hide-flags 883 (this is the EARLY Slateport visit; the sub theft is the LATE beat 16c) |
+| 9 | Mauville & Bike | Rt 110 / Mauville | Rival (Rt 110); Wattson | — | **[P2] Rock Smash** (HM06) from **a house on Route 111** (not Mauville itself, §2.3); **Bike** from Rydel's, Mauville | `RECEIVED_BIKE` (90), `RECEIVED_HM_ROCK_SMASH` (107) |
+| 10 | **Gym 3 — Wattson** | Mauville City | Wattson (Electric) | **Dynamo** | **Rock Smash usable** ✅ (`rock_smash.py:143` = `BADGE03_GET`) | `DEFEATED_MAUVILLE_GYM` (1266), `BADGE03_GET` (2153), `GOT_BASEMENT_KEY_FROM_WATTSON` (208) |
+| 11 | Rt 111/112, Mt. Chimney (Magma) | Rt 111 desert / Fiery Path / Rt 112 / Mt. Chimney | Team Magma; Maxie | — | **Go-Goggles** (Lavaridge, for Rt 111 desert); **Meteorite** event. **[P2] HM04 Strength is from RUSTURF TUNNEL, not here** (available earlier once the tunnel is opened) | `DEFEATED_EVIL_TEAM_MT_CHIMNEY` (139), `RECEIVED_METEORITE` (115), `RECEIVED_GO_GOGGLES` (221); `RECEIVED_HM_STRENGTH` (106) — obtained at Rusturf |
+| 12 | **Gym 4 — Flannery** | Lavaridge Town | Flannery (Fire) | **Heat** | **Strength usable** (`SYS_USE_STRENGTH`) | `DEFEATED_LAVARIDGE_GYM` (1267), `BADGE04_GET` (2154) |
+| 13 | **Gym 5 — Norman (Dad)** | Petalburg City | Norman (Normal) — **needs 4 badges to challenge** (var `PETALBURG_GYM_STATE`, event_vars 133; door greeter blocks until then) | **Balance** | **Surf** (HM03) from a house in Petalburg **after** the gym | `DEFEATED_PETALBURG_GYM` (1268), `BADGE05_GET` (2155), `RECEIVED_HM_SURF` (122) |
+| 14 | Rt 118/119, Weather Institute, Rival | Rt 118 (Surf) / 119 / Weather Inst. | Aqua at Weather Inst.; Rival (Rt 119) | — | **Fly** (HM02) given ~Rt 119 area; **Devon Scope** later | `RECEIVED_HM_FLY` (110) |
+| 15 | **Gym 6 — Winona** | Fortree City | Winona (Flying) — **rotating-gate gym puzzle** (§2.4) | **Feather** | **Fly usable** ✅ **[P2] Feather/BADGE06** (`menuing.py:826`; NOT `fly_to`'s BADGE03 — that's a fork bug, §2.1) | `DEFEATED_FORTREE_GYM` (1269), `BADGE06_GET` (2156) |
+| 16 | Rt 120/121, Kecleon, Lilycove | Rt 120 (Steven→Devon Scope) / 121 / Lilycove | invisible Kecleon (blocks path) | — | **Devon Scope** to reveal/battle Kecleon | `RECEIVED_DEVON_SCOPE` (285), `KECLEON_FLED_FORTREE` (295) |
+| **16b** | **[P2 ADDED] Mt. Pyre** (was MISSING) | Rt 122/123 (Surf) / Mt. Pyre | Team Magma/Aqua at summit; orb theft | — | Surf to reach | `MET_ARCHIE_METEOR_FALLS`? no → orb-theft scripts; `HIDE_MT_PYRE_SUMMIT_MAXIE` (856) — *verify exact completion flag live* |
+| **16c** | **[P2 ADDED] Slateport Harbor submarine theft** (was MISSING) | Slateport Harbor | Team Aqua grunts + Archie steal sub | — | — | `EVIL_TEAM_ESCAPED_STERN_SPOKE` (271); NPC-hide flags 845-848, 860 |
+| **16d** | **[P2 ADDED] Magma Hideout — Groudon** (was MISSING) | Jagged Pass / Route 112 → Magma Hideout | Team Magma; Maxie; **Groudon awakened** | — | Needs Rock Smash/Strength inside caves | `GROUDON_AWAKENED_MAGMA_HIDEOUT` (111); `HIDE_MAGMA_HIDEOUT_4F_GROUDON` (853) |
+| 17 | Team Aqua — Hideout & Submarine | Lilycove / Aqua Hideout | Team Aqua; room-key + Electrode puzzle | — | — | `TEAM_AQUA_ESCAPED_IN_SUBMARINE` (112), `USED_ROOM_1/2/4/6_KEY` (240-243), `DEFEATED_ELECTRODE_1/2_AQUA_HIDEOUT` (452/453) |
+| 18 | Mossdeep + Space Center | Rt 124/125 (Surf) / Mossdeep | Magma at Space Center; Steven tag (**DOUBLE**) | — | **Dive** (HM08) given in **Steven's house, Mossdeep** (`ITEM_MOSSDEEP_STEVENS_HOUSE_HM08` 1133) | `DEFEATED_MAGMA_SPACE_CENTER` (117), `RECEIVED_HM_DIVE` (123), `INTERACTED_WITH_STEVEN_SPACE_CENTER` (205) |
+| 19 | **Gym 7 — Tate & Liza** | Mossdeep City | Tate & Liza (Psychic, **DOUBLE**) | **Mind** | **Dive usable** ✅ (`map_path.py:690` = `BADGE07_GET`) | `DEFEATED_MOSSDEEP_GYM` (1270), `BADGE07_GET` (2157) |
+| 20 | Seafloor Cavern (Kyogre) | Rt 128 (Dive) / Seafloor Cavern | Team Aqua; Archie; Kyogre wakes | — | **Dive** required to enter (`can_dive` gate) | `KYOGRE_ESCAPED_SEAFLOOR_CAVERN` (129) |
+| 21 | Sootopolis crisis & Rayquaza | Sootopolis (**Dive under Rt 126** to enter) / Cave of Origin / Sky Pillar | (Rayquaza quells legendaries) | — | Dive to enter Sootopolis; **Mach Bike** for Sky Pillar crumbling floor | `LEGENDARIES_IN_SOOTOPOLIS` (83), `STEVEN_GUIDES_TO_CAVE_OF_ORIGIN` (307), `DEFEATED_RAYQUAZA` (448), `RECEIVED_RED_OR_BLUE_ORB` (212), `WALLACE_GOES_TO_SKY_PILLAR` (311) |
+| 22 | **Gym 8 — JUAN** **[P2 FIX: not Wallace]** | Sootopolis City | **Juan** (Water) — `SootopolisCity_Gym_1F_EventScript_Juan` | **Rain** | **Waterfall** (HM07) given by **Wallace in Sootopolis** (around crisis resolution; *verify exact trigger live*) | `DEFEATED_SOOTOPOLIS_GYM` (1271), `BADGE08_GET` (2158), `RECEIVED_HM_WATERFALL` (312) |
+| 23 | Victory Road | Rt 128/132-134 (Surf/Dive/Waterfall) → Ever Grande | Rival Wally (Victory Road) | — | Surf+Waterfall+Dive to reach; **Strength**+Rock Smash+Flash inside | `DEFEATED_WALLY_VICTORY_ROAD` (126) |
+| 24 | **Elite Four + Champion** | Ever Grande / Pokémon League | Sidney→Phoebe→Glacia→Drake→Wallace | — | — | `DEFEATED_ELITE_4_SIDNEY/PHOEBE/GLACIA/DRAKE` (1275-1278), `IS_CHAMPION` (2175), `SYS_GAME_CLEAR` (2148) |
+
+### 2.1 HM → badge field-use gate table (the "stuck bot" prevention list)
+
+The bot must not attempt a field HM before its badge exists; `use_field_move`
+and the pathfinder already enforce this and will raise `BotModeError` if the
+badge is missing (which the orchestrator must catch and re-sequence, never
+crash on).
+
+**[P2] ALL EIGHT badge gates are now code-confirmed** in `modules/menuing.py`
+`use_field_move()`, the Emerald branch, lines **810-833** (one authoritative
+`case` per HM). This is ground truth and settles every earlier "verify" note:
+
+| HM | Move | Badge required to USE in field | Code-confirmed gate |
+|----|------|-------------------------------|---------------------|
+| HM01 | Cut | **Stone** (Gym 1, BADGE01) | ✅ `menuing.py:811` |
+| HM05 | Flash | **Knuckle** (Gym 2, BADGE02) | ✅ `menuing.py:814` |
+| HM06 | Rock Smash | **Dynamo** (Gym 3, BADGE03) | ✅ `menuing.py:817` + `rock_smash.py:143` |
+| HM04 | Strength | **Heat** (Gym 4, BADGE04) | ✅ `menuing.py:820` |
+| HM03 | Surf | **Balance** (Gym 5, BADGE05) | ✅ `menuing.py:823` + `map_path.py:687` (`can_surf`) |
+| HM02 | Fly | **Feather** (Gym 6, BADGE06) | ✅ `menuing.py:826` **[P2 RESOLVED]** |
+| HM08 | Dive | **Mind** (Gym 7, BADGE07) | ✅ `menuing.py:829` + `map_path.py:693` (`can_dive`) |
+| HM07 | Waterfall | **Rain** (Gym 8, BADGE08) | ✅ `menuing.py:832` + `map_path.py:701` (`can_waterfall`) |
+
+> ⚠️ **[P2] FORK BUG found — do NOT rely on `fly_to()` for the Fly gate.**
+> `higher_level_actions.py:52,55` (`fly_to`) checks **`BADGE03_GET` for BOTH the
+> RSE and FRLG branches**. That is correct only for FRLG (Fly = Thunder Badge 3);
+> for **Emerald it is wrong** — Emerald Fly needs **BADGE06** (per the
+> authoritative `use_field_move` at `menuing.py:826`). The story bot must gate
+> Fly on `BADGE06_GET` itself (or fix `fly_to`), not trust `fly_to`'s check.
+> Logged as a candidate upstream/fork fix; noted in §8.
+
+### 2.2 HM criticality (hard gate vs shortcut)
+
+Not every HM is mandatory to *finish the game*; missing a hard-gate HM =
+permanently stuck. Priority for the bot to obtain + teach:
+
+- **Surf (HARD)** — required for essentially all post-Gym-5 travel (Rt 118/119,
+  Mossdeep, Sootopolis, Victory Road approach).
+- **Dive (HARD)** — required to enter Seafloor Cavern and to reach Sootopolis
+  underwater (Rt 126/128).
+- **Waterfall (HARD)** — required to climb to Ever Grande City / Victory Road.
+- **Strength (HARD)** — mandatory boulder pushes in Victory Road (and caves).
+- **Rock Smash (semi)** — clears mandatory rocks in some caves/routes.
+- **Cut (semi)** — a few mandatory trees; many are optional shortcuts.
+- **Flash (optional-ish)** — makes Granite Cave / Victory Road navigable; the
+  pathfinder can sometimes route dark caves without it, but obtaining it is cheap.
+- **Fly (optional but huge)** — pure convenience/time-saver; not a gate.
+
+### 2.3 [P2] HM & key-item HANDOFF table (WHO gives it / WHERE)
+
+Every progression item, its giver/location, and the flag that proves receipt.
+**Flag numbers verified** in `modules/data/event_flags/emerald.txt`. Locations
+marked **(code-anchored)** are confirmed by a symbol/flag; **(established)** are
+well-documented Emerald facts I could not fully pin to an in-repo symbol, so the
+exact NPC/tile is marked *verify live*.
+
+| Item | Giver / Location | Receipt flag | Confidence |
+|------|------------------|--------------|-----------|
+| **HM01 Cut** | Cutter's House, **Rustboro City** (man) | `RECEIVED_HM_CUT` (137) | established (solid) |
+| **HM05 Flash** | Hiker in **Granite Cave** (Dewford) | `RECEIVED_HM_FLASH` (109) | established |
+| **HM06 Rock Smash** | Man in a house on **Route 111** (just N of Mauville) — *doc's "Mauville NPC" refined* | `RECEIVED_HM_ROCK_SMASH` (107) | established, *verify NPC live* |
+| **HM04 Strength** | **Rusturf Tunnel** (the man after the tunnel is opened) — **[P2 FIX: doc said "near Mt. Chimney" — WRONG]** | `RECEIVED_HM_STRENGTH` (106); `RUSTURF_TUNNEL_OPENED` (199) | established, corrected |
+| **HM03 Surf** | House in **Petalburg City**, **after beating Norman** (Wally's father / the man) | `RECEIVED_HM_SURF` (122) | established, *verify exact house/NPC live* |
+| **HM02 Fly** | **Route 119** (NPC, near/after Weather Institute) | `RECEIVED_HM_FLY` (110) | established, *verify exact NPC/tile live* |
+| **HM08 Dive** | **Steven's house, Mossdeep** (after Space Center) | `RECEIVED_HM_DIVE` (123); item `ITEM_MOSSDEEP_STEVENS_HOUSE_HM08` (1133) | **code-anchored** |
+| **HM07 Waterfall** | **Wallace, Sootopolis** (around the legendary-crisis resolution) | `RECEIVED_HM_WATERFALL` (312) | established, *verify exact trigger live* |
+| **Devon Goods** (recover→return) | Petalburg Woods (recover) → Devon Corp Rustboro (return) | 142→143→144→149 chain | **code-anchored** |
+| **Letter (for Steven)** | Devon president, Rustboro → deliver in Granite Cave | `DELIVERED_STEVEN_LETTER` (189) | **code-anchored** |
+| **PokéNav** | Devon president, Rustboro | `RECEIVED_POKENAV` (188) | **code-anchored** |
+| **Devon Scope** | **Steven, Route 120** (→ reveal Kecleon) | `RECEIVED_DEVON_SCOPE` (285) | **code-anchored** |
+| **Go-Goggles** | **Lavaridge Town** (Cozmo's wife), after Mt. Chimney — needed for Rt 111 desert sandstorm | `RECEIVED_GO_GOGGLES` (221) | established, *verify NPC live* |
+| **Wailmer Pail** | **Route 104** flower shop (Pretty Petal) — berries only | `RECEIVED_WAILMER_PAIL` (94) | established — **OPTIONAL** |
+| **Mach/Acro Bike** | **Rydel's Cycles, Mauville** (pick one; swappable) — **Mach Bike required for Sky Pillar** | `RECEIVED_BIKE` (90) | **code-anchored** |
+| **Meteorite** | Prof. Cozmo (Meteor Falls / post-Chimney) | `RECEIVED_METEORITE` (115) | established — **OPTIONAL** |
+| **Basement Key** | **Wattson**, after Gym 3 (opens New Mauville) | `GOT_BASEMENT_KEY_FROM_WATTSON` (208) | **code-anchored** — New Mauville is **OPTIONAL** |
+| **Room Keys 1/2/4/6** | Aqua Hideout interior (puzzle items) | `USED_ROOM_*_KEY` (240-243) | **code-anchored** |
+| **Scanner** | Abandoned Ship (Rt 108) → exchange w/ Capt. Stern | `EXCHANGED_SCANNER` (294) | established — **OPTIONAL** |
+| **Rods** (Old/Good/Super) | Dewford / Route 118 / Mossdeep fishermen | 257 / 227 / 152 | established — **OPTIONAL** |
+| **Coin Case** | Mauville (Game Corner area) | `RECEIVED_COIN_CASE` (258) | established — **OPTIONAL** |
+| **Red/Blue Orb** | Cave of Origin / Sootopolis crisis | `RECEIVED_RED_OR_BLUE_ORB` (212) | **code-anchored** |
+| **Eon Ticket** | Mystery-Gift event → Southern Island (Lati@s) | `SHOWN_EON_TICKET` (430) | **OPTIONAL / event-only** |
+
+### 2.4 [P2] GYM-INTERIOR PUZZLE enumeration (each grounded in a real script)
+
+Pass 1 left these "un-enumerated." Each gym's puzzle mechanic is now confirmed by
+an actual symbol in `pokeemerald.sym`, so the routing/authoring cost is scoped:
+
+| Gym | Leader | Puzzle | Grounding symbol | Authoring need |
+|-----|--------|--------|------------------|----------------|
+| 1 Rustboro | Roxanne | **None** — straight trainer corridor | (no puzzle script) | waypoints only |
+| 2 Dewford | Brawly | **[P2 FIX: NOT "none"]** **Dark room** — beat trainers to brighten the room progressively | `DewfordTown_Gym_EventScript_BrightenRoom` (+ per-trainer `…BrightenRoom`) | order-sensitive route: must beat trainers to reveal path |
+| 3 Mauville | Wattson | **Switches → raise/lower electric barriers/doors** | `MauvilleGymPressSwitch`, `MauvilleGymSetDefaultBarriers` | authored switch-press sequence |
+| 4 Lavaridge | Flannery | **Warp trapdoors** (hot-sand holes) between 1F/B1F | `DoLavaridgeGym1FWarp`, `DoLavaridgeGymB1FWarp`, `StartLavaridgeGymB1FWarp` | authored warp-tile path map |
+| 5 Petalburg | Norman | **Room-choice doors** — pick a challenge room per door; correct rooms open the path | `PetalburgGymSlideOpenRoomDoors`, `PetalburgGymUnlockRoomDoors` | authored door/room routing |
+| 6 Fortree | Winona | **Rotating-gate puzzle** (push gates to align a path) | `RotatingGate_*` (`GetCurrentMapRotatingGatePuzzleType`, `RotatingGate_RotateInDirection`) | authored gate-push solution |
+| 7 Mossdeep | Tate & Liza | **Warp-tile teleport maze** + **DOUBLE battle** | `MetatileBehavior_IsMossdeepGymWarp`, `DoMossdeepGymWarp` | authored warp path + double-battle AI |
+| 8 Sootopolis | **Juan** | **Cracked-ice floor** — step pattern; ice cracks/breaks per step | `SetSootopolisGymCrackedIceMetatiles`, `SootopolisGymIcePerStepCallback` | authored no-repeat step path |
+
+`puzzle_solver.py` covers **none** of these gym interiors — all eight need
+per-map authored navigation (six are genuine puzzles; gyms 1 has none and 2 is a
+"beat-trainers-to-progress" variant).
+
+---
+
+## 3. DEEP DETAIL — First buildable chunk: Intro → Gym 1 (Rustboro)
+
+This is the proof-of-approach and the first thing to build. It exercises every
+hard new piece (intro, naming, gender, first HM teach, first gym) at small scale.
+
+### Chapter 0 — Intro & Identity  (NEW WORK is concentrated here)
+Goal: New Game → controllable in Littleroot with the user's name+gender set.
+
+**[P2] The intro task/script symbols DO exist in `pokeemerald.sym` — the intro
+automation can key off them directly (not pixels). Real names below.**
+
+1. **Boot to title / New Game.** From a fresh ROM, mash through copyright/title.
+   `soft_reset(mash_random_keys=True)` exists (`modules/modes/util/soft_reset.py`)
+   but **no New-Game menu driver** — build. **[P2] Main-menu tasks to key off:**
+   `Task_MainMenuCheckSaveFile`, `Task_DisplayMainMenu`, `Task_HandleMainMenuInput`,
+   `Task_HandleMainMenuAPressed` (menu-item order: NEW GAME / CONTINUE / OPTIONS,
+   CONTINUE only present if a save exists — drives the fresh-vs-continue branch).
+2. **Birch intro speech + the entire boy/girl/name flow is ONE task chain**
+   (`Task_NewGameBirchSpeech_*`). **[P2] Ordered symbols:** `…_Init` →
+   `…_ThisIsAPokemon` → `…_MainSpeech` → `…_AndYouAre` → `…_BoyOrGirl` →
+   `…_WaitToShowGenderMenu` → `…_ChooseGender` → `…_WhatsYourName` →
+   `…_StartNamingScreen` → (`CB2_NewGameBirchSpeech_ReturnFromNamingScreen`) →
+   `…_SoItsPlayerName` → `…_CreateNameYesNo` → `…_ProcessNameYesNoMenu` →
+   `…_AreYouReady` → `…_ShrinkPlayer` → `…_Cleanup`. `sBirchSpeechMainTaskId`
+   (0x03000dd0) holds the active sub-task id. Advance with the existing
+   `wait_until_task_is_active` / `wait_for_task_to_start_and_finish`
+   (`tasks_scripts.py`).
+3. **Gender select.** Cursor at `Task_NewGameBirchSpeech_ChooseGender`; the chosen
+   value lives in the var **`sIntroCharacterGender`** (0x0203bcc8). **No gender
+   helper exists** — build: at `…_ChooseGender`, move cursor to the user's choice,
+   confirm A, then read `sIntroCharacterGender` back to verify. (Reuse the
+   cursor-scroll idiom `menuing.get_scroll_direction`, `menuing.py:27`.)
+4. **Name entry.** At `Task_NewGameBirchSpeech_StartNamingScreen` the naming
+   keyboard (`sNamingScreen`, 0x02039f94) opens. **The typer exists**:
+   `type_in_naming_screen(name, max_length)` (`keyboard.py:146`) /
+   `handle_naming_screen` (`keyboard.py:226`) — wired today only to Pokémon
+   nicknames. Reuse it for the player name. Then confirm the "So it's <name>?"
+   yes/no at `…_CreateNameYesNo` / `…_ProcessNameYesNoMenu`. *Low-risk reuse.*
+5. **Clock set.** After the truck (`WarpToTruck`), set the bedroom wall clock.
+   **[P2] Symbols:** the clock script is `ScrCmd_initclock` → `StartWallClock`
+   (returns via `ReturnFromStartWallClock`); state in `sClockInfo` (0x0203bcfe).
+   Build: `navigate_to` the clock, press A to open `StartWallClock`, set hour/
+   minute (D-pad), confirm. `modules/clock.py` only *reads* time — the intro
+   *setter* is new but the script boundary (`StartWallClock`/`ReturnFrom…`) gives
+   a clean wait target.
+6. **Downstairs, meet Mom, TV, exit house.** Scripted movement + dialogue;
+   navigate to the door, advance scripts.
+7. **Meet Rival (May/Brendan) next door** (Prof. Birch's kid) — scripted.
+   Completion signal: `ADVENTURE_STARTED` (flag 116) becomes true.
+
+`is_complete()` for Ch0: `get_event_flag("ADVENTURE_STARTED")`.
+
+### Chapter 1 — Starter & first steps
+1. **Route 101 — rescue Birch.** Walk north from Littleroot onto Route 101; a
+   scripted event triggers where Birch is chased by a wild Poochyena and drops his
+   bag. `navigate_to(MapRSE.ROUTE101, <bag coords>)` with
+   `avoid_scripted_events=False` / `expecting_script=True` so the pathfinder
+   *does not route around* the trigger tile (default `avoid_scripted_events=True`
+   would dodge it — `walking.py:314`, `map_path.py:924-927`).
+2. **Choose starter from Birch's bag.** This is the *exact* mechanic
+   `starters.py` already automates (RSE Hoenn path): it opens the bag via
+   `wait_until_task_is_active("Task_HandleStarterChooseInput"/"Task_StarterChoose2",
+   "A")` and presses Left/Right to pick (`modules/modes/starters.py:80-144`).
+   Story mode reuses this selection logic (but keeps the mon instead of soft-
+   resetting). Starter choice = story-mode config; readable back via var
+   `STARTER_MON` (event_vars 35). **Team-building note:** default recommend
+   **Mudkip** (Water/Ground line resists the first two gyms' problem types and
+   trivializes several; see §4).
+3. **Win the tutorial battle** (Poochyena) — auto-handled: BattleListener coerces
+   tutorial battles to `CustomAction` but the fight itself runs; the strongest-
+   move brain wins trivially.
+4. **Oldale Town.** Walk north; scripted Birch/rival intro to catching; get the
+   **Pokédex** (`RECEIVED_POKEDEX_FROM_BIRCH`, 2276) and **Poké Balls** from Birch
+   in Littleroot lab (the "deliver to Mom's" loop). Navigate lab, advance scripts.
+5. **Route 103 — beat the Rival.** Navigate onto Route 103, trigger the rival
+   battle (auto-won by `handle_battle`; trainer battles are *always fought*,
+   `_listeners.py`). Completion: `DEFEATED_RIVAL_ROUTE103` (130).
+6. Return to Birch's lab → receive Pokédex/Running Shoes/Balls if not already;
+   Mom gives Running Shoes.
+
+`is_complete()` Ch1: `get_event_flag("DEFEATED_RIVAL_ROUTE103")` AND party size ≥ 1.
+
+### Chapter 2 — Petalburg City (Dad + Wally)
+1. Navigate Route 102 → Petalburg City (auto-battle any trainers en route,
+   catch nothing required). Route 102 has trainers + tall grass (encounter
+   avoidance on for travel: `avoid_encounters=True` default).
+2. Enter **Petalburg Gym**, talk to **Norman (Dad)** — scripted; he won't battle
+   yet. Then the **Wally catching tutorial**: Wally borrows a Zigzagoon and
+   catches a Ralts; the player watches/advances a scripted sequence
+   (`talk_to_npc` + script waits). No battle input needed.
+3. Optional but recommended: heal at Petalburg PC
+   (`heal_in_pokemon_center(PokemonCenter.PetalburgCity)`,
+   `higher_level_actions.py:172`; PC door coords from `PokemonCenter` enum,
+   `map_data.py:1524`).
+
+### Chapter 3 — Route 104 / Petalburg Woods / Devon Goods + Cut
+1. Route 104 (south) → **Petalburg Woods**. Auto-battle trainers/bug-catchers.
+2. **Team Aqua Grunt event:** a Devon researcher is accosted; a scripted battle
+   vs an Aqua Grunt triggers (`DEVON_GOODS_STOLEN` context). Fight (auto). After,
+   `RECOVERED_DEVON_GOODS`.
+3. Exit Woods north → Route 104 (north) → **Cutter's House**: talk to the NPC to
+   receive **HM01 Cut** (`RECEIVED_HM_CUT`, 137).
+4. **Teach Cut** to a party member with `teach_hm_or_tm(get_item_by_name("HM01"),
+   party_index, move_index_to_replace)` (`modules/modes/util/items.py:160`). The
+   helper validates `can_learn_tm_hm` and refuses to overwrite existing HM slots.
+   Choose a bulky non-lead HM-mule or the starter (see §4 move policy).
+5. Continue north to **Rustboro City**.
+
+`is_complete()` Ch3: `get_event_flag("RECEIVED_HM_CUT")` AND a party mon
+`has_pokemon_with_move("Cut")` (`pokemon_party.py:76`).
+
+### Chapter 4 — Gym 1: Roxanne (Rock) → Stone Badge
+1. Navigate to **Rustboro Gym** (`MapRSE.RUSTBORO_CITY_GYM = (11,3)`,
+   `map_data.py:952`). The Rustboro gym has **no puzzle** — just a straight
+   corridor of trainers, then Roxanne. Route: `navigate_to` to each trainer's
+   line-of-sight tile (they auto-initiate: `TrainerApproachListener`,
+   `_listeners.py:288`), or walk straight to Roxanne and let approaches fire.
+2. **Beat the gym trainers + Roxanne** — all auto-won by `handle_battle`. Roxanne
+   uses Geodude/Geodude/Nosepass (~Lv 12-15). **Level target: ~14-16.** With
+   Mudkip (Water Gun/Mud-Slug) this is trivial; with Treecko fine; with Torchic
+   bring a caught Water/Grass mon (see §4).
+3. Receive **Stone Badge** (`BADGE01_GET`, 2151) + TM39 Rock Tomb. Stone Badge
+   also **enables Cut in the field**.
+4. Heal at Rustboro PC before moving on.
+
+`is_complete()` Ch4: `get_event_flag("BADGE01_GET")`.
+
+### Detailed primitive-call map for Chapter 4 (illustrative)
+```
+preconditions: assert_party_has_damaging_move(...); party lead can battle
+run():
+  yield from navigate_to_anywhere(MapRSE.RUSTBORO_CITY, <gym door coords>)   # cross-region
+  yield from navigate_to(MapRSE.RUSTBORO_CITY_GYM, <inside spawn>)           # warp through door
+  for trainer_line_tile in gym_trainer_route:            # authored waypoints
+      yield from navigate_to(gym_map, trainer_line_tile, avoid_encounters=False)
+      # TrainerApproachListener + BattleListener auto-run the fight to completion
+      yield from wait_for_no_script_to_run("B")
+  yield from navigate_to(gym_map, <tile in front of Roxanne>)
+  yield from talk_to_npc(roxanne_object_id)              # start boss battle
+  # handle_battle auto-plays; on win, badge script runs
+  yield from wait_until_event_flag_is_true("BADGE01_GET", "B")
+  yield from heal_in_pokemon_center(PokemonCenter.RustboroCity)
+```
+Every symbol above exists today except the **authored `gym_trainer_route`
+waypoint list** and the **`roxanne_object_id`** — i.e. the per-map data, not the
+engine. That is the recurring shape of ALL story chapters: **engine ready,
+per-map data authored.**
+
+---
+
+## 4. TEAM BUILDING & MAINTENANCE
+
+### 4.1 Starter choice
+Configurable; **default recommendation: Mudkip** (→ Marshtomp → Swampert).
+Rationale: Water/Ground typing walls Roxanne (Rock), Wattson (Electric — Ground
+immunity is huge), and gives Surf/Dive/Waterfall STAB later. Treecko and Torchic
+are supported but flag more gym-matchup work. Starter is picked with the
+existing `starters.py` selection logic (§3, Ch1).
+
+### 4.2 What to catch and when
+The bot is already a **catching machine** (`CatchStrategy`, `catch.py:23`;
+opportunistic-catch scaffolding from living-dex #43). Story team plan:
+- **Route 102 / 104:** catch a cheap utility mon early (e.g. a Taillow for a
+  flyer, a Zigzagoon as a Pickup/HM-mule and future Fly/Cut carrier). Wurmple/
+  Poochyena optional.
+- **HM-mule strategy:** dedicate 1-2 low-value party members (Zigzagoon/Linoone,
+  Tentacool later) to carry Cut/Rock Smash/Strength/Flash/Dive so the *combat*
+  slots keep strong offensive movesets. `teach_hm_or_tm` protects HM slots from
+  being overwritten (`items.py:160`).
+- Keep 3-4 real battlers leveled; the rest are mules/box.
+
+### 4.3 Leveling & healing per gym (level targets)
+Suggested "party lead level ≥" gates before each gym (conservative, since the
+battle AI is naive — see §5):
+
+| Gym | Boss | Target level | Notes |
+|-----|------|-------------|-------|
+| 1 Roxanne | Rock | 14-16 | Water/Grass/Fighting coverage |
+| 2 Brawly | Fighting | 16-19 | Flying/Psychic; avoid Normal leads |
+| 3 Wattson | Electric | 20-24 | Ground immunity ideal |
+| 4 Flannery | Fire | 26-29 | Water/Rock/Ground |
+| 5 Norman | Normal | 30-33 | Fighting; watch Slaking Truant |
+| 6 Winona | Flying | 33-36 | Electric/Rock/Ice |
+| 7 Tate&Liza | Psychic (double) | 38-42 | **Double battle** — see §5 risk |
+| 8 Juan | Water | 42-46 | Grass/Electric (**[P2] leader is Juan, not Wallace**) |
+| E4+Champ | mixed | 50-58 | broad coverage; heal items |
+
+**Grinding** reuses the proven loop brains: `PokecenterLoopController`
+(`pokecenter_loop.py:23`) or `LevelBalancingBattleStrategy`
+(`level_balancing.py:17`, keeps the low-level mon as lead but shares EXP) to
+bring under-leveled members up between chapters. Route-trainer XP en route is
+often enough; a dedicated grind sub-step triggers only when a level gate is unmet.
+
+**Healing decision:** no global `needs_healing` flag exists — derive it. After
+each battle, if `party.first_non_fainted is None` (`pokemon_party.py:68`) or the
+lead's `current_hp_percentage` (`pokemon.py:1230`) < threshold, route to the
+nearest center via `find_closest_pokemon_center` (`modes/util/map.py:86`) +
+`heal_in_pokemon_center`. Between-chapter policy: **always heal + save at each
+new town's PC** (cheap insurance; `save_the_game`, `higher_level_actions.py:244`).
+
+### 4.4 Move-learning policy — reconciling with #39
+- **#39 flipped the leveling-bot default** `battle.new_move` from `stop` → `cancel`
+  so hunts don't get interrupted (changelog 2026-07-19; config default at
+  `modules/config/schemas_v1.py:29`; decision point
+  `DefaultBattleStrategy.which_move_should_be_replaced`,
+  `modules/battle_strategies/default.py:25-103`).
+- **Story mode wants GOOD movesets**, so it must NOT run with `cancel`. The
+  cleanest fix uses the **already-existing `learn_best` branch**
+  (`default.py:44-103`): it computes an "effective power" (base × attacking-stat ×
+  STAB) per move, protects HM moves, and replaces the weakest / a redundant-type
+  move for coverage. The docstring explicitly calls this the "future-intelligence
+  seam" (`default.py:26-35`).
+- **Recommendation:** the Story `BotMode` runs with `battle.new_move = "learn_best"`
+  and `battle.stop_evolution = false`, either by setting these in the story
+  profile's `battle.yml` or (cleaner) by supplying a **`StoryBattleStrategy`**
+  subclass of `DefaultBattleStrategy` from `on_battle_started()` that (a) forces
+  `learn_best` semantics regardless of config, (b) allows evolution, and (c) —
+  as a later upgrade — overrides `decide_turn` for boss fights (§5).
+- **Evolution:** default B-cancels every evolution (`battle_evolution_scene.py:17`;
+  `should_allow_evolution` returns `... and not stop_evolution`, and
+  `stop_evolution` defaults True, `schemas_v1.py:30`). Story mode must set
+  `stop_evolution=false` so the starter and team evolve on schedule.
+
+### 4.5 TMs / items / PC-box management
+- **HMs/TMs** are taught with `teach_hm_or_tm` (`items.py:160`). Gym-reward TMs
+  (Rock Tomb from Roxanne, etc.) can be taught to appropriate mons.
+- **Bag/item queries:** `get_item_bag().quantity_of(get_item_by_name("HM01"))`
+  (`items.py:427,529`); key items live in the `key_items` pocket.
+- **PC/box management:** `interact_with_pc([PCAction...])`
+  (`pc_interaction.py:730`) deposits/withdraws party↔box; read boxes via
+  `get_pokemon_storage()` (`pokemon_storage.py:140`). Used to park HM-mules or
+  swap in a type-matchup mon before a gym. `assert_boxes_or_party_can_fit_pokemon`
+  (`_asserts.py:170`) guards against a full PC.
+
+---
+
+## 5. FEASIBILITY MAP vs current capabilities
+
+Honest COVERED / PARTIAL / NEW per needed ability.
+
+| Ability | Status | Evidence (file:line) |
+|---|---|---|
+| **Navigate within connected maps** (auto surf/waterfall/bike) | **COVERED** | `navigate_to` `walking.py:314`; waypoint actions `map_path.py:589`, exec `walking.py:209-291`; re-plans on timeout `walking.py:377-405` |
+| **Navigate across regions through warps** | **PARTIAL** | `navigate_to_anywhere` `global_navigation.py:51` + `warp_graph.py:113` exist BUT not exported/wired, and **cannot open locked/HM/story-gated doors** (fails at runtime `global_navigation.py:127-132`) |
+| **Auto-win wild battles** | **COVERED** | `handle_battle` `battle_handler.py:36`; `DefaultBattleStrategy` `default.py:12` |
+| **Auto-win TRAINER/gym battles** | **COVERED** | trainer battles "always fought", flee blocked (`_listeners.py`; `_util.py:55` escape=0 for Trainer; `battle_action_selection.py:110`) |
+| **Move-selection QUALITY for bosses** | **PARTIAL/NAIVE** | `get_strongest_move_against` `_util.py:244` is type/STAB/damage-model aware but pure max-damage: no accuracy, status, setup, PP, or switch logic; reactive switching only |
+| **Send-out next / faint handling** | **COVERED** (naive pick) | `handle_fainted_pokemon` `battle_handler.py:154`; new lead = highest-HP `default.py:128` |
+| **Double battles (Tate&Liza, some plot)** | **PARTIAL** | `decide_turn_in_double_battle` exists (`_interface.py`) and default fills it, but tuned less than singles — verify vs gym 7 |
+| **Advance scripted dialogue / cutscenes** | **COVERED** | task/script waiters `tasks_scripts.py:11-158`; `is_waiting_for_input` `tasks.py:199` — event-driven off RAM, not OCR |
+| **Yes/No + multiple-choice prompts** | **COVERED** | `wait_for_yes_no_question` `tasks_scripts.py:52`, `wait_for_multiple_choice_question` `:110` |
+| **Player NAME entry (intro)** | **PARTIAL** | typer exists `keyboard.py:146,226` but wired only to nicknames — reuse for player name = small new glue |
+| **GENDER selection (intro)** | **NEW** | no gender code anywhere in repo (confirmed) |
+| **New-Game / title-menu driver + Birch speech + clock set** | **NEW** | no New-Game menu handler, no Birch-speech handler, no intro-clock setter |
+| **Choose starter from Birch's bag** | **COVERED** | `starters.py:80-144` (RSE Hoenn selection) |
+| **Talk to NPC / interact** | **COVERED** | `talk_to_npc` `higher_level_actions.py:513` |
+| **Field-move EXECUTION (Cut/Strength/Flash/Rock Smash/Surf/Dig/Fly)** | **COVERED** | `use_field_move` `menuing.py:804` (badge-checked); wrappers `use_strength`/`use_rock_smash` `puzzle_solver.py:52,61`; Surf/Waterfall/Dive auto via pathfinder |
+| **Field-move ROUTING to a specific story tree/boulder + detection** | **NEW (partial)** | only end-game puzzle maps are authored (`puzzle_solver.py:107`); critical-path Cut trees / Strength boulders / Rock Smash rocks on routes are **not** authored |
+| **Teach HM/TM to party** | **COVERED** | `teach_hm_or_tm` `items.py:160` (validates learnability, protects HMs) |
+| **Item pickup (overworld balls / hidden items)** | **NEW** | no composable `pick_up_item` helper; done ad hoc in some modes only |
+| **Shopping (buy/sell)** | **COVERED** | `buy_in_shop` `higher_level_actions.py:301`, `sell_in_shop` `:399` (expects mart menu open) |
+| **Healing at Pokémon Center** | **COVERED** | `heal_in_pokemon_center` `:172`; center lookup `map.py:86` |
+| **When-to-heal orchestration across overworld story** | **NEW** | heal is only wired into grind loops today; a story-level heal policy must be added |
+| **Catch team members** | **COVERED** | `CatchStrategy` `catch.py:23`; opportunistic-catch scaffolding (#43) |
+| **Evolution management** | **COVERED (config)** | `battle_evolution_scene.py:17`; set `stop_evolution=false` |
+| **Gym puzzles** | **PARTIAL** | `puzzle_solver.py` covers end-game puzzles, **not** gym interiors (e.g. Mauville switches, Petalburg rooms, Fortree gym, Mossdeep) — each needs authoring |
+| **Read badges/flags/vars/items/party/map for progress** | **COVERED** | `get_event_flag` `memory.py:336`; flag table `data/event_flags/emerald.txt`; `MapRSE` `map_data.py:792`; `_asserts.py` |
+| **The chapter orchestrator itself** | **NEW** | no cross-map plot driver exists; every mode is self-contained |
+
+**Big new pieces, ranked:** (1) chapter orchestrator + per-map data authoring
+(the bulk of the work — dozens of authored routes/NPC-ids/waypoints); (2) intro
+automation (New Game + gender + name + clock); (3) critical-path field-move
+routing (Cut trees, Strength/Rock Smash obstacles, gym-interior puzzles);
+(4) wiring + hardening `navigate_to_anywhere` and teaching it to *satisfy* gates
+(or letting the orchestrator sequence gate-satisfaction); (5) stronger boss AI.
+
+---
+
+## 6. RISKS / UNKNOWNS / OPEN QUESTIONS + Build order
+
+### 6.1 Top risks
+1. **Naive battle AI loses winnable boss fights.** Max-damage-only selection with
+   no status/setup/switch handling can lose to Norman's Slaking, Tate&Liza's
+   double battle, or the Elite Four. Mitigation: (a) level buffers (§4.3), (b) a
+   `StoryBattleStrategy.decide_turn` upgrade for flagged boss encounters, (c) heal-
+   item usage in-battle (the engine supports `UseItem` turns).
+2. **`navigate_to_anywhere` can't pass gated warps** — it *fails at runtime* when a
+   door is locked/HM/story-gated (`global_navigation.py:127-132`). The orchestrator
+   must own gate-sequencing (do the plot event that unlocks the door *before*
+   trying to path through it), and catch/retry on `BotModeError` rather than crash.
+   It's also **not exported** from `modes/util/__init__.py` and **unused** today —
+   needs wiring + real-world testing.
+3. **Massive per-map data authoring surface** — every gym interior, every
+   critical-path tree/boulder, every plot NPC id and trigger tile must be
+   authored and verified per map. This is the true cost, and it's brittle (NPC
+   object ids, coords). Mitigation: build incrementally, one chapter at a time,
+   each independently testable from a save parked at its start.
+4. **Version/symbol fragility** — modes lean on Emerald-specific task/script symbol
+   names; three-way `is_rs/is_emerald/is_frlg` branches abound
+   (`DOCUMENTATION/03:680-682`). v1 is Emerald-only to contain this.
+5. **Scripted-event avoidance vs triggering** — the pathfinder defaults to
+   *avoiding* scripted tiles (`avoid_scripted_events=True`); story mode frequently
+   needs the opposite (`expecting_script=True` / `avoid_scripted_events=False`).
+   Getting this wrong = the bot walks *around* the event it needs to trigger.
+6. **Softlocks / unexpected dialogue** — Match Call, Pokénav, wild double battles,
+   rival surprise battles. Many are covered by listeners (`PokenavListener` etc.),
+   but story mode must be robust to "an unexpected script is running" (watchdog
+   #E1 synergy).
+
+### 6.2 Open questions (for the user / later passes)
+- Should the bot **grind for items/money** (buy Potions/Revives, Great Balls) or
+  run lean? Affects shopping sub-steps.
+- **Catch quotas:** does the user want a specific team, or "whatever works"?
+- **Fly usage:** obtain + use Fly for fast travel (big time saver, needs Feather
+  Badge) or walk everything?
+- **Post-game scope:** stop at Champion (v1) vs continue to Rayquaza-caught /
+  National Dex / Battle Frontier. #45 defers this.
+- **In-battle item use policy** for bosses (buy & use X-items / Full Restores?).
+
+### 6.3 Recommended CHUNKED build order (each independently testable)
+1. **Read-only progress detector + chapter registry** — a `StoryProgress` reader
+   that prints "current chapter" from flags/badges for any save (test against the
+   real `Nick - Emerald` save; no risk). Validates the whole detection model
+   first.
+2. **Chapter 4 (Gym 1) in isolation** — start from a save parked in Rustboro;
+   author the gym route + Roxanne id; prove "navigate → auto-win gym → badge
+   detected → heal." This exercises the core loop with the least new work.
+3. **Intro (Chapter 0-1)** — the hardest NEW piece (New Game, gender, name, clock,
+   starter). Test from a truly fresh ROM. Once this + step 2 work, the "fresh →
+   Badge 1" spine is proven.
+4. **Chapters 2-3** — fill Petalburg/Woods/Cut, including the **first HM teach**
+   (`teach_hm_or_tm`) and first field-move routing (Cut). Proves the HM pipeline.
+5. **Wire + harden `navigate_to_anywhere`** — export it, add gate-aware retry,
+   test cross-region routing on the real world graph.
+6. **Chapters 5-10** — Dewford/Slateport/Mauville; introduces Flash, Rock Smash,
+   Bike, first mid-game gym puzzles.
+7. **Chapters 11-16** — Chimney/Magma, Strength, Lavaridge, Norman (Surf), Fortree
+   (Fly), Devon Scope/Kecleon. The HM-gate-heavy stretch.
+8. **Chapters 17-22** — Aqua arc, Dive, Mossdeep double gym, Seafloor, Sootopolis/
+   Rayquaza, Wallace (Waterfall).
+9. **Chapters 23-24** — Victory Road (Strength puzzles) + Elite Four + Champion.
+   Boss-AI upgrade lands here if not earlier.
+
+**Where the progressed save helps:** every chapter after 0 can be tested by
+starting from a save (or savestate) parked at its beginning — the `Nick - Emerald`
+profile and its many savestates (`profiles/Nick - Emerald/states/`) let a
+developer jump straight to a mid-game chapter without replaying the intro. Build
+a small library of "parked at chapter N" savestates as a test fixture.
+
+---
+
+## 7. SELF-SANITY-CHECK (re-read against known Emerald progression)
+
+Things I am **confident** about (code-confirmed or well-established):
+- The 8 gym order, cities, types, and badge flags (`DEFEATED_*_GYM` 1264-1271,
+  `BADGE0N_GET` 2151-2158) — flag names verified in
+  `modules/data/event_flags/emerald.txt`.
+- Endgame flags `IS_CHAMPION` (2175) + `SYS_GAME_CLEAR` (2148), Elite Four flags
+  (1275-1278) — verified.
+- HM field-use badge gates for **Surf (Badge5), Dive (Badge7), Waterfall (Badge8),
+  Rock Smash (Badge3), Cut (Stone)** — CONFIRMED IN CODE (`map_path.py:684,690,698`;
+  `rock_smash.py:143`; `menuing.py:812`).
+- All HM-received flags exist (`RECEIVED_HM_CUT/FLASH/FLY/STRENGTH/SURF/DIVE/
+  WATERFALL/ROCK_SMASH`) — verified in the flag table.
+- Key-item flags exist: `RECEIVED_WAILMER_PAIL` (94), `RECEIVED_GO_GOGGLES` (221),
+  `RECEIVED_DEVON_SCOPE` (285), `RECEIVED_POKENAV` (188), `RECEIVED_BIKE` (90),
+  `RECEIVED_METEORITE` (115), `RECEIVED_SS_TICKET` (291), rods (152/227/257),
+  `GOT_BASEMENT_KEY_FROM_WATTSON` (208), room keys (240-243), Devon Goods chain
+  (142/143/144/149) — verified.
+- Team arc flags: `MET_ARCHIE_METEOR_FALLS` (207), `DEFEATED_EVIL_TEAM_MT_CHIMNEY`
+  (139), `TEAM_AQUA_ESCAPED_IN_SUBMARINE` (112), `GROUDON_AWAKENED_MAGMA_HIDEOUT`
+  (111), `KYOGRE_ESCAPED_SEAFLOOR_CAVERN` (129), `DEFEATED_MAGMA_SPACE_CENTER`
+  (117), `LEGENDARIES_IN_SOOTOPOLIS` (83), `STEVEN_GUIDES_TO_CAVE_OF_ORIGIN` (307),
+  `DEFEATED_RAYQUAZA` (448), `DEFEATED_WALLY_VICTORY_ROAD` (126) — verified.
+
+**[P2] RESOLVED in Pass 2** (was "unsure" in Pass 1 — now settled against
+in-repo ground truth):
+1. **All 8 HM field-use badge gates** — RESOLVED, code-confirmed (`menuing.py:
+   810-833`); see §2.1. Fly = Feather (BADGE06). A `fly_to` **fork bug** was found
+   (checks BADGE03 for Emerald — wrong).
+2. **HM/key-item handoff locations** — filled in §2.3 with receipt flags. HM04
+   **Strength corrected to Rusturf Tunnel** (was wrongly "near Mt. Chimney"). HM08
+   Dive code-anchored to Steven's house (`ITEM_MOSSDEEP_STEVENS_HOUSE_HM08` 1133).
+   Softer NPC/tile facts are tagged *verify live* in the §2.3 table.
+3. **Norman prerequisite** — 4 badges; var `PETALBURG_GYM_STATE` (event_vars 133)
+   confirmed present (semantics: gates the challenge until 4 badges). Row 13.
+4. **Gym-interior puzzles** — all 8 ENUMERATED and grounded in real scripts, §2.4.
+   Correction: **Brawly (Gym 2) IS a puzzle** (dark room), not "none". **Gym 8 =
+   Juan**, cracked-ice floor.
+5. **Missed mandatory beats** — added: **Mt. Pyre (16b)**, **Slateport Harbor sub
+   theft (16c)**, **Magma Hideout / Groudon (16d)**, and made **Mr. Briney + Peeko
+   rescue (5b)** explicit as the boat gate.
+6. **Intro symbols** — RESOLVED: the full `Task_NewGameBirchSpeech_*` chain +
+   `Task_*MainMenu*`, `sIntroCharacterGender`, `sNamingScreen`, `StartWallClock`/
+   `ScrCmd_initclock`/`sClockInfo`, `WarpToTruck` all exist in `pokeemerald.sym`
+   (§3 Ch0). Only the *exact cursor positions/timing* need live observation.
+7. **`navigate_to_anywhere`** — re-read (`global_navigation.py:51-139`): it
+   **raises `BotModeError` on any gated/locked warp** (lines 127-132) and
+   **cannot route through Dive or dynamic warps** (lines 108-111). Confirmed
+   unwired/ungated. See "still needs work" below.
+
+Things that **genuinely still need LIVE discovery / testing** (cannot be settled
+from in-repo data alone):
+1. **Exact NPC object-ids and trigger tiles** for every *verify live* item in
+   §2.3 (Surf house in Petalburg, Fly NPC on Rt 119, Rock Smash house on Rt 111,
+   Go-Goggles giver in Lavaridge, Waterfall trigger in Sootopolis). Flags prove
+   *receipt*; the *where-to-stand* must be read off a live/parked save.
+2. **The precise late-game chapter ORDERING** around Mt. Pyre / Slateport-sub /
+   Magma-Hideout / Aqua-Hideout / Mossdeep. The beats and their flags are now all
+   present (§2 rows 16b-20), but their exact interleaving in Emerald (distinct
+   from R/S) should be walked on a live save; I've ordered them by best-established
+   Emerald knowledge and marked the soft joins *verify live*.
+3. **Mandatory-vs-shortcut field-move obstacles** — which specific Cut tree /
+   Strength boulder / Rock Smash rock / Surf/Dive/Waterfall spot is on the *only*
+   path vs a shortcut. Late-game water HM sequence (Surf→Dive→Waterfall to reach
+   Sootopolis/Seafloor/Ever Grande) is asserted from `can_surf/dive/waterfall`
+   gating but the exact required tiles on Rt 126/128/132-134 must be confirmed live.
+4. **`navigate_to_anywhere` real-world leg coverage** — export it, add gate-aware
+   retry, and test **leg-by-leg**; it definitely cannot open story-gated doors or
+   route Dive segments, so the orchestrator must own gate-sequencing.
+5. **Double-battle AI quality** (Tate&Liza Gym 7, Steven Space-Center tag) —
+   `decide_turn_in_double_battle` exists but is untuned; test on a parked save.
+6. **Intro cursor/timing** — the symbols are known (§3 Ch0); the exact cursor
+   deltas and frame waits for gender/name/clock must be observed on a live New Game.
+
+**Net:** engine feasibility remains high and well-cited. Pass 2 removed the
+"soft-fact" risk from HM gates, item sources, gym puzzles, intro symbols, and the
+late-game beat list (all now grounded). Residual risk is concentrated in (a) the
+large per-map authoring surface (NPC ids / trigger tiles / puzzle solutions), (b)
+the exact late-game ordering, (c) critical-path obstacle identification, and (d)
+wiring/hardening `navigate_to_anywhere`. None are blockers.
+
+---
+
+## 8. PASS 2 VERIFICATION — what changed / was caught
+
+Adversarial re-audit on **2026-07-19** against the bot's own ground truth
+(`event_flags/emerald.txt`, `event_vars/emerald.txt`, `symbols/pokeemerald.sym`,
+`menuing.py`, `map_path.py`, `global_navigation.py`).
+
+### 8.1 ERRORS corrected
+- **Gym 8 leader = JUAN, not Wallace.** Wallace is the **Champion** (Ch24). Both
+  the overview table (Ch22) and the §4.3 level table wrongly named Wallace as the
+  gym leader. Confirmed by `SootopolisCity_Gym_1F_EventScript_Juan` and
+  `ENABLE_JUAN_MATCH_CALL` (473) in the flag/sym data. **Fixed.**
+- **HM04 Strength source was WRONG** — the doc said "NPC near Mt. Chimney"; it is
+  the **Rusturf Tunnel** man (`RUSTURF_TUNNEL_OPENED` 199 context). **Fixed (§2.3).**
+- **Brawly's gym (Gym 2) was implied to have no puzzle** — it is a **dark-room
+  puzzle** (`DewfordTown_Gym_EventScript_BrightenRoom`). **Fixed (§2.4).**
+- **Fly badge gate uncertainty** — RESOLVED to **Feather (BADGE06)**
+  (`menuing.py:826`), and a **fork bug** was found: `fly_to`
+  (`higher_level_actions.py:52,55`) checks BADGE03 for Emerald too (only right for
+  FRLG). **Documented (§2.1).**
+
+### 8.2 MISSED mandatory beats added
+- **Mr. Briney & the Peeko rescue (Rusturf Tunnel)** — the gate that unlocks
+  Briney's boat to Dewford/Slateport. Was only glancingly mentioned; now an
+  explicit mandatory beat (row **5b**, `MR_BRINEY_SAILING_INTRO` 147).
+- **Mt. Pyre** (row **16b**) — the orb-theft / Magma-vs-Aqua summit beat, entirely
+  absent from the Pass-1 skeleton.
+- **Slateport Harbor submarine theft** (row **16c**) — `EVIL_TEAM_ESCAPED_STERN_
+  SPOKE` (271); distinct from the *early* Oceanic-Museum visit; was absent.
+- **Magma Hideout / Groudon awakening** (row **16d**) —
+  `GROUDON_AWAKENED_MAGMA_HIDEOUT` (111); listed in Pass-1's "confident flags" but
+  **never given a chapter**. Now a mandatory beat.
+
+### 8.3 RESOLVED specifics now baked in
+- **All 8 HM→badge field gates** code-confirmed, single source `menuing.py:810-833`
+  (§2.1).
+- **HM & key-item handoff table** with receipt flags + confidence (§2.3).
+- **Gym-puzzle enumeration**, each grounded in a real `pokeemerald.sym` symbol
+  (§2.4).
+- **Intro automation symbols** — the whole `Task_NewGameBirchSpeech_*` chain +
+  main-menu tasks + gender var + naming screen + wall-clock scripts identified in
+  the .sym (§3 Ch0); only cursor/timing needs live observation.
+- **Norman gate** — 4 badges via `PETALBURG_GYM_STATE` (var 133) (row 13).
+- **`navigate_to_anywhere`** re-confirmed to raise on gated warps and to exclude
+  Dive/dynamic warps (§7 item 7).
+
+### 8.4 Per-chapter confidence (post-Pass-2)
+| Chapters | Confidence | Why |
+|----------|-----------|-----|
+| 0 Intro | **High** on *what* to do (symbols known); **Medium** on cursor/timing (live) |
+| 1-4 (Starter → Gym 1) | **High** — flags + puzzles (none) confirmed; primary build target |
+| 5-6 (Devon/Peeko/Briney/Dewford/Flash) | **High** on beats/flags; **Medium** on Briney gate ordering (verify live) |
+| 7-10 (Brawly→Slateport→Mauville→Wattson) | **High** on gyms/flags; gym puzzles enumerated |
+| 11-13 (Chimney/Magma→Flannery→Norman) | **High** — Strength source & Norman gate corrected/confirmed |
+| 14-16 (Rt118/Weather/Winona/Kecleon) | **High** on flags; **Medium** on Fly NPC + Weather Inst. ordering |
+| 16b-16d (Mt. Pyre / Slateport sub / Magma Hideout) | **Medium** — beats+flags confirmed, exact **ordering verify live** |
+| 17-19 (Aqua Hideout→Mossdeep→Tate&Liza) | **High** on flags; **Medium** on double-battle AI + hideout ordering |
+| 20-22 (Seafloor→Sootopolis/Rayquaza→Juan) | **High** — Juan fixed; HM water-sequence gates confirmed; **Medium** on Waterfall trigger |
+| 23-24 (Victory Road → E4 → Champion Wallace) | **High** on flags; **Medium** on boss-AI survivability + VR obstacle tiles |

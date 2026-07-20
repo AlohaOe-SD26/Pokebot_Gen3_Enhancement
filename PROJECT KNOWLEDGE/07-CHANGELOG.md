@@ -539,3 +539,17 @@
   + refreshed 02-custom-interface. Verified: py_compile, real-import +
   4 custom modes discovered, install --check-only, git tracking of all new
   files, live launch on the real "Nick - Emerald" save.
+
+## 2026-07-19 — Batch-2 promotion + rulings/mods + story-mode design (Passes 1-2)
+- Mods (c2707bad): Latias+Latios both obtainable (218/386), 3× tooltip ball
+  (fixed a thumbnail no-op), opportunistic catch of any shiny incl. owned.
+- PROMOTED batch-2 to custom (29b9aae5): watchdog, hunt planner, living-dex
+  + obtainability/census + capability gating, analytics, catch-ball
+  allowlist, move-decline, the GUI evolution, generated dex datasets — with
+  extensive intent-level DIVERGENCE-LOG (a-i) + DOCUMENTATION/05-hunting-and-
+  livingdex.md. Live-verified on the real Nick-Emerald save.
+- Story-mode bot (#24) DESIGN Passes 1+2 → 12-STORYMODE-DESIGN.md: 25-chapter
+  skeleton, verified (fixed Juan≠Wallace, HM04=Rusturf Tunnel, Brawly dark
+  room; ADDED Mr.Briney/Mt.Pyre/Slateport-sub/Magma-Hideout; resolved all
+  HM→badge gates + gym puzzles + intro symbols from the ROM). Found KI-7
+  (fly_to wrong-badge bug). Build order: progress-detector → Gym1 → intro.

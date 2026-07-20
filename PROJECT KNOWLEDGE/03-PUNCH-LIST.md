@@ -72,15 +72,13 @@
       (gitignored). LIVE TEST on real party running.
 
 ## User rulings + new round (2026-07-19)
-- [ ] RULINGS: Latias/Latios → make BOTH obtainable (bot detects which the
-      save has, does either). Surskit → stays unobtainable (confirmed).
-- [ ] #46 — Hover tooltip: make the caught-ball icon ~3× larger.
-- [ ] #47 — Opportunistic catching: also catch an already-OWNED species if
-      it is SHINY (currently catches uncaught wanted species; ensure shiny-
-      of-owned is also caught).
-- [ ] PROMOTE-2: promote the whole sandbox batch (since f0b275f3) into
-      custom with EXTENSIVE intent-level documentation; then BACKUP
-      everything (git tag milestone + note).
+- [x] RULINGS: Latias+Latios BOTH obtainable (218/386); Surskit unobtainable
+      (c2707bad).
+- [x] #46 — Hover tooltip ball ~3× (fixed thumbnail no-op bug) (c2707bad).
+- [x] #47 — Opportunistic catch: any SHINY (even owned) caught (c2707bad).
+- [x] PROMOTE-2 — whole batch promoted to custom w/ extensive intent docs
+      (DIVERGENCE-LOG a–i + DOCUMENTATION/05-hunting-and-livingdex.md);
+      live-verified on the real save; 29b9aae5.
 - [ ] #24 — STORY-MODE BOT (design-first, multi-pass/triple-check): play
       from a fresh save (user-set name; Oak intro/gender/name; Littleroot
       start) OR continue existing; goal = beat Elite 4 + complete the game

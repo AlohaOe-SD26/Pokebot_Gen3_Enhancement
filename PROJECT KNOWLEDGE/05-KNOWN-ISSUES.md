@@ -63,3 +63,9 @@ fix goes in DIVERGENCE-LOG).
 - **Fix (done):** tab bar wraps to two balanced rows when there are >4 tabs
   (3+3 for six), legible in both desktop and the handheld drawer
   (screenshots ki6_1/ki6_2). Gamepad focus-nav + tab persist unaffected.
+
+## KI-7 — fly_to() checks the wrong badge for Emerald (opened 2026-07-19, severity: low)
+- **Symptom:** `modules/modes/util/higher_level_actions.py` fly_to() gates on
+  BADGE03_GET (Dynamo) — correct for FR/LG but WRONG for Emerald, where Fly
+  needs the Feather Badge (BADGE06). Inherited from upstream. Story-mode #24
+  must not rely on fly_to as-is; fix when wiring Fly into story navigation.
