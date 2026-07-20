@@ -317,3 +317,10 @@ Verified in custom (SYS_POKEDEX_GET True). (early_game.py also carries WIP
 navigate_to) then navigate_to_anywhere(PETALBURG) from Oldale (the global nav
 loops on Route 101, so we get past it first). Wired into StoryMode (now ends at
 Petalburg). Verified in custom (pokedex_done -> Petalburg (0,0), 22.1k frames).
+
+### (j-update 2026-07-20f) Story Chapter 2: Petalburg Gym (Dad) + Wally tutorial
+`do_petalburg_gym_and_wally_tutorial()`: enter the gym, fire the Norman scene at
+(4,108), ride out the fully-auto Wally catching tutorial (Route 102 Ralts catch
++ back). Completion = back in the gym + controllable after visiting Route 102
+(the tutorial doesn't set THANKED_FOR_PLAYING_WITH_WALLY). Wired into StoryMode.
+Verified in custom via the listener harness (petalburg.ss1 -> done, 8.4k frames).

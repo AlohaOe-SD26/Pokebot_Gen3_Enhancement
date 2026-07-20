@@ -111,6 +111,7 @@ class StoryMode(BotMode):
 
         from modules.story.early_game import (
             descend_and_leave_players_house,
+            do_petalburg_gym_and_wally_tutorial,
             finish_birch_lab,
             fight_route103_rival,
             go_upstairs_and_set_clock,
@@ -139,11 +140,12 @@ class StoryMode(BotMode):
         yield from fight_route103_rival()
         yield from return_to_lab_and_get_pokedex()
         yield from travel_to_petalburg()
+        yield from do_petalburg_gym_and_wally_tutorial()
 
         context.message = (
-            "Story: reached Petalburg City! The Petalburg Gym scene (Dad/Norman "
-            "+ the Wally catching tutorial) is still being built; handing to "
-            "manual."
+            "Story: met Dad and finished the Wally catching tutorial in "
+            "Petalburg! The next stretch (Route 104 -> Petalburg Woods -> "
+            "Rustboro / Gym 1) is still being built; handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()

@@ -803,3 +803,8 @@ THANKED_FOR_PLAYING_WITH_WALLY flag is NOT set by this tutorial). Wired into
 StoryMode. Verified via the listener-driven harness. KEY LESSON: test story
 steps via the listener harness, not a bare next()+run_frame loop (stale state
 cache gives wrong results). Design §17.1. Sandbox.
+
+## 2026-07-20 — PROMOTED Chapter 2 (Petalburg Gym + Wally tutorial) to custom (#24)
+User tested ("it worked"). do_petalburg_gym_and_wally_tutorial copied sandbox →
+custom; verified via listener harness (petalburg.ss1 -> done, visited Route 102,
+back in gym). Custom StoryMode now plays fresh game → ... → Dad + Wally tutorial.
