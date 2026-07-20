@@ -140,6 +140,7 @@ class StoryMode(BotMode):
             fight_route103_rival,
             go_upstairs_and_set_clock,
             help_birch_and_choose_starter,
+            cross_petalburg_woods,
             return_to_lab_and_get_pokedex,
             train_lead_to_level,
             travel_to_petalburg,
@@ -168,13 +169,15 @@ class StoryMode(BotMode):
         yield from do_petalburg_gym_and_wally_tutorial()
 
         # Chapter 3: heal, cross west to Route 104 (Scott cutscene), beat the
-        # route trainer, and enter Petalburg Woods.
+        # route trainer, enter Petalburg Woods, then cross it (Aqua-grunt/Devon
+        # scene + Bug Catchers) and exit north onto Route 104 north.
         yield from travel_to_petalburg_woods()
+        yield from cross_petalburg_woods()
 
         context.message = (
-            "Story: reached Petalburg Woods (via Route 104). The rest (crossing "
-            "the Woods past the Aqua-grunt scene -> Rustboro -> Gym 1) is still "
-            "being built; handing to manual."
+            "Story: crossed Petalburg Woods to Route 104 north. The rest "
+            "(Route 104 north -> Rustboro -> Gym 1) is still being built; "
+            "handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()

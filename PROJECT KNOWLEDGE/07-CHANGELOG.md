@@ -824,3 +824,13 @@ flee-crash, ML-8) and wired both into StoryMode. Verified deterministically via
 the listener harness (fresh gym save -> Petalburg Woods, 6251 frames, x2).
 Map facts (collision grid, Scott script, Woods warps, door quirk) in design §16
 / ML-7 / ML-8. Sandbox-only; not yet promoted.
+
+## 2026-07-20 — Story: cross Petalburg Woods -> Route 104 north (leg 3) (#24, sandbox)
+Added `cross_petalburg_woods()` (early_game.py), wired into StoryMode. Crosses
+the Woods maze: ~3 Bug-Catcher trainers fought inline + the mandatory Devon-
+researcher/Aqua-grunt cutscene ridden out (grunt battle handled by the listener,
+researcher gives a Great Ball), then exits the north warp onto Route 104 north.
+Verified deterministically via the listener harness (woods_entered.ss1 -> Route
+104 north, 16123 frames, x2). Recon via the new tools/mapdump.py. Documented a
+harness-fidelity rule (per-frame state refresh; companion to ML-5) in design §16.
+Sandbox-only; not yet promoted.

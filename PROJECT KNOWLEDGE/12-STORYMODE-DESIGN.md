@@ -1495,12 +1495,29 @@ is NOT any of x=0-2 at those y's, and a script triggers near (4,13). NEXT SESSIO
 should DUMP the Petalburg collision/passability grid (or watch it live) to find the
 actual open exit tile + identify the (4,13) script — do NOT blind-guess coords (ML-7).
 
-**STATUS (2026-07-20): Legs 1-2 IMPLEMENTED + verified** — `travel_to_petalburg_woods()`
-does heal(Petalburg PC) → cross west to Route 104 (Scott ride-out) → fight the
-Route 104 trainer (no-flee `LevelUpTravelBattleStrategy`, ML-8) → enter the Woods
-south door (10-11,38) via discrete up-steps. Deterministic (6251 frames, x2).
-Wired into StoryMode (ends "reached Petalburg Woods"). Legs 3-4 (below) remain.
-Checkpoint: `woods_entered.ss1` (in the Woods at (17,38)).
+**STATUS (2026-07-20): Legs 1-3 IMPLEMENTED + verified.**
+- **Legs 1-2** `travel_to_petalburg_woods()`: heal(Petalburg PC) → cross west to
+  Route 104 (Scott ride-out) → fight the Route 104 trainer (no-flee
+  `LevelUpTravelBattleStrategy`, ML-8) → enter the Woods south door (10-11,38)
+  via discrete up-steps. Deterministic (6251 frames, x2). Checkpoint
+  `woods_entered.ss1` (Woods (17,38)).
+- **Leg 3** `cross_petalburg_woods()`: cross the Woods maze — ~3 Bug-Catcher
+  trainers fought inline + the MANDATORY Devon-researcher/Aqua-grunt cutscene
+  (`PetalburgWoods_EventScript_DevonResearcherRight` → grunt battle
+  `EventScript_DoNoIntroTrainerBattle` → Great Ball) ridden out — then exit the
+  NORTH warp (Woods 14-15,5) onto Route 104 north. Deterministic (16123 frames,
+  x2). Checkpoint `route104_north.ss1` (Route 104 north (11,29)).
+- Woods warps (from mapdump): south doors (16-17,38)&(36-37,38)→Route104; north
+  exit (14-15,5)→Route104. Both StoryMode-wired (ends "Route 104 north").
+- Legs 4 (Route104 north→Rustboro) + Gym 1 remain.
+
+**HARNESS FIDELITY (companion to ML-5):** the listener test harness must READ
+map/player state each frame (e.g. `get_player_avatar()` +
+`get_map_data_for_current_position()` post-`run_single_frame`) to match the real
+main loop's per-frame state refresh. Without it, TIGHT map/warp checks (the
+discrete door/warp step-in loops) read STALE state and mis-fire in the harness
+even though the code is correct in the real bot. Keep the per-frame refresh
+(or the position-logging that incidentally does it) in every travel test.
 
 **LEG PLAN (build + verify each via the LISTENER harness):**
 1. Petalburg → Route 104 (south/beach): find the west-edge exit tile (probe y at

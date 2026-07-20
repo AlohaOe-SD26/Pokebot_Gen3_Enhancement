@@ -829,3 +829,69 @@ def travel_to_petalburg_woods() -> Generator:
     if _map_group_number() != woods:
         raise BotModeError("Reached the Petalburg Woods south door but did not enter.")
     context.message = "Story: entered Petalburg Woods."
+
+
+def cross_petalburg_woods() -> Generator:
+    """Cross Petalburg Woods (south -> north), past the mandatory Team-Aqua /
+    Devon-researcher scene, and exit the north door onto Route 104 (north half).
+
+    INTENT: second stretch of the Petalburg -> Rustboro journey (Chapter 3).
+    STORY CONDITION: begins just inside the Woods south entrance (arrived from
+    Route 104 south via `travel_to_petalburg_woods`), party healed, no-flee
+    travel strategy active.
+    HOW IT WORKS: the Woods is a small maze holding ~3 Bug-Catcher TRAINERS and a
+    MANDATORY cutscene `PetalburgWoods_EventScript_DevonResearcherRight` — a Team
+    Aqua grunt robbing a Devon researcher battles you (via
+    `EventScript_DoNoIntroTrainerBattle`), flees, and the researcher gives a Great
+    Ball. We navigate toward the north exit door (14-15,5): route trainers are
+    fought inline (`avoid_scripted_events=False`), and any cutscene that ABORTS
+    navigation (the Devon scene, a trainer's "register in PokeNav?" prompt) is
+    ridden out with B — its grunt battle handled by the battle listener — then
+    navigation retries. Walking onto the north warp (15,5) exits the Woods; if
+    navigation stops just short, we step UP through it with discrete steps.
+    GOAL/END STATE: standing on Route 104 (0,19), north half (toward Rustboro)."""
+    context.message = "Story: crossing Petalburg Woods..."
+    yield from wait_for_player_avatar_to_be_controllable()
+    woods = MapRSE.PETALBURG_WOODS.value
+    rounds = 0
+    while _map_group_number() == woods:
+        rounds += 1
+        if rounds > 15:
+            raise BotModeError("Stuck crossing Petalburg Woods (too many scene interruptions).")
+        try:
+            yield from navigate_to_anywhere(
+                MapRSE.PETALBURG_WOODS,
+                (15, 6),
+                avoid_encounters=True,
+                avoid_scripted_events=False,
+            )
+            break
+        except BotModeError:
+            # The Devon/Aqua cutscene (or a post-battle PokeNav-register prompt)
+            # fired and aborted navigation — ride it out (its grunt battle is
+            # handled by the battle listener), then retry the path.
+            yield from _ride_out_scripted_scene("B")
+
+    # Exit through the north warp (14-15,5). As with the south door, navigate may
+    # stop ON the warp tile WITHOUT triggering it (the warp fires only on a
+    # genuine step onto it from below) — so if we ended on/above the warp row,
+    # drop one tile south to the approach (y>=6) first, then step UP into it.
+    yield from wait_for_player_avatar_to_be_standing_still()
+    for _ in range(4):
+        if _map_group_number() != woods or get_player_avatar().local_coordinates[1] >= 6:
+            break
+        context.emulator.press_button("Down")
+        yield from wait_for_n_frames(18)
+    for _ in range(6):
+        if _map_group_number() != woods:
+            break
+        context.emulator.press_button("Up")
+        for _ in range(18):
+            yield
+            if _map_group_number() != woods:
+                break
+    if _map_group_number() == woods:
+        raise BotModeError("Reached the Petalburg Woods north door but did not exit.")
+    # Settle onto Route 104 north.
+    yield from wait_for_player_avatar_to_be_controllable()
+    context.message = "Story: exited Petalburg Woods to Route 104 (north)."
