@@ -324,3 +324,15 @@ Petalburg). Verified in custom (pokedex_done -> Petalburg (0,0), 22.1k frames).
 + back). Completion = back in the gym + controllable after visiting Route 102
 (the tutorial doesn't set THANKED_FOR_PLAYING_WITH_WALLY). Wired into StoryMode.
 Verified in custom via the listener harness (petalburg.ss1 -> done, 8.4k frames).
+
+### (j-update 2026-07-20g) Story Chapter 3a: Petalburg -> Route 104 -> Petalburg Woods
+`travel_to_petalburg_woods()` (early_game.py) + new `LevelUpTravelBattleStrategy`
+(story_mode.py), wired into StoryMode. Chain: heal at Petalburg PC -> cross WEST
+onto Route 104 riding out the one-time `PetalburgCity_EventScript_Scott` cutscene
+at (4,12) -> fight the Route 104 trainer -> enter the Woods south door (10-11,38)
+via discrete up-steps. `LevelUpTravelBattleStrategy` NEVER flees a trainer battle
+(the single-mon party can't -> RuntimeError; see ML-8) and is now used for ALL
+story battles (wild battles keep the flee-at-low-HP behaviour). Verified in
+sandbox via the listener harness (fresh gym save -> Petalburg Woods, 6251 frames,
+x2, deterministic); promoted as byte-identical source (custom compile + wiring
+smoke OK). Map facts / recon in PROJECT KNOWLEDGE/12-STORYMODE-DESIGN §16 + §R.

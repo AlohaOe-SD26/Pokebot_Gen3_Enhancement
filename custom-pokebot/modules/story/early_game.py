@@ -32,6 +32,7 @@ from modules.modes.util.higher_level_actions import heal_in_pokemon_center
 from modules.modes.util.walking import (
     navigate_to,
     wait_for_player_avatar_to_be_controllable,
+    wait_for_player_avatar_to_be_standing_still,
 )
 from modules.player import get_player_avatar, player_avatar_is_controllable
 from modules.pokemon_party import get_party
@@ -724,3 +725,107 @@ def do_petalburg_gym_and_wally_tutorial() -> Generator:
             raise BotModeError("The Wally catching tutorial never completed.")
         yield
     context.message = "Story: finished the Wally tutorial in Petalburg."
+
+
+# --- Chapter 3: Petalburg -> Route 104 -> Petalburg Woods -> Rustboro --------
+# Petalburg's ONLY west-edge opening to Route 104 is row y=12/13 (the rest of the
+# west edge is fenced). A safe approach tile on that row, just EAST of the Scott
+# coord-trigger at (4,12):
+PETALBURG_WEST_EXIT_ROW = (6, 12)
+# On Route 104, the Petalburg Woods SOUTH door is at (10-11,38) ('Non-Animated
+# Door'). Navigate must stop BELOW it — stopping ON the door tile suppresses the
+# warp — so we target the walkable tile two south of it and step up by hand.
+ROUTE104_WOODS_SOUTH_DOOR_APPROACH = (11, 40)
+
+
+def travel_to_petalburg_woods() -> Generator:
+    """Heal at Petalburg, cross WEST to Route 104, beat the route trainer, and
+    enter Petalburg Woods (south door).
+
+    INTENT: first stretch of the Petalburg -> Rustboro journey (Chapter 3).
+    STORY CONDITION: begins controllable in Petalburg (post-Wally tutorial),
+    possibly still inside the gym.
+    HOW IT WORKS:
+      * Exit into Petalburg City and HEAL at its Poké Center. The party is a
+        SINGLE Pokémon here, which can neither flee NOR rotate out of the
+        Route 104 trainer battle, so it must go in at full HP (see
+        `LevelUpTravelBattleStrategy` / ML-8).
+      * Cross Petalburg's only west opening (row y=12/13). Walking there fires a
+        ONE-TIME cutscene `PetalburgCity_EventScript_Scott` at (4,12) (Scott, the
+        Frontier scout). The global navigator ABORTS on that script, so we route
+        to a safe approach tile and hand-walk west, advancing Scott's dialogue
+        with B, off the edge onto Route 104 (south/beach half).
+      * Head for the Woods south door (10-11,38). A Route 104 trainer's sight
+        line catches us en route; `avoid_scripted_events=False` lets the battle
+        happen and the no-flee travel strategy wins it.
+      * Enter the door with DISCRETE up-steps (a held direction won't cleanly
+        enter it, and navigate must stop below the door, not on it).
+    GOAL/END STATE: standing inside Petalburg Woods (24,11)."""
+    route104 = MapRSE.ROUTE104.value
+    woods = MapRSE.PETALBURG_WOODS.value
+
+    # Exit the gym into the city (a no-op if already outside), then heal to full.
+    context.message = "Story: healing at Petalburg before heading west..."
+    yield from navigate_to_anywhere(MapRSE.PETALBURG_CITY, (15, 12))
+    yield from heal_in_pokemon_center(PokemonCenter.PetalburgCity)
+
+    # Cross west onto Route 104, riding out the one-time Scott cutscene. The
+    # navigator can't cross it (it aborts on the script), so hand-walk west and
+    # advance Scott's dialogue with B whenever a script/dialogue is up.
+    context.message = "Story: leaving Petalburg to the west (Route 104)..."
+    yield from navigate_to_anywhere(MapRSE.PETALBURG_CITY, PETALBURG_WEST_EXIT_ROW)
+    tap = False
+    frames = 0
+    while _map_group_number() != route104:
+        if get_global_script_context().is_active or get_game_state() is not GameState.OVERWORLD:
+            if tap:
+                context.emulator.press_button("B")
+            tap = not tap
+        else:
+            context.emulator.press_button("Left")
+        frames += 1
+        if frames > 4000:
+            raise BotModeError("Could not cross west from Petalburg to Route 104 (Scott scene?).")
+        yield
+    # Settle fully onto Route 104's grid before pathing (we cross mid-warp).
+    for _ in range(8):
+        context.emulator.press_button("Left")
+        yield
+    yield from wait_for_player_avatar_to_be_standing_still()
+
+    # Cross Route 104 to the Woods south door, fighting the route trainer on the
+    # way (avoid_scripted_events=False lets the trainer approach -> battle, which
+    # the no-flee travel strategy wins).
+    context.message = "Story: crossing Route 104 to Petalburg Woods..."
+    yield from navigate_to_anywhere(
+        MapRSE.ROUTE104,
+        ROUTE104_WOODS_SOUTH_DOOR_APPROACH,
+        avoid_encounters=True,
+        avoid_scripted_events=False,
+    )
+    yield from wait_for_player_avatar_to_be_standing_still()
+
+    # The trainer battle makes navigate's stop point non-deterministic: it may
+    # leave us just south of the door OR walk us onto the door tile (y=38)
+    # WITHOUT warping (navigate walks over door tiles as plain ground). The warp
+    # only fires on a genuine player step ONTO the door from below — so if we are
+    # on/above the door row, drop back south of it first.
+    for _ in range(4):
+        if _map_group_number() != route104 or get_player_avatar().local_coordinates[1] >= 39:
+            break
+        context.emulator.press_button("Down")
+        yield from wait_for_n_frames(18)
+
+    # Now step UP into the door with DISCRETE steps (press, let the step
+    # complete), checking each frame for the warp into the Woods.
+    for _ in range(6):
+        if _map_group_number() == woods:
+            break
+        context.emulator.press_button("Up")
+        for _ in range(18):
+            yield
+            if _map_group_number() == woods:
+                break
+    if _map_group_number() != woods:
+        raise BotModeError("Reached the Petalburg Woods south door but did not enter.")
+    context.message = "Story: entered Petalburg Woods."
