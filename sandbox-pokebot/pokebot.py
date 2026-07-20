@@ -105,7 +105,12 @@ def parse_arguments(bot_mode_names: list[str]) -> StartupSettings:
         bot_mode=args.bot_mode or "Manual",
         headless=bool(args.headless),
         no_video=bool(args.no_video),
-        no_audio=bool(args.no_audio),
+        # SANDBOX: start with audio OFF no matter how the bot is launched (quiet
+        # for testing at work); audio stays toggleable in the GUI. Custom keeps
+        # the normal behaviour. This is the reliable version of the earlier
+        # install_sandbox `--no-audio` launch flag, which only applied when the
+        # installer's own launch prompt was used.
+        no_audio=True,
         no_theme=bool(args.no_theme),
         use_opengl=bool(args.use_opengl),
         emulation_speed=int(args.emulation_speed or "1"),
