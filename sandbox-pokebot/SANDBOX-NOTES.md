@@ -716,3 +716,25 @@ exercised by the local bare remote.
   path (gamepad.py _toggle_ui) that was stealing gameplay control. GUI-nav
   is now active ⟺ the handheld Pokéball drawer is open; closed/desktop →
   the controller plays the game, never the GUI. Unit-verified.
+
+## 2026-07-19 — LIVE real-save verification (Nick - Emerald, progressed party)
+First test on a real in-game party (prior tests were title-screen). All
+GUI/data areas render correctly on real data — NO bugs found:
+- Left Party Section: 6 real party mons composited over their caught balls
+  (ball visible behind), enlarged slots. ✓
+- Party tab: real shiny team (Celebi Lv100 342/342 XP100%, Bulbasaur Lv9,
+  Lotad, Zigzagoon, Wurmple, Sceptile) — names/levels/HP bars/XP bars/
+  sprites/shiny badges all correct. ✓
+- Cheats tab: Money field pre-filled with REAL money (7908); force-wild
+  cheat shows Venusaur sprite. ✓
+- Analytics/Stats: real stats.db — 57,436 encounters, 10 shinies, luck
+  meter "10 shiny vs 7.0 expected (1/8,192) · lucky" (math correct);
+  Watchdog: OK; State: OVERWORLD. ✓
+- Hunt tab: Hunt Planner + Living Dex panels render. ✓
+- Hover tooltip: could NOT be triggered via synthetic mouse-move in the
+  harness (Tk <Enter> doesn't fire reliably on SetCursorPos while the
+  emulator frame loop runs) — NOT a product bug; the tooltip's themed
+  render was screenshot-verified with a stub (#37) and the real party data
+  it reads is confirmed present. Needs a human mouse hover to see live.
+Save left byte-identical (backed up + restored; md5 MATCH). No lingering
+process.
