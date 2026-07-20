@@ -82,13 +82,17 @@
       (Surf/Cut/Rock Smash/Dive/Waterfall HMs, the right fishing rod, badges
       for HM use, story-flag area access). Read owned HMs/rods/badges/flags
       from the save.
-- [ ] #43 — Living Dex OPPORTUNISTIC catching: currently targets ONE species
-      and ignores other uncaught mons until it hits that one. Fix: keep a
-      target to drive travel, but CATCH ANY uncaught species encountered
-      en route (goal = complete the dex), advancing progress on each.
-- [ ] #44 — Party ball rework: the ball-behind-mon in the left strip is
-      problematic — REMOVE it from the strip (clean mon sprites) and show the
-      caught ball sensibly in the HOVER tooltip instead.
+- [x] #43 — Living Dex OPPORTUNISTIC catching: catch ANY wanted-uncaught
+      species en route (target only drives travel); live-dex-driven
+      advancement; 22/22 units (a8840769).
+- [x] #44 — Party ball rework: strip now clean mon sprites (no ball
+      backdrop); caught ball moved to the hover tooltip as an icon+name row.
+      Live-verified on the real save (9c2b1f94).
+- [~] #41/#42 — obtainability (evolution half) + capability gating (rod/HM/
+      badge from save) BUILDING (design in 11-LIVINGDEX-DESIGN). Research
+      half of #41 (static/gift/trade/roamer/unobtainable lists) + #42-hard
+      (HM-gated map reachability) still to do. HONESTY POLICY: proceeding
+      "show both denominators" unless user says exclude.
 - [ ] #45 — (FUTURE, with story-mode bot #24) enumerate story instances the
       bot can automate, and let hunt/living-dex progress the story to unlock
       areas/capabilities needed for dex completion.
