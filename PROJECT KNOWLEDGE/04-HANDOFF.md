@@ -67,20 +67,23 @@ gaps = map_locations/mart/pickup/historical.
   GATED OFF (types but doesn't persist — TODO, user-deprioritised).
 - **Sandbox audio off at startup** (sandbox `pokebot.py` forces `no_audio`;
   reliable regardless of launch; GUI-toggleable). Custom unaffected.
-- **Chapter 1 fully PROMOTED to custom** (starter → first battle → full lab
-  conversation incl. `GoSeeRival` → shiny contingency). `finish_birch_lab` was
-  found incomplete (stopped mid-lab, left a live Yes/No) and FIXED — now ends
-  with the player controllable and walkable. Pokédex is NOT given in the lab
-  (comes after the rival battle).
-- **NEXT CHUNK (in progress): Oldale → train starter to random Lv 8-10 →
-  Route 103 rival battle.** Progress: `finish_birch_lab` leaves the player free;
-  `navigate_to_anywhere(OLDALE_TOWN)` travels lab → Littleroot → Route 101 but
-  then LOOPS on Route 101 (a `(0,0)` map blip) without reaching Oldale — the
-  cross-map nav needs debugging there (maybe chain map-by-map, or avoid the
-  grass loop). Then the training loop (spin-in-grass + battle listener; MUST
-  handle the starter fainting → heal at Oldale Poké Center) is a NEW mechanic;
-  rival battle is on Route 103 (0,18). Checkpoints: lab_done.ss1 (clean),
-  oldale attempt states in scratchpad.
+- **CHAPTER 1 COMPLETE through the rival battle (sandbox, awaiting user test →
+  promote).** A fresh game now plays: intro → house → clock → rival intro →
+  Birch rescue → starter → first battle → lab → **north to Route 103 (training
+  en route) → grind to a random Lv 8-10 (healing at Oldale's Poké Center) →
+  heal to full → beat the rival.** `travel_to_route103` + `train_lead_to_level`
+  + `fight_route103_rival` in early_game.py, wired into StoryMode.
+  on_battle_started returns `LevelUpLeadBattleStrategy` (fight-to-win).
+  Key fixes: default strategy fled wilds (no XP); `find_closest_pokemon_center`
+  is broken (hard-target `PokemonCenter.OldaleTown`); heal-to-full before the
+  un-fleeable rival trainer battle. VERIFIED piecewise (fresh→lab 18.9k frames;
+  route103→rival-beaten 31.1k frames). Earlier Chapter-1 parts (→lab) already
+  in custom; the travel/train/rival is NOT yet promoted.
+- **NEXT:** after the rival, the game continues: return to Birch's lab → get the
+  Pokédex + Poké Balls → Route 102 → Petalburg → ... (Chapter 2+). Training is
+  slow in headless (frequent Oldale heal round-trips) — could optimise later
+  (potions, or fight lower-damage). Checkpoints in scratchpad: lab_done,
+  route103, (train states).
 - Iteration save-states in scratchpad: truck/house1f/house2f/clockset/
   outside_town/rival_*/birch_rescue/birch_free/first_battle/birch_lab/lab_done.
 
