@@ -693,3 +693,14 @@ handling (design §14.1). Sandbox only.
 User tested it ("setting the clock worked!"). Copied early_game.py + wired
 story_mode.py sandbox → custom; verified in custom (fresh-run smoke test lands
 NICK/male on 2F, clock set). DIVERGENCE-LOG (j) + changelog updated.
+
+## 2026-07-20 — Story chunk B COMPLETE: downstairs + rival's house (#24, sandbox)
+`early_game.descend_and_leave_players_house()` + `visit_rivals_house()`: after
+the clock, ride out Mom's upstairs chat + the Petalburg-Gym TV scene, leave the
+house, enter the rival's house (mom greets automatically), go up, touch the
+Poké Ball to trigger the rival's introduction, and come back outside. Wired the
+full chain into StoryMode. Full fresh-run verified: intro → house → clock →
+downstairs → rival's house → meet rival → outside (Littleroot 14,9), NICK/male,
+~11,800 frames. Key lesson: ride out auto-move scripts, never navigate during
+them (the phantom "(8,4) block" was the TV scene). Map facts in design §14.2.
+Sandbox only. Next chunk: Route 101 → starter → first battle.

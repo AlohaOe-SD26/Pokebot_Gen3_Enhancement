@@ -1124,3 +1124,31 @@ the whole intro every test. `modules/story/early_game.py`.
 - **NEXT (this chunk):** downstairs → clear the 1F Mom/movers scene → out the
   front door → rival's house → rival's mom → 2F Poké Ball → rival talk →
   outside. (Save-state checkpoints: truck/house1f/house2f/clockset in scratch.)
+
+### §14.2 — Downstairs + rival's house (2026-07-20, chunk B milestone DONE)
+The whole "moved-in → met the rival → back outside" sequence now runs. Facts:
+- **The 1F "block" was the Petalburg-Gym TV scene, not the movers.** Coming
+  down to 1F auto-fires `PlayersHouse_1F_EventScript_PetalburgGymReport*`,
+  which *walks the player to the TV at (4,5)* and plays Mom's dialogue. RULE:
+  when a script auto-moves the player, RIDE IT OUT (`_ride_out_scripted_scene`)
+  — never `navigate_to` during it, or the moving avatar fights the pathfinder
+  (that was the phantom "(8,4) block"). Wait for the script to ENGAGE first,
+  then for control to return.
+- **Player's-house front door:** navigate to the tile ABOVE the door (8,7),
+  then step South through the warp (`_walk_through_warp`). A warp tile can't be
+  a `navigate_to` destination for your own house, but CAN be walked onto to
+  ENTER another building (see rival house below). Exit → Littleroot (0,9) ~(5,9).
+- **Littleroot warps:** (5,8)→player house (1,0); **(14,8)→rival house (1,2)**;
+  (7,16)→Birch's Lab (1,4).
+- **Rival's (May's) house:** enter by `navigate_to((0,9),(14,8))` (walks onto
+  the door → warps in). **Mom's greeting is AUTOMATIC on entry**
+  (`MaysHouse_1F_EventScript_YoureNewNeighbor`) — no need to walk to her. 1F
+  stairs up = (2,2). 2F: the **Poké Ball is the object at (5,4)**
+  (`MaysHouse_2F_EventScript_RivalsPokeBall`); stand (5,5) facing North + A →
+  `MeetMay`/`MeetMayNorth` (rival rushes in, introduces themselves). 2F
+  stairs-down = (1,1). Exit: navigate to (2,7) then step South through the door.
+- Both houses have ambient Vigoroth "movers" that can transiently block
+  pathing; sticking to the left-side routes (x≈2) avoids them here.
+- **CHUNK B COMPLETE.** NEXT CHUNK: Route 101 → Birch's bag → **choose a
+  starter** → **first battle** (vs the wild Poochyena). Then the config pass
+  (starter choice + nickname; name already in story.yml).

@@ -58,6 +58,20 @@ flavor all done, Phases 1/2/3a). `itemdex_data.json` = core (309 items);
 gaps = map_locations/mart/pickup/historical.
 
 ## Most recent work (2026-07-20)
+- **Story chunk B COMPLETE (sandbox, awaiting user test → promote):** a new game
+  now auto-plays intro → into house → set clock → downstairs (rides Mom + the
+  Petalburg-Gym TV scene) → outside → rival's house (auto mom greeting → upstairs
+  → touch Poké Ball → meet the rival) → back outside. `early_game.py`
+  (`walk_off_truck_and_into_house`, `go_upstairs_and_set_clock`,
+  `descend_and_leave_players_house`, `visit_rivals_house`) wired into StoryMode.
+  Full fresh-run verified (~11,800 frames → Littleroot (14,9), NICK/male). Map
+  facts in design §14/§14.1/§14.2. Iteration uses scratchpad save-states
+  (truck/house1f/house2f/clockset/outside_town/rival_* .ss1). **NEXT CHUNK:
+  Route 101 → help Birch → choose starter → first battle.** Then a config pass
+  (starter choice + nickname; character name already lives in `<profile>/
+  story.yml`). Clock+earlier parts already promoted to custom; THIS chunk (the
+  downstairs+rival additions) is sandbox-only pending the user's test.
+
 - **PROMOTED Story Mode (chunks 1-2) to custom** after the user tested the
   intro live ("worked perfectly"). custom now has modules/story/, the StoryMode
   plugin, the title-screen selection fix (BotMode.is_selectable_from_title_
