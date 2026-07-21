@@ -740,7 +740,26 @@ class StoryMode(BotMode):
         #     right sub-step by current map so a mid-Woods resume doesn't backtrack. ---
         rustboro = MapRSE.RUSTBORO_CITY.value
         woods = MapRSE.PETALBURG_WOODS.value
-        _in_rustboro = lambda: _cur_map() == rustboro or _done("BADGE01_GET")
+        route116 = MapRSE.ROUTE116.value
+        rusturf = MapRSE.RUSTURF_TUNNEL.value
+
+        def _in_rustboro() -> bool:
+            # Anywhere in the Rustboro AREA means the Woods crossing is already done:
+            # Rustboro city, ANY Rustboro building (map group 11 — gym/Devon/PC/mart/…),
+            # Route 116 (the pre-gym catching/training grass — only reachable THROUGH
+            # Rustboro), or Rusturf Tunnel (the Devon errand). Route 116 was the miss —
+            # a save mid-catching there re-ran the Woods travel and derailed.
+            cur = _cur_map()
+            if cur is None:
+                return _done("BADGE01_GET")
+            return (
+                cur == rustboro
+                or cur[0] == 11
+                or cur == route116
+                or cur == rusturf
+                or _done("BADGE01_GET")
+            )
+
         if _in_rustboro():
             console.print("[dim]Story: already in Rustboro — skipping the Woods travel.[/]")
         elif _cur_map() == woods:
