@@ -1130,6 +1130,134 @@ def _total_poke_balls() -> int:
         return 0
 
 
+def _money() -> int:
+    try:
+        from modules.player import get_player
+
+        return get_player().money
+    except Exception:
+        return 0
+
+
+# --- Mart buying (planning doc §4). Poké Ball is item index 0 in every "basic" mart
+# list (verified live: Rustboro basic = Poké Ball, Potion, Super Potion, …). ---
+POKE_BALL_PRICE = 200
+MONEY_RESERVE = 500      # never spend below this — keep a buffer for later needs
+MAX_BALLS_PER_TRIP = 30  # "buy as many as it can", capped so we don't blow all money
+# (mart map enum, counter-front tile, facing) — the player talks across the counter.
+RUSTBORO_MART = (MapRSE.RUSTBORO_CITY_MART, (3, 3), "Left")
+
+
+def affordable_poke_balls() -> int:
+    """How many Poké Balls we can buy right now without dipping below the reserve."""
+    return max(0, (_money() - MONEY_RESERVE) // POKE_BALL_PRICE)
+
+
+def buy_poke_balls(count: int, mart: tuple = RUSTBORO_MART) -> Generator:
+    """Buy `count` Poké Balls at a mart. Poké Ball is item index 0 (cursor default),
+    so the flow is: talk → BUY → select item 0 → set quantity → confirm → exit. Fully
+    task-driven with bounded guards so it can never hang (planning doc §3/§4)."""
+    from modules.tasks import task_is_active
+    from modules.console import console
+
+    mart_map, approach, face = mart
+    if count <= 0:
+        return
+    context.message = f"Story: buying {count} Poké Balls at the mart…"
+    yield from _navigate_riding_out(mart_map, approach)
+    context.emulator.press_button(face)
+    yield
+    yield from wait_for_n_frames(6)
+
+    from modules.modes.util.tasks_scripts import wait_until_task_is_not_active
+
+    balls_before = _total_poke_balls()
+    # Phase 1: advance the clerk dialogue until the Buy/Sell menu is up.
+    guard = 0
+    while not (task_is_active("Task_GoToBuyOrSellMenu") or task_is_active("Task_BuyMenu")) and guard < 60:
+        context.emulator.press_button("A")
+        guard += 1
+        yield from wait_for_n_frames(10)
+    # Phase 2: select BUY (cursor default). wait_until_task_is_not_active presses A
+    # EVERY frame until the menu responds — single-frame presses don't register in
+    # these list menus (the working pattern from wait_for_multiple_choice_question).
+    if task_is_active("Task_GoToBuyOrSellMenu"):
+        yield from wait_until_task_is_not_active("Task_GoToBuyOrSellMenu", "A")
+    guard = 0
+    while not task_is_active("Task_BuyMenu") and guard < 60:
+        yield
+        guard += 1
+    if not task_is_active("Task_BuyMenu"):
+        raise BotModeError("Mart: could not open the Buy list.")
+    # Phase 3: item list — Poké Ball is index 0 (cursor at top). Confirm it (this ends
+    # Task_BuyMenu and shows a "How many?" message), then advance that message with A
+    # until the quantity selector opens.
+    yield from wait_for_n_frames(10)
+    yield from wait_until_task_is_not_active("Task_BuyMenu", "A")
+    guard = 0
+    while not task_is_active("Task_BuyHowManyDialogueHandleInput") and guard < 60:
+        context.emulator.press_button("A")
+        guard += 1
+        yield from wait_for_n_frames(6)
+    if not task_is_active("Task_BuyHowManyDialogueHandleInput"):
+        raise BotModeError("Mart: quantity selector didn't open.")
+    # Phase 4: raise the quantity to `count` (starts at 1; caps at max affordable),
+    # then confirm — the confirm advances to the "That'll be ¥X. OK?" Yes/No.
+    yield from wait_for_n_frames(8)
+    for _ in range(count - 1):
+        context.emulator.press_button("Up")
+        yield from wait_for_n_frames(4)
+    yield from wait_for_n_frames(6)
+    yield from wait_until_task_is_not_active("Task_BuyHowManyDialogueHandleInput", "A")
+    # Phase 5: confirming the quantity shows "That'll be ¥X. OK?" — advance it with A
+    # to the Yes/No, then confirm Yes (cursor default).
+    guard = 0
+    while not task_is_active("Task_CallYesOrNoCallback") and guard < 60:
+        context.emulator.press_button("A")
+        guard += 1
+        yield from wait_for_n_frames(6)
+    if task_is_active("Task_CallYesOrNoCallback"):
+        yield from wait_until_task_is_not_active("Task_CallYesOrNoCallback", "A")
+    yield from wait_for_n_frames(45)  # "Thank you!" + bag update
+    console.print(f"[green]Story: bought Poké Balls ({balls_before} → {_total_poke_balls()}).[/]")
+    # Phase 6: back out of the shop to the overworld.
+    guard = 0
+    while (
+        task_is_active("Task_BuyMenu")
+        or task_is_active("Task_GoToBuyOrSellMenu")
+        or task_is_active("Task_ShopMenu")
+    ) and guard < 200:
+        context.emulator.press_button("B")
+        guard += 1
+        yield from wait_for_n_frames(4)
+    settle = 0
+    while settle < 300 and not player_avatar_is_controllable():
+        context.emulator.press_button("B")
+        settle += 1
+        yield
+    context.message = f"Story: bought Poké Balls (now have {_total_poke_balls()})."
+
+
+def provision_poke_balls(mart: tuple = RUSTBORO_MART) -> Generator:
+    """Restock Poké Balls if we can afford it (out-of-balls contingency). Buys as many
+    as affordable (capped), keeping a money reserve. Returns having bought or not; the
+    caller checks the ball count and falls back (skip catching) if still empty."""
+    want = min(MAX_BALLS_PER_TRIP, affordable_poke_balls())
+    if want <= 0:
+        context.message = "Story: too low on money to restock Poké Balls — skipping catching for now."
+        return
+    # A mart-menu hiccup must NEVER break catching — on failure, proceed with what we
+    # have (the caller then falls back to skip). Re-raise a whiteout abort, though.
+    try:
+        yield from buy_poke_balls(want, mart)
+    except BotModeError as error:
+        if story_should_abort():
+            raise
+        from modules.console import console
+
+        console.print(f"[yellow]Story: mart restock hiccup ({error}) — proceeding with current balls.[/]")
+
+
 def _party_size() -> int:
     return len([p for p in get_party() if p is not None and not p.is_egg])
 
@@ -1152,8 +1280,14 @@ def catch_starter_team(
     while _party_size() < target_size:
         _check_abort()
         guard += 1
-        if guard > 250 or _total_poke_balls() <= 1:
-            break  # out of balls / bad luck — proceed with the team we have
+        if guard > 250:
+            break
+        if _total_poke_balls() <= 1:
+            # OUT-OF-BALLS CONTINGENCY (planning doc §3): try to restock at the mart;
+            # if we can't afford it, stop catching and proceed with the team we have.
+            yield from provision_poke_balls(mart=RUSTBORO_MART)
+            if _total_poke_balls() <= 1:
+                break
         yield from _navigate_riding_out(grass_map, grass_tile, avoid_encounters=False)
 
         def _stop() -> bool:
