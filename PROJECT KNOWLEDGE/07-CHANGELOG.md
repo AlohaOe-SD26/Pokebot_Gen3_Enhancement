@@ -1211,3 +1211,26 @@ diagnosed from a shared log file.
   self-healing ~1078-frame stalls → DERAIL #1..#5 → drop to Manual. 0 battle
   false-positives after the gate fix. This is the diagnostic picture we need from the
   user's real run.
+
+## 2026-07-21 — Bug #2 ROOT-CAUSED + FIXED via the debug log (heal loop) (sandbox)
+User ran the real bot with Debug Logging on and shared the log. The generator call
+stack in the stuck dumps pinpointed the bug EXACTLY (not Mudkip-specific — it was a
+Treecko run): the freeze is a HEAL → DERAIL → RE-HEAL loop.
+- ROOT CAUSE: `heal_in_pokemon_center` returns immediately after the PC exit-warp,
+  while the overworld is still transiently non-controllable (the controllable flag
+  flickers). In the story's heal→go-to-rival flow (`fight_route103_rival`), the very
+  next `navigate_to_anywhere` then throws "player avatar is currently not
+  controllable" → StoryMode derails → recovery re-runs `_play` → `fight_route103_rival`
+  re-heals (heal is its first step) → endless heal/leave-PC/re-enter-PC loop →
+  DERAIL #1..#5 → Manual. (`train_lead_to_level`'s heal derailed too but self-healed
+  because its loop navigates back to grass — that's why training survived.)
+- FIX: `heal_in_pokemon_center` (higher_level_actions.py) now waits for a STABLE
+  controllable overworld (20 consecutive controllable frames, bounded 300) after the
+  exit warp before returning, so no caller's next navigate can choke. One root fix,
+  all callers/modes benefit.
+- VALIDATED in the harness (Mudkip, route103 pre-Pokédex save): 0 derails, 0 Manual;
+  now trains → fights the rival → gets the Pokédex → sets off for Petalburg (was the
+  exact freeze point). Debug logger gained ball-count tracking ([BALLS] events).
+- NOTE: the fix let the bot get far enough to expose a SEPARATE downstream issue —
+  opportunistic catching on Route 101 running out of Poké Balls → Manual (party never
+  caught anything). Being investigated next (#24-freeze followup).

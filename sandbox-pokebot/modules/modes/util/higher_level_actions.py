@@ -14,6 +14,7 @@ from modules.player import (
     TileTransitionState,
     RunningState,
     player_avatar_is_standing_still,
+    player_avatar_is_controllable,
     AvatarFlags,
 )
 from modules.pokemon_party import get_party
@@ -202,6 +203,23 @@ def heal_in_pokemon_center(pokemon_center_door_location: PokemonCenter) -> Gener
             yield
         if get_player_avatar().map_group_and_number == current_map:
             yield from navigate_to(current_map, (7, 8))
+
+        # Do not return until the overworld is STABLY controllable again. Right after
+        # the exit warp the avatar is briefly non-controllable (the flag flickers),
+        # and if we return here the caller's very next navigate_to() throws "player
+        # avatar is currently not controllable" — which, in the story's heal→go-to-
+        # rival flow, derailed and re-ran the heal, producing an endless
+        # heal/leave-PC/re-enter-PC loop that finally dropped to Manual (user-seen).
+        # Require it controllable for a sustained stretch (bounded so we never hang).
+        stable = 0
+        waited = 0
+        while stable < 20 and waited < 300:
+            if player_avatar_is_controllable():
+                stable += 1
+            else:
+                stable = 0
+            waited += 1
+            yield
 
 
 @debug.track

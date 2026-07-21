@@ -257,6 +257,8 @@ def _detect_events(prev: dict, st: dict) -> None:
                 _event(fc, f"[PARTY] slot{i} {a} -> {b}")
     if prev.get("learn_state") != st.get("learn_state"):
         _event(fc, f"[LEARN] {prev.get('learn_state')} -> {st.get('learn_state')}")
+    if prev.get("balls") != st.get("balls"):
+        _event(fc, f"[BALLS] {prev.get('balls')} -> {st.get('balls')}")
 
 
 # ===========================================================================
@@ -360,7 +362,14 @@ def _light_state() -> dict:
     d["learn_state"] = _safe(_learn_state)
     d["party_key"] = _safe(_party_key)
     d["party_exp"] = _safe(_party_exp)
+    d["balls"] = _safe(_ball_count)
     return d
+
+
+def _ball_count():
+    from modules.items import get_item_bag
+
+    return sum(s.quantity for s in get_item_bag().poke_balls)
 
 
 def _heavy_state() -> dict:
