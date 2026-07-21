@@ -184,6 +184,11 @@
       user validates on real PC (force `starter: mudkip`, fresh game) and reports;
       then decide a deeper "settle before acting" fix (heal_in_pokemon_center nurse
       interaction + story navigations) vs a training-flow workaround.
+- [x] #24-debuglog — DEBUG LOGGING TOGGLE (user 2026-07-21). Opt-in "Debug Logging"
+      in the Run (bot-mode) menu (both GUIs), default off → `modules/debug_logger.py`
+      writes an extensive structured log to `<profile>/debug-logs/` (event stream +
+      stuck dumps with the generator call stack). For diagnosing Bug #2 (#24-freeze)
+      from a shared real-bot log. Built + validated in sandbox. See CHANGELOG 07-21.
 - [ ] #24-ui — STORY-BOT PRE-RUN SETTINGS POPUP (user 2026-07-20). A popup/menu
       shown BEFORE the Story bot runs to set: player name; starter nickname mode
       (none / defined / random); starter choice (specific / random); + other

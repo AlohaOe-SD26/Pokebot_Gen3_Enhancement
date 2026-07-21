@@ -106,6 +106,19 @@ gaps = map_locations/mart/pickup/historical.
     report back before a deeper fix. See 08-MISTAKES 2026-07-21 (3 entries).
   Committed to sandbox; battle_handler mis-fire change reverted (keyed on
   gDisplayedStringBattle which goes STALE after battle).
+- **⭐ DEBUG LOGGER (2026-07-21, sandbox) — Bug 2 CONFIRMED on real PC.** Built an
+  opt-in "Debug Logging (diagnostic file)" toggle in the Run (bot-mode) menu of BOTH
+  GUIs (native `dashboard_gui.py` + classic `emulator_controls.py`), default OFF.
+  `modules/debug_logger.py` writes an extensive structured log to
+  `<profile>/debug-logs/<mode>-debug-<ts>.log` (gitignored): EVENT stream
+  (story steps / battles+outcomes / map / party level-ups / mode changes / Story
+  DERAIL+WHITEOUT) + auto STUCK DUMPS carrying the running GENERATOR CALL STACK
+  (function+line, via gi_yieldfrom walk — pinpoints where the bot is waiting) plus
+  held buttons / tasks / scripts / battle text; battles excluded from stall
+  detection. Hooked once in `main_loop` (guarded); StoryMode logs derail/recovery
+  events. Validated on the freeze scenario (self-healing ~1078-frame stalls →
+  DERAIL #1..#5 → Manual). **NEXT: user runs real bot with Debug Logging ON (force
+  `starter: mudkip`), reproduces the freeze, shares `<profile>/debug-logs/*.log`.**
   Documented strategy (planning doc §4/§4b): map shops/PCs AS REACHED, not all now;
   new punch-list #24-shops (incl. Lilycove multi-floor, E4 PC shop+mart) and #24-pc
   (PC/box team management). Remaining planning items future/noted (money-making

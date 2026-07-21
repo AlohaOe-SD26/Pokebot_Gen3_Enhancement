@@ -161,6 +161,7 @@ class DashboardScreen:
 
         # Widgets that get updated live
         self._mode_button: tkinter.Button | None = None
+        self._debug_log_var: "tkinter.BooleanVar | None" = None  # Run-menu debug toggle
         self._speed_buttons: dict[int, tkinter.Button] = {}
         self._video_button: tkinter.Button | None = None
         self._audio_button: tkinter.Button | None = None
@@ -3300,9 +3301,36 @@ class DashboardScreen:
             menu.add_separator()
             for mode_name in disabled_modes:
                 menu.add_command(label=mode_name, state="disabled")
+        # Debug logging toggle (sandbox) — default OFF. When on, the whole run is
+        # written to an extensive diagnostic log (<profile>/debug-logs/…) so hard
+        # freezes can be diagnosed from the file.
+        from modules import debug_logger
+
+        menu.add_separator()
+        if self._debug_log_var is None:
+            self._debug_log_var = tkinter.BooleanVar(self.window)
+        self._debug_log_var.set(debug_logger.is_enabled())
+        menu.add_checkbutton(
+            label="Debug Logging (diagnostic file)",
+            variable=self._debug_log_var,
+            command=self._toggle_debug_logging,
+        )
         menu.tk_popup(
             self._mode_button.winfo_rootx(), self._mode_button.winfo_rooty() + self._mode_button.winfo_height()
         )
+
+    def _toggle_debug_logging(self) -> None:
+        from modules import debug_logger
+
+        try:
+            if self._debug_log_var is not None and self._debug_log_var.get():
+                path = debug_logger.enable(context.profile)
+                self._log_event(f"Debug logging ON → {path}")
+            else:
+                debug_logger.disable()
+                self._log_event("Debug logging OFF")
+        except Exception as exc:  # noqa: BLE001
+            self._log_event(f"Debug logging toggle failed: {exc}")
 
     # ------------------------------------------------------------------
     # Debug support

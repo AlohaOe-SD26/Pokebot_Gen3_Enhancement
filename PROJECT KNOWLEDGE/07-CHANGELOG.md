@@ -1185,3 +1185,29 @@ saved mid-transition state deadlocks on reload even when the live run self-heals
 per user decision this is to be validated on the real PC before a deeper fix. Reverted
 a mis-fire battle_handler change (it keyed on gDisplayedStringBattle, which goes STALE
 after battle → false positives). Sandbox only.
+
+## 2026-07-21 — Debug logging toggle for Story-bot freeze diagnosis (sandbox)
+User confirmed Bug #2 (post-battle freeze) reproduces on the real PC. Built an
+opt-in extensive run logger to capture what the real bot does so freezes can be
+diagnosed from a shared log file.
+- NEW `modules/debug_logger.py`: OFF by default. When enabled, writes a compact,
+  structured, line-flushed log to `<profile>/debug-logs/<mode>-debug-<ts>.log`
+  (profiles/* is gitignored, so logs are never committed). Captures an EVENT stream
+  (bot-mode changes incl. derails→Manual, story-step `context.message`, map changes,
+  battle start/end+outcome, level-ups/evolutions/catches, move-learn state, explicit
+  Story DERAIL/WHITEOUT events) + automatic STUCK DUMPS (a rich snapshot when nothing
+  progresses for ~300 frames, INCLUDING the running generator's call stack — function
+  + line — via a gi_yieldfrom walk, plus held buttons, tasks, scripts, battle text)
+  + periodic heartbeats. Battles are excluded from stall detection (they legitimately
+  hold still mid-turn). Fully guarded so it can never break/slow a normal run.
+- GUI toggle "Debug Logging (diagnostic file)" added to the Run (bot-mode) menu in
+  BOTH the native dashboard (`dashboard_gui.py`) and the classic controls
+  (`emulator_controls.py`); default off; shows the log path when enabled.
+- Hook: one guarded `debug_logger.on_frame(frame_info)` in `main_loop` (runs every
+  frame, incl. after a drop to Manual — so it keeps logging during a freeze).
+- StoryMode.run(): explicit `debug_logger.event(...)` on derail/whiteout recovery.
+- VALIDATED end-to-end through the faithful harness on the exact freeze scenario: the
+  log cleanly showed training → battles(+outcomes) → heal at Oldale → repeated
+  self-healing ~1078-frame stalls → DERAIL #1..#5 → drop to Manual. 0 battle
+  false-positives after the gate fix. This is the diagnostic picture we need from the
+  user's real run.

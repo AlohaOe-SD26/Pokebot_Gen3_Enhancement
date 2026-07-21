@@ -418,6 +418,12 @@ class StoryMode(BotMode):
                         self._last_derail_sig = sig
                     self._derails += 1
                     self._log_localization(f"derail #{self._derails}: {err}")
+                    try:
+                        from modules import debug_logger
+
+                        debug_logger.event(f"DERAIL #{self._derails}: {err}")
+                    except Exception:
+                        pass
                     if self._derails > 4:
                         raise
                     set_story_abort(False)
@@ -444,6 +450,12 @@ class StoryMode(BotMode):
                 # --- WHITEOUT recovery ---
                 recoveries += 1
                 self._derails = 0  # reaching a fight = progress; reset the derail budget
+                try:
+                    from modules import debug_logger
+
+                    debug_logger.event(f"WHITEOUT recovery #{recoveries}")
+                except Exception:
+                    pass
                 if recoveries > 40:
                     raise BotModeError(
                         "Story: too many whiteout recoveries in a row — stopping so I "
