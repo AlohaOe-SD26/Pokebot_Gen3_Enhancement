@@ -388,3 +388,15 @@ the same point. **Root cause:** a save state taken during the return transition 
 inconsistent snapshot that can't resume. **Prevention:** don't trust a reloaded
 mid-transition save state as evidence of a live hang; confirm hangs from the live run's
 logs. Validate transition-timing fixes on the real bot, not just reloaded states.
+
+## 2026-07-21 — A story grind spin() that doesn't consult the whiteout-abort flag
+**Symptom:** bot spins in place at the respawn Poké Center after losing a wild battle
+while training before the rival. **Root cause:** `train_lead_to_level`'s `spin()` stop
+-condition was `level>=target or hp<=heal_at` — after a whiteout the game heals you
+(hp=100%) and level is still < target, so the condition never fires, and the spin never
+checked `story_should_abort()` (which `on_whiteout()` sets). **Fix:** `_story_spin()`
+helper bakes the abort check + trailing `_check_abort()` into every story spin.
+**Prevention:** ANY long-running story grind/wait MUST be abort-aware (go through
+`_story_spin`, or call `_check_abort()` in its loop) so a mid-step whiteout unwinds it
+into StoryMode.run's recovery — a stop-condition based only on level/HP is NOT enough
+because a whiteout heals you.

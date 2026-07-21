@@ -1265,3 +1265,21 @@ level-spectrum area mapping later.
   Poochyena L4 + Nincada/Whismur L6): Poochyena L4→L7 steadily, **0 heals, 0 faints**,
   flee rate 25% (margin 2) — the fight-faint-heal loop is gone.
 - MAPPING (later groundwork): see `modules/story/training_areas.py` + #24-trainmap.
+
+## 2026-07-21 — Whiteout during pre-rival training now recovers (sandbox)
+User (real-bot): a Torchic lost a wild battle while training before the rival →
+respawned (healed) at the Oldale PC but the bot just SPUN in place there. Debug log's
+generator stack pinpointed it: `train_lead_to_level` → `spin` with a stop-condition of
+`_lead_level() >= target or _lead_hp_pct() <= heal_at` and NO abort check. `on_whiteout()`
+sets the story abort flag (that's how gym-loss recovery works), but this one spin never
+consulted it, and post-respawn its own conditions can't fire (level still < target, HP
+now full) → spins forever. FINDING: only this ONE spin was affected — `train_team` and
+`catch_starter_team` already checked the abort. FIX (both specific + universal): new
+`_story_spin(stop_condition)` helper wraps `spin` with `story_should_abort()` baked into
+the stop-condition + a trailing `_check_abort()` (raises → StoryMode.run whiteout
+recovery). `train_lead_to_level` now uses it (the fix); `train_team` and
+`catch_starter_team` refactored onto it too so the whiteout-aware pattern is uniform and
+future spins can't silently omit it. VALIDATED: `_story_spin` unit-tested to bail with
+BotModeError when the abort flag is set; WhiteoutListener confirmed to fire on any
+whiteout (GameState.WHITEOUT / EventScript_FieldWhiteOut*) → on_whiteout; refactored
+train_team still trains (Poochyena L4→L7, 0 errors).

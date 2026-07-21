@@ -88,6 +88,21 @@ def _check_abort() -> None:
         raise BotModeError("Story: aborting the current step to recover from a whiteout.")
 
 
+def _story_spin(stop_condition) -> Generator:
+    """`spin()` that ALSO stops the instant a whiteout abort is flagged, then raises so
+    the current segment unwinds into StoryMode.run()'s recovery.
+
+    EVERY story grind/training spin MUST go through this. A raw `spin()` whose
+    stop-condition omits the abort check keeps spinning even after a mid-training
+    whiteout — the game respawns you (fully healed) at the Poké Center, but the spin's
+    own conditions (level still < target, HP now full) never fire, so the bot just
+    spins in place at the respawn point forever (user-seen at the Oldale PC while
+    training before the rival). The trailing `_check_abort()` turns the flag into the
+    BotModeError run() expects, so the whiteout recovery re-orients and resumes."""
+    yield from spin(stop_condition=lambda: story_should_abort() or stop_condition())
+    _check_abort()
+
+
 def _navigate_riding_out(dest_map, dest_tile, *, avoid_encounters: bool = True, tries: int = 10) -> Generator:
     """`navigate_to_anywhere` that rides out any scripted scene (a trainer sight-line,
     a cutscene) that aborts the path, then retries — instead of hard-failing to Manual.
@@ -680,6 +695,7 @@ def train_lead_to_level(target_level: int) -> Generator:
     context.message = f"Story: training the starter to Lv {target_level}..."
     guard = 0
     while _lead_level() < target_level:
+        _check_abort()  # bail immediately if a whiteout was flagged between rounds
         guard += 1
         if guard > 200:
             raise BotModeError("Training did not reach the target level (too many rounds).")
@@ -687,7 +703,9 @@ def train_lead_to_level(target_level: int) -> Generator:
         # trip back from the Poké Center; the built-in find_closest_pokemon_center
         # is unreliable here, so we hard-target Oldale's centre below).
         yield from navigate_to_anywhere(MapRSE.ROUTE103, ROUTE103_GRASS_TILE, avoid_encounters=False)
-        yield from spin(stop_condition=lambda: _lead_level() >= target_level or _lead_hp_pct() <= heal_at)
+        # Whiteout-aware spin: a mid-training defeat unwinds this for recovery instead
+        # of leaving the bot spinning at the respawn Poké Center (user-seen).
+        yield from _story_spin(lambda: _lead_level() >= target_level or _lead_hp_pct() <= heal_at)
         # After spin() returns, the LAST battle's overworld-return transition may
         # still be settling (the controllable flag flickers); wait it out patiently
         # before the next navigate (heal trip or the caller's post-training move) so
@@ -1186,15 +1204,9 @@ def train_team(
             context.message = f"Story: training the team to Lv {target_level} in the grass…"
             yield from _navigate_riding_out(grass_map, grass_tile, avoid_encounters=False)
 
-            def _stop() -> bool:
-                return (
-                    story_should_abort()
-                    or _lead_level() >= target_level
-                    or _min_battler_hp_pct() <= heal_at
-                )
-
-            yield from spin(stop_condition=_stop)
-            _check_abort()
+            yield from _story_spin(
+                lambda: _lead_level() >= target_level or _min_battler_hp_pct() <= heal_at
+            )
             if _min_battler_hp_pct() <= heal_at and _lead_level() < target_level:
                 yield from heal_in_pokemon_center(heal_center)
     finally:
@@ -1404,16 +1416,9 @@ def catch_starter_team(
                 break
         yield from _navigate_riding_out(grass_map, grass_tile, avoid_encounters=False)
 
-        def _stop() -> bool:
-            return (
-                story_should_abort()
-                or _party_size() >= target_size
-                or _total_poke_balls() <= 1
-                or _lead_hp_pct() <= heal_at
-            )
-
-        yield from spin(stop_condition=_stop)
-        _check_abort()
+        yield from _story_spin(
+            lambda: _party_size() >= target_size or _total_poke_balls() <= 1 or _lead_hp_pct() <= heal_at
+        )
         if _lead_hp_pct() <= heal_at and _party_size() < target_size:
             yield from heal_in_pokemon_center(heal_center)
 
