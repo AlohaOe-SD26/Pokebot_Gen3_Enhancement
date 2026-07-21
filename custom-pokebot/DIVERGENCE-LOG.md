@@ -362,3 +362,10 @@ handler (which breaks while an evolution task lingers → re-dispatch spin).
 `modules/battle_move_replacing.py`: handle_move_replacement_dialogue gets a bounded
 safety (5000-frame budget → back out with B) so the bot can never hard-freeze on
 the "Delete which move?" screen. Same in sandbox. Verified no regression.
+
+### (m) STOCK: battle no-progress watchdog (ML-11)
+`modules/battle_handler.py`: handle_battle's loop now bails out (escape menu with
+B, then break) if its progress signature (instruction + callback + learn-move
+state + party EXP) is unchanged for 6000 iterations — guarantees the bot can never
+hard-freeze inside a battle (the flaky Lv16 move-learn hang). EXP in the signature
+keeps GiveExp from false-triggering. Same in sandbox.

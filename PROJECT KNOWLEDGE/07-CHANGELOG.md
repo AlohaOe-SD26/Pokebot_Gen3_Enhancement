@@ -976,3 +976,16 @@ handle_move_replacement_dialogue now has a bounded SAFETY (5000-frame budget) th
 backs out with B if the move-learn UI ever stalls, so the bot can NEVER hard-freeze
 on that screen. Verified no regression (gym repro 4/4 still learns Pursuit +
 evolves; safety never false-triggers). Both stock files → DIVERGENCE-LOG.
+
+## 2026-07-20 — FIX(3): battle no-progress watchdog — guarantee no hard-freeze (#24, both builds, ML-11)
+User re-tested the current build and the Lv16 move-learn STILL hard-froze (so the
+per-call move-dialogue safety wasn't enough — the spin is in handle_battle's LOOP,
+which had no bound). Added a NO-PROGRESS WATCHDOG to handle_battle: if the progress
+signature (battle instruction + main callback + learn-move state + party total EXP)
+is unchanged for 6000 iterations, escape any menu with B and bail out of the battle
+loop, returning control to the mode (whose §SC self-check recovers). Party EXP in
+the signature means the long GiveExp bar-fill never false-triggers it. Verified no
+regression + no false-trigger (gym repro 3/3 clean). Still could NOT reproduce the
+exact hang in-harness (flaky race; user runs 32x) — this GUARANTEES it can no longer
+HARD-freeze regardless of cause. Also noted #24-textread (read text-box text to
+drive fragile interactions deterministically — user idea).

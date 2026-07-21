@@ -84,7 +84,39 @@ def handle_battle(strategy: BattleStrategy) -> Generator[None, None, HandledBatt
         except Exception:
             return False
 
+    # NO-PROGRESS WATCHDOG (ML-11): guarantees the bot can never HARD-FREEZE inside
+    # a battle. If nothing meaningful changes for a long time — the move-learn /
+    # evolution edge cases have shown flaky, hard-to-reproduce spins — bail out so
+    # control returns to the mode (whose §SC self-check then recovers). The
+    # progress signature includes party EXP, so the (legitimately long) GiveExp
+    # bar-fill animation never false-triggers it.
+    _no_progress = 0
+    _last_progress_sig = None
+
     while (battle_is_active() or _learn_or_evo_pending()) and context.bot_mode != "Manual":
+        try:
+            from modules.battle_move_replacing import get_learn_move_state
+
+            _sig = (
+                get_current_battle_script_instruction(),
+                get_main_battle_callback(),
+                str(get_learn_move_state()),
+                sum(getattr(p, "total_exp", 0) for p in get_party()),
+            )
+        except Exception:
+            _sig = None
+        if _sig is not None and _sig == _last_progress_sig:
+            _no_progress += 1
+        else:
+            _no_progress = 0
+            _last_progress_sig = _sig
+        if _no_progress > 6000:
+            # ~100s at 1x: a genuine stall. Escape any lingering menu, then bail.
+            for _ in range(180):
+                context.emulator.press_button("B")
+                yield
+            break
+
         instruction = get_current_battle_script_instruction()
         if get_main_battle_callback() in ("HandleTurnActionSelectionState", "sub_8012324"):
             yield from handle_battle_action_selection(strategy)

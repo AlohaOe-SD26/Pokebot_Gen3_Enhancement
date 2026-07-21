@@ -294,3 +294,11 @@
       stall watch as last resort (Watchdog #22). Unifies §RS + §DR + #24-team into
       one state-machine engine. Also bounds the Treecko-Lv16 "stuck but not stopped"
       loop class.
+- [ ] #24-textread — READ TEXT-BOX TEXT to guide the bot (user idea 2026-07-20).
+      Read the on-screen dialogue text (stored in memory) to KNOW the exact state
+      / speaker / context in fragile interactions (move-learn, evolution, scripted
+      NPC scenes) and drive them deterministically, instead of relying on
+      flickering task-state detection. Could make the move-learn robust (read
+      "Delete a move to make room for X?" directly). Investigate a text-read
+      helper; fold into #24-sanity robustness. Evaluate if it actually helps
+      before committing to it (user: "we dont have to implement it unless it works").
