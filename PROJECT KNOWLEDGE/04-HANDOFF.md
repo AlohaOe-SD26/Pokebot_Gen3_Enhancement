@@ -128,8 +128,18 @@ gaps = map_locations/mart/pickup/historical.
   `StoryCatchStrategy` flees instead of Manual when out of balls (opportunistic
   pre-gym catching could burn the 5 starter balls on bad RNG; 3b069d47). VALIDATED
   in-harness end-to-end (route103 pre-Pokédex → **Rustboro → Route 116 catching**,
-  team Mudkip L13 + Poochyena L4, **0 derails / 0 Manual**). **NEXT: user re-tests on
-  the real PC — should now reach Rustboro/Roxanne.**
+  team Mudkip L13 + Poochyena L4, **0 derails / 0 Manual**).
+- **⭐ SWAP-TRAINING (2026-07-21) — fixes the training loop the user then saw.** With a
+  very under-levelled catch (Lv2 Poochyena) the pre-gym `train_team` ground it against
+  too-high Route 116 wilds → fight/faint/heal/repeat churn. NEW `SwapTrainBattleStrategy`
+  switches a trainee that's ≥2 levels below the wild to the strongest team-mate turn 1
+  (shares XP, no fainting/heal-churn); gated by `_SWAP_TRAIN` around `train_team`, which
+  heals off the team's lowest HP. Validated (route116team save): Poochyena L4→L7,
+  **0 heals / 0 faints**, flee rate 25%. Commit ef812c0e. User chose "BOTH": also landed
+  area-training groundwork `modules/story/training_areas.py` (#24-trainmap, commit
+  d405674d) — level-spectrum of early grass + `best_training_grass()`, to later route a
+  low mon to a full-XP area (swap-train stays the fallback). **NEXT: user re-tests on
+  the real PC — should now reach Rustboro/Roxanne with smoother training.**
   Documented strategy (planning doc §4/§4b): map shops/PCs AS REACHED, not all now;
   new punch-list #24-shops (incl. Lilycove multi-floor, E4 PC shop+mart) and #24-pc
   (PC/box team management). Remaining planning items future/noted (money-making
