@@ -19,6 +19,19 @@ Gen-3 Pokémon via libmgba). Layout (details in CLAUDE.md "Project rules"):
 - `Pokemon_Emerald_AI_Notes.md` — transfer notes for the sibling AI project.
 
 ## Current state (what's WHERE)
+### ⭐ PROMOTED to custom (production) 2026-07-21 — commit `a9553ee4`
+This session's Story-mode work is now in `custom-pokebot`: matured defeat/whiteout
+recovery (no Manual / no save reloads; resumable Segment 1), the Oldale heal-loop fix,
+StoryCatchStrategy (flee-not-Manual when out of balls), SwapTrainBattleStrategy
+(swap-training + finish-don't-flee), whiteout-aware `_story_spin`, `training_areas.py`
+groundwork, and the opt-in Debug Logging toggle (`modules/debug_logger.py`). 10 code
+files copied sandbox→custom (verified clean superset); DIVERGENCE-LOG updated for the
+upstream-file edits (heal exit, main.py debug hook, GUI toggle). Sandbox now matches
+custom on these files (test harness / profiles / SANDBOX-NOTES stay sandbox-only).
+**Real-hardware validated through:** fresh save → Oldale → rival → Pokédex → Petalburg
+→ Wally → Woods → Rustboro → pre-gym catching + swap-training. **Frontier: the Rustboro
+Gym (Roxanne) fight itself + the resume-localization edge (Route 116 misdetect) are NOT
+yet end-to-end validated; post-Rustboro chapters not built.**
 ### In custom-pokebot (PROMOTED, production) — big promotion `f0b275f3` (2026-07-19)
 Native dashboard GUI (default; `--classic-gui` = stock), handheld mode,
 backup/restore + cloud + cloud-save-sync (off by default), macros, Patrol
