@@ -1297,3 +1297,23 @@ falls through to the parent (flee on low HP / solo a same-or-lower foe for full 
 the fight completes with XP and the redundant flee-then-heal cycle is gone. VALIDATED
 (route116team save): flee rate 13% (was 25%) — the remaining flees are the correct
 "strong mon itself low → flee → heal" fallback; Poochyena still L4→L7, 0 errors.
+
+## 2026-07-21 — Solidify Rustboro: resume edge fixed + Roxanne validated (sandbox)
+- RESUME FIX: Segment 3's "past the Woods?" check was `_cur_map() == RUSTBORO_CITY or
+  BADGE01`, so a save mid-catching/training on ROUTE 116 (the pre-gym grass, only
+  reachable THROUGH Rustboro) failed it → re-ran the Woods travel → couldn't path back
+  → derail (found while testing). Broadened to the whole Rustboro AREA: Rustboro city,
+  ANY Rustboro building (map group 11 — gym/Devon/PC/mart/…), Route 116, or Rusturf
+  Tunnel. VALIDATED: resuming from the Route 116 save now prints "already in Rustboro —
+  skipping the Woods travel" and proceeds to Segment 4 (0 derails).
+- LEAD THE STRONGEST before the gym: swap-training rotates a weak trainee into slot 0;
+  new `_lead_strongest_battler()` puts the highest-level capable battler in the lead
+  before `do_rustboro_gym` so the gym leads with our best mon (not a weak one that
+  faints first).
+- ROXANNE VALIDATED end-to-end (route116team save, gymtest driver): heal → lead Mudkip →
+  beat the gym trainers + Roxanne → Mudkip evolved to Marshtomp L16 → STONE BADGE earned,
+  0 whiteouts/Manual.
+- NOTE (open): `_prepare_for_fight` can roll "train WHOLE team to Lv 15" — dragging fresh
+  L4-6 helpers to gym level via swap-training (half XP) is a long grind. The main battler
+  alone beats Roxanne, so training-target tuning (train battlers, not every catch) is a
+  worthwhile efficiency follow-up (#24-team / #24-trainmap).

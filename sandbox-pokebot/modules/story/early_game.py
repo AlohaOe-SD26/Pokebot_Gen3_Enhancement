@@ -1086,6 +1086,25 @@ def travel_route104_north_to_rustboro() -> Generator:
 RUSTBORO_GYM_ROXANNE_APPROACH = (5, 4)
 
 
+def _lead_strongest_battler() -> Generator:
+    """Put the highest-level CAPABLE battler in slot 0 before a gym / major fight.
+    Swap-training rotates a weak trainee into the lead, so without this the gym would
+    send that weak mon out first (it faints, then the strong mon takes over — messy
+    and risky). Leading with our best mon wins cleanly."""
+    from modules.modes.util.higher_level_actions import change_lead_party_pokemon
+
+    party = get_party()
+    slots = _battler_slots()
+    if not slots:
+        return
+    best = max(slots, key=lambda i: party[i].level)
+    if best != 0:
+        try:
+            yield from change_lead_party_pokemon(best)
+        except Exception:
+            pass
+
+
 def do_rustboro_gym() -> Generator:
     """Rustboro Gym — beat Roxanne for the Stone Badge (BADGE01, Gym 1).
 
@@ -1106,6 +1125,9 @@ def do_rustboro_gym() -> Generator:
 
     context.message = "Story: healing before challenging Rustboro Gym (Roxanne)..."
     yield from heal_in_pokemon_center(PokemonCenter.RustboroCity)
+
+    # Lead with our strongest mon (training may have left a weak trainee in slot 0).
+    yield from _lead_strongest_battler()
 
     context.message = "Story: entering Rustboro Gym to challenge Roxanne..."
     yield from navigate_to_anywhere(
