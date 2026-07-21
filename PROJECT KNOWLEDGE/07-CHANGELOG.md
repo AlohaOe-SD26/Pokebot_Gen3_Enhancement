@@ -1128,3 +1128,14 @@ User-reported bugs + architectural direction (§AA):
 - Design §AA "Area Atlas": the RULE — hand-craft each area's respawn point / nearby
   grass / inter-map routing / key locations BEFORE scripting it (no blanket fixes).
   Documented the region covered so far (Littleroot→Rustboro→Rusturf). Sandbox only.
+
+## 2026-07-21 — Out-of-balls contingency COMPLETE: buy at mart (sandbox)
+Retrofit per planning doc §3/§4 (the reported break). Two-part fix: (safety floor,
+committed earlier) catching is resource-aware — never attempts a catch without balls;
+(provisioning, this entry) buy_poke_balls(count, mart) drives the Emerald shop UI to
+restock, and provision_poke_balls buys min(30, affordable) keeping a ¥500 reserve.
+Wired into catch_starter_team: out of balls → buy → resume; broke → skip. Shop-UI
+lessons captured in §4 (list-menu confirms need wait_until_task_is_not_active + A;
+item-select and quantity-confirm each show a message to advance). Verified: buy 5 →
+6→11 balls; full flow (balls forced to 2 → caught Abra → bought 30 → resumed →
+team of 4 → training). Sandbox only.

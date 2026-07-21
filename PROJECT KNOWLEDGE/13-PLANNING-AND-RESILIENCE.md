@@ -85,10 +85,19 @@ Prices (Gen-3, fixed): Poké Ball **200**, Great Ball 600, Potion 300, Super Pot
 700. Selling = half the buy price. **Verify exact per-mart stock live when building
 the buy interaction** (read the mart EventScript / try the menu).
 
-**Buy interaction (to build):** navigate to the mart clerk → A → shop menu → BUY →
-select Poké Ball → choose quantity (max affordable, capped so we keep a money
-reserve) → confirm → exit. No existing helper — build `buy_at_mart(...)`. Record the
-clerk tile + menu flow in the Atlas once mapped (mart interior recon, §R playbook).
+**Buy interaction (BUILT + verified 2026-07-21):** `buy_poke_balls(count, mart)` in
+early_game.py. Rustboro mart: enter warp (16,45); clerk (id1) is at (1,3) in an
+enclosed booth — talk ACROSS the counter from **(3,3) facing Left**. Flow: talk →
+`Task_ShopMenu` → `Task_GoToBuyOrSellMenu` (BUY is default) → `Task_BuyMenu` item
+list (**Poké Ball is index 0**, cursor default) → select → "How many?" message →
+`Task_BuyHowManyDialogueHandleInput` quantity (Up = +1) → confirm → "That'll be ¥X.
+OK?" → `Task_CallYesOrNoCallback` (Yes default). KEY LESSONS: (1) list-menu confirms
+need `wait_until_task_is_not_active(task,"A")` — single-frame A presses DON'T
+register; (2) selecting an item and confirming a quantity each show a MESSAGE that
+must be advanced with A before the next task appears. `provision_poke_balls()` buys
+`min(30, affordable)` keeping a ¥500 reserve; a hiccup is caught (non-fatal → skip).
+Verified: buy 5 → balls 6→11 / money −¥1000; full out-of-balls flow (balls forced to
+2 → caught → bought 30 → resumed catching → team of 4).
 
 ## §5. Money model (Emerald-specific — important)
 - **No Vs Seeker in Emerald.** Regular-trainer/gym rematches exist ONLY via the
