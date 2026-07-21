@@ -58,6 +58,18 @@ flavor all done, Phases 1/2/3a). `itemdex_data.json` = core (309 items);
 gaps = map_locations/mart/pickup/historical.
 
 ## Most recent work (2026-07-20)
+- **STORY TEAM-BUILDING: pre-fight training + retrain + pre-gym catching (sandbox,
+  user directives #1/#2).** (a) `train_team(target, scope)` grinds wilds on Route 116
+  (11,7) — scope 'whole' rotates the lowest battler to lead, 'lead' trains the lead.
+  (b) `_prepare_for_fight(cfg)` before Gym 1: proactive target in the band (Roxanne
+  13-17, random) + reactive escalation if lost here ≥2× (the +levels strategy AND
+  team scope both randomized for organic feel). (c) `catch_starter_team(4)` +
+  `on_battle_started` catch branch: catch NEW species (no dups, by dex #) until the
+  party fills to 4. Verified: rustboro.ss1 → train Mudkip→Marshtomp L20 → beat Roxanne
+  → Chapter 5a; and caught Abra/Whismur/Taillow (party 1→4). Committed b2fd5875
+  (train/retrain) + c6433bf6 (catching). Tuning notes: Route 116 trainers over-train
+  a bit; a full caught team is a slow grind (the 'lead' scope keeps some runs fast).
+  **NEXT: Chapter 5b (return goods → Devon Corp 3F president → PokéNav → Rustboro rival).**
 - **STORY DEFEAT/WHITEOUT RECOVERY built + verified (sandbox, user directive #1).**
   No more save-state reloads on defeat. (1) Watchdog neutered for Story
   (`_SELF_RECOVERING_MODES={"Story"}`, watchdog.py) — never reloads/rewinds. (2)

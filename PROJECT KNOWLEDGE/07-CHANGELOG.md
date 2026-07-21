@@ -1096,3 +1096,20 @@ no reloads, no Manual):
   `on_battle_ended(Lost)` counts consecutive losses per LOCATION (map) for the
   retrain trigger. A shared `_STORY_ABORT` flag makes long in-segment loops bail fast.
 Next: retrain-on-2nd-loss + pre-fight level thresholds + pre-gym catching. Sandbox only.
+
+## 2026-07-21 — Story pre-fight training, retrain-on-loss, and pre-gym catching (sandbox)
+Completes the user's #1 (defeat handling) + #2 (team-building) requests.
+- train_team(target, scope, grass, heal) — grinds wilds until the team hits target;
+  scope 'whole' rotates the lowest battler to lead, 'lead' trains only the lead.
+- StoryMode._prepare_for_fight(cfg) before Gym 1: PROACTIVE target within the band
+  (random, organic); REACTIVE escalation if lost here >=2× (the "+levels" strategy
+  and team scope both randomized, per user, for organic variety). Roxanne band 13-17.
+- catch_starter_team(target_size) + on_battle_started catch branch: catch NEW species
+  (never a dup — compares by national dex #) before the gym until the party fills to
+  4 (starter + 3), stopping if low on balls.
+Verified: rustboro.ss1 → proactive train (Mudkip→Marshtomp L20) → beat Roxanne →
+Chapter 5a; and catch Abra+Whismur+Taillow (party 1→4, no dups) → prep-train the
+team. Defeat counter increments per-location (map). Grass spot: Route 116 (11,7),
+east of Rustboro (101 grass tiles). Notes: Route 116 trainers over-train past the
+band a bit; training a full caught team to the band is a slow grind (randomized
+'lead' scope mitigates). Sandbox only.
