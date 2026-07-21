@@ -626,6 +626,8 @@ class StoryMode(BotMode):
             go_upstairs_and_set_clock,
             help_birch_and_choose_starter,
             recover_devon_goods,
+            return_devon_goods_and_get_pokenav,
+            fight_rustboro_rival,
             return_to_lab_and_get_pokedex,
             train_lead_to_level,
             travel_route104_north_to_rustboro,
@@ -828,10 +830,26 @@ class StoryMode(BotMode):
             console.print("[dim]Story: Devon Goods already recovered — skipping.[/]")
         _guard("Devon Goods (Rusturf Tunnel)", lambda: _done("RECOVERED_DEVON_GOODS"))
 
+        # --- Segment 5b: return the goods to Mr. Stone → PokéNav + Letter → Rustboro
+        #     rival. Completion signals: RECEIVED_POKENAV, then DEFEATED_RIVAL_RUSTBORO. ---
+        if not _done("RECEIVED_POKENAV"):
+            yield from return_devon_goods_and_get_pokenav()
+        else:
+            console.print("[dim]Story: PokéNav already received — skipping the Devon Corp errand.[/]")
+        _guard("Devon Corp → PokéNav", lambda: _done("RECEIVED_POKENAV"))
+
+        # END OF BUILT CONTENT. `return_devon_goods_and_get_pokenav` leaves us controllable
+        # on Devon Corp 3F, BEFORE the forced PokéNav/Match-Call tutorial fires (it only
+        # triggers on the way OUT). The next segment — `fight_rustboro_rival` — is written
+        # but NOT wired yet: exiting Devon Corp triggers that forced tutorial, which is a
+        # `Task_HandleMultichoiceInput` sequence that A/B/cursor-nav does NOT clear (it
+        # needs the PokéNav app actually opened + navigated). Wiring the rival before that
+        # tutorial is handled would hang the bot, so we stop cleanly here instead.
         context.message = (
-            "Story: caught up to the end of the built content (through recovering the "
-            "Devon Goods in Rusturf Tunnel). The rest of Chapter 5 (return to Devon "
-            "Corp for the PokéNav -> Rustboro rival) isn't built yet; handing to manual."
+            "Story: got the PokéNav from Mr. Stone — end of built content. NEXT (WIP): "
+            "handle the forced PokéNav/Match-Call tutorial (open the PokéNav app), then the "
+            "Rustboro rival (16,50) -> Route 104 south -> Mr. Briney -> Dewford -> Gym 2. "
+            "Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()

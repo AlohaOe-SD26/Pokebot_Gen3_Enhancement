@@ -1331,3 +1331,23 @@ chosen slots). VALIDATED (route116team save): prep now logs "training 1 battler(
 L4/Nincada L6/Whismur L6 untouched — then straight to the gym, 0 whiteouts (vs the old
 "whole team to Lv 15" grind). Combined with the gym win (already validated), the full
 prep→gym flow works.
+
+## 2026-07-21 — Next chunk kickoff: Rustboro mapped + Devon-goods-return/PokéNav built (sandbox)
+User: proceed with the next chunk, mapping first to harden from the start.
+- MAPPED the Rustboro area statically from ROM (`get_map_data`) — Devon Corp floors +
+  stairs + Mr. Stone (3F (15,5)), the rival NPC (city (16,50)), PC/Mart/Gym entrances —
+  documented in 12-STORYMODE-DESIGN §Ch5b (Atlas + sequence + a HARDENING CHECKLIST
+  derived from the Rustboro lessons).
+- BUILT + VALIDATED `return_devon_goods_and_get_pokenav()` (early_game.py): from Rusturf,
+  route to Mr. Stone on Devon Corp 3F, advance the dialogue until RECEIVED_POKENAV. Story
+  now runs Devon Goods → PokéNav → clean stop on 3F (8× clean-stop, 0 hangs/derails).
+- BUILT (not wired) `fight_rustboro_rival()` + `_lead_strongest_battler` reuse; fixed a
+  navigation bug in it (`_navigate_through_scripts` returns on reaching the MAP not the
+  tile → switched to `_navigate_riding_out`).
+- BLOCKER FOUND + documented (next-session task): exiting Devon Corp after the PokéNav
+  triggers a FORCED PokéNav/Match-Call tutorial — a `Task_HandleMultichoiceInput` chain
+  (`RustboroCity_EventScript_PleaseSelectPokenav` ↔ `MatchCallTutorial`) that A/B and
+  cursor-nav+A do NOT clear (harness-probed); it needs the PokéNav app actually opened +
+  navigated. The story STOPS cleanly BEFORE it (on 3F) rather than hanging; the rival is
+  wired only after this tutorial is handled. Sandbox checkpoint (not promoted — segment
+  5b incomplete).

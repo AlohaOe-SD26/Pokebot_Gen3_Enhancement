@@ -400,3 +400,22 @@ helper bakes the abort check + trailing `_check_abort()` into every story spin.
 `_story_spin`, or call `_check_abort()` in its loop) so a mid-step whiteout unwinds it
 into StoryMode.run's recovery — a stop-condition based only on level/HP is NOT enough
 because a whiteout heals you.
+
+## 2026-07-21 — _navigate_through_scripts navigates to the MAP, not the coordinates
+**Symptom:** `fight_rustboro_rival` never walked to the rival tile; it "returned" instantly
+because we were already on the Rustboro map. **Root cause:** `_navigate_through_scripts`
+loops `while _map_group_number() != dest_map` — it's for CROSS-map travel; on the same
+map its loop body never runs, so the coordinates are ignored. **Fix:** use
+`_navigate_riding_out(map, tile)` for a within-map walk that rides out scenes.
+**Prevention:** `_navigate_through_scripts` = reach a MAP (rides out inter-map scenes);
+`_navigate_riding_out` = reach a TILE. Pick by intent.
+
+## 2026-07-21 — Emerald's forced PokéNav tutorial is a multichoice, not a msgbox
+**Symptom:** after the PokéNav, walking out of Devon Corp hung 8000+ frames on
+`RustboroCity_EventScript_PleaseSelectPokenav` → cutscene-timeout derail. **Root cause:**
+it's a FORCED tutorial driven by `Task_HandleMultichoiceInput` (loops PleaseSelectPokenav
+↔ MatchCallTutorial); A/B just re-picks the default and cursor-nav+A didn't clear it — it
+requires the PokéNav APP to be opened + navigated. **Status:** not yet solved; story
+stops cleanly before it. **Prevention:** when a scene won't ride out with A/B, inspect the
+active TASKS (a `…MultichoiceInput`/menu task means a selection is required, not a
+message) before assuming a dialogue-advance will clear it.

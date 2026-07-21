@@ -1920,3 +1920,49 @@ route104_south.ss1 / woods_done.ss1 / rustboro.ss1 as each leg lands.
 **GYM 1 (Roxanne) reminder:** Geodude Lv12/12 + Nosepass Lv15 — starter is only
 Lv 8-10 out of Chapter 1, so TRAIN before the gym; Torchic (Fire) is weak vs Rock.
 Also need HM01 Cut (from the Rustboro/Route 104 cuttable tree area) before some paths.
+
+## §Ch5b-6 — Post-Rustboro chunk (Devon Corp → PokéNav → rival → Dewford → Gym 2)
+Planned/mapped 2026-07-21 (map data read statically from ROM via `get_map_data`, verified
+tiles below). Built INCREMENTALLY, each sub-step hardened + harness-validated before the
+next — see the Hardening Checklist. Frontier state to build from: Rusturf Tunnel,
+`BADGE01_GET` + `RECOVERED_DEVON_GOODS` set, PokéNav/rival flags False.
+
+### Rustboro Area Atlas (reconned, tiles are city-map local coords unless noted)
+- **Devon Corp entrance** (city): warp (11,15)/(12,15) → DEVON_CORP_1F.
+- **Devon Corp 1F** (11,0): stairs-up warp (14,1) → 2F; **StairGuard NPC (15,5)** (blocks
+  until you have Devon business); greeter (5,3); city-exit warps (5,8)/(6,8).
+- **Devon Corp 2F** (11,1): stairs-down (14,1)→1F, **stairs-up (2,1) → 3F**; scientists.
+- **Devon Corp 3F** (11,2): stairs-down (2,1)→2F; **Mr. Stone NPC (15,5)** = returns the
+  goods + gives the PokéNav + Steven's Letter (script `…3F_EventScript_MrStone`).
+- **Rustboro rival**: static NPC (16,50) `RustboroCity_EventScript_Rival` (south end, on
+  the way to the Route 104 south exit) = DEFEATED_RIVAL_RUSTBORO battle (after PokéNav).
+- **Poké Center** entrance (16,38) → (11,5); **Mart** entrance (27,34) → (11,4);
+  **Gym** entrance (27,19) → (11,3) [RUSTBORO_CITY_GYM].
+
+### Sequence (flags to drive resume-safe segment gating)
+1. Return Devon Goods → PokéNav+Letter (Mr. Stone, Devon Corp 3F). Flag: RECEIVED_POKENAV
+   (RETURNED_DEVON_GOODS also flips). Guard may need talking-to; validate.
+2. Rustboro rival battle (head south to (16,50)). Flag: DEFEATED_RIVAL_ROUTE104? →
+   verify actual flag (DEFEATED_RIVAL_RUSTBORO candidate).
+3. Route 104 SOUTH → Mr. Briney's cottage (south tip) → sail to Dewford. [recon Route 104
+   south + Briney tiles when built]
+4. Dewford Town: PC/Mart map; deliver Steven's Letter (Steven is in GRANITE CAVE B1F —
+   recon); pick up HM Flash from a hiker (optional). Gym 2 = Brawly (Fighting).
+5. **Gym 2 puzzle** (Dewford Gym): dark gym — you can see only around you; the correct
+   path lights up as you beat trainers, OR use Flash. [recon the gym layout + trainer
+   path when built] → beat Brawly → Knuckle Badge (BADGE02_GET). Marshtomp is neutral vs
+   Fighting; Marshtomp's Water/Ground is fine; watch Machop/Makuhita.
+
+### Hardening Checklist (apply to EVERY new segment — lessons from Rustboro)
+- [ ] Segment gated by its completion FLAG **and** an area/map check for resume safety
+      (like Segment 3's whole-Rustboro-area check — don't backtrack).
+- [ ] All grinding via `_story_spin` (whiteout-aware); any long wait calls `_check_abort`.
+- [ ] After warps/heals, `wait_until_truly_controllable` before the next navigate.
+- [ ] `_lead_strongest_battler()` before any gym/major fight; training via
+      `_prepare_for_fight` (readies battlers, not every catch).
+- [ ] Cross-map travel via `_navigate_riding_out` / `_navigate_through_scripts` (rides
+      out scripted scenes + retries) — never a bare navigate through a scene.
+- [ ] Verify actual completion flags with the harness (flag diff before/after) — don't
+      trust the "intended" flag name (ML-9: THANKED_FOR_PLAYING_WITH_WALLY was never set).
+- [ ] Map each new area's PC/Mart/warps/NPCs statically first (get_map_data), add to this
+      Atlas; verify the gym puzzle path before coding the gym.

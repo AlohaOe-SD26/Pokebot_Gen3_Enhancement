@@ -37,8 +37,21 @@ our best mon. (3) Training-grind fixed — `_prepare_for_fight` readies only the
 near-band battlers (`train_team(slots=)`), leaving fresh low catches to level organically
 (#24-team). **Full flow VALIDATED end-to-end in-harness: route116 save → minimal prep →
 BEAT ROXANNE (Stone Badge, Mudkip→Marshtomp) → Devon Goods (Rusturf) → clean content-end
-stop, 0 whiteouts.** **Frontier now: post-Rustboro (Devon Corp return → PokéNav →
-Rustboro rival → Mr. Briney → Dewford → Gym 2 Brawly) NOT built.** Open: fresh low
+stop, 0 whiteouts.**
+**NEXT-CHUNK PASS started (2026-07-21, SANDBOX checkpoint, NOT promoted):**
+Rustboro mapped statically (Devon Corp floors + Mr. Stone 3F (15,5), rival NPC city (16,50),
+PC/Mart/Gym entrances) → §Ch5b Atlas + Hardening Checklist in 12-STORYMODE-DESIGN.
+`return_devon_goods_and_get_pokenav()` BUILT + VALIDATED: story now runs Devon Goods →
+return to Mr. Stone → **get the PokéNav → clean stop on Devon Corp 3F (8× clean-stop msg,
+0 hang/derail).** `fight_rustboro_rival()` BUILT but NOT wired (navigate bug fixed:
+`_navigate_through_scripts`→`_navigate_riding_out`).
+**⛔ BLOCKER (next-session task #1):** exiting Devon Corp after the PokéNav triggers a
+FORCED PokéNav/Match-Call tutorial — `RustboroCity_EventScript_PleaseSelectPokenav` ↔
+`MatchCallTutorial` driven by `Task_HandleMultichoiceInput`; A/B and cursor-nav+A do NOT
+clear it (harness-probed) — it needs the PokéNav APP opened + navigated. Story stops
+cleanly BEFORE it; do NOT wire the rival until this is solved (would hang).
+**Frontier: PokéNav obtained; PokéNav-tutorial → Rustboro rival → Route 104 south →
+Mr. Briney → Dewford → Granite Cave → Gym 2 Brawly NOT built.** Open: fresh low
 catches never level to gym-ready (organic team-dev #24-team); area-appropriate training
 (#24-trainmap) still groundwork-only.
 ### In custom-pokebot (PROMOTED, production) — big promotion `f0b275f3` (2026-07-19)

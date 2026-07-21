@@ -1559,3 +1559,77 @@ def recover_devon_goods() -> Generator:
         yield
     yield from _wait_until_cutscene_over("A")  # ride out the Briney/Peeko thank-you tail
     context.message = "Story: recovered the Devon Goods and freed Peeko!"
+
+
+# --- Chapter 5b: return the Devon Goods → PokéNav + Steven's Letter → Rustboro rival ---
+# Tiles reconned from ROM map data (design §Ch5b Atlas):
+DEVON_CORP_3F = MapRSE.RUSTBORO_CITY_DEVON_CORP_3F
+MRSTONE_APPROACH = (15, 6)          # stand below Mr. Stone (15,5), face North, talk
+RUSTBORO_RIVAL_APPROACH = (16, 48)  # walk down toward the rival NPC (16,50) to trigger it
+
+
+def return_devon_goods_and_get_pokenav() -> Generator:
+    """Take the recovered Devon Goods back to Mr. Stone (Devon Corp 3F) — he returns
+    them, hands over the PokéNav and Steven's Letter (RECEIVED_POKENAV).
+
+    STORY CONDITION: RECOVERED_DEVON_GOODS set (we're in/near Rusturf Tunnel).
+    GOAL/END: RECEIVED_POKENAV set; controllable back in Rustboro City."""
+    from modules.memory import get_event_flag
+
+    context.message = "Story: taking the Devon Goods back to Mr. Stone at Devon Corp..."
+    # Ride out any lingering Rusturf recovery scene, then let the overworld settle.
+    yield from _ride_out_scripted_scene("B")
+    yield from wait_until_truly_controllable()
+    # Route to Mr. Stone on Devon Corp 3F — navigate_to_anywhere threads the floors via
+    # the stairs; the 1F guard lets us up now the goods are recovered. Rides out any
+    # scripted greeting on the way.
+    yield from _navigate_through_scripts(DEVON_CORP_3F, MRSTONE_APPROACH, avoid_encounters=True)
+    yield from wait_until_truly_controllable()
+    context.emulator.press_button("Up")  # face Mr. Stone (15,5) from (15,6)
+    yield
+    yield from wait_for_n_frames(4)
+    # Advance the return + PokéNav + Letter dialogue until the PokéNav is received.
+    frames = 0
+    while not get_event_flag("RECEIVED_POKENAV"):
+        _check_abort()
+        context.emulator.press_button("A")
+        frames += 1
+        if frames > 8000:
+            raise BotModeError("Never received the PokéNav from Mr. Stone.")
+        yield
+    yield from _wait_until_cutscene_over("B")
+    context.message = "Story: got the PokéNav and Steven's Letter!"
+
+
+def fight_rustboro_rival() -> Generator:
+    """The rival (May/Brendan) waits at the south of Rustboro (16,50) after the PokéNav
+    and challenges you on the way to Route 104. Lead with our best mon, walk into the
+    trigger, and win. GOAL/END: DEFEATED_RIVAL_RUSTBORO set.
+
+    NOT YET WIRED into _play: exiting Devon Corp after the PokéNav triggers a FORCED
+    PokéNav/Match-Call tutorial (a `Task_HandleMultichoiceInput` sequence that A/B/cursor
+    nav does NOT clear — it needs the PokéNav app opened + navigated). That tutorial must
+    be handled BEFORE this runs, or the walk-south hangs on it (harness-confirmed)."""
+    from modules.memory import get_event_flag
+
+    if get_event_flag("DEFEATED_RIVAL_RUSTBORO"):
+        return
+    context.message = "Story: heading south — the rival is waiting in Rustboro..."
+    yield from _lead_strongest_battler()  # lead with our strongest for the trainer battle
+    # Walk to the rival tile (within Rustboro) — `_navigate_riding_out` goes to the TILE
+    # and rides out scenes; `_navigate_through_scripts` was wrong here (it returns as soon
+    # as we're on the map, so it never actually walked to the rival).
+    yield from _navigate_riding_out(
+        MapRSE.RUSTBORO_CITY, RUSTBORO_RIVAL_APPROACH, avoid_encounters=False
+    )
+    yield from _ride_out_scripted_scene("B", engage_timeout=2000)
+    frames = 0
+    while not get_event_flag("DEFEATED_RIVAL_RUSTBORO"):
+        _check_abort()
+        context.emulator.press_button("A")
+        frames += 1
+        if frames > 4000:
+            break  # already handled / different completion — don't hang
+        yield
+    yield from wait_until_truly_controllable()
+    context.message = "Story: beat the Rustboro rival — off toward Dewford."
