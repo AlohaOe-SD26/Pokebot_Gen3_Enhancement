@@ -175,6 +175,7 @@ class StoryMode(BotMode):
         self._defeat_counts: dict = {}
         self._whiteout_pending = False
         self._last_defeat_key = None
+        self._derails = 0  # consecutive non-whiteout derails (self-correct before Manual)
         # Organic team-building (user directive 2026-07-21): catch NEW species while
         # travelling to Gym 1 until the party has this many members (starter + helpers).
         self._catch_team_target = 4
@@ -217,6 +218,19 @@ class StoryMode(BotMode):
 
     def defeat_count_at(self, location_key) -> int:
         return self._defeat_counts.get(location_key, 0)
+
+    def _log_localization(self, note: str) -> None:
+        """Report WHERE WE ARE — story stage (from the flag-based detector) + physical
+        map — so a derail is diagnosable and self-correction is visible, instead of a
+        silent drop to Manual (user directive 2026-07-21)."""
+        try:
+            from modules.story import detect_live
+
+            prog = detect_live()
+            stage = f"{prog.chapter_key}: {prog.chapter_name}"
+        except Exception:
+            stage = "unknown stage"
+        console.print(f"[yellow]Story localization — {note} | stage: {stage} | map {self._location_key()}[/]")
 
     def _should_catch(self, encounter) -> bool:
         """Pre-Gym-1 organic team-building (user directive 2026-07-21): catch a wild
@@ -357,10 +371,36 @@ class StoryMode(BotMode):
             try:
                 yield from self._play()
                 return
-            except BotModeError:
+            except BotModeError as err:
+                from modules.memory import game_has_started, get_game_state, GameState
+
                 if not self._whiteout_pending:
-                    raise  # a real error — hand to Manual as usual
+                    # NON-WHITEOUT DERAIL (user directive 2026-07-21): don't drop
+                    # straight to Manual — re-localise (log where we are in the story
+                    # AND on the map) and retry the segmented resume a bounded number
+                    # of times. The resume re-detects the stage from flags + position,
+                    # so a transient nav/scene hiccup self-corrects. Only hand to
+                    # Manual if it keeps failing (a genuine, persistent problem).
+                    self._derails += 1
+                    self._log_localization(f"derail #{self._derails}: {err}")
+                    if self._derails > 4:
+                        raise
+                    set_story_abort(False)
+                    try:
+                        yield from wait_for_player_avatar_to_be_controllable()
+                        yield from exit_building_after_whiteout()
+                        settle = 0
+                        while settle < 300 and not (
+                            game_has_started() and get_game_state() is GameState.OVERWORLD
+                        ):
+                            settle += 1
+                            yield
+                    except Exception:
+                        yield
+                    continue  # re-run _play(): re-localise from flags + position
+                # --- WHITEOUT recovery ---
                 recoveries += 1
+                self._derails = 0  # reaching a fight = progress; reset the derail budget
                 if recoveries > 40:
                     raise BotModeError(
                         "Story: too many whiteout recoveries in a row — stopping so I "
@@ -372,7 +412,6 @@ class StoryMode(BotMode):
                     "[cyan]Story: recovered from the whiteout — re-orienting at the "
                     "respawn point and resuming.[/]"
                 )
-                from modules.memory import game_has_started, get_game_state, GameState
 
                 try:
                     yield from wait_for_player_avatar_to_be_controllable()
