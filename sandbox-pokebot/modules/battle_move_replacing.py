@@ -11,7 +11,7 @@ from modules.memory import unpack_uint16
 from modules.menu_parsers import get_party_menu_cursor_pos
 from modules.pokemon import get_move_by_index
 from modules.pokemon_party import get_party, get_party_size
-from modules.tasks import task_is_active, get_task, Task
+from modules.tasks import task_is_active, get_task, Task, is_waiting_for_input
 
 
 class LearnMoveState(Enum):
@@ -102,46 +102,48 @@ def handle_move_replacement_dialogue(strategy: BattleStrategy) -> Generator:
             yield
             break
 
-        if state == LearnMoveState.AskWhetherToLearn and not already_confirmed:
+        if state == LearnMoveState.AskWhetherToLearn:
             debug.action_stack.append("LearnMoveState.AskWhetherToLearn")
-            if task_is_active("Task_HandleReplaceMoveYesNoInput") or task_is_active("sub_806F390"):
-                party_menu_data = get_party_menu_cursor_pos(get_party_size())
-                move_to_learn = get_move_by_index(party_menu_data["data1"])
-                party_index = party_menu_data["slot_id"]
-            else:
-                move_to_learn = get_move_by_index(unpack_uint16(read_symbol("gMoveToLearn", size=2)))
-                if context.rom.is_rs:
-                    if evolution_task is not None:
-                        party_index = evolution_task.data_value(12)
-                    else:
-                        party_index = context.emulator.read_bytes(0x02016018, length=1)[0]
+            if not already_confirmed:
+                if task_is_active("Task_HandleReplaceMoveYesNoInput") or task_is_active("sub_806F390"):
+                    party_menu_data = get_party_menu_cursor_pos(get_party_size())
+                    move_to_learn = get_move_by_index(party_menu_data["data1"])
+                    party_index = party_menu_data["slot_id"]
                 else:
-                    party_index = read_symbol("gBattleStruct", 16, 1)[0]
-                if context.rom.is_emerald or context.rom.is_frlg:
-                    party_index = get_battle_state().map_battle_party_index(party_index)
-            pokemon = get_party()[party_index]
-            decision = strategy.which_move_should_be_replaced(pokemon, move_to_learn)
+                    move_to_learn = get_move_by_index(unpack_uint16(read_symbol("gMoveToLearn", size=2)))
+                    if context.rom.is_rs:
+                        if evolution_task is not None:
+                            party_index = evolution_task.data_value(12)
+                        else:
+                            party_index = context.emulator.read_bytes(0x02016018, length=1)[0]
+                    else:
+                        party_index = read_symbol("gBattleStruct", 16, 1)[0]
+                    if context.rom.is_emerald or context.rom.is_frlg:
+                        party_index = get_battle_state().map_battle_party_index(party_index)
+                pokemon = get_party()[party_index]
+                move_to_forget = strategy.which_move_should_be_replaced(pokemon, move_to_learn)
+                if context.bot_mode == "Manual":
+                    return
+                already_confirmed = True
 
-            if context.bot_mode == "Manual":
-                return
-
-            if decision in (0, 1, 2, 3):
-                move_to_forget = decision
-                while get_learn_move_state() != LearnMoveState.SelectMoveToReplace:
-                    context.emulator.press_button("A")
-                    yield
-            else:
-                while get_learn_move_state() != LearnMoveState.ConfirmCancellation:
-                    context.emulator.press_button("B")
-                    yield
-            already_confirmed = True
+            # Answer the "Delete a move to learn X?" YES/NO ROBUSTLY. Only press
+            # when the game is WAITING FOR INPUT — blindly spamming a button also
+            # skips the preceding text AND can be mis-registered as the Yes/No
+            # answer (landing on NO), which flaky-froze the bot at EXACTLY this
+            # prompt (ML-11 / user-reported). A = YES (cursor defaults to Yes) to
+            # learn; B = decline. We do NOT wait on a fixed next-state — the outer
+            # loop handles whatever state follows, so a stray/odd transition
+            # course-corrects instead of hanging on a target that never comes.
+            if is_waiting_for_input():
+                context.emulator.press_button("A" if move_to_forget in (0, 1, 2, 3) else "B")
+            yield
             debug.action_stack.pop()
 
         elif state == LearnMoveState.ConfirmCancellation:
             debug.action_stack.append("LearnMoveState.ConfirmCancellation")
-            while get_learn_move_state() not in (LearnMoveState.Unknown, LearnMoveState.DialogueNotActive):
+            if is_waiting_for_input():
                 context.emulator.press_button("A")
-                yield
+            yield
             debug.action_stack.pop()
 
         elif state == LearnMoveState.SelectMoveToReplace:
@@ -156,9 +158,12 @@ def handle_move_replacement_dialogue(strategy: BattleStrategy) -> Generator:
                 yield
                 yield
             else:
-                while get_learn_move_state() not in (LearnMoveState.Unknown, LearnMoveState.DialogueNotActive):
+                # Cursor is on the move to forget — confirm with A, gated on the
+                # game actually waiting for input (avoids the blind-spam
+                # mis-register, ML-11). The outer loop follows whatever comes next.
+                if is_waiting_for_input():
                     context.emulator.press_button("A")
-                    yield
+                yield
             debug.action_stack.pop()
 
         else:

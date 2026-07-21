@@ -369,3 +369,10 @@ B, then break) if its progress signature (instruction + callback + learn-move
 state + party EXP) is unchanged for 6000 iterations — guarantees the bot can never
 hard-freeze inside a battle (the flaky Lv16 move-learn hang). EXP in the signature
 keeps GiveExp from false-triggering. Same in sandbox.
+
+### (n) STOCK FIX(ROOT): robust move-learn YES/NO answering (ML-11)
+`modules/battle_move_replacing.py`: handle_move_replacement_dialogue now answers
+the "Delete a move?" YES/NO (and the delete-confirm) only when is_waiting_for_input()
+— blind A/B spam was mis-registering the answer and then waiting on a fixed
+next-state that never came (the user-reported Lv16 hang). No fixed-target waits; the
+outer loop follows the actual state. Same in sandbox. Verified 4/4 learns Pursuit.

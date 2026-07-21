@@ -989,3 +989,16 @@ regression + no false-trigger (gym repro 3/3 clean). Still could NOT reproduce t
 exact hang in-harness (flaky race; user runs 32x) — this GUARANTEES it can no longer
 HARD-freeze regardless of cause. Also noted #24-textread (read text-box text to
 drive fragile interactions deterministically — user idea).
+
+## 2026-07-20 — FIX(4, ROOT): Lv16 move-learn hang — robust YES/NO answering (#24, both builds, ML-11)
+User pinpointed it: freezes at the "Delete a move to learn PURSUIT? YES/NO" prompt.
+ROOT CAUSE: handle_move_replacement_dialogue BLIND-SPAMMED A/B to answer — which is
+exactly what the game's own wait_for_yes_no_question warns against: spamming a
+button to skip text ALSO gets registered as the Yes/No answer, so it can land on NO
+(→ never reaches the delete screen), and the code then waited for a FIXED next-state
+(SelectMoveToReplace) that never comes → hang. FIX: answer the Yes/No (and the
+delete-confirm) ONLY when is_waiting_for_input() is true (matches the game's robust
+yes/no pattern), and don't wait on a fixed next-state — the outer state machine
+follows whatever comes, so a stray transition course-corrects (user's idea) instead
+of hanging. Verified 4/4 learns Pursuit + evolves; no regression. The battle
+no-progress watchdog (FIX 3) remains as a backstop.
