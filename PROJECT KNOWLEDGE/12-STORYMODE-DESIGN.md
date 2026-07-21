@@ -264,6 +264,30 @@ first piece (2026-07-20). Full system = punch-list #24-textread; it also subsume
 the fragile parts of scripted-scene ride-outs. Recommended next big build once the
 core chapters are stable.
 
+**★ ROOT CAUSE of the Lv16 move-learn hang — confirmed & fixed (ML-13, 2026-07-20).**
+The mechanism, found by faithfully reproducing the freeze:
+- The Emerald *battle* "Delete a move to make room for X?" Yes/No has **NO backing
+  task** — `tasks=[]` throughout. `get_learn_move_state()` can only recognise it by a
+  **fragile script-offset** (`gBattleScriptCurrInstr == BattleScript_AskToLearnMove +
+  0x11`). When that offset is never observed the state stays **`Unknown`**.
+- The old `Unknown` branch pressed A **only when `is_waiting_for_input()`** — which
+  reads the FIELD text-printer (`sTextPrinters[0]`), lags ~140 frames in battle and
+  can be **permanently False**. Fragile-state + unreliable-gate ⇒ presses NOTHING ⇒
+  frozen on the Yes/No (exactly the user's report).
+- **Fix:** `handle_move_replacement_dialogue` is now fully **text/task-driven** — the
+  Yes/No is detected from the on-screen TEXT (`"make room for"` / `"Delete a move"`)
+  as well as the state; the move-select is driven by the reliable
+  `Task_HandleReplaceMoveInput`; every other text box is advanced with A **directly**
+  (never gated on `is_waiting_for_input`). `handle_evolution_scene`'s move-learn
+  hand-off was hardened the same way (breaks on state OR text OR the move-select task).
+- **How it was proven — FAULT-INJECTION A/B** (`scratchpad/repro_movelearn.py
+  --break-state`): force `get_learn_move_state` to never report AskWhetherToLearn (→
+  Unknown) and `is_waiting_for_input` → False (the user's failing env). OLD code stalls
+  **~10,600 frames** and fails to learn the move; the FIX resolves in **394 frames**,
+  learns Pursuit, evolves to Grovyle (moveset: Fury Cutter, Pursuit, Absorb, Quick
+  Attack). Verified on BOTH builds. Lesson: the Emerald battle Yes/No prompts are NOT
+  task-backed — read the text; never gate a battle press on `is_waiting_for_input`.
+
 ---
 
 ## §SC. SELF-CORRECTION / SANITY-CHECK — "Story mode needs to be smarter" (user 2026-07-20)
