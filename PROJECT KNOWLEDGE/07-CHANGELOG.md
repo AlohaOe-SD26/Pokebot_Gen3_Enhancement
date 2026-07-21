@@ -905,3 +905,14 @@ controllable windows → needs a FLAG-ANCHORED ride-out (press until
 DEVON_GOODS_STOLEN), not the generic one (which thrashes _navigate_through_scripts).
 Full plan in design §Ch5. Checkpoint post_theft.ss1. Build deferred to a fresh
 session (context length) to keep quality high.
+
+## 2026-07-20 — GUI: paginate the Load Save State popup (both builds, #24-loadpage)
+The load-state popup eagerly decoded EVERY save-state screenshot (up to 128 PNGs)
+on open, so a full states/ folder made it crawl (user-reported, original repo).
+Rewrote load_state_window.py to paginate: 5 states/page, lazily rendering ONLY the
+current page's thumbnails (Prev/Next + arrow/PageUp-Down keys + "Page X/Y (N
+states)" label; nav auto-hidden for a single page; per-page PhotoImage refs freed
+on flip). Opens instantly regardless of folder size. Applied to sandbox + custom;
+40cakes mirror untouched. Also NOTED (not built) #24-autosave: auto chapter
+save-state in sandbox with a Play-tab toggle (default on) — apply after the user
+green-lights the current story build.

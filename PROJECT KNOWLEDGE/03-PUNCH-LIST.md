@@ -108,6 +108,21 @@
       travel (Fly/Teleport/Escape Rope when available, gated by HMs/badges/items
       per #42); title-screen-with-save auto-Continue; reliable completion flags
       for chapters past Gym 1. Design §RS.
+- [ ] #24-autosave — AUTO CHAPTER SAVE-STATE (sandbox testing aid; user
+      2026-07-20). After each scripted chapter/segment completes in StoryMode
+      (SANDBOX ONLY), auto-save a save state named by chapter into `states/` so
+      chapters can be tested/resumed fast. TOGGLE in the Play tab, DEFAULT ON,
+      safely toggleable on/off even while the bot runs (the story generator reads
+      the flag at SEGMENT BOUNDARIES, so flipping it never interrupts). Implement
+      by hooking the segment boundaries already in `StoryMode.run()` (§RS).
+      **APPLY ONLY AFTER the user green-lights the current story build** (it
+      touches run()); until then this is a note. Save quickly at a boundary
+      (get_save_state + write) — negligible one-frame pause.
+- [x] #24-loadpage — LOAD-STATE POPUP PAGINATION (user 2026-07-20): DONE both
+      builds. `load_state_window.py` now shows 5 states/page and lazily renders
+      only the current page's thumbnails (Prev/Next + arrow/PageUp-Down + page
+      label; nav auto-hidden for one page). Fixes the slow-open with a full
+      `states/` folder (was decoding up to 128 PNGs at once).
 - [ ] #24-evo — EVOLUTION policy (noted 2026-07-20): the stock default
       `stop_evolution: True` means the Story bot NEVER evolves its starter —
       bad for gym strength (and worsens the Torchic problem). Decide/implement an
