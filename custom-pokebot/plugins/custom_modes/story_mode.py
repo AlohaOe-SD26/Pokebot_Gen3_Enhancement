@@ -22,7 +22,28 @@ from modules.context import context
 from modules.memory import GameState, game_has_started, get_game_state
 from modules.modes import BattleAction, BotMode
 from modules.battle_strategies import BattleStrategyUtil, TurnAction
+from modules.battle_strategies.catch import CatchStrategy
 from modules.battle_strategies.level_up import LevelUpLeadBattleStrategy
+
+
+class StoryCatchStrategy(CatchStrategy):
+    """Catch strategy for the Story bot that NEVER drops to Manual when out of Poké
+    Balls. The stock CatchStrategy calls `switch_to_manual()` the moment it can't
+    throw a ball — but opportunistic pre-gym catching can burn through the 5 starter
+    balls on bad catch RNG before the team is full, which stranded the bot in Manual
+    (user-seen). Here, if no ball can be thrown, we FLEE and carry on instead; the
+    story then stops catching (the `_should_catch` floor) until balls are restocked
+    at a mart before the gym. (User directive: out of balls → finish the battle,
+    never break.)"""
+
+    def decide_turn(self, battle_state):
+        try:
+            if self._get_best_poke_ball(battle_state) is None:
+                context.message = "Story: out of Poké Balls — fleeing this catch and moving on."
+                return TurnAction.run_away()
+        except Exception:
+            pass
+        return super().decide_turn(battle_state)
 
 
 class LevelUpTravelBattleStrategy(LevelUpLeadBattleStrategy):
@@ -149,6 +170,66 @@ class LevelUpTravelBattleStrategy(LevelUpLeadBattleStrategy):
         return True
 
 
+class SwapTrainBattleStrategy(LevelUpTravelBattleStrategy):
+    """SWAP-TRAINING (user directive 2026-07-21). Level a weak team member by having a
+    stronger team-mate secure the KO while the trainee (which was sent out first)
+    banks its Gen-3 shared-EXP — no fainting, minimal healing.
+
+    Two triggers, both switching to a team-mate that can SAFELY finish the fight
+    (out-levels the foe + healthy), preferring the strongest:
+
+      1. UNDER-LEVELLED — the trainee is >= ``UNDERLEVEL_MARGIN`` levels below the
+         foe: switch turn 1, before it takes any damage.
+      2. CAN'T CONTINUE — the trainee fought a close-level foe and dropped to low HP
+         (or ran out of usable moves): rather than FLEE for zero XP (old behaviour),
+         switch so the team-mate finishes and the trainee keeps its XP share; the
+         training loop then heals normally. (User: swap instead of flee.)
+
+    If NO team-mate can safely finish, we fall through to the parent — which flees on
+    low HP (safe) or solos a same-or-lower foe for FULL XP."""
+
+    #: switch pre-emptively when the trainee is this many levels (or more) below the
+    #: foe. Low (2) so it doesn't fight-and-flee winnable-looking-but-losing battles.
+    UNDERLEVEL_MARGIN = 2
+
+    def decide_turn(self, battle_state):
+        try:
+            active = battle_state.own_side.active_battler
+            foe = battle_state.opponent.active_battler
+            if active is not None and foe is not None:
+                util = BattleStrategyUtil(battle_state)
+                underleveled = active.level + self.UNDERLEVEL_MARGIN <= foe.level
+                # Same tests the parent flees on: too little HP, or no usable move.
+                cant_continue = not self._pokemon_has_enough_hp(active) or not any(
+                    util.move_is_usable(move) for move in active.moves
+                )
+                if (underleveled or cant_continue) and util.can_switch():
+                    finisher = self._capable_finisher(battle_state, util, foe.level)
+                    if finisher is not None:
+                        return TurnAction.rotate_lead(finisher)
+                    # else: no safe finisher — fall through (parent flees / solos).
+        except Exception:
+            pass
+        return super().decide_turn(battle_state)
+
+    def _capable_finisher(self, battle_state, util, foe_level: int):
+        """Party index of the strongest HEALTHY team-mate that can SAFELY finish this
+        battle — it can damage the foe and has enough HP (both ensured by
+        ``get_potential_rotation_targets``) AND out-levels the foe. ``None`` if none
+        qualifies (caller then flees / lets the trainee solo)."""
+        from modules.pokemon_party import get_party
+
+        party = get_party()
+        safe = [
+            i
+            for i in util.get_potential_rotation_targets(battle_state)
+            if party[i].level >= foe_level
+        ]
+        if not safe:
+            return None
+        return max(safe, key=lambda i: (party[i].level, party[i].current_hp))
+
+
 class StoryMode(BotMode):
     @staticmethod
     def name() -> str:
@@ -165,6 +246,170 @@ class StoryMode(BotMode):
         # Unlike stock modes, Story Mode is MEANT to start at the title/main
         # menu — that's where it runs the New Game intro.
         return True
+
+    def __init__(self):
+        super().__init__()
+        # DEFEAT RECOVERY (user directive 2026-07-21). Consecutive losses are counted
+        # per LOCATION (map) so repeated faints at the same obstacle mean a power/level
+        # problem → trigger a retrain. These live on the instance and survive whiteout
+        # restarts because run() loops in place (it does NOT bounce through Manual).
+        self._defeat_counts: dict = {}
+        self._whiteout_pending = False
+        self._last_defeat_key = None
+        self._derails = 0  # consecutive non-whiteout derails (self-correct before Manual)
+        self._last_derail_sig = None  # progress fingerprint at the last derail (see run())
+        # Organic team-building (user directive 2026-07-21): catch NEW species while
+        # travelling to Gym 1 until the party has this many members (starter + helpers).
+        self._catch_team_target = 4
+
+    def on_battle_ended(self, outcome) -> None:
+        from modules.battle_state import BattleOutcome
+
+        if outcome is BattleOutcome.Lost:
+            key = self._location_key()
+            self._defeat_counts[key] = self._defeat_counts.get(key, 0) + 1
+            self._last_defeat_key = key
+            console.print(
+                f"[yellow]Story: lost a battle at map {key} "
+                f"(defeat #{self._defeat_counts[key]} here).[/]"
+            )
+
+    def on_whiteout(self) -> bool:
+        # We handle the whiteout ourselves — do NOT drop to Manual (and the watchdog
+        # is hands-off for Story, so no save-state reload). Flag an abort so the
+        # running segment bails out promptly; run() then re-orients from the respawn
+        # Poké Center and resumes the segmented playthrough from where we left off.
+        from modules.story.early_game import set_story_abort
+
+        self._whiteout_pending = True
+        set_story_abort(True)
+        console.print(
+            "[bold yellow]Story: whited out — recovering (navigating the respawn and "
+            "resuming from where I left off; no save-state reload).[/]"
+        )
+        return True
+
+    def _location_key(self):
+        try:
+            from modules.map import get_map_data_for_current_position
+
+            d = get_map_data_for_current_position()
+            return (d.map_group, d.map_number)
+        except Exception:
+            return None
+
+    def defeat_count_at(self, location_key) -> int:
+        return self._defeat_counts.get(location_key, 0)
+
+    def _progress_sig(self):
+        """A MONOTONIC fingerprint of story progress from the PARTY structure:
+        size, lead level, and total accumulated EXP. These only ever move forward
+        and — unlike event flags, which flicker while read during a battle→overworld
+        transition — read reliably at any moment. run() compares it across derails
+        to tell a transient hiccup mid-progress (a battle finished, a level or a
+        Pokémon was gained → reset the derail budget) from a truly stuck loop
+        (nothing advances → escalate to Manual). Deliberately excludes flags so a
+        flickering flag can never fake progress and mask a genuine freeze."""
+        try:
+            from modules.pokemon_party import get_party
+
+            party = get_party()
+            lead_level = party[0].level if party else 0
+            total_exp = sum(getattr(p, "total_exp", 0) for p in party)
+            return (len(party), lead_level, total_exp)
+        except Exception:
+            return None
+
+    def _log_localization(self, note: str) -> None:
+        """Report WHERE WE ARE — story stage (from the flag-based detector) + physical
+        map — so a derail is diagnosable and self-correction is visible, instead of a
+        silent drop to Manual (user directive 2026-07-21)."""
+        try:
+            from modules.story import detect_live
+
+            prog = detect_live()
+            stage = f"{prog.chapter_key}: {prog.chapter_name}"
+        except Exception:
+            stage = "unknown stage"
+        console.print(f"[yellow]Story localization — {note} | stage: {stage} | map {self._location_key()}[/]")
+
+    def _should_catch(self, encounter) -> bool:
+        """Pre-Gym-1 organic team-building (user directive 2026-07-21): catch a wild
+        of a NEW species (never a dup we've already caught, never one already in the
+        party) while there's room in the party. Only before the first gym, only once
+        we have the Pokédex + Poké Balls, never a shiny (fight through — contingency)."""
+        try:
+            from modules.memory import get_event_flag
+            from modules.pokemon_party import get_party
+            from modules.pokedex import get_pokedex
+            from modules.items import get_item_bag
+
+            if encounter is None:  # trainer battle — never "catch"
+                return False
+            if getattr(encounter, "is_shiny", False):
+                return False
+            if get_event_flag("BADGE01_GET"):  # only before the first gym
+                return False
+            if not get_event_flag("RECEIVED_POKEDEX_FROM_BIRCH"):  # need balls + dex
+                return False
+            # RESOURCE-AWARE (planning doc §3): never ATTEMPT a catch without balls —
+            # that's what broke the bot. Keep 1 in reserve; the catch phase restocks
+            # (buys) or stops gracefully. Fight the wild instead when out of balls.
+            if sum(s.quantity for s in get_item_bag().poke_balls) <= 1:
+                return False
+            party = [p for p in get_party() if p is not None and not p.is_egg]
+            if len(party) >= self._catch_team_target:
+                return False
+            species = getattr(getattr(encounter, "pokemon", None), "species", None)
+            if species is None:
+                return False
+            # Species objects aren't hashable — compare by national dex number.
+            owned = {s.national_dex_number for s in get_pokedex().owned_species}
+            party_dex = {p.species.national_dex_number for p in party}
+            dex = species.national_dex_number
+            return dex not in owned and dex not in party_dex
+        except Exception:
+            return False
+
+    def _prepare_for_fight(self, cfg: dict) -> Generator:
+        """Before a major fight, train the team to a sensible level (user directive
+        2026-07-21). PROACTIVE: a target within the fight's level band (organic,
+        randomized). REACTIVE: if we've already LOST here ≥2 times, escalate the
+        target and train harder before re-attempting — the "+levels" strategy and
+        the team scope are both randomized to look human/organic."""
+        import random
+
+        from modules.pokemon_party import get_party
+        from modules.story.early_game import train_team
+
+        losses = max((self._defeat_counts.get(k, 0) for k in cfg["keys"]), default=0)
+        lo, hi = cfg["band"]
+        target = random.randint(lo, hi)  # organic proactive target within the band
+        if losses >= 2:
+            levels = [p.level for p in get_party() if p is not None and not p.is_egg]
+            team_max = max(levels, default=0)
+            team_avg = (sum(levels) // len(levels)) if levels else 0
+            choice = random.choice(["plus5_max", "plus5_avg", "escalate_band"])
+            if choice == "plus5_max":
+                target = max(target, team_max + 5)
+            elif choice == "plus5_avg":
+                target = max(target, team_avg + 5)
+            else:
+                target = max(target, hi + 2 * (losses - 1))
+            console.print(
+                f"[bold yellow]Story: lost here {losses}× — training harder before "
+                f"re-attempting (target Lv {target}, {choice}).[/]"
+            )
+        scope = random.choice(["whole", "lead"])  # randomize team scope (organic)
+
+        levels = [p.level for p in get_party() if p is not None and not p.is_egg]
+        lead_level = get_party()[0].level if get_party() else 0
+        need = (lead_level < target) if scope == "lead" else any(l < target for l in levels)
+        if need:
+            console.print(f"[cyan]Story: prepping for the fight — training to Lv {target} ({scope}).[/]")
+            yield from train_team(target, scope=scope, grass=cfg["grass"], heal_center=cfg["heal"])
+        else:
+            console.print(f"[dim]Story: team already ≥ Lv {target} — no prep training needed.[/]")
 
     def on_battle_started(self, encounter):
         # Story battles (the first Birch battle, training, the rival) are meant
@@ -196,6 +441,29 @@ class StoryMode(BotMode):
                 )
         except Exception:
             pass
+        # PRE-GYM-1 CATCHING (user directive 2026-07-21): build an organic team by
+        # catching NEW species (never a dup) while travelling to the first gym.
+        try:
+            if self._should_catch(encounter):
+                from modules.console import console
+
+                sp = getattr(getattr(encounter, "pokemon", None), "species", None)
+                console.print(f"[bold green]Story: catching a new {getattr(sp, 'name', '?')} for the team![/]")
+                # Use the story catch strategy (flees when out of balls instead of
+                # dropping to Manual — see StoryCatchStrategy).
+                return StoryCatchStrategy()
+        except Exception:
+            pass
+        # SWAP-TRAINING: while train_team is running, use the swap strategy so an
+        # under-levelled lead is switched out to a stronger team-mate (shares XP, no
+        # fainting) instead of grinding itself to death against higher-level wilds.
+        try:
+            from modules.story.early_game import swap_train_active
+
+            if swap_train_active() and encounter is not None:
+                return SwapTrainBattleStrategy()
+        except Exception:
+            pass
         # Fight to WIN and level the lead (strongest move; flees only at low HP,
         # which the training loop covers by healing). The travel variant also
         # refuses to flee a TRAINER battle (single-mon party can't — see ML-8),
@@ -204,46 +472,138 @@ class StoryMode(BotMode):
         return LevelUpTravelBattleStrategy()
 
     def run(self) -> Generator:
+        # DEFEAT / WHITEOUT RECOVERY (user directive 2026-07-21): the segmented resume
+        # (`_play`) runs inside a restart loop. On a whiteout, on_whiteout() flags an
+        # abort → the running segment bails → we catch it here, re-orient from the
+        # respawn point, and re-run `_play` (which skips finished segments and
+        # re-attempts the failed one). GENUINE (non-whiteout) errors propagate to
+        # Manual exactly as before. No save states are ever reloaded.
+        from modules.modes import BotModeError
+        from modules.story.early_game import set_story_abort, exit_building_after_whiteout
+        from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
+
+        recoveries = 0
+        while True:
+            set_story_abort(False)
+            self._whiteout_pending = False
+            try:
+                yield from self._play()
+                return
+            except BotModeError as err:
+                from modules.memory import game_has_started, get_game_state, GameState
+
+                if not self._whiteout_pending:
+                    # NON-WHITEOUT DERAIL (user directive 2026-07-21): don't drop
+                    # straight to Manual — re-localise (log where we are in the story
+                    # AND on the map) and retry the segmented resume a bounded number
+                    # of times. The resume re-detects the stage from flags + position,
+                    # so a transient nav/scene hiccup self-corrects. Only hand to
+                    # Manual if it keeps failing (a genuine, persistent problem).
+                    # Reset the budget when we've made real progress since the last
+                    # derail: a long segment (training, a chapter) can throw a few
+                    # unrelated transient hiccups, and those must NOT accumulate into
+                    # a false drop to Manual. Only CONSECUTIVE no-progress derails —
+                    # a genuine stuck loop — escalate.
+                    sig = self._progress_sig()
+                    if sig != self._last_derail_sig:
+                        self._derails = 0
+                        self._last_derail_sig = sig
+                    self._derails += 1
+                    self._log_localization(f"derail #{self._derails}: {err}")
+                    try:
+                        from modules import debug_logger
+
+                        debug_logger.event(f"DERAIL #{self._derails}: {err}")
+                    except Exception:
+                        pass
+                    if self._derails > 4:
+                        raise
+                    set_story_abort(False)
+                    try:
+                        # Patiently ride out the post-battle transition before retrying.
+                        # These stalls SELF-HEAL (the overworld becomes controllable on
+                        # its own) but the controllable flag flickers first, so waiting
+                        # for a STABLE controllable window here lets a SINGLE recovery
+                        # ride out the whole stall instead of burning many rapid derail
+                        # cycles toward Manual.
+                        from modules.story.early_game import wait_until_truly_controllable
+
+                        yield from wait_until_truly_controllable(timeout_frames=3000)
+                        yield from exit_building_after_whiteout()
+                        settle = 0
+                        while settle < 300 and not (
+                            game_has_started() and get_game_state() is GameState.OVERWORLD
+                        ):
+                            settle += 1
+                            yield
+                    except Exception:
+                        yield
+                    continue  # re-run _play(): re-localise from flags + position
+                # --- WHITEOUT recovery ---
+                recoveries += 1
+                self._derails = 0  # reaching a fight = progress; reset the derail budget
+                try:
+                    from modules import debug_logger
+
+                    debug_logger.event(f"WHITEOUT recovery #{recoveries}")
+                except Exception:
+                    pass
+                if recoveries > 40:
+                    raise BotModeError(
+                        "Story: too many whiteout recoveries in a row — stopping so I "
+                        "don't loop forever. Check the team/route."
+                    )
+                self._whiteout_pending = False
+                set_story_abort(False)
+                console.print(
+                    "[cyan]Story: recovered from the whiteout — re-orienting at the "
+                    "respawn point and resuming.[/]"
+                )
+
+                try:
+                    yield from wait_for_player_avatar_to_be_controllable()
+                    # Respawn lands us INSIDE the Poké Center — step out to the town
+                    # so the segmented resume's map checks work (else it backtracks).
+                    yield from exit_building_after_whiteout()
+                    # SETTLE: right after the exit warp the game is transiently
+                    # "not started" / in a non-overworld state — re-running _play now
+                    # would misfire its title check into the New-Game intro. Wait for
+                    # a stable started+overworld state first.
+                    settle = 0
+                    while settle < 600 and not (
+                        game_has_started() and get_game_state() is GameState.OVERWORLD
+                    ):
+                        settle += 1
+                        yield
+                    yield from wait_for_player_avatar_to_be_controllable()
+                except BotModeError:
+                    raise
+                except Exception:
+                    yield
+                # loop → re-run the segmented resume from the respawn point
+
+    def _play(self) -> Generator:
+        import random
+
+        from modules.memory import get_event_flag
+        from modules.map import get_map_data_for_current_position
+        from modules.map_data import MapRSE
         from modules.story import detect_live
         from modules.story.config import get_story_config
         from modules.story.intro import run_intro
-
-        # --- Existing game already loaded: detect & report progress. --------
-        if game_has_started() and get_game_state() is not GameState.TITLE_SCREEN:
-            progress = detect_live()
-            console.print("[bold cyan]Story Mode — detected progress:[/]")
-            console.print(progress.summary())
-            context.message = (
-                f"Story: {progress.chapter_key} — {progress.chapter_name}. "
-                "Chapter execution beyond the intro isn't built yet; back to manual."
-            )
-            # Chapter 0 here means we're already in-game but pre-adventure (e.g.
-            # in the truck) — that's the end of what chunk 1 automates.
-            context.set_manual_mode()
-            return
-
-        # --- Fresh boot (title/main menu): run the New Game intro. ----------
-        cfg = get_story_config(context.profile.path)
-        console.print(
-            f"[bold cyan]Story Mode — new game[/] as [bold]{cfg.character_name}[/] "
-            f"({cfg.gender}). Running the intro..."
-        )
-        yield from run_intro(cfg.character_name, cfg.gender)
-
-        # --- Chapter 0 tail: step off the truck → Mom's greeting into the
-        #     house → upstairs → set the wall clock. (Downstairs/Mom, Route 101,
-        #     starter + first battle are WIP.) ------------------------------
-        import random
-
         from modules.story.early_game import (
+            cross_petalburg_woods,
             descend_and_leave_players_house,
             do_petalburg_gym_and_wally_tutorial,
+            do_rustboro_gym,
             finish_birch_lab,
             fight_route103_rival,
             go_upstairs_and_set_clock,
             help_birch_and_choose_starter,
+            recover_devon_goods,
             return_to_lab_and_get_pokedex,
             train_lead_to_level,
+            travel_route104_north_to_rustboro,
             travel_to_petalburg,
             travel_to_petalburg_woods,
             travel_to_route103,
@@ -251,32 +611,183 @@ class StoryMode(BotMode):
             walk_off_truck_and_into_house,
         )
 
-        yield from walk_off_truck_and_into_house()
-        yield from go_upstairs_and_set_clock()
-        yield from descend_and_leave_players_house()
-        yield from visit_rivals_house()
-        yield from help_birch_and_choose_starter(cfg.starter)
-        yield from finish_birch_lab(cfg.starter_nickname)
+        cfg = get_story_config(context.profile.path)
 
-        # Head to Route 103 (training en route), grind the starter to a random
-        # Lv 8-10, battle the rival, then return to Birch for the Pokédex.
-        target_level = random.randint(8, 10)
-        console.print(f"[cyan]Story: training the starter to Lv {target_level} before the rival.[/]")
-        yield from travel_to_route103()
-        yield from train_lead_to_level(target_level)
-        yield from fight_route103_rival()
-        yield from return_to_lab_and_get_pokedex()
-        yield from travel_to_petalburg()
-        yield from do_petalburg_gym_and_wally_tutorial()
+        def _done(flag: str) -> bool:
+            try:
+                return bool(get_event_flag(flag))
+            except Exception:
+                return False
 
-        # Chapter 3: heal, cross west to Route 104 (Scott cutscene), beat the
-        # route trainer, and enter Petalburg Woods.
-        yield from travel_to_petalburg_woods()
+        def _cur_map():
+            try:
+                d = get_map_data_for_current_position()
+                return (d.map_group, d.map_number)
+            except Exception:
+                return None
+
+        def _has_starter() -> bool:
+            """True once the player owns a (non-egg) Pokémon — i.e. we are PAST the
+            scripted intro. Lets a mid-Segment-1 recovery skip the truck→lab cutscene
+            and resume at training rather than trying (and failing) to re-run the
+            intro from wherever we respawned."""
+            try:
+                from modules.pokemon_party import get_party
+
+                return any(not getattr(p, "is_egg", False) for p in get_party())
+            except Exception:
+                return False
+
+        from modules.modes import BotModeError
+
+        def _guard(label: str, done_check) -> None:
+            """SELF-CORRECTION (§SC): after a segment, confirm it actually reached
+            its completion signal. If not, the bot silently derailed (a mis-warp,
+            a lost battle/blackout, or a skipped beat) — STOP with a diagnostic
+            rather than blindly marching on and compounding the error. Re-running
+            Story then resumes correctly from the REAL state (§RS)."""
+            if done_check():
+                return
+            try:
+                prog = detect_live()
+                where = f"{prog.chapter_key}: {prog.chapter_name}"
+            except Exception:
+                where = "unknown"
+            raise BotModeError(
+                f"Story self-check: '{label}' didn't reach its completion signal "
+                f"(now {where}, map {_cur_map()}). Stopping so I don't derail "
+                "further — just run Story again and it resumes correctly from here."
+            )
+
+        # RESUME MODEL: the story is linear, so we run each SEGMENT only if its
+        # completion signal isn't already set — a fresh game runs everything; a
+        # resumed save (or one you hand-played partway) skips what's done and
+        # continues from the right place. See design §RS. (Segments self-locate
+        # via navigation; the Woods segment also picks its sub-entry by current
+        # map so a resume mid-Woods doesn't backtrack to Petalburg.) After each
+        # segment a _guard() self-check confirms it truly completed (§SC).
+        at_title = get_game_state() is GameState.TITLE_SCREEN or not game_has_started()
+        if not at_title:
+            try:
+                progress = detect_live()
+                console.print(
+                    f"[bold cyan]Story Mode — resuming[/] (detected {progress.chapter_key}: "
+                    f"{progress.chapter_name}); skipping what's already done."
+                )
+            except Exception:
+                pass
+
+        # --- Chapter 0: New Game intro. Title screen only — mid-intro isn't a
+        #     resumable point (it must run from the truck). A title screen WITH an
+        #     existing save should be loaded via Continue first (TODO §RS). ---
+        if at_title:
+            console.print(
+                f"[bold cyan]Story Mode — new game[/] as [bold]{cfg.character_name}[/] ({cfg.gender})."
+            )
+            yield from run_intro(cfg.character_name, cfg.gender)
+
+        # --- Segment 1: truck → house → clock → rival → starter → first battle →
+        #     lab → train → rival → Pokédex. Gated by the Pokédex flag so a resumed
+        #     game past this point skips it. INTERNALLY split into two parts so a
+        #     mid-Segment-1 recovery (whiteout/derail during training) resumes
+        #     correctly instead of re-running the scripted intro from the truck —
+        #     which can't navigate back to the house and loops/derails (user-seen
+        #     "stuck at the Oldale Poké Center after respawn"). ---
+        if not _done("RECEIVED_POKEDEX_FROM_BIRCH"):
+            if not _has_starter():
+                # Part A — the scripted intro (truck → clock → rival house →
+                # starter → first battle → lab → up to Route 103). This is a linear
+                # cutscene run that ONLY works from the truck, so it is NOT a
+                # resumable point: run it only while the starter doesn't exist yet.
+                yield from walk_off_truck_and_into_house()
+                yield from go_upstairs_and_set_clock()
+                yield from descend_and_leave_players_house()
+                yield from visit_rivals_house()
+                yield from help_birch_and_choose_starter(cfg.starter)
+                yield from finish_birch_lab(cfg.starter_nickname)
+                yield from travel_to_route103()
+            else:
+                console.print(
+                    "[dim]Story: resuming with a starter but no Pokédex — skipping the "
+                    "scripted intro, back to training on Route 103.[/]"
+                )
+            # Part B — train → rival → Pokédex. RESUMABLE from anywhere: each step
+            # self-locates (navigate_to_anywhere / _navigate_through_scripts) and is
+            # gated by its own flag, so a recovery here picks up at the right place.
+            if not _done("DEFEATED_RIVAL_ROUTE103"):
+                target_level = random.randint(8, 10)
+                console.print(f"[cyan]Story: training the starter to Lv {target_level} before the rival.[/]")
+                yield from train_lead_to_level(target_level)
+                yield from fight_route103_rival()
+            else:
+                console.print("[dim]Story: rival already beaten — heading back for the Pokédex.[/]")
+            yield from return_to_lab_and_get_pokedex()
+        else:
+            console.print("[dim]Story: already have the Pokédex — skipping the intro chapters.[/]")
+        _guard("intro → Pokédex", lambda: _done("RECEIVED_POKEDEX_FROM_BIRCH"))
+
+        # --- Segment 2: Petalburg City — Dad (Norman) + Wally catching tutorial.
+        #     Completion signal: Wally's mum leaves Petalburg (HIDE_..._WALLYS_MOM);
+        #     the "intended" THANKED_FOR_PLAYING_WITH_WALLY is never set (ML-9). ---
+        if not _done("HIDE_PETALBURG_CITY_WALLYS_MOM"):
+            yield from travel_to_petalburg()
+            yield from do_petalburg_gym_and_wally_tutorial()
+        else:
+            console.print("[dim]Story: Petalburg / Wally tutorial already done — skipping.[/]")
+        _guard("Petalburg / Wally", lambda: _done("HIDE_PETALBURG_CITY_WALLYS_MOM"))
+
+        # --- Segment 3: Route 104 → Petalburg Woods → Rustboro. Enter at the
+        #     right sub-step by current map so a mid-Woods resume doesn't backtrack. ---
+        rustboro = MapRSE.RUSTBORO_CITY.value
+        woods = MapRSE.PETALBURG_WOODS.value
+        _in_rustboro = lambda: _cur_map() == rustboro or _done("BADGE01_GET")
+        if _in_rustboro():
+            console.print("[dim]Story: already in Rustboro — skipping the Woods travel.[/]")
+        elif _cur_map() == woods:
+            console.print("[cyan]Story: resuming inside Petalburg Woods — finishing the crossing.[/]")
+            yield from cross_petalburg_woods()
+            yield from travel_route104_north_to_rustboro()
+        else:
+            yield from travel_to_petalburg_woods()
+            yield from cross_petalburg_woods()
+            yield from travel_route104_north_to_rustboro()
+        _guard("Route 104 → Rustboro", _in_rustboro)
+
+        # --- Segment 4: Gym 1 — Roxanne (Stone Badge). Train the team to a sensible
+        #     level FIRST (threshold ≈ boss ace + margin, plus a retrain if we've
+        #     already lost here — user directive 2026-07-21). ---
+        if not _done("BADGE01_GET"):
+            from modules.map_data import PokemonCenter
+            from modules.story.early_game import RUSTBORO_TRAINING_GRASS, catch_starter_team
+
+            roxanne_fight = {
+                "keys": [MapRSE.RUSTBORO_CITY_GYM.value, MapRSE.RUSTBORO_CITY.value],
+                "band": (13, 17),  # user: team between Lv 13-17 before Roxanne
+                "grass": RUSTBORO_TRAINING_GRASS,
+                "heal": PokemonCenter.RustboroCity,
+            }
+            # Build an organic team (catch new species) BEFORE training + the gym.
+            yield from catch_starter_team(self._catch_team_target)
+            yield from self._prepare_for_fight(roxanne_fight)
+            yield from do_rustboro_gym()
+        else:
+            console.print("[dim]Story: Stone Badge already earned — Gym 1 skipped.[/]")
+        _guard("Gym 1 (Roxanne)", lambda: _done("BADGE01_GET"))
+
+        # --- Segment 5a: Devon Goods errand — chase the thief to Rusturf Tunnel and
+        #     recover the goods (+ free Peeko). Completion: RECOVERED_DEVON_GOODS.
+        #     (The return leg — Devon Corp president → PokéNav — and the Rustboro
+        #     rival are the next build; see design §Ch5.) ---
+        if not _done("RECOVERED_DEVON_GOODS"):
+            yield from recover_devon_goods()
+        else:
+            console.print("[dim]Story: Devon Goods already recovered — skipping.[/]")
+        _guard("Devon Goods (Rusturf Tunnel)", lambda: _done("RECOVERED_DEVON_GOODS"))
 
         context.message = (
-            "Story: reached Petalburg Woods (via Route 104). The rest (crossing "
-            "the Woods past the Aqua-grunt scene -> Rustboro -> Gym 1) is still "
-            "being built; handing to manual."
+            "Story: caught up to the end of the built content (through recovering the "
+            "Devon Goods in Rusturf Tunnel). The rest of Chapter 5 (return to Devon "
+            "Corp for the PokéNav -> Rustboro rival) isn't built yet; handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()

@@ -14,6 +14,7 @@ from modules.player import (
     TileTransitionState,
     RunningState,
     player_avatar_is_standing_still,
+    player_avatar_is_controllable,
     AvatarFlags,
 )
 from modules.pokemon_party import get_party
@@ -189,8 +190,36 @@ def heal_in_pokemon_center(pokemon_center_door_location: PokemonCenter) -> Gener
         yield from wait_for_no_script_to_run("B")
         yield from wait_for_player_avatar_to_be_standing_still("B")
 
-        # Get out
-        yield from navigate_to(get_player_avatar().map_group_and_number, (7, 8))
+        # Get out — robustly. `navigate_to` onto the exit warp (7,8) can stop ON the
+        # tile without firing it, leaving the player stuck in the doorway (ML-9,
+        # user-reported). Walk to the tile ABOVE the door and step DOWN so the warp
+        # fires from a fresh step; fall back to the plain navigate if we don't leave.
+        current_map = get_player_avatar().map_group_and_number
+        yield from navigate_to(current_map, (7, 7))
+        exit_frames = 0
+        while get_player_avatar().map_group_and_number == current_map and exit_frames < 150:
+            context.emulator.press_button("Down")
+            exit_frames += 1
+            yield
+        if get_player_avatar().map_group_and_number == current_map:
+            yield from navigate_to(current_map, (7, 8))
+
+        # Do not return until the overworld is STABLY controllable again. Right after
+        # the exit warp the avatar is briefly non-controllable (the flag flickers),
+        # and if we return here the caller's very next navigate_to() throws "player
+        # avatar is currently not controllable" — which, in the story's heal→go-to-
+        # rival flow, derailed and re-ran the heal, producing an endless
+        # heal/leave-PC/re-enter-PC loop that finally dropped to Manual (user-seen).
+        # Require it controllable for a sustained stretch (bounded so we never hang).
+        stable = 0
+        waited = 0
+        while stable < 20 and waited < 300:
+            if player_avatar_is_controllable():
+                stable += 1
+            else:
+                stable = 0
+            waited += 1
+            yield
 
 
 @debug.track

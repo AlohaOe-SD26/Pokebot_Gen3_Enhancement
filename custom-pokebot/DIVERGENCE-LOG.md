@@ -417,3 +417,50 @@ old code stalls ~10,600 frames and declines the move; the fix resolves in 394 fr
 learns Pursuit, evolves to Grovyle. Verified on BOTH builds. Supersedes the (p) ML-12
 dispatch-order hypothesis (a red herring — kept only as harmless defence). Same in
 sandbox. Repro tool: scratchpad/repro_movelearn.py.
+
+## 2026-07-21 — PROMOTION (approved): Story-mode resilience + swap-training + debug logging
+Promoted from sandbox after the user validated it on real hardware through the early
+game (fresh save → past Oldale → rival → Pokédex → Petalburg → Woods → Rustboro →
+pre-gym catching + training). All defect fixes were reproduced + fixed via the new debug
+logger's generator-stack dumps.
+
+WHAT (story-mode enhancements — mostly additive in our own story files):
+- Defeat/whiteout recovery matured: a lost battle no longer drops to Manual and never
+  reloads a save state; the run re-orients at the respawn Poké Center and resumes the
+  segmented playthrough. Segment 1 made RESUMABLE (skip the scripted intro once a starter
+  exists) so a mid-training recovery doesn't re-run the truck→lab intro. Derail budget
+  reset on monotonic party progress.
+- Fixed the "stuck at the Oldale Poké Center" heal loop: heal now returns only once the
+  overworld is STABLY controllable (see upstream edit below), so the heal→go-to-rival
+  navigate can't choke into an endless heal/re-heal loop.
+- Out-of-balls catching flees instead of dropping to Manual (`StoryCatchStrategy`).
+- SWAP-TRAINING (`SwapTrainBattleStrategy`): a weak team member levels by having a
+  stronger team-mate secure the KO (Gen-3 shared EXP) — switches when the trainee is
+  under-levelled OR can't safely continue (low HP / no usable move), only fleeing when no
+  team-mate can safely finish. Kills the fight-faint-heal loop.
+- Every story grind spin routed through a whiteout-aware `_story_spin()` (bails into
+  recovery on a mid-training whiteout instead of spinning at the respawn point).
+- Groundwork: `modules/story/training_areas.py` (level-spectrum of early grass +
+  best_training_grass()) for future area-appropriate training.
+- FILES (our custom code): modules/story/early_game.py, modules/story/chapters.py,
+  modules/story/training_areas.py (NEW), plugins/custom_modes/story_mode.py.
+
+UPSTREAM-FILE EDITS in this promotion (tracked divergences):
+- modules/modes/util/higher_level_actions.py — `heal_in_pokemon_center`: (1) robust PC
+  exit (walk to the tile ABOVE the door and step DOWN so the exit warp fires, instead of
+  navigate_to onto the warp which can stop on it — ML-9); (2) after the exit warp, WAIT
+  for a STABLE controllable overworld (20 consecutive controllable frames, bounded) so
+  callers' next navigate can't choke. Benefits every mode.
+- modules/main.py — one guarded `debug_logger.on_frame(frame_info)` call in main_loop
+  (no-op unless debug logging is toggled on).
+- modules/gui/emulator_controls.py — "Debug Logging (diagnostic file)" checkbutton added
+  to the bot-mode (Run) menu; default off.
+- modules/watchdog.py — Story remains in `_SELF_RECOVERING_MODES` (already logged in
+  BATCH-2); unchanged intent, carried forward.
+
+NEW custom module: modules/debug_logger.py — opt-in run logger (OFF by default, toggled
+from the Run menu). Writes <profile>/debug-logs/<mode>-debug-<ts>.log with an event
+stream + automatic STUCK DUMPS carrying the running generator call stack (function+line),
+held buttons, tasks, scripts, battle text. Fully guarded; profiles/* is gitignored so
+logs are never committed. Also toggle-wired in the native dashboard (modules/gui/
+dashboard_gui.py, a custom file).

@@ -96,6 +96,16 @@ def main_loop() -> None:
                 previous_frame=previous_frame_info,
             )
 
+            # Opt-in extensive run logger (sandbox) — OFF by default, toggled from
+            # the GUI Run menu. Fully guarded so it can never break/slow the loop.
+            try:
+                from modules import debug_logger
+
+                if debug_logger.is_enabled():
+                    debug_logger.on_frame(frame_info)
+            except Exception:
+                pass
+
             # Reset all bot listeners if the emulator has been reset.
             if previous_frame_info is not None and previous_frame_info.frame_count > frame_info.frame_count:
                 state_cache.reset()

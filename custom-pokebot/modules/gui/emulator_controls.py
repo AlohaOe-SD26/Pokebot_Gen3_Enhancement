@@ -37,6 +37,20 @@ class EmulatorControls:
         self.profile_menu: Menu | None = None
         self.help_menu: Menu | None = None
         self.debug_menu: Menu | None = None
+        self._debug_log_var: "tkinter.BooleanVar | None" = None  # Run-menu debug toggle
+
+    def _toggle_debug_logging(self) -> None:
+        from modules import debug_logger
+
+        try:
+            if self._debug_log_var is not None and self._debug_log_var.get():
+                path = debug_logger.enable(context.profile)
+                context.message = f"Debug logging ON → {path}"
+            else:
+                debug_logger.disable()
+                context.message = "Debug logging OFF"
+        except Exception as exc:  # noqa: BLE001
+            context.message = f"Debug logging toggle failed: {exc}"
 
     def get_additional_width(self) -> int:
         return 0
@@ -196,6 +210,19 @@ class EmulatorControls:
                     self.bot_mode_menu.add_separator()
                 for mode_name in disabled_modes:
                     self.bot_mode_menu.add_command(label=mode_name, state="disabled")
+            # Debug logging toggle (sandbox) — default OFF; writes an extensive
+            # diagnostic log of the whole run so freezes can be diagnosed offline.
+            from modules import debug_logger
+
+            self.bot_mode_menu.add_separator()
+            if self._debug_log_var is None:
+                self._debug_log_var = tkinter.BooleanVar(self.window)
+            self._debug_log_var.set(debug_logger.is_enabled())
+            self.bot_mode_menu.add_checkbutton(
+                label="Debug Logging (diagnostic file)",
+                variable=self._debug_log_var,
+                command=self._toggle_debug_logging,
+            )
             self.bot_mode_menu.tk_popup(
                 self.bot_mode_button.winfo_rootx(),
                 self.bot_mode_button.winfo_rooty() + self.bot_mode_button.winfo_height(),

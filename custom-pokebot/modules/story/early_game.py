@@ -49,6 +49,111 @@ HOUSE_2F_STAIRS_DOWN = (7, 1)     # 2F warp down to 1F
 HOUSE_1F_DOOR_APPROACH = (8, 7)   # tile above the front door; step South to exit
 
 
+# --- Whiteout / abort signalling (defeat-recovery, user directive 2026-07-21) ----
+# StoryMode.on_whiteout() flips this so the currently-running segment bails out of
+# its wait loops PROMPTLY (instead of mashing a button until a slow guard fires),
+# letting StoryMode.run() catch the abort and restart the segmented resume from the
+# respawn point. run() clears it at the start of each attempt.
+_STORY_ABORT = False
+
+
+def set_story_abort(value: bool) -> None:
+    global _STORY_ABORT
+    _STORY_ABORT = bool(value)
+
+
+def story_should_abort() -> bool:
+    return _STORY_ABORT
+
+
+# SWAP-TRAINING flag (user directive 2026-07-21): while set, StoryMode.on_battle_started
+# hands wild battles to SwapTrainBattleStrategy (switch the under-levelled lead out to a
+# stronger team-mate turn 1 so it shares XP without fainting). Set only around
+# `train_team` so it never affects the rival/gym fights.
+_SWAP_TRAIN = False
+
+
+def set_swap_train(value: bool) -> None:
+    global _SWAP_TRAIN
+    _SWAP_TRAIN = bool(value)
+
+
+def swap_train_active() -> bool:
+    return _SWAP_TRAIN
+
+
+def _check_abort() -> None:
+    """Raise inside a segment's wait loop to unwind it for whiteout recovery."""
+    if _STORY_ABORT:
+        raise BotModeError("Story: aborting the current step to recover from a whiteout.")
+
+
+def _story_spin(stop_condition) -> Generator:
+    """`spin()` that ALSO stops the instant a whiteout abort is flagged, then raises so
+    the current segment unwinds into StoryMode.run()'s recovery.
+
+    EVERY story grind/training spin MUST go through this. A raw `spin()` whose
+    stop-condition omits the abort check keeps spinning even after a mid-training
+    whiteout — the game respawns you (fully healed) at the Poké Center, but the spin's
+    own conditions (level still < target, HP now full) never fire, so the bot just
+    spins in place at the respawn point forever (user-seen at the Oldale PC while
+    training before the rival). The trailing `_check_abort()` turns the flag into the
+    BotModeError run() expects, so the whiteout recovery re-orients and resumes."""
+    yield from spin(stop_condition=lambda: story_should_abort() or stop_condition())
+    _check_abort()
+
+
+def _navigate_riding_out(dest_map, dest_tile, *, avoid_encounters: bool = True, tries: int = 10) -> Generator:
+    """`navigate_to_anywhere` that rides out any scripted scene (a trainer sight-line,
+    a cutscene) that aborts the path, then retries — instead of hard-failing to Manual.
+    Used by training/catching where the grass route can cross a trainer's line."""
+    for _ in range(tries):
+        _check_abort()
+        try:
+            yield from navigate_to_anywhere(
+                dest_map, dest_tile, avoid_encounters=avoid_encounters, avoid_scripted_events=False
+            )
+            return
+        except BotModeError:
+            yield from _ride_out_scripted_scene("B")
+    raise BotModeError(f"Could not reach {dest_tile} on {dest_map} (too many scene interruptions).")
+
+
+# Exit warp of every Emerald Poké Center 1F (same interior layout everywhere).
+POKEMON_CENTER_1F_EXIT = (7, 8)
+
+
+def exit_building_after_whiteout() -> Generator:
+    """After a whiteout the player respawns INSIDE a Poké Center (its healing spot).
+    Step back out to the overworld town so the segmented resume's map-based checks
+    work again (otherwise, being on the PC INTERIOR map, a segment thinks we haven't
+    reached the town yet and backtracks — the user-seen derail). Only acts if we're
+    actually inside a Poké Center; a no-op otherwise."""
+    from modules.map import get_map_data_for_current_position
+
+    try:
+        from modules.map_data import get_map_enum
+
+        enum_name = get_map_enum(get_map_data_for_current_position()).name
+    except Exception:
+        enum_name = ""
+    cur = _map_group_number()
+    if cur is None or "POKEMON_CENTER" not in enum_name:
+        return
+    context.message = "Story: stepping out of the Poké Center after the whiteout…"
+    # Walk to the tile just ABOVE an exit warp, then step DOWN onto it so the warp
+    # fires from a fresh step (navigate_to alone can stop ON the warp without it
+    # firing — ML-9). Try both exit columns (7 and 6).
+    for above in ((7, 7), (6, 7)):
+        if _map_group_number() != cur:
+            break
+        try:
+            yield from navigate_to(cur, above)
+            yield from _walk_through_warp("Down", cur, timeout_frames=120)
+        except Exception:
+            pass
+
+
 def _map_group_number() -> tuple[int, int] | None:
     try:
         md = get_map_data_for_current_position()
@@ -511,6 +616,25 @@ def _lead_hp_pct() -> float:
         return 100.0
 
 
+def _min_battler_hp_pct() -> float:
+    """Lowest HP% across the (non-egg) team. During SWAP-training the mon actually
+    taking hits is the strong team-mate we switch IN, not the slot-0 lead we're
+    levelling — so heal off the whole team's lowest HP, else the fighter faints
+    while the untouched lead sits at full HP and never triggers a heal."""
+    try:
+        pcts = []
+        for p in get_party():
+            if p is None or getattr(p, "is_egg", False):
+                continue
+            try:
+                pcts.append(float(p.current_hp_percentage))
+            except Exception:
+                continue
+        return min(pcts) if pcts else 100.0
+    except Exception:
+        return 100.0
+
+
 def _lead_level() -> int:
     party = get_party()
     return party[0].level if party else 0
@@ -530,6 +654,32 @@ def travel_to_route103() -> Generator:
     yield from navigate_to(MapRSE.ROUTE103, ROUTE103_GRASS_TILE, avoid_encounters=False)
 
 
+def wait_until_truly_controllable(*, stable_frames: int = 30, timeout_frames: int = 1800) -> Generator:
+    """Wait for a STABLE controllable overworld after a battle before navigating.
+
+    player_avatar_is_controllable() FLICKERS true/false during the battle→overworld
+    return transition, so a single true reading is unreliable — the very next
+    navigate_to() can still throw "player avatar is currently not controllable". We
+    require it true for `stable_frames` CONSECUTIVE frames (the transition is truly
+    finished) before returning. We press NOTHING while waiting: the transition
+    self-completes on its own, and probing showed that mashing inputs at it only
+    prolongs the flicker. Bounded by `timeout_frames` so we can never hang here.
+
+    Addresses the user-seen training freeze: the battle that REACHES the target
+    level strands its return transition; for a non-terminal level-up the next spin
+    rides it out, but at the target we stop spinning, so without waiting here the
+    caller's next navigate chokes and the bot derails toward Manual."""
+    stable = 0
+    waited = 0
+    while stable < stable_frames and waited < timeout_frames:
+        if player_avatar_is_controllable():
+            stable += 1
+        else:
+            stable = 0
+        waited += 1
+        yield
+
+
 def train_lead_to_level(target_level: int) -> Generator:
     """Grind wild battles on Route 103 until the lead reaches ``target_level``,
     healing at the nearest Poké Center (Oldale) whenever HP drops near the
@@ -545,6 +695,7 @@ def train_lead_to_level(target_level: int) -> Generator:
     context.message = f"Story: training the starter to Lv {target_level}..."
     guard = 0
     while _lead_level() < target_level:
+        _check_abort()  # bail immediately if a whiteout was flagged between rounds
         guard += 1
         if guard > 200:
             raise BotModeError("Training did not reach the target level (too many rounds).")
@@ -552,7 +703,14 @@ def train_lead_to_level(target_level: int) -> Generator:
         # trip back from the Poké Center; the built-in find_closest_pokemon_center
         # is unreliable here, so we hard-target Oldale's centre below).
         yield from navigate_to_anywhere(MapRSE.ROUTE103, ROUTE103_GRASS_TILE, avoid_encounters=False)
-        yield from spin(stop_condition=lambda: _lead_level() >= target_level or _lead_hp_pct() <= heal_at)
+        # Whiteout-aware spin: a mid-training defeat unwinds this for recovery instead
+        # of leaving the bot spinning at the respawn Poké Center (user-seen).
+        yield from _story_spin(lambda: _lead_level() >= target_level or _lead_hp_pct() <= heal_at)
+        # After spin() returns, the LAST battle's overworld-return transition may
+        # still be settling (the controllable flag flickers); wait it out patiently
+        # before the next navigate (heal trip or the caller's post-training move) so
+        # it doesn't choke. This is the user-seen training freeze.
+        yield from wait_until_truly_controllable()
         if _lead_level() >= target_level:
             break
         # Low HP: heal at Oldale's Poké Center (the closest one), then loop back.
@@ -826,8 +984,551 @@ def travel_to_petalburg_woods() -> Generator:
     yield from wait_for_player_avatar_to_be_standing_still()
 
     # Walk UP through the Woods south door (row 38). Robust to navigate stopping
-    # ON the door tile without warping (see _pass_through_door / ML-9).
+    # ON the door tile without warping (see _pass_through_door_going_up / ML-9).
     yield from _pass_through_door((11, 38), route104)
     if _map_group_number() != woods:
         raise BotModeError("Reached the Petalburg Woods south door but did not enter.")
     context.message = "Story: entered Petalburg Woods."
+
+
+def cross_petalburg_woods() -> Generator:
+    """Cross Petalburg Woods (south -> north), past the mandatory Team-Aqua /
+    Devon-researcher scene, and exit the north door onto Route 104 (north half).
+
+    INTENT: second stretch of the Petalburg -> Rustboro journey (Chapter 3).
+    STORY CONDITION: begins just inside the Woods south entrance (arrived from
+    Route 104 south via `travel_to_petalburg_woods`), party healed, no-flee
+    travel strategy active.
+    HOW IT WORKS: the Woods is a small maze holding ~3 Bug-Catcher TRAINERS and a
+    MANDATORY cutscene `PetalburgWoods_EventScript_DevonResearcherRight` — a Team
+    Aqua grunt robbing a Devon researcher battles you (via
+    `EventScript_DoNoIntroTrainerBattle`), flees, and the researcher gives a Great
+    Ball. We navigate toward the north exit door (14-15,5): route trainers are
+    fought inline (`avoid_scripted_events=False`), and any cutscene that ABORTS
+    navigation (the Devon scene, a trainer's "register in PokeNav?" prompt) is
+    ridden out with B — its grunt battle handled by the battle listener — then
+    navigation retries. Walking onto the north warp (15,5) exits the Woods; if
+    navigation stops just short, we step UP through it with discrete steps.
+    GOAL/END STATE: standing on Route 104 (0,19), north half (toward Rustboro)."""
+    context.message = "Story: crossing Petalburg Woods..."
+    yield from wait_for_player_avatar_to_be_controllable()
+    woods = MapRSE.PETALBURG_WOODS.value
+    rounds = 0
+    while _map_group_number() == woods:
+        rounds += 1
+        if rounds > 15:
+            raise BotModeError("Stuck crossing Petalburg Woods (too many scene interruptions).")
+        try:
+            yield from navigate_to_anywhere(
+                MapRSE.PETALBURG_WOODS,
+                (15, 6),
+                avoid_encounters=True,
+                avoid_scripted_events=False,
+            )
+            break
+        except BotModeError:
+            # The Devon/Aqua cutscene (or a post-battle PokeNav-register prompt)
+            # fired and aborted navigation — ride it out (its grunt battle is
+            # handled by the battle listener), then retry the path.
+            yield from _ride_out_scripted_scene("B")
+
+    # Exit UP through the north warp (row 5). Robust to navigate stopping ON the
+    # warp tile without triggering it (see _pass_through_door_going_up / ML-9).
+    yield from wait_for_player_avatar_to_be_standing_still()
+    yield from _pass_through_door((15, 5), woods)
+    if _map_group_number() == woods:
+        raise BotModeError("Reached the Petalburg Woods north door but did not exit.")
+    # Settle onto Route 104 north.
+    yield from wait_for_player_avatar_to_be_controllable()
+    context.message = "Story: exited Petalburg Woods to Route 104 (north)."
+
+
+# A reachable central tile in Rustboro City (from mapdump; the gym is at warp
+# (27,19), the Poké Center at (16,38)):
+RUSTBORO_ARRIVAL_TILE = (20, 42)
+
+
+def travel_route104_north_to_rustboro() -> Generator:
+    """Route 104 (north half) -> Rustboro City.
+
+    INTENT: final travel leg of Chapter 3 (Petalburg -> Rustboro).
+    STORY CONDITION: standing on Route 104 north (having exited Petalburg Woods
+    via `cross_petalburg_woods`), no-flee travel strategy active.
+    HOW IT WORKS: Route 104's north half connects DIRECTLY to Rustboro (no warp
+    split), so the global navigator can route it in one shot. We head for a
+    central Rustboro tile, fighting any Route 104 north trainers inline
+    (`avoid_scripted_events=False`) and riding out any cutscene that aborts the
+    path, until we're standing in Rustboro City.
+    GOAL/END STATE: standing in Rustboro City (0,3)."""
+    context.message = "Story: heading up Route 104 to Rustboro City..."
+    rustboro = MapRSE.RUSTBORO_CITY.value
+    rounds = 0
+    while _map_group_number() != rustboro:
+        rounds += 1
+        if rounds > 15:
+            raise BotModeError("Stuck reaching Rustboro from Route 104 north.")
+        try:
+            yield from navigate_to_anywhere(
+                MapRSE.RUSTBORO_CITY,
+                RUSTBORO_ARRIVAL_TILE,
+                avoid_encounters=True,
+                avoid_scripted_events=False,
+            )
+            break
+        except BotModeError:
+            yield from _ride_out_scripted_scene("B")
+    yield from wait_for_player_avatar_to_be_controllable()
+    context.message = "Story: arrived in Rustboro City."
+
+
+# Roxanne (the Rustboro gym leader) stands at gym tile (5,2); the challenge tile
+# right below her is (5,3), approached from (5,4):
+RUSTBORO_GYM_ROXANNE_APPROACH = (5, 4)
+
+
+def do_rustboro_gym() -> Generator:
+    """Rustboro Gym — beat Roxanne for the Stone Badge (BADGE01, Gym 1).
+
+    INTENT: clear the first gym.
+    STORY CONDITION: in Rustboro City with a starter strong enough to win.
+    Mudkip/Treecko are favourable (Mudkip's Water Gun is 4x on Roxanne's
+    Rock/Ground Geodudes and 2x on Nosepass); TORCHIC is Fire = weak to Rock and
+    has no super-effective move here, so a Torchic run may need extra training or
+    a caught helper (TODO — see design notes / punch list).
+    HOW IT WORKS: heal at the Rustboro Poké Center first (full-HP buffer for the
+    un-fleeable gym-trainer + leader battles — a lone starter can't rotate),
+    enter the gym, navigate up to the challenge tile below Roxanne (fighting the
+    two gym Youngsters inline with the no-flee travel strategy), then face up and
+    press A to challenge Roxanne. Advance dialogue until BADGE01_GET is set (the
+    battle itself is driven by the battle listener / on_battle_started).
+    GOAL/END STATE: BADGE01_GET set (Stone Badge earned), gym cleared."""
+    from modules.memory import get_event_flag
+
+    context.message = "Story: healing before challenging Rustboro Gym (Roxanne)..."
+    yield from heal_in_pokemon_center(PokemonCenter.RustboroCity)
+
+    context.message = "Story: entering Rustboro Gym to challenge Roxanne..."
+    yield from navigate_to_anywhere(
+        MapRSE.RUSTBORO_CITY_GYM,
+        RUSTBORO_GYM_ROXANNE_APPROACH,
+        avoid_encounters=True,
+        avoid_scripted_events=False,
+    )
+
+    # Step up to the challenge tile (5,3) directly below Roxanne (5,2). Stop early
+    # if a battle/script already engaged (a gym trainer's sight line, or Roxanne).
+    for _ in range(40):
+        if get_event_flag("BADGE01_GET") or get_global_script_context().is_active:
+            break
+        context.emulator.press_button("Up")
+        yield
+
+    # Challenge Roxanne (face up + A) and ride out the whole battle + dialogue
+    # until the Stone Badge flag is set. The battle listener fights it (no-flee).
+    frames = 0
+    while not get_event_flag("BADGE01_GET"):
+        _check_abort()  # bail fast if we whited out mid-gym (defeat recovery)
+        context.emulator.press_button("B" if frames % 3 else "A")
+        frames += 1
+        if frames > 12000:
+            raise BotModeError("Did not earn the Stone Badge from Roxanne.")
+        yield
+    yield from _wait_until_cutscene_over("B")
+    context.message = "Story: earned the STONE BADGE — Gym 1 cleared!"
+
+
+# Grass training spot near Rustboro (Route 116, directly east — 101 grass tiles,
+# reachable straight from the city). Used for the pre-gym threshold + defeat retrain.
+RUSTBORO_TRAINING_GRASS = (MapRSE.ROUTE116, (11, 7))
+
+
+def _battler_slots() -> list[int]:
+    """Party slots (0-based) that can actually battle: not an egg, has a damaging move."""
+    slots = []
+    for i, p in enumerate(get_party()):
+        if p is None or p.is_egg:
+            continue
+        if any(lm is not None and lm.move.base_power > 0 for lm in p.moves):
+            slots.append(i)
+    return slots
+
+
+def train_team(
+    target_level: int,
+    scope: str = "whole",
+    grass: tuple = RUSTBORO_TRAINING_GRASS,
+    heal_center: "PokemonCenter" = PokemonCenter.RustboroCity,
+) -> Generator:
+    """Grind wild battles until the team reaches ``target_level`` (defeat retrain /
+    pre-fight threshold, user directive 2026-07-21).
+
+    ``scope`` 'whole' trains every battler (rotating the lowest to the lead); 'lead'
+    trains only the current lead. Heals at ``heal_center`` when HP dips near the
+    flee threshold. A whiteout mid-training is caught and recovered by
+    ``StoryMode.run()`` (the abort check bails us out promptly)."""
+    from modules.modes.util.higher_level_actions import change_lead_party_pokemon
+
+    grass_map, grass_tile = grass
+    heal_at = float(getattr(context.config.battle, "hp_threshold", 20)) + 8.0
+    guard = 0
+    # SWAP-TRAIN (user directive 2026-07-21): hand wild battles to
+    # SwapTrainBattleStrategy — an under-levelled lead is switched to a stronger
+    # team-mate turn 1, so it shares XP without taking damage or fainting (no more
+    # fight-faint-heal loop with a very low catch like a Lv2 Poochyena). Because the
+    # mon actually FIGHTING is now the stronger team-mate, heal off the TEAM's lowest
+    # HP, not the untouched slot-0 lead (which would sit at full HP and never heal).
+    set_swap_train(True)
+    try:
+        while True:
+            _check_abort()
+            guard += 1
+            if guard > 500:
+                raise BotModeError("Training did not reach the target level (too many rounds).")
+
+            party = get_party()
+            if scope == "lead":
+                need = [0] if party and not party[0].is_egg and party[0].level < target_level else []
+            else:
+                need = [i for i in _battler_slots() if party[i].level < target_level]
+            if not need:
+                break
+
+            # Put the lowest-level needy battler in the lead so it shares the XP.
+            target_slot = min(need, key=lambda i: party[i].level)
+            if target_slot != 0:
+                try:
+                    yield from change_lead_party_pokemon(target_slot)
+                except Exception:
+                    pass
+
+            context.message = f"Story: training the team to Lv {target_level} in the grass…"
+            yield from _navigate_riding_out(grass_map, grass_tile, avoid_encounters=False)
+
+            yield from _story_spin(
+                lambda: _lead_level() >= target_level or _min_battler_hp_pct() <= heal_at
+            )
+            if _min_battler_hp_pct() <= heal_at and _lead_level() < target_level:
+                yield from heal_in_pokemon_center(heal_center)
+    finally:
+        set_swap_train(False)
+
+
+def _total_poke_balls() -> int:
+    try:
+        from modules.items import get_item_bag
+
+        return sum(slot.quantity for slot in get_item_bag().poke_balls)
+    except Exception:
+        return 0
+
+
+def _money() -> int:
+    try:
+        from modules.player import get_player
+
+        return get_player().money
+    except Exception:
+        return 0
+
+
+# --- Mart buying (planning doc §4). Poké Ball is item index 0 in every "basic" mart
+# list (verified live: Rustboro basic = Poké Ball, Potion, Super Potion, …). ---
+POKE_BALL_PRICE = 200
+MONEY_RESERVE = 500      # never spend below this — keep a buffer for later needs
+MAX_BALLS_PER_TRIP = 30  # "buy as many as it can", capped so we don't blow all money
+# (mart map enum, counter-front tile, facing) — the player talks across the counter.
+RUSTBORO_MART = (MapRSE.RUSTBORO_CITY_MART, (3, 3), "Left")
+
+
+def affordable_poke_balls() -> int:
+    """How many Poké Balls we can buy right now without dipping below the reserve."""
+    return max(0, (_money() - MONEY_RESERVE) // POKE_BALL_PRICE)
+
+
+def _mart_item_row(item_name: str) -> int | None:
+    """Row (0-based cursor index) of ``item_name`` in the CURRENTLY-open mart's buy
+    list, or None if this shop doesn't stock it. Reads sMartInfo's item array so we
+    work at ANY mart regardless of its stock/order (shops differ — user note
+    2026-07-21). Only valid while a shop menu is open."""
+    try:
+        from modules.memory import read_symbol, unpack_uint16, unpack_uint32
+        from modules.pokemon import get_item_by_index
+
+        info = read_symbol("sMartInfo")
+        item_list_ptr = unpack_uint32(info[8:12])
+        item_count = unpack_uint16(info[12:14])
+        if not (0x08000000 <= item_list_ptr < 0x0A000000) or not (0 < item_count < 60):
+            return None
+        raw = context.emulator.read_bytes(item_list_ptr, length=item_count * 2)
+        for i in range(item_count):
+            iid = unpack_uint16(raw[i * 2 : i * 2 + 2])
+            try:
+                if get_item_by_index(iid).name == item_name:
+                    return i
+            except Exception:
+                pass
+    except Exception:
+        pass
+    return None
+
+
+def buy_poke_balls(count: int, mart: tuple = RUSTBORO_MART) -> Generator:
+    """Buy `count` Poké Balls at a mart. Poké Ball is item index 0 (cursor default),
+    so the flow is: talk → BUY → select item 0 → set quantity → confirm → exit. Fully
+    task-driven with bounded guards so it can never hang (planning doc §3/§4)."""
+    from modules.tasks import task_is_active
+    from modules.console import console
+
+    mart_map, approach, face = mart
+    if count <= 0:
+        return
+    context.message = f"Story: buying {count} Poké Balls at the mart…"
+    yield from _navigate_riding_out(mart_map, approach)
+    context.emulator.press_button(face)
+    yield
+    yield from wait_for_n_frames(6)
+
+    from modules.modes.util.tasks_scripts import wait_until_task_is_not_active
+
+    balls_before = _total_poke_balls()
+    # Phase 1: advance the clerk dialogue until the Buy/Sell menu is up.
+    guard = 0
+    while not (task_is_active("Task_GoToBuyOrSellMenu") or task_is_active("Task_BuyMenu")) and guard < 60:
+        context.emulator.press_button("A")
+        guard += 1
+        yield from wait_for_n_frames(10)
+    # Phase 2: select BUY (cursor default). wait_until_task_is_not_active presses A
+    # EVERY frame until the menu responds — single-frame presses don't register in
+    # these list menus (the working pattern from wait_for_multiple_choice_question).
+    if task_is_active("Task_GoToBuyOrSellMenu"):
+        yield from wait_until_task_is_not_active("Task_GoToBuyOrSellMenu", "A")
+    guard = 0
+    while not task_is_active("Task_BuyMenu") and guard < 60:
+        yield
+        guard += 1
+    if not task_is_active("Task_BuyMenu"):
+        raise BotModeError("Mart: could not open the Buy list.")
+    # Phase 3: item list. Find Poké Ball's ROW in THIS shop's stock (order differs per
+    # mart — user note) and move the cursor down to it, then confirm (this ends
+    # Task_BuyMenu and shows a "How many?" message), then advance that message with A
+    # until the quantity selector opens.
+    yield from wait_for_n_frames(10)
+    row = _mart_item_row("Poké Ball")
+    if row is None:
+        raise BotModeError("Mart: this shop doesn't stock Poké Balls.")
+    for _ in range(row):
+        context.emulator.press_button("Down")
+        yield from wait_for_n_frames(3)
+    yield from wait_until_task_is_not_active("Task_BuyMenu", "A")
+    guard = 0
+    while not task_is_active("Task_BuyHowManyDialogueHandleInput") and guard < 60:
+        context.emulator.press_button("A")
+        guard += 1
+        yield from wait_for_n_frames(6)
+    if not task_is_active("Task_BuyHowManyDialogueHandleInput"):
+        raise BotModeError("Mart: quantity selector didn't open.")
+    # Phase 4: raise the quantity to `count` (starts at 1; caps at max affordable),
+    # then confirm — the confirm advances to the "That'll be ¥X. OK?" Yes/No.
+    yield from wait_for_n_frames(8)
+    for _ in range(count - 1):
+        context.emulator.press_button("Up")
+        yield from wait_for_n_frames(4)
+    yield from wait_for_n_frames(6)
+    yield from wait_until_task_is_not_active("Task_BuyHowManyDialogueHandleInput", "A")
+    # Phase 5: confirming the quantity shows "That'll be ¥X. OK?" — advance it with A
+    # to the Yes/No, then confirm Yes (cursor default).
+    guard = 0
+    while not task_is_active("Task_CallYesOrNoCallback") and guard < 60:
+        context.emulator.press_button("A")
+        guard += 1
+        yield from wait_for_n_frames(6)
+    if task_is_active("Task_CallYesOrNoCallback"):
+        yield from wait_until_task_is_not_active("Task_CallYesOrNoCallback", "A")
+    yield from wait_for_n_frames(45)  # "Thank you!" + bag update
+    console.print(f"[green]Story: bought Poké Balls ({balls_before} → {_total_poke_balls()}).[/]")
+    # Phase 6: back out of the shop to the overworld.
+    guard = 0
+    while (
+        task_is_active("Task_BuyMenu")
+        or task_is_active("Task_GoToBuyOrSellMenu")
+        or task_is_active("Task_ShopMenu")
+    ) and guard < 200:
+        context.emulator.press_button("B")
+        guard += 1
+        yield from wait_for_n_frames(4)
+    settle = 0
+    while settle < 300 and not player_avatar_is_controllable():
+        context.emulator.press_button("B")
+        settle += 1
+        yield
+    context.message = f"Story: bought Poké Balls (now have {_total_poke_balls()})."
+
+
+def provision_poke_balls(mart: tuple = RUSTBORO_MART) -> Generator:
+    """Restock Poké Balls if we can afford it (out-of-balls contingency). Buys as many
+    as affordable (capped), keeping a money reserve. Returns having bought or not; the
+    caller checks the ball count and falls back (skip catching) if still empty."""
+    want = min(MAX_BALLS_PER_TRIP, affordable_poke_balls())
+    if want <= 0:
+        context.message = "Story: too low on money to restock Poké Balls — skipping catching for now."
+        return
+    # A mart-menu hiccup must NEVER break catching — on failure, proceed with what we
+    # have (the caller then falls back to skip). Re-raise a whiteout abort, though.
+    try:
+        yield from buy_poke_balls(want, mart)
+    except BotModeError as error:
+        if story_should_abort():
+            raise
+        from modules.console import console
+
+        console.print(f"[yellow]Story: mart restock hiccup ({error}) — proceeding with current balls.[/]")
+
+
+def _party_size() -> int:
+    return len([p for p in get_party() if p is not None and not p.is_egg])
+
+
+def catch_starter_team(
+    target_size: int = 4,
+    grass: tuple = RUSTBORO_TRAINING_GRASS,
+    heal_center: "PokemonCenter" = PokemonCenter.RustboroCity,
+) -> Generator:
+    """Spin in grass catching NEW species until the party reaches ``target_size``
+    (organic team-building before the first gym, user directive 2026-07-21). The
+    catch-vs-fight decision per encounter is made by ``StoryMode.on_battle_started``
+    (only NEW species, never a dup, never a shiny). Stops early if we run low on
+    Poké Balls or hit a safety guard; a whiteout is handled by run()."""
+    grass_map, grass_tile = grass
+    heal_at = float(getattr(context.config.battle, "hp_threshold", 20)) + 8.0
+    guard = 0
+    if _party_size() < target_size and _total_poke_balls() > 1:
+        context.message = "Story: catching a team before the first gym…"
+    while _party_size() < target_size:
+        _check_abort()
+        guard += 1
+        if guard > 250:
+            break
+        if _total_poke_balls() <= 1:
+            # OUT-OF-BALLS CONTINGENCY (planning doc §3): try to restock at the mart;
+            # if we can't afford it, stop catching and proceed with the team we have.
+            yield from provision_poke_balls(mart=RUSTBORO_MART)
+            if _total_poke_balls() <= 1:
+                break
+        yield from _navigate_riding_out(grass_map, grass_tile, avoid_encounters=False)
+
+        yield from _story_spin(
+            lambda: _party_size() >= target_size or _total_poke_balls() <= 1 or _lead_hp_pct() <= heal_at
+        )
+        if _lead_hp_pct() <= heal_at and _party_size() < target_size:
+            yield from heal_in_pokemon_center(heal_center)
+
+
+# Chapter 5 (Devon Goods errand) constants — all verified live 2026-07-21 via the
+# mapdump tool + the ch5 recon harness (see design §Ch5 "BUILD PROGRESS"):
+RUSTBORO_THEFT_WALK_TILE = (18, 20)      # walking here (west) after the gym fires the theft
+ROUTE116_WEST_TILE = (5, 9)              # a walkable tile just inside Route 116 (west edge)
+ROUTE116_TUNNEL_DOOR_APPROACH = (47, 9)  # stand here; the tunnel door is (47,8) directly north
+RUSTURF_TUNNEL_DOOR_ON_ROUTE116 = (47, 8)
+RUSTURF_GRUNT_APPROACH = (12, 5)         # adjacent-west of the grunt (13,5) / Mr. Briney (13,4)
+
+
+def recover_devon_goods() -> Generator:
+    """Chapter 5a — after Gym 1 the Devon Goods are stolen; chase the thief to
+    Rusturf Tunnel and beat them to recover the goods (and free Peeko).
+
+    INTENT: first half of the Devon errand (Chapter 5).
+    STORY CONDITION: just beat Roxanne (starts inside the Rustboro Gym, or anywhere
+    in Rustboro if resumed), no-flee travel strategy active.
+    HOW IT WORKS (each step live-verified, design §Ch5):
+      1. Walk west through Rustboro City (the gym-exit warp routes us out first) —
+         this fires `RustboroCity_EventScript_StolenGoodsScene`. Anchor on the FLAG
+         **DEVON_GOODS_STOLEN** (the scene has mid-scene controllable windows that
+         fool the generic ride-out), riding out on any navigation abort.
+      2. Chase EAST onto Route 116 (target its walkable WEST edge — the far tiles have
+         no path through Route 116's ledges), then across to the tunnel-door approach
+         (47,9). Wild encounters en route are fought by the listener (the starter may
+         level/evolve — handled cleanly).
+      3. Enter Rusturf Tunnel through the west door (Route116 (47,8), stepped into
+         from below) via `_pass_through_door`.
+      4. Approach the grunt at (13,5) from the west (it BLOCKS the corridor, so we
+         can't pathfind past it — stop adjacent at (12,5)) and ENGAGE WITH A (not B —
+         B skips the challenge). The grunt battle is fought by the listener; on the
+         win the goods are recovered and Mr. Briney frees Peeko.
+    GOAL/END STATE: **RECOVERED_DEVON_GOODS** set."""
+    from modules.memory import get_event_flag
+
+    route116 = MapRSE.ROUTE116.value
+    tunnel = MapRSE.RUSTURF_TUNNEL.value
+
+    # 1. Trigger the theft (exit the gym en route; anchor on the flag).
+    context.message = "Story: leaving the gym — the Devon Goods get stolen…"
+    rounds = 0
+    while not get_event_flag("DEVON_GOODS_STOLEN"):
+        rounds += 1
+        if rounds > 20:
+            raise BotModeError("The Devon-Goods theft scene (DEVON_GOODS_STOLEN) never fired.")
+        try:
+            yield from navigate_to_anywhere(
+                MapRSE.RUSTBORO_CITY, RUSTBORO_THEFT_WALK_TILE,
+                avoid_encounters=True, avoid_scripted_events=False,
+            )
+        except BotModeError:
+            yield from _ride_out_scripted_scene("B")
+    yield from _ride_out_scripted_scene("B")  # finish the tail of the theft scene
+
+    # 2. Chase east: onto Route 116 (west edge), then across to the door approach.
+    context.message = "Story: chasing the thief east to Rusturf Tunnel…"
+    rounds = 0
+    while _map_group_number() != route116:
+        rounds += 1
+        if rounds > 25:
+            raise BotModeError("Could not reach Route 116 to chase the thief.")
+        try:
+            yield from navigate_to_anywhere(
+                MapRSE.ROUTE116, ROUTE116_WEST_TILE,
+                avoid_encounters=True, avoid_scripted_events=False,
+            )
+            break
+        except BotModeError:
+            yield from _ride_out_scripted_scene("B")
+    rounds = 0
+    while _map_group_number() == route116:
+        rounds += 1
+        if rounds > 12:
+            raise BotModeError("Could not cross Route 116 to the Rusturf Tunnel door.")
+        try:
+            yield from navigate_to_anywhere(
+                MapRSE.ROUTE116, ROUTE116_TUNNEL_DOOR_APPROACH,
+                avoid_encounters=True, avoid_scripted_events=False,
+            )
+            # 3. Step north through the door (47,8) into the tunnel.
+            yield from _pass_through_door(RUSTURF_TUNNEL_DOOR_ON_ROUTE116, route116)
+            break
+        except BotModeError:
+            yield from _ride_out_scripted_scene("B")
+    if _map_group_number() != tunnel:
+        raise BotModeError("Did not enter Rusturf Tunnel from Route 116.")
+
+    # 4. Approach the grunt (adjacent-west) and engage with A → battle → recover.
+    context.message = "Story: cornering the thief in Rusturf Tunnel…"
+    try:
+        yield from navigate_to_anywhere(
+            MapRSE.RUSTURF_TUNNEL, RUSTURF_GRUNT_APPROACH,
+            avoid_encounters=True, avoid_scripted_events=False,
+        )
+    except BotModeError:
+        # The grunt's line of sight can abort the approach — that's fine, engage below.
+        yield from _ride_out_scripted_scene("B")
+    frames = 0
+    while not get_event_flag("RECOVERED_DEVON_GOODS"):
+        _check_abort()  # bail fast if we whited out (defeat recovery)
+        # Face/approach the grunt (Right) and advance the challenge + battle with A.
+        # The battle listener fights the grunt; after the win the goods are recovered
+        # and Mr. Briney's dialogue (freeing Peeko) plays out — A advances all of it.
+        context.emulator.press_button("Right" if frames % 5 == 0 else "A")
+        frames += 1
+        if frames > 6000:
+            raise BotModeError("Did not recover the Devon Goods from the tunnel grunt.")
+        yield
+    yield from _wait_until_cutscene_over("A")  # ride out the Briney/Peeko thank-you tail
+    context.message = "Story: recovered the Devon Goods and freed Peeko!"
