@@ -14,6 +14,8 @@ reads here FIRST. Created by the Claude Code Project Kit on 2026-07-17.
 | 6 | `08-MISTAKES.md` | Bugs/dead-ends already solved — don't repeat them | append-only |
 | 7 | `06-DECISIONS-LOG.md` | Why things are the way they are | append-only |
 | 8 | `07-CHANGELOG.md` | Everything that has ever changed | append-only |
+| 9 | `12-STORYMODE-DESIGN.md` | Story bot design: chapters, Area Atlas (§AA), resume/defeat/self-correct | reference |
+| 10 | `13-PLANNING-AND-RESILIENCE.md` | HOW the bot decides & stays robust: task model, resource ledger, contingency catalog, marts | reference |
 
 ## File rules
 - **Current-state files (01–05):** edit in place. They must always describe
