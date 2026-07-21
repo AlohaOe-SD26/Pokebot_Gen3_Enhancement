@@ -1180,6 +1180,7 @@ def train_team(
     scope: str = "whole",
     grass: tuple = RUSTBORO_TRAINING_GRASS,
     heal_center: "PokemonCenter" = PokemonCenter.RustboroCity,
+    slots: "set[int] | None" = None,
 ) -> Generator:
     """Grind wild battles until the team reaches ``target_level`` (defeat retrain /
     pre-fight threshold, user directive 2026-07-21).
@@ -1208,7 +1209,11 @@ def train_team(
                 raise BotModeError("Training did not reach the target level (too many rounds).")
 
             party = get_party()
-            if scope == "lead":
+            if slots is not None:
+                # Train ONLY the given slots (the caller's chosen battlers) — used to
+                # ready the gym battlers without grinding fresh far-below catches.
+                need = [i for i in _battler_slots() if i in slots and party[i].level < target_level]
+            elif scope == "lead":
                 need = [0] if party and not party[0].is_egg and party[0].level < target_level else []
             else:
                 need = [i for i in _battler_slots() if party[i].level < target_level]

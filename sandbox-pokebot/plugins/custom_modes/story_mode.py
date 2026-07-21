@@ -231,6 +231,11 @@ class SwapTrainBattleStrategy(LevelUpTravelBattleStrategy):
 
 
 class StoryMode(BotMode):
+    #: Pre-gym training only readies a battler that's already within this many levels
+    #: of the target band; fresh catches further below are left to level organically
+    #: rather than grinding them up via half-XP swap-training (user 2026-07-21).
+    TRAIN_CATCHUP_GAP = 6
+
     @staticmethod
     def name() -> str:
         return "Story"
@@ -400,16 +405,36 @@ class StoryMode(BotMode):
                 f"[bold yellow]Story: lost here {losses}× — training harder before "
                 f"re-attempting (target Lv {target}, {choice}).[/]"
             )
-        scope = random.choice(["whole", "lead"])  # randomize team scope (organic)
+        # READY THE BATTLERS, don't grind every catch (user 2026-07-21). Bringing a
+        # fresh Lv4-6 catch to gym level via half-XP swap-training is a huge grind and
+        # unnecessary — our primary mon sweeps the gym. So train only the mons worth
+        # readying now: the STRONGEST battler (our primary), plus any battler ALREADY
+        # within `TRAIN_CATCHUP_GAP` levels of the target (close enough to finish
+        # cheaply). Fresh far-below catches are left to level organically (#24-team).
+        # When we've been LOSING here, add depth — also ready the top backups.
+        from modules.story.early_game import _battler_slots
 
-        levels = [p.level for p in get_party() if p is not None and not p.is_egg]
-        lead_level = get_party()[0].level if get_party() else 0
-        need = (lead_level < target) if scope == "lead" else any(l < target for l in levels)
+        party = get_party()
+        battlers = _battler_slots()
+        if not battlers:
+            return
+        strongest = max(battlers, key=lambda i: party[i].level)
+        catchup = target - self.TRAIN_CATCHUP_GAP
+        to_train = {i for i in battlers if party[i].level >= catchup}
+        to_train.add(strongest)
+        if losses >= 2:
+            ranked = sorted(battlers, key=lambda i: party[i].level, reverse=True)
+            to_train.update(ranked[: min(3, len(ranked))])
+
+        need = [i for i in to_train if party[i].level < target]
         if need:
-            console.print(f"[cyan]Story: prepping for the fight — training to Lv {target} ({scope}).[/]")
-            yield from train_team(target, scope=scope, grass=cfg["grass"], heal_center=cfg["heal"])
+            console.print(
+                f"[cyan]Story: prepping — training {len(need)} battler(s) to Lv {target} "
+                f"(fresh low catches left to level organically).[/]"
+            )
+            yield from train_team(target, slots=to_train, grass=cfg["grass"], heal_center=cfg["heal"])
         else:
-            console.print(f"[dim]Story: team already ≥ Lv {target} — no prep training needed.[/]")
+            console.print(f"[dim]Story: the team's battlers are already ≥ Lv {target} — no prep training.[/]")
 
     def on_battle_started(self, encounter):
         # Story battles (the first Birch battle, training, the rival) are meant

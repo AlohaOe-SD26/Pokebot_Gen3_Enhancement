@@ -1317,3 +1317,17 @@ the fight completes with XP and the redundant flee-then-heal cycle is gone. VALI
   L4-6 helpers to gym level via swap-training (half XP) is a long grind. The main battler
   alone beats Roxanne, so training-target tuning (train battlers, not every catch) is a
   worthwhile efficiency follow-up (#24-team / #24-trainmap).
+
+## 2026-07-21 — Training-grind fix: ready the battlers, don't grind every catch (sandbox)
+User-chosen next step. `_prepare_for_fight` used a random "whole/lead" scope; "whole"
+trained EVERY battler to the gym band, dragging fresh Lv4-6 catches up via half-XP
+swap-training — a huge grind, and pointless (the primary mon sweeps Roxanne). Now it
+trains only the mons worth readying: the STRONGEST battler (our primary) + any battler
+already within `TRAIN_CATCHUP_GAP` (=6) levels of the target; fresh far-below catches are
+left to level organically (#24-team). On repeated losses it adds depth (also readies the
+top-3 backups). Implemented via a new `slots=` param on `train_team` (train only the
+chosen slots). VALIDATED (route116team save): prep now logs "training 1 battler(s) to Lv
+16 (fresh low catches left to level organically)" — Marshtomp trained solo, Poochyena
+L4/Nincada L6/Whismur L6 untouched — then straight to the gym, 0 whiteouts (vs the old
+"whole team to Lv 15" grind). Combined with the gym win (already validated), the full
+prep→gym flow works.
