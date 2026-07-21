@@ -1105,6 +1105,55 @@ def train_team(
             yield from heal_in_pokemon_center(heal_center)
 
 
+def _total_poke_balls() -> int:
+    try:
+        from modules.items import get_item_bag
+
+        return sum(slot.quantity for slot in get_item_bag().poke_balls)
+    except Exception:
+        return 0
+
+
+def _party_size() -> int:
+    return len([p for p in get_party() if p is not None and not p.is_egg])
+
+
+def catch_starter_team(
+    target_size: int = 4,
+    grass: tuple = RUSTBORO_TRAINING_GRASS,
+    heal_center: "PokemonCenter" = PokemonCenter.RustboroCity,
+) -> Generator:
+    """Spin in grass catching NEW species until the party reaches ``target_size``
+    (organic team-building before the first gym, user directive 2026-07-21). The
+    catch-vs-fight decision per encounter is made by ``StoryMode.on_battle_started``
+    (only NEW species, never a dup, never a shiny). Stops early if we run low on
+    Poké Balls or hit a safety guard; a whiteout is handled by run()."""
+    grass_map, grass_tile = grass
+    heal_at = float(getattr(context.config.battle, "hp_threshold", 20)) + 8.0
+    guard = 0
+    if _party_size() < target_size and _total_poke_balls() > 1:
+        context.message = "Story: catching a team before the first gym…"
+    while _party_size() < target_size:
+        _check_abort()
+        guard += 1
+        if guard > 250 or _total_poke_balls() <= 1:
+            break  # out of balls / bad luck — proceed with the team we have
+        yield from navigate_to_anywhere(grass_map, grass_tile, avoid_encounters=False)
+
+        def _stop() -> bool:
+            return (
+                story_should_abort()
+                or _party_size() >= target_size
+                or _total_poke_balls() <= 1
+                or _lead_hp_pct() <= heal_at
+            )
+
+        yield from spin(stop_condition=_stop)
+        _check_abort()
+        if _lead_hp_pct() <= heal_at and _party_size() < target_size:
+            yield from heal_in_pokemon_center(heal_center)
+
+
 # Chapter 5 (Devon Goods errand) constants — all verified live 2026-07-21 via the
 # mapdump tool + the ch5 recon harness (see design §Ch5 "BUILD PROGRESS"):
 RUSTBORO_THEFT_WALK_TILE = (18, 20)      # walking here (west) after the gym fires the theft

@@ -175,6 +175,9 @@ class StoryMode(BotMode):
         self._defeat_counts: dict = {}
         self._whiteout_pending = False
         self._last_defeat_key = None
+        # Organic team-building (user directive 2026-07-21): catch NEW species while
+        # travelling to Gym 1 until the party has this many members (starter + helpers).
+        self._catch_team_target = 4
 
     def on_battle_ended(self, outcome) -> None:
         from modules.battle_state import BattleOutcome
@@ -214,6 +217,38 @@ class StoryMode(BotMode):
 
     def defeat_count_at(self, location_key) -> int:
         return self._defeat_counts.get(location_key, 0)
+
+    def _should_catch(self, encounter) -> bool:
+        """Pre-Gym-1 organic team-building (user directive 2026-07-21): catch a wild
+        of a NEW species (never a dup we've already caught, never one already in the
+        party) while there's room in the party. Only before the first gym, only once
+        we have the Pokédex + Poké Balls, never a shiny (fight through — contingency)."""
+        try:
+            from modules.memory import get_event_flag
+            from modules.pokemon_party import get_party
+            from modules.pokedex import get_pokedex
+
+            if encounter is None:  # trainer battle — never "catch"
+                return False
+            if getattr(encounter, "is_shiny", False):
+                return False
+            if get_event_flag("BADGE01_GET"):  # only before the first gym
+                return False
+            if not get_event_flag("RECEIVED_POKEDEX_FROM_BIRCH"):  # need balls + dex
+                return False
+            party = [p for p in get_party() if p is not None and not p.is_egg]
+            if len(party) >= self._catch_team_target:
+                return False
+            species = getattr(getattr(encounter, "pokemon", None), "species", None)
+            if species is None:
+                return False
+            # Species objects aren't hashable — compare by national dex number.
+            owned = {s.national_dex_number for s in get_pokedex().owned_species}
+            party_dex = {p.species.national_dex_number for p in party}
+            dex = species.national_dex_number
+            return dex not in owned and dex not in party_dex
+        except Exception:
+            return False
 
     def _prepare_for_fight(self, cfg: dict) -> Generator:
         """Before a major fight, train the team to a sensible level (user directive
@@ -283,6 +318,18 @@ class StoryMode(BotMode):
                     f"Story: a shiny {name} appeared in a story battle — fighting "
                     "through (not catching)."
                 )
+        except Exception:
+            pass
+        # PRE-GYM-1 CATCHING (user directive 2026-07-21): build an organic team by
+        # catching NEW species (never a dup) while travelling to the first gym.
+        try:
+            if self._should_catch(encounter):
+                from modules.console import console
+                from modules.modes import BattleAction
+
+                sp = getattr(getattr(encounter, "pokemon", None), "species", None)
+                console.print(f"[bold green]Story: catching a new {getattr(sp, 'name', '?')} for the team![/]")
+                return BattleAction.Catch
         except Exception:
             pass
         # Fight to WIN and level the lead (strongest move; flees only at low HP,
@@ -493,7 +540,7 @@ class StoryMode(BotMode):
         #     already lost here — user directive 2026-07-21). ---
         if not _done("BADGE01_GET"):
             from modules.map_data import PokemonCenter
-            from modules.story.early_game import RUSTBORO_TRAINING_GRASS
+            from modules.story.early_game import RUSTBORO_TRAINING_GRASS, catch_starter_team
 
             roxanne_fight = {
                 "keys": [MapRSE.RUSTBORO_CITY_GYM.value, MapRSE.RUSTBORO_CITY.value],
@@ -501,6 +548,8 @@ class StoryMode(BotMode):
                 "grass": RUSTBORO_TRAINING_GRASS,
                 "heal": PokemonCenter.RustboroCity,
             }
+            # Build an organic team (catch new species) BEFORE training + the gym.
+            yield from catch_starter_team(self._catch_team_target)
             yield from self._prepare_for_fight(roxanne_fight)
             yield from do_rustboro_gym()
         else:
