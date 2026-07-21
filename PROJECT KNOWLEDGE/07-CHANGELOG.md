@@ -1247,3 +1247,21 @@ directive (out of balls → finish the battle, never break). VALIDATED end-to-en
 Pokédex → Petalburg → Wally tutorial → Route 104 → Petalburg Woods → Rustboro → Route
 116 catching (team Mudkip L13 + Poochyena L4, caught via StoryCatchStrategy). Bug #2
 (the user-reported Oldale freeze) + its downstream blocker are both resolved.
+
+## 2026-07-21 — Swap-training fixes the under-levelled-mon loop (sandbox)
+User (real-bot testing) hit a loop: with a very under-levelled catch (Lv2 Poochyena)
+in a team led by Grovyle L17, `train_team` rotated the low mon to the lead and ground
+it against too-high Route 116 wilds — it fought, nearly fainted, got rotated out to
+win, healed, and repeated (glacial + loopy). User chose BOTH: swap-train now +
+level-spectrum area mapping later.
+- SWAP-TRAIN (now): new `SwapTrainBattleStrategy` (story_mode.py) — when the lead
+  we're levelling is >= 2 levels below the wild foe, switch to the strongest healthy
+  team-mate on turn 1 (before the lead takes damage); the lead still SHARES the XP
+  (Gen 3) so it levels without fainting or needing a heal. Same-or-close foes it
+  still solos for full XP. Gated by an `_SWAP_TRAIN` flag set only around
+  `train_team` (never affects rival/gym fights). `train_team` now heals off the
+  TEAM's lowest HP (`_min_battler_hp_pct`), since the mon taking hits is the strong
+  team-mate, not the untouched lead. VALIDATED (route116team save, Mudkip L13 +
+  Poochyena L4 + Nincada/Whismur L6): Poochyena L4→L7 steadily, **0 heals, 0 faints**,
+  flee rate 25% (margin 2) — the fight-faint-heal loop is gone.
+- MAPPING (later groundwork): see `modules/story/training_areas.py` + #24-trainmap.

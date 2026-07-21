@@ -66,6 +66,22 @@ def story_should_abort() -> bool:
     return _STORY_ABORT
 
 
+# SWAP-TRAINING flag (user directive 2026-07-21): while set, StoryMode.on_battle_started
+# hands wild battles to SwapTrainBattleStrategy (switch the under-levelled lead out to a
+# stronger team-mate turn 1 so it shares XP without fainting). Set only around
+# `train_team` so it never affects the rival/gym fights.
+_SWAP_TRAIN = False
+
+
+def set_swap_train(value: bool) -> None:
+    global _SWAP_TRAIN
+    _SWAP_TRAIN = bool(value)
+
+
+def swap_train_active() -> bool:
+    return _SWAP_TRAIN
+
+
 def _check_abort() -> None:
     """Raise inside a segment's wait loop to unwind it for whiteout recovery."""
     if _STORY_ABORT:
@@ -581,6 +597,25 @@ def _lead_hp_pct() -> float:
         return 100.0
     try:
         return float(party[0].current_hp_percentage)
+    except Exception:
+        return 100.0
+
+
+def _min_battler_hp_pct() -> float:
+    """Lowest HP% across the (non-egg) team. During SWAP-training the mon actually
+    taking hits is the strong team-mate we switch IN, not the slot-0 lead we're
+    levelling — so heal off the whole team's lowest HP, else the fighter faints
+    while the untouched lead sits at full HP and never triggers a heal."""
+    try:
+        pcts = []
+        for p in get_party():
+            if p is None or getattr(p, "is_egg", False):
+                continue
+            try:
+                pcts.append(float(p.current_hp_percentage))
+            except Exception:
+                continue
+        return min(pcts) if pcts else 100.0
     except Exception:
         return 100.0
 
@@ -1118,38 +1153,52 @@ def train_team(
     grass_map, grass_tile = grass
     heal_at = float(getattr(context.config.battle, "hp_threshold", 20)) + 8.0
     guard = 0
-    while True:
-        _check_abort()
-        guard += 1
-        if guard > 500:
-            raise BotModeError("Training did not reach the target level (too many rounds).")
+    # SWAP-TRAIN (user directive 2026-07-21): hand wild battles to
+    # SwapTrainBattleStrategy — an under-levelled lead is switched to a stronger
+    # team-mate turn 1, so it shares XP without taking damage or fainting (no more
+    # fight-faint-heal loop with a very low catch like a Lv2 Poochyena). Because the
+    # mon actually FIGHTING is now the stronger team-mate, heal off the TEAM's lowest
+    # HP, not the untouched slot-0 lead (which would sit at full HP and never heal).
+    set_swap_train(True)
+    try:
+        while True:
+            _check_abort()
+            guard += 1
+            if guard > 500:
+                raise BotModeError("Training did not reach the target level (too many rounds).")
 
-        party = get_party()
-        if scope == "lead":
-            need = [0] if party and not party[0].is_egg and party[0].level < target_level else []
-        else:
-            need = [i for i in _battler_slots() if party[i].level < target_level]
-        if not need:
-            break
+            party = get_party()
+            if scope == "lead":
+                need = [0] if party and not party[0].is_egg and party[0].level < target_level else []
+            else:
+                need = [i for i in _battler_slots() if party[i].level < target_level]
+            if not need:
+                break
 
-        # Put the lowest-level needy battler in the lead so it gains the XP.
-        target_slot = min(need, key=lambda i: party[i].level)
-        if target_slot != 0:
-            try:
-                yield from change_lead_party_pokemon(target_slot)
-            except Exception:
-                pass
+            # Put the lowest-level needy battler in the lead so it shares the XP.
+            target_slot = min(need, key=lambda i: party[i].level)
+            if target_slot != 0:
+                try:
+                    yield from change_lead_party_pokemon(target_slot)
+                except Exception:
+                    pass
 
-        context.message = f"Story: training the team to Lv {target_level} in the grass…"
-        yield from _navigate_riding_out(grass_map, grass_tile, avoid_encounters=False)
+            context.message = f"Story: training the team to Lv {target_level} in the grass…"
+            yield from _navigate_riding_out(grass_map, grass_tile, avoid_encounters=False)
 
-        def _stop() -> bool:
-            return story_should_abort() or _lead_level() >= target_level or _lead_hp_pct() <= heal_at
+            def _stop() -> bool:
+                return (
+                    story_should_abort()
+                    or _lead_level() >= target_level
+                    or _min_battler_hp_pct() <= heal_at
+                )
 
-        yield from spin(stop_condition=_stop)
-        _check_abort()
-        if _lead_hp_pct() <= heal_at and _lead_level() < target_level:
-            yield from heal_in_pokemon_center(heal_center)
+            yield from spin(stop_condition=_stop)
+            _check_abort()
+            if _min_battler_hp_pct() <= heal_at and _lead_level() < target_level:
+                yield from heal_in_pokemon_center(heal_center)
+    finally:
+        set_swap_train(False)
 
 
 def _total_poke_balls() -> int:

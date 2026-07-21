@@ -170,6 +170,50 @@ class LevelUpTravelBattleStrategy(LevelUpLeadBattleStrategy):
         return True
 
 
+class SwapTrainBattleStrategy(LevelUpTravelBattleStrategy):
+    """SWAP-TRAINING (user directive 2026-07-21). When the mon we're levelling (the
+    lead) is meaningfully UNDER-levelled versus the wild opponent, switch to the
+    strongest healthy team-mate IMMEDIATELY — turn 1, before the lead takes any
+    damage — so that team-mate secures the KO. In Gen 3 every Pokémon that was sent
+    out shares the battle's EXP, so the lead still levels up (~half XP) while never
+    fainting and never needing a heal — which kills the fight-faint-heal-repeat loop
+    the old approach fell into with a very under-levelled catch (e.g. a Lv2 Poochyena
+    on Route 116). Once the lead is within `UNDERLEVEL_MARGIN` of the opponent it
+    fights normally for FULL XP (inherited LevelUpTravel behaviour)."""
+
+    #: switch the lead out when it is this many levels (or more) below the foe. Kept
+    #: low (2) so a weak trainee doesn't fight-and-flee winnable-looking-but-losing
+    #: battles for zero XP — swapping to the strong mon banks a (half) XP share every
+    #: fight. Same-or-slightly-higher foes it still solos for FULL XP.
+    UNDERLEVEL_MARGIN = 2
+
+    def decide_turn(self, battle_state):
+        try:
+            active = battle_state.own_side.active_battler
+            opponent = battle_state.opponent.active_battler
+            if (
+                active is not None
+                and opponent is not None
+                and active.level + self.UNDERLEVEL_MARGIN <= opponent.level
+            ):
+                util = BattleStrategyUtil(battle_state)
+                if util.can_switch():
+                    from modules.pokemon_party import get_party
+
+                    party = get_party()
+                    # strongest healthy team-mate that can actually damage the foe
+                    targets = [
+                        i
+                        for i in util.get_potential_rotation_targets(battle_state)
+                        if party[i].level > active.level
+                    ]
+                    if targets:
+                        return TurnAction.rotate_lead(max(targets, key=lambda i: party[i].level))
+        except Exception:
+            pass
+        return super().decide_turn(battle_state)
+
+
 class StoryMode(BotMode):
     @staticmethod
     def name() -> str:
@@ -392,6 +436,16 @@ class StoryMode(BotMode):
                 # Use the story catch strategy (flees when out of balls instead of
                 # dropping to Manual — see StoryCatchStrategy).
                 return StoryCatchStrategy()
+        except Exception:
+            pass
+        # SWAP-TRAINING: while train_team is running, use the swap strategy so an
+        # under-levelled lead is switched out to a stronger team-mate (shares XP, no
+        # fainting) instead of grinding itself to death against higher-level wilds.
+        try:
+            from modules.story.early_game import swap_train_active
+
+            if swap_train_active() and encounter is not None:
+                return SwapTrainBattleStrategy()
         except Exception:
             pass
         # Fight to WIN and level the lead (strongest move; flees only at low HP,
