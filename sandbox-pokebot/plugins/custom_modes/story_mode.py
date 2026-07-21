@@ -241,6 +241,7 @@ class StoryMode(BotMode):
             from modules.memory import get_event_flag
             from modules.pokemon_party import get_party
             from modules.pokedex import get_pokedex
+            from modules.items import get_item_bag
 
             if encounter is None:  # trainer battle — never "catch"
                 return False
@@ -249,6 +250,11 @@ class StoryMode(BotMode):
             if get_event_flag("BADGE01_GET"):  # only before the first gym
                 return False
             if not get_event_flag("RECEIVED_POKEDEX_FROM_BIRCH"):  # need balls + dex
+                return False
+            # RESOURCE-AWARE (planning doc §3): never ATTEMPT a catch without balls —
+            # that's what broke the bot. Keep 1 in reserve; the catch phase restocks
+            # (buys) or stops gracefully. Fight the wild instead when out of balls.
+            if sum(s.quantity for s in get_item_bag().poke_balls) <= 1:
                 return False
             party = [p for p in get_party() if p is not None and not p.is_egg]
             if len(party) >= self._catch_team_target:
