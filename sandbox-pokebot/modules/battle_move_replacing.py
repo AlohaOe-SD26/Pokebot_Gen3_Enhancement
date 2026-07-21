@@ -76,7 +76,22 @@ def get_learn_move_state() -> LearnMoveState:
 def handle_move_replacement_dialogue(strategy: BattleStrategy) -> Generator:
     move_to_forget = 4
     already_confirmed = False
+    frames_in_dialogue = 0
     while True:
+        # SAFETY (ML-11 follow-up): the move-learn UI normally resolves in a few
+        # hundred frames. If it STALLS far beyond that, back out with B so the bot
+        # can NEVER hard-freeze on the "Delete which move?" screen (user-reported).
+        # The Pokémon keeps its current moves (skips the new one) — far better than
+        # a hang; a re-attempt or the story self-check (§SC) recovers from there.
+        frames_in_dialogue += 1
+        if frames_in_dialogue > 5000:
+            escape = 0
+            while get_learn_move_state() != LearnMoveState.DialogueNotActive and escape < 600:
+                context.emulator.press_button("B")
+                escape += 1
+                yield
+            return
+
         evolution_task = get_task("Task_EvolutionScene")
         if evolution_task is not None and evolution_task.data_value(0) != get_move_learning_state_index():
             yield

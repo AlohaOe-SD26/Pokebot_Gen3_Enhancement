@@ -962,3 +962,17 @@ dialogue is pending, and dispatch move-replacement when the learn dialogue is
 active even if the instruction moved on. Verified: trainer repro 4/4 clean (learns
 Pursuit + evolves to Grovyle); wild path unchanged. Corrects ML-10 (evolution was
 a red herring; should_allow_evolution=True kept as a feature).
+
+## 2026-07-20 — FIX(2): Lv16 move-learn hang — evolution/move-learn guard-loop + hang-proof safety (#24, both builds, ML-11)
+User re-reported the Treecko-Lv16 "stuck learning Pursuit" hang after the first
+fix. Deep-traced the move-selection interface (debug Treecko Lv15 + real trainer
+battle): my repro SELECTS THE CORRECT move (slot 1 = Leer) and completes — could
+NOT reproduce the user's hang (likely a timing/speed-specific state; user runs at
+32x). Two additional robustness fixes: (1) battle_handler dispatch — an evolution
+scene that's NOT at its move-learn substate now routes to handle_evolution_scene
+(which advances it), never the move-replacement handler (which breaks out while an
+evolution task lingers → a re-dispatch spin, the likely remaining cause); (2)
+handle_move_replacement_dialogue now has a bounded SAFETY (5000-frame budget) that
+backs out with B if the move-learn UI ever stalls, so the bot can NEVER hard-freeze
+on that screen. Verified no regression (gym repro 4/4 still learns Pursuit +
+evolves; safety never false-triggers). Both stock files → DIVERGENCE-LOG.

@@ -24,7 +24,7 @@ from modules.player import get_player
 from modules.plugins import plugin_should_nickname_pokemon
 from modules.pokemon import StatusCondition
 from modules.pokemon_party import get_party, get_party_size, PartyPokemon
-from modules.tasks import task_is_active
+from modules.tasks import task_is_active, get_task
 
 if TYPE_CHECKING:
     from modules.encounter import EncounterInfo
@@ -68,6 +68,22 @@ def handle_battle(strategy: BattleStrategy) -> Generator[None, None, HandledBatt
         # finish the dialogue.
         return _move_learn_dialogue_active() or task_is_active("Task_EvolutionScene")
 
+    def _evolution_animating() -> bool:
+        # An evolution task that is NOT at its move-learning substate. Route these
+        # to the EVOLUTION handler (which ADVANCES the scene), never the
+        # move-replacement handler — the latter breaks out while an evolution task
+        # lingers, so re-dispatching to it would spin forever (ML-11 follow-up:
+        # the evolution+move-learn overlap at Lv16).
+        task = get_task("Task_EvolutionScene")
+        if task is None:
+            return False
+        try:
+            from modules.battle_move_replacing import get_move_learning_state_index
+
+            return task.data_value(0) != get_move_learning_state_index()
+        except Exception:
+            return False
+
     while (battle_is_active() or _learn_or_evo_pending()) and context.bot_mode != "Manual":
         instruction = get_current_battle_script_instruction()
         if get_main_battle_callback() in ("HandleTurnActionSelectionState", "sub_8012324"):
@@ -82,6 +98,10 @@ def handle_battle(strategy: BattleStrategy) -> Generator[None, None, HandledBatt
         ):
             items_before_pickup = [pokemon.held_item for pokemon in get_party()]
             yield
+        elif _evolution_animating():
+            # Evolution scene in progress (not at its move-learn substate) — let
+            # the evolution handler advance it; never the move-dialogue (ML-11).
+            yield from handle_evolution_scene(strategy)
         elif instruction == "BattleScript_AskToLearnMove" or _move_learn_dialogue_active():
             # Also dispatch when the learn-move dialogue is up but the battle
             # script instruction has already moved on (post-battle move-learn,

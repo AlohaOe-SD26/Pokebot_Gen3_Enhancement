@@ -354,3 +354,11 @@ dialogue is active even if the battle instruction moved on. Fixes a hang where a
 Lv-up move-learn surfacing AS a trainer battle ends was left unhandled (all
 starters at Lv16). Same change in sandbox. Reproduced + verified (trainer repro
 4/4 clean). Upstream candidate.
+
+### (l) STOCK FIX(2): move-learn hang — guard-loop dispatch + safety (ML-11)
+`modules/battle_handler.py`: an evolution scene not at its move-learn substate now
+routes to handle_evolution_scene (advances it) rather than the move-replacement
+handler (which breaks while an evolution task lingers → re-dispatch spin).
+`modules/battle_move_replacing.py`: handle_move_replacement_dialogue gets a bounded
+safety (5000-frame budget → back out with B) so the bot can never hard-freeze on
+the "Delete which move?" screen. Same in sandbox. Verified no regression.
