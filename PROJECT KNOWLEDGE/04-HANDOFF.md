@@ -29,9 +29,18 @@ files copied sandbox→custom (verified clean superset); DIVERGENCE-LOG updated 
 upstream-file edits (heal exit, main.py debug hook, GUI toggle). Sandbox now matches
 custom on these files (test harness / profiles / SANDBOX-NOTES stay sandbox-only).
 **Real-hardware validated through:** fresh save → Oldale → rival → Pokédex → Petalburg
-→ Wally → Woods → Rustboro → pre-gym catching + swap-training. **Frontier: the Rustboro
-Gym (Roxanne) fight itself + the resume-localization edge (Route 116 misdetect) are NOT
-yet end-to-end validated; post-Rustboro chapters not built.**
+→ Wally → Woods → Rustboro → pre-gym catching + swap-training.
+**SOLIDIFY-RUSTBORO pass DONE (2026-07-21, promoted `395c392d`/`f04e2c01`):**
+(1) Resume edge fixed — Segment 3 recognizes the whole Rustboro area (Route 116 mid-
+training resume no longer backtracks). (2) `_lead_strongest_battler()` leads the gym with
+our best mon. (3) Training-grind fixed — `_prepare_for_fight` readies only the primary +
+near-band battlers (`train_team(slots=)`), leaving fresh low catches to level organically
+(#24-team). **Full flow VALIDATED end-to-end in-harness: route116 save → minimal prep →
+BEAT ROXANNE (Stone Badge, Mudkip→Marshtomp) → Devon Goods (Rusturf) → clean content-end
+stop, 0 whiteouts.** **Frontier now: post-Rustboro (Devon Corp return → PokéNav →
+Rustboro rival → Mr. Briney → Dewford → Gym 2 Brawly) NOT built.** Open: fresh low
+catches never level to gym-ready (organic team-dev #24-team); area-appropriate training
+(#24-trainmap) still groundwork-only.
 ### In custom-pokebot (PROMOTED, production) — big promotion `f0b275f3` (2026-07-19)
 Native dashboard GUI (default; `--classic-gui` = stock), handheld mode,
 backup/restore + cloud + cloud-save-sync (off by default), macros, Patrol
