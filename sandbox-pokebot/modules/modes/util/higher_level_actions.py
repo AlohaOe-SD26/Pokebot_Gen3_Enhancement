@@ -189,8 +189,19 @@ def heal_in_pokemon_center(pokemon_center_door_location: PokemonCenter) -> Gener
         yield from wait_for_no_script_to_run("B")
         yield from wait_for_player_avatar_to_be_standing_still("B")
 
-        # Get out
-        yield from navigate_to(get_player_avatar().map_group_and_number, (7, 8))
+        # Get out — robustly. `navigate_to` onto the exit warp (7,8) can stop ON the
+        # tile without firing it, leaving the player stuck in the doorway (ML-9,
+        # user-reported). Walk to the tile ABOVE the door and step DOWN so the warp
+        # fires from a fresh step; fall back to the plain navigate if we don't leave.
+        current_map = get_player_avatar().map_group_and_number
+        yield from navigate_to(current_map, (7, 7))
+        exit_frames = 0
+        while get_player_avatar().map_group_and_number == current_map and exit_frames < 150:
+            context.emulator.press_button("Down")
+            exit_frames += 1
+            yield
+        if get_player_avatar().map_group_and_number == current_map:
+            yield from navigate_to(current_map, (7, 8))
 
 
 @debug.track

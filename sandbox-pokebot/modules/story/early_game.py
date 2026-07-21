@@ -72,6 +72,22 @@ def _check_abort() -> None:
         raise BotModeError("Story: aborting the current step to recover from a whiteout.")
 
 
+def _navigate_riding_out(dest_map, dest_tile, *, avoid_encounters: bool = True, tries: int = 10) -> Generator:
+    """`navigate_to_anywhere` that rides out any scripted scene (a trainer sight-line,
+    a cutscene) that aborts the path, then retries — instead of hard-failing to Manual.
+    Used by training/catching where the grass route can cross a trainer's line."""
+    for _ in range(tries):
+        _check_abort()
+        try:
+            yield from navigate_to_anywhere(
+                dest_map, dest_tile, avoid_encounters=avoid_encounters, avoid_scripted_events=False
+            )
+            return
+        except BotModeError:
+            yield from _ride_out_scripted_scene("B")
+    raise BotModeError(f"Could not reach {dest_tile} on {dest_map} (too many scene interruptions).")
+
+
 # Exit warp of every Emerald Poké Center 1F (same interior layout everywhere).
 POKEMON_CENTER_1F_EXIT = (7, 8)
 
@@ -1094,7 +1110,7 @@ def train_team(
                 pass
 
         context.message = f"Story: training the team to Lv {target_level} in the grass…"
-        yield from navigate_to_anywhere(grass_map, grass_tile, avoid_encounters=False)
+        yield from _navigate_riding_out(grass_map, grass_tile, avoid_encounters=False)
 
         def _stop() -> bool:
             return story_should_abort() or _lead_level() >= target_level or _lead_hp_pct() <= heal_at
@@ -1138,7 +1154,7 @@ def catch_starter_team(
         guard += 1
         if guard > 250 or _total_poke_balls() <= 1:
             break  # out of balls / bad luck — proceed with the team we have
-        yield from navigate_to_anywhere(grass_map, grass_tile, avoid_encounters=False)
+        yield from _navigate_riding_out(grass_map, grass_tile, avoid_encounters=False)
 
         def _stop() -> bool:
             return (
