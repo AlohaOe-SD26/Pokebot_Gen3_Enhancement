@@ -1153,6 +1153,33 @@ def affordable_poke_balls() -> int:
     return max(0, (_money() - MONEY_RESERVE) // POKE_BALL_PRICE)
 
 
+def _mart_item_row(item_name: str) -> int | None:
+    """Row (0-based cursor index) of ``item_name`` in the CURRENTLY-open mart's buy
+    list, or None if this shop doesn't stock it. Reads sMartInfo's item array so we
+    work at ANY mart regardless of its stock/order (shops differ — user note
+    2026-07-21). Only valid while a shop menu is open."""
+    try:
+        from modules.memory import read_symbol, unpack_uint16, unpack_uint32
+        from modules.pokemon import get_item_by_index
+
+        info = read_symbol("sMartInfo")
+        item_list_ptr = unpack_uint32(info[8:12])
+        item_count = unpack_uint16(info[12:14])
+        if not (0x08000000 <= item_list_ptr < 0x0A000000) or not (0 < item_count < 60):
+            return None
+        raw = context.emulator.read_bytes(item_list_ptr, length=item_count * 2)
+        for i in range(item_count):
+            iid = unpack_uint16(raw[i * 2 : i * 2 + 2])
+            try:
+                if get_item_by_index(iid).name == item_name:
+                    return i
+            except Exception:
+                pass
+    except Exception:
+        pass
+    return None
+
+
 def buy_poke_balls(count: int, mart: tuple = RUSTBORO_MART) -> Generator:
     """Buy `count` Poké Balls at a mart. Poké Ball is item index 0 (cursor default),
     so the flow is: talk → BUY → select item 0 → set quantity → confirm → exit. Fully
@@ -1189,10 +1216,17 @@ def buy_poke_balls(count: int, mart: tuple = RUSTBORO_MART) -> Generator:
         guard += 1
     if not task_is_active("Task_BuyMenu"):
         raise BotModeError("Mart: could not open the Buy list.")
-    # Phase 3: item list — Poké Ball is index 0 (cursor at top). Confirm it (this ends
+    # Phase 3: item list. Find Poké Ball's ROW in THIS shop's stock (order differs per
+    # mart — user note) and move the cursor down to it, then confirm (this ends
     # Task_BuyMenu and shows a "How many?" message), then advance that message with A
     # until the quantity selector opens.
     yield from wait_for_n_frames(10)
+    row = _mart_item_row("Poké Ball")
+    if row is None:
+        raise BotModeError("Mart: this shop doesn't stock Poké Balls.")
+    for _ in range(row):
+        context.emulator.press_button("Down")
+        yield from wait_for_n_frames(3)
     yield from wait_until_task_is_not_active("Task_BuyMenu", "A")
     guard = 0
     while not task_is_active("Task_BuyHowManyDialogueHandleInput") and guard < 60:
