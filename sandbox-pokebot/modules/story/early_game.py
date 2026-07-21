@@ -1037,6 +1037,74 @@ def do_rustboro_gym() -> Generator:
     context.message = "Story: earned the STONE BADGE — Gym 1 cleared!"
 
 
+# Grass training spot near Rustboro (Route 116, directly east — 101 grass tiles,
+# reachable straight from the city). Used for the pre-gym threshold + defeat retrain.
+RUSTBORO_TRAINING_GRASS = (MapRSE.ROUTE116, (11, 7))
+
+
+def _battler_slots() -> list[int]:
+    """Party slots (0-based) that can actually battle: not an egg, has a damaging move."""
+    slots = []
+    for i, p in enumerate(get_party()):
+        if p is None or p.is_egg:
+            continue
+        if any(lm is not None and lm.move.base_power > 0 for lm in p.moves):
+            slots.append(i)
+    return slots
+
+
+def train_team(
+    target_level: int,
+    scope: str = "whole",
+    grass: tuple = RUSTBORO_TRAINING_GRASS,
+    heal_center: "PokemonCenter" = PokemonCenter.RustboroCity,
+) -> Generator:
+    """Grind wild battles until the team reaches ``target_level`` (defeat retrain /
+    pre-fight threshold, user directive 2026-07-21).
+
+    ``scope`` 'whole' trains every battler (rotating the lowest to the lead); 'lead'
+    trains only the current lead. Heals at ``heal_center`` when HP dips near the
+    flee threshold. A whiteout mid-training is caught and recovered by
+    ``StoryMode.run()`` (the abort check bails us out promptly)."""
+    from modules.modes.util.higher_level_actions import change_lead_party_pokemon
+
+    grass_map, grass_tile = grass
+    heal_at = float(getattr(context.config.battle, "hp_threshold", 20)) + 8.0
+    guard = 0
+    while True:
+        _check_abort()
+        guard += 1
+        if guard > 500:
+            raise BotModeError("Training did not reach the target level (too many rounds).")
+
+        party = get_party()
+        if scope == "lead":
+            need = [0] if party and not party[0].is_egg and party[0].level < target_level else []
+        else:
+            need = [i for i in _battler_slots() if party[i].level < target_level]
+        if not need:
+            break
+
+        # Put the lowest-level needy battler in the lead so it gains the XP.
+        target_slot = min(need, key=lambda i: party[i].level)
+        if target_slot != 0:
+            try:
+                yield from change_lead_party_pokemon(target_slot)
+            except Exception:
+                pass
+
+        context.message = f"Story: training the team to Lv {target_level} in the grass…"
+        yield from navigate_to_anywhere(grass_map, grass_tile, avoid_encounters=False)
+
+        def _stop() -> bool:
+            return story_should_abort() or _lead_level() >= target_level or _lead_hp_pct() <= heal_at
+
+        yield from spin(stop_condition=_stop)
+        _check_abort()
+        if _lead_hp_pct() <= heal_at and _lead_level() < target_level:
+            yield from heal_in_pokemon_center(heal_center)
+
+
 # Chapter 5 (Devon Goods errand) constants — all verified live 2026-07-21 via the
 # mapdump tool + the ch5 recon harness (see design §Ch5 "BUILD PROGRESS"):
 RUSTBORO_THEFT_WALK_TILE = (18, 20)      # walking here (west) after the gym fires the theft

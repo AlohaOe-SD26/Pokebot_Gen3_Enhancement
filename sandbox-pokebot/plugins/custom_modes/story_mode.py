@@ -215,6 +215,46 @@ class StoryMode(BotMode):
     def defeat_count_at(self, location_key) -> int:
         return self._defeat_counts.get(location_key, 0)
 
+    def _prepare_for_fight(self, cfg: dict) -> Generator:
+        """Before a major fight, train the team to a sensible level (user directive
+        2026-07-21). PROACTIVE: a target within the fight's level band (organic,
+        randomized). REACTIVE: if we've already LOST here ≥2 times, escalate the
+        target and train harder before re-attempting — the "+levels" strategy and
+        the team scope are both randomized to look human/organic."""
+        import random
+
+        from modules.pokemon_party import get_party
+        from modules.story.early_game import train_team
+
+        losses = max((self._defeat_counts.get(k, 0) for k in cfg["keys"]), default=0)
+        lo, hi = cfg["band"]
+        target = random.randint(lo, hi)  # organic proactive target within the band
+        if losses >= 2:
+            levels = [p.level for p in get_party() if p is not None and not p.is_egg]
+            team_max = max(levels, default=0)
+            team_avg = (sum(levels) // len(levels)) if levels else 0
+            choice = random.choice(["plus5_max", "plus5_avg", "escalate_band"])
+            if choice == "plus5_max":
+                target = max(target, team_max + 5)
+            elif choice == "plus5_avg":
+                target = max(target, team_avg + 5)
+            else:
+                target = max(target, hi + 2 * (losses - 1))
+            console.print(
+                f"[bold yellow]Story: lost here {losses}× — training harder before "
+                f"re-attempting (target Lv {target}, {choice}).[/]"
+            )
+        scope = random.choice(["whole", "lead"])  # randomize team scope (organic)
+
+        levels = [p.level for p in get_party() if p is not None and not p.is_egg]
+        lead_level = get_party()[0].level if get_party() else 0
+        need = (lead_level < target) if scope == "lead" else any(l < target for l in levels)
+        if need:
+            console.print(f"[cyan]Story: prepping for the fight — training to Lv {target} ({scope}).[/]")
+            yield from train_team(target, scope=scope, grass=cfg["grass"], heal_center=cfg["heal"])
+        else:
+            console.print(f"[dim]Story: team already ≥ Lv {target} — no prep training needed.[/]")
+
     def on_battle_started(self, encounter):
         # Story battles (the first Birch battle, training, the rival) are meant
         # to be FOUGHT and won with the default battle strategy — never run from
@@ -448,8 +488,20 @@ class StoryMode(BotMode):
             yield from travel_route104_north_to_rustboro()
         _guard("Route 104 → Rustboro", _in_rustboro)
 
-        # --- Segment 4: Gym 1 — Roxanne (Stone Badge). ---
+        # --- Segment 4: Gym 1 — Roxanne (Stone Badge). Train the team to a sensible
+        #     level FIRST (threshold ≈ boss ace + margin, plus a retrain if we've
+        #     already lost here — user directive 2026-07-21). ---
         if not _done("BADGE01_GET"):
+            from modules.map_data import PokemonCenter
+            from modules.story.early_game import RUSTBORO_TRAINING_GRASS
+
+            roxanne_fight = {
+                "keys": [MapRSE.RUSTBORO_CITY_GYM.value, MapRSE.RUSTBORO_CITY.value],
+                "band": (13, 17),  # user: team between Lv 13-17 before Roxanne
+                "grass": RUSTBORO_TRAINING_GRASS,
+                "heal": PokemonCenter.RustboroCity,
+            }
+            yield from self._prepare_for_fight(roxanne_fight)
             yield from do_rustboro_gym()
         else:
             console.print("[dim]Story: Stone Badge already earned — Gym 1 skipped.[/]")
