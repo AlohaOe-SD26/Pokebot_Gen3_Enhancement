@@ -69,12 +69,18 @@ gaps = map_locations/mart/pickup/historical.
   money reality (no Vs Seeker → sell/Pickup/economy), a retrofit plan, and the future
   decision-brain seam. Referenced from 00-README. **First retrofit done: catching is
   now resource-aware** — `_should_catch` returns False when poke_balls ≤ 1 so it
-  never attempts a catch it can't complete (the reported BREAK is fixed; fallback =
-  skip catching). **NEXT (do NOT start story chapters until user says): build the
-  buy-at-mart PROVISIONING** (out-of-balls → route to nearest mart → buy max
-  affordable balls → resume; broke → skip). Shop symbols: `sMartInfo`/`sShopData`,
-  per-mart clerk scripts, basic/expanded stock. Then sweep the remaining scripts for
-  explicit preconditions/fallbacks. Commits: doc + `_should_catch` safety floor.
+  never attempts a catch it can't complete (fallback = skip). **BUY-AT-MART
+  PROVISIONING now COMPLETE + verified**: `buy_poke_balls`/`provision_poke_balls`
+  (early_game.py) drive the Emerald shop (talk from Rustboro-mart (3,3) facing Left;
+  Poké Ball index 0; `wait_until_task_is_not_active(task,"A")` for list confirms;
+  advance the "How many?"/"OK?" messages). Wired into catch_starter_team: out of
+  balls → buy min(30, affordable) keeping a ¥500 reserve → resume; broke → skip.
+  Verified end-to-end (balls forced to 2 → caught → bought 30 → resumed → team of 4).
+  Commits: doc 13, `_should_catch` safety floor, `1a3df6ad` buy provisioning.
+  **Retrofit largely complete** (catching/healing/training/nav/defeat/derail all
+  have preconditions+fallbacks). **DO NOT resume story chapters until the user says
+  so.** Remaining planning items are future/noted (money-making engine, PP-aware
+  heal, HM-gated routing, decision brain).
 - **STORY TEAM-BUILDING: pre-fight training + retrain + pre-gym catching (sandbox,
   user directives #1/#2).** (a) `train_team(target, scope)` grinds wilds on Route 116
   (11,7) — scope 'whole' rotates the lowest battler to lead, 'lead' trains the lead.
