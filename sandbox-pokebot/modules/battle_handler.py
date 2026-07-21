@@ -51,7 +51,24 @@ def handle_battle(strategy: BattleStrategy) -> Generator[None, None, HandledBatt
     stolen_items: list[tuple[int, Item]] = []
     items_before_pickup: list[Item | None] | None = None
 
-    while battle_is_active() and context.bot_mode != "Manual":
+    def _move_learn_dialogue_active() -> bool:
+        try:
+            from modules.battle_move_replacing import get_learn_move_state, LearnMoveState
+
+            return get_learn_move_state() != LearnMoveState.DialogueNotActive
+        except Exception:
+            return False
+
+    def _learn_or_evo_pending() -> bool:
+        # A level-up move-learn or an evolution can surface as the battle is
+        # ENDING (common in TRAINER battles). If the loop condition were only
+        # `battle_is_active()`, we'd exit and leave that prompt unhandled — the
+        # bot then hangs on the "Delete which move?" screen (all starters at
+        # Lv16 hit this; not evolution-specific — ML-11). Keep looping so we
+        # finish the dialogue.
+        return _move_learn_dialogue_active() or task_is_active("Task_EvolutionScene")
+
+    while (battle_is_active() or _learn_or_evo_pending()) and context.bot_mode != "Manual":
         instruction = get_current_battle_script_instruction()
         if get_main_battle_callback() in ("HandleTurnActionSelectionState", "sub_8012324"):
             yield from handle_battle_action_selection(strategy)
@@ -65,7 +82,10 @@ def handle_battle(strategy: BattleStrategy) -> Generator[None, None, HandledBatt
         ):
             items_before_pickup = [pokemon.held_item for pokemon in get_party()]
             yield
-        elif instruction == "BattleScript_AskToLearnMove":
+        elif instruction == "BattleScript_AskToLearnMove" or _move_learn_dialogue_active():
+            # Also dispatch when the learn-move dialogue is up but the battle
+            # script instruction has already moved on (post-battle move-learn,
+            # ML-11) — otherwise the prompt is never handled and the bot hangs.
             yield from handle_move_replacement_dialogue(strategy)
         elif task_is_active("Task_EvolutionScene"):
             yield from handle_evolution_scene(strategy)

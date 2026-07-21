@@ -345,3 +345,12 @@ main.py Manual mode = "stuck in the Woods", user-reported). Fixed with the new
 door tile (like heal_in_pokemon_center) instead of hand-stepping. Byte-identical
 to the sandbox fix, which was re-verified with a main.py-faithful harness
 (wally_done -> Woods -> ... -> Gym 1 -> BADGE01_GET True, no error). Custom compiles.
+
+### (k) STOCK FIX: battle handler handles end-of-battle move-learn (ML-11)
+`modules/battle_handler.py` (a stock upstream file) modified: `handle_battle`'s
+loop now continues while a move-learn/evolution dialogue is pending (not only
+`battle_is_active()`), and dispatches the move-replacement handler when the learn
+dialogue is active even if the battle instruction moved on. Fixes a hang where a
+Lv-up move-learn surfacing AS a trainer battle ends was left unhandled (all
+starters at Lv16). Same change in sandbox. Reproduced + verified (trainer repro
+4/4 clean). Upstream candidate.

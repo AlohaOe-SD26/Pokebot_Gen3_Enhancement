@@ -240,3 +240,28 @@
   screen vs "delete which move?" vs move summary) pins it instantly.
 - **Prevention:** keep a grass checkpoint with the lead near each evolution level
   for fast move-learn/evolution testing.
+
+## 2026-07-20 — REAL cause of the Lv16 move-learn hang: battle handler exits early  (ML-11, supersedes ML-10)
+- **Symptom (user):** starters hang while learning a move at Lv16, still in
+  pre-evolved form; bot doesn't stop.
+- **ML-10 was WRONG** (blamed the evolution-cancel path; enabling evolution did
+  NOT fix it). REPRODUCED definitively with a debug_create_pokemon Treecko Lv15
+  (exp just below 16) fought in a TRAINER battle: the freeze is a PURE MOVE-LEARN
+  hang — the `BattleScript_AskToLearnMove` instruction repeats forever with
+  **Task_EvolutionScene INACTIVE**. Wild battles never froze; only trainer
+  battles, and FLAKY (~50%), because the level-up move-learn surfaces AS the
+  trainer battle is ENDING.
+- **Root cause:** `battle_handler.handle_battle`'s loop was `while
+  battle_is_active()`. In a trainer battle the move-learn prompt can appear the
+  frame the battle goes inactive → the loop EXITS → the "Delete which move?"
+  prompt is left unhandled → the mode's run()/navigation spins → hang.
+- **Fix (both builds):** loop while `battle_is_active() OR a move-learn/evolution
+  dialogue is pending`, and dispatch to `handle_move_replacement_dialogue` when
+  the learn-move dialogue is active even if the battle instruction has moved on.
+  Verified: trainer-battle repro 4/4 clean (learns Pursuit + evolves to Grovyle);
+  wild path unchanged.
+- **Prevention:** end-of-battle prompts (move-learn, evolution, nickname) must be
+  handled by a loop that outlives `battle_is_active()`. Reproduce battle edge
+  cases with debug_create_pokemon + a real TRAINER battle, not just wild.
+- NB: the earlier `should_allow_evolution → True` change is KEPT (user wants
+  evolution ON by default; it's a real feature) but was NOT the freeze fix.

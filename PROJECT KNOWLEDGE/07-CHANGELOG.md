@@ -949,3 +949,16 @@ not in the expected state -> guard fires -> recover on re-run). Verified no
 false-fire on the happy paths (gym1_done all-skip; woods/petalburg resumes).
 Design §SC. Remaining (#24-sanity): bounded auto-retry, self-locate, mid-segment
 stall watch for the battle-handler hang class. Sandbox-only (part of segmented run).
+
+## 2026-07-20 — FIX (real): Lv16 move-learn hang — battle handler exited early (#24, both builds, ML-11)
+User: starters hang learning a move at Lv16 (pre-evolution); persisted after the
+evolution-enable attempt. REPRODUCED with a debug Treecko Lv15 in a TRAINER battle:
+pure move-learn hang (AskToLearnMove repeats, evolution task INACTIVE), flaky
+(~50%), only in trainer battles. Root cause: handle_battle's `while
+battle_is_active()` exits the frame the move-learn surfaces as the battle ends,
+leaving the "Delete which move?" prompt unhandled. Fix (modules/battle_handler.py,
+STOCK file — divergence): loop while battle_is_active() OR a move-learn/evolution
+dialogue is pending, and dispatch move-replacement when the learn dialogue is
+active even if the instruction moved on. Verified: trainer repro 4/4 clean (learns
+Pursuit + evolves to Grovyle); wild path unchanged. Corrects ML-10 (evolution was
+a red herring; should_allow_evolution=True kept as a feature).
