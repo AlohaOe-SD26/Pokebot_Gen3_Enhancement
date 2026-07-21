@@ -75,7 +75,7 @@ def get_learn_move_state() -> LearnMoveState:
 @debug.track
 def handle_move_replacement_dialogue(strategy: BattleStrategy) -> Generator:
     move_to_forget = 4
-    already_confirmed = False
+    last_offered_move_name = None
     frames_in_dialogue = 0
     while True:
         # SAFETY (ML-11 follow-up): the move-learn UI normally resolves in a few
@@ -104,45 +104,47 @@ def handle_move_replacement_dialogue(strategy: BattleStrategy) -> Generator:
 
         if state == LearnMoveState.AskWhetherToLearn:
             debug.action_stack.append("LearnMoveState.AskWhetherToLearn")
-            if not already_confirmed:
-                if task_is_active("Task_HandleReplaceMoveYesNoInput") or task_is_active("sub_806F390"):
-                    party_menu_data = get_party_menu_cursor_pos(get_party_size())
-                    move_to_learn = get_move_by_index(party_menu_data["data1"])
-                    party_index = party_menu_data["slot_id"]
-                else:
-                    move_to_learn = get_move_by_index(unpack_uint16(read_symbol("gMoveToLearn", size=2)))
-                    if context.rom.is_rs:
-                        if evolution_task is not None:
-                            party_index = evolution_task.data_value(12)
-                        else:
-                            party_index = context.emulator.read_bytes(0x02016018, length=1)[0]
+            # Read the move being offered RIGHT NOW. A Pokémon can learn MORE THAN
+            # ONE move at a single level-up (offered one after another) — so we
+            # re-run the decision whenever the offered move changes, instead of
+            # locking in the first one (user-flagged multi-move case).
+            if task_is_active("Task_HandleReplaceMoveYesNoInput") or task_is_active("sub_806F390"):
+                party_menu_data = get_party_menu_cursor_pos(get_party_size())
+                move_to_learn = get_move_by_index(party_menu_data["data1"])
+                party_index = party_menu_data["slot_id"]
+            else:
+                move_to_learn = get_move_by_index(unpack_uint16(read_symbol("gMoveToLearn", size=2)))
+                if context.rom.is_rs:
+                    if evolution_task is not None:
+                        party_index = evolution_task.data_value(12)
                     else:
-                        party_index = read_symbol("gBattleStruct", 16, 1)[0]
-                    if context.rom.is_emerald or context.rom.is_frlg:
-                        party_index = get_battle_state().map_battle_party_index(party_index)
+                        party_index = context.emulator.read_bytes(0x02016018, length=1)[0]
+                else:
+                    party_index = read_symbol("gBattleStruct", 16, 1)[0]
+                if context.rom.is_emerald or context.rom.is_frlg:
+                    party_index = get_battle_state().map_battle_party_index(party_index)
+            if move_to_learn.name != last_offered_move_name:
                 pokemon = get_party()[party_index]
                 move_to_forget = strategy.which_move_should_be_replaced(pokemon, move_to_learn)
                 if context.bot_mode == "Manual":
                     return
-                already_confirmed = True
+                last_offered_move_name = move_to_learn.name
 
-            # Answer the "Delete a move to learn X?" YES/NO ROBUSTLY. Only press
-            # when the game is WAITING FOR INPUT — blindly spamming a button also
-            # skips the preceding text AND can be mis-registered as the Yes/No
-            # answer (landing on NO), which flaky-froze the bot at EXACTLY this
-            # prompt (ML-11 / user-reported). A = YES (cursor defaults to Yes) to
-            # learn; B = decline. We do NOT wait on a fixed next-state — the outer
-            # loop handles whatever state follows, so a stray/odd transition
-            # course-corrects instead of hanging on a target that never comes.
-            if is_waiting_for_input():
-                context.emulator.press_button("A" if move_to_forget in (0, 1, 2, 3) else "B")
+            # Answer directly — do NOT gate on is_waiting_for_input(): battle text
+            # doesn't use the field text-printer it checks, so it's always False
+            # here and gating would never press → HANG (ML-11, the real bug). The
+            # AskWhetherToLearn state already means the Yes/No menu is up. YES (A)
+            # to learn (cursor defaults to Yes); NO (B) to decline. We don't wait on
+            # a fixed next-state — the outer loop follows whatever comes, so an odd
+            # transition course-corrects (and multi-move re-decides above).
+            context.emulator.press_button("A" if move_to_forget in (0, 1, 2, 3) else "B")
             yield
             debug.action_stack.pop()
 
         elif state == LearnMoveState.ConfirmCancellation:
             debug.action_stack.append("LearnMoveState.ConfirmCancellation")
-            if is_waiting_for_input():
-                context.emulator.press_button("A")
+            # "Stop trying to teach X?" — reached only when declining -> YES (A).
+            context.emulator.press_button("A")
             yield
             debug.action_stack.pop()
 
@@ -158,16 +160,22 @@ def handle_move_replacement_dialogue(strategy: BattleStrategy) -> Generator:
                 yield
                 yield
             else:
-                # Cursor is on the move to forget — confirm with A, gated on the
-                # game actually waiting for input (avoids the blind-spam
-                # mis-register, ML-11). The outer loop follows whatever comes next.
-                if is_waiting_for_input():
-                    context.emulator.press_button("A")
+                # Cursor is on the move to forget — confirm with A. The outer loop
+                # then follows whatever state comes next (no fixed-target wait).
+                context.emulator.press_button("A")
                 yield
             debug.action_stack.pop()
 
         else:
-            context.emulator.press_button("B")
+            # The "Unknown" state is the run of TEXT BOXES that precede the Yes/No
+            # ("<mon> is trying to learn <move>", "But it already knows 4 moves",
+            # "Delete a move to make room?"). Advance them with A ONLY when the
+            # game is waiting for input. Blind spam here is the real bug (ML-11 /
+            # user-reported): it answers the Yes/No the instant it appears, and a
+            # stray B = NO = decline = hang. A premature A = YES = learn, which is
+            # exactly what we want, so A is the safe button to advance text with.
+            if is_waiting_for_input():
+                context.emulator.press_button("A")
             yield
 
 

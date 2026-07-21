@@ -376,3 +376,11 @@ the "Delete a move?" YES/NO (and the delete-confirm) only when is_waiting_for_in
 — blind A/B spam was mis-registering the answer and then waiting on a fixed
 next-state that never came (the user-reported Lv16 hang). No fixed-target waits; the
 outer loop follows the actual state. Same in sandbox. Verified 4/4 learns Pursuit.
+
+### (o) STOCK FIX(VERIFIED): move-learn hang — direct presses + multi-move re-decide (ML-11)
+`modules/battle_move_replacing.py`: reproduced reliably (a mon learning multiple
+moves at one level hung 100% at the Yes/No). Fixed: answer with direct A/B presses
+(is_waiting_for_input() is always False in battle -> gating never pressed -> hang),
+advance the preceding text with A not B (B mis-answers Yes/No as NO), and re-decide
+per offered move for multi-move. Verified Castform 3/3 learns 3 moves; Treecko
+unchanged. Same in sandbox.

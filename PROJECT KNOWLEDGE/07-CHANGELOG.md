@@ -1002,3 +1002,17 @@ yes/no pattern), and don't wait on a fixed next-state — the outer state machin
 follows whatever comes, so a stray transition course-corrects (user's idea) instead
 of hanging. Verified 4/4 learns Pursuit + evolves; no regression. The battle
 no-progress watchdog (FIX 3) remains as a backstop.
+
+## 2026-07-20 — FIX(5, VERIFIED): move-learn hang — direct presses + multi-move re-decide (#24, both builds, ML-11)
+FINALLY reproduced reliably: a Pokémon learning MULTIPLE moves at one level (debug
+Castform Lv9->10 learns 3) hung 100% at the "Delete a move? YES/NO". ROOT: (a) my
+prior is_waiting_for_input() gating was WRONG in battle — battle text doesn't use
+the field text-printer it checks, so it was always False and the bot NEVER pressed
+-> hang; (b) the fallback pressed B in the preceding text boxes, which mis-answers
+the Yes/No as NO -> decline; (c) the decision was locked to the FIRST offered move,
+breaking multi-move. FIX: answer with direct presses (A=YES/learn, B=decline; the
+state itself confirms the menu is up), advance the preceding text with A (premature
+= YES = safe for learn, not B), and RE-DECIDE whenever the offered move changes so
+each of several moves gets the right slot. Verified: Castform learns all 3 moves
+3/3 (no hang); Treecko single-move + evolution unchanged. Backstops (per-call safety
++ handle_battle no-progress watchdog) remain.
