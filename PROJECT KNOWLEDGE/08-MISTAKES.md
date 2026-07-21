@@ -341,3 +341,19 @@
   test passes but the real bot hangs, build a FAITHFUL main.py-loop harness and, if
   the bug still won't reproduce, FAULT-INJECT the suspected fragile signal to prove
   the failure mode and the fix. Repro tooling: `scratchpad/repro_movelearn.py`.
+
+## 2026-07-21 — ML-13 addendum: user-observed trigger (starter hits Lv16 MID-FIGHT vs Roxanne)
+User reported the precise real-world trigger for the ML-13 move-learn hang: the STARTER
+reaches Lv16 and learns a move MID-FIGHT during the Roxanne battle (before her Nosepass is
+sent out) — i.e. a level-up move-learn in the MIDDLE of an ongoing TRAINER battle, with more
+of the trainer's team still to come. Their intuition was that the bot seemed "confused about
+whether it's supposed to evolve / keep fighting vs. learn the move." That matches the ML-13
+root cause exactly: the mid-trainer-battle level-up lands on the task-less "Delete a move to
+make room?" Yes/No, whose fragile offset-ONLY detection failed → the handler pressed nothing
+→ froze. The overnight TEXT-DRIVEN fix handles this instance (confirmed in the from-scratch
+run: the starter hit Lv16 in a real battle, "trying to learn PURSUIT" with ml=Unknown, and
+the fix resolved it from the on-screen text). Coverage is universal across ALL move-learn
+instances: (1) wild level-up, (2) TRAINER mid-fight level-up [this case], (3) end-of-battle
+level-up, (4) move-learn DURING evolution, (5) multiple moves at one level, (6) level-up +
+evolution at the same level (Treecko L16 → Pursuit + Grovyle). If it ever recurs, capture the
+exact on-screen text + `battle_stall.log` — but it should not.
