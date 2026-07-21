@@ -254,6 +254,16 @@ back on track from wherever it really is — not blindly follow the script.
    boundaries) compare EXPECTED segment vs the segment the live state implies; on
    mismatch, re-run full detection and re-enter the correct segment.
 
+**IMPLEMENTED v1 (2026-07-20):** `StoryMode.run()` now calls `_guard(label,
+done_check)` AFTER each segment — if the segment didn't reach its completion
+signal (flag/map), it raises a diagnostic BotModeError (→ Manual) naming where it
+actually is, instead of blindly proceeding and compounding the derail; re-running
+Story then resumes correctly from the real state. Verified no false-fire on the
+happy paths (gym1_done all-skip; woods/petalburg resumes). This also catches a
+gym/battle LOSS (blackout → not in the expected state → guard fires → recover on
+re-run). REMAINING (below): bounded auto-retry, self-locate, mid-segment stall
+watch for the battle-handler hang class.
+
 **Implementation sketch (future, #24-sanity):** wrap the segmented `run()` (§RS)
 so each segment is: (a) precondition — skip if its completion flag is already set;
 (b) locate — navigate to the start if not there; (c) execute; (d) postcondition —

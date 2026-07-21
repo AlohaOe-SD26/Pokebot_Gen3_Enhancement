@@ -246,12 +246,34 @@ class StoryMode(BotMode):
             except Exception:
                 return None
 
+        from modules.modes import BotModeError
+
+        def _guard(label: str, done_check) -> None:
+            """SELF-CORRECTION (§SC): after a segment, confirm it actually reached
+            its completion signal. If not, the bot silently derailed (a mis-warp,
+            a lost battle/blackout, or a skipped beat) — STOP with a diagnostic
+            rather than blindly marching on and compounding the error. Re-running
+            Story then resumes correctly from the REAL state (§RS)."""
+            if done_check():
+                return
+            try:
+                prog = detect_live()
+                where = f"{prog.chapter_key}: {prog.chapter_name}"
+            except Exception:
+                where = "unknown"
+            raise BotModeError(
+                f"Story self-check: '{label}' didn't reach its completion signal "
+                f"(now {where}, map {_cur_map()}). Stopping so I don't derail "
+                "further — just run Story again and it resumes correctly from here."
+            )
+
         # RESUME MODEL: the story is linear, so we run each SEGMENT only if its
         # completion signal isn't already set — a fresh game runs everything; a
         # resumed save (or one you hand-played partway) skips what's done and
         # continues from the right place. See design §RS. (Segments self-locate
         # via navigation; the Woods segment also picks its sub-entry by current
-        # map so a resume mid-Woods doesn't backtrack to Petalburg.)
+        # map so a resume mid-Woods doesn't backtrack to Petalburg.) After each
+        # segment a _guard() self-check confirms it truly completed (§SC).
         at_title = get_game_state() is GameState.TITLE_SCREEN or not game_has_started()
         if not at_title:
             try:
@@ -290,6 +312,7 @@ class StoryMode(BotMode):
             yield from return_to_lab_and_get_pokedex()
         else:
             console.print("[dim]Story: already have the Pokédex — skipping the intro chapters.[/]")
+        _guard("intro → Pokédex", lambda: _done("RECEIVED_POKEDEX_FROM_BIRCH"))
 
         # --- Segment 2: Petalburg City — Dad (Norman) + Wally catching tutorial.
         #     Completion signal: Wally's mum leaves Petalburg (HIDE_..._WALLYS_MOM);
@@ -299,12 +322,14 @@ class StoryMode(BotMode):
             yield from do_petalburg_gym_and_wally_tutorial()
         else:
             console.print("[dim]Story: Petalburg / Wally tutorial already done — skipping.[/]")
+        _guard("Petalburg / Wally", lambda: _done("HIDE_PETALBURG_CITY_WALLYS_MOM"))
 
         # --- Segment 3: Route 104 → Petalburg Woods → Rustboro. Enter at the
         #     right sub-step by current map so a mid-Woods resume doesn't backtrack. ---
         rustboro = MapRSE.RUSTBORO_CITY.value
         woods = MapRSE.PETALBURG_WOODS.value
-        if _cur_map() == rustboro or _done("BADGE01_GET"):
+        _in_rustboro = lambda: _cur_map() == rustboro or _done("BADGE01_GET")
+        if _in_rustboro():
             console.print("[dim]Story: already in Rustboro — skipping the Woods travel.[/]")
         elif _cur_map() == woods:
             console.print("[cyan]Story: resuming inside Petalburg Woods — finishing the crossing.[/]")
@@ -314,12 +339,14 @@ class StoryMode(BotMode):
             yield from travel_to_petalburg_woods()
             yield from cross_petalburg_woods()
             yield from travel_route104_north_to_rustboro()
+        _guard("Route 104 → Rustboro", _in_rustboro)
 
         # --- Segment 4: Gym 1 — Roxanne (Stone Badge). ---
         if not _done("BADGE01_GET"):
             yield from do_rustboro_gym()
         else:
             console.print("[dim]Story: Stone Badge already earned — Gym 1 skipped.[/]")
+        _guard("Gym 1 (Roxanne)", lambda: _done("BADGE01_GET"))
 
         context.message = (
             "Story: caught up to the end of the built content (through Gym 1 / "

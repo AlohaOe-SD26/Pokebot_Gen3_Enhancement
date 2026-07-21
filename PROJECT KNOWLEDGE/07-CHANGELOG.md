@@ -938,3 +938,14 @@ LevelUpTravelBattleStrategy.should_allow_evolution -> True (starter evolves via
 the well-tested path; also stronger for gyms, #24-evo). NEEDS USER VERIFICATION
 on a real Treecko run; fallback (handle_battle AskToLearnMove-vs-EvolutionScene
 precedence) documented in ML-10 if it still hangs.
+
+## 2026-07-20 — Story: self-correction v1 — per-segment completion guard (#24-sanity, sandbox)
+"Story mode needs to be smarter" (user). StoryMode.run() now runs a _guard() after
+each segment: if the segment didn't reach its completion signal (flag/map) it
+raises a diagnostic BotModeError naming where it actually is (→ Manual), instead
+of blindly proceeding and compounding a derail — re-running Story then resumes
+correctly from the real state (§RS). Also catches a gym/battle LOSS (blackout ->
+not in the expected state -> guard fires -> recover on re-run). Verified no
+false-fire on the happy paths (gym1_done all-skip; woods/petalburg resumes).
+Design §SC. Remaining (#24-sanity): bounded auto-retry, self-locate, mid-segment
+stall watch for the battle-handler hang class. Sandbox-only (part of segmented run).
