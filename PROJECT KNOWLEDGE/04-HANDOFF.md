@@ -58,6 +58,29 @@ flavor all done, Phases 1/2/3a). `itemdex_data.json` = core (309 items);
 gaps = map_locations/mart/pickup/historical.
 
 ## Most recent work (2026-07-20)
+- **★ Lv16 MOVE-LEARN HANG — ROOT CAUSE FOUND & FIX VALIDATED (both builds, ML-13).**
+  Overnight autonomous debugging session (user-authorised). REPRODUCED the exact hang
+  with a faithful main.py-loop headless harness (`scratchpad/repro_movelearn.py`):
+  inject a Treecko at `exp_for_L16-1`, walk into the Route 103 rival (single-Pokémon
+  trainer, encounters avoided) so it crosses Lv16 on the KO that ENDS the battle.
+  ROOT CAUSE: the Emerald BATTLE "Delete a move to make room for X?" Yes/No has NO
+  backing task, so `get_learn_move_state()` could only detect it by a fragile
+  script-offset (`+0x11`); when that never matched, the state stayed `Unknown` and the
+  fallback pressed A only when `is_waiting_for_input()` (the FIELD printer, unreliable
+  in battle) → it pressed NOTHING → froze on the Yes/No. FIX: rewrote
+  `handle_move_replacement_dialogue` to be fully TEXT/TASK-driven (§DA) — Yes/No
+  detected from on-screen text, move-select from the reliable input task, all other
+  text advanced with A directly (no is_waiting_for_input gate); hardened
+  `handle_evolution_scene`'s hand-off likewise. PROVEN by fault-injection A/B (force
+  the state Unknown + is_waiting_for_input False = the user's env): OLD stalls ~10,600
+  frames & fails to learn the move; FIXED resolves in 394 frames, learns Pursuit,
+  evolves to Grovyle, sensible moveset — on BOTH builds. The earlier ML-12 dispatch
+  reorder was a RED HERRING (A/B byte-identical) but is kept as harmless defence.
+  Backup before the session: git tag `backup-pre-overnight-2026-07-20` (pushed) +
+  local copy `C:/Remote Projects/_pokebot_backup_2026-07-20_overnight/`.
+  **Changed files (uncommitted at time of writing → commit next): battle_move_replacing.py
+  + battle_evolution_scene.py in BOTH builds.** Still ask the user to re-test the real
+  32× run to confirm end-to-end, but this is now root-cause-validated, not a guess.
 - **MOVE-LEARN HANG — dispatch-order fix + live stall diagnostic (BOTH builds).**
   User: the Lv16 move-learn STILL froze on the "Delete a move?" prompt despite
   every prior fix passing my offline harness (the unexplained harness-vs-real

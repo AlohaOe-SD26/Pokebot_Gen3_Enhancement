@@ -1047,3 +1047,20 @@ a precise report (closes the harness-vs-real gap, design §DA). Both builds comp
 awaiting user re-test on the real environment. The move-learn text detection was
 already universal (generic phrase match + dynamic offered-move read), per the
 user's "make it somewhat universal" note.
+
+## 2026-07-20 — Lv16 move-learn hang FIXED at the root (text-driven handler, ML-13, both builds)
+Found and fixed the real cause of the Treecko-Lv16 "Delete a move to learn Pursuit?
+YES/NO" freeze. The Emerald BATTLE Yes/No has no backing task, so the old code could
+only detect it by a fragile script-offset; when that offset never matched, the state
+stayed Unknown and the fallback pressed A only when is_waiting_for_input() (the FIELD
+printer, unreliable in battle) — so it pressed nothing and froze on the prompt.
+Rewrote `handle_move_replacement_dialogue` to be fully TEXT/TASK-driven (design §DA):
+the Yes/No is detected from the on-screen text ("make room for"/"Delete a move"), the
+move-select from the reliable input task, and every other text box is advanced with A
+directly (no is_waiting_for_input gate). Hardened `handle_evolution_scene`'s hand-off
+the same way. Reproduced the exact hang with a faithful main.py-loop headless harness
+plus FAULT INJECTION (force the fragile state Unknown + is_waiting_for_input False):
+old code stalls ~10,600 frames and fails to learn the move; the fix resolves in 394
+frames, learns Pursuit, evolves to Grovyle, sensible moveset — verified on BOTH
+sandbox and custom. The earlier ML-12 dispatch reorder was a red herring (A/B
+byte-identical) but is kept as harmless defence. Repro tool: scratchpad/repro_movelearn.py.

@@ -24,8 +24,27 @@ def handle_evolution_scene(strategy: BattleStrategy, allow_evolution: bool | Non
 
         task_state = task.data_value(0)
         if task_state == get_move_learning_state_index():
-            while get_learn_move_state() != LearnMoveState.AskWhetherToLearn and task_is_active("Task_EvolutionScene"):
+            # Advance into the move-learn prompt, then hand to the robust
+            # text-driven handler. Break as soon as the move-learn UI is up by ANY
+            # reliable signal — the AskWhetherToLearn STATE, the on-screen
+            # "make room for X?" TEXT, or the move-select TASK. Waiting ONLY for
+            # AskWhetherToLearn re-introduced the fragile-detection hang (ML-12):
+            # when that state never resolves, this loop pressed A forever. A guard
+            # bounds it so it can never spin here indefinitely either.
+            from modules.battle_move_replacing import move_learn_text_showing, _get_evolution_task_name
+
+            move_select_task = _get_evolution_task_name()
+            guard = 0
+            while task_is_active("Task_EvolutionScene") and guard < 900:
+                st = get_learn_move_state()
+                if (
+                    st in (LearnMoveState.AskWhetherToLearn, LearnMoveState.SelectMoveToReplace)
+                    or move_learn_text_showing()
+                    or task_is_active(move_select_task)
+                ):
+                    break
                 context.emulator.press_button("A")
+                guard += 1
                 yield
             yield from handle_move_replacement_dialogue(strategy)
 

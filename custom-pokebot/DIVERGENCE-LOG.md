@@ -398,3 +398,22 @@ scene FIRST, ahead of action-selection / item-steal / pay-day. Also added
 battle/field text + instruction + callback + learn-state + active menu tasks to the
 console and `<profile>/battle_stall.log`. Both builds compile; awaiting user
 re-test. Same in sandbox.
+
+### (q) STOCK FIX(ROOT CAUSE, ML-13): text-driven move-learn — the ACTUAL hang fix
+`modules/battle_move_replacing.py` + `modules/battle_evolution_scene.py`. The real
+cause of the Lv16 Treecko/Pursuit freeze: the Emerald BATTLE "Delete a move to make
+room for X?" Yes/No has NO backing task, so `get_learn_move_state()` could only
+recognise it by a fragile script-offset (`BattleScript_AskToLearnMove + 0x11`); when
+that offset never matched, the state stayed `Unknown` and the fallback pressed A only
+when `is_waiting_for_input()` (the FIELD text-printer — unreliable in battle), so it
+pressed NOTHING and froze on the prompt. Fix: rewrote `handle_move_replacement_dialogue`
+to be fully TEXT/TASK-driven — detect the Yes/No from the on-screen text
+("make room for" / "Delete a move") as well as the state, drive the move-select from
+the reliable `Task_HandleReplaceMoveInput`, and advance every other text box with A
+DIRECTLY (never gated on is_waiting_for_input). `handle_evolution_scene` hand-off
+hardened the same way (breaks on state OR text OR the move-select task, with a guard).
+Proven by fault-injection A/B (force the state Unknown + is_waiting_for_input False):
+old code stalls ~10,600 frames and declines the move; the fix resolves in 394 frames,
+learns Pursuit, evolves to Grovyle. Verified on BOTH builds. Supersedes the (p) ML-12
+dispatch-order hypothesis (a red herring — kept only as harmless defence). Same in
+sandbox. Repro tool: scratchpad/repro_movelearn.py.

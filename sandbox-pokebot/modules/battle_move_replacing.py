@@ -8,6 +8,7 @@ from modules.debug import debug
 from modules.game import get_symbol
 from modules.memory import read_symbol, unpack_uint32
 from modules.memory import unpack_uint16
+from modules.memory import get_game_state, GameState
 from modules.menu_parsers import get_party_menu_cursor_pos
 from modules.pokemon import get_move_by_index
 from modules.pokemon_party import get_party, get_party_size
@@ -89,19 +90,69 @@ def get_learn_move_state() -> LearnMoveState:
     return LearnMoveState.DialogueNotActive
 
 
+# On-screen phrases that identify each move-learn sub-screen. These are the
+# ROBUST signal (design §DA): the Emerald battle Yes/No has NO task backing it,
+# so the internal state is detected only by a fragile script-offset that can
+# stay "Unknown" forever — at which point the bot froze on the prompt (ML-12,
+# the real user hang). Reading the text instead never misses the prompt.
+_YESNO_PHRASES = ("make room for", "Delete a move", "should a move be forgotten", "Forget a move")
+_STOP_PHRASES = ("Stop trying to teach", "Stop learning", "give up on learning", "Please tell me")
+
+
+def _current_battle_text() -> str:
+    try:
+        from modules.game import decode_string
+
+        return decode_string(read_symbol("gDisplayedStringBattle"))
+    except Exception:
+        return ""
+
+
+def _read_offered_move(evolution_task):
+    """Read the move currently being offered + the party index of the learner.
+    Works whether the offer is task-backed (RS / evolution) or script-only
+    (Emerald battle, via ``gMoveToLearn``)."""
+    if task_is_active("Task_HandleReplaceMoveYesNoInput") or task_is_active("sub_806F390"):
+        party_menu_data = get_party_menu_cursor_pos(get_party_size())
+        move_to_learn = get_move_by_index(party_menu_data["data1"])
+        party_index = party_menu_data["slot_id"]
+    else:
+        move_to_learn = get_move_by_index(unpack_uint16(read_symbol("gMoveToLearn", size=2)))
+        if context.rom.is_rs:
+            if evolution_task is not None:
+                party_index = evolution_task.data_value(12)
+            else:
+                party_index = context.emulator.read_bytes(0x02016018, length=1)[0]
+        else:
+            party_index = read_symbol("gBattleStruct", 16, 1)[0]
+        if context.rom.is_emerald or context.rom.is_frlg:
+            party_index = get_battle_state().map_battle_party_index(party_index)
+    return move_to_learn, party_index
+
+
 @debug.track
 def handle_move_replacement_dialogue(strategy: BattleStrategy) -> Generator:
+    """Drive the level-up / evolution move-learn UI to completion.
+
+    TEXT-DRIVEN (design §DA, ML-12). The whole flow is decided from what the game
+    is SHOWING plus the reliable menu TASKS — never from the fragile script-offset
+    state or ``is_waiting_for_input()`` (which reads the FIELD text-printer and is
+    unreliable in battle). This is what makes it hang-proof: even when the internal
+    state never resolves past "Unknown", the on-screen "Delete a move to make room
+    for X?" text is detected and answered directly. Universal — it reads the offered
+    move dynamically and matches generic phrases, so it works for ANY move / level /
+    Pokémon."""
     move_to_forget = 4
     last_offered_move_name = None
     frames_in_dialogue = 0
+    move_selection_task = _get_evolution_task_name()
+
     while True:
-        # SAFETY (ML-11 follow-up): the move-learn UI normally resolves in a few
-        # hundred frames. If it STALLS far beyond that, back out with B so the bot
-        # can NEVER hard-freeze on the "Delete which move?" screen (user-reported).
-        # The Pokémon keeps its current moves (skips the new one) — far better than
-        # a hang; a re-attempt or the story self-check (§SC) recovers from there.
+        # SAFETY: the UI normally resolves in a few hundred frames. If it STALLS far
+        # beyond that, back out with B so the bot can NEVER hard-freeze (the Pokémon
+        # keeps its current moves; the story self-check §SC recovers from there).
         frames_in_dialogue += 1
-        if frames_in_dialogue > 5000:
+        if frames_in_dialogue > 6000:
             escape = 0
             while get_learn_move_state() != LearnMoveState.DialogueNotActive and escape < 600:
                 context.emulator.press_button("B")
@@ -109,71 +160,22 @@ def handle_move_replacement_dialogue(strategy: BattleStrategy) -> Generator:
                 yield
             return
 
+        # Evolution scene that is NOT at its move-learn substate → hand back to the
+        # evolution handler (it advances the scene; we only own the move-learn part).
         evolution_task = get_task("Task_EvolutionScene")
         if evolution_task is not None and evolution_task.data_value(0) != get_move_learning_state_index():
             yield
             break
 
         state = get_learn_move_state()
-        if state == LearnMoveState.DialogueNotActive:
-            # Only EXIT when the move-learn is truly over. If a move-learn message
-            # is still on screen (state detection lags the text, ML-11), keep
-            # advancing it with A instead of leaving the prompt unhandled.
-            if move_learn_text_showing():
-                context.emulator.press_button("A")
-                yield
-                continue
-            yield
-            break
+        text = _current_battle_text()
+        game_state = get_game_state()
 
-        if state == LearnMoveState.AskWhetherToLearn:
-            debug.action_stack.append("LearnMoveState.AskWhetherToLearn")
-            # Read the move being offered RIGHT NOW. A Pokémon can learn MORE THAN
-            # ONE move at a single level-up (offered one after another) — so we
-            # re-run the decision whenever the offered move changes, instead of
-            # locking in the first one (user-flagged multi-move case).
-            if task_is_active("Task_HandleReplaceMoveYesNoInput") or task_is_active("sub_806F390"):
-                party_menu_data = get_party_menu_cursor_pos(get_party_size())
-                move_to_learn = get_move_by_index(party_menu_data["data1"])
-                party_index = party_menu_data["slot_id"]
-            else:
-                move_to_learn = get_move_by_index(unpack_uint16(read_symbol("gMoveToLearn", size=2)))
-                if context.rom.is_rs:
-                    if evolution_task is not None:
-                        party_index = evolution_task.data_value(12)
-                    else:
-                        party_index = context.emulator.read_bytes(0x02016018, length=1)[0]
-                else:
-                    party_index = read_symbol("gBattleStruct", 16, 1)[0]
-                if context.rom.is_emerald or context.rom.is_frlg:
-                    party_index = get_battle_state().map_battle_party_index(party_index)
-            if move_to_learn.name != last_offered_move_name:
-                pokemon = get_party()[party_index]
-                move_to_forget = strategy.which_move_should_be_replaced(pokemon, move_to_learn)
-                if context.bot_mode == "Manual":
-                    return
-                last_offered_move_name = move_to_learn.name
-
-            # Answer directly — do NOT gate on is_waiting_for_input(): battle text
-            # doesn't use the field text-printer it checks, so it's always False
-            # here and gating would never press → HANG (ML-11, the real bug). The
-            # AskWhetherToLearn state already means the Yes/No menu is up. YES (A)
-            # to learn (cursor defaults to Yes); NO (B) to decline. We don't wait on
-            # a fixed next-state — the outer loop follows whatever comes, so an odd
-            # transition course-corrects (and multi-move re-decides above).
-            context.emulator.press_button("A" if move_to_forget in (0, 1, 2, 3) else "B")
-            yield
-            debug.action_stack.pop()
-
-        elif state == LearnMoveState.ConfirmCancellation:
-            debug.action_stack.append("LearnMoveState.ConfirmCancellation")
-            # "Stop trying to teach X?" — reached only when declining -> YES (A).
-            context.emulator.press_button("A")
-            yield
-            debug.action_stack.pop()
-
-        elif state == LearnMoveState.SelectMoveToReplace:
-            debug.action_stack.append("LearnMoveState.SelectMoveToReplace")
+        # (1) MOVE-SELECT menu — "Which move should be forgotten?". Detected by the
+        #     RELIABLE input task or the summary screen. Checked FIRST because the
+        #     "make room for X?" text lingers on-screen while this menu is up.
+        if state == LearnMoveState.SelectMoveToReplace or task_is_active(move_selection_task):
+            debug.action_stack.append("move-learn: SelectMoveToReplace")
             cursor = _get_move_selection_cursor()
             if cursor < move_to_forget:
                 context.emulator.press_button("Down")
@@ -184,23 +186,63 @@ def handle_move_replacement_dialogue(strategy: BattleStrategy) -> Generator:
                 yield
                 yield
             else:
-                # Cursor is on the move to forget — confirm with A. The outer loop
-                # then follows whatever state comes next (no fixed-target wait).
-                context.emulator.press_button("A")
+                context.emulator.press_button("A")  # cursor on the move to forget → confirm
                 yield
             debug.action_stack.pop()
-
-        else:
-            # The "Unknown" state is the run of TEXT BOXES that precede the Yes/No
-            # ("<mon> is trying to learn <move>", "But it already knows 4 moves",
-            # "Delete a move to make room?"). Advance them with A ONLY when the
-            # game is waiting for input. Blind spam here is the real bug (ML-11 /
-            # user-reported): it answers the Yes/No the instant it appears, and a
-            # stray B = NO = decline = hang. A premature A = YES = learn, which is
-            # exactly what we want, so A is the safe button to advance text with.
-            if is_waiting_for_input():
-                context.emulator.press_button("A")
+            continue
+        if game_state == GameState.POKEMON_SUMMARY_SCREEN:
+            # Summary screen opening for the move-select, but the input task is not
+            # registered yet — just wait a frame for it (don't press anything).
             yield
+            continue
+
+        # (2) "Delete a move to make room for X?" YES/NO. Detected by state OR TEXT —
+        #     the text is what makes this hang-proof (the Emerald prompt has no task
+        #     and the offset-state can stay Unknown, ML-12). A Pokémon can learn MORE
+        #     THAN ONE move per level-up (offered one after another), so RE-DECIDE
+        #     whenever the offered move changes rather than locking the first choice.
+        if state == LearnMoveState.AskWhetherToLearn or any(p in text for p in _YESNO_PHRASES):
+            debug.action_stack.append("move-learn: AskWhetherToLearn")
+            try:
+                move_to_learn, party_index = _read_offered_move(evolution_task)
+                if move_to_learn is not None and move_to_learn.name != last_offered_move_name:
+                    move_to_forget = strategy.which_move_should_be_replaced(get_party()[party_index], move_to_learn)
+                    if context.bot_mode == "Manual":
+                        return
+                    last_offered_move_name = move_to_learn.name
+            except Exception:
+                # If the read fails for any reason, still ANSWER (default: learn) so
+                # we never stall on the prompt. Learning is the safe default.
+                if move_to_forget == 4:
+                    move_to_forget = 0
+            # YES (A) to open the move-select and learn; NO (B) to decline. The
+            # cursor defaults to Yes. Pressing every frame is safe: extra A presses
+            # during the open animation are ignored until branch (1) takes over.
+            context.emulator.press_button("A" if move_to_forget in (0, 1, 2, 3) else "B")
+            yield
+            debug.action_stack.pop()
+            continue
+
+        # (3) "Stop trying to teach X?" — only reached when DECLINING → confirm YES.
+        if state == LearnMoveState.ConfirmCancellation or any(p in text for p in _STOP_PHRASES):
+            context.emulator.press_button("A")
+            yield
+            continue
+
+        # (4) Truly finished: no move-learn state AND no move-learn text on screen.
+        if state == LearnMoveState.DialogueNotActive and not move_learn_text_showing():
+            yield
+            break
+
+        # (5) Any other move-learn TEXT box ("<mon> is trying to learn <move>", "can't
+        #     learn more than four moves", "1, 2 and... Poof!", "forgot <move>",
+        #     "learned <move>!"). Advance DIRECTLY with A — do NOT gate on
+        #     is_waiting_for_input() (it reads the field printer, unreliable in battle,
+        #     and gating there is what left the bot pressing nothing → HANG, ML-12).
+        #     A premature A on the upcoming Yes/No = YES = learn, which is the safe
+        #     default; the real decision is still made by branch (2) above.
+        context.emulator.press_button("A")
+        yield
 
 
 def get_move_learning_state_index() -> int:

@@ -291,3 +291,53 @@
   intercepts them. When an offline harness passes but the real bot hangs, suspect
   DISPATCH ORDER / state the harness doesn't reproduce, and instrument the real
   run (a stall-time diagnostic) rather than trusting the harness again.
+
+## 2026-07-20 — Lv16 move-learn hang: ROOT CAUSE FOUND + fix VALIDATED by fault-injection (ML-13, supersedes the ML-12 hypothesis)
+- **Symptom (user, many sessions):** a starter learning a move at Lv16 (Treecko →
+  Pursuit) freezes on the "Delete an old move to learn Pursuit? YES/NO" prompt at
+  32× and never recovers. Every prior offline test passed → an unexplained
+  harness-vs-real gap. The `battle_stall.log` diagnostic (ML-12) never appeared
+  because the freeze is inside the move handler, not the handle_battle watchdog.
+- **How it was finally reproduced (the method that worked):** a FAITHFUL headless
+  harness that replicates main.py's loop EXACTLY (FrameInfo + get_bot_listeners +
+  controller-stack advance + run_single_frame) — `scratchpad/repro_movelearn.py`.
+  Inject a Treecko at `exp_for_L16 - 1` as the party lead, walk it into the Route
+  103 rival (a SINGLE-Pokémon trainer) with encounters avoided, so it crosses Lv16
+  on the KO that ENDS the battle. Tracing every frame (state, tasks, on-screen
+  battle text, `is_waiting_for_input()`) showed the real mechanism.
+- **ROOT CAUSE:** the Emerald *battle* "Delete a move to make room for X?" Yes/No
+  has **NO backing task** (`tasks=[]` the whole time). `get_learn_move_state()` can
+  therefore only recognise it by a **fragile script-offset equality**
+  (`gBattleScriptCurrInstr == BattleScript_AskToLearnMove + 0x11`). When that exact
+  offset is never observed, the state stays **`Unknown`**. The old handler's
+  `Unknown` branch pressed A **only when `is_waiting_for_input()`** — but that reads
+  the FIELD text-printer (`sTextPrinters[0]`), which in battle lags ~140 frames and
+  in the worst case is **always False**. Fragile-state + unreliable-gate ⇒ the
+  handler pressed **nothing** ⇒ frozen on the Yes/No. (My env happened to resolve
+  the offset at frame +496, so it limped through — the real env doesn't.)
+- **The ML-12 dispatch-order hypothesis was WRONG (a red herring).** A pre-vs-post
+  A/B of the ML-12 reorder on the repro was **byte-identical** — the action-selection
+  callback never intercepted the move-learn. ML-12 (dispatch reorder + stall
+  diagnostic) is harmless/defensive and kept, but it is NOT the fix.
+- **THE FIX (validated):** rewrote `handle_move_replacement_dialogue` to be fully
+  **TEXT/TASK-driven** (design §DA): detect the Yes/No from the on-screen text
+  ("make room for" / "Delete a move") as well as the state, drive the move-select
+  from the reliable `Task_HandleReplaceMoveInput`, and advance ALL other text with A
+  **directly** (never gated on `is_waiting_for_input()`). Also hardened
+  `handle_evolution_scene`'s hand-off (it waited only for `AskWhetherToLearn` before
+  delegating — same fragility; now it breaks on state OR text OR the move-select
+  task, with a guard).
+- **PROOF (fault-injection A/B, both builds):** a `--break-state` switch forces
+  `get_learn_move_state()` to never report AskWhetherToLearn (→ Unknown) and
+  `is_waiting_for_input()` → False — i.e. the user's exact failing environment.
+  * OLD code: **stalls ~10,600 frames** on the prompt and **fails to learn Pursuit**
+    (only escapes via the safety-backout, which declines the move).
+  * FIXED code: resolves in **394 frames**, learns Pursuit, evolves to Grovyle,
+    final moveset sensible (Fury Cutter, Pursuit, Absorb, Quick Attack).
+  Verified on BOTH sandbox and custom.
+- **Prevention:** the Emerald battle Yes/No prompts are NOT task-backed and MUST NOT
+  be detected by script-offset alone; read the on-screen text. NEVER gate a battle
+  button-press on `is_waiting_for_input()` (it is the FIELD printer). When an offline
+  test passes but the real bot hangs, build a FAITHFUL main.py-loop harness and, if
+  the bug still won't reproduce, FAULT-INJECT the suspected fragile signal to prove
+  the failure mode and the fix. Repro tooling: `scratchpad/repro_movelearn.py`.

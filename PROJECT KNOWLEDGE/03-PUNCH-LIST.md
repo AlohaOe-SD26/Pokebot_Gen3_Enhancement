@@ -299,9 +299,14 @@
       gDisplayedStringBattle / gStringVar4 reads exact text). STARTED: move-learn
       now uses text-driven detection (both builds) — UNIVERSAL (matches generic
       phrases + reads the offered move dynamically, not hardcoded to any move).
-      Dispatch-priority root fix (ML-12) + live `battle_stall.log` diagnostic added
-      so a residual real-run freeze yields the exact on-screen text (awaiting user
-      re-test). FULL SYSTEM (next big build):
+      ★ ROOT CAUSE of the Lv16 hang FOUND & FIXED (ML-13): the Emerald battle Yes/No
+      has no task and was detected only by a fragile script-offset; when it stayed
+      `Unknown` the old code pressed nothing (is_waiting_for_input gate) → froze.
+      `handle_move_replacement_dialogue` rewritten fully text/task-driven;
+      `handle_evolution_scene` hand-off hardened. PROVEN by fault-injection A/B on
+      both builds (old stalls ~10.6k frames & fails to learn; fix resolves in 394 &
+      learns Pursuit + evolves). Faithful repro harness: scratchpad/repro_movelearn.py.
+      Still want the user's real-32× confirmation. FULL SYSTEM (next big build):
       Reader (normalized current text + menu/cursor) -> Classifier (text -> interaction
       type) -> Responder (type + story progress + config -> answer; multi-valid
       decisions like fossil/starter = random). Gather conversation dumps {exact text,
