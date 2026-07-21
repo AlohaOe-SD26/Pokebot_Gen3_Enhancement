@@ -58,6 +58,23 @@ flavor all done, Phases 1/2/3a). `itemdex_data.json` = core (309 items);
 gaps = map_locations/mart/pickup/historical.
 
 ## Most recent work (2026-07-20)
+- **PLANNING & RESILIENCE METHODOLOGY (doc 13) + out-of-balls safety floor (sandbox).**
+  User directive: pause new story/feature code, plan the situations up front
+  (provision-or-fall-back, never break, no cheats), retrofit existing scripts with
+  preconditions/fallbacks, resume story ONLY when the user says so. Delivered:
+  **`13-PLANNING-AND-RESILIENCE.md`** — goal-oriented task model (preconditions →
+  provision/fallback → execute → verify → recover), Resource Ledger spec, an
+  enumerated Contingency Catalog, the **Mart Atlas** (Oldale (2,4)/Petalburg (8,6)/
+  Rustboro (11,7); badge-gated basic/expanded stock; Poké Ball 200), the Emerald
+  money reality (no Vs Seeker → sell/Pickup/economy), a retrofit plan, and the future
+  decision-brain seam. Referenced from 00-README. **First retrofit done: catching is
+  now resource-aware** — `_should_catch` returns False when poke_balls ≤ 1 so it
+  never attempts a catch it can't complete (the reported BREAK is fixed; fallback =
+  skip catching). **NEXT (do NOT start story chapters until user says): build the
+  buy-at-mart PROVISIONING** (out-of-balls → route to nearest mart → buy max
+  affordable balls → resume; broke → skip). Shop symbols: `sMartInfo`/`sShopData`,
+  per-mart clerk scripts, basic/expanded stock. Then sweep the remaining scripts for
+  explicit preconditions/fallbacks. Commits: doc + `_should_catch` safety floor.
 - **STORY TEAM-BUILDING: pre-fight training + retrain + pre-gym catching (sandbox,
   user directives #1/#2).** (a) `train_team(target, scope)` grinds wilds on Route 116
   (11,7) — scope 'whole' rotates the lowest battler to lead, 'lead' trains the lead.
