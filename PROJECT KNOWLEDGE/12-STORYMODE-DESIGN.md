@@ -225,6 +225,47 @@ strategy, `_pass_through_door`, `_navigate_through_scripts`, the mapdump tool.
 
 ---
 
+## §DA. DIALOGUE AWARENESS — read the text to drive interactions (user 2026-07-20)
+
+**Is it possible? YES — verified.** The bot can decode the exact on-screen text:
+- `decode_string(read_symbol("gDisplayedStringBattle"))` → the current BATTLE text
+  (e.g. `"Delete a move to make room for WATER GUN?"`, `"CASTFORM is trying to
+  learn WATER GUN."`).
+- `decode_string(read_symbol("gStringVar4", size=0x3E8))` → field/NPC dialogue.
+- Menu/choice state via the yes/no + multichoice tasks (see
+  `wait_for_yes_no_question` / `wait_for_multiple_choice_question`).
+
+**Why this is the right architecture:** the internal task/script state for these
+prompts FLICKERS, and driving off it caused the move-learn hang that resisted
+many state-based fixes (ML-11). Reading what the game ACTUALLY SAYS is
+deterministic — the text is stable and unambiguous. It also generalises: the same
+reader handles ANY conversation (move-learn, evolution, nickname, NPC yes/no,
+fossil/starter multi-choice) so the bot can progress the story flexibly.
+
+**Architecture (build incrementally):**
+1. **Reader** — one helper that returns the normalized current text (battle vs
+   field) + whether a yes/no or multi-choice menu is up (task-based) + the cursor.
+2. **Classifier** — match the text against a table of known prompts → an
+   interaction TYPE (move-learn / nickname / yes-no / multi-choice / plain-advance).
+3. **Responder** — given the type + STORY PROGRESS (chapter/flags) + config,
+   produce the answer. Decisions with MULTIPLE valid answers (fossil, starter,
+   which-house) are RANDOM/config (like the random-starter pick we already do).
+4. **Backstops** — a no-progress watchdog + "advance plain text with A" so nothing
+   can ever hard-freeze even on an unrecognised prompt.
+
+**Data to gather (the user's "conversation dumps"):** per interaction, capture
+{exact text, speaker, is it a menu, valid answer(s), how to answer}. Source it
+from the on-screen text at runtime (log every distinct `gDisplayedStringBattle` /
+`gStringVar4` we hit) AND the pokeemerald script/text data the bot already bundles.
+Build a response table keyed by text pattern → general answering algorithm.
+
+**Status:** move-learn now uses text-driven detection (dispatch + advance) as the
+first piece (2026-07-20). Full system = punch-list #24-textread; it also subsumes
+the fragile parts of scripted-scene ride-outs. Recommended next big build once the
+core chapters are stable.
+
+---
+
 ## §SC. SELF-CORRECTION / SANITY-CHECK — "Story mode needs to be smarter" (user 2026-07-20)
 
 **Goal:** the bot must NEVER get permanently derailed. If it somehow skips a beat,
