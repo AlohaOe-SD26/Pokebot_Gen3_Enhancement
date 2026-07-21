@@ -225,6 +225,64 @@ strategy, `_pass_through_door`, `_navigate_through_scripts`, the mapdump tool.
 
 ---
 
+## §DR. DEFEAT RESPONSE — what the bot does when it LOSES a battle (design, user 2026-07-20)
+
+**Today:** a lead faint the strategy can't recover from (trainer battle → can't
+flee/rotate → faint → the game blacks you out; or the strategy dropping to Manual)
+is caught by the **Watchdog** (`modules/watchdog.py`, #22): attempt 1 RE-ASSERTS
+the mode (clears the controller stack, re-runs `StoryMode.run()`); attempt 2+
+RELOADS the last healthy in-memory save state and re-runs the mode. **The segmented
+resume run() (§RS) already fixes most of the "it picks up from a weird earlier
+state" problem** — the OLD run() just detected-and-went-manual on any restart, so
+a fault stranded the bot; the NEW one re-detects the chapter and continues.
+
+**Goal (make it a chosen behaviour, exposed in the settings popup #24-ui):**
+
+### Mode A — "Reload save state" (current watchdog behaviour, made a toggle)
+On defeat, reload the last healthy save state + restart the mode (which now
+resumes via §RS). Toggleable. FIX/verify the rough edges the user saw:
+- The watchdog's snapshot must be a CLEAN OVERWORLD state (never mid-battle /
+  mid-cutscene) — reloading a mid-scene snapshot is what makes resume confused.
+- Confirm that after a fault the restarted StoryMode resumes the RIGHT segment
+  (should now work via §RS — verify live).
+
+### Mode B — "Play through & retry" (new, ORGANIC / human-like)
+Don't reload — let the blackout happen and play it forward:
+1. **Ride out the whiteout prompts** → the game respawns you at your last heal
+   point (usually the last-visited **Poké Center**; sometimes a HOUSE in early
+   story beats — e.g. Mom heals at the Littleroot house pre-first-Center).
+2. **Recalculate position:** read the current map/coords after respawn and use the
+   §RS segment detection to know WHERE you are and WHAT the next/failed objective
+   is (the segment whose completion flag is unset = the thing you just lost).
+3. **Failure-aware retry with a MATCHUP ASSESSMENT** — before re-attempting a
+   battle-heavy objective (gym / rival / strong trainer), score whether the team
+   can win, from:
+   - **avg enemy team level vs own** team (and lead) level,
+   - **team size** (# usable non-fainted Pokémon),
+   - **type matchup**: our Pokémon types + our damaging-move types vs the
+     opponent's known types (super-effective coverage we have / weaknesses we
+     expose). Reuse the type data already in the dex.
+   If the score says OUTMATCHED → **train** (grind levels on a nearby route,
+   healing at the Center) and/or **adjust the team** (catch a helper of a needed
+   type — this IS #24-team) BEFORE reattempting.
+4. **Escalate on repeated failure:** track a per-objective loss count; each loss
+   raises the effort (more training, more likely to recruit a helper) — the SAME
+   rising-urge model as #24-team. Guarantees progress, no infinite retry loop.
+5. Navigate back to the objective (via §RS; fast-travel when #24-resume lands) and
+   retry.
+
+**Convergence:** Mode B = §RS resume + a matchup gate + #24-team escalation, all
+triggered by a blackout. The three features share one engine; build them together.
+
+**Settings-popup toggles (#24-ui → "Defeat response" section):** choose
+Reload-save-state vs Play-through-and-retry; (Mode B) auto-train-before-retry
+on/off, auto-catch-helper on/off. Default TBD with the user.
+
+**Punch-list:** #24-defeat (this whole system). Depends on §RS (done), the matchup
+scorer (new, small), and #24-team (helper recruiting).
+
+---
+
 ## §RS. RESUME MODEL — pick up from wherever the save is (user 2026-07-20)
 
 **Goal:** run the bot from ANY point — a fresh game, a resumed save, or a game

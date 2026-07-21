@@ -123,6 +123,18 @@
       only the current page's thumbnails (Prev/Next + arrow/PageUp-Down + page
       label; nav auto-hidden for one page). Fixes the slow-open with a full
       `states/` folder (was decoding up to 128 PNGs at once).
+- [ ] #24-defeat — DEFEAT RESPONSE (user 2026-07-20; design §DR). What the bot
+      does when it LOSES a battle, as a settings-popup choice:
+      (A) "Reload save state" = today's watchdog behaviour, made a toggle; verify
+      the resume-after-reload rough edges (the segmented resume §RS already fixes
+      most — the old run() stranded the bot on any restart; also ensure watchdog
+      snapshots are CLEAN OVERWORLD states, never mid-battle/scene).
+      (B) "Play through & retry" = ride out the whiteout → respawn (Poké Center /
+      early houses) → recalc position + story segment (§RS) → MATCHUP ASSESS (avg
+      enemy vs own level, team size, type/move coverage) → train/adjust team
+      (#24-team) if outmatched → escalate on repeated loss → retry. Mode B = §RS +
+      matchup gate + #24-team, one engine. Sub-parts: a small matchup scorer;
+      whiteout ride-out; failure/attempt tracking per objective.
 - [ ] #24-evo — EVOLUTION policy (noted 2026-07-20): the stock default
       `stop_evolution: True` means the Story bot NEVER evolves its starter —
       bad for gym strength (and worsens the Torchic problem). Decide/implement an
@@ -143,7 +155,9 @@
       settings TBD. Front-end for the existing `<profile>/story.yml`
       (character_name/gender/starter/starter_nickname already read by
       modules/story/config.py). WORK ON THIS ONLY AFTER the bot is finished and
-      tested 100% (user directive).
+      tested 100% (user directive). Popup also hosts the #24-autosave toggle
+      (auto chapter save-state, default on) and the #24-defeat "Defeat response"
+      section (Reload-save-state vs Play-through-and-retry + sub-toggles).
 
 ## Living-Dex deepening (user-requested 2026-07-19; DESIGN-FIRST, no cutting corners)
 - [ ] #41 — Obtainability model: classify every species — wild / evolution

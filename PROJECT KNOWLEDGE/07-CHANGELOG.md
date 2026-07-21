@@ -916,3 +916,15 @@ on flip). Opens instantly regardless of folder size. Applied to sandbox + custom
 40cakes mirror untouched. Also NOTED (not built) #24-autosave: auto chapter
 save-state in sandbox with a Play-tab toggle (default on) — apply after the user
 green-lights the current story build.
+
+## 2026-07-20 — Design: DEFEAT RESPONSE system (#24-defeat, design only)
+Documented what the bot should do when it LOSES a battle (user request), as a
+settings-popup choice: (A) "Reload save state" (today's watchdog behaviour made a
+toggle — note: the segmented resume §RS already fixes most of the "picks up from
+an earlier state" problem, since the old run() stranded the bot on any restart;
+also require watchdog snapshots to be clean overworld states) and (B) "Play
+through & retry" (ride out the whiteout → respawn → recalc position + story
+segment via §RS → matchup-assess avg level/team-size/type coverage → train/adjust
+team #24-team if outmatched → escalate on repeated loss → retry). Mode B = §RS +
+matchup gate + #24-team on one engine. Design §DR; punch-list #24-defeat. No code
+changed (user is testing the current story build).
