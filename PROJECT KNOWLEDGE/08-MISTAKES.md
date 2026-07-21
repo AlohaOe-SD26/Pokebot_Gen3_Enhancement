@@ -265,3 +265,29 @@
   cases with debug_create_pokemon + a real TRAINER battle, not just wild.
 - NB: the earlier `should_allow_evolution → True` change is KEPT (user wants
   evolution ON by default; it's a real feature) but was NOT the freeze fix.
+
+## 2026-07-20 — Move-learn hang, the ACTUAL harness-vs-real cause: dispatch order  (ML-12, refines ML-11)
+- **Symptom (user):** even after ML-11's loop-outlives-battle fix, the Lv16
+  move-learn STILL froze on the "Delete a move?" prompt on the real 32× run —
+  while EVERY offline reproduction passed. An unexplained harness-vs-real gap.
+- **Root cause:** `handle_battle`'s if/elif dispatch checked the action-selection
+  callback FIRST: `if get_main_battle_callback() in ("HandleTurnActionSelectionState",
+  "sub_8012324"): handle_battle_action_selection(...)`. The main battle callback
+  can still read `HandleTurnActionSelectionState` on the frames the post-battle
+  move-learn prompt is displayed. When it did, the move-learn `elif` (several
+  branches lower) was never reached — the frame was spent in action-selection,
+  which just waits for a turn menu that isn't there → the prompt sat unhandled →
+  hang. Offline harnesses that stepped a clean move-learn (callback already past
+  action-selection) never hit this ordering, which is why they passed.
+- **Fix (both builds):** reordered the dispatch so `AskToLearnMove` /
+  `_move_learn_dialogue_active()` and an in-progress evolution scene are dispatched
+  FIRST, ahead of the action-selection / item-steal / pay-day checks. A move-learn
+  or evolution now always wins the frame. Also added `_dump_battle_stall_diagnostic()`
+  on the no-progress watchdog to log the exact on-screen text + state to
+  `<profile>/battle_stall.log`, so any residual freeze produces a precise report.
+- **Prevention:** in a frame-dispatch if/elif chain, END-OF-BATTLE / modal prompts
+  (move-learn, evolution, nickname) must be matched BEFORE the general
+  turn/action-selection branch — a lingering action-selection callback otherwise
+  intercepts them. When an offline harness passes but the real bot hangs, suspect
+  DISPATCH ORDER / state the harness doesn't reproduce, and instrument the real
+  run (a stall-time diagnostic) rather than trusting the harness again.

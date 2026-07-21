@@ -384,3 +384,17 @@ moves at one level hung 100% at the Yes/No). Fixed: answer with direct A/B press
 advance the preceding text with A not B (B mis-answers Yes/No as NO), and re-decide
 per offered move for multi-move. Verified Castform 3/3 learns 3 moves; Treecko
 unchanged. Same in sandbox.
+
+### (p) STOCK FIX(ROOT, ML-12): move-learn dispatch PRIORITY + live stall diagnostic
+`modules/battle_handler.py`: the Lv16 move-learn still froze on the real 32× run
+though every offline harness passed. Cause: `handle_battle`'s if/elif dispatch
+checked the action-selection callback (`HandleTurnActionSelectionState` /
+`sub_8012324`) BEFORE the move-learn branch; that callback can linger while the
+post-battle "Delete a move?" prompt is up, so the frame went to action-selection
+and the prompt was never handled -> hang. Fix: dispatch a move-learn
+(`AskToLearnMove` / `_move_learn_dialogue_active()`) and an in-progress evolution
+scene FIRST, ahead of action-selection / item-steal / pay-day. Also added
+`_dump_battle_stall_diagnostic()`: on the no-progress watchdog it logs the exact
+battle/field text + instruction + callback + learn-state + active menu tasks to the
+console and `<profile>/battle_stall.log`. Both builds compile; awaiting user
+re-test. Same in sandbox.

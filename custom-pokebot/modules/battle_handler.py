@@ -33,6 +33,69 @@ if TYPE_CHECKING:
 _last_handled_battle_result: HandledBattleResult | None = None
 
 
+def _dump_battle_stall_diagnostic() -> None:
+    """Snapshot the live frame when the in-battle no-progress watchdog fires.
+
+    The move-learn / evolution hang has repeatedly survived offline harnesses
+    while still freezing the real bot (the unexplained harness-vs-real gap,
+    ML-11). This records EXACTLY what the game was showing at the stall — the
+    on-screen battle and field text, the script instruction, the main callback,
+    the move-learn state, and the active menu tasks — to both the console and a
+    ``battle_stall.log`` file under the profile. When the user hits a freeze,
+    that file is the precise report we've been missing (design §DA)."""
+    try:
+        from modules.console import console
+        from modules.game import decode_string
+        from modules.battle_move_replacing import get_learn_move_state
+
+        def _safe(fn, default=""):
+            try:
+                return fn()
+            except Exception:
+                return default
+
+        battle_text = _safe(lambda: decode_string(read_symbol("gDisplayedStringBattle")))
+        field_text = _safe(lambda: decode_string(read_symbol("gStringVar4")))
+        instruction = _safe(get_current_battle_script_instruction)
+        callback = _safe(get_main_battle_callback)
+        learn_state = _safe(lambda: str(get_learn_move_state()))
+        active_tasks = _safe(
+            lambda: [
+                t
+                for t in (
+                    "Task_HandleReplaceMoveYesNoInput",
+                    "Task_HandleReplaceMoveInput",
+                    "Task_HandleStopLearningMoveYesNoInput",
+                    "Task_EvolutionScene",
+                    "Task_HandleChooseMonInput",
+                )
+                if task_is_active(t)
+            ],
+            [],
+        )
+
+        lines = [
+            "==== BATTLE STALL DIAGNOSTIC (no progress ~100s) ====",
+            f"  battle text : {battle_text!r}",
+            f"  field text  : {field_text!r}",
+            f"  instruction : {instruction}",
+            f"  callback    : {callback}",
+            f"  learn state : {learn_state}",
+            f"  active tasks: {active_tasks}",
+            "=====================================================",
+        ]
+        report = "\n".join(lines)
+        console.print(f"[bold red]{report}[/]")
+        try:
+            log_path = context.profile.path / "battle_stall.log"
+            with open(log_path, "a", encoding="utf-8") as fh:
+                fh.write(report + "\n")
+        except Exception:
+            pass
+    except Exception:
+        pass
+
+
 @debug.track
 def handle_battle(strategy: BattleStrategy) -> Generator[None, None, HandledBattleResult]:
     """
@@ -131,14 +194,38 @@ def handle_battle(strategy: BattleStrategy) -> Generator[None, None, HandledBatt
             _no_progress = 0
             _last_progress_sig = _sig
         if _no_progress > 6000:
-            # ~100s at 1x: a genuine stall. Escape any lingering menu, then bail.
+            # ~100s at 1x: a genuine stall. Before escaping, CAPTURE exactly what
+            # is on screen — the move-learn hang has repeatedly passed offline
+            # harnesses yet frozen the real bot, so a diagnostic of the real
+            # frame is the only way to close that gap (§DA). Logs the exact
+            # battle/field text + script/callback/state to console and a file so
+            # the user can report precisely where it stuck.
+            try:
+                from modules.battle_handler import _dump_battle_stall_diagnostic
+
+                _dump_battle_stall_diagnostic()
+            except Exception:
+                pass
+            # Escape any lingering menu, then bail.
             for _ in range(180):
                 context.emulator.press_button("B")
                 yield
             break
 
         instruction = get_current_battle_script_instruction()
-        if get_main_battle_callback() in ("HandleTurnActionSelectionState", "sub_8012324"):
+        # PRIORITY (ML-11, the real harness-vs-real gap): a move-learn or evolution
+        # must be dispatched BEFORE the action-selection check. The main battle
+        # callback can still read "HandleTurnActionSelectionState" while the
+        # post-battle "Delete a move to make room for X?" prompt is up; if that
+        # check ran first it would swallow the frame in action-selection and the
+        # move-learn prompt would NEVER be handled — the exact hang the user hit.
+        if instruction == "BattleScript_AskToLearnMove" or _move_learn_dialogue_active():
+            yield from handle_move_replacement_dialogue(strategy)
+        elif _evolution_animating():
+            # Evolution scene in progress (not at its move-learn substate) — let
+            # the evolution handler advance it; never the move-dialogue (ML-11).
+            yield from handle_evolution_scene(strategy)
+        elif get_main_battle_callback() in ("HandleTurnActionSelectionState", "sub_8012324"):
             yield from handle_battle_action_selection(strategy)
         elif get_current_battle_script_instruction() == "BattleScript_ItemSteal":
             result = yield from handle_item_stealing()
@@ -150,15 +237,6 @@ def handle_battle(strategy: BattleStrategy) -> Generator[None, None, HandledBatt
         ):
             items_before_pickup = [pokemon.held_item for pokemon in get_party()]
             yield
-        elif _evolution_animating():
-            # Evolution scene in progress (not at its move-learn substate) — let
-            # the evolution handler advance it; never the move-dialogue (ML-11).
-            yield from handle_evolution_scene(strategy)
-        elif instruction == "BattleScript_AskToLearnMove" or _move_learn_dialogue_active():
-            # Also dispatch when the learn-move dialogue is up but the battle
-            # script instruction has already moved on (post-battle move-learn,
-            # ML-11) — otherwise the prompt is never handled and the bot hangs.
-            yield from handle_move_replacement_dialogue(strategy)
         elif task_is_active("Task_EvolutionScene"):
             yield from handle_evolution_scene(strategy)
         elif (

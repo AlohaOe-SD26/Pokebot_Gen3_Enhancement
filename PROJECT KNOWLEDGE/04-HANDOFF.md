@@ -58,6 +58,24 @@ flavor all done, Phases 1/2/3a). `itemdex_data.json` = core (309 items);
 gaps = map_locations/mart/pickup/historical.
 
 ## Most recent work (2026-07-20)
+- **MOVE-LEARN HANG — dispatch-order fix + live stall diagnostic (BOTH builds).**
+  User: the Lv16 move-learn STILL froze on the "Delete a move?" prompt despite
+  every prior fix passing my offline harness (the unexplained harness-vs-real
+  gap). Found a concrete cause in `handle_battle`'s dispatch chain (ML-12): the
+  action-selection check (`get_main_battle_callback() ==
+  "HandleTurnActionSelectionState"`) ran BEFORE the move-learn check, so if that
+  callback lingered while the post-battle move-learn prompt was up, the frame was
+  swallowed by action-selection and the prompt was NEVER handled → the exact hang.
+  FIX: move-learn + evolution-animating now dispatch FIRST, before action
+  selection. Also added `_dump_battle_stall_diagnostic()`: when the in-battle
+  no-progress watchdog fires (~100s), it now logs the EXACT on-screen battle/field
+  text + script instruction + callback + move-learn state + active menu tasks to
+  the console AND `<profile>/battle_stall.log` — so if it still hangs, the user's
+  log pins the precise frame (closes the harness-vs-real gap with real data, §DA).
+  The move-learn text-detection is already universal (matches generic phrases
+  like "make room for", reads the offered move dynamically). Both builds compile.
+  NOT yet user-verified on the real 32× run — **ask the user to re-test; if it
+  still freezes, send `battle_stall.log`.** Design §DA; ML-12.
 - **AUTONOMOUS RUN (2026-07-20): a fresh game now auto-plays through GYM 1
   (Stone Badge).** User granted full autonomy to build story chunks until a wall.
   Done this run: (a) documented the Story bot's PURPOSE — it's the deterministic

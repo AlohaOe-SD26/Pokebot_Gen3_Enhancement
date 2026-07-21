@@ -1027,3 +1027,23 @@ B-press), and the handler keeps advancing with A while move-learn text is on
 screen even if the state lags. Verified no regression (Castform 3-move + Treecko
 single-move). Groundwork for the broader Dialogue-Awareness system (design §DA,
 punch-list #24-textread).
+
+## 2026-07-20 — Move-learn: dispatch PRIORITY fix + live stall diagnostic (ML-12, both builds)
+The Lv16 move-learn STILL froze on the real 32× run despite every prior fix
+passing the offline harness. Found a concrete dispatch-order bug in
+`handle_battle`: the action-selection branch (`get_main_battle_callback() in
+("HandleTurnActionSelectionState","sub_8012324")`) was checked BEFORE the
+move-learn branch, so when that callback lingered while the post-battle "Delete a
+move to make room for X?" prompt was up, the frame was consumed by
+action-selection and the prompt was never dispatched to the move handler -> the
+exact reported hang. FIX: reordered the dispatch so a move-learn (`AskToLearnMove`
+or `_move_learn_dialogue_active()`) and an in-progress evolution scene are handled
+FIRST, before action selection, item-steal, and pay-day. Also added
+`_dump_battle_stall_diagnostic()`: when the in-battle no-progress watchdog trips
+(~100s unchanged), it snapshots the EXACT frame — battle text, field text, script
+instruction, main callback, move-learn state, and which menu tasks are active — to
+the console and `<profile>/battle_stall.log`, so a persisting freeze finally yields
+a precise report (closes the harness-vs-real gap, design §DA). Both builds compile;
+awaiting user re-test on the real environment. The move-learn text detection was
+already universal (generic phrase match + dynamic offered-move read), per the
+user's "make it somewhat universal" note.

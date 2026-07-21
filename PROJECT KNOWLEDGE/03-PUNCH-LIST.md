@@ -297,7 +297,11 @@
 - [~] #24-textread — DIALOGUE AWARENESS: read on-screen text to drive interactions
       (user 2026-07-20; design §DA). FEASIBILITY CONFIRMED (decode_string of
       gDisplayedStringBattle / gStringVar4 reads exact text). STARTED: move-learn
-      now uses text-driven detection (both builds). FULL SYSTEM (next big build):
+      now uses text-driven detection (both builds) — UNIVERSAL (matches generic
+      phrases + reads the offered move dynamically, not hardcoded to any move).
+      Dispatch-priority root fix (ML-12) + live `battle_stall.log` diagnostic added
+      so a residual real-run freeze yields the exact on-screen text (awaiting user
+      re-test). FULL SYSTEM (next big build):
       Reader (normalized current text + menu/cursor) -> Classifier (text -> interaction
       type) -> Responder (type + story progress + config -> answer; multi-valid
       decisions like fossil/starter = random). Gather conversation dumps {exact text,
