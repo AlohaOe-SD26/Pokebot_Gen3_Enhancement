@@ -117,8 +117,19 @@ gaps = map_locations/mart/pickup/historical.
   held buttons / tasks / scripts / battle text; battles excluded from stall
   detection. Hooked once in `main_loop` (guarded); StoryMode logs derail/recovery
   events. Validated on the freeze scenario (self-healing ~1078-frame stalls →
-  DERAIL #1..#5 → Manual). **NEXT: user runs real bot with Debug Logging ON (force
-  `starter: mudkip`), reproduces the freeze, shares `<profile>/debug-logs/*.log`.**
+  DERAIL #1..#5 → Manual).
+- **⭐⭐ Bug 2 FIXED (2026-07-21) via the user's real-bot debug log.** The generator
+  call stack pinpointed it (a TREECKO run — NOT Mudkip-specific): heal → derail →
+  RE-heal loop. `heal_in_pokemon_center` returned while the overworld was transiently
+  non-controllable, so `fight_route103_rival`'s next navigate choked → derail →
+  recovery re-ran `_play` → re-healed → endless heal/leave-PC/re-enter-PC → Manual.
+  FIX: heal waits for a STABLE controllable overworld after the exit warp
+  (`higher_level_actions.py`, 34bfc47a). Downstream blocker also fixed:
+  `StoryCatchStrategy` flees instead of Manual when out of balls (opportunistic
+  pre-gym catching could burn the 5 starter balls on bad RNG; 3b069d47). VALIDATED
+  in-harness end-to-end (route103 pre-Pokédex → **Rustboro → Route 116 catching**,
+  team Mudkip L13 + Poochyena L4, **0 derails / 0 Manual**). **NEXT: user re-tests on
+  the real PC — should now reach Rustboro/Roxanne.**
   Documented strategy (planning doc §4/§4b): map shops/PCs AS REACHED, not all now;
   new punch-list #24-shops (incl. Lilycove multi-floor, E4 PC shop+mart) and #24-pc
   (PC/box team management). Remaining planning items future/noted (money-making

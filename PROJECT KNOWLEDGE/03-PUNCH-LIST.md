@@ -174,8 +174,15 @@
       `_has_starter()`; train→rival→Pokédex resumable + flag-gated. Derail budget
       hardened (monotonic party `_progress_sig`; patient recovery). Verified in
       harness. Sandbox (early_game.py, story_mode.py). See CHANGELOG/MISTAKES 07-21.
-- [ ] #24-freeze — POST-BATTLE TRANSITION FREEZE (user 2026-07-21; the likely real
-      "stuck at Oldale PC"). After a training battle (flee/level-up/move-learn, e.g.
+- [x] #24-freeze — OLDALE PC FREEZE **FIXED** (user 2026-07-21). Root cause (from the
+      user's real-bot debug log's generator call stack): heal returned while the
+      overworld was transiently non-controllable → heal→go-to-rival navigate choked →
+      derail → re-heal → endless heal/leave/re-enter loop → Manual. FIX:
+      heal_in_pokemon_center waits for a STABLE controllable overworld after the exit
+      warp. Downstream: StoryCatchStrategy flees instead of Manual when out of balls.
+      Validated route103→Rustboro→Route116 catching, 0 derails/Manual. Old note below
+      kept for history.
+      ~~POST-BATTLE TRANSITION FREEZE (the likely real "stuck at Oldale PC").~~ After a training battle (flee/level-up/move-learn, e.g.
       Mudkip Water Gun @L10) the return-to-overworld transition leaves the overworld
       non-controllable while the bot acts (navigate / walk to the Oldale nurse) → can
       hard-freeze (nurse heal dialogue never starts). REAL (harness == real
