@@ -225,6 +225,45 @@ strategy, `_pass_through_door`, `_navigate_through_scripts`, the mapdump tool.
 
 ---
 
+## §SC. SELF-CORRECTION / SANITY-CHECK — "Story mode needs to be smarter" (user 2026-07-20)
+
+**Goal:** the bot must NEVER get permanently derailed. If it somehow skips a beat,
+ends up somewhere unexpected, or jumps BACKWARD (a watchdog reload, a blackout
+respawn, or a hand-played detour), it should recognise its ACTUAL state and get
+back on track from wherever it really is — not blindly follow the script.
+
+**Principles (the backbone that makes Story mode "smart"):**
+1. **Truth = the live game state, never the script's assumptions.** Every step
+   answers "am I done? / where am I? / what's next?" from FLAGS + MAP + PARTY
+   (like §RS), never from "I already called this function."
+2. **Re-validate at EVERY segment boundary.** After running a segment, CHECK its
+   completion flag actually set — if not, the segment silently failed/derailed →
+   retry it (bounded) or, if a LATER flag is set, skip ahead. Before a segment,
+   re-detect in case the world moved under us.
+3. **Handle out-of-place execution.** If a step's start location isn't where the
+   player is (blackout dropped us at a Poké Center; a warp went wrong), the step
+   SELF-LOCATES (navigate-from-anywhere, §RS-fast-travel) instead of assuming.
+4. **Non-monotonic progress is normal.** A reload/blackout moves progress
+   BACKWARD; detection must handle progress going down, not only up.
+5. **Bounded retries + escalation, never an infinite loop.** Each objective tracks
+   attempts; repeated failure escalates (train / adjust team — §DR + #24-team)
+   rather than spinning. A hard "no progress for N frames" stall watch (the
+   Watchdog #22) is the last-resort safety net; ideally the boundary checks catch
+   it first.
+6. **Detect derailment mid-run, not only at start.** Periodically (or at
+   boundaries) compare EXPECTED segment vs the segment the live state implies; on
+   mismatch, re-run full detection and re-enter the correct segment.
+
+**Implementation sketch (future, #24-sanity):** wrap the segmented `run()` (§RS)
+so each segment is: (a) precondition — skip if its completion flag is already set;
+(b) locate — navigate to the start if not there; (c) execute; (d) postcondition —
+confirm the completion flag set, else retry/escalate. Add a boundary "expected vs
+actual" re-detect. This unifies with §RS (resume), §DR (defeat response) and
+#24-team into ONE state-machine engine. It also fixes the Treecko-Lv16-style
+"stuck but not stopped" class by giving the loop a stall/attempt bound.
+
+---
+
 ## §DR. DEFEAT RESPONSE — what the bot does when it LOSES a battle (design, user 2026-07-20)
 
 **Today:** a lead faint the strategy can't recover from (trainer battle → can't

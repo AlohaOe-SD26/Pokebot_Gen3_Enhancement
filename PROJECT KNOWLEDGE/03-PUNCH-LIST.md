@@ -135,12 +135,15 @@
       (#24-team) if outmatched → escalate on repeated loss → retry. Mode B = §RS +
       matchup gate + #24-team, one engine. Sub-parts: a small matchup scorer;
       whiteout ride-out; failure/attempt tracking per objective.
-- [ ] #24-evo — EVOLUTION policy (noted 2026-07-20): the stock default
-      `stop_evolution: True` means the Story bot NEVER evolves its starter —
-      bad for gym strength (and worsens the Torchic problem). Decide/implement an
-      evolution policy (default: allow evolution for a story auto-completer;
-      maybe expose in the #24-ui popup). Interacts with move-learning at the
-      evolution level (e.g. Treecko/Grovyle + Pursuit at Lv16) — verify together.
+- [~] #24-evo — EVOLUTION policy (user 2026-07-20): CURRENT (sandbox+custom) =
+      ALLOW ALL evolutions (`should_allow_evolution → True`, overriding the stock
+      `stop_evolution`) — fixes the Lv16 evolve+move-learn hang and strengthens
+      the team. POPUP options to add (#24-ui): **allow all (default on) / random
+      evolution / no evolution**. Robustness the bot must have (verify): RECOGNIZE
+      when an evolution happens, navigate the evolution CUTSCENE, and handle the
+      accept/deny of a new move + deleting an old one to replace it (uses the
+      stock evolve→learn path + `which_move_should_be_replaced`). "Random" mode =
+      per-Pokémon coin-flip whether to evolve (organic team variety, ties #24-team).
 - [ ] #24-team — ORGANIC TEAM-BUILDING / helper acquisition (user 2026-07-20;
       design in 12-STORYMODE-DESIGN §TB). Bot builds a team to beat gyms/trainers
       but decides to catch "helpers" ORGANICALLY: a rising "recruit urge" that
@@ -282,3 +285,12 @@
 - [x] #2 — Deep documentation pass + Pokemon_Emerald_AI_Notes.md (2026-07-17).
 - [x] #4 — install.py V2 (setup/update/heal + ROM handling) — "worked!" (2026-07-18).
 - [x] #5 — Native dashboard GUI + handheld mode — "worked!" (2026-07-18).
+- [ ] #24-sanity — SELF-CORRECTION / SANITY-CHECK (user 2026-07-20; design §SC).
+      Story mode must never get permanently derailed: re-validate at every segment
+      boundary (did the completion flag actually set? else retry/skip-ahead),
+      handle out-of-place execution (self-locate), handle non-monotonic progress
+      (reload/blackout moving backward), detect mid-run derailment (expected vs
+      actual segment) and re-sync, bounded retries + escalation (ties §DR/#24-team),
+      stall watch as last resort (Watchdog #22). Unifies §RS + §DR + #24-team into
+      one state-machine engine. Also bounds the Treecko-Lv16 "stuck but not stopped"
+      loop class.
