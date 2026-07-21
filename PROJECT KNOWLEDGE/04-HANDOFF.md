@@ -82,6 +82,16 @@ gaps = map_locations/mart/pickup/historical.
   True, no error. Fixed in BOTH builds (sandbox + custom — leg 2 was promoted).
   **Test harness rule CORRECTED (design §16 / ML-9): match main.py — do NOT read
   player/map every frame (it hides timing bugs); catch BotModeError→manual.**
+- **CHAPTER 5 (Devon errand) FULLY RECONNOITERED, not built** — mapped live from
+  gym1_done: theft scene (StolenGoodsScene @ ~23,20 → DEVON_GOODS_STOLEN) needs a
+  FLAG-ANCHORED ride-out (mid-scene controllable windows thrash the generic one);
+  Devon employee (EmployeeAskToGetGoods @ 30,9); chase Rustboro E → Route 116 →
+  Rusturf Tunnel WEST door Route116 (47,8)→tunnel(4,10) [navigate_to_anywhere
+  picks the wrong (Verdanturf) warp — use _pass_through_door leg-by-leg]; grunt
+  battle → RECOVERED_DEVON_GOODS + Peeko; return → Devon Corp (11,0) →
+  RECEIVED_POKENAV. Rival battle (DEFEATED_RIVAL_RUSTBORO) trigger still to find.
+  Full plan design §Ch5; checkpoint post_theft.ss1. NEXT: build recover_devon_goods()
+  + return_goods_get_pokenav() using the flag-anchored ride-out + _pass_through_door.
 - **RESUME-FROM-ANYWHERE v1 + Wally-detection fix (sandbox)** — user-reported a
   resumed save (in Petalburg Woods) mis-detected as "still needs Wally".
   StoryMode.run() rebuilt as a SEGMENTED flag-gated resume (fresh game runs all;

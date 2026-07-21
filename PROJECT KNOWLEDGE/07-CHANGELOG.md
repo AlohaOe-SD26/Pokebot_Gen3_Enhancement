@@ -893,3 +893,15 @@ current map (no backtrack). Verified: gym1_done skips all -> manual;
 woods_entered skips intro+Wally and resumes the crossing; petalburg skips intro.
 Design §RS. Refinements (per-step resume, fly/teleport fast-travel, title Continue)
 = punch-list #24-resume. Sandbox-only (depends on unpromoted legs 3-4 + gym).
+
+## 2026-07-20 — Story: Chapter 5 (Devon errand) FULLY RECONNOITERED (#24, not built)
+Mapped the whole post-Gym-1 Devon Goods chapter live from gym1_done: theft scene
+trigger (RustboroCity_EventScript_StolenGoodsScene @ ~23,20 → DEVON_GOODS_STOLEN),
+the Devon-employee director (EmployeeAskToGetGoods @ 30,9), the chase path
+(Rustboro E → Route116 → Rusturf Tunnel WEST door Route116 (47,8) → tunnel 4,10),
+tunnel warps, the grunt battle → RECOVERED_DEVON_GOODS + Peeko, and the return →
+Devon Corp → RECEIVED_POKENAV. KEY LESSON: the theft cutscene has mid-scene
+controllable windows → needs a FLAG-ANCHORED ride-out (press until
+DEVON_GOODS_STOLEN), not the generic one (which thrashes _navigate_through_scripts).
+Full plan in design §Ch5. Checkpoint post_theft.ss1. Build deferred to a fresh
+session (context length) to keep quality high.

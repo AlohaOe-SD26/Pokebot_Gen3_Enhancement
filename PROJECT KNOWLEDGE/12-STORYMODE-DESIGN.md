@@ -188,6 +188,43 @@ routine) to be settled when implemented. Reuses: the no-flee travel strategy,
 
 ---
 
+## §Ch5. CHAPTER 5 RECON — Devon Goods errand (fully mapped 2026-07-20, NOT built)
+
+Post-Gym-1. Verified live from `gym1_done.ss1`. Checkpoint `post_theft.ss1` saved
+(controllable in Rustboro, DEVON_GOODS_STOLEN set). Map ids: RUSTBORO_CITY=(0,3),
+ROUTE116=(0,31), RUSTURF_TUNNEL=(24,4), RUSTBORO_CITY_DEVON_CORP_1F=(11,0).
+
+**Order of operations (all live-verified):**
+1. **Theft scene** — walking into EASTERN Rustboro (~(23,20)) trips
+   `RustboroCity_EventScript_StolenGoodsScene` (grunt bolts with the goods).
+   Sets **DEVON_GOODS_STOLEN**. ⚠️ This cutscene has mid-scene CONTROLLABLE
+   windows that fool the generic ride-out — ride it out **flag-anchored** (press
+   B/A until DEVON_GOODS_STOLEN is set), NOT until "controllable + no script"
+   (that thrashes `_navigate_through_scripts` → "too many interruptions").
+2. **Devon employee** at the east exit (~(30,9)):
+   `RustboroCity_EventScript_EmployeeAskToGetGoods` — ride out (dialogue).
+3. **Chase to the tunnel:** Rustboro EAST → Route 116 (Route116 West→Rustboro).
+   Tunnel WEST door = Route116 **(47,8)** → RUSTURF_TUNNEL (4,10). NOTE
+   `navigate_to_anywhere(RUSTURF_TUNNEL)` picks the WRONG warp (the Verdanturf/east
+   side) — go leg-by-leg: navigate onto Route 116 then `_pass_through_door((47,8),
+   ROUTE116)`. Rusturf warps: (4,10)→Route116-W, (18,20)→Route116-E,
+   (29,16)→Verdanturf (blocked by Rock-Smash rocks until later).
+4. **Grunt battle** in the tunnel (west side) → recover goods + free **Peeko**
+   (Mr. Briney's Wingull); Mr. Briney appears. Sets **RECOVERED_DEVON_GOODS** (143).
+5. **Return** to Rustboro → **Devon Corp 1F** (warp (11,0)/(12,15) in Rustboro) →
+   talk to the president → **PokéNav** + **Steven's Letter**. Sets
+   **RECEIVED_POKENAV** (188), RETURNED_DEVON_GOODS (144).
+6. **Rustboro rival battle** (DEFEATED_RIVAL_RUSTBORO 211) — NOT yet located live
+   (likely near the Pokémon School on the way back); find its trigger when building.
+
+**Build plan:** one `recover_devon_goods()` (steps 1-4, flag-anchored theft
+ride-out + `_pass_through_door` tunnel entry + no-flee grunt battle → checkpoint
+`goods_recovered.ss1`) then `return_goods_get_pokenav()` (step 5, + step 6 rival).
+Completion flag for the whole chapter: **RECEIVED_POKENAV**. Reuse: no-flee travel
+strategy, `_pass_through_door`, `_navigate_through_scripts`, the mapdump tool.
+
+---
+
 ## §RS. RESUME MODEL — pick up from wherever the save is (user 2026-07-20)
 
 **Goal:** run the bot from ANY point — a fresh game, a resumed save, or a game
