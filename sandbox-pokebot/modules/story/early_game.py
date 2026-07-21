@@ -1565,7 +1565,7 @@ def recover_devon_goods() -> Generator:
 # Tiles reconned from ROM map data (design §Ch5b Atlas):
 DEVON_CORP_3F = MapRSE.RUSTBORO_CITY_DEVON_CORP_3F
 MRSTONE_APPROACH = (15, 6)          # stand below Mr. Stone (15,5), face North, talk
-RUSTBORO_RIVAL_APPROACH = (16, 48)  # walk down toward the rival NPC (16,50) to trigger it
+RUSTBORO_RIVAL_APPROACH = (16, 52)  # staging tile just N of the y=53 rival-trigger row; step Down to arm it
 
 
 def return_devon_goods_and_get_pokenav() -> Generator:
@@ -1601,34 +1601,89 @@ def return_devon_goods_and_get_pokenav() -> Generator:
     context.message = "Story: got the PokéNav and Steven's Letter!"
 
 
-def fight_rustboro_rival() -> Generator:
-    """The rival (May/Brendan) waits at the south of Rustboro (16,50) after the PokéNav
-    and challenges you on the way to Route 104. Lead with our best mon, walk into the
-    trigger, and win. GOAL/END: DEFEATED_RIVAL_RUSTBORO set.
+def skip_pokenav_match_call_tutorial() -> Generator:
+    """Neutralize the FORCED PokéNav Match-Call tutorial that the Rustboro Scientist
+    (`RustboroCity_EventScript_ScientistAddMatchCall`) runs the instant you step into the
+    city after getting the PokéNav — it fires from the map's ON_FRAME table while
+    `VAR_RUSTBORO_CITY_STATE == 6`.
 
-    NOT YET WIRED into _play: exiting Devon Corp after the PokéNav triggers a FORCED
-    PokéNav/Match-Call tutorial (a `Task_HandleMultichoiceInput` sequence that A/B/cursor
-    nav does NOT clear — it needs the PokéNav app opened + navigated). That tutorial must
-    be handled BEFORE this runs, or the walk-south hangs on it (harness-confirmed)."""
+    WHY A STATE-WRITE INSTEAD OF PLAYING IT THROUGH: the tutorial opens the PokéNav in
+    `POKENAV_MODE_FORCE_CALL_READY` and only ends once you actually place a Match Call to
+    Mr. Stone through the full PokéNav app UI. That app is graphics-driven and does NOT
+    advance in our faithful (video-off) harness — verified empirically: ~150 A-presses
+    across 1500 frames produced zero progress, the PokéNav sat on `Task_Pokenav`/
+    `Task_RunLoopedTask` the entire time. So a UI-navigation solution (a) could not be
+    proven with our reproduce/fault-inject methodology and (b) would hang EVERY full-flow
+    harness run at this point. Match Call has no bearing on story progress toward the
+    Elite Four.
+
+    WHAT THIS DOES: writes the EXACT world-state the tutorial itself leaves on completion,
+    so the resulting save is indistinguishable from having watched it —
+    `VAR_RUSTBORO_CITY_STATE = 7` (the value that disables the ON_FRAME trigger),
+    `VAR_ROUTE104_STATE = 1`, and flags `HAS_MATCH_CALL` /
+    `ADDED_MATCH_CALL_TO_POKENAV` / `HIDE_RUSTBORO_CITY_SCIENTIST` set (the exact
+    setvar/setflag list from the decompiled script). Call it while still on Devon Corp 3F
+    (before stepping into the city trigger).
+
+    STORY CONDITION: `RECEIVED_POKENAV` set. GOAL/END: the Scientist trigger is disabled;
+    the rival (gated only by `MET`/`DEFEATED_RIVAL_RUSTBORO`, no var) still fires normally.
+
+    NOTE: This is an intentional, documented divergence — a targeted state-write that
+    reproduces vanilla's end-state — logged in DIVERGENCE-LOG and design §Ch5b."""
+    from modules.memory import get_event_var, set_event_var, set_event_flag
+
+    if get_event_var("RUSTBORO_CITY_STATE") >= 7:
+        return  # already past the tutorial — resume-safe, do nothing
+    context.message = "Story: clearing the forced PokéNav Match-Call tutorial (state-write to vanilla end-state)..."
+    set_event_var("RUSTBORO_CITY_STATE", 7)   # what the tutorial sets last; disables the ON_FRAME trigger
+    set_event_var("ROUTE104_STATE", 1)        # ScientistAddMatchCall sets this at its start
+    for flag in ("HAS_MATCH_CALL", "ADDED_MATCH_CALL_TO_POKENAV", "HIDE_RUSTBORO_CITY_SCIENTIST"):
+        set_event_flag(flag, True)            # returns False (no-op) if absent in this ROM's table
+    yield  # let the overworld pick up the new state for a frame
+
+
+def fight_rustboro_rival() -> Generator:
+    """The rival (May/Brendan) challenges you at the SOUTH exit of Rustboro on the way to
+    Route 104. The battle is fired by a row of coord-triggers at y=53 (x 12–19), gated on
+    `VAR_RUSTBORO_CITY_STATE == 7` — the exact value `skip_pokenav_match_call_tutorial`
+    leaves, so the skip both clears the tutorial AND arms this trigger. Lead with our best
+    mon, walk south across the trigger row, and win. GOAL/END: `DEFEATED_RIVAL_RUSTBORO`.
+
+    PREREQUISITE: the PokéNav Match-Call tutorial must already be cleared (call
+    `skip_pokenav_match_call_tutorial()` first) — otherwise the Scientist tutorial fires
+    on the first step south. This rival hits harder than the gym: the caller should TRAIN
+    the team first (see StoryMode `_play` §5b) or a weak team whites out (harness-observed).
+
+    Harness-proven approach: navigate to the staging tile (16,52) just NORTH of the row,
+    then step Down across y=53 to arm a trigger (`_navigate_riding_out` straight to a
+    trigger tile can be refused as a scripted-event tile)."""
     from modules.memory import get_event_flag
+    from modules.player import get_player_avatar
+    from modules.battle_state import battle_is_active
 
     if get_event_flag("DEFEATED_RIVAL_RUSTBORO"):
         return
     context.message = "Story: heading south — the rival is waiting in Rustboro..."
     yield from _lead_strongest_battler()  # lead with our strongest for the trainer battle
-    # Walk to the rival tile (within Rustboro) — `_navigate_riding_out` goes to the TILE
-    # and rides out scenes; `_navigate_through_scripts` was wrong here (it returns as soon
-    # as we're on the map, so it never actually walked to the rival).
+    # Stage just north of the y=53 rival-trigger row, then walk Down onto it.
     yield from _navigate_riding_out(
         MapRSE.RUSTBORO_CITY, RUSTBORO_RIVAL_APPROACH, avoid_encounters=False
     )
+    # Step Down across y=53 until the rival engages (MET flag or a battle starts).
+    for _ in range(10):
+        if get_event_flag("MET_RIVAL_RUSTBORO") or battle_is_active():
+            break
+        _check_abort()
+        context.emulator.press_button("Down")
+        yield
+        yield from wait_for_n_frames(16)
     yield from _ride_out_scripted_scene("B", engage_timeout=2000)
     frames = 0
     while not get_event_flag("DEFEATED_RIVAL_RUSTBORO"):
-        _check_abort()
+        _check_abort()  # whiteout during the rival -> abort -> StoryMode recovery
         context.emulator.press_button("A")
         frames += 1
-        if frames > 4000:
+        if frames > 8000:
             break  # already handled / different completion — don't hang
         yield
     yield from wait_until_truly_controllable()

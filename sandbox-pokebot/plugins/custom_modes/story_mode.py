@@ -627,6 +627,7 @@ class StoryMode(BotMode):
             help_birch_and_choose_starter,
             recover_devon_goods,
             return_devon_goods_and_get_pokenav,
+            skip_pokenav_match_call_tutorial,
             fight_rustboro_rival,
             return_to_lab_and_get_pokedex,
             train_lead_to_level,
@@ -830,26 +831,35 @@ class StoryMode(BotMode):
             console.print("[dim]Story: Devon Goods already recovered — skipping.[/]")
         _guard("Devon Goods (Rusturf Tunnel)", lambda: _done("RECOVERED_DEVON_GOODS"))
 
-        # --- Segment 5b: return the goods to Mr. Stone → PokéNav + Letter → Rustboro
-        #     rival. Completion signals: RECEIVED_POKENAV, then DEFEATED_RIVAL_RUSTBORO. ---
+        # --- Segment 5b: return the goods to Mr. Stone → PokéNav + Letter → clear the
+        #     forced PokéNav Match-Call tutorial → train → Rustboro rival.
+        #     Completion signals: RECEIVED_POKENAV, then DEFEATED_RIVAL_RUSTBORO. ---
         if not _done("RECEIVED_POKENAV"):
             yield from return_devon_goods_and_get_pokenav()
         else:
             console.print("[dim]Story: PokéNav already received — skipping the Devon Corp errand.[/]")
         _guard("Devon Corp → PokéNav", lambda: _done("RECEIVED_POKENAV"))
 
-        # END OF BUILT CONTENT. `return_devon_goods_and_get_pokenav` leaves us controllable
-        # on Devon Corp 3F, BEFORE the forced PokéNav/Match-Call tutorial fires (it only
-        # triggers on the way OUT). The next segment — `fight_rustboro_rival` — is written
-        # but NOT wired yet: exiting Devon Corp triggers that forced tutorial, which is a
-        # `Task_HandleMultichoiceInput` sequence that A/B/cursor-nav does NOT clear (it
-        # needs the PokéNav app actually opened + navigated). Wiring the rival before that
-        # tutorial is handled would hang the bot, so we stop cleanly here instead.
+        # Clear the forced PokéNav/Match-Call tutorial BEFORE any step south (the Rustboro
+        # Scientist fires it from the map's ON_FRAME table while VAR_RUSTBORO_CITY_STATE==6).
+        # We neutralize it with a targeted state-write to vanilla's post-tutorial end-state
+        # (the app itself is a graphics-driven UI that can't be driven in our headless
+        # harness — see skip_pokenav_match_call_tutorial + DECISIONS-LOG). This also arms
+        # the rival trigger (gated on VAR_RUSTBORO_CITY_STATE==7).
+        yield from skip_pokenav_match_call_tutorial()
+
+        # END OF BUILT CONTENT. The Rustboro rival (`fight_rustboro_rival`, trigger row
+        # located at y=53 x12-19) is built + the trigger is proven, but NOT wired here yet:
+        # if you pick Mudkip the rival LEADS a grass Grovyle, and our Marshtomp (Water/Ground)
+        # is 4× weak to Grass, so "lead strongest" is the wrong lead AND the thin early team
+        # can't clean up — even a Lv19 Marshtomp whited out in testing. Wiring an
+        # unreliably-winnable battle would create an infinite whiteout→retrain loop, so we
+        # stop cleanly here. Wiring it back needs type-aware lead selection (avoid a 4×-weak
+        # lead) + a stronger second mon (ties into the #24-team organic-team work).
         context.message = (
-            "Story: got the PokéNav from Mr. Stone — end of built content. NEXT (WIP): "
-            "handle the forced PokéNav/Match-Call tutorial (open the PokéNav app), then the "
-            "Rustboro rival (16,50) -> Route 104 south -> Mr. Briney -> Dewford -> Gym 2. "
-            "Handing to manual."
+            "Story: got the PokéNav + cleared the forced Match-Call tutorial — end of built "
+            "content. NEXT (WIP): type-aware lead for the grass rival, then Rustboro rival "
+            "(south, y=53) -> Route 104 south -> Mr. Briney -> Dewford -> Gym 2. Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()

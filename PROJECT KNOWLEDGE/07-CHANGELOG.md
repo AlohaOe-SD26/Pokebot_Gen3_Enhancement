@@ -1351,3 +1351,22 @@ User: proceed with the next chunk, mapping first to harden from the start.
   navigated. The story STOPS cleanly BEFORE it (on 3F) rather than hanging; the rival is
   wired only after this tutorial is handled. Sandbox checkpoint (not promoted — segment
   5b incomplete).
+
+## 2026-07-21 — Chapter 5b: forced PokéNav Match-Call tutorial SOLVED + rival located (sandbox)
+- SOLVED the session's blocker: the forced PokéNav/Match-Call tutorial (Rustboro Scientist,
+  ON_FRAME `VAR_RUSTBORO_CITY_STATE==6`). Root-caused via WebFetch of the pokeemerald scripts
+  + harness observation: intro msgboxes → start-menu multichoice (case 3 = POKéNAV) →
+  PokéNav app in `POKENAV_MODE_FORCE_CALL_READY` (must place a Match Call). The app does NOT
+  advance in our headless harness (proven: 150 A-presses/1500f = 0 progress).
+- `skip_pokenav_match_call_tutorial()` (early_game.py): state-write to vanilla's EXACT
+  post-tutorial end-state — `VAR_RUSTBORO_CITY_STATE=7` + `ROUTE104_STATE=1` + flags
+  HAS_MATCH_CALL / ADDED_MATCH_CALL_TO_POKENAV / HIDE_RUSTBORO_CITY_SCIENTIST. Harness-proven:
+  Scientist never fires; world-state == vanilla. Wired into `_play` §5b → clean stop.
+  (Intentional divergence — DECISIONS-LOG 2026-07-21; flagged for user review.)
+- Located the Rustboro rival trigger: coord-event row at **y=53 (x12-19)**, gated on
+  `VAR_RUSTBORO_CITY_STATE==7` (the skip arms it). `fight_rustboro_rival()` rewritten to the
+  proven staging(16,52)+Down-across-y=53 approach (harness-proven: MET_RIVAL→battle).
+- Rival NOT wired: it's a TYPE-MATCHUP spike (grass Grovyle vs 4×-weak Marshtomp) — even Lv19
+  Marshtomp whited out; wiring it would infinite-loop. Left built + trigger-proven pending
+  type-aware lead selection. See 08-MISTAKES 2026-07-21.
+- Harness: added `--driver pokenavtut|pokenavclear|pokenavskip` (dev tooling, scratchpad).

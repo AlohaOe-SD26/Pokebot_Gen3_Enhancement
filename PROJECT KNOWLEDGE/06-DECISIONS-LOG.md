@@ -95,3 +95,25 @@
   commits (`roms/*`); the tracked file is unaffected by ignore rules. If
   the repo is ever made public, this decision MUST be revisited first.
   Agents must still never commit additional ROMs/saves/profiles themselves.
+
+## 2026-07-21 — Skip the forced PokéNav Match-Call tutorial via a targeted state-write
+**Decision:** `skip_pokenav_match_call_tutorial()` clears Emerald's forced PokéNav/Match-Call
+tutorial (the Rustboro Scientist, after the PokéNav) by WRITING the exact game state the
+tutorial itself leaves on completion — `VAR_RUSTBORO_CITY_STATE=7`, `VAR_ROUTE104_STATE=1`,
+flags `HAS_MATCH_CALL`/`ADDED_MATCH_CALL_TO_POKENAV`/`HIDE_RUSTBORO_CITY_SCIENTIST` — rather
+than playing the tutorial through its PokéNav app UI.
+**Why:** the tutorial ends only once you place a Match Call to Mr. Stone through the PokéNav
+app (mode `POKENAV_MODE_FORCE_CALL_READY`). That app is graphics-driven and does NOT advance
+in our headless faithful harness (empirically: ~150 A-presses over 1500 frames = zero
+progress). So a UI-navigation solution (a) can't be proven with our reproduce/fault-inject
+methodology and (b) would hang every full-flow harness run at that point. Match Call has no
+bearing on story progress toward the Elite Four.
+**Alternatives rejected:** (1) full PokéNav-app automation — un-provable in our harness,
+brittle, and the app may be graphics-gated even on the real bot; (2) stopping the bot at the
+tutorial for manual play — defeats the unattended-Story goal. (3) A/B/cursor mashing — proven
+not to clear it.
+**Faithfulness note (FLAG FOR USER):** this is a deliberate divergence — a memory-write, not
+natural play. The RESULTING save is byte-equivalent to having watched the tutorial (same
+vars/flags), so downstream story state is unaffected. If the user prefers a fully faithful
+playthrough here, the alternative is real PokéNav-app automation (costly, currently
+un-validatable headless). Revisit if faithfulness at this beat matters more than robustness.

@@ -41,19 +41,25 @@ stop, 0 whiteouts.**
 **NEXT-CHUNK PASS started (2026-07-21, SANDBOX checkpoint, NOT promoted):**
 Rustboro mapped statically (Devon Corp floors + Mr. Stone 3F (15,5), rival NPC city (16,50),
 PC/Mart/Gym entrances) → §Ch5b Atlas + Hardening Checklist in 12-STORYMODE-DESIGN.
-`return_devon_goods_and_get_pokenav()` BUILT + VALIDATED: story now runs Devon Goods →
-return to Mr. Stone → **get the PokéNav → clean stop on Devon Corp 3F (8× clean-stop msg,
-0 hang/derail).** `fight_rustboro_rival()` BUILT but NOT wired (navigate bug fixed:
-`_navigate_through_scripts`→`_navigate_riding_out`).
-**⛔ BLOCKER (next-session task #1):** exiting Devon Corp after the PokéNav triggers a
-FORCED PokéNav/Match-Call tutorial — `RustboroCity_EventScript_PleaseSelectPokenav` ↔
-`MatchCallTutorial` driven by `Task_HandleMultichoiceInput`; A/B and cursor-nav+A do NOT
-clear it (harness-probed) — it needs the PokéNav APP opened + navigated. Story stops
-cleanly BEFORE it; do NOT wire the rival until this is solved (would hang).
-**Frontier: PokéNav obtained; PokéNav-tutorial → Rustboro rival → Route 104 south →
-Mr. Briney → Dewford → Granite Cave → Gym 2 Brawly NOT built.** Open: fresh low
-catches never level to gym-ready (organic team-dev #24-team); area-appropriate training
-(#24-trainmap) still groundwork-only.
+`return_devon_goods_and_get_pokenav()` BUILT + VALIDATED (gets the PokéNav).
+**✅ PokéNav Match-Call tutorial SOLVED (2026-07-21, SANDBOX, NOT promoted).** Root-caused
+(WebFetch pokeemerald + harness obs): after the PokéNav the game auto-walks you into the
+city; the map ON_FRAME (`VAR_RUSTBORO_CITY_STATE==6`) fires the Scientist tutorial → intro
+msgboxes → start-menu multichoice (case 3 = POKéNAV) → PokéNav app in
+`POKENAV_MODE_FORCE_CALL_READY` (must place a Match Call). **The app does NOT advance in
+our headless harness** (proven: 150 A-presses/1500f = 0 progress). Fix:
+`skip_pokenav_match_call_tutorial()` writes vanilla's EXACT post-tutorial end-state
+(`RUSTBORO_CITY_STATE=7`+`ROUTE104_STATE=1`+3 flags) — Scientist never fires, world-state
+identical. **Wired into `_play` §5b → clean stop; validated (Manual by f1202, 0
+whiteout).** ⚠️ INTENTIONAL DIVERGENCE (state-write, not natural play) — DECISIONS-LOG
+2026-07-21; **flagged for user: OK to keep, or pursue faithful PokéNav-app automation?**
+**Rustboro rival: trigger LOCATED (coord row y=53 x12-19, gated VAR==7) + `fight_rustboro_rival`
+built (staging(16,52)+Down-cross, harness-proven to trigger+battle) but NOT wired** — it's a
+TYPE-MATCHUP spike: grass Grovyle vs our 4×-weak Marshtomp; even Lv19 Marshtomp whited out,
+so wiring it would infinite-loop (whiteout→retrain). Needs type-aware lead + stronger 2nd mon.
+**Frontier: PokéNav obtained + tutorial cleared; NEXT = type-aware lead → Rustboro rival →
+Route 104 south → Mr. Briney → Dewford → Granite Cave → Gym 2 (Brawly).** Open: #24-team
+organic-team leveling; #24-trainmap area-training still groundwork-only.
 ### In custom-pokebot (PROMOTED, production) — big promotion `f0b275f3` (2026-07-19)
 Native dashboard GUI (default; `--classic-gui` = stock), handheld mode,
 backup/restore + cloud + cloud-save-sync (off by default), macros, Patrol

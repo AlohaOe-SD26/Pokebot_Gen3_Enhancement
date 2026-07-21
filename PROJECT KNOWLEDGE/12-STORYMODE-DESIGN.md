@@ -265,6 +265,59 @@ The president who gives the **PokéNav + Steven's Letter** is on **Devon Corp 3F
 (27,34) on the way back). Recon tool: `scratchpad/repro_movelearn.py --driver ch5recon`
 (dev tooling, not committed).
 
+### BUILD PROGRESS 2026-07-21 — Chapter 5b: PokéNav return + forced tutorial SOLVED + rival wired (sandbox)
+`return_devon_goods_and_get_pokenav()` (Devon Corp 3F, Mr. Stone (15,5), A-spam to
+RECEIVED_POKENAV) was already built + validated. This pass solved the two remaining
+blockers and wired the full segment.
+
+**The forced PokéNav/Match-Call tutorial — SOLVED via a targeted state-write.**
+After the PokéNav, the game auto-walks you out of Devon Corp into Rustboro City (~(11,16)).
+The map's **ON_FRAME table** (`map_script_2 VAR_RUSTBORO_CITY_STATE, 6,
+RustboroCity_EventScript_ScientistAddMatchCall`) then fires a Scientist NPC (approaches
+at ~(11,17)) who runs the Match-Call tutorial: 2 intro msgboxes → a **start-menu
+multichoice** (`special ScriptMenu_CreateStartMenuForPokenavTutorial`) whose `switch
+VAR_RESULT` only falls through on **case 3 = POKéNAV** (all else nags via
+`PleaseSelectPokenav` and re-opens) → `special OpenPokenavForTutorial` opens the PokéNav
+app in **`POKENAV_MODE_FORCE_CALL_READY`** (you must actually place a Match Call to
+Mr. Stone) → closing msgbox → Scientist leaves → **sets `VAR_RUSTBORO_CITY_STATE = 7`**.
+- The multichoice part is trivially satisfiable (`wait_for_multiple_choice_question(3)`
+  advances the intros and picks POKéNAV — harness-proven: VAR_RESULT→3, script advanced
+  to OpenPokenavForTutorial). **BUT** the PokéNav app itself is a graphics-driven UI that
+  **does not advance in our headless (video-off) harness** — ~150 A-presses over 1500
+  frames = zero progress, stuck on `Task_Pokenav`/`Task_RunLoopedTask`. So a
+  UI-navigation solution can't be proven with our methodology AND would hang every
+  full-flow harness run at this point.
+- **Solution:** `skip_pokenav_match_call_tutorial()` writes the EXACT world-state the
+  tutorial leaves on completion — `VAR_RUSTBORO_CITY_STATE=7`, `VAR_ROUTE104_STATE=1`,
+  flags `HAS_MATCH_CALL` / `ADDED_MATCH_CALL_TO_POKENAV` / `HIDE_RUSTBORO_CITY_SCIENTIST`
+  — applied while still at ~(11,16) BEFORE stepping on the trigger. The ON_FRAME trigger
+  requires VAR==6, so VAR=7 disables it. Harness-proven: BEFORE `RUSTBORO_CITY_STATE=6`
+  → AFTER `=7`, **Scientist never fires**, world-state == vanilla post-tutorial. This is
+  an **intentional, documented divergence** (state-write reproducing vanilla end-state) —
+  see DECISIONS-LOG 2026-07-21.
+
+**The Rustboro rival — trigger LOCATED + wired.** `RustboroCity_EventScript_RivalTrigger0..7`
+is a **row of coord-triggers at y=53, x 12–19**, gated on **`VAR_RUSTBORO_CITY_STATE == 7`**
+— i.e. the tutorial-skip both clears the tutorial AND arms the rival. `fight_rustboro_rival()`
+now: lead strongest → navigate to staging **(16,52)** (just N of the row; navigating
+straight onto a trigger tile can be refused as a scripted-event tile) → **step Down across
+y=53** → battle → win (`DEFEATED_RIVAL_RUSTBORO`). Harness-proven: staging→Down→(16,53)→
+`MET_RIVAL_RUSTBORO=True`→battle starts.
+- **DIFFICULTY — rival NOT wired yet (type matchup).** If you pick Mudkip the rival LEADS
+  a grass **Grovyle**; our Marshtomp (Water/Ground) is **4× weak to Grass**, so "lead
+  strongest" is the WRONG lead, and the thin early team (L7-8 filler) can't clean up —
+  even a trained **Lv19 Marshtomp whited out** in a full `_play` run (200k frames of
+  train→fight→whiteout). Wiring an unreliably-winnable battle into `_play` would create an
+  **infinite whiteout→retrain loop** (a regression), so it is deliberately NOT wired.
+  Wiring it back needs **type-aware lead selection** (never lead a 4×-weak mon) + a
+  stronger second mon (ties into the #24-team organic-team work) + an attempt-cap fallback.
+- **WIRED into `_play` §5b (proven):** `return_devon_goods_and_get_pokenav` →
+  `skip_pokenav_match_call_tutorial` → **clean stop** (frontier now PAST the tutorial).
+  `fight_rustboro_rival` stays built + trigger-proven for when the matchup is handled.
+- Harness drivers (dev tooling, not committed): `--driver pokenavtut|pokenavclear|pokenavskip`.
+- **NEXT build:** Route 104 south → Mr. Briney's cottage → sail to Dewford → Granite Cave
+  (Steven's Letter) → Gym 2 (Brawly, dark-cave puzzle) → Knuckle Badge.
+
 ---
 
 ## §DA. DIALOGUE AWARENESS — read the text to drive interactions (user 2026-07-20)

@@ -419,3 +419,34 @@ requires the PokéNav APP to be opened + navigated. **Status:** not yet solved; 
 stops cleanly before it. **Prevention:** when a scene won't ride out with A/B, inspect the
 active TASKS (a `…MultichoiceInput`/menu task means a selection is required, not a
 message) before assuming a dialogue-advance will clear it.
+
+## 2026-07-21 — "Lead strongest" is wrong vs a type-countered rival (Rustboro grass rival)
+**Symptom:** the Rustboro rival whited out our team even with the starter trained to Lv19.
+**Root cause:** picking Mudkip makes the rival lead a grass **Grovyle**; Marshtomp
+(Water/Ground) is **4× weak to Grass**, so leading our "strongest" (Marshtomp) feeds it to a
+super-effective sweep, and the thin L7-8 filler can't finish. It's a TYPE-MATCHUP loss, not
+a level problem. **Fix (design):** the rival is left NOT wired; wiring needs type-aware lead
+selection (never lead a mon 4× weak to the foe's ace) + a capable second mon. **Prevention:**
+`_lead_strongest_battler` is a level heuristic ONLY — for scripted trainer aces with a known
+type, pick the lead by matchup, not raw level.
+
+## 2026-07-21 — Never wire an unreliably-winnable battle into a flag-gated resume loop
+**Symptom:** wiring `fight_rustboro_rival` into `_play` (gated on `DEFEATED_RIVAL_RUSTBORO`)
+turned a losable battle into an infinite loop: whiteout → StoryMode recovery → re-enter the
+same segment → train → fight → whiteout … forever (200k-frame run never progressed).
+**Root cause:** a segment gated on "did we win?" with whiteout-recovery re-entry has no exit
+when the battle isn't winnable with the current team. **Fix:** don't wire a battle until it's
+reliably winnable; when wired, add an attempt-cap that stops cleanly (hand to manual) after N
+losses instead of re-looping. **Prevention:** any flag-gated combat segment needs a
+bounded-retry / clean-fallback path, never unbounded re-entry.
+
+## 2026-07-21 — Emerald's PokéNav tutorial app can't be driven headless (video-off)
+**Symptom:** after selecting POKéNAV in the Scientist's tutorial menu, the PokéNav app opened
+(`gs=UNKNOWN`, `Task_Pokenav`/`Task_RunLoopedTask`) and neither A-spam (150 presses/1500
+frames) nor B-spam advanced or closed it. **Root cause:** the tutorial opens the app in
+`POKENAV_MODE_FORCE_CALL_READY` (you must actually place a Match Call), and the PokéNav's
+graphics-driven looped-task UI does not progress in our `video=False` faithful harness.
+**Fix:** skip the tutorial with a state-write to vanilla's post-tutorial end-state
+(`skip_pokenav_match_call_tutorial`), proven in-harness. **Prevention:** graphics-heavy app
+UIs (PokéNav, and likely similar) may be un-drivable headless — prefer a state-anchored
+approach over UI-nav for them, and verify any UI-nav plan advances headless BEFORE building it.
