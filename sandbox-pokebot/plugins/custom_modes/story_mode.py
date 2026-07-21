@@ -166,6 +166,55 @@ class StoryMode(BotMode):
         # menu — that's where it runs the New Game intro.
         return True
 
+    def __init__(self):
+        super().__init__()
+        # DEFEAT RECOVERY (user directive 2026-07-21). Consecutive losses are counted
+        # per LOCATION (map) so repeated faints at the same obstacle mean a power/level
+        # problem → trigger a retrain. These live on the instance and survive whiteout
+        # restarts because run() loops in place (it does NOT bounce through Manual).
+        self._defeat_counts: dict = {}
+        self._whiteout_pending = False
+        self._last_defeat_key = None
+
+    def on_battle_ended(self, outcome) -> None:
+        from modules.battle_state import BattleOutcome
+
+        if outcome is BattleOutcome.Lost:
+            key = self._location_key()
+            self._defeat_counts[key] = self._defeat_counts.get(key, 0) + 1
+            self._last_defeat_key = key
+            console.print(
+                f"[yellow]Story: lost a battle at map {key} "
+                f"(defeat #{self._defeat_counts[key]} here).[/]"
+            )
+
+    def on_whiteout(self) -> bool:
+        # We handle the whiteout ourselves — do NOT drop to Manual (and the watchdog
+        # is hands-off for Story, so no save-state reload). Flag an abort so the
+        # running segment bails out promptly; run() then re-orients from the respawn
+        # Poké Center and resumes the segmented playthrough from where we left off.
+        from modules.story.early_game import set_story_abort
+
+        self._whiteout_pending = True
+        set_story_abort(True)
+        console.print(
+            "[bold yellow]Story: whited out — recovering (navigating the respawn and "
+            "resuming from where I left off; no save-state reload).[/]"
+        )
+        return True
+
+    def _location_key(self):
+        try:
+            from modules.map import get_map_data_for_current_position
+
+            d = get_map_data_for_current_position()
+            return (d.map_group, d.map_number)
+        except Exception:
+            return None
+
+    def defeat_count_at(self, location_key) -> int:
+        return self._defeat_counts.get(location_key, 0)
+
     def on_battle_started(self, encounter):
         # Story battles (the first Birch battle, training, the rival) are meant
         # to be FOUGHT and won with the default battle strategy — never run from
@@ -204,6 +253,63 @@ class StoryMode(BotMode):
         return LevelUpTravelBattleStrategy()
 
     def run(self) -> Generator:
+        # DEFEAT / WHITEOUT RECOVERY (user directive 2026-07-21): the segmented resume
+        # (`_play`) runs inside a restart loop. On a whiteout, on_whiteout() flags an
+        # abort → the running segment bails → we catch it here, re-orient from the
+        # respawn point, and re-run `_play` (which skips finished segments and
+        # re-attempts the failed one). GENUINE (non-whiteout) errors propagate to
+        # Manual exactly as before. No save states are ever reloaded.
+        from modules.modes import BotModeError
+        from modules.story.early_game import set_story_abort, exit_building_after_whiteout
+        from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
+
+        recoveries = 0
+        while True:
+            set_story_abort(False)
+            self._whiteout_pending = False
+            try:
+                yield from self._play()
+                return
+            except BotModeError:
+                if not self._whiteout_pending:
+                    raise  # a real error — hand to Manual as usual
+                recoveries += 1
+                if recoveries > 40:
+                    raise BotModeError(
+                        "Story: too many whiteout recoveries in a row — stopping so I "
+                        "don't loop forever. Check the team/route."
+                    )
+                self._whiteout_pending = False
+                set_story_abort(False)
+                console.print(
+                    "[cyan]Story: recovered from the whiteout — re-orienting at the "
+                    "respawn point and resuming.[/]"
+                )
+                from modules.memory import game_has_started, get_game_state, GameState
+
+                try:
+                    yield from wait_for_player_avatar_to_be_controllable()
+                    # Respawn lands us INSIDE the Poké Center — step out to the town
+                    # so the segmented resume's map checks work (else it backtracks).
+                    yield from exit_building_after_whiteout()
+                    # SETTLE: right after the exit warp the game is transiently
+                    # "not started" / in a non-overworld state — re-running _play now
+                    # would misfire its title check into the New-Game intro. Wait for
+                    # a stable started+overworld state first.
+                    settle = 0
+                    while settle < 600 and not (
+                        game_has_started() and get_game_state() is GameState.OVERWORLD
+                    ):
+                        settle += 1
+                        yield
+                    yield from wait_for_player_avatar_to_be_controllable()
+                except BotModeError:
+                    raise
+                except Exception:
+                    yield
+                # loop → re-run the segmented resume from the respawn point
+
+    def _play(self) -> Generator:
         import random
 
         from modules.memory import get_event_flag

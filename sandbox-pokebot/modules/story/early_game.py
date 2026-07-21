@@ -49,6 +49,64 @@ HOUSE_2F_STAIRS_DOWN = (7, 1)     # 2F warp down to 1F
 HOUSE_1F_DOOR_APPROACH = (8, 7)   # tile above the front door; step South to exit
 
 
+# --- Whiteout / abort signalling (defeat-recovery, user directive 2026-07-21) ----
+# StoryMode.on_whiteout() flips this so the currently-running segment bails out of
+# its wait loops PROMPTLY (instead of mashing a button until a slow guard fires),
+# letting StoryMode.run() catch the abort and restart the segmented resume from the
+# respawn point. run() clears it at the start of each attempt.
+_STORY_ABORT = False
+
+
+def set_story_abort(value: bool) -> None:
+    global _STORY_ABORT
+    _STORY_ABORT = bool(value)
+
+
+def story_should_abort() -> bool:
+    return _STORY_ABORT
+
+
+def _check_abort() -> None:
+    """Raise inside a segment's wait loop to unwind it for whiteout recovery."""
+    if _STORY_ABORT:
+        raise BotModeError("Story: aborting the current step to recover from a whiteout.")
+
+
+# Exit warp of every Emerald Poké Center 1F (same interior layout everywhere).
+POKEMON_CENTER_1F_EXIT = (7, 8)
+
+
+def exit_building_after_whiteout() -> Generator:
+    """After a whiteout the player respawns INSIDE a Poké Center (its healing spot).
+    Step back out to the overworld town so the segmented resume's map-based checks
+    work again (otherwise, being on the PC INTERIOR map, a segment thinks we haven't
+    reached the town yet and backtracks — the user-seen derail). Only acts if we're
+    actually inside a Poké Center; a no-op otherwise."""
+    from modules.map import get_map_data_for_current_position
+
+    try:
+        from modules.map_data import get_map_enum
+
+        enum_name = get_map_enum(get_map_data_for_current_position()).name
+    except Exception:
+        enum_name = ""
+    cur = _map_group_number()
+    if cur is None or "POKEMON_CENTER" not in enum_name:
+        return
+    context.message = "Story: stepping out of the Poké Center after the whiteout…"
+    # Walk to the tile just ABOVE an exit warp, then step DOWN onto it so the warp
+    # fires from a fresh step (navigate_to alone can stop ON the warp without it
+    # firing — ML-9). Try both exit columns (7 and 6).
+    for above in ((7, 7), (6, 7)):
+        if _map_group_number() != cur:
+            break
+        try:
+            yield from navigate_to(cur, above)
+            yield from _walk_through_warp("Down", cur, timeout_frames=120)
+        except Exception:
+            pass
+
+
 def _map_group_number() -> tuple[int, int] | None:
     try:
         md = get_map_data_for_current_position()
@@ -969,6 +1027,7 @@ def do_rustboro_gym() -> Generator:
     # until the Stone Badge flag is set. The battle listener fights it (no-flee).
     frames = 0
     while not get_event_flag("BADGE01_GET"):
+        _check_abort()  # bail fast if we whited out mid-gym (defeat recovery)
         context.emulator.press_button("B" if frames % 3 else "A")
         frames += 1
         if frames > 12000:
@@ -1076,6 +1135,7 @@ def recover_devon_goods() -> Generator:
         yield from _ride_out_scripted_scene("B")
     frames = 0
     while not get_event_flag("RECOVERED_DEVON_GOODS"):
+        _check_abort()  # bail fast if we whited out (defeat recovery)
         # Face/approach the grunt (Right) and advance the challenge + battle with A.
         # The battle listener fights the grunt; after the win the goods are recovered
         # and Mr. Briney's dialogue (freeing Peeko) plays out — A advances all of it.

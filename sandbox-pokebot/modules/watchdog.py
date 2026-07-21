@@ -62,6 +62,13 @@ DEFAULTS: dict = {
 # avoid arming a cold-start timer on obviously non-encounter modes.
 _NON_HUNTING_MODES = {"Manual", "", "Macro (Custom)"}
 
+# Modes that manage their OWN failure recovery (whiteouts, derails) and must NEVER
+# be save-state-reloaded by the watchdog. Reloading rewinds a story playthrough to
+# an older state — the exact "loads older and older save states" regression the user
+# reported. The Story bot navigates its own defeat/whiteout sequence and resumes
+# from the respawn point, so the watchdog stays completely hands-off for it.
+_SELF_RECOVERING_MODES = {"Story"}
+
 _log = logging.getLogger("watchdog")
 
 
@@ -205,7 +212,10 @@ class Watchdog:
             mode = context.bot_mode
             self._detect_fault_drop_to_manual(mode, cfg)
 
-            if mode in _NON_HUNTING_MODES:
+            if mode in _NON_HUNTING_MODES or mode in _SELF_RECOVERING_MODES:
+                # For self-recovering modes we still ran fault detection above (to
+                # alert), but we do NOT snapshot state, track it as a hunting mode,
+                # or run stall recovery — it owns its own recovery.
                 self._prev_mode = mode
                 return
             self._last_hunting_mode = mode
@@ -229,7 +239,14 @@ class Watchdog:
             if is_error:
                 self._alert(f"Bot stopped: {message}", loud=True)
                 self._set_status("FAULT", "mode error")
-                if cfg["auto_restart_on_error"] and not self._given_up:
+                # A self-recovering mode (Story) manages its own recovery — NEVER
+                # reload a save state for it (that rewinds progress, user-reported);
+                # just alert and leave it in Manual for the user to restart.
+                if (
+                    cfg["auto_restart_on_error"]
+                    and not self._given_up
+                    and self._prev_mode not in _SELF_RECOVERING_MODES
+                ):
                     self._recover("fault drop-to-Manual", cfg, target_mode=self._last_hunting_mode)
             self._prev_mode = "Manual"
 
