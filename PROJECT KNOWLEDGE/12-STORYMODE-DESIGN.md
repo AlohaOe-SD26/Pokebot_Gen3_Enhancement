@@ -474,6 +474,48 @@ self-locate via `navigate_to_anywhere`.
 
 ---
 
+## §AA. AREA ATLAS — hand-craft each area's recovery/routing facts (user 2026-07-21)
+
+**The rule (do this BEFORE scripting any area's logic):** blanket, universal
+assumptions ("every Poké Center exits the same", "a flag is set so I must be in
+town X") are the root of the derail bugs. Each area is unique and must be
+hand-crafted. Before building an area's story logic, MAP and record here:
+- **Respawn point** — which Poké Center the player wakes at after a whiteout in this
+  area (the last one healed at). Recovery routes FROM here back to the objective.
+- **Nearby grass** — a reachable grass tile for training/catching (with encounters).
+- **Inter-map routing** — how to get from this area to adjacent areas / the next
+  objective, leg-by-leg (warp-split maps like Route 104-via-Woods can't be one-shot
+  routed — ML-7).
+- **Key event/fight locations** — where each major fight/event triggers (map +
+  approach tile), so localization can route back to "the current objective".
+
+**How the bot uses it (already partly wired):** the segmented resume re-navigates
+from wherever the player actually is (so a Petalburg respawn while the objective is
+Roxanne re-runs the Woods travel back to Rustboro — it does NOT assume location from
+flags). Recovery steps out of the respawn Poké Center first (robust warp exit),
+waits for a stable state, then re-runs the resume. A non-whiteout derail
+re-localizes (logs stage+map via `detect_live`) and retries a bounded number of
+times before Manual (§SC). PC exits and training/catching navigation now ride out
+scenes and fire warps from a fresh step (robust, not blanket-fragile).
+
+**ATLAS — region covered so far (Littleroot → Rustboro → Rusturf):**
+| Area / stage | Respawn PC | Nearby grass (encounters) | Key locations | Notes |
+|---|---|---|---|---|
+| Littleroot / Route 101-103 (intro→starter→rival→Pokédex) | Oldale Town PC | Route 103 grass (5,7) | Route 103 rival approach (10,4); Birch lab | pre-Pokédex = no balls (no catching) |
+| Petalburg / Route 102-104 south / Woods | Petalburg City PC (then Rustboro once healed there) | Route 104 south, Petalburg Woods | Petalburg Gym (Norman/Wally); Woods researcher scene | Route 104 is WARP-SPLIT by the Woods — go leg-by-leg (ML-7) |
+| Rustboro / Route 116 / Rusturf | **Rustboro City PC** (16,38→city) | **Route 116 (11,7)** — 101 grass tiles, straight east of Rustboro | **Roxanne** gym (map (11,3), approach (5,4)); Devon Corp warps (11,15)/(12,15); Rusturf grunt (tunnel (13,5)) | training/catching spot for Gym 1; PC 1F exit warp (6,8)/(7,8) |
+
+Standard Emerald Poké Center 1F: exit warp (6,8)/(7,8); after a whiteout the player
+respawns ON the warp — walk to (7,7) and step DOWN to fire it (do NOT navigate onto
+the warp tile, it can stop there without firing — ML-9).
+
+**LONG-DISTANCE INTELLIGENCE (future):** the user's example — respawn at Petalburg
+while fighting Roxanne must route Petalburg→Woods→Rustboro→gym. The segmented resume
+handles this today by re-travelling; formalize per-area routes here as areas grow so
+the router never has to guess.
+
+---
+
 ## 0. TL;DR for a future agent
 
 The bot is a **shiny-hunting automation** whose primitives happen to be exactly

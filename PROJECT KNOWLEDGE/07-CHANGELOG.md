@@ -1113,3 +1113,18 @@ team. Defeat counter increments per-location (map). Grass spot: Route 116 (11,7)
 east of Rustboro (101 grass tiles). Notes: Route 116 trainers over-train past the
 band a bit; training a full caught team to the band is a slow grind (randomized
 'lead' scope mitigates). Sandbox only.
+
+## 2026-07-21 — Story robustness: PC exit, scene-tolerant nav, derail self-correction, Area Atlas (sandbox)
+User-reported bugs + architectural direction (§AA):
+- Poké Center doorway stuck (normal healing): heal_in_pokemon_center exited by
+  walking ONTO the (7,8) warp, which can stop on it without firing (ML-9). Now walks
+  ABOVE the door and steps down (robust warp fire). STOCK file — DIVERGENCE at promo.
+- Catch/train bailed to Manual on Route 116: navigation wasn't scene-tolerant; a
+  trainer sight-line aborted it. Added _navigate_riding_out (retry + ride-out) for
+  training/catching.
+- Derail self-correction: a NON-whiteout error re-localizes (logs stage via
+  detect_live + map) and retries the segmented resume (bounded, >4 → Manual) instead
+  of dropping to Manual immediately; whiteout recovery resets the derail budget.
+- Design §AA "Area Atlas": the RULE — hand-craft each area's respawn point / nearby
+  grass / inter-map routing / key locations BEFORE scripting it (no blanket fixes).
+  Documented the region covered so far (Littleroot→Rustboro→Rusturf). Sandbox only.
