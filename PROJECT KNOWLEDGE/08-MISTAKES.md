@@ -214,3 +214,29 @@
   the way main.py does (→ set_manual_mode) so a raise shows up as "stuck", not a
   crash. Reading extra state each frame HIDES timing-sensitive bugs. Never
   hand-step onto a warp tile — navigate_to it.
+
+## 2026-07-20 — Move-learn "stuck (but bot not stopped)" at Treecko Lv16  (ML-10)
+- **Symptom (user):** at Treecko Lv16 (learns Pursuit) the bot HANGS but does NOT
+  drop to Manual — an infinite loop, not a BotModeError. Likely all starters at
+  their evolution level.
+- **Diagnosis (code trace; NOT yet reproduced in-harness):** Lv16 is BOTH
+  Treecko's evolution level AND a move-learn (Pursuit). With the stock
+  `stop_evolution` default the evolution is force-CANCELLED. Suspected loop:
+  `battle_handler.handle_battle` checks `BattleScript_AskToLearnMove` BEFORE
+  `Task_EvolutionScene`, and `handle_move_replacement_dialogue` BREAKS OUT if an
+  evolution task is active but not at the move-learning sub-state — so if the
+  move-learn prompt and the (cancelled) evolution overlap, control ping-pongs
+  and never advances. The move-decision override (which_move_should_be_replaced)
+  is verified correct and is NOT the cause.
+- **Fix applied (both builds):** `LevelUpTravelBattleStrategy.should_allow_evolution`
+  → always True, so the starter EVOLVES (the well-tested evolve→learn path) instead
+  of the fragile cancel path — and the team is stronger for gyms (#24-evo).
+- **VERIFICATION DEBT:** could NOT reproduce in the harness — every available
+  checkpoint either isn't on a grass tile or the lead is too low to reach Lv16 in
+  a test run, and post-story scripts block navigation to grass. NEEDS USER
+  VERIFICATION on a real Treecko run. If it STILL hangs after evolving, the real
+  culprit is the handle_battle precedence / move-dialogue guard above (fix there,
+  carefully, once reproduced) — and knowing WHICH screen it's frozen on (evolve
+  screen vs "delete which move?" vs move summary) pins it instantly.
+- **Prevention:** keep a grass checkpoint with the lead near each evolution level
+  for fast move-learn/evolution testing.

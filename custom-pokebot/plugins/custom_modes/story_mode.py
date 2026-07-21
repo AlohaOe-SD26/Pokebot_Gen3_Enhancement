@@ -137,6 +137,17 @@ class LevelUpTravelBattleStrategy(LevelUpLeadBattleStrategy):
         pool = redundant_slots if redundant_slots else damaging_slots
         return min(pool, key=lambda i: effective_power(moves[i]))
 
+    def should_allow_evolution(self, pokemon, party_index) -> bool:
+        # A story auto-completer WANTS its team to evolve — stronger for gyms, and
+        # it fixes the Lv-up handler collision the user hit at Treecko Lv16
+        # (evolves + learns Pursuit at the same level): with the stock
+        # `stop_evolution` default the evolution is force-CANCELLED, and the
+        # cancelled-evolution + move-learn handoff can spin without stopping the
+        # bot. Letting the evolution COMPLETE runs the well-tested evolve→learn
+        # path instead. Always allow (this overrides `stop_evolution` for Story
+        # battles). Ties to #24-evo / #24-team.
+        return True
+
 
 class StoryMode(BotMode):
     @staticmethod

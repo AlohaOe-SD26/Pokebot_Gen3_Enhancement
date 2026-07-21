@@ -928,3 +928,13 @@ segment via §RS → matchup-assess avg level/team-size/type coverage → train/
 team #24-team if outmatched → escalate on repeated loss → retry). Mode B = §RS +
 matchup gate + #24-team on one engine. Design §DR; punch-list #24-defeat. No code
 changed (user is testing the current story build).
+
+## 2026-07-20 — Fix(hypothesis): enable evolution to clear the Lv16 move-learn hang (#24, both builds, ML-10)
+User: Treecko Lv16 (learns Pursuit) HANGS without stopping the bot. Lv16 is both
+the evolution level and a move-learn; with stock stop_evolution the evolution is
+cancelled and the cancelled-evolution + move-learn handoff can spin (code trace;
+not yet reproduced — checkpoints won't reach Lv16 in a test run). Applied
+LevelUpTravelBattleStrategy.should_allow_evolution -> True (starter evolves via
+the well-tested path; also stronger for gyms, #24-evo). NEEDS USER VERIFICATION
+on a real Treecko run; fallback (handle_battle AskToLearnMove-vs-EvolutionScene
+precedence) documented in ML-10 if it still hangs.
