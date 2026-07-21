@@ -1016,3 +1016,14 @@ state itself confirms the menu is up), advance the preceding text with A (premat
 each of several moves gets the right slot. Verified: Castform learns all 3 moves
 3/3 (no hang); Treecko single-move + evolution unchanged. Backstops (per-call safety
 + handle_battle no-progress watchdog) remain.
+
+## 2026-07-20 — Move-learn: TEXT-DRIVEN detection (read what the game says) (#24, both builds)
+Confirmed the bot can decode on-screen text: decode_string(read_symbol(
+"gDisplayedStringBattle")) reads the exact battle text (e.g. "Delete a move to
+make room for WATER GUN?"). Made the move-learn robust to the flaky task/state
+detection by ALSO detecting it from the text: handle_battle dispatches to the
+move handler whenever move-learn text is showing (never falls through to a stray
+B-press), and the handler keeps advancing with A while move-learn text is on
+screen even if the state lags. Verified no regression (Castform 3-move + Treecko
+single-move). Groundwork for the broader Dialogue-Awareness system (design §DA,
+punch-list #24-textread).

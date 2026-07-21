@@ -22,6 +22,23 @@ class LearnMoveState(Enum):
     SelectMoveToReplace = auto()
 
 
+def move_learn_text_showing() -> bool:
+    """TEXT-DRIVEN check (ML-11 / design §DA): read what the game ACTUALLY shows.
+    The task/script state for a move-learn flickers, so the on-screen battle text
+    ("<mon> is trying to learn <move>", "Delete a move to make room for <move>?")
+    is a more reliable signal that we're mid-move-learn than the state alone."""
+    try:
+        from modules.game import decode_string
+
+        text = decode_string(read_symbol("gDisplayedStringBattle"))
+        return any(
+            phrase in text
+            for phrase in ("trying to learn", "make room for", "Delete a move", "wants to learn")
+        )
+    except Exception:
+        return False
+
+
 def get_learn_move_state() -> LearnMoveState:
     """
     Determines what step of the move_learning process we're on.
@@ -99,6 +116,13 @@ def handle_move_replacement_dialogue(strategy: BattleStrategy) -> Generator:
 
         state = get_learn_move_state()
         if state == LearnMoveState.DialogueNotActive:
+            # Only EXIT when the move-learn is truly over. If a move-learn message
+            # is still on screen (state detection lags the text, ML-11), keep
+            # advancing it with A instead of leaving the prompt unhandled.
+            if move_learn_text_showing():
+                context.emulator.press_button("A")
+                yield
+                continue
             yield
             break
 

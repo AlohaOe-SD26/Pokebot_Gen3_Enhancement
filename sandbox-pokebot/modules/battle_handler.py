@@ -51,13 +51,33 @@ def handle_battle(strategy: BattleStrategy) -> Generator[None, None, HandledBatt
     stolen_items: list[tuple[int, Item]] = []
     items_before_pickup: list[Item | None] | None = None
 
+    def _move_learn_text_showing() -> bool:
+        # TEXT-DRIVEN detection (ML-11): read what the game ACTUALLY says. The
+        # internal task/script state for the move-learn is flaky (it flickers), so
+        # also detect the move-learn from the on-screen battle text. This means we
+        # can never miss it and fall through to a stray B-press that mis-answers
+        # the "Delete a move?" Yes/No as NO. See design §DA.
+        try:
+            from modules.game import decode_string
+            from modules.memory import read_symbol
+
+            text = decode_string(read_symbol("gDisplayedStringBattle"))
+            return any(
+                phrase in text
+                for phrase in ("trying to learn", "make room for", "Delete a move", "wants to learn")
+            )
+        except Exception:
+            return False
+
     def _move_learn_dialogue_active() -> bool:
         try:
             from modules.battle_move_replacing import get_learn_move_state, LearnMoveState
 
-            return get_learn_move_state() != LearnMoveState.DialogueNotActive
+            if get_learn_move_state() != LearnMoveState.DialogueNotActive:
+                return True
         except Exception:
-            return False
+            pass
+        return _move_learn_text_showing()
 
     def _learn_or_evo_pending() -> bool:
         # A level-up move-learn or an evolution can surface as the battle is
