@@ -22,7 +22,28 @@ from modules.context import context
 from modules.memory import GameState, game_has_started, get_game_state
 from modules.modes import BattleAction, BotMode
 from modules.battle_strategies import BattleStrategyUtil, TurnAction
+from modules.battle_strategies.catch import CatchStrategy
 from modules.battle_strategies.level_up import LevelUpLeadBattleStrategy
+
+
+class StoryCatchStrategy(CatchStrategy):
+    """Catch strategy for the Story bot that NEVER drops to Manual when out of Poké
+    Balls. The stock CatchStrategy calls `switch_to_manual()` the moment it can't
+    throw a ball — but opportunistic pre-gym catching can burn through the 5 starter
+    balls on bad catch RNG before the team is full, which stranded the bot in Manual
+    (user-seen). Here, if no ball can be thrown, we FLEE and carry on instead; the
+    story then stops catching (the `_should_catch` floor) until balls are restocked
+    at a mart before the gym. (User directive: out of balls → finish the battle,
+    never break.)"""
+
+    def decide_turn(self, battle_state):
+        try:
+            if self._get_best_poke_ball(battle_state) is None:
+                context.message = "Story: out of Poké Balls — fleeing this catch and moving on."
+                return TurnAction.run_away()
+        except Exception:
+            pass
+        return super().decide_turn(battle_state)
 
 
 class LevelUpTravelBattleStrategy(LevelUpLeadBattleStrategy):
@@ -365,11 +386,12 @@ class StoryMode(BotMode):
         try:
             if self._should_catch(encounter):
                 from modules.console import console
-                from modules.modes import BattleAction
 
                 sp = getattr(getattr(encounter, "pokemon", None), "species", None)
                 console.print(f"[bold green]Story: catching a new {getattr(sp, 'name', '?')} for the team![/]")
-                return BattleAction.Catch
+                # Use the story catch strategy (flees when out of balls instead of
+                # dropping to Manual — see StoryCatchStrategy).
+                return StoryCatchStrategy()
         except Exception:
             pass
         # Fight to WIN and level the lead (strongest move; flees only at low HP,

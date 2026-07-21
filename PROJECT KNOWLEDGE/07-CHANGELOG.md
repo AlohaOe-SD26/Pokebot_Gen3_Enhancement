@@ -1234,3 +1234,16 @@ Treecko run): the freeze is a HEAL → DERAIL → RE-HEAL loop.
 - NOTE: the fix let the bot get far enough to expose a SEPARATE downstream issue —
   opportunistic catching on Route 101 running out of Poké Balls → Manual (party never
   caught anything). Being investigated next (#24-freeze followup).
+
+## 2026-07-21 — Catch never drops to Manual when out of balls (sandbox)
+Exposed once the heal-loop fix let the bot reach the pre-gym catching: opportunistic
+catching can burn through the 5 starter Poké Balls on bad catch RNG before restocking
+at Rustboro, and stock CatchStrategy calls switch_to_manual() when it can't throw a
+ball → Manual. FIX: `StoryCatchStrategy(CatchStrategy)` (story_mode.py) — if no ball
+can be thrown, FLEE (`TurnAction.run_away()`) and carry on instead of Manual;
+`on_battle_started` now returns it instead of `BattleAction.Catch`. Matches the user
+directive (out of balls → finish the battle, never break). VALIDATED end-to-end
+(route103 pre-Pokédex save, 110k frames): 0 derails, 0 Manual — trains → rival →
+Pokédex → Petalburg → Wally tutorial → Route 104 → Petalburg Woods → Rustboro → Route
+116 catching (team Mudkip L13 + Poochyena L4, caught via StoryCatchStrategy). Bug #2
+(the user-reported Oldale freeze) + its downstream blocker are both resolved.
