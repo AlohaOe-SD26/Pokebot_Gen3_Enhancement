@@ -78,9 +78,15 @@ gaps = map_locations/mart/pickup/historical.
   reorder was a RED HERRING (A/B byte-identical) but is kept as harmless defence.
   Backup before the session: git tag `backup-pre-overnight-2026-07-20` (pushed) +
   local copy `C:/Remote Projects/_pokebot_backup_2026-07-20_overnight/`.
-  **Changed files (uncommitted at time of writing → commit next): battle_move_replacing.py
-  + battle_evolution_scene.py in BOTH builds.** Still ask the user to re-test the real
-  32× run to confirm end-to-end, but this is now root-cause-validated, not a guess.
+  Committed: `7af57428` (fix, both builds) + `71732daf` (design §DA doc).
+  **END-TO-END from-scratch proof:** ran a FRESH Treecko game via the real Story
+  mode (no injection); Treecko trained naturally to Lv16 in a real story battle and
+  hit the EXACT fragile condition (`ml=Unknown, tasks=[]`, "trying to learn PURSUIT")
+  — the fix RESOLVED it cleanly (learned Pursuit, mode=Story continued). This is the
+  user's precise scenario working on a fresh save. (Separately, that run then
+  WHITED OUT: a lone Lv16 Treecko can lose to Roxanne — the KNOWN #24-team weakness,
+  NOT the move-learn bug; `do_rustboro_gym` assumes a stronger team. Flagged for
+  #24-team/#24-defeat.) Recommend the user still do one real 32× confirmation.
 - **MOVE-LEARN HANG — dispatch-order fix + live stall diagnostic (BOTH builds).**
   User: the Lv16 move-learn STILL froze on the "Delete a move?" prompt despite
   every prior fix passing my offline harness (the unexplained harness-vs-real
