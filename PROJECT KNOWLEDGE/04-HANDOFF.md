@@ -58,6 +58,20 @@ flavor all done, Phases 1/2/3a). `itemdex_data.json` = core (309 items);
 gaps = map_locations/mart/pickup/historical.
 
 ## Most recent work (2026-07-20)
+- **STORY CHAPTER 5a BUILT + VERIFIED (sandbox only): recover the Devon Goods.**
+  `recover_devon_goods()` (early_game.py) wired as StoryMode Segment 5a (gated by
+  RECOVERED_DEVON_GOODS). After Gym 1: walk Rustboro → theft (DEVON_GOODS_STOLEN) →
+  chase east onto Route 116 → across to the Rusturf Tunnel west door (47,8) →
+  approach the grunt at (13,5) from the west and engage WITH A → grunt battle →
+  goods recovered + Peeko freed. Verified via the real StoryMode.run() from
+  gym1_done.ss1: RECOVERED_DEVON_GOODS=True at ~f31858, clean finish (Mudkip→Marshtomp
+  evolved mid-chase, handled cleanly). Checkpoint `goods_recovered.ss1`. Key geometry
+  fixes (mapdump): Devon Corp warps (11,15)/(12,15); Route 116 far tiles have no path
+  (ledges — target the west edge, let the global navigator cross); the tunnel grunt
+  BLOCKS the corridor (don't pathfind past it — engage with A, not B). **NOT promoted
+  to custom** (sandbox-only, like legs 3-4 + Gym 1). **NEXT: Chapter 5b —
+  `return_goods_get_pokenav()` (back to Devon Corp, president on 3F → PokéNav) + the
+  Rustboro rival (211).** Full plan + verified coords in design §Ch5.
 - **★ Lv16 MOVE-LEARN HANG — ROOT CAUSE FOUND & FIX VALIDATED (both builds, ML-13).**
   Overnight autonomous debugging session (user-authorised). REPRODUCED the exact hang
   with a faithful main.py-loop headless harness (`scratchpad/repro_movelearn.py`):

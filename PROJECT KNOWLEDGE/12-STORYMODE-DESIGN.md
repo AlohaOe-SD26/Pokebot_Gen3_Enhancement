@@ -223,6 +223,48 @@ ride-out + `_pass_through_door` tunnel entry + no-flee grunt battle → checkpoi
 Completion flag for the whole chapter: **RECEIVED_POKENAV**. Reuse: no-flee travel
 strategy, `_pass_through_door`, `_navigate_through_scripts`, the mapdump tool.
 
+### BUILD PROGRESS 2026-07-21 — `recover_devon_goods()` BUILT + VERIFIED (Chapter 5a)
+Chapter 5a is **DONE** (sandbox only, like the unpromoted Gym 1 work). `recover_devon_goods()`
+in `early_game.py`, wired as **StoryMode Segment 5a** (gated by RECOVERED_DEVON_GOODS).
+Verified via the REAL `StoryMode.run()` from `gym1_done.ss1`: `RECOVERED_DEVON_GOODS=True`
+at ~f31858, clean finish to Manual, no errors (Mudkip evolved to Marshtomp mid-chase,
+handled cleanly). Checkpoint `goods_recovered.ss1`. The verified sequence + geometry:
+- **Gym exit warp:** (5,19)/(6,19) → RUSTBORO_CITY. `navigate_to_anywhere(RUSTBORO_CITY, …)`
+  routes out through it.
+- **Theft:** walking WEST through the city (target ~(18,20)) fires the theft; anchor
+  on **DEVON_GOODS_STOLEN** (rode it out via `navigate…except → _ride_out`). Confirmed
+  set. (Post-theft the player stands at (23,20); NPCs id2(19,13)/id6(26,23)/id13(19,27)
+  — none block the east exit.)
+- **Devon Corp warps** are **(11,15)/(12,15)** (recon's "(11,0)" was WRONG).
+- **Chase to Route 116:** `navigate_to_anywhere(ROUTE116, (5,9))` gets ONTO Route 116
+  (the far target (40,8) had NO PATH — Route 116 has ledges/blocked tiles; the WEST
+  edge (5,9) works). Then `navigate_to_anywhere(ROUTE116, (47,9))` crosses to the
+  door approach (the global navigator handles the ledges; plain `navigate_to` to
+  (46,9) FAILED). Route 116 has wild encounters even with avoid — the starter levels
+  and evolves en route (Mudkip→Marshtomp seen; the move-learn/evo fix handled it clean).
+- **Tunnel door:** the warp is **Route116 (47,8)**, entered from **(47,9)** below it
+  (`_pass_through_door((47,8), ROUTE116)`). Confirmed lands in RUSTURF_TUNNEL (24,4)
+  at entrance (4,10).
+- **Rusturf Tunnel layout:** entrance warp (4,10); walkable = the (3-7) vertical
+  corridor up to the wide rows 4-5. **Grunt NPC id6 at (13,5)** (gfx117, faces WEST),
+  **Mr. Briney id7 at (13,4)** (gfx211). Path: (4,10)→up the corridor→row5→EAST toward
+  the grunt. Reached (11,5), 2 W of the grunt. Targets EAST of the grunt (e.g. (20,5))
+  have NO PATH — the grunt BLOCKS the corridor (use that as the "we're here" signal,
+  don't pathfind past them).
+- **Grunt engage (SOLVED):** approach to (12,5) adjacent-west, then engage WITH A
+  (not B — B skipped the challenge). The grunt says "…So you want to battle me?",
+  the listener fights it, then "NICK put away the DEVON GOODS…" + Mr. Briney frees
+  Peeko → RECOVERED_DEVON_GOODS. `_wait_until_cutscene_over("A")` rides out the tail.
+
+**NEXT (Chapter 5b, still to build):** `return_goods_get_pokenav()` — from the tunnel,
+back out the west door (4,10)→Route116→Rustboro→**Devon Corp** (enter (11,15)/(12,15)).
+The president who gives the **PokéNav + Steven's Letter** is on **Devon Corp 3F** (go up
+1F→2F→3F) — needs interior recon (floors/warps/president NPC). Completion:
+**RECEIVED_POKENAV** (188); also RETURNED_DEVON_GOODS (144). Then the **Rustboro rival**
+(DEFEATED_RIVAL_RUSTBORO 211) — trigger not yet located (likely near the Pokémon School
+(27,34) on the way back). Recon tool: `scratchpad/repro_movelearn.py --driver ch5recon`
+(dev tooling, not committed).
+
 ---
 
 ## §DA. DIALOGUE AWARENESS — read the text to drive interactions (user 2026-07-20)

@@ -221,6 +221,7 @@ class StoryMode(BotMode):
             fight_route103_rival,
             go_upstairs_and_set_clock,
             help_birch_and_choose_starter,
+            recover_devon_goods,
             return_to_lab_and_get_pokedex,
             train_lead_to_level,
             travel_route104_north_to_rustboro,
@@ -348,10 +349,20 @@ class StoryMode(BotMode):
             console.print("[dim]Story: Stone Badge already earned — Gym 1 skipped.[/]")
         _guard("Gym 1 (Roxanne)", lambda: _done("BADGE01_GET"))
 
+        # --- Segment 5a: Devon Goods errand — chase the thief to Rusturf Tunnel and
+        #     recover the goods (+ free Peeko). Completion: RECOVERED_DEVON_GOODS.
+        #     (The return leg — Devon Corp president → PokéNav — and the Rustboro
+        #     rival are the next build; see design §Ch5.) ---
+        if not _done("RECOVERED_DEVON_GOODS"):
+            yield from recover_devon_goods()
+        else:
+            console.print("[dim]Story: Devon Goods already recovered — skipping.[/]")
+        _guard("Devon Goods (Rusturf Tunnel)", lambda: _done("RECOVERED_DEVON_GOODS"))
+
         context.message = (
-            "Story: caught up to the end of the built content (through Gym 1 / "
-            "Stone Badge). The next chapter (Devon Goods -> Rusturf Tunnel -> "
-            "Dewford) isn't built yet; handing to manual."
+            "Story: caught up to the end of the built content (through recovering the "
+            "Devon Goods in Rusturf Tunnel). The rest of Chapter 5 (return to Devon "
+            "Corp for the PokéNav -> Rustboro rival) isn't built yet; handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()

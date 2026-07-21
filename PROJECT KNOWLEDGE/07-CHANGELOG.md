@@ -1064,3 +1064,17 @@ old code stalls ~10,600 frames and fails to learn the move; the fix resolves in 
 frames, learns Pursuit, evolves to Grovyle, sensible moveset — verified on BOTH
 sandbox and custom. The earlier ML-12 dispatch reorder was a red herring (A/B
 byte-identical) but is kept as harmless defence. Repro tool: scratchpad/repro_movelearn.py.
+
+## 2026-07-21 — Story Chapter 5a: recover the Devon Goods (sandbox, BUILT + verified)
+Built `recover_devon_goods()` (early_game.py) + wired as StoryMode Segment 5a (gated by
+RECOVERED_DEVON_GOODS). After Gym 1 the Devon Goods are stolen; the bot walks Rustboro to
+trigger the theft (anchor DEVON_GOODS_STOLEN), chases east onto Route 116 and across to the
+Rusturf Tunnel west door (47,8) via _pass_through_door, then approaches the tunnel grunt at
+(13,5) from the west and engages WITH A (B skipped the challenge) — the listener fights the
+grunt, the goods are recovered and Mr. Briney frees Peeko. Every step live-verified via a
+faithful main.py-loop harness from gym1_done.ss1: RECOVERED_DEVON_GOODS=True at ~f31858,
+clean finish, Mudkip→Marshtomp evolved mid-chase (handled cleanly by the move-learn/evo fix).
+Corrected geometry (mapdump): Devon Corp warps (11,15)/(12,15); Route116 far tiles have no
+path (ledges) so target the west edge then let the global navigator cross to the door;
+grunt blocks the corridor so don't pathfind past it. Checkpoint goods_recovered.ss1.
+SANDBOX ONLY (Chapter 5b return→PokéNav + Rustboro rival still to build; design §Ch5).

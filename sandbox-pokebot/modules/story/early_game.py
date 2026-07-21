@@ -976,3 +976,113 @@ def do_rustboro_gym() -> Generator:
         yield
     yield from _wait_until_cutscene_over("B")
     context.message = "Story: earned the STONE BADGE — Gym 1 cleared!"
+
+
+# Chapter 5 (Devon Goods errand) constants — all verified live 2026-07-21 via the
+# mapdump tool + the ch5 recon harness (see design §Ch5 "BUILD PROGRESS"):
+RUSTBORO_THEFT_WALK_TILE = (18, 20)      # walking here (west) after the gym fires the theft
+ROUTE116_WEST_TILE = (5, 9)              # a walkable tile just inside Route 116 (west edge)
+ROUTE116_TUNNEL_DOOR_APPROACH = (47, 9)  # stand here; the tunnel door is (47,8) directly north
+RUSTURF_TUNNEL_DOOR_ON_ROUTE116 = (47, 8)
+RUSTURF_GRUNT_APPROACH = (12, 5)         # adjacent-west of the grunt (13,5) / Mr. Briney (13,4)
+
+
+def recover_devon_goods() -> Generator:
+    """Chapter 5a — after Gym 1 the Devon Goods are stolen; chase the thief to
+    Rusturf Tunnel and beat them to recover the goods (and free Peeko).
+
+    INTENT: first half of the Devon errand (Chapter 5).
+    STORY CONDITION: just beat Roxanne (starts inside the Rustboro Gym, or anywhere
+    in Rustboro if resumed), no-flee travel strategy active.
+    HOW IT WORKS (each step live-verified, design §Ch5):
+      1. Walk west through Rustboro City (the gym-exit warp routes us out first) —
+         this fires `RustboroCity_EventScript_StolenGoodsScene`. Anchor on the FLAG
+         **DEVON_GOODS_STOLEN** (the scene has mid-scene controllable windows that
+         fool the generic ride-out), riding out on any navigation abort.
+      2. Chase EAST onto Route 116 (target its walkable WEST edge — the far tiles have
+         no path through Route 116's ledges), then across to the tunnel-door approach
+         (47,9). Wild encounters en route are fought by the listener (the starter may
+         level/evolve — handled cleanly).
+      3. Enter Rusturf Tunnel through the west door (Route116 (47,8), stepped into
+         from below) via `_pass_through_door`.
+      4. Approach the grunt at (13,5) from the west (it BLOCKS the corridor, so we
+         can't pathfind past it — stop adjacent at (12,5)) and ENGAGE WITH A (not B —
+         B skips the challenge). The grunt battle is fought by the listener; on the
+         win the goods are recovered and Mr. Briney frees Peeko.
+    GOAL/END STATE: **RECOVERED_DEVON_GOODS** set."""
+    from modules.memory import get_event_flag
+
+    route116 = MapRSE.ROUTE116.value
+    tunnel = MapRSE.RUSTURF_TUNNEL.value
+
+    # 1. Trigger the theft (exit the gym en route; anchor on the flag).
+    context.message = "Story: leaving the gym — the Devon Goods get stolen…"
+    rounds = 0
+    while not get_event_flag("DEVON_GOODS_STOLEN"):
+        rounds += 1
+        if rounds > 20:
+            raise BotModeError("The Devon-Goods theft scene (DEVON_GOODS_STOLEN) never fired.")
+        try:
+            yield from navigate_to_anywhere(
+                MapRSE.RUSTBORO_CITY, RUSTBORO_THEFT_WALK_TILE,
+                avoid_encounters=True, avoid_scripted_events=False,
+            )
+        except BotModeError:
+            yield from _ride_out_scripted_scene("B")
+    yield from _ride_out_scripted_scene("B")  # finish the tail of the theft scene
+
+    # 2. Chase east: onto Route 116 (west edge), then across to the door approach.
+    context.message = "Story: chasing the thief east to Rusturf Tunnel…"
+    rounds = 0
+    while _map_group_number() != route116:
+        rounds += 1
+        if rounds > 25:
+            raise BotModeError("Could not reach Route 116 to chase the thief.")
+        try:
+            yield from navigate_to_anywhere(
+                MapRSE.ROUTE116, ROUTE116_WEST_TILE,
+                avoid_encounters=True, avoid_scripted_events=False,
+            )
+            break
+        except BotModeError:
+            yield from _ride_out_scripted_scene("B")
+    rounds = 0
+    while _map_group_number() == route116:
+        rounds += 1
+        if rounds > 12:
+            raise BotModeError("Could not cross Route 116 to the Rusturf Tunnel door.")
+        try:
+            yield from navigate_to_anywhere(
+                MapRSE.ROUTE116, ROUTE116_TUNNEL_DOOR_APPROACH,
+                avoid_encounters=True, avoid_scripted_events=False,
+            )
+            # 3. Step north through the door (47,8) into the tunnel.
+            yield from _pass_through_door(RUSTURF_TUNNEL_DOOR_ON_ROUTE116, route116)
+            break
+        except BotModeError:
+            yield from _ride_out_scripted_scene("B")
+    if _map_group_number() != tunnel:
+        raise BotModeError("Did not enter Rusturf Tunnel from Route 116.")
+
+    # 4. Approach the grunt (adjacent-west) and engage with A → battle → recover.
+    context.message = "Story: cornering the thief in Rusturf Tunnel…"
+    try:
+        yield from navigate_to_anywhere(
+            MapRSE.RUSTURF_TUNNEL, RUSTURF_GRUNT_APPROACH,
+            avoid_encounters=True, avoid_scripted_events=False,
+        )
+    except BotModeError:
+        # The grunt's line of sight can abort the approach — that's fine, engage below.
+        yield from _ride_out_scripted_scene("B")
+    frames = 0
+    while not get_event_flag("RECOVERED_DEVON_GOODS"):
+        # Face/approach the grunt (Right) and advance the challenge + battle with A.
+        # The battle listener fights the grunt; after the win the goods are recovered
+        # and Mr. Briney's dialogue (freeing Peeko) plays out — A advances all of it.
+        context.emulator.press_button("Right" if frames % 5 == 0 else "A")
+        frames += 1
+        if frames > 6000:
+            raise BotModeError("Did not recover the Devon Goods from the tunnel grunt.")
+        yield
+    yield from _wait_until_cutscene_over("A")  # ride out the Briney/Peeko thank-you tail
+    context.message = "Story: recovered the Devon Goods and freed Peeko!"
