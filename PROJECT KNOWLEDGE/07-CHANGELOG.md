@@ -1283,3 +1283,17 @@ future spins can't silently omit it. VALIDATED: `_story_spin` unit-tested to bai
 BotModeError when the abort flag is set; WhiteoutListener confirmed to fire on any
 whiteout (GameState.WHITEOUT / EventScript_FieldWhiteOut*) → on_whiteout; refactored
 train_team still trains (Poochyena L4→L7, 0 errors).
+
+## 2026-07-21 — Swap-training: finish the fight instead of fleeing on low HP (sandbox)
+User refinement: during swap-training, when the trainee (fighting a close-level foe)
+dropped to low HP it FLED for zero XP. Since a swapped-out mon still shares the Gen-3
+EXP, it should instead switch to a team-mate that can SAFELY finish the battle (so the
+trainee banks its XP), only fleeing if none can. `SwapTrainBattleStrategy.decide_turn`
+now switches on TWO triggers — under-levelled (turn 1, as before) OR the trainee can't
+continue (low HP / no usable move, the same tests the parent flees on) — to
+`_capable_finisher()`: the strongest healthy team-mate that out-levels the foe (HP +
+can-damage already ensured by get_potential_rotation_targets). If none qualifies it
+falls through to the parent (flee on low HP / solo a same-or-lower foe for full XP), so
+the fight completes with XP and the redundant flee-then-heal cycle is gone. VALIDATED
+(route116team save): flee rate 13% (was 25%) — the remaining flees are the correct
+"strong mon itself low → flee → heal" fallback; Poochyena still L4→L7, 0 errors.

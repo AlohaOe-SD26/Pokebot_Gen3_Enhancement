@@ -171,47 +171,63 @@ class LevelUpTravelBattleStrategy(LevelUpLeadBattleStrategy):
 
 
 class SwapTrainBattleStrategy(LevelUpTravelBattleStrategy):
-    """SWAP-TRAINING (user directive 2026-07-21). When the mon we're levelling (the
-    lead) is meaningfully UNDER-levelled versus the wild opponent, switch to the
-    strongest healthy team-mate IMMEDIATELY — turn 1, before the lead takes any
-    damage — so that team-mate secures the KO. In Gen 3 every Pokémon that was sent
-    out shares the battle's EXP, so the lead still levels up (~half XP) while never
-    fainting and never needing a heal — which kills the fight-faint-heal-repeat loop
-    the old approach fell into with a very under-levelled catch (e.g. a Lv2 Poochyena
-    on Route 116). Once the lead is within `UNDERLEVEL_MARGIN` of the opponent it
-    fights normally for FULL XP (inherited LevelUpTravel behaviour)."""
+    """SWAP-TRAINING (user directive 2026-07-21). Level a weak team member by having a
+    stronger team-mate secure the KO while the trainee (which was sent out first)
+    banks its Gen-3 shared-EXP — no fainting, minimal healing.
 
-    #: switch the lead out when it is this many levels (or more) below the foe. Kept
-    #: low (2) so a weak trainee doesn't fight-and-flee winnable-looking-but-losing
-    #: battles for zero XP — swapping to the strong mon banks a (half) XP share every
-    #: fight. Same-or-slightly-higher foes it still solos for FULL XP.
+    Two triggers, both switching to a team-mate that can SAFELY finish the fight
+    (out-levels the foe + healthy), preferring the strongest:
+
+      1. UNDER-LEVELLED — the trainee is >= ``UNDERLEVEL_MARGIN`` levels below the
+         foe: switch turn 1, before it takes any damage.
+      2. CAN'T CONTINUE — the trainee fought a close-level foe and dropped to low HP
+         (or ran out of usable moves): rather than FLEE for zero XP (old behaviour),
+         switch so the team-mate finishes and the trainee keeps its XP share; the
+         training loop then heals normally. (User: swap instead of flee.)
+
+    If NO team-mate can safely finish, we fall through to the parent — which flees on
+    low HP (safe) or solos a same-or-lower foe for FULL XP."""
+
+    #: switch pre-emptively when the trainee is this many levels (or more) below the
+    #: foe. Low (2) so it doesn't fight-and-flee winnable-looking-but-losing battles.
     UNDERLEVEL_MARGIN = 2
 
     def decide_turn(self, battle_state):
         try:
             active = battle_state.own_side.active_battler
-            opponent = battle_state.opponent.active_battler
-            if (
-                active is not None
-                and opponent is not None
-                and active.level + self.UNDERLEVEL_MARGIN <= opponent.level
-            ):
+            foe = battle_state.opponent.active_battler
+            if active is not None and foe is not None:
                 util = BattleStrategyUtil(battle_state)
-                if util.can_switch():
-                    from modules.pokemon_party import get_party
-
-                    party = get_party()
-                    # strongest healthy team-mate that can actually damage the foe
-                    targets = [
-                        i
-                        for i in util.get_potential_rotation_targets(battle_state)
-                        if party[i].level > active.level
-                    ]
-                    if targets:
-                        return TurnAction.rotate_lead(max(targets, key=lambda i: party[i].level))
+                underleveled = active.level + self.UNDERLEVEL_MARGIN <= foe.level
+                # Same tests the parent flees on: too little HP, or no usable move.
+                cant_continue = not self._pokemon_has_enough_hp(active) or not any(
+                    util.move_is_usable(move) for move in active.moves
+                )
+                if (underleveled or cant_continue) and util.can_switch():
+                    finisher = self._capable_finisher(battle_state, util, foe.level)
+                    if finisher is not None:
+                        return TurnAction.rotate_lead(finisher)
+                    # else: no safe finisher — fall through (parent flees / solos).
         except Exception:
             pass
         return super().decide_turn(battle_state)
+
+    def _capable_finisher(self, battle_state, util, foe_level: int):
+        """Party index of the strongest HEALTHY team-mate that can SAFELY finish this
+        battle — it can damage the foe and has enough HP (both ensured by
+        ``get_potential_rotation_targets``) AND out-levels the foe. ``None`` if none
+        qualifies (caller then flees / lets the trainee solo)."""
+        from modules.pokemon_party import get_party
+
+        party = get_party()
+        safe = [
+            i
+            for i in util.get_potential_rotation_targets(battle_state)
+            if party[i].level >= foe_level
+        ]
+        if not safe:
+            return None
+        return max(safe, key=lambda i: (party[i].level, party[i].current_hp))
 
 
 class StoryMode(BotMode):
