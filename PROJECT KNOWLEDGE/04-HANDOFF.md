@@ -58,6 +58,18 @@ flavor all done, Phases 1/2/3a). `itemdex_data.json` = core (309 items);
 gaps = map_locations/mart/pickup/historical.
 
 ## Most recent work (2026-07-20)
+- **STORY DEFEAT/WHITEOUT RECOVERY built + verified (sandbox, user directive #1).**
+  No more save-state reloads on defeat. (1) Watchdog neutered for Story
+  (`_SELF_RECOVERING_MODES={"Story"}`, watchdog.py) — never reloads/rewinds. (2)
+  StoryMode: `on_whiteout()`→abort+True (never Manual); `run()` wraps `_play` in a
+  restart loop that steps out of the Poké Center (respawn lands ON warp (7,8) → walk
+  above + step down), waits for a stable started+overworld state (post-warp flickers
+  "not started", which had misfired the intro), and resumes; `on_battle_ended(Lost)`
+  counts losses per location. Verified from rustboro.ss1 + injected Lv3 Poochyena:
+  lost to Roxanne 7×, recovered every time, stayed in Story, no reloads. Committed
+  `301fdea9`. **NEXT (in progress): retrain-on-2nd-loss (Route 116 grass, randomized
+  scope/target per user), pre-fight level thresholds (~L17 for Roxanne), pre-gym
+  catching (new species only), then Chapter 5b.** Repro harness gained `--inject-weak`.
 - **STORY CHAPTER 5a BUILT + VERIFIED (sandbox only): recover the Devon Goods.**
   `recover_devon_goods()` (early_game.py) wired as StoryMode Segment 5a (gated by
   RECOVERED_DEVON_GOODS). After Gym 1: walk Rustboro → theft (DEVON_GOODS_STOLEN) →

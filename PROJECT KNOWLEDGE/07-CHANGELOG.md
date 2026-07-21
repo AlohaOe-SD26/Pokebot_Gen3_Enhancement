@@ -1078,3 +1078,21 @@ Corrected geometry (mapdump): Devon Corp warps (11,15)/(12,15); Route116 far til
 path (ledges) so target the west edge then let the global navigator cross to the door;
 grunt blocks the corridor so don't pathfind past it. Checkpoint goods_recovered.ss1.
 SANDBOX ONLY (Chapter 5b return→PokéNav + Rustboro rival still to build; design §Ch5).
+
+## 2026-07-21 — Story DEFEAT / WHITEOUT recovery (sandbox, user directive) — no more save-state reloads
+User #1: on defeat the bot must navigate the whiteout and continue from the respawn
+point, never reload a save state (the watchdog was rewinding to older and older
+states). Built (both parts verified from rustboro.ss1 with an injected lone Lv3
+Poochyena that lost to Roxanne 7× and recovered every time, staying in Story mode,
+no reloads, no Manual):
+- Watchdog neutered for Story: `_SELF_RECOVERING_MODES = {"Story"}` — the watchdog
+  never reloads a save state or auto-restarts for Story (modules/watchdog.py).
+- StoryMode recovery: `on_whiteout()` flags an abort + returns True (never Manual);
+  `run()` wraps the segmented resume (`_play`) in a restart loop that, on the
+  post-whiteout derail, steps out of the Poké Center (`exit_building_after_whiteout`:
+  respawn lands ON the exit warp (7,8), so walk above it then step down to fire it),
+  waits for a stable started+overworld state (a warp transiently reads "not started",
+  which had misfired the New-Game intro), and re-runs from the respawn.
+  `on_battle_ended(Lost)` counts consecutive losses per LOCATION (map) for the
+  retrain trigger. A shared `_STORY_ABORT` flag makes long in-segment loops bail fast.
+Next: retrain-on-2nd-loss + pre-fight level thresholds + pre-gym catching. Sandbox only.
