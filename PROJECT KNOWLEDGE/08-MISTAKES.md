@@ -357,3 +357,34 @@ instances: (1) wild level-up, (2) TRAINER mid-fight level-up [this case], (3) en
 level-up, (4) move-learn DURING evolution, (5) multiple moves at one level, (6) level-up +
 evolution at the same level (Treecko L16 → Pursuit + Grovyle). If it ever recurs, capture the
 exact on-screen text + `battle_stall.log` — but it should not.
+
+## 2026-07-21 — Monolithic Segment 1 re-ran the intro on any pre-Pokédex recovery
+**Symptom:** Bot froze in place (Route 103 / Oldale) during early game; looked like
+"stuck at the Oldale Poké Center after respawn." **Root cause:** `StoryMode._play`
+Segment 1 was one block gated only by RECEIVED_POKEDEX; any recovery/resume before the
+Pokédex re-entered it at `walk_off_truck_and_into_house()`, then `go_upstairs_and_set_clock`
+called `navigate_to(PLAYERS_HOUSE_1F, …)` from a different map → BotModeError → derail
+loop, player never moving. **Fix that worked:** gate the scripted intro on
+`_has_starter()`; make train→rival→Pokédex resumable and flag-gated. **Prevention:** a
+"segment" that runs a linear cutscene from a fixed start is NOT a resumable point — gate
+it on a state that proves we're still at that start (no starter yet), never on a
+downstream flag alone.
+
+## 2026-07-21 — Reading gDisplayedStringBattle / gBattleMainFunc to detect "message on screen"
+**Symptom:** A battle_handler change meant to advance a stranded "learned <move>!" message
+instead looped handle_battle forever on the NEXT battle. **Root cause:** both
+`gDisplayedStringBattle` and `gBattleMainFunc` retain their LAST values after a battle
+ends (verified: the bot is controllable and progressing while the text still reads "grew
+to LV. N!"). A check keyed on that stale text fired long after the battle. **Fix:** reverted;
+use `player_avatar_is_controllable()` (require it STABLE for many consecutive frames — it
+flickers during the return transition) as the "is the overworld actually usable" signal.
+**Prevention:** treat gDisplayedStringBattle/gBattleMainFunc as STALE-after-battle; never
+use them as a live "dialogue is up" gate.
+
+## 2026-07-21 — Offline save-state repro is unreliable across a battle→overworld transition
+**Symptom:** A state captured mid-transition (no_progress trap) deadlocked on reload —
+unresponsive to A/B/movement for 6000+ frames — even though the LIVE run self-healed from
+the same point. **Root cause:** a save state taken during the return transition captures an
+inconsistent snapshot that can't resume. **Prevention:** don't trust a reloaded
+mid-transition save state as evidence of a live hang; confirm hangs from the live run's
+logs. Validate transition-timing fixes on the real bot, not just reloaded states.

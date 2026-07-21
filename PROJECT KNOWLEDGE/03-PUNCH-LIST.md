@@ -168,6 +168,22 @@
       over-levelled/redundant catches. Build when a fight needs it; ties #24-team /
       §7 matchup awareness. Poké Centers are otherwise near-identical (generic code
       handles them) — only map PC/layout exceptions (e.g. the E4 Poké Center).
+- [x] #24-resume — SEGMENT 1 RESUME BUG FIXED (2026-07-21). Pre-Pokédex
+      recovery/resume re-ran the scripted intro from the truck → derail loop
+      ("stuck after respawn"). Split Segment 1: scripted intro gated on
+      `_has_starter()`; train→rival→Pokédex resumable + flag-gated. Derail budget
+      hardened (monotonic party `_progress_sig`; patient recovery). Verified in
+      harness. Sandbox (early_game.py, story_mode.py). See CHANGELOG/MISTAKES 07-21.
+- [ ] #24-freeze — POST-BATTLE TRANSITION FREEZE (user 2026-07-21; the likely real
+      "stuck at Oldale PC"). After a training battle (flee/level-up/move-learn, e.g.
+      Mudkip Water Gun @L10) the return-to-overworld transition leaves the overworld
+      non-controllable while the bot acts (navigate / walk to the Oldale nurse) → can
+      hard-freeze (nurse heal dialogue never starts). REAL (harness == real
+      main_loop), timing/starter-sensitive (default starter "random"; Treecko passed,
+      Mudkip hits it). Offline repro hampered by save-state reload artifacts. NEXT:
+      user validates on real PC (force `starter: mudkip`, fresh game) and reports;
+      then decide a deeper "settle before acting" fix (heal_in_pokemon_center nurse
+      interaction + story navigations) vs a training-flow workaround.
 - [ ] #24-ui — STORY-BOT PRE-RUN SETTINGS POPUP (user 2026-07-20). A popup/menu
       shown BEFORE the Story bot runs to set: player name; starter nickname mode
       (none / defined / random); starter choice (specific / random); + other

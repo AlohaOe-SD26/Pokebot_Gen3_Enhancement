@@ -176,6 +176,7 @@ class StoryMode(BotMode):
         self._whiteout_pending = False
         self._last_defeat_key = None
         self._derails = 0  # consecutive non-whiteout derails (self-correct before Manual)
+        self._last_derail_sig = None  # progress fingerprint at the last derail (see run())
         # Organic team-building (user directive 2026-07-21): catch NEW species while
         # travelling to Gym 1 until the party has this many members (starter + helpers).
         self._catch_team_target = 4
@@ -218,6 +219,25 @@ class StoryMode(BotMode):
 
     def defeat_count_at(self, location_key) -> int:
         return self._defeat_counts.get(location_key, 0)
+
+    def _progress_sig(self):
+        """A MONOTONIC fingerprint of story progress from the PARTY structure:
+        size, lead level, and total accumulated EXP. These only ever move forward
+        and — unlike event flags, which flicker while read during a battle→overworld
+        transition — read reliably at any moment. run() compares it across derails
+        to tell a transient hiccup mid-progress (a battle finished, a level or a
+        Pokémon was gained → reset the derail budget) from a truly stuck loop
+        (nothing advances → escalate to Manual). Deliberately excludes flags so a
+        flickering flag can never fake progress and mask a genuine freeze."""
+        try:
+            from modules.pokemon_party import get_party
+
+            party = get_party()
+            lead_level = party[0].level if party else 0
+            total_exp = sum(getattr(p, "total_exp", 0) for p in party)
+            return (len(party), lead_level, total_exp)
+        except Exception:
+            return None
 
     def _log_localization(self, note: str) -> None:
         """Report WHERE WE ARE — story stage (from the flag-based detector) + physical
@@ -387,13 +407,30 @@ class StoryMode(BotMode):
                     # of times. The resume re-detects the stage from flags + position,
                     # so a transient nav/scene hiccup self-corrects. Only hand to
                     # Manual if it keeps failing (a genuine, persistent problem).
+                    # Reset the budget when we've made real progress since the last
+                    # derail: a long segment (training, a chapter) can throw a few
+                    # unrelated transient hiccups, and those must NOT accumulate into
+                    # a false drop to Manual. Only CONSECUTIVE no-progress derails —
+                    # a genuine stuck loop — escalate.
+                    sig = self._progress_sig()
+                    if sig != self._last_derail_sig:
+                        self._derails = 0
+                        self._last_derail_sig = sig
                     self._derails += 1
                     self._log_localization(f"derail #{self._derails}: {err}")
                     if self._derails > 4:
                         raise
                     set_story_abort(False)
                     try:
-                        yield from wait_for_player_avatar_to_be_controllable()
+                        # Patiently ride out the post-battle transition before retrying.
+                        # These stalls SELF-HEAL (the overworld becomes controllable on
+                        # its own) but the controllable flag flickers first, so waiting
+                        # for a STABLE controllable window here lets a SINGLE recovery
+                        # ride out the whole stall instead of burning many rapid derail
+                        # cycles toward Manual.
+                        from modules.story.early_game import wait_until_truly_controllable
+
+                        yield from wait_until_truly_controllable(timeout_frames=3000)
                         yield from exit_building_after_whiteout()
                         settle = 0
                         while settle < 300 and not (
@@ -485,6 +522,18 @@ class StoryMode(BotMode):
             except Exception:
                 return None
 
+        def _has_starter() -> bool:
+            """True once the player owns a (non-egg) Pokémon — i.e. we are PAST the
+            scripted intro. Lets a mid-Segment-1 recovery skip the truck→lab cutscene
+            and resume at training rather than trying (and failing) to re-run the
+            intro from wherever we respawned."""
+            try:
+                from modules.pokemon_party import get_party
+
+                return any(not getattr(p, "is_egg", False) for p in get_party())
+            except Exception:
+                return False
+
         from modules.modes import BotModeError
 
         def _guard(label: str, done_check) -> None:
@@ -534,20 +583,40 @@ class StoryMode(BotMode):
             yield from run_intro(cfg.character_name, cfg.gender)
 
         # --- Segment 1: truck → house → clock → rival → starter → first battle →
-        #     lab → train → rival → Pokédex. (Runs from the truck; gated by the
-        #     Pokédex flag so a resumed game past this point skips it.) ---
+        #     lab → train → rival → Pokédex. Gated by the Pokédex flag so a resumed
+        #     game past this point skips it. INTERNALLY split into two parts so a
+        #     mid-Segment-1 recovery (whiteout/derail during training) resumes
+        #     correctly instead of re-running the scripted intro from the truck —
+        #     which can't navigate back to the house and loops/derails (user-seen
+        #     "stuck at the Oldale Poké Center after respawn"). ---
         if not _done("RECEIVED_POKEDEX_FROM_BIRCH"):
-            yield from walk_off_truck_and_into_house()
-            yield from go_upstairs_and_set_clock()
-            yield from descend_and_leave_players_house()
-            yield from visit_rivals_house()
-            yield from help_birch_and_choose_starter(cfg.starter)
-            yield from finish_birch_lab(cfg.starter_nickname)
-            target_level = random.randint(8, 10)
-            console.print(f"[cyan]Story: training the starter to Lv {target_level} before the rival.[/]")
-            yield from travel_to_route103()
-            yield from train_lead_to_level(target_level)
-            yield from fight_route103_rival()
+            if not _has_starter():
+                # Part A — the scripted intro (truck → clock → rival house →
+                # starter → first battle → lab → up to Route 103). This is a linear
+                # cutscene run that ONLY works from the truck, so it is NOT a
+                # resumable point: run it only while the starter doesn't exist yet.
+                yield from walk_off_truck_and_into_house()
+                yield from go_upstairs_and_set_clock()
+                yield from descend_and_leave_players_house()
+                yield from visit_rivals_house()
+                yield from help_birch_and_choose_starter(cfg.starter)
+                yield from finish_birch_lab(cfg.starter_nickname)
+                yield from travel_to_route103()
+            else:
+                console.print(
+                    "[dim]Story: resuming with a starter but no Pokédex — skipping the "
+                    "scripted intro, back to training on Route 103.[/]"
+                )
+            # Part B — train → rival → Pokédex. RESUMABLE from anywhere: each step
+            # self-locates (navigate_to_anywhere / _navigate_through_scripts) and is
+            # gated by its own flag, so a recovery here picks up at the right place.
+            if not _done("DEFEATED_RIVAL_ROUTE103"):
+                target_level = random.randint(8, 10)
+                console.print(f"[cyan]Story: training the starter to Lv {target_level} before the rival.[/]")
+                yield from train_lead_to_level(target_level)
+                yield from fight_route103_rival()
+            else:
+                console.print("[dim]Story: rival already beaten — heading back for the Pokédex.[/]")
             yield from return_to_lab_and_get_pokedex()
         else:
             console.print("[dim]Story: already have the Pokédex — skipping the intro chapters.[/]")

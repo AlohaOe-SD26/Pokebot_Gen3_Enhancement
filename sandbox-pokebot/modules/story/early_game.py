@@ -604,6 +604,32 @@ def travel_to_route103() -> Generator:
     yield from navigate_to(MapRSE.ROUTE103, ROUTE103_GRASS_TILE, avoid_encounters=False)
 
 
+def wait_until_truly_controllable(*, stable_frames: int = 30, timeout_frames: int = 1800) -> Generator:
+    """Wait for a STABLE controllable overworld after a battle before navigating.
+
+    player_avatar_is_controllable() FLICKERS true/false during the battle→overworld
+    return transition, so a single true reading is unreliable — the very next
+    navigate_to() can still throw "player avatar is currently not controllable". We
+    require it true for `stable_frames` CONSECUTIVE frames (the transition is truly
+    finished) before returning. We press NOTHING while waiting: the transition
+    self-completes on its own, and probing showed that mashing inputs at it only
+    prolongs the flicker. Bounded by `timeout_frames` so we can never hang here.
+
+    Addresses the user-seen training freeze: the battle that REACHES the target
+    level strands its return transition; for a non-terminal level-up the next spin
+    rides it out, but at the target we stop spinning, so without waiting here the
+    caller's next navigate chokes and the bot derails toward Manual."""
+    stable = 0
+    waited = 0
+    while stable < stable_frames and waited < timeout_frames:
+        if player_avatar_is_controllable():
+            stable += 1
+        else:
+            stable = 0
+        waited += 1
+        yield
+
+
 def train_lead_to_level(target_level: int) -> Generator:
     """Grind wild battles on Route 103 until the lead reaches ``target_level``,
     healing at the nearest Poké Center (Oldale) whenever HP drops near the
@@ -627,6 +653,11 @@ def train_lead_to_level(target_level: int) -> Generator:
         # is unreliable here, so we hard-target Oldale's centre below).
         yield from navigate_to_anywhere(MapRSE.ROUTE103, ROUTE103_GRASS_TILE, avoid_encounters=False)
         yield from spin(stop_condition=lambda: _lead_level() >= target_level or _lead_hp_pct() <= heal_at)
+        # After spin() returns, the LAST battle's overworld-return transition may
+        # still be settling (the controllable flag flickers); wait it out patiently
+        # before the next navigate (heal trip or the caller's post-training move) so
+        # it doesn't choke. This is the user-seen training freeze.
+        yield from wait_until_truly_controllable()
         if _lead_level() >= target_level:
             break
         # Low HP: heal at Oldale's Poké Center (the closest one), then loop back.

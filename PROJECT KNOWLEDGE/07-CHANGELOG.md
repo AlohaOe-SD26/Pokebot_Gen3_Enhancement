@@ -1151,3 +1151,37 @@ code works at any mart regardless of stock order (verified: Rustboro row 0, buy 
 near-identical (generic code handles them) — only map exceptions. New punch-list:
 #24-shops (map shops as reached, incl. Lilycove multi-floor) and #24-pc (PC/box team
 management: locations + Deposit/Withdraw/Move/item-storage UI). Sandbox only.
+
+## 2026-07-21 — Story resume fix (intro re-run) + post-battle freeze finding (sandbox)
+User report: bot gets stuck at the first Poké Center in Oldale, "after respawn."
+Investigated with the faithful main-loop harness (proven to run the identical
+`main_loop` as the real bot).
+
+FIXED (verified) — Segment 1 resume bug: the whole intro→Pokédex block was gated
+only by RECEIVED_POKEDEX, so ANY recovery/resume before the Pokédex (whiteout,
+derail, or a loaded save) re-ran the scripted intro FROM THE TRUCK, then tried to
+navigate to the player's house from wherever it actually was (Route 103/Oldale) —
+impossible → derail loop → frozen in place. Reproduced from a pre-Pokédex Route 103
+save. Fix: split Segment 1 — run the scripted intro (truck→lab) only while no starter
+exists (`_has_starter()`); the train→rival→Pokédex part is resumable and gated by
+DEFEATED_RIVAL_ROUTE103. Now correctly resumes at training instead of looping.
+
+FIXED (robustness) — derail budget: the progress fingerprint used event flags, which
+FLICKER while read during a battle→overworld transition, so a genuine freeze could
+masquerade as "progress" and loop forever. Reworked `_progress_sig` to a monotonic
+party-derived fingerprint (size, lead level, total EXP); reset the derail budget only
+on real progress. Recovery now patiently waits for a STABLE controllable overworld
+(`wait_until_truly_controllable`, presses nothing) so a single recovery rides out a
+self-healing stall instead of burning derails toward Manual.
+
+OPEN (Bug 2, for real-PC validation) — post-battle transition freeze: during training,
+after a battle ends (flee / level-up / move-learn e.g. Mudkip's Water Gun at Lv10),
+the return-to-overworld transition leaves the overworld non-controllable while the bot
+acts (navigate to grass, walk to the Oldale nurse to heal) → can hard-freeze (nurse
+heal dialogue never starts). Confirmed real (harness == real main_loop), timing/
+starter-sensitive (default starter is "random"; Treecko's overnight run got through,
+Mudkip reliably hits it). Offline repro is hampered by save-state reload artifacts (a
+saved mid-transition state deadlocks on reload even when the live run self-heals), so
+per user decision this is to be validated on the real PC before a deeper fix. Reverted
+a mis-fire battle_handler change (it keyed on gDisplayedStringBattle, which goes STALE
+after battle → false positives). Sandbox only.

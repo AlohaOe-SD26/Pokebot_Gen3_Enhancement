@@ -80,6 +80,32 @@ gaps = map_locations/mart/pickup/historical.
   **Retrofit largely complete** (catching/healing/training/nav/defeat/derail all
   have preconditions+fallbacks). Buy made SHOP-AGNOSTIC (`_mart_item_row` reads stock
   live → works at any mart). **DO NOT resume story chapters until the user says so.**
+- **⭐ LATEST (2026-07-21) — "stuck at Oldale PC" investigation (sandbox).** User
+  reported the bot getting stuck at the first Poké Center in Oldale "after respawn."
+  Two DISTINCT bugs found:
+  - **Bug 1 FIXED + verified — Segment 1 intro re-run.** `_play` Segment 1 was
+    monolithic (gated only by RECEIVED_POKEDEX), so ANY pre-Pokédex recovery/resume
+    (whiteout, derail, loaded save) re-ran the scripted intro FROM THE TRUCK →
+    `go_upstairs` navigated to the house from Route 103/Oldale → impossible → derail
+    loop, frozen in place. Reproduced from a pre-Pokédex Route 103 save. Fix: split
+    Segment 1 — scripted intro (truck→lab) runs only while `_has_starter()` is False;
+    train→rival→Pokédex is resumable + gated by DEFEATED_RIVAL_ROUTE103. Verified it
+    now resumes at training. Also hardened the derail budget: `_progress_sig` is now a
+    monotonic PARTY fingerprint (flags flicker during battle transitions and faked
+    progress → infinite loops); recovery `wait_until_truly_controllable` (waits for a
+    STABLE controllable overworld, presses nothing).
+  - **Bug 2 OPEN — post-battle transition freeze (likely the ACTUAL "Oldale PC
+    stuck").** During training, after a battle (flee / level-up / move-learn e.g.
+    Mudkip Water Gun @L10) the return-to-overworld transition leaves the overworld
+    non-controllable while the bot acts (navigate / walk to the Oldale nurse) → can
+    hard-freeze (nurse heal dialogue never starts). Confirmed REAL (harness runs the
+    identical `main_loop`), timing/starter-sensitive (default starter = "random";
+    Treecko's overnight run got through, Mudkip reliably hits it). Offline repro is
+    hampered by save-state reload artifacts. **USER DECISION: validate on the real PC
+    first** (force Mudkip via `<profile>/story.yml` `starter: mudkip`, fresh game) and
+    report back before a deeper fix. See 08-MISTAKES 2026-07-21 (3 entries).
+  Committed to sandbox; battle_handler mis-fire change reverted (keyed on
+  gDisplayedStringBattle which goes STALE after battle).
   Documented strategy (planning doc §4/§4b): map shops/PCs AS REACHED, not all now;
   new punch-list #24-shops (incl. Lilycove multi-floor, E4 PC shop+mart) and #24-pc
   (PC/box team management). Remaining planning items future/noted (money-making
