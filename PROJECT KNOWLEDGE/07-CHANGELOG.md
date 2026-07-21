@@ -1139,3 +1139,15 @@ lessons captured in §4 (list-menu confirms need wait_until_task_is_not_active +
 item-select and quantity-confirm each show a message to advance). Verified: buy 5 →
 6→11 balls; full flow (balls forced to 2 → caught Abra → bought 30 → resumed →
 team of 4 → training). Sandbox only.
+
+## 2026-07-21 — Shop/PC mapping strategy documented + shop-agnostic buy (sandbox)
+User note: each mart has its own layout AND stock/order (incl. multi-floor Lilycove
+Dept Store); the E4 Poké Center has a shop+mart; and a future PC/box team-management
+system is wanted. DECISION (planning doc §4/§4b): do NOT map all shops now
+(unreachable → can't verify). Buy code made shop-agnostic — `_mart_item_row` reads
+`sMartInfo` at runtime and moves the cursor to the item's actual row, so the same
+code works at any mart regardless of stock order (verified: Rustboro row 0, buy 5 →
+6→11). Map each shop's entry facts as reached (Atlas row). Poké Centers are
+near-identical (generic code handles them) — only map exceptions. New punch-list:
+#24-shops (map shops as reached, incl. Lilycove multi-floor) and #24-pc (PC/box team
+management: locations + Deposit/Withdraw/Move/item-storage UI). Sandbox only.

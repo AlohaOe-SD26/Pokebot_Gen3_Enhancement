@@ -78,9 +78,12 @@ gaps = map_locations/mart/pickup/historical.
   Verified end-to-end (balls forced to 2 → caught → bought 30 → resumed → team of 4).
   Commits: doc 13, `_should_catch` safety floor, `1a3df6ad` buy provisioning.
   **Retrofit largely complete** (catching/healing/training/nav/defeat/derail all
-  have preconditions+fallbacks). **DO NOT resume story chapters until the user says
-  so.** Remaining planning items are future/noted (money-making engine, PP-aware
-  heal, HM-gated routing, decision brain).
+  have preconditions+fallbacks). Buy made SHOP-AGNOSTIC (`_mart_item_row` reads stock
+  live → works at any mart). **DO NOT resume story chapters until the user says so.**
+  Documented strategy (planning doc §4/§4b): map shops/PCs AS REACHED, not all now;
+  new punch-list #24-shops (incl. Lilycove multi-floor, E4 PC shop+mart) and #24-pc
+  (PC/box team management). Remaining planning items future/noted (money-making
+  engine, PP-aware heal, HM-gated routing, decision brain).
 - **STORY TEAM-BUILDING: pre-fight training + retrain + pre-gym catching (sandbox,
   user directives #1/#2).** (a) `train_team(target, scope)` grinds wilds on Route 116
   (11,7) — scope 'whole' rotates the lowest battler to lead, 'lead' trains the lead.

@@ -99,6 +99,43 @@ must be advanced with A before the next task appears. `provision_poke_balls()` b
 Verified: buy 5 → balls 6→11 / money −¥1000; full out-of-balls flow (balls forced to
 2 → caught → bought 30 → resumed catching → team of 4).
 
+**Shops differ — mapping strategy (decision 2026-07-21).** Each mart has its OWN
+interior layout AND stock/order; the buy is now written to absorb that: the shop UI
+flow is universal (task-driven), and `_mart_item_row` finds an item's row from
+`sMartInfo` at runtime, so we never hard-code stock order. Therefore we do NOT map
+all shops now (most are unreachable → can't verify live, against §R). Instead: **map
+each shop's ENTRY facts (mart map, clerk-approach tile, facing) when we first reach
+it**, verify live, and add a row to the Atlas — the buy code then just works. Only
+per-shop facts that need capturing are: the clerk-approach tile + facing, and any
+non-standard menu (see Lilycove below). Stock is read live; prices are fixed.
+
+**Special shops to handle when reached (noted, not built):**
+- **Lilycove Department Store** — MULTI-FLOOR, a different shop/clerk + stock on each
+  floor (reached by elevator/stairs). Needs per-floor mapping (which floor sells
+  what) + floor navigation. Treat each floor as its own Atlas shop entry.
+- **Elite Four Poké Center** — has BOTH a shop and a mart present (unusual). Map when
+  reached; the generic PC-heal + a mart entry both apply.
+- Other special vendors (Slateport market stalls, herb/berry sellers, the Battle
+  Frontier shops, TM/move sellers) — map as reached; some use non-standard menus.
+
+## §4b. Poké Centers & the PC (mapping strategy + future team system)
+**Poké Centers:** almost all share ONE interior layout, and the generic code already
+handles them (heal at the nurse (7,4); robust exit walking above the (6,8)/(7,8) warp
+and stepping down — §AA). So we do NOT map each Poké Center — the exceptions are what
+matter: e.g. the **Elite Four Poké Center** (shop + mart, above). Note any PC whose
+layout deviates when reached.
+
+**FUTURE — PC / team-management system (documented now, build when needed):** an
+advanced team-development layer that uses the **Pokémon Storage PC** to store, move,
+and withdraw Pokémon (and items). To build it we will need to map: the PC access
+points (every Poké Center's PC, plus the player's-house PC), and the PC UI —
+Deposit / Withdraw / Move Pokémon, box navigation, party↔box swaps, and the item
+storage interface. This enables smarter team development (swap in a better-matched
+mon for a gym, park over-levelled or redundant catches, manage a deep roster) rather
+than the current fixed small party. Tie-ins: §7 type/matchup awareness and #24-team.
+Punch-list: **#24-pc** (PC/box team management) + **#24-shops** (map shops as reached,
+incl. Lilycove multi-floor).
+
 ## §5. Money model (Emerald-specific — important)
 - **No Vs Seeker in Emerald.** Regular-trainer/gym rematches exist ONLY via the
   **PokéNav Match Call** (registered trainers phone *you*, RNG-driven, mostly

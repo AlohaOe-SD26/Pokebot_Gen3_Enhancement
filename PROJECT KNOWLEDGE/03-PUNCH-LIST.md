@@ -152,6 +152,22 @@
       coverage), pulling candidates from the obtainability+reachability data
       (#41/#42). Random/human-like, not a min-maxer. Needed for Torchic-vs-Roxanne
       and later type-hard gyms; implement when a gym requires it.
+- [ ] #24-shops — MAP SHOPS AS REACHED (user 2026-07-21; planning doc §4). Each mart
+      has its own layout AND stock/order; the buy code is already shop-agnostic
+      (universal task-driven flow + `_mart_item_row` reads stock live). So map each
+      shop's ENTRY facts (mart map, clerk-approach tile, facing) when first reached,
+      verify live, add an Atlas row. SPECIAL: **Lilycove Department Store** is
+      MULTI-FLOOR (per-floor shop + stock, elevator nav); the **Elite Four Poké
+      Center** has a shop + mart; Slateport stalls / TM sellers use non-standard
+      menus. Do NOT map all shops up front (unreachable → can't verify).
+- [ ] #24-pc — PC / BOX TEAM MANAGEMENT (user 2026-07-21; planning doc §4b). Advanced
+      team development via the Pokémon Storage PC: store / move / withdraw Pokémon
+      (and items). Map PC access points (every Poké Center + player's-house PC) and
+      the PC UI (Deposit/Withdraw/Move, box navigation, party↔box swaps, item
+      storage). Enables swapping in a better-matched mon per gym and parking
+      over-levelled/redundant catches. Build when a fight needs it; ties #24-team /
+      §7 matchup awareness. Poké Centers are otherwise near-identical (generic code
+      handles them) — only map PC/layout exceptions (e.g. the E4 Poké Center).
 - [ ] #24-ui — STORY-BOT PRE-RUN SETTINGS POPUP (user 2026-07-20). A popup/menu
       shown BEFORE the Story bot runs to set: player name; starter nickname mode
       (none / defined / random); starter choice (specific / random); + other
