@@ -196,6 +196,18 @@
       writes an extensive structured log to `<profile>/debug-logs/` (event stream +
       stuck dumps with the generator call stack). For diagnosing Bug #2 (#24-freeze)
       from a shared real-bot log. Built + validated in sandbox. See CHANGELOG 07-21.
+- [x] #24-swaptrain — SWAP-TRAINING **DONE** (user 2026-07-21). Fixes the
+      under-levelled-mon training loop: `SwapTrainBattleStrategy` switches a trainee
+      that's ≥2 levels below the wild foe to the strongest team-mate turn 1 (shares
+      XP, no fainting/heal-churn). Gated around `train_team`. Validated Poochyena
+      L4→L7, 0 heals/faints. Commit ef812c0e.
+- [ ] #24-trainmap — AREA-APPROPRIATE TRAINING (user 2026-07-21, Option 1). Groundwork
+      landed: `modules/story/training_areas.py` maps early-game grass to wild level
+      ranges + `best_training_grass(level)`. TODO: wire `train_team` to route an
+      under-levelled mon to the best REACHABLE area for FULL XP (progressing upward as
+      it levels), with swap-train (#24-swaptrain) as the anywhere fallback. Needs: fill
+      the PENDING_GRASS spin tiles as maps are reached (Route 102/104/Woods), and
+      cross-map routing to/from the training area. Efficiency layer — not blocking.
 - [ ] #24-ui — STORY-BOT PRE-RUN SETTINGS POPUP (user 2026-07-20). A popup/menu
       shown BEFORE the Story bot runs to set: player name; starter nickname mode
       (none / defined / random); starter choice (specific / random); + other
