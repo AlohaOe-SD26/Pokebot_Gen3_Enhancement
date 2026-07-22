@@ -1,0 +1,7 @@
+# Harness run artifacts (regenerated on every run — do not commit)
+*.log
+*.stdout
+*.out
+recon_*.txt
+# New states drivers write land in saves/ — commit only curated checkpoints, not scratch
+saves/2*.ss1
