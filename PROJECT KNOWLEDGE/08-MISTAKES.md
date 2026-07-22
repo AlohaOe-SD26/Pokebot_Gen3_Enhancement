@@ -583,3 +583,20 @@ with no exception bypasses the whiteout/derail recovery entirely.
 - **Prevention:** any "wait to become controllable" that can follow a SCRIPTED ARRIVAL
   must be preceded by a bounded script ride-out; recovery paths must always be able to
   close a dialogue. (Playbook §7.)
+
+## 2026-07-22 — Watchdog treated "Story (DEBUG)" as a huntable mode (exact-name set)
+- **Symptom (real-HW log 3):** after Story (DEBUG) finished the built content and
+  INTENTIONALLY handed to Manual at Slateport, the #22 watchdog "auto-recovered" it
+  ("fault drop-to-Manual") — restarting the story mode, which re-handed to Manual.
+  One-off restart in practice, but the latent risk was worse: the encounter-stall
+  recovery (which may RELOAD SAVE STATES — forbidden for story runs since it rewinds
+  the playthrough) was silently re-armed for both DEBUG modes.
+- **Root cause:** `_SELF_RECOVERING_MODES = {"Story"}` used EXACT string membership;
+  the new modes are named "Story (DEBUG)" / "Story (DEBUG - RESET)" and fell outside
+  every story-mode exemption.
+- **Fix:** `_is_self_recovering(mode)` — exact match OR "<name> " prefix — used at both
+  gate sites. A/B (pure logic): all three story names now exempt; Spin/Manual and the
+  hypothetical "Storyteller" remain non-exempt.
+- **Prevention:** when adding a VARIANT of a mode (new name, same bot), grep every
+  mode-NAME comparison in the codebase (`context.bot_mode ==`, name sets) — behavior
+  keyed off mode names silently excludes new variants.

@@ -1637,3 +1637,22 @@ signature + classification (universal bug vs NUANCED SITUATION needing detection
 never blanket-fix a nuance — vs known-issue vs variance) + evidence + proposed fix +
 regression risk. Batch artifacts gitignored (livetest-runs/). Smoke-tested (1 scoped
 lane: runner mechanics + summarizer + end-marker detection).
+
+## 2026-07-22 — REAL-HW TRIPLE-LOG REVIEW (user's new-PC session) + watchdog variant fix
+Three user logs reviewed (one continuous session on the second PC):
+- **"Story (DEBUG - RESET)" real-profile validation ✅** — from a mid-game Rustboro save
+  it hard-reset and FORCED NEW GAME over the existing save (the previously ⚠-flagged
+  branch), then played the fresh game clean through team-catching → ROXANNE WON → Devon
+  Goods → Rusturf → PokéNav. Log ends abruptly mid Match-Call tutorial with NO stall
+  dumps — consistent with the user's reported SYSTEM crash (not a bot hang); noted the
+  tutorial is the most renderer-heavy sequence (possible GPU/driver trigger, unproven).
+- **"Story (DEBUG)" continuation ✅✅** — on a different save from Rustboro: rival WON →
+  cottage (the wandering-Briney ambush ENGAGED on real HW) → sail (Dad's mid-sail Match
+  Call ignored correctly) → Dewford arrival ride-out (NO dock stall — the fix holds on
+  real HW) → full Granite Cave ladder chain → Letter delivered (TM47; an L21 move-learn
+  prompt handled en route) → BRAWLY WON → dock sail → Slateport PC → clean content-end.
+  The ENTIRE Ch5c→Ch8a arc real-hardware validated in one run, zero derails.
+- **Log 3 finding → FIXED:** the watchdog auto-restarted Story (DEBUG) after the
+  intentional content-end Manual (exact-name `_SELF_RECOVERING_MODES` missed the DEBUG
+  variants; also silently re-armed save-state reloads for them). `_is_self_recovering`
+  prefix matcher + A/B proof. See 08-MISTAKES.

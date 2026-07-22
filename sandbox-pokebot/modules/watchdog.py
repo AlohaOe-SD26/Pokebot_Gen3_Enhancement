@@ -69,6 +69,15 @@ _NON_HUNTING_MODES = {"Manual", "", "Macro (Custom)"}
 # from the respawn point, so the watchdog stays completely hands-off for it.
 _SELF_RECOVERING_MODES = {"Story"}
 
+
+def _is_self_recovering(mode: str) -> bool:
+    """True for a self-recovering mode INCLUDING its variants: "Story (DEBUG)" and
+    "Story (DEBUG - RESET)" are the same bot as "Story". An exact-set check missed
+    them (real-HW 2026-07-22: the watchdog "auto-recovered" Story (DEBUG) after its
+    INTENTIONAL content-end hand-to-Manual, and the encounter-stall save-state
+    reload — forbidden for story runs — was silently re-armed for the DEBUG modes)."""
+    return any(mode == m or mode.startswith(m + " ") for m in _SELF_RECOVERING_MODES)
+
 _log = logging.getLogger("watchdog")
 
 
@@ -212,7 +221,7 @@ class Watchdog:
             mode = context.bot_mode
             self._detect_fault_drop_to_manual(mode, cfg)
 
-            if mode in _NON_HUNTING_MODES or mode in _SELF_RECOVERING_MODES:
+            if mode in _NON_HUNTING_MODES or _is_self_recovering(mode):
                 # For self-recovering modes we still ran fault detection above (to
                 # alert), but we do NOT snapshot state, track it as a hunting mode,
                 # or run stall recovery — it owns its own recovery.
@@ -245,7 +254,7 @@ class Watchdog:
                 if (
                     cfg["auto_restart_on_error"]
                     and not self._given_up
-                    and self._prev_mode not in _SELF_RECOVERING_MODES
+                    and not _is_self_recovering(self._prev_mode)
                 ):
                     self._recover("fault drop-to-Manual", cfg, target_mode=self._last_hunting_mode)
             self._prev_mode = "Manual"

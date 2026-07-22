@@ -27,6 +27,14 @@
   and that the shiny reorder didn't disturb normal battle routing.
 - Punch list: +#24-interrupt (interruption intelligence), +#24-movelock (Disable/Encore/
   Taunt-aware move choice) — user's slate-for-later items.
+- **REAL-HW TRIPLE-LOG REVIEW (user's 2nd-PC session):** DEBUG-RESET's forced-NEW-GAME-
+  over-existing-save branch VALIDATED on a real profile (fresh run then played clean
+  through Roxanne→PokéNav; abrupt log end = the user's SYSTEM crash mid Match-Call
+  tutorial, no bot stall dumps). A second run validated the ENTIRE Ch5c→8a arc on real
+  HW (rival→Briney ambush→sail→letter→Brawly→Slateport, 0 derails). Finding fixed:
+  watchdog's `_SELF_RECOVERING_MODES` exact-name check missed the DEBUG variants
+  (spurious restart after the intentional content-end Manual + save-state reloads
+  silently re-armed) → `_is_self_recovering` prefix matcher, A/B-proven.
 - **NEW: "Conduct Live Tests" capability** (`/livetest`, `tools/story-dev/livetest.py`):
   N-run batch sweeps (fresh→frontier or scoped from any checkpoint) in isolated
   parallel lane profiles + auto summaries → a LIVE TEST REPORT (frequency + context
