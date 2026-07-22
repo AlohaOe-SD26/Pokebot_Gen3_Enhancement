@@ -467,3 +467,12 @@ swap-train finisher heals only between battles at a narrow ~28% margin, so an un
 it; the after-faint replacement path then stalls. **Mitigation:** raised the training heal margin
 to ~42% so the finisher heals earlier. **Still open:** the choose-after-faint handling itself must
 robustly send a replacement (framework-level) — next task; a mon fainting must never strand the bot.
+
+## 2026-07-21 — Double-battle faint hang: chooser returned the on-field partner
+**Symptom (user):** in a double battle, when one active mon faints, the bot hangs on the party
+menu trying to pick the OTHER on-field mon (slot 2) instead of a benched one. **Root cause:**
+`LevelUpLeadBattleStrategy.choose_new_lead_after_faint` overrode the base chooser but dropped the
+double-battle exclusion of the already-active battlers, so it returns the partner's party index —
+which can't be selected. **Fix:** re-add the `is_double_battle` left/right-battler skip (mirror
+`DefaultBattleStrategy`). **Prevention:** any `choose_new_lead_after_faint` override MUST skip
+the currently-active battler(s) in double battles; the replacement can only be a benched mon.

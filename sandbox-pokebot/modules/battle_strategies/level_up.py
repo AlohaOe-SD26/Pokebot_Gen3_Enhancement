@@ -42,6 +42,22 @@ class LevelUpLeadBattleStrategy(DefaultBattleStrategy):
         new_lead: int | None = None
         new_lead_current_hp: int = 0
         for index, pokemon in enumerate(get_party()):
+            # In a DOUBLE battle, skip the Pokémon already ON THE FIELD (our other active
+            # battler): it can't be picked as the replacement, and returning its index
+            # strands the bot on the "choose a Pokémon" menu. The base DefaultBattleStrategy
+            # already excludes the active battlers; this override previously dropped that
+            # check, so a faint in a double battle could hang selecting the partner.
+            if battle_state.is_double_battle and (
+                (
+                    battle_state.own_side.left_battler is not None
+                    and battle_state.own_side.left_battler.party_index == index
+                )
+                or (
+                    battle_state.own_side.right_battler is not None
+                    and battle_state.own_side.right_battler.party_index == index
+                )
+            ):
+                continue
             if pokemon.current_hp > 0 and not pokemon.is_egg and self.pokemon_can_battle(pokemon):
                 if pokemon.current_hp > new_lead_current_hp:
                     new_lead = index

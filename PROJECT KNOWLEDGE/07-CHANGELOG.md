@@ -1442,3 +1442,19 @@ On losing the rival, the bot stood below the rival (16,52) and dropped to Manual
   controllable at Rustboro (16,53) — the rival cutscene leaves you there; walk south to Route 104.
   This unblocks the sail-leg build (Route 104 → Mr. Briney → Dewford → Granite Cave → Gym 2).
 - The choose-after-faint framework hang did not trigger this run (mitigated); still a latent edge.
+
+## 2026-07-21 (later) — Fix double-battle after-faint hang (choose picked the on-field partner)
+User: in a double battle, when a team member faints, the bot got stuck selecting the OTHER
+Pokémon already on the field (slot 2) instead of a benched one (slots 3-6).
+- ROOT CAUSE: `LevelUpLeadBattleStrategy.choose_new_lead_after_faint` (modules/battle_strategies/
+  level_up.py — used by the Story bot via LevelUpTravel/SwapTrain) picked the highest-HP
+  battle-capable mon WITHOUT excluding the already-active battlers in a double battle. Its parent
+  `DefaultBattleStrategy` DOES exclude them; the override dropped that check. So a faint could
+  return the on-field partner's index → the bot strands on the "choose a Pokémon" menu.
+- FIX: restore the double-battle active-battler exclusion (skip left/right battler party indices).
+- A/B PROVEN (scratchpad/repro_double_faint.py, no emulator): double battle, slot0 faints —
+  BEFORE returns index 1 (on-field partner, hang); AFTER returns index 2 (benched). Single-battle
+  behaviour unchanged (still highest-HP benched). Likely also fixes the earlier "training faint
+  hang" if that was a double battle.
+- NOTE: upstream-file edit (level_up.py) — log in DIVERGENCE-LOG on promotion. (level_balancing.py
+  has a similar override; not used by Story, left as-is.)
