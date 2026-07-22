@@ -1518,3 +1518,27 @@ session's scratchpad (gone for the next agent). Committed them, generalized + do
 - `tools/story-dev/README.md` — prereqs, quick-starts, the drivers/saves tables, conventions.
 - Smoke-tested from the new location (A/B proof passes; harness loads post_rival.ss1). Repointed
   the playbook + design-doc + kickoff references from `scratchpad/` to `tools/story-dev/`.
+
+## 2026-07-22 — CHAPTER 6 COMPLETE: sail_to_dewford BUILT + VALIDATED end-to-end (sandbox)
+The bot now plays post_rival.ss1 → Dewford Town unattended. Punch-list #24.
+- `sail_to_dewford()` (early_game.py) rebuilt from the scaffold into the full leg:
+  Rustboro (16,53) → Down across the connection → Route104 north strip → Woods north door
+  (11,30) → cross Petalburg Woods SOUTHBOUND (reverse of Ch3) → inside door (17,38) →
+  Route104 south beach (11,38) → Briney's door (17,50) → talk → sail → DEWFORD_TOWN dock
+  (12,3). Every leg keyed off the LIVE map (idempotent, resume-safe §SC). All warp pairs
+  doorprobe-verified first (full Route104 warp table now in design §Ch6).
+- ‼ Decomp correction: the FIRST sail is a YES/NO (not the MULTI_BRINEY_OFF_DEWFORD
+  multichoice — that's for later sails). Code handles both.
+- NEW helper `_talk_to_wandering_npc(map, local_id)` — talking to a PATROLLING NPC
+  (Briney local_id=1 + Peeko lap a ring around the cottage table). Strategy: OBSERVE a
+  patrol lap (recording both walkers' routes) → park BESIDE his route (on nobody's
+  route, never a warp tile) → face-tap+A when he transits the adjacent tile. Took 4
+  proven-failed attempts to get here (spawn-tile talk / navigate-chase / greedy chase /
+  on-route blocking) — the full saga + prevention rules in 08-MISTAKES + playbook §7.
+- Wired into `_play` as Segment 6 (gated ¬DELIVERED_STEVEN_LETTER ∧ ¬BADGE02_GET; guard
+  map==DEWFORD); end-of-content message now points at Ch7 (Granite Cave → Brawly).
+- PROOF: harness `--driver saildewford` full run post_rival→Dewford, AND the real
+  StoryMode `--driver story` run (Segment 6 fires, sails, clean content-end stop; a
+  mid-route PokéNav Match-Call ring was ignored correctly by the listener). Checkpoint
+  `tools/story-dev/saves/dewford.ss1` committed (midstuck.ss1 demoted to gitignored
+  scratch). STORY_TALK_DEBUG=1 env var traces the talk helper.

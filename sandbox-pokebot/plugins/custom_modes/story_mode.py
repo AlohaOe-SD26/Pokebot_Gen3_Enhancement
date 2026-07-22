@@ -648,6 +648,7 @@ class StoryMode(BotMode):
             help_birch_and_choose_starter,
             recover_devon_goods,
             return_devon_goods_and_get_pokenav,
+            sail_to_dewford,
             handle_pokenav_match_call_tutorial,
             fight_rustboro_rival,
             return_to_lab_and_get_pokedex,
@@ -921,11 +922,24 @@ class StoryMode(BotMode):
             console.print("[dim]Story: Rustboro rival already defeated — skipping.[/]")
         _guard("Rustboro rival", lambda: _done("DEFEATED_RIVAL_RUSTBORO"))
 
-        # END OF BUILT CONTENT. Next build: Route 104 south → Mr. Briney's cottage → sail to
-        # Dewford → Granite Cave (Steven's Letter) → Gym 2 (Brawly, Knuckle Badge).
+        # --- Segment 6: sail to Dewford (Chapter 6). Rustboro → south onto Route 104 →
+        #     back through Petalburg Woods (Route 104 is river-split) → south beach →
+        #     Mr. Briney's cottage → talk (first sail = YES/NO) → sail cutscene → Dewford.
+        #     sail_to_dewford is idempotent + keyed off the LIVE map, so a resume from
+        #     anywhere along the route picks up mid-leg. Once the Dewford-arc flags
+        #     (DELIVERED_STEVEN_LETTER / BADGE02) exist they gate this out for good. ---
+        if not _done("DELIVERED_STEVEN_LETTER") and not _done("BADGE02_GET"):
+            if _cur_map() != MapRSE.DEWFORD_TOWN.value:
+                yield from sail_to_dewford()
+            else:
+                console.print("[dim]Story: already in Dewford — sail leg skipped.[/]")
+            _guard("Sail to Dewford (Ch6)", lambda: _cur_map() == MapRSE.DEWFORD_TOWN.value)
+
+        # END OF BUILT CONTENT. Next build (Ch7): Route 106 → Granite Cave (deliver Steven's
+        # Letter → TM47) → Dewford Gym 2 (Brawly, Knuckle Badge).
         context.message = (
-            "Story: beat the Rustboro rival — end of built content. NEXT (WIP): Route 104 "
-            "south -> Mr. Briney -> Dewford -> Granite Cave -> Gym 2 (Brawly). Handing to manual."
+            "Story: arrived in Dewford Town — end of built content. NEXT (WIP): Granite Cave "
+            "(Steven's Letter) -> Gym 2 (Brawly). Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()

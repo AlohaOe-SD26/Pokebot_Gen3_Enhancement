@@ -66,7 +66,11 @@ repro-fresh` or `repro-ml`). Regenerate any by running the story to that point.
 | `devon_done.ss1` / `goods_recovered.ss1` | Devon Goods / Rusturf |
 | `pokenav_got.ss1` | after the PokéNav (Devon Corp 3F) |
 | `fresh_rivalprep.ss1` | rival-prep (team leveled, pre-rival) |
-| `post_rival.ss1` | **frontier**: Rustboro (16,53), `DEFEATED_RIVAL_RUSTBORO`, `RUSTBORO_CITY_STATE=8` |
+| `post_rival.ss1` | Rustboro (16,53), `DEFEATED_RIVAL_RUSTBORO`, `RUSTBORO_CITY_STATE=8` |
+| `dewford.ss1` | **frontier**: Dewford Town dock (12,3), first Briney sail done (Ch6 ✅) |
+
+(`saves/midstuck.ss1` is a SCRATCH state some drivers overwrite when stuck — gitignored,
+never rely on it across runs.)
 
 ## Recon / probe scripts (standalone; edit + rerun)
 - `maprecon.py` / `maprecon2.py` — static ROM map recon (`get_map_data`): warps, objects

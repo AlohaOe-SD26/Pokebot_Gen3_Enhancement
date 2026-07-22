@@ -224,6 +224,10 @@ authoritative), the harness (the ground truth — validate and correct the doc).
 | `_navigate_through_scripts` used to reach a **tile** | It reaches a MAP; use `_navigate_riding_out` for a TILE. |
 | Building a chapter **before mapping** it | Static-recon → Atlas → build → validate. Always. |
 | A flag-gated combat segment with **unbounded** whiteout re-entry | Attempt-cap + clean fallback to manual; never loop forever. |
+| Talking to a **PATROLLING NPC** via its spawn tile, a navigate-chase, or blocking its route | `_talk_to_wandering_npc`: OBSERVE a lap (record both walkers' routes) → park BESIDE the route (on NOBODY's route, not a warp) → face-tap+A when he transits the adjacent tile. A tail-chase never catches a same-speed walker on a ring; blocking a shared ring queues the WRONG walker against you (Briney/Peeko, 2026-07-22). |
+| **Face-tap toward an empty tile STEPS** (if already facing that way) | Only face-tap toward a tile the NPC currently OCCUPIES (a bump can't step), and re-verify it's still there before pressing A. |
+| **Standing on a walk-sequence NPC's route tile** freezes the room | Walk-sequence NPCs wait forever for their exact next route tile (no re-routing) — a blocked queue can deadlock every actor incl. the player (three-body gridlock). Park OFF-route; if walkers freeze, step off the route to unfreeze. |
+| `navigate_to` reports **"no path" in a small room with walking NPCs** | `calculate_path` blocks every object's current AND previous tile — two walkers seal a tiny map at plan time. Use greedy manual steps (with perpendicular fallbacks + warp-tile avoidance) for indoor approach work. |
 
 ---
 

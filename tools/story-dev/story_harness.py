@@ -733,8 +733,13 @@ class SailDewfordMode(BotMode):
         log(f"[sail] start pos={_pos()}")
         try:
             yield from sail_to_dewford()
-            log(f"[sail] sail_to_dewford returned; pos={_pos()} "
-                f"in_dewford={_map_group_number() == MapRSE.DEWFORD_TOWN.value}")
+            arrived = _map_group_number() == MapRSE.DEWFORD_TOWN.value
+            log(f"[sail] sail_to_dewford returned; pos={_pos()} in_dewford={arrived}")
+            if arrived:
+                import pathlib
+                out = pathlib.Path(__file__).resolve().parent / "saves" / "dewford.ss1"
+                out.write_bytes(context.emulator.get_save_state())
+                log(f"[sail] checkpoint saved: {out.name}")
         except Exception as e:
             import traceback
             log(f"[sail] ERROR pos={_pos()}: {e}\n{traceback.format_exc()[:900]}")

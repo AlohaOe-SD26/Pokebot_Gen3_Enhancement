@@ -14,15 +14,16 @@ Status key: ✅ built + validated · 🚧 scaffold/partial · 📋 mapped, not b
 | 5a | Devon Goods (theft → Rusturf → recover) | `recover_devon_goods` | `RECOVERED_DEVON_GOODS` | ✅ |
 | 5b | Return goods → **PokéNav + Match-Call tutorial** | `return_devon_goods_and_get_pokenav`, `handle_pokenav_match_call_tutorial` (faithful; state-write fallback) | `RECEIVED_POKENAV`, `RUSTBORO_CITY_STATE=7` | ✅ (real-HW confirmed) |
 | 5c | **Rustboro rival** (type-lead + level-floor + heal + attempt-cap) | `_play §5c` + `_lead_best_matchup`, `train_team`, `fight_rustboro_rival` | `DEFEATED_RIVAL_RUSTBORO` | ✅ (fresh run won) |
-| 6 | Sail to Dewford (via Petalburg Woods → beach → Briney) | `sail_to_dewford` **(SCAFFOLD)** | on `DEWFORD_TOWN` | 🚧 nav TODO (§Ch6: river-split; door=(17,50)) |
+| 6 | Sail to Dewford (via Petalburg Woods → beach → Briney) | `sail_to_dewford` + `_talk_to_wandering_npc` | on `DEWFORD_TOWN` | ✅ (2026-07-22; driver `saildewford` + real `_play`) |
 | 7 | Granite Cave (Steven's Letter, TM47) + **Gym 2 — Brawly** | — | `DELIVERED_STEVEN_LETTER`, `BADGE02_GET` | 📋 §Ch7 (mapped) |
 | 8 | Sail to Slateport + Slateport (Gabby&Ty DOUBLE battle) | — | — | 📋 §Ch8 (reconned) |
 | 9+ | Route 110 → **Gym 3 Mauville (Wattson)** → … → Elite Four | — | — | ⬜ (Overview table §1/§2 has the route + item beats) |
 
-**You are at the Ch6 boundary.** `post_rival.ss1` (`tools/story-dev/saves/`) = Rustboro (16,53),
-`DEFEATED_RIVAL_RUSTBORO`, `RUSTBORO_CITY_STATE=8`. Next: finish `sail_to_dewford` (build the
-Petalburg-Woods north→south reverse + the beach leg to door (17,50)), then Ch7. Details below +
-in §Ch6–8. Test infra: `tools/story-dev/` (see its README).
+**You are at the Ch7 boundary (2026-07-22).** `dewford.ss1` (`tools/story-dev/saves/`) =
+Dewford Town dock (12,3), fresh off the first Briney sail (`VAR_BOARD_BRINEY_BOAT_STATE=1`).
+Next: Ch7 — Route 106 → Granite Cave 1F→B1F→Steven's Room (7,8), deliver the Letter
+(`DELIVERED_STEVEN_LETTER`, TM47), then Gym 2 Brawly (`BADGE02_GET`); §Ch6–8 below has the
+map facts (validate the cave floor-warp chain live). Test infra: `tools/story-dev/` (README).
 
 
 > **Pass 4 (2026-07-20)** re-derived every fact independently from ROM + two/three
@@ -360,14 +361,23 @@ Recon via `tools/story-dev/maprecon.py` (static `get_map_data`, no navigation). 
 map-local. **NOT yet built or live-verified** — this is the build map for the next session.
 
 - **ROUTE 104 (0,19) — size 40×80.** Connections: **North→Rustboro**, **South→Route 105**,
-  East→Petalburg. Key objects: `Route104_EventScript_Rival` at **(17,50)** — this is the
-  rival's POST-battle appearance near Briney's house (the actual battle fires at the Rustboro
-  y=53 row, harness-proven; do NOT expect the battle here). Mr. Briney's-house entrance warp
-  is on Route 104 near (17,50); the Pretty Petal flower shop entrance is up north (~(5,18)).
-  Cut tree at (35,22) (`EventScript_CutTree`) gates the NE; items scattered (Potion (5,8),
-  PP Up (39,15), X Accuracy (37,22), Poké Ball (29,53)).
-- **MR. BRINEY'S HOUSE (17,0) — 12×9.** `…Briney` NPC at **(5,3)**, Peeko (6,3). Exits at
-  (5,8)/(6,8) → Route 104. **Talk to Briney → he sails you to Dewford.**
+  East→Petalburg. Key objects: `Route104_EventScript_Rival` at **(17,50)** — an ALTERNATE
+  rival-encounter site: the object is positioned ONLY while `FLAG_MET_RIVAL_RUSTBORO` is
+  unset (a player who skipped the Rustboro meeting gets caught at the cottage instead;
+  decomp-verified `Route104_EventScript_TrySetRivalPos`). After our Rustboro rival win the
+  NPC is hidden and the cottage door is clear (validated 2026-07-22). Pretty Petal flower
+  shop entrance = warp (5,18). Cut tree at (35,22) gates the NE; items scattered (Potion
+  (5,8), PP Up (39,15), X Accuracy (37,22), Poké Ball (29,53)).
+  **FULL WARP TABLE (doorprobe-verified 2026-07-22):** #0 (17,50)→Briney's house (5,8);
+  #1 (5,18)→flower shop; #2/#3 **(10,30)/(11,30)→WOODS (14,5)/(15,5)** (north doors);
+  #4/#5 **(10,38)/(11,38)→WOODS (16,38)/(17,38)** (south doors); #6/#7 (32,42)/(33,42)→
+  WOODS (36,38)/(37,38) (east pair).
+- **MR. BRINEY'S HOUSE (17,0) — 12×9.** `…Briney` NPC = **local_id 1** (spawn (5,3)),
+  Peeko = local_id 2 (spawn (6,3)). ‼ **BOTH PATROL a walk-sequence ring around the central
+  table** (route tiles x∈{6..9}, y∈{3..6}; Peeko laps AHEAD of Briney, same direction) —
+  Briney is almost never at (5,3); talk via `_talk_to_wandering_npc` (observe → park beside
+  route → A on transit; see playbook). Exits (5,8)/(6,8) → Route 104 (17,50).
+  **Talk to Briney → he sails you to Dewford.**
 - **DEWFORD TOWN (0,11) — 20×20.** Connections: North→Route 106, East→Route 107. Warps:
   PC/houses/hall at (3,3),(2,10),(8,17),(17,14),(8,8). `DewfordTown_EventScript_Briney` at
   **(12,9)** = the boat dock (Briney ferries Dewford↔Route104/Slateport). OldRodFisherman
@@ -383,21 +393,22 @@ map-local. **NOT yet built or live-verified** — this is the build map for the 
   (Granite Cave also holds items: Escape Rope 1F (17,7), Poké Ball B1F (15,21), Repel/Rare
   Candy B2F; B2F has Rock-Smash rocks — later.)
 
-**SAIL-LEG RECON NOTE (2026-07-21):** the sail interaction (talk to Briney (5,3) → multichoice
-`MULTI_BRINEY_OFF_DEWFORD` → pick **Dewford = index 0** → warps/sails) is understood from the
-decompiled script, BUT the build is gated on TWO nav facts still to nail down: (a) the
-Rustboro→Route104 boundary — a synthetic post-rival test (rival-flag set, player still mid-
-Rustboro) stalls: walking Down from the rival row dead-ends at Rustboro **(16,53)**; the real
-south-exit corridor to Route 104's north edge (CONN North offset 0) is at a different x/y — do a
-static/live recon of the Rustboro south edge before building this leg. (b) Where the rival
-CUTSCENE actually deposits the player (likely already on/near Route 104) — needs a REAL
-post-rival save (a genuine win), which is deferred with the rival-win validation. Recommendation:
-build the sail leg from a real post-rival save (real hardware once the rival win is confirmed),
-or first recon the exact Rustboro-south↔Route104-north connection tiles. Harness dev driver:
-`--driver sailrecon` (synthesizes post-rival + walks toward Briney; scratchpad only).
+**SAIL LEG — BUILT + VALIDATED end-to-end (2026-07-22).** `sail_to_dewford()` runs
+post_rival.ss1 → Dewford (harness `--driver saildewford`; checkpoint **`dewford.ss1`**).
+The route (every leg keyed off the LIVE map, resume-safe): Rustboro (16,53) → Down across
+the connection → ROUTE104 (16,0) north strip → navigate (11,29) → north door (11,30) →
+Woods (15,5) → cross southbound → inside door (17,38) → Route104 (11,38) south beach →
+door (17,50) → cottage → `_talk_to_wandering_npc(Briney id=1)` → **first sail = YES/NO**
+(A-through; cursor defaults YES) → warped to the boat (Route104 (13,51)) → sail cutscene
+(B-through) → DEWFORD_TOWN, arrive at the dock (12,3).
+‼ **CORRECTION to the earlier recon:** the `MULTI_BRINEY_OFF_DEWFORD` multichoice belongs to
+LATER sails; the FIRST sail is a plain YES/NO ("You have a LETTER bound for DEWFORD… We'll
+set sail" — decomp-verified `Route104_MrBrineysHouse` scripts; sets `VAR_BOARD_BRINEY_BOAT_
+STATE=1`, hides house-Briney/Peeko, `RUSTBORO_CITY_STATE=8`, `ROUTE104_STATE=2`). The code
+handles BOTH (A-through answers the yesno YES; a multichoice task is answered with index 0).
 
-**Build plan (next session):** after the rival (§5c) — (1) `_navigate…` Route 104 SOUTH to
-Mr. Briney's house entrance → enter → talk to Briney (5,3) → sail (anchor: arrive DEWFORD_TOWN).
+**Original build plan (superseded by the build above):** (1) Route 104 SOUTH to
+Mr. Briney's house entrance → enter → talk to Briney → sail (anchor: arrive DEWFORD_TOWN).
 (2) Dewford: deliver **Steven's Letter** — Route 106 W → Granite Cave 1F→B1F→Steven's Room
 (7,8), talk to Steven (anchor a letter/received flag). (3) Dewford **Gym 2 (Brawly)** — heal,
 lead-strongest (Brawly = Fighting; lead a Flying/Psychic if we have one, else strongest),
@@ -421,21 +432,20 @@ Rustboro –(S)→ **Route 104** –(S)→ Route 105 –…; Route 104 also –(
 108 –(E off -40)→ **Route 109** –(N)→ **Slateport City** –(N)→ Route 110 (→ Mauville, Gym 3).
 Granite Cave entrance is on **Route 106 (48,16)**.
 
-**Chapter 6 — sail to Dewford.** Completion: on map `DEWFORD_TOWN`. `sail_to_dewford()` is a
-scaffold in early_game.py; **navigation not yet complete** — validated findings (2026-07-21):
+**Chapter 6 — sail to Dewford. ✅ BUILT + VALIDATED end-to-end (2026-07-22),** wired into
+`_play` as Segment 6 (gated on ¬DELIVERED_STEVEN_LETTER ∧ ¬BADGE02; guard: map==DEWFORD).
+`sail_to_dewford()` in early_game.py; harness driver `saildewford`; checkpoint `dewford.ss1`.
 1. From Rustboro (16,53), **walk Down** → crosses the south connection onto **ROUTE104 (16,0)**
-   (north strip). ✅ VALIDATED (leg-by-leg; the global navigator won't one-shot it).
-2. **‼ Route 104 is split by a river.** From (16,0) you can ONLY reach the north strip (y<~20;
-   e.g. the flower shop (5,19)); **all tiles y≥30 are unreachable directly** (reachability-probe
-   VALIDATED). So you canNOT walk straight south to Briney.
-3. **Briney's house door = ROUTE104 (17,50)** (recon-confirmed: warp resolves to map (17,0);
-   (5,18) is the Pretty-Petal flower shop). It sits on the SOUTH beach (y=50).
-4. **The path Rustboro→Briney goes BACK THROUGH Petalburg Woods:** Route104 north → Woods →
-   Route104 SOUTH beach → door (17,50). Reuse/mirror `cross_petalburg_woods` (it crosses
-   south→north; build the north→south reverse) + a Route104-south leg to (17,50).
-   **⚠ VALIDATE LIVE — this leg still needs building.**
-5. Talk to **Briney (5,3)** → multichoice `MULTI_BRINEY_OFF_DEWFORD` → pick **Dewford = index 0**
-   (`wait_for_multiple_choice_question(0)`) → ride out → arrive `DEWFORD_TOWN`. `✓ script-verified`.
+   (north strip). ✅ (leg-by-leg; the global navigator won't one-shot it).
+2. **‼ Route 104 is river-split.** The ONLY north↔south path is back through Petalburg Woods.
+3. North strip → **Woods north door (11,30)** (stage (11,29)) → inside (15,5) → cross the Woods
+   southbound → **inside south door (17,38)** (stage (17,37)) → Route104 **(11,38)** south
+   beach → **Briney's door (17,50)** → cottage interior (5,8). ✅ all doorprobe-verified + run.
+4. Talk to **Briney (local_id 1 — he PATROLS; use `_talk_to_wandering_npc`)**: FIRST sail is a
+   **YES/NO** (A-through = YES); later sails use the `MULTI_BRINEY_OFF_DEWFORD` multichoice
+   (Dewford = index 0) — both handled. ✅ decomp-verified + run.
+5. Confirming warps to the boat (Route104 (13,51)); ride out the sail (B) → `DEWFORD_TOWN`,
+   dock (12,3). ✅
 
 **Chapter 7 — Granite Cave (Steven's Letter) + Gym 2 (Brawly).**
 - **Dewford Town map:** PC entrance = warp **#1**; Gym entrance = warp **#2**; Hall = #0-ish;

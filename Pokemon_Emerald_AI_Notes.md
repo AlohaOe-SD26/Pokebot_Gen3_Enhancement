@@ -219,3 +219,23 @@ the same legitimate moves a player would, so you can (a) compare a learned agent
   only" mode vs a "teleport/skip allowed" mode.
 - **Full method** (harness, debugging, mapping, bug patterns) is in
   `PROJECT KNOWLEDGE/14-AGENT-PLAYBOOK.md` — a good read for anyone building on this env.
+
+## 2026-07-22 — Ch6 (Briney sail) learnings for the AI project
+- **Patrolling NPCs are a real interaction hazard.** Indoor NPCs with "Walk Sequence"
+  movement types are almost never at their map-JSON spawn tile — they lap fixed routes
+  (Mr. Briney + Peeko both circle the cottage table, same ring, Peeko ahead). Facts an
+  agent needs: (a) a face-tap toward an EMPTY tile *steps* if already facing that way;
+  (b) walk-sequence NPCs never re-route — stand on their next route tile and the whole
+  room can deadlock (us included); (c) a tail-chase never catches a same-speed walker on
+  a loop. The working policy (mirrors human play): watch one lap, stand BESIDE the route
+  on a tile nobody visits, press A as the target walks past. Implemented as
+  `_talk_to_wandering_npc` in the reference bot.
+- **The stock pathfinder over-blocks around walkers** (each object's current AND previous
+  tile), so "no path" inside small rooms is often false — an env for an AI agent should
+  either expose raw passability or accept manual step actions indoors.
+- **First Briney sail is a YES/NO, not the destination multichoice** (that appears from
+  the second sail on). Confirming warps the player onto the boat and plays a ~75s scripted
+  sail; arrival signal = current map becomes DEWFORD_TOWN (dock (12,3)).
+- **Route 104 is one map ID but physically split by a river**; the only Rustboro→beach
+  path is back through Petalburg Woods (warp pairs in design §Ch6). Good example of why
+  "same map = reachable" is a false prior for navigation policies.

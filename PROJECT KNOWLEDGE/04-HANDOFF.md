@@ -3,11 +3,30 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-07-21
+**Last updated:** 2026-07-22
 
-> **NEW AGENT / FABLE 5: read `14-AGENT-PLAYBOOK.md` right after this file.** It is the
+> **NEW AGENT: read `14-AGENT-PLAYBOOK.md` right after this file.** It is the
 > accumulated craft (harness, debugging method, story-mapping, faithfulness rules, bug
 > patterns) — use it to build faster and prove every fix.
+
+### ⭐ Session 2026-07-22 (Fable 5) — CHAPTER 6 DONE: the bot sails to Dewford (SANDBOX, pushed)
+- **`sail_to_dewford()` BUILT + VALIDATED end-to-end** (post_rival.ss1 → Dewford dock (12,3)):
+  Rustboro → Route104 north → back through Petalburg Woods (river-split, doorprobe-verified
+  warp table in design §Ch6) → south beach → Briney's cottage (17,50) → first-sail **YES/NO**
+  (decomp correction: the multichoice is only for later sails) → sail → DEWFORD_TOWN.
+  Proven BOTH via `--driver saildewford` AND the real `StoryMode._play` (Segment 6 wired,
+  guard map==DEWFORD, clean content-end stop). Checkpoint **`tools/story-dev/saves/dewford.ss1`**.
+- **NEW primitive `_talk_to_wandering_npc`** — Briney PATROLS his cottage (as does Peeko);
+  4 approaches failed provably before the winner: observe a patrol lap → park BESIDE his
+  route → face-tap+A as he transits. Full saga + prevention rules in 08-MISTAKES (2026-07-22)
+  + playbook §7 (incl. the `calculate_path`-blocks-walkers gotcha and the three-body
+  route-tile deadlock). `STORY_TALK_DEBUG=1` traces the helper.
+- Daily upstream check done (main still `5dd898f8`).
+- **NEXT: Ch7** — Dewford → Route 106 → Granite Cave 1F→B1F→Steven's Room (7,8): deliver the
+  Letter (A-through, no choices; sets `DELIVERED_STEVEN_LETTER`, gives TM47) → back → Gym 2
+  **Brawly** (dark gym; type-aware lead — Taillow/Flying resists Fighting; level-floor;
+  attempt-cap) → `BADGE02_GET`. Start from `dewford.ss1`; §Ch6–8 has the map facts
+  (⚠ validate the cave floor-warp chain + Dewford door warps live).
 
 ### ⭐ Session 2026-07-21 (late) — battle-robustness + provisioning fixes (SANDBOX, pushed)
 All from real-hardware debug logs; each reproduced + fixed + committed:
@@ -22,18 +41,10 @@ All from real-hardware debug logs; each reproduced + fixed + committed:
 - **Gym/trainer fight-through FIXED** (Roxanne hung switching Torchic into a weak bench):
   trainer/gym/E4 battles now attack-through, never rotate/flee into a stall. A/B proven.
 - **Premier Ball batching**: buy Poké Balls in tens → 1 free Premier Ball each (validated +2).
-- **OPEN (for Fable):** the framework mid-battle **rotation-execution** stall
+- **OPEN (framework):** the mid-battle **rotation-execution** stall
   (`battle_action_selection.py`) still exists for any rotating strategy — needs a live repro to
   pin `map_battle_party_index` / the party-menu submenu. Story bot sidesteps it in trainers.
-  **NEXT BUILD = finish the sail leg** (`sail_to_dewford()` scaffold in early_game.py, NOT
-  wired into `_play`): VALIDATED so far — Rustboro (16,53)→**ROUTE104 (16,0)** south crossing,
-  and **Briney's door = ROUTE104 (17,50)**. BUT **Route 104 is river-split** (from the north
-  strip you can't reach y≥30), so the path to Briney runs **back through Petalburg Woods**
-  (Route104 N → Woods → Route104 S beach → door (17,50)) — reuse/mirror `cross_petalburg_woods`
-  (build the north→south reverse) + a beach leg. Then talk Briney (5,3) → Dewford (multichoice
-  idx 0) → Dewford Town. Full spec + the Dewford→Slateport arc atlas in **§Ch6–8**. Fable
-  briefing: **`FABLE-5-KICKOFF.md`**; regenerate `post_rival.ss1` via the fresh-run recipe
-  (playbook §2; the harness save-hook is now gated behind `SAVE_POST_RIVAL=1`).
+  (The sail leg that was queued here is DONE — see the 2026-07-22 session block above.)
 
 ## What this project is
 Documents and enhances 40Cakes/pokebot-gen3 (Python shiny-hunting bot for

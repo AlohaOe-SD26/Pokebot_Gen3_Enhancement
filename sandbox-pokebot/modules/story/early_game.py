@@ -1991,101 +1991,384 @@ def fight_rustboro_rival() -> Generator:
     context.message = "Story: beat the Rustboro rival — off toward Dewford."
 
 
+def _talk_to_wandering_npc(map_enum, local_id: int, *, attempts: int = 8) -> Generator:
+    """Engage a WANDERING (patrolling) NPC in conversation on the current small indoor map.
+
+    WHY THE OBVIOUS APPROACHES FAIL (all live-proven in Mr. Briney's cottage):
+    - A static approach-tile + face-press: a patrolling NPC is almost never on its spawn
+      tile — and a face-tap toward an EMPTY tile STEPS onto it if already facing that way.
+    - Navigating a full path to a tile adjacent to his CURRENT position: he has always
+      moved on by the time the multi-frame navigate lands (circled the cottage 30× without
+      engaging).
+    - A greedy step-by-step chase: walk-sequence NPCs patrol a fixed ring (Briney laps the
+      cottage's central table); a tail-chase around a ring never catches him, and bumping
+      into a blocker while standing ON the NPCs' route tiles can freeze the whole room
+      solid (three-body deadlock: walk-sequence NPCs wait forever for their exact next
+      route tile, they never re-route).
+
+    - Parking ON one of his route tiles to block him into stopping next to us: with TWO
+      walkers lapping the SAME ring in the same direction (Peeko runs ahead of Briney),
+      the WRONG one always queues against us first and the target freezes two tiles back,
+      out of talking reach.
+
+    HOW (observe → park beside → talk on transit):
+    1. OBSERVE ~one patrol lap, recording every tile each walker visits (their fixed
+       routes). Talk immediately if the target happens to pass adjacent; if the walkers
+       freeze mid-observation, WE are standing on a route tile — step off it.
+    2. Pick an ambush tile BESIDE his route: statically walkable, on NOBODY's recorded
+       route (blocks no one — no queues, no deadlocks), not a warp tile, orthogonally
+       adjacent to a tile he visits.
+    3. Park there and stand still. Every lap he transits the adjacent route tile (walkers
+       dwell ~30+ frames per tile): face-tap toward him (his tile is occupied, so the tap
+       can only turn/bump, never step), verify he is still there, press A, and confirm the
+       script context actually ENGAGED.
+
+    Raises BotModeError if the NPC is absent or never engages within `attempts` rounds."""
+    import os
+
+    from modules.map import get_map_data, get_map_objects
+
+    def _npc_coords() -> tuple[int, int] | None:
+        try:
+            for o in get_map_objects():
+                if o.local_id == local_id:
+                    return tuple(o.current_coords)
+        except Exception:
+            pass
+        return None
+
+    _dbg = bool(os.environ.get("STORY_TALK_DEBUG"))
+    _FACE = {(0, -1): "Up", (0, 1): "Down", (-1, 0): "Left", (1, 0): "Right"}
+    _DELTA = {"Up": (0, -1), "Down": (0, 1), "Left": (-1, 0), "Right": (1, 0)}
+    try:
+        _warp_tiles = {tuple(w.local_coordinates) for w in get_map_data_for_current_position().warps}
+    except Exception:
+        _warp_tiles = set()
+
+    def _try_talk_if_adjacent() -> Generator:
+        """If the target NPC is adjacent RIGHT NOW, face him and press A. Yields; the
+        engagement result is read by the caller via get_global_script_context()."""
+        c = _npc_coords()
+        if c is None:
+            return
+        px, py = get_player_avatar().local_coordinates
+        dx, dy = c[0] - px, c[1] - py
+        if abs(dx) + abs(dy) != 1:
+            return
+        face = _FACE[(dx, dy)]
+        context.emulator.press_button(face)  # bump-safe: his tile is occupied
+        yield
+        yield from wait_for_n_frames(4)
+        if _npc_coords() != c:
+            return  # stepped away as we turned — don't talk to air
+        context.emulator.press_button("A")
+        yield
+        for _ in range(60):
+            if get_global_script_context().is_active:
+                return
+            yield
+
+    def _step_to(spot) -> Generator:
+        """Greedy single-step walk to `spot` (NOT navigate_to: the pathfinder marks every
+        walker's current AND previous tile blocked, so in a tiny room two patrolling NPCs
+        seal every corridor at plan time and it reports "no path" to plainly walkable
+        tiles). Perpendicular/reverse fallbacks when the direct step is blocked; talks
+        opportunistically if the target happens to pass right next to us en route."""
+        for _ in range(30):
+            _check_abort()
+            yield from _try_talk_if_adjacent()
+            if get_global_script_context().is_active:
+                return
+            px, py = get_player_avatar().local_coordinates
+            if (px, py) == spot:
+                return
+            dx, dy = spot[0] - px, spot[1] - py
+            prefs = []
+            if dx:
+                prefs.append("Right" if dx > 0 else "Left")
+            if dy:
+                prefs.append("Down" if dy > 0 else "Up")
+            if abs(dy) > abs(dx):
+                prefs.reverse()
+            for d in ("Up", "Down", "Left", "Right"):
+                if d not in prefs:
+                    prefs.append(d)
+            moved = False
+            for d in prefs:
+                ddx, ddy = _DELTA[d]
+                if (px + ddx, py + ddy) in _warp_tiles:
+                    continue  # never step onto a door/warp — that would leave the map
+                start = (px, py)
+                for _ in range(24):
+                    context.emulator.press_button(d)
+                    yield
+                    if tuple(get_player_avatar().local_coordinates) != start:
+                        moved = True
+                        break
+                if moved:
+                    break
+            if not moved:
+                yield from wait_for_n_frames(16)  # momentarily boxed in — let walkers shift
+
+    cur_map_md = get_map_data_for_current_position()
+    _gnum = (cur_map_md.map_group, cur_map_md.map_number)
+
+    def _walkable(t: tuple[int, int]) -> bool:
+        try:
+            return get_map_data(_gnum, t).collision == 0
+        except Exception:
+            return False
+
+    for _round in range(attempts):
+        _check_abort()
+        if get_global_script_context().is_active:
+            return  # engaged
+        yield from _try_talk_if_adjacent()
+        if get_global_script_context().is_active:
+            if _dbg:
+                print(f"[talk] ENGAGED opportunistically (round {_round})")
+            return
+
+        # PHASE 1 — OBSERVE one full patrol lap: record every tile each walker visits.
+        # (Also talk instantly if the target passes adjacent, and un-block the room if
+        # everyone froze — frozen walkers mean WE are standing on someone's route tile.)
+        target_route: set[tuple[int, int]] = set()
+        other_route: set[tuple[int, int]] = set()
+        last_snapshot = None
+        still_frames = 0
+        for _f in range(700):
+            _check_abort()
+            try:
+                objs = {o.local_id: tuple(o.current_coords) for o in get_map_objects() if o.local_id != 255}
+            except Exception:
+                objs = {}
+            if local_id in objs:
+                target_route.add(objs[local_id])
+            for k, v in objs.items():
+                if k != local_id:
+                    other_route.add(v)
+            c = objs.get(local_id)
+            if c is not None:
+                px, py = get_player_avatar().local_coordinates
+                if abs(c[0] - px) + abs(c[1] - py) == 1:
+                    yield from _try_talk_if_adjacent()
+                    if get_global_script_context().is_active:
+                        if _dbg:
+                            print(f"[talk] ENGAGED during observation (round {_round})")
+                        return
+            if objs == last_snapshot:
+                still_frames += 1
+            else:
+                still_frames = 0
+                last_snapshot = objs
+            if still_frames > 180:
+                # The walkers are frozen → we are blocking a route tile. Step somewhere
+                # that is NOT a recorded route tile to let the patrol flow again.
+                px, py = get_player_avatar().local_coordinates
+                for d, (ddx, ddy) in _DELTA.items():
+                    t = (px + ddx, py + ddy)
+                    if t in _warp_tiles or t in target_route or t in other_route or not _walkable(t):
+                        continue
+                    for _ in range(24):
+                        context.emulator.press_button(d)
+                        yield
+                        if tuple(get_player_avatar().local_coordinates) != (px, py):
+                            break
+                    break
+                still_frames = 0
+            yield
+        if not target_route:
+            raise BotModeError(f"NPC local_id={local_id} is not present on map {map_enum}.")
+
+        # PHASE 2 — pick an ambush tile BESIDE his route: walkable, NOT on either walker's
+        # route (blocking a route tile only queues the LEAD walker against us — with two
+        # walkers lapping the same ring the wrong one always arrives first and the target
+        # freezes two tiles back; live-proven), not a warp, adjacent to a tile he visits.
+        px, py = get_player_avatar().local_coordinates
+        candidates: list[tuple[int, int]] = []
+        for t in target_route:
+            for ddx, ddy in _DELTA.values():
+                p = (t[0] + ddx, t[1] + ddy)
+                if p in target_route or p in other_route or p in _warp_tiles:
+                    continue
+                if not _walkable(p):
+                    continue
+                candidates.append(p)
+        candidates = sorted(set(candidates), key=lambda p: abs(p[0] - px) + abs(p[1] - py))
+        if _dbg:
+            print(f"[talk] round {_round}: route={sorted(target_route)} beside-candidates={candidates[:6]}")
+        if not candidates:
+            yield from wait_for_n_frames(60)
+            continue
+
+        # PHASE 3 — park beside the route and press A whenever HE transits the adjacent
+        # route tile (walkers dwell ≥~30 frames per tile — a wide window; and he passes
+        # us every lap, so a miss just waits for the next lap).
+        yield from _step_to(candidates[0])
+        if get_global_script_context().is_active:
+            return
+        for _wait in range(1500):
+            _check_abort()
+            c = _npc_coords()
+            px, py = get_player_avatar().local_coordinates
+            if c is not None and abs(c[0] - px) + abs(c[1] - py) == 1:
+                yield from _try_talk_if_adjacent()
+                if get_global_script_context().is_active:
+                    if _dbg:
+                        print(f"[talk] ENGAGED from beside-route ambush at ({px},{py})")
+                    return
+            yield
+        if _dbg:
+            print(f"[talk] beside-route ambush timed out (round {_round}) — re-observing")
+    raise BotModeError(f"Could not engage NPC local_id={local_id} on map {map_enum} in conversation.")
+
+
+# Warp geometry for the sail leg (doorprobe-verified 2026-07-22; see §Ch6):
+# Route 104 is river-split — the ONLY north↔south path is through Petalburg Woods.
+#   Woods NORTH doors:  Route104 (10,30)/(11,30) ↔ inside Woods (14,5)/(15,5)
+#   Woods SOUTH doors:  inside Woods (16,38)/(17,38) ↔ Route104 (10,38)/(11,38)
+#   Mr. Briney's door:  Route104 (17,50) ↔ house interior (5,8); Briney NPC at (5,3)
+WOODS_NORTH_DOOR_ROUTE104 = (11, 30)   # step onto this from the north strip → Woods (15,5)
+WOODS_NORTH_DOOR_STAGING = (11, 29)    # tile directly above the north door (route104_north checkpoint)
+WOODS_SOUTH_DOOR_INSIDE = (17, 38)     # step onto this inside the Woods → Route104 (11,38) south half
+WOODS_SOUTH_DOOR_STAGING = (17, 37)    # tile directly above the inside-south door
+BRINEY_DOOR_ROUTE104 = (17, 50)        # cottage door on the south beach → interior (5,8)
+BRINEY_LOCAL_ID = 1                    # Briney's object slot in his cottage (Peeko = 2); he PATROLS
+                                       # a walk-sequence loop, so talk via _talk_to_wandering_npc
+
+
 def sail_to_dewford() -> Generator:
-    """After the Rustboro rival, sail from Mr. Briney's cottage to Dewford Town.
+    """After the Rustboro rival, travel Rustboro → Mr. Briney's cottage and sail to Dewford.
 
-    ROUTE (§Ch6): Rustboro (post-rival ~(16,53)) → walk SOUTH across the map connection onto
-    ROUTE104 → Mr. Briney's house (a warp on south Route 104) → talk to Briney (5,3) → the
-    "where are we bound?" multichoice → pick **Dewford (index 0)** → ride out the sail cutscene.
-    GOAL/END: on `DEWFORD_TOWN`.
-
-    STORY CONDITION: `DEFEATED_RIVAL_RUSTBORO` set (rival done). Idempotent: returns immediately
-    if already in Dewford.
-
-    ⚠ NAVIGATION NOT YET COMPLETE (validated findings for whoever finishes this):
-      • Rustboro (16,53) → walk **Down** crosses the south connection onto ROUTE104 at
-        **(16,0)** (north strip). VALIDATED.
-      • **Route 104 is split by a river.** From (16,0) you can only reach the NORTH strip
-        (y<~20, e.g. the flower shop at (5,19)); tiles at y≥30 are UNREACHABLE directly.
-        VALIDATED via a reachability probe.
-      • **Briney's house door = ROUTE104 (17,50)** (recon-confirmed: resolves to map (17,0);
-        (5,18) is the Pretty-Petal flower shop, NOT Briney's). It's on the SOUTH beach (y=50).
-      • Therefore the path Rustboro→Briney must go **back THROUGH Petalburg Woods**
-        (Route104 north → Woods → Route104 SOUTH beach → door (17,50)). Reuse/mirror
-        `cross_petalburg_woods` (it does south→north; you need north→south) + a Route104-south
-        leg to (17,50). THIS LEG STILL NEEDS BUILDING + LIVE VALIDATION.
-      • Sail mechanic (script-verified): talk to Briney (5,3) → "where are we bound?"
-        multichoice → **Dewford = index 0** → ride out → arrive DEWFORD_TOWN."""
-    from modules.memory import get_event_flag
+    INTENT: Chapter 6 — the sail leg toward Gym 2. The player carries Steven's Letter (got
+    with the PokéNav) and the rival is beaten, so Briney offers the Dewford sail.
+    ROUTE (§Ch6, every warp doorprobe-verified): Rustboro (post-rival (16,53)) → walk Down
+    across the south connection onto ROUTE104 (16,0) — the NORTH strip. Route 104 is
+    RIVER-SPLIT, so the south beach is reachable only back THROUGH Petalburg Woods:
+    north door Route104 (11,30) → Woods (15,5) → cross the Woods southbound → inside door
+    (17,38) → Route104 (11,38) on the SOUTH beach → Briney's cottage door (17,50) →
+    interior (5,8) → talk to Briney (5,3) from (5,4).
+    THE SAIL (✓ script-verified from the decomp): the FIRST sail is a YES/NO ("We'll set
+    sail for DEWFORD" — A-through picks YES, the cursor default); later sails show the
+    MULTI_BRINEY_OFF_DEWFORD multichoice (Dewford = index 0) — both are handled. On YES the
+    game warps the player to the boat at ROUTE104 (13,51) and the sail cutscene crosses the
+    sea; we ride it out until the map is DEWFORD_TOWN.
+    GOAL/END STATE: controllable in Dewford Town. Idempotent + resume-safe: every leg is
+    keyed off the LIVE map (§SC), so a resume from any point picks up mid-route.
+    STORY CONDITION: `DEFEATED_RIVAL_RUSTBORO` set (the Route 104 rival NPC at (17,50) only
+    appears when the Rustboro meeting was SKIPPED — MET flag unset — so our door is clear)."""
     from modules.modes.util.tasks_scripts import wait_for_multiple_choice_question
-    from modules.modes.util.global_navigation import navigate_to_anywhere
-    from modules.tasks import task_is_active
-    from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable  # noqa: F401
 
     DEWFORD = MapRSE.DEWFORD_TOWN.value
     ROUTE104 = MapRSE.ROUTE104.value
+    WOODS = MapRSE.PETALBURG_WOODS.value
+    RUSTBORO = MapRSE.RUSTBORO_CITY.value
     BRINEY_HOUSE = MapRSE.ROUTE104_MR_BRINEYS_HOUSE.value
 
     if _map_group_number() == DEWFORD:
         return
-    context.message = "Story: heading south to Mr. Briney's cottage to sail to Dewford..."
+    context.message = "Story: heading to Mr. Briney's cottage to sail to Dewford..."
     yield from wait_until_truly_controllable()
 
-    # 1) Cross Rustboro's south edge onto Route 104 (leg-by-leg — the global navigator
-    #    won't one-shot this connection). Walk Down until the map changes.
-    steps = 0
-    while _map_group_number() not in (ROUTE104, BRINEY_HOUSE, DEWFORD) and steps < 45:
-        _check_abort()
-        context.emulator.press_button("Down")
-        yield
-        yield from wait_for_n_frames(12)
-        steps += 1
+    # --- Leg 0: Rustboro → Route 104 north strip. The global navigator can't one-shot
+    #     this connection (ML-7 family); from the south edge, walking Down crosses onto
+    #     ROUTE104 (16,0). VALIDATED 2026-07-21. ---
+    if _map_group_number() == RUSTBORO:
+        yield from _navigate_riding_out(MapRSE.RUSTBORO_CITY, (16, 53))
+        steps = 0
+        while _map_group_number() == RUSTBORO:
+            _check_abort()
+            if steps > 45:
+                raise BotModeError("Sail: could not cross Rustboro's south edge onto Route 104.")
+            context.emulator.press_button("Down")
+            yield
+            yield from wait_for_n_frames(12)
+            steps += 1
+        yield from wait_until_truly_controllable()
 
-    # 2) Walk DOWN Route 104 to Mr. Briney's house DOOR — the warp at ROUTE104 **(17,50)**
-    #    (recon-confirmed: it resolves to map (17,0) = the house; (5,18) is the flower shop).
-    #    Target the Route104 door tile directly — `navigate_to_anywhere(BRINEY_HOUSE)` fails
-    #    because the house-warp resolves oddly. Stepping onto (17,50) warps us inside.
-    for _ in range(25):
-        if _map_group_number() in (BRINEY_HOUSE, DEWFORD):
-            break
-        try:
-            yield from navigate_to_anywhere(ROUTE104, (17, 50), avoid_encounters=True, avoid_scripted_events=False)
-        except BotModeError:
-            yield from wait_for_n_frames(20)
+    # --- Leg 1: Route 104 NORTH strip → into Petalburg Woods through the north door.
+    #     (On the north strip = y ≤ 30; the split river blocks everything south.) ---
+    if _map_group_number() == ROUTE104 and get_player_avatar().local_coordinates[1] <= 30:
+        yield from _navigate_riding_out(MapRSE.ROUTE104, WOODS_NORTH_DOOR_STAGING)
+        yield from wait_for_player_avatar_to_be_standing_still()
+        yield from _pass_through_door(WOODS_NORTH_DOOR_ROUTE104, ROUTE104)
+        if _map_group_number() != WOODS:
+            raise BotModeError("Sail: stepped onto the Woods north door but did not enter the Woods.")
+        yield from wait_until_truly_controllable()
+
+    # --- Leg 2: cross Petalburg Woods NORTH→SOUTH (reverse of cross_petalburg_woods).
+    #     The mandatory Devon-researcher scene is long done (Ch3) and the route trainers
+    #     were beaten northbound, but ride out anything that still aborts the path. ---
+    if _map_group_number() == WOODS:
+        rounds = 0
+        while _map_group_number() == WOODS:
+            rounds += 1
+            if rounds > 15:
+                raise BotModeError("Sail: stuck crossing Petalburg Woods southbound.")
+            try:
+                yield from navigate_to_anywhere(
+                    MapRSE.PETALBURG_WOODS,
+                    WOODS_SOUTH_DOOR_STAGING,
+                    avoid_encounters=True,
+                    avoid_scripted_events=False,
+                )
+                break
+            except BotModeError:
+                yield from _ride_out_scripted_scene("B")
+        yield from wait_for_player_avatar_to_be_standing_still()
+        yield from _pass_through_door(WOODS_SOUTH_DOOR_INSIDE, WOODS)
+        if _map_group_number() != ROUTE104:
+            raise BotModeError("Sail: stepped onto the Woods south door but did not exit to Route 104.")
+        yield from wait_until_truly_controllable()
+
+    # --- Leg 3: Route 104 SOUTH beach → Briney's cottage. The door tile IS the navigation
+    #     target (a genuine step onto it fires the warp, ML-9); navigate_to_anywhere may
+    #     raise as the warp yanks the map out from under it, so success = the map changed. ---
+    if _map_group_number() == ROUTE104:
+        for _ in range(10):
+            if _map_group_number() != ROUTE104:
+                break
+            try:
+                yield from navigate_to_anywhere(
+                    MapRSE.ROUTE104, BRINEY_DOOR_ROUTE104, avoid_encounters=True, avoid_scripted_events=False
+                )
+            except BotModeError:
+                if _map_group_number() != ROUTE104:
+                    break  # the warp fired mid-navigate — we're inside
+                yield from _ride_out_scripted_scene("B")
     if _map_group_number() not in (BRINEY_HOUSE, DEWFORD):
-        raise BotModeError(
-            "Sail: can't reach Briney's door (17,50) directly — Route 104 is river-split; "
-            "the path runs back through Petalburg Woods to the south beach (see docstring / "
-            "§Ch6). This leg still needs building."
-        )
+        raise BotModeError("Sail: never reached the inside of Mr. Briney's cottage.")
 
-    # 3) Talk to Briney (5,3): advance the dialogue; when the "where are we bound?" multichoice
-    #    appears, pick Dewford (index 0). Tolerant loop (Briney's flow may vary by story state).
+    # --- Leg 4: talk to Briney and set sail. He PATROLS the cottage (live-probed: he is
+    #     almost never on his (5,3) spawn tile), so engage him via his LIVE object position.
+    #     Then A-through the dialogue; the FIRST sail's YES/NO confirms on A (cursor
+    #     defaults to YES); a repeat sail's multichoice picks Dewford = index 0. Confirming
+    #     warps us OUT of the house onto the boat (ROUTE104 (13,51)) — leaving the house
+    #     map is the signal the sail was accepted. ---
     if _map_group_number() == BRINEY_HOUSE:
         yield from wait_until_truly_controllable()
-        context.emulator.press_button("Up")  # face Briney at (5,3) from (5,4)
-        yield
-        yield from wait_for_n_frames(4)
-        handled = False
-        for _ in range(500):
-            if _map_group_number() == DEWFORD or _map_group_number() == ROUTE104:
-                break
-            if task_is_active("Task_HandleMultichoiceInput") and not handled:
-                yield from wait_for_multiple_choice_question(0)  # Dewford = index 0
-                handled = True
+        yield from _talk_to_wandering_npc(MapRSE.ROUTE104_MR_BRINEYS_HOUSE, BRINEY_LOCAL_ID)
+        presses = 0
+        while _map_group_number() == BRINEY_HOUSE:
+            _check_abort()
+            if presses > 900:
+                raise BotModeError("Sail: talked to Briney but the sail never started.")
+            if task_is_active("Task_HandleMultichoiceInput"):
+                yield from wait_for_multiple_choice_question(0)  # repeat-sail menu: Dewford = index 0
                 continue
             context.emulator.press_button("A")
+            presses += 1
             yield
             yield from wait_for_n_frames(6)
 
-    # 4) Ride out the sail cutscene until we arrive in Dewford.
+    # --- Leg 5: ride out the sail cutscene (boat crosses the sea) until Dewford. ---
     frames = 0
     while _map_group_number() != DEWFORD:
         _check_abort()
         context.emulator.press_button("B")
         frames += 1
-        if frames > 8000:
-            raise BotModeError("Sail: never arrived in Dewford after talking to Mr. Briney.")
+        if frames > 12000:
+            raise BotModeError("Sail: never arrived in Dewford after setting sail.")
         yield
     yield from wait_until_truly_controllable()
     context.message = "Story: arrived in Dewford Town!"

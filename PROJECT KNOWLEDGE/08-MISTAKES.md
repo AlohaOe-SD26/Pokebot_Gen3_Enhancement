@@ -497,3 +497,33 @@ nothing raises. **Fix:** `_story_spin` no-progress watchdog (no party-EXP for 24
 frames → bail → caller re-navigates + retries). **Prevention:** any open-ended grind/wait loop
 needs a no-progress escape that RE-TRIES (re-navigate), not just a hard timeout — a silent stall
 with no exception bypasses the whiteout/derail recovery entirely.
+
+## 2026-07-22 — Talking to Mr. Briney: four proven-wrong approaches before the right one
+- **Symptom:** `sail_to_dewford` reached the cottage but could not start the sail; several
+  distinct failure modes across runs (A-pressing at an empty tile; chasing him in circles;
+  the whole room frozen solid with everyone stuck; "no path" errors to walkable tiles).
+- **Root causes (each proven live in the harness):**
+  1. Briney is NOT at his spawn tile (5,3) — he and Peeko PATROL a fixed ring around the
+     cottage table (walk-sequence NPCs). A static approach-tile + face-press talks to air —
+     and a face-tap toward an EMPTY tile STEPS onto it when already facing that way.
+  2. navigate_to-ing to a tile adjacent to his CURRENT position: he has always moved on by
+     the time the navigate lands (circled 30× without engaging).
+  3. Greedy tail-chase: never catches a same-speed walker on a ring; worse, standing on the
+     NPCs' route tiles while bumping created a THREE-BODY DEADLOCK (walk-sequence NPCs wait
+     forever for their exact next route tile — they never re-route — so Peeko, Briney AND
+     the player all froze permanently). Screenshot-diagnosed.
+  4. Parking ON his route tile to force him to stop next to us: with TWO walkers lapping the
+     SAME ring in the same direction (Peeko leads), the WRONG one always queues against us
+     first; Briney freezes two tiles back, out of reach. Debug-trace-diagnosed.
+  Bonus root cause: `calculate_path` marks every object's current AND previous tile as
+  blocked, so in the tiny cottage the two walkers "seal" the room and navigate_to reports
+  NO PATH to tiles the player can plainly walk to — indoor approach work needs manual steps.
+- **Fix that worked:** `_talk_to_wandering_npc`: OBSERVE ~one patrol lap (record both
+  walkers' route tiles; talk instantly if he passes adjacent; if the walkers freeze, WE are
+  blocking — step off), then park on a walkable non-route non-warp tile ADJACENT to his
+  route and face-tap+A when he transits past. Engaged on round 0-1 in every validation run.
+- **Prevention rules:** (a) never assume an indoor NPC is at its map-JSON spawn tile — read
+  the LIVE object (local_id) and treat "Walk Sequence" movement types as patrols; (b) only
+  face-tap toward an OCCUPIED tile, and re-verify before pressing A; (c) never stand on a
+  walk-sequence NPC's route tile longer than a moment; (d) don't trust navigate_to inside
+  small rooms with walking NPCs. All four added to playbook §7.
