@@ -1458,3 +1458,13 @@ Pokémon already on the field (slot 2) instead of a benched one (slots 3-6).
   hang" if that was a double battle.
 - NOTE: upstream-file edit (level_up.py) — log in DIVERGENCE-LOG on promotion. (level_balancing.py
   has a similar override; not used by Story, left as-is.)
+
+## 2026-07-21 (later) — Buy Poké Balls in batches of 10 for free Premier Balls (user directive)
+The mart gives exactly ONE free Premier Ball per purchase of 10+ regular Poké Balls (only 1,
+whether you buy 10/20/30). So buying in tens maximizes free Premier Balls at identical cost.
+- `buy_poke_balls_in_tens(total)` (early_game.py): splits `total` into `total//10` purchases
+  of 10 (each yields a Premier Ball) + a remainder purchase. Reuses the tested single-purchase
+  `buy_poke_balls` per batch (re-opens the shop at the counter — cheap, low-risk).
+- `provision_poke_balls` now calls it. Added `_ball_count(name)` helper.
+- VALIDATED (harness, post_rival.ss1 at the Rustboro mart): buying 20 → 2 purchases →
+  Poké Balls 17→37, Premier Balls 1→3 (**+2 free**), money 4984→984. Correct.

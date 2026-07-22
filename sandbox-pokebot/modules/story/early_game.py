@@ -1305,6 +1305,16 @@ def _total_poke_balls() -> int:
         return 0
 
 
+def _ball_count(name: str) -> int:
+    """Quantity of a specific ball (e.g. 'Premier Ball', 'Poké Ball') in the bag."""
+    try:
+        from modules.items import get_item_bag
+
+        return sum(slot.quantity for slot in get_item_bag().poke_balls if slot.item.name == name)
+    except Exception:
+        return 0
+
+
 def _money() -> int:
     try:
         from modules.player import get_player
@@ -1447,6 +1457,45 @@ def buy_poke_balls(count: int, mart: tuple = RUSTBORO_MART) -> Generator:
     context.message = f"Story: bought Poké Balls (now have {_total_poke_balls()})."
 
 
+def buy_poke_balls_in_tens(total: int, mart: tuple = RUSTBORO_MART) -> Generator:
+    """Buy ``total`` Poké Balls, but as SEPARATE purchases of 10 (plus a remainder) to
+    maximize free Premier Balls (user directive 2026-07-21).
+
+    The mart gives exactly ONE Premier Ball per purchase of **10 or more** regular Poké
+    Balls — so a single 30-ball purchase yields 1 Premier, but three 10-ball purchases
+    yield 3. Total money spent is identical (Premier Balls are free), so buying in tens is
+    strictly better. Any remainder (< 10) is bought last in one go (no Premier for it).
+
+    Uses the tested single-purchase `buy_poke_balls` for each batch (it re-opens the shop
+    at the counter each time — cheap, and far less risky than looping inside the shop UI)."""
+    if total <= 0:
+        return
+    tens = total // 10
+    remainder = total % 10
+    premier_before = _ball_count("Premier Ball")
+    balls_before = _ball_count("Poké Ball")
+    context.message = (
+        f"Story: buying {total} Poké Balls in {tens}×10"
+        + (f" + {remainder}" if remainder else "")
+        + " for free Premier Balls…"
+    )
+    for i in range(tens):
+        yield from buy_poke_balls(10, mart)
+    if remainder:
+        yield from buy_poke_balls(remainder, mart)
+    try:
+        from modules.console import console
+
+        console.print(
+            f"[green]Story: bought {total} Poké Balls in {tens + (1 if remainder else 0)} purchase(s) "
+            f"→ Poké Balls {balls_before}→{_ball_count('Poké Ball')}, "
+            f"Premier Balls {premier_before}→{_ball_count('Premier Ball')} "
+            f"(+{_ball_count('Premier Ball') - premier_before} free).[/]"
+        )
+    except Exception:
+        pass
+
+
 def provision_poke_balls(mart: tuple = RUSTBORO_MART) -> Generator:
     """Restock Poké Balls if we can afford it (out-of-balls contingency). Buys as many
     as affordable (capped), keeping a money reserve. Returns having bought or not; the
@@ -1457,8 +1506,10 @@ def provision_poke_balls(mart: tuple = RUSTBORO_MART) -> Generator:
         return
     # A mart-menu hiccup must NEVER break catching — on failure, proceed with what we
     # have (the caller then falls back to skip). Re-raise a whiteout abort, though.
+    # Buy in batches of 10 to collect the free Premier Ball each purchase gives (user
+    # directive 2026-07-21) instead of one big purchase (which yields only one).
     try:
-        yield from buy_poke_balls(want, mart)
+        yield from buy_poke_balls_in_tens(want, mart)
     except BotModeError as error:
         if story_should_abort():
             raise
