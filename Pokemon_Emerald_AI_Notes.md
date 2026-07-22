@@ -181,3 +181,41 @@ any-map-to-any-map through doors/stairs/cave entrances (BFS over
 connection-regions, per-leg warp traversal with verification). For the AI
 project this means true world-scale macro-actions; Dive routes and
 save-data dynamic warps remain excluded.
+
+## 9. Update (2026-07-21): the Story bot as a reference playthrough + reusable techniques
+
+Our fork now has a **Story-mode bot** (`sandbox-pokebot/plugins/custom_modes/story_mode.py`
++ `modules/story/early_game.py`) that plays a fresh save, *faithfully and unattended*, toward
+the Elite Four — currently through Rustboro (Gym 1, PokéNav, rival) and into the Dewford arc.
+For the AI project it is a **deterministic reference trajectory**: a scripted agent that makes
+the same legitimate moves a player would, so you can (a) compare a learned agent against it,
+(b) bootstrap/imitation-learn from it, and (c) reuse its per-area maps + the techniques below.
+
+**Techniques we developed (all directly reusable by the AI project):**
+- **Static ROM map recon (no navigation, no save):** `get_map_data((group, num), (0,0))` →
+  any map's `.warps` (with resolved destinations), `.objects` (NPC/item `script_symbol`),
+  `.connections` (the walk-between-maps graph), `.map_size`. We build per-area "Atlases" from
+  this — accurate world structure for free. (See `PROJECT KNOWLEDGE/12-STORYMODE-DESIGN.md`.)
+- **Authoritative scripted-event logic = the pokeemerald decompilation** (fetch
+  `raw.githubusercontent.com/pret/pokeemerald/master/data/maps/<Map>/scripts.inc` + `src/*.c`).
+  This gives the EXACT flag/var/multichoice a scene needs — e.g. we found the Match-Call
+  tutorial flow (`ScriptMenu_CreateStartMenuForPokenavTutorial`, POKéNAV = case 3), the rival
+  gate (`VAR_RUSTBORO_CITY_STATE`), Briney's sail (Dewford = multichoice index 0), Steven's
+  Letter (`FLAG_DELIVERED_STEVEN_LETTER` → TM47 Steel Wing). An RL/LLM agent can consult the
+  same source to *understand* the game rather than brute-forcing it.
+- **Renderer matters for app UIs:** the PokéNav (and similar full-screen apps) only advance
+  with the **BG/OBJ renderer enabled** (`context.emulator.get_video_enabled()`); their looped
+  tasks stall headless. If your env runs `--no-video`, either enable rendering for those
+  interactions or drive the state directly. We also **read on-screen menus via screenshots**
+  (`get_screenshot()`), which is how we scripted the PokéNav menu path.
+- **Battle-behaviour rules the reference bot enforces** (worth encoding as constraints/priors):
+  un-fleeable battles (trainer/gym/E4) must **fight through** to win-or-whiteout — never flee
+  (raises) and never stall; a **switch target must be benched, non-fainted, non-active** (in a
+  DOUBLE battle exclude the on-field partner); prep a boss with a **type-aware lead** (never
+  lead a mon weak to the ace) + a **level floor** + a **safe heal** + a bounded **attempt-cap**.
+- **Faithfulness discipline:** prefer natural play; a state-write (setting a var/flag to
+  vanilla's exact end-state) is a documented last-resort fallback, renderer-gated
+  (faithful-when-possible, deterministic-always). Useful if the AI project wants a "legit moves
+  only" mode vs a "teleport/skip allowed" mode.
+- **Full method** (harness, debugging, mapping, bug patterns) is in
+  `PROJECT KNOWLEDGE/14-AGENT-PLAYBOOK.md` — a good read for anyone building on this env.

@@ -25,8 +25,15 @@ All from real-hardware debug logs; each reproduced + fixed + committed:
 - **OPEN (for Fable):** the framework mid-battle **rotation-execution** stall
   (`battle_action_selection.py`) still exists for any rotating strategy — needs a live repro to
   pin `map_battle_party_index` / the party-menu submenu. Story bot sidesteps it in trainers.
-  Also next-to-build: the **sail leg** from `post_rival.ss1` (walk south (16,53)→Route104→
-  Mr. Briney→Dewford, §Ch6 atlas).
+  **NEXT BUILD = finish the sail leg** (`sail_to_dewford()` scaffold in early_game.py, NOT
+  wired into `_play`): VALIDATED so far — Rustboro (16,53)→**ROUTE104 (16,0)** south crossing,
+  and **Briney's door = ROUTE104 (17,50)**. BUT **Route 104 is river-split** (from the north
+  strip you can't reach y≥30), so the path to Briney runs **back through Petalburg Woods**
+  (Route104 N → Woods → Route104 S beach → door (17,50)) — reuse/mirror `cross_petalburg_woods`
+  (build the north→south reverse) + a beach leg. Then talk Briney (5,3) → Dewford (multichoice
+  idx 0) → Dewford Town. Full spec + the Dewford→Slateport arc atlas in **§Ch6–8**. Fable
+  briefing: **`FABLE-5-KICKOFF.md`**; regenerate `post_rival.ss1` via the fresh-run recipe
+  (playbook §2; the harness save-hook is now gated behind `SAVE_POST_RIVAL=1`).
 
 ## What this project is
 Documents and enhances 40Cakes/pokebot-gen3 (Python shiny-hunting bot for
