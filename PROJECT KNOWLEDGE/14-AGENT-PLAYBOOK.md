@@ -142,6 +142,24 @@ before mapping.)
    (Rustboro→Route104, Route116 ledges). Go **leg-by-leg**: navigate to a staging tile,
    then step across the map connection manually, then navigate on the next map.
 
+### Area research template (fill one out per new area, into `12-STORYMODE-DESIGN.md`)
+Keep it accurate and honest — tag anything not yet run `⚠ VALIDATE LIVE`; tag decomp-read
+logic `✓ script-verified`. Don't fabricate a stand-here/press-this sequence you haven't run.
+```
+### <AREA> ATLAS
+- MAP <NAME> (group,num) size=(W,H)
+- CONNECTIONS: <dir → dest map (offset)>            # map graph — how you walk between areas
+- WARPS: <(x,y) → dest map #id>                      # doors/stairs; note which is PC/Mart/Gym
+- KEY NPCs / triggers: <(x,y) script_symbol>         # boss, gift-giver, story trigger, items
+- SCRIPTED BEATS (✓ script-verified from decomp):
+    <beat> — trigger: <coord/flag/var>; interaction: <msgbox/multichoice idx/yes-no>;
+             completion flag: <FLAG_...>; gives: <item/HM>; gotchas: <...>
+- BUILD PLAN: <numbered steps, each anchored on a completion flag; ⚠ VALIDATE LIVE the coords>
+- HARDENING: heal points, type matchups for any boss, leg-by-leg nav notes, expected hazards
+```
+Sources: `get_map_data` (coords — reliable), pokeemerald decomp via WebFetch (scripted logic —
+authoritative), the harness (the ground truth — validate and correct the doc).
+
 ---
 
 ## 5. Faithfulness rules (natural-first, state-write fallback)

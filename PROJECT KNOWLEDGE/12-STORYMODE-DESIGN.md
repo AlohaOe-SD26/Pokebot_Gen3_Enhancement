@@ -381,6 +381,65 @@ warp live before trusting it (house-entrance warps resolved oddly in static reco
 Briney sail trigger + the Granite Cave floor-warp chain; heal before Brawly; expect Brawly's
 Makuhita/Machop to hit hard — train to band before the gym like Roxanne.
 
+### §Ch6–8 DEEP BUILD PLAN — Rustboro → Dewford → Granite Cave → Brawly → Slateport (2026-07-21)
+> Prepared for Fable 5. **Coordinates below are from static ROM recon (accurate — real map
+> data).** Anything about the exact stand-here/press-this SEQUENCE is tagged **`⚠ VALIDATE
+> LIVE`** — run it in the harness and correct this doc as you go. Scripted-beat logic marked
+> **`✓ script-verified`** was read from the pokeemerald decomp (authoritative). Start from a
+> post-rival save (`post_rival.ss1`: Rustboro (16,53), `RUSTBORO_CITY_STATE=8`,
+> `DEFEATED_RIVAL_RUSTBORO=True`; regenerate via the fresh-run recipe in playbook §2).
+
+**Full recon dump** lives in `scratchpad/recon_dewford_slateport.txt` (regenerate with a
+`maprecon.py`-style `get_map_data` sweep). Key connections (map graph):
+Rustboro –(S)→ **Route 104** –(S)→ Route 105 –…; Route 104 also –(N)→ Rustboro, –(E)→ Petalburg.
+**Dewford Town** –(N off -60)→ Route 106 –(N)→ Route 105; Dewford –(E)→ Route 107 –(E)→ Route
+108 –(E off -40)→ **Route 109** –(N)→ **Slateport City** –(N)→ Route 110 (→ Mauville, Gym 3).
+Granite Cave entrance is on **Route 106 (48,16)**.
+
+**Chapter 6 — sail to Dewford.** Completion: on map `DEWFORD_TOWN`.
+1. From Rustboro (16,53) walk **South** across the map connection onto **Route 104** (leg-by-leg;
+   the global navigator won't one-shot it). `⚠ VALIDATE LIVE` the exact south-exit corridor.
+2. Reach **Mr. Briney's house** (a warp on south Route 104 near (17,50); the door warp resolved
+   oddly in static recon — `⚠ VALIDATE LIVE`). Enter.
+3. Talk to **Briney (5,3)** → multichoice `MULTI_BRINEY_OFF_DEWFORD` → pick **Dewford = index 0**
+   (`wait_for_multiple_choice_question(0)`) → ride out the sail cutscene → arrive `DEWFORD_TOWN`.
+   `✓ script-verified` (Route104_MrBrineysHouse scripts): after the sail, `VAR_BOARD_BRINEY_BOAT_STATE=1`.
+
+**Chapter 7 — Granite Cave (Steven's Letter) + Gym 2 (Brawly).**
+- **Dewford Town map:** PC entrance = warp **#1**; Gym entrance = warp **#2**; Hall = #0-ish;
+  Briney (boat for Slateport later) stands at **(12,9)**. `⚠ VALIDATE LIVE` which door is which.
+- **Steven's Letter** `✓ script-verified`: Dewford –(N)→ **Route 106** → Granite Cave entrance
+  **(48,16)** → `GRANITE_CAVE_1F` → down to `GRANITE_CAVE_B1F` (warp (12,3) → Steven's Room) →
+  **`GRANITE_CAVE_STEVENS_ROOM`, Steven at (7,8)**. Talk (A-spam): hand over `ITEM_LETTER` →
+  **`setflag FLAG_DELIVERED_STEVEN_LETTER`** → receive **TM47 Steel Wing** → Steven registers in
+  the PokéNav. Completion flag: `DELIVERED_STEVEN_LETTER`. (Cave is dark; Flash helps but isn't
+  required. Floor-warp chain: `⚠ VALIDATE LIVE`.)
+- **Gym 2 — Brawly** (Fighting): `DEWFORD_TOWN_GYM` (18×28, DARK). Brawly at **(4,3)** (top);
+  entrance warp (5,27)/(6,27) at the bottom; trainers scattered (Takao (2,18), Jocelyn (15,3),
+  Laura (12,25), Cristian (7,8), Lilith (16,9), Brenden (14,12)). Path bottom→top. Mirror the
+  Roxanne prep: **heal → level-floor → TYPE-AWARE lead** (Brawly's Makuhita/Machop are Fighting —
+  lead a **Flying or Psychic** mon, e.g. Taillow/Abra, which resist/counter Fighting; NOT a
+  Normal mon which is weak to it) **→ attempt-cap → fight**. Win → **BADGE02 (Knuckle Badge)**.
+  `⚠ VALIDATE LIVE` the dark-gym path + the completion flag (BADGE02_GET).
+
+**Chapter 8 — sail to Slateport + Slateport.** (Recon done; build after Ch7.)
+- After Brawly, **Mr. Briney at Dewford (12,9)** offers **Slateport** (`⚠ VALIDATE LIVE` the exact
+  gating — likely after BADGE02 and/or the Letter; read the DewfordTown decomp when you build it).
+  Sail → **Route 109** (Briney appears at (109 21,24)) → North → **Slateport City**.
+- **Slateport City** (40×60): PC/Mart among the warps; **Captain Stern (28,13)**; Team **Aqua
+  Grunts (31,27)/(30,27)**; the **Oceanic Museum** scene. NO gym here — the next gym is **Wattson
+  (Gym 3, Mauville)** via Route 110 north.
+- **‼ DOUBLE BATTLE:** **Gabby & Ty** (Interviewers) stand at Slateport **(28,14)/(29,13)** and are
+  a DOUBLE battle. This is the first likely double-battle in the run — the after-faint double-battle
+  fix (exclude the on-field partner) applies here. Validate a real Gabby & Ty double battle to
+  confirm the fix end-to-end (and to smoke-test the OPEN framework rotation-execution stall).
+
+**Reusable pattern for every gym/boss (from Roxanne + the rival):** heal at the PC → whole-team
+**level-floor ≥N** (escalating on losses) → **type-aware lead** (never lead a mon weak to the
+boss's ace) → **safe heal** → fight with an **attempt-cap** (retrain+retry a bounded number, then
+stop cleanly). Trainer/gym/E4 battles **attack through, never rotate/flee** (see §Battle rules /
+playbook §6).
+
 ---
 
 ## §DA. DIALOGUE AWARENESS — read the text to drive interactions (user 2026-07-20)
