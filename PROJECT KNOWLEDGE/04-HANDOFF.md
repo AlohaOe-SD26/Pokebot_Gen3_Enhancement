@@ -9,6 +9,34 @@
 > accumulated craft (harness, debugging method, story-mapping, faithfulness rules, bug
 > patterns) — use it to build faster and prove every fix.
 
+### ⭐⭐⭐⭐⭐ Session 2026-07-22 (Fable 5, afternoon) — CH9 BUILT + 5 root-caused fixes; frontier = Wattson WIN (KI-13)
+**Story frontier:** Ch9a (Route 110 rival) ✅ + Ch9b (Wally) ✅ validated end-to-end from
+`stern_done.ss1`; Ch9c (Mauville Gym) maze solver ✅ VALIDATED (run 10: solves the switch
+maze repeatedly, challenges Wattson, whiteout→heal→re-solve loop ran 8× cleanly) — but the
+TEAM LOSES to Wattson → **NEXT TASK = #24-wattson-strength / KI-13** (pre-gym train prep +
+move-learn quality; full plan in the punch-list entry). Capture `wattson_done.ss1` via
+`SAVE_CHECKPOINT='BADGE03_GET:wattson_done'` when it wins, then update the ledger.
+**Five proven fixes this session** (each with repro + proof; changelog has details):
+1. Phantom post-evolution script suppressed wild encounters → training spin starved
+   (batch run05) → `_story_spin` B-rides leftover scenes on its no-progress bail.
+2. After-faint party menu deadlock (blind A-spam lockstep; slots 0+1 both fainted) →
+   STATE-AWARE sweep in `handle_fainted_pokemon` + dispatch recognizes
+   `BattleScript_FaintedMonTryChoose`. Proven live on the wedge state (~128 frames).
+3. Ch9a guard keyed on a PHANTOM flag ("DEFEATED_RIVAL_ROUTE_110" doesn't exist!) →
+   decomp-true `route110_rival_beaten()` (VAR_ROUTE110_STATE ≥ 1, tear-resistant);
+   `_done()` now raises on unknown names; NEW `tools/story-dev/audit_flag_names.py`.
+4. **THE BIG ONE:** Mauville's barriers exist only in the LIVE grid (gBackupMapLayout);
+   `get_map_data`/`calculate_path` read the ROM's STATIC layout — blind to setmetatile.
+   `do_mauville_gym` now reads the live grid, learns both barrier configs, BFS-plans
+   across toggles, walks legs judged by ARRIVAL. (Applies to every runtime-modified map
+   ahead: Trick House, ice floors, Sky Pillar.)
+5. Harness: NO-PROGRESS milestones dump the generator call stack; player position is in
+   the progress signature (an exploring solver is not a hang).
+**Assets:** `saves/mauville_wedge.ss1` (mid-maze repro), ch9_run*.log series,
+livetest batch REPORT.md (runs 01-04 clean/budget-bound; run05 = fix #1's repro).
+**Batch verdict (20260722-134735):** 4× zero-error budget-bound INCOMPLETE + 1 organic
+stall (fixed). Report in `tools/story-dev/livetest-runs/20260722-134735/REPORT.md`.
+
 ### ⭐⭐ Session 2026-07-22 (late night) — KI-12 battle-chain fixed + Gemini PoC GRADED + Ch9 validated
 - **KI-12 (user's gym party-menu hang + "double battle bug") FIXED as a 3-bug chain** via a
   purpose-built repro (`--inject-faintbench`): bounded after-faint party menu; chooser-None

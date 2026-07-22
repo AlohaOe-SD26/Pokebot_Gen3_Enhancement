@@ -1780,12 +1780,21 @@ for step in range(args.frames):
         context.set_manual_mode()
 
     # -------- no-progress detector (independent of the in-battle watchdog) --------
+    # Position is part of the signature: run 7's Mauville maze solver actively explored
+    # (positions changing every few frames) while controller/state/party froze — the
+    # position-blind sig called that a HANG. Movement IS progress.
+    try:
+        from modules.player import get_player_avatar as _gpa
+        _pos = tuple(_gpa().local_coordinates)
+    except Exception:
+        _pos = None
     sig = (
         ctrl,
         game_state.name if hasattr(game_state, "name") else str(game_state),
         get_current_battle_script_instruction() if ba else "",
         ml,
         ps,
+        _pos,
     )
     if sig == last_sig:
         no_progress += 1
@@ -1843,6 +1852,14 @@ for step in range(args.frames):
             f"instr={get_current_battle_script_instruction()} cb={get_main_battle_callback()} "
             f"tasks={active_ml_tasks()} bt={battle_text()!r} bot_mode={context.bot_mode}"
         )
+        # The Ch9 fainted-menu hang proved a sig alone can't localize an in-battle
+        # wedge — dump the exact generator frame the bot is waiting in as well.
+        try:
+            from modules.debug_logger import _generator_stack
+            for entry in _generator_stack():
+                log(f"f{step}:     gen -> {entry}")
+        except Exception as e:
+            log(f"f{step}:     gen -> <err {e}>")
     if no_progress >= 20000:
         log(f"f{step}: HANG CONFIRMED (20000 frames no progress). Stopping.")
         break

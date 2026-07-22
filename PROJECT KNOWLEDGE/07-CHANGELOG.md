@@ -1776,3 +1776,76 @@ derails exhausted → Manual. The grass-return leg had the mirrored flaw.
 - Prevention (playbook family): training areas inside warp-split dungeons need explicit
   door-threading on BOTH the heal leg and the return leg — never hand a cross-level
   destination to the global navigator.
+
+## 2026-07-22 — Phantom post-evolution script was silently blocking wild encounters (batch run05 hang) FIXED
+Fresh-batch run05 hung at f210,622: Grovyle evolved + learned Fury Cutter mid-training,
+the battle ended, and the training spin then got ZERO encounters for 20k frames. Debug
+stack proved the bot was parked inside `_story_spin`→`spin`, pressing nothing wrong —
+the game itself had a script context still ACTIVE from the evolution scene, and an
+active script suppresses wild-encounter generation. The KI-9 no-progress bail fired but
+only re-navigated; the phantom script survived, so the bail→renavigate→spin cycle looped
+invisibly forever.
+- FIX (`modules/story/early_game.py`, `_story_spin`): when the spin bails on no-progress
+  AND a script context is still active, B-ride the leftover scene (bounded) before the
+  caller retries — encounters resume on the next round.
+- PROOF: run05 stack localizes the wedge; the evostall.ss1 A/B already proved B-riding
+  clears exactly this leftover script; guard proven harmless on a 260k fresh run with two
+  organic evolutions+move-learns (zero hangs). Frame-exact replay of run05 is impossible
+  post-change (fresh-boot RNG is deterministic only for identical code) — noted honestly.
+- Also: `story_harness.py` NO-PROGRESS milestones now dump the generator call stack
+  (in-battle stalls were previously unlocatable from the sig alone).
+
+## 2026-07-22 — After-faint party menu: state-aware send-out (deterministic Ch9 wedge) FIXED
+Ch9 validation deterministically hung 20k frames in the in-battle party menu after
+Marshtomp fainted (Dustox also down): the script pointer had advanced to
+BattleScript_FaintedMonTryChoose before the dispatch loop regained control (stock
+condition matched nothing → default B-spam into a menu that can't be cancelled), and
+the first "bounded sweep" replacement A-spammed blindly — with slots 0 AND 1 fainted it
+lockstep-cycled popup → "no energy left" → list on the same slot forever.
+- FIX 1 (`modules/battle_handler.py` dispatch): also recognize FaintedMonTryChoose.
+- FIX 2 (the sweep): read cursor slot + party HP + active task each step and press the
+  ONE button that advances (A to dismiss text; A on the popup only when the mon is
+  alive, else B; Down toward a living slot), with press/release gaps.
+- PROOF: probed the live wedge state (profile shutdown savestate) — un-wedged in ~128
+  frames; the full re-run then resolved the battle and continued the story.
+- Also: harness NO-PROGRESS milestones now print the generator call stack (this is what
+  localized the wedge to the sweep, after two wrong hypotheses died to evidence).
+
+## 2026-07-22 — Ch9a rival gate was keyed on a PHANTOM flag (could never pass) FIXED
+Run 5 reached Manual via 5 derails: the segment/guard used "DEFEATED_RIVAL_ROUTE_110" —
+a flag name that does NOT exist in Emerald's table; get_event_flag() silently returns
+False for unknown names. Decomp truth (Route110_EventScript_RivalExit): the ONLY durable
+signal is `setvar VAR_ROUTE110_STATE, 1` — no named flag.
+- FIX: shared `route110_rival_beaten()` (VAR_ROUTE110_STATE >= 1, majority-of-3 reads;
+  the mash loop additionally demands a 5-frame streak because save-block reads can TEAR
+  around transitions and a one-shot check polled 30k times WILL eventually misfire).
+- HARDENING: story `_done()` now raises on unknown flag names (a wrong NAME is a build
+  error, not game state); new `tools/story-dev/audit_flag_names.py` sweeps all story
+  flag/var name strings against the tables (run it before every chapter build).
+- PROOF: run 6 passed the rival AND Wally segments end-to-end ("beat Wally — the gym
+  door is clear"), reaching the Mauville Gym maze.
+
+## 2026-07-22 — Mauville Gym maze: static-vs-LIVE map data root cause + live-grid solver (Ch9c)
+Four validation runs "hung" in the gym. The debugging chain (each hypothesis killed by
+evidence): after-faint menu ✗ (fixed separately), guard flag ✗ (phantom, fixed), blind
+solver ✗ (bounded, still stuck) → SCREENSHOT of the wedge finally showed an electric
+beam ON directly above the player while our collision map said the tile was open.
+ROOT CAUSE: the gym's barriers are toggled at runtime via setmetatile into the engine's
+LIVE grid (gBackupMapLayout); our get_map_data/calculate_path read the ROM's STATIC
+default layout and are blind to every toggle — so "pathable" plans walked the player
+into live beams forever. PROOF: live-vs-static grid diff on the captured wedge state
+(saves/mauville_wedge.ss1) shows the beam tiles as live-only collision, and a held-Up
+test bumps exactly where the static map says open.
+- FIX (`do_mauville_gym`): the solver now reads the LIVE grid directly, learns both
+  barrier configs at runtime (any switch press toggles FLAG_MAUVILLE_GYM_BARRIERS_STATE;
+  a switch can't re-fire while VAR_MAUVILLE_GYM_STATE remembers it), BFS-plans over the
+  combined (tile, config, last-switch) graph, and walks each leg with held directions
+  judged by ARRIVAL — navigate/calculate_path are not used inside the maze at all.
+- VALIDATED (run 10, 240k frames): maze solved repeatedly; bot reaches Wattson's
+  approach tile and challenges him; zero hangs/derails/crashes; whiteout → heal →
+  re-solve → re-challenge loop worked 8 times unattended.
+- REMAINING (tracked as KI-13/#24-wattson-strength): the team LOSES to Wattson —
+  Marshtomp missed Mud Shot and later auto-learned 0-power Mud Sport over its only
+  Ground attack; the L17 bench folds. Needs pre-gym training prep + move-learn quality.
+- Harness: progress signature now includes player position (an actively-exploring maze
+  solver is not a hang); NO-PROGRESS milestones dump the generator call stack.

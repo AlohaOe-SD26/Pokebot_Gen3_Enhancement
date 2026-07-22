@@ -18,12 +18,18 @@ Status key: ✅ built + validated · 🚧 scaffold/partial · 📋 mapped, not b
 | 7 | Granite Cave (Steven's Letter, TM47) + **Gym 2 — Brawly** | `deliver_stevens_letter` (+`_walk_warp_chain`), `do_dewford_gym` | `DELIVERED_STEVEN_LETTER`, `BADGE02_GET` | ✅ (2026-07-22; zero-derail run dewford→badge) |
 | 8a | Sail to Slateport (dock Briney → Route 109 gauntlet → PC) | `sail_to_slateport` | on `SLATEPORT_CITY`, healed | ✅ (2026-07-22; zero-derail run brawly_done→Slateport) |
 | 8b | Slateport: Devon Goods → Capt. Stern (Shipyard/Dock → Museum → 2 grunt battles) | `deliver_devon_goods_to_stern` | `DELIVERED_DEVON_GOODS` | ✅ (2026-07-22; KI-11 resolved via Dock; full run validated) |
-| 9+ | Route 110 → **Gym 3 Mauville (Wattson)** → … → Elite Four | — | — | ⬜ (Overview table §1/§2 has the route + item beats) |
+| 9a | Route 110 north + rival battle | `travel_route110_and_fight_rival` | `route110_rival_beaten()` = **VAR_ROUTE110_STATE ≥ 1** (vanilla sets NO named flag — "DEFEATED_RIVAL_ROUTE_110" was a phantom name) | ✅ (2026-07-22; run 6+) |
+| 9b | Mauville: Wally unblocks the gym door | `fight_wally_mauville` | `DEFEATED_WALLY_MAUVILLE` (real flag 190, decomp-confirmed) | ✅ (2026-07-22; run 6+) |
+| 9c | Mauville Gym: switch maze → Wattson | `do_mauville_gym` (LIVE-grid two-config BFS solver) | `BADGE03_GET` | 🟨 maze VALIDATED (run 10: solves repeatedly, challenges Wattson, whiteout loop clean ×8) — **WIN pending team strength (KI-13 / #24-wattson-strength)** |
+| 10+ | Mauville → … → Elite Four | — | — | ⬜ (§Ch10–13 roadmap below) |
 
-**You are at the Ch9 boundary (2026-07-22).** `stern_done.ss1` (`tools/story-dev/saves/`) =
-Slateport after the Devon Goods delivery, `DELIVERED_DEVON_GOODS` set (museum Aqua-free,
-Route 110 blockade lifted). Next: Ch9 — build from §Ch9 below (validated via the FIRST
-/escalate-sequence external-research PoC + decomp spot-checks). Test infra: `tools/story-dev/`.
+**You are at the Ch9c boundary (2026-07-22).** `stern_done.ss1` = Slateport post-delivery;
+`mauville_wedge.ss1` = mid-gym-maze (VAR=2). Ch9a/9b validated end-to-end; Ch9c's maze
+mechanics validated — Wattson defeats the current team (see KI-13 for the fix plan).
+CRITICAL Ch9c lesson: the gym barriers exist ONLY in the LIVE grid (gBackupMapLayout);
+get_map_data/calculate_path read the ROM's static layout and are blind to setmetatile —
+the solver reads the live grid and judges every leg by arrival. Applies to EVERY
+runtime-modified map ahead (Trick House, ice puzzles, Sky Pillar cracks...).
 
 ### §Ch9 — Route 110 → Mauville → Gym 3 Wattson (validated sequencing, 2026-07-22)
 Source: Gemini external-research PoC (the /escalate-sequence primer flow) + my decomp

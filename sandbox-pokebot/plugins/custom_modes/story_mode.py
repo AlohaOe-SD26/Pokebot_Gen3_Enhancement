@@ -749,6 +749,9 @@ class StoryMode(BotMode):
             do_dewford_gym,
             sail_to_slateport,
             deliver_devon_goods_to_stern,
+            travel_route110_and_fight_rival,
+            fight_wally_mauville,
+            do_mauville_gym,
             handle_pokenav_match_call_tutorial,
             fight_rustboro_rival,
             return_to_lab_and_get_pokedex,
@@ -764,6 +767,15 @@ class StoryMode(BotMode):
         cfg = get_story_config(context.profile.path)
 
         def _done(flag: str) -> bool:
+            # FAIL LOUDLY on unknown flag names: get_event_flag() silently returns
+            # False for a name that isn't in the table, which lets a typo'd/phantom
+            # flag gate a segment into an eternal derail loop (Ch9a shipped with
+            # "DEFEATED_RIVAL_ROUTE_110", which does not exist — run 5 hit Manual on
+            # it). A wrong NAME is a build error, not a game state — surface it.
+            from modules.memory import _event_flags
+
+            if flag not in _event_flags:
+                raise BotModeError(f"Story: flag name {flag!r} is not in the event-flag table (typo/phantom name).")
             try:
                 return bool(get_event_flag(flag))
             except Exception:
@@ -1108,17 +1120,76 @@ class StoryMode(BotMode):
         #     TEAM_AQUA) — `deliver_devon_goods_to_stern` now does that first. Two
         #     un-fleeable grunt battles inside the scene (attack-through strategy); the
         #     scene heals the party and removes the Route 110 blockade for Ch9. ---
-        if not _done("DELIVERED_DEVON_GOODS"):
+        museum_maps = (
+            MapRSE.SLATEPORT_CITY_OCEANIC_MUSEUM_1F.value,
+            MapRSE.SLATEPORT_CITY_OCEANIC_MUSEUM_2F.value,
+        )
+        # Also (re-)enter the segment when RESUMING INSIDE the museum with the flag
+        # already set (e.g. the stern_done checkpoint is captured on 2F the moment the
+        # flag lands, before the exit legs) — the function then skips straight to its
+        # museum-exit legs. Without this, a city-target heal from inside the museum
+        # plan-fails ("not on connected maps") and derails to Manual (live-hit ch9_run1).
+        if not _done("DELIVERED_DEVON_GOODS") or _cur_map() in museum_maps:
             yield from deliver_devon_goods_to_stern()
         else:
             console.print("[dim]Story: Devon Goods already delivered — museum skipped.[/]")
         _guard("Devon Goods → Capt. Stern (Ch8b)", lambda: _done("DELIVERED_DEVON_GOODS"))
 
-        # END OF BUILT CONTENT. Next build (Ch9): Route 110 north (Trick House / cycling
-        # road; Gabby&Ty and route trainers) → Mauville → Gym 3 (Wattson).
+        # --- Segment 9a: the Route 110 rival (mandatory choke-point; §Ch9). Heal + a
+        #     type-aware lead first: the rival's ACE counters OUR starter (Mudkip start →
+        #     their Grovyle/Grass; Torchic → Marshtomp/Water; Treecko → Combusken/Fire). ---
+        # NOTE (2026-07-22): the rival's completion signal is VAR_ROUTE110_STATE >= 1 —
+        # vanilla sets NO named flag here; "DEFEATED_RIVAL_ROUTE_110" was a phantom name
+        # that silently read False forever and derail-looped this segment (run 5).
+        from modules.story.early_game import route110_rival_beaten
+
+        if not route110_rival_beaten():
+            from modules.map_data import PokemonCenter
+            from modules.story.early_game import _lead_best_matchup, heal_in_pokemon_center
+
+            ace_type = "Grass"
+            try:
+                from modules.pokemon_party import get_party as _gp
+
+                names = " ".join(p.species.name for p in _gp() if p is not None)
+                if any(s in names for s in ("Torchic", "Combusken", "Blaziken")):
+                    ace_type = "Water"
+                elif any(s in names for s in ("Treecko", "Grovyle", "Sceptile")):
+                    ace_type = "Fire"
+            except Exception:
+                pass
+            yield from heal_in_pokemon_center(PokemonCenter.SlateportCity)
+            yield from _lead_best_matchup([ace_type])
+            yield from travel_route110_and_fight_rival()
+        else:
+            console.print("[dim]Story: Route 110 rival already beaten — skipping.[/]")
+        _guard("Route 110 rival (Ch9a)", route110_rival_beaten)
+
+        # --- Segment 9b: Mauville — Wally unblocks the gym door. ---
+        if not _done("DEFEATED_WALLY_MAUVILLE"):
+            yield from fight_wally_mauville()
+        else:
+            console.print("[dim]Story: Wally already beaten at Mauville — skipping.[/]")
+        _guard("Wally at Mauville (Ch9b)", lambda: _done("DEFEATED_WALLY_MAUVILLE"))
+
+        # --- Segment 9c: Gym 3 — Wattson (Dynamo Badge). Heal + Electric-resistant lead
+        #     (Marshtomp/Ground is immune); the switch maze is solved adaptively. ---
+        if not _done("BADGE03_GET"):
+            from modules.map_data import PokemonCenter
+            from modules.story.early_game import _lead_best_matchup, heal_in_pokemon_center
+
+            yield from heal_in_pokemon_center(PokemonCenter.MauvilleCity)
+            yield from _lead_best_matchup(["Electric"])
+            yield from do_mauville_gym()
+        else:
+            console.print("[dim]Story: Dynamo Badge already earned — Gym 3 skipped.[/]")
+        _guard("Gym 3 (Wattson)", lambda: _done("BADGE03_GET"))
+
+        # END OF BUILT CONTENT. Next build (Ch10): HM06 Rock Smash → Route 111/112 →
+        # Fiery Path → Fallarbor (§Ch10–13 roadmap; Gemini detail pass pending).
         context.message = (
-            "Story: Devon Goods delivered — end of built content. NEXT (WIP): Route 110 "
-            "-> Mauville -> Gym 3 (Wattson). Handing to manual."
+            "Story: Dynamo Badge earned — end of built content. NEXT (WIP): Rock Smash "
+            "-> Fiery Path -> Fallarbor -> Mt. Chimney -> Lavaridge. Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()

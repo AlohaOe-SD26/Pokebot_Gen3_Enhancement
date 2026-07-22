@@ -82,6 +82,13 @@ fix goes in DIVERGENCE-LOG).
   proactively rotates in a trainer/gym/E4 battle (`LevelUpTravelBattleStrategy.decide_turn`) —
   so it sidesteps this path. Faints are handled reactively by the after-faint chooser (which
   correctly excludes fainted/active/double-partner mons).
+- **Proven fix pattern now exists (2026-07-22):** the after-faint SIBLING of this exact
+  blind `while PARTY_MENU: press A` loop deadlocked deterministically in Ch9 and was fixed
+  with a STATE-AWARE sweep (read cursor slot + party HP + active task — including
+  `Task_HandleSelectionMenuInput`, the real Emerald popup task — and press the one button
+  that advances, with press/release gaps; see `handle_fainted_pokemon` in
+  `battle_handler.py`). When KI-8 is reproduced, port that same sweep to the RotateLead
+  path in `battle_action_selection.py`.
 - **Still open (for Fable):** any strategy that DOES rotate (e.g. SwapTrain in an unexpected
   double/trainer case) is exposed. Reproduce a live rotation into a specific slot and pin
   `map_battle_party_index` / the party-menu submenu handling. Good first target: the Slateport
@@ -147,3 +154,19 @@ process. Original write-up kept below for reference.
   blocking the Oceanic Museum doors, or is the entrance clear? Then either build the faithful
   trigger or document the state-write. `deliver_devon_goods_to_stern` (interior logic sound)
   stays defined but UNWIRED; frontier honestly = Slateport arrival.
+
+## KI-13 — Wattson defeats the current team (opened 2026-07-22, severity: med — blocks Ch9 completion)
+- **Symptom:** run 10 (240k frames): the bot solves the gym maze and challenges Wattson
+  8 times, losing each time (whiteout → heal → re-solve → re-challenge worked perfectly;
+  Marshtomp climbed L20→L26 across attempts on gym-trainer exp).
+- **Why it loses:** (1) Marshtomp is missing Mud Shot (its key Ground STAB vs an
+  all-Electric gym — likely declined during the L16 evolution move-learn overlap) and at
+  L25 the `learn_best` auto-choice REPLACED Mud-slap (its only Ground damage) with
+  0-power MUD SPORT; (2) the bench (Taillow/Poochyena L17) folds before Marshtomp can
+  grind through four mons (Voltorb's Selfdestruct nukes, Magneton's Sonicboom chips).
+- **Fix direction (#24-wattson-strength):** (a) pre-gym prep in Segment 9c — heal +
+  train_team (Route 110 grass) to ~L24+ before entering, mirroring the Brawly prep;
+  (b) move-learn quality: never learn a 0-power move by discarding a damaging one, and
+  audit the evolution-scene learn flow that dropped Mud Shot; (c) re-validate with
+  SAVE_CHECKPOINT='BADGE03_GET:wattson_done'.
+- **Evidence:** ch9_run10.log; saves/mauville_wedge.ss1 (mid-maze state, VAR=2).

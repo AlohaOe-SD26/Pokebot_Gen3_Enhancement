@@ -408,7 +408,7 @@
       run03 log if it recurs in a future batch.
 
 
-- [ ] #24-pokenav-faithful — WATCH ITEM (user fresh-run log 2026-07-22 13:24): the
+- [x] #24-pokenav-faithful (RESOLVED 2026-07-22: the user ran VIDEO OFF — the renderer-gated fallback fired exactly as designed; keep video off on the weaker test PC, the fallback covers it) — WATCH ITEM (user fresh-run log 2026-07-22 13:24): the
       PokéNav Match-Call tutorial took the STATE-WRITE FALLBACK on a real-GUI run
       (video on) — the faithful play-through previously worked on this hardware.
       By design the fallback is legal (never hang), but check why the faithful
@@ -419,3 +419,14 @@
       attack) rode along the whole run at L7 — confirm battler-slot exclusion is
       airtight and consider skipping Abra-class catches for team slots, or routing
       lows to level-matched grass (#24-trainmap).
+
+- [ ] #24-wattson-strength — Ch9c completion (KI-13, opened 2026-07-22): the
+      maze solver is VALIDATED (run 10: reaches Wattson, challenges, whiteout
+      loop recovers cleanly ×8) but the team LOSES. Do: (a) Segment 9c pre-gym
+      prep — heal + train_team at Route 110 grass to ~L24+ (mirror Brawly prep);
+      (b) move-learn quality — never learn a 0-power move by discarding a
+      damaging one, and audit the evolution-scene learn flow that dropped
+      Marshtomp''s Mud Shot at L16; (c) re-validate from stern_done.ss1 with
+      SAVE_CHECKPOINT=BADGE03_GET:wattson_done, then commit the ledger update.
+      Assets: saves/mauville_wedge.ss1 (mid-maze), ch9_run10.log.
+

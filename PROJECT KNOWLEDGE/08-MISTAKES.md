@@ -645,3 +645,75 @@ with no exception bypasses the whiteout/derail recovery entirely.
   for trainer battles; (c) never let a battle handler raise/crash mid-battle — a listener
   exception drops to Manual with the battle still on screen (an unrecoverable wedge);
   degrade to "send anything alive / attack with anything usable" instead.
+
+## 2026-07-22 — A fix "proven" on an extracted savestate missed the organic bug (phantom-script stall)
+- **Symptom:** batch run05 organically hung exactly like the archived evolution stall —
+  AFTER the `_rotate_lead_safely` fix had "passed" its A/B on evostall.ss1.
+- **Root cause (two layers):** (1) the real wedge was never the rotation — it was a
+  phantom script context left active after an evolution, which suppresses wild
+  encounters, starving the training spin of progress; (2) the A/B state had been
+  extracted 20k idle frames after the stall began, and LOADING a savestate defuses the
+  phantom — so the repro validated a state the organic run never passes through.
+- **Fix that worked:** clear-leftover-scene guard at `_story_spin`'s no-progress bail
+  (B-ride bounded), localized via generator-stack dump of the organic run.
+- **Prevention rules:** (a) capture repro states AT THE MOMENT the wedge forms, not after
+  idle frames — and remember savestate load/reload can itself defuse volatile wedge state;
+  (b) when a "proven" fix fails organically, get the generator stack from the ORGANIC run
+  before iterating — the sig alone localizes nothing.
+
+## 2026-07-22 — Blind button-spam menu sweep deadlocked in lockstep (Ch9 after-faint wedge)
+- **Symptom:** Ch9 validation hung 20k frames in the in-battle party menu
+  (`BattleScript_FaintedMonTryChoose`, "MARSHTOMP fainted!") — with the KI-12 "bounded
+  sweep" fix present and my widened dispatch confirmed running.
+- **Root cause:** the bounded sweep still pressed A blindly every frame. With the cursor
+  on a fainted mon AND slot 1 also fainted, A-spam cycled popup → "no energy left" →
+  list → popup on the same slot forever; its rare corrective Down always landed during
+  message/popup states where Down is swallowed. Bounded-but-blind just retried the same
+  deadlock every 6600 frames via outer re-dispatch. (Also: the real popup task is
+  `Task_HandleSelectionMenuInput` — the harness's tasks=[] read hid it; a live probe of
+  the wedge state exposed it.)
+- **Fix that worked:** state-aware sweep — each step reads cursor slot + party HP + which
+  task is up, presses the ONE button that advances (A to dismiss text; A on popup only if
+  the mon is alive, else B; Down to reach a living slot), with press/release gaps. Proven
+  on the live wedge state (un-wedged in ~128 frames), then end-to-end.
+- **Prevention rules:** (a) menu recovery loops must be STATE-AWARE (read cursor/tasks/HP
+  and press the button that state needs) — blind spam can lockstep-deadlock with message
+  timing; (b) "bounded" is not "safe": a bounded loop re-entered by its dispatcher is
+  still an infinite loop — bound the OUTCOME (did the menu close?), not just the frames;
+  (c) when tasks read as empty in a wedge, probe the live state — the task list from a
+  harness snapshot can lie.
+
+## 2026-07-22 — A phantom flag name silently gated a segment (Ch9a derail loop)
+- **Symptom:** Segment 9a printed its success message yet its guard derail-looped to
+  Manual — "completion signal" never true.
+- **Root cause:** the guard checked flag "DEFEATED_RIVAL_ROUTE_110", which DOES NOT
+  EXIST in Emerald (vanilla sets only `VAR_ROUTE110_STATE = 1` for this battle);
+  `get_event_flag()` returns a silent False for any unknown name, so the mistake looked
+  exactly like "not done yet". I had even probed the flag earlier and read its False as
+  game state instead of questioning the name.
+- **Fix that worked:** decomp-validated var predicate shared by segment AND guard;
+  `_done()` now raises on unknown names; `audit_flag_names.py` catches phantoms
+  statically (found exactly one — this one).
+- **Prevention rules:** (a) before building on ANY flag/var name, verify it exists in
+  the data table (run audit_flag_names.py with every chapter build); (b) a probe that
+  prints False for a flag proves nothing until the NAME is proven real; (c) segment
+  completion predicates and their guards must be the SAME function — two spellings of
+  "done" will eventually disagree and derail-loop.
+
+## 2026-07-22 — Trusted the map API over the game's own screen (Mauville maze, 4 wasted runs)
+- **Symptom:** every plan said "path open"; the player bumped an invisible wall for 20k
+  frames. Probes "confirmed" open tiles. Four validation runs and many probes died on
+  contradictory evidence.
+- **Root cause:** `get_map_data`/`calculate_path` read the ROM's STATIC map layout. Maps
+  that setmetatile at runtime (Mauville Gym beams; also e.g. trick-house/ice puzzles
+  later) exist only in the LIVE grid (`gBackupMapLayout`). The API is silently wrong for
+  exactly the maps where it matters. A SCREENSHOT immediately showed the beam the data
+  denied — taken hours into the investigation instead of first.
+- **Fix that worked:** read the live grid directly inside the maze; plan on it; judge
+  every leg by arrival, not by the planner's opinion.
+- **Prevention rules:** (a) on any runtime-modified map, treat static map data as WRONG
+  by default — read gBackupMapLayout; (b) when memory reads and observed behavior
+  disagree, SCREENSHOT FIRST — one image killed a four-run mystery; (c) probe states
+  must have clean provenance — every probe re-saves current_state.ss1 at shutdown, so
+  chained probes drift; snapshot the repro to its own file (mauville_wedge.ss1 pattern)
+  and always load THAT.

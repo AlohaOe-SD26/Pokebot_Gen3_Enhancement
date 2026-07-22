@@ -147,6 +147,17 @@ def _story_spin(stop_condition) -> Generator:
 
     yield from spin(stop_condition=_watchdog_stop)
     _check_abort()
+    # PHANTOM-SCRIPT CLEAR (batch run05 / evostall root cause, 2026-07-22): an evolution
+    # can leave a script context ACTIVE after its battle ends, and an active script
+    # SUPPRESSES wild encounter generation — so the spin turns forever with zero
+    # encounters, the no-progress bail fires, the caller re-navigates, and the cycle
+    # repeats invisibly (deterministic fresh-run repro hung at f210622 on exactly this).
+    # When the spin bails with a script still engaged, B-ride it out (bounded) so the
+    # next spin round actually gets encounters again.
+    if _wd["stuck"] >= _STORY_SPIN_NO_PROGRESS_FRAMES and get_global_script_context().is_active:
+        context.message = "Story: clearing a leftover scene that was blocking encounters..."
+        yield from _ride_out_scripted_scene("B")
+        yield from wait_until_truly_controllable()
 
 
 def _navigate_riding_out(dest_map, dest_tile, *, avoid_encounters: bool = True, tries: int = 10) -> Generator:
@@ -2992,6 +3003,367 @@ def deliver_devon_goods_to_stern() -> Generator:
             yield from _walk_through_warp("Down", M1F)
     yield from wait_until_truly_controllable()
     context.message = "Story: back on the Slateport streets."
+
+
+# ---- Chapter 9: Route 110 → Mauville → Gym 3 (Wattson) ----
+# Recon 2026-07-22 (§Ch9, probes + decomp + verified external research): the RIVAL
+# trigger row is ROUTE110 (33,56)/(34,56)/(35,56), armed while VAR_ROUTE110_STATE==0;
+# winning sets state=1 + FLAG_RECEIVED_ITEMFINDER (+DEFEATED_RIVAL_ROUTE_110). Post-
+# rival BIRCH scene triggers arm at (7-10,85) for state==1 (west path — ride-outs
+# handle it if crossed). Mauville: WALLY (8,6) + uncle (9,6) flank the GYM DOOR (8,5);
+# talking to Wally forces TRAINER_WALLY_MAUVILLE (Ralts ~L16) → FLAG_DEFEATED_WALLY_
+# MAUVILLE + the Scott scene. The gym (10×21): Wattson at (5,2); FLOOR SWITCHES at
+# (0,15)/(4,12)/(3,9)/(8,9) toggle the electric barriers — the barriers ARE collision
+# and change live, so the puzzle is solved ADAPTIVELY (try Wattson; else step the
+# nearest reachable unvisited switch; re-plan). Win → FLAG_BADGE03_GET (+TM34).
+ROUTE110_RIVAL_STAGING = (34, 57)      # just south of the trigger row; step Up to arm it
+MAUVILLE_WALLY_APPROACH = (8, 7)       # below Wally (8,6); face Up to talk
+MAUVILLE_GYM_DOOR_CITY = (8, 5)        # city door → gym (4-5,20)
+MAUVILLE_GYM_SWITCHES = [(0, 15), (4, 12), (3, 9), (8, 9)]
+MAUVILLE_GYM_WATTSON_APPROACH = (5, 3)  # below Wattson (5,2)
+
+
+def route110_rival_beaten() -> bool:
+    """Decomp-truth completion signal for the Route 110 rival (validated 2026-07-22):
+    Route110_EventScript_RivalExit runs `setvar VAR_ROUTE110_STATE, 1` and that is the
+    ONLY durable signal — vanilla sets NO named event flag for this battle.
+    (FLAG_DEFEATED_RIVAL_ROUTE_110 does not exist in the flag table; get_event_flag
+    silently returns False for unknown names, and that phantom name is exactly how
+    Ch9a's guard could never pass — run 5 derail-looped to Manual on it.)
+    Majority-of-3 read: save-block reads resolve the moving gSaveBlock1Ptr per call
+    and can TEAR around battle/map transitions (single-frame flag/var flickers were
+    observed in the logs), so one read is never trusted alone."""
+    from modules.memory import get_event_var
+
+    votes = 0
+    for _ in range(3):
+        try:
+            if get_event_var("ROUTE110_STATE") >= 1:
+                votes += 1
+        except Exception:
+            pass
+    return votes >= 2
+
+
+def travel_route110_and_fight_rival() -> Generator:
+    """Chapter 9a — walk Route 110 north from Slateport and beat the rival.
+
+    INTENT: the mandatory Route 110 rival choke-point; winning is what advances
+    VAR_ROUTE110_STATE (clearing the road) and awards the Itemfinder.
+    HOW: Slateport → north connection → the east dirt path to the staging tile (34,57)
+    → step UP into the 3-tile trigger row → the rival scene runs (bike entrance,
+    dialogue) → the battle is fought by the listener (caller preps lead/heal) → ride
+    the aftermath (Itemfinder gift) until VAR_ROUTE110_STATE ≥ 1.
+    GOAL/END: route110_rival_beaten() (VAR_ROUTE110_STATE ≥ 1); controllable on Route 110."""
+    ROUTE110 = MapRSE.ROUTE110.value
+
+    if route110_rival_beaten():
+        return
+    context.message = "Story: heading up Route 110 — the rival is waiting..."
+    yield from wait_until_truly_controllable()
+    yield from _navigate_riding_out(MapRSE.ROUTE110, ROUTE110_RIVAL_STAGING)
+    yield from wait_for_player_avatar_to_be_standing_still()
+    # Step up into the trigger row and ride the whole scene + battle + aftermath.
+    # The exit demands a 5-frame streak: this loop polls tens of thousands of times,
+    # so a single torn read WILL eventually flip a one-shot check (run 5 "won" the
+    # rival without ever fighting him that way).
+    frames = 0
+    beaten_streak = 0
+    while beaten_streak < 5:
+        beaten_streak = beaten_streak + 1 if route110_rival_beaten() else 0
+        _check_abort()  # a loss whites out → recovery re-enters (segment attempt-cap)
+        if frames % 8 == 0 and not get_global_script_context().is_active:
+            context.emulator.press_button("Up")
+        else:
+            context.emulator.press_button("B" if frames % 3 else "A")
+        frames += 1
+        if frames > 30000:
+            raise BotModeError("Route 110: the rival battle never resolved.")
+        yield
+    yield from _wait_until_cutscene_over("B")
+    context.message = "Story: beat the rival on Route 110 (got the Itemfinder)!"
+
+
+def fight_wally_mauville() -> Generator:
+    """Chapter 9b — Mauville: Wally's battle unblocks the gym door.
+
+    Wally + his uncle physically flank the gym entrance; talking to Wally forces the
+    (single Ralts ~L16) battle. Winning sets FLAG_DEFEATED_WALLY_MAUVILLE, they leave,
+    and Scott's walk-up scene plays — all ridden out on the completion flag."""
+    from modules.memory import get_event_flag
+
+    def _done() -> bool:
+        try:
+            return bool(get_event_flag("DEFEATED_WALLY_MAUVILLE"))
+        except Exception:
+            return False
+
+    if _done():
+        return
+    context.message = "Story: Wally wants a battle at the Mauville Gym door..."
+    yield from wait_until_truly_controllable()
+    yield from _navigate_riding_out(MapRSE.MAUVILLE_CITY, MAUVILLE_WALLY_APPROACH)
+    context.emulator.press_button("Up")  # face Wally at (8,6)
+    yield
+    yield from wait_for_n_frames(4)
+    frames = 0
+    while not _done():
+        _check_abort()
+        context.emulator.press_button("B" if frames % 3 else "A")
+        frames += 1
+        if frames > 30000:
+            raise BotModeError("Mauville: the Wally battle never resolved.")
+        yield
+    # Ride out Scott's walk-up + departure.
+    yield from _wait_until_cutscene_over("B")
+    context.message = "Story: beat Wally — the gym door is clear!"
+
+
+def do_mauville_gym() -> Generator:
+    """Chapter 9c — Mauville Gym: solve the switch puzzle, beat Wattson (Dynamo Badge).
+
+    The electric barriers ARE collision and TOGGLE when a floor switch is stepped on
+    (coord_events — walking over them fires; no A needed), so the maze is solved
+    ADAPTIVELY: try to path to Wattson's approach tile; when no path exists, step the
+    nearest reachable un-stepped switch (which re-shapes the maze) and re-plan. Gym
+    trainers en route are fought inline. Then face Up + A to Wattson until BADGE03."""
+    from modules.memory import get_event_flag
+    from modules.map import get_map_data
+    from modules.map_path import calculate_path
+
+    GYM = MapRSE.MAUVILLE_CITY_GYM.value
+
+    if get_event_flag("BADGE03_GET"):
+        return
+    context.message = "Story: entering Mauville Gym to challenge Wattson..."
+    yield from wait_until_truly_controllable()
+    # Enter via the city door (walk-in door type unknown — try navigation-entry with the
+    # walk-into fallback, the museum pattern).
+    if _map_group_number() != GYM:
+        try:
+            yield from _enter_warp_by_navigation(
+                lambda: _map_group_number() == GYM, MapRSE.MAUVILLE_CITY, MAUVILLE_GYM_DOOR_CITY,
+                tries=4, label="Mauville Gym door",
+            )
+        except BotModeError:
+            yield from _navigate_riding_out(MapRSE.MAUVILLE_CITY, (8, 6))
+            yield from _walk_through_warp("Up", MapRSE.MAUVILLE_CITY.value)
+        yield from wait_until_truly_controllable()
+
+    # MAZE MECHANICS (decomp + live probes, 2026-07-22 — hard-won): there are exactly TWO
+    # barrier configurations — FLAG_MAUVILLE_GYM_BARRIERS_STATE flips on every switch
+    # press, and a switch only fires if it is NOT the last one pressed
+    # (VAR_MAUVILLE_GYM_STATE remembers that). CRITICALLY, the toggled beams exist ONLY
+    # in the engine's LIVE grid (gBackupMapLayout, rewritten by setmetatile): our
+    # get_map_data/calculate_path read the ROM's STATIC default layout and are blind to
+    # every toggle — a "pathable" static plan walks the player into a live beam and bumps
+    # forever (runs 6-9; proven by a live-vs-static grid diff plus a held-Up test on the
+    # captured wedge state saves/mauville_wedge.ss1). So inside the maze the solver
+    # trusts ONLY the live grid: it snapshots the live passable set under each flag
+    # state it sees, BFS-plans over the combined (tile, config, last-switch) graph
+    # (stepping a switch mid-route IS the plan), and walks each leg itself with held
+    # directions judged by arrival.
+    from collections import deque
+    from modules.map import get_map_objects
+    from modules.memory import get_event_var, read_symbol, unpack_uint32, get_game_state, GameState
+
+    W, H = get_map_data(GYM, (0, 0)).map_size
+    switch_tiles = {i + 1: tuple(t) for i, t in enumerate(MAUVILLE_GYM_SWITCHES)}
+    tile_to_switch = {v: k for k, v in switch_tiles.items()}
+    layers: dict = {}
+    rounds = 0
+
+    def _flag_state() -> bool:
+        try:
+            return bool(get_event_flag("MAUVILLE_GYM_BARRIERS_STATE"))
+        except Exception:
+            return False
+
+    def _last_switch() -> int:
+        try:
+            return int(get_event_var("MAUVILLE_GYM_STATE"))
+        except Exception:
+            return 0
+
+    def _live_passable() -> frozenset:
+        """The ENGINE's current walkability (gBackupMapLayout) — the only truthful
+        source for this map. Valid only while the gym is the loaded map."""
+        raw = read_symbol("gBackupMapLayout")
+        grid_w = int.from_bytes(raw[0:4], "little", signed=True)
+        grid_h = int.from_bytes(raw[4:8], "little", signed=True)
+        map_ptr = unpack_uint32(raw[8:12])
+        data = context.emulator.read_bytes(map_ptr, grid_w * grid_h * 2)
+        out = set()
+        for y in range(H):
+            base = (y + 7) * grid_w
+            for x in range(W):
+                v = int.from_bytes(data[(base + x + 7) * 2 : (base + x + 7) * 2 + 2], "little")
+                if (v >> 10) & 3 == 0:
+                    out.add((x, y))
+        return frozenset(out)
+
+    def _object_tiles() -> frozenset:
+        try:
+            me = tuple(get_player_avatar().local_coordinates)
+            tiles = set()
+            for o in get_map_objects():
+                for c in (getattr(o, "current_coords", None), getattr(o, "previous_coords", None)):
+                    if c is not None and tuple(c) != me:
+                        tiles.add(tuple(c))
+            return frozenset(tiles)
+        except Exception:
+            return frozenset()
+
+    def _plan_tiles():
+        """Full BFS over (tile, config, last_switch) on the LEARNED live layers;
+        returns the complete tile path to the Wattson approach, or None."""
+        if len(layers) < 2:
+            return None
+        blocked = _object_tiles()
+        start = (tuple(get_player_avatar().local_coordinates), _flag_state(), _last_switch())
+        prev = {start: None}
+        queue = deque([start])
+        found = None
+        while queue:
+            node = queue.popleft()
+            if node[0] == MAUVILLE_GYM_WATTSON_APPROACH:
+                found = node
+                break
+            (x, y), fl, last = node
+            for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+                nxy = (x + dx, y + dy)
+                if nxy in layers.get(fl, frozenset()) and nxy not in blocked:
+                    sw = tile_to_switch.get(nxy)
+                    nb = (nxy, not fl, sw) if (sw is not None and sw != last) else (nxy, fl, last)
+                    if nb not in prev:
+                        prev[nb] = node
+                        queue.append(nb)
+        if found is None:
+            return None
+        tiles = []
+        node = found
+        while node is not None:
+            tiles.append(node[0])
+            node = prev[node]
+        tiles.reverse()
+        return tiles[1:]  # drop the start tile
+
+    def _single_layer_path(target) -> list | None:
+        """BFS a tile path within the CURRENT live config only."""
+        passable = layers.get(_flag_state(), frozenset())
+        blocked = _object_tiles()
+        start = tuple(get_player_avatar().local_coordinates)
+        prev = {start: None}
+        queue = deque([start])
+        found = None
+        while queue:
+            t = queue.popleft()
+            if t == tuple(target):
+                found = t
+                break
+            for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+                n = (t[0] + dx, t[1] + dy)
+                if n in passable and n not in blocked and n not in prev:
+                    prev[n] = t
+                    queue.append(n)
+        if found is None:
+            return None
+        tiles = []
+        while found is not None:
+            tiles.append(found)
+            found = prev[found]
+        tiles.reverse()
+        return tiles[1:]
+
+    def _walk_tiles(tiles) -> Generator:
+        """Walk a BFS tile path with held directions, judged by arrival. Returns True
+        if the whole path was walked; False on any interruption (battle, script,
+        blocked step) — the caller re-reads the live grid and re-plans."""
+        for nxt in tiles:
+            px, py = get_player_avatar().local_coordinates
+            d = (nxt[0] - px, nxt[1] - py)
+            button = {(0, -1): "Up", (0, 1): "Down", (-1, 0): "Left", (1, 0): "Right"}.get(d)
+            if button is None:
+                context.emulator.reset_held_buttons()
+                return False  # drifted off-path (battle knock-on) — re-plan
+            arrived = False
+            for _ in range(120):
+                if get_game_state() is not GameState.OVERWORLD or get_global_script_context().is_active:
+                    context.emulator.reset_held_buttons()
+                    return False  # trainer battle / switch script — handled outside
+                context.emulator.hold_button(button)
+                yield
+                if tuple(get_player_avatar().local_coordinates) == tuple(nxt):
+                    arrived = True
+                    break
+            context.emulator.reset_held_buttons()
+            if not arrived:
+                return False  # live wall where the plan expected floor — re-learn
+        return True
+
+    def _at(tile) -> bool:
+        try:
+            return tuple(get_player_avatar().local_coordinates) == tuple(tile)
+        except Exception:
+            return False
+
+    while not get_event_flag("BADGE03_GET"):
+        _check_abort()
+        rounds += 1
+        if rounds > 60:
+            raise BotModeError("Mauville Gym: could not solve the switch maze to reach Wattson.")
+        if _map_group_number() != GYM:
+            raise BotModeError("Mauville Gym: left the gym mid-maze — segment retry will re-enter.")
+        # A battle/scene may still be winding down from the previous leg.
+        if get_global_script_context().is_active:
+            yield from _ride_out_scripted_scene("B")
+        yield from wait_until_truly_controllable()
+
+        layers[_flag_state()] = _live_passable()  # learn/refresh the current config
+
+        path = _plan_tiles()
+        if path is not None:
+            context.message = "Story: Mauville maze — walking the planned solve..."
+        else:
+            wattson_leg = _single_layer_path(MAUVILLE_GYM_WATTSON_APPROACH)
+            if wattson_leg is not None:
+                path = wattson_leg
+                context.message = "Story: Mauville maze — path to Wattson is open..."
+            else:
+                # Still learning: step a reachable switch that isn't the last-pressed
+                # one — any press flips the maze and teaches us the other config.
+                last = _last_switch()
+                legs = []
+                for i, t in switch_tiles.items():
+                    if i == last:
+                        continue
+                    leg = _single_layer_path(t)
+                    if leg is not None:
+                        legs.append(leg)
+                if not legs:
+                    yield from wait_for_n_frames(30)
+                    continue
+                path = min(legs, key=len)
+                context.message = f"Story: Mauville maze — flipping the switch at {path[-1]}..."
+
+        yield from _walk_tiles(path)
+        yield from _ride_out_scripted_scene("B")  # switch press script (sound + redraw)
+
+        if _at(MAUVILLE_GYM_WATTSON_APPROACH):
+            # Challenge Wattson: face Up + A/B ride until the badge.
+            context.emulator.press_button("Up")
+            yield
+            frames = 0
+            while not get_event_flag("BADGE03_GET"):
+                _check_abort()
+                context.emulator.press_button("B" if frames % 3 else "A")
+                frames += 1
+                if frames > 40000:
+                    raise BotModeError("Mauville Gym: the Wattson challenge never resolved to a badge.")
+                yield
+            break
+    yield from _wait_until_cutscene_over("B")
+    context.message = "Story: DYNAMO BADGE earned — Gym 3 (Wattson) beaten!"
 
 
 def do_dewford_gym() -> Generator:
