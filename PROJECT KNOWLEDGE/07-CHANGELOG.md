@@ -1701,3 +1701,16 @@ The bot now plays slateport.ss1 → Devon Goods delivered → content-end, valid
   (captured via the new harness `SAVE_CHECKPOINT="FLAG:name"` hook).
 - Docs: design §Ch8b rewritten with the verified sequencing (old doc had Stern at the harbor
   (28,13) — WRONG; he's museum-2F (13,6)); KI-11 marked resolved; ledger/frontier/README.
+
+## 2026-07-22 — Escalation research capability (/escalate-sequence + reusable primer)
+User directive: add a LAST-RESORT tier for story sequences that survive /validate-docs
+(decomp + recon + walkthrough + reasoning + a direct ask). Instead of burning budget
+thrashing, the agent pauses the beat and hands an external AI agent (default Gemini —
+keeps research off Claude credits) two copy-paste prompts: a REUSABLE PRIMER (project
+context + exact answer format) and a per-question prompt (the ambiguity + what's already
+verified + ruled-out dead-ends). The external answer is a LEAD, verified against
+decomp/harness before any code (prove every fix). Delivered: `PROJECT KNOWLEDGE/
+15-ESCALATION-RESEARCH.md` (process + verbatim primer + question template + a note that
+the primer is model-agnostic, so it also drives a future auto-spawned Claude sub-agent),
+`.claude/commands/escalate-sequence.md`, and 00-README reading-order + process links.
+Motivating case: KI-11. Not yet used — infrastructure only.

@@ -17,6 +17,15 @@ reads here FIRST. Created by the Claude Code Project Kit on 2026-07-17.
 | 8 | `07-CHANGELOG.md` | Everything that has ever changed | append-only |
 | 9 | `12-STORYMODE-DESIGN.md` | Story bot design: chapters, Area Atlas (§AA), resume/defeat/self-correct | reference |
 | 10 | `13-PLANNING-AND-RESILIENCE.md` | HOW the bot decides & stays robust: task model, resource ledger, contingency catalog, marts | reference |
+| 11 | `15-ESCALATION-RESEARCH.md` | Last-resort: hand a STUCK story sequence to an external research agent (Gemini) — the reusable primer + `/escalate-sequence` | reference |
+
+## Story-mode working process (commands)
+- `/validate-docs` — before building a chunk (or when a build hits a wall), cross-check
+  the doc section against decomp + live recon + walkthroughs; correct + re-verify.
+- `/escalate-sequence` — LAST rung: if a sequence still can't be resolved, generate the
+  two research prompts (primer + question) for an external agent; verify the answer
+  before building. See `15-ESCALATION-RESEARCH.md`.
+- `/livetest` — batch fresh-run sweeps → a Live Test report (see `04-HANDOFF.md`).
 
 ## File rules
 - **Current-state files (01–05):** edit in place. They must always describe
