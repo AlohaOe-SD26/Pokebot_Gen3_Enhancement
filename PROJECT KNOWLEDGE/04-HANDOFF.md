@@ -9,6 +9,26 @@
 > accumulated craft (harness, debugging method, story-mapping, faithfulness rules, bug
 > patterns) — use it to build faster and prove every fix.
 
+### ⭐⭐ Session 2026-07-22 (Fable 5, later) — CHAPTER 7 DONE: Steven's Letter + KNUCKLE BADGE (SANDBOX, pushed)
+- **`deliver_stevens_letter()` + `do_dewford_gym()` BUILT + VALIDATED**: full `--driver story`
+  run `dewford.ss1` → Dewford PC heal → Route 106 → Granite Cave **five-warp ladder chain**
+  (every floor is split; route dips through B2F — full pathfinder-verified graph in design
+  §Ch7) → Steven (7,8), Letter delivered (TM47) → reverse chain (1F one-way-ledge shortcut)
+  → PC heal → dark gym → **Brawly beaten, BADGE02** — **0 derails / 0 whiteouts** (ch7_run7).
+  Checkpoint **`tools/story-dev/saves/brawly_done.ss1`** (Dewford Gym (4,4), flags verified).
+- **NEW primitive `_walk_warp_chain`** (furthest-along pathable step — first-match loops on
+  one-way ledges) + `_enter_warp_by_navigation` (warp-entry with map-change detection +
+  last-error reporting). Segment-6 sail gate now a pre-sail map WHITELIST. Checkpoint capture
+  rides out leftover dialogue first (dewford.ss1 v1 loaded non-controllable; repaired).
+- Brawly prep is FLOOR-ONLY (band 14-16): **no training grass exists around Dewford pre-Surf**
+  (Route 106/107/Dewford = surf-only tables; Granite Cave wilds L6-10) — `training_areas.py`
+  updated; loss-escalation falls back to the (slow) cave spot. KI-10 logged (post-sail
+  mainland respawn edge; mitigated by the early Dewford heal).
+- **NEXT: Ch8** — Briney at the Dewford dock (12,9) → sail to Slateport (read the DewfordTown
+  decomp for gating: likely needs the Letter delivered — we have it), Route 109 → Slateport
+  (Stern/Museum; ‼ Gabby&Ty DOUBLE battle — also the live testbed for the open framework
+  rotation stall) → Route 110 → Mauville → Gym 3 (Wattson). Start from `brawly_done.ss1`.
+
 ### ⭐ Session 2026-07-22 (Fable 5) — CHAPTER 6 DONE: the bot sails to Dewford (SANDBOX, pushed)
 - **`sail_to_dewford()` BUILT + VALIDATED end-to-end** (post_rival.ss1 → Dewford dock (12,3)):
   Rustboro → Route104 north → back through Petalburg Woods (river-split, doorprobe-verified

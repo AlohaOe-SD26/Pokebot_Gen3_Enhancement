@@ -67,7 +67,8 @@ repro-fresh` or `repro-ml`). Regenerate any by running the story to that point.
 | `pokenav_got.ss1` | after the PokéNav (Devon Corp 3F) |
 | `fresh_rivalprep.ss1` | rival-prep (team leveled, pre-rival) |
 | `post_rival.ss1` | Rustboro (16,53), `DEFEATED_RIVAL_RUSTBORO`, `RUSTBORO_CITY_STATE=8` |
-| `dewford.ss1` | **frontier**: Dewford Town dock (12,3), first Briney sail done (Ch6 ✅) |
+| `dewford.ss1` | Dewford Town (11,9), first Briney sail done (Ch6 ✅) |
+| `brawly_done.ss1` | **frontier**: Dewford Gym (4,4), `DELIVERED_STEVEN_LETTER` + `BADGE02_GET` (Ch7 ✅) |
 
 (`saves/midstuck.ss1` is a SCRATCH state some drivers overwrite when stuck — gitignored,
 never rely on it across runs.)

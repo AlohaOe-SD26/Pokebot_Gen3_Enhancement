@@ -228,6 +228,10 @@ authoritative), the harness (the ground truth — validate and correct the doc).
 | **Face-tap toward an empty tile STEPS** (if already facing that way) | Only face-tap toward a tile the NPC currently OCCUPIES (a bump can't step), and re-verify it's still there before pressing A. |
 | **Standing on a walk-sequence NPC's route tile** freezes the room | Walk-sequence NPCs wait forever for their exact next route tile (no re-routing) — a blocked queue can deadlock every actor incl. the player (three-body gridlock). Park OFF-route; if walkers freeze, step off the route to unfreeze. |
 | `navigate_to` reports **"no path" in a small room with walking NPCs** | `calculate_path` blocks every object's current AND previous tile — two walkers seal a tiny map at plan time. Use greedy manual steps (with perpendicular fallbacks + warp-tile avoidance) for indoor approach work. |
+| Building a **multi-floor/warp route** from atlas prose or memory | Compute the pairwise within-floor warp pathability graph FIRST (`calculate_path((map,a),(map,b))` statically — no walking, no emulation of the route) and derive the chain from that. Granite Cave: every floor is split; the real route dips through B2F (2026-07-22). |
+| **Chain walker loops** between floors (a step "reachable" leads backward) | Within-floor reachability is DIRECTIONAL (one-way ledges!). Pick the FURTHEST-ALONG pathable chain step, never the first match (`_walk_warp_chain`). |
+| **Checkpoint saved mid-dialogue** loads permanently non-controllable | Never snapshot until the avatar is STABLY controllable (~120 frames) with no active script — B-ride any leftover dialogue out first. |
+| A segment gated on **"not at the destination map"** re-runs on a mid-arc resume | Gate travel segments on a WHITELIST of their origin-side maps (a Granite-Cave derail re-entered the Dewford sail and marched to Manual, 2026-07-22). |
 
 ---
 

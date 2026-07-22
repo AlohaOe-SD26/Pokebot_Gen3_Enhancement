@@ -736,10 +736,26 @@ class SailDewfordMode(BotMode):
             arrived = _map_group_number() == MapRSE.DEWFORD_TOWN.value
             log(f"[sail] sail_to_dewford returned; pos={_pos()} in_dewford={arrived}")
             if arrived:
+                # Ride out any leftover arrival dialogue BEFORE saving: a checkpoint taken
+                # mid-textbox loads with the avatar permanently non-controllable (the first
+                # dewford.ss1 did exactly that and broke every navigate on resume).
+                from modules.player import player_avatar_is_controllable
+
+                stable = 0
+                for _ in range(1200):
+                    if player_avatar_is_controllable():
+                        stable += 1
+                        if stable >= 120:
+                            break
+                        yield
+                    else:
+                        stable = 0
+                        context.emulator.press_button("B")
+                        yield
                 import pathlib
                 out = pathlib.Path(__file__).resolve().parent / "saves" / "dewford.ss1"
                 out.write_bytes(context.emulator.get_save_state())
-                log(f"[sail] checkpoint saved: {out.name}")
+                log(f"[sail] checkpoint saved: {out.name} (controllable-stable={stable})")
         except Exception as e:
             import traceback
             log(f"[sail] ERROR pos={_pos()}: {e}\n{traceback.format_exc()[:900]}")

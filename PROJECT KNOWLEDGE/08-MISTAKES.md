@@ -527,3 +527,27 @@ with no exception bypasses the whiteout/derail recovery entirely.
   face-tap toward an OCCUPIED tile, and re-verify before pressing A; (c) never stand on a
   walk-sequence NPC's route tile longer than a moment; (d) don't trust navigate_to inside
   small rooms with walking NPCs. All four added to playbook §7.
+
+## 2026-07-22 — Granite Cave: built the route from an unverified mental model (three fixes to converge)
+- **Symptom:** the letter leg failed three different ways before the clean run: (1) "no path"
+  to the B1F ladder I chose; (2) after correcting, B1F itself was split and the crossing was
+  impossible; (3) after deriving the real chain, the walker PING-PONGED between floors for 9
+  hops and gave up.
+- **Root causes (all proven with static pathfinder probes):**
+  1. I coded the chain from the atlas note "Steven's Room via B1F (12,3)" without verifying —
+     (12,3) is actually the B1F↔B2F ladder pair, and Steven's door hangs off 1F (5,10).
+  2. EVERY Granite Cave floor is split into disconnected walk-sections; the true route dips
+     through B2F (five warps each way). A pairwise within-floor pathability probe of all
+     warps gave the real graph in one shot — I should have run it BEFORE building.
+  3. 1F has a ONE-WAY LEDGE (north section → entrance section), so "is the warp pathable from
+     here" is DIRECTIONAL: from the north section the pathfinder truthfully reports the early
+     ladder reachable (down the ledge), and a first-pathable-match chain scan rides it back
+     down forever. Fix: pick the FURTHEST-ALONG pathable step.
+- **Also:** a checkpoint save captured the instant a segment returned (dewford.ss1 v1) held a
+  still-open arrival dialogue → loaded permanently non-controllable and every navigate raised.
+- **Prevention rules:** (a) before building any multi-floor/warp route, compute the pairwise
+  within-floor warp pathability graph (calculate_path statically — no walking needed) and
+  derive the chain from THAT, not from atlas prose; (b) treat within-floor reachability as
+  DIRECTIONAL (one-way ledges) — chain walkers pick the furthest-along reachable step;
+  (c) never snapshot a checkpoint until the avatar has been STABLY controllable (~120 frames)
+  with no active script — ride leftover dialogue out with B first.

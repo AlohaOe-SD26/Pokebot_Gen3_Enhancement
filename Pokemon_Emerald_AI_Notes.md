@@ -239,3 +239,20 @@ the same legitimate moves a player would, so you can (a) compare a learned agent
 - **Route 104 is one map ID but physically split by a river**; the only Rustboro→beach
   path is back through Petalburg Woods (warp pairs in design §Ch6). Good example of why
   "same map = reachable" is a false prior for navigation policies.
+
+## 2026-07-22 — Ch7 (Granite Cave + Brawly) learnings for the AI project
+- **Cave topology is a warp GRAPH, not a floor plan.** Every Granite Cave floor is split
+  into disconnected walk-sections; reaching Steven takes a five-warp chain that dips a
+  floor BELOW the target (1F→B1F→B2F→B1F→1F). An agent/env should model within-floor
+  reachability between warps (computable statically with the pathfinder) rather than
+  assume same-floor = reachable — and note reachability is DIRECTIONAL (one-way ledges:
+  leaving Steven's area you can ledge-jump straight to the exit, but not back up).
+- **Choosing "any reachable next warp" loops.** With one-way ledges, a greedy first-match
+  policy rides the wrong ladder forever; ordering candidate hops by progress-along-route
+  (furthest-along reachable) converges. Relevant to any learned/planned navigation policy.
+- **Snapshot hygiene:** a save state captured mid-dialogue restores as permanently
+  input-locked-for-navigation (only A/B advance). For RL checkpointing, only snapshot at
+  stable-controllable overworld frames.
+- **Party-composition beats levels at Brawly:** a natural L16-18 team wins via type choice
+  alone (Bug/Poison Dustox resists Fighting and carries Confusion/Gust for 2×) — no
+  grinding possible anyway (no land encounters around Dewford pre-Surf).

@@ -15,15 +15,16 @@ Status key: ✅ built + validated · 🚧 scaffold/partial · 📋 mapped, not b
 | 5b | Return goods → **PokéNav + Match-Call tutorial** | `return_devon_goods_and_get_pokenav`, `handle_pokenav_match_call_tutorial` (faithful; state-write fallback) | `RECEIVED_POKENAV`, `RUSTBORO_CITY_STATE=7` | ✅ (real-HW confirmed) |
 | 5c | **Rustboro rival** (type-lead + level-floor + heal + attempt-cap) | `_play §5c` + `_lead_best_matchup`, `train_team`, `fight_rustboro_rival` | `DEFEATED_RIVAL_RUSTBORO` | ✅ (fresh run won) |
 | 6 | Sail to Dewford (via Petalburg Woods → beach → Briney) | `sail_to_dewford` + `_talk_to_wandering_npc` | on `DEWFORD_TOWN` | ✅ (2026-07-22; driver `saildewford` + real `_play`) |
-| 7 | Granite Cave (Steven's Letter, TM47) + **Gym 2 — Brawly** | — | `DELIVERED_STEVEN_LETTER`, `BADGE02_GET` | 📋 §Ch7 (mapped) |
+| 7 | Granite Cave (Steven's Letter, TM47) + **Gym 2 — Brawly** | `deliver_stevens_letter` (+`_walk_warp_chain`), `do_dewford_gym` | `DELIVERED_STEVEN_LETTER`, `BADGE02_GET` | ✅ (2026-07-22; zero-derail run dewford→badge) |
 | 8 | Sail to Slateport + Slateport (Gabby&Ty DOUBLE battle) | — | — | 📋 §Ch8 (reconned) |
 | 9+ | Route 110 → **Gym 3 Mauville (Wattson)** → … → Elite Four | — | — | ⬜ (Overview table §1/§2 has the route + item beats) |
 
-**You are at the Ch7 boundary (2026-07-22).** `dewford.ss1` (`tools/story-dev/saves/`) =
-Dewford Town dock (12,3), fresh off the first Briney sail (`VAR_BOARD_BRINEY_BOAT_STATE=1`).
-Next: Ch7 — Route 106 → Granite Cave 1F→B1F→Steven's Room (7,8), deliver the Letter
-(`DELIVERED_STEVEN_LETTER`, TM47), then Gym 2 Brawly (`BADGE02_GET`); §Ch6–8 below has the
-map facts (validate the cave floor-warp chain live). Test infra: `tools/story-dev/` (README).
+**You are at the Ch8 boundary (2026-07-22).** `brawly_done.ss1` (`tools/story-dev/saves/`) =
+Dewford Gym (4,4) right after the badge, `DELIVERED_STEVEN_LETTER` + `BADGE01/02_GET` set.
+Next: Ch8 — Briney sail Dewford → Slateport (talk to Briney at the Dewford dock (12,9);
+read the DewfordTown decomp for the exact gating first) → Route 109 → Slateport (Stern/
+Museum beats; ‼ the Gabby&Ty DOUBLE battle at (28,14)/(29,13)) → Route 110 → Mauville
+(Gym 3 Wattson). §Ch8 recon below. Test infra: `tools/story-dev/` (README).
 
 
 > **Pass 4 (2026-07-20)** re-derived every fact independently from ROM + two/three
@@ -450,12 +451,21 @@ Granite Cave entrance is on **Route 106 (48,16)**.
 **Chapter 7 — Granite Cave (Steven's Letter) + Gym 2 (Brawly).**
 - **Dewford Town map:** PC entrance = warp **#1**; Gym entrance = warp **#2**; Hall = #0-ish;
   Briney (boat for Slateport later) stands at **(12,9)**. `⚠ VALIDATE LIVE` which door is which.
-- **Steven's Letter** `✓ script-verified`: Dewford –(N)→ **Route 106** → Granite Cave entrance
-  **(48,16)** → `GRANITE_CAVE_1F` → down to `GRANITE_CAVE_B1F` (warp (12,3) → Steven's Room) →
-  **`GRANITE_CAVE_STEVENS_ROOM`, Steven at (7,8)**. Talk (A-spam): hand over `ITEM_LETTER` →
-  **`setflag FLAG_DELIVERED_STEVEN_LETTER`** → receive **TM47 Steel Wing** → Steven registers in
-  the PokéNav. Completion flag: `DELIVERED_STEVEN_LETTER`. (Cave is dark; Flash helps but isn't
-  required. Floor-warp chain: `⚠ VALIDATE LIVE`.)
+- **Steven's Letter** `✓ script-verified` + **ladder chain pathfinder-verified 2026-07-22**:
+  Dewford –(N)→ **Route 106** → Granite Cave entrance **(48,16)** → `GRANITE_CAVE_1F` (land
+  (37,12)). **‼ EVERY cave floor is split into disconnected walk-sections**; the route to
+  Steven is the FIVE-WARP CHAIN (matches vanilla, dips through B2F):
+  **1F (17,11) ↓ B1F (4,21) → (28,21) ↓ B2F (28,21) → (29,13) ↑ B1F (29,13) → (25,13) ↑
+  1F (35,3) → Steven's door 1F (5,10) → room (7,3)**. Section membership on a floor is
+  ambiguous by coordinates — the code resolves it by LIVE pathability (`_walk_warp_chain`).
+  **`GRANITE_CAVE_STEVENS_ROOM`, Steven at (7,8)** (static). Talk from (7,7) facing Down
+  (A-through, no choices): hand over `ITEM_LETTER` → **`setflag FLAG_DELIVERED_STEVEN_LETTER`**
+  → receive **TM47 Steel Wing** → Steven registers in the PokéNav → he departs + despawns.
+  Return = the exact reverse chain. Completion flag: `DELIVERED_STEVEN_LETTER`. (Cave is
+  dark; Flash irrelevant to the bot.) 1F Hiker trainer at (36,9) near the entrance; Route
+  106 beach trainers Elliot (51,14) / Ned (65,14). **‼ NO TRAINING GRASS around Dewford
+  pre-Surf** — Route 106/107/Dewford have ONLY surf encounter tables; Granite Cave 1F land
+  wilds are L6-10 (probed 2026-07-22).
 - **Gym 2 — Brawly** (Fighting): `DEWFORD_TOWN_GYM` (18×28, DARK). Brawly at **(4,3)** (top);
   entrance warp (5,27)/(6,27) at the bottom; trainers scattered (Takao (2,18), Jocelyn (15,3),
   Laura (12,25), Cristian (7,8), Lilith (16,9), Brenden (14,12)). Path bottom→top. Mirror the

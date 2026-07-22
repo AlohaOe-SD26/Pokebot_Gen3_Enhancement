@@ -33,6 +33,10 @@ PENDING_GRASS: list[tuple] = [
     (MapRSE.ROUTE104, None, (4, 6)),
     (MapRSE.PETALBURG_WOODS, None, (5, 6)),
     (MapRSE.RUSTURF_TUNNEL, None, (5, 6)),  # Whismur (no grass — cave; here for ref)
+    (MapRSE.GRANITE_CAVE_1F, (35, 11), (6, 10)),  # cave-floor encounters (Zubat/Makuhita/
+    # Abra/Geodude); the ONLY wild source reachable from Dewford before Surf — Route 106 /
+    # Route 107 / Dewford itself are SURF-ONLY (no land table at all; probed 2026-07-22).
+    # Kept out of TRAINING_GRASS until the spin tile is validated live.
 ]
 
 

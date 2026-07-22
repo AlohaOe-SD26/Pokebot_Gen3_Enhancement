@@ -649,6 +649,8 @@ class StoryMode(BotMode):
             recover_devon_goods,
             return_devon_goods_and_get_pokenav,
             sail_to_dewford,
+            deliver_stevens_letter,
+            do_dewford_gym,
             handle_pokenav_match_call_tutorial,
             fight_rustboro_rival,
             return_to_lab_and_get_pokedex,
@@ -928,18 +930,64 @@ class StoryMode(BotMode):
         #     sail_to_dewford is idempotent + keyed off the LIVE map, so a resume from
         #     anywhere along the route picks up mid-leg. Once the Dewford-arc flags
         #     (DELIVERED_STEVEN_LETTER / BADGE02) exist they gate this out for good. ---
+        pre_sail_maps = (
+            MapRSE.RUSTBORO_CITY.value,
+            MapRSE.ROUTE104.value,
+            MapRSE.PETALBURG_WOODS.value,
+            MapRSE.ROUTE104_MR_BRINEYS_HOUSE.value,
+        )
         if not _done("DELIVERED_STEVEN_LETTER") and not _done("BADGE02_GET"):
-            if _cur_map() != MapRSE.DEWFORD_TOWN.value:
+            # WHITELIST the pre-sail maps: "not in Dewford" is WRONG as a gate — a resume
+            # from Route 106 / Granite Cave / the gym is already on the Dewford side, and
+            # running the sail leg there marches off toward a cottage that can't be
+            # reached (live-hit 2026-07-22: a Granite Cave derail re-entered the sail and
+            # spun into Manual). Off-whitelist maps skip straight to the Dewford segments.
+            if _cur_map() in pre_sail_maps:
                 yield from sail_to_dewford()
-            else:
-                console.print("[dim]Story: already in Dewford — sail leg skipped.[/]")
-            _guard("Sail to Dewford (Ch6)", lambda: _cur_map() == MapRSE.DEWFORD_TOWN.value)
+                _guard("Sail to Dewford (Ch6)", lambda: _cur_map() == MapRSE.DEWFORD_TOWN.value)
+            elif _cur_map() != MapRSE.DEWFORD_TOWN.value:
+                console.print("[dim]Story: already on the Dewford side — sail leg skipped.[/]")
 
-        # END OF BUILT CONTENT. Next build (Ch7): Route 106 → Granite Cave (deliver Steven's
-        # Letter → TM47) → Dewford Gym 2 (Brawly, Knuckle Badge).
+        # --- Segment 7a: Steven's Letter (Granite Cave, TM47). The story reason we came
+        #     to Dewford — and Briney waits for it before offering the Slateport sail. ---
+        if not _done("DELIVERED_STEVEN_LETTER"):
+            yield from deliver_stevens_letter()
+        else:
+            console.print("[dim]Story: Steven's Letter already delivered — skipping Granite Cave.[/]")
+        _guard("Steven's Letter (Granite Cave)", lambda: _done("DELIVERED_STEVEN_LETTER"))
+
+        # --- Segment 7b: Gym 2 — Brawly (Knuckle Badge). Heal + Fighting-resistant lead
+        #     (Taillow-class); floor-band only — Dewford has NO reachable training grass
+        #     before Surf (Route 106 is surf-only, Granite Cave wilds are L6-10), so the
+        #     natural post-rival team (≥L16) skips proactive grinding and the cave spot is
+        #     the (slow but bounded) loss-escalation fallback. See design §Ch7. ---
+        if not _done("BADGE02_GET"):
+            from modules.map_data import PokemonCenter
+            from modules.story.early_game import (
+                GRANITE_CAVE_TRAINING_SPOT,
+                _lead_best_matchup,
+                heal_in_pokemon_center,
+            )
+
+            brawly_fight = {
+                "keys": [MapRSE.DEWFORD_TOWN_GYM.value, MapRSE.DEWFORD_TOWN.value],
+                "band": (14, 16),
+                "grass": GRANITE_CAVE_TRAINING_SPOT,
+                "heal": PokemonCenter.DewfordTown,
+            }
+            yield from self._prepare_for_fight(brawly_fight)
+            yield from heal_in_pokemon_center(PokemonCenter.DewfordTown)
+            yield from _lead_best_matchup(["Fighting"])
+            yield from do_dewford_gym()
+        else:
+            console.print("[dim]Story: Knuckle Badge already earned — Gym 2 skipped.[/]")
+        _guard("Gym 2 (Brawly)", lambda: _done("BADGE02_GET"))
+
+        # END OF BUILT CONTENT. Next build (Ch8): Briney sail Dewford → Slateport (Route 109)
+        # → Slateport (Stern/Museum beats; Gabby&Ty DOUBLE battle) → Route 110 → Mauville.
         context.message = (
-            "Story: arrived in Dewford Town — end of built content. NEXT (WIP): Granite Cave "
-            "(Steven's Letter) -> Gym 2 (Brawly). Handing to manual."
+            "Story: Knuckle Badge earned — end of built content. NEXT (WIP): sail to "
+            "Slateport -> Route 110 -> Gym 3 (Wattson). Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()

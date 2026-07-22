@@ -1542,3 +1542,31 @@ The bot now plays post_rival.ss1 → Dewford Town unattended. Punch-list #24.
   mid-route PokéNav Match-Call ring was ignored correctly by the listener). Checkpoint
   `tools/story-dev/saves/dewford.ss1` committed (midstuck.ss1 demoted to gitignored
   scratch). STORY_TALK_DEBUG=1 env var traces the talk helper.
+
+## 2026-07-22 — CHAPTER 7 COMPLETE: Steven's Letter + Gym 2 (Brawly) BUILT + VALIDATED (sandbox)
+The bot now plays dewford.ss1 → Letter delivered → KNUCKLE BADGE, zero derails. Punch-list #24.
+- `deliver_stevens_letter()` (early_game.py): Dewford PC heal (also moves the whiteout
+  respawn island-side, KI-10) → Route 106 beach → Granite Cave door (48,16) → the
+  FIVE-WARP LADDER CHAIN to Steven — every cave floor is split into disconnected
+  sections; the vanilla route dips through B2F: 1F (17,11) ↓ B1F (4,21)→(28,21) ↓ B2F
+  (28,21)→(29,13) ↑ B1F (29,13)→(25,13) ↑ 1F (35,3) → Steven's door (5,10). Talk =
+  choice-free A-through (Letter taken, TM47 given, DELIVERED_STEVEN_LETTER set, Steven
+  despawns). Return = reverse chain (the 1F one-way LEDGE lets the walker shortcut
+  straight to the exit) + finish with the Dewford PC heal.
+- NEW `_walk_warp_chain(chain, done, label)`: generic multi-floor warp-chain walker.
+  Section membership on a split floor is decided by LIVE pathability, and the step
+  chosen is the FURTHEST-ALONG pathable one — first-match looped live (the 1F one-way
+  ledge makes the early ladder "reachable" from the north section → 9 hops of
+  ping-pong). New `_enter_warp_by_navigation` includes the last nav error in failures.
+- `do_dewford_gym()`: town door (8,17) → dark gym bottom→top (trainers inline) →
+  challenge tile (4,4) → Brawly → BADGE02_GET. Wired as Segments 7a/7b with the boss
+  pattern (heal + `_lead_best_matchup(["Fighting"])` — picked Dustox, Bug/Poison resists
+  Fighting — + attempt-band); band is FLOOR-ONLY (14,16) because Dewford has NO
+  reachable training grass pre-Surf (Route 106/107/Dewford = surf-only tables; Granite
+  Cave wilds L6-10 — recorded in training_areas.py).
+- Segment-6 gate fixed to a PRE-SAIL MAP WHITELIST (a Granite-Cave derail had re-entered
+  the sail leg and marched to Manual); checkpoint capture now rides out leftover dialogue
+  before saving (dewford.ss1 v1 was taken mid-textbox → loaded non-controllable; repaired).
+- PROOF: full `--driver story` run dewford.ss1 → letter → badge → clean content-end stop,
+  0 derails / 0 whiteouts (ch7_run7). Checkpoint `saves/brawly_done.ss1` committed
+  (extracted from current_state.ss1 via the playbook §2 recipe; flags verified).

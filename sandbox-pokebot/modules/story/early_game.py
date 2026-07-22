@@ -2372,3 +2372,253 @@ def sail_to_dewford() -> Generator:
         yield
     yield from wait_until_truly_controllable()
     context.message = "Story: arrived in Dewford Town!"
+
+
+# ---- Chapter 7: Granite Cave (Steven's Letter) + Dewford Gym 2 (Brawly) ----
+# Static recon 2026-07-22 (ch7 doorprobe): Dewford PC door = town (2,10) → PC (7,8);
+# Gym door = town (8,17) → gym (5,27)/(6,27). Dewford's North connection → Route 106
+# (offset -60: Dewford x ↔ Route106 x+60 on its south edge). Granite Cave entrance =
+# ROUTE106 (48,16) → 1F (37,12). ‼ STEVEN'S ROOM HANGS OFF 1F: warp (5,10) → room (7,3)
+# — NOT off B1F as the first atlas said ((12,3) is the B1F↔B2F ladder pair). Steven
+# stands at (7,8) (static). Route 106 beach trainers: Elliot (51,14), Ned (65,14);
+# 1F Hiker at (36,9). NO training grass anywhere around Dewford pre-Surf (Route 106 is
+# surf-only; Granite Cave wilds are L6-10).
+GRANITE_CAVE_DOOR_ROUTE106 = (48, 16)   # step onto it → GRANITE_CAVE_1F (37,12)
+STEVENS_ROOM_DOOR_1F = (5, 10)          # step onto it → STEVENS_ROOM (7,3)
+STEVEN_APPROACH = (7, 7)                # stand above Steven (7,8), face Down, talk
+DEWFORD_GYM_BRAWLY_APPROACH = (4, 4)    # challenge tile directly below Brawly (4,3)
+# Loss-escalation training spot (⚠ only used after ≥2 Brawly losses; wilds are L6-10 so
+# it's slow XP — but it is the ONLY wild source reachable from Dewford before Surf):
+GRANITE_CAVE_TRAINING_SPOT = (MapRSE.GRANITE_CAVE_1F, (35, 11))
+
+
+def _enter_warp_by_navigation(dest_reached, map_enum, door_tile, *, tries: int = 10, label: str = "") -> Generator:
+    """Navigate onto ``door_tile`` on ``map_enum`` until ``dest_reached()`` is True.
+    The door tile IS the navigation target (a genuine step onto it fires the warp,
+    ML-9); navigate_to_anywhere may raise as the warp yanks the map away mid-path, so
+    success is judged by ``dest_reached()``, and scripted interruptions (a trainer's
+    sight-line, a scene) are ridden out between tries."""
+    last_error: BotModeError | None = None
+    for _ in range(tries):
+        if dest_reached():
+            return
+        try:
+            yield from navigate_to_anywhere(map_enum, door_tile, avoid_encounters=True, avoid_scripted_events=False)
+        except BotModeError as e:
+            if dest_reached():
+                return
+            last_error = e
+            yield from _ride_out_scripted_scene("B")
+    if not dest_reached():
+        raise BotModeError(
+            f"Could not enter the warp at {door_tile} on {map_enum} ({label}). Last navigation error: {last_error}"
+        )
+
+
+def deliver_stevens_letter() -> Generator:
+    """Chapter 7a — deliver Steven's Letter in Granite Cave (gets TM47 Steel Wing).
+
+    INTENT: the Letter (received with the PokéNav from Mr. Stone) is bound for Steven in
+    Granite Cave; delivering it sets `DELIVERED_STEVEN_LETTER`, registers Steven in the
+    PokéNav and yields TM47. It also unlocks nothing else — but it is the story reason we
+    sailed to Dewford, and Mr. Briney waits for it before offering the Slateport leg.
+    ROUTE (every within-floor hop verified via the pathfinder, 2026-07-22): Dewford →
+    Route 106 beach → Granite Cave door (48,16) → then the FIVE-WARP LADDER CHAIN — the
+    cave floors are all split into disconnected sections, and the true route (matching
+    vanilla) dips through B2F: 1F (17,11) ↓ B1F (4,21) → (28,21) ↓ B2F (28,21) → (29,13)
+    ↑ B1F (29,13) → (25,13) ↑ 1F (35,3) → Steven's door (5,10) → room (7,3) → Steven at
+    (7,8): talk from (7,7) facing Down, A-through (✓ script-verified: no choices; Letter
+    taken, TM47 given, flag set, Steven departs and despawns) → the exact reverse chain →
+    Dewford.
+    GOAL/END STATE: `DELIVERED_STEVEN_LETTER` set, controllable back in Dewford Town.
+    STORY CONDITION: in/around Dewford with the Letter in the bag. Resume-safe: the chain
+    walker locates the current position by LIVE pathability (a floor appears twice in the
+    chain — which occurrence we're at is decided by which warp is reachable from here)."""
+    from modules.memory import get_event_flag
+    from modules.map_path import calculate_path
+
+    DEWFORD = MapRSE.DEWFORD_TOWN.value
+    ROUTE106 = MapRSE.ROUTE106.value
+    CAVE_1F = MapRSE.GRANITE_CAVE_1F.value
+    CAVE_B1F = MapRSE.GRANITE_CAVE_B1F.value
+    CAVE_B2F = MapRSE.GRANITE_CAVE_B2F.value
+    STEVENS_ROOM = MapRSE.GRANITE_CAVE_STEVENS_ROOM.value
+
+    def _delivered() -> bool:
+        try:
+            return bool(get_event_flag("DELIVERED_STEVEN_LETTER"))
+        except Exception:
+            return False
+
+    def _pathable(tile: tuple[int, int]) -> bool:
+        """Can the pathfinder reach `tile` on the CURRENT map from where we stand? Used to
+        pick the right chain step on a floor that appears twice (split sections)."""
+        try:
+            cur = _map_group_number()
+            pos = tuple(get_player_avatar().local_coordinates)
+            calculate_path((cur, pos), (cur, tile))
+            return True
+        except Exception:
+            return False
+
+    def _walk_warp_chain(chain, done_check, label: str) -> Generator:
+        """Walk a multi-floor warp chain: at each hop, pick the FURTHEST-ALONG chain step
+        for the CURRENT map whose warp tile is actually pathable from here, enter it,
+        repeat. Floors appear multiple times in a chain (their split sections are told
+        apart by live reachability), and picking the FIRST pathable match loops: Granite
+        Cave 1F has a ONE-WAY LEDGE from the north section down to the entrance section,
+        so from (35,3) the early (17,11) ladder reads as "reachable" and a first-match
+        scan rides it straight back down (live-hit: 9 hops of ping-pong). Furthest-along
+        both breaks that loop and takes the player's natural ledge-jump shortcut on the
+        way out. Bounded."""
+        for _hop in range(len(chain) + 4):
+            if done_check():
+                return
+            cur = _map_group_number()
+            step = None
+            for m_enum, tile, dest in chain:  # keep scanning — LAST match wins
+                if m_enum.value == cur and _pathable(tile):
+                    step = (m_enum, tile, dest)
+            if step is None:
+                raise BotModeError(f"{label}: no chain warp is reachable from map {cur} (lost?).")
+            m_enum, tile, dest = step
+            yield from _enter_warp_by_navigation(
+                lambda: _map_group_number() == dest or done_check(),
+                m_enum,
+                tile,
+                label=f"{label} hop {tile}",
+            )
+            yield from wait_until_truly_controllable()
+        if not done_check():
+            raise BotModeError(f"{label}: warp chain did not reach its destination.")
+
+    # The Granite Cave ladder chains (within-floor hops all pathfinder-verified):
+    _TO_STEVEN = [
+        (MapRSE.GRANITE_CAVE_1F, (17, 11), CAVE_B1F),       # 1F entrance section ↓
+        (MapRSE.GRANITE_CAVE_B1F, (28, 21), CAVE_B2F),      # B1F south section ↓
+        (MapRSE.GRANITE_CAVE_B2F, (29, 13), CAVE_B1F),      # B2F crossing ↑
+        (MapRSE.GRANITE_CAVE_B1F, (25, 13), CAVE_1F),       # B1F north-east pocket ↑ (lands (35,3))
+        (MapRSE.GRANITE_CAVE_1F, STEVENS_ROOM_DOOR_1F, STEVENS_ROOM),  # 1F north-west section
+    ]
+    _FROM_STEVEN = [
+        (MapRSE.GRANITE_CAVE_STEVENS_ROOM, (7, 3), CAVE_1F),  # room exit (lands (5,10))
+        (MapRSE.GRANITE_CAVE_1F, (35, 3), CAVE_B1F),
+        (MapRSE.GRANITE_CAVE_B1F, (29, 13), CAVE_B2F),
+        (MapRSE.GRANITE_CAVE_B2F, (28, 21), CAVE_B1F),
+        (MapRSE.GRANITE_CAVE_B1F, (4, 21), CAVE_1F),          # lands (17,11), entrance section
+        (MapRSE.GRANITE_CAVE_1F, (37, 12), ROUTE106),         # out the cave mouth
+    ]
+
+    if not _delivered():
+        context.message = "Story: taking Steven's Letter to Granite Cave..."
+        yield from wait_until_truly_controllable()
+
+        # Heal first when starting from town: faithful player behavior before a cave trip,
+        # and it moves the whiteout respawn to DEWFORD's Poké Center — after the first sail
+        # Briney is no longer in his cottage, so respawning on the mainland would strand
+        # the run (see known-issues).
+        if _map_group_number() == DEWFORD:
+            yield from heal_in_pokemon_center(PokemonCenter.DewfordTown)
+
+        # --- Leg 1: Dewford → Route 106 → into Granite Cave (door (48,16)). The global
+        #     navigator crosses the north connection; beach trainers are fought inline. ---
+        if _map_group_number() in (DEWFORD, ROUTE106):
+            yield from _enter_warp_by_navigation(
+                lambda: _map_group_number() in (CAVE_1F, CAVE_B1F, CAVE_B2F, STEVENS_ROOM),
+                MapRSE.ROUTE106,
+                GRANITE_CAVE_DOOR_ROUTE106,
+                label="Granite Cave entrance",
+            )
+            yield from wait_until_truly_controllable()
+
+        # --- Leg 2: the ladder chain down-across-up to Steven's Room. ---
+        if _map_group_number() in (CAVE_1F, CAVE_B1F, CAVE_B2F):
+            yield from _walk_warp_chain(
+                _TO_STEVEN, lambda: _map_group_number() == STEVENS_ROOM, "Granite Cave → Steven"
+            )
+
+        # --- Leg 3: talk to Steven (static at (7,8)) and hand over the Letter. ---
+        if _map_group_number() != STEVENS_ROOM:
+            raise BotModeError("Steven's Letter: never reached Steven's Room.")
+        yield from _navigate_riding_out(MapRSE.GRANITE_CAVE_STEVENS_ROOM, STEVEN_APPROACH)
+        context.emulator.press_button("Down")  # face Steven at (7,8) from (7,7)
+        yield
+        yield from wait_for_n_frames(4)
+        frames = 0
+        while not _delivered():
+            _check_abort()
+            context.emulator.press_button("A")
+            frames += 1
+            if frames > 8000:
+                raise BotModeError("Steven's Letter: talked to Steven but the flag never set.")
+            yield
+        # Ride out his thanks + departure walk (he despawns at the end).
+        yield from _wait_until_cutscene_over("B")
+        context.message = "Story: delivered Steven's Letter (got TM47 Steel Wing)!"
+
+    # --- Leg 4: back out to Dewford — the exact reverse ladder chain, then the beach. ---
+    if _map_group_number() in (STEVENS_ROOM, CAVE_1F, CAVE_B1F, CAVE_B2F):
+        yield from _walk_warp_chain(
+            _FROM_STEVEN, lambda: _map_group_number() in (ROUTE106, DEWFORD), "Granite Cave → out"
+        )
+    # Finish by healing at the Dewford PC: heal_in_pokemon_center's own navigation
+    # crosses the Route 106 → Dewford connection reliably (a bare navigate_to_anywhere
+    # to a town tile derailed here once — live 2026-07-22), it's what a player does
+    # after a cave trip, and it leaves the team topped up for the gym right after.
+    yield from wait_until_truly_controllable()
+    yield from heal_in_pokemon_center(PokemonCenter.DewfordTown)
+    yield from wait_until_truly_controllable()
+    if _map_group_number() != DEWFORD:
+        raise BotModeError("Steven's Letter: expected to finish at the Dewford Poké Center.")
+    context.message = "Story: back in Dewford Town."
+
+
+def do_dewford_gym() -> Generator:
+    """Chapter 7b — Dewford Gym: beat Brawly for the Knuckle Badge (BADGE02, Gym 2).
+
+    INTENT: clear the second gym.
+    STORY CONDITION: in Dewford Town. Brawly runs Fighting (Machop 16 / Meditite 16 /
+    Makuhita 19 in Emerald) — the caller should heal + pick a Fighting-resistant lead
+    first (`_lead_best_matchup(["Fighting"])`: Taillow resists and Wing Attack hits 2×;
+    never lead a Normal mon here). The gym is DARK (no Flash needed — darkness is visual
+    only; navigation and battles work normally).
+    HOW IT WORKS: enter via the town door (8,17), navigate bottom→top to the challenge
+    tile (4,4) below Brawly (4,3) — gym trainers en route are fought inline by the
+    battle listener — then face Up + A to challenge, riding out battle + dialogue until
+    `BADGE02_GET` sets.
+    GOAL/END STATE: BADGE02_GET (Knuckle Badge)."""
+    from modules.memory import get_event_flag
+
+    context.message = "Story: entering Dewford Gym to challenge Brawly..."
+    gym = MapRSE.DEWFORD_TOWN_GYM.value
+    rounds = 0
+    while _map_group_number() != gym or tuple(get_player_avatar().local_coordinates) != DEWFORD_GYM_BRAWLY_APPROACH:
+        _check_abort()
+        rounds += 1
+        if rounds > 15:
+            raise BotModeError("Dewford Gym: could not reach the challenge tile below Brawly.")
+        if get_event_flag("BADGE02_GET"):
+            return
+        try:
+            yield from navigate_to_anywhere(
+                MapRSE.DEWFORD_TOWN_GYM,
+                DEWFORD_GYM_BRAWLY_APPROACH,
+                avoid_encounters=True,
+                avoid_scripted_events=False,
+            )
+        except BotModeError:
+            # A gym trainer's sight-line (or Brawly himself) engaged — the battle
+            # listener fights it; ride the aftermath out and re-path.
+            yield from _ride_out_scripted_scene("B")
+
+    # Challenge Brawly (face up + A) and ride out the whole battle + badge dialogue.
+    frames = 0
+    while not get_event_flag("BADGE02_GET"):
+        _check_abort()  # bail fast if we whited out mid-gym (defeat recovery)
+        context.emulator.press_button("B" if frames % 3 else "A")
+        frames += 1
+        if frames > 30000:
+            raise BotModeError("Dewford Gym: the Brawly challenge never resolved to a badge.")
+        yield
+    yield from _wait_until_cutscene_over("B")
+    context.message = "Story: KNUCKLE BADGE earned — Gym 2 (Brawly) beaten!"

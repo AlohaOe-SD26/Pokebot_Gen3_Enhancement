@@ -99,3 +99,20 @@ fix goes in DIVERGENCE-LOG).
   Overworld-only counting means a long single battle can't false-trigger it. VALIDATED: the same
   `route116team` run that hung before now trains past L16, beats Roxanne, and reaches the rival
   prep with all fixes. Bounded by `train_team`'s outer guard (500) → derail recovery if truly stuck.
+
+## KI-10 — Post-sail whiteout can respawn the run on the MAINLAND (Dewford arc) — MITIGATED 2026-07-22
+- **Scenario:** the Emerald whiteout respawn point is the last Poké Center USED. After the first
+  Briney sail (Ch6), Mr. Briney leaves his cottage (FLAG_HIDE_BRINEYS_HOUSE_MR_BRINEY) and waits
+  at his BOAT: vanilla re-sails happen by talking to him on the Route 104 beach (his Route104
+  object is un-hidden by the sail script) or at the Dewford dock (12,9). If the bot whites out on
+  the Dewford side BEFORE ever healing at the Dewford PC, it respawns at Rustboro's PC — and
+  `sail_to_dewford`'s cottage leg (Leg 3-4) would knock on an EMPTY house.
+- **Mitigation (done):** `deliver_stevens_letter` heals at the Dewford PC FIRST when starting
+  from town, so from the moment the Dewford arc begins, whiteouts respawn IN Dewford (the
+  Segment-6 whitelist also stops any Dewford-side resume from re-running the sail). Remaining
+  edge: a whiteout in the sail leg itself (route trainers) before the first Dewford heal — rare
+  (the leg heals before the rival and fights little), but if hit, the run derails to Manual at
+  the cottage instead of re-sailing.
+- **Proper fix (when Ch8 needs re-sailing anyway):** teach the sail leg to talk to BOAT-Briney —
+  if `HIDE_BRINEYS_HOUSE_MR_BRINEY` is set, engage his Route 104 beach object (live local_id via
+  `_talk_to_wandering_npc`-style lookup) instead of entering the house.
