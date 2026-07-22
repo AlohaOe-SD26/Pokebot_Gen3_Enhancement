@@ -1402,3 +1402,13 @@ Per user choice ("type-aware lead + attempt-cap"):
   crash, bounded). NOT yet validated: an actual rival WIN — needs a natural post-gym team
   (the test save's L7-8 filler loses regardless of lead); the cap makes a thin team stop
   cleanly (no regression).
+
+## 2026-07-21 (later) — Sail-leg recon: Briney mechanic understood; nav gated on a real post-rival save
+- Understood the Briney sail from the decompiled script: talk to Briney (5,3) -> multichoice
+  MULTI_BRINEY_OFF_DEWFORD -> pick Dewford (index 0) -> sails/warps to Dewford.
+- Recon (harness `sailrecon` driver) surfaced the build gate: a SYNTHETIC post-rival state
+  (rival flag set, player still mid-Rustboro) can't cross Rustboro->Route104 — walking Down
+  from the rival row dead-ends at Rustboro (16,53); the real south-exit corridor + the rival
+  cutscene's deposit position need a REAL post-rival save. Sail-leg build deferred to next
+  session (build from a real post-rival save / recon the Rustboro-south connection first).
+- Documented in design §Ch6 (SAIL-LEG RECON NOTE) + handoff.

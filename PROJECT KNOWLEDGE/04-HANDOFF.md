@@ -63,9 +63,14 @@ bounds the whiteout→retrain retry (thin team stops cleanly, no loop). Verified
 error-free (enters training). ⚠️ **NOT yet validated: an actual rival WIN** — the `devon_done`
 test save has a pathological team (Marshtomp + L7-8 filler) that loses regardless of lead. **To
 prove the win we need a NATURAL post-gym team save** (ask user for one, or build via a fuller
-harness playthrough). **Frontier: PokéNav + tutorial done, rival wired-but-win-unvalidated; NEXT
-= validate rival win w/ a real team → Route 104 south → Mr. Briney → Dewford → Granite Cave →
-Gym 2 (Brawly).** Open: #24-team organic-team leveling; #24-trainmap area-training groundwork.
+harness playthrough). **Frontier: PokéNav + tutorial done, rival wired-but-win-unvalidated.** NEXT-AREA MAPPED
+(design §Ch6 atlas: Route 104 S → Mr. Briney (sail) → Dewford → Granite Cave (Steven's Letter)
+→ Gym 2 Brawly — all warps/NPCs/coords). **Sail-leg build is GATED (see §Ch6 SAIL-LEG RECON
+NOTE):** (a) need a real post-rival save (rival cutscene deposit position unknown; a synthetic
+rival-flag state stalls at Rustboro (16,53) — the Rustboro-south↔Route104-north corridor needs
+recon), and (b) the Briney sail mechanic is understood (talk (5,3) → multichoice → Dewford=idx0).
+**NEXT: confirm rival win on real hardware → capture a real post-rival save → build the sail leg
+from §Ch6.** Open: #24-team organic-team leveling; #24-trainmap area-training groundwork.
 ### In custom-pokebot (PROMOTED, production) — big promotion `f0b275f3` (2026-07-19)
 Native dashboard GUI (default; `--classic-gui` = stock), handheld mode,
 backup/restore + cloud + cloud-save-sync (off by default), macros, Patrol

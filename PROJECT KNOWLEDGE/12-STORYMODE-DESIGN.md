@@ -358,6 +358,19 @@ map-local. **NOT yet built or live-verified** — this is the build map for the 
   (Granite Cave also holds items: Escape Rope 1F (17,7), Poké Ball B1F (15,21), Repel/Rare
   Candy B2F; B2F has Rock-Smash rocks — later.)
 
+**SAIL-LEG RECON NOTE (2026-07-21):** the sail interaction (talk to Briney (5,3) → multichoice
+`MULTI_BRINEY_OFF_DEWFORD` → pick **Dewford = index 0** → warps/sails) is understood from the
+decompiled script, BUT the build is gated on TWO nav facts still to nail down: (a) the
+Rustboro→Route104 boundary — a synthetic post-rival test (rival-flag set, player still mid-
+Rustboro) stalls: walking Down from the rival row dead-ends at Rustboro **(16,53)**; the real
+south-exit corridor to Route 104's north edge (CONN North offset 0) is at a different x/y — do a
+static/live recon of the Rustboro south edge before building this leg. (b) Where the rival
+CUTSCENE actually deposits the player (likely already on/near Route 104) — needs a REAL
+post-rival save (a genuine win), which is deferred with the rival-win validation. Recommendation:
+build the sail leg from a real post-rival save (real hardware once the rival win is confirmed),
+or first recon the exact Rustboro-south↔Route104-north connection tiles. Harness dev driver:
+`--driver sailrecon` (synthesizes post-rival + walks toward Briney; scratchpad only).
+
 **Build plan (next session):** after the rival (§5c) — (1) `_navigate…` Route 104 SOUTH to
 Mr. Briney's house entrance → enter → talk to Briney (5,3) → sail (anchor: arrive DEWFORD_TOWN).
 (2) Dewford: deliver **Steven's Letter** — Route 106 W → Granite Cave 1F→B1F→Steven's Room
