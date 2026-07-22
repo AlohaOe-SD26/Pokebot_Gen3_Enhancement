@@ -392,3 +392,17 @@
       Validate vs a Roxanne/Brawly-era Disable user (e.g. wild Whismur has none —
       find a story trainer with Disable/Encore, or fault-inject the volatile
       struct in the harness).
+
+- [ ] #24-ch8b-museum — Oceanic Museum entry gating (KI-11): resolve how the
+      Aqua crowd clears so Stern is reachable; then Devon Goods → Stern
+      (deliver_devon_goods_to_stern is built). BLOCKS Ch8b/Ch9.
+- [ ] #24-evo-trainstall — `train_team`/`_story_spin` can hang right AFTER a
+      trainee EVOLVES mid-training (batch run02 2026-07-22: Grovyle evolved +
+      learned Fury Cutter on Route 116, then the spin never resumed → 20k-frame
+      HANG). Repro save: tools/story-dev/saves/evostall.ss1. Likely the
+      post-evolution return-to-overworld transition isn''t ridden out before the
+      next spin action (cf. the move-learn / dock-arrival family). Prove + fix.
+- [ ] #24-freshbatch-rustboro — batch run03 (fresh game) 2026-07-22 played
+      extensively but HUNG in Rustboro (11,3)=(5,3) area after ~450k frames
+      (Torchic start, 4-mon team). Under-investigated; capture a repro from the
+      run03 log if it recurs in a future batch.

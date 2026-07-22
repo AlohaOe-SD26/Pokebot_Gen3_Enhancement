@@ -713,6 +713,7 @@ class StoryMode(BotMode):
             deliver_stevens_letter,
             do_dewford_gym,
             sail_to_slateport,
+            deliver_devon_goods_to_stern,
             handle_pokenav_match_call_tutorial,
             fight_rustboro_rival,
             return_to_lab_and_get_pokedex,
@@ -1066,12 +1067,28 @@ class StoryMode(BotMode):
             else:
                 console.print("[dim]Story: not on the Dewford side — Slateport sail skipped.[/]")
 
-        # END OF BUILT CONTENT. Next build (Ch8b): Slateport — Devon Goods to Capt. Stern
-        # (Oceanic Museum, Team Aqua grunt fights; ‼ Gabby&Ty DOUBLE battle in town) →
-        # Route 110 → Mauville → Gym 3 (Wattson).
+        # --- Segment 8b: Devon Goods → Capt. Stern (Oceanic Museum). CODE BUILT +
+        #     interior-logic verified, but PAUSED pending a museum-ENTRY gating fix
+        #     (2026-07-22): the Oceanic Museum doors (city (30,26)/(31,26)) are physically
+        #     SEALED by two Team Aqua grunts (obj id 5/18) standing on (31,27)/(30,27),
+        #     the only tiles below the doors. All 11 outside grunts share hide-flag
+        #     FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA (882), which is UNSET by default (verified
+        #     in an independent fresh game) with NO map coord-trigger to set it before the
+        #     museum. Vanilla canon says the museum IS enterable on the first visit, so
+        #     something clears this crowd that our structural read isn't capturing — needs
+        #     real-HW ground truth / a deeper decomp pass before either a faithful trigger
+        #     or a documented state-write. Until then, the honest frontier is the validated
+        #     Slateport arrival, and deliver_devon_goods_to_stern() stays defined for when
+        #     the entry is solved. See 05-KNOWN-ISSUES KI-11 + 12-STORYMODE-DESIGN §Ch8b.
+        if _done("DELIVERED_DEVON_GOODS"):
+            # A player who hand-delivered the goods can still resume past here later.
+            console.print("[dim]Story: Devon Goods already delivered — museum done.[/]")
+
+        # END OF BUILT CONTENT. Next build (Ch8b entry fix, then Ch9): resolve the museum
+        # grunt-seal → Devon Goods to Stern → Route 110 → Mauville → Gym 3 (Wattson).
         context.message = (
-            "Story: arrived in Slateport City — end of built content. NEXT (WIP): Devon Goods "
-            "to Capt. Stern (Oceanic Museum) -> Route 110 -> Gym 3 (Wattson). Handing to manual."
+            "Story: arrived in Slateport City — end of built content. NEXT (WIP): Oceanic "
+            "Museum entry (grunt-seal, KI-11) -> Devon Goods to Stern -> Gym 3. Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()

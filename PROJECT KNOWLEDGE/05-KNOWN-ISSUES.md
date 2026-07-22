@@ -116,3 +116,27 @@ fix goes in DIVERGENCE-LOG).
 - **Proper fix (when Ch8 needs re-sailing anyway):** teach the sail leg to talk to BOAT-Briney —
   if `HIDE_BRINEYS_HOUSE_MR_BRINEY` is set, engage his Route 104 beach object (live local_id via
   `_talk_to_wandering_npc`-style lookup) instead of entering the house.
+
+## KI-11 — Oceanic Museum entrance grunt-sealed at Devon-goods time (Ch8b BLOCKER) — OPEN 2026-07-22
+- **Symptom:** `deliver_devon_goods_to_stern` cannot reach the museum. The doors are city
+  warps (30,26)/(31,26); the ONLY tiles below them, (30,27)/(31,27), are occupied by two
+  Team Aqua grunts (obj id 18/5, `SlateportCity_EventScript_AquaGrunt2/1`). The whole
+  y=27 row from x=22-31 is a grunt wall (gap at x=27, but (27,26) above it is collision).
+  So the museum is physically SEALED — navigate_to (interior or door tile) plan-fails, and
+  a walk-into-door bumps the grunt forever.
+- **What's verified (probes 2026-07-22):** all 11 outside grunts share hide-flag
+  `FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA` (882). It is UNSET by default (confirmed on an
+  INDEPENDENT fresh game at Rustboro AND on slateport.ss1), `VAR_SLATEPORT_CITY_STATE=0`,
+  and the SlateportCity map.json has NO coord-trigger near the museum to reposition them
+  (its only coord_event is the Battle Tent Scott scene at (10,13)). The 2F Stern-fight
+  grunts are SEPARATE 2F objects (id 2-4 spawned at the stairs), not this outside crowd.
+- **The contradiction:** vanilla canon = the museum IS enterable on the first (Devon-goods)
+  visit, yet structurally it's sealed with flag 882 unset. Something clears/repositions the
+  crowd that our static read isn't capturing (a map ON_TRANSITION/ON_FRAME script setting a
+  var, an event on the Slateport dock arrival, or the flag being set earlier than found).
+- **DO NOT guess a state-write** (setting flag 882 hides the crowd, but proving that matches
+  vanilla's exact state at this point needs the mechanism first — house rule).
+- **Fastest ground truth = the USER:** on a real first Slateport visit, are Aqua grunts
+  blocking the Oceanic Museum doors, or is the entrance clear? Then either build the faithful
+  trigger or document the state-write. `deliver_devon_goods_to_stern` (interior logic sound)
+  stays defined but UNWIRED; frontier honestly = Slateport arrival.

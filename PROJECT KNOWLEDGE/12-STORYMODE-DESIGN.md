@@ -17,7 +17,7 @@ Status key: ✅ built + validated · 🚧 scaffold/partial · 📋 mapped, not b
 | 6 | Sail to Dewford (via Petalburg Woods → beach → Briney) | `sail_to_dewford` + `_talk_to_wandering_npc` | on `DEWFORD_TOWN` | ✅ (2026-07-22; driver `saildewford` + real `_play`) |
 | 7 | Granite Cave (Steven's Letter, TM47) + **Gym 2 — Brawly** | `deliver_stevens_letter` (+`_walk_warp_chain`), `do_dewford_gym` | `DELIVERED_STEVEN_LETTER`, `BADGE02_GET` | ✅ (2026-07-22; zero-derail run dewford→badge) |
 | 8a | Sail to Slateport (dock Briney → Route 109 gauntlet → PC) | `sail_to_slateport` | on `SLATEPORT_CITY`, healed | ✅ (2026-07-22; zero-derail run brawly_done→Slateport) |
-| 8b | Slateport: Devon Goods → Capt. Stern (Oceanic Museum, Aqua grunts; Gabby&Ty DOUBLE) | — | `DELIVERED_DEVON_GOODS` | 📋 §Ch8 (reconned; objects/warps probed 2026-07-22) |
+| 8b | Slateport: Devon Goods → Capt. Stern (Oceanic Museum, Aqua grunts; Gabby&Ty DOUBLE) | `deliver_devon_goods_to_stern` (built, UNWIRED) | `DELIVERED_DEVON_GOODS` | 🚧 BLOCKED: museum entrance grunt-sealed (KI-11); interior logic done |
 | 9+ | Route 110 → **Gym 3 Mauville (Wattson)** → … → Elite Four | — | — | ⬜ (Overview table §1/§2 has the route + item beats) |
 
 **You are at the Ch8b boundary (2026-07-22).** `slateport.ss1` (`tools/story-dev/saves/`) =

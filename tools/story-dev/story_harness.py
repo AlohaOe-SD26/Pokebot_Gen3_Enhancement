@@ -1539,6 +1539,19 @@ for step in range(args.frames):
         previous_frame=previous_frame_info,
     )
 
+    # STORY_DEBUG_LOGGER=1: mirror main.py's debug-logger hook so harness runs get the
+    # rich stall dumps WITH the generator call stack (pinpoints exactly where a silent
+    # press-nothing stall is parked — the harness's own dumps lack the stack).
+    if _os_hook.environ.get("STORY_DEBUG_LOGGER"):
+        try:
+            from modules import debug_logger as _dbglog
+
+            if not _dbglog.is_enabled():
+                _dbglog.enable(context.profile)
+            _dbglog.on_frame(frame_info)
+        except Exception:
+            pass
+
     if previous_frame_info is not None and previous_frame_info.frame_count > frame_info.frame_count:
         state_cache.reset()
         context.bot_listeners = get_bot_listeners(context.rom)

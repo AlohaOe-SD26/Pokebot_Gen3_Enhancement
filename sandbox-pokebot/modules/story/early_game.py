@@ -2704,6 +2704,149 @@ def sail_to_slateport() -> Generator:
     context.message = "Story: arrived in Slateport City!"
 
 
+# ---- Chapter 8b: Devon Goods → Capt. Stern (Oceanic Museum) ----
+# Recon 2026-07-22 (museumprobe + decomp, all ✓ script-verified): city doors
+# (30,26)/(31,26) ↔ MUSEUM_1F (9,8)/(10,8); the outside Aqua queue leaves a gap at
+# (27,27) so the doors stay reachable. 1F (20×9): entrance attendants (7,7)/(12,7)
+# charge ¥50 via a YES/NO (broke + goods undelivered → free entry anyway); the
+# Rusturf "familiar grunt" (9,4) hands over TM46 Thief; stairs (6,1) ↔ 2F (6,1).
+# 2F: CAPT. STERN at (13,6). Talking to him runs the whole beat: two BACK-TO-BACK
+# un-fleeable Aqua grunt battles (TRAINER_GRUNT_MUSEUM_1/2 — the attack-through
+# trainer strategy's exact case) → Archie's speech → the Goods are handed over →
+# FLAG_DELIVERED_DEVON_GOODS + HealPlayerParty (the script heals us!) + Stern
+# despawns + the Route 110 Aqua blockade is removed (unblocks Ch9).
+MUSEUM_DOOR_CITY = (30, 26)
+MUSEUM_STAIRS_1F = (6, 1)
+STERN_LOCAL_ID_2F = 1
+STERN_APPROACH_2F = (13, 7)
+
+
+def deliver_devon_goods_to_stern() -> Generator:
+    """Chapter 8b — deliver the Devon Goods to Capt. Stern in the Oceanic Museum.
+
+    INTENT: the second half of Mr. Stone's errand (the Letter was half one). This is the
+    Slateport story beat: it clears the museum of Team Aqua, removes the Route 110
+    blockade (required for Ch9 → Mauville), and finishes the Devon delivery questline.
+    ROUTE: Slateport → museum door (30,26) → pay the ¥50 entry (A-through answers the
+    YES/NO — ride-outs in this leg use A, never B, so the fee can't be declined) → 1F →
+    stairs (6,1) → 2F → talk to Stern (13,6) → ride the scene (two grunt battles fought
+    by the battle listener, Archie speech) until `DELIVERED_DEVON_GOODS` → back out to
+    the city. The scene itself heals the party.
+    GOAL/END STATE: `DELIVERED_DEVON_GOODS` set, controllable in Slateport City.
+    STORY CONDITION: Devon Goods in the bag (carried since Rusturf). Resume-safe: legs
+    are keyed off the LIVE map."""
+    from modules.memory import get_event_flag
+
+    SLATEPORT = MapRSE.SLATEPORT_CITY.value
+    M1F = MapRSE.SLATEPORT_CITY_OCEANIC_MUSEUM_1F.value
+    M2F = MapRSE.SLATEPORT_CITY_OCEANIC_MUSEUM_2F.value
+
+    def _delivered() -> bool:
+        try:
+            return bool(get_event_flag("DELIVERED_DEVON_GOODS"))
+        except Exception:
+            return False
+
+    if not _delivered():
+        context.message = "Story: taking the Devon Goods to Capt. Stern at the Oceanic Museum..."
+        yield from wait_until_truly_controllable()
+
+        # --- Leg 1: city → the museum's SLIDING DOORS. ‼ Two pathfinder quirks here
+        #     (all probed/live-hit 2026-07-22): (a) this door type is SOLID to the
+        #     pathfinder (the door tile can't be a navigation destination, and the
+        #     global navigator's interior-map threading silently spins on it);
+        #     (b) the tiles directly below the doors, (30,27)/(31,27), are blocked by
+        #     the OBJECT TEMPLATES of two queue grunts that aren't even loaded in the
+        #     live world (they're the pair that later materializes inside for the Stern
+        #     fight) — physically empty, unpathable. So: navigate to (30,28) (pathable)
+        #     and WALK UP through both tiles into the door, the way a player would. ---
+        if _map_group_number() == SLATEPORT:
+            yield from _navigate_riding_out(MapRSE.SLATEPORT_CITY, (30, 28))
+            yield from wait_for_player_avatar_to_be_standing_still()
+            yield from _walk_through_warp("Up", SLATEPORT, timeout_frames=360)
+            yield from wait_until_truly_controllable()
+
+        # --- Leg 2: pay the ¥50 fee + cross 1F to the 2F stairs. The fee YES/NO (and
+        #     possibly the TM46 grunt scene) interrupts navigation — ride out with A
+        #     (A answers YES on the default cursor; B would DECLINE the fee and bounce
+        #     us out). If the stairs tile also refuses to be a path destination, fall
+        #     back to walking INTO it from (6,2). ---
+        if _map_group_number() == M1F:
+            rounds = 0
+            while _map_group_number() == M1F:
+                rounds += 1
+                if rounds > 8:
+                    try:
+                        yield from navigate_to_anywhere(
+                            MapRSE.SLATEPORT_CITY_OCEANIC_MUSEUM_1F, (6, 2),
+                            avoid_encounters=True, avoid_scripted_events=False,
+                        )
+                    except BotModeError:
+                        pass
+                    if _map_group_number() == M1F:
+                        yield from _walk_through_warp("Up", M1F)
+                    break
+                try:
+                    yield from navigate_to_anywhere(
+                        MapRSE.SLATEPORT_CITY_OCEANIC_MUSEUM_1F,
+                        MUSEUM_STAIRS_1F,
+                        avoid_encounters=True,
+                        avoid_scripted_events=False,
+                    )
+                except BotModeError:
+                    if _map_group_number() != M1F:
+                        break
+                    yield from _ride_out_scripted_scene("A")
+            yield from wait_until_truly_controllable()
+
+        # --- Leg 3: 2F — talk to Stern and ride the whole scene (two un-fleeable grunt
+        #     battles handled by the battle listener, then Archie) until the flag sets. ---
+        if _map_group_number() != M2F:
+            raise BotModeError("Devon Goods: never reached the museum's 2F.")
+        yield from _talk_to_wandering_npc(
+            MapRSE.SLATEPORT_CITY_OCEANIC_MUSEUM_2F, STERN_LOCAL_ID_2F, approach_hint=STERN_APPROACH_2F
+        )
+        frames = 0
+        while not _delivered():
+            _check_abort()  # a lost grunt battle whites out → recovery re-enters here
+            context.emulator.press_button("B" if frames % 3 else "A")
+            frames += 1
+            if frames > 30000:
+                raise BotModeError("Devon Goods: the Stern scene never set DELIVERED_DEVON_GOODS.")
+            yield
+        yield from _wait_until_cutscene_over("B")
+        context.message = "Story: Devon Goods delivered — Slateport's museum is Aqua-free (party healed by the scene)!"
+
+    # --- Leg 4: back out to the city (2F → 1F → doors), with walk-into fallbacks for
+    #     the same solid-to-pathfinding door/stair tiles as on the way in. ---
+    if _map_group_number() == M2F:
+        try:
+            yield from _enter_warp_by_navigation(
+                lambda: _map_group_number() == M1F,
+                MapRSE.SLATEPORT_CITY_OCEANIC_MUSEUM_2F,
+                (6, 1),
+                tries=3,
+                label="Museum 2F stairs down",
+            )
+        except BotModeError:
+            yield from _navigate_riding_out(MapRSE.SLATEPORT_CITY_OCEANIC_MUSEUM_2F, (6, 2))
+            yield from _walk_through_warp("Up", M2F)
+    if _map_group_number() == M1F:
+        try:
+            yield from _enter_warp_by_navigation(
+                lambda: _map_group_number() == SLATEPORT,
+                MapRSE.SLATEPORT_CITY_OCEANIC_MUSEUM_1F,
+                (9, 8),
+                tries=3,
+                label="Museum exit",
+            )
+        except BotModeError:
+            yield from _navigate_riding_out(MapRSE.SLATEPORT_CITY_OCEANIC_MUSEUM_1F, (9, 7))
+            yield from _walk_through_warp("Down", M1F)
+    yield from wait_until_truly_controllable()
+    context.message = "Story: back on the Slateport streets."
+
+
 def do_dewford_gym() -> Generator:
     """Chapter 7b — Dewford Gym: beat Brawly for the Knuckle Badge (BADGE02, Gym 2).
 

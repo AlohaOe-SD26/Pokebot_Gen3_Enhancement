@@ -9,6 +9,17 @@
 > accumulated craft (harness, debugging method, story-mapping, faithfulness rules, bug
 > patterns) — use it to build faster and prove every fix.
 
+### 🟠 CH8b BLOCKED on museum entry (needs user ground-truth) — 2026-07-22
+`deliver_devon_goods_to_stern` is BUILT (interior logic sound) but UNWIRED: the Oceanic
+Museum doors are physically grunt-sealed at Devon-goods time (obj id 5/18 sit on the only
+below-door tiles; hide-flag 882 unset by default, no map trigger — all probed, see KI-11).
+Vanilla canon says the museum is enterable on the first visit, so something clears the crowd
+our static read misses. **DON'T guess a state-write.** ASK THE USER: on a real first Slateport
+visit, do Aqua grunts block the Oceanic Museum doors or is it clear? Then build the faithful
+trigger or a documented state-write. Also open from the batch sweep: #24-evo-trainstall
+(evolve-mid-training hang, repro `saves/evostall.ss1`) + #24-freshbatch-rustboro. Frontier
+honestly stays = Slateport arrival (Ch8a, validated).
+
 ### ⭐⭐⭐⭐ Session 2026-07-22 (Fable 5, night) — SHINY ALWAYS-CATCH ✅ + dock-stall fix ✅ + DEBUG modes ✅ (SANDBOX, pushed)
 - **SHINY = ALWAYS CATCH implemented + proven** (the user's directive, done first): shiny
   branch now FIRST in `on_battle_started` → `StoryShinyCatchStrategy` (catches with any

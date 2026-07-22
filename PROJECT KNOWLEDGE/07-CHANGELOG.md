@@ -1656,3 +1656,25 @@ Three user logs reviewed (one continuous session on the second PC):
   intentional content-end Manual (exact-name `_SELF_RECOVERING_MODES` missed the DEBUG
   variants; also silently re-armed save-state reloads for them). `_is_self_recovering`
   prefix matcher + A/B proof. See 08-MISTAKES.
+
+## 2026-07-22 — Parallel session: Ch8b built (BLOCKED on museum entry), livetest batch findings, fixes
+While a 3-run fresh live-test batch ran, built Ch8b (Devon Goods → Capt. Stern) and hit a
+real blocker; the batch itself found bugs. Net:
+- **Ch8b `deliver_devon_goods_to_stern` BUILT** (museum entry → fee → 1F → 2F stairs →
+  Stern (13,6) → two un-fleeable grunt battles + Archie scene → DELIVERED_DEVON_GOODS,
+  scene heals the party). Interior logic sound, BUT the museum ENTRANCE is grunt-sealed at
+  this story point (KI-11 — all probed, not guessed): doors (30,26)/(31,26) blocked by
+  Aqua grunts id 5/18 on the only below-door tiles; hide-flag 882 unset by default with no
+  map trigger. UNWIRED pending real-HW ground truth (asked the user); frontier stays the
+  validated Slateport arrival. Design §Ch8b + KI-11 have the full recon.
+- **livetest batch findings (its first real use, found real bugs):**
+  * run01 "reached frontier in 7 min" = FALSE PASS — a reused lane profile's .sav made a
+    "fresh" boot CONTINUE an old save. FIXED: the runner now wipes each lane's
+    save/state/states before a fresh run. (Also: prints flush; END_MARKER dash-free.)
+  * run02 (fresh, Treecko→Grovyle): real HANG — the trainee EVOLVED mid-team-catching on
+    Route 116 (Fury Cutter learned) and the training spin never resumed (20k-frame stall).
+    Repro saved: saves/evostall.ss1. → punch #24-evo-trainstall.
+  * run03 (fresh, Torchic): played ~450k frames then hung in Rustboro. → punch
+    #24-freshbatch-rustboro (under-investigated).
+- **Harness:** `STORY_DEBUG_LOGGER=1` now mirrors main.py's debug-logger hook so harness
+  runs get the generator-call-stack stall dumps (pinpoints silent press-nothing stalls).
