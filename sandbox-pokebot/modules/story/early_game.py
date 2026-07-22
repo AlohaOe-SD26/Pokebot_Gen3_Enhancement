@@ -1135,23 +1135,73 @@ def travel_route104_north_to_rustboro() -> Generator:
 RUSTBORO_GYM_ROXANNE_APPROACH = (5, 4)
 
 
+def _yield_bounded(gen, max_frames: int) -> Generator:
+    """Drive a sub-generator with a HARD frame cap; returns True if it finished, False if
+    it timed out (the sub-generator is then closed). WHY: stock menu navigators
+    (StartMenuNavigator.open_start_menu etc.) wait UNBOUNDED for their menu to appear —
+    but a field script (a trainer's sight-line firing in the grass, a leftover
+    evolution/battle scene) LOCKS input, so the menu can never open and the wait wedges
+    FOREVER (real-HW: a 110k-frame stall mid-training next to Youngster Joey,
+    2026-07-22; same family as the evostall batch hang). Every menu-driven sub-action
+    the story calls must be bounded."""
+    for _ in range(max_frames):
+        try:
+            next(gen)
+        except StopIteration:
+            return True
+        yield
+    try:
+        gen.close()
+    except Exception:
+        pass
+    return False
+
+
+def _rotate_lead_safely(target_slot: int, *, attempts: int = 3) -> Generator:
+    """`change_lead_party_pokemon` with INTERRUPT AWARENESS (user directive 2026-07-22:
+    "ensure the interrupt logic works — know when a trainer interrupts anything").
+
+    Never starts (or keeps driving) the Start-menu party rotation while a field script
+    is active, and BOUNDS the menu drive so a script that fires mid-menu can't wedge it.
+    On interruption: close any half-open menu, ride the scene out (the battle listener
+    fights any resulting trainer battle), then retry. Bounded attempts; gives up
+    gracefully — the rotation is an optimization, training/gyms still work without it."""
+    from modules.modes.util.higher_level_actions import change_lead_party_pokemon
+
+    for _ in range(attempts):
+        _check_abort()
+        # Don't even open the menu while a script is engaged / control is shaky.
+        if get_global_script_context().is_active:
+            yield from _ride_out_scripted_scene("B")
+            yield from wait_until_truly_controllable()
+        try:
+            ok = yield from _yield_bounded(change_lead_party_pokemon(target_slot), 3000)
+        except Exception:
+            ok = False
+        if ok:
+            return
+        # Timed out / errored — likely a script fired mid-menu (trainer approach).
+        # Close any half-open menu, ride the scene out, retry.
+        for _ in range(12):
+            context.emulator.press_button("B")
+            yield
+        yield from _ride_out_scripted_scene("B")
+        yield from wait_until_truly_controllable()
+    context.message = "Story: lead rotation kept getting interrupted — continuing without it."
+
+
 def _lead_strongest_battler() -> Generator:
     """Put the highest-level CAPABLE battler in slot 0 before a gym / major fight.
     Swap-training rotates a weak trainee into the lead, so without this the gym would
     send that weak mon out first (it faints, then the strong mon takes over — messy
     and risky). Leading with our best mon wins cleanly."""
-    from modules.modes.util.higher_level_actions import change_lead_party_pokemon
-
     party = get_party()
     slots = _battler_slots()
     if not slots:
         return
     best = max(slots, key=lambda i: party[i].level)
     if best != 0:
-        try:
-            yield from change_lead_party_pokemon(best)
-        except Exception:
-            pass
+        yield from _rotate_lead_safely(best)
 
 
 def _lead_best_matchup(foe_type_names, *, min_incoming_only: bool = True) -> Generator:
@@ -1198,10 +1248,7 @@ def _lead_best_matchup(foe_type_names, *, min_incoming_only: bool = True) -> Gen
     # mon that's also as strong as possible.
     best = min(slots, key=lambda i: (_incoming(party[i]), -party[i].level))
     if best != 0:
-        try:
-            yield from change_lead_party_pokemon(best)
-        except Exception:
-            pass
+        yield from _rotate_lead_safely(best)
 
 
 def do_rustboro_gym() -> Generator:
@@ -1323,12 +1370,11 @@ def train_team(
                 break
 
             # Put the lowest-level needy battler in the lead so it shares the XP.
+            # INTERRUPT-SAFE (the 110k-frame Joey stall): a trainer sight-line firing
+            # right as the Start menu opens must abort-and-retry, never wedge.
             target_slot = min(need, key=lambda i: party[i].level)
             if target_slot != 0:
-                try:
-                    yield from change_lead_party_pokemon(target_slot)
-                except Exception:
-                    pass
+                yield from _rotate_lead_safely(target_slot)
 
             context.message = f"Story: training the team to Lv {target_level} in the grass…"
             yield from _navigate_riding_out(grass_map, grass_tile, avoid_encounters=False)

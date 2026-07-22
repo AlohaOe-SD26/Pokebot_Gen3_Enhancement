@@ -1714,3 +1714,25 @@ decomp/harness before any code (prove every fix). Delivered: `PROJECT KNOWLEDGE/
 the primer is model-agnostic, so it also drives a future auto-spawned Claude sub-agent),
 `.claude/commands/escalate-sequence.md`, and 00-README reading-order + process links.
 Motivating case: KI-11. Not yet used — infrastructure only.
+
+## 2026-07-22 — INTERRUPT-SAFE lead rotation: the 110k-frame training stall FIXED (user log + batch repro)
+The user's real-HW DEBUG-RESET run stalled 110,435 frames mid-training on Route 116; their
+log's generator stack pinpointed it: `train_team → change_lead_party_pokemon →
+StartMenuNavigator.open_start_menu` with `Route116_EventScript_Joey` ACTIVE — the trainer's
+sight-line fired at the exact moment the rotation opened the Start menu; a field script
+locks input, the menu can never open, and the stock navigator waits UNBOUNDED. Same root
+cause as the batch's #24-evo-trainstall (evostall.ss1: a leftover script after a mid-
+training evolution wedged the next rotation identically).
+- NEW `_yield_bounded(gen, max_frames)` — drive any sub-generator with a hard frame cap
+  (unbounded stock menu navigators must never be trusted raw).
+- NEW `_rotate_lead_safely(slot)` — interrupt-aware rotation (user directive: "know when
+  a trainer interrupts anything"): never opens the menu while a script is active; bounds
+  the menu drive (3000f); on interruption closes the half-open menu, rides the scene out
+  (the battle listener fights any resulting battle), retries ×3, then continues WITHOUT
+  the rotation (it's an optimization, not a requirement).
+- All three story rotation sites now use it (train_team, _lead_strongest_battler,
+  _lead_best_matchup).
+- PROOF (repro-based A/B): story run from `saves/evostall.ss1` — the state that hung 20k
+  frames in the batch — now rotates the lead successfully and training RESUMES (battles +
+  EXP through the frame budget, no hang, no Manual). Closes #24-evo-trainstall; the
+  user-log Joey stall is the same mechanism.

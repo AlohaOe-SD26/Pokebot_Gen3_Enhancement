@@ -615,3 +615,19 @@ with no exception bypasses the whiteout/derail recovery entirely.
   navigation failed and the wandering-pursuit bounced. Interiors wall NPCs on arbitrary
   sides. Prevention: probe the collision grid and pick a walkable adjacent tile + the facing
   toward the NPC; key the talk on the completion FLAG, not a fixed facing.
+
+## 2026-07-22 — Unbounded menu navigation vs field scripts (the 110k-frame Joey stall)
+- **Symptom:** real-HW: training on Route 116 froze 110k frames at (11,7) next to
+  Youngster Joey; batch run02 froze 20k frames after a mid-training evolution. No derail,
+  no Manual — a silent wedge.
+- **Root cause:** `change_lead_party_pokemon` → `StartMenuNavigator.open_start_menu`
+  waits UNBOUNDED for the Start menu — but a field script (trainer sight-line, leftover
+  evolution scene) LOCKS input, so the menu can never open. Story code called it raw at
+  three sites.
+- **Fix:** `_yield_bounded` (hard frame cap on any sub-generator) + `_rotate_lead_safely`
+  (script-active pre-check; bounded drive; on interrupt: close menu, ride out scene,
+  retry ×3, else skip the rotation). Proven by repro A/B on evostall.ss1.
+- **Prevention rules:** (a) NEVER drive a stock menu navigator unbounded from story code —
+  wrap in `_yield_bounded`; (b) any action that OPENS A MENU must check no field script is
+  active first, and treat "script fired mid-menu" as an expected interruption (close, ride
+  out, retry) — this is the first concrete slice of #24-interrupt.
