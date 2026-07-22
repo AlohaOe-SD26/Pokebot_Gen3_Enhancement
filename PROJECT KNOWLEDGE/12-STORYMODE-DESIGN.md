@@ -396,14 +396,21 @@ Rustboro –(S)→ **Route 104** –(S)→ Route 105 –…; Route 104 also –(
 108 –(E off -40)→ **Route 109** –(N)→ **Slateport City** –(N)→ Route 110 (→ Mauville, Gym 3).
 Granite Cave entrance is on **Route 106 (48,16)**.
 
-**Chapter 6 — sail to Dewford.** Completion: on map `DEWFORD_TOWN`.
-1. From Rustboro (16,53) walk **South** across the map connection onto **Route 104** (leg-by-leg;
-   the global navigator won't one-shot it). `⚠ VALIDATE LIVE` the exact south-exit corridor.
-2. Reach **Mr. Briney's house** (a warp on south Route 104 near (17,50); the door warp resolved
-   oddly in static recon — `⚠ VALIDATE LIVE`). Enter.
-3. Talk to **Briney (5,3)** → multichoice `MULTI_BRINEY_OFF_DEWFORD` → pick **Dewford = index 0**
-   (`wait_for_multiple_choice_question(0)`) → ride out the sail cutscene → arrive `DEWFORD_TOWN`.
-   `✓ script-verified` (Route104_MrBrineysHouse scripts): after the sail, `VAR_BOARD_BRINEY_BOAT_STATE=1`.
+**Chapter 6 — sail to Dewford.** Completion: on map `DEWFORD_TOWN`. `sail_to_dewford()` is a
+scaffold in early_game.py; **navigation not yet complete** — validated findings (2026-07-21):
+1. From Rustboro (16,53), **walk Down** → crosses the south connection onto **ROUTE104 (16,0)**
+   (north strip). ✅ VALIDATED (leg-by-leg; the global navigator won't one-shot it).
+2. **‼ Route 104 is split by a river.** From (16,0) you can ONLY reach the north strip (y<~20;
+   e.g. the flower shop (5,19)); **all tiles y≥30 are unreachable directly** (reachability-probe
+   VALIDATED). So you canNOT walk straight south to Briney.
+3. **Briney's house door = ROUTE104 (17,50)** (recon-confirmed: warp resolves to map (17,0);
+   (5,18) is the Pretty-Petal flower shop). It sits on the SOUTH beach (y=50).
+4. **The path Rustboro→Briney goes BACK THROUGH Petalburg Woods:** Route104 north → Woods →
+   Route104 SOUTH beach → door (17,50). Reuse/mirror `cross_petalburg_woods` (it crosses
+   south→north; build the north→south reverse) + a Route104-south leg to (17,50).
+   **⚠ VALIDATE LIVE — this leg still needs building.**
+5. Talk to **Briney (5,3)** → multichoice `MULTI_BRINEY_OFF_DEWFORD` → pick **Dewford = index 0**
+   (`wait_for_multiple_choice_question(0)`) → ride out → arrive `DEWFORD_TOWN`. `✓ script-verified`.
 
 **Chapter 7 — Granite Cave (Steven's Letter) + Gym 2 (Brawly).**
 - **Dewford Town map:** PC entrance = warp **#1**; Gym entrance = warp **#2**; Hall = #0-ish;

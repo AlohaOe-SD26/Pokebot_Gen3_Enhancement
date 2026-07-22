@@ -1489,3 +1489,18 @@ User: fighting Roxanne with Torchic (Fire, bad vs Rock) + an L6-7 bench, the bot
   `while PARTY_MENU: press A` loop) still exists for any strategy that DOES rotate — needs a
   live repro to pin `map_battle_party_index` / the party-menu submenu handling. The Story
   bot now sidesteps it in trainer battles.
+
+## 2026-07-21 (night, for Fable) — Fable handoff docs + sail-leg scaffold/recon
+- Added `FABLE-5-KICKOFF.md` (paste-able briefing for the incoming agent) + `14-AGENT-PLAYBOOK.md`
+  (craft/method) + the area-research template; wired into 00-README + a standing CLAUDE.md rule.
+- Deep-mapped the Dewford→Slateport arc (§Ch6-8): accurate ROM-recon atlas, script-verified beats
+  (Briney sail idx0; Steven's Letter → FLAG_DELIVERED_STEVEN_LETTER + TM47 Steel Wing), the
+  Gabby&Ty DOUBLE battle in Slateport, and the reusable gym/boss prep pattern. Unvalidated bits
+  tagged ⚠ VALIDATE LIVE.
+- `sail_to_dewford()` scaffold: VALIDATED the Rustboro(16,53)→ROUTE104(16,0) south crossing and
+  that **Briney's door = ROUTE104 (17,50)**. Discovered **Route 104 is river-split** — from the
+  north strip you can't reach y≥30, so the path to Briney runs BACK through Petalburg Woods
+  (Route104 N → Woods → Route104 S beach → door). That reverse-woods leg still needs building
+  (precise spec in the docstring + §Ch6). Not wired into _play (unvalidated).
+- Harness: post-rival save-hook now gated behind SAVE_POST_RIVAL=1 (it had clobbered post_rival.ss1
+  during an unrelated mart test). Regenerated a clean post_rival.ss1 (Rustboro (16,53), STATE=8).

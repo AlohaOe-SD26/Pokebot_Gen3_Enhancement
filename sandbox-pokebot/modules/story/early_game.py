@@ -1943,3 +1943,103 @@ def fight_rustboro_rival() -> Generator:
         raise BotModeError("Rustboro rival battle ended without a win or a whiteout.")
     yield from wait_until_truly_controllable()
     context.message = "Story: beat the Rustboro rival — off toward Dewford."
+
+
+def sail_to_dewford() -> Generator:
+    """After the Rustboro rival, sail from Mr. Briney's cottage to Dewford Town.
+
+    ROUTE (§Ch6): Rustboro (post-rival ~(16,53)) → walk SOUTH across the map connection onto
+    ROUTE104 → Mr. Briney's house (a warp on south Route 104) → talk to Briney (5,3) → the
+    "where are we bound?" multichoice → pick **Dewford (index 0)** → ride out the sail cutscene.
+    GOAL/END: on `DEWFORD_TOWN`.
+
+    STORY CONDITION: `DEFEATED_RIVAL_RUSTBORO` set (rival done). Idempotent: returns immediately
+    if already in Dewford.
+
+    ⚠ NAVIGATION NOT YET COMPLETE (validated findings for whoever finishes this):
+      • Rustboro (16,53) → walk **Down** crosses the south connection onto ROUTE104 at
+        **(16,0)** (north strip). VALIDATED.
+      • **Route 104 is split by a river.** From (16,0) you can only reach the NORTH strip
+        (y<~20, e.g. the flower shop at (5,19)); tiles at y≥30 are UNREACHABLE directly.
+        VALIDATED via a reachability probe.
+      • **Briney's house door = ROUTE104 (17,50)** (recon-confirmed: resolves to map (17,0);
+        (5,18) is the Pretty-Petal flower shop, NOT Briney's). It's on the SOUTH beach (y=50).
+      • Therefore the path Rustboro→Briney must go **back THROUGH Petalburg Woods**
+        (Route104 north → Woods → Route104 SOUTH beach → door (17,50)). Reuse/mirror
+        `cross_petalburg_woods` (it does south→north; you need north→south) + a Route104-south
+        leg to (17,50). THIS LEG STILL NEEDS BUILDING + LIVE VALIDATION.
+      • Sail mechanic (script-verified): talk to Briney (5,3) → "where are we bound?"
+        multichoice → **Dewford = index 0** → ride out → arrive DEWFORD_TOWN."""
+    from modules.memory import get_event_flag
+    from modules.modes.util.tasks_scripts import wait_for_multiple_choice_question
+    from modules.modes.util.global_navigation import navigate_to_anywhere
+    from modules.tasks import task_is_active
+    from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable  # noqa: F401
+
+    DEWFORD = MapRSE.DEWFORD_TOWN.value
+    ROUTE104 = MapRSE.ROUTE104.value
+    BRINEY_HOUSE = MapRSE.ROUTE104_MR_BRINEYS_HOUSE.value
+
+    if _map_group_number() == DEWFORD:
+        return
+    context.message = "Story: heading south to Mr. Briney's cottage to sail to Dewford..."
+    yield from wait_until_truly_controllable()
+
+    # 1) Cross Rustboro's south edge onto Route 104 (leg-by-leg — the global navigator
+    #    won't one-shot this connection). Walk Down until the map changes.
+    steps = 0
+    while _map_group_number() not in (ROUTE104, BRINEY_HOUSE, DEWFORD) and steps < 45:
+        _check_abort()
+        context.emulator.press_button("Down")
+        yield
+        yield from wait_for_n_frames(12)
+        steps += 1
+
+    # 2) Walk DOWN Route 104 to Mr. Briney's house DOOR — the warp at ROUTE104 **(17,50)**
+    #    (recon-confirmed: it resolves to map (17,0) = the house; (5,18) is the flower shop).
+    #    Target the Route104 door tile directly — `navigate_to_anywhere(BRINEY_HOUSE)` fails
+    #    because the house-warp resolves oddly. Stepping onto (17,50) warps us inside.
+    for _ in range(25):
+        if _map_group_number() in (BRINEY_HOUSE, DEWFORD):
+            break
+        try:
+            yield from navigate_to_anywhere(ROUTE104, (17, 50), avoid_encounters=True, avoid_scripted_events=False)
+        except BotModeError:
+            yield from wait_for_n_frames(20)
+    if _map_group_number() not in (BRINEY_HOUSE, DEWFORD):
+        raise BotModeError(
+            "Sail: can't reach Briney's door (17,50) directly — Route 104 is river-split; "
+            "the path runs back through Petalburg Woods to the south beach (see docstring / "
+            "§Ch6). This leg still needs building."
+        )
+
+    # 3) Talk to Briney (5,3): advance the dialogue; when the "where are we bound?" multichoice
+    #    appears, pick Dewford (index 0). Tolerant loop (Briney's flow may vary by story state).
+    if _map_group_number() == BRINEY_HOUSE:
+        yield from wait_until_truly_controllable()
+        context.emulator.press_button("Up")  # face Briney at (5,3) from (5,4)
+        yield
+        yield from wait_for_n_frames(4)
+        handled = False
+        for _ in range(500):
+            if _map_group_number() == DEWFORD or _map_group_number() == ROUTE104:
+                break
+            if task_is_active("Task_HandleMultichoiceInput") and not handled:
+                yield from wait_for_multiple_choice_question(0)  # Dewford = index 0
+                handled = True
+                continue
+            context.emulator.press_button("A")
+            yield
+            yield from wait_for_n_frames(6)
+
+    # 4) Ride out the sail cutscene until we arrive in Dewford.
+    frames = 0
+    while _map_group_number() != DEWFORD:
+        _check_abort()
+        context.emulator.press_button("B")
+        frames += 1
+        if frames > 8000:
+            raise BotModeError("Sail: never arrived in Dewford after talking to Mr. Briney.")
+        yield
+    yield from wait_until_truly_controllable()
+    context.message = "Story: arrived in Dewford Town!"
