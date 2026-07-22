@@ -1,5 +1,30 @@
 # Story-Mode Bot — Deep Design (Pass 1 + Pass 2 + Pass 3 + Pass 4 verified)
 
+## ⭐ STORY PROGRESS LEDGER (what's built vs next — read this first) — 2026-07-21
+Code: `sandbox-pokebot/modules/story/early_game.py` (segment functions) wired into
+`plugins/custom_modes/story_mode.py` `StoryMode._play` (flag-gated, idempotent resume).
+Status key: ✅ built + validated · 🚧 scaffold/partial · 📋 mapped, not built · ⬜ not mapped.
+
+| Ch | Beat | Code (fn) | Completion signal | Status |
+|----|------|-----------|-------------------|--------|
+| 1 | Intro → starter → Route 103 rival → Pokédex | `help_birch_and_choose_starter`, `fight_route103_rival`, `return_to_lab_and_get_pokedex` | `RECEIVED_POKEDEX_FROM_BIRCH` | ✅ |
+| 2 | Petalburg → Wally catch tutorial | `do_petalburg_gym_and_wally_tutorial` | Wally flags | ✅ |
+| 3 | Route 104 → Petalburg Woods → Rustboro | `travel_to_petalburg`, `travel_to_petalburg_woods`, `cross_petalburg_woods`, `travel_route104_north_to_rustboro` | in Rustboro | ✅ |
+| 4 | **Gym 1 — Roxanne** | `catch_starter_team` + `_prepare_for_fight` + `do_rustboro_gym` | `BADGE01_GET` | ✅ |
+| 5a | Devon Goods (theft → Rusturf → recover) | `recover_devon_goods` | `RECOVERED_DEVON_GOODS` | ✅ |
+| 5b | Return goods → **PokéNav + Match-Call tutorial** | `return_devon_goods_and_get_pokenav`, `handle_pokenav_match_call_tutorial` (faithful; state-write fallback) | `RECEIVED_POKENAV`, `RUSTBORO_CITY_STATE=7` | ✅ (real-HW confirmed) |
+| 5c | **Rustboro rival** (type-lead + level-floor + heal + attempt-cap) | `_play §5c` + `_lead_best_matchup`, `train_team`, `fight_rustboro_rival` | `DEFEATED_RIVAL_RUSTBORO` | ✅ (fresh run won) |
+| 6 | Sail to Dewford (via Petalburg Woods → beach → Briney) | `sail_to_dewford` **(SCAFFOLD)** | on `DEWFORD_TOWN` | 🚧 nav TODO (§Ch6: river-split; door=(17,50)) |
+| 7 | Granite Cave (Steven's Letter, TM47) + **Gym 2 — Brawly** | — | `DELIVERED_STEVEN_LETTER`, `BADGE02_GET` | 📋 §Ch7 (mapped) |
+| 8 | Sail to Slateport + Slateport (Gabby&Ty DOUBLE battle) | — | — | 📋 §Ch8 (reconned) |
+| 9+ | Route 110 → **Gym 3 Mauville (Wattson)** → … → Elite Four | — | — | ⬜ (Overview table §1/§2 has the route + item beats) |
+
+**You are at the Ch6 boundary.** `post_rival.ss1` (`tools/story-dev/saves/`) = Rustboro (16,53),
+`DEFEATED_RIVAL_RUSTBORO`, `RUSTBORO_CITY_STATE=8`. Next: finish `sail_to_dewford` (build the
+Petalburg-Woods north→south reverse + the beach leg to door (17,50)), then Ch7. Details below +
+in §Ch6–8. Test infra: `tools/story-dev/` (see its README).
+
+
 > **Pass 4 (2026-07-20)** re-derived every fact independently from ROM + two/three
 > external walkthroughs and diffed against the doc. It **confirmed all five Pass-3
 > corrections** (no regressions) and found **two NEW content-detail errors** (the
