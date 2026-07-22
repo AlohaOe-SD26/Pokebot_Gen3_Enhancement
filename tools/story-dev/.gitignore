@@ -6,3 +6,4 @@ recon_*.txt
 # New states drivers write land in saves/ — commit only curated checkpoints, not scratch
 saves/2*.ss1
 saves/midstuck.ss1
+livetest-runs/

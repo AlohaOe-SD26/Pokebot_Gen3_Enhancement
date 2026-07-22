@@ -27,6 +27,12 @@
   and that the shiny reorder didn't disturb normal battle routing.
 - Punch list: +#24-interrupt (interruption intelligence), +#24-movelock (Disable/Encore/
   Taunt-aware move choice) — user's slate-for-later items.
+- **NEW: "Conduct Live Tests" capability** (`/livetest`, `tools/story-dev/livetest.py`):
+  N-run batch sweeps (fresh→frontier or scoped from any checkpoint) in isolated
+  parallel lane profiles + auto summaries → a LIVE TEST REPORT (frequency + context
+  signature + universal-bug vs nuanced-situation triage) reviewed WITH the user before
+  fixes. ‼ Keep `END_MARKERS` in livetest.py in sync with the story's content-end
+  message whenever the frontier moves. Never run lanes while the user live-tests.
 
 ### ⭐⭐⭐ Session 2026-07-22 (Fable 5, latest) — CHAPTER 8a DONE: the bot reaches SLATEPORT (SANDBOX, pushed)
 - **`sail_to_slateport()` BUILT + VALIDATED (0 derails)**: `brawly_done.ss1` → gym exit →

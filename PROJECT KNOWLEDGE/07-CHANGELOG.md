@@ -1620,3 +1620,20 @@ Implemented on the user's go-ahead, in the order they set. All proven.
   sail → Slateport PC → clean content-end stop. ~75k frames, 0 derails / 0 whiteouts.
 - Punch list: added #24-interrupt (interruption intelligence) and #24-movelock
   (Disable/Encore/Taunt-aware move choice) per the user's slate-for-later items.
+
+## 2026-07-22 — LIVE TEST harness: "Conduct Live Tests" batch runner + /livetest command
+User-designed capability for deep debug sweeps (discussed + built while their real-HW
+test ran): `tools/story-dev/livetest.py` runs N independent Story runs (default 10,
+default FRESH new game → the current frontier, or any saves/ checkpoint for fast
+scoped sweeps), in parallel LANES (default 3), each in an isolated auto-created
+`repro-live<K>` profile (a leased-profile pool guarantees two processes never share a
+profile). Per run: harness log + stdout + auto-extracted summary.json (frontier
+reached / hang / Manual / timeout-kill, derail + whiteout counts, shiny events, final
+flags/party, last positions); plus a batch summary.json. `.claude/commands/livetest.md`
+defines the workflow: pre-flight (no lanes while the user live-tests; check
+END_MARKERS matches the current content-end message), run, then a LIVE TEST REPORT
+reviewed WITH the user before any fix: per-anomaly frequency (x/N) + context
+signature + classification (universal bug vs NUANCED SITUATION needing detection —
+never blanket-fix a nuance — vs known-issue vs variance) + evidence + proposed fix +
+regression risk. Batch artifacts gitignored (livetest-runs/). Smoke-tested (1 scoped
+lane: runner mechanics + summarizer + end-marker detection).
