@@ -1468,3 +1468,24 @@ whether you buy 10/20/30). So buying in tens maximizes free Premier Balls at ide
 - `provision_poke_balls` now calls it. Added `_ball_count(name)` helper.
 - VALIDATED (harness, post_rival.ss1 at the Rustboro mart): buying 20 → 2 purchases →
   Poké Balls 17→37, Premier Balls 1→3 (**+2 free**), money 4984→984. Correct.
+
+## 2026-07-21 (later) — Trainer/gym/E4 battles must fight through — fix the Roxanne switch hang
+User: fighting Roxanne with Torchic (Fire, bad vs Rock) + an L6-7 bench, the bot hung
+(state=PARTY_MENU) trying to switch to the weak/empty bench, then dropped to Manual.
+- ROOT: `LevelUpTravelBattleStrategy.decide_turn` only intercepted trainer battles when a
+  "strongest move" existed; otherwise it fell through to the parent's rotate/flee path.
+  Rotating into a weak bench stalls the in-battle party-menu switch
+  (battle_action_selection.py:106 `while PARTY_MENU: press A`), and fleeing a trainer battle
+  raises. Either way the gym battle didn't fight through.
+- FIX (our file, clean): in a trainer battle with no strongest move, KEEP ATTACKING with any
+  in-PP move (Struggle if none) — never proactively rotate or flee. When the active mon
+  faints, `handle_fainted_pokemon` brings in the next one (that after-faint path already
+  excludes fainted/active mons — the double-battle fix). So trainer/gym/E4 battles always
+  play through to a win or a clean whiteout (→ recovery), never a party-menu stall.
+- VALIDATED (mock): trainer + no strongest move → returns USE_MOVE (first usable), not
+  Rotate/RunAway.
+- OPEN (for Fable): the underlying framework rotation-execution stall (a mid-battle switch
+  into an un-sendable/mis-mapped slot can spin `scroll_to_party_menu_index` / the
+  `while PARTY_MENU: press A` loop) still exists for any strategy that DOES rotate — needs a
+  live repro to pin `map_battle_party_index` / the party-menu submenu handling. The Story
+  bot now sidesteps it in trainer battles.

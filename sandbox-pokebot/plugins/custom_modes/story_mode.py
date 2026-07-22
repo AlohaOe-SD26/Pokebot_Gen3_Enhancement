@@ -60,11 +60,27 @@ class LevelUpTravelBattleStrategy(LevelUpLeadBattleStrategy):
     def decide_turn(self, battle_state):
         if battle_state.is_trainer_battle:
             util = BattleStrategyUtil(battle_state)
-            move = util.get_strongest_move_against(
-                battle_state.own_side.active_battler, battle_state.opponent.active_battler
-            )
+            active = battle_state.own_side.active_battler
+            move = util.get_strongest_move_against(active, battle_state.opponent.active_battler)
             if move is not None:
                 return TurnAction.use_move(move)
+            # No "strongest" (damaging, in-PP) move. A trainer / gym-leader / Elite-Four
+            # battle CANNOT be fled and must NEVER stall (user directive 2026-07-21). Do NOT
+            # fall through to the parent's rotate/flee path:
+            #   • fleeing a trainer battle raises ("can't run from a trainer"), and
+            #   • rotating into a weak/underlevelled bench can HANG the in-battle party-menu
+            #     switch (battle_action_selection.py — "while PARTY_MENU: press A") — this is
+            #     the Roxanne hang the user hit with Torchic (Fire) vs Rock + an L6-7 bench.
+            # Instead keep ATTACKING with any move that still has PP (the game auto-uses
+            # STRUGGLE if none), so the fight plays through to a win or a clean whiteout
+            # (which triggers StoryMode's recovery). When the active mon faints,
+            # handle_fainted_pokemon brings in the next one — we never proactively rotate in
+            # a trainer battle, which sidesteps the party-menu-switch hang entirely.
+            if active is not None:
+                for i, learned in enumerate(active.moves):
+                    if learned is not None and util.move_is_usable(learned):
+                        return TurnAction.use_move(i)
+            return TurnAction.use_move(0)  # nothing usable → the game uses Struggle
         return super().decide_turn(battle_state)
 
     def which_move_should_be_replaced(self, pokemon, new_move) -> int:

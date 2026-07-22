@@ -476,3 +476,15 @@ double-battle exclusion of the already-active battlers, so it returns the partne
 which can't be selected. **Fix:** re-add the `is_double_battle` left/right-battler skip (mirror
 `DefaultBattleStrategy`). **Prevention:** any `choose_new_lead_after_faint` override MUST skip
 the currently-active battler(s) in double battles; the replacement can only be a benched mon.
+
+## 2026-07-21 — Gym/trainer battle hung on an in-battle switch into a weak bench
+**Symptom (user):** Roxanne with Torchic (Fire vs Rock) + L6-7 bench — bot stuck at the
+in-battle PARTY_MENU (state=3), then Manual. **Root cause:** the trainer-battle strategy fell
+through to the parent's rotate/flee logic when it had no "strongest move"; rotating into the
+weak bench stalled the party-menu switch (`while PARTY_MENU: press A`) and fleeing a trainer
+raises. **Fix:** trainer battles now ATTACK-only (never proactively rotate/flee); faints are
+handled reactively by the after-faint path. **Prevention:** an un-fleeable battle (trainer /
+gym / E4) must resolve every turn to an ATTACK or a valid switch — never a flee (raises) and
+never a switch that can't complete; when in doubt, attack (the game Struggles) so the fight
+plays through to win-or-whiteout. Any switch target must be a benched, non-fainted, non-active
+mon that can actually be selected.
