@@ -464,10 +464,29 @@ def ensure_facing_direction(facing_direction: str | Direction | tuple[int, int])
     if isinstance(facing_direction, Direction):
         facing_direction = facing_direction.button_name
 
+    scene_frames = 0
     while True:
         avatar = get_player_avatar()
         if avatar.facing_direction == facing_direction:
             return
+
+        # FORK (2026-07-22, story-bot hardening): a field script can fire the very
+        # moment we start turning — on real hardware a Route 116 trainer's sight-line
+        # intro (EventScript_ShowTrainerIntroMsg) opened its msgbox mid-turn and this
+        # stock loop pressed direction keys at a script-locked avatar for 85,000+
+        # frames. While a script holds the field, advance IT (B) instead of turning —
+        # a trainer intro then proceeds to its battle (which the battle listener
+        # handles) and the turn resumes afterwards. Bounded so a scene that never
+        # ends surfaces as a BotModeError for the caller's recovery instead of a hang.
+        if get_global_script_context().is_active:
+            scene_frames += 1
+            if scene_frames > 4800:
+                from modules.modes import BotModeError
+
+                raise BotModeError("ensure_facing_direction: a field script never released the avatar.")
+            context.emulator.press_button("B")
+            yield
+            continue
 
         if (
             get_game_state() == GameState.OVERWORLD
