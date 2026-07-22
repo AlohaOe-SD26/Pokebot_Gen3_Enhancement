@@ -330,6 +330,44 @@ y=53** → battle → win (`DEFEATED_RIVAL_RUSTBORO`). Harness-proven: staging�
 - **NEXT build:** Route 104 south → Mr. Briney's cottage → sail to Dewford → Granite Cave
   (Steven's Letter) → Gym 2 (Brawly, dark-cave puzzle) → Knuckle Badge.
 
+### §Ch6 ATLAS — Route 104 S → Mr. Briney → Dewford → Granite Cave → Gym 2 (static ROM recon, 2026-07-21)
+Recon via `scratchpad/maprecon.py` (static `get_map_data`, no navigation). Coordinates are
+map-local. **NOT yet built or live-verified** — this is the build map for the next session.
+
+- **ROUTE 104 (0,19) — size 40×80.** Connections: **North→Rustboro**, **South→Route 105**,
+  East→Petalburg. Key objects: `Route104_EventScript_Rival` at **(17,50)** — this is the
+  rival's POST-battle appearance near Briney's house (the actual battle fires at the Rustboro
+  y=53 row, harness-proven; do NOT expect the battle here). Mr. Briney's-house entrance warp
+  is on Route 104 near (17,50); the Pretty Petal flower shop entrance is up north (~(5,18)).
+  Cut tree at (35,22) (`EventScript_CutTree`) gates the NE; items scattered (Potion (5,8),
+  PP Up (39,15), X Accuracy (37,22), Poké Ball (29,53)).
+- **MR. BRINEY'S HOUSE (17,0) — 12×9.** `…Briney` NPC at **(5,3)**, Peeko (6,3). Exits at
+  (5,8)/(6,8) → Route 104. **Talk to Briney → he sails you to Dewford.**
+- **DEWFORD TOWN (0,11) — 20×20.** Connections: North→Route 106, East→Route 107. Warps:
+  PC/houses/hall at (3,3),(2,10),(8,17),(17,14),(8,8). `DewfordTown_EventScript_Briney` at
+  **(12,9)** = the boat dock (Briney ferries Dewford↔Route104/Slateport). OldRodFisherman
+  (12,14). **Gym entrance:** Dewford Gym warp is Dewford **warp#2** (from the gym side,
+  (5,27)/(6,27)).
+- **DEWFORD GYM (3,3) — 18×28 (DARK gym).** `Brawly` at **(4,3)** (top). Trainers: Takao
+  (2,18), Jocelyn (15,3), Laura (12,25), Cristian (7,8), Lilith (16,9), Brenden (14,12);
+  GymGuide (5,24). Entry warp (5,27)/(6,27) at the bottom. The room is dark (Flash helps but
+  isn't required); path bottom→top to Brawly. **Beat Brawly → Knuckle Badge (BADGE02).**
+- **GRANITE CAVE (Route 106, west of Dewford):** `GRANITE_CAVE_1F (24,7)` entrance warp
+  (37,12)→Route 106; internal warps to B1F. `…B1F (24,8)` warp (12,3)→Steven's Room. Steven
+  is in **GRANITE_CAVE_STEVENS_ROOM (24,10)** at **(7,8)** — **deliver Steven's Letter here.**
+  (Granite Cave also holds items: Escape Rope 1F (17,7), Poké Ball B1F (15,21), Repel/Rare
+  Candy B2F; B2F has Rock-Smash rocks — later.)
+
+**Build plan (next session):** after the rival (§5c) — (1) `_navigate…` Route 104 SOUTH to
+Mr. Briney's house entrance → enter → talk to Briney (5,3) → sail (anchor: arrive DEWFORD_TOWN).
+(2) Dewford: deliver **Steven's Letter** — Route 106 W → Granite Cave 1F→B1F→Steven's Room
+(7,8), talk to Steven (anchor a letter/received flag). (3) Dewford **Gym 2 (Brawly)** — heal,
+lead-strongest (Brawly = Fighting; lead a Flying/Psychic if we have one, else strongest),
+navigate the dark gym bottom→top to Brawly (4,3), win → **BADGE02**. **Hardening:** map each
+warp live before trusting it (house-entrance warps resolved oddly in static recon); verify the
+Briney sail trigger + the Granite Cave floor-warp chain; heal before Brawly; expect Brawly's
+Makuhita/Machop to hit hard — train to band before the gym like Roxanne.
+
 ---
 
 ## §DA. DIALOGUE AWARENESS — read the text to drive interactions (user 2026-07-20)
