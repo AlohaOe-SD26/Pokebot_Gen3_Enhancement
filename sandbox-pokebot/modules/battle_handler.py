@@ -19,6 +19,7 @@ from modules.debug import debug
 from modules.items import Item, get_item_by_index
 from modules.keyboard import handle_naming_screen
 from modules.memory import get_game_state, GameState, read_symbol, unpack_uint16
+from modules.menu_parsers import get_party_menu_cursor_pos
 from modules.menuing import scroll_to_party_menu_index
 from modules.player import get_player
 from modules.plugins import plugin_should_nickname_pokemon
@@ -240,7 +241,16 @@ def handle_battle(strategy: BattleStrategy) -> Generator[None, None, HandledBatt
         elif task_is_active("Task_EvolutionScene"):
             yield from handle_evolution_scene(strategy)
         elif (
-            (instruction == "BattleScript_HandleFaintedMon" or task_is_active("Task_HandleChooseMonInput"))
+            (
+                # FORK (2026-07-22, Ch9 hang): the script pointer can already have ADVANCED
+                # past HandleFaintedMon to FaintedMonTryChoose by the time this loop regains
+                # control (the faint surfaced while a sub-handler held the generator). The
+                # stock condition then matches NOTHING and the default branch B-spams a
+                # forced choose-mon menu — which cannot be cancelled — forever. Same flow,
+                # same handler; just recognize the later script step too.
+                instruction in ("BattleScript_HandleFaintedMon", "BattleScript_FaintedMonTryChoose")
+                or task_is_active("Task_HandleChooseMonInput")
+            )
             and get_battle_state().own_side.is_fainted
             and len(get_party().non_fainted_pokemon) > 0
         ):
@@ -427,29 +437,44 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
         new_lead_index = battle_state.map_battle_party_index(new_lead_index)
 
     yield from scroll_to_party_menu_index(new_lead_index)
-    # FORK (2026-07-22, story-bot hardening): the stock loop pressed A UNBOUNDED. If the
-    # scrolled-to slot can't actually be sent out (index mis-mapping via
-    # map_battle_party_index, a fainted/egg slot, or a submenu whose first entry isn't
-    # SHIFT/SEND OUT), pressing A forever just cycles menus — a real-HW run sat in the
-    # after-faint party menu for 130k+ frames at Roxanne with a weak bench. Bounded +
-    # self-correcting instead: if the menu persists on this slot, back out of any submenu
-    # (B) and advance the cursor (Down), sweeping the party until SOMETHING is sent out;
-    # give up after ~100s and return so the outer dispatch can re-map and retry.
+    # FORK (2026-07-22, story-bot hardening; REWRITTEN same day after the Ch9 wedge): the
+    # stock loop pressed A UNBOUNDED, and the first bounded replacement still spammed A
+    # blindly — with the cursor parked on a fainted mon (and slot 1 ALSO fainted, so a
+    # single Down wasn't enough) the A-spam just cycled popup -> "no energy left" ->
+    # list -> popup on the same slot forever, because the rare corrective Down landed
+    # during message/popup states where it is swallowed. Deterministically reproduced
+    # (Ch9 Route 110 wild battle, Marshtomp+Dustox both down) and the recipe below was
+    # proven on the live wedge state: read WHERE the menu actually is each step and
+    # press the one button that advances it, with release gaps so every press registers.
+    party_in_menu = get_party()
+    alive_slots = [
+        i for i, mon in enumerate(party_in_menu)
+        if mon is not None and not mon.is_egg and mon.current_hp > 0
+    ]
     frames = 0
     while get_game_state() == GameState.PARTY_MENU:
-        if frames and frames % 600 == 0:
-            for _ in range(4):
-                context.emulator.press_button("B")
-                yield
-                yield
-            context.emulator.press_button("Down")
+        try:
+            cursor = get_party_menu_cursor_pos(len(party_in_menu))["slot_id"]
+        except Exception:
+            cursor = None
+        if task_is_active("Task_PrintAndWaitForText") or task_is_active("Task_ReturnToChooseMonAfterText"):
+            button = "A"  # dismiss "X has no energy left to battle!"
+        elif task_is_active("Task_HandleSelectionMenuInput"):
+            # Shift/Summary/Cancel popup: SHIFT is first, so A on a living mon sends
+            # it out; on a fainted mon the popup is useless — close it.
+            button = "A" if cursor in alive_slots else "B"
+        elif cursor is not None and cursor not in alive_slots:
+            button = "Down"  # walk the cursor to a living slot
+        else:
+            button = "A"
+        for _ in range(2):
+            context.emulator.press_button(button)
             yield
+        for _ in range(6):
             yield
-        context.emulator.press_button("A")
-        frames += 1
+        frames += 8
         if frames > 6000:
             return
-        yield
 
 
 @debug.track
