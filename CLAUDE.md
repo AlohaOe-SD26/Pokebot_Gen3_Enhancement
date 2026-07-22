@@ -189,3 +189,18 @@ the newest commit recorded in `40cakes repo/UPDATE-LOG.md`.
   the mirror. Sandbox features are promoted into custom-pokebot ONLY after
   explicit user approval, together with their DIVERGENCE-LOG entries and
   docs; after promotion the sandbox is re-based on the new custom.
+
+### Story-bot craft & documentation excellence (user directive, 2026-07-21)
+- **Read `PROJECT KNOWLEDGE/14-AGENT-PLAYBOOK.md` every session** (right after the
+  handoff). It is the accumulated method for building the Story bot: the faithful
+  test harness, the debugging method (reproduce → fault-inject A/B → fix → prove),
+  static ROM recon + Area Atlases, the renderer-gated faithful-vs-fallback pattern,
+  and the recurring bug patterns + prevention rules. Follow it; keep it current.
+- **Prove every fix** (reproduce first; A/B where possible) — no guessing. **Faithful
+  to natural gameplay** — a state-write is a documented last-resort fallback that must
+  reproduce vanilla's exact end-state. **Never hang / never silently derail** — bound
+  every loop; un-fleeable battles must fight through; guard every "did it work?".
+- **Document with INTENT + WHY**, not just what. Per completed item: changelog +
+  (decision if a real choice) + (mistake + one-line prevention rule if a bug was fixed)
+  + handoff. When you learn a new trick, add it to the playbook. Retire stale rules.
+  Aim to leave the docs so the next agent builds/debugs/documents *better* than the last.

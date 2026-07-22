@@ -7,7 +7,8 @@ reads here FIRST. Created by the Claude Code Project Kit on 2026-07-17.
 | # | File | What it tells you | Type |
 |---|------|-------------------|------|
 | 1 | `04-HANDOFF.md` | Where we are RIGHT NOW + what's next | current-state |
-| 2 | `01-VISION-AND-DESIGN.md` | What this program is for; intent of each part | current-state |
+| 2 | `14-AGENT-PLAYBOOK.md` | **HOW to work on this excellently** — tools, debugging method, story-mapping method, faithfulness rules, bug patterns | reference |
+| 3 | `01-VISION-AND-DESIGN.md` | What this program is for; intent of each part | current-state |
 | 3 | `02-ARCHITECTURE.md` | How it's built; how to run it | current-state |
 | 4 | `03-PUNCH-LIST.md` | The work queue | current-state |
 | 5 | `05-KNOWN-ISSUES.md` | Open bugs and traps | current-state |

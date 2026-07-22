@@ -3,7 +3,30 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-07-20
+**Last updated:** 2026-07-21
+
+> **NEW AGENT / FABLE 5: read `14-AGENT-PLAYBOOK.md` right after this file.** It is the
+> accumulated craft (harness, debugging method, story-mapping, faithfulness rules, bug
+> patterns) — use it to build faster and prove every fix.
+
+### ⭐ Session 2026-07-21 (late) — battle-robustness + provisioning fixes (SANDBOX, pushed)
+All from real-hardware debug logs; each reproduced + fixed + committed:
+- **Faithful PokéNav Match-Call tutorial** now works (bot calls Mr. Stone; renderer-gated,
+  state-write fallback). Confirmed on real HW.
+- **Rustboro rival** wired (§5c): type-aware lead (Taillow beats grass Grovyle) + whole-team
+  **level floor ≥10** + safe heal + attempt-cap. **Failed-rival stuck-at-(16,53) bug FIXED**
+  (re-engage keyed off the live battle, not the persistent MET flag). A full fresh run BEAT
+  the rival → `post_rival.ss1` captured (Rustboro (16,53), STATE=8).
+- **Double-battle after-faint hang FIXED** (`level_up.py` chooser dropped the on-field-partner
+  exclusion → returned the partner's slot). A/B proven.
+- **Gym/trainer fight-through FIXED** (Roxanne hung switching Torchic into a weak bench):
+  trainer/gym/E4 battles now attack-through, never rotate/flee into a stall. A/B proven.
+- **Premier Ball batching**: buy Poké Balls in tens → 1 free Premier Ball each (validated +2).
+- **OPEN (for Fable):** the framework mid-battle **rotation-execution** stall
+  (`battle_action_selection.py`) still exists for any rotating strategy — needs a live repro to
+  pin `map_battle_party_index` / the party-menu submenu. Story bot sidesteps it in trainers.
+  Also next-to-build: the **sail leg** from `post_rival.ss1` (walk south (16,53)→Route104→
+  Mr. Briney→Dewford, §Ch6 atlas).
 
 ## What this project is
 Documents and enhances 40Cakes/pokebot-gen3 (Python shiny-hunting bot for
