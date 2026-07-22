@@ -1760,3 +1760,19 @@ which is why these crashes clustered at gyms. PROOF: the repro now plays the dou
 to a natural loss → whiteout → the story recovery path (the residual Manual in the log is
 the focused DRIVER lacking StoryMode's restart loop — the real bot's recovery is long-
 proven). New harness flag `--inject-faintbench` committed for regression use.
+
+## 2026-07-22 — Cave-aware training legs: the Granite Cave "not on connected maps" Manual drop FIXED
+TWO user fresh-run logs failed identically: Brawly-prep training inside Granite Cave, a
+trainee's HP dropped, and train_team healed toward the DEWFORD PC from INSIDE the cave —
+a cross-warp-level navigation the global navigator plan-fails ("Source (35/11 @
+GRANITE_CAVE_1F) and destination (2/10 @ DEWFORD_TOWN) are not on connected maps") →
+derails exhausted → Manual. The grass-return leg had the mirrored flaw.
+- NEW `_exit_training_cave_if_inside()` (threads the cave mouth (37,12) → Route 106
+  before any PC heal) + `_goto_training_area()` (threads Route 106 (48,16) → cave before
+  navigating to an in-cave spin tile). train_team now uses both.
+- PROOF: new harness driver `cavetrain` runs the exact failing round-trip from
+  dewford.ss1 — Dewford → cave spot (35,11) → exit → Dewford PC heal → back to the spot:
+  ALL LEGS PASS (a wild-battle move-learn en route handled cleanly too).
+- Prevention (playbook family): training areas inside warp-split dungeons need explicit
+  door-threading on BOTH the heal leg and the return leg — never hand a cross-level
+  destination to the global navigator.

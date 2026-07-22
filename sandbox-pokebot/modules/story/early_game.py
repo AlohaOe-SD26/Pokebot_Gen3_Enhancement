@@ -1321,6 +1321,38 @@ def _battler_slots() -> list[int]:
     return slots
 
 
+def _exit_training_cave_if_inside() -> Generator:
+    """If standing inside GRANITE CAVE (the Dewford-arc training area — the only in-cave
+    training spot so far), thread the cave mouth back out to Route 106. The global
+    navigator can NOT cross warp levels, so a heal that targets a town PC from inside a
+    cave plan-fails ('not on connected maps') — two real-HW runs dropped to Manual on
+    exactly that (2026-07-22, both at the (35,11) training spot with a hurt trainee)."""
+    cave_1f = MapRSE.GRANITE_CAVE_1F.value
+    if _map_group_number() == cave_1f:
+        yield from _enter_warp_by_navigation(
+            lambda: _map_group_number() != cave_1f,
+            MapRSE.GRANITE_CAVE_1F,
+            (37, 12),
+            label="Granite Cave exit (training heal)",
+        )
+        yield from wait_until_truly_controllable()
+
+
+def _goto_training_area(grass_map, grass_tile) -> Generator:
+    """Navigate to the training spin tile, threading the Granite Cave door first when the
+    area lives INSIDE the cave and we're currently outside it (Dewford/Route 106) — the
+    counterpart of `_exit_training_cave_if_inside` for the return trip after a heal."""
+    if grass_map is MapRSE.GRANITE_CAVE_1F and _map_group_number() != MapRSE.GRANITE_CAVE_1F.value:
+        yield from _enter_warp_by_navigation(
+            lambda: _map_group_number() == MapRSE.GRANITE_CAVE_1F.value,
+            MapRSE.ROUTE106,
+            (48, 16),
+            label="Granite Cave entrance (training)",
+        )
+        yield from wait_until_truly_controllable()
+    yield from _navigate_riding_out(grass_map, grass_tile, avoid_encounters=False)
+
+
 def train_team(
     target_level: int,
     scope: str = "whole",
@@ -1377,12 +1409,16 @@ def train_team(
                 yield from _rotate_lead_safely(target_slot)
 
             context.message = f"Story: training the team to Lv {target_level} in the grass…"
-            yield from _navigate_riding_out(grass_map, grass_tile, avoid_encounters=False)
+            yield from _goto_training_area(grass_map, grass_tile)
 
             yield from _story_spin(
                 lambda: _lead_level() >= target_level or _min_battler_hp_pct() <= heal_at
             )
             if _min_battler_hp_pct() <= heal_at and _lead_level() < target_level:
+                # CAVE-AWARE HEAL (2× real-HW Manual drops 2026-07-22): healing from INSIDE
+                # Granite Cave targeted the Dewford PC across warp levels — the global
+                # navigator can't do that ("not on connected maps"). Exit the cave first.
+                yield from _exit_training_cave_if_inside()
                 yield from heal_in_pokemon_center(heal_center)
     finally:
         set_swap_train(False)
