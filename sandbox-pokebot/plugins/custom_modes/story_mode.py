@@ -236,6 +236,11 @@ class StoryMode(BotMode):
     #: rather than grinding them up via half-XP swap-training (user 2026-07-21).
     TRAIN_CATCHUP_GAP = 6
 
+    #: How many times to (re)train + attempt the Rustboro rival before giving up and handing
+    #: to manual — bounds the whiteout→retrain loop so an underleveled/bad-matchup team can't
+    #: spin forever (each attempt escalates the training band via `_prepare_for_fight`).
+    RIVAL_MAX_ATTEMPTS = 3
+
     @staticmethod
     def name() -> str:
         return "Story"
@@ -849,18 +854,47 @@ class StoryMode(BotMode):
         if get_event_var("RUSTBORO_CITY_STATE") < 7:
             yield from handle_pokenav_match_call_tutorial()
 
-        # END OF BUILT CONTENT. The Rustboro rival (`fight_rustboro_rival`, trigger row
-        # located at y=53 x12-19) is built + the trigger is proven, but NOT wired here yet:
-        # if you pick Mudkip the rival LEADS a grass Grovyle, and our Marshtomp (Water/Ground)
-        # is 4× weak to Grass, so "lead strongest" is the wrong lead AND the thin early team
-        # can't clean up — even a Lv19 Marshtomp whited out in testing. Wiring an
-        # unreliably-winnable battle would create an infinite whiteout→retrain loop, so we
-        # stop cleanly here. Wiring it back needs type-aware lead selection (avoid a 4×-weak
-        # lead) + a stronger second mon (ties into the #24-team organic-team work).
+        # --- Segment 5c: Rustboro rival (south exit, y=53; gated on VAR_RUSTBORO_CITY_STATE==7,
+        #     which the tutorial-clear set). This rival is TYPE-COUNTERED: a Mudkip start makes
+        #     it lead a grass Grovyle vs our 4×-weak Marshtomp, so we (1) TRAIN to a rival band,
+        #     (2) pick a MATCHUP-based lead (not lead-strongest), and (3) cap attempts so a
+        #     thin team that can't win stops cleanly instead of looping forever. ---
+        if not _done("DEFEATED_RIVAL_RUSTBORO"):
+            self._rival_attempts = getattr(self, "_rival_attempts", 0) + 1
+            if self._rival_attempts > self.RIVAL_MAX_ATTEMPTS:
+                context.message = (
+                    f"Story: couldn't beat the Rustboro rival in {self.RIVAL_MAX_ATTEMPTS} tries "
+                    "(likely underleveled / bad matchup) — handing to manual so you can level up."
+                )
+                console.print(f"[bold yellow]{context.message}")
+                context.set_manual_mode()
+                return
+            from modules.map_data import PokemonCenter
+            from modules.story.early_game import (
+                RUSTBORO_TRAINING_GRASS,
+                _lead_best_matchup,
+            )
+
+            rival_fight = {
+                "keys": [MapRSE.RUSTBORO_CITY.value],
+                "band": (16, 19),  # rival ace ≈ Lv15-16; small margin (escalates on losses)
+                "grass": RUSTBORO_TRAINING_GRASS,
+                "heal": PokemonCenter.RustboroCity,
+            }
+            yield from self._prepare_for_fight(rival_fight)
+            # Mudkip start -> rival leads a grass Grovyle: lead the mon that best resists Grass
+            # (NOT our 4×-weak Marshtomp). On a balanced team this wins; a thin team caps out.
+            yield from _lead_best_matchup(["Grass"])
+            yield from fight_rustboro_rival()
+        else:
+            console.print("[dim]Story: Rustboro rival already defeated — skipping.[/]")
+        _guard("Rustboro rival", lambda: _done("DEFEATED_RIVAL_RUSTBORO"))
+
+        # END OF BUILT CONTENT. Next build: Route 104 south → Mr. Briney's cottage → sail to
+        # Dewford → Granite Cave (Steven's Letter) → Gym 2 (Brawly, Knuckle Badge).
         context.message = (
-            "Story: got the PokéNav + cleared the forced Match-Call tutorial — end of built "
-            "content. NEXT (WIP): type-aware lead for the grass rival, then Rustboro rival "
-            "(south, y=53) -> Route 104 south -> Mr. Briney -> Dewford -> Gym 2. Handing to manual."
+            "Story: beat the Rustboro rival — end of built content. NEXT (WIP): Route 104 "
+            "south -> Mr. Briney -> Dewford -> Granite Cave -> Gym 2 (Brawly). Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()

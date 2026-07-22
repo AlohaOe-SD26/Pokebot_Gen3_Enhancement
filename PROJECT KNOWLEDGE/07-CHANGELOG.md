@@ -1385,3 +1385,20 @@ Per user directive, replaced the pure state-write with a faithful play-through:
 - `_play` §5b now calls `handle_pokenav_match_call_tutorial` (was the state-write skip);
   `skip_pokenav_match_call_tutorial` is retained as the fallback. Rival still NOT wired
   (type-matchup — next: type-aware lead + attempt-cap, user-chosen).
+
+## 2026-07-21 (later) — Rustboro rival WIRED with type-aware lead + attempt-cap (sandbox)
+Per user choice ("type-aware lead + attempt-cap"):
+- `_lead_best_matchup(foe_type_names)` (early_game.py): leads the CAPABLE battler with the
+  lowest worst-case incoming STAB multiplier (tie-break by level). Validated vs the type
+  chart: Grass is 4× on Marshtomp (Water/Ground) but 1× on our Normal/Bug-Ground mons, so it
+  correctly avoids leading the 4×-weak Marshtomp into the grass rival.
+- `fight_rustboro_rival` no longer sets its own lead (caller does, so the matchup lead isn't
+  overridden by lead-strongest).
+- `StoryMode.RIVAL_MAX_ATTEMPTS = 3` + a per-run attempt counter in `_play` §5c: bounds the
+  train→fight→whiteout retry so an underleveled/bad-matchup team stops cleanly to manual
+  instead of looping.
+- `_play` §5c wired: `_prepare_for_fight(band 16-19)` → `_lead_best_matchup(["Grass"])` →
+  `fight_rustboro_rival` → guard. Runs error-free (verified headless: enters training, no
+  crash, bounded). NOT yet validated: an actual rival WIN — needs a natural post-gym team
+  (the test save's L7-8 filler loses regardless of lead); the cap makes a thin team stop
+  cleanly (no regression).

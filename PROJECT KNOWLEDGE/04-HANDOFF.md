@@ -55,13 +55,17 @@ ON** (`context.video=True`, which the real bot has); harness needs `--video`. **
 end-to-end via `_play` (video on): app opens, call placed, clean stop, NO fallback used.**
 FALLBACK: headless/stall → `skip_pokenav_match_call_tutorial()` (state-write to vanilla's
 exact end-state) — never hangs. **Wired into `_play` §5b → clean stop.**
-**Rustboro rival: trigger LOCATED (coord row y=53 x12-19, gated VAR==7) + `fight_rustboro_rival`
-built (staging(16,52)+Down-cross, harness-proven to trigger+battle) but NOT wired** — it's a
-TYPE-MATCHUP spike: grass Grovyle vs our 4×-weak Marshtomp; even Lv19 Marshtomp whited out,
-so wiring it would infinite-loop (whiteout→retrain). Needs type-aware lead + stronger 2nd mon.
-**Frontier: PokéNav obtained + tutorial cleared; NEXT = type-aware lead → Rustboro rival →
-Route 104 south → Mr. Briney → Dewford → Granite Cave → Gym 2 (Brawly).** Open: #24-team
-organic-team leveling; #24-trainmap area-training still groundwork-only.
+**Rustboro rival: WIRED (§5c) with type-aware lead + attempt-cap (user-chosen).** Trigger =
+coord row y=53 x12-19 (gated VAR==7). §5c: `_prepare_for_fight(band 16-19)` →
+`_lead_best_matchup(["Grass"])` (avoids the 4×-weak Marshtomp; validated vs the type chart —
+picks a 1× mon) → `fight_rustboro_rival` (stage (16,52), Down across y=53). `RIVAL_MAX_ATTEMPTS=3`
+bounds the whiteout→retrain retry (thin team stops cleanly, no loop). Verified: wiring runs
+error-free (enters training). ⚠️ **NOT yet validated: an actual rival WIN** — the `devon_done`
+test save has a pathological team (Marshtomp + L7-8 filler) that loses regardless of lead. **To
+prove the win we need a NATURAL post-gym team save** (ask user for one, or build via a fuller
+harness playthrough). **Frontier: PokéNav + tutorial done, rival wired-but-win-unvalidated; NEXT
+= validate rival win w/ a real team → Route 104 south → Mr. Briney → Dewford → Granite Cave →
+Gym 2 (Brawly).** Open: #24-team organic-team leveling; #24-trainmap area-training groundwork.
 ### In custom-pokebot (PROMOTED, production) — big promotion `f0b275f3` (2026-07-19)
 Native dashboard GUI (default; `--classic-gui` = stock), handheld mode,
 backup/restore + cloud + cloud-save-sync (off by default), macros, Patrol

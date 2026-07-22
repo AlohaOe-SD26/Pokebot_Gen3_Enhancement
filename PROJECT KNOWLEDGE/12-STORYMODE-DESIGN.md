@@ -308,18 +308,23 @@ now: lead strongest → navigate to staging **(16,52)** (just N of the row; navi
 straight onto a trigger tile can be refused as a scripted-event tile) → **step Down across
 y=53** → battle → win (`DEFEATED_RIVAL_RUSTBORO`). Harness-proven: staging→Down→(16,53)→
 `MET_RIVAL_RUSTBORO=True`→battle starts.
-- **DIFFICULTY — rival NOT wired yet (type matchup).** If you pick Mudkip the rival LEADS
-  a grass **Grovyle**; our Marshtomp (Water/Ground) is **4× weak to Grass**, so "lead
-  strongest" is the WRONG lead, and the thin early team (L7-8 filler) can't clean up —
-  even a trained **Lv19 Marshtomp whited out** in a full `_play` run (200k frames of
-  train→fight→whiteout). Wiring an unreliably-winnable battle into `_play` would create an
-  **infinite whiteout→retrain loop** (a regression), so it is deliberately NOT wired.
-  Wiring it back needs **type-aware lead selection** (never lead a 4×-weak mon) + a
-  stronger second mon (ties into the #24-team organic-team work) + an attempt-cap fallback.
-- **WIRED into `_play` §5b (proven):** `return_devon_goods_and_get_pokenav` →
-  `handle_pokenav_match_call_tutorial` (FAITHFUL call to Mr. Stone; state-write fallback) →
-  **clean stop** (frontier now PAST the tutorial). `fight_rustboro_rival` stays built +
-  trigger-proven for when the matchup is handled.
+- **DIFFICULTY — type matchup (handled: type-aware lead + attempt-cap, user-chosen).** A
+  Mudkip start makes the rival LEAD a grass **Grovyle**; our Marshtomp (Water/Ground) is
+  **4× weak to Grass** (confirmed via the type chart), so "lead strongest" is the WRONG
+  lead. `_lead_best_matchup(["Grass"])` picks the battler with the lowest incoming-Grass
+  multiplier (tie-break by level) — on our test team it correctly leads a 1× mon
+  (Poochyena) instead of the 4× Marshtomp. `fight_rustboro_rival` no longer sets the lead
+  itself (the caller does). **Attempt-cap:** `StoryMode.RIVAL_MAX_ATTEMPTS = 3` bounds the
+  train→fight→whiteout retry so a thin team stops cleanly to manual instead of looping.
+- **WIRED into `_play` §5b/§5c:** `return_devon_goods_and_get_pokenav` →
+  `handle_pokenav_match_call_tutorial` (FAITHFUL; state-write fallback) → §5c:
+  `_prepare_for_fight(band 16-19)` → `_lead_best_matchup(["Grass"])` → `fight_rustboro_rival`
+  (stage (16,52), Down across y=53) → guard `DEFEATED_RIVAL_RUSTBORO` → clean stop.
+  **Validated:** faithful tutorial end-to-end; type-aware lead selection correct; §5c wiring
+  runs error-free (training toward the rival) and is bounded. **NOT yet validated: an actual
+  rival WIN** — the frontier test save (`devon_done`) has a pathological team (Marshtomp +
+  L7-8 filler) that loses regardless of lead; a natural post-gym team is needed to prove the
+  win. On a thin team the attempt-cap stops cleanly (no regression).
 - Harness drivers (dev tooling, not committed): `--driver pokenavtut|pokenavclear|pokenavskip|pokenavfaith`
   (+ `--video` to enable the renderer for the PokéNav app).
 - **NEXT build:** Route 104 south → Mr. Briney's cottage → sail to Dewford → Granite Cave

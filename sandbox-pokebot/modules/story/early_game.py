@@ -1105,6 +1105,56 @@ def _lead_strongest_battler() -> Generator:
             pass
 
 
+def _lead_best_matchup(foe_type_names, *, min_incoming_only: bool = True) -> Generator:
+    """Put the CAPABLE battler that best resists the foe's ace type(s) in slot 0 — used
+    before a TYPE-COUNTERED trainer where "lead strongest" is a trap. (Rustboro rival:
+    if we started Mudkip, the rival leads a grass Grovyle, and our Marshtomp — Water/Ground
+    — is 4× weak to Grass, so leading it feeds a super-effective sweep.)
+
+    Picks the battler minimizing the foe's WORST-CASE STAB multiplier against it, breaking
+    ties by higher level; leaves slot 0 unchanged if it's already the best. `foe_type_names`
+    is a list like ["Grass"]."""
+    from modules.modes.util.higher_level_actions import change_lead_party_pokemon
+    from modules.pokemon import get_type_by_name
+
+    party = get_party()
+    slots = _battler_slots()
+    if not slots:
+        return
+    try:
+        foe_types = [get_type_by_name(n) for n in foe_type_names]
+    except Exception:
+        foe_types = []
+
+    def _incoming(mon) -> float:
+        """Worst-case STAB multiplier the foe can hit `mon` for (defensive)."""
+        try:
+            mon_types = mon.species.types
+        except Exception:
+            try:
+                mon_types = mon.types
+            except Exception:
+                return 1.0
+        if not foe_types:
+            return 1.0
+        worst = 0.0
+        for ft in foe_types:
+            m = 1.0
+            for t in mon_types:
+                m *= ft.get_effectiveness_against(t)
+            worst = max(worst, m)
+        return worst
+
+    # Lowest incoming multiplier first; tie-break by higher level so we lead a resistant
+    # mon that's also as strong as possible.
+    best = min(slots, key=lambda i: (_incoming(party[i]), -party[i].level))
+    if best != 0:
+        try:
+            yield from change_lead_party_pokemon(best)
+        except Exception:
+            pass
+
+
 def do_rustboro_gym() -> Generator:
     """Rustboro Gym — beat Roxanne for the Stone Badge (BADGE01, Gym 1).
 
@@ -1784,7 +1834,9 @@ def fight_rustboro_rival() -> Generator:
     if get_event_flag("DEFEATED_RIVAL_RUSTBORO"):
         return
     context.message = "Story: heading south — the rival is waiting in Rustboro..."
-    yield from _lead_strongest_battler()  # lead with our strongest for the trainer battle
+    # NOTE: the CALLER sets the battle lead (this rival is type-countered, so we want a
+    # matchup-based lead via `_lead_best_matchup`, NOT lead-strongest — leading our
+    # 4×-weak starter is a trap). We deliberately don't touch the lead here.
     # Stage just north of the y=53 rival-trigger row, then walk Down onto it.
     yield from _navigate_riding_out(
         MapRSE.RUSTBORO_CITY, RUSTBORO_RIVAL_APPROACH, avoid_encounters=False
