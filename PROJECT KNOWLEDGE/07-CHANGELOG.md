@@ -1504,3 +1504,17 @@ User: fighting Roxanne with Torchic (Fire, bad vs Rock) + an L6-7 bench, the bot
   (precise spec in the docstring + §Ch6). Not wired into _play (unvalidated).
 - Harness: post-rival save-hook now gated behind SAVE_POST_RIVAL=1 (it had clobbered post_rival.ss1
   during an unrelated mart test). Regenerated a clean post_rival.ss1 (Rustboro (16,53), STATE=8).
+
+## 2026-07-21 (night) — COMMIT the test infrastructure so Fable inherits it (tools/story-dev/)
+The faithful harness + drivers + recon scripts + checkpoint saves lived only in the previous
+session's scratchpad (gone for the next agent). Committed them, generalized + documented:
+- `tools/story-dev/story_harness.py` — the faithful main-loop harness (was repro_movelearn.py),
+  paths now repo-relative; loads states from `saves/`; post-rival auto-save gated behind
+  SAVE_POST_RIVAL=1. All ~16 drivers included (story/gymtest/pokenavfaith/saildewford/…).
+- `tools/story-dev/*.py` — recon/probe/A-B scripts (maprecon, repro_double_faint, doorprobe,
+  routeprobe, sailprobe), paths generalized.
+- `tools/story-dev/saves/` — a 12-state progression sampler (oldale→…→post_rival) for instant
+  testing; regenerate any via the story.
+- `tools/story-dev/README.md` — prereqs, quick-starts, the drivers/saves tables, conventions.
+- Smoke-tested from the new location (A/B proof passes; harness loads post_rival.ss1). Repointed
+  the playbook + design-doc + kickoff references from `scratchpad/` to `tools/story-dev/`.

@@ -262,7 +262,7 @@ The president who gives the **PokéNav + Steven's Letter** is on **Devon Corp 3F
 1F→2F→3F) — needs interior recon (floors/warps/president NPC). Completion:
 **RECEIVED_POKENAV** (188); also RETURNED_DEVON_GOODS (144). Then the **Rustboro rival**
 (DEFEATED_RIVAL_RUSTBORO 211) — trigger not yet located (likely near the Pokémon School
-(27,34) on the way back). Recon tool: `scratchpad/repro_movelearn.py --driver ch5recon`
+(27,34) on the way back). Recon tool: `tools/story-dev/story_harness.py --driver ch5recon`
 (dev tooling, not committed).
 
 ### BUILD PROGRESS 2026-07-21 — Chapter 5b: PokéNav return + forced tutorial SOLVED + rival wired (sandbox)
@@ -331,7 +331,7 @@ y=53** → battle → win (`DEFEATED_RIVAL_RUSTBORO`). Harness-proven: staging�
   (Steven's Letter) → Gym 2 (Brawly, dark-cave puzzle) → Knuckle Badge.
 
 ### §Ch6 ATLAS — Route 104 S → Mr. Briney → Dewford → Granite Cave → Gym 2 (static ROM recon, 2026-07-21)
-Recon via `scratchpad/maprecon.py` (static `get_map_data`, no navigation). Coordinates are
+Recon via `tools/story-dev/maprecon.py` (static `get_map_data`, no navigation). Coordinates are
 map-local. **NOT yet built or live-verified** — this is the build map for the next session.
 
 - **ROUTE 104 (0,19) — size 40×80.** Connections: **North→Rustboro**, **South→Route 105**,
@@ -389,7 +389,7 @@ Makuhita/Machop to hit hard — train to band before the gym like Roxanne.
 > post-rival save (`post_rival.ss1`: Rustboro (16,53), `RUSTBORO_CITY_STATE=8`,
 > `DEFEATED_RIVAL_RUSTBORO=True`; regenerate via the fresh-run recipe in playbook §2).
 
-**Full recon dump** lives in `scratchpad/recon_dewford_slateport.txt` (regenerate with a
+**Full recon dump**: regenerate with `tools/story-dev/maprecon2.py` (regenerate with a
 `maprecon.py`-style `get_map_data` sweep). Key connections (map graph):
 Rustboro –(S)→ **Route 104** –(S)→ Route 105 –…; Route 104 also –(N)→ Rustboro, –(E)→ Petalburg.
 **Dewford Town** –(N off -60)→ Route 106 –(N)→ Route 105; Dewford –(E)→ Route 107 –(E)→ Route

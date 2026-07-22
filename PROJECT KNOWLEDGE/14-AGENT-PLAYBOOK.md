@@ -43,18 +43,19 @@ Don't re-derive intent from code alone — `01-VISION-AND-DESIGN.md` is the sour
 
 ---
 
-## 2. The faithful test harness (`scratchpad/repro_movelearn.py`)
+## 2. The faithful test harness (`tools/story-dev/story_harness.py`)
 
-This is how we run the bot headlessly and reproduce/validate behaviour. It replicates
+**Everything lives in `tools/story-dev/` (committed) — harness, drivers, recon scripts,
+and a `saves/` progression sampler; see its README.** It replicates
 `modules/main.py`'s main loop EXACTLY (FrameInfo build → listeners → controller-stack
 advance → `run_single_frame`), so harness behaviour matches the real bot.
 
 **Run it** (Python **3.12** via `py`; `python` is 3.9 and fails on match statements):
 ```
-PYTHONUTF8=1 py repro_movelearn.py <state.ss1|fresh> --driver <name> [--frames N] [--video] [--profile P] [--log F]
+PYTHONUTF8=1 py story_harness.py <state.ss1|fresh> --driver <name> [--frames N] [--video] [--profile P] [--log F]
 ```
-- `state`: a `.ss1` basename in the scratchpad, a full path, or `fresh` (boot a new game
-  from the title screen — the intro is handled by StoryMode).
+- `state`: a `.ss1` basename in `tools/story-dev/saves/`, a full path, or `fresh` (boot a
+  new game from the title screen — the intro is handled by StoryMode).
 - `--driver story` runs the REAL `StoryMode._play`. Other drivers are focused harnesses
   (see the `choices=[...]` list at the top of the file and the `if args.driver == ...`
   dispatch): `spin`, `gymtest`, `traintest`, `martbuy`, `pokenavtut/clear/skip/faith`,
@@ -70,7 +71,8 @@ PYTHONUTF8=1 py repro_movelearn.py <state.ss1|fresh> --driver <name> [--frames N
 `context.emulator.load_save_state(path.read_bytes())`.
 **The GUI/real bot's `current_state.ss1` is PNG-wrapped** — extract the raw state from
 its `gbAs` PNG chunk (`zlib.decompress`) to resume a fresh-run in the harness (see
-`scratchpad/` history / the fresh-run save-extraction we did for `post_rival.ss1`).
+the fresh-run recipe in `tools/story-dev/README.md`; committed checkpoints are in
+`tools/story-dev/saves/`).
 
 **Capture a checkpoint save on a condition** by adding a hook in the main loop (e.g. save
 `post_rival.ss1` once `DEFEATED_RIVAL_RUSTBORO` is stable for 120 frames + controllable).
@@ -93,7 +95,7 @@ to be True for *many consecutive* frames before trusting it (a single-frame True
 3. **Fault-inject A/B when possible.** The gold standard: a tiny script that calls the
    suspect function with a constructed input, shows the OLD code produces the bug, then
    (after the fix) the NEW code doesn't. Examples this session:
-   `scratchpad/repro_double_faint.py` (double-battle chooser returns the on-field partner)
+   `tools/story-dev/repro_double_faint.py` (double-battle chooser returns the on-field partner)
    and the trainer-battle `decide_turn` mock. These need **no emulator** and prove the
    logic directly — prefer them for battle-strategy / pure-logic bugs.
 4. **Read RAM + scripts to understand the game.** `read_symbol("sym")`, `get_event_flag`,
@@ -102,7 +104,7 @@ to be True for *many consecutive* frames before trusting it (a single-frame True
    `decode_string(read_symbol("gStringVar4"))` / `gDisplayedStringBattle`.
 5. **Static ROM recon** (no navigation): `get_map_data((group, num), (0,0))` gives any
    map's `.warps` / `.objects` (script_symbol) / `.connections` / `.map_size`. This is how
-   we build Area Atlases (see `scratchpad/maprecon.py`).
+   we build Area Atlases (see `tools/story-dev/maprecon.py`).
 6. **Screenshots** (video on): `context.emulator.get_screenshot().save(path)` — then read
    the PNG. This is how we scripted the PokéNav Match-Call navigation (we literally looked
    at each menu screen). Invaluable for app UIs.

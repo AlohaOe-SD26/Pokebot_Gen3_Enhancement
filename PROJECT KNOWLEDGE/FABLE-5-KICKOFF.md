@@ -26,6 +26,9 @@ go, and document with even more detail and intent than we did**, without inventi
    (reproduce → fault-inject A/B → fix → prove), static ROM recon → Area Atlas → build →
    validate, the renderer-gated faithful-vs-fallback pattern, and the recurring
    bug-patterns → prevention table. **Follow it. Keep it current.**
+   → The whole test infrastructure is committed at **`tools/story-dev/`** (harness `story_harness.py`,
+   focused drivers, recon scripts, and a `saves/` progression sampler incl. `post_rival.ss1`).
+   Read `tools/story-dev/README.md` and you can reproduce/validate in one command — no rebuild.
 3. **`12-STORYMODE-DESIGN.md`** — the Story chapters + the Area Atlases (reconned coords) +
    per-chapter build/validate notes. The immediate next chapter's atlas is §Ch6.
 4. Skim **`08-MISTAKES.md`** (don't repeat solved bugs), **`03-PUNCH-LIST.md`** (the queue),
