@@ -58,6 +58,59 @@ plausible — VERIFY AT BUILD), `⚠ probe live`.
 6. **Completion**: `FLAG_BADGE03_GET` (+ `FLAG_DEFEATED_MAUVILLE_GYM`, TM34) `✓ external`;
    BADGE03 enables Rock Smash field use (needed later for Route 111+). `✓ external`
 
+### §Ch10–13 ROADMAP — Mauville → Fallarbor → Mt. Chimney → Lavaridge (Gym 4) → Petalburg (Gym 5) → Surf
+Research-mapped 2026-07-22 (decomp WebFetches + static ROM recon; Gemini pass pending —
+see the outstanding question). Legend: `✓ decomp` / `✓ probe` / `✓ external` / `⚠ open`.
+
+**Ch10 — Mauville → Fallarbor (via Fiery Path).**
+- Prereq: HM06 Rock Smash from a Mauville house (`⚠ open`: which house/NPC — Gemini asked)
+  + BADGE03 for field use; teach it to a party mon (`⚠ open`: choose the HM mule policy).
+- Route 111 (40×140! `✓ probe`): from Mauville go NORTH; **Rock Smash rocks at
+  (18,101)/(19,100) gate the path** (`✓ probe`; tip-man at (19,101)). Winstrate house at
+  (13,113)→interior (`✓ probe`; the family battle gauntlet is optional? `⚠ open`). Desert
+  (sandstorm, needs Go-Goggles) is EAST — not needed yet.
+- Route 111 –(W)→ **Route 112**: the NE Magma grunt pair blocks the CABLE CAR area
+  pre-Meteor-Falls (`✓ decomp: FLAG_HIDE_ROUTE_112_TEAM_MAGMA cleared later`); first
+  visit goes DOWN through **FIERY PATH** (a through-tunnel: R112 (22,10)↔inside (26,4);
+  inside (26,36)↔R112 lower (11,36) `✓ probe`) → Route 112 west –(conn)→ **Route 113**
+  (ash route, 100×20 `✓ probe`) → west → **FALLARBOR TOWN** (`✓ probe` warps: PC (1,6)?,
+  Cozmo's house (8,7), Move Tutor…; `⚠ open`: exact PC door).
+**Ch11 — Meteor Falls scene → Mt. Chimney (Magma) → Jagged Pass.**
+- Fallarbor –(W)→ **Route 114** → Meteor Falls door (8,63) → **METEOR_FALLS_1F_1R**:
+  the Magma-steals-the-Meteorite CUTSCENE (NO battles `✓ decomp`); sets
+  `VAR_METEOR_FALLS_STATE=1`, `FLAG_MET_ARCHIE_METEOR_FALLS`, and **clears the Route 112
+  Magma blockade → the CABLE CAR opens** (`✓ decomp` via FLAG_HIDE_ROUTE_112_TEAM_MAGMA).
+  Prof. Cozmo inside at (13,23) `✓ probe`. `⚠ open`: the scene's trigger tile.
+- Back to Route 112 → **Cable Car station (28-29,27) `✓ probe`** → attendant (6,6) → ride
+  (scripted) → Mt. Chimney summit. **Fights (`✓ decomp`): TRAINER_GRUNT_MT_CHIMNEY_2 +
+  TRAINER_TABITHA_MT_CHIMNEY (Tabitha at (12,11)), then TRAINER_MAXIE_MT_CHIMNEY (Maxie
+  (13,6)) — un-fleeable, use the boss prep pattern.** Win →
+  `FLAG_DEFEATED_EVIL_TEAM_MT_CHIMNEY` + Magma/Aqua despawn; optionally take the
+  METEORITE from the machine (`giveitem ITEM_METEORITE` — later tradeable for TM27;
+  policy: TAKE it, it's free). `⚠ open`: Maxie/Tabitha teams (Gemini asked).
+- Descend **JAGGED PASS** (top (13-14,5) ↔ Chimney (20-21,41); bottom (14-15,40) ↔ R112
+  lower (6-7,46) `✓ probe`) — a LEDGE-JUMP descent (`⚠ open`: exact ledge path; the
+  Magma Hideout door (16,18) is a LATER chapter) → Route 112 lower → **LAVARIDGE**.
+**Ch12 — Gym 4: Flannery (Torch Badge) + Go-Goggles.**
+- Lavaridge (`✓ probe`): gym door (5,15) → GYM_1F; **Flannery 1F (13,9)**; the gym is a
+  1F↔B1F TRAPDOOR MAZE (26 warp-pairs! `✓ probe`) — `⚠ open`: the minimal trapdoor route
+  to Flannery (Gemini asked; else grid-probe + trial). Flannery (Emerald): Numel/Slugma/
+  Camerupt/Torkoal ~L24-29 `⚠ verify`. Marshtomp (Water) is the natural sweeper. Win →
+  BADGE04 + TM50 Overheat; outside, the RIVAL gives the **GO-GOGGLES** (`⚠ open`: exact
+  trigger/coords). Herb shop optional.
+**Ch13 — Gym 5: Norman (Balance Badge) → HM03 Surf.**
+- Travel Lavaridge → Petalburg (`⚠ open`: best route — likely back over Jagged Pass is
+  ONE-WAY (ledges); the sane route is Cable Car → R112 → R111 → Mauville → R110 → ... or
+  Lavaridge –(E conn)→ Route 112? Gemini asked; NOTE we have no Fly/Surf yet).
+- **Petalburg Gym (`✓ decomp`): Norman requires 4 BADGES; themed rooms** — the
+  Speed→Confusion→Strength door chain reaches Norman (`VAR_PETALBURG_GYM_STATE` drives
+  doors; ≥6 unlocks all). Win → `FLAG_BADGE05_GET`(!! the BALANCE badge is BADGE05 in
+  data even though it's the 5th badge... `⚠ verify numbering`), TM42 Facade,
+  `VAR_PETALBURG_GYM_STATE=7`, `VAR_PETALBURG_CITY_STATE=4` → **Wally's dad walks you to
+  Wally's house → HM03 SURF** (`✓ decomp` for the gym side; `⚠ open`: the house scene's
+  exact flow/flags). Norman (Emerald): Spinda/Vigoroth/Linoone/Slaking ~L27-31
+  `⚠ verify`. SURF then opens Routes 118+ (Ch14+: Weather Institute → Fortree/Winona).
+
 
 > **Pass 4 (2026-07-20)** re-derived every fact independently from ROM + two/three
 > external walkthroughs and diffed against the doc. It **confirmed all five Pass-3
