@@ -1433,3 +1433,12 @@ On losing the rival, the bot stood below the rival (16,52) and dropped to Manual
   of sending a replacement. The heal-margin bump reduces faints; the choose-after-faint path
   still needs a focused fix (user directive: all battles must survive failure). Post-rival
   SAVE not generated yet because of this.
+
+## 2026-07-21 (later) — Full fresh run BEAT the Rustboro rival; post_rival.ss1 captured
+- Ran a from-scratch headless game (new game → Rustboro rival) with the fixes. The rival was
+  WON with a natural team (led Taillow L17 = Flying, the type-aware pick vs grass Grovyle;
+  team all ≥10 via the level floor). NO faint-hang recurred (heal-margin mitigation + real team).
+- Captured + validated `post_rival.ss1`: DEFEATED_RIVAL_RUSTBORO=True, RUSTBORO_CITY_STATE=8,
+  controllable at Rustboro (16,53) — the rival cutscene leaves you there; walk south to Route 104.
+  This unblocks the sail-leg build (Route 104 → Mr. Briney → Dewford → Granite Cave → Gym 2).
+- The choose-after-faint framework hang did not trigger this run (mitigated); still a latent edge.

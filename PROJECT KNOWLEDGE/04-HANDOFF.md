@@ -60,10 +60,17 @@ Stone). Losing the rival stranded the bot at (16,52) → Manual — FIXED + vali
 loop keyed off the persistent MET flag; now keys off actual engagement → retries re-engage).
 Added (user directive): whole-team **LEVEL FLOOR ≥10** (escalating) + **safe PC heal** right
 before the rival, and raised the training heal margin so the swap-train finisher heals earlier.
-⚠️ **OPEN — blocks the post-rival save:** a long run hit a battle-framework hang (mon faints
-mid-training → bot stalls on the "choose next Pokémon" menu). Heal-margin bump reduces faints;
-the choose-after-faint path still needs a focused fix. **NEXT: fix choose-after-faint, then run
-fresh → capture post_rival.ss1 → build the Route104→Dewford→Gym2 leg.**
+**✅ FULL FRESH RUN BEAT THE RIVAL + post_rival.ss1 CAPTURED (2026-07-21).** A from-scratch
+headless run (new game → … → Rustboro rival) with the fixes won the rival with a NATURAL team
+(led Taillow L17 = Flying, resists Grass + hits Grovyle 2×; team Dustox L16 / Marshtomp L18 /
+Taillow L17 / Poochyena L16, all ≥10). **No faint-hang recurred** (heal-margin mitigation +
+a real team). **`post_rival.ss1`** (scratchpad, regenerate via the fresh run if needed) is
+validated: `DEFEATED_RIVAL_RUSTBORO=True`, `RUSTBORO_CITY_STATE=8`, controllable at **Rustboro
+(16,53)** — i.e. the rival cutscene leaves you at (16,53) in Rustboro; walk SOUTH from there off
+the map edge onto Route 104. The choose-after-faint framework hang is now a rare latent edge
+(mitigated, didn't trigger) — still worth a proper fix but not blocking. **NEXT: build the sail
+leg from post_rival.ss1 — walk south (16,53)→Route 104→Mr. Briney's house→talk Briney→Dewford
+(§Ch6 atlas).**
 **Rustboro rival: WIRED (§5c) with type-aware lead + attempt-cap (user-chosen).** Trigger =
 coord row y=53 x12-19 (gated VAR==7). §5c: `_prepare_for_fight(band 16-19)` →
 `_lead_best_matchup(["Grass"])` (avoids the 4×-weak Marshtomp; validated vs the type chart —
