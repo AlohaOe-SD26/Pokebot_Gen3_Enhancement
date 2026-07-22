@@ -631,3 +631,17 @@ with no exception bypasses the whiteout/derail recovery entirely.
   wrap in `_yield_bounded`; (b) any action that OPENS A MENU must check no field script is
   active first, and treat "script fired mid-menu" as an expected interruption (close, ride
   out, retry) — this is the first concrete slice of #24-interrupt.
+
+## 2026-07-22 — One repro, three latent battle bugs (the KI-12 chain)
+- **Lesson:** the 130k-frame party-menu wedge, the chooser-None crash, and the double-
+  battle TypeError were ALL sitting on the same code path, each hidden behind the one
+  before it. A single fault-injected repro (weak lead + weak bench vs a gym) peeled them
+  one per run. Fix→rerun→next-bug is dramatically cheaper than three separate user
+  reports.
+- **Prevention rules:** (a) when fixing a crash on a path, RE-RUN the repro after the fix —
+  assume more bugs hide behind it; (b) treat Emerald's two-sightline TRUE DOUBLE battles
+  as a first-class case everywhere (any paired trainers — gyms especially — can produce
+  one); every battle strategy MUST implement a non-fleeing decide_turn_in_double_battle
+  for trainer battles; (c) never let a battle handler raise/crash mid-battle — a listener
+  exception drops to Manual with the battle still on screen (an unrecoverable wedge);
+  degrade to "send anything alive / attack with anything usable" instead.

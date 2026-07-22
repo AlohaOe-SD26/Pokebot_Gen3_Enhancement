@@ -127,9 +127,19 @@ citation (decomp path or walkthrough URL) for each claim. Flag anything uncertai
 ---
 
 ## Future automation note (NOT built — discussion record 2026-07-22)
-Both Fable 5 and Opus 4.8 can spawn internal Claude sub-agents (the harness Agent tool)
-that have WebSearch/WebFetch — so the research COULD run as an internal Claude sub-agent
-with this primer pre-loaded. Tradeoff: that consumes Claude credits, which the manual
-Gemini route deliberately avoids. The primer above is model-agnostic on purpose, so the
-same prompt drives either path. Default for now: manual paste to Gemini. A future hybrid
-could auto-spawn a Claude research agent only when speed outweighs credit cost.
+Three possible execution routes for the research call; the primer is model-agnostic so
+the SAME prompts drive all of them:
+1. **Manual paste to Gemini (CURRENT DEFAULT).** Zero setup, zero Claude credits; the
+   user relays prompts/answers. Proven workable.
+2. **Gemini via API (user-proposed 2026-07-22 — the designated automation path).** The
+   agent can call HTTP APIs from this environment, so given a Gemini API key it could
+   send primer+question programmatically and parse the reply — automating
+   /escalate-sequence end-to-end while still keeping research costs on Gemini.
+   Requirements when built: the key lives in a GITIGNORED env file / environment variable
+   (NEVER committed — git-conduct rules); calls are logged (question + answer archived
+   alongside the doc correction they produced); the verify-before-build rule is unchanged.
+3. **Internal Claude sub-agent** (Fable 5 / Opus 4.8 both support spawning them, with
+   WebSearch/WebFetch). Fastest integration but consumes Claude credits — reserve for
+   when speed outweighs cost.
+Decision so far: route 1 now; route 2 when the user provides a key and asks; route 3
+exceptional. First real-world PoC: the Ch9 (Route 110 → Wattson) pre-build validation.

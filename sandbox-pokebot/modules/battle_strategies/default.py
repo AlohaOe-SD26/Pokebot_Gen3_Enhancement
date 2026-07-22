@@ -181,7 +181,11 @@ class DefaultBattleStrategy(BattleStrategy):
 
         if not util.pokemon_has_enough_hp(pokemon):
             if partner_pokemon is None or not util.pokemon_has_enough_hp(partner_pokemon):
-                return self._handle_lead_cannot_battle(battle_state, util)
+                # FORK FIX (2026-07-22): the stock call omitted the REQUIRED `reason`
+                # argument — a TypeError here crashed the battle listener and dropped the
+                # bot to Manual MID-DOUBLE-BATTLE (the user-reported "double battle bug";
+                # reproduced via the KI-12 faint-bench harness repro).
+                return self._handle_lead_cannot_battle(battle_state, util, reason="HP below threshold (double battle)")
 
         left_opponent = battle_state.opponent.left_battler
         right_opponent = battle_state.opponent.right_battler

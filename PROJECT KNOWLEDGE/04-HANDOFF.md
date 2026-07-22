@@ -9,6 +9,25 @@
 > accumulated craft (harness, debugging method, story-mapping, faithfulness rules, bug
 > patterns) — use it to build faster and prove every fix.
 
+### ⭐⭐ Session 2026-07-22 (late night) — KI-12 battle-chain fixed + Gemini PoC GRADED + Ch9 validated
+- **KI-12 (user's gym party-menu hang + "double battle bug") FIXED as a 3-bug chain** via a
+  purpose-built repro (`--inject-faintbench`): bounded after-faint party menu; chooser-None
+  fallback (any living mon beats crashing); the double-battle `reason` TypeError fixed +
+  story strategy now ATTACK-THROUGHS trainer doubles. Key insight: Emerald fires TRUE
+  double battles when two trainers sight you at once (why these clustered at gyms). Proof:
+  the repro plays the double to a natural whiteout → story recovery. Details: changelog +
+  08-MISTAKES (one-repro-three-bugs lesson).
+- **Gemini external-research PoC: GRADE = HIGH.** Its Ch9 research was precise + cited,
+  matched every decomp spot-check (Route 110 rival triggers, Wally flags/Scott sequence),
+  and CORRECTED our own doc (Gabby&Ty's first battle is Route 111, not Slateport).
+  VERDICT: promote to the REGULAR pre-build validation step (/validate-docs source 3 via
+  the primer); deep mid-build escalation stays rare. Gemini-via-API documented in
+  15-ESCALATION-RESEARCH as the future automation path (needs the user's key, gitignored).
+- **§Ch9 written into the design doc** (validated sequencing, ✓-tagged by source):
+  Route 110 rival choke-point (⚠ probe VAR_ROUTE110_STATE in stern_done first) → Mauville
+  Wally-gates-the-gym → switch-puzzle gym → Wattson (Voltorb20/Electrike20/Magneton22/
+  Manectric24) → BADGE03. **NEXT: build Ch9 from §Ch9** (probe the ⚠ items first).
+
 ### ⭐ CH8b DONE — Devon Goods → Capt. Stern (KI-11 resolved) — 2026-07-22
 `deliver_devon_goods_to_stern` BUILT + WIRED + VALIDATED: full run slateport.ss1 → Stern's
 Shipyard → **talk to Dock** (the missing story step — sets FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA,

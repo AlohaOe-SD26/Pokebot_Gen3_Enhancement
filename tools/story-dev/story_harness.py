@@ -25,6 +25,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument("state", help=".ss1 save state to load (basename in scratchpad or full path)")
 ap.add_argument("--inject-treecko", action="store_true", help="inject a Lv15 Treecko at exp_for_16 - 1 as lead")
 ap.add_argument("--inject-weak", action="store_true", help="inject a lone Lv3 Poochyena (loses everything → forces a whiteout, for defeat-recovery testing)")
+ap.add_argument("--inject-faintbench", action="store_true", help="inject Lv3 lead + Lv4 bench (forces the after-faint party menu — KI-12 repro)")
 ap.add_argument("--set-balls", type=int, default=None, help="force the Poké Ball count (test out-of-balls provisioning)")
 ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the party at")
 ap.add_argument("--frames", type=int, default=60000)
@@ -1362,6 +1363,29 @@ def inject_weak():
     log("[inject] lone Poochyena Lv3 (will lose → whiteout)")
 
 
+def inject_faintbench():
+    """A weak LEAD + a weak BENCH: the lead faints in the first gym exchange, forcing
+    the AFTER-FAINT PARTY MENU with a real bench to select — the exact machinery of the
+    130k-frame party-menu hang (KI-12). Both mons then faint → whiteout recovery."""
+    from modules.debug_utilities import debug_create_pokemon, debug_write_party
+    from modules.pokemon import get_species_by_name, get_move_by_name, LearnedMove
+
+    lead = debug_create_pokemon(
+        species=get_species_by_name("Poochyena"),
+        level=3,
+        moves=[LearnedMove.create(get_move_by_name("Tackle"))],
+        nickname="FAINTME",
+    )
+    bench = debug_create_pokemon(
+        species=get_species_by_name("Zigzagoon"),
+        level=4,
+        moves=[LearnedMove.create(get_move_by_name("Tackle"))],
+        nickname="BENCHY",
+    )
+    debug_write_party([lead, bench])
+    log("[inject] Poochyena Lv3 lead + Zigzagoon Lv4 bench (forces the after-faint party menu)")
+
+
 def learn_state_str():
     try:
         from modules.battle_move_replacing import get_learn_move_state
@@ -1429,7 +1453,7 @@ trace_active = False  # verbose trace while a move-learn/evo is happening
 no_progress = 0
 last_sig = None
 last_heartbeat = 0
-injected = not (args.inject_treecko or args.inject_weak)
+injected = not (args.inject_treecko or args.inject_weak or args.inject_faintbench)
 
 CH5_FLAGS = (
     "DEVON_GOODS_STOLEN", "RECOVERED_DEVON_GOODS", "RETURNED_DEVON_GOODS",
@@ -1503,6 +1527,8 @@ for step in range(args.frames):
     if not injected and step >= args.inject_at:
         if args.inject_weak:
             inject_weak()
+        elif args.inject_faintbench:
+            inject_faintbench()
         else:
             inject_treecko()
         injected = True
@@ -1561,19 +1587,6 @@ for step in range(args.frames):
                     log(f"[checkpoint] saved {_out.name} on {_flag}")
             else:
                 _CKPT_STATE["stable"] = 0
-        except Exception:
-            pass
-
-    # STORY_DEBUG_LOGGER=1: mirror main.py's debug-logger hook so harness runs get the
-    # rich stall dumps WITH the generator call stack (pinpoints exactly where a silent
-    # press-nothing stall is parked — the harness's own dumps lack the stack).
-    if _os_hook.environ.get("STORY_DEBUG_LOGGER"):
-        try:
-            from modules import debug_logger as _dbglog
-
-            if not _dbglog.is_enabled():
-                _dbglog.enable(context.profile)
-            _dbglog.on_frame(frame_info)
         except Exception:
             pass
 

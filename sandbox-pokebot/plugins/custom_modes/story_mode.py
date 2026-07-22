@@ -119,6 +119,41 @@ class LevelUpTravelBattleStrategy(LevelUpLeadBattleStrategy):
             return TurnAction.use_move(0)  # nothing usable → the game uses Struggle
         return super().decide_turn(battle_state)
 
+    def decide_turn_in_double_battle(self, battle_state, battler_index):
+        """Trainer DOUBLE battles must ATTACK THROUGH exactly like singles. They are very
+        reachable: Emerald starts a TRUE double battle whenever TWO trainers spot you at
+        once (e.g. walking between the Rustboro gym Youngsters), plus scripted pairs like
+        Gabby & Ty. The inherited Default double path calls _handle_lead_cannot_battle
+        when the actives are weak, and with the stock 'flee' config that RAISES in a
+        trainer battle → Manual mid-battle (the user-reported "double battle bug";
+        reproduced + chain-fixed via the KI-12 faint-bench repro 2026-07-22). Here:
+        strongest usable move at whichever opponent is present; any in-PP move as
+        fallback; Struggle at 0 PP; never flee, never rotate, never stall."""
+        if not battle_state.is_trainer_battle:
+            return super().decide_turn_in_double_battle(battle_state, battler_index)
+        util = BattleStrategyUtil(battle_state)
+        battler = (
+            battle_state.own_side.left_battler if battler_index == 0 else battle_state.own_side.right_battler
+        )
+        if battler is None:
+            return TurnAction.use_move(0)
+        left_opp = battle_state.opponent.left_battler
+        right_opp = battle_state.opponent.right_battler
+        if left_opp is not None:
+            move = util.get_strongest_move_against(battler, left_opp)
+            if move is not None:
+                return TurnAction.use_move(move)
+        if right_opp is not None:
+            move = util.get_strongest_move_against(battler, right_opp)
+            if move is not None:
+                return TurnAction.use_move_against_right_side_opponent(move)
+        for i, learned in enumerate(battler.moves):
+            if learned is not None and util.move_is_usable(learned):
+                if left_opp is not None:
+                    return TurnAction.use_move(i)
+                return TurnAction.use_move_against_right_side_opponent(i)
+        return TurnAction.use_move(0)  # nothing usable → the game uses Struggle
+
     def which_move_should_be_replaced(self, pokemon, new_move) -> int:
         """Story move-learning policy — keep every Pokémon COMBAT-CAPABLE.
 

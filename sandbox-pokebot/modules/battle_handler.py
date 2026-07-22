@@ -379,6 +379,24 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
         yield
         return
 
+    # FORK (2026-07-22, story-bot hardening): the strategy's chooser can return None when
+    # it finds no "capable" battler on a weak bench — the stock code then CRASHED on the
+    # `< 0` comparison (TypeError), dropping to Manual MID-BATTLE (a permanent wedge; the
+    # KI-12 repro hit it with a L3 lead + L4 bench at Roxanne). ANY living non-egg mon
+    # beats crashing: the game will accept it, and the battle plays out to win-or-lose,
+    # which the whiteout recovery handles.
+    if new_lead_index is None:
+        for _i, _mon in enumerate(get_party()):
+            if _mon is not None and not _mon.is_egg and _mon.current_hp > 0:
+                new_lead_index = _i
+                break
+    if new_lead_index is None:
+        # Nothing alive at all — the battle is ending in a loss on its own; just ride it.
+        while battle_is_active() and get_game_state() != GameState.PARTY_MENU:
+            context.emulator.press_button("B")
+            yield
+        return
+
     if new_lead_index < 0 or new_lead_index >= get_party_size():
         raise RuntimeError(f"Cannot send out party index #{new_lead_index} because that does not exist.")
 
@@ -409,8 +427,28 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
         new_lead_index = battle_state.map_battle_party_index(new_lead_index)
 
     yield from scroll_to_party_menu_index(new_lead_index)
+    # FORK (2026-07-22, story-bot hardening): the stock loop pressed A UNBOUNDED. If the
+    # scrolled-to slot can't actually be sent out (index mis-mapping via
+    # map_battle_party_index, a fainted/egg slot, or a submenu whose first entry isn't
+    # SHIFT/SEND OUT), pressing A forever just cycles menus — a real-HW run sat in the
+    # after-faint party menu for 130k+ frames at Roxanne with a weak bench. Bounded +
+    # self-correcting instead: if the menu persists on this slot, back out of any submenu
+    # (B) and advance the cursor (Down), sweeping the party until SOMETHING is sent out;
+    # give up after ~100s and return so the outer dispatch can re-map and retry.
+    frames = 0
     while get_game_state() == GameState.PARTY_MENU:
+        if frames and frames % 600 == 0:
+            for _ in range(4):
+                context.emulator.press_button("B")
+                yield
+                yield
+            context.emulator.press_button("Down")
+            yield
+            yield
         context.emulator.press_button("A")
+        frames += 1
+        if frames > 6000:
+            return
         yield
 
 

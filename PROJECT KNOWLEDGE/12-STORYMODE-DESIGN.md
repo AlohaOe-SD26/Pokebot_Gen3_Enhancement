@@ -22,10 +22,41 @@ Status key: ✅ built + validated · 🚧 scaffold/partial · 📋 mapped, not b
 
 **You are at the Ch9 boundary (2026-07-22).** `stern_done.ss1` (`tools/story-dev/saves/`) =
 Slateport after the Devon Goods delivery, `DELIVERED_DEVON_GOODS` set (museum Aqua-free,
-Route 110 blockade lifted). Next: Ch9 — Route 110 N (Trick House, cycling road, Gabby&Ty
-DOUBLE battle + route trainers) → Mauville City → Gym 3 (Wattson, Electric). **Before
-building, run /validate-docs on the Ch9 section** (decomp + recon + walkthrough) per the new
-process. Test infra: `tools/story-dev/` (README).
+Route 110 blockade lifted). Next: Ch9 — build from §Ch9 below (validated via the FIRST
+/escalate-sequence external-research PoC + decomp spot-checks). Test infra: `tools/story-dev/`.
+
+### §Ch9 — Route 110 → Mauville → Gym 3 Wattson (validated sequencing, 2026-07-22)
+Source: Gemini external-research PoC (the /escalate-sequence primer flow) + my decomp
+spot-checks. Legend: `✓ decomp-verified` (I confirmed it), `✓ external` (Gemini, cited,
+plausible — VERIFY AT BUILD), `⚠ probe live`.
+1. **Route 110 northbound ON FOOT** (no bike → the ground dirt path; Cycling Road needs the
+   Mach Bike). Trick House: fully optional, doesn't interrupt. `✓ external`
+2. **Rival battle — MANDATORY choke-point**: coord triggers `Route110_EventScript_
+   RivalTrigger1/2/3` span the dirt path `✓ decomp (triggers exist; VAR_ROUTE110_STATE=1
+   set on exit)`; gate = `VAR_ROUTE110_STATE==0` `✓ external` — **⚠ probe VAR_ROUTE110_STATE
+   in stern_done.ss1 before building**. Rival team ~L18-20, starter-dependent (vs our
+   Mudkip start: Wingull 18 / Shroomish 18 / Grovyle 20) `✓ external
+   (src/data/trainer_parties.h)`. Win sets VAR_ROUTE110_STATE=1 + Itemfinder
+   (`FLAG_RECEIVED_ITEMFINDER`) `✓ external`. Mirror the Rustboro-rival prep pattern
+   (type-aware lead vs Grovyle = Taillow/Dustox-class; heal; attempt-cap).
+3. **Gabby & Ty CORRECTION (our old doc was wrong):** the Slateport pair at (28,14) is a
+   TEXT interview only (`SlateportCity_EventScript_GabbyAndTy`); their FIRST DOUBLE battle
+   is on ROUTE 111, not here. `✓ external` (trainer doubles now attack-through anyway).
+4. **Mauville: Wally gates the gym door** — he + his uncle stand at the gym entrance; TALK
+   to Wally → mandatory battle (`TRAINER_WALLY_MAUVILLE`, Ralts ~L16 `✓ external`); win →
+   `FLAG_DEFEATED_WALLY_MAUVILLE` + Scott scene (`VAR_SCOTT_STATE`++ ,
+   `FLAG_ENABLE_FIRST_WALLY_POKENAV_CALL`, `VAR_WALLY_CALL_STEP_COUNTER=0`)
+   `✓ decomp-verified (script names, flags, Scott)`. ⚠ probe the door/NPC tiles live.
+5. **Mauville Gym**: floor-switch coord_events toggle the electric barriers (walk over
+   them; trainer battles do NOT open barriers) `✓ external` — ⚠ probe the switch tiles +
+   barrier layout live (grid probe like the museum). **Wattson (Emerald)**: Voltorb 20 /
+   Electrike 20 / Magneton 22 / Manectric 24, holds 2 Super Potions `✓ external
+   (TRAINER_WATTSON_1)` — VERIFY at build. Ground moves ideal (Marshtomp's Mud Shot —
+   Magneton is Electric/Steel: Ground 4×… but Magneton levitates? NO — Magnet Pull/Sturdy
+   ability, Ground hits). Prep: level-floor ~20-22, lead Marshtomp (Ground immunity to
+   Electric); attempt-cap.
+6. **Completion**: `FLAG_BADGE03_GET` (+ `FLAG_DEFEATED_MAUVILLE_GYM`, TM34) `✓ external`;
+   BADGE03 enables Rock Smash field use (needed later for Route 111+). `✓ external`
 
 
 > **Pass 4 (2026-07-20)** re-derived every fact independently from ROM + two/three

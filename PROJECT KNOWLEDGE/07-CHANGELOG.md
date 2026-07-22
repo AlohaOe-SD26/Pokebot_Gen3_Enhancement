@@ -1736,3 +1736,27 @@ training evolution wedged the next rotation identically).
   frames in the batch — now rotates the lead successfully and training RESUMES (battles +
   EXP through the frame budget, no hang, no Manual). Closes #24-evo-trainstall; the
   user-log Joey stall is the same mechanism.
+
+## 2026-07-22 — KI-12: the after-faint/double-battle crash CHAIN fixed (user log + faint-bench repro)
+The user's gym log (130k frames wedged in the after-faint PARTY MENU) prompted a purpose-
+built repro (`--inject-faintbench`: L3 lead + L4 bench vs the Rustboro gym). ONE repro
+exposed a THREE-BUG CHAIN, each fixed + re-proven in sequence:
+1. **Bounded party menu** (battle_handler): the stock after-faint loop pressed A UNBOUNDED;
+   a mis-mapped/unsendable slot cycles menus forever. Now bounded + self-correcting
+   (B-out of submenus + cursor sweep; returns after ~100s for outer re-dispatch).
+2. **Chooser-None crash** (battle_handler): `choose_new_lead_after_faint` returns None on a
+   weak bench → the stock `< 0` check CRASHED (TypeError) → Manual mid-battle. Now falls
+   back to ANY living non-egg mon (anything beats crashing); if truly nothing alive, ride
+   the loss out.
+3. **The user's "double battle bug"** (battle_strategies/default): the double-battle path
+   called `_handle_lead_cannot_battle` WITHOUT the required `reason` arg → TypeError →
+   Manual mid-double-battle. Fixed; and the story strategy now OVERRIDES
+   `decide_turn_in_double_battle` to ATTACK THROUGH trainer doubles (strongest usable move
+   at whichever opponent is present; Struggle at 0 PP; never flee/rotate) — the inherited
+   Default path would flee → raise in a trainer battle.
+KEY INSIGHT: Emerald starts a TRUE DOUBLE battle whenever TWO trainers sight you at once
+(e.g. between the Rustboro gym Youngsters) — doubles are common near paired trainers,
+which is why these crashes clustered at gyms. PROOF: the repro now plays the double battle
+to a natural loss → whiteout → the story recovery path (the residual Manual in the log is
+the focused DRIVER lacking StoryMode's restart loop — the real bot's recovery is long-
+proven). New harness flag `--inject-faintbench` committed for regression use.
