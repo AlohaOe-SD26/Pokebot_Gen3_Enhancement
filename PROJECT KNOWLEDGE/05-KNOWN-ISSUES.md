@@ -69,3 +69,20 @@ fix goes in DIVERGENCE-LOG).
   BADGE03_GET (Dynamo) — correct for FR/LG but WRONG for Emerald, where Fly
   needs the Feather Badge (BADGE06). Inherited from upstream. Story-mode #24
   must not rely on fly_to as-is; fix when wiring Fly into story navigation.
+
+## KI-8 — Mid-battle rotation execution can stall the party-menu switch (opened 2026-07-21, severity: med)
+- **Symptom:** a mid-battle switch (`TurnAction.RotateLead`) into a weak/underlevelled bench
+  hung the in-battle PARTY_MENU (Roxanne with Torchic vs Rock + an L6-7 bench → stuck, then
+  Manual). `state=3` = PARTY_MENU.
+- **Where:** `modules/battle_action_selection.py` `case TurnAction.RotateLead` →
+  `scroll_to_party_menu_index(map_battle_party_index(index))` → `while get_game_state() ==
+  PARTY_MENU: press A`. If the target is mis-mapped or the party-menu submenu default isn't
+  "SHIFT", the scroll loop (`menuing.py`) or the A-press loop spins.
+- **Mitigation (done):** the Story bot's trainer-battle strategy now ATTACKS through and never
+  proactively rotates in a trainer/gym/E4 battle (`LevelUpTravelBattleStrategy.decide_turn`) —
+  so it sidesteps this path. Faints are handled reactively by the after-faint chooser (which
+  correctly excludes fainted/active/double-partner mons).
+- **Still open (for Fable):** any strategy that DOES rotate (e.g. SwapTrain in an unexpected
+  double/trainer case) is exposed. Reproduce a live rotation into a specific slot and pin
+  `map_battle_party_index` / the party-menu submenu handling. Good first target: the Slateport
+  **Gabby & Ty DOUBLE battle** (§Ch8) — it also validates the after-faint double-battle fix.
