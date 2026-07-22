@@ -55,6 +55,15 @@ ON** (`context.video=True`, which the real bot has); harness needs `--video`. **
 end-to-end via `_play` (video on): app opens, call placed, clean stop, NO fallback used.**
 FALLBACK: headless/stall → `skip_pokenav_match_call_tutorial()` (state-write to vanilla's
 exact end-state) — never hangs. **Wired into `_play` §5b → clean stop.**
+**REAL-HW RUN (2026-07-21 debug log) confirmed: faithful PokéNav tutorial WORKS (called Mr.
+Stone). Losing the rival stranded the bot at (16,52) → Manual — FIXED + validated** (the Down-step
+loop keyed off the persistent MET flag; now keys off actual engagement → retries re-engage).
+Added (user directive): whole-team **LEVEL FLOOR ≥10** (escalating) + **safe PC heal** right
+before the rival, and raised the training heal margin so the swap-train finisher heals earlier.
+⚠️ **OPEN — blocks the post-rival save:** a long run hit a battle-framework hang (mon faints
+mid-training → bot stalls on the "choose next Pokémon" menu). Heal-margin bump reduces faints;
+the choose-after-faint path still needs a focused fix. **NEXT: fix choose-after-faint, then run
+fresh → capture post_rival.ss1 → build the Route104→Dewford→Gym2 leg.**
 **Rustboro rival: WIRED (§5c) with type-aware lead + attempt-cap (user-chosen).** Trigger =
 coord row y=53 x12-19 (gated VAR==7). §5c: `_prepare_for_fight(band 16-19)` →
 `_lead_best_matchup(["Grass"])` (avoids the 4×-weak Marshtomp; validated vs the type chart —

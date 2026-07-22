@@ -450,3 +450,20 @@ graphics-driven looped-task UI does not progress in our `video=False` faithful h
 (`skip_pokenav_match_call_tutorial`), proven in-harness. **Prevention:** graphics-heavy app
 UIs (PokéNav, and likely similar) may be un-drivable headless — prefer a state-anchored
 approach over UI-nav for them, and verify any UI-nav plan advances headless BEFORE building it.
+
+## 2026-07-21 — Rival re-trigger broke on a persistent MET flag (stuck below the rival after a loss)
+**Symptom (real HW):** losing the Rustboro rival → whiteout recovery → bot stood at (16,52)
+below the rival and dropped to Manual instead of retrying. **Root cause:** `fight_rustboro_rival`'s
+Down-step loop broke on `MET_RIVAL_RUSTBORO`, which stays set after a loss — so on the retry it
+"thought" it had engaged while still on the staging tile and never stepped onto the y=53 trigger.
+**Fix:** break on the ACTUAL engagement (battle active OR a rival coord-script running), never on
+a persistent "met" flag; raise a derail if the trigger won't fire. **Prevention:** to detect a
+scripted battle re-engaging, key off battle-active / the live script, NOT a one-shot progress flag.
+
+## 2026-07-21 — Swap-train finisher can faint → bot strands on the choose-next-mon menu
+**Symptom:** a long training run hung at `BattleScript_FaintedMonTryChoose` (PARTY_MENU) after
+`MARSHTOMP fainted!` — the strategy didn't send a replacement. **Root cause (partial):** the
+swap-train finisher heals only between battles at a narrow ~28% margin, so an unlucky hit faints
+it; the after-faint replacement path then stalls. **Mitigation:** raised the training heal margin
+to ~42% so the finisher heals earlier. **Still open:** the choose-after-faint handling itself must
+robustly send a replacement (framework-level) — next task; a mon fainting must never strand the bot.

@@ -691,7 +691,10 @@ def train_lead_to_level(target_level: int) -> Generator:
     level is hit or HP falls to the heal threshold; on low HP we walk to the
     Oldale Poké Center, heal, and return to the grass. Prevents the stall where
     a low-HP lead flees every battle and never gains XP."""
-    heal_at = float(getattr(context.config.battle, "hp_threshold", 20)) + 8.0
+    # Heal EARLY (big margin): the swap-train finisher heals only BETWEEN battles, so too
+    # small a margin lets an unlucky hit faint it mid-battle and strand the bot on the
+    # "choose your next Pokémon" menu (user 2026-07-21: all battles must survive failure).
+    heal_at = float(getattr(context.config.battle, "hp_threshold", 20)) + 22.0
     context.message = f"Story: training the starter to Lv {target_level}..."
     guard = 0
     while _lead_level() < target_level:
@@ -1242,7 +1245,10 @@ def train_team(
     from modules.modes.util.higher_level_actions import change_lead_party_pokemon
 
     grass_map, grass_tile = grass
-    heal_at = float(getattr(context.config.battle, "hp_threshold", 20)) + 8.0
+    # Heal EARLY (big margin): the swap-train finisher heals only BETWEEN battles, so too
+    # small a margin lets an unlucky hit faint it mid-battle and strand the bot on the
+    # "choose your next Pokémon" menu (user 2026-07-21: all battles must survive failure).
+    heal_at = float(getattr(context.config.battle, "hp_threshold", 20)) + 22.0
     guard = 0
     # SWAP-TRAIN (user directive 2026-07-21): hand wild battles to
     # SwapTrainBattleStrategy — an under-levelled lead is switched to a stronger
@@ -1476,7 +1482,10 @@ def catch_starter_team(
     (only NEW species, never a dup, never a shiny). Stops early if we run low on
     Poké Balls or hit a safety guard; a whiteout is handled by run()."""
     grass_map, grass_tile = grass
-    heal_at = float(getattr(context.config.battle, "hp_threshold", 20)) + 8.0
+    # Heal EARLY (big margin): the swap-train finisher heals only BETWEEN battles, so too
+    # small a margin lets an unlucky hit faint it mid-battle and strand the bot on the
+    # "choose your next Pokémon" menu (user 2026-07-21: all battles must survive failure).
+    heal_at = float(getattr(context.config.battle, "hp_threshold", 20)) + 22.0
     guard = 0
     if _party_size() < target_size and _total_poke_balls() > 1:
         context.message = "Story: catching a team before the first gym…"
@@ -1828,35 +1837,58 @@ def fight_rustboro_rival() -> Generator:
     then step Down across y=53 to arm a trigger (`_navigate_riding_out` straight to a
     trigger tile can be refused as a scripted-event tile)."""
     from modules.memory import get_event_flag
-    from modules.player import get_player_avatar
     from modules.battle_state import battle_is_active
+    from modules.tasks import get_global_script_context
 
     if get_event_flag("DEFEATED_RIVAL_RUSTBORO"):
         return
     context.message = "Story: heading south — the rival is waiting in Rustboro..."
+
+    def _rival_engaging() -> bool:
+        """The rival is engaging when a battle has started OR the rival coord-script is
+        running (it locks the player). We must NOT key off MET_RIVAL_RUSTBORO — that flag
+        STAYS set after a loss, so on a retry it would make us think we've engaged while
+        still standing at the staging tile, and we'd never step onto the trigger (this was
+        the 'stuck below the rival after a failed battle' bug)."""
+        if battle_is_active():
+            return True
+        sc = get_global_script_context()
+        return sc.is_active and any(
+            any(k in f for k in ("RivalTrigger", "MayEncounter", "MayAskToBattle", "MayBattle",
+                                 "MayFight", "BrendanEncounter", "BrendanAskToBattle",
+                                 "BrendanBattle", "BrendanFight"))
+            for f in sc.stack
+        )
+
     # NOTE: the CALLER sets the battle lead (this rival is type-countered, so we want a
-    # matchup-based lead via `_lead_best_matchup`, NOT lead-strongest — leading our
-    # 4×-weak starter is a trap). We deliberately don't touch the lead here.
-    # Stage just north of the y=53 rival-trigger row, then walk Down onto it.
+    # matchup-based lead via `_lead_best_matchup`, NOT lead-strongest). We don't touch it here.
+    # Stage just north of the y=53 rival-trigger row, then walk Down onto it. This works on
+    # the FIRST attempt AND on post-whiteout RETRIES (the trigger re-fires while not DEFEATED).
     yield from _navigate_riding_out(
         MapRSE.RUSTBORO_CITY, RUSTBORO_RIVAL_APPROACH, avoid_encounters=False
     )
-    # Step Down across y=53 until the rival engages (MET flag or a battle starts).
-    for _ in range(10):
-        if get_event_flag("MET_RIVAL_RUSTBORO") or battle_is_active():
+    for _ in range(14):
+        if _rival_engaging():
             break
         _check_abort()
         context.emulator.press_button("Down")
         yield
         yield from wait_for_n_frames(16)
+    if not _rival_engaging():
+        # Couldn't provoke the rival from the staging tile — signal a derail so StoryMode
+        # re-localises and retries (bounded by the caller's attempt-cap) rather than hanging.
+        raise BotModeError("Rustboro rival did not engage from the staging tile.")
     yield from _ride_out_scripted_scene("B", engage_timeout=2000)
     frames = 0
     while not get_event_flag("DEFEATED_RIVAL_RUSTBORO"):
-        _check_abort()  # whiteout during the rival -> abort -> StoryMode recovery
+        _check_abort()  # a LOSS whites out -> abort -> StoryMode whiteout recovery -> retry
         context.emulator.press_button("A")
         frames += 1
         if frames > 8000:
             break  # already handled / different completion — don't hang
         yield
+    if not get_event_flag("DEFEATED_RIVAL_RUSTBORO"):
+        # Neither won nor whited out within budget (unexpected) — derail so the caller retries.
+        raise BotModeError("Rustboro rival battle ended without a win or a whiteout.")
     yield from wait_until_truly_controllable()
     context.message = "Story: beat the Rustboro rival — off toward Dewford."

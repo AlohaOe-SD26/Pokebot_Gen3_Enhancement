@@ -873,6 +873,8 @@ class StoryMode(BotMode):
             from modules.story.early_game import (
                 RUSTBORO_TRAINING_GRASS,
                 _lead_best_matchup,
+                train_team,
+                heal_in_pokemon_center,
             )
 
             rival_fight = {
@@ -881,10 +883,23 @@ class StoryMode(BotMode):
                 "grass": RUSTBORO_TRAINING_GRASS,
                 "heal": PokemonCenter.RustboroCity,
             }
+            # (1) LEVEL FLOOR (user directive 2026-07-21): make sure EVERY party mon is at
+            #     least Lv 10 before the rival — a thin L6-8 bench gets swept and whites us
+            #     out. The floor escalates on retries so each attempt fields a stronger team.
+            level_floor = 10 + 2 * (self._rival_attempts - 1)
+            console.print(f"[cyan]Story: leveling the whole team to ≥ Lv {level_floor} before the rival…[/]")
+            yield from train_team(level_floor, scope="whole",
+                                  grass=RUSTBORO_TRAINING_GRASS, heal_center=PokemonCenter.RustboroCity)
+            # (2) Ready the primary/near-band battlers (organic band training + loss escalation).
             yield from self._prepare_for_fight(rival_fight)
-            # Mudkip start -> rival leads a grass Grovyle: lead the mon that best resists Grass
-            # (NOT our 4×-weak Marshtomp). On a balanced team this wins; a thin team caps out.
+            # (3) Mudkip start -> rival leads a grass Grovyle: lead the mon that best resists Grass
+            #     (NOT our 4×-weak Marshtomp). Taillow/Flying both resists Grass AND hits it 2×.
             yield from _lead_best_matchup(["Grass"])
+            # (4) SAFE HEAL right before the fight (user directive) — enter at full HP.
+            yield from heal_in_pokemon_center(PokemonCenter.RustboroCity)
+            # (5) Fight. A loss whites out -> StoryMode recovery -> we re-enter here (attempt+1,
+            #     higher floor) until RIVAL_MAX_ATTEMPTS, then stop cleanly. The rival re-engages
+            #     correctly on retries now (fight_rustboro_rival no longer keys off the MET flag).
             yield from fight_rustboro_rival()
         else:
             console.print("[dim]Story: Rustboro rival already defeated — skipping.[/]")

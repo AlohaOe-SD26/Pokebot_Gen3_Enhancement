@@ -1412,3 +1412,24 @@ Per user choice ("type-aware lead + attempt-cap"):
   cutscene's deposit position need a REAL post-rival save. Sail-leg build deferred to next
   session (build from a real post-rival save / recon the Rustboro-south connection first).
 - Documented in design §Ch6 (SAIL-LEG RECON NOTE) + handoff.
+
+## 2026-07-21 (later) — Fix failed-rival stuck bug + level-floor/heal before rival (from real-HW debug log)
+User ran the bot on real hardware; the FAITHFUL PokéNav tutorial WORKED (called Mr. Stone).
+On losing the rival, the bot stood below the rival (16,52) and dropped to Manual. Fixes:
+- **BUG FIX (validated):** `fight_rustboro_rival` broke its Down-step loop on
+  `MET_RIVAL_RUSTBORO`, which STAYS set after a loss — so on the post-whiteout retry it
+  never stepped onto the y=53 trigger and stalled at (16,52). Now it breaks on the ACTUAL
+  engage (battle active OR a rival coord-script on the stack) and raises a derail if it
+  can't provoke the rival, so StoryMode retries. Harness-validated: with MET pre-set
+  (simulated loss), the rival RE-ENGAGES.
+- **LEVEL FLOOR (user):** `_play` §5c now trains the WHOLE team to ≥ Lv 10 (escalating
+  10+2·(attempt-1)) before the rival, then band-preps the primary. Validated: all mons
+  reached L10.
+- **SAFE HEAL (user):** heal at the Rustboro PC right before the rival.
+- **Training heal margin raised** (+8 → +22 above flee threshold) so the swap-train finisher
+  heals earlier and doesn't faint mid-battle.
+- KNOWN ISSUE (next): a long save-generation run surfaced a battle-framework hang — when a
+  mon faints mid-training the bot can stall on the "choose your next Pokémon" menu instead
+  of sending a replacement. The heal-margin bump reduces faints; the choose-after-faint path
+  still needs a focused fix (user directive: all battles must survive failure). Post-rival
+  SAVE not generated yet because of this.
