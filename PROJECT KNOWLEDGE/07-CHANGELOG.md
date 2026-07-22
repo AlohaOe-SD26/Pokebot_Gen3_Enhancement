@@ -1570,3 +1570,20 @@ The bot now plays dewford.ss1 → Letter delivered → KNUCKLE BADGE, zero derai
 - PROOF: full `--driver story` run dewford.ss1 → letter → badge → clean content-end stop,
   0 derails / 0 whiteouts (ch7_run7). Checkpoint `saves/brawly_done.ss1` committed
   (extracted from current_state.ss1 via the playbook §2 recipe; flags verified).
+
+## 2026-07-22 — CHAPTER 8a COMPLETE: sail Dewford → Slateport BUILT + VALIDATED (sandbox)
+The bot now plays brawly_done.ss1 → Slateport City, healed, zero derails. Punch-list #24.
+- `sail_to_slateport()` (early_game.py): Dewford Gym exit → Dewford PC heal → dock
+  Briney (local_id 2 at (12,9); `approach_hint=(11,9)` because the engine only loads
+  object events NEAR THE CAMERA — from across town after the PC heal the dock object
+  simply isn't in RAM; live-hit + fixed) → his `multichoicedefault` menu (✓ decomp:
+  gated on DELIVERED_STEVEN_LETTER; Petalburg=0/SLATEPORT=1/Cancel=2, CURSOR DEFAULTS
+  TO CANCEL — answered Up ×1 → A; the stock helper presses Down-from-cursor and would
+  wrap onto Petalburg) → sail → Route 109 beach → North into Slateport (trainers inline)
+  → Slateport PC heal (respawn anchor, same KI-10 reasoning). Wired as Segment 8a with a
+  Dewford-side whitelist gate. PROOF: `--driver story` run brawly_done → "arrived in
+  Slateport City" clean stop, 0 derails/whiteouts (ch8_run2, ~40k frames).
+- Checkpoint `saves/slateport.ss1` (Slateport (19,20), healed; DELIVERED_DEVON_GOODS
+  verified False = the Ch8b anchor). Playbook §7 + design §Ch8 updated (Slateport city
+  objects/warps probed: Stern (28,13), Gabby&Ty (28,14)/(29,13), 11 museum-queue grunts,
+  PC door (19,19)).

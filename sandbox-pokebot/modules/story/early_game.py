@@ -1991,7 +1991,7 @@ def fight_rustboro_rival() -> Generator:
     context.message = "Story: beat the Rustboro rival — off toward Dewford."
 
 
-def _talk_to_wandering_npc(map_enum, local_id: int, *, attempts: int = 8) -> Generator:
+def _talk_to_wandering_npc(map_enum, local_id: int, *, attempts: int = 8, approach_hint=None) -> Generator:
     """Engage a WANDERING (patrolling) NPC in conversation on the current small indoor map.
 
     WHY THE OBVIOUS APPROACHES FAIL (all live-proven in Mr. Briney's cottage):
@@ -2128,6 +2128,15 @@ def _talk_to_wandering_npc(map_enum, local_id: int, *, attempts: int = 8) -> Gen
             if _dbg:
                 print(f"[talk] ENGAGED opportunistically (round {_round})")
             return
+
+        # PHASE 0 — make sure the object is LOADED. The GBA engine only materializes
+        # object events near the camera, so on a big map (a town) the target simply
+        # isn't in RAM until we walk toward it (live-hit: Briney's dock object was
+        # "absent" from across Dewford after a PC heal). `approach_hint` = a walkable
+        # tile near the NPC's spawn to navigate to first.
+        if _npc_coords() is None and approach_hint is not None:
+            yield from _navigate_riding_out(map_enum, approach_hint)
+            yield from wait_for_n_frames(30)
 
         # PHASE 1 — OBSERVE one full patrol lap: record every tile each walker visits.
         # (Also talk instantly if the target passes adjacent, and un-block the room if
@@ -2571,6 +2580,119 @@ def deliver_stevens_letter() -> Generator:
     if _map_group_number() != DEWFORD:
         raise BotModeError("Steven's Letter: expected to finish at the Dewford Poké Center.")
     context.message = "Story: back in Dewford Town."
+
+
+# ---- Chapter 8a: sail Dewford → Slateport (Route 109) ----
+# Static recon 2026-07-22 (ch8 probe): dock Briney = DEWFORD_TOWN local_id 2 at (12,9)
+# (his boat = id 4 at (12,8)). ✓ script-verified (DewfordTown decomp): with
+# FLAG_DELIVERED_STEVEN_LETTER set his dock menu is `multichoicedefault ...
+# MULTI_BRINEY_ON_DEWFORD, 2` — Petalburg=0 / SLATEPORT=1 / Cancel=2, and the CURSOR
+# STARTS ON 2 (Cancel), so the deterministic pick for Slateport is UP ×1 then A (the
+# stock wait_for_multiple_choice_question presses Down from wherever the cursor is and
+# would wrap onto Petalburg — do NOT use it here). Choosing Slateport hides the Dewford
+# boat, un-hides Briney+boat on ROUTE 109 (he lands you on the beach near (21,24)), and
+# Route 109 runs North straight into SLATEPORT_CITY (a long trainer-gauntlet beach).
+DEWFORD_DOCK_BRINEY_LOCAL_ID = 2
+
+
+def sail_to_slateport() -> Generator:
+    """Chapter 8a — sail from the Dewford dock to Route 109 and walk into Slateport.
+
+    INTENT: after the Letter (and the badge), the Devon Goods are still in the bag for
+    Captain Stern — Slateport is the next story stop. Briney ferries us from the Dewford
+    dock; he lands on Route 109's beach, which connects North directly into Slateport.
+    ROUTE: (from the gym or anywhere in Dewford) → Dewford PC heal → talk to Briney at the
+    dock (12,9) → his multichoice: UP ×1 → A picks SLATEPORT (index 1; cursor defaults to
+    Cancel — see the recon note above) → ride out the sail → land ROUTE 109 → navigate
+    North into SLATEPORT_CITY (beach trainers fought inline) → heal at the Slateport PC
+    (also anchors the whiteout respawn in Slateport, same reasoning as KI-10).
+    GOAL/END STATE: controllable in Slateport City, team healed.
+    STORY CONDITION: `DELIVERED_STEVEN_LETTER` set (without it Briney only offers
+    Petalburg). Idempotent + resume-safe: legs are keyed off the LIVE map."""
+    from modules.modes.util.sleep import wait_for_n_frames as _wfn  # noqa: F401  (clarity)
+
+    DEWFORD = MapRSE.DEWFORD_TOWN.value
+    GYM = MapRSE.DEWFORD_TOWN_GYM.value
+    ROUTE109 = MapRSE.ROUTE109.value
+    SLATEPORT = MapRSE.SLATEPORT_CITY.value
+
+    if _map_group_number() == SLATEPORT:
+        return
+    context.message = "Story: sailing from Dewford to Slateport..."
+    yield from wait_until_truly_controllable()
+
+    # --- Leg 0: step out of the gym if that's where we are (brawly_done resumes here). ---
+    if _map_group_number() == GYM:
+        yield from _enter_warp_by_navigation(
+            lambda: _map_group_number() == DEWFORD, MapRSE.DEWFORD_TOWN_GYM, (5, 27), label="Dewford Gym exit"
+        )
+        yield from wait_until_truly_controllable()
+
+    if _map_group_number() == DEWFORD:
+        # Heal before the trip (fresh off the gym fight; faithful player behavior).
+        yield from heal_in_pokemon_center(PokemonCenter.DewfordTown)
+        yield from wait_until_truly_controllable()
+
+        # --- Leg 1: talk to Briney at the dock and pick SLATEPORT. (approach_hint: the
+        #     dock object only loads once we're near it — walk to (11,9) beside it.) ---
+        yield from _talk_to_wandering_npc(
+            MapRSE.DEWFORD_TOWN, DEWFORD_DOCK_BRINEY_LOCAL_ID, approach_hint=(11, 9)
+        )
+        presses = 0
+        while _map_group_number() == DEWFORD:
+            _check_abort()
+            if presses > 900:
+                raise BotModeError("Sail to Slateport: talked to Briney but the sail never started.")
+            if task_is_active("Task_HandleMultichoiceInput"):
+                # Cursor starts on Cancel (2): Up once → Slateport (1), then confirm.
+                yield from wait_for_n_frames(4)
+                context.emulator.press_button("Up")
+                yield
+                yield from wait_for_n_frames(4)
+                while task_is_active("Task_HandleMultichoiceInput"):
+                    context.emulator.press_button("A")
+                    yield
+                    yield from wait_for_n_frames(2)
+                continue
+            context.emulator.press_button("A")
+            presses += 1
+            yield
+            yield from wait_for_n_frames(6)
+
+    # --- Leg 2: ride out the sail until we're standing on Route 109. ---
+    frames = 0
+    while _map_group_number() not in (ROUTE109, SLATEPORT):
+        _check_abort()
+        context.emulator.press_button("B")
+        frames += 1
+        if frames > 12000:
+            raise BotModeError("Sail to Slateport: never arrived on Route 109.")
+        yield
+    yield from wait_until_truly_controllable()
+
+    # --- Leg 3: Route 109 → North into Slateport (the beach is a trainer gauntlet —
+    #     fought inline by the listeners; ride out anything that aborts the path). ---
+    if _map_group_number() == ROUTE109:
+        rounds = 0
+        while _map_group_number() != SLATEPORT:
+            rounds += 1
+            if rounds > 20:
+                raise BotModeError("Sail to Slateport: stuck crossing Route 109 into Slateport.")
+            try:
+                yield from navigate_to_anywhere(
+                    MapRSE.SLATEPORT_CITY, (19, 21), avoid_encounters=True, avoid_scripted_events=False
+                )
+                break
+            except BotModeError:
+                yield from _ride_out_scripted_scene("B")
+
+    # --- Leg 4: heal at the Slateport PC (respawn anchor + fresh team for the city arc). ---
+    yield from wait_until_truly_controllable()
+    yield from heal_in_pokemon_center(PokemonCenter.SlateportCity)
+    yield from wait_until_truly_controllable()
+    if _map_group_number() != SLATEPORT:
+        raise BotModeError("Sail to Slateport: expected to finish at the Slateport Poké Center.")
+    context.message = "Story: arrived in Slateport City!"
 
 
 def do_dewford_gym() -> Generator:

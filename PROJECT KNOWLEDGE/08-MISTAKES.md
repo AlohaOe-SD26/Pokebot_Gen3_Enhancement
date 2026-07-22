@@ -551,3 +551,17 @@ with no exception bypasses the whiteout/derail recovery entirely.
   DIRECTIONAL (one-way ledges) — chain walkers pick the furthest-along reachable step;
   (c) never snapshot a checkpoint until the avatar has been STABLY controllable (~120 frames)
   with no active script — ride leftover dialogue out with B first.
+
+## 2026-07-22 — Dock Briney "not present on map" (object events are camera-loaded)
+- **Symptom:** `sail_to_slateport` derailed 5× with "NPC local_id=2 is not present on map
+  DEWFORD_TOWN" — but Briney IS at the dock (12,9), and the same lookup worked fine in his
+  cottage and for every indoor NPC before.
+- **Root cause:** the GBA engine only materializes object events within camera range.
+  After healing at the Dewford PC (west side), the dock (12,9) was ~10 tiles away — the
+  object didn't exist in RAM, so the live `get_map_objects()` lookup legitimately found
+  nothing. Small interiors never exposed this because everything is always in range.
+- **Fix:** `_talk_to_wandering_npc(..., approach_hint=(x,y))` — when the target is absent,
+  navigate to a walkable tile near its spawn first, then re-locate live. Validated (clean
+  Ch8a run).
+- **Prevention:** on town-sized maps, never conclude an NPC is absent/hidden from a live
+  object lookup until you are standing near its spawn tile. (Playbook §7.)

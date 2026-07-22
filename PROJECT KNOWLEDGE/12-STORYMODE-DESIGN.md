@@ -16,15 +16,18 @@ Status key: ✅ built + validated · 🚧 scaffold/partial · 📋 mapped, not b
 | 5c | **Rustboro rival** (type-lead + level-floor + heal + attempt-cap) | `_play §5c` + `_lead_best_matchup`, `train_team`, `fight_rustboro_rival` | `DEFEATED_RIVAL_RUSTBORO` | ✅ (fresh run won) |
 | 6 | Sail to Dewford (via Petalburg Woods → beach → Briney) | `sail_to_dewford` + `_talk_to_wandering_npc` | on `DEWFORD_TOWN` | ✅ (2026-07-22; driver `saildewford` + real `_play`) |
 | 7 | Granite Cave (Steven's Letter, TM47) + **Gym 2 — Brawly** | `deliver_stevens_letter` (+`_walk_warp_chain`), `do_dewford_gym` | `DELIVERED_STEVEN_LETTER`, `BADGE02_GET` | ✅ (2026-07-22; zero-derail run dewford→badge) |
-| 8 | Sail to Slateport + Slateport (Gabby&Ty DOUBLE battle) | — | — | 📋 §Ch8 (reconned) |
+| 8a | Sail to Slateport (dock Briney → Route 109 gauntlet → PC) | `sail_to_slateport` | on `SLATEPORT_CITY`, healed | ✅ (2026-07-22; zero-derail run brawly_done→Slateport) |
+| 8b | Slateport: Devon Goods → Capt. Stern (Oceanic Museum, Aqua grunts; Gabby&Ty DOUBLE) | — | `DELIVERED_DEVON_GOODS` | 📋 §Ch8 (reconned; objects/warps probed 2026-07-22) |
 | 9+ | Route 110 → **Gym 3 Mauville (Wattson)** → … → Elite Four | — | — | ⬜ (Overview table §1/§2 has the route + item beats) |
 
-**You are at the Ch8 boundary (2026-07-22).** `brawly_done.ss1` (`tools/story-dev/saves/`) =
-Dewford Gym (4,4) right after the badge, `DELIVERED_STEVEN_LETTER` + `BADGE01/02_GET` set.
-Next: Ch8 — Briney sail Dewford → Slateport (talk to Briney at the Dewford dock (12,9);
-read the DewfordTown decomp for the exact gating first) → Route 109 → Slateport (Stern/
-Museum beats; ‼ the Gabby&Ty DOUBLE battle at (28,14)/(29,13)) → Route 110 → Mauville
-(Gym 3 Wattson). §Ch8 recon below. Test infra: `tools/story-dev/` (README).
+**You are at the Ch8b boundary (2026-07-22).** `slateport.ss1` (`tools/story-dev/saves/`) =
+Slateport City (19,20) outside the PC, healed; `DELIVERED_STEVEN_LETTER` + `BADGE01/02` set,
+`DELIVERED_DEVON_GOODS=False` (the Ch8b anchor flag — verified readable). Next: Ch8b —
+Devon Goods to Capt. Stern: read the SlateportCity + OceanicMuseum decomp for the beat
+chain (Stern object at (28,13) w/ Gabby&Ty DOUBLE battle beside (28,14)/(29,13); 11 Aqua
+grunts queue at the museum (20-31,26-27); museum entry fee + 2 grunt fights + Archie scene
+→ `DELIVERED_DEVON_GOODS`). Then Route 110 N → Mauville (Gym 3 Wattson). Slateport city
+objects/warps probed (ch8probe). Test infra: `tools/story-dev/` (README).
 
 
 > **Pass 4 (2026-07-20)** re-derived every fact independently from ROM + two/three

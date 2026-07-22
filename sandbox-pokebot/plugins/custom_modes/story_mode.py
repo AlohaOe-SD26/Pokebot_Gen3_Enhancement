@@ -651,6 +651,7 @@ class StoryMode(BotMode):
             sail_to_dewford,
             deliver_stevens_letter,
             do_dewford_gym,
+            sail_to_slateport,
             handle_pokenav_match_call_tutorial,
             fight_rustboro_rival,
             return_to_lab_and_get_pokedex,
@@ -983,11 +984,33 @@ class StoryMode(BotMode):
             console.print("[dim]Story: Knuckle Badge already earned — Gym 2 skipped.[/]")
         _guard("Gym 2 (Brawly)", lambda: _done("BADGE02_GET"))
 
-        # END OF BUILT CONTENT. Next build (Ch8): Briney sail Dewford → Slateport (Route 109)
-        # → Slateport (Stern/Museum beats; Gabby&Ty DOUBLE battle) → Route 110 → Mauville.
+        # --- Segment 8a: sail Dewford → Slateport (Briney at the dock; Route 109 beach
+        #     gauntlet; ends healed at the Slateport PC). Gated on being on the DEWFORD
+        #     side (whitelist — see the Segment-6 lesson); a Slateport-side resume skips. ---
+        dewford_side = (
+            MapRSE.DEWFORD_TOWN.value,
+            MapRSE.ROUTE106.value,
+            MapRSE.GRANITE_CAVE_1F.value,
+            MapRSE.GRANITE_CAVE_B1F.value,
+            MapRSE.GRANITE_CAVE_B2F.value,
+            MapRSE.GRANITE_CAVE_STEVENS_ROOM.value,
+            MapRSE.ROUTE109.value,
+        )
+        cur = _cur_map()
+        on_dewford_side = cur in dewford_side or (cur is not None and cur[0] == 3)  # group 3 = Dewford interiors
+        if cur != MapRSE.SLATEPORT_CITY.value:
+            if on_dewford_side:
+                yield from sail_to_slateport()
+                _guard("Sail to Slateport (Ch8a)", lambda: _cur_map() == MapRSE.SLATEPORT_CITY.value)
+            else:
+                console.print("[dim]Story: not on the Dewford side — Slateport sail skipped.[/]")
+
+        # END OF BUILT CONTENT. Next build (Ch8b): Slateport — Devon Goods to Capt. Stern
+        # (Oceanic Museum, Team Aqua grunt fights; ‼ Gabby&Ty DOUBLE battle in town) →
+        # Route 110 → Mauville → Gym 3 (Wattson).
         context.message = (
-            "Story: Knuckle Badge earned — end of built content. NEXT (WIP): sail to "
-            "Slateport -> Route 110 -> Gym 3 (Wattson). Handing to manual."
+            "Story: arrived in Slateport City — end of built content. NEXT (WIP): Devon Goods "
+            "to Capt. Stern (Oceanic Museum) -> Route 110 -> Gym 3 (Wattson). Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()

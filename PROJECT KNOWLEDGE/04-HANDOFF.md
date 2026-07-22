@@ -9,6 +9,20 @@
 > accumulated craft (harness, debugging method, story-mapping, faithfulness rules, bug
 > patterns) — use it to build faster and prove every fix.
 
+### ⭐⭐⭐ Session 2026-07-22 (Fable 5, latest) — CHAPTER 8a DONE: the bot reaches SLATEPORT (SANDBOX, pushed)
+- **`sail_to_slateport()` BUILT + VALIDATED (0 derails)**: `brawly_done.ss1` → gym exit →
+  Dewford heal → dock Briney (Up×1→A on his Cancel-defaulted multichoice — the stock helper
+  would wrap onto Petalburg) → sail → Route 109 → Slateport → PC heal → clean stop.
+  Checkpoint **`tools/story-dev/saves/slateport.ss1`** (Slateport (19,20), healed,
+  `DELIVERED_DEVON_GOODS=False` = the Ch8b anchor). Two new engine rules learned + logged
+  (playbook §7): object events are CAMERA-LOADED (use `approach_hint` on town-sized maps),
+  and `multichoicedefault` menus need explicit cursor moves.
+- **NEXT: Ch8b — Devon Goods → Capt. Stern.** Read the SlateportCity + OceanicMuseum decomp
+  first (beat chain: Stern hunt → museum entry (fee?) → 2 Aqua grunt fights → Archie scene →
+  `DELIVERED_DEVON_GOODS`). ‼ Gabby&Ty DOUBLE battle at (28,14)/(29,13) right next to Stern's
+  pre-museum spot — the live testbed for the double-battle fix + the open framework rotation
+  stall. Then Route 110 N → Mauville → Gym 3 (Wattson). Start from `slateport.ss1`.
+
 ### ⭐⭐ Session 2026-07-22 (Fable 5, later) — CHAPTER 7 DONE: Steven's Letter + KNUCKLE BADGE (SANDBOX, pushed)
 - **`deliver_stevens_letter()` + `do_dewford_gym()` BUILT + VALIDATED**: full `--driver story`
   run `dewford.ss1` → Dewford PC heal → Route 106 → Granite Cave **five-warp ladder chain**

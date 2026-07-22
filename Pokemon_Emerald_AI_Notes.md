@@ -256,3 +256,14 @@ the same legitimate moves a player would, so you can (a) compare a learned agent
 - **Party-composition beats levels at Brawly:** a natural L16-18 team wins via type choice
   alone (Bug/Poison Dustox resists Fighting and carries Confusion/Gust for 2×) — no
   grinding possible anyway (no land encounters around Dewford pre-Surf).
+
+## 2026-07-22 — Ch8a (Slateport sail) learnings for the AI project
+- **Object events are camera-loaded.** On town-sized maps an NPC's live object does not
+  exist in RAM until the player is near it — an env exposing "visible objects" reflects
+  the engine truth, but agents must not infer absence from it; walk toward the spawn
+  first. (Bit us at the Dewford dock.)
+- **Menu defaults matter.** Gen-3 `multichoicedefault` menus start the cursor on an
+  arbitrary index (Briney's dock menu defaults to CANCEL); answers must be relative
+  cursor moves, not absolute "press Down i times from the top".
+- **Route 109 is a dense trainer gauntlet** (a dozen sight-lines) but the pathfinder's
+  route dodges most of them; only ~2 battles fired on the validated crossing.

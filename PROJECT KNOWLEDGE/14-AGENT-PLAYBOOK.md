@@ -232,6 +232,8 @@ authoritative), the harness (the ground truth — validate and correct the doc).
 | **Chain walker loops** between floors (a step "reachable" leads backward) | Within-floor reachability is DIRECTIONAL (one-way ledges!). Pick the FURTHEST-ALONG pathable chain step, never the first match (`_walk_warp_chain`). |
 | **Checkpoint saved mid-dialogue** loads permanently non-controllable | Never snapshot until the avatar is STABLY controllable (~120 frames) with no active script — B-ride any leftover dialogue out first. |
 | A segment gated on **"not at the destination map"** re-runs on a mid-arc resume | Gate travel segments on a WHITELIST of their origin-side maps (a Granite-Cave derail re-entered the Dewford sail and marched to Manual, 2026-07-22). |
+| Live NPC lookup returns **"not present" on a big map** | The engine only materializes object events NEAR THE CAMERA — from across a town the object isn't in RAM at all. Walk toward its spawn first (`_talk_to_wandering_npc(..., approach_hint=(x,y))`), then locate it live. |
+| A **multichoice with a non-zero default cursor** answered with the stock helper | `wait_for_multiple_choice_question(i)` presses Down i× from WHEREVER the cursor is; `multichoicedefault` menus (Briney's dock menu defaults to Cancel) need explicit cursor moves (Up ×1 → A for Slateport). Read the decomp's multichoice line before answering. |
 
 ---
 
