@@ -488,3 +488,12 @@ gym / E4) must resolve every turn to an ATTACK or a valid switch — never a fle
 never a switch that can't complete; when in doubt, attack (the game Struggles) so the fight
 plays through to win-or-whiteout. Any switch target must be a benched, non-fainted, non-active
 mon that can actually be selected.
+
+## 2026-07-21 — Training spin walked in place forever (no encounters, no derail)
+**Symptom:** pre-gym training hung at Marshtomp L16 — stuck in the overworld grind spin with no
+EXP gain for 20k+ frames, no exception → no whiteout/derail recovery. **Root cause:** `spin()`
+can be somewhere it can't trigger encounters; the stop-condition (level ≥ target) never fires and
+nothing raises. **Fix:** `_story_spin` no-progress watchdog (no party-EXP for 2400 overworld
+frames → bail → caller re-navigates + retries). **Prevention:** any open-ended grind/wait loop
+needs a no-progress escape that RE-TRIES (re-navigate), not just a hard timeout — a silent stall
+with no exception bypasses the whiteout/derail recovery entirely.

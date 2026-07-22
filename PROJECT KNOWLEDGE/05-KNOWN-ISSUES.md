@@ -86,3 +86,16 @@ fix goes in DIVERGENCE-LOG).
   double/trainer case) is exposed. Reproduce a live rotation into a specific slot and pin
   `map_battle_party_index` / the party-menu submenu handling. Good first target: the Slateport
   **Gabby & Ty DOUBLE battle** (§Ch8) — it also validates the after-faint double-battle fix.
+
+## KI-9 — Training spin could silently stall (no encounters) — MITIGATED 2026-07-21
+- **Symptom:** during pre-gym / pre-rival training, the grind `spin()` could end up where it
+  can't trigger wild encounters (walked out of grass, trainer line-of-sight, bad respawn spot)
+  and walk in place FOREVER — the level never reaches target, the stop-condition never fires, no
+  whiteout, no derail → hard stall (harness-repro'd from `route116team.ss1`: stuck at Marshtomp
+  L16 with no EXP for 20k+ frames). Position/RNG-dependent (a clean fresh run trains fine).
+- **Mitigation (done):** `_story_spin` now has a **no-progress watchdog** — if the party gains
+  no EXP for `_STORY_SPIN_NO_PROGRESS_FRAMES` (2400) consecutive OVERWORLD frames, it bails so
+  the caller (`train_team`'s loop) **re-navigates to the grass and retries**, which un-sticks it.
+  Overworld-only counting means a long single battle can't false-trigger it. VALIDATED: the same
+  `route116team` run that hung before now trains past L16, beats Roxanne, and reaches the rival
+  prep with all fixes. Bounded by `train_team`'s outer guard (500) → derail recovery if truly stuck.

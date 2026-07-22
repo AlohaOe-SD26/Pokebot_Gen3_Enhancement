@@ -88,6 +88,13 @@ def _check_abort() -> None:
         raise BotModeError("Story: aborting the current step to recover from a whiteout.")
 
 
+#: Overworld frames of NO party-EXP gain before `_story_spin` bails so the caller
+#: re-navigates to the grass and retries (a training spin that can't trigger encounters
+#: must self-heal, not walk in place forever). ~40s at 60fps — well beyond the gap between
+#: normal wild encounters, so it only fires on a genuine stall.
+_STORY_SPIN_NO_PROGRESS_FRAMES = 2400
+
+
 def _story_spin(stop_condition) -> Generator:
     """`spin()` that ALSO stops the instant a whiteout abort is flagged, then raises so
     the current segment unwinds into StoryMode.run()'s recovery.
@@ -98,8 +105,47 @@ def _story_spin(stop_condition) -> Generator:
     own conditions (level still < target, HP now full) never fire, so the bot just
     spins in place at the respawn point forever (user-seen at the Oldale PC while
     training before the rival). The trailing `_check_abort()` turns the flag into the
-    BotModeError run() expects, so the whiteout recovery re-orients and resumes."""
-    yield from spin(stop_condition=lambda: story_should_abort() or stop_condition())
+    BotModeError run() expects, so the whiteout recovery re-orients and resumes.
+
+    NO-PROGRESS WATCHDOG (user directive 2026-07-21 "never hang"): the raw `spin()` walks in
+    grass to trigger wild battles, but if it ends up somewhere it can't trigger encounters
+    (walked out of grass, a trainer's line-of-sight blocks the tile, a bad respawn spot) it
+    walks in place FOREVER — the level never reaches the target and the stop-condition never
+    fires (harness-seen at Route 116, training stuck with no EXP for 20k+ frames). So we also
+    stop the spin when the party gains NO EXP for `no_progress_frames` consecutive OVERWORLD
+    frames; the caller (e.g. `train_team`'s loop) then RE-NAVIGATES to the grass and retries,
+    which un-sticks it. We only count overworld frames so a long single battle never
+    false-triggers (EXP jumps when it's won, resetting the counter)."""
+    from modules.memory import get_game_state, GameState
+
+    _wd = {"last_xp": None, "stuck": 0}
+
+    def _total_party_xp() -> int:
+        try:
+            return sum(p.total_exp for p in get_party() if p is not None and not p.is_egg)
+        except Exception:
+            return -1
+
+    def _watchdog_stop() -> bool:
+        if story_should_abort() or stop_condition():
+            return True
+        # Only judge "no progress" while free in the overworld — not during a battle/menu.
+        try:
+            if get_game_state() is not GameState.OVERWORLD:
+                return False
+        except Exception:
+            return False
+        xp = _total_party_xp()
+        if xp != _wd["last_xp"]:
+            _wd["last_xp"] = xp
+            _wd["stuck"] = 0
+        else:
+            _wd["stuck"] += 1
+            if _wd["stuck"] >= _STORY_SPIN_NO_PROGRESS_FRAMES:
+                return True  # stalled — bail so the caller re-navigates to grass and retries
+        return False
+
+    yield from spin(stop_condition=_watchdog_stop)
     _check_abort()
 
 
