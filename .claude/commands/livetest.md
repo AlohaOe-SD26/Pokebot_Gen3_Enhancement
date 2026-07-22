@@ -47,6 +47,25 @@ Default scope: **fresh** (new game → the current story frontier).
    with the standard reproduce → fix → prove loop (playbook), then re-run a focused
    batch to confirm the fix and check for regressions.
 
+## Storage & staleness (user directive 2026-07-22 — never mix old tests into a review)
+- `livetest-runs/` holds ONE current batch + `archive/` ("old tests") + `INDEX.md`.
+  Starting a new batch AUTO-ARCHIVES every previous batch (stale by definition — the
+  code moved). The index (auto-rebuilt each batch) lists every batch with its **code
+  commit**, scope, scorecard, and review status.
+- **A review may only read batches whose recorded `code_commit` matches the code under
+  discussion.** If the commit differs (or is `-dirty` vs clean), say so and re-run.
+- After producing a Live Test report, write `REVIEWED.md` into the batch dir (one-line
+  verdict + where the report/discussion lives) so the index shows it as reviewed;
+  unreviewed archived batches remain visible in the index rather than silently lost.
+
+## Machine sizing (specs-scanned 2026-07-22, user-authorized)
+- Main PC = Ryzen 9 5950X (16C/32T), 128 GB RAM: default 6 lanes; up to ~12 OK.
+  Each headless lane ≈ 1 core, a few hundred MB RAM. Scale DOWN (2-3) on other
+  machines or if anything else heavy runs.
+- The user normally live-tests on a DIFFERENT computer. For the rare same-PC case:
+  ask before launching; if they insist on concurrency, cap lanes at ~4 and say the
+  timing of THEIR GUI run may still be affected.
+
 ## Rules
 - NEVER run batch lanes while the user is live-testing on the same machine without
   their explicit OK.
