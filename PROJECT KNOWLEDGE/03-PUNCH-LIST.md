@@ -407,3 +407,15 @@
       (Torchic start, 4-mon team). Under-investigated; capture a repro from the
       run03 log if it recurs in a future batch.
 
+
+- [ ] #24-pokenav-faithful — WATCH ITEM (user fresh-run log 2026-07-22 13:24): the
+      PokéNav Match-Call tutorial took the STATE-WRITE FALLBACK on a real-GUI run
+      (video on) — the faithful play-through previously worked on this hardware.
+      By design the fallback is legal (never hang), but check why the faithful
+      path didn''t engage (timing? renderer-gate read?) next time it recurs.
+- [ ] #24-train-efficiency — the same run spent ~240k frames on the pre-rival
+      level-floor (L10) and ~200k on the Brawly band (L15) with swap-training.
+      Bounded + productive, but slow. Related: an ABRA catch (Teleport-only, can''t
+      attack) rode along the whole run at L7 — confirm battler-slot exclusion is
+      airtight and consider skipping Abra-class catches for team slots, or routing
+      lows to level-matched grass (#24-trainmap).
