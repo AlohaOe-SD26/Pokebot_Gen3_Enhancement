@@ -610,7 +610,7 @@ class StoryMode(BotMode):
     def _play(self) -> Generator:
         import random
 
-        from modules.memory import get_event_flag
+        from modules.memory import get_event_flag, get_event_var
         from modules.map import get_map_data_for_current_position
         from modules.map_data import MapRSE
         from modules.story import detect_live
@@ -627,7 +627,7 @@ class StoryMode(BotMode):
             help_birch_and_choose_starter,
             recover_devon_goods,
             return_devon_goods_and_get_pokenav,
-            skip_pokenav_match_call_tutorial,
+            handle_pokenav_match_call_tutorial,
             fight_rustboro_rival,
             return_to_lab_and_get_pokedex,
             train_lead_to_level,
@@ -840,13 +840,14 @@ class StoryMode(BotMode):
             console.print("[dim]Story: PokéNav already received — skipping the Devon Corp errand.[/]")
         _guard("Devon Corp → PokéNav", lambda: _done("RECEIVED_POKENAV"))
 
-        # Clear the forced PokéNav/Match-Call tutorial BEFORE any step south (the Rustboro
-        # Scientist fires it from the map's ON_FRAME table while VAR_RUSTBORO_CITY_STATE==6).
-        # We neutralize it with a targeted state-write to vanilla's post-tutorial end-state
-        # (the app itself is a graphics-driven UI that can't be driven in our headless
-        # harness — see skip_pokenav_match_call_tutorial + DECISIONS-LOG). This also arms
-        # the rival trigger (gated on VAR_RUSTBORO_CITY_STATE==7).
-        yield from skip_pokenav_match_call_tutorial()
+        # Clear the forced PokéNav/Match-Call tutorial (Rustboro Scientist, fired from the
+        # map ON_FRAME table while VAR_RUSTBORO_CITY_STATE==6). FAITHFUL path: actually call
+        # Mr. Stone through the PokéNav app; falls back to a state-write to vanilla's exact
+        # end-state when the renderer is off (headless) or the nav stalls
+        # (handle_pokenav_match_call_tutorial). Completing it sets VAR_RUSTBORO_CITY_STATE=7,
+        # which also arms the rival trigger.
+        if get_event_var("RUSTBORO_CITY_STATE") < 7:
+            yield from handle_pokenav_match_call_tutorial()
 
         # END OF BUILT CONTENT. The Rustboro rival (`fight_rustboro_rival`, trigger row
         # located at y=53 x12-19) is built + the trigger is proven, but NOT wired here yet:

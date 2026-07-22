@@ -117,3 +117,19 @@ natural play. The RESULTING save is byte-equivalent to having watched the tutori
 vars/flags), so downstream story state is unaffected. If the user prefers a fully faithful
 playthrough here, the alternative is real PokéNav-app automation (costly, currently
 un-validatable headless). Revisit if faithfulness at this beat matters more than robustness.
+
+## 2026-07-21 (revised) — PokéNav Match-Call tutorial: FAITHFUL primary, state-write fallback
+**Supersedes the earlier same-day decision.** Per user directive ("try to be faithful; keep
+the state-write as a fallback if it doesn't always work"), `handle_pokenav_match_call_tutorial()`
+now FAITHFULLY plays the tutorial — it opens the PokéNav, navigates to Match Call, calls
+Mr. Stone, and backs out — exactly as a player would. This became viable once we found the
+real blocker: the PokéNav app's looped tasks only advance when the **BG/OBJ renderer is
+enabled** (`context.video=True`); the user's real bot runs with video on. Proven end-to-end
+via `_play` (screenshots confirmed every menu screen; the call places and the tutorial
+completes with `VAR_RUSTBORO_CITY_STATE=7`, no fallback used).
+**Fallback retained:** on a headless run (renderer off) or if the nav stalls, it falls back
+to `skip_pokenav_match_call_tutorial()` (state-write to vanilla's exact end-state). So the
+tutorial always clears and the bot never hangs — faithful when it can be, robust always.
+**Why this is better than the pure state-write:** it preserves the bot's value as a faithful
+reference (it actually performs the in-game actions) while keeping the deterministic fallback
+for edge cases. The earlier "pure state-write" decision is retained only as that fallback.

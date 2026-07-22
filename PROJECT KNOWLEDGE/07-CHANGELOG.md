@@ -1370,3 +1370,18 @@ User: proceed with the next chunk, mapping first to harden from the start.
   Marshtomp whited out; wiring it would infinite-loop. Left built + trigger-proven pending
   type-aware lead selection. See 08-MISTAKES 2026-07-21.
 - Harness: added `--driver pokenavtut|pokenavclear|pokenavskip` (dev tooling, scratchpad).
+
+## 2026-07-21 (later) — PokéNav Match-Call tutorial done FAITHFULLY (call Mr. Stone) + fallback
+Per user directive, replaced the pure state-write with a faithful play-through:
+- Root cause of the headless stall FOUND: the PokéNav app's looped tasks only advance when
+  the BG/OBJ renderer is ON (`context.video=True`). Added harness `--video` flag + `pokenavfaith`
+  driver; used live SCREENSHOTS to read each PokéNav screen.
+- `handle_pokenav_match_call_tutorial()` (early_game.py): FAITHFUL sequence — trigger the
+  Scientist → pick POKéNAV → main menu Down,Down → MATCH CALL → A (list) → A (CALL) → A
+  (place call to MR. STONE) → advance dialogue → B out → VAR_RUSTBORO_CITY_STATE=7.
+  Harness-proven raw (STATE=7 at f893) AND via full `_play` with `--video` (app opens, call
+  placed, clean stop, NO fallback used). Falls back to the state-write skip when the renderer
+  is off (headless) or the nav stalls, so it never hangs.
+- `_play` §5b now calls `handle_pokenav_match_call_tutorial` (was the state-write skip);
+  `skip_pokenav_match_call_tutorial` is retained as the fallback. Rival still NOT wired
+  (type-matchup — next: type-aware lead + attempt-cap, user-chosen).

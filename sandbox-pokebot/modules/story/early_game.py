@@ -1642,6 +1642,126 @@ def skip_pokenav_match_call_tutorial() -> Generator:
     yield  # let the overworld pick up the new state for a frame
 
 
+def handle_pokenav_match_call_tutorial() -> Generator:
+    """FAITHFULLY clear the forced PokéNav Match-Call tutorial by actually placing the
+    Match Call to Mr. Stone through the PokéNav app (then backing out) — the way a player
+    would. Falls back to the state-write (`skip_pokenav_match_call_tutorial`) when the app
+    can't be driven (headless) or the nav stalls, so the bot is never stuck either way.
+
+    Harness-verified sequence (RENDERER ON): step into the city → the Scientist runs the
+    tutorial (2 intro msgboxes → start-menu multichoice) → pick **POKéNAV (index 3)** →
+    PokéNav main menu (cursor starts on HOENN MAP) → **Down,Down** → MATCH CALL → **A**
+    (open the call list; cursor on MR. STONE) → **A** (CALL/CANCEL submenu; cursor on CALL)
+    → **A** (place the call) → advance Mr. Stone's call with **A** → **B** out of the
+    PokéNav → the tutorial script resumes and sets `VAR_RUSTBORO_CITY_STATE=7` → controllable.
+
+    RENDERER REQUIRED + FALLBACK: the PokéNav app's looped tasks (`Task_Pokenav` /
+    `Task_RunLoopedTask`) only advance when the BG/OBJ renderer is enabled (video on) —
+    proven: with video off, ~150 A-presses = zero progress. So on a headless run, or if the
+    faithful nav doesn't reach state 7 within budget, we FALL BACK to
+    `skip_pokenav_match_call_tutorial()` (writes the same vanilla end-state). Either way the
+    tutorial ends and the rival trigger (gated on `VAR_RUSTBORO_CITY_STATE==7`) is armed.
+
+    STORY CONDITION: `RECEIVED_POKENAV` set, controllable in Rustboro City just after the
+    PokéNav. GOAL/END: `VAR_RUSTBORO_CITY_STATE==7`."""
+    from modules.memory import get_event_var
+    from modules.modes.util.tasks_scripts import wait_for_multiple_choice_question
+    from modules.tasks import task_is_active, get_global_script_context
+    from modules.player import player_avatar_is_controllable
+
+    if get_event_var("RUSTBORO_CITY_STATE") >= 7:
+        return  # already past the tutorial — resume-safe
+
+    # Headless (renderer off) → the PokéNav app can't advance; use the state-write end-state.
+    if not context.emulator.get_video_enabled():
+        context.message = "Story: PokéNav tutorial (headless, no renderer) — writing the vanilla end-state..."
+        yield from skip_pokenav_match_call_tutorial()
+        return
+
+    def _tut_active():
+        sc = get_global_script_context()
+        in_script = sc.is_active and any(
+            "ScientistAddMatchCall" in f or "MatchCallTutorial" in f for f in sc.stack
+        )
+        return in_script or task_is_active("Task_HandleMultichoiceInput")
+
+    context.message = "Story: doing the PokéNav Match-Call tutorial (calling Mr. Stone)..."
+    # 0) Trigger the tutorial: it fires from the map ON_FRAME table as you move through the
+    #    city. Navigate toward the south exit (well north of the y=53 rival row) — the
+    #    Scientist fires within a step or two and locks the player. (Proven: raw Down-presses
+    #    don't reliably trigger it; the pathing walk does.)
+    from modules.modes.util.global_navigation import navigate_to_anywhere
+
+    triggered = False
+    for _ in range(10):
+        if _tut_active():
+            triggered = True
+            break
+        try:
+            yield from navigate_to_anywhere(
+                MapRSE.RUSTBORO_CITY, (16, 40), avoid_encounters=True, avoid_scripted_events=False
+            )
+        except BotModeError:
+            pass  # a scripted event (the tutorial) interrupted the walk — expected
+        for _ in range(20):
+            if _tut_active():
+                triggered = True
+                break
+            yield
+        if triggered:
+            break
+    if not triggered:
+        # Couldn't provoke the tutorial — don't hang; write the vanilla end-state instead.
+        yield from skip_pokenav_match_call_tutorial()
+        return
+
+    # 1) Advance the Scientist's intro msgboxes and select POKéNAV (index 3) from the menu.
+    yield from wait_for_multiple_choice_question(3)
+
+    # 2) Wait for the PokéNav main menu to be interactive (glowing cursor).
+    for _ in range(600):
+        if task_is_active("Task_CurrentMenuOptionGlow"):
+            break
+        yield
+    yield from wait_for_n_frames(20)
+
+    # 3) Main menu cursor starts on HOENN MAP; Down,Down → MATCH CALL.
+    for _ in range(2):
+        context.emulator.press_button("Down")
+        yield
+        yield from wait_for_n_frames(12)
+    # 4) A: open the Match Call list (MR. STONE) → A: CALL submenu → A: place the call.
+    for _ in range(3):
+        context.emulator.press_button("A")
+        yield
+        yield from wait_for_n_frames(24)
+    # 5) Advance Mr. Stone's call dialogue briefly.
+    for _ in range(4):
+        context.emulator.press_button("A")
+        yield
+        yield from wait_for_n_frames(12)
+    # 6) B out of the PokéNav → the tutorial script resumes and sets STATE=7.
+    deadline = 1500
+    while deadline > 0 and get_event_var("RUSTBORO_CITY_STATE") < 7:
+        deadline -= 1
+        context.emulator.press_button("B")
+        yield
+    # Settle to controllable.
+    for _ in range(600):
+        if player_avatar_is_controllable():
+            break
+        context.emulator.press_button("B")
+        yield
+
+    # Safety net: if the faithful nav didn't complete, force the vanilla end-state so the
+    # bot never hangs here.
+    if get_event_var("RUSTBORO_CITY_STATE") < 7:
+        context.message = "Story: PokéNav tutorial nav stalled — falling back to the state-write end-state..."
+        yield from skip_pokenav_match_call_tutorial()
+    else:
+        context.message = "Story: PokéNav Match-Call tutorial done (called Mr. Stone)."
+
+
 def fight_rustboro_rival() -> Generator:
     """The rival (May/Brendan) challenges you at the SOUTH exit of Rustboro on the way to
     Route 104. The battle is fired by a row of coord-triggers at y=53 (x 12–19), gated on

@@ -280,21 +280,26 @@ VAR_RESULT` only falls through on **case 3 = POKéNAV** (all else nags via
 `PleaseSelectPokenav` and re-opens) → `special OpenPokenavForTutorial` opens the PokéNav
 app in **`POKENAV_MODE_FORCE_CALL_READY`** (you must actually place a Match Call to
 Mr. Stone) → closing msgbox → Scientist leaves → **sets `VAR_RUSTBORO_CITY_STATE = 7`**.
-- The multichoice part is trivially satisfiable (`wait_for_multiple_choice_question(3)`
-  advances the intros and picks POKéNAV — harness-proven: VAR_RESULT→3, script advanced
-  to OpenPokenavForTutorial). **BUT** the PokéNav app itself is a graphics-driven UI that
-  **does not advance in our headless (video-off) harness** — ~150 A-presses over 1500
-  frames = zero progress, stuck on `Task_Pokenav`/`Task_RunLoopedTask`. So a
-  UI-navigation solution can't be proven with our methodology AND would hang every
-  full-flow harness run at this point.
-- **Solution:** `skip_pokenav_match_call_tutorial()` writes the EXACT world-state the
-  tutorial leaves on completion — `VAR_RUSTBORO_CITY_STATE=7`, `VAR_ROUTE104_STATE=1`,
-  flags `HAS_MATCH_CALL` / `ADDED_MATCH_CALL_TO_POKENAV` / `HIDE_RUSTBORO_CITY_SCIENTIST`
-  — applied while still at ~(11,16) BEFORE stepping on the trigger. The ON_FRAME trigger
-  requires VAR==6, so VAR=7 disables it. Harness-proven: BEFORE `RUSTBORO_CITY_STATE=6`
-  → AFTER `=7`, **Scientist never fires**, world-state == vanilla post-tutorial. This is
-  an **intentional, documented divergence** (state-write reproducing vanilla end-state) —
-  see DECISIONS-LOG 2026-07-21.
+- The multichoice part is satisfiable with `wait_for_multiple_choice_question(3)` (picks
+  POKéNAV). The PokéNav **app** then opens — and its looped tasks (`Task_Pokenav`/
+  `Task_RunLoopedTask`) **only advance when the BG/OBJ renderer is ON**. Headless
+  (video off) it never progresses (~150 A-presses/1500f = 0 progress). With the renderer
+  ON it drives normally.
+- **SOLUTION (user directive: be faithful, keep state-write as fallback) —
+  `handle_pokenav_match_call_tutorial()`:** FAITHFULLY plays the tutorial when the renderer
+  is on. Harness-verified full sequence (screenshots confirm each screen): navigate south a
+  step → Scientist fires → `wait_for_multiple_choice_question(3)` (POKéNAV) → PokéNav main
+  menu (cursor on **HOENN MAP**) → **Down,Down → MATCH CALL → A** (call list, cursor on
+  **MR. STONE**) → **A** (CALL/CANCEL submenu, cursor on **CALL**) → **A** (place the call)
+  → advance Mr. Stone's call with **A** → **B** out of the PokéNav → the script resumes and
+  sets `VAR_RUSTBORO_CITY_STATE=7`. Proven end-to-end via `_play` (video on): app opens,
+  call placed, clean stop, no fallback. **FALLBACK:** if the renderer is off (headless) or
+  the nav stalls, it calls `skip_pokenav_match_call_tutorial()` — a state-write to vanilla's
+  EXACT end-state (`RUSTBORO_CITY_STATE=7` + `ROUTE104_STATE=1` + flags `HAS_MATCH_CALL` /
+  `ADDED_MATCH_CALL_TO_POKENAV` / `HIDE_RUSTBORO_CITY_SCIENTIST`) — so the tutorial always
+  clears and never hangs. See DECISIONS-LOG 2026-07-21 (revised).
+- **KEY LESSON:** the PokéNav (and likely other full-screen apps) need `context.video=True`
+  to drive; the harness added a `--video` flag for exactly this.
 
 **The Rustboro rival — trigger LOCATED + wired.** `RustboroCity_EventScript_RivalTrigger0..7`
 is a **row of coord-triggers at y=53, x 12–19**, gated on **`VAR_RUSTBORO_CITY_STATE == 7`**
@@ -312,9 +317,11 @@ y=53** → battle → win (`DEFEATED_RIVAL_RUSTBORO`). Harness-proven: staging�
   Wiring it back needs **type-aware lead selection** (never lead a 4×-weak mon) + a
   stronger second mon (ties into the #24-team organic-team work) + an attempt-cap fallback.
 - **WIRED into `_play` §5b (proven):** `return_devon_goods_and_get_pokenav` →
-  `skip_pokenav_match_call_tutorial` → **clean stop** (frontier now PAST the tutorial).
-  `fight_rustboro_rival` stays built + trigger-proven for when the matchup is handled.
-- Harness drivers (dev tooling, not committed): `--driver pokenavtut|pokenavclear|pokenavskip`.
+  `handle_pokenav_match_call_tutorial` (FAITHFUL call to Mr. Stone; state-write fallback) →
+  **clean stop** (frontier now PAST the tutorial). `fight_rustboro_rival` stays built +
+  trigger-proven for when the matchup is handled.
+- Harness drivers (dev tooling, not committed): `--driver pokenavtut|pokenavclear|pokenavskip|pokenavfaith`
+  (+ `--video` to enable the renderer for the PokéNav app).
 - **NEXT build:** Route 104 south → Mr. Briney's cottage → sail to Dewford → Granite Cave
   (Steven's Letter) → Gym 2 (Brawly, dark-cave puzzle) → Knuckle Badge.
 

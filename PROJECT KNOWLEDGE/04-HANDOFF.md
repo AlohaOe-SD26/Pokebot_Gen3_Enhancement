@@ -47,12 +47,14 @@ PC/Mart/Gym entrances) → §Ch5b Atlas + Hardening Checklist in 12-STORYMODE-DE
 city; the map ON_FRAME (`VAR_RUSTBORO_CITY_STATE==6`) fires the Scientist tutorial → intro
 msgboxes → start-menu multichoice (case 3 = POKéNAV) → PokéNav app in
 `POKENAV_MODE_FORCE_CALL_READY` (must place a Match Call). **The app does NOT advance in
-our headless harness** (proven: 150 A-presses/1500f = 0 progress). Fix:
-`skip_pokenav_match_call_tutorial()` writes vanilla's EXACT post-tutorial end-state
-(`RUSTBORO_CITY_STATE=7`+`ROUTE104_STATE=1`+3 flags) — Scientist never fires, world-state
-identical. **Wired into `_play` §5b → clean stop; validated (Manual by f1202, 0
-whiteout).** ⚠️ INTENTIONAL DIVERGENCE (state-write, not natural play) — DECISIONS-LOG
-2026-07-21; **flagged for user: OK to keep, or pursue faithful PokéNav-app automation?**
+our headless harness** (proven: 150 A-presses/1500f = 0 progress). Fix (user chose FAITHFUL):
+`handle_pokenav_match_call_tutorial()` **actually plays the tutorial** — opens the PokéNav,
+Down,Down→MATCH CALL→A→list→A→CALL→A (calls **Mr. Stone**)→advance→B out→
+`RUSTBORO_CITY_STATE=7`. This works because the PokéNav app only advances with the **renderer
+ON** (`context.video=True`, which the real bot has); harness needs `--video`. **Proven
+end-to-end via `_play` (video on): app opens, call placed, clean stop, NO fallback used.**
+FALLBACK: headless/stall → `skip_pokenav_match_call_tutorial()` (state-write to vanilla's
+exact end-state) — never hangs. **Wired into `_play` §5b → clean stop.**
 **Rustboro rival: trigger LOCATED (coord row y=53 x12-19, gated VAR==7) + `fight_rustboro_rival`
 built (staging(16,52)+Down-cross, harness-proven to trigger+battle) but NOT wired** — it's a
 TYPE-MATCHUP spike: grass Grovyle vs our 4×-weak Marshtomp; even Lv19 Marshtomp whited out,
