@@ -9,6 +9,28 @@
 > accumulated craft (harness, debugging method, story-mapping, faithfulness rules, bug
 > patterns) — use it to build faster and prove every fix.
 
+### 🟡 PENDING (USER-GATED, do FIRST on the user's go-ahead) — SHINY = ALWAYS TRY TO CATCH
+**User directive 2026-07-22 (from a real run's debug log — a Shiny Poochyena on Route 116 was
+FOUGHT with 32 balls in the bag):** shinies are rare collectibles — whenever a WILD shiny
+appears and ANY usable Poké Ball exists, the Story bot must ATTEMPT THE CATCH (even an
+already-owned species, even with a full party → box, at any story stage) until caught /
+whiteout / out of balls; with ZERO usable balls it fights through as normal. The user is
+running a test now and will report back — **implement ONLY when they say proceed.** PLAN:
+1. `StoryShinyCatchStrategy(StoryCatchStrategy)` — sole override: out-of-balls mid-battle →
+   FIGHT ON (strongest move), never flee (parent flees; stock base → Manual, never OK).
+2. `on_battle_started`: the shiny check becomes the FIRST branch (before swap-train + team
+   catching): wild+shiny+balls → the new strategy; wild+shiny+no balls → fight-through
+   (current behavior); Tutorial encounter (scripted first battle) stays fight-through;
+   trainer battles unaffected. `_should_catch`'s shiny-False stays (it's the TEAM-catch
+   filter; the shiny branch pre-empts it).
+3. Ball policy: inherit `_get_best_poke_ball` → #40 allowlist already protects the Master
+   Ball by default.
+4. PROOF (fault-injection driver forcing `is_shiny=True` on normal wilds): (a) owned-species
+   shiny + balls → thrown-until-caught; (b) party-of-6 → caught to box; (c) zero balls →
+   fights through; (d) non-shiny routing unchanged. Then a normal-segment smoke run.
+Relevant code: story_mode.py `on_battle_started` (~460), `_should_catch` (~362),
+`StoryCatchStrategy` (~29); stock `modules/battle_strategies/catch.py`.
+
 ### ⭐⭐⭐ Session 2026-07-22 (Fable 5, latest) — CHAPTER 8a DONE: the bot reaches SLATEPORT (SANDBOX, pushed)
 - **`sail_to_slateport()` BUILT + VALIDATED (0 derails)**: `brawly_done.ss1` → gym exit →
   Dewford heal → dock Briney (Up×1→A on his Cancel-defaulted multichoice — the stock helper
