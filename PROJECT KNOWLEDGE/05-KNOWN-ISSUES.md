@@ -117,7 +117,14 @@ fix goes in DIVERGENCE-LOG).
   if `HIDE_BRINEYS_HOUSE_MR_BRINEY` is set, engage his Route 104 beach object (live local_id via
   `_talk_to_wandering_npc`-style lookup) instead of entering the house.
 
-## KI-11 — Oceanic Museum entrance grunt-sealed at Devon-goods time (Ch8b BLOCKER) — OPEN 2026-07-22
+## KI-11 — Oceanic Museum entrance grunt-sealed at Devon-goods time — ✅ RESOLVED 2026-07-22
+**RESOLUTION:** NOT a state bug — a missing STORY STEP. The museum grunts clear when you talk
+to **Dock at Stern's Shipyard** (`SlateportCity_SternsShipyard_1F_EventScript_Dock` runs
+`setflag FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA`). User-supplied + decomp-confirmed; built into
+`deliver_devon_goods_to_stern` (Shipyard→Dock→museum). The doc was wrong (had the museum
+freely enterable) — corrected in §Ch8b. This is the motivating case for the /validate-docs
+process. Original write-up kept below for reference.
+
 - **Symptom:** `deliver_devon_goods_to_stern` cannot reach the museum. The doors are city
   warps (30,26)/(31,26); the ONLY tiles below them, (30,27)/(31,27), are occupied by two
   Team Aqua grunts (obj id 18/5, `SlateportCity_EventScript_AquaGrunt2/1`). The whole

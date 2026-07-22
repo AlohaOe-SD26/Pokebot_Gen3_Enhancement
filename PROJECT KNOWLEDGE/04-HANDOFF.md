@@ -9,16 +9,17 @@
 > accumulated craft (harness, debugging method, story-mapping, faithfulness rules, bug
 > patterns) — use it to build faster and prove every fix.
 
-### 🟠 CH8b BLOCKED on museum entry (needs user ground-truth) — 2026-07-22
-`deliver_devon_goods_to_stern` is BUILT (interior logic sound) but UNWIRED: the Oceanic
-Museum doors are physically grunt-sealed at Devon-goods time (obj id 5/18 sit on the only
-below-door tiles; hide-flag 882 unset by default, no map trigger — all probed, see KI-11).
-Vanilla canon says the museum is enterable on the first visit, so something clears the crowd
-our static read misses. **DON'T guess a state-write.** ASK THE USER: on a real first Slateport
-visit, do Aqua grunts block the Oceanic Museum doors or is it clear? Then build the faithful
-trigger or a documented state-write. Also open from the batch sweep: #24-evo-trainstall
-(evolve-mid-training hang, repro `saves/evostall.ss1`) + #24-freshbatch-rustboro. Frontier
-honestly stays = Slateport arrival (Ch8a, validated).
+### ⭐ CH8b DONE — Devon Goods → Capt. Stern (KI-11 resolved) — 2026-07-22
+`deliver_devon_goods_to_stern` BUILT + WIRED + VALIDATED: full run slateport.ss1 → Stern's
+Shipyard → **talk to Dock** (the missing story step — sets FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA,
+clearing the grunt-sealed museum; user-supplied + decomp-confirmed) → museum → ¥50 fee → 2F
+→ Stern (13,6) → two grunt battles WON → Archie → `DELIVERED_DEVON_GOODS` (+ scene heals) →
+clean content-end. Checkpoint `stern_done.ss1` (verified: DELIVERED + Aqua-cleared). KI-11 was
+a DOC/sequencing gap → the new **/validate-docs** process exists to catch this class going
+forward. **Frontier now = Ch9 (Route 110 → Mauville → Wattson); run /validate-docs on §Ch9
+before building.** Also open from the batch sweep: #24-evo-trainstall (evolve-mid-training
+hang, repro `saves/evostall.ss1`) + #24-freshbatch-rustboro. Minor: an 8000-frame cutscene-
+wait derail recovers during the museum approach (non-fatal; tighten later).
 
 ### ⭐⭐⭐⭐ Session 2026-07-22 (Fable 5, night) — SHINY ALWAYS-CATCH ✅ + dock-stall fix ✅ + DEBUG modes ✅ (SANDBOX, pushed)
 - **SHINY = ALWAYS CATCH implemented + proven** (the user's directive, done first): shiny

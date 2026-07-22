@@ -72,7 +72,8 @@ repro-fresh` or `repro-ml`). Regenerate any by running the story to that point.
 | `post_rival.ss1` | Rustboro (16,53), `DEFEATED_RIVAL_RUSTBORO`, `RUSTBORO_CITY_STATE=8` |
 | `dewford.ss1` | Dewford Town (11,9), first Briney sail done (Ch6 ✅) |
 | `brawly_done.ss1` | Dewford Gym (4,4), `DELIVERED_STEVEN_LETTER` + `BADGE02_GET` (Ch7 ✅) |
-| `slateport.ss1` | **frontier**: Slateport City (19,20) at the PC, healed (Ch8a ✅; next: Devon Goods → Stern) |
+| `slateport.ss1` | Slateport City (19,20) at the PC, healed (Ch8a ✅) |
+| `stern_done.ss1` | **frontier**: Slateport, `DELIVERED_DEVON_GOODS` set (Ch8b ✅; next: Route 110 → Wattson) |
 
 (`saves/midstuck.ss1` is a SCRATCH state some drivers overwrite when stuck — gitignored,
 never rely on it across runs.)

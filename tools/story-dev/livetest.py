@@ -54,7 +54,7 @@ HERE = Path(__file__).resolve().parent
 END_MARKERS = [
     # Substring of the story's content-end message. Keep it DASH-FREE and short: the
     # message contains an em-dash and encoding round-trips have corrupted it once.
-    "arrived in Slateport City",  # Ch8a content end (frontier; Ch8b paused on KI-11)
+    "Devon Goods delivered",  # Ch8b content end (2026-07-22; KI-11 resolved)
 ]
 FAIL_MARKERS = {
     "hang": "HANG CONFIRMED",

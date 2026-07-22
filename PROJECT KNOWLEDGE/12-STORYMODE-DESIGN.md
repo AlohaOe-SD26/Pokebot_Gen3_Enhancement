@@ -17,17 +17,15 @@ Status key: ✅ built + validated · 🚧 scaffold/partial · 📋 mapped, not b
 | 6 | Sail to Dewford (via Petalburg Woods → beach → Briney) | `sail_to_dewford` + `_talk_to_wandering_npc` | on `DEWFORD_TOWN` | ✅ (2026-07-22; driver `saildewford` + real `_play`) |
 | 7 | Granite Cave (Steven's Letter, TM47) + **Gym 2 — Brawly** | `deliver_stevens_letter` (+`_walk_warp_chain`), `do_dewford_gym` | `DELIVERED_STEVEN_LETTER`, `BADGE02_GET` | ✅ (2026-07-22; zero-derail run dewford→badge) |
 | 8a | Sail to Slateport (dock Briney → Route 109 gauntlet → PC) | `sail_to_slateport` | on `SLATEPORT_CITY`, healed | ✅ (2026-07-22; zero-derail run brawly_done→Slateport) |
-| 8b | Slateport: Devon Goods → Capt. Stern (Oceanic Museum, Aqua grunts; Gabby&Ty DOUBLE) | `deliver_devon_goods_to_stern` (built, UNWIRED) | `DELIVERED_DEVON_GOODS` | 🚧 BLOCKED: museum entrance grunt-sealed (KI-11); interior logic done |
+| 8b | Slateport: Devon Goods → Capt. Stern (Shipyard/Dock → Museum → 2 grunt battles) | `deliver_devon_goods_to_stern` | `DELIVERED_DEVON_GOODS` | ✅ (2026-07-22; KI-11 resolved via Dock; full run validated) |
 | 9+ | Route 110 → **Gym 3 Mauville (Wattson)** → … → Elite Four | — | — | ⬜ (Overview table §1/§2 has the route + item beats) |
 
-**You are at the Ch8b boundary (2026-07-22).** `slateport.ss1` (`tools/story-dev/saves/`) =
-Slateport City (19,20) outside the PC, healed; `DELIVERED_STEVEN_LETTER` + `BADGE01/02` set,
-`DELIVERED_DEVON_GOODS=False` (the Ch8b anchor flag — verified readable). Next: Ch8b —
-Devon Goods to Capt. Stern: read the SlateportCity + OceanicMuseum decomp for the beat
-chain (Stern object at (28,13) w/ Gabby&Ty DOUBLE battle beside (28,14)/(29,13); 11 Aqua
-grunts queue at the museum (20-31,26-27); museum entry fee + 2 grunt fights + Archie scene
-→ `DELIVERED_DEVON_GOODS`). Then Route 110 N → Mauville (Gym 3 Wattson). Slateport city
-objects/warps probed (ch8probe). Test infra: `tools/story-dev/` (README).
+**You are at the Ch9 boundary (2026-07-22).** `stern_done.ss1` (`tools/story-dev/saves/`) =
+Slateport after the Devon Goods delivery, `DELIVERED_DEVON_GOODS` set (museum Aqua-free,
+Route 110 blockade lifted). Next: Ch9 — Route 110 N (Trick House, cycling road, Gabby&Ty
+DOUBLE battle + route trainers) → Mauville City → Gym 3 (Wattson, Electric). **Before
+building, run /validate-docs on the Ch9 section** (decomp + recon + walkthrough) per the new
+process. Test infra: `tools/story-dev/` (README).
 
 
 > **Pass 4 (2026-07-20)** re-derived every fact independently from ROM + two/three
@@ -481,9 +479,23 @@ Granite Cave entrance is on **Route 106 (48,16)**.
 - After Brawly, **Mr. Briney at Dewford (12,9)** offers **Slateport** (`⚠ VALIDATE LIVE` the exact
   gating — likely after BADGE02 and/or the Letter; read the DewfordTown decomp when you build it).
   Sail → **Route 109** (Briney appears at (109 21,24)) → North → **Slateport City**.
-- **Slateport City** (40×60): PC/Mart among the warps; **Captain Stern (28,13)**; Team **Aqua
-  Grunts (31,27)/(30,27)**; the **Oceanic Museum** scene. NO gym here — the next gym is **Wattson
-  (Gym 3, Mauville)** via Route 110 north.
+- **Slateport City** (40×60): PC door (30,26?→ actually PC=(19,19)); Mart; **Oceanic Museum**
+  doors **(30,26)/(31,26)**; **Stern's Shipyard** door **(26,38)**; the Harbor **(28,12)/(40,7)**.
+  NO gym here — the next gym is **Wattson (Gym 3, Mauville)** via Route 110 north.
+- **‼ Ch8b SEQUENCING (walkthrough + decomp-verified 2026-07-22, KI-11 — the doc was WRONG
+  before):** the Oceanic Museum is **grunt-SEALED** on arrival. 11 outside Team Aqua grunts
+  share hide-flag `FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA` (882, unset by default); two of them
+  (obj id 5/18) sit on **(31,27)/(30,27)**, the ONLY tiles below the museum doors, so the
+  entrance is impassable. **You must FIRST go to Stern's Shipyard (city door (26,38)) and talk
+  to DOCK (interior (5,5); approach from (4,5) facing Right — he's walled below).** Dock's
+  script `✓ decomp`: `setflag FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA` + `FLAG_DOCK_REJECTED_DEVON_
+  GOODS` → the grunts go inside, the entrance CLEARS. THEN enter the museum: fee attendant
+  (7,7)/(12,7) ¥50 YES/NO (broke+undelivered → free entry); the Rusturf "familiar grunt" (9,4)
+  gives **TM46 Thief**; stairs 1F (6,1) → 2F. **Capt. Stern is on 2F at (13,6)** (NOT the
+  (28,13) the old doc said — that was the harbor Stern). Talk → two BACK-TO-BACK un-fleeable
+  grunt battles (TRAINER_GRUNT_MUSEUM_1/2) → Archie speech → **`FLAG_DELIVERED_DEVON_GOODS`** +
+  the script HEALS the party + removes the Route 110 Aqua blockade (unblocks Ch9). Built:
+  `deliver_devon_goods_to_stern` (Shipyard→Dock→museum→Stern).
 - **‼ DOUBLE BATTLE:** **Gabby & Ty** (Interviewers) stand at Slateport **(28,14)/(29,13)** and are
   a DOUBLE battle. This is the first likely double-battle in the run — the after-faint double-battle
   fix (exclude the on-field partner) applies here. Validate a real Gabby & Ty double battle to

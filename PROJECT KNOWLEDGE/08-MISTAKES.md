@@ -600,3 +600,18 @@ with no exception bypasses the whiteout/derail recovery entirely.
 - **Prevention:** when adding a VARIANT of a mode (new name, same bot), grep every
   mode-NAME comparison in the codebase (`context.bot_mode ==`, name sets) — behavior
   keyed off mode names silently excludes new variants.
+
+## 2026-07-22 — Doc sequencing gap (KI-11) + NPC approach tiles on walls (Ch8b)
+- **KI-11 root cause = documentation, not code.** The §Ch8b doc (built from static recon +
+  decomp scripts) had the museum as freely enterable and Stern at the harbor (28,13). REALITY
+  (user walkthrough + decomp): the museum is grunt-SEALED until you talk to Dock at Stern''s
+  Shipyard (setflag FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA), and Stern is on museum 2F (13,6).
+  Static recon + decomp-script-reading CANNOT see cross-location STORY SEQUENCING; a
+  walkthrough can. → the /validate-docs process (cross-check decomp + recon + walkthrough
+  before building) exists to catch exactly this. Prevention: validate a chunk''s doc against
+  all three sources FIRST; never assume "enterable" from geometry alone.
+- **NPC approach tiles must come from the collision grid.** Both Dock and Stern were first
+  coded with the approach tile directly BELOW them ((5,6)/(13,7)) — both collision walls, so
+  navigation failed and the wandering-pursuit bounced. Interiors wall NPCs on arbitrary
+  sides. Prevention: probe the collision grid and pick a walkable adjacent tile + the facing
+  toward the NPC; key the talk on the completion FLAG, not a fixed facing.

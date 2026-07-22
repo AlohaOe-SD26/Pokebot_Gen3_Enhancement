@@ -2718,7 +2718,18 @@ def sail_to_slateport() -> Generator:
 MUSEUM_DOOR_CITY = (30, 26)
 MUSEUM_STAIRS_1F = (6, 1)
 STERN_LOCAL_ID_2F = 1
-STERN_APPROACH_2F = (13, 7)
+STERN_APPROACH_2F = (13, 5)   # Stern (13,6) is walled below (13,7)=collision; talk from ABOVE
+STERN_FACE = "Down"           # (13,5) → face Down toward Stern
+# Ch8b GATING (walkthrough + decomp-verified 2026-07-22, KI-11 resolved): the Oceanic
+# Museum's outside Team Aqua crowd (hide-flag FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA / 882,
+# unset by default) SEALS the doors until you visit STERN'S SHIPYARD and talk to DOCK.
+# `SlateportCity_SternsShipyard_1F_EventScript_Dock` (before delivery) runs
+# `setflag FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA` + `FLAG_DOCK_REJECTED_DEVON_GOODS` —
+# the grunts go inside, the entrance clears. Shipyard 1F door = city (26,38); Dock at (5,5).
+SHIPYARD_DOOR_CITY = (26, 38)
+DOCK_LOCAL_ID_1F = 1
+DOCK_APPROACH_1F = (4, 5)   # Dock (5,5) is walled below (5,6)=collision; talk from his LEFT
+DOCK_FACE = "Right"          # (4,5) → face Right toward Dock
 
 
 def deliver_devon_goods_to_stern() -> Generator:
@@ -2727,17 +2738,21 @@ def deliver_devon_goods_to_stern() -> Generator:
     INTENT: the second half of Mr. Stone's errand (the Letter was half one). This is the
     Slateport story beat: it clears the museum of Team Aqua, removes the Route 110
     blockade (required for Ch9 → Mauville), and finishes the Devon delivery questline.
-    ROUTE: Slateport → museum door (30,26) → pay the ¥50 entry (A-through answers the
-    YES/NO — ride-outs in this leg use A, never B, so the fee can't be declined) → 1F →
-    stairs (6,1) → 2F → talk to Stern (13,6) → ride the scene (two grunt battles fought
-    by the battle listener, Archie speech) until `DELIVERED_DEVON_GOODS` → back out to
-    the city. The scene itself heals the party.
+    ROUTE (walkthrough + decomp-verified): Slateport → STERN'S SHIPYARD (city door
+    (26,38)) → talk to DOCK (5,5): he reports Stern missing and sends the Aqua grunts into
+    the museum (`setflag FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA` — the entrance-clearing step,
+    KI-11) → back to the city → museum door (30,26), now unsealed → pay the ¥50 entry
+    (A-through answers the YES/NO; ride-outs use A so the fee can't be declined) → 1F →
+    stairs (6,1) → 2F → talk to Stern (13,6) → ride the scene (two un-fleeable grunt
+    battles fought by the battle listener, Archie speech) until `DELIVERED_DEVON_GOODS` →
+    back out. The scene heals the party.
     GOAL/END STATE: `DELIVERED_DEVON_GOODS` set, controllable in Slateport City.
     STORY CONDITION: Devon Goods in the bag (carried since Rusturf). Resume-safe: legs
-    are keyed off the LIVE map."""
+    are keyed off the LIVE map + the grunt-clear flag."""
     from modules.memory import get_event_flag
 
     SLATEPORT = MapRSE.SLATEPORT_CITY.value
+    SHIPYARD = MapRSE.SLATEPORT_CITY_STERNS_SHIPYARD_1F.value
     M1F = MapRSE.SLATEPORT_CITY_OCEANIC_MUSEUM_1F.value
     M2F = MapRSE.SLATEPORT_CITY_OCEANIC_MUSEUM_2F.value
 
@@ -2747,19 +2762,66 @@ def deliver_devon_goods_to_stern() -> Generator:
         except Exception:
             return False
 
+    def _grunts_cleared() -> bool:
+        # The Dock visit sets this; it's what unseals the museum entrance.
+        try:
+            return bool(get_event_flag("HIDE_SLATEPORT_CITY_TEAM_AQUA"))
+        except Exception:
+            return False
+
     if not _delivered():
         context.message = "Story: taking the Devon Goods to Capt. Stern at the Oceanic Museum..."
         yield from wait_until_truly_controllable()
 
-        # --- Leg 1: city → the museum's SLIDING DOORS. ‼ Two pathfinder quirks here
-        #     (all probed/live-hit 2026-07-22): (a) this door type is SOLID to the
-        #     pathfinder (the door tile can't be a navigation destination, and the
-        #     global navigator's interior-map threading silently spins on it);
-        #     (b) the tiles directly below the doors, (30,27)/(31,27), are blocked by
-        #     the OBJECT TEMPLATES of two queue grunts that aren't even loaded in the
-        #     live world (they're the pair that later materializes inside for the Stern
-        #     fight) — physically empty, unpathable. So: navigate to (30,28) (pathable)
-        #     and WALK UP through both tiles into the door, the way a player would. ---
+        # --- Leg 0: if the museum is still grunt-sealed, visit Stern's Shipyard and talk
+        #     to Dock to clear the entrance (KI-11 sequencing). Skipped once the flag is
+        #     set (idempotent / resume-safe). ---
+        if not _grunts_cleared():
+            if _map_group_number() == SLATEPORT:
+                yield from _enter_warp_by_navigation(
+                    lambda: _map_group_number() == SHIPYARD,
+                    MapRSE.SLATEPORT_CITY,
+                    SHIPYARD_DOOR_CITY,
+                    label="Stern's Shipyard entrance",
+                )
+                yield from wait_until_truly_controllable()
+            if _map_group_number() == SHIPYARD:
+                # Dock (5,5) is a STATIONARY NPC; approach from his LEFT (4,5) and face
+                # Right (he's walled below). Advance his dialogue until the grunt-clear
+                # flag actually sets — the true completion signal, robust to exact facing.
+                yield from _navigate_riding_out(MapRSE.SLATEPORT_CITY_STERNS_SHIPYARD_1F, DOCK_APPROACH_1F)
+                context.emulator.press_button(DOCK_FACE)
+                yield
+                yield from wait_for_n_frames(4)
+                frames = 0
+                while not _grunts_cleared():
+                    _check_abort()
+                    context.emulator.press_button("A")
+                    frames += 1
+                    if frames > 4000:
+                        raise BotModeError("Devon Goods: talked to Dock but the museum grunts never cleared.")
+                    yield
+                # Close Dock's remaining dialogue with a short bounded B-settle (a full
+                # _wait_until_cutscene_over here can stall 8000f on a lingering field
+                # script — derail-hit run6 2026-07-22).
+                for _ in range(60):
+                    if not get_global_script_context().is_active:
+                        break
+                    context.emulator.press_button("B")
+                    yield
+                # Back out to the city.
+                yield from _enter_warp_by_navigation(
+                    lambda: _map_group_number() == SLATEPORT,
+                    MapRSE.SLATEPORT_CITY_STERNS_SHIPYARD_1F,
+                    (2, 14),
+                    label="Shipyard exit",
+                )
+                yield from wait_until_truly_controllable()
+
+        # --- Leg 1: city → the museum's SLIDING DOORS (now unsealed). ‼ This door type is
+        #     SOLID to the pathfinder (the door tile can't be a nav destination), so walk
+        #     it the player way: navigate to (30,28) below the left door, then WALK UP
+        #     through (30,27) into the door. (With the grunts cleared, (30,27) is free.) ---
         if _map_group_number() == SLATEPORT:
             yield from _navigate_riding_out(MapRSE.SLATEPORT_CITY, (30, 28))
             yield from wait_for_player_avatar_to_be_standing_still()
@@ -2799,13 +2861,16 @@ def deliver_devon_goods_to_stern() -> Generator:
                     yield from _ride_out_scripted_scene("A")
             yield from wait_until_truly_controllable()
 
-        # --- Leg 3: 2F — talk to Stern and ride the whole scene (two un-fleeable grunt
-        #     battles handled by the battle listener, then Archie) until the flag sets. ---
+        # --- Leg 3: 2F — talk to Stern (stationary at (13,6); approach from ABOVE (13,5)
+        #     facing Down — he's walled below) and ride the whole scene (two un-fleeable
+        #     grunt battles handled by the battle listener, then Archie) until the flag
+        #     sets. Keyed on DELIVERED_DEVON_GOODS, robust to exact facing. ---
         if _map_group_number() != M2F:
             raise BotModeError("Devon Goods: never reached the museum's 2F.")
-        yield from _talk_to_wandering_npc(
-            MapRSE.SLATEPORT_CITY_OCEANIC_MUSEUM_2F, STERN_LOCAL_ID_2F, approach_hint=STERN_APPROACH_2F
-        )
+        yield from _navigate_riding_out(MapRSE.SLATEPORT_CITY_OCEANIC_MUSEUM_2F, STERN_APPROACH_2F)
+        context.emulator.press_button(STERN_FACE)
+        yield
+        yield from wait_for_n_frames(4)
         frames = 0
         while not _delivered():
             _check_abort()  # a lost grunt battle whites out → recovery re-enters here

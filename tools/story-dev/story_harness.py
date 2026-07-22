@@ -1469,6 +1469,7 @@ log(f"[run] starting faithful loop for up to {args.frames} frames")
 import os as _os_hook
 _saved_post_rival = False
 _rival_stable = 0
+_CKPT_STATE: dict = {}  # SAVE_CHECKPOINT hook state (stable counter + saved flag)
 _WANT_POST_RIVAL_SAVE = bool(_os_hook.environ.get("SAVE_POST_RIVAL"))
 for step in range(args.frames):
     context.frame = step
@@ -1538,6 +1539,30 @@ for step in range(args.frames):
         controller_stack=[c.__qualname__ for c in context.controller_stack],
         previous_frame=previous_frame_info,
     )
+
+    # SAVE_CHECKPOINT="FLAG:name" — snapshot saves/name.ss1 the first time FLAG is set
+    # AND the avatar is stably controllable (captures a clean, loadable checkpoint at a
+    # story milestone, e.g. SAVE_CHECKPOINT="DELIVERED_DEVON_GOODS:stern_done").
+    _ckpt = _os_hook.environ.get("SAVE_CHECKPOINT")
+    if _ckpt and ":" in _ckpt and not _CKPT_STATE.get("saved"):
+        try:
+            from modules.memory import get_event_flag as _gef
+            from modules.player import player_avatar_is_controllable as _pac
+
+            _flag, _name = _ckpt.split(":", 1)
+            if _gef(_flag):
+                _CKPT_STATE["stable"] = _CKPT_STATE.get("stable", 0) + 1
+                if _CKPT_STATE["stable"] >= 90 and _pac():
+                    import pathlib as _pl2
+
+                    _out = _pl2.Path(__file__).resolve().parent / "saves" / f"{_name}.ss1"
+                    _out.write_bytes(context.emulator.get_save_state())
+                    _CKPT_STATE["saved"] = True
+                    log(f"[checkpoint] saved {_out.name} on {_flag}")
+            else:
+                _CKPT_STATE["stable"] = 0
+        except Exception:
+            pass
 
     # STORY_DEBUG_LOGGER=1: mirror main.py's debug-logger hook so harness runs get the
     # rich stall dumps WITH the generator call stack (pinpoints exactly where a silent

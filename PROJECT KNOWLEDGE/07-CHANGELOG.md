@@ -1678,3 +1678,26 @@ real blocker; the batch itself found bugs. Net:
     #24-freshbatch-rustboro (under-investigated).
 - **Harness:** `STORY_DEBUG_LOGGER=1` now mirrors main.py's debug-logger hook so harness
   runs get the generator-call-stack stall dumps (pinpoints silent press-nothing stalls).
+
+## 2026-07-22 — CHAPTER 8b COMPLETE: Devon Goods → Capt. Stern (KI-11 resolved via user + decomp)
+The bot now plays slateport.ss1 → Devon Goods delivered → content-end, validated. Punch #24.
+- **KI-11 RESOLVED** — it was a DOCUMENTATION/SEQUENCING gap, not a state bug (exactly the
+  case that prompted the /validate-docs process). The user supplied the missing story step;
+  the decomp confirmed the exact flag. The Oceanic Museum is grunt-SEALED until you visit
+  **Stern's Shipyard (city door (26,38)) and talk to DOCK (interior (5,5))** — his script
+  runs `setflag FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA`, clearing the entrance.
+- `deliver_devon_goods_to_stern()` (early_game.py) built + wired (Segment 8b): Slateport →
+  Shipyard → Dock (approach (4,5) face Right; keyed on the clear-flag) → museum door (30,26)
+  walk-in → ¥50 fee (A-ride, never B) → 1F → stairs (6,1) → 2F → Stern (13,6) via (13,5)
+  face Down → two BACK-TO-BACK un-fleeable grunt battles (attack-through) → Archie → the
+  script HEALS the party + `DELIVERED_DEVON_GOODS` + lifts the Route 110 blockade → exit.
+- Two coordinate bugs found + fixed during validation (both = approach tiles on collision
+  walls): Dock approach was (5,6)=wall → (4,5); Stern approach was (13,7)=wall → (13,5).
+  Prevention: pick NPC approach tiles from the collision grid, never the tile "below" by
+  reflex (interiors wall NPCs on arbitrary sides).
+- PROOF: full `--driver story` run slateport.ss1 → Shipyard/Dock → museum → both grunt
+  battles WON → "Devon Goods delivered" clean content-end stop (one recovered 8000-frame
+  cutscene-wait derail early — non-fatal; noted). Checkpoint `saves/stern_done.ss1`
+  (captured via the new harness `SAVE_CHECKPOINT="FLAG:name"` hook).
+- Docs: design §Ch8b rewritten with the verified sequencing (old doc had Stern at the harbor
+  (28,13) — WRONG; he's museum-2F (13,6)); KI-11 marked resolved; ledger/frontier/README.
