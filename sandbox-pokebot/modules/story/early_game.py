@@ -2379,6 +2379,12 @@ def sail_to_dewford() -> Generator:
         if frames > 12000:
             raise BotModeError("Sail: never arrived in Dewford after setting sail.")
         yield
+    # RIDE OUT the arrival dialogue before waiting for control: Briney's post-sail
+    # "deliver the Letter" reminder (Route104_EventScript_DeliverLetterReminder) stays
+    # OPEN on arrival, and wait_until_truly_controllable presses NOTHING by design —
+    # the real-hardware run 2026-07-22 sat at the dock deriling forever on that open
+    # textbox. _ride_out_scripted_scene B-advances any active script first.
+    yield from _ride_out_scripted_scene("B")
     yield from wait_until_truly_controllable()
     context.message = "Story: arrived in Dewford Town!"
 
@@ -2668,6 +2674,9 @@ def sail_to_slateport() -> Generator:
         if frames > 12000:
             raise BotModeError("Sail to Slateport: never arrived on Route 109.")
         yield
+    # Same arrival-dialogue hazard as the Dewford sail (see there): B-ride any open
+    # post-sail script before waiting for control.
+    yield from _ride_out_scripted_scene("B")
     yield from wait_until_truly_controllable()
 
     # --- Leg 3: Route 109 → North into Slateport (the beach is a trainer gauntlet —

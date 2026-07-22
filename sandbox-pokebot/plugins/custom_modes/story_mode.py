@@ -46,6 +46,42 @@ class StoryCatchStrategy(CatchStrategy):
         return super().decide_turn(battle_state)
 
 
+class StoryShinyCatchStrategy(StoryCatchStrategy):
+    """Catch strategy for a WILD SHINY in Story mode (user directive 2026-07-22: shinies
+    are rare collectibles — a real run's debug log showed a Shiny Poochyena being FOUGHT
+    with 32 balls in the bag, because the old contingency only ever fought through).
+
+    ALWAYS attempts the catch while any allowed ball remains — even an already-owned
+    species, even with a full party (the catch goes to the PC box, vanilla behavior),
+    at any story stage. The ONE behavioral difference from the parent: if balls run out
+    MID-battle, a shiny is NOT fled (the parent's rule for ordinary team-catching) and
+    NEVER dropped to Manual (the stock base's rule) — it is fought through like a normal
+    battle (attack with the strongest usable move; Struggle if nothing has PP), per the
+    user's spec: attempt until success, whiteout, or out of balls — then just fight."""
+
+    def decide_turn(self, battle_state):
+        try:
+            if self._get_best_poke_ball(battle_state) is None:
+                context.message = "Story: ran out of usable Poké Balls mid-shiny — fighting it through."
+                util = BattleStrategyUtil(battle_state)
+                active = battle_state.own_side.active_battler
+                move = util.get_strongest_move_against(active, battle_state.opponent.active_battler)
+                if move is not None:
+                    return TurnAction.use_move(move)
+                if active is not None:
+                    for i, learned in enumerate(active.moves):
+                        if learned is not None and util.move_is_usable(learned):
+                            return TurnAction.use_move(i)
+                return TurnAction.use_move(0)  # nothing usable → the game uses Struggle
+        except Exception:
+            pass
+        # Balls available: the grandparent CatchStrategy does the real work (status move
+        # when catch odds are poor, then throw the best ALLOWED ball — the #40 allowlist
+        # already protects the Master Ball by default). Deliberately skip the parent's
+        # decide_turn so its out-of-balls flee branch can never fire for a shiny.
+        return CatchStrategy.decide_turn(self, battle_state)
+
+
 class LevelUpTravelBattleStrategy(LevelUpLeadBattleStrategy):
     """Fights to win like LevelUpLead, but NEVER flees a TRAINER battle.
 
@@ -363,7 +399,9 @@ class StoryMode(BotMode):
         """Pre-Gym-1 organic team-building (user directive 2026-07-21): catch a wild
         of a NEW species (never a dup we've already caught, never one already in the
         party) while there's room in the party. Only before the first gym, only once
-        we have the Pokédex + Poké Balls, never a shiny (fight through — contingency)."""
+        we have the Pokédex + Poké Balls. Shinies return False here only because the
+        SHINY branch in on_battle_started pre-empts this entirely (always-catch, user
+        directive 2026-07-22) — this filter is for ordinary team-building catches."""
         try:
             from modules.memory import get_event_flag
             from modules.pokemon_party import get_party
@@ -462,29 +500,43 @@ class StoryMode(BotMode):
         # to be FOUGHT and won with the default battle strategy — never run from
         # or auto-caught. The BattleListener handles the fight while run() pauses.
         #
-        # SHINY CONTINGENCY: if the wild in the scripted first battle (or any
-        # story battle) happens to be shiny — extremely rare — we must NOT try
-        # to catch it and must NOT stop; the story has to progress normally.
-        # Returning Fight guarantees this: the default "shiny → stop the bot"
-        # logic lives in handle_encounter(), which the framework only calls when
-        # on_battle_started returns None. By returning Fight we bypass it
-        # entirely (and the first battle is a Tutorial encounter, which the
-        # framework forces to CustomAction anyway — also no halt).
+        # SHINY (user directive 2026-07-22 — supersedes the old fight-through
+        # contingency): a wild shiny is a rare collectible and is ALWAYS worth a
+        # catch attempt — even an already-caught species, even with a full party
+        # (→ PC box), at any story stage. This check runs FIRST so it pre-empts
+        # swap-training and ordinary team-catching. With no usable ball we fight
+        # through as before (the user's explicit fallback). Either way we return
+        # a strategy, which bypasses handle_encounter()'s default "shiny → stop
+        # the bot" halt — the story must never stop. The scripted first battle is
+        # a Tutorial encounter (the framework forces its flow; no catch possible),
+        # so it keeps the fight-through path.
         try:
             if encounter is not None and encounter.is_shiny:
                 from modules.console import console
+                from modules.items import get_item_bag
 
                 species = getattr(getattr(encounter, "pokemon", None), "species", None)
                 name = getattr(species, "name", "Pokémon")
+                is_tutorial = getattr(getattr(encounter, "type", None), "name", "") == "Tutorial"
+                have_balls = False
+                try:
+                    have_balls = sum(s.quantity for s in get_item_bag().poke_balls) > 0
+                except Exception:
+                    pass
+                if not is_tutorial and have_balls:
+                    console.print(
+                        f"[bold yellow]Story Mode: ✨ a SHINY {name} appeared — "
+                        f"attempting to CATCH it (shinies are always worth a ball)![/]"
+                    )
+                    context.message = f"Story: ✨ shiny {name} — attempting the catch!"
+                    return StoryShinyCatchStrategy()
                 console.print(
-                    f"[bold yellow]Story Mode: a SHINY {name} appeared in a story "
-                    f"battle — fighting through as normal (NOT catching, NOT "
-                    f"stopping), per the contingency.[/]"
+                    f"[bold yellow]Story Mode: a SHINY {name} appeared but "
+                    f"{'this is the scripted tutorial battle' if is_tutorial else 'there are no usable Poké Balls'}"
+                    f" — fighting through (not stopping).[/]"
                 )
-                context.message = (
-                    f"Story: a shiny {name} appeared in a story battle — fighting "
-                    "through (not catching)."
-                )
+                context.message = f"Story: shiny {name} — no catch possible here, fighting through."
+                return LevelUpTravelBattleStrategy()
         except Exception:
             pass
         # PRE-GYM-1 CATCHING (user directive 2026-07-21): build an organic team by
@@ -566,14 +618,23 @@ class StoryMode(BotMode):
                         raise
                     set_story_abort(False)
                     try:
-                        # Patiently ride out the post-battle transition before retrying.
-                        # These stalls SELF-HEAL (the overworld becomes controllable on
-                        # its own) but the controllable flag flickers first, so waiting
-                        # for a STABLE controllable window here lets a SINGLE recovery
-                        # ride out the whole stall instead of burning many rapid derail
-                        # cycles toward Manual.
-                        from modules.story.early_game import wait_until_truly_controllable
+                        # FIRST close any OPEN scripted dialogue: waiting alone presses
+                        # nothing, and an open msgbox (Briney's post-sail Letter reminder,
+                        # real-HW 2026-07-22) keeps the avatar non-controllable FOREVER —
+                        # the recovery itself was derail-looping on it. _ride_out_scripted_
+                        # scene B-advances an active script and is a cheap no-op otherwise.
+                        from modules.story.early_game import (
+                            _ride_out_scripted_scene,
+                            wait_until_truly_controllable,
+                        )
 
+                        yield from _ride_out_scripted_scene("B")
+                        # Then patiently ride out the post-battle transition before
+                        # retrying. These stalls SELF-HEAL (the overworld becomes
+                        # controllable on its own) but the controllable flag flickers
+                        # first, so waiting for a STABLE controllable window here lets a
+                        # SINGLE recovery ride out the whole stall instead of burning many
+                        # rapid derail cycles toward Manual.
                         yield from wait_until_truly_controllable(timeout_frames=3000)
                         yield from exit_building_after_whiteout()
                         settle = 0
@@ -1015,3 +1076,87 @@ class StoryMode(BotMode):
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()
         return
+
+
+class StoryDebugMode(StoryMode):
+    """"Story (DEBUG)" (user request 2026-07-22): exactly Story, but with the opt-in
+    Debug Logging switched ON automatically at start. Runs from ANY point — the title
+    screen, a loaded save, or mid-route — via Story's native segmented resume (flags +
+    position); nothing else differs. Exists to make real-hardware test runs one click."""
+
+    @staticmethod
+    def name() -> str:
+        return "Story (DEBUG)"
+
+    def run(self):
+        try:
+            from modules import debug_logger
+            from modules.console import console
+
+            path = debug_logger.enable()
+            console.print(f"[bold cyan]Story (DEBUG): debug logging ON -> {path}[/]")
+        except Exception:
+            pass
+        yield from super().run()
+
+
+class StoryDebugResetMode(StoryMode):
+    """"Story (DEBUG - RESET)" (user request 2026-07-22): debug logging ON, then a HARD
+    EMULATOR RESET to the title screen, then Story from scratch — and NEW GAME is selected
+    explicitly even when a save file exists (the plain intro's A-mash would pick CONTINUE,
+    which sits on top of the main menu whenever there is a save). The existing save file is
+    NOT erased by this — Emerald only overwrites it if/when the game saves in-game later.
+    Exists to make fresh-run testing one click."""
+
+    @staticmethod
+    def name() -> str:
+        return "Story (DEBUG - RESET)"
+
+    def run(self):
+        from modules.console import console
+        from modules.memory import read_symbol
+        from modules.modes import BotModeError
+        from modules.modes.util.sleep import wait_for_n_frames
+        from modules.tasks import task_is_active
+
+        try:
+            from modules import debug_logger
+
+            path = debug_logger.enable()
+            console.print(f"[bold cyan]Story (DEBUG - RESET): debug logging ON -> {path}[/]")
+        except Exception:
+            pass
+
+        # Hard reset to the boot screen. (State after this: copyright/intro -> title.)
+        context.emulator.reset()
+        yield
+
+        # Drive to the MAIN MENU (bounded): A skips the copyright/intro/title screens.
+        frames = 0
+        while not task_is_active("Task_HandleMainMenuInput"):
+            if frames % 4 == 0:
+                context.emulator.press_button("A")
+            frames += 1
+            if frames > 3000:
+                raise BotModeError("DEBUG-RESET: never reached the main menu after reset.")
+            yield
+
+        # With a save on file the menu is CONTINUE / NEW GAME / ... with the cursor on
+        # CONTINUE — one Down puts it on NEW GAME. Without a save, NEW GAME is already on
+        # top and pressing Down would select OPTION instead, so only move when a save
+        # exists (gSaveFileStatus == 1 means SAVE_STATUS_OK, set by the menu itself).
+        save_ok = False
+        try:
+            save_ok = int.from_bytes(read_symbol("gSaveFileStatus", size=2), "little") == 1
+        except Exception:
+            pass
+        if save_ok:
+            console.print("[cyan]Story (DEBUG - RESET): save file present — selecting NEW GAME explicitly.[/]")
+            yield from wait_for_n_frames(10)
+            context.emulator.press_button("Down")
+            yield
+            yield from wait_for_n_frames(6)
+
+        # Hand over to Story: _play sees "at title / not started" and runs the intro,
+        # whose A-mash now confirms the pre-selected NEW GAME.
+        yield from super().run()

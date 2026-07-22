@@ -13,6 +13,7 @@ Usage:
 import argparse
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -29,7 +30,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -759,6 +760,73 @@ class SailDewfordMode(BotMode):
         except Exception as e:
             import traceback
             log(f"[sail] ERROR pos={_pos()}: {e}\n{traceback.format_exc()[:900]}")
+        while True:
+            context.emulator.press_button("B")
+            yield
+
+
+class ShinyTestMode(BotMode):
+    """FAULT-INJECTION (user directive 2026-07-22): force every WILD encounter to read as
+    SHINY and verify the Story shiny branch actually THROWS BALLS and CATCHES — even for
+    an already-owned species (Route 116 wilds are all owned by post_rival). Success =
+    a battle ends with outcome Caught."""
+
+    def __init__(self):
+        super().__init__()
+        self._outcome = None
+        self._caught = False
+
+    @staticmethod
+    def name():
+        return "ShinyTest"
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryMode
+
+        if encounter is not None:
+            real = encounter
+
+            class _ShinyProxy:
+                def __getattr__(self, n):
+                    return getattr(real, n)
+
+                @property
+                def is_shiny(self):
+                    return True
+
+            encounter = _ShinyProxy()
+            log("[shinytest] forced is_shiny=True on this wild encounter")
+        # Delegate to the REAL StoryMode routing (unbound call with a minimal shim
+        # carrying the attrs the shiny/catch branches read).
+        shim = SimpleNamespace(_catch_team_target=4, _should_catch=lambda e: False)
+        return StoryMode.on_battle_started(shim, encounter)
+
+    def on_battle_ended(self, outcome):
+        self._outcome = outcome
+        try:
+            from modules.battle_state import BattleOutcome
+
+            self._caught = outcome is BattleOutcome.Caught
+        except Exception:
+            pass
+        log(f"[shinytest] battle ended: outcome={outcome} caught={self._caught}")
+
+    def run(self):
+        from modules.items import get_item_bag
+        from modules.map_data import MapRSE
+        from modules.modes.util import spin
+        from modules.modes.util.global_navigation import navigate_to_anywhere
+
+        balls = sum(s.quantity for s in get_item_bag().poke_balls)
+        log(f"[shinytest] starting with {balls} Poké Ball(s)")
+        if balls == 0:
+            log("[shinytest] INVALID TEST: no balls in this save")
+            return
+        yield from navigate_to_anywhere(MapRSE.ROUTE116, (11, 7), avoid_encounters=False, avoid_scripted_events=True)
+        log("[shinytest] in the Route 116 grass — spinning for a wild...")
+        yield from spin(stop_condition=lambda: self._outcome is not None)
+        log(f"[shinytest] RESULT: caught={self._caught} outcome={self._outcome} "
+            f"balls_left={sum(s.quantity for s in get_item_bag().poke_balls)}")
         while True:
             context.emulator.press_button("B")
             yield
@@ -1498,6 +1566,12 @@ for step in range(args.frames):
             context.bot_mode_instance = RivalRetryMode()
         elif args.driver == "saildewford":
             context.bot_mode_instance = SailDewfordMode()
+        elif args.driver == "shinytest":
+            context.bot_mode_instance = ShinyTestMode()
+        elif args.driver == "storydebugreset":
+            from plugins.custom_modes.story_mode import StoryDebugResetMode
+
+            context.bot_mode_instance = StoryDebugResetMode()
         elif args.driver == "pokenavfaith":
             context.bot_mode_instance = PokenavFaithMode()
         elif args.driver == "martbuy":

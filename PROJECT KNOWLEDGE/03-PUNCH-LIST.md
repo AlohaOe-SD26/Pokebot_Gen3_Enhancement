@@ -370,3 +370,25 @@
       data; build a response table. Subsumes fragile scripted-scene ride-outs; robust
       + deterministic vs flaky task-state. Backstops: no-progress watchdog + advance-
       plain-text-with-A so nothing hard-freezes.
+
+- [ ] #24-interrupt — INTERRUPTION INTELLIGENCE (user 2026-07-22): the bot should
+      KNOW when its current task was interrupted and by WHAT (training spin →
+      trainer sight-line battle; navigation → PokéNav call ring; heal walk →
+      scripted scene; etc.) and resume the task accordingly instead of relying on
+      the generic derail/retry loop. Today large parts are handled implicitly
+      (battle listeners resume travel; _ride_out_scripted_scene; the derail
+      recovery re-runs _play) — this item is the DELIBERATE design pass: a small
+      "current intent" state (what am I doing + resume point) + an interruption
+      classifier, so recovery is targeted rather than re-derived. Design first
+      (fits the decision-brain seam in doc 13 §future).
+- [ ] #24-movelock — BATTLE ENGINE: move-blocking/locking effects (user
+      2026-07-22): Disable (last move unusable), Encore (locked INTO a move for
+      N turns), and kin (Taunt — status moves blocked; Torment — can't repeat;
+      Imprison; Choice-item lock later). The turn chooser (get_strongest_move_
+      against / move_is_usable) currently ignores these volatile statuses, so a
+      blocked move can be selected → wasted turns (the game refuses the input).
+      Fix: read the battler's volatile status/disable struct and filter the
+      usable-move set; if EVERYTHING is blocked, Struggle happens naturally.
+      Validate vs a Roxanne/Brawly-era Disable user (e.g. wild Whismur has none —
+      find a story trainer with Disable/Encore, or fault-inject the volatile
+      struct in the harness).

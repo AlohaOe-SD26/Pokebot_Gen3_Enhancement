@@ -9,27 +9,24 @@
 > accumulated craft (harness, debugging method, story-mapping, faithfulness rules, bug
 > patterns) — use it to build faster and prove every fix.
 
-### 🟡 PENDING (USER-GATED, do FIRST on the user's go-ahead) — SHINY = ALWAYS TRY TO CATCH
-**User directive 2026-07-22 (from a real run's debug log — a Shiny Poochyena on Route 116 was
-FOUGHT with 32 balls in the bag):** shinies are rare collectibles — whenever a WILD shiny
-appears and ANY usable Poké Ball exists, the Story bot must ATTEMPT THE CATCH (even an
-already-owned species, even with a full party → box, at any story stage) until caught /
-whiteout / out of balls; with ZERO usable balls it fights through as normal. The user is
-running a test now and will report back — **implement ONLY when they say proceed.** PLAN:
-1. `StoryShinyCatchStrategy(StoryCatchStrategy)` — sole override: out-of-balls mid-battle →
-   FIGHT ON (strongest move), never flee (parent flees; stock base → Manual, never OK).
-2. `on_battle_started`: the shiny check becomes the FIRST branch (before swap-train + team
-   catching): wild+shiny+balls → the new strategy; wild+shiny+no balls → fight-through
-   (current behavior); Tutorial encounter (scripted first battle) stays fight-through;
-   trainer battles unaffected. `_should_catch`'s shiny-False stays (it's the TEAM-catch
-   filter; the shiny branch pre-empts it).
-3. Ball policy: inherit `_get_best_poke_ball` → #40 allowlist already protects the Master
-   Ball by default.
-4. PROOF (fault-injection driver forcing `is_shiny=True` on normal wilds): (a) owned-species
-   shiny + balls → thrown-until-caught; (b) party-of-6 → caught to box; (c) zero balls →
-   fights through; (d) non-shiny routing unchanged. Then a normal-segment smoke run.
-Relevant code: story_mode.py `on_battle_started` (~460), `_should_catch` (~362),
-`StoryCatchStrategy` (~29); stock `modules/battle_strategies/catch.py`.
+### ⭐⭐⭐⭐ Session 2026-07-22 (Fable 5, night) — SHINY ALWAYS-CATCH ✅ + dock-stall fix ✅ + DEBUG modes ✅ (SANDBOX, pushed)
+- **SHINY = ALWAYS CATCH implemented + proven** (the user's directive, done first): shiny
+  branch now FIRST in `on_battle_started` → `StoryShinyCatchStrategy` (catches with any
+  usable ball — owned species/full party/any stage; out-of-balls mid-battle → fights
+  through; zero balls / tutorial → fight-through). Proofs: `repro_shiny_noballs.py` A/B
+  (parent flees / shiny fights on the same input) + `--driver shinytest` fault-injection
+  (forced-shiny wild: 3 balls thrown → CAUGHT, with team-catch gating forced off).
+- **Real-HW dock stall FIXED** (user's log: derail-loop at Dewford (11,9) on the open
+  post-sail Letter-reminder msgbox): both sail legs + the derail recovery now B-ride any
+  active script before waiting for control.
+- **New Run-tab modes**: "Story (DEBUG)" (debug logger on, resume-anywhere) and "Story
+  (DEBUG - RESET)" (debug logger + hard reset + forced NEW GAME; ⚠ the save-present menu
+  branch still wants one real-profile validation — the harness profile has no in-game save).
+- **FULL-ARC REGRESSION GREEN:** one story run post_rival.ss1 → sail → Letter → Brawly →
+  sail → Slateport PC, ~75k frames, 0 derails/whiteouts — proves the dock fix end-to-end
+  and that the shiny reorder didn't disturb normal battle routing.
+- Punch list: +#24-interrupt (interruption intelligence), +#24-movelock (Disable/Encore/
+  Taunt-aware move choice) — user's slate-for-later items.
 
 ### ⭐⭐⭐ Session 2026-07-22 (Fable 5, latest) — CHAPTER 8a DONE: the bot reaches SLATEPORT (SANDBOX, pushed)
 - **`sail_to_slateport()` BUILT + VALIDATED (0 derails)**: `brawly_done.ss1` → gym exit →

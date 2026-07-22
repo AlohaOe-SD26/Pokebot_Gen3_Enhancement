@@ -1587,3 +1587,36 @@ The bot now plays brawly_done.ss1 → Slateport City, healed, zero derails. Punc
   verified False = the Ch8b anchor). Playbook §7 + design §Ch8 updated (Slateport city
   objects/warps probed: Stern (28,13), Gabby&Ty (28,14)/(29,13), 11 museum-queue grunts,
   PC door (19,19)).
+
+## 2026-07-22 — SHINY = ALWAYS CATCH (user directive) + dock-stall fix + DEBUG Story modes (sandbox)
+Implemented on the user's go-ahead, in the order they set. All proven.
+- **SHINY ALWAYS-CATCH:** new `StoryShinyCatchStrategy` + the shiny branch is now the
+  FIRST check in `on_battle_started`: wild shiny + any usable ball → attempt the catch
+  (owned species included, full party → box, any story stage); balls exhausted MID-battle
+  → fight through (never flee a shiny, never Manual); zero balls up front / the scripted
+  tutorial battle → fight through as before. Ball choice inherits the #40 allowlist
+  (Master Ball protected by default). PROOF A (no emulator, `repro_shiny_noballs.py`):
+  same out-of-balls input → parent flees / shiny variant attacks. PROOF B (emulator,
+  `--driver shinytest` forces wilds shiny): 19 balls → 3 thrown → outcome=CAUGHT, with
+  `_should_catch` forced False (the owned-species/post-gym gating) — the shiny branch
+  alone drove it. Replaces the old fight-through-only contingency the user caught on
+  real HW (Shiny Poochyena fought with 32 balls in the bag).
+- **DOCK-STALL FIX (real-HW bug, user's log 2026-07-22):** after the first sail the
+  arrival reminder msgbox (Route104_EventScript_DeliverLetterReminder) stays open and
+  every wait-for-control path presses NOTHING → the bot derail-looped at the Dewford dock
+  to Manual. Fixed in THREE layers: both sail legs B-ride the arrival script before
+  waiting; and the generic derail recovery now B-rides any ACTIVE script before its
+  stable-controllable wait (an open dialogue can never wedge recovery again).
+- **NEW Run-tab modes** (auto-registered): **"Story (DEBUG)"** = Story with the debug
+  logger force-enabled, resumes from anywhere (native segmented resume). **"Story
+  (DEBUG - RESET)"** = debug logger + HARD emulator reset → main menu → NEW GAME forced
+  even over an existing save (gSaveFileStatus-gated Down; the save file itself is only
+  overwritten if the game later saves in-game). Proven in-harness (`--driver
+  storydebugreset` from a mid-game state → reset → new game → Treecko → first battle
+  won); the save-present menu branch is decomp-reasoned — ⚠ validate once on the real
+  profile (the user's normal setup).
+- **FULL-ARC REGRESSION (also proves the dock fix end-to-end):** one `--driver story`
+  run post_rival.ss1 → sail → Granite Cave letter → Brawly (KNUCKLE BADGE) → dock →
+  sail → Slateport PC → clean content-end stop. ~75k frames, 0 derails / 0 whiteouts.
+- Punch list: added #24-interrupt (interruption intelligence) and #24-movelock
+  (Disable/Encore/Taunt-aware move choice) per the user's slate-for-later items.

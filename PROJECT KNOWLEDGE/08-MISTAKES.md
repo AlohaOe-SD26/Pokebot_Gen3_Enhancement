@@ -565,3 +565,21 @@ with no exception bypasses the whiteout/derail recovery entirely.
   Ch8a run).
 - **Prevention:** on town-sized maps, never conclude an NPC is absent/hidden from a live
   object lookup until you are standing near its spawn tile. (Playbook §7.)
+
+## 2026-07-22 — Dewford dock stall: open arrival msgbox vs press-nothing waits (real-HW)
+- **Symptom (user's debug log):** after the first sail the real bot froze at the Dewford
+  dock (11,9): derails #1-4 of "player avatar is not controllable", then Manual. The
+  harness had never hit it.
+- **Root cause:** the post-sail arrival script leaves Briney's "deliver the LETTER"
+  reminder msgbox OPEN. `wait_until_truly_controllable` (and the derail recovery's wait)
+  presses NOTHING by design — correct for battle-transition flickers, but an open
+  dialogue needs a button press to close, so every wait timed out and every navigate
+  raised, forever. The harness missed it because the committed dewford.ss1 checkpoint
+  had the dialogue already ridden out (and the earlier content ENDED at arrival, so
+  nothing ever navigated afterward).
+- **Fix:** both sail legs ride out the arrival script (B) before waiting; the derail
+  recovery now ALSO B-rides any active script before its stable-controllable wait.
+  PROVEN by the full-arc run (post_rival → Slateport, 0 derails through both arrivals).
+- **Prevention:** any "wait to become controllable" that can follow a SCRIPTED ARRIVAL
+  must be preceded by a bounded script ride-out; recovery paths must always be able to
+  close a dialogue. (Playbook §7.)

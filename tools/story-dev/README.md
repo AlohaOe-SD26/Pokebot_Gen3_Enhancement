@@ -26,6 +26,9 @@ PYTHONUTF8=1 py story_harness.py <state|fresh> --driver <name> [--frames N] [--v
 - `--driver story` = the REAL `StoryMode._play`. Focused drivers isolate one thing:
   `spin gymtest traintest martbuy martrecon healtest rival ch5recon`
   `pokenavtut pokenavclear pokenavskip pokenavfaith sailrecon rivalretry saildewford`
+  `shinytest` (fault-injection: forces wilds to read as SHINY → verifies the always-catch
+  branch throws balls until Caught) · `storydebugreset` (runs the "Story (DEBUG - RESET)"
+  mode: hard reset → forced NEW GAME → intro)
   (see the `choices=[...]` list + the `if args.driver == ...` dispatch, and the `*Mode` classes).
   **Add your own** driver class + a dispatch line for whatever you're isolating.
 - `--video` enables the BG/OBJ renderer — **required to drive app UIs** (PokéNav etc.); their
@@ -79,6 +82,8 @@ never rely on it across runs.)
   (NPC/item `script_symbol`), connections, sizes. How Area Atlases are built. Reliable data.
 - `repro_double_faint.py` — the fault-injected **A/B proof** for the double-battle after-faint
   chooser (no emulator). The template for battle-strategy / pure-logic bug proofs.
+- `repro_shiny_noballs.py` — A/B proof (no emulator): out of balls MID-shiny → the shiny
+  strategy FIGHTS ON while the ordinary catch strategy flees (both asserted).
 - `doorprobe.py` — resolve a map's warp destinations (which door is which).
 - `routeprobe.py` — reachability probe (which tiles a navigator can reach from a start).
 - `sailprobe.py` — walk-and-log a route (used to validate the Rustboro→Route104 crossing).
