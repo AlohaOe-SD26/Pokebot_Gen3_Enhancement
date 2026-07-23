@@ -107,6 +107,15 @@ ROXANNE BEATEN → into Ch5). gemini_relay default is now gemini-3.1-pro-preview
 DEFERRED (my call, user offered now-or-later): the "company-style" multi-agent Gemini
 orchestration refinement — better done overnight/later; noted on the punch list.
 
+**FIXED 2026-07-23 (late night, user's paired logs):** the Route 111 first-rock hang
+(the batch-8 morning-queue wedge, now closed): `_smash_rock` is idempotent and judged
+by the rock OBJECT disappearing (Rock Smash spawns wild battles — the script context
+can read active forever afterward), plus a phantom-script escape in the cutscene rider
+(10s of playable+quiet+script-active = parked context, scene over). Proofs:
+repro_phantom_script.py A/B + live rocksmash_taught run through both rocks to Route
+113. Log identification for the user: 56c1baf9 (12:24) = mid-Wattson training;
+478c2506 (13:41) = the fresh run with the hang. Punch list: +#24-hm-multi.
+
 **NEXT after those: Ch12** — the Go-Goggles scene outside the Lavaridge gym (⚠ verify
 the trigger position) → Route 111 desert → Petalburg (Norman). Start from
 `flannery_done.ss1`. `END_MARKERS` in livetest.py already carries "HEAT BADGE earned";

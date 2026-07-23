@@ -379,10 +379,31 @@ def _wait_until_cutscene_over(button: str = "B", *, stable_frames: int = 15,
     in silence costs nothing and cannot re-trigger anyone."""
     stable = 0
     frames = 0
+    phantom = 0
     while stable < stable_frames:
         script_running = get_global_script_context().is_active or get_immediate_script_context().is_active
         free = player_avatar_is_controllable() and not script_running
         stable = stable + 1 if free else 0
+        # PHANTOM-SCRIPT ESCAPE (user's 2026-07-23 Route 111 hang): when a field
+        # script is interrupted by a battle it spawned (Rock Smash's wild-encounter
+        # roll), the script context can READ active forever while the game is in
+        # fact fully playable — the avatar controllable, no text, no menu. A real
+        # cutscene never idles like that: it either locks the avatar, prints text,
+        # or ends. Ten straight seconds of "playable but script-active" means the
+        # context is parked, not running — treat the scene as over instead of
+        # timing out at 8000 frames and derailing in a loop.
+        if (
+            script_running
+            and player_avatar_is_controllable()
+            and not is_waiting_for_input()
+            and not _menu_task_active()
+        ):
+            phantom += 1
+            if phantom >= 600:
+                context.message = "Story: parked script context detected — treating the scene as over."
+                return
+        else:
+            phantom = 0
         if not free:
             if script_running or is_waiting_for_input():
                 context.emulator.press_button(_dialogue_button(button))
@@ -4006,20 +4027,53 @@ def get_rock_smash_hm() -> Generator:
 
 
 def _smash_rock(map_enum, approach_tile, face_dir: str) -> Generator:
-    """Stand beside a breakable rock, face it, and Rock-Smash it through the field
-    prompt: A → 'This rock appears to be breakable. Use ROCK SMASH?' → riding the
-    scene with A answers YES and plays the smash. Requires a party mon knowing Rock
-    Smash + BADGE03 (both guaranteed by Segments 9c/10b)."""
+    """Stand beside a breakable rock, face it, and Rock-Smash it — IDEMPOTENT and
+    judged by the WORLD, not the script (user's 2026-07-23 hang + the batch-8 wedge,
+    same signature): success is "the rock OBJECT is gone", checked live. The old
+    A-ride waited for the smash script to end — but Rock Smash rolls a WILD
+    ENCOUNTER (Geodude), and a battle-interrupted field script can leave the script
+    context reading active forever, wedging every script-gated wait downstream.
+    Also: a derail recovery re-runs the travel leg, so re-smashing an ALREADY-gone
+    rock must be a no-op, not an A-press into whatever stands beyond it.
+    Requires a party mon knowing Rock Smash + BADGE03 (Segments 9c/10b)."""
+    from modules.map import get_map_objects
+
+    dx, dy = {"Up": (0, -1), "Down": (0, 1), "Left": (-1, 0), "Right": (1, 0)}[face_dir]
+    rock_tile = (approach_tile[0] + dx, approach_tile[1] + dy)
+
+    def _rock_present() -> bool:
+        try:
+            return any(
+                tuple(o.current_coords) == rock_tile for o in get_map_objects()
+            )
+        except Exception:
+            return True  # can't read objects — assume it's still there and try
+
     yield from _navigate_riding_out(map_enum, approach_tile)
     yield from wait_for_player_avatar_to_be_standing_still()
-    context.emulator.press_button(face_dir)
-    yield
-    yield from wait_for_n_frames(8)
-    context.emulator.press_button("A")
-    yield
-    # Ride the confirm + smash scene with A (B would answer NO to the prompt).
-    yield from _ride_out_scripted_scene("A", engage_timeout=180)
-    yield from wait_until_truly_controllable()
+    if not _rock_present():
+        return  # already smashed (recovery re-entry) — nothing to do
+    for _attempt in range(3):
+        _check_abort()
+        context.emulator.press_button(face_dir)
+        yield
+        yield from wait_for_n_frames(8)
+        context.emulator.press_button("A")
+        yield
+        # Watch the WORLD: the rock disappearing = success. A wild battle spawned by
+        # the smash pauses this generator (the battle listener's controller runs on
+        # top of us); when we resume, the judgment below still holds. Press A on a
+        # cadence while free to answer the 'Use ROCK SMASH?' prompt.
+        for _f in range(1800):
+            _check_abort()
+            if not _rock_present():
+                yield from wait_for_n_frames(45)  # let the crumble animation finish
+                yield from wait_until_truly_controllable()
+                return
+            if _f % 30 == 15 and not get_global_script_context().is_active:
+                context.emulator.press_button("A")
+            yield
+    raise BotModeError(f"Rock Smash: the rock at {rock_tile} never broke after 3 attempts.")
 
 
 def travel_to_fallarbor() -> Generator:

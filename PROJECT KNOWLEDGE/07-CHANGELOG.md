@@ -2151,3 +2151,30 @@ have a sweeper?" before training anything. Backup tag `backup-pre-sufficiency-20
   trained ONE mon to 14, BEAT ROXANNE, continued into Ch5 — 58 battles in 200k frames.
 - Also: gemini_relay default model → gemini-3.1-pro-preview (user directive; 2.5-flash
   documented for cheap one-liners).
+
+## 2026-07-23 — Route 111 Rock Smash hang FIXED (the batch-8 wedge, finally): world-judged smashing + phantom-script escape
+User's paired logs (12:24 = mid-Wattson training; 13:41 = a fresh run that hung at the
+FIRST rock (18,101) until manually killed) closed the case the overnight batch-8 sweep
+had queued: `_smash_rock`'s A-ride waited for `EventScript_SmashRock` to end — but Rock
+Smash rolls a WILD ENCOUNTER (a Geodude spawned mid-smash in the user's run), and a
+battle-interrupted field script can leave the script context READING active forever
+while the game is fully playable. The rider timed out at 8000 frames, derailed, and the
+recovery rode the same phantom in a loop.
+- **`_smash_rock` rewritten**: IDEMPOTENT (a recovery re-entry that finds the rock
+  object already gone is a no-op — no more A-presses into whatever stands beyond) and
+  judged by the WORLD: success = the rock OBJECT disappears from the live object list,
+  regardless of what the script context claims. Battle-aware by construction (a spawned
+  battle pauses the generator; the judgment holds on resume). 3 bounded attempts, then
+  a truthful error.
+- **Phantom-script escape** in `_wait_until_cutscene_over`: ten straight seconds of
+  "avatar controllable + no waiting text + no menu + script still reading active" is a
+  PARKED context, not a cutscene — treat the scene as over instead of the
+  8000-frame raise-and-derail loop. A real cutscene never idles like that (it locks
+  the avatar, prints text, or ends).
+- **PROOF**: repro_phantom_script.py fault-injects the exact hang profile — old
+  semantics raise at the full timeout, fixed rider returns at ~600 frames; locked
+  real scenes still time out honestly and normal endings return promptly. LIVE:
+  rocksmash_taught.ss1 → both rocks smashed → Route 112 → Fiery Path → Route 113
+  (smash_run1.log), no Manual, no 'never broke'.
+Punch list: +#24-hm-multi (teach HMs to additional mons when genuinely an upgrade —
+user note; gated on the TM decision layer to avoid HM-taxing battlers).

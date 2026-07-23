@@ -854,3 +854,22 @@ conversation, so the museum-greeter fix stays intact — re-proven).
 live inside the overworld state. Ask the task list. And when a "recover by pressing"
 helper gets a new guard, enumerate what the guard now EXCLUDES (here: menus) and decide
 deliberately who handles that class instead.
+
+## 2026-07-23 — A field script the game abandoned still "reads active" (Route 111 rock hang)
+**Symptom.** The bot smashed the first Route 111 rock, a wild Geodude popped out of the
+smash, and after the battle the run wedged at (18,101) forever — script context active,
+avatar controllable, nothing on screen — until the user killed it. Same signature the
+batch-8 sweep had already queued (bail→re-enter→re-wedge).
+**Root cause.** Two layers. (1) `_smash_rock` judged success by "the smash script
+ended" — but Rock Smash's wild-encounter roll can interrupt the field script with a
+battle, after which the script context can stay marked active forever even though the
+game has fully returned control. (2) Every script-gated wait downstream (the rider, the
+recovery's rider) trusted that same flag, so the whole stack spun on a phantom.
+**The fix that worked.** Judge by the WORLD, not the script: the rock OBJECT vanishing
+is the success signal (and its absence on re-entry makes the step idempotent). Plus a
+generic escape: sustained "playable + quiet + script-active" (600 frames) = a parked
+context — treat the scene as over.
+**Prevention rule.** A script-context flag is a HINT, not ground truth — after any
+battle can interrupt a field script, verify completion by observable world state
+(object gone, tile passable, flag set). And never let two layers (step + recovery)
+both block on the same unverified signal: the second layer just doubles the hang.

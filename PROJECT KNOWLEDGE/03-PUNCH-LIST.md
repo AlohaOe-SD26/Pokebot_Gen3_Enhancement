@@ -567,3 +567,14 @@
       data × gender-ratio math — all derivable, no hand lists), tier thresholds to
       agree with the user, and integration ordering vs the shiny branch (shiny stays
       first). Pairs with #43 opportunistic catching + the Living-Dex orchestrator.
+
+- [ ] #24-hm-multi — TEACH AN HM TO ADDITIONAL APPLICABLE MONS (user 2026-07-23,
+      future): after the primary teach, consider teaching the HM to OTHER party mons
+      when it is a genuine upgrade over one of their current moves ("if they are
+      present and if it is a higher priority over their current moves" — the user's
+      framing). NOTE the research nuance before building: per the graded pokeprofiles
+      registry, Rock Smash-class HMs are an HM TAX (weak move, undeletable without
+      the Lilycove Move Deleter) — "applicable" must mean "the decision layer says
+      it beats a current move" (#24-tms/#24-movelock), not merely "compatible", or
+      we poison battlers' movesets. Strength (80BP) is the counter-example where
+      multi-teach genuinely pays. Build after the TM decision layer exists.
