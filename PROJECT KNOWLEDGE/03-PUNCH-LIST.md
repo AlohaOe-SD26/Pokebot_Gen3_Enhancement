@@ -440,3 +440,25 @@
       the exact tiles from validated-run debug logs), wait bounded (~1 lap) for
       the NPC to transit adjacent, face-tap+A; on one failure fall back to the
       full observe-then-park. Keeps the proven adaptive path as the safety net.
+
+- [ ] #24-hm-slaves — HM CARRIER ARCHITECTURE (user directive 2026-07-22 night):
+      HMs are infinite-use but unremovable without the Lilycove MOVE DELETER
+      (free; the Heart Scale is for Fallarbor''s Move RELEARNER — different NPC).
+      Near-term policy: Marshtomp carries Rock Smash + later Strength (learns
+      both; physical-type moves suit its Attack — a working mule, not a dead
+      slot). Longer-term: dedicated HM slave(s) (Zigzagoon: Cut/Rock Smash/
+      Strength/Surf) parked in the POKEMON PC — which requires PC deposit/
+      withdraw MACHINERY (party-slot management UI flow) built BEFORE the
+      Surf-era chapters (~Ch13+, Route 118 gate). Also: some moves are
+      overworld-usable from the party menu (Dig, Teleport, Flash, Sweet Scent)
+      — useful shortcuts (Teleport-to-PC, Dig-out-of-caves) worth wiring into
+      travel logic once carriers exist.
+
+- [ ] #24-knowledge-base — DEEP GAME KNOWLEDGE BASE (user directive 2026-07-22
+      night): per-chapter, during mapping: route items (visible + HIDDEN, both
+      in decomp map.jsons), puzzles, secrets, legendary unlock chains + catch
+      strategies (Regis braille gates, Sky Pillar/Rayquaza, Groudon/Kyogre story
+      beats), gym rosters. Machine layer: the bot''s modules/data already holds
+      full species/moves/learnsets/TM-compat — the MOVE-PRIORITY SYSTEM v2
+      (#24-movelock: STAB + type coverage + Gen3 physical/special-BY-TYPE
+      stat-matching + utility ranking) should QUERY it, not hand-author lists.

@@ -2094,9 +2094,20 @@ def fight_rustboro_rival() -> Generator:
         yield
         yield from wait_for_n_frames(16)
     if not _rival_engaging():
-        # Couldn't provoke the rival from the staging tile — signal a derail so StoryMode
-        # re-localises and retries (bounded by the caller's attempt-cap) rather than hanging.
-        raise BotModeError("Rustboro rival did not engage from the staging tile.")
+        # The trigger row (RivalTrigger0-7 at (12-19,53)) requires VAR_RUSTBORO_CITY_STATE
+        # == 7, and the MEETING sets it to 8 — so once the rival has been met (which can
+        # happen ORGANICALLY mid-navigation: any southbound walk across the row after the
+        # var reaches 7 fires the scene) the row is PERMANENTLY dead. After a met-but-not-
+        # beaten state (organic meeting + loss; two batch runs died on this, 2026-07-22)
+        # the only rematch is TALKING to the rival object (local_id 15, spawn (16,50)).
+        if get_event_flag("MET_RIVAL_RUSTBORO") and not get_event_flag("DEFEATED_RIVAL_RUSTBORO"):
+            context.message = "Story: the rival's trigger is spent — talking to her directly..."
+            yield from _talk_to_wandering_npc(
+                MapRSE.RUSTBORO_CITY, 15, attempts=4, approach_hint=(16, 51), known_spot=(16, 51)
+            )
+        if not _rival_engaging():
+            # Still nothing — derail so StoryMode re-localises and retries (bounded).
+            raise BotModeError("Rustboro rival did not engage (trigger row dead; talk fallback failed).")
     yield from _ride_out_scripted_scene("B", engage_timeout=2000)
     frames = 0
     while not get_event_flag("DEFEATED_RIVAL_RUSTBORO"):
@@ -3435,6 +3446,170 @@ def do_mauville_gym() -> Generator:
             break
     yield from _wait_until_cutscene_over("B")
     context.message = "Story: DYNAMO BADGE earned — Gym 3 (Wattson) beaten!"
+
+
+# ---------------------------------------------------------------------------
+# Chapter 10 — Mauville → Fallarbor (HM06 Rock Smash → Route 111 south →
+# Route 112 → Fiery Path → Route 113). Route spec: design doc §Ch10 (decomp-
+# verified map.json sweep 2026-07-22).
+# ---------------------------------------------------------------------------
+
+MAUVILLE_ROCKSMASH_HOUSE_DOOR = (32, 14)  # city door → MAUVILLE_CITY_HOUSE1 (10,2)
+
+
+def _exit_mauville_gym_live() -> Generator:
+    """Leave the Mauville Gym on the LIVE grid. Post-badge the game deactivates the
+    barrier puzzle in the LIVE map only (MauvilleGymDeactivatePuzzle) — the ROM's
+    static layout still shows the maze sealed, so the static planner can't path from
+    Wattson's platform to the door (Ch10a run 1: 'no path (5,3) → (4,20)'). Same
+    static-vs-live rule as the maze solve. A no-op when not inside the gym."""
+    from collections import deque
+
+    from modules.map import get_map_data
+    from modules.memory import read_symbol, unpack_uint32
+
+    GYM = MapRSE.MAUVILLE_CITY_GYM.value
+    if _map_group_number() != GYM:
+        return
+    W, H = get_map_data(GYM, (0, 0)).map_size
+    raw = read_symbol("gBackupMapLayout")
+    grid_w = int.from_bytes(raw[0:4], "little", signed=True)
+    map_ptr = unpack_uint32(raw[8:12])
+    data = context.emulator.read_bytes(map_ptr, grid_w * (H + 15) * 2)
+    passable = set()
+    for y in range(H):
+        base = (y + 7) * grid_w
+        for x in range(W):
+            v = int.from_bytes(data[(base + x + 7) * 2 : (base + x + 7) * 2 + 2], "little")
+            if (v >> 10) & 3 == 0:
+                passable.add((x, y))
+    start = tuple(get_player_avatar().local_coordinates)
+    # Objects (Wattson, gym trainers) are walls too — run 2 walked into one.
+    try:
+        from modules.map import get_map_objects
+
+        for o in get_map_objects():
+            for c in (getattr(o, "current_coords", None), getattr(o, "previous_coords", None)):
+                if c is not None and tuple(c) != start:
+                    passable.discard(tuple(c))
+    except Exception:
+        pass
+    targets = {(4, 19), (5, 19)}  # just above the entrance warp row (4,20)/(5,20)
+    prev = {start: None}
+    queue = deque([start])
+    found = None
+    while queue:
+        t = queue.popleft()
+        if t in targets:
+            found = t
+            break
+        for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+            n = (t[0] + dx, t[1] + dy)
+            if n in passable and n not in prev:
+                prev[n] = t
+                queue.append(n)
+    if found is None:
+        raise BotModeError("Mauville Gym exit: no live path to the door.")
+    tiles = []
+    node = found
+    while node is not None:
+        tiles.append(node)
+        node = prev[node]
+    tiles.reverse()
+    for nxt in tiles[1:]:
+        px, py = get_player_avatar().local_coordinates
+        d = {(0, -1): "Up", (0, 1): "Down", (-1, 0): "Left", (1, 0): "Right"}.get((nxt[0] - px, nxt[1] - py))
+        if d is None:
+            raise BotModeError("Mauville Gym exit: drifted off the live path.")
+        arrived = False
+        for _ in range(120):
+            _check_abort()
+            context.emulator.hold_button(d)
+            yield
+            if tuple(get_player_avatar().local_coordinates) == tuple(nxt):
+                arrived = True
+                break
+        context.emulator.reset_held_buttons()
+        if not arrived:
+            raise BotModeError("Mauville Gym exit: a live wall blocked the doorward walk.")
+    yield from _walk_through_warp("Down", GYM)
+    yield from wait_until_truly_controllable()
+
+
+def _exit_small_interior() -> Generator:
+    """Exit a one-room interior (house/shop) through its bottom-edge door warp:
+    navigate to the tile ABOVE a warp, then step Down through it. Generic — reads
+    the current map's warps live; a no-op if already outside gets handled by the
+    caller checking the map first."""
+    from modules.map import get_map_data_for_current_position
+
+    cur = _map_group_number()
+    md = get_map_data_for_current_position()
+    warps = sorted(
+        (tuple(w.local_coordinates) for w in md.warps),
+        key=lambda t: -t[1],  # bottom-most first (interior exits sit on the south edge)
+    )
+    for wx, wy in warps:
+        if _map_group_number() != cur:
+            return
+        try:
+            yield from navigate_to(cur, (wx, wy - 1))
+            yield from _walk_through_warp("Down", cur, timeout_frames=180)
+        except Exception:
+            continue
+    if _map_group_number() == cur:
+        raise BotModeError("Could not exit the interior through any of its door warps.")
+
+
+def get_rock_smash_hm() -> Generator:
+    """Chapter 10a — HM06 Rock Smash from the Rock Smash Guy.
+
+    INTENT: Route 111 south is HARD-gated by two breakable rocks at (18,101)/(19,100);
+    HM06 unlocks the whole northern arc (Fiery Path → Fallarbor → Meteor Falls).
+    HOW: Mauville SE house (city door (32,14) → MAUVILLE_CITY_HOUSE1); the Rock Smash
+    Guy is STATIC — the wandering-talk helper degenerates to park-adjacent-and-talk.
+    Receiving is gated only on RECEIVED_HM_ROCK_SMASH not being set (decomp-verified);
+    field USE additionally needs BADGE03, which Ch9 already earned.
+    GOAL/END: RECEIVED_HM_ROCK_SMASH set; back outside in Mauville."""
+    from modules.memory import get_event_flag
+
+    HOUSE = MapRSE.MAUVILLE_CITY_HOUSE1.value
+
+    def _have() -> bool:
+        try:
+            return bool(get_event_flag("RECEIVED_HM_ROCK_SMASH"))
+        except Exception:
+            return False
+
+    if _have():
+        return
+    context.message = "Story: getting HM06 Rock Smash in Mauville..."
+    yield from wait_until_truly_controllable()
+    yield from _exit_mauville_gym_live()  # resuming inside the gym (wattson_done) needs the live-grid exit
+    if _map_group_number() != HOUSE:
+        try:
+            yield from _enter_warp_by_navigation(
+                lambda: _map_group_number() == HOUSE,
+                MapRSE.MAUVILLE_CITY, MAUVILLE_ROCKSMASH_HOUSE_DOOR,
+                tries=4, label="Rock Smash house",
+            )
+        except BotModeError:
+            yield from _navigate_riding_out(MapRSE.MAUVILLE_CITY, (32, 15))
+            yield from _walk_through_warp("Up", MapRSE.MAUVILLE_CITY.value)
+        yield from wait_until_truly_controllable()
+    yield from _talk_to_wandering_npc(MapRSE.MAUVILLE_CITY_HOUSE1, 1, attempts=4)
+    frames = 0
+    while not _have():
+        _check_abort()
+        context.emulator.press_button("B" if frames % 3 else "A")
+        frames += 1
+        if frames > 6000:
+            raise BotModeError("Rock Smash house: talked, but the HM was never received.")
+        yield
+    yield from _wait_until_cutscene_over("B")
+    yield from _ride_out_all_scenes(quiet_frames=240)
+    yield from _exit_small_interior()
+    context.message = "Story: got HM06 Rock Smash!"
 
 
 def do_dewford_gym() -> Generator:

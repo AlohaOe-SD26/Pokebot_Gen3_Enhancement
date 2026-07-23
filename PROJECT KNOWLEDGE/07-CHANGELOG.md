@@ -1870,3 +1870,19 @@ clean content-end stop. What closed KI-13:
 Also this session (real-HW log): `ensure_facing_direction` rides out field scripts
 (85k-frame trainer-intro wedge fixed, regression-proven) and StoryMode gained a GLOBAL
 no-progress watchdog (18k frames of total stasis → self-derail into recovery).
+
+## 2026-07-22 (overnight) — Ch10a: HM06 Rock Smash acquired + live-grid gym exit + rival rematch fallback
+- `get_rock_smash_hm()` VALIDATED (run 3 from wattson_done.ss1): live-grid gym exit
+  (the static planner can't path out of the post-badge gym — the deactivated puzzle
+  exists only in the LIVE grid; exit BFS also avoids OBJECT tiles after run 2 walked
+  into Wattson) → cross town → SE house (32,14) → Rock Smash Guy → RECEIVED_HM_ROCK_
+  SMASH → `_exit_small_interior()` (new generic one-room-door helper) → content-end.
+  Checkpoint `rocksmash_got.ss1`.
+- RUSTBORO RIVAL REMATCH FALLBACK (two batch runs died on this): the trigger row
+  requires VAR_RUSTBORO_CITY_STATE==7 and the MEETING sets it to 8 — met-but-not-
+  beaten states (organic mid-navigation meetings are FAITHFUL and fine when won; a
+  loss leaves the row dead) can only rematch by TALKING to the rival object
+  (local_id 15, (16,50)). fight_rustboro_rival now falls back to exactly that.
+- Batch 4 (5×1.6M fresh): 2/5 FRONTIER (up from 1), 0 Manual; 2 budget-bound
+  mid-Wattson (L20-26 parties — training pace, #24-train-efficiency); 1 = the rival
+  wedge above. Next batch at 2M frames.

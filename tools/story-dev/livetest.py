@@ -55,6 +55,7 @@ END_MARKERS = [
     # Substring of the story's content-end message. Keep it DASH-FREE and short: the
     # message contains an em-dash and encoding round-trips have corrupted it once.
     "Dynamo Badge earned",  # Ch9 content end (2026-07-22)
+    "Rock Smash in hand",   # Ch10a content end (2026-07-22 overnight)
 ]
 FAIL_MARKERS = {
     "hang": "HANG CONFIRMED",

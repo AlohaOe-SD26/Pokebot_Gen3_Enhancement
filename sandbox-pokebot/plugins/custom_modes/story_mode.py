@@ -1267,11 +1267,21 @@ class StoryMode(BotMode):
             console.print("[dim]Story: Dynamo Badge already earned — Gym 3 skipped.[/]")
         _guard("Gym 3 (Wattson)", lambda: _done("BADGE03_GET"))
 
-        # END OF BUILT CONTENT. Next build (Ch10): HM06 Rock Smash → Route 111/112 →
-        # Fiery Path → Fallarbor (§Ch10–13 roadmap; Gemini detail pass pending).
+        # --- Segment 10a: HM06 Rock Smash (Mauville SE house; §Ch10). Gated only on
+        #     the received flag; field use needs BADGE03, which Segment 9c earned. ---
+        if not _done("RECEIVED_HM_ROCK_SMASH"):
+            from modules.story.early_game import get_rock_smash_hm
+
+            yield from get_rock_smash_hm()
+        else:
+            console.print("[dim]Story: HM06 Rock Smash already received — skipping.[/]")
+        _guard("HM06 Rock Smash (Ch10a)", lambda: _done("RECEIVED_HM_ROCK_SMASH"))
+
+        # END OF BUILT CONTENT. Next build (Ch10b/c): teach HM06 → Route 111 south
+        # (rocks) → Route 112 → Fiery Path → Route 113 → Fallarbor (§Ch10 route spec).
         context.message = (
-            "Story: Dynamo Badge earned — end of built content. NEXT (WIP): Rock Smash "
-            "-> Fiery Path -> Fallarbor -> Mt. Chimney -> Lavaridge. Handing to manual."
+            "Story: HM06 Rock Smash in hand — end of built content. NEXT (WIP): teach "
+            "it, smash through Route 111, Fiery Path -> Fallarbor. Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()
