@@ -440,6 +440,13 @@ class DashboardScreen:
     # Menu command callbacks — shared by the Tk menu bar (desktop) AND the
     # in-tab "GAME MENU" card (#30b), so handheld can drop the menu bar
     # entirely while keeping every command reachable.
+    def _menu_load_milestone_state(self) -> None:
+        """User directive 2026-07-23: like Load Save State, but for the repo's story
+        checkpoint library — fast test entry at any built milestone."""
+        from modules.gui.milestone_window import MilestoneWindow
+
+        MilestoneWindow(self.window)
+
     def _menu_load_save_state(self) -> None:
         from modules.gui.load_state_window import LoadStateWindow
 
@@ -469,6 +476,7 @@ class DashboardScreen:
         of truth for both the menu bar and the in-tab menu card."""
         return [
             ("Load Save State", self._menu_load_save_state),
+            ("Load Milestone State", self._menu_load_milestone_state),
             ("New Save State", self._menu_new_save_state),
             ("Take Screenshot", self._menu_screenshot),
             ("Reset", self._menu_reset),
@@ -485,6 +493,7 @@ class DashboardScreen:
 
         emulator_menu = Menu(self.window, tearoff=0)
         emulator_menu.add_command(label="Load Save State", command=self._menu_load_save_state)
+        emulator_menu.add_command(label="Load Milestone State", command=self._menu_load_milestone_state)
         emulator_menu.add_command(label="New Save State", command=self._menu_new_save_state)
         emulator_menu.add_command(label="Take Screenshot", command=self._menu_screenshot)
         emulator_menu.add_separator()

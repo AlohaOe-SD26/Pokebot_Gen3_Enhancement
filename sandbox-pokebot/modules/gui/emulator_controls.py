@@ -65,6 +65,11 @@ class EmulatorControls:
 
         self.emulator_menu = Menu(self.window, tearoff=0)
         self.emulator_menu.add_command(label="Load Save State", command=lambda: LoadStateWindow(self.window))
+        from modules.gui.milestone_window import MilestoneWindow as _MilestoneWindow
+
+        self.emulator_menu.add_command(
+            label="Load Milestone State", command=lambda: _MilestoneWindow(self.window)
+        )
         self.emulator_menu.add_command(
             label="New Save State", command=lambda: context.emulator.create_save_state("Manual")
         )

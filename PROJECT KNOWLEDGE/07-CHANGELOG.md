@@ -2178,3 +2178,30 @@ recovery rode the same phantom in a loop.
   (smash_run1.log), no Manual, no 'never broke'.
 Punch list: +#24-hm-multi (teach HMs to additional mons when genuinely an upgrade —
 user note; gated on the TM decision layer to avoid HM-taxing battlers).
+
+## 2026-07-23 — "Load Milestone State": the checkpoint library is now a GUI feature
+User directive (shared-saves discussion): the repo's committed harness checkpoints
+double as shared test entry points, so GUI test runs can start at any built milestone
+instead of relying solely on multi-hour fresh runs.
+- **`modules/story_milestones.py`** — curated, story-ordered registry over
+  `tools/story-dev/saves/*.ss1` (25 catalogued milestones, Ch1 → the HEAT BADGE
+  frontier + repro states; uncatalogued .ss1 files still appear, generically labeled,
+  so new checkpoints are usable before the table is updated). The library path
+  resolves by walking up to the repo root — works from sandbox AND custom, and a
+  `git pull` always yields checkpoints matching the code under test (no copying,
+  no staleness).
+- **`modules/gui/milestone_window.py`** — the "Load Milestone State" popup: chapter-
+  tagged two-column list (Milestone | Where/What), double-click or button to load,
+  and the safety copy up top: these states are the TEST playthrough (trainer NICK),
+  they replace the running session (the profile's on-disk save is only touched by a
+  later in-game save — use a test profile), and they pair with the resume-anywhere
+  Story modes, NOT "DEBUG - RESET" (which forces a new game).
+- Wired as a button in the dashboard's GAME MENU card + Emulator menu, and into the
+  classic GUI's Emulator menu. Load semantics mirror Load Save State exactly (state
+  bytes → frame reset → Manual; the user starts a Story mode when ready).
+- **`saves/user-reports/`** — the reverse direction: a drop folder + convention for
+  the user's real-HW bug-capture states, so a reported wedge can be reproduced
+  byte-for-byte in the harness instead of reconstructed from logs.
+- Verified: registry resolves 26 states against the live library (25 curated + 1
+  auto-labeled), GUI modules import clean. ⚠ Not yet clicked live (the user's test
+  run was in progress) — confirm the popup renders on the next GUI session.

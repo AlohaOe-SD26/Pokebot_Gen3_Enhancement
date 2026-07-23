@@ -116,6 +116,16 @@ repro_phantom_script.py A/B + live rocksmash_taught run through both rocks to Ro
 113. Log identification for the user: 56c1baf9 (12:24) = mid-Wattson training;
 478c2506 (13:41) = the fresh run with the hang. Punch list: +#24-hm-multi.
 
+**BUILT 2026-07-23 (late night, user directive): milestone-state sharing.** The repo's
+checkpoint library is now a GUI feature: "Load Milestone State" (dashboard GAME MENU
+card + both Emulator menus) lists the story-ordered, chapter-tagged checkpoints from
+tools/story-dev/saves and loads them like save states (registry:
+modules/story_milestones.py — curated table + auto-labeled fallback; safety copy about
+the NICK test playthrough + use-a-test-profile + pair with resume-anywhere Story modes,
+never DEBUG-RESET). saves/user-reports/ added for the user's bug-capture states.
+⚠ Compile/import-verified, NOT yet clicked live (user's test was running) — confirm
+the popup renders next GUI session.
+
 **NEXT after those: Ch12** — the Go-Goggles scene outside the Lavaridge gym (⚠ verify
 the trigger position) → Route 111 desert → Petalburg (Norman). Start from
 `flannery_done.ss1`. `END_MARKERS` in livetest.py already carries "HEAT BADGE earned";
