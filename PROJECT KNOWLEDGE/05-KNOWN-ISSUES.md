@@ -155,7 +155,7 @@ process. Original write-up kept below for reference.
   trigger or document the state-write. `deliver_devon_goods_to_stern` (interior logic sound)
   stays defined but UNWIRED; frontier honestly = Slateport arrival.
 
-## KI-14 (2026-07-23, user's fresh-run log `...093417.log`) — teach flow strands the START MENU open → travel wedge → Manual
+## KI-14 ✅ FIXED 2026-07-23 (same day) — teach flow stranded the START MENU open → travel wedge → Manual
 The Ch10b teach itself WORKED (the new compat picker chose Grovyle L29 on a Treecko run
 — validation of #24-hm-learner on a non-Mudkip start). The failure is AFTER: the
 teach's "hard menus-closed guarantee" B-mashes out of the BAG but its exit condition is
@@ -167,8 +167,10 @@ start menu is an overworld state), so the loop exits with the menu still up
 printer waits, and an open MENU is neither → nobody ever closes the menu → 8000-frame
 "cutscene did not end" derail → recovery hits the same wall → Manual at Mauville (32,15).
 CLASS: a latent bug (menu left open, previously papered over by blind B-mash recovery)
-EXPOSED by the museum fix making the presser conservative. FIX DIRECTION (discussed, not
-yet built): (a) the teach's hard-close loop must break only when the overworld is
-MENU-FREE (no Task_ShowStartMenu / bag tasks, avatar controllable); (b)
-`_wait_until_cutscene_over` should also press B while a MENU task is open — B closes
-menus and can never start a dialogue, so it cannot regress the museum fix.
+EXPOSED by the museum fix making the presser conservative. FIXED (both halves, same
+day): (a) the teach's hard-close loop breaks only when the overworld is MENU-FREE
+(`_menu_task_active()` — Task_ShowStartMenu/ListMenuDummyTask/ChooseMonInput — plus
+avatar controllable); (b) `_wait_until_cutscene_over` also presses B while a menu task
+is open (B closes menus, can never start a dialogue → museum guarantee preserved).
+PROVEN: story run rocksmash_got.ss1 → teach → Mauville → Rt 111 → 112 → Fiery Path →
+Rt 113, 0 derails (ki14_run1); museum repro re-run clean.

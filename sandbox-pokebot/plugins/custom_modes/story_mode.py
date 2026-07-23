@@ -93,6 +93,79 @@ class LevelUpTravelBattleStrategy(LevelUpLeadBattleStrategy):
     heals to full first so the lead can win. WILD battles keep the parent
     behaviour (flee at low HP — the training loop heals for that)."""
 
+    def choose_new_lead_after_faint(self, battle_state):
+        """MATCHUP-AWARE replacement pick (user discussion 2026-07-23, Wattson analysis):
+        the stock chooser sends the highest-HP living mon — which in the Wattson run
+        meant full-HP Swellow and Ninjask (both Electric-weak) walking into
+        Thunderbolts, attempt after attempt. The game asks us to CHOOSE, so choose
+        like a player: prefer the mon the opponent hits least effectively (worst-case
+        STAB from the opponent's types), then the one whose own usable moves hit the
+        opponent hardest, then HP fraction, then level. Falls back to the stock pick
+        on any surprise (missing data → the parent's HP rule)."""
+        try:
+            from modules.pokemon_party import get_party as _gp
+
+            # Opponent type PAIRS on the field right now (both actives in a double).
+            # Kept as per-battler pairs: effectiveness against a dual-type is the
+            # PRODUCT over its two types (Ground vs Flying/Electric is 0x, not 2x).
+            foe_pairs = []
+            for battler in (
+                getattr(battle_state.opponent, "left_battler", None),
+                getattr(battle_state.opponent, "right_battler", None),
+            ):
+                if battler is not None:
+                    try:
+                        foe_pairs.append(list(battler.species.types))
+                    except Exception:
+                        pass
+            foe_types = [t for pair in foe_pairs for t in pair]
+            if not foe_types:
+                return super().choose_new_lead_after_faint(battle_state)
+
+            def _excluded(index) -> bool:
+                if not battle_state.is_double_battle:
+                    return False
+                for battler in (battle_state.own_side.left_battler, battle_state.own_side.right_battler):
+                    if battler is not None and battler.party_index == index:
+                        return True
+                return False
+
+            best_index, best_key = None, None
+            for index, mon in enumerate(_gp()):
+                if mon is None or mon.is_egg or mon.current_hp <= 0 or _excluded(index):
+                    continue
+                try:
+                    mon_types = mon.species.types
+                except Exception:
+                    mon_types = []
+                # Defensive: the worst the foe's STAB can do to this mon (lower = better).
+                incoming = 0.0
+                for ft in foe_types:
+                    m = 1.0
+                    for t in mon_types:
+                        m *= ft.get_effectiveness_against(t)
+                    incoming = max(incoming, m)
+                # Offensive: the best effectiveness among its usable damaging moves,
+                # judged against each opponent's full type pair.
+                outgoing = 0.0
+                for learned in mon.moves:
+                    if learned is None or learned.pp == 0 or learned.move.base_power == 0:
+                        continue
+                    for pair in foe_pairs:
+                        m = 1.0
+                        for t in pair:
+                            m *= learned.move.type.get_effectiveness_against(t)
+                        outgoing = max(outgoing, m)
+                hp_fraction = mon.current_hp / max(1, mon.total_hp)
+                key = (incoming, -outgoing, -hp_fraction, -mon.level)
+                if best_key is None or key < best_key:
+                    best_index, best_key = index, key
+            if best_index is not None:
+                return best_index
+        except Exception:
+            pass
+        return super().choose_new_lead_after_faint(battle_state)
+
     def decide_turn(self, battle_state):
         if battle_state.is_trainer_battle:
             util = BattleStrategyUtil(battle_state)
@@ -361,6 +434,8 @@ class StoryMode(BotMode):
         # problem → trigger a retrain. These live on the instance and survive whiteout
         # restarts because run() loops in place (it does NOT bounce through Manual).
         self._defeat_counts: dict = {}
+        self._loss_ko_history: dict = {}  # map key -> [(seq, opponent KOs) per lost attempt]
+        self._loss_seq: int = 0
         self._whiteout_pending = False
         self._last_defeat_key = None
         self._derails = 0  # consecutive non-whiteout derails (self-correct before Manual)
@@ -376,9 +451,24 @@ class StoryMode(BotMode):
             key = self._location_key()
             self._defeat_counts[key] = self._defeat_counts.get(key, 0) + 1
             self._last_defeat_key = key
+            # BOSS-TRAINING telemetry (user design 2026-07-23): how many of the
+            # opponent's mons did we KO before losing? Read from the game's own
+            # battle-results struct (gBattleResults.opponentFaintCounter, offset 1 —
+            # decomp include/battle.h). Gen 3 keeps the XP from those KOs through
+            # the whiteout, so a lost boss attempt with KOs is real training — the
+            # prep logic uses this to decide "keep re-attempting" vs "grind grass".
+            kos = 0
+            try:
+                from modules.memory import read_symbol
+
+                kos = read_symbol("gBattleResults", offset=0x01, size=1)[0]
+            except Exception:
+                pass
+            self._loss_seq += 1
+            self._loss_ko_history.setdefault(key, []).append((self._loss_seq, kos))
             console.print(
                 f"[yellow]Story: lost a battle at map {key} "
-                f"(defeat #{self._defeat_counts[key]} here).[/]"
+                f"(defeat #{self._defeat_counts[key]} here; KO'd {kos} of theirs first).[/]"
             )
 
     def on_whiteout(self) -> bool:
@@ -494,7 +584,57 @@ class StoryMode(BotMode):
         losses = max((self._defeat_counts.get(k, 0) for k in cfg["keys"]), default=0)
         lo, hi = cfg["band"]
         target = random.randint(lo, hi)  # organic proactive target within the band
+
+        # --- BOSS-TRAINING MODE (user design 2026-07-23, Wattson analysis + the Gemini
+        #     consult): when we're LOSING here but the local grass is far below our
+        #     level, wild grinding is the wrong tool — a L13 wild pays ~145 XP while
+        #     KO'ing even two of the boss's mons in a LOST attempt pays ~1,200 XP
+        #     (Gen 3 keeps mid-battle XP through a whiteout; whiteout money loss is
+        #     level x badge-payout — cheap; there is no re-challenge limit). So: if
+        #     recent lost attempts each KO'd at least one boss mon, keep re-attempting
+        #     the boss as the PRIMARY training vehicle, with only a LIGHT top-up
+        #     between attempts (+1 level cap, not the +5 escalation). The moment two
+        #     consecutive attempts produce ZERO KOs, the boss can't teach us anything
+        #     — fall through to the classic heavy escalation. ---
+        boss_mode = False
         if losses >= 2:
+            from modules.pokemon_party import get_party as _gp_levels
+
+            _levels_now = [p.level for p in _gp_levels() if p is not None and not p.is_egg]
+            team_max = max(_levels_now, default=0)
+            wild_max = None
+            try:
+                from modules.map import get_wild_encounters_for_map
+
+                if "grass" in cfg:
+                    grass_map = cfg["grass"][0]
+                    enc = get_wild_encounters_for_map(*grass_map.value)
+                    if enc is not None and enc.land_encounters:
+                        wild_max = max(e.max_level for e in enc.land_encounters)
+            except Exception:
+                pass
+            recent = sorted(
+                (entry for k in cfg["keys"] for entry in self._loss_ko_history.get(k, ())),
+            )[-2:]
+            recent_kos = [kos for _seq, kos in recent]
+            # No grass configured at all (e.g. Lavaridge — no reachable training
+            # grass exists) counts as fodder too: grass can't teach us either way.
+            grass_is_fodder = ("grass" not in cfg) or (wild_max is not None and wild_max + 8 < team_max)
+            boss_teaches = bool(recent_kos) and any(k >= 1 for k in recent_kos)
+            if grass_is_fodder and boss_teaches:
+                boss_mode = True
+                target = team_max + 1  # light top-up only — the boss battle is the trainer
+                console.print(
+                    f"[bold cyan]Story: boss-training mode — local wilds (max L{wild_max}) are far "
+                    f"below the team (L{team_max}); re-attempting the boss is the real training "
+                    f"(recent attempts KO'd {recent_kos} of theirs). Light top-up to L{target} only.[/]"
+                )
+            elif grass_is_fodder and recent_kos and not boss_teaches:
+                console.print(
+                    f"[yellow]Story: last {len(recent_kos)} boss attempts KO'd nothing — "
+                    f"the boss can't teach us; falling back to grass escalation.[/]"
+                )
+        if losses >= 2 and not boss_mode:
             levels = [p.level for p in get_party() if p is not None and not p.is_egg]
             team_max = max(levels, default=0)
             team_avg = (sum(levels) // len(levels)) if levels else 0
@@ -531,7 +671,11 @@ class StoryMode(BotMode):
             to_train.update(ranked[: min(3, len(ranked))])
 
         need = [i for i in to_train if party[i].level < target]
-        if need:
+        if need and "grass" not in cfg:
+            # No training grass exists for this boss (e.g. Lavaridge). The re-attempt
+            # itself is the only trainer available — boss-training mode's whole point.
+            console.print("[dim]Story: no training grass here — re-attempting is the training.[/]")
+        elif need:
             console.print(
                 f"[cyan]Story: prepping — training {len(need)} battler(s) to Lv {target} "
                 f"(fresh low catches left to level organically).[/]"

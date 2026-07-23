@@ -537,3 +537,13 @@
       (Nuggets/Pearls/Stardust from Pickup — Zigzagoon/Linoone party slot is a
       passive income engine), and mart budgeting against the reserve. Design
       with #24-provisions; both consult one Resource Ledger (doc 13 spec).
+
+- [ ] #24-trainersweep — EXHAUST UNFOUGHT ROUTE TRAINERS BEFORE GRINDING (from the
+      2026-07-23 boss-training discussion + Gemini consult): before any wild-grass
+      escalation, sweep the one-time optional trainers reachable at the current
+      frontier (Wattson stage: Route 111 south Winstrate family, Route 110 cycling
+      road + surface leftovers, Route 117, Trick House puzzle 1-2) — big one-time
+      XP+money a faithful player takes first. Needs: per-route trainer tables
+      (decomp object events, sight-lines), a "fought yet?" check (trainer flags —
+      readable), and routing. Later: PokéNav Match Call REMATCHES (255-step trigger,
+      call answering, scaled teams) as the true repeatable mid-game XP engine.

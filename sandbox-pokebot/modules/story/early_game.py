@@ -319,6 +319,21 @@ def _current_map_name() -> str:
         return ""
 
 
+# Menu tasks that hold the overworld non-controllable WITHOUT any script running.
+# game_state stays OVERWORLD while these are up (the start menu is an overworld
+# state!), so "state == OVERWORLD" alone never proves the menus are closed (KI-14).
+_MENU_TASK_MARKERS = ("Task_ShowStartMenu", "ListMenuDummyTask", "Task_HandleChooseMonInput")
+
+
+def _menu_task_active() -> bool:
+    try:
+        return any(
+            any(marker in task.symbol for marker in _MENU_TASK_MARKERS) for task in get_tasks()
+        )
+    except Exception:
+        return False
+
+
 def _dialogue_button(button: str) -> str:
     """Resolve the button to actually press this frame when riding out a scene.
 
@@ -368,8 +383,15 @@ def _wait_until_cutscene_over(button: str = "B", *, stable_frames: int = 15,
         script_running = get_global_script_context().is_active or get_immediate_script_context().is_active
         free = player_avatar_is_controllable() and not script_running
         stable = stable + 1 if free else 0
-        if not free and (script_running or is_waiting_for_input()):
-            context.emulator.press_button(_dialogue_button(button))
+        if not free:
+            if script_running or is_waiting_for_input():
+                context.emulator.press_button(_dialogue_button(button))
+            elif _menu_task_active():
+                # KI-14: a stray menu (start menu / bag) freezes the avatar with NO
+                # script and NO waiting text — the conditions above never press and
+                # this helper would sit out its whole timeout. B closes menus and
+                # cannot start a conversation, so it is always safe here.
+                context.emulator.press_button("B")
         frames += 1
         if frames > timeout_frames:
             raise BotModeError(
@@ -3908,14 +3930,24 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
     # (seen on a 5-mon roll, batch run02) — and neither the derail recovery nor the
     # global watchdog can close a bag (they ride SCRIPTS; a menu isn't one). B out
     # until the overworld is truly back, bounded.
+    # ‼ KI-14: "back to the overworld" is NOT `game_state == OVERWORLD` — the START
+    # MENU (which the bag closes back into) already reads as OVERWORLD, so the old
+    # check exited with the menu still open and the avatar frozen; the conservative
+    # cutscene rider then rightly refused to mash at a menu and the next travel leg
+    # wedged to Manual (user's 2026-07-23 fresh run). Menu-free means: OVERWORLD
+    # state AND no menu task up AND the avatar actually controllable.
     for _f in range(1200):
-        if get_game_state() is GameState.OVERWORLD:
+        if (
+            get_game_state() is GameState.OVERWORLD
+            and not _menu_task_active()
+            and player_avatar_is_controllable()
+        ):
             break
         context.emulator.press_button("B")
         yield
         yield
     yield from wait_until_truly_controllable()
-    if get_game_state() is not GameState.OVERWORLD:
+    if get_game_state() is not GameState.OVERWORLD or _menu_task_active():
         raise BotModeError("Teach flow: could not close the menus back to the overworld.")
     if not _knows():
         raise BotModeError(f"Teach flow finished but {_mon().species.name} does not know {target_move.name}.")

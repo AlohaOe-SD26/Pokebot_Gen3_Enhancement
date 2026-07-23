@@ -91,6 +91,10 @@ never rely on it across runs.)
   strategy FIGHTS ON while the ordinary catch strategy flees (both asserted).
 - `repro_hm_learner.py` — part A of the HM-learner proof: compatible-pick + ROM-derived
   hunting grounds + fault-injected "nobody compatible" → hunt path. Part B = `--driver hmtest`.
+- `repro_faint_matchup.py` — A/B: the stock after-faint chooser sends Thunderbolt-food
+  (full-HP Swellow vs Magneton); the story chooser picks by matchup. Real Species/Type objects.
+- `repro_boss_training.py` — drives the real `_prepare_for_fight` through the four
+  boss-training scenarios (boss mode / 0-KO fallback / classic / grass-less).
 - `doorprobe.py` — resolve a map's warp destinations (which door is which).
 - `routeprobe.py` — reachability probe (which tiles a navigator can reach from a start).
 - `sailprobe.py` — walk-and-log a route (used to validate the Rustboro→Route104 crossing).

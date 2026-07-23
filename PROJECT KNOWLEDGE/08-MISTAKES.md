@@ -835,3 +835,22 @@ entire function — check the whole method before referencing a module-level nam
 also imported locally anywhere in it. (2) A `try/except: pass` around a DECISION means
 failure = silently wrong behaviour, not a crash — when a decision branch mysteriously
 never fires, instrument the except FIRST; don't re-derive the conditions by eye.
+
+## 2026-07-23 — "game_state == OVERWORLD" does not mean the menus are closed (KI-14)
+**Symptom.** After teaching Rock Smash, travel wedged for 12k+ frames and dropped to
+Manual at Mauville — on the user's machine, twice, while every harness validation of
+the teach flow passed.
+**Root cause.** The teach's "B out until the overworld is back" loop exited on
+`game_state == OVERWORLD` — but the START MENU (which the bag closes back into) is
+itself an overworld state, so the loop declared success with the menu open and the
+avatar frozen. The hardened cutscene rider then (correctly) refused to press at a menu
+that is neither a script nor waiting text. Masked in harness runs because past
+validations either stopped at the teach or B-mashed forever afterward (hmtest driver).
+**The fix that worked.** A `_menu_task_active()` probe: menu-free = OVERWORLD state AND
+no start-menu/list/party-menu task AND avatar controllable; and the cutscene rider now
+presses B specifically when a menu task is up (B can close a menu but never open a
+conversation, so the museum-greeter fix stays intact — re-proven).
+**Prevention rule.** Never use `game_state == OVERWORLD` as "the UI is closed" — menus
+live inside the overworld state. Ask the task list. And when a "recover by pressing"
+helper gets a new guard, enumerate what the guard now EXCLUDES (here: menus) and decide
+deliberately who handles that class instead.

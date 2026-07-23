@@ -2089,3 +2089,34 @@ into the run log and folded into the future #24-pokeprofiles data layer.
   quick models are confidently wrong on learnset levels (both test numbers wrong) —
   the API path is for surgical questions/cross-checks; Deep Research commissions stay
   on the user-relay path; ROM data stays the only authority for game numbers.
+
+## 2026-07-23 — KI-14 fixed + matchup-aware after-faint chooser + BOSS-TRAINING MODE (all proven)
+The three items from the boss-training discussion, implemented in the agreed order.
+1. **KI-14 (teach strands the start menu).** Both halves: the teach's hard-close loop
+   now requires a MENU-FREE overworld (new `_menu_task_active()` — the start menu reads
+   as OVERWORLD state, which is why `game_state == OVERWORLD` lied), and
+   `_wait_until_cutscene_over` presses B when a menu task is up (B closes menus and can
+   never START a dialogue, so the museum-greeter guarantee survives — re-proven by
+   re-running the museum repro clean). PROOF: rocksmash_got.ss1 → teach → Route 113,
+   0 derails (ki14_run1.log) — the exact sequence that wedged the user's run.
+2. **Matchup-aware after-faint chooser** (`LevelUpTravelBattleStrategy.
+   choose_new_lead_after_faint`): replaces the stock highest-HP pick with (least
+   incoming STAB from the opponent's types, best own-move effectiveness vs the
+   opponent's type PAIR, HP fraction, level). This was the Wattson run's real killer —
+   full-HP Swellow/Ninjask (both Electric-weak) kept walking into Thunderbolts.
+   PROOF: repro_faint_matchup.py A/B with real Species/Type objects — stock picks
+   Swellow (bug reproduced), story picks Mightyena (neutral), and still picks Swellow
+   when the foe is Ground (sanity).
+3. **BOSS-TRAINING MODE** (`_prepare_for_fight` + KO telemetry in `on_battle_ended`):
+   when ≥2 losses AND the configured grass is fodder (wild max + 8 < team max, read
+   live from the encounter table) AND recent lost attempts KO'd ≥1 boss mon
+   (gBattleResults.opponentFaintCounter, offset 0x01), prep becomes a LIGHT top-up
+   (team max +1) and the boss re-attempt is the real training — Gen 3 keeps mid-battle
+   XP through a whiteout (~8× the XP of a fodder wild per KO; consult archived).
+   Two consecutive 0-KO attempts → classic heavy escalation. Grass-less bosses
+   (Flannery) skip the grind entirely and go straight to the re-attempt.
+   PROOF: repro_boss_training.py drives the REAL _prepare_for_fight through all four
+   scenarios (boss mode 29 / fallback 33 / classic 23 / grass-less None) with the real
+   Route 117 encounter table.
+Punch list: +#24-trainersweep (exhaust one-time route trainers before grinding; Match
+Call rematches later). KI-14 marked fixed in 05-KNOWN-ISSUES.
