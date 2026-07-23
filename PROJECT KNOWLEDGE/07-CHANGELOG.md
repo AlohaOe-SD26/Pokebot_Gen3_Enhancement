@@ -2056,3 +2056,14 @@ touched the emulator, profiles, or save states).
   healing, E4 stocking), #24-tms (TM decision layer), #24-pokeprofiles (per-Pokémon
   battle profiles via batched overnight research + Gemini cross-referencing; doubles as
   the sibling AI project's reference layer), #24-economy (cashflow). #24-hm-learner DONE.
+
+## 2026-07-23 — #24-tms/#24-pokeprofiles research commission authored (Gemini relay)
+`sandbox-pokebot/profiles/GEMINI-POKEPROFILES-RESEARCH.md`: a two-prompt Deep Research
+commission (primer + task) for the TM/HM/tutor registry, a story-team priority tier
+list, and full battle profiles for the ~20 early-game evolution lines (Batch 1). Built
+to be graded hard: our ROM-extracted learnset/TM-compat data machine-checks every
+acquisition claim (the known-answer control), and the primer front-loads the Gen 3
+rules that change recommendations (physical/special BY TYPE, single-use TMs, HM slot
+tax, Emerald-vs-R/S divergences). Batch 2+ reuses the schema with species lists drawn
+from emerald_obtainability.json. Relayed to the user for Gemini; results will be graded
+into the run log and folded into the future #24-pokeprofiles data layer.

@@ -75,6 +75,12 @@ New tool: `tools/story-dev/mapfacts.py` (warps + objects + passability grid for 
   #24-tms, #24-pokeprofiles (per-species battle profiles via batched overnight research
   + Gemini cross-referencing), #24-economy. All noted for later — not next work.
 
+**PENDING RELAYS (2026-07-23, user is running them):** (1) another fresh-start test run
+— log incoming, grade it when it arrives; (2) the #24-tms/#24-pokeprofiles Deep Research
+commission (profiles/GEMINI-POKEPROFILES-RESEARCH.md — grade per its procedure, the
+learnset machine-check is the control); (3) the full-game PROMPT 2 early-game pass is
+still unrelayed.
+
 **NEXT after those: Ch12** — the Go-Goggles scene outside the Lavaridge gym (⚠ verify
 the trigger position) → Route 111 desert → Petalburg (Norman). Start from
 `flannery_done.ss1`. `END_MARKERS` in livetest.py already carries "HEAT BADGE earned";
