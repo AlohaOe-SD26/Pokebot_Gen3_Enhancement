@@ -735,3 +735,36 @@ with no exception bypasses the whiteout/derail recovery entirely.
   edge tile — shelves/ledges make edges lie); (b) every retry-loop bail message must
   carry the LAST underlying error verbatim — a summary that guesses the cause sends
   the next debugging session down the wrong road.
+
+## 2026-07-23 — A wall that wasn't: ledges read as collision, so the maze looked unsolvable
+**Symptom.** The Lavaridge gym solver spent runs 5-9 flailing: it fell through holes,
+walked to warp tiles that never fired, blacklisted them, re-fell, and finally bailed
+with "could not solve the trapdoor maze". Successive sessions layered heuristics on it
+(tried-hole memory, dead-vent blacklists, 900-frame settle waits, a hardcoded "trap
+hole" list) and each one moved the failure without fixing it.
+**Root cause.** Both floors were decomposed into chambers using `collision` alone.
+Behaviour 59 (`MB_JUMP_SOUTH`) ledges have collision=1 but are hoppable downward two
+tiles — and in this gym the ledges ARE the connections between chambers. Treating them
+as walls made several chambers look exit-less, which is a shape that cannot occur in a
+shipped game. When I finally built the graph statically it proved there was NO path to
+Flannery — and that contradiction is what located the bug in one step.
+**The fix that worked.** Model the hop as a one-way edge, derive the room graph from the
+ROM, BFS it. The maze collapsed to a deterministic 4-fall chain and worked first try.
+**Prevention rule.** `collision` is not passability — check the metatile BEHAVIOUR too
+(ledges, and anything else that moves the player without being walkable). And when a
+derived map model says a shipped game is unwinnable, the model is wrong: stop tuning the
+heuristics and go prove the model instead.
+
+## 2026-07-23 — "Ride out the cutscene" as an unconditional failure path is a hang
+**Symptom.** After the gym walk was blocked by an NPC, `do_lavaridge_gym` sat at (13,16)
+for 18,000 frames until the global watchdog derailed it — five times, then Manual.
+**Root cause.** The failed-leg path called `_ride_out_scripted_scene("B")` unconditionally.
+There was no scene; the helper waited out its engage timeout and then B-mashed against a
+stale non-controllable battle-return state until it timed out. A blocked walk was being
+"recovered" as if it were a cutscene.
+**The fix that worked.** Ride out only when `get_global_script_context().is_active` is
+actually true; otherwise settle briefly and re-plan, with a consecutive-stall budget that
+raises a truthful error.
+**Prevention rule.** A generic recovery must first CHECK that the thing it recovers from
+is happening. An unconditional "wait for X to finish" on a path where X may never start is
+a hang with extra steps.

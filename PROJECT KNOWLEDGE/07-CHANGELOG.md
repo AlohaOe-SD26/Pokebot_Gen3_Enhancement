@@ -1916,3 +1916,40 @@ desert; (b) the Cable-Car approach routes EXPLICITLY through the Fiery tunnel (t
 desert "shortcut" is script-gated invisibly to collision); (c) in-state sweeps only —
 hidden-NPC templates seal routes on cold boots (both "impossible" legs opened from
 the real story state).
+
+## 2026-07-23 — Ch11d COMPLETE: the Lavaridge trapdoor maze is SOLVED — HEAT BADGE won
+`do_lavaridge_gym` rewritten from a guessing explorer into a solver that derives the
+maze from the ROM's own map data, and Segment 11d wired into `StoryMode._play`.
+- **Root cause of the long-running wedge: behaviour 59 (`MB_JUMP_SOUTH`) LEDGES.** Both
+  gym floors read as sealed chambers under plain collision, so the explorer judged
+  chamber after chamber exit-less and oscillated between two inert warp tiles until it
+  ran out of rounds (ch11d_run9 died in the B1F (5,6)/(5,9) chamber — whose only way on
+  is the y=11 ledge). Ledges are collision=1 but hoppable downward two tiles. With hops
+  modelled, NO chamber is a dead end and the whole maze is a clean graph.
+- Model, all three parts verified against the warp/metatile dump and the live trace:
+  1F behaviour 104 = hole (falls land SAME-COORD on B1F), B1F behaviour 41 = geyser
+  (launches to the same 1F coord), any other warp tile is an inert landing pad.
+  State = 1F chamber; edge = fall through a reachable hole, walk to a reachable geyser.
+  Backward BFS from Flannery's chamber → the next move from wherever we actually are,
+  so a battle knock-off or surprise landing re-plans instead of derailing.
+  Canonical chain from the entrance is **4 falls**: (8,9), (0,10), (2,3), (10,6).
+- Two planning hazards handled: legs never path across another hole/geyser (it fires en
+  route and discards the plan), and NPC-held tiles are excluded — four B1F geysers are
+  the buried trainers' own tiles (Jace/Keegan/Jeff/Eli), and the gym guide at 1F (12,16)
+  sits on the shortest path to the first hole (that stalled run 10).
+- Fixed a hang class in the same function: a failed leg used to B-ride a scripted scene
+  unconditionally, which spins for 18k frames when no scene exists (run 10). Recovery
+  now rides out only when a script is ACTUALLY active, and a consecutive-stall budget
+  raises a truthful error instead of spinning.
+- **VALIDATED** (run 11, lavaridge.ss1 → `--driver story`): maze solved in ~6.3k frames,
+  0 derails, Flannery beaten, `BADGE04_GET`, clean content-end. The identical chain ran
+  twice in one run (a whiteout mid-way, self-recovered, then re-solved it move for move)
+  — an unplanned determinism A/B. Checkpoint `saves/flannery_done.ss1`.
+- ⚠ Segment 11d does NOT pre-grind: a two-way pathability sweep proved NO training grass
+  is reachable from Lavaridge (Jagged Pass is one-way; Route 112's lower grass has no
+  return path). Prep is a Water lead + heal. L29-31 wins but is marginal (the run 11
+  whiteout). Open as #24-trainmap.
+- New recon tools: `lavaridge_gym_probe.py` (warp graph), `lavaridge_gym_solve.py` (the
+  static solver, prints the canonical chain), `lavaridge_tiles_probe.py` (raw
+  collision/elevation/behaviour grid — this is what exposed the ledges),
+  `lavaridge_objects_probe.py`, `jaggedgrass_probe.py` (two-way training-tile sweep).

@@ -73,7 +73,9 @@ repro-fresh` or `repro-ml`). Regenerate any by running the story to that point.
 | `dewford.ss1` | Dewford Town (11,9), first Briney sail done (Ch6 ✅) |
 | `brawly_done.ss1` | Dewford Gym (4,4), `DELIVERED_STEVEN_LETTER` + `BADGE02_GET` (Ch7 ✅) |
 | `slateport.ss1` | Slateport City (19,20) at the PC, healed (Ch8a ✅) |
-| `stern_done.ss1` | **frontier**: Slateport, `DELIVERED_DEVON_GOODS` set (Ch8b ✅; next: Route 110 → Wattson) |
+| `stern_done.ss1` | Slateport, `DELIVERED_DEVON_GOODS` set (Ch8b ✅) |
+| `lavaridge.ss1` | Lavaridge Town (9,7), post-Jagged-Pass, healed (Ch11c ✅) |
+| `flannery_done.ss1` | **frontier**: Lavaridge Gym, `BADGE04_GET` (Ch11d ✅; next: Go-Goggles → Ch12) |
 
 (`saves/midstuck.ss1` is a SCRATCH state some drivers overwrite when stuck — gitignored,
 never rely on it across runs.)
@@ -88,6 +90,13 @@ never rely on it across runs.)
 - `doorprobe.py` — resolve a map's warp destinations (which door is which).
 - `routeprobe.py` — reachability probe (which tiles a navigator can reach from a start).
 - `sailprobe.py` — walk-and-log a route (used to validate the Rustboro→Route104 crossing).
+- `lavaridge_gym_probe.py` / `lavaridge_gym_solve.py` / `lavaridge_tiles_probe.py` /
+  `lavaridge_objects_probe.py` — the Ch11d recon set. `..._tiles_probe` prints the raw
+  collision/elevation/**behaviour** grid, which is what exposed the jump-south ledges;
+  `..._solve` builds the chamber graph and prints the canonical fall chain. Template for
+  any warp/terrain puzzle (Sky Pillar, Mossdeep, Sootopolis ice).
+- `jaggedgrass_probe.py` — two-way training-tile sweep (`PROBE_MAP` / `PROBE_ANCHOR` env).
+  Proves BOTH legs from the real entry tile before a grind tile is adopted.
 
 ## Conventions
 - Prove fixes: reproduce first, prefer an A/B. Don't commit a state you can't reload.

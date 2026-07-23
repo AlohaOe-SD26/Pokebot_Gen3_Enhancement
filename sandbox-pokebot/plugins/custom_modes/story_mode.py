@@ -1402,22 +1402,37 @@ class StoryMode(BotMode):
             console.print("[dim]Story: not on the mountain — Jagged descent skipped.[/]")
         _guard("Jagged descent resolved (Ch11c)", lambda: _cur_map() not in descent_origin)
 
-        # Segment 11d (Lavaridge trapdoor gym) — PARKED, one piece from done: the
-        # explorer works end-to-end (falls, object-aware held-input walking, vent
-        # rides with settle-waits, inline battles) but the gym has MULTIPLE trap
-        # holes ((10,18) Jeff-blocked; (5,9)+(5,6) drop into a sealed two-pad light
-        # column, screenshot-verified) and autonomous hole-choice keeps finding
-        # them. FINISH: map the walkthrough's canonical chain ("bypass first hole →
-        # north → center-top hole → ...") to 1F coordinates via a printed 1F grid,
-        # feed it to the explorer as an ordered hole preference, wire this back
-        # (wiring text: heal+Fire-lead prep then do_lavaridge_gym, guard BADGE04),
-        # validate from lavaridge.ss1 with SAVE_CHECKPOINT=BADGE04_GET:flannery_done.
+        # --- Segment 11d: Gym 4 — Flannery (Heat Badge). The trapdoor maze is solved
+        #     from the ROM's map data (holes / geysers / jump-south ledges — see
+        #     do_lavaridge_gym), so no hole-guessing remains.
+        #     NO pre-grind here, deliberately: a two-way pathability sweep from
+        #     Lavaridge (tools/story-dev/jaggedgrass_probe.py) found NO usable training
+        #     grass — Jagged Pass cannot be re-entered from the town (one-way ledges)
+        #     and Route 112's lower grass has no return path. Teams reach Lavaridge at
+        #     L28-29 and Flannery's ace is L29, so we prep the cheap way: a WATER lead
+        #     (all four of her mons are 2x to Water) and a full heal. If this proves
+        #     thin in batches, the fix is a swept Lavaridge-area tile (#24-trainmap),
+        #     not a blind grind target. ---
+        if not _done("BADGE04_GET"):
+            from modules.map_data import PokemonCenter
+            from modules.story.early_game import (
+                _lead_best_matchup,
+                do_lavaridge_gym,
+                heal_in_pokemon_center,
+            )
 
-        # END OF BUILT CONTENT. Next build (Ch11d finish): trapdoor chain → Flannery
-        # → Go-Goggles → Petalburg (§Ch11 spec).
+            yield from _lead_best_matchup(["Fire"])
+            yield from heal_in_pokemon_center(PokemonCenter.LavaridgeTown)
+            yield from do_lavaridge_gym()
+        else:
+            console.print("[dim]Story: Heat Badge already earned — Gym 4 skipped.[/]")
+        _guard("Gym 4 (Flannery)", lambda: _done("BADGE04_GET"))
+
+        # END OF BUILT CONTENT. Next build (Ch12): Go-Goggles → Route 111 desert →
+        # Petalburg Gym (Norman) (§Ch11/§Ch12 spec).
         context.message = (
-            "Story: reached Lavaridge — end of built content. NEXT (WIP): the trapdoor "
-            "gym and Flannery. Handing to manual."
+            "Story: HEAT BADGE earned — end of built content. NEXT (WIP): the Go-Goggles "
+            "and Petalburg. Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()

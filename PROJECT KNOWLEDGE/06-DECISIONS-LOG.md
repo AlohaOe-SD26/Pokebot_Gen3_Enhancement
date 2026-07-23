@@ -133,3 +133,18 @@ tutorial always clears and the bot never hangs — faithful when it can be, robu
 **Why this is better than the pure state-write:** it preserves the bot's value as a faithful
 reference (it actually performs the in-game actions) while keeping the deterministic fallback
 for edge cases. The earlier "pure state-write" decision is retained only as that fallback.
+
+## 2026-07-23 — Derive the Lavaridge maze from ROM data; don't explore it or hardcode it
+**Decision.** `do_lavaridge_gym` scans both floors at run time (holes / geysers / ledges),
+builds the chamber graph, and BFSes it from wherever the player actually stands.
+**Alternatives rejected.**
+- *Keep the live explorer* (walk to the nearest untried hole, blacklist duds). Rejected:
+  it had already burned five runs and every added heuristic moved the failure rather than
+  removing it — it had no model of what a productive move IS.
+- *Hardcode the canonical chain* from the walkthrough (the previously queued plan).
+  Rejected: it encodes no recovery. One battle knock-off or surprise landing puts the bot
+  off-script with nothing to fall back on. Deriving costs ~650 `get_map_data` reads once
+  and yields a plan from ANY position, which is exactly what recovery needs. The derived
+  chain is printed by `tools/story-dev/lavaridge_gym_solve.py` for review either way.
+**Why it matters beyond this gym.** Every remaining warp/terrain puzzle (Sky Pillar,
+Mossdeep, Sootopolis ice) is the same shape: read the behaviours, build the graph, solve.

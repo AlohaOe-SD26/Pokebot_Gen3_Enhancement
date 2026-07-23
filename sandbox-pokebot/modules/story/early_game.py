@@ -4001,10 +4001,14 @@ def do_lavaridge_gym() -> Generator:
     """Chapter 11d — the Lavaridge trapdoor gym: fall through the right holes to
     Flannery, win the Heat Badge (BADGE04).
 
-    HOW: LIVE EXPLORATION of the fall→vent chain (~8 falls per the relayed walkthrough;
-    mechanics: falls land SAME-COORD on B1F, vents warp per the table, landings never
-    auto-trigger, B1F is sealed one-vent rooms). Buried gym trainers pop en route and
-    are fought inline. At Flannery's approach (13,10): face
+    HOW: the maze is SOLVED from the ROM's own map data, not explored. Each floor is
+    scanned for holes (1F behaviour 104), geysers (B1F behaviour 41) and jump-south
+    ledges (behaviour 59 — the hops that join the chambers); that yields a room graph
+    whose edges are "fall through hole H, walk to geyser G". A backward BFS from
+    Flannery's chamber gives the next move from wherever we actually are, so a battle
+    knock-off or a surprise landing just re-plans. From the entrance the chain is four
+    falls: (8,9)→(0,17), (0,10)→(0,6), (2,3)→(7,2), (10,6)→(12,12). Buried gym trainers
+    pop en route and are fought inline. At Flannery's approach (13,10): face
     Up + A-ride until BADGE04_GET (Numel 24 / Slugma 24 / Camerupt 26 / Torkoal 29 —
     the caller preps a WATER lead; everything she has is 2× to Water)."""
     from collections import deque
@@ -4036,65 +4040,108 @@ def do_lavaridge_gym() -> Generator:
         yield from _walk_through_warp("Up", MapRSE.LAVARIDGE_TOWN.value)
         yield from wait_until_truly_controllable()
 
-    def _floor_data(gnum):
+    # THE MAZE, SOLVED FROM THE ROM'S OWN DATA (2026-07-23). Three facts, each
+    # verified against the warp/metatile dump (tools/story-dev/lavaridge_gym_probe.py)
+    # and the live trace in ch11d_run8.log:
+    #   * 1F behaviour 104 (MB_LAVARIDGE_GYM_1F_WARP) = a HOLE; falling lands you on
+    #     B1F at the SAME coordinate (every warp pair in this gym is same-coord).
+    #   * B1F behaviour 41 (MB_LAVARIDGE_GYM_B1F_WARP) = a GEYSER; stepping on it
+    #     launches you to 1F at the same coordinate. A warp tile whose behaviour is
+    #     neither is INERT — it is only a landing pad, which is why landings never
+    #     re-trigger.
+    #   * ‼ Behaviour 59 (MB_JUMP_SOUTH) is a LEDGE: collision=1, but you hop it
+    #     DOWNWARD onto the tile two below. The ledges are what join the chambers.
+    #     The previous explorer treated them as walls, so it judged whole rooms
+    #     exit-less and oscillated between two inert tiles until it ran out of rounds
+    #     (ch11d_run9: wedged in the B1F (5,6)/(5,9) chamber, whose only way on is the
+    #     y=11 ledge). With hops modelled, no chamber is a dead end and the chain to
+    #     Flannery is 4 falls: (8,9)->(0,17), (0,10)->(0,6), (2,3)->(7,2), (10,6)->(12,12).
+    # We DERIVE the plan live rather than hardcoding it, so a wrong turn (a battle
+    # knock-off, an unexpected landing) simply re-plans from wherever we ended up.
+    HOLE_MB, GEYSER_MB, LEDGE_MB = 104, 41, 59
+
+    def _scan(gnum):
         md = get_map_data(gnum, (0, 0))
-        W, H = md.map_size
-        passable = {
-            (x, y) for y in range(H) for x in range(W) if not get_map_data(gnum, (x, y)).collision
-        }
-        warps = [tuple(w.local_coordinates) for w in md.warps]
-        dests = [w.destination_warp_id for w in md.warps]
-        return passable, warps, dests
+        w, h = md.map_size
+        passable, behav, ledges = set(), {}, set()
+        for y in range(h):
+            for x in range(w):
+                t = get_map_data(gnum, (x, y))
+                mb = t._metatile_attributes[0] & 0x1FF  # high bits are the layer type
+                behav[(x, y)] = mb
+                if not t.collision:
+                    passable.add((x, y))
+                elif mb == LEDGE_MB:
+                    ledges.add((x, y))
+        return passable, behav, ledges
 
-    # LIVE EXPLORER (Gemini Q1 answer + fall experiments, 2026-07-23): falls land
-    # SAME-COORDINATE on B1F (the warp table does NOT describe them); vents (B1F
-    # metatile 41) are standard warps to their table destination; landings never
-    # auto-trigger. B1F is sealed one-vent rooms, so the maze IS a fall→vent chain —
-    # ~8 falls to Flannery's platform. Static grids can't express every hop (ledges),
-    # so we EXPLORE the real game: on 1F walk to the nearest UNTRIED reachable hole
-    # and fall; on B1F ride the room's reachable vent; go to Flannery the moment her
-    # approach is walkable. Tried-hole memory prevents cycling.
-    def _reachable_tiles_of(gnum, candidates) -> list:
-        """Of `candidates` on the CURRENT floor, the ones walkable from the player
-        (single-floor BFS on static collision — fine within one floor/room)."""
-        from collections import deque as _dq
+    def _steps(t, passable, ledges):
+        """Walkable moves from `t`: the four neighbours, plus the one-way ledge hop
+        (step Down onto a jump-south tile and land two tiles below)."""
+        for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+            n = (t[0] + dx, t[1] + dy)
+            if n in passable:
+                yield n
+        landing = (t[0], t[1] + 2)
+        if (t[0], t[1] + 1) in ledges and landing in passable:
+            yield landing
 
-        passable, _w, _d = _floor_data(gnum)
-        start = tuple(get_player_avatar().local_coordinates)
-        seen = {start}
-        q = _dq([start])
-        cset = {tuple(c) for c in candidates}
-        found = []
-        while q:
-            t = q.popleft()
-            if t in cset:
-                found.append(t)
-            for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0)):
-                n = (t[0] + dx, t[1] + dy)
-                if n in passable and n not in seen:
-                    seen.add(n)
-                    q.append(n)
-        return found
+    def _rooms(passable, ledges):
+        """Chambers (no hops) + the set of tiles reachable FROM each chamber (hops
+        included). Hops are one-way, so reachability is directed."""
+        rooms, room_of = [], {}
+        for start in sorted(passable):
+            if start in room_of:
+                continue
+            comp, q = {start}, deque([start])
+            while q:
+                t = q.popleft()
+                for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+                    n = (t[0] + dx, t[1] + dy)
+                    if n in passable and n not in comp:
+                        comp.add(n)
+                        q.append(n)
+            for t in comp:
+                room_of[t] = len(rooms)
+            rooms.append(comp)
+        reach = {}
+        for i, comp in enumerate(rooms):
+            seen, q = set(comp), deque(comp)
+            while q:
+                t = q.popleft()
+                for n in _steps(t, passable, ledges):
+                    if n not in seen:
+                        seen.add(n)
+                        q.append(n)
+            reach[i] = seen
+        return rooms, room_of, reach
 
-    def _metatile(gnum, t) -> int | None:
-        try:
-            return get_map_data(gnum, t)._metatile_attributes[0]
-        except Exception:
-            return None
+    pass1, behav1, ledge1 = _scan(GYM1F)
+    passB, behavB, ledgeB = _scan(GYMB1F)
+    rooms1, roomof1, reach1 = _rooms(pass1, ledge1)
+    roomsB, roomofB, reachB = _rooms(passB, ledgeB)
+    town_exits = {(13, 18), (14, 18)}
+    holes = {t for t, mb in behav1.items() if mb == HOLE_MB and t not in town_exits}
+    geysers = {t for t, mb in behavB.items() if mb == GEYSER_MB}
 
-    def _hold_walk_to(gnum, target) -> Generator:
-        """Walk to `target` with HELD input along a static-BFS path — the standard
-        navigator idles in this gym post-warp (same latent upstream quirk as the
-        post-badge Mauville exit; raw held input moves fine, probed live). Returns
-        True on arrival OR on any map change (a hole/vent fired mid-walk)."""
-        from collections import deque as _dq
+    def _room1_of(tile):
+        """1F chamber a geyser lands you in. A couple of landing tiles read as
+        collision (e.g. (4,16), elevation 0) — attribute those to a neighbour."""
+        r = roomof1.get(tile)
+        if r is not None:
+            return r
+        for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+            r = roomof1.get((tile[0] + dx, tile[1] + dy))
+            if r is not None:
+                return r
+        return None
 
-        from modules.memory import GameState as _GS
-        from modules.memory import get_game_state as _ggs
+    goal_room = _room1_of(FLANNERY_APPROACH)
 
-        passable, _w, _d = _floor_data(gnum)
-        # Live objects (the gym guide, popped buried trainers) are walls too — run 6
-        # froze at (13,16) because every BFS path ran through the guide at (12,16).
+    def _occupied():
+        """Tiles held by an NPC (the gym guide, popped buried trainers). Four B1F
+        geysers are the buried trainers' own tiles — never plan through those."""
+        busy = set()
         try:
             from modules.map import get_map_objects as _gmo
 
@@ -4102,25 +4149,70 @@ def do_lavaridge_gym() -> Generator:
             for o in _gmo():
                 for c in (getattr(o, "current_coords", None), getattr(o, "previous_coords", None)):
                     if c is not None and tuple(c) != me:
-                        passable.discard(tuple(c))
+                        busy.add(tuple(c))
         except Exception:
             pass
+        return busy
+
+    def _room_distances(busy):
+        """Backward BFS over the room graph: how many falls from each 1F chamber to
+        Flannery's. Edge = fall through a reachable hole, walk to a reachable geyser."""
+        edges = {}
+        for r in range(len(rooms1)):
+            outs = set()
+            for hole in holes & reach1[r]:
+                if hole in busy:
+                    continue
+                broom = roomofB.get(hole)
+                if broom is None:
+                    continue
+                for g in geysers & reachB[broom]:
+                    if g in busy:
+                        continue
+                    nr = _room1_of(g)
+                    if nr is not None:
+                        outs.add((nr, hole, g))
+            edges[r] = outs
+        dist = {goal_room: 0}
+        changed = True
+        while changed:  # tiny graph (7 rooms) — relax until stable
+            changed = False
+            for r, outs in edges.items():
+                best = min((dist[nr] + 1 for nr, _h, _g in outs if nr in dist), default=None)
+                if best is not None and best < dist.get(r, 1 << 30):
+                    dist[r] = best
+                    changed = True
+        return dist, edges
+
+    def _hold_walk_to(gnum, target, passable, ledges, avoid) -> Generator:
+        """Walk to `target` with HELD input along a hop-aware BFS path, never stepping
+        on a hazard tile in `avoid` (another hole/geyser would fire en route and throw
+        the plan away). The standard navigator idles in this gym post-warp (the same
+        latent upstream quirk as the post-badge Mauville exit), hence raw held input.
+        Returns True on arrival OR on any map change (a hole/geyser fired)."""
+        from modules.memory import GameState as _GS
+        from modules.memory import get_game_state as _ggs
+
+        target = tuple(target)
         start = tuple(get_player_avatar().local_coordinates)
+        # NPCs are walls: the gym guide stands at (12,16), squarely on the shortest
+        # path from the entrance to the first hole (run 10 stalled there), and the
+        # buried trainers pop onto B1F tiles as you go.
+        walkable = (passable - avoid - _occupied()) | {target}
+        walkable.add(start)
         prev = {start: None}
-        q = _dq([start])
+        q = deque([start])
         while q:
             t = q.popleft()
-            if t == tuple(target):
+            if t == target:
                 break
-            for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0)):
-                n = (t[0] + dx, t[1] + dy)
-                if n in passable and n not in prev:
+            for n in _steps(t, walkable, ledges):
+                if n not in prev:
                     prev[n] = t
                     q.append(n)
-        if tuple(target) not in prev:
+        if target not in prev:
             return False
-        path = []
-        n = tuple(target)
+        path, n = [], target
         while n is not None:
             path.append(n)
             n = prev[n]
@@ -4129,13 +4221,13 @@ def do_lavaridge_gym() -> Generator:
             if _map_group_number() != gnum:
                 return True  # transitioned mid-walk
             px, py = get_player_avatar().local_coordinates
-            d = {(0, -1): "Up", (0, 1): "Down", (-1, 0): "Left", (1, 0): "Right"}.get(
-                (nxt[0] - px, nxt[1] - py)
-            )
+            delta = (nxt[0] - px, nxt[1] - py)
+            # (0,2) is the ledge hop — same held direction, the avatar clears two tiles.
+            d = {(0, -1): "Up", (0, 1): "Down", (0, 2): "Down", (-1, 0): "Left", (1, 0): "Right"}.get(delta)
             if d is None:
-                return False  # drifted (battle knock-on) — outer loop re-plans
+                return False  # drifted (battle knock-on) — the outer loop re-plans
             arrived = False
-            for _f in range(120):
+            for _f in range(150):
                 _check_abort()
                 if _ggs() is not _GS.OVERWORLD or get_global_script_context().is_active:
                     context.emulator.reset_held_buttons()
@@ -4145,7 +4237,7 @@ def do_lavaridge_gym() -> Generator:
                 if _map_group_number() != gnum:
                     context.emulator.reset_held_buttons()
                     return True
-                if tuple(get_player_avatar().local_coordinates) == tuple(nxt):
+                if tuple(get_player_avatar().local_coordinates) == nxt:
                     arrived = True
                     break
             context.emulator.reset_held_buttons()
@@ -4153,105 +4245,98 @@ def do_lavaridge_gym() -> Generator:
                 return False
         return True
 
-    town_exits = {(13, 18), (14, 18)}
-    tried_holes: set = set()
+    def _recover() -> Generator:
+        """A leg failed. Ride out a scene only if one is ACTUALLY running — run 10
+        wedged for 18k frames B-riding a scene that never existed (the walk had merely
+        been blocked by the gym guide), so an unconditional ride is a hang, not a
+        recovery. Otherwise just settle and let the outer loop re-plan."""
+        if get_global_script_context().is_active:
+            yield from _ride_out_scripted_scene("B")
+        else:
+            yield from wait_for_n_frames(30)
+
     rounds = 0
+    stalls = 0
     while not _badge():
         _check_abort()
         rounds += 1
-        if rounds > 60:
+        if rounds > 80:
             raise BotModeError("Lavaridge Gym: could not solve the trapdoor maze.")
+        if stalls > 12:
+            raise BotModeError("Lavaridge Gym: repeatedly could not walk the planned leg.")
         if get_global_script_context().is_active:
             yield from _ride_out_scripted_scene("B")
             continue
         yield from wait_until_truly_controllable()
         cur_floor = _map_group_number()
-        if cur_floor == GYM1F:
-            # Done if Flannery's approach is walkable from here.
-            if _reachable_tiles_of(GYM1F, [FLANNERY_APPROACH]):
-                target = FLANNERY_APPROACH
-            else:
-                _p, w1, _d1 = _floor_data(GYM1F)
-                # (10,18) is a designed TRAP: its B1F room's only vent tile is occupied
-                # by buried-trainer Jeff's object (probed live) — the walkthrough's
-                # "bypass the first hole" instruction. Never fall through it.
-                trap_holes = {(10, 18)}
-                holes = [
-                    t for t in w1
-                    if t not in town_exits
-                    and t not in trap_holes
-                    and _metatile(GYM1F, t) == 104
-                    and t not in tried_holes
-                ]
-                reach = _reachable_tiles_of(GYM1F, holes)
-                if not reach:
-                    tried_holes.clear()  # explored everything reachable — recycle
-                    yield from wait_for_n_frames(30)
-                    continue
-                # NORTH-FIRST (the canonical chain works upward through the gym).
-                target = min(reach, key=lambda t: (t[1], t[0]))
-                tried_holes.add(target)
-                context.message = f"Story: Lavaridge maze — dropping through the hole at {target}..."
-        elif cur_floor == GYMB1F:
-            # ANY other warp tile in the room can be the vent (the metatile groups are
-            # visual variants — the landing tile itself is suppressed until re-entry).
-            # Try the nearest reachable warp tile that isn't where we're standing; a
-            # tile that doesn't fire on entry gets blacklisted for this visit.
-            _pb, wb, _db = _floor_data(GYMB1F)
-            standing = tuple(get_player_avatar().local_coordinates)
-            dead = getattr(do_lavaridge_gym, "_dead_vents", set())
-            reach = [
-                t for t in _reachable_tiles_of(GYMB1F, wb) if t != standing and t not in dead
-            ]
-            if not reach:
-                do_lavaridge_gym._dead_vents = set()  # room exhausted — reset and re-look
-                yield from wait_for_n_frames(30)
-                continue
-            px, py = standing
-            target = min(reach, key=lambda t: abs(t[0] - px) + abs(t[1] - py))
-            context.message = f"Story: Lavaridge maze — riding the vent at {target}..."
-        else:
+        if cur_floor not in (GYM1F, GYMB1F):
             yield from wait_for_n_frames(30)
             continue
-        walked = yield from _hold_walk_to(cur_floor, target)
+        busy = _occupied()
+        dist, edges = _room_distances(busy)
+        here = tuple(get_player_avatar().local_coordinates)
+
+        if cur_floor == GYM1F:
+            room = _room1_of(here)
+            if room == goal_room or FLANNERY_APPROACH in reach1.get(room, ()):
+                # On (or able to walk onto) Flannery's platform — challenge her.
+                walked = yield from _hold_walk_to(
+                    GYM1F, FLANNERY_APPROACH, pass1, ledge1, holes - {FLANNERY_APPROACH}
+                )
+                if not walked or tuple(get_player_avatar().local_coordinates) != FLANNERY_APPROACH:
+                    stalls += 1
+                    yield from _recover()
+                    continue
+                context.emulator.press_button("Up")
+                yield
+                frames = 0
+                while not _badge():
+                    _check_abort()
+                    context.emulator.press_button("B" if frames % 3 else "A")
+                    frames += 1
+                    if frames > 40000:
+                        raise BotModeError("Lavaridge Gym: the Flannery challenge never resolved.")
+                    yield
+                break
+            # Otherwise fall through the hole that gets us a room closer.
+            options = [e for e in edges.get(room, ()) if e[0] in dist and dist[e[0]] < dist.get(room, 1 << 30)]
+            if not options:
+                yield from wait_for_n_frames(30)
+                continue
+            target = min(options, key=lambda e: dist[e[0]])[1]
+            avoid = (holes | {t for t in behav1 if behav1[t] == GEYSER_MB}) - {target}
+            context.message = f"Story: Lavaridge maze — dropping through the hole at {target}..."
+            walked = yield from _hold_walk_to(GYM1F, target, pass1, ledge1, avoid)
+        else:
+            # B1F: ride the reachable geyser that lands us in the best 1F chamber.
+            broom = roomofB.get(here)
+            cands = []
+            for g in geysers & reachB.get(broom, set()):
+                if g in busy or g == here:
+                    continue  # `here` is our landing tile — re-entering it just undoes the fall
+                nr = _room1_of(g)
+                if nr is not None and nr in dist:
+                    cands.append((dist[nr], abs(g[0] - here[0]) + abs(g[1] - here[1]), g))
+            if not cands:
+                yield from wait_for_n_frames(30)
+                continue
+            target = min(cands)[2]
+            context.message = f"Story: Lavaridge maze — riding the geyser at {target}..."
+            walked = yield from _hold_walk_to(GYMB1F, target, passB, ledgeB, geysers - {target})
         if not walked:
-            yield from _ride_out_scripted_scene("B")
+            stalls += 1
+            yield from _recover()
             continue
-        if (
-            cur_floor == GYMB1F
-            and _map_group_number() == GYMB1F
-            and tuple(get_player_avatar().local_coordinates) == target
-        ):
-            # A geyser fires a BEAT after you stand on it — and some cycle on a LONG
-            # period (240 frames was not enough for the (5,6)/(5,9) pair, run 8) —
-            # wait generously before judging.
-            fired = False
+        stalls = 0
+        if _map_group_number() == cur_floor:
+            # Arrived but nothing fired yet — a geyser erupts a beat after you land on
+            # it (and some cycle slowly), so give it a generous window before re-planning.
             for _f in range(900):
                 _check_abort()
                 yield
-                if _map_group_number() != GYMB1F:
-                    fired = True
+                if _map_group_number() != cur_floor:
                     break
-            if fired:
-                continue
-            # Genuinely inert (a landing pad) — blacklist for this visit.
-            dead = getattr(do_lavaridge_gym, "_dead_vents", set())
-            dead.add(target)
-            do_lavaridge_gym._dead_vents = dead
-            continue
-        if cur_floor == GYM1F and target == FLANNERY_APPROACH and tuple(get_player_avatar().local_coordinates) == FLANNERY_APPROACH:
-            context.emulator.press_button("Up")
-            yield
-            frames = 0
-            while not _badge():
-                _check_abort()
-                context.emulator.press_button("B" if frames % 3 else "A")
-                frames += 1
-                if frames > 40000:
-                    raise BotModeError("Lavaridge Gym: the Flannery challenge never resolved.")
-                yield
-            break
-        yield from wait_for_n_frames(45)  # let a trapdoor fall / landing settle
+        yield from wait_for_n_frames(45)  # let the fall / landing settle
     yield from _wait_until_cutscene_over("B")
     context.message = "Story: HEAT BADGE earned — Gym 4 (Flannery) beaten!"
 

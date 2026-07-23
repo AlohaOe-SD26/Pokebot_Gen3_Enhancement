@@ -9,56 +9,34 @@
 > accumulated craft (harness, debugging method, story-mapping, faithfulness rules, bug
 > patterns) — use it to build faster and prove every fix.
 
-### 🌙 OVERNIGHT AUTONOMOUS RUN (user directive 2026-07-22 evening) — RESULTS SO FAR
-**Frontier moved: Dynamo Badge → LAVARIDGE TOWN in one night.** Validated + pushed:
-Ch10a (HM06), Ch10b (teach flow), Ch10c (rocks→Fiery→Fallarbor), Ch11a (Meteor Falls
-scene), Ch11b (Cable Car → MAXIE beaten + meteorite), Ch11c (Jagged descent →
-Lavaridge). Checkpoints: rocksmash_got/rocksmash_taught/fallarbor/meteorfalls_done/
-lavaridge.ss1. ~12 root-caused fixes committed (rival vanilla-truth, cave/menu-aware
-recovery, doubles alive-targeting, teach-UI chain, origin+progress travel gates,
-explicit Fiery routing, bag-wedge closure...).
-**OPEN — Ch11d Lavaridge trapdoor gym:** `do_lavaridge_gym` is BUILT but UN-WIRED —
-the warp table's literal same-coordinate model is mutually recursive at the Flannery
-platform; the REAL fall-landing mechanics need a live fall-experiment (load
-lavaridge.ss1, enter the gym at town (5,15), step hole (10,18), record the landing) or
-the Gemini relay (profiles/GEMINI-PROMPTS.md Q1). Then correct `_plan()`'s landing
-edges, wire Segment 11d back (its wiring text is in the story file's comment), sync
-the "HEAT BADGE earned" marker (already in livetest END_MARKERS), validate from
-lavaridge.ss1 with SAVE_CHECKPOINT=BADGE04_GET:flannery_done.
-**MORNING QUEUE (grade/fix first, exact signatures):**
-0. FINISH Ch11d (closest to done): the user's Gemini relay confirmed the mechanics
-   (falls land SAME-COORD, landings inert until re-entry, B1F = sealed one-vent
-   rooms, ~8-fall chain); `do_lavaridge_gym` now has a WORKING held-input walker
-   (`_hold_walk_to` — the standard navigator idles in this gym post-warp, the same
-   latent quirk as the Mauville post-badge exit) and run 5 proved: fall → B1F walk →
-   inline buried-trainer battle. Remaining: the fall→vent CHAIN wedges partway —
-   iterate per-step from lavaridge.ss1 (ch11d_run5.log shows the last state; add a
-   step-trace print to the explorer loop), then WIRE Segment 11d back (the wiring
-   text is in the story file's parked comment), marker "HEAT BADGE earned" is already
-   in livetest END_MARKERS, SAVE_CHECKPOINT=BADGE04_GET:flannery_done.
-1. Batch 8 run04: wedge at R111 (18,101) (the first rock tile) inside
-   `_smash_rock`'s A-ride (`_wait_until_cutscene_over` early_game.py:339); derails=4
-   suggest bail→re-enter→re-wedge cycles. FIX DIRECTION: make `_smash_rock`
-   idempotent (skip if the rock object is gone — live object/TEMP-flag check) and
-   replace the blind A-ride with A-few-then-wait + live passability verification.
-2. Batch 8 run05: Manual at (14,5) with DEFEATED_RIVAL_RUSTBORO=False and party
-   L19-20 — the rival trigger row apparently never armed (VAR never 7?) — check its
-   stdout derail texts; likely a missing PokéNav-tutorial state precondition
-   (different root than the fixed met-and-lost case).
-3. Then: Lavaridge trapdoor (Gemini Q1 / in-gym explorer), wire 11d, Ch12.
-Batches 7+8 (clean code): 2/5 fresh→LAVARIDGE each — the frontier rate is stable;
-INCOMPLETEs are pure training pace (#24-train-efficiency).
+### ⭐⭐⭐⭐⭐ 2026-07-23 — **CH11d COMPLETE: HEAT BADGE WON** (frontier = Ch12)
+The Lavaridge trapdoor maze is SOLVED and Segment 11d is WIRED. `do_lavaridge_gym` no
+longer guesses: it scans both floors for holes (1F behaviour 104), geysers (B1F
+behaviour 41) and **jump-south ledges (behaviour 59)**, builds the chamber graph and
+BFSes it from wherever the player actually is. The ledges were the whole bug — under
+plain collision the floors look like sealed chambers with no exits, which is why five
+prior runs oscillated on inert tiles. Canonical chain = 4 falls: (8,9), (0,10), (2,3),
+(10,6). **Validated (ch11d_run11): 0 derails, Flannery beaten, BADGE04_GET, clean
+content-end; the run whited out mid-way, self-recovered and re-solved the maze move for
+move — an unplanned determinism proof.** Checkpoint `saves/flannery_done.ss1`.
+Also fixed: a failed leg used to B-ride a nonexistent cutscene (18k-frame wedge, run 10)
+— recovery is now script-aware and stall-budgeted. Details: changelog + 08-MISTAKES
+(two entries) + 06-DECISIONS + design §Ch11d (full mechanics table).
+⚠ Segment 11d does NOT pre-grind: a two-way sweep proved NO training grass is reachable
+from Lavaridge (Jagged Pass one-way; Route 112 lower has no return). L29-31 wins but is
+marginal → #24-trainmap.
 
-**Batch cadence:** batch 6 (23:00, code eb165e23-DIRTY — mid-edit Ch11 state, my
-methodology slip: never launch a batch while editing) failed 4×HANG at post-museum
-stages; its first derails are known transients and its evidence is tainted — grade
-it only if batch 7 disagrees. **BATCH 7 (5×2.4M, CLEAN pushed code 5dbe788d) was
-launched ~23:45 as the true overnight closer — its result in livetest-runs/ +
-INDEX.md is the FIRST thing to grade next session.** Batches 1-5 graded (each found+fixed real bugs; run04 of batch 4 =
-the first-ever fresh→Dynamo-Badge run). Batch 6 (5×2.4M, all fixes) — check
-livetest-runs/ for its result if this note isn't updated. Training pace is the
-throughput ceiling for full-frontier fresh runs (#24-train-efficiency, daytime
-discussion). The overnight loop instructions remain one block below.
+**IN PROGRESS (user's real-HW log 2026-07-23, `Story_DEBUG__RESET...062055.log`) — two
+reported bugs, fix next:**
+1. **Dewford: pathing back to the dock after the gym still snags on that NPC.** The bot
+   does not need to return to the RIGHT side of the gym at all — it should go straight
+   to the dock.
+2. **Slateport: entering the Museum, it loops at the greeter.**
+
+**NEXT after those: Ch12** — the Go-Goggles scene outside the Lavaridge gym (⚠ verify
+the trigger position) → Route 111 desert → Petalburg (Norman). Start from
+`flannery_done.ss1`. `END_MARKERS` in livetest.py already carries "HEAT BADGE earned";
+update it when the frontier moves again.
 
 ### (superseded) OVERNIGHT LOOP INSTRUCTIONS — kept for the resume ritual
 The user commissioned an unattended overnight loop: (1) 5-run fresh batches until ALL

@@ -208,6 +208,12 @@
       it levels), with swap-train (#24-swaptrain) as the anywhere fallback. Needs: fill
       the PENDING_GRASS spin tiles as maps are reached (Route 102/104/Woods), and
       cross-map routing to/from the training area. Efficiency layer â€” not blocking.
+      ‼ LAVARIDGE HAS NO REACHABLE TRAINING GRASS (two-way sweep 2026-07-23,
+      `tools/story-dev/jaggedgrass_probe.py`): Jagged Pass cannot be re-entered from
+      the town (one-way ledges) and Route 112's lower grass has no return path. So
+      Segment 11d (Flannery) preps with a Water lead + heal and NO grind; a L29-31
+      team wins but is marginal (one whiteout in validation run 11). First concrete
+      customer for this item.
 - [ ] #24-ui â€” STORY-BOT PRE-RUN SETTINGS POPUP (user 2026-07-20). A popup/menu
       shown BEFORE the Story bot runs to set: player name; starter nickname mode
       (none / defined / random); starter choice (specific / random); + other

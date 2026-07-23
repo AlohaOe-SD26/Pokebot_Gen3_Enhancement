@@ -27,7 +27,8 @@ Status key: ✅ built + validated · 🚧 scaffold/partial · 📋 mapped, not b
 | 11a | Meteor Falls Magma cutscene (unblocks the Cable Car) | `do_meteor_falls_scene` | `HIDE_ROUTE_112_TEAM_MAGMA` | ✅ (2026-07-22 overnight; `meteorfalls_done.ss1`) |
 | 11b | Cable Car → Mt. Chimney Magma chain (Maxie) + meteorite | `do_mt_chimney` | `DEFEATED_EVIL_TEAM_MT_CHIMNEY` | ✅ (2026-07-22 overnight) |
 | 11c | Jagged Pass descent → Lavaridge | `do_jagged_descent` | in Lavaridge, healed | ✅ (2026-07-22 overnight; `lavaridge.ss1`) |
-| 11d+ | Lavaridge trapdoor gym (Flannery) → Go-Goggles → Petalburg (Norman) → … | — | — | ⬜ (§Ch11 spec: warp table fetched) |
+| 11d | Lavaridge trapdoor gym → **Flannery, HEAT BADGE** | `do_lavaridge_gym` | `BADGE04_GET` | ✅ (2026-07-23; `flannery_done.ss1`) |
+| 12+ | Go-Goggles → Rt 111 desert → Petalburg (Norman) → … | — | — | ⬜ (§Ch11/§Ch12 spec) |
 
 **You are at the Ch10 boundary (2026-07-22).** `wattson_done.ss1` = Mauville Gym (5,3),
 BADGE03_GET + DEFEATED_MAUVILLE_GYM + DEFEATED_WALLY_MAUVILLE verified. Next: Ch10 —
@@ -91,23 +92,45 @@ see the outstanding question). Legend: `✓ decomp` / `✓ probe` / `✓ externa
   descend (ONE-WAY ledges southbound — our direction; trainers Eric (10,8), Diana
   (9,21), Autumn (14,25), Julio (18,25), Ethan (16,35)) → bottom warps (14-15,40) →
   R112 lower (6-7,46) → WEST connection → **LAVARIDGE TOWN**. Heal at its PC.
-- **11d Lavaridge Gym (trapdoor maze)**: 24 warp events on 1F (full table fetched —
-  every trapdoor pairs to a B1F warp); **Flannery at (13,9)**; buried trainers Cole
-  (3,14)/Gerald (2,15)/Axle (3,10)/Danielle (5,2). The maze is STATICALLY solvable:
-  BFS the 1F↔B1F warp-pair graph (one-way holes = directional edges — the
-  `_walk_warp_chain` furthest-along machinery applies) to derive the hole sequence to
-  Flannery's platform. Flannery: Numel 24 / Slugma 24 / Camerupt 26 / Torkoal 29 —
-  Marshtomp's Water STAB is 2× on everything; prep band ~L26-29, WATER lead.
-  Completion: `BADGE04_GET`. THEN: the Go-Goggles scene (rival gives them outside the
-  gym — ⚠ verify trigger position) unlocks the desert; Ch12 = Petalburg (Norman).
-- **11d STATUS (built, un-wired)**: `do_lavaridge_gym` exists; the literal warp-table
-  model is WRONG — live experiments (2026-07-22 overnight): falls land SAME-COORD on
-  B1F with NO auto-retrigger; B1F is compartmentalized rooms (hole→room→vent chains);
-  1F holes = metatile 104 (20 tiles); B1F warp metatiles split 41 (15) / 0 (9) — which
-  group is the VENT is still unproven (the (10,18) landing is 41 and did NOT launch).
-  NEXT: either the Gemini Q1 answer (profiles/GEMINI-PROMPTS.md) or a systematic
-  in-gym explorer (fall each hole from lavaridge.ss1, record room + reachable warps,
-  build the true graph empirically — the Mauville learn-live pattern).
+- **11d Lavaridge Gym (trapdoor maze) — ✅ SOLVED + BUILT + VALIDATED (2026-07-23).**
+  The maze is derived from the ROM's own map data at run time, not explored or
+  hardcoded. Three metatile behaviours are the whole puzzle:
+  | behaviour | floor | meaning |
+  |---|---|---|
+  | 104 (`MB_LAVARIDGE_GYM_1F_WARP`) | 1F | **HOLE** — fall to B1F at the SAME coordinate |
+  | 41 (`MB_LAVARIDGE_GYM_B1F_WARP`) | B1F | **GEYSER** — launch to 1F at the SAME coordinate |
+  | 59 (`MB_JUMP_SOUTH`) | both | **LEDGE** — collision=1 but hoppable DOWNWARD (2 tiles) |
+  Every warp pair in this gym is same-coordinate (dumped + live-confirmed), so a warp
+  event whose tile is neither 104 nor 41 is INERT — a landing pad only, which is why
+  landings never re-trigger. ‼ **The ledges are the crux**: each floor looks like
+  sealed chambers under plain collision, and several chambers then appear to have no
+  exit at all — but every one of them is escapable southward over a ledge band. Model
+  hops and there are no dead ends; ignore them and the solver oscillates between two
+  inert tiles (that was the ch11d_run9 wedge).
+  So: state = the 1F chamber you stand in; an edge = "fall through a reachable hole H,
+  walk the B1F chamber to a reachable geyser G, surface at 1F G". A backward BFS from
+  Flannery's chamber gives the next move from wherever we ACTUALLY are, so a battle
+  knock-off or surprise landing just re-plans. **Canonical chain from the entrance is
+  4 falls: (8,9)→(0,17 | 5,14), (0,10)→(0,6), (2,3)→(7,2), (10,6)→(12,12)** — the last
+  geyser surfaces on Flannery's platform (1F chamber (11-15, 9-12)).
+  Two planning hazards, both handled: paths must never cross ANOTHER hole/geyser (it
+  fires en route and throws the plan away), and four B1F geysers — (4,18) Jace, (3,6)
+  Keegan, (13,17) Jeff, (4,16) Eli — are the buried trainers' own tiles, so NPC-held
+  tiles are excluded from both planning and walking. Movement uses held input
+  (`_hold_walk_to`); the stock navigator idles in this gym post-warp, the same latent
+  upstream quirk as the post-badge Mauville exit.
+  **Flannery**: Numel 24 / Slugma 24 / Camerupt 26 / Torkoal 29 — WATER lead (all four
+  are 2× to Water). Completion: `BADGE04_GET`. Wired as Segment 11d (lead + heal, NO
+  pre-grind — see the training-tile note below). Checkpoint `flannery_done.ss1`.
+  THEN: the Go-Goggles scene (⚠ verify trigger position) unlocks the desert; Ch12 =
+  Petalburg (Norman).
+- **⚠ NO training grass is reachable from Lavaridge** (two-way sweep,
+  `tools/story-dev/jaggedgrass_probe.py`, 2026-07-23): Jagged Pass cannot be re-entered
+  from the town (one-way ledges — outbound nav fails outright) and Route 112's lower
+  grass has an outbound path but NO return path. Segment 11d therefore preps with a
+  Water lead + heal only. A L29-31 team wins but is marginal (validation run 11 lost
+  once, self-recovered, then won). Fix when it bites: find a swept Lavaridge-area tile
+  (#24-trainmap) — never a blind grind target.
 - ⚠ open (append to GEMINI-PROMPTS.md if build hits walls): Cable Car station interior
   scripts (auto-scene or talk-to-attendant?); B1F warp-pair destination coords (fetch
   LavaridgeTown_Gym_B1F/map.json at build time); Go-Goggles exact trigger.
