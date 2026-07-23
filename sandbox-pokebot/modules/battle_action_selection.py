@@ -7,6 +7,7 @@ from modules.battle_state import (
     battle_is_active,
     get_main_battle_callback,
     get_battle_controller_callback,
+    get_current_battle_script_instruction,
 )
 from modules.battle_strategies import BattleStrategy, TurnAction, SafariTurnAction
 from modules.context import context
@@ -57,6 +58,31 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
         if context.bot_mode == "Manual":
             yield
             continue
+
+        # FORK (2026-07-23, batch7 run03): if the game just bounced the previous pick
+        # with "There's no PP left for this move!" (BattleScript_SelectingMoveWithNoPP),
+        # do NOT resubmit the strategy's choice — some strategy paths re-pick the same
+        # dead move forever (a 20k-frame hang in long training runs where PP drains).
+        # Override with the first move that still has PP; the game auto-Struggles when
+        # every slot is empty (that path never reaches this bounce).
+        try:
+            if action in (
+                TurnAction.UseMove,
+                TurnAction.UseMoveAgainstRightSideOpponent,
+                TurnAction.UseMoveAgainstPartner,
+            ) and get_current_battle_script_instruction() == "BattleScript_SelectingMoveWithNoPP":
+                _battler = (
+                    battle_state.own_side.left_battler
+                    if battler_index == 0
+                    else battle_state.own_side.right_battler
+                )
+                if _battler is not None:
+                    for _i, _lm in enumerate(_battler.moves):
+                        if _lm is not None and _lm.pp > 0:
+                            index = _i
+                            break
+        except Exception:
+            pass
 
         # In double battles, both player Pokémon will do their inputs in the same run. So the active
         # battler might change in the middle of this function. If we detect that, we update the battle
