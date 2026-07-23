@@ -1402,15 +1402,15 @@ class StoryMode(BotMode):
             console.print("[dim]Story: not on the mountain — Jagged descent skipped.[/]")
         _guard("Jagged descent resolved (Ch11c)", lambda: _cur_map() not in descent_origin)
 
-        # Segment 11d (Lavaridge trapdoor gym) is BUILT but NOT WIRED: the trapdoor
-        # graph is not literal (the 1F(12,12)/B1F(12,12) hole↔vent pair is mutually
-        # recursive under the warp-table model — the real landing mechanics need a
-        # live fall-experiment). do_lavaridge_gym stays in early_game.py; the open
-        # question is queued in profiles/GEMINI-PROMPTS.md. Wire it after the model
-        # is corrected and the segment validates.
+        # Segment 11d (Lavaridge trapdoor gym) — BUILT, EXPLORER WORKING, UN-WIRED for
+        # batch stability: the held-input walker moves post-fall (validated run 5:
+        # falls, B1F walking, an inline buried-trainer battle) but the fall→vent chain
+        # wedges partway and needs one focused iteration session (per-step tracing
+        # from lavaridge.ss1 with SAVE_CHECKPOINT=BADGE04_GET:flannery_done). See the
+        # handoff morning queue + design doc §Ch11 11d STATUS.
 
-        # END OF BUILT CONTENT. Next build (Ch11d): the Lavaridge trapdoor gym →
-        # Flannery → Go-Goggles → Petalburg (§Ch11 spec + the open maze question).
+        # END OF BUILT CONTENT. Next build (Ch11d): finish the trapdoor explorer →
+        # Flannery → Go-Goggles → Petalburg (§Ch11 spec).
         context.message = (
             "Story: reached Lavaridge — end of built content. NEXT (WIP): the trapdoor "
             "gym and Flannery. Handing to manual."

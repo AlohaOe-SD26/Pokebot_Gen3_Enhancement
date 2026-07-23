@@ -26,6 +26,16 @@ edges, wire Segment 11d back (its wiring text is in the story file's comment), s
 the "HEAT BADGE earned" marker (already in livetest END_MARKERS), validate from
 lavaridge.ss1 with SAVE_CHECKPOINT=BADGE04_GET:flannery_done.
 **MORNING QUEUE (grade/fix first, exact signatures):**
+0. FINISH Ch11d (closest to done): the user's Gemini relay confirmed the mechanics
+   (falls land SAME-COORD, landings inert until re-entry, B1F = sealed one-vent
+   rooms, ~8-fall chain); `do_lavaridge_gym` now has a WORKING held-input walker
+   (`_hold_walk_to` — the standard navigator idles in this gym post-warp, the same
+   latent quirk as the Mauville post-badge exit) and run 5 proved: fall → B1F walk →
+   inline buried-trainer battle. Remaining: the fall→vent CHAIN wedges partway —
+   iterate per-step from lavaridge.ss1 (ch11d_run5.log shows the last state; add a
+   step-trace print to the explorer loop), then WIRE Segment 11d back (the wiring
+   text is in the story file's parked comment), marker "HEAT BADGE earned" is already
+   in livetest END_MARKERS, SAVE_CHECKPOINT=BADGE04_GET:flannery_done.
 1. Batch 8 run04: wedge at R111 (18,101) (the first rock tile) inside
    `_smash_rock`'s A-ride (`_wait_until_cutscene_over` early_game.py:339); derails=4
    suggest bail→re-enter→re-wedge cycles. FIX DIRECTION: make `_smash_rock`
