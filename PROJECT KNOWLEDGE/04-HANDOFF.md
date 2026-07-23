@@ -25,7 +25,12 @@ the Gemini relay (profiles/GEMINI-PROMPTS.md Q1). Then correct `_plan()`'s landi
 edges, wire Segment 11d back (its wiring text is in the story file's comment), sync
 the "HEAT BADGE earned" marker (already in livetest END_MARKERS), validate from
 lavaridge.ss1 with SAVE_CHECKPOINT=BADGE04_GET:flannery_done.
-**Batch cadence:** batches 1-5 graded (each found+fixed real bugs; run04 of batch 4 =
+**Batch cadence:** batch 6 (23:00, code eb165e23-DIRTY — mid-edit Ch11 state, my
+methodology slip: never launch a batch while editing) failed 4×HANG at post-museum
+stages; its first derails are known transients and its evidence is tainted — grade
+it only if batch 7 disagrees. **BATCH 7 (5×2.4M, CLEAN pushed code 5dbe788d) was
+launched ~23:45 as the true overnight closer — its result in livetest-runs/ +
+INDEX.md is the FIRST thing to grade next session.** Batches 1-5 graded (each found+fixed real bugs; run04 of batch 4 =
 the first-ever fresh→Dynamo-Badge run). Batch 6 (5×2.4M, all fixes) — check
 livetest-runs/ for its result if this note isn't updated. Training pace is the
 throughput ceiling for full-frontier fresh runs (#24-train-efficiency, daytime
