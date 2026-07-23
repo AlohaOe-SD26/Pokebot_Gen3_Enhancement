@@ -1905,3 +1905,14 @@ no-progress watchdog (18k frames of total stasis → self-derail into recovery).
   knowledge-base (per-chapter items/secrets/legendaries + move-priority v2 querying
   the bot's own data), +#24-event-pokemon (endgame event legendaries — authentic
   acquisition theater, Mystery Gift spoofing candidate, user discussion first).
+
+## 2026-07-22 (overnight, cont.) — Ch11b+11c COMPLETE: Maxie beaten, Lavaridge reached
+Run 3 from meteorfalls_done.ss1: Cable Car (attendant YES-ride) → summit → grunt
+sight-lines → Tabitha → MAXIE beaten → meteorite taken → Jagged Pass ledge descent →
+Lavaridge PC. Checkpoint `lavaridge.ss1`. Fixes en route: (a) travel segments must be
+PROGRESS-gated, not map-gated — the corridor maps are shared with later return trips
+and a mid-return derail re-triggered the Fallarbor travel into the Go-Goggles-gated
+desert; (b) the Cable-Car approach routes EXPLICITLY through the Fiery tunnel (the
+desert "shortcut" is script-gated invisibly to collision); (c) in-state sweeps only —
+hidden-NPC templates seal routes on cold boots (both "impossible" legs opened from
+the real story state).

@@ -1336,15 +1336,34 @@ class StoryMode(BotMode):
         #     → Fallarbor, ending healed at its PC (§Ch10 route spec). ---
         from modules.story.early_game import travel_to_fallarbor
 
-        fallarbor_side = (
-            MapRSE.FALLARBOR_TOWN.value,
-            MapRSE.FALLARBOR_TOWN_POKEMON_CENTER_1F.value,  # the heal ends inside the PC
+        # ORIGIN-side whitelist (the Segment-6 travel-gate lesson): run the travel only
+        # when we're actually on the PRE-Fallarbor side — a resume from R114/Meteor
+        # Falls or beyond must NOT backtrack (run 2026-07-22 overnight tried to walk
+        # Route 114 → Route 111 and plan-failed to Manual).
+        pre_fallarbor = (
+            MapRSE.MAUVILLE_CITY.value,
+            MapRSE.MAUVILLE_CITY_GYM.value,
+            MapRSE.MAUVILLE_CITY_POKEMON_CENTER_1F.value,
+            MapRSE.MAUVILLE_CITY_HOUSE1.value,
+            MapRSE.ROUTE110.value,
+            MapRSE.ROUTE111.value,
+            MapRSE.ROUTE112.value,
+            MapRSE.FIERY_PATH.value,
+            MapRSE.ROUTE113.value,
         )
-        if _cur_map() not in fallarbor_side:
+        # ALSO progress-gated: the corridor maps (R111/R112/Fiery/R113) are shared by
+        # the LATER Fallarbor→Cable-Car return trip, so a mid-return derail would
+        # re-trigger this travel on maps alone (seen 2026-07-22 overnight: it then
+        # "shortcut" into the Go-Goggles-gated desert and plan-failed). Once Ch11a's
+        # flag exists, the Fallarbor trip already happened — never travel again.
+        if _cur_map() in pre_fallarbor and not _done("HIDE_ROUTE_112_TEAM_MAGMA"):
             yield from travel_to_fallarbor()
         else:
-            console.print("[dim]Story: already in Fallarbor — travel skipped.[/]")
-        _guard("Fallarbor arrival (Ch10c)", lambda: _cur_map() in fallarbor_side)
+            console.print("[dim]Story: Fallarbor travel not applicable from here — skipped.[/]")
+        _guard(
+            "Fallarbor travel resolved (Ch10c)",
+            lambda: _cur_map() not in pre_fallarbor or _done("HIDE_ROUTE_112_TEAM_MAGMA"),
+        )
 
         # --- Segment 11a: the Meteor Falls Magma cutscene (unblocks the Cable Car). ---
         from modules.story.early_game import do_meteor_falls_scene
@@ -1355,11 +1374,39 @@ class StoryMode(BotMode):
             console.print("[dim]Story: Meteor Falls scene already done — skipping.[/]")
         _guard("Meteor Falls scene (Ch11a)", lambda: _done("HIDE_ROUTE_112_TEAM_MAGMA"))
 
-        # END OF BUILT CONTENT. Next build (Ch11b-d): Cable Car → Mt. Chimney Magma
-        # chain (Maxie) → Jagged Pass down → Lavaridge Gym (§Ch11 spec).
+        # --- Segment 11b: Cable Car → Mt. Chimney Magma chain (Maxie) + meteorite.
+        #     Prep: heal + water-favoring lead (Camerupt ace is 4× to Water). ---
+        from modules.story.early_game import do_jagged_descent, do_mt_chimney
+
+        if not _done("DEFEATED_EVIL_TEAM_MT_CHIMNEY"):
+            from modules.map_data import PokemonCenter
+            from modules.story.early_game import _lead_best_matchup, heal_in_pokemon_center
+
+            yield from heal_in_pokemon_center(PokemonCenter.FallarborTown)
+            yield from _lead_best_matchup(["Fire", "Poison"])
+            yield from do_mt_chimney()
+        else:
+            console.print("[dim]Story: Mt. Chimney already cleared — skipping.[/]")
+        _guard("Mt. Chimney (Ch11b)", lambda: _done("DEFEATED_EVIL_TEAM_MT_CHIMNEY"))
+
+        # --- Segment 11c: Jagged Pass down to Lavaridge (heal = arrival). ---
+        # Origin-side whitelist again: descend only when actually up the mountain.
+        descent_origin = (
+            MapRSE.MT_CHIMNEY.value,
+            MapRSE.MT_CHIMNEY_CABLE_CAR_STATION.value,
+            MapRSE.JAGGED_PASS.value,
+        )
+        if _cur_map() in descent_origin:
+            yield from do_jagged_descent()
+        else:
+            console.print("[dim]Story: not on the mountain — Jagged descent skipped.[/]")
+        _guard("Jagged descent resolved (Ch11c)", lambda: _cur_map() not in descent_origin)
+
+        # END OF BUILT CONTENT. Next build (Ch11d): the Lavaridge trapdoor gym →
+        # Flannery → BADGE04 → Go-Goggles (§Ch11 spec).
         context.message = (
-            "Story: Meteor Falls scene done — end of built content. NEXT (WIP): Cable "
-            "Car -> Mt. Chimney -> Jagged Pass -> Lavaridge. Handing to manual."
+            "Story: reached Lavaridge — end of built content. NEXT (WIP): the trapdoor "
+            "gym and Flannery. Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()

@@ -3861,6 +3861,142 @@ def do_meteor_falls_scene() -> Generator:
     yield from wait_until_truly_controllable()
 
 
+def do_mt_chimney() -> Generator:
+    """Chapter 11b — Cable Car up Mt. Chimney, beat the Magma chain, take the meteorite.
+
+    HOW (§Ch11, decomp + in-state sweeps): R112 station door (28,27) [the pre-scene
+    Magma blockers are HIDDEN once Ch11a's flag is set — sweeps must run from story
+    states] → attendant at (6,7), talk from (6,8), YES → the CableCar special rides up
+    → summit station → out onto MT_CHIMNEY (17-18,36) → north through Grunt1 (13,16) /
+    Grunt2 (9,16) sight-lines → Tabitha (12,11) → talk to MAXIE at (13,6) from (13,7)
+    (trainerbattle_no_intro; Mightyena 24 / Zubat 24 / Camerupt 25 — water lead) →
+    aftermath → TAKE THE METEORITE from the machine at (14,6) (authentic pickup;
+    needed for TM27 later).
+    GOAL/END: DEFEATED_EVIL_TEAM_MT_CHIMNEY (+ RECEIVED_METEORITE), controllable on
+    the summit."""
+    from modules.memory import get_event_flag
+
+    CHIM = MapRSE.MT_CHIMNEY.value
+
+    def _magma_beaten() -> bool:
+        votes = 0
+        for _ in range(3):
+            try:
+                if get_event_flag("DEFEATED_EVIL_TEAM_MT_CHIMNEY"):
+                    votes += 1
+            except Exception:
+                pass
+        return votes >= 2
+
+    if _magma_beaten():
+        return
+    context.message = "Story: taking the Cable Car up Mt. Chimney..."
+    yield from wait_until_truly_controllable()
+    if _map_group_number() != CHIM:
+        if _map_group_number() != MapRSE.ROUTE112_CABLE_CAR_STATION.value:
+            # EXPLICIT route from the Fallarbor side: R113 → R112 north → back SOUTH
+            # through the Fiery Path tunnel → lower R112 → the station. Never let the
+            # planner take the "short" Route 111 desert — it is Go-Goggles-gated by a
+            # script the collision map can't see (overnight run: plan-failed at (11,44)).
+            if _map_group_number() in (
+                MapRSE.FALLARBOR_TOWN.value,
+                MapRSE.FALLARBOR_TOWN_POKEMON_CENTER_1F.value,
+                MapRSE.ROUTE114.value,
+                MapRSE.ROUTE113.value,
+            ):
+                yield from _navigate_riding_out(MapRSE.ROUTE112, (22, 11))
+                yield from _enter_warp_by_navigation(
+                    lambda: _map_group_number() == MapRSE.FIERY_PATH.value,
+                    MapRSE.ROUTE112, (22, 10), tries=6, label="Fiery Path north door",
+                )
+                yield from wait_until_truly_controllable()
+                yield from _enter_warp_by_navigation(
+                    lambda: _map_group_number() == MapRSE.ROUTE112.value,
+                    MapRSE.FIERY_PATH, (26, 36), tries=6, label="Fiery Path south exit",
+                )
+                yield from wait_until_truly_controllable()
+            yield from _navigate_riding_out(MapRSE.ROUTE112, (28, 28))
+            yield from _walk_through_warp("Up", MapRSE.ROUTE112.value)
+            yield from wait_until_truly_controllable()
+        # Attendant (6,7) faces down — stand below and talk; riding with A answers YES
+        # and plays the boarding + CableCar special through to the summit station.
+        yield from _navigate_riding_out(MapRSE.ROUTE112_CABLE_CAR_STATION, (6, 8))
+        context.emulator.press_button("Up")
+        yield
+        yield from wait_for_n_frames(6)
+        context.emulator.press_button("A")
+        yield
+        yield from _ride_out_scripted_scene("A", engage_timeout=240)
+        # Arrive in the summit station; wait out the transition, then walk out the door.
+        frames = 0
+        while _map_group_number() != MapRSE.MT_CHIMNEY_CABLE_CAR_STATION.value:
+            _check_abort()
+            context.emulator.press_button("A" if frames % 3 == 0 else "B")
+            frames += 1
+            if frames > 4800:
+                raise BotModeError("Cable Car: never arrived at the summit station.")
+            yield
+        yield from wait_until_truly_controllable()
+        yield from _exit_small_interior()
+        yield from wait_until_truly_controllable()
+    # The Magma chain: navigating north crosses the grunt sight-lines (fought inline).
+    yield from _navigate_riding_out(MapRSE.MT_CHIMNEY, (13, 17))
+    yield from _navigate_riding_out(MapRSE.MT_CHIMNEY, (12, 12))
+    yield from _navigate_riding_out(MapRSE.MT_CHIMNEY, (13, 7))
+    context.emulator.press_button("Up")  # face Maxie (13,6)
+    yield
+    yield from wait_for_n_frames(6)
+    frames = 0
+    while not _magma_beaten():
+        _check_abort()  # a loss whites out → recovery re-enters this segment
+        context.emulator.press_button("B" if frames % 3 else "A")
+        frames += 1
+        if frames > 40000:
+            raise BotModeError("Mt. Chimney: the Maxie battle never resolved.")
+        yield
+    yield from _wait_until_cutscene_over("B")
+    yield from _ride_out_all_scenes()
+    # The meteorite: machine at (14,6) — stand (14,7), face Up, take it.
+    try:
+        yield from _navigate_riding_out(MapRSE.MT_CHIMNEY, (14, 7))
+        context.emulator.press_button("Up")
+        yield
+        yield from wait_for_n_frames(6)
+        context.emulator.press_button("A")
+        yield
+        yield from _ride_out_scripted_scene("A", engage_timeout=180)
+    except BotModeError:
+        pass  # the meteorite is a bonus — never fail the chapter on it
+    context.message = "Story: Maxie beaten at Mt. Chimney (and the meteorite is ours)!"
+
+
+def do_jagged_descent() -> Generator:
+    """Chapter 11c — down Jagged Pass to Lavaridge Town, ending healed at its PC.
+
+    HOW: summit south area (24,20) → the Jagged warps at (20-21,41) (ledge-hop descent
+    — one-way SOUTH, our direction; in-state sweep OK) → Jagged Pass top (13-14,5) →
+    descend the pass (trainers en route fought inline; ledges hop down) → bottom warps
+    (14-15,40) → R112 lower-west (6-7,46) → WEST connection → LAVARIDGE_TOWN → PC.
+    GOAL/END: healed in Lavaridge (checkpoint `lavaridge.ss1`)."""
+    LAVA = MapRSE.LAVARIDGE_TOWN.value
+
+    if _map_group_number() == LAVA:
+        return
+    context.message = "Story: descending Jagged Pass to Lavaridge..."
+    yield from wait_until_truly_controllable()
+    if _map_group_number() == MapRSE.MT_CHIMNEY.value:
+        yield from _navigate_riding_out(MapRSE.MT_CHIMNEY, (21, 40))
+        yield from _walk_through_warp("Down", MapRSE.MT_CHIMNEY.value)
+        yield from wait_until_truly_controllable()
+    if _map_group_number() == MapRSE.JAGGED_PASS.value:
+        yield from _navigate_riding_out(MapRSE.JAGGED_PASS, (14, 39))
+        yield from _walk_through_warp("Down", MapRSE.JAGGED_PASS.value)
+        yield from wait_until_truly_controllable()
+    yield from _navigate_riding_out(MapRSE.LAVARIDGE_TOWN, (9, 7))
+    context.message = "Story: reached Lavaridge Town!"
+    yield from heal_in_pokemon_center(PokemonCenter.LavaridgeTown)
+
+
 def do_dewford_gym() -> Generator:
     """Chapter 7b — Dewford Gym: beat Brawly for the Knuckle Badge (BADGE02, Gym 2).
 
