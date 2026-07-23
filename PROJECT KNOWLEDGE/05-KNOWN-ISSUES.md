@@ -154,3 +154,21 @@ process. Original write-up kept below for reference.
   blocking the Oceanic Museum doors, or is the entrance clear? Then either build the faithful
   trigger or document the state-write. `deliver_devon_goods_to_stern` (interior logic sound)
   stays defined but UNWIRED; frontier honestly = Slateport arrival.
+
+## KI-14 (2026-07-23, user's fresh-run log `...093417.log`) — teach flow strands the START MENU open → travel wedge → Manual
+The Ch10b teach itself WORKED (the new compat picker chose Grovyle L29 on a Treecko run
+— validation of #24-hm-learner on a non-Mudkip start). The failure is AFTER: the
+teach's "hard menus-closed guarantee" B-mashes out of the BAG but its exit condition is
+`game_state == OVERWORLD` — which is ALREADY true while the START MENU is open (the
+start menu is an overworld state), so the loop exits with the menu still up
+(`Task_ShowStartMenu` active, controllable=False). Then the Fallarbor travel wedges:
+`wait_until_truly_controllable` presses nothing by design, and `_wait_until_cutscene_over`
+— since the 2026-07-23 museum fix — only presses when a script is active or a text
+printer waits, and an open MENU is neither → nobody ever closes the menu → 8000-frame
+"cutscene did not end" derail → recovery hits the same wall → Manual at Mauville (32,15).
+CLASS: a latent bug (menu left open, previously papered over by blind B-mash recovery)
+EXPOSED by the museum fix making the presser conservative. FIX DIRECTION (discussed, not
+yet built): (a) the teach's hard-close loop must break only when the overworld is
+MENU-FREE (no Task_ShowStartMenu / bag tasks, avatar controllable); (b)
+`_wait_until_cutscene_over` should also press B while a MENU task is open — B closes
+menus and can never start a dialogue, so it cannot regress the museum fix.

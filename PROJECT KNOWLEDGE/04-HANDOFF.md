@@ -84,6 +84,24 @@ and the **Gemini API relay is BUILT + verified** (tools/story-dev/gemini_relay.p
 GITIGNORED at sandbox-pokebot/profiles/gemini.key — never commit it; usage + day-one
 rules in 15-ESCALATION-RESEARCH.md).
 
+**OPEN DISCUSSION (2026-07-23 evening, user's log `...093417.log` — decide BEFORE coding):**
+1. **KI-14 (Rock Smash aftermath wedge)** — root-caused (see 05-KNOWN-ISSUES): the teach
+   leaves the START MENU open and the museum-fix-hardened cutscene rider rightly refuses
+   to mash at a menu → travel wedge → Manual. Fix direction agreed in KI-14; awaiting the
+   user's go-ahead (two small changes, regression-safe by construction).
+2. **Boss-loss training efficiency** — the user's proposal + my analysis + a Gemini 2.5
+   Pro consult (archived: tools/story-dev/research-gemini-training-consult-2026-07-23.md)
+   converge on a "boss-training mode": when losses trigger training AND local grass is
+   far under-level, re-attempt the boss as the training vehicle (XP persists through a
+   whiteout in Gen 3; whiteout cost is levelxbadge-payout ≈ $672 at Wattson, NOT half
+   your money; no re-challenge limit), gated on KO≥1-per-attempt, with light grass
+   sessions between and a 0-KO fallback to the old escalation. Complementary quick wins,
+   in value order: pre-battle PARTY ORDERING by matchup (the run's real killer: Swellow +
+   Ninjask both Electric-weak behind the lead), exhausting unfought route trainers
+   (Winstrates/110/117) before any grinding, Match Call rematches later. Numbers from the
+   log: 5 gym entries, 4 losses, escalation to L28-29 on L13-14 fodder, ~1,077 wild
+   encounters, ~540k frames on the Wattson arc. NO CODE YET — user wants discussion first.
+
 **NEXT after those: Ch12** — the Go-Goggles scene outside the Lavaridge gym (⚠ verify
 the trigger position) → Route 111 desert → Petalburg (Norman). Start from
 `flannery_done.ss1`. `END_MARKERS` in livetest.py already carries "HEAT BADGE earned";
