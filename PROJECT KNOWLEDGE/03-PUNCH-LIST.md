@@ -462,3 +462,16 @@
       full species/moves/learnsets/TM-compat — the MOVE-PRIORITY SYSTEM v2
       (#24-movelock: STAB + type coverage + Gen3 physical/special-BY-TYPE
       stat-matching + utility ranking) should QUERY it, not hand-author lists.
+
+- [ ] #24-event-pokemon — EVENT LEGENDARIES, endgame (user directive 2026-07-22
+      night): Deoxys (Birth Island via AURORATICKET), Mew (Faraway Island via
+      OLD SEA MAP), Jirachi (external event), Latios/Latias roamer choice + the
+      EON TICKET (Southern Island second Lati). These need event-only items that
+      vanilla distributed via Mystery Gift / e-Reader — the bot must obtain them
+      in a way that LOOKS earned and stays quasi-canon (user framing): candidate
+      mechanisms to discuss LATER — Mystery Gift spoofing (emulating the
+      distribution the game natively supports — most authentic), a scripted
+      "delivery man" trigger, or a direct bag write (last resort). Same
+      plan/map/test loop as story chapters + a design discussion with the user
+      on the acquisition theater BEFORE building. Endgame content — schedule
+      after the main story skeleton reaches the Elite Four.

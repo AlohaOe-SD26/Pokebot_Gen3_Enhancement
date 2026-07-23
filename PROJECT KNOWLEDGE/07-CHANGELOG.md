@@ -1886,3 +1886,22 @@ no-progress watchdog (18k frames of total stasis → self-derail into recovery).
 - Batch 4 (5×1.6M fresh): 2/5 FRONTIER (up from 1), 0 Manual; 2 budget-bound
   mid-Wattson (L20-26 parties — training pace, #24-train-efficiency); 1 = the rival
   wedge above. Next batch at 2M frames.
+
+## 2026-07-22 (overnight, cont.) — Ch10b teach flow + rival vanilla-truth + Ch10c staged
+- `teach_hm_move()` BUILT + VALIDATED (probed task chain; two UI bugs fixed on the way:
+  the battle/evolution cursor sensor reads garbage in the overworld summary UI — the
+  cursor STARTS at slot 0, so deterministic Downs; and the close-out ride must be
+  STATE-AWARE or it re-answers the yes/no prompts in a loop). Marshtomp carries Rock
+  Smash over Foresight. Segment 10b wired + validated via the story path
+  (`rocksmash_taught.ss1`).
+- RUSTBORO RIVAL VANILLA-TRUTH (replaces the earlier talk-fallback theory): win or
+  LOSE there is no rematch and the story does not require the win — met-and-spent
+  (MET + VAR_RUSTBORO_CITY_STATE>=8) now counts as RESOLVED in both the segment and
+  its guard. Validated from the real met-and-lost wedge (rivaldead.ss1): the run
+  moved on, sailed, and continued the Dewford arc. (The rematch fallback was removed
+  — her talk script is only the Briney hint.)
+- Ch10c (`travel_to_fallarbor` + `_smash_rock`) built + wired; validation in flight.
+- Punch: +#24-hm-slaves (PC-parked HM carriers + machinery before Surf), +#24-
+  knowledge-base (per-chapter items/secrets/legendaries + move-priority v2 querying
+  the bot's own data), +#24-event-pokemon (endgame event legendaries — authentic
+  acquisition theater, Mystery Gift spoofing candidate, user discussion first).

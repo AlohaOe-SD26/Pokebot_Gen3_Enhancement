@@ -1050,7 +1050,23 @@ class StoryMode(BotMode):
         #     it lead a grass Grovyle vs our 4×-weak Marshtomp, so we (1) TRAIN to a rival band,
         #     (2) pick a MATCHUP-based lead (not lead-strongest), and (3) cap attempts so a
         #     thin team that can't win stops cleanly instead of looping forever. ---
-        if not _done("DEFEATED_RIVAL_RUSTBORO"):
+        def _rustboro_rival_resolved() -> bool:
+            # VANILLA TRUTH (decomp + live probe 2026-07-22): the RivalTrigger row
+            # fires only at VAR_RUSTBORO_CITY_STATE==7 and the MEETING sets it to 8 —
+            # win or LOSE there is no rematch (her talk script is just the Briney
+            # hint), and progression does NOT require the win. Two batch runs hit
+            # honest-Manual retry loops on a met-and-lost state before this was
+            # understood. Resolved = beaten, or met-and-spent.
+            if _done("DEFEATED_RIVAL_RUSTBORO"):
+                return True
+            try:
+                from modules.memory import get_event_var
+
+                return _done("MET_RIVAL_RUSTBORO") and get_event_var("RUSTBORO_CITY_STATE") >= 8
+            except Exception:
+                return False
+
+        if not _rustboro_rival_resolved():
             self._rival_attempts = getattr(self, "_rival_attempts", 0) + 1
             if self._rival_attempts > self.RIVAL_MAX_ATTEMPTS:
                 context.message = (
@@ -1093,8 +1109,8 @@ class StoryMode(BotMode):
             #     correctly on retries now (fight_rustboro_rival no longer keys off the MET flag).
             yield from fight_rustboro_rival()
         else:
-            console.print("[dim]Story: Rustboro rival already defeated — skipping.[/]")
-        _guard("Rustboro rival", lambda: _done("DEFEATED_RIVAL_RUSTBORO"))
+            console.print("[dim]Story: Rustboro rival already resolved (beaten, or met-and-lost — vanilla offers no rematch) — skipping.[/]")
+        _guard("Rustboro rival (resolved)", _rustboro_rival_resolved)
 
         # --- Segment 6: sail to Dewford (Chapter 6). Rustboro → south onto Route 104 →
         #     back through Petalburg Woods (Route 104 is river-split) → south beach →
@@ -1277,11 +1293,51 @@ class StoryMode(BotMode):
             console.print("[dim]Story: HM06 Rock Smash already received — skipping.[/]")
         _guard("HM06 Rock Smash (Ch10a)", lambda: _done("RECEIVED_HM_ROCK_SMASH"))
 
-        # END OF BUILT CONTENT. Next build (Ch10b/c): teach HM06 → Route 111 south
-        # (rocks) → Route 112 → Fiery Path → Route 113 → Fallarbor (§Ch10 route spec).
+        # --- Segment 10b: teach Rock Smash to the mule — the highest-level mon (the
+        #     starter in practice; every starter mid-form learns it; #24-hm-slaves). ---
+        def _party_knows_rock_smash() -> bool:
+            try:
+                from modules.pokemon_party import get_party as _gp
+
+                return any(
+                    learned is not None and learned.move.name == "Rock Smash"
+                    for mon in _gp()
+                    if mon is not None and not mon.is_egg
+                    for learned in mon.moves
+                )
+            except Exception:
+                return False
+
+        if not _party_knows_rock_smash():
+            from modules.items import get_item_by_name
+            from modules.pokemon_party import get_party as _gp
+            from modules.story.early_game import teach_hm_move
+
+            _levels = [(m.level if m is not None and not m.is_egg else -1) for m in _gp()]
+            yield from teach_hm_move(get_item_by_name("HM06"), _levels.index(max(_levels)))
+        else:
+            console.print("[dim]Story: someone already knows Rock Smash — teach skipped.[/]")
+        _guard("Teach Rock Smash (Ch10b)", _party_knows_rock_smash)
+
+        # --- Segment 10c: Route 111 south (smash the rocks) → Fiery Path → Route 113
+        #     → Fallarbor, ending healed at its PC (§Ch10 route spec). ---
+        from modules.story.early_game import travel_to_fallarbor
+
+        fallarbor_side = (
+            MapRSE.FALLARBOR_TOWN.value,
+            MapRSE.FALLARBOR_TOWN_POKEMON_CENTER_1F.value,  # the heal ends inside the PC
+        )
+        if _cur_map() not in fallarbor_side:
+            yield from travel_to_fallarbor()
+        else:
+            console.print("[dim]Story: already in Fallarbor — travel skipped.[/]")
+        _guard("Fallarbor arrival (Ch10c)", lambda: _cur_map() in fallarbor_side)
+
+        # END OF BUILT CONTENT. Next build (Ch11): Meteor Falls cutscene → Mt. Chimney
+        # cable car → Team Magma/Aqua chain → Jagged Pass → Lavaridge (§Ch10-13 roadmap).
         context.message = (
-            "Story: HM06 Rock Smash in hand — end of built content. NEXT (WIP): teach "
-            "it, smash through Route 111, Fiery Path -> Fallarbor. Handing to manual."
+            "Story: reached Fallarbor Town — end of built content. NEXT (WIP): Meteor "
+            "Falls -> Mt. Chimney -> Lavaridge. Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()

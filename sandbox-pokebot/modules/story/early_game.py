@@ -2097,17 +2097,18 @@ def fight_rustboro_rival() -> Generator:
         # The trigger row (RivalTrigger0-7 at (12-19,53)) requires VAR_RUSTBORO_CITY_STATE
         # == 7, and the MEETING sets it to 8 — so once the rival has been met (which can
         # happen ORGANICALLY mid-navigation: any southbound walk across the row after the
-        # var reaches 7 fires the scene) the row is PERMANENTLY dead. After a met-but-not-
-        # beaten state (organic meeting + loss; two batch runs died on this, 2026-07-22)
-        # the only rematch is TALKING to the rival object (local_id 15, spawn (16,50)).
+        # var reaches 7 fires the scene) the row is PERMANENTLY dead. VANILLA TRUTH: win
+        # or lose, there is NO rematch (her talk script is only the Briney hint), and the
+        # story does not require the win — so a met-and-lost state is RESOLVED, not a
+        # failure (two batch runs burned their attempt caps on this, 2026-07-22).
         if get_event_flag("MET_RIVAL_RUSTBORO") and not get_event_flag("DEFEATED_RIVAL_RUSTBORO"):
-            context.message = "Story: the rival's trigger is spent — talking to her directly..."
-            yield from _talk_to_wandering_npc(
-                MapRSE.RUSTBORO_CITY, 15, attempts=4, approach_hint=(16, 51), known_spot=(16, 51)
+            context.message = (
+                "Story: the Rustboro rival was already met (and lost to) — vanilla offers "
+                "no rematch; moving on."
             )
-        if not _rival_engaging():
-            # Still nothing — derail so StoryMode re-localises and retries (bounded).
-            raise BotModeError("Rustboro rival did not engage (trigger row dead; talk fallback failed).")
+            return
+        # Never met and still no engagement — derail so StoryMode re-localises and retries.
+        raise BotModeError("Rustboro rival did not engage from the staging tile.")
     yield from _ride_out_scripted_scene("B", engage_timeout=2000)
     frames = 0
     while not get_event_flag("DEFEATED_RIVAL_RUSTBORO"):
@@ -3561,6 +3562,126 @@ def _exit_small_interior() -> Generator:
         raise BotModeError("Could not exit the interior through any of its door warps.")
 
 
+def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Generator:
+    """Teach an HM (or TM) from the bag to a party mon — the OVERWORLD flow, state-
+    driven off the live-probed task chain (2026-07-22): open bag → item context (USE is
+    the first entry) → 'Booted up an HM.' prints (Task_ContinueTaskAfterMessagePrints)
+    → teach YES/NO (Task_CallYesOrNoCallback) → party menu (Task_HandleChooseMonInput,
+    cursor NOT guaranteed at slot 0 — scroll!) → replace YES/NO (Task_ReplaceMoveYesNo)
+    → summary move-select (Task_HandleReplaceMoveInput) → '1, 2, and... Poof!' → party
+    menu → B out. `replace_slot=None` picks the mon's most expendable slot (a 0-power
+    move first, else the lowest base power). Verifies the mon actually knows the move."""
+    from modules.menuing import StartMenuNavigator, scroll_to_item_in_bag, scroll_to_party_menu_index
+    from modules.battle_move_replacing import _get_move_selection_cursor
+
+    target_move = item.tm_hm_move()
+    if target_move is None:
+        raise BotModeError(f"{item.name} does not teach a move.")
+
+    def _mon():
+        return get_party()[party_index]
+
+    if any(l is not None and l.move.name == target_move.name for l in _mon().moves):
+        return  # already knows it
+
+    if replace_slot is None:
+        moves = _mon().moves
+        replace_slot = 0
+        zero = [i for i, l in enumerate(moves) if l is not None and l.move.base_power == 0]
+        if zero:
+            replace_slot = zero[0]
+        else:
+            powers = [(l.move.base_power if l is not None else 999) for l in moves]
+            replace_slot = powers.index(min(powers))
+
+    context.message = f"Story: teaching {target_move.name} to {_mon().species.name}..."
+    yield from wait_until_truly_controllable()
+    yield from StartMenuNavigator("BAG").step()
+    yield from scroll_to_item_in_bag(item)
+
+    def _tasks() -> set:
+        try:
+            return {t.symbol for t in get_tasks()}
+        except Exception:
+            return set()
+
+    def _wait_for(task_name: str, *, press: str | None = None, cap: int = 900) -> Generator:
+        for _f in range(cap):
+            if task_name in _tasks():
+                return
+            if press and _f % 12 == 0:
+                context.emulator.press_button(press)
+            yield
+        raise BotModeError(f"Teach flow: {task_name} never appeared.")
+
+    from modules.tasks import get_tasks
+
+    context.emulator.press_button("A")  # item context menu
+    yield from wait_for_n_frames(20)
+    context.emulator.press_button("A")  # USE
+    yield from wait_for_n_frames(20)
+    yield from _wait_for("Task_CallYesOrNoCallback", press="A")   # ride 'Booted up an HM.'
+    context.emulator.press_button("A")  # YES, teach it
+    # The bag→party transition fades through a task-less state; keep tapping A like
+    # the probe did or the party menu can take >600 frames to materialize.
+    yield from _wait_for("Task_HandleChooseMonInput", press="A", cap=1200)
+    yield from scroll_to_party_menu_index(party_index)
+    context.emulator.press_button("A")
+    yield from wait_for_n_frames(30)
+    # Either it learns instantly (<4 moves) or the replace YES/NO comes up.
+    for _f in range(900):
+        t = _tasks()
+        if "Task_ReplaceMoveYesNo" in t and "Task_PrintAndWaitForText" not in t:
+            break
+        if "Task_PartyMenuReplaceMove" in t or "Task_HandleChooseMonInput" in t:
+            break  # instant learn path
+        if _f % 12 == 0:
+            context.emulator.press_button("A")
+        yield
+    def _knows() -> bool:
+        return any(l is not None and l.move.name == target_move.name for l in _mon().moves)
+
+    def _select_forget_slot() -> Generator:
+        # The overworld summary move-select CURSOR STARTS AT SLOT 0 (probed) — press
+        # Down exactly replace_slot times, then A. (_get_move_selection_cursor reads
+        # the battle/evolution variant and returns garbage here; trusting it walked
+        # the cursor onto CANCEL and bounced the flow into 'Stop trying to teach?'.)
+        yield from wait_for_n_frames(45)
+        for _ in range(replace_slot):
+            context.emulator.press_button("Down")
+            yield from wait_for_n_frames(8)
+        context.emulator.press_button("A")
+        yield from wait_for_n_frames(30)
+
+    if "Task_ReplaceMoveYesNo" in _tasks():
+        context.emulator.press_button("A")  # YES, replace a move
+        yield from _wait_for("Task_HandleReplaceMoveInput", press="A")
+        yield from _select_forget_slot()
+    # Ride the 'Poof!'/learned messages out STATE-AWARE (a blind A/B mash re-answers
+    # the yes/no prompts in a loop — run 3 ping-ponged between 'wants to learn' and
+    # 'Stop trying to teach?' until the frame cap died).
+    for _f in range(3000):
+        if _knows() and get_game_state() is GameState.OVERWORLD and player_avatar_is_controllable():
+            break
+        t = _tasks()
+        if "Task_StopLearningMoveYesNo" in t:
+            context.emulator.press_button("B")  # NO — never give up on the teach
+        elif "Task_ReplaceMoveYesNo" in t and not _knows():
+            context.emulator.press_button("A")  # YES — replace
+        elif "Task_HandleReplaceMoveInput" in t and not _knows():
+            yield from _select_forget_slot()
+            continue
+        elif _f % 3 == 0:
+            context.emulator.press_button("A")
+        else:
+            context.emulator.press_button("B")
+        yield
+    yield from wait_until_truly_controllable()
+    if not _knows():
+        raise BotModeError(f"Teach flow finished but {_mon().species.name} does not know {target_move.name}.")
+    context.message = f"Story: {_mon().species.name} learned {target_move.name}!"
+
+
 def get_rock_smash_hm() -> Generator:
     """Chapter 10a — HM06 Rock Smash from the Rock Smash Guy.
 
@@ -3610,6 +3731,67 @@ def get_rock_smash_hm() -> Generator:
     yield from _ride_out_all_scenes(quiet_frames=240)
     yield from _exit_small_interior()
     context.message = "Story: got HM06 Rock Smash!"
+
+
+def _smash_rock(map_enum, approach_tile, face_dir: str) -> Generator:
+    """Stand beside a breakable rock, face it, and Rock-Smash it through the field
+    prompt: A → 'This rock appears to be breakable. Use ROCK SMASH?' → riding the
+    scene with A answers YES and plays the smash. Requires a party mon knowing Rock
+    Smash + BADGE03 (both guaranteed by Segments 9c/10b)."""
+    yield from _navigate_riding_out(map_enum, approach_tile)
+    yield from wait_for_player_avatar_to_be_standing_still()
+    context.emulator.press_button(face_dir)
+    yield
+    yield from wait_for_n_frames(8)
+    context.emulator.press_button("A")
+    yield
+    # Ride the confirm + smash scene with A (B would answer NO to the prompt).
+    yield from _ride_out_scripted_scene("A", engage_timeout=180)
+    yield from wait_until_truly_controllable()
+
+
+def travel_to_fallarbor() -> Generator:
+    """Chapter 10c — Mauville → Fallarbor via Route 111 south, Fiery Path, Route 113.
+
+    INTENT: open the northern arc (Fallarbor → Meteor Falls → Mt. Chimney next).
+    HOW (§Ch10 route spec, decomp map.json sweep): Route 111 south to the staging tile
+    below the twin rocks → smash (18,101) then (19,100) → north to the Route 112
+    junction → Fiery Path south door at R112 (11,36) → tunnel (no trainers; the
+    Strength boulders only gate side alcoves) → north exit → Route 112 north → Route
+    113 west across the ash (Winstrate Victor, the Tori&Tia DOUBLE, and buried ninjas
+    are on-path — the battle listener fights them inline) → Fallarbor, ending HEALED
+    at its PC. R111-south's static plans can be walker-sealed at 1-wide chokes, so
+    every leg is a riding navigation that retries around scenes.
+    GOAL/END: healed in Fallarbor Town (checkpoint `fallarbor.ss1`)."""
+    FALLARBOR = MapRSE.FALLARBOR_TOWN.value
+
+    if _map_group_number() == FALLARBOR:
+        return
+    context.message = "Story: heading north — Route 111, Fiery Path, then Fallarbor..."
+    yield from wait_until_truly_controllable()
+    # Leg 1: to the staging tile below the twin rocks (crosses Victor's sight-line).
+    yield from _navigate_riding_out(MapRSE.ROUTE111, (18, 102))
+    # Leg 2: the rocks — (18,101) from below, then (19,100) from (19,101).
+    yield from _smash_rock(MapRSE.ROUTE111, (18, 102), "Up")
+    yield from _smash_rock(MapRSE.ROUTE111, (19, 101), "Up")
+    # Leg 3: through the opened gap and west into Route 112, into the Fiery Path.
+    yield from _navigate_riding_out(MapRSE.ROUTE111, (18, 99))
+    yield from _enter_warp_by_navigation(
+        lambda: _map_group_number() == MapRSE.FIERY_PATH.value,
+        MapRSE.ROUTE112, (11, 36), tries=6, label="Fiery Path south door",
+    )
+    yield from wait_until_truly_controllable()
+    # Leg 4: the tunnel, exiting the north door back onto upper Route 112.
+    yield from _enter_warp_by_navigation(
+        lambda: _map_group_number() == MapRSE.ROUTE112.value,
+        MapRSE.FIERY_PATH, (26, 4), tries=6, label="Fiery Path north exit",
+    )
+    yield from wait_until_truly_controllable()
+    # Leg 5: north to Route 113, then west across the ash to Fallarbor.
+    yield from _navigate_riding_out(MapRSE.ROUTE113, (30, 8))
+    yield from _navigate_riding_out(MapRSE.FALLARBOR_TOWN, (20, 10))
+    context.message = "Story: reached Fallarbor Town!"
+    yield from heal_in_pokemon_center(PokemonCenter.FallarborTown)
 
 
 def do_dewford_gym() -> Generator:

@@ -56,6 +56,8 @@ END_MARKERS = [
     # message contains an em-dash and encoding round-trips have corrupted it once.
     "Dynamo Badge earned",  # Ch9 content end (2026-07-22)
     "Rock Smash in hand",   # Ch10a content end (2026-07-22 overnight)
+    "Rock Smash taught",    # Ch10b content end (2026-07-22 overnight)
+    "reached Fallarbor",    # Ch10c content end (2026-07-22 overnight)
 ]
 FAIL_MARKERS = {
     "hang": "HANG CONFIRMED",
