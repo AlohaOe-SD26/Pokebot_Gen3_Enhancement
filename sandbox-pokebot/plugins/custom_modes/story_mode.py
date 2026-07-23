@@ -1333,11 +1333,20 @@ class StoryMode(BotMode):
             console.print("[dim]Story: already in Fallarbor — travel skipped.[/]")
         _guard("Fallarbor arrival (Ch10c)", lambda: _cur_map() in fallarbor_side)
 
-        # END OF BUILT CONTENT. Next build (Ch11): Meteor Falls cutscene → Mt. Chimney
-        # cable car → Team Magma/Aqua chain → Jagged Pass → Lavaridge (§Ch10-13 roadmap).
+        # --- Segment 11a: the Meteor Falls Magma cutscene (unblocks the Cable Car). ---
+        from modules.story.early_game import do_meteor_falls_scene
+
+        if not _done("HIDE_ROUTE_112_TEAM_MAGMA"):
+            yield from do_meteor_falls_scene()
+        else:
+            console.print("[dim]Story: Meteor Falls scene already done — skipping.[/]")
+        _guard("Meteor Falls scene (Ch11a)", lambda: _done("HIDE_ROUTE_112_TEAM_MAGMA"))
+
+        # END OF BUILT CONTENT. Next build (Ch11b-d): Cable Car → Mt. Chimney Magma
+        # chain (Maxie) → Jagged Pass down → Lavaridge Gym (§Ch11 spec).
         context.message = (
-            "Story: reached Fallarbor Town — end of built content. NEXT (WIP): Meteor "
-            "Falls -> Mt. Chimney -> Lavaridge. Handing to manual."
+            "Story: Meteor Falls scene done — end of built content. NEXT (WIP): Cable "
+            "Car -> Mt. Chimney -> Jagged Pass -> Lavaridge. Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()

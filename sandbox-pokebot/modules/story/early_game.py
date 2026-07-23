@@ -3794,6 +3794,61 @@ def travel_to_fallarbor() -> Generator:
     yield from heal_in_pokemon_center(PokemonCenter.FallarborTown)
 
 
+def do_meteor_falls_scene() -> Generator:
+    """Chapter 11a — the Meteor Falls Magma-steals-the-meteorite CUTSCENE (no battle
+    in Emerald; Archie cameos). Sets FLAG_HIDE_ROUTE_112_TEAM_MAGMA — which clears the
+    grunts blocking the Mt. Chimney Cable Car — and VAR_METEOR_FALLS_STATE=1.
+
+    HOW (§Ch11, decomp): Fallarbor → Route 114 west/south → the falls door at R114
+    (8,63) → land inside at (27,18) → walk WEST along the ledge to the single trigger
+    tile (14,18) (fires while VAR_METEOR_FALLS_STATE==0) → ride the scene out → back
+    outside. Completion: the HIDE flag (tear-resistant majority read)."""
+    from modules.memory import get_event_flag
+
+    def _scene_done() -> bool:
+        votes = 0
+        for _ in range(3):
+            try:
+                if get_event_flag("HIDE_ROUTE_112_TEAM_MAGMA"):
+                    votes += 1
+            except Exception:
+                pass
+        return votes >= 2
+
+    if _scene_done():
+        return
+    context.message = "Story: to Meteor Falls — Team Magma is up to something..."
+    yield from wait_until_truly_controllable()
+    if _map_group_number() != MapRSE.METEOR_FALLS_1F_1R.value:
+        # (8,64) = the swept two-way staging tile directly below the falls door (8,63)
+        # (the first pick (10,62) was unswept and unreachable — rule: sweep from the
+        # REAL entry, here Route 114's Fallarbor-side edge (39,10)).
+        yield from _navigate_riding_out(MapRSE.ROUTE114, (8, 64))
+        yield from _walk_through_warp("Up", MapRSE.ROUTE114.value)
+        yield from wait_until_truly_controllable()
+    yield from _navigate_riding_out(MapRSE.METEOR_FALLS_1F_1R, (15, 18))
+    # One step further west arms the (14,18) trigger; then ride the whole scene chain.
+    frames = 0
+    while not _scene_done():
+        _check_abort()
+        if get_global_script_context().is_active:
+            yield from _wait_until_cutscene_over("B")
+            yield from _ride_out_all_scenes(quiet_frames=300)
+        else:
+            context.emulator.press_button("Left")
+            yield
+        frames += 1
+        if frames > 9000:
+            raise BotModeError("Meteor Falls: the Magma scene never fired/completed.")
+    context.message = "Story: Magma stole the meteorite — the Cable Car road is clear."
+    # Leave the falls (back out the Route 114 door east of the trigger).
+    yield from _enter_warp_by_navigation(
+        lambda: _map_group_number() == MapRSE.ROUTE114.value,
+        MapRSE.METEOR_FALLS_1F_1R, (27, 18), tries=6, label="Meteor Falls exit",
+    )
+    yield from wait_until_truly_controllable()
+
+
 def do_dewford_gym() -> Generator:
     """Chapter 7b — Dewford Gym: beat Brawly for the Knuckle Badge (BADGE02, Gym 2).
 

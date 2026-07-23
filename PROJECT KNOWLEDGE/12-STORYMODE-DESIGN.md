@@ -24,7 +24,8 @@ Status key: ✅ built + validated · 🚧 scaffold/partial · 📋 mapped, not b
 | 10a | HM06 Rock Smash (Mauville SE house) | `get_rock_smash_hm` (+live-grid gym exit, `_exit_small_interior`) | `RECEIVED_HM_ROCK_SMASH` | ✅ (2026-07-22 overnight; `rocksmash_got.ss1`) |
 | 10b | Teach Rock Smash to the mule (starter) | `teach_hm_move` (probed overworld bag→party→summary chain) | party knows Rock Smash | ✅ (2026-07-22 overnight; `rocksmash_taught.ss1`) |
 | 10c | Route 111 rocks → Fiery Path → Route 113 → Fallarbor | `travel_to_fallarbor` + `_smash_rock` | in Fallarbor, healed | ✅ (2026-07-22 overnight; `fallarbor.ss1`) |
-| 11+ | Meteor Falls → Mt. Chimney → Lavaridge (Gym 4) → … | — | — | ⬜ (§Ch10–13 roadmap below) |
+| 11a | Meteor Falls Magma cutscene (unblocks the Cable Car) | `do_meteor_falls_scene` | `HIDE_ROUTE_112_TEAM_MAGMA` | ✅ (2026-07-22 overnight; `meteorfalls_done.ss1`) |
+| 11b+ | Cable Car → Mt. Chimney (Maxie) → Jagged Pass → Lavaridge (Gym 4) → … | — | — | ⬜ (§Ch11 spec ready) |
 
 **You are at the Ch10 boundary (2026-07-22).** `wattson_done.ss1` = Mauville Gym (5,3),
 BADGE03_GET + DEFEATED_MAUVILLE_GYM + DEFEATED_WALLY_MAUVILLE verified. Next: Ch10 —
