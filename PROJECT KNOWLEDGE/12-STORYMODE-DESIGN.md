@@ -72,6 +72,35 @@ plausible — VERIFY AT BUILD), `⚠ probe live`.
 Research-mapped 2026-07-22 (decomp WebFetches + static ROM recon; Gemini pass pending —
 see the outstanding question). Legend: `✓ decomp` / `✓ probe` / `✓ external` / `⚠ open`.
 
+### §Ch11 — Fallarbor → Meteor Falls → Mt. Chimney → Jagged Pass → Lavaridge (Gym 4) — BUILD SPEC (decomp sweep 2026-07-22 overnight)
+- **11a Meteor Falls scene**: Fallarbor → Route 114 WEST (Fallarbor connects at R114's
+  east edge; fishermen/hikers en route) → Meteor Falls door at **R114 (8,63)** → walk in
+  → the Magma-steals-meteorite CUTSCENE fires (NO battle in Emerald; Archie cameo) →
+  sets `FLAG_HIDE_ROUTE_112_TEAM_MAGMA` (unblocks the Cable Car!) + VAR_METEOR_FALLS_
+  STATE=1. Completion: that flag. Then exit and travel back east → south to Route 112.
+- **11b Mt. Chimney**: R112 Cable Car station warps at **(28-29,27)** → ride up (station
+  interior scene) → the Magma chain: Grunt1 → Grunt2 → Tabitha → **Maxie**
+  (`trainerbattle_no_intro`; PREP: band-train ~L24-27 + heal — Maxie: Mightyena 24 /
+  Zubat 24 / Camerupt 25). Completion: `FLAG_DEFEATED_EVIL_TEAM_MT_CHIMNEY`. Then TAKE
+  THE METEORITE from the machine (FLAG_RECEIVED_METEORITE — needed for TM27 later,
+  authentic pickup).
+- **11c Jagged Pass DOWN**: Mt. Chimney south exit warps → Jagged Pass top (13-14,5) →
+  descend (ONE-WAY ledges southbound — our direction; trainers Eric (10,8), Diana
+  (9,21), Autumn (14,25), Julio (18,25), Ethan (16,35)) → bottom warps (14-15,40) →
+  R112 lower (6-7,46) → WEST connection → **LAVARIDGE TOWN**. Heal at its PC.
+- **11d Lavaridge Gym (trapdoor maze)**: 24 warp events on 1F (full table fetched —
+  every trapdoor pairs to a B1F warp); **Flannery at (13,9)**; buried trainers Cole
+  (3,14)/Gerald (2,15)/Axle (3,10)/Danielle (5,2). The maze is STATICALLY solvable:
+  BFS the 1F↔B1F warp-pair graph (one-way holes = directional edges — the
+  `_walk_warp_chain` furthest-along machinery applies) to derive the hole sequence to
+  Flannery's platform. Flannery: Numel 24 / Slugma 24 / Camerupt 26 / Torkoal 29 —
+  Marshtomp's Water STAB is 2× on everything; prep band ~L26-29, WATER lead.
+  Completion: `BADGE04_GET`. THEN: the Go-Goggles scene (rival gives them outside the
+  gym — ⚠ verify trigger position) unlocks the desert; Ch12 = Petalburg (Norman).
+- ⚠ open (append to GEMINI-PROMPTS.md if build hits walls): Cable Car station interior
+  scripts (auto-scene or talk-to-attendant?); B1F warp-pair destination coords (fetch
+  LavaridgeTown_Gym_B1F/map.json at build time); Go-Goggles exact trigger.
+
 **Ch10 — Mauville → Fallarbor (via Fiery Path).**
 - Prereq: HM06 Rock Smash — `✓ decomp` (2026-07-22): **MauvilleCity_House1 = map (10,2),
   door at Mauville CITY (32,14)** (the SE house east of the Mart (23,14)→(10,7)); the
