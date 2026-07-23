@@ -25,6 +25,20 @@ the Gemini relay (profiles/GEMINI-PROMPTS.md Q1). Then correct `_plan()`'s landi
 edges, wire Segment 11d back (its wiring text is in the story file's comment), sync
 the "HEAT BADGE earned" marker (already in livetest END_MARKERS), validate from
 lavaridge.ss1 with SAVE_CHECKPOINT=BADGE04_GET:flannery_done.
+**MORNING QUEUE (grade/fix first, exact signatures):**
+1. Batch 8 run04: wedge at R111 (18,101) (the first rock tile) inside
+   `_smash_rock`'s A-ride (`_wait_until_cutscene_over` early_game.py:339); derails=4
+   suggest bail→re-enter→re-wedge cycles. FIX DIRECTION: make `_smash_rock`
+   idempotent (skip if the rock object is gone — live object/TEMP-flag check) and
+   replace the blind A-ride with A-few-then-wait + live passability verification.
+2. Batch 8 run05: Manual at (14,5) with DEFEATED_RIVAL_RUSTBORO=False and party
+   L19-20 — the rival trigger row apparently never armed (VAR never 7?) — check its
+   stdout derail texts; likely a missing PokéNav-tutorial state precondition
+   (different root than the fixed met-and-lost case).
+3. Then: Lavaridge trapdoor (Gemini Q1 / in-gym explorer), wire 11d, Ch12.
+Batches 7+8 (clean code): 2/5 fresh→LAVARIDGE each — the frontier rate is stable;
+INCOMPLETEs are pure training pace (#24-train-efficiency).
+
 **Batch cadence:** batch 6 (23:00, code eb165e23-DIRTY — mid-edit Ch11 state, my
 methodology slip: never launch a batch while editing) failed 4×HANG at post-museum
 stages; its first derails are known transients and its evidence is tainted — grade
