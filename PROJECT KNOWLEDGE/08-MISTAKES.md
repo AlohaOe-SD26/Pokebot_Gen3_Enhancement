@@ -768,3 +768,40 @@ raises a truthful error.
 **Prevention rule.** A generic recovery must first CHECK that the thing it recovers from
 is happening. An unconditional "wait for X to finish" on a path where X may never start is
 a hang with extra steps.
+
+## 2026-07-23 — "A" to advance dialogue re-opens it (the museum greeter loop)
+**Symptom.** On real hardware the bot entered Slateport's Oceanic Museum and looped at
+the greeter until it dropped to Manual. In-harness the same state cycled `Std_MsgboxNPC`
+for 8000 frames and then threw "Cutscene did not end".
+**Root cause.** Scene ride-outs press "A" so a Yes/No (the ¥50 fee) can't be declined.
+But A next to an NPC is not "advance text" — it STARTS a conversation. Each press
+dismissed the attendant's message and instantly re-opened it. Tracing the on-screen text
+settled it in one look: `'Please enjoy yourself.'` — the fee was already paid, so there
+was no choice to answer, only a message we kept re-requesting. A second, subtler window
+did the same thing: the helper also pressed during the non-controllable TAIL after a
+script ended, which re-triggers whoever we happen to be facing.
+**The fix that worked.** Resolve the button per frame: A only while a Yes/No or
+multichoice menu is actually on screen, B otherwise (B advances dialogue identically but
+can never initiate it). And press only when a script is running or a text printer is
+waiting on input — never during the tail.
+**Prevention rule.** Never mash A to get through dialogue. A is for answering a choice
+that is on screen NOW; use B to advance or dismiss. If a "wait for the scene to end"
+helper presses a button, it must first confirm there is something on screen to press it at.
+
+## 2026-07-23 — A greedy stepper is not a pathfinder (Dewford dock detour)
+**Symptom.** User watched the bot leave the Dewford Poké Center and take a scenic route
+east of the gym, loitering by the townsfolk for thousands of frames before finally
+talking to Briney. It eventually worked, which is why it survived earlier reviews.
+**Root cause.** Briney is STATIC at the dock, but the code used the wandering-NPC helper,
+whose known-spot fast path is `_step_to` — single greedy steps toward the target with
+perpendicular fallbacks and no route planning. Dewford has a wall band at y=10 (x=10-13)
+between the y=11 corridor and the dock, so "keep heading east then north" dead-ends and
+the fallbacks walk it into the south-east pocket. `_step_to` exists for a real reason
+(in tiny rooms, patrolling walkers make `calculate_path` report "no path"), but it was
+being used on a whole town.
+**The fix that worked.** Walk straight to the dock tile with the real pathfinder, face
+Briney, talk; keep the wandering procedure as a fallback. And in the helper itself, try
+the pathfinder before falling back to greedy stepping.
+**Prevention rule.** Match the walker to the space: pathfinder for anything room-sized or
+bigger, greedy stepping only inside a small room where the pathfinder is provably blocked
+by walkers. And when an NPC is static, don't reach for the wandering-NPC machinery at all.

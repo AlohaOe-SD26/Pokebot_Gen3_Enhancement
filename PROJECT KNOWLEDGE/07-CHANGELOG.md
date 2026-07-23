@@ -1953,3 +1953,41 @@ maze from the ROM's own map data, and Segment 11d wired into `StoryMode._play`.
   static solver, prints the canonical chain), `lavaridge_tiles_probe.py` (raw
   collision/elevation/behaviour grid — this is what exposed the ledges),
   `lavaridge_objects_probe.py`, `jaggedgrass_probe.py` (two-way training-tile sweep).
+
+## 2026-07-23 — Two real-hardware bugs from the user's DEBUG-RESET log: fixed + proven
+Both reported from `Story_DEBUG__RESET...062055.log` and reproduced in-harness first.
+- **Slateport museum "stuck looping at the greeter" — root cause: A is not "advance
+  text", it STARTS a conversation.** Ride-outs asked for "A" so a Yes/No (the ¥50 fee)
+  couldn't be declined. But standing beside the entrance attendant, every A dismissed
+  her message and immediately re-opened it. The trace made it obvious: text was
+  `'Please enjoy yourself.'` — the fee was already PAID — cycling `Std_MsgboxNPC`
+  forever until the ride-out hit its 8000-frame timeout and derailed to Manual.
+  FIX: new `_dialogue_button()` — a request for "A" now resolves per frame to **A only
+  while a Yes/No or multichoice menu is genuinely on screen, and B otherwise**. B
+  advances and dismisses dialogue identically but can never initiate one. Applies to
+  all five A-riding call sites, so the whole class is closed.
+  Also hardened `_wait_until_cutscene_over`: it no longer mashes during the
+  non-controllable TAIL of a dialogue (script already ended, control not yet settled) —
+  that window was a second way to re-trigger an adjacent NPC. It now presses only when
+  a script is actually running or a text printer is waiting on input, and it watches
+  the immediate script context as well as the global one.
+  PROVEN: `museumprobe2.py` reproduces the loop on `slateport.ss1` (raises after 8000
+  frames), and with the fix the same run dismisses the greeter once, walks (9,7)→(6,1)
+  to the stairs, completes the Stern/Archie scene and returns cleanly.
+- **Dewford: the walk back to the dock took a detour past the townsfolk.** Briney is
+  STATIC at the dock (12,9) — object id 2, confirmed in the ROM's object table — so the
+  wandering-NPC machinery was the wrong tool. Its `known_spot` fast path used `_step_to`,
+  a GREEDY stepper with no route planning: heading east along y=11 toward (11,9) it hits
+  the wall band at y=10 (x=10-13) and the fallbacks push it south into the (12,14)-(12,17)
+  pocket, where it loitered for thousands of frames (exactly the positions in the user's
+  log). FIX: `sail_to_slateport` now walks STRAIGHT to (11,9) with the real pathfinder,
+  faces Right and talks, with the wandering procedure kept only as a fallback; and
+  `_talk_to_wandering_npc`'s known-spot phase now tries the pathfinder before falling
+  back to greedy stepping, which fixes the class anywhere else it is used.
+  PROVEN: from `brawly_done.ss1` the dock leg is now a direct 10-tile walk (PC → y=11 →
+  (9,9) → (11,9) → Briney), then aboard.
+- Regression evidence: one 250k-frame run `brawly_done.ss1` → Dewford gym → sail →
+  Slateport → **museum delivered** → Route 110 rival → Mauville prep, still in Story
+  mode at the budget end, 1 self-recovered derail.
+- New tool `tools/story-dev/mapfacts.py` (`PROBE_MAPS=` env): warps + objects + a
+  passability grid for any map — how both root causes were pinned.

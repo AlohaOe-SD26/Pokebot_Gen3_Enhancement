@@ -26,12 +26,23 @@ Also fixed: a failed leg used to B-ride a nonexistent cutscene (18k-frame wedge,
 from Lavaridge (Jagged Pass one-way; Route 112 lower has no return). L29-31 wins but is
 marginal → #24-trainmap.
 
-**IN PROGRESS (user's real-HW log 2026-07-23, `Story_DEBUG__RESET...062055.log`) — two
-reported bugs, fix next:**
-1. **Dewford: pathing back to the dock after the gym still snags on that NPC.** The bot
-   does not need to return to the RIGHT side of the gym at all — it should go straight
-   to the dock.
-2. **Slateport: entering the Museum, it loops at the greeter.**
+**✅ FIXED (user's real-HW log 2026-07-23, `Story_DEBUG__RESET...062055.log`) — both
+reported bugs, reproduced in-harness then proven:**
+1. **Slateport museum greeter loop.** Root cause: "A" is not "advance text" — beside an
+   NPC it STARTS a conversation, so A-riding a plain message re-opened it forever (the
+   fee was already paid; the text was "Please enjoy yourself."). New `_dialogue_button()`
+   presses A only while a Yes/No/multichoice is on screen, B otherwise; ride-outs also no
+   longer mash during a dialogue's non-controllable tail. Closes the whole class.
+2. **Dewford detour to the dock.** Briney is STATIC at (12,9), but the code used the
+   wandering-NPC helper whose known-spot path is a GREEDY stepper — it dead-ended on the
+   y=10 wall band and wandered into the south-east pocket. Now walks straight to (11,9)
+   with the pathfinder and talks; the helper also tries the pathfinder before greedy
+   stepping. Dock leg is now a direct 10-tile walk.
+Proof: `museumprobe2.py` (repro → clean pass) + a 250k-frame `brawly_done.ss1` run
+through Dewford gym → sail → Slateport → museum delivered → Route 110 rival → Mauville
+prep, still in Story mode at the budget end, 1 self-recovered derail.
+New tool: `tools/story-dev/mapfacts.py` (warps + objects + passability grid for any map).
+⚠ Sandbox only — not promoted to custom (standing rule: promote on the user's explicit OK).
 
 **NEXT after those: Ch12** — the Go-Goggles scene outside the Lavaridge gym (⚠ verify
 the trigger position) → Route 111 desert → Petalburg (Norman). Start from

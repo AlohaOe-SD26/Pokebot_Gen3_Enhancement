@@ -30,13 +30,20 @@ from modules.modes.util import spin
 from modules.modes.util.global_navigation import navigate_to_anywhere
 from modules.modes.util.higher_level_actions import heal_in_pokemon_center
 from modules.modes.util.walking import (
+    ensure_facing_direction,
     navigate_to,
     wait_for_player_avatar_to_be_controllable,
     wait_for_player_avatar_to_be_standing_still,
 )
 from modules.player import get_player_avatar, player_avatar_is_controllable
 from modules.pokemon_party import get_party
-from modules.tasks import get_global_script_context, task_is_active
+from modules.tasks import (
+    get_global_script_context,
+    get_tasks,
+    get_immediate_script_context,
+    is_waiting_for_input,
+    task_is_active,
+)
 
 MAP_INSIDE_OF_TRUCK = "INSIDE OF TRUCK"
 # Map group/number constants (map_name reads stale across warps; use these).
@@ -312,6 +319,31 @@ def _current_map_name() -> str:
         return ""
 
 
+def _dialogue_button(button: str) -> str:
+    """Resolve the button to actually press this frame when riding out a scene.
+
+    ‼ Callers ask for "A" because a scene MIGHT contain a Yes/No they must accept (the
+    museum's 50 entry fee, Briney's sail confirmation). But A next to an NPC is not
+    just "advance text" — it STARTS a conversation. So A-mashing a plain message while
+    standing beside the speaker dismisses it and immediately re-opens it, forever: the
+    Slateport museum greeter loop the user hit on real hardware (2026-07-23), where the
+    attendant had already been paid and was cheerfully repeating "Please enjoy
+    yourself." until the ride-out timed out and derailed the story.
+
+    B advances and dismisses dialogue exactly like A but can never initiate one. So we
+    press A ONLY while a Yes/No or multichoice menu is genuinely on screen, and B for
+    everything else. Requests for B (the common case) pass straight through."""
+    if button != "A":
+        return button
+    try:
+        for task in get_tasks():
+            if "Multichoice" in task.symbol or "YesNo" in task.symbol:
+                return "A"
+    except Exception:
+        pass
+    return "B"
+
+
 def _wait_until_cutscene_over(button: str = "B", *, stable_frames: int = 15,
                               timeout_frames: int = 8000) -> Generator:
     """Mash ``button`` until the player is controllable AND no script is running,
@@ -321,14 +353,23 @@ def _wait_until_cutscene_over(button: str = "B", *, stable_frames: int = 15,
     brief windows where the script is 'active' but the avatar isn't locked yet
     (start of a script) or the avatar is locked while no script runs (a warp in
     between scripts). Requiring both conditions to hold for a short stretch means
-    we only stop once control has genuinely returned."""
+    we only stop once control has genuinely returned.
+
+    ‼ We press ONLY when there is genuinely something to advance (a script running,
+    or a text printer waiting on A/B). Mashing through the non-controllable TAIL of a
+    dialogue re-opens it when we happen to be facing an NPC: the script ends, control
+    has not settled, we press A, and the greeter starts talking again — forever, until
+    this helper times out and throws. That is the Slateport museum "stuck looping at
+    the greeter" the user reported on real hardware (2026-07-23). Waiting out the tail
+    in silence costs nothing and cannot re-trigger anyone."""
     stable = 0
     frames = 0
     while stable < stable_frames:
-        free = player_avatar_is_controllable() and not get_global_script_context().is_active
+        script_running = get_global_script_context().is_active or get_immediate_script_context().is_active
+        free = player_avatar_is_controllable() and not script_running
         stable = stable + 1 if free else 0
-        if not free:
-            context.emulator.press_button(button)
+        if not free and (script_running or is_waiting_for_input()):
+            context.emulator.press_button(_dialogue_button(button))
         frames += 1
         if frames > timeout_frames:
             raise BotModeError(
@@ -2281,7 +2322,20 @@ def _talk_to_wandering_npc(
         # talks). The adaptive observe-then-park procedure below stays as the fallback
         # if the fast path doesn't engage within the wait.
         if known_spot is not None and _round == 0:
-            yield from _step_to(known_spot)
+            # PATHFINDER FIRST, greedy stepping only as the fallback. `_step_to` takes
+            # single greedy steps with no route planning, so any wall between us and the
+            # spot sends it wandering into whatever pocket the fallbacks lead to — on
+            # real hardware (2026-07-23) that walked the bot from Dewford's Poké Center
+            # to the dead-end south-east of the dock (the wall band at y=10, x=10-13)
+            # and it loitered there for thousands of frames. The pathfinder handles a
+            # town fine; `_step_to` is only needed in tiny rooms where patrolling
+            # walkers make `calculate_path` report "no path" to plainly walkable tiles.
+            try:
+                yield from _navigate_riding_out(map_enum, known_spot, tries=3)
+            except BotModeError:
+                pass
+            if tuple(get_player_avatar().local_coordinates) != tuple(known_spot):
+                yield from _step_to(known_spot)
             for _f in range(900):
                 _check_abort()
                 yield from _try_talk_if_adjacent()
@@ -2757,6 +2811,11 @@ def deliver_stevens_letter() -> Generator:
 # boat, un-hides Briney+boat on ROUTE 109 (he lands you on the beach near (21,24)), and
 # Route 109 runs North straight into SLATEPORT_CITY (a long trainer-gauntlet beach).
 DEWFORD_DOCK_BRINEY_LOCAL_ID = 2
+# Briney stands STATIC at the Dewford dock (12,9); (11,9) is the tile beside him.
+# Route from the Poké Center: (2,10) -> y=11 east to x=5 -> north to y=9 -> east.
+# Never route along y=11 past x=7 (the Woman patrols (7,12)) or into the y=10 wall
+# band at x=10-13, which is the pocket the old greedy walker fell into.
+DEWFORD_DOCK_TALK_TILE = (11, 9)
 
 
 def sail_to_slateport() -> Generator:
@@ -2804,10 +2863,39 @@ def sail_to_slateport() -> Generator:
         #     "erratic movement right of the gym" the user watched was the old adaptive
         #     dance fighting through exactly that walker's wall). approach_hint loads
         #     the object when approaching from across town. ---
-        yield from _talk_to_wandering_npc(
-            MapRSE.DEWFORD_TOWN, DEWFORD_DOCK_BRINEY_LOCAL_ID,
-            approach_hint=(11, 9), known_spot=(11, 9),
-        )
+        # Briney is STATIC at the dock (12,9) in this story state — object id 2, probed
+        # live over 3600 frames and confirmed again from the ROM's object table. So walk
+        # STRAIGHT to the dock and talk; there is nothing to observe or ambush here.
+        # (User report, real hardware 2026-07-23: the bot was taking the scenic route
+        # east of the gym and loitering by the townsfolk. It does not need to go there.)
+        # The wandering-NPC procedure stays as the fallback for the case where he has
+        # moved or the object hasn't loaded.
+        engaged = False
+        for _try in range(3):
+            _check_abort()
+            try:
+                yield from _navigate_riding_out(MapRSE.DEWFORD_TOWN, DEWFORD_DOCK_TALK_TILE, tries=3)
+            except BotModeError:
+                break
+            if tuple(get_player_avatar().local_coordinates) != DEWFORD_DOCK_TALK_TILE:
+                continue
+            yield from wait_for_player_avatar_to_be_standing_still()
+            yield from ensure_facing_direction("Right")  # Briney is one tile east
+            for _f in range(120):
+                _check_abort()
+                if get_global_script_context().is_active:
+                    engaged = True
+                    break
+                context.emulator.press_button("A")
+                yield
+                yield from wait_for_n_frames(6)
+            if engaged:
+                break
+        if not engaged:
+            yield from _talk_to_wandering_npc(
+                MapRSE.DEWFORD_TOWN, DEWFORD_DOCK_BRINEY_LOCAL_ID,
+                approach_hint=DEWFORD_DOCK_TALK_TILE, known_spot=DEWFORD_DOCK_TALK_TILE,
+            )
         presses = 0
         while _map_group_number() == DEWFORD:
             _check_abort()
