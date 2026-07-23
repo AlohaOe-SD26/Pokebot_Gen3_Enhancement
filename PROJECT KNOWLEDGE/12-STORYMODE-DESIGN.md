@@ -72,6 +72,38 @@ plausible — VERIFY AT BUILD), `⚠ probe live`.
 6. **Completion**: `FLAG_BADGE03_GET` (+ `FLAG_DEFEATED_MAUVILLE_GYM`, TM34) `✓ external`;
    BADGE03 enables Rock Smash field use (needed later for Route 111+). `✓ external`
 
+### §Ch12+ EXTERNAL-RESEARCH LEADS — Norman → Champion (Gemini Deep Research 2026-07-23, ⚠ UNVERIFIED)
+> Source: the full-game commission (profiles/GEMINI-FULLGAME-RESEARCH.md — grading in its
+> run log: HIGH for step order/rosters/puzzle rules, MEDIUM for identifiers; several flag
+> names are phantom/wrong-dialect, so run `audit_flag_names.py` on EVERY name before
+> wiring, and decomp-verify each chapter with /validate-docs at build time).
+
+**Chapter chain:** Go-Goggles → Rt 111 desert → **Norman** (rooms gate on trainer
+defeats — script-drawn doors, live-grid class like Mauville; VAR `PETALBURG_GYM_STATE` ✓
+exists) → HM03 Surf from Wally's Dad → Surf Rt 118 (Steven beach trigger) → Rt 119 →
+**Weather Institute** (Shelly: Carvanha/Mightyena L28; sets `HIDE_ROUTE_119_TEAM_AQUA` ✓
+→ unblocks the bridge — hidden-prereq class) → Castform (‼ needs party space) → Rt 119
+rival (L29/29/31, gives Fly; ‼ completion flag name is PHANTOM — likely VAR-gated like
+Rt 110) → **Fortree** → Rt 120 Steven + Kecleon L30 → Devon Scope ✓ → **Winona**
+(Altaria L33 ace) → Rt 121 → **Mt. Pyre** (‼ interior tower is OPTIONAL — exterior path
+only) → Magma Emblem (‼ flag name unverified) → Jagged Pass hideout door (~(16,17-18);
+‼ ledge below = softlock back to Lavaridge — one-way class) → **Magma Hideout** →
+Maxie (Mightyena 37/Crobat 38/Camerupt 39; `HIDE_MAGMA_HIDEOUT_GRUNTS` ✓ exists) →
+**Lilycove** rival → **Aqua Hideout** (warp-pad GRAPH — parse map.json warps, no
+distance heuristics; Master Ball room en route) → Matt → sub departs
+(`TEAM_AQUA_ESCAPED_IN_SUBMARINE` 112 is OUR likely completion flag) → **Mossdeep**
+(Tate&Liza DOUBLE, Claydol/Xatu/Lunatone/Solrock 41-42; puzzle = colored switches
+rotate statue walls) → Space Center double w/ Steven (‼ claim: needs ≥3 conscious mons
+— verify) → HM08 Dive → Rt 128 dive → **Seafloor Cavern** (Strength SOKOBAN — wrong
+push = exit/re-enter resets; current tiles force-slide) → Archie (Sharpedo L43) →
+Kyogre escapes (`VAR SHOULD_END_ABNORMAL_WEATHER` ✓ exists) → **Sootopolis** → Wallace
+→ ‼‼ **SKY PILLAR FIRST VISIT HAS SOLID FLOORS** (`SKY_PILLAR_STATE` ✓ exists — NO
+Mach Bike puzzle in the story visit; cracked floors are post-game only. Do NOT build a
+bike solver for Ch-story) → Rayquaza → HM07 Waterfall → **Juan** (ice floors =
+HAMILTONIAN PATH per grid: every tile exactly once, fall = B1F + reset; Kingdra L46) →
+Victory Road (needs Surf/Waterfall/Strength/Rock Smash in party) → Wally VR (Gardevoir
+L45) → **E4**: Sidney/Phoebe/Glacia/Drake → Wallace (Milotic L58) → `SYS_GAME_CLEAR` ✓.
+
 ### §Ch10–13 ROADMAP — Mauville → Fallarbor → Mt. Chimney → Lavaridge (Gym 4) → Petalburg (Gym 5) → Surf
 Research-mapped 2026-07-22 (decomp WebFetches + static ROM recon; Gemini pass pending —
 see the outstanding question). Legend: `✓ decomp` / `✓ probe` / `✓ external` / `⚠ open`.

@@ -28,7 +28,9 @@ PYTHONUTF8=1 py story_harness.py <state|fresh> --driver <name> [--frames N] [--v
   `pokenavtut pokenavclear pokenavskip pokenavfaith sailrecon rivalretry saildewford`
   `shinytest` (fault-injection: forces wilds to read as SHINY → verifies the always-catch
   branch throws balls until Caught) · `storydebugreset` (runs the "Story (DEBUG - RESET)"
-  mode: hard reset → forced NEW GAME → intro)
+  mode: hard reset → forced NEW GAME → intro) · `hmtest` (fault-injection: patches the
+  party to "nobody can learn Rock Smash" → proves ensure_hm_learner hunts + catches a
+  learner and teaches it — run from rocksmash_got.ss1)
   (see the `choices=[...]` list + the `if args.driver == ...` dispatch, and the `*Mode` classes).
   **Add your own** driver class + a dispatch line for whatever you're isolating.
 - `--video` enables the BG/OBJ renderer — **required to drive app UIs** (PokéNav etc.); their
@@ -87,6 +89,8 @@ never rely on it across runs.)
   chooser (no emulator). The template for battle-strategy / pure-logic bug proofs.
 - `repro_shiny_noballs.py` — A/B proof (no emulator): out of balls MID-shiny → the shiny
   strategy FIGHTS ON while the ordinary catch strategy flees (both asserted).
+- `repro_hm_learner.py` — part A of the HM-learner proof: compatible-pick + ROM-derived
+  hunting grounds + fault-injected "nobody compatible" → hunt path. Part B = `--driver hmtest`.
 - `doorprobe.py` — resolve a map's warp destinations (which door is which).
 - `routeprobe.py` — reachability probe (which tiles a navigator can reach from a start).
 - `sailprobe.py` — walk-and-log a route (used to validate the Rustboro→Route104 crossing).

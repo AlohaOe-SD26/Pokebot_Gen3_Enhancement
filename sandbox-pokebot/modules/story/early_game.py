@@ -3650,6 +3650,135 @@ def _exit_small_interior() -> Generator:
         raise BotModeError("Could not exit the interior through any of its door warps.")
 
 
+# --- HM learner selection + acquisition (user directive 2026-07-23) ----------------
+# The Ch10b mule used to be "the highest-level mon", which loops in the teach menu the
+# moment the top mon can't learn the HM (the party menu just says NOT ABLE). The party
+# must be VALIDATED for compatibility first, and when nobody qualifies the bot must
+# know which accessible wild species can learn the move and go catch one. This is the
+# seed of the future HM-slave logic (#24-hm-slaves).
+
+# Species dex numbers the story's catch branch should catch ON SIGHT right now (an
+# HM-learner hunt in progress). Read by StoryMode.on_battle_started; empty = inactive.
+HM_CATCH_TARGET_DEX: set[int] = set()
+
+
+def hm_learner_slot(item) -> int | None:
+    """The party slot best suited to learn `item`'s HM/TM move: prefers a mon that
+    ALREADY knows it (idempotent re-runs), else the highest-level compatible mon.
+    None if nobody in the party can learn it."""
+    move = item.tm_hm_move()
+    best, best_level = None, -1
+    for i, mon in enumerate(get_party()):
+        if mon is None or mon.is_egg:
+            continue
+        if move is not None and any(
+            l is not None and l.move.name == move.name for l in mon.moves
+        ):
+            return i
+        if mon.species.can_learn_tm_hm(item) and mon.level > best_level:
+            best, best_level = i, mon.level
+    return best
+
+
+def _hm_hunting_grounds(item) -> list[tuple]:
+    """Training-grass areas whose LAND encounter table contains at least one species
+    that can learn `item`'s move — fully data-driven (ROM encounter tables + the
+    per-species TM/HM learnsets), so it stays correct for every future HM. Returns
+    [(map_enum, spin_tile, [species names]), ...] in TRAINING_GRASS order (all entries
+    there are two-way swept — the standing prevention rule)."""
+    from modules.map import get_wild_encounters_for_map
+    from modules.story.training_areas import TRAINING_GRASS
+
+    grounds = []
+    for map_enum, tile, _band in TRAINING_GRASS:
+        if tile is None:
+            continue
+        try:
+            enc = get_wild_encounters_for_map(*map_enum.value)
+        except Exception:
+            continue
+        if enc is None:
+            continue
+        names = sorted(
+            {
+                e.species.name
+                for e in enc.land_encounters
+                if e.species is not None and e.species.can_learn_tm_hm(item)
+            }
+        )
+        if names:
+            grounds.append((map_enum, tile, names))
+    return grounds
+
+
+def ensure_hm_learner(item) -> Generator:
+    """Return a party slot that can learn `item`'s move, CATCHING a compatible wild
+    if the current party has none: provision balls, walk to the nearest swept grass
+    hosting a learner species, and spin with the catch branch targeting exactly those
+    species until one joins the party. Bounded and truthful — a full party or an
+    unreachable learner raises instead of looping."""
+    global HM_CATCH_TARGET_DEX
+
+    from modules.items import get_item_bag
+
+    move = item.tm_hm_move()
+    slot = hm_learner_slot(item)
+    if slot is not None:
+        return slot
+
+    party_count = len([m for m in get_party() if m is not None])
+    if party_count >= 6:
+        # A catch would go to the PC, not the party — box management is #24-pc.
+        raise BotModeError(
+            f"No party mon can learn {move.name} and the party is full — "
+            f"needs PC box management (#24-pc) or a manual swap."
+        )
+
+    grounds = _hm_hunting_grounds(item)
+    if not grounds:
+        raise BotModeError(
+            f"No party mon can learn {move.name} and no swept training grass hosts "
+            f"a learner species — extend training_areas.TRAINING_GRASS first."
+        )
+    map_enum, tile, names = grounds[-1]  # last entry = furthest-progressed area = nearest to the frontier
+    context.message = f"Story: nobody can learn {move.name} — hunting {'/'.join(names)} on {map_enum.name}..."
+
+    if sum(s.quantity for s in get_item_bag().poke_balls) <= 1:
+        yield from provision_poke_balls()
+        if sum(s.quantity for s in get_item_bag().poke_balls) <= 1:
+            raise BotModeError(f"Cannot hunt a {move.name} learner: no Poké Balls and no money to buy any.")
+
+    yield from _navigate_riding_out(map_enum, tile)
+
+    from modules.pokemon import get_species_by_name
+
+    HM_CATCH_TARGET_DEX = {get_species_by_name(n).national_dex_number for n in names}
+    try:
+        before = party_count
+        deadline = 40000  # ~11 min of spinning; grass hosts the target at common slots
+        frames = 0
+
+        def _caught() -> bool:
+            return hm_learner_slot(item) is not None
+
+        def _stop() -> bool:
+            nonlocal frames
+            frames += 1
+            if frames > deadline:
+                return True
+            return _caught() or len([m for m in get_party() if m is not None]) > before
+
+        yield from _story_spin(_stop)
+    finally:
+        HM_CATCH_TARGET_DEX = set()
+
+    slot = hm_learner_slot(item)
+    if slot is None:
+        raise BotModeError(f"Hunted for a {move.name} learner but never caught one (timeout/balls).")
+    context.message = f"Story: caught a {move.name} learner — {get_party()[slot].species.name}!"
+    return slot
+
+
 def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Generator:
     """Teach an HM (or TM) from the bag to a party mon — the OVERWORLD flow, state-
     driven off the live-probed task chain (2026-07-22): open bag → item context (USE is
@@ -3671,6 +3800,17 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
 
     if any(l is not None and l.move.name == target_move.name for l in _mon().moves):
         return  # already knows it
+
+    # ‼ COMPATIBILITY GUARD (user report 2026-07-23): the party menu shows an
+    # incompatible mon as "NOT ABLE" and refuses the selection, which an A-mash
+    # experiences as an endless teach loop. Callers should pick the target with
+    # `hm_learner_slot()` / `ensure_hm_learner()`; this guard makes the failure
+    # truthful if they didn't.
+    if not _mon().species.can_learn_tm_hm(item):
+        raise BotModeError(
+            f"Teach flow: {_mon().species.name} cannot learn {target_move.name} — "
+            f"pick a compatible mon (hm_learner_slot/ensure_hm_learner)."
+        )
 
     if replace_slot is None:
         moves = _mon().moves

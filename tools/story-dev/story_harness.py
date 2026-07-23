@@ -31,7 +31,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "hmtest"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -828,6 +828,54 @@ class ShinyTestMode(BotMode):
         yield from spin(stop_condition=lambda: self._outcome is not None)
         log(f"[shinytest] RESULT: caught={self._caught} outcome={self._outcome} "
             f"balls_left={sum(s.quantity for s in get_item_bag().poke_balls)}")
+        while True:
+            context.emulator.press_button("B")
+            yield
+
+
+class HmTestMode(BotMode):
+    """FAULT-INJECTION (user report 2026-07-23): patch the CURRENT party to 'nobody can
+    learn Rock Smash' and run the real `ensure_hm_learner(HM06)` — it must derive the
+    hunting grounds from ROM data, walk there, catch a learner wild via the story catch
+    branch, and return its slot; then `teach_hm_move` must teach THAT mon. Success =
+    a compatible mon is in the party and knows Rock Smash at the end."""
+
+    def __init__(self):
+        super().__init__()
+        self._real_can_learn = None
+
+    @staticmethod
+    def name():
+        return "HmTest"
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryMode
+
+        shim = SimpleNamespace(_catch_team_target=4, _should_catch=lambda e: False)
+        return StoryMode.on_battle_started(shim, encounter)
+
+    def run(self):
+        from modules.items import get_item_by_name
+        from modules.pokemon import Species
+        from modules.pokemon_party import get_party
+        from modules.story import early_game
+
+        hm06 = get_item_by_name("HM06")
+        party_species = {m.species.name for m in get_party() if m is not None}
+        log(f"[hmtest] party={sorted(party_species)} — patching all of them to 'cannot learn'")
+        self._real_can_learn = real = Species.can_learn_tm_hm
+        Species.can_learn_tm_hm = (
+            lambda sp, tm_hm: False if sp.name in party_species else real(sp, tm_hm)
+        )
+        assert early_game.hm_learner_slot(hm06) is None, "patch did not take"
+        slot = yield from early_game.ensure_hm_learner(hm06)
+        mon = get_party()[slot]
+        log(f"[hmtest] HUNT OK: slot {slot} = {mon.species.name} L{mon.level} "
+            f"(really compatible: {real(mon.species, hm06)})")
+        yield from early_game.teach_hm_move(hm06, slot)
+        knows = any(l is not None and l.move.name == "Rock Smash" for l in get_party()[slot].moves)
+        log(f"[hmtest] TEACH OK: {mon.species.name} knows Rock Smash = {knows}")
+        log("[hmtest] RESULT: PASS" if knows else "[hmtest] RESULT: FAIL")
         while True:
             context.emulator.press_button("B")
             yield
@@ -1670,6 +1718,8 @@ for step in range(args.frames):
             context.bot_mode_instance = StoryDebugResetMode()
         elif args.driver == "cavetrain":
             context.bot_mode_instance = CaveTrainMode()
+        elif args.driver == "hmtest":
+            context.bot_mode_instance = HmTestMode()
         elif args.driver == "pokenavfaith":
             context.bot_mode_instance = PokenavFaithMode()
         elif args.driver == "martbuy":

@@ -584,6 +584,33 @@ class StoryMode(BotMode):
                 return LevelUpTravelBattleStrategy()
         except Exception:
             pass
+        # HM-LEARNER HUNT (user directive 2026-07-23): while ensure_hm_learner is
+        # spinning for a species that can learn a needed HM, catch it on sight —
+        # any story stage, needs only party room and a spare ball.
+        try:
+            from modules.story import early_game as _eg
+
+            if _eg.HM_CATCH_TARGET_DEX and encounter is not None and not getattr(encounter, "is_shiny", False):
+                from modules.items import get_item_bag
+                from modules.pokemon_party import get_party as _gp
+
+                sp = getattr(getattr(encounter, "pokemon", None), "species", None)
+                if (
+                    sp is not None
+                    and sp.national_dex_number in _eg.HM_CATCH_TARGET_DEX
+                    and len([m for m in _gp() if m is not None]) < 6
+                    and sum(sl.quantity for sl in get_item_bag().poke_balls) > 1
+                ):
+                    # ‼ local import required: later branches in this method import
+                    # `console` locally, which makes the name function-local EVERYWHERE
+                    # in the method — referencing the module-level one here raises
+                    # UnboundLocalError (and the except silently ate the catch).
+                    from modules.console import console
+
+                    console.print(f"[bold green]Story: catching {sp.name} — it can learn the HM we need![/]")
+                    return StoryCatchStrategy()
+        except Exception:
+            pass
         # PRE-GYM-1 CATCHING (user directive 2026-07-21): build an organic team by
         # catching NEW species (never a dup) while travelling to the first gym.
         try:
@@ -1306,8 +1333,13 @@ class StoryMode(BotMode):
             console.print("[dim]Story: HM06 Rock Smash already received — skipping.[/]")
         _guard("HM06 Rock Smash (Ch10a)", lambda: _done("RECEIVED_HM_ROCK_SMASH"))
 
-        # --- Segment 10b: teach Rock Smash to the mule — the highest-level mon (the
-        #     starter in practice; every starter mid-form learns it; #24-hm-slaves). ---
+        # --- Segment 10b: teach Rock Smash to a VALIDATED learner (user directive
+        #     2026-07-23): pick the highest-level party mon that can actually learn it
+        #     (the party menu shows an incompatible mon as NOT ABLE and refuses the
+        #     selection — the old highest-level pick loops there). If nobody in the
+        #     party qualifies, ensure_hm_learner hunts an accessible learner species
+        #     (data-driven from the ROM's encounter tables + TM/HM learnsets) and
+        #     catches one first. Seed of the HM-slave logic (#24-hm-slaves). ---
         def _party_knows_rock_smash() -> bool:
             try:
                 from modules.pokemon_party import get_party as _gp
@@ -1323,11 +1355,11 @@ class StoryMode(BotMode):
 
         if not _party_knows_rock_smash():
             from modules.items import get_item_by_name
-            from modules.pokemon_party import get_party as _gp
-            from modules.story.early_game import teach_hm_move
+            from modules.story.early_game import ensure_hm_learner, teach_hm_move
 
-            _levels = [(m.level if m is not None and not m.is_egg else -1) for m in _gp()]
-            yield from teach_hm_move(get_item_by_name("HM06"), _levels.index(max(_levels)))
+            _hm06 = get_item_by_name("HM06")
+            _slot = yield from ensure_hm_learner(_hm06)
+            yield from teach_hm_move(_hm06, _slot)
         else:
             console.print("[dim]Story: someone already knows Rock Smash — teach skipped.[/]")
         _guard("Teach Rock Smash (Ch10b)", _party_knows_rock_smash)

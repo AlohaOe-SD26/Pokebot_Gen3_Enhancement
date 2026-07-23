@@ -25,6 +25,8 @@ TRAINING_GRASS: list[tuple] = [
     (MapRSE.ROUTE101, (9, 9), (2, 3)),   # tile used by travel_to_route103()
     (MapRSE.ROUTE103, (5, 7), (2, 4)),   # ROUTE103_GRASS_TILE (Segment 1 training)
     (MapRSE.ROUTE116, (11, 7), (6, 8)),  # RUSTBORO_TRAINING_GRASS (pre-Roxanne)
+    (MapRSE.ROUTE117, (31, 16), (13, 14)),  # ROUTE117_TRAINING_GRASS (Ch9 Wattson prep;
+    # two-way swept FROM the real entry 2026-07-22 — the Mauville-frontier ground)
 ]
 
 # Level ranges known, spin tile still to be MAPPED (fill tile as the map is reached):

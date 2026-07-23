@@ -168,4 +168,30 @@ Score it the way the Ch9 relay was scored, and record the verdict here:
 ### Run log
 | date | model / mode | chapters covered | grade | notes |
 |------|--------------|------------------|-------|-------|
-| (pending) | Gemini Deep Research | — | — | first full-game attempt, commissioned 2026-07-23 |
+| 2026-07-23 | Gemini Deep Research | Norman → Champion (11 chapters); early game explicitly deferred to a Prompt 2 follow-up | **B+ / HIGH for planning, MEDIUM for identifiers** | Full verdict below. Leads folded into 12-STORYMODE-DESIGN §Ch12+ as ⚠ unverified-external. |
+
+**2026-07-23 grading detail (spot-checked against `modules/data/event_flags/emerald.txt` + `event_vars/emerald.txt` — ROM-derived, local):**
+- ✅ VERIFIED identifiers: `BADGE05_GET`…`BADGE08_GET`, `RECEIVED_CASTFORM` (151),
+  `RECEIVED_DEVON_SCOPE` (285), `HIDE_ROUTE_119_TEAM_AQUA` (890), `SYS_GAME_CLEAR`
+  (2148), `HIDE_MAGMA_HIDEOUT_GRUNTS` (857), `VAR SHOULD_END_ABNORMAL_WEATHER` (57),
+  `PETALBURG_GYM_STATE` (133), `SKY_PILLAR_STATE` (202). Battle rosters (Norman,
+  Shelly, Maxie, Winona, Juan, Wally VR, the full E4 + Wallace) all match known
+  Emerald values.
+- ❌ PHANTOM / WRONG-DIALECT identifiers (the exact class that burned us on Ch9a —
+  run `audit_flag_names.py` on EVERY name before wiring): `FLAG_RECEIVED_HM02/03/07/08`
+  (ours: `RECEIVED_HM_FLY/SURF/WATERFALL/DIVE`), `FLAG_DEFEATED_RIVAL_ROUTE119`
+  (no such flag — likely VAR-gated like Route 110's rival), `FLAG_RECEIVED_MAGMA_EMBLEM`
+  (absent from our table), `FLAG_HIDE_LILYCOVE_HIDEOUT_SUBMARINE` (ours:
+  `TEAM_AQUA_ESCAPED_IN_SUBMARINE` 112 — probably the real completion signal).
+- ⭐ HIGH-VALUE puzzle RULES delivered as commissioned: Fortree turnstile rotation
+  states (persist across gym exits!), Aqua Hideout warp-pad graph ("distance
+  heuristics fail" — matches our Lavaridge lesson), Mossdeep switch↔statue collision,
+  Seafloor Cavern Sokoban + exit-and-re-enter reset, Sootopolis Hamiltonian ice path,
+  and THE Sky Pillar trap (first story visit has SOLID floors — no Mach Bike puzzle;
+  post-game only). Also: Mt. Pyre interior is optional (skip the tower), the Jagged
+  Pass hideout-entrance ledge softlock, and the Space Center double battle needing
+  ≥3 conscious mons (UNVERIFIED — check the decomp before relying on it).
+- ⚠ Known-answer control NOT yet performed — the response deliberately skipped our
+  built chapters. Relay PROMPT 2 asking for the early game to complete the grading.
+- VERDICT: re-running this periodically is WORTH IT for step order, rosters, gotchas
+  and puzzle rules; treat every internal identifier as a lead for audit_flag_names.

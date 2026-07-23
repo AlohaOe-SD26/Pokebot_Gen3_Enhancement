@@ -54,6 +54,27 @@ New tool: `tools/story-dev/mapfacts.py` (warps + objects + passability grid for 
   ahead of the build frontier. Grade the result with the procedure in that file (including
   a known-answer control from an already-built chapter) and record it in its run log.
 
+**2026-07-23 (day, cont.) — user's fresh-start test graded + HM-learner fix + Gemini full-game:**
+- User's fresh run reached Mauville/Rock Smash cleanly; their report exposed the Ch10b
+  design flaw: the HM mule was picked by LEVEL, not compatibility (party menu loops on
+  NOT ABLE when the top mon can't learn it — e.g. any Swellow-led party). FIXED +
+  A/B-PROVEN: `hm_learner_slot` (compatible pick) + `ensure_hm_learner` (derives hunting
+  grounds from ROM encounter tables × learnsets, provisions balls, catches a learner via
+  the new HM_CATCH_TARGET_DEX on-sight catch branch) + `teach_hm_move` truthful
+  compat guard. Proof: repro_hm_learner.py + `--driver hmtest` (fault-injected party →
+  hunted Rt 117 → caught Poochyena → taught Rock Smash, PASS). Watch out for the
+  function-local-import shadowing lesson in 08-MISTAKES.
+- **Gemini full-game Deep Research response GRADED B+** (run log + detail in
+  profiles/GEMINI-FULLGAME-RESEARCH.md): step order/rosters/puzzle-rules HIGH (Sky
+  Pillar first-visit-solid-floors trap, Fortree turnstile persistence, Aqua warp graph,
+  Seafloor Sokoban reset, Sootopolis Hamiltonian ice); identifiers MEDIUM — several
+  phantom flags, audit_flag_names.py is mandatory before wiring any of them. Leads
+  folded into design §Ch12+ (⚠ unverified-external). PROMPT 2 (early-game check =
+  the known-answer control) not yet relayed.
+- New punch-list futures from the user: #24-provisions (potions/strategic healing),
+  #24-tms, #24-pokeprofiles (per-species battle profiles via batched overnight research
+  + Gemini cross-referencing), #24-economy. All noted for later — not next work.
+
 **NEXT after those: Ch12** — the Go-Goggles scene outside the Lavaridge gym (⚠ verify
 the trigger position) → Route 111 desert → Petalburg (Norman). Start from
 `flannery_done.ss1`. `END_MARKERS` in livetest.py already carries "HEAT BADGE earned";

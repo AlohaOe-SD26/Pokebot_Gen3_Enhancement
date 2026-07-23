@@ -805,3 +805,33 @@ the pathfinder before falling back to greedy stepping.
 **Prevention rule.** Match the walker to the space: pathfinder for anything room-sized or
 bigger, greedy stepping only inside a small room where the pathfinder is provably blocked
 by walkers. And when an NPC is static, don't reach for the wandering-NPC machinery at all.
+
+## 2026-07-23 — The HM mule was picked by level, not by compatibility
+**Symptom.** User report from a fresh-start real-HW run: the Rock Smash teach can loop
+forever in the party menu. In our own logs the teach always worked — because Marshtomp
+(compatible) happened to be the highest-level mon in every test party.
+**Root cause.** Segment 10b taught `max(levels)` with no compatibility check. The party
+menu shows an incompatible mon as NOT ABLE and refuses the selection — an A-mash
+experiences that as an endless loop. Swellow (a routine catch that often outlevels the
+starter mid-game) cannot learn Rock Smash: the trigger was party-composition luck.
+**The fix that worked.** Pick by compatibility (`hm_learner_slot`), hunt+catch a learner
+when the party has none (`ensure_hm_learner`, grounds derived live from encounter tables
+× learnsets), and make `teach_hm_move` refuse an incompatible target truthfully.
+**Prevention rule.** Any selection that feeds a game menu must validate against the
+menu's own acceptance rule first — "best by our metric" is not "accepted by the game".
+
+## 2026-07-23 — A silent except turned a scope bug into 252 wasted encounters
+**Symptom.** The new HM-learner catch branch never fired: the hunt fought 252 wilds for
+120k frames and caught nothing. No error anywhere.
+**Root cause.** The branch read the module-level `console`, but LATER branches in the
+same method do `from modules.console import console` locally — Python therefore treats
+`console` as function-local for the WHOLE method, so the early reference raised
+UnboundLocalError… which the branch's own defensive `except Exception: pass` swallowed
+on every single encounter.
+**The fix that worked.** Import `console` locally in the branch; found in minutes once
+the except was temporarily instrumented to print the exception.
+**Prevention rule.** Two rules. (1) A function-local import shadows the name for the
+entire function — check the whole method before referencing a module-level name that is
+also imported locally anywhere in it. (2) A `try/except: pass` around a DECISION means
+failure = silently wrong behaviour, not a crash — when a decision branch mysteriously
+never fires, instrument the except FIRST; don't re-derive the conditions by eye.

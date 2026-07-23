@@ -481,3 +481,59 @@
       plan/map/test loop as story chapters + a design discussion with the user
       on the acquisition theater BEFORE building. Endgame content — schedule
       after the main story skeleton reaches the Elite Four.
+
+- [x] #24-hm-learner — HM TEACH VALIDATION + LEARNER ACQUISITION (user report
+      2026-07-23, DONE same day): Segment 10b used to teach the HIGHEST-LEVEL mon,
+      which loops in the party menu (NOT ABLE) whenever that mon can't learn the
+      HM. Now: `hm_learner_slot(item)` picks the best COMPATIBLE party mon;
+      `ensure_hm_learner(item)` hunts + catches an accessible learner species when
+      the party has none (grounds derived live from ROM encounter tables ×
+      TM/HM learnsets — nothing hardcoded, works for every future HM);
+      `teach_hm_move` hard-fails truthfully on an incompatible target. A/B-proven
+      (repro_hm_learner.py + the hmtest harness driver: fault-injected
+      "nobody compatible" → hunted Route 117 → caught Poochyena → taught it).
+      Feeds directly into #24-hm-slaves (the acquisition half now exists).
+
+- [ ] #24-provisions — HEALING-ITEM PROVISIONING + STRATEGIC HEALING (user
+      directive 2026-07-23): alongside Poké Balls, buy POTIONS (the best tier
+      available at the local mart — Potion→Super→Hyper→Full Restore as the
+      frontier advances) and keep a sensible stock; then use them with intent:
+      in-battle healing when a sweep is worth saving, between-battle healing in
+      places with no PC (Victory Road, THE ELITE FOUR — vanilla players stock up
+      at the League mart precisely for this). Extends the buy-at-mart machinery
+      (shop-agnostic `_mart_item_row` already reads stock live). Design note:
+      gate on money reserve like balls; a heal-item strategy layer slots into
+      the battle strategies where flee/switch decisions already live. NOT urgent
+      (the fight→train→retry loop carries the mid-game) — required before the E4.
+
+- [ ] #24-tms — TM ACQUISITION + USAGE (user directive 2026-07-23): TMs arrive as
+      gym rewards (TM39 Roxanne, TM08 Brawly...), ground items, and mart stock;
+      the bot should track what's in the bag, know single-use vs HM reuse, and
+      teach them via the SAME validated teach flow (teach_hm_move already takes
+      any TM item + hm_learner_slot generalizes — the missing piece is the
+      DECISION layer: which TM to which mon, driven by the move-priority system
+      (#24-movelock v2) and later the per-Pokémon profiles (#24-pokeprofiles)).
+
+- [ ] #24-pokeprofiles — PER-POKÉMON BATTLE PROFILES, deep-research program (user
+      directive 2026-07-23): build a detailed profile for EVERY Emerald-obtainable
+      species (217 + evolution lines; census in emerald_obtainability.json):
+      goal moveset(s) with priority order, how each move is obtained (level-up /
+      TM+where / HM / tutor), training plan (when to evolve, what to delay),
+      battle role (sweeper/wall/HM mule), and priority tiers so the bot knows
+      WHICH mon to invest in. Execution model per the user: OVERNIGHT AUTONOMOUS
+      RESEARCH in batches (10-20 species — tune for accuracy over speed), with
+      self-generated Gemini assistant prompts BOTH when stuck AND routinely for
+      cross-referencing/verification of my own conclusions; results verified
+      against modules/data (learnsets/TM-compat are already in the bot) before
+      being written. Output doubles as the reference layer for the sibling
+      Pokémon Emerald AI project (Pokemon_Emerald_AI_Notes.md). Prereq for the
+      full #24-tms decision layer and the "proper battling" endgame; schedule
+      after the story skeleton is deeper.
+
+- [ ] #24-economy — CASHFLOW MAINTENANCE (user directive 2026-07-23, extends the
+      planning doc's money-reality note): keep a healthy balance for balls +
+      potions + TMs across the whole run — trainer payouts (the main income; no
+      Vs Seeker in Emerald), Amulet Coin when obtainable, selling vendor trash
+      (Nuggets/Pearls/Stardust from Pickup — Zigzagoon/Linoone party slot is a
+      passive income engine), and mart budgeting against the reserve. Design
+      with #24-provisions; both consult one Resource Ledger (doc 13 spec).

@@ -2016,3 +2016,43 @@ touched the emulator, profiles, or save states).
   than a single solution route, so the bot can re-solve from any position. Includes a
   continuation prompt for truncated runs, a grading procedure with a known-answer control,
   and a run log. Referenced from 15-ESCALATION-RESEARCH.md.
+
+## 2026-07-23 — HM teach made compatibility-aware + learner acquisition (user report) + Gemini full-game graded
+- **The Rock Smash teach flaw (user's fresh-start test):** Segment 10b taught "the
+  highest-level mon" with no compatibility check — an incompatible top mon (e.g. a
+  Swellow-led party; Swellow CANNOT learn Rock Smash) loops in the party menu on
+  NOT ABLE. (In the user's own log the pick happened to be Marshtomp and succeeded —
+  the flaw is real, the trigger is party-composition luck.)
+- **Fix, three layers, all data-driven from the ROM (works for every future HM/TM):**
+  (1) `hm_learner_slot(item)` — highest-level party mon that CAN learn it (prefers one
+  that already knows it, so re-runs are idempotent); (2) `ensure_hm_learner(item)` —
+  when the party has nobody: derives hunting grounds (swept TRAINING_GRASS tiles whose
+  land encounter tables contain a learner species — encounter tables × TM/HM learnsets,
+  zero hardcoding), provisions balls if short, walks there, and catches a learner via a
+  new on-sight catch branch keyed on `HM_CATCH_TARGET_DEX`; (3) `teach_hm_move` now
+  hard-fails truthfully on an incompatible target instead of looping the menu.
+  Route 117 (31,16) added to TRAINING_GRASS (two-way swept during Ch9).
+- **A/B PROOF:** `repro_hm_learner.py` (part A: real party → picks Marshtomp L24, slot 0,
+  the highest COMPATIBLE — and shows Swellow=False, the latent trigger; grounds derived:
+  Rt 101/103/116/117 with real learner lists) + `--driver hmtest` (part B: whole party
+  fault-injected to "cannot learn" → hunted Route 117 → CAUGHT a wild Poochyena →
+  TAUGHT it Rock Smash — end-to-end through the faithful loop, RESULT: PASS).
+- **Bug found on the way (own goal):** the new catch branch referenced the module-level
+  `console`, but later branches in the same method import it locally — Python makes the
+  name function-local EVERYWHERE, so the branch raised UnboundLocalError which the
+  defensive `except` silently ate: 252 encounters, zero catches, no error. Lesson logged
+  (08-MISTAKES): a swallowed exception in a decision branch fails as silent wrong
+  behaviour — instrument the except before trusting the conditions.
+- **Gemini full-game response GRADED** (run log in GEMINI-FULLGAME-RESEARCH.md):
+  B+ — HIGH for step order, rosters, gotchas and the commissioned puzzle RULES (Fortree
+  turnstiles, Aqua warp graph, Mossdeep statues, Seafloor Sokoban+reset, Sootopolis
+  Hamiltonian ice, and the Sky Pillar first-visit-solid-floors trap); MEDIUM for
+  identifiers — several phantom/wrong-dialect flag names (`FLAG_RECEIVED_HM03` etc.,
+  `FLAG_DEFEATED_RIVAL_ROUTE119`) — every name goes through audit_flag_names.py before
+  wiring. Spot-checked 10+ identifiers against our ROM-derived tables. Leads folded into
+  12-STORYMODE-DESIGN §Ch12+ (⚠ unverified-external). Known-answer control still
+  pending — relay PROMPT 2 (early game) to complete the grading.
+- **New punch-list futures** (user directives): #24-provisions (potions + strategic
+  healing, E4 stocking), #24-tms (TM decision layer), #24-pokeprofiles (per-Pokémon
+  battle profiles via batched overnight research + Gemini cross-referencing; doubles as
+  the sibling AI project's reference layer), #24-economy (cashflow). #24-hm-learner DONE.
