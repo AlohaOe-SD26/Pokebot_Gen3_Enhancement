@@ -578,3 +578,12 @@
       it beats a current move" (#24-tms/#24-movelock), not merely "compatible", or
       we poison battlers' movesets. Strength (80BP) is the counter-example where
       multi-teach genuinely pays. Build after the TM decision layer exists.
+
+- [ ] #24-flannery-grind (OBSERVATION, not a bug — 2026-07-23 milestone run): from the
+      Lavaridge milestone (weak fixed team L29), Flannery took 3 boss-training whiteouts
+      (L29→L32) before the win — grass-less gym + tanky Torkoal + optimistic sufficiency
+      gate + team re-solves the trapdoor maze each retry (~22k frames/solve). Working as
+      designed (reactive net ground out the win, 0 derails), but slow FROM A WEAK
+      milestone team; a real fresh run arrives stronger. If it proves annoying later:
+      a stronger prep floor for grass-less tanky-ace gyms, or full-team survivability
+      in the sufficiency gate (consult flagged Torkoal's bulk+Sunny Day). Low priority.
