@@ -3676,7 +3676,19 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
         else:
             context.emulator.press_button("B")
         yield
+    # HARD menus-closed guarantee: the ride above can expire with the BAG still open
+    # (seen on a 5-mon roll, batch run02) — and neither the derail recovery nor the
+    # global watchdog can close a bag (they ride SCRIPTS; a menu isn't one). B out
+    # until the overworld is truly back, bounded.
+    for _f in range(1200):
+        if get_game_state() is GameState.OVERWORLD:
+            break
+        context.emulator.press_button("B")
+        yield
+        yield
     yield from wait_until_truly_controllable()
+    if get_game_state() is not GameState.OVERWORLD:
+        raise BotModeError("Teach flow: could not close the menus back to the overworld.")
     if not _knows():
         raise BotModeError(f"Teach flow finished but {_mon().species.name} does not know {target_move.name}.")
     context.message = f"Story: {_mon().species.name} learned {target_move.name}!"

@@ -725,6 +725,19 @@ class StoryMode(BotMode):
                         # first, so waiting for a STABLE controllable window here lets a
                         # SINGLE recovery ride out the whole stall instead of burning many
                         # rapid derail cycles toward Manual.
+                        # Close any STRAY MENU first (an open bag/party menu is not a
+                        # script — nothing else in the recovery can close it, and a
+                        # navigator driving under an open bag wedges forever; batch
+                        # run02 2026-07-22). Bounded B-presses until the overworld.
+                        from modules.memory import GameState as _GS
+                        from modules.memory import get_game_state as _ggs2
+
+                        for _f in range(900):
+                            if _ggs2() is _GS.OVERWORLD:
+                                break
+                            context.emulator.press_button("B")
+                            yield
+                            yield
                         yield from wait_until_truly_controllable(timeout_frames=3000)
                         yield from exit_building_after_whiteout()
                         # Cave-stranded derails (a heal/nav plan-failed from INSIDE the
