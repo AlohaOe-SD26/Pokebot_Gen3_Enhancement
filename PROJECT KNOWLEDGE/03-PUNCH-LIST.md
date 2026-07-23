@@ -555,3 +555,15 @@
       verifier / synthesizer) with standard prompts, cross-checking rules, and when
       to escalate models (3.1-pro vs flash). Candidate first use: the #24-pokeprofiles
       overnight batches. Refine WITH Gemini agents when picked up.
+
+- [ ] #24-rare-catch — RARITY-TIERED OPPORTUNISTIC CATCHING (user 2026-07-23, future):
+      extend the catch branch beyond team-building phases: RARE species (low
+      encounter-slot %, version exclusives, one-shot statics) should be caught on
+      sight when NOT yet owned, in ANY phase (training, traveling) — party room +
+      spare balls permitting, same gating style as the HM-learner hunt. An ULTRA-RARE
+      tier (the user's example: a MALE Skitty — a 2%-slot species × 25% male gender
+      roll) is attempted on EVERY encounter, shiny-style, even if the species is
+      already owned. Needs: a rarity classifier (encounter-table slot % from the ROM
+      data × gender-ratio math — all derivable, no hand lists), tier thresholds to
+      agree with the user, and integration ordering vs the shiny branch (shiny stays
+      first). Pairs with #43 opportunistic catching + the Living-Dex orchestrator.
