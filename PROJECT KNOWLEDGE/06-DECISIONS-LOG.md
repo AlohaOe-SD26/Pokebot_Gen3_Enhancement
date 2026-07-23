@@ -148,3 +148,16 @@ builds the chamber graph, and BFSes it from wherever the player actually stands.
   chain is printed by `tools/story-dev/lavaridge_gym_solve.py` for review either way.
 **Why it matters beyond this gym.** Every remaining warp/terrain puzzle (Sky Pillar,
 Mossdeep, Sootopolis ice) is the same shape: read the behaviours, build the graph, solve.
+
+## 2026-07-23 — Research answers never supply numbers the ROM already knows
+**Decision.** All external research (Gemini app relays, the new API relay, any future
+source) is consumed as JUDGMENT + SOURCING only: which moves/mons/TMs matter and why.
+Every machine-checkable number (learnset levels, TM/HM compatibility, stats) is derived
+from `modules/data/` at build time, never copied from a research answer.
+**Basis (measured, not vibes):** the Batch-1 grading — TM-compat claims 98% right but
+level claims only 42% right, with some flatly invented; and the API relay's own first
+test got both asked-for levels wrong. Three sources gave three different numbers for the
+same fact; only the ROM extraction is authoritative.
+**Alternative rejected:** trusting well-cited research numbers and spot-checking. Rejected
+because the error rate is high enough that spot-checks would miss real errors, and the
+machine check is nearly free (`grade_pokeprofiles.py` is the template).

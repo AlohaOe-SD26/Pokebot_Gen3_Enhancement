@@ -159,4 +159,32 @@ explicit list of anything you did NOT cover.
 ### Run log
 | date | model / mode | deliverables covered | grade | notes |
 |------|--------------|----------------------|-------|-------|
-| (pending) | Gemini Deep Research | — | — | commissioned 2026-07-23; awaiting the user's relay |
+| 2026-07-23 | Gemini Deep Research | A (full TM/HM/tutor registry) + B (tiers) + C (18 of 20 lines; Seedot + Nincada cut per the depth rule) | **B — judgment HIGH, TM-compat 98%, level claims 42% (unreliable)** | Machine-checked; detail below. Raw response archived in GEMINI-POKEPROFILES-RESPONSE-2026-07-23.md. |
+
+**2026-07-23 grading detail** (machine check = `tools/story-dev/grade_pokeprofiles.py`,
+98 claims verified against the ROM-extracted learnsets/TM-compat in `modules/data/`):
+- **TM/HM compatibility: 59/60 PASS (98%).** Only miss: the registry lists Swellow as
+  contesting TM30 Shadow Ball — Swellow CANNOT learn it. Every other compat claim
+  (including subtle ones: Hariyama-Surf, Azumarill-Iron Tail, Crobat-Shadow Ball,
+  Exploud-Flamethrower/Ice Beam, the Tropius/Tentacool mule sets) checks out.
+- **Level-up levels: 16/38 PASS (42%) — DO NOT TRUST.** Errors range from off-by-a-few
+  (Makuhita Vital Throw 10→13, Pelipper Protect 33→25) to flat inventions (Kirlia does
+  not learn Reflect by level; Hariyama does not learn Cross Chop by level at all).
+  RULE: every level number in any research response is DERIVED FROM modules/data at
+  build time — research supplies which moves matter, our ROM data supplies when.
+- **Judgment layer (the real deliverable): HIGH.** The Gen 3 anchors are correct
+  (physical/special by type, incl. the traps: Dark special → Mightyena's Bite is weak;
+  Poison physical → Crobat's Sludge Bomb is strong; Huge Power boosts Attack but Surf
+  is special → Azumarill's Water STAB is a trap). Standout bot-relevant insights:
+  Truant+Hyper Beam recharge overlap (Slaking spams it drawback-free), Guts+Facade
+  poison strategy for Swellow, Vital Throw's no-miss property removing accuracy
+  variance, Ralts/Abra needing switch-training until their first attack, Vileplume >
+  Bellossom (keeps Poison typing for physical Sludge Bomb), Game Corner TMs being
+  effectively repeatable via coin purchases (bot can grind money → infinite
+  Thunderbolt/Ice Beam/Flamethrower/Psychic — a big allocation-pressure release).
+- **Not machine-checkable (spot-check at build time):** TM locations/prices (the
+  R/S-vs-Emerald confusion class — verify each against the decomp when #24-tms builds),
+  tutor locations, tier placements (sane on inspection; Smogon cross-check when used).
+- **Omissions to fill in a follow-up batch:** Seedot/Shiftry + Nincada/Ninjask/Shedinja
+  profiles (explicitly cut), Electrike/Manectric + Magikarp/Gyarados (mentioned in
+  tiers but unprofiled).

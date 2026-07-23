@@ -2067,3 +2067,25 @@ rules that change recommendations (physical/special BY TYPE, single-use TMs, HM 
 tax, Emerald-vs-R/S divergences). Batch 2+ reuses the schema with species lists drawn
 from emerald_obtainability.json. Relayed to the user for Gemini; results will be graded
 into the run log and folded into the future #24-pokeprofiles data layer.
+
+## 2026-07-23 — Pokeprofiles research GRADED (machine-checked) + Gemini API relay BUILT
+- **The #24-tms/#24-pokeprofiles Deep Research response graded B** via the planned
+  known-answer control: `tools/story-dev/grade_pokeprofiles.py` verified 98 claims
+  against the ROM-extracted data. **TM/HM compat: 59/60 (98%)** — only miss: Swellow
+  cannot learn TM30 Shadow Ball (the registry's contention list is wrong there).
+  **Level-up levels: 16/38 (42%) — unreliable, some invented** (Kirlia "Reflect",
+  Hariyama "Cross Chop" — not in their level-up sets at all). STANDING RULE: research
+  answers supply WHICH moves matter; the levels ALWAYS come from modules/data.
+  Judgment layer graded HIGH (Truant+Hyper Beam overlap, Guts+Facade, Huge-Power-vs-
+  special-Surf trap, Vital Throw's no-miss property, Ralts/Abra switch-training need,
+  Game Corner TMs effectively repeatable via bought coins). Raw response archived
+  (GEMINI-POKEPROFILES-RESPONSE-2026-07-23.md); full grading in the commission file's
+  run log; TM locations remain decomp-unverified until #24-tms builds.
+- **Gemini API relay BUILT + verified** (`tools/story-dev/gemini_relay.py`, user
+  directive + key 2026-07-23): the agent can now query Gemini directly (one-shot,
+  multi-part --file prompts, model select, --list-models, --out). Key lives GITIGNORED
+  at sandbox-pokebot/profiles/gemini.key (never committed; also $GEMINI_API_KEY).
+  Proven: model list + a live question. Day-one lesson captured in 15-ESCALATION:
+  quick models are confidently wrong on learnset levels (both test numbers wrong) —
+  the API path is for surgical questions/cross-checks; Deep Research commissions stay
+  on the user-relay path; ROM data stays the only authority for game numbers.

@@ -140,8 +140,17 @@ Three possible execution routes for the research call; the primer is model-agnos
 the SAME prompts drive all of them:
 1. **Manual paste to Gemini (CURRENT DEFAULT).** Zero setup, zero Claude credits; the
    user relays prompts/answers. Proven workable.
-2. **Gemini via API (user-proposed 2026-07-22 — the designated automation path).** The
-   agent can call HTTP APIs from this environment, so given a Gemini API key it could
+2. **Gemini via API — ✅ BUILT 2026-07-23 (`tools/story-dev/gemini_relay.py`).** The user
+   supplied a key (stored GITIGNORED at `sandbox-pokebot/profiles/gemini.key`; also read
+   from `$GEMINI_API_KEY` — never commit it). Usage:
+   `py gemini_relay.py "question"` · `--file primer.md --file q.md` (multi-part, in
+   order) · `--model gemini-2.5-pro` (default gemini-2.5-flash) · `--list-models` ·
+   `--out answer.md`. Verified end-to-end 2026-07-23 (model list + a live question).
+   ⚠ Two rules learned on day one: (a) quick models are CONFIDENTLY WRONG on learnset
+   levels (asked Shroomish/Makuhita — wrong on both; our ROM data is the only level
+   authority); (b) the API path is for SURGICAL questions and cross-checks — the big
+   periodic DEEP-RESEARCH commissions still go through the user's Gemini app relay,
+   which has the Deep Research harness the raw API lacks. (Original proposal note:
    send primer+question programmatically and parse the reply — automating
    /escalate-sequence end-to-end while still keeping research costs on Gemini.
    Requirements when built: the key lives in a GITIGNORED env file / environment variable

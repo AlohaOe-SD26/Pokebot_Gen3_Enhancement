@@ -101,6 +101,13 @@ never rely on it across runs.)
   any warp/terrain puzzle (Sky Pillar, Mossdeep, Sootopolis ice).
 - `jaggedgrass_probe.py` — two-way training-tile sweep (`PROBE_MAP` / `PROBE_ANCHOR` env).
   Proves BOTH legs from the real entry tile before a grind tile is adopted.
+- `gemini_relay.py` — query the Gemini API directly (`"question"` / `--file part.md ...` /
+  `--model` / `--list-models` / `--out`). Key: gitignored `profiles/gemini.key` or
+  `$GEMINI_API_KEY`. Surgical questions + cross-checks only — Deep Research commissions
+  go through the user relay; game NUMBERS always come from modules/data (see 15-ESC §2).
+- `grade_pokeprofiles.py` — the known-answer control for research responses: verifies
+  learnset/TM-compat claims against the ROM-extracted data. Template for grading any
+  future #24-pokeprofiles batch.
 
 ## Conventions
 - Prove fixes: reproduce first, prefer an A/B. Don't commit a state you can't reload.
