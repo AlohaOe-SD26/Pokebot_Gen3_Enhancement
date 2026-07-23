@@ -9,7 +9,29 @@
 > accumulated craft (harness, debugging method, story-mapping, faithfulness rules, bug
 > patterns) — use it to build faster and prove every fix.
 
-### 🌙 OVERNIGHT AUTONOMOUS RUN (user directive 2026-07-22 evening) — IN PROGRESS
+### 🌙 OVERNIGHT AUTONOMOUS RUN (user directive 2026-07-22 evening) — RESULTS SO FAR
+**Frontier moved: Dynamo Badge → LAVARIDGE TOWN in one night.** Validated + pushed:
+Ch10a (HM06), Ch10b (teach flow), Ch10c (rocks→Fiery→Fallarbor), Ch11a (Meteor Falls
+scene), Ch11b (Cable Car → MAXIE beaten + meteorite), Ch11c (Jagged descent →
+Lavaridge). Checkpoints: rocksmash_got/rocksmash_taught/fallarbor/meteorfalls_done/
+lavaridge.ss1. ~12 root-caused fixes committed (rival vanilla-truth, cave/menu-aware
+recovery, doubles alive-targeting, teach-UI chain, origin+progress travel gates,
+explicit Fiery routing, bag-wedge closure...).
+**OPEN — Ch11d Lavaridge trapdoor gym:** `do_lavaridge_gym` is BUILT but UN-WIRED —
+the warp table's literal same-coordinate model is mutually recursive at the Flannery
+platform; the REAL fall-landing mechanics need a live fall-experiment (load
+lavaridge.ss1, enter the gym at town (5,15), step hole (10,18), record the landing) or
+the Gemini relay (profiles/GEMINI-PROMPTS.md Q1). Then correct `_plan()`'s landing
+edges, wire Segment 11d back (its wiring text is in the story file's comment), sync
+the "HEAT BADGE earned" marker (already in livetest END_MARKERS), validate from
+lavaridge.ss1 with SAVE_CHECKPOINT=BADGE04_GET:flannery_done.
+**Batch cadence:** batches 1-5 graded (each found+fixed real bugs; run04 of batch 4 =
+the first-ever fresh→Dynamo-Badge run). Batch 6 (5×2.4M, all fixes) — check
+livetest-runs/ for its result if this note isn't updated. Training pace is the
+throughput ceiling for full-frontier fresh runs (#24-train-efficiency, daytime
+discussion). The overnight loop instructions remain one block below.
+
+### (superseded) OVERNIGHT LOOP INSTRUCTIONS — kept for the resume ritual
 The user commissioned an unattended overnight loop: (1) 5-run fresh batches until ALL
 FIVE reach the Dynamo Badge content-end clean (no Manual/hang/crash; self-recovered
 derails OK) — fix what fails, rerun; (2) then deep-map the next chunk (Ch10 first),

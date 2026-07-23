@@ -3997,6 +3997,162 @@ def do_jagged_descent() -> Generator:
     yield from heal_in_pokemon_center(PokemonCenter.LavaridgeTown)
 
 
+def do_lavaridge_gym() -> Generator:
+    """Chapter 11d — the Lavaridge trapdoor gym: fall through the right holes to
+    Flannery, win the Heat Badge (BADGE04).
+
+    HOW: the gym is two floors linked ONLY by warp pairs (1F holes drop to B1F pads;
+    B1F pads pop back up to 1F spots). Both floors' warp tables + collision are STATIC
+    (no runtime toggles here — unlike Mauville), so the solve is a straight BFS over
+    the combined (floor, tile) graph, computed LIVE from map data each round: walk
+    legs on the current floor, step onto the planned warp tile, repeat. Buried gym
+    trainers pop en route and are fought inline. At Flannery's approach (13,10): face
+    Up + A-ride until BADGE04_GET (Numel 24 / Slugma 24 / Camerupt 26 / Torkoal 29 —
+    the caller preps a WATER lead; everything she has is 2× to Water)."""
+    from collections import deque
+
+    from modules.map import get_map_data
+    from modules.memory import get_event_flag
+
+    GYM1F = MapRSE.LAVARIDGE_TOWN_GYM_1F.value
+    GYMB1F = MapRSE.LAVARIDGE_TOWN_GYM_B1F.value
+    FLANNERY_APPROACH = (13, 10)  # below Flannery (13,9)
+
+    def _badge() -> bool:
+        votes = 0
+        for _ in range(3):
+            try:
+                if get_event_flag("BADGE04_GET"):
+                    votes += 1
+            except Exception:
+                pass
+        return votes >= 2
+
+    if _badge():
+        return
+    context.message = "Story: entering the Lavaridge Gym (mind the trapdoors)..."
+    yield from wait_until_truly_controllable()
+    if _map_group_number() not in (GYM1F, GYMB1F):
+        # Town gym door = (5,15) (probed warp table); approach from below.
+        yield from _navigate_riding_out(MapRSE.LAVARIDGE_TOWN, (5, 16))
+        yield from _walk_through_warp("Up", MapRSE.LAVARIDGE_TOWN.value)
+        yield from wait_until_truly_controllable()
+
+    def _floor_data(gnum):
+        md = get_map_data(gnum, (0, 0))
+        W, H = md.map_size
+        passable = {
+            (x, y) for y in range(H) for x in range(W) if not get_map_data(gnum, (x, y)).collision
+        }
+        warps = [tuple(w.local_coordinates) for w in md.warps]
+        dests = [w.destination_warp_id for w in md.warps]
+        return passable, warps, dests
+
+    def _plan() -> list | None:
+        """BFS over (floor, tile); returns [(floor, tile), ...] milestones = each warp
+        tile to step on (in order) then the Flannery approach; None if no route."""
+        p1, w1, d1 = _floor_data(GYM1F)
+        pb, wb, db = _floor_data(GYMB1F)
+        # warp transitions: stepping on 1F warp i → B1F's warp tile with index d1[i]
+        # (destination warp id indexes the OTHER map's warp list) and vice versa —
+        # except 1F warps 0..? that lead OUTSIDE (dest map is the town) — skip those
+        # by treating only pairs that stay in the gym: town exits are (13,18)/(14,18).
+        town_exits = {(13, 18), (14, 18)}
+        start_floor = GYM1F if _map_group_number() == GYM1F else GYMB1F
+        start = (start_floor, tuple(get_player_avatar().local_coordinates))
+        goal = (GYM1F, FLANNERY_APPROACH)
+        grids = {GYM1F: p1, GYMB1F: pb}
+        warpsof = {GYM1F: (w1, d1), GYMB1F: (wb, db)}
+        prev = {start: None}
+        queue = deque([start])
+        found = None
+        while queue:
+            node = queue.popleft()
+            if node == goal:
+                found = node
+                break
+            floor, (x, y) = node
+            for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+                nxy = (x + dx, y + dy)
+                if nxy not in grids[floor]:
+                    continue
+                w, d = warpsof[floor]
+                if nxy in w and nxy not in town_exits:
+                    i = w.index(nxy)
+                    other = GYMB1F if floor == GYM1F else GYM1F
+                    ow, _od = warpsof[other]
+                    if 0 <= d[i] < len(ow):
+                        nb = (other, ow[d[i]])
+                    else:
+                        continue
+                else:
+                    nb = (floor, nxy)
+                if nb not in prev:
+                    prev[nb] = node
+                    queue.append(nb)
+        if found is None:
+            return None
+        path = []
+        node = found
+        while node is not None:
+            path.append(node)
+            node = prev[node]
+        path.reverse()
+        # milestones: every tile that is a warp step (floor changes next) + the goal
+        out = []
+        for i, (fl, t) in enumerate(path):
+            if i + 1 < len(path) and path[i + 1][0] != fl:
+                out.append((fl, t))
+            elif (fl, t) == goal:
+                out.append((fl, t))
+        return out
+
+    rounds = 0
+    while not _badge():
+        _check_abort()
+        rounds += 1
+        if rounds > 40:
+            raise BotModeError("Lavaridge Gym: could not solve the trapdoor maze.")
+        if get_global_script_context().is_active:
+            yield from _ride_out_scripted_scene("B")
+            continue
+        yield from wait_until_truly_controllable()
+        milestones = _plan()
+        if not milestones:
+            yield from wait_for_n_frames(30)
+            continue
+        floor, target = milestones[0]
+        cur_floor = _map_group_number()
+        if cur_floor != floor:
+            yield from wait_for_n_frames(30)
+            continue
+        map_enum = MapRSE.LAVARIDGE_TOWN_GYM_1F if floor == GYM1F else MapRSE.LAVARIDGE_TOWN_GYM_B1F
+        context.message = f"Story: Lavaridge maze — heading to {target} on {'1F' if floor == GYM1F else 'B1F'}..."
+        try:
+            yield from _yield_bounded(
+                navigate_to_anywhere(map_enum, target, avoid_encounters=True, avoid_scripted_events=False),
+                3600,
+            )
+        except BotModeError:
+            yield from _ride_out_scripted_scene("B")
+            continue
+        if (floor, target) == (GYM1F, FLANNERY_APPROACH) and tuple(get_player_avatar().local_coordinates) == FLANNERY_APPROACH:
+            context.emulator.press_button("Up")
+            yield
+            frames = 0
+            while not _badge():
+                _check_abort()
+                context.emulator.press_button("B" if frames % 3 else "A")
+                frames += 1
+                if frames > 40000:
+                    raise BotModeError("Lavaridge Gym: the Flannery challenge never resolved.")
+                yield
+            break
+        yield from wait_for_n_frames(45)  # let a trapdoor fall / landing settle
+    yield from _wait_until_cutscene_over("B")
+    context.message = "Story: HEAT BADGE earned — Gym 4 (Flannery) beaten!"
+
+
 def do_dewford_gym() -> Generator:
     """Chapter 7b — Dewford Gym: beat Brawly for the Knuckle Badge (BADGE02, Gym 2).
 
