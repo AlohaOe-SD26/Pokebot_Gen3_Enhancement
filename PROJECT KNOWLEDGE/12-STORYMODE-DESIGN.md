@@ -28,7 +28,8 @@ Status key: ✅ built + validated · 🚧 scaffold/partial · 📋 mapped, not b
 | 11b | Cable Car → Mt. Chimney Magma chain (Maxie) + meteorite | `do_mt_chimney` | `DEFEATED_EVIL_TEAM_MT_CHIMNEY` | ✅ (2026-07-22 overnight) |
 | 11c | Jagged Pass descent → Lavaridge | `do_jagged_descent` | in Lavaridge, healed | ✅ (2026-07-22 overnight; `lavaridge.ss1`) |
 | 11d | Lavaridge trapdoor gym → **Flannery, HEAT BADGE** | `do_lavaridge_gym` | `BADGE04_GET` | ✅ (2026-07-23; `flannery_done.ss1`) |
-| 12+ | Go-Goggles → Rt 111 desert → Petalburg (Norman) → … | — | — | ⬜ (§Ch11/§Ch12 spec) |
+| 12 | Lavaridge → Petalburg (Norman, **Gym 5**) → HM03 Surf (Go-Goggles/desert SKIPPED) | — | `BADGE05_GET` + `RECEIVED_HM_SURF` | 🗺️ DEEP-MAPPED 2026-07-23 (§Ch12 build spec) — ready to build |
+| 13+ | Surf arc: Rt 118 → Weather Institute → Fly (Rt 119 rival) → Fortree (Gym 6) → … | — | — | ⬜ (§Ch12+ leads) |
 
 **You are at the Ch10 boundary (2026-07-22).** `wattson_done.ss1` = Mauville Gym (5,3),
 BADGE03_GET + DEFEATED_MAUVILLE_GYM + DEFEATED_WALLY_MAUVILLE verified. Next: Ch10 —
@@ -71,6 +72,78 @@ plausible — VERIFY AT BUILD), `⚠ probe live`.
    Electric); attempt-cap.
 6. **Completion**: `FLAG_BADGE03_GET` (+ `FLAG_DEFEATED_MAUVILLE_GYM`, TM34) `✓ external`;
    BADGE03 enables Rock Smash field use (needed later for Route 111+). `✓ external`
+
+### §Ch12 — Lavaridge (post-HEAT BADGE) → Petalburg (Norman, Gym 5) → HM03 Surf — BUILD SPEC (deep-mapped 2026-07-23)
+> Tags: ✓ = ROM-probed / flag-table-verified this session; ⚠ = external-research lead
+> (Gemini 3.1 Pro, archived tools/story-dev/research-gemini-ch12-2026-07-23.md), decomp-
+> verify at build time. Recon tools: `petalburg_gym_probe.py`, `mapfacts.py`.
+
+**Frontier entry state:** in Lavaridge Town (9,7), `BADGE04_GET` set, 4 badges. Norman's
+gym only opens with 4 badges — now satisfied.
+
+- **Go-Goggles are OPTIONAL — SKIP them for the Norman critical path (✓ structurally
+  verified).** They gate only the Route 111 DESERT (Mirage Tower / fossils / Winstrates),
+  which is not on the route to Petalburg. Proof: `ROUTE111.connections` = South→Mauville,
+  West→Route112/113 (probed); the desert is an internal mid-section the Mauville-side path
+  never enters. `RECEIVED_GO_GOGGLES` (221) is never required to reach or beat Norman.
+  (⚠ lead: the Go-Goggles come from the RIVAL just outside the Lavaridge gym after
+  Flannery — not the hot-springs woman. Irrelevant unless we later want the desert/fossils
+  → #24-optional.)
+
+- **Overland route Lavaridge → Petalburg (⚠ route lead, ✓ Route 111 connections):** no Fly
+  / no Surf yet, so it is a long backtrack. Lavaridge → **Route 112** (‼ one-way ledges —
+  descend SOUTH only, never pathfind up Jagged Pass) → **Route 111 SOUTH** → **Mauville**
+  → **Route 117** (⚠ tightly-packed trainers can force DOUBLE battles — our doubles
+  attack-through handles it) → **Verdanturf** → **Rusturf Tunnel** (the Rock-Smash boulders
+  are ALREADY cleared if Ch10 smashed them; else Rock Smash here — we have HM06) → **Route
+  116** → **Rustboro** → **Route 104** → **Petalburg Woods** (N→S, no Cut needed) → **Route
+  104 south** → **Petalburg City** → gym. Build as PROGRESS-gated riding-navigation legs
+  (the corridor maps are shared with earlier trips — gate on arrival, not on map identity,
+  the Ch11 lesson). ‼ Validate each connection live at build time (a two-way sweep is not
+  needed — it's a forward march — but confirm the Rusturf boulder state and the Verdanturf
+  entry).
+
+- **Petalburg Gym interior (✓ probed: `PETALBURG_CITY_GYM` map (8,1), 9×112):** ENTER at
+  the bottom (warps (4,111)/(5,111) ↔ Petalburg City (15,8)); gym guide at (3,109);
+  **Norman at the TOP (4,2)**. Eight trainer tiers, each trainer at column x=4:
+  Mary (4,94) · Randall (4,81) · George (4,68) · Alexia (4,55) · Parker (4,42) ·
+  Berke (4,29) · Jody (4,16) · Norman (4,2). Each room has LEFT doors (x=1-2) and RIGHT
+  doors (x=6-7) that are INTERNAL warps to other tiers; the doors are gated by
+  `VAR_PETALBURG_GYM_STATE` (133 ✓) and only open after that room's trainer is beaten —
+  a RUNTIME-MODIFIED layout, exactly the Mauville-gym class.
+  **BUILD APPROACH — LIVE-SOLVE (not a hardcoded path), matching do_mauville_gym:** from
+  the entrance, repeatedly: (1) beat the current room's trainer (inline via the battle
+  listener — trainers can't be fled), (2) find the door tile that is now walkable/leads
+  upward, (3) warp through it, (4) repeat until we reach Norman's room (y≈2-7). ⚠ A
+  "LEFT door only" fixed path is the documented speedrun route and may be simpler — trace
+  the left-door warp chain at build time and use it if it cleanly reaches Norman; fall
+  back to live-solve otherwise. Gym trainers ~L26-27.
+
+- **Norman battle (⚠ team lead — decomp/trainer-data verify at build):** Spinda L27 /
+  Vigoroth L27 / Linoone L29 / **Slaking L31** (ace). Cannot be fled. ‼ **Slaking has
+  TRUANT** (loafs every other turn) but hits like a truck — our attack-through lead should
+  bring a strong physical answer; a Fighting-type (Combusken/Blaziken, Machop line, Breloom
+  if present) is the textbook counter (Normal is neutral, but the bot needs raw damage +
+  to survive Slaking's big turns). Consider a Fighting or bulky lead + the matchup-aware
+  after-faint chooser we already have. Beating Norman sets `DEFEATED_PETALBURG_GYM` (1268
+  ✓) + `BADGE05_GET` (2155 ✓), gives **TM42 Facade**, and advances `VAR_PETALBURG_GYM_STATE`
+  → 6.
+
+- **HM03 Surf handoff (⚠ sequence lead, ✓ Wally's-dad object):** after Norman, **step DOWN**
+  in Norman's room — a `VAR_PETALBURG_GYM_STATE==6` coord trigger fires and **Wally's Dad**
+  (gym object id=11 at (1,7), flag `HIDE_PETALBURG_GYM_WALLYS_DAD` 824 ✓) walks in, talks,
+  and warps the player to `PETALBURG_CITY_WALLYS_HOUSE`; an auto-script there hands over
+  **HM03 Surf** and sets `RECEIVED_HM_SURF` (122 ✓). ‼ Do NOT Escape-Rope/Teleport out of
+  the gym after the battle — that skips the coord trigger and soft-locks Surf. Just walk
+  down. Completion signal for the segment: `RECEIVED_HM_SURF`.
+  THEN teach Surf to a capable mon (the existing `ensure_hm_learner`/`teach_hm_move` path;
+  Marshtomp/Swampert is the natural carrier) — Surf unlocks the whole Ch13+ water arc
+  (Route 118 east, the Weather Institute, Fly from the Route 119 rival).
+
+- **Gotchas summary (build-time watch list):** Route 112 one-way ledges (south only);
+  Route 117 forced doubles; Rusturf boulder state (idempotent Rock Smash); Slaking Truant;
+  the post-Norman step-down trigger; runtime-gated gym doors (read the LIVE grid like
+  Mauville). Completion of Ch12 = `BADGE05_GET` + `RECEIVED_HM_SURF` + Surf taught.
 
 ### §Ch12+ EXTERNAL-RESEARCH LEADS — Norman → Champion (Gemini Deep Research 2026-07-23, ⚠ UNVERIFIED)
 > Source: the full-game commission (profiles/GEMINI-FULLGAME-RESEARCH.md — grading in its

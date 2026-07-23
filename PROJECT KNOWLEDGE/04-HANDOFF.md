@@ -151,10 +151,18 @@ template for re-capturing any checkpoint safely.
 NOTE for the future: the user asked to keep extending resume robustness "for all
 situations" — the normalizer covers the common ones; deepen as new edge states appear.
 
-**NEXT after those: Ch12** — the Go-Goggles scene outside the Lavaridge gym (⚠ verify
-the trigger position) → Route 111 desert → Petalburg (Norman). Start from
-`flannery_done.ss1`. `END_MARKERS` in livetest.py already carries "HEAT BADGE earned";
-update it when the frontier moves again.
+**NEXT: BUILD Ch12 — DEEP-MAPPED 2026-07-23, ready.** Spec in 12-STORYMODE-DESIGN §Ch12
+(archived research tools/story-dev/research-gemini-ch12-2026-07-23.md). Key findings,
+verified this session: **Go-Goggles/Route 111 desert are OPTIONAL — SKIP them** (Route 111
+connections probed: the desert is never on the Lavaridge→Mauville→Petalburg path). Route =
+long overland backtrack (Lavaridge → Rt112 ledges → Rt111 S → Mauville → Rt117 → Verdanturf
+→ Rusturf Tunnel → Rt116 → Rustboro → Rt104 → Petalburg Woods → Petalburg). Gym = the tall
+9×112 PETALBURG_CITY_GYM, VAR_PETALBURG_GYM_STATE-gated doors (runtime-modified, Mauville
+class → LIVE-SOLVE), Norman at top (4,2), 8 trainer tiers. Beat Norman (Spinda27/Vigoroth27/
+Linoone29/Slaking31 ⚠, TRUANT ace) → BADGE05 + TM42 → **step DOWN** → Wally's dad → warp to
+Wally's house → HM03 Surf (RECEIVED_HM_SURF) → teach it. Build as progress-gated legs +
+a do_petalburg_gym live-solver; validate connections + the door path + Norman team at build.
+Start from `flannery_done.ss1`. Update livetest END_MARKERS when the frontier moves.
 
 ### (superseded) OVERNIGHT LOOP INSTRUCTIONS — kept for the resume ritual
 The user commissioned an unattended overnight loop: (1) 5-run fresh batches until ALL

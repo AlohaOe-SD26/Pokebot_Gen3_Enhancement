@@ -107,6 +107,9 @@ never rely on it across runs.)
   fault-injected entry states (menu/message/yes-no/battle/clean) all settle B-only.
 - `regen_rocksmash_taught.py` — re-capture a milestone checkpoint in a clean overworld
   (teach -> normalize -> verify -> round-trip). Template for fixing any menu-saved state.
+- `petalburg_gym_probe.py` — Ch12 deep-map recon: Petalburg gym trainer objects + the
+  internal room/door warp graph + a Route 111-connections check (proves the Go-Goggles
+  desert is off the Norman path).
 - `doorprobe.py` — resolve a map's warp destinations (which door is which).
 - `routeprobe.py` — reachability probe (which tiles a navigator can reach from a start).
 - `sailprobe.py` — walk-and-log a route (used to validate the Rustboro→Route104 crossing).

@@ -2259,3 +2259,22 @@ User's milestone-testing logs surfaced three things; all fixed + proven. Backup 
   menu-saved state regardless, but a clean checkpoint is correct hygiene.)
 - End-to-end: a run from the regenerated milestone smashed both rocks fast and reached
   Meteor Falls, 0 derails.
+
+## 2026-07-23 — Ch12 DEEP-MAPPED (Lavaridge → Norman → Surf); milestone run graded clean
+- **Milestone run graded (3b75c330 log): CLEAN, no fix needed.** Loaded the Lavaridge
+  (Ch11c) milestone, solved the trapdoor maze perfectly 4×, beat Flannery on the 4th try
+  (3 boss-training whiteouts, team L29→L32), HEAT BADGE, clean content-end. 0 real derails.
+  The whiteouts are boss-training working as designed on a deliberately-weak milestone team
+  at the grass-less tanky-ace Flannery; a fresh run arrives stronger. Noted #24-flannery-grind
+  (low priority).
+- **Ch12 deep-mapped** (§Ch12 build spec in 12-STORYMODE-DESIGN; Gemini 3.1 Pro consult
+  archived research-gemini-ch12-2026-07-23.md; recon petalburg_gym_probe.py). Verified this
+  session (✓): all Ch12 flags/vars (RECEIVED_GO_GOGGLES 221, RECEIVED_HM_SURF 122,
+  DEFEATED_PETALBURG_GYM 1268, BADGE05_GET 2155, VAR_PETALBURG_GYM_STATE 133, the gym NPC
+  hide-flags); the Petalburg gym interior (9×112, 8 trainer tiers, Norman (4,2), entrance
+  (4-5,111), Wally's dad (1,7)); and **the Go-Goggles/desert are OPTIONAL** — Route 111's
+  connections (South→Mauville, West→Rt112/113) prove the Lavaridge→Petalburg path never
+  enters the Go-Goggles-gated desert. Left as ⚠ build-time-verify: the overland route
+  connections, the gym door-path (live-solve like Mauville vs the "left door" speedrun
+  route), the Norman team (Spinda/Vigoroth/Linoone/Slaking — no ROM trainer reader exists),
+  and the post-Norman Surf handoff. Chapter table: Ch12 🗺️ ready to build; +Ch13 row.
