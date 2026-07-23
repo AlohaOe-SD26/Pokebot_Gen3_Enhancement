@@ -436,6 +436,24 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
     if index_needs_mapping:
         new_lead_index = battle_state.map_battle_party_index(new_lead_index)
 
+    # FORK (2026-07-22, batch run02): the battle→party mapping itself can return an
+    # OUT-OF-RANGE slot (returned 4 in a 4-mon party) — the guards above only checked
+    # the raw index, so the scroll raised RuntimeError and killed the mode mid-battle
+    # (an uncatchable wedge: forced party menu + no controller). Validate the MAPPED
+    # index too; any living non-egg mon beats crashing, and the state-aware sweep
+    # below self-corrects the cursor from there.
+    _party_now = get_party()
+    if (
+        not (0 <= new_lead_index < len(_party_now))
+        or _party_now[new_lead_index] is None
+        or _party_now[new_lead_index].is_egg
+        or _party_now[new_lead_index].current_hp <= 0
+    ):
+        for _i, _mon in enumerate(_party_now):
+            if _mon is not None and not _mon.is_egg and _mon.current_hp > 0:
+                new_lead_index = _i
+                break
+
     yield from scroll_to_party_menu_index(new_lead_index)
     # FORK (2026-07-22, story-bot hardening; REWRITTEN same day after the Ch9 wedge): the
     # stock loop pressed A UNBOUNDED, and the first bounded replacement still spammed A

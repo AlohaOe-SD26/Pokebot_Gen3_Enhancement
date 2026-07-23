@@ -717,6 +717,13 @@ class StoryMode(BotMode):
                         # rapid derail cycles toward Manual.
                         yield from wait_until_truly_controllable(timeout_frames=3000)
                         yield from exit_building_after_whiteout()
+                        # Cave-stranded derails (a heal/nav plan-failed from INSIDE the
+                        # training cave) must physically exit before the retry, or the
+                        # segment re-fails identically forever (batch 20260722-182727).
+                        # A cheap no-op anywhere else.
+                        from modules.story.early_game import _exit_training_cave_if_inside
+
+                        yield from _exit_training_cave_if_inside()
                         settle = 0
                         while settle < 300 and not (
                             game_has_started() and get_game_state() is GameState.OVERWORLD
@@ -1131,6 +1138,12 @@ class StoryMode(BotMode):
                 "heal": PokemonCenter.DewfordTown,
             }
             yield from self._prepare_for_fight(brawly_fight)
+            # Training can END at the in-cave spin tile — thread the cave mouth first
+            # or the direct heal plan-fails cross-warp ("not on connected maps") and
+            # derail-loops to Manual (batch 20260722-182727: 3 of 5 runs died here).
+            from modules.story.early_game import _exit_training_cave_if_inside
+
+            yield from _exit_training_cave_if_inside()
             yield from heal_in_pokemon_center(PokemonCenter.DewfordTown)
             yield from _lead_best_matchup(["Fighting"])
             yield from do_dewford_gym()
