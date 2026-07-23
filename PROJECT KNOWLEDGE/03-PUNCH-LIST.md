@@ -427,3 +427,16 @@
       that dropped Marshtomp''s Mud Shot at L16 (moot for Wattson, still a
       move-quality gap).
 
+
+- [ ] #24-npc-talk-speed — Briney talk-dance polish (user log review 2026-07-22):
+      BOTH user-observed oddities are the same subsystem, `_talk_to_wandering_npc`
+      (observe a patrol lap -> park beside the route -> face-tap on transit):
+      (a) cottage Briney (~3,600 frames of visible maneuvering before the talk at
+      (6,2) in Route104_MrBrineysHouse), and (b) post-Brawly "erratic movement
+      right of the gym" = the DOCK Briney ambush near (12,9) (~5-7k frames across
+      four transient stucks at sail_to_slateport's dock-talk step; it completed
+      and sailed — slow, not broken). FIX DESIGN: add a `known_spot` fast-path —
+      navigate STRAIGHT to the recorded successful parking tile per NPC (extract
+      the exact tiles from validated-run debug logs), wait bounded (~1 lap) for
+      the NPC to transit adjacent, face-tap+A; on one failure fall back to the
+      full observe-then-park. Keeps the proven adaptive path as the safety net.

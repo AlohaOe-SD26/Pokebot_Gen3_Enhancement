@@ -70,8 +70,17 @@ Research-mapped 2026-07-22 (decomp WebFetches + static ROM recon; Gemini pass pe
 see the outstanding question). Legend: `✓ decomp` / `✓ probe` / `✓ external` / `⚠ open`.
 
 **Ch10 — Mauville → Fallarbor (via Fiery Path).**
-- Prereq: HM06 Rock Smash from a Mauville house (`⚠ open`: which house/NPC — Gemini asked)
-  + BADGE03 for field use; teach it to a party mon (`⚠ open`: choose the HM mule policy).
+- Prereq: HM06 Rock Smash — `✓ decomp` (2026-07-22): **MauvilleCity_House1 = map (10,2),
+  door at Mauville CITY (32,14)** (the SE house east of the Mart (23,14)→(10,7)); the
+  "Rock Smash Guy" gives `ITEM_HM_ROCK_SMASH` gated only on `RECEIVED_HM_ROCK_SMASH`
+  not yet set (also sets HIDE_ROUTE_111_ROCK_SMASH_TIP_GUY). Static NPC → simple
+  enter + face-talk (no wandering machinery needed).
+- TEACH FLOW (build item — no helper exists yet): StartMenuNavigator("BAG") →
+  `scroll_to_item_in_bag(HM06)` (menuing.py primitive, bag already open) → A → USE →
+  party → pick the mule → confirm → overworld move-learn UI if 4 moves. Mule policy:
+  **Marshtomp** (learns Rock Smash; replace Tackle — keeps Mud-slap + Water Gun; Rock
+  Smash 20bp Fighting adds coverage). Field use after BADGE03 (have it): walk INTO a
+  breakable rock → YES/NO prompt → YES breaks it (no menu needed).
 - Route 111 (40×140! `✓ probe`): from Mauville go NORTH; **Rock Smash rocks at
   (18,101)/(19,100) gate the path** (`✓ probe`; tip-man at (19,101)). Winstrate house at
   (13,113)→interior (`✓ probe`; the family battle gauntlet is optional? `⚠ open`). Desert
