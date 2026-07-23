@@ -95,6 +95,18 @@ sweep before grinding; Match Call rematches later - NOT built yet).
 NEXT VALIDATION: a fresh batch (or the user's next real-HW run) through Wattson to
 watch boss-training fire organically; then Ch12.
 
+**BUILT 2026-07-23 (night, user approved + defensive backup):** the SWEEPER-SUFFICIENCY
+GATE (see changelog for full detail + proofs). Revert point if anything goes wrong:
+tag `backup-pre-sufficiency-2026-07-23` (pushed) —
+`git checkout backup-pre-sufficiency-2026-07-23 -- sandbox-pokebot/plugins/custom_modes/story_mode.py`.
+Gate: sufficient sweeper (ace-pair score + stat-fit + defensive veto) → skip team prep;
+near-miss / imminent-evolution (Torchic→Combusken) → targeted top-up of ONE mon;
+no sweeper → band prep unchanged; losses ≥2 → reactive layer owns it. Proven by
+repro_sufficiency.py (6 scenarios) + a live rustboro.ss1 run (targeted top-up →
+ROXANNE BEATEN → into Ch5). gemini_relay default is now gemini-3.1-pro-preview.
+DEFERRED (my call, user offered now-or-later): the "company-style" multi-agent Gemini
+orchestration refinement — better done overnight/later; noted on the punch list.
+
 **NEXT after those: Ch12** — the Go-Goggles scene outside the Lavaridge gym (⚠ verify
 the trigger position) → Route 111 desert → Petalburg (Norman). Start from
 `flannery_done.ss1`. `END_MARKERS` in livetest.py already carries "HEAT BADGE earned";

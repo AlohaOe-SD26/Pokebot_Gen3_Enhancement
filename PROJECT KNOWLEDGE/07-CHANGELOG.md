@@ -2120,3 +2120,34 @@ The three items from the boss-training discussion, implemented in the agreed ord
    Route 117 encounter table.
 Punch list: +#24-trainersweep (exhaust one-time route trainers before grinding; Match
 Call rematches later). KI-14 marked fixed in 05-KNOWN-ISSUES.
+
+## 2026-07-23 — SWEEPER-SUFFICIENCY GATE: pre-gym prep now trains only what's needed
+User observation (Combusken L20 band-training the whole team for Roxanne) + two-agent
+Gemini consult (design critique + adversarial, archived in tools/story-dev/research-
+gemini-sufficiency-consult-2026-07-23.md) → the proactive prep asks "do we already
+have a sweeper?" before training anything. Backup tag `backup-pre-sufficiency-2026-07-23`
+(pushed) is the clean revert point.
+- **The gate** (`_sufficiency_verdict` + `_sweep_score`, proactive attempts only —
+  losses ≥2 hand control to the reactive escalation/boss-training unchanged):
+  a battler is SUFFICIENT when its best usable damaging move scores
+  BP × STAB × effectiveness-vs-ACE-TYPE-PAIR × STAT-FIT ≥ 80 and its level ≥ ace−1,
+  and the ace does NOT hit it super-effectively (defensive veto). Sufficient → skip
+  team training entirely. Within 2 levels → targeted top-up of JUST that mon.
+  No sweeper → band prep exactly as before. Doubles → always band prep.
+- **Consult findings baked in:** ace full type pair, not gym primary type (the
+  Altaria/Kingdra lesson); STAT-FIT scales a move by the mon's relevant attacking
+  stat vs its better one — Gen 3's physical/special-by-type split means Poochyena's
+  Bite (Dark=special off 30 SpA) scored a mirage 90 without it (caught by repro B).
+- **Evolution lookahead** (the user's exact Torchic case): a mon that evolves within
+  +3 levels is judged on the EVOLVED form's types + level-up moves at that level —
+  Torchic L14 is Rock-weak and moveless, but Combusken@16 is Rock-neutral with Double
+  Kick → verdict: train JUST Torchic to L16. (First cut evaluated the current form's
+  defense and wrongly vetoed the line — caught by the same repro.)
+- Gym cfgs gained ace data: Roxanne Nosepass L15 Rock / Brawly Makuhita L19 Fighting /
+  Wattson Manectric L24 Electric. Rival cfgs have no ace → gate skips, band prep as always.
+- **PROOF:** repro_sufficiency.py (6 scenarios vs real ROM data: skip / Torchic top-up /
+  Mudkip sufficient / no-sweeper band / Swellow defensive veto with Marshtomp chosen /
+  losses≥2 bypass) + LIVE run rustboro.ss1: gate printed "Mudkip … targeted top-up",
+  trained ONE mon to 14, BEAT ROXANNE, continued into Ch5 — 58 battles in 200k frames.
+- Also: gemini_relay default model → gemini-3.1-pro-preview (user directive; 2.5-flash
+  documented for cheap one-liners).

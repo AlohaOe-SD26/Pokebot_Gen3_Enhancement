@@ -161,3 +161,15 @@ same fact; only the ROM extraction is authoritative.
 **Alternative rejected:** trusting well-cited research numbers and spot-checking. Rejected
 because the error rate is high enough that spot-checks would miss real errors, and the
 machine check is nearly free (`grade_pokeprofiles.py` is the template).
+
+## 2026-07-23 — Proactive prep is a hint; reactive escalation is the guarantee
+**Decision.** The sweeper-sufficiency gate only governs FIRST attempts (losses < 2);
+whenever the bot is losing, the reactive layer (escalation / boss-training) owns the
+decision and the gate steps aside entirely.
+**Why.** A wrong "sufficient" call then costs 1-2 self-correcting losses (cheap: Gen 3
+whiteout ≈ level × badge-payout), while the old always-band-prep cost hundreds of
+redundant encounters per gym per run — the measured #24-train-efficiency ceiling.
+**Alternatives rejected.** (a) Perfect pre-battle damage simulation — needless
+complexity when losses self-correct; (b) skipping team training unconditionally — the
+adversarial consult's surviving objection (between-gym gauntlets hit the bench) argues
+for keeping band prep whenever no sweeper exists.

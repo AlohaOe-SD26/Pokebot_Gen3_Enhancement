@@ -547,3 +547,11 @@
       (decomp object events, sight-lines), a "fought yet?" check (trainer flags —
       readable), and routing. Later: PokéNav Match Call REMATCHES (255-step trigger,
       call answering, scaled teams) as the true repeatable mid-game XP engine.
+
+- [ ] #24-gemini-org — "COMPANY-STYLE" GEMINI ORCHESTRATION (user 2026-07-23, timing
+      left to the agent → deferred to a quiet/overnight slot): formalize the ad-hoc
+      multi-agent consult pattern (design-critique agent + adversarial agent worked
+      well for the sufficiency gate) into reusable roles (researcher / critic /
+      verifier / synthesizer) with standard prompts, cross-checking rules, and when
+      to escalate models (3.1-pro vs flash). Candidate first use: the #24-pokeprofiles
+      overnight batches. Refine WITH Gemini agents when picked up.

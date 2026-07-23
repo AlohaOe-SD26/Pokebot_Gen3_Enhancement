@@ -15,6 +15,7 @@ On start:
     bot hands back to manual after reporting.
 """
 
+from types import SimpleNamespace
 from typing import Generator
 
 from modules.console import console
@@ -570,6 +571,134 @@ class StoryMode(BotMode):
         except Exception:
             return False
 
+    # ------------------------------------------------------------------
+    # Sweeper-sufficiency gate (user directive 2026-07-23; two-agent Gemini
+    # consult archived in tools/story-dev/research-gemini-sufficiency-consult-*).
+    # The proactive band prep over-trains whenever one mon already beats the gym
+    # (the user's Combusken-L20-vs-Roxanne case). The gate asks, from data a
+    # faithful player also has: "do we have a sweeper?" — and only trains when
+    # the answer is no (or nearly-yes: a targeted top-up). The REACTIVE net
+    # (loss escalation + boss-training) stays the correctness guarantee, so a
+    # wrong 'sufficient' call costs 1-2 self-correcting losses, not a run.
+    # ------------------------------------------------------------------
+    SWEEP_SCORE_FLOOR = 80  # BP x STAB x pair-effectiveness (consult: Mud Shot 82, Double Kick 90)
+
+    # Gen 3: damage category is decided BY TYPE, not by move. A high-BP move off
+    # the mon's WEAK attacking stat is a mirage (the Poochyena-Bite trap: Dark is
+    # SPECIAL and Poochyena's SpA is dreadful — BPxSTABxeff alone scores it 90).
+    _PHYSICAL_TYPES = frozenset(
+        {"Normal", "Fighting", "Flying", "Poison", "Ground", "Rock", "Bug", "Ghost", "Steel"}
+    )
+
+    @classmethod
+    def _sweep_score(cls, mon_types, moves, ace_types, atk=None, spa=None) -> float:
+        """Best damage-potential among usable damaging moves vs the ACE's full type
+        pair: BP x 1.5 STAB x product-effectiveness x stat-fit. Ace pair, not gym
+        primary — Altaria/Kingdra-class aces defeat primary-type reasoning. Stat-fit
+        scales a move by (relevant attacking stat / better attacking stat), so a
+        special-typed move on a physical attacker scores what it actually hits for."""
+        best = 0.0
+        for learned in moves:
+            if learned is None or learned.pp == 0 or learned.move.base_power == 0:
+                continue
+            eff = 1.0
+            for t in ace_types:
+                eff *= learned.move.type.get_effectiveness_against(t)
+            stab = 1.5 if any(t.index == learned.move.type.index for t in mon_types) else 1.0
+            fit = 1.0
+            if atk and spa:
+                relevant = atk if learned.move.type.name in cls._PHYSICAL_TYPES else spa
+                fit = relevant / max(atk, spa)
+            best = max(best, learned.move.base_power * stab * eff * fit)
+        return best
+
+    def _sufficiency_verdict(self, cfg: dict):
+        """(kind, slot, level) — kind: 'sufficient' (skip prep), 'topup' (train ONE
+        mon to `level`), or None (no sweeper in sight — band-prep as always)."""
+        from modules.pokemon import get_species_by_index, get_type_by_name
+        from modules.pokemon_party import get_party
+        from modules.story.early_game import _battler_slots
+
+        if "ace_types" not in cfg or cfg.get("double"):
+            return None  # rivals/mixed fights + double battles: always band-prep
+        try:
+            ace_types = [get_type_by_name(n) for n in cfg["ace_types"]]
+        except Exception:
+            return None
+        ace_level = cfg.get("ace_level", cfg["band"][1])
+        need_level = ace_level - 1
+        party = get_party()
+        best = None  # (priority, -score, slot, kind, train_to)
+
+        def _vulnerable(defender_types) -> bool:
+            """Defensive veto (consult): a sweeper the ACE hits super-effectively is
+            a coin-flip, not a plan — the Swellow-vs-Wattson trap."""
+            for at in ace_types:
+                eff = 1.0
+                for t in defender_types:
+                    eff *= at.get_effectiveness_against(t)
+                if eff >= 2.0:
+                    return True
+            return False
+
+        for i in _battler_slots():
+            mon = party[i]
+            try:
+                mon_types = mon.species.types
+            except Exception:
+                continue
+            entry = None
+            if not _vulnerable(mon_types):
+                atk = spa = None
+                try:
+                    atk, spa = mon.stats.attack, mon.stats.special_attack
+                except Exception:
+                    pass
+                score = self._sweep_score(mon_types, mon.moves, ace_types, atk, spa)
+                if score >= self.SWEEP_SCORE_FLOOR:
+                    if mon.level >= need_level:
+                        entry = (0, -score, i, "sufficient", None)
+                    elif mon.level >= need_level - 2:
+                        entry = (1, -score, i, "topup", need_level)  # close: top up JUST this mon
+            if entry is None:
+                # Imminent-threshold lookahead (the user's Torchic case): if this mon
+                # EVOLVES within +3 levels and the EVOLVED FORM — judged on ITS types
+                # (Torchic is Rock-weak and rightly vetoed; Combusken is Rock-neutral)
+                # and its level-up moves by that level (Double Kick on evolution) —
+                # would qualify, grind JUST this mon to the evolution level.
+                try:
+                    for evo in mon.species.evolutions:
+                        if "LEVEL" not in str(evo.method).upper():
+                            continue
+                        evo_level = int(evo.method_param)
+                        if not (mon.level < evo_level <= mon.level + 3):
+                            continue
+                        evolved = get_species_by_index(evo.target_species_index)
+                        if _vulnerable(evolved.types):
+                            continue
+                        future = [
+                            SimpleNamespace(move=e.move, pp=1)
+                            for e in evolved.learnset.level_up
+                            if e.level <= evo_level
+                        ]
+                        e_atk = e_spa = None
+                        try:
+                            e_atk = evolved.base_stats.attack
+                            e_spa = evolved.base_stats.special_attack
+                        except Exception:
+                            pass
+                        if self._sweep_score(evolved.types, future, ace_types, e_atk, e_spa) >= self.SWEEP_SCORE_FLOOR:
+                            entry = (2, 0.0, i, "topup", evo_level)
+                            break
+                except Exception:
+                    pass
+            if entry is not None and (best is None or entry < best):
+                best = entry
+        if best is None:
+            return None
+        _prio, _negscore, slot, kind, train_to = best
+        return (kind, slot, train_to)
+
     def _prepare_for_fight(self, cfg: dict) -> Generator:
         """Before a major fight, train the team to a sensible level (user directive
         2026-07-21). PROACTIVE: a target within the fight's level band (organic,
@@ -584,6 +713,29 @@ class StoryMode(BotMode):
         losses = max((self._defeat_counts.get(k, 0) for k in cfg["keys"]), default=0)
         lo, hi = cfg["band"]
         target = random.randint(lo, hi)  # organic proactive target within the band
+
+        # --- SWEEPER-SUFFICIENCY GATE (proactive attempts only — once we are LOSING
+        #     here, the reactive logic below owns the decision). ---
+        if losses < 2:
+            verdict = self._sufficiency_verdict(cfg)
+            if verdict is not None:
+                from modules.pokemon_party import get_party as _gp_v
+
+                kind, slot, train_to = verdict
+                name = _gp_v()[slot].species.name
+                if kind == "sufficient":
+                    console.print(
+                        f"[cyan]Story: {name} already answers this gym (type + level "
+                        f"sufficiency) — skipping team training.[/]"
+                    )
+                    return
+                if kind == "topup" and "grass" in cfg:
+                    console.print(
+                        f"[cyan]Story: {name} is the answer to this gym but needs "
+                        f"Lv {train_to} — targeted top-up of just that mon.[/]"
+                    )
+                    yield from train_team(train_to, slots={slot}, grass=cfg["grass"], heal_center=cfg["heal"])
+                    return
 
         # --- BOSS-TRAINING MODE (user design 2026-07-23, Wattson analysis + the Gemini
         #     consult): when we're LOSING here but the local grass is far below our
@@ -1190,6 +1342,7 @@ class StoryMode(BotMode):
             roxanne_fight = {
                 "keys": [MapRSE.RUSTBORO_CITY_GYM.value, MapRSE.RUSTBORO_CITY.value],
                 "band": (13, 17),  # user: team between Lv 13-17 before Roxanne
+                "ace_types": ("Rock",), "ace_level": 15,  # Nosepass L15
                 "grass": RUSTBORO_TRAINING_GRASS,
                 "heal": PokemonCenter.RustboroCity,
             }
@@ -1344,6 +1497,7 @@ class StoryMode(BotMode):
             brawly_fight = {
                 "keys": [MapRSE.DEWFORD_TOWN_GYM.value, MapRSE.DEWFORD_TOWN.value],
                 "band": (14, 16),
+                "ace_types": ("Fighting",), "ace_level": 19,  # Makuhita L19
                 "grass": GRANITE_CAVE_TRAINING_SPOT,
                 "heal": PokemonCenter.DewfordTown,
             }
@@ -1456,6 +1610,7 @@ class StoryMode(BotMode):
             wattson_fight = {
                 "keys": [MapRSE.MAUVILLE_CITY_GYM.value, MapRSE.MAUVILLE_CITY.value],
                 "band": (20, 24),  # Wattson: Voltorb 20 / Electrike 20 / Magneton 22 / Manectric 24
+                "ace_types": ("Electric",), "ace_level": 24,  # Manectric L24
                 "grass": ROUTE117_TRAINING_GRASS,
                 "heal": PokemonCenter.MauvilleCity,
             }

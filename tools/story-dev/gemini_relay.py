@@ -28,7 +28,9 @@ import urllib.request
 _ROOT = pathlib.Path(__file__).resolve().parents[2]
 _KEY_FILE = _ROOT / "sandbox-pokebot" / "profiles" / "gemini.key"
 _BASE = "https://generativelanguage.googleapis.com/v1beta"
-DEFAULT_MODEL = "gemini-2.5-flash"
+# User directive 2026-07-23: consults default to Gemini 3.1 Pro for better results.
+# Use --model gemini-2.5-flash (or 3.1-flash-lite) for cheap factual one-liners.
+DEFAULT_MODEL = "gemini-3.1-pro-preview"
 
 
 def _key() -> str:
