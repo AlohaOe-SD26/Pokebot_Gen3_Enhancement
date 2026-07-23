@@ -420,13 +420,10 @@
       airtight and consider skipping Abra-class catches for team slots, or routing
       lows to level-matched grass (#24-trainmap).
 
-- [ ] #24-wattson-strength — Ch9c completion (KI-13, opened 2026-07-22): the
-      maze solver is VALIDATED (run 10: reaches Wattson, challenges, whiteout
-      loop recovers cleanly ×8) but the team LOSES. Do: (a) Segment 9c pre-gym
-      prep — heal + train_team at Route 110 grass to ~L24+ (mirror Brawly prep);
-      (b) move-learn quality — never learn a 0-power move by discarding a
-      damaging one, and audit the evolution-scene learn flow that dropped
-      Marshtomp''s Mud Shot at L16; (c) re-validate from stern_done.ss1 with
-      SAVE_CHECKPOINT=BADGE03_GET:wattson_done, then commit the ledger update.
-      Assets: saves/mauville_wedge.ss1 (mid-maze), ch9_run10.log.
+- [x] #24-wattson-strength — DONE 2026-07-22 (KI-13 resolved): 0-power move-learn
+      guard + Segment 9c prep (Route 117 (31,16) band 20-24) + aftermath-quiet
+      riding → run 14 beat Wattson end-to-end; `wattson_done.ss1` verified.
+      Residual (folded into #24-movelock): audit the evolution-scene learn flow
+      that dropped Marshtomp''s Mud Shot at L16 (moot for Wattson, still a
+      move-quality gap).
 

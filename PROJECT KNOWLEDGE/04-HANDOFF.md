@@ -9,13 +9,19 @@
 > accumulated craft (harness, debugging method, story-mapping, faithfulness rules, bug
 > patterns) — use it to build faster and prove every fix.
 
-### ⭐⭐⭐⭐⭐ Session 2026-07-22 (Fable 5, afternoon) — CH9 BUILT + 5 root-caused fixes; frontier = Wattson WIN (KI-13)
-**Story frontier:** Ch9a (Route 110 rival) ✅ + Ch9b (Wally) ✅ validated end-to-end from
-`stern_done.ss1`; Ch9c (Mauville Gym) maze solver ✅ VALIDATED (run 10: solves the switch
-maze repeatedly, challenges Wattson, whiteout→heal→re-solve loop ran 8× cleanly) — but the
-TEAM LOSES to Wattson → **NEXT TASK = #24-wattson-strength / KI-13** (pre-gym train prep +
-move-learn quality; full plan in the punch-list entry). Capture `wattson_done.ss1` via
-`SAVE_CHECKPOINT='BADGE03_GET:wattson_done'` when it wins, then update the ledger.
+### ⭐⭐⭐⭐⭐ Session 2026-07-22 (Fable 5, afternoon→evening) — **CHAPTER 9 COMPLETE: DYNAMO BADGE WON**
+**Story frontier = Ch10.** Run 14 played stern_done.ss1 → rival → Wally → prep-training
+(Route 117 (31,16), band 20-24, two evolutions: Swellow + Mightyena) → live-grid maze
+solve → **Wattson BEATEN** → `wattson_done.ss1` (verified: BADGE03_GET +
+DEFEATED_MAUVILLE_GYM + DEFEATED_WALLY_MAUVILLE) → clean content-end. KI-13 closed by:
+the 0-power move-learn guard (Mud-slap preserved), Segment 9c prep, the two-way-swept
+training tile, and `_ride_out_all_scenes` (aftermath chains). Interrupt hardening from
+the user's real-HW log: `ensure_facing_direction` rides out field scripts (85k-frame
+wedge fixed, regression-proven) + a GLOBAL StoryMode no-progress watchdog (18k frames of
+stasis → self-derail into recovery). **NEXT: Ch10 (Rock Smash from Mauville SE house →
+Route 111/112 → Fiery Path → Fallarbor)** — run /validate-docs + audit_flag_names.py
+first; note the Route 110/117 pathability prevention rule (two-way sweep FROM THE REAL
+ENTRY TILE) before picking any grind tile.
 **Five proven fixes this session** (each with repro + proof; changelog has details):
 1. Phantom post-evolution script suppressed wild encounters → training spin starved
    (batch run05) → `_story_spin` B-rides leftover scenes on its no-progress bail.

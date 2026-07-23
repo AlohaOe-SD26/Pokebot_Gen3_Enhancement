@@ -1849,3 +1849,24 @@ test bumps exactly where the static map says open.
   Ground attack; the L17 bench folds. Needs pre-gym training prep + move-learn quality.
 - Harness: progress signature now includes player position (an actively-exploring maze
   solver is not a hang); NO-PROGRESS milestones dump the generator call stack.
+
+## 2026-07-22 — CHAPTER 9 COMPLETE: Dynamo Badge won (KI-13 resolved) + interrupt hardening
+Run 14 end-to-end from stern_done.ss1: Route 110 rival → Wally → Segment 9c PREP
+(band-train 20-24 at Route 117 (31,16); Taillow→Swellow and Poochyena→Mightyena evolved
+during it) → live-grid maze solve → **Wattson BEATEN** ($2400, BADGE03_GET) → checkpoint
+`wattson_done.ss1` (verified: badge + DEFEATED_MAUVILLE_GYM + DEFEATED_WALLY_MAUVILLE) →
+clean content-end stop. What closed KI-13:
+- Move-learn guard (`battle_strategies/default.py`): never learn a 0-power move — the
+  Mud Sport-over-Mud-slap regression is impossible now (run 14's Marshtomp kept Mud-slap).
+- Segment 9c prep (heal + `_prepare_for_fight` band 20-24 + Electric-resistant lead +
+  safe heal), mirroring the Brawly pattern.
+- Training tile: Route 117 (31,16) — the ONLY two-way-pathable grass from the Mauville
+  road (full 162-tile sweep from the real entry tile; Route 110's grass is Cycling-Road-
+  walled / ledge-one-way — runs 11-13 each died plan-failing toward unswept tiles, and
+  `_navigate_riding_out`'s bail message now carries the real last error instead of
+  blaming "scene interruptions").
+- `_ride_out_all_scenes`: multi-part aftermath chains (Wally defeat → uncle → Scott →
+  registration) are now ridden until the field stays quiet for 600 straight frames.
+Also this session (real-HW log): `ensure_facing_direction` rides out field scripts
+(85k-frame trainer-intro wedge fixed, regression-proven) and StoryMode gained a GLOBAL
+no-progress watchdog (18k frames of total stasis → self-derail into recovery).

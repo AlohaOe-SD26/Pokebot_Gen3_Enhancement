@@ -46,6 +46,14 @@ class DefaultBattleStrategy(BattleStrategy):
             context.message = f"{new_move.name} is on the block list, so {pokemon.name} will skip learning it."
             return 4
 
+        # FORK (2026-07-22, KI-13): never LEARN a 0-power move. The bot's strategies
+        # only ever select damaging moves, so a status move is a dead slot — and the
+        # auto-replace cost Marshtomp its only Ground attack (Mud-slap) for MUD SPORT
+        # right before an all-Electric gym (run 10 lost to Wattson 8 times on it).
+        if new_move.base_power == 0:
+            context.message = f"{new_move.name} has no attack power, so {pokemon.name} will skip learning it."
+            return 4
+
         move_choices = [*[move.move for move in pokemon.moves], new_move]
 
         # Get the effective power of each move

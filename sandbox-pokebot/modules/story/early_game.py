@@ -164,6 +164,7 @@ def _navigate_riding_out(dest_map, dest_tile, *, avoid_encounters: bool = True, 
     """`navigate_to_anywhere` that rides out any scripted scene (a trainer sight-line,
     a cutscene) that aborts the path, then retries — instead of hard-failing to Manual.
     Used by training/catching where the grass route can cross a trainer's line."""
+    last_error = None
     for _ in range(tries):
         _check_abort()
         try:
@@ -171,9 +172,15 @@ def _navigate_riding_out(dest_map, dest_tile, *, avoid_encounters: bool = True, 
                 dest_map, dest_tile, avoid_encounters=avoid_encounters, avoid_scripted_events=False
             )
             return
-        except BotModeError:
+        except BotModeError as e:
+            last_error = e
             yield from _ride_out_scripted_scene("B")
-    raise BotModeError(f"Could not reach {dest_tile} on {dest_map} (too many scene interruptions).")
+    # Surface the REAL last error: runs 11-13 each burned all retries on instant
+    # PLAN failures (an unreachable tile) while this message blamed "scene
+    # interruptions" — two full validation runs were misdiagnosed off it.
+    raise BotModeError(
+        f"Could not reach {dest_tile} on {dest_map} after {tries} tries (last error: {last_error})."
+    )
 
 
 # Exit warp of every Emerald Poké Center 1F (same interior layout everywhere).
@@ -262,6 +269,28 @@ def _ride_out_scripted_scene(button: str = "B", *, engage_timeout: int = 240) ->
             break  # no scene fired; nothing to ride out
         yield
     yield from _wait_until_cutscene_over(button)
+
+
+def _ride_out_all_scenes(*, quiet_frames: int = 600, max_frames: int = 12000) -> Generator:
+    """B-ride EVERY scene part until the field has been script-free for `quiet_frames`
+    STRAIGHT. Multi-part aftermaths (Wally defeat → uncle → exit walk → Scott approach →
+    PokéNav registration) pause BETWEEN parts, so a single cutscene-ride returns during
+    a pause and the next part then interrupts whatever the story does next — run 11
+    burned all of the training navigation's scene-interruption retries on exactly this
+    and bailed to Manual just as the chain finished. Bounded: after `max_frames` we
+    proceed anyway and let the callers' own riding cope."""
+    total = 0
+    quiet = 0
+    while quiet < quiet_frames:
+        if total > max_frames:
+            break
+        if get_global_script_context().is_active:
+            quiet = 0
+            context.emulator.press_button("B")
+        else:
+            quiet += 1
+        total += 1
+        yield
 
 
 def _wait_for_task(task_name: str, button: str | None = None, *, timeout_frames: int = 1200) -> Generator:
@@ -3018,6 +3047,13 @@ def deliver_devon_goods_to_stern() -> Generator:
 # nearest reachable unvisited switch; re-plan). Win → FLAG_BADGE03_GET (+TM34).
 ROUTE110_RIVAL_STAGING = (34, 57)      # just south of the trigger row; step Up to arm it
 MAUVILLE_WALLY_APPROACH = (8, 7)       # below Wally (8,6); face Up to talk
+# Route 117's south-central grass field — the ONLY grass two-way pathable from the
+# Mauville-side road (full 162-tile sweep from entry tile (55,6), 2026-07-22). The
+# northern strips ((51,1) etc.) sit on a ledge shelf the road can't return from, and
+# Route 110's grass is Cycling-Road-walled / ledge-one-way — runs 11-13 each burned
+# all navigation retries plan-failing before this was swept properly. Prevention rule:
+# training tiles must be probed for TWO-WAY pathability FROM THE REAL ENTRY TILE.
+ROUTE117_TRAINING_GRASS = (MapRSE.ROUTE117, (31, 16))
 MAUVILLE_GYM_DOOR_CITY = (8, 5)        # city door → gym (4-5,20)
 MAUVILLE_GYM_SWITCHES = [(0, 15), (4, 12), (3, 9), (8, 9)]
 MAUVILLE_GYM_WATTSON_APPROACH = (5, 3)  # below Wattson (5,2)
@@ -3081,6 +3117,8 @@ def travel_route110_and_fight_rival() -> Generator:
             raise BotModeError("Route 110: the rival battle never resolved.")
         yield
     yield from _wait_until_cutscene_over("B")
+    # The rival aftermath also chains (Itemfinder gift → dialogue tails) — ride it all.
+    yield from _ride_out_all_scenes()
     context.message = "Story: beat the rival on Route 110 (got the Itemfinder)!"
 
 
@@ -3114,8 +3152,11 @@ def fight_wally_mauville() -> Generator:
         if frames > 30000:
             raise BotModeError("Mauville: the Wally battle never resolved.")
         yield
-    # Ride out Scott's walk-up + departure.
+    # Ride out the WHOLE aftermath chain (defeat text → uncle → exit walk → Scott's
+    # approach → any registration) until the field stays quiet — a single ride returns
+    # in a between-parts pause and the leak killed run 11's training navigation.
     yield from _wait_until_cutscene_over("B")
+    yield from _ride_out_all_scenes()
     context.message = "Story: beat Wally — the gym door is clear!"
 
 

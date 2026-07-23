@@ -20,12 +20,13 @@ Status key: ✅ built + validated · 🚧 scaffold/partial · 📋 mapped, not b
 | 8b | Slateport: Devon Goods → Capt. Stern (Shipyard/Dock → Museum → 2 grunt battles) | `deliver_devon_goods_to_stern` | `DELIVERED_DEVON_GOODS` | ✅ (2026-07-22; KI-11 resolved via Dock; full run validated) |
 | 9a | Route 110 north + rival battle | `travel_route110_and_fight_rival` | `route110_rival_beaten()` = **VAR_ROUTE110_STATE ≥ 1** (vanilla sets NO named flag — "DEFEATED_RIVAL_ROUTE_110" was a phantom name) | ✅ (2026-07-22; run 6+) |
 | 9b | Mauville: Wally unblocks the gym door | `fight_wally_mauville` | `DEFEATED_WALLY_MAUVILLE` (real flag 190, decomp-confirmed) | ✅ (2026-07-22; run 6+) |
-| 9c | Mauville Gym: switch maze → Wattson | `do_mauville_gym` (LIVE-grid two-config BFS solver) | `BADGE03_GET` | 🟨 maze VALIDATED (run 10: solves repeatedly, challenges Wattson, whiteout loop clean ×8) — **WIN pending team strength (KI-13 / #24-wattson-strength)** |
+| 9c | Mauville Gym: prep (Route 117 train, band 20-24) → switch maze → Wattson | `do_mauville_gym` (LIVE-grid two-config BFS solver) + Segment 9c prep | `BADGE03_GET` | ✅ (2026-07-22 run 14: trained (2 evolutions), maze solved, **Wattson BEATEN — Dynamo Badge**; checkpoint `wattson_done.ss1` verified) |
 | 10+ | Mauville → … → Elite Four | — | — | ⬜ (§Ch10–13 roadmap below) |
 
-**You are at the Ch9c boundary (2026-07-22).** `stern_done.ss1` = Slateport post-delivery;
-`mauville_wedge.ss1` = mid-gym-maze (VAR=2). Ch9a/9b validated end-to-end; Ch9c's maze
-mechanics validated — Wattson defeats the current team (see KI-13 for the fix plan).
+**You are at the Ch10 boundary (2026-07-22).** `wattson_done.ss1` = Mauville Gym (5,3),
+BADGE03_GET + DEFEATED_MAUVILLE_GYM + DEFEATED_WALLY_MAUVILLE verified. Next: Ch10 —
+HM06 Rock Smash (Mauville SE house) → Route 111/112 → Fiery Path (§Ch10–13 roadmap;
+run /validate-docs + audit_flag_names.py before building).
 CRITICAL Ch9c lesson: the gym barriers exist ONLY in the LIVE grid (gBackupMapLayout);
 get_map_data/calculate_path read the ROM's static layout and are blind to setmetatile —
 the solver reads the live grid and judges every leg by arrival. Applies to EVERY

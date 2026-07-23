@@ -717,3 +717,21 @@ with no exception bypasses the whiteout/derail recovery entirely.
   must have clean provenance — every probe re-saves current_state.ss1 at shutdown, so
   chained probes drift; snapshot the repro to its own file (mauville_wedge.ss1 pattern)
   and always load THAT.
+
+## 2026-07-22 — Training tile picked without a two-way pathability sweep (runs 11-13) + a lying bail message
+- **Symptom:** three straight Wattson-prep runs died with "Could not reach <grass> (too
+  many scene interruptions)" — at three different tiles.
+- **Root causes:** (1) I picked training tiles from a has_encounters/collision probe
+  WITHOUT pathability — Route 110's NE grass is Cycling-Road-walled, its south grass is
+  ledge-one-way, and Route 117's north strip sits on a shelf the road can't return
+  from; only Route 117's south-central field is two-way reachable (found by sweeping
+  ALL 162 grass tiles from the REAL entry tile (55,6)). (2) `_navigate_riding_out`'s
+  bail message blamed "scene interruptions" for what were instant PLAN failures — two
+  runs were misdiagnosed off it before a probe of the actual call told the truth.
+- **Fix that worked:** ROUTE117_TRAINING_GRASS = (31,16) (swept two-way); the bail
+  message now includes the real last error.
+- **Prevention rules:** (a) a training/grind tile is only valid after a TWO-WAY
+  calculate_path sweep FROM THE REAL ENTRY TILE of the approach (not from an assumed
+  edge tile — shelves/ledges make edges lie); (b) every retry-loop bail message must
+  carry the LAST underlying error verbatim — a summary that guesses the cause sends
+  the next debugging session down the wrong road.

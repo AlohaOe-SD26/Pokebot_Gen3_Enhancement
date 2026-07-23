@@ -620,8 +620,53 @@ class StoryMode(BotMode):
             set_story_abort(False)
             self._whiteout_pending = False
             try:
-                yield from self._play()
-                return
+                # GLOBAL NEVER-HANG WATCHDOG (#24-interrupt, real-HW log 2026-07-22):
+                # a wedged primitive can spin the mode generator forever with no error
+                # (a trainer-intro msgbox opened mid-turn and ensure_facing_direction
+                # pressed direction keys at a locked avatar for 85k frames — only the
+                # debug logger noticed). Drive _play frame by frame and watch a broad
+                # stall signature (map, position, game state, party, message): if
+                # NOTHING changes for 18k mode-driven frames (~5 min; battles don't
+                # count — a listener holds control then), raise a derail so run()'s
+                # own recovery (B-ride scripts, re-orient, re-enter) takes over.
+                _play_gen = self._play()
+                _stall_sig = None
+                _stall_frames = 0
+                while True:
+                    try:
+                        next(_play_gen)
+                    except StopIteration:
+                        return
+                    yield
+                    try:
+                        from modules.map import get_map_data_for_current_position
+                        from modules.memory import get_game_state as _ggs
+                        from modules.player import get_player_avatar as _gpa
+
+                        _md = get_map_data_for_current_position()
+                        _cur = (
+                            (_md.map_group, _md.map_number),
+                            tuple(_gpa().local_coordinates),
+                            str(_ggs()),
+                            self._progress_sig(),
+                            context.message,
+                        )
+                    except Exception:
+                        _cur = None
+                    if _cur is not None and _cur == _stall_sig:
+                        _stall_frames += 1
+                        if _stall_frames >= 18000:
+                            try:
+                                _play_gen.close()
+                            except Exception:
+                                pass
+                            raise BotModeError(
+                                "Story: global watchdog — nothing progressed for 18,000 frames "
+                                "(the current step is wedged); derailing into recovery."
+                            )
+                    else:
+                        _stall_sig = _cur
+                        _stall_frames = 0
             except BotModeError as err:
                 from modules.memory import game_has_started, get_game_state, GameState
 
@@ -1172,14 +1217,28 @@ class StoryMode(BotMode):
             console.print("[dim]Story: Wally already beaten at Mauville — skipping.[/]")
         _guard("Wally at Mauville (Ch9b)", lambda: _done("DEFEATED_WALLY_MAUVILLE"))
 
-        # --- Segment 9c: Gym 3 — Wattson (Dynamo Badge). Heal + Electric-resistant lead
-        #     (Marshtomp/Ground is immune); the switch maze is solved adaptively. ---
+        # --- Segment 9c: Gym 3 — Wattson (Dynamo Badge). PREP FIRST (KI-13: the maze
+        #     solver was validated in run 10 but the unprepped team lost 8 straight
+        #     challenges): band-train at Route 110's north grass, then an Electric-
+        #     resistant lead (Marshtomp/Ground is immune), then a safe heal. The
+        #     switch maze itself is solved by the live-grid solver. ---
         if not _done("BADGE03_GET"):
             from modules.map_data import PokemonCenter
-            from modules.story.early_game import _lead_best_matchup, heal_in_pokemon_center
+            from modules.story.early_game import (
+                ROUTE117_TRAINING_GRASS,
+                _lead_best_matchup,
+                heal_in_pokemon_center,
+            )
 
-            yield from heal_in_pokemon_center(PokemonCenter.MauvilleCity)
+            wattson_fight = {
+                "keys": [MapRSE.MAUVILLE_CITY_GYM.value, MapRSE.MAUVILLE_CITY.value],
+                "band": (20, 24),  # Wattson: Voltorb 20 / Electrike 20 / Magneton 22 / Manectric 24
+                "grass": ROUTE117_TRAINING_GRASS,
+                "heal": PokemonCenter.MauvilleCity,
+            }
+            yield from self._prepare_for_fight(wattson_fight)
             yield from _lead_best_matchup(["Electric"])
+            yield from heal_in_pokemon_center(PokemonCenter.MauvilleCity)
             yield from do_mauville_gym()
         else:
             console.print("[dim]Story: Dynamo Badge already earned — Gym 3 skipped.[/]")
