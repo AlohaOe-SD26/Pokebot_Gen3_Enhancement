@@ -1991,3 +1991,28 @@ Both reported from `Story_DEBUG__RESET...062055.log` and reproduced in-harness f
   mode at the budget end, 1 self-recovered derail.
 - New tool `tools/story-dev/mapfacts.py` (`PROBE_MAPS=` env): warps + objects + a
   passability grid for any map — how both root causes were pinned.
+
+## 2026-07-23 — "Show Coords" debug readout + a full-game Gemini research commission
+Two user-directed items, built while a fresh-start test run was in progress (so neither
+touched the emulator, profiles, or save states).
+- **Show Coords toggle (Play tab → CONTROLS → "Debug").** Displays the player's live tile,
+  area name, map group/number and facing, so better pathing coordinates can be read off
+  the screen and reported during development instead of reconstructed from a log after
+  the fact. Off by default; display-only (reads state, never writes), so it is safe to
+  flip mid-run. Every read is individually guarded — the readout says "(no player
+  position available)" on the title screen or mid-warp rather than showing a stale
+  position that might be reported as current. The preference survives a GUI rebuild
+  (handheld toggle), and the label re-packs so the button can never read active with
+  nothing under it.
+  ⚠ Code-verified and compile-checked only — NOT yet clicked live, because the user's
+  fresh-start test was running. Confirm on screen before relying on it.
+- **`sandbox-pokebot/profiles/GEMINI-FULLGAME-RESEARCH.md`** — a self-contained Deep
+  Research commission for a whole-game, bot-grade Emerald walkthrough (the broad
+  counterpart to the surgical per-question relays in GEMINI-PROMPTS.md). It front-loads
+  what "good" means for a bot rather than a human reader, prioritises everything past our
+  Heat Badge frontier, and explicitly hunts the failure classes that have actually cost us
+  time: hidden prerequisite steps (the Slateport Dock case), runtime-modified map layouts,
+  one-way terrain, NPC patrol-vs-static, and — the Lavaridge lesson — puzzle RULES rather
+  than a single solution route, so the bot can re-solve from any position. Includes a
+  continuation prompt for truncated runs, a grading procedure with a known-answer control,
+  and a run log. Referenced from 15-ESCALATION-RESEARCH.md.

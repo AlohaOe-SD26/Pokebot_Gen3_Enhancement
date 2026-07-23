@@ -165,6 +165,9 @@ class DashboardScreen:
         self._speed_buttons: dict[int, tkinter.Button] = {}
         self._video_button: tkinter.Button | None = None
         self._audio_button: tkinter.Button | None = None
+        self._coords_button: tkinter.Button | None = None
+        self._coords_label: tkinter.Label | None = None
+        self._show_coords: bool = False
         self._kpi_values: dict[str, tkinter.Label] = {}
         self._party_rows: list[dict] = []
         self._sprite_cache: dict = {}  # Tk needs live references to PhotoImages
@@ -340,6 +343,8 @@ class DashboardScreen:
         self._speed_buttons = {}
         self._video_button = None
         self._audio_button = None
+        self._coords_button = None
+        self._coords_label = None
         self._kpi_values = {}
         self._party_rows = []
         self._sprite_cache = {}
@@ -742,6 +747,45 @@ class DashboardScreen:
             padx=8,
         )
         self._audio_button.pack(side="left", padx=1)
+
+        # --- Show Coords (debug readout; user directive 2026-07-23) ---------------
+        # A mapping aid, not a gameplay feature: when the bot misroutes, the user reads
+        # the live tile + area off this line and reports it, which is far faster than
+        # reconstructing a position from a log after the fact. Off by default; purely a
+        # display, it never touches the emulator or the running mode.
+        coords_row = tkinter.Frame(controls, background=COLOR_CARD)
+        coords_row.pack(fill="x", pady=(0, 4))
+        tkinter.Label(coords_row, text="Debug", width=9, anchor="w", background=COLOR_CARD, foreground=COLOR_INK_2).pack(
+            side="left"
+        )
+        self._coords_button = tkinter.Button(
+            coords_row,
+            text="Show Coords",
+            command=self._toggle_show_coords,
+            background=COLOR_SURFACE,
+            foreground=COLOR_INK,
+            activebackground=COLOR_ACCENT,
+            activeforeground=COLOR_INK,
+            relief="flat",
+            padx=8,
+        )
+        self._coords_button.pack(side="left", padx=1)
+        self._coords_label = tkinter.Label(
+            controls,
+            text="",
+            anchor="w",
+            justify="left",
+            background=COLOR_CARD,
+            foreground=COLOR_INK,
+            font=("Consolas", 9),
+            wraplength=240,
+        )
+        # Packed/unpacked by the toggle so the card keeps its height when off. The
+        # preference survives a GUI rebuild (handheld toggle, mode change), so re-pack
+        # here when it was already on — otherwise the button would read active with no
+        # readout under it.
+        if self._show_coords:
+            self._coords_label.pack(fill="x", pady=(0, 4))
 
         # (The Handheld toggle now lives in the persistent column header so it
         # is visible on every tab — see _build_tool_column / #30a.)
@@ -2581,6 +2625,7 @@ class DashboardScreen:
     def _refresh_sidebar(self) -> None:
         self._refresh_controls()
         self._refresh_status_line()
+        self._refresh_coords()
         self._refresh_party()
         if time.monotonic() - self._last_kpi_refresh >= KPI_REFRESH_SECONDS:
             self._refresh_kpis()
@@ -2617,6 +2662,54 @@ class DashboardScreen:
             button.config(background=COLOR_ACCENT if active else COLOR_SURFACE)
         self._video_button.config(background=COLOR_ACCENT if context.video else COLOR_SURFACE)
         self._audio_button.config(background=COLOR_ACCENT if context.audio else COLOR_SURFACE)
+        if self._coords_button is not None:
+            self._coords_button.config(background=COLOR_ACCENT if self._show_coords else COLOR_SURFACE)
+
+    def _toggle_show_coords(self) -> None:
+        """Show Coords (user directive 2026-07-23): a debug readout of the player's live
+        tile and area, for reporting better pathing coordinates back into development.
+
+        Display only — it reads state and never writes, so it is safe to flip at any
+        time, including mid-run."""
+        self._show_coords = not self._show_coords
+        if self._coords_label is not None:
+            if self._show_coords:
+                self._coords_label.pack(fill="x", pady=(0, 4))
+            else:
+                self._coords_label.pack_forget()
+        self._refresh_controls()
+        self._refresh_coords()
+
+    def _refresh_coords(self) -> None:
+        """Update the Show Coords readout: local tile, map name, map group/number, and
+        facing. Every read is guarded — this runs on the GUI tick, including while the
+        emulator is between maps or on the title screen, where any of it can be absent.
+        A debug display must never be able to take the GUI down."""
+        if not self._show_coords or self._coords_label is None:
+            return
+        try:
+            from modules.map import get_map_data_for_current_position
+            from modules.player import get_player_avatar
+
+            avatar = get_player_avatar()
+            x, y = avatar.local_coordinates
+            group, number = avatar.map_group_and_number
+            try:
+                area = get_map_data_for_current_position().map_name
+            except Exception:
+                area = "?"
+            try:
+                facing = str(avatar.facing_direction)
+            except Exception:
+                facing = "?"
+            text = (
+                f"({x}, {y})  {area}" + "\n" + f"map ({group}, {number})   facing {facing}"
+            )
+        except Exception:
+            # No avatar yet (title screen, mid-warp, no save loaded) — say so plainly
+            # rather than showing a stale position the user might report as current.
+            text = "(no player position available)"
+        self._coords_label.config(text=text)
 
     def _refresh_status_line(self) -> None:
         try:

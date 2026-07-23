@@ -44,6 +44,16 @@ prep, still in Story mode at the budget end, 1 self-recovered derail.
 New tool: `tools/story-dev/mapfacts.py` (warps + objects + passability grid for any map).
 ⚠ Sandbox only — not promoted to custom (standing rule: promote on the user's explicit OK).
 
+**ALSO LANDED 2026-07-23 (user directives, built during their fresh-start test run):**
+- **"Show Coords" toggle** — Play tab → CONTROLS → "Debug" row. Live tile + area name +
+  map group/number + facing, for reporting pathing coordinates during development.
+  Off by default, display-only, fully guarded. ⚠ **Compile-verified but NOT clicked live**
+  (the user's test was running) — confirm on screen.
+- **`sandbox-pokebot/profiles/GEMINI-FULLGAME-RESEARCH.md`** — a Deep Research commission
+  for a whole-game bot-grade walkthrough, to be re-run periodically so mapping detail lands
+  ahead of the build frontier. Grade the result with the procedure in that file (including
+  a known-answer control from an already-built chapter) and record it in its run log.
+
 **NEXT after those: Ch12** — the Go-Goggles scene outside the Lavaridge gym (⚠ verify
 the trigger position) → Route 111 desert → Petalburg (Norman). Start from
 `flannery_done.ss1`. `END_MARKERS` in livetest.py already carries "HEAT BADGE earned";

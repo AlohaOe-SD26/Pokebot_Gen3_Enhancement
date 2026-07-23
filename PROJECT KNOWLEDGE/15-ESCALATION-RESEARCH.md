@@ -10,6 +10,15 @@
 > Motivating case: KI-11 (the Oceanic Museum grunt-seal was a missing story STEP — talk
 > to Dock at Stern's Shipyard — invisible to static recon, obvious in a walkthrough).
 
+## Two different research shapes (don't confuse them)
+- **Escalation (this document)** — SURGICAL. One stuck sequence, asked only after the
+  recon ladder below is exhausted. Keep it rare.
+- **Full-game deep research** — BROAD, and deliberately NOT gated on being stuck:
+  `sandbox-pokebot/profiles/GEMINI-FULLGAME-RESEARCH.md` commissions a whole-game,
+  bot-grade walkthrough in one Deep Research run, to be re-run periodically so mapping
+  detail lands AHEAD of the build frontier instead of being derived at build time.
+  Commissioned 2026-07-23 (user directive). Same house rule: leads, not gospel.
+
 ## When to escalate (the trigger threshold — keep it RARE)
 Only after ALL of these are exhausted for the sequence in question:
 1. Decomp (`pret/pokeemerald`) read for the relevant maps/scripts.
