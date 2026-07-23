@@ -2113,7 +2113,9 @@ def fight_rustboro_rival() -> Generator:
     context.message = "Story: beat the Rustboro rival — off toward Dewford."
 
 
-def _talk_to_wandering_npc(map_enum, local_id: int, *, attempts: int = 8, approach_hint=None) -> Generator:
+def _talk_to_wandering_npc(
+    map_enum, local_id: int, *, attempts: int = 8, approach_hint=None, known_spot=None
+) -> Generator:
     """Engage a WANDERING (patrolling) NPC in conversation on the current small indoor map.
 
     WHY THE OBVIOUS APPROACHES FAIL (all live-proven in Mr. Briney's cottage):
@@ -2259,6 +2261,23 @@ def _talk_to_wandering_npc(map_enum, local_id: int, *, attempts: int = 8, approa
         if _npc_coords() is None and approach_hint is not None:
             yield from _navigate_riding_out(map_enum, approach_hint)
             yield from wait_for_n_frames(30)
+
+        # PHASE 0.5 — KNOWN-SPOT FAST PATH (user directive 2026-07-22): when a validated
+        # ambush tile is known for this NPC, go STRAIGHT there and wait roughly a patrol
+        # lap for the target to transit adjacent — the observe lap plus trial parking
+        # read as "arbitrary wandering" on real hardware (user-observed at BOTH Briney
+        # talks). The adaptive observe-then-park procedure below stays as the fallback
+        # if the fast path doesn't engage within the wait.
+        if known_spot is not None and _round == 0:
+            yield from _step_to(known_spot)
+            for _f in range(900):
+                _check_abort()
+                yield from _try_talk_if_adjacent()
+                if get_global_script_context().is_active:
+                    if _dbg:
+                        print("[talk] ENGAGED via known_spot fast path")
+                    return
+                yield
 
         # PHASE 1 — OBSERVE one full patrol lap: record every tile each walker visits.
         # (Also talk instantly if the target passes adjacent, and un-block the room if
@@ -2478,7 +2497,12 @@ def sail_to_dewford() -> Generator:
     #     map is the signal the sail was accepted. ---
     if _map_group_number() == BRINEY_HOUSE:
         yield from wait_until_truly_controllable()
-        yield from _talk_to_wandering_npc(MapRSE.ROUTE104_MR_BRINEYS_HOUSE, BRINEY_LOCAL_ID)
+        # known_spot (6,2): validated ambush tile beside Briney's table ring — the talk
+        # engaged there on real hardware (user log 2026-07-22); fast path skips the
+        # observe lap, the adaptive procedure remains the fallback.
+        yield from _talk_to_wandering_npc(
+            MapRSE.ROUTE104_MR_BRINEYS_HOUSE, BRINEY_LOCAL_ID, known_spot=(6, 2)
+        )
         presses = 0
         while _map_group_number() == BRINEY_HOUSE:
             _check_abort()
@@ -2761,10 +2785,16 @@ def sail_to_slateport() -> Generator:
         yield from heal_in_pokemon_center(PokemonCenter.DewfordTown)
         yield from wait_until_truly_controllable()
 
-        # --- Leg 1: talk to Briney at the dock and pick SLATEPORT. (approach_hint: the
-        #     dock object only loads once we're near it — walk to (11,9) beside it.) ---
+        # --- Leg 1: talk to Briney at the dock and pick SLATEPORT. Briney (local_id 2)
+        #     stands STATIC at (12,9) in this story state (probed live, 3600-frame
+        #     observation — he does not patrol here); known_spot (11,9) parks beside him
+        #     without ever crossing the townsperson patrolling the (11-13,14) row (the
+        #     "erratic movement right of the gym" the user watched was the old adaptive
+        #     dance fighting through exactly that walker's wall). approach_hint loads
+        #     the object when approaching from across town. ---
         yield from _talk_to_wandering_npc(
-            MapRSE.DEWFORD_TOWN, DEWFORD_DOCK_BRINEY_LOCAL_ID, approach_hint=(11, 9)
+            MapRSE.DEWFORD_TOWN, DEWFORD_DOCK_BRINEY_LOCAL_ID,
+            approach_hint=(11, 9), known_spot=(11, 9),
         )
         presses = 0
         while _map_group_number() == DEWFORD:

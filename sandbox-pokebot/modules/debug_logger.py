@@ -467,7 +467,17 @@ def _generator_stack() -> list:
             name = getattr(code, "co_qualname", code.co_name)
             fn = code.co_filename.replace("\\", "/").split("/")[-1]
             out.append(f"{name}  @ {fn}:{fr.f_lineno}")
-            gen = getattr(gen, "gi_yieldfrom", None)
+            nxt = getattr(gen, "gi_yieldfrom", None)
+            if nxt is None:
+                # A generator DRIVEN via next() (not yield-from) breaks the chain —
+                # StoryMode.run's global watchdog drives _play that way. Hop into the
+                # driven generator via the frame's local so dumps stay deep.
+                for local_name in ("_play_gen", "gen", "generator"):
+                    cand = fr.f_locals.get(local_name)
+                    if cand is not None and getattr(cand, "gi_frame", None) is not None:
+                        nxt = cand
+                        break
+            gen = nxt
             depth += 1
     except Exception as e:  # noqa: BLE001
         out.append(f"<generator stack walk error: {e}>")
