@@ -100,6 +100,14 @@ see the outstanding question). Legend: `✓ decomp` / `✓ probe` / `✓ externa
   Marshtomp's Water STAB is 2× on everything; prep band ~L26-29, WATER lead.
   Completion: `BADGE04_GET`. THEN: the Go-Goggles scene (rival gives them outside the
   gym — ⚠ verify trigger position) unlocks the desert; Ch12 = Petalburg (Norman).
+- **11d STATUS (built, un-wired)**: `do_lavaridge_gym` exists; the literal warp-table
+  model is WRONG — live experiments (2026-07-22 overnight): falls land SAME-COORD on
+  B1F with NO auto-retrigger; B1F is compartmentalized rooms (hole→room→vent chains);
+  1F holes = metatile 104 (20 tiles); B1F warp metatiles split 41 (15) / 0 (9) — which
+  group is the VENT is still unproven (the (10,18) landing is 41 and did NOT launch).
+  NEXT: either the Gemini Q1 answer (profiles/GEMINI-PROMPTS.md) or a systematic
+  in-gym explorer (fall each hole from lavaridge.ss1, record room + reachable warps,
+  build the true graph empirically — the Mauville learn-live pattern).
 - ⚠ open (append to GEMINI-PROMPTS.md if build hits walls): Cable Car station interior
   scripts (auto-scene or talk-to-attendant?); B1F warp-pair destination coords (fetch
   LavaridgeTown_Gym_B1F/map.json at build time); Go-Goggles exact trigger.
