@@ -890,3 +890,30 @@ one-way descent a real recovery (re-ride the cable car when stranded below).
 remembered tile — an NPC one tile off is a silent no-op. And a completion guard must
 assert the GOAL was reached, never merely that we left the starting area — "not at the
 start" is not "arrived", and the difference is exactly a failed/interrupted segment.
+
+## 2026-07-23 — Gating an input on "script inactive" when the prompt IS the script (slow Rock Smash)
+**Symptom.** Rock Smash field use crawled — ~30s per rock, ~127s for the two Route 111
+rocks — though it eventually worked.
+**Root cause.** `_smash_rock` pressed A to answer the "Use ROCK SMASH? YES/NO" prompt
+only `if not get_global_script_context().is_active`. But that prompt is served by an
+ACTIVE field script, so the guard was always true-negative: A never answered it, and the
+rock only broke when the outer 3-attempt loop re-pressed A after a 1800-frame idle.
+**The fix that worked.** Press A on a fast fixed cadence (every 10 frames), unconditional.
+In this context extra A presses are harmless (the tile is empty after the smash).
+**Prevention rule.** Do not gate "advance/answer the prompt" inputs on "no script
+running" — the prompt you are answering is itself a running script. Gate on whether an
+input could do HARM (start a conversation, pick a destructive option), not on script
+activity.
+
+## 2026-07-23 — A milestone save captured inside a menu (rocksmash_taught)
+**Symptom.** Loading the rocksmash_taught milestone in the GUI dropped the player into
+the bag menu; the resuming Story mode then drove a navigator under the open menu.
+**Root cause.** The checkpoint was captured mid-teach while the bag was still open
+(state = BAG_MENU, not controllable). Save states must be taken from a stable
+controllable overworld to be safe resume points.
+**The fix that worked.** Regenerate the checkpoint from a clean overworld (teach ->
+normalize -> verify -> round-trip). AND, structurally, a `normalize_to_overworld()` step
+at Story resume so ANY awkward entry state (menu/dialogue/battle/cutscene) self-heals.
+**Prevention rule.** Capture checkpoints only from a stable, controllable overworld
+(assert it before writing). And make resume tolerant of arbitrary entry states rather
+than assuming a clean overworld — users load states from anywhere.

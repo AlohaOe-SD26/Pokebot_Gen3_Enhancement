@@ -137,6 +137,20 @@ meteorfalls_done → cable car → Maxie → whiteout → cable-car RE-RIDE → 
 Flannery → HEAT BADGE, 0 derails. Also validated this session: the rock-smash fix
 (taught to Mightyena, no hang) and the sufficiency gate, both from the user's earlier logs.
 
+**BUILT 2026-07-23 (user's milestone-testing feedback):** three fixes, all proven
+(changelog for detail); revert point tag `backup-pre-resume-robustness-2026-07-23`.
+(1) Rock Smash field use 6x faster (was gating the YES-answer A on "script inactive",
+but the prompt IS a script) — ~20s for both Route 111 rocks now.
+(2) RESUME-FROM-ANYWHERE: `normalize_to_overworld()` at `_play` start B-presses any
+entry state (menu/dialogue/battle/cutscene) to a clean controllable overworld before
+segments navigate; proven to heal the actual menu-saved milestone (BAG_MENU -> OVERWORLD
+in 204 frames) + a 5-state fault-injected A/B.
+(3) `rocksmash_taught.ss1` milestone regenerated in a clean overworld (was saved in the
+bag menu); other Ch10 checkpoints audited clean. `regen_rocksmash_taught.py` is the
+template for re-capturing any checkpoint safely.
+NOTE for the future: the user asked to keep extending resume robustness "for all
+situations" — the normalizer covers the common ones; deepen as new edge states appear.
+
 **NEXT after those: Ch12** — the Go-Goggles scene outside the Lavaridge gym (⚠ verify
 the trigger position) → Route 111 desert → Petalburg (Norman). Start from
 `flannery_done.ss1`. `END_MARKERS` in livetest.py already carries "HEAT BADGE earned";

@@ -103,6 +103,10 @@ never rely on it across runs.)
   still time out honestly.
 - `mapfacts.py PROBE_MAPS=ROUTE112_CABLE_CAR_STATION` — how the cable-car attendant's real
   tile (6,6) was found; the template for probing any interaction coordinate before trusting it.
+- `repro_normalize.py` — A/B for `normalize_to_overworld` (resume-from-anywhere): 5
+  fault-injected entry states (menu/message/yes-no/battle/clean) all settle B-only.
+- `regen_rocksmash_taught.py` — re-capture a milestone checkpoint in a clean overworld
+  (teach -> normalize -> verify -> round-trip). Template for fixing any menu-saved state.
 - `doorprobe.py` — resolve a map's warp destinations (which door is which).
 - `routeprobe.py` — reachability probe (which tiles a navigator can reach from a start).
 - `sailprobe.py` — walk-and-log a route (used to validate the Rustboro→Route104 crossing).

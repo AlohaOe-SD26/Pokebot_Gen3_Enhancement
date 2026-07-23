@@ -334,6 +334,60 @@ def _menu_task_active() -> bool:
         return False
 
 
+def normalize_to_overworld(*, timeout_frames: int = 3600) -> Generator:
+    """RESUME-FROM-ANYWHERE failsafe (user directive 2026-07-23): bring the game to a
+    STABLE, controllable overworld by COMPLETING whatever is currently on screen —
+    before any story segment tries to navigate. A Story mode can be entered in any
+    state: a milestone save loaded mid-menu (the rocksmash_taught checkpoint), an
+    active battle, an open dialogue/Yes-No, a cutscene. Without this, the segment
+    logic would drive a navigator under an open menu / into a dialogue and wedge.
+
+    Strategy — press B on a cadence until settled:
+      * BATTLE → a listener owns it; wait it out (press nothing).
+      * OVERWORLD + controllable + no script + no menu → done (require it STABLE).
+      * anything else (menu, message, Yes-No, cutscene, transition) → B. B advances
+        and dismisses dialogue, closes menus, and answers Yes-No as NO/CANCEL — all of
+        which move TOWARD the overworld and can never start a new conversation or take
+        a destructive action (A could). We deliberately do NOT try to make progress
+        here; segments do that once we hand them a clean overworld.
+    Bounded; a no-op when already controllable. Safe to call unconditionally."""
+    from modules.memory import GameState, game_has_started, get_game_state
+    from modules.player import player_avatar_is_controllable
+
+    if get_game_state() is GameState.TITLE_SCREEN or not game_has_started():
+        return  # the intro path owns the title screen / pre-game
+
+    stable = 0
+    for _f in range(timeout_frames):
+        _check_abort()
+        state = get_game_state()
+        if state is GameState.BATTLE:
+            stable = 0
+            yield  # the battle listener drives; just let it finish
+            continue
+        try:
+            script_active = get_global_script_context().is_active or get_immediate_script_context().is_active
+        except Exception:
+            script_active = False
+        settled = (
+            state is GameState.OVERWORLD
+            and player_avatar_is_controllable()
+            and not script_active
+            and not _menu_task_active()
+        )
+        if settled:
+            stable += 1
+            if stable >= 15:  # a quarter-second of genuine control — transitions settled
+                return
+            yield
+            continue
+        stable = 0
+        context.emulator.press_button("B")
+        yield
+    # Timed out — hand back anyway; the caller's own guards/derail recovery cope.
+    context.emulator.reset_held_buttons()
+
+
 def _dialogue_button(button: str) -> str:
     """Resolve the button to actually press this frame when riding out a scene.
 
@@ -4057,20 +4111,23 @@ def _smash_rock(map_enum, approach_tile, face_dir: str) -> Generator:
         _check_abort()
         context.emulator.press_button(face_dir)
         yield
-        yield from wait_for_n_frames(8)
-        context.emulator.press_button("A")
-        yield
+        yield from wait_for_n_frames(6)
         # Watch the WORLD: the rock disappearing = success. A wild battle spawned by
         # the smash pauses this generator (the battle listener's controller runs on
         # top of us); when we resume, the judgment below still holds. Press A on a
-        # cadence while free to answer the 'Use ROCK SMASH?' prompt.
-        for _f in range(1800):
+        # FAST cadence: A opens 'This rock is breakable / Use ROCK SMASH?', answers
+        # YES (default cursor), and advances the smash messages. ‼ Do NOT gate on
+        # "script inactive" — the YES/NO prompt IS an active script, so gating there
+        # meant A never answered it and each rock idled ~3800 frames (user's
+        # 2026-07-23 slow-smash report). Extra A presses here are harmless: after the
+        # rock breaks the tile is empty (no NPC to re-trigger).
+        for _f in range(1200):
             _check_abort()
             if not _rock_present():
-                yield from wait_for_n_frames(45)  # let the crumble animation finish
+                yield from wait_for_n_frames(20)  # let the crumble animation finish
                 yield from wait_until_truly_controllable()
                 return
-            if _f % 30 == 15 and not get_global_script_context().is_active:
+            if _f % 10 == 0:
                 context.emulator.press_button("A")
             yield
     raise BotModeError(f"Rock Smash: the rock at {rock_tile} never broke after 3 attempts.")

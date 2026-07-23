@@ -1228,6 +1228,14 @@ class StoryMode(BotMode):
         # segment a _guard() self-check confirms it truly completed (§SC).
         at_title = get_game_state() is GameState.TITLE_SCREEN or not game_has_started()
         if not at_title:
+            # RESUME-FROM-ANYWHERE (user directive 2026-07-23): normalize whatever
+            # state we were entered in — a milestone loaded mid-menu, an open dialogue,
+            # a live battle, a cutscene — to a stable controllable overworld BEFORE any
+            # segment navigates. Without this a menu-saved state (the rocksmash_taught
+            # milestone) wedges the first navigator under the open menu.
+            from modules.story.early_game import normalize_to_overworld
+
+            yield from normalize_to_overworld()
             try:
                 progress = detect_live()
                 console.print(

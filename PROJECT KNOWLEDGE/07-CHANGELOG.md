@@ -2230,3 +2230,32 @@ at the Mt. Chimney cable car — surfacing TWO bugs, both fixed + proven end-to-
   RE-RODE the cable car (post-whiteout trail: Fallarbor → Fiery Path → summit station →
   Mt. Chimney → Jagged Pass → Lavaridge) → Flannery beaten → HEAT BADGE → clean
   content-end, 0 derails.
+
+## 2026-07-23 — Rock Smash field use 6x faster + resume-from-anywhere normalizer + clean milestone
+User's milestone-testing logs surfaced three things; all fixed + proven. Backup tag
+`backup-pre-resume-robustness-2026-07-23` (pushed) is the revert point.
+- **Rock Smash field use was ~127s for the two Route 111 rocks.** `_smash_rock`'s A
+  cadence was gated on `not script_active` — but the "Use ROCK SMASH? YES/NO" prompt
+  IS an active script, so A never answered YES and each rock idled ~3800 frames until
+  the outer retry re-fired. Fixed: press A every 10 frames unconditionally (A opens the
+  prompt, answers YES on the default cursor, and advances the smash messages; extra A
+  is harmless — the post-smash tile is empty). Measured: ~1,200 frames (~20s) for both
+  rocks now, a 6x speedup, 0 derails.
+- **RESUME-FROM-ANYWHERE failsafe (user directive).** New `normalize_to_overworld()`
+  runs at the very start of `StoryMode._play` (before any segment navigates): it brings
+  the game to a stable, controllable overworld by pressing ONLY B until settled —
+  advancing/closing dialogue, closing menus, cancelling Yes/No, and WAITING OUT a live
+  battle. B can never start a conversation or take a destructive action (A could), so it
+  is universally safe. This makes a Story mode started in ANY state resume cleanly:
+  mid-menu, mid-dialogue, mid-battle, mid-cutscene. PROOF: repro_normalize.py (5 fault-
+  injected entry states — start-menu, message, Yes/No, battle, clean — all settle
+  B-only, battle waited, clean instant) + a LIVE heal of the actual old menu-saved
+  milestone (BAG_MENU -> OVERWORLD controllable in 204 frames).
+- **rocksmash_taught.ss1 milestone was saved in the BAG_MENU** (loading it landed in a
+  menu). Regenerated clean via regen_rocksmash_taught.py (teach from rocksmash_got ->
+  normalize -> verify -> round-trip check): it now loads to a controllable overworld at
+  Mauville (32,15) with Rock Smash known. Audited the other Ch10 checkpoints
+  (rocksmash_got, wattson_done) — both already clean. (The normalizer would self-heal a
+  menu-saved state regardless, but a clean checkpoint is correct hygiene.)
+- End-to-end: a run from the regenerated milestone smashed both rocks fast and reached
+  Meteor Falls, 0 derails.
