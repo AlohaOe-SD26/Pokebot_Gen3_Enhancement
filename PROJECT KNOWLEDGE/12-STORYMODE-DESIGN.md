@@ -81,6 +81,22 @@ see the outstanding question). Legend: `✓ decomp` / `✓ probe` / `✓ externa
   **Marshtomp** (learns Rock Smash; replace Tackle — keeps Mud-slap + Water Gun; Rock
   Smash 20bp Fighting adds coverage). Field use after BADGE03 (have it): walk INTO a
   breakable rock → YES/NO prompt → YES breaks it (no menu needed).
+- ROUTE SPEC `✓ decomp` (2026-07-22, full map.json sweep — build against THIS):
+  Mauville north edge → **Route 111 south** (Victor the first Winstrate at (13,114)
+  ON-path — sight-line battle; his house door (13,113); breakable rocks at **(18,101) +
+  (19,100)**, object events cleared by the walk-into→YES prompt) → north to the R112
+  east connection (R111 connects LEFT→Route112 offset 20) → **Route 112 south** (Hiker
+  Brice (24,34), Trent (15,40) near the path; AVOID the Cable Car station warps at
+  (28-29,27)) → **Fiery Path door at R112 (11,36)** → tunnel (NO trainers; the six
+  Strength boulders only gate optional item alcoves, the main passage is clear) → exit
+  warp (26,4) → **R112 north at (22,10)** (Bryant (31,7)/Shayla (31,11) east of path)
+  → north connection → **Route 113** (offset -60; ash route: Jaylen (62,8), Madeline
+  (51,11), **TWINS Tori&Tia (45-46,6) = DOUBLE battle on-path**, buried ninjas (29,6)/
+  (71,2) pop-ups, Sophie (7,6)/Coby (7,13) near the west end) → LEFT connection →
+  **FALLARBOR TOWN** (PC heal = chapter end; checkpoint `fallarbor.ss1`).
+  Sanity checks still owed before build: two-way pathability sweeps from the REAL
+  entry tiles for every leg + audit_flag_names + live task-name probe for the
+  overworld HM-teach UI.
 - Route 111 (40×140! `✓ probe`): from Mauville go NORTH; **Rock Smash rocks at
   (18,101)/(19,100) gate the path** (`✓ probe`; tip-man at (19,101)). Winstrate house at
   (13,113)→interior (`✓ probe`; the family battle gauntlet is optional? `⚠ open`). Desert

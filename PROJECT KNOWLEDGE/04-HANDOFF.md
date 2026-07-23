@@ -9,6 +9,21 @@
 > accumulated craft (harness, debugging method, story-mapping, faithfulness rules, bug
 > patterns) — use it to build faster and prove every fix.
 
+### 🌙 OVERNIGHT AUTONOMOUS RUN (user directive 2026-07-22 evening) — IN PROGRESS
+The user commissioned an unattended overnight loop: (1) 5-run fresh batches until ALL
+FIVE reach the Dynamo Badge content-end clean (no Manual/hang/crash; self-recovered
+derails OK) — fix what fails, rerun; (2) then deep-map the next chunk (Ch10 first),
+sanity-check (audit_flag_names + two-way pathability sweeps + decomp validation),
+build it, test along the way; (3) any question needing Gemini goes to
+`sandbox-pokebot/profiles/GEMINI-PROMPTS.md` (append-only, never blocks — build with
+the decomp-verified best answer + a marked assumption); (4) repeat chapter by chapter,
+building the skeleton as deep into the game as possible. Batches ~25-40 min each;
+mapping/doc work interleaves during runs (no code edits mid-batch). If this session
+ends mid-loop, resume the loop from this note + the newest livetest-runs batch.
+Current: batch 20260722-204645 running (5 lanes, fresh→badge, with the cave-heal +
+mapped-index fixes 55e27eab). Watch item: Rustboro rival staging non-engagement (1/5
+in the prior batch).
+
 ### ⭐⭐⭐⭐⭐ Session 2026-07-22 (Fable 5, afternoon→evening) — **CHAPTER 9 COMPLETE: DYNAMO BADGE WON**
 **Story frontier = Ch10.** Run 14 played stern_done.ss1 → rival → Wally → prep-training
 (Route 117 (31,16), band 20-24, two evolutions: Swellow + Mightyena) → live-grid maze

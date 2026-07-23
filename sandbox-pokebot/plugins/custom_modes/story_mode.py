@@ -135,24 +135,34 @@ class LevelUpTravelBattleStrategy(LevelUpLeadBattleStrategy):
         battler = (
             battle_state.own_side.left_battler if battler_index == 0 else battle_state.own_side.right_battler
         )
-        if battler is None:
-            return TurnAction.use_move(0)
         left_opp = battle_state.opponent.left_battler
         right_opp = battle_state.opponent.right_battler
-        if left_opp is not None:
+        # ALIVE, not merely present: a FAINTED opponent still has a battler object, and
+        # targeting it raises "Cannot attack the left-side opponent Pokémon because
+        # there isn't one" — an uncatchable mid-battle mode death (batch runs 01+03,
+        # 2026-07-22, both at the same trainer pair once one opponent went down).
+        left_alive = left_opp is not None and getattr(left_opp, "current_hp", 0) > 0
+        right_alive = right_opp is not None and getattr(right_opp, "current_hp", 0) > 0
+
+        def _default_target(move_index: int):
+            if right_alive and not left_alive:
+                return TurnAction.use_move_against_right_side_opponent(move_index)
+            return TurnAction.use_move(move_index)
+
+        if battler is None:
+            return _default_target(0)
+        if left_alive:
             move = util.get_strongest_move_against(battler, left_opp)
             if move is not None:
                 return TurnAction.use_move(move)
-        if right_opp is not None:
+        if right_alive:
             move = util.get_strongest_move_against(battler, right_opp)
             if move is not None:
                 return TurnAction.use_move_against_right_side_opponent(move)
         for i, learned in enumerate(battler.moves):
             if learned is not None and util.move_is_usable(learned):
-                if left_opp is not None:
-                    return TurnAction.use_move(i)
-                return TurnAction.use_move_against_right_side_opponent(i)
-        return TurnAction.use_move(0)  # nothing usable → the game uses Struggle
+                return _default_target(i)
+        return _default_target(0)  # nothing usable → the game uses Struggle
 
     def which_move_should_be_replaced(self, pokemon, new_move) -> int:
         """Story move-learning policy — keep every Pokémon COMBAT-CAPABLE.
