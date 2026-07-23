@@ -4175,12 +4175,90 @@ def do_meteor_falls_scene() -> Generator:
     yield from wait_until_truly_controllable()
 
 
+def ride_cable_car_to_summit() -> Generator:
+    """Route to the Route 112 Cable Car station (from the Fallarbor side or already at
+    the station) and ride UP to the Mt. Chimney summit station. Reusable: Segment 11b
+    boards here to reach Maxie, and Segment 11c re-boards here to recover when a
+    whiteout mid-descent respawns the team below the mountain (the cable car is a
+    permanent transit — the attendant still rides you up after Magma is beaten).
+    No-op if already on the summit side. Raises if boarding never succeeds."""
+    STATION = MapRSE.ROUTE112_CABLE_CAR_STATION.value
+    SUMMIT = MapRSE.MT_CHIMNEY_CABLE_CAR_STATION.value
+    CHIM = MapRSE.MT_CHIMNEY.value
+
+    if _map_group_number() in (CHIM, SUMMIT):
+        return
+    yield from wait_until_truly_controllable()
+    if _map_group_number() != STATION:
+        # EXPLICIT route from the Fallarbor side: R113 → R112 north → back SOUTH through
+        # the Fiery Path tunnel → lower R112 → the station. Never let the planner take
+        # the "short" Route 111 desert — it is Go-Goggles-gated by a script the
+        # collision map can't see (overnight run: plan-failed at (11,44)).
+        if _map_group_number() in (
+            MapRSE.FALLARBOR_TOWN.value,
+            MapRSE.FALLARBOR_TOWN_POKEMON_CENTER_1F.value,
+            MapRSE.ROUTE114.value,
+            MapRSE.ROUTE113.value,
+        ):
+            yield from _navigate_riding_out(MapRSE.ROUTE112, (22, 11))
+            yield from _enter_warp_by_navigation(
+                lambda: _map_group_number() == MapRSE.FIERY_PATH.value,
+                MapRSE.ROUTE112, (22, 10), tries=6, label="Fiery Path north door",
+            )
+            yield from wait_until_truly_controllable()
+            yield from _enter_warp_by_navigation(
+                lambda: _map_group_number() == MapRSE.ROUTE112.value,
+                MapRSE.FIERY_PATH, (26, 36), tries=6, label="Fiery Path south exit",
+            )
+            yield from wait_until_truly_controllable()
+        yield from _navigate_riding_out(MapRSE.ROUTE112, (28, 28))
+        yield from _walk_through_warp("Up", MapRSE.ROUTE112.value)
+        yield from wait_until_truly_controllable()
+    # BOARD: the attendant is at (6,6) (probed live — the old code approached (6,8) and
+    # faced the EMPTY tile (6,7), so A hit nothing and boarding never fired: the user's
+    # 2026-07-23 wedge). Talk from (6,7) facing Up; retry the whole approach a few times
+    # because a wild encounter can fire on the walk up and leave us mid-station.
+    boarded = False
+    for _board_try in range(6):
+        _check_abort()
+        if _map_group_number() == SUMMIT:
+            boarded = True
+            break
+        if _map_group_number() != STATION:
+            yield from wait_until_truly_controllable()
+            continue
+        yield from _navigate_riding_out(STATION, (6, 7))
+        yield from wait_for_player_avatar_to_be_standing_still()
+        if tuple(get_player_avatar().local_coordinates) != (6, 7):
+            continue  # a scene bumped us — re-approach
+        context.emulator.press_button("Up")
+        yield
+        yield from wait_for_n_frames(6)
+        context.emulator.press_button("A")
+        yield
+        for _f in range(3000):
+            _check_abort()
+            if _map_group_number() == SUMMIT:
+                boarded = True
+                break
+            if _f % 3 == 0:
+                context.emulator.press_button("A")  # ride YES + the CableCar special
+            yield
+        if boarded:
+            break
+    if not boarded:
+        raise BotModeError("Cable Car: could not board / never arrived at the summit station.")
+    yield from wait_until_truly_controllable()
+    yield from _exit_small_interior()  # step out of the summit station onto Mt. Chimney
+    yield from wait_until_truly_controllable()
+
+
 def do_mt_chimney() -> Generator:
     """Chapter 11b — Cable Car up Mt. Chimney, beat the Magma chain, take the meteorite.
 
     HOW (§Ch11, decomp + in-state sweeps): R112 station door (28,27) [the pre-scene
     Magma blockers are HIDDEN once Ch11a's flag is set — sweeps must run from story
-    states] → attendant at (6,7), talk from (6,8), YES → the CableCar special rides up
+    states] → attendant at (6,6), talk from (6,7) facing Up, YES → the CableCar special rides up
     → summit station → out onto MT_CHIMNEY (17-18,36) → north through Grunt1 (13,16) /
     Grunt2 (9,16) sight-lines → Tabitha (12,11) → talk to MAXIE at (13,6) from (13,7)
     (trainerbattle_no_intro; Mightyena 24 / Zubat 24 / Camerupt 25 — water lead) →
@@ -4205,54 +4283,7 @@ def do_mt_chimney() -> Generator:
     if _magma_beaten():
         return
     context.message = "Story: taking the Cable Car up Mt. Chimney..."
-    yield from wait_until_truly_controllable()
-    if _map_group_number() != CHIM:
-        if _map_group_number() != MapRSE.ROUTE112_CABLE_CAR_STATION.value:
-            # EXPLICIT route from the Fallarbor side: R113 → R112 north → back SOUTH
-            # through the Fiery Path tunnel → lower R112 → the station. Never let the
-            # planner take the "short" Route 111 desert — it is Go-Goggles-gated by a
-            # script the collision map can't see (overnight run: plan-failed at (11,44)).
-            if _map_group_number() in (
-                MapRSE.FALLARBOR_TOWN.value,
-                MapRSE.FALLARBOR_TOWN_POKEMON_CENTER_1F.value,
-                MapRSE.ROUTE114.value,
-                MapRSE.ROUTE113.value,
-            ):
-                yield from _navigate_riding_out(MapRSE.ROUTE112, (22, 11))
-                yield from _enter_warp_by_navigation(
-                    lambda: _map_group_number() == MapRSE.FIERY_PATH.value,
-                    MapRSE.ROUTE112, (22, 10), tries=6, label="Fiery Path north door",
-                )
-                yield from wait_until_truly_controllable()
-                yield from _enter_warp_by_navigation(
-                    lambda: _map_group_number() == MapRSE.ROUTE112.value,
-                    MapRSE.FIERY_PATH, (26, 36), tries=6, label="Fiery Path south exit",
-                )
-                yield from wait_until_truly_controllable()
-            yield from _navigate_riding_out(MapRSE.ROUTE112, (28, 28))
-            yield from _walk_through_warp("Up", MapRSE.ROUTE112.value)
-            yield from wait_until_truly_controllable()
-        # Attendant (6,7) faces down — stand below and talk; riding with A answers YES
-        # and plays the boarding + CableCar special through to the summit station.
-        yield from _navigate_riding_out(MapRSE.ROUTE112_CABLE_CAR_STATION, (6, 8))
-        context.emulator.press_button("Up")
-        yield
-        yield from wait_for_n_frames(6)
-        context.emulator.press_button("A")
-        yield
-        yield from _ride_out_scripted_scene("A", engage_timeout=240)
-        # Arrive in the summit station; wait out the transition, then walk out the door.
-        frames = 0
-        while _map_group_number() != MapRSE.MT_CHIMNEY_CABLE_CAR_STATION.value:
-            _check_abort()
-            context.emulator.press_button("A" if frames % 3 == 0 else "B")
-            frames += 1
-            if frames > 4800:
-                raise BotModeError("Cable Car: never arrived at the summit station.")
-            yield
-        yield from wait_until_truly_controllable()
-        yield from _exit_small_interior()
-        yield from wait_until_truly_controllable()
+    yield from ride_cable_car_to_summit()
     # The Magma chain: navigating north crosses the grunt sight-lines (fought inline).
     yield from _navigate_riding_out(MapRSE.MT_CHIMNEY, (13, 17))
     yield from _navigate_riding_out(MapRSE.MT_CHIMNEY, (12, 12))
@@ -4293,11 +4324,23 @@ def do_jagged_descent() -> Generator:
     (14-15,40) → R112 lower-west (6-7,46) → WEST connection → LAVARIDGE_TOWN → PC.
     GOAL/END: healed in Lavaridge (checkpoint `lavaridge.ss1`)."""
     LAVA = MapRSE.LAVARIDGE_TOWN.value
+    ON_MOUNTAIN = (
+        MapRSE.MT_CHIMNEY.value,
+        MapRSE.MT_CHIMNEY_CABLE_CAR_STATION.value,
+        MapRSE.JAGGED_PASS.value,
+    )
 
     if _map_group_number() == LAVA:
         return
     context.message = "Story: descending Jagged Pass to Lavaridge..."
     yield from wait_until_truly_controllable()
+    # RECOVERY (user's 2026-07-23 run): a whiteout on a Jagged Pass trainer respawns
+    # the team at Fallarbor — BELOW the one-way descent, with no way back up except the
+    # cable car. Re-ride it to the summit, then descend as normal. (Jagged Pass is
+    # one-way south, so we can never climb back to the top on foot.)
+    if _map_group_number() not in ON_MOUNTAIN:
+        yield from ride_cable_car_to_summit()
+        yield from wait_until_truly_controllable()
     if _map_group_number() == MapRSE.MT_CHIMNEY.value:
         yield from _navigate_riding_out(MapRSE.MT_CHIMNEY, (21, 40))
         yield from _walk_through_warp("Down", MapRSE.MT_CHIMNEY.value)

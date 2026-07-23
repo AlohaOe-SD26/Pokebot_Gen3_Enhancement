@@ -2205,3 +2205,28 @@ instead of relying solely on multi-hour fresh runs.
 - Verified: registry resolves 26 states against the live library (25 curated + 1
   auto-labeled), GUI modules import clean. ⚠ Not yet clicked live (the user's test
   run was in progress) — confirm the popup renders on the next GUI session.
+
+## 2026-07-23 — Cable Car boarding fixed + whiteout-mid-descent stranding recovered (Ch11b/c)
+User's DEBUG run (from a personal save state) reached the frontier content and wedged
+at the Mt. Chimney cable car — surfacing TWO bugs, both fixed + proven end-to-end.
+- **Cable Car never boarded (the reported wedge).** `do_mt_chimney` approached (6,8)
+  and faced Up — but the attendant is at (6,6) (probed live; the code's own docstring
+  said (6,7), also wrong), so A hit the EMPTY tile (6,7) and boarding never fired. The
+  bot then A/B-mashed the 4800-frame board-wait and derailed. FIX: approach (6,7) face
+  Up (talks the (6,6) attendant), with a retry loop tolerant of a wild encounter firing
+  on the walk up. Extracted as `ride_cable_car_to_summit()` (route-from-Fallarbor +
+  board + exit), reused by both the ascent and the recovery below.
+- **Structural STRANDING after a mid-descent whiteout.** A whiteout on a Jagged Pass
+  trainer respawns the team at Fallarbor — BELOW the one-way descent, and the cable-car
+  segment is gated on Magma-already-beaten so it was skipped: permanent stranding.
+  Worse, Segment 11c's guard was "off the mountain", which FALSELY PASSED at the
+  Fallarbor respawn, so Flannery then ran from the wrong town. FIX: (a) 11c guard now
+  checks we actually reached Lavaridge (or earned BADGE04); (b) `do_jagged_descent`
+  re-rides the cable car to the summit when it finds itself below the mountain and not
+  yet in Lavaridge (the cable car is a permanent transit — it rides you up after Magma
+  too). Jagged Pass is one-way south, so re-boarding is the only recovery.
+- **PROOF (one run, meteorfalls_done.ss1 → --driver story):** cable car boarded → Maxie
+  beaten → descent → team lost a Jagged trainer → whited out → respawned Fallarbor →
+  RE-RODE the cable car (post-whiteout trail: Fallarbor → Fiery Path → summit station →
+  Mt. Chimney → Jagged Pass → Lavaridge) → Flannery beaten → HEAT BADGE → clean
+  content-end, 0 derails.

@@ -126,6 +126,17 @@ never DEBUG-RESET). saves/user-reports/ added for the user's bug-capture states.
 ⚠ Compile/import-verified, NOT yet clicked live (user's test was running) — confirm
 the popup renders next GUI session.
 
+**FIXED 2026-07-23 (user's DEBUG run from a personal save):** the Mt. Chimney cable
+car wedge + a structural stranding, both proven end-to-end (changelog for detail):
+(1) boarding approached the wrong tile (attendant is (6,6), approach (6,7) — was (6,8));
+now `ride_cable_car_to_summit()` with a retry; (2) a whiteout on a Jagged Pass trainer
+respawns below the one-way descent and the cable-car segment was Magma-gated →
+permanent stranding + a guard that falsely passed. Now `do_jagged_descent` re-rides the
+cable car when stranded below, and the 11c guard checks arrival-in-Lavaridge. One run
+meteorfalls_done → cable car → Maxie → whiteout → cable-car RE-RIDE → Lavaridge →
+Flannery → HEAT BADGE, 0 derails. Also validated this session: the rock-smash fix
+(taught to Mightyena, no hang) and the sufficiency gate, both from the user's earlier logs.
+
 **NEXT after those: Ch12** — the Go-Goggles scene outside the Lavaridge gym (⚠ verify
 the trigger position) → Route 111 desert → Petalburg (Norman). Start from
 `flannery_done.ss1`. `END_MARKERS` in livetest.py already carries "HEAT BADGE earned";

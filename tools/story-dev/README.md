@@ -101,6 +101,8 @@ never rely on it across runs.)
 - `repro_phantom_script.py` — fault-injects the parked-script hang profile (Rock Smash's
   battle-interrupted field script): fixed rider escapes at ~600 frames, real scenes
   still time out honestly.
+- `mapfacts.py PROBE_MAPS=ROUTE112_CABLE_CAR_STATION` — how the cable-car attendant's real
+  tile (6,6) was found; the template for probing any interaction coordinate before trusting it.
 - `doorprobe.py` — resolve a map's warp destinations (which door is which).
 - `routeprobe.py` — reachability probe (which tiles a navigator can reach from a start).
 - `sailprobe.py` — walk-and-log a route (used to validate the Rustboro→Route104 crossing).

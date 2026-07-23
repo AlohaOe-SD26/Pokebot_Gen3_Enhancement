@@ -873,3 +873,20 @@ context — treat the scene as over.
 battle can interrupt a field script, verify completion by observable world state
 (object gone, tile passable, flag set). And never let two layers (step + recovery)
 both block on the same unverified signal: the second layer just doubles the hang.
+
+## 2026-07-23 — Approach tile off by one at the cable car; a guard that passed on failure
+**Symptom.** The bot reached the Mt. Chimney cable car station and sat frozen at (6,8)
+for thousands of frames, never boarding, until the user killed the run.
+**Root cause (two).** (1) It approached (6,8) and faced Up to talk to the attendant —
+but the attendant is at (6,6) (the code AND its docstring both said (6,7)); facing Up
+from (6,8) looks at the empty (6,7), so A did nothing. Nobody had probed the station
+map; the coord was assumed. (2) Downstream, Segment 11c's guard was `_cur_map() not in
+descent_origin` — which is TRUE at the Fallarbor whiteout-respawn, so a FAILED descent
+reported success and the next segment ran from the wrong place.
+**The fix that worked.** Probe the map (attendant (6,6) → approach (6,7)); guard on the
+actual goal state (in Lavaridge / badge earned), not on "left the origin"; and give the
+one-way descent a real recovery (re-ride the cable car when stranded below).
+**Prevention rule.** Two. Probe interaction coordinates from the ROM before trusting a
+remembered tile — an NPC one tile off is a silent no-op. And a completion guard must
+assert the GOAL was reached, never merely that we left the starting area — "not at the
+start" is not "arrived", and the difference is exactly a failed/interrupted segment.

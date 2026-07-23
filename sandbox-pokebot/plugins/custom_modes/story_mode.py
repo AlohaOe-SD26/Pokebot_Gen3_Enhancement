@@ -1721,17 +1721,18 @@ class StoryMode(BotMode):
         _guard("Mt. Chimney (Ch11b)", lambda: _done("DEFEATED_EVIL_TEAM_MT_CHIMNEY"))
 
         # --- Segment 11c: Jagged Pass down to Lavaridge (heal = arrival). ---
-        # Origin-side whitelist again: descend only when actually up the mountain.
-        descent_origin = (
-            MapRSE.MT_CHIMNEY.value,
-            MapRSE.MT_CHIMNEY_CABLE_CAR_STATION.value,
-            MapRSE.JAGGED_PASS.value,
-        )
-        if _cur_map() in descent_origin:
+        # Run whenever we're not yet at/past Lavaridge: do_jagged_descent now handles
+        # BOTH origins — descend when on the mountain, and re-ride the cable car up
+        # first when a mid-descent whiteout stranded us below (user's 2026-07-23 run).
+        # ‼ The guard checks we actually REACHED Lavaridge (or already earned the Heat
+        # Badge) — the old "off the mountain" guard falsely PASSED at the Fallarbor
+        # respawn, so Flannery then ran from the wrong town and derailed.
+        _at_or_past_lavaridge = lambda: _cur_map() == MapRSE.LAVARIDGE_TOWN.value or _done("BADGE04_GET")
+        if not _at_or_past_lavaridge():
             yield from do_jagged_descent()
         else:
-            console.print("[dim]Story: not on the mountain — Jagged descent skipped.[/]")
-        _guard("Jagged descent resolved (Ch11c)", lambda: _cur_map() not in descent_origin)
+            console.print("[dim]Story: already at Lavaridge — Jagged descent skipped.[/]")
+        _guard("Jagged descent resolved (Ch11c)", _at_or_past_lavaridge)
 
         # --- Segment 11d: Gym 4 — Flannery (Heat Badge). The trapdoor maze is solved
         #     from the ROM's map data (holes / geysers / jump-south ledges — see
