@@ -21,7 +21,10 @@ Status key: ✅ built + validated · 🚧 scaffold/partial · 📋 mapped, not b
 | 9a | Route 110 north + rival battle | `travel_route110_and_fight_rival` | `route110_rival_beaten()` = **VAR_ROUTE110_STATE ≥ 1** (vanilla sets NO named flag — "DEFEATED_RIVAL_ROUTE_110" was a phantom name) | ✅ (2026-07-22; run 6+) |
 | 9b | Mauville: Wally unblocks the gym door | `fight_wally_mauville` | `DEFEATED_WALLY_MAUVILLE` (real flag 190, decomp-confirmed) | ✅ (2026-07-22; run 6+) |
 | 9c | Mauville Gym: prep (Route 117 train, band 20-24) → switch maze → Wattson | `do_mauville_gym` (LIVE-grid two-config BFS solver) + Segment 9c prep | `BADGE03_GET` | ✅ (2026-07-22 run 14: trained (2 evolutions), maze solved, **Wattson BEATEN — Dynamo Badge**; checkpoint `wattson_done.ss1` verified) |
-| 10+ | Mauville → … → Elite Four | — | — | ⬜ (§Ch10–13 roadmap below) |
+| 10a | HM06 Rock Smash (Mauville SE house) | `get_rock_smash_hm` (+live-grid gym exit, `_exit_small_interior`) | `RECEIVED_HM_ROCK_SMASH` | ✅ (2026-07-22 overnight; `rocksmash_got.ss1`) |
+| 10b | Teach Rock Smash to the mule (starter) | `teach_hm_move` (probed overworld bag→party→summary chain) | party knows Rock Smash | ✅ (2026-07-22 overnight; `rocksmash_taught.ss1`) |
+| 10c | Route 111 rocks → Fiery Path → Route 113 → Fallarbor | `travel_to_fallarbor` + `_smash_rock` | in Fallarbor, healed | ✅ (2026-07-22 overnight; `fallarbor.ss1`) |
+| 11+ | Meteor Falls → Mt. Chimney → Lavaridge (Gym 4) → … | — | — | ⬜ (§Ch10–13 roadmap below) |
 
 **You are at the Ch10 boundary (2026-07-22).** `wattson_done.ss1` = Mauville Gym (5,3),
 BADGE03_GET + DEFEATED_MAUVILLE_GYM + DEFEATED_WALLY_MAUVILLE verified. Next: Ch10 —
