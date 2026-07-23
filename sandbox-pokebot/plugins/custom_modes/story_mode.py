@@ -1402,15 +1402,19 @@ class StoryMode(BotMode):
             console.print("[dim]Story: not on the mountain — Jagged descent skipped.[/]")
         _guard("Jagged descent resolved (Ch11c)", lambda: _cur_map() not in descent_origin)
 
-        # Segment 11d (Lavaridge trapdoor gym) — BUILT, EXPLORER WORKING, UN-WIRED for
-        # batch stability: the held-input walker moves post-fall (validated run 5:
-        # falls, B1F walking, an inline buried-trainer battle) but the fall→vent chain
-        # wedges partway and needs one focused iteration session (per-step tracing
-        # from lavaridge.ss1 with SAVE_CHECKPOINT=BADGE04_GET:flannery_done). See the
-        # handoff morning queue + design doc §Ch11 11d STATUS.
+        # Segment 11d (Lavaridge trapdoor gym) — PARKED, one piece from done: the
+        # explorer works end-to-end (falls, object-aware held-input walking, vent
+        # rides with settle-waits, inline battles) but the gym has MULTIPLE trap
+        # holes ((10,18) Jeff-blocked; (5,9)+(5,6) drop into a sealed two-pad light
+        # column, screenshot-verified) and autonomous hole-choice keeps finding
+        # them. FINISH: map the walkthrough's canonical chain ("bypass first hole →
+        # north → center-top hole → ...") to 1F coordinates via a printed 1F grid,
+        # feed it to the explorer as an ordered hole preference, wire this back
+        # (wiring text: heal+Fire-lead prep then do_lavaridge_gym, guard BADGE04),
+        # validate from lavaridge.ss1 with SAVE_CHECKPOINT=BADGE04_GET:flannery_done.
 
-        # END OF BUILT CONTENT. Next build (Ch11d): finish the trapdoor explorer →
-        # Flannery → Go-Goggles → Petalburg (§Ch11 spec).
+        # END OF BUILT CONTENT. Next build (Ch11d finish): trapdoor chain → Flannery
+        # → Go-Goggles → Petalburg (§Ch11 spec).
         context.message = (
             "Story: reached Lavaridge — end of built content. NEXT (WIP): the trapdoor "
             "gym and Flannery. Handing to manual."

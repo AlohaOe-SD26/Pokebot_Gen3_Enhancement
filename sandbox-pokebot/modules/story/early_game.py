@@ -4093,6 +4093,18 @@ def do_lavaridge_gym() -> Generator:
         from modules.memory import get_game_state as _ggs
 
         passable, _w, _d = _floor_data(gnum)
+        # Live objects (the gym guide, popped buried trainers) are walls too — run 6
+        # froze at (13,16) because every BFS path ran through the guide at (12,16).
+        try:
+            from modules.map import get_map_objects as _gmo
+
+            me = tuple(get_player_avatar().local_coordinates)
+            for o in _gmo():
+                for c in (getattr(o, "current_coords", None), getattr(o, "previous_coords", None)):
+                    if c is not None and tuple(c) != me:
+                        passable.discard(tuple(c))
+        except Exception:
+            pass
         start = tuple(get_player_avatar().local_coordinates)
         prev = {start: None}
         q = _dq([start])
@@ -4160,17 +4172,24 @@ def do_lavaridge_gym() -> Generator:
                 target = FLANNERY_APPROACH
             else:
                 _p, w1, _d1 = _floor_data(GYM1F)
+                # (10,18) is a designed TRAP: its B1F room's only vent tile is occupied
+                # by buried-trainer Jeff's object (probed live) — the walkthrough's
+                # "bypass the first hole" instruction. Never fall through it.
+                trap_holes = {(10, 18)}
                 holes = [
                     t for t in w1
-                    if t not in town_exits and _metatile(GYM1F, t) == 104 and t not in tried_holes
+                    if t not in town_exits
+                    and t not in trap_holes
+                    and _metatile(GYM1F, t) == 104
+                    and t not in tried_holes
                 ]
                 reach = _reachable_tiles_of(GYM1F, holes)
                 if not reach:
                     tried_holes.clear()  # explored everything reachable — recycle
                     yield from wait_for_n_frames(30)
                     continue
-                px, py = get_player_avatar().local_coordinates
-                target = min(reach, key=lambda t: abs(t[0] - px) + abs(t[1] - py))
+                # NORTH-FIRST (the canonical chain works upward through the gym).
+                target = min(reach, key=lambda t: (t[1], t[0]))
                 tried_holes.add(target)
                 context.message = f"Story: Lavaridge maze — dropping through the hole at {target}..."
         elif cur_floor == GYMB1F:
@@ -4203,7 +4222,19 @@ def do_lavaridge_gym() -> Generator:
             and _map_group_number() == GYMB1F
             and tuple(get_player_avatar().local_coordinates) == target
         ):
-            # Standing ON the tile and nothing fired — an inert pad, not the vent.
+            # A geyser fires a BEAT after you stand on it — and some cycle on a LONG
+            # period (240 frames was not enough for the (5,6)/(5,9) pair, run 8) —
+            # wait generously before judging.
+            fired = False
+            for _f in range(900):
+                _check_abort()
+                yield
+                if _map_group_number() != GYMB1F:
+                    fired = True
+                    break
+            if fired:
+                continue
+            # Genuinely inert (a landing pad) — blacklist for this visit.
             dead = getattr(do_lavaridge_gym, "_dead_vents", set())
             dead.add(target)
             do_lavaridge_gym._dead_vents = dead
