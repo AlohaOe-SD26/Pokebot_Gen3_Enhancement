@@ -5254,8 +5254,11 @@ def do_weather_institute() -> Generator:
         MapRSE.ROUTE119, (6, 32), tries=6, label="Weather Institute door",
     )
     yield from wait_until_truly_controllable()
-    # Sweep the interior: walk the floors; grunts + Shelly engage via sight-line /
-    # blocking positions. Ride everything until the HIDE flag sets. Bounded.
+    # Interior sweep (structure probed 2026-07-24 after run 3 wandered 1F for 130k
+    # frames): 1F stairs at (17,1) → 2F (17,1); SHELLY at 2F (4,6), grunts at 1F
+    # (15,3)/(10,5) and 2F (15,6)/(10,8)/(19,6) — all flag-890 (they despawn with
+    # the clear). Walk 1F → stairs → 2F → stand beside Shelly (5,6) → talk; the
+    # listener fights every engagement; ride everything until the HIDE flag sets.
     frames = 0
     while not _cleared():
         _check_abort()
@@ -5263,17 +5266,36 @@ def do_weather_institute() -> Generator:
             yield from _wait_until_cutscene_over("B")
             frames += 100
             continue
-        # 1F → 2F → Shelly: try the stairs / far corners in order; battles interrupt
-        # navigation and are fought by the listener, then we re-path.
+        cur = _map_group_number()
         try:
-            yield from navigate_to_anywhere(
-                get_map_data_for_current_position().map_group_and_number, (2, 2),
-                avoid_encounters=True, avoid_scripted_events=False,
-            )
+            if cur == MapRSE.ROUTE119_WEATHER_INSTITUTE_1F.value:
+                # Up the stairs — the on-path grunts engage inline.
+                yield from navigate_to_anywhere(
+                    MapRSE.ROUTE119_WEATHER_INSTITUTE_1F, (17, 1),
+                    avoid_encounters=True, avoid_scripted_events=False,
+                )
+            elif cur == MapRSE.ROUTE119_WEATHER_INSTITUTE_2F.value:
+                yield from navigate_to_anywhere(
+                    MapRSE.ROUTE119_WEATHER_INSTITUTE_2F, (5, 6),
+                    avoid_encounters=True, avoid_scripted_events=False,
+                )
+                yield from ensure_facing_direction("Left")
+                context.emulator.press_button("A")
+                yield from wait_for_n_frames(30)
+                yield from _ride_out_all_scenes(quiet_frames=300)
+            else:
+                # Bumped back outside (whiteout respawn / recovery) — re-enter.
+                yield from _enter_warp_by_navigation(
+                    lambda: _map_group_number() in (
+                        MapRSE.ROUTE119_WEATHER_INSTITUTE_1F.value,
+                        MapRSE.ROUTE119_WEATHER_INSTITUTE_2F.value,
+                    ),
+                    MapRSE.ROUTE119, (6, 32), tries=6, label="Weather Institute door",
+                )
         except BotModeError:
             yield from _ride_out_scripted_scene("B")
-        frames += 100
-        if frames > 60000:
+        frames += 200
+        if frames > 80000:
             raise BotModeError("Weather Institute: never cleared (Shelly not beaten?).")
     context.message = "Story: Weather Institute cleared!"
     # Castform offer rides on the aftermath dialogue — the rider answers YES-shaped
