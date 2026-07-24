@@ -580,6 +580,39 @@ Rod. Save left md5-identical after every test.
 flavor all done, Phases 1/2/3a). `itemdex_data.json` = core (309 items);
 gaps = map_locations/mart/pickup/historical.
 
+## MOST RECENT — 2026-07-24 (story bot: 3-starter validation batch)
+
+**What just happened.** Ran three starter-locked fresh runs to hunt starter-specific
+bugs (`profiles/starter-{treecko,torchic,mudkip}`, each `story.yml` pinning `starter:`).
+All three are FINISHED. Headline: **no starter-specific logic bug exists** — every failure
+was on shared navigation/attrition code, so the chapter code is starter-agnostic.
+
+| starter | frames | maps | stopped at | party head |
+|---|---|---|---|---|
+| treecko | 2,195,761 | 38 | `get_devon_scope` → `_ride_out_scripted_scene` (Route 120, Ch13d) | Sceptile L39 + **Castform L25** |
+| torchic | 1,650,182 | 27 | `ensure_facing_direction` @ Route 111 (18,99) | Combusken L29 |
+| mudkip  | 2,113,515 | 34 | "too many whiteout recoveries" guard → Manual | Marshtomp L38 |
+
+Treecko is the DEEPEST organic run to date — the Castform proves it cleared the Weather
+Institute (Ch13b) and got as far as the Devon Scope errand. Logs live in
+`tools/story-dev/starter-runs/{treecko,torchic,mudkip}.log`.
+
+**Fixed this session:** `ensure_facing_direction` unbounded press loop (branch-local guards
+could not fire — see 08-MISTAKES 2026-07-24). Now bounded at 1800 frames → `BotModeError`,
+which StoryMode can recover from instead of hanging.
+
+**Open from this batch (not yet fixed):**
+- **Whiteout attrition is the top cost.** treecko 58, mudkip 85, torchic 11 whiteouts.
+  Clusters: mudkip Petalburg ×24 / Slateport ×18; treecko Mauville ×16 / Slateport ×14 —
+  i.e. the Norman and Wattson gyms plus the Slateport corridor. The "boss re-attempt IS the
+  training" strategy is functioning but expensive; mudkip's run ended because it tripped the
+  consecutive-whiteout bound. Needs a prep/attrition rethink, punch-list #24-whiteout.
+- treecko's Route 120 `_ride_out_scripted_scene` wedge (Ch13d) — new, uncaptured.
+
+**Docs:** `17-PORTABLE-ORCHESTRATION-GUIDE.md` added — the project-agnostic version of the
+multi-agent structure, written to be lifted into any other Claude Code repo (16 stays the
+Pokébot-specific one).
+
 ## Most recent work (2026-07-20)
 - **PLANNING & RESILIENCE METHODOLOGY (doc 13) + out-of-balls safety floor (sandbox).**
   User directive: pause new story/feature code, plan the situations up front

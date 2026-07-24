@@ -594,10 +594,30 @@ def ensure_facing_direction(facing_direction: str | Direction | tuple[int, int])
 
     scene_frames = 0
     starved_frames = 0
+    total_frames = 0
     while True:
         avatar = get_player_avatar()
         if avatar.facing_direction == facing_direction:
             return
+
+        # ‼ ABSOLUTE BOUND (2026-07-24, starter-run torchic f1638181 — R111 (18,99), the
+        # SAME tile as batch2 run04). The two guards below are both branch-local and a
+        # post-battle state exists that reaches NEITHER: the avatar reads perfectly
+        # settled (OVERWORLD + NOT_MOVING + NOT_MOVING), so we take the "press the
+        # direction" branch, which RESETS starved_frames to 0 every frame — while the
+        # press never actually lands and facing_direction never changes. Result: an
+        # infinite press loop that no branch counter can see, running until the 20k
+        # story watchdog. A turn is a sub-second action; anything past a few seconds is
+        # a wedge no matter which branch we are in, so bound the WHOLE loop and let the
+        # caller's recovery re-path.
+        total_frames += 1
+        if total_frames > 1800:
+            from modules.modes import BotModeError
+
+            raise BotModeError(
+                f"ensure_facing_direction: could not face {facing_direction} after "
+                f"{total_frames} frames (input not landing — post-battle freeze?)."
+            )
 
         # FORK (2026-07-22, story-bot hardening): a field script can fire the very
         # moment we start turning — on real hardware a Route 116 trainer's sight-line

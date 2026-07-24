@@ -2571,3 +2571,33 @@ MY incomplete spec, all caught by the gate: level-fit picker proposed Route 121 
 Lilycove, Surf-gated); Route 111's tile is north of the desert so "same map" != reachable;
 first threshold would have silently changed Wattson/Roxanne. Net: the pattern moved the grunt
 work off-tier and the GATE, not the workers, is what protected quality — exactly doc 16's thesis.
+
+## 2026-07-24 — 3-starter validation batch + `ensure_facing_direction` absolute bound (#24)
+
+**Docs:** added `PROJECT KNOWLEDGE/17-PORTABLE-ORCHESTRATION-GUIDE.md` — a PROJECT-AGNOSTIC
+write-up of the multi-agent structure (tier table, governing rule, 5 roles, handoff contract,
+review gate, metrics, anti-patterns, 30-minute adoption path, measured outcome). Doc 16 stays
+the Pokébot-specific version; 17 is the one to lift into any other Claude Code repo. Written
+at user request so the structure can be logged and improved independently of this project.
+
+**Test batch:** three starter-locked fresh runs (`profiles/starter-{treecko,torchic,mudkip}`,
+`story.yml: starter: <name>`) run to their stopping point to hunt starter-specific bugs.
+Results — treecko 2,195,761f / 38 maps / reached **Route 120 in `get_devon_scope` (Ch13d)**
+with **Castform L25** in party (proves Weather Institute cleared); torchic 1,650,182f /
+27 maps / hung at Route 111 (18,99); mudkip 2,113,515f / 34 maps / tripped the
+"too many whiteout recoveries" guard. No starter-SPECIFIC logic bug found — all three failed
+on shared navigation/attrition paths, which is the useful result: the chapter code is
+starter-agnostic and the remaining defects are in movement and prep.
+
+**Fix — `ensure_facing_direction` unbounded press loop** (`modules/modes/util/walking.py`).
+Torchic hung at Route 111 (18,99), the SAME tile as batch2 run04. Both existing guards are
+BRANCH-LOCAL, and a post-battle state exists that reaches neither: the avatar reads perfectly
+settled (OVERWORLD + NOT_MOVING + NOT_MOVING), so we take the "press the direction" branch,
+which RESETS `starved_frames = 0` every frame — while the press never lands and
+`facing_direction` never changes. Added a branch-INDEPENDENT `total_frames > 1800` bound that
+raises `BotModeError`, converting a silent forever-hang into a recoverable derail.
+`repro_input_starvation.py` and `repro_navigate_stuck.py` both re-verified passing.
+
+**Prevention rule:** a loop guard that lives inside ONE branch cannot bound a loop that can
+spin in ANOTHER branch — every `while True` needs one counter incremented unconditionally at
+the top, no matter how many per-branch counters it already has.

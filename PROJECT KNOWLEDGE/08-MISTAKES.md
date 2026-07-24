@@ -1039,3 +1039,24 @@ over summaries — including this project's own prior write-ups.
 - **Prevention rule:** any helper that hands control to a caller which will open a MENU must
   return a normalized overworld, not merely a satisfied flag — and the menu-opening side
   should normalize again rather than trust its caller.
+
+## 2026-07-24 — A branch-local loop guard cannot bound a multi-branch loop
+
+**Symptom.** The torchic starter run hung forever at Route 111 (18,99) inside
+`ensure_facing_direction` — the same tile that hung batch2 run04. The night before I had
+added an input-starvation guard to that exact function and re-verified it, so I believed the
+loop was bounded.
+
+**Root cause.** `ensure_facing_direction` is a `while True` with several branches, and BOTH
+existing guards were incremented inside a branch. The failing post-battle state reads
+perfectly settled (OVERWORLD + NOT_MOVING + NOT_MOVING), so control always took the
+"press the direction" branch — which RESETS `starved_frames = 0` on every iteration. The
+press never lands, `facing_direction` never changes, and no counter in the function is ever
+allowed to grow. The guard was live, correct, and structurally unable to fire.
+
+**The fix that worked.** A branch-INDEPENDENT `total_frames` counter incremented at the top
+of the loop body, raising `BotModeError` at 1800 frames. Turns a silent forever-hang into a
+derail StoryMode can recover from. Both walking repros re-verified.
+
+**Prevention rule:** every `while True` gets ONE counter incremented unconditionally at the
+top of the body — per-branch counters are diagnostics, never the bound.
