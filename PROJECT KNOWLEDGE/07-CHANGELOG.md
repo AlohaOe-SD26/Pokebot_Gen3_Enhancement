@@ -2710,3 +2710,43 @@ unknown length of time. Removed the swallow so any future breakage announces its
 **Prevention rule (second instance today).** A silent fallback in a debug path hides the exact
 defect the debug path exists to reveal — first a filtered list reading as `[]`, now an
 exception reading as `"?"`. Diagnostics must fail LOUD: print the error, never a placeholder.
+
+## 2026-07-24 — HM moves can no longer be offered for deletion; move-learn valve survives re-entry (#24)
+
+**User report (run 15:13, killed by hand).** A Pokémon levelled up and the bot tried to
+replace an **HM move** (Rock Smash). In Gen 3 an HM cannot be forgotten — only the Move
+Deleter removes one — so the game refuses and bounces back to the prompt. Two interleaved
+infinite cycles resulted: `AskWhetherToLearn → SelectMoveToReplace → AskWhetherToLearn` and
+`AskWhetherToLearn → ConfirmCancellation → AskWhetherToLearn`.
+
+**Fix 1 — HM VETO at the shared dialogue layer** (`modules/battle_move_replacing.py`).
+StoryMode's own policy already filters HMs on every branch and provably cannot return an HM
+slot — so the trigger was NOT there. But this handler is reached by EVERY strategy: the stock
+`DefaultBattleStrategy` (no HM exclusion at all), the catch strategies that inherit it, and
+the `except Exception` fallback that blindly picks **slot 0** without consulting any policy.
+Rather than chase an unreproducible trigger, the game's own rule is now enforced at the one
+layer nothing can route around: if the chosen slot holds an HM, DECLINE instead.
+
+**Fix 2 — the safety valve now survives re-entry.** The 6000-frame valve fired correctly, but
+`battle_handler`'s outer `while battle_is_active() or _learn_or_evo_pending()` loop re-invokes
+the generator FRESH, resetting `frames_in_dialogue` to 0 — so every invocation looked bounded
+while the whole thing looped forever. Added module-level `_STALLED_EXITS`; three stalled exits
+raise `BotModeError` so mode recovery takes over. Every NON-stalled exit resets it (both the
+clean `DialogueNotActive` break AND the evolution hand-off break — the latter was missed on
+the first cut and caught by the review gate, which is exactly the "counter that only
+increments" failure mode).
+
+**PROVEN A/B** (`tools/story-dev/repro_hm_move_replace_loop.py`, live, real generators):
+- killer arm (`--force-slot 2`): **BEFORE** 3 invocations, still looping at 21,000 frames,
+  offer never resolved → **AFTER** 1 invocation, 428 frames, declined cleanly, Rock Smash
+  retained.
+- control (no injection): unregressed — policy picks slot 3 (Bide), Take Down learned,
+  416 frames, 1 invocation.
+- control (`--force-decline`): unregressed — 428 frames, 1 invocation.
+- valve simulation: fires on attempt **3** (not 1 — no over-eager abort) and raises
+  `BotModeError` instead of looping.
+
+**Prevention rule (third instance today).** A guard that is live and correct can still be
+structurally unable to fire. Branch-local counters can't bound a multi-branch loop
+(`ensure_facing_direction`); per-invocation counters can't bound a re-entrant caller (here).
+Ask not "is there a bound?" but "what resets it, and who can reset it without fixing anything?"
