@@ -53,7 +53,10 @@ def fly_to(destination: Union[FlyDestinationRSE, FlyDestinationFRLG]) -> Generat
         has_necessary_badge = get_event_flag("BADGE03_GET")
         menu_index = CursorOptionFRLG.FLY
     else:
-        has_necessary_badge = get_event_flag("BADGE03_GET")
+        # FORK (2026-07-24, KI-7): in RSE the field move Fly needs the FEATHER
+        # Badge (BADGE06, Winona) — the stock BADGE03 check was FR/LG's, and it
+        # let fly_to run three badges early (the game then rejects the move).
+        has_necessary_badge = get_event_flag("BADGE06_GET")
         if context.rom.is_rs:
             menu_index = CursorOptionRS.FLY
         else:

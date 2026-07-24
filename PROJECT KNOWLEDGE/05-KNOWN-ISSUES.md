@@ -64,7 +64,12 @@ fix goes in DIVERGENCE-LOG).
   (3+3 for six), legible in both desktop and the handheld drawer
   (screenshots ki6_1/ki6_2). Gamepad focus-nav + tab persist unaffected.
 
-## KI-7 — fly_to() checks the wrong badge for Emerald (opened 2026-07-19, severity: low)
+## KI-7 — fly_to() checks the wrong badge for Emerald — ✅ FIXED 2026-07-24 (sandbox)
+- **Fix:** RSE branch now gates on BADGE06_GET (Feather Badge) — the stock BADGE03 check
+  was FR/LG's. Fixed ahead of Ch14's first Fly usage; DIVERGENCE-LOG entry due at
+  promotion (upstream-file edit).
+
+## (old text) KI-7 — fly_to() checks the wrong badge for Emerald (opened 2026-07-19, severity: low)
 - **Symptom:** `modules/modes/util/higher_level_actions.py` fly_to() gates on
   BADGE03_GET (Dynamo) — correct for FR/LG but WRONG for Emerald, where Fly
   needs the Feather Badge (BADGE06). Inherited from upstream. Story-mode #24
