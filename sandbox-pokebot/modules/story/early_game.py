@@ -5332,16 +5332,21 @@ def fight_route119_rival_and_get_fly() -> Generator:
             frames += 100
             continue
         try:
-            # ‼ The rival does NOT sight-engage (run 4 walked right past to (17,31)
-            # untouched) — TALK to them: stand directly below (17,34), face Up at
-            # (17,33), press A, and ride the battle + the HM02 handover scenes.
-            yield from _navigate_riding_out(MapRSE.ROUTE119, (17, 34), tries=6)
-            yield from ensure_facing_direction("Up")
-            context.emulator.press_button("A")
-            yield from wait_for_n_frames(30)
+            # ‼ DECOMP TRUTH (corrects runs 4-5, which aimed at x17 — the on-bike
+            # PROP tile): the encounter is a COORD TRIGGER at (25,31)/(26,31)
+            # (fires while VAR_ROUTE119_STATE==0); the walking rival waits at
+            # (25,32). STEP ONTO the trigger and ride the whole scene — battle
+            # (listener fights it), the HM02 handover, and the departure.
+            yield from navigate_to_anywhere(
+                MapRSE.ROUTE119, (25, 31),
+                avoid_encounters=True, avoid_scripted_events=False,
+            )
             yield from _ride_out_all_scenes(quiet_frames=300)
         except BotModeError:
+            # The trigger firing mid-step aborts the navigation — that IS the
+            # encounter starting; ride it.
             yield from _ride_out_scripted_scene("B")
+            yield from _ride_out_all_scenes(quiet_frames=300)
         frames += 200
         if frames > 40000:
             raise BotModeError("Route 119: the rival fight / HM02 Fly never resolved.")
