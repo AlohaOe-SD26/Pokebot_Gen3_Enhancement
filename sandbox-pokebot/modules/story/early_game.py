@@ -172,6 +172,7 @@ def _navigate_riding_out(dest_map, dest_tile, *, avoid_encounters: bool = True, 
     a cutscene) that aborts the path, then retries — instead of hard-failing to Manual.
     Used by training/catching where the grass route can cross a trainer's line."""
     last_error = None
+    last_where = None
     for _ in range(tries):
         _check_abort()
         try:
@@ -181,6 +182,31 @@ def _navigate_riding_out(dest_map, dest_tile, *, avoid_encounters: bool = True, 
             return
         except BotModeError as e:
             last_error = e
+            # ‼ FAIL FAST ON A HOPELESS RETRY (2026-07-24, user log 12:39 + my treecko
+            # run — BOTH died here). This retry loop only helps when a SCENE aborted the
+            # path, because riding the scene out changes the world. If the field is idle
+            # (no active script, player controllable) AND we are standing on the exact
+            # tile we failed from last time, then nothing about the attempt can differ:
+            # the planner will fail identically, forever. Retrying anyway costs
+            # `_ride_out_scripted_scene`'s 240-frame engage wait PER TRY, and callers
+            # wrap this in their own retry loop — get_devon_scope's is 10 rounds × 6
+            # tries ≈ 14,400 frames of pure churn, which is what let the 18k global
+            # watchdog kill two otherwise-healthy runs instead of surfacing the real
+            # error. Bail immediately with the planner's own message so the caller (and
+            # the log) sees WHY, not "after N tries".
+            where = None
+            try:
+                if not get_global_script_context().is_active and player_avatar_is_controllable():
+                    where = (_map_group_number(), tuple(get_player_avatar().local_coordinates))
+            except Exception:
+                where = None
+            if where is not None and where == last_where:
+                raise BotModeError(
+                    f"Could not reach {dest_tile} on {dest_map}: the field is idle and we are "
+                    f"still at {where[1]}, so retrying cannot change the result "
+                    f"({last_error})."
+                )
+            last_where = where
             yield from _ride_out_scripted_scene("B")
     # Surface the REAL last error: runs 11-13 each burned all retries on instant
     # PLAN failures (an unreachable tile) while this message blamed "scene

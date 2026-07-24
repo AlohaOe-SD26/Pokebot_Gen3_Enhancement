@@ -2617,3 +2617,40 @@ it with `encoding="utf-8-sig"`, plain `utf-8` raises `SyntaxError: U+FEFF`).
 
 **Prevention rule:** when a wedge is undiagnosable from a log, the first fix is to the DUMP,
 not to the code — add the missing field before forming a theory about the bug.
+
+## 2026-07-24 — `_navigate_riding_out` fails fast on a hopeless retry (#24)
+
+**The bug two independent runs died on.** A user run (12:39) and my treecko starter run BOTH
+wedged in `get_devon_scope`: after Steven's scene, `_leave_route120_north_bridge()` parks the
+player at ROUTE120 (5,15), and the follow-up `_navigate_riding_out(FORTREE_CITY, (24,8))`
+fails every time. The wedge dump shows `scripts=[]` and an idle task list — nothing is
+happening, the planner simply cannot route there.
+
+**Why a pathing failure became a watchdog death.** `_navigate_riding_out`'s retry loop exists
+for scenes: a cutscene aborts the path, we ride it out, the world changed, we retry. But when
+the failure is a PLAN failure with an idle field, riding out costs
+`_ride_out_scripted_scene`'s 240-frame engage wait and changes nothing. `get_devon_scope`
+wraps it in a 10-round loop with `tries=6` ≈ 14,400 frames of pure churn — past the 18,000
+frame global watchdog. So the run died with "watchdog" instead of the planner's real message.
+
+**Fix.** After a failure, if the field is idle (`not script.is_active` and
+`player_avatar_is_controllable()`) AND the player stands on the same tile as after the previous
+failure, raise immediately with the planner's own error. One ride-out is still attempted first,
+so a genuine scene interruption is unaffected.
+
+**PROVEN A/B** by `tools/story-dev/repro_navigate_failfast.py` (from `rocksmash_taught.ss1`,
+state verified at load rather than trusted by name):
+- unreachable dest, idle field: **1530 frames → 255 frames (83% less churn)**, and the error
+  now names the real cause instead of "after 6 tries".
+- control 1 — reachable dest still succeeds in 33 frames, arrival at the tile verified.
+- control 2 — with the script context reporting active, the guard does NOT fire and all tries
+  are exhausted exactly as before.
+
+**NOTE:** this fixes the CHURN, not the underlying reachability. Whether ROUTE120 (5,15) →
+FORTREE_CITY is genuinely unplannable (suspected planner-blind bridge, the Route 119/120 class
+that `_hold_walk_route` exists for) is still being probed. The bot will now fail honestly and
+fast there rather than dying to the watchdog.
+
+**Prevention rule:** a retry loop must be able to state what it expects to CHANGE between
+attempts — if nothing observable changed, retrying is not resilience, it is a way to convert a
+clear error into a timeout.
