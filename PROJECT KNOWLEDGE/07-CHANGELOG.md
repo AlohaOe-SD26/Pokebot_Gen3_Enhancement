@@ -2512,3 +2512,20 @@ each failure captured + diagnosed + fixed (states saves/ch13_r*_wedge.ss1):
   13e (Winona turnstile gym) is untested behind this. Milestone for the fix: ch13_r8_wedge.
 Honest boundary per the overnight directive (move on after repeated retries): 13a-c is a
 real, validated advance; 13d/e resume from the captured states with a clear next step.
+
+## 2026-07-24 (overnight, cont.) — Ch13d Devon Scope WORKS end-to-end (real path); blocker moved to the Fortree tree-bridge
+Solved the Route 120 north-bridge strand (the runs 8-11 wall): Steven's scene leaves the
+avatar on ISOLATED tile (13,16) — probed that EVERY direction snaps to (13,15) and the
+planner NO-PATHs from it — so a HELD-INPUT route (Up→(13,15), Left→(5,15)) gets off it,
+where the planner reaches Fortree. Factored `_leave_route120_north_bridge` and call it
+from get_devon_scope's flush, do_fortree_gym's entry, AND _play before the gym prep
+(three resume paths). Captured `saves/devon_scope_got.ss1` (post-Scope checkpoint via
+SAVE_CHECKPOINT=RECEIVED_DEVON_SCOPE:devon_scope_got). RESULT (run 13, real path from
+ch13_r8_wedge): the bridge escape works — the run crossed Route 120, flushed the city
+Kecleon, healed at Fortree PC, and reached the **Fortree gym door (22,11)** before failing.
+NEW/REMAINING blocker: Fortree is a TREE-BRIDGE city — the gym door (22,11) is reachable
+only from adjacent (21,11)/(22,12), not from the main plaza (5,7) (planner-blind elevation
+walkways, the Route-119/120 bridge class). NEXT: capture a clean Fortree checkpoint
+(SAVE_CHECKPOINT can't key a flag here — regenerate by running to Fortree and hand-saving
+when controllable at the PC), probe the held-input route plaza→(21,11), and add it to
+do_fortree_gym before the door warp. Then 13e (Winona turnstile gym) is next-untested.
