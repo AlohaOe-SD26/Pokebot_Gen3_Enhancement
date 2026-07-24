@@ -191,10 +191,17 @@ nor Task_HandleSelectionMenuInput is up, so the handler falls to the bare A/Down
 **REPRO TODO.** Construct a fault-injection driver like `--inject-faintbench` but with a
 Shedinja (1 HP) that faints as the active, plus a real bench — then debug the handler's
 menu-state reading. NOT a save-reloadable state (battle stucks aren't snapshotted).
-**FIX DIRECTION (unvalidated).** When handle_fainted_pokemon can't leave PARTY_MENU within
-its bound, ESCALATE rather than silently return into a re-invoke loop (e.g., cycle every
-slot with A + release gaps, or B-out-and-retry). Needs the repro first — do not guess-patch
-the battle handler blind.
+**RULED OUT 2026-07-23:** the matchup-aware `choose_new_lead_after_faint` is NOT the cause —
+unit-tested with the exact run05 party (Marshtomp/Shedinja-fainted/Swellow/Poochyena/Ninjask)
+it returns a valid living pick (Poochyena). The hang is in the lower-level menu-navigation
+sweep at the END of handle_fainted_pokemon (`scroll_to_party_menu_index` + the PARTY_MENU
+button loop) hitting a transient state where `tasks=[]` (no Task_HandleSelectionMenuInput /
+Task_PrintAndWaitForText) so button presses are swallowed; the 6000-frame bound then RETURNS
+and the outer handle_battle loop re-invokes (still PARTY_MENU) → re-invoke spin.
+**FIX DIRECTION (needs a repro first — do NOT guess-patch the battle handler blind).** Build a
+Shedinja fault-injection driver: inject a party with a fainting-prone Shedinja + a real bench,
+drive a battle to the after-faint menu, capture the transient state, and fix the sweep to
+handle tasks=[] (wait for a menu task before pressing, or a more persistent per-slot cycle).
 
 ## KI-16 ✅ FIXED 2026-07-23 (same day) — the wedge was _smash_rock returning before EventScript_SmashRock finished
 **Symptom.** ALL 5 lanes resuming from `wattson_done.ss1` hang identically at frame f74383,
