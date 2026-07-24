@@ -5314,6 +5314,10 @@ def _hold_walk_route(steps, *, stop_on_script: bool = True, per_leg_bound: int =
     INTO a coord trigger is often the goal. Bounded per leg."""
     try:
         for direction, tgt in steps:
+            # release the PREVIOUS leg's held direction — two directions held at
+            # once make the game keep the first (run 7: Up stayed held, so the
+            # Right leg bumped Up into the river for 300k frames).
+            context.emulator.reset_held_buttons()
             tgt = tuple(tgt)
             frames = 0
             while tuple(get_player_avatar().local_coordinates) != tgt:
