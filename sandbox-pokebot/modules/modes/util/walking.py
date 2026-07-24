@@ -214,6 +214,7 @@ def follow_waypoints(
 
         last_waypoint = waypoint
         field_effect_is_active = False
+        not_finished_frames = 0  # KI-15 family: consecutive frames without heldMovementFinished
         frames_remaining_until_timeout = timeout_in_frames
         if waypoint.is_warp:
             frames_remaining_until_timeout += extra_timeout_in_frames_for_warps
@@ -225,9 +226,30 @@ def follow_waypoints(
         elif waypoint.action is WaypointAction.Waterfall:
             frames_remaining_until_timeout += 195 + (get_player_location()[0][1] - waypoint.coordinates[1]) * 42
 
+        _fw_trace_n = 0
         while not player_is_at(waypoint.map, waypoint.coordinates) or field_effect_is_active:
             player_object = get_player_map_object()
 
+            # --- KI-15 TRACE (env-gated, logging only; REMOVE after repro) ---
+            _fw_trace_n += 1
+            if _fw_trace_n % 200 == 0:
+                import os as _os_fw
+
+                _fw = _os_fw.environ.get("FW_TRACE")
+                if _fw:
+                    try:
+                        from modules.player import get_player_avatar as _gpa_fw
+
+                        with open(_fw, "a", encoding="utf-8") as _f:
+                            _f.write(
+                                f"[fw] n={_fw_trace_n} gs={get_game_state()} "
+                                f"rem={frames_remaining_until_timeout} wp={waypoint.coordinates} "
+                                f"warp={waypoint.is_warp} pos={tuple(_gpa_fw().local_coordinates)} "
+                                f"flags={getattr(player_object, 'flags', None)}\n"
+                            )
+                    except Exception:
+                        pass
+            # -----------------------------------------------------------------
             if get_game_state() == GameState.OVERWORLD:
                 frames_remaining_until_timeout -= 1
 
@@ -243,6 +265,21 @@ def follow_waypoints(
             # Only pressing the direction keys during the frame where movement is actually registered can help
             # preventing weird overshoot issues in cases where a listener handles an event (like a battle, PokeNav
             # call, ...)
+            # FORK (2026-07-24, ch12 gym-door wedge): a mid-navigation battle can
+            # return the avatar with heldMovementFinished PERMANENTLY absent while
+            # fully controllable — and since this loop only presses when that flag is
+            # present, the bot then presses NOTHING, which is exactly what keeps the
+            # state parked (probed live: any input jolts it awake instantly; zero
+            # input left it frozen 20k frames). During genuine walking the flag is
+            # only absent for the few frames of each step, so a long consecutive
+            # absence means the wedge — jolt the walk direction to re-engage the
+            # movement machinery.
+            if player_object is not None and "heldMovementFinished" not in player_object.flags:
+                not_finished_frames += 1
+                if not_finished_frames > 90 and not_finished_frames % 10 == 0 and get_game_state() == GameState.OVERWORLD:
+                    context.emulator.press_button(waypoint.walking_direction)
+            else:
+                not_finished_frames = 0
             if player_object is not None and "heldMovementFinished" in player_object.flags:
                 if waypoint.action is WaypointAction.Surf:
                     surf_task = "Task_SurfFieldEffect" if not context.rom.is_rs else "sub_8088954"
@@ -452,18 +489,28 @@ def navigate_to(
             # ends, control returns HERE with the post-battle
             # ReturnFromBattleToOverworld transition still completing, and
             # re-pathing into that unsettled state makes the avatar bounce between
-            # two tiles forever. Waiting (pressing nothing) for a stably
-            # standing-still, controllable avatar lets the transition finish; it
-            # costs ~nothing on a mundane NPC block, where the avatar is already
-            # stopped. Bounded so it can never hang here.
+            # two tiles forever. Waiting for a stably standing-still, controllable
+            # avatar lets the transition finish. Bounded so it can never hang here.
+            # ‼ JOLT (2026-07-24, ch12 gym-door wedge): one post-battle variant
+            # leaves the avatar controllable but with heldMovementFinished
+            # PERMANENTLY absent — and every polite layer (this wait, the walk
+            # loop, ensure_facing_direction) presses nothing at it, which is
+            # exactly what keeps it parked (probed live: any direction input
+            # revives it instantly; zero input left it frozen 20k frames). After a
+            # patient stretch with no stillness, tap direction keys to re-engage
+            # the movement machinery; a step in a wrong direction is harmless —
+            # we re-path right after.
             settle = 0
             settle_waited = 0
+            _jolt_dirs = ("Down", "Up", "Left", "Right")
             while settle < _NAVIGATE_SETTLE_STABLE_FRAMES and settle_waited < _NAVIGATE_SETTLE_TIMEOUT_FRAMES:
                 if player_avatar_is_controllable() and player_avatar_is_standing_still():
                     settle += 1
                 else:
                     settle = 0
                 settle_waited += 1
+                if settle_waited > 90 and settle_waited % 15 == 0 and get_game_state() == GameState.OVERWORLD:
+                    context.emulator.press_button(_jolt_dirs[(settle_waited // 15) % 4])
                 yield
 
             # Hard backstop: if we keep timing out without reaching any NEW tile

@@ -61,6 +61,7 @@ END_MARKERS = [
     "Meteor Falls scene done",  # Ch11a content end (2026-07-22 overnight)
     "reached Lavaridge",    # Ch11c content end (2026-07-22 overnight)
     "HEAT BADGE earned",    # Ch11d content end (2026-07-22 overnight)
+    "Surf taught",          # Ch12 content end (2026-07-24 overnight)
 ]
 FAIL_MARKERS = {
     "hang": "HANG CONFIRMED",

@@ -475,22 +475,38 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
             cursor = get_party_menu_cursor_pos(len(party_in_menu))["slot_id"]
         except Exception:
             cursor = None
+        # KI-17 (2026-07-24, decomp-confirmed race): selecting a living mon while the
+        # "X has no energy left!" printer tasks are still winding down can exit the
+        # party menu WITHOUT destroying the printer — its orphaned DMA request then
+        # deadlocks ReshowBattleScreenAfterMenu's IsDma3ManagerBusyWithBgCopy() wait
+        # forever (the CB2_SETUPRESHOWBATTLESCREENAFTERMENU freeze, 2/5 lanes).
+        # Rules from the analysis: after dismissing the error text, IDLE long enough
+        # for the task tree to revert to Task_HandleChooseMonInput before ANY further
+        # input; and never blind-press A when the cursor can't be read.
+        post_gap = 6
         if task_is_active("Task_PrintAndWaitForText") or task_is_active("Task_ReturnToChooseMonAfterText"):
-            button = "A"  # dismiss "X has no energy left to battle!"
+            button = "A"   # dismiss "X has no energy left to battle!"
+            post_gap = 24  # ... then give the task tree time to revert (KI-17)
         elif task_is_active("Task_HandleSelectionMenuInput"):
             # Shift/Summary/Cancel popup: SHIFT is first, so A on a living mon sends
             # it out; on a fainted mon the popup is useless — close it.
             button = "A" if cursor in alive_slots else "B"
         elif cursor is not None and cursor not in alive_slots:
             button = "Down"  # walk the cursor to a living slot
+        elif cursor is not None:
+            button = "A"     # cursor verified on a LIVING slot — safe to confirm
         else:
-            button = "A"
-        for _ in range(2):
-            context.emulator.press_button(button)
+            button = None    # cursor unreadable: wait, never gamble an A (KI-17)
+        if button is not None:
+            for _ in range(2):
+                context.emulator.press_button(button)
+                yield
+        else:
+            for _ in range(2):
+                yield
+        for _ in range(post_gap):
             yield
-        for _ in range(6):
-            yield
-        frames += 8
+        frames += 2 + post_gap
         if frames > 6000:
             return
 

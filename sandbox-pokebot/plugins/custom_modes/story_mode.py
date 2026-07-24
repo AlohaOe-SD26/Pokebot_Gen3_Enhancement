@@ -1829,11 +1829,89 @@ class StoryMode(BotMode):
             console.print("[dim]Story: Heat Badge already earned — Gym 4 skipped.[/]")
         _guard("Gym 4 (Flannery)", lambda: _done("BADGE04_GET"))
 
-        # END OF BUILT CONTENT. Next build (Ch12): Go-Goggles → Route 111 desert →
-        # Petalburg Gym (Norman) (§Ch11/§Ch12 spec).
+        # --- Segment 12a: the long overland backtrack Lavaridge → Petalburg (§Ch12
+        #     build spec; route static-probed 2026-07-24 — direct via Route 111 south,
+        #     the desert is never on the path; the Rusturf wall opens via the Wanda
+        #     quest's two Rock Smash rocks). ---
+        from modules.story.early_game import do_petalburg_gym, travel_lavaridge_to_petalburg
+
+        _at_petalburg = lambda: _cur_map() in (
+            MapRSE.PETALBURG_CITY.value,
+            MapRSE.PETALBURG_CITY_GYM.value,
+            MapRSE.PETALBURG_CITY_POKEMON_CENTER_1F.value,
+            MapRSE.PETALBURG_CITY_WALLYS_HOUSE.value,
+            MapRSE.PETALBURG_CITY_MART.value,
+        )
+        if not _at_petalburg() and not _done("RECEIVED_HM_SURF"):
+            yield from travel_lavaridge_to_petalburg()
+        else:
+            console.print("[dim]Story: already Petalburg-side (or Surf in hand) — travel skipped.[/]")
+        _guard("Travel to Petalburg (Ch12a)", lambda: _at_petalburg() or _done("RECEIVED_HM_SURF"))
+
+        # --- Segment 12b: Gym 5 — Norman (Balance Badge) + the HM03 Surf handoff.
+        #     Slaking L31 (TRUANT) is the ace; attack-through + a Normal-answering
+        #     lead. Route 102 grass is L3-4 fodder, so the sufficiency gate /
+        #     boss-training telemetry owns the prep decision. ---
+        if not _done("RECEIVED_HM_SURF"):
+            from modules.map_data import PokemonCenter
+            from modules.story.early_game import (
+                PETALBURG_TRAINING_GRASS,
+                _lead_best_matchup,
+                heal_in_pokemon_center,
+            )
+
+            norman_fight = {
+                "keys": [MapRSE.PETALBURG_CITY_GYM.value, MapRSE.PETALBURG_CITY.value],
+                "band": (27, 31),  # Norman: Spinda 27 / Vigoroth 27 / Linoone 29 / Slaking 31
+                "ace_types": ("Normal",), "ace_level": 31,  # Slaking L31 (Truant)
+                "grass": PETALBURG_TRAINING_GRASS,
+                "heal": PokemonCenter.PetalburgCity,
+            }
+            # Prep/heal only when OUTSIDE the gym: a mid-gym derail resume must walk
+            # straight back up the (still-open) doors, not leave for the PC —
+            # ch12_run3 looped to Manual healing from inside (pre the warp-aware
+            # heal fix; the gate also spares pointless PC round-trips).
+            if _cur_map() != MapRSE.PETALBURG_CITY_GYM.value:
+                yield from self._prepare_for_fight(norman_fight)
+                yield from _lead_best_matchup(["Normal"])
+                yield from heal_in_pokemon_center(PokemonCenter.PetalburgCity)
+            yield from do_petalburg_gym()
+        else:
+            console.print("[dim]Story: Surf already received — Gym 5 skipped.[/]")
+        _guard("Gym 5 + Surf handoff (Ch12b)", lambda: _done("RECEIVED_HM_SURF"))
+
+        # --- Segment 12c: teach Surf (Marshtomp is the natural carrier); the whole
+        #     Ch13+ water arc (Route 118, Weather Institute, Fortree) needs it. ---
+        def _party_knows_surf() -> bool:
+            try:
+                from modules.pokemon_party import get_party as _gp
+
+                return any(
+                    learned is not None and learned.move.name == "Surf"
+                    for mon in _gp()
+                    if mon is not None and not mon.is_egg
+                    for learned in mon.moves
+                )
+            except Exception:
+                return False
+
+        if not _party_knows_surf():
+            from modules.items import get_item_by_name
+            from modules.story.early_game import ensure_hm_learner, teach_hm_move
+
+            _hm03 = get_item_by_name("HM03")
+            _slot = yield from ensure_hm_learner(_hm03)
+            yield from teach_hm_move(_hm03, _slot)
+        else:
+            console.print("[dim]Story: someone already knows Surf — teach skipped.[/]")
+        _guard("Teach Surf (Ch12c)", _party_knows_surf)
+
+        # END OF BUILT CONTENT. Next build (Ch13): Route 118 east (Surf the river) →
+        # Route 119 → Weather Institute → the rival + HM02 Fly → Fortree (Gym 6)
+        # (§Ch12+ leads in 12-STORYMODE-DESIGN — decomp-verify before building).
         context.message = (
-            "Story: HEAT BADGE earned — end of built content. NEXT (WIP): the Go-Goggles "
-            "and Petalburg. Handing to manual."
+            "Story: BALANCE BADGE won and Surf taught — end of built content. "
+            "NEXT (WIP): the Surf arc to Fortree. Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()

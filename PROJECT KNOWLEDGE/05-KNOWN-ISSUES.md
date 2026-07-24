@@ -262,3 +262,30 @@ avatar after a mid-navigation battle, or prevents the wild encounter on that leg
 **WORKAROUND.** For milestone/continuing validation use `rocksmash_taught.ss1` (proven), not
 wattson_done, until KI-16 is fixed. Consider regenerating wattson_done (may be a stale-state
 artifact like the rocksmash_taught menu case).
+
+## KI-17 (2026-07-24) — after-faint party-menu RESHOW freeze (severity: HIGH, 2/5 fresh lanes)
+> ‼ This is the bug the original (later "re-diagnosed") KI-15 write-up was actually
+> describing — the Shedinja/Ninjask/(7,9) party from that write-up appears verbatim in
+> batch 20260724-004252/run04. It is REAL, distinct from the (fixed) KI-15 resume wedge,
+> and now the top intermittent.
+- **Symptom:** an inline wild battle where a mon faints opens the after-faint chooser;
+  a replacement IS chosen (cursor on a living slot, action=1), and the game then freezes
+  mid-transition back to battle: `state=PARTY_MENU`,
+  `main_cb=CB2_SETUPRESHOWBATTLESCREENAFTERMENU`,
+  tasks `Task_ReturnToChooseMonAfterText`+`Task_PrintAndWaitForText` (which never run —
+  that CB2 doesn't pump tasks), `instr=BattleScript_FaintedMonTryChoose`. 20k-frame hang;
+  `handle_fainted_pokemon`'s sweep presses A/B/Down to no effect (probed: the state is
+  INPUT-IMMUNE, video on or off).
+- **Evidence/states:** `saves/ki17_partymenu_wedge.ss1` (run05: Skitty 40HP alive,
+  Taillow+Grovyle fainted) + `saves/ki17_partymenu_wedge2.ss1` (run04: the Shedinja
+  party). ⚠ loaded states stay frozen — good repro material.
+- **Suspected cause:** the ReshowBattleScreenAfterMenu state machine parks on one of its
+  gfx-reload steps (or the savestate merely preserves a live race). NOT a renderer
+  dependency (video=True doesn't advance it). Needs a decomp read of
+  `CB2_SetUpReshowBattleScreenAfterMenu` / `gReshowState` — Gemini escalation drafted in
+  `sandbox-pokebot/profiles/GEMINI-PROMPTS.md` (2026-07-24 entry).
+- **Workaround:** none in-run yet; frequency ~2/5 fresh lanes at long horizons. The
+  watchdog kills the run (no silent corruption). NEXT: decomp-verify what advances
+  gReshowState; if it's waiting on a paletted/task resource our sweep's button timing
+  starves, fix the sweep's press cadence; consider a bounded state-write fallback ONLY
+  per the faithfulness rules (documented last resort).

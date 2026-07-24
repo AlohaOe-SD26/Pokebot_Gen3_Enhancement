@@ -2769,6 +2769,27 @@ def _enter_warp_by_navigation(dest_reached, map_enum, door_tile, *, tries: int =
     for _ in range(tries):
         if dest_reached():
             return
+        # ‼ ALREADY STANDING ON THE DOOR TILE (ch12_run1, 2026-07-24): a warp fires on
+        # STEPPING onto it — a battle that ends with the avatar parked on the tile (or
+        # a resume that loads there) leaves the warp dormant, and navigating "to" the
+        # tile we're on moves zero steps, so every try times out to Manual. Step OFF
+        # one tile (any direction that moves us), then let the normal navigation step
+        # back ON to trigger it.
+        try:
+            _mgn = _map_group_number()
+            _pos = tuple(get_player_avatar().local_coordinates)
+        except Exception:
+            _mgn, _pos = None, None
+        if _mgn == (map_enum.value if hasattr(map_enum, "value") else map_enum) and _pos == tuple(door_tile):
+            for _dir in ("Down", "Up", "Left", "Right"):
+                context.emulator.press_button(_dir)
+                yield from wait_for_n_frames(20)
+                try:
+                    if tuple(get_player_avatar().local_coordinates) != tuple(door_tile):
+                        break
+                except Exception:
+                    break
+            yield from wait_for_player_avatar_to_be_standing_still()
         try:
             yield from navigate_to_anywhere(map_enum, door_tile, avoid_encounters=True, avoid_scripted_events=False)
         except BotModeError as e:
@@ -3324,6 +3345,10 @@ MAUVILLE_WALLY_APPROACH = (8, 7)       # below Wally (8,6); face Up to talk
 # all navigation retries plan-failing before this was swept properly. Prevention rule:
 # training tiles must be probed for TWO-WAY pathability FROM THE REAL ENTRY TILE.
 ROUTE117_TRAINING_GRASS = (MapRSE.ROUTE117, (31, 16))
+# Ch12 (Norman): Route 102's west grass — two-way swept from the Petalburg PC door
+# (20,16) 2026-07-24 (ch12 recon). Wilds are L3-4 fodder; the boss-training mode's
+# KO-telemetry logic is expected to carry the real levelling (Norman re-attempts).
+PETALBURG_TRAINING_GRASS = (MapRSE.ROUTE102, (9, 2))
 MAUVILLE_GYM_DOOR_CITY = (8, 5)        # city door → gym (4-5,20)
 MAUVILLE_GYM_SWITCHES = [(0, 15), (4, 12), (3, 9), (8, 9)]
 MAUVILLE_GYM_WATTSON_APPROACH = (5, 3)  # below Wattson (5,2)
@@ -4811,28 +4836,24 @@ def do_lavaridge_gym() -> Generator:
 
 def travel_lavaridge_to_petalburg() -> Generator:
     """Chapter 12 travel — the long overland backtrack from Lavaridge to Petalburg for
-    Norman (Gym 5). ‼‼ WIP / NOT WIRED / NOT VALIDATED (2026-07-23) — do NOT enable in
-    _play until the Lavaridge→Mauville leg is finished and a full run is proven.
+    Norman (Gym 5).
 
-    ‼ KEY DISCOVERY (recon 2026-07-23) — the direct Route 112→Route 111 crossing DEAD-ENDS
-    in the desert. Route 111's MIDDLE is the Go-Goggles-gated DESERT, which blocks the
-    north↔south internal passage: navigating Lavaridge→Route111 lands at ~(13,90) in the
-    desert with no way south. The real route must go via the FIERY PATH tunnel — i.e.
-    REVERSE Ch10's `travel_to_fallarbor` (which went Mauville→Route111-south→past the twin
-    rocks→Route112(11,36) Fiery south door→Fiery Path→Route112 north→Route113→Fallarbor).
-    So the Lavaridge→Mauville leg should be: Lavaridge → Route 112 → Fiery Path (in one
-    door, out the other) → Route 112 near the rocks → Route 111 south (past the ALREADY-
-    smashed twin rocks (18,101)/(19,100)) → Mauville. Build it by mirroring
-    travel_to_fallarbor's Fiery-Path + rock legs. TODO before wiring.
-
-    Remainder of the route (Mauville onward, ⚠ tiles still unvalidated): Mauville →
-    Route 117 (forced doubles handled by the listener) → Verdanturf → Rusturf Tunnel
-    (Rock-Smash boulders cleared in Ch10; warp-linked (8,1)↔(4,10), not a connection) →
-    Route 116 → Rustboro → Route 104 (north) → Petalburg Woods → Route 104 (south) →
-    Petalburg City. Progress-gated + idempotent. GOAL/END: in Petalburg City.
-    VALIDATED SO FAR: Lavaridge→Route111(13,90) reaches the northern/desert edge (proves
-    the Route 112 ledge crossing works) — but that is the WRONG side of the desert; see
-    the discovery above."""
+    ROUTE (static-probed 2026-07-24, ch12_static_recon*.py — CORRECTS the 2026-07-23
+    "must go via the Fiery Path" note, which misread the door topology: the Fiery
+    tunnel connects lower Route 112 to the ROUTE-113-side section, so it is useless
+    for southbound travel; and the direct corridor is fine): Lavaridge → Route 112
+    (descend the one-way ledges SOUTH — our direction; course y47–51) → Route 111 at
+    the west junction (y67–99 — the SAME corridor Ch10's travel_to_fallarbor walked
+    northbound at ground truth, so the Go-Goggles desert, which seals y≈61–88 further
+    NORTH, never touches it) → smash the twin-rocks choke from the NORTH side (rocks
+    RESPAWN on map reload, so Ch10's smash is gone; column 18 needs only the (18,101)
+    rock: stage (18,100), face Down; _smash_rock is idempotent if it's already open)
+    → Route 111 south (y102–139) → Mauville. Then: Route 117 (forced doubles — the
+    listener attack-throughs) → Verdanturf → Rusturf Tunnel (warp-linked (8,1)↔(4,10);
+    Ch10's boulders also respawn — the tunnel legs ride _enter_warp_by_navigation and
+    the interior needs no boulder removal for the through-path) → Route 116 → Rustboro
+    → Route 104 north → Petalburg Woods (N→S, no Cut) → Route 104 south → Petalburg.
+    Progress-gated + idempotent legs; GOAL/END: in Petalburg City."""
     PETALBURG = MapRSE.PETALBURG_CITY.value
 
     if _map_group_number() == PETALBURG:
@@ -4840,20 +4861,36 @@ def travel_lavaridge_to_petalburg() -> Generator:
     context.message = "Story: heading to Petalburg — the long road to Norman..."
     yield from wait_until_truly_controllable()
 
-    # The legs, in order: (target map, a SAFE interior tile — never a warp/ledge tile).
-    # A leg is skipped once we are already past it (idempotent resume): we only run a
-    # leg while we are on an EARLIER map than its target, tracked by this ordered list.
-    # (13,90) on Route 111 is the reachable through-tile from Lavaridge — the navigator
-    # crosses Route 112's ledges to it in one hop (probed). Then south to Mauville, etc.
+    # Leg 1 (only when starting from the Lavaridge side): descend to Route 111 above
+    # the twin rocks, re-smash the (18,101) rock from the north, and continue south.
+    # Gated by map so a mid-route resume (Mauville onward) skips it entirely.
+    if _map_group_number() in (
+        MapRSE.LAVARIDGE_TOWN.value,
+        MapRSE.ROUTE112.value,
+        MapRSE.ROUTE111.value,
+    ):
+        context.message = "Story: to Petalburg — down Route 112's ledges to Route 111..."
+        yield from _navigate_riding_out(MapRSE.ROUTE111, (18, 99))
+        yield from _smash_rock(MapRSE.ROUTE111, (18, 100), "Down")
+
+    # The remaining legs, in order: (target map, a SAFE interior tile — never a
+    # warp/ledge tile). A leg is skipped once we are already past it (idempotent
+    # resume): we only run a leg while we are on an EARLIER map than its target.
     LEGS = [
-        (MapRSE.ROUTE111, (13, 90), "Route 111 (via Route 112)"),
         (MapRSE.MAUVILLE_CITY, (19, 6), "Mauville City"),
         (MapRSE.ROUTE117, (30, 8), "Route 117"),
         (MapRSE.VERDANTURF_TOWN, (16, 9), "Verdanturf Town"),
     ]
+    # ‼ EVERY overworld corridor map must be ranked (ch12_run1, 2026-07-24): a derail
+    # in Petalburg Woods resumed with _rank(WOODS) == -1 ("not past anything") and the
+    # travel re-ran the MAUVILLE leg BACKWARDS from the Woods until Manual. Unknown
+    # maps (interiors) still rank -1 = run all legs, which is right for whiteout
+    # respawns at earlier towns' Poké Centers.
     order = [
         MapRSE.LAVARIDGE_TOWN.value, MapRSE.ROUTE112.value, MapRSE.ROUTE111.value,
         MapRSE.MAUVILLE_CITY.value, MapRSE.ROUTE117.value, MapRSE.VERDANTURF_TOWN.value,
+        MapRSE.RUSTURF_TUNNEL.value, MapRSE.ROUTE116.value, MapRSE.RUSTBORO_CITY.value,
+        MapRSE.ROUTE104.value, MapRSE.PETALBURG_WOODS.value, MapRSE.PETALBURG_CITY.value,
     ]
 
     def _rank(gnum) -> int:
@@ -4876,7 +4913,19 @@ def travel_lavaridge_to_petalburg() -> Generator:
         )
         yield from wait_until_truly_controllable()
     if _map_group_number() == MapRSE.RUSTURF_TUNNEL.value:
-        # West through the (already-smashed) tunnel to the Route 116 door (4,10).
+        # The WANDA-QUEST rock wall (probed 2026-07-24): two breakable rocks at
+        # (24,5)/(24,4) seal the tunnel's middle until the reunion quest opens it
+        # (their flags 931/932 are PERMANENT — once smashed, open forever; a resume
+        # after the quest skips both smashes via _smash_rock's idempotence). Wanda
+        # (25,4) and her boyfriend (23,5) flank the wall — smash row 5 first from
+        # (25,5) (open), ride out the reunion scene, then row 4 if it still blocks.
+        context.message = "Story: to Petalburg — opening the Rusturf wall (Wanda's quest)..."
+        yield from _smash_rock(MapRSE.RUSTURF_TUNNEL, (25, 5), "Left")
+        yield from _ride_out_all_scenes(quiet_frames=300)  # the couple's reunion
+        try:
+            yield from _smash_rock(MapRSE.RUSTURF_TUNNEL, (24, 5), "Up")  # (24,4) from below
+        except BotModeError:
+            pass  # row 4 already open (scene cleared it / rock gone) — continue
         yield from _enter_warp_by_navigation(
             lambda: _map_group_number() == MapRSE.ROUTE116.value,
             MapRSE.RUSTURF_TUNNEL, (4, 10), tries=6, label="Rusturf Tunnel (Route 116 door)",
@@ -4892,20 +4941,191 @@ def travel_lavaridge_to_petalburg() -> Generator:
         yield from _navigate_riding_out(MapRSE.ROUTE104, (24, 12), tries=8)
         yield from wait_until_truly_controllable()
 
-    # Route 104 north → Petalburg Woods → Route 104 south → Petalburg.
-    if _map_group_number() == MapRSE.ROUTE104.value and _map_group_number() != PETALBURG:
+    # Route 104 north → Petalburg Woods → Route 104 south-east → Petalburg.
+    # Route 104 is ONE map split by the Woods band (rows 31-37 are solid wall; door
+    # pairs at y30 north / y38+y42 south — mapfacts 2026-07-24), so which half we are
+    # on is decided by y (< 38 = north side, the wall rows being unstandable).
+    if (
+        _map_group_number() == MapRSE.ROUTE104.value
+        and get_player_avatar().local_coordinates[1] < 38
+    ):
         context.message = "Story: to Petalburg — through Petalburg Woods..."
         yield from _navigate_riding_out(MapRSE.PETALBURG_WOODS, (26, 5), tries=8)
         yield from wait_until_truly_controllable()
     if _map_group_number() == MapRSE.PETALBURG_WOODS.value:
-        # Woods south exit → Route 104 south (26,44)→(11,38) region, then to Petalburg.
-        yield from _navigate_riding_out(MapRSE.ROUTE104, (11, 38), tries=8)
+        # ‼ Exit via the SOUTH-EAST door (36,38) EXPLICITLY (ch12_run2): the warp
+        # graph is region-blind on the split Route 104 — asked for "Route 104" it
+        # exited the NORTH door back onto the sealed Rustboro half. The SE door
+        # lands at R104 (32,42), the Petalburg-side section (probed pathable to the
+        # city). Interior southbound is one-way-ledge but statically pathable from
+        # the north-door landing to every south door.
+        yield from _enter_warp_by_navigation(
+            lambda: (
+                _map_group_number() == MapRSE.ROUTE104.value
+                and get_player_avatar().local_coordinates[1] >= 39
+            ),
+            MapRSE.PETALBURG_WOODS, (36, 38), tries=8, label="Petalburg Woods SE exit",
+        )
         yield from wait_until_truly_controllable()
     if _map_group_number() == MapRSE.ROUTE104.value:
-        yield from _navigate_riding_out(MapRSE.PETALBURG_CITY, (18, 20), tries=8)
+        yield from _navigate_riding_out(MapRSE.PETALBURG_CITY, (15, 10), tries=8)
         yield from wait_until_truly_controllable()
 
     context.message = "Story: reached Petalburg City — Norman's gym awaits."
+
+
+# The Petalburg Gym left-door speedrun chain (static warp table, ch12 recon
+# 2026-07-24 — ch12_static_recon*.py / petalburg_gym_probe.py). Each step:
+# (room trainer tile or None, internal door tile to step on, landing tile).
+# Doors are VAR_PETALBURG_GYM_STATE-gated: a room's doors open only after its
+# trainer is beaten, so a closed door = "engage the trainer first".
+PETALBURG_GYM_CHAIN = [
+    (None, (1, 105), (7, 85)),     # entrance room (no trainer) → Randall's room
+    ((4, 81), (1, 79), (7, 46)),   # beat Randall → Parker's room
+    ((4, 42), (7, 40), (1, 20)),   # beat Parker → Jody's room
+    ((4, 16), (7, 14), (1, 7)),    # beat Jody → Norman's room
+]
+
+
+def do_petalburg_gym() -> Generator:
+    """Chapter 12b — Petalburg Gym: beat NORMAN for the Balance Badge (BADGE05) and
+    collect HM03 Surf via the Wally's-dad handoff.
+
+    INTENT: clear Gym 5 and unlock the Surf arc (Ch13+).
+    STORY CONDITION: in Petalburg City with 4 badges (the gym only opens then).
+    HOW IT WORKS: enter via the city door (15,8) → walk the LEFT-DOOR speedrun chain
+    (PETALBURG_GYM_CHAIN; three trainers — Randall/Parker/Jody, ~L26-27 — engaged
+    via sight-line or a direct talk when their door stays shut) → challenge Norman
+    (4,2) from (4,3) (Spinda27/Vigoroth27/Linoone29/Slaking31 — Slaking's TRUANT
+    loafs every other turn; the attack-through strategy rides it) → BADGE05_GET +
+    TM42 → then STEP DOWN in Norman's room: the VAR_PETALBURG_GYM_STATE==6 coord
+    trigger walks Wally's Dad in and WARPS us to Wally's house, whose auto-script
+    hands over HM03 Surf (RECEIVED_HM_SURF). ‼ Never leave the gym any other way
+    after the badge — skipping the trigger soft-locks Surf.
+    GOAL/END STATE: BADGE05_GET + RECEIVED_HM_SURF (in Wally's house)."""
+    from modules.memory import get_event_flag
+
+    GYM = MapRSE.PETALBURG_CITY_GYM
+
+    if get_event_flag("RECEIVED_HM_SURF"):
+        return
+    context.message = "Story: entering Petalburg Gym to challenge Norman..."
+    if _map_group_number() != GYM.value:
+        yield from _enter_warp_by_navigation(
+            lambda: _map_group_number() == GYM.value,
+            MapRSE.PETALBURG_CITY, (15, 8), tries=6, label="Petalburg Gym door",
+        )
+        yield from wait_until_truly_controllable()
+
+    # Walk the door chain bottom→top. ‼ The doors are NOT walk-through tiles: each
+    # is a collision-blocked SIGN script (decomp: PetalburgCity_Gym_EventScript_
+    # *RoomDoor) — face it, press A, answer YES to its "go through?" prompt, and the
+    # script WARPDOORs you to the landing. Later doors answer "locked" until their
+    # gating trainer is beaten (Confusion←Randall, LeftStrength←Parker, GymLeaders←
+    # Jody); the entrance pair needs only VAR_PETALBURG_GYM_STATE ≥ 6 (4 badges).
+    # Idempotent on resume: a step is skipped when we are already at/above its
+    # landing row (y decreases while ascending); beaten trainers stay beaten.
+    if not get_event_flag("BADGE05_GET"):
+        for trainer_tile, door, landing in PETALBURG_GYM_CHAIN:
+            _check_abort()
+            if _map_group_number() == GYM.value and get_player_avatar().local_coordinates[1] <= landing[1]:
+                continue  # already past this wall
+            rounds = 0
+            while not (
+                _map_group_number() == GYM.value
+                and get_player_avatar().local_coordinates[1] <= landing[1]
+            ):
+                _check_abort()
+                rounds += 1
+                if rounds > 12:
+                    raise BotModeError(f"Petalburg Gym: never got through the door at {door}.")
+                if trainer_tile is not None and rounds >= 2:
+                    # The door answered "locked" → the room's trainer isn't beaten
+                    # yet. Stand below them and talk — the battle listener fights it.
+                    try:
+                        yield from navigate_to_anywhere(
+                            GYM, (trainer_tile[0], trainer_tile[1] + 1),
+                            avoid_encounters=True, avoid_scripted_events=False,
+                        )
+                        yield from ensure_facing_direction("Up")
+                        context.emulator.press_button("A")
+                        yield from wait_for_n_frames(30)
+                    except BotModeError:
+                        pass  # their sight-line battle interrupted the walk — fine
+                    yield from _ride_out_all_scenes(quiet_frames=240)
+                    yield from wait_until_truly_controllable()
+                # Approach the tile BELOW the door sign and interact.
+                try:
+                    yield from navigate_to_anywhere(
+                        GYM, (door[0], door[1] + 1),
+                        avoid_encounters=True, avoid_scripted_events=False,
+                    )
+                except BotModeError:
+                    # A sight-line battle interrupted the approach — ride and retry.
+                    yield from _ride_out_scripted_scene("B")
+                    yield from wait_until_truly_controllable()
+                    continue
+                yield from wait_until_truly_controllable()
+                if tuple(get_player_avatar().local_coordinates) != (door[0], door[1] + 1):
+                    continue  # got bumped — re-approach
+                yield from ensure_facing_direction("Up")
+                # A opens the sign's msgbox; A again advances it; the YES/NO cursor
+                # defaults to YES, so A confirms and the warpdoor fires. Bounded
+                # ride: judge by ARRIVAL at/above the landing row (a "locked"
+                # answer leaves us in place → the loop engages the trainer next).
+                for _f in range(600):
+                    _check_abort()
+                    if get_player_avatar().local_coordinates[1] <= landing[1]:
+                        break
+                    if _f % 10 == 0:
+                        context.emulator.press_button("A")
+                    yield
+                yield from wait_until_truly_controllable()
+
+        # Challenge Norman from (4,3), facing up; ride the whole battle + badge chat.
+        context.message = "Story: challenging NORMAN (Gym 5)..."
+        rounds = 0
+        while tuple(get_player_avatar().local_coordinates) != (4, 3) or _map_group_number() != GYM.value:
+            _check_abort()
+            rounds += 1
+            if rounds > 10:
+                raise BotModeError("Petalburg Gym: could not reach the challenge tile below Norman.")
+            try:
+                yield from navigate_to_anywhere(GYM, (4, 3), avoid_encounters=True, avoid_scripted_events=False)
+            except BotModeError:
+                yield from _ride_out_scripted_scene("B")
+        yield from ensure_facing_direction("Up")
+        frames = 0
+        while not get_event_flag("BADGE05_GET"):
+            _check_abort()  # a whiteout unwinds to the defeat recovery
+            context.emulator.press_button("B" if frames % 3 else "A")
+            frames += 1
+            if frames > 40000:
+                raise BotModeError("Petalburg Gym: the Norman challenge never resolved to a badge.")
+            yield
+        yield from _wait_until_cutscene_over("B")
+        context.message = "Story: BALANCE BADGE earned — Gym 5 (Norman) beaten!"
+
+    # HM03 Surf handoff (decomp-verified 2026-07-24): FULLY AUTOMATIC — the Norman
+    # defeat script itself walks Wally's Dad in, warps us out of the gym, leads to
+    # Wally's house, and hands over HM03 (RECEIVED_HM_SURF). Nothing to trigger;
+    # just ride the whole scripted chain out. B in the brief controllable gaps
+    # advances any lingering text and can never move us onto a stray warp.
+    context.message = "Story: riding the Wally's-dad scene — HM03 Surf incoming..."
+    frames = 0
+    while not get_event_flag("RECEIVED_HM_SURF"):
+        _check_abort()
+        if get_global_script_context().is_active or not player_avatar_is_controllable():
+            yield from _wait_until_cutscene_over("B")
+        else:
+            context.emulator.press_button("B")
+            yield
+        frames += 1
+        if frames > 15000:
+            raise BotModeError("Petalburg Gym: the Surf handoff (Wally's dad) never fired.")
+    yield from _wait_until_cutscene_over("B")
+    yield from wait_until_truly_controllable()
+    context.message = "Story: HM03 Surf received!"
 
 
 def do_dewford_gym() -> Generator:

@@ -30,3 +30,22 @@ COMPARTMENTALIZED rooms: from the (10,18) landing the player could walk only a s
 area ((10-12,16-18)-ish); the vents (5,9)/(3,14)/(3,10) were all unreachable from it,
 and steps toward (13,17) were blocked. So the maze is a hole→room→vent chain; we still
 need which vent lives in which room and the canonical chain to Flannery's platform.
+
+## 2026-07-24 — KI-17: after-faint party-menu reshow freeze (decomp question)
+CONTEXT: pokemon Emerald (pokeemerald decomp). Our bot fights a wild battle; a party mon
+faints; the "choose next mon" party menu opens (BattleScript_FaintedMonTryChoose); a
+living replacement is selected. The game then freezes forever in the transition back to
+the battle screen with this exact memory profile: gMain.callback2 =
+CB2_SetUpReshowBattleScreenAfterMenu, game state = party menu, active tasks =
+[Task_ReturnToChooseMonAfterText, Task_PrintAndWaitForText] (never advancing — that CB2
+does not run tasks), party-menu cursor on a living slot, action=1, menu_type_and_layout=17.
+Input has no effect (A/B/Down for 400+ frames), with or without the renderer.
+QUESTION: walk through CB2_SetUpReshowBattleScreenAfterMenu and ReshowBattleScreenAfterMenu
+(gReshowState machine) in pokeemerald: (1) enumerate every step and what condition advances
+each; (2) which steps can WAIT indefinitely, and on what (palette fade? sprite load? link?);
+(3) under what circumstances would the party menu leave Task_PrintAndWaitForText +
+Task_ReturnToChooseMonAfterText alive while callback2 has already switched to the reshow —
+is that a known race (e.g. selecting a mon during an unfinished text print)? (4) what
+button-timing pattern in the party menu could produce it, and what is the safest way for an
+automated player to avoid it (e.g. never press A while the faint message printer is active)?
+Cite file/function names from pokeemerald master.

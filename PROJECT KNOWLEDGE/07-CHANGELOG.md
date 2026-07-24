@@ -2404,3 +2404,49 @@ museumprobe2 green with the final (reverted) rider. New tools: `repro_navigate_s
 `probe_press_variants.py` (which input clears a wedge), `probe_ride_fixed.py`; captured
 states `ki15_gotaway_wedge.ss1` + `ki15_nurse_wedge.ss1`. Full-batch validation rides the
 overnight run.
+
+## 2026-07-24 (overnight) — CH12 BUILT + WIRED: Lavaridge→Petalburg→Norman→Surf (Segments 12a/b/c)
+The whole Ch12 arc is implemented and mechanically validated live to Norman's room
+(ch12_run9: 500k frames, 0 hangs / 0 Manual — travel, doors, challenge, whiteout
+recovery and boss-training all exercised; the Norman WIN itself is level/RNG-bound on
+the thin flannery_done test team and rides the long overnight run). Ten iterations of
+build→run→probe→fix, each bug diagnosed on captured state or decomp, never guessed:
+- **Route (recon overturned the 2026-07-23 note):** DIRECT Lavaridge → Route 112 ledges
+  → Route 111 south — the Fiery Path is topologically USELESS here (its doors connect
+  lower R112 to the R113 side), and the desert never touches the Ch10-proven corridor.
+  Twin rocks respawn → southbound re-smash (18,101) from the north (idempotent).
+- **Rusturf wall:** the tunnel's mid-wall is TWO permanent-flag Rock Smash rocks
+  (24,4)/(24,5) (the Wanda quest — decomp/probed); smash + reunion-scene ride wired.
+- **Petalburg Woods:** exit via the SOUTH-EAST door (36,38) EXPLICITLY — the warp graph
+  is region-blind on the Woods-split Route 104 and exited the NORTH door onto the sealed
+  half (ch12_run2); the y<38/≥39 split now gates the blocks.
+- **Gym doors are SIGN SCRIPTS, not tiles** (decomp-verified after runs 4-8 wedged
+  walking into a collision-blocked door): face the door from below, A, YES → warpdoor.
+  Chain: Speed→(Randall)→Confusion→(Parker)→LeftStrength→(Jody)→GymLeaders→Norman.
+  Walking into the closed door had exposed a NEW wedge shape (heldMovementActive stuck,
+  input-starved, reload-defused — states/analysis under saves/ki15_gymdoor_wedge.ss1).
+- **Surf handoff is FULLY AUTOMATIC** (decomp): the Norman-defeat script itself brings
+  Wally's Dad in and warps to the HM03 handout — the rider just rides; no step-down
+  trigger exists (the map has ZERO coord events; the earlier spec note was wrong).
+- **Infra fixes en route:** warp-aware heal_in_pokemon_center (a post-derail resume
+  healed from INSIDE the gym → "not on connected maps" → Manual, ch12_run3);
+  standing-on-warp step-off-step-on in navigate_to_anywhere + _enter_warp_by_navigation;
+  travel `order` covers every corridor map (a Woods derail re-ran the MAUVILLE leg
+  BACKWARDS, ch12_run1); harness save-on-stuck re-arms per stall episode; jolt taps in
+  navigate_to's settle-wait + follow_waypoints for input-starved post-battle freezes.
+- **livetest END_MARKERS**: + "Surf taught" (Ch12 content end).
+
+## 2026-07-24 (overnight) — KI-17 opened + sweep hardened: the after-faint reshow DMA race
+Batch 20260724-004252 (5 fresh lanes, 3M frames): **3/5 reached the HEAT BADGE frontier
+organically, 0 Manual** (KI-15's fix class held); 2 lanes froze IN BATTLE with the same
+signature — the party menu's return-to-battle transition parked forever
+(CB2_SETUPRESHOWBATTLESCREENAFTERMENU + both error-text tasks alive, input-immune).
+‼ One lane's party/coords match the ORIGINAL "KI-15 Shedinja chooser" write-up verbatim —
+that bug was real all along, merely mislabeled; now logged properly as KI-17 with TWO
+captured states (ki17_partymenu_wedge*.ss1). Gemini decomp analysis (archived
+tools/story-dev/gemini-ki17-answer.md, prompt in GEMINI-PROMPTS.md): selecting a living
+mon while the "no energy left!" printer tasks are winding down exits the menu WITHOUT
+destroying the printer → orphaned DMA request → ReshowBattleScreenAfterMenu waits on
+IsDma3ManagerBusyWithBgCopy forever. handle_fainted_pokemon's sweep hardened per the
+analysis: 24-frame post-dismiss gap, A only on a VERIFIED living cursor slot, never a
+blind A when the cursor is unreadable. Validation rides the next fresh batch.

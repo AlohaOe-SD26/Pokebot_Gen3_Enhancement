@@ -1929,6 +1929,10 @@ for step in range(args.frames):
     else:
         no_progress = 0
         last_sig = sig
+        # re-arm save-on-stuck: progress resumed, so the NEXT stall episode gets its
+        # own midstuck capture (2026-07-24: an early self-recovering scene consumed
+        # the once-per-process save and the REAL later wedge went uncaptured).
+        globals()["_stuck_saved"] = False
     # STUCK-OVERWORLD DIAGNOSTIC: the reliable "is the game actually blocked"
     # signal is player_avatar_is_controllable() (gDisplayedStringBattle/gBattleMainFunc
     # go STALE after a battle, so they lie). Log a compact trace on change whenever

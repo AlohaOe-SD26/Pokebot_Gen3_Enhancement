@@ -90,16 +90,20 @@ gym only opens with 4 badges — now satisfied.
   Flannery — not the hot-springs woman. Irrelevant unless we later want the desert/fossils
   → #24-optional.)
 
-- **‼ CORRECTION (recon 2026-07-23): the Lavaridge→Mauville leg goes via the FIERY PATH,
-  not a direct Route 111 crossing.** Route 111's MIDDLE is the Go-Goggles DESERT, which
-  blocks the north↔south internal passage — navigating Lavaridge→Route111 dead-ends at
-  ~(13,90) in the desert. The desert is still SKIPPED (Go-Goggles not needed), but the
-  route must tunnel under via the Fiery Path: **REVERSE Ch10 `travel_to_fallarbor`** —
-  Lavaridge → Route 112 → Fiery Path (in one door, out the other) → Route 112 near the
-  twin rocks → Route 111 SOUTH (past the already-smashed rocks (18,101)/(19,100)) →
-  Mauville. `travel_lavaridge_to_petalburg` is STARTED but WIP/unwired: the Route 112
-  ledge crossing is proven (Lavaridge→Route111(13,90)); the Fiery-Path leg + the
-  Mauville→Petalburg tiles are the remaining build.
+- **‼ RE-CORRECTION (static recon 2026-07-24, ch12_static_recon*.py — supersedes the
+  2026-07-23 Fiery-Path note): the DIRECT route works; the Fiery Path is USELESS here.**
+  The Fiery tunnel's doors connect LOWER Route 112 (11,36) to the ROUTE-113-SIDE section
+  (22,10) — it goes north, not toward Mauville. The direct course Lavaridge → Route 112
+  (ledges, y47–51, one-way SOUTH = our direction) → Route 111 west junction (y67–99 —
+  the SAME corridor Ch10 walked northbound at ground truth) never touches the desert
+  (which seals y≈61–88 further north; probed: (13,90)→(18,68..88) NO PATH but
+  (13,90)↔(18,99) fine). ‼ The twin rocks RESPAWN on map reload — southbound must
+  re-smash (18,101) from (18,100) facing Down (one rock opens column 18; `_smash_rock`
+  is idempotent). Then Route 111 south (y102–139) → Mauville — all statically pathable.
+  ALSO probed: the Rusturf Tunnel mid-wall is TWO Rock Smash rocks (24,4)/(24,5) with
+  PERMANENT flags 931/932 (the Wanda quest — smash once, open forever; Wanda (25,4) and
+  her boyfriend (23,5) flank it; the Ch5a grunt/Peeko objects at x14 are already hidden).
+  `travel_lavaridge_to_petalburg` is BUILT + WIRED (Segment 12a) with these legs.
 - **Overland route Lavaridge → Petalburg (⚠ route lead, ✓ Route 111 connections):** no Fly
   / no Surf yet, so it is a long backtrack. Lavaridge → **Route 112** (‼ one-way ledges —
   descend SOUTH only, never pathfind up Jagged Pass) → **Fiery Path → Route 111 SOUTH**
@@ -122,13 +126,20 @@ gym only opens with 4 badges — now satisfied.
   doors (x=6-7) that are INTERNAL warps to other tiers; the doors are gated by
   `VAR_PETALBURG_GYM_STATE` (133 ✓) and only open after that room's trainer is beaten —
   a RUNTIME-MODIFIED layout, exactly the Mauville-gym class.
-  **BUILD APPROACH — LIVE-SOLVE (not a hardcoded path), matching do_mauville_gym:** from
-  the entrance, repeatedly: (1) beat the current room's trainer (inline via the battle
-  listener — trainers can't be fled), (2) find the door tile that is now walkable/leads
-  upward, (3) warp through it, (4) repeat until we reach Norman's room (y≈2-7). ⚠ A
-  "LEFT door only" fixed path is the documented speedrun route and may be simpler — trace
-  the left-door warp chain at build time and use it if it cleanly reaches Norman; fall
-  back to live-solve otherwise. Gym trainers ~L26-27.
+  **BUILD MECHANICS (decomp-verified 2026-07-24 — CORRECTS the earlier "find the walkable
+  door tile" idea):** the doors are **never walkable** — each is a collision-blocked SIGN
+  script (`PetalburgCity_Gym_EventScript_<X>RoomDoor`): FACE it from below, press A,
+  answer YES to its "go through?" msgbox, and the script `warpdoor`s you to the landing.
+  The entrance pair needs only `VAR_PETALBURG_GYM_STATE ≥ 6` (4 badges — our arrival
+  state, probed =6); later doors answer "locked" until their gating trainer is beaten:
+  Confusion←RANDALL, LeftDefense←RANDALL, RightDefense/Recovery←MARY,
+  LeftStrength←PARKER, RightStrength←ALEXIA, LeftOHKO←ALEXIA, RightOHKO←GEORGE,
+  **LeftGymLeaders←JODY**, RightGymLeaders←BERKE. Built chain (do_petalburg_gym /
+  PETALBURG_GYM_CHAIN): Speed door (1,105)→(7,85) → beat Randall (4,81) → Confusion door
+  (1,79)→(7,46) → beat Parker (4,42) → LeftStrength door (7,40)→(1,20) → beat Jody (4,16)
+  → LeftGymLeaders door (7,14)→(1,7) → Norman. Gym trainers ~L26-27.
+  ⚠ Walking INTO a closed door wedges the avatar (heldMovementActive stuck, input-starved
+  — ch12 runs 4-8) — never navigate onto a door tile; always the face-and-A ritual.
 
 - **Norman battle (⚠ team lead — decomp/trainer-data verify at build):** Spinda L27 /
   Vigoroth L27 / Linoone L29 / **Slaking L31** (ace). Cannot be fled. ‼ **Slaking has

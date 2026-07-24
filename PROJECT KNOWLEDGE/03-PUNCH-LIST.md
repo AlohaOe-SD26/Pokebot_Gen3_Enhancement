@@ -93,6 +93,14 @@
         testâ†’promote). Fixed the Woods-door stall (ML-9) in BOTH builds. NEXT:
         Chapter 4 (deliver Devon Goods â†’ Rusturf Tunnel â†’ Dewford / Gym 2).
         Low-pri OPEN: chapters.py Ch2 completion-flag bug.
+      - PROGRESS (2026-07-24 overnight): fresh runs auto-play through GYM 4
+        (Heat Badge) organically (3/5 lanes, batch 20260724-004252). Ch12
+        BUILT + WIRED (Segment 12a/b/c: Lavaridge-Petalburg direct route,
+        Wanda-wall smashes, sign-script gym doors, Norman, auto Surf handoff,
+        teach Surf) - live-iterating from flannery_done (travel proven, gym
+        chain walking). KI-15 FIXED (3 proven fixes); KI-17 opened (after-
+        faint reshow freeze, 2 states captured, Gemini-diagnosed DMA race,
+        sweep hardened per the analysis - validation pending).
 - [~] #24-move â€” SMART MOVE-LEARNING (user 2026-07-20): DONE â€” Story strategy
       `which_move_should_be_replaced` override keeps every PokÃ©mon combat-capable
       (never trades a damaging move for a status move), preserves type coverage,
