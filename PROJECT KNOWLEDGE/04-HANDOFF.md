@@ -3,7 +3,7 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-07-24
+**Last updated:** 2026-07-24 (overnight session end)
 
 ### ⭐⭐⭐ 2026-07-24 — KI-15 FIXED (3 proven fixes) + OVERNIGHT CHAPTER LOOP RUNNING
 **KI-15 is fixed** (see 05-KNOWN-ISSUES KI-15 + changelog for the full story): (1)
@@ -55,11 +55,24 @@ chapter; use Gemini assistants (gemini_relay.py) for research gaps.
   picking warp-locked Route 117 grounds) is FIXED (reachable-grounds picker + Route
   102 (9,2) promoted into TRAINING_GRASS). Batch: 1× Norman+Surf, 2× healthy
   budget-INCOMPLETE, 2× pre-jolt-fix wedges (fixes landed mid-batch, 54f9537e).
-- **Ch13 LIVE-ITERATING from norman_done** (the Ch12 method): run 1 taught Surf
-  (Zigzagoon carrier), Surf-crossed Route 118 (+ the planner found a Route 103
-  river shortcut), died on a bad leg tile ((8,30) unreachable — fixed to the
-  institute door row (6,33), e8dff507). Run 2 in flight → Weather Institute →
-  rival/Fly → Fortree. Iterate on failures; capture fortree/fly checkpoints.
+- **Ch13a-c VALIDATED (11 iterations from norman_done, commit e043cbaf):** teach
+  Surf → Surf-cross Route 118 → Weather Institute (Shelly) → **HM02 Fly** → reaches
+  Fortree/Route 120. Six general engine fixes fell out (all in the playbook table):
+  phantom-escape in `_ride_out_all_scenes`, choice-aware scene rides, `_hold_walk_route`
+  (bridges the planner can't cross), coord-trigger targeting, `_clear_stale_battle_message`,
+  Fortree-side travel `order` ranking.
+- **‼ RESUME HERE — Ch13d BLOCKED on Route 120 bridge topology:** `get_devon_scope`
+  wedges after Steven's scene (ends at the NORTH BRIDGE (13,15)→(13,16)); the walk
+  back to Fortree crosses planner-blind bridge tiles → NO-PATH → Manual (deterministic,
+  runs 8/10/11; state `saves/ch13_r8_wedge.ss1`). NEXT: live-probe Route 120's bridge —
+  which HELD-INPUT route gets (13,16) → the Fortree WEST connection — then
+  `_hold_walk_route` off the bridge before the city-Kecleon flush (the exact pattern
+  that solved the Route 119 rival bridge). 13e (Winona turnstile gym, built) is untested
+  behind 13d. Then Ch14 (§Ch14 spec ready). Milestones: `norman_done.ss1` (clean,
+  BADGE05+Surf); regenerate a `fly_got` checkpoint once 13d clears.
+- **KNOWN OPEN:** KI-17 (after-faint reshow DMA freeze — sweep hardened per Gemini's
+  decomp analysis, validate next batch); the fresh 5M batch was 0/5-frontier but all
+  failures were the freeze family / pre-jolt-fix wedges (fixes landed), not new breakage.
 
 > **NEW AGENT: read `14-AGENT-PLAYBOOK.md` right after this file.** It is the
 > accumulated craft (harness, debugging method, story-mapping, faithfulness rules, bug
