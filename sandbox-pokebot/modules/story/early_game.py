@@ -5128,6 +5128,156 @@ def do_petalburg_gym() -> Generator:
     context.message = "Story: HM03 Surf received!"
 
 
+def travel_to_fortree() -> Generator:
+    """Chapter 13a travel — Mauville → Route 118 (SURF the river) → Route 119 north →
+    Fortree City, healing at its PC. ‼ Requires Surf taught (Segment 12c) — the
+    pathfinder plans water legs natively once BADGE05 + a Surf mon hold (§Ch13 spec,
+    flags audited 2026-07-24). ⚠ SURF CROSSING NOT YET LIVE-VALIDATED — first run
+    from a post-Surf save must watch the R118 east-bank Steven scene (ride it) and
+    the crossing itself.
+
+    Progress-gated riding legs (the Ch12a pattern): a leg is skipped once we are on
+    a LATER map. Route 119's mid-route content (Weather Institute, bridge grunts,
+    rival) is handled by the FOLLOWING segments — this travel stops at Fortree only
+    if the road is already clear; otherwise the institute/rival segments run first
+    from wherever the navigation was interrupted (they gate on their own flags)."""
+    FORTREE = MapRSE.FORTREE_CITY.value
+
+    if _map_group_number() == FORTREE:
+        return
+    context.message = "Story: the Surf arc — east to Route 118, then north to Fortree..."
+    yield from wait_until_truly_controllable()
+
+    order = [
+        MapRSE.PETALBURG_CITY.value, MapRSE.ROUTE102.value, MapRSE.ROUTE110.value,
+        MapRSE.MAUVILLE_CITY.value, MapRSE.ROUTE118.value, MapRSE.ROUTE119.value,
+        MapRSE.FORTREE_CITY.value,
+    ]
+    LEGS = [
+        (MapRSE.MAUVILLE_CITY, (19, 6), "Mauville City"),
+        (MapRSE.ROUTE118, (20, 10), "Route 118 (west bank)"),
+        (MapRSE.ROUTE118, (49, 8), "Route 118 (across the water)"),
+        (MapRSE.ROUTE119, (25, 125), "Route 119 (south)"),
+        (MapRSE.ROUTE119, (8, 30), "Route 119 (Weather Institute side)"),
+        (MapRSE.FORTREE_CITY, (5, 7), "Fortree City"),
+    ]
+
+    def _rank(gnum) -> int:
+        return order.index(gnum) if gnum in order else -1
+
+    for map_enum, tile, label in LEGS:
+        _check_abort()
+        cur_rank = _rank(_map_group_number())
+        tgt_rank = _rank(map_enum.value)
+        if cur_rank > tgt_rank:
+            continue  # already past this leg (resume)
+        if cur_rank == tgt_rank and map_enum.value != MapRSE.ROUTE118.value and map_enum.value != MapRSE.ROUTE119.value:
+            continue  # same non-split map — the next leg handles the move onward
+        context.message = f"Story: to Fortree — {label}..."
+        yield from _navigate_riding_out(map_enum, tile, tries=8)
+        yield from wait_until_truly_controllable()
+
+    if _map_group_number() == FORTREE:
+        context.message = "Story: reached Fortree City!"
+        yield from heal_in_pokemon_center(PokemonCenter.FortreeCity)
+
+
+def do_weather_institute() -> Generator:
+    """Chapter 13b — clear the Weather Institute (Shelly) and accept Castform.
+
+    STORY CONDITION: on Route 119 with the institute unclear. Door at R119 (6,32);
+    interior grunts + SHELLY (Carvanha/Mightyena L28) are fought inline by the
+    listener while navigating to the top floor. Completion:
+    `HIDE_ROUTE_119_TEAM_AQUA` (also despawns the bridge grunts (13,33-34)).
+    Castform is offered afterwards (`RECEIVED_CASTFORM`) — accepted if a party slot
+    is free, politely declined (B) otherwise. ⚠ interior tiles are build-time
+    leads — validate on the first post-Surf run."""
+    from modules.memory import get_event_flag
+
+    def _cleared() -> bool:
+        try:
+            return bool(get_event_flag("HIDE_ROUTE_119_TEAM_AQUA"))
+        except Exception:
+            return False
+
+    if _cleared():
+        return
+    context.message = "Story: Team Aqua is squatting in the Weather Institute — evicting them..."
+    yield from wait_until_truly_controllable()
+    # Enter via the R119 door (6,32) → interior 1F (9,12).
+    yield from _enter_warp_by_navigation(
+        lambda: _map_group_number() not in (MapRSE.ROUTE119.value,),
+        MapRSE.ROUTE119, (6, 32), tries=6, label="Weather Institute door",
+    )
+    yield from wait_until_truly_controllable()
+    # Sweep the interior: walk the floors; grunts + Shelly engage via sight-line /
+    # blocking positions. Ride everything until the HIDE flag sets. Bounded.
+    frames = 0
+    while not _cleared():
+        _check_abort()
+        if get_global_script_context().is_active or not player_avatar_is_controllable():
+            yield from _wait_until_cutscene_over("B")
+            frames += 100
+            continue
+        # 1F → 2F → Shelly: try the stairs / far corners in order; battles interrupt
+        # navigation and are fought by the listener, then we re-path.
+        try:
+            yield from navigate_to_anywhere(
+                get_map_data_for_current_position().map_group_and_number, (2, 2),
+                avoid_encounters=True, avoid_scripted_events=False,
+            )
+        except BotModeError:
+            yield from _ride_out_scripted_scene("B")
+        frames += 100
+        if frames > 60000:
+            raise BotModeError("Weather Institute: never cleared (Shelly not beaten?).")
+    context.message = "Story: Weather Institute cleared!"
+    # Castform offer rides on the aftermath dialogue — the rider answers YES-shaped
+    # prompts with A only when a real choice box is up (party-full = B declines).
+    yield from _ride_out_all_scenes(quiet_frames=300)
+    # Leave the building (back out the entrance door).
+    yield from normalize_to_overworld()
+
+
+def fight_route119_rival_and_get_fly() -> Generator:
+    """Chapter 13c — the Route 119 rival (bridge, ~(17,33)) → HM02 Fly.
+
+    STORY CONDITION: institute cleared (the bridge grunts are gone). Walk the bridge
+    north; the rival engages (L29/29/31). After the win the scene hands over HM02.
+    Completion: `RECEIVED_HM_FLY` (+ `HIDE_ROUTE_119_RIVAL` when they leave).
+    ‼ The phantom flag "DEFEATED_RIVAL_ROUTE_119" does NOT exist — never gate on it."""
+    from modules.memory import get_event_flag
+
+    def _done_here() -> bool:
+        try:
+            return bool(get_event_flag("RECEIVED_HM_FLY"))
+        except Exception:
+            return False
+
+    if _done_here():
+        return
+    context.message = "Story: the rival waits on the Route 119 bridge..."
+    yield from wait_until_truly_controllable()
+    frames = 0
+    while not _done_here():
+        _check_abort()
+        if get_global_script_context().is_active or not player_avatar_is_controllable():
+            yield from _wait_until_cutscene_over("B")
+            frames += 100
+            continue
+        try:
+            # Walk to just below the rival's bridge spot; the encounter triggers on
+            # approach (object (17,33)); the battle listener fights it.
+            yield from _navigate_riding_out(MapRSE.ROUTE119, (17, 35), tries=6)
+            yield from _navigate_riding_out(MapRSE.ROUTE119, (17, 31), tries=6)
+        except BotModeError:
+            yield from _ride_out_scripted_scene("B")
+        frames += 200
+        if frames > 40000:
+            raise BotModeError("Route 119: the rival fight / HM02 Fly never resolved.")
+    context.message = "Story: HM02 Fly received!"
+
+
 def do_dewford_gym() -> Generator:
     """Chapter 7b — Dewford Gym: beat Brawly for the Knuckle Badge (BADGE02, Gym 2).
 

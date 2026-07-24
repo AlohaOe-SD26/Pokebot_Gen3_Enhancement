@@ -21,13 +21,25 @@ New probe tools: probe_stuck_state.py / probe_press_variants.py / probe_ride_fix
 **OVERNIGHT DIRECTIVE (user, 2026-07-24, verbatim intent):** work through ALL remaining
 chapters until the story bot is complete; harden + fill in the chapter skeleton; fix
 errors along the way, but after a bunch of failed fix retries MOVE ON to the next
-chapter; use Gemini assistants (gemini_relay.py) for research gaps. Loop shape per the
-superseded overnight ritual below: batch-validate → build next chapter → test → repeat.
-Frontier at loop start = Ch12 (Lavaridge→Petalburg→Norman→Surf; spec in
-12-STORYMODE-DESIGN §Ch12; `travel_lavaridge_to_petalburg` exists UNWIRED with the
-first leg needing the Fiery-Path rewrite — mirror travel_to_fallarbor/ride_cable_car;
-remember Rock Smash rocks RESPAWN on map reload, so the southbound R111 pass must
-re-smash). Milestone for Ch12 starts: `flannery_done.ss1`.
+chapter; use Gemini assistants (gemini_relay.py) for research gaps.
+
+**OVERNIGHT PROGRESS (as of ~02:30):**
+- **Ch12 BUILT + WIRED + committed (`f5aba6d8`)** — Segments 12a/b/c: direct
+  Lavaridge→Petalburg route (Fiery-Path note was WRONG — see changelog), Rusturf
+  Wanda-wall smashes, Petalburg gym SIGN-script doors (never walk into them!),
+  Norman challenge, fully-automatic Surf handoff, teach Surf. Mechanically validated
+  live to Norman's room (run9: 500k frames, 0 hang / 0 Manual; one whiteout →
+  recovery + boss-training kicked in correctly). The Norman WIN is level-bound on
+  the thin flannery_done team — a 2M-frame run is grinding it out in the background
+  (ch12_run10_long.log). When it lands, capture `norman_done.ss1`/`surf_taught`
+  checkpoint + validate 12c, then update END_MARKERS batches.
+- **Fresh batch (3M frames, 5 lanes): 3/5 reached HEAT BADGE organically, 0 Manual**
+  (KI-15 fix class held); 2 lanes → the NEW **KI-17** (after-faint reshow DMA race —
+  the original "Shedinja chooser" bug, real all along; 2 states captured, Gemini
+  decomp analysis archived, sweep hardened; validate on the next batch).
+- NEXT in the loop: Ch13 prep (Surf arc: Route 118 → 119 → Weather Institute →
+  rival+Fly → Fortree Gym 6) — static recon + audit_flag_names + build, while the
+  Norman grind runs. Then Ch14+ chapter by chapter per the directive.
 
 > **NEW AGENT: read `14-AGENT-PLAYBOOK.md` right after this file.** It is the
 > accumulated craft (harness, debugging method, story-mapping, faithfulness rules, bug

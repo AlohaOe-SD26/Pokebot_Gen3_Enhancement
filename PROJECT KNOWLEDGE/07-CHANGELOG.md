@@ -2450,3 +2450,17 @@ destroying the printer → orphaned DMA request → ReshowBattleScreenAfterMenu 
 IsDma3ManagerBusyWithBgCopy forever. handle_fainted_pokemon's sweep hardened per the
 analysis: 24-frame post-dismiss gap, A only on a VERIFIED living cursor slot, never a
 blind A when the cursor is unreadable. Validation rides the next fresh batch.
+
+## 2026-07-24 (overnight, cont.) — Ch13a-c SKELETON built + wired (Surf arc to Fortree); Norman balance note
+§Ch13 spec written (flags audited — 2 phantoms dodged: gate the rival on
+HIDE_ROUTE_119_RIVAL/RECEIVED_HM_FLY, never "DEFEATED_RIVAL_ROUTE_119"/"RECEIVED_HM02")
+and the skeleton BUILT + WIRED behind the RECEIVED_HM_SURF gate: `travel_to_fortree`
+(Mauville → R118 Surf crossing → R119 → Fortree; the pathfinder Surfs natively once
+BADGE05 + a Surf mon hold), `do_weather_institute` (Shelly; completion =
+HIDE_ROUTE_119_TEAM_AQUA; Castform if a slot is free), `fight_route119_rival_and_get_fly`
+(bridge rival → HM02). ⚠ First-run-validate leads: the Surf crossing, the east-bank
+Steven scene, institute interior tiles. END_MARKERS += "FORTREE reached".
+NORMAN BALANCE (2M-frame run): 6 attempts, boss-training cycled correctly (Mightyena
+L23→33), 0 hangs/Manual — but the flannery_done test team has no Fighting answer to
+Truant Slaking and hadn't broken through by budget end. Fresh teams carry Combusken —
+the end-to-end validation rides the big fresh batch (5 lanes × 5M frames).

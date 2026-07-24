@@ -167,6 +167,38 @@ gym only opens with 4 badges — now satisfied.
   the post-Norman step-down trigger; runtime-gated gym doors (read the LIVE grid like
   Mauville). Completion of Ch12 = `BADGE05_GET` + `RECEIVED_HM_SURF` + Surf taught.
 
+### §Ch13 — the Surf arc: Mauville → Route 118/119 → Weather Institute → rival (Fly) → Fortree — BUILD SPEC (recon 2026-07-24 overnight)
+> Status: flags audited ✓ + map structure probed ✓; Surf-crossing pathability needs a
+> post-Surf save to verify (the pathfinder's `can_surf()` gates on live BADGE05 + a
+> Surf mon — it plans water legs natively once those hold; `WaypointAction.Surf` is
+> handled in follow_waypoints). Build from the `norman_done`/surf-taught checkpoint
+> when the Ch12 long run lands it.
+
+- **Flags (audited 2026-07-24 — two phantoms dodged):** `HIDE_ROUTE_119_TEAM_AQUA` ✓
+  (Institute cleared), `HIDE_ROUTE_119_RIVAL` ✓ (rival done — use THIS, not the phantom
+  "DEFEATED_RIVAL_ROUTE_119"), `RECEIVED_HM_FLY` ✓ (not "RECEIVED_HM02"),
+  `RECEIVED_CASTFORM` ✓, `RECEIVED_DEVON_SCOPE` ✓, `DEFEATED_FORTREE_GYM` ✓,
+  `BADGE06_GET` ✓; vars `ROUTE119_STATE` ✓ `FORTREE_CITY_STATE` ✓.
+- **13a travel:** Mauville → Route 118 (east; Gabby&Ty rematch objects at (33-34,8) are
+  flag-gated — the listener fights if engaged) → SURF the river channel (planner-native
+  once Surf is taught; ⚠ validate the crossing live and watch the east-bank Steven
+  scene — ride it) → north into **Route 119** (40x140, tall grass, rain) → up the west
+  side to the **Weather Institute door at R119 (6,32)** (interior = map group 32;
+  Aqua grunts inside; **Shelly** — Carvanha/Mightyena L28; completion =
+  `HIDE_ROUTE_119_TEAM_AQUA`; Castform offered after — `RECEIVED_CASTFORM`, ‼ needs a
+  free party slot, SKIP politely if party full [B through]) → the bridge Aqua grunts
+  (13,33-34) despawn with the same flag → **rival at ~(17,33)** (object flag 923; fights
+  L29/29/31, then gives **HM02 Fly** — completion `RECEIVED_HM_FLY` +
+  `HIDE_ROUTE_119_RIVAL`) → north to **Fortree** (city 40x20; PC at (5,6) enum tile).
+- **13b gym access:** the Fortree GYM is Kecleon-blocked — Route 120 east: Steven scene
+  (bridge, invisible Kecleon, gives **Devon Scope** `RECEIVED_DEVON_SCOPE`) → back to
+  Fortree → gym → **Winona** (Swellow/Pelipper/Skarmory/Altaria L29-33, Altaria ace —
+  Electric/Ice lead) → `BADGE06_GET`. ‼ Fly field use unlocks at BADGE06 (KI-7: the
+  stock fly_to gates on the WRONG badge for Emerald — fix before using Fly in nav).
+- **Build shape:** Segment 13a legs mirror Ch12a (progress-gated riding navigation +
+  interior scripts); 13b = a short travel + scene ride + gym in the Dewford pattern.
+  END_MARKERS addition when wired: "FEATHER BADGE earned" (or the content-end message).
+
 ### §Ch12+ EXTERNAL-RESEARCH LEADS — Norman → Champion (Gemini Deep Research 2026-07-23, ⚠ UNVERIFIED)
 > Source: the full-game commission (profiles/GEMINI-FULLGAME-RESEARCH.md — grading in its
 > run log: HIGH for step order/rosters/puzzle rules, MEDIUM for identifiers; several flag

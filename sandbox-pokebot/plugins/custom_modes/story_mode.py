@@ -1906,12 +1906,47 @@ class StoryMode(BotMode):
             console.print("[dim]Story: someone already knows Surf — teach skipped.[/]")
         _guard("Teach Surf (Ch12c)", _party_knows_surf)
 
-        # END OF BUILT CONTENT. Next build (Ch13): Route 118 east (Surf the river) →
-        # Route 119 → Weather Institute → the rival + HM02 Fly → Fortree (Gym 6)
-        # (§Ch12+ leads in 12-STORYMODE-DESIGN — decomp-verify before building).
+        # --- Segment 13a: the Surf arc — Mauville → Route 118 (Surf) → Route 119 →
+        #     Weather Institute → rival (HM02 Fly) → Fortree (§Ch13 spec, flags
+        #     audited; ⚠ SKELETON built 2026-07-24 overnight — the Surf crossing and
+        #     interior tiles are first-run-validate leads, expect iteration). ---
+        from modules.story.early_game import (
+            do_weather_institute,
+            fight_route119_rival_and_get_fly,
+            travel_to_fortree,
+        )
+
+        _r119_cleared = lambda: _done("HIDE_ROUTE_119_TEAM_AQUA")
+        if not _r119_cleared() or not _done("RECEIVED_HM_FLY"):
+            # Travel runs first; if Route 119's content interrupts it (institute /
+            # rival not yet done), the dedicated segments below own their pieces
+            # from wherever the navigation stopped.
+            if _cur_map() not in (MapRSE.ROUTE119.value, MapRSE.FORTREE_CITY.value):
+                yield from travel_to_fortree()
+            if not _r119_cleared():
+                yield from do_weather_institute()
+            _guard("Weather Institute (Ch13b)", _r119_cleared)
+            if not _done("RECEIVED_HM_FLY"):
+                yield from fight_route119_rival_and_get_fly()
+            _guard("Route 119 rival / HM02 Fly (Ch13c)", lambda: _done("RECEIVED_HM_FLY"))
+            yield from travel_to_fortree()
+        else:
+            console.print("[dim]Story: Route 119 already cleared — heading to Fortree.[/]")
+            yield from travel_to_fortree()
+        _guard(
+            "Travel to Fortree (Ch13a)",
+            lambda: _cur_map() in (
+                MapRSE.FORTREE_CITY.value,
+                MapRSE.FORTREE_CITY_POKEMON_CENTER_1F.value,
+            ),
+        )
+
+        # END OF BUILT CONTENT. Next build (Ch13d/e): Route 120 Steven scene →
+        # Devon Scope → Fortree Gym (Winona, BADGE06) — then the Ch14+ chain
+        # (§Ch12+ leads in 12-STORYMODE-DESIGN; decomp-verify before building).
         context.message = (
-            "Story: BALANCE BADGE won and Surf taught — end of built content. "
-            "NEXT (WIP): the Surf arc to Fortree. Handing to manual."
+            "Story: FORTREE reached with Fly in the bag — end of built content. "
+            "NEXT (WIP): Devon Scope and Winona. Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()
