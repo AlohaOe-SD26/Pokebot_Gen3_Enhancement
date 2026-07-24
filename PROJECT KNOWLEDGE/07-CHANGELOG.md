@@ -2492,3 +2492,23 @@ Surf-aware planner then opened the Route 103 river shortcut and crossed Route 11
 Ch13a executing. Batch scorecard (20260724-070630): 1× Norman+Surf (the 12c Manual),
 2× budget-INCOMPLETE deep in the Norman cycle (healthy), 2× pre-jolt-fix wedges
 (their fixes landed in 54f9537e mid-batch; states batch3_run0{1,2,3,5}*.ss1 captured).
+
+## 2026-07-24 (overnight, cont.) — Ch13a-c VALIDATED (Surf→Institute→Fly→Fortree); 13d blocked on Route 120 bridges
+Eleven live iterations from norman_done proved the Ch13 skeleton segment by segment,
+each failure captured + diagnosed + fixed (states saves/ch13_r*_wedge.ss1):
+- **13a-c SOLID:** teach Surf (reachable-grounds hunt) → Surf-cross Route 118 →
+  Route 119 north (institute-door leg tile (6,33)) → Weather Institute (deterministic
+  1F-stairs→2F-Shelly sweep) → bridge opens → Route 119 rival via COORD TRIGGER (25,31)
+  reached by a HELD-INPUT bridge walk (planner-blind spans) → **HM02 Fly received**
+  (VAR_ROUTE119_STATE=1) → travel reaches Fortree/Route 120. Six general fixes landed
+  from this (all in the playbook): phantom-escape in _ride_out_all_scenes, choice-aware
+  scene rides, `_hold_walk_route` (releases the prior leg's direction), coord-trigger
+  targeting, `_clear_stale_battle_message`, and Fortree-side travel `order` ranking.
+- **13d BLOCKED (needs-work):** `get_devon_scope` — Steven's scene is at the Route 120
+  NORTH BRIDGE (13,15); after it the avatar sits at (13,16) and the walk back to Fortree
+  crosses planner-blind bridge tiles → NO-PATH → Manual (runs 8/10/11, deterministic).
+  NEXT: live-probe Route 120's bridge topology (which held-input route (13,16)→Fortree
+  west connection), then `_hold_walk_route` off the bridge before the city-Kecleon flush.
+  13e (Winona turnstile gym) is untested behind this. Milestone for the fix: ch13_r8_wedge.
+Honest boundary per the overnight directive (move on after repeated retries): 13a-c is a
+real, validated advance; 13d/e resume from the captured states with a clear next step.
