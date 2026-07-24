@@ -260,4 +260,137 @@ for c in r120.connections:
     print(f"   {c.direction:>6} -> {dest_name} (offset={c.offset})")
 
 print("\n" + "=" * 78)
+print("6) FORTREE GYM DOOR (22,11) — same-class-of-bug check, after the (24,8) fix")
+print("   (coordinator applied the Kecleon-flush fix: destination now FORTREE_CITY(25,7)")
+print("    facing Down. Checking the very next leg: _navigate_riding_out(FORTREE_CITY,")
+print("    (22,11), tries=6, label='Fortree Gym door').)")
+
+from modules.map_path import _find_tile_by_local_coordinates, PathTile
+
+DIRS = ["North", "East", "South", "West"]
+
+
+def tile_facts(map_enum, coords, label):
+    md = describe_tile(map_enum, coords)
+    print(f"   {label:26} {coords}: {md}")
+    try:
+        pt: PathTile = _find_tile_by_local_coordinates(map_enum, coords)
+        print(f"      accessible_from_direction (N,E,S,W)={pt.accessible_from_direction}  "
+              f"warps_to={pt.warps_to}  dynamic_object_id={pt.dynamic_object_id}  "
+              f"dynamic_collision_flag={pt.dynamic_collision_flag}")
+    except Exception as e:
+        print(f"      <pathtile err {type(e).__name__}: {e}>")
+
+
+print("\n   6.1) (22,11) itself + neighbours: collision/elevation/tile_type/accessibility")
+for dx, dy, label in [
+    (0, 0, "(22,11) GYM DOOR"),
+    (-1, 0, "(21,11) west neighbour"),
+    (0, 1, "(22,12) south neighbour"),
+    (1, 0, "(23,11) east neighbour"),
+    (0, -1, "(22,10) north neighbour"),
+]:
+    tile_facts(MapRSE.FORTREE_CITY, (22 + dx, 11 + dy), label)
+
+print("\n   6.2) is (22,11) a WARP tile? (raw map warp list, FORTREE_CITY)")
+fortree_at_door = get_map_data(MapRSE.FORTREE_CITY, (22, 11))
+door_warps = [w for w in fortree_at_door.warps if w.local_coordinates == (22, 11)]
+if door_warps:
+    for w in door_warps:
+        try:
+            dest_name = MapRSE((w.destination_map_group, w.destination_map_number)).name
+        except ValueError:
+            dest_name = f"<unknown {(w.destination_map_group, w.destination_map_number)}>"
+        dest_loc = w.destination_location
+        print(f"      WARP at (22,11) elevation={w.elevation} -> {dest_name} "
+              f"warp_id={w.destination_warp_id} landing_local_position={dest_loc.local_position}")
+else:
+    print("      NOT a warp tile per the map's warp event list (no MapWarp at (22,11)).")
+print("      All FORTREE_CITY warps near the gym (door search x=18-26,y=9-13):")
+for w in fortree_at_door.warps:
+    x, y = w.local_coordinates
+    if 18 <= x <= 26 and 9 <= y <= 13:
+        try:
+            dest_name = MapRSE((w.destination_map_group, w.destination_map_number)).name
+        except ValueError:
+            dest_name = f"<unknown>"
+        print(f"        warp @ {w.local_coordinates} elevation={w.elevation} -> {dest_name} "
+              f"warp_id={w.destination_warp_id}")
+
+print("\n   6.3) calculate_path to (22,11) from the two relevant sources")
+GYM_DOOR = (MapRSE.FORTREE_CITY, (22, 11))
+for label, src in [
+    ("FORTREE_CITY (25,7) [post-Kecleon-flush stand tile]", (MapRSE.FORTREE_CITY, (25, 7))),
+    ("ROUTE120 (5,15)", (MapRSE.ROUTE120, (5, 15))),
+]:
+    try:
+        path = calculate_path(src, GYM_DOOR, avoid_encounters=True, avoid_scripted_events=False)
+        print(f"      {label} -> (22,11): SUCCESS, {len(path)} waypoints, "
+              f"last 3: {[(w.direction.name, w.coordinates, w.is_warp) for w in path[-3:]]}")
+    except Exception as e:
+        print(f"      {label} -> (22,11): FAIL ({type(e).__name__}: {e})")
+
+print("\n   6.4) if (22,11) itself doesn't plan, do its neighbours (from (25,7))?")
+for label, coords in [("(21,11)", (21, 11)), ("(22,12)", (22, 12)), ("(23,11)", (23, 11)), ("(22,10)", (22, 10))]:
+    try:
+        calculate_path((MapRSE.FORTREE_CITY, (25, 7)), (MapRSE.FORTREE_CITY, coords),
+                        avoid_encounters=True, avoid_scripted_events=False)
+        print(f"      (25,7) -> {label}: OK")
+    except Exception as e:
+        print(f"      (25,7) -> {label}: FAIL ({type(e).__name__})")
+
+print("\n" + "=" * 78)
+print("7) IS THE (22,11) FAILURE PERMANENT (like 24,8) OR JUST A STORY PRECONDITION?")
+print("   This save (devon_scope_got.ss1) predates the gym-path Kecleon flush, so the")
+print("   walkway chokepoint at (25,8) is still gated by its object's `flag_id`. Read")
+print("   that flag straight off the map's object template (not guessed), then fault-")
+print("   inject it True (reader-level, restored after) to simulate 'already flushed'")
+print("   -- exactly the state get_devon_scope guarantees before do_fortree_gym runs.")
+
+import modules.map_path as _map_path_mod
+
+fortree0 = get_map_data(MapRSE.FORTREE_CITY, (0, 0))
+kecleon_obj = next((o for o in fortree0.objects if tuple(o.local_coordinates) == (25, 8)), None)
+if kecleon_obj is None:
+    print("   <no object template at (25,8) found -- cannot fault-inject, reporting raw only>")
+else:
+    flag_num = kecleon_obj.flag_id
+    from modules.memory import get_event_flag_by_number
+    try:
+        from modules.data.event_flags import get_event_flag_name  # may not exist; best effort
+        flag_name = get_event_flag_name(flag_num)
+    except Exception:
+        flag_name = None
+    print(f"   Kecleon object template @ (25,8): local_id={kecleon_obj.local_id} flag_id={flag_num}"
+          f"{f' ({flag_name})' if flag_name else ''}")
+    print(f"   current get_event_flag_by_number({flag_num}) = {get_event_flag_by_number(flag_num)}  "
+          f"(False = not yet flushed, matches this save's story position)")
+
+    checks = [
+        ("(25,7) [post-flush stand tile] -> (22,11) door", (MapRSE.FORTREE_CITY, (25, 7)), (MapRSE.FORTREE_CITY, (22, 11))),
+        ("(5,6) plaza -> (22,11) door", (MapRSE.FORTREE_CITY, (5, 6)), (MapRSE.FORTREE_CITY, (22, 11))),
+        ("ROUTE120 (5,15) -> (22,11) door", (MapRSE.ROUTE120, (5, 15)), (MapRSE.FORTREE_CITY, (22, 11))),
+    ]
+    print("\n   BEFORE (flag as-loaded, Kecleon still standing):")
+    for label, src, dst in checks:
+        try:
+            calculate_path(src, dst, avoid_encounters=True, avoid_scripted_events=False)
+            print(f"      {label}: OK")
+        except Exception as e:
+            print(f"      {label}: FAIL ({type(e).__name__})")
+
+    _orig_reader = _map_path_mod.get_event_flag_by_number
+    _map_path_mod.get_event_flag_by_number = lambda n: True if n == flag_num else _orig_reader(n)
+    _map_path_mod._maps.clear()
+    print(f"\n   AFTER (fault-injected flag {flag_num} = True, simulating post-flush):")
+    for label, src, dst in checks:
+        try:
+            path = calculate_path(src, dst, avoid_encounters=True, avoid_scripted_events=False)
+            print(f"      {label}: OK ({len(path)} waypoints)")
+        except Exception as e:
+            print(f"      {label}: FAIL ({type(e).__name__}: {e})")
+    _map_path_mod.get_event_flag_by_number = _orig_reader
+    _map_path_mod._maps.clear()
+
+print("\n" + "=" * 78)
 print("DONE")

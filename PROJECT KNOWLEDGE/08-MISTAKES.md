@@ -1084,3 +1084,32 @@ DEBUG dump cracked it in one line.
 **Prevention rule:** a debug dump may never print a FILTERED collection under an unqualified
 name — call it `ml_tasks=`, or print all of it; an empty filtered list reads as absence of the
 whole category and will be believed.
+
+## 2026-07-24 — A story FLAG was recorded as a MAP limitation, and blocked a chapter for days
+
+**Symptom.** `04-HANDOFF.md` carried a "RESUME HERE — Ch13e BLOCKED on the Fortree
+tree-bridge" note claiming the gym door (22,11) was reachable only from (21,11)/(22,12) and
+not from the plaza, blamed on planner-blind elevation walkways (the Route-119/120 class). The
+prescribed fix was to probe and add a `_hold_walk_route` held-input route — real work, on a
+problem that did not exist.
+
+**Root cause.** The observation was made while standing in the PRE-FLUSH world state. The
+Fortree gym-path Kecleon occupies (25,8), the single chokepoint tile between the walkway and
+the door cluster, and is hidden/removed by story flag **969 HIDE_FORTREE_CITY_KECLEON**. With
+the Kecleon still there, everything past it fails to plan — which looks exactly like a map
+limitation and is actually a story-sequencing state. `get_devon_scope` already flushes that
+Kecleon before `do_fortree_gym` runs, so the real playthrough never hits it.
+
+**The measurement that settled it.** Forcing flag 969 True at the reader level made (22,11)
+plan from (25,7) in 9 waypoints, from the plaza (5,6) in 38, and from ROUTE120 (5,15) in 115.
+Control: (22,12) is fully walkable both before and after, so the pre-flush failure came from
+the one gated tile, not a second broken one.
+
+**Contrast worth keeping.** The neighbouring real bug, (24,8), looked *identical* on the
+surface — collision=1, all four directions inaccessible — but had NO `warps_to`, so it was
+permanently unreachable under every game state. Same surface reading, opposite verdict. The
+discriminator is the tile's TYPE and warp data, not its collision flags.
+
+**Prevention rule:** a reachability claim is only valid together with the world state it was
+measured in — record the story flags in force, and before calling a tile unreachable, check
+whether a story flag gates the route to it.

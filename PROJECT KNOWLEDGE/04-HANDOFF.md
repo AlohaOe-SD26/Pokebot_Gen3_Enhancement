@@ -66,14 +66,25 @@ chapter; use Gemini assistants (gemini_relay.py) for research gaps.
   scene isolates the avatar at (13,16) — held Up→(13,15), Left→(5,15) escapes; called
   from 3 resume paths). The run crossed Route 120, flushed the city Kecleon, healed,
   and reached the Fortree gym door. Checkpoint `saves/devon_scope_got.ss1`.
-- **‼ RESUME HERE — Ch13e BLOCKED on the Fortree tree-bridge:** the gym door (22,11) is
-  reachable ONLY from adjacent (21,11)/(22,12), not the plaza (5,7) — Fortree is a
-  tree-bridge city with planner-blind elevation walkways (the Route-119/120 bridge
-  class). NEXT: (1) regenerate a clean Fortree checkpoint — run to Fortree and hand-save
-  when controllable at the PC (SAVE_CHECKPOINT can't key a flag here); (2) probe the
-  held-input route plaza→(21,11) (like the Route 119/120 bridges); (3) add it to
-  do_fortree_gym before the door warp via `_hold_walk_route`. Then 13e Winona (turnstile
-  gym, built, untested) → BADGE06. Then Ch14 (§Ch14 spec ready). Milestones:
+- **✅ Ch13e "tree-bridge blocker" was NEVER REAL — note REFUTED and retired (2026-07-24.)**
+  The old claim here said the gym door (22,11) is reachable only from (21,11)/(22,12) and
+  blamed planner-blind elevation walkways (the Route-119/120 class). Probed live
+  (`tools/story-dev/probe_route120_to_fortree.py` §6/7): (22,11) is a correctly-typed
+  `Door Warp` → FORTREE_CITY_GYM, landing (15,24), matching the code's own docstring. Its
+  ONLY blocker is the transient story flag **969 HIDE_FORTREE_CITY_KECLEON** — the Kecleon
+  sits in the single chokepoint tile (25,8) between the walkway and the door cluster. With
+  flag 969 forced True (reader-level fault injection), (22,11) plans from (25,7) in 9
+  waypoints, from the plaza (5,6) in 38, and from ROUTE120 (5,15) in 115 — i.e. reachable
+  from essentially anywhere, no held-walk route needed. `get_devon_scope` already flushes
+  that exact Kecleon before `do_fortree_gym` runs, so the real playthrough sets the flag
+  first. Control: (22,12) is fully walkable both before and after injection, proving the
+  pre-flush FAIL came from the one gated chokepoint and not a second broken tile.
+  ‼ The stale note was written from observing the PRE-FLUSH blocked state and mistaking a
+  story-sequenced flag for a map/planner limitation. **Residual debt:** this is a strong
+  fault-injection proof, not a live post-flush save — capture a checkpoint keyed on flag
+  969 and re-run §6/7 without injection to close it (punch-list `#24-fortreelive`).
+  NEXT: 13e Winona (turnstile gym, built, untested) → BADGE06. Then Ch14 (§Ch14 spec
+  ready). Milestones:
   `norman_done.ss1` (clean, BADGE05+Surf), `devon_scope_got.ss1` (Scope, on Route 120).
 - **KNOWN OPEN:** KI-17 (after-faint reshow DMA freeze — sweep hardened per Gemini's
   decomp analysis, validate next batch); the fresh 5M batch was 0/5-frontier but all
