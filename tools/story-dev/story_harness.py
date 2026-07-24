@@ -1587,6 +1587,16 @@ def active_ml_tasks():
     return [n for n in names if task_is_active(n)]
 
 
+def _all_task_names():
+    """EVERY task the game currently has running — not a filtered subset."""
+    try:
+        from modules.tasks import get_tasks
+
+        return [t.name for t in get_tasks()]
+    except Exception as e:
+        return f"<err {e}>"
+
+
 def _script_names():
     """Names of the field scripts the game currently reports as ACTIVE.
 
@@ -2004,7 +2014,14 @@ for step in range(args.frames):
         log(
             f"f{step}: !!! NO-PROGRESS x{no_progress} sig={sig} "
             f"instr={get_current_battle_script_instruction()} cb={get_main_battle_callback()} "
-            f"tasks={active_ml_tasks()} scripts={_script_names()} "
+            # ‼ 2026-07-24: this used to print active_ml_tasks(), which filters the task
+            # list down to FIVE move-learn task names. So a wedge with a full, busy task
+            # list printed `tasks=[]` — which reads as "nothing is running" and is how the
+            # "transient tasks=[]" mystery in KI-15 was mis-read for days. The real culprit
+            # of a wedge is usually a task NOT in that allow-list (e.g. ExecuteMatchCall,
+            # a PokéNav match call, which is a TASK and not a field script and is therefore
+            # invisible to every script-context guard we own). Print ALL of them.
+            f"ml_tasks={active_ml_tasks()} tasks={_all_task_names()} scripts={_script_names()} "
             f"bt={battle_text()!r} bot_mode={context.bot_mode}"
         )
         # The Ch9 fainted-menu hang proved a sig alone can't localize an in-battle

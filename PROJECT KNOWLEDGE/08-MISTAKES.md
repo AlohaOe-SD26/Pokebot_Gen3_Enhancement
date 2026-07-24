@@ -1060,3 +1060,27 @@ derail StoryMode can recover from. Both walking repros re-verified.
 
 **Prevention rule:** every `while True` gets ONE counter incremented unconditionally at the
 top of the body — per-branch counters are diagnostics, never the bound.
+
+## 2026-07-24 — "tasks=[]" in my own dumps never meant what I read it to mean
+
+**Symptom.** Across several investigations (KI-15's "transient tasks=[]", the torchic
+starter-run wedge) the harness's NO-PROGRESS dump printed `tasks=[]`, and I repeatedly read
+that as "the game has no tasks running — the wedge is not task-driven." I built theories on
+top of that reading for days.
+
+**Root cause.** That field printed `active_ml_tasks()`, which filters the live task list down
+to FIVE hard-coded move-learn task names. It can therefore print `[]` while the game is running
+a full, busy task list. Every wedge caused by a task OUTSIDE that allow-list was invisible —
+and the one that mattered, `ExecuteMatchCall` (a PokéNav match call), is exactly such a task.
+Worse, a match call is a TASK and not a field script, so it is also invisible to every
+script-context guard in the codebase.
+
+**The fix that worked.** Print `tasks=` from the FULL task list (`_all_task_names()`) and keep
+the filtered one as a separate `ml_tasks=` field. Also added `scripts=` (the active field-script
+stack), which the harness never printed at all — that omission is why three long runs that all
+died on Route 111 (18,99) could not be diagnosed from harness logs, while the user's in-game
+DEBUG dump cracked it in one line.
+
+**Prevention rule:** a debug dump may never print a FILTERED collection under an unqualified
+name — call it `ml_tasks=`, or print all of it; an empty filtered list reads as absence of the
+whole category and will be believed.
