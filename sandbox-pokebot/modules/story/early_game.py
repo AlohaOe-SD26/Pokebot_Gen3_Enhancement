@@ -5332,10 +5332,14 @@ def fight_route119_rival_and_get_fly() -> Generator:
             frames += 100
             continue
         try:
-            # Walk to just below the rival's bridge spot; the encounter triggers on
-            # approach (object (17,33)); the battle listener fights it.
-            yield from _navigate_riding_out(MapRSE.ROUTE119, (17, 35), tries=6)
-            yield from _navigate_riding_out(MapRSE.ROUTE119, (17, 31), tries=6)
+            # ‼ The rival does NOT sight-engage (run 4 walked right past to (17,31)
+            # untouched) — TALK to them: stand directly below (17,34), face Up at
+            # (17,33), press A, and ride the battle + the HM02 handover scenes.
+            yield from _navigate_riding_out(MapRSE.ROUTE119, (17, 34), tries=6)
+            yield from ensure_facing_direction("Up")
+            context.emulator.press_button("A")
+            yield from wait_for_n_frames(30)
+            yield from _ride_out_all_scenes(quiet_frames=300)
         except BotModeError:
             yield from _ride_out_scripted_scene("B")
         frames += 200
