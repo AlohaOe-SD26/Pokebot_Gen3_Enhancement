@@ -593,6 +593,7 @@ def ensure_facing_direction(facing_direction: str | Direction | tuple[int, int])
         facing_direction = facing_direction.button_name
 
     scene_frames = 0
+    starved_frames = 0
     while True:
         avatar = get_player_avatar()
         if avatar.facing_direction == facing_direction:
@@ -622,6 +623,26 @@ def ensure_facing_direction(facing_direction: str | Direction | tuple[int, int])
             and avatar.running_state == RunningState.NOT_MOVING
         ):
             context.emulator.press_button(facing_direction)
+            starved_frames = 0
+        else:
+            # FORK (2026-07-24, KI-15 family — the third starving limb): a battle
+            # that ends mid-navigation can leave the avatar with its movement state
+            # PERMANENTLY not-NOT_MOVING while no script runs — and this branch then
+            # pressed NOTHING forever (batch2 run04: 20k frames parked right here at
+            # R111 (18,99)). Zero input is exactly what keeps that state parked
+            # (probed: any direction press revives it). After a patient stretch,
+            # press the turn direction anyway; bound the whole starve so the caller's
+            # recovery gets the wheel if even that can't move it.
+            starved_frames += 1
+            if starved_frames > 120 and starved_frames % 10 == 0:
+                context.emulator.press_button(facing_direction)
+            if starved_frames > 3000:
+                from modules.modes import BotModeError
+
+                raise BotModeError(
+                    "ensure_facing_direction: the avatar's movement state never settled "
+                    "(post-battle freeze?)."
+                )
 
         yield
 
@@ -718,7 +739,24 @@ def wait_for_player_avatar_to_be_controllable(button_to_press: str | None = None
 
 @debug.track
 def wait_for_player_avatar_to_be_standing_still(button_to_press: str | None = None) -> Generator:
+    # FORK (2026-07-24, KI-15 family): a post-battle freeze can leave the avatar
+    # permanently "moving" while nothing presses at it — the exact input-starved
+    # state that only an input edge revives. After a patient stretch, tap a
+    # direction (a step is harmless — callers re-check position/paths anyway);
+    # bound the whole wait so no caller can silently spin 20k frames here.
+    starved = 0
+    _jolt_dirs = ("Down", "Up", "Left", "Right")
     while not player_avatar_is_standing_still():
         if button_to_press is not None:
             context.emulator.press_button(button_to_press)
+        starved += 1
+        if button_to_press is None and starved > 240 and starved % 15 == 0:
+            context.emulator.press_button(_jolt_dirs[(starved // 15) % 4])
+        if starved > 3000:
+            from modules.modes import BotModeError
+
+            raise BotModeError(
+                "wait_for_player_avatar_to_be_standing_still: the avatar never settled "
+                "(post-battle freeze?)."
+            )
         yield
