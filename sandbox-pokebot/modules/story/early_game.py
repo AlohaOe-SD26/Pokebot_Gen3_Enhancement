@@ -5193,8 +5193,24 @@ def travel_to_fortree() -> Generator:
     def _rank(gnum) -> int:
         return order.index(gnum) if gnum in order else -1
 
+    from modules.memory import get_event_flag
+
+    def _bridge_open() -> bool:
+        try:
+            return bool(get_event_flag("HIDE_ROUTE_119_TEAM_AQUA"))
+        except Exception:
+            return False
+
     for map_enum, tile, label in LEGS:
         _check_abort()
+        # ‼ The road past the Weather Institute is STORY-BLOCKED until Shelly is
+        # beaten (the bridge grunts (13,33-34) despawn with the HIDE flag) — the
+        # Fortree leg must yield to the institute segment instead of burning its
+        # retries into a Manual (ch13_run2). Stop at the institute row; _play's
+        # Segment 13b owns the next step and re-calls this travel afterwards.
+        if map_enum.value == MapRSE.FORTREE_CITY.value and not _bridge_open():
+            context.message = "Story: the bridge ahead is blocked — the Weather Institute first."
+            return
         cur_rank = _rank(_map_group_number())
         tgt_rank = _rank(map_enum.value)
         if cur_rank > tgt_rank:
