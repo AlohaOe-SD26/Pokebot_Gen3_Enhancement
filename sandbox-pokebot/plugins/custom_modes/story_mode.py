@@ -1025,6 +1025,10 @@ class StoryMode(BotMode):
                             if self._ki15_nudge_stable >= 240:
                                 context.emulator.press_button("A")
                                 self._ki15_nudge_stable = -1200  # long cooldown
+                                # breadcrumb for run-log forensics (run 8: a wedge
+                                # this nudge should own sat 20k frames — prove
+                                # in future logs whether it fired)
+                                console.print("[dim]Story: KI-15 nudge fired (stale post-battle message).[/]")
                         else:
                             _n = getattr(self, "_ki15_nudge_stable", 0)
                             self._ki15_nudge_stable = 0 if _n > 0 else min(_n + 1, 0)
@@ -1938,6 +1942,8 @@ class StoryMode(BotMode):
             lambda: _cur_map() in (
                 MapRSE.FORTREE_CITY.value,
                 MapRSE.FORTREE_CITY_POKEMON_CENTER_1F.value,
+                MapRSE.FORTREE_CITY_GYM.value,
+                MapRSE.ROUTE120.value,  # a 13d resume (Steven) is Fortree-side too
             ),
         )
 

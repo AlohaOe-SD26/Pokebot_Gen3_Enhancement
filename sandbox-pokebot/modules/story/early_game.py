@@ -5173,10 +5173,15 @@ def travel_to_fortree() -> Generator:
     context.message = "Story: the Surf arc — east to Route 118, then north to Fortree..."
     yield from wait_until_truly_controllable()
 
+    # ‼ EVERY Fortree-side map must be ranked at/after FORTREE (the Ch12a Woods
+    # lesson, re-learned on ROUTE120 in the r8 replay: an unranked map = rank -1 =
+    # "run every leg" = a backwards march to Mauville and a NO-PATH Manual).
     order = [
         MapRSE.PETALBURG_CITY.value, MapRSE.ROUTE102.value, MapRSE.ROUTE110.value,
         MapRSE.MAUVILLE_CITY.value, MapRSE.ROUTE118.value, MapRSE.ROUTE119.value,
         MapRSE.FORTREE_CITY.value,
+        MapRSE.FORTREE_CITY_POKEMON_CENTER_1F.value, MapRSE.FORTREE_CITY_GYM.value,
+        MapRSE.ROUTE120.value,
     ]
     LEGS = [
         (MapRSE.MAUVILLE_CITY, (19, 6), "Mauville City"),
@@ -5305,6 +5310,25 @@ def do_weather_institute() -> Generator:
     yield from normalize_to_overworld()
 
 
+def _clear_stale_battle_message() -> Generator:
+    """A mid-navigation battle can leave its last message ('X gained EXP', 'got $N',
+    'Got away safely!') PARKED on screen — input-blocking, A-only-dismissable (the
+    KI-15 wedge family). Before any talk ritual (face + A at an NPC), clear it:
+    press A only while a message is genuinely waiting with NO field script running —
+    a state in which A cannot start a conversation because the message consumes it.
+    Bounded; a no-op when nothing is parked."""
+    for _try in range(3):
+        if not (
+            is_waiting_for_input()
+            and not get_global_script_context().is_active
+            and not get_immediate_script_context().is_active
+        ):
+            return
+        context.emulator.press_button("A")
+        yield
+        yield from wait_for_n_frames(20)
+
+
 def _hold_walk_route(steps, *, stop_on_script: bool = True, per_leg_bound: int = 900) -> Generator:
     """Walk a fixed route with HELD input: `steps` = [(direction, (x,y)), ...] — hold
     each direction until the tile is reached. For tiles the planner is blind to
@@ -5417,6 +5441,9 @@ def get_devon_scope() -> Generator:
             try:
                 # Stand beside Steven (13,15): approach (14,15), face Left, talk.
                 yield from _navigate_riding_out(MapRSE.ROUTE120, (14, 15), tries=6)
+                # a route-trainer battle en route can park its last message —
+                # A-only, input-blocking (run 8 wedged 20k frames on it here)
+                yield from _clear_stale_battle_message()
                 yield from ensure_facing_direction("Left")
                 context.emulator.press_button("A")
                 yield from wait_for_n_frames(30)
