@@ -156,8 +156,16 @@ situations" — the normalizer covers the common ones; deepen as new edge states
 the next navigation cancelled the crumble movement and stranded the script. Fix: wait for
 the field script to clear before returning. The wattson_done batch that was 5/5 hangs is
 now **5/5 HEAT BADGE, 0 hangs/derails/whiteouts.** wattson_done is a good milestone again.
-**KI-15 still open (intermittent, ~1/5 fresh):** after-faint PARTY_MENU sweep transient-state
-hang; chooser ruled out; needs a Shedinja fault-injection repro (see KI-15 in 05-KNOWN-ISSUES).
+**KI-15 RE-DIAGNOSED 2026-07-23 (still open, ~1/5):** ‼ it is NOT an after-faint party-menu
+hang — that was a MISDIAGNOSIS never supported by any log (`grep -r "SHEDINJA fainted"` = 0
+hits; the after-faint sweep is proven ROBUST). The REAL bug (3 confirmed 20k hangs) is a
+**post-battle STORY-RESUME hang**: an inline battle interrupts story navigation/a scripted
+scene and the flow can't resume (stale `cb=ReturnFromBattleToOverworld` +
+`BattleScript_PayDayMoneyAndPickUpItems`). Two forms: `_wait_until_cutscene_over` loops
+(RUSTBORO), and `navigate_to` bounces `(5,6)↔(5,7)` (ROUTE 104). Env-gated `KI15_TRACE`
+instrumentation is in `_wait_until_cutscene_over`; faithful `--driver story` runs ride the
+scene cleanly (hang needs the rare battle-interrupt race). Full diagnosis + next steps in
+05-KNOWN-ISSUES KI-15. Do NOT patch the battle handler for this.
 
 **VALIDATION SWEEP DONE 2026-07-23 (user-requested 5 fresh + 5 milestone):**
 Pass 1 (5 fresh→HEAT BADGE): 4/5 clean (3 frontier + 1 budget-INCOMPLETE), 1 real hang

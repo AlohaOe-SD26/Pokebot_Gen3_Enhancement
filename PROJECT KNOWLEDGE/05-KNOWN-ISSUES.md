@@ -175,33 +175,52 @@ is open (B closes menus, can never start a dialogue → museum guarantee preserv
 PROVEN: story run rocksmash_got.ss1 → teach → Mauville → Rt 111 → 112 → Fiery Path →
 Rt 113, 0 derails (ki14_run1); museum repro re-run clean.
 
-## KI-15 (2026-07-23, Pass-1 fresh validation batch, run05) — after-faint party-menu chooser hang (KI-12 residual)
-**Symptom.** In a fresh run (~Ch5c, ~1.46M frames), `handle_fainted_pokemon` wedged in
-PARTY_MENU: sig `('BattleListener.fight', 'PARTY_MENU', 'BattleScript_FaintedMonTryChoose',
-..., (7,9))`, `bt='SHEDINJA fainted!'`, tasks=[]. Party at the hang:
-Marshtomp L23 / Shedinja L22 (the fainted active) / Swellow L24 / Poochyena L14 / Ninjask L22
-— living replacements EXIST, so the chooser should send one out, but it can't advance out
-of PARTY_MENU. handle_fainted_pokemon has a 6000-frame bound and RETURNS, but the outer
-battle loop re-invokes it while still in PARTY_MENU → the no-progress watchdog fires at 20k.
-**Suspected trigger.** A 1-HP Wonder Guard SHEDINJA as the fainted active — its faint may
-put the chooser in a sub-state where the handler's button logic (cursor→Down→A / A on a
-living slot) doesn't register. `tasks=[]` at the hang means neither Task_PrintAndWaitForText
-nor Task_HandleSelectionMenuInput is up, so the handler falls to the bare A/Down branch.
-**Frequency.** 1/5 fresh lanes; intermittent (party-composition + faint-order dependent).
-**REPRO TODO.** Construct a fault-injection driver like `--inject-faintbench` but with a
-Shedinja (1 HP) that faints as the active, plus a real bench — then debug the handler's
-menu-state reading. NOT a save-reloadable state (battle stucks aren't snapshotted).
-**RULED OUT 2026-07-23:** the matchup-aware `choose_new_lead_after_faint` is NOT the cause —
-unit-tested with the exact run05 party (Marshtomp/Shedinja-fainted/Swellow/Poochyena/Ninjask)
-it returns a valid living pick (Poochyena). The hang is in the lower-level menu-navigation
-sweep at the END of handle_fainted_pokemon (`scroll_to_party_menu_index` + the PARTY_MENU
-button loop) hitting a transient state where `tasks=[]` (no Task_HandleSelectionMenuInput /
-Task_PrintAndWaitForText) so button presses are swallowed; the 6000-frame bound then RETURNS
-and the outer handle_battle loop re-invokes (still PARTY_MENU) → re-invoke spin.
-**FIX DIRECTION (needs a repro first — do NOT guess-patch the battle handler blind).** Build a
-Shedinja fault-injection driver: inject a party with a fainting-prone Shedinja + a real bench,
-drive a battle to the after-faint menu, capture the transient state, and fix the sweep to
-handle tasks=[] (wait for a menu task before pressing, or a more persistent per-slot cycle).
+## KI-15 (2026-07-23) — post-battle STORY-RESUME hang after an inline battle ⚠ RE-DIAGNOSED 2026-07-23
+> ‼ **The original write-up (an "after-faint PARTY_MENU chooser hang" with a 1-HP Wonder Guard
+> Shedinja) was a MISDIAGNOSIS.** It was never supported by a log — `grep -r "SHEDINJA fainted"`
+> across EVERY livetest run.log (current + archive) returns ZERO hits. The party/coords/stack
+> cited (Marshtomp/Shedinja/Swellow/Poochyena/Ninjask at (7,9)) do not appear in any captured
+> hang. A long repro session chasing the party-menu sweep (burn-injection, `faintrepro`) PROVED
+> that sweep handles rapid back-to-back faints correctly (0 livelock over 5 successive faints).
+> **Do NOT chase the party menu. The real bug is below.**
+
+**Real symptom (from 3 CONFIRMED 20k-frame hangs — 002057/run05, archive/…-093125/run01,
+archive/…-101814/run01).** After an INLINE battle (trainer or wild) fires during story
+NAVIGATION or a scripted scene, the story flow fails to resume. All three share the same
+post-battle stale reads: `state=OVERWORLD`, `cb=ReturnFromBattleToOverworld`,
+`instr=BattleScript_PayDayMoneyAndPickUpItems`, `tasks=[]`, `bt='… gained … EXP'` / `'… won $…'`.
+Two distinct manifestations observed:
+  1. **Stuck cutscene-wait** (002057/run05, RUSTBORO, `return_devon_goods_and_get_pokenav`):
+     `_wait_until_cutscene_over` rides forever. Its 8000-frame timeout RAISES, the caller's
+     recovery retries, the retry re-hits the same state → raise/retry loop → 20k watchdog.
+  2. **Navigator oscillation** (both archive hangs, ROUTE 104): after a trainer battle the
+     player BOUNCES between two adjacent tiles `(5,6)↔(5,7)` — `navigate_to` re-paths back and
+     forth and never advances.
+**Frequency.** ~1/5 lanes; intermittent — needs a random battle to interrupt at a specific
+navigation/scene moment. The HEALTHY version of the same scene rides fine.
+
+**Why the existing phantom-script escape does NOT cover it** (`_wait_until_cutscene_over`,
+early_game.py). The escape (added for the Route-111 Rock-Smash case) needs **600 CONSECUTIVE
+`controllable=True` frames** while a script is active. Live trace of the real post-battle scene
+(env `KI15_TRACE=<file>`, `story_harness.py goods_recovered.ss1 --driver story`) shows the
+parked/multi-part state has `controllable` OSCILLATING (True for a stretch — phantom climbs to
+~339 — then a long `controllable=False` stretch that RESETS phantom), so 600-consecutive is
+never reached. NOTE the field-script `bytecode_pointer` DOES advance in the healthy multi-part
+scene (so a naive "frozen-pointer" escape would need care not to fire on genuine long cutscenes).
+
+**Repro status (2026-07-23).** Faithful `--driver story` runs from `goods_recovered.ss1` ride the
+scene cleanly (no live permanent hang caught yet — the hang needs the rare battle-interrupt race).
+Instrumentation is IN PLACE and env-gated (`KI15_TRACE`) inside `_wait_until_cutscene_over`
+(reader profile + script pointers + escape/raise markers) — the tool to catch the live state next.
+**NEXT STEPS (pick one; the fix is NOT to be guessed without catching the permanent state):**
+  (a) Reproduce the ROUTE 104 `(5,6)↔(5,7)` navigator oscillation from a near-there save — the
+      most concrete manifestation (2/3 hangs, identical tiles) — and fix the re-path bounce.
+  (b) Catch the live cutscene-wait hang with `KI15_TRACE` set on a batch, capture the exact
+      reader/pointer profile, and make `_wait_until_cutscene_over` escape it robustly (tolerate
+      `controllable` oscillation; e.g. don't reset the parked counter on brief False blips, and
+      turn the 8000 raise into a clean return when the state is the stale post-battle signature)
+      WITHOUT false-firing on genuine long multi-part cutscenes (whose pointers advance).
+Do NOT patch the battle handler for this — it is not a battle-handler bug.
 
 ## KI-16 ✅ FIXED 2026-07-23 (same day) — the wedge was _smash_rock returning before EventScript_SmashRock finished
 **Symptom.** ALL 5 lanes resuming from `wattson_done.ss1` hang identically at frame f74383,

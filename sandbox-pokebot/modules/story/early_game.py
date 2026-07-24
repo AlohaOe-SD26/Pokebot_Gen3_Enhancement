@@ -434,9 +434,36 @@ def _wait_until_cutscene_over(button: str = "B", *, stable_frames: int = 15,
     stable = 0
     frames = 0
     phantom = 0
+    # --- KI-15 TRACE (env-gated, logging-only; REMOVE after repro) ---
+    import os as _os15
+    _ki15w = _os15.environ.get("KI15_TRACE")
+    def _w15(msg):
+        if _ki15w:
+            try:
+                with open(_ki15w, "a", encoding="utf-8") as _f:
+                    _f.write(msg + "\n")
+            except Exception:
+                pass
+    # -----------------------------------------------------------------
     while stable < stable_frames:
         script_running = get_global_script_context().is_active or get_immediate_script_context().is_active
         free = player_avatar_is_controllable() and not script_running
+        # --- KI-15 TRACE: sample the reader profile periodically ---
+        if _ki15w and (frames % 200 == 0 or frames > timeout_frames - 5):
+            try:
+                from modules.battle_state import get_current_battle_script_instruction as _gcbsi
+                _instr = _gcbsi()
+            except Exception as _e:
+                _instr = f"<err {_e}>"
+            try:
+                _gc = get_global_script_context()
+                _sptr = f"mode={_gc.mode} bc={hex(_gc.bytecode_pointer)} nat={hex(_gc.native_pointer)} depth={_gc.stack_depth}"
+            except Exception as _e:
+                _sptr = f"<sptr err {_e}>"
+            _w15(f"[cutscene] f={frames} controllable={player_avatar_is_controllable()} "
+                 f"script_running={script_running} waiting_input={is_waiting_for_input()} "
+                 f"menu={_menu_task_active()} phantom={phantom} instr={_instr} {_sptr}")
+        # -----------------------------------------------------------
         stable = stable + 1 if free else 0
         # PHANTOM-SCRIPT ESCAPE (user's 2026-07-23 Route 111 hang): when a field
         # script is interrupted by a battle it spawned (Rock Smash's wild-encounter
@@ -455,6 +482,7 @@ def _wait_until_cutscene_over(button: str = "B", *, stable_frames: int = 15,
             phantom += 1
             if phantom >= 600:
                 context.message = "Story: parked script context detected — treating the scene as over."
+                _w15(f"[cutscene] PHANTOM-ESCAPE fired at f={frames} (controllable=True parked script)")
                 return
         else:
             phantom = 0
@@ -469,6 +497,10 @@ def _wait_until_cutscene_over(button: str = "B", *, stable_frames: int = 15,
                 context.emulator.press_button("B")
         frames += 1
         if frames > timeout_frames:
+            _w15(f"[cutscene] TIMEOUT-RAISE at f={frames} controllable={player_avatar_is_controllable()} "
+                 f"script_active={get_global_script_context().is_active} phantom={phantom} "
+                 f"waiting_input={is_waiting_for_input()} menu={_menu_task_active()} "
+                 f"— KI-15 HANG STATE (would raise+retry-loop)")
             raise BotModeError(
                 f"Cutscene did not end after {timeout_frames} frames "
                 f"(controllable={player_avatar_is_controllable()}, "

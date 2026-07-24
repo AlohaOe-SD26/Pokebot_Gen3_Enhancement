@@ -2333,3 +2333,31 @@ closed. KI-15 (after-faint chooser hang): ruled out the matchup chooser (returns
 pick for the exact run05 party); narrowed to the low-level PARTY_MENU navigation sweep
 hitting a transient no-input-task state. Left documented with a repro-construction plan
 (Shedinja fault-injection driver) rather than guess-patching the tuned battle handler.
+
+## 2026-07-23 — KI-15 repro session: trigger PATH pinned; infrastructure built; race still to force
+Focused attempt to reproduce the after-faint PARTY_MENU hang. Built repro infrastructure
+(`--inject-shedinja-faint` party injection + the `faintrepro` no-flee spin driver) and pinned
+the exact trigger PATH (previously fuzzy): the forced PARTY_MENU only opens when the strategy
+ATTEMPTS TO FLEE and the active mon FAINTS that same turn (wild faster) — a race. Ruled out
+several mechanisms this session (field-poison faints outside battle; low-HP leads flee before
+fainting; no-flee routes through the dialogue send-out path; Wonder Guard blocks the normal
+faint). NEXT: 1-HP actives SLOWER than the wild + the fleeing story strategy to force the race,
+capture the transient PARTY_MENU state, then fix the sweep. Full analysis in KI-15. Did NOT
+guess-patch the tuned battle handler. KI-16 (fixed this morning) remains the session's landed win.
+
+## 2026-07-23 — KI-15 RE-DIAGNOSED: it is NOT a party-menu hang (corrects the two entries above)
+Pulled the ACTUAL confirmed-hang logs (livetest-runs/…/run05 + two archive run01s) instead of
+trusting the prior write-up. Finding: **the "after-faint PARTY_MENU Shedinja chooser hang" never
+existed in any log** — `grep -r "SHEDINJA fainted"` across every run.log returns ZERO hits; the
+cited party/coords/stack are nowhere. The prior two entries (and the KI-15 doc) chased a phantom.
+The REAL KI-15, from 3 genuine 20k-frame hangs, is a **post-battle STORY-RESUME hang**: after an
+inline battle (trainer/wild) interrupts story navigation/a scripted scene, the flow can't resume —
+shared stale reads `cb=ReturnFromBattleToOverworld` + `instr=BattleScript_PayDayMoneyAndPickUpItems`
++ `tasks=[]`. Two manifestations: (1) `_wait_until_cutscene_over` rides forever → 8000 raise →
+caller retry → loop (RUSTBORO, return_devon_goods); (2) `navigate_to` bounces between adjacent
+tiles `(5,6)↔(5,7)` (ROUTE 104, after a trainer battle). Proved the after-faint sweep is ROBUST
+(burn-injection repro: 5 back-to-back faints, 0 livelock) — it is NOT the cause. Added env-gated
+(`KI15_TRACE`) reader+script-pointer instrumentation to `_wait_until_cutscene_over`; a faithful
+`--driver story` run from goods_recovered rode the scene CLEANLY (the healthy path works — the hang
+needs the rare battle-interrupt race). KI-15 remains OPEN with an accurate diagnosis + next steps
+in 05-KNOWN-ISSUES. Did NOT guess-patch. Reverted the (wrong-path) battle_handler instrumentation.

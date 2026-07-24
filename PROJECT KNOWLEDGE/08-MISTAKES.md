@@ -933,3 +933,24 @@ inactive (pressing nothing, so the movement isn't interrupted) before handing co
 COMPLETION-of-effect signal but NOT a completion-of-SCRIPT signal — the field script can outlive
 the object (WaitForMovementFinish, cleanup). Before navigating away, wait for the field script
 itself to clear, and don't press movement inputs while it's finishing.
+
+## 2026-07-23 — A documented bug diagnosis that no log actually supported (KI-15 phantom party-menu)
+**Symptom.** ~A full session was spent building fault-injection repros (poison, then burn, a
+`faintrepro` no-flee driver) to reproduce an "after-faint PARTY_MENU chooser hang with a 1-HP
+Wonder Guard Shedinja." Every approach failed to reproduce it — because the bug as described did
+not exist.
+**Root cause.** The KI-15 write-up (and a compaction summary built on it) asserted a specific
+party (Marshtomp/Shedinja/Swellow/Poochyena/Ninjask), coords (7,9), and stack
+(`BattleScript_FaintedMonTryChoose`, `bt='SHEDINJA fainted!'`) that were never in any captured
+log. `grep -r "SHEDINJA fainted" livetest-runs/**/run.log` = 0 hits. The real confirmed hangs
+(same batch, run05) had a totally different signature (post-battle story-resume: OVERWORLD +
+`cb=ReturnFromBattleToOverworld` + `BattleScript_PayDayMoneyAndPickUpItems`, in
+`_wait_until_cutscene_over` / `navigate_to`). The diagnosis had been written from memory/inference,
+not from the log, and every later session inherited it.
+**The fix that worked.** Go back to the PRIMARY EVIDENCE: read the actual `run.log` of the
+confirmed hang (`summary.json: hang_confirmed=true`) before writing or trusting any diagnosis.
+The real signature was obvious in 40 lines of the log tail.
+**Prevention rule.** A known-issue entry MUST cite the exact log line/file it came from; if you
+can't `grep` the cited symptom (e.g. the hang `bt=` string) out of a real run.log, treat the
+diagnosis as UNVERIFIED and re-derive it from the log before spending any repro effort. Trust logs
+over summaries — including this project's own prior write-ups.

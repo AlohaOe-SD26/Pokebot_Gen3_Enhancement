@@ -26,12 +26,13 @@ ap.add_argument("state", help=".ss1 save state to load (basename in scratchpad o
 ap.add_argument("--inject-treecko", action="store_true", help="inject a Lv15 Treecko at exp_for_16 - 1 as lead")
 ap.add_argument("--inject-weak", action="store_true", help="inject a lone Lv3 Poochyena (loses everything â†’ forces a whiteout, for defeat-recovery testing)")
 ap.add_argument("--inject-faintbench", action="store_true", help="inject Lv3 lead + Lv4 bench (forces the after-faint party menu â€” KI-12 repro)")
+ap.add_argument("--inject-shedinja-faint", action="store_true", help="inject an all-BURNED 1-HP party (Shedinja lead + bench) — rapid in-battle faints for the KI-15 after-faint chooser repro; pair with --driver faintrepro")
 ap.add_argument("--set-balls", type=int, default=None, help="force the PokÃ© Ball count (test out-of-balls provisioning)")
 ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the party at")
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "hmtest"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "hmtest", "faintrepro"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -134,6 +135,43 @@ class ManualBotMode:
 
 
 from modules.modes import BotMode
+
+
+class FaintReproMode(BotMode):
+    """KI-15 repro driver: spin for wild encounters but NEVER FLEE (attack-through), so a
+    poisoned 1-HP Shedinja lead stays in and faints from end-of-turn poison -> the
+    after-faint PARTY_MENU -> handle_fainted_pokemon (the thing we want to stress)."""
+    @staticmethod
+    def name():
+        return "FaintRepro"
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+        from modules.battle_strategies import TurnAction, BattleStrategyUtil
+
+        class _NoFlee(LevelUpTravelBattleStrategy):
+            def decide_turn(self, battle_state):
+                util = BattleStrategyUtil(battle_state)
+                active = battle_state.own_side.active_battler
+                move = util.get_strongest_move_against(active, battle_state.opponent.active_battler) if active else None
+                if move is not None:
+                    return TurnAction.use_move(move)
+                if active is not None:
+                    for i, learned in enumerate(active.moves):
+                        if learned is not None and util.move_is_usable(learned):
+                            return TurnAction.use_move(i)
+                return TurnAction.use_move(0)
+
+            def should_flee_after_faint(self, battle_state):
+                # KI-15: the base strategy FLEES after a faint ("Got away safely!"), which
+                # skips choose-new-lead and the after-faint PARTY_MENU sweep entirely. Force
+                # send-out so the faint routes THROUGH the choose menu (the hang site).
+                return False
+        return _NoFlee()
+
+    def run(self):
+        from modules.modes.util import spin
+        yield from spin()
 
 
 class SpinFightMode(BotMode):
@@ -1479,6 +1517,42 @@ def inject_faintbench():
     log("[inject] Poochyena Lv3 lead + Zigzagoon Lv4 bench (forces the after-faint party menu)")
 
 
+def inject_shedinja_faint():
+    """AFTER-FAINT SWEEP STRESS (kept as infra). ‼ NOTE 2026-07-23: this was built to repro
+    KI-15 under the ORIGINAL (mis)diagnosis of a party-menu chooser hang. That diagnosis was
+    WRONG — the real KI-15 is a post-battle STORY-RESUME hang, not a battle-handler bug (see
+    05-KNOWN-ISSUES KI-15). This inject is retained because it usefully STRESS-TESTS the
+    after-faint PARTY_MENU sweep and PROVED it robust: an all-BURNED, all-1-HP party led by a
+    Wonder Guard Shedinja faints ONE PER TURN in battle (burn damages at end-of-turn, bypasses
+    Wonder Guard, and — unlike poison — does NOT tick in the overworld so the mons reach
+    battle alive), driving 5 back-to-back after-faint menus. With `--driver faintrepro`
+    (never flees — the `should_flee_after_faint=False` override is REQUIRED to route faints
+    through the choose-menu) the sweep handled all 5 cleanly (0 livelock). Growl-only so the
+    mons can't KO the weak wild before the burn tick. Non-Fire species only (burn-immune)."""
+    from modules.debug_utilities import debug_create_pokemon, debug_write_party
+    from modules.pokemon import get_species_by_name, get_move_by_name, LearnedMove, StatusCondition
+
+    def m(sp, lvl, mv, hp=1, status=StatusCondition.Burn):
+        return debug_create_pokemon(species=get_species_by_name(sp), level=lvl,
+            moves=[LearnedMove.create(get_move_by_name(mv))], current_hp=hp,
+            status_condition=status)
+    # Shedinja LEAD (Wonder Guard) burned at 1 HP faints to burn EOT1 regardless of the
+    # wild's typing; the bench (all burnable, all 1 HP, all burned) each faint EOT of their
+    # first active turn -> rapid successive after-faint menus.
+    # ALL mons get GROWL only (non-damaging) so they CANNOT KO the wild — the battle then
+    # lasts to the end-of-turn burn tick that faints them (an attacker would one-shot the
+    # weak wild and win before burn ever ticks). Each faints EOT of its first active turn.
+    debug_write_party([
+        m("Shedinja", 22, "Growl"),   # Wonder Guard; only burn (EOT, bypasses WG) can faint it
+        m("Swellow", 22, "Growl"),    # run05 partner
+        m("Marshtomp", 22, "Growl"),
+        m("Lombre", 20, "Growl"),
+        m("Zigzagoon", 18, "Growl"),
+        m("Whismur", 18, "Growl"),
+    ])
+    log("[inject] all-BURNED 1-HP Growl-only party (Shedinja lead + bench) — rapid in-battle faints; KI-15")
+
+
 def learn_state_str():
     try:
         from modules.battle_move_replacing import get_learn_move_state
@@ -1546,7 +1620,7 @@ trace_active = False  # verbose trace while a move-learn/evo is happening
 no_progress = 0
 last_sig = None
 last_heartbeat = 0
-injected = not (args.inject_treecko or args.inject_weak or args.inject_faintbench)
+injected = not (args.inject_treecko or args.inject_weak or args.inject_faintbench or args.inject_shedinja_faint)
 
 CH5_FLAGS = (
     "DEVON_GOODS_STOLEN", "RECOVERED_DEVON_GOODS", "RETURNED_DEVON_GOODS",
@@ -1622,6 +1696,8 @@ for step in range(args.frames):
             inject_weak()
         elif args.inject_faintbench:
             inject_faintbench()
+        elif args.inject_shedinja_faint:
+            inject_shedinja_faint()
         else:
             inject_treecko()
         injected = True
@@ -1720,6 +1796,8 @@ for step in range(args.frames):
             context.bot_mode_instance = CaveTrainMode()
         elif args.driver == "hmtest":
             context.bot_mode_instance = HmTestMode()
+        elif args.driver == "faintrepro":
+            context.bot_mode_instance = FaintReproMode()
         elif args.driver == "pokenavfaith":
             context.bot_mode_instance = PokenavFaithMode()
         elif args.driver == "martbuy":
