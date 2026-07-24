@@ -1950,7 +1950,16 @@ class StoryMode(BotMode):
         # --- Segments 13d/13e: Devon Scope (Route 120 Steven) → Fortree Gym
         #     (Winona, BADGE06). ⚠ SKELETONS (2026-07-24 overnight) — tiles probed,
         #     scenes first-run-validate. ---
-        from modules.story.early_game import do_fortree_gym, get_devon_scope
+        from modules.story.early_game import (
+            _leave_route120_north_bridge,
+            do_fortree_gym,
+            get_devon_scope,
+        )
+
+        # A resume with the Scope already set skips get_devon_scope; if that resume
+        # lands on the Route 120 bridge, escape it before ANY navigation (the gym
+        # prep heal would otherwise NO-PATH to the Fortree PC — ch13_run14).
+        yield from _leave_route120_north_bridge()
 
         if not _done("RECEIVED_DEVON_SCOPE"):
             yield from get_devon_scope()
