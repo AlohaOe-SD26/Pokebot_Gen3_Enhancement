@@ -151,6 +151,14 @@ template for re-capturing any checkpoint safely.
 NOTE for the future: the user asked to keep extending resume robustness "for all
 situations" — the normalizer covers the common ones; deepen as new edge states appear.
 
+**VALIDATION SWEEP DONE 2026-07-23 (user-requested 5 fresh + 5 milestone):**
+Pass 1 (5 fresh→HEAT BADGE): 4/5 clean (3 frontier + 1 budget-INCOMPLETE), 1 real hang
+(after-faint chooser, KI-15). Pass 2 (5 from rocksmash_taught): **5/5 HEAT BADGE, 0
+hangs/derails/whiteouts** — the recent frontier work is validated solid. Two intermittent
+bugs logged with repros: KI-15 (after-faint chooser + 1-HP Shedinja) and KI-16
+(wattson_done deterministic navigator wedge — use rocksmash_taught for milestone tests,
+not wattson_done). Neither guess-patched (critical code, need validated repros first).
+
 **IN PROGRESS — Ch12 BUILD STARTED 2026-07-23 (route leg, WIP/unwired):**
 `travel_lavaridge_to_petalburg` exists in early_game.py but is **NOT wired into _play**
 (frontier = Flannery/HEAT BADGE, untouched). Progress: the Route 112 ledge crossing works

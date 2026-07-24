@@ -174,3 +174,45 @@ avatar controllable); (b) `_wait_until_cutscene_over` also presses B while a men
 is open (B closes menus, can never start a dialogue → museum guarantee preserved).
 PROVEN: story run rocksmash_got.ss1 → teach → Mauville → Rt 111 → 112 → Fiery Path →
 Rt 113, 0 derails (ki14_run1); museum repro re-run clean.
+
+## KI-15 (2026-07-23, Pass-1 fresh validation batch, run05) — after-faint party-menu chooser hang (KI-12 residual)
+**Symptom.** In a fresh run (~Ch5c, ~1.46M frames), `handle_fainted_pokemon` wedged in
+PARTY_MENU: sig `('BattleListener.fight', 'PARTY_MENU', 'BattleScript_FaintedMonTryChoose',
+..., (7,9))`, `bt='SHEDINJA fainted!'`, tasks=[]. Party at the hang:
+Marshtomp L23 / Shedinja L22 (the fainted active) / Swellow L24 / Poochyena L14 / Ninjask L22
+— living replacements EXIST, so the chooser should send one out, but it can't advance out
+of PARTY_MENU. handle_fainted_pokemon has a 6000-frame bound and RETURNS, but the outer
+battle loop re-invokes it while still in PARTY_MENU → the no-progress watchdog fires at 20k.
+**Suspected trigger.** A 1-HP Wonder Guard SHEDINJA as the fainted active — its faint may
+put the chooser in a sub-state where the handler's button logic (cursor→Down→A / A on a
+living slot) doesn't register. `tasks=[]` at the hang means neither Task_PrintAndWaitForText
+nor Task_HandleSelectionMenuInput is up, so the handler falls to the bare A/Down branch.
+**Frequency.** 1/5 fresh lanes; intermittent (party-composition + faint-order dependent).
+**REPRO TODO.** Construct a fault-injection driver like `--inject-faintbench` but with a
+Shedinja (1 HP) that faints as the active, plus a real bench — then debug the handler's
+menu-state reading. NOT a save-reloadable state (battle stucks aren't snapshotted).
+**FIX DIRECTION (unvalidated).** When handle_fainted_pokemon can't leave PARTY_MENU within
+its bound, ESCALATE rather than silently return into a re-invoke loop (e.g., cycle every
+slot with A + release gaps, or B-out-and-retry). Needs the repro first — do not guess-patch
+the battle handler blind.
+
+## KI-16 (2026-07-23, Pass-2 milestone batch) — DETERMINISTIC navigator wedge from wattson_done in travel_to_fallarbor
+**Symptom.** ALL 5 lanes resuming from `wattson_done.ss1` hang identically at frame f74383,
+at Route 111 (18,99), in `travel_to_fallarbor` → `_enter_warp_by_navigation` (Fiery Path
+south door) → navigate_to → follow_waypoints → ensure_facing_direction. A WILD BATTLE ends
+right at (18,99) (`bt='MARSHTOMP gained 110 EXP'`), and the post-battle
+ReturnFromBattleToOverworld transition leaves the avatar unable to move; the navigation
+retry loops with no progress. NO safety net fires (not the story 18k watchdog, not the
+follow_waypoints 20-frame timeout, not ensure_facing_direction) — the spin location is
+elusive (bounding ensure_facing_direction / navigate_to did NOT catch it; reverted those).
+**Scope.** SPECIFIC to the wattson_done save's state/RNG — FRESH runs pass travel_to_fallarbor
+fine (Pass 1: 3/5 reached HEAT BADGE), and `rocksmash_taught.ss1` (a nearer post-Wattson
+checkpoint) travels the same code cleanly end-to-end. So it is a NARROW post-battle navigator
+robustness gap this particular save triggers, not a broad regression.
+**REPRO (deterministic).** `story_harness.py wattson_done.ss1 --driver story --frames 120000`
+→ HANG at f74383. Use it for a focused fix (the post-battle transition freeze class —
+Bug 2 lineage; the real fix likely ensures the navigator waits for a truly-controllable
+avatar after a mid-navigation battle, or prevents the wild encounter on that leg).
+**WORKAROUND.** For milestone/continuing validation use `rocksmash_taught.ss1` (proven), not
+wattson_done, until KI-16 is fixed. Consider regenerating wattson_done (may be a stale-state
+artifact like the rocksmash_taught menu case).

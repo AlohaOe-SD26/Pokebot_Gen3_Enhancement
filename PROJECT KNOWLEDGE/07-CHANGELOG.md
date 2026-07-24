@@ -2290,3 +2290,24 @@ already-smashed twin rocks). Corrected §Ch12 spec + the function's docstring wi
 resume plan. Remaining: the Fiery-Path leg, validated Mauville→Petalburg tiles, the gym
 live-solver, the Surf handoff, then wiring. New recon tools: route_probe_ch12.py,
 route_chain_ch12.py. Honest checkpoint — no untested code on the frontier.
+
+## 2026-07-23 — VALIDATION SWEEP (user-requested): 5 fresh + 5 milestone runs
+Two livetest batches to check the story frontier for hangs/derails/crashes.
+- **Pass 1 — 5 FRESH runs to the HEAT BADGE frontier** (--frames 3.2M): 3/5 reached the
+  frontier cleanly (1 self-recovered derail each), 1 budget-bound INCOMPLETE (clean, ran
+  the full 3.2M — training pace, #24-train-efficiency), 1 genuine HANG (run05: after-faint
+  party-menu chooser with a 1-HP Shedinja — logged KI-15). Net: 4/5 clean, 1 real bug.
+  The Match-Call/trainer-approach stalls seen mid-run SELF-RECOVERED (they are the "1
+  derail" — not failures).
+- **Pass 2 — 5 MILESTONE runs from rocksmash_taught.ss1** (the recent-fix arc: travel →
+  cable car → Jagged descent → Lavaridge maze → Flannery): **5/5 reached the HEAT BADGE,
+  0 hangs / 0 derails / 0 whiteouts.** Clean sweep — strong confirmation that all the
+  frontier content built this session (KI-14, cable car + descent recovery, maze solver,
+  rock-smash speed, resume normalizer, sufficiency gate, boss-training) is solid.
+  (First Pass-2 attempt from wattson_done deterministically wedged at f74383 in
+  travel_to_fallarbor — a wattson_done-SPECIFIC post-battle navigator gap, logged KI-16;
+  rocksmash_taught travels the same code cleanly, so it is the working milestone.)
+- Two bugs found + documented (KI-15 after-faint chooser residual; KI-16 wattson_done
+  navigator wedge) — both intermittent/narrow, both with repros for a focused fix; NOT
+  guess-patched (they touch critical battle/navigator code and need a validated repro).
+  New recon tools: route_probe_ch12.py / route_chain_ch12.py (from the Ch12 build attempt).
