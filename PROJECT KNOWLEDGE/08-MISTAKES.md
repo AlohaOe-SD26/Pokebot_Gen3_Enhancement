@@ -1113,3 +1113,35 @@ discriminator is the tile's TYPE and warp data, not its collision flags.
 **Prevention rule:** a reachability claim is only valid together with the world state it was
 measured in — record the story flags in force, and before calling a tile unreachable, check
 whether a story flag gates the route to it.
+
+## 2026-07-24 — A recovery helper's guard matched half the map, including its own destination
+
+**Symptom.** Ch13d validation runs derailed repeatedly with
+`held walk: never reached (13, 15) heading Up.` It looked like the avatar could not leave
+the Route 120 bridge — so the first two hypotheses were an NPC standing on (13,15) (Steven,
+mid-departure) or a terrain/elevation wall like the (24,8) bug found the same day.
+
+**Both hypotheses were wrong.** Probed: (13,15) is `collision=0`, unoccupied at load and
+across 2000 zero-input frames (Steven's template flag 972 already flushed), and holding Up
+from (13,16) reaches it in well under 120 frames.
+
+**Root cause.** `_leave_route120_north_bridge()` guarded on
+`map == ROUTE120 and y <= 16`. That is true of the entire WESTERN half of Route 120 —
+including **(5,15), the helper's own destination**. The first crossing succeeded; then a
+mid-route battle and StoryMode restart re-entered the helper from (5,15), where its
+hard-coded "hold Up until (13,15)" is geometrically impossible (holding Up only changes y,
+and x=5 ≠ 13). It burned the 900-frame per-leg bound and raised, every time.
+
+**A/B proof** (`tools/story-dev/repro_route120_bridge_guard_fault.py`): from (13,16) the
+identical generator returns in 359 frames; from (5,15) it raised after 1101. After narrowing
+the guard to the strand column (`y <= 16 and x >= 12`): (13,16) still returns in 359 frames
+(unchanged), (5,15) returns in 0.
+
+**Why it hid so long.** The helper is idempotent-looking and "no-op unless stranded" per its
+own docstring — but the no-op test did not actually test for STRANDED, it tested for a broad
+coordinate box. A guard that is wrong only on re-entry is invisible until something causes
+re-entry, and here that was an unrelated wild battle.
+
+**Prevention rule:** a "no-op unless X" guard must test X itself. If the helper's own
+destination satisfies its entry condition, the condition is wrong — check that explicitly
+when writing any recovery/idempotent helper.

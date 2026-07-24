@@ -5477,11 +5477,25 @@ def _leave_route120_north_bridge() -> Generator:
     from which the planner reaches Fortree. No-op unless we're stranded up there. Made
     a shared helper so a resume/derail that lands on the bridge (not only the in-line
     get_devon_scope flow) recovers too."""
-    if _map_group_number() == MapRSE.ROUTE120.value and get_player_avatar().local_coordinates[1] <= 16:
-        yield from _clear_stale_battle_message()
-        yield from _ride_out_all_scenes(quiet_frames=200)
-        yield from _hold_walk_route([("Up", (13, 15)), ("Left", (5, 15))], stop_on_script=False)
-        yield from wait_until_truly_controllable()
+    # ‼ THE GUARD MUST MATCH THE STRAND, NOT HALF THE MAP (2026-07-24, proven by
+    # tools/story-dev/repro_route120_bridge_guard_fault.py). The old guard was
+    # `y <= 16` alone, which is true of the whole WESTERN half of Route 120 —
+    # including (5,15), this very helper's own DESTINATION. So after the first
+    # crossing succeeded, a later mid-route battle + StoryMode restart re-entered
+    # here from (5,15) and re-ran "hold Up until (13,15)" — geometrically impossible
+    # from x=5, since holding Up only changes y. It burned the 900-frame per-leg
+    # bound and raised "held walk: never reached (13, 15) heading Up" every time.
+    # A/B: from (13,16) the identical generator returns cleanly in 359 frames; from
+    # (5,15) it raises after 1101. The strand is the x>=12 column, so gate on it.
+    # (Also ruled out by probe: (13,15) is collision=0, unoccupied — Steven's
+    # template flag 972 is already flushed — so this was never an NPC or terrain bug.)
+    if _map_group_number() == MapRSE.ROUTE120.value:
+        x, y = tuple(get_player_avatar().local_coordinates)
+        if y <= 16 and x >= 12:
+            yield from _clear_stale_battle_message()
+            yield from _ride_out_all_scenes(quiet_frames=200)
+            yield from _hold_walk_route([("Up", (13, 15)), ("Left", (5, 15))], stop_on_script=False)
+            yield from wait_until_truly_controllable()
 
 
 def get_devon_scope() -> Generator:
