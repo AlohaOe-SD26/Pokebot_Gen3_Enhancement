@@ -5428,6 +5428,20 @@ def fight_route119_rival_and_get_fly() -> Generator:
     context.message = "Story: HM02 Fly received!"
 
 
+def _leave_route120_north_bridge() -> Generator:
+    """Steven's Devon-Scope scene strands the avatar on the Route 120 NORTH BRIDGE at
+    (13,16) — an ISOLATED tile the planner can't leave (probed: every direction snaps
+    to (13,15), calculate_path NO-PATHs everywhere from it). HELD-INPUT west to (5,15),
+    from which the planner reaches Fortree. No-op unless we're stranded up there. Made
+    a shared helper so a resume/derail that lands on the bridge (not only the in-line
+    get_devon_scope flow) recovers too."""
+    if _map_group_number() == MapRSE.ROUTE120.value and get_player_avatar().local_coordinates[1] <= 16:
+        yield from _clear_stale_battle_message()
+        yield from _ride_out_all_scenes(quiet_frames=200)
+        yield from _hold_walk_route([("Up", (13, 15)), ("Left", (5, 15))], stop_on_script=False)
+        yield from wait_until_truly_controllable()
+
+
 def get_devon_scope() -> Generator:
     """Chapter 13d — Steven's Devon Scope + flushing Fortree's gym-path Kecleon.
 
@@ -5478,16 +5492,8 @@ def get_devon_scope() -> Generator:
                 raise BotModeError("Route 120: the Steven/Devon-Scope scene never resolved.")
         context.message = "Story: DEVON SCOPE received!"
 
-    # ‼ Steven's scene strands the avatar on the Route 120 NORTH BRIDGE at (13,16),
-    # an ISOLATED tile the planner can't leave (probed: every direction snaps to
-    # (13,15); calculate_path NO-PATHs everywhere) — so the walk back to Fortree
-    # NO-PATHed to Manual (runs 8/10/11). HELD-INPUT off the bridge west to (5,15),
-    # from which the planner reaches Fortree cleanly. Skip if we already left it.
-    if _map_group_number() == MapRSE.ROUTE120.value and get_player_avatar().local_coordinates[1] <= 16:
-        yield from _clear_stale_battle_message()
-        yield from _ride_out_all_scenes(quiet_frames=200)
-        yield from _hold_walk_route([("Up", (13, 15)), ("Left", (5, 15))], stop_on_script=False)
-        yield from wait_until_truly_controllable()
+    # Off the Route 120 north bridge that Steven's scene strands us on (see helper).
+    yield from _leave_route120_north_bridge()
 
     # Flush the Fortree gym-path Kecleon (city object (25,8), flag 969) if it still
     # stands. Idempotent: skip when the object is gone.
@@ -5538,6 +5544,9 @@ def do_fortree_gym() -> Generator:
 
     if get_event_flag("BADGE06_GET"):
         return
+    # A resume with the Scope already set skips get_devon_scope, so recover the
+    # bridge-strand here too before anything navigates.
+    yield from _leave_route120_north_bridge()
     context.message = "Story: entering Fortree Gym to challenge Winona..."
     if _map_group_number() != GYM.value:
         yield from _enter_warp_by_navigation(
