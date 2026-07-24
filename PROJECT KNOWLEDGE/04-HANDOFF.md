@@ -49,12 +49,17 @@ chapter; use Gemini assistants (gemini_relay.py) for research gaps.
 - **Norman balance:** the flannery_done team (no Fighting answer) didn't break
   Slaking in 2M frames (6 attempts, boss-training cycled correctly, 0 hangs) —
   fresh teams carry Combusken; the win is expected organically in the big batch.
-- **RUNNING: the big fresh batch** (5 lanes × 5M frames, 150-min timeout,
-  livetest-runs/<latest>) — validates KI-15/KI-17 fixes + Ch12 + Ch13 end-to-end.
-  WHEN IT LANDS: review REPORT/summary; capture norman_done/surf/fortree
-  checkpoints from the furthest lane; fix what broke (the Ch12-style loop); then
-  Ch14 build. If a lane wins Norman, SAVE ITS PROFILE STATE before probing anything
-  (probes overwrite current_state.ss1 — tonight's lesson).
+- **★ NORMAN BEATEN ORGANICALLY (batch 20260724-070630 lane 1, Blaziken team)** —
+  Ch12 validated end-to-end; **`saves/norman_done.ss1`** captured+verified (BADGE05 +
+  RECEIVED_HM_SURF, controllable). The lane's one failure (the 12c Surf-teach hunt
+  picking warp-locked Route 117 grounds) is FIXED (reachable-grounds picker + Route
+  102 (9,2) promoted into TRAINING_GRASS). Batch: 1× Norman+Surf, 2× healthy
+  budget-INCOMPLETE, 2× pre-jolt-fix wedges (fixes landed mid-batch, 54f9537e).
+- **Ch13 LIVE-ITERATING from norman_done** (the Ch12 method): run 1 taught Surf
+  (Zigzagoon carrier), Surf-crossed Route 118 (+ the planner found a Route 103
+  river shortcut), died on a bad leg tile ((8,30) unreachable — fixed to the
+  institute door row (6,33), e8dff507). Run 2 in flight → Weather Institute →
+  rival/Fly → Fortree. Iterate on failures; capture fortree/fly checkpoints.
 
 > **NEW AGENT: read `14-AGENT-PLAYBOOK.md` right after this file.** It is the
 > accumulated craft (harness, debugging method, story-mapping, faithfulness rules, bug
