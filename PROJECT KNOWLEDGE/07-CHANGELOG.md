@@ -2601,3 +2601,19 @@ raises `BotModeError`, converting a silent forever-hang into a recoverable derai
 **Prevention rule:** a loop guard that lives inside ONE branch cannot bound a loop that can
 spin in ANOTHER branch — every `while True` needs one counter incremented unconditionally at
 the top, no matter how many per-branch counters it already has.
+
+## 2026-07-24 — harness stuck-dumps now print the ACTIVE FIELD SCRIPTS (#24)
+
+`tools/story-dev/story_harness.py`: added `_script_names()` and wired it into both the
+`STUCK-OW` and `NO-PROGRESS` dumps. **Why this mattered:** three long runs all died on
+Route 111 (18,99) and none of my harness logs could explain it — the harness printed tasks,
+battle callback, battle instruction and the generator stack, but NOT the field-script stack.
+The user's in-game DEBUG dump does print it, and that one field cracked the case: it showed
+`EventScript_SmashRock` still reading ACTIVE 140,000 frames after the bot had dropped to
+Manual mode and stopped pressing anything. A parked field script swallows input and wedges
+every script-gated wait downstream, so it is a first-class "why is nothing progressing"
+signal. Verified: `story_harness.py` parses clean (note: the file carries a UTF-8 BOM — read
+it with `encoding="utf-8-sig"`, plain `utf-8` raises `SyntaxError: U+FEFF`).
+
+**Prevention rule:** when a wedge is undiagnosable from a log, the first fix is to the DUMP,
+not to the code — add the missing field before forming a theory about the bug.

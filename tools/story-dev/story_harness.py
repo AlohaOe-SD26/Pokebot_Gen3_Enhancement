@@ -1587,6 +1587,27 @@ def active_ml_tasks():
     return [n for n in names if task_is_active(n)]
 
 
+def _script_names():
+    """Names of the field scripts the game currently reports as ACTIVE.
+
+    ‼ 2026-07-24: the harness's stuck-dumps did NOT carry this field, and that is
+    exactly why three long runs that all died on Route 111 (18,99) were undiagnosable
+    from harness logs alone. The user's in-game DEBUG dump DOES print it, and it showed
+    `EventScript_SmashRock` still reading active 140,000 frames after the bot had
+    dropped to Manual and stopped pressing anything. A parked field script swallows
+    input and wedges every script-gated wait downstream, so it must appear in any
+    "why is nothing progressing" dump. Never diagnose a wedge without it."""
+    try:
+        from modules.tasks import get_global_script_context
+
+        ctx = get_global_script_context()
+        if ctx is not None and ctx.is_active:
+            return list(ctx.stack or [])
+        return []
+    except Exception as e:
+        return f"<err {e}>"
+
+
 # ---- optional fault injection: simulate the user's failing environment -------
 if args.break_state:
     import modules.battle_move_replacing as _bmr
@@ -1977,12 +1998,14 @@ for step in range(args.frames):
         if _dsig != globals().get("_last_dsig"):
             globals()["_last_dsig"] = _dsig
             log(f"f{step}: STUCK-OW cb={get_main_battle_callback()} instr={get_current_battle_script_instruction()} "
-                f"textprinter={_tpstate} tasks={_tasks} ctrl={ctrl} bt={(battle_text() or '')!r} party=[{ps}]")
+                f"textprinter={_tpstate} tasks={_tasks} ctrl={ctrl} bt={(battle_text() or '')!r} "
+                f"scripts={_script_names()} party=[{ps}]")
     if no_progress in (1200, 3000, 8000, 15000):
         log(
             f"f{step}: !!! NO-PROGRESS x{no_progress} sig={sig} "
             f"instr={get_current_battle_script_instruction()} cb={get_main_battle_callback()} "
-            f"tasks={active_ml_tasks()} bt={battle_text()!r} bot_mode={context.bot_mode}"
+            f"tasks={active_ml_tasks()} scripts={_script_names()} "
+            f"bt={battle_text()!r} bot_mode={context.bot_mode}"
         )
         # The Ch9 fainted-menu hang proved a sig alone can't localize an in-battle
         # wedge — dump the exact generator frame the bot is waiting in as well.
