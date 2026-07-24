@@ -2474,3 +2474,21 @@ re-path + push-into-the-door rotation fallback → Winona challenge in the Brawl
 pattern; Flying-answer lead + Fortree heal in _play). END_MARKERS += "FEATHER BADGE
 earned". ⚠ All of Ch13 is SKELETON pending a post-Surf save (the big fresh batch is
 grinding toward one); expect first-run iteration like Ch12's (runs 1-9 found 6 bugs).
+
+## 2026-07-24 (overnight, cont.) — ★ NORMAN BEATEN ORGANICALLY: Ch12 validated end-to-end; norman_done.ss1 captured
+Big-batch lane 1 (fresh, 5M frames) beat NORMAN with a natural team (Blaziken L36 lead)
+and received HM03 Surf — BADGE05_GET + DEFEATED_PETALBURG_GYM + RECEIVED_HM_SURF all
+verified on the captured state, promoted to **saves/norman_done.ss1** (controllable,
+Petalburg (7,6), 5-mon party). The full new-content chain (travel → Wanda wall → Woods
+SE door → sign-door gym chain → Norman → automatic Surf handoff) ran organically.
+The lane then dropped to Manual in Segment 12c: `ensure_hm_learner` picked ROUTE 117
+hunting grounds — warp-locked from Petalburg (the warp graph calls them one region;
+the plain planner can't cross the tunnel) — 10 failed navigations. FIXED: Route 102
+(9,2) promoted into TRAINING_GRASS (two-way swept; hosts Lotad/Surf-learners) and the
+hunt now picks the furthest-progressed ground that is STATICALLY PATHABLE from the
+current position, falling back to the old pick. PROVEN live (ch13_run1 from
+norman_done): hunted Route 102, caught a Zigzagoon carrier, taught Surf, and the
+Surf-aware planner then opened the Route 103 river shortcut and crossed Route 118 —
+Ch13a executing. Batch scorecard (20260724-070630): 1× Norman+Surf (the 12c Manual),
+2× budget-INCOMPLETE deep in the Norman cycle (healthy), 2× pre-jolt-fix wedges
+(their fixes landed in 54f9537e mid-batch; states batch3_run0{1,2,3,5}*.ss1 captured).

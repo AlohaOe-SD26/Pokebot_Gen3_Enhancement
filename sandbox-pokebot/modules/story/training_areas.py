@@ -23,6 +23,9 @@ from modules.map_data import MapRSE
 # Areas with a VERIFIED spin tile — usable for area-appropriate training today.
 TRAINING_GRASS: list[tuple] = [
     (MapRSE.ROUTE101, (9, 9), (2, 3)),   # tile used by travel_to_route103()
+    (MapRSE.ROUTE102, (9, 2), (3, 5)),   # PETALBURG_TRAINING_GRASS (Ch12 Norman prep;
+    # two-way swept from the Petalburg PC door (20,16), 2026-07-24 — hosts Lotad, a
+    # Surf learner, which the 12c HM hunt needs reachable from Petalburg)
     (MapRSE.ROUTE103, (5, 7), (2, 4)),   # ROUTE103_GRASS_TILE (Segment 1 training)
     (MapRSE.ROUTE116, (11, 7), (6, 8)),  # RUSTBORO_TRAINING_GRASS (pre-Roxanne)
     (MapRSE.ROUTE117, (31, 16), (13, 14)),  # ROUTE117_TRAINING_GRASS (Ch9 Wattson prep;
@@ -31,7 +34,6 @@ TRAINING_GRASS: list[tuple] = [
 
 # Level ranges known, spin tile still to be MAPPED (fill tile as the map is reached):
 PENDING_GRASS: list[tuple] = [
-    (MapRSE.ROUTE102, None, (3, 5)),
     (MapRSE.ROUTE104, None, (4, 6)),
     (MapRSE.PETALBURG_WOODS, None, (5, 6)),
     (MapRSE.RUSTURF_TUNNEL, None, (5, 6)),  # Whismur (no grass — cave; here for ref)

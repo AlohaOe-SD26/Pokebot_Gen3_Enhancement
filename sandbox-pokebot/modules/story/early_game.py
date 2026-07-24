@@ -3905,7 +3905,32 @@ def ensure_hm_learner(item) -> Generator:
             f"No party mon can learn {move.name} and no swept training grass hosts "
             f"a learner species — extend training_areas.TRAINING_GRASS first."
         )
-    map_enum, tile, names = grounds[-1]  # last entry = furthest-progressed area = nearest to the frontier
+    # ‼ Prefer a REACHABLE ground (batch3 run01, 2026-07-24): the furthest-progressed
+    # area can be warp-locked from here — after Norman the pick was Route 117, which
+    # sits across the Rusturf Tunnel from Petalburg; the warp graph treats them as
+    # one region, the plain planner can't cross, and ten failed navigations dropped a
+    # NORMAN-BEATING run to Manual. Statically test each candidate from where we
+    # stand (furthest-progressed first) and take the first that paths; if none does,
+    # keep the old pick and let the riding navigation try its luck.
+    from modules.map_path import calculate_path as _cp, PathFindingError as _pfe
+
+    ordered = list(reversed(grounds))  # furthest-progressed first
+    chosen = None
+    try:
+        _here = (get_map_data_for_current_position().map_group_and_number,
+                 tuple(get_player_avatar().local_coordinates))
+        for cand in ordered:
+            try:
+                _cp(_here, (cand[0], cand[1]), avoid_encounters=False, avoid_scripted_events=False)
+                chosen = cand
+                break
+            except _pfe:
+                continue
+            except Exception:
+                continue
+    except Exception:
+        pass
+    map_enum, tile, names = chosen if chosen is not None else grounds[-1]
     context.message = f"Story: nobody can learn {move.name} — hunting {'/'.join(names)} on {map_enum.name}..."
 
     if sum(s.quantity for s in get_item_bag().poke_balls) <= 1:
