@@ -997,3 +997,45 @@ over summaries — including this project's own prior write-ups.
   to persist for seconds, (b) include a can't-be-mid-flow guard (position frozen), (c) press
   ONCE, (d) cool down long enough for the world to react — never per-frame; and never trust
   `cb`/`gDisplayedStringBattle` alone (stale liars).
+
+## 2026-07-24 — "Same-map two-way path" does NOT prove the story can reach a tile
+- **Symptom:** a new training-area table shipped tiles verified by a two-way `calculate_path`
+  between two tiles ~8 apart on the SAME map. Two were unusable: Route 111 (25,55) sits NORTH
+  of the Go-Goggles desert (reachable from Fallarbor, never from Mauville/Petalburg — and no
+  Mauville-side Route 111 grass exists at all), and Route 114 (18,29) is unreachable from
+  EVERY real story anchor (Mauville/Fallarbor/Rustboro/Petalburg).
+- **Root cause:** same-map connectivity only proves the tile is in *a* walkable region; a
+  single map can hold several disconnected regions (deserts, rivers, ledges). The verification
+  never asked "can the story get there FROM WHERE IT STANDS?"
+- **Fix that worked:** verify every candidate tile from the REAL anchors the story occupies
+  (the town PCs), and make the runtime picker position-aware — same region → a real
+  `calculate_path` to the exact tile; cross-region → warp-graph `plan()` with a leg cap.
+- **Prevention rule:** a map-data tile is not "validated" until a path is proven from an
+  anchor the bot actually stands on; record WHICH anchor in the table comment.
+
+## 2026-07-24 — A level-fit picker with no story-stage gate proposes places the bot can't go
+- **Symptom:** `best_training_area(31)` returned Route 121 (past Lilycove, across water) for a
+  pre-Surf team standing in Petalburg. The function matched its spec exactly — the SPEC was
+  wrong (level fit only, no reachability, no HM gate, no travel cost).
+- **Root cause:** delegating with an under-specified acceptance contract. The worker cannot
+  invent constraints the spec omits, and its output looked correct in isolation.
+- **Fix that worked:** three gates on top of level fit — HM prerequisite (Surf actually KNOWN,
+  not just the badge), reachability from the current position, and a travel-distance cap
+  (a training detour must be local; the warp graph will happily route across Hoenn).
+- **Prevention rule:** when specifying a chooser, enumerate the DISQUALIFIERS, not just the
+  ranking metric — and make the acceptance command assert a case that must return NOTHING.
+
+## 2026-07-24 — A helper that returns on a state flag can hand back a dirty screen
+- **Symptom:** HM teaching wedged in BAG_MENU. `ensure_hm_learner` returned the instant the
+  caught-mon check passed, while the catch aftermath ("Give a nickname...?") was still up;
+  `teach_hm_move` then opened the bag on top of it. Hit Surf (user-reported) and exposed every
+  HM path including Rock Smash.
+- **Root cause:** the spin's stop-condition ("party grew") is true well BEFORE the screen is
+  clean, and `wait_until_truly_controllable` presses nothing by design, so nothing dismissed
+  the prompt. A menu cannot open under a pending dialogue (the KI-14 class).
+- **Fix that worked:** `normalize_to_overworld()` at BOTH ends — before returning from the
+  catch helper, and again before the teach flow touches a menu (defence in depth; B answers
+  the nickname prompt "no" and can never start an NPC conversation).
+- **Prevention rule:** any helper that hands control to a caller which will open a MENU must
+  return a normalized overworld, not merely a satisfied flag — and the menu-opening side
+  should normalize again rather than trust its caller.

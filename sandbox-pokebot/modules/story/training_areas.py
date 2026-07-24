@@ -30,6 +30,24 @@ TRAINING_GRASS: list[tuple] = [
     (MapRSE.ROUTE116, (11, 7), (6, 8)),  # RUSTBORO_TRAINING_GRASS (pre-Roxanne)
     (MapRSE.ROUTE117, (31, 16), (13, 14)),  # ROUTE117_TRAINING_GRASS (Ch9 Wattson prep;
     # two-way swept FROM the real entry 2026-07-22 — the Mauville-frontier ground)
+    # ‼ ROUTE114 (15-18) is DEMOTED to PENDING: the candidate tile (18,29) passed a
+    # same-map two-way check but is unreachable from EVERY real story anchor tested
+    # (Mauville / Fallarbor / Rustboro / Petalburg, 2026-07-24). Same-map connectivity
+    # does not imply the story can get there — re-derive from a Fallarbor-side anchor
+    # before promoting.
+    (MapRSE.ROUTE111, (25, 55), (19, 22)),  # ‼ FALLARBOR-SIDE ONLY: this tile is NORTH of
+    # the Go-Goggles desert, which splits Route 111 in two. Verified 2026-07-24: reachable
+    # from Fallarbor, NOT from Mauville/Rustboro/Petalburg, and NO Mauville-side Route 111
+    # grass exists (y>88 scan found none). The caller's reachability predicate is what keeps
+    # this honest — never assume "same map" means "we can get there".
+    (MapRSE.ROUTE115, (6, 53), (23, 26)),  # post-Norman band; same-map two-way verified
+    # vs. (6, 45) (dist 8) on norman_done.ss1, 2026-07-24
+    (MapRSE.ROUTE118, (29, 15), (24, 27)),  # post-Norman band; same-map two-way verified
+    # vs. (27, 9) (dist 8) on norman_done.ss1, 2026-07-24
+    (MapRSE.ROUTE119, (21, 109), (24, 27)),  # post-Norman band; same-map two-way verified
+    # vs. (21, 101) (dist 8) on norman_done.ss1, 2026-07-24
+    (MapRSE.ROUTE121, (44, 14), (25, 28)),  # post-Norman band (highest mapped); same-map
+    # two-way verified vs. (48, 10) (dist 8) on norman_done.ss1, 2026-07-24
 ]
 
 # Level ranges known, spin tile still to be MAPPED (fill tile as the map is reached):
@@ -64,4 +82,62 @@ def best_training_grass(mon_level: int):
         score = (abs((mon_level + 1) - hi), -hi)  # closeness to mon_level+1, then higher area
         if best_score is None or score < best_score:
             best, best_score = (map_enum, tile), score
+    return best
+
+
+# ‼ STORY-STAGE GATE (2026-07-24). Level fit alone is NOT enough: the richest bands sit
+# behind HM gates, so a naive "highest winnable band" sends a pre-Surf, Petalburg-standing
+# team to Route 121 (past Lilycove). Areas listed here are only legal once the party can
+# actually get there. "surf" = the water routes east/north of Mauville and the Route 115
+# coast — all unreachable on foot. Everything absent from this dict is on-foot reachable
+# once its region has been visited (the corridor the story already walked).
+#   "surf"   = across water; needs a party mon that actually KNOWS Surf (badge alone is
+#              not enough — map_path.can_surf() requires the move).
+#   "region" = on-foot but POSITION-gated: only reachable from part of the map/world, so it
+#              is legal only when a live reachability check says so (Route 111's grass is
+#              north of the desert = Fallarbor-side only). Marked so the conservative
+#              `allow=None` default refuses to propose it on a guess.
+AREA_PREREQ: dict = {
+    MapRSE.ROUTE111: "region",
+    MapRSE.ROUTE115: "surf",
+    MapRSE.ROUTE118: "surf",
+    MapRSE.ROUTE119: "surf",
+    MapRSE.ROUTE121: "surf",
+}
+
+
+def best_training_area(team_level: int, *, min_wild_max: int = 0, allow=None):
+    """Pick the training area best matched to `team_level` for FULL-xp grinding.
+
+    Returns ``(map_enum, tile, (lo, hi))`` or ``None``. Only areas whose max wild level
+    is > ``min_wild_max`` are considered, so a caller can say "only bother if it beats
+    what I already have". Winnability guard: never pick an area whose LOW end is above
+    the trainee (``team_level >= lo - 1``). Among the winnable, richer-than-min areas,
+    prefer the one whose HIGH end is closest to ``team_level`` without a hard cap —
+    ties break toward the HIGHER band (more xp per battle).
+
+    ``allow`` is a REACHABILITY predicate ``(map_enum, tile, prereq_or_None) -> bool`` and
+    is what keeps the answer honest — see AREA_PREREQ. It receives the TILE too, because
+    "the map is reachable" does not imply "that tile is": Route 111's grass sits north of
+    the Go-Goggles desert, which splits the map in two. Callers that cannot evaluate story
+    state may pass ``allow=None``, which then only permits areas with NO prerequisite
+    (the conservative default: never propose an HM-gated area on a guess)."""
+    best = None
+    best_score = None
+    for map_enum, tile, (lo, hi) in TRAINING_GRASS:
+        if tile is None:
+            continue
+        if hi <= min_wild_max:
+            continue  # doesn't beat the floor the caller already has
+        if team_level < lo - 1:
+            continue  # wilds too strong — the trainee would lose here
+        prereq = AREA_PREREQ.get(map_enum)
+        if allow is None:
+            if prereq is not None:
+                continue  # conservative default — unreachable unless proven otherwise
+        elif not allow(map_enum, tile, prereq):
+            continue
+        score = (abs(hi - team_level), -hi)  # closeness to team_level, then higher band
+        if best_score is None or score < best_score:
+            best, best_score = (map_enum, tile, (lo, hi)), score
     return best

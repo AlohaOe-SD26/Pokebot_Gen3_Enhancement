@@ -217,3 +217,28 @@ whole failure transcript anyway; (d) hardcoding model IDs in the roles.
 claimed no Claude 5 family exists) — never use it for those; and an "Opus 5" is NOT in the
 authoritative catalog (cached 2026-06-24) with no live Models API access from this machine
 to check, so §7 gives a verify-then-edit-one-row procedure instead of wiring an unverified id.
+
+## 2026-07-24 — Fodder grass: SKIP the grind rather than travel, and keep the trigger conservative
+**Decision:** `_prepare_for_fight` treats a boss's local grass as fodder only when its
+strongest wild is >12 levels below the team (`FODDER_LEVEL_GAP = 12`), and then prefers
+RELOCATING to a better area but SKIPS training entirely when none is genuinely reachable.
+Training detours are restricted to the CURRENT REGION (cross-region hops fail closed) and
+each relocated area heals at its own nearest Poké Center.
+**Rationale:** (a) 12, not the reactive boss-training check's 8 — this fires proactively,
+before any loss, so it must not disturb prep that already works; measured, 8 would have
+changed Wattson (R117 L14 vs L24) and left Roxanne borderline, while 12 fires only on the
+pathological Norman case (R102 L4 vs L27-31) the user reported. (b) SKIP over travel because
+recon proved there is nowhere better at that moment: pre-Surf, everything reachable from
+Petalburg is L2-5 and every L19-28 band is across water or on the far side of the Go-Goggles
+desert — and a lost boss attempt that KOs two of Norman's mons pays ~1,200 xp vs ~25 for a
+Route 102 wild, so the re-attempt IS the better trainer. (c) Cross-region fails closed
+because `calculate_path` cannot tile-check another region, and allowing a hop on the warp
+graph's word alone would reintroduce the disconnected-pocket bug the same-region branch
+exists to prevent (reviewer catch).
+**Rejected:** level-fit-only selection (proposed Route 121, past Lilycove, to a pre-Surf
+team); trusting same-map two-way path as proof of reachability (Route 111's tile is
+desert-north, Route 114's is unreachable from every anchor — both caught by anchor testing);
+hand-picked heal centres without verification (two of ten were wrong — Route 111 needed
+Fallarbor, not Mauville).
+**Open follow-up (user, 2026-07-24):** WATER training tiles once Surf is taught — surf
+encounters are an untapped band and there is a lot of water. Logged as #24-watertrain.

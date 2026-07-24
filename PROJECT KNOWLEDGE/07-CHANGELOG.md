@@ -2529,3 +2529,45 @@ walkways, the Route-119/120 bridge class). NEXT: capture a clean Fortree checkpo
 (SAVE_CHECKPOINT can't key a flag here — regenerate by running to Fortree and hand-saving
 when controllable at the PC), probe the held-input route plaza→(21,11), and add it to
 do_fortree_gym before the door warp. Then 13e (Winona turnstile gym) is next-untested.
+
+## 2026-07-24 — Fodder-grass prep fix + the general HM/TM teach wedge (first /orchestrate run)
+Two user-reported bugs, both fixed and proven. Run as the first real test of the
+orchestration pattern (doc 16): 3 cheap explorers + 1 mid implementer + mid verifier/reviewer,
+with the premium tier doing triage, the spec, the judgment-dense wiring, and the gate.
+
+**(1) TRAINING GRASS — the bot ground L3-4 wilds with a L27-31 team (user report).**
+Each boss carried a hardcoded local `grass`; for NORMAN that is Route 102 (L3-4) because his
+gym is the geographically EARLIEST yet is fought 5th — ~25 xp a kill, i.e. never. Now
+`_prepare_for_fight` measures the local patch against the team and, when it is fodder
+(`wild_max + FODDER_LEVEL_GAP(12) < team_max`), either RELOCATES to a better area or, if none
+is genuinely reachable, SKIPS the grind so the boss re-attempt does the levelling (Gen 3 keeps
+mid-battle xp through a whiteout: two of Norman's mons ≈ 1,200 xp). New
+`training_areas.best_training_area(team_level, min_wild_max=, allow=)` + 5 new verified areas;
+heals move to the PC nearest the CHOSEN area (the cave-heal lesson).
+‼ RECON RESULT worth keeping: at the Norman moment there is genuinely nowhere better —
+pre-Surf, everything reachable from Petalburg is L2-5 and every L19-28 band is across water or
+on the far side of the Go-Goggles desert. So SKIP is the correct answer there, not travel.
+Proof (decision table, norman_done.ss1): NORMAN L31 -> SKIP; WATTSON L24 / ROXANNE L17 / early
+L9 -> TRAIN LOCALLY, i.e. **proven-good prep is untouched** — the gap is deliberately 12
+(more conservative than the reactive boss-training check's 8) precisely so it only fires on
+the pathological case.
+
+**(2) HM/TM TEACH WEDGE — general, not Surf-specific.** `ensure_hm_learner` returned the frame
+a caught mon registered, while the catch aftermath ("Give a nickname to the captured
+ZIGZAGOON?") was still on screen; `teach_hm_move` then opened the BAG on top of the pending
+prompt and wedged in BAG_MENU until the watchdog (evidence: ch13_run1.log f9931 — teach_hm_move
+in the stack, BAG_MENU, that nickname text). Both functions now `normalize_to_overworld()`
+first (B-rides the prompt; B answers the nickname "no" and can never start an NPC
+conversation). Exposed every HM path, incl. Rock Smash. PROVEN A/B by the new
+`tools/story-dev/repro_teach_under_dialogue.py`, which drives the REAL `teach_hm_move`
+generator: pre-fix the bag-open fires onto the pending dialogue and fails; fixed, normalize
+provably runs first and the bag opens; healthy no-dialogue control unaffected.
+
+**Orchestration ledger:** delegated = 3 explorer recons + 1 implementer (data + picker) +
+verifier proof + adversarial review; kept premium = triage, the spec, `_prepare_for_fight`
+wiring, the reachability predicate, all thresholds, the gate. Kick-backs = 1 (explorer's
+first-tile sampling produced data contradicting known ground truth). Overrides = 3, all from
+MY incomplete spec, all caught by the gate: level-fit picker proposed Route 121 (past
+Lilycove, Surf-gated); Route 111's tile is north of the desert so "same map" != reachable;
+first threshold would have silently changed Wattson/Roxanne. Net: the pattern moved the grunt
+work off-tier and the GATE, not the workers, is what protected quality — exactly doc 16's thesis.

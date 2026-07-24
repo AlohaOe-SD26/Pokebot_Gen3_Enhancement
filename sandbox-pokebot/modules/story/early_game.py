@@ -3984,6 +3984,12 @@ def ensure_hm_learner(item) -> Generator:
     slot = hm_learner_slot(item)
     if slot is None:
         raise BotModeError(f"Hunted for a {move.name} learner but never caught one (timeout/balls).")
+    # ‼ The spin stops the FRAME the catch registers — the catch AFTERMATH (nickname
+    # YES/NO, "caught!" / dex messages) is still on screen. Hand back a CLEAN overworld
+    # so the caller's next menu action can actually open (ch13_run1 f9931: the teach flow
+    # opened the bag under the nickname prompt and wedged). B declines the nickname.
+    yield from normalize_to_overworld()
+    yield from wait_until_truly_controllable()
     context.message = f"Story: caught a {move.name} learner — {get_party()[slot].species.name}!"
     return slot
 
@@ -4032,6 +4038,16 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
             replace_slot = powers.index(min(powers))
 
     context.message = f"Story: teaching {target_move.name} to {_mon().species.name}..."
+    # ‼ NORMALIZE FIRST (user's Surf report + ch13_run1 f9931): the caller may hand us a
+    # state with a dialogue STILL OPEN — most often `ensure_hm_learner`, which returns the
+    # instant the catch registers while "Give a nickname to the captured X?" is still on
+    # screen. `wait_until_truly_controllable` presses NOTHING by design, so the avatar
+    # reads controllable, we open the BAG on top of the pending prompt, and the whole
+    # teach wedges in BAG_MENU until the watchdog (the KI-14 menu-under-a-script class).
+    # normalize_to_overworld B-rides any menu/dialogue/scene to a clean overworld first —
+    # B also answers the nickname prompt "no", which is what we want, and B can never
+    # start an NPC conversation. Applies to EVERY HM/TM teach, not just Surf.
+    yield from normalize_to_overworld()
     yield from wait_until_truly_controllable()
     yield from StartMenuNavigator("BAG").step()
     yield from scroll_to_item_in_bag(item)

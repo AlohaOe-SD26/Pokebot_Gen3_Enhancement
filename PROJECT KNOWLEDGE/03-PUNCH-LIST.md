@@ -599,3 +599,10 @@
   re-entry, not on actual lost rival battles — a derail-y stretch near the rival can
   burn the 3-attempt budget without fighting once (seen on the goods_recovered thin-team
   save 2026-07-24). Key the counter on a genuine battle loss.
+- [ ] #24-watertrain — WATER training tiles (user 2026-07-24): once Surf is obtained AND
+      taught, surf encounters become a viable training band (level + typing permitting).
+      Extend training_areas with water tiles + a "needs surf" prereq (the AREA_PREREQ
+      mechanism already exists) and teach the picker to consider them.
+- [ ] #24-healverify — re-verify the Surf-gated heal-centre pairings (Routes 115/118/119/121)
+      from a POST-Surf checkpoint; repro_fodder_grass.py currently marks them PENDING because
+      no pre-Surf save can path a water route. Route 119 (21,109) reached NO Poké Center.

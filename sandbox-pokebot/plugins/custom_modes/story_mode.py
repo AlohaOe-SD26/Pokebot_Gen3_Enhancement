@@ -401,11 +401,154 @@ class SwapTrainBattleStrategy(LevelUpTravelBattleStrategy):
         return max(safe, key=lambda i: (party[i].level, party[i].current_hp))
 
 
+#: Max warp-graph legs a TRAINING detour may cost. Local hops (a route next door to the
+#: town we're in) pass; cross-region treks do not — see _training_area_allowed.
+_MAX_TRAINING_TRAVEL_LEGS = 4
+
+
+def _wild_land_max(map_enum) -> "int | None":
+    """Strongest LAND wild level on a map, or None if it has no land table / can't be
+    read. Used to judge whether a training patch is fodder for the current team."""
+    try:
+        from modules.map import get_wild_encounters_for_map
+
+        enc = get_wild_encounters_for_map(*map_enum.value)
+        if enc is None or not enc.land_encounters:
+            return None
+        return max(e.max_level for e in enc.land_encounters)
+    except Exception:
+        return None
+
+
+def _party_can_surf() -> bool:
+    """Does a party mon actually know Surf? (The field-move gate for the water routes —
+    the badge alone is not enough, `map_path.can_surf()` requires the move too.)"""
+    try:
+        from modules.pokemon_party import get_party as _gp
+
+        return any(
+            learned is not None and learned.move.name == "Surf"
+            for mon in _gp()
+            if mon is not None and not mon.is_egg
+            for learned in mon.moves
+        )
+    except Exception:
+        return False
+
+
+def _training_area_allowed(map_enum, tile, prereq) -> bool:
+    """Reachability predicate for `training_areas.best_training_area`.
+
+    TWO gates, both learned the hard way on 2026-07-24:
+    1. **HM prerequisite** — the richest bands (Routes 115/118/119/121) sit across water;
+       without Surf actually KNOWN by a party mon they are unreachable, and a level-fit-
+       only picker happily proposed Route 121 (past Lilycove) to a pre-Surf team.
+    2. **Reachable FROM WHERE WE STAND** — a static per-area flag is not enough, because a
+       single map can be split into disconnected regions: Route 111's grass sits NORTH of
+       the Go-Goggles desert, so it is reachable from Fallarbor but NOT from Mauville or
+       Petalburg (probed: no Mauville-side Route 111 grass exists at all). Ask the warp
+       graph — the same structure `navigate_to_anywhere` plans with — whether a route
+       exists from the CURRENT map; that is the honest test and it is a cheap graph
+       search, no emulation. Fails CLOSED: if the graph can't answer, we don't relocate.
+    """
+    if prereq == "surf" and not _party_can_surf():
+        return False
+    if prereq not in (None, "surf", "region"):
+        return False  # unknown prerequisite → fail closed
+    # "region" carries no extra requirement here — it exists so the conservative
+    # allow=None default refuses the area; the live position check below is its gate.
+    try:
+        from modules.map import get_map_data_for_current_position
+        from modules.warp_graph import get_warp_graph
+
+        here = tuple(get_map_data_for_current_position().map_group_and_number)
+        target = tuple(map_enum.value)
+        if here == target:
+            return True
+        graph = get_warp_graph()
+        if graph.region_of(here) == graph.region_of(target):
+            # Same region — but that is only about MAPS. Prove the actual TILE is walkable
+            # from here: Route 111 is edge-connected to Mauville yet its grass sits across
+            # the Go-Goggles desert, so "same region" would wave through a tile the bot can
+            # never stand on. calculate_path is the honest test (static A*, no emulation).
+            from modules.map_path import calculate_path
+            from modules.player import get_player_location
+
+            try:
+                calculate_path(
+                    get_player_location(), (map_enum, tile),
+                    avoid_encounters=False, avoid_scripted_events=False,
+                )
+                return True
+            except Exception:
+                return False
+        # ‼ CROSS-REGION: FAIL CLOSED (reviewer catch, 2026-07-24). We cannot tile-check a
+        # different region — `calculate_path` only works within one — so allowing a hop on
+        # the strength of `graph.plan()` alone would reintroduce the exact bug the
+        # same-region branch exists to prevent: the warp route lands on the map, but the
+        # grass tile sits in a disconnected pocket of it (the Route 111 desert shape).
+        # It also cannot be worth it: the warp graph will happily route Petalburg -> ... ->
+        # Fallarbor for +15 wild levels, and that walk (plus its heal round-trips) costs
+        # more than the xp it buys — the boss re-attempt is the better trainer. A training
+        # detour is LOCAL by definition, so "another region" is simply not a candidate.
+        route = graph.plan(here, target)
+        if route is not None and len(route) <= _MAX_TRAINING_TRAVEL_LEGS:
+            console.print(
+                f"[dim]Story: {map_enum.name} is reachable but in another region — "
+                f"not relocating training across regions.[/]"
+            )
+        return False
+    except Exception:
+        return False
+
+
+#: Where to heal while training in each area. Training far from the boss's own Poké Center
+#: means the heal trips must be LOCAL to the training ground, or the bot walks the region
+#: every time HP dips (the cave-heal lesson, 2026-07-22). Unlisted areas fall back to the
+#: boss's configured centre.
+def _training_area_heal_map() -> dict:
+    from modules.map_data import MapRSE, PokemonCenter
+
+    return {
+        MapRSE.ROUTE101: PokemonCenter.OldaleTown,
+        MapRSE.ROUTE102: PokemonCenter.PetalburgCity,
+        MapRSE.ROUTE103: PokemonCenter.OldaleTown,
+        MapRSE.ROUTE116: PokemonCenter.RustboroCity,
+        MapRSE.ROUTE117: PokemonCenter.VerdanturfTown,
+        MapRSE.ROUTE110: PokemonCenter.MauvilleCity,
+        # ‼ Fallarbor, NOT Mauville: Route 111's training tile is NORTH of the
+        # Go-Goggles desert. Verified 2026-07-24 — Fallarbor is the ONLY Poké Center
+        # reachable from that tile.
+        MapRSE.ROUTE111: PokemonCenter.FallarborTown,
+        MapRSE.ROUTE112: PokemonCenter.LavaridgeTown,
+        MapRSE.ROUTE113: PokemonCenter.FallarborTown,
+        MapRSE.ROUTE114: PokemonCenter.FallarborTown,
+        MapRSE.ROUTE115: PokemonCenter.RustboroCity,
+        MapRSE.ROUTE118: PokemonCenter.MauvilleCity,
+        # ⚠ ROUTE119/121 pairings are UNVALIDATED: both areas are Surf-gated, so no
+        # pre-Surf save can path from their tiles to any Poké Center (verified: Route 119
+        # (21,109) reaches NONE). Re-verify from a post-Surf checkpoint before trusting
+        # these — the repro skips them for exactly this reason.
+        MapRSE.ROUTE119: PokemonCenter.FortreeCity,
+        MapRSE.ROUTE121: PokemonCenter.LilycoveCity,
+    }
+
+
 class StoryMode(BotMode):
     #: Pre-gym training only readies a battler that's already within this many levels
     #: of the target band; fresh catches further below are left to level organically
     #: rather than grinding them up via half-XP swap-training (user 2026-07-21).
     TRAIN_CATCHUP_GAP = 6
+
+    #: A boss's LOCAL grass counts as FODDER — worth relocating away from, or skipping
+    #: entirely — once its strongest wild is this far below the team's best mon.
+    #: ‼ Deliberately MORE conservative (12) than the reactive boss-training check (8):
+    #: this fires PROACTIVELY, before any loss, so it must not disturb prep that already
+    #: works. At 12 it stays silent for Roxanne (R116 L8 vs ~L17) and Wattson (R117 L14
+    #: vs ~L24) — both validated across many runs — and fires for the pathological case
+    #: it exists for: NORMAN, whose local patch is Route 102 at L4 against a L27-31 team
+    #: (~25 xp a kill, i.e. never). User-reported 2026-07-24.
+    FODDER_LEVEL_GAP = 12
 
     #: How many times to (re)train + attempt the Rustboro rival before giving up and handing
     #: to manual — bounds the whiteout→retrain loop so an underleveled/bad-matchup team can't
@@ -823,18 +966,67 @@ class StoryMode(BotMode):
             to_train.update(ranked[: min(3, len(ranked))])
 
         need = [i for i in to_train if party[i].level < target]
-        if need and "grass" not in cfg:
+        if not need:
+            console.print(f"[dim]Story: the team's battlers are already ≥ Lv {target} — no prep training.[/]")
+        elif "grass" not in cfg:
             # No training grass exists for this boss (e.g. Lavaridge). The re-attempt
             # itself is the only trainer available — boss-training mode's whole point.
             console.print("[dim]Story: no training grass here — re-attempting is the training.[/]")
-        elif need:
-            console.print(
-                f"[cyan]Story: prepping — training {len(need)} battler(s) to Lv {target} "
-                f"(fresh low catches left to level organically).[/]"
-            )
-            yield from train_team(target, slots=to_train, grass=cfg["grass"], heal_center=cfg["heal"])
         else:
-            console.print(f"[dim]Story: the team's battlers are already ≥ Lv {target} — no prep training.[/]")
+            # --- LEVEL-APPROPRIATE RELOCATION (user directive 2026-07-24) ---------------
+            # The per-boss `grass` is the LOCAL patch, which is right for most gyms but
+            # pathological for NORMAN: his gym is the geographically EARLIEST one yet is
+            # fought 5th, so "local" is Route 102 at L3-4 against a L27-31 team — ~25 xp a
+            # kill, i.e. effectively never. Rather than grind fodder, look for a training
+            # area actually matched to the team and go there (train_team travels
+            # warp-aware via _goto_training_area, so a distant area is fine); heal at the
+            # PC nearest THAT area, not the boss's, or the bot walks the region every
+            # time HP dips. If nothing better exists, do NOT grind fodder at all — skip
+            # prep and let the fight + boss-training telemetry own the levelling (a lost
+            # boss attempt that KOs 2 mons pays ~1,200 xp; a L4 wild pays ~25).
+            grass_map, grass_tile = cfg["grass"]
+            heal_at_center = cfg["heal"]
+            levels_now = [p.level for p in party if p is not None and not p.is_egg]
+            team_max_now = max(levels_now, default=target)
+            local_max = _wild_land_max(grass_map)
+            if local_max is not None and local_max + self.FODDER_LEVEL_GAP < team_max_now:
+                better = None
+                try:
+                    from modules.story.training_areas import best_training_area
+
+                    # The replacement must beat the local patch AND not be fodder itself
+                    # — otherwise we'd walk somewhere new to grind equally-worthless xp.
+                    floor = max(local_max, team_max_now - self.FODDER_LEVEL_GAP)
+                    better = best_training_area(
+                        team_max_now, min_wild_max=floor, allow=_training_area_allowed
+                    )
+                except Exception:
+                    better = None
+                if better is not None:
+                    b_map, b_tile, (b_lo, b_hi) = better
+                    local_name = grass_map.name
+                    grass_map, grass_tile = b_map, b_tile
+                    heal_at_center = _training_area_heal_map().get(b_map, cfg["heal"])
+                    console.print(
+                        f"[bold cyan]Story: {local_name} (max L{local_max}) is fodder for a "
+                        f"L{team_max_now} team — relocating to {b_map.name} "
+                        f"(L{b_lo}-{b_hi}) to train for real.[/]"
+                    )
+                else:
+                    console.print(
+                        f"[yellow]Story: local grass (max L{local_max}) is fodder for a "
+                        f"L{team_max_now} team and no better area is available — skipping "
+                        f"the grind; the boss attempt itself is the training.[/]"
+                    )
+                    need = []
+            if need:
+                console.print(
+                    f"[cyan]Story: prepping — training {len(need)} battler(s) to Lv {target} "
+                    f"in {grass_map.name} (fresh low catches left to level organically).[/]"
+                )
+                yield from train_team(
+                    target, slots=to_train, grass=(grass_map, grass_tile), heal_center=heal_at_center
+                )
 
     def on_battle_started(self, encounter):
         # Story battles (the first Birch battle, training, the rival) are meant
