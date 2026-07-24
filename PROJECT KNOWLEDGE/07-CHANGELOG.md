@@ -2325,3 +2325,11 @@ field SCRIPT to fully clear (pressing NOTHING, so the crumble movement isn't int
 returning. PROVEN: full wattson_done → HEAT BADGE, 0 derails (was a deterministic hang at
 f74383); rock-smash speed preserved (~20s/leg). Lesson (08-MISTAKES): "object gone" is not
 "script done" — a field script can outlive the object it removed; wait for the SCRIPT.
+
+## 2026-07-23 — KI-16 fix VALIDATED (5/5 wattson_done batch clean); KI-15 narrowed
+Re-ran the wattson_done milestone batch that was 5/5 DETERMINISTIC HANGS before the KI-16
+fix: now **5/5 reached the HEAT BADGE, 0 hangs / 0 derails / 0 whiteouts.** KI-16 confirmed
+closed. KI-15 (after-faint chooser hang): ruled out the matchup chooser (returns a valid
+pick for the exact run05 party); narrowed to the low-level PARTY_MENU navigation sweep
+hitting a transient no-input-task state. Left documented with a repro-construction plan
+(Shedinja fault-injection driver) rather than guess-patching the tuned battle handler.

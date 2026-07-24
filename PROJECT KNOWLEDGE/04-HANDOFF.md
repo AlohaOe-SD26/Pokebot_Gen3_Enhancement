@@ -151,6 +151,14 @@ template for re-capturing any checkpoint safely.
 NOTE for the future: the user asked to keep extending resume robustness "for all
 situations" — the normalizer covers the common ones; deepen as new edge states appear.
 
+**KI-16 FIXED + VALIDATED 2026-07-23:** the wattson_done deterministic wedge was
+`_smash_rock` returning before `EventScript_SmashRock`'s WaitForMovementFinish completed —
+the next navigation cancelled the crumble movement and stranded the script. Fix: wait for
+the field script to clear before returning. The wattson_done batch that was 5/5 hangs is
+now **5/5 HEAT BADGE, 0 hangs/derails/whiteouts.** wattson_done is a good milestone again.
+**KI-15 still open (intermittent, ~1/5 fresh):** after-faint PARTY_MENU sweep transient-state
+hang; chooser ruled out; needs a Shedinja fault-injection repro (see KI-15 in 05-KNOWN-ISSUES).
+
 **VALIDATION SWEEP DONE 2026-07-23 (user-requested 5 fresh + 5 milestone):**
 Pass 1 (5 fresh→HEAT BADGE): 4/5 clean (3 frontier + 1 budget-INCOMPLETE), 1 real hang
 (after-faint chooser, KI-15). Pass 2 (5 from rocksmash_taught): **5/5 HEAT BADGE, 0
