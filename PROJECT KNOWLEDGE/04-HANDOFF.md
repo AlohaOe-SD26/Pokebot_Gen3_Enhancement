@@ -37,9 +37,24 @@ chapter; use Gemini assistants (gemini_relay.py) for research gaps.
   (KI-15 fix class held); 2 lanes → the NEW **KI-17** (after-faint reshow DMA race —
   the original "Shedinja chooser" bug, real all along; 2 states captured, Gemini
   decomp analysis archived, sweep hardened; validate on the next batch).
-- NEXT in the loop: Ch13 prep (Surf arc: Route 118 → 119 → Weather Institute →
-  rival+Fly → Fortree Gym 6) — static recon + audit_flag_names + build, while the
-  Norman grind runs. Then Ch14+ chapter by chapter per the directive.
+- **Ch13a-e SKELETON built + wired + committed (`4b626c91`)** — Surf arc: travel to
+  Fortree (Surf crossing planner-native), Weather Institute (Shelly), Route 119
+  rival → HM02 Fly, Devon Scope (Steven (13,15)/Kecleon (12,16) on R120; city
+  Kecleon (25,8)), Fortree Gym (turnstile push-solve) → Winona. Flags audited
+  (phantoms dodged: use HIDE_ROUTE_119_RIVAL / RECEIVED_HM_FLY). ⚠ ALL of Ch13 is
+  first-run-validate — expect a Ch12-style iteration burst when a post-Surf save
+  exists.
+- **§Ch14 SPEC drafted** (Route 121 → Mt. Pyre exterior → Magma Emblem [KEY ITEM,
+  no flag — gate on the BAG] → Jagged Pass hideout door → Maxie; flags audited).
+- **Norman balance:** the flannery_done team (no Fighting answer) didn't break
+  Slaking in 2M frames (6 attempts, boss-training cycled correctly, 0 hangs) —
+  fresh teams carry Combusken; the win is expected organically in the big batch.
+- **RUNNING: the big fresh batch** (5 lanes × 5M frames, 150-min timeout,
+  livetest-runs/<latest>) — validates KI-15/KI-17 fixes + Ch12 + Ch13 end-to-end.
+  WHEN IT LANDS: review REPORT/summary; capture norman_done/surf/fortree
+  checkpoints from the furthest lane; fix what broke (the Ch12-style loop); then
+  Ch14 build. If a lane wins Norman, SAVE ITS PROFILE STATE before probing anything
+  (probes overwrite current_state.ss1 — tonight's lesson).
 
 > **NEW AGENT: read `14-AGENT-PLAYBOOK.md` right after this file.** It is the
 > accumulated craft (harness, debugging method, story-mapping, faithfulness rules, bug

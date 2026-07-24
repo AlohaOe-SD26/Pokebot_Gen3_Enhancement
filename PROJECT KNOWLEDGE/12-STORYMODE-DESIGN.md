@@ -215,6 +215,33 @@ gym only opens with 4 badges — now satisfied.
   Swellow/Pelipper/Skarmory). Completion `BADGE06_GET` → **Fly becomes field-usable**
   (fix KI-7's wrong-badge gate in fly_to before using Fly in navigation).
 
+### §Ch14 — Route 121 → Mt. Pyre → Magma Emblem → Magma Hideout (Maxie) — SPEC DRAFT (recon 2026-07-24 overnight; ⚠ build-time verify)
+- **Flags audited:** `HIDE_MT_PYRE_SUMMIT_MAXIE` 856 ✓ / `_ARCHIE` 916 ✓ /
+  `_TEAM_AQUA` 917 ✓; `VAR MT_PYRE_STATE` 185 ✓; `HIDE_JAGGED_PASS_MAGMA_GUARD` 847 ✓;
+  `VAR JAGGED_PASS_STATE` 200 ✓; `HIDE_MAGMA_HIDEOUT_GRUNTS` ✓;
+  `GROUDON_AWAKENED_MAGMA_HIDEOUT` 111 ✓; `TEAM_AQUA_ESCAPED_IN_SUBMARINE` 112 ✓ (Ch15).
+  ‼ PHANTOMS dodged: "RECEIVED_MAGMA_EMBLEM" and "MET_ARCHIE_MT_PYRE" do NOT exist —
+  the **Magma Emblem is a KEY ITEM** (gate on the BAG:
+  `get_item_bag().quantity_of(get_item_by_name("Magma Emblem")) > 0`).
+- **Route:** Fortree → Route 120 south (already recon'd) → **Route 121** west→east
+  (80x20; the Safari Zone gate warp (37,5) is a DISTRACTION — skip) → south fork →
+  **Mt. Pyre exterior door** — exterior map (24,21) 38x51: enter via MT_PYRE 1F (3,6)
+  door → the EXTERIOR climb path (the interior tower is OPTIONAL — exterior only, per
+  the graded lead) → exterior→summit doors at (19-20,10) → **summit**: ride the
+  Archie/Maxie scene chain (MT_PYRE_STATE / the HIDE flags flip; the old lady gives the
+  **Magma Emblem** after) — completion = the EMBLEM IN THE BAG.
+- **Hideout:** back to Jagged Pass (Fly to Lavaridge once KI-7's badge gate is fixed —
+  BADGE06 makes Fly legal — else the overland Ch12-reverse route) → the hideout door
+  opens at ~(16,17-18) with the Emblem (`JAGGED_PASS_STATE`; ‼ the LEDGE below the door
+  drops you back toward Lavaridge — approach from ABOVE, the one-way class) → **Magma
+  Hideout** (multi-floor; grunts + Tabitha en route — listener fights) → **Maxie**
+  (Mightyena 37 / Crobat 38 / Camerupt 39) → Groudon awakens/leaves
+  (`GROUDON_AWAKENED_MAGMA_HIDEOUT`) — completion for the segment.
+- **Build order note:** requires a BADGE06 save to iterate; spec only until the batch
+  lands one. Then: 14a Route121→Pyre summit→Emblem; 14b hideout→Maxie. PREP: Maxie band
+  ~L35-38 — the boss-training loop owns escalation; Lilycove mart provisions en route
+  (#24-provisions).
+
 ### §Ch12+ EXTERNAL-RESEARCH LEADS — Norman → Champion (Gemini Deep Research 2026-07-23, ⚠ UNVERIFIED)
 > Source: the full-game commission (profiles/GEMINI-FULLGAME-RESEARCH.md — grading in its
 > run log: HIGH for step order/rosters/puzzle rules, MEDIUM for identifiers; several flag
