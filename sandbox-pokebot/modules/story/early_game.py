@@ -5305,6 +5305,30 @@ def do_weather_institute() -> Generator:
     yield from normalize_to_overworld()
 
 
+def _hold_walk_route(steps, *, stop_on_script: bool = True, per_leg_bound: int = 900) -> Generator:
+    """Walk a fixed route with HELD input: `steps` = [(direction, (x,y)), ...] — hold
+    each direction until the tile is reached. For tiles the planner is blind to
+    (BRIDGES: their dual-elevation reads as walls statically — Route 119's spans,
+    2026-07-24 — same family as the Lavaridge gym's post-warp idling). Breaks (and
+    releases input) the moment a field script fires when ``stop_on_script`` — walking
+    INTO a coord trigger is often the goal. Bounded per leg."""
+    try:
+        for direction, tgt in steps:
+            tgt = tuple(tgt)
+            frames = 0
+            while tuple(get_player_avatar().local_coordinates) != tgt:
+                _check_abort()
+                if stop_on_script and get_global_script_context().is_active:
+                    return
+                context.emulator.hold_button(direction)
+                yield
+                frames += 1
+                if frames > per_leg_bound:
+                    raise BotModeError(f"held walk: never reached {tgt} heading {direction}.")
+    finally:
+        context.emulator.reset_held_buttons()
+
+
 def fight_route119_rival_and_get_fly() -> Generator:
     """Chapter 13c — the Route 119 rival (bridge, ~(17,33)) → HM02 Fly.
 
@@ -5332,19 +5356,23 @@ def fight_route119_rival_and_get_fly() -> Generator:
             frames += 100
             continue
         try:
-            # ‼ DECOMP TRUTH (corrects runs 4-5, which aimed at x17 — the on-bike
-            # PROP tile): the encounter is a COORD TRIGGER at (25,31)/(26,31)
-            # (fires while VAR_ROUTE119_STATE==0); the walking rival waits at
-            # (25,32). STEP ONTO the trigger and ride the whole scene — battle
-            # (listener fights it), the HM02 handover, and the departure.
-            yield from navigate_to_anywhere(
-                MapRSE.ROUTE119, (25, 31),
-                avoid_encounters=True, avoid_scripted_events=False,
-            )
+            # ‼ DECOMP TRUTH (corrects runs 4-6): the encounter is a COORD TRIGGER
+            # at (25,31)/(26,31) (fires while VAR_ROUTE119_STATE==0); the walking
+            # rival waits at (25,32); x17's object is just the on-bike PROP. And the
+            # BRIDGE tiles are planner-blind (dual elevation reads as walls — run 6
+            # NO-PATHed everything), so: navigate to the pathable west staging, then
+            # HELD-INPUT walk the span east and step up into the trigger (probed
+            # live: (17,33)→hold Right→(29,33) walks fine).
+            yield from _navigate_riding_out(MapRSE.ROUTE119, (17, 34), tries=6)
+            yield from _hold_walk_route([
+                ("Up", (17, 33)),
+                ("Right", (25, 33)),
+                ("Up", (25, 31)),   # ← the trigger row; the scene fires mid-hold
+            ])
             yield from _ride_out_all_scenes(quiet_frames=300)
         except BotModeError:
-            # The trigger firing mid-step aborts the navigation — that IS the
-            # encounter starting; ride it.
+            # The trigger firing mid-step aborts navigation — that IS the encounter
+            # starting; ride it.
             yield from _ride_out_scripted_scene("B")
             yield from _ride_out_all_scenes(quiet_frames=300)
         frames += 200
