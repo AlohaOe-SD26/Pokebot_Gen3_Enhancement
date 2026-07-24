@@ -5557,9 +5557,20 @@ def get_devon_scope() -> Generator:
         if rounds > 10:
             raise BotModeError("Fortree: the gym-path Kecleon never flushed.")
         try:
-            yield from _navigate_riding_out(MapRSE.FORTREE_CITY, (24, 8), tries=6)
+            # ‼ APPROACH FROM THE NORTH, NOT THE WEST (probed 2026-07-24, after this
+            # exact line killed a user run AND my treecko run). The old target (24,8)
+            # is UNREACHABLE BY DESIGN: it is a hard-collision WALL tile on the ground
+            # BENEATH the tree-bridge (collision=1, elevation=0,
+            # accessible_from_direction=[False]*4). The Kecleon at (25,8) stands on the
+            # ELEVATED walkway, which is the x=25 column at elevation 3 — so the only
+            # way to stand next to it is along that column. (25,7) is one tile north of
+            # it on the same walkway and plans from ROUTE120 (5,15) in a single hop.
+            # Control that makes this diagnosis trustworthy: FORTREE_CITY (5,6) IS
+            # reachable from the same start, so neither calculate_path nor the
+            # ROUTE120<->FORTREE_CITY connection was ever broken — only this tile was.
+            yield from _navigate_riding_out(MapRSE.FORTREE_CITY, (25, 7), tries=6)
             yield from _clear_stale_battle_message()
-            yield from ensure_facing_direction("Right")
+            yield from ensure_facing_direction("Down")
             context.emulator.press_button("A")
             yield from wait_for_n_frames(30)
             # the Scope prompt is a YES/NO — choice-aware ride (the run-9 lesson)

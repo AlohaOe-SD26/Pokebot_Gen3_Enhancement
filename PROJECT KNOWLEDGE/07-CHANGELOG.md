@@ -2654,3 +2654,32 @@ fast there rather than dying to the watchdog.
 **Prevention rule:** a retry loop must be able to state what it expects to CHANGE between
 attempts — if nothing observable changed, retrying is not resilience, it is a way to convert a
 clear error into a timeout.
+
+## 2026-07-24 — Fortree Kecleon flush targeted a WALL tile (#24) — the two-run killer
+
+**Root cause, probed live** (`tools/story-dev/probe_route120_to_fortree.py`). `get_devon_scope`
+navigated to `FORTREE_CITY (24, 8)` to face the gym-path Kecleon. That tile is
+**unreachable by game design**: `collision=1, elevation=0, tile_type='Normal',
+accessible_from_direction=[False, False, False, False]` — it is ground BENEATH the
+tree-bridge. The Kecleon at `(25,8)` stands on the ELEVATED walkway, which is the `x=25`
+column at **elevation 3**. No path to `(24,8)` will ever exist, which is why the retry loop
+spun with `scripts=[]` and an idle task list until the watchdog killed the run.
+
+**Fix.** Target `FORTREE_CITY (25, 7)` — one tile north of the Kecleon on the same
+elevation-3 walkway — and face `"Down"` instead of `"Right"`. Probed: plans from
+ROUTE120 (5,15) in a single hop, no `_hold_walk_route` needed for this leg.
+
+**The control that makes this trustworthy:** `FORTREE_CITY (5,6)` IS reachable from the same
+start, and every other tile this chapter already uses (ROUTE120 (13,15)/(14,15)/(13,16),
+ROUTE119 (17,34)) plans fine. So neither `calculate_path` nor the ROUTE120↔FORTREE_CITY
+connection was ever broken — exactly one tile was wrong. My own hypothesis going in
+(planner-blind dual-elevation bridge, the Route 119/120 class) was WRONG, and the control
+is what proved it wrong rather than confirming it.
+
+**Also corrected:** `devon_scope_got.ss1` loads at ROUTE120 **(13,16)**, not (5,15) — it is
+the pre-`_leave_route120_north_bridge()` strand tile. Third save state in this repo found to
+be misnamed or mis-assumed.
+
+**Prevention rule:** before blaming the pathfinder, dump the DESTINATION tile's collision and
+elevation — "unreachable" is far more often a wrong target than a blind planner, and one
+control tile on the same map separates the two in seconds.
