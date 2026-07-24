@@ -189,3 +189,31 @@ primitives and can observe "frozen for seconds" regardless of which primitive is
 **Rejected:** rider-side reader discrimination (no discriminating reader exists); rider-side
 behavioral escalation (the tail never expires either, so it loops); patching the battle
 handler (KI-15 was never a battle-handler bug — per the diagnosis).
+
+## 2026-07-24 — Orchestration: premium orchestrator + cheap workers, gated by the HARNESS (not by model opinion)
+**Decision:** adopt a tiered orchestration pattern (doc 16 + `/orchestrate` + four
+`.claude/agents/`): a PREMIUM model (Fable 5; Opus 4.8 as the fallback tier) plans, writes
+the spec, writes timing-critical code, and runs the gate; MID (Sonnet 5) implements and
+builds proofs; CHEAP (Haiku 4.5) does recon and log triage; Gemini does external research
+and an advisory second opinion. Roles name TIERS — the model per tier is one config table,
+so a new top model slots in by editing one row.
+**Rationale:** the user's constraint is premium-quota exhaustion, and multi-agent work does
+NOT reduce total tokens — it moves work off the expensive tier and isolates worker context
+from the orchestrator's. Researched with a 4-way Gemini cross-check; the ADVERSARIAL pass
+materially changed the design: it argued (correctly, and matching this project's own bug
+history) that cheap models produce confidently-wrong code on intermittent timing/state
+bugs, that LLM-on-LLM review is theatre, and that a reviewer who must re-read the codebase
+erases the entire saving. So the governing rule became: **delegate only what a
+harness/probe/test can PROVE without the premium model re-reading the codebase** — which
+works here specifically because this project already has that deterministic harness
+(story_harness, repro_*, probe_*, livetest, audit_flag_names). Diagnosis of intermittent
+wedges is explicitly NOT delegated.
+**Rejected:** (a) pure-orchestrator/never-code — the tricky 20-line fixes are exactly where
+premium judgment pays, and handing them down is where quality drops; (b) Gemini or a Claude
+reviewer as the BLOCKING gate — advisory only, the harness wins ties; (c) unlimited
+kick-back loops — capped at 1, because the ping-pong tax ends with premium reading the
+whole failure transcript anyway; (d) hardcoding model IDs in the roles.
+**Honest caveats recorded in the doc:** Gemini is badly STALE on model/pricing facts (it
+claimed no Claude 5 family exists) — never use it for those; and an "Opus 5" is NOT in the
+authoritative catalog (cached 2026-06-24) with no live Models API access from this machine
+to check, so §7 gives a verify-then-edit-one-row procedure instead of wiring an unverified id.
