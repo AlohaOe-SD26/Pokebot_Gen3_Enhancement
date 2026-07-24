@@ -198,6 +198,22 @@ gym only opens with 4 badges — now satisfied.
 - **Build shape:** Segment 13a legs mirror Ch12a (progress-gated riding navigation +
   interior scripts); 13b = a short travel + scene ride + gym in the Dewford pattern.
   END_MARKERS addition when wired: "FEATHER BADGE earned" (or the content-end message).
+- **13d Devon Scope (⚠ tiles recon-pending — probe ROUTE120 objects/coord events before
+  wiring):** Fortree → Route 120 east: STEVEN waits at the north bridge beside an
+  invisible Kecleon; talking to him starts the scene → a forced Kecleon battle (L30,
+  can flee/faint safely) → he hands over the **Devon Scope** (`RECEIVED_DEVON_SCOPE` ✓)
+  and leaves. Then back west into Fortree: the gym-path Kecleon (on the tree-bridge
+  before the gym) is flushed by A-ing it with the Scope (one more L30 Kecleon battle).
+  Completion: `RECEIVED_DEVON_SCOPE` + the gym door reachable (probe the blocking
+  object's flag at recon).
+- **13e Fortree Gym — Winona (⚠ interior recon-pending):** rotating TURNSTILE doors
+  (graded-HIGH lead: turnstile STATE PERSISTS across exits — a live-grid/runtime-
+  modified map, the Mauville/Petalburg class; solve from the live grid, judge by
+  arrival). Trainers en route; **Winona**: Swellow L29 / Pelipper L30 / Skarmory L31 /
+  **Altaria L33** (ace; Earthquake+DragonBreath — Electric is 2× into three of four
+  but 0× into... note Altaria is Dragon/Flying: ICE is the 4× answer; Electric handles
+  Swellow/Pelipper/Skarmory). Completion `BADGE06_GET` → **Fly becomes field-usable**
+  (fix KI-7's wrong-badge gate in fly_to before using Fly in navigation).
 
 ### §Ch12+ EXTERNAL-RESEARCH LEADS — Norman → Champion (Gemini Deep Research 2026-07-23, ⚠ UNVERIFIED)
 > Source: the full-game commission (profiles/GEMINI-FULLGAME-RESEARCH.md — grading in its

@@ -1941,12 +1941,34 @@ class StoryMode(BotMode):
             ),
         )
 
-        # END OF BUILT CONTENT. Next build (Ch13d/e): Route 120 Steven scene →
-        # Devon Scope → Fortree Gym (Winona, BADGE06) — then the Ch14+ chain
-        # (§Ch12+ leads in 12-STORYMODE-DESIGN; decomp-verify before building).
+        # --- Segments 13d/13e: Devon Scope (Route 120 Steven) → Fortree Gym
+        #     (Winona, BADGE06). ⚠ SKELETONS (2026-07-24 overnight) — tiles probed,
+        #     scenes first-run-validate. ---
+        from modules.story.early_game import do_fortree_gym, get_devon_scope
+
+        if not _done("RECEIVED_DEVON_SCOPE"):
+            yield from get_devon_scope()
+        else:
+            console.print("[dim]Story: Devon Scope already in the bag.[/]")
+        _guard("Devon Scope (Ch13d)", lambda: _done("RECEIVED_DEVON_SCOPE"))
+
+        if not _done("BADGE06_GET"):
+            from modules.map_data import PokemonCenter
+            from modules.story.early_game import _lead_best_matchup, heal_in_pokemon_center
+
+            yield from _lead_best_matchup(["Flying"])
+            yield from heal_in_pokemon_center(PokemonCenter.FortreeCity)
+            yield from do_fortree_gym()
+        else:
+            console.print("[dim]Story: Feather Badge already earned — Gym 6 skipped.[/]")
+        _guard("Gym 6 (Winona)", lambda: _done("BADGE06_GET"))
+
+        # END OF BUILT CONTENT. Next build (Ch14): Route 121 → Mt. Pyre exterior →
+        # Magma Emblem → Jagged Pass hideout → Maxie (§Ch12+ leads — decomp-verify,
+        # audit_flag_names, and probe every tile before wiring).
         context.message = (
-            "Story: FORTREE reached with Fly in the bag — end of built content. "
-            "NEXT (WIP): Devon Scope and Winona. Handing to manual."
+            "Story: FEATHER BADGE earned - end of built content. "
+            "NEXT (WIP): Mt. Pyre and the Magma hideout. Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()

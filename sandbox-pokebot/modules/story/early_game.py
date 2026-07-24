@@ -5278,6 +5278,143 @@ def fight_route119_rival_and_get_fly() -> Generator:
     context.message = "Story: HM02 Fly received!"
 
 
+def get_devon_scope() -> Generator:
+    """Chapter 13d — Steven's Devon Scope + flushing Fortree's gym-path Kecleon.
+
+    STORY CONDITION: at/around Fortree with the gym still Kecleon-blocked.
+    HOW (probed 2026-07-24): Route 120 north bridge — STEVEN at (13,15) beside the
+    invisible BridgeKecleon (12,16). Approach from the Fortree side, talk to Steven
+    (A), ride the scene → a forced Kecleon battle (L30) → he hands over the DEVON
+    SCOPE (`RECEIVED_DEVON_SCOPE`) and leaves. Then back into Fortree: the gym-path
+    Kecleon at (25,8) (flag 969) is flushed by facing it and pressing A with the
+    Scope (one more L30 battle) — after which the gym door (22,11) is reachable.
+    ⚠ SKELETON — first-run-validate the approach tiles + scene rides."""
+    from modules.memory import get_event_flag
+
+    def _have_scope() -> bool:
+        try:
+            return bool(get_event_flag("RECEIVED_DEVON_SCOPE"))
+        except Exception:
+            return False
+
+    if not _have_scope():
+        context.message = "Story: Steven needs a hand on Route 120 (Devon Scope)..."
+        yield from wait_until_truly_controllable()
+        frames = 0
+        while not _have_scope():
+            _check_abort()
+            if get_global_script_context().is_active or not player_avatar_is_controllable():
+                yield from _wait_until_cutscene_over("B")
+                frames += 100
+                continue
+            try:
+                # Stand beside Steven (13,15): approach (14,15), face Left, talk.
+                yield from _navigate_riding_out(MapRSE.ROUTE120, (14, 15), tries=6)
+                yield from ensure_facing_direction("Left")
+                context.emulator.press_button("A")
+                yield from wait_for_n_frames(30)
+                yield from _ride_out_all_scenes(quiet_frames=300)
+            except BotModeError:
+                yield from _ride_out_scripted_scene("B")
+            frames += 300
+            if frames > 40000:
+                raise BotModeError("Route 120: the Steven/Devon-Scope scene never resolved.")
+        context.message = "Story: DEVON SCOPE received!"
+
+    # Flush the Fortree gym-path Kecleon (city object (25,8), flag 969) if it still
+    # stands. Idempotent: skip when the object is gone.
+    from modules.map import get_map_objects
+
+    def _city_kecleon_present() -> bool:
+        try:
+            if _map_group_number() != MapRSE.FORTREE_CITY.value:
+                return True  # can't see it from elsewhere — go look
+            return any(tuple(o.current_coords) == (25, 8) for o in get_map_objects())
+        except Exception:
+            return True
+
+    context.message = "Story: flushing the invisible thing on Fortree's bridge..."
+    rounds = 0
+    while _city_kecleon_present():
+        _check_abort()
+        rounds += 1
+        if rounds > 10:
+            raise BotModeError("Fortree: the gym-path Kecleon never flushed.")
+        try:
+            yield from _navigate_riding_out(MapRSE.FORTREE_CITY, (24, 8), tries=6)
+            yield from ensure_facing_direction("Right")
+            context.emulator.press_button("A")
+            yield from wait_for_n_frames(30)
+            yield from _ride_out_all_scenes(quiet_frames=300)
+        except BotModeError:
+            yield from _ride_out_scripted_scene("B")
+        yield from wait_until_truly_controllable()
+
+
+def do_fortree_gym() -> Generator:
+    """Chapter 13e — Fortree Gym: WINONA for the Feather Badge (BADGE06).
+
+    HOW (probed 2026-07-24): door at city (22,11) → interior (15,24); the gym's
+    ROTATING TURNSTILE doors are runtime metatiles (live-grid class — their state
+    PERSISTS across exits, per the graded lead). Winona at (15,2), challenge from
+    (15,3). Trainers en route engage inline. Solver: re-path from the LIVE grid
+    each leg; when the path is sealed, PUSH INTO the blocking turnstile (walking
+    into it rotates it), then re-path — bounded. Completion: BADGE06_GET.
+    ⚠ SKELETON — the turnstile push-solve is a first-run-validate lead."""
+    from modules.memory import get_event_flag
+
+    GYM = MapRSE.FORTREE_CITY_GYM
+
+    if get_event_flag("BADGE06_GET"):
+        return
+    context.message = "Story: entering Fortree Gym to challenge Winona..."
+    if _map_group_number() != GYM.value:
+        yield from _enter_warp_by_navigation(
+            lambda: _map_group_number() == GYM.value,
+            MapRSE.FORTREE_CITY, (22, 11), tries=6, label="Fortree Gym door",
+        )
+        yield from wait_until_truly_controllable()
+
+    rounds = 0
+    while not (
+        _map_group_number() == GYM.value
+        and tuple(get_player_avatar().local_coordinates) == (15, 3)
+    ):
+        _check_abort()
+        if get_event_flag("BADGE06_GET"):
+            return
+        rounds += 1
+        if rounds > 30:
+            raise BotModeError("Fortree Gym: could not reach the challenge tile below Winona.")
+        try:
+            yield from navigate_to_anywhere(GYM, (15, 3), avoid_encounters=True, avoid_scripted_events=False)
+        except BotModeError:
+            # Sealed by a turnstile (or a sight-line battle fired). Ride whatever is
+            # active, then PUSH toward the goal: step into the tile ahead — walking
+            # into a rotating door spins it and the live grid re-shapes.
+            yield from _ride_out_scripted_scene("B")
+            yield from wait_until_truly_controllable()
+            x, y = get_player_avatar().local_coordinates
+            push = "Up" if y > 3 else ("Left" if x > 15 else "Right")
+            for _ in range(24):
+                context.emulator.press_button(push)
+                yield
+            yield from wait_for_player_avatar_to_be_standing_still()
+
+    # Challenge Winona (face up + A), ride the battle + badge dialogue out.
+    yield from ensure_facing_direction("Up")
+    frames = 0
+    while not get_event_flag("BADGE06_GET"):
+        _check_abort()
+        context.emulator.press_button("B" if frames % 3 else "A")
+        frames += 1
+        if frames > 40000:
+            raise BotModeError("Fortree Gym: the Winona challenge never resolved to a badge.")
+        yield
+    yield from _wait_until_cutscene_over("B")
+    context.message = "Story: FEATHER BADGE earned — Gym 6 (Winona) beaten!"
+
+
 def do_dewford_gym() -> Generator:
     """Chapter 7b — Dewford Gym: beat Brawly for the Knuckle Badge (BADGE02, Gym 2).
 

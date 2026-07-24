@@ -2464,3 +2464,13 @@ NORMAN BALANCE (2M-frame run): 6 attempts, boss-training cycled correctly (Might
 L23→33), 0 hangs/Manual — but the flannery_done test team has no Fighting answer to
 Truant Slaking and hadn't broken through by budget end. Fresh teams carry Combusken —
 the end-to-end validation rides the big fresh batch (5 lanes × 5M frames).
+
+## 2026-07-24 (overnight, cont.) — Ch13d/e SKELETON: Devon Scope + Fortree Gym (Winona)
+Recon (mapfacts): Route 120 Steven (13,15) + BridgeKecleon (12,16); Fortree gym-path
+Kecleon (25,8) flag 969; gym door (22,11)↔(15,24); Winona (15,2) + 6 trainers. Built +
+wired behind the Ch13a-c flags: `get_devon_scope` (Steven scene → Scope → flush the city
+Kecleon, judged by the OBJECT disappearing) and `do_fortree_gym` (turnstile live-grid
+re-path + push-into-the-door rotation fallback → Winona challenge in the Brawly
+pattern; Flying-answer lead + Fortree heal in _play). END_MARKERS += "FEATHER BADGE
+earned". ⚠ All of Ch13 is SKELETON pending a post-Surf save (the big fresh batch is
+grinding toward one); expect first-run iteration like Ch12's (runs 1-9 found 6 bugs).
