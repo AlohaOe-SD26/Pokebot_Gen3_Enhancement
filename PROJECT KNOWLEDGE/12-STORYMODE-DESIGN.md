@@ -242,6 +242,32 @@ gym only opens with 4 badges — now satisfied.
   ~L35-38 — the boss-training loop owns escalation; Lilycove mart provisions en route
   (#24-provisions).
 
+### §Ch15/16 — Lilycove → Aqua Hideout → Mossdeep → Seafloor → Sootopolis → Sky Pillar → Juan — FLAG AUDIT + SPEC SEEDS (2026-07-24 overnight; ⚠ full recon at build)
+- **Flags audited ✓:** `HIDE_LILYCOVE_CITY_RIVAL`, `TEAM_AQUA_ESCAPED_IN_SUBMARINE`
+  (Aqua-hideout completion), `BADGE07_GET`/`DEFEATED_MOSSDEEP_GYM` (Tate&Liza),
+  `RECEIVED_HM_DIVE`, `KYOGRE_ESCAPED_SEAFLOOR_CAVERN`, vars `SHOULD_END_ABNORMAL_WEATHER`
+  57 / `SOOTOPOLIS_CITY_STATE` 94 / `SKY_PILLAR_STATE` 202 / `SKY_PILLAR_RAYQUAZA_CRY_DONE`
+  215, `RECEIVED_HM_WATERFALL`, `BADGE08_GET` (Juan), `DEFEATED_ELITE_4_DRAKE`,
+  `SYS_GAME_CLEAR`. ‼ PHANTOM: "LEGENDARY_BATTLE_COMPLETED" does not exist.
+- **Ch15 seeds:** Lilycove rival (HIDE flag above) → **Aqua Hideout** — warp-pad GRAPH:
+  parse the hideout maps' warp tables and BFS them (the Granite-Cave chain-walker
+  class; NO distance heuristics — graded-HIGH lead) — Matt → sub escapes
+  (`TEAM_AQUA_ESCAPED_IN_SUBMARINE`) → Surf east → **Mossdeep** — Tate&Liza DOUBLE
+  (Claydol/Xatu/Lunatone/Solrock L41-42; the doubles attack-through handles form;
+  puzzle = colored switches rotating statue walls — live-grid class) → BADGE07 →
+  Space Center Magma double w/ Steven (⚠ verify the ≥3-conscious-mons claim at build)
+  → **HM08 Dive** from Steven's house.
+- **Ch16 seeds:** Route 128 dive spot → **Seafloor Cavern** (Strength SOKOBAN — a wrong
+  push is UNFIXABLE in-room: exit/re-enter to reset, the graded-HIGH lead; current
+  tiles force-slide) → Archie → Kyogre escapes (`KYOGRE_ESCAPED_SEAFLOOR_CAVERN` +
+  the weather var) → **Sootopolis** (Wallace) → **Sky Pillar FIRST VISIT = SOLID
+  FLOORS** (`SKY_PILLAR_STATE`; NO bike puzzle in the story visit — never build one)
+  → Rayquaza (`SKY_PILLAR_RAYQUAZA_CRY_DONE`) → back → **HM07 Waterfall** (Wallace) →
+  **Juan** (ice floors = HAMILTONIAN PATH per grid — every tile exactly once, a fall =
+  B1F + reset; Kingdra L46) → BADGE08. Then Victory Road (needs Surf/Waterfall/
+  Strength/Rock Smash in the party — the HM-slave planning of #24-hm-multi matters
+  HERE) → Wally (Gardevoir L45) → E4 → Wallace → `SYS_GAME_CLEAR`.
+
 ### §Ch12+ EXTERNAL-RESEARCH LEADS — Norman → Champion (Gemini Deep Research 2026-07-23, ⚠ UNVERIFIED)
 > Source: the full-game commission (profiles/GEMINI-FULLGAME-RESEARCH.md — grading in its
 > run log: HIGH for step order/rosters/puzzle rules, MEDIUM for identifiers; several flag
