@@ -288,14 +288,33 @@ def _ride_out_all_scenes(*, quiet_frames: int = 600, max_frames: int = 12000) ->
     proceed anyway and let the callers' own riding cope."""
     total = 0
     quiet = 0
+    phantom = 0
     while quiet < quiet_frames:
         if total > max_frames:
             break
         if get_global_script_context().is_active:
             quiet = 0
-            context.emulator.press_button("B")
+            # PHANTOM-SCRIPT ESCAPE (ported from _wait_until_cutscene_over, KI-15
+            # family): a battle spawned/interrupted mid-scene can leave the field
+            # script reading active FOREVER while the game is fully playable — a
+            # parked trainer/wild post-battle script (Route 120 trainer, run 10:
+            # gsc active + controllable + no text + no menu, 20k frames). A real
+            # scene locks the avatar, prints text, or ends; 10s of "playable but
+            # script-active" means parked, not running — treat the scene as over.
+            if (
+                player_avatar_is_controllable()
+                and not is_waiting_for_input()
+                and not _menu_task_active()
+            ):
+                phantom += 1
+                if phantom >= 600:
+                    return
+            else:
+                phantom = 0
+                context.emulator.press_button("B")
         else:
             quiet += 1
+            phantom = 0
         total += 1
         yield
 
