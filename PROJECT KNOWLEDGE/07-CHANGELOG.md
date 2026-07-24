@@ -2278,3 +2278,15 @@ User's milestone-testing logs surfaced three things; all fixed + proven. Backup 
   connections, the gym door-path (live-solve like Mauville vs the "left door" speedrun
   route), the Norman team (Spinda/Vigoroth/Linoone/Slaking — no ROM trainer reader exists),
   and the post-Norman Surf handoff. Chapter table: Ch12 🗺️ ready to build; +Ch13 row.
+
+## 2026-07-23 — Ch12 build STARTED (route leg WIP) + a material routing correction
+Began building Ch12 (Lavaridge → Norman). `travel_lavaridge_to_petalburg` drafted in
+early_game.py, **deliberately NOT wired** (frontier stays Flannery). Recon proved the
+Route 112 one-way-ledge crossing (Lavaridge→Route111(13,90)) — but that exposed a
+**material correction to the deep-map spec**: Route 111's middle is the Go-Goggles DESERT
+and blocks the N↔S internal passage, so the Lavaridge→Mauville leg CANNOT cross Route 111
+directly — it must tunnel via the FIERY PATH (reverse Ch10 travel_to_fallarbor, past the
+already-smashed twin rocks). Corrected §Ch12 spec + the function's docstring with the exact
+resume plan. Remaining: the Fiery-Path leg, validated Mauville→Petalburg tiles, the gym
+live-solver, the Surf handoff, then wiring. New recon tools: route_probe_ch12.py,
+route_chain_ch12.py. Honest checkpoint — no untested code on the frontier.

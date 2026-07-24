@@ -151,6 +151,20 @@ template for re-capturing any checkpoint safely.
 NOTE for the future: the user asked to keep extending resume robustness "for all
 situations" — the normalizer covers the common ones; deepen as new edge states appear.
 
+**IN PROGRESS — Ch12 BUILD STARTED 2026-07-23 (route leg, WIP/unwired):**
+`travel_lavaridge_to_petalburg` exists in early_game.py but is **NOT wired into _play**
+(frontier = Flannery/HEAT BADGE, untouched). Progress: the Route 112 ledge crossing works
+(Lavaridge→Route111(13,90) reaches the desert edge). **BLOCKER FOUND + documented:** Route
+111's middle is the Go-Goggles DESERT — it blocks N↔S, so the Lavaridge→Mauville leg must
+go via the FIERY PATH (reverse Ch10 `travel_to_fallarbor`: Route112 → Fiery Path → Route112
+→ Route111-south past the smashed rocks → Mauville). RESUME HERE: finish that leg by
+mirroring travel_to_fallarbor's Fiery-Path+rock legs, then validate the Mauville→Petalburg
+tiles (currently guesses), then build do_petalburg_gym + the Surf handoff (tasks #5/#6),
+then wire Segment 12 + livetest END_MARKERS. Backup tag `backup-pre-ch12-2026-07-23`.
+Recon tools: route_probe_ch12.py, route_chain_ch12.py, petalburg_gym_probe.py.
+
+**(reference) Ch12 DEEP-MAP + build plan** — §Ch12 build spec in 12-STORYMODE-DESIGN
+(now corrected for the Fiery-Path routing). 
 **NEXT: BUILD Ch12 — DEEP-MAPPED 2026-07-23, ready.** Spec in 12-STORYMODE-DESIGN §Ch12
 (archived research tools/story-dev/research-gemini-ch12-2026-07-23.md). Key findings,
 verified this session: **Go-Goggles/Route 111 desert are OPTIONAL — SKIP them** (Route 111

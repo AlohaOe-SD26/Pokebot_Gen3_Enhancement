@@ -90,9 +90,20 @@ gym only opens with 4 badges — now satisfied.
   Flannery — not the hot-springs woman. Irrelevant unless we later want the desert/fossils
   → #24-optional.)
 
+- **‼ CORRECTION (recon 2026-07-23): the Lavaridge→Mauville leg goes via the FIERY PATH,
+  not a direct Route 111 crossing.** Route 111's MIDDLE is the Go-Goggles DESERT, which
+  blocks the north↔south internal passage — navigating Lavaridge→Route111 dead-ends at
+  ~(13,90) in the desert. The desert is still SKIPPED (Go-Goggles not needed), but the
+  route must tunnel under via the Fiery Path: **REVERSE Ch10 `travel_to_fallarbor`** —
+  Lavaridge → Route 112 → Fiery Path (in one door, out the other) → Route 112 near the
+  twin rocks → Route 111 SOUTH (past the already-smashed rocks (18,101)/(19,100)) →
+  Mauville. `travel_lavaridge_to_petalburg` is STARTED but WIP/unwired: the Route 112
+  ledge crossing is proven (Lavaridge→Route111(13,90)); the Fiery-Path leg + the
+  Mauville→Petalburg tiles are the remaining build.
 - **Overland route Lavaridge → Petalburg (⚠ route lead, ✓ Route 111 connections):** no Fly
   / no Surf yet, so it is a long backtrack. Lavaridge → **Route 112** (‼ one-way ledges —
-  descend SOUTH only, never pathfind up Jagged Pass) → **Route 111 SOUTH** → **Mauville**
+  descend SOUTH only, never pathfind up Jagged Pass) → **Fiery Path → Route 111 SOUTH**
+  (see the correction above) → **Mauville**
   → **Route 117** (⚠ tightly-packed trainers can force DOUBLE battles — our doubles
   attack-through handles it) → **Verdanturf** → **Rusturf Tunnel** (the Rock-Smash boulders
   are ALREADY cleared if Ch10 smashed them; else Rock Smash here — we have HM06) → **Route

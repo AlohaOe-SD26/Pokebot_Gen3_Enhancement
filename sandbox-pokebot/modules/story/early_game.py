@@ -4755,6 +4755,105 @@ def do_lavaridge_gym() -> Generator:
     context.message = "Story: HEAT BADGE earned — Gym 4 (Flannery) beaten!"
 
 
+def travel_lavaridge_to_petalburg() -> Generator:
+    """Chapter 12 travel — the long overland backtrack from Lavaridge to Petalburg for
+    Norman (Gym 5). ‼‼ WIP / NOT WIRED / NOT VALIDATED (2026-07-23) — do NOT enable in
+    _play until the Lavaridge→Mauville leg is finished and a full run is proven.
+
+    ‼ KEY DISCOVERY (recon 2026-07-23) — the direct Route 112→Route 111 crossing DEAD-ENDS
+    in the desert. Route 111's MIDDLE is the Go-Goggles-gated DESERT, which blocks the
+    north↔south internal passage: navigating Lavaridge→Route111 lands at ~(13,90) in the
+    desert with no way south. The real route must go via the FIERY PATH tunnel — i.e.
+    REVERSE Ch10's `travel_to_fallarbor` (which went Mauville→Route111-south→past the twin
+    rocks→Route112(11,36) Fiery south door→Fiery Path→Route112 north→Route113→Fallarbor).
+    So the Lavaridge→Mauville leg should be: Lavaridge → Route 112 → Fiery Path (in one
+    door, out the other) → Route 112 near the rocks → Route 111 south (past the ALREADY-
+    smashed twin rocks (18,101)/(19,100)) → Mauville. Build it by mirroring
+    travel_to_fallarbor's Fiery-Path + rock legs. TODO before wiring.
+
+    Remainder of the route (Mauville onward, ⚠ tiles still unvalidated): Mauville →
+    Route 117 (forced doubles handled by the listener) → Verdanturf → Rusturf Tunnel
+    (Rock-Smash boulders cleared in Ch10; warp-linked (8,1)↔(4,10), not a connection) →
+    Route 116 → Rustboro → Route 104 (north) → Petalburg Woods → Route 104 (south) →
+    Petalburg City. Progress-gated + idempotent. GOAL/END: in Petalburg City.
+    VALIDATED SO FAR: Lavaridge→Route111(13,90) reaches the northern/desert edge (proves
+    the Route 112 ledge crossing works) — but that is the WRONG side of the desert; see
+    the discovery above."""
+    PETALBURG = MapRSE.PETALBURG_CITY.value
+
+    if _map_group_number() == PETALBURG:
+        return
+    context.message = "Story: heading to Petalburg — the long road to Norman..."
+    yield from wait_until_truly_controllable()
+
+    # The legs, in order: (target map, a SAFE interior tile — never a warp/ledge tile).
+    # A leg is skipped once we are already past it (idempotent resume): we only run a
+    # leg while we are on an EARLIER map than its target, tracked by this ordered list.
+    # (13,90) on Route 111 is the reachable through-tile from Lavaridge — the navigator
+    # crosses Route 112's ledges to it in one hop (probed). Then south to Mauville, etc.
+    LEGS = [
+        (MapRSE.ROUTE111, (13, 90), "Route 111 (via Route 112)"),
+        (MapRSE.MAUVILLE_CITY, (19, 6), "Mauville City"),
+        (MapRSE.ROUTE117, (30, 8), "Route 117"),
+        (MapRSE.VERDANTURF_TOWN, (16, 9), "Verdanturf Town"),
+    ]
+    order = [
+        MapRSE.LAVARIDGE_TOWN.value, MapRSE.ROUTE112.value, MapRSE.ROUTE111.value,
+        MapRSE.MAUVILLE_CITY.value, MapRSE.ROUTE117.value, MapRSE.VERDANTURF_TOWN.value,
+    ]
+
+    def _rank(gnum) -> int:
+        return order.index(gnum) if gnum in order else -1
+
+    for map_enum, tile, label in LEGS:
+        _check_abort()
+        if _rank(_map_group_number()) >= _rank(map_enum.value) and _map_group_number() != MapRSE.LAVARIDGE_TOWN.value:
+            continue  # already past this leg (resume)
+        context.message = f"Story: to Petalburg — {label}..."
+        yield from _navigate_riding_out(map_enum, tile, tries=8)
+        yield from wait_until_truly_controllable()
+
+    # Verdanturf → Rusturf Tunnel → Route 116 (warp-linked, not edge connections).
+    if _map_group_number() == MapRSE.VERDANTURF_TOWN.value:
+        context.message = "Story: to Petalburg — through Rusturf Tunnel..."
+        yield from _enter_warp_by_navigation(
+            lambda: _map_group_number() == MapRSE.RUSTURF_TUNNEL.value,
+            MapRSE.VERDANTURF_TOWN, (8, 1), tries=6, label="Rusturf Tunnel (Verdanturf door)",
+        )
+        yield from wait_until_truly_controllable()
+    if _map_group_number() == MapRSE.RUSTURF_TUNNEL.value:
+        # West through the (already-smashed) tunnel to the Route 116 door (4,10).
+        yield from _enter_warp_by_navigation(
+            lambda: _map_group_number() == MapRSE.ROUTE116.value,
+            MapRSE.RUSTURF_TUNNEL, (4, 10), tries=6, label="Rusturf Tunnel (Route 116 door)",
+        )
+        yield from wait_until_truly_controllable()
+
+    # Route 116 → Rustboro → Route 104 north.
+    if _map_group_number() == MapRSE.ROUTE116.value:
+        context.message = "Story: to Petalburg — Route 116 → Rustboro..."
+        yield from _navigate_riding_out(MapRSE.RUSTBORO_CITY, (23, 55), tries=8)
+        yield from wait_until_truly_controllable()
+    if _map_group_number() == MapRSE.RUSTBORO_CITY.value:
+        yield from _navigate_riding_out(MapRSE.ROUTE104, (24, 12), tries=8)
+        yield from wait_until_truly_controllable()
+
+    # Route 104 north → Petalburg Woods → Route 104 south → Petalburg.
+    if _map_group_number() == MapRSE.ROUTE104.value and _map_group_number() != PETALBURG:
+        context.message = "Story: to Petalburg — through Petalburg Woods..."
+        yield from _navigate_riding_out(MapRSE.PETALBURG_WOODS, (26, 5), tries=8)
+        yield from wait_until_truly_controllable()
+    if _map_group_number() == MapRSE.PETALBURG_WOODS.value:
+        # Woods south exit → Route 104 south (26,44)→(11,38) region, then to Petalburg.
+        yield from _navigate_riding_out(MapRSE.ROUTE104, (11, 38), tries=8)
+        yield from wait_until_truly_controllable()
+    if _map_group_number() == MapRSE.ROUTE104.value:
+        yield from _navigate_riding_out(MapRSE.PETALBURG_CITY, (18, 20), tries=8)
+        yield from wait_until_truly_controllable()
+
+    context.message = "Story: reached Petalburg City — Norman's gym awaits."
+
+
 def do_dewford_gym() -> Generator:
     """Chapter 7b — Dewford Gym: beat Brawly for the Knuckle Badge (BADGE02, Gym 2).
 
