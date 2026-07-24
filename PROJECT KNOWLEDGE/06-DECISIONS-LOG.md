@@ -173,3 +173,19 @@ redundant encounters per gym per run — the measured #24-train-efficiency ceili
 complexity when losses self-correct; (b) skipping team training unconditionally — the
 adversarial consult's surviving objection (between-gym gauntlets hit the bench) argues
 for keeping band prep whenever no sweeper exists.
+
+## 2026-07-24 — KI-15: clear the post-battle input wedge at the RUN-LOOP seam, not in the rider
+**Decision:** the stale post-battle battle-text wedge (blocks all input, only A clears it)
+is cleared by StoryMode.run's per-frame nudge — signature (OVERWORLD + no battle + waiting
++ no scripts + PLAYER POSITION FROZEN) held 240 consecutive frames → ONE A → 1200-frame
+cooldown. `_wait_until_cutscene_over` keeps its old museum-green behavior (parked waits =
+free) and `navigate_to` gets only a fast no-progress bail (`NavigationStuckError`).
+**Rationale:** the wedge is indistinguishable from a field dialogue's parked
+WaitForAorBPress tail on EVERY memory reader, and both ignore B — three rider-side designs
+(broad 40-frame B→A, narrow sTextPrinters signal, 450-frame B→A) all failed against the
+museum-greeter regression probe or the captured wedge. The wedge's only unique property is
+FUNCTIONAL (nothing can move), and the run loop is the only seam that persists across
+primitives and can observe "frozen for seconds" regardless of which primitive is stuck.
+**Rejected:** rider-side reader discrimination (no discriminating reader exists); rider-side
+behavioral escalation (the tail never expires either, so it loops); patching the battle
+handler (KI-15 was never a battle-handler bug — per the diagnosis).

@@ -954,3 +954,46 @@ The real signature was obvious in 40 lines of the log tail.
 can't `grep` the cited symptom (e.g. the hang `bt=` string) out of a real run.log, treat the
 diagnosis as UNVERIFIED and re-derive it from the log before spending any repro effort. Trust logs
 over summaries — including this project's own prior write-ups.
+
+## 2026-07-24 — A reader-level "signature" for a wedge state that another state shares exactly
+- **Symptom:** Two KI-15 fix attempts in a row regressed or missed: (1) escalating B→A after
+  40 frames whenever `is_waiting_for_input()` persisted re-opened the Slateport museum
+  greeter every 40 frames (its tail matches the same broad signal); (2) a "narrow" signal
+  built from `sTextPrinters` + `WaitForAorBPress` read FALSE on the actual captured wedge —
+  the stale post-battle message ALSO waits via the stale `WaitForAorBPress` native, and the
+  raw printers say not-waiting on BOTH states.
+- **Root cause:** assuming two behaviorally-different states must differ in some memory
+  reader. They don't have to: the wedge and the parked dialogue tail are byte-identical
+  on every reader we have — and BOTH ignore B indefinitely (a third design, a 450-frame
+  B→A rider escalation, also looped at the museum because the tail never expires either).
+  The ONLY divergent property is functional: the wedge BLOCKS ALL MOVEMENT; the tail
+  doesn't (the story can just walk away from it).
+- **Fix that worked:** revert the rider to its old behavior entirely (parked waits =
+  free) and clear the wedge at the ONE seam that can see "nothing has moved for
+  seconds": StoryMode.run's nudge — waiting + no scripts + POSITION FROZEN for 240
+  frames → a single A → long cooldown.
+- **Prevention rule:** before keying a fix on a reader signature, probe the OTHER states
+  that signature could match (load the captured .ss1s, print the readers side by side);
+  when readers tie, discriminate by a FUNCTIONAL property (does movement work? does the
+  state survive being left alone?), and re-run the regression probe of the class you're
+  touching (museumprobe2 here) BEFORE committing — all three failed designs were caught
+  that way, none reached a commit.
+
+## 2026-07-24 — An every-frame "helpful nudge" is an A-mash: it created the wedge it was meant to fix
+- **Symptom:** a run-loop nudge that pressed A whenever `waiting-for-input + no scripts +
+  cb=ReturnFromBattle` held DID clear the (14,5) wedge — and then A-mashed the Rustboro
+  nurse's dialogue into an endless re-open loop (a brand-new 15k-frame hang, captured as
+  `ki15_nurse_wedge.ss1`).
+- **Root cause:** `gBattleMainFunc` (cb) is STALE after every battle — it stays
+  "ReturnFromBattleToOverworld" until the NEXT battle — so the guard was effectively just
+  "a message is waiting", and a live dialogue's script context flickers inactive between
+  message boxes, letting the every-frame A through. A beside an NPC = "talk", so each A
+  re-opened the conversation (the museum-greeter lesson in a new coat).
+- **Fix that worked:** persistence + position-freeze + single-press + cooldown (240 stable
+  frames with the PLAYER POSITION unchanged → one A → 1200-frame cooldown). A live dialogue
+  or tail cannot survive 4s of frozen-in-place play; the wedge (which blocks all movement)
+  trivially does.
+- **Prevention rule:** any autonomous "unstick" press must (a) require the stuck signature
+  to persist for seconds, (b) include a can't-be-mid-flow guard (position frozen), (c) press
+  ONCE, (d) cool down long enough for the world to react — never per-frame; and never trust
+  `cb`/`gDisplayedStringBattle` alone (stale liars).

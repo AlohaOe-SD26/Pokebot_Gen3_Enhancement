@@ -175,7 +175,27 @@ is open (B closes menus, can never start a dialogue → museum guarantee preserv
 PROVEN: story run rocksmash_got.ss1 → teach → Mauville → Rt 111 → 112 → Fiery Path →
 Rt 113, 0 derails (ki14_run1); museum repro re-run clean.
 
-## KI-15 (2026-07-23) — post-battle STORY-RESUME hang after an inline battle ⚠ RE-DIAGNOSED 2026-07-23
+## KI-15 (2026-07-23) — post-battle STORY-RESUME hang ✅ FIXED 2026-07-24 (pending batch validation)
+**FIXED via three complementary changes, each proven on a captured state** (changelog
+2026-07-23 "KI-15 FIXED" has the full detail; 08-MISTAKES 2026-07-24 has the two lessons
+from failed intermediate designs):
+1. `navigate_to` no-progress bail → `NavigationStuckError` after ~8 progress-free re-paths
+   (walking.py; covers the ROUTE 104 `(5,6)↔(5,7)` oscillation; A/B: repro_navigate_stuck.py).
+2. `_wait_until_cutscene_over` KEPT at its old museum-green behavior (parked waits = free;
+   contract pinned by repro_cutscene_waiting_msg.py) — the wedge is reader-identical to a
+   dialogue tail and both ignore B, so the rider cannot safely clear it (3 attempts failed).
+3. The clearer: StoryMode run-loop nudge — waiting + no scripts + **position frozen** for
+   240 frames → ONE A → 1200f cooldown. Only the wedge blocks movement, so only it matches.
+   (A on the wedge clears it instantly — proven on `ki15_gotaway_wedge.ss1`; never
+   A-mashes a live dialogue — `ki15_nurse_wedge.ss1` lesson.)
+Faithful goods_recovered runs: previously-terminal wedge episodes now self-recover
+(one 90k run crossed to Dewford/Granite Cave, 0 Manual). REMAINING: watch the overnight
+fresh batches — if a lane still shows a 20k stall with `cb=ReturnFromBattleToOverworld`,
+capture the state (probe_stuck_state.py / probe_press_variants.py are the tools) rather
+than re-tuning thresholds blind.
+
+### (superseded original diagnosis below, kept for the record)
+## KI-15 (original) — post-battle STORY-RESUME hang after an inline battle ⚠ RE-DIAGNOSED 2026-07-23
 > ‼ **The original write-up (an "after-faint PARTY_MENU chooser hang" with a 1-HP Wonder Guard
 > Shedinja) was a MISDIAGNOSIS.** It was never supported by a log — `grep -r "SHEDINJA fainted"`
 > across EVERY livetest run.log (current + archive) returns ZERO hits. The party/coords/stack

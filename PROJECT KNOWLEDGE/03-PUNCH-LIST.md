@@ -587,3 +587,7 @@
       milestone team; a real fresh run arrives stronger. If it proves annoying later:
       a stronger prep floor for grass-less tanky-ace gyms, or full-team survivability
       in the sufficiency gate (consult flagged Torkoal's bulk+Sunny Day). Low priority.
+- [ ] #24-rivalcap — `_rival_attempts` (story_mode.py §5c) increments on every _play
+  re-entry, not on actual lost rival battles — a derail-y stretch near the rival can
+  burn the 3-attempt budget without fighting once (seen on the goods_recovered thin-team
+  save 2026-07-24). Key the counter on a genuine battle loss.

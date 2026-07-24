@@ -2361,3 +2361,46 @@ tiles `(5,6)↔(5,7)` (ROUTE 104, after a trainer battle). Proved the after-fain
 `--driver story` run from goods_recovered rode the scene CLEANLY (the healthy path works — the hang
 needs the rare battle-interrupt race). KI-15 remains OPEN with an accurate diagnosis + next steps
 in 05-KNOWN-ISSUES. Did NOT guess-patch. Reverted the (wrong-path) battle_handler instrumentation.
+
+## 2026-07-23 — KI-15 FIXED (both manifestations + a third found live), each proven on a captured state
+Attacked KI-15 with the repro-first method; THREE distinct defects found and fixed:
+1. **`navigate_to` had no no-progress bail** (manifestation 2, the ROUTE 104 `(5,6)↔(5,7)`
+   bounce): its re-path loop retried FOREVER when the avatar could not advance (post-battle
+   transition wedge). FIX (`walking.py`, forked file): after a leg timeout with no script
+   active, wait bounded for a settled avatar, then track NET progress across re-paths —
+   ~8 consecutive re-paths visiting only recently-seen tiles raises the new
+   `NavigationStuckError` (a BotModeError → StoryMode's derail recovery owns it). PROVEN
+   A/B by `repro_navigate_stuck.py`: oscillation + freeze spun 25k frames before, bail in
+   ~230 frames after; healthy arrivals + genuinely-progressing (NPC-blocked) navs unaffected.
+2. **The stale post-battle BATTLE-text wedge** (manifestation 1, RUSTBORO): a wild battle
+   fled DURING a scene ride leaves `Got away safely!`/`grew to LV. N!` waiting for input
+   with NO field script running, and it blocks ALL input except A (A clears it instantly;
+   B NEVER does — proven frame-by-frame on the captured `ki15_gotaway_wedge.ss1`).
+   ‼ KEY PROBE RESULT: that wedge is **indistinguishable from a field dialogue's parked
+   `WaitForAorBPress` tail (the museum greeter) on EVERY reader — and both ignore B**.
+   THREE rider-side designs failed and were reverted, each caught by re-running probes
+   before commit: a broad-waiting 40-frame B→A escalation re-opened the greeter every 40
+   frames; a "narrow sTextPrinters" signal read False on the real wedge; even a 450-frame
+   B→A escalation looped, because the tail never expires either. The rider is therefore
+   REVERTED to its old museum-green behavior (parked waits = free, return;
+   `repro_cutscene_waiting_msg.py` pins that contract).
+3. **The actual wedge-clearer — StoryMode.run's position-frozen persistence nudge**: the
+   wedge's ONE unique property is that it BLOCKS ALL MOVEMENT. When `OVERWORLD + no
+   battle + waiting-for-input + no scripts + PLAYER POSITION UNCHANGED` holds for **240
+   consecutive frames**, press ONE A, then a 1200-frame cooldown. A dialogue tail can't
+   match (the story keeps walking → the position changes); a live dialogue's script
+   context resets the count. ‼ The first (every-frame, cb-gated) version of this nudge
+   CREATED a new wedge — `cb=ReturnFromBattle` is stale after every battle, and A-mashing
+   re-opened the Rustboro nurse dialogue forever (captured as `ki15_nurse_wedge.ss1`).
+   navigate_to's fast bail (fix 1) feeds the derail loop whose _play re-runs give the
+   nudge its counting window, so the two compose: wedge → bail ~230f → nudge A ≤240f →
+   navigation succeeds.
+Faithful validation (`goods_recovered.ss1 --driver story`): the wedge episodes that
+previously hung terminally now SELF-RECOVER; runs end only at this thin save's DESIGNED
+rival stop ("couldn't beat the rival in 3 tries" — solo L18 Marshtomp) or run the budget
+out mid-progress (one 90k run crossed Rusturf → Woods → Dewford → Granite Cave, 0 Manual).
+museumprobe2 green with the final (reverted) rider. New tools: `repro_navigate_stuck.py`,
+`repro_cutscene_waiting_msg.py`, `probe_stuck_state.py` (frame-step any captured wedge),
+`probe_press_variants.py` (which input clears a wedge), `probe_ride_fixed.py`; captured
+states `ki15_gotaway_wedge.ss1` + `ki15_nurse_wedge.ss1`. Full-batch validation rides the
+overnight run.

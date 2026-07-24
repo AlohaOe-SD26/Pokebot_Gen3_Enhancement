@@ -3,7 +3,31 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-07-22
+**Last updated:** 2026-07-24
+
+### ⭐⭐⭐ 2026-07-24 — KI-15 FIXED (3 proven fixes) + OVERNIGHT CHAPTER LOOP RUNNING
+**KI-15 is fixed** (see 05-KNOWN-ISSUES KI-15 + changelog for the full story): (1)
+`navigate_to` no-progress bail (`NavigationStuckError`), (2) the cutscene rider's
+450-frame B→single-A escalation for the stale post-battle battle-text wedge, (3) the
+StoryMode run-loop 240-frame persistence nudge. Each proven on a captured state
+(`saves/ki15_gotaway_wedge.ss1`, `saves/ki15_nurse_wedge.ss1`); museum-greeter
+regression probe green; faithful goods_recovered runs self-recover where they used to
+hang terminally. ‼ TWO intermediate designs FAILED and taught lessons (08-MISTAKES
+2026-07-24): the wedge is reader-indistinguishable from a dialogue tail (discriminate
+by RESPONSE TO INPUT + persistence, never by readers), and any auto-unstick press must
+be sustained-signature + single-press + cooldown, or it A-mashes NPC dialogues.
+New probe tools: probe_stuck_state.py / probe_press_variants.py / probe_ride_fixed.py.
+
+**OVERNIGHT DIRECTIVE (user, 2026-07-24, verbatim intent):** work through ALL remaining
+chapters until the story bot is complete; harden + fill in the chapter skeleton; fix
+errors along the way, but after a bunch of failed fix retries MOVE ON to the next
+chapter; use Gemini assistants (gemini_relay.py) for research gaps. Loop shape per the
+superseded overnight ritual below: batch-validate → build next chapter → test → repeat.
+Frontier at loop start = Ch12 (Lavaridge→Petalburg→Norman→Surf; spec in
+12-STORYMODE-DESIGN §Ch12; `travel_lavaridge_to_petalburg` exists UNWIRED with the
+first leg needing the Fiery-Path rewrite — mirror travel_to_fallarbor/ride_cable_car;
+remember Rock Smash rocks RESPAWN on map reload, so the southbound R111 pass must
+re-smash). Milestone for Ch12 starts: `flannery_done.ss1`.
 
 > **NEW AGENT: read `14-AGENT-PLAYBOOK.md` right after this file.** It is the
 > accumulated craft (harness, debugging method, story-mapping, faithfulness rules, bug

@@ -970,6 +970,67 @@ class StoryMode(BotMode):
                         next(_play_gen)
                     except StopIteration:
                         return
+                    # KI-15 post-battle message nudge: an inline battle fought/fled
+                    # during navigation or training can leave a battle message ("grew
+                    # to LV. N!", "won $N", "Got away safely!") waiting for A in the
+                    # overworld while the running primitive (navigate/spin/facing)
+                    # doesn't press it — stranding the resume until the 18k watchdog.
+                    # It is BATTLE text (A clears it; B does not, proven on the (14,5)
+                    # capture) with NO field script active.
+                    # ‼ The signature must hold for a SUSTAINED stretch before we
+                    # press, and we press ONCE per stretch: `cb` stays
+                    # "ReturnFromBattle..." (stale) until the NEXT battle, and a live
+                    # NPC dialogue's script context flickers inactive between message
+                    # boxes — an every-frame nudge A-mashed the Rustboro nurse's
+                    # dialogue into an endless re-open loop (this session's (7,4)
+                    # capture; the museum-greeter lesson). The genuine stale wedge is
+                    # rock-stable for hundreds of frames (probe: 400+ unchanged), so
+                    # 90 consecutive matching frames identifies it safely, and one A
+                    # clears it instantly (proven frame-0 on the (14,5) capture).
+                    try:
+                        from modules.tasks import (
+                            is_waiting_for_input as _iwfi,
+                            get_global_script_context as _ggsc,
+                            get_immediate_script_context as _gisc,
+                        )
+                        from modules.battle_state import battle_is_active as _bia
+                        from modules.memory import get_game_state as _ggs0, GameState as _GS0
+                        from modules.player import get_player_avatar as _gpa15
+
+                        # NO reader distinguishes this wedge from a field dialogue's
+                        # parked WaitForAorBPress tail (identical stale native; both
+                        # ignore B — probed on the captures; two rider-side designs
+                        # failed, see 08-MISTAKES 2026-07-24). The wedge's ONE unique
+                        # property: it BLOCKS ALL MOVEMENT. So the signature demands
+                        # waiting + no scripts + POSITION FROZEN for 240 consecutive
+                        # frames → a single A → 1200-frame cooldown. A dialogue tail
+                        # can't match (the story flow keeps walking → position
+                        # changes reset the count); a live dialogue's script context
+                        # going active resets it too (the every-frame ancestor of
+                        # this nudge A-mashed the nurse — ki15_nurse_wedge.ss1).
+                        try:
+                            _pos15 = tuple(_gpa15().local_coordinates)
+                        except Exception:
+                            _pos15 = None
+                        if (
+                            _pos15 is not None
+                            and _pos15 == getattr(self, "_ki15_nudge_pos", None)
+                            and _ggs0() is _GS0.OVERWORLD
+                            and not _bia()
+                            and _iwfi()
+                            and not _ggsc().is_active
+                            and not _gisc().is_active
+                        ):
+                            self._ki15_nudge_stable = getattr(self, "_ki15_nudge_stable", 0) + 1
+                            if self._ki15_nudge_stable >= 240:
+                                context.emulator.press_button("A")
+                                self._ki15_nudge_stable = -1200  # long cooldown
+                        else:
+                            _n = getattr(self, "_ki15_nudge_stable", 0)
+                            self._ki15_nudge_stable = 0 if _n > 0 else min(_n + 1, 0)
+                        self._ki15_nudge_pos = _pos15
+                    except Exception:
+                        pass
                     yield
                     try:
                         from modules.map import get_map_data_for_current_position

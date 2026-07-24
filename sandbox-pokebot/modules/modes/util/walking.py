@@ -111,6 +111,44 @@ class TimedOutTryingToReachWaypointError(BotModeError):
         super().__init__(message)
 
 
+class NavigationStuckError(BotModeError):
+    """FORK (2026-07-23, KI-15): navigate_to made no NET progress across many
+    consecutive re-paths.
+
+    Distinct from TimedOutTryingToReachWaypointError (a single missed leg, which
+    navigate_to normally recovers from by re-pathing). This is raised when the
+    re-path loop itself can't advance — e.g. an inline battle interrupts story
+    navigation and the post-battle ReturnFromBattleToOverworld transition leaves
+    the avatar bouncing between two adjacent tiles (the real ROUTE 104
+    (5,6)<->(5,7) hang) or frozen in place. A dedicated type lets the caller's
+    recovery abort the wedge in a bounded number of frames instead of spinning
+    until a story watchdog trips ~20k frames later."""
+
+    def __init__(self, destination_map, destination_coordinates, stuck_position):
+        self.destination_map = destination_map
+        self.destination_coordinates = destination_coordinates
+        self.stuck_position = stuck_position
+        super().__init__(
+            f"Navigation to {destination_coordinates} @ {destination_map} made no progress "
+            f"(avatar stuck near {stuck_position}). Aborting so the caller can recover."
+        )
+
+
+# KI-15 tuning. A healthy navigate_to re-paths only a handful of times (an NPC
+# steps into the way, an overshoot on the Mach Bike). Making no NET progress —
+# only re-visiting a tiny set of recently-seen tiles — for this many consecutive
+# re-paths means the avatar is wedged (post-battle bounce/freeze), not merely
+# blocked, so we bail. Kept generous so a slow-but-advancing nav is never
+# mistaken for stuck.
+_NAVIGATE_NO_PROGRESS_REPATHS = 8
+# After a re-path timeout with no active script, wait (pressing nothing) for the
+# avatar to be stably standing-still + controllable before re-pathing. This lets
+# a mid-navigation battle's return transition finish instead of re-pathing into
+# it. Costs ~nothing on a mundane NPC block (the avatar is already stopped).
+_NAVIGATE_SETTLE_STABLE_FRAMES = 20
+_NAVIGATE_SETTLE_TIMEOUT_FRAMES = 300
+
+
 @debug.track
 def follow_waypoints(
     path: Iterable[Waypoint | None], run: bool = True, final_facing_direction: Direction | None = None
@@ -374,6 +412,12 @@ def navigate_to(
 
             yield from waypoints
 
+    # KI-15 no-progress tracking (see NavigationStuckError). A window of the
+    # most recent timeout positions distinguishes a genuinely-advancing nav (it
+    # keeps reaching NEW tiles) from a wedge (it only re-hits a tiny set — a
+    # (5,6)<->(5,7) bounce or a total freeze).
+    recent_stuck_positions: list = []
+    no_progress_repaths = 0
     while True:
         try:
             yield from follow_waypoints(waypoint_generator(), run, final_facing_direction=final_facing_direction)
@@ -402,7 +446,44 @@ def navigate_to(
                     raise BotModeError(
                         f"We unexpectedly triggered a scripted event while trying to reach {coordinates} @ {map}.\nSwitching to manual mode."
                     )
-            pass
+
+            # FORK (2026-07-23, KI-15): before re-pathing, let any in-flight
+            # transition settle. An inline battle can fire mid-navigation; when it
+            # ends, control returns HERE with the post-battle
+            # ReturnFromBattleToOverworld transition still completing, and
+            # re-pathing into that unsettled state makes the avatar bounce between
+            # two tiles forever. Waiting (pressing nothing) for a stably
+            # standing-still, controllable avatar lets the transition finish; it
+            # costs ~nothing on a mundane NPC block, where the avatar is already
+            # stopped. Bounded so it can never hang here.
+            settle = 0
+            settle_waited = 0
+            while settle < _NAVIGATE_SETTLE_STABLE_FRAMES and settle_waited < _NAVIGATE_SETTLE_TIMEOUT_FRAMES:
+                if player_avatar_is_controllable() and player_avatar_is_standing_still():
+                    settle += 1
+                else:
+                    settle = 0
+                settle_waited += 1
+                yield
+
+            # Hard backstop: if we keep timing out without reaching any NEW tile
+            # (the transition never completes, or a true wedge), abort in a bounded
+            # number of frames so the caller's recovery runs — instead of spinning
+            # until a story watchdog trips ~20k frames later.
+            try:
+                here = get_player_location()
+            except Exception:
+                here = None
+            if here is not None and here in recent_stuck_positions:
+                no_progress_repaths += 1
+            else:
+                no_progress_repaths = 0
+                if here is not None:
+                    recent_stuck_positions.append(here)
+                    if len(recent_stuck_positions) > 6:
+                        recent_stuck_positions.pop(0)
+            if no_progress_repaths >= _NAVIGATE_NO_PROGRESS_REPATHS:
+                raise NavigationStuckError(map, coordinates, here)
 
 
 @debug.track

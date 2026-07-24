@@ -447,6 +447,17 @@ def _wait_until_cutscene_over(button: str = "B", *, stable_frames: int = 15,
     # -----------------------------------------------------------------
     while stable < stable_frames:
         script_running = get_global_script_context().is_active or get_immediate_script_context().is_active
+        # KI-15 NOTE: a wild battle fled DURING a scene ride can leave stale BATTLE
+        # text ("Got away safely!") waiting for input with NO script running — and
+        # that state reads IDENTICALLY to a field dialogue's parked WaitForAorBPress
+        # tail (museum greeter) on every reader AND ignores B just the same (probed
+        # on captured states; two rider-side discriminators failed and were
+        # reverted — see 08-MISTAKES 2026-07-24). The rider therefore treats both
+        # as FREE and returns (correct for the tail; the old, museum-green
+        # behavior). The battle-text wedge — whose ONE unique property is that it
+        # BLOCKS ALL MOVEMENT — is cleared by StoryMode.run's position-frozen
+        # persistence nudge instead (story_mode.py), the only seam that can see
+        # "nothing has moved for seconds".
         free = player_avatar_is_controllable() and not script_running
         # --- KI-15 TRACE: sample the reader profile periodically ---
         if _ki15w and (frames % 200 == 0 or frames > timeout_frames - 5):
