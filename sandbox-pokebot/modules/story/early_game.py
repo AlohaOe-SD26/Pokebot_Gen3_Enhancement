@@ -5183,7 +5183,10 @@ def travel_to_fortree() -> Generator:
         (MapRSE.ROUTE118, (20, 10), "Route 118 (west bank)"),
         (MapRSE.ROUTE118, (49, 8), "Route 118 (across the water)"),
         (MapRSE.ROUTE119, (25, 125), "Route 119 (south)"),
-        (MapRSE.ROUTE119, (8, 30), "Route 119 (Weather Institute side)"),
+        # (6,33) = the Weather Institute door row — statically pathable from the south
+        # leg with Surf (probed 2026-07-24 on the live wedge state; the earlier (8,30)
+        # pick was an unreachable pocket and cost run 1 a Manual).
+        (MapRSE.ROUTE119, (6, 33), "Route 119 (Weather Institute)"),
         (MapRSE.FORTREE_CITY, (5, 7), "Fortree City"),
     ]
 
