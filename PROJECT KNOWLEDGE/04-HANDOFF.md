@@ -61,15 +61,20 @@ chapter; use Gemini assistants (gemini_relay.py) for research gaps.
   phantom-escape in `_ride_out_all_scenes`, choice-aware scene rides, `_hold_walk_route`
   (bridges the planner can't cross), coord-trigger targeting, `_clear_stale_battle_message`,
   Fortree-side travel `order` ranking.
-- **‼ RESUME HERE — Ch13d BLOCKED on Route 120 bridge topology:** `get_devon_scope`
-  wedges after Steven's scene (ends at the NORTH BRIDGE (13,15)→(13,16)); the walk
-  back to Fortree crosses planner-blind bridge tiles → NO-PATH → Manual (deterministic,
-  runs 8/10/11; state `saves/ch13_r8_wedge.ss1`). NEXT: live-probe Route 120's bridge —
-  which HELD-INPUT route gets (13,16) → the Fortree WEST connection — then
-  `_hold_walk_route` off the bridge before the city-Kecleon flush (the exact pattern
-  that solved the Route 119 rival bridge). 13e (Winona turnstile gym, built) is untested
-  behind 13d. Then Ch14 (§Ch14 spec ready). Milestones: `norman_done.ss1` (clean,
-  BADGE05+Surf); regenerate a `fly_got` checkpoint once 13d clears.
+- **Ch13d Devon Scope WORKS end-to-end** (real path, run 13, commit 2bdd526e): the
+  Route 120 north-bridge strand is solved (`_leave_route120_north_bridge`: Steven's
+  scene isolates the avatar at (13,16) — held Up→(13,15), Left→(5,15) escapes; called
+  from 3 resume paths). The run crossed Route 120, flushed the city Kecleon, healed,
+  and reached the Fortree gym door. Checkpoint `saves/devon_scope_got.ss1`.
+- **‼ RESUME HERE — Ch13e BLOCKED on the Fortree tree-bridge:** the gym door (22,11) is
+  reachable ONLY from adjacent (21,11)/(22,12), not the plaza (5,7) — Fortree is a
+  tree-bridge city with planner-blind elevation walkways (the Route-119/120 bridge
+  class). NEXT: (1) regenerate a clean Fortree checkpoint — run to Fortree and hand-save
+  when controllable at the PC (SAVE_CHECKPOINT can't key a flag here); (2) probe the
+  held-input route plaza→(21,11) (like the Route 119/120 bridges); (3) add it to
+  do_fortree_gym before the door warp via `_hold_walk_route`. Then 13e Winona (turnstile
+  gym, built, untested) → BADGE06. Then Ch14 (§Ch14 spec ready). Milestones:
+  `norman_done.ss1` (clean, BADGE05+Surf), `devon_scope_got.ss1` (Scope, on Route 120).
 - **KNOWN OPEN:** KI-17 (after-faint reshow DMA freeze — sweep hardened per Gemini's
   decomp analysis, validate next batch); the fresh 5M batch was 0/5-frontier but all
   failures were the freeze family / pre-jolt-fix wedges (fixes landed), not new breakage.
