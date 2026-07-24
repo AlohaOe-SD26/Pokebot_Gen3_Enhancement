@@ -1588,11 +1588,17 @@ def active_ml_tasks():
 
 
 def _all_task_names():
-    """EVERY task the game currently has running — not a filtered subset."""
+    """EVERY task the game currently has running — not a filtered subset.
+
+    ‼ The attribute is `symbol`, NOT `name` (modules/tasks.py: Task.symbol resolves the
+    function pointer to a symbol). My first cut used `t.name` and every dump printed
+    `tasks=<err 'Task' object has no attribute 'name'>` — caught within one validation
+    run. The pre-existing STUCK-OW branch had the same `t.name` bug, but its bare
+    `except` swallowed it into a silent `tasks="?"`, so it had been broken invisibly."""
     try:
         from modules.tasks import get_tasks
 
-        return [t.name for t in get_tasks()]
+        return [t.symbol for t in get_tasks()]
     except Exception as e:
         return f"<err {e}>"
 
@@ -2001,9 +2007,9 @@ for step in range(args.frames):
         try:
             from modules.tasks import get_tasks as _gt
 
-            _tasks = [t.name for t in _gt()]
-        except Exception:
-            _tasks = "?"
+            _tasks = [t.symbol for t in _gt()]  # `.symbol`, not `.name` — see _all_task_names()
+        except Exception as _e:
+            _tasks = f"<err {_e}>"  # never swallow into "?" — that hid this exact bug
         _dsig = (get_main_battle_callback(), get_current_battle_script_instruction(), _tpstate, ctrl, ps)
         if _dsig != globals().get("_last_dsig"):
             globals()["_last_dsig"] = _dsig

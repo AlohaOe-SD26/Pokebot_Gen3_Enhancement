@@ -2153,11 +2153,23 @@ class StoryMode(BotMode):
         # prep heal would otherwise NO-PATH to the Fortree PC — ch13_run14).
         yield from _leave_route120_north_bridge()
 
-        if not _done("RECEIVED_DEVON_SCOPE"):
+        # ‼ TWO JOBS, TWO FLAGS (2026-07-24 — caught by the post-fix Ch13d validation run).
+        # get_devon_scope() does TWO things: (1) get the Scope from Steven, and (2) FLUSH the
+        # Fortree gym-path Kecleon. Gating the call on RECEIVED_DEVON_SCOPE alone meant any
+        # resume that already had the Scope — including EVERY derail recovery near Fortree,
+        # since recovery re-runs this resume — skipped the flush too. The Kecleon then still
+        # occupies (25,8), the single chokepoint tile to the gym door, and do_fortree_gym
+        # NO-PATHs to (22,11) forever ("Could not find a path from (5/7 @ FORTREE_CITY)").
+        # The validation run derailed 5 times on exactly this. Both sub-steps are already
+        # idempotent inside get_devon_scope (it checks _have_scope() and _city_kecleon_present()
+        # separately), so calling it whenever EITHER job is outstanding is safe and correct.
+        _kecleon_flushed = _done("HIDE_FORTREE_CITY_KECLEON")
+        if not _done("RECEIVED_DEVON_SCOPE") or not _kecleon_flushed:
             yield from get_devon_scope()
         else:
-            console.print("[dim]Story: Devon Scope already in the bag.[/]")
+            console.print("[dim]Story: Devon Scope in the bag and the Kecleon already flushed.[/]")
         _guard("Devon Scope (Ch13d)", lambda: _done("RECEIVED_DEVON_SCOPE"))
+        _guard("Fortree Kecleon flush (Ch13d)", lambda: _done("HIDE_FORTREE_CITY_KECLEON"))
 
         if not _done("BADGE06_GET"):
             from modules.map_data import PokemonCenter

@@ -2683,3 +2683,30 @@ be misnamed or mis-assumed.
 **Prevention rule:** before blaming the pathfinder, dump the DESTINATION tile's collision and
 elevation — "unreachable" is far more often a wrong target than a blind planner, and one
 control tile on the same map separates the two in seconds.
+
+## 2026-07-24 — Ch13d resume skipped the Kecleon flush; harness task dump was broken (#24)
+
+**Bug 1 — one gate for two jobs.** `story_mode.py` ran `get_devon_scope()` only when
+`RECEIVED_DEVON_SCOPE` was unset. But that function does TWO jobs: get the Scope from Steven,
+AND flush the Fortree gym-path Kecleon. So any resume that already had the Scope skipped the
+flush as well — leaving the Kecleon on (25,8), the single chokepoint tile to the gym door, so
+`do_fortree_gym` NO-PATHs to (22,11) forever. **Not a milestone-only artifact:** derail
+recovery re-runs the resume, so in a fresh run any derail near Fortree falls into the same
+trap. The Ch13d validation run derailed 5× on exactly this and never logged
+"flushing the invisible thing" once. Fixed: gate on `RECEIVED_DEVON_SCOPE` OR
+`HIDE_FORTREE_CITY_KECLEON` being outstanding (both sub-steps are already idempotent inside
+`get_devon_scope`), plus a `_guard` on each flag so a silent skip can't recur.
+STATUS: logic fix; end-to-end proof still blocked by an unrelated earlier derail in the
+milestone save (`_leave_route120_north_bridge`, under diagnosis).
+
+**Bug 2 — my own observability fix was broken (shipped 2026-07-24 in `67c777e5`).** Every
+dump printed `tasks=<err 'Task' object has no attribute 'name'>`. The attribute is
+`Task.symbol`, not `.name`. Fixed and CONFIRMED live — dumps now read
+`tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', ...]`.
+While fixing it I found the PRE-EXISTING `STUCK-OW` branch carried the identical `t.name`
+bug, but its bare `except` swallowed it into a silent `tasks="?"` — broken invisibly for an
+unknown length of time. Removed the swallow so any future breakage announces itself.
+
+**Prevention rule (second instance today).** A silent fallback in a debug path hides the exact
+defect the debug path exists to reveal — first a filtered list reading as `[]`, now an
+exception reading as `"?"`. Diagnostics must fail LOUD: print the error, never a placeholder.
