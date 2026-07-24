@@ -4124,7 +4124,18 @@ def _smash_rock(map_enum, approach_tile, face_dir: str) -> Generator:
         for _f in range(1200):
             _check_abort()
             if not _rock_present():
-                yield from wait_for_n_frames(20)  # let the crumble animation finish
+                # ‼ KI-16: EventScript_SmashRock's WaitForMovementFinish runs AFTER the
+                # rock OBJECT is removed. Returning the instant the object is gone lets
+                # the caller's next navigation start moving the player, which CANCELS
+                # the crumble movement and strands the smash script active forever (the
+                # deterministic wattson_done→Fiery-Path wedge). So wait for the field
+                # SCRIPT to fully clear — pressing NOTHING, so we don't interrupt the
+                # movement it's waiting on — before handing control back.
+                for _s in range(600):
+                    if not get_global_script_context().is_active:
+                        break
+                    yield
+                yield from wait_for_n_frames(10)
                 yield from wait_until_truly_controllable()
                 return
             if _f % 10 == 0:

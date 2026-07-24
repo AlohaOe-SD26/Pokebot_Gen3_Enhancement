@@ -917,3 +917,19 @@ at Story resume so ANY awkward entry state (menu/dialogue/battle/cutscene) self-
 **Prevention rule.** Capture checkpoints only from a stable, controllable overworld
 (assert it before writing). And make resume tolerant of arbitrary entry states rather
 than assuming a clean overworld — users load states from anywhere.
+
+## 2026-07-23 — "the object is gone" is not "the script is done" (KI-16 Rock Smash wedge)
+**Symptom.** Deterministic hang resuming from wattson_done: after smashing the Route 111 rocks,
+the next navigation wedged forever at (18,99) — avatar controllable, but a field script stuck.
+**Root cause.** `_smash_rock` judged success by the rock OBJECT disappearing (a good idempotency
+signal) and returned immediately. But `EventScript_SmashRock` continues past the object removal
+into `WaitForMovementFinish` (the crumble/step animation). Returning early let the caller's
+navigation start a player movement that CANCELLED the one the script was waiting on, so the
+script never finished and every subsequent step wedged. It only surfaced from wattson_done
+because that save's RNG fired a wild battle at the trigger spot; other paths dodged it.
+**The fix that worked.** After the object is gone, wait for `get_global_script_context()` to go
+inactive (pressing nothing, so the movement isn't interrupted) before handing control back.
+**Prevention rule.** When a scripted interaction removes an object, "object gone" is a valid
+COMPLETION-of-effect signal but NOT a completion-of-SCRIPT signal — the field script can outlive
+the object (WaitForMovementFinish, cleanup). Before navigating away, wait for the field script
+itself to clear, and don't press movement inputs while it's finishing.

@@ -2311,3 +2311,17 @@ Two livetest batches to check the story frontier for hangs/derails/crashes.
   navigator wedge) — both intermittent/narrow, both with repros for a focused fix; NOT
   guess-patched (they touch critical battle/navigator code and need a validated repro).
   New recon tools: route_probe_ch12.py / route_chain_ch12.py (from the Ch12 build attempt).
+
+## 2026-07-23 — KI-16 FIXED: Rock Smash returned before its field script finished (the wattson_done wedge)
+Root-caused the deterministic wattson_done→Fiery-Path hang (validation Pass 2). Captured the
+exact wedge state via a harness hook and found the stuck field script: `EventScript_SmashRock`
+parked in `WaitForMovementFinish`. `_smash_rock` returned the instant the rock OBJECT
+disappeared — but the smash script's WaitForMovementFinish runs AFTER the object is removed,
+so the caller's next navigation started moving the player, CANCELLED the crumble movement, and
+stranded the script active forever (avatar reads controllable, but every navigation step wedges).
+Only wattson_done's RNG fired a wild battle at exactly the wrong spot to expose it; fresh runs
+and rocksmash_taught happened to dodge it. FIX: after the rock object is gone, wait for the
+field SCRIPT to fully clear (pressing NOTHING, so the crumble movement isn't interrupted) before
+returning. PROVEN: full wattson_done → HEAT BADGE, 0 derails (was a deterministic hang at
+f74383); rock-smash speed preserved (~20s/leg). Lesson (08-MISTAKES): "object gone" is not
+"script done" — a field script can outlive the object it removed; wait for the SCRIPT.

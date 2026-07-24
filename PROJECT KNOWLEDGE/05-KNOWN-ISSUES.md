@@ -196,7 +196,7 @@ its bound, ESCALATE rather than silently return into a re-invoke loop (e.g., cyc
 slot with A + release gaps, or B-out-and-retry). Needs the repro first — do not guess-patch
 the battle handler blind.
 
-## KI-16 (2026-07-23, Pass-2 milestone batch) — DETERMINISTIC navigator wedge from wattson_done in travel_to_fallarbor
+## KI-16 ✅ FIXED 2026-07-23 (same day) — the wedge was _smash_rock returning before EventScript_SmashRock finished
 **Symptom.** ALL 5 lanes resuming from `wattson_done.ss1` hang identically at frame f74383,
 at Route 111 (18,99), in `travel_to_fallarbor` → `_enter_warp_by_navigation` (Fiery Path
 south door) → navigate_to → follow_waypoints → ensure_facing_direction. A WILD BATTLE ends
