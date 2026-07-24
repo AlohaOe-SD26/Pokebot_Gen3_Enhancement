@@ -5447,6 +5447,10 @@ def get_devon_scope() -> Generator:
                 yield from ensure_facing_direction("Left")
                 context.emulator.press_button("A")
                 yield from wait_for_n_frames(30)
+                # ‼ Steven's scene contains a YES/NO ("battle the Kecleon?") — ride
+                # with the CHOICE-AWARE rider (A only at genuine choice boxes, B
+                # otherwise); raw-B riding declined it in a loop (run 9).
+                yield from _wait_until_cutscene_over("A")
                 yield from _ride_out_all_scenes(quiet_frames=300)
             except BotModeError:
                 yield from _ride_out_scripted_scene("B")
@@ -5476,9 +5480,12 @@ def get_devon_scope() -> Generator:
             raise BotModeError("Fortree: the gym-path Kecleon never flushed.")
         try:
             yield from _navigate_riding_out(MapRSE.FORTREE_CITY, (24, 8), tries=6)
+            yield from _clear_stale_battle_message()
             yield from ensure_facing_direction("Right")
             context.emulator.press_button("A")
             yield from wait_for_n_frames(30)
+            # the Scope prompt is a YES/NO — choice-aware ride (the run-9 lesson)
+            yield from _wait_until_cutscene_over("A")
             yield from _ride_out_all_scenes(quiet_frames=300)
         except BotModeError:
             yield from _ride_out_scripted_scene("B")
