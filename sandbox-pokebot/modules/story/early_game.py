@@ -5478,6 +5478,17 @@ def get_devon_scope() -> Generator:
                 raise BotModeError("Route 120: the Steven/Devon-Scope scene never resolved.")
         context.message = "Story: DEVON SCOPE received!"
 
+    # ‼ Steven's scene strands the avatar on the Route 120 NORTH BRIDGE at (13,16),
+    # an ISOLATED tile the planner can't leave (probed: every direction snaps to
+    # (13,15); calculate_path NO-PATHs everywhere) — so the walk back to Fortree
+    # NO-PATHed to Manual (runs 8/10/11). HELD-INPUT off the bridge west to (5,15),
+    # from which the planner reaches Fortree cleanly. Skip if we already left it.
+    if _map_group_number() == MapRSE.ROUTE120.value and get_player_avatar().local_coordinates[1] <= 16:
+        yield from _clear_stale_battle_message()
+        yield from _ride_out_all_scenes(quiet_frames=200)
+        yield from _hold_walk_route([("Up", (13, 15)), ("Left", (5, 15))], stop_on_script=False)
+        yield from wait_until_truly_controllable()
+
     # Flush the Fortree gym-path Kecleon (city object (25,8), flag 969) if it still
     # stands. Idempotent: skip when the object is gone.
     from modules.map import get_map_objects
