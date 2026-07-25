@@ -476,3 +476,45 @@ island legendaries use `seteventmon`, so they are fateful and obedient. (`IsMonD
 Mauville/Lavaridge; **Moomoo Milk is not purchasable anywhere**). All 19 prices were right. The
 break-even for "walk to a free heal vs carry potions" is **¥14.0/HP before Fortree and ¥6.0/HP
 after** — a flat ¥/HP model is off by 2.3×.
+
+## KI-23 — Winona: the boss-attempt strategy cannot converge without a TYPE ANSWER (2026-07-25)
+
+**Evidence: the user's overnight ENDLESS RESET session (2 runs) + my 5 cold-start runs.**
+
+**Run 1 — 198 Winona attempt-messages, 41 losses, 41 whiteouts, NEVER won.** The last ~567,000
+frames were spent entirely inside the Fortree gym sequence (the message never changed across 159
+consecutive 3,600-frame heartbeat dumps), cycling: challenge → lose → whiteout → recover →
+re-enter. Party at the end: **Sceptile L42, Loudred L39, Mightyena L36, Shedinja L29, Ninjask L28,
+Zigzagoon L11.**
+
+**Run 2 — 37 attempts, 32 losses, then WON** (`FortreeCity_Gym_EventScript_WinonaDefeated` +
+`Common_EventScript_PlayGymBadgeFanfare` in the final dump; the log ends mid-fanfare). Party:
+**Swampert L41**, Swellow L39, Vigoroth L32, Mightyena L18, Castform L26.
+
+**Root cause — not levels, TYPES.** Winona is Swablu/Tropius/Pelipper/Skarmory/Altaria
+(L29-33). Run 1's party at L42/L39/L36 was *far* above her levels and still lost 41 times,
+because it had **no super-effective answer**: Sceptile (Grass) is resisted by Flying and shredded
+by it; Ninjask (Bug/**Flying**) and Shedinja (Bug/Ghost, 1 HP) are worse; Loudred and Mightyena are
+neutral. Nothing Electric, Rock or Ice — and Altaria is **4× weak to Ice**. Run 2 won not by
+matchup either, but by brute-forcing with a bulky Swampert.
+
+**So the boss-as-training-vehicle strategy has a failure mode we had not seen: it does not
+converge when the team has no type answer.** It is not "slow" there — it is a genuine infinite
+loop bounded only by the whiteout cap, and levelling further does not help. This is the same
+economics as Norman (KI: 35 whiteouts) but worse, because Flying resists the common early types.
+
+**What the fix needs (this is `#24-counters`, and it is exactly the user's stated goal of
+"counters after failure and learning"):**
+1. **Detect non-convergence** — N consecutive losses to the same boss with no downward trend in
+   the boss's surviving mons means the plan is wrong, not under-levelled. Cheap signal: KOs
+   scored per attempt is flat/zero.
+2. **Then change the PLAN, not the level** — identify a type the boss is weak to, and go CATCH
+   one. Against Winona: any Electric (Route 110 Voltorb/Magnemite, Mauville area) or an Ice move.
+   `training_areas.py` already knows where species live; the missing piece is
+   "what type do I need and where do I get it".
+3. Keep the existing escalation for the case where the team DOES have an answer and is merely
+   under-levelled — that path demonstrably works (my run1 won Badge 6 cold-start).
+
+**Cross-run confirmation:** my 5 runs show the same shape elsewhere — 2 of 5 died on the whiteout
+cap (`#24-whiteout`), and my successful run took 80 whiteouts. Attrition is not a side-effect; it
+IS the dominant cost of the current strategy.
