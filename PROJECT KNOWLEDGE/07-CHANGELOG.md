@@ -3098,3 +3098,30 @@ runs:**
 **Prevention rule:** an analysis tool that cannot find a field must SAY SO, never emit a
 placeholder that groups cleanly. A tidy wrong answer is worse than a visible gap, because
 clustering makes coincidences look like evidence.
+
+## 2026-07-25 — a SUCCESSFUL run no longer reports as a hang (#24-harness-finish)
+
+**Seen on the first cold-start Badge 6 run.** The bot reached the end of built content at
+f2,483,319, printed "end of built content — handing to manual", and then legitimately stopped
+doing anything — so the harness's frame-based detector fired 20,000 frames later and the log ended
+`HANG CONFIRMED`. A complete success, filed as a failure.
+
+That false signal is expensive twice over: it wastes an investigation, and `compare_runs.py`
+inherited it — the tool classified the successful run as `no-path`, because a **transient,
+recovered** "Could not find a path" appeared earlier in the log and the tool scanned the whole file
+for failure markers. So the one run that worked looked like the worst kind of failure.
+
+**Fixes:**
+* `story_harness.py` — when the no-progress detector trips, check whether the bot's message says
+  "end of built content" and log `RUN COMPLETE — the bot is idle by design, not hung` instead.
+* `compare_runs.py` — **success outranks everything** (reaching content-end or the Feather Badge
+  ⇒ `SUCCESS`), and failure markers are judged from the TAIL, falling back to a whole-log scan only
+  with an explicit `?earlier` tag so a recovered hiccup can never masquerade as the cause of death.
+
+Verified: run1 now reads `content-end / SUCCESS`; the genuinely-failed runs still report their real
+terminal causes (`whiteout-cap` in `_ride_out_all_scenes`, `hang` in
+`handle_move_replacement_dialogue`).
+
+**Prevention rule:** a detector that only knows "nothing is happening" cannot tell FINISHED from
+WEDGED — it must ask why nothing is happening. And any tool that ranks failure markers must
+distinguish *survived* from *terminal*, or every long run looks fatal.

@@ -2085,7 +2085,22 @@ for step in range(args.frames):
         except Exception as e:
             log(f"f{step}:     gen -> <err {e}>")
     if no_progress >= 20000:
-        log(f"f{step}: HANG CONFIRMED (20000 frames no progress). Stopping.")
+        # ‼ DISTINGUISH "FINISHED" FROM "HUNG" (#24-harness-finish, seen 2026-07-25 on the
+        # first cold-start Badge 6 run). When the story bot reaches the end of built content it
+        # prints "end of built content ... handing to manual" and legitimately stops doing
+        # anything — so the frame-based detector fires 20,000 frames later and the log ends with
+        # "HANG CONFIRMED" on a run that SUCCEEDED. That false signal is expensive twice over:
+        # it wastes an investigation, and it made compare_runs.py file a success as a failure.
+        _finished = False
+        try:
+            _finished = "end of built content" in str(getattr(context, "message", "") or "")
+        except Exception:
+            _finished = False
+        if _finished:
+            log(f"f{step}: RUN COMPLETE — end of built content reached; the bot is idle by "
+                f"design, not hung. Stopping cleanly.")
+        else:
+            log(f"f{step}: HANG CONFIRMED (20000 frames no progress). Stopping.")
         break
 
     if step - last_heartbeat >= 2000:

@@ -57,6 +57,7 @@ FAIL_MARKERS = [
 
 MILESTONES = [
     ("content-end", "end of built content"),
+    ("content-end", "RUN COMPLETE"),
     ("badge6", "FEATHER BADGE"),
     ("badge5", "BALANCE BADGE"),
     ("badge4", "HEAT BADGE"),
@@ -76,19 +77,41 @@ def summarise(path: pathlib.Path, label: str) -> dict:
         if h:
             frames = int(h.group(1))
 
-    # Failure kind: FIRST marker in the list order (most specific first), not first in the file —
-    # a run often trips several, and the specific one is the diagnosis.
-    fail = "clean/unknown"
-    for name, needle in FAIL_MARKERS:
-        if needle in text:
-            fail = name
-            break
-
     depth = "start"
     for name, needle in MILESTONES:
         if needle in text:
             depth = name
             break
+
+    # ‼ SUCCESS OUTRANKS EVERYTHING, AND FAILURES ARE JUDGED FROM THE TAIL.
+    # Two bugs the first version had, both of which would have corrupted a cross-machine
+    # comparison in opposite directions:
+    #  1. A run that reached "end of built content" was labelled `no-path`, because a
+    #     TRANSIENT, RECOVERED "Could not find a path" appeared somewhere earlier in the log.
+    #     Scanning the whole file for failure markers means any hiccup a run survived becomes
+    #     its verdict — so a SUCCESS was filed as a failure.
+    #  2. A successful run still ends with "HANG CONFIRMED", because the bot prints
+    #     "end of built content — handing to manual" and then idles until the frame-based
+    #     detector fires 20,000 frames later. That trailing hang is an artefact of finishing,
+    #     not a failure (see #24-harness-finish).
+    # So: if the run reached the end of built content or won the Feather Badge, it SUCCEEDED.
+    # Otherwise prefer a marker in the TAIL (the terminal failure) and only fall back to the
+    # whole log with an explicit "earlier" tag, so a recovered hiccup can never masquerade as
+    # the cause of death.
+    tail_for_fail = "\n".join(lines[-600:])
+    if depth in ("content-end", "badge6"):
+        fail = "SUCCESS"
+    else:
+        fail = "clean/unknown"
+        for name, needle in FAIL_MARKERS:
+            if needle in tail_for_fail:
+                fail = name
+                break
+        else:
+            for name, needle in FAIL_MARKERS:
+                if needle in text:
+                    fail = f"{name}?earlier"
+                    break
 
     # Deepest generator frame near the END of the log = where it actually died.
     # ‼ WIDEN THE WINDOW UNTIL SOMETHING IS FOUND. A fixed 400-line tail reported `where=?`
