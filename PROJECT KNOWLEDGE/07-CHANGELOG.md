@@ -3166,3 +3166,41 @@ loop into a bounded stop that NAMES the fix; acting on it automatically is the n
 **Prevention rule:** when a guard is added for a specific observed failure, verify the failing
 case actually REACHES the guard. Winona's prep was never wired up, so every test passed while the
 real bug stayed live.
+
+## 2026-07-25 — the COUNTER CHAIN is connected end to end (#24-counters, KI-23/24)
+
+**The user's bug:** 198 Winona attempts, 41 losses, 41 whiteouts, never won — with a party FAR
+ABOVE her levels. It lost on TYPES, not levels.
+
+**The chain, now connected:** `_boss_plan_is_hopeless` (6 losses + flat KOs + nothing hitting the
+boss's `ace_types` for ≥2.0) → `counter_plan.find_counter_candidates` (ranked catch targets over
+the whole-game encounter index) → `region_reach.is_map_reachable(max_hops=4)` (region-scale
+reachability from the ROM's own connections + warps).
+
+**‼ THE RESULT THAT MATTERS.** From the verified Winona-era save (ROUTE120, Badge 5, Surf in
+party), the bot now reports **Electrike on ROUTE118, tile (29,15), L24-26, 30% — REACHABLE**, and
+5 of 10 candidates reachable. The OLD `_training_area_allowed` predicate returned **zero** from
+that exact save. The bot goes from "I lost 41 times" to "I need Rock/Electric/Ice, and the nearest
+one is an Electrike on Route 118".
+
+**Why a NEW predicate rather than the existing one:** `_training_area_allowed` uses tile-level
+`calculate_path`, which reads the Route 118/119/120 dual-elevation bridges as WALLS (KI-24) — the
+same limitation that forced `_hold_walk_route()` into existence. `_counter_area_allowed` uses
+`region_reach` instead. `max_hops=4` is a documented sanity FILTER, never a rank: measured hops
+from ROUTE120 are Fortree 1, Route119 2, **Lilycove 2**, Route118 3, Mossdeep 4, Pacifidlog 10, so
+hop count cannot separate the answer from the noise (KI-24b) — `counter_plan`'s own criteria rank.
+
+**Fail-safe, proven in all three planner outcomes** (`tools/story-dev/repro_counter_wiring.py`):
+candidates ⇒ the message names species + map; empty list ⇒ degrades to the type-only diagnosis;
+**planner RAISES ⇒ the exception never escapes** and the type-only diagnosis still comes through.
+That last arm matters most — a crash here would turn a diagnosed stop into an undiagnosed one,
+strictly worse than the original bug.
+
+**Regressions all green:** `repro_fodder_grass`, `repro_boss_plateau`, `repro_counter_plan`,
+`repro_region_reach`.
+
+**Promoted to `custom-pokebot/`** and verified there (modes register, both new modules import,
+both new functions present).
+
+**NOT built: execution.** The bot now NAMES the target; travelling, catching and training it is
+the next task and needs a live run to validate, not a repro.

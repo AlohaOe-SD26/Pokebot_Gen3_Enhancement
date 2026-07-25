@@ -530,6 +530,75 @@ def _training_area_allowed(map_enum, tile, prereq) -> bool:
         return False
 
 
+def _counter_area_allowed(map_enum, tile, prereq) -> bool:
+    """`allow=` predicate for `counter_plan.find_counter_candidates`, used ONLY from
+    `_boss_plan_is_hopeless`'s counter-catch wiring (KI-23 -> #24-counters).
+
+    Deliberately NOT `_training_area_allowed`: that predicate's same-region test is
+    tile-level `calculate_path`, which reads the Route 118/119/120 dual-elevation
+    bridges as WALLS and therefore reported Route 118 — the real Winona answer — as
+    unreachable (KI-24). `region_reach.is_map_reachable` answers reachability from the
+    ROM's own MapConnections + warps instead, which is sound at region scale.
+
+    `max_hops=4` is a documented sanity FILTER, not a rank: measured hops from
+    ROUTE120 are Fortree 1, Route119 2, Lilycove 2, Route118 3, Mossdeep 4,
+    Pacifidlog 10 — 4 keeps the same-landmass cluster and cuts the far-flung.
+    Hop count must NOT be used to rank; `counter_plan`'s own criteria (type coverage
+    -> verified tile -> encounter rate -> level fit) do that (KI-24b). Fails safe:
+    any oracle error is treated as unreachable, never lets an exception escape.
+    """
+    try:
+        from modules.story import region_reach
+
+        return bool(region_reach.is_map_reachable(map_enum, max_hops=4))
+    except Exception:
+        return False
+
+
+def _counter_catch_message(cfg: dict, losses: int, needed: list[str]) -> str:
+    """Builds the `BotModeError` message for a hopeless boss plan (KI-23 -> #24-counters):
+    the type-only diagnosis PLUS, if the counter-catch planner can name one, a concrete
+    catch target (species + map + tile + level band) rather than just a type list.
+
+    Connects the three previously-standalone pieces: `_boss_plan_is_hopeless` (the
+    diagnosis) -> `counter_plan.find_counter_candidates` (ranks catch targets) ->
+    `region_reach.is_map_reachable` (the reachability oracle, via `_counter_area_allowed`).
+    PLANNING/LOGGING ONLY — this does not travel, catch, or train anything.
+
+    Fails SAFE throughout: if the planner or the reachability oracle errors or returns
+    nothing, this falls back to the type-only message. A crash here would turn a
+    diagnosed stop into an undiagnosed one, which is strictly worse.
+    """
+    boss_name = cfg.get("name", "this boss")
+    ace_desc = "/".join(cfg.get("ace_types", ())) or "its ace type(s)"
+    base_msg = (
+        f"{boss_name}: {losses} losses with no super-effective answer to "
+        f"{ace_desc}. Need one of: {', '.join(needed)}. Grinding levels "
+        f"will not fix this."
+    )
+    try:
+        from modules.story import counter_plan
+
+        candidates = counter_plan.find_counter_candidates(
+            needed, allow=_counter_area_allowed, max_results=5
+        )
+        if candidates:
+            summary = counter_plan.summarise_candidates(candidates)
+            # Full list to the debug log FIRST — it must land even if the raised
+            # message ends up truncated somewhere downstream.
+            console.print(
+                f"[bold cyan]Story: counter-catch candidates for {boss_name} "
+                f"({ace_desc}):[/]\n{summary}"
+            )
+            base_msg += " Nearest reachable counters: " + summary.replace("\n", "; ")
+    except Exception as error:
+        console.print(
+            f"[yellow]Story: counter-catch planner failed ({error}) — "
+            f"falling back to the type-only diagnosis.[/]"
+        )
+    return base_msg
+
+
 #: Where to heal while training in each area. Training far from the boss's own Poké Center
 #: means the heal trips must be LOCAL to the training ground, or the bot walks the region
 #: every time HP dips (the cave-heal lesson, 2026-07-22). Unlisted areas fall back to the
@@ -1081,13 +1150,7 @@ class StoryMode(BotMode):
                 if hopeless:
                     from modules.modes import BotModeError
 
-                    boss_name = cfg.get("name", "this boss")
-                    ace_desc = "/".join(cfg.get("ace_types", ())) or "its ace type(s)"
-                    raise BotModeError(
-                        f"{boss_name}: {losses} losses with no super-effective answer to "
-                        f"{ace_desc}. Need one of: {', '.join(needed)}. Grinding levels "
-                        f"will not fix this."
-                    )
+                    raise BotModeError(_counter_catch_message(cfg, losses, needed))
                 boss_mode = True
                 target = team_max + 1  # light top-up only — the boss battle is the trainer
                 console.print(
