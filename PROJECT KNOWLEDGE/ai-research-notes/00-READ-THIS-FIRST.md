@@ -70,3 +70,62 @@ work proved this class is solvable when the mechanic is understood exactly), and
 
 **Highest-risk angle:** `s10`. A phantom flag name reads False forever and gates a segment into
 an eternal derail loop. Verify every single name before use.
+
+---
+
+# ‼ RESULT OF THE THREE-PASS EXPERIMENT (2026-07-24) — READ BEFORE TRUSTING ANY PASS
+
+The user asked for research → verify → verify again on the ITEM topics (15 research angles,
+then 10 verifiers, then 10 adjudicators). Here is what actually happened, because the outcome
+changes how every note in this directory should be read.
+
+## Pass 1 — 15 research notes
+~150 KB of confident, well-formatted, table-heavy output. Files `item-notes-i01..i15.md`.
+
+## Pass 2 — 10 ADVERSARIAL critiques (`VERIFY1-*.md`)
+Not "answer it again" — each was handed the actual note and told to find the errors, with a
+fixed output shape (WRONG / WRONG GAME / MISSING / UNVERIFIABLE / VERDICT).
+
+**Result: 8 × SIGNIFICANT ERRORS, 1 × UNRELIABLE, ZERO × MOSTLY SOUND.**
+
+Findings were specific and checkable, not nitpicks — e.g. an invented Revive in Steven's house
+("not just wrong, it is a complete hallucination — it invents an item, coordinates, a flag, and
+a false narrative"), HM07 Waterfall placed in the Cave of Origin, the bike gated on "defeat
+Wattson", a Meowth swarm on Route 116 (Meowth is not in Emerald's wild tables), and categorical
+ABSENCE claims — the most dangerous shape, since absence cannot be disproven by looking.
+
+## Pass 3 — 10 ADJUDICATORS (`ADJUDICATED-*.md`)
+Each received the note AND its critique and had to rule per disputed claim, with a citation.
+
+**Result: nine of ten declared ~100% confidence**, typically phrased as "all claims were
+verifiable against the pokeemerald decompilation project".
+
+## ‼ THE ACTUAL LESSON
+
+That 100% is **not credible**, and it is the finding that matters most:
+
+1. The adjudicator did NOT inspect the decomp. It has no file access. It **recalled** and then
+   described recall as verification. The phrase "verifiable against the decomp" is doing work it
+   has not done.
+2. It is the SAME MODEL that produced the hallucinations in pass 1 and the critiques in pass 2.
+   Stacking same-model passes converges on **confident-sounding** output, not on truth.
+3. So pass 3's rulings are a THIRD OPINION dressed as a verdict. Its "CONFIRMED-GOOD CORE"
+   sections are the most useful part — but they are still leads.
+
+**Verification requires an EXTERNAL ground truth.** Two are available in this repo and both are
+cheap:
+* `gh api repos/pret/pokeemerald/contents/<path>` — fetch the real decomp file and read it. This
+  is how the Fortree gate mechanics were settled, and that port then matched the live emulator
+  4/4.
+* A live probe on a real save (`tools/story-dev/probe_*.py`), plus `modules/data/*` for
+  learnsets/encounters/base-exp, and `audit_flag_names.py` for every FLAG_/VAR_ name.
+
+**Therefore: treat these notes as a CROSS-REFERENCE — a list of things to go check — never as
+data.** Where a note and a critique disagree and the adjudicator ruled, the ruling narrows what
+to check; it does not settle it.
+
+## Practical reading order for a future agent
+1. `ADJUDICATED-*.md` → §2 "CONFIRMED-GOOD CORE" and §3 "DO NOT USE". Start here.
+2. `VERIFY1-*.md` → the "most dangerous claim" line, so you know what would hurt most if wrong.
+3. `item-notes-*.md` → only for coverage/ideas, never for values.
+4. Then VERIFY against the decomp or the ROM before a single line of code depends on it.

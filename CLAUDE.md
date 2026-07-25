@@ -190,6 +190,26 @@ the newest commit recorded in `40cakes repo/UPDATE-LOG.md`.
   explicit user approval, together with their DIVERGENCE-LOG entries and
   docs; after promotion the sandbox is re-based on the new custom.
 
+### Gemini research notes — standing directive (user directive, 2026-07-24)
+- **Use Gemini research agents (`tools/story-dev/gemini_relay.py`) whenever fixing
+  or building anything story/mechanic/game related** — for extra context, for
+  cross-referencing, for verifying, and for making the documentation more
+  accurate. Multiple agents on different ANGLES beats one broad question.
+- **Their output is always a NOTE, never a source of truth, and never replaces
+  existing documentation.** It lands in `PROJECT KNOWLEDGE/ai-research-notes/`
+  and the authoritative doc gets a STUB MARKER pointing to it. On any
+  contradiction the authoritative doc WINS until the note is verified. See
+  `ai-research-notes/00-READ-THIS-FIRST.md` for the rule and the per-claim
+  verification gates (flags → `audit_flag_names.py`; coords → live probe;
+  learnsets/encounters → `modules/data`; reachability → `calculate_path` from a
+  real captured position PLUS a control tile that does path).
+- **Verification passes must be ADVERSARIAL:** hand a later agent the earlier
+  note and ask it to FIND ERRORS in it. Asking a second agent the same question
+  just produces a second guess; asking it to refute produces information.
+- Why the caution is not theoretical: in the first batch an agent confidently
+  denied the existence of `ROUTE111_OLD_LADYS_REST_STOP`, which is in our own
+  `map_data.py`, on the single most load-bearing question it was asked.
+
 ### Story-bot craft & documentation excellence (user directive, 2026-07-21)
 - **Read `PROJECT KNOWLEDGE/14-AGENT-PLAYBOOK.md` every session** (right after the
   handoff). It is the accumulated method for building the Story bot: the faithful
