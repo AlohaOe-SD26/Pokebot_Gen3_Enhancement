@@ -3011,3 +3011,28 @@ is unverified. Next step: capture a live double-battle after-faint stall.
 
 **Prevention rule:** a function-local `from X import Y` shadows a module-level `Y` for the entire
 function, including code ABOVE the import. Never add one for a name the module already imports.
+
+## 2026-07-25 — harness stall snapshots are per-run and per-stall (#24-harness-savepath)
+
+**Two defects in one line.** The no-progress auto-save wrote a single shared
+`saves/midstuck.ss1` and fired only ONCE per run:
+* **Shared path** — three concurrent runs each overwrote it, so the file could not be trusted to
+  belong to any particular failure. This is precisely why the move-learn stall that killed 2 of 3
+  cold-start runs STILL has no clean repro, and why one earlier investigation burned effort on a
+  `midstuck.ss1` that turned out to be a whiteout state from a different map.
+* **Once per run** — a run usually stalls several times, and the first stall is typically a
+  recoverable hiccup, not the fatal wedge. The interesting capture was the one never taken.
+
+**Fix.** Each stall writes `saves/stalls/<profile>-f<frame>.ss1`, capped at `_STALL_SAVE_CAP = 6`
+per run so a pathological run cannot fill the disk. The profile name in the filename makes
+concurrent runs unambiguous. Verified live: a real run produced `b3-badge6-f945.ss1`.
+`saves/stalls/` is gitignored (run artefacts, not source).
+
+**Also removed a stale live-looking line:** the old `globals()["_stuck_saved"] = False` re-arm
+reset a flag nothing reads any more. Left a comment in its place explaining why there is nothing
+to re-arm — and specifically why the per-run cap must NOT be reset there, or a repeatedly-stalling
+run would write unboundedly many snapshots.
+
+**Prevention rule:** a diagnostic artefact written to a FIXED path is worthless the moment two
+runs exist. Name captures after the run that produced them, and cap the count rather than the
+occurrence.

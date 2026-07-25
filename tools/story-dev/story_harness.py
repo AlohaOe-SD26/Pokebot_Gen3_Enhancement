@@ -1587,6 +1587,12 @@ def active_ml_tasks():
     return [n for n in names if task_is_active(n)]
 
 
+#: How many stall snapshots a single run may write. A run can stall many times; capturing only
+#: the first (the old behaviour) usually captures a recoverable hiccup rather than the fatal
+#: wedge, but capturing every one could fill the disk on a pathological run.
+_STALL_SAVE_CAP = 6
+
+
 def _all_task_names():
     """EVERY task the game currently has running — not a filtered subset.
 
@@ -1987,10 +1993,15 @@ for step in range(args.frames):
     else:
         no_progress = 0
         last_sig = sig
-        # re-arm save-on-stuck: progress resumed, so the NEXT stall episode gets its
-        # own midstuck capture (2026-07-24: an early self-recovering scene consumed
-        # the once-per-process save and the REAL later wedge went uncaptured).
-        globals()["_stuck_saved"] = False
+        # re-arm save-on-stall: progress resumed, so the NEXT stall episode gets its own
+        # capture (2026-07-24: an early self-recovering scene consumed the once-per-process
+        # save and the REAL later wedge went uncaptured). ‼ Nothing to re-arm now that each
+        # stall writes its own uniquely-named file — the only limit is the per-run
+        # `_STALL_SAVE_CAP`, which must NOT be reset here or a run that stalls repeatedly
+        # would write unboundedly many snapshots. Left as a no-op comment deliberately: the
+        # old `_stuck_saved = False` line was a live-looking reset of a flag nothing reads
+        # any more, which is exactly the kind of stale code that misleads the next reader.
+        pass
     # STUCK-OVERWORLD DIAGNOSTIC: the reliable "is the game actually blocked"
     # signal is player_avatar_is_controllable() (gDisplayedStringBattle/gBattleMainFunc
     # go STALE after a battle, so they lie). Log a compact trace on change whenever
@@ -2007,14 +2018,28 @@ for step in range(args.frames):
         globals()["_stuck_run"] = globals().get("_stuck_run", 0) + 1
     else:
         globals()["_stuck_run"] = 0
-    if no_progress == 900 and not globals().get("_stuck_saved"):
-        globals()["_stuck_saved"] = True
+    # ‼ PER-RUN, PER-STALL SAVE PATHS (2026-07-25). This used to write one shared
+    # `midstuck.ss1` and fire only ONCE per run. Both halves cost real diagnostic work:
+    #   * SHARED PATH — three concurrent runs each overwrote it, so the file could not be
+    #     trusted to belong to any particular failure. The move-learn stall that killed 2 of 3
+    #     cold-start runs STILL has no clean repro for exactly this reason, and one earlier
+    #     investigation wasted effort on a `midstuck.ss1` that turned out to be a whiteout
+    #     state from a different map entirely.
+    #   * ONCE PER RUN — a run typically stalls several times; only the FIRST was ever
+    #     captured, which is usually a recoverable hiccup rather than the fatal wedge.
+    # Now: <profile>-<frame>.ss1 under saves/stalls/, up to _STALL_SAVE_CAP per run so a
+    # pathological run cannot fill the disk. The profile name makes concurrent runs unambiguous.
+    if no_progress == 900 and globals().get("_stall_saves", 0) < _STALL_SAVE_CAP:
+        globals()["_stall_saves"] = globals().get("_stall_saves", 0) + 1
         try:
-            import pathlib
-
-            _sp = SAVES / "midstuck.ss1"
+            _dir = SAVES / "stalls"
+            _dir.mkdir(parents=True, exist_ok=True)
+            _prof = getattr(getattr(context, "profile", None), "path", None)
+            _prof = _prof.name if _prof is not None else "unknown-profile"
+            _sp = _dir / f"{_prof}-f{step}.ss1"
             _sp.write_bytes(context.emulator.get_save_state())
-            log(f"f{step}: SAVED mid-stuck state to midstuck.ss1 (bt={(battle_text() or '')!r})")
+            log(f"f{step}: SAVED stall state #{globals()['_stall_saves']} to "
+                f"stalls/{_sp.name} (bt={(battle_text() or '')!r})")
         except Exception as _e:
             log(f"f{step}: save-on-stuck failed: {_e}")
     if sig[1] == "OVERWORLD" and not ba and _ctl is False:

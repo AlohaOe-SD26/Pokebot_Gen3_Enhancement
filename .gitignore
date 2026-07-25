@@ -36,3 +36,4 @@ install_sandbox.log.old
 
 # Endless-run batch output (logs + LEDGER.md) — run artefacts, not source.
 tools/story-dev/endless-runs/
+tools/story-dev/saves/stalls/
