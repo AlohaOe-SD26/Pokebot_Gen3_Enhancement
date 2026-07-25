@@ -591,6 +591,64 @@ Rod. Save left md5-identical after every test.
 flavor all done, Phases 1/2/3a). `itemdex_data.json` = core (309 items);
 gaps = map_locations/mart/pickup/historical.
 
+## ‼ YOU ARE HERE — 2026-07-25, overnight autonomous research stretch
+
+**State: everything committed and pushed. Working tree clean apart from gitignored run output.**
+The user is running `Story (ENDLESS RESET)` overnight on their own machine and will bring the logs
+in the morning. I was told to proceed autonomously on RESEARCH/DOCUMENTATION until then.
+
+### Headline results from 2026-07-24/25 (all pushed)
+* **BADGE 6 WON.** Fortree's rotating-gate puzzle is solved live — the decomp rule
+  (`src/rotating_gate.c`) was ported into `modules/story/fortree_gates.py`, validated **4/4**
+  against the live emulator at the tile a real run died on, and a full run reached Winona's
+  challenge tile and beat her in 182k frames with **0 derails**. Story bot now reaches the
+  **end of built content** (next unbuilt: Mt. Pyre, Magma hideout).
+* **First run ever to survive its whole 3,000,000-frame budget** without hanging.
+* ~19 fixes shipped, ~15 A/B-proven. Story-bot bundle PROMOTED to `custom-pokebot`
+  (`6202a257`), verified there behaviourally, not just by import.
+* `Story (ENDLESS RESET)` bot mode + a CLI batch runner (`tools/story-dev/endless_runs.py`).
+
+### Research state — the important nuance
+`PROJECT KNOWLEDGE/ai-research-notes/` holds ~57 Gemini notes. **Read
+`ai-research-notes/00-READ-THIS-FIRST.md` before using ANY of it.** Findings that matter:
+* Notes are LEADS. A Gemini pass may never be the final word on a fact code depends on.
+* Only `CLAUDE-VALIDATED-*.md` files are grounded in the real decomp (via
+  `gh api repos/pret/pokeemerald/contents/<path>`). Two exist so far: items round 1 (9 claims)
+  and concepts round 1 (**51 claims: 30 confirmed, 15 refuted, 6 unresolved**).
+* **Stacking same-model passes does NOT converge on truth.** The adversarial critique invented a
+  correction to a claim that was already right; the adjudicator then claimed ~100% confidence
+  while describing recall as decomp verification.
+* ‼ **~35 notes are tainted**: I overrode the relay's correct default with a two-generation-old
+  model (see 08-MISTAKES 2026-07-25). Now impossible — `gemini_relay.py` refuses anything below
+  Pro 3.1 in code. Story angles have been re-run as `story-notes-s*-v2.md`.
+
+### The four highest-value validated facts (safe to build on)
+1. **Mid-battle EXP survives a whiteout** → boss-training mode is VALID. But EXP goes only to mons
+   ALIVE when the opponent faints, and the trainer ×1.5 is per-recipient after the split.
+2. **A catch cannot be lost** with full party + full boxes (guarded before the ball is consumed).
+   Real risk is an infinite bag→"BOX is full"→bag loop.
+3. **The roamer sets NO flag** and is destroyed by every ODD battle outcome (incl. a mutual KO and
+   teleport). `FLAG_DEFEATED_*` on statics means "encounter resolved", not "destroyed".
+   **Whiteout is the safe abort for every scripted static.**
+4. **`IsMonValidForMoveDeleter` does not exist** — the game guards only SURF
+   (`IsLastMonThatKnowsSurf`). Fly/Dive/Waterfall/Strength/Rock Smash/Cut/Flash are UNGUARDED, so
+   the bot must own HM coverage or it can strand a run permanently.
+
+### Next steps, in priority order
+1. **Cross-reference the user's overnight ENDLESS-RESET logs** against
+   `tools/story-dev/batch3/*.log`. Where runs die tells us which research topic actually blocks
+   progress — that beats more research.
+2. `#24-movelearn-recovery` — the move-learn `BotModeError` is raised inside the battle handler,
+   OUTSIDE StoryMode's derail-recovery scope, so a stall kills a run instead of costing one
+   battle. **This killed 2 of 3 cold-start runs.** Gated on `#24-harness-savepath` (concurrent
+   runs all overwrite one shared save path, so it still has no clean repro).
+3. `#24-npcheal` — re-pair Route 111's training band to `ROUTE111_OLD_LADYS_REST_STOP` (PROVEN
+   full ungated repeatable heal, 96 steps vs 213 to Fallarbor). Needs a heal-at-NPC helper;
+   the existing path assumes a Poké Center layout.
+4. KI-18 remains open/downgraded: both fixes are proven, but no live `.ss1` confirms the real
+   cursor lands on the partner's slot.
+5. `#24-whiteout` — attrition is the largest silent cost (58/85 whiteouts in single runs).
+
 ## MOST RECENT — 2026-07-24 (story bot: 3-starter validation batch)
 
 **What just happened.** Ran three starter-locked fresh runs to hunt starter-specific
