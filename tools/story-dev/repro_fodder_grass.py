@@ -42,20 +42,64 @@ for _ in range(30):
     context.emulator.run_single_frame()
 
 import modules.map as _map
-from modules.map_data import MapRSE
+import modules.player as _player
+from modules.map_data import MapRSE, PokemonCenter
 from modules.map_path import calculate_path
 from modules.story.training_areas import TRAINING_GRASS, AREA_PREREQ, best_training_area
 import plugins.custom_modes.story_mode as sm
 
 GAP = sm.StoryMode.FODDER_LEVEL_GAP
 _orig_pos = _map.get_map_data_for_current_position
+_orig_loc = _player.get_player_location
+
+#: Where "standing in <town>" concretely means: that town's Poké Center door. A real,
+#: walkable, story-relevant tile — so a tile-level oracle gets a genuine position to plan
+#: from instead of a bare map id. (These are the same tiles §3 below paths TO, so they are
+#: independently exercised.)
+_STAND_TILE = {
+    MapRSE.PETALBURG_CITY: PokemonCenter.PetalburgCity,
+    MapRSE.MAUVILLE_CITY: PokemonCenter.MauvilleCity,
+    MapRSE.RUSTBORO_CITY: PokemonCenter.RustboroCity,
+    MapRSE.FALLARBOR_TOWN: PokemonCenter.FallarborTown,
+}
 
 
 def _stand_at(town):
+    """Place the player in `town` for the decision under test.
+
+    ‼ PATCH EVERY READER OF "WHERE AM I" (incident 2026-07-25). This helper used to patch
+    ONLY `modules.map.get_map_data_for_current_position`. But the predicate under test,
+    `_training_area_allowed`, took a SECOND reading of the player's position from
+    `modules.player.get_player_location()` before calling `calculate_path` — and that one
+    stayed LIVE. So case 5 ("L31 team in Fallarbor") never simulated Fallarbor at all: it
+    asked `calculate_path` about the SAVE's real position, `(PETALBURG_CITY, (7,6))`, got a
+    `PathFindingError`, and this test recorded that refusal as a *Fallarbor* verdict —
+    asserting `SKIP GRIND` for a position it had never put the player in.
+
+    That is the dangerous kind of test bug: a partial mock does not fail loudly, it silently
+    exercises the real world and calls it a pass. It went unnoticed because the verdict it
+    produced was plausible, and it vetoed a CORRECT change (the `#24-regionreach` switch)
+    by making the fix look like a regression.
+
+    So: patch both readers, and keep them consistent with each other. If a future branch
+    reads position from a third source, add it HERE — do not let it read live.
+    """
+    map_enum, tile = _STAND_TILE[town].value
+    # The two mocks below must describe the SAME place. Asserting it here is what stops
+    # this helper from drifting back into a partial/inconsistent stub.
+    assert map_enum is town, f"_STAND_TILE[{town.name}] resolves to {map_enum.name}, not {town.name}"
+
     class _F:
         map_group_and_number = tuple(town.value)
 
     _map.get_map_data_for_current_position = lambda: _F()
+    _player.get_player_location = lambda: (map_enum, tile)
+
+
+def _stand_down():
+    """Restore every reader `_stand_at` patched (all of them — see above)."""
+    _map.get_map_data_for_current_position = _orig_pos
+    _player.get_player_location = _orig_loc
 
 
 def decide(team, local_map, at):
@@ -78,14 +122,27 @@ cases = [
     ("WATTSON L24 in Mauville ", 24, MapRSE.ROUTE117, MapRSE.MAUVILLE_CITY, "TRAIN LOCALLY"),
     ("ROXANNE L17 in Rustboro ", 17, MapRSE.ROUTE116, MapRSE.RUSTBORO_CITY, "TRAIN LOCALLY"),
     ("early   L9  in Rustboro ", 9, MapRSE.ROUTE116, MapRSE.RUSTBORO_CITY, "TRAIN LOCALLY"),
-    ("L31 team in Fallarbor   ", 31, MapRSE.ROUTE102, MapRSE.FALLARBOR_TOWN, "SKIP GRIND"),
+    # ‼ RE-BASELINED 2026-07-25 — this expectation was "SKIP GRIND", and that was a MOCK
+    # ARTEFACT, not a behaviour. `_stand_at()` patched only one of the two position readers
+    # (see its docstring), so this case asked `calculate_path` about the save's REAL position
+    # — (PETALBURG_CITY,(7,6)) — and recorded its `PathFindingError` as a Fallarbor verdict.
+    # It never simulated Fallarbor at all.
+    #   THE FEATURE DID NOT CHANGE; THE TEST DID. Three independent sources agree Route 111
+    #   IS reachable from Fallarbor:
+    #     1. calculate_path(FALLARBOR_TOWN(14,7) -> ROUTE111(25,55))  succeeds;
+    #     2. region_reach measures it at 2 hops;
+    #     3. training_areas.py's own comment on that entry: "reachable from Fallarbor, NOT
+    #        from Mauville/Rustboro/Petalburg".
+    # And it is the right ANSWER too: Route 111's L19-22 band is not fodder for a L31 team
+    # (gap 9 < FODDER_LEVEL_GAP 12), so relocating there beats skipping the grind.
+    ("L31 team in Fallarbor   ", 31, MapRSE.ROUTE102, MapRSE.FALLARBOR_TOWN, "RELOCATE to ROUTE111"),
 ]
 for label, team, local, at, expect in cases:
     got = decide(team, local, at)
     ok = got.startswith(expect)
     print(f"  {label} -> {got}")
     assert ok, f"{label}: expected {expect!r}, got {got!r}"
-_map.get_map_data_for_current_position = _orig_pos
+_stand_down()
 print("   all decisions as expected (NORMAN fixed; proven-good prep unchanged)")
 
 print("\n2) DISQUALIFIERS")
@@ -100,7 +157,7 @@ assert best_training_area(31, min_wild_max=4) is None or \
     AREA_PREREQ.get(best_training_area(31, min_wild_max=4)[0]) is None, \
     "conservative allow=None must never propose a prerequisite-carrying area"
 print("   conservative allow=None default proposes no prerequisite-carrying area")
-_map.get_map_data_for_current_position = _orig_pos
+_stand_down()
 
 print("\n3) HEAL CENTRES REACHABLE FROM THEIR TRAINING TILE")
 print("   (Surf-gated areas are SKIPPED: this save has no Surf user, so no water route")
