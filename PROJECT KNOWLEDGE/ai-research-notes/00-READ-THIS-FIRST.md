@@ -158,3 +158,43 @@ will depend on.** The user has explicitly accepted the extra token cost of Claud
 
 Files named `CLAUDE-VALIDATED-*.md` in this directory are the ONLY ones whose claims were checked
 against an external ground truth. Everything else remains a lead.
+
+---
+
+# ✅ FIRST CLAUDE-VALIDATED ROUND (2026-07-25) — the directive is vindicated
+
+`CLAUDE-VALIDATED-items-round1.md` is the first file here grounded in EXTERNAL truth. A Claude
+subagent with real tool access reached `gh api repos/pret/pokeemerald/contents/<path>` for the
+whole session and **grounded all 9 priority claims, zero unresolved** — every ruling cites a
+decomp file it actually fetched and read (`map.json`, `scripts.inc`, `species_info.h`, `tv.c`,
+`berry.c`).
+
+## ‼ The meta-finding: the CRITIQUE pass was also wrong
+
+Not just the research notes — the adversarial Gemini critiques contained their own errors:
+* **HM07 Waterfall** — the note said Cave of Origin, the critique "corrected" it to Marine Cave.
+  **Both wrong.** Wallace gives it in Sootopolis City, gated by
+  `FLAG_SOOTOPOLIS_ARCHIE_MAXIE_LEAVE`.
+* **Route 134** — the note said no hidden items; the critique "corrected" that. **The note was
+  right** and the critique fabricated the correction.
+* **Relicanth's held item** — note said Deep Sea Scale, critique said Deep Sea Tooth. **Both
+  wrong**: `ITEM_GREEN_SHARD`. (Deep Sea Tooth/Scale come only from trading the Scanner to
+  Captain Stern.)
+
+So a same-model critique can invent a wrongness exactly as readily as a note invents a fact.
+**Only a tool-using validator can be the final word.** That is now the standing rule in
+`CLAUDE.md`.
+
+## Corrected facts from round 1 (safe to use — each cites a read file)
+
+| claim | truth |
+|---|---|
+| Revive in Steven's House | **does not exist** — hallucinated; that script gives HM Dive |
+| HM07 Waterfall | Wallace, **Sootopolis City**, gated `FLAG_SOOTOPOLIS_ARCHIE_MAXIE_LEAVE` |
+| Bike prerequisite | **none at all** in Rydel's script |
+| Route 116 post-E4 outbreak | mechanic is REAL (5 fixed entries); species is **Skitty**, not Meowth |
+| Relicanth wild held item | `ITEM_GREEN_SHARD` |
+| Mirage Tower fossils | item balls (not wild battles), on **4F**, mutually exclusive |
+| Pacifidlog "TM27 for a Green Shard" | no such trade — a **free friendship-gated** TM gift (Return/Frustration), renewable weekly |
+| Berry "tree death" | resets to blank; plus an undocumented 10-cycle regrowth cap |
+| Route 134 hidden items | **genuinely none** — the original note was correct |
