@@ -1180,3 +1180,34 @@ path, which is the loop it was written to bound. Verified: the locked-scene cont
    `gDisplayedStringBattle`, now the field script context).
 2. A loop-wide counter added to a loop with per-branch counters will silently override the
    smaller ones. When adding an absolute bound, check every existing bound it now preempts.
+
+## 2026-07-25 — I overrode a correct model default with a two-generation-old model, ~35 times
+
+**Symptom.** A day of Gemini research produced a high hallucination rate: an invented item with
+invented coordinates and flag, HM07 placed in the wrong cave (twice — the critique "corrected" it
+to a different wrong cave), a fabricated bike prerequisite, a wrong outbreak species, a wrong held
+item, and a fabricated correction to a claim that was already right. I concluded "Gemini is
+inaccurate" and the user agreed, directing that Claude validate Gemini from now on.
+
+**Root cause — mine, not the model's.** `gemini_relay.py` already had
+`DEFAULT_MODEL = "gemini-3.1-pro-preview"`, set by a user directive on 2026-07-23 precisely
+because it gives better results. I passed `--model gemini-2.5-pro` on **every single call** —
+because the module docstring's usage example showed `--model gemini-2.5-pro`, and I copied the
+example instead of reading `DEFAULT_MODEL` twelve lines below it.
+
+**The calibration that proved it.** Asked `gemini-3.1-pro-preview` the two claims 2.5-pro had got
+wrong twice each — where HM07 Waterfall comes from, and whether the bike has a prerequisite. It
+answered BOTH correctly on the first attempt, and volunteered the Ruby/Sapphire difference that
+explains why the older model kept confusing them ("unlike Ruby/Sapphire, where it's found in the
+Cave of Origin").
+
+**Consequences.** ~35 research calls, one adversarial critique round and one adjudication round
+were all run on the wrong model. The notes are still notes, so nothing was corrupted downstream —
+but the effort spent diagnosing "Gemini's accuracy" was substantially spent diagnosing my own
+flag. Fixed the misleading docstring example so the next agent cannot repeat it.
+
+**Prevention rules.**
+1. A tool's DOCSTRING EXAMPLE is not its default. Read the actual default constant before passing
+   an override — and never pass an override you did not consciously choose.
+2. When a tool starts producing bad output, check YOUR invocation before concluding the tool is
+   bad. "The model is inaccurate" and "I selected a worse model" look identical from the outside.

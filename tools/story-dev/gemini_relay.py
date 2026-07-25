@@ -5,7 +5,15 @@ Usage:
     py gemini_relay.py "your question"                  # one-shot prompt
     py gemini_relay.py --file prompt.md                 # prompt from a file
     py gemini_relay.py --file primer.md --file q.md     # multiple parts, in order
-    py gemini_relay.py --model gemini-2.5-pro "..."     # model override
+    py gemini_relay.py "..."                            # ‼ NO --model: the DEFAULT is the
+                                                        #   top-tier model (see DEFAULT_MODEL).
+                                                        #   2026-07-25: an agent copied the old
+                                                        #   example below and overrode the default
+                                                        #   with a two-generation-old model on ~35
+                                                        #   research calls, which measurably
+                                                        #   degraded accuracy. Do not pass --model
+                                                        #   unless you want a CHEAPER model.
+    py gemini_relay.py --model gemini-3.1-flash-lite "..."   # cheap factual one-liners only
     py gemini_relay.py --list-models                    # discover available models
     py gemini_relay.py --out answer.md "..."            # also write the answer to a file
 
