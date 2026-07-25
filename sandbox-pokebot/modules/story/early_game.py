@@ -5629,6 +5629,48 @@ def get_devon_scope() -> Generator:
         yield from wait_until_truly_controllable()
 
 
+def _fortree_walk_one_tile(direction: str, *, max_frames: int = 3000) -> Generator:
+    """Drive `walking.walk_one_tile()` for a single Fortree-gym step with an
+    added frame bound.
+
+    ‼ (2026-07-24, live-driven acceptance check for punch-list #24-fortreegates)
+    `walk_one_tile`'s hold-direction-until-the-tile-changes phase is
+    UNBOUNDED BY DESIGN (walking.py, out of scope here; its own docstring:
+    "will create an endless loop if trying to run into a wall"). Live-drove
+    `do_fortree_gym()` through the real listener stack (BattleListener /
+    TrainerApproachListener, same as production) from the
+    `fortree_gym_wedge.ss1` save: a mid-climb trainer battle resolved
+    normally, but its NPC sprite remained standing on the very tile `solve()`
+    had planned to step onto next. `fortree_gates.try_move()` faithfully
+    ports the decomp's gate/collision model (STATIC collision + gate arms
+    only, per the reference solver -- it was never asked to, and does not,
+    track other live objects), so it correctly predicted that tile as open;
+    the live game correctly blocks it anyway because the trainer's sprite is
+    physically standing there. `walk_one_tile` then held the direction
+    forever, waiting for a tile change that would never come, straight
+    through the outer per-round frame check (which only runs BETWEEN
+    moves). Bounding this call (not `walking.py` or the ported solver) and
+    raising is the fix: it turns an unresolvable local block into a bounded
+    `BotModeError` for the story mode's derail recovery to own, instead of an
+    infinite hang."""
+    from modules.modes.util.walking import walk_one_tile
+
+    gen = walk_one_tile(direction)
+    frames = 0
+    try:
+        while True:
+            next(gen)
+            frames += 1
+            if frames > max_frames:
+                raise BotModeError(
+                    f"Fortree Gym: step {direction} never completed after {frames} frames "
+                    f"(blocked by something the gate model doesn't track, e.g. an NPC?)."
+                )
+            yield
+    except StopIteration:
+        pass
+
+
 def do_fortree_gym() -> Generator:
     """Chapter 13e — Fortree Gym: WINONA for the Feather Badge (BADGE06).
 
@@ -5652,9 +5694,10 @@ def do_fortree_gym() -> Generator:
         `(get_event_var(f"TEMP_{i//2}") >> (8 * (i % 2))) & 0xFF` for gates 0-7.
     The correct solver ports the decomp's arm-layout + rotation tables and BFSes from the
     OBSERVED state to (15,3) — see `tools/story-dev/fortree/fortree_gate_solver.py`, which
-    finds a legal 97-move route over the real collision grid. Wiring that in is
-    punch-list #24-fortreegates; until then this chapter cannot complete.
-    ⚠ SKELETON — the turnstile push-solve is a first-run-validate lead."""
+    finds a legal 97-move route over the real collision grid.
+    WIRED IN (2026-07-24, punch-list #24-fortreegates): the climb below now reads live gate
+    orientations and re-plans with `modules.story.fortree_gates.solve()` one tile at a time
+    instead of the greedy push — see that module's docstring for the 4/4 live validation."""
     from modules.memory import get_event_flag
 
     GYM = MapRSE.FORTREE_CITY_GYM
@@ -5672,7 +5715,28 @@ def do_fortree_gym() -> Generator:
         )
         yield from wait_until_truly_controllable()
 
+    # ‼ navigate_to_anywhere / calculate_path do NOT model the rotating gates and
+    # will happily hand back a route whose first step crosses a gate arm (live-
+    # probed 2026-07-24: the planner returned a 35-waypoint "route" the real
+    # navigator could not walk at all) — they are not used for movement in this
+    # room. Instead: read the live gate orientations off VAR_TEMP_0..3
+    # (`fortree_gates.read_orientations`) and BFS a legal route over the real
+    # collision grid (`fortree_gates.solve`, ported from the decomp's
+    # `rotating_gate.c` — see that module's docstring for the live 4/4
+    # validation). One tile is walked at a time and the state is re-read before
+    # every re-plan, so a trainer interrupt or an unexpected result self-corrects
+    # instead of blindly finishing a stale multi-move plan.
+    from modules.story.fortree_gates import read_orientations, solve
+    from modules.map import get_map_objects
+
+    _FORTREE_MAX_ROUNDS = 600  # bounds the outer replan loop (optimal solve is 97 moves)
+    _FORTREE_MAX_MOVES = 600  # bounds total tiles walked across the whole climb
+    _FORTREE_MAX_RESET_CYCLES = 2  # bounds "solve() found nothing -> leave & re-enter" cycles
+    _FORTREE_MAX_TOTAL_FRAMES = 150_000  # hard backstop independent of the above counters
     rounds = 0
+    moves_executed = 0
+    reset_cycles = 0
+    start_frame = context.emulator.get_frame_count()
     while not (
         _map_group_number() == GYM.value
         and tuple(get_player_avatar().local_coordinates) == (15, 3)
@@ -5681,34 +5745,89 @@ def do_fortree_gym() -> Generator:
         if get_event_flag("BADGE06_GET"):
             return
         rounds += 1
-        if rounds > 30:
+        if rounds > _FORTREE_MAX_ROUNDS:
             raise BotModeError("Fortree Gym: could not reach the challenge tile below Winona.")
-        try:
-            yield from navigate_to_anywhere(GYM, (15, 3), avoid_encounters=True, avoid_scripted_events=False)
-        except BotModeError:
-            # Sealed by a turnstile (or a sight-line battle fired). Ride whatever is
-            # active, then PUSH toward the goal: step into the tile ahead — walking
-            # into a rotating door spins it and the live grid re-shapes.
-            #
-            # ‼ ONLY RIDE OUT A SCENE THAT EXISTS (2026-07-24 — this line ended the
-            # DEEPEST run this project has produced: treecko reached the gym interior
-            # with 0 derails and then wedged here, `scripts=[]`, waiting for a cutscene
-            # that was never going to start). The overwhelmingly COMMON reason the
-            # navigate above fails in this gym is not a scene at all — it is the
-            # rotating doors reshaping the walkable grid, which the static planner
-            # cannot see. Riding out nothing then burns the rider's full budget every
-            # round and starves the push that actually solves it. Same class as
-            # `_navigate_riding_out`'s hopeless-retry fix: only ride when there is
-            # something to ride.
-            if get_global_script_context().is_active or not player_avatar_is_controllable():
-                yield from _ride_out_scripted_scene("B")
-                yield from wait_until_truly_controllable()
-            x, y = get_player_avatar().local_coordinates
-            push = "Up" if y > 3 else ("Left" if x > 15 else "Right")
-            for _ in range(24):
-                context.emulator.press_button(push)
-                yield
-            yield from wait_for_player_avatar_to_be_standing_still()
+        if context.emulator.get_frame_count() - start_frame > _FORTREE_MAX_TOTAL_FRAMES:
+            raise BotModeError("Fortree Gym: exceeded the frame budget trying to reach Winona.")
+
+        # A trainer's sight-line (or any other scripted interruption) can fire
+        # mid-climb — ride it out, then re-read state and re-plan from scratch.
+        if get_global_script_context().is_active or not player_avatar_is_controllable():
+            yield from _ride_out_scripted_scene("B")
+            yield from wait_until_truly_controllable()
+            continue
+
+        x, y = get_player_avatar().local_coordinates
+        orientations = read_orientations()
+        # Live objects (NPCs -- e.g. a just-fought trainer's sprite left standing
+        # where it was) are NOT part of the ported gate/collision model (the
+        # decomp only ever consults static collision + gate arms) but DO
+        # physically block a step in the live game -- probed live 2026-07-24: a
+        # defeated trainer's sprite parked on the model's predicted-open next
+        # tile hung the whole climb. Feed live object tiles in as `blocked` so
+        # the planner routes around them; exclude the player's own object, or
+        # every plan would fail immediately.
+        blocked_tiles = frozenset(
+            tuple(o.current_coords) for o in get_map_objects() if "isPlayer" not in o.flags
+        )
+        plan = solve((x, y), orientations, goal_xy=(15, 3), blocked=blocked_tiles)
+        if plan is None:
+            # Blocking every live object can, in principle, remove EVERY route
+            # (an NPC standing in a genuine chokepoint, or transiently on the
+            # goal tile) even when a route exists ignoring it. Retry once
+            # without NPC-blocking before concluding the GATE CONFIGURATION
+            # itself is unsolvable -- these are different failure modes, and
+            # only the second one should trigger the reset-and-re-enter path.
+            plan_ignoring_npcs = solve((x, y), orientations, goal_xy=(15, 3))
+            if plan_ignoring_npcs is not None:
+                context.message = (
+                    "Story: Fortree Gym — a live object is blocking every route to Winona "
+                    "from here; waiting for it to move..."
+                )
+                yield from wait_for_n_frames(30)
+                continue
+            # else: genuinely unsolvable from this exact gate configuration,
+            # NPCs aside -- fall through to the reset-and-re-enter path below.
+            # No sequence of pushes reaches the goal from this exact gate
+            # configuration. Orientations reset on every warp IN
+            # (MAP_SCRIPT_ON_TRANSITION), so leave through the entrance warp
+            # and re-enter for a clean slate — bounded to 2 cycles.
+            reset_cycles += 1
+            if reset_cycles > _FORTREE_MAX_RESET_CYCLES:
+                raise BotModeError(
+                    "Fortree Gym: the gate solver found no route to the challenge tile even "
+                    "after resetting the gate orientations twice."
+                )
+            exit_plan = solve((x, y), orientations, goal_xy=(15, 24), blocked=blocked_tiles)
+            if exit_plan is None:
+                exit_plan = solve((x, y), orientations, goal_xy=(16, 24), blocked=blocked_tiles)
+            if exit_plan is None:
+                exit_plan = solve((x, y), orientations, goal_xy=(15, 24))
+            if exit_plan is None:
+                exit_plan = solve((x, y), orientations, goal_xy=(16, 24))
+            if exit_plan is not None:
+                for step in exit_plan:
+                    if get_global_script_context().is_active or not player_avatar_is_controllable():
+                        break
+                    yield from _fortree_walk_one_tile(step)
+                    moves_executed += 1
+                    if moves_executed > _FORTREE_MAX_MOVES:
+                        raise BotModeError("Fortree Gym: exceeded the movement budget trying to reach Winona.")
+            yield from _enter_warp_by_navigation(
+                lambda: _map_group_number() == GYM.value,
+                MapRSE.FORTREE_CITY, (22, 11), tries=6, label="Fortree Gym door (gate reset)",
+            )
+            yield from wait_until_truly_controllable()
+            continue
+
+        if len(plan) == 0:
+            continue
+
+        # Execute a single move, then loop back to re-read state + re-plan.
+        yield from _fortree_walk_one_tile(plan[0])
+        moves_executed += 1
+        if moves_executed > _FORTREE_MAX_MOVES:
+            raise BotModeError("Fortree Gym: exceeded the movement budget trying to reach Winona.")
 
     # Challenge Winona (face up + A), ride the battle + badge dialogue out.
     yield from ensure_facing_direction("Up")

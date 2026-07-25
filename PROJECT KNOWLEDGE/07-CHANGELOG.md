@@ -2859,3 +2859,47 @@ and `tools/story-dev/probe_fortree_gates.py`.
 generalized from an unrepresentative sample. Reconcile by making the MODEL predict the
 MEASUREMENT case-by-case — agreement on 4/4 specific cases is worth more than either report
 alone.
+
+## 2026-07-24 — Fortree Gym rotating gates SOLVED LIVE (#24-fortreegates)
+
+**New module `modules/story/fortree_gates.py`** — a faithful port of the decomp's rotating-gate
+rules (`src/rotating_gate.c`): arm-layout tables, `has_arm`, `can_rotate`, `rotate_in_direction`,
+`get_rotation_info`, `try_move`, plus:
+- `read_orientations()` — decodes gates 0-7 from `VAR_TEMP_0..3`
+  (`(get_event_var(f"TEMP_{i//2}") >> (8 * (i % 2))) & 0xFF`). **No new memory reader needed.**
+- `solve(start_xy, orientations, goal_xy=(15,3), blocked=frozenset())` — bounded BFS returning
+  `"Up"/"Down"/"Left"/"Right"`, reading STATIC collision from the live map (not from a file
+  under `tools/`). `blocked` carries live NPC tiles.
+
+**`do_fortree_gym` rewritten.** The greedy `push = "Up" if y > 3 else ...` fallback is gone.
+Each round: read position + orientations + live object tiles, `solve()`, execute ONE tile, and
+re-plan — so a trainer interrupt self-corrects. `solve() == None` retries once WITHOUT NPC
+blocking to tell "an NPC is transiently in the way" from "this gate configuration has no route";
+the latter falls through to a bounded exit-and-re-enter (orientations reset on entry, so that is
+a guaranteed clean slate), capped at 2 cycles. Rounds/moves/frames all bounded.
+‼ `calculate_path`/`navigate_to_anywhere` are NOT used for movement inside this gym — they do
+not model gates and return routes whose first step walks into a gate arm.
+
+**PROVEN, live, through the full production listener stack** (`tools/story-dev/repro_fortree_gate_solver.py`):
+- push agreement at (4,19): **4/4** vs the real emulator (N blocked, S/W allowed, E blocked).
+- route lengths **83** from (4,19) and **97** from (15,24) — exact.
+- 16/16 solver-predicted moves executed live, including real gate rotations.
+- **Live drive reached (15,3) — `best_dist=0` — in ~38,000 frames**, self-routing around THREE
+  trainer NPCs (including the one that previously hung the climb forever), zero stalls.
+
+**The `VAR_TEMP` decode was validated the hard way.** The acceptance check on
+`fortree_gym_wedge.ss1` read `(1,2,1,1,0,3,1,2)`, not the documented default. Rather than relax
+the assertion, the save's own computed exit route was walked, the gym exited through the warp and
+re-entered — and it then read exactly `(1,2,1,1,0,0,0,2)`. One experiment proved the decode is
+right, that the save is a mid-walkthrough capture with 2 gates already turned, AND that
+reset-on-entry works in practice.
+
+**NOT done: the badge.** The isolated drive lost to Winona and whited out, because it calls
+`do_fortree_gym()` directly with whatever party the save carries. Battle prep (lead selection +
+heal) is the CALLER's job — `StoryMode._play` already does `_lead_best_matchup(["Flying"])` +
+`heal_in_pokemon_center(FortreeCity)` first, exactly like the sibling gyms. So BADGE06 needs a
+full-chapter run to confirm, not a gate fix. Filed `#24-fortreebadge`.
+
+**Prevention rule:** when a model and a live measurement disagree, the cheapest decisive move is
+often to CHANGE THE WORLD to the state the model assumes (here: exit and re-enter to force the
+documented reset) rather than to argue about the reading or relax the check.
