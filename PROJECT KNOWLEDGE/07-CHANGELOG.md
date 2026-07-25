@@ -2750,3 +2750,38 @@ increments" failure mode).
 structurally unable to fire. Branch-local counters can't bound a multi-branch loop
 (`ensure_facing_direction`); per-invocation counters can't bound a re-entrant caller (here).
 Ask not "is there a bound?" but "what resets it, and who can reset it without fixing anything?"
+
+## 2026-07-24 — 0-PP move selected forever in unfleeable trainer battles (#24)
+
+**Found live** in batch2's fresh treecko run: 15,000 frames of no progress with
+`instr=BattleScript_SelectingMoveWithNoPP`, `bt="There's no PP left for this move"`, inside
+`EventScript_DoTrainerBattle`.
+
+**Root cause — a wrong comment that became a wrong assumption.** All three trainer-battle
+fallbacks in `story_mode.py` ended with `use_move(0)  # nothing usable → the game uses
+Struggle`. Gen 3 does NOT do that: Struggle is auto-used only when EVERY move is at 0 PP (and
+then the menu never appears). Hand-pick a 0-PP move while others still have PP and the game
+prints "There's no PP left for this move!" and re-opens the menu — an infinite loop in a
+battle that cannot be fled. And `move_is_usable` is STRICTER than "has PP" (it also rejects
+disabled and zero-power moves), so a mon can fail every usability check while still holding
+perfectly selectable moves.
+
+**Fix.** A PP-only second pass before the fallback, in ALL THREE sites: `decide_turn`,
+`decide_turn_in_double_battle` (found by the review gate — it carried the identical pattern,
+and its own docstring names the Rustboro Youngster pair, a trainer DOUBLE battle), and the
+out-of-balls shiny branch.
+
+**PROVEN A/B** (`tools/story-dev/repro_nopp_trainer_loop.py`) against the real unmodified
+`decide_turn`, with the pre-fix behaviour reproduced by starving the new loop of data rather
+than reimplementing the old logic:
+- BEFORE → `UseMove(0)`, slot 0 `pp=0`. AFTER → `UseMove(1)`, slot 1 `pp=10`.
+- control: every move at 0 PP still falls through to `use_move(0)` so the game Struggles.
+- control: when a strongest move exists, that path is untouched.
+- control: ORDERING — a `move_is_usable` move still beats a PP-only candidate, so the new
+  pass is a genuine last resort and never preempts the usability check.
+- verified no crash path: in-battle `BattlePokemon.moves` skips empty slots (never `None`),
+  and index 0 always exists since every Pokémon knows at least one move.
+
+**Prevention rule:** a comment asserting emulator/game behaviour ("the game will handle X")
+is a CLAIM, not documentation — either prove it or write the fallback so it does not depend
+on the claim being true.

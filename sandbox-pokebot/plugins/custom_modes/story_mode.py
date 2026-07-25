@@ -73,7 +73,11 @@ class StoryShinyCatchStrategy(StoryCatchStrategy):
                     for i, learned in enumerate(active.moves):
                         if learned is not None and util.move_is_usable(learned):
                             return TurnAction.use_move(i)
-                return TurnAction.use_move(0)  # nothing usable → the game uses Struggle
+                    # PP-only last resort — see the single-battle branch's comment.
+                    for i, learned in enumerate(active.moves):
+                        if learned is not None and learned.pp > 0:
+                            return TurnAction.use_move(i)
+                return TurnAction.use_move(0)  # every move truly at 0 PP → the game Struggles
         except Exception:
             pass
         # Balls available: the grandparent CatchStrategy does the real work (status move
@@ -190,7 +194,23 @@ class LevelUpTravelBattleStrategy(LevelUpLeadBattleStrategy):
                 for i, learned in enumerate(active.moves):
                     if learned is not None and util.move_is_usable(learned):
                         return TurnAction.use_move(i)
-            return TurnAction.use_move(0)  # nothing usable → the game uses Struggle
+                # ‼ SECOND PASS ON *PP ALONE* (2026-07-24, batch2 treecko hang at f1.2M:
+                # `instr=BattleScript_SelectingMoveWithNoPP`,
+                # `bt="There's no PP left for this move"`, inside
+                # `EventScript_DoTrainerBattle` — 15,000 frames of no progress).
+                # `move_is_usable` is STRICTER than "has PP" (it also rejects e.g.
+                # disabled/zero-power moves), so a mon can fail every usability check
+                # while still holding moves with PP. The old fallback then selected
+                # SLOT 0 blindly — and Gen 3 does NOT silently substitute Struggle for
+                # that: it prints "There's no PP left for this move!" and bounces
+                # straight back to move selection. In an unfleeable trainer battle that
+                # is an infinite loop. Struggle is only auto-used when EVERY move is out
+                # of PP, in which case the game never shows the menu at all. So: pick
+                # any move that genuinely has PP before falling back.
+                for i, learned in enumerate(active.moves):
+                    if learned is not None and learned.pp > 0:
+                        return TurnAction.use_move(i)
+            return TurnAction.use_move(0)  # every move truly at 0 PP → the game Struggles
         return super().decide_turn(battle_state)
 
     def decide_turn_in_double_battle(self, battle_state, battler_index):
@@ -236,7 +256,15 @@ class LevelUpTravelBattleStrategy(LevelUpLeadBattleStrategy):
         for i, learned in enumerate(battler.moves):
             if learned is not None and util.move_is_usable(learned):
                 return _default_target(i)
-        return _default_target(0)  # nothing usable → the game uses Struggle
+        # Same PP-only last resort as the single-battle branch above — see the long
+        # comment there. Selecting a 0-PP move does NOT make the game Struggle; it
+        # prints "There's no PP left for this move!" and re-opens the menu, which in an
+        # unfleeable trainer DOUBLE battle (e.g. the Rustboro gym Youngster pair) is the
+        # same infinite loop.
+        for i, learned in enumerate(battler.moves):
+            if learned is not None and learned.pp > 0:
+                return _default_target(i)
+        return _default_target(0)  # every move truly at 0 PP → the game Struggles
 
     def which_move_should_be_replaced(self, pokemon, new_move) -> int:
         """Story move-learning policy — keep every Pokémon COMBAT-CAPABLE.
