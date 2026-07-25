@@ -294,3 +294,56 @@ artifact like the rocksmash_taught menu case).
   gReshowState; if it's waiting on a paletted/task resource our sweep's button timing
   starves, fix the sweep's press cadence; consider a bounded state-write fallback ONLY
   per the faithfulness rules (documented last resort).
+
+## KI-18 — DOUBLE-battle replacement swap loops forever (user report, 2026-07-24) — HIGH
+
+**Symptom.** In a double battle in Mauville Gym the bot reordered the party over and over —
+Shedinja shuffling slot 0 ↔ slot 4 while Grovyle/Ninjask/Mightyena rotated — for ~23,000 frames,
+`controllable=False`, until the mode dropped to Manual. A healthy **Beautifly L23 67/67** was
+available the whole time and never came in.
+
+**Evidence** (user log `7881406e-...20260724233227.log`):
+```
+party=['Grovyle L22 0/56', 'Ninjask L21 11/61', 'Mightyena L21 67/67',
+       'Beautifly L23 67/67', 'Shedinja L20 1/1']
+repeated [PARTY] slotN X -> Y reorderings, never resolving
+stack: StoryMode._prepare_for_fight :1108 -> train_team early_game.py:1680 -> _story_spin
+```
+Grovyle is at **0 HP** (fainted), so this is the after-faint replacement path.
+
+**HYPOTHESIS — NOT YET PROVEN.** A replacement picker written for SINGLE battles: in a double
+battle TWO slots are already on the field, so the chosen mon can be one the party menu refuses
+(already active / "NOT ABLE"), and the bot retries forever. Two existing comments in our own code
+describe adjacent symptoms and should be read first:
+* `story_mode.py:~185` — "rotating into a weak/underlevelled bench can HANG the in-battle
+  party-menu switch (battle_action_selection.py — `while PARTY_MENU: press A`)" — the Roxanne hang.
+* `story_mode.py:~1983` — "the party menu shows an incompatible mon as NOT ABLE and refuses the …"
+
+Shedinja is a likely trigger: 1 max HP + Wonder Guard means one check can judge it unusable while
+another still selects it.
+
+**Do NOT patch on the hypothesis.** Reproduce first: force a double battle with a fainted lead
+and Shedinja on the bench, and log (a) which function chooses the replacement, (b) what the party
+menu reports for each slot, (c) which press sequence the swap driver issues. The single loop in
+`battle_action_selection.py:132` (`while get_game_state() == GameState.PARTY_MENU`) is the prime
+suspect for where it spins.
+
+**Why HIGH:** it is a run-killer in a mandatory gym, and **Mossdeep gym 7 is a required DOUBLE
+battle**, so this will block Ch15 as well as costing runs now.
+
+## KI-19 — Route 111 training band was paired with a heal 2.2× farther than necessary (2026-07-24) — FIXED-PENDING-WIRING
+
+`ROUTE111_OLD_LADYS_REST_STOP` (map `(18,1)`, door at ROUTE111 `(26,18)`) contains ONE NPC —
+`Route111_OldLadysRestStop_EventScript_OldLady`, `flag_id=0` so always present and ungated — that
+gives a **full HP + status + PP heal, repeatable**. PROVEN live: all four party members damaged to
+1 HP with four different status conditions and spent PP, verified in memory, then fully restored;
+repeated a second time with no change in behaviour. Static dump confirms **zero `bg_events`** — no
+bed exists in that building.
+
+**Distances from the Route 111 training tile (25,55):** rest stop **96 steps**, Fallarbor Poké
+Center **213 steps**.
+
+`training_areas.py` / `_training_area_heal_map()` currently pairs ROUTE111 with
+`PokemonCenter.FallarborTown` because that was the only heal verifiable at the time. Re-pairing
+needs a heal-at-NPC helper (the existing path is `heal_in_pokemon_center(PokemonCenter.X)`, which
+assumes a Poké Center layout) — punch-list `#24-npcheal`.
