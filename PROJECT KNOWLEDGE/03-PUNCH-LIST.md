@@ -416,10 +416,10 @@
       went from `[False × 10]` to `[True × 5, False × 5]` (Route 118 Electrike reachable).
       Landing it exposed a partial-mock bug in `repro_fodder_grass._stand_at()` that had been
       giving false confidence to every training-logic change for two days (see 08-MISTAKES).
-      (c) **⚠ `repro_counter_plan.py:200` is RED pending a ruling** — a non-vacuity scaffold
-      asserting a wide type set contains an unreachable entry; the fixed predicate no longer
-      produces one, and the scaffold's stated purpose is already served now that the Winona
-      set is a genuine mix. NOT adjusted unilaterally; see KI-24b for the suggested fix.
+      (c) ~~`repro_counter_plan.py:200` red~~ **RESOLVED 2026-07-25 (user ruling):** the
+      non-vacuity check moved off the wide type set (where it required an unreachable entry to
+      exist, and so inverted when the predicate was fixed) onto the WINONA set, asserted to
+      span both branches — the property the sort proof actually needs. Full repro suite 5/5.
 - [ ] #24-edgecost — finer travel cost than a flat 1-hop edge (**DEFERRED**). Uniform
       weighting compresses "same landmass cluster" (1-4 hops) — measured from ROUTE120,
       Lilycove (2) reads as CLOSER than Route 118 (3), the actual answer — because one ROM

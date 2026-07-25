@@ -593,17 +593,17 @@ Proof the re-baseline was a TEST fix and not a behaviour change: with `_stand_at
 reachable from Fallarbor — `calculate_path` succeeds from `(14,7)`, `region_reach` measures 2 hops,
 and `training_areas.py`'s own comment says so.
 
-**⚠ One sibling repro is now RED and is awaiting a ruling — `tools/story-dev/repro_counter_plan.py`
-line 200.** Its PRIMARY assertions all pass. What fails is a self-described non-vacuity scaffold:
-it runs a deliberately WIDE type set through `_training_area_allowed` and asserts the result
-contains at least one `False`, "so both True and False genuinely occur (not vacuous)". With the
-predicate no longer producing false negatives, the wide set now returns `[True × 25]`, so no
-`False` exists to find. **The scaffold was relying on the bug.** It is also no longer needed for
-its stated purpose: it existed because the Winona set was all-`False` (vacuous) under the old
-predicate, and that set is now a genuine `[True × 5, False × 5]` mix on its own. Suggested fix —
-NOT applied unilaterally, because silently adjusting a test is how the case-5 artefact survived
-this long — drop the wide-set non-vacuity pair (lines 199-200) and let the Winona set carry the
-mix, or pick a wide set that still spans an unreachable region.
+**✅ The sibling repro that went red is fixed — `tools/story-dev/repro_counter_plan.py`.** Its
+primary assertions never failed; what failed was a non-vacuity scaffold asserting that a
+deliberately WIDE type set contained at least one `False`. **That scaffold was relying on the
+bug** — it existed only because the Winona set was vacuously all-`False` under the pre-KI-24
+predicate, and it inverted the moment the false negatives went away (the wide set now returns
+`[True × 25]`). Per user ruling 2026-07-25 the non-vacuity check MOVED to where non-vacuity now
+genuinely lives: the Winona set itself, asserted to span BOTH branches, which is the property the
+sort proof actually needs. The wide set is still sorted as a larger-sample check.
+
+This was the SECOND test in one day found to be asserting something that depended on a defect
+(case 5 was the first) — see the 08-MISTAKES pattern entry for the shape and the prevention rule.
 
 **‼ But the cost model I assumed is wrong, and the measurement says so.** Measured hops from
 ROUTE120 on the Winona-era save:

@@ -626,7 +626,7 @@ Four pieces, each independently PROVEN, being connected in this order:
 | wire them together | — | IN PROGRESS at session end |
 | execute (travel/catch/train) | — | NOT STARTED |
 
-### Three traps a future session must not re-walk
+### Four traps a future session must not re-walk
 1. **`calculate_path` is unsound at REGION scale** (KI-24). It reads the Route 118/119/120
    dual-elevation bridges as walls, so it reported Route 118 — the real Winona answer — as
    unreachable, and it fails even on a same-map Route 119 walk. **Both consumers now use
@@ -634,15 +634,21 @@ Four pieces, each independently PROVEN, being connected in this order:
    Never reach for `calculate_path` to answer "can I get to that map"; it is correct only for the
    final tile-level leg once already ON the map. Measured effect of the training-gate switch: the
    Winona candidate list went from `[False × 10]` to `[True × 5, False × 5]`.
-   **⚠ `tools/story-dev/repro_counter_plan.py:200` is RED pending a ruling** — a non-vacuity
-   scaffold that asserts a wide type set contains an unreachable entry; the predicate no longer
-   produces one. Details + suggested fix in KI-24b. Not adjusted unilaterally.
+   **The whole story-bot repro suite is GREEN (5/5):** `repro_fodder_grass`, `repro_counter_plan`,
+   `repro_counter_wiring`, `repro_region_reach`, `repro_boss_plateau`.
 2. **Hop count is a FILTER, not a RANK** (KI-24b). Measured from ROUTE120: Fortree 1, Route119 2,
    **Lilycove 2**, Route118 3, Mossdeep 4, Pacifidlog 10 — Lilycove is *closer* than the answer,
    because one connection can span a whole sea route. Use `max_hops=4` as a sanity bound and let
    `counter_plan`'s own criteria rank.
 3. **Event flags are not all monotonic** (KI-21) and **whiteout wipes the Elite Four flags**
    (KI-22). `_done()`-style resume gating assumes flags stick; for Ch16 that is false.
+4. **‼ Expect a fix in a well-tested area to turn something RED for the WRONG reason.** Much of
+   this suite was written to CHARACTERISE defects, so some assertions require a FAILURE to occur
+   ("at least one unreachable", "raises", "returns empty") and invert the moment that failure is
+   repaired. **Two were found this way on 2026-07-25 alone**, and neither would ever have been
+   noticed while green. When a fix reddens a test, the first question is not "what did I break"
+   but "was this assertion depending on the thing I just fixed?" — see the 08-MISTAKES pattern
+   entry (2026-07-25).
 
 ### Research: five `CLAUDE-VALIDATED-*` files, ~175 claims grounded in the real decomp
 Indexed in `ai-research-notes/00-READ-THIS-FIRST.md`. **Gemini notes are LEADS ONLY** — a Claude

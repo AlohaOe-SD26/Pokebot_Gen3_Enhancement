@@ -1437,3 +1437,55 @@ the project, and there is no structural guard for it anywhere. It stays.
 - **Prevention rule.** A mock that simulates a state must patch EVERY reader of that state — patch
   one of two and the test silently exercises the real world. Before trusting a repro's verdict, grep
   the function under test for all sources of the thing you stubbed.
+
+## 2026-07-25 — PATTERN (not an incident): two tests in one day were asserting things that depended on a BUG
+
+- **Symptom.** Fixing KI-24 turned the suite RED in two separate places, both of which looked at
+  first glance like the fix had broken something. Neither had. Both tests were encoding the
+  defect as if it were the specification:
+  1. **`repro_fodder_grass.py` case 5** asserted `SKIP GRIND` for a L31 team in Fallarbor. That
+     verdict was only reachable because `_stand_at()` leaked (one of two position readers left
+     live), so the case was really asking about `(PETALBURG_CITY, (7,6))`. **The assertion needed
+     the mock leak to hold.**
+  2. **`repro_counter_plan.py:200`** asserted `False in [c["reachable"] for c in wide_cands]` —
+     "at least one candidate must be UNREACHABLE" — as a non-vacuity guard for the
+     reachable-first sort proof. **The assertion needed `calculate_path`'s false negatives to
+     hold.** Fix the predicate and the wide set becomes all-`True`, so the required failure has
+     nothing to find.
+
+- **Root cause (the shared shape).** Much of this suite was written to CHARACTERISE defects — to
+  pin down and hold still behaviour we had just diagnosed. That is a legitimate way to write a
+  test, but it produces assertions phrased as *"a failure occurs here"* rather than *"this
+  property holds"*. Those two phrasings are indistinguishable while the bug is live and diverge
+  completely the moment it is fixed: the property-shaped one keeps passing, the symptom-shaped one
+  inverts and reports the repair as a regression.
+
+- **Why this is worth an entry rather than two footnotes.** It is a systematic risk for this
+  project specifically. The suite is largely defect-characterisation, so **every future fix in
+  a well-tested area should be expected to turn something red for this reason**, and the first
+  instinct — "my change broke a test, back it out" — is exactly wrong. It cost real time twice in
+  one day, and the second instance was very nearly written off as collateral damage from the first.
+
+- **‼ Both were found ONLY because a change forced them to fail.** Neither would ever have been
+  noticed while green. A partial mock and a bug-dependent guard both report success indefinitely;
+  there is no passive signal. That is the uncomfortable part — the number of *remaining* assertions
+  of this shape in the suite is unknown, and the only thing that surfaces them is fixing the bug
+  they lean on.
+
+- **Fixes that worked.** (1) `_stand_at()` patches every reader of the state it simulates, from one
+  source, with an assert that they agree. (2) The non-vacuity check MOVED from the wide set to the
+  Winona set — the list this planner exists to produce — and now asserts the property it actually
+  needs: that the list spans BOTH branches, so "sorted reachable-first" has content. Both changes
+  are commented with what they replaced and why, so the next reader can tell a repaired test from
+  a weakened one.
+
+- **Prevention rule.** A test that asserts a FAILURE occurs — "at least one unreachable", "raises",
+  "returns empty", "is refused" — inverts the moment that failure is fixed. Assert the PROPERTY you
+  need (both branches exercised; the ordering holds; the guard is reachable) rather than a symptom
+  of the current bug, or the suite punishes progress.
+
+- **Corollary for reviewers.** When a fix turns a test red, the first question is not "what did I
+  break" but **"was this assertion depending on the thing I just fixed?"** Check whether the
+  expectation could ever have been satisfied by CORRECT behaviour. If not, the test was
+  characterising the defect and should be re-shaped — but re-shape it in its own commit, and prove
+  the re-shaped test green against the UNCHANGED code where that is possible.

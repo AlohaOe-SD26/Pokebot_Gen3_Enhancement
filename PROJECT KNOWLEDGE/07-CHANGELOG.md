@@ -3413,3 +3413,33 @@ set was all-`False` (vacuous) under the old predicate, and that set is now a gen
 `[True × 5, False × 5]` mix that carries the sort proof by itself. Suggested fix in KI-24b; not
 applied unilaterally, because silently adjusting a test is exactly how the case-5 artefact survived
 two days of green runs.
+
+## 2026-07-25 — Non-vacuity moved to where non-vacuity lives; suite back to 5/5 (#24-regionreach)
+
+**The red test from the KI-24 training-gate fix is resolved** (user ruling). `repro_counter_plan.py`
+asserted `False in [c["reachable"] for c in wide_cands]` — "at least one candidate must be
+UNREACHABLE" — as a non-vacuity guard for the reachable-first sort proof. Fixing the predicate made
+the wide set all-`True`, so the required failure had nothing to find. **The guard was relying on
+the bug.**
+
+**Why it existed, and why it is now redundant:** it was a workaround for the Winona set being
+VACUOUSLY all-`False` under the pre-KI-24 predicate. That set now returns
+`[True × 5, False × 5]`, so it carries the sort proof by itself.
+
+**Fix:** dropped the wide-set non-vacuity pair; the check now asserts that the **Winona set** spans
+BOTH branches — the property the ordering claim actually needs, on the list this planner exists to
+produce. The wide set is still sorted, as a larger-sample check. Commented in place with what it
+replaced and why, so the next reader can tell a repaired test from a weakened one.
+
+**Suite: 5/5 GREEN** — `repro_fodder_grass`, `repro_counter_plan`, `repro_counter_wiring`,
+`repro_region_reach`, `repro_boss_plateau`.
+
+**‼ Recorded as a PATTERN, not an incident (08-MISTAKES).** This was the SECOND test in one day
+found to be asserting something that depended on a defect — case 5's `SKIP GRIND` needed the mock
+leak; this pair needed `calculate_path`'s false negatives. Shared root cause: much of this suite
+was written to CHARACTERISE defects, which produces assertions phrased as "a failure occurs here"
+rather than "this property holds". Those are indistinguishable while the bug is live and diverge
+the instant it is fixed. **Both were found only because a change forced them to fail — neither
+would ever have been noticed while green**, so the number of remaining assertions of this shape is
+unknown. Prevention rule: assert the PROPERTY you need, not a symptom of the current bug, or the
+suite punishes progress. Also added as trap #4 in the handoff.

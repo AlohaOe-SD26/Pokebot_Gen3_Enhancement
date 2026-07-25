@@ -175,9 +175,10 @@ print()
 print("=" * 78)
 print("2) candidates are sorted with reachable ones first")
 print("=" * 78)
-print("   Proven on the actual Winona candidate list from 1a (allow=_training_area_allowed);")
-print("   also exercised against a WIDER type set from the same live position/predicate so")
-print("   both True and False genuinely occur (not vacuous) -- still real ROM data/species.")
+print("   Proven on the actual Winona candidate list from 1a (allow=_training_area_allowed),")
+print("   which since the KI-24 fix contains BOTH reachable and unreachable entries -- so the")
+print("   sort proof is non-vacuous on the set we actually care about. A WIDER type set from")
+print("   the same live position/predicate is also sorted, as a larger-sample check.")
 
 
 def _assert_reachable_first(cands, label):
@@ -190,14 +191,35 @@ def _assert_reachable_first(cands, label):
 
 _assert_reachable_first(cands_live, "Winona set (1a, live predicate)")
 
+# ‼ NON-VACUITY LIVES HERE NOW (moved 2026-07-25). "Sorted reachable-first" is trivially true
+# of an all-True or an all-False list, so the sort proof needs a set that genuinely contains
+# both. That set is the WINONA list -- the one this planner exists to answer.
+#
+# It used to be asserted over a deliberately WIDE type set instead, as
+#     assert False in [c["reachable"] for c in wide_cands]
+# purely because the Winona list was VACUOUSLY all-False under the pre-KI-24 predicate
+# (tile-level calculate_path rejected all 10 candidates). That workaround then broke the moment
+# the predicate was fixed: the wide set became all-True and "at least one unreachable" had
+# nothing to find.
+#
+# The shape of that assertion was the real mistake. **A test that requires a FAILURE to occur
+# inverts as soon as the failure is fixed** -- it makes the suite get redder the more we repair.
+# Assert the PROPERTY the test needs (both branches exercised, so the ordering claim has
+# content), not a symptom of whatever was broken when it was written.
+_live_flags = [c["reachable"] for c in cands_live]
+assert True in _live_flags and False in _live_flags, (
+    "the Winona candidate list must contain BOTH reachable and unreachable entries, or the "
+    f"reachable-first sort proof above is vacuous. Got: {_live_flags}"
+)
+print(f"   non-vacuous: the Winona set spans both branches ({_live_flags.count(True)} reachable, "
+      f"{_live_flags.count(False)} not)")
+
 wide_cands = find_counter_candidates(
     ["Rock", "Electric", "Ice", "Normal", "Bug", "Grass"],
     allow=sm._training_area_allowed,
     max_results=25,
 )
 _assert_reachable_first(wide_cands, "wider type set (live predicate, same position)")
-assert True in [c["reachable"] for c in wide_cands], "expected a genuine reachable/unreachable mix"
-assert False in [c["reachable"] for c in wide_cands], "expected a genuine reachable/unreachable mix"
 print("PASS: every returned True precedes every returned False, in both lists.")
 
 print()
