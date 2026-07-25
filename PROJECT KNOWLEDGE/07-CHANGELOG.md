@@ -2964,3 +2964,50 @@ the top remaining robustness item.
 shared path (`tools/story-dev/saves/midstuck.ss1`) that every concurrent run overwrites, and
 fires only once per run. With three runs in parallel the artifact is untrustworthy — which is
 exactly why this bug still has no clean repro. Per-run save paths first, then repro this.
+
+## 2026-07-25 — KI-18: double-battle after-faint swap loop + the equal-HP tie-break (#24)
+
+**User report:** a double battle in Mauville Gym reordered the party for ~23,000 frames and never
+brought in a healthy **Beautifly L23 (67/67)** while the lead sat fainted. Two DISTINCT defects,
+both proven by fault injection against unmodified production code
+(`tools/story-dev/repro_double_battle_swap_loop.py`):
+
+**Defect 1 — the driver could not escape the partner's slot** (`modules/battle_handler.py`).
+The after-faint party-menu sweep computed `alive_slots` from raw `current_hp > 0` ONLY. In a
+DOUBLE battle the partner is alive AND on the field, so it passed the filter — and the party menu
+REFUSES an already-active mon. With the cursor on that slot the sweep pressed A on it forever:
+**1500 A-presses to the 6000-frame cap, zero escape.** Single battles cannot reach it (no
+`right_battler` slot exists). `choose_new_lead_after_faint` already performed this exclusion; the
+driver never mirrored it. Fixed by excluding on-field party indices.
+A/B: fault arm **hang (1500 presses, cap hit) → resolves in 16 frames with 0 presses on the
+refused slot** (steps Down off it, then selects a real bench mon). Controls unchanged: correct
+cursor 8 frames, single battle 8 frames.
+
+**Defect 2 — the equal-HP tie-break ignored level** (`modules/battle_strategies/level_up.py`).
+The score was raw `current_hp` compared with a strict `>`, so on an exact tie the EARLIER party
+index always won. Beautifly L23 (67/67, idx 3) could therefore never beat Mightyena L21 (67/67,
+idx 2) — the user's exact observation, and a standing bug independent of the loop. Now ties break
+by LEVEL, keeping `current_hp` primary (proven behaviour for every mode inheriting this strategy).
+A/B: **picks idx 2 (Mightyena L21) → picks idx 3 (Beautifly L23)**; a position-swap control proves
+the mechanism was slot order, not anything Beautifly-specific.
+
+**‼ A bug in my OWN fix, caught by the repro's control arm.** The first cut used a function-local
+`from modules.battle_state import get_battle_state`, which makes the name local for the WHOLE
+function — so the EARLIER call at the top of `handle_fainted_pokemon` hit `UnboundLocalError`. The
+control arm failed immediately and named it. Fixed by calling the existing module-level import.
+Without that control this would have shipped as a crash on every faint.
+
+**Two repro assertions were FLIPPED, and this is disclosed deliberately:** both originally asserted
+the BUGGY values (`picked == 2`, and `outcome == HANG`) because they were written to CHARACTERISE
+the defect. Flipping such an assertion is only legitimate when the old value documented a bug
+rather than protecting correct behaviour — both now assert the fixed behaviour and carry a comment
+saying what they used to assert and why it changed.
+
+**STILL UNPROVEN (KI-18 stays open, downgraded):** no live `.ss1` of the Mauville stall exists, so
+defect 1 proves the driver CANNOT ESCAPE that slot if landed there — it does not prove the live
+cursor actually lands there. A stale `battle_state` snapshot feeding
+`map_battle_party_index()` after a second same-turn faint is a plausible alternative route in and
+is unverified. Next step: capture a live double-battle after-faint stall.
+
+**Prevention rule:** a function-local `from X import Y` shadows a module-level `Y` for the entire
+function, including code ABOVE the import. Never add one for a name the module already imports.

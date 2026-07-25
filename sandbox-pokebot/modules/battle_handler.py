@@ -465,9 +465,31 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
     # proven on the live wedge state: read WHERE the menu actually is each step and
     # press the one button that advances it, with release gaps so every press registers.
     party_in_menu = get_party()
+    # ‼ EXCLUDE MONS ALREADY ON THE FIELD (2026-07-25, user's DOUBLE-battle report, KI-18).
+    # This gate used to be raw `current_hp > 0` only. In a DOUBLE battle the partner is
+    # alive AND on the field, so it passed the filter — and the party menu REFUSES to
+    # select an already-active mon. With the cursor parked on that slot the sweep below
+    # pressed A on it forever: fault-injected repro measured 1500 A-presses over the
+    # 6000-frame cap with ZERO escape, versus 8 frames to resolve when the cursor lands on
+    # a real bench mon. Single battles cannot hit it (no `right_battler` slot exists), which
+    # is why this only ever showed up in doubles. `choose_new_lead_after_faint` already
+    # performs this exclusion (level_up.py) — the driver simply never mirrored it.
+    _on_field = set()
+    try:
+        # ‼ Do NOT re-import get_battle_state here. It is already imported at module
+        # scope, and a function-local `from ... import` makes the name local for the
+        # WHOLE function — which left the EARLIER call at the top of handle_fainted_pokemon
+        # referencing an unbound local (`UnboundLocalError`, caught immediately by this
+        # repro's control arm). Just call the module-level one.
+        _bs = get_battle_state()
+        for _side in (_bs.own_side.left_battler, _bs.own_side.right_battler):
+            if _side is not None and getattr(_side, "party_index", None) is not None:
+                _on_field.add(_side.party_index)
+    except Exception:
+        _on_field = set()  # can't read it — fall back to the old, looser filter
     alive_slots = [
         i for i, mon in enumerate(party_in_menu)
-        if mon is not None and not mon.is_egg and mon.current_hp > 0
+        if mon is not None and not mon.is_egg and mon.current_hp > 0 and i not in _on_field
     ]
     frames = 0
     while get_game_state() == GameState.PARTY_MENU:
