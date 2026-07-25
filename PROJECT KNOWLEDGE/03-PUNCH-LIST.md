@@ -5,7 +5,15 @@
 > Full future-idea catalog: `09-FEATURE-BRAINSTORM.md`.
 
 ## Now (active focus)
-- [ ] #V â€” Post-promotion verification sweep: independent adversarial pass
+- [ ] **#24 — STORY AUTO-PLAYER.** The only active work. A cold start reaches
+      **Badge 6 (Winona) = end of built content** (38 maps, ~2.48M frames, 0 derails).
+      Sub-items live in `## Story bot (#24) — open backlog` below; the current order is:
+      1. `#24-movelearn-recovery` (killed 2 of 5 cold-start runs — highest cost)
+      2. `#24-whiteout` (attrition dominates; the successful run still took 80)
+      3. `#24-counters` phase 2 (the chain NAMES a counter; acting on it isn't built)
+      4. `#24-regionreach` gate table + the blocked training-gate switch (KI-24b)
+      Next unbuilt chapters: **Mt. Pyre**, then the **Magma hideout**.
+- [ ] #V â€” Post-promotion verification sweep (PARKED behind #24): independent adversarial pass
       on the promoted features that only had builder self-verification (not
       an independent pass) â€” #8 global pathfinding, #12 shiny alerts, #18
       update notice, #20 cloud-sync, and the 2026-07-19 GUI polish (tabs /
@@ -209,13 +217,22 @@
       that's â‰¥2 levels below the wild foe to the strongest team-mate turn 1 (shares
       XP, no fainting/heal-churn). Gated around `train_team`. Validated Poochyena
       L4â†’L7, 0 heals/faints. Commit ef812c0e.
-- [ ] #24-trainmap â€” AREA-APPROPRIATE TRAINING (user 2026-07-21, Option 1). Groundwork
-      landed: `modules/story/training_areas.py` maps early-game grass to wild level
-      ranges + `best_training_grass(level)`. TODO: wire `train_team` to route an
-      under-levelled mon to the best REACHABLE area for FULL XP (progressing upward as
-      it levels), with swap-train (#24-swaptrain) as the anywhere fallback. Needs: fill
-      the PENDING_GRASS spin tiles as maps are reached (Route 102/104/Woods), and
-      cross-map routing to/from the training area. Efficiency layer â€” not blocking.
+- [~] #24-trainmap â€” AREA-APPROPRIATE TRAINING (user 2026-07-21, Option 1).
+      **ROUTING HALF DONE (2026-07-24):** `modules/story/training_areas.py` carries
+      `TRAINING_GRASS` (10 areas with VERIFIED spin tiles + level bands), `AREA_PREREQ`
+      (surf/region gates), `best_training_area(team_level, min_wild_max=, allow=)` and
+      `estimate_frames_to_level()`. `_prepare_for_fight` calls it with the
+      `_training_area_allowed` reachability predicate and RELOCATES via
+      `_goto_training_area` (warp-aware), healing at the PC nearest THAT area — this is
+      what stopped the Norman fodder grind. Swap-train (#24-swaptrain) remains the
+      anywhere fallback.
+      **REMAINING: the `PENDING_GRASS` spin tiles** — Route 104, Petalburg Woods,
+      Rusturf Tunnel and Granite Cave 1F still have `None` tiles, so they can never be
+      proposed. Fill each as the map is reached (two-way sweep from a real story anchor,
+      per the Route 111/114 lesson: same-map connectivity does NOT imply the story can
+      get there), then move the entry into `TRAINING_GRASS`.
+      Related: `#24-regionreach` (the reachability predicate itself), `#24-watertrain`,
+      `#24-healverify`.
       ‼ LAVARIDGE HAS NO REACHABLE TRAINING GRASS (two-way sweep 2026-07-23,
       `tools/story-dev/jaggedgrass_probe.py`): Jagged Pass cannot be re-entered from
       the town (one-way ledges) and Route 112's lower grass has no return path. So
@@ -350,11 +367,67 @@
 - [~] #21 â€” Game cheat menu (+ tabbed GUI, full-dex sprite picker, XP bars,
       topmost dialogs) â€” promoted; user in-game effect test pending.
 
-## Done
-- [x] #1 â€” Vendor upstream 40Cakes/pokebot-gen3 (subtree @ 5dd898f8) (2026-07-17).
-- [x] #2 â€” Deep documentation pass + Pokemon_Emerald_AI_Notes.md (2026-07-17).
-- [x] #4 â€” install.py V2 (setup/update/heal + ROM handling) â€” "worked!" (2026-07-18).
-- [x] #5 â€” Native dashboard GUI + handheld mode â€” "worked!" (2026-07-18).
+## Story bot (#24) — open backlog
+> Two groups: the PRIORITY block was added 2026-07-25 by the doc audit (these IDs were
+> referenced all over the changelog/handoff but had no punch-list entry at all). The rest
+> were sitting under `## Done` while still open (`- [ ]`) and were moved here the same
+> day — not reworded, only relocated.
+
+### Priority block (added 2026-07-25 — previously referenced but unlisted)
+- [ ] **#24-movelearn-recovery — ‼ #1 OPEN ITEM. KILLED 2 OF 5 COLD-START RUNS.**
+      When the move-learn escape ultimately fails, the `BotModeError` is raised from
+      inside the BATTLE HANDLER, which sits OUTSIDE `StoryMode`'s derail-recovery
+      try/except — so the whole run dies instead of losing one battle. The recovery
+      scope is the bug, not the move-learn logic. Now reproducible: per-run stall
+      snapshots land in `tools/story-dev/saves/stalls/` (unblocked by
+      `#24-harness-savepath`). Fix = get the raise inside a recoverable scope, or
+      surface it to `_play` as a losable battle.
+- [ ] **#24-whiteout — HIGHEST-COST OPEN ITEM (attrition).** Whiteout attrition is not
+      a side-effect, it IS the dominant cost of the current boss-as-training-vehicle
+      strategy: 2 of 5 runs died on the whiteout cap, and the run that SUCCEEDED still
+      took **80 whiteouts** (58/85 in single runs elsewhere). Needs a prep/attrition
+      rethink, not a bigger cap.
+- [ ] **#24-npcheal — heal at an NPC, not only at a Poké Center.** Re-pair the Route 111
+      training band to `ROUTE111_OLD_LADYS_REST_STOP` (decomp-cited: a full, ungated,
+      repeatable heal — **96 steps vs 213** to Fallarbor). Blocked on a heal-at-NPC
+      helper: every current heal path assumes a Poké Center layout (KI-19).
+- [~] **#24-counters — CATCH A TYPE COUNTER when the boss plan cannot converge (KI-23).**
+      **Phase 1 DONE (2026-07-25):** `_boss_plan_is_hopeless` detects non-convergence
+      (6 losses + flat KOs + nothing hitting the boss's `ace_types` for ≥2.0), computes
+      the needed types from the real type chart, and `counter_plan.find_counter_candidates`
+      ranks catch targets over the whole-game encounter index, gated by
+      `_counter_area_allowed` → `region_reach`. Proven from the Winona-era save: it names
+      **Electrike on ROUTE118 (29,15), L24-26, 30% — REACHABLE**, where the old predicate
+      returned zero. Fail-safe in all three planner outcomes (`repro_counter_wiring.py`).
+      **Phase 2 NOT STARTED:** actually travelling to the target, catching it, and training
+      it. Today the bot converts an unbounded loop into a bounded stop that NAMES the fix;
+      acting on it is the next step and needs a live run to validate, not a repro.
+- [~] **#24-regionreach — region-scale reachability oracle.** **BUILT + PROVEN**
+      (`modules/story/region_reach.py`, `repro_region_reach.py`): a graph from the ROM's own
+      `MapConnections` + warps, capability gates, and `why_unreachable()` reasons that keep
+      "no connection path" / "needs Surf at A↔B" / "reachable but N hops away" as three
+      distinct facts. **STILL OPEN:**
+      (a) **`KNOWN_GATES` must GROW** — it holds ONE hand-verified entry (Dewford's two sea
+      edges), so any gate not derivable from ROM data reads as UNGATED. This oracle fails
+      OPEN where the old one failed CLOSED; that is the right direction for a planner but
+      must be grown before it gates anything irreversible.
+      (b) **Only one caller is wired** — `_counter_area_allowed`. `_training_area_allowed`
+      still uses `calculate_path`. The switch was attempted 2026-07-25 and is BLOCKED on a
+      mock leak in `repro_fodder_grass._stand_at()`; read KI-24b before retrying.
+- [ ] #24-edgecost — finer travel cost than a flat 1-hop edge (**DEFERRED**). Uniform
+      weighting compresses "same landmass cluster" (1-4 hops) — measured from ROUTE120,
+      Lilycove (2) reads as CLOSER than Route 118 (3), the actual answer — because one ROM
+      connection can span a whole sea route. If finer granularity is ever needed: weight
+      each edge by the source map's traversal length, or price travel in FRAMES so it
+      composes with `training_areas.estimate_frames_to_level`. **Not needed until hop count
+      demonstrably mis-ranks something** — today `max_hops` is only ever a filter (KI-24b).
+- [ ] #24-fortreelive — close the Fortree Kecleon-chokepoint proof properly. The current
+      evidence is a strong FAULT-INJECTION proof (flag 969 injected → (25,8) walkable), not
+      a live post-flush save. Capture a checkpoint keyed on flag 969 and re-run §6/7
+      WITHOUT injection to close it. Residual verification debt only — the live playthrough
+      already sets the flag first via `get_devon_scope`.
+
+### Moved out of `## Done` (still open)
 - [ ] #24-sanity â€” SELF-CORRECTION / SANITY-CHECK (user 2026-07-20; design Â§SC).
       Story mode must never get permanently derailed: re-validate at every segment
       boundary (did the completion flag actually set? else retry/skip-ahead),
@@ -364,27 +437,6 @@
       stall watch as last resort (Watchdog #22). Unifies Â§RS + Â§DR + #24-team into
       one state-machine engine. Also bounds the Treecko-Lv16 "stuck but not stopped"
       loop class.
-- [~] #24-textread â€” DIALOGUE AWARENESS: read on-screen text to drive interactions
-      (user 2026-07-20; design Â§DA). FEASIBILITY CONFIRMED (decode_string of
-      gDisplayedStringBattle / gStringVar4 reads exact text). STARTED: move-learn
-      now uses text-driven detection (both builds) â€” UNIVERSAL (matches generic
-      phrases + reads the offered move dynamically, not hardcoded to any move).
-      â˜… ROOT CAUSE of the Lv16 hang FOUND & FIXED (ML-13): the Emerald battle Yes/No
-      has no task and was detected only by a fragile script-offset; when it stayed
-      `Unknown` the old code pressed nothing (is_waiting_for_input gate) â†’ froze.
-      `handle_move_replacement_dialogue` rewritten fully text/task-driven;
-      `handle_evolution_scene` hand-off hardened. PROVEN by fault-injection A/B on
-      both builds (old stalls ~10.6k frames & fails to learn; fix resolves in 394 &
-      learns Pursuit + evolves). Faithful repro harness: scratchpad/repro_movelearn.py.
-      Still want the user's real-32Ã— confirmation. FULL SYSTEM (next big build):
-      Reader (normalized current text + menu/cursor) -> Classifier (text -> interaction
-      type) -> Responder (type + story progress + config -> answer; multi-valid
-      decisions like fossil/starter = random). Gather conversation dumps {exact text,
-      speaker, valid answers, how to answer} from runtime logging + pokeemerald script
-      data; build a response table. Subsumes fragile scripted-scene ride-outs; robust
-      + deterministic vs flaky task-state. Backstops: no-progress watchdog + advance-
-      plain-text-with-A so nothing hard-freezes.
-
 - [ ] #24-interrupt â€” INTERRUPTION INTELLIGENCE (user 2026-07-22): the bot should
       KNOW when its current task was interrupted and by WHAT (training spin â†’
       trainer sight-line battle; navigation â†’ PokÃ©Nav call ring; heal walk â†’
@@ -406,42 +458,19 @@
       Validate vs a Roxanne/Brawly-era Disable user (e.g. wild Whismur has none â€”
       find a story trainer with Disable/Encore, or fault-inject the volatile
       struct in the harness).
-
 - [ ] #24-ch8b-museum â€” Oceanic Museum entry gating (KI-11): resolve how the
       Aqua crowd clears so Stern is reachable; then Devon Goods â†’ Stern
       (deliver_devon_goods_to_stern is built). BLOCKS Ch8b/Ch9.
-- [x] #24-evo-trainstall (FIXED 2026-07-22: interrupt-safe _rotate_lead_safely + _yield_bounded; proven on evostall.ss1; same fix covers the user's 110k-frame Joey stall) â€” `train_team`/`_story_spin` can hang right AFTER a
-      trainee EVOLVES mid-training (batch run02 2026-07-22: Grovyle evolved +
-      learned Fury Cutter on Route 116, then the spin never resumed â†’ 20k-frame
-      HANG). Repro save: tools/story-dev/saves/evostall.ss1. Likely the
-      post-evolution return-to-overworld transition isn''t ridden out before the
-      next spin action (cf. the move-learn / dock-arrival family). Prove + fix.
 - [ ] #24-freshbatch-rustboro â€” batch run03 (fresh game) 2026-07-22 played
       extensively but HUNG in Rustboro (11,3)=(5,3) area after ~450k frames
       (Torchic start, 4-mon team). Under-investigated; capture a repro from the
       run03 log if it recurs in a future batch.
-
-
-- [x] #24-pokenav-faithful (RESOLVED 2026-07-22: the user ran VIDEO OFF — the renderer-gated fallback fired exactly as designed; keep video off on the weaker test PC, the fallback covers it) — WATCH ITEM (user fresh-run log 2026-07-22 13:24): the
-      PokéNav Match-Call tutorial took the STATE-WRITE FALLBACK on a real-GUI run
-      (video on) — the faithful play-through previously worked on this hardware.
-      By design the fallback is legal (never hang), but check why the faithful
-      path didn''t engage (timing? renderer-gate read?) next time it recurs.
 - [ ] #24-train-efficiency — the same run spent ~240k frames on the pre-rival
       level-floor (L10) and ~200k on the Brawly band (L15) with swap-training.
       Bounded + productive, but slow. Related: an ABRA catch (Teleport-only, can''t
       attack) rode along the whole run at L7 — confirm battler-slot exclusion is
       airtight and consider skipping Abra-class catches for team slots, or routing
       lows to level-matched grass (#24-trainmap).
-
-- [x] #24-wattson-strength — DONE 2026-07-22 (KI-13 resolved): 0-power move-learn
-      guard + Segment 9c prep (Route 117 (31,16) band 20-24) + aftermath-quiet
-      riding → run 14 beat Wattson end-to-end; `wattson_done.ss1` verified.
-      Residual (folded into #24-movelock): audit the evolution-scene learn flow
-      that dropped Marshtomp''s Mud Shot at L16 (moot for Wattson, still a
-      move-quality gap).
-
-
 - [ ] #24-npc-talk-speed — Briney talk-dance polish (user log review 2026-07-22):
       BOTH user-observed oddities are the same subsystem, `_talk_to_wandering_npc`
       (observe a patrol lap -> park beside the route -> face-tap on transit):
@@ -454,7 +483,6 @@
       the exact tiles from validated-run debug logs), wait bounded (~1 lap) for
       the NPC to transit adjacent, face-tap+A; on one failure fall back to the
       full observe-then-park. Keeps the proven adaptive path as the safety net.
-
 - [ ] #24-hm-slaves — HM CARRIER ARCHITECTURE (user directive 2026-07-22 night):
       HMs are infinite-use but unremovable without the Lilycove MOVE DELETER
       (free; the Heart Scale is for Fallarbor''s Move RELEARNER — different NPC).
@@ -467,7 +495,6 @@
       overworld-usable from the party menu (Dig, Teleport, Flash, Sweet Scent)
       — useful shortcuts (Teleport-to-PC, Dig-out-of-caves) worth wiring into
       travel logic once carriers exist.
-
 - [ ] #24-knowledge-base — DEEP GAME KNOWLEDGE BASE (user directive 2026-07-22
       night): per-chapter, during mapping: route items (visible + HIDDEN, both
       in decomp map.jsons), puzzles, secrets, legendary unlock chains + catch
@@ -476,7 +503,6 @@
       full species/moves/learnsets/TM-compat — the MOVE-PRIORITY SYSTEM v2
       (#24-movelock: STAB + type coverage + Gen3 physical/special-BY-TYPE
       stat-matching + utility ranking) should QUERY it, not hand-author lists.
-
 - [ ] #24-event-pokemon — EVENT LEGENDARIES, endgame (user directive 2026-07-22
       night): Deoxys (Birth Island via AURORATICKET), Mew (Faraway Island via
       OLD SEA MAP), Jirachi (external event), Latios/Latias roamer choice + the
@@ -489,19 +515,6 @@
       plan/map/test loop as story chapters + a design discussion with the user
       on the acquisition theater BEFORE building. Endgame content — schedule
       after the main story skeleton reaches the Elite Four.
-
-- [x] #24-hm-learner — HM TEACH VALIDATION + LEARNER ACQUISITION (user report
-      2026-07-23, DONE same day): Segment 10b used to teach the HIGHEST-LEVEL mon,
-      which loops in the party menu (NOT ABLE) whenever that mon can't learn the
-      HM. Now: `hm_learner_slot(item)` picks the best COMPATIBLE party mon;
-      `ensure_hm_learner(item)` hunts + catches an accessible learner species when
-      the party has none (grounds derived live from ROM encounter tables ×
-      TM/HM learnsets — nothing hardcoded, works for every future HM);
-      `teach_hm_move` hard-fails truthfully on an incompatible target. A/B-proven
-      (repro_hm_learner.py + the hmtest harness driver: fault-injected
-      "nobody compatible" → hunted Route 117 → caught Poochyena → taught it).
-      Feeds directly into #24-hm-slaves (the acquisition half now exists).
-
 - [ ] #24-provisions — HEALING-ITEM PROVISIONING + STRATEGIC HEALING (user
       directive 2026-07-23): alongside Poké Balls, buy POTIONS (the best tier
       available at the local mart — Potion→Super→Hyper→Full Restore as the
@@ -513,7 +526,6 @@
       gate on money reserve like balls; a heal-item strategy layer slots into
       the battle strategies where flee/switch decisions already live. NOT urgent
       (the fight→train→retry loop carries the mid-game) — required before the E4.
-
 - [ ] #24-tms — TM ACQUISITION + USAGE (user directive 2026-07-23): TMs arrive as
       gym rewards (TM39 Roxanne, TM08 Brawly...), ground items, and mart stock;
       the bot should track what's in the bag, know single-use vs HM reuse, and
@@ -521,7 +533,6 @@
       any TM item + hm_learner_slot generalizes — the missing piece is the
       DECISION layer: which TM to which mon, driven by the move-priority system
       (#24-movelock v2) and later the per-Pokémon profiles (#24-pokeprofiles)).
-
 - [ ] #24-pokeprofiles — PER-POKÉMON BATTLE PROFILES, deep-research program (user
       directive 2026-07-23): build a detailed profile for EVERY Emerald-obtainable
       species (217 + evolution lines; census in emerald_obtainability.json):
@@ -537,7 +548,6 @@
       Pokémon Emerald AI project (Pokemon_Emerald_AI_Notes.md). Prereq for the
       full #24-tms decision layer and the "proper battling" endgame; schedule
       after the story skeleton is deeper.
-
 - [ ] #24-economy — CASHFLOW MAINTENANCE (user directive 2026-07-23, extends the
       planning doc's money-reality note): keep a healthy balance for balls +
       potions + TMs across the whole run — trainer payouts (the main income; no
@@ -545,7 +555,6 @@
       (Nuggets/Pearls/Stardust from Pickup — Zigzagoon/Linoone party slot is a
       passive income engine), and mart budgeting against the reserve. Design
       with #24-provisions; both consult one Resource Ledger (doc 13 spec).
-
 - [ ] #24-trainersweep — EXHAUST UNFOUGHT ROUTE TRAINERS BEFORE GRINDING (from the
       2026-07-23 boss-training discussion + Gemini consult): before any wild-grass
       escalation, sweep the one-time optional trainers reachable at the current
@@ -555,7 +564,6 @@
       (decomp object events, sight-lines), a "fought yet?" check (trainer flags —
       readable), and routing. Later: PokéNav Match Call REMATCHES (255-step trigger,
       call answering, scaled teams) as the true repeatable mid-game XP engine.
-
 - [ ] #24-gemini-org — "COMPANY-STYLE" GEMINI ORCHESTRATION (user 2026-07-23, timing
       left to the agent → deferred to a quiet/overnight slot): formalize the ad-hoc
       multi-agent consult pattern (design-critique agent + adversarial agent worked
@@ -563,7 +571,6 @@
       verifier / synthesizer) with standard prompts, cross-checking rules, and when
       to escalate models (3.1-pro vs flash). Candidate first use: the #24-pokeprofiles
       overnight batches. Refine WITH Gemini agents when picked up.
-
 - [ ] #24-rare-catch — RARITY-TIERED OPPORTUNISTIC CATCHING (user 2026-07-23, future):
       extend the catch branch beyond team-building phases: RARE species (low
       encounter-slot %, version exclusives, one-shot statics) should be caught on
@@ -575,7 +582,6 @@
       data × gender-ratio math — all derivable, no hand lists), tier thresholds to
       agree with the user, and integration ordering vs the shiny branch (shiny stays
       first). Pairs with #43 opportunistic catching + the Living-Dex orchestrator.
-
 - [ ] #24-hm-multi — TEACH AN HM TO ADDITIONAL APPLICABLE MONS (user 2026-07-23,
       future): after the primary teach, consider teaching the HM to OTHER party mons
       when it is a genuine upgrade over one of their current moves ("if they are
@@ -586,7 +592,6 @@
       it beats a current move" (#24-tms/#24-movelock), not merely "compatible", or
       we poison battlers' movesets. Strength (80BP) is the counter-example where
       multi-teach genuinely pays. Build after the TM decision layer exists.
-
 - [ ] #24-flannery-grind (OBSERVATION, not a bug — 2026-07-23 milestone run): from the
       Lavaridge milestone (weak fixed team L29), Flannery took 3 boss-training whiteouts
       (L29→L32) before the win — grass-less gym + tanky Torkoal + optimistic sufficiency
@@ -606,6 +611,92 @@
 - [ ] #24-healverify — re-verify the Surf-gated heal-centre pairings (Routes 115/118/119/121)
       from a POST-Surf checkpoint; repro_fodder_grass.py currently marks them PENDING because
       no pre-Surf save can path a water route. Route 119 (21,109) reached NO Poké Center.
+
+## Done
+- [x] **#24-fortreebadge — SATISFIED 2026-07-25: BADGE 6 WON from a cold start.** Filed
+      2026-07-24 when the isolated Fortree drive lost to Winona and whited out — it called
+      `do_fortree_gym()` directly with whatever party the save carried, and battle prep
+      (lead selection + heal) is the CALLER's job. Confirmed the right way, by a full
+      run rather than a gate fix: a fresh title-screen run reached the **Feather Badge =
+      end of built content** (38 maps, ~2.48M frames, 0 derails).
+- [x] **#24-fortreegates — DONE 2026-07-24: the Fortree Gym rotating-gate puzzle is
+      solved LIVE.** `modules/story/fortree_gates.py` is a port of the decomp's
+      `src/rotating_gate.c`, validated **4/4** against the emulator. Includes the
+      parked-trainer escape: a trainer standing on the path is cleared by RESETTING the
+      room (exit + re-enter forces the documented gate reset), not by waiting.
+- [x] **#24-harness-savepath — DONE 2026-07-25: stall snapshots are per-run AND
+      per-stall.** Two defects in one line. (a) The no-progress auto-save wrote a single
+      shared `saves/midstuck.ss1`, so concurrent runs overwrote each other and the
+      artifact belonged to no particular failure — that is precisely why the move-learn
+      stall had no clean repro, and why one earlier investigation burned effort on a
+      `midstuck.ss1` that was a whiteout state from a different map. (b) It fired ONCE
+      per run, but a run usually stalls several times and the first stall is typically a
+      recoverable hiccup — the interesting capture was the one never taken. Snapshots now
+      land in `tools/story-dev/saves/stalls/`, which unblocked `#24-movelearn-recovery`.
+- [x] **#24-harness-finish — DONE 2026-07-25: a SUCCESSFUL run no longer reports as a
+      hang.** The first cold-start Badge 6 run reached the end of built content at
+      f2,483,319, printed "end of built content — handing to manual", and then correctly
+      stopped doing anything — so the harness's frame-based no-progress detector fired
+      20,000 frames later and the log ended `HANG CONFIRMED`. `compare_runs.py` inherited
+      the false signal and classified it `no-path` (a transient, recovered "Could not find
+      a path" earlier in the log). The one run that worked looked like the worst kind of
+      failure. Both tools now check the bot's own end-of-content message before calling a
+      stop a hang.
+- [x] #1 â€” Vendor upstream 40Cakes/pokebot-gen3 (subtree @ 5dd898f8) (2026-07-17).
+- [x] #2 â€” Deep documentation pass + Pokemon_Emerald_AI_Notes.md (2026-07-17).
+- [x] #4 â€” install.py V2 (setup/update/heal + ROM handling) â€” "worked!" (2026-07-18).
+- [x] #5 â€” Native dashboard GUI + handheld mode â€” "worked!" (2026-07-18).
+- [~] #24-textread â€” DIALOGUE AWARENESS: read on-screen text to drive interactions
+      (user 2026-07-20; design Â§DA). FEASIBILITY CONFIRMED (decode_string of
+      gDisplayedStringBattle / gStringVar4 reads exact text). STARTED: move-learn
+      now uses text-driven detection (both builds) â€” UNIVERSAL (matches generic
+      phrases + reads the offered move dynamically, not hardcoded to any move).
+      â˜… ROOT CAUSE of the Lv16 hang FOUND & FIXED (ML-13): the Emerald battle Yes/No
+      has no task and was detected only by a fragile script-offset; when it stayed
+      `Unknown` the old code pressed nothing (is_waiting_for_input gate) â†’ froze.
+      `handle_move_replacement_dialogue` rewritten fully text/task-driven;
+      `handle_evolution_scene` hand-off hardened. PROVEN by fault-injection A/B on
+      both builds (old stalls ~10.6k frames & fails to learn; fix resolves in 394 &
+      learns Pursuit + evolves). Faithful repro harness: scratchpad/repro_movelearn.py.
+      Still want the user's real-32Ã— confirmation. FULL SYSTEM (next big build):
+      Reader (normalized current text + menu/cursor) -> Classifier (text -> interaction
+      type) -> Responder (type + story progress + config -> answer; multi-valid
+      decisions like fossil/starter = random). Gather conversation dumps {exact text,
+      speaker, valid answers, how to answer} from runtime logging + pokeemerald script
+      data; build a response table. Subsumes fragile scripted-scene ride-outs; robust
+      + deterministic vs flaky task-state. Backstops: no-progress watchdog + advance-
+      plain-text-with-A so nothing hard-freezes.
+
+- [x] #24-evo-trainstall (FIXED 2026-07-22: interrupt-safe _rotate_lead_safely + _yield_bounded; proven on evostall.ss1; same fix covers the user's 110k-frame Joey stall) â€” `train_team`/`_story_spin` can hang right AFTER a
+      trainee EVOLVES mid-training (batch run02 2026-07-22: Grovyle evolved +
+      learned Fury Cutter on Route 116, then the spin never resumed â†’ 20k-frame
+      HANG). Repro save: tools/story-dev/saves/evostall.ss1. Likely the
+      post-evolution return-to-overworld transition isn''t ridden out before the
+      next spin action (cf. the move-learn / dock-arrival family). Prove + fix.
+- [x] #24-pokenav-faithful (RESOLVED 2026-07-22: the user ran VIDEO OFF — the renderer-gated fallback fired exactly as designed; keep video off on the weaker test PC, the fallback covers it) — WATCH ITEM (user fresh-run log 2026-07-22 13:24): the
+      PokéNav Match-Call tutorial took the STATE-WRITE FALLBACK on a real-GUI run
+      (video on) — the faithful play-through previously worked on this hardware.
+      By design the fallback is legal (never hang), but check why the faithful
+      path didn''t engage (timing? renderer-gate read?) next time it recurs.
+- [x] #24-wattson-strength — DONE 2026-07-22 (KI-13 resolved): 0-power move-learn
+      guard + Segment 9c prep (Route 117 (31,16) band 20-24) + aftermath-quiet
+      riding → run 14 beat Wattson end-to-end; `wattson_done.ss1` verified.
+      Residual (folded into #24-movelock): audit the evolution-scene learn flow
+      that dropped Marshtomp''s Mud Shot at L16 (moot for Wattson, still a
+      move-quality gap).
+
+
+- [x] #24-hm-learner — HM TEACH VALIDATION + LEARNER ACQUISITION (user report
+      2026-07-23, DONE same day): Segment 10b used to teach the HIGHEST-LEVEL mon,
+      which loops in the party menu (NOT ABLE) whenever that mon can't learn the
+      HM. Now: `hm_learner_slot(item)` picks the best COMPATIBLE party mon;
+      `ensure_hm_learner(item)` hunts + catches an accessible learner species when
+      the party has none (grounds derived live from ROM encounter tables ×
+      TM/HM learnsets — nothing hardcoded, works for every future HM);
+      `teach_hm_move` hard-fails truthfully on an incompatible target. A/B-proven
+      (repro_hm_learner.py + the hmtest harness driver: fault-injected
+      "nobody compatible" → hunted Route 117 → caught Poochyena → taught it).
+      Feeds directly into #24-hm-slaves (the acquisition half now exists).
 
 ### #24-endlessruns — ENDLESS DEBUG-RESET RUNS (user request, 2026-07-25)
 
@@ -633,6 +724,23 @@ Back-to-back FRESH runs, unthrottled, debug logging on, appending one row per ru
 * **Zero frames is never reported as success.** The first cut scraped a 5-second ROM-not-found
   death as `clean-finish`; an overnight batch of those would have read as green.
 
-**STILL TO DO — `#24-endlessruns-gui`:** the Play-section dropdown (type a count, default 10,
-`0` = infinite). It must CALL this module's logic, not reimplement it. Lands in the GUI bundle
-(`dashboard_gui.py`), which is currently UNPROMOTED to custom — so sandbox-first.
+**`#24-endlessruns-gui` — DONE 2026-07-25, and it shipped as something better than the plan
+above.** The plan was a menu item that shells out to this CLI module. That was built first and
+FAILED in the user's hands: the dialogs appeared and nothing happened, because "endless debug
+reset runs" means *this emulator*, not a separate headless harness.
+
+So it shipped instead as **a real in-process bot mode: `Story (ENDLESS RESET)`**
+(`StoryEndlessResetMode`, `plugins/custom_modes/story_mode.py`) — it simply loops
+`Story (DEBUG - RESET)`'s `run()`, so every iteration is a hard reset → forced NEW GAME → play,
+back to back in the running emulator. In BOTH builds. Count comes from the GUI's
+"Endless Debug-Reset Runs…" item (`ENDLESS_RESET_TARGET`, default 10, `0` = forever).
+
+In-process failsafes beyond the CLI's: a `BotModeError` in run 3 is SWALLOWED so runs 4..N still
+happen; a hard 3.5M-frame-per-run cap (StoryMode's own watchdog can't catch a wedged watchdog);
+the bot mode is re-asserted after every run because a derail can call `set_manual_mode()`; and
+the batch's emulation speed + video settings are captured once and restored each run — the first
+cut restored `bot_mode` but not the speed, so run 1 ran unthrottled and every run after it
+crawled at 1× (user-reported, fixed in `aadad944`).
+
+The CLI form above is NOT superseded — it keeps the fresh-profile-per-run and wall-clock/log-growth
+failsafes that an in-process mode cannot have, and remains the right tool for a scripted batch.

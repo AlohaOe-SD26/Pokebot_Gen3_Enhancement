@@ -3285,3 +3285,31 @@ Six places where the handoff actively pointed a fresh agent the wrong way:
 * **C4** — the `gh api repos/pret/pokeemerald/contents/<path>` grounding line is marked
   SUPERSEDED by the local sparse clone, with the reason (absence claims are only checkable
   against a whole tree).
+
+## 2026-07-25 — `03-PUNCH-LIST.md` drift repaired (doc audit, item 4)
+
+The punch list had drifted far enough that it could not be used as the work queue it claims
+to be:
+
+* **11 IDs were referenced across the changelog/handoff/known-issues but had NO entry.** Added,
+  each grounded in what the record actually says: `#24-movelearn-recovery` (**open, #1 — killed
+  2 of 5 cold-start runs**), `#24-whiteout` (**open, highest-cost** — the run that SUCCEEDED
+  still took 80 whiteouts), `#24-npcheal` (open — blocked on a heal-at-NPC helper),
+  `#24-counters` (**phase 1 DONE, phase 2 not started**), `#24-regionreach` (built + proven; gate
+  table and the second caller still open), `#24-edgecost` (deferred, with the measurement that
+  makes it deferrable), `#24-fortreelive` (open residual verification debt),
+  `#24-harness-savepath` (DONE), `#24-harness-finish` (DONE), `#24-fortreebadge` (**SATISFIED** —
+  Badge 6 won from a cold start), `#24-fortreegates` (DONE, 4/4 vs the emulator).
+* **`#24-endlessruns-gui` said "STILL TO DO".** It shipped — and as something better than the
+  filed plan. The planned menu-item-shells-out-to-CLI version was built first and FAILED in the
+  user's hands; it shipped instead as a real in-process bot mode, `Story (ENDLESS RESET)`. Entry
+  rewritten with the in-process failsafes and a note that the CLI form is NOT superseded.
+* **`#24-trainmap` said the routing was all TODO.** The routing half is done —
+  `best_training_area` + `AREA_PREREQ` + `estimate_frames_to_level`, called by
+  `_prepare_for_fight`, relocating via `_goto_training_area`. Only the `PENDING_GRASS` spin
+  tiles remain. Marked `[~]` with the remaining work named.
+* **22 open `- [ ]` items were filed under `## Done`.** Moved verbatim into a new
+  `## Story bot (#24) — open backlog` section (nothing reworded).
+* **`## Now (active focus)` did not mention `#24`.** It now leads with it, states the current
+  reach (Badge 6 = end of built content) and the four-item priority order, and marks the old
+  `#V` verification sweep as parked behind it.
