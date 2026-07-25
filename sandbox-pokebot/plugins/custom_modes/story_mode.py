@@ -578,6 +578,16 @@ class StoryMode(BotMode):
     #: (~25 xp a kill, i.e. never). User-reported 2026-07-24.
     FODDER_LEVEL_GAP = 12
 
+    #: Frame budget for a SINGLE targeted grind decision (evo-lookahead or sweeper top-up) —
+    #: ~3 minutes of emulator time, derived from the MEASURED FRAMES_PER_WILD_BATTLE (1433,
+    #: see modules/story/training_areas.py) — roughly 174 wild battles' worth of budget.
+    #: Both decisions used to be budgeted purely in LEVELS, but frames-per-level varies
+    #: enormously with where you grind: a fresh run's evo-lookahead sent a L33 Combusken to
+    #: Route 102's L3-5 wilds for 3 levels (~430,000 frames, measured) and helped blow the
+    #: run's overall frame cap one level short. This constant is what lets that plan be
+    #: REJECTED up front instead of committed to blind (punch-list #24).
+    MAX_PREP_TRAINING_FRAMES = 250_000
+
     #: How many times to (re)train + attempt the Rustboro rival before giving up and handing
     #: to manual — bounds the whiteout→retrain loop so an underleveled/bad-matchup team can't
     #: spin forever (each attempt escalates the training band via `_prepare_for_fight`).
@@ -859,6 +869,28 @@ class StoryMode(BotMode):
                         except Exception:
                             pass
                         if self._sweep_score(evolved.types, future, ace_types, e_atk, e_spa) >= self.SWEEP_SCORE_FLOOR:
+                            # FRAME-COST GATE (punch-list #24): `mon.level < evo_level <=
+                            # mon.level + 3` above budgets in LEVELS, but the real cost is
+                            # FRAMES — a fresh run's local grass was Route 102 L3-5 wilds,
+                            # measured at 1433 frames/battle, and 3 "close" levels there
+                            # cost ~430,000 frames. Estimate before committing to the plan;
+                            # an unknown or over-budget estimate REJECTS it (fail safe).
+                            from modules.story.training_areas import estimate_frames_to_level
+
+                            wild_level = _wild_land_max(cfg["grass"][0]) if "grass" in cfg else None
+                            est_frames = (
+                                estimate_frames_to_level(mon, evo_level, wild_level)
+                                if wild_level is not None
+                                else None
+                            )
+                            if est_frames is None or est_frames > self.MAX_PREP_TRAINING_FRAMES:
+                                console.print(
+                                    f"[yellow]Story: evo-lookahead for {mon.species.name} -> "
+                                    f"Lv{evo_level} rejected — estimated "
+                                    f"{est_frames if est_frames is not None else 'UNKNOWN'} frames "
+                                    f"exceeds budget ({self.MAX_PREP_TRAINING_FRAMES}).[/]"
+                                )
+                                continue
                             entry = (2, 0.0, i, "topup", evo_level)
                             break
                 except Exception:
@@ -901,12 +933,33 @@ class StoryMode(BotMode):
                     )
                     return
                 if kind == "topup" and "grass" in cfg:
-                    console.print(
-                        f"[cyan]Story: {name} is the answer to this gym but needs "
-                        f"Lv {train_to} — targeted top-up of just that mon.[/]"
+                    # FRAME-COST GATE (punch-list #24): this branch used to call train_team
+                    # with no cost estimate at all. Estimate first; an unknown or over-budget
+                    # estimate SKIPS the top-up (fail safe) and falls through to the rest of
+                    # `_prepare_for_fight` (boss-training mode etc.) instead of committing to
+                    # a grind that could burn hundreds of thousands of frames.
+                    from modules.story.training_areas import estimate_frames_to_level
+
+                    wild_level = _wild_land_max(cfg["grass"][0])
+                    est_frames = (
+                        estimate_frames_to_level(_gp_v()[slot], train_to, wild_level)
+                        if wild_level is not None
+                        else None
                     )
-                    yield from train_team(train_to, slots={slot}, grass=cfg["grass"], heal_center=cfg["heal"])
-                    return
+                    if est_frames is None or est_frames > self.MAX_PREP_TRAINING_FRAMES:
+                        console.print(
+                            f"[yellow]Story: {name} top-up to Lv {train_to} rejected — "
+                            f"estimated {est_frames if est_frames is not None else 'UNKNOWN'} "
+                            f"frames exceeds budget ({self.MAX_PREP_TRAINING_FRAMES}); "
+                            f"falling through to boss-training/band-prep.[/]"
+                        )
+                    else:
+                        console.print(
+                            f"[cyan]Story: {name} is the answer to this gym but needs "
+                            f"Lv {train_to} — targeted top-up of just that mon.[/]"
+                        )
+                        yield from train_team(train_to, slots={slot}, grass=cfg["grass"], heal_center=cfg["heal"])
+                        return
 
         # --- BOSS-TRAINING MODE (user design 2026-07-23, Wattson analysis + the Gemini
         #     consult): when we're LOSING here but the local grass is far below our

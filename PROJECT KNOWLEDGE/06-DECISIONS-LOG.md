@@ -242,3 +242,37 @@ hand-picked heal centres without verification (two of ten were wrong — Route 1
 Fallarbor, not Mauville).
 **Open follow-up (user, 2026-07-24):** WATER training tiles once Surf is taught — surf
 encounters are an untapped band and there is a lot of water. Logged as #24-watertrain.
+
+## 2026-07-24 — Budget training in FRAMES, not levels (punch-list #24)
+
+**Decision.** Gym-prep grind decisions are budgeted in estimated FRAMES
+(`StoryMode.MAX_PREP_TRAINING_FRAMES = 250_000`) via a new
+`training_areas.estimate_frames_to_level()`, instead of in levels
+(`mon.level + 3`). An unknown estimate is treated as over-budget (fail safe).
+
+**Why.** "Within 3 levels" reads as cheap but is a unit error: cost is frames, and
+frames-per-level varies ~40× with the wild band. Measured on the real captured save that
+produced the failure: Route 102's L3-5 wilds pay **28.7 xp/battle** at **1433 frames/battle**,
+so taking a L33 Combusken to L36 (Blaziken) costs an estimated **502,983 frames**. A live run
+committed to exactly that plan, spent ~2,000,000 frames, and hit its cap one level short.
+
+**Alternatives rejected, and why — all three were measured, not assumed:**
+1. *Relocate to a level-appropriate area.* This was my leading candidate and the data killed
+   it: from the real captured position `calculate_path` reaches ONLY Routes 101/102/103, and
+   production's own `_training_area_allowed` independently agrees. There is nothing better to
+   relocate TO at that moment, so an area-picker would find nothing.
+2. *Cap boss re-attempts.* Addresses the opposite failure (35 Norman whiteouts) but not this
+   one, and the handoff's own record (~333,000 frames per boss cycle, approximate) suggests
+   boss-refighting is more expensive per XP than the fodder grind it would replace.
+3. *Raise/lower the level window.* Any level-denominated threshold is wrong for the same
+   reason the current one is: it cannot see the XP rate. Tuning it just moves which map it is
+   wrong on.
+
+**Verified not to disturb proven-good prep:** `repro_fodder_grass.py` passes unchanged —
+Wattson still trains locally on Route 117, Roxanne on Route 116, Norman still skips the grind.
+
+**Known limitation (documented in code):** `estimate_frames_to_level` takes a scalar
+`wild_level`, not a map, so it models xp/battle with a single calibrated average
+base_exp_yield (50.2, tuned to reproduce the measured 28.7 at wild_level≈4) rather than
+reading a real per-area encounter table. Marked MODELLED, not measured; callers holding a real
+map should read the table directly.

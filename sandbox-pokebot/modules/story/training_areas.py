@@ -18,6 +18,8 @@ STATUS: data + query helper only. NOT yet wired into `train_team` — that integ
 swap-train as fallback) is punch-list #24-trainmap.
 """
 
+import math
+
 from modules.map_data import MapRSE
 
 # Areas with a VERIFIED spin tile — usable for area-appropriate training today.
@@ -141,3 +143,64 @@ def best_training_area(team_level: int, *, min_wild_max: int = 0, allow=None):
         if best_score is None or score < best_score:
             best, best_score = (map_enum, tile, (lo, hi)), score
     return best
+
+
+# ‼ FRAME-COST ESTIMATOR (2026-07-24, punch-list #24). Both the evo-lookahead and the
+# "topup" branch in story_mode.py budgeted grinds purely in LEVELS (``mon.level + 3``),
+# but the real cost is FRAMES and frames-per-level varies enormously with where you grind.
+# Live consequence: a fresh run decided a L33 Combusken should reach L36 (Blaziken); the
+# only reachable grass was Route 102 at L3-5 wilds. tools/story-dev/probe_training_economics.py
+# measured, on the captured save that produced this failure: 28.7 xp/battle and 1433
+# frames/battle on that patch -> ~300 battles -> ~430,000 frames for those 3 levels alone.
+# The run burned ~2,000,000 frames total and hit the frame cap one level short. The same 3
+# levels on a properly-matched (e.g. L19-22) patch would cost several times less.
+
+#: Measured average frames for ONE wild battle (tools/story-dev/probe_training_economics.py
+#: Section 4, via the FAITHFUL story_harness.py --driver traintest102 on Route 102, save
+#: prenorman_fodder_grind.ss1): 83 real XP events, avg 1433 frames/battle (min 155, max
+#: 3948, median 1380). MEASURED against the real emulator, not modelled.
+FRAMES_PER_WILD_BATTLE = 1433
+
+# The formula probe_training_economics.py validated is XP = floor(base_exp_yield * foe_level
+# / 7), using the DEFEATED wild's own base_exp_yield/level (NOT the trainee's level — xp/battle
+# does not scale with who is training). `estimate_frames_to_level`'s signature only carries a
+# scalar `wild_level` (no map), so it cannot read a real per-area encounter table the way the
+# probe does — instead it uses a single CALIBRATED average base_exp_yield standing in for "a
+# typical early wild", chosen so this formula reproduces the probe's own MEASURED Route 102
+# figure (28.7 xp/battle at wild_level≈4): 28.7 = X * 4 / 7  =>  X ≈ 50.2. This is MODELLED,
+# not measured — a caller that already has a real map/encounter table available should prefer
+# reading it directly (see probe_training_economics.py Section 3) over this approximation.
+_CALIBRATED_AVG_WILD_BASE_EXP_YIELD = 50.2
+
+
+def estimate_frames_to_level(mon, target_level: int, wild_level) -> "int | None":
+    """Estimate the FRAMES needed to grind ``mon`` from its current exp to ``target_level``
+    on wild grass whose strongest wild is ``wild_level`` (e.g. the return value of
+    `story_mode.py`'s ``_wild_land_max`` for the local/chosen training patch).
+
+    Numbers used, and their provenance:
+      * Exp still needed: ``mon.species.level_up_type.get_experience_needed_for_level(
+        target_level) - mon.total_exp`` — the REAL Gen 3 growth curve (the same API
+        ``probe_training_economics.py`` and ``modules/daycare.py`` use), not a hand-rolled
+        curve.
+      * Expected xp/battle: MODELLED as ``_CALIBRATED_AVG_WILD_BASE_EXP_YIELD * wild_level
+        / 7`` — see the constant's comment above for the calibration and its provenance.
+      * Frames/battle: ``FRAMES_PER_WILD_BATTLE`` (1433) — MEASURED, see above.
+
+    Returns the estimated frame count (``0`` if ``mon`` is already at/above
+    ``target_level``), or ``None`` if the cost cannot be estimated (missing/invalid
+    ``wild_level``, or the growth-curve lookup failed). Callers MUST treat ``None`` as
+    "unknown", never as "cheap" — fail safe and do not commit to the grind."""
+    if wild_level is None or wild_level <= 0:
+        return None
+    try:
+        needed_exp = mon.species.level_up_type.get_experience_needed_for_level(target_level) - mon.total_exp
+    except Exception:
+        return None
+    if needed_exp <= 0:
+        return 0
+    xp_per_battle = _CALIBRATED_AVG_WILD_BASE_EXP_YIELD * wild_level / 7
+    if xp_per_battle <= 0:
+        return None
+    battles_needed = math.ceil(needed_exp / xp_per_battle)
+    return battles_needed * FRAMES_PER_WILD_BATTLE

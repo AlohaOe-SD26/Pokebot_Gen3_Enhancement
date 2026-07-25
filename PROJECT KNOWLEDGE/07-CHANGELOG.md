@@ -2785,3 +2785,36 @@ than reimplementing the old logic:
 **Prevention rule:** a comment asserting emulator/game behaviour ("the game will handle X")
 is a CLAIM, not documentation — either prove it or write the fallback so it does not depend
 on the claim being true.
+
+## 2026-07-24 — Prep grinds are now priced in frames before being committed to (#24)
+
+**The user's original report, root-caused with measured numbers.** A fresh run spent ~2,000,000
+frames grinding Route 102's L3-5 wilds and hit the frame cap one level short. Cause: the
+evo-lookahead's `mon.level < evo_level <= mon.level + 3` guard budgets in LEVELS while the cost
+is FRAMES. Combusken evolves to Blaziken at L36, so at L33 the bot committed to 3 "close"
+levels that actually cost ~500,000 frames on that patch. The `"topup"` branch had no cost
+estimate at all.
+
+**Built:** `training_areas.estimate_frames_to_level(mon, target_level, wild_level)` +
+`FRAMES_PER_WILD_BATTLE = 1433` (MEASURED — 83 real XP events via the faithful harness on the
+captured save). Uses the REAL growth curve (`level_up_type.get_experience_needed_for_level`)
+and the validated `xp = floor(base_exp * level / 7)` formula. Returns `None` when it cannot
+estimate, and both callers treat `None` as over-budget.
+
+**Gated:** the evo-lookahead and the sweeper top-up, on
+`StoryMode.MAX_PREP_TRAINING_FRAMES = 250_000`.
+
+**PROVEN** (`tools/story-dev/repro_prep_frame_gate.py`, real save `prenorman_fodder_grind.ss1`):
+- the real failing decision — Combusken L33 → L36 on Route 102 — estimates **502,983 frames**
+  → **REJECTED**.
+- control — a well-matched grind estimates 34,392 frames → **ACCEPTED**.
+- **regression control** — `repro_fodder_grass.py` passes UNCHANGED: Wattson trains locally on
+  Route 117, Roxanne on Route 116, Norman skips the grind. Proven-good prep did not move.
+
+**Also measured and worth recording:** the code's long-standing claim that a lost boss attempt
+pays ~1,200 XP vs ~145 for a wild CHECKS OUT — KO'ing Norman's Spinda + Vigoroth pays 1,220 XP
+against 28.7 for a Route 102 wild, a 42× ratio.
+
+**Prevention rule:** a budget must be denominated in the unit you actually pay. "Within N
+levels" / "within N tiles" / "N retries" all hide costs that vary by orders of magnitude with
+context — price the plan, then decide.

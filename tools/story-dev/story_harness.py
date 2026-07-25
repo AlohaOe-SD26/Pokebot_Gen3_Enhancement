@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "hmtest", "faintrepro"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "hmtest", "faintrepro"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -1857,6 +1857,27 @@ for step in range(args.frames):
                         yield
 
             context.bot_mode_instance = _TrainTest()
+        elif args.driver == "traintest102":
+            # MEASUREMENT (probe_training_economics.py, punch-list training-economics
+            # task, 2026-07-24): drive the REAL train_team() on Route 102 (Petalburg
+            # fodder patch) from whatever save is loaded, slot 0 only, no level cap
+            # worth stopping for (target 200) — --frames bounds the window. Used to
+            # empirically measure frames/battle via the PARTY CHANGE log lines below.
+            from plugins.custom_modes.story_mode import StoryMode as _SM
+
+            class _TrainTest102(_SM):
+                def run(self):
+                    from modules.story.early_game import train_team, PETALBURG_TRAINING_GRASS
+                    from modules.map_data import PokemonCenter
+
+                    yield from train_team(
+                        200, slots={0}, grass=PETALBURG_TRAINING_GRASS, heal_center=PokemonCenter.PetalburgCity
+                    )
+                    while True:
+                        context.emulator.press_button("B")
+                        yield
+
+            context.bot_mode_instance = _TrainTest102()
         elif args.driver == "gymtest":
             from plugins.custom_modes.story_mode import StoryMode as _SM
 
