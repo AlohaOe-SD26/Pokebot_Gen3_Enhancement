@@ -5632,12 +5632,28 @@ def get_devon_scope() -> Generator:
 def do_fortree_gym() -> Generator:
     """Chapter 13e — Fortree Gym: WINONA for the Feather Badge (BADGE06).
 
-    HOW (probed 2026-07-24): door at city (22,11) → interior (15,24); the gym's
-    ROTATING TURNSTILE doors are runtime metatiles (live-grid class — their state
-    PERSISTS across exits, per the graded lead). Winona at (15,2), challenge from
-    (15,3). Trainers en route engage inline. Solver: re-path from the LIVE grid
-    each leg; when the path is sealed, PUSH INTO the blocking turnstile (walking
-    into it rotates it), then re-path — bounded. Completion: BADGE06_GET.
+    HOW (probed 2026-07-24): door at city (22,11) → interior (15,24). Winona at
+    (15,2), challenge from (15,3). Trainers en route engage inline.
+    Completion: BADGE06_GET.
+
+    ‼ THE TURNSTILE MODEL IN THIS DOCSTRING WAS WRONG (corrected 2026-07-24 from the
+    decomp, `src/rotating_gate.c`). It claimed the gates are runtime metatiles whose
+    state persists across exits, and that a sealed path is solved by "pushing into the
+    blocking turnstile". Both are false, and together they are why the greedy
+    `push = "Up" if y > 3 else ...` fallback below fails 100% of the time (measured:
+    the avatar never moved one tile across 30 rounds — it was pushing plain wall):
+      * STATIC collision never changes. A gate is `(x, y, shape, orientation)`, and the
+        game only consults gate logic for a step onto a tile whose static collision is
+        ALREADY OPEN. A blocked tile is ordinary scenery and never reaches gate code, so
+        there is no such thing as pushing a blocking gate.
+      * State does NOT persist — `MAP_SCRIPT_ON_TRANSITION` resets all orientations on
+        every warp in, so a plan from the entrance is valid on every attempt.
+      * Orientation IS live-readable: gate bytes are overlaid on VAR_TEMP_0..3, i.e.
+        `(get_event_var(f"TEMP_{i//2}") >> (8 * (i % 2))) & 0xFF` for gates 0-7.
+    The correct solver ports the decomp's arm-layout + rotation tables and BFSes from the
+    OBSERVED state to (15,3) — see `tools/story-dev/fortree/fortree_gate_solver.py`, which
+    finds a legal 97-move route over the real collision grid. Wiring that in is
+    punch-list #24-fortreegates; until then this chapter cannot complete.
     ⚠ SKELETON — the turnstile push-solve is a first-run-validate lead."""
     from modules.memory import get_event_flag
 

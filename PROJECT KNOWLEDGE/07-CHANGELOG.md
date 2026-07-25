@@ -2818,3 +2818,44 @@ against 28.7 for a Route 102 wild, a 42× ratio.
 **Prevention rule:** a budget must be denominated in the unit you actually pay. "Within N
 levels" / "within N tiles" / "N retries" all hide costs that vary by orders of magnitude with
 context — price the plan, then decide.
+
+## 2026-07-24 — Fortree Gym rotating gates SOLVED on paper; port validated against the emulator (#24-fortreegates)
+
+**The old model was wrong in three ways** (both `12-STORYMODE-DESIGN.md` and the
+`do_fortree_gym` docstring carried it), which is why the greedy
+`push = "Up" if y > 3 else ...` fallback failed 100% of the time — measured: the avatar never
+moved one tile across 30 rounds:
+1. "State PERSISTS across exits" — FALSE. `MAP_SCRIPT_ON_TRANSITION` runs
+   `RotatingGate_ResetAllGateOrientations` on EVERY warp in. Orientations reset every entry, so
+   a plan from the entrance is valid on every attempt and re-entering is a legitimate reset.
+2. "Runtime metatiles, live-grid class" — FALSE. Static collision NEVER changes. A gate is
+   `(x, y, shape, orientation)`.
+3. "When the path is sealed, push the blocking turnstile" — INCOHERENT. Gate logic is only
+   consulted for a step onto a tile whose static collision is ALREADY OPEN, so a blocked tile
+   is ordinary scenery that never reaches gate code. The bot was pushing walls by construction.
+
+**The mechanics** (decomp `src/rotating_gate.c`, used by only 2 maps in the game): 8 gate
+shapes (T/L forms, short/long arms), 4 orientations, a 4×4 per-gate box with only the 4 tiles
+adjacent to the pivot acting as push faces; direction tables give CW/ACW + which arm, then
+`has_arm` and `can_rotate` (swept tiles must be clear) decide. If an arm is present but cannot
+swing, **the step is rejected — indistinguishable from a wall bump.**
+
+**Observability: no new reader needed.** Gate bytes overlay `VAR_TEMP_0..VAR_TEMP_3`:
+`orientation_i = (get_event_var(f"TEMP_{i//2}") >> (8 * (i % 2))) & 0xFF` for gates 0-7.
+
+**Fortree's 8 gates:** (6,7)T2@90, (9,15)T2@180, (3,19)T2@90, (2,6)T1@90, (9,12)T1@0,
+(6,23)T1@0, (12,22)T1@0, (6,3)L4@180.
+
+**‼ PORT VALIDATED AGAINST THE LIVE EMULATOR.** A live probe measured which pushes work at
+(4,19) — the exact tile the deepest real run died on — and the ported model agrees 4/4:
+N blocked, S allowed→(4,20), W allowed→(3,19), E blocked. BFS over the real extracted collision
+grid: solvable in 97 moves from the entrance (15,24), and **83 moves from (4,19)** — the bot was
+never stuck, it just kept pushing the one direction that is genuinely blocked.
+
+**Artifacts:** `tools/story-dev/fortree/{fortree_gate_solver.py,fortree_gym_map.bin,rotating_gate.c}`
+and `tools/story-dev/probe_fortree_gates.py`.
+
+**Prevention rule:** two agents reporting opposite conclusions usually means one of them
+generalized from an unrepresentative sample. Reconcile by making the MODEL predict the
+MEASUREMENT case-by-case — agreement on 4/4 specific cases is worth more than either report
+alone.

@@ -206,10 +206,27 @@ gym only opens with 4 badges — now satisfied.
   before the gym) is flushed by A-ing it with the Scope (one more L30 Kecleon battle).
   Completion: `RECEIVED_DEVON_SCOPE` + the gym door reachable (probe the blocking
   object's flag at recon).
-- **13e Fortree Gym — Winona (⚠ interior recon-pending):** rotating TURNSTILE doors
-  (graded-HIGH lead: turnstile STATE PERSISTS across exits — a live-grid/runtime-
-  modified map, the Mauville/Petalburg class; solve from the live grid, judge by
-  arrival). Trainers en route; **Winona**: Swellow L29 / Pelipper L30 / Skarmory L31 /
+- **13e Fortree Gym — Winona (SOLVED ON PAPER 2026-07-24, see below):** ROTATING GATES.
+  ‼ The old "graded-HIGH lead" here claimed turnstile STATE PERSISTS across exits and that
+  they are runtime metatiles of the Mauville/Petalburg live-grid class. **Both halves are
+  WRONG** — corrected from the decomp (`src/rotating_gate.c`,
+  `data/maps/FortreeCity_Gym/scripts.inc`):
+  - State does NOT persist. `MAP_SCRIPT_ON_TRANSITION` fires
+    `RotatingGate_InitPuzzle → RotatingGate_ResetAllGateOrientations` on EVERY warp in, so
+    orientations reset to the same fixed start every entry. (Good news: a plan computed from
+    the entrance is valid on every attempt, and re-entering is a legitimate reset.)
+  - They are NOT a live-grid metatile puzzle. Static collision never changes; a gate is
+    `(x, y, shape, orientation)` and the game only consults gate logic for a step onto a tile
+    whose STATIC collision is already open. So "push the blocking turnstile" is incoherent —
+    a blocked tile is ordinary scenery and never reaches gate code at all. That is exactly
+    why the greedy `push` heuristic failed 100% of the time.
+  - Orientation IS readable live: the puzzle overlays gate bytes on `VAR_TEMP_0..VAR_TEMP_3`,
+    so `orientation_i = (get_event_var(f"TEMP_{i//2}") >> (8 * (i % 2))) & 0xFF` for gates 0-7.
+  - 8 gates: (6,7)T2@90, (9,15)T2@180, (3,19)T2@90, (2,6)T1@90, (9,12)T1@0, (6,23)T1@0,
+    (12,22)T1@0, (6,3)L4@180. A faithful port of the decomp rule + BFS over the real extracted
+    collision grid finds a legal 97-move solution entrance (15,24) → challenge tile (15,3);
+    see `tools/story-dev/fortree/fortree_gate_solver.py` (runs, reproduces it).
+  Trainers en route; **Winona**: Swellow L29 / Pelipper L30 / Skarmory L31 /
   **Altaria L33** (ace; Earthquake+DragonBreath — Electric is 2× into three of four
   but 0× into... note Altaria is Dragon/Flying: ICE is the 4× answer; Electric handles
   Swellow/Pelipper/Skarmory). Completion `BADGE06_GET` → **Fly becomes field-usable**
