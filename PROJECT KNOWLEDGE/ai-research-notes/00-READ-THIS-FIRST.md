@@ -198,3 +198,42 @@ So a same-model critique can invent a wrongness exactly as readily as a note inv
 | Pacifidlog "TM27 for a Green Shard" | no such trade — a **free friendship-gated** TM gift (Return/Frustration), renewable weekly |
 | Berry "tree death" | resets to blank; plus an undocumented 10-cycle regrowth cap |
 | Route 134 hidden items | **genuinely none** — the original note was correct |
+
+---
+
+# CONCEPT ROUND (2026-07-25) — the non-code punch-list items
+
+12 angles on the SYSTEM-DESIGN topics, run on the relay's correct top-tier default
+(`gemini-3.1-pro-preview` — see 08-MISTAKES for the day I overrode it with a two-generation-old
+model on ~35 calls and then blamed the tool).
+
+**Framed deliberately as mechanics, not design.** Each prompt demanded four sections:
+**A** the constraints the ROM actually enforces (with VERIFIED/RECALL/UNSURE per claim),
+**B** what the bot can OBSERVE in memory (which decides whether a strategy is implementable at
+all), **C** an option space of 2-4 strategies with their failure modes and how the bot would
+DETECT failure — explicitly *not* a recommendation, and **D** TRAPS: ways an automated player
+permanently loses value or wedges itself. D is the section that matters most, because a bot
+repeats a mistake thousands of times.
+
+Architectural choices stay with us. Gemini is good at enumerating what the ROM allows; it is
+weakest exactly where a design decision has to be defended.
+
+| file | topic |
+|---|---|
+| `concept-notes-c01.md` | PC / box storage — incl. what to check BEFORE a ball so a catch is never wasted |
+| `concept-notes-c02.md` | catch-rate formula, every ball multiplier, the optimal observable throw policy |
+| `concept-notes-c03.md` | building a type-diverse roster; obedience caps; cheap bench levelling |
+| `concept-notes-c04.md` | switching & counter-play; what is READABLE about the opponent mid-battle |
+| `concept-notes-c05.md` | healing items & money economy; heal-walk vs carry-potions break-even |
+| `concept-notes-c06.md` | water traversal — Dive layers, currents, whirlpools, safe water pathing |
+| `concept-notes-c07.md` | wild-encounter mechanics, Repel slot quirk, encounters-per-frame |
+| `concept-notes-c08.md` | Mystery Gift — and what is flatly IMPOSSIBLE without event data |
+| `concept-notes-c09.md` | legendary hunting; which can be PERMANENTLY LOST; which to never automate |
+| `concept-notes-c10.md` | failure recovery & learning; what persists vs resets on map re-entry |
+| `concept-notes-c11.md` | move learning, single-use TMs, how to score a move from memory values |
+| `concept-notes-c12.md` | EXP formula; does mid-battle EXP survive a whiteout; XP-per-frame |
+
+**Highest-stakes claims to validate first** (a wrong answer here costs something irreversible):
+`c09` (permanently-losable legendaries), `c01` (can a caught Pokémon be lost with full boxes),
+`c11` (single-use TMs), `c12` (does mid-battle EXP survive a whiteout — the whole boss-training
+strategy rests on this).
