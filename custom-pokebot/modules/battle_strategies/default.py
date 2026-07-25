@@ -46,6 +46,14 @@ class DefaultBattleStrategy(BattleStrategy):
             context.message = f"{new_move.name} is on the block list, so {pokemon.name} will skip learning it."
             return 4
 
+        # FORK (2026-07-22, KI-13): never LEARN a 0-power move. The bot's strategies
+        # only ever select damaging moves, so a status move is a dead slot — and the
+        # auto-replace cost Marshtomp its only Ground attack (Mud-slap) for MUD SPORT
+        # right before an all-Electric gym (run 10 lost to Wattson 8 times on it).
+        if new_move.base_power == 0:
+            context.message = f"{new_move.name} has no attack power, so {pokemon.name} will skip learning it."
+            return 4
+
         move_choices = [*[move.move for move in pokemon.moves], new_move]
 
         # Get the effective power of each move
@@ -181,7 +189,11 @@ class DefaultBattleStrategy(BattleStrategy):
 
         if not util.pokemon_has_enough_hp(pokemon):
             if partner_pokemon is None or not util.pokemon_has_enough_hp(partner_pokemon):
-                return self._handle_lead_cannot_battle(battle_state, util)
+                # FORK FIX (2026-07-22): the stock call omitted the REQUIRED `reason`
+                # argument — a TypeError here crashed the battle listener and dropped the
+                # bot to Manual MID-DOUBLE-BATTLE (the user-reported "double battle bug";
+                # reproduced via the KI-12 faint-bench harness repro).
+                return self._handle_lead_cannot_battle(battle_state, util, reason="HP below threshold (double battle)")
 
         left_opponent = battle_state.opponent.left_battler
         right_opponent = battle_state.opponent.right_battler

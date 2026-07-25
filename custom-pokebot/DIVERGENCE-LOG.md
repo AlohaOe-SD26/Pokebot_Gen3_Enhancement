@@ -464,3 +464,56 @@ stream + automatic STUCK DUMPS carrying the running generator call stack (functi
 held buttons, tasks, scripts, battle text. Fully guarded; profiles/* is gitignored so
 logs are never committed. Also toggle-wired in the native dashboard (modules/gui/
 dashboard_gui.py, a custom file).
+
+## BATCH-3 — Story-bot promotion (2026-07-24, on explicit user approval)
+
+Promoted from `sandbox-pokebot/` after the Fortree rotating-gate puzzle was solved live.
+**Scope: the story-bot bundle ONLY.** The GUI milestone feature (`modules/gui/dashboard_gui.py`
++7082 lines, `modules/gui/emulator_controls.py`, and the new `modules/gui/milestone_window.py`
+/ `modules/story_milestones.py`) was deliberately LEFT in the sandbox — it is a separate,
+self-contained feature (`story_milestones` ← `milestone_window` ← `dashboard_gui`), nothing in
+the story bundle imports it, and 7k lines of GUI diff is its own promotion decision.
+
+**Pre-promotion safety check:** compared every `def`/`class` name in the custom copies against
+the sandbox copies for all promoted files — **zero lost symbols**, i.e. sandbox is a strict
+superset, so no custom-only functionality was reverted. (Raw per-file "custom-only line" counts
+look large — 838 for `story_mode.py` — but that is diff counting rewritten lines on both sides,
+not lost code.)
+
+NEW custom module: `modules/story/fortree_gates.py` — faithful port of the Emerald decomp's
+rotating-gate rules (`src/rotating_gate.c`): arm-layout tables, `has_arm`, `can_rotate`,
+`rotate_in_direction`, `get_rotation_info`, `try_move`, plus `read_orientations()` (decodes the
+8 gates off `VAR_TEMP_0..3` — no new memory reader needed) and a bounded BFS `solve()` that reads
+static collision from the live map and accepts live NPC tiles as dynamic obstacles.
+
+Modified (all carrying 2026-07-24 fixes; see 07-CHANGELOG for the proofs):
+- `modules/story/early_game.py` — Fortree gate climb (re-plan per tile, NPC-aware, bounded,
+  exit-and-re-enter reset which also resets NPC positions); HM slots ineligible in the
+  bag→teach expendability picker (the root cause of the user's Surf/Rock-Smash loop);
+  `_navigate_riding_out` fails fast on a hopeless retry; `_leave_route120_north_bridge` guard
+  narrowed to the strand column; Fortree Kecleon target corrected from the wall tile (24,8) to
+  (25,7)/"Down"; turnstile fallback only rides out a scene that exists.
+- `plugins/custom_modes/story_mode.py` — prep grinds priced in FRAMES
+  (`MAX_PREP_TRAINING_FRAMES = 250_000`) instead of levels; 0-PP moves never selected in
+  unfleeable trainer battles (all three fallbacks incl. the double-battle path); Ch13d resume
+  gated on the Kecleon flush flag as well as the Scope.
+- `modules/story/training_areas.py` — `FRAMES_PER_WILD_BATTLE = 1433` (MEASURED) and
+  `estimate_frames_to_level()`.
+- `modules/battle_move_replacing.py` — HM veto that RE-PICKS the best non-HM slot rather than
+  declining; move-learn safety valve survives re-entry (`_STALLED_EXITS`, raises after 3).
+- `modules/modes/util/walking.py` — phantom-script escape in `ensure_facing_direction` (the
+  Route 111 (18,99) stale-reader wedge that killed four runs) + the pressing-path frame bound.
+- `modules/battle_handler.py`, `battle_action_selection.py`, `battle_strategies/{default,level_up}.py`,
+  `modes/util/{global_navigation,higher_level_actions}.py`, `watchdog.py`, `debug_logger.py` —
+  supporting changes carried forward with the bundle.
+
+**Post-promotion verification on custom:** 14/14 files parse; 12/12 promoted modules import
+cleanly; `StoryMode` loads with `MAX_PREP_TRAINING_FRAMES=250000`, `FODDER_LEVEL_GAP=12`,
+`FRAMES_PER_WILD_BATTLE=1433`, and `fortree_gates.solve`/`read_orientations` present; and the
+HM re-pick proof RUN AGAINST `--build custom` reproduces the fixed behaviour (forced HM slot →
+learns Take Down over Bide, Rock Smash retained, 1 invocation, no loop).
+
+**Outstanding at promotion time:** BADGE06 itself is still unproven end-to-end
+(`#24-fortreebadge` — the isolated gate drive lost to Winona because battle prep belongs to the
+caller); whiteout attrition (`#24-whiteout`) is unaddressed; the GUI milestone bundle is
+unpromoted by choice.

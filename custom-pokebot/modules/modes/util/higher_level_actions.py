@@ -53,7 +53,10 @@ def fly_to(destination: Union[FlyDestinationRSE, FlyDestinationFRLG]) -> Generat
         has_necessary_badge = get_event_flag("BADGE03_GET")
         menu_index = CursorOptionFRLG.FLY
     else:
-        has_necessary_badge = get_event_flag("BADGE03_GET")
+        # FORK (2026-07-24, KI-7): in RSE the field move Fly needs the FEATHER
+        # Badge (BADGE06, Winona) — the stock BADGE03 check was FR/LG's, and it
+        # let fly_to run three badges early (the game then rejects the move).
+        has_necessary_badge = get_event_flag("BADGE06_GET")
         if context.rom.is_rs:
             menu_index = CursorOptionRS.FLY
         else:
@@ -171,8 +174,15 @@ def spin(stop_condition: Callable[[], bool] | None = None, counter_clockwise: bo
 
 @debug.track
 def heal_in_pokemon_center(pokemon_center_door_location: PokemonCenter) -> Generator:
-    # Walk to and enter the Pokémon centre
-    yield from navigate_to(pokemon_center_door_location.value[0], pokemon_center_door_location.value[1])
+    # Walk to and enter the Pokémon centre.
+    # FORK (2026-07-24, ch12_run3): WARP-AWARE — a post-derail resume can call this
+    # from INSIDE a building (the Petalburg Gym), where the plain navigate_to raises
+    # "not on connected maps" and the recovery loops to Manual. navigate_to_anywhere
+    # walks out through warps first; for the common same-region case it degrades to
+    # exactly the old navigate_to.
+    from .global_navigation import navigate_to_anywhere
+
+    yield from navigate_to_anywhere(pokemon_center_door_location.value[0], pokemon_center_door_location.value[1])
 
     if pokemon_center_door_location is PokemonCenter.PalletTown:
         # Player's house in Pallet Town, where Mum can heal us.

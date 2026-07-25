@@ -125,6 +125,29 @@ def navigate_to_anywhere(
 
         arrived_map = tuple(get_player_avatar().map_group_and_number)
         if graph.region_of(arrived_map) == graph.region_of(leg.from_map):
+            # FORK (2026-07-24, ch12_run1): a warp fires on STEPPING onto its tile.
+            # If we are ALREADY standing on it (a battle ended there, or a resume
+            # loaded there), the navigate above was a zero-step no-op and the warp
+            # stays dormant — that is not a locked door. Step OFF one tile, walk
+            # back ON, and re-check before concluding anything.
+            if tuple(get_player_avatar().local_coordinates) == tuple(leg.from_coords):
+                for _dir in ("Down", "Up", "Left", "Right"):
+                    for _ in range(20):
+                        context.emulator.press_button(_dir)
+                        yield
+                    if tuple(get_player_avatar().local_coordinates) != tuple(leg.from_coords):
+                        break
+                context.emulator.reset_held_buttons()
+                yield from navigate_to(
+                    leg.from_map,
+                    leg.from_coords,
+                    run=run,
+                    avoid_encounters=avoid_encounters,
+                    avoid_scripted_events=avoid_scripted_events,
+                )
+                yield from wait_for_player_avatar_to_be_standing_still()
+                arrived_map = tuple(get_player_avatar().map_group_and_number)
+        if graph.region_of(arrived_map) == graph.region_of(leg.from_map):
             # The warp did not fire (locked door / event-gated / graph wrong).
             raise BotModeError(
                 f"Warp at {leg.from_coords} on {_map_name(leg.from_map)} did not trigger "

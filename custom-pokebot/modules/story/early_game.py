@@ -30,13 +30,20 @@ from modules.modes.util import spin
 from modules.modes.util.global_navigation import navigate_to_anywhere
 from modules.modes.util.higher_level_actions import heal_in_pokemon_center
 from modules.modes.util.walking import (
+    ensure_facing_direction,
     navigate_to,
     wait_for_player_avatar_to_be_controllable,
     wait_for_player_avatar_to_be_standing_still,
 )
 from modules.player import get_player_avatar, player_avatar_is_controllable
 from modules.pokemon_party import get_party
-from modules.tasks import get_global_script_context, task_is_active
+from modules.tasks import (
+    get_global_script_context,
+    get_tasks,
+    get_immediate_script_context,
+    is_waiting_for_input,
+    task_is_active,
+)
 
 MAP_INSIDE_OF_TRUCK = "INSIDE OF TRUCK"
 # Map group/number constants (map_name reads stale across warps; use these).
@@ -88,6 +95,13 @@ def _check_abort() -> None:
         raise BotModeError("Story: aborting the current step to recover from a whiteout.")
 
 
+#: Overworld frames of NO party-EXP gain before `_story_spin` bails so the caller
+#: re-navigates to the grass and retries (a training spin that can't trigger encounters
+#: must self-heal, not walk in place forever). ~40s at 60fps — well beyond the gap between
+#: normal wild encounters, so it only fires on a genuine stall.
+_STORY_SPIN_NO_PROGRESS_FRAMES = 2400
+
+
 def _story_spin(stop_condition) -> Generator:
     """`spin()` that ALSO stops the instant a whiteout abort is flagged, then raises so
     the current segment unwinds into StoryMode.run()'s recovery.
@@ -98,15 +112,67 @@ def _story_spin(stop_condition) -> Generator:
     own conditions (level still < target, HP now full) never fire, so the bot just
     spins in place at the respawn point forever (user-seen at the Oldale PC while
     training before the rival). The trailing `_check_abort()` turns the flag into the
-    BotModeError run() expects, so the whiteout recovery re-orients and resumes."""
-    yield from spin(stop_condition=lambda: story_should_abort() or stop_condition())
+    BotModeError run() expects, so the whiteout recovery re-orients and resumes.
+
+    NO-PROGRESS WATCHDOG (user directive 2026-07-21 "never hang"): the raw `spin()` walks in
+    grass to trigger wild battles, but if it ends up somewhere it can't trigger encounters
+    (walked out of grass, a trainer's line-of-sight blocks the tile, a bad respawn spot) it
+    walks in place FOREVER — the level never reaches the target and the stop-condition never
+    fires (harness-seen at Route 116, training stuck with no EXP for 20k+ frames). So we also
+    stop the spin when the party gains NO EXP for `no_progress_frames` consecutive OVERWORLD
+    frames; the caller (e.g. `train_team`'s loop) then RE-NAVIGATES to the grass and retries,
+    which un-sticks it. We only count overworld frames so a long single battle never
+    false-triggers (EXP jumps when it's won, resetting the counter)."""
+    from modules.memory import get_game_state, GameState
+
+    _wd = {"last_xp": None, "stuck": 0}
+
+    def _total_party_xp() -> int:
+        try:
+            return sum(p.total_exp for p in get_party() if p is not None and not p.is_egg)
+        except Exception:
+            return -1
+
+    def _watchdog_stop() -> bool:
+        if story_should_abort() or stop_condition():
+            return True
+        # Only judge "no progress" while free in the overworld — not during a battle/menu.
+        try:
+            if get_game_state() is not GameState.OVERWORLD:
+                return False
+        except Exception:
+            return False
+        xp = _total_party_xp()
+        if xp != _wd["last_xp"]:
+            _wd["last_xp"] = xp
+            _wd["stuck"] = 0
+        else:
+            _wd["stuck"] += 1
+            if _wd["stuck"] >= _STORY_SPIN_NO_PROGRESS_FRAMES:
+                return True  # stalled — bail so the caller re-navigates to grass and retries
+        return False
+
+    yield from spin(stop_condition=_watchdog_stop)
     _check_abort()
+    # PHANTOM-SCRIPT CLEAR (batch run05 / evostall root cause, 2026-07-22): an evolution
+    # can leave a script context ACTIVE after its battle ends, and an active script
+    # SUPPRESSES wild encounter generation — so the spin turns forever with zero
+    # encounters, the no-progress bail fires, the caller re-navigates, and the cycle
+    # repeats invisibly (deterministic fresh-run repro hung at f210622 on exactly this).
+    # When the spin bails with a script still engaged, B-ride it out (bounded) so the
+    # next spin round actually gets encounters again.
+    if _wd["stuck"] >= _STORY_SPIN_NO_PROGRESS_FRAMES and get_global_script_context().is_active:
+        context.message = "Story: clearing a leftover scene that was blocking encounters..."
+        yield from _ride_out_scripted_scene("B")
+        yield from wait_until_truly_controllable()
 
 
 def _navigate_riding_out(dest_map, dest_tile, *, avoid_encounters: bool = True, tries: int = 10) -> Generator:
     """`navigate_to_anywhere` that rides out any scripted scene (a trainer sight-line,
     a cutscene) that aborts the path, then retries — instead of hard-failing to Manual.
     Used by training/catching where the grass route can cross a trainer's line."""
+    last_error = None
+    last_where = None
     for _ in range(tries):
         _check_abort()
         try:
@@ -114,9 +180,40 @@ def _navigate_riding_out(dest_map, dest_tile, *, avoid_encounters: bool = True, 
                 dest_map, dest_tile, avoid_encounters=avoid_encounters, avoid_scripted_events=False
             )
             return
-        except BotModeError:
+        except BotModeError as e:
+            last_error = e
+            # ‼ FAIL FAST ON A HOPELESS RETRY (2026-07-24, user log 12:39 + my treecko
+            # run — BOTH died here). This retry loop only helps when a SCENE aborted the
+            # path, because riding the scene out changes the world. If the field is idle
+            # (no active script, player controllable) AND we are standing on the exact
+            # tile we failed from last time, then nothing about the attempt can differ:
+            # the planner will fail identically, forever. Retrying anyway costs
+            # `_ride_out_scripted_scene`'s 240-frame engage wait PER TRY, and callers
+            # wrap this in their own retry loop — get_devon_scope's is 10 rounds × 6
+            # tries ≈ 14,400 frames of pure churn, which is what let the 18k global
+            # watchdog kill two otherwise-healthy runs instead of surfacing the real
+            # error. Bail immediately with the planner's own message so the caller (and
+            # the log) sees WHY, not "after N tries".
+            where = None
+            try:
+                if not get_global_script_context().is_active and player_avatar_is_controllable():
+                    where = (_map_group_number(), tuple(get_player_avatar().local_coordinates))
+            except Exception:
+                where = None
+            if where is not None and where == last_where:
+                raise BotModeError(
+                    f"Could not reach {dest_tile} on {dest_map}: the field is idle and we are "
+                    f"still at {where[1]}, so retrying cannot change the result "
+                    f"({last_error})."
+                )
+            last_where = where
             yield from _ride_out_scripted_scene("B")
-    raise BotModeError(f"Could not reach {dest_tile} on {dest_map} (too many scene interruptions).")
+    # Surface the REAL last error: runs 11-13 each burned all retries on instant
+    # PLAN failures (an unreachable tile) while this message blamed "scene
+    # interruptions" — two full validation runs were misdiagnosed off it.
+    raise BotModeError(
+        f"Could not reach {dest_tile} on {dest_map} after {tries} tries (last error: {last_error})."
+    )
 
 
 # Exit warp of every Emerald Poké Center 1F (same interior layout everywhere).
@@ -207,6 +304,47 @@ def _ride_out_scripted_scene(button: str = "B", *, engage_timeout: int = 240) ->
     yield from _wait_until_cutscene_over(button)
 
 
+def _ride_out_all_scenes(*, quiet_frames: int = 600, max_frames: int = 12000) -> Generator:
+    """B-ride EVERY scene part until the field has been script-free for `quiet_frames`
+    STRAIGHT. Multi-part aftermaths (Wally defeat → uncle → exit walk → Scott approach →
+    PokéNav registration) pause BETWEEN parts, so a single cutscene-ride returns during
+    a pause and the next part then interrupts whatever the story does next — run 11
+    burned all of the training navigation's scene-interruption retries on exactly this
+    and bailed to Manual just as the chain finished. Bounded: after `max_frames` we
+    proceed anyway and let the callers' own riding cope."""
+    total = 0
+    quiet = 0
+    phantom = 0
+    while quiet < quiet_frames:
+        if total > max_frames:
+            break
+        if get_global_script_context().is_active:
+            quiet = 0
+            # PHANTOM-SCRIPT ESCAPE (ported from _wait_until_cutscene_over, KI-15
+            # family): a battle spawned/interrupted mid-scene can leave the field
+            # script reading active FOREVER while the game is fully playable — a
+            # parked trainer/wild post-battle script (Route 120 trainer, run 10:
+            # gsc active + controllable + no text + no menu, 20k frames). A real
+            # scene locks the avatar, prints text, or ends; 10s of "playable but
+            # script-active" means parked, not running — treat the scene as over.
+            if (
+                player_avatar_is_controllable()
+                and not is_waiting_for_input()
+                and not _menu_task_active()
+            ):
+                phantom += 1
+                if phantom >= 600:
+                    return
+            else:
+                phantom = 0
+                context.emulator.press_button("B")
+        else:
+            quiet += 1
+            phantom = 0
+        total += 1
+        yield
+
+
 def _wait_for_task(task_name: str, button: str | None = None, *, timeout_frames: int = 1200) -> Generator:
     """Bounded wait for a task to become active (raises on timeout)."""
     frames = 0
@@ -226,6 +364,100 @@ def _current_map_name() -> str:
         return ""
 
 
+# Menu tasks that hold the overworld non-controllable WITHOUT any script running.
+# game_state stays OVERWORLD while these are up (the start menu is an overworld
+# state!), so "state == OVERWORLD" alone never proves the menus are closed (KI-14).
+_MENU_TASK_MARKERS = ("Task_ShowStartMenu", "ListMenuDummyTask", "Task_HandleChooseMonInput")
+
+
+def _menu_task_active() -> bool:
+    try:
+        return any(
+            any(marker in task.symbol for marker in _MENU_TASK_MARKERS) for task in get_tasks()
+        )
+    except Exception:
+        return False
+
+
+def normalize_to_overworld(*, timeout_frames: int = 3600) -> Generator:
+    """RESUME-FROM-ANYWHERE failsafe (user directive 2026-07-23): bring the game to a
+    STABLE, controllable overworld by COMPLETING whatever is currently on screen —
+    before any story segment tries to navigate. A Story mode can be entered in any
+    state: a milestone save loaded mid-menu (the rocksmash_taught checkpoint), an
+    active battle, an open dialogue/Yes-No, a cutscene. Without this, the segment
+    logic would drive a navigator under an open menu / into a dialogue and wedge.
+
+    Strategy — press B on a cadence until settled:
+      * BATTLE → a listener owns it; wait it out (press nothing).
+      * OVERWORLD + controllable + no script + no menu → done (require it STABLE).
+      * anything else (menu, message, Yes-No, cutscene, transition) → B. B advances
+        and dismisses dialogue, closes menus, and answers Yes-No as NO/CANCEL — all of
+        which move TOWARD the overworld and can never start a new conversation or take
+        a destructive action (A could). We deliberately do NOT try to make progress
+        here; segments do that once we hand them a clean overworld.
+    Bounded; a no-op when already controllable. Safe to call unconditionally."""
+    from modules.memory import GameState, game_has_started, get_game_state
+    from modules.player import player_avatar_is_controllable
+
+    if get_game_state() is GameState.TITLE_SCREEN or not game_has_started():
+        return  # the intro path owns the title screen / pre-game
+
+    stable = 0
+    for _f in range(timeout_frames):
+        _check_abort()
+        state = get_game_state()
+        if state is GameState.BATTLE:
+            stable = 0
+            yield  # the battle listener drives; just let it finish
+            continue
+        try:
+            script_active = get_global_script_context().is_active or get_immediate_script_context().is_active
+        except Exception:
+            script_active = False
+        settled = (
+            state is GameState.OVERWORLD
+            and player_avatar_is_controllable()
+            and not script_active
+            and not _menu_task_active()
+        )
+        if settled:
+            stable += 1
+            if stable >= 15:  # a quarter-second of genuine control — transitions settled
+                return
+            yield
+            continue
+        stable = 0
+        context.emulator.press_button("B")
+        yield
+    # Timed out — hand back anyway; the caller's own guards/derail recovery cope.
+    context.emulator.reset_held_buttons()
+
+
+def _dialogue_button(button: str) -> str:
+    """Resolve the button to actually press this frame when riding out a scene.
+
+    ‼ Callers ask for "A" because a scene MIGHT contain a Yes/No they must accept (the
+    museum's 50 entry fee, Briney's sail confirmation). But A next to an NPC is not
+    just "advance text" — it STARTS a conversation. So A-mashing a plain message while
+    standing beside the speaker dismisses it and immediately re-opens it, forever: the
+    Slateport museum greeter loop the user hit on real hardware (2026-07-23), where the
+    attendant had already been paid and was cheerfully repeating "Please enjoy
+    yourself." until the ride-out timed out and derailed the story.
+
+    B advances and dismisses dialogue exactly like A but can never initiate one. So we
+    press A ONLY while a Yes/No or multichoice menu is genuinely on screen, and B for
+    everything else. Requests for B (the common case) pass straight through."""
+    if button != "A":
+        return button
+    try:
+        for task in get_tasks():
+            if "Multichoice" in task.symbol or "YesNo" in task.symbol:
+                return "A"
+    except Exception:
+        pass
+    return "B"
+
+
 def _wait_until_cutscene_over(button: str = "B", *, stable_frames: int = 15,
                               timeout_frames: int = 8000) -> Generator:
     """Mash ``button`` until the player is controllable AND no script is running,
@@ -235,16 +467,96 @@ def _wait_until_cutscene_over(button: str = "B", *, stable_frames: int = 15,
     brief windows where the script is 'active' but the avatar isn't locked yet
     (start of a script) or the avatar is locked while no script runs (a warp in
     between scripts). Requiring both conditions to hold for a short stretch means
-    we only stop once control has genuinely returned."""
+    we only stop once control has genuinely returned.
+
+    ‼ We press ONLY when there is genuinely something to advance (a script running,
+    or a text printer waiting on A/B). Mashing through the non-controllable TAIL of a
+    dialogue re-opens it when we happen to be facing an NPC: the script ends, control
+    has not settled, we press A, and the greeter starts talking again — forever, until
+    this helper times out and throws. That is the Slateport museum "stuck looping at
+    the greeter" the user reported on real hardware (2026-07-23). Waiting out the tail
+    in silence costs nothing and cannot re-trigger anyone."""
     stable = 0
     frames = 0
+    phantom = 0
+    # --- KI-15 TRACE (env-gated, logging-only; REMOVE after repro) ---
+    import os as _os15
+    _ki15w = _os15.environ.get("KI15_TRACE")
+    def _w15(msg):
+        if _ki15w:
+            try:
+                with open(_ki15w, "a", encoding="utf-8") as _f:
+                    _f.write(msg + "\n")
+            except Exception:
+                pass
+    # -----------------------------------------------------------------
     while stable < stable_frames:
-        free = player_avatar_is_controllable() and not get_global_script_context().is_active
+        script_running = get_global_script_context().is_active or get_immediate_script_context().is_active
+        # KI-15 NOTE: a wild battle fled DURING a scene ride can leave stale BATTLE
+        # text ("Got away safely!") waiting for input with NO script running — and
+        # that state reads IDENTICALLY to a field dialogue's parked WaitForAorBPress
+        # tail (museum greeter) on every reader AND ignores B just the same (probed
+        # on captured states; two rider-side discriminators failed and were
+        # reverted — see 08-MISTAKES 2026-07-24). The rider therefore treats both
+        # as FREE and returns (correct for the tail; the old, museum-green
+        # behavior). The battle-text wedge — whose ONE unique property is that it
+        # BLOCKS ALL MOVEMENT — is cleared by StoryMode.run's position-frozen
+        # persistence nudge instead (story_mode.py), the only seam that can see
+        # "nothing has moved for seconds".
+        free = player_avatar_is_controllable() and not script_running
+        # --- KI-15 TRACE: sample the reader profile periodically ---
+        if _ki15w and (frames % 200 == 0 or frames > timeout_frames - 5):
+            try:
+                from modules.battle_state import get_current_battle_script_instruction as _gcbsi
+                _instr = _gcbsi()
+            except Exception as _e:
+                _instr = f"<err {_e}>"
+            try:
+                _gc = get_global_script_context()
+                _sptr = f"mode={_gc.mode} bc={hex(_gc.bytecode_pointer)} nat={hex(_gc.native_pointer)} depth={_gc.stack_depth}"
+            except Exception as _e:
+                _sptr = f"<sptr err {_e}>"
+            _w15(f"[cutscene] f={frames} controllable={player_avatar_is_controllable()} "
+                 f"script_running={script_running} waiting_input={is_waiting_for_input()} "
+                 f"menu={_menu_task_active()} phantom={phantom} instr={_instr} {_sptr}")
+        # -----------------------------------------------------------
         stable = stable + 1 if free else 0
+        # PHANTOM-SCRIPT ESCAPE (user's 2026-07-23 Route 111 hang): when a field
+        # script is interrupted by a battle it spawned (Rock Smash's wild-encounter
+        # roll), the script context can READ active forever while the game is in
+        # fact fully playable — the avatar controllable, no text, no menu. A real
+        # cutscene never idles like that: it either locks the avatar, prints text,
+        # or ends. Ten straight seconds of "playable but script-active" means the
+        # context is parked, not running — treat the scene as over instead of
+        # timing out at 8000 frames and derailing in a loop.
+        if (
+            script_running
+            and player_avatar_is_controllable()
+            and not is_waiting_for_input()
+            and not _menu_task_active()
+        ):
+            phantom += 1
+            if phantom >= 600:
+                context.message = "Story: parked script context detected — treating the scene as over."
+                _w15(f"[cutscene] PHANTOM-ESCAPE fired at f={frames} (controllable=True parked script)")
+                return
+        else:
+            phantom = 0
         if not free:
-            context.emulator.press_button(button)
+            if script_running or is_waiting_for_input():
+                context.emulator.press_button(_dialogue_button(button))
+            elif _menu_task_active():
+                # KI-14: a stray menu (start menu / bag) freezes the avatar with NO
+                # script and NO waiting text — the conditions above never press and
+                # this helper would sit out its whole timeout. B closes menus and
+                # cannot start a conversation, so it is always safe here.
+                context.emulator.press_button("B")
         frames += 1
         if frames > timeout_frames:
+            _w15(f"[cutscene] TIMEOUT-RAISE at f={frames} controllable={player_avatar_is_controllable()} "
+                 f"script_active={get_global_script_context().is_active} phantom={phantom} "
+                 f"waiting_input={is_waiting_for_input()} menu={_menu_task_active()} "
+                 f"— KI-15 HANG STATE (would raise+retry-loop)")
             raise BotModeError(
                 f"Cutscene did not end after {timeout_frames} frames "
                 f"(controllable={player_avatar_is_controllable()}, "
@@ -691,7 +1003,10 @@ def train_lead_to_level(target_level: int) -> Generator:
     level is hit or HP falls to the heal threshold; on low HP we walk to the
     Oldale Poké Center, heal, and return to the grass. Prevents the stall where
     a low-HP lead flees every battle and never gains XP."""
-    heal_at = float(getattr(context.config.battle, "hp_threshold", 20)) + 8.0
+    # Heal EARLY (big margin): the swap-train finisher heals only BETWEEN battles, so too
+    # small a margin lets an unlucky hit faint it mid-battle and strand the bot on the
+    # "choose your next Pokémon" menu (user 2026-07-21: all battles must survive failure).
+    heal_at = float(getattr(context.config.battle, "hp_threshold", 20)) + 22.0
     context.message = f"Story: training the starter to Lv {target_level}..."
     guard = 0
     while _lead_level() < target_level:
@@ -1086,23 +1401,120 @@ def travel_route104_north_to_rustboro() -> Generator:
 RUSTBORO_GYM_ROXANNE_APPROACH = (5, 4)
 
 
+def _yield_bounded(gen, max_frames: int) -> Generator:
+    """Drive a sub-generator with a HARD frame cap; returns True if it finished, False if
+    it timed out (the sub-generator is then closed). WHY: stock menu navigators
+    (StartMenuNavigator.open_start_menu etc.) wait UNBOUNDED for their menu to appear —
+    but a field script (a trainer's sight-line firing in the grass, a leftover
+    evolution/battle scene) LOCKS input, so the menu can never open and the wait wedges
+    FOREVER (real-HW: a 110k-frame stall mid-training next to Youngster Joey,
+    2026-07-22; same family as the evostall batch hang). Every menu-driven sub-action
+    the story calls must be bounded."""
+    for _ in range(max_frames):
+        try:
+            next(gen)
+        except StopIteration:
+            return True
+        yield
+    try:
+        gen.close()
+    except Exception:
+        pass
+    return False
+
+
+def _rotate_lead_safely(target_slot: int, *, attempts: int = 3) -> Generator:
+    """`change_lead_party_pokemon` with INTERRUPT AWARENESS (user directive 2026-07-22:
+    "ensure the interrupt logic works — know when a trainer interrupts anything").
+
+    Never starts (or keeps driving) the Start-menu party rotation while a field script
+    is active, and BOUNDS the menu drive so a script that fires mid-menu can't wedge it.
+    On interruption: close any half-open menu, ride the scene out (the battle listener
+    fights any resulting trainer battle), then retry. Bounded attempts; gives up
+    gracefully — the rotation is an optimization, training/gyms still work without it."""
+    from modules.modes.util.higher_level_actions import change_lead_party_pokemon
+
+    for _ in range(attempts):
+        _check_abort()
+        # Don't even open the menu while a script is engaged / control is shaky.
+        if get_global_script_context().is_active:
+            yield from _ride_out_scripted_scene("B")
+            yield from wait_until_truly_controllable()
+        try:
+            ok = yield from _yield_bounded(change_lead_party_pokemon(target_slot), 3000)
+        except Exception:
+            ok = False
+        if ok:
+            return
+        # Timed out / errored — likely a script fired mid-menu (trainer approach).
+        # Close any half-open menu, ride the scene out, retry.
+        for _ in range(12):
+            context.emulator.press_button("B")
+            yield
+        yield from _ride_out_scripted_scene("B")
+        yield from wait_until_truly_controllable()
+    context.message = "Story: lead rotation kept getting interrupted — continuing without it."
+
+
 def _lead_strongest_battler() -> Generator:
     """Put the highest-level CAPABLE battler in slot 0 before a gym / major fight.
     Swap-training rotates a weak trainee into the lead, so without this the gym would
     send that weak mon out first (it faints, then the strong mon takes over — messy
     and risky). Leading with our best mon wins cleanly."""
-    from modules.modes.util.higher_level_actions import change_lead_party_pokemon
-
     party = get_party()
     slots = _battler_slots()
     if not slots:
         return
     best = max(slots, key=lambda i: party[i].level)
     if best != 0:
+        yield from _rotate_lead_safely(best)
+
+
+def _lead_best_matchup(foe_type_names, *, min_incoming_only: bool = True) -> Generator:
+    """Put the CAPABLE battler that best resists the foe's ace type(s) in slot 0 — used
+    before a TYPE-COUNTERED trainer where "lead strongest" is a trap. (Rustboro rival:
+    if we started Mudkip, the rival leads a grass Grovyle, and our Marshtomp — Water/Ground
+    — is 4× weak to Grass, so leading it feeds a super-effective sweep.)
+
+    Picks the battler minimizing the foe's WORST-CASE STAB multiplier against it, breaking
+    ties by higher level; leaves slot 0 unchanged if it's already the best. `foe_type_names`
+    is a list like ["Grass"]."""
+    from modules.modes.util.higher_level_actions import change_lead_party_pokemon
+    from modules.pokemon import get_type_by_name
+
+    party = get_party()
+    slots = _battler_slots()
+    if not slots:
+        return
+    try:
+        foe_types = [get_type_by_name(n) for n in foe_type_names]
+    except Exception:
+        foe_types = []
+
+    def _incoming(mon) -> float:
+        """Worst-case STAB multiplier the foe can hit `mon` for (defensive)."""
         try:
-            yield from change_lead_party_pokemon(best)
+            mon_types = mon.species.types
         except Exception:
-            pass
+            try:
+                mon_types = mon.types
+            except Exception:
+                return 1.0
+        if not foe_types:
+            return 1.0
+        worst = 0.0
+        for ft in foe_types:
+            m = 1.0
+            for t in mon_types:
+                m *= ft.get_effectiveness_against(t)
+            worst = max(worst, m)
+        return worst
+
+    # Lowest incoming multiplier first; tie-break by higher level so we lead a resistant
+    # mon that's also as strong as possible.
+    best = min(slots, key=lambda i: (_incoming(party[i]), -party[i].level))
+    if best != 0:
+        yield from _rotate_lead_safely(best)
 
 
 def do_rustboro_gym() -> Generator:
@@ -1175,6 +1587,38 @@ def _battler_slots() -> list[int]:
     return slots
 
 
+def _exit_training_cave_if_inside() -> Generator:
+    """If standing inside GRANITE CAVE (the Dewford-arc training area — the only in-cave
+    training spot so far), thread the cave mouth back out to Route 106. The global
+    navigator can NOT cross warp levels, so a heal that targets a town PC from inside a
+    cave plan-fails ('not on connected maps') — two real-HW runs dropped to Manual on
+    exactly that (2026-07-22, both at the (35,11) training spot with a hurt trainee)."""
+    cave_1f = MapRSE.GRANITE_CAVE_1F.value
+    if _map_group_number() == cave_1f:
+        yield from _enter_warp_by_navigation(
+            lambda: _map_group_number() != cave_1f,
+            MapRSE.GRANITE_CAVE_1F,
+            (37, 12),
+            label="Granite Cave exit (training heal)",
+        )
+        yield from wait_until_truly_controllable()
+
+
+def _goto_training_area(grass_map, grass_tile) -> Generator:
+    """Navigate to the training spin tile, threading the Granite Cave door first when the
+    area lives INSIDE the cave and we're currently outside it (Dewford/Route 106) — the
+    counterpart of `_exit_training_cave_if_inside` for the return trip after a heal."""
+    if grass_map is MapRSE.GRANITE_CAVE_1F and _map_group_number() != MapRSE.GRANITE_CAVE_1F.value:
+        yield from _enter_warp_by_navigation(
+            lambda: _map_group_number() == MapRSE.GRANITE_CAVE_1F.value,
+            MapRSE.ROUTE106,
+            (48, 16),
+            label="Granite Cave entrance (training)",
+        )
+        yield from wait_until_truly_controllable()
+    yield from _navigate_riding_out(grass_map, grass_tile, avoid_encounters=False)
+
+
 def train_team(
     target_level: int,
     scope: str = "whole",
@@ -1192,7 +1636,10 @@ def train_team(
     from modules.modes.util.higher_level_actions import change_lead_party_pokemon
 
     grass_map, grass_tile = grass
-    heal_at = float(getattr(context.config.battle, "hp_threshold", 20)) + 8.0
+    # Heal EARLY (big margin): the swap-train finisher heals only BETWEEN battles, so too
+    # small a margin lets an unlucky hit faint it mid-battle and strand the bot on the
+    # "choose your next Pokémon" menu (user 2026-07-21: all battles must survive failure).
+    heal_at = float(getattr(context.config.battle, "hp_threshold", 20)) + 22.0
     guard = 0
     # SWAP-TRAIN (user directive 2026-07-21): hand wild battles to
     # SwapTrainBattleStrategy — an under-levelled lead is switched to a stronger
@@ -1221,20 +1668,23 @@ def train_team(
                 break
 
             # Put the lowest-level needy battler in the lead so it shares the XP.
+            # INTERRUPT-SAFE (the 110k-frame Joey stall): a trainer sight-line firing
+            # right as the Start menu opens must abort-and-retry, never wedge.
             target_slot = min(need, key=lambda i: party[i].level)
             if target_slot != 0:
-                try:
-                    yield from change_lead_party_pokemon(target_slot)
-                except Exception:
-                    pass
+                yield from _rotate_lead_safely(target_slot)
 
             context.message = f"Story: training the team to Lv {target_level} in the grass…"
-            yield from _navigate_riding_out(grass_map, grass_tile, avoid_encounters=False)
+            yield from _goto_training_area(grass_map, grass_tile)
 
             yield from _story_spin(
                 lambda: _lead_level() >= target_level or _min_battler_hp_pct() <= heal_at
             )
             if _min_battler_hp_pct() <= heal_at and _lead_level() < target_level:
+                # CAVE-AWARE HEAL (2× real-HW Manual drops 2026-07-22): healing from INSIDE
+                # Granite Cave targeted the Dewford PC across warp levels — the global
+                # navigator can't do that ("not on connected maps"). Exit the cave first.
+                yield from _exit_training_cave_if_inside()
                 yield from heal_in_pokemon_center(heal_center)
     finally:
         set_swap_train(False)
@@ -1245,6 +1695,16 @@ def _total_poke_balls() -> int:
         from modules.items import get_item_bag
 
         return sum(slot.quantity for slot in get_item_bag().poke_balls)
+    except Exception:
+        return 0
+
+
+def _ball_count(name: str) -> int:
+    """Quantity of a specific ball (e.g. 'Premier Ball', 'Poké Ball') in the bag."""
+    try:
+        from modules.items import get_item_bag
+
+        return sum(slot.quantity for slot in get_item_bag().poke_balls if slot.item.name == name)
     except Exception:
         return 0
 
@@ -1391,6 +1851,45 @@ def buy_poke_balls(count: int, mart: tuple = RUSTBORO_MART) -> Generator:
     context.message = f"Story: bought Poké Balls (now have {_total_poke_balls()})."
 
 
+def buy_poke_balls_in_tens(total: int, mart: tuple = RUSTBORO_MART) -> Generator:
+    """Buy ``total`` Poké Balls, but as SEPARATE purchases of 10 (plus a remainder) to
+    maximize free Premier Balls (user directive 2026-07-21).
+
+    The mart gives exactly ONE Premier Ball per purchase of **10 or more** regular Poké
+    Balls — so a single 30-ball purchase yields 1 Premier, but three 10-ball purchases
+    yield 3. Total money spent is identical (Premier Balls are free), so buying in tens is
+    strictly better. Any remainder (< 10) is bought last in one go (no Premier for it).
+
+    Uses the tested single-purchase `buy_poke_balls` for each batch (it re-opens the shop
+    at the counter each time — cheap, and far less risky than looping inside the shop UI)."""
+    if total <= 0:
+        return
+    tens = total // 10
+    remainder = total % 10
+    premier_before = _ball_count("Premier Ball")
+    balls_before = _ball_count("Poké Ball")
+    context.message = (
+        f"Story: buying {total} Poké Balls in {tens}×10"
+        + (f" + {remainder}" if remainder else "")
+        + " for free Premier Balls…"
+    )
+    for i in range(tens):
+        yield from buy_poke_balls(10, mart)
+    if remainder:
+        yield from buy_poke_balls(remainder, mart)
+    try:
+        from modules.console import console
+
+        console.print(
+            f"[green]Story: bought {total} Poké Balls in {tens + (1 if remainder else 0)} purchase(s) "
+            f"→ Poké Balls {balls_before}→{_ball_count('Poké Ball')}, "
+            f"Premier Balls {premier_before}→{_ball_count('Premier Ball')} "
+            f"(+{_ball_count('Premier Ball') - premier_before} free).[/]"
+        )
+    except Exception:
+        pass
+
+
 def provision_poke_balls(mart: tuple = RUSTBORO_MART) -> Generator:
     """Restock Poké Balls if we can afford it (out-of-balls contingency). Buys as many
     as affordable (capped), keeping a money reserve. Returns having bought or not; the
@@ -1401,8 +1900,10 @@ def provision_poke_balls(mart: tuple = RUSTBORO_MART) -> Generator:
         return
     # A mart-menu hiccup must NEVER break catching — on failure, proceed with what we
     # have (the caller then falls back to skip). Re-raise a whiteout abort, though.
+    # Buy in batches of 10 to collect the free Premier Ball each purchase gives (user
+    # directive 2026-07-21) instead of one big purchase (which yields only one).
     try:
-        yield from buy_poke_balls(want, mart)
+        yield from buy_poke_balls_in_tens(want, mart)
     except BotModeError as error:
         if story_should_abort():
             raise
@@ -1426,7 +1927,10 @@ def catch_starter_team(
     (only NEW species, never a dup, never a shiny). Stops early if we run low on
     Poké Balls or hit a safety guard; a whiteout is handled by run()."""
     grass_map, grass_tile = grass
-    heal_at = float(getattr(context.config.battle, "hp_threshold", 20)) + 8.0
+    # Heal EARLY (big margin): the swap-train finisher heals only BETWEEN battles, so too
+    # small a margin lets an unlucky hit faint it mid-battle and strand the bot on the
+    # "choose your next Pokémon" menu (user 2026-07-21: all battles must survive failure).
+    heal_at = float(getattr(context.config.battle, "hp_threshold", 20)) + 22.0
     guard = 0
     if _party_size() < target_size and _total_poke_balls() > 1:
         context.message = "Story: catching a team before the first gym…"
@@ -1559,3 +2063,3856 @@ def recover_devon_goods() -> Generator:
         yield
     yield from _wait_until_cutscene_over("A")  # ride out the Briney/Peeko thank-you tail
     context.message = "Story: recovered the Devon Goods and freed Peeko!"
+
+
+# --- Chapter 5b: return the Devon Goods → PokéNav + Steven's Letter → Rustboro rival ---
+# Tiles reconned from ROM map data (design §Ch5b Atlas):
+DEVON_CORP_3F = MapRSE.RUSTBORO_CITY_DEVON_CORP_3F
+MRSTONE_APPROACH = (15, 6)          # stand below Mr. Stone (15,5), face North, talk
+RUSTBORO_RIVAL_APPROACH = (16, 52)  # staging tile just N of the y=53 rival-trigger row; step Down to arm it
+
+
+def return_devon_goods_and_get_pokenav() -> Generator:
+    """Take the recovered Devon Goods back to Mr. Stone (Devon Corp 3F) — he returns
+    them, hands over the PokéNav and Steven's Letter (RECEIVED_POKENAV).
+
+    STORY CONDITION: RECOVERED_DEVON_GOODS set (we're in/near Rusturf Tunnel).
+    GOAL/END: RECEIVED_POKENAV set; controllable back in Rustboro City."""
+    from modules.memory import get_event_flag
+
+    context.message = "Story: taking the Devon Goods back to Mr. Stone at Devon Corp..."
+    # Ride out any lingering Rusturf recovery scene, then let the overworld settle.
+    yield from _ride_out_scripted_scene("B")
+    yield from wait_until_truly_controllable()
+    # Route to Mr. Stone on Devon Corp 3F — navigate_to_anywhere threads the floors via
+    # the stairs; the 1F guard lets us up now the goods are recovered. Rides out any
+    # scripted greeting on the way.
+    yield from _navigate_through_scripts(DEVON_CORP_3F, MRSTONE_APPROACH, avoid_encounters=True)
+    yield from wait_until_truly_controllable()
+    context.emulator.press_button("Up")  # face Mr. Stone (15,5) from (15,6)
+    yield
+    yield from wait_for_n_frames(4)
+    # Advance the return + PokéNav + Letter dialogue until the PokéNav is received.
+    frames = 0
+    while not get_event_flag("RECEIVED_POKENAV"):
+        _check_abort()
+        context.emulator.press_button("A")
+        frames += 1
+        if frames > 8000:
+            raise BotModeError("Never received the PokéNav from Mr. Stone.")
+        yield
+    yield from _wait_until_cutscene_over("B")
+    context.message = "Story: got the PokéNav and Steven's Letter!"
+
+
+def skip_pokenav_match_call_tutorial() -> Generator:
+    """Neutralize the FORCED PokéNav Match-Call tutorial that the Rustboro Scientist
+    (`RustboroCity_EventScript_ScientistAddMatchCall`) runs the instant you step into the
+    city after getting the PokéNav — it fires from the map's ON_FRAME table while
+    `VAR_RUSTBORO_CITY_STATE == 6`.
+
+    WHY A STATE-WRITE INSTEAD OF PLAYING IT THROUGH: the tutorial opens the PokéNav in
+    `POKENAV_MODE_FORCE_CALL_READY` and only ends once you actually place a Match Call to
+    Mr. Stone through the full PokéNav app UI. That app is graphics-driven and does NOT
+    advance in our faithful (video-off) harness — verified empirically: ~150 A-presses
+    across 1500 frames produced zero progress, the PokéNav sat on `Task_Pokenav`/
+    `Task_RunLoopedTask` the entire time. So a UI-navigation solution (a) could not be
+    proven with our reproduce/fault-inject methodology and (b) would hang EVERY full-flow
+    harness run at this point. Match Call has no bearing on story progress toward the
+    Elite Four.
+
+    WHAT THIS DOES: writes the EXACT world-state the tutorial itself leaves on completion,
+    so the resulting save is indistinguishable from having watched it —
+    `VAR_RUSTBORO_CITY_STATE = 7` (the value that disables the ON_FRAME trigger),
+    `VAR_ROUTE104_STATE = 1`, and flags `HAS_MATCH_CALL` /
+    `ADDED_MATCH_CALL_TO_POKENAV` / `HIDE_RUSTBORO_CITY_SCIENTIST` set (the exact
+    setvar/setflag list from the decompiled script). Call it while still on Devon Corp 3F
+    (before stepping into the city trigger).
+
+    STORY CONDITION: `RECEIVED_POKENAV` set. GOAL/END: the Scientist trigger is disabled;
+    the rival (gated only by `MET`/`DEFEATED_RIVAL_RUSTBORO`, no var) still fires normally.
+
+    NOTE: This is an intentional, documented divergence — a targeted state-write that
+    reproduces vanilla's end-state — logged in DIVERGENCE-LOG and design §Ch5b."""
+    from modules.memory import get_event_var, set_event_var, set_event_flag
+
+    if get_event_var("RUSTBORO_CITY_STATE") >= 7:
+        return  # already past the tutorial — resume-safe, do nothing
+    context.message = "Story: clearing the forced PokéNav Match-Call tutorial (state-write to vanilla end-state)..."
+    set_event_var("RUSTBORO_CITY_STATE", 7)   # what the tutorial sets last; disables the ON_FRAME trigger
+    set_event_var("ROUTE104_STATE", 1)        # ScientistAddMatchCall sets this at its start
+    for flag in ("HAS_MATCH_CALL", "ADDED_MATCH_CALL_TO_POKENAV", "HIDE_RUSTBORO_CITY_SCIENTIST"):
+        set_event_flag(flag, True)            # returns False (no-op) if absent in this ROM's table
+    yield  # let the overworld pick up the new state for a frame
+
+
+def handle_pokenav_match_call_tutorial() -> Generator:
+    """FAITHFULLY clear the forced PokéNav Match-Call tutorial by actually placing the
+    Match Call to Mr. Stone through the PokéNav app (then backing out) — the way a player
+    would. Falls back to the state-write (`skip_pokenav_match_call_tutorial`) when the app
+    can't be driven (headless) or the nav stalls, so the bot is never stuck either way.
+
+    Harness-verified sequence (RENDERER ON): step into the city → the Scientist runs the
+    tutorial (2 intro msgboxes → start-menu multichoice) → pick **POKéNAV (index 3)** →
+    PokéNav main menu (cursor starts on HOENN MAP) → **Down,Down** → MATCH CALL → **A**
+    (open the call list; cursor on MR. STONE) → **A** (CALL/CANCEL submenu; cursor on CALL)
+    → **A** (place the call) → advance Mr. Stone's call with **A** → **B** out of the
+    PokéNav → the tutorial script resumes and sets `VAR_RUSTBORO_CITY_STATE=7` → controllable.
+
+    RENDERER REQUIRED + FALLBACK: the PokéNav app's looped tasks (`Task_Pokenav` /
+    `Task_RunLoopedTask`) only advance when the BG/OBJ renderer is enabled (video on) —
+    proven: with video off, ~150 A-presses = zero progress. So on a headless run, or if the
+    faithful nav doesn't reach state 7 within budget, we FALL BACK to
+    `skip_pokenav_match_call_tutorial()` (writes the same vanilla end-state). Either way the
+    tutorial ends and the rival trigger (gated on `VAR_RUSTBORO_CITY_STATE==7`) is armed.
+
+    STORY CONDITION: `RECEIVED_POKENAV` set, controllable in Rustboro City just after the
+    PokéNav. GOAL/END: `VAR_RUSTBORO_CITY_STATE==7`."""
+    from modules.memory import get_event_var
+    from modules.modes.util.tasks_scripts import wait_for_multiple_choice_question
+    from modules.tasks import task_is_active, get_global_script_context
+    from modules.player import player_avatar_is_controllable
+
+    if get_event_var("RUSTBORO_CITY_STATE") >= 7:
+        return  # already past the tutorial — resume-safe
+
+    # Headless (renderer off) → the PokéNav app can't advance; use the state-write end-state.
+    if not context.emulator.get_video_enabled():
+        context.message = "Story: PokéNav tutorial (headless, no renderer) — writing the vanilla end-state..."
+        yield from skip_pokenav_match_call_tutorial()
+        return
+
+    def _tut_active():
+        sc = get_global_script_context()
+        in_script = sc.is_active and any(
+            "ScientistAddMatchCall" in f or "MatchCallTutorial" in f for f in sc.stack
+        )
+        return in_script or task_is_active("Task_HandleMultichoiceInput")
+
+    context.message = "Story: doing the PokéNav Match-Call tutorial (calling Mr. Stone)..."
+    # 0) Trigger the tutorial: it fires from the map ON_FRAME table as you move through the
+    #    city. Navigate toward the south exit (well north of the y=53 rival row) — the
+    #    Scientist fires within a step or two and locks the player. (Proven: raw Down-presses
+    #    don't reliably trigger it; the pathing walk does.)
+    from modules.modes.util.global_navigation import navigate_to_anywhere
+
+    triggered = False
+    for _ in range(10):
+        if _tut_active():
+            triggered = True
+            break
+        try:
+            yield from navigate_to_anywhere(
+                MapRSE.RUSTBORO_CITY, (16, 40), avoid_encounters=True, avoid_scripted_events=False
+            )
+        except BotModeError:
+            pass  # a scripted event (the tutorial) interrupted the walk — expected
+        for _ in range(20):
+            if _tut_active():
+                triggered = True
+                break
+            yield
+        if triggered:
+            break
+    if not triggered:
+        # Couldn't provoke the tutorial — don't hang; write the vanilla end-state instead.
+        yield from skip_pokenav_match_call_tutorial()
+        return
+
+    # 1) Advance the Scientist's intro msgboxes and select POKéNAV (index 3) from the menu.
+    yield from wait_for_multiple_choice_question(3)
+
+    # 2) Wait for the PokéNav main menu to be interactive (glowing cursor).
+    for _ in range(600):
+        if task_is_active("Task_CurrentMenuOptionGlow"):
+            break
+        yield
+    yield from wait_for_n_frames(20)
+
+    # 3) Main menu cursor starts on HOENN MAP; Down,Down → MATCH CALL.
+    for _ in range(2):
+        context.emulator.press_button("Down")
+        yield
+        yield from wait_for_n_frames(12)
+    # 4) A: open the Match Call list (MR. STONE) → A: CALL submenu → A: place the call.
+    for _ in range(3):
+        context.emulator.press_button("A")
+        yield
+        yield from wait_for_n_frames(24)
+    # 5) Advance Mr. Stone's call dialogue briefly.
+    for _ in range(4):
+        context.emulator.press_button("A")
+        yield
+        yield from wait_for_n_frames(12)
+    # 6) B out of the PokéNav → the tutorial script resumes and sets STATE=7.
+    deadline = 1500
+    while deadline > 0 and get_event_var("RUSTBORO_CITY_STATE") < 7:
+        deadline -= 1
+        context.emulator.press_button("B")
+        yield
+    # Settle to controllable.
+    for _ in range(600):
+        if player_avatar_is_controllable():
+            break
+        context.emulator.press_button("B")
+        yield
+
+    # Safety net: if the faithful nav didn't complete, force the vanilla end-state so the
+    # bot never hangs here.
+    if get_event_var("RUSTBORO_CITY_STATE") < 7:
+        context.message = "Story: PokéNav tutorial nav stalled — falling back to the state-write end-state..."
+        yield from skip_pokenav_match_call_tutorial()
+    else:
+        context.message = "Story: PokéNav Match-Call tutorial done (called Mr. Stone)."
+
+
+def fight_rustboro_rival() -> Generator:
+    """The rival (May/Brendan) challenges you at the SOUTH exit of Rustboro on the way to
+    Route 104. The battle is fired by a row of coord-triggers at y=53 (x 12–19), gated on
+    `VAR_RUSTBORO_CITY_STATE == 7` — the exact value `skip_pokenav_match_call_tutorial`
+    leaves, so the skip both clears the tutorial AND arms this trigger. Lead with our best
+    mon, walk south across the trigger row, and win. GOAL/END: `DEFEATED_RIVAL_RUSTBORO`.
+
+    PREREQUISITE: the PokéNav Match-Call tutorial must already be cleared (call
+    `skip_pokenav_match_call_tutorial()` first) — otherwise the Scientist tutorial fires
+    on the first step south. This rival hits harder than the gym: the caller should TRAIN
+    the team first (see StoryMode `_play` §5b) or a weak team whites out (harness-observed).
+
+    Harness-proven approach: navigate to the staging tile (16,52) just NORTH of the row,
+    then step Down across y=53 to arm a trigger (`_navigate_riding_out` straight to a
+    trigger tile can be refused as a scripted-event tile)."""
+    from modules.memory import get_event_flag
+    from modules.battle_state import battle_is_active
+    from modules.tasks import get_global_script_context
+
+    if get_event_flag("DEFEATED_RIVAL_RUSTBORO"):
+        return
+    context.message = "Story: heading south — the rival is waiting in Rustboro..."
+
+    def _rival_engaging() -> bool:
+        """The rival is engaging when a battle has started OR the rival coord-script is
+        running (it locks the player). We must NOT key off MET_RIVAL_RUSTBORO — that flag
+        STAYS set after a loss, so on a retry it would make us think we've engaged while
+        still standing at the staging tile, and we'd never step onto the trigger (this was
+        the 'stuck below the rival after a failed battle' bug)."""
+        if battle_is_active():
+            return True
+        sc = get_global_script_context()
+        return sc.is_active and any(
+            any(k in f for k in ("RivalTrigger", "MayEncounter", "MayAskToBattle", "MayBattle",
+                                 "MayFight", "BrendanEncounter", "BrendanAskToBattle",
+                                 "BrendanBattle", "BrendanFight"))
+            for f in sc.stack
+        )
+
+    # NOTE: the CALLER sets the battle lead (this rival is type-countered, so we want a
+    # matchup-based lead via `_lead_best_matchup`, NOT lead-strongest). We don't touch it here.
+    # Stage just north of the y=53 rival-trigger row, then walk Down onto it. This works on
+    # the FIRST attempt AND on post-whiteout RETRIES (the trigger re-fires while not DEFEATED).
+    yield from _navigate_riding_out(
+        MapRSE.RUSTBORO_CITY, RUSTBORO_RIVAL_APPROACH, avoid_encounters=False
+    )
+    for _ in range(14):
+        if _rival_engaging():
+            break
+        _check_abort()
+        context.emulator.press_button("Down")
+        yield
+        yield from wait_for_n_frames(16)
+    if not _rival_engaging():
+        # The trigger row (RivalTrigger0-7 at (12-19,53)) requires VAR_RUSTBORO_CITY_STATE
+        # == 7, and the MEETING sets it to 8 — so once the rival has been met (which can
+        # happen ORGANICALLY mid-navigation: any southbound walk across the row after the
+        # var reaches 7 fires the scene) the row is PERMANENTLY dead. VANILLA TRUTH: win
+        # or lose, there is NO rematch (her talk script is only the Briney hint), and the
+        # story does not require the win — so a met-and-lost state is RESOLVED, not a
+        # failure (two batch runs burned their attempt caps on this, 2026-07-22).
+        if get_event_flag("MET_RIVAL_RUSTBORO") and not get_event_flag("DEFEATED_RIVAL_RUSTBORO"):
+            context.message = (
+                "Story: the Rustboro rival was already met (and lost to) — vanilla offers "
+                "no rematch; moving on."
+            )
+            return
+        # Never met and still no engagement — derail so StoryMode re-localises and retries.
+        raise BotModeError("Rustboro rival did not engage from the staging tile.")
+    yield from _ride_out_scripted_scene("B", engage_timeout=2000)
+    frames = 0
+    while not get_event_flag("DEFEATED_RIVAL_RUSTBORO"):
+        _check_abort()  # a LOSS whites out -> abort -> StoryMode whiteout recovery -> retry
+        context.emulator.press_button("A")
+        frames += 1
+        if frames > 8000:
+            break  # already handled / different completion — don't hang
+        yield
+    if not get_event_flag("DEFEATED_RIVAL_RUSTBORO"):
+        # Neither won nor whited out within budget (unexpected) — derail so the caller retries.
+        raise BotModeError("Rustboro rival battle ended without a win or a whiteout.")
+    yield from wait_until_truly_controllable()
+    context.message = "Story: beat the Rustboro rival — off toward Dewford."
+
+
+def _talk_to_wandering_npc(
+    map_enum, local_id: int, *, attempts: int = 8, approach_hint=None, known_spot=None
+) -> Generator:
+    """Engage a WANDERING (patrolling) NPC in conversation on the current small indoor map.
+
+    WHY THE OBVIOUS APPROACHES FAIL (all live-proven in Mr. Briney's cottage):
+    - A static approach-tile + face-press: a patrolling NPC is almost never on its spawn
+      tile — and a face-tap toward an EMPTY tile STEPS onto it if already facing that way.
+    - Navigating a full path to a tile adjacent to his CURRENT position: he has always
+      moved on by the time the multi-frame navigate lands (circled the cottage 30× without
+      engaging).
+    - A greedy step-by-step chase: walk-sequence NPCs patrol a fixed ring (Briney laps the
+      cottage's central table); a tail-chase around a ring never catches him, and bumping
+      into a blocker while standing ON the NPCs' route tiles can freeze the whole room
+      solid (three-body deadlock: walk-sequence NPCs wait forever for their exact next
+      route tile, they never re-route).
+
+    - Parking ON one of his route tiles to block him into stopping next to us: with TWO
+      walkers lapping the SAME ring in the same direction (Peeko runs ahead of Briney),
+      the WRONG one always queues against us first and the target freezes two tiles back,
+      out of talking reach.
+
+    HOW (observe → park beside → talk on transit):
+    1. OBSERVE ~one patrol lap, recording every tile each walker visits (their fixed
+       routes). Talk immediately if the target happens to pass adjacent; if the walkers
+       freeze mid-observation, WE are standing on a route tile — step off it.
+    2. Pick an ambush tile BESIDE his route: statically walkable, on NOBODY's recorded
+       route (blocks no one — no queues, no deadlocks), not a warp tile, orthogonally
+       adjacent to a tile he visits.
+    3. Park there and stand still. Every lap he transits the adjacent route tile (walkers
+       dwell ~30+ frames per tile): face-tap toward him (his tile is occupied, so the tap
+       can only turn/bump, never step), verify he is still there, press A, and confirm the
+       script context actually ENGAGED.
+
+    Raises BotModeError if the NPC is absent or never engages within `attempts` rounds."""
+    import os
+
+    from modules.map import get_map_data, get_map_objects
+
+    def _npc_coords() -> tuple[int, int] | None:
+        try:
+            for o in get_map_objects():
+                if o.local_id == local_id:
+                    return tuple(o.current_coords)
+        except Exception:
+            pass
+        return None
+
+    _dbg = bool(os.environ.get("STORY_TALK_DEBUG"))
+    _FACE = {(0, -1): "Up", (0, 1): "Down", (-1, 0): "Left", (1, 0): "Right"}
+    _DELTA = {"Up": (0, -1), "Down": (0, 1), "Left": (-1, 0), "Right": (1, 0)}
+    try:
+        _warp_tiles = {tuple(w.local_coordinates) for w in get_map_data_for_current_position().warps}
+    except Exception:
+        _warp_tiles = set()
+
+    def _try_talk_if_adjacent() -> Generator:
+        """If the target NPC is adjacent RIGHT NOW, face him and press A. Yields; the
+        engagement result is read by the caller via get_global_script_context()."""
+        c = _npc_coords()
+        if c is None:
+            return
+        px, py = get_player_avatar().local_coordinates
+        dx, dy = c[0] - px, c[1] - py
+        if abs(dx) + abs(dy) != 1:
+            return
+        face = _FACE[(dx, dy)]
+        context.emulator.press_button(face)  # bump-safe: his tile is occupied
+        yield
+        yield from wait_for_n_frames(4)
+        if _npc_coords() != c:
+            return  # stepped away as we turned — don't talk to air
+        context.emulator.press_button("A")
+        yield
+        for _ in range(60):
+            if get_global_script_context().is_active:
+                return
+            yield
+
+    def _step_to(spot) -> Generator:
+        """Greedy single-step walk to `spot` (NOT navigate_to: the pathfinder marks every
+        walker's current AND previous tile blocked, so in a tiny room two patrolling NPCs
+        seal every corridor at plan time and it reports "no path" to plainly walkable
+        tiles). Perpendicular/reverse fallbacks when the direct step is blocked; talks
+        opportunistically if the target happens to pass right next to us en route."""
+        for _ in range(30):
+            _check_abort()
+            yield from _try_talk_if_adjacent()
+            if get_global_script_context().is_active:
+                return
+            px, py = get_player_avatar().local_coordinates
+            if (px, py) == spot:
+                return
+            dx, dy = spot[0] - px, spot[1] - py
+            prefs = []
+            if dx:
+                prefs.append("Right" if dx > 0 else "Left")
+            if dy:
+                prefs.append("Down" if dy > 0 else "Up")
+            if abs(dy) > abs(dx):
+                prefs.reverse()
+            for d in ("Up", "Down", "Left", "Right"):
+                if d not in prefs:
+                    prefs.append(d)
+            moved = False
+            for d in prefs:
+                ddx, ddy = _DELTA[d]
+                if (px + ddx, py + ddy) in _warp_tiles:
+                    continue  # never step onto a door/warp — that would leave the map
+                start = (px, py)
+                for _ in range(24):
+                    context.emulator.press_button(d)
+                    yield
+                    if tuple(get_player_avatar().local_coordinates) != start:
+                        moved = True
+                        break
+                if moved:
+                    break
+            if not moved:
+                yield from wait_for_n_frames(16)  # momentarily boxed in — let walkers shift
+
+    cur_map_md = get_map_data_for_current_position()
+    _gnum = (cur_map_md.map_group, cur_map_md.map_number)
+
+    def _walkable(t: tuple[int, int]) -> bool:
+        try:
+            return get_map_data(_gnum, t).collision == 0
+        except Exception:
+            return False
+
+    for _round in range(attempts):
+        _check_abort()
+        if get_global_script_context().is_active:
+            return  # engaged
+        yield from _try_talk_if_adjacent()
+        if get_global_script_context().is_active:
+            if _dbg:
+                print(f"[talk] ENGAGED opportunistically (round {_round})")
+            return
+
+        # PHASE 0 — make sure the object is LOADED. The GBA engine only materializes
+        # object events near the camera, so on a big map (a town) the target simply
+        # isn't in RAM until we walk toward it (live-hit: Briney's dock object was
+        # "absent" from across Dewford after a PC heal). `approach_hint` = a walkable
+        # tile near the NPC's spawn to navigate to first.
+        if _npc_coords() is None and approach_hint is not None:
+            yield from _navigate_riding_out(map_enum, approach_hint)
+            yield from wait_for_n_frames(30)
+
+        # PHASE 0.5 — KNOWN-SPOT FAST PATH (user directive 2026-07-22): when a validated
+        # ambush tile is known for this NPC, go STRAIGHT there and wait roughly a patrol
+        # lap for the target to transit adjacent — the observe lap plus trial parking
+        # read as "arbitrary wandering" on real hardware (user-observed at BOTH Briney
+        # talks). The adaptive observe-then-park procedure below stays as the fallback
+        # if the fast path doesn't engage within the wait.
+        if known_spot is not None and _round == 0:
+            # PATHFINDER FIRST, greedy stepping only as the fallback. `_step_to` takes
+            # single greedy steps with no route planning, so any wall between us and the
+            # spot sends it wandering into whatever pocket the fallbacks lead to — on
+            # real hardware (2026-07-23) that walked the bot from Dewford's Poké Center
+            # to the dead-end south-east of the dock (the wall band at y=10, x=10-13)
+            # and it loitered there for thousands of frames. The pathfinder handles a
+            # town fine; `_step_to` is only needed in tiny rooms where patrolling
+            # walkers make `calculate_path` report "no path" to plainly walkable tiles.
+            try:
+                yield from _navigate_riding_out(map_enum, known_spot, tries=3)
+            except BotModeError:
+                pass
+            if tuple(get_player_avatar().local_coordinates) != tuple(known_spot):
+                yield from _step_to(known_spot)
+            for _f in range(900):
+                _check_abort()
+                yield from _try_talk_if_adjacent()
+                if get_global_script_context().is_active:
+                    if _dbg:
+                        print("[talk] ENGAGED via known_spot fast path")
+                    return
+                yield
+
+        # PHASE 1 — OBSERVE one full patrol lap: record every tile each walker visits.
+        # (Also talk instantly if the target passes adjacent, and un-block the room if
+        # everyone froze — frozen walkers mean WE are standing on someone's route tile.)
+        target_route: set[tuple[int, int]] = set()
+        other_route: set[tuple[int, int]] = set()
+        last_snapshot = None
+        still_frames = 0
+        for _f in range(700):
+            _check_abort()
+            try:
+                objs = {o.local_id: tuple(o.current_coords) for o in get_map_objects() if o.local_id != 255}
+            except Exception:
+                objs = {}
+            if local_id in objs:
+                target_route.add(objs[local_id])
+            for k, v in objs.items():
+                if k != local_id:
+                    other_route.add(v)
+            c = objs.get(local_id)
+            if c is not None:
+                px, py = get_player_avatar().local_coordinates
+                if abs(c[0] - px) + abs(c[1] - py) == 1:
+                    yield from _try_talk_if_adjacent()
+                    if get_global_script_context().is_active:
+                        if _dbg:
+                            print(f"[talk] ENGAGED during observation (round {_round})")
+                        return
+            if objs == last_snapshot:
+                still_frames += 1
+            else:
+                still_frames = 0
+                last_snapshot = objs
+            if still_frames > 180:
+                # The walkers are frozen → we are blocking a route tile. Step somewhere
+                # that is NOT a recorded route tile to let the patrol flow again.
+                px, py = get_player_avatar().local_coordinates
+                for d, (ddx, ddy) in _DELTA.items():
+                    t = (px + ddx, py + ddy)
+                    if t in _warp_tiles or t in target_route or t in other_route or not _walkable(t):
+                        continue
+                    for _ in range(24):
+                        context.emulator.press_button(d)
+                        yield
+                        if tuple(get_player_avatar().local_coordinates) != (px, py):
+                            break
+                    break
+                still_frames = 0
+            yield
+        if not target_route:
+            raise BotModeError(f"NPC local_id={local_id} is not present on map {map_enum}.")
+
+        # PHASE 2 — pick an ambush tile BESIDE his route: walkable, NOT on either walker's
+        # route (blocking a route tile only queues the LEAD walker against us — with two
+        # walkers lapping the same ring the wrong one always arrives first and the target
+        # freezes two tiles back; live-proven), not a warp, adjacent to a tile he visits.
+        px, py = get_player_avatar().local_coordinates
+        candidates: list[tuple[int, int]] = []
+        for t in target_route:
+            for ddx, ddy in _DELTA.values():
+                p = (t[0] + ddx, t[1] + ddy)
+                if p in target_route or p in other_route or p in _warp_tiles:
+                    continue
+                if not _walkable(p):
+                    continue
+                candidates.append(p)
+        candidates = sorted(set(candidates), key=lambda p: abs(p[0] - px) + abs(p[1] - py))
+        if _dbg:
+            print(f"[talk] round {_round}: route={sorted(target_route)} beside-candidates={candidates[:6]}")
+        if not candidates:
+            yield from wait_for_n_frames(60)
+            continue
+
+        # PHASE 3 — park beside the route and press A whenever HE transits the adjacent
+        # route tile (walkers dwell ≥~30 frames per tile — a wide window; and he passes
+        # us every lap, so a miss just waits for the next lap).
+        yield from _step_to(candidates[0])
+        if get_global_script_context().is_active:
+            return
+        for _wait in range(1500):
+            _check_abort()
+            c = _npc_coords()
+            px, py = get_player_avatar().local_coordinates
+            if c is not None and abs(c[0] - px) + abs(c[1] - py) == 1:
+                yield from _try_talk_if_adjacent()
+                if get_global_script_context().is_active:
+                    if _dbg:
+                        print(f"[talk] ENGAGED from beside-route ambush at ({px},{py})")
+                    return
+            yield
+        if _dbg:
+            print(f"[talk] beside-route ambush timed out (round {_round}) — re-observing")
+    raise BotModeError(f"Could not engage NPC local_id={local_id} on map {map_enum} in conversation.")
+
+
+# Warp geometry for the sail leg (doorprobe-verified 2026-07-22; see §Ch6):
+# Route 104 is river-split — the ONLY north↔south path is through Petalburg Woods.
+#   Woods NORTH doors:  Route104 (10,30)/(11,30) ↔ inside Woods (14,5)/(15,5)
+#   Woods SOUTH doors:  inside Woods (16,38)/(17,38) ↔ Route104 (10,38)/(11,38)
+#   Mr. Briney's door:  Route104 (17,50) ↔ house interior (5,8); Briney NPC at (5,3)
+WOODS_NORTH_DOOR_ROUTE104 = (11, 30)   # step onto this from the north strip → Woods (15,5)
+WOODS_NORTH_DOOR_STAGING = (11, 29)    # tile directly above the north door (route104_north checkpoint)
+WOODS_SOUTH_DOOR_INSIDE = (17, 38)     # step onto this inside the Woods → Route104 (11,38) south half
+WOODS_SOUTH_DOOR_STAGING = (17, 37)    # tile directly above the inside-south door
+BRINEY_DOOR_ROUTE104 = (17, 50)        # cottage door on the south beach → interior (5,8)
+BRINEY_LOCAL_ID = 1                    # Briney's object slot in his cottage (Peeko = 2); he PATROLS
+                                       # a walk-sequence loop, so talk via _talk_to_wandering_npc
+
+
+def sail_to_dewford() -> Generator:
+    """After the Rustboro rival, travel Rustboro → Mr. Briney's cottage and sail to Dewford.
+
+    INTENT: Chapter 6 — the sail leg toward Gym 2. The player carries Steven's Letter (got
+    with the PokéNav) and the rival is beaten, so Briney offers the Dewford sail.
+    ROUTE (§Ch6, every warp doorprobe-verified): Rustboro (post-rival (16,53)) → walk Down
+    across the south connection onto ROUTE104 (16,0) — the NORTH strip. Route 104 is
+    RIVER-SPLIT, so the south beach is reachable only back THROUGH Petalburg Woods:
+    north door Route104 (11,30) → Woods (15,5) → cross the Woods southbound → inside door
+    (17,38) → Route104 (11,38) on the SOUTH beach → Briney's cottage door (17,50) →
+    interior (5,8) → talk to Briney (5,3) from (5,4).
+    THE SAIL (✓ script-verified from the decomp): the FIRST sail is a YES/NO ("We'll set
+    sail for DEWFORD" — A-through picks YES, the cursor default); later sails show the
+    MULTI_BRINEY_OFF_DEWFORD multichoice (Dewford = index 0) — both are handled. On YES the
+    game warps the player to the boat at ROUTE104 (13,51) and the sail cutscene crosses the
+    sea; we ride it out until the map is DEWFORD_TOWN.
+    GOAL/END STATE: controllable in Dewford Town. Idempotent + resume-safe: every leg is
+    keyed off the LIVE map (§SC), so a resume from any point picks up mid-route.
+    STORY CONDITION: `DEFEATED_RIVAL_RUSTBORO` set (the Route 104 rival NPC at (17,50) only
+    appears when the Rustboro meeting was SKIPPED — MET flag unset — so our door is clear)."""
+    from modules.modes.util.tasks_scripts import wait_for_multiple_choice_question
+
+    DEWFORD = MapRSE.DEWFORD_TOWN.value
+    ROUTE104 = MapRSE.ROUTE104.value
+    WOODS = MapRSE.PETALBURG_WOODS.value
+    RUSTBORO = MapRSE.RUSTBORO_CITY.value
+    BRINEY_HOUSE = MapRSE.ROUTE104_MR_BRINEYS_HOUSE.value
+
+    if _map_group_number() == DEWFORD:
+        return
+    context.message = "Story: heading to Mr. Briney's cottage to sail to Dewford..."
+    yield from wait_until_truly_controllable()
+
+    # --- Leg 0: Rustboro → Route 104 north strip. The global navigator can't one-shot
+    #     this connection (ML-7 family); from the south edge, walking Down crosses onto
+    #     ROUTE104 (16,0). VALIDATED 2026-07-21. ---
+    if _map_group_number() == RUSTBORO:
+        yield from _navigate_riding_out(MapRSE.RUSTBORO_CITY, (16, 53))
+        steps = 0
+        while _map_group_number() == RUSTBORO:
+            _check_abort()
+            if steps > 45:
+                raise BotModeError("Sail: could not cross Rustboro's south edge onto Route 104.")
+            context.emulator.press_button("Down")
+            yield
+            yield from wait_for_n_frames(12)
+            steps += 1
+        yield from wait_until_truly_controllable()
+
+    # --- Leg 1: Route 104 NORTH strip → into Petalburg Woods through the north door.
+    #     (On the north strip = y ≤ 30; the split river blocks everything south.) ---
+    if _map_group_number() == ROUTE104 and get_player_avatar().local_coordinates[1] <= 30:
+        yield from _navigate_riding_out(MapRSE.ROUTE104, WOODS_NORTH_DOOR_STAGING)
+        yield from wait_for_player_avatar_to_be_standing_still()
+        yield from _pass_through_door(WOODS_NORTH_DOOR_ROUTE104, ROUTE104)
+        if _map_group_number() != WOODS:
+            raise BotModeError("Sail: stepped onto the Woods north door but did not enter the Woods.")
+        yield from wait_until_truly_controllable()
+
+    # --- Leg 2: cross Petalburg Woods NORTH→SOUTH (reverse of cross_petalburg_woods).
+    #     The mandatory Devon-researcher scene is long done (Ch3) and the route trainers
+    #     were beaten northbound, but ride out anything that still aborts the path. ---
+    if _map_group_number() == WOODS:
+        rounds = 0
+        while _map_group_number() == WOODS:
+            rounds += 1
+            if rounds > 15:
+                raise BotModeError("Sail: stuck crossing Petalburg Woods southbound.")
+            try:
+                yield from navigate_to_anywhere(
+                    MapRSE.PETALBURG_WOODS,
+                    WOODS_SOUTH_DOOR_STAGING,
+                    avoid_encounters=True,
+                    avoid_scripted_events=False,
+                )
+                break
+            except BotModeError:
+                yield from _ride_out_scripted_scene("B")
+        yield from wait_for_player_avatar_to_be_standing_still()
+        yield from _pass_through_door(WOODS_SOUTH_DOOR_INSIDE, WOODS)
+        if _map_group_number() != ROUTE104:
+            raise BotModeError("Sail: stepped onto the Woods south door but did not exit to Route 104.")
+        yield from wait_until_truly_controllable()
+
+    # --- Leg 3: Route 104 SOUTH beach → Briney's cottage. The door tile IS the navigation
+    #     target (a genuine step onto it fires the warp, ML-9); navigate_to_anywhere may
+    #     raise as the warp yanks the map out from under it, so success = the map changed. ---
+    if _map_group_number() == ROUTE104:
+        for _ in range(10):
+            if _map_group_number() != ROUTE104:
+                break
+            try:
+                yield from navigate_to_anywhere(
+                    MapRSE.ROUTE104, BRINEY_DOOR_ROUTE104, avoid_encounters=True, avoid_scripted_events=False
+                )
+            except BotModeError:
+                if _map_group_number() != ROUTE104:
+                    break  # the warp fired mid-navigate — we're inside
+                yield from _ride_out_scripted_scene("B")
+    if _map_group_number() not in (BRINEY_HOUSE, DEWFORD):
+        raise BotModeError("Sail: never reached the inside of Mr. Briney's cottage.")
+
+    # --- Leg 4: talk to Briney and set sail. He PATROLS the cottage (live-probed: he is
+    #     almost never on his (5,3) spawn tile), so engage him via his LIVE object position.
+    #     Then A-through the dialogue; the FIRST sail's YES/NO confirms on A (cursor
+    #     defaults to YES); a repeat sail's multichoice picks Dewford = index 0. Confirming
+    #     warps us OUT of the house onto the boat (ROUTE104 (13,51)) — leaving the house
+    #     map is the signal the sail was accepted. ---
+    if _map_group_number() == BRINEY_HOUSE:
+        yield from wait_until_truly_controllable()
+        # known_spot (6,2): validated ambush tile beside Briney's table ring — the talk
+        # engaged there on real hardware (user log 2026-07-22); fast path skips the
+        # observe lap, the adaptive procedure remains the fallback.
+        yield from _talk_to_wandering_npc(
+            MapRSE.ROUTE104_MR_BRINEYS_HOUSE, BRINEY_LOCAL_ID, known_spot=(6, 2)
+        )
+        presses = 0
+        while _map_group_number() == BRINEY_HOUSE:
+            _check_abort()
+            if presses > 900:
+                raise BotModeError("Sail: talked to Briney but the sail never started.")
+            if task_is_active("Task_HandleMultichoiceInput"):
+                yield from wait_for_multiple_choice_question(0)  # repeat-sail menu: Dewford = index 0
+                continue
+            context.emulator.press_button("A")
+            presses += 1
+            yield
+            yield from wait_for_n_frames(6)
+
+    # --- Leg 5: ride out the sail cutscene (boat crosses the sea) until Dewford. ---
+    frames = 0
+    while _map_group_number() != DEWFORD:
+        _check_abort()
+        context.emulator.press_button("B")
+        frames += 1
+        if frames > 12000:
+            raise BotModeError("Sail: never arrived in Dewford after setting sail.")
+        yield
+    # RIDE OUT the arrival dialogue before waiting for control: Briney's post-sail
+    # "deliver the Letter" reminder (Route104_EventScript_DeliverLetterReminder) stays
+    # OPEN on arrival, and wait_until_truly_controllable presses NOTHING by design —
+    # the real-hardware run 2026-07-22 sat at the dock deriling forever on that open
+    # textbox. _ride_out_scripted_scene B-advances any active script first.
+    yield from _ride_out_scripted_scene("B")
+    yield from wait_until_truly_controllable()
+    context.message = "Story: arrived in Dewford Town!"
+
+
+# ---- Chapter 7: Granite Cave (Steven's Letter) + Dewford Gym 2 (Brawly) ----
+# Static recon 2026-07-22 (ch7 doorprobe): Dewford PC door = town (2,10) → PC (7,8);
+# Gym door = town (8,17) → gym (5,27)/(6,27). Dewford's North connection → Route 106
+# (offset -60: Dewford x ↔ Route106 x+60 on its south edge). Granite Cave entrance =
+# ROUTE106 (48,16) → 1F (37,12). ‼ STEVEN'S ROOM HANGS OFF 1F: warp (5,10) → room (7,3)
+# — NOT off B1F as the first atlas said ((12,3) is the B1F↔B2F ladder pair). Steven
+# stands at (7,8) (static). Route 106 beach trainers: Elliot (51,14), Ned (65,14);
+# 1F Hiker at (36,9). NO training grass anywhere around Dewford pre-Surf (Route 106 is
+# surf-only; Granite Cave wilds are L6-10).
+GRANITE_CAVE_DOOR_ROUTE106 = (48, 16)   # step onto it → GRANITE_CAVE_1F (37,12)
+STEVENS_ROOM_DOOR_1F = (5, 10)          # step onto it → STEVENS_ROOM (7,3)
+STEVEN_APPROACH = (7, 7)                # stand above Steven (7,8), face Down, talk
+DEWFORD_GYM_BRAWLY_APPROACH = (4, 4)    # challenge tile directly below Brawly (4,3)
+# Loss-escalation training spot (⚠ only used after ≥2 Brawly losses; wilds are L6-10 so
+# it's slow XP — but it is the ONLY wild source reachable from Dewford before Surf):
+GRANITE_CAVE_TRAINING_SPOT = (MapRSE.GRANITE_CAVE_1F, (35, 11))
+
+
+def _enter_warp_by_navigation(dest_reached, map_enum, door_tile, *, tries: int = 10, label: str = "") -> Generator:
+    """Navigate onto ``door_tile`` on ``map_enum`` until ``dest_reached()`` is True.
+    The door tile IS the navigation target (a genuine step onto it fires the warp,
+    ML-9); navigate_to_anywhere may raise as the warp yanks the map away mid-path, so
+    success is judged by ``dest_reached()``, and scripted interruptions (a trainer's
+    sight-line, a scene) are ridden out between tries."""
+    last_error: BotModeError | None = None
+    for _ in range(tries):
+        if dest_reached():
+            return
+        # ‼ ALREADY STANDING ON THE DOOR TILE (ch12_run1, 2026-07-24): a warp fires on
+        # STEPPING onto it — a battle that ends with the avatar parked on the tile (or
+        # a resume that loads there) leaves the warp dormant, and navigating "to" the
+        # tile we're on moves zero steps, so every try times out to Manual. Step OFF
+        # one tile (any direction that moves us), then let the normal navigation step
+        # back ON to trigger it.
+        try:
+            _mgn = _map_group_number()
+            _pos = tuple(get_player_avatar().local_coordinates)
+        except Exception:
+            _mgn, _pos = None, None
+        if _mgn == (map_enum.value if hasattr(map_enum, "value") else map_enum) and _pos == tuple(door_tile):
+            for _dir in ("Down", "Up", "Left", "Right"):
+                context.emulator.press_button(_dir)
+                yield from wait_for_n_frames(20)
+                try:
+                    if tuple(get_player_avatar().local_coordinates) != tuple(door_tile):
+                        break
+                except Exception:
+                    break
+            yield from wait_for_player_avatar_to_be_standing_still()
+        try:
+            yield from navigate_to_anywhere(map_enum, door_tile, avoid_encounters=True, avoid_scripted_events=False)
+        except BotModeError as e:
+            if dest_reached():
+                return
+            last_error = e
+            yield from _ride_out_scripted_scene("B")
+    if not dest_reached():
+        raise BotModeError(
+            f"Could not enter the warp at {door_tile} on {map_enum} ({label}). Last navigation error: {last_error}"
+        )
+
+
+def deliver_stevens_letter() -> Generator:
+    """Chapter 7a — deliver Steven's Letter in Granite Cave (gets TM47 Steel Wing).
+
+    INTENT: the Letter (received with the PokéNav from Mr. Stone) is bound for Steven in
+    Granite Cave; delivering it sets `DELIVERED_STEVEN_LETTER`, registers Steven in the
+    PokéNav and yields TM47. It also unlocks nothing else — but it is the story reason we
+    sailed to Dewford, and Mr. Briney waits for it before offering the Slateport leg.
+    ROUTE (every within-floor hop verified via the pathfinder, 2026-07-22): Dewford →
+    Route 106 beach → Granite Cave door (48,16) → then the FIVE-WARP LADDER CHAIN — the
+    cave floors are all split into disconnected sections, and the true route (matching
+    vanilla) dips through B2F: 1F (17,11) ↓ B1F (4,21) → (28,21) ↓ B2F (28,21) → (29,13)
+    ↑ B1F (29,13) → (25,13) ↑ 1F (35,3) → Steven's door (5,10) → room (7,3) → Steven at
+    (7,8): talk from (7,7) facing Down, A-through (✓ script-verified: no choices; Letter
+    taken, TM47 given, flag set, Steven departs and despawns) → the exact reverse chain →
+    Dewford.
+    GOAL/END STATE: `DELIVERED_STEVEN_LETTER` set, controllable back in Dewford Town.
+    STORY CONDITION: in/around Dewford with the Letter in the bag. Resume-safe: the chain
+    walker locates the current position by LIVE pathability (a floor appears twice in the
+    chain — which occurrence we're at is decided by which warp is reachable from here)."""
+    from modules.memory import get_event_flag
+    from modules.map_path import calculate_path
+
+    DEWFORD = MapRSE.DEWFORD_TOWN.value
+    ROUTE106 = MapRSE.ROUTE106.value
+    CAVE_1F = MapRSE.GRANITE_CAVE_1F.value
+    CAVE_B1F = MapRSE.GRANITE_CAVE_B1F.value
+    CAVE_B2F = MapRSE.GRANITE_CAVE_B2F.value
+    STEVENS_ROOM = MapRSE.GRANITE_CAVE_STEVENS_ROOM.value
+
+    def _delivered() -> bool:
+        try:
+            return bool(get_event_flag("DELIVERED_STEVEN_LETTER"))
+        except Exception:
+            return False
+
+    def _pathable(tile: tuple[int, int]) -> bool:
+        """Can the pathfinder reach `tile` on the CURRENT map from where we stand? Used to
+        pick the right chain step on a floor that appears twice (split sections)."""
+        try:
+            cur = _map_group_number()
+            pos = tuple(get_player_avatar().local_coordinates)
+            calculate_path((cur, pos), (cur, tile))
+            return True
+        except Exception:
+            return False
+
+    def _walk_warp_chain(chain, done_check, label: str) -> Generator:
+        """Walk a multi-floor warp chain: at each hop, pick the FURTHEST-ALONG chain step
+        for the CURRENT map whose warp tile is actually pathable from here, enter it,
+        repeat. Floors appear multiple times in a chain (their split sections are told
+        apart by live reachability), and picking the FIRST pathable match loops: Granite
+        Cave 1F has a ONE-WAY LEDGE from the north section down to the entrance section,
+        so from (35,3) the early (17,11) ladder reads as "reachable" and a first-match
+        scan rides it straight back down (live-hit: 9 hops of ping-pong). Furthest-along
+        both breaks that loop and takes the player's natural ledge-jump shortcut on the
+        way out. Bounded."""
+        for _hop in range(len(chain) + 4):
+            if done_check():
+                return
+            cur = _map_group_number()
+            step = None
+            for m_enum, tile, dest in chain:  # keep scanning — LAST match wins
+                if m_enum.value == cur and _pathable(tile):
+                    step = (m_enum, tile, dest)
+            if step is None:
+                raise BotModeError(f"{label}: no chain warp is reachable from map {cur} (lost?).")
+            m_enum, tile, dest = step
+            yield from _enter_warp_by_navigation(
+                lambda: _map_group_number() == dest or done_check(),
+                m_enum,
+                tile,
+                label=f"{label} hop {tile}",
+            )
+            yield from wait_until_truly_controllable()
+        if not done_check():
+            raise BotModeError(f"{label}: warp chain did not reach its destination.")
+
+    # The Granite Cave ladder chains (within-floor hops all pathfinder-verified):
+    _TO_STEVEN = [
+        (MapRSE.GRANITE_CAVE_1F, (17, 11), CAVE_B1F),       # 1F entrance section ↓
+        (MapRSE.GRANITE_CAVE_B1F, (28, 21), CAVE_B2F),      # B1F south section ↓
+        (MapRSE.GRANITE_CAVE_B2F, (29, 13), CAVE_B1F),      # B2F crossing ↑
+        (MapRSE.GRANITE_CAVE_B1F, (25, 13), CAVE_1F),       # B1F north-east pocket ↑ (lands (35,3))
+        (MapRSE.GRANITE_CAVE_1F, STEVENS_ROOM_DOOR_1F, STEVENS_ROOM),  # 1F north-west section
+    ]
+    _FROM_STEVEN = [
+        (MapRSE.GRANITE_CAVE_STEVENS_ROOM, (7, 3), CAVE_1F),  # room exit (lands (5,10))
+        (MapRSE.GRANITE_CAVE_1F, (35, 3), CAVE_B1F),
+        (MapRSE.GRANITE_CAVE_B1F, (29, 13), CAVE_B2F),
+        (MapRSE.GRANITE_CAVE_B2F, (28, 21), CAVE_B1F),
+        (MapRSE.GRANITE_CAVE_B1F, (4, 21), CAVE_1F),          # lands (17,11), entrance section
+        (MapRSE.GRANITE_CAVE_1F, (37, 12), ROUTE106),         # out the cave mouth
+    ]
+
+    if not _delivered():
+        context.message = "Story: taking Steven's Letter to Granite Cave..."
+        yield from wait_until_truly_controllable()
+
+        # Heal first when starting from town: faithful player behavior before a cave trip,
+        # and it moves the whiteout respawn to DEWFORD's Poké Center — after the first sail
+        # Briney is no longer in his cottage, so respawning on the mainland would strand
+        # the run (see known-issues).
+        if _map_group_number() == DEWFORD:
+            yield from heal_in_pokemon_center(PokemonCenter.DewfordTown)
+
+        # --- Leg 1: Dewford → Route 106 → into Granite Cave (door (48,16)). The global
+        #     navigator crosses the north connection; beach trainers are fought inline. ---
+        if _map_group_number() in (DEWFORD, ROUTE106):
+            yield from _enter_warp_by_navigation(
+                lambda: _map_group_number() in (CAVE_1F, CAVE_B1F, CAVE_B2F, STEVENS_ROOM),
+                MapRSE.ROUTE106,
+                GRANITE_CAVE_DOOR_ROUTE106,
+                label="Granite Cave entrance",
+            )
+            yield from wait_until_truly_controllable()
+
+        # --- Leg 2: the ladder chain down-across-up to Steven's Room. ---
+        if _map_group_number() in (CAVE_1F, CAVE_B1F, CAVE_B2F):
+            yield from _walk_warp_chain(
+                _TO_STEVEN, lambda: _map_group_number() == STEVENS_ROOM, "Granite Cave → Steven"
+            )
+
+        # --- Leg 3: talk to Steven (static at (7,8)) and hand over the Letter. ---
+        if _map_group_number() != STEVENS_ROOM:
+            raise BotModeError("Steven's Letter: never reached Steven's Room.")
+        yield from _navigate_riding_out(MapRSE.GRANITE_CAVE_STEVENS_ROOM, STEVEN_APPROACH)
+        context.emulator.press_button("Down")  # face Steven at (7,8) from (7,7)
+        yield
+        yield from wait_for_n_frames(4)
+        frames = 0
+        while not _delivered():
+            _check_abort()
+            context.emulator.press_button("A")
+            frames += 1
+            if frames > 8000:
+                raise BotModeError("Steven's Letter: talked to Steven but the flag never set.")
+            yield
+        # Ride out his thanks + departure walk (he despawns at the end).
+        yield from _wait_until_cutscene_over("B")
+        context.message = "Story: delivered Steven's Letter (got TM47 Steel Wing)!"
+
+    # --- Leg 4: back out to Dewford — the exact reverse ladder chain, then the beach. ---
+    if _map_group_number() in (STEVENS_ROOM, CAVE_1F, CAVE_B1F, CAVE_B2F):
+        yield from _walk_warp_chain(
+            _FROM_STEVEN, lambda: _map_group_number() in (ROUTE106, DEWFORD), "Granite Cave → out"
+        )
+    # Finish by healing at the Dewford PC: heal_in_pokemon_center's own navigation
+    # crosses the Route 106 → Dewford connection reliably (a bare navigate_to_anywhere
+    # to a town tile derailed here once — live 2026-07-22), it's what a player does
+    # after a cave trip, and it leaves the team topped up for the gym right after.
+    yield from wait_until_truly_controllable()
+    yield from heal_in_pokemon_center(PokemonCenter.DewfordTown)
+    yield from wait_until_truly_controllable()
+    if _map_group_number() != DEWFORD:
+        raise BotModeError("Steven's Letter: expected to finish at the Dewford Poké Center.")
+    context.message = "Story: back in Dewford Town."
+
+
+# ---- Chapter 8a: sail Dewford → Slateport (Route 109) ----
+# Static recon 2026-07-22 (ch8 probe): dock Briney = DEWFORD_TOWN local_id 2 at (12,9)
+# (his boat = id 4 at (12,8)). ✓ script-verified (DewfordTown decomp): with
+# FLAG_DELIVERED_STEVEN_LETTER set his dock menu is `multichoicedefault ...
+# MULTI_BRINEY_ON_DEWFORD, 2` — Petalburg=0 / SLATEPORT=1 / Cancel=2, and the CURSOR
+# STARTS ON 2 (Cancel), so the deterministic pick for Slateport is UP ×1 then A (the
+# stock wait_for_multiple_choice_question presses Down from wherever the cursor is and
+# would wrap onto Petalburg — do NOT use it here). Choosing Slateport hides the Dewford
+# boat, un-hides Briney+boat on ROUTE 109 (he lands you on the beach near (21,24)), and
+# Route 109 runs North straight into SLATEPORT_CITY (a long trainer-gauntlet beach).
+DEWFORD_DOCK_BRINEY_LOCAL_ID = 2
+# Briney stands STATIC at the Dewford dock (12,9); (11,9) is the tile beside him.
+# Route from the Poké Center: (2,10) -> y=11 east to x=5 -> north to y=9 -> east.
+# Never route along y=11 past x=7 (the Woman patrols (7,12)) or into the y=10 wall
+# band at x=10-13, which is the pocket the old greedy walker fell into.
+DEWFORD_DOCK_TALK_TILE = (11, 9)
+
+
+def sail_to_slateport() -> Generator:
+    """Chapter 8a — sail from the Dewford dock to Route 109 and walk into Slateport.
+
+    INTENT: after the Letter (and the badge), the Devon Goods are still in the bag for
+    Captain Stern — Slateport is the next story stop. Briney ferries us from the Dewford
+    dock; he lands on Route 109's beach, which connects North directly into Slateport.
+    ROUTE: (from the gym or anywhere in Dewford) → Dewford PC heal → talk to Briney at the
+    dock (12,9) → his multichoice: UP ×1 → A picks SLATEPORT (index 1; cursor defaults to
+    Cancel — see the recon note above) → ride out the sail → land ROUTE 109 → navigate
+    North into SLATEPORT_CITY (beach trainers fought inline) → heal at the Slateport PC
+    (also anchors the whiteout respawn in Slateport, same reasoning as KI-10).
+    GOAL/END STATE: controllable in Slateport City, team healed.
+    STORY CONDITION: `DELIVERED_STEVEN_LETTER` set (without it Briney only offers
+    Petalburg). Idempotent + resume-safe: legs are keyed off the LIVE map."""
+    from modules.modes.util.sleep import wait_for_n_frames as _wfn  # noqa: F401  (clarity)
+
+    DEWFORD = MapRSE.DEWFORD_TOWN.value
+    GYM = MapRSE.DEWFORD_TOWN_GYM.value
+    ROUTE109 = MapRSE.ROUTE109.value
+    SLATEPORT = MapRSE.SLATEPORT_CITY.value
+
+    if _map_group_number() == SLATEPORT:
+        return
+    context.message = "Story: sailing from Dewford to Slateport..."
+    yield from wait_until_truly_controllable()
+
+    # --- Leg 0: step out of the gym if that's where we are (brawly_done resumes here). ---
+    if _map_group_number() == GYM:
+        yield from _enter_warp_by_navigation(
+            lambda: _map_group_number() == DEWFORD, MapRSE.DEWFORD_TOWN_GYM, (5, 27), label="Dewford Gym exit"
+        )
+        yield from wait_until_truly_controllable()
+
+    if _map_group_number() == DEWFORD:
+        # Heal before the trip (fresh off the gym fight; faithful player behavior).
+        yield from heal_in_pokemon_center(PokemonCenter.DewfordTown)
+        yield from wait_until_truly_controllable()
+
+        # --- Leg 1: talk to Briney at the dock and pick SLATEPORT. Briney (local_id 2)
+        #     stands STATIC at (12,9) in this story state (probed live, 3600-frame
+        #     observation — he does not patrol here); known_spot (11,9) parks beside him
+        #     without ever crossing the townsperson patrolling the (11-13,14) row (the
+        #     "erratic movement right of the gym" the user watched was the old adaptive
+        #     dance fighting through exactly that walker's wall). approach_hint loads
+        #     the object when approaching from across town. ---
+        # Briney is STATIC at the dock (12,9) in this story state — object id 2, probed
+        # live over 3600 frames and confirmed again from the ROM's object table. So walk
+        # STRAIGHT to the dock and talk; there is nothing to observe or ambush here.
+        # (User report, real hardware 2026-07-23: the bot was taking the scenic route
+        # east of the gym and loitering by the townsfolk. It does not need to go there.)
+        # The wandering-NPC procedure stays as the fallback for the case where he has
+        # moved or the object hasn't loaded.
+        engaged = False
+        for _try in range(3):
+            _check_abort()
+            try:
+                yield from _navigate_riding_out(MapRSE.DEWFORD_TOWN, DEWFORD_DOCK_TALK_TILE, tries=3)
+            except BotModeError:
+                break
+            if tuple(get_player_avatar().local_coordinates) != DEWFORD_DOCK_TALK_TILE:
+                continue
+            yield from wait_for_player_avatar_to_be_standing_still()
+            yield from ensure_facing_direction("Right")  # Briney is one tile east
+            for _f in range(120):
+                _check_abort()
+                if get_global_script_context().is_active:
+                    engaged = True
+                    break
+                context.emulator.press_button("A")
+                yield
+                yield from wait_for_n_frames(6)
+            if engaged:
+                break
+        if not engaged:
+            yield from _talk_to_wandering_npc(
+                MapRSE.DEWFORD_TOWN, DEWFORD_DOCK_BRINEY_LOCAL_ID,
+                approach_hint=DEWFORD_DOCK_TALK_TILE, known_spot=DEWFORD_DOCK_TALK_TILE,
+            )
+        presses = 0
+        while _map_group_number() == DEWFORD:
+            _check_abort()
+            if presses > 900:
+                raise BotModeError("Sail to Slateport: talked to Briney but the sail never started.")
+            if task_is_active("Task_HandleMultichoiceInput"):
+                # Cursor starts on Cancel (2): Up once → Slateport (1), then confirm.
+                yield from wait_for_n_frames(4)
+                context.emulator.press_button("Up")
+                yield
+                yield from wait_for_n_frames(4)
+                while task_is_active("Task_HandleMultichoiceInput"):
+                    context.emulator.press_button("A")
+                    yield
+                    yield from wait_for_n_frames(2)
+                continue
+            context.emulator.press_button("A")
+            presses += 1
+            yield
+            yield from wait_for_n_frames(6)
+
+    # --- Leg 2: ride out the sail until we're standing on Route 109. ---
+    frames = 0
+    while _map_group_number() not in (ROUTE109, SLATEPORT):
+        _check_abort()
+        context.emulator.press_button("B")
+        frames += 1
+        if frames > 12000:
+            raise BotModeError("Sail to Slateport: never arrived on Route 109.")
+        yield
+    # Same arrival-dialogue hazard as the Dewford sail (see there): B-ride any open
+    # post-sail script before waiting for control.
+    yield from _ride_out_scripted_scene("B")
+    yield from wait_until_truly_controllable()
+
+    # --- Leg 3: Route 109 → North into Slateport (the beach is a trainer gauntlet —
+    #     fought inline by the listeners; ride out anything that aborts the path). ---
+    if _map_group_number() == ROUTE109:
+        rounds = 0
+        while _map_group_number() != SLATEPORT:
+            rounds += 1
+            if rounds > 20:
+                raise BotModeError("Sail to Slateport: stuck crossing Route 109 into Slateport.")
+            try:
+                yield from navigate_to_anywhere(
+                    MapRSE.SLATEPORT_CITY, (19, 21), avoid_encounters=True, avoid_scripted_events=False
+                )
+                break
+            except BotModeError:
+                yield from _ride_out_scripted_scene("B")
+
+    # --- Leg 4: heal at the Slateport PC (respawn anchor + fresh team for the city arc). ---
+    yield from wait_until_truly_controllable()
+    yield from heal_in_pokemon_center(PokemonCenter.SlateportCity)
+    yield from wait_until_truly_controllable()
+    if _map_group_number() != SLATEPORT:
+        raise BotModeError("Sail to Slateport: expected to finish at the Slateport Poké Center.")
+    context.message = "Story: arrived in Slateport City!"
+
+
+# ---- Chapter 8b: Devon Goods → Capt. Stern (Oceanic Museum) ----
+# Recon 2026-07-22 (museumprobe + decomp, all ✓ script-verified): city doors
+# (30,26)/(31,26) ↔ MUSEUM_1F (9,8)/(10,8); the outside Aqua queue leaves a gap at
+# (27,27) so the doors stay reachable. 1F (20×9): entrance attendants (7,7)/(12,7)
+# charge ¥50 via a YES/NO (broke + goods undelivered → free entry anyway); the
+# Rusturf "familiar grunt" (9,4) hands over TM46 Thief; stairs (6,1) ↔ 2F (6,1).
+# 2F: CAPT. STERN at (13,6). Talking to him runs the whole beat: two BACK-TO-BACK
+# un-fleeable Aqua grunt battles (TRAINER_GRUNT_MUSEUM_1/2 — the attack-through
+# trainer strategy's exact case) → Archie's speech → the Goods are handed over →
+# FLAG_DELIVERED_DEVON_GOODS + HealPlayerParty (the script heals us!) + Stern
+# despawns + the Route 110 Aqua blockade is removed (unblocks Ch9).
+MUSEUM_DOOR_CITY = (30, 26)
+MUSEUM_STAIRS_1F = (6, 1)
+STERN_LOCAL_ID_2F = 1
+STERN_APPROACH_2F = (13, 5)   # Stern (13,6) is walled below (13,7)=collision; talk from ABOVE
+STERN_FACE = "Down"           # (13,5) → face Down toward Stern
+# Ch8b GATING (walkthrough + decomp-verified 2026-07-22, KI-11 resolved): the Oceanic
+# Museum's outside Team Aqua crowd (hide-flag FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA / 882,
+# unset by default) SEALS the doors until you visit STERN'S SHIPYARD and talk to DOCK.
+# `SlateportCity_SternsShipyard_1F_EventScript_Dock` (before delivery) runs
+# `setflag FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA` + `FLAG_DOCK_REJECTED_DEVON_GOODS` —
+# the grunts go inside, the entrance clears. Shipyard 1F door = city (26,38); Dock at (5,5).
+SHIPYARD_DOOR_CITY = (26, 38)
+DOCK_LOCAL_ID_1F = 1
+DOCK_APPROACH_1F = (4, 5)   # Dock (5,5) is walled below (5,6)=collision; talk from his LEFT
+DOCK_FACE = "Right"          # (4,5) → face Right toward Dock
+
+
+def deliver_devon_goods_to_stern() -> Generator:
+    """Chapter 8b — deliver the Devon Goods to Capt. Stern in the Oceanic Museum.
+
+    INTENT: the second half of Mr. Stone's errand (the Letter was half one). This is the
+    Slateport story beat: it clears the museum of Team Aqua, removes the Route 110
+    blockade (required for Ch9 → Mauville), and finishes the Devon delivery questline.
+    ROUTE (walkthrough + decomp-verified): Slateport → STERN'S SHIPYARD (city door
+    (26,38)) → talk to DOCK (5,5): he reports Stern missing and sends the Aqua grunts into
+    the museum (`setflag FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA` — the entrance-clearing step,
+    KI-11) → back to the city → museum door (30,26), now unsealed → pay the ¥50 entry
+    (A-through answers the YES/NO; ride-outs use A so the fee can't be declined) → 1F →
+    stairs (6,1) → 2F → talk to Stern (13,6) → ride the scene (two un-fleeable grunt
+    battles fought by the battle listener, Archie speech) until `DELIVERED_DEVON_GOODS` →
+    back out. The scene heals the party.
+    GOAL/END STATE: `DELIVERED_DEVON_GOODS` set, controllable in Slateport City.
+    STORY CONDITION: Devon Goods in the bag (carried since Rusturf). Resume-safe: legs
+    are keyed off the LIVE map + the grunt-clear flag."""
+    from modules.memory import get_event_flag
+
+    SLATEPORT = MapRSE.SLATEPORT_CITY.value
+    SHIPYARD = MapRSE.SLATEPORT_CITY_STERNS_SHIPYARD_1F.value
+    M1F = MapRSE.SLATEPORT_CITY_OCEANIC_MUSEUM_1F.value
+    M2F = MapRSE.SLATEPORT_CITY_OCEANIC_MUSEUM_2F.value
+
+    def _delivered() -> bool:
+        try:
+            return bool(get_event_flag("DELIVERED_DEVON_GOODS"))
+        except Exception:
+            return False
+
+    def _grunts_cleared() -> bool:
+        # The Dock visit sets this; it's what unseals the museum entrance.
+        try:
+            return bool(get_event_flag("HIDE_SLATEPORT_CITY_TEAM_AQUA"))
+        except Exception:
+            return False
+
+    if not _delivered():
+        context.message = "Story: taking the Devon Goods to Capt. Stern at the Oceanic Museum..."
+        yield from wait_until_truly_controllable()
+
+        # --- Leg 0: if the museum is still grunt-sealed, visit Stern's Shipyard and talk
+        #     to Dock to clear the entrance (KI-11 sequencing). Skipped once the flag is
+        #     set (idempotent / resume-safe). ---
+        if not _grunts_cleared():
+            if _map_group_number() == SLATEPORT:
+                yield from _enter_warp_by_navigation(
+                    lambda: _map_group_number() == SHIPYARD,
+                    MapRSE.SLATEPORT_CITY,
+                    SHIPYARD_DOOR_CITY,
+                    label="Stern's Shipyard entrance",
+                )
+                yield from wait_until_truly_controllable()
+            if _map_group_number() == SHIPYARD:
+                # Dock (5,5) is a STATIONARY NPC; approach from his LEFT (4,5) and face
+                # Right (he's walled below). Advance his dialogue until the grunt-clear
+                # flag actually sets — the true completion signal, robust to exact facing.
+                yield from _navigate_riding_out(MapRSE.SLATEPORT_CITY_STERNS_SHIPYARD_1F, DOCK_APPROACH_1F)
+                context.emulator.press_button(DOCK_FACE)
+                yield
+                yield from wait_for_n_frames(4)
+                frames = 0
+                while not _grunts_cleared():
+                    _check_abort()
+                    context.emulator.press_button("A")
+                    frames += 1
+                    if frames > 4000:
+                        raise BotModeError("Devon Goods: talked to Dock but the museum grunts never cleared.")
+                    yield
+                # Close Dock's remaining dialogue with a short bounded B-settle (a full
+                # _wait_until_cutscene_over here can stall 8000f on a lingering field
+                # script — derail-hit run6 2026-07-22).
+                for _ in range(60):
+                    if not get_global_script_context().is_active:
+                        break
+                    context.emulator.press_button("B")
+                    yield
+                # Back out to the city.
+                yield from _enter_warp_by_navigation(
+                    lambda: _map_group_number() == SLATEPORT,
+                    MapRSE.SLATEPORT_CITY_STERNS_SHIPYARD_1F,
+                    (2, 14),
+                    label="Shipyard exit",
+                )
+                yield from wait_until_truly_controllable()
+
+        # --- Leg 1: city → the museum's SLIDING DOORS (now unsealed). ‼ This door type is
+        #     SOLID to the pathfinder (the door tile can't be a nav destination), so walk
+        #     it the player way: navigate to (30,28) below the left door, then WALK UP
+        #     through (30,27) into the door. (With the grunts cleared, (30,27) is free.) ---
+        if _map_group_number() == SLATEPORT:
+            yield from _navigate_riding_out(MapRSE.SLATEPORT_CITY, (30, 28))
+            yield from wait_for_player_avatar_to_be_standing_still()
+            yield from _walk_through_warp("Up", SLATEPORT, timeout_frames=360)
+            yield from wait_until_truly_controllable()
+
+        # --- Leg 2: pay the ¥50 fee + cross 1F to the 2F stairs. The fee YES/NO (and
+        #     possibly the TM46 grunt scene) interrupts navigation — ride out with A
+        #     (A answers YES on the default cursor; B would DECLINE the fee and bounce
+        #     us out). If the stairs tile also refuses to be a path destination, fall
+        #     back to walking INTO it from (6,2). ---
+        if _map_group_number() == M1F:
+            rounds = 0
+            while _map_group_number() == M1F:
+                rounds += 1
+                if rounds > 8:
+                    try:
+                        yield from navigate_to_anywhere(
+                            MapRSE.SLATEPORT_CITY_OCEANIC_MUSEUM_1F, (6, 2),
+                            avoid_encounters=True, avoid_scripted_events=False,
+                        )
+                    except BotModeError:
+                        pass
+                    if _map_group_number() == M1F:
+                        yield from _walk_through_warp("Up", M1F)
+                    break
+                try:
+                    yield from navigate_to_anywhere(
+                        MapRSE.SLATEPORT_CITY_OCEANIC_MUSEUM_1F,
+                        MUSEUM_STAIRS_1F,
+                        avoid_encounters=True,
+                        avoid_scripted_events=False,
+                    )
+                except BotModeError:
+                    if _map_group_number() != M1F:
+                        break
+                    yield from _ride_out_scripted_scene("A")
+            yield from wait_until_truly_controllable()
+
+        # --- Leg 3: 2F — talk to Stern (stationary at (13,6); approach from ABOVE (13,5)
+        #     facing Down — he's walled below) and ride the whole scene (two un-fleeable
+        #     grunt battles handled by the battle listener, then Archie) until the flag
+        #     sets. Keyed on DELIVERED_DEVON_GOODS, robust to exact facing. ---
+        if _map_group_number() != M2F:
+            raise BotModeError("Devon Goods: never reached the museum's 2F.")
+        yield from _navigate_riding_out(MapRSE.SLATEPORT_CITY_OCEANIC_MUSEUM_2F, STERN_APPROACH_2F)
+        context.emulator.press_button(STERN_FACE)
+        yield
+        yield from wait_for_n_frames(4)
+        frames = 0
+        while not _delivered():
+            _check_abort()  # a lost grunt battle whites out → recovery re-enters here
+            context.emulator.press_button("B" if frames % 3 else "A")
+            frames += 1
+            if frames > 30000:
+                raise BotModeError("Devon Goods: the Stern scene never set DELIVERED_DEVON_GOODS.")
+            yield
+        yield from _wait_until_cutscene_over("B")
+        context.message = "Story: Devon Goods delivered — Slateport's museum is Aqua-free (party healed by the scene)!"
+
+    # --- Leg 4: back out to the city (2F → 1F → doors), with walk-into fallbacks for
+    #     the same solid-to-pathfinding door/stair tiles as on the way in. ---
+    if _map_group_number() == M2F:
+        try:
+            yield from _enter_warp_by_navigation(
+                lambda: _map_group_number() == M1F,
+                MapRSE.SLATEPORT_CITY_OCEANIC_MUSEUM_2F,
+                (6, 1),
+                tries=3,
+                label="Museum 2F stairs down",
+            )
+        except BotModeError:
+            yield from _navigate_riding_out(MapRSE.SLATEPORT_CITY_OCEANIC_MUSEUM_2F, (6, 2))
+            yield from _walk_through_warp("Up", M2F)
+    if _map_group_number() == M1F:
+        try:
+            yield from _enter_warp_by_navigation(
+                lambda: _map_group_number() == SLATEPORT,
+                MapRSE.SLATEPORT_CITY_OCEANIC_MUSEUM_1F,
+                (9, 8),
+                tries=3,
+                label="Museum exit",
+            )
+        except BotModeError:
+            yield from _navigate_riding_out(MapRSE.SLATEPORT_CITY_OCEANIC_MUSEUM_1F, (9, 7))
+            yield from _walk_through_warp("Down", M1F)
+    yield from wait_until_truly_controllable()
+    context.message = "Story: back on the Slateport streets."
+
+
+# ---- Chapter 9: Route 110 → Mauville → Gym 3 (Wattson) ----
+# Recon 2026-07-22 (§Ch9, probes + decomp + verified external research): the RIVAL
+# trigger row is ROUTE110 (33,56)/(34,56)/(35,56), armed while VAR_ROUTE110_STATE==0;
+# winning sets state=1 + FLAG_RECEIVED_ITEMFINDER (+DEFEATED_RIVAL_ROUTE_110). Post-
+# rival BIRCH scene triggers arm at (7-10,85) for state==1 (west path — ride-outs
+# handle it if crossed). Mauville: WALLY (8,6) + uncle (9,6) flank the GYM DOOR (8,5);
+# talking to Wally forces TRAINER_WALLY_MAUVILLE (Ralts ~L16) → FLAG_DEFEATED_WALLY_
+# MAUVILLE + the Scott scene. The gym (10×21): Wattson at (5,2); FLOOR SWITCHES at
+# (0,15)/(4,12)/(3,9)/(8,9) toggle the electric barriers — the barriers ARE collision
+# and change live, so the puzzle is solved ADAPTIVELY (try Wattson; else step the
+# nearest reachable unvisited switch; re-plan). Win → FLAG_BADGE03_GET (+TM34).
+ROUTE110_RIVAL_STAGING = (34, 57)      # just south of the trigger row; step Up to arm it
+MAUVILLE_WALLY_APPROACH = (8, 7)       # below Wally (8,6); face Up to talk
+# Route 117's south-central grass field — the ONLY grass two-way pathable from the
+# Mauville-side road (full 162-tile sweep from entry tile (55,6), 2026-07-22). The
+# northern strips ((51,1) etc.) sit on a ledge shelf the road can't return from, and
+# Route 110's grass is Cycling-Road-walled / ledge-one-way — runs 11-13 each burned
+# all navigation retries plan-failing before this was swept properly. Prevention rule:
+# training tiles must be probed for TWO-WAY pathability FROM THE REAL ENTRY TILE.
+ROUTE117_TRAINING_GRASS = (MapRSE.ROUTE117, (31, 16))
+# Ch12 (Norman): Route 102's west grass — two-way swept from the Petalburg PC door
+# (20,16) 2026-07-24 (ch12 recon). Wilds are L3-4 fodder; the boss-training mode's
+# KO-telemetry logic is expected to carry the real levelling (Norman re-attempts).
+PETALBURG_TRAINING_GRASS = (MapRSE.ROUTE102, (9, 2))
+MAUVILLE_GYM_DOOR_CITY = (8, 5)        # city door → gym (4-5,20)
+MAUVILLE_GYM_SWITCHES = [(0, 15), (4, 12), (3, 9), (8, 9)]
+MAUVILLE_GYM_WATTSON_APPROACH = (5, 3)  # below Wattson (5,2)
+
+
+def route110_rival_beaten() -> bool:
+    """Decomp-truth completion signal for the Route 110 rival (validated 2026-07-22):
+    Route110_EventScript_RivalExit runs `setvar VAR_ROUTE110_STATE, 1` and that is the
+    ONLY durable signal — vanilla sets NO named event flag for this battle.
+    (FLAG_DEFEATED_RIVAL_ROUTE_110 does not exist in the flag table; get_event_flag
+    silently returns False for unknown names, and that phantom name is exactly how
+    Ch9a's guard could never pass — run 5 derail-looped to Manual on it.)
+    Majority-of-3 read: save-block reads resolve the moving gSaveBlock1Ptr per call
+    and can TEAR around battle/map transitions (single-frame flag/var flickers were
+    observed in the logs), so one read is never trusted alone."""
+    from modules.memory import get_event_var
+
+    votes = 0
+    for _ in range(3):
+        try:
+            if get_event_var("ROUTE110_STATE") >= 1:
+                votes += 1
+        except Exception:
+            pass
+    return votes >= 2
+
+
+def travel_route110_and_fight_rival() -> Generator:
+    """Chapter 9a — walk Route 110 north from Slateport and beat the rival.
+
+    INTENT: the mandatory Route 110 rival choke-point; winning is what advances
+    VAR_ROUTE110_STATE (clearing the road) and awards the Itemfinder.
+    HOW: Slateport → north connection → the east dirt path to the staging tile (34,57)
+    → step UP into the 3-tile trigger row → the rival scene runs (bike entrance,
+    dialogue) → the battle is fought by the listener (caller preps lead/heal) → ride
+    the aftermath (Itemfinder gift) until VAR_ROUTE110_STATE ≥ 1.
+    GOAL/END: route110_rival_beaten() (VAR_ROUTE110_STATE ≥ 1); controllable on Route 110."""
+    ROUTE110 = MapRSE.ROUTE110.value
+
+    if route110_rival_beaten():
+        return
+    context.message = "Story: heading up Route 110 — the rival is waiting..."
+    yield from wait_until_truly_controllable()
+    yield from _navigate_riding_out(MapRSE.ROUTE110, ROUTE110_RIVAL_STAGING)
+    yield from wait_for_player_avatar_to_be_standing_still()
+    # Step up into the trigger row and ride the whole scene + battle + aftermath.
+    # The exit demands a 5-frame streak: this loop polls tens of thousands of times,
+    # so a single torn read WILL eventually flip a one-shot check (run 5 "won" the
+    # rival without ever fighting him that way).
+    frames = 0
+    beaten_streak = 0
+    while beaten_streak < 5:
+        beaten_streak = beaten_streak + 1 if route110_rival_beaten() else 0
+        _check_abort()  # a loss whites out → recovery re-enters (segment attempt-cap)
+        if frames % 8 == 0 and not get_global_script_context().is_active:
+            context.emulator.press_button("Up")
+        else:
+            context.emulator.press_button("B" if frames % 3 else "A")
+        frames += 1
+        if frames > 30000:
+            raise BotModeError("Route 110: the rival battle never resolved.")
+        yield
+    yield from _wait_until_cutscene_over("B")
+    # The rival aftermath also chains (Itemfinder gift → dialogue tails) — ride it all.
+    yield from _ride_out_all_scenes()
+    context.message = "Story: beat the rival on Route 110 (got the Itemfinder)!"
+
+
+def fight_wally_mauville() -> Generator:
+    """Chapter 9b — Mauville: Wally's battle unblocks the gym door.
+
+    Wally + his uncle physically flank the gym entrance; talking to Wally forces the
+    (single Ralts ~L16) battle. Winning sets FLAG_DEFEATED_WALLY_MAUVILLE, they leave,
+    and Scott's walk-up scene plays — all ridden out on the completion flag."""
+    from modules.memory import get_event_flag
+
+    def _done() -> bool:
+        try:
+            return bool(get_event_flag("DEFEATED_WALLY_MAUVILLE"))
+        except Exception:
+            return False
+
+    if _done():
+        return
+    context.message = "Story: Wally wants a battle at the Mauville Gym door..."
+    yield from wait_until_truly_controllable()
+    yield from _navigate_riding_out(MapRSE.MAUVILLE_CITY, MAUVILLE_WALLY_APPROACH)
+    context.emulator.press_button("Up")  # face Wally at (8,6)
+    yield
+    yield from wait_for_n_frames(4)
+    frames = 0
+    while not _done():
+        _check_abort()
+        context.emulator.press_button("B" if frames % 3 else "A")
+        frames += 1
+        if frames > 30000:
+            raise BotModeError("Mauville: the Wally battle never resolved.")
+        yield
+    # Ride out the WHOLE aftermath chain (defeat text → uncle → exit walk → Scott's
+    # approach → any registration) until the field stays quiet — a single ride returns
+    # in a between-parts pause and the leak killed run 11's training navigation.
+    yield from _wait_until_cutscene_over("B")
+    yield from _ride_out_all_scenes()
+    context.message = "Story: beat Wally — the gym door is clear!"
+
+
+def do_mauville_gym() -> Generator:
+    """Chapter 9c — Mauville Gym: solve the switch puzzle, beat Wattson (Dynamo Badge).
+
+    The electric barriers ARE collision and TOGGLE when a floor switch is stepped on
+    (coord_events — walking over them fires; no A needed), so the maze is solved
+    ADAPTIVELY: try to path to Wattson's approach tile; when no path exists, step the
+    nearest reachable un-stepped switch (which re-shapes the maze) and re-plan. Gym
+    trainers en route are fought inline. Then face Up + A to Wattson until BADGE03."""
+    from modules.memory import get_event_flag
+    from modules.map import get_map_data
+    from modules.map_path import calculate_path
+
+    GYM = MapRSE.MAUVILLE_CITY_GYM.value
+
+    if get_event_flag("BADGE03_GET"):
+        return
+    context.message = "Story: entering Mauville Gym to challenge Wattson..."
+    yield from wait_until_truly_controllable()
+    # Enter via the city door (walk-in door type unknown — try navigation-entry with the
+    # walk-into fallback, the museum pattern).
+    if _map_group_number() != GYM:
+        try:
+            yield from _enter_warp_by_navigation(
+                lambda: _map_group_number() == GYM, MapRSE.MAUVILLE_CITY, MAUVILLE_GYM_DOOR_CITY,
+                tries=4, label="Mauville Gym door",
+            )
+        except BotModeError:
+            yield from _navigate_riding_out(MapRSE.MAUVILLE_CITY, (8, 6))
+            yield from _walk_through_warp("Up", MapRSE.MAUVILLE_CITY.value)
+        yield from wait_until_truly_controllable()
+
+    # MAZE MECHANICS (decomp + live probes, 2026-07-22 — hard-won): there are exactly TWO
+    # barrier configurations — FLAG_MAUVILLE_GYM_BARRIERS_STATE flips on every switch
+    # press, and a switch only fires if it is NOT the last one pressed
+    # (VAR_MAUVILLE_GYM_STATE remembers that). CRITICALLY, the toggled beams exist ONLY
+    # in the engine's LIVE grid (gBackupMapLayout, rewritten by setmetatile): our
+    # get_map_data/calculate_path read the ROM's STATIC default layout and are blind to
+    # every toggle — a "pathable" static plan walks the player into a live beam and bumps
+    # forever (runs 6-9; proven by a live-vs-static grid diff plus a held-Up test on the
+    # captured wedge state saves/mauville_wedge.ss1). So inside the maze the solver
+    # trusts ONLY the live grid: it snapshots the live passable set under each flag
+    # state it sees, BFS-plans over the combined (tile, config, last-switch) graph
+    # (stepping a switch mid-route IS the plan), and walks each leg itself with held
+    # directions judged by arrival.
+    from collections import deque
+    from modules.map import get_map_objects
+    from modules.memory import get_event_var, read_symbol, unpack_uint32, get_game_state, GameState
+
+    W, H = get_map_data(GYM, (0, 0)).map_size
+    switch_tiles = {i + 1: tuple(t) for i, t in enumerate(MAUVILLE_GYM_SWITCHES)}
+    tile_to_switch = {v: k for k, v in switch_tiles.items()}
+    layers: dict = {}
+    rounds = 0
+
+    def _flag_state() -> bool:
+        try:
+            return bool(get_event_flag("MAUVILLE_GYM_BARRIERS_STATE"))
+        except Exception:
+            return False
+
+    def _last_switch() -> int:
+        try:
+            return int(get_event_var("MAUVILLE_GYM_STATE"))
+        except Exception:
+            return 0
+
+    def _live_passable() -> frozenset:
+        """The ENGINE's current walkability (gBackupMapLayout) — the only truthful
+        source for this map. Valid only while the gym is the loaded map."""
+        raw = read_symbol("gBackupMapLayout")
+        grid_w = int.from_bytes(raw[0:4], "little", signed=True)
+        grid_h = int.from_bytes(raw[4:8], "little", signed=True)
+        map_ptr = unpack_uint32(raw[8:12])
+        data = context.emulator.read_bytes(map_ptr, grid_w * grid_h * 2)
+        out = set()
+        for y in range(H):
+            base = (y + 7) * grid_w
+            for x in range(W):
+                v = int.from_bytes(data[(base + x + 7) * 2 : (base + x + 7) * 2 + 2], "little")
+                if (v >> 10) & 3 == 0:
+                    out.add((x, y))
+        return frozenset(out)
+
+    def _object_tiles() -> frozenset:
+        try:
+            me = tuple(get_player_avatar().local_coordinates)
+            tiles = set()
+            for o in get_map_objects():
+                for c in (getattr(o, "current_coords", None), getattr(o, "previous_coords", None)):
+                    if c is not None and tuple(c) != me:
+                        tiles.add(tuple(c))
+            return frozenset(tiles)
+        except Exception:
+            return frozenset()
+
+    def _plan_tiles():
+        """Full BFS over (tile, config, last_switch) on the LEARNED live layers;
+        returns the complete tile path to the Wattson approach, or None."""
+        if len(layers) < 2:
+            return None
+        blocked = _object_tiles()
+        start = (tuple(get_player_avatar().local_coordinates), _flag_state(), _last_switch())
+        prev = {start: None}
+        queue = deque([start])
+        found = None
+        while queue:
+            node = queue.popleft()
+            if node[0] == MAUVILLE_GYM_WATTSON_APPROACH:
+                found = node
+                break
+            (x, y), fl, last = node
+            for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+                nxy = (x + dx, y + dy)
+                if nxy in layers.get(fl, frozenset()) and nxy not in blocked:
+                    sw = tile_to_switch.get(nxy)
+                    nb = (nxy, not fl, sw) if (sw is not None and sw != last) else (nxy, fl, last)
+                    if nb not in prev:
+                        prev[nb] = node
+                        queue.append(nb)
+        if found is None:
+            return None
+        tiles = []
+        node = found
+        while node is not None:
+            tiles.append(node[0])
+            node = prev[node]
+        tiles.reverse()
+        return tiles[1:]  # drop the start tile
+
+    def _single_layer_path(target) -> list | None:
+        """BFS a tile path within the CURRENT live config only."""
+        passable = layers.get(_flag_state(), frozenset())
+        blocked = _object_tiles()
+        start = tuple(get_player_avatar().local_coordinates)
+        prev = {start: None}
+        queue = deque([start])
+        found = None
+        while queue:
+            t = queue.popleft()
+            if t == tuple(target):
+                found = t
+                break
+            for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+                n = (t[0] + dx, t[1] + dy)
+                if n in passable and n not in blocked and n not in prev:
+                    prev[n] = t
+                    queue.append(n)
+        if found is None:
+            return None
+        tiles = []
+        while found is not None:
+            tiles.append(found)
+            found = prev[found]
+        tiles.reverse()
+        return tiles[1:]
+
+    def _walk_tiles(tiles) -> Generator:
+        """Walk a BFS tile path with held directions, judged by arrival. Returns True
+        if the whole path was walked; False on any interruption (battle, script,
+        blocked step) — the caller re-reads the live grid and re-plans."""
+        for nxt in tiles:
+            px, py = get_player_avatar().local_coordinates
+            d = (nxt[0] - px, nxt[1] - py)
+            button = {(0, -1): "Up", (0, 1): "Down", (-1, 0): "Left", (1, 0): "Right"}.get(d)
+            if button is None:
+                context.emulator.reset_held_buttons()
+                return False  # drifted off-path (battle knock-on) — re-plan
+            arrived = False
+            for _ in range(120):
+                if get_game_state() is not GameState.OVERWORLD or get_global_script_context().is_active:
+                    context.emulator.reset_held_buttons()
+                    return False  # trainer battle / switch script — handled outside
+                context.emulator.hold_button(button)
+                yield
+                if tuple(get_player_avatar().local_coordinates) == tuple(nxt):
+                    arrived = True
+                    break
+            context.emulator.reset_held_buttons()
+            if not arrived:
+                return False  # live wall where the plan expected floor — re-learn
+        return True
+
+    def _at(tile) -> bool:
+        try:
+            return tuple(get_player_avatar().local_coordinates) == tuple(tile)
+        except Exception:
+            return False
+
+    while not get_event_flag("BADGE03_GET"):
+        _check_abort()
+        rounds += 1
+        if rounds > 60:
+            raise BotModeError("Mauville Gym: could not solve the switch maze to reach Wattson.")
+        if _map_group_number() != GYM:
+            raise BotModeError("Mauville Gym: left the gym mid-maze — segment retry will re-enter.")
+        # A battle/scene may still be winding down from the previous leg.
+        if get_global_script_context().is_active:
+            yield from _ride_out_scripted_scene("B")
+        yield from wait_until_truly_controllable()
+
+        layers[_flag_state()] = _live_passable()  # learn/refresh the current config
+
+        path = _plan_tiles()
+        if path is not None:
+            context.message = "Story: Mauville maze — walking the planned solve..."
+        else:
+            wattson_leg = _single_layer_path(MAUVILLE_GYM_WATTSON_APPROACH)
+            if wattson_leg is not None:
+                path = wattson_leg
+                context.message = "Story: Mauville maze — path to Wattson is open..."
+            else:
+                # Still learning: step a reachable switch that isn't the last-pressed
+                # one — any press flips the maze and teaches us the other config.
+                last = _last_switch()
+                legs = []
+                for i, t in switch_tiles.items():
+                    if i == last:
+                        continue
+                    leg = _single_layer_path(t)
+                    if leg is not None:
+                        legs.append(leg)
+                if not legs:
+                    yield from wait_for_n_frames(30)
+                    continue
+                path = min(legs, key=len)
+                context.message = f"Story: Mauville maze — flipping the switch at {path[-1]}..."
+
+        yield from _walk_tiles(path)
+        yield from _ride_out_scripted_scene("B")  # switch press script (sound + redraw)
+
+        if _at(MAUVILLE_GYM_WATTSON_APPROACH):
+            # Challenge Wattson: face Up + A/B ride until the badge.
+            context.emulator.press_button("Up")
+            yield
+            frames = 0
+            while not get_event_flag("BADGE03_GET"):
+                _check_abort()
+                context.emulator.press_button("B" if frames % 3 else "A")
+                frames += 1
+                if frames > 40000:
+                    raise BotModeError("Mauville Gym: the Wattson challenge never resolved to a badge.")
+                yield
+            break
+    yield from _wait_until_cutscene_over("B")
+    context.message = "Story: DYNAMO BADGE earned — Gym 3 (Wattson) beaten!"
+
+
+# ---------------------------------------------------------------------------
+# Chapter 10 — Mauville → Fallarbor (HM06 Rock Smash → Route 111 south →
+# Route 112 → Fiery Path → Route 113). Route spec: design doc §Ch10 (decomp-
+# verified map.json sweep 2026-07-22).
+# ---------------------------------------------------------------------------
+
+MAUVILLE_ROCKSMASH_HOUSE_DOOR = (32, 14)  # city door → MAUVILLE_CITY_HOUSE1 (10,2)
+
+
+def _exit_mauville_gym_live() -> Generator:
+    """Leave the Mauville Gym on the LIVE grid. Post-badge the game deactivates the
+    barrier puzzle in the LIVE map only (MauvilleGymDeactivatePuzzle) — the ROM's
+    static layout still shows the maze sealed, so the static planner can't path from
+    Wattson's platform to the door (Ch10a run 1: 'no path (5,3) → (4,20)'). Same
+    static-vs-live rule as the maze solve. A no-op when not inside the gym."""
+    from collections import deque
+
+    from modules.map import get_map_data
+    from modules.memory import read_symbol, unpack_uint32
+
+    GYM = MapRSE.MAUVILLE_CITY_GYM.value
+    if _map_group_number() != GYM:
+        return
+    W, H = get_map_data(GYM, (0, 0)).map_size
+    raw = read_symbol("gBackupMapLayout")
+    grid_w = int.from_bytes(raw[0:4], "little", signed=True)
+    map_ptr = unpack_uint32(raw[8:12])
+    data = context.emulator.read_bytes(map_ptr, grid_w * (H + 15) * 2)
+    passable = set()
+    for y in range(H):
+        base = (y + 7) * grid_w
+        for x in range(W):
+            v = int.from_bytes(data[(base + x + 7) * 2 : (base + x + 7) * 2 + 2], "little")
+            if (v >> 10) & 3 == 0:
+                passable.add((x, y))
+    start = tuple(get_player_avatar().local_coordinates)
+    # Objects (Wattson, gym trainers) are walls too — run 2 walked into one.
+    try:
+        from modules.map import get_map_objects
+
+        for o in get_map_objects():
+            for c in (getattr(o, "current_coords", None), getattr(o, "previous_coords", None)):
+                if c is not None and tuple(c) != start:
+                    passable.discard(tuple(c))
+    except Exception:
+        pass
+    targets = {(4, 19), (5, 19)}  # just above the entrance warp row (4,20)/(5,20)
+    prev = {start: None}
+    queue = deque([start])
+    found = None
+    while queue:
+        t = queue.popleft()
+        if t in targets:
+            found = t
+            break
+        for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+            n = (t[0] + dx, t[1] + dy)
+            if n in passable and n not in prev:
+                prev[n] = t
+                queue.append(n)
+    if found is None:
+        raise BotModeError("Mauville Gym exit: no live path to the door.")
+    tiles = []
+    node = found
+    while node is not None:
+        tiles.append(node)
+        node = prev[node]
+    tiles.reverse()
+    for nxt in tiles[1:]:
+        px, py = get_player_avatar().local_coordinates
+        d = {(0, -1): "Up", (0, 1): "Down", (-1, 0): "Left", (1, 0): "Right"}.get((nxt[0] - px, nxt[1] - py))
+        if d is None:
+            raise BotModeError("Mauville Gym exit: drifted off the live path.")
+        arrived = False
+        for _ in range(120):
+            _check_abort()
+            context.emulator.hold_button(d)
+            yield
+            if tuple(get_player_avatar().local_coordinates) == tuple(nxt):
+                arrived = True
+                break
+        context.emulator.reset_held_buttons()
+        if not arrived:
+            raise BotModeError("Mauville Gym exit: a live wall blocked the doorward walk.")
+    yield from _walk_through_warp("Down", GYM)
+    yield from wait_until_truly_controllable()
+
+
+def _exit_small_interior() -> Generator:
+    """Exit a one-room interior (house/shop) through its bottom-edge door warp:
+    navigate to the tile ABOVE a warp, then step Down through it. Generic — reads
+    the current map's warps live; a no-op if already outside gets handled by the
+    caller checking the map first."""
+    from modules.map import get_map_data_for_current_position
+
+    cur = _map_group_number()
+    md = get_map_data_for_current_position()
+    warps = sorted(
+        (tuple(w.local_coordinates) for w in md.warps),
+        key=lambda t: -t[1],  # bottom-most first (interior exits sit on the south edge)
+    )
+    for wx, wy in warps:
+        if _map_group_number() != cur:
+            return
+        try:
+            yield from navigate_to(cur, (wx, wy - 1))
+            yield from _walk_through_warp("Down", cur, timeout_frames=180)
+        except Exception:
+            continue
+    if _map_group_number() == cur:
+        raise BotModeError("Could not exit the interior through any of its door warps.")
+
+
+# --- HM learner selection + acquisition (user directive 2026-07-23) ----------------
+# The Ch10b mule used to be "the highest-level mon", which loops in the teach menu the
+# moment the top mon can't learn the HM (the party menu just says NOT ABLE). The party
+# must be VALIDATED for compatibility first, and when nobody qualifies the bot must
+# know which accessible wild species can learn the move and go catch one. This is the
+# seed of the future HM-slave logic (#24-hm-slaves).
+
+# Species dex numbers the story's catch branch should catch ON SIGHT right now (an
+# HM-learner hunt in progress). Read by StoryMode.on_battle_started; empty = inactive.
+HM_CATCH_TARGET_DEX: set[int] = set()
+
+
+def hm_learner_slot(item) -> int | None:
+    """The party slot best suited to learn `item`'s HM/TM move: prefers a mon that
+    ALREADY knows it (idempotent re-runs), else the highest-level compatible mon.
+    None if nobody in the party can learn it."""
+    move = item.tm_hm_move()
+    best, best_level = None, -1
+    for i, mon in enumerate(get_party()):
+        if mon is None or mon.is_egg:
+            continue
+        if move is not None and any(
+            l is not None and l.move.name == move.name for l in mon.moves
+        ):
+            return i
+        if mon.species.can_learn_tm_hm(item) and mon.level > best_level:
+            best, best_level = i, mon.level
+    return best
+
+
+def _hm_hunting_grounds(item) -> list[tuple]:
+    """Training-grass areas whose LAND encounter table contains at least one species
+    that can learn `item`'s move — fully data-driven (ROM encounter tables + the
+    per-species TM/HM learnsets), so it stays correct for every future HM. Returns
+    [(map_enum, spin_tile, [species names]), ...] in TRAINING_GRASS order (all entries
+    there are two-way swept — the standing prevention rule)."""
+    from modules.map import get_wild_encounters_for_map
+    from modules.story.training_areas import TRAINING_GRASS
+
+    grounds = []
+    for map_enum, tile, _band in TRAINING_GRASS:
+        if tile is None:
+            continue
+        try:
+            enc = get_wild_encounters_for_map(*map_enum.value)
+        except Exception:
+            continue
+        if enc is None:
+            continue
+        names = sorted(
+            {
+                e.species.name
+                for e in enc.land_encounters
+                if e.species is not None and e.species.can_learn_tm_hm(item)
+            }
+        )
+        if names:
+            grounds.append((map_enum, tile, names))
+    return grounds
+
+
+def ensure_hm_learner(item) -> Generator:
+    """Return a party slot that can learn `item`'s move, CATCHING a compatible wild
+    if the current party has none: provision balls, walk to the nearest swept grass
+    hosting a learner species, and spin with the catch branch targeting exactly those
+    species until one joins the party. Bounded and truthful — a full party or an
+    unreachable learner raises instead of looping."""
+    global HM_CATCH_TARGET_DEX
+
+    from modules.items import get_item_bag
+
+    move = item.tm_hm_move()
+    slot = hm_learner_slot(item)
+    if slot is not None:
+        return slot
+
+    party_count = len([m for m in get_party() if m is not None])
+    if party_count >= 6:
+        # A catch would go to the PC, not the party — box management is #24-pc.
+        raise BotModeError(
+            f"No party mon can learn {move.name} and the party is full — "
+            f"needs PC box management (#24-pc) or a manual swap."
+        )
+
+    grounds = _hm_hunting_grounds(item)
+    if not grounds:
+        raise BotModeError(
+            f"No party mon can learn {move.name} and no swept training grass hosts "
+            f"a learner species — extend training_areas.TRAINING_GRASS first."
+        )
+    # ‼ Prefer a REACHABLE ground (batch3 run01, 2026-07-24): the furthest-progressed
+    # area can be warp-locked from here — after Norman the pick was Route 117, which
+    # sits across the Rusturf Tunnel from Petalburg; the warp graph treats them as
+    # one region, the plain planner can't cross, and ten failed navigations dropped a
+    # NORMAN-BEATING run to Manual. Statically test each candidate from where we
+    # stand (furthest-progressed first) and take the first that paths; if none does,
+    # keep the old pick and let the riding navigation try its luck.
+    from modules.map_path import calculate_path as _cp, PathFindingError as _pfe
+
+    ordered = list(reversed(grounds))  # furthest-progressed first
+    chosen = None
+    try:
+        _here = (get_map_data_for_current_position().map_group_and_number,
+                 tuple(get_player_avatar().local_coordinates))
+        for cand in ordered:
+            try:
+                _cp(_here, (cand[0], cand[1]), avoid_encounters=False, avoid_scripted_events=False)
+                chosen = cand
+                break
+            except _pfe:
+                continue
+            except Exception:
+                continue
+    except Exception:
+        pass
+    map_enum, tile, names = chosen if chosen is not None else grounds[-1]
+    context.message = f"Story: nobody can learn {move.name} — hunting {'/'.join(names)} on {map_enum.name}..."
+
+    if sum(s.quantity for s in get_item_bag().poke_balls) <= 1:
+        yield from provision_poke_balls()
+        if sum(s.quantity for s in get_item_bag().poke_balls) <= 1:
+            raise BotModeError(f"Cannot hunt a {move.name} learner: no Poké Balls and no money to buy any.")
+
+    yield from _navigate_riding_out(map_enum, tile)
+
+    from modules.pokemon import get_species_by_name
+
+    HM_CATCH_TARGET_DEX = {get_species_by_name(n).national_dex_number for n in names}
+    try:
+        before = party_count
+        deadline = 40000  # ~11 min of spinning; grass hosts the target at common slots
+        frames = 0
+
+        def _caught() -> bool:
+            return hm_learner_slot(item) is not None
+
+        def _stop() -> bool:
+            nonlocal frames
+            frames += 1
+            if frames > deadline:
+                return True
+            return _caught() or len([m for m in get_party() if m is not None]) > before
+
+        yield from _story_spin(_stop)
+    finally:
+        HM_CATCH_TARGET_DEX = set()
+
+    slot = hm_learner_slot(item)
+    if slot is None:
+        raise BotModeError(f"Hunted for a {move.name} learner but never caught one (timeout/balls).")
+    # ‼ The spin stops the FRAME the catch registers — the catch AFTERMATH (nickname
+    # YES/NO, "caught!" / dex messages) is still on screen. Hand back a CLEAN overworld
+    # so the caller's next menu action can actually open (ch13_run1 f9931: the teach flow
+    # opened the bag under the nickname prompt and wedged). B declines the nickname.
+    yield from normalize_to_overworld()
+    yield from wait_until_truly_controllable()
+    context.message = f"Story: caught a {move.name} learner — {get_party()[slot].species.name}!"
+    return slot
+
+
+def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Generator:
+    """Teach an HM (or TM) from the bag to a party mon — the OVERWORLD flow, state-
+    driven off the live-probed task chain (2026-07-22): open bag → item context (USE is
+    the first entry) → 'Booted up an HM.' prints (Task_ContinueTaskAfterMessagePrints)
+    → teach YES/NO (Task_CallYesOrNoCallback) → party menu (Task_HandleChooseMonInput,
+    cursor NOT guaranteed at slot 0 — scroll!) → replace YES/NO (Task_ReplaceMoveYesNo)
+    → summary move-select (Task_HandleReplaceMoveInput) → '1, 2, and... Poof!' → party
+    menu → B out. `replace_slot=None` picks the mon's most expendable slot (a 0-power
+    move first, else the lowest base power). Verifies the mon actually knows the move."""
+    from modules.menuing import StartMenuNavigator, scroll_to_item_in_bag, scroll_to_party_menu_index
+    from modules.battle_move_replacing import _get_move_selection_cursor
+
+    target_move = item.tm_hm_move()
+    if target_move is None:
+        raise BotModeError(f"{item.name} does not teach a move.")
+
+    def _mon():
+        return get_party()[party_index]
+
+    if any(l is not None and l.move.name == target_move.name for l in _mon().moves):
+        return  # already knows it
+
+    # ‼ COMPATIBILITY GUARD (user report 2026-07-23): the party menu shows an
+    # incompatible mon as "NOT ABLE" and refuses the selection, which an A-mash
+    # experiences as an endless teach loop. Callers should pick the target with
+    # `hm_learner_slot()` / `ensure_hm_learner()`; this guard makes the failure
+    # truthful if they didn't.
+    if not _mon().species.can_learn_tm_hm(item):
+        raise BotModeError(
+            f"Teach flow: {_mon().species.name} cannot learn {target_move.name} — "
+            f"pick a compatible mon (hm_learner_slot/ensure_hm_learner)."
+        )
+
+    if replace_slot is None:
+        moves = _mon().moves
+        # ‼ HM SLOTS ARE NOT ELIGIBLE (2026-07-24, user's design — and this picker is the
+        # ROOT CAUSE of their original Surf/Rock-Smash report, which I could not reproduce
+        # from the level-up path all day because it was never the level-up path).
+        # An HM move CANNOT be forgotten in Gen 3 (Move Deleter only), and this "most
+        # expendable slot" heuristic walked straight into them:
+        #   * FLASH has base_power 0, so the zero-power rule picked it FIRST;
+        #   * ROCK SMASH has base_power 20 — the lowest of any HM and lower than nearly
+        #     any real attacking move — so the lowest-power rule picked it.
+        # The game then refuses and the teach flow loops. Exclude every HM from
+        # eligibility, then apply the SAME expendability ranking to what remains
+        # (zero-power first, then weakest), so the mon still gives up its least useful
+        # real move rather than declining to learn anything.
+        def _is_hm_slot(learned) -> bool:
+            try:
+                m = learned.move
+                return m.tm_hm is not None and m.tm_hm.name.startswith("HM")
+            except Exception:
+                return False
+
+        eligible = [i for i, l in enumerate(moves) if l is not None and not _is_hm_slot(l)]
+        empty = [i for i, l in enumerate(moves) if l is None]
+        if empty:
+            # Fewer than 4 moves: the game just learns it, no replacement needed.
+            replace_slot = empty[0]
+        elif not eligible:
+            # Every slot is an HM (e.g. Surf/Cut/Strength/Rock Smash). NOTHING can be
+            # replaced — the game will refuse whatever we pick, so don't start a teach we
+            # provably cannot finish. Fail loudly for the caller's recovery instead of
+            # feeding the dialogue a doomed choice.
+            raise BotModeError(
+                f"teach_hm_move: {_mon().species.name} knows only HM moves "
+                f"({[l.move.name for l in moves if l is not None]}) — none can be "
+                f"forgotten, so {target_move.name} cannot be taught to it. "
+                f"Pick a different learner."
+            )
+        else:
+            zero = [i for i in eligible if moves[i].move.base_power == 0]
+            if zero:
+                replace_slot = zero[0]
+            else:
+                replace_slot = min(eligible, key=lambda i: moves[i].move.base_power)
+
+    context.message = f"Story: teaching {target_move.name} to {_mon().species.name}..."
+    # ‼ NORMALIZE FIRST (user's Surf report + ch13_run1 f9931): the caller may hand us a
+    # state with a dialogue STILL OPEN — most often `ensure_hm_learner`, which returns the
+    # instant the catch registers while "Give a nickname to the captured X?" is still on
+    # screen. `wait_until_truly_controllable` presses NOTHING by design, so the avatar
+    # reads controllable, we open the BAG on top of the pending prompt, and the whole
+    # teach wedges in BAG_MENU until the watchdog (the KI-14 menu-under-a-script class).
+    # normalize_to_overworld B-rides any menu/dialogue/scene to a clean overworld first —
+    # B also answers the nickname prompt "no", which is what we want, and B can never
+    # start an NPC conversation. Applies to EVERY HM/TM teach, not just Surf.
+    yield from normalize_to_overworld()
+    yield from wait_until_truly_controllable()
+    yield from StartMenuNavigator("BAG").step()
+    yield from scroll_to_item_in_bag(item)
+
+    def _tasks() -> set:
+        try:
+            return {t.symbol for t in get_tasks()}
+        except Exception:
+            return set()
+
+    def _wait_for(task_name: str, *, press: str | None = None, cap: int = 900) -> Generator:
+        for _f in range(cap):
+            if task_name in _tasks():
+                return
+            if press and _f % 12 == 0:
+                context.emulator.press_button(press)
+            yield
+        raise BotModeError(f"Teach flow: {task_name} never appeared.")
+
+    from modules.tasks import get_tasks
+
+    context.emulator.press_button("A")  # item context menu
+    yield from wait_for_n_frames(20)
+    context.emulator.press_button("A")  # USE
+    yield from wait_for_n_frames(20)
+    yield from _wait_for("Task_CallYesOrNoCallback", press="A")   # ride 'Booted up an HM.'
+    context.emulator.press_button("A")  # YES, teach it
+    # The bag→party transition fades through a task-less state; keep tapping A like
+    # the probe did or the party menu can take >600 frames to materialize.
+    yield from _wait_for("Task_HandleChooseMonInput", press="A", cap=1200)
+    yield from scroll_to_party_menu_index(party_index)
+    context.emulator.press_button("A")
+    yield from wait_for_n_frames(30)
+    # Either it learns instantly (<4 moves) or the replace YES/NO comes up.
+    for _f in range(900):
+        t = _tasks()
+        if "Task_ReplaceMoveYesNo" in t and "Task_PrintAndWaitForText" not in t:
+            break
+        if "Task_PartyMenuReplaceMove" in t or "Task_HandleChooseMonInput" in t:
+            break  # instant learn path
+        if _f % 12 == 0:
+            context.emulator.press_button("A")
+        yield
+    def _knows() -> bool:
+        return any(l is not None and l.move.name == target_move.name for l in _mon().moves)
+
+    def _select_forget_slot() -> Generator:
+        # The overworld summary move-select CURSOR STARTS AT SLOT 0 (probed) — press
+        # Down exactly replace_slot times, then A. (_get_move_selection_cursor reads
+        # the battle/evolution variant and returns garbage here; trusting it walked
+        # the cursor onto CANCEL and bounced the flow into 'Stop trying to teach?'.)
+        yield from wait_for_n_frames(45)
+        for _ in range(replace_slot):
+            context.emulator.press_button("Down")
+            yield from wait_for_n_frames(8)
+        context.emulator.press_button("A")
+        yield from wait_for_n_frames(30)
+
+    if "Task_ReplaceMoveYesNo" in _tasks():
+        context.emulator.press_button("A")  # YES, replace a move
+        yield from _wait_for("Task_HandleReplaceMoveInput", press="A")
+        yield from _select_forget_slot()
+    # Ride the 'Poof!'/learned messages out STATE-AWARE (a blind A/B mash re-answers
+    # the yes/no prompts in a loop — run 3 ping-ponged between 'wants to learn' and
+    # 'Stop trying to teach?' until the frame cap died).
+    for _f in range(3000):
+        if _knows() and get_game_state() is GameState.OVERWORLD and player_avatar_is_controllable():
+            break
+        t = _tasks()
+        if "Task_StopLearningMoveYesNo" in t:
+            context.emulator.press_button("B")  # NO — never give up on the teach
+        elif "Task_ReplaceMoveYesNo" in t and not _knows():
+            context.emulator.press_button("A")  # YES — replace
+        elif "Task_HandleReplaceMoveInput" in t and not _knows():
+            yield from _select_forget_slot()
+            continue
+        elif _f % 3 == 0:
+            context.emulator.press_button("A")
+        else:
+            context.emulator.press_button("B")
+        yield
+    # HARD menus-closed guarantee: the ride above can expire with the BAG still open
+    # (seen on a 5-mon roll, batch run02) — and neither the derail recovery nor the
+    # global watchdog can close a bag (they ride SCRIPTS; a menu isn't one). B out
+    # until the overworld is truly back, bounded.
+    # ‼ KI-14: "back to the overworld" is NOT `game_state == OVERWORLD` — the START
+    # MENU (which the bag closes back into) already reads as OVERWORLD, so the old
+    # check exited with the menu still open and the avatar frozen; the conservative
+    # cutscene rider then rightly refused to mash at a menu and the next travel leg
+    # wedged to Manual (user's 2026-07-23 fresh run). Menu-free means: OVERWORLD
+    # state AND no menu task up AND the avatar actually controllable.
+    for _f in range(1200):
+        if (
+            get_game_state() is GameState.OVERWORLD
+            and not _menu_task_active()
+            and player_avatar_is_controllable()
+        ):
+            break
+        context.emulator.press_button("B")
+        yield
+        yield
+    yield from wait_until_truly_controllable()
+    if get_game_state() is not GameState.OVERWORLD or _menu_task_active():
+        raise BotModeError("Teach flow: could not close the menus back to the overworld.")
+    if not _knows():
+        raise BotModeError(f"Teach flow finished but {_mon().species.name} does not know {target_move.name}.")
+    context.message = f"Story: {_mon().species.name} learned {target_move.name}!"
+
+
+def get_rock_smash_hm() -> Generator:
+    """Chapter 10a — HM06 Rock Smash from the Rock Smash Guy.
+
+    INTENT: Route 111 south is HARD-gated by two breakable rocks at (18,101)/(19,100);
+    HM06 unlocks the whole northern arc (Fiery Path → Fallarbor → Meteor Falls).
+    HOW: Mauville SE house (city door (32,14) → MAUVILLE_CITY_HOUSE1); the Rock Smash
+    Guy is STATIC — the wandering-talk helper degenerates to park-adjacent-and-talk.
+    Receiving is gated only on RECEIVED_HM_ROCK_SMASH not being set (decomp-verified);
+    field USE additionally needs BADGE03, which Ch9 already earned.
+    GOAL/END: RECEIVED_HM_ROCK_SMASH set; back outside in Mauville."""
+    from modules.memory import get_event_flag
+
+    HOUSE = MapRSE.MAUVILLE_CITY_HOUSE1.value
+
+    def _have() -> bool:
+        try:
+            return bool(get_event_flag("RECEIVED_HM_ROCK_SMASH"))
+        except Exception:
+            return False
+
+    if _have():
+        return
+    context.message = "Story: getting HM06 Rock Smash in Mauville..."
+    yield from wait_until_truly_controllable()
+    yield from _exit_mauville_gym_live()  # resuming inside the gym (wattson_done) needs the live-grid exit
+    if _map_group_number() != HOUSE:
+        try:
+            yield from _enter_warp_by_navigation(
+                lambda: _map_group_number() == HOUSE,
+                MapRSE.MAUVILLE_CITY, MAUVILLE_ROCKSMASH_HOUSE_DOOR,
+                tries=4, label="Rock Smash house",
+            )
+        except BotModeError:
+            yield from _navigate_riding_out(MapRSE.MAUVILLE_CITY, (32, 15))
+            yield from _walk_through_warp("Up", MapRSE.MAUVILLE_CITY.value)
+        yield from wait_until_truly_controllable()
+    yield from _talk_to_wandering_npc(MapRSE.MAUVILLE_CITY_HOUSE1, 1, attempts=4)
+    frames = 0
+    while not _have():
+        _check_abort()
+        context.emulator.press_button("B" if frames % 3 else "A")
+        frames += 1
+        if frames > 6000:
+            raise BotModeError("Rock Smash house: talked, but the HM was never received.")
+        yield
+    yield from _wait_until_cutscene_over("B")
+    yield from _ride_out_all_scenes(quiet_frames=240)
+    yield from _exit_small_interior()
+    context.message = "Story: got HM06 Rock Smash!"
+
+
+def _smash_rock(map_enum, approach_tile, face_dir: str) -> Generator:
+    """Stand beside a breakable rock, face it, and Rock-Smash it — IDEMPOTENT and
+    judged by the WORLD, not the script (user's 2026-07-23 hang + the batch-8 wedge,
+    same signature): success is "the rock OBJECT is gone", checked live. The old
+    A-ride waited for the smash script to end — but Rock Smash rolls a WILD
+    ENCOUNTER (Geodude), and a battle-interrupted field script can leave the script
+    context reading active forever, wedging every script-gated wait downstream.
+    Also: a derail recovery re-runs the travel leg, so re-smashing an ALREADY-gone
+    rock must be a no-op, not an A-press into whatever stands beyond it.
+    Requires a party mon knowing Rock Smash + BADGE03 (Segments 9c/10b)."""
+    from modules.map import get_map_objects
+
+    dx, dy = {"Up": (0, -1), "Down": (0, 1), "Left": (-1, 0), "Right": (1, 0)}[face_dir]
+    rock_tile = (approach_tile[0] + dx, approach_tile[1] + dy)
+
+    def _rock_present() -> bool:
+        try:
+            return any(
+                tuple(o.current_coords) == rock_tile for o in get_map_objects()
+            )
+        except Exception:
+            return True  # can't read objects — assume it's still there and try
+
+    yield from _navigate_riding_out(map_enum, approach_tile)
+    yield from wait_for_player_avatar_to_be_standing_still()
+    if not _rock_present():
+        return  # already smashed (recovery re-entry) — nothing to do
+    for _attempt in range(3):
+        _check_abort()
+        context.emulator.press_button(face_dir)
+        yield
+        yield from wait_for_n_frames(6)
+        # Watch the WORLD: the rock disappearing = success. A wild battle spawned by
+        # the smash pauses this generator (the battle listener's controller runs on
+        # top of us); when we resume, the judgment below still holds. Press A on a
+        # FAST cadence: A opens 'This rock is breakable / Use ROCK SMASH?', answers
+        # YES (default cursor), and advances the smash messages. ‼ Do NOT gate on
+        # "script inactive" — the YES/NO prompt IS an active script, so gating there
+        # meant A never answered it and each rock idled ~3800 frames (user's
+        # 2026-07-23 slow-smash report). Extra A presses here are harmless: after the
+        # rock breaks the tile is empty (no NPC to re-trigger).
+        for _f in range(1200):
+            _check_abort()
+            if not _rock_present():
+                # ‼ KI-16: EventScript_SmashRock's WaitForMovementFinish runs AFTER the
+                # rock OBJECT is removed. Returning the instant the object is gone lets
+                # the caller's next navigation start moving the player, which CANCELS
+                # the crumble movement and strands the smash script active forever (the
+                # deterministic wattson_done→Fiery-Path wedge). So wait for the field
+                # SCRIPT to fully clear — pressing NOTHING, so we don't interrupt the
+                # movement it's waiting on — before handing control back.
+                for _s in range(600):
+                    if not get_global_script_context().is_active:
+                        break
+                    yield
+                yield from wait_for_n_frames(10)
+                yield from wait_until_truly_controllable()
+                return
+            if _f % 10 == 0:
+                context.emulator.press_button("A")
+            yield
+    raise BotModeError(f"Rock Smash: the rock at {rock_tile} never broke after 3 attempts.")
+
+
+def travel_to_fallarbor() -> Generator:
+    """Chapter 10c — Mauville → Fallarbor via Route 111 south, Fiery Path, Route 113.
+
+    INTENT: open the northern arc (Fallarbor → Meteor Falls → Mt. Chimney next).
+    HOW (§Ch10 route spec, decomp map.json sweep): Route 111 south to the staging tile
+    below the twin rocks → smash (18,101) then (19,100) → north to the Route 112
+    junction → Fiery Path south door at R112 (11,36) → tunnel (no trainers; the
+    Strength boulders only gate side alcoves) → north exit → Route 112 north → Route
+    113 west across the ash (Winstrate Victor, the Tori&Tia DOUBLE, and buried ninjas
+    are on-path — the battle listener fights them inline) → Fallarbor, ending HEALED
+    at its PC. R111-south's static plans can be walker-sealed at 1-wide chokes, so
+    every leg is a riding navigation that retries around scenes.
+    GOAL/END: healed in Fallarbor Town (checkpoint `fallarbor.ss1`)."""
+    FALLARBOR = MapRSE.FALLARBOR_TOWN.value
+
+    if _map_group_number() == FALLARBOR:
+        return
+    context.message = "Story: heading north — Route 111, Fiery Path, then Fallarbor..."
+    yield from wait_until_truly_controllable()
+    # Leg 1: to the staging tile below the twin rocks (crosses Victor's sight-line).
+    yield from _navigate_riding_out(MapRSE.ROUTE111, (18, 102))
+    # Leg 2: the rocks — (18,101) from below, then (19,100) from (19,101).
+    yield from _smash_rock(MapRSE.ROUTE111, (18, 102), "Up")
+    yield from _smash_rock(MapRSE.ROUTE111, (19, 101), "Up")
+    # Leg 3: through the opened gap and west into Route 112, into the Fiery Path.
+    yield from _navigate_riding_out(MapRSE.ROUTE111, (18, 99))
+    yield from _enter_warp_by_navigation(
+        lambda: _map_group_number() == MapRSE.FIERY_PATH.value,
+        MapRSE.ROUTE112, (11, 36), tries=6, label="Fiery Path south door",
+    )
+    yield from wait_until_truly_controllable()
+    # Leg 4: the tunnel, exiting the north door back onto upper Route 112.
+    yield from _enter_warp_by_navigation(
+        lambda: _map_group_number() == MapRSE.ROUTE112.value,
+        MapRSE.FIERY_PATH, (26, 4), tries=6, label="Fiery Path north exit",
+    )
+    yield from wait_until_truly_controllable()
+    # Leg 5: north to Route 113, then west across the ash to Fallarbor.
+    yield from _navigate_riding_out(MapRSE.ROUTE113, (30, 8))
+    yield from _navigate_riding_out(MapRSE.FALLARBOR_TOWN, (20, 10))
+    context.message = "Story: reached Fallarbor Town!"
+    yield from heal_in_pokemon_center(PokemonCenter.FallarborTown)
+
+
+def do_meteor_falls_scene() -> Generator:
+    """Chapter 11a — the Meteor Falls Magma-steals-the-meteorite CUTSCENE (no battle
+    in Emerald; Archie cameos). Sets FLAG_HIDE_ROUTE_112_TEAM_MAGMA — which clears the
+    grunts blocking the Mt. Chimney Cable Car — and VAR_METEOR_FALLS_STATE=1.
+
+    HOW (§Ch11, decomp): Fallarbor → Route 114 west/south → the falls door at R114
+    (8,63) → land inside at (27,18) → walk WEST along the ledge to the single trigger
+    tile (14,18) (fires while VAR_METEOR_FALLS_STATE==0) → ride the scene out → back
+    outside. Completion: the HIDE flag (tear-resistant majority read)."""
+    from modules.memory import get_event_flag
+
+    def _scene_done() -> bool:
+        votes = 0
+        for _ in range(3):
+            try:
+                if get_event_flag("HIDE_ROUTE_112_TEAM_MAGMA"):
+                    votes += 1
+            except Exception:
+                pass
+        return votes >= 2
+
+    if _scene_done():
+        return
+    context.message = "Story: to Meteor Falls — Team Magma is up to something..."
+    yield from wait_until_truly_controllable()
+    if _map_group_number() != MapRSE.METEOR_FALLS_1F_1R.value:
+        # (8,64) = the swept two-way staging tile directly below the falls door (8,63)
+        # (the first pick (10,62) was unswept and unreachable — rule: sweep from the
+        # REAL entry, here Route 114's Fallarbor-side edge (39,10)).
+        yield from _navigate_riding_out(MapRSE.ROUTE114, (8, 64))
+        yield from _walk_through_warp("Up", MapRSE.ROUTE114.value)
+        yield from wait_until_truly_controllable()
+    yield from _navigate_riding_out(MapRSE.METEOR_FALLS_1F_1R, (15, 18))
+    # One step further west arms the (14,18) trigger; then ride the whole scene chain.
+    frames = 0
+    while not _scene_done():
+        _check_abort()
+        if get_global_script_context().is_active:
+            yield from _wait_until_cutscene_over("B")
+            yield from _ride_out_all_scenes(quiet_frames=300)
+        else:
+            context.emulator.press_button("Left")
+            yield
+        frames += 1
+        if frames > 9000:
+            raise BotModeError("Meteor Falls: the Magma scene never fired/completed.")
+    context.message = "Story: Magma stole the meteorite — the Cable Car road is clear."
+    # Leave the falls (back out the Route 114 door east of the trigger).
+    yield from _enter_warp_by_navigation(
+        lambda: _map_group_number() == MapRSE.ROUTE114.value,
+        MapRSE.METEOR_FALLS_1F_1R, (27, 18), tries=6, label="Meteor Falls exit",
+    )
+    yield from wait_until_truly_controllable()
+
+
+def ride_cable_car_to_summit() -> Generator:
+    """Route to the Route 112 Cable Car station (from the Fallarbor side or already at
+    the station) and ride UP to the Mt. Chimney summit station. Reusable: Segment 11b
+    boards here to reach Maxie, and Segment 11c re-boards here to recover when a
+    whiteout mid-descent respawns the team below the mountain (the cable car is a
+    permanent transit — the attendant still rides you up after Magma is beaten).
+    No-op if already on the summit side. Raises if boarding never succeeds."""
+    STATION = MapRSE.ROUTE112_CABLE_CAR_STATION.value
+    SUMMIT = MapRSE.MT_CHIMNEY_CABLE_CAR_STATION.value
+    CHIM = MapRSE.MT_CHIMNEY.value
+
+    if _map_group_number() in (CHIM, SUMMIT):
+        return
+    yield from wait_until_truly_controllable()
+    if _map_group_number() != STATION:
+        # EXPLICIT route from the Fallarbor side: R113 → R112 north → back SOUTH through
+        # the Fiery Path tunnel → lower R112 → the station. Never let the planner take
+        # the "short" Route 111 desert — it is Go-Goggles-gated by a script the
+        # collision map can't see (overnight run: plan-failed at (11,44)).
+        if _map_group_number() in (
+            MapRSE.FALLARBOR_TOWN.value,
+            MapRSE.FALLARBOR_TOWN_POKEMON_CENTER_1F.value,
+            MapRSE.ROUTE114.value,
+            MapRSE.ROUTE113.value,
+        ):
+            yield from _navigate_riding_out(MapRSE.ROUTE112, (22, 11))
+            yield from _enter_warp_by_navigation(
+                lambda: _map_group_number() == MapRSE.FIERY_PATH.value,
+                MapRSE.ROUTE112, (22, 10), tries=6, label="Fiery Path north door",
+            )
+            yield from wait_until_truly_controllable()
+            yield from _enter_warp_by_navigation(
+                lambda: _map_group_number() == MapRSE.ROUTE112.value,
+                MapRSE.FIERY_PATH, (26, 36), tries=6, label="Fiery Path south exit",
+            )
+            yield from wait_until_truly_controllable()
+        yield from _navigate_riding_out(MapRSE.ROUTE112, (28, 28))
+        yield from _walk_through_warp("Up", MapRSE.ROUTE112.value)
+        yield from wait_until_truly_controllable()
+    # BOARD: the attendant is at (6,6) (probed live — the old code approached (6,8) and
+    # faced the EMPTY tile (6,7), so A hit nothing and boarding never fired: the user's
+    # 2026-07-23 wedge). Talk from (6,7) facing Up; retry the whole approach a few times
+    # because a wild encounter can fire on the walk up and leave us mid-station.
+    boarded = False
+    for _board_try in range(6):
+        _check_abort()
+        if _map_group_number() == SUMMIT:
+            boarded = True
+            break
+        if _map_group_number() != STATION:
+            yield from wait_until_truly_controllable()
+            continue
+        yield from _navigate_riding_out(STATION, (6, 7))
+        yield from wait_for_player_avatar_to_be_standing_still()
+        if tuple(get_player_avatar().local_coordinates) != (6, 7):
+            continue  # a scene bumped us — re-approach
+        context.emulator.press_button("Up")
+        yield
+        yield from wait_for_n_frames(6)
+        context.emulator.press_button("A")
+        yield
+        for _f in range(3000):
+            _check_abort()
+            if _map_group_number() == SUMMIT:
+                boarded = True
+                break
+            if _f % 3 == 0:
+                context.emulator.press_button("A")  # ride YES + the CableCar special
+            yield
+        if boarded:
+            break
+    if not boarded:
+        raise BotModeError("Cable Car: could not board / never arrived at the summit station.")
+    yield from wait_until_truly_controllable()
+    yield from _exit_small_interior()  # step out of the summit station onto Mt. Chimney
+    yield from wait_until_truly_controllable()
+
+
+def do_mt_chimney() -> Generator:
+    """Chapter 11b — Cable Car up Mt. Chimney, beat the Magma chain, take the meteorite.
+
+    HOW (§Ch11, decomp + in-state sweeps): R112 station door (28,27) [the pre-scene
+    Magma blockers are HIDDEN once Ch11a's flag is set — sweeps must run from story
+    states] → attendant at (6,6), talk from (6,7) facing Up, YES → the CableCar special rides up
+    → summit station → out onto MT_CHIMNEY (17-18,36) → north through Grunt1 (13,16) /
+    Grunt2 (9,16) sight-lines → Tabitha (12,11) → talk to MAXIE at (13,6) from (13,7)
+    (trainerbattle_no_intro; Mightyena 24 / Zubat 24 / Camerupt 25 — water lead) →
+    aftermath → TAKE THE METEORITE from the machine at (14,6) (authentic pickup;
+    needed for TM27 later).
+    GOAL/END: DEFEATED_EVIL_TEAM_MT_CHIMNEY (+ RECEIVED_METEORITE), controllable on
+    the summit."""
+    from modules.memory import get_event_flag
+
+    CHIM = MapRSE.MT_CHIMNEY.value
+
+    def _magma_beaten() -> bool:
+        votes = 0
+        for _ in range(3):
+            try:
+                if get_event_flag("DEFEATED_EVIL_TEAM_MT_CHIMNEY"):
+                    votes += 1
+            except Exception:
+                pass
+        return votes >= 2
+
+    if _magma_beaten():
+        return
+    context.message = "Story: taking the Cable Car up Mt. Chimney..."
+    yield from ride_cable_car_to_summit()
+    # The Magma chain: navigating north crosses the grunt sight-lines (fought inline).
+    yield from _navigate_riding_out(MapRSE.MT_CHIMNEY, (13, 17))
+    yield from _navigate_riding_out(MapRSE.MT_CHIMNEY, (12, 12))
+    yield from _navigate_riding_out(MapRSE.MT_CHIMNEY, (13, 7))
+    context.emulator.press_button("Up")  # face Maxie (13,6)
+    yield
+    yield from wait_for_n_frames(6)
+    frames = 0
+    while not _magma_beaten():
+        _check_abort()  # a loss whites out → recovery re-enters this segment
+        context.emulator.press_button("B" if frames % 3 else "A")
+        frames += 1
+        if frames > 40000:
+            raise BotModeError("Mt. Chimney: the Maxie battle never resolved.")
+        yield
+    yield from _wait_until_cutscene_over("B")
+    yield from _ride_out_all_scenes()
+    # The meteorite: machine at (14,6) — stand (14,7), face Up, take it.
+    try:
+        yield from _navigate_riding_out(MapRSE.MT_CHIMNEY, (14, 7))
+        context.emulator.press_button("Up")
+        yield
+        yield from wait_for_n_frames(6)
+        context.emulator.press_button("A")
+        yield
+        yield from _ride_out_scripted_scene("A", engage_timeout=180)
+    except BotModeError:
+        pass  # the meteorite is a bonus — never fail the chapter on it
+    context.message = "Story: Maxie beaten at Mt. Chimney (and the meteorite is ours)!"
+
+
+def do_jagged_descent() -> Generator:
+    """Chapter 11c — down Jagged Pass to Lavaridge Town, ending healed at its PC.
+
+    HOW: summit south area (24,20) → the Jagged warps at (20-21,41) (ledge-hop descent
+    — one-way SOUTH, our direction; in-state sweep OK) → Jagged Pass top (13-14,5) →
+    descend the pass (trainers en route fought inline; ledges hop down) → bottom warps
+    (14-15,40) → R112 lower-west (6-7,46) → WEST connection → LAVARIDGE_TOWN → PC.
+    GOAL/END: healed in Lavaridge (checkpoint `lavaridge.ss1`)."""
+    LAVA = MapRSE.LAVARIDGE_TOWN.value
+    ON_MOUNTAIN = (
+        MapRSE.MT_CHIMNEY.value,
+        MapRSE.MT_CHIMNEY_CABLE_CAR_STATION.value,
+        MapRSE.JAGGED_PASS.value,
+    )
+
+    if _map_group_number() == LAVA:
+        return
+    context.message = "Story: descending Jagged Pass to Lavaridge..."
+    yield from wait_until_truly_controllable()
+    # RECOVERY (user's 2026-07-23 run): a whiteout on a Jagged Pass trainer respawns
+    # the team at Fallarbor — BELOW the one-way descent, with no way back up except the
+    # cable car. Re-ride it to the summit, then descend as normal. (Jagged Pass is
+    # one-way south, so we can never climb back to the top on foot.)
+    if _map_group_number() not in ON_MOUNTAIN:
+        yield from ride_cable_car_to_summit()
+        yield from wait_until_truly_controllable()
+    if _map_group_number() == MapRSE.MT_CHIMNEY.value:
+        yield from _navigate_riding_out(MapRSE.MT_CHIMNEY, (21, 40))
+        yield from _walk_through_warp("Down", MapRSE.MT_CHIMNEY.value)
+        yield from wait_until_truly_controllable()
+    if _map_group_number() == MapRSE.JAGGED_PASS.value:
+        yield from _navigate_riding_out(MapRSE.JAGGED_PASS, (14, 39))
+        yield from _walk_through_warp("Down", MapRSE.JAGGED_PASS.value)
+        yield from wait_until_truly_controllable()
+    yield from _navigate_riding_out(MapRSE.LAVARIDGE_TOWN, (9, 7))
+    context.message = "Story: reached Lavaridge Town!"
+    yield from heal_in_pokemon_center(PokemonCenter.LavaridgeTown)
+
+
+def do_lavaridge_gym() -> Generator:
+    """Chapter 11d — the Lavaridge trapdoor gym: fall through the right holes to
+    Flannery, win the Heat Badge (BADGE04).
+
+    HOW: the maze is SOLVED from the ROM's own map data, not explored. Each floor is
+    scanned for holes (1F behaviour 104), geysers (B1F behaviour 41) and jump-south
+    ledges (behaviour 59 — the hops that join the chambers); that yields a room graph
+    whose edges are "fall through hole H, walk to geyser G". A backward BFS from
+    Flannery's chamber gives the next move from wherever we actually are, so a battle
+    knock-off or a surprise landing just re-plans. From the entrance the chain is four
+    falls: (8,9)→(0,17), (0,10)→(0,6), (2,3)→(7,2), (10,6)→(12,12). Buried gym trainers
+    pop en route and are fought inline. At Flannery's approach (13,10): face
+    Up + A-ride until BADGE04_GET (Numel 24 / Slugma 24 / Camerupt 26 / Torkoal 29 —
+    the caller preps a WATER lead; everything she has is 2× to Water)."""
+    from collections import deque
+
+    from modules.map import get_map_data
+    from modules.memory import get_event_flag
+
+    GYM1F = MapRSE.LAVARIDGE_TOWN_GYM_1F.value
+    GYMB1F = MapRSE.LAVARIDGE_TOWN_GYM_B1F.value
+    FLANNERY_APPROACH = (13, 10)  # below Flannery (13,9)
+
+    def _badge() -> bool:
+        votes = 0
+        for _ in range(3):
+            try:
+                if get_event_flag("BADGE04_GET"):
+                    votes += 1
+            except Exception:
+                pass
+        return votes >= 2
+
+    if _badge():
+        return
+    context.message = "Story: entering the Lavaridge Gym (mind the trapdoors)..."
+    yield from wait_until_truly_controllable()
+    if _map_group_number() not in (GYM1F, GYMB1F):
+        # Town gym door = (5,15) (probed warp table); approach from below.
+        yield from _navigate_riding_out(MapRSE.LAVARIDGE_TOWN, (5, 16))
+        yield from _walk_through_warp("Up", MapRSE.LAVARIDGE_TOWN.value)
+        yield from wait_until_truly_controllable()
+
+    # THE MAZE, SOLVED FROM THE ROM'S OWN DATA (2026-07-23). Three facts, each
+    # verified against the warp/metatile dump (tools/story-dev/lavaridge_gym_probe.py)
+    # and the live trace in ch11d_run8.log:
+    #   * 1F behaviour 104 (MB_LAVARIDGE_GYM_1F_WARP) = a HOLE; falling lands you on
+    #     B1F at the SAME coordinate (every warp pair in this gym is same-coord).
+    #   * B1F behaviour 41 (MB_LAVARIDGE_GYM_B1F_WARP) = a GEYSER; stepping on it
+    #     launches you to 1F at the same coordinate. A warp tile whose behaviour is
+    #     neither is INERT — it is only a landing pad, which is why landings never
+    #     re-trigger.
+    #   * ‼ Behaviour 59 (MB_JUMP_SOUTH) is a LEDGE: collision=1, but you hop it
+    #     DOWNWARD onto the tile two below. The ledges are what join the chambers.
+    #     The previous explorer treated them as walls, so it judged whole rooms
+    #     exit-less and oscillated between two inert tiles until it ran out of rounds
+    #     (ch11d_run9: wedged in the B1F (5,6)/(5,9) chamber, whose only way on is the
+    #     y=11 ledge). With hops modelled, no chamber is a dead end and the chain to
+    #     Flannery is 4 falls: (8,9)->(0,17), (0,10)->(0,6), (2,3)->(7,2), (10,6)->(12,12).
+    # We DERIVE the plan live rather than hardcoding it, so a wrong turn (a battle
+    # knock-off, an unexpected landing) simply re-plans from wherever we ended up.
+    HOLE_MB, GEYSER_MB, LEDGE_MB = 104, 41, 59
+
+    def _scan(gnum):
+        md = get_map_data(gnum, (0, 0))
+        w, h = md.map_size
+        passable, behav, ledges = set(), {}, set()
+        for y in range(h):
+            for x in range(w):
+                t = get_map_data(gnum, (x, y))
+                mb = t._metatile_attributes[0] & 0x1FF  # high bits are the layer type
+                behav[(x, y)] = mb
+                if not t.collision:
+                    passable.add((x, y))
+                elif mb == LEDGE_MB:
+                    ledges.add((x, y))
+        return passable, behav, ledges
+
+    def _steps(t, passable, ledges):
+        """Walkable moves from `t`: the four neighbours, plus the one-way ledge hop
+        (step Down onto a jump-south tile and land two tiles below)."""
+        for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+            n = (t[0] + dx, t[1] + dy)
+            if n in passable:
+                yield n
+        landing = (t[0], t[1] + 2)
+        if (t[0], t[1] + 1) in ledges and landing in passable:
+            yield landing
+
+    def _rooms(passable, ledges):
+        """Chambers (no hops) + the set of tiles reachable FROM each chamber (hops
+        included). Hops are one-way, so reachability is directed."""
+        rooms, room_of = [], {}
+        for start in sorted(passable):
+            if start in room_of:
+                continue
+            comp, q = {start}, deque([start])
+            while q:
+                t = q.popleft()
+                for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+                    n = (t[0] + dx, t[1] + dy)
+                    if n in passable and n not in comp:
+                        comp.add(n)
+                        q.append(n)
+            for t in comp:
+                room_of[t] = len(rooms)
+            rooms.append(comp)
+        reach = {}
+        for i, comp in enumerate(rooms):
+            seen, q = set(comp), deque(comp)
+            while q:
+                t = q.popleft()
+                for n in _steps(t, passable, ledges):
+                    if n not in seen:
+                        seen.add(n)
+                        q.append(n)
+            reach[i] = seen
+        return rooms, room_of, reach
+
+    pass1, behav1, ledge1 = _scan(GYM1F)
+    passB, behavB, ledgeB = _scan(GYMB1F)
+    rooms1, roomof1, reach1 = _rooms(pass1, ledge1)
+    roomsB, roomofB, reachB = _rooms(passB, ledgeB)
+    town_exits = {(13, 18), (14, 18)}
+    holes = {t for t, mb in behav1.items() if mb == HOLE_MB and t not in town_exits}
+    geysers = {t for t, mb in behavB.items() if mb == GEYSER_MB}
+
+    def _room1_of(tile):
+        """1F chamber a geyser lands you in. A couple of landing tiles read as
+        collision (e.g. (4,16), elevation 0) — attribute those to a neighbour."""
+        r = roomof1.get(tile)
+        if r is not None:
+            return r
+        for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+            r = roomof1.get((tile[0] + dx, tile[1] + dy))
+            if r is not None:
+                return r
+        return None
+
+    goal_room = _room1_of(FLANNERY_APPROACH)
+
+    def _occupied():
+        """Tiles held by an NPC (the gym guide, popped buried trainers). Four B1F
+        geysers are the buried trainers' own tiles — never plan through those."""
+        busy = set()
+        try:
+            from modules.map import get_map_objects as _gmo
+
+            me = tuple(get_player_avatar().local_coordinates)
+            for o in _gmo():
+                for c in (getattr(o, "current_coords", None), getattr(o, "previous_coords", None)):
+                    if c is not None and tuple(c) != me:
+                        busy.add(tuple(c))
+        except Exception:
+            pass
+        return busy
+
+    def _room_distances(busy):
+        """Backward BFS over the room graph: how many falls from each 1F chamber to
+        Flannery's. Edge = fall through a reachable hole, walk to a reachable geyser."""
+        edges = {}
+        for r in range(len(rooms1)):
+            outs = set()
+            for hole in holes & reach1[r]:
+                if hole in busy:
+                    continue
+                broom = roomofB.get(hole)
+                if broom is None:
+                    continue
+                for g in geysers & reachB[broom]:
+                    if g in busy:
+                        continue
+                    nr = _room1_of(g)
+                    if nr is not None:
+                        outs.add((nr, hole, g))
+            edges[r] = outs
+        dist = {goal_room: 0}
+        changed = True
+        while changed:  # tiny graph (7 rooms) — relax until stable
+            changed = False
+            for r, outs in edges.items():
+                best = min((dist[nr] + 1 for nr, _h, _g in outs if nr in dist), default=None)
+                if best is not None and best < dist.get(r, 1 << 30):
+                    dist[r] = best
+                    changed = True
+        return dist, edges
+
+    def _hold_walk_to(gnum, target, passable, ledges, avoid) -> Generator:
+        """Walk to `target` with HELD input along a hop-aware BFS path, never stepping
+        on a hazard tile in `avoid` (another hole/geyser would fire en route and throw
+        the plan away). The standard navigator idles in this gym post-warp (the same
+        latent upstream quirk as the post-badge Mauville exit), hence raw held input.
+        Returns True on arrival OR on any map change (a hole/geyser fired)."""
+        from modules.memory import GameState as _GS
+        from modules.memory import get_game_state as _ggs
+
+        target = tuple(target)
+        start = tuple(get_player_avatar().local_coordinates)
+        # NPCs are walls: the gym guide stands at (12,16), squarely on the shortest
+        # path from the entrance to the first hole (run 10 stalled there), and the
+        # buried trainers pop onto B1F tiles as you go.
+        walkable = (passable - avoid - _occupied()) | {target}
+        walkable.add(start)
+        prev = {start: None}
+        q = deque([start])
+        while q:
+            t = q.popleft()
+            if t == target:
+                break
+            for n in _steps(t, walkable, ledges):
+                if n not in prev:
+                    prev[n] = t
+                    q.append(n)
+        if target not in prev:
+            return False
+        path, n = [], target
+        while n is not None:
+            path.append(n)
+            n = prev[n]
+        path.reverse()
+        for nxt in path[1:]:
+            if _map_group_number() != gnum:
+                return True  # transitioned mid-walk
+            px, py = get_player_avatar().local_coordinates
+            delta = (nxt[0] - px, nxt[1] - py)
+            # (0,2) is the ledge hop — same held direction, the avatar clears two tiles.
+            d = {(0, -1): "Up", (0, 1): "Down", (0, 2): "Down", (-1, 0): "Left", (1, 0): "Right"}.get(delta)
+            if d is None:
+                return False  # drifted (battle knock-on) — the outer loop re-plans
+            arrived = False
+            for _f in range(150):
+                _check_abort()
+                if _ggs() is not _GS.OVERWORLD or get_global_script_context().is_active:
+                    context.emulator.reset_held_buttons()
+                    return False  # battle/scene — handled outside
+                context.emulator.hold_button(d)
+                yield
+                if _map_group_number() != gnum:
+                    context.emulator.reset_held_buttons()
+                    return True
+                if tuple(get_player_avatar().local_coordinates) == nxt:
+                    arrived = True
+                    break
+            context.emulator.reset_held_buttons()
+            if not arrived:
+                return False
+        return True
+
+    def _recover() -> Generator:
+        """A leg failed. Ride out a scene only if one is ACTUALLY running — run 10
+        wedged for 18k frames B-riding a scene that never existed (the walk had merely
+        been blocked by the gym guide), so an unconditional ride is a hang, not a
+        recovery. Otherwise just settle and let the outer loop re-plan."""
+        if get_global_script_context().is_active:
+            yield from _ride_out_scripted_scene("B")
+        else:
+            yield from wait_for_n_frames(30)
+
+    rounds = 0
+    stalls = 0
+    while not _badge():
+        _check_abort()
+        rounds += 1
+        if rounds > 80:
+            raise BotModeError("Lavaridge Gym: could not solve the trapdoor maze.")
+        if stalls > 12:
+            raise BotModeError("Lavaridge Gym: repeatedly could not walk the planned leg.")
+        if get_global_script_context().is_active:
+            yield from _ride_out_scripted_scene("B")
+            continue
+        yield from wait_until_truly_controllable()
+        cur_floor = _map_group_number()
+        if cur_floor not in (GYM1F, GYMB1F):
+            yield from wait_for_n_frames(30)
+            continue
+        busy = _occupied()
+        dist, edges = _room_distances(busy)
+        here = tuple(get_player_avatar().local_coordinates)
+
+        if cur_floor == GYM1F:
+            room = _room1_of(here)
+            if room == goal_room or FLANNERY_APPROACH in reach1.get(room, ()):
+                # On (or able to walk onto) Flannery's platform — challenge her.
+                walked = yield from _hold_walk_to(
+                    GYM1F, FLANNERY_APPROACH, pass1, ledge1, holes - {FLANNERY_APPROACH}
+                )
+                if not walked or tuple(get_player_avatar().local_coordinates) != FLANNERY_APPROACH:
+                    stalls += 1
+                    yield from _recover()
+                    continue
+                context.emulator.press_button("Up")
+                yield
+                frames = 0
+                while not _badge():
+                    _check_abort()
+                    context.emulator.press_button("B" if frames % 3 else "A")
+                    frames += 1
+                    if frames > 40000:
+                        raise BotModeError("Lavaridge Gym: the Flannery challenge never resolved.")
+                    yield
+                break
+            # Otherwise fall through the hole that gets us a room closer.
+            options = [e for e in edges.get(room, ()) if e[0] in dist and dist[e[0]] < dist.get(room, 1 << 30)]
+            if not options:
+                yield from wait_for_n_frames(30)
+                continue
+            target = min(options, key=lambda e: dist[e[0]])[1]
+            avoid = (holes | {t for t in behav1 if behav1[t] == GEYSER_MB}) - {target}
+            context.message = f"Story: Lavaridge maze — dropping through the hole at {target}..."
+            walked = yield from _hold_walk_to(GYM1F, target, pass1, ledge1, avoid)
+        else:
+            # B1F: ride the reachable geyser that lands us in the best 1F chamber.
+            broom = roomofB.get(here)
+            cands = []
+            for g in geysers & reachB.get(broom, set()):
+                if g in busy or g == here:
+                    continue  # `here` is our landing tile — re-entering it just undoes the fall
+                nr = _room1_of(g)
+                if nr is not None and nr in dist:
+                    cands.append((dist[nr], abs(g[0] - here[0]) + abs(g[1] - here[1]), g))
+            if not cands:
+                yield from wait_for_n_frames(30)
+                continue
+            target = min(cands)[2]
+            context.message = f"Story: Lavaridge maze — riding the geyser at {target}..."
+            walked = yield from _hold_walk_to(GYMB1F, target, passB, ledgeB, geysers - {target})
+        if not walked:
+            stalls += 1
+            yield from _recover()
+            continue
+        stalls = 0
+        if _map_group_number() == cur_floor:
+            # Arrived but nothing fired yet — a geyser erupts a beat after you land on
+            # it (and some cycle slowly), so give it a generous window before re-planning.
+            for _f in range(900):
+                _check_abort()
+                yield
+                if _map_group_number() != cur_floor:
+                    break
+        yield from wait_for_n_frames(45)  # let the fall / landing settle
+    yield from _wait_until_cutscene_over("B")
+    context.message = "Story: HEAT BADGE earned — Gym 4 (Flannery) beaten!"
+
+
+def travel_lavaridge_to_petalburg() -> Generator:
+    """Chapter 12 travel — the long overland backtrack from Lavaridge to Petalburg for
+    Norman (Gym 5).
+
+    ROUTE (static-probed 2026-07-24, ch12_static_recon*.py — CORRECTS the 2026-07-23
+    "must go via the Fiery Path" note, which misread the door topology: the Fiery
+    tunnel connects lower Route 112 to the ROUTE-113-side section, so it is useless
+    for southbound travel; and the direct corridor is fine): Lavaridge → Route 112
+    (descend the one-way ledges SOUTH — our direction; course y47–51) → Route 111 at
+    the west junction (y67–99 — the SAME corridor Ch10's travel_to_fallarbor walked
+    northbound at ground truth, so the Go-Goggles desert, which seals y≈61–88 further
+    NORTH, never touches it) → smash the twin-rocks choke from the NORTH side (rocks
+    RESPAWN on map reload, so Ch10's smash is gone; column 18 needs only the (18,101)
+    rock: stage (18,100), face Down; _smash_rock is idempotent if it's already open)
+    → Route 111 south (y102–139) → Mauville. Then: Route 117 (forced doubles — the
+    listener attack-throughs) → Verdanturf → Rusturf Tunnel (warp-linked (8,1)↔(4,10);
+    Ch10's boulders also respawn — the tunnel legs ride _enter_warp_by_navigation and
+    the interior needs no boulder removal for the through-path) → Route 116 → Rustboro
+    → Route 104 north → Petalburg Woods (N→S, no Cut) → Route 104 south → Petalburg.
+    Progress-gated + idempotent legs; GOAL/END: in Petalburg City."""
+    PETALBURG = MapRSE.PETALBURG_CITY.value
+
+    if _map_group_number() == PETALBURG:
+        return
+    context.message = "Story: heading to Petalburg — the long road to Norman..."
+    yield from wait_until_truly_controllable()
+
+    # Leg 1 (only when starting from the Lavaridge side): descend to Route 111 above
+    # the twin rocks, re-smash the (18,101) rock from the north, and continue south.
+    # Gated by map so a mid-route resume (Mauville onward) skips it entirely.
+    if _map_group_number() in (
+        MapRSE.LAVARIDGE_TOWN.value,
+        MapRSE.ROUTE112.value,
+        MapRSE.ROUTE111.value,
+    ):
+        context.message = "Story: to Petalburg — down Route 112's ledges to Route 111..."
+        yield from _navigate_riding_out(MapRSE.ROUTE111, (18, 99))
+        yield from _smash_rock(MapRSE.ROUTE111, (18, 100), "Down")
+
+    # The remaining legs, in order: (target map, a SAFE interior tile — never a
+    # warp/ledge tile). A leg is skipped once we are already past it (idempotent
+    # resume): we only run a leg while we are on an EARLIER map than its target.
+    LEGS = [
+        (MapRSE.MAUVILLE_CITY, (19, 6), "Mauville City"),
+        (MapRSE.ROUTE117, (30, 8), "Route 117"),
+        (MapRSE.VERDANTURF_TOWN, (16, 9), "Verdanturf Town"),
+    ]
+    # ‼ EVERY overworld corridor map must be ranked (ch12_run1, 2026-07-24): a derail
+    # in Petalburg Woods resumed with _rank(WOODS) == -1 ("not past anything") and the
+    # travel re-ran the MAUVILLE leg BACKWARDS from the Woods until Manual. Unknown
+    # maps (interiors) still rank -1 = run all legs, which is right for whiteout
+    # respawns at earlier towns' Poké Centers.
+    order = [
+        MapRSE.LAVARIDGE_TOWN.value, MapRSE.ROUTE112.value, MapRSE.ROUTE111.value,
+        MapRSE.MAUVILLE_CITY.value, MapRSE.ROUTE117.value, MapRSE.VERDANTURF_TOWN.value,
+        MapRSE.RUSTURF_TUNNEL.value, MapRSE.ROUTE116.value, MapRSE.RUSTBORO_CITY.value,
+        MapRSE.ROUTE104.value, MapRSE.PETALBURG_WOODS.value, MapRSE.PETALBURG_CITY.value,
+    ]
+
+    def _rank(gnum) -> int:
+        return order.index(gnum) if gnum in order else -1
+
+    for map_enum, tile, label in LEGS:
+        _check_abort()
+        if _rank(_map_group_number()) >= _rank(map_enum.value) and _map_group_number() != MapRSE.LAVARIDGE_TOWN.value:
+            continue  # already past this leg (resume)
+        context.message = f"Story: to Petalburg — {label}..."
+        yield from _navigate_riding_out(map_enum, tile, tries=8)
+        yield from wait_until_truly_controllable()
+
+    # Verdanturf → Rusturf Tunnel → Route 116 (warp-linked, not edge connections).
+    if _map_group_number() == MapRSE.VERDANTURF_TOWN.value:
+        context.message = "Story: to Petalburg — through Rusturf Tunnel..."
+        yield from _enter_warp_by_navigation(
+            lambda: _map_group_number() == MapRSE.RUSTURF_TUNNEL.value,
+            MapRSE.VERDANTURF_TOWN, (8, 1), tries=6, label="Rusturf Tunnel (Verdanturf door)",
+        )
+        yield from wait_until_truly_controllable()
+    if _map_group_number() == MapRSE.RUSTURF_TUNNEL.value:
+        # The WANDA-QUEST rock wall (probed 2026-07-24): two breakable rocks at
+        # (24,5)/(24,4) seal the tunnel's middle until the reunion quest opens it
+        # (their flags 931/932 are PERMANENT — once smashed, open forever; a resume
+        # after the quest skips both smashes via _smash_rock's idempotence). Wanda
+        # (25,4) and her boyfriend (23,5) flank the wall — smash row 5 first from
+        # (25,5) (open), ride out the reunion scene, then row 4 if it still blocks.
+        context.message = "Story: to Petalburg — opening the Rusturf wall (Wanda's quest)..."
+        yield from _smash_rock(MapRSE.RUSTURF_TUNNEL, (25, 5), "Left")
+        yield from _ride_out_all_scenes(quiet_frames=300)  # the couple's reunion
+        try:
+            yield from _smash_rock(MapRSE.RUSTURF_TUNNEL, (24, 5), "Up")  # (24,4) from below
+        except BotModeError:
+            pass  # row 4 already open (scene cleared it / rock gone) — continue
+        yield from _enter_warp_by_navigation(
+            lambda: _map_group_number() == MapRSE.ROUTE116.value,
+            MapRSE.RUSTURF_TUNNEL, (4, 10), tries=6, label="Rusturf Tunnel (Route 116 door)",
+        )
+        yield from wait_until_truly_controllable()
+
+    # Route 116 → Rustboro → Route 104 north.
+    if _map_group_number() == MapRSE.ROUTE116.value:
+        context.message = "Story: to Petalburg — Route 116 → Rustboro..."
+        yield from _navigate_riding_out(MapRSE.RUSTBORO_CITY, (23, 55), tries=8)
+        yield from wait_until_truly_controllable()
+    if _map_group_number() == MapRSE.RUSTBORO_CITY.value:
+        yield from _navigate_riding_out(MapRSE.ROUTE104, (24, 12), tries=8)
+        yield from wait_until_truly_controllable()
+
+    # Route 104 north → Petalburg Woods → Route 104 south-east → Petalburg.
+    # Route 104 is ONE map split by the Woods band (rows 31-37 are solid wall; door
+    # pairs at y30 north / y38+y42 south — mapfacts 2026-07-24), so which half we are
+    # on is decided by y (< 38 = north side, the wall rows being unstandable).
+    if (
+        _map_group_number() == MapRSE.ROUTE104.value
+        and get_player_avatar().local_coordinates[1] < 38
+    ):
+        context.message = "Story: to Petalburg — through Petalburg Woods..."
+        yield from _navigate_riding_out(MapRSE.PETALBURG_WOODS, (26, 5), tries=8)
+        yield from wait_until_truly_controllable()
+    if _map_group_number() == MapRSE.PETALBURG_WOODS.value:
+        # ‼ Exit via the SOUTH-EAST door (36,38) EXPLICITLY (ch12_run2): the warp
+        # graph is region-blind on the split Route 104 — asked for "Route 104" it
+        # exited the NORTH door back onto the sealed Rustboro half. The SE door
+        # lands at R104 (32,42), the Petalburg-side section (probed pathable to the
+        # city). Interior southbound is one-way-ledge but statically pathable from
+        # the north-door landing to every south door.
+        yield from _enter_warp_by_navigation(
+            lambda: (
+                _map_group_number() == MapRSE.ROUTE104.value
+                and get_player_avatar().local_coordinates[1] >= 39
+            ),
+            MapRSE.PETALBURG_WOODS, (36, 38), tries=8, label="Petalburg Woods SE exit",
+        )
+        yield from wait_until_truly_controllable()
+    if _map_group_number() == MapRSE.ROUTE104.value:
+        yield from _navigate_riding_out(MapRSE.PETALBURG_CITY, (15, 10), tries=8)
+        yield from wait_until_truly_controllable()
+
+    context.message = "Story: reached Petalburg City — Norman's gym awaits."
+
+
+# The Petalburg Gym left-door speedrun chain (static warp table, ch12 recon
+# 2026-07-24 — ch12_static_recon*.py / petalburg_gym_probe.py). Each step:
+# (room trainer tile or None, internal door tile to step on, landing tile).
+# Doors are VAR_PETALBURG_GYM_STATE-gated: a room's doors open only after its
+# trainer is beaten, so a closed door = "engage the trainer first".
+PETALBURG_GYM_CHAIN = [
+    (None, (1, 105), (7, 85)),     # entrance room (no trainer) → Randall's room
+    ((4, 81), (1, 79), (7, 46)),   # beat Randall → Parker's room
+    ((4, 42), (7, 40), (1, 20)),   # beat Parker → Jody's room
+    ((4, 16), (7, 14), (1, 7)),    # beat Jody → Norman's room
+]
+
+
+def do_petalburg_gym() -> Generator:
+    """Chapter 12b — Petalburg Gym: beat NORMAN for the Balance Badge (BADGE05) and
+    collect HM03 Surf via the Wally's-dad handoff.
+
+    INTENT: clear Gym 5 and unlock the Surf arc (Ch13+).
+    STORY CONDITION: in Petalburg City with 4 badges (the gym only opens then).
+    HOW IT WORKS: enter via the city door (15,8) → walk the LEFT-DOOR speedrun chain
+    (PETALBURG_GYM_CHAIN; three trainers — Randall/Parker/Jody, ~L26-27 — engaged
+    via sight-line or a direct talk when their door stays shut) → challenge Norman
+    (4,2) from (4,3) (Spinda27/Vigoroth27/Linoone29/Slaking31 — Slaking's TRUANT
+    loafs every other turn; the attack-through strategy rides it) → BADGE05_GET +
+    TM42 → then STEP DOWN in Norman's room: the VAR_PETALBURG_GYM_STATE==6 coord
+    trigger walks Wally's Dad in and WARPS us to Wally's house, whose auto-script
+    hands over HM03 Surf (RECEIVED_HM_SURF). ‼ Never leave the gym any other way
+    after the badge — skipping the trigger soft-locks Surf.
+    GOAL/END STATE: BADGE05_GET + RECEIVED_HM_SURF (in Wally's house)."""
+    from modules.memory import get_event_flag
+
+    GYM = MapRSE.PETALBURG_CITY_GYM
+
+    if get_event_flag("RECEIVED_HM_SURF"):
+        return
+    context.message = "Story: entering Petalburg Gym to challenge Norman..."
+    if _map_group_number() != GYM.value:
+        yield from _enter_warp_by_navigation(
+            lambda: _map_group_number() == GYM.value,
+            MapRSE.PETALBURG_CITY, (15, 8), tries=6, label="Petalburg Gym door",
+        )
+        yield from wait_until_truly_controllable()
+
+    # Walk the door chain bottom→top. ‼ The doors are NOT walk-through tiles: each
+    # is a collision-blocked SIGN script (decomp: PetalburgCity_Gym_EventScript_
+    # *RoomDoor) — face it, press A, answer YES to its "go through?" prompt, and the
+    # script WARPDOORs you to the landing. Later doors answer "locked" until their
+    # gating trainer is beaten (Confusion←Randall, LeftStrength←Parker, GymLeaders←
+    # Jody); the entrance pair needs only VAR_PETALBURG_GYM_STATE ≥ 6 (4 badges).
+    # Idempotent on resume: a step is skipped when we are already at/above its
+    # landing row (y decreases while ascending); beaten trainers stay beaten.
+    if not get_event_flag("BADGE05_GET"):
+        for trainer_tile, door, landing in PETALBURG_GYM_CHAIN:
+            _check_abort()
+            if _map_group_number() == GYM.value and get_player_avatar().local_coordinates[1] <= landing[1]:
+                continue  # already past this wall
+            rounds = 0
+            while not (
+                _map_group_number() == GYM.value
+                and get_player_avatar().local_coordinates[1] <= landing[1]
+            ):
+                _check_abort()
+                rounds += 1
+                if rounds > 12:
+                    raise BotModeError(f"Petalburg Gym: never got through the door at {door}.")
+                if trainer_tile is not None and rounds >= 2:
+                    # The door answered "locked" → the room's trainer isn't beaten
+                    # yet. Stand below them and talk — the battle listener fights it.
+                    try:
+                        yield from navigate_to_anywhere(
+                            GYM, (trainer_tile[0], trainer_tile[1] + 1),
+                            avoid_encounters=True, avoid_scripted_events=False,
+                        )
+                        yield from ensure_facing_direction("Up")
+                        context.emulator.press_button("A")
+                        yield from wait_for_n_frames(30)
+                    except BotModeError:
+                        pass  # their sight-line battle interrupted the walk — fine
+                    yield from _ride_out_all_scenes(quiet_frames=240)
+                    yield from wait_until_truly_controllable()
+                # Approach the tile BELOW the door sign and interact.
+                try:
+                    yield from navigate_to_anywhere(
+                        GYM, (door[0], door[1] + 1),
+                        avoid_encounters=True, avoid_scripted_events=False,
+                    )
+                except BotModeError:
+                    # A sight-line battle interrupted the approach — ride and retry.
+                    yield from _ride_out_scripted_scene("B")
+                    yield from wait_until_truly_controllable()
+                    continue
+                yield from wait_until_truly_controllable()
+                if tuple(get_player_avatar().local_coordinates) != (door[0], door[1] + 1):
+                    continue  # got bumped — re-approach
+                yield from ensure_facing_direction("Up")
+                # A opens the sign's msgbox; A again advances it; the YES/NO cursor
+                # defaults to YES, so A confirms and the warpdoor fires. Bounded
+                # ride: judge by ARRIVAL at/above the landing row (a "locked"
+                # answer leaves us in place → the loop engages the trainer next).
+                for _f in range(600):
+                    _check_abort()
+                    if get_player_avatar().local_coordinates[1] <= landing[1]:
+                        break
+                    if _f % 10 == 0:
+                        context.emulator.press_button("A")
+                    yield
+                yield from wait_until_truly_controllable()
+
+        # Challenge Norman from (4,3), facing up; ride the whole battle + badge chat.
+        context.message = "Story: challenging NORMAN (Gym 5)..."
+        rounds = 0
+        while tuple(get_player_avatar().local_coordinates) != (4, 3) or _map_group_number() != GYM.value:
+            _check_abort()
+            rounds += 1
+            if rounds > 10:
+                raise BotModeError("Petalburg Gym: could not reach the challenge tile below Norman.")
+            try:
+                yield from navigate_to_anywhere(GYM, (4, 3), avoid_encounters=True, avoid_scripted_events=False)
+            except BotModeError:
+                yield from _ride_out_scripted_scene("B")
+        yield from ensure_facing_direction("Up")
+        frames = 0
+        while not get_event_flag("BADGE05_GET"):
+            _check_abort()  # a whiteout unwinds to the defeat recovery
+            context.emulator.press_button("B" if frames % 3 else "A")
+            frames += 1
+            if frames > 40000:
+                raise BotModeError("Petalburg Gym: the Norman challenge never resolved to a badge.")
+            yield
+        yield from _wait_until_cutscene_over("B")
+        context.message = "Story: BALANCE BADGE earned — Gym 5 (Norman) beaten!"
+
+    # HM03 Surf handoff (decomp-verified 2026-07-24): FULLY AUTOMATIC — the Norman
+    # defeat script itself walks Wally's Dad in, warps us out of the gym, leads to
+    # Wally's house, and hands over HM03 (RECEIVED_HM_SURF). Nothing to trigger;
+    # just ride the whole scripted chain out. B in the brief controllable gaps
+    # advances any lingering text and can never move us onto a stray warp.
+    context.message = "Story: riding the Wally's-dad scene — HM03 Surf incoming..."
+    frames = 0
+    while not get_event_flag("RECEIVED_HM_SURF"):
+        _check_abort()
+        if get_global_script_context().is_active or not player_avatar_is_controllable():
+            yield from _wait_until_cutscene_over("B")
+        else:
+            context.emulator.press_button("B")
+            yield
+        frames += 1
+        if frames > 15000:
+            raise BotModeError("Petalburg Gym: the Surf handoff (Wally's dad) never fired.")
+    yield from _wait_until_cutscene_over("B")
+    yield from wait_until_truly_controllable()
+    context.message = "Story: HM03 Surf received!"
+
+
+def travel_to_fortree() -> Generator:
+    """Chapter 13a travel — Mauville → Route 118 (SURF the river) → Route 119 north →
+    Fortree City, healing at its PC. ‼ Requires Surf taught (Segment 12c) — the
+    pathfinder plans water legs natively once BADGE05 + a Surf mon hold (§Ch13 spec,
+    flags audited 2026-07-24). ⚠ SURF CROSSING NOT YET LIVE-VALIDATED — first run
+    from a post-Surf save must watch the R118 east-bank Steven scene (ride it) and
+    the crossing itself.
+
+    Progress-gated riding legs (the Ch12a pattern): a leg is skipped once we are on
+    a LATER map. Route 119's mid-route content (Weather Institute, bridge grunts,
+    rival) is handled by the FOLLOWING segments — this travel stops at Fortree only
+    if the road is already clear; otherwise the institute/rival segments run first
+    from wherever the navigation was interrupted (they gate on their own flags)."""
+    FORTREE = MapRSE.FORTREE_CITY.value
+
+    if _map_group_number() == FORTREE:
+        return
+    context.message = "Story: the Surf arc — east to Route 118, then north to Fortree..."
+    yield from wait_until_truly_controllable()
+
+    # ‼ EVERY Fortree-side map must be ranked at/after FORTREE (the Ch12a Woods
+    # lesson, re-learned on ROUTE120 in the r8 replay: an unranked map = rank -1 =
+    # "run every leg" = a backwards march to Mauville and a NO-PATH Manual).
+    order = [
+        MapRSE.PETALBURG_CITY.value, MapRSE.ROUTE102.value, MapRSE.ROUTE110.value,
+        MapRSE.MAUVILLE_CITY.value, MapRSE.ROUTE118.value, MapRSE.ROUTE119.value,
+        MapRSE.FORTREE_CITY.value,
+        MapRSE.FORTREE_CITY_POKEMON_CENTER_1F.value, MapRSE.FORTREE_CITY_GYM.value,
+        MapRSE.ROUTE120.value,
+    ]
+    LEGS = [
+        (MapRSE.MAUVILLE_CITY, (19, 6), "Mauville City"),
+        (MapRSE.ROUTE118, (20, 10), "Route 118 (west bank)"),
+        (MapRSE.ROUTE118, (49, 8), "Route 118 (across the water)"),
+        (MapRSE.ROUTE119, (25, 125), "Route 119 (south)"),
+        # (6,33) = the Weather Institute door row — statically pathable from the south
+        # leg with Surf (probed 2026-07-24 on the live wedge state; the earlier (8,30)
+        # pick was an unreachable pocket and cost run 1 a Manual).
+        (MapRSE.ROUTE119, (6, 33), "Route 119 (Weather Institute)"),
+        (MapRSE.FORTREE_CITY, (5, 7), "Fortree City"),
+    ]
+
+    def _rank(gnum) -> int:
+        return order.index(gnum) if gnum in order else -1
+
+    from modules.memory import get_event_flag
+
+    def _bridge_open() -> bool:
+        try:
+            return bool(get_event_flag("HIDE_ROUTE_119_TEAM_AQUA"))
+        except Exception:
+            return False
+
+    for map_enum, tile, label in LEGS:
+        _check_abort()
+        # ‼ The road past the Weather Institute is STORY-BLOCKED until Shelly is
+        # beaten (the bridge grunts (13,33-34) despawn with the HIDE flag) — the
+        # Fortree leg must yield to the institute segment instead of burning its
+        # retries into a Manual (ch13_run2). Stop at the institute row; _play's
+        # Segment 13b owns the next step and re-calls this travel afterwards.
+        if map_enum.value == MapRSE.FORTREE_CITY.value and not _bridge_open():
+            context.message = "Story: the bridge ahead is blocked — the Weather Institute first."
+            return
+        cur_rank = _rank(_map_group_number())
+        tgt_rank = _rank(map_enum.value)
+        if cur_rank > tgt_rank:
+            continue  # already past this leg (resume)
+        if cur_rank == tgt_rank and map_enum.value != MapRSE.ROUTE118.value and map_enum.value != MapRSE.ROUTE119.value:
+            continue  # same non-split map — the next leg handles the move onward
+        context.message = f"Story: to Fortree — {label}..."
+        yield from _navigate_riding_out(map_enum, tile, tries=8)
+        yield from wait_until_truly_controllable()
+
+    if _map_group_number() == FORTREE:
+        context.message = "Story: reached Fortree City!"
+        yield from heal_in_pokemon_center(PokemonCenter.FortreeCity)
+
+
+def do_weather_institute() -> Generator:
+    """Chapter 13b — clear the Weather Institute (Shelly) and accept Castform.
+
+    STORY CONDITION: on Route 119 with the institute unclear. Door at R119 (6,32);
+    interior grunts + SHELLY (Carvanha/Mightyena L28) are fought inline by the
+    listener while navigating to the top floor. Completion:
+    `HIDE_ROUTE_119_TEAM_AQUA` (also despawns the bridge grunts (13,33-34)).
+    Castform is offered afterwards (`RECEIVED_CASTFORM`) — accepted if a party slot
+    is free, politely declined (B) otherwise. ⚠ interior tiles are build-time
+    leads — validate on the first post-Surf run."""
+    from modules.memory import get_event_flag
+
+    def _cleared() -> bool:
+        try:
+            return bool(get_event_flag("HIDE_ROUTE_119_TEAM_AQUA"))
+        except Exception:
+            return False
+
+    if _cleared():
+        return
+    context.message = "Story: Team Aqua is squatting in the Weather Institute — evicting them..."
+    yield from wait_until_truly_controllable()
+    # Enter via the R119 door (6,32) → interior 1F (9,12).
+    yield from _enter_warp_by_navigation(
+        lambda: _map_group_number() not in (MapRSE.ROUTE119.value,),
+        MapRSE.ROUTE119, (6, 32), tries=6, label="Weather Institute door",
+    )
+    yield from wait_until_truly_controllable()
+    # Interior sweep (structure probed 2026-07-24 after run 3 wandered 1F for 130k
+    # frames): 1F stairs at (17,1) → 2F (17,1); SHELLY at 2F (4,6), grunts at 1F
+    # (15,3)/(10,5) and 2F (15,6)/(10,8)/(19,6) — all flag-890 (they despawn with
+    # the clear). Walk 1F → stairs → 2F → stand beside Shelly (5,6) → talk; the
+    # listener fights every engagement; ride everything until the HIDE flag sets.
+    frames = 0
+    while not _cleared():
+        _check_abort()
+        if get_global_script_context().is_active or not player_avatar_is_controllable():
+            yield from _wait_until_cutscene_over("B")
+            frames += 100
+            continue
+        cur = _map_group_number()
+        try:
+            if cur == MapRSE.ROUTE119_WEATHER_INSTITUTE_1F.value:
+                # Up the stairs — the on-path grunts engage inline.
+                yield from navigate_to_anywhere(
+                    MapRSE.ROUTE119_WEATHER_INSTITUTE_1F, (17, 1),
+                    avoid_encounters=True, avoid_scripted_events=False,
+                )
+            elif cur == MapRSE.ROUTE119_WEATHER_INSTITUTE_2F.value:
+                yield from navigate_to_anywhere(
+                    MapRSE.ROUTE119_WEATHER_INSTITUTE_2F, (5, 6),
+                    avoid_encounters=True, avoid_scripted_events=False,
+                )
+                yield from ensure_facing_direction("Left")
+                context.emulator.press_button("A")
+                yield from wait_for_n_frames(30)
+                yield from _ride_out_all_scenes(quiet_frames=300)
+            else:
+                # Bumped back outside (whiteout respawn / recovery) — re-enter.
+                yield from _enter_warp_by_navigation(
+                    lambda: _map_group_number() in (
+                        MapRSE.ROUTE119_WEATHER_INSTITUTE_1F.value,
+                        MapRSE.ROUTE119_WEATHER_INSTITUTE_2F.value,
+                    ),
+                    MapRSE.ROUTE119, (6, 32), tries=6, label="Weather Institute door",
+                )
+        except BotModeError:
+            yield from _ride_out_scripted_scene("B")
+        frames += 200
+        if frames > 80000:
+            raise BotModeError("Weather Institute: never cleared (Shelly not beaten?).")
+    context.message = "Story: Weather Institute cleared!"
+    # Castform offer rides on the aftermath dialogue — the rider answers YES-shaped
+    # prompts with A only when a real choice box is up (party-full = B declines).
+    yield from _ride_out_all_scenes(quiet_frames=300)
+    # Leave the building (back out the entrance door).
+    yield from normalize_to_overworld()
+
+
+def _clear_stale_battle_message() -> Generator:
+    """A mid-navigation battle can leave its last message ('X gained EXP', 'got $N',
+    'Got away safely!') PARKED on screen — input-blocking, A-only-dismissable (the
+    KI-15 wedge family). Before any talk ritual (face + A at an NPC), clear it:
+    press A only while a message is genuinely waiting with NO field script running —
+    a state in which A cannot start a conversation because the message consumes it.
+    Bounded; a no-op when nothing is parked."""
+    for _try in range(3):
+        if not (
+            is_waiting_for_input()
+            and not get_global_script_context().is_active
+            and not get_immediate_script_context().is_active
+        ):
+            return
+        context.emulator.press_button("A")
+        yield
+        yield from wait_for_n_frames(20)
+
+
+def _hold_walk_route(steps, *, stop_on_script: bool = True, per_leg_bound: int = 900) -> Generator:
+    """Walk a fixed route with HELD input: `steps` = [(direction, (x,y)), ...] — hold
+    each direction until the tile is reached. For tiles the planner is blind to
+    (BRIDGES: their dual-elevation reads as walls statically — Route 119's spans,
+    2026-07-24 — same family as the Lavaridge gym's post-warp idling). Breaks (and
+    releases input) the moment a field script fires when ``stop_on_script`` — walking
+    INTO a coord trigger is often the goal. Bounded per leg."""
+    try:
+        for direction, tgt in steps:
+            # release the PREVIOUS leg's held direction — two directions held at
+            # once make the game keep the first (run 7: Up stayed held, so the
+            # Right leg bumped Up into the river for 300k frames).
+            context.emulator.reset_held_buttons()
+            tgt = tuple(tgt)
+            frames = 0
+            while tuple(get_player_avatar().local_coordinates) != tgt:
+                _check_abort()
+                if stop_on_script and get_global_script_context().is_active:
+                    return
+                context.emulator.hold_button(direction)
+                yield
+                frames += 1
+                if frames > per_leg_bound:
+                    raise BotModeError(f"held walk: never reached {tgt} heading {direction}.")
+    finally:
+        context.emulator.reset_held_buttons()
+
+
+def fight_route119_rival_and_get_fly() -> Generator:
+    """Chapter 13c — the Route 119 rival (bridge, ~(17,33)) → HM02 Fly.
+
+    STORY CONDITION: institute cleared (the bridge grunts are gone). Walk the bridge
+    north; the rival engages (L29/29/31). After the win the scene hands over HM02.
+    Completion: `RECEIVED_HM_FLY` (+ `HIDE_ROUTE_119_RIVAL` when they leave).
+    ‼ The phantom flag "DEFEATED_RIVAL_ROUTE_119" does NOT exist — never gate on it."""
+    from modules.memory import get_event_flag
+
+    def _done_here() -> bool:
+        try:
+            return bool(get_event_flag("RECEIVED_HM_FLY"))
+        except Exception:
+            return False
+
+    if _done_here():
+        return
+    context.message = "Story: the rival waits on the Route 119 bridge..."
+    yield from wait_until_truly_controllable()
+    frames = 0
+    while not _done_here():
+        _check_abort()
+        if get_global_script_context().is_active or not player_avatar_is_controllable():
+            yield from _wait_until_cutscene_over("B")
+            frames += 100
+            continue
+        try:
+            # ‼ DECOMP TRUTH (corrects runs 4-6): the encounter is a COORD TRIGGER
+            # at (25,31)/(26,31) (fires while VAR_ROUTE119_STATE==0); the walking
+            # rival waits at (25,32); x17's object is just the on-bike PROP. And the
+            # BRIDGE tiles are planner-blind (dual elevation reads as walls — run 6
+            # NO-PATHed everything), so: navigate to the pathable west staging, then
+            # HELD-INPUT walk the span east and step up into the trigger (probed
+            # live: (17,33)→hold Right→(29,33) walks fine).
+            yield from _navigate_riding_out(MapRSE.ROUTE119, (17, 34), tries=6)
+            yield from _hold_walk_route([
+                ("Up", (17, 33)),
+                ("Right", (25, 33)),
+                ("Up", (25, 31)),   # ← the trigger row; the scene fires mid-hold
+            ])
+            yield from _ride_out_all_scenes(quiet_frames=300)
+        except BotModeError:
+            # The trigger firing mid-step aborts navigation — that IS the encounter
+            # starting; ride it.
+            yield from _ride_out_scripted_scene("B")
+            yield from _ride_out_all_scenes(quiet_frames=300)
+        frames += 200
+        if frames > 40000:
+            raise BotModeError("Route 119: the rival fight / HM02 Fly never resolved.")
+    context.message = "Story: HM02 Fly received!"
+
+
+def _leave_route120_north_bridge() -> Generator:
+    """Steven's Devon-Scope scene strands the avatar on the Route 120 NORTH BRIDGE at
+    (13,16) — an ISOLATED tile the planner can't leave (probed: every direction snaps
+    to (13,15), calculate_path NO-PATHs everywhere from it). HELD-INPUT west to (5,15),
+    from which the planner reaches Fortree. No-op unless we're stranded up there. Made
+    a shared helper so a resume/derail that lands on the bridge (not only the in-line
+    get_devon_scope flow) recovers too."""
+    # ‼ THE GUARD MUST MATCH THE STRAND, NOT HALF THE MAP (2026-07-24, proven by
+    # tools/story-dev/repro_route120_bridge_guard_fault.py). The old guard was
+    # `y <= 16` alone, which is true of the whole WESTERN half of Route 120 —
+    # including (5,15), this very helper's own DESTINATION. So after the first
+    # crossing succeeded, a later mid-route battle + StoryMode restart re-entered
+    # here from (5,15) and re-ran "hold Up until (13,15)" — geometrically impossible
+    # from x=5, since holding Up only changes y. It burned the 900-frame per-leg
+    # bound and raised "held walk: never reached (13, 15) heading Up" every time.
+    # A/B: from (13,16) the identical generator returns cleanly in 359 frames; from
+    # (5,15) it raises after 1101. The strand is the x>=12 column, so gate on it.
+    # (Also ruled out by probe: (13,15) is collision=0, unoccupied — Steven's
+    # template flag 972 is already flushed — so this was never an NPC or terrain bug.)
+    if _map_group_number() == MapRSE.ROUTE120.value:
+        x, y = tuple(get_player_avatar().local_coordinates)
+        if y <= 16 and x >= 12:
+            yield from _clear_stale_battle_message()
+            yield from _ride_out_all_scenes(quiet_frames=200)
+            yield from _hold_walk_route([("Up", (13, 15)), ("Left", (5, 15))], stop_on_script=False)
+            yield from wait_until_truly_controllable()
+
+
+def get_devon_scope() -> Generator:
+    """Chapter 13d — Steven's Devon Scope + flushing Fortree's gym-path Kecleon.
+
+    STORY CONDITION: at/around Fortree with the gym still Kecleon-blocked.
+    HOW (probed 2026-07-24): Route 120 north bridge — STEVEN at (13,15) beside the
+    invisible BridgeKecleon (12,16). Approach from the Fortree side, talk to Steven
+    (A), ride the scene → a forced Kecleon battle (L30) → he hands over the DEVON
+    SCOPE (`RECEIVED_DEVON_SCOPE`) and leaves. Then back into Fortree: the gym-path
+    Kecleon at (25,8) (flag 969) is flushed by facing it and pressing A with the
+    Scope (one more L30 battle) — after which the gym door (22,11) is reachable.
+    ⚠ SKELETON — first-run-validate the approach tiles + scene rides."""
+    from modules.memory import get_event_flag
+
+    def _have_scope() -> bool:
+        try:
+            return bool(get_event_flag("RECEIVED_DEVON_SCOPE"))
+        except Exception:
+            return False
+
+    if not _have_scope():
+        context.message = "Story: Steven needs a hand on Route 120 (Devon Scope)..."
+        yield from wait_until_truly_controllable()
+        frames = 0
+        while not _have_scope():
+            _check_abort()
+            if get_global_script_context().is_active or not player_avatar_is_controllable():
+                yield from _wait_until_cutscene_over("B")
+                frames += 100
+                continue
+            try:
+                # Stand beside Steven (13,15): approach (14,15), face Left, talk.
+                yield from _navigate_riding_out(MapRSE.ROUTE120, (14, 15), tries=6)
+                # a route-trainer battle en route can park its last message —
+                # A-only, input-blocking (run 8 wedged 20k frames on it here)
+                yield from _clear_stale_battle_message()
+                yield from ensure_facing_direction("Left")
+                context.emulator.press_button("A")
+                yield from wait_for_n_frames(30)
+                # ‼ Steven's scene contains a YES/NO ("battle the Kecleon?") — ride
+                # with the CHOICE-AWARE rider (A only at genuine choice boxes, B
+                # otherwise); raw-B riding declined it in a loop (run 9).
+                yield from _wait_until_cutscene_over("A")
+                yield from _ride_out_all_scenes(quiet_frames=300)
+            except BotModeError:
+                yield from _ride_out_scripted_scene("B")
+            frames += 300
+            if frames > 40000:
+                raise BotModeError("Route 120: the Steven/Devon-Scope scene never resolved.")
+        context.message = "Story: DEVON SCOPE received!"
+
+    # Off the Route 120 north bridge that Steven's scene strands us on (see helper).
+    yield from _leave_route120_north_bridge()
+
+    # Flush the Fortree gym-path Kecleon (city object (25,8), flag 969) if it still
+    # stands. Idempotent: skip when the object is gone.
+    from modules.map import get_map_objects
+
+    def _city_kecleon_present() -> bool:
+        try:
+            if _map_group_number() != MapRSE.FORTREE_CITY.value:
+                return True  # can't see it from elsewhere — go look
+            return any(tuple(o.current_coords) == (25, 8) for o in get_map_objects())
+        except Exception:
+            return True
+
+    context.message = "Story: flushing the invisible thing on Fortree's bridge..."
+    rounds = 0
+    while _city_kecleon_present():
+        _check_abort()
+        rounds += 1
+        if rounds > 10:
+            raise BotModeError("Fortree: the gym-path Kecleon never flushed.")
+        try:
+            # ‼ APPROACH FROM THE NORTH, NOT THE WEST (probed 2026-07-24, after this
+            # exact line killed a user run AND my treecko run). The old target (24,8)
+            # is UNREACHABLE BY DESIGN: it is a hard-collision WALL tile on the ground
+            # BENEATH the tree-bridge (collision=1, elevation=0,
+            # accessible_from_direction=[False]*4). The Kecleon at (25,8) stands on the
+            # ELEVATED walkway, which is the x=25 column at elevation 3 — so the only
+            # way to stand next to it is along that column. (25,7) is one tile north of
+            # it on the same walkway and plans from ROUTE120 (5,15) in a single hop.
+            # Control that makes this diagnosis trustworthy: FORTREE_CITY (5,6) IS
+            # reachable from the same start, so neither calculate_path nor the
+            # ROUTE120<->FORTREE_CITY connection was ever broken — only this tile was.
+            yield from _navigate_riding_out(MapRSE.FORTREE_CITY, (25, 7), tries=6)
+            yield from _clear_stale_battle_message()
+            yield from ensure_facing_direction("Down")
+            context.emulator.press_button("A")
+            yield from wait_for_n_frames(30)
+            # the Scope prompt is a YES/NO — choice-aware ride (the run-9 lesson)
+            yield from _wait_until_cutscene_over("A")
+            yield from _ride_out_all_scenes(quiet_frames=300)
+        except BotModeError:
+            yield from _ride_out_scripted_scene("B")
+        yield from wait_until_truly_controllable()
+
+
+def _fortree_walk_one_tile(direction: str, *, max_frames: int = 3000) -> Generator:
+    """Drive `walking.walk_one_tile()` for a single Fortree-gym step with an
+    added frame bound.
+
+    ‼ (2026-07-24, live-driven acceptance check for punch-list #24-fortreegates)
+    `walk_one_tile`'s hold-direction-until-the-tile-changes phase is
+    UNBOUNDED BY DESIGN (walking.py, out of scope here; its own docstring:
+    "will create an endless loop if trying to run into a wall"). Live-drove
+    `do_fortree_gym()` through the real listener stack (BattleListener /
+    TrainerApproachListener, same as production) from the
+    `fortree_gym_wedge.ss1` save: a mid-climb trainer battle resolved
+    normally, but its NPC sprite remained standing on the very tile `solve()`
+    had planned to step onto next. `fortree_gates.try_move()` faithfully
+    ports the decomp's gate/collision model (STATIC collision + gate arms
+    only, per the reference solver -- it was never asked to, and does not,
+    track other live objects), so it correctly predicted that tile as open;
+    the live game correctly blocks it anyway because the trainer's sprite is
+    physically standing there. `walk_one_tile` then held the direction
+    forever, waiting for a tile change that would never come, straight
+    through the outer per-round frame check (which only runs BETWEEN
+    moves). Bounding this call (not `walking.py` or the ported solver) and
+    raising is the fix: it turns an unresolvable local block into a bounded
+    `BotModeError` for the story mode's derail recovery to own, instead of an
+    infinite hang."""
+    from modules.modes.util.walking import walk_one_tile
+
+    gen = walk_one_tile(direction)
+    frames = 0
+    try:
+        while True:
+            next(gen)
+            frames += 1
+            if frames > max_frames:
+                raise BotModeError(
+                    f"Fortree Gym: step {direction} never completed after {frames} frames "
+                    f"(blocked by something the gate model doesn't track, e.g. an NPC?)."
+                )
+            yield
+    except StopIteration:
+        pass
+
+
+def do_fortree_gym() -> Generator:
+    """Chapter 13e — Fortree Gym: WINONA for the Feather Badge (BADGE06).
+
+    HOW (probed 2026-07-24): door at city (22,11) → interior (15,24). Winona at
+    (15,2), challenge from (15,3). Trainers en route engage inline.
+    Completion: BADGE06_GET.
+
+    ‼ THE TURNSTILE MODEL IN THIS DOCSTRING WAS WRONG (corrected 2026-07-24 from the
+    decomp, `src/rotating_gate.c`). It claimed the gates are runtime metatiles whose
+    state persists across exits, and that a sealed path is solved by "pushing into the
+    blocking turnstile". Both are false, and together they are why the greedy
+    `push = "Up" if y > 3 else ...` fallback below fails 100% of the time (measured:
+    the avatar never moved one tile across 30 rounds — it was pushing plain wall):
+      * STATIC collision never changes. A gate is `(x, y, shape, orientation)`, and the
+        game only consults gate logic for a step onto a tile whose static collision is
+        ALREADY OPEN. A blocked tile is ordinary scenery and never reaches gate code, so
+        there is no such thing as pushing a blocking gate.
+      * State does NOT persist — `MAP_SCRIPT_ON_TRANSITION` resets all orientations on
+        every warp in, so a plan from the entrance is valid on every attempt.
+      * Orientation IS live-readable: gate bytes are overlaid on VAR_TEMP_0..3, i.e.
+        `(get_event_var(f"TEMP_{i//2}") >> (8 * (i % 2))) & 0xFF` for gates 0-7.
+    The correct solver ports the decomp's arm-layout + rotation tables and BFSes from the
+    OBSERVED state to (15,3) — see `tools/story-dev/fortree/fortree_gate_solver.py`, which
+    finds a legal 97-move route over the real collision grid.
+    WIRED IN (2026-07-24, punch-list #24-fortreegates): the climb below now reads live gate
+    orientations and re-plans with `modules.story.fortree_gates.solve()` one tile at a time
+    instead of the greedy push — see that module's docstring for the 4/4 live validation."""
+    from modules.memory import get_event_flag
+
+    GYM = MapRSE.FORTREE_CITY_GYM
+
+    if get_event_flag("BADGE06_GET"):
+        return
+    # A resume with the Scope already set skips get_devon_scope, so recover the
+    # bridge-strand here too before anything navigates.
+    yield from _leave_route120_north_bridge()
+    context.message = "Story: entering Fortree Gym to challenge Winona..."
+    if _map_group_number() != GYM.value:
+        yield from _enter_warp_by_navigation(
+            lambda: _map_group_number() == GYM.value,
+            MapRSE.FORTREE_CITY, (22, 11), tries=6, label="Fortree Gym door",
+        )
+        yield from wait_until_truly_controllable()
+
+    # ‼ navigate_to_anywhere / calculate_path do NOT model the rotating gates and
+    # will happily hand back a route whose first step crosses a gate arm (live-
+    # probed 2026-07-24: the planner returned a 35-waypoint "route" the real
+    # navigator could not walk at all) — they are not used for movement in this
+    # room. Instead: read the live gate orientations off VAR_TEMP_0..3
+    # (`fortree_gates.read_orientations`) and BFS a legal route over the real
+    # collision grid (`fortree_gates.solve`, ported from the decomp's
+    # `rotating_gate.c` — see that module's docstring for the live 4/4
+    # validation). One tile is walked at a time and the state is re-read before
+    # every re-plan, so a trainer interrupt or an unexpected result self-corrects
+    # instead of blindly finishing a stale multi-move plan.
+    from modules.story.fortree_gates import read_orientations, solve
+    from modules.map import get_map_objects
+
+    _FORTREE_MAX_ROUNDS = 600  # bounds the outer replan loop (optimal solve is 97 moves)
+    _FORTREE_MAX_MOVES = 600  # bounds total tiles walked across the whole climb
+    _FORTREE_MAX_RESET_CYCLES = 2  # bounds "solve() found nothing -> leave & re-enter" cycles
+    # A wandering NPC steps aside within a second or two; a DEFEATED TRAINER never moves.
+    # After this many 30-frame waits, stop waiting and take the exit-and-re-enter reset,
+    # which (user mechanic, 2026-07-24) resets NPC positions as well as gate orientations.
+    _FORTREE_MAX_NPC_WAITS = 4
+    _FORTREE_MAX_TOTAL_FRAMES = 150_000  # hard backstop independent of the above counters
+    rounds = 0
+    moves_executed = 0
+    reset_cycles = 0
+    npc_wait_rounds = 0
+    start_frame = context.emulator.get_frame_count()
+    while not (
+        _map_group_number() == GYM.value
+        and tuple(get_player_avatar().local_coordinates) == (15, 3)
+    ):
+        _check_abort()
+        if get_event_flag("BADGE06_GET"):
+            return
+        rounds += 1
+        if rounds > _FORTREE_MAX_ROUNDS:
+            raise BotModeError("Fortree Gym: could not reach the challenge tile below Winona.")
+        if context.emulator.get_frame_count() - start_frame > _FORTREE_MAX_TOTAL_FRAMES:
+            raise BotModeError("Fortree Gym: exceeded the frame budget trying to reach Winona.")
+
+        # A trainer's sight-line (or any other scripted interruption) can fire
+        # mid-climb — ride it out, then re-read state and re-plan from scratch.
+        if get_global_script_context().is_active or not player_avatar_is_controllable():
+            yield from _ride_out_scripted_scene("B")
+            yield from wait_until_truly_controllable()
+            continue
+
+        x, y = get_player_avatar().local_coordinates
+        orientations = read_orientations()
+        # Live objects (NPCs -- e.g. a just-fought trainer's sprite left standing
+        # where it was) are NOT part of the ported gate/collision model (the
+        # decomp only ever consults static collision + gate arms) but DO
+        # physically block a step in the live game -- probed live 2026-07-24: a
+        # defeated trainer's sprite parked on the model's predicted-open next
+        # tile hung the whole climb. Feed live object tiles in as `blocked` so
+        # the planner routes around them; exclude the player's own object, or
+        # every plan would fail immediately.
+        blocked_tiles = frozenset(
+            tuple(o.current_coords) for o in get_map_objects() if "isPlayer" not in o.flags
+        )
+        plan = solve((x, y), orientations, goal_xy=(15, 3), blocked=blocked_tiles)
+        if plan is None:
+            # Blocking every live object can, in principle, remove EVERY route
+            # (an NPC standing in a genuine chokepoint, or transiently on the
+            # goal tile) even when a route exists ignoring it. Retry once
+            # without NPC-blocking before concluding the GATE CONFIGURATION
+            # itself is unsolvable -- these are different failure modes, and
+            # only the second one should trigger the reset-and-re-enter path.
+            plan_ignoring_npcs = solve((x, y), orientations, goal_xy=(15, 3))
+            if plan_ignoring_npcs is not None and npc_wait_rounds < _FORTREE_MAX_NPC_WAITS:
+                # A WANDERING npc will step aside on its own, so wait briefly and
+                # re-plan. But a DEFEATED TRAINER does not wander — its sprite stays
+                # parked wherever the approach left it, so waiting is futile and this
+                # branch would spin until the round/frame bounds fired.
+                # ‼ USER MECHANIC (2026-07-24): leaving and re-entering the gym resets
+                # NPC POSITIONS as well as the gate orientations. So the reset below is a
+                # FULL puzzle reset, not just a gate reset — which makes it the correct
+                # escape for a permanently-parked trainer too, not only for an unsolvable
+                # gate configuration. Bound the waiting, then fall through to it.
+                npc_wait_rounds += 1
+                context.message = (
+                    "Story: Fortree Gym — a live object is blocking every route to Winona "
+                    f"from here; waiting for it to move ({npc_wait_rounds}/"
+                    f"{_FORTREE_MAX_NPC_WAITS})..."
+                )
+                yield from wait_for_n_frames(30)
+                continue
+            # else: genuinely unsolvable from this exact gate configuration,
+            # NPCs aside -- fall through to the reset-and-re-enter path below.
+            # No sequence of pushes reaches the goal from this exact gate
+            # configuration. Orientations reset on every warp IN
+            # (MAP_SCRIPT_ON_TRANSITION), so leave through the entrance warp
+            # and re-enter for a clean slate — bounded to 2 cycles.
+            reset_cycles += 1
+            if reset_cycles > _FORTREE_MAX_RESET_CYCLES:
+                raise BotModeError(
+                    "Fortree Gym: the gate solver found no route to the challenge tile even "
+                    "after resetting the gate orientations twice."
+                )
+            exit_plan = solve((x, y), orientations, goal_xy=(15, 24), blocked=blocked_tiles)
+            if exit_plan is None:
+                exit_plan = solve((x, y), orientations, goal_xy=(16, 24), blocked=blocked_tiles)
+            if exit_plan is None:
+                exit_plan = solve((x, y), orientations, goal_xy=(15, 24))
+            if exit_plan is None:
+                exit_plan = solve((x, y), orientations, goal_xy=(16, 24))
+            if exit_plan is not None:
+                for step in exit_plan:
+                    if get_global_script_context().is_active or not player_avatar_is_controllable():
+                        break
+                    yield from _fortree_walk_one_tile(step)
+                    moves_executed += 1
+                    if moves_executed > _FORTREE_MAX_MOVES:
+                        raise BotModeError("Fortree Gym: exceeded the movement budget trying to reach Winona.")
+            yield from _enter_warp_by_navigation(
+                lambda: _map_group_number() == GYM.value,
+                MapRSE.FORTREE_CITY, (22, 11), tries=6, label="Fortree Gym door (gate reset)",
+            )
+            yield from wait_until_truly_controllable()
+            continue
+
+        if len(plan) == 0:
+            continue
+
+        # Execute a single move, then loop back to re-read state + re-plan.
+        # ‼ RESET THE NPC-WAIT COUNTER ON PROGRESS. It is a CONSECUTIVE-stall counter, not
+        # a lifetime tally: a 97-move climb past several trainers can legitimately wait for
+        # a wandering NPC more than `_FORTREE_MAX_NPC_WAITS` times in total, and without
+        # this reset those unrelated waits would accumulate and trigger a pointless
+        # exit-and-re-enter deep into a healthy climb. (Same shape as the move-learn valve
+        # bug found earlier today — a counter that only ever increments eventually fires on
+        # a perfectly healthy run.)
+        npc_wait_rounds = 0
+        yield from _fortree_walk_one_tile(plan[0])
+        moves_executed += 1
+        if moves_executed > _FORTREE_MAX_MOVES:
+            raise BotModeError("Fortree Gym: exceeded the movement budget trying to reach Winona.")
+
+    # Challenge Winona (face up + A), ride the battle + badge dialogue out.
+    yield from ensure_facing_direction("Up")
+    frames = 0
+    while not get_event_flag("BADGE06_GET"):
+        _check_abort()
+        context.emulator.press_button("B" if frames % 3 else "A")
+        frames += 1
+        if frames > 40000:
+            raise BotModeError("Fortree Gym: the Winona challenge never resolved to a badge.")
+        yield
+    yield from _wait_until_cutscene_over("B")
+    context.message = "Story: FEATHER BADGE earned — Gym 6 (Winona) beaten!"
+
+
+def do_dewford_gym() -> Generator:
+    """Chapter 7b — Dewford Gym: beat Brawly for the Knuckle Badge (BADGE02, Gym 2).
+
+    INTENT: clear the second gym.
+    STORY CONDITION: in Dewford Town. Brawly runs Fighting (Machop 16 / Meditite 16 /
+    Makuhita 19 in Emerald) — the caller should heal + pick a Fighting-resistant lead
+    first (`_lead_best_matchup(["Fighting"])`: Taillow resists and Wing Attack hits 2×;
+    never lead a Normal mon here). The gym is DARK (no Flash needed — darkness is visual
+    only; navigation and battles work normally).
+    HOW IT WORKS: enter via the town door (8,17), navigate bottom→top to the challenge
+    tile (4,4) below Brawly (4,3) — gym trainers en route are fought inline by the
+    battle listener — then face Up + A to challenge, riding out battle + dialogue until
+    `BADGE02_GET` sets.
+    GOAL/END STATE: BADGE02_GET (Knuckle Badge)."""
+    from modules.memory import get_event_flag
+
+    context.message = "Story: entering Dewford Gym to challenge Brawly..."
+    gym = MapRSE.DEWFORD_TOWN_GYM.value
+    rounds = 0
+    while _map_group_number() != gym or tuple(get_player_avatar().local_coordinates) != DEWFORD_GYM_BRAWLY_APPROACH:
+        _check_abort()
+        rounds += 1
+        if rounds > 15:
+            raise BotModeError("Dewford Gym: could not reach the challenge tile below Brawly.")
+        if get_event_flag("BADGE02_GET"):
+            return
+        try:
+            yield from navigate_to_anywhere(
+                MapRSE.DEWFORD_TOWN_GYM,
+                DEWFORD_GYM_BRAWLY_APPROACH,
+                avoid_encounters=True,
+                avoid_scripted_events=False,
+            )
+        except BotModeError:
+            # A gym trainer's sight-line (or Brawly himself) engaged — the battle
+            # listener fights it; ride the aftermath out and re-path.
+            yield from _ride_out_scripted_scene("B")
+
+    # Challenge Brawly (face up + A) and ride out the whole battle + badge dialogue.
+    frames = 0
+    while not get_event_flag("BADGE02_GET"):
+        _check_abort()  # bail fast if we whited out mid-gym (defeat recovery)
+        context.emulator.press_button("B" if frames % 3 else "A")
+        frames += 1
+        if frames > 30000:
+            raise BotModeError("Dewford Gym: the Brawly challenge never resolved to a badge.")
+        yield
+    yield from _wait_until_cutscene_over("B")
+    context.message = "Story: KNUCKLE BADGE earned — Gym 2 (Brawly) beaten!"

@@ -130,6 +130,17 @@ def _read_offered_move(evolution_task):
     return move_to_learn, party_index
 
 
+# Consecutive invocations of `handle_move_replacement_dialogue` that gave up via the
+# 6000-frame safety valve. Module-level ON PURPOSE: the counter has to outlive a single
+# invocation, because the bug it guards against is the caller re-invoking us fresh.
+_STALLED_EXITS = 0
+
+
+def _reset_stalled_exits() -> None:
+    global _STALLED_EXITS
+    _STALLED_EXITS = 0
+
+
 @debug.track
 def handle_move_replacement_dialogue(strategy: BattleStrategy) -> Generator:
     """Drive the level-up / evolution move-learn UI to completion.
@@ -158,12 +169,41 @@ def handle_move_replacement_dialogue(strategy: BattleStrategy) -> Generator:
                 context.emulator.press_button("B")
                 escape += 1
                 yield
+            # ‼ THE VALVE MUST SURVIVE RE-ENTRY (2026-07-24 — proven live). This
+            # bound is per-INVOCATION, but `battle_handler`'s outer
+            # `while battle_is_active() or _learn_or_evo_pending()` loop re-invokes
+            # this generator FRESH the moment we return — resetting
+            # `frames_in_dialogue` to 0. So an offer we cannot resolve loops forever
+            # in ~6,600-frame cycles while every individual invocation looks
+            # correctly bounded. That is exactly what the user's run did until they
+            # killed it by hand. Count STALLED exits across invocations and, once
+            # backing out has demonstrably failed several times, raise so the mode's
+            # derail-recovery takes over instead of spinning silently.
+            global _STALLED_EXITS
+            _STALLED_EXITS += 1
+            if _STALLED_EXITS >= 3:
+                _STALLED_EXITS = 0
+                from modules.modes import BotModeError
+
+                raise BotModeError(
+                    "Move-learn dialogue could not be resolved after 3 full attempts "
+                    "(an offer we cannot answer — e.g. only HM slots available). "
+                    "Backing out to recovery rather than looping."
+                )
             return
 
         # Evolution scene that is NOT at its move-learn substate → hand back to the
         # evolution handler (it advances the scene; we only own the move-learn part).
         evolution_task = get_task("Task_EvolutionScene")
         if evolution_task is not None and evolution_task.data_value(0) != get_move_learning_state_index():
+            # This hand-off to the evolution handler is a SUCCESSFUL exit, not a
+            # failure — so it must clear the stall counter too. Missing it here meant
+            # a stalled invocation could leave the counter elevated with no path to
+            # clear it until the next clean DialogueNotActive exit, so unrelated
+            # stalls could accumulate across a long run and eventually raise on a
+            # healthy bot. EVERY non-stalled exit resets; only the 6000-frame valve
+            # increments.
+            _reset_stalled_exits()
             yield
             break
 
@@ -215,6 +255,59 @@ def handle_move_replacement_dialogue(strategy: BattleStrategy) -> Generator:
                 # we never stall on the prompt. Learning is the safe default.
                 if move_to_forget == 4:
                     move_to_forget = 0
+            # ‼ HM VETO — THE LAST LINE OF DEFENCE (2026-07-24, user run 15:13).
+            # In Gen 3 an HM move CANNOT be forgotten; only the Move Deleter removes
+            # one. If we answer YES and then pick an HM slot, the game refuses and
+            # bounces straight back to this prompt — an infinite
+            # AskWhetherToLearn -> SelectMoveToReplace -> AskWhetherToLearn loop
+            # (reproduced live: 3 full cycles / 20,000 frames, moveset unchanged).
+            # StoryMode's own policy already filters HMs on every branch, but this
+            # layer is reached by EVERY strategy — the stock DefaultBattleStrategy,
+            # the catch strategies that inherit it, and the `except` fallback right
+            # above which blindly picks slot 0 without consulting any policy at all.
+            # So enforce the GAME'S rule here, where nothing can route around it: if
+            # the chosen slot holds an HM, decline instead. Declining resolves
+            # cleanly (~430 frames, proven).
+            if move_to_forget in (0, 1, 2, 3):
+                try:
+                    _mv = get_party()[party_index].moves
+
+                    def _is_hm(_i):
+                        _s = _mv[_i]
+                        _m = _s.move if _s is not None else None
+                        return _m is not None and _m.tm_hm is not None and _m.tm_hm.name.startswith("HM")
+
+                    if _is_hm(move_to_forget):
+                        # ‼ RE-PICK, DON'T JUST DECLINE (2026-07-24, user's design). The
+                        # first cut of this veto turned an HM pick into DECLINE, which is
+                        # safe but stunts the team — the mon keeps a weak move forever. HM
+                        # slots are simply INELIGIBLE; among what remains, apply the same
+                        # expendability ranking used by `teach_hm_move` (a zero-power move
+                        # first, else the weakest) so the mon still gives up its least
+                        # useful REAL move. Only when every slot is an HM is declining the
+                        # correct — and only possible — answer.
+                        _elig = [i for i in range(len(_mv)) if _mv[i] is not None and not _is_hm(i)]
+                        _zero = [i for i in _elig if _mv[i].move.base_power == 0]
+                        _pick = (
+                            _zero[0]
+                            if _zero
+                            else (min(_elig, key=lambda i: _mv[i].move.base_power) if _elig else 4)
+                        )
+                        _hm_name = _mv[move_to_forget].move.name
+                        if _pick == 4:
+                            context.message = (
+                                f"Every move is an HM — declining {move_to_learn.name}."
+                                if move_to_learn is not None
+                                else "Every move is an HM — declining the new move."
+                            )
+                        else:
+                            context.message = (
+                                f"{_hm_name} is an HM and cannot be forgotten — "
+                                f"replacing {_mv[_pick].move.name} instead."
+                            )
+                        move_to_forget = _pick
+                except Exception:
+                    pass  # can't read the slots — fall through to the normal answer
             # YES (A) to open the move-select and learn; NO (B) to decline. The
             # cursor defaults to Yes. Pressing every frame is safe: extra A presses
             # during the open animation are ignored until branch (1) takes over.
@@ -231,6 +324,7 @@ def handle_move_replacement_dialogue(strategy: BattleStrategy) -> Generator:
 
         # (4) Truly finished: no move-learn state AND no move-learn text on screen.
         if state == LearnMoveState.DialogueNotActive and not move_learn_text_showing():
+            _reset_stalled_exits()  # a clean resolution clears the re-entry counter
             yield
             break
 

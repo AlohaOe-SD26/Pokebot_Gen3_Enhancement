@@ -15,6 +15,7 @@ On start:
     bot hands back to manual after reporting.
 """
 
+from types import SimpleNamespace
 from typing import Generator
 
 from modules.console import console
@@ -46,6 +47,46 @@ class StoryCatchStrategy(CatchStrategy):
         return super().decide_turn(battle_state)
 
 
+class StoryShinyCatchStrategy(StoryCatchStrategy):
+    """Catch strategy for a WILD SHINY in Story mode (user directive 2026-07-22: shinies
+    are rare collectibles — a real run's debug log showed a Shiny Poochyena being FOUGHT
+    with 32 balls in the bag, because the old contingency only ever fought through).
+
+    ALWAYS attempts the catch while any allowed ball remains — even an already-owned
+    species, even with a full party (the catch goes to the PC box, vanilla behavior),
+    at any story stage. The ONE behavioral difference from the parent: if balls run out
+    MID-battle, a shiny is NOT fled (the parent's rule for ordinary team-catching) and
+    NEVER dropped to Manual (the stock base's rule) — it is fought through like a normal
+    battle (attack with the strongest usable move; Struggle if nothing has PP), per the
+    user's spec: attempt until success, whiteout, or out of balls — then just fight."""
+
+    def decide_turn(self, battle_state):
+        try:
+            if self._get_best_poke_ball(battle_state) is None:
+                context.message = "Story: ran out of usable Poké Balls mid-shiny — fighting it through."
+                util = BattleStrategyUtil(battle_state)
+                active = battle_state.own_side.active_battler
+                move = util.get_strongest_move_against(active, battle_state.opponent.active_battler)
+                if move is not None:
+                    return TurnAction.use_move(move)
+                if active is not None:
+                    for i, learned in enumerate(active.moves):
+                        if learned is not None and util.move_is_usable(learned):
+                            return TurnAction.use_move(i)
+                    # PP-only last resort — see the single-battle branch's comment.
+                    for i, learned in enumerate(active.moves):
+                        if learned is not None and learned.pp > 0:
+                            return TurnAction.use_move(i)
+                return TurnAction.use_move(0)  # every move truly at 0 PP → the game Struggles
+        except Exception:
+            pass
+        # Balls available: the grandparent CatchStrategy does the real work (status move
+        # when catch odds are poor, then throw the best ALLOWED ball — the #40 allowlist
+        # already protects the Master Ball by default). Deliberately skip the parent's
+        # decide_turn so its out-of-balls flee branch can never fire for a shiny.
+        return CatchStrategy.decide_turn(self, battle_state)
+
+
 class LevelUpTravelBattleStrategy(LevelUpLeadBattleStrategy):
     """Fights to win like LevelUpLead, but NEVER flees a TRAINER battle.
 
@@ -57,15 +98,173 @@ class LevelUpTravelBattleStrategy(LevelUpLeadBattleStrategy):
     heals to full first so the lead can win. WILD battles keep the parent
     behaviour (flee at low HP — the training loop heals for that)."""
 
+    def choose_new_lead_after_faint(self, battle_state):
+        """MATCHUP-AWARE replacement pick (user discussion 2026-07-23, Wattson analysis):
+        the stock chooser sends the highest-HP living mon — which in the Wattson run
+        meant full-HP Swellow and Ninjask (both Electric-weak) walking into
+        Thunderbolts, attempt after attempt. The game asks us to CHOOSE, so choose
+        like a player: prefer the mon the opponent hits least effectively (worst-case
+        STAB from the opponent's types), then the one whose own usable moves hit the
+        opponent hardest, then HP fraction, then level. Falls back to the stock pick
+        on any surprise (missing data → the parent's HP rule)."""
+        try:
+            from modules.pokemon_party import get_party as _gp
+
+            # Opponent type PAIRS on the field right now (both actives in a double).
+            # Kept as per-battler pairs: effectiveness against a dual-type is the
+            # PRODUCT over its two types (Ground vs Flying/Electric is 0x, not 2x).
+            foe_pairs = []
+            for battler in (
+                getattr(battle_state.opponent, "left_battler", None),
+                getattr(battle_state.opponent, "right_battler", None),
+            ):
+                if battler is not None:
+                    try:
+                        foe_pairs.append(list(battler.species.types))
+                    except Exception:
+                        pass
+            foe_types = [t for pair in foe_pairs for t in pair]
+            if not foe_types:
+                return super().choose_new_lead_after_faint(battle_state)
+
+            def _excluded(index) -> bool:
+                if not battle_state.is_double_battle:
+                    return False
+                for battler in (battle_state.own_side.left_battler, battle_state.own_side.right_battler):
+                    if battler is not None and battler.party_index == index:
+                        return True
+                return False
+
+            best_index, best_key = None, None
+            for index, mon in enumerate(_gp()):
+                if mon is None or mon.is_egg or mon.current_hp <= 0 or _excluded(index):
+                    continue
+                try:
+                    mon_types = mon.species.types
+                except Exception:
+                    mon_types = []
+                # Defensive: the worst the foe's STAB can do to this mon (lower = better).
+                incoming = 0.0
+                for ft in foe_types:
+                    m = 1.0
+                    for t in mon_types:
+                        m *= ft.get_effectiveness_against(t)
+                    incoming = max(incoming, m)
+                # Offensive: the best effectiveness among its usable damaging moves,
+                # judged against each opponent's full type pair.
+                outgoing = 0.0
+                for learned in mon.moves:
+                    if learned is None or learned.pp == 0 or learned.move.base_power == 0:
+                        continue
+                    for pair in foe_pairs:
+                        m = 1.0
+                        for t in pair:
+                            m *= learned.move.type.get_effectiveness_against(t)
+                        outgoing = max(outgoing, m)
+                hp_fraction = mon.current_hp / max(1, mon.total_hp)
+                key = (incoming, -outgoing, -hp_fraction, -mon.level)
+                if best_key is None or key < best_key:
+                    best_index, best_key = index, key
+            if best_index is not None:
+                return best_index
+        except Exception:
+            pass
+        return super().choose_new_lead_after_faint(battle_state)
+
     def decide_turn(self, battle_state):
         if battle_state.is_trainer_battle:
             util = BattleStrategyUtil(battle_state)
-            move = util.get_strongest_move_against(
-                battle_state.own_side.active_battler, battle_state.opponent.active_battler
-            )
+            active = battle_state.own_side.active_battler
+            move = util.get_strongest_move_against(active, battle_state.opponent.active_battler)
             if move is not None:
                 return TurnAction.use_move(move)
+            # No "strongest" (damaging, in-PP) move. A trainer / gym-leader / Elite-Four
+            # battle CANNOT be fled and must NEVER stall (user directive 2026-07-21). Do NOT
+            # fall through to the parent's rotate/flee path:
+            #   • fleeing a trainer battle raises ("can't run from a trainer"), and
+            #   • rotating into a weak/underlevelled bench can HANG the in-battle party-menu
+            #     switch (battle_action_selection.py — "while PARTY_MENU: press A") — this is
+            #     the Roxanne hang the user hit with Torchic (Fire) vs Rock + an L6-7 bench.
+            # Instead keep ATTACKING with any move that still has PP (the game auto-uses
+            # STRUGGLE if none), so the fight plays through to a win or a clean whiteout
+            # (which triggers StoryMode's recovery). When the active mon faints,
+            # handle_fainted_pokemon brings in the next one — we never proactively rotate in
+            # a trainer battle, which sidesteps the party-menu-switch hang entirely.
+            if active is not None:
+                for i, learned in enumerate(active.moves):
+                    if learned is not None and util.move_is_usable(learned):
+                        return TurnAction.use_move(i)
+                # ‼ SECOND PASS ON *PP ALONE* (2026-07-24, batch2 treecko hang at f1.2M:
+                # `instr=BattleScript_SelectingMoveWithNoPP`,
+                # `bt="There's no PP left for this move"`, inside
+                # `EventScript_DoTrainerBattle` — 15,000 frames of no progress).
+                # `move_is_usable` is STRICTER than "has PP" (it also rejects e.g.
+                # disabled/zero-power moves), so a mon can fail every usability check
+                # while still holding moves with PP. The old fallback then selected
+                # SLOT 0 blindly — and Gen 3 does NOT silently substitute Struggle for
+                # that: it prints "There's no PP left for this move!" and bounces
+                # straight back to move selection. In an unfleeable trainer battle that
+                # is an infinite loop. Struggle is only auto-used when EVERY move is out
+                # of PP, in which case the game never shows the menu at all. So: pick
+                # any move that genuinely has PP before falling back.
+                for i, learned in enumerate(active.moves):
+                    if learned is not None and learned.pp > 0:
+                        return TurnAction.use_move(i)
+            return TurnAction.use_move(0)  # every move truly at 0 PP → the game Struggles
         return super().decide_turn(battle_state)
+
+    def decide_turn_in_double_battle(self, battle_state, battler_index):
+        """Trainer DOUBLE battles must ATTACK THROUGH exactly like singles. They are very
+        reachable: Emerald starts a TRUE double battle whenever TWO trainers spot you at
+        once (e.g. walking between the Rustboro gym Youngsters), plus scripted pairs like
+        Gabby & Ty. The inherited Default double path calls _handle_lead_cannot_battle
+        when the actives are weak, and with the stock 'flee' config that RAISES in a
+        trainer battle → Manual mid-battle (the user-reported "double battle bug";
+        reproduced + chain-fixed via the KI-12 faint-bench repro 2026-07-22). Here:
+        strongest usable move at whichever opponent is present; any in-PP move as
+        fallback; Struggle at 0 PP; never flee, never rotate, never stall."""
+        if not battle_state.is_trainer_battle:
+            return super().decide_turn_in_double_battle(battle_state, battler_index)
+        util = BattleStrategyUtil(battle_state)
+        battler = (
+            battle_state.own_side.left_battler if battler_index == 0 else battle_state.own_side.right_battler
+        )
+        left_opp = battle_state.opponent.left_battler
+        right_opp = battle_state.opponent.right_battler
+        # ALIVE, not merely present: a FAINTED opponent still has a battler object, and
+        # targeting it raises "Cannot attack the left-side opponent Pokémon because
+        # there isn't one" — an uncatchable mid-battle mode death (batch runs 01+03,
+        # 2026-07-22, both at the same trainer pair once one opponent went down).
+        left_alive = left_opp is not None and getattr(left_opp, "current_hp", 0) > 0
+        right_alive = right_opp is not None and getattr(right_opp, "current_hp", 0) > 0
+
+        def _default_target(move_index: int):
+            if right_alive and not left_alive:
+                return TurnAction.use_move_against_right_side_opponent(move_index)
+            return TurnAction.use_move(move_index)
+
+        if battler is None:
+            return _default_target(0)
+        if left_alive:
+            move = util.get_strongest_move_against(battler, left_opp)
+            if move is not None:
+                return TurnAction.use_move(move)
+        if right_alive:
+            move = util.get_strongest_move_against(battler, right_opp)
+            if move is not None:
+                return TurnAction.use_move_against_right_side_opponent(move)
+        for i, learned in enumerate(battler.moves):
+            if learned is not None and util.move_is_usable(learned):
+                return _default_target(i)
+        # Same PP-only last resort as the single-battle branch above — see the long
+        # comment there. Selecting a 0-PP move does NOT make the game Struggle; it
+        # prints "There's no PP left for this move!" and re-opens the menu, which in an
+        # unfleeable trainer DOUBLE battle (e.g. the Rustboro gym Youngster pair) is the
+        # same infinite loop.
+        for i, learned in enumerate(battler.moves):
+            if learned is not None and learned.pp > 0:
+                return _default_target(i)
+        return _default_target(0)  # every move truly at 0 PP → the game Struggles
 
     def which_move_should_be_replaced(self, pokemon, new_move) -> int:
         """Story move-learning policy — keep every Pokémon COMBAT-CAPABLE.
@@ -230,11 +429,169 @@ class SwapTrainBattleStrategy(LevelUpTravelBattleStrategy):
         return max(safe, key=lambda i: (party[i].level, party[i].current_hp))
 
 
+#: Max warp-graph legs a TRAINING detour may cost. Local hops (a route next door to the
+#: town we're in) pass; cross-region treks do not — see _training_area_allowed.
+_MAX_TRAINING_TRAVEL_LEGS = 4
+
+
+def _wild_land_max(map_enum) -> "int | None":
+    """Strongest LAND wild level on a map, or None if it has no land table / can't be
+    read. Used to judge whether a training patch is fodder for the current team."""
+    try:
+        from modules.map import get_wild_encounters_for_map
+
+        enc = get_wild_encounters_for_map(*map_enum.value)
+        if enc is None or not enc.land_encounters:
+            return None
+        return max(e.max_level for e in enc.land_encounters)
+    except Exception:
+        return None
+
+
+def _party_can_surf() -> bool:
+    """Does a party mon actually know Surf? (The field-move gate for the water routes —
+    the badge alone is not enough, `map_path.can_surf()` requires the move too.)"""
+    try:
+        from modules.pokemon_party import get_party as _gp
+
+        return any(
+            learned is not None and learned.move.name == "Surf"
+            for mon in _gp()
+            if mon is not None and not mon.is_egg
+            for learned in mon.moves
+        )
+    except Exception:
+        return False
+
+
+def _training_area_allowed(map_enum, tile, prereq) -> bool:
+    """Reachability predicate for `training_areas.best_training_area`.
+
+    TWO gates, both learned the hard way on 2026-07-24:
+    1. **HM prerequisite** — the richest bands (Routes 115/118/119/121) sit across water;
+       without Surf actually KNOWN by a party mon they are unreachable, and a level-fit-
+       only picker happily proposed Route 121 (past Lilycove) to a pre-Surf team.
+    2. **Reachable FROM WHERE WE STAND** — a static per-area flag is not enough, because a
+       single map can be split into disconnected regions: Route 111's grass sits NORTH of
+       the Go-Goggles desert, so it is reachable from Fallarbor but NOT from Mauville or
+       Petalburg (probed: no Mauville-side Route 111 grass exists at all). Ask the warp
+       graph — the same structure `navigate_to_anywhere` plans with — whether a route
+       exists from the CURRENT map; that is the honest test and it is a cheap graph
+       search, no emulation. Fails CLOSED: if the graph can't answer, we don't relocate.
+    """
+    if prereq == "surf" and not _party_can_surf():
+        return False
+    if prereq not in (None, "surf", "region"):
+        return False  # unknown prerequisite → fail closed
+    # "region" carries no extra requirement here — it exists so the conservative
+    # allow=None default refuses the area; the live position check below is its gate.
+    try:
+        from modules.map import get_map_data_for_current_position
+        from modules.warp_graph import get_warp_graph
+
+        here = tuple(get_map_data_for_current_position().map_group_and_number)
+        target = tuple(map_enum.value)
+        if here == target:
+            return True
+        graph = get_warp_graph()
+        if graph.region_of(here) == graph.region_of(target):
+            # Same region — but that is only about MAPS. Prove the actual TILE is walkable
+            # from here: Route 111 is edge-connected to Mauville yet its grass sits across
+            # the Go-Goggles desert, so "same region" would wave through a tile the bot can
+            # never stand on. calculate_path is the honest test (static A*, no emulation).
+            from modules.map_path import calculate_path
+            from modules.player import get_player_location
+
+            try:
+                calculate_path(
+                    get_player_location(), (map_enum, tile),
+                    avoid_encounters=False, avoid_scripted_events=False,
+                )
+                return True
+            except Exception:
+                return False
+        # ‼ CROSS-REGION: FAIL CLOSED (reviewer catch, 2026-07-24). We cannot tile-check a
+        # different region — `calculate_path` only works within one — so allowing a hop on
+        # the strength of `graph.plan()` alone would reintroduce the exact bug the
+        # same-region branch exists to prevent: the warp route lands on the map, but the
+        # grass tile sits in a disconnected pocket of it (the Route 111 desert shape).
+        # It also cannot be worth it: the warp graph will happily route Petalburg -> ... ->
+        # Fallarbor for +15 wild levels, and that walk (plus its heal round-trips) costs
+        # more than the xp it buys — the boss re-attempt is the better trainer. A training
+        # detour is LOCAL by definition, so "another region" is simply not a candidate.
+        route = graph.plan(here, target)
+        if route is not None and len(route) <= _MAX_TRAINING_TRAVEL_LEGS:
+            console.print(
+                f"[dim]Story: {map_enum.name} is reachable but in another region — "
+                f"not relocating training across regions.[/]"
+            )
+        return False
+    except Exception:
+        return False
+
+
+#: Where to heal while training in each area. Training far from the boss's own Poké Center
+#: means the heal trips must be LOCAL to the training ground, or the bot walks the region
+#: every time HP dips (the cave-heal lesson, 2026-07-22). Unlisted areas fall back to the
+#: boss's configured centre.
+def _training_area_heal_map() -> dict:
+    from modules.map_data import MapRSE, PokemonCenter
+
+    return {
+        MapRSE.ROUTE101: PokemonCenter.OldaleTown,
+        MapRSE.ROUTE102: PokemonCenter.PetalburgCity,
+        MapRSE.ROUTE103: PokemonCenter.OldaleTown,
+        MapRSE.ROUTE116: PokemonCenter.RustboroCity,
+        MapRSE.ROUTE117: PokemonCenter.VerdanturfTown,
+        MapRSE.ROUTE110: PokemonCenter.MauvilleCity,
+        # ‼ Fallarbor, NOT Mauville: Route 111's training tile is NORTH of the
+        # Go-Goggles desert. Verified 2026-07-24 — Fallarbor is the ONLY Poké Center
+        # reachable from that tile.
+        MapRSE.ROUTE111: PokemonCenter.FallarborTown,
+        MapRSE.ROUTE112: PokemonCenter.LavaridgeTown,
+        MapRSE.ROUTE113: PokemonCenter.FallarborTown,
+        MapRSE.ROUTE114: PokemonCenter.FallarborTown,
+        MapRSE.ROUTE115: PokemonCenter.RustboroCity,
+        MapRSE.ROUTE118: PokemonCenter.MauvilleCity,
+        # ⚠ ROUTE119/121 pairings are UNVALIDATED: both areas are Surf-gated, so no
+        # pre-Surf save can path from their tiles to any Poké Center (verified: Route 119
+        # (21,109) reaches NONE). Re-verify from a post-Surf checkpoint before trusting
+        # these — the repro skips them for exactly this reason.
+        MapRSE.ROUTE119: PokemonCenter.FortreeCity,
+        MapRSE.ROUTE121: PokemonCenter.LilycoveCity,
+    }
+
+
 class StoryMode(BotMode):
     #: Pre-gym training only readies a battler that's already within this many levels
     #: of the target band; fresh catches further below are left to level organically
     #: rather than grinding them up via half-XP swap-training (user 2026-07-21).
     TRAIN_CATCHUP_GAP = 6
+
+    #: A boss's LOCAL grass counts as FODDER — worth relocating away from, or skipping
+    #: entirely — once its strongest wild is this far below the team's best mon.
+    #: ‼ Deliberately MORE conservative (12) than the reactive boss-training check (8):
+    #: this fires PROACTIVELY, before any loss, so it must not disturb prep that already
+    #: works. At 12 it stays silent for Roxanne (R116 L8 vs ~L17) and Wattson (R117 L14
+    #: vs ~L24) — both validated across many runs — and fires for the pathological case
+    #: it exists for: NORMAN, whose local patch is Route 102 at L4 against a L27-31 team
+    #: (~25 xp a kill, i.e. never). User-reported 2026-07-24.
+    FODDER_LEVEL_GAP = 12
+
+    #: Frame budget for a SINGLE targeted grind decision (evo-lookahead or sweeper top-up) —
+    #: ~3 minutes of emulator time, derived from the MEASURED FRAMES_PER_WILD_BATTLE (1433,
+    #: see modules/story/training_areas.py) — roughly 174 wild battles' worth of budget.
+    #: Both decisions used to be budgeted purely in LEVELS, but frames-per-level varies
+    #: enormously with where you grind: a fresh run's evo-lookahead sent a L33 Combusken to
+    #: Route 102's L3-5 wilds for 3 levels (~430,000 frames, measured) and helped blow the
+    #: run's overall frame cap one level short. This constant is what lets that plan be
+    #: REJECTED up front instead of committed to blind (punch-list #24).
+    MAX_PREP_TRAINING_FRAMES = 250_000
+
+    #: How many times to (re)train + attempt the Rustboro rival before giving up and handing
+    #: to manual — bounds the whiteout→retrain loop so an underleveled/bad-matchup team can't
+    #: spin forever (each attempt escalates the training band via `_prepare_for_fight`).
+    RIVAL_MAX_ATTEMPTS = 3
 
     @staticmethod
     def name() -> str:
@@ -259,6 +616,8 @@ class StoryMode(BotMode):
         # problem → trigger a retrain. These live on the instance and survive whiteout
         # restarts because run() loops in place (it does NOT bounce through Manual).
         self._defeat_counts: dict = {}
+        self._loss_ko_history: dict = {}  # map key -> [(seq, opponent KOs) per lost attempt]
+        self._loss_seq: int = 0
         self._whiteout_pending = False
         self._last_defeat_key = None
         self._derails = 0  # consecutive non-whiteout derails (self-correct before Manual)
@@ -274,9 +633,24 @@ class StoryMode(BotMode):
             key = self._location_key()
             self._defeat_counts[key] = self._defeat_counts.get(key, 0) + 1
             self._last_defeat_key = key
+            # BOSS-TRAINING telemetry (user design 2026-07-23): how many of the
+            # opponent's mons did we KO before losing? Read from the game's own
+            # battle-results struct (gBattleResults.opponentFaintCounter, offset 1 —
+            # decomp include/battle.h). Gen 3 keeps the XP from those KOs through
+            # the whiteout, so a lost boss attempt with KOs is real training — the
+            # prep logic uses this to decide "keep re-attempting" vs "grind grass".
+            kos = 0
+            try:
+                from modules.memory import read_symbol
+
+                kos = read_symbol("gBattleResults", offset=0x01, size=1)[0]
+            except Exception:
+                pass
+            self._loss_seq += 1
+            self._loss_ko_history.setdefault(key, []).append((self._loss_seq, kos))
             console.print(
                 f"[yellow]Story: lost a battle at map {key} "
-                f"(defeat #{self._defeat_counts[key]} here).[/]"
+                f"(defeat #{self._defeat_counts[key]} here; KO'd {kos} of theirs first).[/]"
             )
 
     def on_whiteout(self) -> bool:
@@ -342,7 +716,9 @@ class StoryMode(BotMode):
         """Pre-Gym-1 organic team-building (user directive 2026-07-21): catch a wild
         of a NEW species (never a dup we've already caught, never one already in the
         party) while there's room in the party. Only before the first gym, only once
-        we have the Pokédex + Poké Balls, never a shiny (fight through — contingency)."""
+        we have the Pokédex + Poké Balls. Shinies return False here only because the
+        SHINY branch in on_battle_started pre-empts this entirely (always-catch, user
+        directive 2026-07-22) — this filter is for ordinary team-building catches."""
         try:
             from modules.memory import get_event_flag
             from modules.pokemon_party import get_party
@@ -376,6 +752,156 @@ class StoryMode(BotMode):
         except Exception:
             return False
 
+    # ------------------------------------------------------------------
+    # Sweeper-sufficiency gate (user directive 2026-07-23; two-agent Gemini
+    # consult archived in tools/story-dev/research-gemini-sufficiency-consult-*).
+    # The proactive band prep over-trains whenever one mon already beats the gym
+    # (the user's Combusken-L20-vs-Roxanne case). The gate asks, from data a
+    # faithful player also has: "do we have a sweeper?" — and only trains when
+    # the answer is no (or nearly-yes: a targeted top-up). The REACTIVE net
+    # (loss escalation + boss-training) stays the correctness guarantee, so a
+    # wrong 'sufficient' call costs 1-2 self-correcting losses, not a run.
+    # ------------------------------------------------------------------
+    SWEEP_SCORE_FLOOR = 80  # BP x STAB x pair-effectiveness (consult: Mud Shot 82, Double Kick 90)
+
+    # Gen 3: damage category is decided BY TYPE, not by move. A high-BP move off
+    # the mon's WEAK attacking stat is a mirage (the Poochyena-Bite trap: Dark is
+    # SPECIAL and Poochyena's SpA is dreadful — BPxSTABxeff alone scores it 90).
+    _PHYSICAL_TYPES = frozenset(
+        {"Normal", "Fighting", "Flying", "Poison", "Ground", "Rock", "Bug", "Ghost", "Steel"}
+    )
+
+    @classmethod
+    def _sweep_score(cls, mon_types, moves, ace_types, atk=None, spa=None) -> float:
+        """Best damage-potential among usable damaging moves vs the ACE's full type
+        pair: BP x 1.5 STAB x product-effectiveness x stat-fit. Ace pair, not gym
+        primary — Altaria/Kingdra-class aces defeat primary-type reasoning. Stat-fit
+        scales a move by (relevant attacking stat / better attacking stat), so a
+        special-typed move on a physical attacker scores what it actually hits for."""
+        best = 0.0
+        for learned in moves:
+            if learned is None or learned.pp == 0 or learned.move.base_power == 0:
+                continue
+            eff = 1.0
+            for t in ace_types:
+                eff *= learned.move.type.get_effectiveness_against(t)
+            stab = 1.5 if any(t.index == learned.move.type.index for t in mon_types) else 1.0
+            fit = 1.0
+            if atk and spa:
+                relevant = atk if learned.move.type.name in cls._PHYSICAL_TYPES else spa
+                fit = relevant / max(atk, spa)
+            best = max(best, learned.move.base_power * stab * eff * fit)
+        return best
+
+    def _sufficiency_verdict(self, cfg: dict):
+        """(kind, slot, level) — kind: 'sufficient' (skip prep), 'topup' (train ONE
+        mon to `level`), or None (no sweeper in sight — band-prep as always)."""
+        from modules.pokemon import get_species_by_index, get_type_by_name
+        from modules.pokemon_party import get_party
+        from modules.story.early_game import _battler_slots
+
+        if "ace_types" not in cfg or cfg.get("double"):
+            return None  # rivals/mixed fights + double battles: always band-prep
+        try:
+            ace_types = [get_type_by_name(n) for n in cfg["ace_types"]]
+        except Exception:
+            return None
+        ace_level = cfg.get("ace_level", cfg["band"][1])
+        need_level = ace_level - 1
+        party = get_party()
+        best = None  # (priority, -score, slot, kind, train_to)
+
+        def _vulnerable(defender_types) -> bool:
+            """Defensive veto (consult): a sweeper the ACE hits super-effectively is
+            a coin-flip, not a plan — the Swellow-vs-Wattson trap."""
+            for at in ace_types:
+                eff = 1.0
+                for t in defender_types:
+                    eff *= at.get_effectiveness_against(t)
+                if eff >= 2.0:
+                    return True
+            return False
+
+        for i in _battler_slots():
+            mon = party[i]
+            try:
+                mon_types = mon.species.types
+            except Exception:
+                continue
+            entry = None
+            if not _vulnerable(mon_types):
+                atk = spa = None
+                try:
+                    atk, spa = mon.stats.attack, mon.stats.special_attack
+                except Exception:
+                    pass
+                score = self._sweep_score(mon_types, mon.moves, ace_types, atk, spa)
+                if score >= self.SWEEP_SCORE_FLOOR:
+                    if mon.level >= need_level:
+                        entry = (0, -score, i, "sufficient", None)
+                    elif mon.level >= need_level - 2:
+                        entry = (1, -score, i, "topup", need_level)  # close: top up JUST this mon
+            if entry is None:
+                # Imminent-threshold lookahead (the user's Torchic case): if this mon
+                # EVOLVES within +3 levels and the EVOLVED FORM — judged on ITS types
+                # (Torchic is Rock-weak and rightly vetoed; Combusken is Rock-neutral)
+                # and its level-up moves by that level (Double Kick on evolution) —
+                # would qualify, grind JUST this mon to the evolution level.
+                try:
+                    for evo in mon.species.evolutions:
+                        if "LEVEL" not in str(evo.method).upper():
+                            continue
+                        evo_level = int(evo.method_param)
+                        if not (mon.level < evo_level <= mon.level + 3):
+                            continue
+                        evolved = get_species_by_index(evo.target_species_index)
+                        if _vulnerable(evolved.types):
+                            continue
+                        future = [
+                            SimpleNamespace(move=e.move, pp=1)
+                            for e in evolved.learnset.level_up
+                            if e.level <= evo_level
+                        ]
+                        e_atk = e_spa = None
+                        try:
+                            e_atk = evolved.base_stats.attack
+                            e_spa = evolved.base_stats.special_attack
+                        except Exception:
+                            pass
+                        if self._sweep_score(evolved.types, future, ace_types, e_atk, e_spa) >= self.SWEEP_SCORE_FLOOR:
+                            # FRAME-COST GATE (punch-list #24): `mon.level < evo_level <=
+                            # mon.level + 3` above budgets in LEVELS, but the real cost is
+                            # FRAMES — a fresh run's local grass was Route 102 L3-5 wilds,
+                            # measured at 1433 frames/battle, and 3 "close" levels there
+                            # cost ~430,000 frames. Estimate before committing to the plan;
+                            # an unknown or over-budget estimate REJECTS it (fail safe).
+                            from modules.story.training_areas import estimate_frames_to_level
+
+                            wild_level = _wild_land_max(cfg["grass"][0]) if "grass" in cfg else None
+                            est_frames = (
+                                estimate_frames_to_level(mon, evo_level, wild_level)
+                                if wild_level is not None
+                                else None
+                            )
+                            if est_frames is None or est_frames > self.MAX_PREP_TRAINING_FRAMES:
+                                console.print(
+                                    f"[yellow]Story: evo-lookahead for {mon.species.name} -> "
+                                    f"Lv{evo_level} rejected — estimated "
+                                    f"{est_frames if est_frames is not None else 'UNKNOWN'} frames "
+                                    f"exceeds budget ({self.MAX_PREP_TRAINING_FRAMES}).[/]"
+                                )
+                                continue
+                            entry = (2, 0.0, i, "topup", evo_level)
+                            break
+                except Exception:
+                    pass
+            if entry is not None and (best is None or entry < best):
+                best = entry
+        if best is None:
+            return None
+        _prio, _negscore, slot, kind, train_to = best
+        return (kind, slot, train_to)
+
     def _prepare_for_fight(self, cfg: dict) -> Generator:
         """Before a major fight, train the team to a sensible level (user directive
         2026-07-21). PROACTIVE: a target within the fight's level band (organic,
@@ -390,7 +916,101 @@ class StoryMode(BotMode):
         losses = max((self._defeat_counts.get(k, 0) for k in cfg["keys"]), default=0)
         lo, hi = cfg["band"]
         target = random.randint(lo, hi)  # organic proactive target within the band
+
+        # --- SWEEPER-SUFFICIENCY GATE (proactive attempts only — once we are LOSING
+        #     here, the reactive logic below owns the decision). ---
+        if losses < 2:
+            verdict = self._sufficiency_verdict(cfg)
+            if verdict is not None:
+                from modules.pokemon_party import get_party as _gp_v
+
+                kind, slot, train_to = verdict
+                name = _gp_v()[slot].species.name
+                if kind == "sufficient":
+                    console.print(
+                        f"[cyan]Story: {name} already answers this gym (type + level "
+                        f"sufficiency) — skipping team training.[/]"
+                    )
+                    return
+                if kind == "topup" and "grass" in cfg:
+                    # FRAME-COST GATE (punch-list #24): this branch used to call train_team
+                    # with no cost estimate at all. Estimate first; an unknown or over-budget
+                    # estimate SKIPS the top-up (fail safe) and falls through to the rest of
+                    # `_prepare_for_fight` (boss-training mode etc.) instead of committing to
+                    # a grind that could burn hundreds of thousands of frames.
+                    from modules.story.training_areas import estimate_frames_to_level
+
+                    wild_level = _wild_land_max(cfg["grass"][0])
+                    est_frames = (
+                        estimate_frames_to_level(_gp_v()[slot], train_to, wild_level)
+                        if wild_level is not None
+                        else None
+                    )
+                    if est_frames is None or est_frames > self.MAX_PREP_TRAINING_FRAMES:
+                        console.print(
+                            f"[yellow]Story: {name} top-up to Lv {train_to} rejected — "
+                            f"estimated {est_frames if est_frames is not None else 'UNKNOWN'} "
+                            f"frames exceeds budget ({self.MAX_PREP_TRAINING_FRAMES}); "
+                            f"falling through to boss-training/band-prep.[/]"
+                        )
+                    else:
+                        console.print(
+                            f"[cyan]Story: {name} is the answer to this gym but needs "
+                            f"Lv {train_to} — targeted top-up of just that mon.[/]"
+                        )
+                        yield from train_team(train_to, slots={slot}, grass=cfg["grass"], heal_center=cfg["heal"])
+                        return
+
+        # --- BOSS-TRAINING MODE (user design 2026-07-23, Wattson analysis + the Gemini
+        #     consult): when we're LOSING here but the local grass is far below our
+        #     level, wild grinding is the wrong tool — a L13 wild pays ~145 XP while
+        #     KO'ing even two of the boss's mons in a LOST attempt pays ~1,200 XP
+        #     (Gen 3 keeps mid-battle XP through a whiteout; whiteout money loss is
+        #     level x badge-payout — cheap; there is no re-challenge limit). So: if
+        #     recent lost attempts each KO'd at least one boss mon, keep re-attempting
+        #     the boss as the PRIMARY training vehicle, with only a LIGHT top-up
+        #     between attempts (+1 level cap, not the +5 escalation). The moment two
+        #     consecutive attempts produce ZERO KOs, the boss can't teach us anything
+        #     — fall through to the classic heavy escalation. ---
+        boss_mode = False
         if losses >= 2:
+            from modules.pokemon_party import get_party as _gp_levels
+
+            _levels_now = [p.level for p in _gp_levels() if p is not None and not p.is_egg]
+            team_max = max(_levels_now, default=0)
+            wild_max = None
+            try:
+                from modules.map import get_wild_encounters_for_map
+
+                if "grass" in cfg:
+                    grass_map = cfg["grass"][0]
+                    enc = get_wild_encounters_for_map(*grass_map.value)
+                    if enc is not None and enc.land_encounters:
+                        wild_max = max(e.max_level for e in enc.land_encounters)
+            except Exception:
+                pass
+            recent = sorted(
+                (entry for k in cfg["keys"] for entry in self._loss_ko_history.get(k, ())),
+            )[-2:]
+            recent_kos = [kos for _seq, kos in recent]
+            # No grass configured at all (e.g. Lavaridge — no reachable training
+            # grass exists) counts as fodder too: grass can't teach us either way.
+            grass_is_fodder = ("grass" not in cfg) or (wild_max is not None and wild_max + 8 < team_max)
+            boss_teaches = bool(recent_kos) and any(k >= 1 for k in recent_kos)
+            if grass_is_fodder and boss_teaches:
+                boss_mode = True
+                target = team_max + 1  # light top-up only — the boss battle is the trainer
+                console.print(
+                    f"[bold cyan]Story: boss-training mode — local wilds (max L{wild_max}) are far "
+                    f"below the team (L{team_max}); re-attempting the boss is the real training "
+                    f"(recent attempts KO'd {recent_kos} of theirs). Light top-up to L{target} only.[/]"
+                )
+            elif grass_is_fodder and recent_kos and not boss_teaches:
+                console.print(
+                    f"[yellow]Story: last {len(recent_kos)} boss attempts KO'd nothing — "
+                    f"the boss can't teach us; falling back to grass escalation.[/]"
+                )
+        if losses >= 2 and not boss_mode:
             levels = [p.level for p in get_party() if p is not None and not p.is_egg]
             team_max = max(levels, default=0)
             team_avg = (sum(levels) // len(levels)) if levels else 0
@@ -427,43 +1047,137 @@ class StoryMode(BotMode):
             to_train.update(ranked[: min(3, len(ranked))])
 
         need = [i for i in to_train if party[i].level < target]
-        if need:
-            console.print(
-                f"[cyan]Story: prepping — training {len(need)} battler(s) to Lv {target} "
-                f"(fresh low catches left to level organically).[/]"
-            )
-            yield from train_team(target, slots=to_train, grass=cfg["grass"], heal_center=cfg["heal"])
-        else:
+        if not need:
             console.print(f"[dim]Story: the team's battlers are already ≥ Lv {target} — no prep training.[/]")
+        elif "grass" not in cfg:
+            # No training grass exists for this boss (e.g. Lavaridge). The re-attempt
+            # itself is the only trainer available — boss-training mode's whole point.
+            console.print("[dim]Story: no training grass here — re-attempting is the training.[/]")
+        else:
+            # --- LEVEL-APPROPRIATE RELOCATION (user directive 2026-07-24) ---------------
+            # The per-boss `grass` is the LOCAL patch, which is right for most gyms but
+            # pathological for NORMAN: his gym is the geographically EARLIEST one yet is
+            # fought 5th, so "local" is Route 102 at L3-4 against a L27-31 team — ~25 xp a
+            # kill, i.e. effectively never. Rather than grind fodder, look for a training
+            # area actually matched to the team and go there (train_team travels
+            # warp-aware via _goto_training_area, so a distant area is fine); heal at the
+            # PC nearest THAT area, not the boss's, or the bot walks the region every
+            # time HP dips. If nothing better exists, do NOT grind fodder at all — skip
+            # prep and let the fight + boss-training telemetry own the levelling (a lost
+            # boss attempt that KOs 2 mons pays ~1,200 xp; a L4 wild pays ~25).
+            grass_map, grass_tile = cfg["grass"]
+            heal_at_center = cfg["heal"]
+            levels_now = [p.level for p in party if p is not None and not p.is_egg]
+            team_max_now = max(levels_now, default=target)
+            local_max = _wild_land_max(grass_map)
+            if local_max is not None and local_max + self.FODDER_LEVEL_GAP < team_max_now:
+                better = None
+                try:
+                    from modules.story.training_areas import best_training_area
+
+                    # The replacement must beat the local patch AND not be fodder itself
+                    # — otherwise we'd walk somewhere new to grind equally-worthless xp.
+                    floor = max(local_max, team_max_now - self.FODDER_LEVEL_GAP)
+                    better = best_training_area(
+                        team_max_now, min_wild_max=floor, allow=_training_area_allowed
+                    )
+                except Exception:
+                    better = None
+                if better is not None:
+                    b_map, b_tile, (b_lo, b_hi) = better
+                    local_name = grass_map.name
+                    grass_map, grass_tile = b_map, b_tile
+                    heal_at_center = _training_area_heal_map().get(b_map, cfg["heal"])
+                    console.print(
+                        f"[bold cyan]Story: {local_name} (max L{local_max}) is fodder for a "
+                        f"L{team_max_now} team — relocating to {b_map.name} "
+                        f"(L{b_lo}-{b_hi}) to train for real.[/]"
+                    )
+                else:
+                    console.print(
+                        f"[yellow]Story: local grass (max L{local_max}) is fodder for a "
+                        f"L{team_max_now} team and no better area is available — skipping "
+                        f"the grind; the boss attempt itself is the training.[/]"
+                    )
+                    need = []
+            if need:
+                console.print(
+                    f"[cyan]Story: prepping — training {len(need)} battler(s) to Lv {target} "
+                    f"in {grass_map.name} (fresh low catches left to level organically).[/]"
+                )
+                yield from train_team(
+                    target, slots=to_train, grass=(grass_map, grass_tile), heal_center=heal_at_center
+                )
 
     def on_battle_started(self, encounter):
         # Story battles (the first Birch battle, training, the rival) are meant
         # to be FOUGHT and won with the default battle strategy — never run from
         # or auto-caught. The BattleListener handles the fight while run() pauses.
         #
-        # SHINY CONTINGENCY: if the wild in the scripted first battle (or any
-        # story battle) happens to be shiny — extremely rare — we must NOT try
-        # to catch it and must NOT stop; the story has to progress normally.
-        # Returning Fight guarantees this: the default "shiny → stop the bot"
-        # logic lives in handle_encounter(), which the framework only calls when
-        # on_battle_started returns None. By returning Fight we bypass it
-        # entirely (and the first battle is a Tutorial encounter, which the
-        # framework forces to CustomAction anyway — also no halt).
+        # SHINY (user directive 2026-07-22 — supersedes the old fight-through
+        # contingency): a wild shiny is a rare collectible and is ALWAYS worth a
+        # catch attempt — even an already-caught species, even with a full party
+        # (→ PC box), at any story stage. This check runs FIRST so it pre-empts
+        # swap-training and ordinary team-catching. With no usable ball we fight
+        # through as before (the user's explicit fallback). Either way we return
+        # a strategy, which bypasses handle_encounter()'s default "shiny → stop
+        # the bot" halt — the story must never stop. The scripted first battle is
+        # a Tutorial encounter (the framework forces its flow; no catch possible),
+        # so it keeps the fight-through path.
         try:
             if encounter is not None and encounter.is_shiny:
                 from modules.console import console
+                from modules.items import get_item_bag
 
                 species = getattr(getattr(encounter, "pokemon", None), "species", None)
                 name = getattr(species, "name", "Pokémon")
+                is_tutorial = getattr(getattr(encounter, "type", None), "name", "") == "Tutorial"
+                have_balls = False
+                try:
+                    have_balls = sum(s.quantity for s in get_item_bag().poke_balls) > 0
+                except Exception:
+                    pass
+                if not is_tutorial and have_balls:
+                    console.print(
+                        f"[bold yellow]Story Mode: ✨ a SHINY {name} appeared — "
+                        f"attempting to CATCH it (shinies are always worth a ball)![/]"
+                    )
+                    context.message = f"Story: ✨ shiny {name} — attempting the catch!"
+                    return StoryShinyCatchStrategy()
                 console.print(
-                    f"[bold yellow]Story Mode: a SHINY {name} appeared in a story "
-                    f"battle — fighting through as normal (NOT catching, NOT "
-                    f"stopping), per the contingency.[/]"
+                    f"[bold yellow]Story Mode: a SHINY {name} appeared but "
+                    f"{'this is the scripted tutorial battle' if is_tutorial else 'there are no usable Poké Balls'}"
+                    f" — fighting through (not stopping).[/]"
                 )
-                context.message = (
-                    f"Story: a shiny {name} appeared in a story battle — fighting "
-                    "through (not catching)."
-                )
+                context.message = f"Story: shiny {name} — no catch possible here, fighting through."
+                return LevelUpTravelBattleStrategy()
+        except Exception:
+            pass
+        # HM-LEARNER HUNT (user directive 2026-07-23): while ensure_hm_learner is
+        # spinning for a species that can learn a needed HM, catch it on sight —
+        # any story stage, needs only party room and a spare ball.
+        try:
+            from modules.story import early_game as _eg
+
+            if _eg.HM_CATCH_TARGET_DEX and encounter is not None and not getattr(encounter, "is_shiny", False):
+                from modules.items import get_item_bag
+                from modules.pokemon_party import get_party as _gp
+
+                sp = getattr(getattr(encounter, "pokemon", None), "species", None)
+                if (
+                    sp is not None
+                    and sp.national_dex_number in _eg.HM_CATCH_TARGET_DEX
+                    and len([m for m in _gp() if m is not None]) < 6
+                    and sum(sl.quantity for sl in get_item_bag().poke_balls) > 1
+                ):
+                    # ‼ local import required: later branches in this method import
+                    # `console` locally, which makes the name function-local EVERYWHERE
+                    # in the method — referencing the module-level one here raises
+                    # UnboundLocalError (and the except silently ate the catch).
+                    from modules.console import console
+
+                    console.print(f"[bold green]Story: catching {sp.name} — it can learn the HM we need![/]")
+                    return StoryCatchStrategy()
         except Exception:
             pass
         # PRE-GYM-1 CATCHING (user directive 2026-07-21): build an organic team by
@@ -512,8 +1226,118 @@ class StoryMode(BotMode):
             set_story_abort(False)
             self._whiteout_pending = False
             try:
-                yield from self._play()
-                return
+                # GLOBAL NEVER-HANG WATCHDOG (#24-interrupt, real-HW log 2026-07-22):
+                # a wedged primitive can spin the mode generator forever with no error
+                # (a trainer-intro msgbox opened mid-turn and ensure_facing_direction
+                # pressed direction keys at a locked avatar for 85k frames — only the
+                # debug logger noticed). Drive _play frame by frame and watch a broad
+                # stall signature (map, position, game state, party, message): if
+                # NOTHING changes for 18k mode-driven frames (~5 min; battles don't
+                # count — a listener holds control then), raise a derail so run()'s
+                # own recovery (B-ride scripts, re-orient, re-enter) takes over.
+                _play_gen = self._play()
+                _stall_sig = None
+                _stall_frames = 0
+                while True:
+                    try:
+                        next(_play_gen)
+                    except StopIteration:
+                        return
+                    # KI-15 post-battle message nudge: an inline battle fought/fled
+                    # during navigation or training can leave a battle message ("grew
+                    # to LV. N!", "won $N", "Got away safely!") waiting for A in the
+                    # overworld while the running primitive (navigate/spin/facing)
+                    # doesn't press it — stranding the resume until the 18k watchdog.
+                    # It is BATTLE text (A clears it; B does not, proven on the (14,5)
+                    # capture) with NO field script active.
+                    # ‼ The signature must hold for a SUSTAINED stretch before we
+                    # press, and we press ONCE per stretch: `cb` stays
+                    # "ReturnFromBattle..." (stale) until the NEXT battle, and a live
+                    # NPC dialogue's script context flickers inactive between message
+                    # boxes — an every-frame nudge A-mashed the Rustboro nurse's
+                    # dialogue into an endless re-open loop (this session's (7,4)
+                    # capture; the museum-greeter lesson). The genuine stale wedge is
+                    # rock-stable for hundreds of frames (probe: 400+ unchanged), so
+                    # 90 consecutive matching frames identifies it safely, and one A
+                    # clears it instantly (proven frame-0 on the (14,5) capture).
+                    try:
+                        from modules.tasks import (
+                            is_waiting_for_input as _iwfi,
+                            get_global_script_context as _ggsc,
+                            get_immediate_script_context as _gisc,
+                        )
+                        from modules.battle_state import battle_is_active as _bia
+                        from modules.memory import get_game_state as _ggs0, GameState as _GS0
+                        from modules.player import get_player_avatar as _gpa15
+
+                        # NO reader distinguishes this wedge from a field dialogue's
+                        # parked WaitForAorBPress tail (identical stale native; both
+                        # ignore B — probed on the captures; two rider-side designs
+                        # failed, see 08-MISTAKES 2026-07-24). The wedge's ONE unique
+                        # property: it BLOCKS ALL MOVEMENT. So the signature demands
+                        # waiting + no scripts + POSITION FROZEN for 240 consecutive
+                        # frames → a single A → 1200-frame cooldown. A dialogue tail
+                        # can't match (the story flow keeps walking → position
+                        # changes reset the count); a live dialogue's script context
+                        # going active resets it too (the every-frame ancestor of
+                        # this nudge A-mashed the nurse — ki15_nurse_wedge.ss1).
+                        try:
+                            _pos15 = tuple(_gpa15().local_coordinates)
+                        except Exception:
+                            _pos15 = None
+                        if (
+                            _pos15 is not None
+                            and _pos15 == getattr(self, "_ki15_nudge_pos", None)
+                            and _ggs0() is _GS0.OVERWORLD
+                            and not _bia()
+                            and _iwfi()
+                            and not _ggsc().is_active
+                            and not _gisc().is_active
+                        ):
+                            self._ki15_nudge_stable = getattr(self, "_ki15_nudge_stable", 0) + 1
+                            if self._ki15_nudge_stable >= 240:
+                                context.emulator.press_button("A")
+                                self._ki15_nudge_stable = -1200  # long cooldown
+                                # breadcrumb for run-log forensics (run 8: a wedge
+                                # this nudge should own sat 20k frames — prove
+                                # in future logs whether it fired)
+                                console.print("[dim]Story: KI-15 nudge fired (stale post-battle message).[/]")
+                        else:
+                            _n = getattr(self, "_ki15_nudge_stable", 0)
+                            self._ki15_nudge_stable = 0 if _n > 0 else min(_n + 1, 0)
+                        self._ki15_nudge_pos = _pos15
+                    except Exception:
+                        pass
+                    yield
+                    try:
+                        from modules.map import get_map_data_for_current_position
+                        from modules.memory import get_game_state as _ggs
+                        from modules.player import get_player_avatar as _gpa
+
+                        _md = get_map_data_for_current_position()
+                        _cur = (
+                            (_md.map_group, _md.map_number),
+                            tuple(_gpa().local_coordinates),
+                            str(_ggs()),
+                            self._progress_sig(),
+                            context.message,
+                        )
+                    except Exception:
+                        _cur = None
+                    if _cur is not None and _cur == _stall_sig:
+                        _stall_frames += 1
+                        if _stall_frames >= 18000:
+                            try:
+                                _play_gen.close()
+                            except Exception:
+                                pass
+                            raise BotModeError(
+                                "Story: global watchdog — nothing progressed for 18,000 frames "
+                                "(the current step is wedged); derailing into recovery."
+                            )
+                    else:
+                        _stall_sig = _cur
+                        _stall_frames = 0
             except BotModeError as err:
                 from modules.memory import game_has_started, get_game_state, GameState
 
@@ -545,16 +1369,45 @@ class StoryMode(BotMode):
                         raise
                     set_story_abort(False)
                     try:
-                        # Patiently ride out the post-battle transition before retrying.
-                        # These stalls SELF-HEAL (the overworld becomes controllable on
-                        # its own) but the controllable flag flickers first, so waiting
-                        # for a STABLE controllable window here lets a SINGLE recovery
-                        # ride out the whole stall instead of burning many rapid derail
-                        # cycles toward Manual.
-                        from modules.story.early_game import wait_until_truly_controllable
+                        # FIRST close any OPEN scripted dialogue: waiting alone presses
+                        # nothing, and an open msgbox (Briney's post-sail Letter reminder,
+                        # real-HW 2026-07-22) keeps the avatar non-controllable FOREVER —
+                        # the recovery itself was derail-looping on it. _ride_out_scripted_
+                        # scene B-advances an active script and is a cheap no-op otherwise.
+                        from modules.story.early_game import (
+                            _ride_out_scripted_scene,
+                            wait_until_truly_controllable,
+                        )
 
+                        yield from _ride_out_scripted_scene("B")
+                        # Then patiently ride out the post-battle transition before
+                        # retrying. These stalls SELF-HEAL (the overworld becomes
+                        # controllable on its own) but the controllable flag flickers
+                        # first, so waiting for a STABLE controllable window here lets a
+                        # SINGLE recovery ride out the whole stall instead of burning many
+                        # rapid derail cycles toward Manual.
+                        # Close any STRAY MENU first (an open bag/party menu is not a
+                        # script — nothing else in the recovery can close it, and a
+                        # navigator driving under an open bag wedges forever; batch
+                        # run02 2026-07-22). Bounded B-presses until the overworld.
+                        from modules.memory import GameState as _GS
+                        from modules.memory import get_game_state as _ggs2
+
+                        for _f in range(900):
+                            if _ggs2() is _GS.OVERWORLD:
+                                break
+                            context.emulator.press_button("B")
+                            yield
+                            yield
                         yield from wait_until_truly_controllable(timeout_frames=3000)
                         yield from exit_building_after_whiteout()
+                        # Cave-stranded derails (a heal/nav plan-failed from INSIDE the
+                        # training cave) must physically exit before the retry, or the
+                        # segment re-fails identically forever (batch 20260722-182727).
+                        # A cheap no-op anywhere else.
+                        from modules.story.early_game import _exit_training_cave_if_inside
+
+                        yield from _exit_training_cave_if_inside()
                         settle = 0
                         while settle < 300 and not (
                             game_has_started() and get_game_state() is GameState.OVERWORLD
@@ -610,7 +1463,7 @@ class StoryMode(BotMode):
     def _play(self) -> Generator:
         import random
 
-        from modules.memory import get_event_flag
+        from modules.memory import get_event_flag, get_event_var
         from modules.map import get_map_data_for_current_position
         from modules.map_data import MapRSE
         from modules.story import detect_live
@@ -626,6 +1479,17 @@ class StoryMode(BotMode):
             go_upstairs_and_set_clock,
             help_birch_and_choose_starter,
             recover_devon_goods,
+            return_devon_goods_and_get_pokenav,
+            sail_to_dewford,
+            deliver_stevens_letter,
+            do_dewford_gym,
+            sail_to_slateport,
+            deliver_devon_goods_to_stern,
+            travel_route110_and_fight_rival,
+            fight_wally_mauville,
+            do_mauville_gym,
+            handle_pokenav_match_call_tutorial,
+            fight_rustboro_rival,
             return_to_lab_and_get_pokedex,
             train_lead_to_level,
             travel_route104_north_to_rustboro,
@@ -639,6 +1503,15 @@ class StoryMode(BotMode):
         cfg = get_story_config(context.profile.path)
 
         def _done(flag: str) -> bool:
+            # FAIL LOUDLY on unknown flag names: get_event_flag() silently returns
+            # False for a name that isn't in the table, which lets a typo'd/phantom
+            # flag gate a segment into an eternal derail loop (Ch9a shipped with
+            # "DEFEATED_RIVAL_ROUTE_110", which does not exist — run 5 hit Manual on
+            # it). A wrong NAME is a build error, not a game state — surface it.
+            from modules.memory import _event_flags
+
+            if flag not in _event_flags:
+                raise BotModeError(f"Story: flag name {flag!r} is not in the event-flag table (typo/phantom name).")
             try:
                 return bool(get_event_flag(flag))
             except Exception:
@@ -693,6 +1566,14 @@ class StoryMode(BotMode):
         # segment a _guard() self-check confirms it truly completed (§SC).
         at_title = get_game_state() is GameState.TITLE_SCREEN or not game_has_started()
         if not at_title:
+            # RESUME-FROM-ANYWHERE (user directive 2026-07-23): normalize whatever
+            # state we were entered in — a milestone loaded mid-menu, an open dialogue,
+            # a live battle, a cutscene — to a stable controllable overworld BEFORE any
+            # segment navigates. Without this a menu-saved state (the rocksmash_taught
+            # milestone) wedges the first navigator under the open menu.
+            from modules.story.early_game import normalize_to_overworld
+
+            yield from normalize_to_overworld()
             try:
                 progress = detect_live()
                 console.print(
@@ -807,6 +1688,7 @@ class StoryMode(BotMode):
             roxanne_fight = {
                 "keys": [MapRSE.RUSTBORO_CITY_GYM.value, MapRSE.RUSTBORO_CITY.value],
                 "band": (13, 17),  # user: team between Lv 13-17 before Roxanne
+                "ace_types": ("Rock",), "ace_level": 15,  # Nosepass L15
                 "grass": RUSTBORO_TRAINING_GRASS,
                 "heal": PokemonCenter.RustboroCity,
             }
@@ -828,11 +1710,650 @@ class StoryMode(BotMode):
             console.print("[dim]Story: Devon Goods already recovered — skipping.[/]")
         _guard("Devon Goods (Rusturf Tunnel)", lambda: _done("RECOVERED_DEVON_GOODS"))
 
+        # --- Segment 5b: return the goods to Mr. Stone → PokéNav + Letter → clear the
+        #     forced PokéNav Match-Call tutorial → train → Rustboro rival.
+        #     Completion signals: RECEIVED_POKENAV, then DEFEATED_RIVAL_RUSTBORO. ---
+        if not _done("RECEIVED_POKENAV"):
+            yield from return_devon_goods_and_get_pokenav()
+        else:
+            console.print("[dim]Story: PokéNav already received — skipping the Devon Corp errand.[/]")
+        _guard("Devon Corp → PokéNav", lambda: _done("RECEIVED_POKENAV"))
+
+        # Clear the forced PokéNav/Match-Call tutorial (Rustboro Scientist, fired from the
+        # map ON_FRAME table while VAR_RUSTBORO_CITY_STATE==6). FAITHFUL path: actually call
+        # Mr. Stone through the PokéNav app; falls back to a state-write to vanilla's exact
+        # end-state when the renderer is off (headless) or the nav stalls
+        # (handle_pokenav_match_call_tutorial). Completing it sets VAR_RUSTBORO_CITY_STATE=7,
+        # which also arms the rival trigger.
+        if get_event_var("RUSTBORO_CITY_STATE") < 7:
+            yield from handle_pokenav_match_call_tutorial()
+
+        # --- Segment 5c: Rustboro rival (south exit, y=53; gated on VAR_RUSTBORO_CITY_STATE==7,
+        #     which the tutorial-clear set). This rival is TYPE-COUNTERED: a Mudkip start makes
+        #     it lead a grass Grovyle vs our 4×-weak Marshtomp, so we (1) TRAIN to a rival band,
+        #     (2) pick a MATCHUP-based lead (not lead-strongest), and (3) cap attempts so a
+        #     thin team that can't win stops cleanly instead of looping forever. ---
+        def _rustboro_rival_resolved() -> bool:
+            # VANILLA TRUTH (decomp + live probe 2026-07-22): the RivalTrigger row
+            # fires only at VAR_RUSTBORO_CITY_STATE==7 and the MEETING sets it to 8 —
+            # win or LOSE there is no rematch (her talk script is just the Briney
+            # hint), and progression does NOT require the win. Two batch runs hit
+            # honest-Manual retry loops on a met-and-lost state before this was
+            # understood. Resolved = beaten, or met-and-spent.
+            if _done("DEFEATED_RIVAL_RUSTBORO"):
+                return True
+            try:
+                from modules.memory import get_event_var
+
+                return _done("MET_RIVAL_RUSTBORO") and get_event_var("RUSTBORO_CITY_STATE") >= 8
+            except Exception:
+                return False
+
+        if not _rustboro_rival_resolved():
+            self._rival_attempts = getattr(self, "_rival_attempts", 0) + 1
+            if self._rival_attempts > self.RIVAL_MAX_ATTEMPTS:
+                context.message = (
+                    f"Story: couldn't beat the Rustboro rival in {self.RIVAL_MAX_ATTEMPTS} tries "
+                    "(likely underleveled / bad matchup) — handing to manual so you can level up."
+                )
+                console.print(f"[bold yellow]{context.message}")
+                context.set_manual_mode()
+                return
+            from modules.map_data import PokemonCenter
+            from modules.story.early_game import (
+                RUSTBORO_TRAINING_GRASS,
+                _lead_best_matchup,
+                train_team,
+                heal_in_pokemon_center,
+            )
+
+            rival_fight = {
+                "keys": [MapRSE.RUSTBORO_CITY.value],
+                "band": (16, 19),  # rival ace ≈ Lv15-16; small margin (escalates on losses)
+                "grass": RUSTBORO_TRAINING_GRASS,
+                "heal": PokemonCenter.RustboroCity,
+            }
+            # (1) LEVEL FLOOR (user directive 2026-07-21): make sure EVERY party mon is at
+            #     least Lv 10 before the rival — a thin L6-8 bench gets swept and whites us
+            #     out. The floor escalates on retries so each attempt fields a stronger team.
+            level_floor = 10 + 2 * (self._rival_attempts - 1)
+            console.print(f"[cyan]Story: leveling the whole team to ≥ Lv {level_floor} before the rival…[/]")
+            yield from train_team(level_floor, scope="whole",
+                                  grass=RUSTBORO_TRAINING_GRASS, heal_center=PokemonCenter.RustboroCity)
+            # (2) Ready the primary/near-band battlers (organic band training + loss escalation).
+            yield from self._prepare_for_fight(rival_fight)
+            # (3) Mudkip start -> rival leads a grass Grovyle: lead the mon that best resists Grass
+            #     (NOT our 4×-weak Marshtomp). Taillow/Flying both resists Grass AND hits it 2×.
+            yield from _lead_best_matchup(["Grass"])
+            # (4) SAFE HEAL right before the fight (user directive) — enter at full HP.
+            yield from heal_in_pokemon_center(PokemonCenter.RustboroCity)
+            # (5) Fight. A loss whites out -> StoryMode recovery -> we re-enter here (attempt+1,
+            #     higher floor) until RIVAL_MAX_ATTEMPTS, then stop cleanly. The rival re-engages
+            #     correctly on retries now (fight_rustboro_rival no longer keys off the MET flag).
+            yield from fight_rustboro_rival()
+        else:
+            console.print("[dim]Story: Rustboro rival already resolved (beaten, or met-and-lost — vanilla offers no rematch) — skipping.[/]")
+        _guard("Rustboro rival (resolved)", _rustboro_rival_resolved)
+
+        # --- Segment 6: sail to Dewford (Chapter 6). Rustboro → south onto Route 104 →
+        #     back through Petalburg Woods (Route 104 is river-split) → south beach →
+        #     Mr. Briney's cottage → talk (first sail = YES/NO) → sail cutscene → Dewford.
+        #     sail_to_dewford is idempotent + keyed off the LIVE map, so a resume from
+        #     anywhere along the route picks up mid-leg. Once the Dewford-arc flags
+        #     (DELIVERED_STEVEN_LETTER / BADGE02) exist they gate this out for good. ---
+        pre_sail_maps = (
+            MapRSE.RUSTBORO_CITY.value,
+            MapRSE.ROUTE104.value,
+            MapRSE.PETALBURG_WOODS.value,
+            MapRSE.ROUTE104_MR_BRINEYS_HOUSE.value,
+        )
+        if not _done("DELIVERED_STEVEN_LETTER") and not _done("BADGE02_GET"):
+            # WHITELIST the pre-sail maps: "not in Dewford" is WRONG as a gate — a resume
+            # from Route 106 / Granite Cave / the gym is already on the Dewford side, and
+            # running the sail leg there marches off toward a cottage that can't be
+            # reached (live-hit 2026-07-22: a Granite Cave derail re-entered the sail and
+            # spun into Manual). Off-whitelist maps skip straight to the Dewford segments.
+            if _cur_map() in pre_sail_maps:
+                yield from sail_to_dewford()
+                _guard("Sail to Dewford (Ch6)", lambda: _cur_map() == MapRSE.DEWFORD_TOWN.value)
+            elif _cur_map() != MapRSE.DEWFORD_TOWN.value:
+                console.print("[dim]Story: already on the Dewford side — sail leg skipped.[/]")
+
+        # --- Segment 7a: Steven's Letter (Granite Cave, TM47). The story reason we came
+        #     to Dewford — and Briney waits for it before offering the Slateport sail. ---
+        if not _done("DELIVERED_STEVEN_LETTER"):
+            yield from deliver_stevens_letter()
+        else:
+            console.print("[dim]Story: Steven's Letter already delivered — skipping Granite Cave.[/]")
+        _guard("Steven's Letter (Granite Cave)", lambda: _done("DELIVERED_STEVEN_LETTER"))
+
+        # --- Segment 7b: Gym 2 — Brawly (Knuckle Badge). Heal + Fighting-resistant lead
+        #     (Taillow-class); floor-band only — Dewford has NO reachable training grass
+        #     before Surf (Route 106 is surf-only, Granite Cave wilds are L6-10), so the
+        #     natural post-rival team (≥L16) skips proactive grinding and the cave spot is
+        #     the (slow but bounded) loss-escalation fallback. See design §Ch7. ---
+        if not _done("BADGE02_GET"):
+            from modules.map_data import PokemonCenter
+            from modules.story.early_game import (
+                GRANITE_CAVE_TRAINING_SPOT,
+                _lead_best_matchup,
+                heal_in_pokemon_center,
+            )
+
+            brawly_fight = {
+                "keys": [MapRSE.DEWFORD_TOWN_GYM.value, MapRSE.DEWFORD_TOWN.value],
+                "band": (14, 16),
+                "ace_types": ("Fighting",), "ace_level": 19,  # Makuhita L19
+                "grass": GRANITE_CAVE_TRAINING_SPOT,
+                "heal": PokemonCenter.DewfordTown,
+            }
+            yield from self._prepare_for_fight(brawly_fight)
+            # Training can END at the in-cave spin tile — thread the cave mouth first
+            # or the direct heal plan-fails cross-warp ("not on connected maps") and
+            # derail-loops to Manual (batch 20260722-182727: 3 of 5 runs died here).
+            from modules.story.early_game import _exit_training_cave_if_inside
+
+            yield from _exit_training_cave_if_inside()
+            yield from heal_in_pokemon_center(PokemonCenter.DewfordTown)
+            yield from _lead_best_matchup(["Fighting"])
+            yield from do_dewford_gym()
+        else:
+            console.print("[dim]Story: Knuckle Badge already earned — Gym 2 skipped.[/]")
+        _guard("Gym 2 (Brawly)", lambda: _done("BADGE02_GET"))
+
+        # --- Segment 8a: sail Dewford → Slateport (Briney at the dock; Route 109 beach
+        #     gauntlet; ends healed at the Slateport PC). Gated on being on the DEWFORD
+        #     side (whitelist — see the Segment-6 lesson); a Slateport-side resume skips. ---
+        dewford_side = (
+            MapRSE.DEWFORD_TOWN.value,
+            MapRSE.ROUTE106.value,
+            MapRSE.GRANITE_CAVE_1F.value,
+            MapRSE.GRANITE_CAVE_B1F.value,
+            MapRSE.GRANITE_CAVE_B2F.value,
+            MapRSE.GRANITE_CAVE_STEVENS_ROOM.value,
+            MapRSE.ROUTE109.value,
+        )
+        cur = _cur_map()
+        on_dewford_side = cur in dewford_side or (cur is not None and cur[0] == 3)  # group 3 = Dewford interiors
+        if cur != MapRSE.SLATEPORT_CITY.value:
+            if on_dewford_side:
+                yield from sail_to_slateport()
+                _guard("Sail to Slateport (Ch8a)", lambda: _cur_map() == MapRSE.SLATEPORT_CITY.value)
+            else:
+                console.print("[dim]Story: not on the Dewford side — Slateport sail skipped.[/]")
+
+        # --- Segment 8b: Devon Goods → Capt. Stern (Oceanic Museum). KI-11 RESOLVED
+        #     (2026-07-22, walkthrough + decomp): the museum entrance is grunt-sealed until
+        #     you visit Stern's Shipyard and talk to Dock (sets FLAG_HIDE_SLATEPORT_CITY_
+        #     TEAM_AQUA) — `deliver_devon_goods_to_stern` now does that first. Two
+        #     un-fleeable grunt battles inside the scene (attack-through strategy); the
+        #     scene heals the party and removes the Route 110 blockade for Ch9. ---
+        museum_maps = (
+            MapRSE.SLATEPORT_CITY_OCEANIC_MUSEUM_1F.value,
+            MapRSE.SLATEPORT_CITY_OCEANIC_MUSEUM_2F.value,
+        )
+        # Also (re-)enter the segment when RESUMING INSIDE the museum with the flag
+        # already set (e.g. the stern_done checkpoint is captured on 2F the moment the
+        # flag lands, before the exit legs) — the function then skips straight to its
+        # museum-exit legs. Without this, a city-target heal from inside the museum
+        # plan-fails ("not on connected maps") and derails to Manual (live-hit ch9_run1).
+        if not _done("DELIVERED_DEVON_GOODS") or _cur_map() in museum_maps:
+            yield from deliver_devon_goods_to_stern()
+        else:
+            console.print("[dim]Story: Devon Goods already delivered — museum skipped.[/]")
+        _guard("Devon Goods → Capt. Stern (Ch8b)", lambda: _done("DELIVERED_DEVON_GOODS"))
+
+        # --- Segment 9a: the Route 110 rival (mandatory choke-point; §Ch9). Heal + a
+        #     type-aware lead first: the rival's ACE counters OUR starter (Mudkip start →
+        #     their Grovyle/Grass; Torchic → Marshtomp/Water; Treecko → Combusken/Fire). ---
+        # NOTE (2026-07-22): the rival's completion signal is VAR_ROUTE110_STATE >= 1 —
+        # vanilla sets NO named flag here; "DEFEATED_RIVAL_ROUTE_110" was a phantom name
+        # that silently read False forever and derail-looped this segment (run 5).
+        from modules.story.early_game import route110_rival_beaten
+
+        if not route110_rival_beaten():
+            from modules.map_data import PokemonCenter
+            from modules.story.early_game import _lead_best_matchup, heal_in_pokemon_center
+
+            ace_type = "Grass"
+            try:
+                from modules.pokemon_party import get_party as _gp
+
+                names = " ".join(p.species.name for p in _gp() if p is not None)
+                if any(s in names for s in ("Torchic", "Combusken", "Blaziken")):
+                    ace_type = "Water"
+                elif any(s in names for s in ("Treecko", "Grovyle", "Sceptile")):
+                    ace_type = "Fire"
+            except Exception:
+                pass
+            yield from heal_in_pokemon_center(PokemonCenter.SlateportCity)
+            yield from _lead_best_matchup([ace_type])
+            yield from travel_route110_and_fight_rival()
+        else:
+            console.print("[dim]Story: Route 110 rival already beaten — skipping.[/]")
+        _guard("Route 110 rival (Ch9a)", route110_rival_beaten)
+
+        # --- Segment 9b: Mauville — Wally unblocks the gym door. ---
+        if not _done("DEFEATED_WALLY_MAUVILLE"):
+            yield from fight_wally_mauville()
+        else:
+            console.print("[dim]Story: Wally already beaten at Mauville — skipping.[/]")
+        _guard("Wally at Mauville (Ch9b)", lambda: _done("DEFEATED_WALLY_MAUVILLE"))
+
+        # --- Segment 9c: Gym 3 — Wattson (Dynamo Badge). PREP FIRST (KI-13: the maze
+        #     solver was validated in run 10 but the unprepped team lost 8 straight
+        #     challenges): band-train at Route 110's north grass, then an Electric-
+        #     resistant lead (Marshtomp/Ground is immune), then a safe heal. The
+        #     switch maze itself is solved by the live-grid solver. ---
+        if not _done("BADGE03_GET"):
+            from modules.map_data import PokemonCenter
+            from modules.story.early_game import (
+                ROUTE117_TRAINING_GRASS,
+                _lead_best_matchup,
+                heal_in_pokemon_center,
+            )
+
+            wattson_fight = {
+                "keys": [MapRSE.MAUVILLE_CITY_GYM.value, MapRSE.MAUVILLE_CITY.value],
+                "band": (20, 24),  # Wattson: Voltorb 20 / Electrike 20 / Magneton 22 / Manectric 24
+                "ace_types": ("Electric",), "ace_level": 24,  # Manectric L24
+                "grass": ROUTE117_TRAINING_GRASS,
+                "heal": PokemonCenter.MauvilleCity,
+            }
+            yield from self._prepare_for_fight(wattson_fight)
+            yield from _lead_best_matchup(["Electric"])
+            yield from heal_in_pokemon_center(PokemonCenter.MauvilleCity)
+            yield from do_mauville_gym()
+        else:
+            console.print("[dim]Story: Dynamo Badge already earned — Gym 3 skipped.[/]")
+        _guard("Gym 3 (Wattson)", lambda: _done("BADGE03_GET"))
+
+        # --- Segment 10a: HM06 Rock Smash (Mauville SE house; §Ch10). Gated only on
+        #     the received flag; field use needs BADGE03, which Segment 9c earned. ---
+        if not _done("RECEIVED_HM_ROCK_SMASH"):
+            from modules.story.early_game import get_rock_smash_hm
+
+            yield from get_rock_smash_hm()
+        else:
+            console.print("[dim]Story: HM06 Rock Smash already received — skipping.[/]")
+        _guard("HM06 Rock Smash (Ch10a)", lambda: _done("RECEIVED_HM_ROCK_SMASH"))
+
+        # --- Segment 10b: teach Rock Smash to a VALIDATED learner (user directive
+        #     2026-07-23): pick the highest-level party mon that can actually learn it
+        #     (the party menu shows an incompatible mon as NOT ABLE and refuses the
+        #     selection — the old highest-level pick loops there). If nobody in the
+        #     party qualifies, ensure_hm_learner hunts an accessible learner species
+        #     (data-driven from the ROM's encounter tables + TM/HM learnsets) and
+        #     catches one first. Seed of the HM-slave logic (#24-hm-slaves). ---
+        def _party_knows_rock_smash() -> bool:
+            try:
+                from modules.pokemon_party import get_party as _gp
+
+                return any(
+                    learned is not None and learned.move.name == "Rock Smash"
+                    for mon in _gp()
+                    if mon is not None and not mon.is_egg
+                    for learned in mon.moves
+                )
+            except Exception:
+                return False
+
+        if not _party_knows_rock_smash():
+            from modules.items import get_item_by_name
+            from modules.story.early_game import ensure_hm_learner, teach_hm_move
+
+            _hm06 = get_item_by_name("HM06")
+            _slot = yield from ensure_hm_learner(_hm06)
+            yield from teach_hm_move(_hm06, _slot)
+        else:
+            console.print("[dim]Story: someone already knows Rock Smash — teach skipped.[/]")
+        _guard("Teach Rock Smash (Ch10b)", _party_knows_rock_smash)
+
+        # --- Segment 10c: Route 111 south (smash the rocks) → Fiery Path → Route 113
+        #     → Fallarbor, ending healed at its PC (§Ch10 route spec). ---
+        from modules.story.early_game import travel_to_fallarbor
+
+        # ORIGIN-side whitelist (the Segment-6 travel-gate lesson): run the travel only
+        # when we're actually on the PRE-Fallarbor side — a resume from R114/Meteor
+        # Falls or beyond must NOT backtrack (run 2026-07-22 overnight tried to walk
+        # Route 114 → Route 111 and plan-failed to Manual).
+        pre_fallarbor = (
+            MapRSE.MAUVILLE_CITY.value,
+            MapRSE.MAUVILLE_CITY_GYM.value,
+            MapRSE.MAUVILLE_CITY_POKEMON_CENTER_1F.value,
+            MapRSE.MAUVILLE_CITY_HOUSE1.value,
+            MapRSE.ROUTE110.value,
+            MapRSE.ROUTE111.value,
+            MapRSE.ROUTE112.value,
+            MapRSE.FIERY_PATH.value,
+            MapRSE.ROUTE113.value,
+        )
+        # ALSO progress-gated: the corridor maps (R111/R112/Fiery/R113) are shared by
+        # the LATER Fallarbor→Cable-Car return trip, so a mid-return derail would
+        # re-trigger this travel on maps alone (seen 2026-07-22 overnight: it then
+        # "shortcut" into the Go-Goggles-gated desert and plan-failed). Once Ch11a's
+        # flag exists, the Fallarbor trip already happened — never travel again.
+        if _cur_map() in pre_fallarbor and not _done("HIDE_ROUTE_112_TEAM_MAGMA"):
+            yield from travel_to_fallarbor()
+        else:
+            console.print("[dim]Story: Fallarbor travel not applicable from here — skipped.[/]")
+        _guard(
+            "Fallarbor travel resolved (Ch10c)",
+            lambda: _cur_map() not in pre_fallarbor or _done("HIDE_ROUTE_112_TEAM_MAGMA"),
+        )
+
+        # --- Segment 11a: the Meteor Falls Magma cutscene (unblocks the Cable Car). ---
+        from modules.story.early_game import do_meteor_falls_scene
+
+        if not _done("HIDE_ROUTE_112_TEAM_MAGMA"):
+            yield from do_meteor_falls_scene()
+        else:
+            console.print("[dim]Story: Meteor Falls scene already done — skipping.[/]")
+        _guard("Meteor Falls scene (Ch11a)", lambda: _done("HIDE_ROUTE_112_TEAM_MAGMA"))
+
+        # --- Segment 11b: Cable Car → Mt. Chimney Magma chain (Maxie) + meteorite.
+        #     Prep: heal + water-favoring lead (Camerupt ace is 4× to Water). ---
+        from modules.story.early_game import do_jagged_descent, do_mt_chimney
+
+        if not _done("DEFEATED_EVIL_TEAM_MT_CHIMNEY"):
+            from modules.map_data import PokemonCenter
+            from modules.story.early_game import _lead_best_matchup, heal_in_pokemon_center
+
+            yield from heal_in_pokemon_center(PokemonCenter.FallarborTown)
+            yield from _lead_best_matchup(["Fire", "Poison"])
+            yield from do_mt_chimney()
+        else:
+            console.print("[dim]Story: Mt. Chimney already cleared — skipping.[/]")
+        _guard("Mt. Chimney (Ch11b)", lambda: _done("DEFEATED_EVIL_TEAM_MT_CHIMNEY"))
+
+        # --- Segment 11c: Jagged Pass down to Lavaridge (heal = arrival). ---
+        # Run whenever we're not yet at/past Lavaridge: do_jagged_descent now handles
+        # BOTH origins — descend when on the mountain, and re-ride the cable car up
+        # first when a mid-descent whiteout stranded us below (user's 2026-07-23 run).
+        # ‼ The guard checks we actually REACHED Lavaridge (or already earned the Heat
+        # Badge) — the old "off the mountain" guard falsely PASSED at the Fallarbor
+        # respawn, so Flannery then ran from the wrong town and derailed.
+        _at_or_past_lavaridge = lambda: _cur_map() == MapRSE.LAVARIDGE_TOWN.value or _done("BADGE04_GET")
+        if not _at_or_past_lavaridge():
+            yield from do_jagged_descent()
+        else:
+            console.print("[dim]Story: already at Lavaridge — Jagged descent skipped.[/]")
+        _guard("Jagged descent resolved (Ch11c)", _at_or_past_lavaridge)
+
+        # --- Segment 11d: Gym 4 — Flannery (Heat Badge). The trapdoor maze is solved
+        #     from the ROM's map data (holes / geysers / jump-south ledges — see
+        #     do_lavaridge_gym), so no hole-guessing remains.
+        #     NO pre-grind here, deliberately: a two-way pathability sweep from
+        #     Lavaridge (tools/story-dev/jaggedgrass_probe.py) found NO usable training
+        #     grass — Jagged Pass cannot be re-entered from the town (one-way ledges)
+        #     and Route 112's lower grass has no return path. Teams reach Lavaridge at
+        #     L28-29 and Flannery's ace is L29, so we prep the cheap way: a WATER lead
+        #     (all four of her mons are 2x to Water) and a full heal. If this proves
+        #     thin in batches, the fix is a swept Lavaridge-area tile (#24-trainmap),
+        #     not a blind grind target. ---
+        if not _done("BADGE04_GET"):
+            from modules.map_data import PokemonCenter
+            from modules.story.early_game import (
+                _lead_best_matchup,
+                do_lavaridge_gym,
+                heal_in_pokemon_center,
+            )
+
+            yield from _lead_best_matchup(["Fire"])
+            yield from heal_in_pokemon_center(PokemonCenter.LavaridgeTown)
+            yield from do_lavaridge_gym()
+        else:
+            console.print("[dim]Story: Heat Badge already earned — Gym 4 skipped.[/]")
+        _guard("Gym 4 (Flannery)", lambda: _done("BADGE04_GET"))
+
+        # --- Segment 12a: the long overland backtrack Lavaridge → Petalburg (§Ch12
+        #     build spec; route static-probed 2026-07-24 — direct via Route 111 south,
+        #     the desert is never on the path; the Rusturf wall opens via the Wanda
+        #     quest's two Rock Smash rocks). ---
+        from modules.story.early_game import do_petalburg_gym, travel_lavaridge_to_petalburg
+
+        _at_petalburg = lambda: _cur_map() in (
+            MapRSE.PETALBURG_CITY.value,
+            MapRSE.PETALBURG_CITY_GYM.value,
+            MapRSE.PETALBURG_CITY_POKEMON_CENTER_1F.value,
+            MapRSE.PETALBURG_CITY_WALLYS_HOUSE.value,
+            MapRSE.PETALBURG_CITY_MART.value,
+        )
+        if not _at_petalburg() and not _done("RECEIVED_HM_SURF"):
+            yield from travel_lavaridge_to_petalburg()
+        else:
+            console.print("[dim]Story: already Petalburg-side (or Surf in hand) — travel skipped.[/]")
+        _guard("Travel to Petalburg (Ch12a)", lambda: _at_petalburg() or _done("RECEIVED_HM_SURF"))
+
+        # --- Segment 12b: Gym 5 — Norman (Balance Badge) + the HM03 Surf handoff.
+        #     Slaking L31 (TRUANT) is the ace; attack-through + a Normal-answering
+        #     lead. Route 102 grass is L3-4 fodder, so the sufficiency gate /
+        #     boss-training telemetry owns the prep decision. ---
+        if not _done("RECEIVED_HM_SURF"):
+            from modules.map_data import PokemonCenter
+            from modules.story.early_game import (
+                PETALBURG_TRAINING_GRASS,
+                _lead_best_matchup,
+                heal_in_pokemon_center,
+            )
+
+            norman_fight = {
+                "keys": [MapRSE.PETALBURG_CITY_GYM.value, MapRSE.PETALBURG_CITY.value],
+                "band": (27, 31),  # Norman: Spinda 27 / Vigoroth 27 / Linoone 29 / Slaking 31
+                "ace_types": ("Normal",), "ace_level": 31,  # Slaking L31 (Truant)
+                "grass": PETALBURG_TRAINING_GRASS,
+                "heal": PokemonCenter.PetalburgCity,
+            }
+            # Prep/heal only when OUTSIDE the gym: a mid-gym derail resume must walk
+            # straight back up the (still-open) doors, not leave for the PC —
+            # ch12_run3 looped to Manual healing from inside (pre the warp-aware
+            # heal fix; the gate also spares pointless PC round-trips).
+            if _cur_map() != MapRSE.PETALBURG_CITY_GYM.value:
+                yield from self._prepare_for_fight(norman_fight)
+                yield from _lead_best_matchup(["Normal"])
+                yield from heal_in_pokemon_center(PokemonCenter.PetalburgCity)
+            yield from do_petalburg_gym()
+        else:
+            console.print("[dim]Story: Surf already received — Gym 5 skipped.[/]")
+        _guard("Gym 5 + Surf handoff (Ch12b)", lambda: _done("RECEIVED_HM_SURF"))
+
+        # --- Segment 12c: teach Surf (Marshtomp is the natural carrier); the whole
+        #     Ch13+ water arc (Route 118, Weather Institute, Fortree) needs it. ---
+        def _party_knows_surf() -> bool:
+            try:
+                from modules.pokemon_party import get_party as _gp
+
+                return any(
+                    learned is not None and learned.move.name == "Surf"
+                    for mon in _gp()
+                    if mon is not None and not mon.is_egg
+                    for learned in mon.moves
+                )
+            except Exception:
+                return False
+
+        if not _party_knows_surf():
+            from modules.items import get_item_by_name
+            from modules.story.early_game import ensure_hm_learner, teach_hm_move
+
+            _hm03 = get_item_by_name("HM03")
+            _slot = yield from ensure_hm_learner(_hm03)
+            yield from teach_hm_move(_hm03, _slot)
+        else:
+            console.print("[dim]Story: someone already knows Surf — teach skipped.[/]")
+        _guard("Teach Surf (Ch12c)", _party_knows_surf)
+
+        # --- Segment 13a: the Surf arc — Mauville → Route 118 (Surf) → Route 119 →
+        #     Weather Institute → rival (HM02 Fly) → Fortree (§Ch13 spec, flags
+        #     audited; ⚠ SKELETON built 2026-07-24 overnight — the Surf crossing and
+        #     interior tiles are first-run-validate leads, expect iteration). ---
+        from modules.story.early_game import (
+            do_weather_institute,
+            fight_route119_rival_and_get_fly,
+            travel_to_fortree,
+        )
+
+        _r119_cleared = lambda: _done("HIDE_ROUTE_119_TEAM_AQUA")
+        if not _r119_cleared() or not _done("RECEIVED_HM_FLY"):
+            # Travel runs first; if Route 119's content interrupts it (institute /
+            # rival not yet done), the dedicated segments below own their pieces
+            # from wherever the navigation stopped.
+            if _cur_map() not in (MapRSE.ROUTE119.value, MapRSE.FORTREE_CITY.value):
+                yield from travel_to_fortree()
+            if not _r119_cleared():
+                yield from do_weather_institute()
+            _guard("Weather Institute (Ch13b)", _r119_cleared)
+            if not _done("RECEIVED_HM_FLY"):
+                yield from fight_route119_rival_and_get_fly()
+            _guard("Route 119 rival / HM02 Fly (Ch13c)", lambda: _done("RECEIVED_HM_FLY"))
+            yield from travel_to_fortree()
+        else:
+            console.print("[dim]Story: Route 119 already cleared — heading to Fortree.[/]")
+            yield from travel_to_fortree()
+        _guard(
+            "Travel to Fortree (Ch13a)",
+            lambda: _cur_map() in (
+                MapRSE.FORTREE_CITY.value,
+                MapRSE.FORTREE_CITY_POKEMON_CENTER_1F.value,
+                MapRSE.FORTREE_CITY_GYM.value,
+                MapRSE.ROUTE120.value,  # a 13d resume (Steven) is Fortree-side too
+            ),
+        )
+
+        # --- Segments 13d/13e: Devon Scope (Route 120 Steven) → Fortree Gym
+        #     (Winona, BADGE06). ⚠ SKELETONS (2026-07-24 overnight) — tiles probed,
+        #     scenes first-run-validate. ---
+        from modules.story.early_game import (
+            _leave_route120_north_bridge,
+            do_fortree_gym,
+            get_devon_scope,
+        )
+
+        # A resume with the Scope already set skips get_devon_scope; if that resume
+        # lands on the Route 120 bridge, escape it before ANY navigation (the gym
+        # prep heal would otherwise NO-PATH to the Fortree PC — ch13_run14).
+        yield from _leave_route120_north_bridge()
+
+        # ‼ TWO JOBS, TWO FLAGS (2026-07-24 — caught by the post-fix Ch13d validation run).
+        # get_devon_scope() does TWO things: (1) get the Scope from Steven, and (2) FLUSH the
+        # Fortree gym-path Kecleon. Gating the call on RECEIVED_DEVON_SCOPE alone meant any
+        # resume that already had the Scope — including EVERY derail recovery near Fortree,
+        # since recovery re-runs this resume — skipped the flush too. The Kecleon then still
+        # occupies (25,8), the single chokepoint tile to the gym door, and do_fortree_gym
+        # NO-PATHs to (22,11) forever ("Could not find a path from (5/7 @ FORTREE_CITY)").
+        # The validation run derailed 5 times on exactly this. Both sub-steps are already
+        # idempotent inside get_devon_scope (it checks _have_scope() and _city_kecleon_present()
+        # separately), so calling it whenever EITHER job is outstanding is safe and correct.
+        _kecleon_flushed = _done("HIDE_FORTREE_CITY_KECLEON")
+        if not _done("RECEIVED_DEVON_SCOPE") or not _kecleon_flushed:
+            yield from get_devon_scope()
+        else:
+            console.print("[dim]Story: Devon Scope in the bag and the Kecleon already flushed.[/]")
+        _guard("Devon Scope (Ch13d)", lambda: _done("RECEIVED_DEVON_SCOPE"))
+        _guard("Fortree Kecleon flush (Ch13d)", lambda: _done("HIDE_FORTREE_CITY_KECLEON"))
+
+        if not _done("BADGE06_GET"):
+            from modules.map_data import PokemonCenter
+            from modules.story.early_game import _lead_best_matchup, heal_in_pokemon_center
+
+            yield from _lead_best_matchup(["Flying"])
+            yield from heal_in_pokemon_center(PokemonCenter.FortreeCity)
+            yield from do_fortree_gym()
+        else:
+            console.print("[dim]Story: Feather Badge already earned — Gym 6 skipped.[/]")
+        _guard("Gym 6 (Winona)", lambda: _done("BADGE06_GET"))
+
+        # END OF BUILT CONTENT. Next build (Ch14): Route 121 → Mt. Pyre exterior →
+        # Magma Emblem → Jagged Pass hideout → Maxie (§Ch12+ leads — decomp-verify,
+        # audit_flag_names, and probe every tile before wiring).
         context.message = (
-            "Story: caught up to the end of the built content (through recovering the "
-            "Devon Goods in Rusturf Tunnel). The rest of Chapter 5 (return to Devon "
-            "Corp for the PokéNav -> Rustboro rival) isn't built yet; handing to manual."
+            "Story: FEATHER BADGE earned - end of built content. "
+            "NEXT (WIP): Mt. Pyre and the Magma hideout. Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         context.set_manual_mode()
         return
+
+
+class StoryDebugMode(StoryMode):
+    """"Story (DEBUG)" (user request 2026-07-22): exactly Story, but with the opt-in
+    Debug Logging switched ON automatically at start. Runs from ANY point — the title
+    screen, a loaded save, or mid-route — via Story's native segmented resume (flags +
+    position); nothing else differs. Exists to make real-hardware test runs one click."""
+
+    @staticmethod
+    def name() -> str:
+        return "Story (DEBUG)"
+
+    def run(self):
+        try:
+            from modules import debug_logger
+            from modules.console import console
+
+            path = debug_logger.enable()
+            console.print(f"[bold cyan]Story (DEBUG): debug logging ON -> {path}[/]")
+        except Exception:
+            pass
+        yield from super().run()
+
+
+class StoryDebugResetMode(StoryMode):
+    """"Story (DEBUG - RESET)" (user request 2026-07-22): debug logging ON, then a HARD
+    EMULATOR RESET to the title screen, then Story from scratch — and NEW GAME is selected
+    explicitly even when a save file exists (the plain intro's A-mash would pick CONTINUE,
+    which sits on top of the main menu whenever there is a save). The existing save file is
+    NOT erased by this — Emerald only overwrites it if/when the game saves in-game later.
+    Exists to make fresh-run testing one click."""
+
+    @staticmethod
+    def name() -> str:
+        return "Story (DEBUG - RESET)"
+
+    def run(self):
+        from modules.console import console
+        from modules.memory import read_symbol
+        from modules.modes import BotModeError
+        from modules.modes.util.sleep import wait_for_n_frames
+        from modules.tasks import task_is_active
+
+        try:
+            from modules import debug_logger
+
+            path = debug_logger.enable()
+            console.print(f"[bold cyan]Story (DEBUG - RESET): debug logging ON -> {path}[/]")
+        except Exception:
+            pass
+
+        # Hard reset to the boot screen. (State after this: copyright/intro -> title.)
+        context.emulator.reset()
+        yield
+
+        # Drive to the MAIN MENU (bounded): A skips the copyright/intro/title screens.
+        frames = 0
+        while not task_is_active("Task_HandleMainMenuInput"):
+            if frames % 4 == 0:
+                context.emulator.press_button("A")
+            frames += 1
+            if frames > 3000:
+                raise BotModeError("DEBUG-RESET: never reached the main menu after reset.")
+            yield
+
+        # With a save on file the menu is CONTINUE / NEW GAME / ... with the cursor on
+        # CONTINUE — one Down puts it on NEW GAME. Without a save, NEW GAME is already on
+        # top and pressing Down would select OPTION instead, so only move when a save
+        # exists (gSaveFileStatus == 1 means SAVE_STATUS_OK, set by the menu itself).
+        save_ok = False
+        try:
+            save_ok = int.from_bytes(read_symbol("gSaveFileStatus", size=2), "little") == 1
+        except Exception:
+            pass
+        if save_ok:
+            console.print("[cyan]Story (DEBUG - RESET): save file present — selecting NEW GAME explicitly.[/]")
+            yield from wait_for_n_frames(10)
+            context.emulator.press_button("Down")
+            yield
+            yield from wait_for_n_frames(6)
+
+        # Hand over to Story: _play sees "at title / not started" and runs the intro,
+        # whose A-mash now confirms the pre-selected NEW GAME.
+        yield from super().run()

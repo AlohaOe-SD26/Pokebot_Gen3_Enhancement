@@ -19,7 +19,7 @@ from modules.player import (
     AvatarFlags,
     PlayerAvatar,
 )
-from modules.tasks import get_global_script_context, task_is_active
+from modules.tasks import get_global_script_context, is_waiting_for_input, task_is_active
 from .sleep import wait_for_n_frames
 from .._interface import BotModeError
 from ...items import get_item_bag, get_item_by_name
@@ -111,6 +111,44 @@ class TimedOutTryingToReachWaypointError(BotModeError):
         super().__init__(message)
 
 
+class NavigationStuckError(BotModeError):
+    """FORK (2026-07-23, KI-15): navigate_to made no NET progress across many
+    consecutive re-paths.
+
+    Distinct from TimedOutTryingToReachWaypointError (a single missed leg, which
+    navigate_to normally recovers from by re-pathing). This is raised when the
+    re-path loop itself can't advance — e.g. an inline battle interrupts story
+    navigation and the post-battle ReturnFromBattleToOverworld transition leaves
+    the avatar bouncing between two adjacent tiles (the real ROUTE 104
+    (5,6)<->(5,7) hang) or frozen in place. A dedicated type lets the caller's
+    recovery abort the wedge in a bounded number of frames instead of spinning
+    until a story watchdog trips ~20k frames later."""
+
+    def __init__(self, destination_map, destination_coordinates, stuck_position):
+        self.destination_map = destination_map
+        self.destination_coordinates = destination_coordinates
+        self.stuck_position = stuck_position
+        super().__init__(
+            f"Navigation to {destination_coordinates} @ {destination_map} made no progress "
+            f"(avatar stuck near {stuck_position}). Aborting so the caller can recover."
+        )
+
+
+# KI-15 tuning. A healthy navigate_to re-paths only a handful of times (an NPC
+# steps into the way, an overshoot on the Mach Bike). Making no NET progress —
+# only re-visiting a tiny set of recently-seen tiles — for this many consecutive
+# re-paths means the avatar is wedged (post-battle bounce/freeze), not merely
+# blocked, so we bail. Kept generous so a slow-but-advancing nav is never
+# mistaken for stuck.
+_NAVIGATE_NO_PROGRESS_REPATHS = 8
+# After a re-path timeout with no active script, wait (pressing nothing) for the
+# avatar to be stably standing-still + controllable before re-pathing. This lets
+# a mid-navigation battle's return transition finish instead of re-pathing into
+# it. Costs ~nothing on a mundane NPC block (the avatar is already stopped).
+_NAVIGATE_SETTLE_STABLE_FRAMES = 20
+_NAVIGATE_SETTLE_TIMEOUT_FRAMES = 300
+
+
 @debug.track
 def follow_waypoints(
     path: Iterable[Waypoint | None], run: bool = True, final_facing_direction: Direction | None = None
@@ -176,6 +214,7 @@ def follow_waypoints(
 
         last_waypoint = waypoint
         field_effect_is_active = False
+        not_finished_frames = 0  # KI-15 family: consecutive frames without heldMovementFinished
         frames_remaining_until_timeout = timeout_in_frames
         if waypoint.is_warp:
             frames_remaining_until_timeout += extra_timeout_in_frames_for_warps
@@ -187,9 +226,30 @@ def follow_waypoints(
         elif waypoint.action is WaypointAction.Waterfall:
             frames_remaining_until_timeout += 195 + (get_player_location()[0][1] - waypoint.coordinates[1]) * 42
 
+        _fw_trace_n = 0
         while not player_is_at(waypoint.map, waypoint.coordinates) or field_effect_is_active:
             player_object = get_player_map_object()
 
+            # --- KI-15 TRACE (env-gated, logging only; REMOVE after repro) ---
+            _fw_trace_n += 1
+            if _fw_trace_n % 200 == 0:
+                import os as _os_fw
+
+                _fw = _os_fw.environ.get("FW_TRACE")
+                if _fw:
+                    try:
+                        from modules.player import get_player_avatar as _gpa_fw
+
+                        with open(_fw, "a", encoding="utf-8") as _f:
+                            _f.write(
+                                f"[fw] n={_fw_trace_n} gs={get_game_state()} "
+                                f"rem={frames_remaining_until_timeout} wp={waypoint.coordinates} "
+                                f"warp={waypoint.is_warp} pos={tuple(_gpa_fw().local_coordinates)} "
+                                f"flags={getattr(player_object, 'flags', None)}\n"
+                            )
+                    except Exception:
+                        pass
+            # -----------------------------------------------------------------
             if get_game_state() == GameState.OVERWORLD:
                 frames_remaining_until_timeout -= 1
 
@@ -205,6 +265,21 @@ def follow_waypoints(
             # Only pressing the direction keys during the frame where movement is actually registered can help
             # preventing weird overshoot issues in cases where a listener handles an event (like a battle, PokeNav
             # call, ...)
+            # FORK (2026-07-24, ch12 gym-door wedge): a mid-navigation battle can
+            # return the avatar with heldMovementFinished PERMANENTLY absent while
+            # fully controllable — and since this loop only presses when that flag is
+            # present, the bot then presses NOTHING, which is exactly what keeps the
+            # state parked (probed live: any input jolts it awake instantly; zero
+            # input left it frozen 20k frames). During genuine walking the flag is
+            # only absent for the few frames of each step, so a long consecutive
+            # absence means the wedge — jolt the walk direction to re-engage the
+            # movement machinery.
+            if player_object is not None and "heldMovementFinished" not in player_object.flags:
+                not_finished_frames += 1
+                if not_finished_frames > 90 and not_finished_frames % 10 == 0 and get_game_state() == GameState.OVERWORLD:
+                    context.emulator.press_button(waypoint.walking_direction)
+            else:
+                not_finished_frames = 0
             if player_object is not None and "heldMovementFinished" in player_object.flags:
                 if waypoint.action is WaypointAction.Surf:
                     surf_task = "Task_SurfFieldEffect" if not context.rom.is_rs else "sub_8088954"
@@ -374,6 +449,12 @@ def navigate_to(
 
             yield from waypoints
 
+    # KI-15 no-progress tracking (see NavigationStuckError). A window of the
+    # most recent timeout positions distinguishes a genuinely-advancing nav (it
+    # keeps reaching NEW tiles) from a wedge (it only re-hits a tiny set — a
+    # (5,6)<->(5,7) bounce or a total freeze).
+    recent_stuck_positions: list = []
+    no_progress_repaths = 0
     while True:
         try:
             yield from follow_waypoints(waypoint_generator(), run, final_facing_direction=final_facing_direction)
@@ -402,7 +483,54 @@ def navigate_to(
                     raise BotModeError(
                         f"We unexpectedly triggered a scripted event while trying to reach {coordinates} @ {map}.\nSwitching to manual mode."
                     )
-            pass
+
+            # FORK (2026-07-23, KI-15): before re-pathing, let any in-flight
+            # transition settle. An inline battle can fire mid-navigation; when it
+            # ends, control returns HERE with the post-battle
+            # ReturnFromBattleToOverworld transition still completing, and
+            # re-pathing into that unsettled state makes the avatar bounce between
+            # two tiles forever. Waiting for a stably standing-still, controllable
+            # avatar lets the transition finish. Bounded so it can never hang here.
+            # ‼ JOLT (2026-07-24, ch12 gym-door wedge): one post-battle variant
+            # leaves the avatar controllable but with heldMovementFinished
+            # PERMANENTLY absent — and every polite layer (this wait, the walk
+            # loop, ensure_facing_direction) presses nothing at it, which is
+            # exactly what keeps it parked (probed live: any direction input
+            # revives it instantly; zero input left it frozen 20k frames). After a
+            # patient stretch with no stillness, tap direction keys to re-engage
+            # the movement machinery; a step in a wrong direction is harmless —
+            # we re-path right after.
+            settle = 0
+            settle_waited = 0
+            _jolt_dirs = ("Down", "Up", "Left", "Right")
+            while settle < _NAVIGATE_SETTLE_STABLE_FRAMES and settle_waited < _NAVIGATE_SETTLE_TIMEOUT_FRAMES:
+                if player_avatar_is_controllable() and player_avatar_is_standing_still():
+                    settle += 1
+                else:
+                    settle = 0
+                settle_waited += 1
+                if settle_waited > 90 and settle_waited % 15 == 0 and get_game_state() == GameState.OVERWORLD:
+                    context.emulator.press_button(_jolt_dirs[(settle_waited // 15) % 4])
+                yield
+
+            # Hard backstop: if we keep timing out without reaching any NEW tile
+            # (the transition never completes, or a true wedge), abort in a bounded
+            # number of frames so the caller's recovery runs — instead of spinning
+            # until a story watchdog trips ~20k frames later.
+            try:
+                here = get_player_location()
+            except Exception:
+                here = None
+            if here is not None and here in recent_stuck_positions:
+                no_progress_repaths += 1
+            else:
+                no_progress_repaths = 0
+                if here is not None:
+                    recent_stuck_positions.append(here)
+                    if len(recent_stuck_positions) > 6:
+                        recent_stuck_positions.pop(0)
+            if no_progress_repaths >= _NAVIGATE_NO_PROGRESS_REPATHS:
+                raise NavigationStuckError(map, coordinates, here)
 
 
 @debug.track
@@ -464,10 +592,85 @@ def ensure_facing_direction(facing_direction: str | Direction | tuple[int, int])
     if isinstance(facing_direction, Direction):
         facing_direction = facing_direction.button_name
 
+    scene_frames = 0
+    starved_frames = 0
+    total_frames = 0
+    phantom_frames = 0
+    script_gate_disabled = False
     while True:
         avatar = get_player_avatar()
         if avatar.facing_direction == facing_direction:
             return
+
+        # ‼ ABSOLUTE BOUND (2026-07-24, starter-run torchic f1638181 — R111 (18,99), the
+        # SAME tile as batch2 run04). The two guards below are both branch-local and a
+        # post-battle state exists that reaches NEITHER: the avatar reads perfectly
+        # settled (OVERWORLD + NOT_MOVING + NOT_MOVING), so we take the "press the
+        # direction" branch, which RESETS starved_frames to 0 every frame — while the
+        # press never actually lands and facing_direction never changes. Result: an
+        # infinite press loop that no branch counter can see, running until the 20k
+        # story watchdog. A turn is a sub-second action; anything past a few seconds is
+        # a wedge no matter which branch we are in, so bound the WHOLE loop and let the
+        # caller's recovery re-path.
+        #
+        # ‼ CORRECTION (same day, caught reviewing the phantom-escape diff): this counter
+        # originally incremented HERE, at the very top, so it also counted frames spent
+        # legitimately riding out a field script below — silently shrinking that branch's
+        # own 4800-frame tolerance to 1800 and making its bound dead code. A real cutscene
+        # lasting 30-80 seconds would have started raising instead of being ridden out. The
+        # bug this bound exists for is the PRESS loop (a turn that never lands), so it must
+        # count only frames on the pressing path. The script branch keeps its own 4800
+        # bound and `continue`s before reaching here.
+        if not get_global_script_context().is_active or script_gate_disabled:
+            total_frames += 1
+            if total_frames > 1800:
+                from modules.modes import BotModeError
+
+                raise BotModeError(
+                    f"ensure_facing_direction: could not face {facing_direction} after "
+                    f"{total_frames} pressing frames (input not landing — stale-reader wedge?)."
+                )
+
+        # FORK (2026-07-22, story-bot hardening): a field script can fire the very
+        # moment we start turning — on real hardware a Route 116 trainer's sight-line
+        # intro (EventScript_ShowTrainerIntroMsg) opened its msgbox mid-turn and this
+        # stock loop pressed direction keys at a script-locked avatar for 85,000+
+        # frames. While a script holds the field, advance IT (B) instead of turning —
+        # a trainer intro then proceeds to its battle (which the battle listener
+        # handles) and the turn resumes afterwards. Bounded so a scene that never
+        # ends surfaces as a BotModeError for the caller's recovery instead of a hang.
+        if not script_gate_disabled and get_global_script_context().is_active:
+            # PHANTOM-SCRIPT ESCAPE (2026-07-24, Route 111 (18,99) — the
+            # EventScript_SmashRock-parked-forever hang, KI-15/16 family): Rock
+            # Smash's wild-encounter roll can battle-interrupt the field script and
+            # leave get_global_script_context().is_active reading True for the REST
+            # OF THE RUN while the game is fully playable — probed live on the
+            # captured wedge state: the avatar is controllable and pressing the
+            # actual direction turns/walks it INSTANTLY even though gsc.is_active
+            # never clears (25000 frames, zero input). It is a stale reader, not a
+            # real lock. Mashing B at a parked context does nothing, so this branch
+            # used to burn the whole `total_frames` budget every call and raise
+            # "input not landing" on repeat forever (StoryMode.run <-> raise loop).
+            # A real scene either locks the avatar (controllable=False) or opens a
+            # waiting-for-input prompt (is_waiting_for_input()=True) — neither of
+            # which persists this way. After a bounded stretch of playable-but-
+            # active, stop deferring to the script gate for the REST OF THIS CALL
+            # and fall through to actually turning/walking.
+            if player_avatar_is_controllable() and not is_waiting_for_input():
+                phantom_frames += 1
+                if phantom_frames >= 600:
+                    script_gate_disabled = True
+                    continue
+            else:
+                phantom_frames = 0
+            scene_frames += 1
+            if scene_frames > 4800:
+                from modules.modes import BotModeError
+
+                raise BotModeError("ensure_facing_direction: a field script never released the avatar.")
+            context.emulator.press_button("B")
+            yield
+            continue
 
         if (
             get_game_state() == GameState.OVERWORLD
@@ -475,6 +678,26 @@ def ensure_facing_direction(facing_direction: str | Direction | tuple[int, int])
             and avatar.running_state == RunningState.NOT_MOVING
         ):
             context.emulator.press_button(facing_direction)
+            starved_frames = 0
+        else:
+            # FORK (2026-07-24, KI-15 family — the third starving limb): a battle
+            # that ends mid-navigation can leave the avatar with its movement state
+            # PERMANENTLY not-NOT_MOVING while no script runs — and this branch then
+            # pressed NOTHING forever (batch2 run04: 20k frames parked right here at
+            # R111 (18,99)). Zero input is exactly what keeps that state parked
+            # (probed: any direction press revives it). After a patient stretch,
+            # press the turn direction anyway; bound the whole starve so the caller's
+            # recovery gets the wheel if even that can't move it.
+            starved_frames += 1
+            if starved_frames > 120 and starved_frames % 10 == 0:
+                context.emulator.press_button(facing_direction)
+            if starved_frames > 3000:
+                from modules.modes import BotModeError
+
+                raise BotModeError(
+                    "ensure_facing_direction: the avatar's movement state never settled "
+                    "(post-battle freeze?)."
+                )
 
         yield
 
@@ -571,7 +794,24 @@ def wait_for_player_avatar_to_be_controllable(button_to_press: str | None = None
 
 @debug.track
 def wait_for_player_avatar_to_be_standing_still(button_to_press: str | None = None) -> Generator:
+    # FORK (2026-07-24, KI-15 family): a post-battle freeze can leave the avatar
+    # permanently "moving" while nothing presses at it — the exact input-starved
+    # state that only an input edge revives. After a patient stretch, tap a
+    # direction (a step is harmless — callers re-check position/paths anyway);
+    # bound the whole wait so no caller can silently spin 20k frames here.
+    starved = 0
+    _jolt_dirs = ("Down", "Up", "Left", "Right")
     while not player_avatar_is_standing_still():
         if button_to_press is not None:
             context.emulator.press_button(button_to_press)
+        starved += 1
+        if button_to_press is None and starved > 240 and starved % 15 == 0:
+            context.emulator.press_button(_jolt_dirs[(starved // 15) % 4])
+        if starved > 3000:
+            from modules.modes import BotModeError
+
+            raise BotModeError(
+                "wait_for_player_avatar_to_be_standing_still: the avatar never settled "
+                "(post-battle freeze?)."
+            )
         yield
