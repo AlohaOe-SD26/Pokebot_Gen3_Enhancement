@@ -19,7 +19,7 @@ from modules.player import (
     AvatarFlags,
     PlayerAvatar,
 )
-from modules.tasks import get_global_script_context, task_is_active
+from modules.tasks import get_global_script_context, is_waiting_for_input, task_is_active
 from .sleep import wait_for_n_frames
 from .._interface import BotModeError
 from ...items import get_item_bag, get_item_by_name
@@ -595,6 +595,8 @@ def ensure_facing_direction(facing_direction: str | Direction | tuple[int, int])
     scene_frames = 0
     starved_frames = 0
     total_frames = 0
+    phantom_frames = 0
+    script_gate_disabled = False
     while True:
         avatar = get_player_avatar()
         if avatar.facing_direction == facing_direction:
@@ -610,14 +612,24 @@ def ensure_facing_direction(facing_direction: str | Direction | tuple[int, int])
         # story watchdog. A turn is a sub-second action; anything past a few seconds is
         # a wedge no matter which branch we are in, so bound the WHOLE loop and let the
         # caller's recovery re-path.
-        total_frames += 1
-        if total_frames > 1800:
-            from modules.modes import BotModeError
+        #
+        # ‼ CORRECTION (same day, caught reviewing the phantom-escape diff): this counter
+        # originally incremented HERE, at the very top, so it also counted frames spent
+        # legitimately riding out a field script below — silently shrinking that branch's
+        # own 4800-frame tolerance to 1800 and making its bound dead code. A real cutscene
+        # lasting 30-80 seconds would have started raising instead of being ridden out. The
+        # bug this bound exists for is the PRESS loop (a turn that never lands), so it must
+        # count only frames on the pressing path. The script branch keeps its own 4800
+        # bound and `continue`s before reaching here.
+        if not get_global_script_context().is_active or script_gate_disabled:
+            total_frames += 1
+            if total_frames > 1800:
+                from modules.modes import BotModeError
 
-            raise BotModeError(
-                f"ensure_facing_direction: could not face {facing_direction} after "
-                f"{total_frames} frames (input not landing — post-battle freeze?)."
-            )
+                raise BotModeError(
+                    f"ensure_facing_direction: could not face {facing_direction} after "
+                    f"{total_frames} pressing frames (input not landing — stale-reader wedge?)."
+                )
 
         # FORK (2026-07-22, story-bot hardening): a field script can fire the very
         # moment we start turning — on real hardware a Route 116 trainer's sight-line
@@ -627,7 +639,30 @@ def ensure_facing_direction(facing_direction: str | Direction | tuple[int, int])
         # a trainer intro then proceeds to its battle (which the battle listener
         # handles) and the turn resumes afterwards. Bounded so a scene that never
         # ends surfaces as a BotModeError for the caller's recovery instead of a hang.
-        if get_global_script_context().is_active:
+        if not script_gate_disabled and get_global_script_context().is_active:
+            # PHANTOM-SCRIPT ESCAPE (2026-07-24, Route 111 (18,99) — the
+            # EventScript_SmashRock-parked-forever hang, KI-15/16 family): Rock
+            # Smash's wild-encounter roll can battle-interrupt the field script and
+            # leave get_global_script_context().is_active reading True for the REST
+            # OF THE RUN while the game is fully playable — probed live on the
+            # captured wedge state: the avatar is controllable and pressing the
+            # actual direction turns/walks it INSTANTLY even though gsc.is_active
+            # never clears (25000 frames, zero input). It is a stale reader, not a
+            # real lock. Mashing B at a parked context does nothing, so this branch
+            # used to burn the whole `total_frames` budget every call and raise
+            # "input not landing" on repeat forever (StoryMode.run <-> raise loop).
+            # A real scene either locks the avatar (controllable=False) or opens a
+            # waiting-for-input prompt (is_waiting_for_input()=True) — neither of
+            # which persists this way. After a bounded stretch of playable-but-
+            # active, stop deferring to the script gate for the REST OF THIS CALL
+            # and fall through to actually turning/walking.
+            if player_avatar_is_controllable() and not is_waiting_for_input():
+                phantom_frames += 1
+                if phantom_frames >= 600:
+                    script_gate_disabled = True
+                    continue
+            else:
+                phantom_frames = 0
             scene_frames += 1
             if scene_frames > 4800:
                 from modules.modes import BotModeError

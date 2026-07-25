@@ -1145,3 +1145,38 @@ re-entry, and here that was an unrelated wild battle.
 **Prevention rule:** a "no-op unless X" guard must test X itself. If the helper's own
 destination satisfies its entry condition, the condition is wrong — check that explicitly
 when writing any recovery/idempotent helper.
+
+## 2026-07-24 — Route 111 (18,99) SOLVED: a STALE READER, and my own bound had shrunk a real one
+
+**The bug.** Four long runs across two machines died on Route 111 (18,99). Rock Smash rolls a
+wild encounter; the battle interrupts `EventScript_SmashRock`; afterwards
+`get_global_script_context().is_active` reads **True for the rest of the run**. Measured on a
+captured save: never clears in 25,000 frames of zero input, while
+`player_avatar_is_controllable()` reads True and pressing a direction turns AND walks the
+avatar instantly ((18,99) → (18,97) in 60 frames). **It is a stale reader, not a lock.**
+`ensure_facing_direction` deferred to that gate and B-mashed a parked context forever.
+
+**Fix.** Phantom-script escape matching `_ride_out_all_scenes` / `_wait_until_cutscene_over`:
+after 600 consecutive frames of script-active AND controllable AND not waiting-for-input, stop
+trusting the gate for the rest of that call. Requires BOTH liveness signals, and resets the
+counter the moment the avatar is genuinely locked, so a real scene never accumulates.
+A/B: before — `travel_to_fallarbor` never returns in 12,000 frames, permanently parked at
+(18,99); after — crosses off Route 111 by frame 5,000.
+
+**‼ THE SECOND BUG, IN MY OWN EARLIER FIX (found by reviewing the diff, not by a test).**
+This morning I added an absolute `total_frames > 1800` bound at the TOP of the loop. It
+therefore counted frames spent *legitimately riding out a field script* in the branch below,
+silently shrinking that branch's own 4800-frame tolerance to 1800 and making its bound dead
+code. A genuine cutscene lasting 30–80 seconds would have begun raising instead of being
+ridden out — a regression that would have shown up as random unexplained derails during long
+scenes, nowhere near the code that caused it. The counter now increments only on the PRESSING
+path, which is the loop it was written to bound. Verified: the locked-scene control raises at
+4800 again, not 1800.
+
+**Prevention rules.**
+1. Before concluding "the game is stuck", press a direction and check whether the avatar
+   actually moves. A reader that says "busy" while the game plays normally is stale — this is
+   the third reader in this project with that property (`gBattleMainFunc`,
+   `gDisplayedStringBattle`, now the field script context).
+2. A loop-wide counter added to a loop with per-branch counters will silently override the
+   smaller ones. When adding an absolute bound, check every existing bound it now preempts.
