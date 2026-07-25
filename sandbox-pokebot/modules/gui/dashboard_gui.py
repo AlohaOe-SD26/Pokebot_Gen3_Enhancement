@@ -3417,8 +3417,88 @@ class DashboardScreen:
             variable=self._debug_log_var,
             command=self._toggle_debug_logging,
         )
+        # ENDLESS DEBUG-RESET RUNS (user request 2026-07-25). ‼ This is the DASHBOARD GUI,
+        # which `pokebot.py` launches BY DEFAULT — the classic GUI in emulator_controls.py is
+        # only reached via `--classic-gui`. The first attempt at this feature added the item
+        # to the classic GUI only, so the user tested twice and could not find it.
+        menu.add_separator()
+        menu.add_command(label="Endless Debug-Reset Runs…", command=self._start_endless_runs)
         menu.tk_popup(
             self._mode_button.winfo_rootx(), self._mode_button.winfo_rooty() + self._mode_button.winfo_height()
+        )
+
+    def _start_endless_runs(self) -> None:
+        """Ask for a run count, then launch back-to-back FRESH runs in their own console.
+
+        A LAUNCHER for `tools/story-dev/endless_runs.py`, not an in-process loop: that runner
+        already carries the failsafes this needs, and each was earned by an observed failure —
+        a wall-clock cap per run (frame-based watchdogs cannot see a wedged emulator process),
+        log-growth stall detection (a run can burn 2,000,000 frames making zero progress and
+        still look alive), a fresh profile per run with metadata COPIED not synthesised
+        ("fresh boot from title" still loads the battery save, and a hand-written metadata.yml
+        lacks the ROM reference), one bad run never aborting the batch, and "zero frames is
+        never success". Detached, so closing this window does not stop an overnight batch.
+        """
+        import pathlib
+        import subprocess
+        import sys
+        import tkinter.messagebox
+        import tkinter.simpledialog
+
+        count = tkinter.simpledialog.askinteger(
+            "Endless Debug-Reset Runs",
+            "How many back-to-back FRESH runs?\n\n"
+            "Each starts from the title screen at unthrottled speed with debug\n"
+            "logging on, and ends when it finishes, reaches the end of built\n"
+            "content, crashes, hangs, or trips a failsafe. Then the next begins.\n\n"
+            "0 = run forever (stop it with Ctrl-C in its console window).",
+            parent=self.window,
+            initialvalue=10,
+            minvalue=0,
+        )
+        if count is None:
+            return
+
+        # tools/ lives at the REPO root — one level above this build dir (sandbox-pokebot or
+        # custom-pokebot). Walk up from this file rather than trusting the CWD.
+        repo_root = pathlib.Path(__file__).resolve().parents[3]
+        script = repo_root / "tools" / "story-dev" / "endless_runs.py"
+        if not script.exists():
+            tkinter.messagebox.showerror(
+                "Endless Debug-Reset Runs",
+                f"Runner not found:\n{script}", parent=self.window,
+            )
+            return
+
+        starter = "treecko"
+        try:
+            cfg_starter = getattr(getattr(context.config, "custom", None), "get", lambda _k: None)("starter")
+            if cfg_starter:
+                starter = str(cfg_starter)
+        except Exception:
+            pass
+
+        try:
+            subprocess.Popen(
+                [sys.executable, str(script), "--count", str(count), "--starter", starter],
+                cwd=str(repo_root),
+                creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0),
+            )
+        except Exception as exc:  # noqa: BLE001
+            tkinter.messagebox.showerror(
+                "Endless Debug-Reset Runs", f"Could not start the batch:\n{exc}", parent=self.window
+            )
+            return
+
+        ledger = repo_root / "tools" / "story-dev" / "endless-runs" / "LEDGER.md"
+        self._log_event(f"Endless runs started ({'infinite' if count == 0 else count})")
+        tkinter.messagebox.showinfo(
+            "Endless Debug-Reset Runs",
+            f"Started {'an INFINITE batch' if count == 0 else f'a batch of {count} runs'} in its "
+            f"own console window.\n\nOne row per run is appended to:\n{ledger}\n\n"
+            f"Individual logs land beside it. This window is not driving the batch — you can "
+            f"close it and the batch keeps running.",
+            parent=self.window,
         )
 
     def _toggle_debug_logging(self) -> None:

@@ -165,6 +165,9 @@ class DashboardScreen:
         self._speed_buttons: dict[int, tkinter.Button] = {}
         self._video_button: tkinter.Button | None = None
         self._audio_button: tkinter.Button | None = None
+        self._coords_button: tkinter.Button | None = None
+        self._coords_label: tkinter.Label | None = None
+        self._show_coords: bool = False
         self._kpi_values: dict[str, tkinter.Label] = {}
         self._party_rows: list[dict] = []
         self._sprite_cache: dict = {}  # Tk needs live references to PhotoImages
@@ -340,6 +343,8 @@ class DashboardScreen:
         self._speed_buttons = {}
         self._video_button = None
         self._audio_button = None
+        self._coords_button = None
+        self._coords_label = None
         self._kpi_values = {}
         self._party_rows = []
         self._sprite_cache = {}
@@ -435,6 +440,13 @@ class DashboardScreen:
     # Menu command callbacks — shared by the Tk menu bar (desktop) AND the
     # in-tab "GAME MENU" card (#30b), so handheld can drop the menu bar
     # entirely while keeping every command reachable.
+    def _menu_load_milestone_state(self) -> None:
+        """User directive 2026-07-23: like Load Save State, but for the repo's story
+        checkpoint library — fast test entry at any built milestone."""
+        from modules.gui.milestone_window import MilestoneWindow
+
+        MilestoneWindow(self.window)
+
     def _menu_load_save_state(self) -> None:
         from modules.gui.load_state_window import LoadStateWindow
 
@@ -464,6 +476,7 @@ class DashboardScreen:
         of truth for both the menu bar and the in-tab menu card."""
         return [
             ("Load Save State", self._menu_load_save_state),
+            ("Load Milestone State", self._menu_load_milestone_state),
             ("New Save State", self._menu_new_save_state),
             ("Take Screenshot", self._menu_screenshot),
             ("Reset", self._menu_reset),
@@ -480,6 +493,7 @@ class DashboardScreen:
 
         emulator_menu = Menu(self.window, tearoff=0)
         emulator_menu.add_command(label="Load Save State", command=self._menu_load_save_state)
+        emulator_menu.add_command(label="Load Milestone State", command=self._menu_load_milestone_state)
         emulator_menu.add_command(label="New Save State", command=self._menu_new_save_state)
         emulator_menu.add_command(label="Take Screenshot", command=self._menu_screenshot)
         emulator_menu.add_separator()
@@ -742,6 +756,45 @@ class DashboardScreen:
             padx=8,
         )
         self._audio_button.pack(side="left", padx=1)
+
+        # --- Show Coords (debug readout; user directive 2026-07-23) ---------------
+        # A mapping aid, not a gameplay feature: when the bot misroutes, the user reads
+        # the live tile + area off this line and reports it, which is far faster than
+        # reconstructing a position from a log after the fact. Off by default; purely a
+        # display, it never touches the emulator or the running mode.
+        coords_row = tkinter.Frame(controls, background=COLOR_CARD)
+        coords_row.pack(fill="x", pady=(0, 4))
+        tkinter.Label(coords_row, text="Debug", width=9, anchor="w", background=COLOR_CARD, foreground=COLOR_INK_2).pack(
+            side="left"
+        )
+        self._coords_button = tkinter.Button(
+            coords_row,
+            text="Show Coords",
+            command=self._toggle_show_coords,
+            background=COLOR_SURFACE,
+            foreground=COLOR_INK,
+            activebackground=COLOR_ACCENT,
+            activeforeground=COLOR_INK,
+            relief="flat",
+            padx=8,
+        )
+        self._coords_button.pack(side="left", padx=1)
+        self._coords_label = tkinter.Label(
+            controls,
+            text="",
+            anchor="w",
+            justify="left",
+            background=COLOR_CARD,
+            foreground=COLOR_INK,
+            font=("Consolas", 9),
+            wraplength=240,
+        )
+        # Packed/unpacked by the toggle so the card keeps its height when off. The
+        # preference survives a GUI rebuild (handheld toggle, mode change), so re-pack
+        # here when it was already on — otherwise the button would read active with no
+        # readout under it.
+        if self._show_coords:
+            self._coords_label.pack(fill="x", pady=(0, 4))
 
         # (The Handheld toggle now lives in the persistent column header so it
         # is visible on every tab — see _build_tool_column / #30a.)
@@ -2581,6 +2634,7 @@ class DashboardScreen:
     def _refresh_sidebar(self) -> None:
         self._refresh_controls()
         self._refresh_status_line()
+        self._refresh_coords()
         self._refresh_party()
         if time.monotonic() - self._last_kpi_refresh >= KPI_REFRESH_SECONDS:
             self._refresh_kpis()
@@ -2617,6 +2671,54 @@ class DashboardScreen:
             button.config(background=COLOR_ACCENT if active else COLOR_SURFACE)
         self._video_button.config(background=COLOR_ACCENT if context.video else COLOR_SURFACE)
         self._audio_button.config(background=COLOR_ACCENT if context.audio else COLOR_SURFACE)
+        if self._coords_button is not None:
+            self._coords_button.config(background=COLOR_ACCENT if self._show_coords else COLOR_SURFACE)
+
+    def _toggle_show_coords(self) -> None:
+        """Show Coords (user directive 2026-07-23): a debug readout of the player's live
+        tile and area, for reporting better pathing coordinates back into development.
+
+        Display only — it reads state and never writes, so it is safe to flip at any
+        time, including mid-run."""
+        self._show_coords = not self._show_coords
+        if self._coords_label is not None:
+            if self._show_coords:
+                self._coords_label.pack(fill="x", pady=(0, 4))
+            else:
+                self._coords_label.pack_forget()
+        self._refresh_controls()
+        self._refresh_coords()
+
+    def _refresh_coords(self) -> None:
+        """Update the Show Coords readout: local tile, map name, map group/number, and
+        facing. Every read is guarded — this runs on the GUI tick, including while the
+        emulator is between maps or on the title screen, where any of it can be absent.
+        A debug display must never be able to take the GUI down."""
+        if not self._show_coords or self._coords_label is None:
+            return
+        try:
+            from modules.map import get_map_data_for_current_position
+            from modules.player import get_player_avatar
+
+            avatar = get_player_avatar()
+            x, y = avatar.local_coordinates
+            group, number = avatar.map_group_and_number
+            try:
+                area = get_map_data_for_current_position().map_name
+            except Exception:
+                area = "?"
+            try:
+                facing = str(avatar.facing_direction)
+            except Exception:
+                facing = "?"
+            text = (
+                f"({x}, {y})  {area}" + "\n" + f"map ({group}, {number})   facing {facing}"
+            )
+        except Exception:
+            # No avatar yet (title screen, mid-warp, no save loaded) — say so plainly
+            # rather than showing a stale position the user might report as current.
+            text = "(no player position available)"
+        self._coords_label.config(text=text)
 
     def _refresh_status_line(self) -> None:
         try:
@@ -3315,8 +3417,88 @@ class DashboardScreen:
             variable=self._debug_log_var,
             command=self._toggle_debug_logging,
         )
+        # ENDLESS DEBUG-RESET RUNS (user request 2026-07-25). ‼ This is the DASHBOARD GUI,
+        # which `pokebot.py` launches BY DEFAULT — the classic GUI in emulator_controls.py is
+        # only reached via `--classic-gui`. The first attempt at this feature added the item
+        # to the classic GUI only, so the user tested twice and could not find it.
+        menu.add_separator()
+        menu.add_command(label="Endless Debug-Reset Runs…", command=self._start_endless_runs)
         menu.tk_popup(
             self._mode_button.winfo_rootx(), self._mode_button.winfo_rooty() + self._mode_button.winfo_height()
+        )
+
+    def _start_endless_runs(self) -> None:
+        """Ask for a run count, then launch back-to-back FRESH runs in their own console.
+
+        A LAUNCHER for `tools/story-dev/endless_runs.py`, not an in-process loop: that runner
+        already carries the failsafes this needs, and each was earned by an observed failure —
+        a wall-clock cap per run (frame-based watchdogs cannot see a wedged emulator process),
+        log-growth stall detection (a run can burn 2,000,000 frames making zero progress and
+        still look alive), a fresh profile per run with metadata COPIED not synthesised
+        ("fresh boot from title" still loads the battery save, and a hand-written metadata.yml
+        lacks the ROM reference), one bad run never aborting the batch, and "zero frames is
+        never success". Detached, so closing this window does not stop an overnight batch.
+        """
+        import pathlib
+        import subprocess
+        import sys
+        import tkinter.messagebox
+        import tkinter.simpledialog
+
+        count = tkinter.simpledialog.askinteger(
+            "Endless Debug-Reset Runs",
+            "How many back-to-back FRESH runs?\n\n"
+            "Each starts from the title screen at unthrottled speed with debug\n"
+            "logging on, and ends when it finishes, reaches the end of built\n"
+            "content, crashes, hangs, or trips a failsafe. Then the next begins.\n\n"
+            "0 = run forever (stop it with Ctrl-C in its console window).",
+            parent=self.window,
+            initialvalue=10,
+            minvalue=0,
+        )
+        if count is None:
+            return
+
+        # tools/ lives at the REPO root — one level above this build dir (sandbox-pokebot or
+        # custom-pokebot). Walk up from this file rather than trusting the CWD.
+        repo_root = pathlib.Path(__file__).resolve().parents[3]
+        script = repo_root / "tools" / "story-dev" / "endless_runs.py"
+        if not script.exists():
+            tkinter.messagebox.showerror(
+                "Endless Debug-Reset Runs",
+                f"Runner not found:\n{script}", parent=self.window,
+            )
+            return
+
+        starter = "treecko"
+        try:
+            cfg_starter = getattr(getattr(context.config, "custom", None), "get", lambda _k: None)("starter")
+            if cfg_starter:
+                starter = str(cfg_starter)
+        except Exception:
+            pass
+
+        try:
+            subprocess.Popen(
+                [sys.executable, str(script), "--count", str(count), "--starter", starter],
+                cwd=str(repo_root),
+                creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0),
+            )
+        except Exception as exc:  # noqa: BLE001
+            tkinter.messagebox.showerror(
+                "Endless Debug-Reset Runs", f"Could not start the batch:\n{exc}", parent=self.window
+            )
+            return
+
+        ledger = repo_root / "tools" / "story-dev" / "endless-runs" / "LEDGER.md"
+        self._log_event(f"Endless runs started ({'infinite' if count == 0 else count})")
+        tkinter.messagebox.showinfo(
+            "Endless Debug-Reset Runs",
+            f"Started {'an INFINITE batch' if count == 0 else f'a batch of {count} runs'} in its "
+            f"own console window.\n\nOne row per run is appended to:\n{ledger}\n\n"
+            f"Individual logs land beside it. This window is not driving the batch — you can "
+            f"close it and the batch keeps running.",
+            parent=self.window,
         )
 
     def _toggle_debug_logging(self) -> None:

@@ -1211,3 +1211,31 @@ flag. Fixed the misleading docstring example so the next agent cannot repeat it.
    an override — and never pass an override you did not consciously choose.
 2. When a tool starts producing bad output, check YOUR invocation before concluding the tool is
    bad. "The model is inaccurate" and "I selected a worse model" look identical from the outside.
+
+## 2026-07-25 — Added a GUI feature to the GUI the user does not run (twice, before checking)
+
+**Symptom.** The user asked for an "Endless Debug-Reset Runs" item in the Play section, tested,
+and reported "still cannot see the option". I had added it to `modules/gui/emulator_controls.py`.
+
+**Root cause.** This fork has TWO GUIs. `pokebot.py` builds the **dashboard** GUI
+(`modules/gui/dashboard_gui.py`) by DEFAULT; `emulator_controls.py` is the **classic/upstream**
+GUI, reachable only via the opt-in `-cg / --classic-gui` flag (`pokebot.py:94,181`). I found a
+"Bot Mode" dropdown with a "Debug Logging" checkbutton in `emulator_controls.py`, recognised it as
+the right-looking place, and never checked whether it was the DEFAULT surface. Both files contain a
+near-identical menu, which is exactly why grepping for the pattern finds the wrong one first.
+
+**Compounding it:** I then "verified" the work with syntax checks, a static name-resolution check,
+and path arithmetic — all of which passed, none of which could detect that the code was in an
+unreachable file. Green checks on the wrong file look identical to green checks on the right one.
+
+**The fix.** Item added to `dashboard_gui.py`'s Play-tab mode menu (and kept in the classic GUI so
+both surfaces have it), in both builds.
+
+**Prevention rules.**
+1. Before adding anything user-visible, confirm WHICH surface the user actually launches — read
+   the entry point (`pokebot.py`) and find the DEFAULT branch, don't pattern-match on a file that
+   merely looks right. `--classic-gui` being opt-in was the deciding fact and took one grep.
+2. When two files contain near-identical UI code, assume a grep will land on the wrong one and
+   check the entry point before editing either.
+3. A feature I cannot exercise myself (a GUI dialog) is not verified by static checks. Say so
+   plainly, and name the surface it was added to so the user can catch a mismatch immediately.
