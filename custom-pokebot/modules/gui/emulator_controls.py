@@ -39,6 +39,75 @@ class EmulatorControls:
         self.debug_menu: Menu | None = None
         self._debug_log_var: "tkinter.BooleanVar | None" = None  # Run-menu debug toggle
 
+    def _start_endless_runs(self) -> None:
+        """Ask for a run count, then launch the back-to-back fresh-run batch.
+
+        Runs as a SEPARATE process so it is unthrottled and independent of this GUI — close
+        the window and the batch keeps going, which is the point for an overnight session.
+        Progress lands in `tools/story-dev/endless-runs/LEDGER.md`, one row per run.
+        """
+        import pathlib  # ‼ not imported at module scope in this file — check before using
+        import subprocess
+        import sys
+        import tkinter.messagebox
+        import tkinter.simpledialog
+
+        count = tkinter.simpledialog.askinteger(
+            "Endless Debug-Reset Runs",
+            "How many back-to-back FRESH runs?\n\n"
+            "Each run starts from the title screen at unthrottled speed with debug\n"
+            "logging on, and stops when it finishes, reaches the end of built\n"
+            "content, crashes, hangs, or trips a failsafe. Then the next one starts.\n\n"
+            "0 = run forever (stop it from the console with Ctrl-C).",
+            parent=self.window,
+            initialvalue=10,
+            minvalue=0,
+        )
+        if count is None:
+            return  # cancelled
+
+        # tools/ sits at the REPO root, i.e. one level above this build directory (sandbox-pokebot
+        # or custom-pokebot) — so walk up from this file rather than assuming a CWD.
+        repo_root = pathlib.Path(__file__).resolve().parents[3]
+        script = repo_root / "tools" / "story-dev" / "endless_runs.py"
+        if not script.exists():
+            tkinter.messagebox.showerror(
+                "Endless Debug-Reset Runs",
+                f"Runner not found:\n{script}\n\n"
+                "It lives in the repo's tools/story-dev/ directory.",
+                parent=self.window,
+            )
+            return
+
+        starter = "treecko"
+        try:
+            starter = (context.config.custom.get("starter") or starter) if hasattr(context.config, "custom") else starter
+        except Exception:
+            pass
+
+        cmd = [sys.executable, str(script), "--count", str(count), "--starter", starter]
+        try:
+            # DETACHED: no parent-process kill, no console window stealing focus overnight.
+            creation = getattr(subprocess, "CREATE_NEW_CONSOLE", 0)
+            subprocess.Popen(cmd, cwd=str(repo_root), creationflags=creation)
+        except Exception as exc:  # noqa: BLE001
+            tkinter.messagebox.showerror(
+                "Endless Debug-Reset Runs", f"Could not start the batch:\n{exc}", parent=self.window
+            )
+            return
+
+        ledger = repo_root / "tools" / "story-dev" / "endless-runs" / "LEDGER.md"
+        context.message = f"Endless runs started ({'infinite' if count == 0 else count}) → {ledger}"
+        tkinter.messagebox.showinfo(
+            "Endless Debug-Reset Runs",
+            f"Started {'an INFINITE batch' if count == 0 else f'a batch of {count} runs'} "
+            f"in its own console window.\n\n"
+            f"One summary row per run is appended to:\n{ledger}\n\n"
+            f"Individual logs land beside it. This GUI is not driving the batch, so you can "
+            f"close this window and it will keep running.",
+            parent=self.window,
+        )
+
     def _toggle_debug_logging(self) -> None:
         from modules import debug_logger
 
@@ -65,6 +134,11 @@ class EmulatorControls:
 
         self.emulator_menu = Menu(self.window, tearoff=0)
         self.emulator_menu.add_command(label="Load Save State", command=lambda: LoadStateWindow(self.window))
+        from modules.gui.milestone_window import MilestoneWindow as _MilestoneWindow
+
+        self.emulator_menu.add_command(
+            label="Load Milestone State", command=lambda: _MilestoneWindow(self.window)
+        )
         self.emulator_menu.add_command(
             label="New Save State", command=lambda: context.emulator.create_save_state("Manual")
         )
@@ -222,6 +296,21 @@ class EmulatorControls:
                 label="Debug Logging (diagnostic file)",
                 variable=self._debug_log_var,
                 command=self._toggle_debug_logging,
+            )
+            # ENDLESS DEBUG-RESET RUNS (user request 2026-07-25): back-to-back FRESH runs,
+            # unthrottled, debug logging on, N configurable (default 10, 0 = infinite).
+            # Deliberately a LAUNCHER for tools/story-dev/endless_runs.py rather than an
+            # in-process loop: that script already carries the failsafes this needs and they
+            # were each earned by a real failure — a wall-clock cap (frame-based watchdogs
+            # cannot see a wedged emulator process), log-growth stall detection (a run can
+            # burn 2,000,000 frames making zero progress and still look alive), a fresh
+            # profile per run with COPIED metadata ("fresh boot from title" still loads the
+            # battery save), and "zero frames is never success". Re-implementing that in the
+            # GUI would mean re-earning all of it.
+            self.bot_mode_menu.add_separator()
+            self.bot_mode_menu.add_command(
+                label="Endless Debug-Reset Runs…",
+                command=self._start_endless_runs,
             )
             self.bot_mode_menu.tk_popup(
                 self.bot_mode_button.winfo_rootx(),

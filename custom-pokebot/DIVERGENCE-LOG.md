@@ -517,3 +517,24 @@ learns Take Down over Bide, Rock Smash retained, 1 invocation, no loop).
 (`#24-fortreebadge` — the isolated gate drive lost to Winona because battle prep belongs to the
 caller); whiteout attrition (`#24-whiteout`) is unaddressed; the GUI milestone bundle is
 unpromoted by choice.
+
+## BATCH-3b — "Endless Debug-Reset Runs…" menu item (2026-07-25)
+
+`modules/gui/emulator_controls.py` — adds an **Endless Debug-Reset Runs…** entry to the Bot Mode
+dropdown. Prompts for a run count (default 10, **0 = infinite**) and launches
+`tools/story-dev/endless_runs.py` in its own console window.
+
+Deliberately a LAUNCHER, not an in-process loop: the runner already carries failsafes that were
+each earned by an observed failure — a wall-clock cap per run (frame-based watchdogs cannot see a
+wedged emulator process), log-growth stall detection (a run can burn 2,000,000 frames making zero
+progress and still look alive), a fresh profile per run with metadata COPIED not synthesised
+("fresh boot from title" still loads the battery save; a hand-written metadata.yml lacks the ROM
+reference and kills every run), one bad run never aborting the batch, and "zero frames is never
+reported as success". Re-implementing that in the GUI would mean re-earning all of it.
+
+Detached process, so closing the GUI does not stop an overnight batch. Progress is one row per run
+in `tools/story-dev/endless-runs/LEDGER.md` (gitignored — run artefacts, not source).
+
+Promoted to custom at the same time as sandbox because the user could not find the option and it
+is unclear which build they launch; the path arithmetic (`parents[3]` → repo root) was verified
+to resolve correctly from BOTH build directories.
