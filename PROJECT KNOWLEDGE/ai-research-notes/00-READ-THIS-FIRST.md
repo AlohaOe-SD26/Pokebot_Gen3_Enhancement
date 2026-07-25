@@ -237,3 +237,59 @@ weakest exactly where a design decision has to be defended.
 `c09` (permanently-losable legendaries), `c01` (can a caught Pokémon be lost with full boxes),
 `c11` (single-use TMs), `c12` (does mid-battle EXP survive a whiteout — the whole boss-training
 strategy rests on this).
+
+---
+
+# ✅ CLAUDE-VALIDATED: concepts round 1 (2026-07-25)
+
+`CLAUDE-VALIDATED-concepts-round1.md` — **51 claims ruled: 30 CONFIRMED, 15 REFUTED, 6
+UNRESOLVED**, every ruling citing a decomp file fetched and read via `gh api` in that session,
+cross-checked against our own `species.json` and `event_flags/emerald.txt`. Nine findings are
+marked NEW (absent from the Gemini notes and behaviour-changing).
+
+## The four high-stakes rulings
+
+**1. Mid-battle EXP DOES survive a whiteout → boss-training mode is VALID.** `DoWhiteOut()`
+(`src/overworld.c:358-366`) only runs the script, halves money, heals, resets field flags and
+warps. No save reload, no party rollback. ‼ But two corrections to how we reason about it:
+EXP goes only to mons **alive at the instant the opponent faints**
+(`battle_script_commands.c:3367,3431`) — a mon that trades a KO for its own life banks nothing;
+and the trainer ×1.5 applies **per recipient after the split**, not to the total, so any
+XP-per-frame figure derived from the notes' formula is wrong.
+
+**2. A caught Pokémon CANNOT be lost with a full party and full boxes.** Both throw paths are
+guarded before the ball leaves your hand (`item_use.c:938-956`, `battle_main.c:4268-4277`) and the
+ball is **not consumed** — so no pre-throw space check is needed. The real risk is the inverse: an
+infinite bag→"The BOX is full."→bag loop; detect it by the ball count failing to decrement.
+Storage-full requires **all 420 slots**, and boxes **do** auto-wrap — which refutes the notes'
+"current box full blocks the throw" trap outright.
+
+**3. Legendaries — two safety checks that would each have been USELESS if written from the notes:**
+* The **roamer sets no flag at all**; it clears `roamer.active` (`roamer.c:237-239`).
+  `FLAG_DEFEATED_LATIAS_OR_LATIOS` is written only by the Southern Island script, so gating on it
+  reads False forever. Use `modules/roamer.get_roamer() is not None`.
+* The **roamer dies on every ODD battle outcome** — `battle_main.c:5238` tests
+  `(gBattleOutcome & B_OUTCOME_WON)` with `B_OUTCOME_WON == 1`, so WON, **DREW (mutual KO)**,
+  **PLAYER_TELEPORTED**, CAUGHT and FORFEITED all destroy it. The decomp itself labels this a bug.
+  Safe exits: Run, whiteout, MON_FLED.
+* `FLAG_DEFEATED_{RAYQUAZA,GROUDON,KYOGRE,REGI*}` is **also set on a successful catch** — it means
+  "encounter resolved", not "destroyed".
+* **Whiteout is the safe abort for every scripted static** (the script never resumes, so no flag
+  is written).
+* ‼ Our own flag table stores names **without** the `FLAG_` prefix (`"DEFEATED_RAYQUAZA"`).
+
+**4. TMs are single-use — but EVALUATING one is FREE.** Cancelling the "which move to forget"
+prompt does **not** consume the TM (`party_menu.c:4824-4839`). HMs cannot be selected as the
+forgotten move (`pokemon_summary_screen.c:2246-2254`). ‼ **`IsMonValidForMoveDeleter` does not
+exist** — the real guard is `IsLastMonThatKnowsSurf` (`party_menu.c:6407-6430`), **SURF ONLY**.
+Dive, Waterfall, Fly, Strength, Rock Smash, Cut and Flash are **unguarded by the game**, so the
+bot must own the HM-coverage invariant itself or it can strand a run permanently.
+
+**Bonus — three throw-policy numbers in the notes are wrong:** Dive Ball is 3.5× **underwater
+only**; Nest Ball is `max(40−L,10)/10`; Timer Ball is `(turns+10)/10`. Master Ball does not skip
+the formula, and sleep + poison **stack** to ×3.0.
+
+## Still LEADS (not examined)
+`c03`–`c08`, `c10`. And parked UNRESOLVED with reasons: whether Kyogre/Rayquaza know
+Double-Edge/Outrage at Lv70 (**this decides whether a False-Swipe legendary hunt is safe at all**),
+the Bad-Egg-contagion claim, `gExperienceTables` values, Match Call rematch odds.
