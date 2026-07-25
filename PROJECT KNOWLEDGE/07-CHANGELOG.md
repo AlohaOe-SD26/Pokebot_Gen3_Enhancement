@@ -3125,3 +3125,44 @@ terminal causes (`whiteout-cap` in `_ride_out_all_scenes`, `hang` in
 **Prevention rule:** a detector that only knows "nothing is happening" cannot tell FINISHED from
 WEDGED — it must ask why nothing is happening. And any tool that ranks failure markers must
 distinguish *survived* from *terminal*, or every long run looks fatal.
+
+## 2026-07-25 — boss non-convergence detection + Winona wired into prep (#24-counters, KI-23)
+
+**The bug (from the user's overnight logs, cross-referenced with 5 of mine).** 198 Winona attempts,
+41 losses, 41 whiteouts, never won — the last 567,000 frames spent looping challenge → lose →
+whiteout → re-enter, with a party FAR ABOVE her levels (Sceptile L42 vs her L29-33). It lost
+because it had no super-effective answer to Flying. The existing guard only bails when two
+consecutive attempts score ZERO KOs, and a L42 Sceptile scores 1-2 every time — so it could never
+fire.
+
+**Built:** `StoryMode.PLATEAU_LOSS_THRESHOLD = 6` and
+`_boss_plan_is_hopeless(cfg) -> (hopeless, needed_type_names)`. Requires ≥6 losses, then asks two
+questions from data we ALREADY record: is the best KO count improving (best of the last 3 lost
+attempts vs the 3 before, out of `_loss_ko_history`, which already reads `gBattleResults`), and
+does any party mon have a damaging move reaching ≥2.0 against the boss's `ace_types`? Flat AND no
+answer ⇒ raise `BotModeError` naming the boss, the losses, and the types that WOULD work —
+computed from the real type chart, not hardcoded, so it generalises to Tate & Liza and the E4.
+Fails safe: any read error returns "not hopeless", because a reader hiccup must never abort a
+winnable fight.
+
+**‼ AND THE PART THAT MADE IT ACTUALLY APPLY.** The implementer flagged that Winona **never went
+through `_prepare_for_fight` at all** — she jumped straight to `do_fortree_gym()` with only a
+lead-swap and a heal, so the new guard could not fire on the one boss that proved it was needed.
+A correct fix that cannot reach the reported bug is not a fix. She now has a `winona_fight` cfg
+(ace `Altaria L33`, Dragon/Flying, **4× weak to Ice**) and goes through prep like every other gym.
+
+**PROVEN** (`tools/story-dev/repro_boss_plateau.py`, driving the real method):
+- Winona-shaped party (Grass/Normal/Dark/Bug-Flying), flat KO history, 6 losses ⇒
+  **hopeless, needed = Rock / Electric / Ice**;
+- same party, RISING KO history ⇒ not hopeless (it is genuinely improving);
+- same flat history but party holds an Electric answer ⇒ not hopeless;
+- below the loss threshold ⇒ not hopeless.
+- **Regression:** `repro_fodder_grass.py` unchanged — Norman skips the grind, Wattson and Roxanne
+  still train locally. That is the path my cold-start Badge 6 run won through.
+
+**NOT built yet:** auto-catching the counter (`#24-counters` phase 2). This converts an unbounded
+loop into a bounded stop that NAMES the fix; acting on it automatically is the next step.
+
+**Prevention rule:** when a guard is added for a specific observed failure, verify the failing
+case actually REACHES the guard. Winona's prep was never wired up, so every test passed while the
+real bug stayed live.

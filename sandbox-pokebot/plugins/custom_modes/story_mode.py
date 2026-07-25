@@ -593,6 +593,13 @@ class StoryMode(BotMode):
     #: spin forever (each attempt escalates the training band via `_prepare_for_fight`).
     RIVAL_MAX_ATTEMPTS = 3
 
+    #: KI-23 (Winona): losses to the SAME boss before `_boss_plan_is_hopeless` will even
+    #: consider calling the plan unwinnable. The observed failure ran to 41 losses (198
+    #: attempts) grinding levels a Grass/Normal/Dark/Bug-Flying team could never spend on
+    #: Flying; 6 is enough to separate bad luck from a wrong plan while costing far less
+    #: than 41 whiteout cycles before we say so.
+    PLATEAU_LOSS_THRESHOLD = 6
+
     @staticmethod
     def name() -> str:
         return "Story"
@@ -902,6 +909,73 @@ class StoryMode(BotMode):
         _prio, _negscore, slot, kind, train_to = best
         return (kind, slot, train_to)
 
+    # ------------------------------------------------------------------
+    # KI-23 — boss-training-mode plateau detector (Winona overnight run: 198
+    # attempts, 41 losses, 41 whiteouts, never won; L42 Sceptile/L39 Loudred/
+    # L36 Mightyena team had NO super-effective answer to Flying — Sceptile is
+    # resisted, Ninjask is part-Flying itself, Shedinja is 1 HP — so grinding
+    # more levels could never converge). Boss-training mode's existing "2
+    # consecutive zero-KO attempts" guard never fires here because a strong
+    # mon scores 1-2 KOs every time and still loses forever; this adds a
+    # second, independent signal that catches exactly that case.
+    # ------------------------------------------------------------------
+    def _boss_plan_is_hopeless(self, cfg: dict) -> tuple[bool, list[str]]:
+        """(hopeless, needed_type_names). True only when BOTH hold: (1) losses here have
+        plateaued — the best KO count in the most recent 3 losses is not better than the
+        best in the 3 before that — and (2) no battle-capable party mon has a damaging
+        move that hits the boss's `ace_types` for >= 2.0 effectiveness. `needed_type_names`
+        lists the attacking types that WOULD be super-effective, computed from the real
+        type chart, never hardcoded. Fails safe: any read error returns (False, []) — a
+        reader hiccup must never abort a fight."""
+        try:
+            losses = max((self._defeat_counts.get(k, 0) for k in cfg["keys"]), default=0)
+            if losses < self.PLATEAU_LOSS_THRESHOLD:
+                return False, []
+
+            # --- plateau test: best-of-recent-3 losses vs. best-of-previous-3 ---
+            history = sorted(entry for k in cfg["keys"] for entry in self._loss_ko_history.get(k, ()))
+            if len(history) < 6:
+                return False, []  # not enough history to call it — never guess
+            recent_best = max(kos for _seq, kos in history[-3:])
+            previous_best = max(kos for _seq, kos in history[-6:-3])
+            if recent_best > previous_best:
+                return False, []  # improving — the existing escalation path is working
+
+            # --- no-answer test: does any battler have a super-effective damaging move? ---
+            if "ace_types" not in cfg:
+                return False, []
+            from modules.pokemon import _types_by_name, get_type_by_name
+            from modules.pokemon_party import get_party
+            from modules.story.early_game import _battler_slots
+
+            ace_types = [get_type_by_name(n) for n in cfg["ace_types"]]
+            party = get_party()
+            battlers = _battler_slots()
+            if not battlers:
+                return False, []
+            for i in battlers:
+                for learned in party[i].moves:
+                    if learned is None or learned.pp == 0 or learned.move.base_power == 0:
+                        continue
+                    eff = 1.0
+                    for t in ace_types:
+                        eff *= learned.move.type.get_effectiveness_against(t)
+                    if eff >= 2.0:
+                        return False, []  # we DO have an answer — not hopeless
+
+            # No answer in the party: work out what WOULD be super-effective by asking
+            # the type chart directly (never hardcode a type-matchup table).
+            needed = []
+            for atk_name, atk_type in _types_by_name.items():
+                eff = 1.0
+                for t in ace_types:
+                    eff *= atk_type.get_effectiveness_against(t)
+                if eff >= 2.0:
+                    needed.append(atk_name)
+            return True, needed
+        except Exception:
+            return False, []
+
     def _prepare_for_fight(self, cfg: dict) -> Generator:
         """Before a major fight, train the team to a sensible level (user directive
         2026-07-21). PROACTIVE: a target within the fight's level band (organic,
@@ -998,6 +1072,22 @@ class StoryMode(BotMode):
             grass_is_fodder = ("grass" not in cfg) or (wild_max is not None and wild_max + 8 < team_max)
             boss_teaches = bool(recent_kos) and any(k >= 1 for k in recent_kos)
             if grass_is_fodder and boss_teaches:
+                # KI-23 (Winona): a strong mon can KO 1-2 of the boss's mons EVERY
+                # attempt and still lose forever if nothing in the party is
+                # super-effective against it — the ZERO-KO guard above never fires
+                # there, and boss-training mode would keep "teaching" us nothing
+                # useful, run after run. Check BEFORE committing to another attempt.
+                hopeless, needed = self._boss_plan_is_hopeless(cfg)
+                if hopeless:
+                    from modules.modes import BotModeError
+
+                    boss_name = cfg.get("name", "this boss")
+                    ace_desc = "/".join(cfg.get("ace_types", ())) or "its ace type(s)"
+                    raise BotModeError(
+                        f"{boss_name}: {losses} losses with no super-effective answer to "
+                        f"{ace_desc}. Need one of: {', '.join(needed)}. Grinding levels "
+                        f"will not fix this."
+                    )
                 boss_mode = True
                 target = team_max + 1  # light top-up only — the boss battle is the trainer
                 console.print(
@@ -2256,6 +2346,26 @@ class StoryMode(BotMode):
             from modules.map_data import PokemonCenter
             from modules.story.early_game import _lead_best_matchup, heal_in_pokemon_center
 
+            # ‼ WINONA MUST GO THROUGH _prepare_for_fight (KI-23, 2026-07-25). She previously
+            # jumped straight to `do_fortree_gym()` with only a lead-swap and a heal, so she
+            # never entered the prep/boss-training machinery at ALL — which meant the
+            # non-convergence guard could not fire on the ONE boss that proved it was needed.
+            # A user's overnight run made 198 attempts, lost 41 times and whited out 41 times
+            # against her with a party that was far ABOVE her levels but had no
+            # super-effective answer to Flying (Sceptile is resisted, Ninjask is itself part
+            # Flying, Shedinja has 1 HP). Wiring her in gives that run a bounded, diagnosed
+            # stop instead of an unbounded whiteout loop.
+            #   `ace_types`: Altaria L33 is the ace — Dragon/Flying, and 4x weak to Ice.
+            #   `grass`/`heal`: Route 119 is the Fortree-side band; Fortree has the PC.
+            winona_fight = {
+                "name": "Winona",
+                "keys": [MapRSE.FORTREE_CITY_GYM.value, MapRSE.FORTREE_CITY.value],
+                "band": (29, 33),  # Swablu 29 / Tropius 29 / Pelipper 30 / Skarmory 31 / Altaria 33
+                "ace_types": ("Dragon", "Flying"), "ace_level": 33,
+                "heal": PokemonCenter.FortreeCity,
+            }
+            if _cur_map() != MapRSE.FORTREE_CITY_GYM.value:
+                yield from self._prepare_for_fight(winona_fight)
             yield from _lead_best_matchup(["Flying"])
             yield from heal_in_pokemon_center(PokemonCenter.FortreeCity)
             yield from do_fortree_gym()
