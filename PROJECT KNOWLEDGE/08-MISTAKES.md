@@ -1328,3 +1328,66 @@ mocked position is total.
 **Prevention rule.** When you mock "where the player is", patch EVERY reader of that fact — grep
 the function under test for all position sources before trusting its verdict. A half-mocked
 precondition does not fail loudly; it silently answers a different question and calls it a pass.
+
+## 2026-07-25 — RETIREMENT NOTICE: four prevention rules whose mistake is now structurally impossible
+
+Per `CLAUDE.md`'s `/reconcile` guidance: a prevention rule whose underlying mistake has been made
+impossible by a test, a guard, or a refactor should be RETIRED, because a stale "don't do X" keeps
+that idea alive in every future agent's context forever and costs tokens for no protection.
+
+**Nothing above is deleted or edited — this file is append-only.** The entries stand; this notice
+records that their PREVENTION RULES no longer need to be carried forward. If a structural guard
+named below is ever removed, the corresponding rule becomes live again.
+
+### R1 — RETIRED: ML-5's "anchor story position on badge level, never on a single flag/item"
+*(entry: 2026-07-20 — "Story detection: naive single-signal scans mis-place saves")*
+
+The entry carries its own retirement condition, and it is now met. `tests/test_story_progress.py`
+(present in BOTH builds, 12 tests) asserts exactly the two properties the rule describes:
+* `test_current_chapter_never_leaves_its_badge_bracket` — loops every badge level 0-8 and asserts
+  placement never escapes its bracket, which is the badge-anchoring rule as an executable claim;
+* `test_hacked_save_stone_plus_stray_magma_emblem` — the specific hand-edited-save shape (Stone
+  Badge + a stray Magma Emblem) that produced the ch16c mis-placement.
+
+A regression cannot ship silently now, so the rule does not need to be read to be obeyed.
+
+### R2 — PARTIALLY RETIRED: the phantom-flag rule (a) only
+*(entry: 2026-07-22 — "A phantom flag name silently gated a segment (Ch9a derail loop)")*
+
+**Rule (a)** ("before building on ANY flag/var name, verify it exists in the data table") is
+retired: `_done()` in `plugins/custom_modes/story_mode.py` now raises a `BotModeError` on any name
+absent from `modules.memory._event_flags`, so a phantom name is a loud build error at first use
+rather than a silent False that reads as "not done yet". A typo cannot reach a derail loop.
+`audit_flag_names.py` remains as the static complement.
+
+**KEPT — rules (b) and (c), which have NO structural guard:**
+* **(b)** a probe that prints `False` for a flag proves nothing until the NAME is proven real.
+  The guard protects `_done()`; it does not protect an agent reading a one-off probe's output.
+* **(c)** a segment's completion predicate and its guard must be the SAME function — two spellings
+  of "done" will eventually disagree and derail-loop. Nothing enforces that structurally.
+
+### R3 — RETIRED: ML-4's "audit a vendored app's self-update triggers for a nested-`.git` assumption"
+*(entry: 2026-07-19 — "Stock auto-updater silently active in the fork")*
+
+`pokebot.py` now walks EVERY ancestor directory for a `.git`
+(`any((parent / ".git").exists() for parent in [_base, *_base.parents])`) before it will consider
+running the stock updater — in both builds. The specific layout assumption that broke (upstream
+expected `.git` inside the bot folder; ours is at the repo root) can no longer re-break, and the
+guard is layout-agnostic rather than patched for our particular depth.
+
+*Scope note:* this retires the rule as stated, which was specifically about the nested-`.git`
+assumption. The broader habit — audit what a vendored app does on its own initiative — is general
+engineering judgement, not a rule this file needs to carry.
+
+### R4 — PARTIALLY RETIRED: the Gemini docstring-example rule (rule 1 only)
+*(entry: 2026-07-25 — the ~35 research calls run on `gemini-2.5-pro`)*
+
+**Rule 1** ("a tool's DOCSTRING EXAMPLE is not its default") is retired *for this tool*:
+`gemini_relay.py` now REFUSES any model that is not Pro 3.1+ (`_is_pro_31_or_newer`, fail-closed on
+anything unparseable, Flash/Flash-Lite/Gemma rejected regardless of version), with an explicit
+`--allow-weak-model` escape hatch. Copying a stale docstring example can no longer silently
+downgrade a research round — it exits with a message naming the directive and the fix.
+
+**KEPT — rule 2: "when a tool starts producing bad output, check YOUR INVOCATION before concluding
+the tool is bad."** This is the rule that actually cost the day, it generalises to every tool in
+the project, and there is no structural guard for it anywhere. It stays.

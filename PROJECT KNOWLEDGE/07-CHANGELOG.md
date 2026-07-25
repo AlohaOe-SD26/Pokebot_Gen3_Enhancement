@@ -3339,3 +3339,27 @@ the log exists to be. Added as BATCH-3c, with the KI-23/KI-24 motivation, the ex
 `calculate_path` was deliberately NOT modified, and the upstream-collision assessment.
 Also added BATCH-3d, which records that `Story (ENDLESS RESET)` REVERSES BATCH-3b's launcher menu
 item (3b stands as written — the file is append-only).
+
+## 2026-07-25 — Four prevention rules retired as structurally impossible (doc audit R1-R4)
+
+Per `CLAUDE.md`'s `/reconcile` guidance — a stale "don't do X" keeps that idea alive in every
+future agent's context and costs tokens for no protection. Recorded as an append-only RETIREMENT
+NOTICE at the end of `08-MISTAKES.md`; **nothing was deleted or edited**, and each retirement names
+the guard that makes it safe (if that guard is ever removed, the rule becomes live again).
+
+* **R1 RETIRED** — ML-5's badge-anchoring rule. The entry carried its own retirement condition and
+  it is met: `tests/test_story_progress.py` (both builds) asserts
+  `test_current_chapter_never_leaves_its_badge_bracket` over every badge level 0-8 and
+  `test_hacked_save_stone_plus_stray_magma_emblem`.
+* **R2 PARTIALLY RETIRED** — the phantom-flag rule. Sub-rule (a) is retired: `_done()` now raises
+  on any name absent from `modules.memory._event_flags`, so a typo is a loud build error rather
+  than a silent False. **Sub-rules (b) and (c) KEPT** — the guard protects `_done()`, not an agent
+  reading a one-off probe (b), and nothing structurally forces a segment predicate and its guard to
+  be the same function (c).
+* **R3 RETIRED** — ML-4's nested-`.git` rule. `pokebot.py` now checks EVERY ancestor for a `.git`
+  before considering the stock updater, in both builds; the guard is layout-agnostic rather than
+  patched for our depth.
+* **R4 PARTIALLY RETIRED** — the Gemini docstring-example rule. Rule 1 is retired for this tool:
+  `gemini_relay.py` refuses sub-Pro-3.1 models in code. **Rule 2 KEPT** ("check YOUR invocation
+  before concluding the tool is bad") — it is the rule that actually cost the day, it generalises
+  to every tool here, and it has no structural guard.
