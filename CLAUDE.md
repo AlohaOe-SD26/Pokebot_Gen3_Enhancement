@@ -206,6 +206,16 @@ the newest commit recorded in `40cakes repo/UPDATE-LOG.md`.
 - **Verification passes must be ADVERSARIAL:** hand a later agent the earlier
   note and ask it to FIND ERRORS in it. Asking a second agent the same question
   just produces a second guess; asking it to refute produces information.
+- **‼ CLAUDE VALIDATES GEMINI (user directive, 2026-07-25).** Gemini is the
+  research FAN-OUT (cheap, many angles); the VALIDATION pass is a Claude
+  subagent, because only Claude agents here have real tool access — they can
+  `gh api repos/pret/pokeemerald/contents/<path>` to read the ACTUAL decomp,
+  read `sandbox-pokebot/modules/data/*`, run `audit_flag_names.py`, and drive a
+  live emulator probe. Gemini can only recall, and describing recall as
+  verification is precisely how the 2026-07-24 item round produced ~100%
+  confidence over content that contained a hallucinated item. The user has
+  accepted the extra token cost for this. Never let a Gemini pass be the final
+  word on a fact that code will depend on.
 - Why the caution is not theoretical: in the first batch an agent confidently
   denied the existence of `ROUTE111_OLD_LADYS_REST_STOP`, which is in our own
   `map_data.py`, on the single most load-bearing question it was asked.

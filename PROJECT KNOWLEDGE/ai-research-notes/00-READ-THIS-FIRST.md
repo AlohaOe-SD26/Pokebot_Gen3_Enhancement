@@ -129,3 +129,32 @@ to check; it does not settle it.
 2. `VERIFY1-*.md` → the "most dangerous claim" line, so you know what would hurt most if wrong.
 3. `item-notes-*.md` → only for coverage/ideas, never for values.
 4. Then VERIFY against the decomp or the ROM before a single line of code depends on it.
+
+---
+
+# ‼ PROCESS CORRECTION (user directive, 2026-07-25): CLAUDE VALIDATES GEMINI
+
+The three-pass Gemini experiment above showed that stacking same-model passes converges on
+confident-sounding output, not on truth — pass 3 claimed ~100% confidence while describing
+RECALL as "verifiable against the decomp".
+
+**The corrected pipeline:**
+
+| stage | who | why |
+|---|---|---|
+| research fan-out | **Gemini**, many angles | cheap breadth; good at enumerating what to look for |
+| adversarial critique | **Gemini**, given the note | cheap; genuinely surfaces suspect claims |
+| **VALIDATION (final word)** | **a CLAUDE subagent** | it is the only one with REAL TOOL ACCESS |
+
+A Claude validator can actually ground a claim:
+* `gh api repos/pret/pokeemerald/contents/<path>` — read the REAL decomp file (this is how the
+  Fortree rotating-gate rules were settled, and that port then matched the live emulator 4/4);
+* read `sandbox-pokebot/modules/data/*` for learnsets, encounters, base exp, items;
+* run `tools/story-dev/audit_flag_names.py` on every `FLAG_`/`VAR_` name;
+* drive a live emulator probe on a real save.
+
+Gemini can do none of these. So **a Gemini pass may never be the final word on a fact that code
+will depend on.** The user has explicitly accepted the extra token cost of Claude validation.
+
+Files named `CLAUDE-VALIDATED-*.md` in this directory are the ONLY ones whose claims were checked
+against an external ground truth. Everything else remains a lead.
