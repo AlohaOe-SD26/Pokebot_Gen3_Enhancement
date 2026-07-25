@@ -190,6 +190,19 @@ the newest commit recorded in `40cakes repo/UPDATE-LOG.md`.
   explicit user approval, together with their DIVERGENCE-LOG entries and
   docs; after promotion the sandbox is re-based on the new custom.
 
+### Gemini model floor — PRO 3.1+ ONLY (user directive, 2026-07-25)
+- Research calls MUST use Gemini **Pro 3.1 or newer**. This is ENFORCED IN CODE:
+  `gemini_relay.py` refuses anything else and exits with an explanation. A doc
+  rule was not enough — the default was already correct and an agent still
+  overrode it to a two-generation-old model on ~35 calls by copying a stale
+  docstring example, then spent a day concluding "Gemini is inaccurate".
+- **The usual correct invocation passes NO `--model` at all.** Only pass one to
+  select a NEWER Pro. `--allow-weak-model` exists for cheap one-liners that
+  genuinely do not need Pro; using it for research is a mistake.
+- Flash / Flash-Lite / Gemma are refused regardless of version: the failures that
+  motivated this were factual-recall errors, which is where small models are
+  weakest.
+
 ### Gemini research notes — standing directive (user directive, 2026-07-24)
 - **Use Gemini research agents (`tools/story-dev/gemini_relay.py`) whenever fixing
   or building anything story/mechanic/game related** — for extra context, for

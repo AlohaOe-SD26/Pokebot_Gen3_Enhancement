@@ -97,6 +97,31 @@ def ask(parts: list[str], model: str, retries: int = 3) -> str:
     sys.exit(f"Gemini returned no usable text after {retries} attempts:\n{json.dumps(data)[:2000]}")
 
 
+def _is_pro_31_or_newer(model: str) -> bool:
+    """True only for Gemini **Pro** at version 3.1 or above.
+
+    Deliberately conservative — it must FAIL CLOSED on anything it cannot parse, so a new
+    model name can never sneak the old mistake back in. `gemini-pro-latest` is accepted
+    because the API resolves it to the newest Pro. Flash/Flash-Lite/Gemma are rejected
+    regardless of version number: the directive is Pro, and the failures that motivated this
+    guard were factual-recall errors, which is exactly where the smaller models are weakest.
+    """
+    m = model.strip().lower()
+    if m == "gemini-pro-latest":
+        return True
+    if "pro" not in m:
+        return False
+    # Pull the first dotted-or-plain version number out of e.g. "gemini-3.1-pro-preview".
+    import re
+
+    match = re.search(r"(\d+)(?:\.(\d+))?", m)
+    if not match:
+        return False
+    major = int(match.group(1))
+    minor = int(match.group(2) or 0)
+    return (major, minor) >= (3, 1)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Relay a research prompt to the Gemini API.")
     ap.add_argument("prompt", nargs="*", help="prompt text (joined with spaces)")
@@ -104,11 +129,33 @@ def main() -> None:
     ap.add_argument("--model", default=DEFAULT_MODEL)
     ap.add_argument("--out", help="also write the answer to this file")
     ap.add_argument("--list-models", action="store_true")
+    ap.add_argument(
+        "--allow-weak-model",
+        action="store_true",
+        help="bypass the Pro-3.1+ requirement (research quality WILL suffer; see the guard below)",
+    )
     args = ap.parse_args()
 
     if args.list_models:
         list_models()
         return
+
+    # ‼ STRUCTURAL GUARD (user directive 2026-07-25: "only use Gemini pro 3.1+").
+    # A rule in a doc is exactly what failed here: the default was ALREADY 3.1-pro, and an
+    # agent still overrode it to gemini-2.5-pro on ~35 research calls by copying a stale
+    # docstring example — then spent a day concluding "Gemini is inaccurate" instead of
+    # checking its own invocation. Calibration afterwards showed 3.1-pro answered correctly
+    # the exact claims 2.5-pro got wrong twice. So the requirement is enforced in CODE, where
+    # it cannot be skim-read past. Escape hatch is explicit and self-documenting.
+    if not args.allow_weak_model and not _is_pro_31_or_newer(args.model):
+        sys.exit(
+            f"REFUSING model {args.model!r}.\n"
+            f"  Standing directive (2026-07-25): research must use Gemini PRO 3.1 or newer.\n"
+            f"  Default is {DEFAULT_MODEL!r} — the usual fix is to pass no --model at all.\n"
+            f"  Cheap one-liners that genuinely do not need Pro: --allow-weak-model.\n"
+            f"  Why: a two-generation-old model produced a hallucinated item (invented coords\n"
+            f"  AND flag), put HM07 in the wrong cave, and invented a bike prerequisite."
+        )
 
     parts = [pathlib.Path(f).read_text(encoding="utf-8") for f in args.file]
     if args.prompt:
