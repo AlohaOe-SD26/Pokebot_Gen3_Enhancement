@@ -2903,3 +2903,32 @@ full-chapter run to confirm, not a gate fix. Filed `#24-fortreebadge`.
 **Prevention rule:** when a model and a live measurement disagree, the cheapest decisive move is
 often to CHANGE THE WORLD to the state the model assumes (here: exit and re-enter to force the
 documented reset) rather than to argue about the reading or relax the check.
+
+## 2026-07-24 — Fortree: a parked trainer is escaped by RESETTING the room, not by waiting (#24-fortreegates)
+
+**User mechanic (2026-07-24):** leaving and re-entering Fortree Gym resets **NPC positions** as
+well as the gate orientations. That makes the exit-and-re-enter path a FULL puzzle reset, not
+just a gate reset.
+
+**Why it mattered.** The NPC-blocked branch waited 30 frames and re-planned, forever (until the
+round/frame bounds). That is correct for a WANDERING NPC, which steps aside on its own — but a
+DEFEATED TRAINER never moves; its sprite stays parked wherever the approach left it. Live drive
+had already proved that case hangs a climb. Waiting was therefore futile in exactly the case
+that occurs most.
+
+**Fix.** Bound the waiting (`_FORTREE_MAX_NPC_WAITS = 4`), then fall through to the
+exit-and-re-enter reset, which now clears the blocking NPC as well as the gates.
+
+**‼ And a bug in my own first cut of that fix, caught before commit:** `npc_wait_rounds` was
+initialised once and never reset, making it a LIFETIME tally rather than a CONSECUTIVE-stall
+counter. A 97-move climb past several trainers can legitimately wait on wandering NPCs more than
+4 times in total, so those unrelated waits would have accumulated and triggered a pointless
+room reset deep into a healthy climb. Now reset on every successful move. **This is the third
+instance today of the same shape** (branch-local counter in `ensure_facing_direction`,
+per-invocation counter in the move-learn valve, lifetime counter here) — see 08-MISTAKES.
+
+**Verified:** solver acceptance unchanged — 4/4 live push agreement, exact 83/97 route lengths.
+
+**Prevention rule (reinforced):** every counter that triggers an escalation must have a stated
+reset condition, written down at the same time as the increment. "What resets this, and can it
+fire on a healthy run?" is the question — asking it caught this one before it shipped.

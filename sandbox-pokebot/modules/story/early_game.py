@@ -5732,10 +5732,15 @@ def do_fortree_gym() -> Generator:
     _FORTREE_MAX_ROUNDS = 600  # bounds the outer replan loop (optimal solve is 97 moves)
     _FORTREE_MAX_MOVES = 600  # bounds total tiles walked across the whole climb
     _FORTREE_MAX_RESET_CYCLES = 2  # bounds "solve() found nothing -> leave & re-enter" cycles
+    # A wandering NPC steps aside within a second or two; a DEFEATED TRAINER never moves.
+    # After this many 30-frame waits, stop waiting and take the exit-and-re-enter reset,
+    # which (user mechanic, 2026-07-24) resets NPC positions as well as gate orientations.
+    _FORTREE_MAX_NPC_WAITS = 4
     _FORTREE_MAX_TOTAL_FRAMES = 150_000  # hard backstop independent of the above counters
     rounds = 0
     moves_executed = 0
     reset_cycles = 0
+    npc_wait_rounds = 0
     start_frame = context.emulator.get_frame_count()
     while not (
         _map_group_number() == GYM.value
@@ -5779,10 +5784,21 @@ def do_fortree_gym() -> Generator:
             # itself is unsolvable -- these are different failure modes, and
             # only the second one should trigger the reset-and-re-enter path.
             plan_ignoring_npcs = solve((x, y), orientations, goal_xy=(15, 3))
-            if plan_ignoring_npcs is not None:
+            if plan_ignoring_npcs is not None and npc_wait_rounds < _FORTREE_MAX_NPC_WAITS:
+                # A WANDERING npc will step aside on its own, so wait briefly and
+                # re-plan. But a DEFEATED TRAINER does not wander — its sprite stays
+                # parked wherever the approach left it, so waiting is futile and this
+                # branch would spin until the round/frame bounds fired.
+                # ‼ USER MECHANIC (2026-07-24): leaving and re-entering the gym resets
+                # NPC POSITIONS as well as the gate orientations. So the reset below is a
+                # FULL puzzle reset, not just a gate reset — which makes it the correct
+                # escape for a permanently-parked trainer too, not only for an unsolvable
+                # gate configuration. Bound the waiting, then fall through to it.
+                npc_wait_rounds += 1
                 context.message = (
                     "Story: Fortree Gym — a live object is blocking every route to Winona "
-                    "from here; waiting for it to move..."
+                    f"from here; waiting for it to move ({npc_wait_rounds}/"
+                    f"{_FORTREE_MAX_NPC_WAITS})..."
                 )
                 yield from wait_for_n_frames(30)
                 continue
@@ -5824,6 +5840,14 @@ def do_fortree_gym() -> Generator:
             continue
 
         # Execute a single move, then loop back to re-read state + re-plan.
+        # ‼ RESET THE NPC-WAIT COUNTER ON PROGRESS. It is a CONSECUTIVE-stall counter, not
+        # a lifetime tally: a 97-move climb past several trainers can legitimately wait for
+        # a wandering NPC more than `_FORTREE_MAX_NPC_WAITS` times in total, and without
+        # this reset those unrelated waits would accumulate and trigger a pointless
+        # exit-and-re-enter deep into a healthy climb. (Same shape as the move-learn valve
+        # bug found earlier today — a counter that only ever increments eventually fires on
+        # a perfectly healthy run.)
+        npc_wait_rounds = 0
         yield from _fortree_walk_one_tile(plan[0])
         moves_executed += 1
         if moves_executed > _FORTREE_MAX_MOVES:
