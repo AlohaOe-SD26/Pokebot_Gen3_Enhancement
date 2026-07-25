@@ -518,3 +518,41 @@ economics as Norman (KI: 35 whiteouts) but worse, because Flying resists the com
 **Cross-run confirmation:** my 5 runs show the same shape elsewhere — 2 of 5 died on the whiteout
 cap (`#24-whiteout`), and my successful run took 80 whiteouts. Attrition is not a side-effect; it
 IS the dominant cost of the current strategy.
+
+## KI-24 — `calculate_path` cannot prove LONG-RANGE reachability; our gates under-report it (2026-07-25)
+
+**Found while validating the counter-catch planner.** From the correct Winona-era save
+(`devon_scope_got.ss1`, verified: ROUTE120 (13,16), BADGE05_GET, `_party_can_surf()==True`),
+`_training_area_allowed` reports **zero** reachable counters for Winona's types — including
+Route 118 Electrike, which is the real answer to her.
+
+**It is not a Surf gate and not an in-game obstacle.** The ROM's `MapConnections` give a genuine,
+warp-free, edge-connected chain `ROUTE120 ↔ FORTREE_CITY ↔ ROUTE119 ↔ ROUTE118` — exactly what
+`calculate_path` documents itself as supporting. Yet it fails on every hop, **and it also fails on
+a same-map walk inside ROUTE119 alone** (y=5 → y=135, no map crossing at all). A same-map failure
+rules out map-crossing as the cause.
+
+**Most likely cause — already documented in this project.** Routes 118/119/120 are the
+**dual-elevation bridge** maps: `calculate_path` reads those bridges as WALLS. That is precisely
+why `_hold_walk_route()` (held-input walking) exists and why `_leave_route120_north_bridge` is
+hand-written. A long north-south Route 119 path must cross them, so the planner declares it
+impossible. (KI-20's camera-window `get_map_objects()` limitation may compound it, but the bridge
+class alone explains a same-map failure.)
+
+**Consequence — this is a REAL limitation in shipped gating, not just in the new planner.**
+`_training_area_allowed` and therefore `best_training_area` use tile-level `calculate_path` as
+their reachability oracle. On exactly the maps with the best mid-game training bands (115/118/119/
+121) that oracle says "unreachable" for reasons that are artefacts of the pathfinder. The
+conservative `allow=None` fallback is no better — it proposed **Magma Hideout Geodude** and
+**Shoal Cave Spheal** as answers to a Fortree gym, i.e. across the region.
+
+**The fix is architectural, and it is `#24-regionreach`:** reachability at REGION scale should be
+answered from the **map-connection graph plus HM/badge gates**, not from tile-level pathing.
+"Can I get to Route 118 from Fortree?" is a connectivity question; tile pathing is only correct
+for the final leg once we are on the map. The ROM connection data is available and was
+hand-verified during this investigation. Doing this would also retire the `AREA_PREREQ`
+`"region"` hack that Route 111 currently needs.
+
+**Prevention rule:** a reachability oracle must be sound for the SCALE it is asked about. Using a
+tile pathfinder to answer a cross-region question inherits every one of its blind spots as a false
+"no", and false negatives are invisible — nothing errors, the option is simply never proposed.
