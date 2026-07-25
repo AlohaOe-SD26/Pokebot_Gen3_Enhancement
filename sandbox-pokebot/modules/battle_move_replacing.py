@@ -164,9 +164,21 @@ def handle_move_replacement_dialogue(strategy: BattleStrategy) -> Generator:
         # keeps its current moves; the story self-check §SC recovers from there).
         frames_in_dialogue += 1
         if frames_in_dialogue > 6000:
+            # ‼ B ALONE IS NOT ENOUGH (2026-07-24 — two of three fresh runs died here).
+            # The observed stall is `ml=Unknown`, `instr=BattleScript_AskToLearnMove`,
+            # `bt='<MON> is trying to learn <MOVE>.'`, `wfi=True` (the game IS waiting for
+            # input) — and 600 frames of pure B did not durably close it, so the caller
+            # re-invoked us and the run eventually died. Evidence for the fix: the
+            # match-call A/B/C/D experiment showed a stuck input-waiting prompt clears on
+            # A, on B, or on alternating, but NOT on zero input; and the HM decline path
+            # resolves in ~430 frames once it is actually answered. So escalate: mostly B
+            # (B declines a YES/NO and advances text without confirming anything), with a
+            # periodic A to satisfy a box that only accepts A — e.g. the "Stop learning
+            # <MOVE>?" confirmation, which B can never dismiss. Widened to 1800 frames
+            # since a real multi-part message chain can outlast 600.
             escape = 0
-            while get_learn_move_state() != LearnMoveState.DialogueNotActive and escape < 600:
-                context.emulator.press_button("B")
+            while get_learn_move_state() != LearnMoveState.DialogueNotActive and escape < 1800:
+                context.emulator.press_button("A" if escape % 4 == 3 else "B")
                 escape += 1
                 yield
             # ‼ THE VALVE MUST SURVIVE RE-ENTRY (2026-07-24 — proven live). This

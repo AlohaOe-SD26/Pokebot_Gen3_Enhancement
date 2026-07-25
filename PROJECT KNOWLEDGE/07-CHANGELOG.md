@@ -2932,3 +2932,35 @@ per-invocation counter in the move-learn valve, lifetime counter here) — see 0
 **Prevention rule (reinforced):** every counter that triggers an escalation must have a stated
 reset condition, written down at the same time as the increment. "What resets this, and can it
 fire on a healthy run?" is the question — asking it caught this one before it shipped.
+
+## 2026-07-24 — move-learn escape: B alone was not enough (#24)
+
+**Two of three fresh runs died on this.** Signature: `ml=Unknown`,
+`instr=BattleScript_AskToLearnMove`, `bt='<MON> is trying to learn <MOVE>.'`, `wfi=True`
+(the game IS waiting for input), `tasks=[]`. The HM veto did NOT fire, so this is a DISTINCT
+failure from the HM case — the reader reports `Unknown` and the text-driven branches never
+resolve the prompt.
+
+**Fix.** The 6000-frame valve's escape pressed only **B** for 600 frames, which did not durably
+close the offer, so the caller re-invoked and the run eventually died. Now: mostly B (declines a
+YES/NO and advances text without confirming anything) with a periodic **A** every 4th frame —
+because a "Stop learning <MOVE>?" confirmation only accepts A and B can never dismiss it —
+widened to 1800 frames since a real multi-part message chain can outlast 600.
+
+**Evidence base (not a guess):** the match-call A/B/C/D experiment earlier the same day showed a
+stuck input-waiting prompt clears on A, on B, or on alternating, but never on zero input; and the
+HM decline path resolves in ~430 frames once it is actually answered.
+
+**Verified no regression:** both `repro_hm_move_replace_loop.py` arms unchanged — healthy path
+learns Take Down over Bide in 1 invocation; forced-HM arm re-picks and also learns Take Down in
+1 invocation.
+
+**STILL OPEN (`#24-movelearn-recovery`):** when the escape ultimately fails, the `BotModeError`
+is raised from inside the battle handler, which sits OUTSIDE StoryMode's derail-recovery
+try/except — so the run dies instead of losing one battle. That gap cost two runs today and is
+the top remaining robustness item.
+
+**ALSO OPEN (`#24-harness-savepath`):** the harness's no-progress auto-save writes to a SINGLE
+shared path (`tools/story-dev/saves/midstuck.ss1`) that every concurrent run overwrites, and
+fires only once per run. With three runs in parallel the artifact is untrustworthy — which is
+exactly why this bug still has no clean repro. Per-run save paths first, then repro this.
