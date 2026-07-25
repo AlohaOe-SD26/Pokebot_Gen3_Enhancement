@@ -3428,30 +3428,24 @@ class DashboardScreen:
         )
 
     def _start_endless_runs(self) -> None:
-        """Ask for a run count, then launch back-to-back FRESH runs in their own console.
+        """Ask for a run count, then switch to the chained DEBUG-RESET bot mode.
 
-        A LAUNCHER for `tools/story-dev/endless_runs.py`, not an in-process loop: that runner
-        already carries the failsafes this needs, and each was earned by an observed failure —
-        a wall-clock cap per run (frame-based watchdogs cannot see a wedged emulator process),
-        log-growth stall detection (a run can burn 2,000,000 frames making zero progress and
-        still look alive), a fresh profile per run with metadata COPIED not synthesised
-        ("fresh boot from title" still loads the battery save, and a hand-written metadata.yml
-        lacks the ROM reference), one bad run never aborting the batch, and "zero frames is
-        never success". Detached, so closing this window does not stop an overnight batch.
+        ‼ THIS SELECTS A BOT MODE — it does not shell out. The first version launched
+        `tools/story-dev/endless_runs.py` as a subprocess; the dialogs appeared and nothing
+        appeared to happen, because a separate headless harness is not what the user asked for.
+        They want `Story (DEBUG - RESET)` chained back to back in THIS emulator — so this sets
+        the run count and selects `Story (ENDLESS RESET)`, which loops it in-process.
         """
-        import pathlib
-        import subprocess
-        import sys
         import tkinter.messagebox
         import tkinter.simpledialog
 
         count = tkinter.simpledialog.askinteger(
             "Endless Debug-Reset Runs",
-            "How many back-to-back FRESH runs?\n\n"
-            "Each starts from the title screen at unthrottled speed with debug\n"
-            "logging on, and ends when it finishes, reaches the end of built\n"
-            "content, crashes, hangs, or trips a failsafe. Then the next begins.\n\n"
-            "0 = run forever (stop it with Ctrl-C in its console window).",
+            "How many chained DEBUG-RESET runs?\n\n"
+            "Each one hard-resets to the title screen, picks NEW GAME, and plays the\n"
+            "story with debug logging on until it finishes, reaches the end of built\n"
+            "content, or derails. Then the next one starts automatically.\n\n"
+            "0 = run forever (switch to Manual to stop).",
             parent=self.window,
             initialvalue=10,
             minvalue=0,
@@ -3459,45 +3453,37 @@ class DashboardScreen:
         if count is None:
             return
 
-        # tools/ lives at the REPO root — one level above this build dir (sandbox-pokebot or
-        # custom-pokebot). Walk up from this file rather than trusting the CWD.
-        repo_root = pathlib.Path(__file__).resolve().parents[3]
-        script = repo_root / "tools" / "story-dev" / "endless_runs.py"
-        if not script.exists():
+        try:
+            from plugins.custom_modes import story_mode as _sm
+
+            _sm.ENDLESS_RESET_TARGET = int(count)
+            mode_name = _sm.StoryEndlessResetMode.name()
+        except Exception as exc:  # noqa: BLE001
             tkinter.messagebox.showerror(
                 "Endless Debug-Reset Runs",
-                f"Runner not found:\n{script}", parent=self.window,
+                f"Could not load the endless-reset mode:\n{type(exc).__name__}: {exc}",
+                parent=self.window,
             )
             return
 
-        starter = "treecko"
+        # Turn debug logging on for the batch — the whole point is diagnosable overnight runs.
         try:
-            cfg_starter = getattr(getattr(context.config, "custom", None), "get", lambda _k: None)("starter")
-            if cfg_starter:
-                starter = str(cfg_starter)
+            from modules import debug_logger
+
+            if not debug_logger.is_enabled():
+                debug_logger.enable(context.profile)
         except Exception:
             pass
 
-        try:
-            subprocess.Popen(
-                [sys.executable, str(script), "--count", str(count), "--starter", starter],
-                cwd=str(repo_root),
-                creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0),
-            )
-        except Exception as exc:  # noqa: BLE001
-            tkinter.messagebox.showerror(
-                "Endless Debug-Reset Runs", f"Could not start the batch:\n{exc}", parent=self.window
-            )
-            return
-
-        ledger = repo_root / "tools" / "story-dev" / "endless-runs" / "LEDGER.md"
-        self._log_event(f"Endless runs started ({'infinite' if count == 0 else count})")
+        context.bot_mode = mode_name
+        self._log_event(f"Endless reset batch: {'infinite' if count == 0 else count} run(s)")
         tkinter.messagebox.showinfo(
             "Endless Debug-Reset Runs",
-            f"Started {'an INFINITE batch' if count == 0 else f'a batch of {count} runs'} in its "
-            f"own console window.\n\nOne row per run is appended to:\n{ledger}\n\n"
-            f"Individual logs land beside it. This window is not driving the batch — you can "
-            f"close it and the batch keeps running.",
+            f"Bot mode set to “{mode_name}” for "
+            f"{'an INFINITE batch' if count == 0 else f'{count} runs'}.\n\n"
+            f"It hard-resets and replays the story back to back, with debug logging on. Each "
+            f"run's outcome is printed to the console as it ends.\n\n"
+            f"Switch the bot mode to Manual to stop the batch.",
             parent=self.window,
         )
 

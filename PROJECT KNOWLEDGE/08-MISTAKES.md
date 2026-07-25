@@ -1239,3 +1239,33 @@ both surfaces have it), in both builds.
    check the entry point before editing either.
 3. A feature I cannot exercise myself (a GUI dialog) is not verified by static checks. Say so
    plainly, and name the surface it was added to so the user can catch a mismatch immediately.
+
+## 2026-07-25 — I built a subprocess launcher when the user asked for a chained BOT MODE
+
+**Symptom.** The user asked for "endless debug reset runs back to back" in the Play menu. I built
+a CLI batch runner and a menu item that spawned it as a detached process. The user reported: "I
+get all the messages but it doesnt seem to actually run the instances, like debug reset does
+(effectively chained debug reset bots)."
+
+**Root cause.** I solved a different problem. "Endless debug-reset runs" means the EXISTING
+`Story (DEBUG - RESET)` mode — hard reset → NEW GAME → play the story — repeated back to back
+**in the running emulator**. I built an external headless harness that runs its own emulator
+instances, so from the GUI nothing visibly happened: the dialog confirmed, a console spawned
+elsewhere, and the bot the user was watching sat idle. The phrase "like debug reset does" was in
+the original request and I did not weight it.
+
+**The fix.** `StoryEndlessResetMode` ("Story (ENDLESS RESET)") — a real bot mode subclassing
+`StoryDebugResetMode` whose `run()` loops the parent, swallowing `BotModeError` so one bad run
+never ends the batch, forcing the bot mode back after each run (a deep derail can call
+`set_manual_mode()` and would otherwise stop the batch silently), and bounding each run by frames.
+The menu item now sets `ENDLESS_RESET_TARGET` and selects that mode instead of shelling out.
+
+**Prevention rules.**
+1. When a request names an EXISTING feature as the unit of repetition ("like debug reset does"),
+   the implementation is a loop around that feature — not a new mechanism that achieves something
+   similar. Re-read the request for the noun the user reused.
+2. "The dialogs work but nothing happens" is the signature of work happening somewhere the user
+   cannot see. Ask where they expected to see it before debugging the mechanism.
+3. Plugin bot modes register automatically (any `BotMode` subclass defined in
+   `plugins/custom_modes/*.py`) — but `get_bot_modes()` returns nothing for them unless plugins
+   are loaded, so verify registration through `CustomModesPlugin().get_additional_bot_modes()`.

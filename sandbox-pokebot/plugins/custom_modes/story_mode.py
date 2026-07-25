@@ -2357,3 +2357,84 @@ class StoryDebugResetMode(StoryMode):
         # Hand over to Story: _play sees "at title / not started" and runs the intro,
         # whose A-mash now confirms the pre-selected NEW GAME.
         yield from super().run()
+
+
+#: How many chained DEBUG-RESET runs "Story (ENDLESS RESET)" performs. 0 = run forever.
+#: Set by the GUI's "Endless Debug-Reset Runs…" dialog before it selects the mode; defaults to
+#: 10 so picking the mode straight from the dropdown still does something sensible.
+ENDLESS_RESET_TARGET = 10
+
+
+class StoryEndlessResetMode(StoryDebugResetMode):
+    """"Story (ENDLESS RESET)" (user request 2026-07-25): chained DEBUG-RESET runs, IN-PROCESS.
+
+    ‼ WHY IN-PROCESS. The first attempt at this feature shelled out to
+    `tools/story-dev/endless_runs.py` from a menu item; the dialogs appeared and nothing
+    happened, because a separate headless harness is not what "endless debug reset runs" means.
+    The user wants exactly what `Story (DEBUG - RESET)` already does — hard reset → NEW GAME →
+    play the story — repeated back to back in THIS emulator: "effectively chained debug reset
+    bots". So this mode just loops the parent's run().
+
+    Each iteration ends when the story finishes (end of built content), derails with a
+    `BotModeError`, or trips one of StoryMode's own bounds. `BotModeError` is SWALLOWED on
+    purpose: a crash in run 3 must not cost runs 4..N of an overnight batch. The next run then
+    begins with a hard reset, which is a clean slate by construction.
+
+    Failsafes beyond the parent's:
+      * a per-run FRAME CAP, so a run that neither finishes nor raises cannot hold the batch
+        forever — StoryMode's global watchdog normally catches that, but not if the watchdog
+        itself is what wedged;
+      * the bot mode is forced back to this mode after every run, because a derail deep inside
+        StoryMode can call `set_manual_mode()`, which would otherwise silently end the batch;
+      * a per-run outcome line, so the console shows progress without opening a log.
+    """
+
+    #: Hard per-run frame cap. Deliberately generous — the deepest real run to date reached the
+    #: end of built content in ~2.24M frames, so this is ~1.5x headroom and fires only on a
+    #: genuine wedge.
+    MAX_FRAMES_PER_RUN = 3_500_000
+
+    @staticmethod
+    def name() -> str:
+        return "Story (ENDLESS RESET)"
+
+    def run(self):
+        from modules.console import console
+        from modules.modes import BotModeError
+
+        target = int(ENDLESS_RESET_TARGET)
+        completed = 0
+        outcomes: list[str] = []
+
+        while target == 0 or completed < target:
+            completed += 1
+            label = f"{completed}/{'infinite' if target == 0 else target}"
+            console.print(f"[bold cyan]=== ENDLESS RESET: starting run {label} ===[/]")
+            context.message = f"Endless reset: run {label}"
+            start_frame = context.emulator.get_frame_count()
+            outcome = "finished"
+            try:
+                # The parent does the hard reset + NEW GAME, then hands to StoryMode.run().
+                yield from super().run()
+            except BotModeError as exc:
+                outcome = f"derailed: {exc}"  # EXPECTED — never ends the batch
+            except Exception as exc:  # noqa: BLE001
+                outcome = f"crashed: {type(exc).__name__}: {exc}"
+            frames = context.emulator.get_frame_count() - start_frame
+            if frames > self.MAX_FRAMES_PER_RUN:
+                outcome = f"frame-cap ({frames:,} > {self.MAX_FRAMES_PER_RUN:,})"
+            outcomes.append(f"run {completed}: {outcome} ({frames:,} frames)")
+            console.print(f"[cyan]=== ENDLESS RESET: run {label} -> {outcome} ({frames:,} frames) ===[/]")
+
+            # A derail deep inside StoryMode can flip us to Manual; restore ourselves or the
+            # next iteration runs under the wrong mode (or the batch just stops).
+            try:
+                if context.bot_mode != self.name():
+                    context.bot_mode = self.name()
+            except Exception:
+                pass
+
+        console.print("[bold green]=== ENDLESS RESET: batch complete ===[/]")
+        for line in outcomes:
+            console.print(f"  [green]{line}[/]")
+        context.message = f"Endless reset: {completed} run(s) complete"
