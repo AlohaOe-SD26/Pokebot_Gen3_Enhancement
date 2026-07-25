@@ -1,5 +1,18 @@
 # Story-Mode Bot — Deep Design (Pass 1 + Pass 2 + Pass 3 + Pass 4 verified)
 
+> ### ⚠ STUB MARKER — unverified AI-research notes exist for the unbuilt chapters
+> `PROJECT KNOWLEDGE/ai-research-notes/` holds notes written by **AI research agents**
+> (Gemini) covering Mt. Pyre → Champion, the Magma/Aqua hideouts, gyms 7-8, Victory Road,
+> HM gating, missable one-time events, overworld obstacle mechanics, and a story flag/var
+> reference — plus the healing-point and legendary dossier in `18-*`.
+>
+> They are **POSSIBLE, NOT A SOURCE OF TRUTH** (user directive, 2026-07-24). Read
+> `ai-research-notes/00-READ-THIS-FIRST.md` before using any of it. Nothing there may become
+> code, or overwrite THIS document, until verified against the ROM/decomp. **Where a note
+> contradicts this file, this file wins** until the note is proven. One note in the first
+> batch was already confidently wrong on its central question (it denied the existence of
+> `ROUTE111_OLD_LADYS_REST_STOP`, which is in our own `map_data.py`).
+
 ## ⭐ STORY PROGRESS LEDGER (what's built vs next — read this first) — 2026-07-21
 Code: `sandbox-pokebot/modules/story/early_game.py` (segment functions) wired into
 `plugins/custom_modes/story_mode.py` `StoryMode._play` (flag-gated, idempotent resume).
