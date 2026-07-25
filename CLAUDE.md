@@ -232,6 +232,20 @@ the newest commit recorded in `40cakes repo/UPDATE-LOG.md`.
 - Why the caution is not theoretical: in the first batch an agent confidently
   denied the existence of `ROUTE111_OLD_LADYS_REST_STOP`, which is in our own
   `map_data.py`, on the single most load-bearing question it was asked.
+- **‼ MEASURED 2026-07-25 (two model generations, same 10 prompts, ~65 claims
+  adjudicated against the decomp) — three rules that follow from the data:**
+  1. **AGREEMENT IS NOT A CONFIDENCE SIGNAL.** Where BOTH generations agreed they
+     were still wrong ~35% of the time (15 BOTH-WRONG rulings). Disagreement is a
+     great *search* strategy for finding claims worth checking; agreement proves
+     nothing, because both models share the same misconceptions.
+  2. **The two generations fail in DIFFERENT PLACES.** 2.5-pro hallucinates
+     *citations* (invented a map AND a script label, tagged VERIFIED). 3.1-pro's
+     names are excellent (phantom flag names 35% → 11%; head-to-head 21–1) but it
+     hallucinates in the **actionable** section — all three of its "your bot must
+     hardcode an interrupt here" constraints rested on permanence that does not
+     exist. **Grade Gemini's NAMES highly and its ARCHITECTURE ADVICE not at all.**
+  3. Therefore: use Gemini to enumerate *what to look for* (symbols, flags, map
+     names, mechanics to check) and NEVER to decide what the bot should DO.
 
 ### Story-bot craft & documentation excellence (user directive, 2026-07-21)
 - **Read `PROJECT KNOWLEDGE/14-AGENT-PLAYBOOK.md` every session** (right after the

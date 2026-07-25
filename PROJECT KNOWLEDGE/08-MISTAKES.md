@@ -1269,3 +1269,32 @@ The menu item now sets `ENDLESS_RESET_TARGET` and selects that mode instead of s
 3. Plugin bot modes register automatically (any `BotMode` subclass defined in
    `plugins/custom_modes/*.py`) — but `get_bot_modes()` returns nothing for them unless plugins
    are loaded, so verify registration through `CustomModesPlugin().get_additional_bot_modes()`.
+
+## 2026-07-25 — Verification effort spent on the wrong axis: "agreement" is not evidence
+
+**What I did.** After finding that ~35 research notes ran on a two-generation-old model, I re-ran
+10 story angles on the correct one and had a Claude agent ground the **disagreements** — reasoning
+that a disagreement means at least one side is definitely wrong, so it is an efficient search
+target. That part worked well.
+
+**What I got wrong implicitly.** I treated the diffing as the whole safety story, which quietly
+implies that where the two agreed, things were probably fine. The adjudication measured it:
+**where both generations AGREED they were still wrong ~35% of the time** (15 BOTH-WRONG rulings).
+Both models share the same misconceptions about this game, so consensus carries almost no
+information. "Two independent sources agree" is only evidence when the sources are actually
+independent — two runs of the same model family are not.
+
+**Second, sharper finding.** The two generations fail in DIFFERENT PLACES, so "3.1 is better" is
+too coarse to act on. 2.5-pro hallucinates *citations* (it invented both a map constant and a
+script label and tagged the claim VERIFIED). 3.1-pro's names are far better (phantom flag names
+35% → 11%, head-to-head 21–1) but it hallucinates in the **actionable** layer: all three of its
+"your bot must hardcode an interrupt here" constraints rested on permanence that does not exist —
+so acting on them would have meant building interrupts for items that cannot be missed.
+
+**Prevention rules.**
+1. Consensus between models of the same family is not corroboration. Only an EXTERNAL oracle
+   counts — the decomp, `modules/data`, `audit_flag_names.py`, or a live probe.
+2. Grade a model per SECTION, not per model. Gemini's symbol/flag/map NAMES are worth reading;
+   its architectural recommendations are not, and it is confident in both.
+3. When a research pass tells you to build a guard, ask what would happen if the guard were
+   absent. Three of these guards would have protected against nothing at all.
