@@ -276,3 +276,146 @@ Wattson still trains locally on Route 117, Roxanne on Route 116, Norman still sk
 base_exp_yield (50.2, tuned to reproduce the measured 28.7 at wild_level≈4) rather than
 reading a real per-area encounter table. Marked MODELLED, not measured; callers holding a real
 map should read the table directly.
+
+## 2026-07-25 — Ground decomp research in a LOCAL SPARSE CLONE, not per-file `gh api` fetches
+
+**Decision.** The default method for grounding a claim against the pokeemerald decomp is a local
+partial clone, not the GitHub contents API:
+```
+git clone --depth 1 --filter=blob:none --sparse https://github.com/pret/pokeemerald
+git -C pokeemerald sparse-checkout set src data include     # ~44 MB
+```
+
+**Why.** The immediate trigger was a GitHub **403 after ~8 `gh api search/code` calls** in
+validation round 3, but rate limiting is the least of it:
+1. **ABSENCE claims become checkable.** "There is no warp to Birth Island outside
+   `LilycoveCity_Harbor`" is provable by one whole-tree grep and *fundamentally unprovable* by
+   fetching files one at a time — you can only ever confirm what you thought to look at. This
+   project has been burned repeatedly by categorical absence claims, and this is the fix.
+   Round 3 used it to settle several claims that earlier rounds could only mark UNRESOLVED,
+   including that `src/pokeball.c` **does not exist** (ball logic lives in
+   `battle_script_commands.c`) and that Jirachi has zero scripts and zero encounter entries.
+2. **Whole-tree grep is free**, so lookups stop being rationed — which is what made earlier
+   rounds stop at "unresolved" instead of pushing to an answer.
+
+**Alternatives rejected.** *Keep `gh api repos/pret/pokeemerald/contents/<path>`* — still fine for
+one already-known path, but it cannot answer absence and it rate-limits mid-round; it is now
+marked SUPERSEDED in the handoff rather than removed. *A full clone* — unnecessary; `src data
+include` is ~44 MB and holds everything cited so far.
+
+## 2026-07-25 — `region_reach` is a NEW predicate, not a repair of `calculate_path`
+
+**Decision.** Region-scale reachability is answered by a new module,
+`modules/story/region_reach.py`, built on the ROM's own `MapConnections` + warps. `calculate_path`
+was left exactly as it is.
+
+**Why.** `calculate_path` is a tile-level A* and is *correct for what it does*; the bug was asking
+it a question it cannot answer. It reads the Route 118/119/120 dual-elevation bridges as WALLS —
+which is also why `_hold_walk_route()` and the hand-written `_leave_route120_north_bridge` exist —
+so it reported ROUTE118, the real answer to Winona, as unreachable from ROUTE120, and it failed
+even on a same-map Route 119 walk (y=5 to y=135, no map crossing at all). A reachability oracle
+must be sound for the SCALE it is asked about; "can I get to that map" is a connectivity question,
+and tile pathing is only correct for the final leg once we are already on the map.
+
+**Alternatives rejected.**
+1. *Fix `calculate_path` to understand dual-elevation bridges.* This is the tempting one. Rejected:
+   it is a change to the shipped navigator that every existing mode depends on, to fix a caller
+   that is asking the wrong question anyway — high blast radius, and it would still leave a tile
+   pathfinder answering a region question.
+2. *Widen `_training_area_allowed`'s tolerance (retry, relax, fall back).* Rejected: it papers over
+   a wrong oracle with heuristics, and the failure mode is INVISIBLE (a false "no" raises nothing —
+   the option is simply never proposed), so a heuristic would be untestable in practice.
+
+**Consequence accepted.** The new oracle fails OPEN where the old one failed CLOSED (its
+`KNOWN_GATES` table holds one hand-verified entry, so an underivable gate reads as passable). For a
+*planner* that is the safer direction — a wrong "yes" costs a wasted walk that navigation fails
+recoverably; a wrong "no" costs a whole run and says nothing. It must be grown before it gates
+anything irreversible.
+
+## 2026-07-25 — Hop count is a FILTER (`max_hops=4`), never a RANK
+
+**Decision.** `region_reach` prices every edge — connection OR warp — at exactly 1 hop, and callers
+use `max_hops=4` as a sanity bound only. Ranking stays with `counter_plan`'s own criteria (type
+coverage, then verified tile, then encounter rate, then level fit).
+
+**Why — measured, not assumed.** I expected "the answer is a handful of hops, the far cities are
+many". Measured from ROUTE120 on the Winona-era save:
+
+| target | hops |
+|---|---|
+| FORTREE_CITY | 1 |
+| ROUTE119 | 2 |
+| **LILYCOVE_CITY** | **2** |
+| **ROUTE118** (the real answer) | **3** |
+| MOSSDEEP_CITY | 4 |
+| PACIFIDLOG_TOWN | 10 |
+
+**Lilycove is CLOSER than Route 118 by this metric**, because a single ROM connection can span an
+entire sea route. So uniform weighting compresses the whole same-landmass cluster into 1-4 and only
+separates the genuinely far-flung. That is a perfectly good *filter* (`max_hops=4` cuts
+Pacifidlog-class targets while keeping Fortree/119/118) and a useless *rank*.
+
+**Alternatives rejected.** *Rank candidates by hops* — the measurement above kills it outright.
+*Weight edges by map traversal length, or price travel in FRAMES* (so it composes with
+`training_areas.estimate_frames_to_level`) — both are real, both are defensible, neither is needed
+until hop count demonstrably mis-ranks something. Deferred as `#24-edgecost` rather than built
+speculatively.
+
+**Meta-rule this produced.** When you introduce a cost metric, MEASURE it against known-good and
+known-bad cases before trusting it to rank. "Reachable" was a boolean that hid a cost; "hops" is a
+cost that hides map size.
+
+## 2026-07-25 — The Gemini Pro-3.1+ requirement is enforced in CODE, not by a doc rule
+
+**Decision.** `tools/story-dev/gemini_relay.py` **refuses** any model that is not Gemini Pro 3.1 or
+newer (`_is_pro_31_or_newer`, fail-closed on anything it cannot parse; Flash/Flash-Lite/Gemma
+rejected regardless of version number). The escape hatch is an explicit `--allow-weak-model` flag
+that names the consequence.
+
+**Why a code guard and not a standing directive.** Because a standing directive is exactly what
+failed. The relay's default was **already** `gemini-3.1-pro-preview`, and an agent still overrode
+it to `gemini-2.5-pro` on ~35 research calls — by copying a stale example out of the module's own
+docstring — and then spent a day concluding "Gemini is inaccurate" instead of checking its own
+invocation. The tainted output was not subtly wrong: a hallucinated item with invented coordinates
+AND an invented flag, HM07 placed in the wrong cave, a fabricated bike prerequisite. Calibration
+afterwards showed 3.1-pro answered correctly the exact claims 2.5-pro got wrong twice.
+
+**Alternatives rejected.** *Write the rule in `CLAUDE.md` / the playbook* — that is the thing that
+just failed; a rule that can be skim-read past is not a control. *Fix the docstring example only* —
+necessary but not sufficient; it removes one route to the mistake, not the mistake. *Remove the
+`--model` flag entirely* — rejected: cheap factual one-liners genuinely do not need Pro, and
+removing the choice would push people to edit the constant instead, which is worse.
+
+**Follow-on rule kept live** (it generalises and has NO structural guard): when a tool gives bad
+answers, check YOUR INVOCATION before concluding the tool is bad.
+
+## 2026-07-25 — "Endless reset runs" ships as an IN-PROCESS bot mode, reversing the shipped launcher
+
+**Decision.** `Story (ENDLESS RESET)` (`StoryEndlessResetMode`) is a real bot mode that loops
+`Story (DEBUG - RESET)`'s `run()` inside the running emulator. **This REVERSED an already-shipped
+implementation** — the first version was a GUI menu item that shelled out to
+`tools/story-dev/endless_runs.py` as a separate headless process.
+
+**Why the reversal.** The launcher version failed in the user's hands in the most literal way: the
+dialogs appeared and *nothing happened*. The requirement was never "run a batch somewhere" — it was
+"effectively chained debug reset bots", i.e. exactly what the user is already watching, repeated
+back to back in THIS emulator. A separate headless harness satisfies the words and not the request.
+
+**What the in-process form had to add** (a subprocess launcher gets these for free; a mode does
+not): a `BotModeError` in run 3 is SWALLOWED so runs 4..N still happen; a hard 3.5M-frame per-run
+cap (StoryMode's own watchdog cannot catch a wedged watchdog); the bot mode is re-asserted after
+every run, because a derail can call `set_manual_mode()` and would otherwise silently end the
+batch; and the batch's emulation speed + video are captured once and restored each run — the first
+cut restored `bot_mode` but not the speed, so run 1 ran unthrottled and every run after it crawled
+at 1x.
+
+**Alternatives rejected.** *Keep the subprocess launcher.* Rejected on the user's direct report,
+but note it was NOT deleted — `endless_runs.py` keeps the two failsafes an in-process mode
+structurally cannot have (a fresh profile per run, and wall-clock + log-growth timeouts that
+survive a wedged emulator process), so it remains the right tool for a scripted batch. *Make the
+menu item block until the subprocess finishes.* Rejected: it would freeze the GUI and still not be
+"this emulator".
+
+**Prevention rule.** When a feature request names something the user is already looking at
+("chained debug reset bots"), build it where they are looking. A functionally-equivalent thing
+somewhere else reads as broken.

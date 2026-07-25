@@ -3313,3 +3313,29 @@ to be:
 * **`## Now (active focus)` did not mention `#24`.** It now leads with it, states the current
   reach (Badge 6 = end of built content) and the four-item priority order, and marks the old
   `#V` verification sweep as parked behind it.
+
+## 2026-07-25 — Records that were never written (doc audit M1/M2)
+
+**M1 — five 2026-07-25 decisions appended to `06-DECISIONS-LOG.md`.** Each was recoverable from
+the changelog but had no decision entry, so the reasoning (and the rejected alternatives) would
+have been lost to the next agent:
+1. **Local sparse decomp clone as the default grounding method** (not per-file `gh api`) — the
+   reason is that ABSENCE claims are only checkable against a whole tree.
+2. **`region_reach` as a NEW predicate rather than repairing `calculate_path`** — rejected fixing
+   the shipped navigator (high blast radius for a caller asking the wrong question) and rejected
+   heuristic tolerance widening (papers over a wrong oracle, and the failure is invisible).
+3. **Hop count as a FILTER, not a rank, with `max_hops=4`** — with the measurement that forced it
+   (Lilycove reads CLOSER than Route 118 from ROUTE120).
+4. **Gemini Pro 3.1+ enforced in CODE rather than by doc rule** — because the doc rule is exactly
+   what failed: the default was already 3.1-pro and an agent still overrode it on ~35 calls by
+   copying a stale docstring example.
+5. **Endless-reset as an in-process bot mode rather than a subprocess launcher** — this one
+   REVERSED a shipped implementation, which makes it the most important of the five to record.
+
+**M2 — `custom-pokebot/DIVERGENCE-LOG.md` was missing two whole modules.**
+`modules/story/counter_plan.py` (185 lines) and `modules/story/region_reach.py` (496 lines) were
+copied into `custom-pokebot/` by commit `72b49fd6` and never logged — a real hole in the merge map
+the log exists to be. Added as BATCH-3c, with the KI-23/KI-24 motivation, the explicit note that
+`calculate_path` was deliberately NOT modified, and the upstream-collision assessment.
+Also added BATCH-3d, which records that `Story (ENDLESS RESET)` REVERSES BATCH-3b's launcher menu
+item (3b stands as written — the file is append-only).

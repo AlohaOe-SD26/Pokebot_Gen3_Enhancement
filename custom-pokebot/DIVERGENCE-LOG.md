@@ -538,3 +538,69 @@ in `tools/story-dev/endless-runs/LEDGER.md` (gitignored — run artefacts, not s
 Promoted to custom at the same time as sandbox because the user could not find the option and it
 is unclear which build they launch; the path arithmetic (`parents[3]` → repo root) was verified
 to resolve correctly from BOTH build directories.
+
+## BATCH-3c — the COUNTER CHAIN modules (2026-07-25) — *logged retroactively 2026-07-25*
+
+**‼ Logged late.** These two files landed in `custom-pokebot/` with commit `72b49fd6` and were
+never recorded here; a doc audit caught the gap. Both are **purely additive** — new files in
+`modules/story/`, which is our own package. No upstream file is touched by either.
+
+**Added** `modules/story/counter_plan.py` (185 lines)
+- Ranks catchable TYPE COUNTERS over the whole-game encounter index when a boss plan cannot
+  converge: type coverage, then a verified spin tile, then encounter rate, then level fit.
+- **Why:** KI-23. The user's overnight logs showed **198 Winona attempts, 41 losses, 41 whiteouts,
+  never a win**, with a party far ABOVE her levels — it was losing on TYPES, and levelling cannot
+  fix that. The bot needed to be able to answer "what should I go catch?", which nothing upstream
+  or ours could do.
+
+**Added** `modules/story/region_reach.py` (496 lines)
+- Region-scale reachability from the ROM's own `MapConnections` + warps (never a hand-written
+  table), with capability gates (`KNOWN_GATES`), hop distances, and a `why_unreachable()` that
+  keeps "no connection path" / "needs Surf at A-B" / "reachable but N hops away" as three
+  distinct answers. Fail-safe throughout: never raises into a caller.
+- **Why:** KI-24. Upstream's `modules/map_path.calculate_path` is a tile-level A* and reads the
+  Route 118/119/120 dual-elevation bridges as WALLS — the same limitation that forced our
+  `_hold_walk_route()` into existence — so it reported ROUTE118, the real answer to Winona, as
+  unreachable from ROUTE120, and failed even on a same-map Route 119 walk. **`calculate_path` was
+  deliberately NOT modified**: it is correct for what it does, every mode depends on it, and the
+  bug was asking it a question at the wrong scale. See `06-DECISIONS-LOG.md` (2026-07-25).
+
+**Also modified** `plugins/custom_modes/story_mode.py` — `_counter_area_allowed` (the `allow=`
+predicate that routes counter selection through `region_reach` at `max_hops=4`) and
+`_counter_catch_message`. `_training_area_allowed` still uses `calculate_path` and is a known
+open item (KI-24b, `#24-regionreach`).
+
+**Upstream-merge note:** nothing here collides. `modules/story/` does not exist upstream, and the
+only upstream module referenced (`map_path`, `map_data`, `map`) is read, never patched.
+
+## BATCH-3d — `Story (ENDLESS RESET)` replaces the launcher menu item (2026-07-25)
+
+**This REVERSES BATCH-3b above** (append-only file, so 3b stands as written — read it together
+with this entry).
+
+BATCH-3b shipped an "Endless Debug-Reset Runs…" menu item that spawned
+`tools/story-dev/endless_runs.py` in its own console window. It failed in the user's hands: the
+dialogs appeared and the bot they were watching sat idle, because the work was happening in a
+process they could not see. "Chained debug reset bots" meant *this emulator*.
+
+**Modified** `plugins/custom_modes/story_mode.py` (commit `52749958`, fixed by `aadad944`)
+- Adds `StoryEndlessResetMode` → mode name **`Story (ENDLESS RESET)`**, a subclass of
+  `StoryDebugResetMode` that simply loops the parent's `run()`. Every iteration is therefore the
+  exact hard-reset → forced NEW GAME → play cycle the user already trusts, back to back in-process.
+- In-process failsafes (a subprocess launcher got these for free): `BotModeError` is SWALLOWED per
+  run so a crash in run 3 never costs runs 4..N; a hard `MAX_FRAMES_PER_RUN = 3_500_000` cap
+  (StoryMode's own watchdog cannot catch a wedged watchdog); the bot mode is re-asserted after
+  every run because a derail can call `set_manual_mode()` and silently end the batch; and the
+  batch's `emulation_speed`/`video` are captured once and restored each run — `aadad944` fixed a
+  user-reported bug where only run 1 was unthrottled and every run after it crawled at 1x.
+
+**Modified** `modules/gui/dashboard_gui.py`
+- The "Endless Debug-Reset Runs…" item now sets `story_mode.ENDLESS_RESET_TARGET` (default 10,
+  `0` = forever) and selects the bot mode, instead of spawning a process.
+
+**`tools/story-dev/endless_runs.py` is NOT retired** — it keeps two failsafes an in-process mode
+structurally cannot have (a fresh profile per run, and wall-clock + log-growth timeouts that
+survive a wedged emulator process), so it remains the right tool for a scripted batch.
+
+**No upstream file is touched by either change.** `dashboard_gui.py` is already ours (see the GUI
+batches above); `story_mode.py` is ours.
