@@ -5772,6 +5772,13 @@ def do_fortree_gym() -> Generator:
         # tile hung the whole climb. Feed live object tiles in as `blocked` so
         # the planner routes around them; exclude the player's own object, or
         # every plan would fail immediately.
+        # ‼ `get_map_objects()` IS NOT A ROOM INVENTORY (decomp-verified 2026-07-25).
+        # `TrySpawnObjectEvents` only spawns objects inside a CAMERA WINDOW, so this set is
+        # systematically INCOMPLETE right after entering at (15,24) — distant trainers simply
+        # do not exist in `gObjectEvents` yet. That is survivable here ONLY because we re-plan
+        # every single tile, so an NPC is picked up as soon as it spawns into view. Never treat
+        # an empty/small object list as "the room is clear", and never precompute a whole route
+        # from one snapshot of it.
         blocked_tiles = frozenset(
             tuple(o.current_coords) for o in get_map_objects() if "isPlayer" not in o.flags
         )

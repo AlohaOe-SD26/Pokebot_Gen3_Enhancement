@@ -347,3 +347,44 @@ Center **213 steps**.
 `PokemonCenter.FallarborTown` because that was the only heal verifiable at the time. Re-pairing
 needs a heal-at-NPC helper (the existing path is `heal_in_pokemon_center(PokemonCenter.X)`, which
 assumes a Poké Center layout) — punch-list `#24-npcheal`.
+
+## KI-20 — TRAPS confirmed against the decomp (2026-07-25) — read before building these systems
+
+From `ai-research-notes/CLAUDE-VALIDATED-concepts-round2.md`. Each was verified by reading the
+decomp, not recalled.
+
+**‼ NEVER put an HM holder in the DAYCARE.** `ApplyDaycareExperience` calls
+`DeleteFirstMoveAndGiveMoveToMon` with **no HM check and no prompt** — **move slot 1 is deleted
+silently**. This is worse than the research note claimed (the note framed it as a normal
+move-learn prompt). Any future daycare/training feature must refuse a mon holding an HM in slot 1,
+and ideally refuse HM holders entirely. This is the single most destructive automated action found
+so far: it strands a run with no error and no dialogue.
+
+**`get_map_objects()` is not a room inventory.** `TrySpawnObjectEvents` only spawns objects inside
+a CAMERA WINDOW, so the list is systematically incomplete just after a warp. `do_fortree_gym`
+survives this only because it re-plans every tile; a comment now says so at the call site. Never
+precompute a route from one object snapshot, and never read an empty list as "clear".
+
+**Self-caught Pokémon NEVER disobey.** `IsMonDisobedient` (in `battle_util.c:3923`, *not*
+battle_main.c) returns obedient before any badge logic unless `IsOtherTrainer(...)`. So the
+"army" strategy needs **no** level cap; only in-game TRADES are capped (10/30/50/70).
+
+**Encounter-rate corrections** (any XP-per-frame table built on the old numbers is wrong):
+running shoes do **not** affect encounter rate at all — only the bike does (×0.8) — and the grass
+rate constant is **20**, not 21. `Sweet Scent` bypasses Repel *and* the rate roll entirely
+(flags=0) ⇒ a **guaranteed** encounter, which makes it the correct grinding primitive.
+
+**Verified-correct, no action:** the Fortree "leave and re-enter resets it" recovery is right on
+BOTH halves — gate orientations live on `VAR_TEMP_0..3` and are cleared twice over
+(`ClearTempFieldEventData` plus `RotatingGate_InitPuzzle`), and NPC positions are restored by
+`LoadObjEventTemplatesFromHeader` → `ResetObjectEvents`/`TrySpawnObjectEvents`. The user's reported
+NPC-reset mechanic is real. Returning from a BATTLE is not a map load, which is precisely why the
+parked-trainer case exists. Also verified: our `get_current_repel_level()` already reads the right
+thing (`VAR_REPEL_STEP_COUNT`, first non-fainted non-egg member).
+
+**Refuted:** the trainer AI does **not** switch on AI flags (no `AI_FLAG` references in
+`battle_ai_switch_items.c`); real triggers are Perish Song / Wonder Guard / ability-absorbers /
+Natural Cure, and it never switches while holding a super-effective move — so AI-baiting is less
+reliable than the notes implied. Whiteout money is plainly `money / 2`
+(`GetWhiteoutMoneyPenalty` does not exist). Shedinja does **not** need a spare Poké Ball, only a
+free party slot.

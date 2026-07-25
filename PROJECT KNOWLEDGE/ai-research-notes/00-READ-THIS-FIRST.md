@@ -293,3 +293,85 @@ the formula, and sleep + poison **stack** to ×3.0.
 `c03`–`c08`, `c10`. And parked UNRESOLVED with reasons: whether Kyogre/Rayquaza know
 Double-Edge/Outrage at Lv70 (**this decides whether a False-Swipe legendary hunt is safe at all**),
 the Bad-Egg-contagion claim, `gExperienceTables` values, Match Call rematch odds.
+
+---
+
+# STORY ROUND, TWO GENERATIONS (2026-07-25)
+
+Each `story-notes-sN.md` (Gemini **2.5-pro**) now has a `story-notes-sN-v2.md` — the SAME prompt
+re-run on Gemini **3.1-pro**. Where the two generations DISAGREE is a high-signal pointer to a claim
+worth grounding; **agreement between them is NOT evidence** (measured below: they agree and are both
+wrong ~35% of the time on this material).
+
+# ✅ CLAUDE-VALIDATED: story round 1 (2026-07-25)
+
+`CLAUDE-VALIDATED-story-round1.md` — **~65 claims ruled** across `s7` (HM acquisition & gating),
+`s8` (missable/irreversible events), `s9` (obstacle mechanics) and `s10` (main-plot flag/var
+reference), every ruling citing a decomp file fetched and read via `gh api`, cross-checked against
+our own `event_flags/emerald.txt` and `event_vars/emerald.txt`. Nine sections are marked NEW —
+absent from both generations and behaviour-changing.
+
+**Verdict on the two generations: 3.1-pro is clearly better and re-running the tainted rounds on it
+is worth the tokens** — s10 phantom flag names fell from **18/51 (35%)** to **4/38 (11%)**, and on
+head-to-head disagreements 3.1 won **21–1**. On the designated calibration question (HM07 Waterfall,
+already validated in round 1) 2.5-pro invented a map AND a script label and tagged it VERIFIED;
+3.1-pro got both exactly right.
+
+‼ **But 3.1-pro's failure mode is more dangerous.** 2.5-pro mostly hallucinates in *citations*;
+3.1-pro hallucinates in the *actionable* section — all three of its "your bot must hardcode an
+interrupt here" constraints (TM Earthquake, Magma Hideout, TM Thief) rest on permanence that does not
+exist. **Grade its NAMES highly and its ARCHITECTURAL ADVICE not at all**, and budget a Claude
+validation pass on top of every re-run: the cost curve improved, the requirement did not.
+
+**And the meta-rule that generalises:** where the two generations AGREE they are still wrong ~35% of
+the time here (15 BOTH-WRONG rulings). Disagreement is a good *search strategy* for finding
+fabrications fast; agreement is **not** a confidence signal.
+
+## The findings most likely to save a build phase
+
+* **Four of eight HMs are given by a MAP-ENTRY (`ON_FRAME_TABLE`) trigger, not by talking.** Surf
+  (`VAR_PETALBURG_CITY_STATE==4`), Strength (`VAR_RUSTURF_TUNNEL_STATE==4/5`, after Rock Smash),
+  Dive (`VAR_STEVENS_HOUSE_STATE==1`) — walk in, don't press A. Fly is a **coord trigger** at
+  Route 119 **(25,31)/(26,31)** that starts a `trainerbattle_no_intro` immediately.
+* ‼ **On three of the four mandatory `multichoice` menus a blind A-press picks the WRONG option, and
+  one of them LOOPS FOREVER.** `CaveOfOrigin_B1F_EventScript_WheresRayquaza` defaults to index 0 and
+  only **index 2 ("Sky Pillar")** advances the story — cases 0/1/3, the switch default AND B-press
+  all `goto` back to the same prompt, with no counter and no timeout. Mr. Briney's two boat menus
+  default to **decline** (Route 104, correct = 0) and **cancel** (Dewford, correct = 1 for Slateport).
+  All 49 `multichoice` sites were swept; the critical-path table with indices is §3i.
+* ‼ **Both generations invented permanence that does not exist — 2.5-pro five times, 3.1-pro three
+  times.** The Master Ball, TM Thief, TM Earthquake, every Magma Hideout item, the unchosen fossil
+  and the S.S. Tidal content are all **NOT missable**. What genuinely vanishes: Aqua Hideout *grunts*
+  at Badge 7, Magma Hideout *grunts* at the Groudon cutscene, and each *Trick House puzzle* the
+  moment you clear it. Genuinely irreversible one-shots: the fossil pick, **Latias vs Latios**
+  (`VAR_ROAMER_POKEMON`, 0=Latias), the Johto starter, and **Scanner → Deep Sea Tooth *or* Scale**.
+* Gift **Pokémon** fall through to the PC when the party is full (`MON_GIVEN_TO_PC`); gift **eggs**
+  hard-require a free party slot. And `JaggedPass_OnResume` `checkitem ITEM_MAGMA_EMBLEM` on **every**
+  visit — sell the emblem and the Magma Hideout can never open.
+* ‼ **`FLAG_DEFEATED_MAGMA_SPACE_CENTER` is NOT monotonic** — the rival's Rayquaza PokéNav call
+  `clearflag`s it. §3f of the validated file is an **exhaustive census of every non-monotonic
+  `FLAG_DEFEATED_*`/`FLAG_RECEIVED_*` in the game** (the E4 member flags are wiped at the Hall of
+  Fame; the event legendaries are re-enabled there). **New prevention rule: passing
+  `audit_flag_names.py` proves a name is readable, NOT that it is monotonic — grep for a
+  `clearflag` of the exact name before gating a segment on it.**
+* **HM07 Waterfall requires talking to BOTH Maxie AND Archie** in Sootopolis at
+  `VAR_SOOTOPOLIS_CITY_STATE == 5` to set `FLAG_SOOTOPOLIS_ARCHIE_MAXIE_LEAVE` — which also unlocks
+  the Gym door and every house door. Neither note mentions it; miss one NPC and the run is dead.
+* **The mandatory Sky Pillar climb has NO cracked floors and needs NO Mach Bike** — it runs on
+  `LAYOUT_SKY_PILLAR_*_CLEAN` while `VAR_SKY_PILLAR_STATE < 2`. Cracked floors exist only on the
+  optional post-crisis return trip, and only on **2F and 4F** (Mirage Tower: **2F and 3F**).
+* **Cut, Fly and Flash are never hard blocks.** `requires_flash` only drives a scanline effect;
+  there are zero cuttable trees on any critical-path map. v1's "Cut trees block the Aqua Hideout" is
+  a fabrication — the entrance is a **Surf** warp at (70,5) elevation 1.
+* **`src/field_move.c` does not exist**, and 10 C function names cited across the two notes have
+  **zero** hits in the repo (`CheckUseCut`, `TryCutTree`, `PushObject`, `CheckForForcedMovement`, …).
+  The real badge gate is `src/party_menu.c:3725`, `FlagGet(FLAG_BADGE01_GET + fieldMove)`.
+* **`VAR_SOOTOPOLIS_CITY_STATE` has SEVEN states (0-6)**, not the five both notes published — the
+  complete machine with every setter is in §3f of the validated file. State 5 (Rayquaza awakened,
+  set at `SkyPillar_Top/scripts.inc:126`) is the only window in which Maxie and Archie can be
+  talked to; state 6 comes from **beating Juan**.
+* **Exact tile-level mechanics** for the Sootopolis ice puzzle (thresholds **8/28/67** on
+  `VAR_ICE_STEP_COUNT`; 0 = you fell; visited bits in `VAR_TEMP_1..VAR_TEMP_A`), currents
+  (`MB_EASTWARD_CURRENT` &c. — **not** `MB_CURRENT_*`; **no whirlpools exist in Emerald**), and a
+  full boulder/rock/tree census with coordinates for Victory Road, Seafloor Cavern, Magma Hideout,
+  Granite Cave and the mainland routes.
