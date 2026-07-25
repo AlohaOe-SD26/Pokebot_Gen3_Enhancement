@@ -375,3 +375,37 @@ fabrications fast; agreement is **not** a confidence signal.
   (`MB_EASTWARD_CURRENT` &c. — **not** `MB_CURRENT_*`; **no whirlpools exist in Emerald**), and a
   full boulder/rock/tree census with coordinates for Victory Road, Seafloor Cavern, Magma Hideout,
   Granite Cave and the mainland routes.
+
+---
+
+# ✅ CLAUDE-VALIDATED index (keep this current)
+
+| file | scope | headline |
+|---|---|---|
+| `CLAUDE-VALIDATED-items-round1.md` | 9 contested item claims | the critique pass was ALSO wrong in places |
+| `CLAUDE-VALIDATED-concepts-round1.md` | c01, c09, c11, c12 (+c02 spot) | mid-battle EXP survives a whiteout ⇒ boss-training is valid |
+| `CLAUDE-VALIDATED-story-round1.md` | s7, s8, s9, s10 (~65 claims) | flags are not all monotonic; a mandatory menu loops forever |
+| `CLAUDE-VALIDATED-concepts-round2.md` | c03, c07, c10 (+c04, c06) | Fortree re-entry recovery VERIFIED correct; daycare silently eats HMs |
+| `CLAUDE-VALIDATED-concepts-round3.md` | c05, c08 (+c02, c06) (~50 claims) | the impossible-without-event-data list; whiteout wipes E4 flags |
+
+# ‼ BEST GROUNDING METHOD FOUND (adopt this by default)
+
+Round 3 hit a GitHub 403 after ~8 `gh api search/code` calls, and switched to a **local partial
+clone of the decomp**:
+
+```
+git clone --depth 1 --filter=blob:none --sparse https://github.com/pret/pokeemerald
+git -C pokeemerald sparse-checkout set src data include     # ~44 MB
+```
+
+Why this is strictly better than per-file `gh api` fetches:
+* whole-tree `grep` becomes free, so you stop rationing lookups;
+* **ABSENCE claims become checkable** — "there is no warp to Birth Island outside
+  `LilycoveCity_Harbor`" is provable by grep and unprovable by fetching files one at a time. This
+  project has been burned repeatedly by categorical absence claims, and this is the fix;
+* no rate limit.
+
+Round 3 used it to prove several claims false that earlier rounds could only mark UNRESOLVED —
+including that `src/pokeball.c` **does not exist** (ball logic lives in
+`battle_script_commands.c`) and that `Jirachi` has zero scripts and zero encounter entries in
+Emerald.

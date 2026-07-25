@@ -431,3 +431,48 @@ Groudon cutscene**, and **each Trick House puzzle the moment it is cleared**.
 
 **6. `src/field_move.c` does not exist** and ten cited C functions have zero hits. The real HM gate
 is `party_menu.c:3725`. Treat any note's file path as a claim, not a location.
+
+## KI-22 — Round-3 findings, incl. one that AMENDS an earlier "safe" rule (2026-07-25)
+
+From `ai-research-notes/CLAUDE-VALIDATED-concepts-round3.md` (~50 claims, decomp-cited).
+
+**‼ 1. AMENDS KI-20/round-1: "whiteout is the safe abort" is FALSE during the Elite Four.**
+`DoWhiteOut` runs `EventScript_WhiteOut`, which is **not** a no-op: it clears **all four**
+`FLAG_DEFEATED_ELITE_4_*` and resets `VAR_ELITE_4_STATE`. So a whiteout mid-gauntlet silently
+un-does progress. Whiteout remains the safe abort for scripted legendary statics; it is NOT safe
+during the E4. This compounds KI-21's non-monotonic-flag warning — the E4 flags are the clearest
+example, and any Ch16 gating must not assume they stick.
+
+**‼ 2. Timer Ball has a u8 overflow.** `u8 ballMultiplier = battleTurnCounter + 10` wraps at turn
+246 to **0**, which bypasses the `> 40` clamp and feeds `odds = 0` into `16711680 / odds`. Never
+throw a Timer Ball past ~turn 240 — relevant to any long legendary-catch loop, which is exactly
+where a bot would rack up turns.
+
+**3. Healing is a TABLE, not an inference** — `sHealLocations` has 22 entries, and `setrespawn`
+lives in each Poké Center's **ON_TRANSITION**, so merely ENTERING the building moves the respawn
+point. There are exactly **five** `Common_EventScript_OutOfCenterPartyHeal` sites, one of which is
+**Route 111 Old Lady's Rest Stop** — now decomp-cited, vindicating the user against the first
+Gemini round. This is what `#24-npcheal` should be built from.
+
+**4. Dive needs TWO mechanisms.** Round 2 advised settling dive routes from `CONNECTION_DIVE`;
+connections give 7 routes (not 4), but **`setdivewarp` is a separate script-level mechanism with
+16 sites**, including Route 134 → the Sealed Chamber. A connection-only navigator would declare
+the Sealed Chamber unreachable — i.e. round 2's own suggested method was incomplete.
+
+**5. The impossible-without-event-data list (do NOT build hunts for these):** Mew, Deoxys, Lugia,
+Ho-Oh, the Southern-Island Latias/Latios and the Soul Dew are unreachable, and **Jirachi does not
+exist in Emerald at all** (zero scripts, zero encounter entries). All four event islands are closed
+clusters (`connections: null`) with **no warp to them anywhere outside `LilycoveCity_Harbor`**. The
+ticket-granting scripts ARE in the ROM but have **zero callers**, and
+`ShouldDistributeEonTicket()` is commented `// Always returns FALSE`.
+
+**6. An INJECTED Mew/Deoxys would disobey forever** at any level with all badges — the badge-8 and
+own-OT escape hatches sit *inside* the block that gets skipped for non-fateful mons. Scripted
+island legendaries use `seteventmon`, so they are fateful and obedient. (`IsMonDisobedient`,
+`battle_util.c:3913`; `CalculatePlayerMonObedience` does not exist.)
+
+**7. Mart inventories in the notes were the weakest data in either round** — six rows wrong
+(Potion is not sold at every Mart; Hyper Potion/Revive not in Fallarbor; Full Heal not in
+Mauville/Lavaridge; **Moomoo Milk is not purchasable anywhere**). All 19 prices were right. The
+break-even for "walk to a free heal vs carry potions" is **¥14.0/HP before Fortree and ¥6.0/HP
+after** — a flat ¥/HP model is off by 2.3×.
