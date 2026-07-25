@@ -1489,3 +1489,25 @@ the project, and there is no structural guard for it anywhere. It stays.
   expectation could ever have been satisfied by CORRECT behaviour. If not, the test was
   characterising the defect and should be re-shaped — but re-shape it in its own commit, and prove
   the re-shaped test green against the UNCHANGED code where that is possible.
+
+## 2026-07-25 — I fixed a Unicode-console crash in one tool and reintroduced it in the next
+
+**Symptom.** `compare_runs.py` died mid-report with `UnicodeEncodeError` while analysing the
+user's logs — an em dash in `"Lavaridge maze — riding the geyser"`. The report was lost.
+
+**Root cause.** Hours earlier I fixed *the identical bug* in `gemini_relay.py`, where a bare
+`print()` of an answer containing `→`/`↓` crashed on the cp1252 Windows console and destroyed two
+complete, already-paid-for API responses. I fixed that INSTANCE and never generalised it, then
+wrote a brand-new analysis tool with the same bare `print()` of log-derived text — text which is
+*guaranteed* to contain the em dashes the bot itself writes into `context.message`.
+
+**Fix.** A shared `_safe_print()` that falls back to a UTF-8 byte write. Applied to every print
+in the report path.
+
+**Why it matters more than it looks.** Both crashes destroyed OUTPUT, not input: an API response
+already paid for, and an analysis of logs the user had waited on. A tool that loses its result to
+the terminal it is printing to fails at the only thing it exists to do.
+
+**Prevention rule:** when a bug is caused by the ENVIRONMENT (console encoding, path separators,
+line endings, locale), fix the CLASS not the instance — every sibling tool has the same
+environment. Ask "what else prints/writes text here?" before closing it out.

@@ -64,6 +64,25 @@ MILESTONES = [
 ]
 
 
+
+def _safe_print(text: str = "") -> None:
+    """Print that survives a cp1252 console.
+
+    ‼ The Windows console is cp1252 and run logs are full of em dashes and arrows from
+    `context.message`. A bare print() raises UnicodeEncodeError mid-report and takes the
+    whole comparison down — which is exactly how gemini_relay.py destroyed two paid-for API
+    responses before it was fixed the same way. An analysis tool must never lose its output
+    to the terminal it is printing to.
+    """
+    try:
+        print(text)
+    except UnicodeEncodeError:
+        import sys as _s
+
+        _s.stdout.buffer.write(text.encode("utf-8", errors="replace"))
+        _s.stdout.buffer.write(b"\n")
+
+
 def summarise(path: pathlib.Path, label: str) -> dict:
     text = path.read_text(encoding="utf-8", errors="replace")
     lines = text.splitlines()
@@ -195,20 +214,20 @@ def main() -> None:
 
     rows = [summarise(p, lab) for lab, ps in groups for p in ps]
 
-    print("=" * 118)
-    print(f"{'label':6} {'log':26} {'frames':>10}  {'depth':12} {'failure':16} where / location")
-    print("=" * 118)
+    _safe_print("=" * 118)
+    _safe_print(f"{'label':6} {'log':26} {'frames':>10}  {'depth':12} {'failure':16} where / location")
+    _safe_print("=" * 118)
     for r in sorted(rows, key=lambda r: -r["frames"]):
-        print(f"{r['label']:6} {r['file'][:26]:26} {r['frames']:>10,}  {r['depth']:12} "
+        _safe_print(f"{r['label']:6} {r['file'][:26]:26} {r['frames']:>10,}  {r['depth']:12} "
               f"{r['fail']:16} {r['where']}")
-        print(f"{'':6} {'':26} {'':>10}  loc={r['loc']}  scripts={r['scripts'][:56]}")
+        _safe_print(f"{'':6} {'':26} {'':>10}  loc={r['loc']}  scripts={r['scripts'][:56]}")
         if r["msg"]:
-            print(f"{'':6} {'':26} {'':>10}  msg={r['msg'][:88]}")
+            _safe_print(f"{'':6} {'':26} {'':>10}  msg={r['msg'][:88]}")
 
     # --- the point of the tool: cluster by signature -------------------------------------
-    print("\n" + "=" * 118)
-    print("CLUSTERS — a group of >= 2 spanning different labels/starters is the strongest signal")
-    print("=" * 118)
+    _safe_print("\n" + "=" * 118)
+    _safe_print("CLUSTERS — a group of >= 2 spanning different labels/starters is the strongest signal")
+    _safe_print("=" * 118)
     for keyname, keyfn in (
         ("failure kind", lambda r: r["fail"]),
         ("dying function", lambda r: r["where"]),
@@ -219,23 +238,23 @@ def main() -> None:
         for r in rows:
             buckets[keyfn(r)].append(r)
         multi = {k: v for k, v in buckets.items() if len(v) >= 2 and k not in ("?", "clean/unknown")}
-        print(f"\nby {keyname}:")
+        _safe_print(f"\nby {keyname}:")
         if not multi:
-            print("   (no cluster — every run differs on this axis)")
+            _safe_print("   (no cluster — every run differs on this axis)")
         for k, v in sorted(multi.items(), key=lambda kv: -len(kv[1])):
             labels = sorted({r["label"] for r in v})
             cross = "  <<< SPANS LABELS" if len(labels) > 1 else ""
-            print(f"   {len(v)}x  {k}{cross}")
+            _safe_print(f"   {len(v)}x  {k}{cross}")
             for r in v:
-                print(f"        {r['label']}/{r['file'][:30]}  {r['frames']:,}f")
+                _safe_print(f"        {r['label']}/{r['file'][:30]}  {r['frames']:,}f")
 
     missing = [r["file"] for r in rows if not r["has_scripts_field"]]
     if missing:
-        print(f"\nNOTE: {len(missing)} log(s) carry NO `scripts=` field, so a parked-field-script "
+        _safe_print(f"\nNOTE: {len(missing)} log(s) carry NO `scripts=` field, so a parked-field-script "
               f"cause cannot be seen in them: {', '.join(m[:24] for m in missing[:4])}")
-        print("      The in-game debug logger records it; the harness only does since 2026-07-24.")
+        _safe_print("      The in-game debug logger records it; the harness only does since 2026-07-24.")
 
-    print(f"\nattrition: " + ", ".join(
+    _safe_print(f"\nattrition: " + ", ".join(
         f"{r['label']}/{r['file'][:18]} wo={r['whiteouts']} derails={r['derails']}" for r in rows))
 
 
