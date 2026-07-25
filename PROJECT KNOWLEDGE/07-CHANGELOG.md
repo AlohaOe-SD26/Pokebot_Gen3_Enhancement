@@ -3204,3 +3204,44 @@ both new functions present).
 
 **NOT built: execution.** The bot now NAMES the target; travelling, catching and training it is
 the next task and needs a live run to validate, not a repro.
+
+## 2026-07-25 — KI-24's scope corrected in the docs; the training-gate switch is BLOCKED (#24-regionreach)
+
+**Doc audit finding C1 — the docs overstated the fix.** `05-KNOWN-ISSUES.md` KI-24b said flatly
+"KI-24 is fixed", and `04-HANDOFF.md` told the next agent to "use `region_reach`" as if the whole
+codebase already did. It does not. `region_reach` is wired into exactly ONE caller,
+`_counter_area_allowed`. The training gate `_training_area_allowed` (`story_mode.py:467`, passed
+as `allow=` to `best_training_area` at `:1235`) still uses tile-level `calculate_path` and still
+carries every KI-24 false negative. Both files now state the scope explicitly.
+
+**The user asked for the training gate to be switched too. It was implemented, tested, and
+REVERTED — because the acceptance test says no and the test must not be silently adjusted.**
+With the region test replaced by `region_reach.is_map_reachable(map_enum, max_hops=4)`,
+`tools/story-dev/repro_fodder_grass.py` fails its 5th decision-table case:
+
+```
+  L31 team in Fallarbor    -> RELOCATE to ROUTE111 L19-22
+  AssertionError: L31 team in Fallarbor: expected 'SKIP GRIND', got 'RELOCATE to ROUTE111 L19-22'
+```
+
+**‼ The new answer is the CORRECT one; the old expectation is a mock leak.** Measured on
+`norman_done.ss1`:
+
+* `repro_fodder_grass._stand_at()` patches only `modules.map.get_map_data_for_current_position`.
+  It does **not** patch `modules.player.get_player_location` — which is exactly what the old
+  `calculate_path` branch reads.
+* So case 5 never evaluated "standing in Fallarbor". It evaluated the save's REAL position,
+  `(PETALBURG_CITY, (7,6))`, and `calculate_path((PETALBURG_CITY,(7,6)) → ROUTE111(25,55))` raises
+  `PathFindingError`. That is where `SKIP GRIND` came from — not from any judgement about Fallarbor.
+* Asked honestly, BOTH oracles agree Route 111 is reachable from Fallarbor:
+  `calculate_path(FALLARBOR_TOWN(14,8) → ROUTE111(25,55))` succeeds, and `region_reach` measures it
+  at 2 hops. `training_areas.py`'s own comment on that entry already says "reachable from Fallarbor".
+
+**Left for the user to rule on** (KI-24b carries the detail): fix `_stand_at()` to patch
+`get_player_location` too — the honest repair, since case 5's stated intent is "what would we
+decide while standing in Fallarbor" — or re-baseline case 5's expectation. Until one is chosen and
+proved green, the training gate stays on `calculate_path` and KI-24 stays open for it.
+
+**Nothing shipped in code.** `sandbox-pokebot/plugins/custom_modes/story_mode.py` and its
+`custom-pokebot/` twin are byte-identical to their previous state; the acceptance test is green as
+it was (baseline re-run before and after: all 5 cases pass on the unmodified tree).

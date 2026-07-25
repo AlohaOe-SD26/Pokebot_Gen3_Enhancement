@@ -1298,3 +1298,33 @@ so acting on them would have meant building interrupts for items that cannot be 
    its architectural recommendations are not, and it is confident in both.
 3. When a research pass tells you to build a guard, ask what would happen if the guard were
    absent. Three of these guards would have protected against nothing at all.
+
+## 2026-07-25 — A repro's "verdict" was a mock leak: `_stand_at()` patched only half the position
+
+**Symptom.** `tools/story-dev/repro_fodder_grass.py` case 5 asserts that a L31 team standing in
+FALLARBOR_TOWN produces `SKIP GRIND`. That looked like a deliberate statement about Fallarbor. It
+was not — it was a partially-applied mock, and it blocked a correct change.
+
+**Root cause.** The helper `_stand_at(town)` patches `modules.map.get_map_data_for_current_position`
+and nothing else. But the code under test, `_training_area_allowed`, takes a second reading of
+"where am I" from `modules.player.get_player_location()` before calling `calculate_path`. That call
+is unpatched, so it returned the save's real position — `(PETALBURG_CITY, (7,6))` on
+`norman_done.ss1` — and `calculate_path(PETALBURG_CITY(7,6) → ROUTE111(25,55))` raises
+`PathFindingError`. The test recorded that refusal as if it were the Fallarbor answer.
+
+**Proof it was a leak, not a judgement.** `calculate_path(FALLARBOR_TOWN(14,8) → ROUTE111(25,55))`
+SUCCEEDS, and `region_reach` puts Route 111 two hops from Fallarbor. `training_areas.py`'s own
+comment on that entry says "reachable from Fallarbor, NOT from Mauville/Rustboro/Petalburg". Every
+independent source says reachable; only the half-mocked test said otherwise.
+
+**Cost.** It silently vetoed the `#24-regionreach` training-gate switch — the change looked like a
+regression when it was the fix. Nothing was shipped; the attempt was reverted pending a user ruling
+(KI-24b).
+
+**Fix that works (not yet applied — needs the user's call, since re-baselining an acceptance test
+is not a thing to do unilaterally):** have `_stand_at()` patch `get_player_location` too, so the
+mocked position is total.
+
+**Prevention rule.** When you mock "where the player is", patch EVERY reader of that fact — grep
+the function under test for all position sources before trusting its verdict. A half-mocked
+precondition does not fail loudly; it silently answers a different question and calls it a pass.

@@ -614,7 +614,7 @@ Four pieces, each independently PROVEN, being connected in this order:
 | detect non-convergence | `story_mode._boss_plan_is_hopeless` | done; Winona now goes through `_prepare_for_fight` (she never did before — the guard could not fire on the one boss that motivated it) |
 | identify needed types | same | done; computed from the real type chart, not a table |
 | find catch candidates | `modules/story/counter_plan.py` | done; over the whole-game encounter index |
-| region reachability | `modules/story/region_reach.py` | done; **KI-24 fixed** |
+| region reachability | `modules/story/region_reach.py` | done; **KI-24 fixed for COUNTER selection only** — the training gate is still on `calculate_path`, see KI-24b |
 | wire them together | — | IN PROGRESS at session end |
 | execute (travel/catch/train) | — | NOT STARTED |
 
@@ -622,7 +622,11 @@ Four pieces, each independently PROVEN, being connected in this order:
 1. **`calculate_path` is unsound at REGION scale** (KI-24). It reads the Route 118/119/120
    dual-elevation bridges as walls, so it reported Route 118 — the real Winona answer — as
    unreachable, and it fails even on a same-map Route 119 walk. Use `region_reach`, not
-   `_training_area_allowed`, for "can I get to that map".
+   `_training_area_allowed`, for "can I get to that map". **‼ `_training_area_allowed`
+   (`story_mode.py:467`, passed as `allow=` at `:1235`) has NOT been converted** — it still calls
+   `calculate_path`, so KI-24 is live for training-area selection. Switching it was attempted
+   2026-07-25 and is blocked on a mock leak in `repro_fodder_grass._stand_at()` (it patches
+   `get_map_data_for_current_position` but not `get_player_location`); read KI-24b before retrying.
 2. **Hop count is a FILTER, not a RANK** (KI-24b). Measured from ROUTE120: Fortree 1, Route119 2,
    **Lilycove 2**, Route118 3, Mossdeep 4, Pacifidlog 10 — Lilycove is *closer* than the answer,
    because one connection can span a whole sea route. Use `max_hops=4` as a sanity bound and let

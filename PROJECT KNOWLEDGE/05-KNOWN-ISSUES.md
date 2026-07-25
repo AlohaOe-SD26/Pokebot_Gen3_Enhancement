@@ -562,8 +562,40 @@ tile pathfinder to answer a cross-region question inherits every one of its blin
 `modules/story/region_reach.py` now answers reachability from the ROM's own `MapConnections` +
 warps (never a hand-written table), with capability gates and — the point of the module —
 `why_unreachable()` reasons that distinguish **"no connection path"** from **"needs Surf at
-A↔B"** from **"reachable but N hops away (limit M)"**. KI-24 is fixed: ROUTE118 is reachable
-from ROUTE120 at the Winona moment, where tile-level `calculate_path` said it was not.
+A↔B"** from **"reachable but N hops away (limit M)"**. The oracle itself is proven: ROUTE118 is
+reachable from ROUTE120 at the Winona moment, where tile-level `calculate_path` said it was not.
+
+**‼ SCOPE — KI-24 is fixed for COUNTER-CANDIDATE selection only; it is STILL OPEN for
+TRAINING-AREA selection.** `region_reach` is wired into exactly one caller: `_counter_area_allowed`
+(`story_mode.py`), used by `counter_plan.find_counter_candidates`. The training gate
+`_training_area_allowed` (`story_mode.py:467`, passed as `allow=` to `best_training_area` at
+`:1235`) **still uses tile-level `calculate_path`** and therefore still carries every false
+negative described in KI-24 above — including on Routes 115/118/119/121, the best mid-game bands.
+Any doc or handoff line reading "KI-24 is fixed" without that qualifier is wrong.
+
+**Switching the training gate too was attempted on 2026-07-25 and is BLOCKED on a test artefact,
+not on the code.** Replacing the region test with
+`region_reach.is_map_reachable(map_enum, max_hops=4)` makes
+`tools/story-dev/repro_fodder_grass.py` fail its 5th decision-table case
+(`L31 team in Fallarbor`: expected `SKIP GRIND`, got `RELOCATE to ROUTE111 L19-22`). Measured on
+`norman_done.ss1`, the new answer is the CORRECT one and the old expectation is a mock leak:
+
+* `repro_fodder_grass._stand_at()` patches only `modules.map.get_map_data_for_current_position`;
+  it does **not** patch `modules.player.get_player_location`, which is what the old
+  `calculate_path` branch actually reads.
+* So the old code never evaluated "standing in Fallarbor" at all — it evaluated the save's REAL
+  position, `(PETALBURG_CITY, (7,6))`, and `calculate_path((PETALBURG_CITY,(7,6)) → ROUTE111(25,55))`
+  raises `PathFindingError`. That, not a judgement about Fallarbor, is where `SKIP GRIND` came from.
+* Asked honestly, both oracles agree Route 111 IS reachable from Fallarbor:
+  `calculate_path(FALLARBOR_TOWN(14,8) → ROUTE111(25,55))` succeeds, and `region_reach` measures it
+  at **2 hops**. `training_areas.py`'s own comment on that entry already says "reachable from
+  Fallarbor".
+
+**Decision needed before this can land** (the test must not be silently adjusted): either fix
+`_stand_at()` to patch `get_player_location` as well — the honest repair, since case 5's intent is
+"what would we decide while standing in Fallarbor" — or re-baseline case 5's expectation to
+`RELOCATE to ROUTE111`. Until one is chosen and the test re-proved green, the training gate stays
+on `calculate_path`.
 
 **‼ But the cost model I assumed is wrong, and the measurement says so.** Measured hops from
 ROUTE120 on the Winona-era save:
