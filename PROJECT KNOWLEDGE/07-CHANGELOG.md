@@ -3245,3 +3245,17 @@ proved green, the training gate stays on `calculate_path` and KI-24 stays open f
 **Nothing shipped in code.** `sandbox-pokebot/plugins/custom_modes/story_mode.py` and its
 `custom-pokebot/` twin are byte-identical to their previous state; the acceptance test is green as
 it was (baseline re-run before and after: all 5 cases pass on the unmodified tree).
+
+## 2026-07-25 — Story Mode's user-facing doc rewritten to match reality (doc audit S11)
+
+`custom-pokebot/DOCUMENTATION/01-custom-automations.md` was the most wrong user-facing document
+in the repo: it said Story Mode "stops with the player controllable inside the moving truck" and
+that "Chapters 1–24 … are still being built". That has been false for many chapters. A cold start
+now reaches **Badge 6 (Winona) = end of built content — 38 maps, ~2.48M frames, 0 derails**.
+
+Section rewritten with: the real coverage (chapter-by-chapter, through Gym 6), the real next
+unbuilt content (Mt. Pyre, then the Magma hideout), how to actually run it (ROM → `story.yml` →
+pick `Story`; from the overworld it resumes flag-gated rather than replaying), and a table of the
+three sibling modes — `Story (DEBUG)`, `Story (DEBUG - RESET)` and **`Story (ENDLESS RESET)`**,
+the in-process overnight batch runner (10 runs by default, set from the GUI's "Endless
+Debug-Reset Runs…" item, 0 = forever) with its unattended-safety behaviour spelled out.

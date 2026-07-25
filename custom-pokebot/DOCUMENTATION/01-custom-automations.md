@@ -73,25 +73,63 @@ upstream pattern (`tests/utility.py`) once ROMs are available on a machine.
 
 ## Story Mode (#24) — story auto-player
 
-**Mode name:** `Story`. Plays Emerald's story from a fresh save, or reports
-progress on an existing one. Built in verifiable chunks; current status:
+**Mode name:** `Story`. Plays Emerald's story unattended from a brand-new game,
+or resumes an existing save from wherever it actually is.
 
-- **Chapter 0 — New Game intro (working):** from a fresh, save-less boot,
-  select `Story` at the title/main menu. It drives: title screen → New Game →
-  Professor Birch's welcome speech → gender selection → name entry → and stops
-  with the player controllable **inside the moving truck** (the clean end of
-  the intro). It then hands back to manual.
-- **Progress detection (working):** if you launch `Story` while a save is
-  already loaded in the overworld, it reads your flags/badges/items and reports
-  which of the 30 story chapters you're on (e.g. "ch5 — Devon errand, 1 badge")
-  instead of starting a new game.
+### How far it gets
 
-**Your character name & gender** come from `story.yml` in the profile folder
-(auto-created with `character_name: NICK`, `gender: boy`). Edit it before
-starting a new game (name ≤ 7 letters; gender `boy` or `girl`).
+**A cold start from the title screen reaches Badge 6 — Winona's Feather Badge —
+which is the end of built content.** The reference run covered **38 maps in
+~2.48M frames with 0 derails**. On earning BADGE06 the mode prints
+"end of built content", hands back to manual, and stops.
 
-**Notes / limits:**
-- The intro assumes a save-less boot (it selects "New Game"). Continuing an
-  existing save straight from the title screen is not wired yet.
-- Chapters 1–24 (stepping off the truck onward) are still being built.
-- Design & rationale: `PROJECT KNOWLEDGE/12-STORYMODE-DESIGN.md`.
+Built and played end to end: the intro (New Game → Birch → name/gender → out of
+the truck), the starter, Petalburg & Wally, Petalburg Woods & Cut, **Gym 1
+Roxanne**, the Devon errand & Peeko, Mr. Briney's boat, Granite Cave & Steven's
+letter, **Gym 2 Brawly**, Slateport & the Oceanic Museum, Mauville & the Bike,
+**Gym 3 Wattson**, the Route 111 desert & Mt. Chimney, **Gym 4 Flannery**,
+**Gym 5 Norman**, Surf, Routes 118/119 & the Weather Institute, Fly, the Devon
+Scope & the Fortree Kecleon, the Fortree rotating-gate puzzle (solved live), and
+**Gym 6 Winona**.
+
+**Next unbuilt:** Mt. Pyre, then the Magma hideout (Route 121 → Mt. Pyre exterior
+→ Magma Emblem → Jagged Pass → Maxie). Everything after that — Aqua hideout,
+Mossdeep, Sootopolis, Victory Road, the Elite Four — is not built.
+
+### How to run it
+
+1. Put an Emerald ROM in `roms/` and start the bot (`python pokebot.py`, or the
+   installer's launcher).
+2. Edit `story.yml` in the profile folder **before** starting a new game — it is
+   auto-created with `character_name: NICK`, `gender: boy` (name ≤ 7 letters;
+   gender `boy` or `girl`).
+3. Pick `Story` from the mode dropdown. From the title screen it starts a new
+   game; from the overworld it reads your flags/badges/items, prints which
+   chapter you are on, and picks up from there — every segment is flag-gated, so
+   resuming mid-game skips what is already done rather than replaying it.
+
+### The other three Story modes
+
+| mode | what it adds |
+|---|---|
+| `Story (DEBUG)` | exactly `Story`, plus the opt-in debug log (path is printed on start). |
+| `Story (DEBUG - RESET)` | debug log, then a **hard emulator reset to the title screen** and an explicitly-selected **NEW GAME** — needed because a plain A-mash would pick CONTINUE whenever a save exists. One click for fresh-run testing. Your save file is not erased. |
+| `Story (ENDLESS RESET)` | **chained `Story (DEBUG - RESET)` runs, in-process** — reset → new game → play → reset → … back to back in the same emulator. This is the overnight batch runner. |
+
+`Story (ENDLESS RESET)` defaults to 10 runs; set the count from the GUI's
+**"Endless Debug-Reset Runs…"** menu item (0 = run forever). It is built for
+unattended use: a `BotModeError` in run 3 is swallowed so runs 4..N still happen,
+each run has a hard 3.5M-frame cap, the mode is re-asserted after every run (a
+derail can call `set_manual_mode()`), and the batch's emulation speed / video
+settings are restored each run so only run 1 is unthrottled.
+
+### Notes / limits
+
+- The mode is **built in verifiable chunks and bounded everywhere** — it is
+  designed never to hang silently, so an un-handled situation stops with a named
+  `BotModeError` and drops to Manual rather than looping.
+- Known open issues that can end a run early are tracked in
+  `PROJECT KNOWLEDGE/05-KNOWN-ISSUES.md` (notably the move-learn recovery gap and
+  whiteout attrition).
+- Design & rationale: `PROJECT KNOWLEDGE/12-STORYMODE-DESIGN.md`; the chapter
+  table lives in `modules/story/chapters.py`.
