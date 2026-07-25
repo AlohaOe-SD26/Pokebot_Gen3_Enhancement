@@ -3,7 +3,7 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-07-24 (overnight session end)
+**Last updated:** 2026-07-25 (`#24-movelearn-recovery` closed — see "YOU ARE HERE" below)
 
 ### ⭐⭐⭐ 2026-07-24 — KI-15 FIXED (3 proven fixes) + OVERNIGHT CHAPTER LOOP RUNNING
 **KI-15 is fixed** (see 05-KNOWN-ISSUES KI-15 + changelog for the full story): (1)
@@ -657,13 +657,36 @@ sparse clone of pokeemerald (~44 MB) — it makes ABSENCE claims checkable, whic
 fetches cannot do.
 
 ### Top open items
-1. **`#24-movelearn-recovery`** — the move-learn `BotModeError` is raised inside the battle
-   handler, OUTSIDE StoryMode's derail-recovery scope, so a stall kills the run. **Killed 2 of 5
-   cold-start runs.** Now reproducible: per-run stall snapshots land in `saves/stalls/`.
-2. **`#24-whiteout`** — attrition is the dominant cost (the SUCCESSFUL run still took 80).
-3. **`#24-npcheal`** — re-pair Route 111 training to `ROUTE111_OLD_LADYS_REST_STOP` (decomp-cited
+1. **`#24-whiteout`** — attrition is the dominant cost (the SUCCESSFUL run still took 80).
+   **This is now the #1 item**, `#24-movelearn-recovery` having closed 2026-07-25.
+2. **`#24-npcheal`** — re-pair Route 111 training to `ROUTE111_OLD_LADYS_REST_STOP` (decomp-cited
    full ungated repeatable heal, 96 steps vs 213 to Fallarbor). Needs a heal-at-NPC helper.
+3. `#24-counters` phase 2 (the chain NAMES a counter; acting on it isn't built).
 4. `#24-edgecost`, `#24-regionreach` gate table, KI-18 live confirmation.
+
+### ✅ 2026-07-25 (later) — `#24-movelearn-recovery` CLOSED (was the #1 open item)
+The move-learn wedge that killed 2 of 5 night5 cold-start runs (~f1.55M each) is fixed and
+A/B-proven from the real captures. **Read the changelog entry before touching move-learn code** —
+the filed diagnosis was only the last of FOUR links, and three of them are still worth knowing:
+* The game says **`Task_HandleInputCantForgetHMsMoves`** ("HM moves can't be forgotten") and until
+  now nothing in the codebase referenced that symbol — `get_learn_move_state()` reported it as the
+  Yes/No prompt, because the script pointer stays parked at `BattleScript_AskToLearnMove+0x11`.
+* The actual hang was an **unbounded "screen is still opening, just wait" branch**: zero inputs for
+  6,000 straight frames. Found by instrumenting BUTTON PRESSES, not states — the before-arm read
+  `{'B': 4050, 'A': 1350}` with **no `Down` at all**, which is exactly 3×1800 escape-valve presses
+  and proved the main handler pressed nothing.
+* The cursor in `sMonSummaryScreen` is **not trustworthy until the move-select input task is
+  active**; a stale read is how an HM got confirmed while the decision was DECLINE.
+* New: **`modules/battle_fault.py`** — battle handling is a SIBLING generator on
+  `context.controller_stack`, not nested in the mode, so a `BotModeError` from battle code can
+  never reach `StoryMode.run()`'s `except`. Faults now travel by an **opt-in channel**
+  (`handles_battle_faults`) and cost one derail. Stock modes are provably unchanged.
+Assets: `saves/movelearn_hmwedge_{quickattack,slash}.ss1` (real wedge states, rescued from the run
+profiles before the next batch could overwrite them), `repro_movelearn_hm_wedge.py`,
+`repro_movelearn_fault_recovery.py` (stock / optin / story arms). Suite 5/5 green.
+⚠ `repro_hm_replace_valve_forced.py`'s default budget was raised 25,000 → 35,000: bounding the wait
+costs more emulator frames per iteration, so the third strike moved to f27,583 and the repro
+*looked* like a regression when nothing had changed.
 
 ## Earlier — 2026-07-25, overnight autonomous research stretch
 

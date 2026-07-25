@@ -197,6 +197,16 @@ class BattleListener(BotListener):
     @debug.track
     def _wait_until_battle_is_over(self):
         while self._in_battle:
+            # A recoverable battle fault is pending (#24-movelearn-recovery): the
+            # battle is wedged, so `_in_battle` may never clear and this would press
+            # B forever while the MODE — the only thing that can recover — is starved
+            # of frames. Return so the controller stack pops back to it. `_in_battle`
+            # deliberately stays True: clearing it would re-arm handle_frame() and
+            # push a fresh fight() next frame, re-entering the same wedge.
+            from modules.battle_fault import battle_fault_pending
+
+            if battle_fault_pending():
+                return
             if get_game_state() != GameState.OVERWORLD or get_map_data_for_current_position().map_type != "Underwater":
                 context.emulator.press_button("B")
             yield

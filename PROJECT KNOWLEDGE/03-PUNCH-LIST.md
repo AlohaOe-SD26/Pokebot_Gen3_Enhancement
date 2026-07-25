@@ -8,10 +8,10 @@
 - [ ] **#24 — STORY AUTO-PLAYER.** The only active work. A cold start reaches
       **Badge 6 (Winona) = end of built content** (38 maps, ~2.48M frames, 0 derails).
       Sub-items live in `## Story bot (#24) — open backlog` below; the current order is:
-      1. `#24-movelearn-recovery` (killed 2 of 5 cold-start runs — highest cost)
-      2. `#24-whiteout` (attrition dominates; the successful run still took 80)
-      3. `#24-counters` phase 2 (the chain NAMES a counter; acting on it isn't built)
-      4. `#24-regionreach` gate table + the blocked training-gate switch (KI-24b)
+      1. `#24-whiteout` (attrition dominates; the successful run still took 80)
+      2. `#24-counters` phase 2 (the chain NAMES a counter; acting on it isn't built)
+      3. `#24-regionreach` gate table + the blocked training-gate switch (KI-24b)
+      (`#24-movelearn-recovery` — DONE 2026-07-25, see Done below.)
       Next unbuilt chapters: **Mt. Pyre**, then the **Magma hideout**.
 - [ ] #V â€” Post-promotion verification sweep (PARKED behind #24): independent adversarial pass
       on the promoted features that only had builder self-verification (not
@@ -374,14 +374,6 @@
 > day — not reworded, only relocated.
 
 ### Priority block (added 2026-07-25 — previously referenced but unlisted)
-- [ ] **#24-movelearn-recovery — ‼ #1 OPEN ITEM. KILLED 2 OF 5 COLD-START RUNS.**
-      When the move-learn escape ultimately fails, the `BotModeError` is raised from
-      inside the BATTLE HANDLER, which sits OUTSIDE `StoryMode`'s derail-recovery
-      try/except — so the whole run dies instead of losing one battle. The recovery
-      scope is the bug, not the move-learn logic. Now reproducible: per-run stall
-      snapshots land in `tools/story-dev/saves/stalls/` (unblocked by
-      `#24-harness-savepath`). Fix = get the raise inside a recoverable scope, or
-      surface it to `_play` as a losable battle.
 - [ ] **#24-whiteout — HIGHEST-COST OPEN ITEM (attrition).** Whiteout attrition is not
       a side-effect, it IS the dominant cost of the current boss-as-training-vehicle
       strategy: 2 of 5 runs died on the whiteout cap, and the run that SUCCEEDED still
@@ -619,6 +611,25 @@
       no pre-Surf save can path a water route. Route 119 (21,109) reached NO Poké Center.
 
 ## Done
+- [x] **#24-movelearn-recovery — DONE 2026-07-25. The #1 open item; killed 2 of 5
+      cold-start runs (~f1.55M each).** ‼ The filed diagnosis ("the recovery scope is
+      the bug, not the move-learn logic") was only the LAST of four links — fixing just
+      it would have produced a dead run with a nicer log line. Real chain, from the
+      captures `saves/movelearn_hmwedge_{quickattack,slash}.ss1`: Combusken carries
+      Rock Smash (an HM **and** its weakest move); a stray A from the "unrecognised
+      text" branch answered YES to a prompt the bot had decided to DECLINE; a cursor
+      read while the summary screen was still animating in was stale, so A landed on the
+      HM slot; the game replied with `Task_HandleInputCantForgetHMsMoves`, **a symbol
+      nothing in the codebase referenced**, misreported as the Yes/No; and the handler
+      then sat in an UNBOUNDED "screen still opening" branch pressing **nothing for
+      6,000 frames**. Fixed: `LearnMoveState.CantForgetHM` checked first; a branch that
+      dismisses the refusal AND strikes the refused slot off; no A on an untrusted
+      cursor; the wait bounded; and `modules/battle_fault.py` — an OPT-IN channel
+      (`handles_battle_faults`) that carries a battle fault to the mode instead of
+      raising across the controller stack, so it costs one DERAIL. A/B: WEDGED at
+      f23,400 → RESOLVED at f258 / f224, movesets correctly unchanged; stock modes
+      verified unchanged. Repros: `repro_movelearn_hm_wedge.py`,
+      `repro_movelearn_fault_recovery.py` (3 arms).
 - [x] **#24-fortreebadge — SATISFIED 2026-07-25: BADGE 6 WON from a cold start.** Filed
       2026-07-24 when the isolated Fortree drive lost to Winona and whited out — it called
       `do_fortree_gym()` directly with whatever party the save carried, and battle prep

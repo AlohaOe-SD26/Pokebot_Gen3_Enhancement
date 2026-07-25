@@ -21,6 +21,18 @@ class LearnMoveState(Enum):
     AskWhetherToLearn = auto()
     ConfirmCancellation = auto()
     SelectMoveToReplace = auto()
+    # "HM moves can't be forgotten!" — the game REFUSING a move-select pick.
+    # Added 2026-07-25 (#24-movelearn-recovery): without this the window was
+    # misread as AskWhetherToLearn (the script offset still sits at +0x11), so
+    # the bot answered a Yes/No that was not on screen and could never clear the
+    # refusal. Killed 2 of the 5 night5 cold-start runs.
+    CantForgetHM = auto()
+
+
+# The Emerald task behind ShowCantForgetHMsWindow(). R/S/FRLG expose only the
+# TEXT symbol, not a task, so `task_is_active` simply returns False there and
+# behaviour on those ROMs is unchanged.
+HM_REFUSAL_TASK = "Task_HandleInputCantForgetHMsMoves"
 
 
 def move_learn_text_showing() -> bool:
@@ -45,6 +57,14 @@ def get_learn_move_state() -> LearnMoveState:
     Determines what step of the move_learning process we're on.
     """
     move_selection_task = _get_evolution_task_name()
+
+    # CHECKED FIRST (2026-07-25, #24-movelearn-recovery). The refusal window is a
+    # distinct screen, but the battle script pointer stays parked at
+    # BattleScript_AskToLearnMove+0x11 while it is up — so every offset-based
+    # branch below would label it AskWhetherToLearn. It has to win here or the
+    # caller can never tell "answer the prompt" from "the game rejected my pick".
+    if task_is_active(HM_REFUSAL_TASK):
+        return LearnMoveState.CantForgetHM
 
     if task_is_active("Task_EvolutionScene"):
         if task_is_active(move_selection_task):
@@ -157,6 +177,14 @@ def handle_move_replacement_dialogue(strategy: BattleStrategy) -> Generator:
     last_offered_move_name = None
     frames_in_dialogue = 0
     move_selection_task = _get_evolution_task_name()
+    # #24-movelearn-recovery (2026-07-25). Slots the GAME ITSELF has refused, plus
+    # the slot we most recently confirmed with A. The game is the authority on what
+    # is forgettable — our own `tm_hm` veto is a prediction, this is the verdict —
+    # so when it refuses, believe it and never offer that slot again this dialogue.
+    hm_blocked: set[int] = set()
+    last_confirmed_slot: int | None = None
+    # Consecutive frames parked on the summary screen with no recognised sub-state.
+    summary_wait = 0
 
     while True:
         # SAFETY: the UI normally resolves in a few hundred frames. If it STALLS far
@@ -195,13 +223,23 @@ def handle_move_replacement_dialogue(strategy: BattleStrategy) -> Generator:
             _STALLED_EXITS += 1
             if _STALLED_EXITS >= 3:
                 _STALLED_EXITS = 0
-                from modules.modes import BotModeError
-
-                raise BotModeError(
+                _reason = (
                     "Move-learn dialogue could not be resolved after 3 full attempts "
                     "(an offer we cannot answer — e.g. only HM slots available). "
                     "Backing out to recovery rather than looping."
                 )
+                # ‼ PREFER THE MODE'S OWN RECOVERY (#24-movelearn-recovery, 2026-07-25).
+                # Raising here escapes to `main_loop` and drops the run to Manual,
+                # because the battle handler is a SIBLING of the mode generator on the
+                # controller stack, not nested inside it — StoryMode's derail recovery
+                # never got the chance. Hand the fault to a mode that has declared it
+                # can recover; only raise when nothing can (stock modes, unchanged).
+                from modules.battle_fault import request_mode_recovery
+
+                if not request_mode_recovery(_reason):
+                    from modules.modes import BotModeError
+
+                    raise BotModeError(_reason)
             return
 
         # Evolution scene that is NOT at its move-learn substate → hand back to the
@@ -223,11 +261,69 @@ def handle_move_replacement_dialogue(strategy: BattleStrategy) -> Generator:
         text = _current_battle_text()
         game_state = get_game_state()
 
+        # (0) "HM moves can't be forgotten!" — the game REFUSED the slot we confirmed
+        #     (#24-movelearn-recovery, 2026-07-25; reproduced from the night5 captures
+        #     `saves/movelearn_hmwedge_*.ss1`). Two things must happen, and the old code
+        #     did NEITHER: dismiss the window, and LEARN from the refusal. Without the
+        #     second, dismissing just returns to the move list with the same doomed pick
+        #     and the loop is infinite — which is exactly what the escape valve's blind
+        #     A/B produced (an 8-frame ping-pong: A re-selects the HM, B dismisses).
+        if state == LearnMoveState.CantForgetHM:
+            debug.action_stack.append("move-learn: CantForgetHM")
+            if last_confirmed_slot is not None:
+                hm_blocked.add(last_confirmed_slot)
+                last_confirmed_slot = None
+                # Re-pick among slots the game has NOT refused, keeping the existing
+                # expendability ranking (a dead 0-power move first, else the weakest).
+                # If nothing is left to give up, declining is the only legal answer.
+                try:
+                    _mv = get_party()[party_index].moves
+                    _elig = [
+                        i for i in range(len(_mv)) if _mv[i] is not None and i not in hm_blocked
+                    ]
+                    _zero = [i for i in _elig if _mv[i].move.base_power == 0]
+                    move_to_forget = (
+                        _zero[0]
+                        if _zero
+                        else (min(_elig, key=lambda i: _mv[i].move.base_power) if _elig else 4)
+                    )
+                except Exception:
+                    move_to_forget = 4  # can't read the party → decline, never loop
+                context.message = (
+                    "The game refused that slot (HM). "
+                    + (
+                        f"Replacing slot {move_to_forget} instead."
+                        if move_to_forget != 4
+                        else "Nothing else can be given up — declining the new move."
+                    )
+                )
+            # Dismiss with A, then let the window actually close before acting again.
+            # Pressing every frame would re-confirm the HM the moment the move list
+            # comes back (the valve's bug); a press + short settle cannot.
+            context.emulator.press_button("A")
+            yield
+            for _ in range(8):
+                if get_learn_move_state() != LearnMoveState.CantForgetHM:
+                    break
+                yield
+            debug.action_stack.pop()
+            continue
+
         # (1) MOVE-SELECT menu — "Which move should be forgotten?". Detected by the
         #     RELIABLE input task or the summary screen. Checked FIRST because the
         #     "make room for X?" text lingers on-screen while this menu is up.
         if state == LearnMoveState.SelectMoveToReplace or task_is_active(move_selection_task):
             debug.action_stack.append("move-learn: SelectMoveToReplace")
+            # ‼ ONLY act on a cursor we can TRUST (2026-07-25). The cursor lives in
+            # sMonSummaryScreen, which is still being initialised while the screen
+            # animates in — a stale read of 4 while the real cursor sat on slot 1
+            # is how the night5 runs confirmed ROCK SMASH (an HM) despite having
+            # decided to DECLINE. The input task being active is the game's own
+            # signal that the screen is live and the cursor means something.
+            if not task_is_active(move_selection_task):
+                yield
+                continue
+            summary_wait = 0
             cursor = _get_move_selection_cursor()
             if cursor < move_to_forget:
                 context.emulator.press_button("Down")
@@ -238,6 +334,9 @@ def handle_move_replacement_dialogue(strategy: BattleStrategy) -> Generator:
                 yield
                 yield
             else:
+                # Remember what we confirmed: if the game refuses it, branch (0)
+                # needs to know WHICH slot to strike off.
+                last_confirmed_slot = move_to_forget if move_to_forget in (0, 1, 2, 3) else None
                 context.emulator.press_button("A")  # cursor on the move to forget → confirm
                 yield
             debug.action_stack.pop()
@@ -245,6 +344,19 @@ def handle_move_replacement_dialogue(strategy: BattleStrategy) -> Generator:
         if game_state == GameState.POKEMON_SUMMARY_SCREEN:
             # Summary screen opening for the move-select, but the input task is not
             # registered yet — just wait a frame for it (don't press anything).
+            # ‼ BOUNDED (2026-07-25). This was an UNBOUNDED wait, and it is where the
+            # bot actually hung: with the HM-refusal window up it pressed NOTHING for
+            # 6,000 straight frames (proven — zero inputs recorded before the valve),
+            # because "screen up + sub-state unrecognised" looks identical to "screen
+            # still opening". A genuine open takes ~20 frames. Past that, assume an
+            # unrecognised screen is up and BACK OUT rather than press nothing forever.
+            summary_wait += 1
+            if summary_wait > 180:
+                context.emulator.press_button("B")
+                yield
+                yield
+                yield
+                continue
             yield
             continue
 

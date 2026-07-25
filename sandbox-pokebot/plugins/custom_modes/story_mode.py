@@ -629,6 +629,15 @@ def _training_area_heal_map() -> dict:
 
 
 class StoryMode(BotMode):
+    #: OPT IN to the battle-handler fault channel (#24-movelearn-recovery, 2026-07-25).
+    #: A sub-handler that gives up (e.g. an unanswerable move-learn offer) records the
+    #: fault via `modules.battle_fault` instead of raising across the controller stack
+    #: into `main_loop` — which would drop the run to Manual, outside our recovery. We
+    #: re-raise it inside run()'s try below, so it costs a DERAIL, not the whole run.
+    #: This attribute is the promise that we consume it; nothing else may set it
+    #: without also calling `take_pending_fault()` on every frame it holds control.
+    handles_battle_faults = True
+
     #: Pre-gym training only readies a battler that's already within this many levels
     #: of the target band; fresh catches further below are left to level organically
     #: rather than grinding them up via half-XP swap-training (user 2026-07-21).
@@ -1370,6 +1379,10 @@ class StoryMode(BotMode):
         from modules.modes import BotModeError
         from modules.story.early_game import set_story_abort, exit_building_after_whiteout
         from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
+        from modules.battle_fault import take_pending_fault, clear_pending_fault
+
+        # Never inherit a fault recorded just before this mode started.
+        clear_pending_fault()
 
         recoveries = 0
         while True:
@@ -1389,6 +1402,20 @@ class StoryMode(BotMode):
                 _stall_sig = None
                 _stall_frames = 0
                 while True:
+                    # RECOVERABLE BATTLE FAULT (#24-movelearn-recovery, 2026-07-25).
+                    # The battle handler runs as a SIBLING generator on the controller
+                    # stack, so an error it raises goes straight to main_loop → Manual
+                    # and never reaches the `except BotModeError` below. Instead it
+                    # parks the reason in `battle_fault`; we claim it HERE, inside the
+                    # try, so a battle we cannot finish costs one derail (with the
+                    # normal B-ride/re-orient/resume) instead of the entire run.
+                    _fault = take_pending_fault()
+                    if _fault is not None:
+                        try:
+                            _play_gen.close()
+                        except Exception:
+                            pass
+                        raise BotModeError(f"Story: battle handler gave up — {_fault}")
                     try:
                         next(_play_gen)
                     except StopIteration:

@@ -55,6 +55,17 @@ Observers (GUI, HTTP API, Discord) consume frame-stamped state-cache
 snapshots; the web thread never reads emulator memory directly.
 Full walkthrough: `40cakes repo/DOCUMENTATION/00-CODEBASE-OVERVIEW.md`.
 
+**‼ The controller stack is FLAT, not nested.** `main_loop` advances only the
+TOP generator, so a bot mode and a battle handler pushed by `BattleListener` are
+SIBLINGS — an exception raised by battle code propagates to `main_loop` (which
+sets Manual), never through the mode's own `try`. A mode therefore cannot catch
+or recover from a battle-handler failure by any arrangement of `except`. Faults
+that a mode should survive travel by an explicit channel instead:
+`modules/battle_fault.py` (sandbox) — the battle handler records the reason and
+returns; a mode that declares `handles_battle_faults = True` claims it on its
+next frame and re-raises inside its own recoverable scope. Opt-in on purpose;
+see 06-DECISIONS-LOG 2026-07-25.
+
 ## Key modules
 See the per-layer docs in `40cakes repo/DOCUMENTATION/` — the
 authoritative module reference (intent + mechanics + file:line refs).

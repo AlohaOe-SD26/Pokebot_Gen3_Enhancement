@@ -1511,3 +1511,46 @@ the terminal it is printing to fails at the only thing it exists to do.
 **Prevention rule:** when a bug is caused by the ENVIRONMENT (console encoding, path separators,
 line endings, locale), fix the CLASS not the instance — every sibling tool has the same
 environment. Ask "what else prints/writes text here?" before closing it out.
+
+## 2026-07-25 — The bug report named the last link in the chain, and I nearly fixed only that
+
+**Symptom.** `#24-movelearn-recovery`, the #1 open item, killed 2 of 5 night5 cold-start runs at
+~f1.55M each. Filed as: "the `BotModeError` is raised inside the BATTLE HANDLER, which sits OUTSIDE
+`StoryMode`'s derail-recovery try/except — so the whole run dies instead of losing one battle. **The
+recovery scope is the bug, not the move-learn logic.**"
+
+**That framing was true and still nearly cost the fix.** The recovery scope really was broken, and
+fixing it really was necessary. But it is the LAST link: it decides how expensively the run dies,
+not why it wedges. Had I implemented only what the item asked for, the runs would still have died —
+just with a nicer log line — and the item would have been ticked off.
+
+**Root cause (found by reading the frames, not the item).** Four defects in series. Combusken
+carries Rock Smash, which is both an HM and its weakest move. A stray A from the
+"any unrecognised text → press A" branch answered YES to a prompt the bot had decided to DECLINE; a
+cursor read from `sMonSummaryScreen` while the screen was still animating in was stale, so A landed
+on the HM slot; the game replied with `Task_HandleInputCantForgetHMsMoves`, **a symbol nothing in
+the codebase referenced**, which `get_learn_move_state()` misreported as the Yes/No prompt; and the
+handler then fell into an UNBOUNDED "screen is still opening, just wait" branch and **pressed
+nothing for 6,000 consecutive frames.** Only then did the valve fire and hit the recovery-scope bug.
+
+**The measurement that broke it open.** The repro recorded every button press. The before-arm read
+`{'B': 4050, 'A': 1350}` and **no `Down` at all** — exactly 3×1800 presses in the escape valve's own
+3:1 ratio. That single line proved the main handler had pressed *nothing whatsoever*, which pointed
+straight at the silent wait branch. A state trace alone would never have shown it: the states were
+changing busily the whole time.
+
+**Fix.** Recognise the refusal window and strike the refused slot off; never act on an untrusted
+cursor; bound the wait; and route the valve's fault to the mode via `modules/battle_fault.py`
+instead of raising across the controller stack. Before: WEDGED at f23,400. After: RESOLVED at f258
+on one capture and f224 on the other, both with the moveset correctly unchanged.
+
+**Prevention rule:** a bug report describes the symptom the reporter could SEE — treat its stated
+root cause as the newest link in a chain, and walk backwards until you can explain the FIRST
+abnormal frame. Before accepting "component X mishandles this", ask what the GAME was showing at
+that moment and whether any code reads it: here the game was saying "HM moves can't be forgotten"
+in a named task, and nothing in the bot had ever heard of it.
+
+**Second prevention rule:** instrument INPUTS, not just states, when diagnosing a wedge. "Which
+buttons, how many, in what ratio" distinguishes *pressing the wrong thing* from *pressing nothing*,
+and those have opposite fixes. Every `while True` that can press nothing on a frame needs a bound —
+an unbounded "just wait for the state to settle" branch is a hang with good manners.

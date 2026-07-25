@@ -480,3 +480,34 @@ feature and left a mock leak silently certifying future work.
 `repro_boss_plateau` green. `repro_counter_plan` is RED on a non-vacuity scaffold (line 200) that
 was relying on the old predicate's false negatives to supply a `False`; left unadjusted pending a
 ruling, documented in KI-24b.
+
+## 2026-07-25 — Battle-handler faults reach the mode by an OPT-IN channel, not by an exception
+
+**Context.** The battle handler cannot raise a recoverable error. `BattleListener` pushes `fight()`
+onto `context.controller_stack`, and `main_loop` advances only the TOP of that stack — so the bot
+mode's generator and the battle handler are SIBLINGS, not nested. Any `BotModeError` from battle
+code lands in `main_loop`, which sets Manual. `StoryMode.run()`'s `except BotModeError` is
+structurally unable to see it, no matter how it is written. Cost: 2 of 5 cold-start runs
+(#24-movelearn-recovery).
+
+**Decision.** Stop raising across that boundary. `modules/battle_fault.py` holds one pending fault;
+the battle handler records it and returns; the mode claims it on the next frame it holds control
+and re-raises inside its own recoverable scope. Participation is **opt-in via a class attribute**
+(`handles_battle_faults = True`), and the attribute is a promise to call `take_pending_fault()`
+every frame.
+
+**Why opt-in rather than universal.** An unconsumed fault is worse than a Manual drop:
+`handle_battle` short-circuits while one is pending, so a fault nobody claims would make every
+future battle exit instantly. Gating on an explicit declaration means the failure mode of a mode
+that forgets to participate is *today's behaviour*, not a new silent one. Proven both ways in
+`repro_movelearn_fault_recovery.py`: the same fault, one frame apart, drops a stock mode to Manual
+and is claimed by an opted-in mode.
+
+**Alternatives rejected.**
+- *Catch it in `main_loop` and re-dispatch to the mode.* Puts mode-specific recovery policy in the
+  shared loop, and `main_loop` has no way to resume a generator it did not suspend.
+- *Have `fight()` swallow the error and clear `_in_battle`.* Clearing `_in_battle` re-arms
+  `handle_frame()`, which pushes a fresh `fight()` next frame — straight back into the same wedge.
+  The listener now returns while deliberately LEAVING `_in_battle` set.
+- *Let the mode poll for a wedged battle itself.* The mode is starved of frames precisely while the
+  battle handler holds the stack, which is exactly when it would need to notice.

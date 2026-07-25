@@ -178,6 +178,13 @@ def handle_battle(strategy: BattleStrategy) -> Generator[None, None, HandledBatt
     _last_progress_sig = None
 
     while (battle_is_active() or _learn_or_evo_pending()) and context.bot_mode != "Manual":
+        # A sub-handler has given up and handed a recoverable fault to the mode
+        # (#24-movelearn-recovery). Stop driving immediately: re-invoking the handler
+        # that just failed is precisely the loop the fault was raised to escape.
+        from modules.battle_fault import battle_fault_pending
+
+        if battle_fault_pending():
+            break
         try:
             from modules.battle_move_replacing import get_learn_move_state
 

@@ -33,7 +33,14 @@ except Exception:
     pass
 
 ap = argparse.ArgumentParser()
-ap.add_argument("--frames", type=int, default=25000)
+# 35,000, not 25,000 (raised 2026-07-25, #24-movelearn-recovery). The valve needs
+# 3 x (6000 dialogue + 1800 escape) ITERATIONS, and an iteration is not one emulator
+# frame -- some branches yield several. After the summary-screen wait was bounded
+# (it now presses B and yields 3x instead of pressing nothing and yielding once) the
+# third strike lands at f27583, just past the old budget, so this repro stopped at
+# _STALLED_EXITS=2 and looked like a regression when nothing had changed. Give the
+# budget real headroom rather than tuning it to the current frame cost.
+ap.add_argument("--frames", type=int, default=35000)
 ap.add_argument("--build", default="sandbox", choices=["custom", "sandbox"])
 ap.add_argument("--profile", default="repro-hm-valve")
 ap.add_argument("--log", default=None)

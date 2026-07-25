@@ -3443,3 +3443,81 @@ the instant it is fixed. **Both were found only because a change forced them to 
 would ever have been noticed while green**, so the number of remaining assertions of this shape is
 unknown. Prevention rule: assert the PROPERTY you need, not a symptom of the current bug, or the
 suite punishes progress. Also added as trap #4 in the handoff.
+
+## 2026-07-25 — The move-learn run-killer: root-caused, fixed, and moved inside recovery (#24-movelearn-recovery)
+
+**The #1 open item is closed.** It killed 2 of the 5 night5 cold-start runs outright, at f1,543,953
+and f1,557,569 — roughly 1.5 million frames of progress each, thrown away over what should have
+cost one skipped level-up.
+
+**‼ The filed diagnosis was only the last link.** The punch list said "the recovery scope is the
+bug, not the move-learn logic". The recovery scope *was* broken — but fixing only it would have
+turned a dead run into a dead run that logged better. Reading the actual frame logs found a chain
+of four defects, and the real hang was none of the suspected ones.
+
+**Evidence.** Both deaths are the same mon in the same shape, and both wedge states were lifted
+out of the run profiles before the next batch could overwrite them:
+`saves/movelearn_hmwedge_quickattack.ss1` (n5-5: Combusken L32 `Scratch, Rock Smash[HM06],
+Double Kick, Ember`, offered QUICK ATTACK) and `saves/movelearn_hmwedge_slash.ss1` (n5-2:
+Combusken L39 `Scratch, Peck, Double Kick, Rock Smash[HM06]`, offered SLASH). Combusken is the
+story bot's Rock Smash mule, and Rock Smash is both an HM and the weakest move it owns.
+
+**The chain, in the order it fires:**
+1. Config is `new_move: cancel`, so the strategy returns 4 = DECLINE. But branch (5) presses A on
+   any unrecognised move-learn text, and the state genuinely reads `Unknown` during "<MON> is
+   trying to learn <MOVE>." (38 frames of it in the run log). Those stray A's answer **YES** to
+   the prompt the bot had decided to decline, opening the move-select screen.
+2. Branch (1) then pressed A on a cursor read from `sMonSummaryScreen`, which is still being
+   initialised while the screen animates in — a stale 4 while the real cursor sat on slot 1 is how
+   an HM got confirmed despite the decision being DECLINE.
+3. The game answers with `ShowCantForgetHMsWindow` / **`Task_HandleInputCantForgetHMsMoves`**.
+   **Nothing in the bot referenced that symbol.** `get_learn_move_state()` reported it as
+   `AskWhetherToLearn` (the script pointer is still parked at `BattleScript_AskToLearnMove+0x11`),
+   so the bot answered a Yes/No that was not on screen.
+4. **The actual hang:** with that window up, the handler fell into the "summary screen is still
+   opening, just wait" branch — an UNBOUNDED wait that presses nothing. Measured on the capture:
+   **zero inputs for 6,000 straight frames.** Then the escape valve's blind `B,B,B,A` produced an
+   8-frame ping-pong (A re-selects the HM, B dismisses the refusal) until the 3-strike valve raised
+   `BotModeError` — from inside the battle listener, where StoryMode cannot catch it.
+
+**Fixed, four changes:**
+- `LearnMoveState.CantForgetHM` + `HM_REFUSAL_TASK`, checked FIRST in `get_learn_move_state()` so
+  the refusal wins over every offset-based branch. R/S/FRLG have no such task, so `task_is_active`
+  returns False and those ROMs are untouched.
+- New branch (0) handles it: dismiss with a single A + settle, and **LEARN from the refusal** —
+  the confirmed slot is struck off (`hm_blocked`) and a replacement picked by the existing
+  expendability ranking. Dismissing without striking off just returns to the same doomed pick.
+  The game is the authority on what is forgettable; our `tm_hm` veto is only a prediction.
+- Branch (1) now refuses to act on an untrusted cursor: no A unless the move-select input task is
+  actually active, and it records which slot it confirmed so branch (0) knows what to strike.
+- The summary-screen wait is BOUNDED (180 frames → back out with B). A genuine open takes ~20.
+
+**Recovery scope (the item as filed), `modules/battle_fault.py` — new.** Battle handling is a
+SIBLING generator on `context.controller_stack`, not nested in the mode, so `main_loop` catches a
+battle-handler `BotModeError` before StoryMode ever sees it. The valve now offers the fault to the
+mode via `request_mode_recovery()` and only raises if nobody takes it. `handle_battle` stops
+driving while a fault is pending, `_wait_until_battle_is_over` releases control (deliberately
+WITHOUT clearing `_in_battle`, which would re-arm the listener into the same wedge), and StoryMode
+claims it inside its own `try` → one derail, not a dead run. **Opt-in by attribute**
+(`handles_battle_faults`): every stock mode keeps today's behaviour exactly.
+
+**PROOFS (all A/B, from the real captures — `repro_movelearn_hm_wedge.py`,
+`repro_movelearn_fault_recovery.py`):**
+| arm | before | after |
+|---|---|---|
+| quickattack capture | WEDGED, `BotModeError` at f23,400, 3 invocations, `B:4050 A:1350`, **no Down** | RESOLVED at **f258**, 1 invocation, `A:225 Down:5`, moveset correctly unchanged |
+| slash capture | (same wedge) | RESOLVED at **f224**, 1 invocation |
+| fault channel, stock mode | — | PASS: `BotModeError` → Manual at f27,583, no fault recorded (legacy preserved) |
+| fault channel, opted-in mode | — | PASS: same fault at f27,584 CLAIMED by the mode, never Manual |
+| real StoryMode | — | PASS: `derail #1: Story: battle handler gave up — …`, still in Story 1,500 frames later |
+
+The stock/opt-in pair is the same battle and the same fault one frame apart; the only difference is
+the opt-in attribute.
+
+**Regression: story-bot suite 5/5 GREEN** (`repro_fodder_grass`, `repro_counter_plan`,
+`repro_counter_wiring`, `repro_region_reach`, `repro_boss_plateau`), plus
+`repro_hm_move_replace_loop` (clean, 1 invocation) and `repro_hm_replace_valve_forced` (still
+raises at f27,583, `_STALLED_EXITS = 0`). That last one first came back at `_STALLED_EXITS = 2` and
+looked like a regression — it was a BUDGET artifact (bounding the wait costs more emulator frames
+per iteration, pushing the third strike past its 25,000-frame budget). Default raised to 35,000
+with the reason recorded in the file.
