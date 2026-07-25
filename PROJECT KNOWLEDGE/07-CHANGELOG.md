@@ -3062,3 +3062,39 @@ throttle. The slowdown came from the derail path, not the reset.
 **Prevention rule:** when a loop restores state after an iteration, enumerate EVERYTHING the
 failure path can change — not just the obvious field. `set_manual_mode` alters mode, speed, video
 AND held buttons; restoring one of four looked like it worked because run 1 was always correct.
+
+## 2026-07-25 — `compare_runs.py`: cluster run failures by signature across many logs
+
+**Why.** The most productive debugging move in this project has been putting two run logs side by
+side and noticing they died the same way — Route 111 (18,99) killed four runs across two machines
+and was only identifiable that way. By eye that works for two logs; it does not work for seven,
+and it silently misses "same tile, different function" (or the reverse), which is the exact
+distinction that showed the (18,99) wedge was a stale reader rather than a navigation bug.
+
+`tools/story-dev/compare_runs.py` extracts a normalised signature per log — frames, milestone
+depth, failure kind, dying generator frame, location, active field scripts, whiteout/derail counts
+— then GROUPS BY IT on four axes (failure kind, dying function, location, failure+location) and
+marks any cluster that **spans labels**, i.e. spans machines or batches. Reads BOTH formats (the
+harness's `gen ->`/`NO-PROGRESS` and the in-game debug logger's `DUMP` blocks) and states which
+fields each log actually carried rather than pretending they match.
+
+```
+py -3.12 tools/story-dev/compare_runs.py --label mine tools/story-dev/night5/*.log \
+                                         --label user <their-debug-log>.log
+```
+
+**Two defects found and fixed while testing it on real logs — both were the tool lying, not the
+runs:**
+* A fixed 400-line tail window reported `where=?` for every move-learn stall, because that failure
+  drops to Manual and then emits hundreds of heartbeats, pushing the real generator stack out of
+  the window. Three runs that died identically therefore looked unrelated on the "dying function"
+  axis — the exact clustering the tool exists to do. Window now widens until it finds a stack.
+* Position extraction reported `LITTLEROOT TOWN (-7,-7)` for late-game runs. Negative locals are
+  the signature of an uninitialised/stale map read, not a place the player was — and unguarded it
+  produced a 3-run "cluster" on a meaningless location. Now skips negative reads and says
+  `unreliable(stale/negative read)` rather than inventing a tidy answer. Real locations
+  (Route 113 / Petalburg / Route 114) appear once fixed.
+
+**Prevention rule:** an analysis tool that cannot find a field must SAY SO, never emit a
+placeholder that groups cleanly. A tidy wrong answer is worse than a visible gap, because
+clustering makes coincidences look like evidence.
