@@ -556,3 +556,49 @@ hand-verified during this investigation. Doing this would also retire the `AREA_
 **Prevention rule:** a reachability oracle must be sound for the SCALE it is asked about. Using a
 tile pathfinder to answer a cross-region question inherits every one of its blind spots as a false
 "no", and false negatives are invisible — nothing errors, the option is simply never proposed.
+
+## KI-24b — region reachability BUILT; hop count alone is too coarse to rank by (2026-07-25)
+
+`modules/story/region_reach.py` now answers reachability from the ROM's own `MapConnections` +
+warps (never a hand-written table), with capability gates and — the point of the module —
+`why_unreachable()` reasons that distinguish **"no connection path"** from **"needs Surf at
+A↔B"** from **"reachable but N hops away (limit M)"**. KI-24 is fixed: ROUTE118 is reachable
+from ROUTE120 at the Winona moment, where tile-level `calculate_path` said it was not.
+
+**‼ But the cost model I assumed is wrong, and the measurement says so.** Measured hops from
+ROUTE120 on the Winona-era save:
+
+| target | hops |
+|---|---|
+| FORTREE_CITY | 1 |
+| ROUTE119 | 2 |
+| **LILYCOVE_CITY** | **2** |
+| **ROUTE118** (the real Winona answer) | **3** |
+| MOSSDEEP_CITY | 4 |
+| PACIFIDLOG_TOWN | 10 |
+
+I expected "the answer is a handful of hops, the far cities are many". **Lilycove is CLOSER than
+Route 118 by this metric**, and Mossdeep is one hop further. Because a single ROM connection can
+span an entire sea route, uniform 1-hop weighting compresses "same landmass cluster" (1-4) and
+only separates the genuinely far-flung (Pacifidlog, 10).
+
+**So hop count is a usable FILTER but not a usable RANK.** `max_hops=4` cuts Pacifidlog-class
+targets while keeping the Fortree/119/118 cluster, and that is how it should be used — as a
+sanity bound, with `counter_plan`'s existing criteria (type coverage → verified tile →
+encounter rate → level fit) doing the actual ranking.
+
+**Next, if finer granularity is ever needed (`#24-edgecost`):** weight each edge by the source
+map's traversal length rather than a flat 1, or price travel in FRAMES so it composes with
+`training_areas.estimate_frames_to_level`. Both are real work; neither is needed until hop
+count demonstrably mis-ranks something.
+
+**Also still open:** `KNOWN_GATES` holds only one hand-verified entry (Dewford's sea routes), so
+edges whose requirement cannot be derived from ROM data currently read as UNGATED — i.e. this
+oracle now fails OPEN where the old one failed CLOSED. That is the safer direction for a
+*planner* (a wrong "yes" costs a wasted walk that navigation will fail recoverably; a wrong "no"
+is invisible) but it must be grown before this gates anything irreversible.
+
+**Prevention rule:** when you introduce a cost metric, MEASURE it against known-good and
+known-bad cases before trusting it to rank. "Reachable" was a boolean that hid a cost; "hops" is
+a cost that hides map size. Each fix exposed the next assumption — check the numbers, don't
+reason about them.
