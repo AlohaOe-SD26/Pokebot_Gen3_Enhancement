@@ -109,9 +109,20 @@ def main() -> None:
         ap.error("no prompt given (positional text or --file)")
 
     answer = ask(parts, args.model)
-    print(answer)
+    # ‼ WRITE THE FILE FIRST, AND NEVER LET PRINTING LOSE THE ANSWER (2026-07-24).
+    # Two of ten research calls were destroyed by `print(answer)` raising
+    # UnicodeEncodeError: the Windows console is cp1252 and Gemini answers routinely
+    # contain '→' / '↓'. Because the print came BEFORE the write, the crash threw away a
+    # complete, already-paid-for API response. So: persist first, then print defensively.
     if args.out:
         pathlib.Path(args.out).write_text(answer, encoding="utf-8")
+    try:
+        print(answer)
+    except UnicodeEncodeError:
+        # Console can't represent it; the file (if any) already has the real text.
+        sys.stdout.buffer.write(answer.encode("utf-8", errors="replace"))
+        sys.stdout.buffer.write(b"\n")
+    if args.out:
         print(f"\n[written to {args.out}]", file=sys.stderr)
 
 
