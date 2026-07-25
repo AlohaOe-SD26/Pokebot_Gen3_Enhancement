@@ -429,8 +429,9 @@ class SwapTrainBattleStrategy(LevelUpTravelBattleStrategy):
         return max(safe, key=lambda i: (party[i].level, party[i].current_hp))
 
 
-#: Max warp-graph legs a TRAINING detour may cost. Local hops (a route next door to the
-#: town we're in) pass; cross-region treks do not — see _training_area_allowed.
+#: Max map transitions (`region_reach` hops — connections AND warps, 1 each) a TRAINING
+#: detour may cost. Local hops (a route next door to the town we're in) pass; far-flung
+#: treks do not. A sanity FILTER, never a rank — see _training_area_allowed.
 _MAX_TRAINING_TRAVEL_LEGS = 4
 
 
@@ -467,65 +468,61 @@ def _party_can_surf() -> bool:
 def _training_area_allowed(map_enum, tile, prereq) -> bool:
     """Reachability predicate for `training_areas.best_training_area`.
 
-    TWO gates, both learned the hard way on 2026-07-24:
-    1. **HM prerequisite** — the richest bands (Routes 115/118/119/121) sit across water;
-       without Surf actually KNOWN by a party mon they are unreachable, and a level-fit-
-       only picker happily proposed Route 121 (past Lilycove) to a pre-Surf team.
+    TWO gates:
+    1. **HM prerequisite** (learned the hard way 2026-07-24) — the richest bands (Routes
+       115/118/119/121) sit across water; without Surf actually KNOWN by a party mon they
+       are unreachable, and a level-fit-only picker happily proposed Route 121 (past
+       Lilycove) to a pre-Surf team.
     2. **Reachable FROM WHERE WE STAND** — a static per-area flag is not enough, because a
-       single map can be split into disconnected regions: Route 111's grass sits NORTH of
-       the Go-Goggles desert, so it is reachable from Fallarbor but NOT from Mauville or
-       Petalburg (probed: no Mauville-side Route 111 grass exists at all). Ask the warp
-       graph — the same structure `navigate_to_anywhere` plans with — whether a route
-       exists from the CURRENT map; that is the honest test and it is a cheap graph
-       search, no emulation. Fails CLOSED: if the graph can't answer, we don't relocate.
+       single map can be split into disconnected pieces: Route 111's grass sits NORTH of the
+       Go-Goggles desert, so it is reachable from Fallarbor but NOT from Mauville or
+       Petalburg (probed: no Mauville-side Route 111 grass exists at all). That question is
+       answered by `region_reach.is_map_reachable(..., max_hops=_MAX_TRAINING_TRAVEL_LEGS)`
+       — built from the ROM's own MapConnections + warps; a cheap graph search, no emulation.
+
+    ‼ WHY `region_reach` AND NOT `calculate_path` (user decision, 2026-07-25 — KI-24, which
+    was fixed for counter-candidate selection first and left open here). Both oracles are
+    wrong sometimes; their failure modes are NOT symmetric, and that asymmetry IS the whole
+    argument:
+      * A wrong **NO** from `calculate_path` is INVISIBLE and costs a whole run. It reads the
+        Route 118/119/120 dual-elevation bridges as WALLS (it fails even on a same-map walk
+        inside Route 119, y=5 -> y=135), so it calls a genuinely-correct training band
+        unreachable. Nothing raises, nothing is logged, the option is simply never proposed,
+        and the bot quietly grinds the local fodder patch instead — that is what produced the
+        ~2,000,000-frame L3-4 grind in front of Norman.
+      * A wrong **YES** from `region_reach` costs ONE wasted walk, which navigation then
+        fails RECOVERABLY and loudly. Its `KNOWN_GATES` table holds one hand-verified entry
+        (the two Dewford sea edges), so any capability gate not yet tabled reads as passable
+        — i.e. it errs toward yes, by construction.
+    Cheap-and-visible beats invisible-and-fatal, so the training gate now uses the same
+    oracle the counter gate already does (see `_counter_area_allowed`).
+
+    ‼ RESIDUAL RISK, stated plainly: `KNOWN_GATES` MUST GROW. Every gate not yet in it is a
+    potential wasted trek. Add an entry whenever a relocation is observed walking into a
+    wall, and keep the hop budget small — 4 keeps the same-landmass cluster and cuts the
+    far-flung (measured hop counts: tools/story-dev/repro_region_reach.py).
+
+    Fails CLOSED on any error: if the oracle cannot answer, we do not relocate.
     """
     if prereq == "surf" and not _party_can_surf():
         return False
     if prereq not in (None, "surf", "region"):
         return False  # unknown prerequisite → fail closed
     # "region" carries no extra requirement here — it exists so the conservative
-    # allow=None default refuses the area; the live position check below is its gate.
+    # allow=None default refuses the area; the live reachability check below is its gate.
     try:
         from modules.map import get_map_data_for_current_position
-        from modules.warp_graph import get_warp_graph
+        from modules.story import region_reach
 
         here = tuple(get_map_data_for_current_position().map_group_and_number)
         target = tuple(map_enum.value)
         if here == target:
+            # Already on the map — nothing to travel, so nothing to prove. Deliberately NOT
+            # tile-checked with `calculate_path`: it is unsound even WITHIN one map on the
+            # bridge maps, so a "last mile" check here would re-import the exact false
+            # negative this predicate just stopped trusting.
             return True
-        graph = get_warp_graph()
-        if graph.region_of(here) == graph.region_of(target):
-            # Same region — but that is only about MAPS. Prove the actual TILE is walkable
-            # from here: Route 111 is edge-connected to Mauville yet its grass sits across
-            # the Go-Goggles desert, so "same region" would wave through a tile the bot can
-            # never stand on. calculate_path is the honest test (static A*, no emulation).
-            from modules.map_path import calculate_path
-            from modules.player import get_player_location
-
-            try:
-                calculate_path(
-                    get_player_location(), (map_enum, tile),
-                    avoid_encounters=False, avoid_scripted_events=False,
-                )
-                return True
-            except Exception:
-                return False
-        # ‼ CROSS-REGION: FAIL CLOSED (reviewer catch, 2026-07-24). We cannot tile-check a
-        # different region — `calculate_path` only works within one — so allowing a hop on
-        # the strength of `graph.plan()` alone would reintroduce the exact bug the
-        # same-region branch exists to prevent: the warp route lands on the map, but the
-        # grass tile sits in a disconnected pocket of it (the Route 111 desert shape).
-        # It also cannot be worth it: the warp graph will happily route Petalburg -> ... ->
-        # Fallarbor for +15 wild levels, and that walk (plus its heal round-trips) costs
-        # more than the xp it buys — the boss re-attempt is the better trainer. A training
-        # detour is LOCAL by definition, so "another region" is simply not a candidate.
-        route = graph.plan(here, target)
-        if route is not None and len(route) <= _MAX_TRAINING_TRAVEL_LEGS:
-            console.print(
-                f"[dim]Story: {map_enum.name} is reachable but in another region — "
-                f"not relocating training across regions.[/]"
-            )
-        return False
+        return bool(region_reach.is_map_reachable(map_enum, max_hops=_MAX_TRAINING_TRAVEL_LEGS))
     except Exception:
         return False
 

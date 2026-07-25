@@ -3363,3 +3363,53 @@ the guard that makes it safe (if that guard is ever removed, the rule becomes li
   `gemini_relay.py` refuses sub-Pro-3.1 models in code. **Rule 2 KEPT** ("check YOUR invocation
   before concluding the tool is bad") — it is the rule that actually cost the day, it generalises
   to every tool here, and it has no structural guard.
+
+## 2026-07-25 — KI-24 CLOSED on the training gate too; the test that was guarding it was broken (#24-regionreach)
+
+**Landed:** `_training_area_allowed` now answers the region question with
+`region_reach.is_map_reachable(map_enum, max_hops=_MAX_TRAINING_TRAVEL_LEGS)` instead of tile-level
+`calculate_path`. Both builds, byte-identical. `calculate_path` no longer answers any region-scale
+question in the story bot. Rationale (asymmetric failure modes) and the residual `KNOWN_GATES` risk
+are written into the function's docstring, where the next reader will actually hit them.
+
+**Measured effect** (`repro_counter_plan.py`, same live Winona-era position, same candidate list,
+ONLY the predicate swapped):
+
+| `_training_area_allowed` | reachable flags over the 10 Winona candidates |
+|---|---|
+| before (`calculate_path`) | `[False × 10]` — every candidate rejected; KI-24 in the raw |
+| after (`region_reach`) | `[True × 5, False × 5]`, incl. **Route 118 Electrike: reachable** |
+
+**‼ The bigger find: `repro_fodder_grass.py` — the regression guard for ALL training logic — had
+been testing the wrong world state.** The first attempt at this switch failed its case 5 and was
+REVERTED rather than forced. Investigating the disagreement instead of adjusting the expectation
+showed the TEST was wrong:
+
+* `_stand_at()` patched only `modules.map.get_map_data_for_current_position`. The predicate under
+  test takes a SECOND position reading from `modules.player.get_player_location()` before calling
+  `calculate_path`, and that one stayed LIVE.
+* So case 5 never simulated Fallarbor. It asked about the save's real position,
+  `(PETALBURG_CITY, (7,6))`, got a `PathFindingError`, and recorded it as a Fallarbor verdict.
+* This file had gated the frames-based budget work and the fodder-skip itself over the preceding
+  two days, printing "proven-good prep unchanged" while one of its five cases proved nothing.
+
+**Fixed the test first, and proved the fix ALONE was green** (`560b75f6`): `_stand_at()` derives
+both mocks from one source (the town's Poké Center door tile), patches both readers, and asserts
+they describe the same map; `_stand_down()` restores both. **With the test fixed and
+`story_mode.py` untouched, the ORIGINAL `calculate_path` code also answers `RELOCATE to ROUTE111`,
+and cases 1-4 are unchanged** — so the re-baseline is provably a test fix, not a behaviour change.
+Three independent sources agree Route 111 is reachable from Fallarbor: `calculate_path` succeeds
+from `(14,7)`, `region_reach` measures 2 hops, and `training_areas.py`'s own comment says so.
+
+**Verification.** `repro_fodder_grass` 5/5 green (case 5 now genuinely exercising a Fallarbor
+stand); `repro_region_reach`, `repro_counter_wiring`, `repro_boss_plateau` green.
+
+**⚠ `repro_counter_plan.py:200` is RED and deliberately NOT adjusted.** Its primary assertions pass.
+What fails is a self-described non-vacuity scaffold: it runs a deliberately WIDE type set through
+`_training_area_allowed` and requires at least one `False` "so both True and False genuinely occur
+(not vacuous)". The fixed predicate returns `[True × 25]`, so no `False` exists — **the scaffold was
+relying on the bug it was written alongside.** It is also obsolete: it existed because the Winona
+set was all-`False` (vacuous) under the old predicate, and that set is now a genuine
+`[True × 5, False × 5]` mix that carries the sort proof by itself. Suggested fix in KI-24b; not
+applied unilaterally, because silently adjusting a test is exactly how the case-5 artefact survived
+two days of green runs.

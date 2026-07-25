@@ -1391,3 +1391,49 @@ downgrade a research round — it exits with a message naming the directive and 
 **KEPT — rule 2: "when a tool starts producing bad output, check YOUR INVOCATION before concluding
 the tool is bad."** This is the rule that actually cost the day, it generalises to every tool in
 the project, and there is no structural guard for it anywhere. It stays.
+
+## 2026-07-25 — A PARTIAL MOCK: the regression guard for all training logic tested the wrong world
+
+- **Symptom.** `tools/story-dev/repro_fodder_grass.py` case 5 asserted that a L31 team standing in
+  FALLARBOR_TOWN produces `SKIP GRIND`. It read as a deliberate statement about Fallarbor. It was
+  not: the test had never put the player in Fallarbor. The case vetoed a CORRECT change — the
+  `#24-regionreach` training-gate switch — by making the fix look like a regression.
+
+- **Root cause: one reader stubbed, another left live.** `_stand_at(town)` patched
+  `modules.map.get_map_data_for_current_position` and nothing else. But the code under test,
+  `_training_area_allowed`, takes a SECOND reading of "where am I" from
+  `modules.player.get_player_location()` before calling `calculate_path`. That call was never
+  patched, so it returned the save's real position — `(PETALBURG_CITY, (7,6))` on
+  `norman_done.ss1` — and `calculate_path(PETALBURG_CITY(7,6) -> ROUTE111(25,55))` raises
+  `PathFindingError`. The test recorded that refusal as a Fallarbor verdict.
+
+- **Why it survived so long.** A partial mock does not fail loudly. It silently answers a different
+  question and returns a plausible-looking result, so it reads as a pass forever. And the verdict it
+  produced (`SKIP GRIND`) was *reasonable* for the scenario as written, which is what made it
+  invisible. **This file is the regression guard for every training-logic change of the preceding
+  two days** — the frames-based budget gate and the fodder-skip itself both shipped green against it
+  — so one of its five cases had been certifying nothing while the header printed "proven-good prep
+  unchanged".
+
+- **Proof it was a mock artefact and not a judgement.** Three independent sources agree Route 111 IS
+  reachable from Fallarbor: `calculate_path(FALLARBOR_TOWN(14,7) -> ROUTE111(25,55))` succeeds;
+  `region_reach` measures it at 2 hops; and `training_areas.py`'s own comment on that entry says
+  "reachable from Fallarbor, NOT from Mauville/Rustboro/Petalburg". The decisive A/B: with
+  `_stand_at()` repaired and `story_mode.py` **untouched**, the ORIGINAL `calculate_path` code also
+  answers `RELOCATE to ROUTE111` — and cases 1-4 are unchanged. So the re-baseline is a test fix,
+  provably not a behaviour change.
+
+- **Fix that worked.** `_stand_at()` now derives both mocks from ONE source (the town's Poké Center
+  door tile, a real walkable story-relevant position), patches `get_player_location` as well as
+  `get_map_data_for_current_position`, and asserts the two describe the same map so it cannot drift
+  apart again. `_stand_down()` restores both. Case 5 re-baselined to `RELOCATE to ROUTE111` with the
+  evidence in a comment, so a future reader can tell "we fixed the test" from "we broke the feature".
+
+- **Process note — what actually caught it.** The instruction was "the acceptance test MUST pass; if
+  it fails, STOP and report; do not adjust the test." Following that literally is what surfaced the
+  bug. Adjusting the expectation to make the feature land would have shipped the right feature and
+  left the mock leak in place, silently certifying every future training change.
+
+- **Prevention rule.** A mock that simulates a state must patch EVERY reader of that state — patch
+  one of two and the test silently exercises the real world. Before trusting a repro's verdict, grep
+  the function under test for all sources of the thing you stubbed.

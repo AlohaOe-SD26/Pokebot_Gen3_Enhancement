@@ -565,37 +565,45 @@ warps (never a hand-written table), with capability gates and — the point of t
 A↔B"** from **"reachable but N hops away (limit M)"**. The oracle itself is proven: ROUTE118 is
 reachable from ROUTE120 at the Winona moment, where tile-level `calculate_path` said it was not.
 
-**‼ SCOPE — KI-24 is fixed for COUNTER-CANDIDATE selection only; it is STILL OPEN for
-TRAINING-AREA selection.** `region_reach` is wired into exactly one caller: `_counter_area_allowed`
-(`story_mode.py`), used by `counter_plan.find_counter_candidates`. The training gate
-`_training_area_allowed` (`story_mode.py:467`, passed as `allow=` to `best_training_area` at
-`:1235`) **still uses tile-level `calculate_path`** and therefore still carries every false
-negative described in KI-24 above — including on Routes 115/118/119/121, the best mid-game bands.
-Any doc or handoff line reading "KI-24 is fixed" without that qualifier is wrong.
+**✅ SCOPE — KI-24 is now fixed for BOTH consumers (2026-07-25).** `region_reach` is wired into
+`_counter_area_allowed` (counter-candidate selection, `counter_plan.find_counter_candidates`) AND,
+as of 2026-07-25, into `_training_area_allowed` (training-area selection, passed as `allow=` to
+`best_training_area`). Tile-level `calculate_path` no longer answers any region-scale question in
+the story bot.
 
-**Switching the training gate too was attempted on 2026-07-25 and is BLOCKED on a test artefact,
-not on the code.** Replacing the region test with
-`region_reach.is_map_reachable(map_enum, max_hops=4)` makes
-`tools/story-dev/repro_fodder_grass.py` fail its 5th decision-table case
-(`L31 team in Fallarbor`: expected `SKIP GRIND`, got `RELOCATE to ROUTE111 L19-22`). Measured on
-`norman_done.ss1`, the new answer is the CORRECT one and the old expectation is a mock leak:
+**The measured effect on the training predicate** (`repro_counter_plan.py`, same Winona-era live
+position, same candidate list, ONLY the predicate changed):
 
-* `repro_fodder_grass._stand_at()` patches only `modules.map.get_map_data_for_current_position`;
-  it does **not** patch `modules.player.get_player_location`, which is what the old
-  `calculate_path` branch actually reads.
-* So the old code never evaluated "standing in Fallarbor" at all — it evaluated the save's REAL
-  position, `(PETALBURG_CITY, (7,6))`, and `calculate_path((PETALBURG_CITY,(7,6)) → ROUTE111(25,55))`
-  raises `PathFindingError`. That, not a judgement about Fallarbor, is where `SKIP GRIND` came from.
-* Asked honestly, both oracles agree Route 111 IS reachable from Fallarbor:
-  `calculate_path(FALLARBOR_TOWN(14,8) → ROUTE111(25,55))` succeeds, and `region_reach` measures it
-  at **2 hops**. `training_areas.py`'s own comment on that entry already says "reachable from
-  Fallarbor".
+| `_training_area_allowed` | reachable flags over the 10 Winona candidates |
+|---|---|
+| before (`calculate_path`) | `[False × 10]` — every candidate rejected; KI-24 in the raw |
+| after (`region_reach`) | `[True × 5, False × 5]` — incl. **Route 118 Electrike: reachable** |
 
-**Decision needed before this can land** (the test must not be silently adjusted): either fix
-`_stand_at()` to patch `get_player_location` as well — the honest repair, since case 5's intent is
-"what would we decide while standing in Fallarbor" — or re-baseline case 5's expectation to
-`RELOCATE to ROUTE111`. Until one is chosen and the test re-proved green, the training gate stays
-on `calculate_path`.
+**How it landed, and the test bug it exposed.** The first attempt FAILED
+`tools/story-dev/repro_fodder_grass.py` case 5 (`L31 team in Fallarbor`: expected `SKIP GRIND`,
+got `RELOCATE to ROUTE111 L19-22`) and was reverted rather than forced. Investigating the failure
+showed the TEST was wrong, not the change — see 08-MISTAKES 2026-07-25 (partial mock). `_stand_at()`
+patched only `modules.map.get_map_data_for_current_position`, while the predicate's `calculate_path`
+branch read `modules.player.get_player_location`, which stayed live. So case 5 had been asserting a
+verdict for a position it never simulated — it was really asking about `(PETALBURG_CITY, (7,6))`.
+
+Proof the re-baseline was a TEST fix and not a behaviour change: with `_stand_at()` repaired and
+`story_mode.py` **untouched**, the ORIGINAL `calculate_path` code also answers
+`RELOCATE to ROUTE111`, and cases 1-4 are unchanged. Three independent sources agree Route 111 is
+reachable from Fallarbor — `calculate_path` succeeds from `(14,7)`, `region_reach` measures 2 hops,
+and `training_areas.py`'s own comment says so.
+
+**⚠ One sibling repro is now RED and is awaiting a ruling — `tools/story-dev/repro_counter_plan.py`
+line 200.** Its PRIMARY assertions all pass. What fails is a self-described non-vacuity scaffold:
+it runs a deliberately WIDE type set through `_training_area_allowed` and asserts the result
+contains at least one `False`, "so both True and False genuinely occur (not vacuous)". With the
+predicate no longer producing false negatives, the wide set now returns `[True × 25]`, so no
+`False` exists to find. **The scaffold was relying on the bug.** It is also no longer needed for
+its stated purpose: it existed because the Winona set was all-`False` (vacuous) under the old
+predicate, and that set is now a genuine `[True × 5, False × 5]` mix on its own. Suggested fix —
+NOT applied unilaterally, because silently adjusting a test is how the case-5 artefact survived
+this long — drop the wide-set non-vacuity pair (lines 199-200) and let the Winona set carry the
+mix, or pick a wide set that still spans an unreachable region.
 
 **‼ But the cost model I assumed is wrong, and the measurement says so.** Measured hops from
 ROUTE120 on the Winona-era save:

@@ -411,9 +411,15 @@
       edges), so any gate not derivable from ROM data reads as UNGATED. This oracle fails
       OPEN where the old one failed CLOSED; that is the right direction for a planner but
       must be grown before it gates anything irreversible.
-      (b) **Only one caller is wired** — `_counter_area_allowed`. `_training_area_allowed`
-      still uses `calculate_path`. The switch was attempted 2026-07-25 and is BLOCKED on a
-      mock leak in `repro_fodder_grass._stand_at()`; read KI-24b before retrying.
+      (b) ~~Only one caller is wired~~ **DONE 2026-07-25 — BOTH callers now use it.**
+      `_training_area_allowed` was switched off `calculate_path`; the Winona candidate list
+      went from `[False × 10]` to `[True × 5, False × 5]` (Route 118 Electrike reachable).
+      Landing it exposed a partial-mock bug in `repro_fodder_grass._stand_at()` that had been
+      giving false confidence to every training-logic change for two days (see 08-MISTAKES).
+      (c) **⚠ `repro_counter_plan.py:200` is RED pending a ruling** — a non-vacuity scaffold
+      asserting a wide type set contains an unreachable entry; the fixed predicate no longer
+      produces one, and the scaffold's stated purpose is already served now that the Winona
+      set is a genuine mix. NOT adjusted unilaterally; see KI-24b for the suggested fix.
 - [ ] #24-edgecost — finer travel cost than a flat 1-hop edge (**DEFERRED**). Uniform
       weighting compresses "same landmass cluster" (1-4 hops) — measured from ROUTE120,
       Lilycove (2) reads as CLOSER than Route 118 (3), the actual answer — because one ROM

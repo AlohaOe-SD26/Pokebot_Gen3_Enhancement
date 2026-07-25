@@ -419,3 +419,64 @@ menu item block until the subprocess finishes.* Rejected: it would freeze the GU
 **Prevention rule.** When a feature request names something the user is already looking at
 ("chained debug reset bots"), build it where they are looking. A functionally-equivalent thing
 somewhere else reads as broken.
+
+## 2026-07-25 — The TRAINING gate switches to `region_reach` too (KI-24 closed on both consumers)
+
+**Decision.** `_training_area_allowed` — the `allow=` predicate `best_training_area` uses to decide
+whether a training area is reachable — now answers the region question with
+`region_reach.is_map_reachable(map_enum, max_hops=_MAX_TRAINING_TRAVEL_LEGS)` instead of tile-level
+`calculate_path`. The counter gate already worked this way; the two are now consistent, and
+`calculate_path` no longer answers any region-scale question in the story bot.
+
+**Why — the failure modes are ASYMMETRIC, and that is the entire argument.** Both oracles are wrong
+sometimes. What matters is what a wrong answer COSTS:
+* A wrong **NO** from `calculate_path` is **invisible and costs a whole run.** It reads the Route
+  118/119/120 dual-elevation bridges as WALLS — it fails even on a same-map Route 119 walk, y=5 to
+  y=135 — so it declares a genuinely-correct training band unreachable. Nothing raises, nothing is
+  logged; the option is simply never proposed and the bot quietly grinds the local fodder patch.
+  That is what produced the ~2,000,000-frame L3-4 grind in front of Norman.
+* A wrong **YES** from `region_reach` costs **one wasted walk**, which navigation then fails
+  RECOVERABLY and loudly. Its `KNOWN_GATES` table holds one hand-verified entry (the two Dewford
+  sea edges), so any capability gate not yet tabled reads as passable — it errs toward yes by
+  construction.
+
+Cheap-and-visible beats invisible-and-fatal. **Residual risk accepted and written into the code
+comment: `KNOWN_GATES` must GROW**, and the hop budget stays small (4 keeps the same-landmass
+cluster, cuts the far-flung).
+
+**Measured effect** (`repro_counter_plan.py`, same live Winona-era position, same candidate list,
+ONLY the predicate swapped):
+
+| `_training_area_allowed` | reachable flags over the 10 Winona candidates |
+|---|---|
+| before (`calculate_path`) | `[False × 10]` — every candidate rejected |
+| after (`region_reach`) | `[True × 5, False × 5]`, incl. **Route 118 Electrike: reachable** |
+
+**Alternatives rejected.**
+1. *Keep `calculate_path`.* Rejected on the measurement above: it returns all-unreachable from a
+   position where the correct answer demonstrably exists, and its wrong answers are the silent kind.
+2. *Require BOTH oracles to agree.* Superficially the "safe" option, and it is the trap. An AND of
+   the two is exactly as restrictive as its most restrictive member, so it re-imports every
+   `calculate_path` false negative — the ~2,000,000-frame grind included — while looking rigorous.
+   Rigour that only ever subtracts candidates is not rigour.
+3. *Keep a same-map `calculate_path` tile check as a "last mile".* Rejected for the same reason at
+   smaller scale: `calculate_path` is unsound even WITHIN one map on the bridge maps. The same-map
+   branch now short-circuits to True (we are already standing there; there is nothing to travel).
+
+**‼ The most useful part of this story: implementing it exposed a bug in the test that had been
+guarding the whole area.** The first attempt failed `repro_fodder_grass.py` case 5 and was
+REVERTED rather than forced. Investigating the failure — instead of adjusting the expectation —
+showed that `_stand_at()` patched only one of the two position readers, so case 5 had been
+asserting a verdict for a position it never simulated (full write-up in 08-MISTAKES). That guard
+had been the regression gate for every training-logic change of the preceding two days, including
+the frames-based budget gate and the fodder-skip itself.
+
+The order that produced this — *refuse to adjust the test → investigate why it disagrees → find the
+test is wrong → fix the test → prove the fix alone is green → only then land the feature* — is the
+process lesson worth keeping. Adjusting the expectation at step one would have shipped the right
+feature and left a mock leak silently certifying future work.
+
+**Verification.** `repro_fodder_grass.py` 5/5 green; `repro_region_reach`, `repro_counter_wiring`,
+`repro_boss_plateau` green. `repro_counter_plan` is RED on a non-vacuity scaffold (line 200) that
+was relying on the old predicate's false negatives to supply a `False`; left unadjusted pending a
+ruling, documented in KI-24b.
