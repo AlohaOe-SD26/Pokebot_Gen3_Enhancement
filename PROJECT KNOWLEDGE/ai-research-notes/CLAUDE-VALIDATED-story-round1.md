@@ -69,7 +69,7 @@ ruled from recall. Line numbers are from the file as fetched on 2026-07-25 (poke
    `switch` default **and B-press** all `goto` straight back to the same prompt — no counter, no
    timeout, no state change. Mr. Briney's two boat menus default to **decline** and **cancel**
    respectively. I swept all 49 `multichoice` sites in `data/maps/`; the complete critical-path
-   table with correct indices is **§3i**. Neither note mentions any of this.
+   table with correct indices is **§3h**. Neither note mentions any of this.
 10. **On s8, both generations invented permanence that does not exist — v1 five times, v2 three
     times.** The Master Ball, TM Thief, TM Earthquake, every Magma Hideout item, the unchosen fossil
     and the S.S. Tidal content are all **NOT missable**; the things that genuinely vanish are the
@@ -206,7 +206,7 @@ The full mechanical audit is §2. Direct disagreements worth calling out:
 | 10.1 | flag for clearing Seafloor Cavern | `FLAG_DEFEATED_ARCHIE_IN_SEAFLOOR_CAVERN` | `FLAG_DEFEATED_SEAFLOOR_CAVERN`, hedged "might be `FLAG_KYOGRE_ESCAPED_SEAFLOOR_CAVERN`" | **CONFIRMED-v2's hedge.** Real name: `FLAG_KYOGRE_ESCAPED_SEAFLOOR_CAVERN` (id 129) | `event_flags/emerald.txt:129` |
 | 10.2 | flag for the stolen submarine | `FLAG_TEAM_AQUA_STEAL_SUBMARINE` | not named | **BOTH-WRONG/absent.** Real: `FLAG_TEAM_AQUA_ESCAPED_IN_SUBMARINE` (112) | `event_flags/emerald.txt:112` |
 | 10.3 | Mt. Chimney Maxie flag | `FLAG_DEFEATED_MAGMA_ON_MT_CHIMNEY` | `FLAG_DEFEATED_EVIL_TEAM_MT_CHIMNEY` | **CONFIRMED-v2** (id 139) | `event_flags/emerald.txt:139` |
-| 10.4 | Elite Four progress var | `VAR_PORTE_E4_STATE` (marked UNSURE), "controls which E4 room you can enter, **resets on loss**" | not named | **PHANTOM name.** Real: `VAR_ELITE_4_STATE` (156). The "resets on loss" behaviour is **UNRESOLVED** (I did not read the E4 corridor scripts) — but a related and more dangerous fact IS settled: `FLAG_DEFEATED_ELITE_4_{SIDNEY,PHOEBE,GLACIA,DRAKE}` are **cleared on entering the Hall of Fame**, so they can never mean "the E4 is beaten" (§3h) | `event_vars/emerald.txt:156`; `data/event_scripts.s:628-632` `EverGrandeCity_HallOfFame_EventScript_ResetEliteFour` |
+| 10.4 | Elite Four progress var | `VAR_PORTE_E4_STATE` (marked UNSURE), "controls which E4 room you can enter, **resets on loss**" | not named | **PHANTOM name.** Real: `VAR_ELITE_4_STATE` (156). The "resets on loss" behaviour is **UNRESOLVED** (I did not read the E4 corridor scripts) — but a related and more dangerous fact IS settled: `FLAG_DEFEATED_ELITE_4_{SIDNEY,PHOEBE,GLACIA,DRAKE}` are **cleared on entering the Hall of Fame**, so they can never mean "the E4 is beaten" (§3i) | `event_vars/emerald.txt:156`; `data/event_scripts.s:628-632` `EverGrandeCity_HallOfFame_EventScript_ResetEliteFour` |
 | 10.5 | champion flag | `FLAG_DEFEATED_CHAMPION` + `FLAG_SYS_GAME_CLEAR` | `FLAG_SYS_GAME_CLEAR` | **CONFIRMED-v2.** `FLAG_DEFEATED_CHAMPION` is a PHANTOM; the real pair is `FLAG_SYS_GAME_CLEAR` (**2148**) and `FLAG_IS_CHAMPION` (**2175**) | `event_flags/emerald.txt:1034,1061` |
 | 10.6 | Sootopolis calm flag | `FLAG_LEGENDARIES_IN_SOOTOPOLIS_CALMED` | not named | **PHANTOM, and inverted in meaning.** The real flag is `FLAG_LEGENDARIES_IN_SOOTOPOLIS` (83) and it is **cleared** when the crisis ends (`SootopolisCity/scripts.inc:513, 560` — `clearflag FLAG_LEGENDARIES_IN_SOOTOPOLIS`). Gating on "calmed == set" would read False forever | `event_flags/emerald.txt:83`; `SootopolisCity/scripts.inc` |
 | 10.7 | Rayquaza awakened flag | `FLAG_WOKE_UP_RAYQUAZA` | not named | **PHANTOM.** Use `VAR_SKY_PILLAR_STATE` (≥1) or `VAR_SKY_PILLAR_RAYQUAZA_CRY_DONE`. `FLAG_DEFEATED_RAYQUAZA` (448) exists but means the post-game battle was resolved | `event_flags/emerald.txt`; `event_vars/emerald.txt:202,215` |
@@ -438,7 +438,7 @@ Two consequences a bot must encode:
   **state-window gift, not an idempotent one**, and any future save-state or warp shortcut that
   skips Steven's house would destroy it silently.
 
-### 3i. ‼ EVERY `multichoice` ON THE CRITICAL PATH (NEW — complete sweep)
+### 3h. ‼ EVERY `multichoice` ON THE CRITICAL PATH (NEW — complete sweep)
 
 `gh api "search/code?q=multichoice+repo:pret/pokeemerald+path:data/maps&per_page=100"` → **49 files**.
 After excluding Battle Frontier / Battle Tents / Contest lobbies / Dept. Store / Game Corner /
@@ -467,7 +467,7 @@ is a `multichoice` in `SlateportCity_Harbor/scripts.inc`, and `Route113_GlassWor
 cursor to a known index, and bound the interaction with a distinct failure mode — because the one
 menu on the mandatory path that cannot be escaped is also the one where the default is wrong.
 
-### 3h. ‼ COMPLETE CENSUS OF NON-MONOTONIC FLAGS (NEW — absent from both generations)
+### 3i. ‼ COMPLETE CENSUS OF NON-MONOTONIC FLAGS (NEW — absent from both generations)
 
 `gh api "search/code?q=%22clearflag+FLAG_DEFEATED%22+repo:pret/pokeemerald"` → **3 files**;
 `…FLAG_RECEIVED…` → **2 files**; `…FLAG_MET…` → **0**. That is the whole population, so this list
@@ -581,7 +581,7 @@ Read directly from each `data/maps/<Map>/map.json` `object_events`. `B`=`PUSHABL
 * "Norman must be beaten to get Fly" / "a Weather-Institute flag gates Fly" — the gate is
   `VAR_ROUTE119_STATE == 0` on a coord trigger.
 
-**Names that EXIST but must not be used as milestones** (they are cleared — full list in §3h)
+**Names that EXIST but must not be used as milestones** (they are cleared — full list in §3i)
 * `FLAG_DEFEATED_MAGMA_SPACE_CENTER` — v2 offers it as the Dive gate; it is cleared by the rival's
   Rayquaza PokéNav call.
 * `FLAG_DEFEATED_ELITE_4_{SIDNEY,PHOEBE,GLACIA,DRAKE}` — wiped at the Hall of Fame.
@@ -689,10 +689,10 @@ re-entry question at the metatile-behaviour level.
 **Not grounded — still LEADS, do not build on them:**
 * `s1`–`s6` (Mt. Pyre, the two hideouts, Routes 120-123, Seafloor Cavern/Cave of Origin story,
   Gyms 7-8 battle specifics, Victory Road/E4/Champion rosters) — out of scope this round. Note
-  though that §3g/§3f/§3i already cover the Seafloor Cavern climax, the Sootopolis state machine and
+  though that §3g/§3f/§3h already cover the Seafloor Cavern climax, the Sootopolis state machine and
   the Cave of Origin question, which is most of what `s4` would be relied on for.
 *(The `multichoice` sweep was completed during this session — all 49 sites enumerated, the four
-critical-path menus resolved with their correct indices, in §3i.)*
+critical-path menus resolved with their correct indices, in §3h.)*
 * s9's Trick House per-puzzle mechanics and Desert Ruins braille sequence — I only invalidated the
   var names, not the procedures.
 * s10's `VAR_LITTLEROOT_TOWN_STATE` and early-game state machines — the two generations contradict
@@ -700,7 +700,7 @@ critical-path menus resolved with their correct indices, in §3i.)*
 * Whether `VAR_TEMP_*` are cleared on the Sootopolis-Gym 1F→B1F fall specifically (I know they are
   temp vars and that `OnTransition` re-seeds `VAR_ICE_STEP_COUNT` to 1, which is enough to
   conclude the puzzle restarts, but I did not read the temp-var clear site).
-*(The "are other flags non-monotonic?" follow-up was closed during this session — see §3h, which is
+*(The "are other flags non-monotonic?" follow-up was closed during this session — see §3i, which is
 an exhaustive census for the `DEFEATED_`/`RECEIVED_`/`MET_` families.)*
 
 **What blocked me:** nothing hard. `gh api search/code` is rate-limited (~1 req/2 s) so existence

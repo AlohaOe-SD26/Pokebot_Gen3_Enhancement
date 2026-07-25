@@ -388,3 +388,46 @@ Natural Cure, and it never switches while holding a super-effective move — so 
 reliable than the notes implied. Whiteout money is plainly `money / 2`
 (`GetWhiteoutMoneyPenalty` does not exist). Shedinja does **not** need a spare Poké Ball, only a
 free party slot.
+
+## KI-21 — Decomp-verified facts that will otherwise cost the NEXT build phase (2026-07-25)
+
+From `ai-research-notes/CLAUDE-VALIDATED-story-round1.md` (~65 claims ruled, every one citing a
+fetched decomp file). These are the ones that would have produced mystery hangs.
+
+**‼ 1. EVENT FLAGS ARE NOT ALL MONOTONIC — our resume gating assumes they are.**
+`StoryMode._play` gates every segment on `_done("FLAG_NAME")`, which silently assumes a set flag
+stays set. **It does not always.** Verified non-monotonic: `FLAG_DEFEATED_MAGMA_SPACE_CENTER` (the
+rival's PokéNav call `clearflag`s it), the four Elite-Four member flags (wiped at the Hall of
+Fame), the event legendaries, Shoal Cave (daily), the fan-club TM (weekly).
+**New prevention rule: passing `audit_flag_names.py` proves a name is READABLE, not MONOTONIC.**
+Any segment gated on one of those can re-run or be skipped wrongly. Audit the Ch14+ gates against
+this list before building them. (Reassuring: `audit_flag_names.py` currently reports clean, so no
+phantom name has leaked into shipped code.)
+
+**‼ 2. FOUR OF EIGHT HMs ARE GIVEN BY A MAP-ENTRY `ON_FRAME_TABLE` TRIGGER, NOT BY TALKING.**
+Surf, Strength and Dive fire on entering the map; **Fly is a coord trigger at ROUTE119 (25,31)/
+(26,31) that starts `trainerbattle_no_intro` instantly.** Both Gemini generations said "talk to
+NPC X" — **a bot that walks up and presses A waits forever.** Our code already handles the Fly
+coord trigger (found the hard way in an earlier session), which is a good consistency check on
+this ruling.
+
+**‼ 3. A MANDATORY `multichoice` MENU LOOPS FOREVER ON THE WRONG ANSWER.**
+`CaveOfOrigin_B1F`: **only index 2 ("Sky Pillar") advances.** Indices 0/1/3, the switch default
+AND a B-press all `goto` back to the same prompt — **no counter, no timeout, no escape.** Three of
+the four mandatory critical-path multichoice menus default to the WRONG option. All 49
+`multichoice` sites were swept and the critical four tabled with correct indices — read that table
+before building Ch14+, because this is a guaranteed hang otherwise, and it would look exactly like
+the phantom-script wedges we already chased for days.
+
+**4. HM07 Waterfall needs BOTH Maxie AND Archie** talked to at
+`VAR_SOOTOPOLIS_CITY_STATE == 5` — the same state unlocks the Gym and every house door. Neither
+note mentioned it. `VAR_SOOTOPOLIS_CITY_STATE` has **seven** states, not five; the complete
+machine with every setter is in the validated file.
+
+**5. "Missable" was largely invented.** Master Ball, TM Thief, TM Earthquake, the Magma Hideout
+items, the unchosen fossil and the S.S. Tidal are **NOT** missable — building interrupts for them
+is wasted work. What genuinely vanishes: **Aqua Hideout grunts at Badge 7**, **Magma grunts at the
+Groudon cutscene**, and **each Trick House puzzle the moment it is cleared**.
+
+**6. `src/field_move.c` does not exist** and ten cited C functions have zero hits. The real HM gate
+is `party_menu.c:3725`. Treat any note's file path as a claim, not a location.
