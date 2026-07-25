@@ -3036,3 +3036,29 @@ run would write unboundedly many snapshots.
 **Prevention rule:** a diagnostic artefact written to a FIXED path is worthless the moment two
 runs exist. Name captures after the run that produced them, and cap the count rather than the
 occurrence.
+
+## 2026-07-25 — ENDLESS RESET dropped to 1× speed after the first run (#24-endlessruns-gui)
+
+**User report:** "on its second run it was at normal speed, it should have been set to unlimited".
+
+**Root cause.** A derail calls `context.set_manual_mode()`, whose `enable_video_and_slow_down`
+default sets **`emulation_speed = 1` AND `video = True`** (`modules/context.py:128-139`). That is
+right for a human taking over, but it silently throttles the remainder of an unattended batch. My
+loop restored `bot_mode` after each run and **not** the speed — so run 1 went unthrottled and
+every run after it crawled at 1×, roughly a 10× slowdown on an overnight batch.
+
+Note `emulator.reset()` was innocent — it only calls `_core.reset()` and never touches the
+throttle. The slowdown came from the derail path, not the reset.
+
+**Fix, in two halves:**
+* `StoryEndlessResetMode` now captures `emulation_speed`/`video` when the batch starts and
+  re-applies them after **every** run — restoring what the batch began with rather than forcing a
+  value the user did not choose.
+* The GUI launcher sets **unthrottled + video off** at the moment the batch is requested, because
+  that is the documented intent ("start a fresh session at unthrottled speed") and the mode itself
+  only preserves. Video off is the single biggest speed win and nobody watches an overnight batch
+  frame by frame. The confirmation dialog now says all of this.
+
+**Prevention rule:** when a loop restores state after an iteration, enumerate EVERYTHING the
+failure path can change — not just the obvious field. `set_manual_mode` alters mode, speed, video
+AND held buttons; restoring one of four looked like it worked because run 1 was always correct.

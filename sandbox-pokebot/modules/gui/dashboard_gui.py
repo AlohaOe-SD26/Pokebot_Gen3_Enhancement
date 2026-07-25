@@ -3475,14 +3475,27 @@ class DashboardScreen:
         except Exception:
             pass
 
+        # ‼ GO UNTHROTTLED HERE (user request: "start a fresh session at unthrottled speed").
+        # The mode itself only PRESERVES whatever speed the batch begins with — it deliberately
+        # does not force a value the user did not choose — so the intent has to be applied at
+        # the moment the batch is requested. Video off as well: it is the single biggest drag on
+        # emulation speed and nobody is watching an overnight batch frame by frame.
+        try:
+            context.emulation_speed = 0  # 0 == unthrottled
+            context.video = False
+        except Exception:
+            pass
+
         context.bot_mode = mode_name
         self._log_event(f"Endless reset batch: {'infinite' if count == 0 else count} run(s)")
         tkinter.messagebox.showinfo(
             "Endless Debug-Reset Runs",
             f"Bot mode set to “{mode_name}” for "
             f"{'an INFINITE batch' if count == 0 else f'{count} runs'}.\n\n"
-            f"It hard-resets and replays the story back to back, with debug logging on. Each "
-            f"run's outcome is printed to the console as it ends.\n\n"
+            f"It hard-resets and replays the story back to back, UNTHROTTLED with video off and "
+            f"debug logging on. Each run's outcome is printed to the console as it ends.\n\n"
+            f"Speed and video are re-applied after every run, because a derail would otherwise "
+            f"drop the rest of the batch to 1x.\n\n"
             f"Switch the bot mode to Manual to stop the batch.",
             parent=self.window,
         )

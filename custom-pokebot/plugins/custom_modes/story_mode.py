@@ -2406,6 +2406,29 @@ class StoryEndlessResetMode(StoryDebugResetMode):
         completed = 0
         outcomes: list[str] = []
 
+        # ‼ CAPTURE AND RE-APPLY THE SPEED/VIDEO SETTINGS EVERY RUN (user report 2026-07-25:
+        # "on its second run it was at normal speed, it should have been set to unlimited").
+        # A derail calls `context.set_manual_mode()`, whose `enable_video_and_slow_down` default
+        # sets `emulation_speed = 1` AND `video = True` (modules/context.py:128-139) — that is
+        # correct for a human taking over, but it silently throttles the rest of an unattended
+        # batch. The first version of this loop restored `bot_mode` and not the speed, so run 1
+        # ran unthrottled and every run after it crawled at 1x. Remember what the batch STARTED
+        # with and restore exactly that, rather than forcing a value the user did not choose.
+        try:
+            batch_speed = context.emulation_speed
+            batch_video = context.video
+        except Exception:
+            batch_speed, batch_video = 0, False
+
+        def _restore_speed() -> None:
+            try:
+                if context.emulation_speed != batch_speed:
+                    context.emulation_speed = batch_speed
+                if context.video != batch_video:
+                    context.video = batch_video
+            except Exception:
+                pass
+
         while target == 0 or completed < target:
             completed += 1
             label = f"{completed}/{'infinite' if target == 0 else target}"
@@ -2427,12 +2450,15 @@ class StoryEndlessResetMode(StoryDebugResetMode):
             console.print(f"[cyan]=== ENDLESS RESET: run {label} -> {outcome} ({frames:,} frames) ===[/]")
 
             # A derail deep inside StoryMode can flip us to Manual; restore ourselves or the
-            # next iteration runs under the wrong mode (or the batch just stops).
+            # next iteration runs under the wrong mode (or the batch just stops). Restore the
+            # SPEED too — set_manual_mode() drops to 1x and turns video on, which is right for a
+            # human but throttles an unattended batch for every remaining run.
             try:
                 if context.bot_mode != self.name():
                     context.bot_mode = self.name()
             except Exception:
                 pass
+            _restore_speed()
 
         console.print("[bold green]=== ENDLESS RESET: batch complete ===[/]")
         for line in outcomes:
