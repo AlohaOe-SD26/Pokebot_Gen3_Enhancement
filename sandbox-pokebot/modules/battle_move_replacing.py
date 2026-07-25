@@ -270,15 +270,44 @@ def handle_move_replacement_dialogue(strategy: BattleStrategy) -> Generator:
             # cleanly (~430 frames, proven).
             if move_to_forget in (0, 1, 2, 3):
                 try:
-                    _slot = get_party()[party_index].moves[move_to_forget]
-                    _m = _slot.move if _slot is not None else None
-                    if _m is not None and _m.tm_hm is not None and _m.tm_hm.name.startswith("HM"):
-                        context.message = (
-                            f"{_m.name} is an HM and cannot be forgotten — declining the new move."
+                    _mv = get_party()[party_index].moves
+
+                    def _is_hm(_i):
+                        _s = _mv[_i]
+                        _m = _s.move if _s is not None else None
+                        return _m is not None and _m.tm_hm is not None and _m.tm_hm.name.startswith("HM")
+
+                    if _is_hm(move_to_forget):
+                        # ‼ RE-PICK, DON'T JUST DECLINE (2026-07-24, user's design). The
+                        # first cut of this veto turned an HM pick into DECLINE, which is
+                        # safe but stunts the team — the mon keeps a weak move forever. HM
+                        # slots are simply INELIGIBLE; among what remains, apply the same
+                        # expendability ranking used by `teach_hm_move` (a zero-power move
+                        # first, else the weakest) so the mon still gives up its least
+                        # useful REAL move. Only when every slot is an HM is declining the
+                        # correct — and only possible — answer.
+                        _elig = [i for i in range(len(_mv)) if _mv[i] is not None and not _is_hm(i)]
+                        _zero = [i for i in _elig if _mv[i].move.base_power == 0]
+                        _pick = (
+                            _zero[0]
+                            if _zero
+                            else (min(_elig, key=lambda i: _mv[i].move.base_power) if _elig else 4)
                         )
-                        move_to_forget = 4
+                        _hm_name = _mv[move_to_forget].move.name
+                        if _pick == 4:
+                            context.message = (
+                                f"Every move is an HM — declining {move_to_learn.name}."
+                                if move_to_learn is not None
+                                else "Every move is an HM — declining the new move."
+                            )
+                        else:
+                            context.message = (
+                                f"{_hm_name} is an HM and cannot be forgotten — "
+                                f"replacing {_mv[_pick].move.name} instead."
+                            )
+                        move_to_forget = _pick
                 except Exception:
-                    pass  # can't read the slot — fall through to the normal answer
+                    pass  # can't read the slots — fall through to the normal answer
             # YES (A) to open the move-select and learn; NO (B) to decline. The
             # cursor defaults to Yes. Pressing every frame is safe: extra A presses
             # during the open animation are ignored until branch (1) takes over.

@@ -4055,13 +4055,47 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
 
     if replace_slot is None:
         moves = _mon().moves
-        replace_slot = 0
-        zero = [i for i, l in enumerate(moves) if l is not None and l.move.base_power == 0]
-        if zero:
-            replace_slot = zero[0]
+        # ‼ HM SLOTS ARE NOT ELIGIBLE (2026-07-24, user's design — and this picker is the
+        # ROOT CAUSE of their original Surf/Rock-Smash report, which I could not reproduce
+        # from the level-up path all day because it was never the level-up path).
+        # An HM move CANNOT be forgotten in Gen 3 (Move Deleter only), and this "most
+        # expendable slot" heuristic walked straight into them:
+        #   * FLASH has base_power 0, so the zero-power rule picked it FIRST;
+        #   * ROCK SMASH has base_power 20 — the lowest of any HM and lower than nearly
+        #     any real attacking move — so the lowest-power rule picked it.
+        # The game then refuses and the teach flow loops. Exclude every HM from
+        # eligibility, then apply the SAME expendability ranking to what remains
+        # (zero-power first, then weakest), so the mon still gives up its least useful
+        # real move rather than declining to learn anything.
+        def _is_hm_slot(learned) -> bool:
+            try:
+                m = learned.move
+                return m.tm_hm is not None and m.tm_hm.name.startswith("HM")
+            except Exception:
+                return False
+
+        eligible = [i for i, l in enumerate(moves) if l is not None and not _is_hm_slot(l)]
+        empty = [i for i, l in enumerate(moves) if l is None]
+        if empty:
+            # Fewer than 4 moves: the game just learns it, no replacement needed.
+            replace_slot = empty[0]
+        elif not eligible:
+            # Every slot is an HM (e.g. Surf/Cut/Strength/Rock Smash). NOTHING can be
+            # replaced — the game will refuse whatever we pick, so don't start a teach we
+            # provably cannot finish. Fail loudly for the caller's recovery instead of
+            # feeding the dialogue a doomed choice.
+            raise BotModeError(
+                f"teach_hm_move: {_mon().species.name} knows only HM moves "
+                f"({[l.move.name for l in moves if l is not None]}) — none can be "
+                f"forgotten, so {target_move.name} cannot be taught to it. "
+                f"Pick a different learner."
+            )
         else:
-            powers = [(l.move.base_power if l is not None else 999) for l in moves]
-            replace_slot = powers.index(min(powers))
+            zero = [i for i in eligible if moves[i].move.base_power == 0]
+            if zero:
+                replace_slot = zero[0]
+            else:
+                replace_slot = min(eligible, key=lambda i: moves[i].move.base_power)
 
     context.message = f"Story: teaching {target_move.name} to {_mon().species.name}..."
     # ‼ NORMALIZE FIRST (user's Surf report + ch13_run1 f9931): the caller may hand us a
@@ -5639,8 +5673,20 @@ def do_fortree_gym() -> Generator:
             # Sealed by a turnstile (or a sight-line battle fired). Ride whatever is
             # active, then PUSH toward the goal: step into the tile ahead — walking
             # into a rotating door spins it and the live grid re-shapes.
-            yield from _ride_out_scripted_scene("B")
-            yield from wait_until_truly_controllable()
+            #
+            # ‼ ONLY RIDE OUT A SCENE THAT EXISTS (2026-07-24 — this line ended the
+            # DEEPEST run this project has produced: treecko reached the gym interior
+            # with 0 derails and then wedged here, `scripts=[]`, waiting for a cutscene
+            # that was never going to start). The overwhelmingly COMMON reason the
+            # navigate above fails in this gym is not a scene at all — it is the
+            # rotating doors reshaping the walkable grid, which the static planner
+            # cannot see. Riding out nothing then burns the rider's full budget every
+            # round and starves the push that actually solves it. Same class as
+            # `_navigate_riding_out`'s hopeless-retry fix: only ride when there is
+            # something to ride.
+            if get_global_script_context().is_active or not player_avatar_is_controllable():
+                yield from _ride_out_scripted_scene("B")
+                yield from wait_until_truly_controllable()
             x, y = get_player_avatar().local_coordinates
             push = "Up" if y > 3 else ("Left" if x > 15 else "Right")
             for _ in range(24):
