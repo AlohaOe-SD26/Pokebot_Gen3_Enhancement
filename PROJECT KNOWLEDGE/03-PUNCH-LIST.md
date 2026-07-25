@@ -606,3 +606,33 @@
 - [ ] #24-healverify — re-verify the Surf-gated heal-centre pairings (Routes 115/118/119/121)
       from a POST-Surf checkpoint; repro_fodder_grass.py currently marks them PENDING because
       no pre-Surf save can path a water route. Route 119 (21,109) reached NO Poké Center.
+
+### #24-endlessruns — ENDLESS DEBUG-RESET RUNS (user request, 2026-07-25)
+
+**CLI form: DONE** — `tools/story-dev/endless_runs.py`, smoke-tested.
+```
+py -3.12 tools/story-dev/endless_runs.py                 # 10 runs, treecko
+py -3.12 tools/story-dev/endless_runs.py --count 0       # INFINITE (Ctrl-C)
+py -3.12 tools/story-dev/endless_runs.py --count 25 --starters all
+```
+Back-to-back FRESH runs, unthrottled, debug logging on, appending one row per run to
+`tools/story-dev/endless-runs/LEDGER.md` (depth reached · outcome · frames · wall-clock · log).
+
+**Failsafes — each exists because of a failure actually observed 2026-07-24/25:**
+* `--run-timeout` (wall clock, default 5400s): the harness's watchdogs are FRAME-based, so a
+  wedged emulator process advances no counter and fires nothing. Only an external wall-clock
+  bound catches that.
+* `--stall-timeout` (default 600s): kills a run whose LOG STOPS GROWING. A run can burn frames
+  forever while making zero progress — the 2,000,000-frame fodder grind looked alive throughout.
+* **A fresh profile per run, metadata COPIED from a template.** "FRESH boot from title" still
+  loads the profile's battery save, which once produced three worthless runs that reported as
+  fresh while starting in Fortree with a L39 party. ‼ metadata.yml must be COPIED, not
+  synthesised — it carries the ROM reference, and a hand-written one makes every run die
+  instantly with "Could not find ROM ``".
+* **One bad run never aborts the batch** — every outcome is recorded and the loop continues.
+* **Zero frames is never reported as success.** The first cut scraped a 5-second ROM-not-found
+  death as `clean-finish`; an overnight batch of those would have read as green.
+
+**STILL TO DO — `#24-endlessruns-gui`:** the Play-section dropdown (type a count, default 10,
+`0` = infinite). It must CALL this module's logic, not reimplement it. Lands in the GUI bundle
+(`dashboard_gui.py`), which is currently UNPROMOTED to custom — so sandbox-first.
