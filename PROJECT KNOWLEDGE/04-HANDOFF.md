@@ -591,7 +591,61 @@ Rod. Save left md5-identical after every test.
 flavor all done, Phases 1/2/3a). `itemdex_data.json` = core (309 items);
 gaps = map_locations/mart/pickup/historical.
 
-## ‼ YOU ARE HERE — 2026-07-25, overnight autonomous research stretch
+## ‼ YOU ARE HERE — 2026-07-25 (late), the COUNTER system
+
+**Everything committed and pushed. Tree clean.** The session that produced this was very long;
+prefer these files over any transcript.
+
+### The headline: Badge 6 from a COLD START
+A fresh title-screen run reached the **end of built content** (f2.48M, 38 maps, **0 derails**).
+The Fortree rotating-gate puzzle is solved live (`modules/story/fortree_gates.py`, a port of the
+decomp's `src/rotating_gate.c`, validated **4/4** against the emulator). Next unbuilt chapters:
+**Mt. Pyre, the Magma hideout.**
+
+### The problem now being solved — `#24-counters` (KI-23)
+The user's overnight logs: **198 Winona attempts, 41 losses, 41 whiteouts, never won**, with a
+party FAR ABOVE her levels (Sceptile L42 vs her L29-33). It lost on TYPES, not levels — Sceptile
+is resisted by Flying, Ninjask is itself part Flying, nothing was Electric/Rock/Ice.
+**Boss-as-training-vehicle cannot converge without a type answer, and levelling does not help.**
+
+Four pieces, each independently PROVEN, being connected in this order:
+| piece | file | state |
+|---|---|---|
+| detect non-convergence | `story_mode._boss_plan_is_hopeless` | done; Winona now goes through `_prepare_for_fight` (she never did before — the guard could not fire on the one boss that motivated it) |
+| identify needed types | same | done; computed from the real type chart, not a table |
+| find catch candidates | `modules/story/counter_plan.py` | done; over the whole-game encounter index |
+| region reachability | `modules/story/region_reach.py` | done; **KI-24 fixed** |
+| wire them together | — | IN PROGRESS at session end |
+| execute (travel/catch/train) | — | NOT STARTED |
+
+### Three traps a future session must not re-walk
+1. **`calculate_path` is unsound at REGION scale** (KI-24). It reads the Route 118/119/120
+   dual-elevation bridges as walls, so it reported Route 118 — the real Winona answer — as
+   unreachable, and it fails even on a same-map Route 119 walk. Use `region_reach`, not
+   `_training_area_allowed`, for "can I get to that map".
+2. **Hop count is a FILTER, not a RANK** (KI-24b). Measured from ROUTE120: Fortree 1, Route119 2,
+   **Lilycove 2**, Route118 3, Mossdeep 4, Pacifidlog 10 — Lilycove is *closer* than the answer,
+   because one connection can span a whole sea route. Use `max_hops=4` as a sanity bound and let
+   `counter_plan`'s own criteria rank.
+3. **Event flags are not all monotonic** (KI-21) and **whiteout wipes the Elite Four flags**
+   (KI-22). `_done()`-style resume gating assumes flags stick; for Ch16 that is false.
+
+### Research: five `CLAUDE-VALIDATED-*` files, ~175 claims grounded in the real decomp
+Indexed in `ai-research-notes/00-READ-THIS-FIRST.md`. **Gemini notes are LEADS ONLY** — a Claude
+subagent with tool access is the final word (`CLAUDE.md`). Best grounding method found: a local
+sparse clone of pokeemerald (~44 MB) — it makes ABSENCE claims checkable, which per-file API
+fetches cannot do.
+
+### Top open items
+1. **`#24-movelearn-recovery`** — the move-learn `BotModeError` is raised inside the battle
+   handler, OUTSIDE StoryMode's derail-recovery scope, so a stall kills the run. **Killed 2 of 5
+   cold-start runs.** Now reproducible: per-run stall snapshots land in `saves/stalls/`.
+2. **`#24-whiteout`** — attrition is the dominant cost (the SUCCESSFUL run still took 80).
+3. **`#24-npcheal`** — re-pair Route 111 training to `ROUTE111_OLD_LADYS_REST_STOP` (decomp-cited
+   full ungated repeatable heal, 96 steps vs 213 to Fallarbor). Needs a heal-at-NPC helper.
+4. `#24-edgecost`, `#24-regionreach` gate table, KI-18 live confirmation.
+
+## Earlier — 2026-07-25, overnight autonomous research stretch
 
 **State: everything committed and pushed. Working tree clean apart from gitignored run output.**
 The user is running `Story (ENDLESS RESET)` overnight on their own machine and will bring the logs
