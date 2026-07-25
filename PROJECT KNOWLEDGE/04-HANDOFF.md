@@ -484,7 +484,15 @@ Gen-3 Pokémon via libmgba). Layout (details in CLAUDE.md "Project rules"):
 - `install.py` (repo root) = custom installer; `install_sandbox.py` = sandbox.
 - `Pokemon_Emerald_AI_Notes.md` — transfer notes for the sibling AI project.
 
-## Current state (what's WHERE)
+## HISTORICAL — what was WHERE as of 2026-07-21 (‼ NOT current state)
+
+> **‼ Read `## ‼ YOU ARE HERE — 2026-07-25 (late), the COUNTER system` below for the
+> CURRENT state.** Everything in this section is a snapshot from **2026-07-21** and is
+> now roughly eight chapters stale — it ends at "Frontier: PokéNav + tutorial done",
+> whereas the bot now reaches **Badge 6 (Winona), the end of built content**. It is kept
+> because the per-feature promotion history and the Rustboro-era atlas notes are still
+> useful; do not read any sentence in it as describing today.
+
 ### ⭐ PROMOTED to custom (production) 2026-07-21 — commit `a9553ee4`
 This session's Story-mode work is now in `custom-pokebot`: matured defeat/whiteout
 recovery (no Manual / no save reloads; resumable Segment 1), the Oldale heal-loop fix,
@@ -670,9 +678,16 @@ in the morning. I was told to proceed autonomously on RESEARCH/DOCUMENTATION unt
 `PROJECT KNOWLEDGE/ai-research-notes/` holds ~57 Gemini notes. **Read
 `ai-research-notes/00-READ-THIS-FIRST.md` before using ANY of it.** Findings that matter:
 * Notes are LEADS. A Gemini pass may never be the final word on a fact code depends on.
-* Only `CLAUDE-VALIDATED-*.md` files are grounded in the real decomp (via
-  `gh api repos/pret/pokeemerald/contents/<path>`). Two exist so far: items round 1 (9 claims)
-  and concepts round 1 (**51 claims: 30 confirmed, 15 refuted, 6 unresolved**).
+* Only `CLAUDE-VALIDATED-*.md` files are grounded in the real decomp. **FIVE exist**
+  (~175 claims total): `items-round1` (9 claims), `concepts-round1`
+  (**51 claims: 30 confirmed, 15 refuted, 6 unresolved**), `concepts-round2`,
+  `concepts-round3`, `story-round1`.
+* ‼ **SUPERSEDED grounding method.** Round 1 used per-file API fetches
+  (`gh api repos/pret/pokeemerald/contents/<path>`). **Use a local sparse clone of
+  pokeemerald (~44 MB) instead** — it is the default now because it makes ABSENCE
+  claims checkable (you can grep the whole tree for "this symbol does not exist"),
+  which a per-file fetch fundamentally cannot do. The `gh api` route still works for
+  a single known path, but do not start a validation round with it.
 * **Stacking same-model passes does NOT converge on truth.** The adversarial critique invented a
   correction to a claim that was already right; the adjudicator then claimed ~100% confidence
   while describing recall as decomp verification.
@@ -1131,15 +1146,29 @@ Pokébot-specific one).
    record-mix swarm with a 2nd cart) — filed unobtainable; confirm.
 
 ## Next steps (in order)
+
+**`#24` (the story auto-player) is the ONLY active work.** Everything else below is
+parked and should not be started without the user asking for it.
+
 1. DAILY upstream check at session start (CLAUDE.md ritual; last 2026-07-19).
-2. On user "promote": merge sandbox→custom carefully + run the independent
-   adversarial sweep (see debt below) + live-launch check.
-3. Full #41 finish: wire `living_dex_mode` target selection to
-   `obtainability.plan_for` (route gift/static/roamer to the reset modes,
-   surface trade/event/unobtainable) + an auto-evolve helper.
-4. Dex tabs #34/#35 once the 4 decisions land.
-5. Remaining first wave: #27 battery-aware (Ally), #28 mobile remote;
-   then #42-hard (HM-gated map reachability), #24 story auto-player (+#45).
+2. **`#24-movelearn-recovery`** — the move-learn `BotModeError` is raised inside the
+   battle handler, OUTSIDE StoryMode's derail-recovery scope, so a stall kills the
+   run. **Killed 2 of 5 cold-start runs** — the highest-value open item. Reproducible:
+   per-run stall snapshots land in `tools/story-dev/saves/stalls/`.
+3. **`#24-whiteout`** — whiteout attrition is the dominant cost of the current
+   strategy (the run that SUCCEEDED still took 80 whiteouts).
+4. **`#24-counters` phase 2** — the chain now NAMES a reachable counter (Electrike,
+   Route 118); travelling to it, catching it and training it is not built (KI-23).
+5. **`#24-regionreach` gate table** — `region_reach.KNOWN_GATES` has one hand-verified
+   entry, and the training-gate switch is blocked on a repro mock leak (KI-24b).
+6. `#24-npcheal`, `#24-edgecost`, `#24-trainmap` `PENDING_GRASS` tiles; KI-18 live
+   confirmation.
+7. Next unbuilt chapters: **Mt. Pyre**, then the **Magma hideout**.
+
+**Parked (not active):** on user "promote", merge sandbox→custom + independent
+adversarial sweep + live-launch check; `#41` living-dex obtainability wiring +
+auto-evolve helper; dex tabs `#34`/`#35` (blocked on the 4 decisions above);
+`#27` battery-aware, `#28` mobile remote, `#42-hard` HM-gated map reachability, `#45`.
 
 ## OPEN VERIFICATION DEBT
 The big promotion's #8/#12/#18/#20 + the 2026-07-19 GUI polish went to custom
@@ -1148,6 +1177,8 @@ with builder self-verification; a partial independent sweep on custom fixed
 live-verified but wants an independent adversarial pass at promotion time.
 
 ## How to run / test
+
+### The bot itself
 ```powershell
 cd custom-pokebot          # production; sandbox-pokebot = experimental
 python pokebot.py                      # dashboard GUI (default)
@@ -1155,6 +1186,45 @@ python pokebot.py "Nick - Emerald"     # the user's real save (progressed)
 python pokebot.py <profile> --classic-gui
 python ..\install.py                   # setup/update/heal (custom)
 python ..\install_sandbox.py           # same for sandbox
+```
+Story modes in the dropdown: `Story`, `Story (DEBUG)`, `Story (DEBUG - RESET)` (hard
+reset → forced NEW GAME), `Story (ENDLESS RESET)` (chained reset runs in-process; set
+the count from the GUI's "Endless Debug-Reset Runs…" item, 0 = forever).
+
+### The story-bot test harness — `tools/story-dev/` (read its `README.md` first)
+**Always `py -3.12` (the repo `python` is 3.9 and fails on match statements) and
+`PYTHONUTF8=1`.** Full method: `PROJECT KNOWLEDGE/14-AGENT-PLAYBOOK.md`.
+
+```powershell
+# story_harness.py — the FAITHFUL main-loop harness (== the real bot's loop).
+#   <state> = a .ss1 basename in tools/story-dev/saves/, a full path, or `fresh`.
+$env:PYTHONUTF8=1
+py -3.12 tools/story-dev/story_harness.py fresh --driver story --frames 2500000
+py -3.12 tools/story-dev/story_harness.py norman_done.ss1 --driver story --build sandbox
+py -3.12 tools/story-dev/story_harness.py fresh --driver storydebugreset --video
+#   --video is REQUIRED to drive app UIs (PokéNav etc.) — they stall headless.
+
+# endless_runs.py — the CLI batch runner (fresh profile per run, wall-clock +
+#   log-growth stall failsafes; the GUI mode is the in-process equivalent).
+py -3.12 tools/story-dev/endless_runs.py                 # 10 runs, treecko
+py -3.12 tools/story-dev/endless_runs.py --count 0       # infinite (Ctrl-C)
+py -3.12 tools/story-dev/endless_runs.py --count 25 --starter mudkip
+py -3.12 tools/story-dev/endless_runs.py --starters all  # rotate all three
+
+# compare_runs.py — cluster failures by signature ACROSS runs. This is the single
+#   most productive debugging move in the project; a cluster of >=2 across different
+#   machines/starters is the strongest evidence we act on. Reads both the harness
+#   format and the in-game debug-logger format.
+py -3.12 tools/story-dev/compare_runs.py tools/story-dev/night5/*.log
+py -3.12 tools/story-dev/compare_runs.py --label mine tools/story-dev/night5/*.log `
+                                         --label user ~/Downloads/Story_DEBUG*.log
+
+# repro_*.py — the regression suite; run the relevant ones after any story change.
+py -3.12 tools/story-dev/repro_fodder_grass.py     # prep/training decision table
+py -3.12 tools/story-dev/repro_counter_plan.py     # counter-candidate ranking
+py -3.12 tools/story-dev/repro_counter_wiring.py   # counter chain, all 3 outcomes
+py -3.12 tools/story-dev/repro_region_reach.py     # region reachability oracle
+py -3.12 tools/story-dev/repro_boss_plateau.py     # boss non-convergence detection
 ```
 
 ## Gotchas / unpushed work
@@ -1164,7 +1234,23 @@ python ..\install_sandbox.py           # same for sandbox
 - New `plugins/*.py` need `.gitignore` negations + `git ls-files` check (ML-2).
 - Never `git commit` without a pathspec in automation (ML-3).
 - Stock auto-updater is disabled for our root-`.git` layout (ML-4 fix).
-- Known issues: KI-1 (stale pokebot.spec), KI-4/5 (cloud-sync minor),
-  KI-6 fixed (two-row tab bar). Mistakes: ML-1..ML-7 in 08-MISTAKES
-  (ML-6 = Canvas .lift/.tkraise both = tag_raise; ML-7 = global navigator
-  can't cross a warp-split map like Route 104 through the Woods).
+- **Known issues: `05-KNOWN-ISSUES.md` holds 24 entries (KI-1 … KI-24b), not 6.**
+  The ones that are LIVE and can cost a run:
+  - **KI-17** — after-faint party-menu RESHOW freeze (HIGH; hit 2 of 5 fresh lanes).
+  - **KI-18** — DOUBLE-battle replacement swap loops forever (HIGH; user-reported).
+  - **KI-23** — Winona/boss-as-training-vehicle cannot converge without a TYPE
+    answer; the counter chain diagnoses it but does not yet act (`#24-counters`
+    phase 2).
+  - **KI-24 / KI-24b** — `calculate_path` is unsound at region scale. **Partially
+    fixed:** `region_reach` is wired into counter-candidate selection only;
+    `_training_area_allowed` still uses `calculate_path`, so the false negatives
+    are still live for training-area selection.
+  Older low-severity ones still open: KI-1 (stale upstream `pokebot.spec`), KI-4/5
+  (cloud-sync minor), KI-8 (mid-battle rotation party-menu stall). KI-6/7/11/14/15/16
+  are fixed; KI-9/10 mitigated; KI-19 fixed-pending-wiring; KI-20/21/22 are
+  decomp-verified fact dumps to read before building, not defects.
+- **Mistakes: `08-MISTAKES.md` holds ~70 entries, not 7.** ML-1..ML-7 are the
+  earliest (ML-6 = Canvas `.lift`/`.tkraise` both map to `tag_raise`; ML-7 = the
+  global navigator can't cross a warp-split map like Route 104 through the Woods) —
+  everything after them is story-bot era and is where the current traps live. Read
+  the tail of the file, not just the head.

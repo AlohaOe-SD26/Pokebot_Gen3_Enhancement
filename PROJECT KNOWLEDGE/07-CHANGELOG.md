@@ -3259,3 +3259,29 @@ pick `Story`; from the overworld it resumes flag-gated rather than replaying), a
 three sibling modes — `Story (DEBUG)`, `Story (DEBUG - RESET)` and **`Story (ENDLESS RESET)`**,
 the in-process overnight batch runner (10 runs by default, set from the GUI's "Endless
 Debug-Reset Runs…" item, 0 = forever) with its unattended-safety behaviour spelled out.
+
+## 2026-07-25 — `04-HANDOFF.md` de-misleading pass (doc audit S4/S6/S7/S8/C3/C4)
+
+Six places where the handoff actively pointed a fresh agent the wrong way:
+
+* **S4** — "Current state (what's WHERE)" was 2026-07-21 text under a present-tense heading,
+  ending "Frontier: PokéNav + tutorial done" (~8 chapters stale). Retitled
+  "HISTORICAL — what was WHERE as of 2026-07-21 (‼ NOT current state)" with a pointer to the
+  "YOU ARE HERE" section; kept for its promotion history and Rustboro-era atlas notes.
+* **S7** — "Known issues: KI-1 … KI-6 fixed / Mistakes: ML-1..ML-7" understated the record by an
+  order of magnitude. There are **24 KI entries and ~70 mistakes**. Now names the LIVE ones:
+  **KI-17** (after-faint party-menu freeze), **KI-18** (double-battle swap loop), **KI-23**
+  (Winona needs a type answer), **KI-24/24b** (partially fixed — counter selection only).
+* **S6** — "Next steps (in order)" led with the daily upstream check then dex tabs and `#41`, and
+  put `#24` LAST. `#24` is the only active work. Reordered around it —
+  `#24-movelearn-recovery` first (killed 2 of 5 cold-start runs) — with everything else moved
+  under an explicit "Parked (not active)".
+* **S8** — "How to run / test" listed only `pokebot.py`/`install.py`. Added the story-bot harness
+  with real commands: `story_harness.py` (drivers, `--video`, `fresh`), `endless_runs.py` (batch
+  runner + failsafes), `compare_runs.py` (cross-run failure clustering), and the five `repro_*`
+  regressions — plus the `py -3.12` / `PYTHONUTF8=1` prerequisites.
+* **C3** — the handoff said both "five" and "two" `CLAUDE-VALIDATED-*` files. **Five** is correct
+  (verified on disk: items-round1, concepts-round1/2/3, story-round1).
+* **C4** — the `gh api repos/pret/pokeemerald/contents/<path>` grounding line is marked
+  SUPERSEDED by the local sparse clone, with the reason (absence claims are only checkable
+  against a whole tree).
