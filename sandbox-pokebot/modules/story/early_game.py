@@ -971,6 +971,40 @@ def _lead_level() -> int:
     return party[0].level if party else 0
 
 
+def _team_is_out_of_pp() -> bool:
+    """True when NO (non-egg) battler still has a damaging move with PP left.
+
+    ‼ THE HEAL TRIGGER CANNOT BE HP-ONLY (user's real-HW log, 2026-07-26). HP and PP do
+    not deplete together: a starter that WINS without being hit keeps full HP while its
+    only attacking move drains. When the last damaging PP goes, the stock
+    `LevelUpLeadBattleStrategy.decide_turn` finds no usable move, takes the
+    `lead_cannot_battle_action` branch (default **flee**) — and fleeing takes no damage,
+    so HP stays pinned at 100% and the HP-gated heal can NEVER fire.
+    Measured cost of that livelock in one run: **3,011 consecutive flees**, Treecko stuck
+    at L6 21/21 HP on the Route 103 training tile, ~2.9 MILLION frames burned without a
+    single level gained, until the run budget expired.
+    A Poké Center heal restores PP as well as HP, so routing this into the SAME heal the
+    HP path already uses fixes it — no new mechanism needed.
+    Fails SAFE: any read error returns False (assume we still have PP) so a bad read can
+    never cause an endless heal loop; the HP trigger is unaffected either way.
+    """
+    try:
+        for p in get_party():
+            if p is None or getattr(p, "is_egg", False):
+                continue
+            for learned in getattr(p, "moves", []) or []:
+                if learned is None:
+                    continue
+                try:
+                    if learned.move.base_power > 0 and learned.pp > 0:
+                        return False
+                except Exception:
+                    continue
+        return True
+    except Exception:
+        return False
+
+
 def travel_to_route103() -> Generator:
     """Travel from Birch's lab up to Route 103 (where the rival is), fighting any
     wild encounters along the way (which starts training the starter). Uses the
@@ -1696,10 +1730,15 @@ def train_team(
             context.message = f"Story: training the team to Lv {target_level} in the grass…"
             yield from _goto_training_area(grass_map, grass_tile)
 
+            # ‼ STOP SPINNING FOR PP TOO, NOT JUST HP (2026-07-26). Out of PP the bot
+            # flees every encounter, gains nothing, and — because fleeing takes no
+            # damage — never trips the HP trigger. See `_team_is_out_of_pp`.
             yield from _story_spin(
-                lambda: _lead_level() >= target_level or _min_battler_hp_pct() <= heal_at
+                lambda: _lead_level() >= target_level
+                or _min_battler_hp_pct() <= heal_at
+                or _team_is_out_of_pp()
             )
-            if _min_battler_hp_pct() <= heal_at and _lead_level() < target_level:
+            if (_min_battler_hp_pct() <= heal_at or _team_is_out_of_pp()) and _lead_level() < target_level:
                 # CAVE-AWARE HEAL (2× real-HW Manual drops 2026-07-22): healing from INSIDE
                 # Granite Cave targeted the Dewford PC across warp levels — the global
                 # navigator can't do that ("not on connected maps"). Exit the cave first.

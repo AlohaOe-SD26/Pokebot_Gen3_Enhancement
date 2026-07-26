@@ -3787,3 +3787,48 @@ EVER_GRANDE_CITY<->VICTORY_ROAD_1F"*; `EVER_GRANDE_CITY` stays reachable (the ga
 cave, not the coastline); `GRANITE_CAVE_1F` unchanged. The refusal NAMES the missing capability, so
 "gated" stays distinguishable from "no path exists" — the whole point of the module (KI-24).
 Pinned in `repro_region_reach.py`. Suite 7 files green.
+
+## 2026-07-26 — OUT OF PP = a permanent livelock the HP-gated heal could never break (user's real-HW log)
+
+**User report:** "ran into a shiny at the very start of the game before I got the Pokédex, and it
+looks like that crashed the game — it tried to catch them ... maybe disable shiny logic until I get
+the Pokédex flag?"
+
+**‼ THE SHINY WAS A RED HERRING and the proposed fix would have changed nothing.** The shiny logic
+worked exactly as designed: `'Story: shiny Zigzagoon — no catch possible here, fighting through.'`
+It correctly saw no usable Poké Balls pre-Pokédex, took the fight-through fallback, and **won** the
+battle at f1,054,368. The run then continued for another **1.86 MILLION frames**. What the user saw
+as a "crash/reset" was `Story (ENDLESS RESET)` starting run 2 after the frame budget expired.
+
+**The real bug, visible all around that shiny:** the run's outcome tally was
+**3,011 `RanAway` · 5 `Won` · 1 `Lost`**, with `party=['Treecko L6 21/21']` — **full HP** in 152 of
+the state dumps — parked on the Route 103 training tile at the pre-Pokédex step
+`'Story: training the starter to Lv 8...'`. It fled essentially every battle, never gained a level,
+and burned ~2,900,000 frames.
+
+**Root cause — HP and PP do not deplete together.** Three facts compose into a livelock:
+1. `train_team`'s heal gate is `_min_battler_hp_pct() <= heal_at` — **HP only, PP never consulted**.
+2. `context.config.battle.lead_cannot_battle_action` defaults to **`"flee"`**.
+3. The stock `LevelUpLeadBattleStrategy.decide_turn` takes that flee branch when
+   `not any(util.move_is_usable(move))` — i.e. **out of PP, regardless of HP**.
+
+A starter that WINS without being hit keeps full HP while its one attacking move drains. When the
+last damaging PP goes, every encounter becomes "no usable move" → flee; fleeing takes no damage, so
+HP stays pinned at 100% and the HP-gated heal can NEVER fire. flee → no XP → no level → spin →
+flee, forever.
+
+**Fix:** `_team_is_out_of_pp()` (no non-egg battler has a damaging move with PP left), and the
+training loop now stops spinning AND heals on `low HP **or** out of PP`. A Poké Center heal
+restores PP as well as HP, so this routes into the existing heal — no new mechanism. Fails safe: a
+party read error returns False (assume PP remains), so a bad read can never cause an endless heal
+loop, and the HP trigger is untouched.
+
+**A/B on the exact logged state** (Treecko L6, 100% HP, Pound 0 PP, Leer 24 PP):
+`old_gate=False` → `new_gate=True`. `repro_out_of_pp_livelock.py`, 6 cases, also pinning: status
+moves with PP still count as dry (a 0-power move cannot train), a team-mate with PP means NOT dry,
+eggs are skipped, and an unreadable party fails safe. Suite 8 files green.
+
+**Why this matters beyond the one run:** it can strand ANY cold start, and it is invisible in the
+usual signals — no error, no hang dump, full HP, the bot busily "training". Only the outcome tally
+(3,011 RanAway vs 5 Won) shows it. Normally HP drops before PP so the heal fires first; this run
+was unlucky in winning cleanly.

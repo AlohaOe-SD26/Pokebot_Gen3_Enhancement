@@ -1705,3 +1705,37 @@ attached. Before fixing the number, enumerate what else feeds the formula (here 
 multiply the very case you are excluding by 1.5) and find a real data point on BOTH sides. The
 threshold is now bracketed by two measured runs — 60 loses 21 times, 90 wins — instead of by one
 example and taste.
+
+## 2026-07-26 — The reported cause was the one thing that worked; and a heal gate that watched the wrong resource
+
+**Reported:** a shiny appeared pre-Pokédex, "crashed the game — it tried to catch them", with a
+suggested fix of disabling shiny logic until the Pokédex flag.
+
+**What the log actually showed.** The shiny path was the ONE part behaving correctly: it detected
+no usable Poké Balls, printed *"no catch possible here, fighting through"*, and **won** the battle.
+The run continued **1.86 million frames** past it. The proposed fix would have suppressed working
+code and left the real defect untouched.
+
+**The real defect** was in the same log the whole time, and only one signal exposed it: the outcome
+tally, **3,011 `RanAway` vs 5 `Won`**, with the party at **full HP**. `train_team` heals on
+`_min_battler_hp_pct() <= heal_at`; the stock battle strategy flees when no move is USABLE — a PP
+condition, not an HP one. A starter winning without being hit drains PP while HP stays at 100%, and
+once PP is gone every battle is a flee, fleeing takes no damage, so the HP gate can never fire.
+Permanent livelock at full health.
+
+**Prevention rule — a guard must watch the resource that actually blocks the action.** The heal
+existed to answer "the team can no longer fight", but it only measured HP. Whenever a recovery is
+triggered by a threshold, enumerate EVERY resource whose exhaustion produces the same symptom (HP,
+PP, balls, money, held items) and gate on all of them. A gate on a proxy resource is a gate that
+fails in exactly the cases the proxy misses.
+
+**Prevention rule — a user's stated cause is a HYPOTHESIS about a correlated event.** They saw a
+rare thing (a shiny) next to a bad outcome and connected them; the shiny was simply the most
+memorable moment in a run that was already dead. Reproduce the reported cause and CHECK IT WORKS
+before fixing it: here, confirming the shiny path was healthy took one grep and redirected the
+entire investigation. Never let the report choose the fix.
+
+**Also (a repeat, and cheap):** the new repro printed `‼` and crashed on the cp1252 console —
+destroying the output of a test that had already passed. `sys.stdout.reconfigure(...)` was in the
+other repros and not this one. The 2026-07-25 rule said fix the CLASS not the instance; the class
+here is "every tools/story-dev script that prints non-ASCII", and this one was missed.
