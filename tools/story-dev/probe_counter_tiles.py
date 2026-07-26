@@ -195,7 +195,7 @@ print("STAGE 3 — two-way navigation from the anchor (expensive)")
 print("=" * 78)
 from modules.modes import BotModeError
 from modules.modes.util.global_navigation import navigate_to_anywhere
-from modules.story.early_game import normalize_to_overworld
+from modules.story.early_game import _exit_training_cave_if_inside, normalize_to_overworld
 
 
 def step(gen, n):
@@ -253,6 +253,13 @@ for m in usable:
         print("    BACK skipped (anchor map not in MapRSE)")
         continue
     try:
+        # ‼ THREAD THE CAVE MOUTH FIRST — this is what the real training loop does
+        # (`train_team` calls `_exit_training_cave_if_inside()` before healing). The
+        # global navigator cannot cross warp levels, so a raw navigate to a town from
+        # INSIDE a cave plan-fails; the first sweep's BACK legs failed for exactly that
+        # reason and it read like the tile was unusable. Testing the return without this
+        # is testing a path the bot never takes.
+        step(_exit_training_cave_if_inside(), 20000)
         ok_back = step(navigate_to_anywhere(anchor_enum, anchor_tile, avoid_encounters=True), args.frames)
     except Exception as e:
         print(f"    BACK FAIL  {type(e).__name__}: {str(e)[:90]}")

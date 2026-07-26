@@ -2844,3 +2844,43 @@ with a repro from a tile deep inside, THEN promote `(MapRSE.FIERY_PATH, (18, 19)
 `TRAINING_GRASS`. That single promotion unblocks phase 2's executor, since Fiery Path is rank 2 by
 cost (168,616 frames, still 2.4-3× better than losing to Norman) and is the only candidate whose
 OUT leg actually passes.
+
+#### §CC2 blocker #1 — cave support BUILT and proven; the Fiery Path tile is still NOT promoted (2026-07-26)
+
+**Done: the cave machinery is generalised and ROM-verified.** `_exit_training_cave_if_inside` and
+`_goto_training_area` knew only Granite Cave, so a second in-cave ground could neither be entered
+nor left — the stranding that dropped two real-HW runs to Manual (2026-07-22) would simply have
+shipped again on a new map. Both are now table-driven:
+* `_CAVE_EXITS = {GRANITE_CAVE_1F: (37,12), FIERY_PATH: (26,36)}`
+* `_CAVE_ENTRANCES = {GRANITE_CAVE_1F: (ROUTE106,(48,16)), FIERY_PATH: (ROUTE112,(11,36))}`
+* `_training_area_heal_map` gains `FIERY_PATH -> LavaridgeTown`.
+`repro_cave_exit_table.py` checks every tile is a REAL warp going where the table claims, AND that
+each cave's entrance and exit are the SAME physical doorway (via `destination_warp_id`) — Fiery
+Path has TWO Route 112 mouths, so entering by one and leaving by the other would surface the bot on
+the wrong side of the mountain. ‼ That test exists because I first typed the Route 112 door as
+`(2,30)` from memory; the ROM says `(11,36)`. Coordinates are never to be guessed.
+
+**Proven live** (`story_harness.py lavaridge.ss1 --driver fierycave`, the FAITHFUL loop with
+battle listeners): leg 1 Lavaridge → Fiery Path (18,19) **PASS**; leg 2 exit the cave **PASS**
+(`map=(0,27) left_cave=True`).
+
+**‼ BLOCKED AT LEG 3, AND THIS IS WHY THE TILE MUST NOT BE PROMOTED.** The heal trip fails:
+`Could not find a path from (11/37 @ ROUTE112) to (9/6 @ LAVARIDGE_TOWN)`. Characterised — the
+pathfinder is **ASYMMETRIC on the identical pair**:
+
+| leg | result |
+|---|---|
+| Lavaridge (9,6) → R112 door (11,36) | **OK, 60 waypoints** |
+| R112 door (11,36) → Lavaridge (9,6) | **FAIL** |
+| R112 exit (11,37) → R112 door (11,36) | OK (adjacent) |
+
+Route 112's ledges make the return effectively one-way for `calculate_path`. A training ground
+whose heal trip cannot complete is precisely the stranding class this work exists to prevent, so
+`FIERY_PATH (18,19)` stays OUT of `TRAINING_GRASS`.
+
+**Next step — and it reframes the problem.** A counter HUNT does not need a training loop at the
+hunting ground: it needs to travel, catch, and leave (train the catch anywhere convenient). That
+sidesteps the heal trip entirely, and is a better fit for `#24-counters` phase 2 than reusing
+`train_team` in place. Before that, decide the exit pairing deliberately: the NORTH mouth
+(`FIERY_PATH (26,4)` ↔ `ROUTE112 (22,10)`) surfaces on the Route 111 side toward Fallarbor, which
+may path where the Lavaridge side does not — measure both directions before choosing.

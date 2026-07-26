@@ -1640,33 +1640,77 @@ def _battler_slots() -> list[int]:
     return slots
 
 
+#: Caves usable as training / counter-hunting grounds, and the warp tile that leads back
+#: OUT to a route. Every entry is ROM-verified (`get_map_data(...).warps`), not guessed.
+#:
+#: ‼ WHY A TABLE AND NOT ONE HARDCODED CAVE (2026-07-26, #24-counters blocker #1). The
+#: global navigator cannot cross warp levels, so ANY target outside a cave plan-fails
+#: from within it ("not on connected maps") — that is what dropped two real-HW runs to
+#: Manual on 2026-07-22. This helper existed but knew only Granite Cave, so the moment a
+#: SECOND cave became a training ground the same stranding would ship again. The
+#: two-way sweep proved exactly that: FIERY_PATH (18,19) is reachable OUT from Lavaridge,
+#: but the return leg failed *inside the cave* — the tile could not be promoted until
+#: this table existed.
+_CAVE_EXITS: dict = {
+    # -> ROUTE106. The Dewford-arc training spot; verified 2026-07-22.
+    MapRSE.GRANITE_CAVE_1F: (37, 12),
+    # -> ROUTE112. Fiery Path has exactly TWO warps, (26,36) south and (26,4) north, and
+    # BOTH land on Route 112. South is the correct exit: Route 112's heal centre is
+    # Lavaridge (`_training_area_heal_map`), which sits at the southern end, and it is
+    # also the side the bot enters from (2 hops from Lavaridge). Leaving by the north
+    # warp would surface it on the Route 111 side, further from any Poké Center.
+    MapRSE.FIERY_PATH: (26, 36),
+}
+
+
 def _exit_training_cave_if_inside() -> Generator:
-    """If standing inside GRANITE CAVE (the Dewford-arc training area — the only in-cave
-    training spot so far), thread the cave mouth back out to Route 106. The global
-    navigator can NOT cross warp levels, so a heal that targets a town PC from inside a
-    cave plan-fails ('not on connected maps') — two real-HW runs dropped to Manual on
-    exactly that (2026-07-22, both at the (35,11) training spot with a hurt trainee)."""
-    cave_1f = MapRSE.GRANITE_CAVE_1F.value
-    if _map_group_number() == cave_1f:
-        yield from _enter_warp_by_navigation(
-            lambda: _map_group_number() != cave_1f,
-            MapRSE.GRANITE_CAVE_1F,
-            (37, 12),
-            label="Granite Cave exit (training heal)",
-        )
-        yield from wait_until_truly_controllable()
+    """If standing inside a known training CAVE, thread its mouth back out to the route.
+
+    The global navigator can NOT cross warp levels, so a heal that targets a town PC from
+    inside a cave plan-fails ('not on connected maps') — two real-HW runs dropped to
+    Manual on exactly that (2026-07-22, both at the Granite Cave (35,11) training spot
+    with a hurt trainee). A cheap no-op anywhere that is not in `_CAVE_EXITS`."""
+    here = _map_group_number()
+    for cave_map, exit_tile in _CAVE_EXITS.items():
+        if here == cave_map.value:
+            yield from _enter_warp_by_navigation(
+                lambda: _map_group_number() != cave_map.value,
+                cave_map,
+                exit_tile,
+                label=f"{cave_map.name} exit (training heal)",
+            )
+            yield from wait_until_truly_controllable()
+            return
+
+
+#: The OUTSIDE approach for each cave in `_CAVE_EXITS`: the route map + the warp tile on
+#: it that leads IN. The mirror of `_CAVE_EXITS`, used when the training/hunting ground
+#: lives inside a cave and we are currently outside it. ROM-verified warps.
+_CAVE_ENTRANCES: dict = {
+    MapRSE.GRANITE_CAVE_1F: (MapRSE.ROUTE106, (48, 16)),
+    # Route 112's SOUTH Fiery Path door — ROM-verified, and it PAIRS with the (26,36)
+    # exit above: Route112 (11,36) is warp_id 0, which is exactly Fiery Path's (26,36).
+    # (The other pair is Route112 (22,10) <-> Fiery Path (26,4), the north side.) So the
+    # bot goes in and comes back out on the Lavaridge side it heals at.
+    MapRSE.FIERY_PATH: (MapRSE.ROUTE112, (11, 36)),
+}
 
 
 def _goto_training_area(grass_map, grass_tile) -> Generator:
-    """Navigate to the training spin tile, threading the Granite Cave door first when the
-    area lives INSIDE the cave and we're currently outside it (Dewford/Route 106) — the
-    counterpart of `_exit_training_cave_if_inside` for the return trip after a heal."""
-    if grass_map is MapRSE.GRANITE_CAVE_1F and _map_group_number() != MapRSE.GRANITE_CAVE_1F.value:
+    """Navigate to the training spin tile, threading the CAVE door first when the area
+    lives inside a cave and we're currently outside it — the counterpart of
+    `_exit_training_cave_if_inside` for the return trip after a heal.
+
+    Table-driven (2026-07-26) for the same reason as `_CAVE_EXITS`: it knew only Granite
+    Cave, so a second in-cave ground would have failed to enter at all."""
+    approach = _CAVE_ENTRANCES.get(grass_map)
+    if approach is not None and _map_group_number() != grass_map.value:
+        outside_map, door_tile = approach
         yield from _enter_warp_by_navigation(
-            lambda: _map_group_number() == MapRSE.GRANITE_CAVE_1F.value,
-            MapRSE.ROUTE106,
-            (48, 16),
-            label="Granite Cave entrance (training)",
+            lambda: _map_group_number() == grass_map.value,
+            outside_map,
+            door_tile,
+            label=f"{grass_map.name} entrance (training)",
         )
         yield from wait_until_truly_controllable()
     yield from _navigate_riding_out(grass_map, grass_tile, avoid_encounters=False)

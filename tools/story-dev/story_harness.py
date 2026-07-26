@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "hmtest", "faintrepro"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -964,6 +964,74 @@ class CaveTrainMode(BotMode):
             yield
 
 
+class FieryCaveMode(BotMode):
+    """VALIDATE the FIERY_PATH round trip end to end, in the FAITHFUL harness.
+
+    ‼ WHY THIS EXISTS AND `probe_counter_tiles.py --nav` COULD NOT DO IT. That probe
+    drives the navigator generator directly, with NO bot listeners — so the moment a wild
+    encounter fires in cave terrain nothing resolves the battle and the run freezes with
+    `controllable=False, script_active=False`. Every BACK leg it reported as a failure was
+    that artifact, not a map problem. This harness runs the real main loop (listeners
+    included), so encounters are fought and the legs mean something.
+
+    Legs mirror `cavetrain` (Granite Cave) for the second in-cave ground, FIERY_PATH —
+    the Machop hunting ground that is the reachable Norman counter (#24-counters):
+      1. Lavaridge -> Fiery Path spin tile (18,19)   [_goto_training_area, cave door]
+      2. exit the cave                                [_exit_training_cave_if_inside]
+      3. heal at Lavaridge                            [the mapped heal centre]
+      4. back to the spin tile                        [the full round trip]
+    Run: py -3.12 story_harness.py lavaridge --driver fierycave --frames 400000
+    """
+
+    @staticmethod
+    def name():
+        return "FieryCave"
+
+    def run(self):
+        from modules.map_data import MapRSE, PokemonCenter
+        from modules.modes.util.higher_level_actions import heal_in_pokemon_center
+        from modules.story.early_game import (
+            _exit_training_cave_if_inside,
+            _goto_training_area,
+            _map_group_number,
+        )
+
+        legs = []
+        try:
+            log("[fierycave] leg 1: Lavaridge -> Fiery Path spin tile (18,19)")
+            yield from _goto_training_area(MapRSE.FIERY_PATH, (18, 19))
+            inside = _map_group_number() == MapRSE.FIERY_PATH.value
+            log(f"[fierycave] at spot; map={_map_group_number()} inside_fiery={inside}")
+            legs.append(("1 goto", inside))
+
+            log("[fierycave] leg 2: exit the cave")
+            yield from _exit_training_cave_if_inside()
+            outside = _map_group_number() != MapRSE.FIERY_PATH.value
+            log(f"[fierycave] outside; map={_map_group_number()} left_cave={outside}")
+            legs.append(("2 exit", outside))
+
+            log("[fierycave] leg 3: heal at Lavaridge PC")
+            yield from heal_in_pokemon_center(PokemonCenter.LavaridgeTown)
+            log(f"[fierycave] healed; map={_map_group_number()}")
+            legs.append(("3 heal", True))
+
+            log("[fierycave] leg 4: back to the spin tile")
+            yield from _goto_training_area(MapRSE.FIERY_PATH, (18, 19))
+            back = _map_group_number() == MapRSE.FIERY_PATH.value
+            log(f"[fierycave] back at spot; map={_map_group_number()} inside_fiery={back}")
+            legs.append(("4 return", back))
+        except Exception as e:
+            import traceback
+
+            log(f"[fierycave] ERROR: {e}")
+            log(traceback.format_exc()[:800])
+        ok = all(v for _, v in legs) and len(legs) == 4
+        log(f"[fierycave] RESULT: {'ALL LEGS PASS' if ok else 'INCOMPLETE'} -> {legs}")
+        while True:
+            context.emulator.press_button("B")
+            yield
+
+
 class RivalRetryMode(BotMode):
     """VALIDATE the bug fix: with MET_RIVAL_RUSTBORO already set (simulating a PRIOR LOSS),
     confirm fight_rustboro_rival still steps onto the y=53 trigger and RE-ENGAGES the rival
@@ -1847,6 +1915,8 @@ for step in range(args.frames):
             context.bot_mode_instance = MartBuyMode()
         elif args.driver == "healtest":
             context.bot_mode_instance = HealTestMode()
+        elif args.driver == "fierycave":
+            context.bot_mode_instance = FieryCaveMode()
         elif args.driver == "traintest":
             from plugins.custom_modes.story_mode import StoryMode as _SM
 

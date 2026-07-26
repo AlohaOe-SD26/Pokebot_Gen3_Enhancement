@@ -671,6 +671,11 @@ def _training_area_heal_map() -> dict:
         # reachable from that tile.
         MapRSE.ROUTE111: PokemonCenter.FallarborTown,
         MapRSE.ROUTE112: PokemonCenter.LavaridgeTown,
+        # FIERY_PATH is a counter-hunting ground (Machop, the Norman answer). Its south
+        # door is Route 112 (11,36), so Lavaridge is the natural heal — and it is the same
+        # side `_CAVE_EXITS` surfaces the bot on, so the heal trip is a short walk rather
+        # than a trek around the mountain.
+        MapRSE.FIERY_PATH: PokemonCenter.LavaridgeTown,
         MapRSE.ROUTE113: PokemonCenter.FallarborTown,
         MapRSE.ROUTE114: PokemonCenter.FallarborTown,
         MapRSE.ROUTE115: PokemonCenter.RustboroCity,
