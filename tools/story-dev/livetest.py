@@ -103,6 +103,17 @@ def summarize_run(log_path: Path, stdout_path: Path, wall_seconds: float, killed
         # losses are GYM LEADERS rather than travel attrition, which redirected the
         # whole item. Raw (group, number) tuples — resolve names via modules/map_data.py.
         "losses": len(re.findall(r"lost a battle at map", text)),
+        # ‼ BATTLE OUTCOME TALLY (added 2026-07-26). The user's real-HW log exposed a
+        # livelock whose ONLY signal was this ratio: 3,011 RanAway vs 5 Won, at full HP,
+        # ~2.9M frames, not a single level gained — no error, no hang, the bot apparently
+        # "training" the whole time. Batch 20260726-052205 ran five full cold starts and
+        # could not have reported it, because nothing counted outcomes. A high flee rate
+        # means the bot is burning frames without progressing (out of PP, no usable move,
+        # or a mis-fired flee strategy) and should be read as a FAILURE even when the run
+        # looks otherwise clean.
+        "battle_outcomes": dict(
+            Counter(re.findall(r"outcome=BattleOutcome\.([A-Za-z]+)", text)).most_common()
+        ),
         "losses_by_map": dict(
             Counter(re.findall(r"lost a battle at map \((\d+, \d+)\)", text)).most_common()
         ),
@@ -113,6 +124,14 @@ def summarize_run(log_path: Path, stdout_path: Path, wall_seconds: float, killed
         "last_positions": re.findall(r"POS .*", text)[-3:],
         "errors": re.findall(r"(BotModeError|Traceback|Exception).*", text)[:10],
     }
+    # Derived: what fraction of resolved battles were FLED. A run can look perfectly
+    # healthy — no error, no hang, full HP — while fleeing everything and gaining
+    # nothing; this single number is what makes that visible (see battle_outcomes).
+    _oc = summary["battle_outcomes"]
+    _total = sum(_oc.values())
+    summary["battles"] = _total
+    summary["flee_rate"] = round(_oc.get("RanAway", 0) / _total, 3) if _total else None
+
     m = re.search(r"\[done\] ran (\d+) frames.*?party=\[(.*?)\]", text)
     if m:
         summary["frames_run"] = int(m.group(1))
@@ -270,8 +289,14 @@ def main() -> int:
                 results[idx] = s
                 free_profiles.append(lane_profile)
                 verdict = "FRONTIER" if s["reached_frontier"] else ("HANG" if s["hang_confirmed"] else "INCOMPLETE")
+                _fr = s.get("flee_rate")
+                # ‼ FLAG A HIGH FLEE RATE LOUDLY. A run that flees most battles is
+                # burning frames without progressing even if it never errors — the
+                # 3,011-RanAway livelock (2026-07-26) looked clean by every other metric.
+                _flee = "flee=n/a" if _fr is None else f"flee={_fr:.0%}{' ‼LIVELOCK?' if _fr >= 0.8 and s.get('battles', 0) >= 50 else ''}"
                 print(f"[livetest] run{idx:02d} done in {elapsed/60:.1f} min -> {verdict} "
-                      f"(derails={s['derails']} whiteouts={s['whiteouts']})")
+                      f"(derails={s['derails']} whiteouts={s['whiteouts']} "
+                      f"battles={s.get('battles', 0)} {_flee})")
             else:
                 still.append((idx, proc, run_dir, t0, fh, lane_profile))
         running = still

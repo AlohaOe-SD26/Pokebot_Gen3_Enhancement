@@ -1739,3 +1739,29 @@ entire investigation. Never let the report choose the fix.
 destroying the output of a test that had already passed. `sys.stdout.reconfigure(...)` was in the
 other repros and not this one. The 2026-07-25 rule said fix the CLASS not the instance; the class
 here is "every tools/story-dev script that prints non-ASCII", and this one was missed.
+
+## 2026-07-26 — My validation harness could not have caught the bug I was validating against
+
+**Symptom.** Having found the out-of-PP livelock in the user's log via the outcome tally
+(3,011 RanAway vs 5 Won), I ran the same tally over my own five-run batch `20260726-052205` to see
+whether it had been silently paying that cost too. Every run returned **zero** battle outcomes.
+
+**Not because the runs were clean.** `story_harness.py` never logged an outcome — only
+`battle_is_active -> False`. The `[BATTLE] ended (outcome=...)` lines live in the GUI's
+`debug_logger`, which batch runs don't use. Five full cold starts, ~2.5M frames each, and the
+single metric that exposes "the bot flees everything and gains nothing" was not being recorded.
+
+**Why that is worse than a missed bug.** I had reviewed that batch and declared the fixes
+validated. That review could not have detected this failure class at all, and I did not know it —
+the batch report looked complete. An unmeasured dimension reads exactly like a healthy one.
+
+**Prevention rule:** when a real incident is diagnosed by some signal, immediately check whether
+your OWN test harness records that signal — and if not, add it before moving on. The diagnostic
+that caught a bug in production is, by definition, one your validation was missing. Cheap test:
+run the new diagnostic over old artifacts; if it returns nothing, ask whether that means "clean" or
+"never recorded" before believing it.
+
+**This is the second measurement blind spot in two days** (the whiteout metric read 0 for every
+batch ever run, 2026-07-25). Same shape both times: a number never cross-checked against a raw
+count from the same logs. Any metric that has never been validated against ground truth should be
+assumed broken until it is.

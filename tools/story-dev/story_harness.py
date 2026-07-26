@@ -1909,7 +1909,22 @@ for step in range(args.frames):
 
     ba = battle_is_active()
     if ba != in_battle_prev:
-        log(f"f{step}: battle_is_active -> {ba}  party=[{party_snapshot()}]")
+        # ‼ LOG THE OUTCOME, NOT JUST THE TRANSITION (2026-07-26). The user's real-HW
+        # log exposed a livelock — 3,011 RanAway vs 5 Won, full HP, ~2.9M frames, no
+        # level gained — and the ONLY signal was the outcome tally. This harness logged
+        # `battle_is_active -> False` and nothing else, so batch 20260726-052205 could
+        # not have reported that bug even though it ran five full cold starts. A
+        # validation harness that cannot see "the bot flees everything" is blind to an
+        # entire failure class; `livetest.py` now tallies these into every batch summary.
+        _outcome = ""
+        if not ba:
+            try:
+                from modules.battle_state import get_last_battle_outcome
+
+                _outcome = f"  outcome={get_last_battle_outcome()}"
+            except Exception:
+                _outcome = "  outcome=<unreadable>"
+        log(f"f{step}: battle_is_active -> {ba}{_outcome}  party=[{party_snapshot()}]")
         in_battle_prev = ba
 
     ml = learn_state_str()

@@ -3832,3 +3832,30 @@ eggs are skipped, and an unreadable party fails safe. Suite 8 files green.
 usual signals — no error, no hang dump, full HP, the bot busily "training". Only the outcome tally
 (3,011 RanAway vs 5 Won) shows it. Normally HP drops before PP so the heal fires first; this run
 was unlucky in winning cleanly.
+
+## 2026-07-26 — The validation harness was blind to the failure class that just cost a whole run
+
+Follow-on from the out-of-PP livelock. Applying the new outcome-tally diagnostic RETROACTIVELY to
+my own batch `20260726-052205` returned **zero battle outcomes for all five runs** — not because
+those runs were clean, but because `story_harness.py` never logged an outcome at all. It logged
+`battle_is_active -> False` and nothing more. `[BATTLE] ended (outcome=...)` comes from the GUI's
+`modules/debug_logger.py`, which batch runs do not use.
+
+**So five full cold starts could not have reported a 3,011-flee livelock even if they had hit one.**
+A validation harness that cannot see "the bot flees everything" is blind to an entire failure class
+— and that class had just burned ~2.9M frames of the user's real run.
+
+Fixed in the tooling (no bot behaviour change):
+* `story_harness.py` now reads `get_last_battle_outcome()` on the battle→over transition and logs
+  `outcome=BattleOutcome.X`, guarded so an unreadable outcome degrades to `<unreadable>` rather
+  than breaking the run.
+* `livetest.py` gains `battle_outcomes` (a tally), `battles`, and a derived **`flee_rate`**, and
+  the per-run console line now prints `battles=N flee=NN%` with a loud **`‼LIVELOCK?`** marker at
+  ≥80% flee over ≥50 battles.
+
+Validated against the user's real log rather than a synthetic one: `RanAway 3,011 · Won 5 ·
+Lost 1` → **flee_rate 0.998**, correctly flagged.
+
+**This is the second measurement blind spot found in two days** — after `livetest.py`'s whiteout
+metric silently read 0 for every batch ever run (2026-07-25). Both had the same shape: a number
+nobody had ever cross-checked against a raw count from the same logs.
