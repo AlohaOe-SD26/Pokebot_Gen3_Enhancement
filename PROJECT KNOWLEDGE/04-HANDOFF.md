@@ -665,7 +665,35 @@ fetches cannot do.
 3. `#24-counters` phase 2 (the chain NAMES a counter; acting on it isn't built).
 4. `#24-edgecost`, `#24-regionreach` gate table, KI-18 live confirmation.
 
-### 🎯 2026-07-26 (latest) — phase-2 groundwork: ranking, gate, and the ECONOMICS that decide it
+### 🚨 2026-07-26 (latest) — OUT-OF-PP LIVELOCK from the user's real hardware, + a harness blind spot
+**User reported "a shiny pre-Pokédex crashed the game — maybe disable shiny logic until the
+Pokédex".** ‼ The shiny was a RED HERRING and that fix would have changed nothing: the shiny path
+worked correctly ("no catch possible here, fighting through"), WON the battle, and the run
+continued **1.86 million frames**. The "reset" was ENDLESS RESET starting run 2 on budget expiry.
+
+**The real bug — a livelock that can strand ANY cold start.** Outcome tally for that run:
+**3,011 `RanAway` · 5 `Won` · 1 `Lost`**, `Treecko L6 21/21` (FULL HP) parked on the Route 103
+training tile at "training the starter to Lv 8", ~2.9M frames, not one level gained.
+HP and PP do not deplete together: a starter that WINS without being hit keeps full HP while its
+only attacking move drains; once PP is gone the stock strategy finds no usable move and takes
+`lead_cannot_battle_action` (default **flee**); fleeing takes no damage, so HP stays at 100% and
+`train_team`'s **HP-only** heal gate can NEVER fire. Fixed: `_team_is_out_of_pp()`, and the
+training loop now stops spinning AND heals on *low HP **or** out of PP* (a Poké Center heal
+restores PP too, so it reuses the existing heal). A/B on the exact logged state:
+`old_gate=False → new_gate=True`. `repro_out_of_pp_livelock.py`, 6 cases.
+
+**‼ AND MY OWN BATCHES WERE BLIND TO IT.** Running the same tally over batch `20260726-052205`
+returned ZERO outcomes for all five runs — `story_harness.py` never logged an outcome, only
+`battle_is_active -> False`. Five cold starts could not have reported this class, and I had already
+reviewed that batch as validated. Now: the harness logs `outcome=BattleOutcome.X`, and `livetest.py`
+reports `battles=N flee=NN%` with a **‼LIVELOCK?** marker at ≥80% flee over ≥50 battles (validated
+against the user's real log: flee_rate 0.998).
+**Second measurement blind spot in two days** (the whiteout metric read 0 for every batch ever).
+Treat any metric never cross-checked against a raw count as broken until proven.
+⏳ A 5-lane validation batch for the PP fix is RUNNING at the time of writing — read its
+`flee_rate` first; it is now the cheapest health signal a batch produces.
+
+### 🎯 2026-07-26 — phase-2 groundwork: ranking, gate, and the ECONOMICS that decide it
 Batch `20260726-052205` validated the day's guards and found two defects in them (both fixed —
 see below). Then three phase-2 blockers were worked, and one produced a finding that should shape
 whether phase 2 gets built at all.
