@@ -63,6 +63,11 @@ def make_self(defeat_counts, loss_ko_history):
     instance (the rest comes from the class or is passed in via `cfg`)."""
     fake_self = SimpleNamespace()
     fake_self.PLATEAU_LOSS_THRESHOLD = sm.StoryMode.PLATEAU_LOSS_THRESHOLD
+    # Every class constant the method reads off `self` must be mirrored here. A missing
+    # one raises AttributeError inside the method's broad `except`, which returns
+    # "not hopeless" — i.e. a typo in this stand-in silently PASSES cases 2/3/4 while
+    # making case 1/5 fail for a reason that has nothing to do with the logic.
+    fake_self.CREDIBLE_ANSWER_POWER = sm.StoryMode.CREDIBLE_ANSWER_POWER
     fake_self._defeat_counts = defeat_counts
     fake_self._loss_ko_history = loss_ko_history
     return fake_self
@@ -146,3 +151,71 @@ print()
 print("-" * 78)
 print("ALL PASS: _boss_plan_is_hopeless separates 'no type answer' (Winona, KI-23) from")
 print("'improving' and 'has an answer' -- and never fires on too little history.")
+
+print()
+print("=" * 78)
+print("CASE 5 -- NORMAN, the REAL night5 run3 party -> HOPELESS (power-blind regression)")
+print("=" * 78)
+# ‼ NOT constructed: this is the exact party and moveset logged by night5 run3
+# (tools/story-dev/night5/run3.log), which made 27 losing Norman attempts across
+# f1,406,000 -> f1,914,000 with KOs flat at 1-2 of 4 the whole time.
+#
+# Norman's team is entirely NORMAL (Spinda/Vigoroth/Linoone/Slaking), and the only
+# type super-effective against Normal is FIGHTING. The party's sole Fighting move was
+# ROCK SMASH -- the 20-base-power HM the bot is REQUIRED to carry to progress. The
+# original `eff >= 2.0` test accepted it as "an answer", so the plateau detector was
+# structurally unable to fire on the boss most likely to plateau.
+NORMAN_RUN3_PARTY = [
+    mon("MARSHTOMP", 34, [move("Normal", 90), move("Fighting", 20),   # Take Down, ROCK SMASH
+                          move("Ground", 20), move("Water", 40)]),    # Mud-slap, Water Gun
+    mon("MIGHTYENA", 33, [move("Normal", 35), move("Normal", 0),
+                          move("Normal", 0), move("Dark", 60)]),
+    mon("SHROOMISH", 15, [move("Grass", 20), move("Normal", 35),
+                          move("Grass", 0), move("Grass", 0)]),
+    mon("SWELLOW", 30, [move("Flying", 35), move("Normal", 0),
+                        move("Normal", 0), move("Normal", 40)]),
+]
+NORMAN_CFG = {"keys": ["norman"], "ace_types": ("Normal",), "name": "Norman"}
+
+set_party(NORMAN_RUN3_PARTY)
+fake_self = make_self(
+    defeat_counts={"norman": 27},
+    # The real KO trace from the log, attempts 1-6: 1,1,2,2,2,2 -- flat, never improving.
+    loss_ko_history={"norman": ko_history(1, [1, 1, 2, 2, 2, 2])},
+)
+hopeless, needed = call(fake_self, NORMAN_CFG)
+print(f"    -> hopeless={hopeless}, needed={needed}")
+assert hopeless is True, (
+    f"expected HOPELESS, got {hopeless} -- a 20-power HM (Rock Smash) is being "
+    "accepted as an answer to Norman again; the detector is power-blind."
+)
+assert "Fighting" in needed, f"expected 'Fighting' in needed types, got {needed}"
+print("PASS: Rock Smash (20 power) no longer vetoes the diagnosis; Fighting is named.")
+
+print()
+print("=" * 78)
+print("CASE 6 -- a WEAK BUT REAL answer still counts (guards over-correction)")
+print("=" * 78)
+# Combusken's Double Kick: 30 base power, Fighting, STAB -> 30 x 2.0 x 1.5 = 90.
+# This is the move that beat Norman organically (handoff 2026-07-24), so the power
+# floor must NOT reject it. Without a real `species`, STAB cannot be read, so this
+# case gives the mon one to prove the STAB path is what carries it over the line.
+combusken = mon("COMBUSKEN", 32, [move("Fighting", 30), move("Fire", 40)])
+combusken.species = SimpleNamespace(types=(get_type_by_name("Fire"), get_type_by_name("Fighting")))
+set_party([combusken] + NORMAN_RUN3_PARTY[1:])
+fake_self = make_self(
+    defeat_counts={"norman": 27},
+    loss_ko_history={"norman": ko_history(1, [1, 1, 2, 2, 2, 2])},
+)
+hopeless, needed = call(fake_self, NORMAN_CFG)
+print(f"    -> hopeless={hopeless}, needed={needed}")
+assert (hopeless, needed) == (False, []), (
+    f"expected NOT hopeless, got {(hopeless, needed)} -- the power floor is too high "
+    "and is rejecting Double Kick, a genuine Norman answer."
+)
+print("PASS: STAB Double Kick (30 x 2.0 x 1.5 = 90) still counts as a real answer.")
+
+print()
+print("-" * 78)
+print("ALL PASS (cases 5-6): the answer test is POWER-WEIGHTED -- a 20-power HM no")
+print("longer disables the plateau detector, and a weak-but-real STAB answer survives.")

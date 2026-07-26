@@ -675,6 +675,23 @@ class StoryMode(BotMode):
     #: than 41 whiteout cycles before we say so.
     PLATEAU_LOSS_THRESHOLD = 6
 
+    #: Minimum EFFECTIVE power (base power x type effectiveness x STAB) for a move to
+    #: count as a real answer to a boss's ace type in `_boss_plan_is_hopeless`.
+    #: ‼ WITHOUT THIS THE DETECTOR IS POWER-BLIND AND SILENTLY DISABLES ITSELF ON
+    #: NORMAN (measured, night5 run3, 2026-07-25). Norman's team is all NORMAL, and the
+    #: only type super-effective against Normal is FIGHTING — so the party's sole
+    #: "answer" was **Rock Smash**, the 20-base-power HM the bot is REQUIRED to carry to
+    #: progress at all. 20 x 2.0 x 1.0 = 40: super-effective on paper, useless against a
+    #: L31 Slaking. The old `eff >= 2.0` test accepted it, declared the plan not
+    #: hopeless, and let the run make **27 losing attempts over 508,000 frames** with
+    #: KOs flat at 1-2 of 4 the entire time. The boss most likely to plateau was the one
+    #: the guard could never fire on.
+    #: 60 keeps genuine answers: Double Kick on Combusken (30 x 2.0 x 1.5 = 90, the
+    #: organic Norman win), Ember on a Grass boss (40 x 2.0 = 80), Thunderbolt vs
+    #: Winona (90 x 2.0 x 1.5 = 270). It drops chip/HM utility moves: Rock Smash (40),
+    #: Absorb on a L15 Shroomish (40).
+    CREDIBLE_ANSWER_POWER = 60
+
     @staticmethod
     def name() -> str:
         return "Story"
@@ -1029,14 +1046,29 @@ class StoryMode(BotMode):
             if not battlers:
                 return False, []
             for i in battlers:
+                # STAB needs the carrier's own types; the decision repros pass
+                # lightweight stand-ins with no `species`, so treat that as "no STAB"
+                # rather than letting an AttributeError abort the whole diagnosis.
+                try:
+                    own_types = tuple(party[i].species.types)
+                except Exception:
+                    own_types = ()
                 for learned in party[i].moves:
                     if learned is None or learned.pp == 0 or learned.move.base_power == 0:
                         continue
                     eff = 1.0
                     for t in ace_types:
                         eff *= learned.move.type.get_effectiveness_against(t)
-                    if eff >= 2.0:
-                        return False, []  # we DO have an answer — not hopeless
+                    if eff < 2.0:
+                        continue
+                    # ‼ SUPER-EFFECTIVE IS NOT THE SAME AS SUFFICIENT. Weight by real
+                    # power before accepting it as an answer — a 20-power HM is 2.0x
+                    # against Normal and still loses to Slaking 27 times running
+                    # (see CREDIBLE_ANSWER_POWER). Being generous here does not make
+                    # the bot try harder; it makes the bot never notice it is stuck.
+                    stab = 1.5 if learned.move.type in own_types else 1.0
+                    if learned.move.base_power * eff * stab >= self.CREDIBLE_ANSWER_POWER:
+                        return False, []  # we DO have a credible answer — not hopeless
 
             # No answer in the party: work out what WOULD be super-effective by asking
             # the type chart directly (never hardcode a type-matchup table).
@@ -1048,7 +1080,18 @@ class StoryMode(BotMode):
                 if eff >= 2.0:
                     needed.append(atk_name)
             return True, needed
-        except Exception:
+        except Exception as error:
+            # ‼ THIS `except` FAILS TOWARD "KEEP GRINDING FOREVER". Returning
+            # "not hopeless" is the safe answer for a crash, but it is also exactly
+            # what a WORKING detector returns — so a bug in here is indistinguishable
+            # from a healthy boss plan and costs ~19,000 frames per losing attempt,
+            # silently, forever. Caught once already: a stand-in `self` missing a class
+            # constant swallowed an AttributeError and disabled the whole diagnosis.
+            # Never let it be silent again.
+            console.print(
+                f"[yellow]Story: boss-plateau detector errored ({error!r}) — treating "
+                f"the plan as viable, but this guard is NOT protecting the run.[/]"
+            )
             return False, []
 
     def _prepare_for_fight(self, cfg: dict) -> Generator:

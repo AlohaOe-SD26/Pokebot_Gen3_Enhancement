@@ -374,11 +374,28 @@
 > day — not reworded, only relocated.
 
 ### Priority block (added 2026-07-25 — previously referenced but unlisted)
-- [ ] **#24-whiteout — HIGHEST-COST OPEN ITEM (attrition).** Whiteout attrition is not
-      a side-effect, it IS the dominant cost of the current boss-as-training-vehicle
-      strategy: 2 of 5 runs died on the whiteout cap, and the run that SUCCEEDED still
-      took **80 whiteouts** (58/85 in single runs elsewhere). Needs a prep/attrition
-      rethink, not a bigger cap.
+- [~] **#24-whiteout — MEASURED 2026-07-25; half fixed, half is now `#24-counters` phase 2.**
+      ‼ It is **not** attrition in the general sense. Census of all 5 night5 runs (~128
+      losses; losses:whiteouts are 1:1 — no potion/revive layer exists, so a loss always
+      whites out): **~83% of losses are GYM LEADERS** — `PETALBURG_CITY_GYM` 38 (Norman),
+      `MAUVILLE_CITY_GYM` 24 (Wattson), `FORTREE_CITY_GYM` 20 (Winona),
+      `LAVARIDGE_TOWN_GYM_1F` 18 (Flannery), ROUTE110 10, Dewford+Rustboro 6. Travel and
+      wild encounters are noise by comparison.
+      **What boss-as-training-vehicle actually delivers** (run3, Norman, traced): 27
+      attempts / **508,000 frames** (~19k each) / **+2-4 levels total** / **KOs flat at
+      1-2 of 4 for all 27** / a L15 Shroomish carried untrained the whole way.
+      **DONE:** the plateau detector was **power-blind** and could never have fired on
+      Norman — its "we have an answer" veto accepted **Rock Smash (20 power)**, the HM
+      the bot must carry, because Fighting is 2.0x vs Normal. Now requires
+      `base_power x effectiveness x STAB >= CREDIBLE_ANSWER_POWER` (60). A/B on the real
+      party: `(False, []) -> (True, ['Fighting'])`. Its silent `except` now warns.
+      (Note the night5 logs PRE-DATE the whole counter chain — 07:36 vs 09:47-13:27 — so
+      those 27 attempts had no guard at all, and would still have had none without this.)
+      **REMAINING:** the bot now STOPS with a named counter instead of grinding forever.
+      Actually travelling/catching/training it is `#24-counters` phase 2 — the two items
+      are the same problem from opposite ends. Also still unbuilt: a potions/healing
+      layer (`#24-provisions`) so a loss is not automatically a whiteout, and benching
+      dead-weight party members (a L15 in a L30+ team is a free loss).
 - [ ] **#24-npcheal — heal at an NPC, not only at a Poké Center.** Re-pair the Route 111
       training band to `ROUTE111_OLD_LADYS_REST_STOP` (decomp-cited: a full, ungated,
       repeatable heal — **96 steps vs 213** to Fallarbor). Blocked on a heal-at-NPC

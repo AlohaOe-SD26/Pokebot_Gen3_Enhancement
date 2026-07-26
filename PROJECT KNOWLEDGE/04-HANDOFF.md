@@ -657,12 +657,34 @@ sparse clone of pokeemerald (~44 MB) — it makes ABSENCE claims checkable, whic
 fetches cannot do.
 
 ### Top open items
-1. **`#24-whiteout`** — attrition is the dominant cost (the SUCCESSFUL run still took 80).
-   **This is now the #1 item**, `#24-movelearn-recovery` having closed 2026-07-25.
+1. **`#24-counters` phase 2** — now the #1 item. The bot DIAGNOSES a hopeless boss plan and names a
+   concrete reachable counter, then stops. Travelling to it, catching it and training it is unbuilt.
+   `#24-whiteout` collapsed into this (below), so they are one problem from two ends.
 2. **`#24-npcheal`** — re-pair Route 111 training to `ROUTE111_OLD_LADYS_REST_STOP` (decomp-cited
    full ungated repeatable heal, 96 steps vs 213 to Fallarbor). Needs a heal-at-NPC helper.
 3. `#24-counters` phase 2 (the chain NAMES a counter; acting on it isn't built).
 4. `#24-edgecost`, `#24-regionreach` gate table, KI-18 live confirmation.
+
+### 📊 2026-07-25 (later) — `#24-whiteout` MEASURED: it is gyms, not attrition
+Do not redesign healing/travel for this. Census of all 5 night5 runs (~128 losses; **losses and
+whiteouts are 1:1** — there is no potion/revive layer, so losing always means whiting out):
+**~83% of losses are GYM LEADERS** — Norman 38, Wattson 24, Winona 20, Flannery 18, Route110 10,
+Dewford+Rustboro 6. The cost is the **boss-as-training-vehicle** strategy, and it is a PLATEAU, not
+slow progress: run3 made **27 Norman attempts over 508,000 frames** (~19k each) for **+2-4 levels**,
+with **KOs flat at 1-2 of 4 across all 27** and a **L15 Shroomish** carried untrained throughout.
+* **Fixed:** `_boss_plan_is_hopeless` was **power-blind** — it accepted **Rock Smash (20 power)** as
+  a super-effective "answer" to Norman (Fighting is 2.0x vs Normal, and that HM is one the bot is
+  REQUIRED to carry), so the guard could never fire on the boss that needed it most. Now needs
+  `base_power x effectiveness x STAB >= CREDIBLE_ANSWER_POWER` (60). A/B on the real logged party:
+  `(False, []) -> (True, ['Fighting'])`. Its `except Exception` also used to return the SAME value
+  as success — a silent self-disable — and now warns.
+* ‼ Reading the night5 logs: they launched at **07:36**, and the entire counter chain landed
+  **after** (09:47 → 13:27). Anything those logs show about non-convergence pre-dates the guard.
+* **Still open** (now `#24-counters` phase 2): the bot stops with a named counter instead of going
+  and getting it. Also unbuilt: a provisions/healing layer so a loss isn't automatically a whiteout,
+  and benching dead weight (a L15 in a L30+ team is a free loss).
+* Tests: `repro_boss_plateau.py` CASE 5 = the REAL run3 party + its real KO trace; CASE 6 guards
+  against over-correcting the threshold (STAB Double Kick, the organic Norman win, must still count).
 
 ### ✅ 2026-07-25 (later) — `#24-movelearn-recovery` CLOSED (was the #1 open item)
 The move-learn wedge that killed 2 of 5 night5 cold-start runs (~f1.55M each) is fixed and

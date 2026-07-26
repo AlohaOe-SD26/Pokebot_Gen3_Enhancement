@@ -3521,3 +3521,67 @@ raises at f27,583, `_STALLED_EXITS = 0`). That last one first came back at `_STA
 looked like a regression — it was a BUDGET artifact (bounding the wait costs more emulator frames
 per iteration, pushing the third strike past its 25,000-frame budget). Default raised to 35,000
 with the reason recorded in the file.
+
+## 2026-07-25 — Whiteout census: it is not attrition, it is gyms; and the guard against it could never fire on Norman (#24-whiteout)
+
+**Measured the whiteouts instead of theorising about them.** Every loss in the 5 night5 runs is
+logged as `Story: lost a battle at map (g, n) (defeat #N here; KO'd M of theirs first)`. Census of
+all five runs (~128 losses; losses and whiteouts are 1:1 — the bot has no potion/revive layer, so
+losing always means whiting out):
+
+| map | losses | |
+|---|---|---|
+| `PETALBURG_CITY_GYM` | 38 | Norman |
+| `MAUVILLE_CITY_GYM` | 24 | Wattson |
+| `FORTREE_CITY_GYM` | 20 | Winona |
+| `LAVARIDGE_TOWN_GYM_1F` | 18 | Flannery |
+| `ROUTE110` | 10 | rival / trainers |
+| Dewford + Rustboro gyms | 6 | Brawly, Roxanne |
+
+**~83% of all losses are gym leaders.** The item was filed as "attrition"; the data says the cost is
+almost entirely the boss-as-training-vehicle strategy, not travel or wild encounters.
+
+**What that strategy actually delivers** (night5 run3, Norman, traced attempt by attempt):
+27 losing attempts across **f1,406,000 → f1,914,000 (508,000 frames, ~19k per attempt)**; party
+went Marshtomp L33→L35, Mightyena L32→L36, Swellow L30→L32 — **+2 to +4 levels total**; Shroomish
+sat at **L15 the entire time**, never trained and never benched; and **KOs stayed flat at 1–2 of
+Norman's 4 for all 27 attempts** — attempt #27 did no better than attempt #1. It is not slow
+convergence, it is a plateau.
+
+**‼ The machinery built to stop exactly this post-dates the logs.** The night5 batch launched at
+07:36 (`aadad944`); boss non-convergence detection landed 09:47 (`32c62285`), the counter planner
+10:46, the end-to-end wiring 11:53, the KI-24 gate 13:27. So the 27-attempt plateau was never
+something the shipped guard failed to catch — it had no guard at all. But testing it against the
+real party found that it *still* would not have caught it:
+
+**FIXED — `_boss_plan_is_hopeless` was POWER-BLIND.** Its "do we already have an answer?" veto
+accepted any damaging move with `effectiveness >= 2.0`, regardless of power. Norman's team is
+entirely **Normal**, the only type super-effective against Normal is **Fighting**, and the run3
+party's sole Fighting move was **Rock Smash — the 20-base-power HM the bot is REQUIRED to carry to
+progress at all**. 20 × 2.0 × 1.0 = 40 effective power: super-effective on paper, useless against a
+L31 Slaking. The veto fired, the plan was declared viable, and the detector was structurally unable
+to protect the boss most likely to plateau.
+
+Now the answer must be CREDIBLE: `base_power × effectiveness × STAB >= CREDIBLE_ANSWER_POWER` (60).
+Chosen so genuine answers survive and chip/utility moves do not — Double Kick on Combusken
+(30 × 2.0 × 1.5 = 90, the move that beat Norman organically) counts; Rock Smash (40) and a L15
+Shroomish's Absorb (40) do not.
+
+**A/B on the real night5 run3 party:** `BEFORE (power-blind) -> (False, [])` /
+`AFTER (power-weighted) -> (True, ['Fighting'])`.
+
+**Also fixed: the detector's `except Exception` was silent.** It returns `(False, [])` on error —
+the same value a *working* detector returns for a healthy boss — so any bug in it is
+indistinguishable from "this plan is fine" and costs ~19k frames per losing attempt, forever. It
+now prints a warning saying the guard is not protecting the run. This was not hypothetical: the
+first run of the new test case returned `False` because the repro's stand-in `self` lacked the new
+class constant, and the `except` swallowed the `AttributeError`.
+
+**Tests:** `repro_boss_plateau.py` gains CASE 5 (the REAL run3 party and its real KO trace
+`1,1,2,2,2,2` → must be HOPELESS, naming Fighting) and CASE 6 (a weak-but-real STAB answer must
+still count, guarding against over-correcting the threshold). Suite 6/6 in that file, story-bot
+suite 5/5 green, plus both move-learn repros from earlier today re-verified.
+
+**#24-whiteout is NOT closed.** The diagnosis now fires; the bot still only *stops* with a named
+target. Acting on it — travel, catch, train the counter — is `#24-counters` phase 2, and the two
+items are now the same problem seen from two ends.

@@ -1554,3 +1554,42 @@ in a named task, and nothing in the bot had ever heard of it.
 buttons, how many, in what ratio" distinguishes *pressing the wrong thing* from *pressing nothing*,
 and those have opposite fixes. Every `while True` that can press nothing on a frame needs a bound —
 an unbounded "just wait for the state to settle" branch is a hang with good manners.
+
+## 2026-07-25 — "Super-effective" was treated as "sufficient", and it disabled the guard on the one boss that needed it
+
+**Symptom.** `#24-whiteout` was filed as generic attrition. Measuring it instead showed **83% of
+all losses are gym leaders** (Norman 38, Wattson 24, Winona 20, Flannery 18), and one run made
+**27 losing Norman attempts over 508,000 frames** with KOs flat at 1–2 of 4 the whole way — a
+plateau, not slow progress.
+
+**Root cause.** `_boss_plan_is_hopeless` decides whether to give up on levelling by asking "does
+any battler have a super-effective damaging move?" — `base_power == 0` was excluded, but nothing
+else. Norman's team is entirely NORMAL; the only type super-effective against Normal is FIGHTING;
+and the party's only Fighting move was **Rock Smash, the 20-power HM the bot is required to carry
+to progress**. Effective power 40. The veto fired every time, so the detector could never flag the
+boss it was most needed for.
+
+**Why it slipped through.** The Winona case that motivated the detector had *no* super-effective
+move at all, so a pure type test looked sufficient. Norman is the opposite shape: an answer that
+exists on paper and is worthless in practice. One example does not pin a predicate — and the
+counter-example was already sitting in a log.
+
+**Fix.** Weight by real power: `base_power × effectiveness × STAB >= 60`. Verified both ways
+against the REAL logged party — before `(False, [])`, after `(True, ['Fighting'])` — and guarded
+with a second case proving a weak-but-real answer (STAB Double Kick, 30 × 2.0 × 1.5 = 90, the move
+that beat Norman organically) still counts, so the threshold cannot be quietly raised until nothing
+qualifies.
+
+**Prevention rule:** when a predicate asks "do we have X?", make it ask "do we have ENOUGH X?".
+A capability test that ignores magnitude will accept the cheapest token instance — and the bot's
+mandatory HM moves are exactly such tokens (Rock Smash/Cut/Strength are all low-power attacking
+moves it is forced to carry). Check any type-matchup logic for the same blindness.
+
+**Second prevention rule — a fail-safe `except` that returns the SUCCESS value is invisible.**
+This detector's `except Exception: return False, []` returns precisely what a healthy boss plan
+returns, so any crash inside it reads as "everything is fine" while costing ~19,000 frames per
+losing attempt forever. It bit immediately: the new test case returned `False` because the repro's
+stand-in `self` was missing the new class constant, and the `except` ate the `AttributeError` —
+the test failed for a reason that had nothing to do with the logic under test. When a guard fails
+safe, make it fail LOUDLY: log that the guard is no longer protecting anything, or the difference
+between "working" and "broken" is unobservable.
