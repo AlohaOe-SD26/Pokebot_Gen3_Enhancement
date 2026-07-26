@@ -233,6 +233,10 @@
       get there), then move the entry into `TRAINING_GRASS`.
       Related: `#24-regionreach` (the reachability predicate itself), `#24-watertrain`,
       `#24-healverify`.
+      ‼ **NOW ENFORCED IN CODE — see `training_areas.NO_RETURN_GROUNDS`** (2026-07-26).
+      This paragraph is history; the table is the authority, and both training pickers
+      refuse those maps before any reachability check. It was moved into code because
+      this prose was re-derived from scratch by a probe cycle on 2026-07-26 (08-MISTAKES).
       ‼ LAVARIDGE HAS NO REACHABLE TRAINING GRASS (two-way sweep 2026-07-23,
       `tools/story-dev/jaggedgrass_probe.py`): Jagged Pass cannot be re-entered from
       the town (one-way ledges) and Route 112's lower grass has no return path. So

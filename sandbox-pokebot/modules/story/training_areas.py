@@ -79,6 +79,12 @@ def best_training_grass(mon_level: int):
     for map_enum, tile, (lo, hi) in TRAINING_GRASS:
         if tile is None:
             continue
+        # ‼ REFUSE NO-RETURN GROUNDS FIRST. A training loop must be able to walk BACK to
+        # a Poké Center to heal; a ground that cannot strands the run. Checked before the
+        # reachability predicate because `allow` answers "can I get there", which is TRUE
+        # for these — being reachable is exactly what makes them dangerous.
+        if _return_blocked(map_enum) is not None:
+            continue
         if mon_level < lo - 1:
             continue  # wilds too strong — the mon would lose here
         score = (abs((mon_level + 1) - hi), -hi)  # closeness to mon_level+1, then higher area
@@ -108,6 +114,59 @@ AREA_PREREQ: dict = {
 }
 
 
+#: ‼ ONE-WAY / NO-RETURN GROUNDS — maps you can REACH but cannot get BACK from, so they
+#: can never host a training or hunting loop (which must return to a Poké Center to heal).
+#: A ground whose return leg fails strands the run; that is the exact class that dropped
+#: two real-HW runs to Manual (2026-07-22) and it is what this table exists to prevent.
+#:
+#: ‼‼ WHY THIS TABLE EXISTS AT ALL (user directive 2026-07-26). Every fact below was
+#: ALREADY KNOWN — recorded 2026-07-23 in 03-PUNCH-LIST/04-HANDOFF as "LAVARIDGE HAS NO
+#: REACHABLE TRAINING GRASS ... Jagged Pass cannot be re-entered from the town (one-way
+#: ledges) and Route 112's lower grass has no return path". It lived only in PROSE, in
+#: documents nobody reads while choosing a tile, so on 2026-07-26 it was re-derived from
+#: scratch by a full two-way probe cycle — after the same session had *quoted* the Jagged
+#: Pass half and still asserted Fiery Path was "traversable both ways". Prose did not stop
+#: it; a table the picker consults does. ADD TO THIS TABLE, never to a doc alone.
+#:
+#: Measured evidence for each entry is in the value string. `best_training_area` and
+#: `best_training_grass` refuse these outright, before any reachability predicate runs.
+NO_RETURN_GROUNDS: dict = {
+    # Two-way sweep 2026-07-23 (tools/story-dev/jaggedgrass_probe.py): Jagged Pass is
+    # entered by DESCENDING one-way ledges from Mt. Chimney and cannot be re-entered from
+    # Lavaridge. Re-confirmed 2026-07-26 by probe_counter_tiles.py --nav, which reached
+    # JAGGED_PASS (14,40) and then could not path WITHIN the map to (16,22).
+    MapRSE.JAGGED_PASS: (
+        "one-way ledges from Mt. Chimney; not re-enterable from Lavaridge "
+        "(sweep 2026-07-23, re-confirmed 2026-07-26)"
+    ),
+    # Route 112's LOWER section (the Fiery Path south door side) cannot path back to
+    # Lavaridge. Measured 2026-07-26 and the asymmetry is stark on the identical pair:
+    #   Lavaridge (9,6) -> ROUTE112 (11,36) = OK, 60 waypoints
+    #   ROUTE112 (11,36) -> Lavaridge (9,6) = FAIL
+    # so a heal trip from there cannot complete. Recorded in prose 2026-07-23 as
+    # "Route 112's lower grass has no return path".
+    MapRSE.ROUTE112: (
+        "lower section cannot path back to Lavaridge (ledges); Lavaridge->door OK at 60 "
+        "waypoints, door->Lavaridge FAILS (measured 2026-07-26; prose 2026-07-23)"
+    ),
+    # Reached from Lavaridge and exits cleanly onto ROUTE112 (both legs PASS,
+    # story_harness --driver fierycave 2026-07-26) — but it inherits Route 112's problem:
+    # the heal leg to Lavaridge then fails, so it cannot host a training loop. It remains
+    # a fine CATCH-AND-LEAVE hunting ground (#24-counters phase 2), which needs no heal
+    # trip; that is a different use and must not go through this picker.
+    MapRSE.FIERY_PATH: (
+        "reachable and exitable (both legs PASS, story_harness --driver fierycave "
+        "2026-07-26), but the onward heal leg to Lavaridge fails — see ROUTE112. Usable "
+        "for catch-and-leave hunting, NOT for a training loop (measured 2026-07-26)"
+    ),
+}
+
+
+def _return_blocked(map_enum) -> "str | None":
+    """Reason this ground can be reached but not returned FROM, or None if it is fine."""
+    return NO_RETURN_GROUNDS.get(map_enum)
+
+
 def best_training_area(team_level: int, *, min_wild_max: int = 0, allow=None):
     """Pick the training area best matched to `team_level` for FULL-xp grinding.
 
@@ -128,6 +187,11 @@ def best_training_area(team_level: int, *, min_wild_max: int = 0, allow=None):
     best_score = None
     for map_enum, tile, (lo, hi) in TRAINING_GRASS:
         if tile is None:
+            continue
+        # ‼ REFUSE NO-RETURN GROUNDS FIRST — same rule as `best_training_grass`. These
+        # ARE reachable, which is precisely why `allow` cannot catch them: the problem is
+        # getting BACK to heal. See NO_RETURN_GROUNDS for the measured evidence.
+        if _return_blocked(map_enum) is not None:
             continue
         if hi <= min_wild_max:
             continue  # doesn't beat the floor the caller already has

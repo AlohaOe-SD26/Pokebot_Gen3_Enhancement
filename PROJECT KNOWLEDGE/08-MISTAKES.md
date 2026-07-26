@@ -1765,3 +1765,42 @@ run the new diagnostic over old artifacts; if it returns nothing, ask whether th
 batch ever run, 2026-07-25). Same shape both times: a number never cross-checked against a raw
 count from the same logs. Any metric that has never been validated against ground truth should be
 assumed broken until it is.
+
+## 2026-07-26 — I re-derived a documented fact by probe, hours after quoting half of it myself
+
+**Symptom.** Spent a full two-way probe cycle (three harness runs, a new driver, ~30 minutes of
+emulation) discovering that Route 112's lower section cannot path back to Lavaridge, and that
+Jagged Pass is internally one-way. **Both were already recorded on 2026-07-23**, in
+03-PUNCH-LIST and 04-HANDOFF:
+
+> "LAVARIDGE HAS NO REACHABLE TRAINING GRASS (two-way sweep 2026-07-23,
+>  `jaggedgrass_probe.py`): Jagged Pass cannot be re-entered from the town (one-way ledges)
+>  and **Route 112's lower grass has no return path**."
+
+**The damning part.** Earlier the SAME session wrote, into the punch list, *"FIERY_PATH is the
+better target (on the Ch10 route, traversable both ways, **unlike Jagged Pass's one-way ledges**)"*
+— i.e. I quoted half the finding while contradicting the other half, then spent the afternoon
+proving the half I had contradicted. Reading a fact, and even restating it, did not make me apply
+it.
+
+**Root cause — the knowledge was in the wrong PLACE, not missing.** It lived in prose, in
+narrative documents, while the decision it constrains ("is this a usable training ground?") is made
+in `modules/story/training_areas.py`. Nobody reads the handoff while picking a tile; they read the
+table. Prose adjacent to a decision is not the same as prose *in* the decision.
+
+**Fix — make it enforceable, not just recorded (user directive).** `NO_RETURN_GROUNDS` now lives in
+`training_areas.py` with the measured evidence and date per entry, and BOTH pickers
+(`best_training_grass`, `best_training_area`) refuse those maps *before* the reachability
+predicate runs — because these grounds ARE reachable, which is exactly what makes them dangerous;
+`allow=`/`region_reach` answer "can I get there", and the failure is the RETURN leg.
+`repro_no_return_grounds.py` pins it, including that every entry cites evidence and a date (that
+assertion immediately caught an entry of mine that cited neither).
+
+**Prevention rule:** before probing whether somewhere is reachable/usable, grep the CODE that makes
+that decision — `training_areas.py`, `region_reach.KNOWN_GATES`, `_CAVE_EXITS` — for the map name,
+not just the docs. If a hard-won fact is not represented where the decision happens, it WILL be
+re-derived; move it there and add the assertion, in the same change that discovers it.
+
+**Second prevention rule:** the same knowledge is worth carrying in code as data + a test even when
+it feels like "just a note". Cost of this lesson: ~30 minutes of emulation to relearn one sentence
+written three days earlier.
