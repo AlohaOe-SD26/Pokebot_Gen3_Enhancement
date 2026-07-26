@@ -665,7 +665,32 @@ fetches cannot do.
 3. `#24-counters` phase 2 (the chain NAMES a counter; acting on it isn't built).
 4. `#24-edgecost`, `#24-regionreach` gate table, KI-18 live confirmation.
 
-### 🚨 2026-07-26 (latest) — OUT-OF-PP LIVELOCK from the user's real hardware, + a harness blind spot
+### 🧭 2026-07-26 (latest) — phase 2 REFRAMED: catch-and-leave, not train-in-place
+**Read `12-STORYMODE-DESIGN.md` §CC2 and its three updates before touching `#24-counters`.**
+
+**Cave support is BUILT and proven; the Fiery Path tile is deliberately NOT promoted.**
+`_exit_training_cave_if_inside` / `_goto_training_area` are now ROM-verified tables
+(`_CAVE_EXITS`, `_CAVE_ENTRANCES`), and `story_harness.py --driver fierycave` proves legs 1-2:
+Lavaridge → Fiery Path (18,19) **PASS**, exit the cave **PASS**. Leg 3 (heal at Lavaridge) FAILS —
+`calculate_path` is ASYMMETRIC on the identical pair (Lavaridge→door OK at 60 waypoints,
+door→Lavaridge FAILS). Route 112's ledges make the return one-way.
+
+**‼ THE REFRAME.** A counter HUNT does not need a heal loop at the hunting ground: it needs to
+travel, catch, and LEAVE, then train the catch somewhere that does have a working heal trip. That
+sidesteps the failing leg entirely and is a better fit for phase 2 than reusing `train_team` in
+place. Build the executor that way, not around the training loop.
+
+**Guard rails now in code so this cannot be re-derived:** `training_areas.NO_RETURN_GROUNDS`
+(JAGGED_PASS / ROUTE112 / FIERY_PATH, each with measured evidence + date). BOTH training pickers
+refuse those maps BEFORE any reachability check — they ARE reachable, which is what made them
+dangerous. `repro_no_return_grounds.py` pins it. ‼ This existed as PROSE since 2026-07-23 and was
+re-derived by a 30-minute probe cycle anyway — see 08-MISTAKES 2026-07-26. **Grep the decision code
+(`training_areas.py`, `KNOWN_GATES`, `_CAVE_EXITS`) for a map name before probing it.**
+
+**Suite is now 10 files.** `repro_no_return_grounds`, `repro_cave_exit_table`,
+`repro_out_of_pp_livelock` joined the seven.
+
+### 🚨 2026-07-26 — OUT-OF-PP LIVELOCK from the user's real hardware, + a harness blind spot
 **User reported "a shiny pre-Pokédex crashed the game — maybe disable shiny logic until the
 Pokédex".** ‼ The shiny was a RED HERRING and that fix would have changed nothing: the shiny path
 worked correctly ("no catch possible here, fighting through"), WON the battle, and the run
