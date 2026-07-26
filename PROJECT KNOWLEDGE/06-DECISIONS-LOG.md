@@ -511,3 +511,58 @@ and is claimed by an opted-in mode.
   The listener now returns while deliberately LEAVING `_in_battle` set.
 - *Let the mode poll for a wedged battle itself.* The mode is starved of frames precisely while the
   battle handler holds the stack, which is exactly when it would need to notice.
+
+## 2026-07-26 — ENDLESS RESET restores SPEED but never touches VIDEO (user directive)
+
+**Context.** `StoryEndlessResetMode` captured `context.video` at batch start and re-applied it
+after every run, alongside `emulation_speed`. The speed half exists for a real reported problem
+(a derail calls `set_manual_mode()`, which drops to 1x and throttled the rest of an unattended
+batch). The video half was collateral.
+
+**User directive, verbatim intent:** "I think that's due to the infinite run feature turning off the
+video toggle upon reset — can we make it not mess with that and have it stay in whatever state it's
+currently in."
+
+**Decision.** Speed is restored; **video is never written**. The renderer belongs to the user; if
+they turn it on mid-batch it stays on.
+
+**Why it mattered more than a preference.** The FAITHFUL PokeNav Match-Call tutorial only advances
+with the renderer ON, so pinning video off silently demoted it to the documented last-resort
+state-write in **8 of 9** real-hardware runs (`#24-pokenav-faithful`). Worse, the `except` fell back
+to `batch_video = False`, so one failed read of `context.video` would force the renderer off for a
+whole batch. A setting captured "to be helpful" overrode a live user choice and degraded a
+faithfulness guarantee — the general lesson: restore only what YOU changed, and never latch a
+user-facing toggle for the duration of a batch.
+
+## 2026-07-26 — Hard-won map/route facts live in the DECISION CODE, not in prose (user directive)
+
+**Context.** The Lavaridge one-way-ledge constraint ("Jagged Pass not re-enterable; Route 112's
+lower grass has no return path") was recorded 2026-07-23 in 03-PUNCH-LIST and 04-HANDOFF, and was
+still re-derived from scratch by a ~30-minute probe cycle on 2026-07-26 — by a session that had
+quoted half of it that same morning.
+
+**User directive:** "make notes about training areas ... ensure all this gets noted."
+
+**Decision.** Such facts go into the module that MAKES the decision, as data the code consults,
+plus a test — not into a narrative document alone. Implemented as
+`training_areas.NO_RETURN_GROUNDS` (evidence + date per entry), enforced in BOTH training pickers
+*before* the reachability predicate, and pinned by `repro_no_return_grounds.py`. The punch-list
+paragraph now points at the table as the authority rather than being the authority.
+
+**Rejected:** "write it down more prominently in the handoff". It was already written down twice
+and prominently; prominence was not the failure mode. The decision point was the wrong place to be
+looking for it.
+
+## 2026-07-26 — Validation runs are BATCHED across fixes, not run per fix (user directive)
+
+**User directive:** "I will run some tests but only if you think it's worth running now. otherwise
+lets continue working ... and when those fixes land I'll do the test then so we can test for more
+than just a single bug."
+
+**Decision.** Real-hardware validation runs accumulate several landed fixes and are run once, rather
+than one run per fix. Corollaries: (1) intermittent bugs are proven by REPRO, not by a clean run —
+a run that does not trigger them proves nothing; (2) when a fix can ONLY be validated on the user's
+setup (anything needing the renderer, the GUI, or ENDLESS RESET — none of which the headless
+livetest harness exercises), say so explicitly rather than implying a batch covered it; (3) a cheap
+smoke check is still worth proposing when a fix is a PRECONDITION for the next run being
+informative, so that run is not spent re-answering a known unknown.

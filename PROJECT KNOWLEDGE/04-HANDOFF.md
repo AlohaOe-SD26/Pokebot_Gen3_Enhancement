@@ -3,7 +3,7 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-07-26 (survival mode; `#24-movelearn-recovery` closed — see "YOU ARE HERE")
+**Last updated:** 2026-07-26 (session wrap-up — see "SESSION END" immediately below)
 
 ### ⭐⭐⭐ 2026-07-24 — KI-15 FIXED (3 proven fixes) + OVERNIGHT CHAPTER LOOP RUNNING
 **KI-15 is fixed** (see 05-KNOWN-ISSUES KI-15 + changelog for the full story): (1)
@@ -665,7 +665,35 @@ fetches cannot do.
 3. `#24-counters` phase 2 (the chain NAMES a counter; acting on it isn't built).
 4. `#24-edgecost`, `#24-regionreach` gate table, KI-18 live confirmation.
 
-### 🧭 2026-07-26 (latest) — phase 2 REFRAMED: catch-and-leave, not train-in-place
+### 🏁 SESSION END 2026-07-26 — state, and the ONE thing waiting on the user
+
+**Everything is committed and pushed. Tree clean, branch `main`, in sync with origin. Suite 10/10
+green.** Upstream unchanged (`5dd898f8`, daily check done 2026-07-26).
+
+**⏳ WAITING ON THE USER — a ~2 minute smoke check, not a test run.** The ENDLESS-RESET *video*
+fix can only be validated on their setup: the headless livetest harness never enables the renderer
+and never runs ENDLESS RESET, so no batch I run can see it. Start ENDLESS RESET with video ON, let
+run 1 finish and run 2 begin, then stop, and check:
+* does the renderer STAY on into run 2? (before the fix it was forced off)
+* does the log say **`"calling Mr. Stone"`** rather than `"state-write to vanilla end-state"`?
+If both hold, `#24-pokenav-faithful` is cured and the next long run exercises the faithful path.
+‼ **The user's checkout is a DIFFERENT working copy** (`OneDrive\Desktop\pokebot gen3 v3\...`) —
+they must `git pull` there or none of today's fixes are in their runs.
+
+**Per the batching directive (06-DECISIONS 2026-07-26): do NOT ask for a full validation run yet.**
+Accumulate the next chunk of fixes first. What is already landed and awaiting that run: the
+out-of-PP livelock fix, the ENDLESS-RESET video fix, survival mode, the Route 111 memory, the
+plateau guard recalibration, cost-based counter ranking, and the Victory Road gate.
+
+**NEXT WORK, in order:**
+1. **`#24-counters` phase 2 executor, built as CATCH-AND-LEAVE** (see the reframe below and §CC2).
+   Do not reuse `train_team` at the hunting ground — Fiery Path's heal leg cannot complete.
+2. `#24-whiteout` residual attrition — batch `20260726-094520` run02 showed 23.8% flee / 82 losses /
+   40 whiteouts / no frontier. The new `flee_rate` metric is how to watch it.
+3. `#24-pokenav-faithful` — likely already cured by the video fix; confirm from the smoke check
+   before spending anything on it.
+
+### 🧭 2026-07-26 — phase 2 REFRAMED: catch-and-leave, not train-in-place
 **Read `12-STORYMODE-DESIGN.md` §CC2 and its three updates before touching `#24-counters`.**
 
 **Cave support is BUILT and proven; the Fiery Path tile is deliberately NOT promoted.**
