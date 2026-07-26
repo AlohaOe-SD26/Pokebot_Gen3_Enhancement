@@ -2796,3 +2796,51 @@ and Jagged Pass is known to have one-way ledges (it could not be re-entered from
 rather than fatal: `_training_unreachable` bounds a wrong YES to ONE wasted walk, and rank 2
 (FIERY_PATH, 168,616 — still 2.4-3x better than doing nothing) is on the Ch10 route and known
 traversable both ways. Run the `--nav` stage before trusting rank 1.
+
+#### §CC2 blocker #4 — `map_type` is NOT a usable filter for "is this a hunting ground" (dead end, 2026-07-26)
+Tried and rejected: excluding story interiors like `GRANITE_CAVE_STEVENS_ROOM` by map header type.
+Measured — **Steven's Room and Granite Cave 1F are BOTH `'Underground'`**, so the field cannot
+separate them:
+
+| map | `map_type` |
+|---|---|
+| GRANITE_CAVE_1F / _B1F / **STEVENS_ROOM** | `Underground` |
+| FIERY_PATH, VICTORY_ROAD_1F | `Underground` |
+| JAGGED_PASS, SAFARI_ZONE_NORTH, ROUTE110 | `Route` |
+| PETALBURG_CITY | `City` |
+
+Note it also lumps SAFARI_ZONE in with ordinary routes, so it would not have caught that either.
+Remaining idea (unmeasured): a floor on walkable non-warp tile count — a real hunting ground needs
+room to spin, and Steven's Room is tiny. ‼ If that is pursued, bracket the threshold with data on
+BOTH sides first (the `CREDIBLE_ANSWER_POWER` lesson, 08-MISTAKES 2026-07-26).
+**Priority is now LOW:** cost ranking demoted Steven's Room to rank 5 behind two genuinely good
+candidates, so it is only reachable if everything above it fails.
+
+#### §CC2 blocker #1 — TWO-WAY SWEEP RESULTS (2026-07-26): a tile is found, but do NOT promote it yet
+`tools/story-dev/probe_counter_tiles.py --nav`, anchored at `lavaridge.ss1` (Lavaridge Town, clean
+overworld, pre-Norman, avg L26 — the moment the counter plan fires):
+
+| map | OUT (anchor → tile) | BACK | reading |
+|---|---|---|---|
+| **FIERY_PATH (18,19)** | **OK** | FAIL — ended inside FIERY_PATH (22,22) | **the tile is real**; the return leg is the cave problem below |
+| JAGGED_PASS (16,22) | FAIL — *reached* (14,40) then "could not find a path" WITHIN the map | — | ‼ the one-way-ledge caveat CONFIRMED: rank 1 was a wrong YES |
+| GRANITE_CAVE_1F / _B1F | FAIL — routed via `ROUTE106`, a sea route | — | correctly unreachable from Lavaridge without Surf |
+
+**Hop counts are strongly ANCHOR-dependent** — from Route 102: FIERY_PATH 7, JAGGED_PASS 7,
+GRANITE_CAVE_1F 5; from Lavaridge: FIERY_PATH 2, JAGGED_PASS 2, GRANITE_CAVE 10-11. At the
+Lavaridge anchor the cheap counters are 2 hops and Granite Cave is excluded by
+`COUNTER_MAX_HOPS = 8` — the same ordering the cost model wants, reached independently.
+
+**‼ WHY THE TILE IS NOT PROMOTED YET.** The BACK leg failed *inside the cave*, which is the known
+warp-level limitation: "the global navigator can NOT cross warp levels, so a heal that targets a
+town PC from inside a cave plan-fails ('not on connected maps') — two real-HW runs dropped to
+Manual on exactly that (2026-07-22)". `_exit_training_cave_if_inside()` exists for precisely this
+and is **hardcoded to `GRANITE_CAVE_1F`**. Promoting FIERY_PATH (18,19) into `TRAINING_GRASS`
+before generalising that helper would re-ship that stranding on a new map.
+
+**NEXT STEP, precisely:** generalise `_exit_training_cave_if_inside` into a table of
+`{cave map: exit warp tile}` covering FIERY_PATH (2 warps) alongside Granite Cave, prove the exit
+with a repro from a tile deep inside, THEN promote `(MapRSE.FIERY_PATH, (18, 19), (15, 16))` into
+`TRAINING_GRASS`. That single promotion unblocks phase 2's executor, since Fiery Path is rank 2 by
+cost (168,616 frames, still 2.4-3× better than losing to Norman) and is the only candidate whose
+OUT leg actually passes.

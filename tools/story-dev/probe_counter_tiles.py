@@ -2,11 +2,20 @@
 to path to. This probe answers, from the REAL pre-Norman anchor, whether a usable tile
 exists on each Fighting-counter map — and therefore whether phase 2 can pay for itself.
 
-ANCHOR: `saves/prenorman_fodder_grind.ss1` — captured mid-grind on the Route 102 fodder
-tile, PRE-Norman, Badge 4 earned. That is precisely the moment the counter plan fires,
-so it is the honest starting position (prevention rule, 08-MISTAKES 2026-07-22: never
-adopt a training tile without proving it FROM THE REAL ENTRY POINT — same-map
-connectivity does not imply the story can get there).
+ANCHOR (`--anchor`, default `lavaridge`): a PRE-Norman save, i.e. the moment the counter
+plan actually fires — the honest starting position (prevention rule, 08-MISTAKES
+2026-07-22: never adopt a training tile without proving it FROM THE REAL ENTRY POINT;
+same-map connectivity does not imply the story can get there).
+
+‼ THE ANCHOR MUST LOAD IN A CLEAN OVERWORLD. `prenorman_fodder_grind.ss1` was the obvious
+choice (captured at the exact pre-Norman grind) but it loads **inside a wild battle**
+(`game_state=4`, `battle_is_active=True`), and every navigation leg then dies identically
+with "stayed out of the overworld for too long (possible softlock)" — which reads like
+four separate map failures and is really one harness bug. `normalize_to_overworld()` does
+NOT rescue it either: it B-presses out of menus/dialogues, but a live wild battle can only
+be resolved by fleeing or fighting, which needs the battle LISTENER this probe does not
+run. Verified clean and pre-Norman (state=7, battle=False, BADGE05 unset):
+`lavaridge` (Lavaridge Town, avg L26), `flannery_done`, `fallarbor`, `rocksmash_taught`.
 
 ‼ FIERY_PATH and GRANITE_CAVE are CAVES. Their encounters come from the cave FLOOR, not
 from `MB_TALL_GRASS`, so `jaggedgrass_probe.py`'s tall-grass enumeration finds zero tiles
@@ -34,6 +43,8 @@ except Exception:
 ap = argparse.ArgumentParser()
 ap.add_argument("--nav", action="store_true", help="run the expensive stage-3 navigation test")
 ap.add_argument("--frames", type=int, default=60000, help="frame budget per navigation leg")
+ap.add_argument("--anchor", default="lavaridge",
+                help="save basename in saves/ to start from (must load in a CLEAN overworld)")
 args = ap.parse_args()
 
 _REPO = _pl.Path(__file__).resolve().parents[2]
@@ -57,7 +68,7 @@ context.audio = False
 context.video = False
 context.emulation_speed = 0
 
-SAVE = (_SAVES / "prenorman_fodder_grind.ss1").read_bytes()
+SAVE = (_SAVES / f"{args.anchor}.ss1").read_bytes()
 context.emulator.load_save_state(SAVE)
 for _ in range(30):
     context.emulator.run_single_frame()
@@ -184,6 +195,7 @@ print("STAGE 3 — two-way navigation from the anchor (expensive)")
 print("=" * 78)
 from modules.modes import BotModeError
 from modules.modes.util.global_navigation import navigate_to_anywhere
+from modules.story.early_game import normalize_to_overworld
 
 
 def step(gen, n):
@@ -197,9 +209,20 @@ def step(gen, n):
 
 
 def reset():
+    """Load the anchor AND get to a clean controllable overworld first.
+
+    ‼ `prenorman_fodder_grind.ss1` was captured MID-GRIND and loads **inside a wild
+    battle** (`game_state=4`, `battle_is_active=True`). Without this the navigator has no
+    overworld to work from and every leg dies identically with "stayed out of the
+    overworld for too long (possible softlock)" — which reads like four separate map
+    failures and is really one harness bug. Same class as the 2026-07-22
+    checkpoint-saved-mid-dialogue lesson: a save is not a starting position until it is
+    normalised.
+    """
     context.emulator.load_save_state(SAVE)
     for _ in range(30):
         context.emulator.run_single_frame()
+    step(normalize_to_overworld(), 6000)
 
 
 anchor_map = tuple(pa.map_group_and_number)
