@@ -76,6 +76,11 @@ if frame:
     check(frame.status.get("lane") == "P1", "status carries the lane tag")
     check(frame.status.get("message") == "Story: choosing Torchic!", "status carries context.message")
     check(frame.sequence == 1, "sequence starts at 1")
+    # Key-completeness, not just spot checks: a `_status()` that silently stops building
+    # part of the blob (e.g. a method spliced into the middle of it) shows up here rather
+    # than as a blank tile nobody attributes to this.
+    for key in ("lane", "message", "mode", "frame", "parked", "starter_chosen", "log"):
+        check(key in frame.status, f"status carries '{key}'")
 
 print("\n== the rate gate holds lanes to ~20 Hz ==")
 before = context.emulator.reads

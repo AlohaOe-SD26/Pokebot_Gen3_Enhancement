@@ -256,6 +256,9 @@ class PokebotTileChild:
             "frame": int(getattr(context, "frame", 0) or 0),
             # The dashboard WAITS on this before it copies anything.
             "parked": self._parked,
+            # Which starter this run is ACTUALLY playing — a `random` lane is otherwise
+            # indistinguishable from a pinned one when it rolls the same species.
+            "starter_chosen": self._chosen_starter(),
         }
         # Logging state travels with every frame, so the dashboard can show at a glance
         # whether a lane is actually producing the logs it exists to produce.
@@ -286,6 +289,17 @@ class PokebotTileChild:
         except Exception:
             pass
         return status
+
+    @staticmethod
+    def _chosen_starter() -> str | None:
+        """The species this run is actually playing, read across the process boundary the
+        same way the run counter is (see `modules/story/early_game.LAST_CHOSEN_STARTER`)."""
+        try:
+            from modules.story import early_game
+
+            return getattr(early_game, "LAST_CHOSEN_STARTER", None)
+        except Exception:
+            return None
 
     @staticmethod
     def _mon_payload(mon) -> dict:

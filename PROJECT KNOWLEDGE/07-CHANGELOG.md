@@ -4070,3 +4070,32 @@ command channel round-trip; and a publish NOT clobbering a pending command).
 `repro_x4_tile_child.py` gained park coverage: mode/speed/reset/log-closed, the
 **self-healer not re-arming while parked**, command idempotence, and tiles staying live.
 Suite now eight scripts, all green.
+
+## 2026-07-26 — x4: a `random` lane now SAYS what it rolled (#24-x4)
+
+**Trigger.** User report: "P4 is a copy of P3, it should be an independent run." P4's config
+is correct (`starter: random`, re-rolled every run by
+`help_birch_and_choose_starter()` → `random.choice`, verified by
+`repro_x4_lanes.py`). What was missing was any way to SEE that: when the random lane rolls
+Treecko it plays a Treecko run beside the pinned-Treecko P3 lane, and the tile label said
+only `P4 · random`, so the two are indistinguishable on screen.
+
+**Fix — observability, not behaviour.** `modules/story/early_game.LAST_CHOSEN_STARTER`
+records the species actually resolved for the current run (and prints
+`STARTER: config='random' -> playing Treecko` to the log). The lane publishes it in its
+status blob and the tile label now reads `P4 · random→Treecko`, so a coincidental match is
+visibly a coincidental match rather than a suspected duplicate.
+
+**Caught by the suite while making that change:** the new `_chosen_starter()` helper was
+spliced into the MIDDLE of `_status()`, cutting off its `return` — so `_status()` returned
+`None` and every tile silently lost its whole status blob. `repro_x4_tile_child.py` failed
+on it immediately. Added a key-completeness assertion (`lane`, `message`, `mode`, `frame`,
+`parked`, `starter_chosen`, `log` all present) so this class of edit cannot pass again.
+
+**Still open at time of writing:** whether two lanes running the SAME starter are
+meaningfully independent, i.e. how far the GBA's RNG stream diverges between instances
+booted from a hard reset within milliseconds of each other. The bot's own decisions are
+documented as deterministic, but it does make Python-side random choices per process
+(`story_mode.py:1330` training-strategy pick, `:2015` `random.randint(8, 10)` target
+level), which decorrelate runs from those points on. The game-side half is being checked
+against the pokeemerald decomp rather than asserted from memory.

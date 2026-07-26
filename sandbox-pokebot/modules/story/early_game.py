@@ -741,6 +741,14 @@ LITTLEROOT_NORTH_APPROACH = (11, 3)   # walk here, then step North through the G
 ROUTE101_BAG_FACE = (8, 14)           # stand here facing West; Birch's bag is at (7,14)
 STARTER_BY_NAME = {"treecko": "Treecko", "torchic": "Torchic", "mudkip": "Mudkip"}
 
+#: The species actually chosen on THIS run — set by `help_birch_and_choose_starter()` at
+#: the moment it resolves the config. Exists because a lane configured `starter: random`
+#: is otherwise indistinguishable from a lane pinned to whatever it happened to roll:
+#: ENDLESS LOOP x4's P4 lane is `random`, and when it rolls Treecko it looks exactly like
+#: the pinned-Treecko P3 lane (user report 2026-07-26). The x4 tile reads this across the
+#: process boundary so the label can say `random -> Treecko`.
+LAST_CHOSEN_STARTER: str | None = None
+
 
 def _go_north_to_birch_rescue() -> Generator:
     """Leave Littleroot to the north to trigger Professor Birch's rescue.
@@ -833,9 +841,20 @@ def help_birch_and_choose_starter(starter: str = "random") -> Generator:
 
     :param starter: "random" | "treecko" | "torchic" | "mudkip".
     """
+    global LAST_CHOSEN_STARTER
+
     resolved = STARTER_BY_NAME.get(str(starter).strip().lower())
     if resolved is None:
         resolved = random.choice(list(STARTER_BY_NAME.values()))
+    LAST_CHOSEN_STARTER = resolved
+    # Say it in the log too: "which starter did THIS run actually play?" is the first
+    # question asked of any batch, and `random` in story.yml does not answer it.
+    try:
+        from modules.console import console
+
+        console.print(f"[bold cyan]STARTER: config={starter!r} -> playing {resolved}[/]")
+    except Exception:
+        pass
 
     yield from _go_north_to_birch_rescue()
     yield from navigate_to(

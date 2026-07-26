@@ -42,6 +42,11 @@ class MosaicTile:
 
     tag: str = "P?"
     starter: str = ""
+    #: What the lane is ACTUALLY playing this run. For a `random` lane this differs from
+    #: `starter` and the label shows both ("random -> Treecko"), so a random lane that
+    #: rolled the same species as a pinned lane can no longer be mistaken for a duplicate
+    #: of it (user report 2026-07-26).
+    starter_chosen: str | None = None
     alive: bool = True
     exhausted: bool = False        # died and used up its restart budget
     restarts: int = 0
@@ -131,7 +136,10 @@ def compose_mosaic(size: tuple[int, int], tiles: list[MosaicTile], focus: int = 
         draw.rectangle([ox, oy + cell_h - bar_h, ox + cell_w - 1, oy + cell_h - 1], fill=(0, 0, 0, 175))
 
         runs = tile.runs_completed
-        head = f"{tile.tag} · {tile.starter} · {runs} run{'' if runs == 1 else 's'} done"
+        starter = tile.starter
+        if tile.starter_chosen and tile.starter_chosen.lower() != (tile.starter or "").lower():
+            starter = f"{tile.starter}→{tile.starter_chosen}"
+        head = f"{tile.tag} · {starter} · {runs} run{'' if runs == 1 else 's'} done"
         if tile.restarts:
             head += f" · {tile.restarts} restart{'' if tile.restarts == 1 else 's'}"
         head += f" · log {_kb(tile.log_bytes)}" if tile.log_bytes is not None else " · ‼ NO LOG"

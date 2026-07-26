@@ -2697,6 +2697,7 @@ class DashboardScreen:
                         width=frame.width if frame is not None else 240,
                         height=frame.height if frame is not None else 160,
                         log_bytes=status.get("log_bytes") if status.get("log") else None,
+                        starter_chosen=status.get("starter_chosen"),
                     )
                 )
 
