@@ -3585,3 +3585,66 @@ suite 5/5 green, plus both move-learn repros from earlier today re-verified.
 **#24-whiteout is NOT closed.** The diagnosis now fires; the bot still only *stops* with a named
 target. Acting on it — travel, catch, train the counter — is `#24-counters` phase 2, and the two
 items are now the same problem seen from two ends.
+
+## 2026-07-25 — Live batch validates the day's three fixes; two issues found and fixed (#24-regionreach)
+
+**Batch `20260725-194810`** — 5 fresh cold-start lanes, 3M frames, commit `26613bcb`.
+Reviewed marker in the batch dir. Scorecard vs the night5 baseline:
+
+| | batch | night5 |
+|---|---|---|
+| reached frontier | **1/5** (run03, Feather Badge) | 0/5 |
+| move-learn deaths | **0/5** | 2/5 |
+| Norman attempts before giving up | **6** | 27 (508k frames) |
+| total losses | 66 | 128 |
+
+**All three of the day's fixes confirmed in a live run:**
+* **Move-learn HM wedge** — zero valve failures, and the new `CantForgetHM` branch **fired 44
+  times**, so the situation kept arising and kept being handled (positive evidence, not absence
+  of the trigger).
+* **Boss-plateau guard** — fired on Norman at **exactly 6 losses** in 2 runs; Petalburg-gym
+  losses 38 → 14 batch-wide.
+* **Counter chain, first live execution ever** — named `Makuhita (Fighting) on Granite Cave (1F),
+  L6-10, 50% — reachable`, with Victory Road / Jagged Pass correctly marked UNREACHABLE.
+The battle-fault channel never triggered (no wedged battles occurred) — still repro-only.
+
+**FIXED 1 — a wrong YES from the reachability oracle cost the RUN, not a walk (2/5 runs).**
+Both deaths were identical: `Could not reach (25, 55) on ROUTE111 ... from (22/6 @ MAUVILLE_CITY)`.
+`training_areas.py` documents that tile as FALLARBOR-SIDE ONLY (north of the Go-Goggles desert,
+which splits Route 111 into two disconnected halves), but `AREA_PREREQ` gates ROUTE111 as
+`"region"` and `_training_area_allowed` answers "region" with `region_reach.is_map_reachable`,
+which is TRUE from Mauville — the southern half connects. Gate passes, walk dies at the desert.
+‼ `_training_area_allowed`'s own docstring argued a wrong YES "costs ONE wasted walk, which
+navigation then fails RECOVERABLY and loudly". **The batch disproved it.** The picker is
+DETERMINISTIC: every derail re-ran `_play`, re-picked the same tile, failed identically, and the
+derail budget dropped the run to Manual. Fix makes the docstring's claim true rather than
+special-casing Route 111 — so it also covers every future gap in `KNOWN_GATES`, the residual risk
+that docstring already names:
+* new `UnreachableDestinationError(BotModeError)` in `early_game.py` — a SUBCLASS, so every
+  existing `except BotModeError` (derail recovery above all) is unchanged; it exists so an
+  OPTIONAL choice can tell "not reachable from here" from "training went wrong".
+* `StoryMode._training_unreachable` remembers `(standing map, target map, tile)` and the picker
+  skips it. **Keyed on where we stood** because reachability is directional — Route 111 really is
+  reachable from Fallarbor — so a good ground is not thrown away run-wide. Instance state, so
+  ENDLESS RESET's next run starts clean.
+Proof (`repro_training_unreachable.py`, 5 cases): Mauville proposes Route 111 (reproduces the
+bug) → the typed failure is recorded → Mauville now picks **ROUTE117 (31,16)** instead → Fallarbor
+still picks Route 111 → the error is still a `BotModeError`.
+
+**FIXED 2 — `livetest.py`'s whiteout metric always read 0.** It counted `"WHITEOUT recovery"`, a
+`debug_logger.event()` payload written to the profile's debug-log FILE, never to stdout/run.log —
+the only streams the summarizer reads. It reported `0 whiteouts` for all 5 runs that had really
+whited out 36/5/9/6/10 times. ‼ **Every whiteout figure in an archived batch summary is
+meaningless.** Now counts `recovered from the whiteout` (a `console.print`, once per whiteout),
+and gained `losses` + `losses_by_map` — automating the per-map census that was hand-computed twice
+today and that redirected `#24-whiteout` from "attrition" to "83% gym leaders". Verified against
+the hand counts: exact match, per-map included.
+
+**STILL OPEN (found, not fixed): training-loop attrition has no give-up guard.** run01 lost **25
+times on Route 110** while swap-training a lopsided team (Marshtomp L23 carrying Beautifly L16 /
+Poochyena L12 / Whismur L12), KO count flat at 1 every time — the same plateau shape as Norman,
+but `_boss_plan_is_hopeless` covers configured BOSSES only. Route 110 is now the largest single
+loss cluster in the batch. Filed under `#24-whiteout`.
+Minor, also filed: the diagnosis prints `"this boss"` (Norman's cfg has no `name` key), every
+counter candidate says `tile unmapped`, and the top counter for a L34+ party is a **L6-10
+Makuhita** — level fit may need to outrank encounter rate in phase 2.

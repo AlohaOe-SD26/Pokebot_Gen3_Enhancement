@@ -714,6 +714,13 @@ class StoryMode(BotMode):
         # per LOCATION (map) so repeated faints at the same obstacle mean a power/level
         # problem → trigger a retrain. These live on the instance and survive whiteout
         # restarts because run() loops in place (it does NOT bounce through Manual).
+        # Training grounds proven unreachable FROM a given standing map, this run
+        # (#24-regionreach, 2026-07-25). Keyed (here_map, target_map, tile) because
+        # reachability is directional and positional: Route 111's grass is genuinely
+        # reachable from Fallarbor and genuinely not from Mauville, so a flat blacklist
+        # would throw away a good area for the rest of the run. Instance state, not
+        # module state, so ENDLESS RESET's next run starts with a clean slate.
+        self._training_unreachable: set = set()
         self._defeat_counts: dict = {}
         self._loss_ko_history: dict = {}  # map key -> [(seq, opponent KOs) per lost attempt]
         self._loss_seq: int = 0
@@ -1094,6 +1101,32 @@ class StoryMode(BotMode):
             )
             return False, []
 
+    def _here_map(self):
+        """The map we are standing on, as a (group, number) tuple — None if unreadable."""
+        try:
+            from modules.map import get_map_data_for_current_position
+
+            return tuple(get_map_data_for_current_position().map_group_and_number)
+        except Exception:
+            return None
+
+    def _note_training_unreachable(self, map_enum, tile) -> None:
+        """Record that `tile` on `map_enum` could NOT be reached from where we stand."""
+        here = self._here_map()
+        if here is None:
+            return  # can't key it safely — better to retry later than to blacklist wrongly
+        self._training_unreachable.add((here, tuple(map_enum.value), tuple(tile)))
+        console.print(
+            f"[yellow]Story: {map_enum.name} {tuple(tile)} is not reachable from here — "
+            f"dropping it as a training option for the rest of this run.[/]"
+        )
+
+    def _training_blocked(self, map_enum, tile) -> bool:
+        here = self._here_map()
+        if here is None:
+            return False
+        return (here, tuple(map_enum.value), tuple(tile)) in self._training_unreachable
+
     def _prepare_for_fight(self, cfg: dict) -> Generator:
         """Before a major fight, train the team to a sensible level (user directive
         2026-07-21). PROACTIVE: a target within the fight's level band (organic,
@@ -1103,7 +1136,7 @@ class StoryMode(BotMode):
         import random
 
         from modules.pokemon_party import get_party
-        from modules.story.early_game import train_team
+        from modules.story.early_game import train_team, UnreachableDestinationError
 
         losses = max((self._defeat_counts.get(k, 0) for k in cfg["keys"]), default=0)
         lo, hi = cfg["band"]
@@ -1280,8 +1313,14 @@ class StoryMode(BotMode):
                     # The replacement must beat the local patch AND not be fodder itself
                     # — otherwise we'd walk somewhere new to grind equally-worthless xp.
                     floor = max(local_max, team_max_now - self.FODDER_LEVEL_GAP)
+                    # Skip anything this run has ALREADY walked into a wall trying to
+                    # reach from where we now stand — see `_training_unreachable`.
                     better = best_training_area(
-                        team_max_now, min_wild_max=floor, allow=_training_area_allowed
+                        team_max_now,
+                        min_wild_max=floor,
+                        allow=lambda m, t, p: (
+                            _training_area_allowed(m, t, p) and not self._training_blocked(m, t)
+                        ),
                     )
                 except Exception:
                     better = None
@@ -1307,9 +1346,19 @@ class StoryMode(BotMode):
                     f"[cyan]Story: prepping — training {len(need)} battler(s) to Lv {target} "
                     f"in {grass_map.name} (fresh low catches left to level organically).[/]"
                 )
-                yield from train_team(
-                    target, slots=to_train, grass=(grass_map, grass_tile), heal_center=heal_at_center
-                )
+                try:
+                    yield from train_team(
+                        target, slots=to_train, grass=(grass_map, grass_tile), heal_center=heal_at_center
+                    )
+                except UnreachableDestinationError:
+                    # The reachability oracle said yes and the map disagreed. Remember it
+                    # so the next pick differs, THEN re-raise so the normal derail recovery
+                    # still runs. Without the memory this is a deterministic death loop:
+                    # re-running `_play` re-picks the identical unreachable tile every
+                    # derail until the budget drops the run to Manual (2/5 runs, batch
+                    # 20260725-194810, Route 111 (25,55) from Mauville).
+                    self._note_training_unreachable(grass_map, grass_tile)
+                    raise
 
     def on_battle_started(self, encounter):
         # Story battles (the first Birch battle, training, the rival) are meant

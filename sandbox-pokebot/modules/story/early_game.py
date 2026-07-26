@@ -20,6 +20,25 @@ from modules.map_data import MapRSE, PokemonCenter
 from modules.map_path import Direction
 from modules.memory import GameState, get_game_state
 from modules.modes import BotModeError
+
+
+class UnreachableDestinationError(BotModeError):
+    """A destination TILE could not be reached from where we are standing.
+
+    A SUBCLASS of BotModeError on purpose: every existing `except BotModeError`
+    (StoryMode's derail recovery above all) keeps handling it exactly as before. It
+    exists so a caller that made an OPTIONAL choice — "relocate to a better training
+    ground" — can tell "that place is not reachable from here" apart from "training
+    itself went wrong", and drop that option instead of retrying it forever.
+
+    ‼ Added 2026-07-25 (#24-regionreach) after a live batch killed 2 of 5 runs on it.
+    `_training_area_allowed`'s own docstring argued that a wrong YES from `region_reach`
+    "costs ONE wasted walk, which navigation then fails RECOVERABLY and loudly" — the
+    batch proved that wrong. The picker is DETERMINISTIC, so every derail re-ran `_play`,
+    re-picked the same unreachable Route 111 tile, and failed identically until the derail
+    budget dropped the run to Manual. A wrong YES cost the RUN, not a walk. Recognising
+    this failure by TYPE is what lets the caller make the docstring's claim true.
+    """
 from modules.modes.util.tasks_scripts import (
     wait_for_yes_no_question,
     wait_until_script_is_no_longer_active,
@@ -201,7 +220,7 @@ def _navigate_riding_out(dest_map, dest_tile, *, avoid_encounters: bool = True, 
             except Exception:
                 where = None
             if where is not None and where == last_where:
-                raise BotModeError(
+                raise UnreachableDestinationError(
                     f"Could not reach {dest_tile} on {dest_map}: the field is idle and we are "
                     f"still at {where[1]}, so retrying cannot change the result "
                     f"({last_error})."
@@ -211,7 +230,7 @@ def _navigate_riding_out(dest_map, dest_tile, *, avoid_encounters: bool = True, 
     # Surface the REAL last error: runs 11-13 each burned all retries on instant
     # PLAN failures (an unreachable tile) while this message blamed "scene
     # interruptions" — two full validation runs were misdiagnosed off it.
-    raise BotModeError(
+    raise UnreachableDestinationError(
         f"Could not reach {dest_tile} on {dest_map} after {tries} tries (last error: {last_error})."
     )
 

@@ -665,6 +665,26 @@ fetches cannot do.
 3. `#24-counters` phase 2 (the chain NAMES a counter; acting on it isn't built).
 4. `#24-edgecost`, `#24-regionreach` gate table, KI-18 live confirmation.
 
+### 🧪 2026-07-25 (latest) — LIVE BATCH `20260725-194810`: the day's fixes hold; 2 new issues fixed
+5 fresh cold-start lanes, 3M frames, commit `26613bcb`. **1/5 reached the frontier (baseline 0/5)**,
+**0/5 move-learn deaths (baseline 2/5)**, 66 losses (baseline 128). Batch dir has `REVIEWED.md`.
+* **All three of the day's fixes confirmed live.** The `CantForgetHM` branch fired **44 times** —
+  the wedge situation kept arising and kept being handled, which is stronger than "it didn't occur".
+  The plateau guard fired on Norman at **exactly 6 losses** (was 27). The counter chain ran
+  end-to-end for the first time and named `Makuhita (Fighting), Granite Cave 1F, L6-10, 50%`.
+  The battle-fault channel never triggered — still repro-only evidence.
+* **Fixed: a wrong YES from `region_reach` cost the RUN, not a walk** (killed 2/5). ROUTE111's
+  training tile is FALLARBOR-SIDE ONLY but the map is reachable from Mauville, so the gate passed
+  and the walk died at the desert — then every derail re-picked the SAME tile. New
+  `UnreachableDestinationError` + a `(standing map, target map, tile)` memory. ‼ Read the
+  08-MISTAKES entry: "recoverable" describes the LOOP, not the failure.
+* **Fixed: `livetest.py`'s whiteout metric always read 0** — it counted a debug-log-only string.
+  ‼ **Ignore the `whiteouts` field in every archived batch summary.** Now also emits `losses` and
+  `losses_by_map`, automating the census that redirected `#24-whiteout`.
+* **Found, NOT fixed — training-loop attrition has no give-up guard.** run01 lost **25 times on
+  Route 110** swap-training a lopsided team, KOs flat at 1. Same plateau shape as Norman; the guard
+  covers configured BOSSES only. Now the largest single loss cluster (31 of 66). See `#24-whiteout`.
+
 ### 📊 2026-07-25 (later) — `#24-whiteout` MEASURED: it is gyms, not attrition
 Do not redesign healing/travel for this. Census of all 5 night5 runs (~128 losses; **losses and
 whiteouts are 1:1** — there is no potion/revive layer, so losing always means whiting out):

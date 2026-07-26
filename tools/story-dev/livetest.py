@@ -45,6 +45,7 @@ import re
 import subprocess
 import sys
 import time
+from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
@@ -88,7 +89,23 @@ def summarize_run(log_path: Path, stdout_path: Path, wall_seconds: float, killed
         "hang_confirmed": (FAIL_MARKERS["hang"] in text) and not reached,
         "dropped_to_manual": FAIL_MARKERS["manual"] in text,
         "derails": len(re.findall(r"derail #\d+", text)),
-        "whiteouts": len(re.findall(r"WHITEOUT recovery", text)),
+        # ‼ WAS `r"WHITEOUT recovery"` AND ALWAYS REPORTED 0 (fixed 2026-07-25). That
+        # string is a `debug_logger.event(...)` payload, which is written to the
+        # profile's debug-log FILE — never to stdout or run.log, the only two streams
+        # this summarizer reads. So the metric read 0 for every run of every batch,
+        # including batch 20260725-194810 whose runs really whited out 36/5/9/6/10
+        # times. Any whiteout figure in an ARCHIVED batch summary is meaningless.
+        # `recovered from the whiteout` is a console.print from StoryMode.run() and is
+        # emitted exactly once per whiteout.
+        "whiteouts": len(re.findall(r"recovered from the whiteout", text)),
+        # The per-map loss census (#24-whiteout). Hand-computed twice on 2026-07-25
+        # before being automated here; it is the measurement that showed ~83% of all
+        # losses are GYM LEADERS rather than travel attrition, which redirected the
+        # whole item. Raw (group, number) tuples — resolve names via modules/map_data.py.
+        "losses": len(re.findall(r"lost a battle at map", text)),
+        "losses_by_map": dict(
+            Counter(re.findall(r"lost a battle at map \((\d+, \d+)\)", text)).most_common()
+        ),
         "shiny_events": re.findall(r".*[Ss]hiny.*", text)[:20],
         "frames_run": None,
         "final_flags": None,

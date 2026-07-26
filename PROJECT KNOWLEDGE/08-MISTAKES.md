@@ -1593,3 +1593,40 @@ stand-in `self` was missing the new class constant, and the `except` ate the `At
 the test failed for a reason that had nothing to do with the logic under test. When a guard fails
 safe, make it fail LOUDLY: log that the guard is no longer protecting anything, or the difference
 between "working" and "broken" is unobservable.
+
+## 2026-07-25 — A metric that read 0, and a cost model that was wrong in the docstring's own words
+
+Two failures from one live batch, both about BELIEVING A STATED CLAIM instead of checking it.
+
+**(a) The metric that always read 0.** `livetest.py`'s batch summary reported `whiteouts: 0` for
+all five runs — right after I had changed whiteout-adjacent code. It counted `"WHITEOUT recovery"`,
+which is a `debug_logger.event()` payload written to the profile's debug-log FILE, while the
+summarizer only ever reads stdout and run.log. The real counts were 36/5/9/6/10. **Every whiteout
+number in every archived batch summary is meaningless**, and none of them was ever questioned.
+
+*Why it nearly landed as a result:* "0 whiteouts, down from 128" is exactly the headline I wanted,
+and it appeared in the same report as three genuine wins, so it read as consistent. It was only
+caught by asking why a number I had no mechanism to improve had improved so much — I changed no
+battle, healing, or attrition logic.
+
+**Prevention rule:** a metric that moves to a PERFECT value (0 errors, 100% pass) after a change
+that could not plausibly produce it is a broken metric until proven otherwise. Verify it against a
+raw count from the same logs before reporting it. And when adding a counter, grep the stream you
+are actually parsing for the marker — not the codebase for the string.
+
+**(b) The cost model that was wrong in its own docstring.** `_training_area_allowed` was switched
+to `region_reach` that morning on an explicit, well-argued cost asymmetry: a wrong NO is
+"INVISIBLE and costs a whole run", a wrong YES "costs ONE wasted walk, which navigation then fails
+RECOVERABLY and loudly". The reasoning is sound and the direction was right. **But a wrong YES cost
+the whole run, in 2 of 5 lanes**, because the picker is DETERMINISTIC: the derail recovery re-ran
+`_play`, which re-picked the identical unreachable Route 111 tile and failed identically, until the
+derail budget hit Manual. "Recoverable" was true of the single failure and false of the loop.
+
+*Fix shape that generalises:* rather than special-casing Route 111, make the claim TRUE — record
+the failed `(standing map, target map, tile)` and stop proposing it. That also covers every future
+gap in `KNOWN_GATES`, which the same docstring already flags as the standing residual risk.
+
+**Prevention rule:** "this failure is recoverable" is a claim about the LOOP, not the failure. Before
+relying on it, ask what re-runs after recovery — if the retry re-derives the same choice from the
+same inputs, the failure is deterministic and recovery is a countdown to Manual, not a recovery.
+Anything chosen by a deterministic picker must be REMEMBERED as failed, or it will be re-chosen.

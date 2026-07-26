@@ -391,6 +391,15 @@
       party: `(False, []) -> (True, ['Fighting'])`. Its silent `except` now warns.
       (Note the night5 logs PRE-DATE the whole counter chain — 07:36 vs 09:47-13:27 — so
       those 27 attempts had no guard at all, and would still have had none without this.)
+      **LIVE-CONFIRMED 2026-07-25** (batch `20260725-194810`, 5 fresh lanes): the guard
+      fired on Norman at **exactly 6 losses** in 2 runs (was 27), Petalburg-gym losses
+      38 -> 14 batch-wide, and **1/5 reached the frontier** (baseline 0/5).
+      **‼ NEW, STILL OPEN — training-loop attrition has no give-up guard.** run01 lost
+      **25 times on ROUTE110** swap-training a lopsided team (Marshtomp L23 carrying
+      Beautifly L16 / Poochyena L12 / Whismur L12), KO count flat at 1 every time — the
+      same plateau shape as Norman, but `_boss_plan_is_hopeless` covers configured BOSSES
+      only. Route 110 is now the LARGEST single loss cluster (31 of 66 batch-wide). The
+      boss-side fix does not touch it.
       **REMAINING:** the bot now STOPS with a named counter instead of grinding forever.
       Actually travelling/catching/training it is `#24-counters` phase 2 — the two items
       are the same problem from opposite ends. Also still unbuilt: a potions/healing
@@ -411,7 +420,18 @@
       **Phase 2 NOT STARTED:** actually travelling to the target, catching it, and training
       it. Today the bot converts an unbounded loop into a bounded stop that NAMES the fix;
       acting on it is the next step and needs a live run to validate, not a repro.
-- [~] **#24-regionreach — region-scale reachability oracle.** **BUILT + PROVEN**
+- [~] **#24-regionreach — region-scale reachability oracle.** ‼ **A WRONG *YES* COST 2 OF 5
+      LIVE RUNS (2026-07-25) — now bounded.** `_training_area_allowed`'s cost model said a
+      wrong yes "costs ONE wasted walk, fails RECOVERABLY and loudly"; in batch
+      `20260725-194810` it cost the RUN, twice, because the picker is DETERMINISTIC and every
+      derail re-picked the same unreachable ROUTE111 (25,55) from Mauville (that tile is
+      FALLARBOR-SIDE ONLY — north of the Go-Goggles desert — while `is_map_reachable` is
+      correctly True for the map). FIXED generally, not per-tile: new
+      `UnreachableDestinationError(BotModeError)` + `StoryMode._training_unreachable`, keyed
+      `(standing map, target map, tile)` so a directional ground survives elsewhere
+      (`repro_training_unreachable.py`, 5 cases). This bounds EVERY future `KNOWN_GATES` gap
+      to one wasted walk — which is the point of (a) below.
+      **BUILT + PROVEN**
       (`modules/story/region_reach.py`, `repro_region_reach.py`): a graph from the ROM's own
       `MapConnections` + warps, capability gates, and `why_unreachable()` reasons that keep
       "no connection path" / "needs Surf at A↔B" / "reachable but N hops away" as three
