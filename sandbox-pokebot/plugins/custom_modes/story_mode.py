@@ -2775,6 +2775,12 @@ class StoryDebugResetMode(StoryMode):
 #: 10 so picking the mode straight from the dropdown still does something sensible.
 ENDLESS_RESET_TARGET = 10
 
+#: How many runs of the CURRENT batch have FINISHED. Read across the process boundary by
+#: ENDLESS LOOP x4 (`modules/gui/tile_child.py`) so each tile can show its lane's run count
+#: — a lane's progress is otherwise invisible from the dashboard, which has no access to a
+#: child's `context`. Reset at batch start; purely informational, never a control input.
+ENDLESS_RESET_COMPLETED = 0
+
 
 class StoryEndlessResetMode(StoryDebugResetMode):
     """"Story (ENDLESS RESET)" (user request 2026-07-25): chained DEBUG-RESET runs, IN-PROCESS.
@@ -2813,8 +2819,11 @@ class StoryEndlessResetMode(StoryDebugResetMode):
         from modules.console import console
         from modules.modes import BotModeError
 
+        global ENDLESS_RESET_COMPLETED
+
         target = int(ENDLESS_RESET_TARGET)
         completed = 0
+        ENDLESS_RESET_COMPLETED = 0
         outcomes: list[str] = []
 
         # ‼ CAPTURE AND RE-APPLY THE SPEED/VIDEO SETTINGS EVERY RUN (user report 2026-07-25:
@@ -2870,6 +2879,7 @@ class StoryEndlessResetMode(StoryDebugResetMode):
             if frames > self.MAX_FRAMES_PER_RUN:
                 outcome = f"frame-cap ({frames:,} > {self.MAX_FRAMES_PER_RUN:,})"
             outcomes.append(f"run {completed}: {outcome} ({frames:,} frames)")
+            ENDLESS_RESET_COMPLETED = completed
             console.print(f"[cyan]=== ENDLESS RESET: run {label} -> {outcome} ({frames:,} frames) ===[/]")
 
             # A derail deep inside StoryMode can flip us to Manual; restore ourselves or the

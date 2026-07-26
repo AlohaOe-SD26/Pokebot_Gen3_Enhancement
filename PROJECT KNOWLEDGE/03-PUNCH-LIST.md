@@ -21,6 +21,23 @@
       credit limits; run it against custom-pokebot before relying on the
       save-touching bits (cloud-sync ships off-by-default, so inert).
 
+- [ ] #24-x4 — **ENDLESS LOOP ×4** (user request 2026-07-26): four independent
+      `Story (ENDLESS RESET)` bots at once, one process + profile + starter each
+      (P1 torchic / P2 mudkip / P3 treecko / P4 random), tiled 2×2 in the
+      dashboard's video area, looping forever and restarting independently.
+      A TEST INSTRUMENT — it exists to raise the rate of reviewable failure data
+      and guarantee starter coverage.
+      **Phase 1 BUILT in sandbox (2026-07-26), tests green, LIVE RUN NOT YET DONE**
+      — this dev box has no `mgba`, so nothing involving a real emulator has been
+      exercised. See 04-HANDOFF for the exact live confirms the user must run.
+      Phase 2 (agreed with the user, NOT built): (a) the party strip + tool column
+      following the focused lane — needs the lane's party shipped over the status
+      blob and rendered from JSON rather than from a `Pokemon` object; (b) the
+      watch/CONTROL toggle — click a tile then drive it, forwarding
+      `press_button`/`hold_button`/`release_button` over a per-lane input pipe
+      (`modules/libmgba.py` already exposes exactly that surface, so the channel is
+      strings, not input-model surgery).
+
 ## Next (user-set order 2026-07-19: #30 â†’ #31 â†’ #32, THEN the first wave below)
 > #30/#31/#32 are BUILT + ADVERSARIALLY VERIFIED in sandbox (clean pass:
 > money cheat byte-safe 56/56, GUI nav 28/28, no code bugs). AWAITING USER

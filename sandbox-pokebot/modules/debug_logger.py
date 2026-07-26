@@ -58,9 +58,13 @@ def log_path() -> Optional[str]:
     return str(_path) if _path else None
 
 
-def enable(profile=None) -> str:
+def enable(profile=None, name_prefix: str = "") -> str:
     """Open a fresh log file and start logging. Returns the path (or an error
-    string). `profile` defaults to context.profile."""
+    string). `profile` defaults to context.profile.
+
+    `name_prefix` is prepended to the filename — ENDLESS LOOP x4 passes the lane tag
+    ("P1-", "P2-", ...) so that logs handed over for review say which bot produced
+    them without having to open them."""
     global _enabled, _file, _path, _prev, _stall_frames, _last_sig, _last_dump_stall
     global _start_frame, _bytes_written, _capped
     disable()
@@ -74,7 +78,7 @@ def enable(profile=None) -> str:
         now = datetime.datetime.now()
         ts = now.strftime("%Y%m%d-%H%M%S")
         mode = _safe(_cur_mode) or "run"
-        _path = base / f"{str(mode).replace(' ', '_').replace('/', '-')}-debug-{ts}.log"
+        _path = base / f"{name_prefix}{str(mode).replace(' ', '_').replace('/', '-')}-debug-{ts}.log"
         _file = open(_path, "w", encoding="utf-8", buffering=1)  # line-buffered
         _enabled = True
         _prev = None

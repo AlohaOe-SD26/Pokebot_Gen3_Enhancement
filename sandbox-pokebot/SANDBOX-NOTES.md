@@ -861,3 +861,46 @@ process.
   encounter (even an already-owned species), gated on storage — before the
   wanted-uncaught check. Stub-verified: shiny-owned→Catch, wanted-uncaught→
   Catch, owned-non-shiny→fall-through, trainer→None.
+
+## 2026-07-26 — ENDLESS LOOP ×4 (#24-x4): four tiled story bots at once
+- **Added** `modules/tile_bridge.py`: the only channel between the dashboard and its
+  lanes — one `SharedMemory` block, `SLOT_BYTES` (≈116 KiB) per lane holding a 240×160
+  RGB frame + a 1 KiB JSON status blob. Lock-free: the writer publishes pixels → status
+  → header with `sequence` LAST; the reader re-checks `sequence` and retries once, so a
+  torn read is skipped rather than displayed. The PARENT creates and owns the block
+  (on Windows it dies with the last handle and `unlink()` is a no-op), so a crashed lane
+  cannot leak it.
+- **Added** `modules/tile_mosaic.py`: the 2×2 renderer (`MosaicTile`, `compose_mosaic`).
+  Pure PIL — no Tk, no `context` — so the grid can be rendered to a PNG and inspected
+  without an emulator. Composes at FINAL size on purpose: game frames want NEAREST
+  upscaling, labels do not.
+- **Added** `modules/gui/tile_child.py` (`PokebotTileChild`): the lane frontend, selected
+  by `--tile-shm`. `PokebotHeadless` plus a 20 Hz publish on the frame callback.
+  ‼ A lane MUST run `context.video = True` — with the renderer off,
+  `get_current_screen_image()` is blank, and `get_screenshot()`'s save-state-and-step
+  workaround is far too expensive on the hot path of four unthrottled lanes. That is the
+  named trade: x4 is the WATCHABLE mode, headless `livetest.py` is the fast one.
+- **Added** `modules/endless_x4.py`: the lane table (P1 torchic / P2 mudkip / P3 treecko /
+  P4 random — fixed so `P1` means Torchic in every log ever handed over), profile
+  bootstrap, spawn/poll/stop, bounded auto-restart (20), per-lane stdout capture.
+  `ensure_lane_profile()` REWRITES `story.yml` every launch; these are bot-managed test
+  rigs and silent starter drift would be undetectable.
+- **Modified** `pokebot.py`: hidden `--tile-shm/--tile-slot/--tile-lanes/--tile-tag/
+  --endless-target` flags; lane frontend selection ahead of `--headless`; lanes SKIP both
+  the launch-time cloud sync and `check_requirements()` (four processes starting within
+  milliseconds would otherwise be four concurrent `pip` installs into one environment).
+- **Modified** `modules/gui/dashboard_gui.py`: `Endless Loop ×4…` in the bot-mode popup
+  beside the existing endless item; `_update_x4_tiles` / `_x4_click` / `start_endless_x4`
+  / `stop_endless_x4`; the video canvas click binding is now unconditional (x4 first,
+  then the debug pixel probe). ‼ `_close_window()` tears the batch down BEFORE its
+  `os._exit(0)` — no `atexit` handler runs on that path, so without it closing the window
+  orphans four emulator processes.
+- **Modified** `modules/debug_logger.py`: `enable(profile, name_prefix="")` → lane logs are
+  literally `P1-…`, `P2-…`.
+- **Modified** `plugins/custom_modes/story_mode.py`: module-level `ENDLESS_RESET_COMPLETED`
+  so a tile can show its lane's finished-run count across the process boundary.
+- **Tests** (`tools/story-dev/repro_x4_*.py`, five scripts, no emulator needed).
+- **NOT verified live**: this dev box has no `mgba`, so no lane has ever emulated a frame.
+  See 04-HANDOFF "YOU ARE HERE" for the six confirms the user must run before promotion.
+- **Phase 2, not built**: party strip + tool column following the focused lane; the
+  watch/control toggle.

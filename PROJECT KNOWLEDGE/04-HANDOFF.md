@@ -3,7 +3,69 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-07-26 (session wrap-up — see "SESSION END" immediately below)
+**Last updated:** 2026-07-26 (ENDLESS LOOP ×4 phase 1 — see "YOU ARE HERE" immediately below)
+
+### ⭐ YOU ARE HERE — 2026-07-26 — ENDLESS LOOP ×4, PHASE 1 BUILT (sandbox), LIVE RUN OWED
+
+**What it is.** `#24-x4`: a new `Emulator ▸ Endless Loop ×4…` command in the dashboard's
+bot-mode popup launches FOUR independent `Story (ENDLESS RESET)` bots — one process,
+profile and starter each — tiled 2×2 inside the video area, looping for ever and
+restarting independently, unthrottled and muted with debug logging on. It is a TEST
+INSTRUMENT: more reviewable failure data per hour, with guaranteed starter coverage.
+
+| lane | starter | profile | logs |
+|------|---------|---------|------|
+| P1 | torchic | `endless-P1-torchic` | `profiles/endless-P1-torchic/debug-logs/P1-*` |
+| P2 | mudkip  | `endless-P2-mudkip`  | `…/P2-*` |
+| P3 | treecko | `endless-P3-treecko` | `…/P3-*` |
+| P4 | random  | `endless-P4-random`  | `…/P4-*` |
+
+Each lane writes BOTH a debug log (`P#-Story_(ENDLESS_RESET)-debug-<ts>.log`) and its
+stdout (`P#-stdout-<ts>.txt`) into its own profile's `debug-logs/`. Those are the files
+to collect and hand over.
+
+**New (sandbox only — custom-pokebot and the mirror untouched):** `modules/tile_bridge.py`
+(shared-memory frame channel), `modules/tile_mosaic.py` (pure-PIL 2×2 renderer),
+`modules/gui/tile_child.py` (the lane frontend), `modules/endless_x4.py` (lane table +
+process management). **Touched:** `pokebot.py`, `modules/gui/dashboard_gui.py`,
+`modules/debug_logger.py` (`name_prefix`), `plugins/custom_modes/story_mode.py`
+(`ENDLESS_RESET_COMPLETED`).
+
+**‼ WHAT IS AND IS NOT VERIFIED.** This dev box has **no `mgba` installed** (no
+`.last-requirements-check` anywhere — the bot has never been run here), so **no lane has
+ever actually emulated a frame.** Everything NOT requiring an emulator is tested and
+green (4 test scripts: cross-process bridge, mosaic rendering, `_on_frame` publish path
+against a fake emulator, dashboard wiring on a real Tk canvas). The seam between
+`PokebotTileChild.run()` and a live `LibmgbaEmulator` is the untested part.
+
+**LIVE CONFIRMS THE USER MUST RUN (on a machine with the bot installed):**
+1. Launch the sandbox dashboard, `Emulator ▸ Endless Loop ×4…`, accept. Expect four
+   lane profiles to be created and four tiles to appear within a few seconds.
+2. Confirm each tile shows its own game, and that the label reads the right starter once
+   each lane gets past Birch's bag (this is the whole point — check P1 really is Torchic).
+3. Click each quadrant; confirm the blue focus border follows the click.
+4. Toggle handheld mode with a batch running; confirm the 2×2 still fills the video rect.
+5. Close the window; confirm **no orphaned `python`/`pokebot` processes remain** (this is
+   the hazard `_close_window()` guards — it ends in `os._exit(0)`, so nothing else runs).
+6. Let it run a while, then hand over the `P1..P4` logs.
+
+**KNOWN GAPS (by design, phase 2 — agreed with the user, NOT built):**
+- The party strip and tool column still show THIS process's idle profile, not the focused
+  lane. A child's party lives in the child's `context`; showing it means shipping a party
+  summary in the status blob and rendering the strip from JSON instead of from a `Pokemon`
+  object. Until then the per-tile label carries the lead mon (`TORCHIC L5 18/21`).
+- Watch-only. The control toggle (click a tile, then drive it) is not built; the channel
+  is cheap when it is (`libmgba.press_button`/`hold_button`/`release_button` take plain
+  strings), but nothing routes input to a lane today.
+- While a batch runs, this process's own emulator is parked in **Manual at 1×** purely to
+  pump the Tk queue. Its previous mode and speed are restored on stop. `context.video` is
+  deliberately never touched (user directive 2026-07-26).
+
+**Also fixed on the way (both would have bitten in real use):** closing the window would
+have orphaned four emulator processes; and four lanes starting at once on a machine with
+no `.last-requirements-check` would have run four concurrent `pip` installs into one
+environment (lanes now skip the requirements check and the launch-time cloud sync).
+
 
 ### ⭐⭐⭐ 2026-07-24 — KI-15 FIXED (3 proven fixes) + OVERNIGHT CHAPTER LOOP RUNNING
 **KI-15 is fixed** (see 05-KNOWN-ISSUES KI-15 + changelog for the full story): (1)
@@ -1373,6 +1435,10 @@ Pokébot-specific one).
 **`#24` (the story auto-player) is the ONLY active work.** Everything else below is
 parked and should not be started without the user asking for it.
 
+0. **`#24-x4` live confirms** — the six checks listed under "YOU ARE HERE" above. Phase 1
+   is built and unit-green but has never driven a real emulator; do these before relying
+   on the batch for data, and before starting phase 2 (party-follows-focus + control
+   toggle).
 1. DAILY upstream check at session start (CLAUDE.md ritual; last 2026-07-19).
 2. **`#24-movelearn-recovery`** — the move-learn `BotModeError` is raised inside the
    battle handler, OUTSIDE StoryMode's derail-recovery scope, so a stall kills the
@@ -1443,6 +1509,18 @@ py -3.12 tools/story-dev/compare_runs.py --label mine tools/story-dev/night5/*.l
                                          --label user ~/Downloads/Story_DEBUG*.log
 
 # repro_*.py — the regression suite; run the relevant ones after any story change.
+#
+# repro_x4_*.py — ENDLESS LOOP x4 (#24-x4). Run all five after touching tile_bridge /
+#   tile_mosaic / tile_child / endless_x4 / the dashboard's x4 methods. They need NO
+#   emulator (mgba is stubbed into sys.modules where an import demands it), so they run
+#   on any dev box:
+#     repro_x4_bridge.py      cross-process shared-memory round trip, 4 slots, no crosstalk
+#     repro_x4_mosaic.py      2x2 renderer at 4 sizes x every lane state -> x4-preview/*.png
+#     repro_x4_tile_child.py  the publish path: rate gate, format conversion, must-not-raise
+#     repro_x4_dashboard.py   dashboard wiring on a real Tk canvas: paint, no leak, clicks
+#     repro_x4_lanes.py       lane profiles + story.yml starters + spawn/restart/teardown
+#   ‼ repro_x4_lanes.py CANNOT exercise anything past `load_plugins()` on a box without
+#   mgba, and says so per lane when it runs. It is not evidence that a lane emulates.
 py -3.12 tools/story-dev/repro_fodder_grass.py     # prep/training decision table
 py -3.12 tools/story-dev/repro_counter_plan.py     # counter-candidate ranking
 py -3.12 tools/story-dev/repro_counter_wiring.py   # counter chain, all 3 outcomes

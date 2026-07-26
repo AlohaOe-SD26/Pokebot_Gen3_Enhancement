@@ -566,3 +566,57 @@ setup (anything needing the renderer, the GUI, or ENDLESS RESET — none of whic
 livetest harness exercises), say so explicitly rather than implying a batch covered it; (3) a cheap
 smoke check is still worth proposing when a fix is a PRECONDITION for the next run being
 informative, so that run is not spent re-answering a known unknown.
+
+## 2026-07-26 — ENDLESS LOOP ×4 runs as four CHILD PROCESSES, not four emulators in one process
+
+**Decision.** An x4 batch is four `pokebot.py` processes, one emulator each, sharing nothing but a
+`SharedMemory` framebuffer block. The dashboard is a supervisor that reads that block and paints a
+2×2 grid.
+
+**Why.** `modules/context.py:188` is a module-level `context = BotContext()` singleton with exactly
+one `context.emulator`, and **116 files** import it. `modules/main.py` adds two more non-emulator-scoped
+mutable globals (`work_queue:19`, `inputs_each_frame:24`), and `modules/state_cache.py:301` is another
+singleton. Four emulators in one process means threading a context object through the whole codebase —
+a fork-wide refactor that would also make every future `git subtree pull` from upstream painful.
+
+**Rejected alternatives.**
+- *Four cores in one process.* The refactor above. Cost is enormous, and it is paid again on every
+  upstream merge, forever.
+- *Four separate OS windows arranged by the GUI.* Cheap, but fails the actual request ("within the
+  emulator window space") and cannot work in handheld mode.
+- *Headless-only batch, no tiles (i.e. extend `tools/story-dev/livetest.py`).* This is the FASTEST way
+  to generate logs and was my first recommendation — withdrawn on evidence. The original endless-runs
+  feature already shelled out to a headless `tools/story-dev/endless_runs.py` and was abandoned because
+  "the dialogs appeared and nothing appeared to happen". A headless batch gives the user nothing to
+  watch, and that is precisely what made the first attempt unusable. The visual channel is the feature.
+
+**Consequence, stated plainly.** A lane must run with `context.video = True` (an unrendered screen
+publishes as blank, and `get_screenshot()`'s save-state-and-step workaround is far too expensive on
+the hot path). So an x4 batch is the WATCHABLE mode, not the fastest one — a headless `livetest.py`
+lane still produces more frames per second. Both exist on purpose.
+
+## 2026-07-26 — Lane profiles are BOT-MANAGED: `story.yml` is rewritten on every batch launch
+
+**Decision.** `ensure_lane_profile()` overwrites each lane's `story.yml` every time a batch starts,
+rather than creating it once and leaving it alone.
+
+**Why.** The batch's entire value is "P2 is always the Mudkip lane". A stale hand-edit silently
+turning P2 into a second Torchic would corrupt the starter coverage the feature exists to provide,
+and **nothing would report it** — the logs would still say P2, and the bug would be invisible in
+every summary. Predictable clobbering of a bot-managed file beats silent, undetectable drift. The
+file says so in its own header, and the lane table lives in `modules/endless_x4.py`.
+
+**Rejected.** Write-once-if-absent (the pattern `modules/story/config.py` uses for real user
+profiles). Correct there, wrong here: these profiles are disposable test rigs, not saves.
+
+## 2026-07-26 — Separate profiles per lane, not one shared profile with tagged logs
+
+**Decision.** Four profiles (`endless-P1-torchic` …), not one profile with `P1`-prefixed log names,
+which is what the user first proposed.
+
+**Why.** Two bot processes sharing a profile directory clash on `current_save.sav`,
+`current_state.ss1` and the stats DB — `tools/story-dev/livetest.py` already carries this scar
+("two harness processes must never share a profile directory"). Separate profiles ALSO deliver
+the organisational benefit that motivated the original request for free, because debug logs are
+already written per profile; the `P1-`/`P2-` filename prefix (new `debug_logger.enable(name_prefix=)`)
+is kept on top so a folder of collected logs is self-identifying.

@@ -1804,3 +1804,30 @@ re-derived; move it there and add the assertion, in the same change that discove
 **Second prevention rule:** the same knowledge is worth carrying in code as data + a test even when
 it feels like "just a note". Cost of this lesson: ~30 minutes of emulation to relearn one sentence
 written three days earlier.
+
+## 2026-07-26 — An assertion that also passes when the process dies early proves nothing
+
+**Symptom.** My lane-spawn test reported `ok  P1: argparse accepted the tile flags` for all four
+lanes. It had not. The lanes died at `pokebot.py:166` in `load_plugins()` — **before**
+`parse_arguments()` was ever called — because `plugins/gamepad_plugin.py` imports
+`modules.gamepad`, which imports `modules.libmgba`, which imports the absent `mgba`.
+
+**Root cause.** The assertion was written as the ABSENCE of a failure string:
+`check("unrecognized arguments" not in text, ...)`. That string is missing from a process that
+crashed during import, from a process that never started, and from an empty file. A negative
+assertion over a log passes for every reason including "the code under test never ran".
+
+**The fix that worked.** Assert on POSITIVE evidence the code path actually executed, and test the
+seam directly instead of through a process that cannot boot: `test_tile_child.py` drives
+`PokebotTileChild._on_frame` against a fake `context.emulator` with `mgba` stubbed into
+`sys.modules`, and checks the frame ARRIVED in shared memory with the right pixels, sequence and
+status. The spawn test now only claims what it can see (profiles, `story.yml`, stdout filenames,
+bounded restart, clean teardown) and prints how far each lane actually got.
+
+**Why this is the same shape as 2026-07-26's "my validation harness could not have caught the bug
+I was validating against".** Both are a harness reporting green over a path it never exercised.
+That is worse than a failing test, because it converts "untested" into "verified" in the record.
+
+**Prevention rule.** An assertion must fail if the code under test never runs. Never assert that a
+log LACKS an error string — assert that it CONTAINS the positive evidence of the thing you claim
+happened, and if the environment cannot run that path, say so instead of asserting around it.

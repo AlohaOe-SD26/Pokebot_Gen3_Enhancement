@@ -40,6 +40,8 @@ from tkinter import Canvas, Menu, ttk
 from typing import TYPE_CHECKING, Callable
 
 import PIL.Image
+import PIL.ImageDraw
+import PIL.ImageFont
 import PIL.ImageTk
 
 from modules.context import context
@@ -138,6 +140,13 @@ class DashboardScreen:
         self._last_kpi_refresh = 0.0
         self._plugin_registered = False
         self._mousewheel_bound = False
+
+        # ENDLESS LOOP x4 (punch-list #24-x4). When a batch is running, the video area
+        # shows a 2x2 grid of LANE screens read out of shared memory instead of this
+        # process's own emulator — see modules/endless_x4.py.
+        self._x4_batch = None
+        self._x4_focus = 0
+        self._x4_last_paint = 0.0
 
         self._handheld = False
         self._drawer_open = False
@@ -412,7 +421,13 @@ class DashboardScreen:
             # Screen is disabled — never touch destroyed widgets.
             return
         if context.emulator._performance_tracker.time_since_last_render() >= (1 / 60) * 1_000_000_000:
-            if context.emulator.get_video_enabled():
+            if self._x4_batch is not None:
+                # An x4 batch takes over the video area: this process's own emulator is
+                # parked in Manual purely to keep pumping the Tk queue (there is no
+                # mainloop — see the module docstring), and the four LANES are what the
+                # user is actually watching.
+                self._update_x4_tiles()
+            elif context.emulator.get_video_enabled():
                 self._update_video(context.emulator.get_current_screen_image())
 
             self._frame_counter += 1
@@ -552,18 +567,21 @@ class DashboardScreen:
         self.canvas.bind("<Configure>", self._on_video_resized)
         self.canvas.bind("<Double-Button-1>", lambda _event: self.toggle_handheld())
 
-        if context.debug:
+        def handle_click_on_video_output(event):
+            # An x4 batch owns the video area, so a click there picks a LANE; the debug
+            # pixel-probe below would be meaningless (those coordinates belong to a
+            # different process's screen).
+            if self._x4_click(event):
+                return
+            if context.debug and context.video:
+                offset_x, offset_y, size = self._video_draw_rect()
+                scale = max(1, size[0] // 240)
+                position = ((event.x - offset_x) // scale, (event.y - offset_y) // scale)
+                if 0 <= position[0] < 240 and 0 <= position[1] < 160:
+                    for tab in self._debug_tabs:
+                        tab.on_video_output_click(position, scale)
 
-            def handle_click_on_video_output(event):
-                if context.video:
-                    offset_x, offset_y, size = self._video_draw_rect()
-                    scale = max(1, size[0] // 240)
-                    position = ((event.x - offset_x) // scale, (event.y - offset_y) // scale)
-                    if 0 <= position[0] < 240 and 0 <= position[1] < 160:
-                        for tab in self._debug_tabs:
-                            tab.on_video_output_click(position, scale)
-
-            self.canvas.bind("<Button-1>", handle_click_on_video_output)
+        self.canvas.bind("<Button-1>", handle_click_on_video_output)
 
     def _build_tool_column(self) -> None:
         self.frame = ttk.Frame(self.window, width=TOOL_COLUMN_WIDTH)
@@ -2628,6 +2646,177 @@ class DashboardScreen:
         )
 
     # ------------------------------------------------------------------
+    # ENDLESS LOOP x4 — tiled lane view (punch-list #24-x4)
+    # ------------------------------------------------------------------
+    #: Tile repaint rate. The LANES emulate unthrottled; this only governs how often the
+    #: dashboard reads shared memory and redraws. 30 Hz is smooth to watch and leaves the
+    #: pump plenty of headroom.
+    X4_PAINT_HZ = 30
+
+    def _update_x4_tiles(self) -> None:
+        """Paint the 2x2 lane grid. Must never raise — it runs on the frame callback.
+
+        The drawing itself lives in `modules/tile_mosaic.py` (pure PIL, no Tk), so the
+        grid can be rendered to a PNG and inspected without a running emulator.
+        """
+        batch = self._x4_batch
+        if batch is None or self.canvas is None:
+            return
+        now = time.monotonic()
+        if now - self._x4_last_paint < 1.0 / self.X4_PAINT_HZ:
+            return
+        self._x4_last_paint = now
+
+        try:
+            batch.poll()  # respawn any lane whose process died
+        except Exception:
+            pass
+
+        try:
+            from modules.tile_mosaic import MosaicTile, compose_mosaic
+
+            offset_x, offset_y, size = self._video_draw_rect()
+            tiles = []
+            for slot, lane in enumerate(batch.lanes[:4]):
+                try:
+                    frame = batch.bridge.read(slot) if batch.bridge is not None else None
+                except Exception:
+                    frame = None
+                status = frame.status if frame is not None else {}
+                tiles.append(
+                    MosaicTile(
+                        tag=lane.tag,
+                        starter=lane.starter,
+                        alive=lane.is_alive,
+                        exhausted=lane.restarts >= batch.max_restarts,
+                        restarts=lane.restarts,
+                        runs_completed=frame.runs_completed if frame is not None else 0,
+                        message=str(status.get("message", "") or ""),
+                        party=str(status.get("party", "") or ""),
+                        pixels=frame.pixels if frame is not None else None,
+                        width=frame.width if frame is not None else 240,
+                        height=frame.height if frame is not None else 160,
+                    )
+                )
+
+            mosaic = compose_mosaic(size, tiles, focus=self._x4_focus, accent=COLOR_ACCENT)
+            if self._current_canvas_image_id:
+                self.canvas.delete(self._current_canvas_image_id)
+            self._current_canvas_image = PIL.ImageTk.PhotoImage(image=mosaic)
+            self._current_canvas_image_id = self.canvas.create_image(
+                offset_x + mosaic.width // 2, offset_y + mosaic.height // 2,
+                image=self._current_canvas_image, state="normal",
+            )
+        except Exception:
+            if context.debug:
+                from modules.console import console
+
+                console.print_exception()
+
+    def _x4_click(self, event) -> bool:
+        """Focus the clicked lane. Returns True if the click was consumed."""
+        if self._x4_batch is None:
+            return False
+        offset_x, offset_y, size = self._video_draw_rect()
+        x, y = event.x - offset_x, event.y - offset_y
+        if not (0 <= x < size[0] and 0 <= y < size[1]):
+            return True
+        slot = (0 if y < size[1] // 2 else 2) + (0 if x < size[0] // 2 else 1)
+        if slot < len(self._x4_batch.lanes):
+            self._x4_focus = slot
+            lane = self._x4_batch.lanes[slot]
+            self._log_event(f"Endless x4: focused {lane.tag} ({lane.starter}) — profile `{lane.profile_name}`.")
+        return True
+
+    def start_endless_x4(self) -> None:
+        """Launch (or stop) a 4-lane endless batch.
+
+        Each lane is its own process, its own profile and its own starter, looping
+        `Story (ENDLESS RESET)` forever and restarting independently. This process's
+        emulator drops to Manual at 1x and becomes nothing but the Tk pump — there is no
+        mainloop in this GUI, the frame callback is what keeps the window alive.
+        """
+        import tkinter.messagebox
+
+        if self._x4_batch is not None:
+            self.stop_endless_x4()
+            return
+
+        if context.profile is None:
+            tkinter.messagebox.showerror("Endless Loop x4", "No profile is loaded.", parent=self.window)
+            return
+
+        from modules import endless_x4
+
+        lanes = 4
+        roster = "\n".join(
+            f"    {endless_x4.lane_tag(i)} — {endless_x4.lane_starter(i)}"
+            f"   (profile `{endless_x4.lane_profile_name(i)}`)"
+            for i in range(lanes)
+        )
+        if not tkinter.messagebox.askokcancel(
+            "Endless Loop x4",
+            f"Start FOUR independent endless story bots, one per tile?\n\n{roster}\n\n"
+            "Each lane runs in its own process and its own profile, hard-resets to a NEW\n"
+            "GAME, plays the story until it finishes or derails, then starts again — for\n"
+            "ever, and independently of the other lanes.\n\n"
+            "All four run UNTHROTTLED and MUTED, with debug logging on. Logs are written\n"
+            "per lane under profiles/endless-P#-<starter>/debug-logs/ and are prefixed\n"
+            "P1..P4.\n\n"
+            "This window's own emulator drops to Manual at 1x while the batch runs; it is\n"
+            "only there to keep the window responsive. Use this menu again to stop.",
+            parent=self.window,
+        ):
+            return
+
+        try:
+            batch = endless_x4.EndlessX4Batch()
+            batch.start(context.profile.rom, lanes)
+        except Exception as exc:  # noqa: BLE001
+            tkinter.messagebox.showerror(
+                "Endless Loop x4",
+                f"Could not start the batch:\n{type(exc).__name__}: {exc}",
+                parent=self.window,
+            )
+            return
+
+        # Park the local emulator. ‼ Speed only — `context.video` is deliberately NOT
+        # touched (user directive 2026-07-26: endless runs must not move the video
+        # toggle); the tile painter overrides the video area regardless of that setting.
+        self._x4_prev_speed = getattr(context, "emulation_speed", 1)
+        self._x4_prev_mode = getattr(context, "bot_mode", "Manual")
+        try:
+            context.bot_mode = "Manual"
+            context.emulation_speed = 1
+        except Exception:
+            pass
+
+        self._x4_batch = batch
+        self._x4_focus = 0
+        self._log_event(f"Endless Loop x4 started: {lanes} lanes ({', '.join(l.starter for l in batch.lanes)}).")
+
+    def stop_endless_x4(self) -> None:
+        """Terminate every lane and hand the video area back to the local emulator."""
+        batch, self._x4_batch = self._x4_batch, None
+        if batch is not None:
+            try:
+                batch.stop()
+            except Exception:
+                pass
+        try:
+            context.emulation_speed = getattr(self, "_x4_prev_speed", 1)
+            context.bot_mode = getattr(self, "_x4_prev_mode", "Manual")
+        except Exception:
+            pass
+        if self.canvas is not None and self._current_canvas_image_id:
+            try:
+                self.canvas.delete(self._current_canvas_image_id)
+            except Exception:
+                pass
+            self._current_canvas_image_id = None
+        self._log_event("Endless Loop x4 stopped.")
+
+    # ------------------------------------------------------------------
     # Sidebar data
     # ------------------------------------------------------------------
 
@@ -3423,6 +3612,13 @@ class DashboardScreen:
         # to the classic GUI only, so the user tested twice and could not find it.
         menu.add_separator()
         menu.add_command(label="Endless Debug-Reset Runs…", command=self._start_endless_runs)
+        # ENDLESS LOOP x4 (user request 2026-07-26). Same family as the item above, so it
+        # lives beside it — and for the same reason as the ‼ note: this popup is the one the
+        # user actually sees, the classic GUI is only reached via --classic-gui.
+        menu.add_command(
+            label="Stop Endless Loop ×4" if self._x4_batch is not None else "Endless Loop ×4…",
+            command=self.start_endless_x4,
+        )
         menu.tk_popup(
             self._mode_button.winfo_rootx(), self._mode_button.winfo_rooty() + self._mode_button.winfo_height()
         )
@@ -3653,6 +3849,15 @@ class PokebotDashboardGui(PokebotGui):
         process dies. Sync is config-gated and time-boxed; any failure only
         prints a warning. (Killing the console window bypasses this — that
         path only flushes the save; the next clean exit will sync it.)"""
+        # ‼ FIRST: kill any ENDLESS LOOP x4 lanes. This path ends in `os._exit(0)`, so
+        # nothing below it and no atexit handler will ever run — without this, closing the
+        # window would leave four orphaned emulator processes running forever with no
+        # window to stop them from.
+        try:
+            self._emulator_screen.stop_endless_x4()
+        except Exception:
+            pass
+
         profile = context.profile
         if context.emulator:
             context.emulator.shutdown()

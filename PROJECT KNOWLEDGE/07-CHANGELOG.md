@@ -3900,3 +3900,63 @@ flee rates 1.2% / 23.8% / 2.2% / 4.3% / 6.6% — **no livelock**. Honest reading
 intermittent (1 in 11 of the user's runs), so this is CONSISTENT with the PP fix, not proof of it;
 `repro_out_of_pp_livelock.py` is the proof. run02 is an outlier worth watching (23.8% flee, 82
 losses, 40 whiteouts, no frontier) — ordinary attrition, `#24-whiteout` territory. Suite 8 green.
+
+## 2026-07-26 — ENDLESS LOOP ×4: four independent story bots, tiled in one window (#24-x4)
+
+**What.** New `Emulator ▸ Endless Loop ×4…` command in the dashboard's bot-mode popup. It
+launches FOUR independent `Story (ENDLESS RESET)` bots at once — each its own process, its own
+profile, its own starter — and paints them as a 2×2 grid inside the dashboard's video area, with
+the party strip and tool column left where they are. Lanes loop forever and restart
+independently; all four run unthrottled and muted with debug logging on.
+
+**Lane table** (fixed, so `P1` means Torchic in every log ever handed over):
+
+| lane | starter | profile |
+|------|---------|---------|
+| P1 | torchic | `endless-P1-torchic` |
+| P2 | mudkip  | `endless-P2-mudkip`  |
+| P3 | treecko | `endless-P3-treecko` |
+| P4 | random  | `endless-P4-random`  |
+
+**Why the starter split is not cosmetic.** `early_game.py` already documents that Torchic has no
+super-effective move against Roxanne and "may need extra training", and the 3,011-flee livelock
+(2026-07-26) was a Treecko run. Stratifying by starter stops starter-specific failures from
+hiding behind a lucky draw; the `random` lane keeps the sampling honest.
+
+**New modules (sandbox):**
+- `modules/tile_bridge.py` — the only thing lanes share with the dashboard: one `SharedMemory`
+  block, 116 KiB per lane (240×160 RGB + a 1 KiB JSON status blob). Lock-free; the writer
+  publishes pixels → status → header with `sequence` LAST, and the reader re-checks `sequence`,
+  so a torn read is retried rather than shown.
+- `modules/tile_mosaic.py` — the 2×2 grid renderer. Pure PIL, no Tk and no `context`, so the
+  view can be rendered to a PNG and inspected without an emulator. Composes at FINAL size
+  because the game frames need NEAREST upscaling and the labels do not.
+- `modules/gui/tile_child.py` — the lane frontend (`PokebotTileChild`), selected by `--tile-shm`.
+  `PokebotHeadless` plus a publish on the frame callback, gated to 20 Hz.
+- `modules/endless_x4.py` — lane table, profile bootstrap, spawn/poll/stop, bounded auto-restart.
+
+**Touched:** `pokebot.py` (hidden `--tile-*` / `--endless-target` flags, lane frontend selection,
+lanes skip cloud-sync and the requirements check), `modules/gui/dashboard_gui.py` (menu item, tile
+painting, click-to-focus, teardown on close), `modules/debug_logger.py` (`name_prefix`, so lane
+logs are literally `P1-…`, `P2-…`), `plugins/custom_modes/story_mode.py`
+(`ENDLESS_RESET_COMPLETED`, so a tile can show its lane's run count across the process boundary).
+
+**Two hazards found and closed while building:**
+1. `_close_window()` ends in `os._exit(0)`, so no `atexit` handler runs — without an explicit
+   teardown, closing the window would have orphaned four emulator processes with no window left
+   to stop them from.
+2. A batch starts four processes within milliseconds. On a machine with no
+   `.last-requirements-check` that would have been four concurrent `pip` installs into one
+   environment. Lanes now skip the check entirely (a lane can only be spawned by a dashboard
+   that has already passed it), and skip the launch-time cloud sync for the same reason.
+
+**Verified** (this box has no `mgba`, so no live emulator run — see 04-HANDOFF for what the user
+must still confirm): cross-process bridge round-trip, 4 slots, no crosstalk, unwritten slot reads
+`None`; mosaic renders at 4 sizes and in every lane state (live / not booted / restarting /
+stopped) with over-long messages truncated, short tile lists and corrupt frames non-fatal;
+`_on_frame` publish path against a fake emulator — rate gate, RGBA and odd-size conversion, and
+the two must-not-kill-a-lane cases (screen read raises, oversized message); dashboard wiring on a
+real Tk canvas — paint, rate gate, no canvas-item leak over 30 repaints, all four click
+quadrants, fall-through when no batch runs, clean teardown; lane profiles created with the right
+starter in `story.yml` and read back correctly through `get_story_config()`, including a
+hand-edited `story.yml` being reverted.

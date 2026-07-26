@@ -66,6 +66,22 @@ returns; a mode that declares `handles_battle_faults = True` claims it on its
 next frame and re-raises inside its own recoverable scope. Opt-in on purpose;
 see 06-DECISIONS-LOG 2026-07-25.
 
+**One emulator per PROCESS — and that is load-bearing.** `context` is a module-level
+singleton (`modules/context.py:188`) imported by 116 files, with exactly one
+`context.emulator`; `modules/main.py` adds `work_queue:19` and `inputs_each_frame:24`
+as further process-globals. Anything wanting N emulators at once must therefore be
+N processes. **Endless Loop ×4** (sandbox, `modules/endless_x4.py`) is the one feature
+that does this: the dashboard spawns four `pokebot.py` lanes with `--tile-shm`, each
+selecting the `PokebotTileChild` frontend (`modules/gui/tile_child.py`), which publishes
+a 240×160 RGB frame plus a JSON status blob at 20 Hz into a single `SharedMemory` block
+(`modules/tile_bridge.py`, lock-free: pixels → status → header, `sequence` written last
+and re-checked by the reader). The dashboard reads all four slots and paints a 2×2 grid
+via `modules/tile_mosaic.py` (pure PIL, no Tk) into its normal video canvas.
+‼ The dashboard has **no Tk mainloop** — the event queue is pumped from the frame
+callback — so during a batch this process's own emulator is parked in Manual at 1× purely
+to keep pumping. Lane teardown happens in `_close_window()` **before** its `os._exit(0)`,
+because no `atexit` handler will ever run on that path.
+
 ## Key modules
 See the per-layer docs in `40cakes repo/DOCUMENTATION/` — the
 authoritative module reference (intent + mechanics + file:line refs).

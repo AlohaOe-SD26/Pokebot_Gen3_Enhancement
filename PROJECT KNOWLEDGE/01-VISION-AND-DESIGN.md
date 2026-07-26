@@ -100,6 +100,26 @@ it.
 - The Story-Mode bot (above) is the main body of that transfer: a documented
   end-to-end playthrough for the AI project to learn from.
 
+### Endless Loop ×4 (`modules/endless_x4.py`, `tile_bridge`, `tile_mosaic`, `gui/tile_child`)
+- **Purpose:** a TEST INSTRUMENT, not a gameplay feature. It exists to raise the
+  rate at which the Story bot produces reviewable failure data, and to guarantee
+  that data covers all three starters instead of whatever the RNG happened to
+  pick. Four independent story bots run at once, each looping cold starts for
+  ever, tiled 2×2 inside the dashboard so a human can watch all four and hand the
+  logs over.
+- **Why it is watchable rather than merely fast:** the earlier headless
+  endless-runs attempt was abandoned precisely because it gave the user nothing
+  to see. Throughput alone was not the missing thing; OBSERVABILITY was. A
+  headless `tools/story-dev/livetest.py` batch remains the faster way to generate
+  logs, and both are kept on purpose.
+- **Why the starter split:** starter choice changes which failures are reachable
+  (Torchic has no super-effective move vs. Roxanne; the 3,011-flee livelock was a
+  Treecko run). Pinning P1/P2/P3 and rolling P4 makes starter-specific bugs
+  impossible to miss by luck.
+- **Design constraint it must respect:** lanes are separate PROCESSES because
+  `context` is a process-wide singleton. Nothing in the bot may be refactored to
+  "support multiple emulators" on this feature's account — see 06-DECISIONS-LOG.
+
 ### Future: custom automations, installer, custom interface
 - Intent recorded in Goals above; each gets its own component section here
   when built.

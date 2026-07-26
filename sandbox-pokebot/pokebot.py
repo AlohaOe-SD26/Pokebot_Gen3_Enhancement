@@ -5,6 +5,7 @@ import atexit
 import os
 import pathlib
 import platform
+import sys
 from dataclasses import dataclass
 
 from modules.runtime import is_bundled_app, get_base_path
@@ -49,6 +50,14 @@ class StartupSettings:
     always_on_top: bool
     config_path: str
     classic_gui: bool = False  # fork addition: opt back into upstream's GUI
+    # ENDLESS LOOP x4 (punch-list #24-x4): set only when this process is ONE LANE of a
+    # batch launched by the dashboard. `tile_shm` being non-empty is what selects the
+    # tile-child frontend; see modules/endless_x4.py.
+    tile_shm: str = ""
+    tile_slot: int = 0
+    tile_lanes: int = 4
+    tile_tag: str = ""
+    endless_target: int | None = None
 
 
 def directory_arg(value: str) -> pathlib.Path:
@@ -93,6 +102,13 @@ def parse_arguments(bot_mode_names: list[str]) -> StartupSettings:
     # Fork addition: the dashboard GUI is the default; this restores upstream's window.
     parser.add_argument("-cg", "--classic-gui", action="store_true", help="Use the original (upstream) GUI.")
     parser.add_argument("-c", "--config", type=directory_arg, dest="config_path", help=argparse.SUPPRESS)
+    # ENDLESS LOOP x4 lane plumbing — set by the dashboard when it spawns a lane, never
+    # by a human, so they are hidden from --help.
+    parser.add_argument("--tile-shm", default="", help=argparse.SUPPRESS)
+    parser.add_argument("--tile-slot", type=int, default=0, help=argparse.SUPPRESS)
+    parser.add_argument("--tile-lanes", type=int, default=4, help=argparse.SUPPRESS)
+    parser.add_argument("--tile-tag", default="", help=argparse.SUPPRESS)
+    parser.add_argument("--endless-target", type=int, default=None, help=argparse.SUPPRESS)
     args = parser.parse_args()
 
     preselected_profile: Profile | None = None
@@ -117,11 +133,23 @@ def parse_arguments(bot_mode_names: list[str]) -> StartupSettings:
         always_on_top=bool(args.always_on_top),
         config_path=args.config_path,
         classic_gui=bool(args.classic_gui),
+        tile_shm=str(args.tile_shm or ""),
+        tile_slot=int(args.tile_slot or 0),
+        tile_lanes=int(args.tile_lanes or 4),
+        tile_tag=str(args.tile_tag or ""),
+        endless_target=args.endless_target,
     )
 
 
 if __name__ == "__main__":
-    if not is_bundled_app():
+    # ‼ ENDLESS LOOP x4 lanes SKIP the requirements check. A batch launches four
+    # processes within milliseconds of each other; on a machine where
+    # `.last-requirements-check` is absent that means four concurrent pip installs into
+    # the same environment, which is a good way to corrupt it. A lane can only ever be
+    # spawned BY a running dashboard, so the check has necessarily already passed in the
+    # parent — there is nothing for the lane to verify.
+    _tile_lane_argv = any(arg == "--tile-shm" or arg.startswith("--tile-shm=") for arg in sys.argv)
+    if not is_bundled_app() and not _tile_lane_argv:
         from requirements import check_requirements
 
         check_requirements()
@@ -141,12 +169,19 @@ if __name__ == "__main__":
     # before any GUI, profile or emulator exists — so applying a newer cloud
     # save can never race a live save file. Opt-in via backup.yml `sync:`;
     # when disabled (default) this returns immediately without any network.
-    try:
-        from modules.cloud_sync import run_launch_sync
+    # ‼ NOT for ENDLESS LOOP x4 lanes. A batch starts four processes within milliseconds of
+    # each other; four concurrent launch-syncs racing over the same cloud store is exactly
+    # the situation this check is meant to protect against. Lane profiles are disposable
+    # test rigs with nothing worth syncing, so lanes skip it entirely. `--tile-shm` is
+    # inspected straight off argv because arguments are not parsed until further down.
+    _is_tile_lane = any(arg == "--tile-shm" or arg.startswith("--tile-shm=") for arg in sys.argv)
+    if not _is_tile_lane:
+        try:
+            from modules.cloud_sync import run_launch_sync
 
-        run_launch_sync()
-    except Exception as sync_error:
-        console.print(f"[yellow]Cloud sync check failed (continuing normally): {sync_error}[/]")
+            run_launch_sync()
+        except Exception as sync_error:
+            console.print(f"[yellow]Cloud sync check failed (continuing normally): {sync_error}[/]")
 
     # This catches the signal Windows emits when the underlying console window is closed
     # by the user. We still want to save the emulator state in that case, which would not
@@ -174,7 +209,25 @@ if __name__ == "__main__":
     if not is_bundled_app() and not _is_git_checkout:
         run_updater()
 
-    if startup_settings.headless:
+    if startup_settings.tile_shm:
+        # ENDLESS LOOP x4 lane: headless, but mirroring its screen into the batch's
+        # shared memory so the dashboard can paint it as a tile.
+        from modules.gui.tile_child import PokebotTileChild
+
+        if startup_settings.endless_target is not None:
+            from plugins.custom_modes import story_mode as _sm
+
+            _sm.ENDLESS_RESET_TARGET = int(startup_settings.endless_target)
+
+        gui = PokebotTileChild(
+            main_loop,
+            on_exit,
+            shm_name=startup_settings.tile_shm,
+            slot=startup_settings.tile_slot,
+            lanes=startup_settings.tile_lanes,
+            lane_tag=startup_settings.tile_tag or f"P{startup_settings.tile_slot + 1}",
+        )
+    elif startup_settings.headless:
         from modules.gui.headless import PokebotHeadless
 
         gui = PokebotHeadless(main_loop, on_exit)
