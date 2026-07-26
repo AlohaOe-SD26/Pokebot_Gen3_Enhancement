@@ -409,6 +409,17 @@
       are the same problem from opposite ends. Also still unbuilt: a potions/healing
       layer (`#24-provisions`) so a loss is not automatically a whiteout, and benching
       dead-weight party members (a L15 in a L30+ team is a free loss).
+- [ ] **#24-pokenav-faithful — the FAITHFUL PokéNav tutorial is being skipped 8 runs out of 9.**
+      Measured across the user's real-hardware logs (2026-07-26): ONE run played it faithfully
+      ("PokéNav Match-Call tutorial (calling Mr. Stone)... done (called Mr. Stone)"), the other
+      EIGHT fell back to "clearing the forced PokéNav Match-Call tutorial (state-write to vanilla
+      end-state)". Not a breakage — the fallback reproduces vanilla's exact end-state and never
+      hangs, so runs continue — but the standing faithfulness directive makes the state-write a
+      LAST RESORT, and it has quietly become the norm on real hardware where the renderer IS on
+      (which is the condition the faithful path needs). The 1 success proves the faithful path
+      still works, so this is a trigger/stall-detection question, not a dead feature.
+      Start by logging WHY the fallback fired (renderer state, which stall bound tripped) —
+      today nothing records the reason, so the choice is invisible.
 - [ ] **#24-npcheal — heal at an NPC, not only at a Poké Center.** Re-pair the Route 111
       training band to `ROUTE111_OLD_LADYS_REST_STOP` (decomp-cited: a full, ungated,
       repeatable heal — **96 steps vs 213** to Fallarbor). Blocked on a heal-at-NPC
