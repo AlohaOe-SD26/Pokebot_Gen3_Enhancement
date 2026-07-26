@@ -695,7 +695,20 @@ route and traversable both ways. Full numbers: `12-STORYMODE-DESIGN.md` §CC2 + 
   moment anything calls the map reachable. Only `max_hops=4` had been keeping it out — luck, not a
   gate. Probed: the ONLY boundary edge into the whole cluster is
   `EVER_GRANDE_CITY (0,8) <-> VICTORY_ROAD_1F (24,43)`. One entry closes every floor.
-* **Blocker #1 (tiles) is SMALLER than it looked.** The counter maps are CAVES — encounters come
+* **‼ BLOCKER #1 SWEPT (2026-07-26) — a tile is FOUND but deliberately NOT promoted.**
+  `probe_counter_tiles.py --nav` from `lavaridge.ss1`: **FIERY_PATH (18,19) OUT = OK** (the tile is
+  real); JAGGED_PASS **FAIL** — it reached (14,40) then could not path WITHIN the map, confirming
+  the one-way-ledge caveat, i.e. cost-rank-1 was a wrong YES; GRANITE_CAVE **FAIL** — routes via
+  ROUTE106, a sea route, so it needs Surf from Lavaridge.
+  The Fiery Path RETURN leg failed *inside the cave* — the known warp-level limitation that
+  dropped two real-HW runs to Manual (2026-07-22). `_exit_training_cave_if_inside()` handles it and
+  is **hardcoded to GRANITE_CAVE_1F**. **NEXT STEP, precisely:** generalise it to a
+  `{cave map: exit warp tile}` table covering FIERY_PATH, prove the exit with a repro from a tile
+  deep inside, THEN promote `(MapRSE.FIERY_PATH, (18, 19), (15, 16))` into `TRAINING_GRASS`. That
+  one promotion unblocks phase 2's executor.
+  Hop counts are strongly ANCHOR-dependent (Route 102: Fiery 7 / Granite 5; Lavaridge: Fiery 2 /
+  Granite 10-11) — the counter list is position-sensitive by design.
+* **Blocker #1 background — the maps are CAVES.** The counter maps are CAVES — encounters come
   from the cave FLOOR, so ANY walkable non-warp tile is a valid spin tile and no `MB_TALL_GRASS`
   sweep applies (which is why `jaggedgrass_probe.py` finds nothing there). Counted, with the most
   central: FIERY_PATH 269 `(18,19)` · JAGGED_PASS 367 `(16,22)` · GRANITE_CAVE_1F 201 `(22,7)` ·
