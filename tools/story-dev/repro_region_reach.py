@@ -203,3 +203,37 @@ print("ALL PASS: region_reach.py answers region-scale reachability from the ROM'
 print("connection/warp data, flips the KI-24 ROUTE118 case, honours capability gates with")
 print("a named reason, prices reachability in hops so distant-but-technically-reachable")
 print("maps can be told apart from nearby ones, and fails safe (no raise) on bogus input.")
+
+print()
+print("=" * 78)
+print("VICTORY ROAD GATE -- one edge closes the whole cluster (2026-07-26)")
+print("=" * 78)
+# ‼ Added because cost-based counter ranking made this DANGEROUS. Victory Road's
+# Hariyama is L38-42 -- already above a mid-game team -- so its estimated training cost
+# is ~0 and it ranks #1 the instant anything calls the map reachable. Probed: the ONLY
+# boundary edge into the entire VICTORY_ROAD_* cluster is
+# EVER_GRANDE_CITY (0,8) <-> VICTORY_ROAD_1F (24,43), and it was UNGATED. In Emerald that
+# entrance is at the top of a WATERFALL. Before this, only the max_hops=4 distance bound
+# kept it out of the live counter list -- luck, not a gate.
+_vr_failures = []
+for _name, _m, _want in (
+    ("VICTORY_ROAD_1F", MapRSE.VICTORY_ROAD_1F, False),
+    ("VICTORY_ROAD_B1F", MapRSE.VICTORY_ROAD_B1F, False),
+    # The city itself is genuinely reachable by Surf -- the gate must close the cave,
+    # not the coastline, or it would be a blunt instrument.
+    ("EVER_GRANDE_CITY", MapRSE.EVER_GRANDE_CITY, True),
+):
+    _got = is_map_reachable(_m)
+    _why = why_unreachable(_m)
+    print(f"   {_name:20s} reachable={_got}  why={_why}")
+    if _got != _want:
+        _vr_failures.append(f"{_name}: expected reachable={_want}, got {_got} ({_why})")
+
+_why_vr = why_unreachable(MapRSE.VICTORY_ROAD_1F)
+if "Waterfall" not in _why_vr:
+    _vr_failures.append(
+        f"expected the refusal to NAME the missing capability, got {_why_vr!r} -- "
+        "'gated by a capability' must stay distinguishable from 'no path exists'"
+    )
+assert not _vr_failures, "VICTORY ROAD GATE failures:\n  " + "\n  ".join(_vr_failures)
+print("   PASS: the cave cluster is gated on Waterfall and says so; the city stays reachable.")

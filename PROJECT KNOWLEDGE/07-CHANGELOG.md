@@ -3763,3 +3763,27 @@ encounters look nearly free — Hariyama on VICTORY_ROAD is L38-42, already abov
 ranks **#1** the instant anything calls it reachable. It stayed out of the live answer only
 because of the `max_hops=4` distance bound, not because of an Elite Four gate. That gate must go
 into `KNOWN_GATES` before phase 2 consumes a candidate list.
+
+## 2026-07-26 — Victory Road is gated on Waterfall; one edge closes the whole cluster (#24-regionreach / #24-counters)
+
+`KNOWN_GATES` grows its second hand-verified entry — and this one was made URGENT by the cost
+ranking shipped hours earlier. Victory Road's Hariyama is **L38-42**, already above a mid-game
+team, so its estimated training cost is ~0 and it ranks **#1** the instant anything calls the map
+reachable. Before this it was kept out of the live counter list only by the `max_hops=4` distance
+bound — a coincidence of distance, not a gate.
+
+Probed rather than assumed: the ONLY boundary edge into the entire `VICTORY_ROAD_*` cluster is
+`EVER_GRANDE_CITY (0,8) <-> VICTORY_ROAD_1F (24,43)`, and it was ungated. In Emerald that entrance
+sits at the top of a **waterfall**, so HM07 is mandatory. One entry therefore closes every floor.
+
+Also extends the capability vocabulary: `_GATE_MOVE_NAMES` gains `waterfall`, and
+`_RSE_BADGE_BY_MOVE` gains `Waterfall -> BADGE08_GET` (the Rain Badge). Deliberately NOT added to
+`_FRLG_BADGE_BY_MOVE`: an unknown move resolves to "capability unavailable", which CLOSES the edge
+— the fail-safe direction, since a wrong NO costs a detour while a wrong YES sends the bot across
+Hoenn.
+
+Verified: `VICTORY_ROAD_1F` / `_B1F` → `reachable=False`, *"needs Waterfall at
+EVER_GRANDE_CITY<->VICTORY_ROAD_1F"*; `EVER_GRANDE_CITY` stays reachable (the gate must close the
+cave, not the coastline); `GRANITE_CAVE_1F` unchanged. The refusal NAMES the missing capability, so
+"gated" stays distinguishable from "no path exists" — the whole point of the module (KI-24).
+Pinned in `repro_region_reach.py`. Suite 7 files green.
