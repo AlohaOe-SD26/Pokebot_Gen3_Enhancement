@@ -665,6 +665,36 @@ fetches cannot do.
 3. `#24-counters` phase 2 (the chain NAMES a counter; acting on it isn't built).
 4. `#24-edgecost`, `#24-regionreach` gate table, KI-18 live confirmation.
 
+### 🎯 2026-07-26 (latest) — phase-2 groundwork: ranking, gate, and the ECONOMICS that decide it
+Batch `20260726-052205` validated the day's guards and found two defects in them (both fixed —
+see below). Then three phase-2 blockers were worked, and one produced a finding that should shape
+whether phase 2 gets built at all.
+
+**‼ READ THIS BEFORE BUILDING PHASE 2.** Priced with the project's own frame model against the
+MEASURED cost of the current behaviour (run05 lost to Norman 21× ≈ 399,000 frames; run3 27× =
+508,000): Machop 98,877 · Makuhita 363,982. So catching a counter is clearly worth it **for the
+right candidate** — but the only Fighting counter the LIVE predicate accepted was the Makuhita,
+i.e. **~9% better than doing nothing**. **Phase 2's value is gated by REACHABILITY, not ranking.**
+Widen what is legitimately reachable (a verified FIERY_PATH tile is the best lead — it is on the
+Ch10 route and traversable both ways, unlike Jagged Pass's one-way ledges) or the executor will
+not pay for itself. Full spec + numbers: `12-STORYMODE-DESIGN.md` §CC2 + its 2026-07-26 update.
+
+* **Blocker #2 CLOSED — candidates rank by COST, not encounter rate.** `rate * 1_000 - level_gap`
+  outweighed level fit ~1000×, so a L6-10 Makuhita (50%) beat a L20-22 Machop (25%) for a L31 team
+  — measured, the preferred pick was **4.2× more expensive** (315,260 vs 75,949 frames). `tier` is
+  now separate from `score`; within a tier candidates sort by `est_frames` (frames to FIND + frames
+  to TRAIN to the team's level). Unpriceable sorts LAST (unknown ≠ cheap); with no team level it
+  degrades to the old ordering, so existing callers are unaffected.
+* **Blocker #3 CLOSED — Victory Road is gated on Waterfall.** Cost ranking made this urgent:
+  Hariyama is L38-42, already above the team, so its training cost is ~0 and it ranks **#1** the
+  moment anything calls the map reachable. Only `max_hops=4` had been keeping it out — luck, not a
+  gate. Probed: the ONLY boundary edge into the whole cluster is
+  `EVER_GRANDE_CITY (0,8) <-> VICTORY_ROAD_1F (24,43)`. One entry closes every floor.
+* **STILL BLOCKING — #1 tiles.** Every candidate still has `tile: None`; no counter map has a
+  verified spin tile, so there is nothing to path to. Field work (two-way sweeps from a real story
+  anchor). Also open: #4, story interiors (`GRANITE_CAVE_STEVENS_ROOM`) are proposed as hunting
+  grounds.
+
 ### ✅ 2026-07-26 — SURVIVAL MODE closes the travel-attrition half of `#24-whiteout`
 The batch's largest loss cluster is fixed: **25 whiteouts on ROUTE110 in one run** (31 of 66
 batch-wide). It was NOT training attrition — with no `train_team` session running,
