@@ -2648,3 +2648,70 @@ next — see the Hardening Checklist. Frontier state to build from: Rusturf Tunn
       trust the "intended" flag name (ML-9: THANKED_FOR_PLAYING_WITH_WALLY was never set).
 - [ ] Map each new area's PC/Mart/warps/NPCs statically first (get_map_data), add to this
       Atlas; verify the gym puzzle path before coding the gym.
+
+## §CC2 — COUNTER-CATCH PHASE 2 spec: acting on the diagnosis (#24-counters, 2026-07-26)
+
+Phase 1 (shipped) DIAGNOSES a hopeless boss plan and NAMES a reachable counter, then stops.
+Phase 2 is the execution: travel → catch → train → re-attempt. This section is the build spec.
+
+### Measured starting point (not assumed)
+Probed with the real `norman_done.ss1` (party avg **L31.4**), `find_counter_candidates(["Fighting"])`
+with a permissive `allow`, ranked exactly as shipped:
+
+| # | species | map | level band | rate | gap vs team | tile |
+|---|---|---|---|---|---|---|
+| 1 | Makuhita | GRANITE_CAVE_1F | 6-10 | 50% | **-25** | `None` |
+| 2 | Makuhita | GRANITE_CAVE_STEVENS_ROOM | 6-10 | 50% | -25 | `None` |
+| 3 | Hariyama | VICTORY_ROAD_B1F | 38-42 | 35% | +7 | `None` |
+| 4 | Hariyama | VICTORY_ROAD_1F | 38-40 | 25% | +6 | `None` |
+| 5 | Machop | JAGGED_PASS | 20-22 | 25% | **-11** | `None` |
+| 6 | Machop | FIERY_PATH | 15-16 | 15% | -16 | `None` |
+
+Scores (`…49976` / `…34991` / `…24989`) show **encounter rate dominates and level fit is only a
+decimal tiebreak**. This is what put a L6-10 Makuhita in front of a L20-22 Machop for a L31 team.
+
+### ‼ Four blockers, in priority order — phase 2 CANNOT act until these are fixed
+1. **No tiles. `tile: None` on every candidate.** The planner returns a `TRAINING_GRASS`-verified
+   spin tile or nothing, and none of Granite Cave / Jagged Pass / Fiery Path has one. **Phase 2
+   has nothing to path to.** This is the single blocking item, and it is field work, not code:
+   two-way-sweep a spin tile per counter map FROM A REAL STORY ANCHOR (the Route 111/114 lesson —
+   same-map connectivity does NOT imply the story can reach it), then promote out of
+   `PENDING_GRASS`. `GRANITE_CAVE_1F (35,11)` already sits in `PENDING_GRASS` and is the cheapest
+   first promotion.
+2. **Rank must put level fit first.** A counter 25 levels below the team is not a counter, it is a
+   second grind — the whole point of the diagnosis was that grinding does not converge. Proposed
+   key: filter to `band_hi >= team_avg - LEVEL_FIT_TOLERANCE` first, THEN rank by encounter rate
+   within that set; fall back to the current ordering only if the filter empties. On the measured
+   data this swaps Makuhita(L6-10) → Machop(L20-22), ~14 fewer levels of grind.
+3. **False reachability: VICTORY_ROAD ranks as `reachable: True`.** It is behind the Elite Four
+   gate and unreachable during the story. This is the documented `KNOWN_GATES` gap
+   (`#24-regionreach` (a)) showing up in the counter path. Add the E4/Badge gates before phase 2
+   trusts `reachable`. Until then the `_training_unreachable` memory (2026-07-25) bounds the cost
+   to one wasted trek rather than the run.
+4. **Story-interior maps are proposed.** `GRANITE_CAVE_STEVENS_ROOM` is a scripted room, not a
+   hunting ground. Exclude interiors/story rooms from the candidate index.
+
+### Execution design (once the blockers are cleared)
+Model it on the existing `ensure_hm_learner` flow, which already solves the same shape
+(derive a hunting ground → provision balls → travel → catch a specific species → return):
+* **Preconditions** — a free party slot (or a box), ≥N Poké Balls (reuse `provision_poke_balls`),
+  and the target map reachable by `region_reach` AND not in `_training_unreachable`.
+* **Travel** — leg-by-leg via the existing navigator; treat `UnreachableDestinationError` as
+  "drop this candidate, try the next", exactly as the training picker now does.
+* **Catch** — reuse the `HM_CATCH_TARGET_DEX` on-sight branch (a dex-number allowlist already
+  wired into `on_battle_started`); set it to the counter's dex number for the hunt.
+* **Train** — `train_team(slots=[new mon])` to the boss's band, at the counter map's own grass so
+  the trip is not wasted; heal via `_training_area_heal_map`.
+* **Re-attempt** — clear that boss's `_defeat_counts` / `_loss_ko_history` entry so the plateau
+  detector re-evaluates from scratch rather than firing again immediately on stale history.
+* **Bound it** — ONE counter hunt per boss per run. If the boss is still hopeless afterwards,
+  stop with the diagnosis (today's behaviour). Never loop hunt→lose→hunt.
+
+### Open question for the user (do not decide unilaterally)
+For **Winona** (the KI-23 case) catching an Electric/Rock/Ice counter is clearly right. For
+**Norman** it is less obvious: Normal has no weakness except Fighting, and a vanilla player beats
+him with levels and items rather than a type answer. The bot has no items strategy
+(`#24-provisions`), so "catch a Fighting type" may be the right move *for this bot* — but "buy
+Super Potions and out-level him" may be cheaper than catching a L20 Machop and training it 10
+levels. **Worth pricing both before building**, using the frame-cost model added 2026-07-24
+(`e8d133be`, "price prep grinds in frames before committing to them").
