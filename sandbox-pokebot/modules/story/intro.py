@@ -21,6 +21,8 @@ Emerald specifics that matter here (NOT the Kanto intro):
 
 from __future__ import annotations
 
+import os
+import random
 from typing import Generator
 
 from modules.context import context
@@ -37,6 +39,54 @@ from modules.tasks import task_is_active
 
 GENDER_TO_INDEX = {"boy": 0, "girl": 1}
 MAX_NAME_LENGTH = 7  # Gen-3 player names are capped at 7 characters
+
+# ---------------------------------------------------------------------------
+# RNG DECORRELATION — why a random pause on the naming screen is load-bearing
+# ---------------------------------------------------------------------------
+# ‼ WITHOUT THIS, TWO RUNS OF THIS INTRO ARE THE SAME GAME. Verified against the
+# pokeemerald decomp (2026-07-26, commit 83df84e4), not assumed:
+#
+#   * `gRngValue` is 0 at every hard reset (`src/random.c`: COMMON_DATA, cleared by
+#     `RegisterRamReset(RESET_ALL)`, and stored in no save block).
+#   * Emerald is NOT RTC-seeded. `SeedRngWithRtc()` exists but sits inside
+#     `#ifdef BUGFIX`, and `include/config.h:48` has `//#define BUGFIX` — Emerald
+#     inherited FireRed's version of main.c. (Ruby/Sapphire DO seed from the RTC;
+#     if this were Ruby none of this would be necessary.)
+#   * The only per-frame advance is a bare `Random()` in `VBlankIntr()`
+#     (`src/main.c:365-366`) — a pure function of frames since boot.
+#   * The ONLY single-player reseed is `SeedRngAndSetTrainerId()`
+#     (`src/main.c:208-214`): `SeedRng(REG_TM1CNT_L)`, reading a cycle-exact hardware
+#     timer that `StartTimer1()` (`src/naming_screen.c:412`) starts when the naming
+#     screen OPENS and that is read when the name is CONFIRMED
+#     (`src/naming_screen.c:701`).
+#
+# So the post-intro RNG state depends on exactly one thing we control: how many
+# CPU cycles pass between the naming screen opening and the name being confirmed.
+# A delay anywhere EARLIER is discarded, because `SeedRng` overwrites the state.
+#
+# One GBA frame is 228 x 1232 = 280,896 cycles, and 280,896 mod 65,536 = 18,752, so
+# each extra idle frame here shifts the seed by +18,752 (mod 2^16). `gcd(18752, 65536)`
+# is 64, so the reachable seeds cycle every 1,024 frames — a 0..120 frame pause gives
+# 121 widely separated, distinct seeds for at most two seconds of wall clock.
+#
+# This is also FAITHFUL: a human takes a variable moment to confirm their name.
+#
+# Set POKEBOT_RNG_DECORRELATION_FRAMES=0 to disable it and get the old, fully
+# deterministic behaviour — which is what you want when REPRODUCING a bug from a
+# cold start rather than sampling independent runs.
+_RNG_DECORRELATION_ENV = "POKEBOT_RNG_DECORRELATION_FRAMES"
+RNG_DECORRELATION_MAX_FRAMES = 120
+
+
+def _rng_decorrelation_frames() -> int:
+    """How many idle frames to hold the naming screen for. 0 == deterministic."""
+    override = os.environ.get(_RNG_DECORRELATION_ENV)
+    if override is not None:
+        try:
+            return max(0, int(override))
+        except ValueError:
+            pass
+    return random.randint(0, RNG_DECORRELATION_MAX_FRAMES)
 
 
 def _press_until_task(
@@ -117,6 +167,25 @@ def run_intro(character_name: str, gender: str = "boy") -> Generator:
 
     context.message = f"Intro: typing the name '{name}'..."
     yield from type_in_naming_screen(name, max_length=MAX_NAME_LENGTH)
+
+    # ‼ THE ONE PLACE A DELAY CHANGES THE GAME'S RNG. See the block comment at the top
+    # of this module: the seed is taken from a hardware timer read when the name is
+    # CONFIRMED, so idling here — after typing, before the confirm below — is what makes
+    # this run's encounters, damage rolls and IVs differ from the last one's. Idle frames
+    # only: pressing anything would advance the naming screen.
+    _decorrelation_frames = _rng_decorrelation_frames()
+    if _decorrelation_frames:
+        context.message = f"Intro: holding {_decorrelation_frames}f before confirming (RNG decorrelation)..."
+        try:
+            from modules.console import console
+
+            console.print(
+                f"[cyan]RNG decorrelation: holding the naming screen {_decorrelation_frames} "
+                f"frame(s) before confirming.[/]"
+            )
+        except Exception:
+            pass
+        yield from wait_for_n_frames(_decorrelation_frames)
 
     # --- 5. Confirm the name and ride the closing cutscene to first control. --
     # After the keyboard closes, Birch asks "is this name okay?" (default YES,

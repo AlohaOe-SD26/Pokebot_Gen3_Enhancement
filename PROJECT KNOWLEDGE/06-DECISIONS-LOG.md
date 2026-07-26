@@ -691,3 +691,37 @@ lock-free scheme (write pixels → status → header, re-check `sequence` on rea
 both directions with no locking anywhere. A lane acts on a CHANGE of command sequence, so a
 re-sent command is idempotent. Covered by a test that publishes a frame over a pending
 command and asserts the command survives.
+
+## 2026-07-26 — Cold-start runs decorrelate via a random pause on the NAMING SCREEN
+
+**Decision.** `modules/story/intro.py` idles a random 0-120 frames after typing the player
+name and before confirming it. `POKEBOT_RNG_DECORRELATION_FRAMES` overrides it; `0` restores
+fully deterministic cold starts.
+
+**Why there specifically.** Verified in the pokeemerald decomp: the only single-player
+reseed is `SeedRng(REG_TM1CNT_L)` (`src/main.c:208-214`), reading a cycle-exact timer that
+starts when the naming screen OPENS (`src/naming_screen.c:412`) and is read when the name is
+CONFIRMED (`:701`). `SeedRng` OVERWRITES the state, so a delay anywhere earlier in the intro
+is discarded — this is not one option among many, it is the only externally reachable input
+to the seed on a new game.
+
+**Why random per RUN, not a fixed per-lane offset.** A fixed offset would decorrelate the
+four lanes from each other while leaving every run of a given lane identical to the last —
+`gRngValue` is not saved, so the hard reset between endless runs puts each lane back on the
+same rails. Per-run randomness fixes both axes at once.
+
+**Why 0-120.** One idle frame shifts the seed by 280,896 mod 65,536 = 18,752, and
+`gcd(18752, 65536) = 64`, so reachable seeds repeat every 1,024 frames. 0-120 stays well
+inside one cycle (121 distinct seeds), and costs at most two seconds per run. A larger range
+buys more seeds at a wall-clock cost that is not worth it at four lanes.
+
+**Rejected.** (a) Relying on the RTC — Emerald's RTC seeding is compiled out
+(`//#define BUGFIX`), unlike Ruby's. (b) Relying on lane names differing (P1..P4 type
+different characters, which does perturb the timer) — real but accidental, unmeasured, and
+it would break silently the moment someone made the names uniform. (c) Idle frames after
+boot — discarded by the `SeedRng` at naming. (d) Leaving it deterministic and treating
+lanes as replicates — that is just admitting the feature does not do what it claims.
+
+**Accepted cost.** Cold-start runs are no longer bit-reproducible by default. This is the
+right default for a sampler, and the env var restores determinism for bug reproduction; no
+existing `repro_*.py` is affected, as they all load save states rather than running the intro.

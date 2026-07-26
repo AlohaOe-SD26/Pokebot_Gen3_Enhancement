@@ -76,6 +76,28 @@ against a fake emulator, dashboard wiring on a real Tk canvas). The seam between
   One genuine latent fix went in alongside: lane stdout was block-buffered because it is a
   file, so `P#-stdout-*.txt` could sit empty for minutes — lanes now run `PYTHONUNBUFFERED=1`.
 
+**‼ UPDATE 2026-07-26 (fourth round) — COLD STARTS WERE NOT INDEPENDENT SAMPLES.**
+Verified in the pokeemerald decomp (`83df84e4`): `gRngValue` is 0 at every hard reset and
+Emerald is **not** RTC-seeded (`SeedRngWithRtc` is inside `#ifdef BUGFIX`;
+`include/config.h:48` leaves it undefined — Ruby DOES seed from the RTC, Emerald inherited
+FireRed's `main.c`). The only per-frame advance is `Random()` in `VBlankIntr`
+(`src/main.c:365-366`); the only single-player reseed is `SeedRng(REG_TM1CNT_L)`
+(`src/main.c:208-214`), from a timer started when the naming screen opens
+(`src/naming_screen.c:412`) and read when the name is confirmed (`:701`).
+⇒ Two instances fed the same frame-aligned script produce a **bit-identical game**.
+- **Fixed:** `modules/story/intro.py` now idles a random **0–120 frames between typing the
+  name and confirming it** — the only externally controllable input to the seed. Random per
+  RUN, not a fixed per-lane offset, because the hard reset between endless runs would
+  otherwise make every run of a lane replay the same early game.
+  `POKEBOT_RNG_DECORRELATION_FRAMES=0` restores deterministic cold starts for bug repro.
+  No existing `repro_*.py` is affected (they load save states, not the intro).
+- **How to read PAST batches:** lanes only diverged once something consumed a different
+  number of frames — a different starter at Birch's bag, or the bot's own Python-side
+  randomness (`story_mode.py:1330`, `:2015`). The intro, rival scene and Birch rescue ran
+  identically across lanes, and same-starter lanes stayed in lockstep much longer.
+  Early-game counts from old batches are repeated observations of ONE run, not N samples.
+- Full reasoning: 06-DECISIONS-LOG and 08-MISTAKES, both 2026-07-26.
+
 **UPDATE 2026-07-26 (third round) — `Emulator ▸ Park ×4 & Collect Logs…`** (shown only
 while a batch runs). Parks all four lanes, bundles every lane's logs into
 `profiles/x4 LOGS/P1 - P4 x4 LOGs <date> <time>.zip` with a `MANIFEST.txt`, verifies the

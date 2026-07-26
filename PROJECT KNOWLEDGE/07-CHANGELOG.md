@@ -4099,3 +4099,59 @@ documented as deterministic, but it does make Python-side random choices per pro
 (`story_mode.py:1330` training-strategy pick, `:2015` `random.randint(8, 10)` target
 level), which decorrelate runs from those points on. The game-side half is being checked
 against the pokeemerald decomp rather than asserted from memory.
+
+## 2026-07-26 — ‼ Emerald cold starts were NOT independent samples; naming-screen decorrelation added
+
+**How this surfaced.** The user reported "P4 is a copy of P3". P4's config was correct, but
+the question behind it was not one anyone had asked: *are two lanes running the same
+starter actually independent runs?* Verified against the pokeemerald decomp
+(commit `83df84e4`, read from source — not asserted from memory):
+
+- `gRngValue` is **0 at every hard reset** (`src/random.c`; COMMON_DATA, cleared by
+  `RegisterRamReset(RESET_ALL)`, stored in no save block).
+- **Emerald is NOT RTC-seeded.** `SeedRngWithRtc()` exists but sits inside `#ifdef BUGFIX`,
+  and `include/config.h:48` is `//#define BUGFIX`. Emerald inherited FireRed's `main.c`.
+  ‼ **Ruby/Sapphire DO seed from the RTC** (pokeruby `src/main.c:115`, unconditional) — so
+  this conclusion is Emerald-specific and must not be generalised across Gen 3.
+- The only per-frame advance is a bare `Random()` in `VBlankIntr()` (`src/main.c:365-366`),
+  a pure function of frames since boot.
+- The only single-player reseed is `SeedRngAndSetTrainerId()` → `SeedRng(REG_TM1CNT_L)`
+  (`src/main.c:208-214`), reading a cycle-exact timer started when the naming screen OPENS
+  (`src/naming_screen.c:412`) and read when the name is CONFIRMED (`:701`).
+
+**Consequence:** from a hard reset, two instances fed the same frame-aligned input script
+produce a **bit-identical game** — same TID/SID, same starter IVs and nature, same
+encounters, same damage rolls, same crits. Four x4 lanes were closer to **one** sample than
+four.
+
+**How to read PAST batches.** Not worthless, but less independent than assumed. Lanes
+diverged only once something consumed a different number of frames — a different starter
+choice at Birch's bag, or the bot's own Python-side randomness (`story_mode.py:1330`
+training-strategy pick, `:2015` `random.randint(8, 10)`). Everything BEFORE that — the
+intro, the rival scene, the Birch rescue — ran identically across lanes, and two lanes that
+rolled the same starter stayed in lockstep considerably longer. Early-game bug counts from
+past batches should be read as *repeated observations of one run*, not as N samples.
+
+**The fix — a random pause on the naming screen** (`modules/story/intro.py`). Since the
+seed is taken from a timer read at name-confirm, the cycles between naming-screen open and
+confirm are the ONLY externally controllable input to it; a delay anywhere earlier is
+discarded by `SeedRng`. After typing the name and before confirming, the intro now idles a
+random 0–120 frames. One frame shifts the seed by 280,896 mod 65,536 = **18,752**;
+`gcd(18752, 65536) = 64`, so seeds cycle every 1,024 frames and a 0–120 range yields 121
+distinct, well-scattered seeds for at most two seconds of wall clock. It is also more
+faithful, not less: a human takes a variable moment to confirm a name.
+
+Re-randomised per RUN, which matters as much as per lane — the endless mode hard-resets
+between runs, and `gRngValue` is not saved, so without this **every run of a lane would
+replay the same early game**.
+
+`POKEBOT_RNG_DECORRELATION_FRAMES=0` restores fully deterministic cold starts, which is
+what you want when REPRODUCING a bug rather than sampling. No existing `repro_*.py` is
+affected — they all load save states rather than running the intro.
+
+**Verified:** `repro_rng_decorrelation.py` — the env override (0, explicit, negative,
+garbage), the random default's range and spread, the frame/seed arithmetic the design rests
+on (280,896 cycles; 18,752 shift; gcd 64; 1,024-frame cycle; all 121 pauses distinct), that
+the two CLOSEST reachable seeds diverge on the very first LCG draw and share nothing over
+20 draws, and — asserted against the source, not the comment — that the pause really does
+sit between typing and confirming.

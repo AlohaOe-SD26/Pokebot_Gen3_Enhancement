@@ -1882,3 +1882,42 @@ folder." Test asserts the failure, not just the success path.
 is handled differently"), re-read every count, length and emptiness check over it — each
 one is now potentially measuring a different set than it was written for. Same family as
 the 1 KiB status blob: the guard did not change, the data did.
+
+## 2026-07-26 — I built a four-lane sampler without ever checking that the lanes were independent
+
+**Symptom.** ENDLESS LOOP x4 was designed, built, tested and shipped on one premise: four
+lanes = four independent runs = four times the failure data. The user then noticed "P4 is a
+copy of P3". P4's config was fine — but the question behind the report had never been asked
+by me, and the answer was that **no two lanes were independent**. Emerald's `gRngValue` is
+0 at every hard reset and is not RTC-seeded (Ruby is; Emerald inherited FireRed's
+`main.c`), so instances fed the same frame-aligned script produce a bit-identical game.
+Four lanes were closer to one sample than four. Worse, since the endless mode hard-resets
+between runs, every RUN of a lane replayed the same early game too.
+
+**Root cause.** "Independent" was doing enormous load-bearing work in the design — it was
+the entire justification for the feature — and I never verified it. I checked the things
+that were easy to check from our own code (config, profiles, process isolation, that
+`random.choice` re-rolls) and mistook that for having checked independence. Process
+isolation is not statistical independence: four isolated processes running the same
+deterministic program on the same deterministic emulator produce the same answer.
+
+**The fix that worked.** Read the decomp (`src/random.c`, `src/main.c`,
+`src/naming_screen.c`, `include/config.h`) instead of reasoning about it, which located the
+single controllable input to the seed — the cycles between naming-screen open and
+name-confirm — and a 0-120 frame random pause there decorrelates lanes AND runs. Cost: up
+to two seconds per run.
+
+**Second-order lesson from the same hour.** The test I first wrote for it asserted that the
+reachable seeds were "at least 1000 apart" — a threshold I invented rather than derived.
+Seed DISTANCE is not the property that matters for an LCG; distinctness and stream
+divergence are. The assertion failed (the real minimum is 192, a multiple of the 64-step
+lattice) and the honest fix was to test the streams, not the seeds.
+
+**Prevention rules.**
+1. When a feature's value rests on a property like independence, randomness or freshness,
+   VERIFY THAT PROPERTY FIRST — before building the thing that multiplies it. A fan-out
+   built on an unchecked premise multiplies the cost, not the information.
+2. Do not generalise a Gen-3 behaviour across Gen-3. Emerald, Ruby and FireRed differ here
+   in exactly the way that would have made a from-memory answer wrong.
+3. An assertion threshold must be derived from the mechanism, not chosen because it sounds
+   demanding.

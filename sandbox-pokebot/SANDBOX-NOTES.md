@@ -958,3 +958,24 @@ process.
   item; asks before collecting if any lane failed to acknowledge parking.
 - **Tests**: `repro_x4_logcollect.py` (new) + park coverage in `repro_x4_tile_child.py`.
   Suite now 8 scripts, all green.
+
+## 2026-07-26 — RNG decorrelation on the naming screen (cold starts were identical)
+- **Modified** `modules/story/intro.py`: after typing the player name and BEFORE confirming
+  it, idle a random 0–120 frames (`_rng_decorrelation_frames()`,
+  `POKEBOT_RNG_DECORRELATION_FRAMES` overrides; `0` = deterministic).
+  ‼ Verified in pokeemerald `83df84e4`: `gRngValue` is 0 at every hard reset, Emerald is NOT
+  RTC-seeded (`#ifdef BUGFIX`, undefined in `include/config.h:48` — RUBY IS, do not
+  generalise), the per-frame advance is `Random()` in `VBlankIntr` (`src/main.c:365-366`),
+  and the only single-player reseed is `SeedRng(REG_TM1CNT_L)` (`src/main.c:208-214`) from a
+  timer started at naming-screen open (`src/naming_screen.c:412`) and read at confirm
+  (`:701`). So the cycles between open and confirm are the ONLY external input to the seed;
+  a delay earlier in the intro is discarded by `SeedRng`.
+  One idle frame shifts the seed by 18,752 (mod 2^16); gcd 64 ⇒ 1,024-frame cycle ⇒ 0–120
+  gives 121 distinct seeds for ≤2s.
+- **Modified** `modules/story/early_game.py`: `LAST_CHOSEN_STARTER` + a
+  `STARTER: config='random' -> playing X` console line, so a `random` lane says what it rolled.
+- **Modified** `modules/gui/tile_child.py` / `modules/tile_mosaic.py` /
+  `modules/gui/dashboard_gui.py`: the tile label shows `random→Treecko` for a random lane.
+- **Tests**: `repro_rng_decorrelation.py` (new). Suite now 9 scripts, all green.
+- ‼ Consequence for the sandbox's own testing: cold-start runs are no longer bit-reproducible
+  by default. That is correct for a SAMPLER; set the env var to 0 to reproduce a bug.
