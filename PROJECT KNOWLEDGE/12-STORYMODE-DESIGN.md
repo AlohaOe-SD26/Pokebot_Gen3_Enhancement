@@ -2754,3 +2754,45 @@ free — Hariyama on VICTORY_ROAD is L38-42, already above the team, so its trai
 it ranks **#1** the moment anything marks it reachable. It was only kept out of the live answer by
 the `max_hops=4` bound, which is a coincidence of distance, not an Elite Four gate. Add the real
 gate to `KNOWN_GATES` before phase 2 acts on a candidate list.
+
+### §CC2 UPDATE 2026-07-26 (later) — ‼ THE ECONOMICS VERDICT IS REVERSED: phase 2 is now clearly worth building
+
+The earlier update concluded *"phase 2's value is gated by REACHABILITY, not ranking"* and that a
+counter hunt would buy only **~9%** over doing nothing. **That conclusion is now obsolete** — it
+was true of the candidate list as it stood, and the constraint producing it has been removed.
+
+**What was actually wrong: the hop FILTER, not reachability itself.** Probed from the real
+pre-Norman anchor (`saves/prenorman_fodder_grind.ss1`, Route 102, party avg L27), every
+Fighting-counter map is 5-7 hops away — FIERY_PATH 7, JAGGED_PASS 7, GRANITE_CAVE_1F 5 — while
+`_counter_area_allowed` used `max_hops=4`. So the filter admitted only the NEAREST map and
+excluded the cheap ones. **That is the encounter-rate mistake in different clothing: a proximity
+proxy overriding measured cost.** Raising it to `COUNTER_MAX_HOPS = 8` (measured: 8 admits
+Fiery Path/Jagged Pass and Mt Pyre, still excludes Safari Zone at 10-11 and Pacifidlog at 10).
+
+**The live list for Norman now, with the real predicate:**
+
+| # | candidate | reachable | est. frames |
+|---|---|---|---|
+| 1 | Machop / JAGGED_PASS L20-22 | yes | **75,949** |
+| 2 | Machop / FIERY_PATH L15-16 | yes | 168,616 |
+| 3 | Makuhita / GRANITE_CAVE_B1F | yes | 295,198 |
+| 4 | Makuhita / GRANITE_CAVE_1F | yes | 315,260 |
+| 6 | Hariyama / VICTORY_ROAD | **no** (Waterfall gate) | — |
+
+Against the measured cost of the current behaviour (399,000-508,000 frames of losing to Norman),
+the top candidate is **5-6x better than doing nothing**, not 9%. **Build phase 2.**
+
+**Blocker #1 (tiles) is also smaller than it looked.** FIERY_PATH / JAGGED_PASS / GRANITE_CAVE are
+CAVES — their encounters come from the cave FLOOR, so any walkable non-warp tile is a valid spin
+tile and no `MB_TALL_GRASS` sweep is needed (which is why `jaggedgrass_probe.py` finds nothing on
+them). Walkable non-warp tiles counted, with the most central listed:
+FIERY_PATH 269 (e.g. `(18,19)`), JAGGED_PASS 367 (`(16,22)`), GRANITE_CAVE_1F 201 (`(22,7)`),
+GRANITE_CAVE_B1F 291 (`(16,12)`). Tool: `tools/story-dev/probe_counter_tiles.py` (stage 3 `--nav`
+runs the two-way navigation before promoting any of them into `TRAINING_GRASS`).
+
+**‼ Caveat on the #1 pick.** `region_reach` models connections + warps, NOT ledge directionality,
+and Jagged Pass is known to have one-way ledges (it could not be re-entered from Lavaridge,
+2026-07-23). So `JAGGED_PASS` at rank 1 may be a wrong YES. Two things make that acceptable now
+rather than fatal: `_training_unreachable` bounds a wrong YES to ONE wasted walk, and rank 2
+(FIERY_PATH, 168,616 — still 2.4-3x better than doing nothing) is on the Ch10 route and known
+traversable both ways. Run the `--nav` stage before trusting rank 1.

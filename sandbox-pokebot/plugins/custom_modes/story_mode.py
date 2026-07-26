@@ -555,6 +555,29 @@ def _training_area_allowed(map_enum, tile, prereq) -> bool:
         return False
 
 
+#: Hop budget for COUNTER-CATCH candidates (`_counter_area_allowed`).
+#: ‼ 8, RAISED FROM 4 ON MEASUREMENT (2026-07-26). From the real pre-Norman anchor
+#: (`saves/prenorman_fodder_grind.ss1`, Route 102, party avg L27) every Fighting-counter
+#: map sits at 5-7 hops — FIERY_PATH 7, JAGGED_PASS 7, GRANITE_CAVE_1F 5 — so a bound of
+#: 4 admitted only the NEAREST one and excluded the cheap ones. That is the
+#: encounter-rate error again: a proximity proxy overriding measured cost.
+#: The arithmetic: reaching FIERY_PATH costs ~3 hops more walking than GRANITE_CAVE, and
+#: even at a generous ~5,000 frames per map crossing that is ~15,000 frames — against a
+#: **174,000-frame** difference in training cost (Makuhita 363,982 vs Machop 190,589).
+#: The filter was off by an order of magnitude against its own purpose.
+#: WHY 8 AND NOT MORE, measured from the same anchor: 8 admits FIERY_PATH/JAGGED_PASS (7)
+#: and MT_PYRE (8) while still excluding SAFARI_ZONE (10-11) — a paid, step-limited
+#: minigame area the bot cannot farm — and PACIFIDLOG (10 from ROUTE120), which is what
+#: the original bound existed to cut. Maps admitted from this anchor: 4 -> 52, 6 -> 123,
+#: 8 -> 175, 10 -> 226.
+#: Safe to loosen only because two other guards now exist: candidates are ranked by
+#: measured COST (so a far map must also be cheap to win), and `_training_unreachable`
+#: bounds a wrong YES to one wasted walk instead of the run.
+#: ‼ Travel cost is still NOT in the cost model — no measured frames-per-hop figure
+#: exists in this codebase. Add one and fold it in, then this bound can go away.
+COUNTER_MAX_HOPS = 8
+
+
 def _counter_area_allowed(map_enum, tile, prereq) -> bool:
     """`allow=` predicate for `counter_plan.find_counter_candidates`, used ONLY from
     `_boss_plan_is_hopeless`'s counter-catch wiring (KI-23 -> #24-counters).
@@ -565,7 +588,12 @@ def _counter_area_allowed(map_enum, tile, prereq) -> bool:
     unreachable (KI-24). `region_reach.is_map_reachable` answers reachability from the
     ROM's own MapConnections + warps instead, which is sound at region scale.
 
-    `max_hops=4` is a documented sanity FILTER, not a rank: measured hops from
+    ‼ `max_hops` RAISED 4 -> 8 (2026-07-26, measured — see `COUNTER_MAX_HOPS`). At 4 the
+    filter was excluding the CHEAP counters and admitting an expensive one purely because
+    it sat nearer, which is the encounter-rate mistake wearing a different hat.
+
+    The original note, still true about what the bound is FOR:
+    a documented sanity FILTER, not a rank: measured hops from
     ROUTE120 are Fortree 1, Route119 2, Lilycove 2, Route118 3, Mossdeep 4,
     Pacifidlog 10 — 4 keeps the same-landmass cluster and cuts the far-flung.
     Hop count must NOT be used to rank; `counter_plan`'s own criteria (type coverage
@@ -575,7 +603,7 @@ def _counter_area_allowed(map_enum, tile, prereq) -> bool:
     try:
         from modules.story import region_reach
 
-        return bool(region_reach.is_map_reachable(map_enum, max_hops=4))
+        return bool(region_reach.is_map_reachable(map_enum, max_hops=COUNTER_MAX_HOPS))
     except Exception:
         return False
 

@@ -670,14 +670,19 @@ Batch `20260726-052205` validated the day's guards and found two defects in them
 see below). Then three phase-2 blockers were worked, and one produced a finding that should shape
 whether phase 2 gets built at all.
 
-**‼ READ THIS BEFORE BUILDING PHASE 2.** Priced with the project's own frame model against the
-MEASURED cost of the current behaviour (run05 lost to Norman 21× ≈ 399,000 frames; run3 27× =
-508,000): Machop 98,877 · Makuhita 363,982. So catching a counter is clearly worth it **for the
-right candidate** — but the only Fighting counter the LIVE predicate accepted was the Makuhita,
-i.e. **~9% better than doing nothing**. **Phase 2's value is gated by REACHABILITY, not ranking.**
-Widen what is legitimately reachable (a verified FIERY_PATH tile is the best lead — it is on the
-Ch10 route and traversable both ways, unlike Jagged Pass's one-way ledges) or the executor will
-not pay for itself. Full spec + numbers: `12-STORYMODE-DESIGN.md` §CC2 + its 2026-07-26 update.
+**‼ VERDICT: BUILD PHASE 2 — the economics now support it.** (An earlier note today said the
+opposite; it was true of the candidate list as it stood and the constraint causing it has been
+removed. Superseded — do not act on it.) The blocker was the hop FILTER, not reachability: from
+the real pre-Norman anchor every Fighting-counter map is 5-7 hops while `_counter_area_allowed`
+used `max_hops=4`, so it admitted only the nearest map and excluded the cheap ones — the
+encounter-rate mistake in different clothing. With `COUNTER_MAX_HOPS = 8` the live list is now
+**Machop/JAGGED_PASS 75,949 · Machop/FIERY_PATH 168,616 · Makuhita/GRANITE_CAVE 315,260**, and
+Victory Road is correctly gated out. Against the measured 399,000-508,000 frames of LOSING to
+Norman, the top candidate is **5-6x better than doing nothing** (it was 9%).
+‼ Caveat: `region_reach` does not model ledge directionality and Jagged Pass has known one-way
+ledges, so rank 1 may be a wrong YES — run `probe_counter_tiles.py --nav` before trusting it.
+`_training_unreachable` bounds that to one wasted walk, and rank 2 (FIERY_PATH) is on the Ch10
+route and traversable both ways. Full numbers: `12-STORYMODE-DESIGN.md` §CC2 + both updates.
 
 * **Blocker #2 CLOSED — candidates rank by COST, not encounter rate.** `rate * 1_000 - level_gap`
   outweighed level fit ~1000×, so a L6-10 Makuhita (50%) beat a L20-22 Machop (25%) for a L31 team
@@ -690,10 +695,15 @@ not pay for itself. Full spec + numbers: `12-STORYMODE-DESIGN.md` §CC2 + its 20
   moment anything calls the map reachable. Only `max_hops=4` had been keeping it out — luck, not a
   gate. Probed: the ONLY boundary edge into the whole cluster is
   `EVER_GRANDE_CITY (0,8) <-> VICTORY_ROAD_1F (24,43)`. One entry closes every floor.
-* **STILL BLOCKING — #1 tiles.** Every candidate still has `tile: None`; no counter map has a
-  verified spin tile, so there is nothing to path to. Field work (two-way sweeps from a real story
-  anchor). Also open: #4, story interiors (`GRANITE_CAVE_STEVENS_ROOM`) are proposed as hunting
-  grounds.
+* **Blocker #1 (tiles) is SMALLER than it looked.** The counter maps are CAVES — encounters come
+  from the cave FLOOR, so ANY walkable non-warp tile is a valid spin tile and no `MB_TALL_GRASS`
+  sweep applies (which is why `jaggedgrass_probe.py` finds nothing there). Counted, with the most
+  central: FIERY_PATH 269 `(18,19)` · JAGGED_PASS 367 `(16,22)` · GRANITE_CAVE_1F 201 `(22,7)` ·
+  GRANITE_CAVE_B1F 291 `(16,12)`. **Next concrete step:** run
+  `tools/story-dev/probe_counter_tiles.py --nav` (two-way navigation from the anchor), then
+  promote whichever passes into `TRAINING_GRASS` — that is the last thing standing between the
+  diagnosis and a working executor.
+* Still open: #4, story interiors (`GRANITE_CAVE_STEVENS_ROOM`) are proposed as hunting grounds.
 
 ### ✅ 2026-07-26 — SURVIVAL MODE closes the travel-attrition half of `#24-whiteout`
 The batch's largest loss cluster is fixed: **25 whiteouts on ROUTE110 in one run** (31 of 66
