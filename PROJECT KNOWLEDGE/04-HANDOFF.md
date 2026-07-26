@@ -43,20 +43,41 @@ against a fake emulator, dashboard wiring on a real Tk canvas). The seam between
    lane profiles to be created and four tiles to appear within a few seconds.
 2. Confirm each tile shows its own game, and that the label reads the right starter once
    each lane gets past Birch's bag (this is the whole point — check P1 really is Torchic).
-3. Click each quadrant; confirm the blue focus border follows the click.
+3. Click each quadrant; confirm the blue focus border follows the click **and the left
+   party strip switches to that lane's team** (phase 2a). Hover a slot for the tooltip.
+3b. Confirm each tile's label shows a growing `log <size>` and never `‼ NO LOG`.
+3c. Once a lane beats Roxanne, confirm `profiles/endless-P1-torchic/badge-log.json` exists
+   and contains a Stone Badge record with the team that won.
 4. Toggle handheld mode with a batch running; confirm the 2×2 still fills the video rect.
 5. Close the window; confirm **no orphaned `python`/`pokebot` processes remain** (this is
    the hazard `_close_window()` guards — it ends in `os._exit(0)`, so nothing else runs).
 6. Let it run a while, then hand over the `P1..P4` logs.
 
-**KNOWN GAPS (by design, phase 2 — agreed with the user, NOT built):**
-- The party strip and tool column still show THIS process's idle profile, not the focused
-  lane. A child's party lives in the child's `context`; showing it means shipping a party
-  summary in the status blob and rendering the strip from JSON instead of from a `Pokemon`
-  object. Until then the per-tile label carries the lead mon (`TORCHIC L5 18/21`).
+**UPDATE 2026-07-26 (same day, second round):**
+- **Phase 2a DONE — the party strip follows the focused lane.** Click a tile and the left
+  strip, party tab and hover tooltip all switch to that lane's team.
+  `modules/remote_party.py` rebuilds stand-ins from the lane's status blob; the party
+  renderer itself is untouched. `STATUS_BYTES` was raised 1 KiB → 8 KiB because a real
+  six-mon team measures 2,385 bytes and the old cap would have silently dropped it.
+- **`modules/badge_log.py` added** (#24-badges, the capture half of the trainer-card
+  request): records the party at the instant each `BADGE0N_GET` flag flips, into
+  `<profile>/badge-log.json`. Re-arms on emulator reset, so every run of an x4 batch is
+  captured, and the first poll of a run adopts existing badges without inventing records.
+  The badge-case OVERLAY is tabled (see punch list #24-badges); the recorder shipped first
+  because it can only capture badges earned after it is switched on.
+- **Logs were never actually missing** — the user found them; a lane logs into its OWN
+  profile (`profiles/endless-P#-<starter>/debug-logs/`), not the profile the dashboard was
+  opened with. Made discoverable rather than "fixed": the batch now prints each lane's log
+  folder to the event log, and every tile shows its log size (or `‼ NO LOG` in red).
+  One genuine latent fix went in alongside: lane stdout was block-buffered because it is a
+  file, so `P#-stdout-*.txt` could sit empty for minutes — lanes now run `PYTHONUNBUFFERED=1`.
+
+**KNOWN GAPS (by design, phase 2b — agreed with the user, NOT built):**
 - Watch-only. The control toggle (click a tile, then drive it) is not built; the channel
   is cheap when it is (`libmgba.press_button`/`hold_button`/`release_button` take plain
   strings), but nothing routes input to a lane today.
+- The TOOL COLUMN (KPIs, stats, cheats) still reflects this process's idle profile — only
+  the PARTY follows the focus. Extending it means shipping more per-lane state.
 - While a batch runs, this process's own emulator is parked in **Manual at 1×** purely to
   pump the Tk queue. Its previous mode and speed are restored on stop. `context.video` is
   deliberately never touched (user directive 2026-07-26).

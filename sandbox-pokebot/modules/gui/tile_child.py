@@ -64,6 +64,8 @@ class PokebotTileChild:
         self._sequence = 0
         self._last_publish_ns = 0
         self._pid = os.getpid()
+        self._log_path: str | None = None
+        self._log_reenables = 0
 
     # ------------------------------------------------------------------
     def run(self, startup_settings: "StartupSettings"):
@@ -91,18 +93,66 @@ class PokebotTileChild:
 
         # The whole point of an x4 batch is diagnosable logs, so debug logging is ON
         # and the file carries the lane tag (P1..P4) the user asked for.
-        try:
-            from modules import debug_logger
-
-            debug_logger.enable(startup_settings.profile, name_prefix=f"{self._lane_tag}-")
-        except Exception:
-            pass
+        self._enable_debug_log(startup_settings.profile)
 
         context.bot_mode = startup_settings.bot_mode
         self._main_loop()
 
     def on_settings_updated(self) -> None:
         pass
+
+    # ------------------------------------------------------------------
+    # Debug logging — the deliverable, so it is loud about failing
+    # ------------------------------------------------------------------
+    def _enable_debug_log(self, profile) -> None:
+        """Start the debug logger and SAY WHAT HAPPENED.
+
+        ‼ This was `try: enable(...) except: pass`, which is doubly blind:
+        `debug_logger.enable()` reports failure by RETURNING an error string, not by
+        raising, so a lane could run for hours writing nothing and neither the console nor
+        the tile would say so (user report 2026-07-26: "seems like they didn't [log]").
+        A feature whose entire purpose is producing logs must never fail quietly.
+        """
+        from modules.console import console
+
+        try:
+            from modules import debug_logger
+
+            result = debug_logger.enable(profile, name_prefix=f"{self._lane_tag}-")
+        except Exception as exc:  # noqa: BLE001
+            self._log_path = None
+            console.print(f"[red]{self._lane_tag}: debug logging FAILED to start: {type(exc).__name__}: {exc}[/]")
+            return
+
+        if not result or result.startswith("<failed"):
+            self._log_path = None
+            console.print(f"[red]{self._lane_tag}: debug logging FAILED to start: {result}[/]")
+        else:
+            self._log_path = result
+            console.print(f"[green]{self._lane_tag}: debug log -> {result}[/]")
+
+    def _ensure_logging(self) -> None:
+        """Re-arm the debug logger if it has stopped. Bounded, and cheap enough to run at
+        publish rate.
+
+        The first `enable()` happens before the emulator has executed a single frame, and
+        the endless mode hard-resets the emulator between runs — if either ever leaves the
+        logger off, the lane silently stops being useful. Each re-arm opens a NEW file, so
+        this is capped rather than looping.
+        """
+        try:
+            from modules import debug_logger
+
+            if debug_logger.is_enabled() or self._log_reenables >= 5:
+                return
+            self._log_reenables += 1
+            from modules.console import console
+
+            console.print(f"[yellow]{self._lane_tag}: debug logging was off — re-arming "
+                          f"({self._log_reenables}/5).[/]")
+            self._enable_debug_log(context.profile)
+        except Exception:
+            pass
 
     # ------------------------------------------------------------------
     def _on_frame(self) -> None:
@@ -112,6 +162,7 @@ class PokebotTileChild:
             if now - self._last_publish_ns < _PUBLISH_INTERVAL_NS:
                 return
             self._last_publish_ns = now
+            self._ensure_logging()
             if self._bridge is None:
                 return
 
@@ -145,12 +196,25 @@ class PokebotTileChild:
             "mode": str(getattr(context, "bot_mode", "") or ""),
             "frame": int(getattr(context, "frame", 0) or 0),
         }
+        # Logging state travels with every frame, so the dashboard can show at a glance
+        # whether a lane is actually producing the logs it exists to produce.
+        if self._log_path:
+            status["log"] = os.path.basename(self._log_path)
+            try:
+                status["log_bytes"] = os.path.getsize(self._log_path)
+            except Exception:
+                pass
+        else:
+            status["log"] = None
+
         try:
             from modules.pokemon_party import get_party
 
-            lead = next((mon for mon in get_party() if mon is not None and not mon.is_egg), None)
+            party = list(get_party())
+            lead = next((mon for mon in party if mon is not None and not mon.is_egg), None)
             if lead is not None:
                 status["party"] = f"{lead.name} L{lead.level}  {lead.current_hp}/{lead.total_hp}"
+            status["team"] = [self._mon_payload(mon) for mon in party if mon is not None]
         except Exception:
             pass
         try:
@@ -161,3 +225,11 @@ class PokebotTileChild:
         except Exception:
             pass
         return status
+
+    @staticmethod
+    def _mon_payload(mon) -> dict:
+        """Serialise one party member. Lives in `modules/remote_party.py` because the badge
+        log freezes the same shape at the moment a badge is earned."""
+        from modules.remote_party import mon_payload
+
+        return mon_payload(mon)

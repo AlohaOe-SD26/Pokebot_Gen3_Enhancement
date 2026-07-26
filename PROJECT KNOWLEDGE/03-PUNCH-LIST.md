@@ -30,13 +30,30 @@
       **Phase 1 BUILT in sandbox (2026-07-26), tests green, LIVE RUN NOT YET DONE**
       — this dev box has no `mgba`, so nothing involving a real emulator has been
       exercised. See 04-HANDOFF for the exact live confirms the user must run.
-      Phase 2 (agreed with the user, NOT built): (a) the party strip + tool column
-      following the focused lane — needs the lane's party shipped over the status
-      blob and rendered from JSON rather than from a `Pokemon` object; (b) the
-      watch/CONTROL toggle — click a tile then drive it, forwarding
-      `press_button`/`hold_button`/`release_button` over a per-lane input pipe
-      (`modules/libmgba.py` already exposes exactly that surface, so the channel is
-      strings, not input-model surgery).
+      **Phase 2a DONE 2026-07-26** — the party strip / party tab / hover tooltip
+      follow the focused lane (`modules/remote_party.py` rebuilds stand-ins from the
+      lane's status blob; the renderer is unchanged). Live confirm still owed.
+      Phase 2b (agreed with the user, NOT built): the watch/CONTROL toggle — click a
+      tile then drive it, forwarding `press_button`/`hold_button`/`release_button`
+      over a per-lane input pipe (`modules/libmgba.py` already exposes exactly that
+      surface, so the channel is strings, not input-model surgery).
+- [ ] #24-badges — **TRAINER-CARD / BADGE CASE overlay** (user request 2026-07-26):
+      a Bag-icon button under the 6th party slot opens an overlay to the right laid
+      out like the in-game badge case — 8 badges, black silhouette until earned —
+      and hovering/clicking one shows that gym leader's details plus THE TEAM THAT
+      BEAT THEM. User said it may be tabled; the UI is tabled, the capture is NOT.
+      **DONE:** `modules/badge_log.py` records the party at the instant each
+      `BADGE0N_GET` flag flips, to `<profile>/badge-log.json`, re-arming on emulator
+      reset so every run of an x4 batch is captured. Shipped first because it can
+      only record badges earned AFTER it is on — waiting would have thrown away
+      every x4 run's badge data (06-DECISIONS-LOG).
+      **TODO (the UI):** the Bag button + overlay; per-leader detail content (type,
+      ace, level range — must be FACT-CHECKED against the decomp, not written from
+      memory, per the Gemini/validation directives); reading `badge-log.json` back
+      and picking which run's team to show when there are many.
+      Assets are NOT a blocker: all 8 Hoenn badge sprites already exist at
+      `modules/web/static/sprites/badges/` (Stone, Knuckle, Dynamo, Heat, Balance,
+      Feather, Mind, Rain). The only missing art is a Bag icon.
 
 ## Next (user-set order 2026-07-19: #30 â†’ #31 â†’ #32, THEN the first wave below)
 > #30/#31/#32 are BUILT + ADVERSARIALLY VERIFIED in sandbox (clean pass:

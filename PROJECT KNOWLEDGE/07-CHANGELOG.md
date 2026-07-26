@@ -3960,3 +3960,53 @@ real Tk canvas — paint, rate gate, no canvas-item leak over 30 repaints, all f
 quadrants, fall-through when no batch runs, clean teardown; lane profiles created with the right
 starter in `story.yml` and read back correctly through `get_story_config()`, including a
 hand-edited `story.yml` being reverted.
+
+## 2026-07-26 — x4: the party strip follows the focused lane; badge recorder ships ahead of its UI (#24-x4 / #24-badges)
+
+**1. The party strip now shows the FOCUSED LANE's team.** Click a tile, and the left strip
+(and party tab, and hover tooltip) switch to that lane's Pokémon. The party belongs to
+another process, so it travels in the lane's status blob and `modules/remote_party.py`
+rebuilds stand-ins exposing the exact attribute surface the party UI reads — the renderer
+is untouched. The attribute list was MEASURED off `dashboard_gui.py` (strip 1145-1240, tab
+row 3209-3290, tooltip 1530-1700), not guessed. Clicking repaints immediately rather than
+waiting for the sidebar cycle, which would otherwise leave the previous lane's team on
+screen and read as "the strip isn't following".
+
+`STATUS_BYTES` 1 KiB → 8 KiB: a real six-Pokémon team with moves and IVs measures 2,385
+bytes, so the original cap would have silently dropped every party to the fallback blob.
+
+**2. `modules/badge_log.py` — records what the team was when each badge was earned.**
+Writes `<profile>/badge-log.json`; during an x4 batch that yields four independent badge
+histories (P1's Roxanne team vs P4's). Polls the eight `BADGE0N_GET` flags once a second
+from the main frame loop, appends across runs, and tags each record with
+`run_started_frame` so records group by playthrough.
+‼ It re-arms on emulator reset (hooked at `main.py`'s existing reset detection, so it
+catches every reset path): the endless mode hard-resets between runs, which zeroes every
+badge flag — a recorder that remembered across that would log run 1's badges and silently
+never log another, in exactly the batch it was built for. The first poll of a run ADOPTS
+whatever is already set without recording it, so loading a mid-game save cannot fabricate
+"just earned" records with today's team attached.
+
+**Why the recorder ships before the overlay UI the user asked for:** the UI can be built
+whenever; this capture only ever records badges earned AFTER it is switched on. Every x4
+run in the meantime would produce badge wins that can never be reconstructed.
+
+**3. Log discoverability** (the user's "seems like they didn't log" — they had, in the lane
+profiles): starting a batch now prints each lane's log folder to the event log; each tile's
+label shows its log size (or `‼ NO LOG` in red); the lane's `debug_logger.enable()` result
+is checked and reported instead of being swallowed by `try/except: pass` (it signals
+failure by RETURNING an error string, so the old code was blind in both directions), and
+the logger self-re-arms up to 5 times if it is ever found off.
+
+**One genuine latent fix:** lane stdout (`P#-stdout-*.txt`) is a FILE, not a console, so
+CPython block-buffered it at 8 KiB — a lane could run for minutes with nothing on disk.
+Lanes now launch with `PYTHONUNBUFFERED=1`.
+
+**Verified:** two new suites, six total, all green. `repro_x4_party.py` — every UI-read
+attribute survives the round trip; `status_condition` returns the REAL enum member
+(`dashboard_gui:3239` compares with `is not`, which any look-alike fails); a full 6-mon
+blob fits STATUS_BYTES; the dashboard reads the focused lane and a click swaps the party;
+junk/absent teams degrade to `[]`. `repro_x4_badgelog.py` — adopt-on-first-poll, record
+once, poll interval, **records again after a hard reset**, accumulation across runs, a
+broken party read costing the team but not the record, and every badge in the table having
+its sprite on disk.

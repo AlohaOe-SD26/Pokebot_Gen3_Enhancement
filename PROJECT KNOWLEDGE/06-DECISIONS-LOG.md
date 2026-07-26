@@ -620,3 +620,39 @@ which is what the user first proposed.
 the organisational benefit that motivated the original request for free, because debug logs are
 already written per profile; the `P1-`/`P2-` filename prefix (new `debug_logger.enable(name_prefix=)`)
 is kept on top so a folder of collected logs is self-identifying.
+
+## 2026-07-26 — A lane's party travels as JSON and is rebuilt as stand-ins, rather than forking the party renderer
+
+**Decision.** `modules/remote_party.py` rebuilds objects that expose the exact attribute
+surface the dashboard's party UI reads, from JSON the lane publishes. `_refresh_party()`
+swaps its SOURCE when a batch is running; every line of rendering below that is unchanged.
+
+**Why.** The alternative — a second "remote party" renderer — would have to be kept in step
+with the real one forever, and the party UI is not small (strip icons with ball compositing,
+tab rows with HP/XP bars, a themed hover tooltip with types, IVs and moves). One renderer
+with two data sources is strictly less to maintain than two renderers.
+
+**The contract, and why it is written down.** The attribute list was measured off the code
+(strip 1145-1240, tab row 3209-3290, tooltip 1530-1700), not guessed. It is recorded in
+`remote_party.py`'s docstring because a missing attribute DEGRADES QUIETLY — the tooltip
+wraps its reads in `safe()` — so drift would show up as blanks nobody attributes to this.
+
+**One trap worth remembering:** `status_condition` must be the real `StatusCondition` enum
+member. `dashboard_gui:3239` compares it with `is not StatusCondition.Healthy` — an IDENTITY
+test that any string or look-alike fails, which would render every healthy Pokémon as
+though it were statused. Covered by a test that asserts identity, not equality.
+
+## 2026-07-26 — The badge recorder ships BEFORE the trainer-card UI that motivated it
+
+**Decision.** `modules/badge_log.py` (capture) is built and running now; the badge-case
+overlay the user asked for is deferred.
+
+**Why.** The two halves have opposite time profiles. The overlay can be built at any point
+and loses nothing by waiting. The capture can only ever record badges earned AFTER it is
+switched on — nothing in a save reconstructs what the party looked like at the instant a
+flag flipped. Every ENDLESS LOOP x4 run between now and the UI would have produced badge
+wins that are gone for good. Shipping the recorder first turns waiting into data collection.
+
+**Rejected.** Building both together (delays capture for no benefit), and deriving the team
+retroactively from save states (the endless mode hard-resets between runs, so the states
+are gone; and a mid-run party is not the party at the moment of victory).

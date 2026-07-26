@@ -904,3 +904,33 @@ process.
   See 04-HANDOFF "YOU ARE HERE" for the six confirms the user must run before promotion.
 - **Phase 2, not built**: party strip + tool column following the focused lane; the
   watch/control toggle.
+
+## 2026-07-26 — x4 phase 2a (party follows focus) + badge recorder
+- **Added** `modules/remote_party.py`: `mon_payload()` serialises one Pokémon;
+  `RemotePokemon` / `party_from_status()` rebuild stand-ins exposing the exact attribute
+  surface the dashboard's party UI reads, so `_refresh_party()` only swaps its SOURCE and
+  the renderer is untouched. ‼ `status_condition` returns the real `StatusCondition` enum
+  member — `dashboard_gui:3239` uses `is not StatusCondition.Healthy`, an identity test any
+  look-alike fails.
+- **Added** `modules/badge_log.py`: records the party at the instant each `BADGE0N_GET`
+  flag flips → `<profile>/badge-log.json`. Polls 8 flags once a second from the frame loop.
+  ‼ Re-arms on emulator reset (hooked at `main.py`'s existing reset detection) — the
+  endless mode hard-resets between runs, zeroing every badge flag, so a recorder that
+  remembered across a reset would log run 1 and never log again. First poll of a run adopts
+  existing badges WITHOUT recording, so loading a mid-game save cannot fabricate records.
+- **Modified** `modules/tile_bridge.py`: `STATUS_BYTES` 1024 → 8192. A real six-mon team
+  with moves and IVs is 2,385 bytes; the old cap would have silently dropped every party to
+  `publish()`'s fallback blob (08-MISTAKES 2026-07-26).
+- **Modified** `modules/gui/tile_child.py`: publishes `team` (full party) + `log`/`log_bytes`;
+  `_enable_debug_log()` reports success/failure instead of `try/except: pass` (enable()
+  signals failure by RETURNING a string); `_ensure_logging()` re-arms up to 5×.
+- **Modified** `modules/tile_mosaic.py`: tile label shows log size, or `‼ NO LOG` in red.
+- **Modified** `modules/gui/dashboard_gui.py`: `_refresh_party` reads the focused lane
+  during a batch; `_x4_focused_party`/`_x4_focused_status`; a click repaints the party
+  immediately; starting a batch logs each lane's log FOLDER (the user could not find them —
+  a lane logs into its own profile).
+- **Modified** `modules/endless_x4.py`: `PYTHONUNBUFFERED=1` for lanes — stdout is a file,
+  so CPython block-buffered `P#-stdout-*.txt` at 8 KiB and it looked empty for minutes.
+- **Modified** `modules/main.py`: badge_log frame hook + reset hook.
+- **Tests**: `repro_x4_party.py`, `repro_x4_badgelog.py` (suite now 6, all green).
+- **NOT built**: the badge-case OVERLAY UI (tabled by the user); the x4 control toggle.

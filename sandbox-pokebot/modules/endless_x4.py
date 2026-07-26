@@ -166,6 +166,11 @@ class EndlessX4Batch:
         env = dict(os.environ)
         # Encoding round-trips have corrupted em-dashes in this project's logs before.
         env["PYTHONUTF8"] = "1"
+        # ‼ WITHOUT THIS THE STDOUT LOG LOOKS EMPTY. A child's stdout is a FILE here, not a
+        # console, so CPython block-buffers it at 8 KiB — a lane can run for many minutes
+        # with nothing whatsoever on disk, which reads exactly like "the batch produced no
+        # logs" (user report, 2026-07-26). Unbuffered costs nothing at these volumes.
+        env["PYTHONUNBUFFERED"] = "1"
 
         creation_flags = 0
         if os.name == "nt":

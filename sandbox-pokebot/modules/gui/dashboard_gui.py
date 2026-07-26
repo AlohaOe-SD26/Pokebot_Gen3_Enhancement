@@ -2696,6 +2696,7 @@ class DashboardScreen:
                         pixels=frame.pixels if frame is not None else None,
                         width=frame.width if frame is not None else 240,
                         height=frame.height if frame is not None else 160,
+                        log_bytes=status.get("log_bytes") if status.get("log") else None,
                     )
                 )
 
@@ -2713,6 +2714,26 @@ class DashboardScreen:
 
                 console.print_exception()
 
+    def _x4_focused_status(self) -> dict:
+        """The focused lane's most recent status blob ({} if it has not published)."""
+        batch = self._x4_batch
+        if batch is None or batch.bridge is None:
+            return {}
+        try:
+            frame = batch.bridge.read(self._x4_focus)
+        except Exception:
+            return {}
+        return frame.status if frame is not None else {}
+
+    def _x4_focused_party(self) -> list:
+        """The focused lane's party, rebuilt as `RemotePokemon` stand-ins."""
+        try:
+            from modules.remote_party import party_from_status
+
+            return party_from_status(self._x4_focused_status())
+        except Exception:
+            return []
+
     def _x4_click(self, event) -> bool:
         """Focus the clicked lane. Returns True if the click was consumed."""
         if self._x4_batch is None:
@@ -2726,6 +2747,14 @@ class DashboardScreen:
             self._x4_focus = slot
             lane = self._x4_batch.lanes[slot]
             self._log_event(f"Endless x4: focused {lane.tag} ({lane.starter}) — profile `{lane.profile_name}`.")
+            # Repaint the party immediately: waiting for the sidebar cycle would leave the
+            # PREVIOUS lane's team on screen for up to a second after the click, which
+            # reads as "the strip is not following the focus".
+            try:
+                self._refresh_party()
+                self._refresh_party_strip()
+            except Exception:
+                pass
         return True
 
     def start_endless_x4(self) -> None:
@@ -2794,6 +2823,11 @@ class DashboardScreen:
         self._x4_batch = batch
         self._x4_focus = 0
         self._log_event(f"Endless Loop x4 started: {lanes} lanes ({', '.join(l.starter for l in batch.lanes)}).")
+        # ‼ SAY WHERE THE LOGS GO. The first time this ran, the logs were being written
+        # correctly and the user could not find them, because a lane logs into its OWN
+        # profile — not the one the dashboard was opened with (user, 2026-07-26).
+        for lane in batch.lanes:
+            self._log_event(f"  {lane.tag} logs → profiles/{lane.profile_name}/debug-logs/")
 
     def stop_endless_x4(self) -> None:
         """Terminate every lane and hand the video area back to the local emulator."""
@@ -3134,12 +3168,20 @@ class DashboardScreen:
         self._prepare_dialog(dialog)
 
     def _refresh_party(self) -> None:
-        try:
-            from modules.pokemon_party import get_party
+        # ENDLESS LOOP x4: the party the user is looking at belongs to the FOCUSED LANE,
+        # which is a different process — `get_party()` here would read this window's idle
+        # profile and show a party that belongs to nobody on screen. The lane ships its
+        # team in its status blob; `modules/remote_party.py` rebuilds stand-ins with the
+        # same attribute surface, so everything below this point is unchanged.
+        if self._x4_batch is not None:
+            party = self._x4_focused_party()
+        else:
+            try:
+                from modules.pokemon_party import get_party
 
-            party = list(get_party())
-        except Exception:
-            party = []
+                party = list(get_party())
+            except Exception:
+                party = []
 
         self._current_party = party  # shared by the party tab rows + left strip hover
 

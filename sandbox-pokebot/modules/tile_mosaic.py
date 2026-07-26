@@ -48,6 +48,11 @@ class MosaicTile:
     runs_completed: int = 0
     message: str = ""
     party: str = ""
+    #: Debug-log state, so "is this lane actually producing logs?" is answerable from the
+    #: grid instead of by hunting the filesystem (user, 2026-07-26: the logs were being
+    #: written all along, in the lane profile the user had not thought to look in).
+    #: None = the lane has not reported a log; the tile then says so loudly.
+    log_bytes: int | None = None
     #: Raw RGB888 screen, or None if the lane has not published yet.
     pixels: bytes | None = None
     width: int = 240
@@ -64,6 +69,15 @@ def _font(size: int):
             except Exception:
                 _font_cache[size] = PIL.ImageFont.load_default()
     return _font_cache[size]
+
+
+def _kb(size: int) -> str:
+    """Compact byte count for the tile label."""
+    if size < 1024:
+        return f"{size} B"
+    if size < 1024 * 1024:
+        return f"{size / 1024:.0f} KB"
+    return f"{size / (1024 * 1024):.1f} MB"
 
 
 def _fit(draw, text: str, font, max_width: int) -> str:
@@ -120,8 +134,10 @@ def compose_mosaic(size: tuple[int, int], tiles: list[MosaicTile], focus: int = 
         head = f"{tile.tag} · {tile.starter} · {runs} run{'' if runs == 1 else 's'} done"
         if tile.restarts:
             head += f" · {tile.restarts} restart{'' if tile.restarts == 1 else 's'}"
+        head += f" · log {_kb(tile.log_bytes)}" if tile.log_bytes is not None else " · ‼ NO LOG"
         draw.text((ox + pad, oy + cell_h - bar_h + pad),
-                  _fit(draw, head, head_font, cell_w - pad * 2), font=head_font, fill=_TEXT)
+                  _fit(draw, head, head_font, cell_w - pad * 2), font=head_font,
+                  fill=_TEXT if tile.log_bytes is not None else _DEAD_TEXT)
 
         detail = tile.message or ""
         if tile.party:

@@ -1831,3 +1831,30 @@ That is worse than a failing test, because it converts "untested" into "verified
 **Prevention rule.** An assertion must fail if the code under test never runs. Never assert that a
 log LACKS an error string — assert that it CONTAINS the positive evidence of the thing you claim
 happened, and if the environment cannot run that path, say so instead of asserting around it.
+
+## 2026-07-26 — I built a truncation fallback that would have discarded data silently
+
+**Symptom.** None yet — caught by a test before it ever ran. Worth recording because the
+shape is one this project keeps paying for.
+
+**Root cause.** `TileBridge.publish()` guards against an oversized status blob by falling
+back to a minimal one:
+
+    if len(blob) > STATUS_BYTES - 1:
+        blob = json.dumps({"message": ...})   # drop everything else
+
+I sized `STATUS_BYTES` at 1 KiB when the blob held a message and a counter. When the party
+strip started following the focused lane, the blob grew to carry six Pokémon with moves and
+IVs — **2,385 bytes measured**. Every party would have silently become the fallback: no
+exception, no warning, just an empty party strip that looks like "the lane has no Pokémon
+yet". The identical failure mode as the whiteout counter that read 0 for every run of every
+batch, and as the endless-mode video pin.
+
+**The fix that worked.** Raise the cap to 8 KiB with headroom, and — more importantly — a
+test that asserts a REALISTIC worst case fits (`repro_x4_party.py`: a full six-mon
+end-game team with moves, IVs, a long message and a log path, printed with its measured
+size so the margin is visible rather than assumed).
+
+**Prevention rule.** A fallback that discards data must either be observable (log it, or
+surface it in the UI) or be provably unreachable by a test that measures the real worst
+case. A silent `if too_big: send_less` is a data-loss bug waiting for the payload to grow.

@@ -46,9 +46,11 @@ FRAME_WIDTH = 240
 FRAME_HEIGHT = 160
 FRAME_BYTES = FRAME_WIDTH * FRAME_HEIGHT * 3  # RGB888
 
-#: JSON status blob. 1 KiB is ample for a message, a party one-liner and counters;
-#: `publish()` truncates rather than raising if a message is pathologically long.
-STATUS_BYTES = 1024
+#: JSON status blob. Raised 1 KiB -> 8 KiB when the party strip started following the
+#: focused lane: six Pokémon with moves, IVs, ball, nature and ability is ~2.5 KiB and a
+#: 1 KiB cap silently dropped the whole blob to its fallback. 8 KiB x 4 lanes is 32 KiB —
+#: nothing — and leaves headroom rather than another silent truncation.
+STATUS_BYTES = 8192
 
 # magic, sequence, pid, runs_completed, flags, width, height
 _HEADER_FORMAT = "<IIIIIHH"
