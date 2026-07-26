@@ -17,7 +17,7 @@ instance state and its strategy choice is asserted.
 
   1. Fresh map, wild encounter                  -> LevelUpTravelBattleStrategy (unchanged)
   2. Below the threshold (2 defeats)            -> still fights (no hair-trigger)
-  3. At the threshold (3 defeats), wild         -> RunAwayStrategy = SURVIVAL MODE
+  3. At the threshold (3 defeats), wild         -> a flee strategy = SURVIVAL MODE
   4. Same 3 defeats, but a TRAINER battle       -> NOT fled (a trainer battle cannot be
                                                    fled; the boss/gym path is untouched)
   5. Same 3 defeats, but `train_team` running   -> SwapTrainBattleStrategy (the grind it
@@ -25,6 +25,8 @@ instance state and its strategy choice is asserted.
   6. A DIFFERENT map with no defeats            -> fights normally (per-map, not global)
   7. The real run01 escalation (25 defeats)     -> fled, i.e. 22 of those 25 whiteouts
                                                    would never have happened
+  8. The flee strategy must not trip fight()'s post-battle lead rotation (crashed run03
+     of batch 20260726-052205 before StoryFleeStrategy existed)
 
 Run: py -3.12 tools/story-dev/repro_survival_mode.py
 """
@@ -90,6 +92,12 @@ def strategy_name(story, encounter):
     return type(story.on_battle_started(encounter)).__name__
 
 
+def flees(story, encounter):
+    """The PROPERTY under test: does this battle get fled? Asserted via the flee-strategy
+    base class, not a class name -- the concrete class changed once already (see CASE 8)."""
+    return isinstance(story.on_battle_started(encounter), RunAwayStrategy)
+
+
 # `swap_train_active` is module state inside early_game; drive it explicitly.
 def set_training(active: bool):
     early_game.set_swap_train(active)
@@ -116,19 +124,19 @@ print()
 print("=" * 78)
 print("CASE 3 -- AT threshold (3 defeats), wild -> SURVIVAL MODE (flee)")
 print("=" * 78)
-s = strategy_name(FakeStory({ROUTE110: 3}), WILD)
-print(f"    -> {s}")
-check("wild battles are fled once the map has demonstrably wiped us", s == RunAwayStrategy.__name__)
+story = FakeStory({ROUTE110: 3})
+print(f"    -> {strategy_name(story, WILD)}")
+check("wild battles are fled once the map has demonstrably wiped us", flees(story, WILD))
 
 print()
 print("=" * 78)
 print("CASE 4 -- same 3 defeats, but a TRAINER battle -> NOT fled")
 print("=" * 78)
-s = strategy_name(FakeStory({ROUTE110: 3}), TRAINER)
-print(f"    -> {s}")
+story = FakeStory({ROUTE110: 3})
+print(f"    -> {strategy_name(story, TRAINER)}")
 check(
     "a trainer battle is never fled (un-fleeable; boss/gym path untouched)",
-    s != RunAwayStrategy.__name__,
+    not flees(story, TRAINER),
 )
 
 print()
@@ -156,12 +164,38 @@ print()
 print("=" * 78)
 print("CASE 7 -- the REAL run01 escalation (25 defeats on ROUTE110) -> fled")
 print("=" * 78)
-s = strategy_name(FakeStory({ROUTE110: 25}), WILD)
-print(f"    -> {s}")
+story = FakeStory({ROUTE110: 25})
+print(f"    -> {strategy_name(story, WILD)}")
 check(
     "22 of run01's 25 ROUTE110 whiteouts would never have happened",
-    s == RunAwayStrategy.__name__,
+    flees(story, WILD),
 )
+
+print()
+print("=" * 78)
+print("CASE 8 -- the flee strategy must NOT trip fight()'s post-battle lead rotation")
+print("=" * 78)
+# ‼ REGRESSION GUARD. Batch 20260726-052205 run03 CRASHED here: stock
+# RunAwayStrategy.choose_new_lead_after_battle() returns False (annotated `int | None`),
+# and BattleListener.fight() rotates whenever that value `is not None` -- so it rotated
+# to party index `False` and RotatePokemon raised
+#   RuntimeError: Cannot rotate Pokemon #False with itself
+# right after "Got away safely!", dropping the run to Manual. Harmless upstream only
+# because the framework drove RunAwayStrategy from run_away_from_battle(), which does
+# not rotate; survival mode returns it from on_battle_started, which does.
+flee = FakeStory({ROUTE110: 3}).on_battle_started(WILD)
+verdict = flee.choose_new_lead_after_battle()
+print(f"    -> {type(flee).__name__}.choose_new_lead_after_battle() = {verdict!r}")
+check(
+    "flee strategy returns None (fight() then skips rotation entirely)",
+    verdict is None,
+)
+check(
+    "and it is NOT the stock RunAwayStrategy, whose False would rotate to index False",
+    type(flee) is not RunAwayStrategy and isinstance(flee, RunAwayStrategy),
+)
+print(f"    (stock RunAwayStrategy still returns {RunAwayStrategy().choose_new_lead_after_battle()!r} "
+      "-- upstream left untouched)")
 
 print()
 print("-" * 78)

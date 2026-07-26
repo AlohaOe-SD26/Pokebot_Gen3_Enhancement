@@ -3689,3 +3689,47 @@ method**, so my block's `console.print` raised `UnboundLocalError` and my own
 logged. Fixed with the same local import the HM branch uses; see 08-MISTAKES.
 
 Suite 7/7 green (the two new repros plus the five existing), move-learn repros re-verified.
+
+## 2026-07-26 — Validation batch: both new guards work; it also found a crash I shipped and a threshold I mis-calibrated
+
+**Batch `20260726-052205`** (5 fresh lanes, 3M frames, commit `d7c51b0e`; `REVIEWED.md` in the
+batch dir). **2/5 reached the frontier** — 0/5 → 1/5 → 2/5 across three batches. ROUTE110 losses
+**31 → 7**. Route 111 nav deaths **2/5 fatal → 0 fatal**.
+
+**Confirmed live (previously repro-only):**
+* `_training_unreachable` — run04 logged "ROUTE111 (25,55) is not reachable from here — dropping
+  it" and the run CONTINUED. The deterministic death loop is gone.
+* SURVIVAL MODE — fired at the 3-defeat threshold; ROUTE110 losses fell from 31 to 7.
+* Boss-plateau guard — run04 stopped on Wattson at 6 losses, naming Ground / Sandshrew.
+
+**‼ FIXED 1 — survival mode CRASHED run03.** `RuntimeError: Cannot rotate Pokémon #False with
+itself`, immediately after "Got away safely!". Stock
+`RunAwayStrategy.choose_new_lead_after_battle()` returns **False** despite being annotated
+`int | None`, and `BattleListener.fight()` rotates whenever that value `is not None` — so it
+rotated to party index `False`. This was invisible upstream because the framework only ever drove
+that class from `run_away_from_battle()`, which does not rotate leads; returning it from
+`on_battle_started` routes it through `fight()`, which does. **A latent upstream bug that only a
+new caller could expose.** Fixed with `StoryFleeStrategy(RunAwayStrategy)` returning `None`,
+leaving upstream behaviour untouched. Guarded by `repro_survival_mode.py` CASE 8.
+
+**‼ FIXED 2 — `CREDIBLE_ANSWER_POWER` mis-calibrated, 60 → 75.** run05 took **21 Norman losses**
+with the guard silent. Yesterday's threshold was calibrated on Rock Smash held by a NON-Fighting
+mon (20 × 2.0 × 1.0 = 40) and missed the STAB case: **Combusken is Fire/FIGHTING**, so its Rock
+Smash scores 20 × 2.0 × 1.5 = **exactly 60** and passed on the boundary — the same failure the
+threshold exists to prevent, arriving through STAB rather than raw power. Two REAL runs now
+bracket it: **60 loses 21 times, 90 (Double Kick) wins**. 75 sits between them and still keeps
+every genuine answer — Surf off a Water mon (285), Thunderbolt vs Winona (270), a plain 40-power
+super-effective move (80). Pinned by `repro_boss_plateau.py` CASE 7 with run05's real party.
+‼ Explicitly NOT fixed by excluding HM moves categorically: Surf / Strength / Waterfall are real
+attacking moves and often the bot's best answer; only Rock Smash and Cut are weak enough to be the
+problem, and the power floor already handles them.
+
+**Test-quality note.** Fixing the crash changed the flee class name, which reddened two
+`repro_survival_mode` cases that asserted `type(...).__name__ == "RunAwayStrategy"` — an
+implementation detail, not the property. Rewritten to assert *"does this battle get fled"* via
+`isinstance(..., RunAwayStrategy)`. Same lesson as the 2026-07-25 pattern entry: assert the
+property you need, not a symptom of the current implementation.
+
+**Still open:** run05 burned its whole 3M budget without reaching the frontier (21 of 27 losses
+were Norman). At threshold 75 that party is now diagnosed hopeless and stops with a named counter
+— an improvement only once `#24-counters` phase 2 can act on it. Suite: 7 files green.

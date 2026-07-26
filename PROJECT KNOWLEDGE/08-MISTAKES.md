@@ -1670,3 +1670,38 @@ different directions. This is the SECOND time in two days it hid a live defect (
 detector's stand-in `self`, then this). Any silent guard around a branch that RETURNS a decision
 should log the exception, not just pass — and a new branch should be proven by a repro that
 asserts the decision, never by inspection.
+
+## 2026-07-26 — A latent upstream bug that only a NEW CALLER could expose, and a threshold calibrated on one example
+
+Both found by the validation batch, hours after both fixes had "passed" their repros.
+
+**(a) The crash I shipped.** SURVIVAL MODE returns a flee strategy from `on_battle_started`.
+Stock `RunAwayStrategy.choose_new_lead_after_battle()` returns **`False`** — annotated
+`int | None` — and `BattleListener.fight()` rotates the lead whenever that value `is not None`.
+So it rotated to party index `False` and `RotatePokemon` raised
+`RuntimeError: Cannot rotate Pokémon #False with itself` right after "Got away safely!", dropping
+the run to Manual with an empty controller stack.
+
+The bug had been sitting in the framework the whole time. It was harmless because the ONLY caller
+was `run_away_from_battle()`, which does not rotate leads. My change introduced a second caller on
+a path that does. **My repro could not have caught it**: it asserted which strategy was CHOSEN,
+and the crash happens in what the framework does with that strategy afterwards.
+
+**Prevention rule:** when you route an existing class down a NEW code path, read what that path
+does with it — not just what your code returns. Check the full protocol the new caller invokes
+(here `choose_new_lead_after_battle`), not the one method you care about. A class that is correct
+for its current caller is not thereby correct in general, and a value like `False` where `None` is
+meant survives only until someone tests it with `is not None`.
+
+**(b) The threshold calibrated on one example.** Yesterday I set `CREDIBLE_ANSWER_POWER = 60` so
+Rock Smash (20 × 2.0 × 1.0 = 40) would not count as an answer to Norman. I checked it against the
+run3 party — Marshtomp, a Water/Ground carrier. I did not check a **Fighting-type** carrier:
+Combusken is Fire/Fighting, so its Rock Smash gets STAB and scores **exactly 60**, landing on the
+boundary and passing. run05 then lost to Norman **21 times** with the guard silent — the precise
+failure the threshold exists to prevent, arriving by a route I had not enumerated.
+
+**Prevention rule:** a numeric threshold justified by ONE worked example is a guess with arithmetic
+attached. Before fixing the number, enumerate what else feeds the formula (here STAB, which can
+multiply the very case you are excluding by 1.5) and find a real data point on BOTH sides. The
+threshold is now bracketed by two measured runs — 60 loses 21 times, 90 wins — instead of by one
+example and taste.

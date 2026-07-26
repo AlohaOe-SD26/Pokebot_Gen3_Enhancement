@@ -219,3 +219,42 @@ print()
 print("-" * 78)
 print("ALL PASS (cases 5-6): the answer test is POWER-WEIGHTED -- a 20-power HM no")
 print("longer disables the plateau detector, and a weak-but-real STAB answer survives.")
+
+print()
+print("=" * 78)
+print("CASE 7 -- STAB Rock Smash on COMBUSKEN is NOT a credible answer (real run05)")
+print("=" * 78)
+# ‼ NOT constructed. Batch 20260726-052205 run05 took **21 Norman losses** with this
+# party and the guard never fired. Combusken is Fire/FIGHTING, so its ROCK SMASH gets
+# STAB: 20 x 2.0 x 1.5 = exactly 60, which passed the original threshold on the
+# boundary. The two real data points bracket the answer: 60 loses 21 times, 90
+# (Double Kick, CASE 6) wins. This case pins the threshold between them so it can
+# never drift back down.
+combusken_rs = mon("COMBUSKEN", 31, [
+    move("Normal", 40),      # Scratch
+    move("Flying", 35),      # Peck
+    move("Fighting", 20),    # ROCK SMASH -- the only Fighting move it owns
+    move("Fire", 40),        # Ember
+])
+combusken_rs.species = SimpleNamespace(
+    types=(get_type_by_name("Fire"), get_type_by_name("Fighting"))
+)
+set_party([combusken_rs] + NORMAN_RUN3_PARTY[1:])
+fake_self = make_self(
+    defeat_counts={"norman": 21},
+    loss_ko_history={"norman": ko_history(1, [1, 2, 2, 1, 2, 2])},
+)
+hopeless, needed = call(fake_self, NORMAN_CFG)
+print(f"    -> hopeless={hopeless}, needed={needed}")
+assert hopeless is True, (
+    f"expected HOPELESS, got {hopeless} -- a STAB 20-power HM (Rock Smash on a "
+    "Fighting-type carrier) scores exactly 60 and is being accepted as an answer "
+    "again; run05 lost 21 times with precisely this party."
+)
+assert "Fighting" in needed, f"expected 'Fighting' in needed types, got {needed}"
+print("PASS: STAB Rock Smash (60) is below the floor; Double Kick (90, CASE 6) stays above.")
+
+print()
+print("-" * 78)
+print("ALL PASS (case 7): the power floor is calibrated by two REAL runs -- 60 loses 21")
+print("times, 90 wins -- not by taste.")

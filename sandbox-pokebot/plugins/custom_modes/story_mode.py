@@ -25,6 +25,34 @@ from modules.modes import BattleAction, BotMode
 from modules.battle_strategies import BattleStrategyUtil, TurnAction
 from modules.battle_strategies.catch import CatchStrategy
 from modules.battle_strategies.level_up import LevelUpLeadBattleStrategy
+from modules.battle_strategies.run_away import RunAwayStrategy
+
+
+class StoryFleeStrategy(RunAwayStrategy):
+    """Flee a WILD battle without tripping the post-battle lead rotation.
+
+    ‼ CRASHED A LIVE RUN (batch 20260726-052205 run03, fixed same day). Stock
+    `RunAwayStrategy.choose_new_lead_after_battle()` returns **False**, though it is
+    annotated `int | None`. The framework only ever drove that class from
+    `BattleListener.run_away_from_battle()`, which does NOT rotate leads, so the odd
+    return value was harmless and invisible. SURVIVAL MODE returns a flee strategy from
+    `on_battle_started` instead, which routes it through `BattleListener.fight()` — and
+    that path does:
+
+        if strategy.choose_new_lead_after_battle() is not None:
+            yield from self.rotate_lead_pokemon(...)
+
+    `False is not None`, so it rotated to party index `False`, and `RotatePokemon`
+    raised `RuntimeError: Cannot rotate Pokémon #False with itself` right after
+    "Got away safely!" — dropping the run to Manual with no controller on the stack.
+
+    Returning a proper `None` says "keep the current lead", which is what fleeing wants.
+    Done as a SUBCLASS rather than by editing the upstream file, so the framework's own
+    flee path keeps its existing behaviour exactly.
+    """
+
+    def choose_new_lead_after_battle(self) -> int | None:
+        return None
 
 
 class StoryCatchStrategy(CatchStrategy):
@@ -694,11 +722,20 @@ class StoryMode(BotMode):
     #: hopeless, and let the run make **27 losing attempts over 508,000 frames** with
     #: KOs flat at 1-2 of 4 the entire time. The boss most likely to plateau was the one
     #: the guard could never fire on.
-    #: 60 keeps genuine answers: Double Kick on Combusken (30 x 2.0 x 1.5 = 90, the
-    #: organic Norman win), Ember on a Grass boss (40 x 2.0 = 80), Thunderbolt vs
-    #: Winona (90 x 2.0 x 1.5 = 270). It drops chip/HM utility moves: Rock Smash (40),
-    #: Absorb on a L15 Shroomish (40).
-    CREDIBLE_ANSWER_POWER = 60
+    #: ‼ RAISED 60 -> 75 on measured evidence (batch 20260726-052205 run05). 60 was
+    #: calibrated against Rock Smash on a NON-Fighting carrier (20 x 2.0 x 1.0 = 40) and
+    #: missed the STAB case: **Combusken is Fire/FIGHTING**, so its Rock Smash scores
+    #: 20 x 2.0 x 1.5 = **exactly 60** and passed on the boundary. The guard stayed
+    #: silent and that run took **21 Norman losses** — the same failure the threshold
+    #: exists to prevent, arriving through STAB instead of raw power.
+    #: The two measured points bracket it: 60 (Combusken + Rock Smash) demonstrably does
+    #: NOT beat Norman; 90 (Combusken + Double Kick) demonstrably does. 75 sits between
+    #: them and still keeps ordinary answers — a plain 40-power super-effective move
+    #: (80), Surf off a Water mon (95 x 2.0 x 1.5 = 285), Thunderbolt vs Winona (270).
+    #: ‼ Do NOT "fix" this by excluding HM moves categorically: Surf/Strength/Waterfall
+    #: are real attacking moves and are often the bot's best answer. Only Rock Smash and
+    #: Cut are weak enough to be the problem, and the power floor already handles them.
+    CREDIBLE_ANSWER_POWER = 75
 
     @staticmethod
     def name() -> str:
@@ -1464,8 +1501,9 @@ class StoryMode(BotMode):
                 and self._defeat_counts.get(self._location_key(), 0)
                 >= self.SURVIVAL_WHITEOUT_THRESHOLD
             ):
-                from modules.battle_strategies.run_away import RunAwayStrategy
-
+                # ‼ StoryFleeStrategy, NOT the stock RunAwayStrategy — the stock one
+                # returns False from choose_new_lead_after_battle(), which crashed a
+                # live run through fight()'s rotation path. See the class docstring.
                 # ‼ LOCAL IMPORT REQUIRED — same trap as the HM branch above, and it
                 # caught this block too (2026-07-25): other branches in this method
                 # import `console` locally, which makes the name function-local for the
@@ -1479,7 +1517,7 @@ class StoryMode(BotMode):
                     f"defeats on this map already — fleeing wild battles to get through "
                     f"instead of levelling into another whiteout.[/]"
                 )
-                return RunAwayStrategy()
+                return StoryFleeStrategy()
         except Exception:
             pass
         # PRE-GYM-1 CATCHING (user directive 2026-07-21): build an organic team by
