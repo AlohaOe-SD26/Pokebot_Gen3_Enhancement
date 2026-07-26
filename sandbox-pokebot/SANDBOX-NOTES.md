@@ -934,3 +934,27 @@ process.
 - **Modified** `modules/main.py`: badge_log frame hook + reset hook.
 - **Tests**: `repro_x4_party.py`, `repro_x4_badgelog.py` (suite now 6, all green).
 - **NOT built**: the badge-case OVERLAY UI (tabled by the user); the x4 control toggle.
+
+## 2026-07-26 — x4 log collection (Park ×4 & Collect Logs)
+- **Added** `modules/x4_logs.py`: `collect(profiles_root, lanes)` bundles every lane's logs
+  into `profiles/x4 LOGS/P1 - P4 x4 LOGs <date> <time>.zip` + `MANIFEST.txt`, VERIFIES the
+  finished zip (`testzip()` + member/size check), and only then moves originals to each
+  profile's `debug-logs/Old/` (collision-safe). ‼ Verification failure ⇒ nothing archived.
+  `*.log`/`*.txt` are archived; `badge-log.json` is bundled but NEVER moved (cumulative).
+  Requires at least one PER-RUN log, else a no-new-runs collection would emit a badge-only
+  bundle that looks like run data (08-MISTAKES 2026-07-26).
+- **Modified** `modules/tile_bridge.py`: slots are now `[header][status][command][frame]`.
+  `command` is written ONLY by the parent (`send_command`/`read_command`, `CMD_PARK`);
+  it is a separate region because the child rewrites the whole header every publish and
+  would clobber header-resident commands. `MAGIC` 0x504B5432 → 0x504B5433.
+- **Modified** `modules/gui/tile_child.py`: `_poll_commands()` + `_park()` (Manual, 1×,
+  `emulator.reset()`, `debug_logger.disable()`), `parked` reported in the status blob.
+  ‼ `_ensure_logging()` returns early when parked — otherwise the self-healer re-opens the
+  log right after the park closes it, and the collector archives a live file.
+- **Modified** `modules/endless_x4.py`: `park_all(timeout=15s)` posts PARK and waits for
+  every lane to acknowledge; sets `batch.parked` BEFORE the wait, and `poll()` returns
+  early when parked so no lane is auto-restarted mid-collection.
+- **Modified** `modules/gui/dashboard_gui.py`: `collect_x4_logs()` + the batch-only menu
+  item; asks before collecting if any lane failed to acknowledge parking.
+- **Tests**: `repro_x4_logcollect.py` (new) + park coverage in `repro_x4_tile_child.py`.
+  Suite now 8 scripts, all green.

@@ -48,6 +48,10 @@ against a fake emulator, dashboard wiring on a real Tk canvas). The seam between
 3b. Confirm each tile's label shows a growing `log <size>` and never `‼ NO LOG`.
 3c. Once a lane beats Roxanne, confirm `profiles/endless-P1-torchic/badge-log.json` exists
    and contains a Stone Badge record with the team that won.
+3d. `Emulator ▸ Park ×4 & Collect Logs…`: confirm all four tiles go to the title screen,
+   the zip appears under `profiles/x4 LOGS/`, it opens and contains P1–P4 folders plus
+   `MANIFEST.txt`, each profile's `debug-logs/Old/` now holds the originals, and
+   `badge-log.json` is STILL in each profile (bundled but not moved).
 4. Toggle handheld mode with a batch running; confirm the 2×2 still fills the video rect.
 5. Close the window; confirm **no orphaned `python`/`pokebot` processes remain** (this is
    the hazard `_close_window()` guards — it ends in `os._exit(0)`, so nothing else runs).
@@ -71,6 +75,21 @@ against a fake emulator, dashboard wiring on a real Tk canvas). The seam between
   folder to the event log, and every tile shows its log size (or `‼ NO LOG` in red).
   One genuine latent fix went in alongside: lane stdout was block-buffered because it is a
   file, so `P#-stdout-*.txt` could sit empty for minutes — lanes now run `PYTHONUNBUFFERED=1`.
+
+**UPDATE 2026-07-26 (third round) — `Emulator ▸ Park ×4 & Collect Logs…`** (shown only
+while a batch runs). Parks all four lanes, bundles every lane's logs into
+`profiles/x4 LOGS/P1 - P4 x4 LOGs <date> <time>.zip` with a `MANIFEST.txt`, verifies the
+zip, and only then archives the originals into each profile's `debug-logs/Old/`. This is
+the "collect a batch and send it over" path — one attachment instead of four folders.
+- Order is **park → copy → VERIFY → archive**, and nothing is moved until the finished zip
+  has been reopened and proved complete. Verification failure ⇒ nothing archived.
+- Parking needed a parent→child command channel: `tile_bridge` slots are now
+  `[header][status][command][frame]`, with `command` written ONLY by the parent (`MAGIC`
+  bumped to ...33). This is also the channel phase 2b's control toggle will use.
+- `badge-log.json` is bundled but NEVER archived — it is cumulative history.
+- `park_all()` blocks the window briefly (typically ~100 ms, bounded 15 s); the dashboard
+  has no Tk mainloop, so pumping Tk inside that wait would re-enter the frame callback.
+- The batch does NOT resume after collecting; stop it from the same menu.
 
 **KNOWN GAPS (by design, phase 2b — agreed with the user, NOT built):**
 - Watch-only. The control toggle (click a tile, then drive it) is not built; the channel

@@ -123,6 +123,13 @@ class EndlessX4Batch:
     #: decay from 4 lanes to 1. Bounded, so a lane that cannot even boot (bad ROM,
     #: missing save) stops thrashing the disk instead of respawning forever.
     max_restarts: int = 20
+    #: Monotonic counter for the parent->child command channel. A lane acts on a CHANGE of
+    #: sequence, so this must never repeat within a batch.
+    _command_sequence: int = 0
+    #: Set once the lanes have been parked for a log collection. `poll()` stops respawning
+    #: after this — an auto-restarted lane would start a NEW log and un-park the batch
+    #: underneath the collector.
+    parked: bool = False
 
     def start(self, rom: ROM, lane_count: int = 4) -> None:
         self.lane_count = lane_count
@@ -195,6 +202,11 @@ class EndlessX4Batch:
     # ------------------------------------------------------------------
     def poll(self) -> None:
         """Restart any lane whose process has died. Cheap; safe to call every tick."""
+        # ‼ A parked batch must STAY parked. Respawning here would start a fresh lane with
+        # a fresh log file, un-parking the batch underneath a log collection that is
+        # mid-copy — and the new log would then be archived half-written.
+        if self.parked:
+            return
         for lane in self.lanes:
             if lane.is_alive or lane.process is None:
                 continue
@@ -247,3 +259,58 @@ class EndlessX4Batch:
     @property
     def alive_count(self) -> int:
         return sum(1 for lane in self.lanes if lane.is_alive)
+
+    # ------------------------------------------------------------------
+    # Parking — the precondition for collecting logs safely
+    # ------------------------------------------------------------------
+    def park_all(self, timeout_seconds: float = 15.0) -> tuple[bool, list[str]]:
+        """Ask every lane to stop, reset to the title screen and CLOSE ITS LOG, then wait
+        for each to acknowledge.
+
+        Returns (everyone_parked, notes). A lane that has already died counts as parked —
+        its log file is closed by definition.
+
+        ‼ This BLOCKS, briefly. The dashboard has no Tk mainloop (its event queue is pumped
+        from the emulator frame callback), so pumping Tk from inside this wait would mean
+        re-entering the frame callback. A short, bounded, honest freeze on an explicit user
+        action is the safer trade; lanes normally acknowledge in ~100 ms because they poll
+        commands at the 20 Hz publish rate.
+        """
+        import time
+
+        from modules.tile_bridge import CMD_PARK
+
+        notes: list[str] = []
+        if self.bridge is None:
+            return False, ["the batch has no shared-memory bridge"]
+
+        self.parked = True  # set BEFORE the wait, so poll() cannot respawn mid-park
+        self._command_sequence += 1
+        for lane in self.lanes:
+            if lane.is_alive:
+                try:
+                    self.bridge.send_command(lane.slot, CMD_PARK, self._command_sequence)
+                except Exception as exc:  # noqa: BLE001
+                    notes.append(f"{lane.tag}: could not post PARK ({exc})")
+
+        deadline = time.time() + timeout_seconds
+        pending = {lane.slot for lane in self.lanes if lane.is_alive}
+        while pending and time.time() < deadline:
+            time.sleep(0.05)
+            for slot in list(pending):
+                lane = self.lanes[slot]
+                if not lane.is_alive:
+                    pending.discard(slot)  # a dead lane holds no open file
+                    notes.append(f"{lane.tag}: exited before parking (its log is closed)")
+                    continue
+                try:
+                    frame = self.bridge.read(slot)
+                except Exception:
+                    frame = None
+                if frame is not None and frame.status.get("parked") is True:
+                    pending.discard(slot)
+
+        for slot in pending:
+            notes.append(f"{self.lanes[slot].tag}: did NOT acknowledge parking within "
+                         f"{timeout_seconds:.0f}s — its log may still be open")
+        return (not pending), notes

@@ -656,3 +656,38 @@ wins that are gone for good. Shipping the recorder first turns waiting into data
 **Rejected.** Building both together (delays capture for no benefit), and deriving the team
 retroactively from save states (the endless mode hard-resets between runs, so the states
 are gone; and a mid-run party is not the party at the moment of victory).
+
+## 2026-07-26 — Log collection is park → copy → VERIFY → archive, and never reorders
+
+**Decision.** `modules/x4_logs.collect()` will not move a single original until it has
+reopened the finished zip and proved every file is in it. On any verification failure it
+leaves the originals exactly where they are and reports the reason.
+
+**Why.** The archive step exists for convenience — a clean slate for the next batch. The
+originals are the only copy of data that took hours of emulation to produce. Convenience
+must never be able to destroy the irreplaceable thing, so the destructive step is gated on
+positive proof rather than on "the write didn't raise".
+
+**Why parking is part of it, not a nicety.** Lanes are separate processes. A log open for
+append can be copied mid-line, and on Windows cannot be moved at all. So the collector
+first posts `CMD_PARK` and WAITS for each lane to acknowledge `parked: true`. A lane that
+has already died counts as parked — its file is closed by definition.
+
+**Consequence accepted:** `park_all()` blocks the window briefly. The dashboard has no Tk
+mainloop (the event queue is pumped from the emulator frame callback), so pumping Tk inside
+that wait would re-enter the frame callback. A bounded, honest freeze on an explicit user
+action beats a re-entrancy bug.
+
+## 2026-07-26 — The parent→child command channel is a SEPARATE shared-memory region
+
+**Decision.** `tile_bridge` slots are `[header][status][command][frame]`, where the child
+writes header/status/frame and the parent writes ONLY command. Commands are not header
+fields.
+
+**Why.** The child rewrites its entire header on every publish (20×/s). A command stored
+there would be erased almost immediately, intermittently, and only under load — the worst
+class of bug to diagnose across a process boundary. With disjoint regions the existing
+lock-free scheme (write pixels → status → header, re-check `sequence` on read) holds in
+both directions with no locking anywhere. A lane acts on a CHANGE of command sequence, so a
+re-sent command is idempotent. Covered by a test that publishes a frame over a pending
+command and asserts the command survives.

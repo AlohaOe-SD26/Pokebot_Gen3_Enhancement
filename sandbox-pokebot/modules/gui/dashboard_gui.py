@@ -2829,6 +2829,77 @@ class DashboardScreen:
         for lane in batch.lanes:
             self._log_event(f"  {lane.tag} logs → profiles/{lane.profile_name}/debug-logs/")
 
+    def collect_x4_logs(self) -> None:
+        """Park every lane, then bundle all four lanes' logs into one verified zip.
+
+        Order is park -> copy -> VERIFY -> archive, and nothing is moved until the finished
+        zip has been reopened and proved complete. See `modules/x4_logs.py`.
+        """
+        import tkinter.messagebox
+
+        batch = self._x4_batch
+        if batch is None:
+            return
+
+        from modules import x4_logs
+        from modules.profiles import PROFILES_DIRECTORY
+
+        if not tkinter.messagebox.askokcancel(
+            "Park ×4 & Collect Logs",
+            "Stop all four lanes and bundle their logs?\n\n"
+            "Each lane is dropped to Manual at 1×, reset to the title screen, and its log\n"
+            "file is CLOSED — that is what makes the copy safe.\n\n"
+            f"Everything then goes into one zip under profiles/{x4_logs.FOLDER_NAME}/, and\n"
+            "the originals are moved to each profile's debug-logs/Old/ — but ONLY after the\n"
+            "zip has been reopened and verified. badge-log.json is copied but never moved\n"
+            "(it is cumulative history).\n\n"
+            "The window will be unresponsive for a moment while the lanes park.\n"
+            "The batch does NOT resume afterwards — use the menu again to stop it.",
+            parent=self.window,
+        ):
+            return
+
+        self._log_event("Endless x4: parking lanes for log collection…")
+        parked, notes = batch.park_all()
+        for note in notes:
+            self._log_event(f"  {note}", highlight=True)
+        if not parked:
+            # Copying an open log risks a truncated final line; moving it fails outright on
+            # Windows. Let the user decide rather than silently producing a bad bundle.
+            if not tkinter.messagebox.askokcancel(
+                "Park ×4 & Collect Logs",
+                "Not every lane confirmed it had parked:\n\n  "
+                + "\n  ".join(notes)
+                + "\n\nCollect anyway? A lane that is still writing may contribute a\n"
+                  "truncated log, and its file may fail to archive.",
+                parent=self.window,
+            ):
+                self._log_event("Endless x4: log collection cancelled (lanes not parked).")
+                return
+
+        result = x4_logs.collect(PROFILES_DIRECTORY, batch.lanes)
+        self._log_event(f"Endless x4: {result.summary()}", highlight=not result.ok)
+        for note in result.notes:
+            self._log_event(f"  {note}")
+
+        if result.ok:
+            tkinter.messagebox.showinfo(
+                "Park ×4 & Collect Logs",
+                f"Bundled {result.files_bundled} file(s) "
+                f"({result.bytes_bundled / 1024:.0f} KB) from {len(result.lanes)} lane(s).\n\n"
+                f"{result.zip_path}\n\n"
+                f"{result.archived} original(s) moved to each profile's debug-logs/Old/."
+                + ("\n\nNotes:\n  " + "\n  ".join(result.notes) if result.notes else ""),
+                parent=self.window,
+            )
+        else:
+            tkinter.messagebox.showerror(
+                "Park ×4 & Collect Logs",
+                f"{result.error}\n\nNothing was archived — your logs are untouched."
+                + (f"\n\nThe zip was left at:\n{result.zip_path}" if result.zip_path else ""),
+                parent=self.window,
+            )
+
     def stop_endless_x4(self) -> None:
         """Terminate every lane and hand the video area back to the local emulator."""
         batch, self._x4_batch = self._x4_batch, None
@@ -3661,6 +3732,10 @@ class DashboardScreen:
             label="Stop Endless Loop ×4" if self._x4_batch is not None else "Endless Loop ×4…",
             command=self.start_endless_x4,
         )
+        # Only meaningful during a batch (user request 2026-07-26), so it is only shown
+        # then rather than being offered greyed-out.
+        if self._x4_batch is not None:
+            menu.add_command(label="Park ×4 & Collect Logs…", command=self.collect_x4_logs)
         menu.tk_popup(
             self._mode_button.winfo_rootx(), self._mode_button.winfo_rooty() + self._mode_button.winfo_height()
         )

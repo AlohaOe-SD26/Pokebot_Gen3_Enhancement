@@ -66,6 +66,8 @@ class PokebotTileChild:
         self._pid = os.getpid()
         self._log_path: str | None = None
         self._log_reenables = 0
+        self._parked = False
+        self._last_command_seq = 0
 
     # ------------------------------------------------------------------
     def run(self, startup_settings: "StartupSettings"):
@@ -140,6 +142,12 @@ class PokebotTileChild:
         logger off, the lane silently stops being useful. Each re-arm opens a NEW file, so
         this is capped rather than looping.
         """
+        # ‼ A PARKED lane must stay un-logged. Parking deliberately closes the log file so
+        # the dashboard can copy and archive it; without this check the self-healer would
+        # re-open it a fraction of a second later and the collector would be moving a file
+        # that is being written to again.
+        if self._parked:
+            return
         try:
             from modules import debug_logger
 
@@ -162,6 +170,7 @@ class PokebotTileChild:
             if now - self._last_publish_ns < _PUBLISH_INTERVAL_NS:
                 return
             self._last_publish_ns = now
+            self._poll_commands()
             self._ensure_logging()
             if self._bridge is None:
                 return
@@ -180,6 +189,56 @@ class PokebotTileChild:
             # Never let the tile channel take down the lane.
             pass
 
+    # ------------------------------------------------------------------
+    # Commands from the dashboard
+    # ------------------------------------------------------------------
+    def _poll_commands(self) -> None:
+        """Act on a command posted by the dashboard. Checked at publish rate (~20 Hz)."""
+        if self._bridge is None:
+            return
+        try:
+            from modules.tile_bridge import CMD_PARK
+
+            command, sequence = self._bridge.read_command(self._slot)
+            if sequence == self._last_command_seq:
+                return  # nothing new — the child acts on a CHANGE, not on a value
+            self._last_command_seq = sequence
+            if command == CMD_PARK:
+                self._park()
+        except Exception:
+            pass
+
+    def _park(self) -> None:
+        """Bring the lane to a safe, quiescent, NOT-WRITING state.
+
+        This is what makes `modules/x4_logs.py` safe: a log file being copied (and then
+        MOVED) must not still be open for append in another process. Order matters —
+        stop the bot first, then close the log, so nothing can write between the two.
+        """
+        from modules.console import console
+
+        console.print(f"[cyan]{self._lane_tag}: PARK requested — stopping the batch and closing the log.[/]")
+        self._parked = True  # set FIRST: blocks the logging self-healer from re-arming
+
+        for label, action in (
+            ("bot mode -> Manual", lambda: setattr(context, "bot_mode", "Manual")),
+            ("speed -> 1x", lambda: setattr(context, "emulation_speed", 1)),
+            ("reset to title", lambda: context.emulator.reset()),
+        ):
+            try:
+                action()
+            except Exception as exc:  # noqa: BLE001
+                console.print(f"[yellow]{self._lane_tag}: park step '{label}' failed: {exc}[/]")
+
+        try:
+            from modules import debug_logger
+
+            debug_logger.disable()  # flushes and CLOSES the file
+        except Exception as exc:  # noqa: BLE001
+            console.print(f"[red]{self._lane_tag}: could not close the debug log: {exc}[/]")
+
+        console.print(f"[green]{self._lane_tag}: parked.[/]")
+
     @staticmethod
     def _runs_completed() -> int:
         try:
@@ -195,6 +254,8 @@ class PokebotTileChild:
             "message": str(getattr(context, "message", "") or "")[:160],
             "mode": str(getattr(context, "bot_mode", "") or ""),
             "frame": int(getattr(context, "frame", 0) or 0),
+            # The dashboard WAITS on this before it copies anything.
+            "parked": self._parked,
         }
         # Logging state travels with every frame, so the dashboard can show at a glance
         # whether a lane is actually producing the logs it exists to produce.

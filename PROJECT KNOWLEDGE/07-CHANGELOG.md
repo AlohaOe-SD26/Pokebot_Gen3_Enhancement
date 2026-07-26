@@ -4010,3 +4010,63 @@ junk/absent teams degrade to `[]`. `repro_x4_badgelog.py` — adopt-on-first-pol
 once, poll interval, **records again after a hard reset**, accumulation across runs, a
 broken party read costing the team but not the record, and every badge in the table having
 its sprite on disk.
+
+## 2026-07-26 — x4: "Park ×4 & Collect Logs" — one verified zip per batch (#24-x4-logs)
+
+**What.** A new menu item, shown ONLY while a batch is running: `Emulator ▸ Park ×4 &
+Collect Logs…`. It parks all four lanes, bundles every lane's logs into
+`profiles/x4 LOGS/P1 - P4 x4 LOGs <date> <time>.zip`, verifies the zip, and only then
+archives the originals into each profile's `debug-logs/Old/`. The point is to make handing
+over a batch's data a single attachment instead of a scavenger hunt across four profiles.
+
+**The order is the feature: park → copy → VERIFY → archive.**
+- **Park.** Lanes are separate processes; a log still open for append can be copied
+  mid-line and cannot be moved at all on Windows. This needed a parent→child command
+  channel, so `modules/tile_bridge.py` gained a **parent-written** `COMMAND` region
+  (`MAGIC` bumped to ...33). It is a separate region rather than extra header fields
+  because the child rewrites the whole header on every publish and would clobber it. On
+  `CMD_PARK` a lane drops to Manual at 1×, resets to the title screen, and CLOSES its debug
+  log, then reports `parked: true`; `EndlessX4Batch.park_all()` waits for every lane to
+  acknowledge before a byte is read.
+- **Verify.** `modules/x4_logs.py` reopens the finished zip, runs `testzip()` for CRC
+  integrity, and checks every source file is present with a matching size.
+- **Archive only then.** If verification fails for any reason, nothing is moved, the zip is
+  left for inspection, and the dialog says so. Losing run data to a tidy-up step that ran
+  on a bad archive is the one outcome worth engineering against.
+
+**Two interactions that would have broken it silently, both now guarded and tested:**
+1. `_ensure_logging()` (the logger self-healer added earlier the same day) would have
+   re-opened a parked lane's log a fraction of a second after the park closed it — so the
+   collector would have archived a file another process had just resumed writing to. It
+   now returns early when parked.
+2. `EndlessX4Batch.poll()` auto-restarts dead lanes. A restart mid-collection would have
+   started a fresh log and un-parked the batch underneath the copy. `poll()` returns early
+   once `parked` is set, and `parked` is set BEFORE the wait rather than after it.
+
+**What is archived vs. kept:** `*.log` and `*-stdout-*.txt` are per-run artefacts — bundled
+and moved. `badge-log.json` is CUMULATIVE history (`modules/badge_log.py`) — bundled and
+**never moved**, because archiving it would reset the badge record on every collection.
+Collision-safe archiving (`name (1).log`), so repeated batches never clobber.
+
+**Caught during development:** because `badge-log.json` is never archived, a second
+collection with no new runs would have cheerfully produced a bundle of four badge files
+and zero logs — a zip that looks like run data and is not. `collect()` now requires at
+least one PER-RUN log and fails with "no new per-run logs were found" instead.
+
+**Also:** the zip carries a `MANIFEST.txt` — per lane the starter, profile, file count and
+a badge tally, then every file with its size and whether it was archived.
+
+**Known cost, stated plainly:** `park_all()` BLOCKS the window briefly (typically ~100 ms,
+bounded at 15 s). The dashboard has no Tk mainloop — its event queue is pumped from the
+emulator frame callback — so pumping Tk from inside that wait would mean re-entering the
+frame callback. A short honest freeze on an explicit user action is the safer trade. If a
+lane fails to acknowledge, the user is asked before anything is collected.
+
+**Verified:** `repro_x4_logcollect.py` (clean collection; naming incl. no ':' in the
+timestamp; per-run archived and cumulative kept; manifest content; no re-bundling of
+`Old/`; collision renaming; **verification failure archives nothing and does not even
+create `Old/`**; `_verify` catches a missing member and a truncated zip; `archive=False`;
+command channel round-trip; and a publish NOT clobbering a pending command).
+`repro_x4_tile_child.py` gained park coverage: mode/speed/reset/log-closed, the
+**self-healer not re-arming while parked**, command idempotence, and tiles staying live.
+Suite now eight scripts, all green.

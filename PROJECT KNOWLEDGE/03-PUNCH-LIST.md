@@ -33,6 +33,11 @@
       **Phase 2a DONE 2026-07-26** — the party strip / party tab / hover tooltip
       follow the focused lane (`modules/remote_party.py` rebuilds stand-ins from the
       lane's status blob; the renderer is unchanged). Live confirm still owed.
+      **#24-x4-logs DONE 2026-07-26** — `Emulator > Park x4 & Collect Logs...`
+      (batch-only menu item): parks every lane, bundles all four lanes' logs into
+      one verified zip under `profiles/x4 LOGS/`, archives the originals to each
+      profile's `debug-logs/Old/` only AFTER the zip verifies. Added the
+      parent->child command channel that phase 2b will reuse. Live confirm owed.
       Phase 2b (agreed with the user, NOT built): the watch/CONTROL toggle — click a
       tile then drive it, forwarding `press_button`/`hold_button`/`release_button`
       over a per-lane input pipe (`modules/libmgba.py` already exposes exactly that

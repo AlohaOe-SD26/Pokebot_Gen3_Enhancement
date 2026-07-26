@@ -1858,3 +1858,27 @@ size so the margin is visible rather than assumed).
 **Prevention rule.** A fallback that discards data must either be observable (log it, or
 surface it in the UI) or be provably unreachable by a test that measures the real worst
 case. A silent `if too_big: send_less` is a data-loss bug waiting for the payload to grow.
+
+## 2026-07-26 — A "did we produce anything?" check that passed on the wrong kind of content
+
+**Symptom.** Caught by a test during development. `x4_logs.collect()` guarded against an
+empty bundle with `if not plan: fail`. But `plan` also contains `badge-log.json`, which is
+deliberately never archived and is therefore present on EVERY collection. So a second
+collection with no new runs produced a perfectly valid zip containing four badge files and
+zero logs — a bundle that looks exactly like run data, that you would attach and send off
+believing it held four lanes' worth of runs.
+
+**Root cause.** The completeness check tested for NON-EMPTINESS when the requirement was
+about a specific KIND of content. Those coincide only while every item in the collection is
+of the same kind; the moment a "keep this one" exception was added, the check silently
+stopped meaning what it was written to mean — and nothing failed.
+
+**The fix that worked.** Require at least one item of the kind that matters
+(`any(archivable for ...)`) and fail with a message that says what to do about it: "no new
+per-run logs were found — every lane's logs are already archived in its debug-logs/Old/
+folder." Test asserts the failure, not just the success path.
+
+**Prevention rule.** When a collection gains an exception ("all of these, except that one
+is handled differently"), re-read every count, length and emptiness check over it — each
+one is now potentially measuring a different set than it was written for. Same family as
+the 1 KiB status blob: the guard did not change, the data did.

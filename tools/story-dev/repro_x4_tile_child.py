@@ -130,6 +130,90 @@ try:
 except Exception as exc:
     check(False, f"_on_frame raised without a bridge: {exc}")
 
+print("\n== PARK: the dashboard's command reaches the lane ==")
+import tempfile  # noqa: E402
+
+from modules.tile_bridge import CMD_PARK  # noqa: E402
+
+child.close_requested = False
+child._bridge = TileBridge(SHM, 1, create=False)
+child._parked = False
+child._log_reenables = 0
+
+profile_dir = Path(tempfile.mkdtemp(prefix="parktest-"))
+context.profile = types.SimpleNamespace(path=profile_dir)
+
+
+class ResettableEmulator(FakeEmulator):
+    """Adds the surface `context.emulation_speed`/`reset()` actually touch."""
+
+    def __init__(self, image):
+        super().__init__(image)
+        self.resets = 0
+        self._throttle = False
+        self._speed = 0.0
+
+    def reset(self):
+        self.resets += 1
+
+    def set_throttle(self, value):
+        self._throttle = bool(value)
+
+    def get_throttle(self):
+        return self._throttle
+
+    def set_speed_factor(self, value):
+        self._speed = float(value)
+
+    def get_speed_factor(self):
+        return self._speed
+
+
+context.emulator = ResettableEmulator(PIL.Image.new("RGB", (240, 160), (3, 3, 3)))
+context.bot_mode = "Story (ENDLESS RESET)"
+context.emulation_speed = 0
+
+from modules import debug_logger  # noqa: E402
+
+debug_logger.enable(context.profile, name_prefix="P1-")
+check(debug_logger.is_enabled(), "the lane is logging before the park")
+
+bridge.send_command(0, CMD_PARK, 42)
+child._last_publish_ns = 0
+child._on_frame()
+
+check(child._parked is True, "the lane reports itself parked")
+check(context.bot_mode == "Manual", f"bot mode -> Manual (got {context.bot_mode})")
+check(context.emulation_speed == 1, f"speed -> 1x (got {context.emulation_speed})")
+check(context.emulator.resets == 1, f"the emulator was reset to the title (resets={context.emulator.resets})")
+check(not debug_logger.is_enabled(), "the debug log was CLOSED — this is what makes the copy safe")
+
+print("\n== !! a parked lane must NOT re-arm its logger ==")
+# Without the `_parked` guard, `_ensure_logging` would notice the logger is off and
+# re-open the file a fraction of a second later — so the collector would archive a file
+# that another process had just started writing to again.
+for _ in range(10):
+    child._last_publish_ns = 0
+    child._on_frame()
+check(not debug_logger.is_enabled(), "still closed after 10 more frames")
+check(child._log_reenables == 0, f"the self-healer never fired (got {child._log_reenables})")
+
+print("\n== the park is idempotent: the same command is not re-run ==")
+resets_before = context.emulator.resets
+for _ in range(5):
+    child._last_publish_ns = 0
+    child._on_frame()
+check(context.emulator.resets == resets_before, "the same command sequence did not re-park")
+
+print("\n== a parked lane keeps publishing, so its tile stays live ==")
+seq_before = bridge.read(0).sequence
+child._last_publish_ns = 0
+child._on_frame()
+frame = bridge.read(0)
+check(frame.sequence > seq_before, "frames still publish while parked")
+check(frame.status.get("parked") is True, "and the status says parked (the dashboard waits on this)")
+
+child._bridge.close()
 bridge.close()
 print()
 if failures:
