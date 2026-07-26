@@ -3859,3 +3859,44 @@ Lost 1` → **flee_rate 0.998**, correctly flagged.
 **This is the second measurement blind spot found in two days** — after `livetest.py`'s whiteout
 metric silently read 0 for every batch ever run (2026-07-25). Both had the same shape: a number
 nobody had ever cross-checked against a raw count from the same logs.
+
+## 2026-07-26 — ENDLESS RESET no longer forces the renderer off (user directive) — closes #24-pokenav-faithful's cause
+
+**User's diagnosis, and it was right:** "I think that's due to the infinite run feature turning off
+the video toggle upon reset — can we make it not mess with that and have it stay in whatever state
+it's currently in?"
+
+`StoryEndlessResetMode.run()` captured `batch_video = context.video` at batch start and re-applied
+it after EVERY run. That was added for a real reason (a derail calls `set_manual_mode()`, whose
+`enable_video_and_slow_down` default drops `emulation_speed` to 1 and throttled the rest of an
+unattended batch — the user's earlier "on its second run it was at normal speed" report), but it
+swept `video` up with the speed. Two consequences:
+1. The renderer was **PINNED** to its batch-start value, so a batch begun with video off kept it
+   off for every subsequent run — and the FAITHFUL PokéNav Match-Call tutorial only advances with
+   the renderer ON. That is why it degraded to the last-resort state-write in **8 of 9** real-HW
+   runs (`#24-pokenav-faithful`), the 1 success being a run whose renderer was still on.
+2. Worse, the `except` fell back to `batch_video = **False**` — a single failed read of
+   `context.video` would force the renderer OFF for an entire batch.
+
+Now: **speed is restored, video is never touched.** If the user turns the renderer on mid-batch it
+stays on. Only comments mention `context.video` in that mode now.
+
+**Also — the PP heal is now OBSERVABLE.** The out-of-PP heal printed nothing, so a batch could not
+show whether the fix ever fired (exactly the blind spot found hours earlier). It now prints
+"Story: out of PP — healing at the Poké Center".
+
+**‼ AND THAT ONE-LINE ADDITION WAS NEARLY A CRASH.** `early_game.py` has **no module-level
+`console`** — it is imported locally inside three other functions only. `train_team` is not one of
+them, and the heal block sits inside a `try/finally` that does NOT swallow exceptions, so a bare
+`console.print` would have raised `NameError` on **every PP exhaustion** — turning a livelock into
+a hard crash, i.e. strictly worse than the bug being fixed. Caught before commit by grepping the
+module for `import console` rather than trusting that an import test passing meant the code ran.
+**Third appearance of this scope trap in one day** (HM branch, survival mode, here). Verified by
+EXECUTING the path (AST-check that `train_team` contains the local import + running the statements),
+not by importing the module.
+
+Batch `20260726-094520` (commit `0f4c734a`, first batch with outcome instrumentation): 2/5 frontier,
+flee rates 1.2% / 23.8% / 2.2% / 4.3% / 6.6% — **no livelock**. Honest reading: the livelock is
+intermittent (1 in 11 of the user's runs), so this is CONSISTENT with the PP fix, not proof of it;
+`repro_out_of_pp_livelock.py` is the proof. run02 is an outlier worth watching (23.8% flee, 82
+losses, 40 whiteouts, no frontier) — ordinary attrition, `#24-whiteout` territory. Suite 8 green.

@@ -2820,18 +2820,30 @@ class StoryEndlessResetMode(StoryDebugResetMode):
         # batch. The first version of this loop restored `bot_mode` and not the speed, so run 1
         # ran unthrottled and every run after it crawled at 1x. Remember what the batch STARTED
         # with and restore exactly that, rather than forcing a value the user did not choose.
+        # ‼ SPEED ONLY — NEVER TOUCH `context.video` (user directive 2026-07-26).
+        # This used to capture and re-apply `video` alongside the speed, which had two
+        # bad effects. (1) It PINNED the renderer to whatever it was at batch start, so a
+        # batch begun with video off kept it off for every subsequent run — and the
+        # FAITHFUL PokéNav Match-Call tutorial only advances with the renderer ON, so it
+        # silently degraded to the last-resort state-write fallback in **8 of 9** of the
+        # user's real-hardware runs (#24-pokenav-faithful; the 1 success was a run whose
+        # renderer was still on). (2) Worse, the `except` fell back to
+        # `batch_video = False`, so a single failed read of `context.video` would force
+        # the renderer OFF for the entire batch.
+        # The SPEED restore stays — it fixes a real user report ("on its second run it was
+        # at normal speed, it should have been set to unlimited"): a derail calls
+        # `set_manual_mode()`, whose `enable_video_and_slow_down` default sets
+        # `emulation_speed = 1`, which throttles the rest of an unattended batch.
+        # Video is the user's to control; if they turn it on mid-batch it stays on.
         try:
             batch_speed = context.emulation_speed
-            batch_video = context.video
         except Exception:
-            batch_speed, batch_video = 0, False
+            batch_speed = 0
 
         def _restore_speed() -> None:
             try:
                 if context.emulation_speed != batch_speed:
                     context.emulation_speed = batch_speed
-                if context.video != batch_video:
-                    context.video = batch_video
             except Exception:
                 pass
 

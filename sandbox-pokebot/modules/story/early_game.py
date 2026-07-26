@@ -1738,7 +1738,25 @@ def train_team(
                 or _min_battler_hp_pct() <= heal_at
                 or _team_is_out_of_pp()
             )
-            if (_min_battler_hp_pct() <= heal_at or _team_is_out_of_pp()) and _lead_level() < target_level:
+            _dry = _team_is_out_of_pp()
+            if _dry:
+                # ‼ SAY SO. A fix you cannot see fire cannot be validated — the whole
+                # reason this bug survived ~2.9M frames is that nothing logged the
+                # difference between "training" and "fleeing everything". A distinct
+                # message makes the PP path observable in run logs and batch summaries.
+                # ‼ LOCAL IMPORT REQUIRED: `early_game.py` has NO module-level `console`
+                # (it is imported locally in three other functions only), so a bare
+                # `console.print` here is a NameError — and this sits inside train_team's
+                # try/finally, which does NOT swallow it, so every PP exhaustion would
+                # CRASH instead of healing. Third time this shadowing/scope trap has bitten
+                # in one day; see 08-MISTAKES 2026-07-26.
+                from modules.console import console
+
+                console.print(
+                    "[bold yellow]Story: out of PP — healing at the Poké Center "
+                    "(a heal restores PP, which is what lets training continue).[/]"
+                )
+            if (_min_battler_hp_pct() <= heal_at or _dry) and _lead_level() < target_level:
                 # CAVE-AWARE HEAL (2× real-HW Manual drops 2026-07-22): healing from INSIDE
                 # Granite Cave targeted the Dewford PC across warp levels — the global
                 # navigator can't do that ("not on connected maps"). Exit the cave first.
