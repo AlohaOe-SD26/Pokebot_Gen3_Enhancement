@@ -424,6 +424,28 @@
       **Phase 2 NOT STARTED:** actually travelling to the target, catching it, and training
       it. Today the bot converts an unbounded loop into a bounded stop that NAMES the fix;
       acting on it is the next step and needs a live run to validate, not a repro.
+      **SPEC + ECONOMICS: `12-STORYMODE-DESIGN.md` §CC2 (+ its 2026-07-26 update).**
+      Blocker #2 (ranking) is CLOSED — candidates now sort by ESTIMATED COST (frames to
+      find + frames to train to the team's level) instead of encounter rate; measured
+      effect on the real save: Machop/Jagged Pass 75,949 vs Makuhita/Granite Cave 315,260,
+      i.e. the old order preferred the 4.2x more expensive option.
+      ‼ **REMAINING BLOCKERS, in order:**
+      (1) **Tiles** — every candidate has `tile: None`; no counter map has a verified spin
+          tile, so there is nothing to path to. Field work (two-way sweeps from a real
+          story anchor). `GRANITE_CAVE_1F (35,11)` already sits in `PENDING_GRASS`;
+          FIERY_PATH is the better target (on the Ch10 route, traversable both ways,
+          unlike Jagged Pass's one-way ledges).
+      (3) **Victory Road / E4 gate must enter `KNOWN_GATES`** — and cost ranking made this
+          MORE urgent: Hariyama L38-42 is already above the team, so its training cost is
+          ~0 and it ranks #1 the moment anything calls it reachable. Only the `max_hops=4`
+          distance bound kept it out of the live answer, which is luck, not a gate.
+      (4) Exclude story interiors (`GRANITE_CAVE_STEVENS_ROOM` is proposed as a hunting
+          ground).
+      ‼ **Value check before building:** priced against the measured cost of the current
+      behaviour (run05 lost to Norman 21x ~ 399,000 frames; run3 27x = 508,000), a Machop
+      costs 98,877 and a Makuhita 363,982 — but the only counter the LIVE predicate
+      accepted was the Makuhita, i.e. ~9% better than doing nothing. **Phase 2's value is
+      gated by reachability, not ranking** — widen reachability first or it buys little.
 - [~] **#24-regionreach — region-scale reachability oracle.** ‼ **A WRONG *YES* COST 2 OF 5
       LIVE RUNS (2026-07-25) — now bounded.** `_training_area_allowed`'s cost model said a
       wrong yes "costs ONE wasted walk, fails RECOVERABLY and loudly"; in batch

@@ -2715,3 +2715,42 @@ him with levels and items rather than a type answer. The bot has no items strate
 Super Potions and out-level him" may be cheaper than catching a L20 Machop and training it 10
 levels. **Worth pricing both before building**, using the frame-cost model added 2026-07-24
 (`e8d133be`, "price prep grinds in frames before committing to them").
+
+### §CC2 UPDATE 2026-07-26 — blocker #2 CLOSED by measurement; the open question is answered
+
+**Blocker #2 (ranking) is fixed.** Candidates are now ordered by ESTIMATED COST within a
+reachability/coverage tier, not by encounter rate. Cost = frames to FIND one
+(`(100/rate) × FRAMES_PER_WILD_BATTLE`, the measured 1433) + frames to TRAIN it from the top of
+its band to the team's level (`estimate_frames_to_level`, the real Gen 3 growth curve). Rate is
+still present — demoted to the small term it should always have been. Unpriceable candidates sort
+LAST within their tier (unknown cost is not cheap), and with no team level to read the ordering
+degrades to the previous rate-then-gap behaviour. Pinned by `repro_counter_plan.py` case 5.
+
+Measured effect (real save, L31 party): **Machop/Jagged Pass 75,949 frames vs
+Makuhita/Granite Cave 315,260** — the old ranking preferred the one that is **4.2× more
+expensive**, purely because it is easier to bump into.
+
+**The open question ("is catching a counter even right for Norman?") — ANSWERED, and the answer
+is uncomfortable.** Priced against the measured cost of the current behaviour:
+
+| option | frames |
+|---|---|
+| Machop L21 → L28 (Jagged Pass) | **98,877** |
+| Machop L15 → L28 (Fiery Path) | 190,589 |
+| Makuhita L8 → L28 (Granite Cave) | 363,982 |
+| *doing nothing: run05 lost to Norman 21×* | *~399,000* |
+| *doing nothing: run3 lost 27×* | *508,000* |
+
+Catching a counter is clearly worth it **for the right candidate** — and clearly marginal for the
+wrong one. ‼ The catch: in the live batch the ONLY Fighting counter `_counter_area_allowed`
+accepted was **Makuhita / Granite Cave (364k)** — Jagged Pass and Victory Road were both filtered
+UNREACHABLE. So for Norman as it stands, phase 2 would buy roughly a **9% improvement over losing**.
+**Phase 2's value is gated by reachability, not by ranking.** Before building the executor, widen
+what is legitimately reachable (hop budget / `KNOWN_GATES` / a verified Fiery Path tile — Fiery
+Path is on the Ch10 route and IS traversable both ways, unlike Jagged Pass's one-way ledges).
+
+**‼ Blocker #3 got MORE dangerous, not less.** Cost ranking makes end-game encounters look almost
+free — Hariyama on VICTORY_ROAD is L38-42, already above the team, so its training cost is ~0 and
+it ranks **#1** the moment anything marks it reachable. It was only kept out of the live answer by
+the `max_hops=4` bound, which is a coincidence of distance, not an Elite Four gate. Add the real
+gate to `KNOWN_GATES` before phase 2 acts on a candidate list.

@@ -3733,3 +3733,33 @@ property you need, not a symptom of the current implementation.
 **Still open:** run05 burned its whole 3M budget without reaching the frontier (21 of 27 losses
 were Norman). At threshold 75 that party is now diagnosed hopeless and stops with a named counter
 — an improvement only once `#24-counters` phase 2 can act on it. Suite: 7 files green.
+
+## 2026-07-26 — Counter candidates are ranked by what they COST, not by how easy they are to bump into (#24-counters)
+
+**Blocker #2 of §CC2, closed by measurement.** `find_counter_candidates` scored `rate * 1_000.0 -
+level_gap`, so encounter rate outweighed level fit by ~1000×. For a L31 party that ranked a
+**L6-10 Makuhita (50%)** above a **L20-22 Machop (25%)**. Priced with the project's own frame model
+(`estimate_frames_to_level` + the measured `FRAMES_PER_WILD_BATTLE = 1433`), on the real save:
+**Machop 75,949 frames vs Makuhita 315,260** — the preferred candidate was **4.2× more expensive**.
+
+Now: `tier` (reachable > types answered > has a verified tile) is separated from `score`, and
+within a tier candidates sort by `est_frames` = frames to FIND one + frames to TRAIN it from the
+top of its band to the team's level. Rate survives as the small term it should always have been.
+Fail-safe preserved: an unpriceable candidate sorts LAST in its tier (unknown cost is never
+treated as cheap), and with no team level the ordering degrades to the old rate-then-gap behaviour,
+so existing callers are unaffected. `score` keeps its published meaning for display.
+Pinned by `repro_counter_plan.py` case 5 with the real measured pair. Suite 7 files green.
+
+**The economics also answer §CC2's open question** ("is catching a counter even right for
+Norman?"). Against the measured cost of the current behaviour — run05 lost 21× ≈ 399,000 frames,
+run3 lost 27× = 508,000 — a Machop is 98,877 and a Makuhita 363,982. So it is clearly worth it for
+the right candidate and marginal for the wrong one. ‼ But the only Fighting counter the live
+predicate accepted was **Makuhita/Granite Cave**, i.e. ~9% better than doing nothing:
+**phase 2's value is gated by REACHABILITY, not by ranking.** Widen what is legitimately reachable
+before building the executor.
+
+**‼ And blocker #3 (false reachability) is now MORE dangerous.** Cost ranking makes end-game
+encounters look nearly free — Hariyama on VICTORY_ROAD is L38-42, already above the team, so it
+ranks **#1** the instant anything calls it reachable. It stayed out of the live answer only
+because of the `max_hops=4` distance bound, not because of an Elite Four gate. That gate must go
+into `KNOWN_GATES` before phase 2 consumes a candidate list.

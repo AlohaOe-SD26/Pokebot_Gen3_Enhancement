@@ -246,3 +246,57 @@ print("-" * 78)
 print("ALL PASS: counter_plan finds a reachable, fully-specified catch target for the real")
 print("Winona type answer, sorts reachable-first, honours the allow=None contract, and")
 print("fails safe on empty/nonsense input.")
+
+print()
+print("=" * 78)
+print("5) COST RANKING -- the cheap-to-FIND mon is not the cheap mon (2026-07-26)")
+print("=" * 78)
+# ‼ MEASURED, not preference. Ranking by encounter rate put a L6-10 Makuhita (50%,
+# Granite Cave) ahead of a L20-22 Machop (25%, Jagged Pass) for this L31 party. Priced
+# with the project's own frame model (`estimate_frames_to_level`, real Gen 3 growth
+# curve + the measured 1433 frames/wild-battle):
+#     Makuhita L8  -> L28 on Granite Cave  = 363,982 frames
+#     Machop   L21 -> L28 on Jagged Pass   =  98,877 frames
+# i.e. the "best" pick was 3.7x more expensive, and barely beat the 399,000 frames the
+# bot spent LOSING to Norman 21 times in batch 20260726-052205 run05. Candidates are now
+# ordered by estimated cost WITHIN a reachability/coverage tier.
+fight = find_counter_candidates(["Fighting"], allow=lambda m, t, p: True, max_results=40)
+by_key = {(c["species_name"], c["map_enum"].name): c for c in fight}
+order = [(c["species_name"], c["map_enum"].name) for c in fight]
+
+machop_jagged = ("Machop", "JAGGED_PASS")
+makuhita_granite = ("Makuhita", "GRANITE_CAVE_1F")
+assert machop_jagged in by_key, f"Machop/JAGGED_PASS missing from candidates: {order[:6]}"
+assert makuhita_granite in by_key, f"Makuhita/GRANITE_CAVE_1F missing: {order[:6]}"
+
+m_cost = by_key[machop_jagged]["est_frames"]
+k_cost = by_key[makuhita_granite]["est_frames"]
+print(f"   Machop/JAGGED_PASS     est={int(m_cost):,} frames (rate {by_key[machop_jagged]['encounter_rate']}%)")
+print(f"   Makuhita/GRANITE_CAVE  est={int(k_cost):,} frames (rate {by_key[makuhita_granite]['encounter_rate']}%)")
+assert m_cost < k_cost, (
+    f"expected the level-appropriate Machop to be CHEAPER than the low-level Makuhita, "
+    f"got {m_cost} vs {k_cost}"
+)
+assert order.index(machop_jagged) < order.index(makuhita_granite), (
+    "expected Machop/JAGGED_PASS to OUTRANK Makuhita/GRANITE_CAVE_1F now that ranking is "
+    f"by cost, but order was {order[:8]}"
+)
+print("   PASS: the cheaper-to-USE candidate outranks the cheaper-to-FIND one.")
+
+# An unpriceable candidate must sort LAST within its tier, never first -- unknown cost
+# is not cheap (same fail-safe contract as estimate_frames_to_level).
+unpriced = [c for c in fight if c["est_frames"] is None]
+if unpriced:
+    priced_positions = [i for i, c in enumerate(fight) if c["est_frames"] is not None]
+    unpriced_positions = [i for i, c in enumerate(fight) if c["est_frames"] is None]
+    assert min(unpriced_positions) > min(priced_positions), (
+        "an unpriceable candidate outranked every priced one -- unknown must not read as cheap"
+    )
+    print(f"   PASS: {len(unpriced)} unpriceable candidate(s) sort after the priced ones.")
+else:
+    print("   (no unpriceable candidates in this set)")
+
+print()
+print("-" * 78)
+print("ALL PASS (5): counter candidates are ranked by what they COST to make usable,")
+print("with encounter rate demoted to the small term it should always have been.")

@@ -46,6 +46,44 @@ def _team_reference_level() -> "float | None":
         return None
 
 
+def _estimated_cost_frames(species, band_high, rate, team_level):
+    """Frames to FIND one of `species` and TRAIN it up to `team_level`, or None.
+
+    Two measured terms, no invented constants:
+      * find  — expected encounters to meet the species at `rate`% of that map's table,
+                times `FRAMES_PER_WILD_BATTLE` (1433, measured against the emulator).
+      * train — `estimate_frames_to_level` from the TOP of the candidate's level band
+                (the best realistic catch) to `team_level`, using the real Gen 3 growth
+                curve, grinding on wild of roughly its own band.
+
+    Returns None when it cannot be priced (no team level, no band, no rate, or the
+    growth-curve lookup fails). ‼ Callers must treat None as UNKNOWN, never as cheap —
+    it sorts LAST within its tier, matching `estimate_frames_to_level`'s own contract.
+    """
+    if team_level is None or band_high is None or not rate or rate <= 0:
+        return None
+    try:
+        from types import SimpleNamespace
+
+        from modules.story.training_areas import (
+            FRAMES_PER_WILD_BATTLE,
+            estimate_frames_to_level,
+        )
+
+        find_frames = (100.0 / float(rate)) * FRAMES_PER_WILD_BATTLE
+        as_caught = SimpleNamespace(
+            species=species,
+            total_exp=species.level_up_type.get_experience_needed_for_level(int(band_high)),
+            level=int(band_high),
+        )
+        train_frames = estimate_frames_to_level(as_caught, int(team_level), int(band_high))
+        if train_frames is None:
+            return None
+        return float(find_frames + train_frames)
+    except Exception:
+        return None
+
+
 def find_counter_candidates(needed_type_names, *, allow=None, max_results: int = 5) -> list[dict]:
     """Find catchable species that answer `needed_type_names`, ranked by how USABLE
     they are, not just how "good" they are on paper.
@@ -130,17 +168,37 @@ def find_counter_candidates(needed_type_names, *, allow=None, max_results: int =
                 if team_level is not None and lo is not None and hi is not None:
                     level_gap = abs(((lo + hi) / 2) - team_level)
 
+                # ‼ WHAT DOES THIS CANDIDATE ACTUALLY COST? (2026-07-26, measured.)
+                # Ranking by encounter rate put a L6-10 Makuhita (50%) ahead of a
+                # L20-22 Machop (25%) for a L31 team. Priced with the project's own
+                # frame model, that "best" pick costs 363,982 frames to bring to L28
+                # versus 98,877 for the Machop — 3.7x worse, and barely better than the
+                # 399,000 frames the bot spent LOSING to Norman 21 times in run05. The
+                # cheap-to-find mon is not the cheap mon.
+                #   find  = expected encounters to meet one, at the measured
+                #           frames-per-wild-battle
+                #   train = the REAL Gen 3 growth curve from the top of its level band
+                #           up to the team's level (`estimate_frames_to_level`)
+                # Rate still matters — it just belongs in the small term, not the big
+                # one, which is exactly the inversion this fixes.
+                est_frames = _estimated_cost_frames(species, hi, rate, team_level)
+
                 # Single composite score reproducing the documented tier order: each
                 # tier's multiplier is large enough that no lower tier can outweigh a
                 # higher one (type-coverage count and the rate/gap terms are both small
                 # relative to the gaps between tiers).
-                score = (
+                # TIER = the hard qualifiers, in order: can we get there at all > how
+                # many needed types it answers > do we have a verified tile to path to.
+                # Kept separate from `score` so cost can rank WITHIN a tier without the
+                # rate term drowning it (rate*1000 dwarfed a 20-level gap by ~1000x).
+                tier = (
                     (1_000_000_000.0 if reachable else 0.0)
                     + len(hit_types) * 10_000_000.0
                     + (100_000.0 if tile is not None else 0.0)
-                    + rate * 1_000.0
-                    - level_gap
                 )
+                # `score` keeps its published meaning (higher is better, full composite)
+                # for display and for callers that read it.
+                score = tier + rate * 1_000.0 - level_gap
 
                 candidates.append(
                     {
@@ -152,10 +210,26 @@ def find_counter_candidates(needed_type_names, *, allow=None, max_results: int =
                         "encounter_rate": rate,
                         "reachable": reachable,
                         "score": score,
+                        "tier": tier,
+                        "est_frames": est_frames,
                     }
                 )
 
-        candidates.sort(key=lambda c: (-c["score"], c["species_name"]))
+        # Tier order first (reachable > type coverage > has a verified tile — see the
+        # score comment), then the CHEAPEST candidate within a tier. Candidates whose
+        # cost cannot be estimated sort last within their tier rather than first: an
+        # unknown cost is not a cheap one (same fail-safe rule as
+        # `estimate_frames_to_level`'s own contract). When no cost is estimable at all
+        # (e.g. no party to read a level from) every `est_frames` is None and this
+        # degrades to the previous rate-then-level-gap ordering carried in `score`.
+        candidates.sort(
+            key=lambda c: (
+                -c["tier"],
+                float("inf") if c["est_frames"] is None else c["est_frames"],
+                -c["score"],
+                c["species_name"],
+            )
+        )
         return candidates[:max_results]
     except Exception as error:
         _log.warning("find_counter_candidates failed: %s", error)
