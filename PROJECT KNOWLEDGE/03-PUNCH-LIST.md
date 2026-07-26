@@ -394,12 +394,16 @@
       **LIVE-CONFIRMED 2026-07-25** (batch `20260725-194810`, 5 fresh lanes): the guard
       fired on Norman at **exactly 6 losses** in 2 runs (was 27), Petalburg-gym losses
       38 -> 14 batch-wide, and **1/5 reached the frontier** (baseline 0/5).
-      **‼ NEW, STILL OPEN — training-loop attrition has no give-up guard.** run01 lost
-      **25 times on ROUTE110** swap-training a lopsided team (Marshtomp L23 carrying
-      Beautifly L16 / Poochyena L12 / Whismur L12), KO count flat at 1 every time — the
-      same plateau shape as Norman, but `_boss_plan_is_hopeless` covers configured BOSSES
-      only. Route 110 is now the LARGEST single loss cluster (31 of 66 batch-wide). The
-      boss-side fix does not touch it.
+      **✅ TRAVEL ATTRITION FIXED 2026-07-26 — SURVIVAL MODE.** run01 lost **25 times on
+      ROUTE110** (largest single cluster, 31 of 66 batch-wide). Root cause was NOT training:
+      with no `train_team` session, `on_battle_started` falls through to
+      `LevelUpTravelBattleStrategy`, which fights every wild to level the lead and "flees only
+      at low HP, which the training loop covers by healing" — but a TRAVEL leg has no training
+      loop and so never heals. After `SURVIVAL_WHITEOUT_THRESHOLD` (3) defeats on a map, wild
+      battles there are FLED. Narrow by design and asserted in `repro_survival_mode.py` (7
+      cases): wild only (trainers are un-fleeable, boss path untouched), never during
+      `train_team`, per-map. On the real run01 state it flees — 22 of those 25 whiteouts
+      would not have happened.
       **REMAINING:** the bot now STOPS with a named counter instead of grinding forever.
       Actually travelling/catching/training it is `#24-counters` phase 2 — the two items
       are the same problem from opposite ends. Also still unbuilt: a potions/healing

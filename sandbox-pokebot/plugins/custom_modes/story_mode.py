@@ -675,6 +675,14 @@ class StoryMode(BotMode):
     #: than 41 whiteout cycles before we say so.
     PLATEAU_LOSS_THRESHOLD = 6
 
+    #: Defeats on ONE map (this run) after which wild battles there are fled rather than
+    #: fought — see the SURVIVAL MODE block in `on_battle_started`. 3, not 6: the boss
+    #: threshold can afford patience because a lost boss attempt still banks EXP (Gen 3
+    #: keeps mid-battle EXP through a whiteout), whereas a travel wipe banks almost
+    #: nothing and costs the whole walk back from the respawn Poké Center. Measured
+    #: worst case before this existed: **25 whiteouts on ROUTE110 in a single run**.
+    SURVIVAL_WHITEOUT_THRESHOLD = 3
+
     #: Minimum EFFECTIVE power (base power x type effectiveness x STAB) for a move to
     #: count as a real answer to a boss's ace type in `_boss_plan_is_hopeless`.
     #: ‼ WITHOUT THIS THE DETECTOR IS POWER-BLIND AND SILENTLY DISABLES ITSELF ON
@@ -1429,6 +1437,49 @@ class StoryMode(BotMode):
 
                     console.print(f"[bold green]Story: catching {sp.name} — it can learn the HM we need![/]")
                     return StoryCatchStrategy()
+        except Exception:
+            pass
+        # ‼ SURVIVAL MODE (#24-whiteout, from live batch 20260725-194810). WILD battles
+        # on a map that has already wiped us repeatedly stop being an XP opportunity and
+        # become the thing to escape. run01 whited out **25 times on ROUTE110** — respawn
+        # in Slateport, walk back north, wipe again — and nothing ever noticed, because
+        # the default `LevelUpTravelBattleStrategy` fights every wild to level the lead.
+        # Its own docstring says it "flees only at low HP, which the training loop covers
+        # by healing" — but this is a TRAVEL leg, where no training loop and therefore no
+        # healing exists, so HP only ever goes down across consecutive encounters.
+        #
+        # Scope is deliberately narrow:
+        #   * WILD only (`encounter is not None`) — a trainer battle cannot be fled, and
+        #     the boss/gym re-attempt path must stay exactly as it is.
+        #   * NOT during `train_team` — there the swap strategy plus its heal loop are the
+        #     correct answer, and fleeing would starve the grind it was sent to do.
+        #   * Threshold is per-MAP defeats this run, so it cannot fire on a first bad
+        #     encounter; it takes a demonstrated pattern.
+        try:
+            from modules.story.early_game import swap_train_active
+
+            if (
+                encounter is not None
+                and not swap_train_active()
+                and self._defeat_counts.get(self._location_key(), 0)
+                >= self.SURVIVAL_WHITEOUT_THRESHOLD
+            ):
+                from modules.battle_strategies.run_away import RunAwayStrategy
+
+                # ‼ LOCAL IMPORT REQUIRED — same trap as the HM branch above, and it
+                # caught this block too (2026-07-25): other branches in this method
+                # import `console` locally, which makes the name function-local for the
+                # WHOLE method, so touching the module-level one here is an
+                # UnboundLocalError that the `except` below silently ate. The repro
+                # showed survival mode simply "not firing"; nothing was logged.
+                from modules.console import console
+
+                console.print(
+                    f"[bold yellow]Story: {self._defeat_counts.get(self._location_key(), 0)} "
+                    f"defeats on this map already — fleeing wild battles to get through "
+                    f"instead of levelling into another whiteout.[/]"
+                )
+                return RunAwayStrategy()
         except Exception:
             pass
         # PRE-GYM-1 CATCHING (user directive 2026-07-21): build an organic team by

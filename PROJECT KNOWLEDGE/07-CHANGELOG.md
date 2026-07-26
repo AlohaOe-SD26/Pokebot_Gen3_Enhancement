@@ -3648,3 +3648,44 @@ loss cluster in the batch. Filed under `#24-whiteout`.
 Minor, also filed: the diagnosis prints `"this boss"` (Norman's cfg has no `name` key), every
 counter candidate says `tile unmapped`, and the top counter for a L34+ party is a **L6-10
 Makuhita** — level fit may need to outrank encounter rate in phase 2.
+
+## 2026-07-26 — SURVIVAL MODE: a map that keeps wiping us stops being treated as XP (#24-whiteout)
+
+Closes the issue the live batch left open. run01 whited out **25 times on ROUTE110** in a single
+run — wipe, respawn in the Slateport Poké Center, walk back north, wipe again — and nothing ever
+noticed. It was the largest single loss cluster in the batch (31 of 66 losses batch-wide).
+
+**Root cause.** With no `train_team` session running, `on_battle_started` falls through to
+`LevelUpTravelBattleStrategy`, which fights every wild to level the lead. Its own comment states
+it "flees only at low HP, **which the training loop covers by healing**" — and that is the whole
+bug: on a TRAVEL leg there is no training loop, so nothing heals, and HP only ever falls across
+consecutive encounters until the party wipes. Verified from the log that this was travel, not
+training: the entire run logged exactly ONE "prepping — training" line (for ROUTE117), and
+`set_swap_train(True)` exists only inside `train_team`, so `swap_train_active()` was False
+throughout those 25 losses.
+
+**Fix — `SURVIVAL_WHITEOUT_THRESHOLD = 3`.** Once a map has beaten us 3 times this run, wild
+battles there are FLED rather than fought: get through, do not level into another whiteout.
+3 rather than the boss threshold of 6 because the costs are not comparable — a lost boss attempt
+still banks EXP (Gen 3 keeps mid-battle EXP through a whiteout), while a travel wipe banks almost
+nothing and costs the entire walk back from the respawn Poké Center.
+
+Scope is deliberately narrow, and each limit is asserted by the repro:
+* **WILD only** — a trainer battle cannot be fled, and the boss/gym re-attempt path is untouched.
+* **Not during `train_team`** — there the swap strategy plus its heal loop are the right answer,
+  and fleeing would starve the grind it was sent to do.
+* **Per-map, not global** — a different map with no history still fights normally.
+
+**Proof (`repro_survival_mode.py`, 7 cases)** driving the REAL `on_battle_started`: clean map →
+fights; 2 defeats → still fights (no hair-trigger); 3 defeats + wild → flees; 3 defeats + trainer
+→ does NOT flee; 3 defeats + active grind → swap-trains; other map → fights; **the real run01
+state (25 defeats on ROUTE110) → flees**, i.e. 22 of those 25 whiteouts would not have happened.
+
+**‼ The first version of this silently did nothing, and the codebase had already documented why
+— three lines above where I wrote it.** Other branches of `on_battle_started` do
+`from modules.console import console`, which makes `console` **function-local for the entire
+method**, so my block's `console.print` raised `UnboundLocalError` and my own
+`except Exception: pass` ate it. The repro reported survival mode "not firing" with nothing
+logged. Fixed with the same local import the HM branch uses; see 08-MISTAKES.
+
+Suite 7/7 green (the two new repros plus the five existing), move-learn repros re-verified.

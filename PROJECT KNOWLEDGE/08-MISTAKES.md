@@ -1630,3 +1630,43 @@ gap in `KNOWN_GATES`, which the same docstring already flags as the standing res
 relying on it, ask what re-runs after recovery — if the retry re-derives the same choice from the
 same inputs, the failure is deterministic and recovery is a countdown to Manual, not a recovery.
 Anything chosen by a deterministic picker must be REMEMBERED as failed, or it will be re-chosen.
+
+## 2026-07-26 — I walked into a documented trap that was commented three lines above my own code
+
+**Symptom.** A new SURVIVAL MODE branch in `StoryMode.on_battle_started` did nothing. Its repro
+reported the strategy unchanged for the exact state it was written to catch, and **nothing was
+logged** — it looked exactly like "the condition is False".
+
+**Root cause.** Several branches of that method do `from modules.console import console`. That
+makes `console` a **function-local name for the WHOLE method**, so my block's `console.print(...)`
+raised `UnboundLocalError` before it could `return RunAwayStrategy()` — and my own
+`except Exception: pass` swallowed it.
+
+**What makes this worth recording is not the Python rule, it is that the project already knew.**
+The identical bug is in 08-MISTAKES (the 2026-07-23 HM-learner entry, "the function-local-import
+shadowing lesson"), AND there is a comment about it *sixteen lines above where I typed*:
+
+    # ‼ local import required: later branches in this method import
+    # `console` locally, which makes the name function-local EVERYWHERE
+    # in the method — referencing the module-level one here raises
+    # UnboundLocalError (and the except silently ate the catch).
+
+I read that comment while placing the block — I used the lines around it to choose the insertion
+point — and still wrote `console.print` without the local import, because the module-level import
+at line 21 made it *look* available.
+
+**Why it was cheap this time.** The repro asserted the DECISION for the real run01 state, so the
+failure surfaced in seconds instead of in a 40-minute live batch. The same silent-except that hid
+the cause is also what the earlier fix-of-the-day made me suspicious of, so I went looking for a
+swallowed exception rather than re-reading my condition.
+
+**Prevention rule:** in a long method that imports anything locally, ANY name it imports is
+function-local everywhere in that method — import it locally in your branch too, or hoist it. When
+adding to an unfamiliar method, grep it for `import` before using a module-level name.
+
+**Second prevention rule (a repeat, now escalated):** `except Exception: pass` around a decision
+turns "your code crashed" into "your condition was False", which are debugged in completely
+different directions. This is the SECOND time in two days it hid a live defect (the boss-plateau
+detector's stand-in `self`, then this). Any silent guard around a branch that RETURNS a decision
+should log the exception, not just pass — and a new branch should be proven by a repro that
+asserts the decision, never by inspection.

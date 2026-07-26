@@ -3,7 +3,7 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-07-25 (`#24-movelearn-recovery` closed — see "YOU ARE HERE" below)
+**Last updated:** 2026-07-26 (survival mode; `#24-movelearn-recovery` closed — see "YOU ARE HERE")
 
 ### ⭐⭐⭐ 2026-07-24 — KI-15 FIXED (3 proven fixes) + OVERNIGHT CHAPTER LOOP RUNNING
 **KI-15 is fixed** (see 05-KNOWN-ISSUES KI-15 + changelog for the full story): (1)
@@ -665,7 +665,23 @@ fetches cannot do.
 3. `#24-counters` phase 2 (the chain NAMES a counter; acting on it isn't built).
 4. `#24-edgecost`, `#24-regionreach` gate table, KI-18 live confirmation.
 
-### 🧪 2026-07-25 (latest) — LIVE BATCH `20260725-194810`: the day's fixes hold; 2 new issues fixed
+### ✅ 2026-07-26 — SURVIVAL MODE closes the travel-attrition half of `#24-whiteout`
+The batch's largest loss cluster is fixed: **25 whiteouts on ROUTE110 in one run** (31 of 66
+batch-wide). It was NOT training attrition — with no `train_team` session running,
+`on_battle_started` falls through to `LevelUpTravelBattleStrategy`, which fights every wild to
+level the lead and "flees only at low HP, which the training loop covers by healing". On a TRAVEL
+leg there is no training loop, so nothing heals and HP only falls until the party wipes.
+Now: after **3** defeats on a map, wild battles there are FLED (`SURVIVAL_WHITEOUT_THRESHOLD`).
+Wild only (trainers are un-fleeable; the boss/gym path is untouched), never during `train_team`,
+per-map. `repro_survival_mode.py` (7 cases) asserts each limit and flees on the real run01 state.
+‼ **Read the 08-MISTAKES entry before editing `on_battle_started`:** the first version silently
+did nothing because several branches of that method import `console` locally, which makes the name
+function-local for the WHOLE method — so a module-level `console.print` is an `UnboundLocalError`
+that a surrounding `except Exception: pass` reports as "condition False". The warning was
+commented 16 lines above where I wrote it, and I still hit it.
+**Suite is now 7/7** (`repro_survival_mode` and `repro_training_unreachable` joined the five).
+
+### 🧪 2026-07-25 — LIVE BATCH `20260725-194810`: the day's fixes hold; 2 new issues fixed
 5 fresh cold-start lanes, 3M frames, commit `26613bcb`. **1/5 reached the frontier (baseline 0/5)**,
 **0/5 move-learn deaths (baseline 2/5)**, 66 losses (baseline 128). Batch dir has `REVIEWED.md`.
 * **All three of the day's fixes confirmed live.** The `CantForgetHM` branch fired **44 times** —
