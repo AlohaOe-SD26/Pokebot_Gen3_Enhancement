@@ -2164,3 +2164,50 @@ rigorous one; the repro now asserts the *shape* (~2 per run vs exactly 1) and sa
    the property you can defend, and write down what you could not determine.
 3. Always run the FULL repro sweep before claiming a fix is clean — a fix that satisfies its
    own new repro can still break the contract an older one encodes.
+
+---
+
+## 2026-07-27 — The failsafe against runaway runs was checked only AFTER the run returned, so it could describe a hang but never stop one
+
+**Symptom.** In the user's bundle `20260727-063751`, three of four lanes each spent most of
+the night inside a SINGLE run, and the batch lost roughly 16 of its 29 lane-hours:
+
+    P3 run 1   30.4M frames, ~7.3 h   HARD HUNG at the Weather Institute
+    P1 run 7   19.9M frames, ~5.5 h   spinning Route 103 / healing at Oldale, forever
+    P2 run 35  13.4M frames, ~3.8 h   the same on Route 116
+
+P3 is the clearest: from f3.2M to f30.4M the log contains nothing but identical heartbeats —
+`state=3 controllable=False`, position frozen at ROUTE 119(32,1) (10, 10) — and **not one
+STUCK dump in 27 million frames**.
+
+**Root cause.** `MAX_FRAMES_PER_RUN` was evaluated after `yield from super().run()` returned.
+A run that never returns never reaches the check. The constant's own docstring promised
+exactly the protection it did not provide — *"so a run that neither finishes nor raises
+cannot hold the batch forever — StoryMode's global watchdog normally catches that, but not
+if the watchdog itself is what wedged"* — and the second clause is precisely what happened:
+no STUCK dumps means the watchdog was the thing that wedged. P4 run 12 shows the other half
+of the same flaw: it DID report `frame-cap (7,545,828 > 3,500,000)`, after burning more than
+twice the cap.
+
+**Why the progress detectors could not help.** P1 and P2 were LIVELOCKS, not hangs — real
+encounters, real battles, real healing trips, just no story progress. Any "nothing has
+happened for N frames" detector is blind to them by construction. Only a budget catches a
+loop that is genuinely busy.
+
+**The fix that worked.** `_run_with_frame_budget()` drives the story generator by hand and
+checks the elapsed frame count every 2048 yields, raising `BotModeError` when the budget is
+exhausted — which lands in the existing `except BotModeError` and is recorded as a normal
+derail. Two details that matter: the framework advances bot modes with a bare `next()`, so
+stepping by hand loses no `send()` values; and the check re-bases when the counter goes
+BACKWARDS, because the hard reset happens inside the run and `get_frame_count()` restarts
+with the emulator — measuring `now - start_frame` would go negative and silently disable the
+budget, which is the same trap that made the old post-hoc check unenforceable.
+
+**Prevention rules.**
+1. **A limit that is only checked after the work completes is not a limit, it is a report.**
+   Any bound meant to stop a runaway must be evaluated from INSIDE the thing it bounds.
+2. **Watchdogs need a watchdog that cannot share their failure mode.** A "no progress"
+   detector cannot catch a busy livelock, and cannot catch a hang if the detector is what
+   hung. Pair every progress-based guard with a blunt resource budget.
+3. When a docstring promises a guarantee, test the guarantee, not the code path you
+   happened to write. This one had been asserted in prose through at least two reviews.

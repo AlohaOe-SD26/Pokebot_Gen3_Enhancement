@@ -4459,3 +4459,38 @@ whiteouts.
 defensive and benches the only mon that can win) and `#24-route110cap` (that rival gets no
 prep and no cap — but a naive cap would have killed a run that recovered after 13 losses).
 Both need a user ruling; see the punch list.
+
+## 2026-07-27 — x4 batch review (`20260727-063751`): runaway runs are now actually stopped
+
+**‼ This batch ran the PRE-FIX code.** It launched 2026-07-26 23:20:49, minutes after the
+previous bundle and hours before the `20260726` fixes were committed — and the bot runs from
+a separate working copy (`…\Pokebot_Gen3_Enhancement_old\sandbox-pokebot`) that had not been
+pulled. Confirmed from the data: runs 1-3 real and runs 4+ `finished (0 frames)` in P1/P2/P4,
+and `run_index` stride still 2. So it re-confirms the known bugs and adds NEW findings; it is
+not a test of the fixes.
+
+**Fixed — `sandbox-pokebot/plugins/custom_modes/story_mode.py`**
+- **`MAX_FRAMES_PER_RUN` could not stop a runaway run**, only report one after it finally
+  returned. Three of four lanes spent the night in a single run — P3 hung 27M frames /
+  ~6.5 h at the Weather Institute (`controllable=False`, frozen position, ZERO STUCK dumps,
+  so the global watchdog was itself the thing that wedged); P1 19.9M and P2 13.4M frames in
+  non-converging grind loops that no progress detector can see because they are genuinely
+  busy. P4 run 12 reported the cap only after burning 2x it. The batch lost ~16 of 29
+  lane-hours. Added `_run_with_frame_budget()`, which steps the story generator and enforces
+  the budget every 2048 yields, raising `BotModeError` into the existing derail path. It
+  re-bases when the frame counter goes backwards (the mid-run hard reset), because measuring
+  `now - start_frame` goes negative and silently disables the bound.
+  REPRO: `tools/story-dev/repro_endless_frame_budget.py` (A: FAIL → B: PASS), covering the
+  hang, the livelock, the mid-run reset, non-disturbance of legal runs, and generator close.
+
+**Also observed, logged not fixed**
+- P4 broke the 1:1 losses:whiteouts canary twice (run 1: 39 W vs 38 L; run 8 opens with a
+  whiteout before any loss). Two events in 52 — consistent with a whiteout event crossing a
+  run boundary rather than poison damage. The new per-run reset may already cover it; worth
+  re-checking on the first post-fix batch rather than chasing now.
+- New derail reasons seen: `Cannot hunt a Surf learner: no …` (P1 run 3) and a `global
+  watchdog` derail (P4 run 13).
+
+**Confirmed healthy:** badge records clean in all four lanes again (correct order, no
+duplicates, no gaps), including P4 run 1, which reached the Feather Badge with 6 badges
+despite 38 whiteouts.

@@ -780,3 +780,32 @@ a user ruling.
   **13 times and then went on to reach Fortree**. A cap at 6 would have killed a run that
   recovered. Adding prep instead needs a Route 110 training-grass tile — a game fact that must
   be probed or read from the decomp, never recalled from memory (see the standing directive).
+
+## 2026-07-27 — The per-run frame budget is enforced by stepping the generator, not by a timer
+
+**Decision.** `StoryEndlessResetMode` drives the story generator itself
+(`_run_with_frame_budget`) and checks elapsed frames every 2048 yields, raising
+`BotModeError` into the existing derail path.
+
+**Rejected: keep the post-hoc check and rely on the global watchdog.** The bundle disproves
+it — P3 hung for 27M frames with ZERO STUCK dumps, i.e. the watchdog was itself what wedged,
+which is the exact scenario the frame cap was written for and could not cover.
+
+**Rejected: a wall-clock timer on a background thread.** Frames are the right unit (the batch
+runs unthrottled and speed varies), and a thread cannot safely interrupt a generator mid-yield
+in this framework.
+
+**Rejected: making the STUCK/no-progress detector stricter.** It cannot work for P1/P2, which
+are LIVELOCKS — real encounters, real battles, real healing trips, no story progress. A
+progress detector is blind to a loop that is genuinely busy, by construction.
+
+**Why stepping is safe.** `modules/main.py` advances bot modes with a bare
+`next(context.controller_stack[-1])` and discards the yielded value, so there are no `send()`
+values to lose and yielding `None` is equivalent. `close()` is forwarded in a `finally`.
+
+**The detail that would have silently disabled it.** The hard reset happens INSIDE the run and
+`get_frame_count()` restarts with the emulator, so the counter legitimately goes backwards.
+Measuring `now - start_frame` yields a negative number, nothing is ever over budget, and the
+bound is inert — the same trap that had already produced `finished (-959,198 frames)` in an
+earlier bundle. The budget re-bases to 0 when it sees the counter go backwards, and the repro
+covers that case explicitly.

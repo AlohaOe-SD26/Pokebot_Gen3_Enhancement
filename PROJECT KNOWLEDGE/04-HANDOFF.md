@@ -7,9 +7,28 @@
 
 ---
 
-# ‼ START HERE — 2026-07-26/27
+# ‼ START HERE — 2026-07-27
 
-## 0. THE LOG BUNDLE ARRIVED AND WAS REVIEWED — read this before anything else
+## 0a. ‼‼ THE FIXES ARE NOT IN THE COPY THE BOT ACTUALLY RUNS — THIS BLOCKS EVERYTHING
+
+**The repo you are editing is not the repo that runs.** This checkout is
+`C:\Remote Projects\Pokebot_Gen3_Enhancement`. The bot runs from
+
+    C:\Users\Ripto\OneDrive\Documents\Pokebot Gen 3 SECOND RUNNING PROFILE\
+        Pokebot_Gen3_Enhancement_old\sandbox-pokebot\
+
+(seen in every lane's stdout header and debug-log path). The 2026-07-26/27 fixes are
+committed and pushed HERE, and the `20260727-063751` batch — launched from THERE — still ran
+the old code: runs 4+ `finished (0 frames)`, `run_index` stride still 2.
+
+**Before any further batch is meaningful, that copy must be updated** (`git pull` there, or
+whatever sync the user prefers — ASK, do not assume; it is the user's machine layout and may
+be deliberate). Until then every bundle will re-report the same three fixed bugs, and no fix
+can be validated. **Say this to the user explicitly and early — do not bury it in an
+analysis.** Two consecutive bundles have now been reviewed against code that was never
+running.
+
+## 0b. THE LOG BUNDLES REVIEWED SO FAR
 
 The user delivered `P1 - P4 x4 LOGs 20260726-231412.zip` and it has been fully analysed.
 **Verdict: the batch was producing almost no usable data while reporting most runs as
@@ -42,7 +61,23 @@ successes.** Two catastrophic bugs, both now FIXED in sandbox with A/B repros:
 - `#24-route110cap` — that rival gets no prep and no attempt cap. But a naive cap would have
   KILLED the P2 run that recovered after those 13 losses. Needs data, not a guess.
 
-**‼ NEXT ACTION: run a fresh x4 batch.** Every conclusion about where runs *really* die is
+### The SECOND bundle, `20260727-063751` (reviewed 2026-07-27) — pre-fix data + one new bug
+
+Ran the OLD code (see §0a). Re-confirmed all three bugs above. NEW finding, now fixed:
+
+4. **`MAX_FRAMES_PER_RUN` could not stop a runaway run** — it was checked only AFTER
+   `super().run()` returned, so a run that never returns never reached it. Three of four
+   lanes spent the night inside ONE run: **P3 hung 27M frames / ~6.5 h** at the Weather
+   Institute (`controllable=False`, frozen position, and ZERO STUCK dumps — the global
+   watchdog was itself what wedged); P1 19.9M and P2 13.4M frames in grind loops that are
+   genuinely BUSY, so no progress detector can see them. ~16 of 29 lane-hours lost.
+   → `_run_with_frame_budget()` enforces the budget every 2048 yields from inside the run.
+   `repro_endless_frame_budget.py`.
+
+Still-open items it raised (`#24-weatherinstitute-hang`, `#24-grindconverge`, `#24-canary11`)
+are in the punch list; all three want the first post-fix batch before more effort.
+
+**‼ NEXT ACTION: sync the running copy (§0a), THEN run a fresh x4 batch.** Every conclusion about where runs *really* die is
 now suspect, because runs 4+ never happened and derail reasons were poisoned by leaked
 defeat counts. The previously-ranked feature list (`#24-provisions` etc., §4 below) is
 DEFERRED until a clean batch exists — building on this data would be measuring noise.
@@ -191,10 +226,13 @@ a box without the bot installed — that is expected, not a regression.
 
 ---
 
-### ⭐ YOU ARE HERE — 2026-07-26 (late) — FIRST TWO x4 BATCHES REVIEWED; HARNESS BUGS FIXED; A CLEAN BATCH IS OWED
+### ⭐ YOU ARE HERE — 2026-07-27 — THREE BATCHES REVIEWED, FOUR HARNESS BUGS FIXED, NONE YET VALIDATED LIVE
 
-**State right now.** `#24-x4` Phase 1 is built and has now been run live TWICE by the user.
-Both batches were reviewed. The second review (`20260726-231412`) found that the instrument
+**State right now.** `#24-x4` Phase 1 is built and has been run live by the user; three
+bundles have now been reviewed (`20260726-201838`, `20260726-231412`, `20260727-063751`).
+‼ **None of them ran the fixed code** — see §0a, the running copy is a different directory
+and has not been synced. Four harness bugs are fixed and repro-proven here; ZERO are
+validated live. The second review (`20260726-231412`) found that the instrument
 itself was broken in two ways that made its output actively misleading — per-run state leaked
 across runs so **runs 4+ never really played**, and failed runs were labelled `finished`.
 Both are FIXED in sandbox with A/B repros (see §0 at the top of this file; suite is 45/0/6

@@ -126,10 +126,15 @@ src = (SANDBOX / "plugins" / "custom_modes" / "story_mode.py").read_text(encodin
 loop = src[src.index("class StoryEndlessResetMode"):]
 check("self.reset_per_run_state()" in loop,
       "StoryEndlessResetMode calls reset_per_run_state()")
-i_reset = loop.index("self.reset_per_run_state()")
-i_super = loop.index("yield from super().run()")
-check(i_reset < i_super, "the reset happens BEFORE the run, not after it")
-i_while = loop.index("while target == 0 or completed < target:")
+# ‼ Scope to the body of `run()` before looking for these. Anchoring on bare text over the
+# whole class made this repro fail on an unrelated (and correct) change: it matched
+# `super().run()` inside `_run_with_frame_budget`'s DOCSTRING, which is defined above `run`.
+# Assert the ordering property, not the call syntax.
+runbody = loop[loop.index("\n    def run(self):"):]
+i_reset = runbody.index("self.reset_per_run_state()")
+i_drive = runbody.index("_run_with_frame_budget")
+check(i_reset < i_drive, "the reset happens BEFORE the run is driven, not after it")
+i_while = runbody.index("while target == 0 or completed < target:")
 check(i_while < i_reset, "and INSIDE the per-run loop, not once before it")
 
 print("\n== a run that hands itself to Manual is not reported as 'finished' ==")

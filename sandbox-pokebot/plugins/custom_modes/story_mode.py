@@ -2859,6 +2859,73 @@ class StoryEndlessResetMode(StoryDebugResetMode):
     def name() -> str:
         return "Story (ENDLESS RESET)"
 
+    #: How often (in yields ~= frames) to re-check the per-run frame budget. The check is a
+    #: single memory read; sampling keeps it free even at unthrottled speed.
+    BUDGET_CHECK_INTERVAL = 2048
+
+    def _run_with_frame_budget(self, inner, start_frame: int):
+        """Drive the story generator, ENFORCING `MAX_FRAMES_PER_RUN` while it runs.
+
+        ‼ WHY THIS EXISTS (user's x4 bundle `20260727-063751`). `MAX_FRAMES_PER_RUN` was
+        only evaluated AFTER `super().run()` returned, so it could report a runaway run but
+        never stop one — despite its own docstring promising "a run that neither finishes
+        nor raises cannot hold the batch forever". In that bundle three of four lanes did
+        exactly that, and the batch lost more than half its wall-clock to them:
+
+          * P3 run 1 — HARD HUNG at the Weather Institute: `state=3 controllable=False`,
+            position frozen at ROUTE 119(32,1) (10, 10), for **27 million frames / ~6.5 h**.
+            Not one STUCK dump fired in that whole stretch, so the global watchdog never
+            saw it either — the watchdog is exactly what wedged.
+          * P1 run 7 — 19.9M frames spinning Route 103 and healing at Oldale, forever.
+          * P2 run 35 — 13.4M frames doing the same on Route 116.
+            (P1/P2 are LIVELOCKS, not hangs: they generate real encounters and battles, so
+            no "no progress" detector can ever fire. Only a budget catches them.)
+
+        P4 run 12 shows the old behaviour's other half: it did report `frame-cap
+        (7,545,828 > 3,500,000)` — after burning more than twice the cap.
+
+        The framework advances bot-mode generators with a bare `next()` (`modules/main.py`
+        drives `context.controller_stack`), so stepping `inner` by hand is safe; there are
+        no `send()` values to lose. `close()` is forwarded in a `finally` so a parked batch
+        still unwinds the story generator cleanly.
+        """
+        from modules.modes import BotModeError
+
+        budget_base = start_frame
+        ticks = 0
+        try:
+            while True:
+                try:
+                    next(inner)
+                except StopIteration:
+                    return
+                yield
+                ticks += 1
+                if ticks % self.BUDGET_CHECK_INTERVAL:
+                    continue
+                try:
+                    now = context.emulator.get_frame_count()
+                except Exception:
+                    continue
+                # The hard reset happens INSIDE the run, and `get_frame_count()` restarts
+                # with the emulator — so the counter legitimately goes backwards early on.
+                # Re-base instead of measuring a negative elapsed (the same trap that made
+                # the old post-hoc cap silently unenforceable after a mid-run reset).
+                if now < budget_base:
+                    budget_base = 0
+                elapsed = now - budget_base
+                if elapsed > self.MAX_FRAMES_PER_RUN:
+                    raise BotModeError(
+                        f"per-run frame budget exhausted ({elapsed:,} > "
+                        f"{self.MAX_FRAMES_PER_RUN:,}) — the run is wedged or looping; "
+                        "resetting to the next run"
+                    )
+        finally:
+            try:
+                inner.close()
+            except Exception:  # noqa: BLE001
+                pass
+
     def run(self):
         from modules.console import console
         from modules.modes import BotModeError
@@ -2935,7 +3002,7 @@ class StoryEndlessResetMode(StoryDebugResetMode):
             outcome = "finished"
             try:
                 # The parent does the hard reset + NEW GAME, then hands to StoryMode.run().
-                yield from super().run()
+                yield from self._run_with_frame_budget(super().run(), start_frame)
             except BotModeError as exc:
                 outcome = f"derailed: {exc}"  # EXPECTED — never ends the batch
             except Exception as exc:  # noqa: BLE001

@@ -33,6 +33,34 @@ reporting most runs as successes. Both root causes are fixed in sandbox with A/B
       main.py's frame-counter fallback stand down.
       REPRO: `tools/story-dev/repro_badgelog_run_index.py`.
 
+### ‼ BATCH REVIEW 2026-07-27 (bundle `20260727-063751`) — PRE-FIX DATA + a new failsafe hole
+That batch launched before the fixes above existed, from a working copy that had not been
+pulled, so it re-confirms them rather than testing them. It did expose one NEW bug:
+
+- [x] `#24-x4-framebudget` — **the per-run frame cap could not stop a runaway run.** DONE
+      2026-07-27. `MAX_FRAMES_PER_RUN` was only checked AFTER `super().run()` returned, so a
+      run that never returns never reached it. Three of four lanes spent the night in ONE
+      run — P3 hung **27M frames / ~6.5 h** at the Weather Institute (`controllable=False`,
+      frozen position, and ZERO STUCK dumps, i.e. the global watchdog was itself what
+      wedged); P1 19.9M and P2 13.4M frames in grind loops that are genuinely BUSY, so no
+      progress detector can ever see them. ~16 of 29 lane-hours lost. P4 run 12 reported the
+      cap after burning 2x it. FIX: `_run_with_frame_budget()` enforces the budget every
+      2048 yields from inside the run, re-basing when the frame counter goes backwards at
+      the mid-run hard reset. REPRO: `tools/story-dev/repro_endless_frame_budget.py`.
+- [ ] `#24-weatherinstitute-hang` — the specific hang P3 hit: `do_weather_institute` →
+      `_ride_out_all_scenes` (`early_game.py:5548`), then `state=3 controllable=False` for
+      27M frames. The frame budget now BOUNDS it (the run derails and the batch continues),
+      but the underlying scene wait is still wrong. Needs the first post-fix batch to see
+      whether it recurs and how often before spending time on it.
+- [ ] `#24-grindconverge` — P1/P2 ground for 13-20M frames without reaching a level floor
+      (Route 103 wilds are L2-3; Route 116 L6-7). A training target that the local grass
+      cannot deliver in reasonable time should be detected and abandoned, not pursued
+      forever. Related to `#24-route110cap`: both are "the bot will not give up" bugs.
+- [ ] `#24-canary11` — P4 broke the 1:1 losses:whiteouts ratio twice (run 1: 39 W vs 38 L;
+      run 8 opens with a whiteout before any loss). Two events in 52. Most consistent with a
+      whiteout crossing a run boundary rather than poison damage; the new per-run reset may
+      already cover it. RE-CHECK on the first post-fix batch before investigating.
+
 **STILL OPEN from the same review — design calls, NOT yet built (need the user's ruling):**
 - [ ] `#24-leadpolicy` — **the matchup lead is purely defensive and benches the winner.**
       `_lead_best_matchup` (`early_game.py:1587`) picks `min(incoming_multiplier, -level)` —
