@@ -133,3 +133,64 @@ mon and retry.
   Hamiltonian ice). None is solvable by a distance heuristic. That is one shared capability
   worth building once rather than three times — and it is the same machinery the
   "meandering pathing" work must not break.
+
+---
+
+## 4. SECOND-PASS FINDINGS (2026-07-26, later agents) — corrections and gaps
+
+### 4.1 ‼ CORRECTION to §3's Sootopolis ice claim
+I wrote that a fall could leave a section **unsolvable**. It cannot.
+`ClearTempFieldEventData()` wipes temp **vars** as well as flags and runs on *every* warp, and
+`OnTransition` hard-sets `VAR_ICE_STEP_COUNT = 1`. So a fall wipes **everything**, including
+the already-opened stairs. All 64 tiles must be done in **one unbroken visit** — failure is
+expensive, never a wedge.
+
+### 4.2 ‼ Sky Pillar has NO cracked floors and NO Mach Bike in the story
+Every floor swaps to a `_Clean` layout below `VAR_SKY_PILLAR_STATE 2`
+(`SkyPillar_2F/scripts.inc:6-16`). The hazard run is the POST-GAME Rayquaza capture only.
+Two places in our own docs/code said otherwise and are now fixed.
+
+### 4.3 ‼ Ch21's completion milestone could never fire (FIXED)
+`chapters.py` used `flag("DEFEATED_RAYQUAZA")`, set only inside `TryShowRayquaza`, gated on
+`VAR_SKY_PILLAR_STATE >= 2` — the post-game catchable Rayquaza. The story Rayquaza is roused
+in a cutscene and flies off; it is never battled. Changed to `RECEIVED_HM_WATERFALL`.
+Scope: `chapters.py` feeds `progress.py` **reporting** only, so this was a reporting defect,
+not a dispatch deadlock — but a wrong "current chapter" misleads every log review.
+
+### 4.4 Seafloor Cavern boulders RESET on re-entry
+`LoadObjEventTemplatesFromHeader()` re-copies from the map header on every warp-in, and
+nothing ever writes boulder coords back. So a sokoban solver is needed, but a **perfect** one
+is not — exit and re-enter is a sound recovery. Room 8 is the hard one (12 boulders).
+Rooms 6 and 7 are **water-current mazes**, which is a different problem again.
+
+### 4.5 Magma Hideout is MANDATORY, not optional
+`MagmaHideout_4F/scripts.inc:61-63` is the ONLY setter of `VAR_SLATEPORT_HARBOR_STATE, 1`,
+which arms the Slateport sub-theft, which unblocks the Aqua Hideout stairs. Skip it and the
+whole rest of the game is unreachable. Jagged Pass has **zero map connections** — warp-only.
+
+### 4.6 Space Center multi battle — corrects §3
+It is **1-3 Pokémon, not exactly 3** (`GetMinBattleEntries()` = 1). ‼ And
+`GetBattleEntryEligibility` rejects eggs and over-cap mons but **does NOT check HP** — a
+fainted mon is selectable, which is an instant whiteout. The bot must filter on HP itself.
+Cancelling the menu loops the prompt forever. On a **loss the party is restored** before the
+whiteout, so a retry is safe.
+
+### 4.7 Kyogre and Rayquaza are NOT battles in the story
+No `setwildbattle` in `SeafloorCavern_Room9/scripts.inc`; Kyogre flees. Rayquaza is roused in
+a cutscene. Neither is catchable during the story.
+
+### 4.8 ‼ Dive is invisible to our reachability layer
+`region_reach.py` excludes Dive/Emerge edges, `KNOWN_GATES` has no Dive entry, and
+`capabilities.py` models only Surf + Rock Smash. Since `SootopolisCity` has **zero map
+connections** and no inbound warp, **Sootopolis, its gym and the Cave of Origin are
+unreachable nodes in the graph** — the same false-negative class the Victory Road entry was
+added to fix. Dive spots are also NOT warp events: they are `MB_DEEP_WATER` metatiles, so the
+bot must find them by **scanning tile behaviours**, not the warp table.
+
+### 4.9 ‼ The biggest documentation gap: teaching HMs
+The design doc has an acquisition row for all 8 HMs and **no section anywhere** on teaching
+one to a party member, or on HM-slave party planning. Every HM above is unusable without it.
+
+### 4.10 Sootopolis is the only true island
+Zero map connections; entry by `setdivewarp` only. Exit needs Dive or Fly. A bot that boxes
+its Dive carrier there is stranded — which is why HM carriers are on the never-randomise list.
