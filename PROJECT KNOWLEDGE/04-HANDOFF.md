@@ -3,16 +3,67 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-07-27 (SESSION WRAP — machine handover; see "START HERE" below)
+**Last updated:** 2026-07-26 (x4 batch `20260726-231412` reviewed; two catastrophic endless-loop bugs found & FIXED — see "START HERE")
 
 ---
 
-# ‼ START HERE — machine handover, 2026-07-27
+# ‼ START HERE — 2026-07-26/27
 
-You are resuming on a different computer with no prior chat context. Everything below is
-current. `main` is clean and pushed at `d967b44b`.
+## 0. THE LOG BUNDLE ARRIVED AND WAS REVIEWED — read this before anything else
 
-## 1. THE FIRST THING THAT WILL HAPPEN: a log bundle arrives
+The user delivered `P1 - P4 x4 LOGs 20260726-231412.zip` and it has been fully analysed.
+**Verdict: the batch was producing almost no usable data while reporting most runs as
+successes.** Two catastrophic bugs, both now FIXED in sandbox with A/B repros:
+
+1. **Per-run state was never reset between runs.** The endless loop reuses ONE mode object,
+   so `StoryMode.__init__` ran once per BATCH — under a comment claiming the opposite.
+   `_rival_attempts` (cap 3) tripped on run 4 in every lane, so **runs 4+ quit at the
+   Rustboro rival without fighting it**: 16/20 P1, 6/9 P2, 5/8 P3. P1 run 8's debug log has
+   ZERO lost battles yet reports "couldn't beat the rival in 3 tries". `_defeat_counts`
+   leaked too, so boss give-up thresholds fired on borrowed losses.
+   → `StoryMode.reset_per_run_state()`, called per run. `repro_endless_per_run_state.py`.
+2. **Failed runs were labelled "finished".** `outcome` defaulted to success and only a raised
+   `BotModeError` changed it; a derail that calls `set_manual_mode()` returns normally. Any
+   summary of that batch reads ~80% success against a true ~20%.
+   → `try/except/else` reporting `stopped:`. Same repro.
+3. Also fixed: **`run_index` still advanced by 2 per run** (1,3,5…37 over 19 runs). The old
+   adjacency dedupe could never fire; replaced with ownership
+   (`reset_for_new_run(..., authoritative=True)`). `repro_badgelog_run_index.py`.
+
+**Confirmed healthy — do not re-investigate:** badge recording is clean in all four lanes
+(correct gym order, no duplicates, no gaps), and losses:whiteouts held at exactly **1:1**.
+
+**Two items were deliberately NOT fixed — they need the USER'S RULING** (see punch list):
+- `#24-leadpolicy` — `_lead_best_matchup` is purely defensive (`min(incoming, -level)`); it
+  benches the only mon that can win. P2 led **Whismur L15** into the Route 110 rival **13
+  times** with **Marshtomp L24** in slot 2. ‼ This is NOT the old `train_team` lead-restore
+  bug — that fix is intact and its repro still passes; the matchup call runs afterwards and
+  overrides it. A matching signature is a hypothesis, not a diagnosis.
+- `#24-route110cap` — that rival gets no prep and no attempt cap. But a naive cap would have
+  KILLED the P2 run that recovered after those 13 losses. Needs data, not a guess.
+
+**‼ NEXT ACTION: run a fresh x4 batch.** Every conclusion about where runs *really* die is
+now suspect, because runs 4+ never happened and derail reasons were poisoned by leaked
+defeat counts. The previously-ranked feature list (`#24-provisions` etc., §4 below) is
+DEFERRED until a clean batch exists — building on this data would be measuring noise.
+
+## 0b. ‼ RUNNING THE TESTS ON THIS MACHINE — use `py -3.12`, not `python`
+
+The repro suite did not run here at all: `confz`/`ruamel.yaml`/`rich`/`numpy` were missing and
+the default `python` is **3.9** (unsupported; the project wants 3.11–3.13). Deps are now
+installed into **Python 3.12**. Run repros as:
+
+```
+py -3.12 tools/story-dev/repro_<name>.py        # from the repo root
+```
+
+Current suite state: **45 pass, 0 fail, 6 environmental** (need a real mgba, or pre-existing
+harness issues: `repro_boss_training`, `repro_double_faint`, `repro_navigate_failfast`,
+`repro_smashrock_battle_wedge`, `repro_sufficiency`; plus `repro_x4_lanes`, which SPAWNS REAL
+LANE PROCESSES — skip it unless you mean it). The old claim of "13 emulator-free repros"
+undercounts by a lot.
+
+## 1. HOW TO REVIEW THE NEXT LOG BUNDLE
 
 The user is running an ENDLESS LOOP x4 batch overnight and will hand you a zip named
 `P1 - P4 x4 LOGs <date> <time>.zip`. **Review it before anything else.** Procedure that works
@@ -28,26 +79,43 @@ cat MANIFEST.txt          # lanes, starters, per-lane badge tallies
 #    stdout has: whiteouts ("recovered from the whiteout"), "lost a battle at map (g, n)",
 #                "derail #N", "starting run", "-> derailed:"/"finished"
 #    debug log has: "BattleOutcome.<X>", [MAP], [PARTY], [BATTLE], STUCK dumps
-#    resolve map ids via modules.map_data.MapRSE((group, number)).name
 
 # 3. badge-log.json is CUMULATIVE and never archived — split records by `earned_at`
 #    against the batch start time, or you will read old pre-fix data as new.
 #    Group by `run_index` (NOT run_started_frame, which is unreliable).
 ```
 
+**‼ FIVE TRAPS, ALL HIT FOR REAL ON 2026-07-26. Do not re-learn these:**
+- **A bundle can span SEVERAL app launches.** `20260726-231412` held three (18:55, 20:30,
+  21:08). The 18:55 stdout was ALREADY-REVIEWED pre-fix data left behind because only debug
+  logs get archived, not stdout. **Segment by launch before concluding anything**, or you
+  will attribute old failures to new code.
+- **`MapRSE` and `MapFRLG` share (group, number) keys.** Parsing `map_data.py` without
+  scoping to the `MapRSE` class silently yields KANTO names — `(8,1)` reads as
+  `LAVENDER_TOWN_POKEMON_CENTER_2F` when it is `PETALBURG_CITY_GYM`. If a Hoenn run appears
+  to be in Celadon, that is this bug.
+- **"finished" did NOT mean finished** before this session's fix. In older bundles, treat
+  every `finished` as unknown and confirm from the run's last `[STEP]` in the debug log.
+- **Run outcome ≠ run progress.** The fastest way to see where a run really ended is the last
+  non-`Encounter` `[STEP]` line per debug log. Sixteen P1 runs all ended on the identical
+  step, which is what exposed the bug — a per-run outcome tally showed nothing.
+- **Look for RUN-INDEX-shaped patterns, not just lane-shaped ones.** The failure was "every
+  lane dies from run 4 onward", invisible in any per-lane aggregate.
+
 **What to look for, in priority order:**
-1. **Did the lead-restore fix hold?** The bug: `train_team` left the WEAKEST mon leading, so
-   the bot opened trainer ambushes with it. Signature was P2 in batch `20260726-201838`: 19
-   losses and 44 whiteouts **all at one tile**, ROUTE 110 (34,56), same party every time,
-   lead Dustox L13 with a Marshtomp L21 in slot 2. **If any lane shows repeated losses at a
-   single fixed tile, the fix did not hold — that is the headline.**
-2. **Badge records sane?** Post-fix runs must show correct gym order, no duplicates, no
-   badge appearing before its predecessors. Pre-fix data had Stone x10 in a single run.
-3. **Where are runs dying now?** Last batch shifted from route attrition to GYM LEADERS
-   (Mauville/Wattson x7 on three lanes, Petalburg/Norman x8 on P1).
-4. **The 1:1 canary.** losses:whiteouts was EXACTLY 1:1 in every lane (27/27, 43/44, 10/10,
-   12/12) because no potion layer exists. If the ratio rises above 1.0, something is causing
-   whiteouts with no battle logged (poison steps are the usual cause).
+1. **Do runs 4+ still play?** The 2026-07-26 bug killed every run after the third in all
+   three lanes that got that far. Count runs per lane and check the LAST STORY STEP of each;
+   if late runs cluster on one step, per-run state is leaking again.
+2. **Are outcomes honest?** Cross-check every `finished` against the run's real ending. A run
+   reported `finished (0 frames)` did not finish.
+3. **Badge records sane?** Correct gym order, no duplicates, no badge before its predecessors,
+   and `run_index` advancing by ONE per run (it advanced by two until 2026-07-26).
+4. **The 1:1 canary.** losses:whiteouts was EXACTLY 1:1 in every lane across two batches,
+   because no potion layer exists. Above 1.0 means whiteouts with no battle logged (poison
+   steps are the usual cause).
+5. **Repeated losses at one fixed tile** — still worth checking, but read the lead-selection
+   logic before calling it a regression. In `20260726-231412` the signature matched the old
+   `train_team` bug exactly and was a DIFFERENT cause (`_lead_best_matchup`, see §0).
 
 ## 2. WHAT WAS BUILT AND IS LIVE (sandbox only; custom-pokebot untouched)
 
@@ -83,6 +151,13 @@ a box without the bot installed — that is expected, not a regression.
 
 ## 4. NEXT ITEMS, RANKED (all specced, none built)
 
+> ‼ **THIS RANKING IS DEFERRED as of 2026-07-26.** It was derived from batch data in which
+> runs 4+ never happened and derail reasons were poisoned by leaked defeat counts (see §0).
+> Item 5 in particular ("45 of the derails were the counter chain") is not trustworthy —
+> some of those derails fired on borrowed losses from earlier runs.
+> **Re-rank after a clean x4 batch on the fixed code.** The two ruling-needed items,
+> `#24-leadpolicy` and `#24-route110cap`, come first if the user rules on them.
+
 1. **`#24-provisions`** — healing items. Highest value: losses:whiteouts is 1:1, so EVERY
    loss becomes a full whiteout. `buy_in_shop()` is already item-generic and money-gated;
    the in-battle seam is one insertion at `battle_strategies/default.py:172`. Mostly policy.
@@ -116,7 +191,25 @@ a box without the bot installed — that is expected, not a regression.
 
 ---
 
-### ⭐ YOU ARE HERE — 2026-07-26 — ENDLESS LOOP ×4, PHASE 1 BUILT (sandbox), LIVE RUN OWED
+### ⭐ YOU ARE HERE — 2026-07-26 (late) — FIRST TWO x4 BATCHES REVIEWED; HARNESS BUGS FIXED; A CLEAN BATCH IS OWED
+
+**State right now.** `#24-x4` Phase 1 is built and has now been run live TWICE by the user.
+Both batches were reviewed. The second review (`20260726-231412`) found that the instrument
+itself was broken in two ways that made its output actively misleading — per-run state leaked
+across runs so **runs 4+ never really played**, and failed runs were labelled `finished`.
+Both are FIXED in sandbox with A/B repros (see §0 at the top of this file; suite is 45/0/6
+under `py -3.12`). `custom-pokebot` and the upstream mirror are untouched.
+
+**What is owed.** A fresh x4 batch on the fixed code. Until that exists, every claim about
+*where* runs die — including the ranked feature list in §4 — is built on data where three
+quarters of the runs were phantoms. Two design questions (`#24-leadpolicy`,
+`#24-route110cap`) are written up with evidence and are waiting on the user's ruling; they
+were deliberately not fixed on a guess, because in both cases the obvious fix is measurably
+wrong at least some of the time.
+
+**Older context for the feature itself follows.**
+
+### ENDLESS LOOP ×4, PHASE 1 (built 2026-07-26)
 
 **What it is.** `#24-x4`: a new `Emulator ▸ Endless Loop ×4…` command in the dashboard's
 bot-mode popup launches FOUR independent `Story (ENDLESS RESET)` bots — one process,

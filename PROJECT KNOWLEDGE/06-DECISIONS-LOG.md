@@ -725,3 +725,58 @@ lanes as replicates — that is just admitting the feature does not do what it c
 **Accepted cost.** Cold-start runs are no longer bit-reproducible by default. This is the
 right default for a sampler, and the env var restores determinism for bug reproduction; no
 existing `repro_*.py` is affected, as they all load save states rather than running the intro.
+
+## 2026-07-26 — Per-run state gets an explicit reset method, not a fresh object
+
+**Decision.** Keep the endless loop reusing ONE mode instance, and give `StoryMode` an
+explicit `reset_per_run_state()` that the loop calls at every run boundary.
+
+**Rejected: construct a fresh `StoryMode` per run.** It is the more obviously-correct
+lifetime, but the endless mode IS the mode object the bot framework holds — it is registered,
+its `run()` is the generator being driven, and `on_battle_ended` / `on_whiteout` are dispatched
+to it. Swapping the instance mid-batch would mean re-registering listeners and re-entering the
+framework's mode machinery on every run, which is a far larger blast radius than the bug.
+
+**Rejected: move the counters to module globals cleared by the loop.** Same clearing problem,
+plus it would break the x4 batch, where four lanes share a process only by accident of
+imports today but must never share counters.
+
+**Why explicit-and-named beats implicit.** The failure was not that the state was in the wrong
+place — it was that `__init__` was silently assumed to be the run boundary, and a comment said
+so where no code enforced it. A method whose name IS the lifetime ("per run") makes the next
+counter's correct home unambiguous, and gives the repro something to assert against.
+
+## 2026-07-26 — `run_index` dedupe by ownership, not by adjacency
+
+**Decision.** `reset_for_new_run(..., authoritative=True)` lets a mode that knows its own run
+boundaries permanently disable `modules/main.py`'s frame-counter heuristic for that process.
+
+**Rejected: adjacency ("no poll since the last reset").** This was the PREVIOUS fix and it
+could never fire — the mode signals before `super().run()` and the hard reset happens inside
+it, so thousands of polls always separate the two calls. Retained only for the
+non-authoritative path, where two detections with nothing played between them genuinely are
+one boundary (`repro_badge_transient.py` encodes that contract).
+
+**Rejected: dedupe on frame distance.** Actively wrong — `get_frame_count()` resets with the
+emulator, so every run starts near 0 and an entire batch would collapse into one run.
+
+**Rejected: dedupe on wall clock.** Works in production, untestable without sleeping.
+
+**Principle.** When two components both detect the same event, the one with real knowledge
+should claim ownership and silence the heuristic — rather than both guessing and a filter
+trying to spot the duplicate after the fact.
+
+## 2026-07-26 — Lead policy and the Route 110 rival cap are NOT fixed autonomously
+
+**Decision.** Log `#24-leadpolicy` and `#24-route110cap` with full evidence and leave them for
+a user ruling.
+
+**Why.** Both are genuine design tradeoffs, not defects with a correct answer:
+- The matchup lead benching a stronger mon is sometimes exactly right (Marshtomp is 4× weak
+  to the rival's Grovyle; leading it really would feed a sweep). "Also require an attacking
+  option" is a policy change to how the bot plays, and the project's standing rule is that
+  research/agents enumerate what to check and never decide what the bot should DO.
+- A cap on the Route 110 rival looks obviously right until you check the data: P2 lost there
+  **13 times and then went on to reach Fortree**. A cap at 6 would have killed a run that
+  recovered. Adding prep instead needs a Route 110 training-grass tile — a game fact that must
+  be probed or read from the decomp, never recalled from memory (see the standing directive).

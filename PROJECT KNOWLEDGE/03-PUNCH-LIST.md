@@ -5,6 +5,56 @@
 > Full future-idea catalog: `09-FEATURE-BRAINSTORM.md`.
 
 ## Now (active focus)
+
+### ‼ BATCH REVIEW 2026-07-26 (bundle `20260726-231412`) — two catastrophic bugs found & FIXED
+The x4 bundle showed the batch was **silently producing almost no usable data**, while
+reporting most runs as successes. Both root causes are fixed in sandbox with A/B repros.
+
+- [x] `#24-x4-staleslate` — **per-run state never reset between runs.** DONE 2026-07-26.
+      `StoryEndlessResetMode.run()` loops on the SAME mode object, so `StoryMode.__init__`
+      ran once per BATCH — under a comment asserting the opposite. Measured effects:
+      `_rival_attempts` (cap 3) tripped on run 4 in every lane, so **runs 4+ quit at the
+      Rustboro rival without fighting** (16/20 P1, 6/9 P2, 5/8 P3 — P1 run 8's log has ZERO
+      lost battles yet reports "couldn't beat the rival in 3 tries"); `_defeat_counts`
+      carried losses across runs (MT_CHIMNEY #7→#8, FORTREE #8→#9), so boss give-up
+      thresholds fired on borrowed defeats — P4 run 2 derailed as "6 losses" after 3.
+      FIX: `StoryMode.reset_per_run_state()`, called per run by the endless loop.
+      REPRO: `tools/story-dev/repro_endless_per_run_state.py` (A: FAIL on HEAD → B: PASS).
+- [x] `#24-x4-honestoutcome` — **failed runs reported as "finished".** DONE 2026-07-26.
+      `outcome` defaulted to `"finished"`; only a raised `BotModeError` changed it, but a
+      derail can instead call `set_manual_mode()` and return normally. All 16 P1 "finished"
+      runs were dead (several "finished (0 frames)"). A batch summary read ~80% success
+      against a true ~20%. FIX: a `try/except/else` that detects the hand-to-Manual exit and
+      reports `stopped:`. Covered by the same repro.
+- [x] `#24-x4-runindex` — **`run_index` still advanced by 2 per run.** DONE 2026-07-26.
+      The previous adjacency-based dedupe could never work: the mode signals BEFORE
+      `super().run()` while the hard reset happens INSIDE it, so thousands of polls separate
+      the two calls. FIX: ownership — `reset_for_new_run(..., authoritative=True)` makes
+      main.py's frame-counter fallback stand down.
+      REPRO: `tools/story-dev/repro_badgelog_run_index.py`.
+
+**STILL OPEN from the same review — design calls, NOT yet built (need the user's ruling):**
+- [ ] `#24-leadpolicy` — **the matchup lead is purely defensive and benches the winner.**
+      `_lead_best_matchup` (`early_game.py:1587`) picks `min(incoming_multiplier, -level)` —
+      it models only the foe ace's STAB types, and ignores whether the chosen lead can deal
+      damage or survive a level gap. Verified to reproduce every observed lead exactly:
+      P2 led **Whismur L15** into the Route 110 rival **13 times** while **Marshtomp L24**
+      sat in slot 2 (Marshtomp is 4× weak to the Grovyle, so it is correctly excluded — but
+      Whismur cannot win either). P4 led **Shedinja L20** vs Norman (Normal→Ghost = 0×, a
+      genuinely clever Wonder Guard read) and lost to Slaking's **Faint Attack (Dark)**,
+      which the model cannot see because it does not read movepools.
+      ‼ This is NOT the old `train_team` lead-restore bug — that fix is intact and its repro
+      still passes; the matchup call simply runs afterwards and overrides it.
+      OPTIONS (user's call): (a) require the lead to also have a ≥neutral attacking option;
+      (b) weight the level gap so a resistant chaff mon can't bench a much stronger one;
+      (c) special-case 1-HP Wonder Guard mons; (d) leave as-is and fix via provisions.
+- [ ] `#24-route110cap` — **the Route 110 rival gets no prep and no cap.** Unlike every other
+      boss it calls neither `_prepare_for_fight` (no proactive band training, no reactive
+      escalation) nor an attempt cap, so P2 burned **13 whiteouts** there in one run.
+      ‼ DELIBERATELY NOT FIXED BLIND: a naive cap would have KILLED that run, which went on
+      to reach Fortree after those 13 losses. Adding prep needs a Route 110 training-grass
+      tile, which is a game fact that must be verified (live probe / decomp), not recalled.
+
 - [ ] **#24 — STORY AUTO-PLAYER.** The only active work. A cold start reaches
       **Badge 6 (Winona) = end of built content** (38 maps, ~2.48M frames, 0 derails).
       Sub-items live in `## Story bot (#24) — open backlog` below; the current order is:

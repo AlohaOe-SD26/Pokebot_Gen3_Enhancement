@@ -788,16 +788,41 @@ class StoryMode(BotMode):
 
     def __init__(self):
         super().__init__()
+        self.reset_per_run_state()
+
+    def reset_per_run_state(self) -> None:
+        """Clear every counter whose meaning is scoped to ONE playthrough.
+
+        ‼ WHY THIS IS A METHOD AND NOT JUST `__init__` (real failure, user's x4 bundle
+        `20260726-231412`). All of this state used to be assigned directly in `__init__`,
+        under a comment that claimed "Instance state, not module state, so ENDLESS RESET's
+        next run starts with a clean slate." **That was false.**
+        `StoryEndlessResetMode.run()` loops `yield from super().run()` on the SAME mode
+        object, so `__init__` runs once per BATCH — the counters accumulated across every
+        run of an overnight batch. Two measured consequences:
+
+          * `_rival_attempts` (cap 3) reached its cap after 3 runs, so **run 4 onward died
+            at the Rustboro rival without ever fighting it** — P1 run 8's debug log contains
+            ZERO `BattleOutcome.Lost` yet the run ended "couldn't beat the Rustboro rival in
+            3 tries". It killed 16 of 20 P1 runs, 6 of 9 P2 runs, 5 of 8 P3 runs.
+          * `_defeat_counts` carried each run's losses into the next, so the "give up on this
+            boss" threshold tripped on borrowed losses: MT_CHIMNEY went `#7`(run 1) → `#8`
+            (run 2), FORTREE_GYM `#8`(run 1) → `#9`(run 3), and P4 run 2 derailed as
+            "6 losses" to Wattson after only THREE real losses that run.
+
+        PREVENTION RULE: per-run state goes in here, never in `__init__`, and the endless
+        loop calls this at the top of every run. A comment asserting a lifetime is not a
+        mechanism that enforces it.
+        """
         # DEFEAT RECOVERY (user directive 2026-07-21). Consecutive losses are counted
         # per LOCATION (map) so repeated faints at the same obstacle mean a power/level
-        # problem → trigger a retrain. These live on the instance and survive whiteout
-        # restarts because run() loops in place (it does NOT bounce through Manual).
+        # problem → trigger a retrain. These survive whiteout restarts within a run,
+        # because run() loops in place (it does NOT bounce through Manual).
         # Training grounds proven unreachable FROM a given standing map, this run
         # (#24-regionreach, 2026-07-25). Keyed (here_map, target_map, tile) because
         # reachability is directional and positional: Route 111's grass is genuinely
         # reachable from Fallarbor and genuinely not from Mauville, so a flat blacklist
-        # would throw away a good area for the rest of the run. Instance state, not
-        # module state, so ENDLESS RESET's next run starts with a clean slate.
+        # would throw away a good area for the rest of the run.
         self._training_unreachable: set = set()
         self._defeat_counts: dict = {}
         self._loss_ko_history: dict = {}  # map key -> [(seq, opponent KOs) per lost attempt]
@@ -806,6 +831,15 @@ class StoryMode(BotMode):
         self._last_defeat_key = None
         self._derails = 0  # consecutive non-whiteout derails (self-correct before Manual)
         self._last_derail_sig = None  # progress fingerprint at the last derail (see run())
+        # Boss/rival attempt caps. These are PER-RUN budgets: a thin team that cannot win
+        # stops cleanly instead of looping forever, but the NEXT run must start fresh.
+        self._rival_attempts = 0
+        # Set only by the genuine end-of-built-content return, so the endless loop can tell
+        # a real completion from a give-up — both hand to Manual and return normally.
+        self._reached_end_of_content = False
+        # Nudge debounce for the Ki15 wedge (see run()); positional, so per-run.
+        self._ki15_nudge_stable = 0
+        self._ki15_nudge_pos = None
         # Organic team-building (user directive 2026-07-21): catch NEW species while
         # travelling to Gym 1 until the party has this many members (starter + helpers).
         self._catch_team_target = 4
@@ -2141,7 +2175,11 @@ class StoryMode(BotMode):
                 return False
 
         if not _rustboro_rival_resolved():
-            self._rival_attempts = getattr(self, "_rival_attempts", 0) + 1
+            # PER-RUN budget — `reset_per_run_state()` zeroes this at every run boundary.
+            # It used to be a `getattr(self, ..., 0) + 1` on state that was only ever
+            # initialised in `__init__`, which is why an endless batch went permanently
+            # over cap on run 4 and never fought this rival again.
+            self._rival_attempts += 1
             if self._rival_attempts > self.RIVAL_MAX_ATTEMPTS:
                 context.message = (
                     f"Story: couldn't beat the Rustboro rival in {self.RIVAL_MAX_ATTEMPTS} tries "
@@ -2682,6 +2720,12 @@ class StoryMode(BotMode):
             "NEXT (WIP): Mt. Pyre and the Magma hideout. Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
+        # ‼ Mark a GENUINE completion. Both this path and the give-up paths call
+        # `set_manual_mode()` and return normally, so the endless loop cannot tell them
+        # apart from the outside — and without this flag it would relabel real successes
+        # as "stopped" (P2 run 1 of bundle `20260726-231412` reached exactly here and
+        # earned the Feather Badge).
+        self._reached_end_of_content = True
         context.set_manual_mode()
         return
 
@@ -2875,9 +2919,19 @@ class StoryEndlessResetMode(StoryDebugResetMode):
             try:
                 from modules import badge_log
 
-                badge_log.reset_for_new_run(start_frame)
+                # `authoritative=True`: this mode KNOWS where its run boundaries are, so
+                # main.py's frame-counter fallback must stand down. Without it both fired
+                # and `run_index` advanced by two per run (1, 3, 5 … 37 across 19 runs).
+                badge_log.reset_for_new_run(start_frame, authoritative=True)
             except Exception:
                 pass
+            # ‼ CLEAN SLATE PER RUN. Every counter scoped to one playthrough is zeroed
+            # here. Without this the batch silently degrades: `_rival_attempts` hit its
+            # cap of 3 after three runs and every later run gave up at the Rustboro rival
+            # WITHOUT FIGHTING (P1: 16 of 20 runs), and `_defeat_counts` carried losses
+            # forward so boss give-up thresholds tripped on borrowed defeats.
+            # See `StoryMode.reset_per_run_state` for the measured evidence.
+            self.reset_per_run_state()
             outcome = "finished"
             try:
                 # The parent does the hard reset + NEW GAME, then hands to StoryMode.run().
@@ -2886,6 +2940,25 @@ class StoryEndlessResetMode(StoryDebugResetMode):
                 outcome = f"derailed: {exc}"  # EXPECTED — never ends the batch
             except Exception as exc:  # noqa: BLE001
                 outcome = f"crashed: {type(exc).__name__}: {exc}"
+            else:
+                # ‼ "finished" MUST MEAN FINISHED (user's x4 bundle `20260726-231412`).
+                # `outcome` defaults to "finished" and only a raised BotModeError changed
+                # it — but a derail deep inside StoryMode can instead call
+                # `context.set_manual_mode()` and `return` normally. Every one of those
+                # was reported as a SUCCESS: all 16 P1 "finished" runs in that bundle were
+                # dead runs, several printed as "finished (0 frames)", and any summary of
+                # the batch read ~80% success against a true ~20%. A run that handed
+                # itself to Manual did not finish — say so.
+                # ‼ The genuine end-of-content return ALSO calls set_manual_mode(), so the
+                # mode flags a real completion explicitly — otherwise this would relabel
+                # true successes as failures, which is the same crime in the other
+                # direction. P2 run 1 of that bundle really did reach the Feather Badge.
+                try:
+                    handed_to_manual = context.bot_mode != self.name()
+                except Exception:
+                    handed_to_manual = False
+                if handed_to_manual and not getattr(self, "_reached_end_of_content", False):
+                    outcome = "stopped: handed to Manual mid-run (see the run's log for why)"
             # ‼ CLAMP. `get_frame_count()` is "frames since this emulation session began" and
             # it RESETS with the emulator, so if a reset happens inside a run this
             # subtraction goes negative — the user's 2026-07-26 20:18 bundle recorded

@@ -73,9 +73,12 @@ _recorded_this_run: set[str] = set()
 _last_poll_frame: int = -1
 _run_started_frame: int = 0
 _run_index: int = 0
+#: Set once a bot mode declares it knows its own run boundaries (see `reset_for_new_run`).
+#: While true, `modules/main.py`'s frame-counter fallback stops incrementing the run index.
+_mode_is_authoritative: bool = False
 
 
-def reset_for_new_run(frame: int = 0) -> None:
+def reset_for_new_run(frame: int = 0, *, authoritative: bool = False) -> None:
     """Called when a fresh playthrough begins, so records can be grouped by run.
 
     ‼ Also clears `_known` and `_recorded_this_run`. The endless mode hard-resets the
@@ -89,23 +92,41 @@ def reset_for_new_run(frame: int = 0) -> None:
     exactly when a run begins and says so.
     """
     global _known, _pending, _recorded_this_run, _run_started_frame, _last_poll_frame, _run_index
+    global _mode_is_authoritative
 
-    # ‼ DEDUPE: this is called TWICE for the same run — `modules/main.py` when the frame
-    # counter goes backwards (the hard reset), and `StoryEndlessResetMode` immediately
-    # afterwards as the authoritative signal. Both callers are wanted, but counting both
-    # made `run_index` advance by two per run: the user's 20:18 bundle shows run_index
-    # 1, 3, 5, 7, 9 and no even numbers.
+    # ‼ DEDUPE BY OWNERSHIP. This is called TWICE for the same run — `modules/main.py`
+    # when the frame counter goes backwards (the hard reset), and `StoryEndlessResetMode`
+    # as the authoritative signal. Counting both made `run_index` advance by two per run.
     #
-    # The signal is "has anything HAPPENED since the last reset?" — `_last_poll_frame` is
-    # set to -1 here and to a real frame by the first poll, so two resets with no poll
-    # between them are one boundary.
+    # The PREVIOUS attempt deduped on "no poll happened between the two calls"
+    # (`_run_index and _last_poll_frame < 0`). It did not work, and the user's
+    # `20260726-231412` bundle proves it: run_index still ran 1, 3, 5 … 37 across P1's
+    # 19 runs — exactly 2 per run. The reason is ORDERING. The mode calls this BEFORE
+    # `super().run()`, but the hard reset happens INSIDE that call, so the sequence is
+    #     mode reset -> [thousands of polls] -> emulator reset -> main.py reset
+    # and `_last_poll_frame` is long since a real frame by the time the second call
+    # lands. The two calls are never adjacent, so an adjacency test can never catch them.
     #
-    # ‼ Two rejected alternatives, both worse: deduping on FRAME distance is actively wrong
-    # because `get_frame_count()` resets with the emulator, so every run starts near 0 and
-    # every boundary would have looked like a duplicate — it would have merged an entire
-    # batch into one run. Deduping on WALL-CLOCK works in production but makes the function
-    # untestable without sleeping. This version is deterministic and needs no clock.
-    if _run_index and _last_poll_frame < 0:
+    # Ownership is the property that actually holds: if the MODE knows where its run
+    # boundaries are, main.py's frame-counter heuristic has nothing to add and should
+    # stand down for the rest of the process. Non-endless runs never set the flag, so
+    # main.py's detection keeps working there exactly as before.
+    skip_increment = False
+    if authoritative:
+        _mode_is_authoritative = True
+        # ADJACENT RACE at batch start: main.py can win the very first boundary (the
+        # emulator resets as the mode starts up) moments before the mode declares
+        # ownership. "No poll since the last reset" means nothing has been played, so
+        # that was the SAME boundary — adopt it instead of counting it twice. This is
+        # the one case the old adjacency test did cover, and it is still needed.
+        if _run_index and _last_poll_frame < 0:
+            skip_increment = True
+    elif _mode_is_authoritative:
+        return
+    elif _run_index and _last_poll_frame < 0:
+        # No authoritative owner (a normal, non-endless run): keep the original adjacency
+        # guard. Two detections with nothing played between them are one boundary. This
+        # is a real safety net, it is just not sufficient on its own — see above.
         return
 
     _known = None
@@ -113,7 +134,8 @@ def reset_for_new_run(frame: int = 0) -> None:
     _recorded_this_run = set()
     _last_poll_frame = -1
     _run_started_frame = int(frame)
-    _run_index += 1
+    if not skip_increment:
+        _run_index += 1
 
 
 def known_badges() -> set[str]:

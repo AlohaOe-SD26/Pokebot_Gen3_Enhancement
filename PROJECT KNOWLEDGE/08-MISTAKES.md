@@ -2060,3 +2060,107 @@ of doing its job — a weak lead, a disabled guard, a raised limit — the resto
 the same function, not in whichever caller happens to remember. And when you write a helper
 whose docstring names a hazard, grep for every path that hazard can reach, not just the one
 you were looking at.
+
+---
+
+## 2026-07-26 — A comment asserted a lifetime the code never enforced, and it silently killed 27 of 37 runs
+
+**Symptom.** The user's x4 bundle `20260726-231412` looked, on its face, like the best batch
+yet: P1 reported 16 of 20 runs "finished". Every one of those 16 was dead. In all three lanes
+that got that far, **runs 1-3 played normally and every run from #4 onward died at the same
+story beat** — the Rustboro rival — having earned only the Stone Badge. P1 run 8's debug log
+is the tell: **zero `BattleOutcome.Lost` in the entire run**, yet it ends
+
+    Story: couldn't beat the Rustboro rival in 3 tries ... handing to manual
+
+It never fought. It couldn't.
+
+**Root cause.** `StoryEndlessResetMode.run()` loops `yield from super().run()` **on the same
+mode object**, so `StoryMode.__init__` runs once per BATCH, not once per run. Every per-run
+counter lived in `__init__` — under a comment that stated the opposite in as many words:
+
+    # Instance state, not module state, so ENDLESS RESET's next run starts with a clean slate.
+
+`_rival_attempts` (cap `RIVAL_MAX_ATTEMPTS = 3`) therefore accumulated across the batch, and
+because it increments on *entry* rather than per loss, three completed runs exhausted it
+forever. `_defeat_counts` leaked the same way, so boss give-up thresholds fired on borrowed
+losses — measured across run boundaries: MT_CHIMNEY `#7`→`#8`, FORTREE_GYM `#8`→`#9`, and P4
+run 2 derailing as "6 losses" to Wattson after **three** real losses.
+
+**The second bug, which is why nobody noticed the first.** `outcome` defaulted to
+`"finished"` and only a raised `BotModeError` changed it — but a derail can instead call
+`context.set_manual_mode()` and return normally. Every such exit was reported as a SUCCESS,
+some as `finished (0 frames)`. The instrument built to *measure* failure was reporting the
+failures as wins, which is worse than no instrument.
+
+**What I got wrong on the way.** I first reported this as "the lead-restore fix did not hold",
+because the loss tiles matched the previous batch's signature exactly — ROUTE 110 (34,56),
+weak lead, strong mon benched. That was pattern-matching, not diagnosis. Reading
+`_lead_best_matchup` showed it reproduces every observed lead exactly from its own rules
+(purely defensive: `min(incoming_multiplier, -level)`), and that it runs *after* `train_team`
+and overrides it. The old fix was intact; a different mechanism produced a similar-looking
+symptom. **A matching signature is a hypothesis, not a diagnosis.**
+
+**The fix that worked.** Extract `StoryMode.reset_per_run_state()` holding every per-run
+counter, and call it from the endless loop at the top of each run. Add a `try/except/else`
+so a run that handed itself to Manual reports `stopped:` instead of `finished`. Proven by
+`repro_endless_per_run_state.py`: FAILs on HEAD, PASSes on the fix, and simulates the batch
+lifecycle to reproduce the exact observed boundary (rival fought on runs `[1,2,3]` under the
+old lifetime, `[1..8]` under the new).
+
+**A trap I nearly shipped inside the fix.** Making `outcome` honest by asking "did we end
+up in Manual?" would have relabelled GENUINE completions as failures: the end-of-built-content
+return calls `set_manual_mode()` and returns normally too, exactly like a give-up. P2 run 1 of
+this very bundle reached the Feather Badge that way and was a true `finished`. Caught by
+checking every `set_manual_mode()` call site before committing, not by a test. `StoryMode` now
+sets an explicit `_reached_end_of_content` flag, cleared per run.
+**Corollary rule:** when you make a success signal stricter, enumerate every path that legitimately
+produces the success FIRST — a fix that turns false positives into false negatives is not a fix.
+
+**Prevention rules.**
+1. **A comment claiming an object's lifetime is not a mechanism that enforces it.** Per-run
+   state goes in an explicitly named `reset_per_run_state()` that the run boundary calls —
+   never in `__init__` with a note hoping `__init__` is the boundary. If you write "so X
+   starts clean", go find the line that makes it clean.
+2. **A default outcome must be the FAILURE, not the success.** `outcome = "finished"` before
+   a `try` means every unmodelled exit path silently reports success. Start pessimistic and
+   let only a proven completion set it.
+3. When a counter is a per-attempt BUDGET, increment it where the attempt is *spent*, and
+   reset it where the budget is *renewed* — both, in the same review.
+
+---
+
+## 2026-07-26 — I "fixed" a double-count with a test that could never fire, and shipped it
+
+**Symptom.** `run_index` in `badge-log.json` still advanced by two per run (P1: 1, 3, 5 … 37
+across 19 runs) *after* a fix specifically for that, which had shipped with a long comment
+explaining why it worked and listing two rejected alternatives.
+
+**Root cause.** The fix deduped on ADJACENCY — "if a reset already happened and no poll has
+occurred since, it's the same boundary" (`_run_index and _last_poll_frame < 0`). But the two
+callers are never adjacent. The mode signals at the top of its loop, *before*
+`super().run()`, and the emulator hard reset that triggers `main.py`'s detection happens
+*inside* that call. Thousands of polls separate them, so `_last_poll_frame` is always a real
+frame by the time the second call lands and the guard can never fire.
+
+**The fix that worked.** Dedupe by OWNERSHIP instead: `reset_for_new_run(..., authoritative=
+True)` lets a mode that knows its own run boundaries switch off main.py's heuristic for the
+rest of the process. The adjacency guard was KEPT for the non-authoritative path, where it
+is genuinely correct — dropping it broke `repro_badge_transient.py`, which had encoded that
+contract. The regression sweep caught it; a targeted re-run of only the new repro would not
+have.
+
+**A second thing I got wrong.** My first version of the new repro asserted the old strategy
+reproduced the literal observed value 37. It yields 38 under any interleaving I could
+justify, and the exact ordering that produced 37 is not observable from the logs. Asserting
+a number reverse-engineered until it matched would have been a fake proof dressed as a
+rigorous one; the repro now asserts the *shape* (~2 per run vs exactly 1) and says why.
+
+**Prevention rules.**
+1. **A dedupe guard must be tested against the real call ORDER, not a plausible one.** Write
+   the interleaving down explicitly — who calls, in what order, with what in between — before
+   choosing the predicate. "No poll between" was a guess about ordering, never checked.
+2. **Never tune an assertion until it matches an observed number you cannot derive.** Assert
+   the property you can defend, and write down what you could not determine.
+3. Always run the FULL repro sweep before claiming a fix is clean — a fix that satisfies its
+   own new repro can still break the contract an older one encodes.

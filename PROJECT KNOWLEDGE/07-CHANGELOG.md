@@ -4409,3 +4409,53 @@ those runs would otherwise have continued.
    `get_frame_count() - start_frame`, which goes negative when the emulator resets mid-run.
    A negative value also silently disabled the `MAX_FRAMES_PER_RUN` wedge guard, since
    nothing is ever greater than the cap. Now clamped, and the anomaly is reported.
+
+## 2026-07-26 — x4 batch review (`20260726-231412`): two catastrophic endless-loop bugs fixed
+
+Reviewed the user's four-lane overnight bundle (118 MB, 3 app launches, 4 lanes). Headline:
+**the batch was producing almost no usable data while reporting most runs as successes.**
+
+**Fixed — `sandbox-pokebot/plugins/custom_modes/story_mode.py`**
+- **Per-run state never reset between runs.** `StoryEndlessResetMode.run()` loops on the same
+  mode object, so `StoryMode.__init__` ran once per BATCH — under a comment asserting the
+  opposite. `_rival_attempts` (cap 3) tripped on run 4 in every lane, so **runs 4+ quit at the
+  Rustboro rival without fighting it** (16/20 P1, 6/9 P2, 5/8 P3; P1 run 8 logged ZERO lost
+  battles yet reported "couldn't beat the rival in 3 tries"). `_defeat_counts` leaked across
+  runs so boss give-up thresholds fired on borrowed losses (MT_CHIMNEY #7→#8, FORTREE #8→#9;
+  P4 run 2 derailed as "6 losses" after 3). Extracted `StoryMode.reset_per_run_state()`,
+  called by the endless loop at each run boundary; `_ki15_nudge_*` and `_rival_attempts` are
+  now initialised there rather than materialising via `getattr` defaults.
+- **Failed runs reported as "finished".** `outcome` defaulted to `"finished"` and only a
+  raised `BotModeError` changed it, but a derail can call `set_manual_mode()` and return
+  normally. Added a `try/except/else` that detects the hand-to-Manual exit and reports
+  `stopped:`. Several dead runs had printed as `finished (0 frames)`.
+  ‼ The genuine end-of-built-content return ALSO calls `set_manual_mode()`, so `StoryMode`
+  now sets an explicit `_reached_end_of_content` flag before it; without that, this fix
+  would have relabelled real completions as failures — P2 run 1 of the bundle reached the
+  Feather Badge exactly that way. The flag is cleared per run.
+
+**Fixed — `sandbox-pokebot/modules/badge_log.py`**
+- **`run_index` still advanced by 2 per run** (P1: 1, 3, 5 … 37 over 19 runs) despite a prior
+  fix. The prior adjacency dedupe could never fire, because the mode signals *before*
+  `super().run()` while the hard reset happens *inside* it. Replaced with ownership:
+  `reset_for_new_run(..., authoritative=True)`; main.py's frame-counter fallback stands down
+  for the rest of the process. The adjacency guard was retained for the non-authoritative
+  path (removing it broke `repro_badge_transient.py`).
+
+**New repros** — `tools/story-dev/repro_endless_per_run_state.py`,
+`tools/story-dev/repro_badgelog_run_index.py`. Both A/B'd: FAIL against HEAD, PASS against
+the fix. Suite: **44 pass, 0 fail**, 6 environmental (need a real mgba / pre-existing).
+
+**Environment note.** The repro suite did not run on this machine at all — `confz` and other
+deps were missing, and the default `python` is 3.9 (unsupported). Installed the import-chain
+deps into **Python 3.12** and verified there; `py -3.12` is the correct interpreter for these.
+The handoff's claim of "13 emulator-free repros" undercounts — **44** run without an emulator.
+
+**Confirmed healthy** (no action): badge recording is clean in all four lanes (correct gym
+order, no duplicates, no gaps), and losses:whiteouts held at exactly 1:1 — no unlogged
+whiteouts.
+
+**Logged, deliberately NOT fixed blind:** `#24-leadpolicy` (the matchup lead is purely
+defensive and benches the only mon that can win) and `#24-route110cap` (that rival gets no
+prep and no cap — but a naive cap would have killed a run that recovered after 13 losses).
+Both need a user ruling; see the punch list.
