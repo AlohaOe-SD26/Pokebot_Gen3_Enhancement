@@ -204,3 +204,85 @@ Do the **visible item balls on the existing path** first: navigate + press A, no
 needed, fully retryable, and it directly feeds `#24-provisions` with free Potions and two
 Revives before Gym 5. Hidden items are a second, equally cheap pass — a coordinate table and
 the same press, with no Itemfinder prerequisite.
+
+
+---
+
+## D. SHOPS, HEAL POINTS AND MONEY (decomp-verified)
+
+### D1. Every Poké Center is the SAME layout
+`LAYOUT_POKEMON_CENTER_1F` everywhere: **nurse (7,3) → stand (7,4)**;
+**PC (10,1) → stand (10,2) facing North**; exit (6-7,8). So one PC-navigation helper works
+in every town — no per-town table needed.
+
+### D2. Settlement table (PC door / heal respawn / mart door)
+| town | PC door | respawn | mart | notable stock |
+|---|---|---|---|---|
+| Oldale | (6,16) | (6,17) | (14,6) | +Poké Ball after `FLAG_ADVENTURE_STARTED` |
+| Petalburg | (20,16) | (20,17) | (25,12) | +Great Ball, **Super Potion** when expanded |
+| Rustboro | (16,38) | (16,39) | (16,45) | Potion, **Super Potion**, balls |
+| **Dewford** | (2,10) | (2,11) | — | ‼ **NO MART** |
+| Slateport | (19,19) | (19,20) | (13,26) | Super Potion, Great Ball |
+| Mauville | (22,5) | (22,6) | (23,14) | Super Potion (no Potion), X-items |
+| Verdanturf | (16,3) | (16,4) | (12,3) | Nest Ball, all status heals |
+| Fallarbor | (14,7) | (14,8) | (15,15) | Super Potion, Super Repel |
+| **Lavaridge** | (9,6)/(9,2) | (9,7) | (15,5) | ‼ **FIRST REVIVE SELLER**; Herb Shop (12,15) |
+| **Fortree** | (5,6) | (5,7) | (4,14) | ‼ **FIRST HYPER POTION**, Ultra Ball, Revive |
+| Lilycove | (24,14) | (24,15) | Dept (27,6) | see D3 |
+| Mossdeep | (28,16) | (28,17) | (37,18) | Hyper Potion, Full Heal, Revive |
+| **Sootopolis** | (43,31) | (43,32) | (17,29) | ‼ **MAX POTION**. Mart and PC are on OPPOSITE crater rims — budget the walk |
+| Pacifidlog | (8,15) | (8,16) | — | no mart |
+| Ever Grande | (27,48) | (27,49) | in League | see D4 |
+
+‼ **Dewford has no mart at all** — the bot must buy before sailing from Rustboro. Directly
+relevant to the current Dewford arc work.
+
+### D3. Lilycove Dept Store — 2F-Right is the best HP counter before Mossdeep
+2F-Right (10,6): Potion → Super → Hyper → **Max Potion**, **Revive**, all three Repels.
+2F-Left (7,6): balls + every status heal. 3F vitamins / X-items. 4F TMs. Elevator (2,1) on
+every floor.
+
+### D4. The League has all three, and Victory Road is LESS exposed than its reputation
+`EVER_GRANDE_CITY_POKEMON_LEAGUE_1F`: **nurse (3,2)**, **mart clerk (16,2)**, **PC (6,1)**.
+The mart sells **FULL RESTORE** — the only pre-Battle-Frontier source. Entry (18,5) → arrive
+(9-10,11); E4 door (9-10,1); the guards check only `FLAG_BADGE06_GET`.
+
+### D5. ‼ EXPOSURE — the danger zone is post-Badge-7, NOT Victory Road
+| rank | stretch | maps | why it hurts |
+|---|---|---|---|
+| **1** | **Mossdeep → R127 → R128 → Seafloor Cavern → Sootopolis** | **12** | ‼ Longest in the game. Surf encounters both ways, Aqua grunts, Archie + Kyogre at the end, and **no mart either**. |
+| 2 | Lilycove → R121/122 → Mt. Pyre (8 maps) → back | 8 | 5,051 tiles with no exit shortcut |
+| 3 | Fallarbor → Meteor Falls → Mt. Chimney → Jagged Pass → Lavaridge | 5+ | Maxie fight; Jagged Pass is one-way down |
+| 5 | Ever Grande → Victory Road → League | 3 | **Bounded at BOTH ends** — League 1F has nurse + mart |
+
+**Hard rule for the bot: never enter `MAP_ROUTE127` southbound without a full Revive /
+Hyper Potion loadout bought at Mossdeep.**
+
+### D6. Money — the formula and where it comes from
+`payout = 4 × (level of the opponent's LAST party mon) × moneyMultiplier × classValue`,
+doubled again for a double battle. `moneyMultiplier` is 1 unless an **Amulet Coin** holder has
+been **sent out** (it applies on switch-in).
+
+Class values: Champion/Lady/Rich Boy 50 · **Leader / Elite Four 25** · Aqua+Magma Leader 20 ·
+Rival 15 · Cooltrainer 12 · Fisherman/Triathlete/Hiker/Admin 10 · Black Belt/Sailor/Bird
+Keeper 8 · Battle Girl/Psychic 6 · School Kid/grunts **and the default** 5 · Youngster/Lass 4 ·
+Twins 3 · Swimmer 2 · Tuber 1.
+
+‼ **There are NO scripted cash gifts in Hoenn** — no `addmoney` anywhere in `data/`. Income is
+trainers, **selling at `price / 2`**, and Pay Day (`level × 5` per use). The Lilycove lottery
+pays items only. So trainer battles are effectively the ENTIRE economy, which is a second
+independent argument for `#24-gymtrainers`.
+Bonus: **buying is halved while the Slateport PokéNews is active** (`price >> IsPokeNewsActive`).
+
+### D7. Restock waypoints per gym
+| gym | mart | buy |
+|---|---|---|
+| 1 Roxanne | Rustboro (16,45) | Potion ×10, balls, Escape Rope (Granite Cave next) |
+| 2 Brawly | ‼ **Rustboro BEFORE sailing** — Dewford has none | Super Potion ×10, status heals |
+| 3 Wattson | Slateport (13,26) → Mauville (23,14) | Super Potion ×15, X Defend |
+| 4 Flannery | Fallarbor → Lavaridge (15,5) + Herb (12,15) | **Burn Heal ×5**, **Revive ×3** |
+| 5 Norman | Petalburg (25,12) expanded / Verdanturf | Super Potion, X Special |
+| 6 Winona | Fortree (4,14) | **Hyper Potion ×10, Revive ×5** — first Hyper source |
+| 7 Tate&Liza | Lilycove Dept 2F-Right → Mossdeep (37,18) | Max Potion + Revive before Mt. Pyre |
+| 8 Juan | Mossdeep **before Seafloor Cavern**; Sootopolis after | Hyper/Max ×20, Revive ×8 |
+| E4 | **League 1F (16,2)** | Full Restore ×10+, Revive ×10 — last stop |
