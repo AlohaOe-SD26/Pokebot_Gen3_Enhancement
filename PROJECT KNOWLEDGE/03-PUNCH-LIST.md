@@ -89,8 +89,10 @@
       floor" AND should clear the island + gym trainers first for XP and money). Directly
       attacks the #1 failure in batch `20260726-181825`: attrition, not gym leaders (P2
       whited out 41× on Route 110 and derailed). ‼ Open: WHICH floor (Granite Cave 1F/B1F/
-      B2F — must not be guessed); always vs only-when-underlevelled; town-wide vs arc-wide
-      trainer scope. Trainer rosters + the floor's encounter table need decomp verification.
+      B2F); always vs only-when-underlevelled; town-wide vs arc-wide trainer scope.
+      **ANSWERED 2026-07-26: train on Granite Cave B1F AND B2F; fight trainers ALWAYS.**
+      Trainer rosters + both floors' encounter tables still need decomp verification (in
+      flight), incl. whether B2F is gated behind an HM the bot lacks at that point.
 - [ ] #24-partyvariety — **Fill the party and vary what is caught; PC deposit/withdraw.**
       Runs come out with near-identical teams. Confirmed in the logs: P1 carried a
       **CASCOON stuck at L5 for its entire run** — a dead slot never reconsidered. ‼ Open:
@@ -98,11 +100,23 @@
       optimises); whether PC access exists at all (likely the largest piece of work here);
       and whether the "fetch a counter for the next fight" half is really the same item as
       `#24-counters` phase 2 rather than a separate one.
+- [ ] #24-personality — **A two-axis bot "personality" (user answer 2026-07-26).** The
+      user wants BOTH testing-diversity and competence, selected by a personality that
+      swings and drifts during play so it looks organic. Recommendation in the design
+      note: TWO axes (`curiosity` = what it collects/fields, `caution` = how much risk it
+      takes), because one axis forces "more varied" to also mean "more reckless".
+      Drift should be EVENT-DRIVEN (whiteout -> caution up; clean streak -> caution down),
+      not a random walk. ‼ TRAP: "cautious" must NOT mean "grind longer" — P2 whited out
+      41x on Route 110 while training, so that loop would worsen the dominant failure.
+      Must be a pure function of (seed, events) so it is testable without an emulator, and
+      the rolled values must reach the logs so personality can be correlated with outcome.
 - [ ] #24-favourite — **Roll a "favourite" species per run.** Prefer to catch/keep it,
       unless it is a disadvantage for the fight about to be entered. Cheap run-to-run
-      variance that is independent of the RNG decorrelation already in place. ‼ Open: the
-      roll pool; how strong the preference is; a CONCRETE rule for "disadvantage"; per-run
-      vs per-lane (recommend per run).
+      variance that is independent of the RNG decorrelation already in place.
+      **ANSWERED 2026-07-26:** "disadvantage" = a TYPE CHECK. Still open: the roll pool;
+      preference strength; per-run vs per-lane (recommend per run); and whether the type
+      check applies only to gym leaders (roster known from `modules/badge_case.py`) or to
+      any trainer battle.
 
 ## Next (user-set order 2026-07-19: #30 â†’ #31 â†’ #32, THEN the first wave below)
 > #30/#31/#32 are BUILT + ADVERSARIALLY VERIFIED in sandbox (clean pass:

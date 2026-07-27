@@ -108,6 +108,108 @@ to log and therefore easy to correlate with outcomes.
 
 ---
 
+---
+
+## 4. ‼ ANSWERS FROM THE USER (2026-07-26) — the four blockers are resolved
+
+- **Q1.1 — which floor:** **Granite Cave B1F and B2F** (both).
+- **Q2.1 — testing vs competence:** **BOTH**, via a bot "personality" that can swing one way
+  or the other, ideally drifting DURING gameplay so it looks organic rather than robotic.
+- **Q1.2 — trainers:** **always** fight them.
+- **Q3.3 — "disadvantage":** a **type check**.
+
+---
+
+## 5. Design thinking: the PERSONALITY mechanic
+
+This is the subtlest request in the document and the easiest to build badly, so the thinking
+is recorded before any code exists.
+
+### 5.1 One axis or two?
+
+**Recommendation: TWO axes, not one.**
+
+A single "exploration ↔ optimisation" slider conflates two things that are genuinely
+independent in a human player:
+
+| axis | low | high | governs |
+|------|-----|------|---------|
+| **curiosity** | keep the proven team, catch only what is useful | catch novel species, try new team members, honour the favourite | WHAT the bot collects and fields |
+| **caution** | push on at low HP, skip healing, accept risky fights | heal early, train to a bigger level margin, avoid marginal fights | HOW MUCH RISK it takes |
+
+With ONE axis, "make the team more varied" is forced to also mean "play more dangerously",
+which is not what was asked for and would simply make runs fail more without buying better
+coverage. Two axes allow the most valuable configuration for our purposes:
+**curious but careful** — a run that fields odd teams AND survives long enough to reach deep
+content. A single slider cannot express that.
+
+Cost: two knobs to tune instead of one. Worth it.
+
+### 5.2 How the drift should work — event-driven, not a random walk
+
+A random walk would look organic and mean nothing. **Event-driven drift is both organic and
+useful**, because it mirrors how a person actually plays:
+
+- whiteout, or a loss to a boss → **caution rises**
+- a clean stretch (N battles, no faints) → **caution falls** (confidence)
+- a new species caught / a badge earned → **curiosity rises** briefly
+- repeated failure at the same objective → **curiosity falls** (focus up, stop experimenting)
+
+This also gives the bot a crude but real self-correction: the run that is dying repeatedly
+stops experimenting and starts playing safe.
+
+### 5.3 ‼ The trap: "cautious" must NOT simply mean "train more"
+
+Our own data says training is where runs die. In batch `20260726-181825` **P2 whited out 41
+times on Route 110** — travel and training attrition, not boss fights. A naive feedback loop
+of "died → be cautious → train more → train in the same place → die again" would make the
+dominant failure WORSE, and would look like the personality system working.
+
+So "caution" must be defined as a set of concrete behaviours that genuinely reduce risk:
+heal sooner and more often, prefer a safer training location, accept a smaller level target
+rather than grinding in a dangerous spot, flee marginal fights. **Never as "grind longer".**
+Any implementation must be checked against this specific failure before it is believed.
+
+### 5.4 What the personality must feed (one value, many decisions)
+
+The point of a personality is that ONE state drives MANY decisions coherently — otherwise it
+is just several unrelated random knobs wearing a costume:
+
+- **catch decision** — curiosity gates "is this worth a ball?"
+- **party composition** — curiosity gates keeping a novel/favourite mon over a stronger one;
+  caution gates benching anything badly under-levelled (the CASCOON L5 problem)
+- **level target before a gym** — caution sets the margin
+- **healing threshold** — caution sets the HP fraction that triggers a Center trip
+- **flee/fight on a marginal wild encounter** — caution
+- **optional detours** (extra trainers, side areas) — curiosity
+
+### 5.5 Testability requirements (non-negotiable, given this session's history)
+
+Twice today a feature shipped believing something it had never checked. A drifting
+personality is exactly the kind of system that hides that, so:
+
+1. The personality state must be a **pure, deterministic function of (seed, event log)** —
+   no emulator reads — so it can be unit-tested by feeding it synthetic events.
+2. Every decision it feeds must be a **pure function of (personality, candidates)**, testable
+   without an emulator.
+3. Every drift must be **logged with its cause** (`caution 0.35 -> 0.55 (whiteout #3)`), or
+   nobody will ever be able to explain a run's behaviour afterwards.
+4. The rolled starting values must be **published in the lane status blob and written into
+   the run's log header**, so personality can be CORRELATED WITH OUTCOME across a batch.
+   Without that, this is decoration; with it, it is an experiment.
+
+### 5.6 What "type check" means for the favourite (Q3.3, answered)
+
+The favourite is kept in the party UNLESS a type check says it is a liability for the fight
+about to be entered. Concretely, the rule needs: the upcoming opponent's types (known for
+gym leaders from the decomp-verified table in `modules/badge_case.py`), the favourite's
+types, and a threshold — e.g. bench it if the opponent's STAB is super-effective against it
+AND it has no super-effective answer. That is checkable offline and therefore testable.
+Open sub-question: does this apply only to GYM LEADERS (where we know the roster) or to any
+trainer battle (where we would need the party at runtime)?
+
+---
+
 ## Sequencing note
 
 If all three are built, the order that de-risks best is:
