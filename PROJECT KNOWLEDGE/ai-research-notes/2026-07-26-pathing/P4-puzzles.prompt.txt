@@ -1,0 +1,8 @@
+Pokemon Emerald. A bot must solve the game's movement PUZZLES deterministically while its ordinary travel is randomised. I need to understand which parts of the game are puzzle-like and therefore must not be randomised.
+1. List every place in Pokemon Emerald where MOVEMENT ITSELF is a puzzle - where you must move in a specific way or sequence to progress. Include gyms, dungeons and overworld obstacles.
+2. For each, briefly describe the mechanic: what makes it a puzzle and what a wrong move costs.
+3. Which of them PUNISH a wrong move (drop you a floor, reset the room, block progress) versus merely wasting time?
+4. Which overworld obstacles require an exact approach tile or direction - ledges, boulders, currents, ice, slopes, cycling paths?
+5. Are there any places where the SAME map is both a puzzle area and a travel corridor, so a bot would need to switch behaviour partway through?
+6. What is the cleanest rule for a bot to decide 'this area is a puzzle, be deterministic' versus 'this is travel, be organic'?
+Be specific to EMERALD. Flag anything UNCERTAIN.

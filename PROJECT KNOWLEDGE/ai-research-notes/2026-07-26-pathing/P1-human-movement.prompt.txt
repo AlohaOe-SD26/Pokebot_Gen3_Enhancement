@@ -1,0 +1,8 @@
+Pokemon Emerald, a bot that plays the whole story automatically. Its movement currently looks robotic: it walks the shortest path between two points every single time, so every run traces identical lines.
+I want to make travel look ORGANIC without breaking anything.
+1. Describe how a real human actually moves around in a Gen 3 Pokemon game while travelling. Be concrete and behavioural: where do they pause, where do they overshoot, when do they change direction mid-corridor, do they hug walls or walk down the middle, do they take slightly wrong turns and correct?
+2. What movement habits distinguish a competent human player from an optimal route? Where do humans deliberately deviate (checking a ledge, wandering into grass, walking up to an NPC they don't need)?
+3. What movement would look WRONG or uncanny if a bot did it - i.e. randomness that would look less human, not more?
+4. In Gen 3 specifically, what movement-adjacent habits exist: using the running shoes, the bike, spinning in place, opening the menu mid-walk?
+5. If you had to make a bot's travel look human with only ONE change, what would it be and why?
+Flag anything UNCERTAIN.

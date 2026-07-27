@@ -1,0 +1,10 @@
+I need to add controlled randomness to a grid pathfinder for a Pokemon Emerald bot, without breaking correctness.
+Current state: A* on a tile grid, always returns the shortest path, so every run is identical.
+Goal: paths that vary run to run and look organic, while still always arriving, never getting stuck, and never breaking scripted puzzle sequences.
+1. Survey concrete algorithms for path DIVERSITY on a grid: k-shortest-paths (Yen), randomised edge weights, Gaussian noise on the heuristic, waypoint sampling / detour points, random restarts, penalising previously-used tiles. For each: how it works, how much it costs, and how much variety it actually buys.
+2. Which of these keep a HARD GUARANTEE that the destination is still reached?
+3. How do you bound a detour so it cannot become a wander that never terminates? Give concrete bounding schemes.
+4. How would you make the randomness REPRODUCIBLE from a seed, so a run can be replayed exactly for debugging?
+5. What are the classic failure modes when people add randomness to pathfinding, and how are they usually caught?
+6. Recommend ONE approach as a default, and say why over the others.
+Be concrete and technical. Flag anything UNCERTAIN.

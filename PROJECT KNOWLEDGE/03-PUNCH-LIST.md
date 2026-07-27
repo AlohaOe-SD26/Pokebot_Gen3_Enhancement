@@ -748,6 +748,44 @@
       the bot currently walks past (19-TEAM-BUILDING-DISCUSSION.md 8.2), and the Lilycove
       Dept Store 2F sells up to MAX POTION + Revive (Aqua-hideout recon 2026-07-26). NOT urgent
       (the fight→train→retry loop carries the mid-game) — required before the E4.
+- [ ] #24-grasswander - ORGANIC MOVEMENT WHILE TRAINING (user request 2026-07-26).
+      Today the bot trains by SPINNING IN PLACE - `spin()`
+      (`modules/modes/util/higher_level_actions.py:158`) turns on the spot, wrapped by
+      `_story_spin` (`early_game.py:124`) for the whiteout-abort and no-progress watchdog.
+      The user wants it to WANDER the grass with human-like movement, mixing in occasional
+      spins, so training looks organic instead of robotic.
+      !! THIS IS THE SAFE PLACE TO PUT RANDOM MOVEMENT, and the risk profile is INVERTED
+      versus travel meandering (#24-meander):
+        * On a TRAVEL leg, extra steps mean more wild encounters, which means more battles,
+          more damage and more whiteouts. Our dominant failure is travel attrition, so
+          meandering there is actively dangerous.
+        * While TRAINING, extra steps mean more encounters - which is the entire POINT.
+          Wandering costs nothing we did not already want.
+      SEAM ALREADY PROVEN: `run_in_circle` (`modules/modes/util/walking.py:706`) shows
+      `follow_waypoints` accepts an ARBITRARY waypoint generator. A bounded random-walk
+      generator drops straight into that seam - no pathfinder change at all.
+      MUST PRESERVE (all three already exist and all three have scar tissue behind them):
+        * the whiteout abort in `_story_spin`, or a mid-training whiteout spins forever;
+        * the no-EXP-progress watchdog, which is what un-sticks a bot that wandered out of
+          the grass - it already handles exactly this failure and must keep working;
+        * the leftover-script clear, since an active script SUPPRESSES wild encounters.
+      REAL RISKS to bound:
+        * wandering OUT of the encounter region (watchdog catches it, but wasted frames);
+        * wandering into a TRAINER SIGHT CONE next to the training patch - an unwanted,
+          unfleeable battle;
+        * hazard tiles - ledges (one-way, drops you out of the area) and Granite Cave B1F
+          cracked floors. Confine the walk to a verified safe tile set, not "anywhere
+          walkable".
+      !! VERIFY FIRST, DO NOT ASSUME: does turning in place generate encounters at the same
+      rate as stepping? If spinning is already step-equivalent, wandering is neutral on
+      training speed and purely cosmetic; if stepping is faster, wandering is a genuine
+      throughput WIN as well. Check `CheckForWildBattle` / the field state machine in the
+      decomp before designing around either answer - this decides whether the feature pays
+      for itself or merely looks nicer.
+      Design sketch: a seeded bounded random walk over the region's MB_CAVE / tall-grass
+      tiles, biased to stay near the centre, with occasional in-place spins and short
+      pauses; region supplied by the caller (we already derive safe tile sets - see the
+      Granite Cave work in `19-TEAM-BUILDING-DISCUSSION.md` 8.1).
 - [ ] #24-items - GROUND + HIDDEN ITEM PICKUP (user request 2026-07-26). The bot walks
       past every item ball and every hidden item in the game. Two mechanisms, handled
       differently:

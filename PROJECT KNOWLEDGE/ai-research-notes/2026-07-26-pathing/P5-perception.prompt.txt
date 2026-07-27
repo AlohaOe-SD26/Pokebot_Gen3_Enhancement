@@ -1,0 +1,8 @@
+A Pokemon Emerald bot's movement looks robotic and I want it to feel organic to someone WATCHING it on screen. This is about perceived realism, not pathfinding theory.
+1. What specifically makes automated movement in a 2D tile game look 'botlike' to a viewer? Be concrete about the visual tells.
+2. What are the cheapest changes that most improve perceived naturalness? Rank them by impact per unit of effort.
+3. How important is TIMING versus ROUTE? Does varying pauses and speed do more for perceived realism than varying the path itself?
+4. What about micro-behaviours: brief stops, facing changes, small corrections, hesitating at junctions, walking past a door then coming back?
+5. Is there a risk of overdoing it - randomness that reads as broken or drunk rather than human? Where is that line?
+6. If a viewer watched two bots side by side, one with randomised routes and one with randomised TIMING only, which would look more human and why?
+Flag anything UNCERTAIN.

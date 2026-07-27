@@ -1,0 +1,9 @@
+A Pokemon Emerald bot plays the whole story automatically. I want to add randomness to its overworld MOVEMENT so runs look less robotic. I need to know what this could BREAK.
+Think adversarially - your job is to find the ways this goes wrong.
+1. In Gen 3 overworld movement, what things are POSITION-SENSITIVE or PATH-SENSITIVE, such that walking a different route changes the outcome? Think about: trainer sight lines, scripted trigger tiles, ledges (one-way jumps), cutscene triggers, wild encounter tiles, warp tiles, NPC collision, moving NPCs.
+2. Which of these could turn a working run into a stuck or failed run if the bot wanders?
+3. Where is deviation ESPECIALLY dangerous - puzzle rooms, one-way areas, timed sequences, areas you cannot leave?
+4. Wild encounters: what happens to encounter rate and total battles if a bot takes longer, wandering routes through grass? Quantify the effect if you can.
+5. What about places where extra steps are actively harmful - poison damage while walking, step counters, Repel step budgets, cracked/collapsing floors?
+6. Give a list of situations where randomness must be DISABLED entirely.
+Be specific to EMERALD. Flag anything UNCERTAIN.
