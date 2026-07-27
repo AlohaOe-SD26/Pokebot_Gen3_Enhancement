@@ -171,6 +171,20 @@ badges = [r["badge"] for r in records]
 check(badges == ["Stone"], f"exactly one Stone across nine warp transients (got {badges})")
 check(not any(b == "Balance" for b in badges), "and no phantom Balance badge")
 
+print("\n== a DOUBLE reset (main.py + the mode) counts as ONE run boundary ==")
+# Both callers fire for the same hard reset. Counting both made run_index advance by two
+# per run — visible in the user's 20:18 bundle as run_index 1,3,5,7,9, no even numbers.
+FLAGS = set()
+badge_log.reset_for_new_run(0)
+first = badge_log._run_index
+badge_log.reset_for_new_run(0)          # the second caller, with no poll in between
+check(badge_log._run_index == first,
+      f"a second reset with no poll between did NOT advance run_index (got {badge_log._run_index} vs {first})")
+poll(2)                                  # a run happens
+badge_log.reset_for_new_run(0)           # a GENUINE next run
+check(badge_log._run_index == first + 1,
+      f"a reset AFTER polling DID advance it (got {badge_log._run_index})")
+
 print("\n== the lane prefix now survives a re-enable by the story mode ==")
 from modules import debug_logger  # noqa: E402
 

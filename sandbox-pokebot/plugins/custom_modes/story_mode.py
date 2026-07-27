@@ -2886,7 +2886,18 @@ class StoryEndlessResetMode(StoryDebugResetMode):
                 outcome = f"derailed: {exc}"  # EXPECTED — never ends the batch
             except Exception as exc:  # noqa: BLE001
                 outcome = f"crashed: {type(exc).__name__}: {exc}"
-            frames = context.emulator.get_frame_count() - start_frame
+            # ‼ CLAMP. `get_frame_count()` is "frames since this emulation session began" and
+            # it RESETS with the emulator, so if a reset happens inside a run this
+            # subtraction goes negative — the user's 2026-07-26 20:18 bundle recorded
+            # "finished (-959,198 frames)". A negative value also silently disabled the
+            # MAX_FRAMES_PER_RUN wedge guard below, since nothing is ever > the cap.
+            raw_frames = context.emulator.get_frame_count() - start_frame
+            frames = raw_frames if raw_frames >= 0 else 0
+            if raw_frames < 0:
+                console.print(
+                    "[yellow]=== ENDLESS RESET: the emulator reset mid-run, so this run's "
+                    "frame count is unknown (reported as 0). ===[/]"
+                )
             if frames > self.MAX_FRAMES_PER_RUN:
                 outcome = f"frame-cap ({frames:,} > {self.MAX_FRAMES_PER_RUN:,})"
             outcomes.append(f"run {completed}: {outcome} ({frames:,} frames)")

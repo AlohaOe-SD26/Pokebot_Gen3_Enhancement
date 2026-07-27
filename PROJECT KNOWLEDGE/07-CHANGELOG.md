@@ -4349,3 +4349,63 @@ folder containing a zip, a "New folder", a loose file and a half-copied profile 
 underscore-prefixed entries are still skipped; a real profile is still found; and
 `load_profile()` by name still raises `CriticalFileMissing`. Confirmed against the real
 sandbox `profiles/` directory with an `x4 LOGS` folder present. Suite now twelve, all green.
+
+## 2026-07-26 — Second x4 bundle: the badge fix is CONFIRMED, and a run reached the frontier
+
+**Batch `20260726-201838`** — 18:55→20:18 (83 min), **16 runs** across four lanes.
+
+### The badge fixes are verified against real data
+
+`badge-log.json` is cumulative, so records were split at the fix time. **Every post-fix run
+is clean**: correct gym order, no duplicates, no phantom badges.
+
+| lane | post-fix runs | badge sequences |
+|------|---------------|-----------------|
+| P1 | 3 | `Stone→Knuckle→Dynamo→Heat`, `Stone→Knuckle`, `Stone→Knuckle` |
+| P2 | 2 | **`Stone→Knuckle→Dynamo→Heat→Balance→Feather`**, `Stone→Knuckle→Dynamo→Heat` |
+| P3 | 3 | `Stone→Knuckle` ×2, `Stone` |
+| P4 | 5 | `Stone→Knuckle` ×3, `Stone` ×2 |
+
+Compare the pre-fix bundle, where P1 recorded **Stone ×10 in a single run** plus a phantom
+Balance. Lane prefixes now work too — story logs are `P1-Story_(ENDLESS_RESET)-debug-*.log`.
+
+### ⭐ P2 FINISHED A RUN — six badges, end of built content
+
+`run end: finished (1,992,945 frames)` with `Stone→Knuckle→Dynamo→Heat→Balance→Feather`.
+Badge 6 (Winona) is the current content frontier, so that is a complete cold-start
+playthrough of everything built, in ~2.0M frames.
+
+### Where runs die has SHIFTED — and it is no longer attrition
+
+| lane | starter | runs | Won | Lost | flee | whiteouts | top loss sites |
+|------|---------|------|-----|------|------|-----------|----------------|
+| P1 | torchic | 4 | 1298 | 27 | 1.3% | 27 | Petalburg Gym ×8, Mauville Gym ×7 |
+| P2 | mudkip | 3 | 934 | 43 | 6.6% | 44 | **Route 110 ×19**, Petalburg Gym ×7 |
+| P3 | treecko | 3 | 1456 | 10 | 2.0% | 10 | Mauville Gym ×7 |
+| P4 | random (Torchic, Treecko) | 6 | 1384 | 12 | 2.5% | 12 | Mauville Gym ×7 |
+
+In the previous bundle Route 110 dominated everything. Now **GYM LEADERS dominate** —
+Mauville (Wattson) for three lanes, Petalburg (Norman) for P1. P2 remains the outlier and is
+still bleeding on Route 110. The bot is getting further, and the failure has moved from
+travel attrition to boss fights.
+
+**Almost every derail is the same message: `derailed: this boss: N losses with no progress`** —
+that is `_boss_plan_is_hopeless` firing and raising the counter-plan `BotModeError`. So the
+counter chain correctly diagnoses "I have no answer to this type" and then **ends the run**,
+exactly as documented. This is the strongest possible argument for `#24-counters` phase 2:
+those runs would otherwise have continued.
+
+### Two diagnostic bugs found and fixed
+
+1. **`run_index` advanced by two per run** (1, 3, 5, 7, 9 — no even numbers), because
+   `reset_for_new_run()` is called by BOTH `main.py`'s frame-counter detection and the
+   endless mode. Deduped on "has any poll happened since the last reset?".
+   ‼ My first attempt deduped on FRAME DISTANCE and was actively wrong — `get_frame_count()`
+   resets with the emulator, so every run starts near 0 and every boundary looked like a
+   duplicate; it would have merged an entire batch into one run. `repro_badge_transient.py`
+   caught it. The second attempt used wall-clock, which works but makes the function
+   untestable without sleeping. The shipped version is deterministic and needs no clock.
+2. **`finished (-959,198 frames)`** — the endless mode computes
+   `get_frame_count() - start_frame`, which goes negative when the emulator resets mid-run.
+   A negative value also silently disabled the `MAX_FRAMES_PER_RUN` wedge guard, since
+   nothing is ever greater than the cap. Now clamped, and the anomaly is reported.

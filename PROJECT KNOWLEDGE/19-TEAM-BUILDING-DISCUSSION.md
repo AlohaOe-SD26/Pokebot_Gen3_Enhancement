@@ -357,6 +357,94 @@ This also means the type check is not favourite-specific: it is a general
 favourite logic then consults. Building it that way makes it testable in isolation and
 reusable by the dead-weight rule and the counter chain.
 
+---
+
+## 8. DECOMP-VERIFIED FACTS — Granite Cave and the Dewford arc (2026-07-26)
+
+All read from `pret/pokeemerald` master. Items marked **[derived]** were computed by
+decoding `map.bin` collision/elevation and flood-filling with the game's own rules.
+
+### 8.1 Granite Cave — nothing is gated, but two things bite
+
+| map | group/num | size | `requires_flash` |
+|-----|-----------|------|------------------|
+| `GRANITE_CAVE_1F` | 24/7 | 42×15 | false |
+| `GRANITE_CAVE_B1F` | 24/8 | 32×26 | **true** |
+| `GRANITE_CAVE_B2F` | 24/9 | 32×26 | **true** |
+| `GRANITE_CAVE_STEVENS_ROOM` | 24/10 | 15×14 | false |
+
+**No HM, item or story flag gates B1F or B2F.** `GraniteCave_B2F/scripts.inc` is three lines
+(`.byte 0` — no script at all); B1F's is 11 and contains only the hole machinery. No
+boulders on any floor. Verified, not assumed.
+
+**Encounters (rate 10 = 5.56 %/step on both floors):**
+- **B1F land** — Zubat 30 %, **Aron 40 %**, Abra 10 %, Makuhita 10 %, Sableye 10 %, **L9-11**
+- **B2F land** — Zubat 30 %, **Aron 40 %**, Abra 10 %, Sableye 20 %, **L10-12** (no Makuhita)
+- B2F also has a `rock_smash_mons` table (Geodude/Nosepass L10-20) — **unreachable during
+  this arc**, Rock Smash needs Badge 3. It gates only 7 of 353 tiles, so it is not a blocker.
+
+**‼ TWO REAL HAZARDS FOR A GRINDING LOOP:**
+
+1. **B1F has 62 cracked-floor tiles that drop the bot to B2F.** `GraniteCave_B1F/scripts.inc:2-10`
+   sets `STEP_CB_CRACKED_FLOOR` + `setholewarp MAP_GRANITE_CAVE_B2F`. Stepping on
+   `MB_CRACKED_FLOOR` arms a **3-step delay**, then the tile becomes a hole and the next step
+   onto it warps the player down to the SAME (x,y) on B2F. A back-and-forth grind lane that
+   wanders onto those tiles will silently relocate the bot mid-grind. **[derived]** they sit
+   in x2-7 & x15-24, y1-6 (plus x3-5 y5-6, x18-24 y4-6); the southern/central corridors have
+   none.
+2. **Flash is locked behind Badge 2** (`src/party_menu.c:120-127`, gate at `:3725`) — which is
+   Dewford's own badge. So any PRE-gym cave trip is unavoidably at flash level 7. ‼ This is
+   **cosmetic only**: collision and pathing are unaffected, so the bot can navigate blind.
+   It does mean "grind first, then gym" cannot be improved by fetching Flash.
+
+**[derived] Best grind lane: the B2F SOUTH POCKET.** B2F is four disconnected pockets
+(hub-and-spoke via B1F). The south pocket has **~205 encounter tiles, zero cracked floors**,
+and the highest levels in the cave (L10-12). Route: `Route106 (48,16)` → `1F (37,12)` →
+`1F (17,11)` ladder → `B1F (4,21)` → cross B1F → `B1F (28,21)` ladder → B2F south.
+B1F's own main region has 195 encounter tiles but carries the cracked-floor hazard.
+
+‼ Note `modules/story/training_areas.py` already lists `GRANITE_CAVE_1F (35,11)` in
+`PENDING_GRASS` — 1F is the WEAKEST floor (L6-10) and is the one currently known to the bot.
+
+### 8.2 Dewford trainers — the user's premise needs one correction
+
+**‼ DEWFORD TOWN HAS ZERO TRAINERS.** All five object events on `DewfordTown/map.json` are
+`TRAINER_TYPE_NONE` (a woman, Mr. Briney, a fisherman, the boat, the Trendy Phrase boy), and
+the Hall and both houses contain none. There is nothing on the island itself to farm. The
+"trainers on the island" are really **the gym's six, plus two on Route 106**.
+
+**Dewford Gym — six trainers, all L13, ₽2,184 total:**
+
+| trainer | class | party | position | facing |
+|---------|-------|-------|----------|--------|
+| TAKAO | Black Belt | Machop L13 | (2,18) | Up |
+| JOCELYN | Battle Girl | Meditite L13 | (15,3) | Down |
+| LAURA | Battle Girl | Meditite L13 | (12,25) | Up |
+| BRENDEN | Sailor | Machop L13 | (14,12) | Right |
+| CRISTIAN | Black Belt | Makuhita L13 | (7,8) | Right |
+| LILITH | Battle Girl | Meditite L13 | (16,9) | Down |
+| *(Brawly)* | Leader | Machop L16, Meditite L16, **Makuhita L19 @ Sitrus** | (4,3) | Down |
+
+**‼ ALL SIX CAN BE — AND ARE — SKIPPED.** **[derived]** every sight cone is a dead-end spur
+off the main corridor: 142 tiles are reachable ignoring cones, **114 while avoiding all six**,
+and Brawly's approach tile is in that set. So the gym trainers **never fire on the way to
+Brawly**. That is precisely why the bot is not banking this XP and money today — it is not a
+bug, the bot simply walks past them. To collect them the bot must **deliberately step into
+each cone** (or walk adjacent and press A, the primitive Petalburg's door chain already uses).
+
+The dark-gym "puzzle" is **not** a switch puzzle — there are no coord_events and no trigger
+tiles. Defeating trainers only widens the flash radius (`7 - count`). **The maze is fully
+navigable at flash level 7**, so darkness can be ignored entirely.
+
+**Route 106 — two foot-reachable trainers** (Elliot ₽400, Ned ₽440); Douglas and Kyla are on
+water and need Surf. Routes 107 and 108 are entirely Surf-only and out of scope for this arc.
+
+**Money available on foot in the whole Dewford arc: ₽4,924** — Elliot 400 + Ned 440 + six gym
+trainers 2,184 + Brawly 1,900. (Doubles with an Amulet Coin.) Formula
+(`src/battle_script_commands.c:5618-5631`) is `4 × lastMonLevel × multiplier × classValue`;
+‼ it uses the **LAST party slot's level, not the highest** — irrelevant for every Dewford
+trainer, but it will matter elsewhere.
+
 ## Sequencing note (SUPERSEDED by §6.5 — kept for the reasoning)
 
 If all three are built, the order that de-risks best is:

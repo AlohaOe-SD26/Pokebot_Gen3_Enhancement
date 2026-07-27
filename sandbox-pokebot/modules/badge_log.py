@@ -89,6 +89,25 @@ def reset_for_new_run(frame: int = 0) -> None:
     exactly when a run begins and says so.
     """
     global _known, _pending, _recorded_this_run, _run_started_frame, _last_poll_frame, _run_index
+
+    # ‼ DEDUPE: this is called TWICE for the same run — `modules/main.py` when the frame
+    # counter goes backwards (the hard reset), and `StoryEndlessResetMode` immediately
+    # afterwards as the authoritative signal. Both callers are wanted, but counting both
+    # made `run_index` advance by two per run: the user's 20:18 bundle shows run_index
+    # 1, 3, 5, 7, 9 and no even numbers.
+    #
+    # The signal is "has anything HAPPENED since the last reset?" — `_last_poll_frame` is
+    # set to -1 here and to a real frame by the first poll, so two resets with no poll
+    # between them are one boundary.
+    #
+    # ‼ Two rejected alternatives, both worse: deduping on FRAME distance is actively wrong
+    # because `get_frame_count()` resets with the emulator, so every run starts near 0 and
+    # every boundary would have looked like a duplicate — it would have merged an entire
+    # batch into one run. Deduping on WALL-CLOCK works in production but makes the function
+    # untestable without sleeping. This version is deterministic and needs no clock.
+    if _run_index and _last_poll_frame < 0:
+        return
+
     _known = None
     _pending = None
     _recorded_this_run = set()
