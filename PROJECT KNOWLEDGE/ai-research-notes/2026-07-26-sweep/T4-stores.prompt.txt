@@ -1,0 +1,8 @@
+Pokemon Emerald (Gen 3), for an automated story-playing bot. Topic: SHOPS AND WHAT THEY SELL.
+1. List every Poke Mart in Hoenn by town/city, and describe how mart stock EXPANDS as the player earns more badges. Be as specific as you can about which items unlock at which badge count.
+2. The LILYCOVE DEPARTMENT STORE: what is on each floor, and what is worth buying there for a story run?
+3. The Pokemon League building at Ever Grande: is there a shop and a healing point there, and what does it sell?
+4. Any other notable vendors: the Slateport market stalls, the Battle Frontier, herb sellers, TM shops, the Lilycove rooftop.
+5. Money: what are the main income sources during a story run, and roughly how much money should a player expect to have at each gym?
+6. STRATEGY: for a bot, where should it restock before each major story milestone, and what is the shopping list at each stage?
+Be specific to EMERALD. Flag anything UNCERTAIN.

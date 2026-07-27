@@ -1,0 +1,8 @@
+Pokemon Emerald (Gen 3), for an automated story-playing bot. Topic: ITEMS LYING ON THE GROUND and HIDDEN ITEMS.
+1. The two kinds of overworld items in Emerald: visible Poke Ball item objects vs hidden items. How does the player obtain each?
+2. The ITEMFINDER: where is it obtained, how does it behave, and what exactly does it tell the player? Does it give direction or only proximity?
+3. What happens when you try to pick up an item and the relevant bag pocket is FULL? Does the game warn you, and can the item be lost permanently?
+4. Bag pocket structure in Emerald: which pockets exist and what are their capacities?
+5. Which early-to-mid game routes have the most valuable ground items for a player who wants healing items, and which items are worth detouring for?
+6. STRATEGY: for a bot, what is a sensible policy on picking up items - always detour, only on-path, or value-weighted?
+Be specific to EMERALD. Flag anything UNCERTAIN.

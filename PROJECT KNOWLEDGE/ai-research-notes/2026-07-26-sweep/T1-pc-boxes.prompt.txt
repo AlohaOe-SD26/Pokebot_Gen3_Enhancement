@@ -1,0 +1,9 @@
+Pokemon Emerald (Gen 3), for an automated story-playing bot. Topic: the POKEMON STORAGE SYSTEM (PC boxes).
+Answer concretely and flag anything you are unsure of as UNCERTAIN.
+1. Every way a caught Pokemon can end up in a box vs the party, and what the game does when the party is full.
+2. The PC UI flow in Emerald specifically: from standing in a Pokemon Center, what exact menu path deposits a party member and withdraws a boxed one? Name each menu and option in order.
+3. Box capacity, number of boxes, and what happens when ALL boxes are full.
+4. Any in-game restrictions: can you deposit your last conscious Pokemon? Can you deposit a Pokemon holding an item? What about one that knows an HM move?
+5. STRATEGY: for a bot playing a full story run, when is it actually worth walking to a PC to swap team members? What are the real costs (travel time, healing, the party being weakened mid-swap)?
+6. What ordering/party-position rules matter (lead Pokemon, XP share, who takes the first hit)?
+Be specific to EMERALD, not Red/Blue or later gens.

@@ -1,0 +1,8 @@
+Pokemon Emerald (Gen 3), for an automated story-playing bot. Topic: BUILDING AND MAINTAINING A DIVERSE, EFFECTIVE TEAM over a full story run.
+1. What makes a good balanced team for a Hoenn playthrough - type coverage, roles, and how many Pokemon you realistically need trained.
+2. How does the level curve work across the 8 gyms and the Elite Four - what level should a team be at each stage?
+3. EXP mechanics in Gen 3: how is experience shared, what does the EXP Share do, and what is the cheapest way to bring an under-levelled Pokemon up to the team's level?
+4. When is it worth REPLACING a team member mid-run rather than training it? What signals tell a player a Pokemon has become dead weight?
+5. Rotating team members through the PC: what does a thoughtful player actually do, and how often?
+6. STRATEGY: propose a concrete policy for a bot that wants VARIED teams across runs while still being strong enough to finish - what should it randomise, and what must it never randomise?
+Be specific to EMERALD. Flag anything UNCERTAIN.

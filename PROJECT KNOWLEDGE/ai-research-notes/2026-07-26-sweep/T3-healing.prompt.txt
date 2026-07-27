@@ -1,0 +1,8 @@
+Pokemon Emerald (Gen 3), for an automated story-playing bot. Topic: HEALING ITEMS - buying, maintaining a stock, and using them well.
+1. Full list of HP-healing items in Emerald with exact HP restored, and the status healers, and revives. Note which are buyable vs found only.
+2. At which point in the story does each become purchasable, and roughly what does each cost?
+3. In-battle mechanics: using an item costs your turn - what are the real tactical rules for when using a Potion is right vs attacking or switching?
+4. What is the standard human player heuristic for how many Potions/Revives to carry into a gym, a long dungeon, and the Elite Four?
+5. Do any items have downsides or traps a bot should know about (e.g. Full Restore behaviour, Revive leaving low HP, using an item while the opponent sets up)?
+6. STRATEGY: propose a concrete, testable heal policy for a bot: at what HP fraction should it heal in battle, and how should that change with the importance of the fight?
+Be specific to EMERALD. Flag anything UNCERTAIN.
