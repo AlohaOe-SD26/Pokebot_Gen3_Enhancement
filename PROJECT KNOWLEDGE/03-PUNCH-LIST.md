@@ -94,12 +94,25 @@
       Trainer rosters + both floors' encounter tables still need decomp verification (in
       flight), incl. whether B2F is gated behind an HM the bot lacks at that point.
 - [ ] #24-partyvariety — **Fill the party and vary what is caught; PC deposit/withdraw.**
-      Runs come out with near-identical teams. Confirmed in the logs: P1 carried a
-      **CASCOON stuck at L5 for its entire run** — a dead slot never reconsidered. ‼ Open:
-      diversity for TESTING vs for COMPETENCE (decides whether the picker randomises or
-      optimises); whether PC access exists at all (likely the largest piece of work here);
-      and whether the "fetch a counter for the next fight" half is really the same item as
-      `#24-counters` phase 2 rather than a separate one.
+      ‼ **ROOT CAUSE FOUND (recon 2026-07-26) — it is not emergent, it is two conditions.**
+      `_should_catch` (`story_mode.py:899-937`) requires `not BADGE01_GET` AND
+      `len(party) < _catch_team_target` where **`_catch_team_target = 4`** (`:811`). So the
+      bot catches FOUR mons before the Stone Badge and then never catches again for the
+      rest of the run. Part 1 is nearly a one-line change.
+      ‼ **PC automation ALREADY EXISTS and is unused:** `modules/pokemon_storage.py` (full
+      box READ) + `modules/modes/util/pc_interaction.py` (804 lines: withdraw / deposit /
+      release), whose only consumer is `daycare.py`. `#24-pc`'s "map the PC UI" is already
+      done — what is missing is navigation to a PC and a keep/box POLICY. The shiny path
+      already proves party-full→box works (`story_mode.py:1456-1482`).
+      ‼ **CONFIRMED ONE ITEM WITH `#24-counters` PHASE 2** — the counter chain currently
+      diagnoses and then RAISES `BotModeError` (`story_mode.py:1309-1313`); that raise is
+      the seam where fetching would hook in, and `HM_CATCH_TARGET_DEX` (`:1485-1511`) is a
+      working "catch species X on sight" primitive to reuse. Blocked on counter tiles being
+      mapped (every candidate has `tile: None`).
+      Also: **dead weight is invisible by construction** — `_battler_slots()` only asks
+      "not an egg, has a move with base_power > 0", so a L5 CASCOON in a L24 party passes,
+      and `_prepare_for_fight` then excludes it from training. Cheap first win: bench or
+      deposit anything more than N levels below the lead.
 - [ ] #24-personality — **A two-axis bot "personality" (user answer 2026-07-26).** The
       user wants BOTH testing-diversity and competence, selected by a personality that
       swings and drifts during play so it looks organic. Recommendation in the design
@@ -113,10 +126,18 @@
 - [ ] #24-favourite — **Roll a "favourite" species per run.** Prefer to catch/keep it,
       unless it is a disadvantage for the fight about to be entered. Cheap run-to-run
       variance that is independent of the RNG decorrelation already in place.
-      **ANSWERED 2026-07-26:** "disadvantage" = a TYPE CHECK. Still open: the roll pool;
-      preference strength; per-run vs per-lane (recommend per run); and whether the type
-      check applies only to gym leaders (roster known from `modules/badge_case.py`) or to
-      any trainer battle.
+      **ANSWERED 2026-07-26:** "disadvantage" = a TYPE CHECK, applied to gym leaders /
+      rival / Wally / Elite Four, PLUS reactively when a trainer keeps beating the bot
+      (hang that off the existing `_defeat_counts`, `story_mode.py:813`). TWO favourites
+      per run: one regular, one LEGENDARY. Pool = anything obtainable in Emerald —
+      ‼ derive it from `modules/obtainability.py` + `emerald_obtainability.json`, never a
+      hand-written list, and check whether that model counts event-only species (Mew,
+      Deoxys, Jirachi, Ho-Oh, Lugia) as obtainable. Honest note: every Hoenn legendary is a
+      late-game static, and the frontier is ~Badge 3, so the legendary favourite will do
+      NOTHING for run diversity yet — build it, log it, expect nothing from it for now.
+      ‼ The rival / Wally / E4 rosters are NOT yet decomp-verified (gym leaders are, in
+      `modules/badge_case.py`); they need that before the type check can use them.
+      Still open: preference strength; per-run vs per-lane (recommend per run).
 
 ## Next (user-set order 2026-07-19: #30 â†’ #31 â†’ #32, THEN the first wave below)
 > #30/#31/#32 are BUILT + ADVERSARIALLY VERIFIED in sandbox (clean pass:

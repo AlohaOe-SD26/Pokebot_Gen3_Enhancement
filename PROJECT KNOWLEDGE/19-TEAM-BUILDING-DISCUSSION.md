@@ -210,7 +210,154 @@ trainer battle (where we would need the party at runtime)?
 
 ---
 
-## Sequencing note
+---
+
+## 6. ‼ WHAT ACTUALLY EXISTS (codebase recon, 2026-07-26) — this rewrites the estimates
+
+Three findings overturn assumptions made earlier in this document.
+
+### 6.1 The bot catches **FOUR**, not six — and stops entirely after Badge 1
+
+`StoryMode._should_catch` (`plugins/custom_modes/story_mode.py:899-937`) requires ALL of:
+
+- `not get_event_flag("BADGE01_GET")` — **catching stops dead once the Stone Badge is won**
+- `len(party) < self._catch_team_target`, and `_catch_team_target = 4` (`:811`)
+- species not already in `pokedex.owned_species` and not already in the party
+- `poke_balls > 1`
+
+So the team is assembled in the first ~20 minutes and is **frozen for the remaining hours of
+the run**. That is the whole of the "runs have similar party layouts" complaint, and it is
+not a subtle emergent problem — it is two explicit conditions. The user's premise ("they
+only catch 6") was generous; the real number is four.
+
+**This makes the diversity work far cheaper than estimated.** Raising the target and
+relaxing the badge gate is close to a one-line change; the interesting work is then the
+POLICY for what to keep.
+
+### 6.2 PC / box automation is **already fully built** — it is simply unused
+
+- `modules/pokemon_storage.py` — full READ access to box contents (`get_pokemon_storage()`,
+  `.boxes`, `.contains_species()`, `.get_slot_for_pokemon()`, `first_empty_slot_index`).
+- `modules/modes/util/pc_interaction.py` (804 lines) — full UI automation:
+  `PCAction.withdraw_pokemon_from_box`, `deposit_pokemon_to_box`,
+  `release_pokemon_from_party`, plus item actions, driven by `interact_with_pc(actions)`.
+- **Its only consumer in the entire repo is `modules/modes/daycare.py`.**
+
+I estimated PC swapping as "likely the largest single piece of work in this document". That
+was wrong: the hard part exists and is proven. What is missing is (a) navigating the story
+bot to a PC, and (b) a policy for what to deposit and withdraw. `#24-pc`'s note says "map PC
+access points and the PC UI" — the UI half is already done.
+
+Note the story bot currently REFUSES the situation outright
+(`early_game.py:4079-4084`): a full party during the HM-learner hunt raises
+`BotModeError("… needs PC box management (#24-pc) or a manual swap.")`. Meanwhile the SHINY
+path already handles a full party correctly by letting the catch go to the box
+(`story_mode.py:1456-1482`) — so the party-full→box path is proven too, just not generalised.
+
+### 6.3 There is NO trainer-seeking capability — but the mechanism is proven
+
+No trainer table, no line-of-sight seeking, no "defeat trainer N" step. Trainers are fought
+**incidentally** when their sight-line scripts fire during navigation, and the code's job is
+to survive them (`_navigate_riding_out`, `TrainerApproachListener`).
+
+The one precedent is real and directly reusable: the Petalburg Gym door chain
+(`early_game.py:5288-5315`) **deliberately initiates a trainer battle** — navigate to the
+tile below the trainer, face Up, press A, let the listener fight. That is exactly the
+primitive `#24-gymtrainers` needs. What is missing is the DATA (a per-town trainer table
+with positions) and a route that visits them, not the mechanism.
+
+### 6.4 Other findings that matter
+
+- **Dead weight is invisible by construction.** The only "is this mon useful" test is
+  `_battler_slots()` (`early_game.py:1651`): not an egg, and has ≥1 move with
+  `base_power > 0`. **A level-5 Cascoon with Tackle passes.** `_prepare_for_fight` then
+  trains only the strongest battler plus those within `TRAIN_CATCHUP_GAP = 6` levels of
+  target, explicitly leaving far-below catches "to level organically" — so the L5 Cascoon
+  is carried forever, never trained, never benched. A cheap first win: bench or deposit
+  anything more than N levels below the lead.
+- **`#24-counters` currently ENDS THE RUN.** `_boss_plan_is_hopeless` diagnoses, then
+  `story_mode.py:1309-1313` raises `BotModeError` carrying the counter's name. The seam for
+  ACTING is that exact `raise`, inside a generator, so `yield from <travel/catch/train>`
+  can replace it. And a working "catch species X on sight" primitive already exists —
+  `HM_CATCH_TARGET_DEX` + the branch at `story_mode.py:1485-1511`. **This confirms
+  `#24-partyvariety`'s "fetch a counter" half and `#24-counters` phase 2 are ONE item.**
+  Blocker recorded: every counter candidate currently has `tile: None`, so there is nothing
+  to path to yet.
+- **Humanising randomness has precedent.** `random.choice(["plus5_max","plus5_avg",
+  "escalate_band"])` (`story_mode.py:1330`) already randomises the level-escalation style
+  after repeated losses specifically to look less robotic. The personality axes should
+  subsume this rather than sit beside it.
+- **Training already has a real cost model** — `training_areas.py`: verified grass tiles
+  with level bands, `FRAMES_PER_WILD_BATTLE = 1433` (measured), `estimate_frames_to_level`,
+  `best_training_area` ranking, fodder detection, `NO_RETURN_GROUNDS`, and a reachability
+  oracle (`modules/story/region_reach.py`). Caution should feed THESE, not reinvent them.
+  ‼ Note `PENDING_GRASS` already lists `GRANITE_CAVE_1F (35,11)` with a known level band but
+  an unmapped tile — relevant to the Granite Cave request.
+
+### 6.5 Revised sequencing (supersedes the note below)
+
+1. **Catch target + badge gate** (`#24-partyvariety`, part 1) — two conditions in
+   `_should_catch`. Smallest possible change, and it is the actual cause of the complaint.
+2. **Dead-weight benching** — one rule, uses only what exists.
+3. **Personality axes** — pure logic, testable offline, subsumes the existing
+   `plus5_*` randomisation.
+4. **Favourite roll** — small, feeds the personality's curiosity axis.
+5. **PC deposit/withdraw policy** — much cheaper than estimated; UI is built, needs
+   navigation + policy.
+6. **Trainer-first training** (`#24-gymtrainers`) — needs a decomp-verified trainer table
+   per town; mechanism already proven at Petalburg.
+7. **Counter execution** — merge with `#24-partyvariety`'s fetch half; blocked on counter
+   tiles being mapped.
+
+---
+
+## 7. Remaining answers from the user (2026-07-26)
+
+### 7.1 Favourite pool — TWO favourites, one regular and one legendary
+
+> "any pokemon obtainable in pokemon emerald including pokedex and legendaries, matter of
+> fact let them have a favorite regular pokemon and a favorite legendary."
+
+**Consequence — do NOT hand-write the pool.** "Obtainable in Emerald" is exactly the kind of
+fact this project has twice got wrong from memory, and several Gen-3 legendaries
+(Mew, Deoxys, Jirachi, Ho-Oh, Lugia) are **event-only** and not obtainable in normal play.
+The repo already has the answer as DATA: `modules/obtainability.py`, `modules/capabilities.py`
+and `modules/data/emerald_obtainability.json` (punch list `#41-research` is done). The
+favourite roll must be derived from that model, not from a list anyone types out.
+‼ Verify before use whether that model marks event-only species as obtainable — if it does,
+the legendary pool needs an additional filter, and that is a fact to check, not assume.
+
+**Honest expectation-setting on the legendary favourite:** every Hoenn legendary is a
+late-game static encounter, and the bot's current frontier is roughly Badge 3 (Mauville
+Gym). A favourite legendary will therefore have **no practical effect on runs for a long
+time**. It is worth building — it costs almost nothing once the regular favourite exists,
+and it is a real behaviour once the bot gets deep — but it should not be counted as
+contributing to run diversity now. Build it, log it, expect nothing from it yet.
+
+### 7.2 Type-check scope — named opponents, plus a reactive trigger
+
+> "mostly gym leaders, rival, wally, elite four but can be used if constantly being defeated
+> by a trainer outside or in a gym or dungeon"
+
+Two distinct paths, and pleasingly both map onto machinery that already exists:
+
+**(a) Known-roster path** — gym leaders, the rival, Wally, the Elite Four. For GYM LEADERS
+the roster is already decomp-verified in `modules/badge_case.py` (leader, type, ace + level).
+‼ The rival, Wally and the E4 have **no verified table yet** — they need the same treatment
+before the type check can reason about them. Do not infer them from the gym data.
+
+**(b) Reactive path** — "constantly being defeated by a trainer". This is already measured:
+`StoryMode.on_battle_ended` (`story_mode.py:813`) counts `BattleOutcome.Lost` per location
+key into `self._defeat_counts`, which already drives survival mode
+(`SURVIVAL_WHITEOUT_THRESHOLD = 3`) and the loss escalation. The reactive type check should
+hang off that existing counter rather than introducing a second notion of "keeps losing".
+
+This also means the type check is not favourite-specific: it is a general
+"is this party member a liability for the fight in front of us" predicate, which the
+favourite logic then consults. Building it that way makes it testable in isolation and
+reusable by the dead-weight rule and the counter chain.
+
+## Sequencing note (SUPERSEDED by §6.5 — kept for the reasoning)
 
 If all three are built, the order that de-risks best is:
 
