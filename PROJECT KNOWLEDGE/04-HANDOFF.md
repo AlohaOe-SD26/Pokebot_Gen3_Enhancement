@@ -1617,3 +1617,13 @@ py -3.12 tools/story-dev/repro_boss_plateau.py     # boss non-convergence detect
   global navigator can't cross a warp-split map like Route 104 through the Woods) —
   everything after them is story-bot era and is where the current traps live. Read
   the tail of the file, not just the head.
+
+### Note added 2026-07-26 — badge case should be LIVE (#24-badges-live)
+The Bag/badge-case overlay already follows the FOCUSED x4 lane, but only at the moment it
+is opened: `open_badge_case()` snapshots the entries into `_badge_case_entries_cache`. So
+clicking another tile while it is open does not switch it, and it does not update as badges
+are earned mid-run. The user wants it to behave like the party strip, which IS live.
+The snapshot exists for a reason — entries come from a disk read of `badge-log.json` and
+`_show_badge_detail` fires on every hover — so the fix is to refresh on focus-change and on
+the sidebar cadence, never per hover. Lanes already publish their badge set in the status
+blob, which answers "has anything changed?" without touching the disk. See punch list.

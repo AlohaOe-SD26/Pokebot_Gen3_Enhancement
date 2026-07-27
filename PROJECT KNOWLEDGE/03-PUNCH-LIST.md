@@ -59,6 +59,24 @@
       Live confirm owed. **REMAINING:** real Bag artwork (the icon is PIL-drawn;
       the repo ships none); and choosing WHICH run's team to show when a badge has
       many recorded wins — currently the latest, with a count of the rest.
+- [ ] #24-badges-live — **Make the badge case LIVE, like the party strip**
+      (user request 2026-07-26). Today `_badge_case_source()` already reads the
+      FOCUSED x4 lane, so opening the Bag after clicking P3's tile shows P3 — but
+      the contents are a SNAPSHOT taken in `open_badge_case()` and cached in
+      `_badge_case_entries_cache`. Two consequences to fix:
+        (a) clicking a different tile while the case is OPEN does not switch it —
+            `_x4_click` refreshes the party (`_refresh_party` + `_refresh_party_strip`)
+            but not the case;
+        (b) it does not tick over as badges are earned during a run.
+      Wanted: the case tracks focus changes and refreshes on a cadence, the way the
+      party strip does off `_refresh_sidebar`.
+      ‼ Design constraint that produced the snapshot in the first place: the entries
+      come from `badge_log.read_log()`, i.e. a DISK READ of `badge-log.json`, and
+      `_show_badge_detail` runs on every hover — a naive "just read it live" turns
+      mouse movement into file I/O. Refresh on focus-change and on the KPI/sidebar
+      cadence (or when the lane's published badge set changes), NOT per hover.
+      Cheap seam available: lanes already publish `badges` in their status blob, so
+      "has anything changed?" is answerable without touching the disk.
       Assets are NOT a blocker: all 8 Hoenn badge sprites already exist at
       `modules/web/static/sprites/badges/` (Stone, Knuckle, Dynamo, Heat, Balance,
       Feather, Mind, Rain). The only missing art is a Bag icon.
