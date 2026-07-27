@@ -21,12 +21,21 @@
 committed and pushed HERE, and the `20260727-063751` batch — launched from THERE — still ran
 the old code: runs 4+ `finished (0 frames)`, `run_index` stride still 2.
 
-**Before any further batch is meaningful, that copy must be updated** (`git pull` there, or
-whatever sync the user prefers — ASK, do not assume; it is the user's machine layout and may
-be deliberate). Until then every bundle will re-report the same three fixed bugs, and no fix
+‼ **That path does not exist on this machine** (checked 2026-07-27) — the bot runs on the
+user's OTHER, more powerful computer. So this is not a local sync you can perform: the fixes
+must be pulled on THAT machine before the next batch.
+
+**Before any further batch is meaningful, the running machine must pull `main`** (currently
+`9074bb09`). Until then every bundle will re-report the same already-fixed bugs and no fix
 can be validated. **Say this to the user explicitly and early — do not bury it in an
 analysis.** Two consecutive bundles have now been reviewed against code that was never
-running.
+running, which is the single largest waste in this project so far.
+
+**Check it cheaply on the next bundle** — these are pre-fix tells, visible in seconds:
+  * any run reporting `finished (0 frames)` → the honest-outcome fix is absent;
+  * `run_index` advancing by 2 (odd-only, or stride 2) → the badge-log fix is absent;
+  * runs 4+ dying at the Rustboro rival → the per-run-state fix is absent;
+  * a single run exceeding ~3.5M frames → the frame-budget fix is absent.
 
 ## 0b. THE LOG BUNDLES REVIEWED SO FAR
 
