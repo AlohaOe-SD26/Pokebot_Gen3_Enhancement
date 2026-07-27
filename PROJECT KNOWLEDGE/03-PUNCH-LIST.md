@@ -91,8 +91,20 @@
       whited out 41× on Route 110 and derailed). ‼ Open: WHICH floor (Granite Cave 1F/B1F/
       B2F); always vs only-when-underlevelled; town-wide vs arc-wide trainer scope.
       **ANSWERED 2026-07-26: train on Granite Cave B1F AND B2F; fight trainers ALWAYS.**
-      Trainer rosters + both floors' encounter tables still need decomp verification (in
-      flight), incl. whether B2F is gated behind an HM the bot lacks at that point.
+      ‼ **ALL FACTS NOW DECOMP-VERIFIED** (see `19-TEAM-BUILDING-DISCUSSION.md` §8) and the
+      spin tiles are recorded in `training_areas.py` PENDING_GRASS: **B1F (3,18) L9-11**,
+      **B2F (28,17) L10-12**, neither gated by any HM/item/flag. B1F's 62 cracked-floor
+      tiles are all UNREACHABLE ON FOOT (north of an unclimbable muddy slope).
+      ‼ **BLOCKED ON ONE THING:** `_CAVE_EXITS` / `_CAVE_ENTRANCES` are SINGLE-HOP tables,
+      and B1F/B2F are 2-3 hops deep from Route 106. Promoting them without making that
+      threading chain-aware breaks the post-training HEAL — the global navigator cannot
+      cross warp levels, and that exact failure already dropped two real-hardware runs to
+      Manual (2026-07-22). **Next step: make cave entry/exit chain-aware, then promote,
+      then validate live.** Deliberately NOT done blind — this is navigation code.
+      ‼ **PRIORITY NOTE:** this spot only fires after ≥2 Brawly losses, and batch
+      `20260726-201838` had 2-3 Dewford losses in the whole batch. Runs are dying at
+      MAUVILLE (Wattson) and PETALBURG (Norman), not Dewford. Worth doing because the user
+      asked and the data is now free, but it is not where the failures are.
 - [ ] #24-partyvariety — **Fill the party and vary what is caught; PC deposit/withdraw.**
       ‼ **ROOT CAUSE FOUND (recon 2026-07-26) — it is not emergent, it is two conditions.**
       `_should_catch` (`story_mode.py:899-937`) requires `not BADGE01_GET` AND

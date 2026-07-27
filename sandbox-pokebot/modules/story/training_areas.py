@@ -61,6 +61,40 @@ PENDING_GRASS: list[tuple] = [
     # Abra/Geodude); the ONLY wild source reachable from Dewford before Surf — Route 106 /
     # Route 107 / Dewford itself are SURF-ONLY (no land table at all; probed 2026-07-22).
     # Kept out of TRAINING_GRASS until the spin tile is validated live.
+    #
+    # ‼ DEEPER FLOORS — DECOMP-VERIFIED 2026-07-26, BLOCKED ON ONE THING (see below).
+    # User request: train on B1F/B2F rather than 1F, which is the weakest floor.
+    # Encounter tables (src/data/wild_encounters.json, rate 10 = 5.56 %/step):
+    #   B1F  Zubat 30 / Aron 40 / Abra 10 / Makuhita 10 / Sableye 10   L9-11
+    #   B2F  Zubat 30 / Aron 40 / Abra 10 / Sableye 20                 L10-12
+    # Neither floor is gated by any HM, item or flag (B2F's scripts.inc is `.byte 0`).
+    # Flash is locked behind Badge 2 so both are dark pre-Brawly — COSMETIC ONLY,
+    # collision and pathing are unaffected.
+    #
+    # Spin tiles below were derived by decoding map.bin (collision/elevation) +
+    # metatile_attributes.bin and flood-filling with the game's own rules. Both are
+    # MB_CAVE with MB_CAVE-or-wall on all four sides, ~4 steps from their arrival ladder.
+    #
+    # ‼ B1F's 62 CRACKED-FLOOR TILES ARE ALL UNREACHABLE ON FOOT. They sit north of the
+    # muddy slope at (9,9)/(9,10), which cannot be climbed without the Mach Bike, so the
+    # 126-tile arrival region (y=11..22) contains ZERO of them. Do not send the bot north
+    # of that slope, and do not let it train here on a bike.
+    (MapRSE.GRANITE_CAVE_B1F, (3, 18), (9, 11)),   # 1-wide N-S corridor, walls BOTH sides
+    # for (3,18) and its partner (3,17), so a stray left/right input is a physical no-op.
+    # 4 steps from the arrival ladder (4,21); 11 tiles from the nearest cracked floor.
+    (MapRSE.GRANITE_CAVE_B2F, (28, 17), (10, 12)),  # dead-end nook vs the east wall,
+    # partner (28,16); 4 steps from the (28,21) ladder. B2F has ZERO cracked floors and
+    # 203 MB_CAVE tiles in this pocket. Corroborated independently: upstream
+    # `modules/modes/rock_smash.py:409` already navigates to GRANITE_CAVE_B2F (28,21).
+    #
+    # ‼ WHY THESE ARE STILL PENDING AND NOT PROMOTED: `_CAVE_EXITS` / `_CAVE_ENTRANCES`
+    # in `early_game.py` are SINGLE-HOP tables — one warp in, one warp out. B1F and B2F
+    # are two and three hops deep from Route 106, so promoting them without first making
+    # that threading chain-aware would break the post-training HEAL: the global navigator
+    # cannot cross warp levels, and that exact failure already dropped two real-hardware
+    # runs to Manual (2026-07-22, see `_exit_training_cave_if_inside`). Make the entry and
+    # exit chain-aware FIRST, then promote — and validate live, because this is
+    # navigation code and this project's regressions live there.
 ]
 
 
