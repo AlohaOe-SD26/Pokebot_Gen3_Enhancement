@@ -4216,3 +4216,73 @@ gym order, unique names, every sprite present on disk, every ace levelled); a Tk
 of the overlay opening, hovering, pinning, an out-of-range index, toggling, double-close;
 and the silhouette being a distinct, cached image with a missing sprite degrading to None.
 Suite now ten scripts, all green.
+
+## 2026-07-26 — First x4 bundle reviewed: three bugs in the new tooling, and where the runs actually die
+
+**The collection itself worked** — `P1 - P4 x4 LOGs 20260726-181825.zip`, 12 MB, four lanes,
+manifest and archive correct, `badge-log.json` copied and not moved. Batch ran 17:47→18:18.
+
+### What the runs show (the actual story data)
+
+| lane | starter | runs | won | lost | fled | whiteouts | died at |
+|------|---------|------|-----|------|------|-----------|---------|
+| P1 | torchic | 1 (unfinished) | 484 | 5 | 13 (2.5%) | 5 | Route 110 ×3, Mauville Gym ×2 |
+| P2 | mudkip | 2 | 206 | 41 | 50 (16%) | 40 | **Route 110 ×41** |
+| P3 | treecko | 1 (unfinished) | 524 | 5 | 17 (3%) | 5 | Mauville Gym ×4 |
+| P4 | random→Treecko, then Torchic | 2 | 386 | 26 | 30 (6.5%) | 26 | Route 110 ×20, Mauville Gym ×6 |
+
+- **Runs are LONG.** In 31 minutes across four unthrottled lanes only 6 runs started and
+  none reached the frontier; P1 and P3 never finished a single run. Frontier work needs
+  hours per lane, not minutes.
+- **Route 110 is the attrition sink**, not gym leaders — P2 whited out there 41 times and
+  derailed on "too many whiteouts", P4 20 times. This is `#24-whiteout` territory and the
+  strongest evidence yet for it: P2 and P4 lost 66 battles between them on ONE route.
+- **The two clean lanes (P1, P3) died at Mauville Gym** — Wattson, the 3rd badge. That is
+  roughly the real frontier for a cold start at this commit.
+- **RNG decorrelation is working:** P4 rolled Treecko then Torchic across its two runs, and
+  no two lanes tracked each other.
+
+### ‼ Three bugs in MY tooling, found by the user's own logs
+
+**1. Badge false positives — the recorder believed garbage reads.** P1 started ONE run and
+its badge log claimed **Stone ×10, Knuckle ×5, and a Balance badge** (the 5th) in a run that
+reached the 2nd. Root cause found in the debug log: badge flags live in the save block, and
+during a map warp save-block reads return nonsense for a frame or two — visible directly as
+the MAP flipping to a garbage group and back in the same window:
+
+    f1190097 [MAP] MAUVILLE CITY(0,2) -> MAUVILLE CITY(10,5)
+    f1190101 [MAP] MAUVILLE CITY(10,5) -> MAUVILLE CITY(0,2)
+
+The poll landing there recorded Balance, then Stone+Knuckle together one interval later.
+Fixed with three independent filters: **debounce** (a flag must read set on two consecutive
+polls), **once per run** (`_recorded_this_run`), and **gym order** (a badge whose
+predecessors are unset is a corrupt read — Hoenn's gyms are linearly gated).
+
+While testing the fix, a fourth bug fell out: a badge rejected by the order filter was
+absorbed into the "already seen" set and could then never be recorded even once its
+predecessors legitimately arrived. `_known` is now the DISPLAY set only and plays no part
+in deciding what to write.
+
+**2. The lane prefix never reached the log anyone reads.** The bundle has a 1 KB
+`P1-Manual-debug-*.log` beside a 649 KB **untagged** `Story_(ENDLESS_RESET)-debug-*.log`.
+`StoryDebugResetMode` re-enables the logger once per run
+(`story_mode.py:2704,2733`) with no prefix, overwriting the lane's own. Passing the prefix
+per call was never going to be enough — `debug_logger.set_name_prefix()` now holds it
+module-wide so every caller picks it up, including ones that know nothing about lanes.
+Also: the lane enabled logging BEFORE setting `bot_mode`, which is why that first file said
+"Manual"; ordering fixed.
+
+**3. Run grouping silently collapsed.** Every P4 record carried `run_started_frame=0`
+despite P4 completing two runs, because `main.py`'s "frame counter went backwards"
+heuristic did not fire. `StoryEndlessResetMode` now calls `badge_log.reset_for_new_run()`
+directly at the top of each run — it knows exactly when one starts — and records carry a
+`run_index` that increments per reset.
+
+**Note for future analysis:** battle outcomes appear ONLY in the debug-log file, never in
+stdout. Any summarizer pointed at `*-stdout-*.txt` will report `battles=0` — the same trap
+`livetest.py` already documents for whiteouts. Read the `*-debug-*.log` files for outcomes.
+
+**Verified:** `repro_badge_transient.py` (new) replays the real trace — nine warp transients
+in one run must yield exactly one Stone and no phantom Balance — and drives each filter
+independently, plus the prefix surviving a no-argument `enable()`.
+`repro_x4_badgelog.py` updated to the debounce contract. Suite now eleven scripts, all green.

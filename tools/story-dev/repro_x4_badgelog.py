@@ -91,8 +91,12 @@ check(badge_log.read_log(fake_profile) == [],
       "loading a save with 2 badges logged nothing (they were not 'just earned')")
 
 print("\n== a badge earned after that IS recorded, with the team ==")
+# ‼ TWO consecutive polls are required since the debounce landed (see
+# repro_badge_transient.py): badge flags read GARBAGE for a frame or two during a map warp,
+# so a flag seen on a single poll is not evidence of anything.
 FLAGS.add("BADGE03_GET")
 poll(100 + badge_log._POLL_INTERVAL)
+poll(100 + 2 * badge_log._POLL_INTERVAL)
 log = badge_log.read_log(fake_profile)
 check(len(log) == 1, f"exactly one record (got {len(log)})")
 if log:
@@ -117,7 +121,9 @@ FLAGS.add("BADGE04_GET")
 poll(last_polled + badge_log._POLL_INTERVAL - 1)  # one frame too soon
 check(len(badge_log.read_log(fake_profile)) == 1, "a poll inside the interval did nothing")
 poll(last_polled + badge_log._POLL_INTERVAL)
-check(len(badge_log.read_log(fake_profile)) == 2, "the next eligible poll recorded it")
+check(len(badge_log.read_log(fake_profile)) == 1, "one eligible poll is not yet enough (debounce)")
+poll(last_polled + 2 * badge_log._POLL_INTERVAL)
+check(len(badge_log.read_log(fake_profile)) == 2, "the SECOND consecutive poll recorded it")
 
 print("\n== !! AFTER A HARD RESET, run 2's badges are recorded AGAIN ==")
 FLAGS = set()                      # the reset clears every flag
@@ -125,6 +131,7 @@ badge_log.reset_for_new_run(50_000)
 poll(50_100)                       # first poll of run 2: adopts nothing
 FLAGS.add("BADGE01_GET")
 poll(50_100 + badge_log._POLL_INTERVAL)
+poll(50_100 + 2 * badge_log._POLL_INTERVAL)
 log = badge_log.read_log(fake_profile)
 check(len(log) == 3, f"run 2's Stone Badge was recorded (total {len(log)})")
 if len(log) == 3:
@@ -146,6 +153,7 @@ def boom():
 fake_party_mod.get_party = boom
 FLAGS.add("BADGE02_GET")
 poll(60_000)
+poll(60_000 + badge_log._POLL_INTERVAL)
 log = badge_log.read_log(fake_profile)
 check(len(log) == 4 and log[3]["badge"] == "Knuckle", "the badge was still recorded")
 check(log[3]["team"] == [], "the team degraded to empty rather than losing the record")

@@ -2867,6 +2867,17 @@ class StoryEndlessResetMode(StoryDebugResetMode):
             console.print(f"[bold cyan]=== ENDLESS RESET: starting run {label} ===[/]")
             context.message = f"Endless reset: run {label}"
             start_frame = context.emulator.get_frame_count()
+            # ‼ AUTHORITATIVE RUN BOUNDARY for the badge recorder. `modules/main.py` also
+            # watches for the frame counter going backwards, but that proved unreliable —
+            # the user's 2026-07-26 x4 bundle had P4 complete two runs with every badge
+            # record still stamped `run_started_frame=0`. This mode KNOWS when a run
+            # starts, so it says so, and per-run badge de-duplication becomes trustworthy.
+            try:
+                from modules import badge_log
+
+                badge_log.reset_for_new_run(start_frame)
+            except Exception:
+                pass
             outcome = "finished"
             try:
                 # The parent does the hard reset + NEW GAME, then hands to StoryMode.run().

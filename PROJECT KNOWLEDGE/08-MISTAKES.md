@@ -1954,3 +1954,42 @@ tooltips get the same verification gate as flags and coordinates. When a table o
 is needed before it can be verified, ship it EMPTY with a failing test rather than filled
 with a plausible guess — the difference between those two states must be visible in a test
 run, not only in an intention.
+
+## 2026-07-26 — My badge recorder trusted a single memory read, and invented 20 badges that were never earned
+
+**Symptom.** The user's first x4 bundle: P1 started exactly one run and its `badge-log.json`
+claimed **Stone ×10, Knuckle ×5, and a Balance badge** — the 5th badge, in a run that
+reached the 2nd. Across four lanes roughly two thirds of all badge records were fictional.
+
+**Root cause.** Badge flags live in the save block, and during a map warp save-block reads
+return garbage for a frame or two. My poll sampled a flag ONCE and treated any 0→1
+transition as a win. The evidence was sitting in the same log the whole time — the MAP
+readout flips to a nonsense group and back in the identical window:
+
+    f1190097 [MAP] MAUVILLE CITY(0,2) -> MAUVILLE CITY(10,5)
+    f1190101 [MAP] MAUVILLE CITY(10,5) -> MAUVILLE CITY(0,2)
+
+**What I actually got wrong.** Not the polling — the epistemics. I wrote a recorder whose
+entire job is to assert "this happened", and gave it no way to distinguish a fact from a
+glitch. Worse, I had already written the invariant that would have caught it: I put the gym
+order in the badge table an hour earlier and never used it to sanity-check a reading. A
+Balance badge with no Dynamo or Heat is impossible, and the data said so on the first run.
+
+**The fix that worked.** Three independent filters, any one of which would have killed most
+of these: debounce over two consecutive polls; once-per-run de-duplication; and a gym-order
+check. Plus an authoritative run boundary from the mode itself, because the frame-counter
+heuristic I relied on for run grouping had silently never fired.
+
+**A fourth bug fell out of testing the fix:** a badge rejected by the order filter was
+absorbed into the "already seen" set and could never be recorded afterwards, even when its
+predecessors legitimately arrived. Rejecting a reading and remembering it are different
+things and must not share a set.
+
+**Prevention rules.**
+1. A single memory read is a sample, not a fact. Anything that WRITES A PERMANENT RECORD
+   from emulator memory must debounce, and must be idempotent over the event it claims.
+2. If the domain has an invariant that makes a reading impossible, ENCODE IT AS A FILTER at
+   the point of capture — not merely as a comment in a table. I had the invariant and
+   still shipped the data.
+3. When a "seen" set gates writes, check whether every path that adds to it actually means
+   "handled". A rejection is not a handling.

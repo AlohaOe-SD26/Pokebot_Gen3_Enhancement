@@ -58,7 +58,25 @@ def log_path() -> Optional[str]:
     return str(_path) if _path else None
 
 
-def enable(profile=None, name_prefix: str = "") -> str:
+#: A prefix applied to EVERY subsequent log filename. ENDLESS LOOP x4 sets it once per
+#: lane so files are self-identifying (`P1-…`).
+#: ‼ THIS EXISTS BECAUSE PASSING THE PREFIX PER CALL WAS NOT ENOUGH. The lane frontend
+#: enabled logging with `name_prefix="P1-"`, and then `StoryDebugResetMode` re-enabled it
+#: per run (`plugins/custom_modes/story_mode.py:2704,2733`) with no prefix — so the tiny
+#: startup log was tagged and the REAL story log, the one anyone would actually read, was
+#: not. Confirmed in the user's 2026-07-26 bundle: `P1-Manual-debug-*.log` (1 KB) beside an
+#: untagged `Story_(ENDLESS_RESET)-debug-*.log` (649 KB). A module-level prefix is picked
+#: up by every caller, including ones that know nothing about lanes.
+_name_prefix: str = ""
+
+
+def set_name_prefix(prefix: str) -> None:
+    """Tag every subsequent log file. Call once at lane startup."""
+    global _name_prefix
+    _name_prefix = str(prefix or "")
+
+
+def enable(profile=None, name_prefix: str | None = None) -> str:
     """Open a fresh log file and start logging. Returns the path (or an error
     string). `profile` defaults to context.profile.
 
@@ -78,7 +96,8 @@ def enable(profile=None, name_prefix: str = "") -> str:
         now = datetime.datetime.now()
         ts = now.strftime("%Y%m%d-%H%M%S")
         mode = _safe(_cur_mode) or "run"
-        _path = base / f"{name_prefix}{str(mode).replace(' ', '_').replace('/', '-')}-debug-{ts}.log"
+        prefix = _name_prefix if name_prefix is None else name_prefix
+        _path = base / f"{prefix}{str(mode).replace(' ', '_').replace('/', '-')}-debug-{ts}.log"
         _file = open(_path, "w", encoding="utf-8", buffering=1)  # line-buffered
         _enabled = True
         _prev = None

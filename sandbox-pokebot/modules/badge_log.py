@@ -68,22 +68,33 @@ _POLL_INTERVAL = 60
 
 # --- module state (per process; a lane is its own process) -------------------
 _known: set[str] | None = None      # flags already seen set, so a flip fires once
+_pending: set[str] | None = None    # flags seen set on the PREVIOUS poll but not yet confirmed
+_recorded_this_run: set[str] = set()
 _last_poll_frame: int = -1
 _run_started_frame: int = 0
+_run_index: int = 0
 
 
 def reset_for_new_run(frame: int = 0) -> None:
     """Called when a fresh playthrough begins, so records can be grouped by run.
 
-    ‼ Also clears `_known`. The endless mode hard-resets the emulator between runs, which
-    takes every badge flag back to 0; without clearing, the SECOND run's Stone Badge would
-    be treated as already-known and never recorded — the bug that would have made this
-    module useless in exactly the batch it was built for.
+    ‼ Also clears `_known` and `_recorded_this_run`. The endless mode hard-resets the
+    emulator between runs, taking every badge flag back to 0; without clearing, the SECOND
+    run's Stone Badge would be treated as already-known and never recorded.
+
+    ‼ CALL THIS FROM THE MODE, NOT ONLY FROM FRAME-COUNT DETECTION. `modules/main.py` also
+    calls it when the frame counter goes backwards, but the user's 2026-07-26 bundle showed
+    that is unreliable: P4 started two runs and every one of its 14 records still carried
+    `run_started_frame=0`, so run grouping silently collapsed. The endless mode knows
+    exactly when a run begins and says so.
     """
-    global _known, _run_started_frame, _last_poll_frame
+    global _known, _pending, _recorded_this_run, _run_started_frame, _last_poll_frame, _run_index
     _known = None
+    _pending = None
+    _recorded_this_run = set()
     _last_poll_frame = -1
     _run_started_frame = int(frame)
+    _run_index += 1
 
 
 def known_badges() -> set[str]:
@@ -127,7 +138,7 @@ def on_frame(frame: int) -> None:
     Fully guarded: this runs on the emulator's hot path and must never be able to break or
     slow a run. Called from `modules/main.py`'s frame loop.
     """
-    global _known, _last_poll_frame
+    global _known, _pending, _last_poll_frame
 
     try:
         if _last_poll_frame >= 0 and frame - _last_poll_frame < _POLL_INTERVAL:
@@ -141,20 +152,61 @@ def on_frame(frame: int) -> None:
         if _known is None:
             # First poll of a run: adopt whatever is already set WITHOUT recording it.
             # Loading a mid-game save would otherwise fabricate "just earned" records for
-            # badges won long ago, with today's team attached to them.
-            _known = current
+            # badges won long ago, with today's team attached to them. Adopting into
+            # `_recorded_this_run` (not a separate "seen" set) is what makes that stick.
+            _known = set(current)
+            _pending = set(current)
+            _recorded_this_run.update(current)
             return
 
-        newly = current - _known
-        if not newly:
-            _known = current
-            return
-        _known = current
+        # ---- FILTER 1: DEBOUNCE ------------------------------------------------
+        # ‼ Badge flags live in the save block, and during a map warp the save-block reads
+        # return GARBAGE for a frame or two. The user's 2026-07-26 bundle is unambiguous:
+        # the debug log shows the map itself flipping to nonsense in the same window
+        # (`f1190097 [MAP] MAUVILLE CITY(0,2) -> MAUVILLE CITY(10,5)` and back four frames
+        # later), and the badge poll landing there produced a BALANCE badge — the 5th —
+        # in a run that had only reached the 2nd, plus Stone/Knuckle "re-earned" in pairs.
+        # P1 recorded the Stone Badge TEN TIMES inside a SINGLE run.
+        # A flag must therefore read set on two CONSECUTIVE polls (60 frames apart) before
+        # it counts. No warp transient survives that.
+        confirmed = current & (_pending if _pending is not None else set())
+        _pending = set(current)
 
-        for flag in sorted(newly):
+        # `_known` is the DISPLAY set (`known_badges()`): debounced, and monotonic within a
+        # run because a badge cannot be un-earned. It deliberately plays no part in
+        # deciding what to RECORD — an earlier version used it for that, and a badge
+        # rejected by the gym-order filter got absorbed into it and could then never be
+        # recorded even once its predecessors legitimately arrived. `_recorded_this_run` is
+        # the only thing that suppresses a write.
+        _known = _known | confirmed
+
+        for flag in sorted(confirmed):
+            # ---- FILTER 2: ONCE PER RUN ---------------------------------------
+            # A badge cannot be earned twice in one playthrough. Anything claiming
+            # otherwise is a flag that flickered off and back on.
+            if flag in _recorded_this_run:
+                continue
+
+            # ---- FILTER 3: GYM ORDER ------------------------------------------
+            # Hoenn's gyms are gated linearly (Petalburg alone demands four badges), so a
+            # badge whose predecessors are not also set is a corrupt read, not a win.
+            if not _predecessors_set(flag, current):
+                continue
+
+            _recorded_this_run.add(flag)
             _record(flag, frame)
     except Exception:
         pass
+
+
+def _predecessors_set(flag: str, current: set[str]) -> bool:
+    """True if every badge before `flag` in gym order is also currently set."""
+    order = [row[0] for row in badge_table()]
+    try:
+        index = order.index(flag)
+    except ValueError:
+        return True
+    return all(earlier in current for earlier in order[:index])
 
 
 def _record(flag: str, frame: int) -> None:
@@ -170,6 +222,11 @@ def _record(flag: str, frame: int) -> None:
         "earned_at": datetime.datetime.now().isoformat(timespec="seconds"),
         "frame": int(frame),
         "run_started_frame": _run_started_frame,
+        # ‼ Group by THIS, not by run_started_frame. The frame-count reset heuristic proved
+        # unreliable in the user's 2026-07-26 bundle (P4 ran twice; every record still said
+        # run_started_frame=0), so records collapsed into one apparent run. `run_index` is
+        # incremented by `reset_for_new_run()`, which the endless mode now calls directly.
+        "run_index": _run_index,
         "team": [],
     }
     try:

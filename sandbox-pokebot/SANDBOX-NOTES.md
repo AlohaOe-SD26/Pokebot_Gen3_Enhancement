@@ -999,3 +999,24 @@ process.
 - **Tests**: `repro_badge_case.py` (new). Suite now 10 scripts, all green.
 - **NOT done**: real Bag artwork; picking WHICH run's team to show when a badge has many
   recorded wins (currently the latest, with a count of the rest).
+
+## 2026-07-26 — Badge recorder hardening + lane prefix fix (from the first real x4 bundle)
+- **Modified** `modules/badge_log.py`: three filters before a badge is written —
+  (1) DEBOUNCE, the flag must read set on two consecutive polls (save-block reads return
+  garbage during map warps; the user's bundle recorded a BALANCE badge in a run that had
+  only reached Knuckle); (2) ONCE PER RUN via `_recorded_this_run`; (3) GYM ORDER, a badge
+  whose predecessors are unset is a corrupt read. `_known` is now the DISPLAY set only —
+  using it to gate writes meant an order-rejected badge could never be recorded later.
+  Records gained `run_index`.
+- **Modified** `modules/debug_logger.py`: `set_name_prefix()` holds the lane tag
+  module-wide. Passing `name_prefix` per call was not enough — `StoryDebugResetMode`
+  re-enables the logger per run with no prefix, leaving the 649 KB log untagged.
+- **Modified** `plugins/custom_modes/story_mode.py`: the endless mode calls
+  `badge_log.reset_for_new_run()` at the top of each run (main.py's frame-counter
+  heuristic never fired — P4 ran twice with every record stamped run 0).
+- **Modified** `modules/gui/tile_child.py`: set `bot_mode` BEFORE enabling logging, so the
+  file is not named `P1-Manual-*` for a lane about to run Story.
+- **Tests**: `repro_badge_transient.py` (new, replays the real trace);
+  `repro_x4_badgelog.py` updated to the debounce contract. Suite now 11, all green.
+- ‼ ANALYSIS NOTE: battle outcomes appear ONLY in `*-debug-*.log`, never in stdout. A
+  summarizer reading stdout reports `battles=0` — same trap livetest.py documents for whiteouts.

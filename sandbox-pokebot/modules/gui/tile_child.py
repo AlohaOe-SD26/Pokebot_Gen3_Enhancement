@@ -95,9 +95,23 @@ class PokebotTileChild:
 
         # The whole point of an x4 batch is diagnosable logs, so debug logging is ON
         # and the file carries the lane tag (P1..P4) the user asked for.
-        self._enable_debug_log(startup_settings.profile)
-
+        #
+        # ‼ THE PREFIX IS SET GLOBALLY, not just passed to our own enable(). The story
+        # DEBUG-RESET mode re-enables the logger once per run with no prefix, which in the
+        # user's 2026-07-26 bundle left the 649 KB log everyone actually reads untagged
+        # while only a 1 KB startup file carried "P1-".
+        #
+        # ‼ AND THE BOT MODE IS SET FIRST. `enable()` names the file after the CURRENT
+        # mode, so enabling before this line produced `P1-Manual-debug-*.log` for a lane
+        # that was about to run Story (ENDLESS RESET).
         context.bot_mode = startup_settings.bot_mode
+        try:
+            from modules import debug_logger
+
+            debug_logger.set_name_prefix(f"{self._lane_tag}-")
+        except Exception:
+            pass
+        self._enable_debug_log(startup_settings.profile)
         self._main_loop()
 
     def on_settings_updated(self) -> None:
@@ -120,7 +134,7 @@ class PokebotTileChild:
         try:
             from modules import debug_logger
 
-            result = debug_logger.enable(profile, name_prefix=f"{self._lane_tag}-")
+            result = debug_logger.enable(profile)  # prefix comes from set_name_prefix()
         except Exception as exc:  # noqa: BLE001
             self._log_path = None
             console.print(f"[red]{self._lane_tag}: debug logging FAILED to start: {type(exc).__name__}: {exc}[/]")
