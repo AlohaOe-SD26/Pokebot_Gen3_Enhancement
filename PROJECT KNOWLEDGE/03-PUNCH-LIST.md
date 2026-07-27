@@ -762,11 +762,22 @@
       !! SYNERGY, and the reason to build this alongside #24-provisions: many ground items
       ARE Potions and Revives, so pickup directly feeds the layer that breaks the
       loss->whiteout 1:1. Do (a) first: navigation + a press, reuses everything that exists.
-      !! HARD CONSTRAINT found by the Ch14 audit: a FULL BAG POCKET silently fails a pickup.
-      Std_ObtainItem sets VAR_RESULT=FALSE on failure and several story scripts NEVER CHECK
-      IT - the Magma Emblem cutscene runs on regardless and PERMANENTLY STRANDS THE RUN.
-      Any pickup logic must verify the item actually entered the bag, and the bot must keep
-      pocket headroom before scripted gift items.
+      !! CORRECTED by later recon (22-CAPABILITY-RECON.md C1): PICKUPS ARE SAFE. Item balls
+      (finditem/Std_FindItem) and hidden items both call checkitemspace FIRST; on a full bag
+      the ball STAYS with its flag unset, so the pickup is simply retryable. No bag guard is
+      needed for pickup logic.
+      The strand vector is GIFT scenes only - giveitem/Std_ObtainItem calls additem with NO
+      pre-check, sets VAR_RESULT=FALSE and prints nothing, and 38 sites never test it.
+      Those are concentrated in KEY ITEMS (cap 30) and TM/HM (cap 64) - including EVERY HM
+      (Cut, Flash, Strength, Rock Smash, Surf, Fly, Dive, Waterfall) and the Magma Emblem.
+      The general Items pocket has NO unchecked story grant on the path, so stockpiling
+      Potions cannot strand a run. Rule: keep KEY ITEMS and TM/HM headroom before gift scenes.
+      !! The ITEMFINDER IS NOT REQUIRED to COLLECT a hidden item - only to detect one
+      (field_control_avatar.c:346-353 checks the flag alone). The bot can harvest hidden
+      items straight from a coordinate table without ever obtaining it.
+      On-path healing already mapped: REVIVE at Route117 (9,1) and Route109 (16,23, hidden),
+      MAX REVIVE at Petalburg (19,2), Hyper Potions on Route118/119, plus Rare Candies on
+      Granite Cave B2F (29,4) and Route110 (26,47).
       Open: detour for items, or only collect what is on the existing path? Recommend
       on-path only first, then let the `curiosity` personality axis price the detour
       (19-TEAM-BUILDING-DISCUSSION.md 5).

@@ -26,8 +26,15 @@
 `setvar VAR_MT_PYRE_STATE, 1`. The `STATE==0` trigger is then dead and the Magma Emblem is
 **unobtainable for the rest of that save**; the Jagged Pass door never opens.
 
-The bot MUST assert a free Key Items slot before stepping on the y=7 trigger row. This
-generalises: any scripted gift item can be silently dropped.
+The bot MUST assert a free Key Items slot before stepping on the y=7 trigger row.
+
+‼ **CORRECTED 2026-07-26 (later recon, see `22-CAPABILITY-RECON.md` §C):** this hazard is
+REAL but I originally over-generalised it. It applies to **`giveitem`/`Std_ObtainItem` gift
+scenes ONLY** — those call `additem` with **no pre-check**. Overworld pickups are SAFE:
+item balls (`finditem`/`Std_FindItem`) and hidden items both call `checkitemspace` FIRST, and
+on a full bag they leave the ball in place with its flag unset, so the pickup is simply
+RETRYABLE. There are **38 unchecked `giveitem` sites**, and they are concentrated in the
+Key Items (cap 30) and TM/HM (cap 64) pockets — including **every single HM**.
 
 ### Confirmed
 - `ITEM_MAGMA_EMBLEM` = 375, a KEY ITEM with no flag — gate on the BAG, as Jagged Pass does.
