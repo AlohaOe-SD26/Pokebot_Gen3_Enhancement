@@ -730,8 +730,46 @@
       at the League mart precisely for this). Extends the buy-at-mart machinery
       (shop-agnostic `_mart_item_row` already reads stock live). Design note:
       gate on money reserve like balls; a heal-item strategy layer slots into
-      the battle strategies where flee/switch decisions already live. NOT urgent
+      the battle strategies where flee/switch decisions already live.
+      !!! PRIORITY RAISED 2026-07-26 (user directive) - AND THE DATA AGREES EMPHATICALLY.
+      The old note said "NOT urgent (the fight/train/retry loop carries the mid-game)".
+      Batch 20260726-201838 refutes it: LOSSES AND WHITEOUTS ARE 1:1 IN EVERY LANE --
+      P1 27 losses / 27 whiteouts, P2 43/44, P3 10/10, P4 12/12. With no potion or revive
+      layer, EVERY battle loss becomes a full whiteout: respawn at the last Center, walk
+      all the way back, re-fight. A heal-item layer is the single change that breaks that
+      1:1, converting the most expensive failure in the game (whiteout + travel) into the
+      cheapest (one turn spent on a Potion).
+      Build order: (1) BUY -- extend the existing mart machinery, gate on a money reserve
+      as Poke Balls already do; (2) USE IN BATTLE -- a heal threshold in the battle-strategy
+      layer where flee/switch already decide; (3) USE BETWEEN BATTLES where there is no PC.
+      Steps 1+2 alone should measurably cut whiteouts, and that is a DIRECTLY MEASURABLE
+      hypothesis: compare whiteouts-per-loss before and after.
+      Money is not the blocker -- the Dewford arc alone has 4,924 PokeDollars on foot that
+      the bot currently walks past (19-TEAM-BUILDING-DISCUSSION.md 8.2), and the Lilycove
+      Dept Store 2F sells up to MAX POTION + Revive (Aqua-hideout recon 2026-07-26). NOT urgent
       (the fight→train→retry loop carries the mid-game) — required before the E4.
+- [ ] #24-items - GROUND + HIDDEN ITEM PICKUP (user request 2026-07-26). The bot walks
+      past every item ball and every hidden item in the game. Two mechanisms, handled
+      differently:
+        (a) VISIBLE ITEM BALLS - real object events at a known tile; pickup is "navigate
+            there, press A". The Ch14 recon alone found Carbos (Route121 55,10), Revive
+            (60,10), Zinc (38,13), Max Potion (MtPyre Exterior 27,15), TM48 (19,40), Sea
+            Incense, Lax Incense, TM30 - all on routes the bot already walks. The Aqua
+            hideout holds a MASTER BALL (B1F 15,9) + Nugget, behind a solved warp path.
+        (b) HIDDEN ITEMS - no object event; need the ITEMFINDER and a press on the exact
+            tile. Requires the Itemfinder in the bag plus a per-map coordinate table from
+            the decomp (`hiddenitem` script commands in data/maps/*/scripts.inc).
+      !! SYNERGY, and the reason to build this alongside #24-provisions: many ground items
+      ARE Potions and Revives, so pickup directly feeds the layer that breaks the
+      loss->whiteout 1:1. Do (a) first: navigation + a press, reuses everything that exists.
+      !! HARD CONSTRAINT found by the Ch14 audit: a FULL BAG POCKET silently fails a pickup.
+      Std_ObtainItem sets VAR_RESULT=FALSE on failure and several story scripts NEVER CHECK
+      IT - the Magma Emblem cutscene runs on regardless and PERMANENTLY STRANDS THE RUN.
+      Any pickup logic must verify the item actually entered the bag, and the bot must keep
+      pocket headroom before scripted gift items.
+      Open: detour for items, or only collect what is on the existing path? Recommend
+      on-path only first, then let the `curiosity` personality axis price the detour
+      (19-TEAM-BUILDING-DISCUSSION.md 5).
 - [ ] #24-tms — TM ACQUISITION + USAGE (user directive 2026-07-23): TMs arrive as
       gym rewards (TM39 Roxanne, TM08 Brawly...), ground items, and mart stock;
       the bot should track what's in the bag, know single-use vs HM reuse, and
