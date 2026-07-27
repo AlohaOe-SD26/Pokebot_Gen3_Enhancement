@@ -40,3 +40,7 @@ tools/story-dev/saves/stalls/
 
 # Endless Loop x4 mosaic previews written by repro_x4_mosaic.py — regenerable.
 tools/story-dev/x4-preview/
+
+# Crash dumps written by modules/exceptions_hook.py — diagnostic artefacts, not source.
+sandbox-pokebot/crash-*.log
+custom-pokebot/crash-*.log

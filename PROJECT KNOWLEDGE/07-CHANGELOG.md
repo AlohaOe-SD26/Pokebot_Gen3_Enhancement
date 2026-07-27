@@ -4286,3 +4286,32 @@ stdout. Any summarizer pointed at `*-stdout-*.txt` will report `battles=0` — t
 in one run must yield exactly one Stone and no phantom Balance — and drives each filter
 independently, plus the prefix surviving a no-argument `enable()`.
 `repro_x4_badgelog.py` updated to the debounce contract. Suite now eleven scripts, all green.
+
+## 2026-07-26 — Startup crashes are now readable (crash log + exit pause)
+
+**Trigger.** User: "I tried closing the program and running it again and it gives me an
+error but quickly closes after I type y." The error was real but UNDIAGNOSABLE — nothing in
+the bot wrote a traceback anywhere, and `install_sandbox.py` launches the bot as a
+SUBPROCESS OF THE INSTALLER (`install.py:506`, `subprocess.run([bot_python, "pokebot.py"…])`),
+so the traceback printed into a console that closed with it.
+
+Worse, `pokebot.py`'s exit pause only fired when the parent process was `py.exe` — the
+installer uses `python.exe`, so the one mechanism that would have held the window open was
+inert in exactly the launch path most people use.
+
+**Fixed both halves:**
+- `modules/exceptions_hook.py` now writes every unhandled exception to
+  `crash-<YYYYmmdd-HHMMSS>.log` beside the bot, with the profile and bot mode in a header,
+  and prints the path. Fully guarded — a failure to write the crash log must never replace
+  the crash.
+- `pokebot.py`'s exit pause also triggers when stdin is an interactive terminal. ‼ It is
+  gated on `isatty()` specifically so the ENDLESS LOOP x4 lanes (spawned with
+  `stdin=DEVNULL`) and headless/piped runs still exit immediately rather than hanging
+  forever on an `input()` nobody can answer.
+
+`crash-*.log` added to `.gitignore` (diagnostic artefact, not source).
+
+**Not yet fixed: the crash itself.** An import sweep of every module touched in the previous
+commit (`debug_logger`, `badge_log`, `badge_case`, `main`, `dashboard_gui`, `tile_child`,
+`story/intro`) plus `load_plugins()` is clean under the mgba stub, and this dev box has no
+`mgba` so the real startup path cannot be run here. The crash log is what will identify it.

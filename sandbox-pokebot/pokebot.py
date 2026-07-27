@@ -26,7 +26,18 @@ def on_exit() -> None:
         import os
 
         parent_process_name = psutil.Process(os.getppid()).name()
-        if parent_process_name == "py.exe" or is_bundled_app():
+        # ‼ ALSO PAUSE WHEN LAUNCHED FROM A TERMINAL BY ANYTHING ELSE. `install_sandbox.py`
+        # runs the bot as a subprocess of the installer using `python.exe`, so the old
+        # `py.exe`-only check never fired and a startup crash flashed past as the window
+        # closed (user, 2026-07-26). `isatty()` is False for the ENDLESS LOOP x4 lanes
+        # (spawned with stdin=DEVNULL) and for headless/piped runs, so they still exit
+        # immediately.
+        interactive_terminal = False
+        try:
+            interactive_terminal = sys.stdin is not None and sys.stdin.isatty()
+        except Exception:
+            interactive_terminal = False
+        if parent_process_name == "py.exe" or is_bundled_app() or interactive_terminal:
             if gui is not None and gui.window is not None:
                 gui.window.withdraw()
 
