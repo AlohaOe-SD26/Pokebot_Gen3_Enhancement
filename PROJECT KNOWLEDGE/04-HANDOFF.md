@@ -3,7 +3,118 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-07-26 (ENDLESS LOOP ×4 phase 1 — see "YOU ARE HERE" immediately below)
+**Last updated:** 2026-07-27 (SESSION WRAP — machine handover; see "START HERE" below)
+
+---
+
+# ‼ START HERE — machine handover, 2026-07-27
+
+You are resuming on a different computer with no prior chat context. Everything below is
+current. `main` is clean and pushed at `d967b44b`.
+
+## 1. THE FIRST THING THAT WILL HAPPEN: a log bundle arrives
+
+The user is running an ENDLESS LOOP x4 batch overnight and will hand you a zip named
+`P1 - P4 x4 LOGs <date> <time>.zip`. **Review it before anything else.** Procedure that works
+(used twice; reuse it rather than inventing one):
+
+```
+# 1. extract somewhere scratch, read the manifest first
+python -c "import zipfile;zipfile.ZipFile(r'<zip>').extractall('.')"
+cat MANIFEST.txt          # lanes, starters, per-lane badge tallies
+
+# 2. per-lane metrics — !! BATTLE OUTCOMES ARE ONLY IN THE DEBUG LOG, NEVER STDOUT.
+#    A summarizer pointed at *-stdout-*.txt reports battles=0 and is lying to you.
+#    stdout has: whiteouts ("recovered from the whiteout"), "lost a battle at map (g, n)",
+#                "derail #N", "starting run", "-> derailed:"/"finished"
+#    debug log has: "BattleOutcome.<X>", [MAP], [PARTY], [BATTLE], STUCK dumps
+#    resolve map ids via modules.map_data.MapRSE((group, number)).name
+
+# 3. badge-log.json is CUMULATIVE and never archived — split records by `earned_at`
+#    against the batch start time, or you will read old pre-fix data as new.
+#    Group by `run_index` (NOT run_started_frame, which is unreliable).
+```
+
+**What to look for, in priority order:**
+1. **Did the lead-restore fix hold?** The bug: `train_team` left the WEAKEST mon leading, so
+   the bot opened trainer ambushes with it. Signature was P2 in batch `20260726-201838`: 19
+   losses and 44 whiteouts **all at one tile**, ROUTE 110 (34,56), same party every time,
+   lead Dustox L13 with a Marshtomp L21 in slot 2. **If any lane shows repeated losses at a
+   single fixed tile, the fix did not hold — that is the headline.**
+2. **Badge records sane?** Post-fix runs must show correct gym order, no duplicates, no
+   badge appearing before its predecessors. Pre-fix data had Stone x10 in a single run.
+3. **Where are runs dying now?** Last batch shifted from route attrition to GYM LEADERS
+   (Mauville/Wattson x7 on three lanes, Petalburg/Norman x8 on P1).
+4. **The 1:1 canary.** losses:whiteouts was EXACTLY 1:1 in every lane (27/27, 43/44, 10/10,
+   12/12) because no potion layer exists. If the ratio rises above 1.0, something is causing
+   whiteouts with no battle logged (poison steps are the usual cause).
+
+## 2. WHAT WAS BUILT AND IS LIVE (sandbox only; custom-pokebot untouched)
+
+- **ENDLESS LOOP x4** — `Emulator > Endless Loop x4...` in the bot-mode popup. Four lanes,
+  one process/profile/starter each (P1 torchic, P2 mudkip, P3 treecko, P4 random), 2x2 tiles
+  in the video area, party strip follows the focused tile.
+- **Park x4 & Collect Logs** — parks every lane, bundles all four lanes' logs into one
+  VERIFIED zip under `profiles/x4 LOGS/`, archives originals to `debug-logs/Old/` only after
+  the zip proves out.
+- **Badge case** — Bag button under the 6th party ball; 2x4 badges, silhouette until earned,
+  hover/click for leader detail + the team that won.
+- **RNG decorrelation** — a random 0-120 frame pause on the naming screen. Without it, cold
+  starts were BIT-IDENTICAL (Emerald is not RTC-seeded), so lanes were not independent
+  samples at all.
+- **Fixes**: the training lead-restore livelock; badge false positives (3 filters);
+  `run_index` double-count; negative run frames; a stray directory in `profiles/` crashing
+  startup; crash logs now written to `crash-<ts>.log`.
+
+**Verification bar:** 13 emulator-free repro scripts in `tools/story-dev/repro_*.py`, ALL
+GREEN. Run them after any change. ~20 older `repro_*.py` need a real `mgba` and cannot run on
+a box without the bot installed — that is expected, not a regression.
+
+## 3. THE PLANNING DOCS WRITTEN THIS SESSION (read before building)
+
+| doc | what it decides |
+|---|---|
+| `19-TEAM-BUILDING-DISCUSSION.md` | the user's three team requests + the two-axis personality design |
+| `20-POST-FORTREE-RECON.md` | Mt. Pyre, Aqua Hideout, gyms 7-8, + second-pass corrections |
+| `21-TEAM-POLICY-DESIGN.md` | BUILD-READY: catch policy, dead-weight predicate, rotation, counter ladder, never-randomise list, offline test plan |
+| `22-CAPABILITY-RECON.md` | healing items, the PC, ground/hidden items, shops, money |
+| `23-MEANDER-PATHING-DESIGN.md` | the pathing verdict + algorithm |
+| `ai-research-notes/2026-07-26-*/` | Gemini notes — RECALL ONLY, stub-marked, decomp wins |
+
+## 4. NEXT ITEMS, RANKED (all specced, none built)
+
+1. **`#24-provisions`** — healing items. Highest value: losses:whiteouts is 1:1, so EVERY
+   loss becomes a full whiteout. `buy_in_shop()` is already item-generic and money-gated;
+   the in-battle seam is one insertion at `battle_strategies/default.py:172`. Mostly policy.
+2. **`#24-grasswander`** — organic movement while training. Nearly free; the seam is proven
+   (`run_in_circle`, `walking.py:706`, takes an arbitrary waypoint generator).
+3. **`#24-items`** — ground/hidden pickup. Pickups are SAFE and retryable; only `giveitem`
+   gift scenes can strand a run. Itemfinder NOT needed to collect hidden items.
+4. **`#24-partyvariety`** — the bot catches FOUR mons and stops at Badge 1. Two conditions in
+   `_should_catch`. That is the whole "runs look the same" complaint.
+5. **`#24-counters` phase 2** — the counter chain diagnoses and then ENDS THE RUN. 45 of the
+   derails in the last batch were this.
+6. **`#24-gymtrainers`** — Dewford's six gym trainers are skipped entirely (their sight cones
+   are off the path to Brawly). Trainer battles are the ENTIRE economy: there are no scripted
+   cash gifts in Hoenn.
+7. **Travel meandering** — deliberately LAST. See `23-...`: it is net-negative today.
+
+## 5. ‼ THINGS THAT WILL BITE YOU
+
+- **`git add -A` is unsafe after running research agents.** One extracted the pokeemerald
+  decomp into the repo root and I committed 11,567 files / 61 MB before catching it. Removed
+  and gitignored, but NOT history-rewritten (project rule: never force-push). The repo is
+  permanently ~61 MB heavier; cleaning it needs `filter-repo` + a force-push and is the
+  USER'S call. **Check `git status` before staging.**
+- **This dev box has no `mgba`** — nothing involving a live emulator has ever run here. The
+  more powerful machine may differ; check before claiming anything is live-verified.
+- **Gemini research needs `GEMINI_API_KEY`.** The user supplied one in chat this session; it
+  is NOT in the repo and should be treated as compromised/rotated.
+- **Never write game facts from memory.** Two were wrong this session: the 8th gym leader is
+  JUAN in Emerald (Wallace is Champion — that is Ruby/Sapphire), and Emerald is NOT RTC-seeded
+  (Ruby is). Both differ *between* Gen-3 games, which is exactly where recall fails.
+
+---
 
 ### ⭐ YOU ARE HERE — 2026-07-26 — ENDLESS LOOP ×4, PHASE 1 BUILT (sandbox), LIVE RUN OWED
 
