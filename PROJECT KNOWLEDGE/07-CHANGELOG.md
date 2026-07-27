@@ -4315,3 +4315,37 @@ inert in exactly the launch path most people use.
 commit (`debug_logger`, `badge_log`, `badge_case`, `main`, `dashboard_gui`, `tile_child`,
 `story/intro`) plus `load_plugins()` is clean under the mgba stub, and this dev box has no
 `mgba` so the real startup path cannot be run here. The crash log is what will identify it.
+
+## 2026-07-26 — ‼ FIXED: `profiles/x4 LOGS/` killed the bot at startup
+
+**The crash the user hit.** With the crash log in place, the console stayed open long
+enough to read it — and it was self-inflicted:
+
+    Starting PokeBot Gen3 dev!
+    Could not load ...\sandbox-pokebot\profiles\x4 LOGS\metadata.yml, file does not exist.
+    Please re-download the program or restore the missing file.
+
+**Root cause.** `list_available_profiles()` iterates every directory under `profiles/` and
+guards with `except RuntimeError`. But `load_profile()` → `load_config_file(..., strict=True)`
+raises `exceptions.CriticalFileMissing`, which is a **PrettyException, not a RuntimeError** —
+so the guard never fired, the exception reached the top-level hook, and the bot exited
+before the profile screen. ENDLESS LOOP x4 writes its bundles to `profiles/x4 LOGS/`
+(where the user asked for them), so the FIRST launch after the first successful log
+collection died.
+
+**This was never specific to the x4 folder.** Any non-profile directory under `profiles/`
+would have done it — a half-copied profile, a Windows "New folder", a user's own notes.
+That latent fragility has presumably always been there; the x4 bundle folder is simply the
+first thing that reliably created one.
+
+**Fix.** `list_available_profiles()` now skips entries that are not directories, and
+directories with no `metadata.yml`, BEFORE trying to load them. Loading a profile **by
+name** still raises the helpful `CriticalFileMissing` — that is correct there, because a
+user who named a broken profile deserves to be told exactly what is wrong rather than
+having it silently vanish from the list.
+
+**Verified:** `repro_profiles_stray_dir.py` (new) — enumeration survives an `x4 LOGS`
+folder containing a zip, a "New folder", a loose file and a half-copied profile directory;
+underscore-prefixed entries are still skipped; a real profile is still found; and
+`load_profile()` by name still raises `CriticalFileMissing`. Confirmed against the real
+sandbox `profiles/` directory with an `x4 LOGS` folder present. Suite now twelve, all green.

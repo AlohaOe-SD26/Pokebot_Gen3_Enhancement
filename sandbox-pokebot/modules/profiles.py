@@ -39,7 +39,22 @@ def list_available_profiles() -> list[Profile]:
 
     profiles = []
     for entry in PROFILES_DIRECTORY.iterdir():
-        if entry.name.startswith("_"):
+        if entry.name.startswith("_") or not entry.is_dir():
+            continue
+        # ‼ A DIRECTORY IN `profiles/` THAT IS NOT A PROFILE MUST BE SKIPPED, NOT FATAL.
+        # `load_profile()` -> `load_config_file(..., strict=True)` raises
+        # `exceptions.CriticalFileMissing` when `metadata.yml` is absent — a
+        # PrettyException, NOT a RuntimeError — so it sails straight past the
+        # `except RuntimeError` below, reaches the top-level hook, and KILLS STARTUP with
+        # "Please re-download the program or restore the missing file."
+        #
+        # Live hit 2026-07-26: ENDLESS LOOP x4 writes its log bundles to
+        # `profiles/x4 LOGS/` (see `modules/x4_logs.py`), and the next launch of the bot
+        # died before the profile screen. But this was never specific to that folder — a
+        # half-copied profile, a Windows "New folder", or a user's own notes directory
+        # would each have done the same. Enumeration is now tolerant; loading a profile
+        # BY NAME still raises the helpful CriticalFileMissing, which is correct there.
+        if not (entry / ProfileMetadata.filename).is_file():
             continue
         try:
             profile = load_profile(entry)

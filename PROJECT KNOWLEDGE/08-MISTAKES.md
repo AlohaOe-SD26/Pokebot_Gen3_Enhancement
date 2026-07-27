@@ -1993,3 +1993,36 @@ things and must not share a set.
    still shipped the data.
 3. When a "seen" set gates writes, check whether every path that adds to it actually means
    "handled". A rejection is not a handling.
+
+## 2026-07-26 — I predicted this exact crash, reasoned it away, and shipped it anyway
+
+**Symptom.** The first launch after the first successful x4 log collection died before the
+profile screen: `Could not load ...\profiles\x4 LOGS\metadata.yml, file does not exist.`
+
+**Root cause.** `list_available_profiles()` guards with `except RuntimeError`, but the
+missing-metadata path raises `CriticalFileMissing`, a PrettyException. Any non-profile
+directory under `profiles/` is therefore fatal at startup.
+
+**What makes this worth recording is not the bug — it is that I SAW IT COMING.** When
+choosing where to write the bundles I wrote, in `modules/x4_logs.py`:
+
+    Inside `profiles/` because that is where the user asked for it; it has no
+    `metadata.yml`, so `list_available_profiles()` skips it rather than listing a
+    broken profile.
+
+I had the right question, went looking, found the `except RuntimeError`, and concluded it
+was handled — **without checking what `load_profile` actually raises.** I read the handler
+and inferred the exception rather than reading the exception. Then I wrote the conclusion
+into a docstring, where it became a load-bearing claim that no test ever touched.
+
+**The fix that worked.** Skip non-directories and directories without `metadata.yml` before
+loading, so enumeration is tolerant while by-name loading keeps its helpful error. Plus
+`repro_profiles_stray_dir.py`, which asserts against the real failure rather than the
+reasoning about it.
+
+**Prevention rules.**
+1. When you write "X is safe because Y handles it", the claim needs the same verification
+   as a game fact — go and read what actually gets raised/returned, do not infer it from
+   the handler. A confident comment is the most durable way to hide a bug.
+2. If a design note in a docstring can be expressed as a test, write the test. This one was
+   one `mkdir` away from being caught before it shipped.
