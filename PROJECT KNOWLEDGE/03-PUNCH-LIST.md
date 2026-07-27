@@ -81,6 +81,29 @@
       `modules/web/static/sprites/badges/` (Stone, Knuckle, Dynamo, Heat, Balance,
       Feather, Mind, Rain). The only missing art is a Bag icon.
 
+## Under discussion (user 2026-07-26, NOT agreed scope — see `19-TEAM-BUILDING-DISCUSSION.md`)
+> ‼ Do NOT start these. Each has open questions that must be answered with the user first;
+> the design note records them. Promote to the active list once resolved.
+- [ ] #24-gymtrainers — **Battle gym/town trainers BEFORE grinding wild, at every gym.**
+      Raised for Dewford (bot trains in the cave; user says it should be on "the second
+      floor" AND should clear the island + gym trainers first for XP and money). Directly
+      attacks the #1 failure in batch `20260726-181825`: attrition, not gym leaders (P2
+      whited out 41× on Route 110 and derailed). ‼ Open: WHICH floor (Granite Cave 1F/B1F/
+      B2F — must not be guessed); always vs only-when-underlevelled; town-wide vs arc-wide
+      trainer scope. Trainer rosters + the floor's encounter table need decomp verification.
+- [ ] #24-partyvariety — **Fill the party and vary what is caught; PC deposit/withdraw.**
+      Runs come out with near-identical teams. Confirmed in the logs: P1 carried a
+      **CASCOON stuck at L5 for its entire run** — a dead slot never reconsidered. ‼ Open:
+      diversity for TESTING vs for COMPETENCE (decides whether the picker randomises or
+      optimises); whether PC access exists at all (likely the largest piece of work here);
+      and whether the "fetch a counter for the next fight" half is really the same item as
+      `#24-counters` phase 2 rather than a separate one.
+- [ ] #24-favourite — **Roll a "favourite" species per run.** Prefer to catch/keep it,
+      unless it is a disadvantage for the fight about to be entered. Cheap run-to-run
+      variance that is independent of the RNG decorrelation already in place. ‼ Open: the
+      roll pool; how strong the preference is; a CONCRETE rule for "disadvantage"; per-run
+      vs per-lane (recommend per run).
+
 ## Next (user-set order 2026-07-19: #30 â†’ #31 â†’ #32, THEN the first wave below)
 > #30/#31/#32 are BUILT + ADVERSARIALLY VERIFIED in sandbox (clean pass:
 > money cheat byte-safe 56/56, GUI nav 28/28, no code bugs). AWAITING USER
