@@ -2026,3 +2026,37 @@ reasoning about it.
    the handler. A confident comment is the most durable way to hide a bug.
 2. If a design note in a docstring can be expressed as a test, write the test. This one was
    one `mkdir` away from being caught before it shipped.
+
+## 2026-07-26 — Swap-training left the WEAKEST mon leading, and it cost one lane 44 whiteouts
+
+**Symptom.** Batch `20260726-201838`, lane P2: **19 losses and 44 whiteouts**, every single
+one at the same tile — ROUTE 110 (34,56) — with an identical party each time:
+
+    party=['Dustox:L13', 'Nincada:L12', 'Marshtomp:L21', 'Poochyena:L11']
+    [BATTLE] ended (outcome=BattleOutcome.Lost)
+    [MAP] ROUTE 110(0,25) -> SLATEPORT CITY(0,1)     <- whiteout, respawn, walk back, repeat
+
+**Root cause.** `train_team` rotates the LOWEST-level trainee into slot 0 on purpose, so it
+shares XP (swap-training). Nothing ever put the good mon back. The bot therefore left every
+grind with its weakest battler leading and opened the next trainer ambush with it — a L13
+Dustox in front of a L21 Marshtomp.
+
+**Why nothing caught it.** Three separate safety nets all had a reason not to apply:
+- `_lead_strongest_battler()` existed and its docstring described this exact hazard — but it
+  was only ever called before GYMS, never before travel.
+- Survival mode (`#24-whiteout`) is deliberately scoped to WILD battles, because a trainer
+  battle cannot be fled. P2's killer was a trainer.
+- `_defeat_counts` escalation is boss-scoped; a route trainer is not a boss.
+
+So the failure sat exactly in the gap between three mechanisms that each correctly declined
+to handle it.
+
+**The fix that worked.** Call `_lead_strongest_battler()` at the end of `train_team`, after
+the loop and before the `finally` (a `yield` inside `finally` raises if the generator is
+being closed, and on the exception path the run derails and resets anyway).
+
+**Prevention rule.** When a routine deliberately puts the system into a WORSE state as part
+of doing its job — a weak lead, a disabled guard, a raised limit — the restore belongs in
+the same function, not in whichever caller happens to remember. And when you write a helper
+whose docstring names a hazard, grep for every path that hazard can reach, not just the one
+you were looking at.

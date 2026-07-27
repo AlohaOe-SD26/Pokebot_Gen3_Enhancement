@@ -1825,6 +1825,30 @@ def train_team(
                 # navigator can't do that ("not on connected maps"). Exit the cave first.
                 yield from _exit_training_cave_if_inside()
                 yield from heal_in_pokemon_center(heal_center)
+
+        # ‼ RESTORE THE STRONGEST LEAD BEFORE LEAVING THE GRIND.
+        #
+        # Swap-training deliberately rotates the LOWEST-level trainee into slot 0 so it
+        # shares XP. Nothing used to put the good mon back, so the bot walked away from
+        # training with its weakest battler leading — and the next trainer sight-line it
+        # crossed opened with that mon.
+        #
+        # LIVE COST (user batch 20260726-201838, lane P2): **19 losses and 44 whiteouts**,
+        # every single one at the SAME tile, ROUTE 110 (34,56), with the same party every
+        # time — lead Dustox **L13** while Marshtomp **L21** sat in slot 2. KO one of
+        # theirs, lose, white out to Slateport, walk back, lose again. Forever.
+        #
+        # ‼ Survival mode cannot save this: it is scoped to WILD battles
+        # (`story_mode.py:1531`, `encounter is not None`) precisely because a TRAINER
+        # battle cannot be fled. So the only fix is to not walk into it weak.
+        #
+        # `_lead_strongest_battler()`'s own docstring already described this hazard — it
+        # was simply only ever applied before GYMS, never before travel.
+        #
+        # Placed after the loop rather than in `finally` on purpose: a `yield` inside a
+        # finally block raises if the generator is being closed, and on the exception path
+        # the run derails and resets anyway, so the lead does not survive to matter.
+        yield from _lead_strongest_battler()
     finally:
         set_swap_train(False)
 
