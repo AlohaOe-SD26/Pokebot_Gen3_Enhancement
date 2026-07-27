@@ -979,3 +979,23 @@ process.
 - **Tests**: `repro_rng_decorrelation.py` (new). Suite now 9 scripts, all green.
 - ‼ Consequence for the sandbox's own testing: cold-start runs are no longer bit-reproducible
   by default. That is correct for a SAMPLER; set the env var to 0 to reproduce a bug.
+
+## 2026-07-26 — Bag button + badge case overlay (#24-badges)
+- **Added** `modules/badge_case.py`: the CANONICAL decomp-verified badge table
+  (flag, badge, leader, city, type, ace + level, sprite, TM, field move granted) +
+  `build_case()` / `earned_count()`. Pure data — no Tk, no context — so it is testable.
+  ‼ 8th leader is **JUAN** (Emerald), not Wallace (Ruby/Sapphire). Mossdeep is ONE trainer
+  (`TATE&LIZA`, doubleBattle). Norman's "Normal" is INFERRED from his party — the only gym
+  whose text never states a type.
+- **Modified** `modules/badge_log.py`: its `BADGES` is now DERIVED from `badge_case` on
+  every access (`badge_table()` + module `__getattr__`), not snapshotted at import — the
+  snapshot version could drift and a test caught it. Added `known_badges()` (poll cache).
+- **Modified** `modules/gui/dashboard_gui.py`: Bag button under the 6th party ball
+  (PIL-drawn satchel — the repo ships no bag art); `open/close/toggle_badge_case`,
+  `_show_badge_detail`, `_badge_sprite` (per-pixel black silhouette when unearned),
+  `_badge_case_source` (follows the FOCUSED x4 lane), entries snapshotted on open so a
+  hover is not a disk read.
+- **Modified** `modules/gui/tile_child.py`: lanes publish `badges` from the poll cache.
+- **Tests**: `repro_badge_case.py` (new). Suite now 10 scripts, all green.
+- **NOT done**: real Bag artwork; picking WHICH run's team to show when a badge has many
+  recorded wins (currently the latest, with a count of the rest).

@@ -1921,3 +1921,36 @@ lattice) and the honest fix was to test the streams, not the seeds.
    in exactly the way that would have made a from-memory answer wrong.
 3. An assertion threshold must be derived from the mechanism, not chosen because it sounds
    demanding.
+
+## 2026-07-26 — I named the wrong 8th gym leader, in a table I wrote from memory an hour after writing a rule against exactly that
+
+**Symptom.** `modules/badge_log.py`'s badge table shipped with **Wallace** as the Sootopolis
+Gym Leader. In Emerald the leader is **JUAN**; Wallace is the Champion
+(`src/data/trainers.h:3268-3278` vs `:4024-4034`;
+`data/maps/CaveOfOrigin_B1F/scripts.inc:65-69` has Wallace say it himself). Wallace IS the
+Sootopolis leader — in Ruby/Sapphire. Any `badge-log.json` record written before the fix
+carries the wrong `leader` string for BADGE08.
+
+**Root cause.** I treated the leader roster as "flavour text for a tooltip" rather than as a
+game fact, and typed it out while focused on the recorder's logic. The project's standing
+rule — never write game facts from memory, verify against the decomp — was in my head for
+the RNG question thirty minutes earlier and simply did not fire for a list of names that
+felt like common knowledge.
+
+**Why it is the SAME mistake as the RNG one.** Both are Gen-3 facts that differ BETWEEN
+Gen-3 games (Emerald is RTC-unseeded where Ruby is; Emerald's 8th leader is Juan where
+Ruby's is Wallace). Confidence about "Gen 3" is worth nothing at the exact points where the
+games diverge, and those points are where a from-memory answer is most likely to be wrong
+AND least likely to feel uncertain.
+
+**The fix that worked.** One canonical decomp-verified table in `modules/badge_case.py`,
+with `badge_log` deriving from it; every field carries its evidence. The table was left
+EMPTY while verification was in flight, so `repro_badge_case.py`'s integrity assertions
+failed loudly instead of the UI shipping invented data — the empty-table-plus-failing-test
+is what made "unverified" impossible to forget.
+
+**Prevention rule.** A game fact is a game fact whether it drives pathfinding or a tooltip;
+tooltips get the same verification gate as flags and coordinates. When a table of such facts
+is needed before it can be verified, ship it EMPTY with a failing test rather than filled
+with a plausible guess — the difference between those two states must be visible in a test
+run, not only in an intention.

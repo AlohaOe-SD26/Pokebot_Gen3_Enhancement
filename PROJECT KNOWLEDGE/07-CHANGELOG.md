@@ -4155,3 +4155,64 @@ on (280,896 cycles; 18,752 shift; gcd 64; 1,024-frame cycle; all 121 pauses dist
 the two CLOSEST reachable seeds diverge on the very first LCG draw and share nothing over
 20 draws, and — asserted against the source, not the comment — that the pause really does
 sit between typing and confirming.
+
+## 2026-07-26 — Bag button + BADGE CASE overlay; and the 8th gym leader was wrong (#24-badges)
+
+**Built.** A Bag button under the 6th party ball opens a badge-case overlay: the eight
+Hoenn badges 2×4 as in the in-game case, full-colour when earned and a **black silhouette**
+(shape kept, colour stripped per-pixel) when not. Hover shows the leader's details; click
+pins them. The detail pane shows leader, city, type, ace, TM and the field move the badge
+authorises — plus **the team that beat them**, read back from `badge-log.json`, with the
+win count and timestamp when a badge has been taken many times across an endless batch.
+During an x4 batch the case follows the FOCUSED LANE, exactly as the party strip does;
+lanes publish their badge flags from `badge_log`'s existing poll cache, so it costs no
+extra memory reads.
+
+It is an in-window `place()`d frame, NOT a Toplevel: this module's own docstring records
+that a Toplevel opens BEHIND the video in handheld fullscreen and looks like nothing
+happened — and handheld is where the Bag button is most useful.
+
+**‼ CORRECTION — the Sootopolis leader is JUAN, not Wallace.** The first badge table (in
+`badge_log.py`, shipped earlier the same day) was written from memory and named Wallace,
+which is Ruby/Sapphire. In Emerald `[TRAINER_JUAN_1]` is `TRAINER_CLASS_LEADER`
+(`src/data/trainers.h:3268-3278`) while `[TRAINER_WALLACE]` is `TRAINER_CLASS_CHAMPION`
+(`:4024-4034`) and is only battled in the Champion's Room; the game says so outright at
+`data/maps/CaveOfOrigin_B1F/scripts.inc:65-69`. **Any `badge-log.json` record written
+before this commit carries the wrong `leader` string for BADGE08 — the `flag` and `team`
+fields are unaffected.** This is the second Gen-3-differs-across-Gen-3 trap in one session
+(the first was Emerald's RTC seeding); both would have been wrong from memory.
+
+**The whole table is now decomp-verified** (`modules/badge_case.py`), from the `_1` STORY
+parties (`src/data/trainer_parties.h:3367-3613`), not the rematch parties: leaders, cities,
+types, aces + levels (Nosepass 15, Makuhita 19, Manectric 24, Torkoal 29, Slaking 31,
+Altaria 33, Lunatone/Solrock 42, Kingdra 46), TMs, and the badge→field-move mapping, which
+is not folklore — `src/party_menu.c:117-127` orders the field-move enum to line up with the
+badge flags and `:3725` enforces `FlagGet(FLAG_BADGE01_GET + fieldMove)`.
+Two facts flagged rather than smoothed over: **Mossdeep is ONE trainer** (`TATE&LIZA`,
+`.doubleBattle = TRUE`, a single 4-mon party — there is no `TRAINER_TATE`), and **Norman's
+"Normal" type is INFERRED** from his party, because Petalburg's gym text is the one that
+never states a type.
+
+**Caught by the tests, twice.**
+1. `badge_log.BADGES = tuple(...badge_case.BADGES...)` at module level *looked* like a
+   derived view and was a SNAPSHOT taken at first import — so the two could drift, which is
+   exactly what the "no second copy to drift" assertion caught. Now derived on every access
+   via `badge_table()` + a module `__getattr__`. (Note module `__getattr__` does not fire
+   for lookups *inside* the module, so the two in-module uses call `badge_table()`
+   directly.)
+2. The real table was left EMPTY until the decomp answer arrived, so the table-integrity
+   assertions failed loudly rather than the UI quietly shipping invented leader data.
+
+**Asset note:** the repo ships no bag artwork (`sprites/` has badges, items, Pokémon and a
+few `other/` icons; the real bag lives in ROM graphics we do not extract), so the button
+icon is a PIL-drawn satchel. Dropping a `Bag.png` into `sprites/other/` and loading it in
+`_bag_icon()` is the swap if real art ever appears.
+
+**Verified:** `repro_badge_case.py` — `build_case()` against a SYNTHETIC table (so the
+logic does not depend on the table's contents): empty case, earned-from-flags,
+earned-inferred-from-a-record, many wins per badge, `latest`/`team_summary`, and junk input
+degrading rather than raising; the real table's integrity (8 badges, `BADGE01..08_GET` in
+gym order, unique names, every sprite present on disk, every ace levelled); a Tk smoke test
+of the overlay opening, hovering, pinning, an out-of-range index, toggling, double-close;
+and the silhouette being a distinct, cached image with a missing sprite degrading to None.
+Suite now ten scripts, all green.

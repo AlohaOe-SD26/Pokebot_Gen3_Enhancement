@@ -259,6 +259,9 @@ class PokebotTileChild:
             # Which starter this run is ACTUALLY playing — a `random` lane is otherwise
             # indistinguishable from a pinned one when it rolls the same species.
             "starter_chosen": self._chosen_starter(),
+            # Badge flags for the badge case, served from badge_log's poll cache so this
+            # costs no extra memory reads at 20 Hz.
+            "badges": self._badges(),
         }
         # Logging state travels with every frame, so the dashboard can show at a glance
         # whether a lane is actually producing the logs it exists to produce.
@@ -289,6 +292,15 @@ class PokebotTileChild:
         except Exception:
             pass
         return status
+
+    @staticmethod
+    def _badges() -> list[str]:
+        try:
+            from modules import badge_log
+
+            return sorted(badge_log.known_badges())
+        except Exception:
+            return []
 
     @staticmethod
     def _chosen_starter() -> str | None:

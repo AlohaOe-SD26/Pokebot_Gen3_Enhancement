@@ -52,10 +52,13 @@
       reset so every run of an x4 batch is captured. Shipped first because it can
       only record badges earned AFTER it is on — waiting would have thrown away
       every x4 run's badge data (06-DECISIONS-LOG).
-      **TODO (the UI):** the Bag button + overlay; per-leader detail content (type,
-      ace, level range — must be FACT-CHECKED against the decomp, not written from
-      memory, per the Gemini/validation directives); reading `badge-log.json` back
-      and picking which run's team to show when there are many.
+      **UI DONE 2026-07-26** — Bag button under the 6th ball + the 2x4 badge-case
+      overlay (silhouette until earned, hover/click for leader detail + the team
+      that won). Leader table decomp-verified in `modules/badge_case.py`; the 8th
+      leader is JUAN, not Wallace (that error shipped first — 08-MISTAKES).
+      Live confirm owed. **REMAINING:** real Bag artwork (the icon is PIL-drawn;
+      the repo ships none); and choosing WHICH run's team to show when a badge has
+      many recorded wins — currently the latest, with a count of the rest.
       Assets are NOT a blocker: all 8 Hoenn badge sprites already exist at
       `modules/web/static/sprites/badges/` (Stone, Knuckle, Dynamo, Heat, Balance,
       Feather, Mind, Rain). The only missing art is a Bag icon.

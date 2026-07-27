@@ -148,6 +148,15 @@ class DashboardScreen:
         self._x4_focus = 0
         self._x4_last_paint = 0.0
 
+        # Badge case (#24-badges): the Bag button under the party strip and its overlay.
+        self._bag_button = None
+        self._bag_icon_cache = None
+        self._badge_case_frame = None
+        self._badge_case_detail = None
+        self._badge_case_selected = 0
+        self._badge_case_entries_cache = None
+        self._badge_sprite_cache: dict = {}
+
         self._handheld = False
         self._drawer_open = False
         # Desktop: the tool column can be hidden (Pokéball reopens it) so the
@@ -331,6 +340,8 @@ class DashboardScreen:
         if self._party_strip is not None:
             self._party_strip.destroy()
             self._party_strip = None
+        # The badge case is placed on the root window, so it outlives `frame` too.
+        self.close_badge_case()
         if self._party_tooltip is not None:
             self._party_tooltip.destroy()
             self._party_tooltip = None
@@ -1130,7 +1141,268 @@ class DashboardScreen:
             slot.bind("<Enter>", lambda event, i=index: self._party_hover_enter(i, event.x_root, event.y_root))
             slot.bind("<Leave>", lambda _event: self._party_hover_leave())
             self._party_slots.append(slot)
+
+        # BAG BUTTON (#24-badges, user request 2026-07-26): sits under the 6th ball and
+        # opens the badge case. Deliberately smaller than a party slot so it never reads
+        # as a 7th Pokémon.
+        tkinter.Frame(strip, background=COLOR_HAIRLINE, height=1).pack(fill="x", padx=10, pady=(8, 6))
+        bag = tkinter.Label(strip, background=COLOR_SURFACE, borderwidth=0, cursor="hand2")
+        bag.pack(pady=(0, 6))
+        icon = self._bag_icon()
+        bag.config(image=icon if icon is not None else "", text="" if icon else "BAG",
+                   foreground=COLOR_INK_2, font=("Segoe UI", 8, "bold"))
+        bag.image = icon
+        bag.bind("<Button-1>", lambda _event: self.toggle_badge_case())
+        self._bag_button = bag
+
         self._refresh_party_strip()
+
+    _BAG_ICON_SIZE = 54
+
+    def _bag_icon(self) -> "PIL.ImageTk.PhotoImage | None":
+        """The Bag button's icon.
+
+        ‼ DRAWN, NOT AN ASSET. The repo ships no bag artwork (`sprites/` has badges, items,
+        Pokémon and a handful of `other/` icons, but nothing bag-like), and the real one
+        lives in ROM graphics we do not extract. This is a deliberate stand-in shaped like
+        Emerald's satchel — swap it for a real sprite if one is ever added, by dropping a
+        `Bag.png` into `sprites/other/` and loading it here instead.
+        """
+        if getattr(self, "_bag_icon_cache", None) is not None:
+            return self._bag_icon_cache
+        try:
+            size = self._BAG_ICON_SIZE
+            scale = 4  # draw big, downsample — cheap antialiasing for the curves
+            image = PIL.Image.new("RGBA", (size * scale, size * scale), (0, 0, 0, 0))
+            draw = PIL.ImageDraw.Draw(image)
+            w = size * scale
+            body_top = int(w * 0.34)
+            # strap
+            draw.arc([int(w * 0.28), int(w * 0.10), int(w * 0.72), int(w * 0.62)],
+                     start=200, end=340, fill=(96, 74, 44, 255), width=int(w * 0.055))
+            # body
+            draw.rounded_rectangle([int(w * 0.12), body_top, int(w * 0.88), int(w * 0.88)],
+                                   radius=int(w * 0.14), fill=(214, 168, 78, 255),
+                                   outline=(120, 88, 36, 255), width=int(w * 0.035))
+            # flap
+            draw.rounded_rectangle([int(w * 0.12), body_top, int(w * 0.88), int(w * 0.58)],
+                                   radius=int(w * 0.12), fill=(178, 130, 52, 255),
+                                   outline=(120, 88, 36, 255), width=int(w * 0.035))
+            # clasp
+            draw.rounded_rectangle([int(w * 0.42), int(w * 0.50), int(w * 0.58), int(w * 0.66)],
+                                   radius=int(w * 0.04), fill=(238, 226, 196, 255),
+                                   outline=(120, 88, 36, 255), width=int(w * 0.025))
+            image = image.resize((size, size), resample=PIL.Image.LANCZOS)
+            self._bag_icon_cache = PIL.ImageTk.PhotoImage(image=image)
+        except Exception:
+            self._bag_icon_cache = None
+        return self._bag_icon_cache
+
+    # ------------------------------------------------------------------
+    # Badge case overlay (#24-badges)
+    # ------------------------------------------------------------------
+    def _badge_case_source(self) -> tuple[str, "Path | None", list[str]]:
+        """(label, profile path, earned flag names) for whatever the case should show.
+
+        During an x4 batch the case follows the FOCUSED LANE, exactly as the party strip
+        does — a badge case showing this window's idle profile while four lanes play would
+        be actively misleading.
+        """
+        from pathlib import Path
+
+        if self._x4_batch is not None:
+            status = self._x4_focused_status()
+            lanes = self._x4_batch.lanes
+            if 0 <= self._x4_focus < len(lanes):
+                lane = lanes[self._x4_focus]
+                from modules.profiles import PROFILES_DIRECTORY
+
+                return (f"{lane.tag} · {lane.starter}",
+                        PROFILES_DIRECTORY / lane.profile_name,
+                        list(status.get("badges") or []))
+        try:
+            from modules import badge_log
+
+            label = context.profile.path.name if context.profile else "—"
+            path = Path(context.profile.path) if context.profile else None
+            return label, path, sorted(badge_log.known_badges())
+        except Exception:
+            return "—", None, []
+
+    def _badge_case_entries(self):
+        from modules import badge_case, badge_log
+
+        _label, path, flags = self._badge_case_source()
+        records = []
+        if path is not None:
+            try:
+                import types as _types
+
+                records = badge_log.read_log(_types.SimpleNamespace(path=path))
+            except Exception:
+                records = []
+        return badge_case.build_case(flags, records)
+
+    def toggle_badge_case(self) -> None:
+        if self._badge_case_frame is not None:
+            self.close_badge_case()
+        else:
+            self.open_badge_case()
+
+    def close_badge_case(self) -> None:
+        if self._badge_case_frame is not None:
+            try:
+                self._badge_case_frame.destroy()
+            except Exception:
+                pass
+        self._badge_case_frame = None
+        self._badge_case_detail = None
+        self._badge_case_entries_cache = None
+
+    def open_badge_case(self) -> None:
+        """Draw the badge case as an in-window overlay to the right of the party strip.
+
+        ‼ An in-window `place()`d frame, NOT a Toplevel. This module's docstring records
+        that a plain Toplevel opens BEHIND the video in handheld fullscreen and looks like
+        nothing happened; the overlay has to work in handheld, which is where the Bag
+        button is most useful.
+        """
+        from modules import badge_case
+
+        self.close_badge_case()
+        entries = self._badge_case_entries()
+        self._badge_case_entries_cache = entries
+        label, _path, _flags = self._badge_case_source()
+
+        frame = tkinter.Frame(self.window, background=COLOR_CARD,
+                              highlightbackground=COLOR_ACCENT, highlightthickness=2)
+        self._badge_case_frame = frame
+
+        header = tkinter.Frame(frame, background=COLOR_CARD)
+        header.pack(fill="x", padx=12, pady=(10, 4))
+        tkinter.Label(header, text="BADGE CASE", background=COLOR_CARD, foreground=COLOR_INK,
+                      font=("Segoe UI", 12, "bold")).pack(side="left")
+        tkinter.Label(header, text=f"{badge_case.earned_count(entries)} / {len(entries)}",
+                      background=COLOR_CARD, foreground=COLOR_ACCENT,
+                      font=("Segoe UI", 12, "bold")).pack(side="right")
+        tkinter.Label(frame, text=label, background=COLOR_CARD, foreground=COLOR_MUTED,
+                      font=("Segoe UI", 8), anchor="w").pack(fill="x", padx=12)
+
+        # 2 rows x 4 — the in-game case's layout.
+        grid = tkinter.Frame(frame, background=COLOR_CARD)
+        grid.pack(padx=10, pady=8)
+        for index, entry in enumerate(entries):
+            cell = tkinter.Frame(grid, background=COLOR_SURFACE, padx=4, pady=4,
+                                 highlightbackground=COLOR_HAIRLINE, highlightthickness=1)
+            cell.grid(row=index // 4, column=index % 4, padx=3, pady=3)
+            icon = self._badge_sprite(entry.info.sprite, entry.earned)
+            slot = tkinter.Label(cell, background=COLOR_SURFACE, borderwidth=0, cursor="hand2")
+            slot.config(image=icon if icon is not None else "",
+                        text="" if icon else entry.info.badge)
+            slot.image = icon
+            slot.pack()
+            tkinter.Label(cell, text=entry.info.badge, background=COLOR_SURFACE,
+                          foreground=COLOR_INK_2 if entry.earned else COLOR_MUTED,
+                          font=("Segoe UI", 7)).pack()
+            for widget in (cell, slot):
+                widget.bind("<Enter>", lambda _e, i=index: self._show_badge_detail(i))
+                widget.bind("<Button-1>", lambda _e, i=index: self._show_badge_detail(i, pin=True))
+
+        detail = tkinter.Frame(frame, background=COLOR_SURFACE)
+        detail.pack(fill="both", expand=True, padx=10, pady=(0, 10))
+        self._badge_case_detail = detail
+
+        close = tkinter.Button(frame, text="Close", command=self.close_badge_case,
+                               background=COLOR_SURFACE, foreground=COLOR_INK,
+                               activebackground=COLOR_ACCENT, relief="flat",
+                               font=("Segoe UI", 8))
+        close.pack(pady=(0, 8))
+
+        strip_width = self._PARTY_ICON_SIZE + 14
+        frame.place(x=strip_width + 8, y=8, width=430)
+        frame.lift()
+        self._show_badge_detail(self._badge_case_selected)
+
+    def _show_badge_detail(self, index: int, pin: bool = False) -> None:
+        detail = self._badge_case_detail
+        if detail is None:
+            return
+        if pin:
+            self._badge_case_selected = index
+        # Snapshotted when the case is opened: re-reading badge-log.json on every hover
+        # would be a disk read per mouse move.
+        entries = self._badge_case_entries_cache or self._badge_case_entries()
+        if not (0 <= index < len(entries)):
+            return
+        entry = entries[index]
+        info = entry.info
+
+        for child in detail.winfo_children():
+            child.destroy()
+
+        def line(text, colour=COLOR_INK_2, font=("Segoe UI", 8), pady=0):
+            tkinter.Label(detail, text=text, background=COLOR_SURFACE, foreground=colour,
+                          font=font, anchor="w", justify="left", wraplength=390).pack(
+                fill="x", padx=8, pady=pady)
+
+        line(f"{info.badge} Badge — {info.leader}", COLOR_INK, ("Segoe UI", 10, "bold"), (6, 0))
+        line(f"{info.city} Gym · {info.type}-type")
+        line(f"Ace: {info.ace} (Lv {info.ace_level})")
+        if info.tm:
+            line(f"Reward: {info.tm}")
+        if info.grants:
+            line(f"Enables: {info.grants}", COLOR_ACCENT)
+
+        if not entry.earned:
+            line("Not yet earned.", COLOR_MUTED, ("Segoe UI", 8, "italic"), (6, 6))
+            return
+
+        if not entry.records:
+            # Earned, but before the recorder existed (or on another machine).
+            line("Earned — no team recorded.", COLOR_MUTED, ("Segoe UI", 8, "italic"), (6, 0))
+            line("The team is captured only for badges won after the badge log was "
+                 "switched on.", COLOR_MUTED, ("Segoe UI", 7), (0, 6))
+            return
+
+        latest = entry.latest
+        line(f"Beaten {len(entry.records)}× · latest {str(latest.get('earned_at', ''))[:19]}",
+             COLOR_GOOD, ("Segoe UI", 8, "bold"), (6, 0))
+        line("Team that won:", COLOR_MUTED, ("Segoe UI", 7, "bold"), (2, 0))
+        for mon in latest.get("team", []):
+            name = mon.get("name") or mon.get("species") or "?"
+            hp = f"{mon.get('hp', '?')}/{mon.get('max_hp', '?')}"
+            shiny = " ✦" if mon.get("shiny") else ""
+            line(f"   {name}{shiny}  Lv {mon.get('level', '?')}   HP {hp}")
+        if len(entry.records) > 1:
+            line(f"({len(entry.records) - 1} earlier win(s) also recorded — see badge-log.json)",
+                 COLOR_MUTED, ("Segoe UI", 7), (4, 4))
+
+    def _badge_sprite(self, filename: str, earned: bool):
+        """The badge image, or a black silhouette of it when not yet earned."""
+        key = (filename, earned)
+        if key in self._badge_sprite_cache:
+            return self._badge_sprite_cache[key]
+        photo = None
+        try:
+            from modules.runtime import get_sprites_path
+
+            path = get_sprites_path() / "badges" / filename
+            image = PIL.Image.open(path).convert("RGBA")
+            image = image.resize((48, 48), resample=PIL.Image.LANCZOS)
+            if not earned:
+                # Keep the SHAPE, drop the colour: every visible pixel becomes near-black,
+                # which is the "empty slot in the case" look the user asked for.
+                pixels = image.load()
+                for y in range(image.height):
+                    for x in range(image.width):
+                        r, g, b, a = pixels[x, y]
+                        if a:
+                            pixels[x, y] = (18, 18, 20, a)
+            photo = PIL.ImageTk.PhotoImage(image=image)
+        except Exception:
+            photo = None
+        self._badge_sprite_cache[key] = photo
+        return photo
 
     def _refresh_party_strip(self) -> None:
         if not self._party_slots:

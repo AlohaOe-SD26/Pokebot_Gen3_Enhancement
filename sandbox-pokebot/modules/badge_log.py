@@ -35,21 +35,31 @@ import datetime
 import json
 from pathlib import Path
 
-#: Hoenn badges in gym order. Flag names verified present in the sandbox's own story code
-#: (`modules/story/progress.py`, `modules/capabilities.py`), not guessed.
-#: The HM each badge authorises is recorded because it is what makes a badge matter to the
-#: bot's routing — `capabilities.py` gates Rock Smash on BADGE03 and Surf on BADGE05.
-BADGES: tuple[tuple[str, str, str, str, str], ...] = (
-    # (flag,           badge name, leader,        city,       sprite)
-    ("BADGE01_GET", "Stone",   "Roxanne",      "Rustboro",  "Stone.png"),
-    ("BADGE02_GET", "Knuckle", "Brawly",       "Dewford",   "Knuckle.png"),
-    ("BADGE03_GET", "Dynamo",  "Wattson",      "Mauville",  "Dynamo.png"),
-    ("BADGE04_GET", "Heat",    "Flannery",     "Lavaridge", "Heat.png"),
-    ("BADGE05_GET", "Balance", "Norman",       "Petalburg", "Balance.png"),
-    ("BADGE06_GET", "Feather", "Winona",       "Fortree",   "Feather.png"),
-    ("BADGE07_GET", "Mind",    "Tate & Liza",  "Mossdeep",  "Mind.png"),
-    ("BADGE08_GET", "Rain",    "Wallace",      "Sootopolis", "Rain.png"),
-)
+#: Hoenn badges in gym order, DERIVED from the single canonical table in
+#: `modules/badge_case.py` so the two can never drift.
+#:
+#: ‼ THIS TABLE USED TO BE A SECOND, HAND-WRITTEN COPY AND IT WAS WRONG: it named WALLACE
+#: as the Sootopolis leader, which is Ruby/Sapphire. In EMERALD the 8th leader is JUAN and
+#: Wallace is the Champion (`src/data/trainers.h:3268-3278` vs `:4024-4034`). Any
+#: `badge-log.json` record written before 2026-07-26 carries the wrong `leader` string for
+#: BADGE08; the `flag` and `team` fields in those records are unaffected.
+#:
+#: ‼ DERIVED ON EVERY ACCESS, not snapshotted at import. `BADGES = tuple(... badge_case
+#: .BADGES ...)` at module level looked equivalent and was not: it froze whatever the
+#: canonical table held at first import, so the two COULD drift — which is precisely what
+#: the "no second copy to drift" test caught.
+def badge_table() -> tuple[tuple[str, str, str, str, str], ...]:
+    """(flag, badge, leader, city, sprite) for each badge, from the canonical table."""
+    from modules.badge_case import BADGES as info
+
+    return tuple((b.flag, b.badge, b.leader, b.city, b.sprite) for b in info)
+
+
+def __getattr__(name: str):
+    """Keep `badge_log.BADGES` working as a read-only, always-current view."""
+    if name == "BADGES":
+        return badge_table()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 _FILENAME = "badge-log.json"
 
@@ -74,6 +84,18 @@ def reset_for_new_run(frame: int = 0) -> None:
     _known = None
     _last_poll_frame = -1
     _run_started_frame = int(frame)
+
+
+def known_badges() -> set[str]:
+    """The badge flags currently set, as of the last poll.
+
+    Served from the poll cache rather than re-reading memory: the badge case reads this
+    at UI refresh rates and during an x4 batch every lane publishes it every frame, and
+    eight fresh memory reads at that cadence would be pure waste. `None` (no poll yet)
+    reads as "nothing known", which is correct — the caller shows an empty case until the
+    first poll lands about a second later.
+    """
+    return set(_known) if _known else set()
 
 
 def log_path(profile=None) -> Path | None:
@@ -114,7 +136,7 @@ def on_frame(frame: int) -> None:
 
         from modules.memory import get_event_flag
 
-        current = {flag for flag, *_ in BADGES if get_event_flag(flag)}
+        current = {flag for flag, *_ in badge_table() if get_event_flag(flag)}
 
         if _known is None:
             # First poll of a run: adopt whatever is already set WITHOUT recording it.
@@ -139,7 +161,7 @@ def _record(flag: str, frame: int) -> None:
     from modules.context import context
     from modules.remote_party import mon_payload
 
-    meta = next((b for b in BADGES if b[0] == flag), None)
+    meta = next((b for b in badge_table() if b[0] == flag), None)
     record = {
         "flag": flag,
         "badge": meta[1] if meta else flag,
