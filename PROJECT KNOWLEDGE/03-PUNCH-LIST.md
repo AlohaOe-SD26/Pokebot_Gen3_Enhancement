@@ -61,6 +61,34 @@ pulled, so it re-confirms them rather than testing them. It did expose one NEW b
       whiteout crossing a run boundary rather than poison damage; the new per-run reset may
       already cover it. RE-CHECK on the first post-fix batch before investigating.
 
+### ‼ DOCUMENTATION CORRECTNESS AUDIT — 2026-07-27
+- [x] `#doc-audit-1` — **docs 00/01/02/05/14 re-verified against code.** DONE 2026-07-27.
+      Biggest find: `02-ARCHITECTURE.md`'s folder map omitted **`sandbox-pokebot/`, where all
+      work happens** (plus `tools/`, `PROJECT KIT/`, `REMOTE START/`, `cloud-backups/`), while
+      its own prose cited sandbox-only modules — the doc contradicted itself. `01` gave the
+      active copy no intent section and its "Future: custom automations, installer, custom
+      interface" placeholder was stale (all three built). Also corrected: recommended Python
+      is 3.13 not 3.12; libmgba path; the "116 files" figure (matched no copy — it is 118);
+      `KNOWN_GATES` holds 3 edges not 1. Added KI-25…KI-29 to `05`. Added §2b/§2c to the
+      playbook. Method + agent calibration: `06-DECISIONS-LOG.md` 2026-07-27.
+- [ ] `#doc-audit-2` — **`03-PUNCH-LIST.md` status audit (THIS FILE) — NOT DONE.** The agent
+      running it was killed by a weekly usage limit on 2026-07-27 and produced nothing.
+      Scope: items marked `- [ ]` that are demonstrably built (calibration case:
+      `#24-regionreach`, now wired at `story_mode.py:553`/`:606`); items marked `- [x]` whose
+      code cannot be found; and the same `#24-*` id appearing in several sections with
+      different statuses. This file has grown by accretion across `## Now`, `## Next`,
+      `### Priority block`, `### Moved out of Done` and `## Done`, so duplicates are likely.
+- [ ] `#doc-audit-3` — **`12-STORYMODE-DESIGN.md` (2,886 lines) never audited.** Check Area
+      Atlas coords/flags against `modules/map_data.py` + the decomp, and promote any
+      `⚠ VALIDATE LIVE` item that live runs have since validated.
+- [ ] `#doc-audit-4` — **`ai-research-notes/` stub-marker integrity never verified.** Confirm
+      every note is stub-marked from its authoritative doc, and that no unverified Gemini
+      claim has leaked into a current-state doc (00-05) as fact. This is the anti-poison
+      system checking itself; see `ai-research-notes/00-READ-THIS-FIRST.md`.
+- [ ] `#doc-policy-05` — **user ruling wanted:** should `05-KNOWN-ISSUES.md` delete an entry
+      when it is fixed in `sandbox-pokebot/`, or keep it until promotion to `custom-pokebot/`?
+      Currently retained-and-marked. See `06-DECISIONS-LOG.md` 2026-07-27 (provisional).
+
 **STILL OPEN from the same review — design calls, NOT yet built (need the user's ruling):**
 - [ ] `#24-leadpolicy` — **the matchup lead is purely defensive and benches the winner.**
       `_lead_best_matchup` (`early_game.py:1587`) picks `min(incoming_multiplier, -level)` —

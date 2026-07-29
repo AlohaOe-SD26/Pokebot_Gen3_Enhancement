@@ -809,3 +809,49 @@ Measuring `now - start_frame` yields a negative number, nothing is ever over bud
 bound is inert — the same trap that had already produced `finished (-959,198 frames)` in an
 earlier bundle. The budget re-bases to 0 when it sees the counter go backwards, and the repro
 covers that case explicitly.
+
+## 2026-07-27 — Documentation audits use read-only agents; only the main thread writes
+
+**Decision.** When fanning out subagents to check documentation, they get READ-ONLY roles and
+must report `file:line` evidence with an explicit `VERIFIED / WRONG / UNVERIFIABLE` verdict.
+The main thread makes every edit, and independently re-checks any load-bearing claim first.
+
+**Why.** The user's constraint was "cross reference so we don't get poison in the
+documentation". An agent that can write can introduce a confident falsehood into the
+project's source of truth, and nothing downstream would catch it. An agent that can only read
+can at worst waste a verification.
+
+**It paid for itself immediately.** Of four agents, two produced claims that were wrong on
+re-check: one asserted `CLAUDE.md` has "zero occurrences of sandbox" (it has a whole
+§"Sandbox area" directive at line 185) and that `02-ARCHITECTURE.md` had zero (it had two).
+Both were `grep`-count claims. Their FILE-EXISTENCE and line-reference findings, by contrast,
+were reliable across the board. **Calibration to reuse: trust an agent's "does X exist at
+line N" and distrust its "X appears zero/N times" without re-running the grep.**
+
+**Rejected: let agents edit their assigned docs directly.** Faster, and it is how the volume
+would normally get done — but the failure mode is silent and lands in the one place the
+project treats as truth. Not worth it.
+
+**Rejected: skip verification and just rewrite the stale docs from the code.** That is how
+the wrong facts got in: someone confident, writing prose. Every corrected number in this pass
+came with a re-run command.
+
+## 2026-07-27 — Fixed-in-sandbox issues stay in 05-KNOWN-ISSUES until promotion (PROVISIONAL)
+
+**Decision (provisional, needs the user's ruling).** Entries fixed in `sandbox-pokebot/` but
+not yet promoted to `custom-pokebot/` are RETAINED in `05-KNOWN-ISSUES.md`, marked
+`✅ FIXED` with the fixing `file:line`, rather than deleted.
+
+**The conflict.** `05`'s own header says "Open problems only — when an issue is fixed, remove
+it here". But an issue fixed only in sandbox is *still open for the production copy*, and
+deleting it loses the only signal that a promotion is owed.
+
+**Why provisional.** This is a documentation-policy call that belongs to the user, not a fact
+code can settle. Flagged at the top of `05` as an open question. Until it is answered,
+retaining-and-marking is the safer default: a reader can see both the fix and the outstanding
+promotion, whereas deletion is irreversible information loss.
+
+**What is NOT provisional:** entries whose bodies actively instruct future sessions to do
+already-completed work are dangerous regardless of the policy, and are now marked as such at
+the top of the file — KI-18 in particular said "Do NOT patch on the hypothesis. Reproduce
+first" for a shipped, repro-proven fix.

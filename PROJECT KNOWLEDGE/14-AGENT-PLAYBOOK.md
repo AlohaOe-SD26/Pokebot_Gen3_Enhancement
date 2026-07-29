@@ -79,6 +79,70 @@ the fresh-run recipe in `tools/story-dev/README.md`; committed checkpoints are i
 NOTE: event flags have a **1-frame read flicker** during memory updates — require a flag
 to be True for *many consecutive* frames before trusting it (a single-frame True is noise).
 
+### 2b. The repro suite — the project's actual verification bar
+
+`tools/story-dev/repro_*.py` is ~52 scripts and **most need no emulator**. Run the whole
+sweep before claiming any fix is clean:
+
+```bash
+for f in tools/story-dev/repro_*.py; do
+  timeout 90 py -3.12 "$f" >/dev/null 2>&1 && echo "PASS $f" || echo "CHECK $f"
+done
+```
+- **Use `py -3.12`.** Plain `python` on the dev box is 3.9 (unsupported, and the deps are
+  not installed for it). Deps needed for the emulator-free ones: `confz==2.0.1`,
+  `ruamel.yaml`, `rich`, `numpy`.
+- Expected state as of 2026-07-27: **47 pass, 0 fail, 5 environmental.** The 5 need a real
+  mgba or have their own harness issues (`repro_boss_training`, `repro_double_faint`,
+  `repro_navigate_failfast`, `repro_sufficiency`) — plus `repro_x4_lanes`, which **SPAWNS
+  REAL LANE PROCESSES**; skip it unless you mean it.
+- Use a **per-script timeout of ~90s, not 25s** — a shorter one reports slow-but-healthy
+  scripts as errors (this cost a confusing "6 errors vs 5" diff on 2026-07-27).
+- ‼ **A fix that satisfies its own new repro can still break the contract an older one
+  encodes.** Two separate 2026-07-27 changes did exactly that. Sweep, don't spot-check.
+
+---
+
+## 2c. Reviewing an x4 log bundle (this is now a recurring job — reuse this, don't reinvent)
+
+The user runs `ENDLESS LOOP ×4` batches and hands over `P1 - P4 x4 LOGs <date>-<time>.zip`.
+Three have been reviewed (`20260726-201838`, `20260726-231412`, `20260727-063751`). The
+method below found four harness bugs; the traps below each cost real time when first hit.
+
+**Extract, then read `MANIFEST.txt` first** (lanes, starters, per-lane badge tallies).
+
+**Where the facts live:**
+- `*-stdout-*.txt` — `starting run N`, `-> derailed:`/`finished`, `lost a battle at map (g,n)`,
+  `recovered from the whiteout`, `derail #N`. **No battle outcomes.**
+- `*-debug-*.log` — `BattleOutcome.<X>`, `[MAP]`, `[PARTY]`, `[BATTLE]`, `[STEP]`, `[hb]`
+  heartbeats, and `===== DUMP [STUCK …]` with the generator call stack. **One file per run.**
+- `badge-log.json` — CUMULATIVE and never archived. Split by `earned_at` against the batch
+  start, or you will read months-old records as new. Group by `run_index`.
+
+**The five checks, in order:**
+1. **Is this even the current code?** See the pre-fix tells in `04-HANDOFF.md §0a`. Two
+   bundles were reviewed against code that was never running — the largest single waste in
+   this project. Check FIRST, report it FIRST.
+2. **Do runs 4+ still play?** Count runs per lane, then read the **last non-`Encounter`
+   `[STEP]` line of each debug log**. If late runs cluster on one step, per-run state is
+   leaking. This one line exposed a bug that per-run outcome tallies showed nothing of.
+3. **Are outcomes honest?** Cross-check each `finished` against that last `[STEP]`.
+4. **Badge sanity** — gym order, no duplicates, no gaps, `run_index` stride exactly 1.
+5. **The 1:1 canary** — losses:whiteouts has been exactly 1:1 across batches (no potion
+   layer exists). Above 1.0 = whiteouts with no battle logged.
+
+**Traps, every one of them paid for:**
+- **A bundle can span SEVERAL app launches.** Segment by launch before concluding anything;
+  old stdout survives because only debug logs get archived.
+- **`MapRSE` and `MapFRLG` share `(group, number)` keys.** Parsing `map_data.py` unscoped
+  yields KANTO names — `(8,1)` reads as Lavender Town PC instead of `PETALBURG_CITY_GYM`.
+  Scope the regex to the `MapRSE` class body.
+- **Look for RUN-INDEX-shaped patterns, not just lane-shaped ones.** "Every lane dies from
+  run 4" is invisible in any per-lane aggregate.
+- **A wedge shows as one debug log that never closes** — check frames, not file count. A
+  lane can burn 30M frames in a single run and look "quiet" in a file listing.
+- **`[STEP] 'Encounter…'` lines dominate**; filter them out or they bury the story steps.
+
 ---
 
 ## 3. The debugging method (reproduce → fault-inject A/B → fix → prove)
@@ -268,6 +332,16 @@ authoritative), the harness (the ground truth — validate and correct the doc).
 | A **BRIDGE / dual-elevation span** reads as walls to `calculate_path` (NO PATH) | The static planner can't cross elevation-transition tiles (Route 119 spans; the Lavaridge-gym idling family). HELD-INPUT walk them with `_hold_walk_route([(dir,(x,y)),...])`, which releases the prior leg's direction each step (two held dirs → the game keeps the first → bump loop) and stops on a coord-trigger firing. |
 | A **coord-trigger encounter** (Route 119 rival) aimed at the NPC's object tile | The object may be a PROP (the on-bike rival at x17); the battle fires from a COORD EVENT at a different tile (25,31). Read map.json coord_events for the trigger x,y + gating var; step ONTO that tile, don't talk to the object. |
 | A **travel `order` list** missing a corridor/interior map | Unranked map = rank −1 = "run every leg" = a backwards march + NO-PATH Manual (Woods, then Route 120). Rank EVERY map the arc can stand on — routes, city interiors (PC/gym), side spurs — at/after its position. |
+| **Reviewing logs against code that was never deployed** | The bot runs from the user's OTHER machine (`…\Pokebot_Gen3_Enhancement_old\sandbox-pokebot`), not this checkout. TWO consecutive bundles (2026-07-26, 2026-07-27) were analysed in depth against fixes that had never been pulled there — the largest single waste in this project. Establish which build produced a log BEFORE analysing it; `04-HANDOFF.md §0a` lists four tells that take seconds. |
+| A **comment asserting an object's lifetime** in place of code that enforces it | Per-run counters sat in `__init__` under *"Instance state … so ENDLESS RESET's next run starts with a clean slate."* The endless loop reuses ONE mode object, so `__init__` ran once per BATCH: `_rival_attempts` hit its cap of 3 and **runs 4+ quit at the rival without fighting** (27 of 37 runs across three lanes). Put per-run state in an explicitly named `reset_per_run_state()` that the boundary calls. If you write "so X starts clean", go find the line that makes it clean. |
+| A **default outcome that is the SUCCESS value** | `outcome = "finished"` before a `try`, changed only by a raised `BotModeError` — so every unmodelled exit (here `set_manual_mode(); return`) reported success. 16 dead runs read as wins and a batch summary said ~80% success against a true ~20%. Start pessimistic; let only a proven completion set it. |
+| Making a **success signal stricter** without enumerating the legitimate successes | The fix for the above nearly relabelled REAL completions as failures: the genuine end-of-content path also calls `set_manual_mode()` and returns normally. Before tightening a success test, list every path that legitimately produces the success. A fix that converts false positives into false negatives is not a fix. |
+| A **limit checked only after the work completes** | It is a report, not a limit. `MAX_FRAMES_PER_RUN` was evaluated after `super().run()` returned, so a run that never returns never reached it — P3 hung **27M frames / ~6.5 h** with ZERO STUCK dumps. Evaluate any runaway bound from INSIDE the thing it bounds (`_run_with_frame_budget`). |
+| A **progress detector used as the only runaway guard** | It cannot see a LIVELOCK (P1/P2 ground 13–20M frames producing real encounters, battles and heals — busy, just not progressing), and it cannot see a hang if the detector is what hung. Always pair "no progress for N" with a blunt resource budget that shares none of its assumptions. |
+| A **dedupe guard tested against a plausible call order** instead of the real one | The `run_index` double-count "fix" deduped on adjacency ("no poll between the two calls") — impossible, because the mode signals BEFORE `super().run()` while the hard reset happens INSIDE it. It shipped with a confident comment and two rejected alternatives listed. Write the interleaving down — who calls, in what order, with what in between — before choosing the predicate. |
+| **Tuning an assertion until it matches an observed number you cannot derive** | A repro was about to assert the old strategy yields exactly the observed `37`; it yields 38 under any interleaving that can be justified, and the true ordering is not observable from the logs. That is a fake proof wearing rigorous clothes. Assert the property you can defend (shape: ~2 per run vs exactly 1) and write down what you could not determine. |
+| A **matching failure signature** treated as a diagnosis | Losses clustered at ROUTE 110 (34,56) with a weak lead and a strong mon benched — pixel-identical to a bug fixed the day before, and reported as "the fix did not hold". It wasn't: `_lead_best_matchup` reproduces every observed lead from its own defensive-only rule and runs AFTER `train_team`, overriding it. A signature is a hypothesis; read the code that produces it before naming a cause. |
+| **Anchoring a repro on exact call syntax** rather than the property | `repro_endless_per_run_state.py` asserted the literal string `yield from super().run()` and broke when the story was correctly routed through a budget wrapper. Scope to the enclosing function body and assert the ORDERING property. Beware bare `.index()` over a whole class — it will happily match text inside a docstring. |
 
 ---
 

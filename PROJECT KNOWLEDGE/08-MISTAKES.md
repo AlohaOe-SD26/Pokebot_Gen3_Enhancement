@@ -2211,3 +2211,71 @@ budget, which is the same trap that made the old post-hoc check unenforceable.
    hung. Pair every progress-based guard with a blunt resource budget.
 3. When a docstring promises a guarantee, test the guarantee, not the code path you
    happened to write. This one had been asserted in prose through at least two reviews.
+
+---
+
+## 2026-07-27 — The docs described a two-folder project; the code has been three folders for ten days
+
+**Symptom.** `02-ARCHITECTURE.md`'s folder map ended at `custom-pokebot/` and its run
+instructions said `cd custom-pokebot`. `01-VISION-AND-DESIGN.md` said the project "**Enhances**
+the bot in `custom-pokebot/`" and gave that copy the only fork intent-section. Meanwhile every
+line of work since 2026-07-18 has happened in **`sandbox-pokebot/`**, which appeared in neither
+document — and `02`'s own prose referenced `modules/battle_fault.py` and `modules/endless_x4.py`
+as live features, both of which exist ONLY in the sandbox. The architecture doc contradicted
+itself on the same page.
+
+**Consequence.** An agent following the documented instructions `cd`s into a tree where
+`endless_x4`, `tile_bridge`, `badge_log` and `battle_fault` do not exist, and where
+`story_mode.py` is ~400 lines behind. `01` is designated by `CLAUDE.md` as "the source of truth
+for what this program is FOR", so the wrong location sat in the highest-trust document.
+
+**Root cause.** The sandbox was introduced by a user directive on 2026-07-18 and correctly
+recorded in `CLAUDE.md` §"Sandbox area" — but the Definition of Done's "update 01/02" step was
+satisfied for each FEATURE built in the sandbox without anyone re-reading whether 01/02 still
+described the project's SHAPE. Per-item doc updates do not catch structural drift, because no
+single item is about the structure.
+
+**The fix that worked.** Rewrote `02`'s map to show all three copies plus `tools/`,
+`PROJECT KIT/`, `REMOTE START/` and `cloud-backups/`; added a "Which copy am I in?" table;
+gave `sandbox-pokebot/` a full intent section in `01`; and put copy prefixes on every
+component heading that named a bare path.
+
+**Prevention rules.**
+1. **A per-item docs checklist never catches structural drift.** When a directive changes the
+   project's SHAPE (a new copy, a new top-level dir, a moved entry point), that is its own work
+   item with its own 01/02 update — not a side effect of the next feature.
+2. **Never write a bare path in a multi-copy repo.** `modules/story/early_game.py` is ambiguous
+   across three trees that all contain it and have diverged. Always prefix the copy.
+3. If a doc's prose references something its own structural map omits, the map is stale —
+   that self-contradiction is the cheapest possible detector, and it sat unread for days.
+
+---
+
+## 2026-07-27 — Two of four verification agents returned confidently wrong grep counts
+
+**Symptom.** During a read-only documentation audit, one agent reported that `CLAUDE.md` has
+"**zero** occurrences of sandbox" and that `02-ARCHITECTURE.md` also had zero, including in its
+folder map. Both were used to argue that `sandbox-pokebot/` was undocumented everywhere.
+
+**What was actually true.** `CLAUDE.md` contains an entire §"Sandbox area" user directive at
+line 185, and `02-ARCHITECTURE.md` contained two occurrences. The *structural* finding the
+agent was arguing for — that the folder MAP omits sandbox — was correct and worth acting on.
+The supporting counts were not.
+
+**Why it mattered.** Those counts were about to be written into `01`/`02` as justification
+prose ("mentioned nowhere, including CLAUDE.md"). That would have put a checkable falsehood
+into the source-of-truth documents, in a pass whose entire purpose was removing falsehoods.
+
+**How it was caught.** The claim contradicted something already visible in context — the
+session had `CLAUDE.md` loaded and it plainly contains the directive. One `grep -in sandbox
+CLAUDE.md` settled it in seconds.
+
+**The calibration to keep.** Across the four agents, **file-existence and line-reference
+findings were reliable** (`custom-pokebot/modules/endless_x4.py` really is absent;
+`requirements.py:7` really does say 3.13; `story_mode.py:553` really does call
+`region_reach.is_map_reachable`). **Occurrence-COUNT claims were not.**
+
+**Prevention rule.** Re-run any agent claim of the form "X appears zero/N times" before
+depending on it — it is one command. Treat "does X exist at line N" as trustworthy. And never
+let an audit meant to remove wrong facts introduce one: verify the load-bearing claims of the
+verification itself.

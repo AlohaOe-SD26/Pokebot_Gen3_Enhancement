@@ -2,22 +2,47 @@
 > Current-state file: edit in place. Describes how it is built TODAY.
 
 ## Tech stack
-- **Python 3.11–3.13 (64-bit)** — vendored bot targets 3.12; `black` formatting.
-- **libmgba-py 0.2.0-2** (CFFI bindings to mGBA) — the emulator core,
-  auto-downloaded into `pokebot-gen3/mgba/` on first run.
-- Key libraries: Tkinter (GUI), aiohttp (HTTP API/SSE), SQLite via stdlib
-  (stats), confz/pydantic (YAML config schemas), Pillow, numpy, PyYAML.
-- Deps are declared in `pokebot-gen3/requirements.py` (a Python list, not
-  requirements.txt) and self-installed at first launch.
+*(counts and pins re-verified against code 2026-07-27)*
+- **Python 3.11–3.13 (64-bit)**; the bot's own **recommended** version is **3.13**
+  (`sandbox-pokebot/requirements.py:7-8`). `black` formatting per upstream style.
+  ‼ **Tooling under `tools/story-dev/` is run with `py -3.12`** — see the test section.
+- **libmgba-py 0.2.0-2** (CFFI bindings to mGBA) — the emulator core, auto-downloaded on
+  first run into **`<copy>/mgba/`** (`get_base_path() / "mgba"`,
+  `sandbox-pokebot/requirements.py:185`) — i.e. each copy has its own, and the pristine
+  mirror has none until run.
+- Key libraries: Tkinter (GUI), aiohttp (HTTP API/SSE), SQLite via stdlib (stats),
+  confz/pydantic (YAML config schemas), Pillow, numpy. ‼ The declared YAML dep is
+  **`ruamel.yaml`** (`requirements.py:18`); `import yaml` (PyYAML) is also used
+  (`modules/game.py`, `modules/backup_manager.py`) but arrives transitively — it is NOT
+  declared.
+- Deps are declared in **`<copy>/requirements.py`** (a Python list, not requirements.txt)
+  and self-installed at first launch.
 
 ## Folder / module map
+
+**‼ THERE ARE THREE COPIES OF THE BOT, not two.** Getting this wrong is the most common
+orientation error — see the "which copy" table below the tree.
+
 ```
 Pokebot_Gen3_Enhancement/
-├── CLAUDE.md                      # Kit directives + project rules (two-folder layout, daily upstream check)
+├── CLAUDE.md                      # Kit directives + project rules (3-copy layout, daily upstream check, sandbox rule §"Sandbox area")
 ├── Pokemon_Emerald_AI_Notes.md    # Cross-project transfer notes (Emerald AI project)
-├── PROJECT KNOWLEDGE/
-│   ├── 00–08 kit docs             # vision, architecture, punch list, handoff, …
+├── install.py                     # installer/updater/healer for custom-pokebot
+├── install_sandbox.py             # same, for sandbox-pokebot
+├── PROJECT KNOWLEDGE/             # ★ this documentation set (00–23 + playbooks)
+│   ├── 00–08 kit docs             # vision, architecture, punch list, handoff, logs
+│   ├── 09–23 design/recon docs    # storymode design, living dex, team policy, …
+│   ├── ai-research-notes/         # Gemini notes — RECALL ONLY, never authoritative
 │   └── REFERENCE-INSTALLER-PATTERN.md  # Nick's installer-as-codebase spec
+├── PROJECT KIT/                   # portable bootstrap that makes the repo resumable anywhere
+├── REMOTE START/                  # portable Claude Code remote launcher (Remote-Start.ps1, Git-Sync.ps1)
+├── cloud-backups/                 # profile backups pushed to this private repo ("your repo IS the cloud")
+├── tools/story-dev/               # ★ the Story-bot test harness, drivers, recon scripts, repro suite
+│   ├── story_harness.py           # replicates main.py's loop exactly (see 14-AGENT-PLAYBOOK §2)
+│   ├── livetest.py                # headless batch runner
+│   ├── repro_*.py                 # 52 regression reproducers — THE verification bar (§2b)
+│   ├── audit_flag_names.py        # proves a flag/var NAME is real before code depends on it
+│   └── saves/                     # committed checkpoint .ss1 progression sampler
 ├── 40cakes repo/                  # ★ everything about the ORIGINAL program
 │   ├── UPDATE-LOG.md              # append-only upstream sync record + daily-check ritual
 │   ├── DOCUMENTATION/             # deep developer docs of the original bot
@@ -30,19 +55,47 @@ Pokebot_Gen3_Enhancement/
 │   │   └── _history/              # versioned snapshots of superseded docs
 │   └── pokebot-gen3/              # PRISTINE upstream mirror (git subtree, commit 5dd898f8)
 │       ├── pokebot.py             # entry point + self-bootstrap
-│       ├── modules/               # all bot code (~59 core modules)
+│       ├── modules/               # 59 top-level modules (sandbox 83, custom 74)
 │       │   ├── modes/             # 23 bot automations + BotMode contract
 │       │   ├── battle_strategies/ # battle decision engine
 │       │   ├── gui/  web/  config/  data/  built_in_plugins/
 │       ├── plugins/  tests/  wiki/
-└── custom-pokebot/                # ★ OUR enhanced fork (from upstream 5dd898f8)
-    ├── DIVERGENCE-LOG.md          # append-only: every intentional diff vs upstream
-    ├── DOCUMENTATION/             # docs about the CUSTOM parts only
-    ├── modules/gui/dashboard_gui.py   # native dashboard GUI (default window)
-    ├── modules/web/static/custom-ui/  # browser dashboard (opt-in remote viewing)
-    ├── plugins/custom_modes/      # drop-in custom bot modes (Patrol, …)
-    └── (otherwise same program layout as the mirror)
+├── custom-pokebot/                # ★ PROMOTED fork (from upstream 5dd898f8) — the "production" copy
+│   ├── DIVERGENCE-LOG.md          # append-only: every intentional diff vs upstream
+│   ├── DOCUMENTATION/             # docs about the CUSTOM parts only
+│   ├── modules/gui/dashboard_gui.py   # native dashboard GUI (default window)
+│   ├── modules/web/static/custom-ui/  # browser dashboard (opt-in remote viewing)
+│   ├── plugins/custom_modes/      # Patrol, Hunt, Living Dex, Macro, Story
+│   └── (otherwise same program layout as the mirror)
+└── sandbox-pokebot/               # ★★ THE ACTIVE COPY — all current work happens HERE
+    ├── SANDBOX-NOTES.md  SANDBOX-PROPOSALS.md  CHEATS-DESIGN.md  DIVERGENCE-LOG.md
+    ├── plugins/custom_modes/story_mode.py   # StoryMode + StoryDebug/DebugReset/EndlessReset
+    ├── modules/story/             # 9 modules: early_game, chapters, region_reach,
+    │                              #   counter_plan, training_areas, fortree_gates,
+    │                              #   intro, progress, config
+    └── modules/…                  # sandbox-ONLY modules (absent from custom-pokebot):
+                                   #   endless_x4, tile_bridge, tile_mosaic, gui/tile_child,
+                                   #   x4_logs, remote_party, badge_log, badge_case,
+                                   #   battle_fault, story_milestones
 ```
+
+### Which copy am I in? (verified 2026-07-27)
+| copy | role | edit it? |
+|---|---|---|
+| `40cakes repo/pokebot-gen3/` | pristine upstream mirror (git subtree) | **NEVER** — changes only via `git subtree pull` |
+| `custom-pokebot/` | promoted/"production" fork | only when promoting an approved sandbox feature |
+| `sandbox-pokebot/` | **experimental — where enhancements are built and tested** | **YES, this is the default** |
+
+The two forks have **diverged**: `sandbox-pokebot/plugins/custom_modes/story_mode.py` is
+3,061 lines vs 2,636 in `custom-pokebot/`, and the ten sandbox-only modules listed above do
+not exist in `custom-pokebot/` at all. A path written without a copy prefix is ambiguous —
+**always prefix**. Promotion rule and the "don't touch custom during a sandbox round"
+directive: root `CLAUDE.md` §"Sandbox area".
+
+‼ **The bot the USER runs is on a DIFFERENT MACHINE** (`…\Pokebot Gen 3 SECOND RUNNING
+PROFILE\Pokebot_Gen3_Enhancement_old\sandbox-pokebot\`), not this checkout. Fixes committed
+here do not reach it until that machine pulls. Two log bundles were analysed against
+undeployed code before this was noticed — see `04-HANDOFF.md §0a`.
 
 ## How the pieces talk
 Single-threaded frame-locked loop (`modules/main.py:36`): snapshot state →
@@ -66,10 +119,20 @@ returns; a mode that declares `handles_battle_faults = True` claims it on its
 next frame and re-raises inside its own recoverable scope. Opt-in on purpose;
 see 06-DECISIONS-LOG 2026-07-25.
 
+**Per-frame main-loop participants (fork additions).** Beyond the stock listeners, two
+sandbox subsystems are wired directly into `modules/main.py` and run every frame:
+`modules/debug_logger.py` (the opt-in event stream + STUCK dumps with generator call
+stacks — `main.py:102-107`) and `modules/badge_log.py` (badge polling + run-boundary
+detection — `main.py:114-117`, `:126-131`). Both are central to how failures get
+diagnosed; see `14-AGENT-PLAYBOOK.md` §2c.
+
 **One emulator per PROCESS — and that is load-bearing.** `context` is a module-level
-singleton (`modules/context.py:188`) imported by 116 files, with exactly one
-`context.emulator`; `modules/main.py` adds `work_queue:19` and `inputs_each_frame:24`
-as further process-globals. Anything wanting N emulators at once must therefore be
+singleton (`modules/context.py:188` — the file's last line, verified in all three copies)
+imported by **118 files under `sandbox-pokebot/modules/`** (114 in `custom-pokebot`, 98 in
+the mirror), with exactly one `context.emulator`; `modules/main.py` adds `work_queue:19`
+and `inputs_each_frame:24` as further process-globals.
+*(A "116 files" figure appears in an older comment in `modules/tile_bridge.py` and matched
+no copy when re-counted on 2026-07-27 — the argument is unaffected, only the number.)* Anything wanting N emulators at once must therefore be
 N processes. **Endless Loop ×4** (sandbox, `modules/endless_x4.py`) is the one feature
 that does this: the dashboard spawns four `pokebot.py` lanes with `--tile-shm`, each
 selecting the `PokebotTileChild` frontend (`modules/gui/tile_child.py`), which publishes
@@ -100,12 +163,38 @@ Custom-only behavior is documented in `custom-pokebot/DOCUMENTATION/`.
   `git subtree pull --prefix="40cakes repo/pokebot-gen3" upstream-pokebot main --squash`.
 
 ## How to run / build / test
+
+### Running the bot
 ```powershell
-cd custom-pokebot          # our fork; use "40cakes repo/pokebot-gen3" to run pristine upstream
+cd sandbox-pokebot         # ★ the ACTIVE copy — use custom-pokebot for the promoted build,
+                           #   or "40cakes repo/pokebot-gen3" for pristine upstream
 python pokebot.py                      # dashboard GUI (default); first run self-installs deps
 python pokebot.py <profile> -m Spin    # straight into a mode
 python pokebot.py <profile> --classic-gui   # upstream's original window (OpenGL/stepping)
 python pokebot.py --headless --no-video
 python -m unittest discover tests      # needs specific ROM dumps in roms/
-python ..\install.py                   # repo root: one-script install/update/heal
+python ..\install_sandbox.py           # repo root: install/update/heal the SANDBOX copy
+python ..\install.py                   # same, for custom-pokebot
 ```
+
+### ‼ Testing — the repro suite is the project's real verification bar
+`tools/story-dev/repro_*.py` is **52 scripts**, most needing **no emulator**. Run the whole
+sweep after any change; a fix that satisfies its own new repro can still break an older
+one's contract (this happened twice on 2026-07-27).
+
+```bash
+# from the repo root. NOTE: `py -3.12`, NOT `python`.
+for f in tools/story-dev/repro_*.py; do
+  timeout 90 py -3.12 "$f" >/dev/null 2>&1 && echo "PASS $f" || echo "CHECK $f"
+done
+```
+- **Interpreter:** `py -3.12`. Plain `python` on this dev box is **3.9** — unsupported by the
+  project (3.11–3.13) and missing the deps. Install for 3.12 if absent:
+  `py -3.12 -m pip install "confz==2.0.1" "ruamel.yaml~=0.18.2" "rich~=13.5.2" "numpy~=2.1.0"`.
+- **Expected as of 2026-07-27: 47 pass, 0 fail, 5 environmental.** The 5 need a real mgba or
+  have their own harness issues (`repro_boss_training`, `repro_double_faint`,
+  `repro_navigate_failfast`, `repro_sufficiency`), plus `repro_x4_lanes`, which **spawns real
+  lane processes** — skip it unless you mean it.
+- Use a **~90s per-script timeout**; 25s misreports slow-but-healthy scripts as errors.
+- The faithful end-to-end harness is `tools/story-dev/story_harness.py` (needs a real mgba).
+  Full usage: `14-AGENT-PLAYBOOK.md` §2.

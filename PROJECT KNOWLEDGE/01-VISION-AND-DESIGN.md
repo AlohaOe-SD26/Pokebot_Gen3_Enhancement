@@ -15,9 +15,11 @@ every part does, why it exists, and where it plugs in. This project:
    pristine, checked for upstream updates DAILY per the CLAUDE.md
    directive; sync history in `40cakes repo/UPDATE-LOG.md`, superseded
    docs snapshotted in `DOCUMENTATION/_history/`).
-3. **Enhances** the bot in `custom-pokebot/` — our fork, documented in
-   `custom-pokebot/DOCUMENTATION/`, with every intentional difference from
-   upstream tracked in `custom-pokebot/DIVERGENCE-LOG.md`.
+3. **Enhances** the bot through a THREE-STAGE flow — build in `sandbox-pokebot/`,
+   promote to `custom-pokebot/` on the user's explicit OK, never touch the mirror.
+   Each fork is documented in its own `DOCUMENTATION/` with every intentional
+   difference from upstream tracked in its `DIVERGENCE-LOG.md`.
+   (Rule: root `CLAUDE.md` §"Sandbox area". Layout: `02-ARCHITECTURE.md`.)
 4. **Feeds a sibling project**: key findings useful to the separate
    "Pokémon Emerald AI" project (an AI that plays Emerald) are collected in
    `Pokemon_Emerald_AI_Notes.md` at the repo root.
@@ -65,16 +67,38 @@ it.
 - **Must do:** track the mirrored commit; snapshot superseded versions to
   `_history/` before updating; log every sync in `../UPDATE-LOG.md`.
 
-### Our fork (`custom-pokebot/` + its `DOCUMENTATION/`)
-- **Purpose:** the codebase we actually enhance and ship. Forked from
+### Our promoted fork (`custom-pokebot/` + its `DOCUMENTATION/`)
+- **Purpose:** the STABLE, promoted build — what we'd hand someone to run. Forked from
   upstream `5dd898f8` on 2026-07-17.
 - **Must do:** log every intentional difference from upstream in
   `DIVERGENCE-LOG.md`; document only the CUSTOM parts in its
   `DOCUMENTATION/` (link to upstream docs for inherited behavior).
 - **Must not do / constraints:** upstream updates are never auto-applied
-  here — they're reviewed per the UPDATE-LOG ritual.
+  here — they're reviewed per the UPDATE-LOG ritual. **Not edited directly during a
+  sandbox round** — features arrive here only by promotion, with their DIVERGENCE-LOG
+  entries and docs.
 
-### Story-Mode bot (`plugins/custom_modes/story_mode.py` + `modules/story/`)
+### ★ The sandbox (`sandbox-pokebot/` + `SANDBOX-NOTES.md`, `SANDBOX-PROPOSALS.md`)
+- **Purpose:** the EXPERIMENTAL copy where every enhancement is actually built and proven.
+  **This is the default place to write code** — the two-folder mental model (mirror + fork)
+  is wrong; there are three copies. Set up and launched by `install_sandbox.py`.
+- **Why it exists:** enhancement rounds need somewhere to be wrong in. Keeping the promoted
+  fork clean means a half-built feature can never break the build the user runs, and
+  promotion becomes an explicit, reviewable act rather than a drift.
+- **Must do:** carry its own `DIVERGENCE-LOG.md` + `DOCUMENTATION/`; prove changes with
+  `tools/story-dev/repro_*.py` before proposing promotion; get the user's **explicit OK**
+  before anything moves to `custom-pokebot/`. After promotion the sandbox is re-based on
+  the new custom.
+- **Constraints:** during a sandbox round, do NOT modify `custom-pokebot/` or the mirror.
+- **‼ It has genuinely diverged.** `sandbox-pokebot/` holds ten modules that do not exist
+  in `custom-pokebot/` at all (`endless_x4`, `tile_bridge`, `tile_mosaic`, `gui/tile_child`,
+  `x4_logs`, `remote_party`, `badge_log`, `badge_case`, `battle_fault`, `story_milestones`),
+  and its `story_mode.py` is ~400 lines ahead. **A path written without a copy prefix is
+  ambiguous — always prefix.**
+- **‼ The bot the user actually runs is a DIFFERENT CHECKOUT on another machine.** Work
+  committed here does not reach it until that machine pulls — see `04-HANDOFF.md §0a`.
+
+### Story-Mode bot (`sandbox-pokebot/plugins/custom_modes/story_mode.py` + `modules/story/`)
 - **Purpose:** a *scripted, deterministic* bot that plays Emerald from a fresh
   save through the whole story by itself (punch-list #24). Driven by observed
   game state (maps, coords, script names, flags) and hard sequences — NOT by
@@ -100,7 +124,9 @@ it.
 - The Story-Mode bot (above) is the main body of that transfer: a documented
   end-to-end playthrough for the AI project to learn from.
 
-### Endless Loop ×4 (`modules/endless_x4.py`, `tile_bridge`, `tile_mosaic`, `gui/tile_child`)
+### Endless Loop ×4 (**`sandbox-pokebot/`** `modules/endless_x4.py`, `tile_bridge`,
+###   `tile_mosaic`, `gui/tile_child`, `x4_logs`, `remote_party`)
+‼ These files exist in **`sandbox-pokebot/` ONLY** — none of them is in `custom-pokebot/`.
 - **Purpose:** a TEST INSTRUMENT, not a gameplay feature. It exists to raise the
   rate at which the Story bot produces reviewable failure data, and to guarantee
   that data covers all three starters instead of whatever the RNG happened to
@@ -120,9 +146,42 @@ it.
   `context` is a process-wide singleton. Nothing in the bot may be refactored to
   "support multiple emulators" on this feature's account — see 06-DECISIONS-LOG.
 
-### Future: custom automations, installer, custom interface
-- Intent recorded in Goals above; each gets its own component section here
-  when built.
+### Custom bot modes (`sandbox-pokebot/plugins/custom_modes/`, mirrored in `custom-pokebot/`)
+- **Purpose:** the "custom automations" goal, delivered. Five modes exist today:
+  `story_mode.py` (the centre of gravity — see above), `patrol.py` (walks a user-defined
+  waypoint loop to trigger encounters — the first custom bot), `hunt_mode.py` (travel to a
+  species' best wild spot, then hunt it), `living_dex_mode.py` (work a target-species list
+  autonomously, #23), `macro_player.py` (replay a recorded macro frame-accurately).
+- **Must do:** each is a drop-in `BotMode` — prefer this extension point over editing
+  vendored files, so `git subtree pull` stays cheap.
+
+### The verification harness (`tools/story-dev/`)
+- **Purpose:** the reason we can claim a fix works. It holds the FAITHFUL test harness
+  (`story_harness.py`, which replicates `modules/main.py`'s loop exactly so harness
+  behaviour matches the real bot), focused drivers, static-recon scripts, a committed
+  `saves/` progression sampler, and **52 `repro_*.py` regression reproducers**.
+- **Why it matters as INTENT, not just tooling:** the project's #1 house rule is *prove
+  every fix — reproduce first, fault-inject A/B where possible*. This directory is what
+  makes that rule affordable: most repros need **no emulator**, so a regression sweep is
+  seconds, not a playthrough. Treat adding a repro as part of the fix, not extra credit.
+- **Constraints:** run with `py -3.12` (plain `python` here is 3.9). Sweep the WHOLE suite —
+  a fix that satisfies its own new repro can still break an older one's contract.
+  Method: `14-AGENT-PLAYBOOK.md` §2/§2b; commands: `02-ARCHITECTURE.md` §"Testing".
+
+### Installers (`install.py`, `install_sandbox.py` at the repo root)
+- **Purpose:** the "easy setup/install/update" goal, delivered. One script, three jobs:
+  install, update, heal. `install.py` targets `custom-pokebot/`; `install_sandbox.py`
+  targets `sandbox-pokebot/`. Reference feel: `REFERENCE-INSTALLER-PATTERN.md`.
+
+### Custom interface (`modules/gui/dashboard_gui.py`, `modules/web/static/custom-ui/`)
+- **Purpose:** the "total custom interface" goal, delivered in both forks. The native
+  dashboard is the DEFAULT window (upstream's original is behind `--classic-gui`); the
+  browser dashboard is opt-in for remote viewing.
+- **Design constraint:** the dashboard has **no Tk mainloop** — its event queue is pumped
+  from the frame callback. See `02-ARCHITECTURE.md` for why that shapes Endless Loop ×4.
+
+### Still future
+- Further custom features as the punch list dictates; each gets a section here when built.
 
 ## Design principles & style
 - Upstream code style: Python 3.12, `black` formatting — match it when

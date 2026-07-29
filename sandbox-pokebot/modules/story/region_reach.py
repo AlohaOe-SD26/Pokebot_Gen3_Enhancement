@@ -45,9 +45,16 @@ trusting a level gap alone. A refusal because of `max_hops` is reported as
 exists at all" or "gated by a missing capability" -- those are three different
 facts and KI-24 is exactly about not collapsing them into a silent no.
 
-NOT wired into story_mode.py or counter_plan.py yet -- this module is proven
-standalone first (tools/story-dev/repro_region_reach.py); wiring it in is a
-follow-up task.
+WIRED IN as of 2026-07-25 -- `story_mode.py` calls `is_map_reachable()` from BOTH
+consumers: `_training_area_allowed` (story_mode.py:553, max_hops=_MAX_TRAINING_TRAVEL_LEGS)
+and `_counter_area_allowed` (story_mode.py:606, max_hops=COUNTER_MAX_HOPS) -- the latter is
+how `counter_plan`'s candidates get reachability-gated, since counter_plan does not call
+this module directly. Still proven standalone by tools/story-dev/repro_region_reach.py.
+
+(This docstring said "NOT wired into story_mode.py or counter_plan.py yet ... wiring it in
+is a follow-up task" until 2026-07-27, long after the wiring landed. A stale "not done yet"
+note is worse than none: it invites a future session to redo finished work. If you change
+the wiring, change this paragraph in the same commit.)
 """
 
 from __future__ import annotations

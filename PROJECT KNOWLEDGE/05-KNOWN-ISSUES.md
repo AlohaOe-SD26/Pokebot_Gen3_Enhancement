@@ -11,10 +11,42 @@
 - **Workaround:** if any
 -->
 
-These are UPSTREAM bugs in pokebot-gen3 (found during the 2026-07-17 doc
-verification pass). They exist identically in `40cakes repo/pokebot-gen3/`
-(pristine — do not fix there) and `custom-pokebot/` (fix candidates; any
-fix goes in DIVERGENCE-LOG).
+## ‼ HOW TO READ THIS FILE (re-audited against code 2026-07-27)
+
+**Only KI-1 … KI-5 are upstream bugs.** They exist identically in
+`40cakes repo/pokebot-gen3/` (pristine — do not fix there) and in our forks (fix
+candidates; any fix goes in DIVERGENCE-LOG). *The paragraph that used to sit here
+claimed ALL entries were upstream bugs — it was written when the file held five, and
+was wrong for the other eighteen.*
+
+**Everything from KI-6 onward is OUR OWN story-bot / fork code**, and the active copy
+is **`sandbox-pokebot/`** (not `custom-pokebot/`). KI-23/KI-24 concern
+`modules/story/region_reach.py` and `modules/story/counter_plan.py`, which are ours and
+have no upstream equivalent.
+
+**Numbering:** IDs are **not contiguous** — there is no KI-12 and no KI-13 in this file.
+23 distinct IDs across 25 headings (KI-1 and KI-15 each appear twice).
+
+**Status re-audit 2026-07-27.** Every entry was checked against `sandbox-pokebot/`.
+Entries proven fixed are now marked `✅ FIXED` in their heading with the fixing
+`file:line`, and their superseded diagnostic bodies are collapsed under a
+`<details>`-style "superseded" marker rather than deleted, because several were
+proposing work that is already shipped:
+
+| entry | why it was dangerous | proof of fix |
+|---|---|---|
+| KI-18 | body said *"Do NOT patch on the hypothesis. Reproduce first"* — it WAS proven and patched | `modules/battle_handler.py:475-501` (`_on_field` exclusion, KI-18-labelled) |
+| KI-17 | body said *"Workaround: none in-run yet"* + prescribed a decomp read that is done | `modules/battle_handler.py:508-528` (`post_gap=24`; never gamble an A) |
+| KI-16 | heading said FIXED, body still said *"use this repro for a focused fix"* | `modules/story/early_game.py:4434-4470` (`_rock_present()` world-judged) |
+| KI-24 | body read as an open architectural bug; KI-24b already declares it fixed | `story_mode.py:553` and `:606` both call `region_reach.is_map_reachable` |
+| KI-11 | body said `deliver_devon_goods_to_stern` stays **UNWIRED** — it is wired | `modules/story/early_game.py:3397-3412` (Shipyard → Dock leg) |
+| KI-7 | a duplicate "(old text)" block restated the fixed bug as live | `modules/modes/util/higher_level_actions.py:59` (`BADGE06_GET`) |
+
+**‼ OPEN QUESTION FOR THE USER (policy, not fact):** entries fixed in `sandbox-pokebot/`
+but **not yet promoted** to `custom-pokebot/` are still open *for the production copy*.
+This file's header rule says to delete fixed issues; that would lose the promotion-tracking
+signal. They are currently RETAINED and marked. Ruling wanted: delete on sandbox-fix, or
+keep until promotion?
 
 ## KI-1 — Upstream pokebot.spec (PyInstaller) is stale/broken   (opened 2026-07-17, severity: low)
 - **Symptom:** `pokebot.spec` references `import.py` (file doesn't exist in
@@ -632,7 +664,10 @@ map's traversal length rather than a flat 1, or price travel in FRAMES so it com
 `training_areas.estimate_frames_to_level`. Both are real work; neither is needed until hop
 count demonstrably mis-ranks something.
 
-**Also still open:** `KNOWN_GATES` holds only one hand-verified entry (Dewford's sea routes), so
+**Also still open:** `KNOWN_GATES` holds only THREE hand-verified edges (`region_reach.py:81-91`) —
+DEWFORD_TOWN↔ROUTE106 and DEWFORD_TOWN↔ROUTE107 (both `surf`), plus EVER_GRANDE_CITY↔VICTORY_ROAD_1F
+(`waterfall`, added 2026-07-26 because Victory Road's L38-42 Hariyama otherwise ranked #1 as a
+counter candidate). *(This line said "only one entry" until re-counted 2026-07-27.)* So
 edges whose requirement cannot be derived from ROM data currently read as UNGATED — i.e. this
 oracle now fails OPEN where the old one failed CLOSED. That is the safer direction for a
 *planner* (a wrong "yes" costs a wasted walk that navigation will fail recoverably; a wrong "no"
@@ -642,3 +677,88 @@ is invisible) but it must be grown before this gates anything irreversible.
 known-bad cases before trusting it to rank. "Reachable" was a boolean that hid a cost; "hops" is
 a cost that hides map size. Each fix exposed the next assumption — check the numbers, don't
 reason about them.
+
+---
+
+# Added 2026-07-27 — open issues found by a code audit, previously unlisted
+
+## KI-25 — `_lead_best_matchup` is purely DEFENSIVE; it benches the only mon that can win (opened 2026-07-27, severity: HIGH)
+- **Symptom:** before a type-countered fight the bot leads a mon that merely *survives* the
+  foe's STAB, regardless of whether it can deal damage. Measured in bundle
+  `20260726-231412`: P2 led **Whismur L15** into the Route 110 rival **13 times in one run**
+  while **Marshtomp L24** sat in slot 2. P3 led Zigzagoon L16 with Grovyle L22 benched.
+- **Cause (exact line):** `modules/story/early_game.py:1587`
+  ```python
+  best = min(slots, key=lambda i: (_incoming(party[i]), -party[i].level))
+  ```
+  `_incoming()` (`:1566-1583`) returns only the foe's worst-case STAB multiplier *against*
+  the candidate. Nothing in the key considers the candidate's offence. The only capability
+  filter, `_battler_slots()` (`:1651-1659`), requires merely *any* move with
+  `base_power > 0` — not one that can hurt **this** foe.
+- **‼ Live consequence — the Flannery segment does not do what its own comment says.**
+  `plugins/custom_modes/story_mode.py:2519-2531`: the comment states the plan is *"a WATER
+  lead (all four of her mons are 2x to Water)"*, but the call is
+  `_lead_best_matchup(["Fire"])`, which ranks by *resisting* Fire. Water, Fire, Rock and
+  Dragon all resist Fire equally (0.5×) and the tie-break is `-level` — so a higher-level
+  Combusken/Numel leads instead of the Water mon the comment asks for.
+- **Also:** a 1-HP Wonder Guard Shedinja scores `0.0` incoming vs Norman (Normal→Ghost) and
+  is therefore *chosen*, then dies to Slaking's Faint Attack (Dark) — the model reads only
+  the ace's STAB types, never movepools. Observed in P4, bundle `20260726-231412`.
+- **NOT the old `train_team` lead-restore bug** (fixed 2026-07-26, repro still green): the
+  matchup call runs *afterwards* and overrides the restore.
+- **Workaround:** none. Design options and the tradeoffs are in `03-PUNCH-LIST.md`
+  `#24-leadpolicy` — **needs a user ruling**, since benching a 4×-weak mon is sometimes
+  exactly right.
+
+## KI-26 — the Route 110 rival has no attempt cap and no fight prep (opened 2026-07-27, severity: HIGH)
+- **Symptom:** repeated identical losses at ROUTE 110 (34,56) with no adaptation. The code's
+  own note records the worst case: `plugins/custom_modes/story_mode.py:744` — *"Measured
+  worst case before this existed: 25 whiteouts on ROUTE110 in a single run."*
+- **Cause:** Segment 9a (`story_mode.py:2335-2363`) is only
+  `heal_in_pokemon_center` → `_lead_best_matchup([ace_type])` →
+  `travel_route110_and_fight_rival()` → `_guard(...)`. **No `_prepare_for_fight`, no
+  `train_team`, no attempt counter.** Every other combat segment has prep: Roxanne `:2122`,
+  Brawly `:2279`, Wattson `:2377-2395`, Norman `:2581`, Winona `:2707`, and the Rustboro
+  rival `:2177-2225` additionally has an escalating level floor and `RIVAL_MAX_ATTEMPTS = 3`.
+  Route 110 and Wally (`:2366`) are the only combat segments without.
+- **The only thing bounding it today** is `SURVIVAL_WHITEOUT_THRESHOLD = 3` (`:745`), which
+  is a *wild-battle flee* heuristic, not a rival-attempt cap.
+- **‼ Do NOT just add a cap.** In bundle `20260726-231412`, P2 lost there **13 times and
+  then went on to reach Fortree** — a cap at 6 would have killed a recovering run. Adding
+  prep needs a Route 110 training-grass tile, which is a game fact to probe or read from the
+  decomp, never recall. See `03-PUNCH-LIST.md` `#24-route110cap`.
+
+## KI-27 — hard hang at the Weather Institute, with the global watchdog itself wedged (opened 2026-07-27, severity: HIGH)
+- **Symptom:** bundle `20260727-063751`, P3 run 1: `state=3 controllable=False`, position
+  frozen at **ROUTE 119(32,1) (10,10)**, for **27 million frames / ~6.5 h** — and **not one
+  STUCK dump fired in that entire stretch**, so the no-progress watchdog never saw it.
+- **Last known stack:** `do_weather_institute` → `_ride_out_all_scenes`
+  (`modules/story/early_game.py:5548`).
+- **Partially mitigated 2026-07-27:** `_run_with_frame_budget()` now bounds the *run*
+  (`story_mode.py:2866`), so the lane derails and the batch continues. **This truncates the
+  symptom; it does not fix the hang, and it does not explain why the watchdog was silent.**
+- **Next step:** wait for a post-fix batch to see whether it recurs and how often before
+  spending time on it. Tracked as `#24-weatherinstitute-hang`.
+
+## KI-28 — training LIVELOCKS that no progress detector can catch (opened 2026-07-27, severity: MED)
+- **Symptom:** a run spins/heals indefinitely without reaching its level floor. Bundle
+  `20260727-063751`: P1 run 7 = **19.9M frames** on Route 103 + Oldale heals; P2 run 35 =
+  **13.4M frames** on Route 116.
+- **Why KI-9's watchdog cannot help:** these produce real encounters, real battles and real
+  healing trips — they are *busy*, just not progressing. A "nothing happened for N frames"
+  detector is blind to them by construction. Only a resource budget catches them.
+- **Contributing cause:** the training target is pursued regardless of whether local wilds
+  can deliver it. Route 103's wilds are L2-3; Route 116's are L6-7.
+- **Mitigated 2026-07-27** by the per-run frame budget (bounds the waste to one run).
+  **Not fixed:** a target the local grass cannot deliver should be detected and abandoned.
+  Tracked as `#24-grindconverge`.
+
+## KI-29 — P4 broke the 1:1 losses:whiteouts canary twice (opened 2026-07-27, severity: LOW — watch item)
+- **Symptom:** bundle `20260727-063751`, lane P4: run 1 logged **39 whiteouts vs 38 losses**,
+  and run 8's sequence *opens* with a whiteout before any loss (`WLW`). Across three bundles
+  the ratio had been exactly 1:1 in every other lane (no potion layer exists, so every loss
+  becomes exactly one whiteout).
+- **Most likely cause:** a whiteout event crossing a run boundary rather than poison damage —
+  2 events out of 52. The per-run reset added 2026-07-27 (`reset_per_run_state`, which clears
+  `_whiteout_pending`) may already cover it.
+- **Action:** RE-CHECK on the first post-fix batch before investigating. Do not chase yet.

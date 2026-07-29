@@ -20,6 +20,25 @@ reads here FIRST. Created by the Claude Code Project Kit on 2026-07-17.
 | 11 | `15-ESCALATION-RESEARCH.md` | Last-resort: hand a STUCK story sequence to an external research agent (Gemini) — the reusable primer + `/escalate-sequence` | reference |
 | 12 | `16-ORCHESTRATION-PLAYBOOK.md` | **HOW to run a session cheaply**: premium orchestrator + cheap sub-model workers + Gemini; tier table, delegation rule, review gate, metrics — `/orchestrate` | reference |
 
+### Read WHEN RELEVANT (not part of the start-of-session ritual)
+*Added to this index 2026-07-27 — docs 09–11 and 17–23 existed but were invisible to anyone
+following the reading order above, which stopped at 16.*
+
+| File | What it tells you | Type |
+|---|---|---|
+| `09-FEATURE-BRAINSTORM.md` | the full future-idea catalog the punch list draws from | reference |
+| `10-DEX-RESEARCH.md` / `11-LIVINGDEX-DESIGN.md` | Living-Dex feature research + design (#23) | reference |
+| `17-PORTABLE-ORCHESTRATION-GUIDE.md` | running this orchestration setup on another machine/project | reference |
+| `18-RESEARCH-HEALPOINTS-AND-LEGENDARIES.md` | heal-point + legendary encounter research notes | reference |
+| `19-TEAM-BUILDING-DISCUSSION.md` | the user's three team requests + the two-axis personality design | reference |
+| `20-POST-FORTREE-RECON.md` | Mt. Pyre, Aqua Hideout, gyms 7–8 recon + second-pass corrections | reference |
+| `21-TEAM-POLICY-DESIGN.md` | **BUILD-READY**: catch policy, dead-weight predicate, rotation, counter ladder | reference |
+| `22-CAPABILITY-RECON.md` | healing items, the PC, ground/hidden items, shops, money | reference |
+| `23-MEANDER-PATHING-DESIGN.md` | the travel-meandering verdict + algorithm (currently net-negative — read before building it) | reference |
+| `FABLE-5-KICKOFF.md` | onboarding brief written for a specific agent handover | reference |
+| `REFERENCE-INSTALLER-PATTERN.md` | Nick's installer-as-codebase spec | reference |
+| `ai-research-notes/` | **Gemini output — RECALL ONLY.** Never authoritative; the decomp/code wins on any conflict. Read `ai-research-notes/00-READ-THIS-FIRST.md` before trusting a single line of it. | reference |
+
 ## Story-mode working process (commands)
 - `/validate-docs` — before building a chunk (or when a build hits a wall), cross-check
   the doc section against decomp + live recon + walkthroughs; correct + re-verify.

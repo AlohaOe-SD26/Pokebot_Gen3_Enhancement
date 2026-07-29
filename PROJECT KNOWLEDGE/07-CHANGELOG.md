@@ -4494,3 +4494,69 @@ not a test of the fixes.
 **Confirmed healthy:** badge records clean in all four lanes again (correct order, no
 duplicates, no gaps), including P4 run 1, which reached the Feather Badge with 6 badges
 despite 38 whiteouts.
+
+## 2026-07-27 — Documentation correctness audit (docs 00/01/02/05/14 + one code docstring)
+
+A verification pass over the knowledge base while the user ran batches. **Method, chosen to
+avoid poisoning the docs:** read-only subagents verified claims against CODE and reported
+`file:line` evidence; only the main thread edited files. Agents that cannot write cannot
+introduce a bad fact. Every load-bearing agent claim was then independently re-checked
+before being applied — two were wrong and were discarded (see 08-MISTAKES).
+
+**`02-ARCHITECTURE.md` — was materially wrong about the repo's own shape**
+- The folder map **omitted `sandbox-pokebot/`, where all current work happens**, plus
+  `tools/`, `PROJECT KIT/`, `REMOTE START/`, `cloud-backups/`, and both installers. The
+  prose meanwhile referenced sandbox-only modules, so the doc contradicted itself.
+  Rewrote the map, added a "Which copy am I in?" table, and recorded that the two forks
+  have genuinely diverged (ten modules exist only in sandbox).
+- Corrected verified-wrong facts: recommended Python is **3.13**, not "targets 3.12"
+  (`requirements.py:7`); libmgba downloads to **`<copy>/mgba/`**, not `pokebot-gen3/mgba/`
+  (`requirements.py:185`); `context` is imported by **118** files under
+  `sandbox-pokebot/modules/` (114 custom, 98 mirror), not "116" — that figure matched no
+  copy; the declared YAML dep is **`ruamel.yaml`**, PyYAML is undeclared/transitive.
+  Module counts clarified as 59 mirror / 83 sandbox / 74 custom. "23 bot automations"
+  re-verified correct.
+- **Added the testing section that did not exist.** The `repro_*.py` suite is the project's
+  real verification bar and 02 never mentioned it, nor that it needs `py -3.12`.
+- Added `debug_logger` and `badge_log` as per-frame main-loop participants.
+
+**`01-VISION-AND-DESIGN.md` — the active copy had no intent section**
+- Added a `sandbox-pokebot/` component section (purpose, why it exists, promotion rule,
+  the divergence, and the different-machine caveat).
+- Fixed copy-ambiguous headings: Story-Mode bot and Endless Loop ×4 named bare paths, and a
+  reader following the doc's own text would have looked in `custom-pokebot/`, where the ×4
+  files **do not exist**.
+- Retired the stale "Future: custom automations, installer, custom interface" placeholder —
+  all three are BUILT. Added real intent sections for the five custom bot modes, the
+  `tools/story-dev/` verification harness, the two installers, and the custom interface.
+
+**`05-KNOWN-ISSUES.md` — re-audited every entry against `sandbox-pokebot/`**
+- Replaced the framing paragraph claiming ALL entries are upstream bugs (true only of
+  KI-1…KI-5; everything from KI-6 is our own code).
+- Documented that IDs are **not contiguous** — no KI-12, no KI-13; 23 distinct IDs across
+  25 headings.
+- Flagged six entries whose bodies still prescribe work that is already shipped — worst is
+  **KI-18**, whose body says *"Do NOT patch on the hypothesis. Reproduce first"* for a fix
+  that was proven and shipped (`battle_handler.py:475-501`).
+- Corrected KI-24b: `KNOWN_GATES` holds **three** edges, not one (`region_reach.py:81-91`).
+- **Added KI-25…KI-29**, all previously unlisted and all evidenced: the defensive-only lead
+  selection (incl. the Flannery segment not doing what its own comment says), the uncapped
+  Route 110 rival, the Weather Institute hard hang, the training livelocks, and the P4
+  canary anomaly.
+
+**`00-README.md`** — the reading order stopped at doc 16, making 09–11 and 17–23 plus
+`ai-research-notes/` invisible to anyone following the documented ritual. Added a
+"read when relevant" index.
+
+**`14-AGENT-PLAYBOOK.md`** — added §2b (the repro suite as the verification bar, with the
+sweep command and the 90s-timeout gotcha) and **§2c, a repeatable method for reviewing x4
+log bundles** — now a recurring job, with the five checks and the five traps that each cost
+real time. Added 10 prevention rules earned on 2026-07-26/27.
+
+**`sandbox-pokebot/modules/story/region_reach.py`** — its module docstring still said *"NOT
+wired into story_mode.py or counter_plan.py yet … wiring it in is a follow-up task"*. It has
+been wired since 2026-07-25 (`story_mode.py:553` and `:606`). A stale "not done yet" note is
+worse than none: it invites a future session to redo finished work.
+
+Verification: repro suite **47 pass, 0 fail, 5 environmental** — unchanged from before the
+edits.

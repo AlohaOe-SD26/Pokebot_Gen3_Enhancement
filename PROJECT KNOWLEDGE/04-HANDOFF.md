@@ -86,7 +86,35 @@ Ran the OLD code (see §0a). Re-confirmed all three bugs above. NEW finding, now
 Still-open items it raised (`#24-weatherinstitute-hang`, `#24-grindconverge`, `#24-canary11`)
 are in the punch list; all three want the first post-fix batch before more effort.
 
-**‼ NEXT ACTION: sync the running copy (§0a), THEN run a fresh x4 batch.** Every conclusion about where runs *really* die is
+**‼ NEXT ACTION: sync the running copy (§0a), THEN run a fresh x4 batch.**
+
+### Documentation correctness audit — 2026-07-27 (docs 00/01/02/05/14 corrected)
+
+Done while the user ran batches. Read-only agents verified claims against code and reported
+`file:line`; only the main thread edited, and every load-bearing claim was re-checked (two
+agent claims were wrong and discarded — see `08-MISTAKES.md`). Highlights:
+
+- **`02-ARCHITECTURE.md`'s folder map omitted `sandbox-pokebot/`** — the copy where all work
+  happens — plus `tools/`, `PROJECT KIT/`, `REMOTE START/`, `cloud-backups/`. Its prose
+  meanwhile cited sandbox-only modules, so the doc contradicted itself on one page. Rewritten,
+  with a "Which copy am I in?" table. It also had **no testing section at all**; the repro
+  suite and `py -3.12` are now documented there.
+- **`01-VISION-AND-DESIGN.md`** gave the active copy no intent section, and its Story-Mode /
+  Endless-×4 headings named bare paths a reader would resolve to `custom-pokebot/`, **where
+  the ×4 files do not exist**. Fixed, plus real sections for the five custom modes, the
+  `tools/story-dev/` harness, the installers and the custom interface (the "Future" placeholder
+  was stale — all built).
+- **`05-KNOWN-ISSUES.md`** re-audited entry-by-entry; six entries prescribe already-shipped
+  work (worst: **KI-18** says *"Do NOT patch on the hypothesis. Reproduce first"* for a shipped
+  fix). Added **KI-25…KI-29** — defensive-only lead selection, uncapped Route 110 rival,
+  Weather Institute hang, training livelocks, P4 canary anomaly.
+- **`14-AGENT-PLAYBOOK.md`** gained §2c: a repeatable **x4 log-bundle review method** — use it
+  on tonight's bundle instead of reinventing one.
+
+**‼ STILL UNFINISHED (the usage limit killed it mid-run):** `#doc-audit-2/3/4` in the punch
+list — the `03-PUNCH-LIST` status audit, `12-STORYMODE-DESIGN` accuracy, and
+`ai-research-notes/` stub-marker integrity. None has been started; the punch-list agent
+produced nothing before it died. Every conclusion about where runs *really* die is
 now suspect, because runs 4+ never happened and derail reasons were poisoned by leaked
 defeat counts. The previously-ranked feature list (`#24-provisions` etc., §4 below) is
 DEFERRED until a clean batch exists — building on this data would be measuring noise.
@@ -178,9 +206,13 @@ cat MANIFEST.txt          # lanes, starters, per-lane badge tallies
   `run_index` double-count; negative run frames; a stray directory in `profiles/` crashing
   startup; crash logs now written to `crash-<ts>.log`.
 
-**Verification bar:** 13 emulator-free repro scripts in `tools/story-dev/repro_*.py`, ALL
-GREEN. Run them after any change. ~20 older `repro_*.py` need a real `mgba` and cannot run on
-a box without the bot installed — that is expected, not a regression.
+**Verification bar:** the `tools/story-dev/repro_*.py` suite — **52 scripts, of which 47
+pass emulator-free** (0 fail, 5 environmental) as of 2026-07-27. Run the WHOLE sweep after
+any change with `py -3.12` and a ~90s per-script timeout; see `02-ARCHITECTURE.md` §"Testing"
+and `14-AGENT-PLAYBOOK.md` §2b.
+*(An earlier version of this line said "13 emulator-free repro scripts … ~20 older need a
+real mgba". Both figures were wrong — re-counted 2026-07-27. Running only 13 and calling the
+suite green skips the two repros guarding the 07-26/27 endless-loop fixes.)*
 
 ## 3. THE PLANNING DOCS WRITTEN THIS SESSION (read before building)
 
@@ -1782,7 +1814,7 @@ live-verified but wants an independent adversarial pass at promotion time.
 
 ### The bot itself
 ```powershell
-cd custom-pokebot          # production; sandbox-pokebot = experimental
+cd sandbox-pokebot         # ★ ACTIVE copy — build/test here (custom-pokebot = promoted only)
 python pokebot.py                      # dashboard GUI (default)
 python pokebot.py "Nick - Emerald"     # the user's real save (progressed)
 python pokebot.py <profile> --classic-gui
@@ -1848,7 +1880,9 @@ py -3.12 tools/story-dev/repro_boss_plateau.py     # boss non-convergence detect
 - New `plugins/*.py` need `.gitignore` negations + `git ls-files` check (ML-2).
 - Never `git commit` without a pathspec in automation (ML-3).
 - Stock auto-updater is disabled for our root-`.git` layout (ML-4 fix).
-- **Known issues: `05-KNOWN-ISSUES.md` holds 24 entries (KI-1 … KI-24b), not 6.**
+- **Known issues: `05-KNOWN-ISSUES.md` holds 23 DISTINCT entries, not 6.** ‼ The IDs are
+  NOT contiguous — **KI-12 and KI-13 do not exist in that file**, and KI-1 and KI-15 each
+  appear under two headings (25 headings, 23 IDs; re-counted 2026-07-27).
   The ones that are LIVE and can cost a run:
   - **KI-17** — after-faint party-menu RESHOW freeze (HIGH; hit 2 of 5 fresh lanes).
   - **KI-18** — DOUBLE-battle replacement swap loops forever (HIGH; user-reported).
