@@ -2414,3 +2414,45 @@ header.
    that adds the flag, or the resulting data cannot be attributed to a condition.
 3. **A flag that accepts an unrecognised value must fail loudly, never fall back.** A silent
    default turns a typo into a confident conclusion drawn from the wrong arm of the test.
+
+---
+
+## 2026-07-29 — Three times in one session I anchored a source assertion on text that also appears elsewhere
+
+**Symptom.** Three separate repro assertions failed on their first run, all for the same
+reason — a `src.index("...")` or `"x" in slice` test matched a *different* occurrence of the
+same text than intended:
+
+1. `repro_endless_per_run_state.py` anchored on `yield from super().run()`. Correct change
+   routed the story through a wrapper, so the literal vanished. **Fixed** by anchoring on
+   `super().run()` — which then matched the wrapper's own DOCSTRING, one line further out.
+2. `repro_debug_log_header.py` asserted `"subprocess" not in body` for a function whose
+   docstring EXPLAINS why subprocess is avoided; and resolved `_write_run_header()` to the
+   `def` line rather than the call site, because the definition sits earlier in the file.
+3. `repro_debug_emulation_config.py` sliced `class StoryMode` → `class StoryDebugMode` to
+   prove StoryMode does NOT call a helper — but the helper's own *definition* sits between
+   those two classes, so the slice contained its name.
+
+None was a product bug. All three were the test lying about the product, in both directions:
+(1) failed on a correct change, (3) would have passed for the wrong reason had the helper been
+placed elsewhere.
+
+**Root cause.** A source-text assertion is a proxy for a structural property. The proxy is
+only valid while the text appears exactly once, in the place you mean. Docstrings, function
+definitions and module-level helpers all duplicate the identifiers a test anchors on — and
+this project writes long explanatory docstrings *by policy*, which makes the collision far
+more likely here than in a codebase with terse comments.
+
+**What worked.** Three rules, applied together:
+- **Scope the slice to the syntactic unit** you mean (a class body ends at the next
+  module-level statement, not at the next class).
+- **Search from a known landmark**: `src.index(needle, i_start)` where `i_start` is the
+  START line of the function under test, so a definition earlier in the file cannot match.
+- **Strip docstrings** before asserting on code content (`body.split('"""')[-1]`).
+
+**Prevention rule.** Prefer asserting the BEHAVIOUR over the source text — drive the function
+and check the result, as `repro_debug_emulation_config.py` does for the config itself. Where a
+structural assertion is genuinely needed (ordering, "is this wired at all"), anchor it from a
+landmark inside the unit under test and strip docstrings first. And treat a source assertion
+that fails on a change you believe is correct as a suspect *test*, not a suspect change —
+twice out of three times here, it was.

@@ -2759,6 +2759,60 @@ class StoryMode(BotMode):
         return
 
 
+#: Set to "0" to leave emulation speed/video exactly as the GUI or CLI configured them.
+#: Anything else (or unset) applies the debug-run config below.
+_TURBO_ENV = "POKEBOT_STORY_DEBUG_TURBO"
+
+
+def _apply_debug_emulation_config() -> None:
+    """Give a SINGLE-LANE debug Story run the same emulation config an x4 lane gets.
+
+    ‼ WHY (user directive 2026-07-29): the user cannot run ENDLESS LOOP x4 on their work
+    machine — it lacks the power for four emulators — but x4 lanes are configured far better
+    for test runs than a hand-launched single bot, and they get there automatically:
+
+        modules/endless_x4.py:160   "-s", "0",   # unthrottled, as requested
+        modules/gui/tile_child.py:84  context.video = True  # REQUIRED
+
+    A hand-launched debug run inherited whatever the GUI happened to have — the
+    `20260729-122709` log shows `speed=1 video=True`, i.e. throttled, which made a
+    2.78M-frame run take hours. So the debug modes now configure themselves.
+
+    ‼ VIDEO IS FORCED **ON**, AND THAT IS DELIBERATE — it is what makes the FAITHFUL path
+    work. The PokéNav Match-Call tutorial only advances with the renderer on; run
+    `20260729-122709` (video=True) played it faithfully with no state-write fallback, while
+    the user's earlier video-off runs fell back 8 times out of 9.
+
+    ‼ THIS SUPERSEDES the 2026-07-26 "SPEED ONLY — NEVER TOUCH `context.video`" directive,
+    and the distinction matters. That rule was written because the endless loop used to
+    CAPTURE video at batch start and RE-PIN it every run — so a batch begun with video off
+    kept it off for ever, silently degrading the faithful path. The harm was PINNING TO AN
+    ARBITRARY VALUE, not writing the field. Forcing it ON, once, is the opposite: it is the
+    value the faithful path requires, and it is what x4 already does.
+    Ruling recorded in `06-DECISIONS-LOG.md` 2026-07-29.
+
+    Escape hatch: `POKEBOT_STORY_DEBUG_TURBO=0` leaves both settings untouched. The resulting
+    values are printed in every debug log's RUN HEADER (`emulation: speed=… video=…`), so
+    there is never any doubt about what was applied.
+    """
+    import os
+
+    from modules.console import console
+
+    if os.environ.get(_TURBO_ENV, "1").strip().lower() in ("0", "false", "no", "off"):
+        console.print(f"[dim]Story (DEBUG): {_TURBO_ENV}=0 — leaving speed/video as configured.[/]")
+        return
+    try:
+        if context.emulation_speed != 0:
+            context.emulation_speed = 0
+        if not context.video:
+            context.video = True
+        console.print("[dim]Story (DEBUG): emulation set to unthrottled + video ON "
+                      "(matches an x4 lane; POKEBOT_STORY_DEBUG_TURBO=0 to opt out).[/]")
+    except Exception:  # noqa: BLE001 - never let a display setting stop a run
+        pass
+
+
 class StoryDebugMode(StoryMode):
     """"Story (DEBUG)" (user request 2026-07-22): exactly Story, but with the opt-in
     Debug Logging switched ON automatically at start. Runs from ANY point — the title
@@ -2770,6 +2824,7 @@ class StoryDebugMode(StoryMode):
         return "Story (DEBUG)"
 
     def run(self):
+        _apply_debug_emulation_config()
         try:
             from modules import debug_logger
             from modules.console import console
@@ -2800,6 +2855,7 @@ class StoryDebugResetMode(StoryMode):
         from modules.modes.util.sleep import wait_for_n_frames
         from modules.tasks import task_is_active
 
+        _apply_debug_emulation_config()
         try:
             from modules import debug_logger
 
@@ -2989,6 +3045,12 @@ class StoryEndlessResetMode(StoryDebugResetMode):
         # `set_manual_mode()`, whose `enable_video_and_slow_down` default sets
         # `emulation_speed = 1`, which throttles the rest of an unattended batch.
         # Video is the user's to control; if they turn it on mid-batch it stays on.
+        # ‼ APPLY THE DEBUG CONFIG **BEFORE** CAPTURING `batch_speed`. The capture below is
+        # what every run's speed gets restored to after a `set_manual_mode()` drops it to 1x,
+        # so if the config were applied afterwards the batch would be pinned to the OLD speed
+        # and every run after the first would crawl — the exact 2026-07-25 bug this capture
+        # was written to fix, reintroduced from the other direction.
+        _apply_debug_emulation_config()
         try:
             batch_speed = context.emulation_speed
         except Exception:

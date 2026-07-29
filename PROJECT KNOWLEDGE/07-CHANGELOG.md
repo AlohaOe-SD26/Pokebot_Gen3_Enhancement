@@ -4877,3 +4877,39 @@ wired, it would have been boxed before Fortree.
   before treating the 1:1 canary as measurable from debug logs alone.
 
 Suite: **51 pass, 0 fail, 5 environmental.**
+
+## 2026-07-29 — All DEBUG Story modes now configure emulation like an x4 lane (user directive)
+
+The user cannot run ENDLESS LOOP x4 on their work machine (not enough power for four
+emulators), but x4 lanes get a much better test config automatically and a hand-launched bot
+inherited whatever the GUI had — run `20260729-122709` logged `emulation: speed=1 video=True`,
+i.e. **throttled**, so 2.78M frames took hours.
+
+`Story (DEBUG)`, `Story (DEBUG - RESET)` and `Story (ENDLESS RESET)` now call
+`_apply_debug_emulation_config()`, setting **`emulation_speed = 0` (unthrottled)** and
+**`video = True`** — exactly what `endless_x4.py:160` and `gui/tile_child.py:84` give a lane.
+Plain `Story` is deliberately NOT touched: a human watching a normal run keeps control.
+
+- **Video ON is load-bearing, not cosmetic.** The PokéNav Match-Call tutorial only advances
+  with the renderer on; `20260729-122709` played it faithfully with no state-write fallback,
+  where the user's earlier video-off runs fell back 8 times in 9.
+- **‼ This supersedes the 2026-07-26 "SPEED ONLY — NEVER TOUCH `context.video`" directive.**
+  That rule existed because the loop used to CAPTURE video at batch start and RE-PIN it every
+  run, so a batch begun with video off stayed off for ever. The harm was pinning to an
+  arbitrary value, not writing the field. Ruling + rejected alternatives in
+  `06-DECISIONS-LOG.md` 2026-07-29.
+- **Ordering matters and is tested:** `ENDLESS RESET` applies this BEFORE capturing
+  `batch_speed`, or every run after the first is restored to the OLD speed — the 2026-07-25
+  "second run crawled at 1x" bug from the other direction.
+- **Escape hatch:** `POKEBOT_STORY_DEBUG_TURBO=0` leaves both settings untouched. The applied
+  values show up in every debug log's RUN HEADER, so there is no ambiguity.
+
+Repro: `tools/story-dev/repro_debug_emulation_config.py` — drives the real helper (default,
+idempotence, each setting independently, all four escape-hatch spellings, a hostile context,
+all three modes wired, the ordering constraint, and that plain `Story` is untouched).
+
+Also logged in `08-MISTAKES.md`: **three** repro assertions in this session failed on first run
+because a source-text anchor matched a docstring or a function definition instead of the call
+site. Two of the three failed on *correct* changes. Prevention rules recorded.
+
+Suite: **52 pass, 0 fail, 5 environmental.**

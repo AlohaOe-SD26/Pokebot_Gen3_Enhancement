@@ -912,3 +912,43 @@ layer the user asked for **largely already exists**:
      fodder**. That threshold is the direct cause of the user's observation.
   3. `self._catch_team_target = 4` (`story_mode.py:845`), enforced in `_should_catch`
      (`:960`) — the 4-mon cap.
+
+## 2026-07-29 — Debug Story modes force unthrottled + video ON; this SUPERSEDES the 2026-07-26 "never touch video" rule
+
+**Decision (user directive).** `Story (DEBUG)`, `Story (DEBUG - RESET)` and
+`Story (ENDLESS RESET)` now set `emulation_speed = 0` and `video = True` themselves, matching
+what an x4 lane gets for free (`endless_x4.py:160`, `gui/tile_child.py:84`). Plain `Story` is
+NOT touched — a human watching a normal run keeps control.
+
+**Why.** The user cannot run x4 on their work machine (not enough power for four emulators),
+but x4's config is far better for test runs and a hand-launched bot inherited whatever the GUI
+had. Run `20260729-122709` logged `emulation: speed=1 video=True` — throttled — so 2.78M
+frames took hours.
+
+**‼ THIS SUPERSEDES the 2026-07-26 directive "SPEED ONLY — NEVER TOUCH `context.video`", and
+the distinction is the whole point.** That rule was written because the endless loop used to
+CAPTURE video at batch start and RE-PIN it on every run, so a batch begun with video off kept
+it off for ever and silently degraded the faithful PokéNav path to a state-write in 8 of 9
+runs. **The harm was pinning to an ARBITRARY value, not writing the field.** Forcing it ON,
+once, is the opposite: `video = True` is the value the faithful path REQUIRES, and it is
+already what x4 does. Evidence: `20260729-122709` ran with video on and played the Match-Call
+tutorial faithfully with no fallback.
+
+**Rejected: tell the user to set it in the GUI each time.** It is a launch-time setting they
+would have to remember on every run, on a machine they use for work; and the ordering is
+subtle — `ENDLESS RESET` captures `batch_speed` at batch start and restores it after every
+`set_manual_mode()`, so setting the speed *after* starting the mode pins the batch to the old
+value. Making the mode own it removes a foot-gun rather than documenting one.
+
+**Rejected: a new CLI flag.** The lesson from `POKEBOT_FODDER_RULE` (2026-07-29) applies —
+anything the operator must supply on a remote machine every time will eventually be forgotten
+or reverted by the installer. A default that is right, plus an escape hatch, is better.
+
+**Escape hatch:** `POKEBOT_STORY_DEBUG_TURBO=0` leaves both settings exactly as configured.
+The applied values appear in every debug log's RUN HEADER (`emulation: speed=… video=…`), so
+what actually happened is never in doubt.
+
+**Ordering constraint, encoded in a test:** `ENDLESS RESET` must apply this BEFORE it captures
+`batch_speed`, or every run after the first is restored to the OLD speed — the 2026-07-25
+"second run crawled at 1x" bug, reintroduced from the other direction.
+`repro_debug_emulation_config.py` asserts the order.
