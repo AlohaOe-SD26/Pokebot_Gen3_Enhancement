@@ -4609,3 +4609,43 @@ process, so grouping a cumulative `badge-log.json` by `run_index` across days ME
 batches and manufactures fake duplicate/out-of-order badges. First pass over this data did
 exactly that and briefly read as a badge-recorder regression. Correct method — segment by
 detecting a `run_index` that does not increase — is now in `14-AGENT-PLAYBOOK.md` §2c.
+
+## 2026-07-29 — PC investigation: story code has NEVER touched the PC; `team_policy` built (pure, capped by measurement)
+
+**Investigation (user question: does the bot ever use the PC?).** No — and the cause is more
+basic than "it never exceeds 6":
+- **The only caller of `interact_with_pc` in the entire repo is stock
+  `modules/modes/daycare.py`, and it only RELEASES.** No story code path deposits, withdraws
+  or reads a box. Confirmed by grep across `modules/story/` and `plugins/custom_modes/`.
+- `_catch_team_target = 4` (`story_mode.py:845`) caps catching at four.
+- The party still reaches 5-6 — via story **gifts** (Castform etc.), not catching. Measured
+  from the 2026-07-29 bundle: 4 mons in 281 badge records, 5 in 55, 6 in 27.
+- So nothing can ever leave the party, and dead weight is permanent.
+
+**Measured consequences** (363 badge-moment team snapshots, newest bundle):
+- **35% of badge moments carried ≥1 mon 15+ levels below the team max**, up to FIVE at once.
+- P1 reached the **Feather Badge at team-max L48 still carrying a Zigzagoon L8.**
+- P1 caught a **Makuhita — Fighting, exactly Norman's counter — and carried it L8 → L9 across
+  FIVE badges** while the team went L22 → L42. The answer was in the party and never usable.
+- **12 derails** in that bundle were *"No party mon can learn Surf and the party is full"* —
+  runs ending because a full party of dead weight left no room for an HM carrier.
+
+**Built: `sandbox-pokebot/modules/story/team_policy.py`** — a PURE module (no memory reads,
+no walking, no input) implementing design §2/§4: `dead_weight()`, `find_dead_weight()`,
+`rotation_plan()`, with the HM-sole-carrier and favourite exemptions, and a rotation that
+reports `worth_it` so a caller never burns a PC visit for nothing.
+
+**‼ The spec's threshold was corrected by measurement before wiring.** Design §2's
+`level < lead_level - 8` is a correct statement of "will never be caught up", but used
+directly as a deposit rule it would have boxed 3+ mons in 41% of real parties, left **59%
+below three mons**, and cut **132 four-mon parties to one** — the "lone starter can't rotate"
+state behind KI-8. Fact and decision are now separate: the predicate is unchanged;
+`rotation_plan` caps at `MAX_DEPOSITS_PER_ROTATION = 2` and never drops below
+`MIN_PARTY_AFTER_ROTATION = 3`, worst-first. Post-cap over the same 363 parties: deposits of
+0/1/2 only, zero parties left under three. `21-TEAM-POLICY-DESIGN.md` §2 amended.
+
+**Not yet wired.** This module decides; nothing calls it yet. Wiring it into the heal-trip
+seam needs a live emulator run and is the next step.
+
+Repro: `tools/story-dev/repro_team_policy.py`, asserting against the REAL parties above.
+Suite: **48 pass, 0 fail, 5 environmental.**

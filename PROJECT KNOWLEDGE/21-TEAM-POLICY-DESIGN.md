@@ -49,6 +49,19 @@ roll and the favourite; competence comes from the same gates as today.
 
 **Not** type redundancy in v1 — weakest signal, hardest to falsify offline.
 **Exempt:** the favourite; and any mon that is the party's ONLY carrier of a learned HM.
+**‼ AMENDED 2026-07-29 AFTER MEASUREMENT — the predicate is a FACT, not a deposit rule.**
+Replaying this predicate over all **363 real badge-moment parties** from the `20260729-062040`
+bundle showed it flags 3+ mons in **41%** of parties and would cut **132 observed four-mon
+parties to a single Pokémon** — the "lone starter can't rotate" condition behind the Roxanne
+party-menu hang (KI-8). **59% of parties would drop below three mons.** The predicate is not
+wrong (the starter takes most of the XP, so the bench really is 10-20 levels behind by
+mid-game) — but *"will never be caught up"* does not imply *"box it this visit"*.
+`modules/story/team_policy.py` therefore separates them: `dead_weight()` states the fact;
+`rotation_plan()` caps the decision at `MAX_DEPOSITS_PER_ROTATION = 2` and never drops the
+party below `MIN_PARTY_AFTER_ROTATION = 3`, worst-first, converging over successive heal
+trips. Freeing one or two slots is all the purpose requires. Post-cap, across the same 363
+parties: deposits 0/1/2 only, and **zero** parties left under three mons.
+
 **Action: bench immediately, deposit at the next PC trip, NEVER release.** A wrong deposit
 costs one PC visit; a wrong release is unrecoverable, and this is a heuristic.
 

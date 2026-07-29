@@ -2321,3 +2321,50 @@ post-fix. I wrote that checklist myself, four days earlier, and it still misled 
 3. **A diagnostic checklist you wrote is not self-validating.** Re-derive each tell from the
    code path that emits it before trusting it — especially one you authored under time
    pressure. Two of four tells in mine were wrong or ambiguous.
+
+---
+
+## 2026-07-29 — A build-ready spec's threshold would have gutted 59% of real parties
+
+**Symptom.** `21-TEAM-POLICY-DESIGN.md` §2 specifies the dead-weight test as
+`level < lead_level - 8`, justified in the doc by `TRAIN_CATCHUP_GAP = 6` — the point at
+which `_prepare_for_fight` stops catching a mon up, so anything further behind is
+"unrecoverable by construction". The reasoning is sound and the doc was marked build-ready.
+
+Implemented literally and replayed over the **363 real badge-moment parties** in the user's
+`20260729-062040` bundle, it would have:
+
+    boxed 3+ mons in 148 parties (41%)
+    left 59% of all parties with FEWER THAN 3 mons
+    cut 132 observed four-mon parties down to a SINGLE Pokémon
+
+A one-mon party is exactly the "lone starter can't rotate" state that produced the Roxanne
+party-menu hang (KI-8). Shipping this would have traded a dead-weight problem for a
+strictly worse one.
+
+**Root cause.** The threshold answers *"will this mon ever be caught up?"* — and its answer
+is correct. It was then used to answer a different question: *"should this mon be boxed
+now?"* In real runs the starter takes most of the XP, so by mid-game the entire bench is
+10-20 levels behind. A predicate that flags "unrecoverable" therefore flags most of the team,
+which is true and useless as a deposit rule.
+
+**The fix that worked.** Split fact from decision. `dead_weight()` keeps the spec's
+predicate unchanged. `rotation_plan()` caps the ACTION: `MAX_DEPOSITS_PER_ROTATION = 2`,
+never below `MIN_PARTY_AFTER_ROTATION = 3`, worst-first, converging over successive heal
+trips. Freeing one or two slots is all the purpose (room for an HM carrier or a counter)
+actually requires. Post-cap over the same 363 parties: deposits of 0/1/2 only, and **zero**
+parties left under three mons. `21-TEAM-POLICY-DESIGN.md` §2 amended with the measurement.
+
+**Prevention rules.**
+1. **"Build-ready" is not "validated".** A spec written before the data existed can be
+   internally coherent and still wrong in the world. Replay any numeric rule against real
+   captured state BEFORE wiring it to an action — 363 parties were sitting in the bundles
+   the whole time and the check cost one script.
+2. **Never let a predicate that states a FACT double as the rule that takes an ACTION.**
+   "Is unrecoverable" and "box it now" are different questions; the second needs a budget,
+   a floor, and an ordering. Keep them in separate functions so the action can be capped
+   without weakening the diagnosis.
+3. This is the third instance of the playbook's *"a numeric threshold justified by one
+   worked example is a guess with arithmetic attached"* rule (after `CREDIBLE_ANSWER_POWER`
+   60→75 and `FODDER_LEVEL_GAP = 12`). The pattern is now: **every constant that gates an
+   action gets replayed against captured data in the same change that introduces it.**
