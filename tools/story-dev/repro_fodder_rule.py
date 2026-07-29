@@ -20,15 +20,21 @@ conservative gap: proven-good prep must not move)". L10-17 is exactly those boss
 repro loads a real ROM + save state, so it CANNOT run on the dev box — flipping the rule
 blind would gamble the user's overnight batches on a test nobody can run here.
 
-So the rule is behind `training_areas.FODDER_RULE`, defaulting to "legacy", and the decision
-itself is a pure function this file exercises exhaustively with no emulator.
+The rule lives behind `training_areas.FODDER_RULE`. ‼ **The default is now "xp_rate"**
+(user directive 2026-07-29): the user launches by DOUBLE-CLICKING `install_sandbox.py`, which
+cannot set an environment variable, so an env-only switch meant the intended rule never
+actually ran. `POKEBOT_FODDER_RULE=legacy` is the documented way back.
 
-TO VALIDATE THE NEW RULE (on the machine that HAS mgba):
-    1. run `py -3.12 tools/story-dev/repro_fodder_grass.py`   -> record the decision table
-    2. set `FODDER_RULE = "xp_rate"` in modules/story/training_areas.py
-    3. run it again. The NORMAN row must still relocate/skip as before; the
-       WATTSON/ROXANNE rows are the ones to inspect — they are what the flag changes.
-    4. only then consider making "xp_rate" the default.
+‼ RESIDUAL RISK: `repro_fodder_grass.py` — the test that governs this decision — STILL has not
+been run, on any machine (it needs a real ROM + save state). The arms provably differ only for
+teams at/below L17 and only at boss prep, and every run names its rule in the log header, so
+the blast radius is bounded and attributable. But this is a user-directed default, not a
+validated one.
+
+TO VALIDATE (on the machine that HAS mgba), no code edit needed:
+    1. `set POKEBOT_FODDER_RULE=legacy` then run `repro_fodder_grass.py` -> baseline table
+    2. `set POKEBOT_FODDER_RULE=xp_rate` and run it again
+    3. compare the WATTSON/ROXANNE rows — those are what the rule changes.
 """
 import sys
 import types
@@ -65,24 +71,32 @@ def legacy(local_max, team_max):
     return local_max is not None and local_max + GAP < team_max
 
 
-print("== ‼ THE DEFAULT IS THE PROVEN BEHAVIOUR ==")
-check(ta.FODDER_RULE == "legacy",
-      f"FODDER_RULE defaults to 'legacy' (got {ta.FODDER_RULE!r})")
-print("     -> the user's overnight batches keep the behaviour that has been running.")
+print("== ‼ THE DEFAULT IS 'xp_rate' (user directive 2026-07-29) ==")
+# Flipped because the user launches by DOUBLE-CLICKING install_sandbox.py, which cannot set
+# an env var — so an env-only switch meant the intended rule never actually ran.
+check(ta.FODDER_RULE == "xp_rate",
+      f"FODDER_RULE defaults to 'xp_rate' (got {ta.FODDER_RULE!r})")
+check(ta.local_patch_is_fodder(5, 15, GAP, best_available_max=14) is True,
+      "so a double-click run gets the NEW rule with no shell involved")
 
 print("\n== the extracted function reproduces the old expression EXACTLY ==")
 mismatches = []
 for local_max in range(1, 31):
     for team_max in range(1, 61):
-        got = ta.local_patch_is_fodder(local_max, team_max, GAP)
+        # ‼ NAME THE RULE. This section tests the LEGACY path; it used to rely on legacy
+        # being the DEFAULT, so flipping the default to xp_rate broke it (975 mismatches).
+        # A test of a specific arm must select that arm explicitly.
+        got = ta.local_patch_is_fodder(local_max, team_max, GAP, rule="legacy")
         want = legacy(local_max, team_max)
         if got != want:
             mismatches.append((local_max, team_max, got, want))
 check(not mismatches,
       f"all 1,800 (local_max, team_max) combinations match the legacy expression "
       f"({len(mismatches)} mismatches)")
-check(ta.local_patch_is_fodder(None, 40, GAP) is False,
+check(ta.local_patch_is_fodder(None, 40, GAP, rule="legacy") is False,
       "an unknown local_max is never 'fodder' (fail safe — do not relocate on ignorance)")
+check(ta.local_patch_is_fodder(None, 40, GAP, best_available_max=28, rule="xp_rate") is False,
+      "...under EITHER rule")
 
 print("\n== the model: xp/battle is proportional to the WILD level, not the team's ==")
 check(abs(ta.xp_per_battle(5) - 50.2 * 5 / 7) < 1e-9, "xp_per_battle(5) matches the model")
@@ -93,7 +107,7 @@ check(ta.xp_per_battle(0) == 0.0 and ta.xp_per_battle(None) == 0.0,
 
 print("\n== ‼ THE HOLE the legacy rule leaves (documented, not yet fixed) ==")
 for team, expect_legacy in ((10, False), (15, False), (20, True), (25, True)):
-    got = ta.local_patch_is_fodder(5, team, GAP)
+    got = ta.local_patch_is_fodder(5, team, GAP, rule="legacy")
     check(got is expect_legacy,
           f"legacy: L{team} team on L5 grass -> relocate={got} (hole below ~L17)")
 
@@ -117,12 +131,12 @@ print("\n== the two rules DISAGREE exactly where the hole is, and nowhere else =
 # it is False for team <= 17 and True from team 18. The hole is therefore teams AT OR BELOW
 # 17 — an off-by-one this repro caught in the first draft of this very assertion.
 FIRST_RELOCATING_TEAM_LEVEL = 5 + GAP + 1  # == 18
-check(ta.local_patch_is_fodder(5, 17, GAP) is False, "legacy is still False AT L17")
-check(ta.local_patch_is_fodder(5, 18, GAP) is True, "legacy first relocates at L18")
+check(ta.local_patch_is_fodder(5, 17, GAP, rule="legacy") is False, "legacy is still False AT L17")
+check(ta.local_patch_is_fodder(5, 18, GAP, rule="legacy") is True, "legacy first relocates at L18")
 
 disagree_low, disagree_high = [], []
 for team in range(5, 45):
-    lg = ta.local_patch_is_fodder(5, team, GAP)
+    lg = ta.local_patch_is_fodder(5, team, GAP, rule="legacy")
     xr = ta.local_patch_is_fodder(5, team, GAP, best_available_max=14, rule="xp_rate")
     if lg != xr:
         (disagree_low if team < FIRST_RELOCATING_TEAM_LEVEL else disagree_high).append(team)
@@ -139,17 +153,21 @@ print("\n== ‼ THE A/B IS RUNNABLE WITHOUT EDITING CODE ==")
 import importlib  # noqa: E402
 import os  # noqa: E402
 
-check(ta.FODDER_RULE == "legacy", "default (no env var) is still legacy")
+check(ta.FODDER_RULE == "xp_rate", "default (no env var) is xp_rate")
 
+os.environ["POKEBOT_FODDER_RULE"] = "legacy"
+importlib.reload(ta)
+check(ta.FODDER_RULE == "legacy",
+      f"POKEBOT_FODDER_RULE=legacy restores the OLD rule for an A/B (got {ta.FODDER_RULE!r})")
 os.environ["POKEBOT_FODDER_RULE"] = "xp_rate"
 importlib.reload(ta)
-check(ta.FODDER_RULE == "xp_rate", f"POKEBOT_FODDER_RULE=xp_rate switches the rule (got {ta.FODDER_RULE!r})")
+check(ta.FODDER_RULE == "xp_rate", "and xp_rate can be set explicitly too")
 check("xp_rate" in ta.active_fodder_rule_banner() and "env" in ta.active_fodder_rule_banner(),
       f"and the banner names it + how it was set: {ta.active_fodder_rule_banner()!r}")
 
-os.environ["POKEBOT_FODDER_RULE"] = "  XP_Rate "
+os.environ["POKEBOT_FODDER_RULE"] = "  LEGACY "
 importlib.reload(ta)
-check(ta.FODDER_RULE == "xp_rate", "whitespace/case are normalised (a shell quirk must not silently mean 'legacy')")
+check(ta.FODDER_RULE == "legacy", "whitespace/case are normalised (a shell quirk must not silently flip the arm)")
 
 os.environ["POKEBOT_FODDER_RULE"] = "xprate"
 raised = False
@@ -163,7 +181,7 @@ check(raised,
 
 del os.environ["POKEBOT_FODDER_RULE"]
 importlib.reload(ta)
-check(ta.FODDER_RULE == "legacy", "clearing the env var restores the default")
+check(ta.FODDER_RULE == "xp_rate", "clearing the env var restores the xp_rate default")
 
 print("\n== the active rule is NAMED IN THE RUN LOG, so a bundle is attributable ==")
 sm_src = (SANDBOX / "plugins" / "custom_modes" / "story_mode.py").read_text(encoding="utf-8")

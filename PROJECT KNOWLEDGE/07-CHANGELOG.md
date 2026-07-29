@@ -4913,3 +4913,42 @@ because a source-text anchor matched a docstring or a function definition instea
 site. Two of the three failed on *correct* changes. Prevention rules recorded.
 
 Suite: **52 pass, 0 fail, 5 environmental.**
+
+## 2026-07-29 — `xp_rate` is now the DEFAULT: a double-click must get the intended behaviour
+
+**User question:** *"would simply running the install sandbox script by manually clicking it
+work? if not then we need to ensure this install sandbox script automates the xp rate
+addition."*
+
+**Answer, established from the code:** double-clicking `install_sandbox.py` DOES work for
+pull / heal / launch — it is a 45-line wrapper that sets `BOT_DIR_NAME = "sandbox-pokebot"`,
+`LAUNCH_EXTRA_ARGS = ["--no-audio"]`, the log path and version suffix, then calls
+`install.main()`, which does `git fetch` + `git pull --ff-only`. It runs under any Python 3.9+
+(`install.py` has `from __future__ import annotations`, so its `X | None` annotations are
+strings). **But a double-click cannot set an environment variable**, so the bot would have run
+`legacy` — the intended rule would never actually have run.
+
+**Fix: flip the default** rather than teach the launcher a trick.
+`FODDER_RULE` now defaults to `"xp_rate"`; `POKEBOT_FODDER_RULE=legacy` is the documented way
+back. Every launch path — double-click, GUI, CLI, x4 lane — now agrees, and there is a single
+source of truth instead of a launcher-specific override that would drift.
+
+**Rejected: `os.environ["POKEBOT_FODDER_RULE"] = "xp_rate"` inside `install_sandbox.py`.** It
+would only apply to that one launch path, leaving the GUI and CLI on a different rule, and it
+puts the value in two places.
+
+**‼ RESIDUAL RISK, STATED PLAINLY.** `repro_fodder_grass.py` — the test that governs this
+decision and the reason the default was `legacy` — **still has not been run on any machine**
+(it needs a real ROM + save state). The arms provably differ only for teams at/below L17 and
+only at boss prep, and every run names its rule in the log header, so the blast radius is
+bounded and attributable. This is a **user-directed default, not a validated one.** If early
+prep regresses: `POKEBOT_FODDER_RULE=legacy`.
+
+**Two repro assertions had quietly depended on the old default and failed — correctly:**
+- `repro_fodder_rule.py` tested the legacy arm without naming it, so flipping the default
+  produced 975 "mismatches". Now every legacy assertion passes `rule="legacy"` explicitly.
+- `repro_debug_log_header.py` hard-coded `"legacy" in header`. Now it asserts the **shape** —
+  the header marks the rule as `(default)` and names whatever the current default is — because
+  what a log reader needs is attribution, not this week's value.
+
+Suite: **52 pass, 0 fail, 5 environmental.**

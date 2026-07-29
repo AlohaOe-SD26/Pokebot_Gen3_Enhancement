@@ -111,8 +111,14 @@ from modules.story import training_areas as ta  # noqa: E402
 
 importlib.reload(ta)
 h2 = capture_header()
-check("legacy" in h2 and "(default)" in h2,
-      "with no env var the header says legacy (default)")
+# ‼ Assert the SHAPE, not the value. The default flipped legacy -> xp_rate on 2026-07-29
+# and this assertion hard-coded "legacy", so it failed on a deliberate change. What a log
+# reader needs is that the header NAMES the active rule and says it came from the default
+# rather than a choice — not which value happens to be default this week.
+check("(default)" in h2,
+      "with no env var the header marks the rule as coming from the DEFAULT")
+check(ta.FODDER_RULE in h2,
+      f"and names the actual default value, whatever it is (got {ta.FODDER_RULE!r})")
 check("no behaviour env vars set" in h2,
       "and explicitly says none were set — silence is not evidence")
 

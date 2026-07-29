@@ -246,10 +246,12 @@ def best_training_area(team_level: int, *, min_wild_max: int = 0, allow=None):
 
 #: Which rule decides "is the local patch fodder?" (KI-31).
 #:
-#: ``"legacy"``  — `local_max + FODDER_LEVEL_GAP < team_max`. **The default: DO NOT change
-#:                 it without an A/B on a machine with a real mgba.**
-#: ``"xp_rate"`` — relocate when the better area at least `XP_RATE_RELOCATE_RATIO`×es the
-#:                 xp rate. Fixes the measured hole; unvalidated end-to-end.
+#: ``"xp_rate"`` — **THE DEFAULT since 2026-07-29 (user directive).** Relocate when the better
+#:                 area at least `XP_RATE_RELOCATE_RATIO`×es the xp rate. Fixes the measured
+#:                 hole (teams at/below L17 could never relocate). Still not validated
+#:                 end-to-end — see the note on `FODDER_RULE` below.
+#: ``"legacy"``  — `local_max + FODDER_LEVEL_GAP < team_max`. The previous default; set
+#:                 `POKEBOT_FODDER_RULE=legacy` to get it back, e.g. to A/B a regression.
 #:
 #: ‼ WHY A FLAG AND NOT A FIX. The legacy rule compares the WILD level to the TEAM level,
 #: but this module's own calibrated model says `xp/battle = 50.2 * wild_level / 7` — xp is
@@ -270,8 +272,23 @@ def best_training_area(team_level: int, *, min_wild_max: int = 0, allow=None):
 #: `git checkout -- <drifted>`, so that edit could be REVERTED by the very installer the
 #: user was told to run. An env var is immune to that, needs no code change on a remote
 #: machine, and disappears when the shell closes.
+#: ‼ DEFAULT FLIPPED TO "xp_rate" (user directive 2026-07-29).
+#: The user runs the bot by DOUBLE-CLICKING `install_sandbox.py`, which cannot set an
+#: environment variable — so an env-var-only switch meant the intended rule never actually
+#: ran. Requiring a shell to get the intended behaviour is a broken interface, and the
+#: earlier lesson applies: a flag whose only interface is inconvenient will silently sit at
+#: the wrong value. Making it the default is the honest fix — every launch path (double-click,
+#: GUI, CLI, x4 lane) now agrees, and `POKEBOT_FODDER_RULE=legacy` is the documented way back.
+#:
+#: ‼ RESIDUAL RISK, STATED PLAINLY: `repro_fodder_grass.py` — the test that governs this
+#: decision, and the reason the default was `legacy` until now — STILL HAS NOT BEEN RUN, on
+#: any machine. It needs a real ROM + save state. The rules provably differ only for teams at
+#: or below L17 and only at boss prep (see `repro_fodder_rule.py`), so the blast radius is
+#: bounded and every run reports the active rule in its log header — but this is a
+#: user-directed default, not a validated one. If early-game prep regresses, set
+#: `POKEBOT_FODDER_RULE=legacy` and say so.
 _VALID_FODDER_RULES = ("legacy", "xp_rate")
-FODDER_RULE = _os.environ.get("POKEBOT_FODDER_RULE", "legacy").strip().lower()
+FODDER_RULE = _os.environ.get("POKEBOT_FODDER_RULE", "xp_rate").strip().lower()
 if FODDER_RULE not in _VALID_FODDER_RULES:
     # ‼ FAIL LOUDLY. A silent fallback here would be the worst possible outcome for an A/B:
     # a typo'd value would quietly run the LEGACY rule while the operator believed they were

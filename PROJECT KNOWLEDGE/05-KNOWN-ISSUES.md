@@ -815,7 +815,18 @@ reason about them.
 - **‼ AND THE GOVERNING TEST CANNOT RUN ON THE DEV BOX.** `repro_fodder_grass.py` loads a real
   ROM + `saves/norman_done.ss1` and needs `mgba`. It is one of the 5 environmental failures
   here. **This change must be validated on the machine that runs the batches.**
-- **STATUS 2026-07-29: the decision is now a PURE, FLAGGED function — behaviour UNCHANGED.**
+- **‼ STATUS UPDATE 2026-07-29 (later): `xp_rate` IS NOW THE DEFAULT (user directive).**
+  The user launches the bot by **double-clicking `install_sandbox.py`**, which cannot set an
+  environment variable — so an env-var-only switch meant the intended rule never actually ran.
+  Requiring a shell to get the intended behaviour is a broken interface, so the default was
+  flipped. Every launch path (double-click, GUI, CLI, x4 lane) now agrees, and
+  `POKEBOT_FODDER_RULE=legacy` is the documented way back for an A/B.
+  ‼ **The governing test `repro_fodder_grass.py` STILL has not been run on any machine** — it
+  needs a real ROM + save state. The arms provably differ only for teams at/below L17 and only
+  at boss prep, and every run names its rule in the log header, so the blast radius is bounded
+  and attributable — but this is a **user-directed default, not a validated one**. If early
+  prep regresses, set `POKEBOT_FODDER_RULE=legacy`.
+- **STATUS 2026-07-29 (earlier): the decision is a PURE, FLAGGED function.**
   `training_areas.local_patch_is_fodder()` holds both rules behind `FODDER_RULE`, which
   defaults to `"legacy"`. A repro proves the extracted legacy path reproduces the old inline
   expression across all 1,800 `(local_max, team_max)` combinations, and that the two rules
