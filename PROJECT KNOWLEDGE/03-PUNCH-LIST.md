@@ -103,10 +103,24 @@ pulled, so it re-confirms them rather than testing them. It did expose one NEW b
 - [ ] `#doc-audit-3` — **`12-STORYMODE-DESIGN.md` (2,886 lines) never audited.** Check Area
       Atlas coords/flags against `modules/map_data.py` + the decomp, and promote any
       `⚠ VALIDATE LIVE` item that live runs have since validated.
-- [ ] `#doc-audit-4` — **`ai-research-notes/` stub-marker integrity never verified.** Confirm
-      every note is stub-marked from its authoritative doc, and that no unverified Gemini
-      claim has leaked into a current-state doc (00-05) as fact. This is the anti-poison
-      system checking itself; see `ai-research-notes/00-READ-THIS-FIRST.md`.
+- [~] `#doc-audit-4` — **`ai-research-notes/` integrity — SPOT-CHECKED 2026-07-29, not
+      exhaustive.** The directory is 84 files / ~9,400 lines; a full claim-by-claim sweep was
+      NOT done.
+      **Checked and PASSING:** (a) `00-READ-THIS-FIRST.md` states the rule, the per-claim
+      verification gates, and its own track record; (b) stub markers exist in the authoritative
+      docs that matter — `12-STORYMODE-DESIGN.md:4-10` carries a proper header stub, and
+      `03`/`04`/`05`/`22`/`23` all reference the directory; (c) **the one documented Gemini
+      error was correctly contained** — the note claimed no healing house exists on the
+      Route 112/113 corridor, `sandbox-pokebot/modules/map_data.py:1059` has
+      `ROUTE111_OLD_LADYS_REST_STOP = (18, 1)`, and
+      `18-RESEARCH-HEALPOINTS-AND-LEGENDARIES.md:27-31` records the claim tagged
+      `(INFERENCE)` and rebuts it with our own map data. `05-KNOWN-ISSUES.md:368` holds the
+      verified detail. The marker-and-rebut discipline held.
+      **Still open:** no systematic check that every *other* note's claims are either
+      stub-marked or verified. Highest-risk class per the 2026-07-25 measurement is Gemini's
+      **architecture advice** (all three of its "your bot must hardcode an interrupt here"
+      constraints rested on permanence that does not exist) — sweep the design docs
+      (`19`–`23`) for actionable advice traceable to a note rather than to code.
 - [ ] `#doc-policy-05` — **user ruling wanted:** should `05-KNOWN-ISSUES.md` delete an entry
       when it is fixed in `sandbox-pokebot/`, or keep it until promotion to `custom-pokebot/`?
       Currently retained-and-marked. See `06-DECISIONS-LOG.md` 2026-07-27 (provisional).

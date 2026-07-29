@@ -111,10 +111,18 @@ agent claims were wrong and discarded — see `08-MISTAKES.md`). Highlights:
 - **`14-AGENT-PLAYBOOK.md`** gained §2c: a repeatable **x4 log-bundle review method** — use it
   on tonight's bundle instead of reinventing one.
 
-**‼ STILL UNFINISHED (the usage limit killed it mid-run):** `#doc-audit-2/3/4` in the punch
-list — the `03-PUNCH-LIST` status audit, `12-STORYMODE-DESIGN` accuracy, and
-`ai-research-notes/` stub-marker integrity. None has been started; the punch-list agent
-produced nothing before it died. Every conclusion about where runs *really* die is
+**Resumed 2026-07-29 after a weekly usage limit interrupted the session.** State now:
+- `#doc-audit-2` **PARTIAL** — consistency half done by hand: 134 items / 98 ids; the
+  undocumented third marker `- [~]` (17 items) is now defined at the top of `03`; the single
+  status conflict (`#24-pokenav-faithful`) proved to be a legitimate recurrence and is
+  cross-linked. The expensive half — checking all 80 open items against code for
+  "already built" — is NOT done.
+- `#doc-audit-4` **SPOT-CHECKED** — the anti-poison system passes on the one documented Gemini
+  error (claim tagged `(INFERENCE)` and rebutted with our own `map_data.py` evidence). A
+  systematic sweep of all 84 note files is NOT done; highest-risk class is Gemini's
+  *architecture advice*, not its names.
+- `#doc-audit-3` **NOT STARTED** — `12-STORYMODE-DESIGN.md` (2,886 lines) has never been
+  audited. Every conclusion about where runs *really* die is
 now suspect, because runs 4+ never happened and derail reasons were poisoned by leaked
 defeat counts. The previously-ranked feature list (`#24-provisions` etc., §4 below) is
 DEFERRED until a clean batch exists — building on this data would be measuring noise.
