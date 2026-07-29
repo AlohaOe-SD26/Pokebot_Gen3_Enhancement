@@ -9,7 +9,24 @@
 
 # ‼ START HERE — 2026-07-27
 
-## 0a. ‼‼ THE FIXES ARE NOT IN THE COPY THE BOT ACTUALLY RUNS — THIS BLOCKS EVERYTHING
+## 0. ✅ THE FIXES ARE DEPLOYED AND VALIDATED LIVE (2026-07-29, five bundles)
+
+The running machine pulled. Five bundles reviewed (`20260727-164830`, `20260728-172826`,
+`20260728-221523`, `20260728-222654`, `20260729-062040`). **All four harness fixes are
+confirmed working in production:**
+
+| fix | evidence across the five bundles |
+|---|---|
+| per-run state reset | **`couldn't beat the Rustboro rival` : 31 → 0.** P2 hit it 31 times in 32 runs on 07-27; **zero** in every bundle after. Runs 4+ now play. |
+| frame budget enforced in-run | max single-run frames now **1.9M–3.1M, all under the 3.5M cap**. The 27M/30M-frame hangs are gone. The budget fired once (P3, 07-28) and the batch continued. |
+| `run_index` stride | **stride 1 in all four lanes** in the newest bundle (was all-odd stride 2). |
+| honest outcomes | derails are now itemised and attributable (36 in the last bundle) instead of hiding behind `finished`. |
+
+**Throughput, newest bundle (56 runs across 4 lanes):** P1 5×Feather, P2 5×Feather,
+P4 4×Feather, P3 2×Feather. Reaching end-of-built-content went from a once-per-batch event
+to **16 times in one batch**.
+
+## 0a. Deployment — RESOLVED, but keep the check
 
 **The repo you are editing is not the repo that runs.** This checkout is
 `C:\Remote Projects\Pokebot_Gen3_Enhancement`. The bot runs from
@@ -31,11 +48,21 @@ can be validated. **Say this to the user explicitly and early — do not bury it
 analysis.** Two consecutive bundles have now been reviewed against code that was never
 running, which is the single largest waste in this project so far.
 
-**Check it cheaply on the next bundle** — these are pre-fix tells, visible in seconds:
-  * any run reporting `finished (0 frames)` → the honest-outcome fix is absent;
-  * `run_index` advancing by 2 (odd-only, or stride 2) → the badge-log fix is absent;
-  * runs 4+ dying at the Rustboro rival → the per-run-state fix is absent;
-  * a single run exceeding ~3.5M frames → the frame-budget fix is absent.
+**Check it cheaply on the next bundle** — reliable tells, in order of usefulness:
+  * `grep -c "couldn't beat the Rustboro rival"` → **non-zero = the per-run-state fix is
+    ABSENT.** The single best discriminator (31 hits pre-fix, 0 after).
+  * `run_index` all-odd with a perfect stride of 2 → the badge-log fix is absent. *(A stride
+    >1 on its own is NOT proof — a run that earns no badges leaves a legitimate gap. Look for
+    the alternating parity.)*
+  * any single run exceeding ~3.5M frames → the frame-budget fix is absent.
+  * `per-run frame budget exhausted` / `stopped: handed to Manual` present → fix definitely
+    PRESENT. *(Absence proves nothing — it only means no run tripped that path.)*
+
+  ‼ **`finished (0 frames)` is NOT a pre-fix tell.** It was listed as one here until
+  2026-07-29 and it is wrong: it comes from the negative-frame CLAMP, which was never
+  removed. `start_frame` is captured before the run, the hard reset restarts the counter
+  mid-run, so `now - start_frame` goes negative for essentially every run after the first and
+  is clamped to 0. It is expected post-fix and it briefly muddied the 5-bundle review.
 
 ## 0b. THE LOG BUNDLES REVIEWED SO FAR
 

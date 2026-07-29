@@ -117,7 +117,22 @@ method below found four harness bugs; the traps below each cost real time when f
 - `*-debug-*.log` — `BattleOutcome.<X>`, `[MAP]`, `[PARTY]`, `[BATTLE]`, `[STEP]`, `[hb]`
   heartbeats, and `===== DUMP [STUCK …]` with the generator call stack. **One file per run.**
 - `badge-log.json` — CUMULATIVE and never archived. Split by `earned_at` against the batch
-  start, or you will read months-old records as new. Group by `run_index`.
+  start, or you will read months-old records as new.
+  ‼ **`run_index` RESTARTS AT 1 FOR EVERY PROCESS.** It is per-batch, not globally unique, so
+  grouping a multi-day cumulative file by `run_index` MERGES separate batches and manufactures
+  fake duplicate and out-of-order badges. On 2026-07-29 this briefly read as a badge-recorder
+  regression across all four lanes; it was an artefact of my own grouping. **Segment first:**
+  sort by `earned_at`, then start a new batch wherever `run_index` does NOT increase.
+  ```python
+  batches, cur, last = [], None, None
+  for r in sorted(recs, key=lambda r: r["earned_at"]):
+      ri = r.get("run_index")
+      if ri is None: continue
+      if last is None or ri < last: cur = {}; batches.append(cur)
+      cur.setdefault(ri, []).append(r["badge"]); last = ri
+  ```
+  After segmenting, expect ONE known artefact: a duplicate `Stone` on run 1 of each batch
+  (KI-30). Anything else is real.
 
 **The five checks, in order:**
 1. **Is this even the current code?** See the pre-fix tells in `04-HANDOFF.md §0a`. Two

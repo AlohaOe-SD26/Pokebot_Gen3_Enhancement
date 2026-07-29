@@ -762,3 +762,22 @@ reason about them.
   2 events out of 52. The per-run reset added 2026-07-27 (`reset_per_run_state`, which clears
   `_whiteout_pending`) may already cover it.
 - **Action:** RE-CHECK on the first post-fix batch before investigating. Do not chase yet.
+
+## KI-30 — a duplicate `Stone` badge is recorded on run 1 of every batch (opened 2026-07-29, severity: LOW)
+- **Symptom:** in the newest bundle (`20260729-062040`), after correctly segmenting the
+  cumulative badge log by batch, **run 1 of ALL FOUR lanes** shows `['Stone','Stone',
+  'Knuckle', …]`. Every other run in every lane is clean — correct order, no duplicates, no
+  gaps. It is exactly one extra `Stone`, only ever on run 1.
+- **Cause: HYPOTHESISED, NOT PROVEN.** Most likely the batch-start boundary: at process
+  start the emulator still holds the PREVIOUS session's save (Stone already earned) and the
+  poll records it before the hard reset wipes the flags. `reset_for_new_run`'s adjacent-race
+  branch (`badge_log.py`) makes the mode ADOPT main.py's boundary rather than count a second
+  one, which is correct for the index but does not stop a pre-reset poll from recording.
+- **‼ Do not fix on this hypothesis.** It has not been reproduced. The repro would be:
+  start a batch from a profile whose save already holds BADGE01, and assert no badge is
+  recorded before the first `[MAP]` of the new game.
+- **Impact:** inflates run 1's badge count by one in every batch. It does not affect run
+  grouping, gym order, or any other run. Harmless to the bot; misleading to an analyst.
+- **Related:** the analysis-method trap that made this *look* far worse than it is —
+  `run_index` restarts per process, so grouping a cumulative badge log by index across days
+  merges batches. See `14-AGENT-PLAYBOOK.md` §2c.

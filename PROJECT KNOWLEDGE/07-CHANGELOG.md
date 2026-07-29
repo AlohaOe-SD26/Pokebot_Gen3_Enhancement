@@ -4560,3 +4560,52 @@ worse than none: it invites a future session to redo finished work.
 
 Verification: repro suite **47 pass, 0 fail, 5 environmental** — unchanged from before the
 edits.
+
+## 2026-07-29 — Five bundles reviewed: all four harness fixes VALIDATED LIVE; the dominant remaining cost is the counter chain
+
+Bundles: `20260727-164830`, `20260728-172826`, `20260728-221523`, `20260728-222654`,
+`20260729-062040`. The running machine had pulled, so this is the first data that actually
+tests the 07-26/27 work.
+
+**All four fixes confirmed in production**
+- **Per-run state reset.** `couldn't beat the Rustboro rival` fired **31 times in P2's 32
+  runs** on 07-27 (pre-fix) and **zero times in every bundle after**. Runs 4+ play again.
+- **Frame budget.** Max single-run frames now 1.9M–3.1M, all under the 3.5M cap; the 27M and
+  30M-frame hangs are gone. It fired once (P3, 07-28) and the batch continued past it.
+- **`run_index`.** Stride 1 across all four lanes in the newest bundle (was all-odd stride 2).
+- **Honest outcomes.** Derails are itemised and attributable rather than reported as
+  `finished`.
+
+**Throughput.** Newest bundle: 56 runs across four lanes, **16 reached the Feather Badge
+(end of built content)** — P1 ×5, P2 ×5, P4 ×4, P3 ×2. Previously that was a once-per-batch
+event.
+
+**‼ The dominant remaining cost: the counter chain diagnoses correctly, then ends the run.**
+Of 36 derails in the newest bundle, **~26 (72%)** are "boss: N losses with no super-effective
+answer to X. Need one of: Y" — the chain NAMES the counter it needs and then stops. Breakdown:
+Electric→needs Ground ×17, Normal→needs Fighting ×9, Winona/Dragon-Flying ×3. This is
+`#24-counters` phase 2 and it is now the single biggest lever by a wide margin.
+
+**‼ Starter-specific finding — exactly what the ×4 instrument was built to expose.** P3
+(Treecko) stalls at 2 badges in **11 of 14 runs**, and **10 of its 11 derails are Wattson**
+("no super-effective answer to Electric. Need one of: Ground"). P2 (Mudkip) never has this
+problem because Marshtomp is Water/**Ground** — immune to Electric and super-effective back.
+Torchic and random sit in between. The bot's Gym-3 viability is essentially decided by the
+starter, and only Mudkip is self-sufficient.
+
+**New derail classes seen for the first time** (P1): `No party mon can learn Surf and the
+party is full — needs PC box management (#24-pc)` ×2, and `Cannot hunt a Surf learner: no
+Poké Balls and no money to buy any` ×1. Both are resource-exhaustion walls rather than combat
+failures.
+
+**Canary:** losses:whiteouts held at 0.99–1.01 in every lane of every bundle.
+
+**Logged, not fixed:** a duplicate `Stone` badge on **run 1 of every batch, in all four
+lanes** (`['Stone','Stone','Knuckle',…]`). Recorded as KI-30 with the cause flagged as
+HYPOTHESISED, not proven.
+
+**Analysis-method correction (mine, not the bot's).** `run_index` restarts at 1 for every
+process, so grouping a cumulative `badge-log.json` by `run_index` across days MERGES separate
+batches and manufactures fake duplicate/out-of-order badges. First pass over this data did
+exactly that and briefly read as a badge-recorder regression. Correct method — segment by
+detecting a `run_index` that does not increase — is now in `14-AGENT-PLAYBOOK.md` §2c.

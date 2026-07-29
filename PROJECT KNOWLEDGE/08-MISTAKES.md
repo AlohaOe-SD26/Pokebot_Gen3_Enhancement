@@ -2279,3 +2279,45 @@ findings were reliable** (`custom-pokebot/modules/endless_x4.py` really is absen
 depending on it — it is one command. Treat "does X exist at line N" as trustworthy. And never
 let an audit meant to remove wrong facts introduce one: verify the load-bearing claims of the
 verification itself.
+
+---
+
+## 2026-07-29 — I grouped a per-process counter across days and manufactured a badge-recorder regression
+
+**Symptom.** Reviewing five bundles, the badge sanity check came back catastrophic: **every
+lane, nearly every run** showed duplicated and out-of-order badges —
+`['Stone','Knuckle','Stone','Knuckle','Dynamo','Heat','Balance','Feather','Stone',…]`. It read
+as a total regression of the badge recorder, in the very batch that was supposed to validate
+four fixes.
+
+**It was my analysis, not the bot.** `run_index` **restarts at 1 for every process**. It is a
+per-batch counter, not a globally unique id. I grouped a CUMULATIVE `badge-log.json` by
+`run_index` over a two-day window, which merged 3–5 separate batches into one index space —
+so batch A's run 3 and batch B's run 3 became a single "run 3" holding two playthroughs of
+badges. The duplicates were entirely my own construction.
+
+**How it was caught.** The pattern was too clean to be a bug: the LOW indices were all corrupt
+and the HIGH indices were all pristine. A real recorder fault would not respect that boundary.
+That is the shape of two sequences overlaid, not of a failure.
+
+**The correct method** (now in `14-AGENT-PLAYBOOK.md` §2c): sort by `earned_at`, then start a
+new batch wherever `run_index` does not increase. After segmenting, the same data showed one
+genuine artefact — a duplicate `Stone` on run 1 of each batch (KI-30) — and nothing else.
+
+**A second, related error in the same review.** My own "pre-fix tells" checklist in
+`04-HANDOFF.md` listed `finished (0 frames)` as evidence the honest-outcome fix was absent. It
+is not: that string comes from the negative-frame CLAMP, which I never removed. `start_frame`
+is captured before the run and the hard reset restarts the counter mid-run, so
+`now - start_frame` is negative for essentially every run after the first. It is EXPECTED
+post-fix. I wrote that checklist myself, four days earlier, and it still misled me.
+
+**Prevention rules.**
+1. **Before grouping by an id, establish its SCOPE.** Per-process, per-run, per-batch and
+   global ids look identical in a JSON dump. `run_index` restarting at 1 is invisible until
+   you plot it. Check for non-monotonicity before using any counter as a grouping key.
+2. **Corruption that respects a boundary is an artefact of your own method.** Real faults do
+   not politely confine themselves to the first N records. When bad data has a clean edge,
+   suspect the join before the source.
+3. **A diagnostic checklist you wrote is not self-validating.** Re-derive each tell from the
+   code path that emits it before trusting it — especially one you authored under time
+   pressure. Two of four tells in mine were wrong or ambiguous.

@@ -78,6 +78,37 @@ pulled, so it re-confirms them rather than testing them. It did expose one NEW b
       whiteout crossing a run boundary rather than poison damage; the new per-run reset may
       already cover it. RE-CHECK on the first post-fix batch before investigating.
 
+### ✅ ALL FOUR HARNESS FIXES VALIDATED LIVE — 2026-07-29 (five bundles)
+`#24-x4-staleslate`, `#24-x4-honestoutcome`, `#24-x4-runindex`, `#24-x4-framebudget` are
+confirmed working in production. `couldn't beat the Rustboro rival` went **31 → 0**; max
+single-run frames now 1.9M–3.1M (all under the 3.5M cap, the 27M/30M hangs are gone);
+`run_index` stride 1 in all four lanes. **16 runs reached the Feather Badge in one batch**
+(P1×5, P2×5, P4×4, P3×2) — previously a once-per-batch event. Detail: `07-CHANGELOG.md`
+2026-07-29.
+
+### ‼ NEW #1 PRIORITY — the counter chain is now 72% of all derails
+- [ ] **`#24-counters` phase 2 — ACT on the named counter (promoted to #1, 2026-07-29).**
+      Of 36 derails in the newest bundle, **~26 are "boss: N losses with no super-effective
+      answer to X. Need one of: Y"** — the chain diagnoses correctly and then ENDS THE RUN.
+      Breakdown: Electric→needs Ground ×17, Normal→needs Fighting ×9, Winona ×3.
+      `counter_plan.find_counter_candidates` already names reachable species and tiles
+      (`story_mode.py:611`, raised at `:1347`); `story_mode.py:619` states plainly that it is
+      "PLANNING/LOGGING ONLY — this does not travel, catch, or train anything". Building the
+      travel-and-catch step converts ~72% of derails into continued runs. Nothing else on
+      this list is close in value.
+- [ ] **`#24-starter-gym3` — Gym 3 viability is decided by the starter (new, 2026-07-29).**
+      P3/Treecko stalls at 2 badges in **11 of 14 runs**, and **10 of its 11 derails are
+      Wattson**. P2/Mudkip never hits this: Marshtomp is Water/**Ground** — immune to Electric
+      and super-effective back. Torchic/random sit between. Only Mudkip is self-sufficient at
+      Wattson. This is a *consequence* of `#24-counters` phase 2, not a separate fix — but it
+      is the sharpest measurement of why that item matters, and it is exactly the
+      starter-specific failure the ×4 instrument was built to expose.
+- [ ] **`#24-pc` / Surf resource walls (new derail classes, 2026-07-29).** Seen for the first
+      time in P1: *"No party mon can learn Surf and the party is full — needs PC box
+      management (#24-pc)"* ×2, and *"Cannot hunt a Surf learner: no Poké Balls and no money
+      to buy any"* ×1. Resource exhaustion, not combat failure — related to
+      `#24-provisions` (money/items) and `#24-partyvariety` (a full party of dead weight).
+
 ### ‼ DOCUMENTATION CORRECTNESS AUDIT — 2026-07-27
 - [x] `#doc-audit-1` — **docs 00/01/02/05/14 re-verified against code.** DONE 2026-07-27.
       Biggest find: `02-ARCHITECTURE.md`'s folder map omitted **`sandbox-pokebot/`, where all
