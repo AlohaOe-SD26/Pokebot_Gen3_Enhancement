@@ -115,14 +115,23 @@ region, where "train near the gym" is actively wrong.
       relocates only when `local_max + 12 < team_max_now`, so a **L15 team on L3-5 grass
       (5+12=17 > 15) stays and grinds fodder** — the exact behaviour the user reported.
       Re-derive this threshold from `estimate_frames_to_level`, not intuition.
-- [ ] **(3) party cap 4 → 6 + PC rotation.** `self._catch_team_target = 4`
-      (`story_mode.py:845`), enforced in `_should_catch` (`:960`). Raise it, allow catching on
-      a full party, and add deposit/withdraw so banked mons can be rotated in to train and to
-      answer specific gyms. This is `#24-pc` + `#24-partyvariety` merged, and the user flagged
-      it as **needing further discussion before building**.
-      ‼ VERIFY, do not assume: whether a catch on a full party auto-sends to the PC in Emerald
-      must be confirmed against the decomp or a live probe — it is a game fact, and this
-      project does not write game facts from memory.
+- [ ] **(3) party cap 4 → 6 + PC rotation — ALREADY DESIGNED, BUILD IT.**
+      ‼ The user flagged this as "needs further discussion". **That discussion already
+      happened on 2026-07-26 and is written up build-ready in `21-TEAM-POLICY-DESIGN.md`**,
+      which specifies exactly what was asked for: raise `_catch_team_target` 4 → 6 with
+      overflow to the box (§1), a scored catch roll behind hard floors (§1), a dead-weight
+      predicate in a new pure `modules/story/team_policy.py` (§2), **rotation that piggybacks
+      on heal trips and never detours for its own sake** (§4), a counter ladder that checks
+      the BOX first (§5), a never-randomise safety list (§6) — including *"boxing the only
+      Surf carrier soft-locks the run"*, which is the same wall P1 hit on 2026-07-29 — and a
+      no-emulator test plan (§7).
+      **The machinery also exists:** `modules/modes/util/pc_interaction.py` provides
+      `interact_with_pc(actions)` with deposit/withdraw/move-box primitives.
+      **And the game fact is already settled in our own code:** `story_mode.py:84` —
+      *"even with a full party (the catch goes to the PC box, vanilla behavior)"* — a path
+      the shiny-catch strategy already exercises in real runs. No probe needed.
+      So this is ASSEMBLY against an existing spec, not a new design. Re-read `21` first;
+      only bring the user a question `21` does not already answer.
 
 ### ‼ #1 EXECUTION PRIORITY — the counter chain is now 72% of all derails
 - [ ] **`#24-counters` phase 2 — ACT on the named counter (promoted to #1, 2026-07-29).**
