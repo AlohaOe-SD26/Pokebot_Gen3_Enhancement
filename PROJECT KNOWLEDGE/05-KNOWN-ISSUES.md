@@ -782,3 +782,44 @@ reason about them.
 - **Related:** the analysis-method trap that made this *look* far worse than it is —
   `run_index` restarts per process, so grouping a cumulative badge log by index across days
   merges batches. See `14-AGENT-PLAYBOOK.md` §2c.
+
+## KI-31 — the fodder-grass gate compares the WRONG TWO QUANTITIES (opened 2026-07-29, severity: MED)
+- **Symptom (user report 2026-07-29):** the bot trains in grass next to the objective even
+  when those wilds are far below the team — "severely below level 5" — so XP per battle is
+  near worthless. Norman is the 5th gym but sits in the STARTING region, which makes it the
+  sharpest case.
+- **Cause.** `_prepare_for_fight` relocates only when
+  `local_max + FODDER_LEVEL_GAP < team_max_now` (`story_mode.py:1420`, `FODDER_LEVEL_GAP = 12`
+  at `:715`). That compares the **wild** level to the **team** level — but the project's own
+  measured model says XP per battle does not depend on the team at all:
+  `xp_per_battle = 50.2 × wild_level / 7` (`training_areas.py`, calibrated against a real
+  83-event probe). **XP is proportional to the WILD level, full stop.**
+- **Measured cost** (real `TRAINING_GRASS` bands, team standing on Route 102 L3-5):
+
+  | team level | relocates? | xp/battle here | best reachable band | speedup forgone |
+  |---|---|---|---|---|
+  | 10 | no | 35.9 | 8 | 1.6× |
+  | 15 | **no** | 35.9 | 14 | **2.8×** |
+  | 20 | yes | 35.9 | 22 | 4.4× |
+  | 25+ | yes | 35.9 | 28 | 5.6× |
+
+  The failure window is **teams below ~L17**: the gate cannot fire there because
+  `5 + 12 = 17`. Above that it works.
+- **‼ DO NOT "just fix" THE CONSTANT.** The conservatism is DELIBERATE.
+  `tools/story-dev/repro_fodder_grass.py` states it: *"WATTSON / ROXANNE / an early team ->
+  UNCHANGED 'train locally' (the whole point of the conservative gap: proven-good prep must
+  not move)"*. Teams at L10-17 are exactly Roxanne/Brawly/Wattson, so any fix moves prep that
+  currently works.
+- **‼ AND THE GOVERNING TEST CANNOT RUN ON THE DEV BOX.** `repro_fodder_grass.py` loads a real
+  ROM + `saves/norman_done.ss1` and needs `mgba`. It is one of the 5 environmental failures
+  here. **This change must be validated on the machine that runs the batches.**
+- **Proposed fix (NOT APPLIED — needs the above):** replace the gap test with a frame-saving
+  test built from the existing pure model — relocate when
+  `estimate_frames_to_level(mon, target, local_max) − estimate_frames_to_level(mon, target,
+  better_hi)` is a large win (e.g. the better area at least HALVES the estimated grind, which
+  by the model means `better_hi ≥ 2 × local_max`). This needs no new constant and no travel
+  measurement.
+  ‼ Travel cost remains **unmeasured** — `story_mode.py:576` says so explicitly — which is why
+  the proposal is deliberately conservative and only fires on large wins.
+- **Related:** `train_team` (`early_game.py:1738`) never consults `best_training_area` at all;
+  its `grass` is a caller-supplied constant. Both belong to `#24-trainmap+`.

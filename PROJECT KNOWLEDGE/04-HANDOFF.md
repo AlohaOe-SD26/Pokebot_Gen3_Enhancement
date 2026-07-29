@@ -26,6 +26,26 @@ confirmed working in production:**
 P4 4×Feather, P3 2×Feather. Reaching end-of-built-content went from a once-per-batch event
 to **16 times in one batch**.
 
+## 0-BACKUP. ‼ REVERT POINT — `backup/pre-trainmap-2026-07-29`
+
+An annotated git tag marking the last known-good state before the `#24-trainmap+`
+training-area work. **Pushed to origin**, so it survives this machine.
+
+State at that tag: all four x4 harness fixes validated live; `team_policy.py` built (pure,
+unwired); repro suite 48 pass / 0 fail / 5 environmental; docs 00/01/02/03/05/14/21 audited.
+
+```bash
+git diff backup/pre-trainmap-2026-07-29                 # what changed since
+git revert <sha>                                        # undo one commit  (PREFERRED)
+git checkout backup/pre-trainmap-2026-07-29 -- <path>   # restore ONE file
+git worktree add ../revert-check backup/pre-trainmap-2026-07-29   # inspect the whole tree
+git revert --no-commit backup/pre-trainmap-2026-07-29..HEAD && git commit   # full rollback
+```
+
+‼ **Never `git reset --hard` a pushed branch, and never force-push** — the batch machine
+pulls from this remote, and the project rule forbids rewriting published history. Every
+recipe above is additive.
+
 ## 0a. Deployment — RESOLVED, but keep the check
 
 **The repo you are editing is not the repo that runs.** This checkout is

@@ -4649,3 +4649,36 @@ seam needs a live emulator run and is the next step.
 
 Repro: `tools/story-dev/repro_team_policy.py`, asserting against the REAL parties above.
 Suite: **48 pass, 0 fail, 5 environmental.**
+
+## 2026-07-29 — Backup tag created; fodder-gate defect ANALYSED and deliberately NOT changed
+
+**Backup / revert point: tag `backup/pre-trainmap-2026-07-29`, pushed to origin.** Marks the
+last known-good state before the `#24-trainmap+` work. Restore recipes (all additive — no
+force-push, no `reset --hard`, because the batch machine pulls from this remote) are in
+`04-HANDOFF.md §0-BACKUP`.
+
+**Investigated the training-area gate and found a real defect — see KI-31.** The gate
+relocates only when `local_max + FODDER_LEVEL_GAP < team_max_now`, i.e. it compares the WILD
+level to the TEAM level. The project's own calibrated model says XP per battle is
+`50.2 × wild_level / 7` — proportional to the **wild** level and independent of the team.
+Measured against the real `TRAINING_GRASS` bands, the failure window is teams **below ~L17**
+(since `5 + 12 = 17`): a L15 team on Route 102's L3-5 wilds forgoes a **2.8× speedup**, a L10
+team 1.6×. Above L17 the gate works correctly.
+
+**‼ NOT CHANGED, on purpose — two blockers, both real:**
+1. **The conservatism is deliberate.** `tools/story-dev/repro_fodder_grass.py` states the
+   contract: *"WATTSON / ROXANNE / an early team → UNCHANGED 'train locally' (the whole point
+   of the conservative gap: proven-good prep must not move)"*. Teams at L10-17 are exactly
+   those bosses, so any fix moves prep that currently works.
+2. **The governing test cannot run here.** That repro loads a real ROM and
+   `saves/norman_done.ss1`; it needs `mgba` and is one of the 5 environmental failures on this
+   dev box. Changing the rule it governs, blind, is precisely the move `08-MISTAKES` warns
+   about.
+
+Proposed replacement, ready for the batch machine: swap the level-gap test for a frame-saving
+test built on the existing pure `estimate_frames_to_level` — relocate when the better area at
+least HALVES the estimated grind (`better_hi ≥ 2 × local_max`). Needs no new constant and no
+travel measurement, which matters because travel cost is still unmeasured
+(`story_mode.py:576` says so).
+
+No behaviour changed in this entry. Suite: 48 pass, 0 fail, 5 environmental.

@@ -111,10 +111,21 @@ region, where "train near the gym" is actively wrong.
 - [ ] **(1) `train_team` never picks an area.** `early_game.py:1738` —
       `grass: tuple = RUSTBORO_TRAINING_GRASS` is a caller-supplied constant; it never calls
       `best_training_area`. Its own docstring admits this. **Wire it.**
-- [ ] **(2) `FODDER_LEVEL_GAP = 12` is far too wide** (`story_mode.py:715`). `_prepare_for_fight`
-      relocates only when `local_max + 12 < team_max_now`, so a **L15 team on L3-5 grass
-      (5+12=17 > 15) stays and grinds fodder** — the exact behaviour the user reported.
-      Re-derive this threshold from `estimate_frames_to_level`, not intuition.
+- [~] **(2) `FODDER_LEVEL_GAP = 12` compares the WRONG QUANTITIES — ANALYSED 2026-07-29,
+      DELIBERATELY NOT CHANGED.** See **KI-31** for the full write-up and the measured table.
+      Short version: the gate tests wild-level vs TEAM-level, but the project's own calibrated
+      model says `xp/battle = 50.2 × wild_level / 7` — XP depends only on the WILD level. The
+      failure window is teams **below ~L17** (because `5+12=17`); a L15 team on Route 102
+      forgoes a **2.8×** speedup and never moves.
+      **Blocked on two things, both real:**
+      1. The conservatism is DELIBERATE — `repro_fodder_grass.py` says *"the whole point of the
+         conservative gap: proven-good prep must not move"*, and L10-17 is exactly
+         Roxanne/Brawly/Wattson.
+      2. **That repro needs a real `mgba`** (it loads a ROM + `saves/norman_done.ss1`) and is
+         one of the 5 environmental failures on the dev box. **Validate on the batch machine.**
+      Proposed replacement (no new constant, no travel measurement needed): relocate when
+      `estimate_frames_to_level(...local_max) − estimate_frames_to_level(...better_hi)` is a
+      large win — e.g. the better area at least HALVES the grind, i.e. `better_hi ≥ 2×local_max`.
 - [ ] **(3) party cap 4 → 6 + PC rotation — ALREADY DESIGNED, BUILD IT.**
       ‼ The user flagged this as "needs further discussion". **That discussion already
       happened on 2026-07-26 and is written up build-ready in `21-TEAM-POLICY-DESIGN.md`**,
