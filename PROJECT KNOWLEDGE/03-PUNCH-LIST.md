@@ -86,7 +86,45 @@ single-run frames now 1.9M–3.1M (all under the 3.5M cap, the 27M/30M hangs are
 (P1×5, P2×5, P4×4, P3×2) — previously a once-per-batch event. Detail: `07-CHANGELOG.md`
 2026-07-29.
 
-### ‼ NEW #1 PRIORITY — the counter chain is now 72% of all derails
+### ✅ USER RULINGS 2026-07-29 — all six open questions answered
+Full text + rationale: `06-DECISIONS-LOG.md` 2026-07-29. Summary:
+`#24-counters` phase 2 → **A+C** (price both, then catch-and-train a Fighting type)
+**plus new scope: area/species/level mapping + party>4 + PC rotation** (see `#24-trainmap+`
+below); `#24-leadpolicy` → **A+C**; `#24-route110cap` → **A** (prep, NO cap);
+KI-24b → **A** (fix the mock, re-baseline, show the diff); `#doc-policy-05` → **A**
+(keep-and-mark until promotion); repo size → **leave it**.
+
+### ‼‼ THE BIG ONE — `#24-trainmap+` : area-aware training, party>4, PC rotation
+**User directive 2026-07-29.** The bot trains in whatever grass is next to the objective,
+often below L5, so XP is near worthless — and Norman is the 5th gym but sits in the STARTING
+region, where "train near the gym" is actively wrong.
+
+‼ **The data layer ALREADY EXISTS — this is wiring + policy, not a new map.** Verified
+2026-07-29 before proposing any build:
+- `modules/encounter_index.py` — whole-game reverse index from the ROM's `gWildMonHeaders`:
+  species → [{map, method, rate%, level range}], cached per ROM. Built for Hunt Planner (#9).
+- `modules/story/training_areas.py` — verified spin tiles + wild bands,
+  `best_training_area()`, `best_training_grass()`, `estimate_frames_to_level()`.
+- `modules/story/counter_plan.py` — already ranks reachable, cost-priced counter encounters.
+
+**The three concrete gaps:**
+- [ ] **(1) `train_team` never picks an area.** `early_game.py:1738` —
+      `grass: tuple = RUSTBORO_TRAINING_GRASS` is a caller-supplied constant; it never calls
+      `best_training_area`. Its own docstring admits this. **Wire it.**
+- [ ] **(2) `FODDER_LEVEL_GAP = 12` is far too wide** (`story_mode.py:715`). `_prepare_for_fight`
+      relocates only when `local_max + 12 < team_max_now`, so a **L15 team on L3-5 grass
+      (5+12=17 > 15) stays and grinds fodder** — the exact behaviour the user reported.
+      Re-derive this threshold from `estimate_frames_to_level`, not intuition.
+- [ ] **(3) party cap 4 → 6 + PC rotation.** `self._catch_team_target = 4`
+      (`story_mode.py:845`), enforced in `_should_catch` (`:960`). Raise it, allow catching on
+      a full party, and add deposit/withdraw so banked mons can be rotated in to train and to
+      answer specific gyms. This is `#24-pc` + `#24-partyvariety` merged, and the user flagged
+      it as **needing further discussion before building**.
+      ‼ VERIFY, do not assume: whether a catch on a full party auto-sends to the PC in Emerald
+      must be confirmed against the decomp or a live probe — it is a game fact, and this
+      project does not write game facts from memory.
+
+### ‼ #1 EXECUTION PRIORITY — the counter chain is now 72% of all derails
 - [ ] **`#24-counters` phase 2 — ACT on the named counter (promoted to #1, 2026-07-29).**
       Of 36 derails in the newest bundle, **~26 are "boss: N losses with no super-effective
       answer to X. Need one of: Y"** — the chain diagnoses correctly and then ENDS THE RUN.

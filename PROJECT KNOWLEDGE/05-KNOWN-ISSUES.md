@@ -42,11 +42,12 @@ proposing work that is already shipped:
 | KI-11 | body said `deliver_devon_goods_to_stern` stays **UNWIRED** — it is wired | `modules/story/early_game.py:3397-3412` (Shipyard → Dock leg) |
 | KI-7 | a duplicate "(old text)" block restated the fixed bug as live | `modules/modes/util/higher_level_actions.py:59` (`BADGE06_GET`) |
 
-**‼ OPEN QUESTION FOR THE USER (policy, not fact):** entries fixed in `sandbox-pokebot/`
-but **not yet promoted** to `custom-pokebot/` are still open *for the production copy*.
-This file's header rule says to delete fixed issues; that would lose the promotion-tracking
-signal. They are currently RETAINED and marked. Ruling wanted: delete on sandbox-fix, or
-keep until promotion?
+**✅ RESOLVED — USER RULING 2026-07-29 (`#doc-policy-05`, option A):** entries fixed in
+`sandbox-pokebot/` but not yet promoted to `custom-pokebot/` are **RETAINED here and marked
+`✅ FIXED` with the fixing `file:line`**, because they are still open *for the production
+copy* and deletion would lose the only promotion-owed signal. They are removed only once
+promoted. This overrides the "remove it here" instruction in the file header above for the
+sandbox-fixed case.
 
 ## KI-1 — Upstream pokebot.spec (PyInstaller) is stale/broken   (opened 2026-07-17, severity: low)
 - **Symptom:** `pokebot.spec` references `import.py` (file doesn't exist in

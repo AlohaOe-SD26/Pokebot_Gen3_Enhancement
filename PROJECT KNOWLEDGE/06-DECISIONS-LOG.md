@@ -855,3 +855,60 @@ promotion, whereas deletion is irreversible information loss.
 already-completed work are dangerous regardless of the policy, and are now marked as such at
 the top of the file — KI-18 in particular said "Do NOT patch on the hypothesis. Reproduce
 first" for a shipped, repro-proven fix.
+
+## 2026-07-29 — USER RULINGS on the six open questions
+
+All six answered by the user. Recorded verbatim in intent so no future session re-asks.
+
+**1. Norman counter — `#24-counters` phase 2 → OPTIONS A + C.** Price both approaches with the
+frame-cost model, then **catch-and-train a Fighting type**. Not "buy potions and out-level".
+
+**‼ The user added scope here, and it is the important part.** Their observation: the bot trains
+in whatever grass is next to the objective — often *severely* below level 5 — so XP per battle is
+near worthless. Norman is the 5th gym but sits in the STARTING region, so "train near the gym"
+is actively wrong there. Their directive:
+  * **Map areas → species → types → level ranges**, and use that map for BOTH "where do I catch a
+    Fighting type for Norman" AND "where should I train right now".
+  * **Raise the party cap above 4** (up to 6) and **allow catching on a full party**, with the
+    catch going to the **PC**, so the bot can bank Pokémon and **rotate them in to train and to
+    fight specific gyms/bosses**. Explicitly framed as *intelligent PC/party management* and
+    flagged by the user as needing further discussion.
+
+**2. `#24-leadpolicy` → OPTIONS A + C.** The lead must also have a ≥neutral attacking option
+(A), and 1-HP Wonder Guard mons get a special case (C). Level-gap weighting (B) NOT adopted.
+
+**3. `#24-route110cap` → OPTION A.** Add `_prepare_for_fight` (proactive band training +
+loss escalation). **No attempt cap** — the evidence that a 13-loss run went on to reach Fortree
+stands, so the run is not to be truncated.
+
+**4. KI-24b → OPTION A.** Patch the `_stand_at()` mock to cover `get_player_location` too and
+re-baseline the acceptance test; show the diff before it lands.
+
+**5. `#doc-policy-05` → OPTION A.** Keep-and-mark sandbox-fixed entries in
+`05-KNOWN-ISSUES.md` until they are promoted to `custom-pokebot/`. The provisional behaviour
+is now the ruling; the "OPEN QUESTION" banner in `05` is resolved.
+
+**6. Repo size → LEAVE IT.** No `filter-repo`, no force-push. The ~61 MB stays.
+
+### ‼ What the audit found BEFORE building anything for ruling 1
+Per the standing rule ("the fact is usually already known and in the wrong place"), the data
+layer the user asked for **largely already exists**:
+  * `modules/encounter_index.py` — whole-game REVERSE wild-encounter index, built from the ROM's
+    `gWildMonHeaders`: species → [{map, map_name, method, rate%, level range}], cached per ROM.
+    Built for the Hunt Planner (#9). This IS the species/level/location map.
+  * `modules/story/training_areas.py` — `TRAINING_GRASS` (verified spin tiles + wild level bands),
+    `best_training_grass(mon_level)`, `best_training_area(team_level, min_wild_max=…)`,
+    `AREA_PREREQ`, `NO_RETURN_GROUNDS`, `estimate_frames_to_level`, `FRAMES_PER_WILD_BATTLE=1433`.
+  * `modules/story/counter_plan.py` — already turns "I need Ground" into ranked, reachable,
+    cost-priced concrete encounters.
+
+**The gap is WIRING and POLICY, not data:**
+  1. `train_team(target, scope, grass=RUSTBORO_TRAINING_GRASS, …)` (`early_game.py:1738`) takes
+     the grass as a **caller-supplied constant** and never consults `best_training_area`. Its own
+     module docstring says so: *"NOT yet wired into train_team … punch-list #24-trainmap."*
+  2. `_prepare_for_fight` DOES relocate (`story_mode.py:1423`) — but only when
+     `local_max + FODDER_LEVEL_GAP < team_max_now`, and `FODDER_LEVEL_GAP = 12`
+     (`story_mode.py:715`). So a L15 team on L3-5 grass (5+12=17 > 15) **stays put and grinds
+     fodder**. That threshold is the direct cause of the user's observation.
+  3. `self._catch_team_target = 4` (`story_mode.py:845`), enforced in `_should_catch`
+     (`:960`) — the 4-mon cap.
