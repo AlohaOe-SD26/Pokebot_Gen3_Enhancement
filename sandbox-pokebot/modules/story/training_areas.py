@@ -243,6 +243,69 @@ def best_training_area(team_level: int, *, min_wild_max: int = 0, allow=None):
     return best
 
 
+#: Which rule decides "is the local patch fodder?" (KI-31).
+#:
+#: ``"legacy"``  — `local_max + FODDER_LEVEL_GAP < team_max`. **The default: DO NOT change
+#:                 it without an A/B on a machine with a real mgba.**
+#: ``"xp_rate"`` — relocate when the better area at least `XP_RATE_RELOCATE_RATIO`×es the
+#:                 xp rate. Fixes the measured hole; unvalidated end-to-end.
+#:
+#: ‼ WHY A FLAG AND NOT A FIX. The legacy rule compares the WILD level to the TEAM level,
+#: but this module's own calibrated model says `xp/battle = 50.2 * wild_level / 7` — xp is
+#: proportional to the WILD level and does not depend on the team at all. Measured against
+#: the real TRAINING_GRASS bands, teams **below ~L17** can never relocate (5 + 12 = 17), so a
+#: L15 team on Route 102's L3-5 wilds forgoes a **2.8x** speedup. Above L17 the rule works.
+#:
+#: BUT the conservatism is DELIBERATE: `tools/story-dev/repro_fodder_grass.py` records the
+#: contract — *"WATTSON / ROXANNE / an early team -> UNCHANGED 'train locally' (the whole
+#: point of the conservative gap: proven-good prep must not move)"* — and L10-17 is exactly
+#: those bosses. That repro needs a real ROM + save state, so it CANNOT run on the dev box.
+#: Flipping the rule blind would gamble the user's overnight batches on an unrunnable test.
+#: Hence: both rules live here, the pure decision is exhaustively testable without an
+#: emulator, and the switch defaults to the proven behaviour.
+FODDER_RULE = "legacy"
+
+#: For ``FODDER_RULE = "xp_rate"``: how much better the candidate area's xp rate must be.
+#: 2.0 = "at least halves the grind". Chosen because xp/battle is exactly proportional to
+#: wild level, so a 2x band is a 2x rate — a plainly-worth-a-walk win. It needs no travel
+#: measurement, which matters: travel cost is still UNMEASURED (`story_mode.py:576`), so the
+#: rule is deliberately set to fire only on large wins.
+XP_RATE_RELOCATE_RATIO = 2.0
+
+
+def xp_per_battle(wild_level) -> float:
+    """Modelled xp for one wild KO at `wild_level`. Proportional to the WILD level — it does
+    NOT depend on the trainee (see `_CALIBRATED_AVG_WILD_BASE_EXP_YIELD`'s provenance)."""
+    if not wild_level or wild_level <= 0:
+        return 0.0
+    return _CALIBRATED_AVG_WILD_BASE_EXP_YIELD * wild_level / 7
+
+
+def local_patch_is_fodder(local_max, team_max, fodder_level_gap, *,
+                          best_available_max=None, rule: str = None) -> bool:
+    """Is the LOCAL grass not worth grinding? PURE — no ROM, no emulator, no walking.
+
+    Extracted from `story_mode._prepare_for_fight` so the decision can be tested
+    exhaustively off-emulator (KI-31). Behaviour under the default ``rule`` is byte-for-byte
+    the legacy expression it replaced.
+
+    `best_available_max` is the HIGH band of the best reachable alternative, or None if the
+    caller has not looked yet — the ``"xp_rate"`` rule needs it; ``"legacy"`` ignores it.
+    """
+    if local_max is None:
+        return False
+    rule = rule or FODDER_RULE
+    if rule == "xp_rate":
+        if not best_available_max:
+            return False
+        local_rate = xp_per_battle(local_max)
+        if local_rate <= 0:
+            return True
+        return xp_per_battle(best_available_max) / local_rate >= XP_RATE_RELOCATE_RATIO
+    # "legacy" (default) — the exact original test.
+    return local_max + fodder_level_gap < team_max
+
+
 # ‼ FRAME-COST ESTIMATOR (2026-07-24, punch-list #24). Both the evo-lookahead and the
 # "topup" branch in story_mode.py budgeted grinds purely in LEVELS (``mon.level + 3``),
 # but the real cost is FRAMES and frames-per-level varies enormously with where you grind.

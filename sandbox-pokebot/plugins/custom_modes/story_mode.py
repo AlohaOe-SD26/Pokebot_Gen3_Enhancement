@@ -1417,7 +1417,38 @@ class StoryMode(BotMode):
             levels_now = [p.level for p in party if p is not None and not p.is_egg]
             team_max_now = max(levels_now, default=target)
             local_max = _wild_land_max(grass_map)
-            if local_max is not None and local_max + self.FODDER_LEVEL_GAP < team_max_now:
+            # ‼ THE FODDER TEST IS NOW A PURE FUNCTION (KI-31, 2026-07-29).
+            # `training_areas.local_patch_is_fodder` holds BOTH rules behind
+            # `FODDER_RULE`, which defaults to "legacy" — the expression that used to be
+            # inline here, unchanged. Under the default this block behaves exactly as
+            # before, including doing NO extra area lookup. The alternative "xp_rate" rule
+            # fixes a measured hole (teams below ~L17 can never relocate, because
+            # 5 + 12 = 17) but moves early-game prep that `repro_fodder_grass.py` records
+            # as proven-good — and that repro needs a real mgba, so it cannot be validated
+            # on the dev box. Flip the flag only alongside an A/B on the batch machine.
+            _allow = lambda m, t, p: (  # noqa: E731 - shared by the probe and the pick
+                _training_area_allowed(m, t, p) and not self._training_blocked(m, t)
+            )
+            _is_fodder = False
+            if local_max is not None:
+                from modules.story import training_areas as _ta
+
+                _probe_hi = None
+                if _ta.FODDER_RULE == "xp_rate":
+                    # Only this rule needs to know the alternative BEFORE deciding, so the
+                    # legacy path keeps its original single-lookup shape.
+                    try:
+                        _probe = _ta.best_training_area(
+                            team_max_now, min_wild_max=local_max, allow=_allow
+                        )
+                        _probe_hi = _probe[2][1] if _probe else None
+                    except Exception:  # noqa: BLE001 - a probe failure must not block prep
+                        _probe_hi = None
+                _is_fodder = _ta.local_patch_is_fodder(
+                    local_max, team_max_now, self.FODDER_LEVEL_GAP,
+                    best_available_max=_probe_hi,
+                )
+            if _is_fodder:
                 better = None
                 try:
                     from modules.story.training_areas import best_training_area
@@ -1430,9 +1461,7 @@ class StoryMode(BotMode):
                     better = best_training_area(
                         team_max_now,
                         min_wild_max=floor,
-                        allow=lambda m, t, p: (
-                            _training_area_allowed(m, t, p) and not self._training_blocked(m, t)
-                        ),
+                        allow=_allow,
                     )
                 except Exception:
                     better = None

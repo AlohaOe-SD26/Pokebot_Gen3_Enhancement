@@ -803,8 +803,10 @@ reason about them.
   | 20 | yes | 35.9 | 22 | 4.4× |
   | 25+ | yes | 35.9 | 28 | 5.6× |
 
-  The failure window is **teams below ~L17**: the gate cannot fire there because
-  `5 + 12 = 17`. Above that it works.
+  The failure window is **teams at or below L17** — the gate needs `local_max + 12 <
+  team_max`, so with L5 wilds it is False *at* 17 and first fires at **L18**. (Stated as
+  "below 17" in the first draft; a repro assertion caught the off-by-one.) From L18 up it
+  works correctly.
 - **‼ DO NOT "just fix" THE CONSTANT.** The conservatism is DELIBERATE.
   `tools/story-dev/repro_fodder_grass.py` states it: *"WATTSON / ROXANNE / an early team ->
   UNCHANGED 'train locally' (the whole point of the conservative gap: proven-good prep must
@@ -813,7 +815,16 @@ reason about them.
 - **‼ AND THE GOVERNING TEST CANNOT RUN ON THE DEV BOX.** `repro_fodder_grass.py` loads a real
   ROM + `saves/norman_done.ss1` and needs `mgba`. It is one of the 5 environmental failures
   here. **This change must be validated on the machine that runs the batches.**
-- **Proposed fix (NOT APPLIED — needs the above):** replace the gap test with a frame-saving
+- **STATUS 2026-07-29: the decision is now a PURE, FLAGGED function — behaviour UNCHANGED.**
+  `training_areas.local_patch_is_fodder()` holds both rules behind `FODDER_RULE`, which
+  defaults to `"legacy"`. A repro proves the extracted legacy path reproduces the old inline
+  expression across all 1,800 `(local_max, team_max)` combinations, and that the two rules
+  disagree on **exactly L5-L17 and nowhere else** — so flipping the flag cannot disturb prep
+  from L18 up. `tools/story-dev/repro_fodder_rule.py`.
+  **To land the fix:** on the machine with `mgba`, run `repro_fodder_grass.py`, set
+  `FODDER_RULE = "xp_rate"`, run it again, and compare the WATTSON/ROXANNE rows — those are
+  the ones the flag changes. Only then consider changing the default.
+- **Proposed rule (implemented, OFF by default):** replace the gap test with a frame-saving
   test built from the existing pure model — relocate when
   `estimate_frames_to_level(mon, target, local_max) − estimate_frames_to_level(mon, target,
   better_hi)` is a large win (e.g. the better area at least HALVES the estimated grind, which

@@ -4682,3 +4682,43 @@ travel measurement, which matters because travel cost is still unmeasured
 (`story_mode.py:576` says so).
 
 No behaviour changed in this entry. Suite: 48 pass, 0 fail, 5 environmental.
+
+## 2026-07-29 — The fodder rule is now a PURE, FLAGGED decision (behaviour unchanged, KI-31)
+
+Follow-on from the KI-31 analysis. The change that could not be made safely is now *ready*
+to be made safely, without touching what the batches currently do.
+
+**`modules/story/training_areas.py`** gains:
+- `xp_per_battle(wild_level)` — the calibrated model, exposed. XP is proportional to the
+  **wild** level and independent of the trainee.
+- `local_patch_is_fodder(local_max, team_max, gap, *, best_available_max, rule)` — the
+  decision extracted out of `_prepare_for_fight` as a PURE function, so it can be tested
+  exhaustively with no emulator.
+- `FODDER_RULE`, **defaulting to `"legacy"`** — the original inline expression, unchanged —
+  and `"xp_rate"`, which relocates when the better area at least halves the grind
+  (`XP_RATE_RELOCATE_RATIO = 2.0`; a 2× band is a 2× rate).
+
+**`plugins/custom_modes/story_mode.py`** now routes the decision through that function. Under
+the default the block behaves exactly as before, **including performing no extra area
+lookup** — the probe the new rule needs is gated behind the flag, so the legacy path keeps
+its original single-lookup shape.
+
+**Proven** (`tools/story-dev/repro_fodder_rule.py`, no emulator):
+- the extracted legacy path reproduces the old inline expression across **all 1,800
+  `(local_max, team_max)` combinations**, 0 mismatches;
+- an unknown `local_max` is never "fodder" (fail safe — never relocate on ignorance);
+- the two rules disagree on **exactly L5-L17 and nowhere else**, so flipping the flag cannot
+  disturb prep from L18 up;
+- the new rule refuses a marginal 1.3× gain and refuses to move when nothing better is known;
+- the old inline expression is gone, so the rule cannot drift into two copies.
+
+**Boundary correction.** The hole is teams **at or below L17**, not "below 17": legacy needs
+`local_max + 12 < team_max`, so with L5 wilds it is False *at* 17 and first fires at L18. The
+first draft of the repro asserted the wrong boundary and failed — the off-by-one was in the
+assertion, not the code. KI-31 corrected.
+
+**TO LAND THE FIX** (needs the machine with `mgba`): run `repro_fodder_grass.py`, set
+`FODDER_RULE = "xp_rate"`, run it again, compare the WATTSON/ROXANNE rows — those are what
+the flag changes. Only then consider changing the default.
+
+Suite: **49 pass, 0 fail, 5 environmental.** No behaviour changed for the running batches.
