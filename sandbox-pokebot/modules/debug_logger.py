@@ -76,6 +76,142 @@ def set_name_prefix(prefix: str) -> None:
     _name_prefix = str(prefix or "")
 
 
+def _git_facts() -> "dict[str, str]":
+    """Identify the checkout WITHOUT shelling out to git.
+
+    Reads `.git/HEAD` and the ref file directly: a subprocess costs ~50-150ms on Windows,
+    this costs a couple of file reads, and it still works when `git` is not on PATH — which
+    is common on a machine that only ever runs the installer.
+    """
+    facts: dict[str, str] = {}
+    try:
+        from pathlib import Path
+
+        here = Path(__file__).resolve()
+        git_dir = None
+        for parent in here.parents:
+            candidate = parent / ".git"
+            if candidate.is_dir():
+                git_dir = candidate
+                break
+        if git_dir is None:
+            return {"repo": "not a git checkout"}
+        head = (git_dir / "HEAD").read_text(encoding="utf-8").strip()
+        if head.startswith("ref: "):
+            ref = head[5:].strip()
+            facts["branch"] = ref.rsplit("/", 1)[-1]
+            ref_file = git_dir / ref
+            if ref_file.is_file():
+                facts["commit"] = ref_file.read_text(encoding="utf-8").strip()[:12]
+            else:  # packed-refs
+                packed = git_dir / "packed-refs"
+                if packed.is_file():
+                    for line in packed.read_text(encoding="utf-8").splitlines():
+                        if line.endswith(" " + ref):
+                            facts["commit"] = line.split(" ", 1)[0][:12]
+                            break
+        else:  # detached HEAD
+            facts["branch"] = "(detached)"
+            facts["commit"] = head[:12]
+    except Exception as e:  # noqa: BLE001
+        facts["repo"] = f"unreadable ({type(e).__name__})"
+    return facts
+
+
+#: Env vars that CHANGE BEHAVIOUR. Any experiment flag added later belongs here, or a log
+#: cannot say which arm produced it.
+_BEHAVIOUR_ENV_VARS = ("POKEBOT_FODDER_RULE",)
+
+
+def _write_run_header() -> None:
+    """Emit everything needed to identify the build, the config and the experiment.
+
+    ‼ WHY THIS EXISTS (user, 2026-07-29): *"all of this should be native to the debug
+    logging... I should not have to make arbitrary cmd commands to do this"*. Correct. The
+    header used to be two lines — a timestamp and the log path — so answering "which build
+    produced this log?" meant running `git log` on the machine that made it, and answering
+    "which experiment arm was this?" was impossible after the fact. Three separate times a
+    shared log could not be interpreted without going back to the user.
+
+    A forensic log must be SELF-DESCRIBING. Everything here is wrapped so that a failure to
+    read any one fact degrades that line to "unknown" and never blocks logging.
+    """
+    def _line(label: str, value) -> None:
+        _raw(f"    {label:<14} {value}")
+
+    _raw("--- RUN HEADER (build, config, experiment) ---")
+
+    try:
+        g = _git_facts()
+        if "commit" in g:
+            _line("build:", f"{g.get('commit', '?')} on branch {g.get('branch', '?')}")
+        else:
+            _line("build:", g.get("repo", "unknown"))
+    except Exception:  # noqa: BLE001
+        _line("build:", "unknown")
+
+    try:
+        from modules.version import pokebot_name, pokebot_version
+
+        _line("bot:", f"{pokebot_name} {pokebot_version}")
+    except Exception:  # noqa: BLE001
+        pass
+
+    try:
+        import platform
+        import sys
+
+        _line("python:", f"{sys.version.split()[0]} on {platform.system()} {platform.release()}")
+    except Exception:  # noqa: BLE001
+        pass
+
+    try:
+        from modules.context import context
+
+        _line("mode:", context.bot_mode)
+        try:
+            _line("profile:", context.profile.path.name)
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            rom = context.rom
+            _line("rom:", f"{rom.short_name if hasattr(rom, 'short_name') else rom.game_name} "
+                          f"({rom.language}) rev {getattr(rom, 'revision', '?')}")
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            _line("emulation:", f"speed={context.emulation_speed} video={context.video} "
+                                f"audio={context.audio}")
+        except Exception:  # noqa: BLE001
+            pass
+    except Exception:  # noqa: BLE001
+        pass
+
+    # ‼ EXPERIMENT FLAGS. Without these a log cannot be attributed to a condition, which is
+    # the whole point of running an A/B.
+    try:
+        import os
+
+        from modules.story import training_areas as _ta
+
+        how = "env" if "POKEBOT_FODDER_RULE" in os.environ else "default"
+        _line("fodder-rule:", f"{_ta.FODDER_RULE} ({how})"
+                              + (f" ratio={_ta.XP_RATE_RELOCATE_RATIO}"
+                                 if _ta.FODDER_RULE == "xp_rate" else ""))
+    except Exception:  # noqa: BLE001
+        pass
+
+    try:
+        import os
+
+        set_vars = {k: os.environ[k] for k in _BEHAVIOUR_ENV_VARS if k in os.environ}
+        _line("env:", set_vars if set_vars else "(no behaviour env vars set)")
+    except Exception:  # noqa: BLE001
+        pass
+
+    _raw("--- END RUN HEADER ---")
+
+
 def enable(profile=None, name_prefix: str | None = None) -> str:
     """Open a fresh log file and start logging. Returns the path (or an error
     string). `profile` defaults to context.profile.
@@ -109,6 +245,7 @@ def enable(profile=None, name_prefix: str | None = None) -> str:
         _capped = False
         _raw(f"=== DEBUG LOG START {now.isoformat(timespec='seconds')} ===")
         _raw(f"    log: {_path}")
+        _write_run_header()
         _dump("enable — initial state")
         return str(_path)
     except Exception as e:  # noqa: BLE001

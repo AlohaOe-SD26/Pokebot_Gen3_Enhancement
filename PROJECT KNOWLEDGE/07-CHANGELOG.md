@@ -4765,3 +4765,51 @@ correctly decline to relocate. The two rules only diverge at boss prep; an early
 not evidence either way.
 
 Suite: **49 pass, 0 fail, 5 environmental.**
+
+## 2026-07-29 — Debug logs are now SELF-DESCRIBING (user directive)
+
+**User, verbatim:** *"all of this should be native to the debug logging... I should not have
+to make arbitrary cmd commands to do this, why is this not native to the debug logs?
+including version numbers and extensive details?"* — correct, and overdue.
+
+The header was **two lines**: a timestamp and the log path. So a shared log could not answer
+on its own which BUILD produced it (that needed `git log` on the originating machine), which
+experiment ARM it belonged to (unanswerable after the fact), or what Python/ROM/profile/
+emulation settings were in play. **Three separate times in two days a log had to be sent back
+to the user with "please run this command".** That is the tool failing, not the user.
+
+`modules/debug_logger.py` now emits a RUN HEADER at `enable()`:
+
+```
+--- RUN HEADER (build, config, experiment) ---
+    build:         acf08ca13507 on branch main
+    bot:           PokéBot Gen3 dev
+    python:        3.12.4 on Windows 11
+    mode:          Story (ENDLESS RESET)
+    profile:       test
+    rom:           <name> (<lang>) rev <n>
+    emulation:     speed=0 video=False audio=False
+    fodder-rule:   xp_rate (env) ratio=2.0
+    env:           {'POKEBOT_FODDER_RULE': 'xp_rate'}
+--- END RUN HEADER ---
+```
+
+Design points:
+- **No subprocess.** `_git_facts()` reads `.git/HEAD` and the ref (with a `packed-refs`
+  fallback) directly — `git` is often absent from PATH on a machine that only runs the
+  installer, and a subprocess costs ~50-150 ms on Windows.
+- **Every fact is optional.** Each is individually wrapped; a failure degrades that line to
+  "unknown" and can never block logging.
+- **A default is reported, not omitted** — `legacy (default)` vs `xp_rate (env)`, plus an
+  explicit "(no behaviour env vars set)". Silence is not evidence.
+- `_BEHAVIOUR_ENV_VARS` is the registry any future experiment flag must join, or a log will
+  not be attributable to its arm.
+
+Repro: `tools/story-dev/repro_debug_log_header.py`. Two of its own assertions were wrong on
+first run and it caught them: one matched the word "subprocess" inside the docstring
+explaining why subprocess is avoided; the other resolved `_write_run_header()` to the
+function DEFINITION rather than the call site. Both fixed by anchoring after the START line
+and stripping docstrings — the same "anchor on the property, not on text that also appears
+elsewhere" lesson as the earlier repro drift.
+
+Suite: **50 pass, 0 fail, 5 environmental.**
