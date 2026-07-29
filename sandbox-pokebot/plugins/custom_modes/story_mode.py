@@ -3012,7 +3012,19 @@ class StoryEndlessResetMode(StoryDebugResetMode):
             try:
                 from modules.story.training_areas import active_fodder_rule_banner
 
-                console.print(f"[dim]{active_fodder_rule_banner()}[/]")
+                _banner = active_fodder_rule_banner()
+                console.print(f"[dim]{_banner}[/]")
+                # ‼ ALSO INTO THE DEBUG LOG. `console.print` and the debug log are SEPARATE
+                # STREAMS — `modules/debug_logger.py` never sees console output. The first
+                # version of this banner printed to the console only, so a debug log (which
+                # is what gets shared for review) carried NO record of which rule produced
+                # it. A run's own log must be able to describe the run.
+                try:
+                    from modules import debug_logger
+
+                    debug_logger.event(_banner, category="STORY")
+                except Exception:  # noqa: BLE001
+                    pass
             except Exception:  # noqa: BLE001 - a banner must never end a batch
                 pass
             context.message = f"Endless reset: run {label}"

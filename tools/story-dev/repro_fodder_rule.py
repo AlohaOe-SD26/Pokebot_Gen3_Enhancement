@@ -173,6 +173,12 @@ i_banner = sm_src.index("active_fodder_rule_banner")
 i_start = sm_src.index("=== ENDLESS RESET: starting run")
 check(i_start < i_banner < i_start + 900,
       "and it sits in the per-run header, where a log reader will find it")
+# ‼ console.print and the debug log are SEPARATE streams — debug_logger never sees console
+# output. The first version banner-ed to the console only, so the DEBUG LOG (the artefact
+# actually shared for review) had no record of which rule produced it.
+tail = sm_src[i_banner:i_banner + 900]
+check("debug_logger.event(" in tail,
+      "the banner ALSO goes to the debug log, so a shared log is self-describing")
 
 print("\n== the call site really routes through the pure function ==")
 src = (SANDBOX / "plugins" / "custom_modes" / "story_mode.py").read_text(encoding="utf-8")

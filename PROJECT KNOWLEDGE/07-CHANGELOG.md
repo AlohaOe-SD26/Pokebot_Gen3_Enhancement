@@ -4742,3 +4742,26 @@ even a successful flip could not have been attributed afterwards.
 The default is unchanged (`legacy`) and remains correct: the governing
 `repro_fodder_grass.py` needs a real `mgba` and the early-game conservatism is deliberate.
 Suite: **49 pass, 0 fail, 5 environmental.**
+
+## 2026-07-29 — The rule banner now reaches the DEBUG LOG, not just the console
+
+Caught from a live partial log the user shared mid-run. That log **confirmed the deployment
+worked** — `StoryEndlessResetMode._run_with_frame_budget @ story_mode.py:2931` appears in the
+generator call stack, and that function exists only in the 2026-07-29 commits — but it
+carried **no record of which training-relocation rule was active**.
+
+Cause: `console.print` and `modules/debug_logger.py` are **separate streams**; the debug
+logger never sees console output. The banner added earlier printed to the console only, and
+the debug log is the artefact actually shared for review. A run's own log must describe the
+run.
+
+Fix: the per-run header also calls `debug_logger.event(banner, category="STORY")`. Asserted
+in `repro_fodder_rule.py`.
+
+**Also verified while reading that log:** the flag would not have changed anything at that
+point in the run regardless. On Route 103 (L2-4 wilds) with a L6 team, the best reachable
+alternative is Route 102 (L3-5) — a 1.25× rate gain, below the 2.0× threshold — so BOTH rules
+correctly decline to relocate. The two rules only diverge at boss prep; an early-game log is
+not evidence either way.
+
+Suite: **49 pass, 0 fail, 5 environmental.**
