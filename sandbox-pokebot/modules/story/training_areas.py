@@ -19,6 +19,7 @@ swap-train as fallback) is punch-list #24-trainmap.
 """
 
 import math
+import os as _os
 
 from modules.map_data import MapRSE
 
@@ -263,7 +264,34 @@ def best_training_area(team_level: int, *, min_wild_max: int = 0, allow=None):
 #: Flipping the rule blind would gamble the user's overnight batches on an unrunnable test.
 #: Hence: both rules live here, the pure decision is exhaustively testable without an
 #: emulator, and the switch defaults to the proven behaviour.
-FODDER_RULE = "legacy"
+#: ‼ SET IT WITHOUT EDITING CODE:  POKEBOT_FODDER_RULE=xp_rate
+#: The first version of this flag was a bare constant, which meant running the A/B required
+#: hand-editing this file on the batch machine — and `install.py`'s self-healing step does
+#: `git checkout -- <drifted>`, so that edit could be REVERTED by the very installer the
+#: user was told to run. An env var is immune to that, needs no code change on a remote
+#: machine, and disappears when the shell closes.
+_VALID_FODDER_RULES = ("legacy", "xp_rate")
+FODDER_RULE = _os.environ.get("POKEBOT_FODDER_RULE", "legacy").strip().lower()
+if FODDER_RULE not in _VALID_FODDER_RULES:
+    # ‼ FAIL LOUDLY. A silent fallback here would be the worst possible outcome for an A/B:
+    # a typo'd value would quietly run the LEGACY rule while the operator believed they were
+    # testing the new one, and we would draw a confident conclusion from the wrong data.
+    raise ValueError(
+        f"POKEBOT_FODDER_RULE={FODDER_RULE!r} is not one of {_VALID_FODDER_RULES}. "
+        "Refusing to guess — an unnoticed fallback would invalidate the A/B it was set for."
+    )
+
+
+def active_fodder_rule_banner() -> str:
+    """One line naming the active rule, for the run header.
+
+    ‼ WHY: without this, a log gives no way to tell WHICH rule produced it, so an A/B
+    cannot be attributed after the fact. Any experiment whose variable is invisible in the
+    output is not an experiment.
+    """
+    how = "env POKEBOT_FODDER_RULE" if "POKEBOT_FODDER_RULE" in _os.environ else "default"
+    extra = f", ratio {XP_RATE_RELOCATE_RATIO}x" if FODDER_RULE == "xp_rate" else ""
+    return f"Story: training-relocation rule = {FODDER_RULE} ({how}{extra})"
 
 #: For ``FODDER_RULE = "xp_rate"``: how much better the candidate area's xp rate must be.
 #: 2.0 = "at least halves the grind". Chosen because xp/battle is exactly proportional to

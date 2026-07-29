@@ -131,6 +131,49 @@ check(disagree_low == list(range(5, FIRST_RELOCATING_TEAM_LEVEL)),
 check(disagree_high == [],
       f"they AGREE from L18 up ({disagree_high}) — proven-good late prep is untouched")
 
+print("\n== ‼ THE A/B IS RUNNABLE WITHOUT EDITING CODE ==")
+# The first version of this flag was a bare constant, so running the experiment meant
+# hand-editing a source file on the batch machine — and install.py's self-healing does
+# `git checkout -- <drifted>`, so that edit could be reverted by the very installer the
+# operator was told to run. An env var is immune to both problems.
+import importlib  # noqa: E402
+import os  # noqa: E402
+
+check(ta.FODDER_RULE == "legacy", "default (no env var) is still legacy")
+
+os.environ["POKEBOT_FODDER_RULE"] = "xp_rate"
+importlib.reload(ta)
+check(ta.FODDER_RULE == "xp_rate", f"POKEBOT_FODDER_RULE=xp_rate switches the rule (got {ta.FODDER_RULE!r})")
+check("xp_rate" in ta.active_fodder_rule_banner() and "env" in ta.active_fodder_rule_banner(),
+      f"and the banner names it + how it was set: {ta.active_fodder_rule_banner()!r}")
+
+os.environ["POKEBOT_FODDER_RULE"] = "  XP_Rate "
+importlib.reload(ta)
+check(ta.FODDER_RULE == "xp_rate", "whitespace/case are normalised (a shell quirk must not silently mean 'legacy')")
+
+os.environ["POKEBOT_FODDER_RULE"] = "xprate"
+raised = False
+try:
+    importlib.reload(ta)
+except ValueError:
+    raised = True
+check(raised,
+      "‼ a TYPO is REFUSED LOUDLY — a silent fallback would run legacy while the operator "
+      "believed they were testing xp_rate, invalidating the whole A/B")
+
+del os.environ["POKEBOT_FODDER_RULE"]
+importlib.reload(ta)
+check(ta.FODDER_RULE == "legacy", "clearing the env var restores the default")
+
+print("\n== the active rule is NAMED IN THE RUN LOG, so a bundle is attributable ==")
+sm_src = (SANDBOX / "plugins" / "custom_modes" / "story_mode.py").read_text(encoding="utf-8")
+check("active_fodder_rule_banner" in sm_src,
+      "the endless loop prints the active rule each run")
+i_banner = sm_src.index("active_fodder_rule_banner")
+i_start = sm_src.index("=== ENDLESS RESET: starting run")
+check(i_start < i_banner < i_start + 900,
+      "and it sits in the per-run header, where a log reader will find it")
+
 print("\n== the call site really routes through the pure function ==")
 src = (SANDBOX / "plugins" / "custom_modes" / "story_mode.py").read_text(encoding="utf-8")
 check("local_patch_is_fodder(" in src, "_prepare_for_fight calls local_patch_is_fodder")

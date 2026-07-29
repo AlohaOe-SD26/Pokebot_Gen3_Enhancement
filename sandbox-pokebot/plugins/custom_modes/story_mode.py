@@ -3005,6 +3005,16 @@ class StoryEndlessResetMode(StoryDebugResetMode):
             completed += 1
             label = f"{completed}/{'infinite' if target == 0 else target}"
             console.print(f"[bold cyan]=== ENDLESS RESET: starting run {label} ===[/]")
+            # ‼ NAME THE EXPERIMENT IN THE LOG. An A/B whose variable is invisible in the
+            # output is not an A/B — without this line a bundle gives no way to tell which
+            # training-relocation rule produced it, and the comparison cannot be attributed
+            # after the fact. Printed per run so it survives log rotation.
+            try:
+                from modules.story.training_areas import active_fodder_rule_banner
+
+                console.print(f"[dim]{active_fodder_rule_banner()}[/]")
+            except Exception:  # noqa: BLE001 - a banner must never end a batch
+                pass
             context.message = f"Endless reset: run {label}"
             start_frame = context.emulator.get_frame_count()
             # ‼ AUTHORITATIVE RUN BOUNDARY for the badge recorder. `modules/main.py` also

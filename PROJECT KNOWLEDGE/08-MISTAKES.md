@@ -2368,3 +2368,49 @@ parties left under three mons. `21-TEAM-POLICY-DESIGN.md` §2 amended with the m
    worked example is a guess with arithmetic attached"* rule (after `CREDIBLE_ANSWER_POWER`
    60→75 and `FODDER_LEVEL_GAP = 12`). The pattern is now: **every constant that gates an
    action gets replayed against captured data in the same change that introduces it.**
+
+---
+
+## 2026-07-29 — I built an experiment whose only interface was hand-editing a source file the installer would revert
+
+**Symptom.** To unblock the KI-31 A/B I put the new training-relocation rule behind
+`FODDER_RULE`, defaulted it to the proven `"legacy"`, and told the user to run the
+experiment by editing `modules/story/training_areas.py` on the batch machine. The user
+pushed back: *"do I need to modify fodder_rule to perform this test? if so why did you not
+do this?"*
+
+**Three things were wrong with that handoff.**
+1. **The interface was a source edit on a remote machine.** The whole reason the flag exists
+   is to make the experiment cheap to run; requiring a code change on the box that runs the
+   batches is the opposite of cheap.
+2. **`install.py` would have REVERTED it.** Its self-healing step does
+   `git checkout -- <drifted>` on tracked files that differ from HEAD — and I had just told
+   the user to run `install_sandbox.py` first. The installer I recommended could silently
+   undo the edit I asked for, and the batch would have run `legacy` while everyone believed
+   otherwise.
+3. **Nothing named the active rule in the output.** No log line recorded which rule
+   produced a bundle, so even a successful flip could not have been *attributed* afterwards.
+   An experiment whose independent variable is invisible in the results is not an experiment.
+
+**What was right, and stays right:** defaulting to `"legacy"`. The governing test
+(`repro_fodder_grass.py`) needs a real `mgba` and cannot run on this box, and the code
+documents the early-game conservatism as deliberate. Shipping an unvalidated behaviour change
+as the default would have been the worse error. The mistake was never the default — it was
+making the alternative reachable only by editing source.
+
+**The fix that worked.** `POKEBOT_FODDER_RULE=xp_rate` — an env var, immune to
+`git checkout --`, needing no code change on a remote machine, and gone when the shell
+closes. It normalises case/whitespace, **refuses an unknown value loudly** (a typo'd
+`xprate` silently falling back to `legacy` is the single worst outcome for an A/B), and
+`active_fodder_rule_banner()` prints the active rule — and how it was set — into every run
+header.
+
+**Prevention rules.**
+1. **A feature flag whose only interface is editing tracked source is not a flag.** If a
+   remote operator must run the experiment, the switch has to survive that machine's update
+   tooling — env var, config file, or CLI argument. Check what the project's own installer
+   does to working-tree drift before choosing.
+2. **An experiment must name its variable in its output.** Add the banner in the same change
+   that adds the flag, or the resulting data cannot be attributed to a condition.
+3. **A flag that accepts an unrecognised value must fail loudly, never fall back.** A silent
+   default turns a typo into a confident conclusion drawn from the wrong arm of the test.

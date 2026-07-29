@@ -821,9 +821,16 @@ reason about them.
   expression across all 1,800 `(local_max, team_max)` combinations, and that the two rules
   disagree on **exactly L5-L17 and nowhere else** — so flipping the flag cannot disturb prep
   from L18 up. `tools/story-dev/repro_fodder_rule.py`.
-  **To land the fix:** on the machine with `mgba`, run `repro_fodder_grass.py`, set
-  `FODDER_RULE = "xp_rate"`, run it again, and compare the WATTSON/ROXANNE rows — those are
-  the ones the flag changes. Only then consider changing the default.
+  **To run the A/B — NO CODE EDIT NEEDED (2026-07-29):** set the env var
+  `POKEBOT_FODDER_RULE=xp_rate` before launching. It normalises case/whitespace and REFUSES
+  an unknown value loudly (a typo silently falling back to `legacy` would invalidate the
+  experiment). Every run header prints `Story: training-relocation rule = …`, so a bundle is
+  attributable after the fact.
+  ‼ Do NOT hand-edit the constant on the batch machine: `install.py`'s self-healing runs
+  `git checkout -- <drifted>` and can revert it.
+  On the machine with `mgba`, also run `repro_fodder_grass.py` before and after and compare
+  the WATTSON/ROXANNE rows — those are what the flag changes. Only then consider changing the
+  default.
 - **Proposed rule (implemented, OFF by default):** replace the gap test with a frame-saving
   test built from the existing pure model — relocate when
   `estimate_frames_to_level(mon, target, local_max) − estimate_frames_to_level(mon, target,

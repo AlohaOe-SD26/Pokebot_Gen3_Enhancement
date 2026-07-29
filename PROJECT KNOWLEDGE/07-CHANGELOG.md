@@ -4722,3 +4722,23 @@ assertion, not the code. KI-31 corrected.
 the flag changes. Only then consider changing the default.
 
 Suite: **49 pass, 0 fail, 5 environmental.** No behaviour changed for the running batches.
+
+## 2026-07-29 — The fodder A/B is runnable without editing code (user pushback)
+
+The user asked why running the KI-31 experiment required them to edit `FODDER_RULE` by hand.
+Correct challenge — the handoff was wrong in three ways (full write-up in `08-MISTAKES.md`):
+the interface was a source edit on a remote machine; **`install.py`'s self-healing
+(`git checkout -- <drifted>`) could have silently reverted that edit**, and I had just told
+them to run `install_sandbox.py` first; and nothing named the active rule in the output, so
+even a successful flip could not have been attributed afterwards.
+
+- **`POKEBOT_FODDER_RULE=xp_rate`** now selects the rule. Env-var, so it survives the
+  installer, needs no code change on the batch machine, and vanishes with the shell.
+- Case/whitespace normalised; an **unknown value raises** rather than falling back — a typo'd
+  `xprate` quietly running `legacy` is the worst possible outcome for an A/B.
+- **`active_fodder_rule_banner()`** prints the active rule and how it was set into every
+  ENDLESS-RESET run header, so a bundle records which arm produced it.
+
+The default is unchanged (`legacy`) and remains correct: the governing
+`repro_fodder_grass.py` needs a real `mgba` and the early-game conservatism is deliberate.
+Suite: **49 pass, 0 fail, 5 environmental.**
