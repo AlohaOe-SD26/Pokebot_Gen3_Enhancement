@@ -44,6 +44,23 @@ _capped: bool = False
 _MAX_BYTES = 30 * 1024 * 1024         # after this, keep STUCK dumps but drop chatter
 _STALL_DUMP_AFTER = 300               # frames unchanged before the first stuck dump
 _STALL_REDUMP_EVERY = 3000            # while still stalled, re-dump every N frames
+
+#: ‼ IN-BATTLE stall threshold. A battle legitimately holds still mid-turn and during the EXP
+#: fill, so the 300-frame overworld threshold would false-trigger on every turn — which is why
+#: stall detection used to be disabled OUTRIGHT while `battle_active`. That made the detector
+#: STRUCTURALLY BLIND to an in-battle wedge.
+#:
+#: MEASURED (user log `20260729-122709`): a mid-battle rotation wedged the PARTY MENU in
+#: Fortree Gym. The run then sat at `state=3 controllable=False`, one fixed position, for
+#: **~280,000 frames** and emitted **ZERO stuck dumps** — no generator stack, nothing to
+#: diagnose from. The frame budget would eventually have ended the run (at 3.5M; it was at
+#: 2.78M), but a budget only STOPS a wedge, it cannot tell you where it was.
+#:
+#: 18,000 frames = 5 minutes of real time at 60fps. The longest legitimate quiet stretch in a
+#: battle is an EXP fill plus level-up/move-learn dialogue — thousands of frames at worst, and
+#: a two-order-of-magnitude margin keeps this from crying wolf. A battle whose entire observed
+#: state is unchanged for five minutes is wedged, not thinking.
+_BATTLE_STALL_DUMP_AFTER = 18_000
 _HEARTBEAT_EVERY = 3600               # periodic state line even without events
 
 
@@ -299,27 +316,25 @@ def on_frame(frame_info=None) -> None:
             pass
 
     # --- stall detection ---
-    # A battle is always progress (its state legitimately holds still mid-turn /
-    # during EXP fill), so never flag a stall while one is active — otherwise every
-    # battle turn false-triggers. Bug #2 freezes are in the OVERWORLD after a battle,
-    # which this still catches (battle_active is False there).
+    # ‼ A battle is USUALLY progress — its state legitimately holds still mid-turn and during
+    # the EXP fill — so it gets a far larger threshold than the overworld. But it is NOT
+    # exempt. This branch used to reset `_stall_frames` to 0 on every in-battle frame, which
+    # made the detector structurally unable to see an in-battle wedge: the 2026-07-29 Fortree
+    # party-menu freeze held one state for ~280,000 frames and produced ZERO dumps, so there
+    # was no generator stack to diagnose it from. See `_BATTLE_STALL_DUMP_AFTER`.
     sig = _progress_signature(st)
-    if st.get("battle_active"):
-        if _stall_frames >= _STALL_DUMP_AFTER:
-            _event(fc, f"[RESUMED] after {_stall_frames} frames with no progress")
-        _stall_frames = 0
-        _last_sig = sig
-        _last_dump_stall = 0
-    elif sig == _last_sig:
+    in_battle = bool(st.get("battle_active"))
+    threshold = _BATTLE_STALL_DUMP_AFTER if in_battle else _STALL_DUMP_AFTER
+    if sig == _last_sig:
         _stall_frames += 1
     else:
-        if _stall_frames >= _STALL_DUMP_AFTER:
+        if _stall_frames >= threshold:
             _event(fc, f"[RESUMED] after {_stall_frames} frames with no progress")
         _stall_frames = 0
         _last_sig = sig
         _last_dump_stall = 0
-    if _stall_frames == _STALL_DUMP_AFTER or (
-        _stall_frames > _STALL_DUMP_AFTER and (_stall_frames - _last_dump_stall) >= _STALL_REDUMP_EVERY
+    if _stall_frames == threshold or (
+        _stall_frames > threshold and (_stall_frames - _last_dump_stall) >= _STALL_REDUMP_EVERY
     ):
         _last_dump_stall = _stall_frames
         try:

@@ -841,3 +841,50 @@ reason about them.
   the proposal is deliberately conservative and only fires on large wins.
 - **Related:** `train_team` (`early_game.py:1738`) never consults `best_training_area` at all;
   its `grass` is a caller-supplied constant. Both belong to `#24-trainmap+`.
+
+## KI-32 — the stall detector was STRUCTURALLY BLIND to any in-battle wedge — ✅ FIXED 2026-07-29
+- **Symptom:** user log `20260729-122709`. A mid-battle rotation wedged the PARTY MENU in
+  Fortree Gym; the run then held `state=3 controllable=False` at one fixed position for
+  **~280,000 frames** and emitted **ZERO stuck dumps** — no generator call stack, the single
+  most useful artefact the logger produces.
+- **Cause:** `modules/debug_logger.py` stall detection did
+  `if st.get("battle_active"): _stall_frames = 0` on EVERY in-battle frame. The intent was
+  sound (a battle legitimately holds still mid-turn and during the EXP fill, so the 300-frame
+  overworld threshold would false-trigger every turn) but the implementation meant **no
+  in-battle wedge could ever be reported, however long it lasted.**
+- **Same shape as KI-27** (Weather Institute): the guard could not fire on the thing it was
+  guarding. A guard must not share its subject's failure mode.
+- **Fix:** a battle now gets a much LARGER threshold, not an exemption —
+  `_BATTLE_STALL_DUMP_AFTER = 18_000` (5 min at 60fps, ~60× the overworld threshold and
+  ~2 orders of magnitude above the longest legitimate quiet stretch). Overworld sensitivity
+  unchanged at 300.
+- **Repro:** `tools/story-dev/repro_battle_stall_blindspot.py` — proves a frozen battle now
+  dumps, a healthy/changing battle never does, 300/3,000/10,000-frame in-battle quiet is not
+  disturbed, the overworld path is unchanged, and a long wedge re-dumps periodically.
+
+## KI-33 — a mid-battle rotation can still wedge the PARTY MENU (opened 2026-07-29, severity: HIGH)
+- **Symptom:** the wedge KI-32 made visible. From `20260729-122709`, inside a Fortree Gym
+  trainer battle:
+  ```
+  f1791402 [BATTLE] started
+  f1793385 [PARTY] slot0 Marshtomp:L35 -> Castform:L25   <- rotation applied
+  f1793407 [PARTY] slot0 Castform:L25 -> Marshtomp:L35   <- reverted 22 frames later
+  f1799232 [PARTY] slot0 Marshtomp:L35 -> Castform:L25   <- applied again
+  f1800001 [hb] state=3 (PARTY_MENU) controllable=False  <- wedged until stopped
+  ```
+  Apply → revert → apply, then a permanent `PARTY_MENU`. The run had already cleared five
+  gyms and won 310 battles; this ended it.
+- **This is the open half of KI-8.** KI-8 records the same
+  `TurnAction.RotateLead → scroll_to_party_menu_index → while PARTY_MENU: press A` hazard and
+  says the Story bot "sidesteps this path" because its trainer strategy never proactively
+  rotates. **Something rotated anyway** — so either the strategy did rotate, or the after-faint
+  chooser ran. Which one is NOT yet established.
+- **Aggravating factor:** the mon rotated IN was **Castform L25**, against Winona's L29-33
+  line-up, while **Marshtomp L35** was rotated out — the defensive-only lead selection of
+  KI-25 choosing badly under pressure.
+- **Next step (needs the emulator):** capture a save state at the wedge and drive
+  `TurnAction.RotateLead` into a specific slot to establish whether the stall is in
+  `map_battle_party_index`, the submenu default not being "SHIFT", or the after-faint chooser.
+  KI-8's "Proven fix pattern now exists" note is the starting point.
+- **Bounded, not fixed:** the per-run frame budget would have ended this run at 3.5M frames
+  (it was at 2.78M when stopped), and KI-32 now makes it *diagnosable*. Neither prevents it.

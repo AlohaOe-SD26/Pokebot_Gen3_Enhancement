@@ -4813,3 +4813,67 @@ and stripping docstrings — the same "anchor on the property, not on text that 
 elsewhere" lesson as the earlier repro drift.
 
 Suite: **50 pass, 0 fail, 5 environmental.**
+
+## 2026-07-29 — Full review of run log `20260729-122709`: best run yet, plus a watchdog blind spot
+
+**The new RUN HEADER worked** — the log identified itself immediately: build `4d77685f`,
+Python 3.13.2, ROM Emerald (E) rev 0, profile `test`, `speed=1 video=True`,
+`fodder-rule: legacy (default)`. No commands needed. That is the whole point of it.
+
+### This was the deepest single run on record
+One run (1/10) cleared **Roxanne → Brawly → Wattson → Flannery → Norman** and reached
+**Winona** — Gym 6, end of built content. **310 battles won**, 14 lost, 34 fled, 4 caught,
+3 opponent-teleported. Along the way, several subsystems proved out live for the first time:
+
+- **‼ The FAITHFUL PokéNav Match-Call tutorial PLAYED** — `"tutorial done (called Mr.
+  Stone)"`, with **no state-write fallback**. The run had `video=True`. That confirms the
+  renderer-gate diagnosis exactly and closes the open recurrence of `#24-pokenav-faithful`:
+  the faithful path works when the renderer is on; the 8-of-9 fallback rate was a video-off
+  artefact, not a breakage.
+- **The economy works.** Ran out of Poké Balls → `"buying 10 Poké Balls at the mart…"` →
+  `"bought Poké Balls (now have 33)"`.
+- **HM-slot refusal handled** — `"The game refused that slot (HM). Replacing slot 2 instead."`
+- Mauville maze, the full 8-step Lavaridge geyser/trapdoor maze, Rusturf wall (Wanda),
+  Meteor Falls, Cable Car, Weather Institute (**the site of KI-27's 27M-frame hang — no hang
+  this time**), Devon Scope, Route 120, the Fortree bridge — all cleared.
+
+### The failure: a mid-battle rotation wedged the party menu (new: KI-33)
+In a Fortree Gym trainer battle the bot rotated `Marshtomp L35` out for `Castform L25`,
+reverted 22 frames later, rotated again, then sat in `state=3` (PARTY_MENU) at one fixed
+position until stopped. This is the **open half of KI-8** — which claims the Story bot
+"sidesteps this path" because its trainer strategy never proactively rotates. Something
+rotated anyway; whether it was the strategy or the after-faint chooser is **not yet
+established** and needs an emulator to settle.
+
+### The bigger defect it exposed, now FIXED: KI-32
+That freeze ran **~280,000 frames and produced ZERO stuck dumps** — no generator call stack,
+nothing to diagnose from. Cause: stall detection did
+`if st.get("battle_active"): _stall_frames = 0` on every in-battle frame, so **no in-battle
+wedge could ever be reported, however long it lasted.** Same shape as KI-27, where the
+watchdog was itself the thing that could not fire.
+
+Fixed: a battle now gets a much larger THRESHOLD rather than an exemption —
+`_BATTLE_STALL_DUMP_AFTER = 18_000` (5 min at 60fps; ~60× the overworld threshold and two
+orders of magnitude above the longest legitimate quiet stretch). Overworld sensitivity
+unchanged. Repro `tools/story-dev/repro_battle_stall_blindspot.py` proves a frozen battle now
+dumps, a changing battle never does, 300/3,000/10,000-frame in-battle quiet is untouched, and
+a long wedge re-dumps periodically.
+
+### `team_policy` validated against this run's real party
+Final party: `Castform L25, Dustox L31, Breloom L34, Skitty L15, Marshtomp L35` — 5 of 6
+slots, with a **20-level** spread. Replaying the unwired `team_policy` predicate on it flags
+**Skitty L15 and Castform L25**, and `rotation_plan` would deposit exactly those two, leaving
+three. ‼ **Castform L25 is the very mon whose rotation caused the wedge.** Had the module been
+wired, it would have been boxed before Fortree.
+
+### Notes / open questions
+- **`speed=1 video=True`** — throttled with the renderer on. Video is what made the faithful
+  PokéNav path work, so this is a genuine tradeoff against throughput, not a misconfiguration.
+- **`fodder-rule: legacy`** — `POKEBOT_FODDER_RULE` was not set, so the KI-31 A/B did NOT run.
+  This is the control arm.
+- 14 lost battles but only **1** `"stepping out of the Poké Center after the whiteout"` step.
+  The x4 stdout counted whiteouts via a console-only message, so this is probably a
+  message-availability gap in the debug log rather than a real anomaly — **worth confirming**
+  before treating the 1:1 canary as measurable from debug logs alone.
+
+Suite: **51 pass, 0 fail, 5 environmental.**
