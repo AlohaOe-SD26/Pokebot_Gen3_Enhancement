@@ -4,6 +4,23 @@
 > off with `[x]` and move them to Done with the completion date).
 > Full future-idea catalog: `09-FEATURE-BRAINSTORM.md`.
 
+### Marker states (documented 2026-07-27 — the file uses THREE, not two)
+| marker | meaning | count |
+|---|---|---|
+| `- [ ]` | open — not started, or started and not landed | 80 |
+| `- [~]` | **partial** — built but not fully verified/promoted, or v1 done with follow-ups | 17 |
+| `- [x]` | done | 37 |
+
+‼ `- [~]` is load-bearing and was previously undocumented: several `[~]` items read as
+"DONE" in their text (e.g. `#24-move`, `#24-resume`) while still carrying open follow-ups.
+Do not treat `[~]` as either finished or unstarted without reading the entry.
+
+**Status audit 2026-07-27** (`#doc-audit-1`, partial — see `#doc-audit-2`): 98 distinct
+`#`-ids carry a checkbox; exactly **one** id had a genuinely conflicting status
+(`#24-pokenav-faithful`, now cross-linked — it is a legitimate RECURRENCE, not a
+bookkeeping error). No item marked `[x]` was found whose code is missing. A full
+open-vs-built sweep of all 80 open items has **not** been done.
+
 ## Now (active focus)
 
 ### ‼ BATCH REVIEW 2026-07-26 (bundle `20260726-231412`) — two catastrophic bugs found & FIXED
@@ -71,13 +88,18 @@ pulled, so it re-confirms them rather than testing them. It did expose one NEW b
       is 3.13 not 3.12; libmgba path; the "116 files" figure (matched no copy — it is 118);
       `KNOWN_GATES` holds 3 edges not 1. Added KI-25…KI-29 to `05`. Added §2b/§2c to the
       playbook. Method + agent calibration: `06-DECISIONS-LOG.md` 2026-07-27.
-- [ ] `#doc-audit-2` — **`03-PUNCH-LIST.md` status audit (THIS FILE) — NOT DONE.** The agent
-      running it was killed by a weekly usage limit on 2026-07-27 and produced nothing.
-      Scope: items marked `- [ ]` that are demonstrably built (calibration case:
-      `#24-regionreach`, now wired at `story_mode.py:553`/`:606`); items marked `- [x]` whose
-      code cannot be found; and the same `#24-*` id appearing in several sections with
-      different statuses. This file has grown by accretion across `## Now`, `## Next`,
-      `### Priority block`, `### Moved out of Done` and `## Done`, so duplicates are likely.
+- [~] `#doc-audit-2` — **`03-PUNCH-LIST.md` status audit (THIS FILE) — PARTIAL.** The agent
+      running it was killed by a weekly usage limit on 2026-07-27; redone by hand 2026-07-29
+      for the CONSISTENCY half only.
+      **Done:** 134 items across 98 distinct `#`-ids; the undocumented third marker `- [~]`
+      (17 items) is now defined at the top of this file; exactly one id had a conflicting
+      status (`#24-pokenav-faithful`) and it proved to be a legitimate recurrence, now
+      cross-linked in both directions; no `- [x]` item was found whose code is missing.
+      **Still open:** the expensive half — walking all **80** open items and checking each
+      against `sandbox-pokebot/` for "already built". Calibration case if resumed:
+      `#24-regionreach` is `[~]` and its oracle IS wired (`story_mode.py:553`/`:606`), so
+      only the KI-24b hop-count nuance remains — i.e. `[~]` is correct there, and a naive
+      "it's wired, mark it done" sweep would be wrong. Expect more items like that.
 - [ ] `#doc-audit-3` — **`12-STORYMODE-DESIGN.md` (2,886 lines) never audited.** Check Area
       Atlas coords/flags against `modules/map_data.py` + the decomp, and promote any
       `⚠ VALIDATE LIVE` item that live runs have since validated.
@@ -650,6 +672,10 @@ pulled, so it re-confirms them rather than testing them. It did expose one NEW b
       layer (`#24-provisions`) so a loss is not automatically a whiteout, and benching
       dead-weight party members (a L15 in a L30+ team is a free loss).
 - [ ] **#24-pokenav-faithful — the FAITHFUL PokéNav tutorial is being skipped 8 runs out of 9.**
+      ‼ **This is a RECURRENCE of the `[x]` entry in `## Done` (2026-07-22), not a duplicate.**
+      That entry closed the first sighting as "user ran VIDEO OFF — the renderer-gated fallback
+      fired as designed" and explicitly said *"check why the faithful path didn't engage next
+      time it recurs"*. It recurred; this is that check. The same id intentionally appears twice.
       Measured across the user's real-hardware logs (2026-07-26): ONE run played it faithfully
       ("PokéNav Match-Call tutorial (calling Mr. Stone)... done (called Mr. Stone)"), the other
       EIGHT fell back to "clearing the forced PokéNav Match-Call tutorial (state-write to vanilla
@@ -1091,7 +1117,7 @@ pulled, so it re-confirms them rather than testing them. It did expose one NEW b
       HANG). Repro save: tools/story-dev/saves/evostall.ss1. Likely the
       post-evolution return-to-overworld transition isn''t ridden out before the
       next spin action (cf. the move-learn / dock-arrival family). Prove + fix.
-- [x] #24-pokenav-faithful (RESOLVED 2026-07-22: the user ran VIDEO OFF — the renderer-gated fallback fired exactly as designed; keep video off on the weaker test PC, the fallback covers it) — WATCH ITEM (user fresh-run log 2026-07-22 13:24): the
+- [x] #24-pokenav-faithful — ‼ SUPERSEDED: recurred 2026-07-26, see the OPEN entry above. (RESOLVED 2026-07-22: the user ran VIDEO OFF — the renderer-gated fallback fired exactly as designed; keep video off on the weaker test PC, the fallback covers it) — WATCH ITEM (user fresh-run log 2026-07-22 13:24): the
       PokéNav Match-Call tutorial took the STATE-WRITE FALLBACK on a real-GUI run
       (video on) — the faithful play-through previously worked on this hardware.
       By design the fallback is legal (never hang), but check why the faithful
