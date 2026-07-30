@@ -298,15 +298,26 @@ region, where "train near the gym" is actively wrong.
       any new repro that stands in for `StoryMode`.**
 
 ### ‼ #1 EXECUTION PRIORITY — the counter chain is now 72% of all derails
-- [~] **`#24-counters` phase 2 — ACT on the named counter (promoted to #1, 2026-07-29).**
-      **STEP 1 DONE 2026-07-30 — the hunting-ground gate** (`hunt_ground_tile` /
-      `huntable` / `best_huntable`, `repro_counter_huntable.py`, ALL PASS). It had to land
-      first: the cost ranking puts **Victory Road Hariyama at rank 1** for Norman, so an
-      executor built on `cands[0]` would have walked a mid-game team into the E4 approach.
-      Destinations are now settled — Norman → **Machop @ FIERY_PATH (18,19)**, Wattson →
+- [~] **`#24-counters` phase 2 — BUILT 2026-07-30, AWAITING LIVE VALIDATION.**
+      **STEP 1 — the hunting-ground gate** (`hunt_ground_tile` / `huntable` /
+      `best_huntable`; `repro_counter_huntable.py`, ALL PASS). Had to land first: the cost
+      ranking puts **Victory Road Hariyama at rank 1** for Norman, so an executor built on
+      `cands[0]` would have walked a mid-game team into the E4 approach.
+      Destinations: Norman → **Machop @ FIERY_PATH (18,19)**, Wattson →
       **Sandshrew @ ROUTE111 (25,55)**, Winona → **Electrike @ ROUTE118 (29,15)**.
-      **STEP 2 NEXT — the executor** (travel → catch → **train**), detail under the
-      `#24-counters` entry further down. Nothing travels or catches yet.
+      **STEP 2 — the executor.** `modules/story/counter_hunt.py` (arm → hunt → train),
+      `StoryMode._counter_ladder`, and a catch-on-sight branch in `on_battle_started`.
+      `repro_counter_hunt.py` — **15 checks, ALL PASS.**
+      ‼ **Bounded by PER-RUN STATE (`_counter_hunts`), one hunt per boss per run** — a
+      retry or frame budget CANNOT bound this, because `_prepare_for_fight` is re-entered
+      by the run loop after every lost attempt (the KI-34 shape). The attempt is recorded
+      BEFORE the hunt so a derailed hunt still consumes its chance.
+      ‼ **The terminal raise is untouched** — every failure path still stops honestly.
+      ⏭ **WHAT IS OWED: a LIVE run.** Nothing here proves the bot can walk to Fiery Path
+      from Petalburg, catch a Machop and beat Norman with it. Watch for: does the hunt
+      reach (18,19)? does the catch-on-sight branch fire? does `train_counter` accept or
+      decline the estimate? and — the regression to fear — does a boss that used to stop
+      honestly now loop? Grep new logs for `counter hunt` and `already hunted a counter`.
       Of 36 derails in the newest bundle, **~26 are "boss: N losses with no super-effective
       answer to X. Need one of: Y"** — the chain diagnoses correctly and then ENDS THE RUN.
       Breakdown: Electric→needs Ground ×17, Normal→needs Fighting ×9, Winona ×3.

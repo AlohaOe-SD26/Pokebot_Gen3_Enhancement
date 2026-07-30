@@ -992,3 +992,40 @@ to prevent.
 **Consequence accepted.** Real answers get refused for lack of a sweep, not for being wrong —
 Wattson's Jagged Pass Numel, Norman's Granite Cave Makuhita. The unblock is field work
 (promote a swept tile), and the refusal is loud, so the cost is visible rather than silent.
+
+---
+
+## 2026-07-30 — The counter hunt is bounded by PER-RUN STATE, not by retries or frames
+
+**Decision.** `#24-counters` phase 2 attempts **one hunt per boss per run**, recorded in
+`StoryMode._counter_hunts` and cleared by `reset_per_run_state()`. The attempt is written
+down BEFORE the hunt runs.
+
+**Why not a retry budget ("try 3 times")?** The chain fires from inside
+`_prepare_for_fight`, which the run loop re-enters after every lost boss attempt. A counter
+scoped to the call becomes 3 tries *per attempt*, which is unbounded. **This is precisely
+the KI-34 shape** — "a bounded loop re-entered by its dispatcher is still infinite" — which
+burned 23.9M frames. A frame budget fails identically, and for the same reason.
+
+**Why record the attempt BEFORE hunting?** A hunt can derail mid-flight (whiteout,
+navigation failure). The run recovers and re-enters `_prepare_for_fight`; without the
+early write, the bound would never be persisted and the hunt would restart for ever. This
+costs one thing — a hunt interrupted by an unrelated whiteout does not get a second try
+this run — and that is the right trade: the next run gets a fresh chance, and the failure
+mode of the alternative is an infinite loop.
+
+**Rejected: let the hunt run until it succeeds.** The tempting version, since the run ends
+anyway if it fails. But "the run ends anyway" is exactly the assumption that makes an
+unbounded loop look free, and the honest stop has real value: it names the missing counter
+in the derail log, which is how the derail classes were measured in the first place.
+
+**Rejected: skip rung 3 (training) for now and ship the catch.** Shipping the catch alone
+would have been a REGRESSION, not a partial win: with a Fighting type in the party,
+`_boss_plan_is_hopeless` stops firing, so the diagnosis that currently ends the run cleanly
+would go quiet and the bot would re-attempt Norman with an untrained L15 Machop until the
+5M-frame run budget killed it. A half-built ladder is worse than none here.
+
+**Rejected: rely on `_prepare_for_fight`'s normal training to level the catch.** It readies
+"the strongest battler plus any battler already within `TRAIN_CATCHUP_GAP` levels" — a fresh
+catch is outside that gap BY DESIGN (`#24-team`: fresh catches level organically). So the
+counter needed an explicit, separately-budgeted training step.

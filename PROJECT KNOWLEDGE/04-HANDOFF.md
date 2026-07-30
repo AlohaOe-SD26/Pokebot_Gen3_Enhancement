@@ -89,19 +89,33 @@ all `tile: None`**. No bot behaviour has changed yet — nothing travels or catc
    | Wattson → Ground | **Sandshrew @ ROUTE111 (25,55)** |
    | Winona → Rock/Elec/Ice | **Electrike @ ROUTE118 (29,15)** |
 
-   ⏭ **STEP 2 NEXT — the executor.** Travel to `best_huntable()`'s `hunt_tile`, catch via a
-   `COUNTER_CATCH_TARGET_DEX` catch-on-sight branch (mirror `HM_CATCH_TARGET_DEX` and its
-   consumer at `story_mode.py:1556-1582` — note the local-`console` UnboundLocalError trap
-   documented there), then **TRAIN the catch**, then fall through to the SAME terminal raise
-   if any rung fails. `21-TEAM-POLICY-DESIGN.md` §5 is the spec; `ensure_hm_learner`
-   (`early_game.py:4087`) is the working shape to clone (provision balls → navigate → arm →
-   bounded `_story_spin` → disarm in a `finally` → `normalize_to_overworld`).
-   ‼ **Training is NOT optional garnish.** Catch a L15 Machop for a L30 team and leave it
-   untrained and `_boss_plan_is_hopeless` answers "not hopeless" for ever after — converting
-   today's bounded, honest stop into an unbounded loop that only the 5M frame budget ends.
-   Bound the OUTCOME, not the frames (rule 3 below).
-   ‼ **Never delete the terminal raise** (`story_mode.py:1347`). Silent non-progress is worse
-   than an honest stop.
+   ✅ **STEP 2 DONE 2026-07-30 — the executor.** New `modules/story/counter_hunt.py`
+   (arm → hunt → train), `StoryMode._counter_ladder`, and a catch-on-sight branch in
+   `on_battle_started` cloned from the `HM_CATCH_TARGET_DEX` one.
+   `repro_counter_hunt.py` — **15 checks, ALL PASS.**
+   ‼ **THE BOUND: one hunt per boss per run, held in `self._counter_hunts`** (cleared by
+   `reset_per_run_state`). A retry or frame budget CANNOT bound this — the chain fires from
+   inside `_prepare_for_fight`, which the run loop re-enters after every lost attempt, so
+   any per-call budget becomes per-attempt. **That is the KI-34 shape that burned 23.9M
+   frames.** The attempt is recorded BEFORE the hunt runs, so a hunt that derails mid-flight
+   still consumes its one chance.
+   ‼ **Rung 3 (train) is load-bearing, not garnish.** With a Fighting type in the party
+   `_boss_plan_is_hopeless` stops firing, so shipping the catch WITHOUT the training would
+   have been a regression: the honest stop goes quiet and the bot re-attempts Norman with an
+   untrained L15 Machop until the 5M-frame budget kills it.
+   ‼ **The terminal raise at `story_mode.py` is untouched** — every failure path
+   (no huntable candidate / party full / no spare ball / planner throws / hunt finds nothing
+   / already hunted this run) still stops honestly.
+
+   ⏭ **WHAT IS OWED NOW: A LIVE RUN.** Nothing proves the bot can actually walk to Fiery
+   Path from Petalburg, catch a Machop and beat Norman with it. On the next batch, grep for
+   `counter hunt` and `already hunted a counter`, and check in this order:
+   1. Does a hopeless verdict now produce a HUNT rather than an immediate stop?
+   2. Does the hunt reach FIERY_PATH (18,19), and does the catch-on-sight branch fire?
+   3. Does `train_counter` accept or decline the frame estimate (it logs both)?
+   4. ‼ **The regression to fear:** a boss that used to stop honestly now LOOPS. The
+      per-run bound is what prevents it and `repro_counter_hunt` case 2 is its proof, but
+      only a live run exercises the real re-entry path.
 2. **Then the next chapters: Mt. Pyre → Magma hideout** (`12-STORYMODE-DESIGN.md`).
    MAP FIRST (static recon → Area Atlas → build → validate) — playbook §4.
 3. **Then the team/catch work** (`#24-dexhunt`, `#24-maintain`, `#24-catchcap`), which share
@@ -120,8 +134,8 @@ be the rule.
 
 ## ENVIRONMENT — this box
 - Tests: `py -3.12 tools/story-dev/repro_<name>.py` (plain `python` is 3.9 and will fail).
-- ‼ **Full sweep is now GREEN: 58 pass, 0 fail, 1 skip** (59 scripts; `repro_x4_lanes`
-  SPAWNS REAL LANE PROCESSES — skip it). Measured 2026-07-30 after `#24-reprorot`.
+- ‼ **Full sweep is GREEN: 59 pass, 0 fail, 1 skip** (60 scripts; `repro_x4_lanes`
+  SPAWNS REAL LANE PROCESSES — skip it). Measured 2026-07-30 after `#24-counters` step 2.
   **The old "5 environmental" expectation is retired — treat ANY failure as real.**
   Expect the sweep to take ~20-25 min now: four repros that used to bail out early
   actually run their emulators.

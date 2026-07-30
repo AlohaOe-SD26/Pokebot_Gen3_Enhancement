@@ -552,6 +552,24 @@ economics as Norman (KI: 35 whiteouts) but worse, because Flying resists the com
 cap (`#24-whiteout`), and my successful run took 80 whiteouts. Attrition is not a side-effect; it
 IS the dominant cost of the current strategy.
 
+### STATUS 2026-07-30 — all three parts of "what the fix needs" are now BUILT (live validation owed)
+1. **Detect non-convergence** — `_boss_plan_is_hopeless` (phase 1, 2026-07-25). DONE.
+2. **Change the PLAN, not the level** — `counter_plan` names the target (phase 1) and
+   `counter_hunt` + `StoryMode._counter_ladder` now TRAVEL, CATCH and TRAIN it (phase 2,
+   2026-07-30). `repro_counter_hunt.py`, 15 checks, ALL PASS.
+   ‼ The note above says "any Electric (Route 110 Voltorb/Magnemite, Mauville area)". The
+   planner's own answer from the real Winona-era save is **Electrike @ ROUTE118 (29,15),
+   L24-26, 30%** — a verified spin tile. Trust the planner's measured output over this
+   prose; it reads the ROM's encounter tables and prices the grind.
+3. **Keep the existing escalation** where the team DOES have an answer — untouched; the
+   ladder only runs once `_boss_plan_is_hopeless` is already True.
+
+‼ **STILL OPEN — this KI is NOT closed.** Nothing yet proves a run actually catches a
+counter and converts it into a win; that needs a live batch. And the regression to watch for
+is the mirror of the original bug: with a counter in the party `_boss_plan_is_hopeless` stops
+firing, so a boss that used to stop honestly could LOOP instead. The per-run bound
+(`_counter_hunts`, one hunt per boss per run) is what prevents it.
+
 ## KI-24 — `calculate_path` cannot prove LONG-RANGE reachability; our gates under-report it (2026-07-25)
 
 **Found while validating the counter-catch planner.** From the correct Winona-era save

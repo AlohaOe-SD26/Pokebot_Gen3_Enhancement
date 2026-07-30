@@ -5338,3 +5338,62 @@ hard-code the answer under test, so the repro would keep passing while the real 
 
 **Sweep result: 58 pass, 0 fail, 1 skip (59 scripts).** First fully-green suite. The "5
 environmental" expectation is retired — any future failure should be treated as real.
+
+---
+
+## 2026-07-30 — `#24-counters` phase 2, step 2: the EXECUTOR (the chain finally ACTS)
+
+The counter chain has diagnosed correctly and then ended the run since phase 1 — ~**72% of
+all derails** in the 2026-07-29 batch. It now goes and gets the counter.
+
+**New `modules/story/counter_hunt.py`** (execution; `counter_plan` stays pure planning, as
+its own docstring requires). Three rungs, each bounded, each falling through to the SAME
+terminal raise:
+1. **ARM** — `COUNTER_CATCH_TARGET_DEX`, consumed by a new catch-on-sight branch in
+   `on_battle_started` cloned from the `HM_CATCH_TARGET_DEX` branch (same gates: party
+   room, a SPARE ball, not a shiny; **same local-`console` import**, whose absence silently
+   ate two earlier branches — 08-MISTAKES 2026-07-26).
+2. **HUNT** — travel to `best_huntable()`'s proven tile and spin, bounded by
+   `HUNT_SPIN_BUDGET_FRAMES = 120,000` (~12 expected meetings of a 15% slot at the measured
+   1,433 frames/wild-battle; for scale, run05 spent ~399,000 frames LOSING to Norman 21×).
+3. **TRAIN** — `train_counter` brings the catch to within 2 levels of the team, gated by the
+   same frame-cost estimate every other training entry point uses (UNKNOWN ⇒ decline).
+
+### ‼ Why rung 3 is not optional garnish
+Catch a L15 Machop for a L30 team and leave it untrained, and `_boss_plan_is_hopeless`
+answers *"not hopeless"* for ever after — the party now HAS a Fighting move. Today's
+bounded, honest stop would become an **unbounded loop** that only the 5M-frame run budget
+ends. Nor can the ordinary prep be relied on to do it: `_prepare_for_fight` readies "the
+strongest battler plus any battler already within `TRAIN_CATCHUP_GAP`", and a fresh catch is
+outside that gap **by design** (`#24-team` leaves fresh catches to level organically).
+
+### ‼ The bound is ONE HUNT PER BOSS PER RUN, and it had to be per-run state
+A retry budget would not work, and neither would a frame budget: the chain fires from inside
+`_prepare_for_fight`, which the run loop **re-enters after every lost attempt**, so "N tries"
+silently becomes N *per attempt* — unbounded. **This is the KI-34 shape** (a bounded loop
+re-entered by its dispatcher is still infinite; it burned 23.9M frames). So the bound lives
+in `self._counter_hunts`, cleared by `reset_per_run_state()` — and the attempt is recorded
+**before** the hunt runs, so a hunt that derails mid-flight still consumes its one chance
+instead of being retried by the recovery path.
+
+### The terminal raise is untouched
+Every failure path — no huntable candidate, party full, no spare ball, planner throws, hunt
+finds nothing, already hunted — returns False and the caller raises exactly as before.
+Silent non-progress is worse than an honest stop.
+
+### Proof — `tools/story-dev/repro_counter_hunt.py`, 15 checks, ALL PASS
+Drives the REAL `_counter_ladder` and the REAL `on_battle_started`. The load-bearing case is
+**#2: a second hopeless verdict for the same boss raises even though the hunt would succeed
+again.** Also covers the derail-mid-hunt case, the per-run reset, all five fall-throughs, the
+four catch-on-sight gates, and that `hunt()` disarms in its `finally` when the spin raises
+(a hunt that dies armed would spend balls on Machop for the rest of the run).
+
+‼ **NOT PROVEN — needs a live run:** that the bot can actually walk to Fiery Path from
+Petalburg, catch a Machop, and beat Norman with it. What is proven is that every way this
+can fail ends at the honest stop, and that it cannot loop.
+
+**Harness note:** this repro needs a headless emulator + `norman_done.ss1` even though it
+drives stubs — the battle-strategy constructors on the fall-through paths read the live
+party. Without it, `StoryCatchStrategy()` raised inside `on_battle_started`'s
+`except Exception: pass` and the POSITIVE case silently fell through, i.e. the branch looked
+broken when it was not. Same trap as `repro_sufficiency` earlier today.

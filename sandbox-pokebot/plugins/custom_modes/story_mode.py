@@ -843,6 +843,20 @@ class StoryMode(BotMode):
         # Organic team-building (user directive 2026-07-21): catch NEW species while
         # travelling to Gym 1 until the party has this many members (starter + helpers).
         self._catch_team_target = 4
+        # #24-counters phase 2: boss key -> what the counter hunt did, ONE entry per boss
+        # per run. This dict IS the bound (see `_counter_ladder`) — a retry or frame
+        # budget cannot bound it, because `_prepare_for_fight` is re-entered by the run
+        # loop after every lost attempt, which turns any per-call budget into a per-attempt
+        # one. Per-RUN by construction, so the next run gets a fresh chance.
+        self._counter_hunts: dict = {}
+        # A hunt that was interrupted mid-flight (whiteout, derail) must not leave the
+        # catch-on-sight targets armed for the rest of the run.
+        try:
+            from modules.story import counter_hunt as _ch
+
+            _ch.disarm()
+        except Exception:
+            pass
 
     def on_battle_ended(self, outcome) -> None:
         from modules.battle_state import BattleOutcome
@@ -1213,6 +1227,71 @@ class StoryMode(BotMode):
             )
             return False, []
 
+    def _counter_ladder(self, cfg: dict, losses: int, needed: list) -> Generator:
+        """#24-counters phase 2 — ACT on a hopeless boss diagnosis. Yields as it works;
+        returns True if it changed the party's answer to this boss, False to fall through
+        to the honest terminal raise.
+
+        THE BOUND, and why it is shaped this way. The hunt runs **once per boss per run**.
+        That is not timidity — it is the only bound that actually terminates:
+
+          * A retry budget would not work. The chain fires from inside `_prepare_for_fight`,
+            which the run loop re-enters after every lost attempt, so "N tries" becomes N
+            per re-entry, i.e. unbounded. (KI-34 burned 23.9M frames on exactly this shape:
+            a bounded loop re-entered by its dispatcher is still infinite.)
+          * A frame budget would not work either, for the same reason.
+
+        So the bound is on the OUTCOME and recorded in per-run state: this boss gets one
+        hunt, and whatever happens, the next hopeless verdict here falls straight through
+        to the raise. `14-AGENT-PLAYBOOK.md` rule 3.
+
+        ‼ The catch is only half the job — see `counter_hunt.train_counter`. Catching a
+        L15 Machop for a L30 team and leaving it untrained would make
+        `_boss_plan_is_hopeless` answer "not hopeless" for ever after (the party now has a
+        Fighting move), converting this bounded stop into an unbounded loop.
+        """
+        from modules.story import counter_hunt, counter_plan
+
+        key = tuple(cfg["keys"])[0] if cfg.get("keys") else cfg.get("name", "boss")
+        if key in self._counter_hunts:
+            console.print(
+                f"[yellow]Story: already hunted a counter for {cfg.get('name', 'this boss')} "
+                f"this run ({self._counter_hunts[key]}) — not trying again; stopping honestly.[/]"
+            )
+            return False
+        # Record the attempt BEFORE doing any of it. If the hunt derails mid-way (a
+        # whiteout, a navigation failure), the run recovers and re-enters here — and
+        # without this the "once per run" bound would never be written down.
+        self._counter_hunts[key] = "started"
+
+        try:
+            candidates = counter_plan.find_counter_candidates(
+                needed, allow=_counter_area_allowed, max_results=10
+            )
+        except Exception as error:
+            console.print(f"[yellow]Story: counter planner failed ({error!r}) — stopping honestly.[/]")
+            self._counter_hunts[key] = "planner failed"
+            return False
+
+        # ‼ best_huntable, NEVER candidates[0]. Rank 1 for Norman is a Victory Road
+        # Hariyama L38-42 — the cost model prices a wild already above the team at ~0
+        # to train, so it ranks endgame maps as cheapest. See counter_plan.best_huntable.
+        candidate = counter_plan.best_huntable(candidates)
+        blocker = counter_hunt.hunt_blockers(candidate)
+        if blocker is not None:
+            console.print(f"[yellow]Story: cannot hunt a counter — {blocker}. Stopping honestly.[/]")
+            self._counter_hunts[key] = f"blocked: {blocker}"
+            return False
+
+        slot = yield from counter_hunt.hunt(candidate, needed)
+        if slot is None:
+            self._counter_hunts[key] = f"hunt found no {candidate['species_name']}"
+            return False
+
+        self._counter_hunts[key] = f"caught {candidate['species_name']}"
+        yield from counter_hunt.train_counter(slot, cfg)
+        return True
+
     def _here_map(self):
         """The map we are standing on, as a (group, number) tuple — None if unreadable."""
         try:
@@ -1344,7 +1423,20 @@ class StoryMode(BotMode):
                 if hopeless:
                     from modules.modes import BotModeError
 
-                    raise BotModeError(_counter_catch_message(cfg, losses, needed))
+                    # #24-counters PHASE 2: try to ACT on the diagnosis before stopping.
+                    # Bounded to ONE attempt per boss per run (see `_counter_ladder`), and
+                    # it falls through to the SAME raise below on every failure path.
+                    acted = yield from self._counter_ladder(cfg, losses, needed)
+                    if not acted:
+                        # ‼ NEVER DELETE THIS RAISE. Silent non-progress is worse than an
+                        # honest stop: before phase 1 existed this boss looped for ever,
+                        # and the whole value of the diagnosis is that it ENDS the run
+                        # with the reason attached.
+                        raise BotModeError(_counter_catch_message(cfg, losses, needed))
+                    # A rung fired. Re-prepare from the top so the new party member is
+                    # taken into account by the sufficiency/boss-mode logic rather than
+                    # by this stale pass — the party is not what it was when we entered.
+                    return
                 boss_mode = True
                 target = team_max + 1  # light top-up only — the boss battle is the trainer
                 console.print(
@@ -1577,6 +1669,43 @@ class StoryMode(BotMode):
                     from modules.console import console
 
                     console.print(f"[bold green]Story: catching {sp.name} — it can learn the HM we need![/]")
+                    return StoryCatchStrategy()
+        except Exception:
+            pass
+        # COUNTER-CATCH HUNT (#24-counters phase 2): while `counter_hunt.hunt` is spinning
+        # for the species that answers a boss we cannot beat, catch it on sight. Deliberate
+        # clone of the HM branch above — same gates (party room, a SPARE ball, not a shiny),
+        # same failure mode if they are skipped.
+        try:
+            from modules.story import counter_hunt as _chunt
+
+            if (
+                _chunt.COUNTER_CATCH_TARGET_DEX
+                and encounter is not None
+                and not getattr(encounter, "is_shiny", False)
+            ):
+                from modules.items import get_item_bag
+                from modules.pokemon_party import get_party as _gp_c
+
+                sp = getattr(getattr(encounter, "pokemon", None), "species", None)
+                if (
+                    sp is not None
+                    and sp.national_dex_number in _chunt.COUNTER_CATCH_TARGET_DEX
+                    and len([m for m in _gp_c() if m is not None]) < 6
+                    and sum(sl.quantity for sl in get_item_bag().poke_balls) > 1
+                ):
+                    # ‼ LOCAL IMPORT REQUIRED — the same trap that silently ate the HM
+                    # branch and survival mode (08-MISTAKES 2026-07-26, three times in one
+                    # day). Other branches in this method import `console` locally, which
+                    # makes the name function-local for the WHOLE method, so touching the
+                    # module-level one here is an UnboundLocalError that the `except` below
+                    # would swallow — the catch would simply never happen, silently.
+                    from modules.console import console
+
+                    console.print(
+                        f"[bold green]Story: catching {sp.name} — it is the type counter "
+                        f"this boss needs![/]"
+                    )
                     return StoryCatchStrategy()
         except Exception:
             pass

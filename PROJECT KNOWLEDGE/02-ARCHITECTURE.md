@@ -70,9 +70,10 @@ Pokebot_Gen3_Enhancement/
 └── sandbox-pokebot/               # ★★ THE ACTIVE COPY — all current work happens HERE
     ├── SANDBOX-NOTES.md  SANDBOX-PROPOSALS.md  CHEATS-DESIGN.md  DIVERGENCE-LOG.md
     ├── plugins/custom_modes/story_mode.py   # StoryMode + StoryDebug/DebugReset/EndlessReset
-    ├── modules/story/             # 10 modules: early_game, chapters, region_reach,
-    │                              #   counter_plan, training_areas, fortree_gates,
-    │                              #   intro, progress, config, team_policy (built, UNWIRED)
+    ├── modules/story/             # 11 modules: early_game, chapters, region_reach,
+    │                              #   counter_plan (plans) + counter_hunt (executes),
+    │                              #   training_areas, fortree_gates, intro, progress,
+    │                              #   config, team_policy (built, UNWIRED)
     └── modules/…                  # sandbox-ONLY modules (absent from custom-pokebot):
                                    #   endless_x4, tile_bridge, tile_mosaic, gui/tile_child,
                                    #   x4_logs, remote_party, badge_log, badge_case,
