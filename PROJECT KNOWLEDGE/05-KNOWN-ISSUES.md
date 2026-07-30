@@ -999,11 +999,20 @@ reason about them.
 - **‼ LESSON (logged in 08-MISTAKES):** I instrumented the VALUES but not their UNITS. Two
   integers from different coordinate systems compared as if interchangeable — and the log I
   added made the wrong comparison look verified.
-- **Fix direction (specified, NOT yet applied):** convert before comparing — map `alive_slots`
-  into in-battle menu space with `map_battle_party_index()` (matching what the primary path and
-  `battle_action_selection.py:124/199` already do), or map the cursor back to regular space.
-  Additionally bound the OUTCOME (a mon actually sent out), not just the frames, since the
-  6,000-frame bound is defeated by dispatcher re-entry.
+- **FIXED 2026-07-30.** Two changes in `modules/battle_handler.py`:
+  1. **Convert before comparing.** `alive_slots_menu = {map_battle_party_index(i) ...}` and every
+     cursor test now uses the MENU-order set — matching what the primary path and
+     `battle_action_selection.py:124/199` already did. The entry log prints BOTH sets with their
+     units and flags `[orders DIVERGE]`.
+  2. **Bound the OUTCOME, not the frames.** `FAINT_CHOOSER_GIVEUP_LIMIT = 3` per battle
+     (counter reset in `handle_battle`); on exceeding it the run gets a RECOVERABLE derail via
+     `battle_fault.request_mode_recovery()`, which makes `handle_battle` and `BattleListener`
+     short-circuit so `StoryMode` claims it and the endless loop starts the next run.
+     It never RAISES from battle code — on this flat controller stack that would reach
+     `main_loop` and force Manual.
+- **Repro:** `tools/story-dev/repro_faint_chooser_index_space.py` — builds a diverged battle
+  party order and proves the OLD test calls menu slot 1 selectable while the NEW test correctly
+  rejects it as on-field: the user's observation, reproduced as arithmetic.
 
 ## KI-36 — the per-run frame budget CANNOT fire while a battle handler is on the stack (opened 2026-07-30, severity: HIGH)
 - **Symptom:** in `20260730-062818`, P3 run `235303` ran for **25,632,106 frames** — five times
@@ -1020,9 +1029,14 @@ reason about them.
 - **Why KI-32's stall dumps still worked:** `modules/debug_logger.py` is driven by a **per-frame
   listener** from `modules/main.py`, not by a generator, so it keeps sampling regardless of what
   is on top of the stack. We therefore have **diagnosis without termination**.
-- **Fix direction:** the budget must be enforced from something that ticks every frame
-  regardless of the stack — a frame listener, or a check inside `main_loop` — not from inside
-  the mode's own generator. NOT yet applied.
+- **PARTIALLY FIXED 2026-07-30 — a net, not the complete fix.** `modules/debug_logger.py`
+  already ticks every frame as a per-frame LISTENER (exactly why its stall dumps fired when the
+  budget did not), so the thing that NOTICES a wedge now also ENDS one: at
+  `_BATTLE_STALL_FAULT_AFTER = 60_000` frames of byte-identical in-battle state (>3x the dump
+  threshold, ~16 min at 60fps) it calls `battle_fault.request_mode_recovery()` once.
+  LIMITATION, STATED: this only works while **debug logging is ON**. It is a net for batch runs
+  (which always enable it), not a general watchdog. **A stack-independent budget in `main_loop`
+  remains the complete fix and is still OPEN.**
 - **Relationship to existing entries.** Same family as **KI-33** (Fortree, 2026-07-29) and
   **KI-17** — all three are `BattleScript_FaintedMonTryChoose` +
   `Task_ReturnToChooseMonAfterText`/`Task_PrintAndWaitForText`. KI-17 is currently marked

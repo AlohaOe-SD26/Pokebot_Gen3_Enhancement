@@ -61,6 +61,30 @@ _STALL_REDUMP_EVERY = 3000            # while still stalled, re-dump every N fra
 #: a two-order-of-magnitude margin keeps this from crying wolf. A battle whose entire observed
 #: state is unchanged for five minutes is wedged, not thinking.
 _BATTLE_STALL_DUMP_AFTER = 18_000
+
+#: ‼ AND AFTER THIS, STOP IT (KI-36). Diagnosis without termination is what let one lane burn
+#: 25,632,106 frames — 5x the per-run cap — while the batch reported `frame-cap=0`.
+#:
+#: WHY THE PER-RUN FRAME BUDGET CANNOT DO THIS. `StoryEndlessResetMode._run_with_frame_budget`
+#: is a GENERATOR WRAPPER, and the controller stack is FLAT: `main_loop` advances only the TOP
+#: generator. During that 25.6M-frame wedge the stack was
+#: `[StoryEndlessResetMode.run, TrainerApproachListener.handle_trainer_approach,
+#: BattleListener.fight]` in 8,022 of ~8,200 samples — so the story generator, and its budget,
+#: was never stepped. The budget is structurally blind to the one failure class it was written
+#: for, because every wedge we have is inside a battle handler.
+#:
+#: THIS module is not. `on_frame()` is called from `modules/main.py` as a per-frame LISTENER,
+#: so it keeps sampling no matter what sits on top of the stack — which is exactly why the
+#: stall DUMPS worked when the budget did not. So the thing that already NOTICES becomes the
+#: thing that ENDS it, through the designed channel (`modules/battle_fault.py`): the mode
+#: claims a recoverable derail and the endless loop starts the next run.
+#:
+#: 60,000 frames ≈ 16 minutes of real time at 60fps, and >3x the dump threshold: by then the
+#: state has been byte-identical for over three re-dumps. A legitimate battle cannot do that.
+#: ‼ LIMITATION, STATED: this only works while debug logging is ON. It is a net for batch runs
+#: (which always enable it), NOT a general-purpose watchdog. A stack-independent budget in
+#: `main_loop` remains the complete fix — see KI-36.
+_BATTLE_STALL_FAULT_AFTER = 60_000
 _HEARTBEAT_EVERY = 3600               # periodic state line even without events
 
 
@@ -333,6 +357,25 @@ def on_frame(frame_info=None) -> None:
         _stall_frames = 0
         _last_sig = sig
         _last_dump_stall = 0
+    # ‼ TERMINATE a wedge the per-run frame budget cannot see (KI-36). Fires ONCE per stall,
+    # only in battle, and only via the recoverable battle-fault channel — never by raising,
+    # which on this flat controller stack would drop straight to Manual.
+    if in_battle and _stall_frames == _BATTLE_STALL_FAULT_AFTER:
+        try:
+            from modules.battle_fault import request_mode_recovery
+
+            _reason = (
+                f"in-battle wedge: state unchanged for {_stall_frames:,} frames "
+                f"(KI-36; the per-run frame budget cannot fire while a battle handler is on "
+                f"the controller stack)"
+            )
+            if request_mode_recovery(_reason):
+                _event(fc, f"[STALL] handing a recoverable derail to the mode — {_reason}")
+            else:
+                _event(fc, f"[STALL] {_reason} — no mode accepted the fault; it will NOT be ended here")
+        except Exception:  # noqa: BLE001 - a watchdog must never break the run it watches
+            pass
+
     if _stall_frames == threshold or (
         _stall_frames > threshold and (_stall_frames - _last_dump_stall) >= _STALL_REDUMP_EVERY
     ):

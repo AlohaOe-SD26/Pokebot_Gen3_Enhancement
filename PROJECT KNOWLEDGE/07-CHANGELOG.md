@@ -5108,3 +5108,32 @@ changed at once.
 not legitimate long runs — the deepest *completed* runs remain ~2.9M. So this batch does **not**
 demonstrate that the raise saved a good run. The raise was still correct (14% headroom on a
 winning run was too tight), but it has not yet paid for itself, and I should not claim it has.
+
+## 2026-07-30 — KI-34 FIXED (index-space bug) and KI-36 netted; both from a user screen observation
+
+**KI-34 — `modules/battle_handler.py`.** The after-faint recovery sweep compared a cursor read
+in **in-battle menu order** against an `alive_slots` set built in **regular party order**. Once
+the orders diverge — exactly a double battle after switches — it judged an ON-FIELD mon
+selectable, pressed A on a selection the game refuses, re-armed `Task_PrintAndWaitForText`, and
+looped. Measured: `presses={'A': 289}` with a static cursor, **3,975 give-ups in P3 alone,
+~23.9M frames (~7.8 complete runs)** in one night; that lane finished 5 badge-earning runs
+against P2's 19.
+1. `alive_slots_menu` now maps through `map_battle_party_index()` and every cursor test uses it
+   — mirroring what this same function's PRIMARY path already did 60 lines earlier.
+2. `FAINT_CHOOSER_GIVEUP_LIMIT = 3` per battle, then a **recoverable derail** via
+   `battle_fault.request_mode_recovery()`. Never a `raise` — battle code is a SIBLING of the
+   mode on a flat stack, so a `BotModeError` would reach `main_loop` and force Manual.
+
+**KI-36 — netted, not solved.** `debug_logger` ticks every frame as a per-frame listener
+(precisely why its stall dumps fired when the generator-based frame budget could not), so it
+now also ENDS an in-battle wedge at 60,000 frames of identical state via the same fault channel.
+**Only works with debug logging on** — a stack-independent budget in `main_loop` is still the
+complete fix and stays open.
+
+**Credit where due:** the root cause came from the user watching the screen, not from telemetry.
+My instrumentation logged both integers and I read them as agreeing — they were in different
+coordinate systems. Recorded in `08-MISTAKES.md`: *log the UNIT, not just the value*, and *take
+a user's direct observation of the screen as primary evidence over your own telemetry.*
+
+Repro: `tools/story-dev/repro_faint_chooser_index_space.py`. Suite: **53 pass, 0 fail, 5
+environmental.**

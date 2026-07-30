@@ -33,6 +33,16 @@ if TYPE_CHECKING:
 
 _last_handled_battle_result: HandledBattleResult | None = None
 
+#: Consecutive `handle_fainted_pokemon` give-ups within ONE battle (KI-34). The handler's own
+#: `if frames > 6000: return` bounds a single INVOCATION, but the dispatcher re-enters it
+#: immediately — measured at ~35 re-entries / 210,000 frames in one battle, and 3,975 give-ups
+#: across a single overnight lane. Bounding the OUTCOME needs state that survives the call.
+_faint_chooser_giveups: int = 0
+
+#: Give-ups in one battle before we stop trying and hand the run a recoverable derail.
+#: 3 = ~18,000 frames of trying, well past any legitimate menu delay.
+FAINT_CHOOSER_GIVEUP_LIMIT = 3
+
 
 def _dump_battle_stall_diagnostic() -> None:
     """Snapshot the live frame when the in-battle no-progress watchdog fires.
@@ -108,6 +118,9 @@ def handle_battle(strategy: BattleStrategy) -> Generator[None, None, HandledBatt
     :return: A data class structure listing some things that have changed
              during the battle.
     """
+    global _faint_chooser_giveups
+    _faint_chooser_giveups = 0  # per-battle: see FAINT_CHOOSER_GIVEUP_LIMIT (KI-34)
+
     before_cash = get_player().money
     before_party = get_party()
     encounter_type = get_encounter_type()
@@ -520,6 +533,43 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
         )
     except Exception:  # noqa: BLE001 - instrumentation must never affect the battle
         pass
+    # ‼ TRANSLATE INTO THE CURSOR'S INDEX SPACE BEFORE COMPARING (KI-34, 2026-07-30).
+    #
+    # `alive_slots` above is in REGULAR party order (`get_party()`). The cursor read below
+    # comes from `gPartyMenu.slotId`, which is the IN-BATTLE party-menu order — and the two
+    # DIVERGE once mons have been switched in and out, which is exactly what a double battle
+    # after a faint looks like. `BattleState.map_battle_party_index()` exists solely to convert
+    # between them; its docstring says so outright.
+    #
+    # Comparing them raw made `cursor in alive_slots` TRUE for a mon that was ON THE FIELD, so
+    # the sweep pressed A on a selection the game REFUSES, which re-armed
+    # `Task_PrintAndWaitForText` and restarted the loop. Measured in bundle `20260730-062818`:
+    # `presses={'A': 289}` with a STATIC cursor, 3,975 give-ups in P3 alone, ~23.9M frames
+    # (~7.8 complete runs) burned in one night. The user diagnosed it by WATCHING THE SCREEN;
+    # the instrumentation could not, because it logged the values without their units.
+    #
+    # ‼ This function's PRIMARY path already maps (see `index_needs_mapping` above). Only this
+    # recovery sweep never mirrored it — the same shape as the KI-18 note one layer up.
+    def _to_menu_order(regular_index: int) -> int:
+        try:
+            return battle_state.map_battle_party_index(regular_index)
+        except Exception:  # noqa: BLE001 - no battle state / index absent: assume identity
+            return regular_index
+
+    global _faint_chooser_giveups
+    alive_slots_menu = {_to_menu_order(i) for i in alive_slots}
+    try:
+        from modules import debug_logger
+
+        debug_logger.event(
+            f"[FAINT-CHOOSER] index spaces: alive_slots={alive_slots}(party-order) -> "
+            f"{sorted(alive_slots_menu)}(menu-order) on_field={sorted(_on_field)}(party-order)"
+            + ("  [orders DIVERGE]" if alive_slots_menu != set(alive_slots) else "  [orders agree]"),
+            category="BATTLE",
+        )
+    except Exception:  # noqa: BLE001
+        pass
+
     import collections as _collections
 
     _presses: "_collections.Counter" = _collections.Counter()
@@ -545,11 +595,12 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
         elif task_is_active("Task_HandleSelectionMenuInput"):
             # Shift/Summary/Cancel popup: SHIFT is first, so A on a living mon sends
             # it out; on a fainted mon the popup is useless — close it.
-            button = "A" if cursor in alive_slots else "B"
-        elif cursor is not None and cursor not in alive_slots:
-            button = "Down"  # walk the cursor to a living slot
+            # ‼ `cursor` is MENU-order, so it must be tested against the MENU-order set.
+            button = "A" if cursor in alive_slots_menu else "B"
+        elif cursor is not None and cursor not in alive_slots_menu:
+            button = "Down"  # walk the cursor to a living, SELECTABLE slot
         elif cursor is not None:
-            button = "A"     # cursor verified on a LIVING slot — safe to confirm
+            button = "A"     # cursor verified on a living, off-field slot — safe to confirm
         else:
             button = None    # cursor unreadable: wait, never gamble an A (KI-17)
         # ‼ COUNT WHAT WE PRESS AND WHERE THE CURSOR WAS (KI-34). Playbook §7: "pressing the
@@ -581,13 +632,46 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
 
                 debug_logger.event(
                     f"[FAINT-CHOOSER] GAVE UP after {frames} frames without sending a mon out "
-                    f"— presses={dict(_presses)} cursors_seen={sorted(_cursors)} "
-                    f"alive_slots={alive_slots}. ‼ The dispatcher will re-enter this handler, "
-                    f"so this is a LIVELOCK, not a bounded failure (KI-34).",
+                    f"— presses={dict(_presses)} cursors_seen={sorted(_cursors)}(menu-order) "
+                    f"alive_slots={alive_slots}(party-order) -> {sorted(alive_slots_menu)}(menu-order). "
+                    f"give-up {_faint_chooser_giveups + 1}/{FAINT_CHOOSER_GIVEUP_LIMIT} this battle.",
                     category="BATTLE",
                 )
             except Exception:  # noqa: BLE001
                 pass
+            # ‼ BOUND THE OUTCOME, NOT THE FRAMES. Returning here only ends this INVOCATION;
+            # the dispatcher re-enters immediately, which is why the 6,000-frame bound produced
+            # a 210,000-frame livelock. After a few honest attempts, hand the run a RECOVERABLE
+            # derail through the designed channel: `request_mode_recovery` makes `handle_battle`
+            # and `BattleListener` short-circuit, the mode claims the fault on its next frame
+            # (`story_mode.py` `take_pending_fault`) and derails cleanly, and the endless loop
+            # starts the next run instead of burning the night.
+            # ‼ NEVER `raise` here — battle code is a SIBLING of the mode on a FLAT controller
+            # stack, so a BotModeError would reach `main_loop` and drop straight to Manual
+            # (see modules/battle_fault.py's module docstring).
+            _faint_chooser_giveups += 1
+            if _faint_chooser_giveups >= FAINT_CHOOSER_GIVEUP_LIMIT:
+                try:
+                    from modules.battle_fault import request_mode_recovery
+
+                    _reason = (
+                        f"after-faint chooser could not send a mon out after "
+                        f"{_faint_chooser_giveups} attempts (KI-34): "
+                        f"alive_slots={alive_slots}(party-order) -> {sorted(alive_slots_menu)}"
+                        f"(menu-order), cursor stuck at {sorted(_cursors)}, presses={dict(_presses)}"
+                    )
+                    if request_mode_recovery(_reason):
+                        try:
+                            from modules import debug_logger
+
+                            debug_logger.event(
+                                f"[FAINT-CHOOSER] handing a recoverable derail to the mode: {_reason}",
+                                category="BATTLE",
+                            )
+                        except Exception:  # noqa: BLE001
+                            pass
+                except Exception:  # noqa: BLE001 - never let recovery signalling break a battle
+                    pass
             return
 
 
