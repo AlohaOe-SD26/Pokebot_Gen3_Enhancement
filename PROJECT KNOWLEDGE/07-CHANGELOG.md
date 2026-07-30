@@ -5178,3 +5178,36 @@ right call — had it shipped alongside the index fix, the 3,975 → 3 improveme
 been attributed. **The exact string must come from the decomp, never recall.**
 
 Suite: **53 pass, 0 fail, 5 environmental.**
+
+## 2026-07-30 — KI-37 CONFIRMED FIXED live; failure classes now RECOVER instead of hanging
+
+Logs `20260730-095944` (u1) and `20260730-105452` (u2), both build `d7d493d8`.
+
+**u1 — the important one.** 3.15M frames, 3 badges (Roxanne/Brawly/Wattson), reached the Mt.
+Chimney Cable Car, 448 battles won. **Six derail events, ALL SIX recovered:**
+| # | cause | outcome |
+|---|---|---|
+| 1 | scripted event hit while pathing to (19,19) | recovered |
+| 2 | **KI-34 after-faint chooser gave up** | handed over → **claimed** → derail → continued |
+| 3,5,6 | global watchdog, 18,000 frames | recovered |
+| 4 | **KI-36 in-battle wedge, 60,000 frames** | net fired → recovered |
+
+**‼ KI-37 is fixed.** Hand-overs are now CLAIMED: worst stall **111,000 frames vs 1,182,000**
+before, and the run continued rather than freezing until stopped by hand. The run ended by
+exhausting its consecutive-derail budget and starting a fresh run — a bounded, designed exit.
+
+**u2 — clean.** Interrupted by the user at f242,969 ("Bot stopped: Encountered Whismur"); the
+remaining ~1.67M frames are idle heartbeats after the stop, not a wedge. **0 give-ups, 0
+in-battle stalls, 0 hand-overs.** The faithful PokéNav Match-Call tutorial completed again
+("done (called Mr. Stone)").
+
+### Honest read
+There are **no unrecovered errors**. But the recovery machinery is doing real work — roughly
+six wedge events in one 3.15M-frame run — so the underlying causes are still there; they are
+now *survivable* rather than fatal. Specifically still open: **KI-38** (3 residual chooser
+give-ups), and a **new instance**: a wild **Slugma** encounter wedged for 111,000 frames before
+the nets caught it. Both are tracked; neither blocks story work.
+
+**Latency note:** the KI-36 net fired at f1,857,704 and the first derail landed at f1,883,706 —
+**~26,000 frames to claim**. Far better than never, but not instant; worth watching if wedges
+become frequent.
