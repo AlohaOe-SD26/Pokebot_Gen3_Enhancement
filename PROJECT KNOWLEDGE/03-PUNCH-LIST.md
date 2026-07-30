@@ -297,6 +297,19 @@ region, where "train near the gym" is actively wrong.
       self-explaining error when the code grows a new dependency. **Copy that pattern into
       any new repro that stands in for `StoryMode`.**
 
+- [x] **`#24-menuorder` — DONE 2026-07-30. Story block + ×4 controls hoisted to the TOP of
+      the Bot-mode popup** (user request: *"I have to scroll around to activate them and
+      end/park them"*). `Park ×4` and `Stop Endless Loop ×4` used to be the LAST TWO entries,
+      below the greyed-out modes. New order: Manual → **STORY** (4 modes + Endless
+      Debug-Reset + Endless Loop ×4 + Park ×4) → OTHER MODES → disabled → Debug Logging.
+      Ordering extracted from the Tk callback into the pure
+      `dashboard_gui.build_mode_menu_plan()`; `repro_mode_menu_order.py` (14 checks, no Tk,
+      no emulator) asserts it so it cannot drift back.
+      ‼ Entries keep a FIXED position — a non-selectable Story mode is greyed IN PLACE
+      rather than dropping to the bottom, and `Park ×4` is always shown (greyed when idle).
+      Hiding it was the 2026-07-26 choice and it is what made the layout move.
+      Story modes matched by PREFIX, so a future `Story (…)` is hoisted automatically.
+
 ### ‼ #1 EXECUTION PRIORITY — the counter chain is now 72% of all derails
 - [~] **`#24-counters` phase 2 — BUILT 2026-07-30, AWAITING LIVE VALIDATION.**
       **STEP 1 — the hunting-ground gate** (`hunt_ground_tile` / `huntable` /

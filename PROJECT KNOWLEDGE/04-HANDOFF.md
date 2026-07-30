@@ -23,6 +23,14 @@ with the counter chain.
 six derail events in one 3.15M-frame run, all six recovered. The underlying causes are
 survivable, not gone. Do not read a quiet run as proof they are fixed.
 
+**GUI, 2026-07-30 (user request):** the Play tab's `Bot mode ▾` popup now opens with
+**Manual → STORY block (the 4 Story modes + Endless Debug-Reset + Endless Loop ×4 + Park ×4)
+→ OTHER MODES**. Park and Stop used to be the last two entries, under the greyed-out modes.
+Ordering lives in the pure `dashboard_gui.build_mode_menu_plan()`, asserted by
+`repro_mode_menu_order.py`. ‼ Entries keep a FIXED position — non-selectable Story modes are
+greyed IN PLACE, and `Park ×4` is always shown (greyed when idle), because hiding it changed
+the block height and shifted everything below it.
+
 **Since then (2026-07-30, this session):** `#24-counters` phase 2 **step 1 is done** — the
 hunting-ground gate that any travel-and-catch executor must sit behind (details in "NEXT"
 below). Two load-bearing beliefs in this file were also found to be FALSE and corrected:

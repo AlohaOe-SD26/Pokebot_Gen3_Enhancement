@@ -107,6 +107,114 @@ SIDEBAR_REFRESH_FRAMES = 30  # refresh party/labels every N rendered frames
 KPI_REFRESH_SECONDS = 5.0  # stats DB reads are not free — refresh sparsely
 UI_STATE_FILE = "dashboard_ui.json"
 
+#: Any bot mode whose name starts with this is hoisted to the top of the Bot-mode popup,
+#: together with the Story batch controls. ‼ A PREFIX, not a hand-written list: a new
+#: `Story (…)` mode must be findable the day it is added, and hand-listed collections in
+#: this project have a measured habit of rotting (08-MISTAKES 2026-07-30).
+STORY_MODE_PREFIX = "Story"
+
+#: Action keys used by `build_mode_menu_plan`; the renderer maps them to callbacks.
+ACTION_ENDLESS_RESET = "endless_reset"
+ACTION_X4_TOGGLE = "x4_toggle"
+ACTION_X4_PARK = "x4_park"
+ACTION_DEBUG_LOG = "debug_log"
+
+
+
+def build_mode_menu_plan(
+    mode_names,
+    *,
+    current_mode: str,
+    selectable,
+    x4_running: bool,
+    story_prefix: str = STORY_MODE_PREFIX,
+) -> list:
+    """Decide WHAT the Bot-mode popup shows and in WHICH ORDER. Pure — no Tk, no globals —
+    so the ordering can be tested without building a window (`repro_mode_menu_order.py`).
+
+    ‼ USER REQUEST 2026-07-30: the Story modes and the ×4 batch controls go at the TOP.
+    Previously the popup ran `Manual` → ~23 upstream modes → disabled modes → Debug Logging
+    → Endless Debug-Reset → Endless Loop ×4 → Park ×4, i.e. the two controls used most often
+    (park and stop a running batch) were the LAST two entries, below a block of greyed-out
+    modes. The user had to scroll to reach them every time.
+
+    Two ordering rules, both aimed at "findable without looking":
+      * The Story block is always in the same place, whether or not its entries are
+        selectable right now. A greyed-out Story mode stays at the top rather than dropping
+        into the disabled block at the bottom — an entry that MOVES depending on game state
+        is the scrolling problem wearing a different hat.
+      * `Park ×4 & Collect Logs` is now always PRESENT, greyed out when no batch is running,
+        for the same reason. This reverses a deliberate 2026-07-26 choice to hide it unless
+        meaningful; hiding it made the block's height change, so the entry below it moved.
+
+    `Manual` stays first — it is the stop button, its position is muscle memory, and it
+    costs exactly one line above the Story block.
+
+    Returns a list of tuples the renderer walks:
+      ("separator",)
+      ("header",  label)                       -- a disabled caption
+      ("mode",    label, mode_name, enabled)   -- selects that bot mode
+      ("command", label, key,       enabled)   -- one of the ACTION_* keys below
+    The ACTIVE mode is emitted as ("active", label) and is never clickable.
+    """
+    is_selectable = selectable if callable(selectable) else (lambda name: name in selectable)
+    plan: list = []
+
+    def emit_mode(name: str, *, always_enabled: bool = False) -> None:
+        if name == current_mode:
+            plan.append(("active", name))
+        else:
+            plan.append(("mode", name, name, True if always_enabled else bool(is_selectable(name))))
+
+    # 1. Manual — the stop button, always first and ALWAYS enabled.
+    # ‼ `always_enabled`: "Manual" is not a registered bot mode, so it is absent from
+    # `mode_names`/`selectable` and the plain selectability test would render the one
+    # entry that must always work as GREYED OUT.
+    emit_mode("Manual", always_enabled=True)
+    plan.append(("separator",))
+
+    # 2. THE STORY BLOCK — modes first, then the batch controls that drive them.
+    story_modes = [n for n in mode_names if n.startswith(story_prefix)]
+    if story_modes:
+        plan.append(("header", "STORY"))
+        for name in story_modes:
+            emit_mode(name)
+    plan.append(("command", "Endless Debug-Reset Runs…", ACTION_ENDLESS_RESET, True))
+    plan.append(
+        (
+            "command",
+            "Stop Endless Loop ×4" if x4_running else "Endless Loop ×4…",
+            ACTION_X4_TOGGLE,
+            True,
+        )
+    )
+    plan.append(("command", "Park ×4 & Collect Logs…", ACTION_X4_PARK, bool(x4_running)))
+
+    # 3. Everything else, in registry order, selectable first then greyed out.
+    # "Manual" is filtered out in case a future registry does list it — it is already
+    # emitted at the top and must never appear twice.
+    others = [n for n in mode_names if not n.startswith(story_prefix) and n != "Manual"]
+    enabled_others = [n for n in others if n != current_mode and is_selectable(n)]
+    disabled_others = [n for n in others if n != current_mode and not is_selectable(n)]
+    active_other = [n for n in others if n == current_mode]
+    if enabled_others or active_other:
+        plan.append(("separator",))
+        plan.append(("header", "OTHER MODES"))
+        for name in active_other:
+            emit_mode(name)
+        for name in enabled_others:
+            emit_mode(name)
+    if disabled_others:
+        plan.append(("separator",))
+        for name in disabled_others:
+            plan.append(("mode", name, name, False))
+
+    # 4. Diagnostics last — set once and forgotten, unlike the controls above.
+    plan.append(("separator",))
+    plan.append(("checkbutton", "Debug Logging (diagnostic file)", ACTION_DEBUG_LOG))
+    return plan
+
+
 GBA_ASPECT = 240 / 160
 
 
@@ -3937,16 +4045,17 @@ class DashboardScreen:
             self._log_event(f"Bot mode set to {mode_name}")
             self._refresh_controls()
 
-        if context.bot_mode == "Manual":
-            menu.add_command(label="Manual", font=bold_font)
-        else:
-            menu.add_command(label="Manual", command=lambda: select_bot_mode("Manual"))
-        menu.add_separator()
-        disabled_modes = []
+        # ‼ ORDER IS DECIDED BY `build_mode_menu_plan`, not here (user request 2026-07-30:
+        # Story modes and the ×4 controls belong at the TOP — Park and Stop used to be the
+        # last two entries, under a block of greyed-out modes, so reaching them meant
+        # scrolling every time). This method now only RENDERS the plan, which keeps the
+        # ordering pure and testable (`repro_mode_menu_order.py`) instead of being locked
+        # inside a Tk callback that needs a window to observe.
+        modes_by_name = {}
+        selectable_names = set()
         for mode in get_bot_modes():
-            if mode.name() == context.bot_mode:
-                menu.add_command(label=mode.name(), font=bold_font)
-                continue
+            name = mode.name()
+            modes_by_name[name] = mode
             try:
                 game_state = get_game_state()
             except Exception:
@@ -3956,59 +4065,73 @@ class DashboardScreen:
                 # which drives the New Game intro) are offered; everything else
                 # needs an in-game overworld and stays greyed out.
                 try:
-                    is_selectable = mode.is_selectable_from_title_screen() and mode.is_selectable()
+                    ok = mode.is_selectable_from_title_screen() and mode.is_selectable()
                 except Exception:
                     if context.debug:
                         console.print_exception()
-                    is_selectable = False
+                    ok = False
             elif game_state is None:
-                is_selectable = False
+                ok = False
             else:
                 try:
-                    is_selectable = mode.is_selectable()
+                    ok = mode.is_selectable()
                 except Exception:
                     if context.debug:
                         console.print_exception()
-                    is_selectable = False
-            if is_selectable:
-                menu.add_command(label=mode.name(), command=lambda m=mode: select_bot_mode(m.name()))
-            else:
-                disabled_modes.append(mode.name())
-        if disabled_modes:
-            menu.add_separator()
-            for mode_name in disabled_modes:
-                menu.add_command(label=mode_name, state="disabled")
+                    ok = False
+            if ok:
+                selectable_names.add(name)
+
         # Debug logging toggle (sandbox) — default OFF. When on, the whole run is
         # written to an extensive diagnostic log (<profile>/debug-logs/…) so hard
         # freezes can be diagnosed from the file.
         from modules import debug_logger
 
-        menu.add_separator()
         if self._debug_log_var is None:
             self._debug_log_var = tkinter.BooleanVar(self.window)
         self._debug_log_var.set(debug_logger.is_enabled())
-        menu.add_checkbutton(
-            label="Debug Logging (diagnostic file)",
-            variable=self._debug_log_var,
-            command=self._toggle_debug_logging,
-        )
-        # ENDLESS DEBUG-RESET RUNS (user request 2026-07-25). ‼ This is the DASHBOARD GUI,
-        # which `pokebot.py` launches BY DEFAULT — the classic GUI in emulator_controls.py is
-        # only reached via `--classic-gui`. The first attempt at this feature added the item
-        # to the classic GUI only, so the user tested twice and could not find it.
-        menu.add_separator()
-        menu.add_command(label="Endless Debug-Reset Runs…", command=self._start_endless_runs)
-        # ENDLESS LOOP x4 (user request 2026-07-26). Same family as the item above, so it
-        # lives beside it — and for the same reason as the ‼ note: this popup is the one the
-        # user actually sees, the classic GUI is only reached via --classic-gui.
-        menu.add_command(
-            label="Stop Endless Loop ×4" if self._x4_batch is not None else "Endless Loop ×4…",
-            command=self.start_endless_x4,
-        )
-        # Only meaningful during a batch (user request 2026-07-26), so it is only shown
-        # then rather than being offered greyed-out.
-        if self._x4_batch is not None:
-            menu.add_command(label="Park ×4 & Collect Logs…", command=self.collect_x4_logs)
+
+        # ‼ These three are the DASHBOARD GUI's, which `pokebot.py` launches BY DEFAULT —
+        # the classic GUI in emulator_controls.py is only reached via `--classic-gui`. The
+        # first attempt at the Endless-Reset feature added its item to the classic GUI only,
+        # so the user tested twice and could not find it. Keep them here.
+        actions = {
+            ACTION_ENDLESS_RESET: self._start_endless_runs,
+            ACTION_X4_TOGGLE: self.start_endless_x4,
+            ACTION_X4_PARK: self.collect_x4_logs,
+        }
+
+        for entry in build_mode_menu_plan(
+            list(modes_by_name),
+            current_mode=context.bot_mode,
+            selectable=selectable_names,
+            x4_running=self._x4_batch is not None,
+        ):
+            kind = entry[0]
+            if kind == "separator":
+                menu.add_separator()
+            elif kind == "header":
+                menu.add_command(label=f"— {entry[1]} —", state="disabled")
+            elif kind == "active":
+                menu.add_command(label=entry[1], font=bold_font)
+            elif kind == "mode":
+                _, label, mode_name, enabled = entry
+                if enabled:
+                    menu.add_command(label=label, command=lambda n=mode_name: select_bot_mode(n))
+                else:
+                    menu.add_command(label=label, state="disabled")
+            elif kind == "command":
+                _, label, key, enabled = entry
+                if enabled:
+                    menu.add_command(label=label, command=actions[key])
+                else:
+                    menu.add_command(label=label, state="disabled")
+            elif kind == "checkbutton":
+                menu.add_checkbutton(
+                    label=entry[1],
+                    variable=self._debug_log_var,
+                    command=self._toggle_debug_logging,
+                )
         menu.tk_popup(
             self._mode_button.winfo_rootx(), self._mode_button.winfo_rooty() + self._mode_button.winfo_height()
         )

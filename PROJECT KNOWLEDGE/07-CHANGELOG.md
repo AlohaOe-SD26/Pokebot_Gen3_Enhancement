@@ -5453,3 +5453,59 @@ and its FIRST choice is unreachable. With the fallback it now tries Route 116 Ni
 instead of stopping — but that is an L6-7 catch for an ~L20 team, and `train_counter`'s
 frame-cost gate may well decline it (est. 355,384 frames vs a 250,000 budget). **A Wattson
 derail that survives this is not the executor failing**; read the log line, which says which.
+
+---
+
+## 2026-07-30 — Bot-mode popup: Story block and ×4 controls hoisted to the TOP (`#24-menuorder`)
+
+**User request, verbatim intent:** *"I want all of them to be at the top of the list
+including the 'Park' and end options for the x4 runs so its easier to find them (currently
+I have to scroll around to activate them and end/park them)."*
+
+**What was wrong.** The Play tab's `Bot mode ▾` popup ran: `Manual` → ~23 upstream modes →
+a block of greyed-out modes → Debug Logging → Endless Debug-Reset → Endless Loop ×4 →
+Park ×4. **The two controls used most often while a batch is running — park it and stop it —
+were the last two entries**, below a block of things that cannot even be clicked.
+
+**New order:**
+```
+Manual
+─────────────
+— STORY —
+Story · Story (DEBUG) · Story (DEBUG - RESET) · Story (ENDLESS RESET)
+Endless Debug-Reset Runs…
+Endless Loop ×4…                 (reads "Stop Endless Loop ×4" while running)
+Park ×4 & Collect Logs…          (greyed out when no batch is running)
+─────────────
+— OTHER MODES —  … then disabled modes … then Debug Logging
+```
+
+### Two decisions inside this, both aimed at "findable without looking"
+1. **A Story mode that is not currently selectable stays in the Story block, greyed out**,
+   instead of dropping to the disabled block at the bottom. An entry that MOVES with game
+   state is the scrolling problem wearing a different hat.
+2. **`Park ×4` is now always present, disabled when idle.** This REVERSES a deliberate
+   2026-07-26 choice to hide it unless meaningful — hiding it changed the block's height, so
+   everything below it shifted between visits. Stable layout beats a tidy one here.
+
+`Manual` keeps first place: it is the stop button, its position is muscle memory, and it
+costs one line above the Story block.
+
+### The part worth keeping
+The ordering moved OUT of the Tk callback into a pure function,
+`dashboard_gui.build_mode_menu_plan()`, which returns a render plan; `_open_mode_menu` now
+only walks it. Previously the only way to observe the order was to open a window and look.
+Now `repro_mode_menu_order.py` (**14 checks, ALL PASS, no Tk and no emulator**) asserts it,
+so it cannot silently drift back.
+
+Story modes are found by **PREFIX**, not a hand-written list, so a future `Story (…)` mode
+is hoisted the day it is added — hand-listed collections in this project have a measured
+habit of rotting (`08-MISTAKES` 2026-07-30, twice in one day).
+
+**Caught by the new test:** `Manual` is not a registered bot mode, so it is absent from the
+selectability set — the first version of the plan rendered **the one entry that must always
+work as greyed out**. Fixed with an explicit `always_enabled`, and both states are asserted.
+
+**Scope:** `sandbox-pokebot` only. The classic GUI (`emulator_controls.py`, reachable only
+via `--classic-gui`) is unchanged; `pokebot.py` launches the dashboard by default, and this
+popup is the one the user actually sees.

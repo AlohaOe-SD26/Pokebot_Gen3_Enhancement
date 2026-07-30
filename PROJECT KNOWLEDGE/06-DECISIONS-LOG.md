@@ -1029,3 +1029,35 @@ would go quiet and the bot would re-attempt Norman with an untrained L15 Machop 
 "the strongest battler plus any battler already within `TRAIN_CATCHUP_GAP` levels" — a fresh
 catch is outside that gap BY DESIGN (`#24-team`: fresh catches level organically). So the
 counter needed an explicit, separately-budgeted training step.
+
+---
+
+## 2026-07-30 — Menu entries keep a FIXED position; a disabled entry beats a missing one
+
+**Decision.** In the dashboard's Bot-mode popup, the Story block and the ×4 batch controls
+occupy the same slots regardless of game state or whether a batch is running. Entries that
+cannot be used right now are shown **greyed out in place**, never hidden and never moved to
+a different section.
+
+**Why.** The user's complaint was findability — *"I have to scroll around to activate them
+and end/park them"* — and the fix for that is not merely "put them higher", it is "put them
+somewhere that does not change". Two behaviours were making the layout move:
+* a Story mode that failed `is_selectable()` dropped from its normal position into the
+  disabled block at the bottom of the menu;
+* `Park ×4 & Collect Logs` was hidden entirely unless a batch was running, so the block's
+  height changed and every entry below it shifted.
+
+**Rejected: keep hiding `Park ×4` when no batch is running** (the 2026-07-26 choice, whose
+stated reason was that it "is only meaningful during a batch"). That reasoning is sound for
+tidiness and wrong for muscle memory: a menu the user reaches for mid-batch must be in the
+same place as when they last looked at it. A greyed entry also *teaches* that the feature
+exists and when it applies, which a hidden one cannot.
+
+**Rejected: a hand-written list of Story mode names to hoist.** Story modes are matched by
+the `STORY_MODE_PREFIX` instead, so a new `Story (…)` variant is hoisted the day it is
+added. Hand-listed collections rotted twice in this project on this same day
+(`08-MISTAKES` 2026-07-30 — stub constants, and the "environmental" repro list).
+
+**Consequence accepted.** The menu is slightly longer, and shows a few entries that cannot
+be clicked. That is the price of a stable layout, and it is the cheaper error: a missing
+entry reads as a missing feature.
