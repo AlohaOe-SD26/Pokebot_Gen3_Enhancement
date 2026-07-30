@@ -10,91 +10,91 @@
 
 # ‼ START HERE — 2026-07-30 (most recent; supersedes the sections below)
 
-## WHERE WE ARE, IN ONE PARAGRAPH
-The Story bot reliably reaches **Winona / Gym 6 = end of built content** and has beaten her.
-`main` is at the commit shown by `git log -1`; the user runs the bot from a **different machine**
-(see §0a below) and pulls via `install_sandbox.py`. **A validation batch is IN FLIGHT** testing
-the KI-34 double-battle fix. Nothing should be built until its logs arrive.
+## READ THIS FIRST, THEN `14-AGENT-PLAYBOOK.md`. You need nothing from any chat transcript.
 
-## ‼ THE IN-FLIGHT TEST AND ITS EXACT PASS/FAIL CRITERIA
-The user is running an x4 batch on the KI-34 fix. When the bundle arrives, decide with **two
-grep-able lines** in the per-lane debug logs — do not re-derive:
-- `[FAINT-CHOOSER] index spaces: … [orders DIVERGE]` → confirms the two party index spaces
-  really do diverge in practice (the diagnosis).
-- `[FAINT-CHOOSER] … GAVE UP …` → **should now be ZERO or near-zero.** Previously 3,975 in P3
-  alone. If they persist, the index fix was insufficient and the *text-detection fallback*
-  (below) earns its place with evidence.
-Also check: `run_index` stride 1, losses:whiteouts ≈ 1.0, runs reaching 6 badges per lane.
-Method for reading a bundle: `14-AGENT-PLAYBOOK.md` §2c (five checks, five paid-for traps).
+## WHERE WE ARE
+The Story bot **reliably reaches Winona / Gym 6 = end of built content, and has beaten her.**
+A long fix campaign on the batch harness and on double battles is **complete and confirmed
+live**. The last two logs (`20260730-095944`, `20260730-105452`, build `d7d493d8`) show **no
+unrecovered errors**. The agreed next step is to **build story content past Winona**, starting
+with the counter chain.
 
-## WHAT IS FIXED vs OPEN (see 05-KNOWN-ISSUES for detail)
-**Fixed and repro-proven** (none yet validated live except the four marked ✅✅):
-- ✅✅ per-run state reset, honest outcomes, `run_index` stride, in-run frame budget (validated
-  live across five bundles; `couldn't beat the Rustboro rival` went 31 → 0).
-- KI-32 in-battle stall blindness → stall dumps now fire in battle (**caught KI-34 in production**).
-- KI-34 after-faint chooser index-space bug (**the big one** — see below).
-- KI-35 `MAX_FRAMES_PER_RUN` 3.5M → 5M (a *winning* run used 3,058,007 = 87% of the old cap).
-- Debug logs are self-describing (RUN HEADER: build, ROM, emulation, active rule).
-**Open:** KI-25 (defensive-only lead), KI-26 (Route 110 rival: no prep/cap), KI-27 (Weather
-Institute hang), KI-28 (training livelocks), KI-29 (P4 canary), KI-31 (fodder gate),
-KI-33 (same family as KI-34), **KI-36 (only NETTED — see below)**.
+‼ **"No unrecovered errors" is not "clean".** The recovery machinery is doing real work — about
+six derail events in one 3.15M-frame run, all six recovered. The underlying causes are
+survivable, not gone. Do not read a quiet run as proof they are fixed.
 
-## ‼ THE TWO THINGS MOST LIKELY TO BITE A NEW AGENT
-1. **KI-36 is NOT fully fixed.** The per-run frame budget is a GENERATOR WRAPPER, and the
-   controller stack is FLAT — `main_loop` advances only the TOP generator. While a battle
-   handler is on top, the story generator (and its budget) is **never stepped**, so a wedge ran
-   **25,632,106 frames** while the batch reported `frame-cap=0`. It is currently *netted* by
-   `debug_logger`'s stall detector calling `battle_fault.request_mode_recovery()` at 60,000
-   frames — **which only works while debug logging is ON**. A stack-independent budget in
-   `main_loop` is the complete fix and is still open.
-2. **Never `raise` from battle code.** It is a SIBLING of the mode on the flat stack, so a
-   `BotModeError` reaches `main_loop` and forces Manual. Use
-   `modules/battle_fault.py` `request_mode_recovery()`; `StoryMode` declares
-   `handles_battle_faults = True` and claims it via `take_pending_fault()`.
+## WHAT WAS FIXED IN THIS CAMPAIGN (all live-confirmed unless noted)
+| fix | evidence |
+|---|---|
+| per-run state reset | `couldn't beat the Rustboro rival` **31 → 0** |
+| honest outcomes (`stopped:` vs `finished`) | dead runs no longer report success |
+| `run_index` stride 1 | was all-odd stride 2 |
+| in-run frame budget + raise to 5M (KI-35) | a WINNING run used 3,058,007 frames = 87% of the old 3.5M cap |
+| KI-32 in-battle stall blindness | stall dumps now fire in battle — **this is what caught KI-34** |
+| **KI-34** after-faint chooser index-space bug | `GAVE UP` **3,975 → 3**; `[orders DIVERGE]` confirms the diagnosis |
+| **KI-37** listener starving the mode | worst stall **1,182,000 → 111,000** frames; hand-overs now claimed |
+| self-describing debug logs (RUN HEADER) | build/ROM/emulation/active-rule in every log |
+| debug modes force unthrottled + video ON | video is load-bearing: the faithful PokéNav path needs the renderer |
 
-## USER RULINGS ALREADY GIVEN (do not re-ask — 06-DECISIONS-LOG 2026-07-29)
-`#24-counters` phase 2 → price both, then **catch-and-train a Fighting type**;
-`#24-leadpolicy` → **A+C** (require a ≥neutral attacking option; special-case 1-HP Wonder
-Guard); `#24-route110cap` → **A** (add prep, **NO** attempt cap); KI-24b → **A** (fix the
-`_stand_at` mock, re-baseline, show the diff first); `#doc-policy-05` → **A** (keep-and-mark
-until promotion); repo size → **leave it**; debug modes → **unthrottled + video ON**
-(supersedes the 2026-07-26 "never touch `context.video`" rule — see the decisions log for why
-that is not a contradiction).
+## ‼ THE FIVE RULES THAT MATTER WHEN YOU TOUCH THIS CODE
+1. **Never `raise` from battle code.** It is a SIBLING of the mode on a FLAT controller stack, so
+   a `BotModeError` reaches `main_loop` and forces Manual. Use
+   `modules/battle_fault.py` → `request_mode_recovery()`.
+2. **Every listener that can sit above the mode must honour `battle_fault_pending()` and be
+   bounded.** Forgetting this caused KI-37 — a deadlock worse than the wedge it followed.
+   `BattleListener` and `TrainerApproachListener` now do; **others are UNAUDITED**.
+3. **Bound the OUTCOME, not the frames.** A bounded loop re-entered by its dispatcher is still
+   infinite (KI-34 burned 23.9M frames that way).
+4. **Prove two integers share a coordinate system before comparing them.** Party-menu indices
+   and `get_party()` indices DIVERGE; `map_battle_party_index()` converts. This caused KI-34.
+5. **Never write a game fact from memory** — decomp or live probe only.
 
-## AGREED-BUT-NOT-BUILT (user proposals, all in 03-PUNCH-LIST with dependencies)
-- **`#24-dexhunt`** — catch EVERY new species + hunt between gyms. XP argument is the strong
-  one: training is currently pure cost (**78 heal round trips in one run**), hunting adds yield
-  to a cost already paid.
-- **`#24-maintain`** — level the team organically. ‼ This is the **unbuilt half of the user's own
-  2026-07-21 directive**, recorded verbatim in `training_areas.py`'s docstring;
-  `best_training_grass(mon_level)` is already per-mon and has **never been called**.
-- **‼ The bot catches only THREE Pokémon** (user-observed 2026-07-30, cause confirmed):
-  `_catch_team_target = 4` is a **PARTY-SIZE** target and the party includes the starter, so
-  `len(party) >= 4` stops catching at starter + 3. Fix is in `21-TEAM-POLICY-DESIGN.md` §1
-  already: drop the `BADGE01_GET` gate and raise to 6 with box overflow.
-- **Text-detection fallback for the party menu** (user proposal 2026-07-30): read
-  `gDisplayedStringBattle` for the game's "already in battle" refusal and pick a different mon.
-  Sound, and there is precedent (`_move_learn_text_showing()`). **‼ The exact string MUST be read
-  from the decomp, never recalled.** Deliberately NOT built yet so the KI-34 index fix can be
-  validated alone — shipping both at once would make it impossible to tell which one worked.
-- **‼ A user assumption that the DATA REFUTES:** "in a double battle the first two party slots
-  are the battle pair". Across **4,116 observed double-battle samples only 76 (1.8%)** had the
-  pair at `[0, 1]`; the most common was `[2, 4]` (×3,975). A replacement KEEPS its own party
-  slot, so the relationship breaks after the first faint — which is exactly when the after-faint
-  chooser runs. Do not hardcode it.
+## STILL OPEN (see `05-KNOWN-ISSUES.md`, 39 entries)
+- **KI-38** — 3 residual after-faint give-ups. `presses={'Down': 3, 'A': 273}`,
+  `cursors_seen=[0,2,3,7]` in a 4-mon party; cursor 7 is probably the CANCEL entry. The data
+  cannot separate "wrong target" from "right target, refused". **`#24-menutext` (the user's
+  text-detection fallback) is the thing that resolves it — string MUST come from the decomp.**
+- **KI-36** — only NETTED. The per-run frame budget is a GENERATOR wrapper and cannot fire while
+  a battle handler is on top of the flat stack. Currently netted by `debug_logger`'s stall
+  detector at 60,000 frames, **which only works while debug logging is ON**. A
+  stack-independent budget in `main_loop` is the complete fix.
+- **New, unexplained:** a wild **Slugma** encounter wedged 111,000 frames (log `20260730-095944`).
+- KI-25 (defensive-only lead), KI-26 (Route 110 rival: no prep/cap), KI-27 (Weather Institute
+  hang), KI-28 (training livelocks), KI-29 (P4 canary), KI-31 (fodder gate), KI-33.
 
-## NEXT, IN ORDER
-1. Read the in-flight batch against the two criteria above.
-2. If clean: `#24-counters` phase 2 — still the biggest lever (**~72% of derails** are the
-   counter chain naming an answer and then ending the run).
-3. Then the team/catch work (`#24-dexhunt` + `#24-maintain` + party cap), which share
+## ‼ NEXT, IN THIS ORDER (agreed with the user 2026-07-30)
+1. **`#24-counters` phase 2 — the biggest lever by far.** ~**72% of all derails** are the counter
+   chain correctly NAMING the answer it needs and then ENDING THE RUN.
+   `counter_plan.find_counter_candidates` already returns ranked, reachable, cost-priced
+   species+tiles; `story_mode.py:619` states it is *"PLANNING/LOGGING ONLY — this does not
+   travel, catch, or train anything."* Build the travel-and-catch step. **User ruling: price
+   both options, then catch-and-train a Fighting type for Norman** (not potions).
+   Build the `COUNTER_CATCH_TARGET_DEX` rung FIRST — `21-TEAM-POLICY-DESIGN.md` §5 explains why.
+2. **Then the next chapters: Mt. Pyre → Magma hideout** (`12-STORYMODE-DESIGN.md`).
+   MAP FIRST (static recon → Area Atlas → build → validate) — playbook §4.
+3. **Then the team/catch work** (`#24-dexhunt`, `#24-maintain`, `#24-catchcap`), which share
    machinery: `encounter_index`, `hunt_mode`, `training_areas`, and the **built-but-UNWIRED**
    `modules/story/team_policy.py`.
-4. Then continue the story past Winona (Mt. Pyre, Magma hideout).
+4. **Then overnight x4 sweeps** and review, per `14-AGENT-PLAYBOOK.md` §2c.
 
-**Revert point:** tag `backup/pre-trainmap-2026-07-29` (pushed). Recipes in §0-BACKUP below.
+## USER RULINGS ALREADY GIVEN — DO NOT RE-ASK (`06-DECISIONS-LOG.md` 2026-07-29/30)
+`#24-counters` → price both, then catch-and-train Fighting; `#24-leadpolicy` → **A+C**;
+`#24-route110cap` → **A** (prep, **NO** cap); KI-24b → **A**; `#doc-policy-05` → **A**;
+repo size → **leave it**; debug modes → unthrottled + video ON; `xp_rate` is the **default**
+fodder rule (`POKEBOT_FODDER_RULE=legacy` reverts).
+**One ruling still owed:** `#24-dexhunt` asks for ALWAYS-catch-new, while
+`21-TEAM-POLICY-DESIGN.md` §1 specifies a SCORED RANDOM roll so runs differ. They cannot both
+be the rule.
 
----
+## ENVIRONMENT — this box
+- Tests: `py -3.12 tools/story-dev/repro_<name>.py` (plain `python` is 3.9 and will fail).
+- Full sweep expectation: **53 pass, 0 fail, 5 environmental** (`repro_boss_training`,
+  `repro_double_faint`, `repro_navigate_failfast`, `repro_sufficiency` need a real mgba;
+  `repro_x4_lanes` SPAWNS REAL LANE PROCESSES — skip it).
+- **No mgba here.** Anything needing a live emulator must be validated on the user's machine.
+- ‼ **The user runs the bot from a DIFFERENT MACHINE** and pulls with `install_sandbox.py`
+  (which does `git fetch` + `git pull --ff-only`). Commits here do not reach it until they pull.
+- **Revert point:** tag `backup/pre-trainmap-2026-07-29` (on origin). Recipes in §0-BACKUP.
 
 # START HERE — 2026-07-27 (HISTORY — superseded by the 2026-07-30 section above)
 
