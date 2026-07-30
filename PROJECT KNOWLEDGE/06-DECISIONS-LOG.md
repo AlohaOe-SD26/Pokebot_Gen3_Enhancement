@@ -952,3 +952,43 @@ what actually happened is never in doubt.
 `batch_speed`, or every run after the first is restored to the OLD speed — the 2026-07-25
 "second run crawled at 1x" bug, reintroduced from the other direction.
 `repro_debug_emulation_config.py` asserts the order.
+
+---
+
+## 2026-07-30 — Counter hunting grounds are a WHITELIST, and huntability is separate from reachability
+
+**Decision.** `#24-counters` phase 2 may only send the bot to a map listed in
+`TRAINING_GRASS` (two-way swept) or the new `training_areas.HUNTING_GROUNDS`
+(reach-and-leave proven). Every candidate carries `huntable`, and executors must select
+with `counter_plan.best_huntable()` — never `cands[0]`.
+
+**Why a whitelist and not a blacklist of endgame maps.** The blacklist version is an
+ever-growing list of assertions about which Hoenn interiors are story-locked — i.e. exactly
+the *game facts written from memory* the standing directive forbids, and a list that is wrong
+the moment it is incomplete. The whitelist requires no claim about Mirage Tower or the Magma
+Hideout at all: they are refused because nobody has swept them, which is a fact about OUR
+evidence, not about the game. It also fails CLOSED, the correct direction for a predicate that
+decides where the bot physically walks (KI-24's lesson, in the safe direction).
+
+**Rejected: rank by cost and trust the ranking.** The cost model prices "train it up to the
+team's level" at ~0 for a wild already above the team, so it ranks deep-endgame encounters as
+CHEAPEST. Measured: rank 1 for Norman is a Victory Road Hariyama L38-42. **Ranking answers
+"which is cheapest", never "may I go there".**
+
+**Rejected: let `region_reach` be the gate.** It cannot be. Run live from the Winona-era save,
+`_counter_area_allowed` calls the Magma Hideout, Shoal Cave and the Safari Zone **reachable**
+(10/10 candidates reachable) — which is arguably TRUE as connectivity and useless as
+permission. `KNOWN_GATES` holds two hand-verified entries; anything not derivable from ROM
+connection data reads as ungated, and the module is documented as failing OPEN on purpose.
+
+**Rejected: reuse `NO_RETURN_GROUNDS` as the hunt test.** It encodes a *training-loop*
+requirement (must walk back to a Poké Center to heal). A hunt is walk-in/catch/walk-out and
+needs no heal leg, so that table refuses grounds a hunt may legitimately use — Fiery Path is
+precisely such a ground, and `NO_RETURN_GROUNDS`' own entry says so in prose. Hence a separate
+table for a separate requirement rather than weakening the existing one, which would have
+quietly re-admitted Fiery Path to `train_team` and reintroduced the stranding bug it exists
+to prevent.
+
+**Consequence accepted.** Real answers get refused for lack of a sweep, not for being wrong —
+Wattson's Jagged Pass Numel, Norman's Granite Cave Makuhita. The unblock is field work
+(promote a swept tile), and the refusal is loud, so the cost is visible rather than silent.

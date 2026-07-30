@@ -23,6 +23,12 @@ with the counter chain.
 six derail events in one 3.15M-frame run, all six recovered. The underlying causes are
 survivable, not gone. Do not read a quiet run as proof they are fixed.
 
+**Since then (2026-07-30, this session):** `#24-counters` phase 2 **step 1 is done** — the
+hunting-ground gate that any travel-and-catch executor must sit behind (details in "NEXT"
+below). Two load-bearing beliefs in this file were also found to be FALSE and corrected:
+**this box has mgba** (vendored at `sandbox-pokebot/mgba/`), and **counter candidates are not
+all `tile: None`**. No bot behaviour has changed yet — nothing travels or catches.
+
 ## WHAT WAS FIXED IN THIS CAMPAIGN (all live-confirmed unless noted)
 | fix | evidence |
 |---|---|
@@ -64,12 +70,38 @@ survivable, not gone. Do not read a quiet run as proof they are fixed.
 
 ## ‼ NEXT, IN THIS ORDER (agreed with the user 2026-07-30)
 1. **`#24-counters` phase 2 — the biggest lever by far.** ~**72% of all derails** are the counter
-   chain correctly NAMING the answer it needs and then ENDING THE RUN.
-   `counter_plan.find_counter_candidates` already returns ranked, reachable, cost-priced
-   species+tiles; `story_mode.py:619` states it is *"PLANNING/LOGGING ONLY — this does not
-   travel, catch, or train anything."* Build the travel-and-catch step. **User ruling: price
+   chain correctly NAMING the answer it needs and then ENDING THE RUN. **User ruling: price
    both options, then catch-and-train a Fighting type for Norman** (not potions).
-   Build the `COUNTER_CATCH_TARGET_DEX` rung FIRST — `21-TEAM-POLICY-DESIGN.md` §5 explains why.
+
+   ✅ **STEP 1 DONE 2026-07-30 — the hunting-ground gate.** `training_areas.HUNTING_GROUNDS`
+   + `hunt_ground_tile()`; candidates now carry `huntable`; **`counter_plan.best_huntable()`
+   is the ONLY selector an executor may call.** `repro_counter_huntable.py` — ALL PASS.
+   It had to land first: the cost model prices "train it up to the team's level" at ~0 for a
+   wild ALREADY ABOVE the team, so it **ranks endgame maps as cheapest** — rank 1 for Norman
+   is **Hariyama @ VICTORY_ROAD_B1F L38-42**. Building the executor on `cands[0]` would have
+   walked a mid-game team into the E4 approach, and reachability would NOT have stopped it
+   (live from the Winona save, `_counter_area_allowed` calls Magma Hideout / Shoal Cave /
+   Safari Zone reachable, 10/10). Closes punch-list blockers (1), (3), (4).
+
+   ‼ **The old blocker (1) claim — "every candidate has `tile: None`" — was FALSE.** All
+   three measured derail classes now resolve to a swept, walkable destination:
+   | Norman → Fighting | **Machop @ FIERY_PATH (18,19)** ← matches the user's ruling |
+   | Wattson → Ground | **Sandshrew @ ROUTE111 (25,55)** |
+   | Winona → Rock/Elec/Ice | **Electrike @ ROUTE118 (29,15)** |
+
+   ⏭ **STEP 2 NEXT — the executor.** Travel to `best_huntable()`'s `hunt_tile`, catch via a
+   `COUNTER_CATCH_TARGET_DEX` catch-on-sight branch (mirror `HM_CATCH_TARGET_DEX` and its
+   consumer at `story_mode.py:1556-1582` — note the local-`console` UnboundLocalError trap
+   documented there), then **TRAIN the catch**, then fall through to the SAME terminal raise
+   if any rung fails. `21-TEAM-POLICY-DESIGN.md` §5 is the spec; `ensure_hm_learner`
+   (`early_game.py:4087`) is the working shape to clone (provision balls → navigate → arm →
+   bounded `_story_spin` → disarm in a `finally` → `normalize_to_overworld`).
+   ‼ **Training is NOT optional garnish.** Catch a L15 Machop for a L30 team and leave it
+   untrained and `_boss_plan_is_hopeless` answers "not hopeless" for ever after — converting
+   today's bounded, honest stop into an unbounded loop that only the 5M frame budget ends.
+   Bound the OUTCOME, not the frames (rule 3 below).
+   ‼ **Never delete the terminal raise** (`story_mode.py:1347`). Silent non-progress is worse
+   than an honest stop.
 2. **Then the next chapters: Mt. Pyre → Magma hideout** (`12-STORYMODE-DESIGN.md`).
    MAP FIRST (static recon → Area Atlas → build → validate) — playbook §4.
 3. **Then the team/catch work** (`#24-dexhunt`, `#24-maintain`, `#24-catchcap`), which share
@@ -88,10 +120,32 @@ be the rule.
 
 ## ENVIRONMENT — this box
 - Tests: `py -3.12 tools/story-dev/repro_<name>.py` (plain `python` is 3.9 and will fail).
-- Full sweep expectation: **53 pass, 0 fail, 5 environmental** (`repro_boss_training`,
-  `repro_double_faint`, `repro_navigate_failfast`, `repro_sufficiency` need a real mgba;
-  `repro_x4_lanes` SPAWNS REAL LANE PROCESSES — skip it).
-- **No mgba here.** Anything needing a live emulator must be validated on the user's machine.
+- Full sweep expectation (measured 2026-07-30, 59 scripts): **54 pass, 4 fail, 1 skip**
+  (`repro_x4_lanes` SPAWNS REAL LANE PROCESSES — skip it).
+- ‼‼ **THE 4 FAILURES ARE NOT "ENVIRONMENTAL" AND NEVER NEEDED mgba.** All four launched
+  mGBA 0.10.2 successfully. Verified pre-existing (they fail identically with this
+  session's changes stashed), and **3 of the 4 are ROTTEN TEST SCAFFOLDING, not bugs**:
+  | repro | real cause |
+  |---|---|
+  | `repro_boss_training` | its `SimpleNamespace` stand-in `self` lacks `_boss_plan_is_hopeless`, added to `_prepare_for_fight` in the KI-23 work and never added to the stub |
+  | `repro_double_faint` | its stub mon lacks `.level`, which `level_up.py:73` now reads |
+  | `repro_navigate_failfast` | asserts `startswith("raised BotModeError")` but gets `UnreachableDestinationError` — **a SUBCLASS of BotModeError**, so the behaviour is right and the string assertion is wrong |
+  | `repro_sufficiency` | expects a `topup` verdict, gets `None` — the only one that may be a REAL behaviour change; not yet diagnosed |
+  ‼ **`repro_boss_training` is dead, and it guards `_prepare_for_fight` — the exact
+  function `#24-counters` step 2 modifies.** Repair it BEFORE building step 2, or step 2
+  ships with no regression cover on the code it changes. Tracked as `#24-reprorot`.
+- ‼‼ **THIS BOX *DOES* HAVE mgba — the old "no mgba here" claim was FALSE** (corrected
+  2026-07-30, `08-MISTAKES.md`). It is **vendored in the repo** at `sandbox-pokebot/mgba/`,
+  so a bare `import mgba` from the repo root fails while every repro — which puts
+  `sandbox-pokebot` on `sys.path` first — succeeds. Verified: `repro_counter_wiring.py`
+  loaded a real save state, ran frames and read live party/flag data here.
+  **Live validation belongs HERE, not deferred to the user's machine.** Re-check any
+  "environmental" repro and any "must be validated live elsewhere" note written before
+  this date.
+- ‼ **Run repros with `PYTHONIOENCODING=utf-8` when capturing output.** They print `‼`
+  and em-dashes; through a PIPE Python falls back to cp1252 and dies with
+  `UnicodeEncodeError`, which a test harness will report as a FAILING REPRO. Cost an
+  entire bogus red sweep on 2026-07-30.
 - ‼ **The user runs the bot from a DIFFERENT MACHINE** and pulls with `install_sandbox.py`
   (which does `git fetch` + `git pull --ff-only`). Commits here do not reach it until they pull.
 - **Revert point:** tag `backup/pre-trainmap-2026-07-29` (on origin). Recipes in §0-BACKUP.

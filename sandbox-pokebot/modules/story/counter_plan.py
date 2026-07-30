@@ -91,7 +91,20 @@ def find_counter_candidates(needed_type_names, *, allow=None, max_results: int =
     Each candidate dict carries: `species_name`, `types`, `map_enum`, `tile` (a verified
     TRAINING_GRASS spin tile if this map has one, else None), `level_band` (min, max),
     `encounter_rate`, `reachable` (bool), `score` (float, higher is better — also the
-    sort key).
+    sort key), plus the two HUNT facts added for phase 2 (2026-07-30):
+
+      * `hunt_tile` — the tile a hunt may actually spin on (`training_areas.
+        hunt_ground_tile`), or None. Wider than `tile`, because a catch-and-leave hunt
+        needs no heal leg and so admits grounds a training loop must refuse.
+      * `huntable`  — `reachable AND hunt_tile is not None`, i.e. "phase 2 could
+        actually go and do this", as opposed to "this species answers the type".
+
+    ‼ `huntable` is a SEPARATE FACT FROM `reachable`, and the executor must use it.
+    Measured 2026-07-30 over the real ROM tables: the top-ranked Fighting answer for
+    Norman is a **Victory Road Hariyama**, and Wattson's Ground answers include the
+    Magma Hideout and Mirage Tower — all ranked high because the cost model prices
+    "train it to the team's level" at ~0 for a wild that is ALREADY above the team, so
+    endgame encounters read as cheap. Ranking is not a gate; `hunt_ground_tile` is.
 
     RANKING (documented per spec — order matters):
       1. Reachable beats unreachable, always. An ideal counter we cannot walk to is
@@ -123,7 +136,11 @@ def find_counter_candidates(needed_type_names, *, allow=None, max_results: int =
         from modules.encounter_index import get_encounter_index
         from modules.map_data import get_map_enum
         from modules.pokemon import get_species_by_index
-        from modules.story.training_areas import AREA_PREREQ, TRAINING_GRASS
+        from modules.story.training_areas import (
+            AREA_PREREQ,
+            TRAINING_GRASS,
+            hunt_ground_tile,
+        )
 
         tile_by_map = {map_enum: tile for map_enum, tile, _band in TRAINING_GRASS}
         team_level = _team_reference_level()
@@ -200,6 +217,14 @@ def find_counter_candidates(needed_type_names, *, allow=None, max_results: int =
                 # for display and for callers that read it.
                 score = tier + rate * 1_000.0 - level_gap
 
+                # Where a HUNT could actually stand (see the docstring): deliberately
+                # computed here rather than by the caller, so no executor can forget to
+                # ask and walk into an unswept endgame interior. Fails closed.
+                try:
+                    hunt_tile = hunt_ground_tile(map_enum)
+                except Exception:
+                    hunt_tile = None
+
                 candidates.append(
                     {
                         "species_name": species.name,
@@ -212,6 +237,8 @@ def find_counter_candidates(needed_type_names, *, allow=None, max_results: int =
                         "score": score,
                         "tier": tier,
                         "est_frames": est_frames,
+                        "hunt_tile": hunt_tile,
+                        "huntable": bool(reachable and hunt_tile is not None),
                     }
                 )
 
@@ -236,13 +263,39 @@ def find_counter_candidates(needed_type_names, *, allow=None, max_results: int =
         return []
 
 
+def best_huntable(cands) -> "dict | None":
+    """The highest-ranked candidate phase 2 can ACTUALLY go and catch, or None.
+
+    `cands` is assumed already sorted by `find_counter_candidates` (it is the only
+    producer), so this is a first-match scan, not a re-rank — the ranking contract
+    stays in one place. A caller that gets None has a diagnosis but no action, and
+    must fall through to the honest stop rather than inventing a destination.
+
+    ‼ This is the ONLY function an executor should use to pick where to go. Reading
+    `cands[0]` instead is the bug this exists to prevent: rank 1 for Norman is a
+    Victory Road Hariyama (measured 2026-07-30).
+    """
+    try:
+        for candidate in cands or []:
+            if candidate.get("huntable") and candidate.get("hunt_tile") is not None:
+                return candidate
+        return None
+    except Exception as error:
+        _log.warning("best_huntable failed: %s", error)
+        return None
+
+
 def summarise_candidates(cands) -> str:
     """Short human-readable line per candidate, for logging."""
     try:
         lines = []
         for c in cands:
-            tile = c.get("tile")
+            tile = c.get("hunt_tile") or c.get("tile")
             tile_str = f"tile {tile}" if tile is not None else "tile unmapped"
+            if not c.get("huntable", False):
+                # Say WHY it is only a diagnosis. A log that lists a target the bot
+                # will never walk to, with no marker, reads as a plan that failed.
+                tile_str += ", NOT HUNTABLE"
             lo, hi = c.get("level_band", (None, None))
             band_str = f"L{lo}-{hi}" if lo is not None and hi is not None else "L?"
             map_enum = c.get("map_enum")

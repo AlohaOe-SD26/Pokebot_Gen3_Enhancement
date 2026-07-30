@@ -280,8 +280,29 @@ region, where "train near the gym" is actively wrong.
       So this is ASSEMBLY against an existing spec, not a new design. Re-read `21` first;
       only bring the user a question `21` does not already answer.
 
+- [ ] **`#24-reprorot` — 4 sweep failures mislabelled "environmental / needs mgba" are
+      actually ROTTEN TESTS (new, 2026-07-30).** All four start mGBA 0.10.2 fine; confirmed
+      pre-existing (fail identically with 2026-07-30's changes stashed). Fixes are small:
+      `repro_boss_training` — stub `self` needs `_boss_plan_is_hopeless`;
+      `repro_double_faint` — stub mon needs `.level`;
+      `repro_navigate_failfast` — assert on the exception TYPE, not the string
+      `"raised BotModeError"`; `UnreachableDestinationError` is a SUBCLASS of it, so the
+      code is right and the test is wrong;
+      `repro_sufficiency` — expects `topup`, gets `None`; the only one that may be a real
+      behaviour change. **Diagnose this one, don't just repair it.**
+      ‼ **DO `repro_boss_training` FIRST** — it guards `_prepare_for_fight`, the exact
+      function `#24-counters` step 2 edits, so step 2 has no regression cover until it runs.
+
 ### ‼ #1 EXECUTION PRIORITY — the counter chain is now 72% of all derails
-- [ ] **`#24-counters` phase 2 — ACT on the named counter (promoted to #1, 2026-07-29).**
+- [~] **`#24-counters` phase 2 — ACT on the named counter (promoted to #1, 2026-07-29).**
+      **STEP 1 DONE 2026-07-30 — the hunting-ground gate** (`hunt_ground_tile` /
+      `huntable` / `best_huntable`, `repro_counter_huntable.py`, ALL PASS). It had to land
+      first: the cost ranking puts **Victory Road Hariyama at rank 1** for Norman, so an
+      executor built on `cands[0]` would have walked a mid-game team into the E4 approach.
+      Destinations are now settled — Norman → **Machop @ FIERY_PATH (18,19)**, Wattson →
+      **Sandshrew @ ROUTE111 (25,55)**, Winona → **Electrike @ ROUTE118 (29,15)**.
+      **STEP 2 NEXT — the executor** (travel → catch → **train**), detail under the
+      `#24-counters` entry further down. Nothing travels or catches yet.
       Of 36 derails in the newest bundle, **~26 are "boss: N losses with no super-effective
       answer to X. Need one of: Y"** — the chain diagnoses correctly and then ENDS THE RUN.
       Breakdown: Electric→needs Ground ×17, Normal→needs Fighting ×9, Winona ×3.
@@ -945,18 +966,36 @@ region, where "train near the gym" is actively wrong.
       find + frames to train to the team's level) instead of encounter rate; measured
       effect on the real save: Machop/Jagged Pass 75,949 vs Makuhita/Granite Cave 315,260,
       i.e. the old order preferred the 4.2x more expensive option.
-      ‼ **REMAINING BLOCKERS, in order:**
-      (1) **Tiles** — every candidate has `tile: None`; no counter map has a verified spin
-          tile, so there is nothing to path to. Field work (two-way sweeps from a real
-          story anchor). `GRANITE_CAVE_1F (35,11)` already sits in `PENDING_GRASS`;
-          FIERY_PATH is the better target (on the Ch10 route, traversable both ways,
-          unlike Jagged Pass's one-way ledges).
-      (3) **Victory Road / E4 gate must enter `KNOWN_GATES`** — and cost ranking made this
-          MORE urgent: Hariyama L38-42 is already above the team, so its training cost is
-          ~0 and it ranks #1 the moment anything calls it reachable. Only the `max_hops=4`
-          distance bound kept it out of the live answer, which is luck, not a gate.
-      (4) Exclude story interiors (`GRANITE_CAVE_STEVENS_ROOM` is proposed as a hunting
-          ground).
+      ‼ **BLOCKERS (1), (3) and (4) ARE CLOSED — 2026-07-30.** All three were the same
+      bug wearing three hats, and the fix is one fail-closed predicate:
+      `training_areas.hunt_ground_tile()` (whitelist: `TRAINING_GRASS` + the new
+      `HUNTING_GROUNDS`) → `counter_plan` candidates carry `huntable` →
+      `counter_plan.best_huntable()` is the ONLY selector an executor may call.
+      Proof `repro_counter_huntable.py` (offline, real ROM tables, ALL PASS).
+      (1) **Tiles — the premise was WRONG.** "Every candidate has `tile: None`" is false:
+          Wattson's ROUTE111 (25,55) and Winona's ROUTE118 (29,15) answers both carry
+          swept tiles. Only the *Fighting* answers lacked one, and FIERY_PATH **(18,19)**
+          is now recorded in `HUNTING_GROUNDS` — the tile `story_harness --driver
+          fierycave` actually walked; legs 1+2 PASS, only the heal leg fails, and a
+          catch-and-leave hunt never walks it. **All three derail classes now resolve to
+          a swept, walkable destination.**
+      (3)+(4) **Victory Road / story interiors — solved by the whitelist, not by
+          `KNOWN_GATES`.** The blacklist route would be an ever-growing list of game facts
+          written from memory (forbidden). And reachability could never have gated it:
+          run live from the Winona-era save, `_counter_area_allowed` reports **Magma
+          Hideout, Shoal Cave and the Safari Zone as `reachable`**, 10/10 candidates.
+          Confirmed hazard, not a theoretical one: rank 1 for Norman is **Hariyama @
+          VICTORY_ROAD_B1F L38-42**, because the cost model prices "train it to the team's
+          level" at ~0 for a wild already above the team — so it PREFERS endgame maps.
+          Jagged Pass proves the gate has teeth: it ranks ABOVE Fiery Path (134,702 vs
+          250,297 frames) and is refused via `NO_RETURN_GROUNDS`.
+      ‼ **REMAINING BLOCKER: (2) the executor itself** — travel to `best_huntable()`'s
+          tile, catch (a `COUNTER_CATCH_TARGET_DEX` catch-on-sight branch mirroring
+          `HM_CATCH_TARGET_DEX`), and TRAIN the catch. See `21-TEAM-POLICY-DESIGN.md` §5.
+          ‼ The train step is NOT optional garnish: catching a L15 Machop for a L30 team
+          and not training it converts today's bounded, honest stop into an unbounded
+          loop, because `_boss_plan_is_hopeless` then answers "not hopeless" for ever
+          after. Bound the OUTCOME (playbook rule 3).
       ‼ **Value check before building:** priced against the measured cost of the current
       behaviour (run05 lost to Norman 21x ~ 399,000 frames; run3 27x = 508,000), a Machop
       costs 98,877 and a Makuhita 363,982 — but the only counter the LIVE predicate

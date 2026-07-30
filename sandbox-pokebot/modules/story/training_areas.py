@@ -202,6 +202,76 @@ def _return_blocked(map_enum) -> "str | None":
     return NO_RETURN_GROUNDS.get(map_enum)
 
 
+#: ‼ CATCH-AND-LEAVE HUNTING GROUNDS (#24-counters phase 2, added 2026-07-30).
+#:
+#: A counter HUNT is not a training loop and must not be judged by the same rule. A
+#: training loop needs three legs — reach the ground, spin on it, and walk BACK to a
+#: Poké Center to heal — which is why `NO_RETURN_GROUNDS` exists. A hunt needs only
+#: TWO: reach the ground and LEAVE it. So a ground can be illegal for `train_team`
+#: and still perfectly legal here, and `NO_RETURN_GROUNDS`' own FIERY_PATH entry says
+#: exactly that in prose ("a fine CATCH-AND-LEAVE hunting ground ... which needs no
+#: heal trip; that is a different use and must not go through this picker").
+#: This table is that different use, made consultable — prose in a table nobody
+#: queries is the mistake NO_RETURN_GROUNDS' own header warns about.
+#:
+#: Each entry: ``map -> (spin_tile, measured evidence)``. Nothing goes in here on a
+#: guess: the standing prevention rule is that a tile is adopted only after it is
+#: proven FROM THE REAL ENTRY POINT, in both directions of the legs it needs.
+HUNTING_GROUNDS: dict = {
+    # Legs 1 and 2 both PASS from the real pre-Norman anchor: `story_harness.py
+    # lavaridge --driver fierycave` walked Lavaridge -> FIERY_PATH (18,19) and then
+    # back OUT of the cave onto Route 112 (2026-07-26). Only its leg 3 — the onward
+    # heal trip Route 112 -> Lavaridge — fails, and a hunt never takes that leg.
+    # This is the Norman answer's only home: Machop lives on FIERY_PATH (L15-16) and
+    # JAGGED_PASS (L20-22), and Jagged Pass is no-return in the strong sense (it
+    # cannot even path WITHIN itself — see NO_RETURN_GROUNDS).
+    MapRSE.FIERY_PATH: (
+        (18, 19),
+        "Lavaridge -> (18,19) and (18,19) -> out of the cave both PASS "
+        "(story_harness --driver fierycave, 2026-07-26); only the onward heal leg "
+        "to Lavaridge fails, which a catch-and-leave hunt never walks",
+    ),
+}
+
+
+def hunt_ground_tile(map_enum) -> "tuple | None":
+    """The tile a COUNTER HUNT may stand on to spin for wild encounters on `map_enum`,
+    or None if this map is not a proven hunting ground.
+
+    ‼ WHITELIST, DELIBERATELY — it fails CLOSED. The counter planner ranks candidates
+    over the WHOLE-GAME encounter index, so its raw output includes places the story
+    has no business walking into mid-run: measured 2026-07-30, the top-ranked Fighting
+    answer for Norman is a Victory Road Hariyama, and the Ground answers for Wattson
+    include the Magma Hideout and Mirage Tower. Those rank high precisely BECAUSE they
+    are endgame — the cost model prices "train it up to the team's level" at ~0 for a
+    wild that is already above the team, so deep-game encounters look CHEAP.
+    A blacklist of such places would be an ever-growing list of game facts written from
+    memory (the one thing this project forbids); a whitelist needs no claim about
+    Mirage Tower at all — it is simply not a ground anyone has swept, so it is refused.
+
+    Two sources, both evidence-backed:
+      * `TRAINING_GRASS` — two-way swept spin tiles (the strongest evidence we hold).
+      * `HUNTING_GROUNDS` — reach-and-leave grounds, proven for this weaker requirement.
+
+    A ground in `NO_RETURN_GROUNDS` is refused unless `HUNTING_GROUNDS` explicitly
+    clears it, so JAGGED_PASS and ROUTE112 stay refused while FIERY_PATH does not.
+    """
+    try:
+        entry = HUNTING_GROUNDS.get(map_enum)
+        if entry is not None:
+            tile = entry[0]
+            return tuple(tile) if tile is not None else None
+        if _return_blocked(map_enum) is not None:
+            return None  # no-return and not cleared for hunting — refuse
+        for candidate_map, tile, _band in TRAINING_GRASS:
+            if candidate_map is map_enum and tile is not None:
+                return tuple(tile)
+        return None
+    except Exception:
+        # Fail CLOSED: an unreadable table must never widen where the bot may walk.
+        return None
+
+
 def best_training_area(team_level: int, *, min_wild_max: int = 0, allow=None):
     """Pick the training area best matched to `team_level` for FULL-xp grinding.
 

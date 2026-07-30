@@ -2503,3 +2503,93 @@ telemetry I had chosen would have produced it, because every number in it agreed
    mistake, in the identical function, one layer down.)
 4. **Take a user's direct observation of the screen as primary evidence over your own
    telemetry.** They are watching the system; the telemetry is watching your model of it.
+
+---
+
+## 2026-07-30 — A cost model that rewards being over-levelled ranked Victory Road as the cheapest answer
+
+**Symptom.** `counter_plan.find_counter_candidates(["Fighting"])` for a L30 team returns, in
+order: Hariyama @ VICTORY_ROAD_B1F, Hariyama @ VICTORY_ROAD_1F, Makuhita @ VICTORY_ROAD_1F,
+Heracross @ SAFARI_ZONE_NORTH — and only then the two Machop the bot could actually reach.
+Every one of the top four is an endgame or gated interior.
+
+**Root cause.** Cost = *frames to find* + *frames to train it to the team's level*, and the
+second term is **~0 when the wild is already above the team**. So the model does not merely
+tolerate deep-game encounters, it actively PREFERS them: the further into the game a wild
+lives, the less training it appears to need. The ranking was introduced (2026-07-26) to fix a
+real inversion — rate-ranking preferred a L6-10 Makuhita over a L20-22 Machop — and it fixed
+that one while opening this one.
+
+**Why it stayed invisible.** Phase 1 only PRINTED the ranked list. A wrong #1 in a log line
+costs nothing, so nothing ever contradicted it, and the punch list recorded the opposite
+belief — *"every candidate has `tile: None`; there is nothing to path to"* — which is false:
+Wattson's ROUTE111 and Winona's ROUTE118 answers both carry swept tiles. **The list was never
+wrong in a way anyone could see until something proposed to ACT on it.**
+
+**The near miss.** The natural phase-2 implementation is `target = candidates[0]`. That walks
+a mid-game team toward Victory Road. Reachability would not have stopped it: run live from the
+Winona-era save, `_counter_area_allowed` calls Magma Hideout, Shoal Cave and the Safari Zone
+**reachable**, 10/10.
+
+**The fix that worked.** A separate `huntable` fact from an evidence whitelist
+(`training_areas.hunt_ground_tile` over `TRAINING_GRASS` + the new `HUNTING_GROUNDS`), plus
+`counter_plan.best_huntable()` as the only selector an executor may call. Proven offline
+against the real ROM tables by `repro_counter_huntable.py`, including the sharp case: Jagged
+Pass ranks ABOVE Fiery Path and is still refused.
+
+**Prevention rule.** *A ranking answers "which is cheapest", never "may I go there". Any
+planner output that gains an executor needs a separate, fail-closed permission predicate —
+and check what the ranking actually returns on real data before building on it, because a list
+that is only ever logged is never contradicted.*
+
+---
+
+## 2026-07-30 — Two sessions' worth of work was deferred to another machine over an mgba claim that was false
+
+**Symptom.** `04-HANDOFF.md` stated, in the environment section a new agent is told to trust:
+*"**No mgba here.** Anything needing a live emulator must be validated on the user's machine"*,
+and elsewhere *"This dev box has no `mgba` installed … the bot has never been run here"*. Five
+repros were classified "environmental" on that basis and live validation was routed to the
+user's other computer.
+
+**Root cause.** mgba is **vendored inside the repo** at `sandbox-pokebot/mgba/`, not installed
+into the interpreter. The check behind the claim was almost certainly a bare `import mgba` (or
+looking for `.last-requirements-check`), which fails from the repo root and succeeds the moment
+`sandbox-pokebot` is on `sys.path` — which every repro does as its first action. Verified
+2026-07-30: `repro_counter_wiring.py` loaded a real save state, ran frames, and read live party
+and flag data on this box.
+
+**Cost.** Every "must be validated on the user's machine" deferral written under this belief
+was avoidable, and the handoff propagated it into each new session as established fact.
+
+**Prevention rule.** *A capability claim in the handoff must record HOW it was tested, and a
+negative result must be re-tested the way the code under test would do it — from the same
+working directory and `sys.path` — before it is written down as an environment fact.*
+
+---
+
+## 2026-07-30 — "5 environmental, needs a real mgba" hid four rotted tests, one guarding live work
+
+**Symptom.** The suite's standing expectation was *"53 pass, 0 fail, 5 environmental"*, with
+four repros attributed to *"need a real mgba"*. Re-run on 2026-07-30 with
+`PYTHONIOENCODING=utf-8`: **54 pass, 4 fail, 1 skip** — and every one of the four failures had
+already printed `Running mGBA 0.10.2` before it died. **None of them needed an emulator it did
+not have.** Confirmed pre-existing by re-running them with this session's changes stashed.
+
+**Root cause.** Three of the four are stale scaffolding that drifted from the code under test:
+`repro_boss_training`'s `SimpleNamespace` stand-in `self` never gained `_boss_plan_is_hopeless`
+when the KI-23 work added that call to `_prepare_for_fight`; `repro_double_faint`'s stub mon
+never gained `.level` when `level_up.py:73` started scoring on it; `repro_navigate_failfast`
+asserts on the *string* `"raised BotModeError"` and now receives `UnreachableDestinationError`,
+**which is a subclass of `BotModeError`** — the behaviour is correct and the assertion is not.
+(The fourth, `repro_sufficiency`, may be a genuine behaviour change and is undiagnosed.)
+
+**Why the label stuck.** "Environmental" is an explanation that predicts no observation. Once a
+failure carries it, nobody reads the traceback again — and the count kept being copied forward
+into the handoff as an expectation, so a green-except-the-usual-5 sweep looked healthy for
+weeks while `repro_boss_training` — the guard on `_prepare_for_fight`, the exact function
+`#24-counters` step 2 modifies — was dead.
+
+**Prevention rule.** *A failing test may be excused only with the reason from its CURRENT
+traceback, re-read at the time of excusing. "Environmental" is never a category — name the
+missing thing, and if the run got far enough to start the emulator, it was not the emulator.*

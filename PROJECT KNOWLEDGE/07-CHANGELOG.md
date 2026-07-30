@@ -5211,3 +5211,79 @@ the nets caught it. Both are tracked; neither blocks story work.
 **Latency note:** the KI-36 net fired at f1,857,704 and the first derail landed at f1,883,706 —
 **~26,000 frames to claim**. Far better than never, but not instant; worth watching if wedges
 become frequent.
+
+---
+
+## 2026-07-30 — `#24-counters` phase 2, step 1: the HUNTING-GROUND GATE (ranking is not a gate)
+
+**New:** `training_areas.HUNTING_GROUNDS` + `hunt_ground_tile()`; `counter_plan` candidates
+now carry `hunt_tile` / `huntable`, and `counter_plan.best_huntable()` is the ONLY function an
+executor may use to choose a destination. Proof: `tools/story-dev/repro_counter_huntable.py`
+(offline, real ROM tables — **ALL PASS**).
+
+### Why this had to land before any travel-and-catch code
+
+`find_counter_candidates` ranks by estimated cost = *frames to find* + *frames to train it up
+to the team's level*. A wild that is **already above the team costs ~0 to train**, so the
+cost model systematically ranks **deep-endgame encounters as the CHEAPEST answers.** Measured
+2026-07-30 against the real ROM tables:
+
+| boss | needs | rank-1 candidate | huntable? |
+|---|---|---|---|
+| Norman | Fighting | **Hariyama, VICTORY_ROAD_B1F, L38-42** | no |
+| Wattson | Ground | Sandshrew/Trapinch, ROUTE111 | yes (tile) |
+| Winona | Rock/Elec/Ice | Electrike, ROUTE118 | yes (tile) |
+
+Phase 1 only ever *printed* that list, so it was harmless. Phase 2 **travels** to it — so
+shipping the executor against `cands[0]` would have walked a mid-game team toward Victory Road.
+This is punch-list blockers **(3)** and **(4)** of `#24-counters`, closed together.
+
+‼ **Not theoretical.** `repro_counter_wiring.py`, run live from the Winona-era save, has
+`_counter_area_allowed` reporting **Magma Hideout, Shoal Cave and the Safari Zone as
+`reachable`** — 10/10 candidates reachable. Reachability was never going to filter these.
+
+### Whitelist, not blacklist — and it fails CLOSED
+
+A blacklist of endgame maps would be an ever-growing list of **game facts written from
+memory**, which this project forbids. The whitelist needs no claim about Mirage Tower at all:
+it is simply not a ground anyone has swept, so it is refused. Two evidence-backed sources:
+`TRAINING_GRASS` (two-way swept tiles) and the new `HUNTING_GROUNDS`.
+
+`HUNTING_GROUNDS` encodes a distinction that already existed only in prose: a **training loop**
+needs three legs (reach → spin → walk back to a Poké Center to heal), a **catch-and-leave hunt**
+needs two (reach → leave). So `NO_RETURN_GROUNDS` is the wrong test for a hunt, and its own
+FIERY_PATH entry says so in words — *"a fine CATCH-AND-LEAVE hunting ground … that is a
+different use and must not go through this picker."* That prose is now a table the picker
+queries, per `NO_RETURN_GROUNDS`' own header rule (ADD TO THE TABLE, never to a doc alone).
+
+Sole entry today: **FIERY_PATH (18,19)** — the tile `story_harness.py lavaridge --driver
+fierycave` actually walked (2026-07-26); legs 1 (Lavaridge → tile) and 2 (tile → out of the
+cave) both PASS, and only leg 3 (the onward heal trip) fails, which a hunt never walks.
+
+### The result that matters
+
+All three measured derail classes now resolve to a **swept, walkable** destination — where
+`03-PUNCH-LIST` recorded blocker (1) as *"every candidate has `tile: None`; there is nothing to
+path to"*:
+
+| Norman/Fighting | **Machop @ FIERY_PATH (18,19)** — matches the user's ruling exactly |
+| Wattson/Ground | **Sandshrew @ ROUTE111 (25,55)** |
+| Winona/Rock+Elec+Ice | **Electrike @ ROUTE118 (29,15)** |
+
+Jagged Pass is the entry that proves the gate has teeth: it hosts Machop at **L20-22 vs Fiery
+Path's L15-16 and ranks ABOVE it on cost** (134,702 vs 250,297 frames), so rank alone would
+pick it — and it is refused, because `NO_RETURN_GROUNDS` records that it cannot even path
+within itself.
+
+### Behaviour unchanged this commit
+`find_counter_candidates` still returns and still NAMES every candidate (the diagnostic message
+keeps its value); non-huntable ones are just marked `NOT HUNTABLE` in `summarise_candidates`.
+Nothing travels or catches yet — that is step 2.
+
+### Correction to a load-bearing handoff claim
+**This dev box DOES have mgba.** It is vendored at `sandbox-pokebot/mgba/`, so live repros run
+here; `repro_counter_wiring.py` loaded a real save state and read party/flags on 2026-07-30.
+`04-HANDOFF.md` said *"No mgba here — anything needing a live emulator must be validated on the
+user's machine"* and *"nothing involving a live emulator has ever run here"*. Both are wrong,
+and the cost was real: work was deferred to the user's machine that could have been proven here.
+The "5 environmental" repros should be re-checked against this.
