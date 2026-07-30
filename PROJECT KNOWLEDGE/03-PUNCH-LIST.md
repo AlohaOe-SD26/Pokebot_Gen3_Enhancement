@@ -147,6 +147,47 @@ asks for **always-catch-new**, which is deterministic. Both are defensible: alwa
 human and gets variety from WHICH species the RNG offers; the scored roll makes two runs on the
 same route diverge. **They cannot both be the rule — ask before building.**
 
+### `#24-catchcap` — the bot catches only THREE Pokémon (user-observed 2026-07-30, cause CONFIRMED)
+**NOT SCHEDULED — bundle with `#24-dexhunt`.** The user noticed the party never fills.
+**Cause, verified in code:** `self._catch_team_target = 4` (`story_mode.py:845`) is a
+**PARTY-SIZE** target, not a catch count, and the gate is
+`if len(party) >= self._catch_team_target: return False` (`:960`) where `party` **includes the
+starter**. So the bot stops at starter + 3 catches. Exactly the 3 observed.
+**Fix already specified** in `21-TEAM-POLICY-DESIGN.md` §1: *"Drop the `BADGE01_GET` gate. Raise
+`_catch_team_target` 4 → 6, allow overflow to the box."* One constant plus one gate — but see
+`#24-dexhunt`'s HARD DEPENDENCIES (ball economy, PC/party management, menu-wedge exposure)
+before shipping it, or the bot will starve on Poké Balls and clog its party with dead weight.
+
+### `#24-menutext` — text-detection fallback for a refused party-menu selection (user proposal 2026-07-30)
+**NOT SCHEDULED — deliberately deferred so KI-34 can be validated alone.**
+Read `gDisplayedStringBattle` for the game's "already in battle" refusal and pick a different
+mon. Sound, and there is precedent: `handle_battle._move_learn_text_showing()` already does
+text-driven detection *because the internal task state is flaky*. It is also **strictly more
+general** than the KI-34 index fix — it would catch ANY refusal reason (already-active, fainted,
+egg), not just the on-field one.
+‼ **The exact string MUST be read from the pokeemerald decomp, never recalled** — this project
+does not write game facts from memory.
+‼ **Why NOT now:** shipping it alongside the KI-34 index fix would make it impossible to tell
+which one fixed double battles. Run the index fix alone; if `[FAINT-CHOOSER] … GAVE UP` lines
+persist, this earns its place with evidence.
+
+### ‼ A USER ASSUMPTION THE DATA REFUTES — do not build on it
+The user proposed: *"in a double battle, the first 2 pokemon slots in the party are Battle slot
+1 and Battle slot 2, slots 3-4 are benched."* True at the START of a double battle, **false by
+the time the after-faint chooser runs** — which is the only time it matters.
+Measured across **4,116 double-battle samples** in bundle `20260730-062818`:
+
+| on-field pair (party-order) | count |
+|---|---|
+| `[2, 4]` | **3,975** |
+| `[0, 1]` | 76 (**1.8%**) |
+| `[1, 2]` / `[0, 2]` / `[1, 3]` / `[0, 3]` / `[1, 4]` / `[2, 3]` / `[1, 5]` / `[2, 5]` | 65 combined |
+
+A replacement **keeps its own party slot** — the game tracks which party index occupies each
+battler position rather than reordering the party. Hardcoding "slots 0-1 are active" would
+recreate the KI-34 bug in a new place: inferring an index relationship instead of reading it.
+Always read it via `BattleState.map_battle_party_index()` / `gBattlerPartyIndexes`.
+
 ### `#24-maintain` — the bot should MAINTAIN its team, not cram before exams (user proposal 2026-07-29)
 **NOT SCHEDULED — noted as a potential, to discuss after the next log batch.**
 
