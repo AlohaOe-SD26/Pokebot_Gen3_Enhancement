@@ -5287,3 +5287,54 @@ here; `repro_counter_wiring.py` loaded a real save state and read party/flags on
 user's machine"* and *"nothing involving a live emulator has ever run here"*. Both are wrong,
 and the cost was real: work was deferred to the user's machine that could have been proven here.
 The "5 environmental" repros should be re-checked against this.
+
+---
+
+## 2026-07-30 — `#24-reprorot`: the four "environmental" repro failures were four different rots
+
+All four were repaired; **none of them ever needed an emulator it did not have**. Every one
+launched mGBA 0.10.2 successfully. They had been carried in the handoff as an expected
+"5 environmental" for weeks, which is why nobody re-read the tracebacks.
+
+| repro | real cause | fix |
+|---|---|---|
+| `repro_boss_training` | stub `self` never gained `_boss_plan_is_hopeless`, added to `_prepare_for_fight` by the KI-23 work | harvest all UPPERCASE constants off `StoryMode`; **bind the real method** |
+| `repro_double_faint` | stub mon never gained `.level`, which `level_up.py:73` began scoring on with the KI-18 tiebreaker | add `level`; add a case that **covers the tiebreaker itself** |
+| `repro_navigate_failfast` | asserted `startswith("raised BotModeError")`; code correctly raises `UnreachableDestinationError`, **a subclass** | assert on the exception TYPE via a new `_Outcome.raised_botmode()` |
+| `repro_sufficiency` | **four compounding causes** — see below | fixture + stub + emulator |
+
+### `repro_sufficiency` is the instructive one
+
+It failed for four reasons at once, each hidden behind the next:
+1. `ROXANNE`/`WATTSON` fixtures had **no `grass` key**, but the evolution lookahead's
+   frame-cost gate reads `cfg["grass"]` to price the grind. Production configs always have
+   it (`story_mode.py:2151`).
+2. The stub mon had no **`total_exp`**, which `estimate_frames_to_level` reads.
+3. The stub `self` had no **`MAX_PREP_TRAINING_FRAMES`** (nor `FODDER_LEVEL_GAP` for case F).
+4. The script created **no emulator at all** — `set_rom()` alone does not let
+   `get_wild_encounters_for_map` populate its cache, so `_wild_land_max` returned None and
+   the gate rejected the plan as "estimated UNKNOWN frames".
+
+‼ **Causes 2 and 3 produced no crash.** The lookahead is wrapped in `except Exception: pass`,
+so a missing stub attribute degrades to a silently WRONG VERDICT. This is the *exact* failure
+shape `_boss_plan_is_hopeless`' own comment warns about — *"a stand-in `self` missing a class
+constant swallowed an AttributeError and disabled the whole diagnosis"* — recurring, this time
+in the test harness. Every step of that lookahead passes on real data (sweep score 90 ≥ 80,
+estimate 24,361 ≤ 250,000 frames); only the fixture was broken.
+
+### The anti-rot measure (the part worth copying)
+
+Both `story_mode` stubs are now `_StoryModeStub`, which
+* harvests **every** UPPERCASE class constant instead of hand-listing a few — hand-listing is
+  precisely what rotted (`TRAIN_CATCHUP_GAP` was listed; `PLATEAU_LOSS_THRESHOLD`,
+  `CREDIBLE_ANSWER_POWER`, `MAX_PREP_TRAINING_FRAMES`, `FODDER_LEVEL_GAP` arrived later), and
+* raises a **self-explaining `AttributeError`** naming the missing member, why it is missing,
+  and whether to harvest it or bind the real method — because the bare
+  `'types.SimpleNamespace' object has no attribute ...` read as scaffolding noise rather than
+  "this test no longer runs".
+
+Methods are **bound to the real implementation**, never re-stubbed: a stubbed verdict would
+hard-code the answer under test, so the repro would keep passing while the real logic changed.
+
+**Sweep result: 58 pass, 0 fail, 1 skip (59 scripts).** First fully-green suite. The "5
+environmental" expectation is retired — any future failure should be treated as real.

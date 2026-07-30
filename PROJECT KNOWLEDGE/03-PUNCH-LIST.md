@@ -280,18 +280,22 @@ region, where "train near the gym" is actively wrong.
       So this is ASSEMBLY against an existing spec, not a new design. Re-read `21` first;
       only bring the user a question `21` does not already answer.
 
-- [ ] **`#24-reprorot` — 4 sweep failures mislabelled "environmental / needs mgba" are
-      actually ROTTEN TESTS (new, 2026-07-30).** All four start mGBA 0.10.2 fine; confirmed
-      pre-existing (fail identically with 2026-07-30's changes stashed). Fixes are small:
-      `repro_boss_training` — stub `self` needs `_boss_plan_is_hopeless`;
-      `repro_double_faint` — stub mon needs `.level`;
-      `repro_navigate_failfast` — assert on the exception TYPE, not the string
-      `"raised BotModeError"`; `UnreachableDestinationError` is a SUBCLASS of it, so the
-      code is right and the test is wrong;
-      `repro_sufficiency` — expects `topup`, gets `None`; the only one that may be a real
-      behaviour change. **Diagnose this one, don't just repair it.**
-      ‼ **DO `repro_boss_training` FIRST** — it guards `_prepare_for_fight`, the exact
-      function `#24-counters` step 2 edits, so step 2 has no regression cover until it runs.
+- [x] **`#24-reprorot` — DONE 2026-07-30. The 4 "environmental / needs mgba" failures were
+      four DIFFERENT rots, and none needed an emulator it did not have.** All four launched
+      mGBA 0.10.2 fine; all four now pass. `repro_boss_training` (stub `self` missing
+      `_boss_plan_is_hopeless`), `repro_double_faint` (stub mon missing `.level`),
+      `repro_navigate_failfast` (asserted a STRING where the code correctly raises a
+      BotModeError SUBCLASS), `repro_sufficiency` (four compounding fixture faults —
+      no `grass` in the cfg, no `total_exp`, no `MAX_PREP_TRAINING_FRAMES`, and **no
+      emulator at all**, so the ROM encounter tables were unreadable).
+      **No production behaviour was wrong in any of them.**
+      ‼ **The lasting lesson is `repro_sufficiency`:** two of its four faults produced NO
+      crash, because the lookahead sits inside `except Exception: pass` — a missing stub
+      attribute became a silently WRONG VERDICT. That is a RECURRENCE of the exact failure
+      `_boss_plan_is_hopeless`' own comment warns about. Both stubs are now `_StoryModeStub`,
+      which HARVESTS every UPPERCASE constant instead of hand-listing them and raises a
+      self-explaining error when the code grows a new dependency. **Copy that pattern into
+      any new repro that stands in for `StoryMode`.**
 
 ### ‼ #1 EXECUTION PRIORITY — the counter chain is now 72% of all derails
 - [~] **`#24-counters` phase 2 — ACT on the named counter (promoted to #1, 2026-07-29).**

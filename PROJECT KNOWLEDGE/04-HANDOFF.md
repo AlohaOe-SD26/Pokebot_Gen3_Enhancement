@@ -120,20 +120,21 @@ be the rule.
 
 ## ENVIRONMENT — this box
 - Tests: `py -3.12 tools/story-dev/repro_<name>.py` (plain `python` is 3.9 and will fail).
-- Full sweep expectation (measured 2026-07-30, 59 scripts): **54 pass, 4 fail, 1 skip**
-  (`repro_x4_lanes` SPAWNS REAL LANE PROCESSES — skip it).
-- ‼‼ **THE 4 FAILURES ARE NOT "ENVIRONMENTAL" AND NEVER NEEDED mgba.** All four launched
-  mGBA 0.10.2 successfully. Verified pre-existing (they fail identically with this
-  session's changes stashed), and **3 of the 4 are ROTTEN TEST SCAFFOLDING, not bugs**:
-  | repro | real cause |
-  |---|---|
-  | `repro_boss_training` | its `SimpleNamespace` stand-in `self` lacks `_boss_plan_is_hopeless`, added to `_prepare_for_fight` in the KI-23 work and never added to the stub |
-  | `repro_double_faint` | its stub mon lacks `.level`, which `level_up.py:73` now reads |
-  | `repro_navigate_failfast` | asserts `startswith("raised BotModeError")` but gets `UnreachableDestinationError` — **a SUBCLASS of BotModeError**, so the behaviour is right and the string assertion is wrong |
-  | `repro_sufficiency` | expects a `topup` verdict, gets `None` — the only one that may be a REAL behaviour change; not yet diagnosed |
-  ‼ **`repro_boss_training` is dead, and it guards `_prepare_for_fight` — the exact
-  function `#24-counters` step 2 modifies.** Repair it BEFORE building step 2, or step 2
-  ships with no regression cover on the code it changes. Tracked as `#24-reprorot`.
+- ‼ **Full sweep is now GREEN: 58 pass, 0 fail, 1 skip** (59 scripts; `repro_x4_lanes`
+  SPAWNS REAL LANE PROCESSES — skip it). Measured 2026-07-30 after `#24-reprorot`.
+  **The old "5 environmental" expectation is retired — treat ANY failure as real.**
+  Expect the sweep to take ~20-25 min now: four repros that used to bail out early
+  actually run their emulators.
+- **What "environmental" was hiding** (`#24-reprorot`, DONE — full detail in `07-CHANGELOG`
+  and two `08-MISTAKES` entries): four different rots, no production bug in any of them,
+  and **none ever needed an emulator it did not have** — all four launched mGBA 0.10.2 fine.
+  Two of `repro_sufficiency`'s four faults produced **no crash at all**, because the code
+  under test sits inside `except Exception: pass` — a missing stub attribute became a
+  silently WRONG VERDICT. A test that quietly stops testing looks exactly like one that passes.
+  ‼ **When you write a repro that stands in for `StoryMode`, copy `_StoryModeStub`** (in
+  `repro_boss_training.py` / `repro_sufficiency.py`): it HARVESTS every UPPERCASE constant
+  instead of hand-listing them, BINDS real methods rather than re-stubbing their verdicts,
+  and raises a self-explaining error when the code grows a new dependency.
 - ‼‼ **THIS BOX *DOES* HAVE mgba — the old "no mgba here" claim was FALSE** (corrected
   2026-07-30, `08-MISTAKES.md`). It is **vendored in the repo** at `sandbox-pokebot/mgba/`,
   so a bare `import mgba` from the repo root fails while every repro — which puts

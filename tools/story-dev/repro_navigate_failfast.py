@@ -70,6 +70,7 @@ def load_save():
 
 
 import modules.story.early_game as eg
+from modules.modes import BotModeError
 from modules.memory import GameState, get_game_state
 from modules.player import get_player_avatar, player_avatar_is_controllable
 from modules.tasks import get_global_script_context
@@ -95,8 +96,29 @@ def drive(gen, cap):
     except StopIteration:
         return frames, "returned"
     except Exception as e:
-        return frames, f"raised {type(e).__name__}: {e}"
-    return frames, f"CAP HIT ({cap})"
+        # ‼ Report the exception's CONCRETE type but assert on its TYPE, never on this
+        # string (08-MISTAKES 2026-07-30). This repro was dead for days — and mislabelled
+        # "environmental — needs a real mgba" — purely because it asserted
+        # `startswith("raised BotModeError")` and the code correctly began raising
+        # `UnreachableDestinationError`, which IS a BotModeError subclass. The behaviour
+        # was right; the string match was not. `raised_botmode` keeps the substring
+        # assertions below working while making the type check the real gate.
+        return frames, _Outcome(f"raised {type(e).__name__}: {e}", exception=e)
+    return frames, _Outcome(f"CAP HIT ({cap})")
+
+
+class _Outcome(str):
+    """The outcome string, plus the exception object it came from (if any)."""
+
+    def __new__(cls, text, *, exception=None):
+        self = super().__new__(cls, text)
+        self.exception = exception
+        return self
+
+    def raised_botmode(self) -> bool:
+        """True when a `BotModeError` (or any subclass) escaped — the fact these
+        assertions actually mean."""
+        return isinstance(self.exception, BotModeError)
 
 
 # --- 0) Verify the save state (never trust the filename). --------------------
@@ -134,7 +156,7 @@ frames_fixed, outcome_fixed = drive(
     eg._navigate_riding_out(UNREACHABLE_MAP, UNREACHABLE_TILE, tries=TRIES), cap=5000
 )
 print(f"   frames={frames_fixed}  outcome={outcome_fixed}")
-assert outcome_fixed.startswith("raised BotModeError"), outcome_fixed
+assert outcome_fixed.raised_botmode(), outcome_fixed
 assert "field is idle" in outcome_fixed, f"expected the fail-fast message, got: {outcome_fixed}"
 assert frames_fixed < 400, f"expected roughly ONE ride-out (~240 frames), got {frames_fixed}"
 print(f"   PASS: fail-fast fired after {frames_fixed} frames (~one ride-out), "
@@ -162,7 +184,7 @@ try:
 finally:
     restore_patches()
 print(f"   frames={frames_old}  outcome={outcome_old}")
-assert outcome_old.startswith("raised BotModeError"), outcome_old
+assert outcome_old.raised_botmode(), outcome_old
 assert f"after {TRIES} tries" in outcome_old, f"expected the old exhausted-retries message, got: {outcome_old}"
 assert "field is idle" not in outcome_old, "guard should NOT have fired with the idle-check neutralized"
 print(f"   OLD BEHAVIOUR REPRODUCED: {frames_old} frames burned across all {TRIES} tries "
@@ -214,7 +236,7 @@ try:
 finally:
     restore_patches()
 print(f"   frames={frames_ctrl}  outcome={outcome_ctrl}")
-assert outcome_ctrl.startswith("raised BotModeError"), outcome_ctrl
+assert outcome_ctrl.raised_botmode(), outcome_ctrl
 assert f"after {CTRL_TRIES} tries" in outcome_ctrl, (
     f"expected it to exhaust all {CTRL_TRIES} tries (guard must not fire), got: {outcome_ctrl}"
 )

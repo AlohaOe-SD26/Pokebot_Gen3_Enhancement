@@ -40,6 +40,30 @@ from modules.map_data import MapRSE, PokemonCenter
 import plugins.custom_modes.story_mode as sm
 
 
+class _StoryModeStub(SimpleNamespace):
+    """A stand-in `self` for `StoryMode._prepare_for_fight` that EXPLAINS ITSELF when the
+    code under test grows a new dependency.
+
+    ‼ Why this class exists (08-MISTAKES 2026-07-30): this repro was dead for days and the
+    suite reported it as "environmental — needs a real mgba". It needed no emulator it did
+    not have; its plain `SimpleNamespace` stub simply never gained `_boss_plan_is_hopeless`
+    when the KI-23 work added that call to `_prepare_for_fight`, and the resulting bare
+    `AttributeError: 'types.SimpleNamespace' object has no attribute ...` looked like
+    scaffolding noise rather than "this test no longer runs".
+    """
+
+    def __getattr__(self, name):  # only called after normal lookup fails
+        raise AttributeError(
+            f"repro_boss_training's stand-in `self` has no {name!r}.\n"
+            f"  `_prepare_for_fight` (or something it calls) started using "
+            f"StoryMode.{name} after this repro was written.\n"
+            f"  FIX: if it is a CONSTANT it should already be harvested automatically — "
+            f"check it is UPPERCASE on StoryMode. If it is a METHOD, bind the REAL one "
+            f"(`self.{name} = lambda *a: sm.StoryMode.{name}(self, *a)`); do NOT re-stub "
+            f"its verdict, or this repro will rot again the same way."
+        )
+
+
 def run_prep(team_max, ko_history, *, with_grass=True, losses=2):
     recorded = {}
 
@@ -63,13 +87,22 @@ def run_prep(team_max, ko_history, *, with_grass=True, losses=2):
     early_game._battler_slots = lambda: [0, 1, 2]
     # story_mode imports get_party/train_team inside the method — same module objects.
     try:
-        self = SimpleNamespace(
+        self = _StoryModeStub(
             _defeat_counts={(0, 7): losses},
             _loss_ko_history={(0, 7): [(i, k) for i, k in enumerate(ko_history)]},
-            TRAIN_CATCHUP_GAP=sm.StoryMode.TRAIN_CATCHUP_GAP
-            if hasattr(sm.StoryMode, "TRAIN_CATCHUP_GAP")
-            else 4,
+            # ‼ EVERY class constant, harvested — not a hand-listed few. `_prepare_for_fight`
+            # and the functions it calls read several off `self`, and hand-listing them is
+            # what rotted this repro: `TRAIN_CATCHUP_GAP` was listed, `PLATEAU_LOSS_THRESHOLD`
+            # and `CREDIBLE_ANSWER_POWER` arrived later with KI-23 and were not.
+            **{k: getattr(sm.StoryMode, k) for k in dir(sm.StoryMode) if k.isupper()},
         )
+        # ‼ BIND THE REAL METHOD, never re-stub its verdict. A stubbed
+        # `_boss_plan_is_hopeless` would hard-code this function's answer here, so the
+        # repro would keep passing while the real diagnosis changed underneath it —
+        # the same drift, one level up. With losses=2 (< PLATEAU_LOSS_THRESHOLD) the real
+        # method returns (False, []) at its first guard, so boss-training is what is
+        # under test, exactly as before.
+        self._boss_plan_is_hopeless = lambda cfg: sm.StoryMode._boss_plan_is_hopeless(self, cfg)
         cfg = {"keys": [(0, 7)], "band": (20, 24), "heal": PokemonCenter.MauvilleCity}
         if with_grass:
             cfg["grass"] = (MapRSE.ROUTE117, (31, 16))

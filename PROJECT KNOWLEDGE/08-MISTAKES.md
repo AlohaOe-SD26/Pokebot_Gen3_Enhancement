@@ -2593,3 +2593,38 @@ weeks while `repro_boss_training` — the guard on `_prepare_for_fight`, the exa
 **Prevention rule.** *A failing test may be excused only with the reason from its CURRENT
 traceback, re-read at the time of excusing. "Environmental" is never a category — name the
 missing thing, and if the run got far enough to start the emulator, it was not the emulator.*
+
+---
+
+## 2026-07-30 — A test stub missing a constant disabled the logic under test, SILENTLY — the second time
+
+**Symptom.** `repro_sufficiency` case B (Torchic L14 vs Roxanne → top up to L16) returned
+`None` instead of `('topup', 0, 16)`. No crash, no traceback, no warning — just a wrong
+verdict, filed for weeks as "environmental, needs a real mgba".
+
+**Root cause.** `_sufficiency_verdict`'s evolution-lookahead branch is wrapped in
+`except Exception: pass`. The repro's stand-in `self` lacked `MAX_PREP_TRAINING_FRAMES` and
+its stub mon lacked `total_exp`, so the frame-cost gate raised `AttributeError` **into that
+swallow**, and the branch silently produced no entry. Every step of the lookahead is correct
+on real data (sweep score 90 ≥ floor 80; estimate 24,361 ≤ budget 250,000). Two further
+fixture faults hid behind it: the `ROXANNE` cfg had no `grass` key (the gate prices against
+it), and the script created no emulator, so `get_wild_encounters_for_map` could not populate
+its cache and `_wild_land_max` returned None.
+
+**‼ This is a RECURRENCE.** `_boss_plan_is_hopeless`' own `except` block carries the comment
+*"Caught once already: a stand-in `self` missing a class constant swallowed an AttributeError
+and disabled the whole diagnosis. Never let it be silent again."* The production function was
+hardened; **the test harness that shares the same stub pattern was not**, so the identical bug
+recurred one level up — and there it was worse, because a test that silently stops testing
+looks exactly like a test that passes.
+
+**The fix that worked.** `_StoryModeStub`: harvest **every** UPPERCASE constant off
+`StoryMode` (`**{k: getattr(sm.StoryMode, k) for k in dir(sm.StoryMode) if k.isupper()}`)
+rather than hand-listing, and override `__getattr__` to raise an error that NAMES the missing
+member and says how to supply it. Methods are bound to the real implementation
+(`self.X = lambda *a: sm.StoryMode.X(self, *a)`), never re-stubbed.
+
+**Prevention rule.** *A stand-in `self` must HARVEST the real object's constants, never
+list them — and any code path wrapped in a broad `except` must be exercised by a fixture that
+would fail LOUDLY if the stub drifted. When you harden a swallow in production, harden every
+stub that feeds it in the same commit.*
