@@ -1136,3 +1136,55 @@ reason about them.
   recalled.**
 - **Also worth instrumenting:** log the cursor AND the target on each press, not just the sets,
   so a press can be attributed to a position.
+
+## KI-39 — The bot has NO cross-map overworld route planning; long journeys are hand-coded (2026-07-30)
+
+**This is the root cause behind every "unreachable counter destination", and it is much
+bigger than `#24-counters`.** It is also the direct answer to the user's question *"is there
+a way to get the bot to map to already traveled locations?"* — today, no.
+
+### Measured, from `rocksmash_taught.ss1` (standing in MAUVILLE_CITY (32,15))
+| destination | `calculate_path` |
+|---|---|
+| ROUTE117 (31,16) — directly connected | **OK, 72 waypoints** |
+| ROUTE110 (12,60) — joined through a gate BUILDING (a warp) | FAIL |
+| ROUTE116 (11,7) — several maps west | FAIL |
+| ROUTE111 (25,55) — same map, other side of the Go-Goggles desert | FAIL |
+
+### Why `navigate_to_anywhere` does not rescue it
+It branches on REGION, and a region is the connected component over direct N/S/E/W map
+connections. Measured: `region_of(MAUVILLE_CITY) == region_of(ROUTE111) ==
+region_of(ROUTE116) == region_of(LAVARIDGE_TOWN) == region_of(FALLARBOR_TOWN) == **0**`.
+**The whole Hoenn overworld is ONE region.** So for any overworld→overworld trip the
+same-region branch is taken, the warp planner is never consulted, and the entire journey is
+handed to `calculate_path` — which only spans directly-connected maps. The warp route often
+EXISTS and is simply never asked for: `graph.plan(MAUVILLE → FIERY_PATH)` returns a valid
+one-warp edge (ROUTE112 (11,36) → FIERY_PATH), yet the navigation fails at 255 frames because
+leg 1 — *walk to that warp tile* — is itself a multi-map journey `calculate_path` cannot plan.
+
+### Why nobody noticed
+The story chapters hand-code their long journeys leg by leg (`_hold_walk_route` exists
+precisely to "bridge the planner can't cross"). Every long trip the bot makes today was
+written out by hand, so the generic capability was never exercised — and its absence looks
+exactly like "that destination is unreachable".
+
+### Consequences to hold in mind
+* A counter hunt only reaches destinations a leg or two away. FIERY_PATH (18,19) arrives in
+  2,922 frames from **Lavaridge**, but Norman is fought at **Petalburg** — so even the one
+  rung measured "live" is probably inert at the moment it actually fires. Expect the counter
+  chain to stop honestly far more often than it hunts.
+* `#24-dexhunt`, `#24-pc` (box trips), `#24-catchcap` and the whole team/PC-reserve plan all
+  assume the bot can travel to a known place on request. **They are gated on this.**
+
+### What the fix looks like (NOT built)
+A cross-map journey planner: BFS the map-connection graph **plus** warp edges to produce an
+ordered leg list, then execute leg by leg with `navigate_to`, re-planning from the real
+position after each leg (the shape `navigate_to_anywhere` already uses for cross-region
+routes — it just never gets to use it). Needs: the desert/elevation splits expressed as
+sub-map partitions (Route 111 north vs south are the same map but not mutually walkable),
+capability gates (Surf/Fly/Go-Goggles), and a frame budget per leg.
+
+‼ **Do not "fix" this by adding gateway waypoints.** Tried and refuted 2026-07-30: a gateway
+in the same region is routed by the same broken same-region branch, so it fails identically.
+Fallarbor PC, Lavaridge PC and Fiery Path were all tried as gateways from Mauville; every
+leg failed at 255 frames (`probe_counter_gateway.py`).

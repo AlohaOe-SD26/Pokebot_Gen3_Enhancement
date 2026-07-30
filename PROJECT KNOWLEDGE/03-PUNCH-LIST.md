@@ -310,6 +310,26 @@ region, where "train near the gym" is actively wrong.
       Hiding it was the 2026-07-26 choice and it is what made the layout move.
       Story modes matched by PREFIX, so a future `Story (…)` is hoisted automatically.
 
+- [ ] **‼ `#24-journey` — CROSS-MAP OVERWORLD ROUTE PLANNING (new, 2026-07-30; see KI-39).
+      This is now the biggest structural blocker in the project.** The bot cannot plan a
+      journey to a place more than a directly-connected map away. Measured from Mauville:
+      ROUTE117 (adjacent) OK 72 waypoints; ROUTE110 (joined via a gate BUILDING = a warp)
+      FAIL; ROUTE116 FAIL; ROUTE111-north FAIL. Cause: `region_of()` puts the WHOLE Hoenn
+      overworld in region **0**, so `navigate_to_anywhere` always takes its same-region
+      branch and never consults the warp planner — even when a valid warp route exists
+      (`graph.plan(MAUVILLE→FIERY_PATH)` returns one). Long trips work today only because
+      the story chapters hand-code them leg by leg (`_hold_walk_route`).
+      **Gates:** `#24-counters` phase 2 (destinations are mostly out of range),
+      `#24-dexhunt`, `#24-pc` (box trips), `#24-catchcap`, and the whole team/PC-reserve
+      plan — all of them assume "travel to a known place on request".
+      **Shape of the fix:** BFS map-connections + warp edges → ordered legs → execute leg by
+      leg re-planning from the real position after each (the shape the cross-region branch
+      already uses). Needs sub-map partitions (Route 111 north/south are one map but not
+      mutually walkable), capability gates (Surf/Fly/Go-Goggles) and a per-leg frame budget.
+      ‼ **Do NOT try gateway waypoints** — tried and refuted 2026-07-30
+      (`probe_counter_gateway.py`): a same-region gateway is routed by the same broken
+      branch and fails identically.
+
 ### ‼ #1 EXECUTION PRIORITY — the counter chain is now 72% of all derails
 - [~] **`#24-counters` phase 2 — BUILT 2026-07-30, AWAITING LIVE VALIDATION.**
       **STEP 1 — the hunting-ground gate** (`hunt_ground_tile` / `huntable` /

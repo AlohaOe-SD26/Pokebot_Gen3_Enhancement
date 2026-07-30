@@ -2658,3 +2658,36 @@ Wattson and Winona, which is why the destination-fallback exists at all. A probe
 cousin — and if a negative result would kill a feature, re-derive it with the real call
 before believing it. A planner that cannot cross warps cannot answer a question about a
 destination behind a warp, and it says so in the error text: read it.*
+
+---
+
+## 2026-07-30 — I asserted a Hoenn route from memory, told the user it "plainly exists", and it does not
+
+**Symptom.** Asked what "unreachable" meant for the counter destinations, I diagnosed the
+same-region branch correctly and then wrote, to the user: *"The route plainly exists (Mauville
+→ Route 112 → Fiery Path → Lavaridge → Route 113 → Fallarbor → Route 114 → Route 111 north).
+Every leg is somewhere the bot has already walked."* I proposed an APPROACH GATEWAY feature
+on that basis and started building it.
+
+**It is refuted.** `probe_counter_gateway.py`, driving the real navigation from
+`rocksmash_taught.ss1`: Mauville → Fallarbor PC FAIL, → Lavaridge PC FAIL, → Fiery Path
+(18,19) FAIL — every one at 255 frames. The gateway idea is also structurally wrong: those
+towns are all region 0, the same region as Mauville, so a gateway hop is routed by the very
+branch that was failing.
+
+**Root cause of my error.** I reasoned about Hoenn geography from recall and presented it as
+established fact, in the one project whose standing directive is *"Never write a game fact
+from memory — decomp or live probe only."* The measurement I already had said only
+"`calculate_path` found no path"; I inflated that into a specific seven-leg route.
+
+**What it cost, and what it bought.** No bad code shipped — the probe ran before the feature
+was wired, which is the only reason. It cost the user a delay on their test and one wrong
+recommendation. It bought KI-39: chasing the refutation found that the entire overworld is a
+single region, so warp routing never engages for overworld→overworld travel and the bot has
+**no cross-map journey planning at all** — a far more valuable finding than the gateway would
+have been, and the actual blocker under `#24-dexhunt`, `#24-pc` and the team/PC-reserve plan.
+
+**Prevention rule.** *A route, a map layout, or an "X connects to Y" claim is a GAME FACT.
+Probe it before saying it — and never let a plausible route sketch turn a measurement's
+"no path found" into "the path exists but the planner is dumb". Those are different claims
+and only one of them was measured.*

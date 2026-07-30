@@ -134,6 +134,20 @@ all `tile: None`**. No bot behaviour has changed yet — nothing travels or catc
    Probe with `_navigate_riding_out`, which is what the executor actually calls
    (08-MISTAKES 2026-07-30).
 
+   ‼‼ **READ KI-39 BEFORE JUDGING THIS FEATURE (found 2026-07-30, after the build).** The
+   bot has **no cross-map overworld route planning**: the whole Hoenn overworld is region
+   **0**, so `navigate_to_anywhere` always takes its same-region branch and hands the trip to
+   `calculate_path`, which only spans DIRECTLY CONNECTED maps. Measured from Mauville:
+   ROUTE117 (adjacent) OK; ROUTE110 (joined via a gate building = warp) FAIL; ROUTE116 FAIL;
+   ROUTE111-north FAIL. Long journeys work today only because the chapters hand-code them.
+   **Consequence: the counter hunt can only reach a destination a leg or two away.** Fiery
+   Path arrives in 2,922 frames from **Lavaridge**, but Norman is fought at **Petalburg** —
+   so even the rung measured "live" is probably inert at the moment it actually fires.
+   **Expect the chain to stop honestly far more often than it hunts. That is KI-39, not the
+   executor failing.** Tracked as `#24-journey`, now the biggest structural blocker: it also
+   gates `#24-dexhunt`, `#24-pc`, `#24-catchcap` and the whole team/PC-reserve plan.
+   ‼ Do NOT attempt gateway waypoints — tried and refuted (`probe_counter_gateway.py`).
+
    ⏭ **WHAT IS OWED NOW: A LIVE RUN.** Nothing proves the bot can actually walk to Fiery
    Path from Petalburg, catch a Machop and beat Norman with it. On the next batch, grep for
    `counter hunt` and `already hunted a counter`, and check in this order:
