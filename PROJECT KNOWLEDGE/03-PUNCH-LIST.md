@@ -313,6 +313,11 @@ region, where "train near the gym" is actively wrong.
       by the run loop after every lost attempt (the KI-34 shape). The attempt is recorded
       BEFORE the hunt so a derailed hunt still consumes its chance.
       ‼ **The terminal raise is untouched** — every failure path still stops honestly.
+      **STEP 2b — destination FALLBACK.** `probe_counter_reachability.py` drove the REAL
+      navigation and found the TOP destination UNREACHABLE for 2 of 3 bosses (ROUTE111 is
+      Fallarbor-side; ROUTE118 is the KI-24 bridge case) while Norman's FIERY_PATH (18,19)
+      **ARRIVED in 2,922 frames**. The ladder now walks the ranked huntable list up to
+      `COUNTER_HUNT_MAX_DESTINATIONS = 3`. ‼ Cheap failures cascade, expensive ones do not.
       ⏭ **WHAT IS OWED: a LIVE run.** Nothing here proves the bot can walk to Fiery Path
       from Petalburg, catch a Machop and beat Norman with it. Watch for: does the hunt
       reach (18,19)? does the catch-on-sight branch fire? does `train_counter` accept or

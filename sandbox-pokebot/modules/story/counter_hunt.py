@@ -153,15 +153,19 @@ def _ball_count() -> int:
         return 0
 
 
-def hunt_blockers(candidate) -> "str | None":
-    """Why this hunt cannot even be attempted, or None if it can. Checked BEFORE any
-    travel, because every one of these makes the walk pure waste.
+def resource_blocker() -> "str | None":
+    """Why NO hunt can be attempted right now, regardless of destination — or None.
 
-    The three are the resource walls the 2026-07-29 batch surfaced as their own derail
-    classes (`#24-pc`, no-balls-and-no-money), not hypotheticals.
+    ‼ Kept separate from `destination_blocker` because the two have different
+    consequences for the ladder's fallback loop: a resource wall applies to every
+    candidate, so trying the next destination is pure waste and the ladder must stop
+    immediately; a destination problem applies to ONE place, so the ladder should move
+    down its ranked list. Collapsing them into one predicate (as this module originally
+    did) makes "the party is full" and "that one tile is unreachable" indistinguishable.
+
+    Both walls below are real derail classes from the 2026-07-29 batch (`#24-pc`, and
+    "no Poké Balls and no money to buy any"), not hypotheticals.
     """
-    if candidate is None or candidate.get("hunt_tile") is None:
-        return "no huntable counter candidate (nothing reachable with a proven spin tile)"
     if _party_count() >= 6:
         # A catch would go to the PC, not the party — box management is #24-pc.
         return "the party is full, so a catch would go to the PC box (needs #24-pc)"
@@ -171,6 +175,20 @@ def hunt_blockers(candidate) -> "str | None":
     if _ball_count() <= 1:
         return "no spare Poké Balls (the last ball is reserved)"
     return None
+
+
+def destination_blocker(candidate) -> "str | None":
+    """Why THIS destination cannot be hunted, or None. Per-candidate: the ladder may try
+    the next one down its ranked list."""
+    if candidate is None or candidate.get("hunt_tile") is None:
+        return "no huntable counter candidate (nothing reachable with a proven spin tile)"
+    return None
+
+
+def hunt_blockers(candidate) -> "str | None":
+    """Both gates in one call — the single-destination entry point. Destination first, so
+    the caller sees the most specific reason."""
+    return destination_blocker(candidate) or resource_blocker()
 
 
 def hunt(candidate, needed_type_names) -> Generator:

@@ -263,6 +263,51 @@ def find_counter_candidates(needed_type_names, *, allow=None, max_results: int =
         return []
 
 
+def huntable_candidates(cands) -> list:
+    """Every candidate phase 2 could actually go and catch, in rank order, DEDUPED by
+    destination — the ladder's fallback list.
+
+    ‼ WHY A LIST AND NOT JUST THE BEST (measured 2026-07-30, driven navigation from real
+    saves): the top huntable destination is frequently NOT reachable in practice. Wattson's
+    is Sandshrew @ ROUTE111 (25,55), whose tile sits north of the Go-Goggles desert, and
+    Winona's is Electrike @ ROUTE118 (29,15), which is the KI-24 dual-elevation-bridge case
+    — both failed real navigation in 255 frames from their true anchors, while Norman's
+    Machop @ FIERY_PATH (18,19) ARRIVED in 2,922. Taking only the best meant two of the
+    three bosses burned their one hunt on a destination the bot cannot walk to, when a
+    reachable second choice existed further down the list (Wattson also has Nincada
+    (Bug/Ground) @ ROUTE116 (11,7), on the corridor the story already walks).
+
+    Deduped by `(map, tile)` because the encounter index lists one entry per species per
+    map: six Geodude rows across six Magma Hideout floors are ONE destination, and without
+    this a fallback budget would be spent re-walking to the same place.
+    """
+    try:
+        seen = set()
+        ordered = []
+        for candidate in cands or []:
+            if not candidate.get("huntable") or candidate.get("hunt_tile") is None:
+                continue
+            try:
+                # ‼ Key on the map's NAME, not the map object. `MapRSE` members are
+                # hashable, but nothing guarantees a caller's `map_enum` is — a stand-in
+                # `SimpleNamespace` defines `__eq__`, which sets `__hash__` to None, and
+                # the whole function then vanished into its own `except` and returned []
+                # (caught 2026-07-30). Names are unique per map, so this is also the
+                # correct dedupe key, not merely the safe one.
+                map_enum = candidate.get("map_enum")
+                key = (getattr(map_enum, "name", str(map_enum)), tuple(candidate["hunt_tile"]))
+            except Exception:
+                continue
+            if key in seen:
+                continue
+            seen.add(key)
+            ordered.append(candidate)
+        return ordered
+    except Exception as error:
+        _log.warning("huntable_candidates failed: %s", error)
+        return []
+
+
 def best_huntable(cands) -> "dict | None":
     """The highest-ranked candidate phase 2 can ACTUALLY go and catch, or None.
 

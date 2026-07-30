@@ -2628,3 +2628,33 @@ member and says how to supply it. Methods are bound to the real implementation
 list them — and any code path wrapped in a broad `except` must be exercised by a fixture that
 would fail LOUDLY if the stub drifted. When you harden a swallow in production, harden every
 stub that feeds it in the same commit.*
+
+---
+
+## 2026-07-30 — I probed reachability with a tool that cannot cross warps, and nearly believed it
+
+**Symptom.** `probe_counter_reachability.py`'s first run reported all five counter
+destinations as unreachable, which would have meant the whole of `#24-counters` phase 2 was
+inert. Three of the five errors read *"…are not on connected maps (**note that warps don't
+count**)"*.
+
+**Root cause.** I used `calculate_path`, which plans only across DIRECTLY CONNECTED maps.
+FIERY_PATH is entered through a cave-door **warp**, and two of my anchors were inside
+buildings (`LAVARIDGE_TOWN_GYM_1F`, `MAUVILLE_CITY_GYM`) — also warps. The tool cannot answer
+"can the bot get there" **in principle**, and the executor does not use it: `counter_hunt.hunt`
+calls `_navigate_riding_out` → `navigate_to_anywhere`, which crosses warps and rides out
+scenes. Re-run with the real thing, Norman's Fiery Path leg **ARRIVED in 2,922 frames**.
+
+**What saved it** was that the error message named its own limitation, and two of the five
+failures had a *different* message ("Could not find a path") — the same verdict arriving by
+two different routes is a signal to check the instrument, not to accept the verdict.
+
+**What it cost, and what it bought.** Nothing was shipped wrong, and the corrected probe
+paid for itself immediately: it showed the top destination is genuinely unreachable for
+Wattson and Winona, which is why the destination-fallback exists at all. A probe that had
+"confirmed" everything reachable would have been worse than the wrong one.
+
+**Prevention rule.** *Probe with the SAME call the production path uses, not a lower-level
+cousin — and if a negative result would kill a feature, re-derive it with the real call
+before believing it. A planner that cannot cross warps cannot answer a question about a
+destination behind a warp, and it says so in the error text: read it.*

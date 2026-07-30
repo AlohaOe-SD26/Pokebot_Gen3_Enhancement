@@ -770,6 +770,14 @@ class StoryMode(BotMode):
     #: Cut are weak enough to be the problem, and the power floor already handles them.
     CREDIBLE_ANSWER_POWER = 75
 
+    #: How many distinct counter DESTINATIONS one ladder invocation may try before giving
+    #: up. Each rejected destination costs only a fail-fast navigation (~255 frames
+    #: measured), so a small fallback list is nearly free — and it is necessary: driven
+    #: navigation on 2026-07-30 showed the TOP huntable destination unreachable for two of
+    #: the three measured bosses. Bounded because the ladder must terminate; the expensive
+    #: failure (arrived, caught nothing) deliberately does NOT consume one of these.
+    COUNTER_HUNT_MAX_DESTINATIONS = 3
+
     @staticmethod
     def name() -> str:
         return "Story"
@@ -1251,6 +1259,7 @@ class StoryMode(BotMode):
         Fighting move), converting this bounded stop into an unbounded loop.
         """
         from modules.story import counter_hunt, counter_plan
+        from modules.story.early_game import UnreachableDestinationError
 
         key = tuple(cfg["keys"])[0] if cfg.get("keys") else cfg.get("name", "boss")
         if key in self._counter_hunts:
@@ -1273,24 +1282,71 @@ class StoryMode(BotMode):
             self._counter_hunts[key] = "planner failed"
             return False
 
-        # ‼ best_huntable, NEVER candidates[0]. Rank 1 for Norman is a Victory Road
-        # Hariyama L38-42 — the cost model prices a wild already above the team at ~0
-        # to train, so it ranks endgame maps as cheapest. See counter_plan.best_huntable.
-        candidate = counter_plan.best_huntable(candidates)
-        blocker = counter_hunt.hunt_blockers(candidate)
-        if blocker is not None:
+        # A resource wall applies to EVERY destination, so it ends the ladder outright —
+        # walking somewhere else with a full party or one ball is pure waste.
+        resource = counter_hunt.resource_blocker()
+        if resource is not None:
+            console.print(f"[yellow]Story: cannot hunt a counter — {resource}. Stopping honestly.[/]")
+            self._counter_hunts[key] = f"blocked: {resource}"
+            return False
+
+        # ‼ huntable_candidates, NEVER candidates[0]. Rank 1 for Norman is a Victory Road
+        # Hariyama L38-42 — the cost model prices a wild already above the team at ~0 to
+        # train, so it ranks endgame maps as CHEAPEST. See counter_plan.huntable_candidates.
+        #
+        # ‼ AND NOT JUST THE BEST ONE EITHER. Measured 2026-07-30 by driving the real
+        # navigation from real saves: Wattson's top huntable destination (ROUTE111 (25,55),
+        # north of the Go-Goggles desert) and Winona's (ROUTE118 (29,15), the KI-24
+        # dual-elevation-bridge case) BOTH fail to path, in 255 frames, while Norman's
+        # FIERY_PATH (18,19) arrives in 2,922. Taking only the best meant two of three
+        # bosses burned their one hunt on a place the bot cannot walk to.
+        shortlist = counter_plan.huntable_candidates(candidates)[: self.COUNTER_HUNT_MAX_DESTINATIONS]
+        if not shortlist:
+            blocker = counter_hunt.destination_blocker(None)
             console.print(f"[yellow]Story: cannot hunt a counter — {blocker}. Stopping honestly.[/]")
             self._counter_hunts[key] = f"blocked: {blocker}"
             return False
 
-        slot = yield from counter_hunt.hunt(candidate, needed)
-        if slot is None:
-            self._counter_hunts[key] = f"hunt found no {candidate['species_name']}"
-            return False
+        attempts = []
+        for candidate in shortlist:
+            map_enum, tile = candidate["map_enum"], candidate["hunt_tile"]
+            # Already proven unreachable from where we stand, this run (#24-regionreach).
+            if self._training_blocked(map_enum, tile):
+                attempts.append(f"{candidate['species_name']}@{map_enum.name}: known-unreachable")
+                continue
+            try:
+                slot = yield from counter_hunt.hunt(candidate, needed)
+            except UnreachableDestinationError as error:
+                # ‼ A NAVIGATION failure is CHEAP (255 frames, fail-fast) and specific to
+                # ONE place, so it earns a fallback rather than ending the ladder. Record
+                # it so nothing re-walks it later this run.
+                self._note_training_unreachable(map_enum, tile)
+                attempts.append(f"{candidate['species_name']}@{map_enum.name}: unreachable")
+                console.print(
+                    f"[yellow]Story: {map_enum.name} is not reachable from here "
+                    f"({error}) — trying the next counter destination.[/]"
+                )
+                continue
+            if slot is None:
+                # ‼ ARRIVED AND CAUGHT NOTHING IS NOT THE SAME FAILURE, and must NOT
+                # fall through to another destination. It already cost a full
+                # HUNT_SPIN_BUDGET_FRAMES (120,000); doing it again somewhere else would
+                # turn a bounded ladder into a multi-hundred-thousand-frame excursion.
+                # Cheap failures cascade, expensive ones do not.
+                attempts.append(f"{candidate['species_name']}@{map_enum.name}: none found")
+                self._counter_hunts[key] = "; ".join(attempts)
+                return False
 
-        self._counter_hunts[key] = f"caught {candidate['species_name']}"
-        yield from counter_hunt.train_counter(slot, cfg)
-        return True
+            self._counter_hunts[key] = f"caught {candidate['species_name']}"
+            yield from counter_hunt.train_counter(slot, cfg)
+            return True
+
+        self._counter_hunts[key] = "; ".join(attempts) or "no destination attempted"
+        console.print(
+            f"[yellow]Story: no counter destination worked ({self._counter_hunts[key]}) "
+            f"— stopping honestly.[/]"
+        )
+        return False
 
     def _here_map(self):
         """The map we are standing on, as a (group, number) tuple — None if unreadable."""

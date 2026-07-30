@@ -38,9 +38,26 @@ the note at the emulator set-up below — omitting it made the POSITIVE case sil
  15. `hunt()` disarms in a `finally` even when the spin raises — a hunt that dies armed
      would keep spending balls on Machop for the rest of the run.
 
+  THE FALLBACK, and its own bound (added 2026-07-30 after driven navigation measured the
+  TOP huntable destination as UNREACHABLE for two of the three real bosses —
+  `probe_counter_reachability.py`: Wattson's ROUTE111 and Winona's ROUTE118 both fail in
+  255 frames, while Norman's FIERY_PATH arrives in 2,922)
+ 16. an unreachable first destination -> the SECOND is tried, and succeeds.
+ 17. all destinations unreachable -> False (honest raise), and each is recorded in
+     `_training_unreachable` so nothing re-walks it this run.
+ 18. ‼ never more than `COUNTER_HUNT_MAX_DESTINATIONS` attempts, however many are offered.
+ 19. ‼ ARRIVED-but-caught-nothing does NOT cascade. A navigation failure is cheap (~255
+     frames) so it earns a retry elsewhere; a completed 120,000-frame spin is not, and
+     cascading those would turn a bounded ladder into a multi-hundred-thousand-frame
+     excursion. **Cheap failures cascade, expensive ones do not.**
+ 20. a RESOURCE wall (full party, no spare ball) stops the ladder outright — it applies to
+     every destination, so walking elsewhere is pure waste.
+
 ‼ NOT PROVEN HERE: that the bot can actually walk to Fiery Path from Petalburg, catch a
-Machop and beat Norman with it. That needs a live run. What is proven is that every way
-this can fail ends at the honest stop, and that it cannot loop.
+Machop and beat Norman with it. `probe_counter_reachability.py` proves the Fiery Path leg
+from a LAVARIDGE-era anchor (2,922 frames); the Petalburg-era anchor could not be tested
+because `prenorman_fodder_grind.ss1` loads inside a wild battle. What is proven here is
+that every way this can fail ends at the honest stop, and that it cannot loop.
 
 Run: py -3.12 tools/story-dev/repro_counter_hunt.py
 """
@@ -100,6 +117,13 @@ def check(label: str, condition: bool, detail: str = "") -> None:
         failures.append(label)
 
 
+def _map(name, value):
+    """A stand-in map enum. ‼ Must carry `.value` — `_training_blocked` and
+    `_note_training_unreachable` key the per-run unreachable set on
+    `tuple(map_enum.value)`, exactly as real `MapRSE` members provide."""
+    return SimpleNamespace(name=name, pretty_name=name.replace("_", " ").title(), value=value)
+
+
 NORMAN = {
     "keys": [(0, 7)],
     "name": "Norman",
@@ -113,7 +137,7 @@ NEEDED = ["Fighting"]
 MACHOP = {
     "species_name": "Machop",
     "types": ["Fighting"],
-    "map_enum": SimpleNamespace(name="FIERY_PATH", pretty_name="Fiery Path"),
+    "map_enum": _map("FIERY_PATH", (0, 40)),
     "tile": None,
     "hunt_tile": (18, 19),
     "level_band": (15, 16),
@@ -124,7 +148,7 @@ MACHOP = {
 }
 # What the ranking actually returns first for Norman — see repro_counter_huntable.
 HARIYAMA = dict(MACHOP, species_name="Hariyama", hunt_tile=None, huntable=False,
-                map_enum=SimpleNamespace(name="VICTORY_ROAD_B1F", pretty_name="Victory Road"),
+                map_enum=_map("VICTORY_ROAD_B1F", (0, 41)),
                 level_band=(38, 42), est_frames=4094.0)
 
 
@@ -147,9 +171,15 @@ class _Mode(SimpleNamespace):
 def make_mode() -> "_Mode":
     mode = _Mode(**{k: getattr(sm.StoryMode, k) for k in dir(sm.StoryMode) if k.isupper()})
     mode._counter_hunts = {}
+    # The ladder records unreachable destinations so nothing re-walks them this run
+    # (#24-regionreach). Bind the REAL helpers, not stubs — they are part of the bound.
+    mode._training_unreachable = set()
     mode._counter_ladder = lambda cfg, losses, needed: sm.StoryMode._counter_ladder(
         mode, cfg, losses, needed
     )
+    mode._here_map = lambda: sm.StoryMode._here_map(mode)
+    mode._training_blocked = lambda m, t: sm.StoryMode._training_blocked(mode, m, t)
+    mode._note_training_unreachable = lambda m, t: sm.StoryMode._note_training_unreachable(mode, m, t)
     return mode
 
 
@@ -163,18 +193,26 @@ def drive(gen):
 
 
 def run_ladder(mode, *, candidates=MACHOP, hunt_result=0, planner_raises=False,
-               blocker="__none__", hunt_raises=False, trained=True):
+               blocker="__none__", hunt_raises=False, trained=True,
+               unreachable_maps=(), extra=()):
     """Drive the REAL `_counter_ladder` with the planner/hunt/trainer stubbed."""
     def fake_find(needed, allow=None, max_results=5):
         if planner_raises:
             raise RuntimeError("planner exploded")
         # Always include the un-huntable rank-1, so `best_huntable` is what does the work.
-        return [HARIYAMA] + ([candidates] if candidates else [])
+        return [HARIYAMA] + ([candidates] if candidates else []) + list(extra)
 
     def fake_hunt(candidate, needed):
         calls["hunt"] += 1
+        calls["walked"].append(candidate["map_enum"].name)
         if hunt_raises:
             raise BotModeError("navigation died mid-hunt")
+        if unreachable_maps and candidate["map_enum"].name in unreachable_maps:
+            from modules.story.early_game import UnreachableDestinationError
+
+            raise UnreachableDestinationError(
+                f"Could not reach {candidate['hunt_tile']} on {candidate['map_enum'].name}"
+            )
         return hunt_result
         yield  # pragma: no cover - makes this a generator
 
@@ -183,9 +221,10 @@ def run_ladder(mode, *, candidates=MACHOP, hunt_result=0, planner_raises=False,
         return trained
         yield  # pragma: no cover
 
-    calls = {"hunt": 0, "train": 0}
+    calls = {"hunt": 0, "train": 0, "walked": []}
     orig = (counter_plan.find_counter_candidates, counter_hunt.hunt,
-            counter_hunt.train_counter, counter_hunt.hunt_blockers)
+            counter_hunt.train_counter, counter_hunt.hunt_blockers,
+            counter_hunt.resource_blocker)
     counter_plan.find_counter_candidates = fake_find
     counter_hunt.hunt = fake_hunt
     counter_hunt.train_counter = fake_train
@@ -194,19 +233,22 @@ def run_ladder(mode, *, candidates=MACHOP, hunt_result=0, planner_raises=False,
     # so stubbing it out let a "no huntable candidate" case walk into the hunt with
     # `candidate=None`. Keep the real guard in the loop for every other case.
     if blocker == "__none__":
-        # ‼ FORCE "no blocker". Needed because `hunt_blockers` fails SAFE: with no live
-        # party read it assumes the party is FULL, so on this harness the real guard
-        # blocks everything — and case 9 ("the hunt finds nothing") would then pass for
-        # entirely the wrong reason, never reaching the hunt at all.
+        # ‼ FORCE "no resource blocker". Needed because `resource_blocker` fails SAFE:
+        # with no live party read it assumes the party is FULL, so on this harness the real
+        # guard blocks everything — and case 9 ("the hunt finds nothing") would then pass
+        # for entirely the wrong reason, never reaching the hunt at all.
+        counter_hunt.resource_blocker = lambda: None
         counter_hunt.hunt_blockers = lambda c: None
     elif blocker is not None:
+        counter_hunt.resource_blocker = lambda: blocker
         counter_hunt.hunt_blockers = lambda c: blocker
     try:
         acted = drive(mode._counter_ladder(NORMAN, 6, NEEDED))
         return acted, calls
     finally:
         (counter_plan.find_counter_candidates, counter_hunt.hunt,
-         counter_hunt.train_counter, counter_hunt.hunt_blockers) = orig
+         counter_hunt.train_counter, counter_hunt.hunt_blockers,
+         counter_hunt.resource_blocker) = orig
 
 
 print("=" * 78)
@@ -255,6 +297,57 @@ for label, kwargs in (
     acted, _ = run_ladder(fresh, **kwargs)
     check(f"{label} -> ladder returns False (caller raises)", acted is False,
           f"recorded: {fresh._counter_hunts}")
+
+print()
+print("=" * 78)
+print("THE FALLBACK — a cheap navigation failure tries the NEXT destination")
+print("=" * 78)
+# Measured 2026-07-30 (probe_counter_reachability.py, driven navigation): the TOP huntable
+# destination is unreachable for two of the three real bosses, so taking only the best
+# meant burning the single per-run hunt on a place the bot cannot walk to.
+NINCADA = dict(MACHOP, species_name="Nincada", types=["Bug", "Ground"],
+               map_enum=_map("ROUTE116", (0, 42)),
+               hunt_tile=(11, 7), level_band=(6, 7), est_frames=355384.0)
+THIRD = dict(MACHOP, species_name="Makuhita",
+             map_enum=_map("GRANITE_CAVE_1F", (0, 43)),
+             hunt_tile=(35, 11), level_band=(6, 10), est_frames=467158.0)
+
+fresh = make_mode()
+acted, calls = run_ladder(fresh, unreachable_maps={"FIERY_PATH"}, extra=[NINCADA])
+check("16. first destination unreachable -> the SECOND is tried and succeeds",
+      acted is True and calls["walked"] == ["FIERY_PATH", "ROUTE116"],
+      f"walked {calls['walked']}, recorded {fresh._counter_hunts}")
+
+fresh = make_mode()
+acted, calls = run_ladder(fresh, unreachable_maps={"FIERY_PATH", "ROUTE116", "GRANITE_CAVE_1F"},
+                          extra=[NINCADA, THIRD])
+check("17. all destinations unreachable -> False (honest raise), every one attempted",
+      acted is False and calls["walked"] == ["FIERY_PATH", "ROUTE116", "GRANITE_CAVE_1F"],
+      f"walked {calls['walked']}")
+check("    ...and each was recorded as unreachable for the rest of the run",
+      len(fresh._training_unreachable) == 3, str(len(fresh._training_unreachable)))
+
+fresh = make_mode()
+extra_many = [dict(NINCADA, map_enum=_map(f"MAP{i}", (9, i)),
+                   hunt_tile=(i, i)) for i in range(8)]
+acted, calls = run_ladder(fresh, unreachable_maps={"FIERY_PATH"} | {f"MAP{i}" for i in range(8)},
+                          extra=extra_many)
+check("18. ‼ BOUNDED — never tries more than COUNTER_HUNT_MAX_DESTINATIONS",
+      acted is False and len(calls["walked"]) <= sm.StoryMode.COUNTER_HUNT_MAX_DESTINATIONS,
+      f"walked {len(calls['walked'])} of {len(extra_many) + 1} offered, "
+      f"cap {sm.StoryMode.COUNTER_HUNT_MAX_DESTINATIONS}")
+
+fresh = make_mode()
+acted, calls = run_ladder(fresh, hunt_result=None, extra=[NINCADA])
+check("19. ‼ ARRIVED-but-caught-nothing does NOT cascade to another destination",
+      acted is False and calls["walked"] == ["FIERY_PATH"],
+      f"walked {calls['walked']} — a cheap nav failure cascades, an expensive 120k-frame "
+      f"spin must not")
+
+fresh = make_mode()
+acted, calls = run_ladder(fresh, blocker="the party is full", extra=[NINCADA])
+check("20. a RESOURCE wall stops the ladder outright (no point walking elsewhere)",
+      acted is False and calls["walked"] == [], f"walked {calls['walked']}")
 
 print()
 print("=" * 78)

@@ -5397,3 +5397,59 @@ drives stubs — the battle-strategy constructors on the fall-through paths read
 party. Without it, `StoryCatchStrategy()` raised inside `on_battle_started`'s
 `except Exception: pass` and the POSITIVE case silently fell through, i.e. the branch looked
 broken when it was not. Same trap as `repro_sufficiency` earlier today.
+
+---
+
+## 2026-07-30 — `#24-counters` step 2b: destination FALLBACK, because 2 of 3 rungs were inert
+
+**New probe `tools/story-dev/probe_counter_reachability.py` — and it changed the design.**
+It drives the REAL navigation (`_navigate_riding_out`, which crosses warps) from verified
+save anchors to each boss's `best_huntable()` destination:
+
+| rung | destination | driven navigation |
+|---|---|---|
+| **Norman → Fighting** | Machop @ FIERY_PATH (18,19) | ✅ **ARRIVED in 2,922 frames** |
+| Wattson → Ground | Sandshrew @ ROUTE111 (25,55) | ❌ failed in 255 frames |
+| Winona → Rock/Elec/Ice | Electrike @ ROUTE118 (29,15) | ❌ failed in 255 frames |
+
+Route 111's tile is Fallarbor-side (north of the Go-Goggles desert); Route 118 is the KI-24
+dual-elevation-bridge case where `region_reach` says yes at map scale and the tile planner
+cannot route it. **So two of three bosses were burning their single per-run hunt on a place
+the bot cannot walk to** — while a reachable second choice sat further down the ranked list
+(Wattson also has **Nincada (Bug/Ground) @ ROUTE116 (11,7)**, on the corridor the story
+already walks).
+
+### The fix — walk the ranked list, bounded, with an asymmetry that matters
+`counter_plan.huntable_candidates()` returns every huntable candidate in rank order, deduped
+by `(map name, tile)` — the encounter index lists one row per species per map, so six
+Geodude rows across six Magma Hideout floors are ONE destination. `_counter_ladder` now tries
+up to `COUNTER_HUNT_MAX_DESTINATIONS = 3` of them.
+
+‼ **Cheap failures cascade; expensive ones do not.**
+* A **navigation** failure costs ~255 frames (the fail-fast guard) and is specific to one
+  place ⇒ try the next destination, and record it in `_training_unreachable` so nothing
+  re-walks it this run.
+* **Arrived and caught nothing** already cost a full 120,000-frame spin ⇒ do NOT cascade.
+  Cascading those would turn a bounded ladder into a multi-hundred-thousand-frame excursion.
+* A **resource** wall (full party, no spare ball) applies to every destination ⇒ stop
+  outright. This is why `hunt_blockers` was split into `resource_blocker()` (global) and
+  `destination_blocker()` (per-candidate): collapsing them made "the party is full" and
+  "that one tile is unreachable" indistinguishable, and the ladder must react differently.
+
+### Also fixed on the way
+`huntable_candidates` keyed its dedupe set on the **map object**. `MapRSE` members are
+hashable, but a stand-in `SimpleNamespace` defines `__eq__`, which sets `__hash__` to None —
+so the function vanished into its own `except` and returned `[]`, silently. Now keyed on the
+map's NAME, which is unique per map and therefore the correct key as well as the safe one.
+
+### Proof
+`repro_counter_hunt.py` grows to **20 checks, ALL PASS**, adding: the fallback succeeds on
+the second destination (16); all-unreachable still stops honestly and records each (17);
+‼ the attempt count is capped however many are offered (18); an expensive failure does not
+cascade (19); a resource wall stops the ladder outright (20).
+
+**Expectation-setting for the next batch:** Wattson is the biggest derail class (17 of 29)
+and its FIRST choice is unreachable. With the fallback it now tries Route 116 Nincada
+instead of stopping — but that is an L6-7 catch for an ~L20 team, and `train_counter`'s
+frame-cost gate may well decline it (est. 355,384 frames vs a 250,000 budget). **A Wattson
+derail that survives this is not the executor failing**; read the log line, which says which.

@@ -107,6 +107,25 @@ all `tile: None`**. No bot behaviour has changed yet — nothing travels or catc
    (no huntable candidate / party full / no spare ball / planner throws / hunt finds nothing
    / already hunted this run) still stops honestly.
 
+   ✅ **STEP 2b — DESTINATION FALLBACK (2026-07-30).** `probe_counter_reachability.py`
+   drives the REAL navigation from verified anchors and measured this:
+   | rung | destination | driven navigation |
+   |---|---|---|
+   | **Norman → Fighting** | Machop @ FIERY_PATH (18,19) | ✅ **ARRIVED, 2,922 frames** |
+   | Wattson → Ground | Sandshrew @ ROUTE111 (25,55) | ❌ failed, 255 frames |
+   | Winona → Rock/Elec/Ice | Electrike @ ROUTE118 (29,15) | ❌ failed, 255 frames |
+   So two of three bosses were burning their one hunt on an unreachable place. The ladder
+   now walks `counter_plan.huntable_candidates()` in rank order, up to
+   `COUNTER_HUNT_MAX_DESTINATIONS = 3`.
+   ‼ **Cheap failures cascade, expensive ones do not.** A navigation failure (~255 frames,
+   one place) tries the next destination and is recorded in `_training_unreachable`; an
+   *arrived-but-caught-nothing* (a full 120,000-frame spin) does NOT cascade; a resource
+   wall (full party / no spare ball) stops the ladder outright.
+   ‼ **`calculate_path` CANNOT answer a reachability question about a destination behind a
+   WARP** — it plans only across directly-connected maps and says so in its error text.
+   Probe with `_navigate_riding_out`, which is what the executor actually calls
+   (08-MISTAKES 2026-07-30).
+
    ⏭ **WHAT IS OWED NOW: A LIVE RUN.** Nothing proves the bot can actually walk to Fiery
    Path from Petalburg, catch a Machop and beat Norman with it. On the next batch, grep for
    `counter hunt` and `already hunted a counter`, and check in this order:
@@ -116,6 +135,13 @@ all `tile: None`**. No bot behaviour has changed yet — nothing travels or catc
    4. ‼ **The regression to fear:** a boss that used to stop honestly now LOOPS. The
       per-run bound is what prevents it and `repro_counter_hunt` case 2 is its proof, but
       only a live run exercises the real re-entry path.
+   ‼ **SET EXPECTATIONS BEFORE READING THE LOGS.** Norman's rung is proven live; **Wattson
+   and Winona's FIRST choices are proven unreachable**, so those fall back to a second
+   destination that may itself be declined by the frame-cost gate (Wattson's Route 116
+   Nincada is L6-7 for an ~L20 team: est. 355,384 frames vs a 250,000 budget). **A Wattson
+   derail in the next batch is NOT evidence the executor failed** — read the log line, which
+   names which rung was tried and why it stopped. Expect the Norman case to be the one that
+   demonstrates the full arm → hunt → catch → train chain.
 2. **Then the next chapters: Mt. Pyre → Magma hideout** (`12-STORYMODE-DESIGN.md`).
    MAP FIRST (static recon → Area Atlas → build → validate) — playbook §4.
 3. **Then the team/catch work** (`#24-dexhunt`, `#24-maintain`, `#24-catchcap`), which share
