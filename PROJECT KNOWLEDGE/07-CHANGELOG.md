@@ -5137,3 +5137,44 @@ a user's direct observation of the screen as primary evidence over your own tele
 
 Repro: `tools/story-dev/repro_faint_chooser_index_space.py`. Suite: **53 pass, 0 fail, 5
 environmental.**
+
+## 2026-07-30 — KI-34 fix CONFIRMED live; it exposed KI-37 (a deadlock the fix itself created)
+
+Two logs, both on build `4f1e02f9`: `20260730-074518` (ENDLESS RESET) and `20260730-081347`
+(DEBUG - RESET).
+
+### ✅ The KI-34 diagnosis is CONFIRMED and the fix works
+`[orders DIVERGE]` appears with concrete evidence —
+`alive_slots=[1, 2, 3](party-order) -> [0, 2, 3](menu-order)` — so the two party index spaces
+really do diverge in practice, exactly as the user's screen observation implied.
+**`GAVE UP` fell from 3,975 in a single lane to 3 per run.**
+
+### ✅ The battle-fault hand-over works — when the mode can be reached
+In the ENDLESS-RESET log the hand-over was claimed **one frame later**:
+`f902223 [STORY] DERAIL #1: Story: battle handler gave up — after-faint chooser could not send
+a mon out after 3 attempts (KI-34)`. Clean derail, run continues.
+
+### ‼ KI-37 — and the fix caused it
+In the DEBUG-RESET log the identical hand-over at f1,797,401 was **never claimed**, and the run
+sat at `state=3` for **1,182,000 frames** until stopped by hand. KI-36's 60,000-frame net also
+fired and was also unclaimed. Cause: `TrainerApproachListener.handle_trainer_approach` was an
+unbounded `while script_is_active: press B` loop with **no fault check**, so it sat on top of
+the controller stack starving the mode — the only thing that can consume a fault.
+**`BattleListener` already had exactly this guard ~110 lines above**, with a comment naming the
+identical hazard; the sibling listener never mirrored it. Third instance of that shape.
+`battle_fault.py`'s own docstring predicted it: *"An unconsumed fault would be far worse than a
+Manual drop."* **Fixed**; asserted in `repro_faint_chooser_index_space.py`.
+**Still open:** audit every listener that can sit above the mode, and bound their loops. KI-36's
+complete (stack-independent) fix would make the whole class impossible.
+
+### ‼ KI-38 — 3 residual give-ups, and the user's text fallback has now earned its place
+New press profile: `presses={'Down': 3, 'A': 273}`, `cursors_seen=[0, 2, 3, 7](menu-order)` in a
+FOUR-mon party against a mapped target of menu-0. Two unexplained things the data cannot
+separate: cursor **7** (almost certainly the CANCEL entry — if the walk overshoots, `Down` may
+never return to the target), and 273 A-presses with the cursor reportedly reaching the target.
+This is exactly the case the deferred `#24-menutext` was reserved for: reading the game's own
+refusal message distinguishes "wrong target" from "right target, refused". Deferring it was the
+right call — had it shipped alongside the index fix, the 3,975 → 3 improvement could not have
+been attributed. **The exact string must come from the decomp, never recall.**
+
+Suite: **53 pass, 0 fail, 5 environmental.**

@@ -137,6 +137,25 @@ check("request_mode_recovery" in dl,
 check("in_battle and _stall_frames == _BATTLE_STALL_FAULT_AFTER" in dl,
       "it fires ONCE, and only in battle")
 
+print("")
+print("== EVERY listener that can sit above the mode must honour a pending fault ==")
+# Measured (user log 20260730-081347): handle_fainted_pokemon handed over correctly at
+# f1,797,401 and NOTHING claimed it, because TrainerApproachListener.handle_trainer_approach
+# was on top of the stack pressing B while the trainer script stayed active -- starving the
+# mode of frames. The run sat at state=3 for 1,182,000 frames. In the sibling ENDLESS-RESET
+# log the same handover was claimed ONE FRAME later, because there the mode was reachable.
+lis = (SANDBOX / "modules" / "modes" / "_listeners.py").read_text(encoding="utf-8")
+i_ta = lis.index("def handle_trainer_approach")
+ta = lis[i_ta:lis.find(chr(10) + "class ", i_ta)]
+check("battle_fault_pending()" in ta,
+      "handle_trainer_approach checks battle_fault_pending()")
+check("return" in ta, "…and RETURNS, popping back to the mode")
+check("raise" not in ta, "…never raises (that would reach main_loop and force Manual)")
+i_bl = lis.index("class BattleListener")
+bl = lis[i_bl:i_ta]
+check("battle_fault_pending()" in bl,
+      "BattleListener still has the same guard it always had (the one this mirrors)")
+
 print()
 if failures:
     print(f"FAIL ({len(failures)})")

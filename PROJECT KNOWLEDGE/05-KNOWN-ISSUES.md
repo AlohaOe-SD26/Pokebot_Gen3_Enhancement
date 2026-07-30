@@ -1064,3 +1064,57 @@ reason about them.
   dump after 18,000 frames, so the cap is no longer the only thing that NOTICES a hang, just
   the thing that ENDS one — a wedge is now diagnosed ~270x sooner than the cap fires.
   Expect to raise it again as content grows; re-derive from the deepest COMPLETED run.
+
+
+## KI-37 — a listener above the mode can STARVE it, so a handed-over battle fault is never claimed (opened 2026-07-30, severity: HIGH — CAUSED BY THE KI-34 FIX)
+- **Symptom:** user log `20260730-081347` (`Story (DEBUG - RESET)`, build `4f1e02f9`).
+  `handle_fainted_pokemon` did its job — 3 give-ups, then a correct hand-over at f1,797,401:
+  `[FAINT-CHOOSER] handing a recoverable derail to the mode`. **Nothing claimed it.** The run
+  then sat at `state=3 controllable=False` on ROUTE 117 for **1,182,000 frames** until the user
+  stopped it by hand. KI-36's 60,000-frame net ALSO fired and was ALSO unclaimed.
+- **Contrast, same build, sibling log `20260730-074518` (`ENDLESS RESET`):** the identical
+  hand-over was claimed **one frame later** — `f902223 [STORY] DERAIL #1: Story: battle handler
+  gave up — after-faint chooser could not send a mon out after 3 attempts (KI-34)`. So the
+  channel works; something specific starved the mode in the other run.
+- **Cause.** `TrainerApproachListener.handle_trainer_approach` was:
+  ```python
+  while get_global_script_context().is_active:
+      context.emulator.press_button("B")
+      yield
+  ```
+  An **unbounded loop with no fault check**. When a battle wedges, the trainer script never
+  clears, so this listener sits on TOP of the controller stack pressing B for ever — and the
+  MODE, the only thing that can consume the fault and derail, is never advanced. The stack at
+  the wedge was `['StoryDebugResetMode.run', 'TrainerApproachListener.handle_trainer_approach']`
+  with **no battle handler at all**: the fault had already short-circuited it, exactly as
+  designed.
+- **‼ `BattleListener` ALREADY HAD THIS EXACT GUARD**, ~110 lines above in the same file, with a
+  comment naming the identical hazard: *"this would press B forever while the MODE — the only
+  thing that can recover — is starved of frames."* The sibling listener simply never mirrored
+  it. Third instance of that shape (KI-18's driver, KI-34's recovery sweep, now this).
+- **This is a deadlock the fix created**, and `battle_fault.py`'s own docstring predicted it:
+  *"An unconsumed fault would be far worse than a Manual drop."*
+- **✅ FIXED 2026-07-30:** `handle_trainer_approach` now returns when `battle_fault_pending()`,
+  popping back to the mode. Asserted in `repro_faint_chooser_index_space.py`.
+- **‼ FOLLOW-UP, STILL OPEN:** audit **every** listener that can sit above the mode for the same
+  omission, and bound their loops. A per-frame, stack-independent recovery (KI-36's complete
+  fix) would make this class impossible rather than requiring each listener to remember.
+
+## KI-38 — 3 residual after-faint give-ups remain; the text fallback has now EARNED its place (opened 2026-07-30, severity: MED)
+- **The KI-34 index fix works and the diagnosis is CONFIRMED.** `[orders DIVERGE]` appears in
+  both logs with concrete evidence — `alive_slots=[1, 2, 3](party-order) -> [0, 2, 3](menu-order)`
+  — and give-ups fell from **3,975 in one lane to 3 per run.**
+- **But 3 remain**, with a new press profile: `presses={'Down': 3, 'A': 273}` and
+  `cursors_seen=[0, 2, 3, 7](menu-order)` against `alive_slots=[2](party) -> [0](menu)` in a
+  FOUR-mon party. Two things are unexplained and the data cannot separate them:
+  1. **cursor 7 in a 4-mon party** — almost certainly the party menu's CANCEL entry. If the
+     cursor walks past the target onto CANCEL, `"Down"` may never bring it back.
+  2. **273 A-presses with the cursor reportedly reaching 0**, the mapped target — so either the
+     target is still wrong, or A on it is being refused for a reason we do not read.
+- **‼ The user's proposed TEXT-DETECTION FALLBACK (`#24-menutext`) is now justified by
+  evidence**, exactly as predicted when it was deferred: reading the game's own refusal message
+  distinguishes "wrong target" from "right target, refused" and is strictly more general than
+  any index reasoning. **The exact string must be read from the pokeemerald decomp, never
+  recalled.**
+- **Also worth instrumenting:** log the cursor AND the target on each press, not just the sets,
+  so a press can be attributed to a position.
