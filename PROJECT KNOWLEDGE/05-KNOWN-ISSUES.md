@@ -963,9 +963,47 @@ reason about them.
   overnight against P2's 19.** The livelock, not difficulty, is what cost that lane its night.
   P1 1, P2 0, P4 2 — it is **99.9% concentrated in P3/Treecko**, because Treecko has no Ground
   answer to Wattson, loses repeatedly, and every loss is another after-faint chooser roll.
-- **Next fix direction (not yet applied):** stop pressing A into a re-arming printer task. The
-  recovery loop must be state-aware — wait for the printer tasks to CLEAR before pressing
-  anything, and bound the OUTCOME (a mon actually sent out) rather than the frames.
+- **‼ ROOT CAUSE FOUND 2026-07-30 — USER OBSERVATION + CODE, and it invalidates my reading of
+  my own instrumentation.** The user, watching the screen: *"the bot is selecting a live pokemon
+  in the pokeparty, but its one that is already in the field (cannot select an already active
+  pokemon to swap out)"*.
+  That is impossible if `alive_slots` is correct — and it is correct, **in its own index space.
+  The comparison is not.** There are TWO party index spaces:
+  * **regular party order** — what `get_party()` returns;
+  * **in-battle party-menu order** — what the party MENU uses, which diverges from the regular
+    order once mons have been switched in and out. `BattleState.map_battle_party_index()`
+    (`battle_state.py:332`) exists solely to convert between them, and its docstring says so:
+    *"the order in the party menu might be different from what `get_party()` returns so we'd
+    have to scroll to a different index."*
+
+  `handle_fainted_pokemon` uses BOTH SPACES AND COMPARES THEM DIRECTLY:
+  | line | value | space |
+  |---|---|---|
+  | `battle_handler.py:474` | `party_in_menu = get_party()` | **regular** |
+  | `battle_handler.py:~504` | `alive_slots` built by enumerating that party | **regular** |
+  | `battle_handler.py:530` | `cursor = get_party_menu_cursor_pos(...)["slot_id"]` (reads `gPartyMenu.slotId`) | **in-battle menu** |
+  | `battle_handler.py:548-549` | `cursor in alive_slots` / `cursor not in alive_slots` | **‼ mixed** |
+
+  ‼ **The same function already knows better**: its PRIMARY path maps correctly at
+  `battle_handler.py:443-444` (`if index_needs_mapping: new_lead_index =
+  battle_state.map_battle_party_index(new_lead_index)`). Only the RECOVERY SWEEP — the loop that
+  actually wedges — skips the mapping.
+- **Why this explains every observation at once:** once the orders diverge (i.e. after switches
+  and faints — exactly a double battle late in a fight), menu-slot *n* is a different mon than
+  party-slot *n*. The sweep concludes "cursor is on a living, eligible mon", presses A, and the
+  game **refuses because that mon is on the field** — which re-arms
+  `Task_PrintAndWaitForText`, so the loop takes the dismiss-text branch again. Hence exactly
+  what was logged: `presses={'A': 289}`, **cursor static**, and a `cursor in alive_slots` test
+  that was TRUE and meaningless. It is worst in P3 because that lane faints most, so its orders
+  diverge most.
+- **‼ LESSON (logged in 08-MISTAKES):** I instrumented the VALUES but not their UNITS. Two
+  integers from different coordinate systems compared as if interchangeable — and the log I
+  added made the wrong comparison look verified.
+- **Fix direction (specified, NOT yet applied):** convert before comparing — map `alive_slots`
+  into in-battle menu space with `map_battle_party_index()` (matching what the primary path and
+  `battle_action_selection.py:124/199` already do), or map the cursor back to regular space.
+  Additionally bound the OUTCOME (a mon actually sent out), not just the frames, since the
+  6,000-frame bound is defeated by dispatcher re-entry.
 
 ## KI-36 — the per-run frame budget CANNOT fire while a battle handler is on the stack (opened 2026-07-30, severity: HIGH)
 - **Symptom:** in `20260730-062818`, P3 run `235303` ran for **25,632,106 frames** — five times

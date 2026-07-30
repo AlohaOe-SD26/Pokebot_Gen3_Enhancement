@@ -2456,3 +2456,50 @@ structural assertion is genuinely needed (ordering, "is this wired at all"), anc
 landmark inside the unit under test and strip docstrings first. And treat a source assertion
 that fails on a change you believe is correct as a suspect *test*, not a suspect change —
 twice out of three times here, it was.
+
+---
+
+## 2026-07-30 — I instrumented the VALUES but not their UNITS, and my own log made a wrong comparison look verified
+
+**Symptom.** After adding `[FAINT-CHOOSER]` instrumentation to diagnose the KI-34 party-menu
+livelock, the overnight batch produced 7,539 samples and I concluded, with confidence:
+
+> `alive_slots` was NEVER empty (0 of 7,539) … `cursors_seen=[1]`, and that position **is in
+> `alive_slots`**. The cursor is parked on a living, eligible mon.
+
+From that I declared one hypothesis refuted and the other confirmed. **The conclusion was
+unfounded.** The user, watching the screen, reported the bot was selecting *a Pokémon already on
+the field* — which my data said was impossible.
+
+**Root cause.** There are two party index spaces in a Gen-3 battle: the **regular** order from
+`get_party()`, and the **in-battle party-menu** order, which diverges once mons have been
+switched in and out. `BattleState.map_battle_party_index()` exists purely to convert between
+them. `handle_fainted_pokemon` builds `alive_slots` from `get_party()` (regular) and reads
+`cursor` from `gPartyMenu.slotId` (menu order), then compares them **directly** — while the
+same function's primary path maps correctly 60 lines earlier. So "cursor ∈ alive_slots" was
+comparing two different coordinate systems and was TRUE for the wrong reason.
+
+**Why my instrumentation didn't catch it — and made it worse.** I logged both numbers, so the
+data *looked* complete and self-consistent. Logging a value without its unit does not make it
+verifiable; it makes a category error look like evidence. The log I added to settle the
+question is precisely what convinced me of the wrong answer.
+
+**What actually found it.** A human watching the screen for thirty seconds. No amount of the
+telemetry I had chosen would have produced it, because every number in it agreed with itself.
+
+**Prevention rules.**
+1. **When two integers are compared, prove they share a coordinate system.** In this codebase
+   that means: if a value came from a MENU (`gPartyMenu`, cursor positions, scroll indices) and
+   another came from `get_party()`, one of them needs `map_battle_party_index()` before they
+   touch. Grep for an existing mapping helper — its existence is the tell that two spaces exist.
+2. **Log the UNIT, not just the value.** `cursor=1` and `alive_slots=[1,3]` should have been
+   `cursor=1(menu-order)` and `alive_slots=[1,3](party-order)`; written that way, the bug is
+   visible on the first line of output.
+3. **A function that maps indices in one branch and not another is a bug, not a style
+   inconsistency.** When adding a code path beside an existing one, check every conversion the
+   original performs — the primary path here called `map_battle_party_index`; the recovery sweep
+   simply never mirrored it. (Same shape as the KI-18 note: *"`choose_new_lead_after_faint`
+   already performs this exclusion — the driver simply never mirrored it."* The identical
+   mistake, in the identical function, one layer down.)
+4. **Take a user's direct observation of the screen as primary evidence over your own
+   telemetry.** They are watching the system; the telemetry is watching your model of it.
