@@ -4952,3 +4952,64 @@ prep regresses: `POKEBOT_FODDER_RULE=legacy`.
   what a log reader needs is attribution, not this week's value.
 
 Suite: **52 pass, 0 fail, 5 environmental.**
+
+## 2026-07-29 — Analysis of three more datasets (NO code changed, at the user's request)
+
+Datasets: single run `20260729-151635`, x4 bundle `20260729-172342` (a ~17-minute partial
+batch), and the 07-28 overnight stdout carried inside that bundle.
+
+### ‼ The KI-32 in-battle stall fix earned its keep on its first production run
+P2 of `20260729-172342` emitted **71 in-battle STUCK dumps** over 210,000 frames. Before that
+fix the log would have been silent — exactly as it was for the Fortree wedge, which cost a day
+of not knowing. This time the dump named the culprit outright:
+`handle_fainted_pokemon @ battle_handler.py:532/:537`.
+
+That is the user's reported bug — *"training with a skitty and an Abra in the team in a double
+battle but had issues selecting the Abra"* — now **KI-34**, with the party state, the task
+cycle and the stack recorded. It is a LIVELOCK (state cycles, party never changes), and its
+`if frames > 6000: return` bound is defeated by dispatcher re-entry (~35 re-entries).
+It also **answers KI-33's open question**: the after-faint chooser, not the battle strategy.
+KI-17, marked ✅ FIXED, **is not fixed for the multi-faint case**.
+
+### A successful run now uses 87% of the frame budget — see KI-35
+`20260729-151635` **completed**: six leaders including Winona, 462 wins, **3,058,007 frames**
+against a 3,500,000 cap. The in-run budget added on 2026-07-27 will start killing successful
+runs. Driver: **78 heal round trips in one run** — no potion layer, so every HP dip is a full
+Poké Center walk. `#24-provisions` is now the dominant cost of a run.
+
+### ‼ CORRECTION to what I told the user earlier
+I said the fodder-relocation decision was "invisible in debug logs, so the xp_rate A/B cannot
+be evaluated". The first half is true — it is `console.print` only (`story_mode.py:1474`,
+`:1480`) and never reaches a debug log. **The conclusion was wrong:** x4 bundles ship the
+per-lane *stdout*, where those messages DO appear. The A/B has been measurable all along from
+an x4 bundle; only a single-lane debug log lacks it.
+
+**Baseline (control arm) now measured** from the 07-28 overnight stdout, which predates the
+`FODDER_RULE` flag entirely and therefore ran the original inline legacy rule:
+
+| lane | runs | relocations | skipped-grind |
+|---|---|---|---|
+| P1 | 14 | **12** | 0 |
+| P2 | 13 | **2** | 0 |
+| P3 | 14 | **12** | 0 |
+| P4 | 15 | **6** | 0 |
+
+So legacy relocates **32 times across 56 runs** — it is not inert, it simply fires late in a
+run once the team is 12+ levels above the local wilds. When the xp_rate overnight batch
+arrives, comparing these counts is the A/B. Expect xp_rate ≥ legacy; a large jump concentrated
+in early-game prep is the intended effect, and any *drop* would be a red flag.
+
+### Confirmations
+- All four lanes of `20260729-172342`: build `21b587f1`, `speed=0 video=True`,
+  `fodder-rule: xp_rate (default)`, correct per-lane starters. The x4 config and the flipped
+  default both propagate correctly, with no env var set.
+- `rival-giveup = 0` in every lane of the overnight batch — the per-run-state fix continues to
+  hold.
+- losses:whiteouts 0.99–1.01 in all four lanes.
+- Dead weight persists: the completed run finished carrying **Shedinja L21 beside Blaziken
+  L44**; the P2 livelock party held **Skitty L15 and Abra L7** beside a L27 Marshtomp.
+  `team_policy` (built, still unwired) flags these.
+
+### Held deliberately — no code touched
+`MAX_FRAMES_PER_RUN` (KI-35), the KI-34 instrumentation, and the relocation-message channel
+are all identified and unmodified, pending the user's overnight x4 batch.

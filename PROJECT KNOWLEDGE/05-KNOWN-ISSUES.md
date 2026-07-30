@@ -899,3 +899,66 @@ reason about them.
   KI-8's "Proven fix pattern now exists" note is the starting point.
 - **Bounded, not fixed:** the per-run frame budget would have ended this run at 3.5M frames
   (it was at 2.78M when stopped), and KI-32 now makes it *diagnosable*. Neither prevents it.
+
+## KI-34 — the after-faint chooser LIVELOCKS when its candidate filter and the game disagree (opened 2026-07-29, severity: HIGH)
+- **User report:** *"noticed an error with I think p2 or p3 where they were training with a
+  skitty and an Abra in the team in a double battle but had issues selecting the Abra."*
+  Confirmed in P2 of bundle `20260729-172342`, and **this is the first production catch by the
+  KI-32 in-battle stall fix** — without it the log would again have been silent.
+- **Evidence (71 in-battle STUCK dumps, f652,238 → f862,238 = 210,000 frames):**
+  ```
+  game_state=3 (PARTY_MENU)  controllable=False
+  battle: active=True  instr=BattleScript_FaintedMonTryChoose
+  battle_text='MARSHTOMP fainted!'
+  party=['Marshtomp L27 0/76', 'Skitty L15 41/41', 'Poochyena L12 0/32', 'Abra L7 21/21']
+  -> handle_battle @ battle_handler.py:264
+  -> handle_fainted_pokemon @ battle_handler.py:532 / :537
+  ```
+- **It is a LIVELOCK, not a hang.** Across all 71 dumps the **party never changes** — no
+  replacement is ever sent out — but the menu state *cycles*:
+  `Task_ReturnToChooseMonAfterText + Task_PrintAndWaitForText` ×57,
+  `Task_HandleChooseMonInput` ×10, `Task_HandleSelectionMenuInput` ×3, and the stack alternates
+  between the two `yield` sites at `:532`/`:537`. The bot is pressing buttons and the game is
+  responding; the *outcome* never occurs.
+- **‼ Its 6,000-frame bound does not bound anything.** `handle_fainted_pokemon` ends with
+  `if frames > 6000: return` — but the dispatcher re-enters it with `frames = 0`.
+  210,000 / 6,000 ≈ **35 re-entries**. This is verbatim the playbook rule
+  *"bound the OUTCOME, not just the frames — a bounded loop re-entered by its dispatcher is
+  still infinite."*
+- **Two candidate mechanisms — NOT yet distinguished, and the dump cannot separate them:**
+  1. **`alive_slots` is EMPTY.** If this is a DOUBLE battle whose actives are Skitty(1) and
+     Abra(3), then `_on_field = {1,3}`; slots 0 and 2 are fainted, so the KI-18 exclusion
+     leaves **no candidate at all**. Every branch then either dismisses text or walks the
+     cursor, and A is never pressed — matching "issues selecting the Abra" exactly.
+  2. **Text-branch starvation.** The `Task_PrintAndWaitForText` /
+     `Task_ReturnToChooseMonAfterText` branch is checked FIRST and was active in 57 of 71
+     samples, so it can starve the `cursor not in alive_slots → "Down"` branch: A dismisses
+     the text, the cursor is still on a fainted slot, A re-selects it, the text returns.
+     KI-17's `post_gap = 24` was meant to prevent this; 24 frames may be insufficient.
+- **What would settle it (cheap, no emulator):** log `alive_slots`, `_on_field` and the
+  party-menu cursor from inside `handle_fainted_pokemon` via `debug_logger.event()`. The dump
+  records tasks and party but NOT the filter's own decision, which is the one thing needed.
+  Per the playbook: *instrument the BUTTON PRESSES too* — "pressing the wrong thing" and
+  "pressing nothing" have opposite fixes and look identical here.
+- **Relationship to existing entries.** Same family as **KI-33** (Fortree, 2026-07-29) and
+  **KI-17** — all three are `BattleScript_FaintedMonTryChoose` +
+  `Task_ReturnToChooseMonAfterText`/`Task_PrintAndWaitForText`. KI-17 is currently marked
+  ✅ FIXED; **it is not fixed for the multi-faint case.** KI-33's open question ("strategy or
+  after-faint chooser?") is hereby **answered: the after-faint chooser.**
+- **Not fixed.** Bounded only by the per-run frame budget, which would end the run at 3.5M.
+
+## KI-35 — a SUCCESSFUL run now uses 87% of the per-run frame budget (opened 2026-07-29, severity: MED)
+- **Symptom:** the single run in `20260729-151635` **completed** — six gym leaders beaten
+  including Winona (`FortreeCity_Gym_EventScript_WinonaDefeated` + badge fanfare), 462 battles
+  won — and consumed **3,058,007 frames**. `MAX_FRAMES_PER_RUN = 3_500_000`.
+  That is **14% headroom**, not the "~1.5x" its own comment claims (written when the deepest
+  run was ~2.24M).
+- **Risk:** the in-run frame budget added 2026-07-27 (KI-27 fix) will start terminating
+  **successful** runs and reporting them as wedged. A slightly unluckier run — a few more heal
+  round trips, one extra failed gym attempt — trips it.
+- **Why runs got longer, measured in the same log:** **78 heal round trips** in one run
+  (Route 116↔Rustboro ×34, Dewford↔Granite Cave ×29, Route 117↔Mauville ×15). With no potion
+  layer every HP dip is a full walk to a Poké Center and back. This is `#24-provisions`, and
+  it is now the dominant cost of a run — more than any gym's difficulty.
+- **Action:** raise `MAX_FRAMES_PER_RUN` before the next overnight batch, or good runs will be
+  discarded as hangs. Deliberately NOT changed yet (user asked for analysis only).
