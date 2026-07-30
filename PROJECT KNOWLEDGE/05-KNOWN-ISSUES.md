@@ -944,9 +944,47 @@ reason about them.
     The press histogram is what distinguishes *pressing the wrong thing* from *pressing
     nothing* (playbook §7); the state trace alone cannot.
   Counted per iteration, emitted once, so it cannot flood a log.
-- **The root cause is still NOT fixed, deliberately.** The two mechanisms need opposite fixes
-  and the data to choose does not exist yet. The give-up path now says out loud that the
-  dispatcher will re-enter it, so a reader sees a repeating livelock instead of silence.
+- **‼ DIAGNOSED 2026-07-30 by that instrumentation — mechanism (b), and (a) is REFUTED.**
+  Overnight batch `20260730-062818`, 7,539 chooser entries and 3,978 give-ups:
+  * **`alive_slots` was NEVER empty — 0 of 7,539.** So the KI-18 on-field exclusion is NOT
+    starving the candidate set. **Mechanism (a) is dead.**
+  * **`presses={'A': 289}` — A and NOTHING ELSE**, every time. No `Down`, no `B`, no `(none)`.
+  * **`cursors_seen=[1]` — a SINGLE position for the whole 6,002 frames**, and that position
+    **is in `alive_slots`**. The cursor is parked on a living, eligible mon.
+  So: the cursor is already correct, the bot presses A ~289 times, and the menu never advances.
+  It is not choosing wrongly and not failing to find a candidate — **its A-presses are not
+  being accepted**, and the printer-task branch (`Task_PrintAndWaitForText` /
+  `Task_ReturnToChooseMonAfterText`) keeps re-arming, so it never reaches any other branch.
+  KI-17's `post_gap = 24` is insufficient for this case.
+- **Where:** `MAUVILLE CITY(10,0)` — the Mauville Gym — in **3,975 of 3,975** located give-ups,
+  and `on_field` carries TWO slots, i.e. a **DOUBLE battle**. Exactly the user's original report.
+- **‼ Scale, and why it matters more than it looks:** P3 alone burned **23,857,950 frames** in
+  3,975 give-ups (**~7.8 complete runs' worth**) — and P3 completed only **5 badge-earning runs
+  overnight against P2's 19.** The livelock, not difficulty, is what cost that lane its night.
+  P1 1, P2 0, P4 2 — it is **99.9% concentrated in P3/Treecko**, because Treecko has no Ground
+  answer to Wattson, loses repeatedly, and every loss is another after-faint chooser roll.
+- **Next fix direction (not yet applied):** stop pressing A into a re-arming printer task. The
+  recovery loop must be state-aware — wait for the printer tasks to CLEAR before pressing
+  anything, and bound the OUTCOME (a mon actually sent out) rather than the frames.
+
+## KI-36 — the per-run frame budget CANNOT fire while a battle handler is on the stack (opened 2026-07-30, severity: HIGH)
+- **Symptom:** in `20260730-062818`, P3 run `235303` ran for **25,632,106 frames** — five times
+  the 5,000,000 cap — and the batch reported **`frame-cap=0`**. The budget never fired.
+- **Cause, and it is a defect in the KI-27 fix itself.** `_run_with_frame_budget` is a
+  **generator wrapper**: it can only check the budget when the story generator is stepped. But
+  the controller stack is **FLAT** (`02-ARCHITECTURE.md`) — `main_loop` advances only the TOP
+  generator. In that run the stack was
+  `['StoryEndlessResetMode.run', 'TrainerApproachListener.handle_trainer_approach', 'BattleListener.fight']`
+  in **8,022 of ~8,200 samples**, so `BattleListener.fight` was on top and the story generator —
+  with my budget wrapper — **was never advanced at all.**
+- **‼ So the budget is blind to precisely the failure class it was built for.** Every wedge we
+  have (KI-17, KI-33, KI-34) is inside a battle handler.
+- **Why KI-32's stall dumps still worked:** `modules/debug_logger.py` is driven by a **per-frame
+  listener** from `modules/main.py`, not by a generator, so it keeps sampling regardless of what
+  is on top of the stack. We therefore have **diagnosis without termination**.
+- **Fix direction:** the budget must be enforced from something that ticks every frame
+  regardless of the stack — a frame listener, or a check inside `main_loop` — not from inside
+  the mode's own generator. NOT yet applied.
 - **Relationship to existing entries.** Same family as **KI-33** (Fortree, 2026-07-29) and
   **KI-17** — all three are `BattleScript_FaintedMonTryChoose` +
   `Task_ReturnToChooseMonAfterText`/`Task_PrintAndWaitForText`. KI-17 is currently marked

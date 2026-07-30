@@ -5049,3 +5049,62 @@ decision matters to a reviewer, it goes through here as well.*
 Verified: both edited modules parse and import; `_ta` is provably bound before its first use in
 `_prepare_for_fight`; `MAX_FRAMES_PER_RUN` reads back as 5,000,000.
 Suite: **52 pass, 0 fail, 5 environmental.**
+
+## 2026-07-30 — Overnight batch `20260730-062818`: KI-34 diagnosed, and my own frame budget found blind
+
+68 debug logs, **55 on build `00db4a81`** (the instrumented one), all four lanes on
+`xp_rate (default)`, `speed=0 video=True`. Analysis only — no code changed.
+
+### ‼ KI-34 is diagnosed, and one of my two hypotheses is dead
+The instrumentation added the day before did exactly its job. Across **7,539 chooser entries
+and 3,978 give-ups**:
+- **`alive_slots` was NEVER empty (0 of 7,539)** → the "KI-18 exclusion starves the candidate
+  set" hypothesis is **refuted**.
+- **`presses={'A': 289}` — A and nothing else**, and **`cursors_seen=[1]`**, a single position
+  that **is** in `alive_slots`.
+
+So the cursor is already parked on a living, eligible mon and ~289 A-presses are simply not
+accepted. It is the printer-task branch re-arming (`Task_PrintAndWaitForText` /
+`Task_ReturnToChooseMonAfterText`) and starving every other branch. **KI-17's `post_gap = 24`
+is not enough.** Located at `MAUVILLE CITY(10,0)` in 3,975 of 3,975 cases, with two `on_field`
+slots — a **double battle at Mauville Gym**, exactly as the user first reported.
+
+**Cost:** P3 burned **23,857,950 frames** (~7.8 complete runs) and finished only **5**
+badge-earning runs overnight against P2's **19**. 99.9% of give-ups are P3/Treecko — the lane
+with no Ground answer to Wattson, so it loses, faints, and re-rolls the chooser endlessly.
+
+### ‼ KI-36 (NEW) — my per-run frame budget cannot fire inside a battle handler
+P3 run `235303` ran **25,632,106 frames** — 5× the 5M cap — and the batch reported
+`frame-cap=0`. `_run_with_frame_budget` is a **generator wrapper**, and the controller stack is
+**FLAT**: `main_loop` advances only the TOP generator. That run's stack was
+`[StoryEndlessResetMode.run, TrainerApproachListener.handle_trainer_approach, BattleListener.fight]`
+in **8,022 of ~8,200 samples**, so the story generator — and my budget — was never stepped.
+
+**The budget is blind to exactly the failure class it was written for**, since every wedge we
+have is inside a battle handler. KI-32's stall dumps still fire because `debug_logger` is a
+per-frame *listener*, not a generator. Net: **diagnosis without termination.**
+
+### The xp_rate A/B — result is the OPPOSITE of my prediction
+| arm | runs | relocations | per run |
+|---|---|---|---|
+| legacy (07-28 baseline) | 56 | 32 | **0.57** |
+| xp_rate (this batch) | 68 | 22 | **0.32** |
+
+I predicted "expect xp_rate ≥ legacy" and wrote that a drop would be a red flag. **It dropped.**
+The likely reason is structural, not a bug: `xp_rate` requires a **2× wild-level ratio**, while
+legacy fires on any **12-level gap** to the team. Late in a run the team is L35+ on L24-27
+grass — legacy fires (27+12 < 40), `xp_rate` does not (28/27 = 1.04×). So `xp_rate` is *more*
+permissive early and *more* conservative late, and the late-game case dominates the counts.
+**Not yet judged good or bad** — it needs an outcome comparison, not a count comparison.
+
+### Throughput
+Runs reaching **6 badges (Feather / end of built content)**: P1 **8**, P2 **7**, P3 **2**,
+P4 **6** = **23** of ~55 badge-earning runs (**42%**), against **16 of 56 (29%)** in the legacy
+batch. Encouraging, but confounded — the raised cap, `xp_rate`, and the instrumentation all
+changed at once.
+
+### On the raised frame cap (KI-35)
+4 runs exceeded the old 3.5M cap, but they are the **wedged** ones (25.6M, 10.1M, 3.54M ×2),
+not legitimate long runs — the deepest *completed* runs remain ~2.9M. So this batch does **not**
+demonstrate that the raise saved a good run. The raise was still correct (14% headroom on a
+winning run was too tight), but it has not yet paid for itself, and I should not claim it has.
