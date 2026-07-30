@@ -94,6 +94,101 @@ below); `#24-leadpolicy` → **A+C**; `#24-route110cap` → **A** (prep, NO cap)
 KI-24b → **A** (fix the mock, re-baseline, show the diff); `#doc-policy-05` → **A**
 (keep-and-mark until promotion); repo size → **leave it**.
 
+### `#24-dexhunt` — catch EVERY new species, and hunt between gyms (user proposal 2026-07-29)
+**NOT SCHEDULED — proposed, understood, and deliberately deferred by the user** ("we don't have
+to implement it now… after I send these logs we should be at a good point to continue the
+story").
+
+**The proposal.** Catch every new species the bot meets, and deliberately hunt for unseen ones
+between gyms. Rationale: (a) it is what a human player does, so runs look realistic; (b) the
+encounters generated *while* hunting are XP, so hunting doubles as training and the dex fills
+for free; (c) more encounters = more shiny chances.
+
+**‼ Why (b) is the strongest argument, with measured backing.** Training is currently a
+PURE-COST activity: bundle `20260729-151635` shows **78 heal round trips in one run** and
+training is the single largest consumer of run frames. Hunting in level-matched areas converts
+that same spend into XP **plus** dex progress **plus** shiny lottery tickets. It does not add a
+cost so much as add yield to a cost already being paid.
+
+**Most of the machinery already exists — this is assembly, not invention:**
+| piece | what it already does |
+|---|---|
+| `modules/encounter_index.py` | whole-game reverse index: species → [{map, method, rate%, level range}] |
+| `plugins/custom_modes/hunt_mode.py` | "travel to a target species' best wild spot, then hunt it" |
+| `plugins/custom_modes/living_dex_mode.py` | "work through a list of target species autonomously" (#23) |
+| `StoryShinyCatchStrategy` (`story_mode.py:84`) | already always-catches shinies, **even with a full party** (goes to the PC) |
+| `21-TEAM-POLICY-DESIGN.md` §1 | already specifies *"Drop the `BADGE01_GET` gate. Raise `_catch_team_target` 4 → 6, allow overflow to the box."* |
+
+**Exactly two gates block it today**, both in `_should_catch` (`story_mode.py`):
+1. `if get_event_flag("BADGE01_GET"): return False` — catching stops after Gym 1.
+2. `if len(party) >= self._catch_team_target: return False` — the cap of 4.
+The other gates are sound and should stay: needs the Pokédex, needs >1 ball, never a duplicate,
+never a shiny (the shiny branch pre-empts).
+
+**‼ HARD DEPENDENCIES — do NOT build this first, it will starve:**
+- **Ball + money economy.** Already failing at the current catch rate: this run logged *"out of
+  Poké Balls — fleeing this catch and moving on"* and a derail *"Cannot hunt a Surf learner: no
+  Poké Balls and no money to buy any."* Trainer battles are the ONLY income in Hoenn (no
+  scripted cash gifts). Catching everything multiplies ball spend. → `#24-provisions` first.
+- **PC / party management.** Catching everything guarantees a full party and constant box
+  traffic. `team_policy.py` is built but **unwired**, and dead weight is already at 35% of badge
+  moments. → `#24-trainmap+` item (3) first.
+- **Menu-wedge exposure.** Every catch is more party-menu and nickname-prompt interaction, and
+  **KI-34 (after-faint chooser livelock) is OPEN**. Multiplying menu traffic while a menu
+  livelock is unfixed raises the derail rate. → settle KI-34 first.
+- **Run length vs the frame budget.** A completed run is already ~3.06M frames against a
+  (just-raised) 5M cap. Hunting between gyms will add substantially. Decide deliberately
+  whether to accept fewer, richer runs per night or to cap hunting per chapter.
+
+**‼ ONE GENUINE DESIGN CHOICE FOR THE USER — this proposal and doc 21 disagree.**
+`21-TEAM-POLICY-DESIGN.md` §1 specifies a **scored, randomised** catch roll
+(`p = 0.30 + 0.50*curiosity + …`) *specifically so runs differ from one another*. The user now
+asks for **always-catch-new**, which is deterministic. Both are defensible: always-catch is more
+human and gets variety from WHICH species the RNG offers; the scored roll makes two runs on the
+same route diverge. **They cannot both be the rule — ask before building.**
+
+### `#24-maintain` — the bot should MAINTAIN its team, not cram before exams (user proposal 2026-07-29)
+**NOT SCHEDULED — noted as a potential, to discuss after the next log batch.**
+
+**The proposal.** The bot should level its Pokémon "logically and organically" — keep the team
+growing together, rather than only grinding to a floor immediately before a boss.
+
+**‼ This is not a new idea — it is the unbuilt half of the 2026-07-21 directive.**
+`modules/story/training_areas.py`'s own module docstring records it verbatim:
+> *"USER DIRECTIVE (2026-07-21, Option 1): to train an under-levelled team member EFFICIENTLY,
+> send it to a grass area whose wild Pokémon are around its own level, so it wins WINNABLE
+> fights for FULL XP — rather than swap-training (half XP) everywhere."*
+> *"STATUS: data + query helper only. NOT yet wired into `train_team` — punch-list #24-trainmap."*
+`best_training_grass(mon_level)` is already **per-mon** — exactly the maintenance primitive —
+and it has never been called.
+
+**The measured symptom it would cure** (all from real logs):
+- **35% of badge moments** carry ≥1 mon **15+ levels** below the team max; up to five at once.
+- A **Makuhita went L8 → L9 across FIVE badges** while the team went L22 → L42 — and Makuhita
+  is a Fighting type, i.e. Norman's counter, sitting in the party unusable.
+- A completed run finished carrying **Shedinja L21 beside Blaziken L44**.
+The starter takes nearly all the XP; the bench rots. Current training is target-driven and
+reactive ("cram to a floor before this boss"), which is the opposite of maintenance.
+
+**Why level-matched maintenance is efficient, not just tidy.** The calibrated model is
+`xp/battle = 50.2 × wild_level / 7` — XP depends ONLY on the defeated wild's level, never on
+the trainee's. So a low mon in a high-level area earns full XP per KO **but cannot win**, while
+swap-training pays **half**. Sending each under-levelled mon to *its own* level-matched area to
+win fights outright is strictly better than both. That is precisely what the 2026-07-21
+directive asked for.
+
+**‼ IT CONFLICTS WITH `team_policy`, AND THAT TENSION IS THE INTERESTING PART.**
+`team_policy.dead_weight()` (built 2026-07-29) says *box* anything >8 levels behind, on the
+grounds that `_prepare_for_fight` stops catching a mon up at `TRAIN_CATCHUP_GAP = 6` so it is
+"unrecoverable by construction". **Maintenance would make that premise false** — a mon is only
+unrecoverable because nothing ever levels it. Likely resolution: maintenance is the CURE,
+boxing is for the genuinely hopeless (a L3 Zigzagoon caught at the wrong moment). If
+maintenance works, the 35% dead-weight rate should fall — which is a **measurable success
+criterion**, and the honest way to test the pair against each other.
+
+**Interacts with `#24-dexhunt` above:** hunting for new species generates exactly the
+level-matched encounters maintenance needs. Done together they are one activity, not two.
+
 ### ‼‼ THE BIG ONE — `#24-trainmap+` : area-aware training, party>4, PC rotation
 **User directive 2026-07-29.** The bot trains in whatever grass is next to the objective,
 often below L5, so XP is near worthless — and Norman is the 5th gym but sits in the STARTING
