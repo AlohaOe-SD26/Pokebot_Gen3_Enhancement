@@ -1470,17 +1470,25 @@ class StoryMode(BotMode):
                     local_name = grass_map.name
                     grass_map, grass_tile = b_map, b_tile
                     heal_at_center = _training_area_heal_map().get(b_map, cfg["heal"])
-                    console.print(
-                        f"[bold cyan]Story: {local_name} (max L{local_max}) is fodder for a "
-                        f"L{team_max_now} team — relocating to {b_map.name} "
-                        f"(L{b_lo}-{b_hi}) to train for real.[/]"
-                    )
+                    _msg = (f"Story: {local_name} (max L{local_max}) is fodder for a "
+                            f"L{team_max_now} team — relocating to {b_map.name} "
+                            f"(L{b_lo}-{b_hi}) to train for real. [rule={_ta.FODDER_RULE}]")
+                    console.print(f"[bold cyan]{_msg}[/]")
+                    # ‼ ALSO INTO THE DEBUG LOG (2026-07-29). This decision was `console.print`
+                    # ONLY, so it never reached a debug log — and a debug log is what gets
+                    # shared for review. It made the KI-31 xp_rate A/B unevaluable from a
+                    # single-lane run: the effect of the experiment was invisible in the one
+                    # artefact describing the run. (x4 bundles ship stdout too, which is why
+                    # the control arm was still measurable there — but a debug log should not
+                    # depend on that.)
+                    _log_story_event(_msg)
                 else:
-                    console.print(
-                        f"[yellow]Story: local grass (max L{local_max}) is fodder for a "
-                        f"L{team_max_now} team and no better area is available — skipping "
-                        f"the grind; the boss attempt itself is the training.[/]"
-                    )
+                    _msg = (f"Story: local grass (max L{local_max}) is fodder for a "
+                            f"L{team_max_now} team and no better area is available — skipping "
+                            f"the grind; the boss attempt itself is the training. "
+                            f"[rule={_ta.FODDER_RULE}]")
+                    console.print(f"[yellow]{_msg}[/]")
+                    _log_story_event(_msg)
                     need = []
             if need:
                 console.print(
@@ -2759,6 +2767,23 @@ class StoryMode(BotMode):
         return
 
 
+def _log_story_event(message: str, category: str = "STORY") -> None:
+    """Mirror a console decision into the DEBUG LOG.
+
+    ‼ `console.print` and `modules/debug_logger.py` are SEPARATE STREAMS — the debug logger
+    never sees console output. Any decision that only reaches the console is invisible in the
+    artefact people actually share for review. Bitten three times now: the training-relocation
+    rule banner, the relocation decision itself, and the after-faint chooser's filter state.
+    If a decision matters to a reviewer, it goes through here as well.
+    """
+    try:
+        from modules import debug_logger
+
+        debug_logger.event(message, category=category)
+    except Exception:  # noqa: BLE001 - logging must never end a run
+        pass
+
+
 #: Set to "0" to leave emulation speed/video exactly as the GUI or CLI configured them.
 #: Anything else (or unset) applies the debug-run config below.
 _TURBO_ENV = "POKEBOT_STORY_DEBUG_TURBO"
@@ -2935,10 +2960,29 @@ class StoryEndlessResetMode(StoryDebugResetMode):
       * a per-run outcome line, so the console shows progress without opening a log.
     """
 
-    #: Hard per-run frame cap. Deliberately generous — the deepest real run to date reached the
-    #: end of built content in ~2.24M frames, so this is ~1.5x headroom and fires only on a
-    #: genuine wedge.
-    MAX_FRAMES_PER_RUN = 3_500_000
+    #: Hard per-run frame cap, ENFORCED DURING the run (see `_run_with_frame_budget`).
+    #:
+    #: ‼ RAISED 3.5M -> 5M on 2026-07-29 (KI-35) BECAUSE IT WAS ABOUT TO KILL GOOD RUNS.
+    #: The old value came with the note "the deepest real run to date reached the end of built
+    #: content in ~2.24M frames, so this is ~1.5x headroom". Runs have since got much longer:
+    #:     20260729-151635  3,058,007 frames — COMPLETED (six leaders incl. Winona, 462 wins)
+    #:     20260727 bundle  3,117,110 / 3,063,506 / 2,946,810 / 2,932,778 — near-complete runs
+    #: So a SUCCESSFUL run was using 87% of the cap and the real headroom was 1.14x, not 1.5x.
+    #: One unluckier run — a few more heal round trips — and the budget would have terminated a
+    #: winning run and reported it as wedged, throwing away exactly the data it exists to
+    #: protect. 5M restores ~1.6x over the deepest observed run (3.12M).
+    #:
+    #: WHY RUNS GREW, measured in the same log: **78 heal round trips in one run**
+    #: (Route 116<->Rustboro x34, Dewford<->Granite Cave x29, Route 117<->Mauville x15). With no
+    #: potion layer every HP dip is a full Poké Center walk — `#24-provisions`. Expect to raise
+    #: this again as more content is built, and re-derive it from the deepest COMPLETED run
+    #: rather than guessing.
+    #:
+    #: ‼ Raising it is cheap NOW in a way it was not before: since KI-32, an in-battle wedge
+    #: produces a STUCK dump (with the generator stack) after 18,000 frames, so the frame cap is
+    #: no longer the only thing that notices a hang — it is just the thing that ENDS one. A
+    #: wedge is diagnosed ~270x sooner than the cap fires.
+    MAX_FRAMES_PER_RUN = 5_000_000
 
     @staticmethod
     def name() -> str:

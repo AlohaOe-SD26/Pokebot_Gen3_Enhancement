@@ -498,6 +498,32 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
         i for i, mon in enumerate(party_in_menu)
         if mon is not None and not mon.is_egg and mon.current_hp > 0 and i not in _on_field
     ]
+    # ‼ RECORD THE FILTER'S OWN DECISION (KI-34, 2026-07-29). The STUCK dumps for the P2
+    # livelock in bundle `20260729-172342` captured tasks and party but NOT `alive_slots` or
+    # `_on_field` — and those are the ONLY things that distinguish the two candidate causes:
+    #   (a) `alive_slots` is EMPTY, because the KI-18 on-field exclusion removed the only
+    #       living mons (a DOUBLE battle whose two actives are the survivors), so A is never
+    #       pressed and the cursor walks for ever; versus
+    #   (b) the printer-task branch starving the cursor-walk branch.
+    # They need OPPOSITE fixes, so guessing was refused. One log line settles it.
+    # An EMPTY `alive_slots` is called out explicitly: it means this handler has been asked to
+    # choose a replacement it believes does not exist, which cannot succeed however long it
+    # spins.
+    try:
+        from modules import debug_logger
+
+        debug_logger.event(
+            f"[FAINT-CHOOSER] alive_slots={alive_slots} on_field={sorted(_on_field)} "
+            f"party={[(i, getattr(m.species, 'name', '?'), m.current_hp) for i, m in enumerate(party_in_menu) if m is not None]}"
+            + ("  ‼ NO ELIGIBLE REPLACEMENT — cannot succeed" if not alive_slots else ""),
+            category="BATTLE",
+        )
+    except Exception:  # noqa: BLE001 - instrumentation must never affect the battle
+        pass
+    import collections as _collections
+
+    _presses: "_collections.Counter" = _collections.Counter()
+    _cursors: set = set()
     frames = 0
     while get_game_state() == GameState.PARTY_MENU:
         try:
@@ -526,6 +552,13 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
             button = "A"     # cursor verified on a LIVING slot — safe to confirm
         else:
             button = None    # cursor unreadable: wait, never gamble an A (KI-17)
+        # ‼ COUNT WHAT WE PRESS AND WHERE THE CURSOR WAS (KI-34). Playbook §7: "pressing the
+        # wrong thing" and "pressing nothing" look IDENTICAL from a state trace but need
+        # opposite fixes — only the button ratio separates them. Counted here, emitted once
+        # when the loop gives up, so it costs nothing per frame and cannot flood the log.
+        _presses[button if button is not None else "(none)"] += 1
+        if cursor is not None:
+            _cursors.add(cursor)
         if button is not None:
             for _ in range(2):
                 context.emulator.press_button(button)
@@ -537,6 +570,24 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
             yield
         frames += 2 + post_gap
         if frames > 6000:
+            # ‼ THIS RETURN DOES NOT END ANYTHING. The dispatcher re-enters this handler with
+            # `frames = 0`, so the 6,000-frame bound is per-invocation, not per-wedge: the P2
+            # livelock (KI-34) survived ~35 re-entries over 210,000 frames. Bounding the
+            # OUTCOME rather than the frames is the real fix and is NOT attempted here — it
+            # needs the cause below settled first. Until then, at least say so out loud, so a
+            # log reader sees a repeating give-up instead of silence.
+            try:
+                from modules import debug_logger
+
+                debug_logger.event(
+                    f"[FAINT-CHOOSER] GAVE UP after {frames} frames without sending a mon out "
+                    f"— presses={dict(_presses)} cursors_seen={sorted(_cursors)} "
+                    f"alive_slots={alive_slots}. ‼ The dispatcher will re-enter this handler, "
+                    f"so this is a LIVELOCK, not a bounded failure (KI-34).",
+                    category="BATTLE",
+                )
+            except Exception:  # noqa: BLE001
+                pass
             return
 
 

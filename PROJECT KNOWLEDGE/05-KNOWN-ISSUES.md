@@ -935,11 +935,18 @@ reason about them.
      samples, so it can starve the `cursor not in alive_slots → "Down"` branch: A dismisses
      the text, the cursor is still on a fainted slot, A re-selects it, the text returns.
      KI-17's `post_gap = 24` was meant to prevent this; 24 frames may be insufficient.
-- **What would settle it (cheap, no emulator):** log `alive_slots`, `_on_field` and the
-  party-menu cursor from inside `handle_fainted_pokemon` via `debug_logger.event()`. The dump
-  records tasks and party but NOT the filter's own decision, which is the one thing needed.
-  Per the playbook: *instrument the BUTTON PRESSES too* — "pressing the wrong thing" and
-  "pressing nothing" have opposite fixes and look identical here.
+- **‼ INSTRUMENTED 2026-07-29 — the next occurrence will name its own cause.**
+  `handle_fainted_pokemon` now emits, via `debug_logger.event(category="BATTLE")`:
+  * on entry — `[FAINT-CHOOSER] alive_slots=… on_field=… party=[(slot, species, hp)…]`, with an
+    explicit **`‼ NO ELIGIBLE REPLACEMENT — cannot succeed`** when `alive_slots` is empty. That
+    one line separates mechanism (a) from (b).
+  * on give-up — `[FAINT-CHOOSER] GAVE UP after N frames … presses={…} cursors_seen=[…]`.
+    The press histogram is what distinguishes *pressing the wrong thing* from *pressing
+    nothing* (playbook §7); the state trace alone cannot.
+  Counted per iteration, emitted once, so it cannot flood a log.
+- **The root cause is still NOT fixed, deliberately.** The two mechanisms need opposite fixes
+  and the data to choose does not exist yet. The give-up path now says out loud that the
+  dispatcher will re-enter it, so a reader sees a repeating livelock instead of silence.
 - **Relationship to existing entries.** Same family as **KI-33** (Fortree, 2026-07-29) and
   **KI-17** — all three are `BattleScript_FaintedMonTryChoose` +
   `Task_ReturnToChooseMonAfterText`/`Task_PrintAndWaitForText`. KI-17 is currently marked
@@ -960,5 +967,10 @@ reason about them.
   (Route 116↔Rustboro ×34, Dewford↔Granite Cave ×29, Route 117↔Mauville ×15). With no potion
   layer every HP dip is a full walk to a Poké Center and back. This is `#24-provisions`, and
   it is now the dominant cost of a run — more than any gym's difficulty.
-- **Action:** raise `MAX_FRAMES_PER_RUN` before the next overnight batch, or good runs will be
-  discarded as hangs. Deliberately NOT changed yet (user asked for analysis only).
+- **✅ FIXED 2026-07-29: `MAX_FRAMES_PER_RUN` 3,500,000 → 5,000,000.** Restores ~1.6x over the
+  deepest observed run (3,117,110), re-deriving the constant from measured data rather than
+  guessing — the same "~1.5x the deepest completed run" rule the original comment used.
+  ‼ Raising it is cheaper than it used to be: since KI-32 an in-battle wedge produces a STUCK
+  dump after 18,000 frames, so the cap is no longer the only thing that NOTICES a hang, just
+  the thing that ENDS one — a wedge is now diagnosed ~270x sooner than the cap fires.
+  Expect to raise it again as content grows; re-derive from the deepest COMPLETED run.

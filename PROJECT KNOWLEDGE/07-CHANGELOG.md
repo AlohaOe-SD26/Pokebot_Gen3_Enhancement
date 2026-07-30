@@ -5013,3 +5013,39 @@ in early-game prep is the intended effect, and any *drop* would be a red flag.
 ### Held deliberately — no code touched
 `MAX_FRAMES_PER_RUN` (KI-35), the KI-34 instrumentation, and the relocation-message channel
 are all identified and unmodified, pending the user's overnight x4 batch.
+
+## 2026-07-29 — Applied the three held fixes (frame budget, KI-34 instrumentation, log channel)
+
+**1. `MAX_FRAMES_PER_RUN` 3,500,000 → 5,000,000 (KI-35).** A run that BEAT Winona used
+3,058,007 frames — 87% of the old cap — so the in-run budget added on 2026-07-27 was about to
+terminate winning runs and report them as wedged. Re-derived from measured data using the
+original constant's own rule (~1.5× the deepest completed run): deepest observed is 3,117,110,
+so 5M gives ~1.6×. ‼ Raising it costs less than it used to: since KI-32 an in-battle wedge
+emits a STUCK dump after 18,000 frames, so the cap is no longer what NOTICES a hang, only what
+ENDS one — a wedge is now diagnosed ~270× sooner than the cap fires.
+
+**2. KI-34 instrumentation — the next occurrence will name its own cause.**
+`handle_fainted_pokemon` now emits via `debug_logger.event(category="BATTLE")`:
+- on entry: `[FAINT-CHOOSER] alive_slots=… on_field=… party=[(slot, species, hp)…]`, with an
+  explicit `‼ NO ELIGIBLE REPLACEMENT — cannot succeed` when `alive_slots` is empty. That single
+  line separates the two candidate mechanisms (empty candidate set from the KI-18 on-field
+  exclusion, vs printer-task branch starvation).
+- on give-up: `[FAINT-CHOOSER] GAVE UP after N frames … presses={…} cursors_seen=[…]`, and it
+  states outright that the dispatcher will re-enter, so a reader sees a repeating LIVELOCK
+  rather than silence. The press histogram is the only thing that distinguishes *pressing the
+  wrong thing* from *pressing nothing* (playbook §7) — a state trace cannot.
+Counted per iteration, emitted once per invocation, so it cannot flood a log.
+**The root cause is still not fixed, deliberately** — the two mechanisms need opposite fixes
+and the data to choose between them does not exist yet.
+
+**3. The fodder/relocation decision now reaches the DEBUG LOG.** Both the "relocating to X" and
+"no better area — skipping the grind" messages were `console.print` only, so the effect of the
+KI-31 xp_rate experiment was invisible in the one artefact describing a run. Added
+`_log_story_event()` (a named mirror to `debug_logger.event`) and tagged both messages with
+`[rule=…]`. **Third time this exact gap has bitten** — the rule banner, the relocation
+decision, and the chooser's filter state — so the helper's docstring records the rule: *if a
+decision matters to a reviewer, it goes through here as well.*
+
+Verified: both edited modules parse and import; `_ta` is provably bound before its first use in
+`_prepare_for_fight`; `MAX_FRAMES_PER_RUN` reads back as 5,000,000.
+Suite: **52 pass, 0 fail, 5 environmental.**
