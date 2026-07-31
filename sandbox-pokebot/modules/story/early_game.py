@@ -197,14 +197,24 @@ def _navigate_riding_out(dest_map, dest_tile, *, avoid_encounters: bool = True, 
     #: smash-and-retry — and a bounded loop re-entered by its dispatcher is still infinite
     #: (KI-34 burned 23.9M frames exactly that way).
     cleared_obstacles: set = set()
-    #: Stop searching once a search has come back empty (or only with rocks we already
-    #: cleared). ‼ NOT a micro-optimisation: the search is SYNCHRONOUS — it runs up to a
-    #: few `calculate_path` calls per candidate obstacle without yielding, so the emulator
-    #: is frozen for its duration. Re-running it on all `tries` retries would freeze the
-    #: run for seconds at a time on every failed navigation, and a frozen emulator is
-    #: indistinguishable from a hang in a log. Riding out a scene cannot create new rocks,
-    #: so one empty answer is final for this trip.
-    obstacle_search_exhausted = False
+    #: The map an empty obstacle search was last performed on, or None to search now.
+    #:
+    #: ‼ THIS USED TO BE A PLAIN `obstacle_search_exhausted` LATCH, AND THE LATCH WAS WRONG.
+    #: Its stated premise was "riding out a scene cannot create new rocks, so one empty
+    #: answer is final for this trip". That is true for scenes and false for JOURNEYS: a
+    #: long trip crosses many maps, and what is reachable — and therefore what counts as a
+    #: clearable obstacle — changes completely with every one. Measured 2026-07-31: a
+    #: Petalburg -> Fiery Path run searched once in PETALBURG (correctly empty, the rock is
+    #: seven maps away), latched, and then walked all the way to **ROUTE111 (31,114)** —
+    #: standing on the very map whose rock at (18,101) seals the corridor — with obstacle
+    #: clearing permanently switched off. It stopped there.
+    #:
+    #: The reason the latch exists is still real: the search is SYNCHRONOUS, running several
+    #: `calculate_path` calls without yielding, so the emulator is frozen throughout and
+    #: re-running it on every retry costs seconds per failed navigation. Keying it to the
+    #: MAP keeps that saving (no repeat searches while stuck in one place) without the bug
+    #: (a new map always gets a fresh look).
+    obstacle_search_done_on = None
     for _ in range(tries):
         _check_abort()
         try:
@@ -229,19 +239,22 @@ def _navigate_riding_out(dest_map, dest_tile, *, avoid_encounters: bool = True, 
             # badge AND the approach tile is reachable right now, so a "no" costs one cheap
             # search on a path that was already failing.
             obstacle = None
-            if not obstacle_search_exhausted:
+            here_map = _map_group_number()
+            if obstacle_search_done_on != here_map:
                 try:
                     from modules.story.obstacle_clearing import clear_obstacle, find_obstacle_on_route
 
                     obstacle = find_obstacle_on_route(
-                        _map_group_number(),
+                        here_map,
                         dest_map.value if hasattr(dest_map, "value") else dest_map,
                         prefer_toward=dest_tile,
                     )
                 except Exception:  # noqa: BLE001 - a search must never end a trip
                     obstacle = None
                 if obstacle is None or obstacle.tile in cleared_obstacles:
-                    obstacle_search_exhausted = True
+                    # Nothing to do HERE. Remember the map, not a boolean — moving to a new
+                    # map must get a fresh search (see the note above the declaration).
+                    obstacle_search_done_on = here_map
             if obstacle is not None and obstacle.tile not in cleared_obstacles:
                 cleared_obstacles.add(obstacle.tile)
                 context.message = f"Story: clearing the way — {obstacle.describe()}"

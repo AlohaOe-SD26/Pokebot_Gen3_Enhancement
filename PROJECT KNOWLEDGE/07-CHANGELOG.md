@@ -6197,3 +6197,52 @@ reminder to fix the branch actually being taken, not the one you were looking at
 | part 1-2 (map-granular warps, staged progress) | ROUTE116 |
 | part 3 (no navigate during battle transitions) | ROUTE116 (47,9), beside the tunnel door |
 | **part 5 (prefer unvisited doors)** | **FIERY_PATH — arrives** |
+
+## 2026-07-31 — ‼ `#24-journey` COMPLETE: Petalburg → Fiery Path arrives
+
+```
+RESULT arm=new arrived=True map=FIERY_PATH detail=arrived
+```
+From `norman_done.ss1` (**PETALBURG_CITY** — the position the Norman counter ladder actually
+fires from), through the production call path (`_navigate_riding_out`, what
+`counter_hunt.hunt()` calls). **The Machop that answers Norman is now reachable from where the
+chain asks for it.**
+
+### The last bug: my own optimisation, latching the wrong thing
+Part 5 got the journey to **ROUTE111 (31,114)** — standing on the very map whose Rock Smash
+rock at (18,101) seals the corridor — and stopped there **with obstacle clearing switched
+off**. The cause was a latch I added earlier the same day:
+
+```python
+obstacle_search_exhausted = False   # ...set True on the first empty search
+```
+justified in its own comment with *"riding out a scene cannot create new rocks, so one empty
+answer is final for this trip"*. True for scenes; **false for journeys**. The run searched once
+in PETALBURG (correctly empty — the rock is seven maps away), latched, then crossed seven maps
+with the feature disabled.
+
+Fixed by keying the latch to the MAP (`obstacle_search_done_on`) instead of a boolean. That
+keeps the reason the latch exists — the search is synchronous and freezes the emulator, so
+repeating it on every retry costs seconds per failed navigation — while giving every new map a
+fresh look.
+
+### The full arc, all measured from PETALBURG_CITY
+| step | how far it got |
+|---|---|
+| start of day | ends the run at Petalburg; no travel attempted |
+| map-granular warp planning + staged progress | ROUTE116 |
+| no `navigate_to` during battle transitions | ROUTE116 (47,9), beside the tunnel door |
+| prefer doors leading somewhere NEW | ROUTE116 → FIERY_PATH (from the anchor) |
+| **obstacle search re-runs per map** | **PETALBURG → FIERY_PATH, arrives** |
+
+### What this cost, and the pattern worth remembering
+Five bugs, and **four of them were mine, introduced the same day**: the latched obstacle
+search, the re-entrancy loop, the ping-pong, and the walk-back-out-the-door. Each was found by
+MEASURING the next failure rather than reasoning about it — and in two cases my stated
+hypothesis was wrong and a single trace disproved it in one run. The one that generalises:
+**an optimisation whose justification contains the word "cannot" deserves a second look —
+"riding out a scene cannot create new rocks" was correct about scenes and silently wrong about
+the journey the code was actually for.**
+
+‼ **Still unmeasured:** whether the counter chain, having arrived, actually CATCHES and TRAINS
+a Machop and beats Norman. Arrival is not the same claim. That is what the next batch answers.
