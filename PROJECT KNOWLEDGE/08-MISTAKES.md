@@ -2768,3 +2768,73 @@ unparseable, so if the parser is ever loosened to "fix" this the wrong way, that
 **Prevention rule.** *Any subprocess whose stdout you will PARSE must be launched with
 `COLUMNS` pinned wide, not just `PYTHONUNBUFFERED`. A wrapped line does not error — it reads
 as an absent event, which is the failure mode hardest to notice.*
+
+---
+
+## 2026-07-31 — A root cause was written into the handoff as fact, and it was wrong in the direction that costs the most work
+
+**Symptom.** KI-39 and the handoff's "WHERE WE ARE" both stated that the bot *"has NO
+cross-map overworld route planning"* because *"`calculate_path` only spans directly-connected
+maps"*, and concluded that building a generic BFS journey planner was **"the highest-value
+item in the project"**. A session picking that up would have built one and found the
+run-killer unmoved.
+
+**Root cause of the wrong claim.** The original measurement was a table of four
+`calculate_path` calls that all returned failures, and a single explanation was fitted to all
+four. It never asked *why each one* failed. Two minutes of extra probing splits them into four
+unrelated causes: a phantom map connection hiding a warp (the real bug), a Rock Smash rock, a
+Go-Goggles gate, and an elevation/gate structure. Three of the four are not route planning.
+
+**What actually exposed it.** Two cheap questions the original probe never asked:
+1. *Are these maps even in the same connection component?* `map_path` tags every one of them
+   `level=459`, and its own docstring says it "supports paths across several maps". A planner
+   that could not cross maps was refuted by the source in one grep.
+2. *How MANY tiles of the map are reachable, not just the one I picked?* ROUTE110 scored
+   **17/125**, ROUTE111 **11/173**. Partial reachability is impossible under the stated cause,
+   and it immediately localises the wall — a column-by-column sweep then put the Route 111
+   choke at exactly the coordinate `early_game.py` already documents in prose, (18,101).
+
+**Prevention rule.** *A probe that returns FAIL for every case has not found a common cause —
+it has found a common symptom. Before writing one explanation into a handoff, make at least
+one measurement that could DISCRIMINATE between causes (sample many targets, not one; ask the
+tool what it believes, not just whether it succeeded). And a single arbitrarily-chosen probe
+tile can never distinguish "this map is unreachable" from "this tile is unreachable".*
+
+## 2026-07-31 — I predicted a hard boundary, the data showed a patchwork, and I nearly read it as a refutation
+
+**Symptom.** The Rock-Smash-choke prediction was "reachable stops dead at ROUTE111 y=102".
+The measured column came back as bands of reachable and blocked, and my probe printed the
+FIRST gap (y=130), which looked nothing like the prediction.
+
+**Root cause.** Two things were being measured at once: the choke (a hard floor) and the
+corridor's **one-way ledges**, which only descend, so a northbound reachability probe is
+legitimately fragmented above it. And the summary line reported the wrong boundary — the
+interesting number was the LAST reachable y (102, with 101 blocked, exactly as predicted),
+not the first gap.
+
+**The fix that worked.** Read the run-length map itself instead of the summary. The prediction
+was confirmed to the tile.
+
+**Prevention rule.** *When a probe prints both raw data and a derived summary, check the raw
+data before believing the summary — a summariser encodes an assumption about the shape of the
+answer, and it is wrong precisely when the answer is more interesting than expected.*
+
+## 2026-07-31 — A "did it work?" check that keyed on the wrong granularity would have made the fix look like a locked door
+
+**Symptom.** None shipped — caught while making same-region warps plannable.
+`navigate_to_anywhere` decided whether a warp had fired by comparing
+`graph.region_of(arrived_map)` to `graph.region_of(leg.from_map)`.
+
+**Root cause.** That test was only ever correct by accident: every warp the old planner could
+return was cross-region by construction, because `plan()` refused same-region pairs. The
+moment same-region warps became plannable, a warp that fired perfectly would leave the region
+unchanged and be reported as `"Warp at ... did not trigger (locked or event-gated?)"` — the
+new feature would have looked like a locked door, and the misleading error would have sent the
+next investigation after event flags.
+
+**The fix that worked.** Compare MAPS, with a coordinate fallback for in-map stairs (a warp
+whose two ends share a map cannot use map identity).
+
+**Prevention rule.** *When you widen what a planner may return, re-read every check that
+validates its output. A verification written against a narrower input set encodes that
+narrowness as an assumption, and it fails by declaring the new, correct cases broken.*

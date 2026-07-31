@@ -5795,3 +5795,66 @@ verdict flips from *"all 1 application(s) are inside an `if …tile_shm…` bran
 application(s) reachable by every frontend"*. Plus three direct calls of the extracted helper.
 
 Repro sweep after both changes: **62 pass, 0 fail, 1 skip** (`repro_x4_lanes`, by design).
+
+## 2026-07-31 — `#24-journey` / KI-39: warp planning at MAP granularity (the real fix)
+
+**First, a correction.** KI-39 and the handoff both said the bot *"has NO cross-map overworld
+route planning"* because *"`calculate_path` only spans directly-connected maps"*. Measured
+live, that is false: `map_path.py` gives every edge-connected map a global offset and a shared
+`level` (Mauville and Routes 110/111/112/116/117 are all level 459), and partial reachability
+proves it was trying and failing at TILE level — ROUTE110 **17/125** tiles reachable, ROUTE111
+**11/173**, ROUTE117 **22/41**, VERDANTURF **14/23**. A planner that could not cross maps
+would score 0. The four blocked trips had four different causes; only one was route planning.
+
+**The genuine bug.** `WarpGraph.plan()` answers at REGION granularity, and a region is the
+union-find collapse of map connections. The whole Hoenn overworld is region 0, so `plan()`
+returned `[]` ("no warps needed") for every overworld to overworld trip and the warp planner
+was never consulted. The proof case: VERDANTURF declares a North map CONNECTION to ROUTE116
+(so they are one region), yet **0 of 40 sampled ROUTE116 tiles are walkable from Verdanturf**
+while the RUSTURF_TUNNEL door at VERDANTURF (8,1) is. The declared connection is a phantom;
+the only passable link is a **warp inside one region**, which `plan()` cannot express.
+
+**What shipped**
+* `WarpGraph` now KEEPS the map-level connection adjacency instead of discarding it into the
+  union-find. `CACHE_VERSION` 1 to 2 so stale caches rebuild; a cache without `connections` is
+  rejected rather than loaded degraded (it would revert the fix on the second launch and look
+  like flakiness).
+* `WarpGraph.warp_candidates(from, to, limit)` — BFS over maps with state
+  `(map, has_used_a_warp)`, returning the first warp of the shortest **warp-using** route,
+  then of the shortest route not using that warp, and so on. The "at least one warp"
+  requirement is the point: the caller only asks after `calculate_path` has already refused
+  the direct walk, so a warp-free route is one the live world has just refuted.
+* `WarpGraph.map_distance()` plus a **progress filter** so dead-end interiors are not offered.
+* `navigate_to_anywhere`: (1) ask `calculate_path` whether a plain walk works — unchanged
+  fast path if yes; (2) otherwise take warp candidates, **validate each first leg with
+  `calculate_path` before committing**, and remember warps already taken so a re-plan cannot
+  ping-pong; (3) if nothing validates, fall back to today's exact behaviour so a cross-region
+  journey that works now cannot start failing.
+* Also fixed in the same change: `navigate_to_anywhere`'s "did the warp fire?" check compared
+  **regions**. A same-region warp — precisely the class this makes plannable — leaves the
+  region unchanged, so a *working* warp would have reported "Warp at ... did not trigger
+  (locked or event-gated?)". It compares maps now (with a coordinate fallback for in-map
+  stairs).
+* `story_harness.py --driver journey` — a faithful-harness driver for the A/B.
+
+**Proof.** `repro_journey_planner.py` (27 checks, no emulator) pins the topology and both
+traps. `probe_journey_live.py` is the live fault-injected A/B in the faithful harness:
+**OLD arm `arrived=False map=MAUVILLE_CITY`** (never left the starting map) vs **NEW arm
+`arrived=True map=ROUTE116` in 33,725 frames**, walking Mauville to Route 117 to Verdanturf to
+Rusturf Tunnel to Route 116. Control (`Mauville to ROUTE117 (31,16)`, always walkable) still
+takes the unchanged fast path. Sweep: **63 pass, 0 fail, 1 skip**.
+
+**What it does NOT fix.** The handoff claimed this unblocks the run-killer. It does not.
+Measured after the fix, FIERY_PATH (the counter the ladder names) DOES get a warp route — 2
+candidates, both ROUTE112 doors — and **neither first leg is walkable**, because a Rock Smash
+rock seals the corridor. That is now **KI-41**, and it is the real blocker for `#24-counters`.
+
+## 2026-07-31 — KI-41 logged: a Rock Smash rock, not route planning, is what hides Fiery Path
+
+Column-by-column reachability on ROUTE111 from Mauville puts a hard floor at **y around
+100-101** across columns 17-20 — the twin-rocks choke that
+`early_game.travel_lavaridge_to_petalburg` already documents at **(18,101)**, and which
+**respawns on map reload**. Consequence: ROUTE112 is **0/76** reachable from Mauville, and
+Fiery Path's only two doors are on Route 112. The story only gets past it because two travel
+functions hand-code a `_smash_rock` at that exact coordinate; nothing generic does. Full
+write-up plus shape of the fix in `05-KNOWN-ISSUES.md` KI-41.

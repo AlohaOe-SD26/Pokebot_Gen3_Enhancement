@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -1032,6 +1032,85 @@ class FieryCaveMode(BotMode):
             yield
 
 
+class JourneyMode(BotMode):
+    """#24-journey / KI-39: drive ONE arm of the cross-map journey A/B, faithfully.
+
+    ‼ WHY IT LIVES HERE AND NOT IN A STANDALONE PROBE — the same lesson `FieryCaveMode`
+    above was written for. Driving `navigate_to_anywhere` directly (no bot listeners) fails
+    the moment the route crosses a trainer sight-line or a wild encounter: measured
+    2026-07-31, the Mauville -> Route 116 journey died at 717 frames with "We unexpectedly
+    triggered a scripted event" on Route 117's forced doubles. That is the BARE DRIVER's
+    artefact, not the planner's. This harness runs the real main loop, so scenes and
+    battles resolve and an arrival means something.
+
+    Env inputs (so the wrapper can run both arms with everything else identical):
+      JOURNEY_ARM     'new' (default) | 'old' — 'old' blinds the planner exactly the way
+                      the pre-fix code was blind: `warp_candidates` and `plan` both [].
+      JOURNEY_TARGET  'ROUTE116:11,7' (default) — MapRSE name : x,y
+    Emits one machine-readable line the wrapper parses:
+      [journey] RESULT arm=<arm> arrived=<bool> map=<name> detail=<...>
+    """
+
+    @staticmethod
+    def name():
+        return "Journey"
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+
+        return LevelUpTravelBattleStrategy()
+
+    def run(self):
+        import os
+
+        from modules.map_data import MapRSE
+        from modules.modes.util.global_navigation import navigate_to_anywhere
+        from modules.player import get_player_avatar
+        from modules.story.early_game import wait_until_truly_controllable
+        from modules.warp_graph import WarpGraph, get_warp_graph
+
+        arm = os.environ.get("JOURNEY_ARM", "new").strip().lower()
+        raw = os.environ.get("JOURNEY_TARGET", "ROUTE116:11,7").strip()
+        map_name, _, tile = raw.partition(":")
+        x, _, y = tile.partition(",")
+        target = MapRSE[map_name.strip()]
+        target_tile = (int(x), int(y))
+
+        yield from wait_until_truly_controllable()
+
+        graph = get_warp_graph()
+        here = tuple(get_player_avatar().map_group_and_number)
+        log(f"[journey] arm={arm} from={MapRSE(here).name} to={target.name}{target_tile}")
+        log(f"[journey] same_region={graph.region_of(here) == graph.region_of(tuple(target.value))} "
+            f"plan()={graph.plan(here, tuple(target.value))} "
+            f"warp_candidates={len(graph.warp_candidates(here, tuple(target.value)))}")
+
+        saved = None
+        if arm == "old":
+            saved = (WarpGraph.warp_candidates, WarpGraph.plan)
+            WarpGraph.warp_candidates = lambda self, a, b, limit=6: []
+            WarpGraph.plan = lambda self, a, b: []
+
+        arrived, detail = False, ""
+        try:
+            yield from navigate_to_anywhere(target, target_tile)
+            arrived = tuple(get_player_avatar().map_group_and_number) == tuple(target.value)
+            detail = "arrived" if arrived else "returned on the wrong map"
+        except Exception as error:  # noqa: BLE001
+            detail = f"{type(error).__name__}: {str(error)[:160]}".replace("\n", " ")
+        finally:
+            if saved is not None:
+                WarpGraph.warp_candidates, WarpGraph.plan = saved
+
+        try:
+            final = MapRSE(tuple(get_player_avatar().map_group_and_number)).name
+        except Exception:  # noqa: BLE001
+            final = "?"
+        log(f"[journey] RESULT arm={arm} arrived={arrived} map={final} detail={detail}")
+        context.set_manual_mode()
+        return
+
+
 class RivalRetryMode(BotMode):
     """VALIDATE the bug fix: with MET_RIVAL_RUSTBORO already set (simulating a PRIOR LOSS),
     confirm fight_rustboro_rival still steps onto the y=53 trigger and RE-ENGAGES the rival
@@ -1917,6 +1996,8 @@ for step in range(args.frames):
             context.bot_mode_instance = HealTestMode()
         elif args.driver == "fierycave":
             context.bot_mode_instance = FieryCaveMode()
+        elif args.driver == "journey":
+            context.bot_mode_instance = JourneyMode()
         elif args.driver == "traintest":
             from plugins.custom_modes.story_mode import StoryMode as _SM
 

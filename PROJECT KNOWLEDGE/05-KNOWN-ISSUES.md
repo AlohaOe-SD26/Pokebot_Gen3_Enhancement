@@ -1314,3 +1314,103 @@ give-up path that RESOLVES the battle instead of abandoning it.
    for the old slow leak; it keeps KI-34's index-space fix (which is correct and unrelated).
    Cheap to try, one constant, and it should restore something like the 48% finish rate —
    but it is a mitigation, not a fix, and it must not be mistaken for one.
+
+## ‼ KI-39 — CORRECTED AND LARGELY RESOLVED 2026-07-31. Read this before the section above.
+
+**The KI-39 entry above states the cause wrongly, and the handoff repeated it.** The claim
+was *"`calculate_path` only spans directly-connected maps"* and *"the bot has NO cross-map
+overworld route planning"*. Both are false. Measured live from `rocksmash_taught.ss1`
+(Mauville 32,15) with the SAME `calculate_path` the production path uses
+(`tools/story-dev/probe_journey_legs.py`, `probe_journey_why.py`, `probe_journey_walls.py`):
+
+* `map_path.py` assigns **every** edge-connected map a global offset and a shared `level`,
+  and its own docstring says it "supports paths across several maps, but only if they are
+  connected". Mauville, Routes 110/111/112/116/117 and Verdanturf are **all level 459** — so
+  `calculate_path` was trying, and failing at TILE level, not refusing to plan.
+* Partial reachability proves it: **ROUTE110 17/125 tiles reachable, ROUTE111 11/173,
+  ROUTE117 22/41, VERDANTURF 14/23.** A planner that could not cross maps would score 0.
+
+### The four blocked trips had FOUR DIFFERENT causes. Only one was route planning.
+
+| trip | measured cause | status |
+|---|---|---|
+| Mauville → **ROUTE116** | Verdanturf declares a North map CONNECTION to Route 116, so the union-find merges them into one region — but **0 of 40 sampled Route 116 tiles are walkable from Verdanturf**, while the RUSTURF_TUNNEL door at VERDANTURF (8,1) is. The real link is a **warp inside one region**, and `WarpGraph.plan()` returns `[]` for any same-region pair. **This is the genuine KI-39.** | **FIXED** (see below) |
+| Mauville → **ROUTE110** (12,60) | reachable strip ends at y≈20 (column 12); the rest is behind the cycling-road gate structures — same warp-inside-a-region class | fixed in kind; specific tile still needs the gates |
+| Mauville → **ROUTE112 / FIERY_PATH** | the **Rock Smash twin-rocks choke on ROUTE111 at (18,101)**. Column-by-column probe: reachable y≥102, blocked y≤101 across columns 17–20. Route 112 scores **0/76**, and Fiery Path's only two doors are both on Route 112. | **NOT a planner problem** — see KI-41 |
+| Mauville → **ROUTE111** (25,55) | the Go-Goggles desert. Genuinely gated; the south strip is reachable, the north is not. | correct refusal |
+
+### The fix that shipped
+`WarpGraph.warp_candidates()` — warp planning at **MAP** granularity instead of REGION
+granularity, so a warp route can be returned even when start and goal share a region. The
+map-level adjacency is now kept (it was previously consumed by the union-find and discarded);
+`CACHE_VERSION` 1→2 so stale caches rebuild rather than silently loading a degraded graph.
+`navigate_to_anywhere` now (1) asks `calculate_path` whether a plain walk works — unchanged
+fast path if yes — and only then (2) asks for warp candidates and **validates each one's
+first leg with `calculate_path` before committing**, remembering warps it has taken so a
+re-plan cannot ping-pong.
+
+‼ Also fixed in the same change: `navigate_to_anywhere`'s "did the warp fire?" test compared
+**regions**. A warp between two maps of the same region — exactly the class this makes
+plannable — leaves the region unchanged, so a *working* warp would have been reported as
+`"Warp at … did not trigger (locked or event-gated?)"`. It compares maps now.
+
+### Proof
+* `tools/story-dev/repro_journey_planner.py` — 27 checks, no emulator, pins the whole
+  topology including the two traps below.
+* `tools/story-dev/probe_journey_live.py` (+ `story_harness.py --driver journey`) — live
+  fault-injected A/B in the faithful harness:
+  **OLD arm `arrived=False map=MAUVILLE_CITY`** (never left the starting map) vs
+  **NEW arm `arrived=True map=ROUTE116`, 33,725 frames**, walking Mauville → Route 117 →
+  Verdanturf → Rusturf Tunnel → Route 116.
+
+### Two traps found while building it, both pinned by the repro
+1. **The progress filter must be NON-INCREASING, not strictly decreasing.** The phantom
+   Verdanturf→Route116 connection puts the target 1 hop away, so *nothing* can be strictly
+   closer and a strict filter drops the very warp that works.
+2. **Banning the previous answer produces junk candidates.** Verdanturf→Route116 offered the
+   BATTLE TENT LOBBY and the MART as candidates 5 and 6 — real routes (walk in, walk out,
+   then take the tunnel) that make no progress. Harmless only while an earlier candidate
+   validates, which is not a guarantee.
+
+### ‼ What this does NOT fix — correct the handoff's expectations
+The handoff said `#24-journey` *"unblocks the thing that is killing runs"*. **It does not.**
+The counter the ladder names is Machop @ FIERY_PATH, and measured after the fix: a warp route
+to FIERY_PATH **is** found (2 candidates, both ROUTE112 doors) and **neither first leg is
+walkable**, because of the Rock Smash choke. The planner was never the blocker there — see
+**KI-41**, which is now the thing standing between the counter chain and acting.
+
+## KI-41 — The Mauville→Route 112 corridor is sealed by a ROCK SMASH rock the planner treats as permanent (2026-07-31)
+
+**Measured** from `rocksmash_taught.ss1` (Mauville 32,15), `probe_journey_walls.py`:
+ROUTE111 column-by-column reachability, y from 139 (south, next to Mauville) northward —
+
+```
+x=17  ##########.........######.....#####..#............   last reachable y=102
+x=18  #########..........#######....#####..#............   last reachable y=102, y=101 BLOCKED
+x=19  ##########......#..##..####...#########...........   last reachable y=101, y=100 BLOCKED
+x=20  ...####.###.#..##.###..##.###.#########...........   last reachable y=101, y=100 BLOCKED
+```
+
+The intermittent bands further south are the corridor's **one-way ledges** (they only
+descend, so northbound approach is fragmented); the hard floor at **y≈100–101** is the
+twin-rocks choke. `modules/story/early_game.py`'s `travel_lavaridge_to_petalburg` docstring
+already names it: *"smash the twin-rocks choke from the NORTH side … column 18 needs only the
+(18,101) rock"*, and notes the rocks **RESPAWN on map reload**.
+
+**Consequences**
+* ROUTE112 is **0/76** sampled tiles reachable from Mauville. FIERY_PATH's only two doors are
+  ROUTE112 (11,36) and (22,10), so **Fiery Path is unreachable from Mauville** until that
+  rock is smashed — and Fiery Path's Machop is the counter `#24-counters` names for Norman.
+* The story only gets past it because `travel_to_fallarbor` / `travel_lavaridge_to_petalburg`
+  hand-code a `_smash_rock` at exactly that coordinate. **Nothing generic does.**
+
+**Why the planner cannot see it.** `calculate_path` models a Rock-Smash rock via
+`dynamic_collision_flag` / `dynamic_object_id`, i.e. as an obstacle that *is* impassable right
+now. That is CORRECT — the bot genuinely cannot walk through it — but it means every generic
+"can I get there?" answer is a NO that a single field-move would turn into a YES.
+
+**Shape of the fix (NOT built).** When a journey leg fails, ask whether a smashable rock
+(or a cuttable tree) sits on the blocked corridor, and if the party has the move and badge,
+clear it and re-plan. `_smash_rock` already exists and is idempotent. The rock coordinates
+must come from map data or the decomp, never from memory. ‼ Bound it: a rock that respawns
+must not become an infinite smash-and-retry loop.

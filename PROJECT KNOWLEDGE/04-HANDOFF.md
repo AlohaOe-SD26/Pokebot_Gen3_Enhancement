@@ -3,34 +3,57 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-07-31 — see "‼ START HERE — 2026-07-31" immediately below. Older
-"START HERE" sections further down are HISTORY; read this one first.
+**Last updated:** 2026-07-31 (afternoon) — see "‼ START HERE — 2026-07-31 PM" immediately
+below. Older "START HERE" sections further down are HISTORY; read this one first.
 
 ---
 
-# ‼ START HERE — 2026-07-31 (most recent; supersedes every section below)
+# ‼ START HERE — 2026-07-31 PM (most recent; supersedes every section below)
 
 ## READ THIS, THEN `14-AGENT-PLAYBOOK.md`. You need nothing from any chat transcript.
 
-**Checkpoint tag: `backup/2026-07-31-ki38-fixed` (pushed). HEAD `f0353e48`.**
-Repro suite: **61 pass, 0 fail, 1 skip** (`repro_x4_lanes` skipped by design).
+**Repro suite: 63 pass, 0 fail, 1 skip** (`repro_x4_lanes` skipped by design — it spawns real
+lane processes). Run it with the loop in `14-AGENT-PLAYBOOK.md` §2b, 90s per script.
 
 ## WHERE WE ARE — the blocker chain, ordered by MEASURED evidence
-1. ~~**KI-38** after-faint chooser~~ **FIXED 2026-07-31** (`1099e9d9`). It was the reason runs
-   stopped finishing. Measured 12-run vs 8-run batches on this box: hangs at
-   `BattleScript_FaintedMonTryChoose` went **11/12 → 1/8**, and runs went from 20-1,116
-   battles to 648-1,922.
-2. **THE RUN-KILLER IS NOW `#24-counters`** — the counter chain correctly diagnoses
+1. ~~**KI-38** after-faint chooser~~ **FIXED 2026-07-31 AM** (`1099e9d9`). It was the reason
+   runs stopped finishing. Hangs at `BattleScript_FaintedMonTryChoose` went **11/12 → 1/8**.
+2. **THE RUN-KILLER IS `#24-counters`** — the counter chain correctly diagnoses
    "Norman: 6 losses, no super-effective answer to Normal, need Fighting" and **ends the run**.
-   4 of 6 remaining hangs are this. It is the ~72%-of-derails item, now measured on a build
-   where nothing deadlocks before it.
-3. **It cannot act because of KI-39** — the bot has **no cross-map overworld route planning**,
-   so the counter it correctly names (Machop @ FIERY_PATH (18,19), correctly flagged huntable)
-   is out of navigational reach from where the ladder fires.
+   4 of 6 remaining hangs are this; it is the ~72%-of-derails item.
+3. ~~**It cannot act because of KI-39** (no cross-map route planning)~~ — ‼ **THIS WAS THE
+   WRONG DIAGNOSIS AND IT IS NOW CORRECTED.** See `05-KNOWN-ISSUES.md` "KI-39 — CORRECTED".
+4. **It cannot act because of `#24-smashroute` / KI-41** — a **ROCK SMASH rock** at
+   ROUTE111 **(18,101)** seals the Mauville→Route 112 corridor. Fiery Path's only two doors
+   are on Route 112, so Machop is unreachable. Measured after the journey fix: a warp route to
+   Fiery Path IS found (2 candidates) and **neither first leg is walkable**.
 
-⇒ ‼ **`#24-journey` (cross-map route planning) is the highest-value item in the project.**
-It unblocks the thing that is killing runs, and it is the capability the user asked for
-("map to already traveled locations"). See KI-39 for the measurement and the shape of the fix.
+⇒ ‼ **`#24-smashroute` is now the highest-value item.** It is what actually stands between the
+counter chain and acting. `#24-journey` is DONE (below) and was not the blocker.
+
+## ‼ WHAT I GOT WRONG YESTERDAY, AND HOW IT WAS CAUGHT (read this — it is the main lesson)
+KI-39 and this handoff both asserted *"the bot has NO cross-map overworld route planning"*
+because *"`calculate_path` only spans directly-connected maps"*, and called a generic BFS
+journey planner **"the highest-value item in the project"**. Measured live, that is false:
+* `map_path.py` gives every edge-connected map a global offset and a shared `level` — Mauville
+  and Routes 110/111/112/116/117 are **all level 459** — and its own docstring says it
+  "supports paths across several maps".
+* Reachability is **PARTIAL, not zero**: ROUTE110 **17/125** sampled tiles, ROUTE111 **11/173**,
+  ROUTE117 **22/41**, VERDANTURF **14/23**. A planner that could not cross maps scores 0.
+
+The four blocked trips had **four different causes**; only one was route planning. The original
+probe ran four `calculate_path` calls, got four failures, and fitted ONE explanation to them.
+**Prevention rule (now in 08-MISTAKES): a probe that returns FAIL for every case has found a
+common SYMPTOM, not a common cause — make one measurement that could DISCRIMINATE before
+writing a cause into this file.**
+
+## WHAT SHIPPED 2026-07-31 PM (all pushed, all with repro + green sweep)
+| item | state |
+|---|---|
+| `#24-x4headless` — headless ENDLESS-RESET batch runner (`tools/story-dev/x4_headless.py`) | done; `repro_x4_headless.py`, 55 checks |
+| fix: `--endless-target` was parsed then discarded by every frontend but the tile lane | done; fault-injected AST A/B |
+| `#24-journey` / KI-39 — warp planning at **MAP** granularity | done; live A/B, bot now reaches Route 116 |
+| KI-39 corrected, **KI-41** logged, `#24-smashroute` opened | docs |
 
 ## ‼ I CAN RUN BATCHES ON THIS BOX — THIS CHANGES HOW TO WORK
 mgba is **vendored** at `sandbox-pokebot/mgba/`. Measured throughput **~1,211 fps per lane**;
@@ -87,16 +110,20 @@ for anything that will be compared against a user bundle.
 | **KI-38 real fix — chooser LEARNS refusals** | **done, live-confirmed** |
 
 ## ‼ NEXT, IN THIS ORDER
-1. ~~**Headless ENDLESS-RESET runner**~~ **DONE 2026-07-31** — `tools/story-dev/x4_headless.py`
-   (see the batch section above). Video question ANSWERED: `-hl` removes the GUI **window**,
-   not the **renderer**; `PokebotHeadless.run()` sets `context.video = not no_video`, and
+1. ~~**Headless ENDLESS-RESET runner**~~ **DONE** — `tools/story-dev/x4_headless.py` (see the
+   batch section above). Video question ANSWERED: `-hl` removes the GUI **window**, not the
+   **renderer**; `PokebotHeadless.run()` sets `context.video = not no_video`, and
    `_apply_debug_emulation_config()` forces `video=True` anyway. Confirmed live —
-   `emulation: speed=0 video=True` on every lane header of the smoke batch.
-2. **`#24-journey`** — cross-map route planning (KI-39). Unblocks the run-killer. Shape of the
-   fix is written up in KI-39; ‼ do NOT retry gateway waypoints (tried and refuted).
-3. Then `#24-counters` becomes live and should be re-measured **with `x4_headless --lanes 8`**,
+   `emulation: speed=0 video=True` on every lane header of every run of an 8-lane batch.
+2. ~~**`#24-journey`**~~ **DONE** — warp planning at MAP granularity. ‼ Do NOT retry gateway
+   waypoints (refuted 2026-07-30) and do NOT build the full leg-list planner KI-39 sketched
+   (rejected with reasons in `06-DECISIONS-LOG` 2026-07-31).
+3. ‼ **`#24-smashroute` (KI-41)** — clear a Rock Smash obstacle that seals a journey. THIS is
+   what gates the counter chain: ROUTE111 (18,101). See the punch list for the shape.
+4. Then `#24-counters` becomes live and should be re-measured **with `x4_headless --lanes 8`**,
    so the sample is big enough to compare against the user's own bundles.
-4. `#24-dexhunt` / `#24-pc` / team-PC-reserve — all gated on `#24-journey` too.
+5. `#24-dexhunt` / `#24-pc` / team-PC-reserve — the "travel to a known place on request"
+   capability they were gated on now exists, but they are still gated on the **ruling below**.
 
 ## USER RULINGS — DO NOT RE-ASK
 `#24-counters` → price both, then catch-and-train Fighting; `#24-leadpolicy` → **A+C**;

@@ -1102,3 +1102,49 @@ what makes a headless batch comparable to the user's GUI x4 batches, which have 
 
 **Cost accepted.** Rendering is not free, but measured throughput is ~1,211 fps/lane — the
 same as the documented ~1,250 — so the cost is inside the noise at these speeds.
+
+---
+
+## 2026-07-31 — Warp planning becomes MAP-granular, but the walk decision stays with `calculate_path`
+
+**Decision.** `WarpGraph` gains a map-level BFS (`warp_candidates`), but `navigate_to_anywhere`
+does not trust it. It asks `calculate_path` "can I walk there?" first, and validates each
+candidate warp's first leg with `calculate_path` before committing to it.
+
+**Why not trust the graph.** The graph is built from ROM map headers, and those headers lie in
+a way that matters: VERDANTURF declares a North connection to ROUTE116 that **cannot be
+walked**. Any planner that believes the headers will confidently produce routes that do not
+exist — and a wrong YES sends the bot on a long walk to nowhere, which this project has
+already paid for twice (KI-24b; the refuted gateway waypoints). `calculate_path` is the only
+oracle that sees collision, elevation, dynamic obstacles and capability gates, so it gets the
+final say. The graph's job is to SUGGEST; the pathfinder's job is to RULE.
+
+**Rejected: replace `plan()` outright.** The region planner still runs first for cross-region
+trips and its choice is still tried unvalidated as a last resort, so no journey that works
+today can start failing. Strictly additive beats strictly better when the function is called
+from around 40 places across the story.
+
+**Rejected: build the full leg-list journey planner KI-39 sketched** (BFS to ordered legs to
+execute with re-planning). The executor already re-plans from the real position after every
+warp, so a full leg list would be re-derived and thrown away each iteration. One warp at a
+time, validated, is less code and self-corrects when the world disagrees with the graph.
+
+**Consequence accepted.** One extra `calculate_path` per `navigate_to_anywhere` call on the
+happy path. It is the same call `navigate_to` makes microseconds later, so the cost is one
+extra plan per navigation, not per frame.
+
+## 2026-07-31 — The candidate progress filter rejects only moves AWAY, never "not strictly closer"
+
+**Decision.** A warp candidate is discarded only if it *increases* the map-graph distance to
+the target. Equal distance is accepted.
+
+**Why.** The obvious criterion — "must be strictly closer" — is wrong for the exact case the
+feature exists for. The phantom Verdanturf-to-Route116 connection puts the target **1 hop**
+away, so no candidate can beat it and the Rusturf Tunnel (also 1) would be filtered out; the
+fix would silently do nothing. The graph distance is untrustworthy *because* of phantom
+connections, so it is used only as a coarse junk filter, and `repro_journey_planner.py` pins
+the non-increasing rule so that "tightening" it is a loud failure rather than a silent revert.
+
+**What the filter is actually for.** Banning the previous answer to get a diverse candidate
+list produces junk: Verdanturf-to-Route116 offered the BATTLE TENT LOBBY and the MART as
+candidates 5 and 6 — genuine routes (walk in, walk out, then take the tunnel) that go nowhere.

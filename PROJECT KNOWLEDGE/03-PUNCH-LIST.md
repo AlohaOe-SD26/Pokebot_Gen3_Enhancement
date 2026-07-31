@@ -328,8 +328,46 @@ region, where "train near the gym" is actively wrong.
       smoke batch at **~1,211 fps/lane**. Shipped with a fix for `--endless-target`, which was
       parsed and then discarded by every frontend except the tile lane.
 
-- [ ] **‼ `#24-journey` — CROSS-MAP OVERWORLD ROUTE PLANNING (new, 2026-07-30; see KI-39).
-      This is now the biggest structural blocker in the project.** The bot cannot plan a
+- [x] **`#24-journey` — DONE 2026-07-31. Warp planning at MAP granularity.**
+      ‼ **AND THE DIAGNOSIS BELOW IS WRONG — read `05-KNOWN-ISSUES.md` "KI-39 — CORRECTED"
+      before believing any of it.** Measured live, `calculate_path` DOES span whole connected
+      components (every one of these maps is `level=459`) and reachability is PARTIAL, not
+      zero: ROUTE110 17/125 tiles, ROUTE111 11/173, ROUTE117 22/41, VERDANTURF 14/23. The four
+      blocked trips had FOUR causes and only one was route planning.
+      **The genuine bug:** `WarpGraph.plan()` works at REGION granularity and returns `[]` for
+      any same-region pair, and the whole overworld is one region — so a warp that is the ONLY
+      physical link between two "connected" maps could never be planned. Proof case:
+      Verdanturf declares a map connection to Route 116, but 0 of 40 sampled Route 116 tiles
+      are walkable from Verdanturf and the real link is the Rusturf Tunnel warp.
+      **Shipped:** `WarpGraph.warp_candidates()` + `map_distance()` + kept map-level
+      adjacency (`CACHE_VERSION` 1→2); `navigate_to_anywhere` walks if it can, else validates
+      each candidate warp's first leg with `calculate_path` before committing, remembering
+      warps taken; the "did the warp fire?" check now compares MAPS, not regions (it would
+      have reported every same-region warp as a locked door).
+      **Proof:** `repro_journey_planner.py` (27 checks, no emulator) +
+      `probe_journey_live.py` / `story_harness.py --driver journey` — OLD arm
+      `arrived=False map=MAUVILLE_CITY`, NEW arm `arrived=True map=ROUTE116` in 33,725 frames.
+      ‼ **It does NOT unblock `#24-counters`** — see the new `#24-smashroute` below.
+
+- [ ] **‼ `#24-smashroute` — clear a ROCK SMASH obstacle that seals a journey (new,
+      2026-07-31; see KI-41). This, not route planning, is what gates the counter chain.**
+      Measured: ROUTE111 reachability from Mauville has a hard floor at y≈100–101 across
+      columns 17–20 — the twin-rocks choke `early_game.travel_lavaridge_to_petalburg` already
+      documents at **(18,101)** (and which RESPAWNS on map reload). Consequence: ROUTE112 is
+      **0/76** reachable from Mauville, and FIERY_PATH's only two doors are on Route 112 — so
+      Machop, the counter the ladder names for Norman, is unreachable. After the `#24-journey`
+      fix a warp route to Fiery Path IS found (2 candidates) and **neither first leg is
+      walkable**. The story only gets past this because two travel functions hand-code a
+      `_smash_rock` at that exact coordinate; nothing generic does.
+      **Shape:** when a journey leg fails, ask whether a smashable rock / cuttable tree sits on
+      the blocked corridor; if the party has the move and badge, clear it and re-plan.
+      `_smash_rock` exists and is idempotent. ‼ Bound it — a respawning rock must not become an
+      infinite smash-and-retry loop. Coordinates from map data or the decomp, never memory.
+
+- [ ] ~~**‼ `#24-journey` — CROSS-MAP OVERWORLD ROUTE PLANNING (new, 2026-07-30; see KI-39).
+      This is now the biggest structural blocker in the project.**~~ **(SUPERSEDED — the text
+      below is the 2026-07-30 diagnosis, kept only because the handoff and KI-39 quote it.
+      It is wrong; see above.)** The bot cannot plan a
       journey to a place more than a directly-connected map away. Measured from Mauville:
       ROUTE117 (adjacent) OK 72 waypoints; ROUTE110 (joined via a gate BUILDING = a warp)
       FAIL; ROUTE116 FAIL; ROUTE111-north FAIL. Cause: `region_of()` puts the WHOLE Hoenn
