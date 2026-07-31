@@ -6068,3 +6068,46 @@ to navigate during the **BATTLE_STARTING transition**, not while genuinely stuck
    counts it the same as a real plan failure, and its fail-fast guard cannot help because that
    guard only records a position when the avatar is CONTROLLABLE — which it is not mid-battle.
    So 24 tries burned on a condition that resolves by itself in a few frames.
+
+## 2026-07-31 — `#24-journey` part 3: never call `navigate_to` during a battle transition
+
+**The bug.** From `norman_done.ss1` the journey reached ROUTE116 and then failed **24 times in
+a row** with `The game is currently not in the overworld. Cannot navigate.` —
+`walking.navigate_to`'s entry guard. The harness heartbeat at the failure read
+`ctrl=SmashRouteMode.run state=BATTLE_STARTING`, in a run of wild encounters on Route 116
+grass resolving as `RanAway`. The bot was never stuck; it was being asked to navigate DURING a
+battle transition, a condition that clears itself in a few frames.
+
+`navigate_to_anywhere` waits for `GameState.OVERWORLD` at the top of its loop, but not every
+`navigate_to` below that is reached without yielding first — the "step off the warp tile and
+walk back on" fork presses directional buttons for up to 80 frames, and an encounter starting
+in that window lands squarely on the next call. A transient was being reported as a routing
+failure, and `_navigate_riding_out` spent a whole retry on each one. Its fail-fast guard could
+not help either: that guard only records a position while the avatar is CONTROLLABLE, which it
+is not mid-battle — so it never fired and all 24 tries burned. Raising `tries` 10 -> 24 had
+changed nothing, which is what proved the retry budget was never the limit.
+
+**Fix.** `_navigate_when_ready()` waits (bounded by the same generous cap the loop already
+uses) for the overworld AND a controllable avatar before delegating to `navigate_to`. All four
+call sites inside `navigate_to_anywhere` go through it.
+
+**Confirmed by the failure MOVING.** Same save, same target, after the fix the transition error
+is gone entirely — the bot walks to **ROUTE116 (47,9)**, one tile from the Rusturf Tunnel door
+at (47,8). Progress across the three parts: zero -> ROUTE116 -> ROUTE116 (47,9), beside the door.
+
+### ‼ WHERE IT STANDS, AND THE ANCHOR TO RESUME FROM
+`tools/story-dev/saves/journey_r116_wedge.ss1` — **verified** ROUTE116 (47,9), OVERWORLD,
+controllable. Probed from that exact save, the planner is CORRECT:
+* `map_distance(ROUTE116 -> FIERY_PATH)` = 6
+* `warp_candidates` = the two ROUTE112 doors, neither walkable (expected — still behind the
+  Route 111 rock from this side)
+* **`_staged_progress_warp` returns `ROUTE116 (47,8) -> RUSTURF_TUNNEL`, and (47,8) IS walkable
+  from (47,9).** The right move is available and correctly identified.
+
+So the planner is NOT the remaining problem, and the next session must not re-derive it. The
+open question is why the live run did not take that move. Leading hypothesis, **explicitly not
+proven**: `used_warps` persists across iterations within one `navigate_to_anywhere` call, so if
+the tunnel door was already taken earlier in the same call (into RUSTURF_TUNNEL, whose middle
+is sealed by the Wanda-quest rocks, then back out) it is excluded on the second pass and the
+executor falls through to the unvalidated `region_route[0]`. **Instrument which branch is taken
+and what `used_warps` holds — do not guess.**

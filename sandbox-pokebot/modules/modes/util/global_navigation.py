@@ -162,6 +162,39 @@ def _staged_progress_warp(graph, current_map, target_map, used_warps,
     return None
 
 
+def _navigate_when_ready(navigate_to, *args, **kwargs):
+    """`navigate_to`, but WAIT for the overworld first instead of raising on a transition.
+
+    ‼ WHY (measured 2026-07-31, `norman_done.ss1` -> FIERY_PATH). The journey reached
+    ROUTE116 and then failed **24 times in a row** with
+    `The game is currently not in the overworld. Cannot navigate.` — `navigate_to`'s entry
+    guard (`walking.py:175`). The harness heartbeat at the failure read
+    `ctrl=SmashRouteMode.run state=BATTLE_STARTING`, in a run of wild encounters on Route
+    116 grass. The bot was not stuck: it was being asked to navigate DURING a battle
+    transition, a condition that clears itself in a few frames.
+
+    `navigate_to_anywhere` waits for the overworld at the top of its loop, but not every
+    `navigate_to` below that is reached without yielding first — the "step off the warp
+    tile and walk back on" fork presses directional buttons for up to 80 frames, and a wild
+    encounter starting in that window lands squarely on the next `navigate_to`. A transient
+    was being reported as a routing failure, and `_navigate_riding_out` then spent a whole
+    retry on it (its fail-fast guard cannot help: that guard only records a position while
+    the avatar is CONTROLLABLE, which it is not mid-battle).
+
+    Bounded by the same generous cap as the loop's own wait, so a genuine softlock still
+    surfaces rather than yielding for ever.
+    """
+    from modules.player import player_avatar_is_controllable
+
+    waited = 0
+    while get_game_state() is not GameState.OVERWORLD or not player_avatar_is_controllable():
+        waited += 1
+        if waited > _MAX_NON_OVERWORLD_FRAMES:
+            break  # let `navigate_to` raise its own honest error rather than hang here
+        yield
+    yield from navigate_to(*args, **kwargs)
+
+
 def _warp_fired(leg, arrived_map: tuple[int, int]) -> bool:
     """Did stepping on `leg.from_coords` actually take us somewhere?
 
@@ -238,7 +271,8 @@ def navigate_to_anywhere(
         # target; asking `calculate_path` first only changes what happens when the
         # answer is NO (see 2). A YES behaves exactly as it did before.
         if _walk_is_possible(target_map, target_coords, avoid_encounters, avoid_scripted_events):
-            yield from navigate_to(
+            yield from _navigate_when_ready(
+                navigate_to,
                 target_map,
                 target_coords,
                 run=run,
@@ -312,7 +346,8 @@ def navigate_to_anywhere(
             else:
                 # No warp route is known at all. Let `navigate_to` raise, so the caller
                 # gets the pathfinder's own authoritative reason rather than our guess.
-                yield from navigate_to(
+                yield from _navigate_when_ready(
+                    navigate_to,
                     target_map,
                     target_coords,
                     run=run,
@@ -325,7 +360,8 @@ def navigate_to_anywhere(
         # Walking onto the warp tile makes upstream's navigation follow the
         # warp through to the destination map (walking.py handles the map
         # transition and its longer timeout).
-        yield from navigate_to(
+        yield from _navigate_when_ready(
+            navigate_to,
             leg.from_map,
             leg.from_coords,
             run=run,
@@ -349,7 +385,8 @@ def navigate_to_anywhere(
                     if tuple(get_player_avatar().local_coordinates) != tuple(leg.from_coords):
                         break
                 context.emulator.reset_held_buttons()
-                yield from navigate_to(
+                yield from _navigate_when_ready(
+                    navigate_to,
                     leg.from_map,
                     leg.from_coords,
                     run=run,
