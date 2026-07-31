@@ -1225,3 +1225,45 @@ hour** and **finish rate**. `d7d493d8` is the last build the handoff records as
 live-validated — but note that validation was *"no unrecovered errors"* and never checked
 finish rate, so it may not be a clean baseline either. If `d7d493d8` is clean, bisect my four
 commits; if it is not, the cause is in the KI-34/35/36/37 work.
+
+### KI-40 — ATTRIBUTED 2026-07-30 by controlled A/B. The 2026-07-30 counter-chain work is CLEARED.
+
+Baseline arm run on the user's machine: bundle `20260730-214525`, build **`d7d493d8`**
+(detached HEAD via tag `baseline/ki40`), launch `212123`, ~24 min, 4 lanes.
+
+| build | window | watchdog fires | **per hour** | runs `finished` |
+|---|---|---|---|---|
+| `21b587f1` (pre-KI-34/35/36/37) | ~13 h | 5 | **0.4** | 29 of 60 |
+| **`d7d493d8` (baseline arm)** | ~0.4 h | 8 | **~20** | **0 of 2** |
+| `ffb062ce` (counter-chain work) | ~3.2 h | 94 | **~29.5** | 0 of 30 |
+
+**`d7d493d8` already wedges at ~50× the old rate**, in the same order of magnitude as
+`ffb062ce`. The discrimination required was "≈0 or ≈30 per hour"; it came back ≈20.
+⇒ **The regression entered between `21b587f1` and `d7d493d8`** — i.e. in the
+**KI-34 / KI-35 / KI-36 / KI-37** work (`00db4a81`, `4f1e02f9`, `d7d493d8`), NOT in the
+2026-07-30 counter-chain or menu commits.
+
+‼ **This also corrects the handoff.** `d7d493d8` was recorded as live-validated — but that
+validation was *"no unrecovered errors"*, and it never checked **finish rate**. On the
+finish-rate metric `d7d493d8` is badly broken, and that went unnoticed for a full day of work
+built on top of it. **A "clean" verdict is only as good as the metric it was measured on.**
+
+**The wedge is the TARGETED-TRAINING path, in both builds:**
+* `d7d493d8`: `Taillow is the answer to this gym but needs Lv 18 — targeted top-up of just
+  that mon` → wedge. Stage 7 (Brawly), map (3,3) = DEWFORD_TOWN_GYM.
+* `ffb062ce`: `prepping — training 3 battler(s) to Lv 31 in ROUTE117` → wedge. Stage 9,
+  map (10,0); also the Rock Smash→Fallarbor→Meteor Falls sequence at map (24,12).
+In both, recovery re-enters the identical step and the watchdog fires again (derail #2, #3,
+#5 on the same step), so the step itself never becomes completable.
+
+**Leading hypothesis — the mode is being STARVED, not stuck.** The watchdog reports "nothing
+progressed for 18,000 frames", which is what a listener sitting above the mode produces.
+`04-HANDOFF` Rule 2 already warns: *"Every listener that can sit above the mode must honour
+`battle_fault_pending()` and be bounded… `BattleListener` and `TrainerApproachListener` now
+do; **others are UNAUDITED**."* The window's diff is +143 lines in `battle_handler.py` and
++21 in `_listeners.py`. **Audit every remaining listener next**; a training spin walks in
+grass and is exactly where listener traffic is heaviest.
+
+**Next step is DIAGNOSIS, not more batches** — the remaining suspect set is 3 commits and the
+symptom is reproducible in-run. A further 1-hour arm on `00db4a81` or `4f1e02f9` would bisect
+it if reading the diffs does not.
