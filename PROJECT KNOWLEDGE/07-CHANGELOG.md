@@ -5931,3 +5931,13 @@ exactly on its own limit, with zero margin, and one extra hop would filter it ou
 (the KI-24 shape: a false negative with no reason attached). Do not just raise the constant —
 it was raised 4 to 8 on measurement, and the bound is what stops the cost model ranking
 Victory Road's Hariyama first. The cheap mitigation is to LOG distance rejections.
+
+## 2026-07-31 — KI-42 mitigation: the counter gate now SAYS why it rejected a candidate
+
+`_counter_area_allowed` returned a bare False when a map was too far, so a rejection was
+invisible: `best_huntable()` returned nothing and the ladder printed the generic "no huntable
+counter candidate". With FIERY_PATH sitting at exactly 8 hops against a limit of 8, that
+silent path was one map-graph hop away from swallowing the whole Norman counter chain. It now
+prints and debug-logs `why_unreachable`'s reason, which already separates "reachable but N
+hops away (limit M)" from "no path" and from "needs Surf". The diagnostic is wrapped so it
+can never change the verdict. Sweep: 64 pass, 0 fail, 1 skip.

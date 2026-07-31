@@ -603,7 +603,33 @@ def _counter_area_allowed(map_enum, tile, prereq) -> bool:
     try:
         from modules.story import region_reach
 
-        return bool(region_reach.is_map_reachable(map_enum, max_hops=COUNTER_MAX_HOPS))
+        allowed = bool(region_reach.is_map_reachable(map_enum, max_hops=COUNTER_MAX_HOPS))
+        if not allowed:
+            # ‼ KI-42. SAY WHY A CANDIDATE WAS DROPPED. Measured 2026-07-31: FIERY_PATH —
+            # the Machop that answers Norman, i.e. the ~72%-of-derails item — is EXACTLY 8
+            # hops from PETALBURG_CITY against a limit of 8. Zero margin. One extra hop and
+            # this predicate starts returning False, `best_huntable()` returns nothing, and
+            # the ladder reports the generic "no huntable counter candidate" with no hint
+            # that a distance bound is what did it. That is precisely the KI-24 failure
+            # shape: a false negative that gives no reason at all, invisible in every log.
+            # `why_unreachable` already distinguishes "reachable but N hops away (limit M)"
+            # from "no path" and from "needs Surf", so the reason costs one call on a path
+            # that has already decided to reject.
+            try:
+                from modules.console import console
+
+                reason = region_reach.why_unreachable(map_enum, max_hops=COUNTER_MAX_HOPS)
+                console.print(f"[dim]counter gate: {getattr(map_enum, 'name', map_enum)} "
+                              f"rejected — {reason}[/]")
+                from modules import debug_logger
+
+                debug_logger.event(
+                    f"counter gate rejected {getattr(map_enum, 'name', map_enum)}: {reason}",
+                    category="STORY",
+                )
+            except Exception:  # noqa: BLE001 - a diagnostic must never change the verdict
+                pass
+        return allowed
     except Exception:
         return False
 
