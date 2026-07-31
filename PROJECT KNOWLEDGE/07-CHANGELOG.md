@@ -6166,3 +6166,34 @@ graph connectivity.
 
 ‼ **Do not skip this step and keep tuning the executor.** Every hour spent on the executor is
 wasted if the destination was never reachable.
+
+## 2026-07-31 — #24-journey part 5: SOLVED. The bot walks back out the door it came in.
+
+**The open question from part 4 is answered, and the answer was hypothesis 1.** Probed from
+the anchor save: inside RUSTURF_TUNNEL, calculate_path (4,10) -> (29,16) returns **OK, 42
+waypoints**. The tunnel is passable through. The route always existed; the executor was
+thrashing.
+
+**The bug, once seen, is embarrassing and completely general.** Having just warped INTO the
+tunnel, the bot is *standing on* the door back out. So walk-validation on that tile trivially
+succeeds — zero steps — and it is the first candidate the BFS offers. The executor picks it,
+warps back, re-plans, picks the inbound door again, and loops:
+ROUTE116 -> TUNNEL -> ROUTE116 -> TUNNEL.  cannot help, because the tunnel has
+THREE doors and the return trip is a different edge each time.
+
+**Fix.** The candidate loop now runs TWO passes: prefer a door leading somewhere NEW, and only
+accept one leading back to a map already visited if nothing else validates. (The same
+visited-map preference was added to  in part 4; it did nothing on its
+own because this leg is chosen in the earlier candidate loop, which had no such check — a
+reminder to fix the branch actually being taken, not the one you were looking at.)
+
+**Result — the journey completes.** From :
+.
+
+**The full arc of #24-journey, measured from PETALBURG_CITY at each step:**
+| | how far |
+|---|---|
+| start of day | ends the run at Petalburg; no travel attempted |
+| part 1-2 (map-granular warps, staged progress) | ROUTE116 |
+| part 3 (no navigate during battle transitions) | ROUTE116 (47,9), beside the tunnel door |
+| **part 5 (prefer unvisited doors)** | **FIERY_PATH — arrives** |

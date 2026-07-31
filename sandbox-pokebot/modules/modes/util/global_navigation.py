@@ -324,17 +324,33 @@ def navigate_to_anywhere(
         # FROM HERE — KI-39's own FIERY_PATH example planned a perfectly good one-warp
         # route whose leg 1 was itself unreachable, and the run burned frames discovering
         # that by walking. Ask before committing.
+        # ‼ TWO PASSES: prefer a door to somewhere NEW, and only accept a door back to a map
+        # we have already stood on if nothing else works. Without this the executor walks
+        # straight back out the way it came in, for a reason that is obvious only once seen:
+        # having just warped into RUSTURF_TUNNEL, the bot is STANDING ON the door back to
+        # ROUTE116, so `_walk_is_possible` on that tile trivially succeeds (zero steps) and
+        # it is the first candidate the BFS offers. Result, observed by tracing the branch
+        # taken 2026-07-31: ROUTE116 -> TUNNEL -> ROUTE116 -> TUNNEL, forever.
+        # `used_warps` cannot prevent it — the tunnel has THREE doors, so the trip back is a
+        # different edge each time — and the interior really is passable
+        # (`calculate_path` (4,10) -> (29,16) inside the tunnel: OK, 42 waypoints), so this
+        # was pure self-inflicted thrash, not a blocked route.
         leg = None
-        for candidate in candidates:
-            if candidate in used_warps:
-                # A deterministic picker re-picks a failed choice forever unless the
-                # failure is REMEMBERED (08-MISTAKES: "recovery is just a countdown to
-                # Manual if the same inputs produce the same choice").
-                continue
-            if _walk_is_possible(
-                candidate.from_map, candidate.from_coords, avoid_encounters, avoid_scripted_events
-            ):
-                leg = candidate
+        for allow_revisit in (False, True):
+            for candidate in candidates:
+                if candidate in used_warps:
+                    # A deterministic picker re-picks a failed choice forever unless the
+                    # failure is REMEMBERED (08-MISTAKES: "recovery is just a countdown to
+                    # Manual if the same inputs produce the same choice").
+                    continue
+                if not allow_revisit and tuple(candidate.to_map) in visited_maps:
+                    continue
+                if _walk_is_possible(
+                    candidate.from_map, candidate.from_coords, avoid_encounters, avoid_scripted_events
+                ):
+                    leg = candidate
+                    break
+            if leg is not None:
                 break
 
         if leg is None:
