@@ -6111,3 +6111,58 @@ the tunnel door was already taken earlier in the same call (into RUSTURF_TUNNEL,
 is sealed by the Wanda-quest rocks, then back out) it is excluded on the second pass and the
 executor falls through to the unvalidated `region_route[0]`. **Instrument which branch is taken
 and what `used_warps` holds — do not guess.**
+
+## 2026-07-31 — `#24-journey` part 4: the ROUTE116 ↔ RUSTURF_TUNNEL ping-pong, and an open question that matters more
+
+**Found by INSTRUMENTING, after two wrong hypotheses.** I guessed twice at why the journey
+stalled at ROUTE116 (47,9) — first `used_warps` exhaustion, then my own `_walk_is_possible`
+fail-safe firing. Both were wrong and both were cheap to disprove; a temporary trace of the
+branch taken settled it in one run:
+
+```
+[TRACE] at=ROUTE116        target=FIERY_PATH ...
+[TRACE] at=RUSTURF_TUNNEL  target=FIERY_PATH ...
+[TRACE] at=ROUTE116        target=FIERY_PATH ...
+[TRACE] at=RUSTURF_TUNNEL  target=FIERY_PATH ...
+```
+
+The executor was **ping-ponging** ROUTE116 → RUSTURF_TUNNEL → ROUTE116 → … `used_warps` could
+not stop it because **the tunnel has three separate doors**, so the trip back out is a
+different edge every time. This is the playbook's "chain walker loops between floors —
+within-floor reachability is DIRECTIONAL" wearing a new costume.
+
+**Fix.** `navigate_to_anywhere` now tracks `visited_maps` for the journey, and
+`_staged_progress_warp` DEPRIORITISES a warp whose destination we have already stood on.
+Deprioritised, not excluded: a legitimate route can revisit a map (out of a cave and back in
+by another mouth), so a visited destination is still allowed as a last resort — it just never
+beats an unexplored one.
+
+### ‼ THE OPEN QUESTION, AND IT IS BIGGER THAN THE EXECUTOR
+The ping-pong fix did **not** change the outcome: from `journey_r116_wedge.ss1` the bot still
+ends at ROUTE116 (47,9). Before debugging the executor any further, **answer this first**:
+
+> **Is FIERY_PATH reachable from PETALBURG_CITY at all, in that save?**
+
+Two hypotheses, and they need opposite work:
+1. **It is reachable and the executor is still wrong.** `early_game.travel_lavaridge_to_petalburg`
+   documents the Rusturf Tunnel as passable through — *"the tunnel legs ride
+   `_enter_warp_by_navigation` and the interior needs no boulder removal for the
+   through-path"*. If that holds here, the executor is failing to cross an interior that the
+   story's hand-coded leg crosses fine, and the answer is probably in how the tunnel interior
+   paths (rocks are dynamic obstacles `calculate_path` treats as walls).
+2. **It is NOT reachable, and the counter chain should never have proposed it.**
+   `region_reach` said "reachable, 8 hops" — but it is a pure connectivity+gates graph and
+   **cannot see a Rock Smash rock or a sealed tunnel**. If the route is genuinely blocked,
+   then the bot walking from Petalburg to Route 116 and stopping is a **wrong YES from the
+   reachability oracle** — the exact KI-24b class this project has already paid for twice, and
+   far more expensive here because the wrong answer costs a 45-minute walk before it fails.
+
+**How to discriminate, cheaply:** load `journey_r116_wedge.ss1`, walk INTO Rusturf Tunnel by
+hand (or with `_enter_warp_by_navigation`), and ask `calculate_path` from the arrival tile to
+the tunnel's far-side exit. If it paths, hypothesis 1 and the bug is in the executor. If it
+does not, hypothesis 2 — and the fix belongs in the counter planner, which should price a
+destination's reachability with something that knows about field-move seals rather than pure
+graph connectivity.
+
+‼ **Do not skip this step and keep tuning the executor.** Every hour spent on the executor is
+wasted if the destination was never reachable.

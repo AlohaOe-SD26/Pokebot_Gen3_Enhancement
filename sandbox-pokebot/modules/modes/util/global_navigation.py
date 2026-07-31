@@ -105,7 +105,8 @@ _STAGED_VALIDATIONS = 10
 
 
 def _staged_progress_warp(graph, current_map, target_map, used_warps,
-                          avoid_encounters: bool, avoid_scripted_events: bool):
+                          avoid_encounters: bool, avoid_scripted_events: bool,
+                          visited_maps=frozenset()):
     """Pick a warp that gets us CLOSER even though it is not on any planned route.
 
     ‼ WHY THIS IS NEEDED, and why "one warp at a time" was not enough (measured
@@ -153,10 +154,24 @@ def _staged_progress_warp(graph, current_map, target_map, used_warps,
             distance = graph.map_distance(edge.to_map, target_map)
             if distance is None or distance > here_distance:
                 continue
-            scored.append((distance, -graph.onward_exits(edge.to_map), edge))
-    scored.sort(key=lambda row: (row[0], row[1]))
+            # ‼ DEPRIORITISE MAPS WE HAVE ALREADY BEEN ON — this closes a real infinite
+            # ping-pong, observed 2026-07-31 by tracing the branch taken:
+            #     ROUTE116 -> RUSTURF_TUNNEL -> ROUTE116 -> RUSTURF_TUNNEL -> ...
+            # Rusturf Tunnel's middle is sealed by the Wanda-quest rocks, so from just
+            # inside it the ONLY walkable warp leads straight back out — and `used_warps`
+            # cannot stop that, because the tunnel has THREE separate doors, so the return
+            # trip is a DIFFERENT edge every time. This is the playbook's "chain walker
+            # loops between floors: within-floor reachability is DIRECTIONAL" in a new
+            # costume.
+            #
+            # Deprioritised, not excluded: a legitimate route can revisit a map (out of a
+            # cave and back in by another mouth), so a visited destination is still allowed
+            # as a LAST resort — it just never beats an unexplored one.
+            revisit = 1 if tuple(edge.to_map) in visited_maps else 0
+            scored.append((distance, revisit, -graph.onward_exits(edge.to_map), edge))
+    scored.sort(key=lambda row: (row[0], row[1], row[2]))
 
-    for _distance, _exits, edge in scored[:_STAGED_VALIDATIONS]:
+    for _distance, _revisit, _exits, edge in scored[:_STAGED_VALIDATIONS]:
         if _walk_is_possible(edge.from_map, edge.from_coords, avoid_encounters, avoid_scripted_events):
             return edge
     return None
@@ -248,6 +263,10 @@ def navigate_to_anywhere(
     #: Warps already taken on THIS journey. Without it a re-plan after arriving can pick
     #: the warp straight back where it came from and ping-pong until `_MAX_LEGS`.
     used_warps: set = set()
+    #: Maps we have already stood on during THIS journey. Used to deprioritise a warp that
+    #: would take us somewhere we have already been — see `_staged_progress_warp`, which is
+    #: where the ROUTE116 <-> RUSTURF_TUNNEL ping-pong was closed.
+    visited_maps: set = set()
     while legs_taken < _MAX_LEGS:
         if get_game_state() is not GameState.OVERWORLD:
             # Let whatever is going on (battle/evolution handled by listeners)
@@ -265,6 +284,7 @@ def navigate_to_anywhere(
         non_overworld_frames = 0
 
         current_map = tuple(get_player_avatar().map_group_and_number)
+        visited_maps.add(current_map)
 
         # --- 1. Can we simply WALK there? Unchanged fast path. -------------------
         # This is the branch every existing caller already takes for a same-region
@@ -327,7 +347,7 @@ def navigate_to_anywhere(
             # there; the loop above turns partial progress into a journey.
             leg = _staged_progress_warp(
                 graph, current_map, target_map, used_warps,
-                avoid_encounters, avoid_scripted_events,
+                avoid_encounters, avoid_scripted_events, visited_maps,
             )
 
         if leg is None:
