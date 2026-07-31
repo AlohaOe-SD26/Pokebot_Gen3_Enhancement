@@ -1148,3 +1148,45 @@ the non-increasing rule so that "tightening" it is a loud failure rather than a 
 **What the filter is actually for.** Banning the previous answer to get a diverse candidate
 list produces junk: Verdanturf-to-Route116 offered the BATTLE TENT LOBBY and the MART as
 candidates 5 and 6 — genuine routes (walk in, walk out, then take the tunnel) that go nowhere.
+
+---
+
+## 2026-07-31 — USER RULING: `#24-dexhunt` is "always catch new, WHEN IT IS CHEAP"
+
+**The question.** `#24-dexhunt` wanted ALWAYS-catch-new; `21-TEAM-POLICY-DESIGN.md` §1 wanted
+a SCORED RANDOM ROLL. The user said "catch all new pokemon" in discussion on 2026-07-30 but
+had never been asked to confirm it as a ruling, so it sat as the one outstanding decision.
+
+**The ruling (user, 2026-07-31).** Catch every unseen species **except when doing so would
+block progress**. Dex-complete intent, with a resource guard, so a dex hunt can never become
+the thing that ends a run. The two alternatives were put explicitly and both rejected:
+* *unconditional always-catch* — rejected: it makes `#24-pc` (box trips) and the party-cap
+  work load-bearing rather than optional, and turns a nice-to-have into a new run-killer;
+* *the scored random roll in `21-TEAM-POLICY-DESIGN.md` §1* — rejected: slow dex, and it adds
+  run-to-run variance to **every batch measurement**, which is expensive in a project whose
+  main instrument is batch comparison.
+
+‼ **This SUPERSEDES `21-TEAM-POLICY-DESIGN.md` §1 for new-species catching.** Update that
+section rather than leaving two documents disagreeing — a contradiction between design docs is
+how the same question gets re-litigated a third time.
+
+**"Cheap" is defined, not left to judgement.** The user flagged that the word needed pinning
+down, and the codebase already has the right predicate: `counter_hunt.resource_blocker()`.
+Reuse it rather than writing a second one that can drift:
+1. **Spare balls** — `_ball_count() > 1`. The LAST ball stays reserved; that is the same rule
+   the HM hunt uses, and `21-TEAM-POLICY-DESIGN.md` §6 already lists relaxing it as a
+   never-randomise item (it reintroduces the catch-without-balls bug).
+2. **Party space, or a PC within reach** — `_party_count() < 6`. Until `#24-pc` exists, a full
+   party means the catch would go to a box the bot cannot manage, so it must skip.
+3. **Not mid boss-prep** — a dex catch must never interleave with a boss attempt-cap sequence
+   or a level-floor grind. Those already have their own state; the dex check goes AFTER them.
+
+**And it must SAY when it skips.** A skipped catch has to log the specific reason, for exactly
+the KI-24/KI-42 reason: a silent "no" is indistinguishable from "the feature is not running",
+and this project has now lost time to that shape three times. `resource_blocker()` already
+returns a reason string rather than a bool — keep that.
+
+**Gating.** Both navigational blockers (`#24-journey`, `#24-smashroute`) are cleared, so the
+travel this needs exists. It is still sequenced behind the `#24-counters` measurement: do not
+add a new source of ball spend and party churn to the build being measured until that
+measurement is in.

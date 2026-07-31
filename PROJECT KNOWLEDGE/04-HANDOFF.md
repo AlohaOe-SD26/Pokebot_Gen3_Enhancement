@@ -139,9 +139,16 @@ for anything that will be compared against a user bundle.
 `#24-counters` → price both, then catch-and-train Fighting; `#24-leadpolicy` → **A+C**;
 `#24-route110cap` → **A**; KI-24b → **A**; `#doc-policy-05` → **A**; repo size → leave it;
 debug modes → unthrottled + video ON; `xp_rate` is the default fodder rule.
-**STILL OWED:** `#24-dexhunt` wants ALWAYS-catch-new while `21-TEAM-POLICY-DESIGN.md` §1 wants
-a SCORED RANDOM roll. The user said "catch all new pokemon" in discussion 2026-07-30 but has
-not been asked to confirm it as the ruling — **ask before building that cluster.**
+`#24-dexhunt` → **RULED 2026-07-31: "always catch new, WHEN IT IS CHEAP."** Catch every unseen
+species EXCEPT when it would block progress. ‼ This **supersedes `21-TEAM-POLICY-DESIGN.md`
+§1**'s scored random roll — update that section, don't leave two docs disagreeing. "Cheap" is
+defined, not left to judgement: reuse `counter_hunt.resource_blocker()` (spare balls with the
+last one reserved; party space, since a full party means the catch goes to a box the bot
+cannot manage until `#24-pc`; and never mid boss-prep). A skip must LOG ITS REASON — a silent
+"no" is indistinguishable from "the feature isn't running", which has cost this project time
+three times now (KI-24, KI-42, KI-39). Full rationale + the two rejected options in
+`06-DECISIONS-LOG.md` 2026-07-31.
+**NOTHING IS STILL OWED.** Every open ruling has been answered.
 
 # ‼ START HERE — 2026-07-30 (most recent; supersedes the sections below)
 

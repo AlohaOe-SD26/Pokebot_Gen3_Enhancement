@@ -15,6 +15,23 @@ by species, not by `kind`, because Sudowoodo(185) is `static` and not legendary.
 
 ## 1. Catch policy — replaces the two hard conditions
 
+> ‼ **SUPERSEDED FOR NEW SPECIES by the user ruling of 2026-07-31** (`06-DECISIONS-LOG.md`).
+> The ruling is **"always catch new, WHEN IT IS CHEAP"**: an unseen species is caught on
+> sight unless doing so would block progress. **There is NO roll for a new species.** The
+> scored roll below was explicitly considered and rejected, for two reasons: the dex fills
+> too slowly, and — the decisive one — a roll adds run-to-run variance to *every batch
+> measurement*, which is expensive in a project whose main instrument is comparing batches.
+>
+> **What survives from this section:** the hard floors (they become the definition of
+> "cheap", and are already implemented in `counter_hunt.resource_blocker()` — spare balls
+> with the last one reserved, party space, never mid boss-prep), raising the party target
+> 4 → 6, and box overflow. **What does not:** the `p = 0.30 + 0.50*curiosity …` roll, as the
+> gate for catching a species the bot has never caught.
+>
+> The roll may still be the right model for **duplicates** (a second Zigzagoon that fills a
+> type gap) — that was not what the user was asked about and is not ruled on. Keep it here
+> for that purpose, and do not re-apply it to new species.
+
 Drop the `BADGE01_GET` gate. Raise `_catch_team_target` 4 → 6, allow overflow to the box
 (the shiny path already proves party-full→box works). Then a **scored roll behind hard floors**:
 
