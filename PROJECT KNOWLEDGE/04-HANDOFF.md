@@ -169,38 +169,32 @@ for anything that will be compared against a user bundle.
    ‼ Do not mark `#24-counters` working on anything less than that comparison. This project has
    twice recorded a fix as validated on a metric that could not see the failure.
 
-5. ‼‼ **THE LONG JOURNEY IS NOT FINISHED — RESUME HERE, AND DO NOT RE-DERIVE THE PLANNER.**
-   Measured from `norman_done.ss1` (PETALBURG_CITY — the position the Norman ladder actually
-   fires from). Progress across today's three parts:
-   | build | how far it gets |
+5. ✅ **`#24-journey` IS COMPLETE.** From `norman_done.ss1` (PETALBURG_CITY — the position the
+   Norman ladder actually fires from), through the production call path:
+   `RESULT arm=new arrived=True map=FIERY_PATH`.
+
+   The arc, all measured from Petalburg:
+   | step | how far |
    |---|---|
-   | before | **zero** — dies in Petalburg |
-   | + staged progress | **ROUTE116** (crosses the Petalburg Woods split, Rustboro, Route 116) |
-   | + transition guard | **ROUTE116 (47,9)** — one tile from the Rusturf Tunnel door at (47,8) |
+   | start of day | ends the run; no travel attempted |
+   | map-granular warp planning + staged progress | ROUTE116 |
+   | no `navigate_to` during battle transitions | ROUTE116 (47,9) |
+   | prefer doors leading somewhere NEW (`pick_leg`) | ROUTE116 → FIERY_PATH |
+   | obstacle search re-runs PER MAP | **PETALBURG → FIERY_PATH, arrives** |
 
-   ‼ **ANCHOR: `tools/story-dev/saves/journey_r116_wedge.ss1`** — verified ROUTE116 (47,9),
-   OVERWORLD, controllable. Start from this, not from `rocksmash_taught.ss1`.
+   ‼ **Four of the five bugs were introduced by me the same day.** The one worth internalising:
+   an `obstacle_search_exhausted` latch justified with *"riding out a scene cannot create new
+   rocks, so one empty answer is final for this trip"* — true for scenes, **false for
+   journeys**. It searched once in Petalburg (correctly empty), latched, then walked seven maps
+   and stopped standing on the map whose rock seals the corridor, with the feature off.
+   **An optimisation whose justification contains the word "cannot" deserves a second look.**
 
-   ‼ **THE PLANNER IS CORRECT AT THAT POSITION — this is measured, do not redo it.** Probed
-   from that exact save: `map_distance(ROUTE116 → FIERY_PATH)` = 6; `warp_candidates` returns
-   the two ROUTE112 doors (neither walkable, correct — still behind the Route 111 rock from
-   this side); and **`_staged_progress_warp` returns `ROUTE116 (47,8) → RUSTURF_TUNNEL`, with
-   (47,8) walkable from (47,9)**. The right move exists and is identified.
-
-   **The open question is why the live run did not take it.** Leading hypothesis, explicitly
-   NOT proven: `used_warps` persists across iterations within ONE `navigate_to_anywhere` call,
-   so a tunnel door taken earlier in the same call (into RUSTURF_TUNNEL, whose middle is
-   sealed by the Wanda-quest rocks, then back out) is excluded on the second pass, and the
-   executor falls through to the unvalidated `region_route[0]`.
-   **Next step: INSTRUMENT which branch is taken and what `used_warps` holds. Do not guess** —
-   every blocker today was localised by one measurement and mis-explained by every hypothesis
-   that preceded it.
-
-   Reproduce with:
+   Reproduce (anchor save `journey_r116_wedge.ss1` is the SHORT version, ~5 min;
+   `norman_done.ss1` is the full journey, ~30 min):
    ```
    cd tools/story-dev
    SMASH_ARM=new SMASH_TARGET=FIERY_PATH:18,19 PYTHONUTF8=1 py -3.12 story_harness.py \
-       journey_r116_wedge.ss1 --driver smashroute --frames 900000 --profile repro-live5
+       journey_r116_wedge.ss1 --driver smashroute --frames 700000 --profile repro-live4
    ```
 5. `#24-dexhunt` / `#24-pc` / team-PC-reserve — the "travel to a known place on request"
    capability they were gated on now exists, but they are still gated on the **ruling below**.
