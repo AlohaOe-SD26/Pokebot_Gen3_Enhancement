@@ -631,11 +631,47 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
     _presses: "_collections.Counter" = _collections.Counter()
     _cursors: set = set()
     frames = 0
+    # ‼ LEARN WHAT THE GAME REFUSES, INSTEAD OF TRUSTING THE INDEX MODEL (KI-38, 2026-07-30).
+    #
+    # THE BUG THIS FIXES. Below, `A` is pressed whenever `cursor in alive_slots_menu` and
+    # `Down` ONLY when it is not. So if the game REFUSES that selection, the cursor never
+    # moves, the refusal re-arms `Task_PrintAndWaitForText`, we dismiss it, land on the same
+    # cursor, and press A again — for ever. That is exactly KI-38's signature
+    # (`presses={'Down': 3, 'A': 273}` with a near-static cursor) and it hung 11 of 12 runs in
+    # batch A on this box, always at `BattleScript_FaintedMonTryChoose` with healthy mons
+    # available.
+    #
+    # WHY NOT "FIX THE INDEX MAPPING". Because the mapping is the thing in doubt, and it has
+    # now been wrong twice in two different ways (KI-18's on-field filter, KI-34's index
+    # space). A third correction would be another guess. Refusal is OBSERVABLE: press A, and
+    # if we are still in the party menu with the printer re-armed, that slot is not selectable
+    # — whatever the model believes. So the model becomes a HINT and the game gets the vote.
+    #
+    # WHY THIS TERMINATES (the property that matters): every A-press either leaves the menu
+    # (done) or eliminates one slot for good. There are at most `len(party_in_menu)` slots
+    # plus CANCEL, so the loop cannot revisit a dead slot and cannot spin.
+    _refused: set = set()
+    _last_a_cursor = None
     while get_game_state() == GameState.PARTY_MENU:
         try:
             cursor = get_party_menu_cursor_pos(len(party_in_menu))["slot_id"]
         except Exception:
             cursor = None
+        # A refusal shows up as: we pressed A on a slot, and we are STILL in the party menu
+        # with the text printer armed again. Detected structurally rather than by matching the
+        # refusal string, so it needs no decomp lookup and cannot break on a text change.
+        if _last_a_cursor is not None and (
+            task_is_active("Task_PrintAndWaitForText") or task_is_active("Task_ReturnToChooseMonAfterText")
+        ):
+            _refused.add(_last_a_cursor)
+            _last_a_cursor = None
+        # Candidates: what the model believes, minus what the game has actually refused. If
+        # that empties, the MODEL is wrong rather than the party being unusable — fall back to
+        # every slot we have not yet had refused, which is what makes this robust to an index
+        # model that is simply incorrect.
+        _candidates = alive_slots_menu - _refused
+        if not _candidates:
+            _candidates = {i for i in range(len(party_in_menu))} - _refused
         # KI-17 (2026-07-24, decomp-confirmed race): selecting a living mon while the
         # "X has no energy left!" printer tasks are still winding down can exit the
         # party menu WITHOUT destroying the printer — its orphaned DMA request then
@@ -652,11 +688,14 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
             # Shift/Summary/Cancel popup: SHIFT is first, so A on a living mon sends
             # it out; on a fainted mon the popup is useless — close it.
             # ‼ `cursor` is MENU-order, so it must be tested against the MENU-order set.
-            button = "A" if cursor in alive_slots_menu else "B"
-        elif cursor is not None and cursor not in alive_slots_menu:
-            button = "Down"  # walk the cursor to a living, SELECTABLE slot
+            button = "A" if cursor in _candidates else "B"
+        elif cursor is not None and cursor not in _candidates:
+            button = "Down"  # walk to a slot that is still worth trying
         elif cursor is not None:
-            button = "A"     # cursor verified on a living, off-field slot — safe to confirm
+            # Cursor is on a candidate the game has not yet refused — confirm, and REMEMBER
+            # that we did, so the next iteration can tell acceptance from refusal.
+            button = "A"
+            _last_a_cursor = cursor
         else:
             button = None    # cursor unreadable: wait, never gamble an A (KI-17)
         # ‼ COUNT WHAT WE PRESS AND WHERE THE CURSOR WAS (KI-34). Playbook §7: "pressing the
@@ -717,6 +756,7 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
                     f"— presses={dict(_presses)} cursors_seen={sorted(_cursors)}(menu-order) "
                     f"alive_slots={alive_slots}(party-order) -> {sorted(alive_slots_menu)}(menu-order). "
                     f"give-up {_faint_chooser_giveups + 1}/{FAINT_CHOOSER_GIVEUP_LIMIT} this battle. "
+                    f"refused={sorted(_refused)}(menu-order) "
                     f"[#24-menutext] on-screen battle_text={_screen.get('battle', '?')!r} "
                     f"field_text={_screen.get('field', '?')!r}",
                     category="BATTLE",

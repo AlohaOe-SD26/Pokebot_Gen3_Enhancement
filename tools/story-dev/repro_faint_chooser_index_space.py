@@ -107,10 +107,24 @@ _end = src.find(chr(10) + "def ", i)
 sweep = src[i:_end if _end != -1 else len(src)]
 check("alive_slots_menu" in sweep, "the sweep builds a menu-order set")
 check("map_battle_party_index" in sweep, "…via map_battle_party_index, as the primary path does")
-check('button = "A" if cursor in alive_slots_menu else "B"' in sweep,
-      "the selection-popup branch tests the MENU-order set")
-check("cursor not in alive_slots_menu" in sweep,
-      "the cursor-walk branch tests the MENU-order set")
+# ‼ ASSERT THE INVARIANT, NOT THE VARIABLE NAME (2026-07-31). These read
+# `cursor in alive_slots_menu` literally and went red when the KI-38 fix routed the same
+# comparison through `_candidates` — a menu-order set derived from `alive_slots_menu` minus
+# the slots the game has actually REFUSED. The property that matters is unchanged: both
+# branches compare the cursor against a MENU-ORDER set, never against party order. Third
+# name/string-anchored assertion to break on correct code in two days; see 08-MISTAKES.
+check("_candidates = alive_slots_menu - _refused" in sweep,
+      "the candidate set is derived from the MENU-order set")
+check('button = "A" if cursor in _candidates else "B"' in sweep,
+      "the selection-popup branch tests that menu-order candidate set")
+check("cursor not in _candidates" in sweep,
+      "the cursor-walk branch tests that menu-order candidate set")
+# ‼ The KI-38 fix's own termination guarantee: a refused slot must be REMEMBERED, or the
+# cursor never moves off it and the loop presses A for ever (presses={'A': 273}).
+check("_refused.add(_last_a_cursor)" in sweep,
+      "a refused selection is recorded, so the cursor cannot re-try it for ever")
+check("_candidates = {i for i in range(len(party_in_menu))} - _refused" in sweep,
+      "…and if the model's set empties, it falls back to every unrefused slot")
 check("cursor in alive_slots else" not in sweep and "cursor not in alive_slots:" not in sweep,
       "‼ no raw party-order comparison against the cursor survives")
 

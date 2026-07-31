@@ -5635,3 +5635,48 @@ the INVARIANT — the limit exists, is finite (KI-36) and is greater than the ol
 Same brittleness class as `repro_navigate_failfast`'s string assertion, fixed the same day.
 
 **Sweep: 61 pass, 0 fail, 1 skip.**
+
+---
+
+## 2026-07-31 — ‼ KI-38 FIXED: the after-faint chooser now LEARNS what the game refuses
+
+**Measured on this box, 12 runs before / 4 runs after, same harness, same settings:**
+
+| batch | build | runs | **hangs at `BattleScript_FaintedMonTryChoose`** | whiteouts |
+|---|---|---|---|---|
+| A | `77c404d5` (mitigation only) | 12 | **12 of 12** (11 at the chooser, 1 at `LocalBattleLostEnd`) | 0–9 |
+| B | + this fix | 4 | **0 of 4** | 1–5 |
+
+All four batch-B runs used their full frame budget and ended `INCOMPLETE` — they ran OUT OF
+FRAMES rather than getting stuck — and whiteouts now appear, meaning battles are lost and
+**recovered** instead of deadlocking.
+
+### The bug, exactly
+In the chooser loop, `A` was pressed whenever `cursor in alive_slots_menu` and `Down` **only**
+when it was not. So when the game REFUSED a selection, the cursor never moved: the refusal
+re-armed `Task_PrintAndWaitForText`, we dismissed it, landed on the same slot, pressed A
+again — for ever. That is precisely KI-38's recorded signature (`presses={'Down': 3, 'A':
+273}` with a near-static cursor), and it is why raising the give-up limit could not help.
+
+### The fix: make the model a HINT and give the game the vote
+* Press A, and if we are **still in the party menu with the printer re-armed**, that slot is
+  refused. Detected STRUCTURALLY, not by matching the refusal string — so it needs no decomp
+  lookup and cannot break when text changes.
+* Candidates = `alive_slots_menu - refused`. **If that empties, the MODEL is wrong rather than
+  the party being unusable**, so it falls back to every not-yet-refused slot.
+* ‼ **It terminates:** every A-press either leaves the menu (done) or eliminates one slot for
+  good, and there are at most six plus CANCEL.
+
+**Why not correct the index model a third time.** It has already been wrong twice in two
+different ways — KI-18's on-field filter, then KI-34's index space. A third correction would
+be another guess against a model we keep mis-deriving. Refusal is *observable*; the index
+space is inferred. Prefer the observable one.
+
+### Also
+`repro_faint_chooser_index_space.py` asserted the literal `cursor in alive_slots_menu` and
+went red on correct code — the **third** name/string-anchored assertion to do so in two days.
+It now asserts the invariant (both branches compare against a MENU-ORDER set) plus the new
+termination guarantee (a refusal is recorded; the model's set falling empty triggers the
+all-slots fallback).
+
+**Sweep: 61 pass, 0 fail, 1 skip.**
