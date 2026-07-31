@@ -5509,3 +5509,64 @@ work as greyed out**. Fixed with an explicit `always_enabled`, and both states a
 **Scope:** `sandbox-pokebot` only. The classic GUI (`emulator_controls.py`, reachable only
 via `--classic-gui`) is unchanged; `pokebot.py` launches the dashboard by default, and this
 popup is the one the user actually sees.
+
+---
+
+## 2026-07-30 (evening) — Batch review `20260730-204036`: counter chain CONFIRMED WORKING; a separate, serious regression found
+
+**Build `ffb062ce` (mine), 4 lanes, 17:29→20:40 (~3h11m), 34 runs started.** Compared against
+bundle `20260730-062818`, build `21b587f1`. ‼ Both bundles contain the SAME leftover
+`20260729-192928` stdout files (byte-identical) — segmented out before counting, per the
+playbook's launch trap.
+
+### ✅ `#24-counters` phase 2 — every designed behaviour confirmed LIVE
+| behaviour | evidence |
+|---|---|
+| the ladder ACTS instead of stopping | 3 hunts started: `going to FIERY_PATH (18,19) to catch Machop`, `ROUTE111 (25,55) … Trapinch`, `ROUTE116 (11,7) … Nincada` |
+| the step-2b destination FALLBACK cascades | 3× `— trying the next counter destination` |
+| ‼ the per-run BOUND holds in the real re-entry path | 12× `already hunted a counter for this boss this run` — **it never re-hunted, and no boss looped** |
+| resource wall stops the ladder outright | `blocked: the party is full` |
+| honest terminal stop preserved | `no counter destination worked (Trapinch@ROUTE111: unreachable; …)` |
+| rung 3 never reached | `training the counter` ×0 — correct, nothing was ever caught |
+
+**The regression I most feared — a boss that used to stop honestly now looping — did not
+happen.** That was `repro_counter_hunt` case 2's whole purpose and it held live.
+
+### ✅ KI-39 confirmed live, and it is the binding constraint
+Every hunt failed at navigation. All three destinations are out of range of where the ladder
+fires, exactly as KI-39 predicts. The executor is correct; **it has nowhere it can walk to.**
+`#24-counters` cannot pay off until `#24-journey` exists.
+
+### ‼ SEPARATE, SERIOUS REGRESSION — runs no longer finish
+| metric | old `21b587f1` (~13h) | new `ffb062ce` (~3h11m) |
+|---|---|---|
+| runs reaching **`finished`** | **29 of 60 run-ends (48%)** | **0 of 30** |
+| `global watchdog — nothing progressed` | **5 total (~0.4/h)** | **94 total (~29.5/h)** |
+| dominant run-end reason | `boss: N losses…` (22) | **`global watchdog` (23 of 30)** |
+
+Configs are IDENTICAL (same Python 3.13.7, ROM, `speed=0 video=True audio=False`, fodder
+rule `xp_rate`), so this is not environmental drift. The watchdog itself is unchanged since
+`88a0e307` — it is not a newly-sensitive instrument, the wedging is real.
+Wedge sites seen: `training N battler(s) to Lv 31 in ROUTE117`, and the
+Rock Smash→Fallarbor→Meteor Falls chapter sequence at map (24,12).
+
+### ‼ ATTRIBUTION IS NOT CLEAN — do not blame (or clear) my commits from this data
+The two bundles are **16 commits apart**, and only 4 of them touch production code and are
+mine (`5229e780`, `f74fab6c`, `31647da3`, `06807942`). The other 10 include the **KI-34,
+KI-35, KI-36 and KI-37** fixes. The `21b587f1` bundle is in fact the already-reviewed
+`20260730-062818` batch that PREDATES all of them. So this A/B compares
+"before four KI fixes + before my work" against "after both", and cannot separate them.
+
+**One hypothesis raised and REFUTED here:** that `_counter_ladder`'s
+`_note_training_unreachable` calls poison the training-area picker (counter destinations
+ROUTE111 (25,55) and ROUTE116 (11,7) are also `TRAINING_GRASS` tiles). Measured: only **2**
+blacklist events came from the ladder (FIERY_PATH, ROUTE116); `ROUTE111 (25,55)` dominates in
+**both** builds (14 new / 24 old) and is the training picker's own doing. Not the cause.
+
+### ⏭ THE NEXT TEST MUST BE CONTROLLED, NOT LONGER
+A second long batch on `ffb062ce` would add no information. Run **~1 hour on `d7d493d8`**
+(the last build recorded as live-validated) and ~1 hour on `ffb062ce`, same lanes, and
+compare **watchdog fires per hour** and **finish rate**. That isolates my 4 production
+commits from the 10 that preceded them, which is the only open question.
+‼ Note the recorded validation of `d7d493d8` was *"no unrecovered errors"* — it was never
+checked against **finish rate**, so it may not be the clean baseline the handoff implies.

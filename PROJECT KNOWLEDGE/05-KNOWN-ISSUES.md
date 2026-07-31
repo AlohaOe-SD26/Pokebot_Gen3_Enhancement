@@ -1188,3 +1188,40 @@ capability gates (Surf/Fly/Go-Goggles), and a frame budget per leg.
 in the same region is routed by the same broken same-region branch, so it fails identically.
 Fallarbor PC, Lavaridge PC and Fiery Path were all tried as gateways from Mauville; every
 leg failed at 255 frames (`probe_counter_gateway.py`).
+
+## KI-40 — Runs stopped FINISHING and the global watchdog fires ~77x more often (2026-07-30, UNATTRIBUTED)
+
+**Measured**, bundle `20260730-204036` (build `ffb062ce`, 4 lanes, ~3h11m) vs bundle
+`20260730-062818` (build `21b587f1`, ~13h):
+
+| metric | `21b587f1` | `ffb062ce` |
+|---|---|---|
+| runs reaching `finished` | 29 of 60 run-ends (48%) | **0 of 30** |
+| `global watchdog — nothing progressed` | 5 (~0.4/h) | **94 (~29.5/h)** |
+| dominant run-end reason | `boss: N losses…` (22) | **global watchdog (23 of 30)** |
+
+**Not environmental:** RUN HEADERs are identical — Python 3.13.7, same ROM, `speed=0
+video=True audio=False`, fodder rule `xp_rate`. **Not an instrument change:** the watchdog
+message and its 18,000-frame bound are unchanged since `88a0e307`, present in both builds.
+
+**Observed wedge sites:** `training N battler(s) to Lv 31 in ROUTE117` (stage 9, map (10,0)),
+and the `Rock Smash teach skipped → Fallarbor travel not applicable → Meteor Falls scene
+already done` sequence (stage 11, map (24,12)). In both, recovery re-enters the same step and
+the watchdog fires again — derail #2, #3, #5 on the identical step.
+
+**‼ ATTRIBUTION IS OPEN.** The bundles are 16 commits apart. Ten are prior-session work
+(KI-34, KI-35, KI-36, KI-37 fixes); four are mine and touch production code (`5229e780`,
+`f74fab6c`, `31647da3`, `06807942`). The `21b587f1` bundle is the already-reviewed
+`20260730-062818` batch, i.e. it predates ALL of them. **Do not blame or clear either group
+from this data.**
+
+**Refuted already:** that `_counter_ladder`'s `_note_training_unreachable` calls poison the
+training-area picker. Only 2 blacklist events came from the ladder; `ROUTE111 (25,55)`
+dominates in both builds (14 new / 24 old) and is the training picker's own doing.
+
+**THE EXPERIMENT THAT SETTLES IT (do this before any more long batches):** ~1 hour on
+`d7d493d8` and ~1 hour on `ffb062ce`, same lanes and settings, comparing **watchdog fires per
+hour** and **finish rate**. `d7d493d8` is the last build the handoff records as
+live-validated — but note that validation was *"no unrecovered errors"* and never checked
+finish rate, so it may not be a clean baseline either. If `d7d493d8` is clean, bisect my four
+commits; if it is not, the cause is in the KI-34/35/36/37 work.
