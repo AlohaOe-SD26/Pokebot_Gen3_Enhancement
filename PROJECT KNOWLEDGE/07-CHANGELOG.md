@@ -5680,3 +5680,45 @@ termination guarantee (a refusal is recorded; the model's set falling empty trig
 all-slots fallback).
 
 **Sweep: 61 pass, 0 fail, 1 skip.**
+
+---
+
+## 2026-07-31 — Batch C (8 runs, build `1099e9d9`): KI-38 fix CONFIRMED; the run-killer is now the counter chain
+
+| batch | build | runs | FRONTIER | hangs | dominant hang signature |
+|---|---|---|---|---|---|
+| A | `77c404d5` | 12 | **0** | 12 | `BattleScript_FaintedMonTryChoose` (11 of 12) |
+| C | `1099e9d9` | 8 | **1** | 6 | `BattleScript_LocalBattleLostEnd`, `ctrl=<none>` (5 of 6) |
+
+**KI-38: 11/12 → 1/8.** Runs go far deeper — 648-1,922 battles and 12-24 whiteouts each, versus
+20-1,116 and 0-9 in batch A. Battles are now lost and RECOVERED instead of deadlocking.
+
+### ‼ CORRECTION — the `LocalBattleLostEnd` hang is NOT a whiteout bug
+It was reported as one mid-batch, on the state trace alone. It is the **aftermath** of the
+mode having already exited. The stdout shows the real cause:
+```
+*** BotModeError -> Manual: this boss: 6 losses with no super-effective answer to
+    Normal. Need one of: Fighting.                                        x3
+*** BotModeError -> Manual: Winona: ... Need one of: Rock, Ice, Dragon.   x1
+```
+`ctrl=<none>` + `bot_mode=Manual` + `bt='NICK whited out!'` is simply "no controller is
+driving the game any more". **A state trace shows where the bot IS, never why it got there —
+the stdout error line is what names the cause.** (Same shape as `08-MISTAKES` 2026-07-30's
+"probed with the wrong tool": a downstream symptom read as a root cause.)
+
+### What this means
+The chain of blockers is now fully ordered by evidence:
+1. ~~KI-38 after-faint chooser~~ **FIXED**.
+2. **The counter chain ends the run** — `#24-counters`, the ~72%-of-derails item, now the
+   measured killer on a build where nothing deadlocks before it.
+3. **It cannot act because of KI-39** — no cross-map journey planning, so the named counter
+   (Machop @ FIERY_PATH (18,19), correctly identified as huntable) is out of navigational
+   reach from where the ladder fires.
+⇒ **`#24-journey` is now the highest-value item in the project.** It unblocks the thing that
+is killing runs, and it is the same capability the user asked for ("map to already traveled
+locations").
+
+### Measurement caveat
+`livetest` drives plain `Story`, where a `BotModeError` drops to Manual and the run ends. The
+user's `ENDLESS RESET` starts a fresh run instead. **So this 1/8 frontier rate is a HARSHER
+measurement than the user's batches** and the two finish rates are not directly comparable.
