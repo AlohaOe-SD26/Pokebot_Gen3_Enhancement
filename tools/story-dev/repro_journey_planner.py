@@ -241,6 +241,43 @@ try:
 finally:
     gn._walk_is_possible = saved_walk
 
+print("\n10. ‼ pick_leg — do not walk back out the door you came in")
+# The infinite loop this closes, observed 2026-07-31 by tracing the branch taken:
+#   ROUTE116 -> RUSTURF_TUNNEL -> ROUTE116 -> RUSTURF_TUNNEL -> ...
+# Having just warped INTO the tunnel the bot is STANDING ON the door back out, so the
+# walkability check on that tile trivially succeeds (zero steps) and it is the first
+# candidate offered. `used_warps` cannot stop it: the tunnel has THREE doors, so the return
+# trip is a DIFFERENT edge every time. The interior was passable all along — verified live,
+# calculate_path (4,10) -> (29,16) inside the tunnel returns OK in 42 waypoints — so this
+# was self-inflicted thrash, not a blocked route.
+TUNNEL_M = (24, 4)
+R116_M = (0, 31)
+VERD_M = (0, 14)
+BACK_OUT = WarpEdge(from_map=TUNNEL_M, from_coords=(4, 10), to_map=R116_M, to_coords=(47, 9))
+ONWARD = WarpEdge(from_map=TUNNEL_M, from_coords=(29, 16), to_map=VERD_M, to_coords=(8, 1))
+OTHER_BACK = WarpEdge(from_map=TUNNEL_M, from_coords=(18, 20), to_map=R116_M, to_coords=(65, 10))
+
+everything_walkable = lambda _c: True  # noqa: E731 — standing in the tunnel, all doors reachable
+# BACK_OUT is listed FIRST, exactly as the BFS offered it.
+tunnel_candidates = [BACK_OUT, OTHER_BACK, ONWARD]
+
+check("with ROUTE116 already visited, it takes the door ONWARD, not back",
+      gn.pick_leg(tunnel_candidates, set(), {R116_M}, everything_walkable) == ONWARD,
+      str(gn.pick_leg(tunnel_candidates, set(), {R116_M}, everything_walkable)))
+# ‼ The second door back is what defeats `used_warps` — pin it explicitly.
+check("...even when the FIRST way back is already in used_warps (3 doors, 3 edges)",
+      gn.pick_leg(tunnel_candidates, {BACK_OUT}, {R116_M}, everything_walkable) == ONWARD)
+check("with nothing visited it takes the first walkable candidate (unchanged behaviour)",
+      gn.pick_leg(tunnel_candidates, set(), set(), everything_walkable) == BACK_OUT)
+# A revisit must be DEPRIORITISED, never forbidden — a real route can re-enter a map.
+check("a revisit is still allowed when it is the ONLY option",
+      gn.pick_leg([BACK_OUT], set(), {R116_M}, everything_walkable) == BACK_OUT)
+check("used_warps is honoured on BOTH passes",
+      gn.pick_leg([BACK_OUT], {BACK_OUT}, {R116_M}, everything_walkable) is None)
+check("an unwalkable candidate is never chosen",
+      gn.pick_leg(tunnel_candidates, set(), set(), lambda c: c is ONWARD) == ONWARD)
+check("no candidates -> None", gn.pick_leg([], set(), set(), everything_walkable) is None)
+
 print()
 if FAILURES:
     print(f"FAILED ({len(FAILURES)}): " + "; ".join(FAILURES))

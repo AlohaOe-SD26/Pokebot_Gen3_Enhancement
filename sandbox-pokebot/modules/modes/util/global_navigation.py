@@ -98,6 +98,39 @@ def _map_name(map_group_and_number: tuple[int, int]) -> str:
         return str(tuple(map_group_and_number))
 
 
+def pick_leg(candidates, used_warps, visited_maps, is_walkable):
+    """Choose which candidate warp to take: prefer one leading somewhere NEW.
+
+    Pure, so it can be tested without an emulator — which matters, because the bug it
+    encodes is invisible by inspection. `is_walkable(edge)` is injected for the same reason.
+
+    ‼ THE TWO PASSES ARE THE WHOLE POINT. Having just warped INTO a map, the bot is
+    STANDING ON the door back out, so a walkability check on that tile trivially succeeds in
+    zero steps — and it is the first candidate the BFS offers. Observed 2026-07-31 by
+    tracing the branch taken: `ROUTE116 -> RUSTURF_TUNNEL -> ROUTE116 -> RUSTURF_TUNNEL`,
+    forever. `used_warps` cannot prevent it, because Rusturf Tunnel has THREE doors and the
+    return trip is a DIFFERENT edge each time. The interior was passable all along
+    (`calculate_path` (4,10) -> (29,16) inside the tunnel: OK, 42 waypoints) — the executor
+    was thrashing, not blocked.
+
+    A revisit is DEPRIORITISED, never forbidden: a real route can legitimately re-enter a
+    map (out of a cave and back in by another mouth), so the second pass exists to allow
+    exactly that once nothing new is available.
+    """
+    for allow_revisit in (False, True):
+        for candidate in candidates:
+            if candidate in used_warps:
+                # A deterministic picker re-picks a failed choice forever unless the
+                # failure is REMEMBERED (08-MISTAKES: "recovery is just a countdown to
+                # Manual if the same inputs produce the same choice").
+                continue
+            if not allow_revisit and tuple(candidate.to_map) in visited_maps:
+                continue
+            if is_walkable(candidate):
+                return candidate
+    return None
+
+
 #: How many candidate warps the staged-progress step may VALIDATE with `calculate_path`.
 #: Each validation is synchronous (the emulator does not advance during it), so this is a
 #: freeze budget, not a search-quality knob.
@@ -335,23 +368,14 @@ def navigate_to_anywhere(
         # different edge each time — and the interior really is passable
         # (`calculate_path` (4,10) -> (29,16) inside the tunnel: OK, 42 waypoints), so this
         # was pure self-inflicted thrash, not a blocked route.
-        leg = None
-        for allow_revisit in (False, True):
-            for candidate in candidates:
-                if candidate in used_warps:
-                    # A deterministic picker re-picks a failed choice forever unless the
-                    # failure is REMEMBERED (08-MISTAKES: "recovery is just a countdown to
-                    # Manual if the same inputs produce the same choice").
-                    continue
-                if not allow_revisit and tuple(candidate.to_map) in visited_maps:
-                    continue
-                if _walk_is_possible(
-                    candidate.from_map, candidate.from_coords, avoid_encounters, avoid_scripted_events
-                ):
-                    leg = candidate
-                    break
-            if leg is not None:
-                break
+        leg = pick_leg(
+            candidates,
+            used_warps,
+            visited_maps,
+            lambda c: _walk_is_possible(
+                c.from_map, c.from_coords, avoid_encounters, avoid_scripted_events
+            ),
+        )
 
         if leg is None:
             # --- 2b. STAGED PROGRESS ------------------------------------------------
