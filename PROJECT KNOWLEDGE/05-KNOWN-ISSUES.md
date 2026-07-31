@@ -1429,3 +1429,29 @@ Repro: `repro_obstacle_clearing.py`. ‼ It shipped with a re-entrancy bug — `
 clear it and re-plan. `_smash_rock` already exists and is idempotent. The rock coordinates
 must come from map data or the decomp, never from memory. ‼ Bound it: a rock that respawns
 must not become an infinite smash-and-retry loop.
+
+## KI-42 — The Norman counter sits EXACTLY on the `COUNTER_MAX_HOPS` boundary (2026-07-31)
+
+Measured with `region_reach.hops_to`, the oracle `_counter_area_allowed` actually calls:
+
+| from | to FIERY_PATH | verdict at `COUNTER_MAX_HOPS = 8` |
+|---|---|---|
+| PETALBURG_CITY (where the Norman ladder fires) | **8 hops** | ALLOWED — with **zero margin** |
+| ROUTE102 (`prenorman_fodder_grind.ss1`) | 7 | allowed |
+| MAUVILLE_CITY (`rocksmash_taught.ss1`) | 3 | allowed |
+
+So the entire `#24-counters` chain for Norman — the ~72%-of-derails item — depends on a
+distance that is exactly at its own limit. **One extra hop anywhere in the map graph and the
+candidate is filtered out silently**, with no error: `best_huntable()` simply returns nothing
+and the ladder reports "no huntable counter candidate". That is the KI-24 failure shape (a
+false negative that gives no reason at all), and nothing currently warns about it.
+
+‼ **Do NOT just raise the constant.** It was already raised 4 → 8 on measurement, and the
+bound is what keeps the cost model from ranking endgame maps first (Hariyama @
+VICTORY_ROAD_B1F L38-42 prices at ~0 to train and ranks #1 the moment the map is called
+reachable). Any change needs the same measurement that justified 8.
+
+**Cheap mitigation worth doing:** have `_counter_area_allowed` LOG when it rejects a
+candidate for distance and by how much (`why_unreachable` already returns
+"reachable but N hops away (limit M)"). A silent filter at exactly the boundary is the
+thing that will waste the next debugging session.

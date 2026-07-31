@@ -5914,3 +5914,20 @@ from sub-90s to over 500s. Fixed with a re-entrancy guard released in a `finally
 **Proof.** `repro_obstacle_clearing.py` (24 checks, no emulator) — table honesty, the derived
 approach/facing, both wrong-YES arms, and the re-entrancy guard including its release on an
 exception. Plus the live A/B above. Sweep: **64 pass, 0 fail, 1 skip**.
+
+## 2026-07-31 — `#24-smashroute` follow-up: don't freeze the emulator re-searching, and KI-42 logged
+
+**Fix.** The obstacle search in `_navigate_riding_out` is SYNCHRONOUS — it runs several
+`calculate_path` calls without yielding, so the emulator is frozen for its duration. It was
+re-running on every one of the 10 retries, which on a failing navigation meant seconds of
+frozen emulator per attempt. A frozen emulator is indistinguishable from a hang in a log, so
+this mattered beyond speed. One empty answer is now final for the trip (riding out a scene
+cannot create new rocks). Re-verified live afterwards: `arrived=True map=FIERY_PATH`.
+Sweep: 64 pass, 0 fail, 1 skip.
+
+**KI-42 logged.** Measured with the oracle the gate actually calls: FIERY_PATH is **8 hops**
+from PETALBURG_CITY and `COUNTER_MAX_HOPS` is **8** — the whole Norman counter chain sits
+exactly on its own limit, with zero margin, and one extra hop would filter it out **silently**
+(the KI-24 shape: a false negative with no reason attached). Do not just raise the constant —
+it was raised 4 to 8 on measurement, and the bound is what stops the cost model ranking
+Victory Road's Hariyama first. The cheap mitigation is to LOG distance rejections.

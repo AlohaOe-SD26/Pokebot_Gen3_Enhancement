@@ -197,6 +197,14 @@ def _navigate_riding_out(dest_map, dest_tile, *, avoid_encounters: bool = True, 
     #: smash-and-retry — and a bounded loop re-entered by its dispatcher is still infinite
     #: (KI-34 burned 23.9M frames exactly that way).
     cleared_obstacles: set = set()
+    #: Stop searching once a search has come back empty (or only with rocks we already
+    #: cleared). ‼ NOT a micro-optimisation: the search is SYNCHRONOUS — it runs up to a
+    #: few `calculate_path` calls per candidate obstacle without yielding, so the emulator
+    #: is frozen for its duration. Re-running it on all `tries` retries would freeze the
+    #: run for seconds at a time on every failed navigation, and a frozen emulator is
+    #: indistinguishable from a hang in a log. Riding out a scene cannot create new rocks,
+    #: so one empty answer is final for this trip.
+    obstacle_search_exhausted = False
     for _ in range(tries):
         _check_abort()
         try:
@@ -220,16 +228,20 @@ def _navigate_riding_out(dest_map, dest_tile, *, avoid_encounters: bool = True, 
             # `find_obstacle_on_route` returns None unless the party has the move AND the
             # badge AND the approach tile is reachable right now, so a "no" costs one cheap
             # search on a path that was already failing.
-            try:
-                from modules.story.obstacle_clearing import clear_obstacle, find_obstacle_on_route
+            obstacle = None
+            if not obstacle_search_exhausted:
+                try:
+                    from modules.story.obstacle_clearing import clear_obstacle, find_obstacle_on_route
 
-                obstacle = find_obstacle_on_route(
-                    _map_group_number(),
-                    dest_map.value if hasattr(dest_map, "value") else dest_map,
-                    prefer_toward=dest_tile,
-                )
-            except Exception:  # noqa: BLE001 - a search must never end a trip
-                obstacle = None
+                    obstacle = find_obstacle_on_route(
+                        _map_group_number(),
+                        dest_map.value if hasattr(dest_map, "value") else dest_map,
+                        prefer_toward=dest_tile,
+                    )
+                except Exception:  # noqa: BLE001 - a search must never end a trip
+                    obstacle = None
+                if obstacle is None or obstacle.tile in cleared_obstacles:
+                    obstacle_search_exhausted = True
             if obstacle is not None and obstacle.tile not in cleared_obstacles:
                 cleared_obstacles.add(obstacle.tile)
                 context.message = f"Story: clearing the way — {obstacle.describe()}"
