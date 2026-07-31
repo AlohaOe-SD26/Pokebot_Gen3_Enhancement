@@ -649,6 +649,13 @@ def resummarise(batch_dir: Path) -> int:
     The recorded `code_commit` is preserved: it describes the code that PRODUCED the logs,
     not the code that parsed them.
     """
+    # ‼ RESOLVE THE PATH. This compared `batch_dir.parent == RUNS_ROOT` below, and
+    # `--resummarise x4-runs/<stamp>` (a relative path, the natural way to type it) made that
+    # comparison False — so the corrected numbers were written to summary.json and MANIFEST
+    # while INDEX.md silently kept the WRONG ones. INDEX.md is the first thing a review
+    # reads, so a stale row there is worse than no row: batch 20260731-105549 sat in the
+    # index claiming a 69% finish rate for an hour after it had been corrected to 23.7%.
+    batch_dir = batch_dir.resolve()
     summary_path = batch_dir / "summary.json"
     if not summary_path.exists():
         print(f"[x4h] FATAL: no summary.json in {batch_dir}", flush=True)
@@ -709,8 +716,11 @@ def resummarise(batch_dir: Path) -> int:
     }
     summary_path.write_text(json.dumps(batch, indent=2), encoding="utf-8")
     (batch_dir / "MANIFEST.txt").write_text(render_manifest(batch), encoding="utf-8")
-    if batch_dir.parent == RUNS_ROOT:
+    if batch_dir.parent == RUNS_ROOT.resolve():
         rebuild_index(RUNS_ROOT)
+    else:
+        print(f"[x4h] NOTE: {batch_dir} is outside {RUNS_ROOT}, so INDEX.md was NOT rebuilt.",
+              flush=True)
     print(f"\n[x4h] TOTALS now: {total_fin}/{total_runs} finished "
           f"({batch['totals']['finish_rate']})", flush=True)
     return 0
