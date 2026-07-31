@@ -6178,17 +6178,17 @@ thrashing.
 tunnel, the bot is *standing on* the door back out. So walk-validation on that tile trivially
 succeeds — zero steps — and it is the first candidate the BFS offers. The executor picks it,
 warps back, re-plans, picks the inbound door again, and loops:
-ROUTE116 -> TUNNEL -> ROUTE116 -> TUNNEL.  cannot help, because the tunnel has
+ROUTE116 -> TUNNEL -> ROUTE116 -> TUNNEL. `used_warps` cannot help, because the tunnel has
 THREE doors and the return trip is a different edge each time.
 
 **Fix.** The candidate loop now runs TWO passes: prefer a door leading somewhere NEW, and only
 accept one leading back to a map already visited if nothing else validates. (The same
-visited-map preference was added to  in part 4; it did nothing on its
+visited-map preference was added to `_staged_progress_warp` in part 4; it did nothing on its
 own because this leg is chosen in the earlier candidate loop, which had no such check — a
 reminder to fix the branch actually being taken, not the one you were looking at.)
 
-**Result — the journey completes.** From :
-.
+**Result — the journey completes.** From `journey_r116_wedge.ss1`:
+`RESULT arm=new arrived=True map=FIERY_PATH`.
 
 **The full arc of #24-journey, measured from PETALBURG_CITY at each step:**
 | | how far |
