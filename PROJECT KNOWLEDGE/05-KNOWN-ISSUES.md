@@ -1409,7 +1409,22 @@ already names it: *"smash the twin-rocks choke from the NORTH side … column 18
 now. That is CORRECT — the bot genuinely cannot walk through it — but it means every generic
 "can I get there?" answer is a NO that a single field-move would turn into a YES.
 
-**Shape of the fix (NOT built).** When a journey leg fails, ask whether a smashable rock
+### ‼ KI-41 — FIXED 2026-07-31 (same day). `#24-smashroute`.
+`modules/story/obstacle_clearing.py` reads the ROM's own object events, keeps the ones whose
+script is a known field-move obstacle, and offers only those the bot can both REACH (an
+adjacent tile pathable right now) and CLEAR (party move + badge). Hooked into
+`early_game._navigate_riding_out` **before** its fail-fast guard — that guard is right that
+"the field is idle and we have not moved, so retrying cannot change the result", but smashing
+the rock CHANGES THE WORLD, which is the premise it tests.
+**Live A/B** (`story_harness.py --driver smashroute`, `rocksmash_taught.ss1`): OLD arm
+`arrived=False map=MAUVILLE_CITY`; **NEW arm `arrived=True map=FIERY_PATH`, 45,305 frames.**
+Only Rock Smash is actionable; Cut is known-but-unvalidated and **Strength is excluded on
+purpose** (a boulder is PUSHED, not removed, so the success test can never fire).
+Repro: `repro_obstacle_clearing.py`. ‼ It shipped with a re-entrancy bug — `clear_obstacle`
+→ `_smash_rock` → `_navigate_riding_out` runs through the hook itself — caught by
+`repro_smashrock_battle_wedge.py` going from sub-90s to >500s. See `08-MISTAKES` 2026-07-31.
+
+**Original shape of the fix (as written before it was built).** When a journey leg fails, ask whether a smashable rock
 (or a cuttable tree) sits on the blocked corridor, and if the party has the move and badge,
 clear it and re-plan. `_smash_rock` already exists and is idempotent. The rock coordinates
 must come from map data or the decomp, never from memory. ‼ Bound it: a rock that respawns

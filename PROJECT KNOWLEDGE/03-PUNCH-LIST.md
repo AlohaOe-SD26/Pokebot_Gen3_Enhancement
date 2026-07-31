@@ -349,8 +349,26 @@ region, where "train near the gym" is actively wrong.
       `arrived=False map=MAUVILLE_CITY`, NEW arm `arrived=True map=ROUTE116` in 33,725 frames.
       ‼ **It does NOT unblock `#24-counters`** — see the new `#24-smashroute` below.
 
-- [ ] **‼ `#24-smashroute` — clear a ROCK SMASH obstacle that seals a journey (new,
-      2026-07-31; see KI-41). This, not route planning, is what gates the counter chain.**
+- [x] **`#24-smashroute` — DONE 2026-07-31. The bot clears a field-move obstacle that seals a
+      journey, and can now reach FIERY_PATH from Mauville.** Live A/B
+      (`story_harness.py --driver smashroute`, `rocksmash_taught.ss1`): OLD arm
+      `arrived=False map=MAUVILLE_CITY`; **NEW arm `arrived=True map=FIERY_PATH`, 45,305
+      frames.** `modules/story/obstacle_clearing.py` reads the ROM's own object events (no
+      coordinate table to rot — symbol names COUNTED off the ROM: StrengthBoulder 59,
+      RockSmash 44, CutTree 33), gates on move+badge+a reachable approach tile, derives the
+      stand tile and facing, and delegates to the already-hardened `_smash_rock`. Hooked into
+      `_navigate_riding_out` **before** its fail-fast guard — smashing the rock changes the
+      world, which is the premise that guard tests.
+      ‼ **Only Rock Smash is actionable.** Cut is known-but-never-validated; **Strength is
+      excluded deliberately** — a boulder is PUSHED, not removed, so the "object is gone"
+      success test can never fire. Both recorded in `KNOWN_BUT_UNSUPPORTED` with reasons.
+      ‼ **Shipped with a re-entrancy bug and the sweep caught it** — `clear_obstacle` →
+      `_smash_rock` → `_navigate_riding_out` runs through the hook itself. Guarded now; see
+      `08-MISTAKES` 2026-07-31. Repro: `repro_obstacle_clearing.py` (24 checks, no emulator).
+
+- [ ] ~~**‼ `#24-smashroute` — clear a ROCK SMASH obstacle that seals a journey (new,
+      2026-07-31; see KI-41). This, not route planning, is what gates the counter chain.**~~
+      (original entry, kept for the measurement)
       Measured: ROUTE111 reachability from Mauville has a hard floor at y≈100–101 across
       columns 17–20 — the twin-rocks choke `early_game.travel_lavaridge_to_petalburg` already
       documents at **(18,101)** (and which RESPAWNS on map reload). Consequence: ROUTE112 is

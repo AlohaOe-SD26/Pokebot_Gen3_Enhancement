@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -1111,6 +1111,79 @@ class JourneyMode(BotMode):
         return
 
 
+class SmashRouteMode(BotMode):
+    """#24-smashroute / KI-41: can the bot now reach FIERY_PATH from Mauville?
+
+    This is the end-to-end claim that matters — Fiery Path's Machop is the counter the
+    `#24-counters` ladder names for Norman, and it was unreachable because a Rock Smash rock
+    at ROUTE111 (18,101) seals the corridor (ROUTE112 scored 0 of 76 tiles from Mauville).
+    Route planning was never the blocker: after the `#24-journey` fix a warp route to Fiery
+    Path IS found, and neither of its two first legs is walkable.
+
+    Env inputs:
+      SMASH_ARM     'new' (default) | 'old' — 'old' blinds `find_obstacle_on_route` so the
+                    trip behaves exactly as it did before this feature.
+      SMASH_TARGET  'FIERY_PATH:18,19' (default)
+    Emits: [smashroute] RESULT arm=<arm> arrived=<bool> map=<name> detail=<...>
+    """
+
+    @staticmethod
+    def name():
+        return "SmashRoute"
+
+    def on_battle_started(self, encounter):
+        # Rock Smash rolls a wild encounter (Geodude), and the corridor is grass — without
+        # a strategy nothing resolves those battles and the run freezes.
+        from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+
+        return LevelUpTravelBattleStrategy()
+
+    def run(self):
+        import os
+
+        from modules.map_data import MapRSE
+        from modules.player import get_player_avatar
+        from modules.story import obstacle_clearing as oc
+        from modules.story.early_game import _navigate_riding_out, wait_until_truly_controllable
+
+        arm = os.environ.get("SMASH_ARM", "new").strip().lower()
+        raw = os.environ.get("SMASH_TARGET", "FIERY_PATH:18,19").strip()
+        map_name, _, tile = raw.partition(":")
+        x, _, y = tile.partition(",")
+        target = MapRSE[map_name.strip()]
+        target_tile = (int(x), int(y))
+
+        yield from wait_until_truly_controllable()
+        here = tuple(get_player_avatar().map_group_and_number)
+        log(f"[smashroute] arm={arm} from={MapRSE(here).name} to={target.name}{target_tile}")
+        plan = oc.find_obstacle_on_route(here, tuple(target.value), prefer_toward=target_tile)
+        log(f"[smashroute] obstacle plan: {plan.describe() if plan else 'none'}")
+
+        saved = None
+        if arm == "old":
+            saved = oc.find_obstacle_on_route
+            oc.find_obstacle_on_route = lambda *a, **k: None
+
+        arrived, detail = False, ""
+        try:
+            yield from _navigate_riding_out(target, target_tile)
+            arrived = tuple(get_player_avatar().map_group_and_number) == tuple(target.value)
+            detail = "arrived" if arrived else "returned on the wrong map"
+        except Exception as error:  # noqa: BLE001
+            detail = f"{type(error).__name__}: {str(error)[:160]}".replace("\n", " ")
+        finally:
+            if saved is not None:
+                oc.find_obstacle_on_route = saved
+
+        try:
+            final = MapRSE(tuple(get_player_avatar().map_group_and_number)).name
+        except Exception:  # noqa: BLE001
+            final = "?"
+        log(f"[smashroute] RESULT arm={arm} arrived={arrived} map={final} detail={detail}")
+        context.set_manual_mode()
+        return
+
+
 class RivalRetryMode(BotMode):
     """VALIDATE the bug fix: with MET_RIVAL_RUSTBORO already set (simulating a PRIOR LOSS),
     confirm fight_rustboro_rival still steps onto the y=53 trigger and RE-ENGAGES the rival
@@ -1998,6 +2071,8 @@ for step in range(args.frames):
             context.bot_mode_instance = FieryCaveMode()
         elif args.driver == "journey":
             context.bot_mode_instance = JourneyMode()
+        elif args.driver == "smashroute":
+            context.bot_mode_instance = SmashRouteMode()
         elif args.driver == "traintest":
             from plugins.custom_modes.story_mode import StoryMode as _SM
 

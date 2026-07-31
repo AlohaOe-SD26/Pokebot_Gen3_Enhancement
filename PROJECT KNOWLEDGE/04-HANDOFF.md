@@ -23,13 +23,16 @@ lane processes). Run it with the loop in `14-AGENT-PLAYBOOK.md` §2b, 90s per sc
    4 of 6 remaining hangs are this; it is the ~72%-of-derails item.
 3. ~~**It cannot act because of KI-39** (no cross-map route planning)~~ — ‼ **THIS WAS THE
    WRONG DIAGNOSIS AND IT IS NOW CORRECTED.** See `05-KNOWN-ISSUES.md` "KI-39 — CORRECTED".
-4. **It cannot act because of `#24-smashroute` / KI-41** — a **ROCK SMASH rock** at
-   ROUTE111 **(18,101)** seals the Mauville→Route 112 corridor. Fiery Path's only two doors
-   are on Route 112, so Machop is unreachable. Measured after the journey fix: a warp route to
-   Fiery Path IS found (2 candidates) and **neither first leg is walkable**.
+4. ~~**It cannot act because of `#24-smashroute` / KI-41**~~ — **FIXED 2026-07-31 PM.** A
+   **ROCK SMASH rock** at ROUTE111 **(18,101)** sealed the Mauville→Route 112 corridor, and
+   Fiery Path's only two doors are on Route 112. The bot now clears it: live A/B, OLD arm
+   `arrived=False map=MAUVILLE_CITY`, **NEW arm `arrived=True map=FIERY_PATH`, 45,305 frames.**
 
-⇒ ‼ **`#24-smashroute` is now the highest-value item.** It is what actually stands between the
-counter chain and acting. `#24-journey` is DONE (below) and was not the blocker.
+⇒ ‼ **THE PATH TO THE COUNTER IS NOW OPEN, AND THE NEXT STEP IS TO MEASURE IT.** Both
+navigational blockers are gone; whether the counter chain actually hunts, catches and trains
+is **unmeasured**. Do not record it as working until a batch says so — that mistake has been
+made twice here (`d7d493d8` "live-validated" on the wrong metric; KI-39's four-failures-one-
+cause). Run `x4_headless --lanes 8` and read the `end_reasons` in `summary.json`.
 
 ## ‼ WHAT I GOT WRONG YESTERDAY, AND HOW IT WAS CAUGHT (read this — it is the main lesson)
 KI-39 and this handoff both asserted *"the bot has NO cross-map overworld route planning"*
@@ -53,7 +56,8 @@ writing a cause into this file.**
 | `#24-x4headless` — headless ENDLESS-RESET batch runner (`tools/story-dev/x4_headless.py`) | done; `repro_x4_headless.py`, 55 checks |
 | fix: `--endless-target` was parsed then discarded by every frontend but the tile lane | done; fault-injected AST A/B |
 | `#24-journey` / KI-39 — warp planning at **MAP** granularity | done; live A/B, bot now reaches Route 116 |
-| KI-39 corrected, **KI-41** logged, `#24-smashroute` opened | docs |
+| `#24-smashroute` / KI-41 — clear a field-move obstacle that seals a journey | done; live A/B, **bot now reaches FIERY_PATH** |
+| KI-39 corrected, KI-41 logged then fixed | docs |
 
 ## ‼ I CAN RUN BATCHES ON THIS BOX — THIS CHANGES HOW TO WORK
 mgba is **vendored** at `sandbox-pokebot/mgba/`. Measured throughput **~1,211 fps per lane**;
@@ -118,10 +122,16 @@ for anything that will be compared against a user bundle.
 2. ~~**`#24-journey`**~~ **DONE** — warp planning at MAP granularity. ‼ Do NOT retry gateway
    waypoints (refuted 2026-07-30) and do NOT build the full leg-list planner KI-39 sketched
    (rejected with reasons in `06-DECISIONS-LOG` 2026-07-31).
-3. ‼ **`#24-smashroute` (KI-41)** — clear a Rock Smash obstacle that seals a journey. THIS is
-   what gates the counter chain: ROUTE111 (18,101). See the punch list for the shape.
-4. Then `#24-counters` becomes live and should be re-measured **with `x4_headless --lanes 8`**,
-   so the sample is big enough to compare against the user's own bundles.
+3. ~~**`#24-smashroute` (KI-41)**~~ **DONE** — the bot clears the ROUTE111 (18,101) rock and
+   reaches Fiery Path. ‼ Only **Rock Smash** is actionable; **Strength is excluded on purpose**
+   (a boulder is pushed, not removed, so the success test cannot see it) and Cut is
+   known-but-unvalidated — both recorded in `obstacle_clearing.KNOWN_BUT_UNSUPPORTED`.
+4. ‼ **NEXT: MEASURE `#24-counters` end to end** with `x4_headless --lanes 8`. Both
+   navigational blockers are gone but **nothing has measured whether the chain actually hunts,
+   catches and trains** — read `summary.json`'s `end_reasons` and compare against the
+   pre-fix baseline batch recorded in `x4-runs/INDEX.md`. Do not mark it working on anything
+   less; this project has twice recorded a fix as validated on a metric that could not see the
+   failure.
 5. `#24-dexhunt` / `#24-pc` / team-PC-reserve — the "travel to a known place on request"
    capability they were gated on now exists, but they are still gated on the **ruling below**.
 

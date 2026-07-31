@@ -2838,3 +2838,37 @@ whose two ends share a map cannot use map identity).
 **Prevention rule.** *When you widen what a planner may return, re-read every check that
 validates its output. A verification written against a narrower input set encodes that
 narrowness as an assumption, and it fails by declaring the new, correct cases broken.*
+
+---
+
+## 2026-07-31 — I hooked a recovery into the function that recovery itself calls, and made it infinite
+
+**Symptom.** `repro_smashrock_battle_wedge.py` went from passing in under 90s to still running
+at 500s, the moment `#24-smashroute`'s obstacle clearing landed. Nothing else in the sweep
+moved, and the feature's own live test passed — so the only signal was one script's RUNTIME.
+
+**Root cause.** Obstacle clearing was hooked into `early_game._navigate_riding_out`'s error
+handler. But `clear_obstacle` calls `_smash_rock`, and `_smash_rock` calls
+`_navigate_riding_out` to walk to the approach tile. So a clearance runs THROUGH the function
+that starts clearances. If that short walk failed for any reason — an NPC in the way, a scene,
+a bumped trainer — the handler searched again, found the SAME rock (its approach tile is still
+reachable, that is why it was chosen), and called `clear_obstacle` one level deeper. The
+`cleared_obstacles` set that bounds the outer loop is per-CALL, so every nested level started
+with an empty one and nothing ever converged.
+
+This is the project's oldest bug shape, and I walked straight into it after quoting it: *a
+bounded loop re-entered by its dispatcher is still infinite* (KI-34, 23.9M frames). I had even
+written a `cleared_obstacles` set specifically to bound the loop — and put it at the wrong
+scope, which is worse than no bound, because it looks like one.
+
+**The fix that worked.** A module-level `_clearing_in_progress` re-entrancy guard, set by
+`clear_obstacle` and released in a `finally` (a guard stuck ON would silently disable the
+feature for the rest of the run — as bad as one stuck off). `find_obstacle_on_route` returns
+None while it is set. `repro_obstacle_clearing.py` §4 pins both the guard and its release
+after an exception.
+
+**Prevention rule.** *Before hooking a recovery into a function, list what the recovery calls
+— transitively. If the recovery reaches the hooked function again, per-call state cannot bound
+it and you need a re-entrancy guard, not a bigger counter. And when a change makes one repro
+SLOWER without failing it, treat the runtime as the failure: it is what an infinite loop looks
+like from outside.*

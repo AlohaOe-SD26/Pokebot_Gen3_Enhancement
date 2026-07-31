@@ -145,6 +145,34 @@ class WarpGraph:
             out.append(first)
         return out
 
+    def map_route(self, from_map: tuple[int, int], to_map: tuple[int, int]) -> "list[tuple[int, int]] | None":
+        """The maps a shortest journey passes through, EXCLUDING `from_map`, or None.
+
+        Not a walking plan — connection edges here can be phantoms (see `warp_candidates`),
+        so this is only good for "which maps is this journey about". `#24-smashroute` uses
+        it to decide where to look for a field-move obstacle: the rock that seals the
+        Mauville->Fiery Path corridor is on ROUTE111, which is neither the start nor the
+        destination, so searching only those two would never find it.
+        """
+        from_map, to_map = tuple(from_map), tuple(to_map)
+        if from_map == to_map:
+            return []
+        visited = {from_map}
+        queue: deque[tuple[tuple[int, int], list[tuple[int, int]]]] = deque([(from_map, [])])
+        while queue:
+            current, path = queue.popleft()
+            neighbours = list(self.connections.get(current, ()))
+            neighbours += [edge.to_map for edge in self._edges_by_map.get(current, ())]
+            for neighbour in neighbours:
+                if neighbour in visited:
+                    continue
+                new_path = path + [neighbour]
+                if neighbour == to_map:
+                    return new_path
+                visited.add(neighbour)
+                queue.append((neighbour, new_path))
+        return None
+
     def map_distance(self, from_map: tuple[int, int], to_map: tuple[int, int]) -> "int | None":
         """Fewest map transitions (connection OR warp, uniform cost) between two maps.
 

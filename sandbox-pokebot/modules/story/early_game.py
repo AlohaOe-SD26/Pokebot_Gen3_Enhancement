@@ -192,6 +192,11 @@ def _navigate_riding_out(dest_map, dest_tile, *, avoid_encounters: bool = True, 
     Used by training/catching where the grass route can cross a trainer's line."""
     last_error = None
     last_where = None
+    #: Obstacle tiles already cleared on THIS trip. ‼ Rock-Smash rocks RESPAWN on map
+    #: reload, so without this a respawn turns the retry loop into an endless
+    #: smash-and-retry — and a bounded loop re-entered by its dispatcher is still infinite
+    #: (KI-34 burned 23.9M frames exactly that way).
+    cleared_obstacles: set = set()
     for _ in range(tries):
         _check_abort()
         try:
@@ -201,6 +206,39 @@ def _navigate_riding_out(dest_map, dest_tile, *, avoid_encounters: bool = True, 
             return
         except BotModeError as e:
             last_error = e
+            # ‼ #24-smashroute / KI-41 — TRY THIS **BEFORE** THE FAIL-FAST BELOW. A
+            # FIELD-MOVE OBSTACLE seals some corridors, and neither retrying nor riding out
+            # a scene can ever help with one: measured 2026-07-31, a Rock Smash rock at
+            # ROUTE111 (18,101) makes ROUTE112 score **0 of 76** reachable tiles from
+            # Mauville, which is why FIERY_PATH — and so the Machop the `#24-counters`
+            # ladder names for Norman — was out of reach. The fail-fast guard below is
+            # right that "the field is idle and we have not moved, so retrying cannot
+            # change the result" — but SMASHING THE ROCK CHANGES THE WORLD, which is
+            # exactly the premise the guard tests for. So this must run first, and only
+            # once per obstacle.
+            #
+            # `find_obstacle_on_route` returns None unless the party has the move AND the
+            # badge AND the approach tile is reachable right now, so a "no" costs one cheap
+            # search on a path that was already failing.
+            try:
+                from modules.story.obstacle_clearing import clear_obstacle, find_obstacle_on_route
+
+                obstacle = find_obstacle_on_route(
+                    _map_group_number(),
+                    dest_map.value if hasattr(dest_map, "value") else dest_map,
+                    prefer_toward=dest_tile,
+                )
+            except Exception:  # noqa: BLE001 - a search must never end a trip
+                obstacle = None
+            if obstacle is not None and obstacle.tile not in cleared_obstacles:
+                cleared_obstacles.add(obstacle.tile)
+                context.message = f"Story: clearing the way — {obstacle.describe()}"
+                yield from clear_obstacle(obstacle)
+                # The world changed, so the fail-fast's "nothing can differ" premise no
+                # longer holds — forget where we failed from and let the next try plan
+                # against the newly-open corridor.
+                last_where = None
+                continue
             # ‼ FAIL FAST ON A HOPELESS RETRY (2026-07-24, user log 12:39 + my treecko
             # run — BOTH died here). This retry loop only helps when a SCENE aborted the
             # path, because riding the scene out changes the world. If the field is idle

@@ -5858,3 +5858,59 @@ Column-by-column reachability on ROUTE111 from Mauville puts a hard floor at **y
 Fiery Path's only two doors are on Route 112. The story only gets past it because two travel
 functions hand-code a `_smash_rock` at that exact coordinate; nothing generic does. Full
 write-up plus shape of the fix in `05-KNOWN-ISSUES.md` KI-41.
+
+## 2026-07-31 — `#24-smashroute` / KI-41: clear a field-move obstacle that seals a journey
+
+**The bot can now reach Fiery Path from Mauville, which is where the counter chain's answer
+lives.** Live A/B, `story_harness.py --driver smashroute`, save `rocksmash_taught.ss1`:
+
+| arm | result |
+|---|---|
+| OLD (obstacle clearing disabled) | `arrived=False map=MAUVILLE_CITY` — never left the starting map |
+| **NEW** | **`arrived=True map=FIERY_PATH`, 45,305 frames** — walks the corridor, smashes the rock at ROUTE111 (18,101), arrives |
+
+**Why this was the real blocker.** `#24-journey` made warp routes to Fiery Path plannable and
+it still could not go: both candidate first legs are on ROUTE112, and ROUTE112 scores **0 of
+76** sampled tiles reachable from Mauville because a Rock Smash rock seals the corridor at
+ROUTE111 (18,101). Fiery Path's Machop is the counter the `#24-counters` ladder names for
+Norman, so this is what has been ending runs.
+
+**It is general, not a table.** Probed rather than assumed
+(`tools/story-dev/probe_smash_choke.py`): the obstacles are ordinary object events carrying
+`EventScript_RockSmash`, and `map_path` tags exactly those tiles with a
+`dynamic_collision_flag`. So `modules/story/obstacle_clearing.py` reads the ROM's own object
+events per map — no hand-maintained coordinate list to rot. Symbol names were COUNTED off the
+ROM, never recalled: `EventScript_StrengthBoulder` 59 objects, `EventScript_RockSmash` 44,
+`EventScript_CutTree` 33.
+
+**What is actionable, and what deliberately is not.** Only Rock Smash. Cut is recorded as
+known-but-never-validated (the mechanism matches — the object is removed — but it has not been
+driven end to end, and a wrong YES costs a long walk to nowhere). **Strength is excluded on
+purpose and must not be added without new clearing code:** a boulder is PUSHED, not destroyed,
+so the "the object is gone" success test can never fire — it would burn its attempt budget and
+report failure on a push that worked.
+
+**Gates, all checked rather than assumed.** An obstacle only qualifies if its script is known,
+the party knows the move AND the player holds the badge, and an orthogonally adjacent tile is
+reachable RIGHT NOW (`calculate_path` from the live position — the same oracle `navigate_to`
+uses). The approach and facing are derived, not hard-coded: the finder returns stand (18,102)
+facing Up for northbound travel, the mirror image of the (18,100)/Down that
+`early_game.travel_lavaridge_to_petalburg` hard-codes for its southbound leg.
+
+**Hook.** `early_game._navigate_riding_out`, in its `except BotModeError` handler and
+**before its fail-fast guard**. That ordering is the point: the guard is right that "the field
+is idle and we have not moved, so retrying cannot change the result" — but smashing the rock
+CHANGES THE WORLD, which is exactly the premise it tests. On a successful clearance the
+"where we failed from" memory is reset so the guard does not misfire on the next try.
+
+**‼ A bug this introduced and the sweep caught.** `clear_obstacle` delegates to
+`_smash_rock`, which calls `_navigate_riding_out` to walk to the approach tile — i.e. a
+clearance runs THROUGH the function that starts clearances. Any failure of that short walk
+found the same rock again and recursed, each level with a fresh `cleared_obstacles` set: *a
+bounded loop re-entered by its dispatcher is still infinite* (KI-34, 23.9M frames). It shipped
+for about twenty minutes and was caught only because `repro_smashrock_battle_wedge.py` went
+from sub-90s to over 500s. Fixed with a re-entrancy guard released in a `finally`.
+
+**Proof.** `repro_obstacle_clearing.py` (24 checks, no emulator) — table honesty, the derived
+approach/facing, both wrong-YES arms, and the re-entrancy guard including its release on an
+exception. Plus the live A/B above. Sweep: **64 pass, 0 fail, 1 skip**.
