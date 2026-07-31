@@ -1061,3 +1061,44 @@ added. Hand-listed collections rotted twice in this project on this same day
 **Consequence accepted.** The menu is slightly longer, and shows a few entries that cannot
 be clicked. That is the price of a stable layout, and it is the cheaper error: a missing
 entry reads as a missing feature.
+
+---
+
+## 2026-07-31 — The headless batch runner ASSERTS the emulation config; it does not set it
+
+**Decision.** `tools/story-dev/x4_headless.py` does not force `speed=0` / `video=True` itself.
+It passes `-s 0 -hl` (never `-nv`) and then **verifies the result** by reading every run's
+debug-log RUN HEADER, aborting the batch loudly if any header is not `speed=0 video=True`.
+
+**Why.** Three mechanisms already produce the right config (`PokebotHeadless.run()` from the
+CLI flags, and `_apply_debug_emulation_config()` which forces both and re-pins the speed after
+every `set_manual_mode()`). A fourth, in the runner, would be a *second source of truth* that
+can drift from the bot's — and would MASK the exact regression worth catching: if
+`_apply_debug_emulation_config` ever stops re-pinning, a runner that pins it too would hide
+that from every future batch. Verification catches the regression; duplication conceals it.
+
+**Why every header, not just the first.** The historical bug (2026-07-25) was *"run 1 ran
+unthrottled and every run after it crawled at 1x"* — a derail calls `set_manual_mode()`, which
+drops the speed to 1. Checking once at start would have passed on the broken build.
+
+**Rejected: warn and continue.** Default is ABORT. A lane at 1x is ~20x slower and looks
+exactly like a hang from the outside, so one mis-configured lane does not just lose its own
+sample — it manufactures fake hang evidence in the batch it was meant to measure.
+`--on-bad-header warn` exists for the case where a user knowingly wants the degraded run.
+
+**Rejected: reusing the GUI's `endless-P{n}-…` lane profiles.** The user may be running their
+own x4 batch on the same box; two bot processes sharing a profile directory clash on
+`current_save.sav` / `current_state.ss1` / `stats.db`. Headless lanes use `endless-H{n}-…`.
+
+## 2026-07-31 — Headless lanes keep the RENDERER on (`-hl`, never `-nv`)
+
+**Decision.** Headless batches pass `-hl` and never `-nv`.
+
+**Why.** `-hl` selects `PokebotHeadless`, which removes the GUI **window**; the renderer is a
+separate thing and `PokebotHeadless.run()` sets `context.video = not no_video`. The faithful
+PokéNav Match-Call path only advances with the renderer ON — with video off it degraded to its
+state-write fallback in **8 of 9** of the user's real-hardware runs. Keeping video on is also
+what makes a headless batch comparable to the user's GUI x4 batches, which have it on.
+
+**Cost accepted.** Rendering is not free, but measured throughput is ~1,211 fps/lane — the
+same as the documented ~1,250 — so the cost is inside the noise at these speeds.

@@ -33,17 +33,34 @@ It unblocks the thing that is killing runs, and it is the capability the user as
 ("map to already traveled locations"). See KI-39 for the measurement and the shape of the fix.
 
 ## ‼ I CAN RUN BATCHES ON THIS BOX — THIS CHANGES HOW TO WORK
-mgba is **vendored** at `sandbox-pokebot/mgba/`. `tools/story-dev/livetest.py` runs N headless
-Story runs in parallel lanes with per-run `summary.json`. Measured throughput **~1,250 fps per
-lane**; a full 3.5M-frame run is ~45 min; 4 lanes ≈ the user's ×4 throughput.
+mgba is **vendored** at `sandbox-pokebot/mgba/`. Measured throughput **~1,211 fps per lane**;
+a full 3.5M-frame run is ~45 min. Box is a Ryzen 9 5950X, 16C/32T, 128 GB — 8 lanes is
+comfortable (4 lanes ≈ 4 cores); don't max it out.
+
+**USE THIS ONE — `tools/story-dev/x4_headless.py` (built 2026-07-31):** N parallel lanes of
+**the user's own mode**, `Story (ENDLESS RESET)`, headless.
 ```
 cd tools/story-dev
-PYTHONUTF8=1 py -3.12 livetest.py --count 8 --lanes 4 --state fresh --frames 3500000 --timeout-min 55 --out <dir>
+PYTHONUTF8=1 py -3.12 x4_headless.py --lanes 8 --minutes 180
+PYTHONUTF8=1 py -3.12 x4_headless.py --lanes 4 --runs 5      # 5 runs per lane, mirrors the GUI
 ```
-‼ **`livetest` drives PLAIN `Story`**, where a `BotModeError` drops to Manual and the run ENDS.
-The user's `Story (ENDLESS RESET)` starts a fresh run instead. **So livetest finish rates are
-HARSHER than the user's and the two are NOT directly comparable.** A headless ENDLESS-RESET
-×4 runner is designed but NOT BUILT — see "NEXT" below.
+* `--lanes 4` = the dashboard's `torchic/mudkip/treecko/random`; `--lanes 8` = **2 per starter
+  + 2 random**, doubling per-starter sample size (needed for starter-specific bugs like
+  `#24-starter-gym3`: Treecko stalls at Wattson in 11 of 14 runs, Mudkip never does).
+* Refuses to run unbounded — give `--minutes` and/or `--runs` (runs PER LANE).
+* Output `x4-runs/<stamp>/`: `MANIFEST.txt`, `summary.json` (finish rate, **grouped
+  end-reasons**, KI-38/KI-40 canaries, battle-outcome tally, losses by map), per-lane
+  `stdout.txt` + this window's debug logs. Root `INDEX.md` + `LATEST.txt` record each batch's
+  **COMMIT HASH** — never compare a batch to code it did not run.
+* ‼ It **asserts** `emulation: speed=0 video=True` from every run's RUN HEADER, all batch long,
+  and aborts loudly on a violation. A lane at 1x is ~20x slower and looks exactly like a hang.
+  Do NOT add speed/video forcing to the runner — see `06-DECISIONS-LOG` 2026-07-31 for why
+  verification beats duplication here.
+
+`tools/story-dev/livetest.py` still exists and drives **plain `Story`**, where a `BotModeError`
+drops to Manual and the run ENDS. ‼ **Its finish rates are HARSHER than the user's and are not
+directly comparable** — that is exactly the gap `x4_headless.py` closes. Prefer `x4_headless`
+for anything that will be compared against a user bundle.
 
 ## HOW TO READ A HANG (learned the hard way, twice, 2026-07-30/31)
 * ‼ **A state trace shows where the bot IS, never why it got there.** `ctrl=<none>` +
@@ -70,16 +87,15 @@ HARSHER than the user's and the two are NOT directly comparable.** A headless EN
 | **KI-38 real fix — chooser LEARNS refusals** | **done, live-confirmed** |
 
 ## ‼ NEXT, IN THIS ORDER
-1. **`#24-journey`** — cross-map route planning (KI-39). Unblocks the run-killer. Shape of the
+1. ~~**Headless ENDLESS-RESET runner**~~ **DONE 2026-07-31** — `tools/story-dev/x4_headless.py`
+   (see the batch section above). Video question ANSWERED: `-hl` removes the GUI **window**,
+   not the **renderer**; `PokebotHeadless.run()` sets `context.video = not no_video`, and
+   `_apply_debug_emulation_config()` forces `video=True` anyway. Confirmed live —
+   `emulation: speed=0 video=True` on every lane header of the smoke batch.
+2. **`#24-journey`** — cross-map route planning (KI-39). Unblocks the run-killer. Shape of the
    fix is written up in KI-39; ‼ do NOT retry gateway waypoints (tried and refuted).
-2. **Headless ENDLESS-RESET ×4 runner** (designed 2026-07-31, not built). Each GUI lane is just
-   `python pokebot.py <profile> -m "Story (ENDLESS RESET)" -s 0 -na --endless-target 0`; the
-   `--tile-*` args are GUI-only and optional, and `-hl/--headless` exists. This would let
-   batches here match the user's mode exactly instead of the harsher plain-`Story`.
-   ‼ **VERIFY FIRST:** the handoff records "debug modes force unthrottled + **video ON** —
-   video is load-bearing, the faithful PokéNav path needs the renderer". Confirm `-hl` does not
-   disable video, or the PokéNav path may break in a way the user's GUI runs never would.
-3. Then `#24-counters` becomes live and should be re-measured.
+3. Then `#24-counters` becomes live and should be re-measured **with `x4_headless --lanes 8`**,
+   so the sample is big enough to compare against the user's own bundles.
 4. `#24-dexhunt` / `#24-pc` / team-PC-reserve — all gated on `#24-journey` too.
 
 ## USER RULINGS — DO NOT RE-ASK

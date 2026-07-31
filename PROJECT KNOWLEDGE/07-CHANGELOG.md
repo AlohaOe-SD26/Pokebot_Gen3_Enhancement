@@ -5722,3 +5722,76 @@ locations").
 `livetest` drives plain `Story`, where a `BotModeError` drops to Manual and the run ends. The
 user's `ENDLESS RESET` starts a fresh run instead. **So this 1/8 frontier rate is a HARSHER
 measurement than the user's batches** and the two finish rates are not directly comparable.
+
+---
+
+## 2026-07-31 — `tools/story-dev/x4_headless.py`: headless ENDLESS-RESET batch runner (`#24-x4headless`)
+
+**What.** A batch runner that drives N parallel lanes of the *user's actual mode* —
+`Story (ENDLESS RESET)`, headless — instead of plain `Story`. One lane is literally
+`python pokebot.py <profile> -m "Story (ENDLESS RESET)" -s 0 -na -hl --endless-target N`.
+
+**Why it was needed.** `livetest.py` drives **plain `Story`**, where a `BotModeError` reaches
+`main_loop`, drops to Manual and ENDS the run. The user's batches run `ENDLESS RESET`, which
+swallows that error and starts a fresh run. Every finish-rate number livetest has produced is
+therefore HARSHER than the user's, and the two were never directly comparable. Now they are.
+
+**Lane split.** `LANE_STARTERS` modulo-cycled, so one table yields both shapes the user asked
+for: 4 lanes = the dashboard's `torchic/mudkip/treecko/random`; 8 lanes = **2 per starter +
+2 random**, doubling every starter's sample. That doubling is the point — `#24-starter-gym3`
+(Treecko stalls at Wattson in 11 of 14 runs, Mudkip never does) is starter-specific, and one
+lane per starter is too thin to separate that from noise.
+
+**The emulation assertion (the headline feature).** Speed/video were *verified, not
+re-engineered*: `-s 0` → `PokebotHeadless` sets `emulation_speed = 0`; `-hl` without `-nv`
+sets `context.video = True` (headless removes the GUI **window**, not the **renderer**, so
+the faithful PokéNav path is fine); and `StoryEndlessResetMode.run()` calls
+`_apply_debug_emulation_config()`, which forces both and re-pins the speed after every
+`set_manual_mode()`. **The runner then CHECKS it** — every run writes a fresh debug log whose
+RUN HEADER carries `emulation: speed=… video=…`, and the runner asserts `speed=0 video=True`
+on every header for the whole batch, not just the first, because the failure being guarded is
+exactly *"run 1 was fine and run 2 crawled at 1x"*. A violation aborts the batch loudly
+(`--on-bad-header warn` to downgrade): a lane silently at 1x is ~20x slower and, from the
+outside, looks exactly like a hang.
+**Empirically confirmed** on a 2-lane 4-minute smoke batch: both lanes reported
+`speed=0 video=True`, throughput **~1,211 fps/lane** (matches the documented ~1,250).
+
+**Storage.** `tools/story-dev/x4-runs/<stamp>/` with `MANIFEST.txt`, `summary.json`, per-lane
+`stdout.txt` + the debug logs from THIS window only (a profile's `debug-logs/` is cumulative
+and never archived — copying it wholesale folds months-old runs into a fresh batch's numbers).
+`INDEX.md` + `LATEST.txt` at the root, and **every row records the COMMIT HASH**, so a review
+can never compare a batch to code it did not run.
+
+**Two traps handled.** (1) rich wraps a lane's stdout at ~78 columns when it is a file,
+physically splitting the `=== ENDLESS RESET: run N -> … ===` lines a summarizer parses —
+verified in the user's own `P1-stdout-20260726-233837.txt`; lanes launch with `COLUMNS=400`.
+(2) N lanes all bind HTTP :8888 and dump thread tracebacks into the logs; each lane profile
+gets `http.yml` with `enable: false`.
+
+**Metrics it reports** (per lane and batch-wide): finish rate on the *pessimistic* rule (only
+the literal `finished` counts), **grouped end-reasons** (numbers normalised, so 27 Norman
+derails that differ only in loss count collapse to one cause), the KI-38 canaries
+(`GAVE UP` **and** `NO ELIGIBLE REPLACEMENT` — 0 for the latter is what proves a valid target
+always existed), the KI-40 watchdog count, STUCK dumps + the battle script each wedged on,
+battle-outcome tally + flee rate, whiteouts, losses by map, badges.
+
+**Repro:** `tools/story-dev/repro_x4_headless.py` — 55 checks, no emulator.
+
+## 2026-07-31 — fix: `--endless-target` was parsed and then discarded by every frontend but the tile lane
+
+**Symptom (would have been).** A headless lane launched with `--endless-target 0` ("run
+forever") would quietly stop after **10** runs.
+
+**Cause.** `pokebot.py` applied `ENDLESS_RESET_TARGET` *inside* the `if startup_settings.
+tile_shm:` branch, so only the GUI x4 tile frontend honoured it. Headless and both GUIs parsed
+the flag and threw it away.
+
+**Fix.** Extracted `apply_endless_target()` to module level and called it once, before the
+frontend dispatch. Also makes the behaviour testable without booting an emulator.
+
+**Proof.** Fault-injected A/B in `repro_x4_headless.py` §E: the same AST checker is run
+against the pre-fix source recovered via `git show HEAD:…` and against the working tree; the
+verdict flips from *"all 1 application(s) are inside an `if …tile_shm…` branch"* to *"2 of 2
+application(s) reachable by every frontend"*. Plus three direct calls of the extracted helper.
+
+Repro sweep after both changes: **62 pass, 0 fail, 1 skip** (`repro_x4_lanes`, by design).

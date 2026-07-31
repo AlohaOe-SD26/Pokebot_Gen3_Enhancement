@@ -71,6 +71,23 @@ class StartupSettings:
     endless_target: int | None = None
 
 
+def apply_endless_target(endless_target: "int | None") -> bool:
+    """Set how many chained runs `Story (ENDLESS RESET)` performs, for ANY frontend.
+
+    Extracted to module level (2026-07-31) so it is reachable from a repro without
+    booting an emulator, and so the "which frontends honour this?" answer is one call
+    site instead of a branch. Returns True when a value was applied.
+
+    `0` means "run forever"; `None` (flag absent) leaves the module default alone.
+    """
+    if endless_target is None:
+        return False
+    from plugins.custom_modes import story_mode as _sm
+
+    _sm.ENDLESS_RESET_TARGET = int(endless_target)
+    return True
+
+
 def directory_arg(value: str) -> pathlib.Path:
     """Determine if the value is a valid readable directory.
 
@@ -220,15 +237,19 @@ if __name__ == "__main__":
     if not is_bundled_app() and not _is_git_checkout:
         run_updater()
 
+    # ‼ APPLIED FOR EVERY FRONTEND, NOT JUST THE TILE LANE (fixed 2026-07-31).
+    # This used to live INSIDE the `tile_shm` branch below, so `--endless-target` was
+    # parsed and then silently discarded by every other frontend. A headless batch
+    # (`-hl --endless-target 0`, which is how `tools/story-dev/x4_headless.py` asks for
+    # "run forever") therefore fell back to the module default of 10 and each lane quietly
+    # stopped after 10 runs — indistinguishable, from the outside, from a lane that died.
+    # A flag that parses and does nothing is worse than a missing flag.
+    apply_endless_target(startup_settings.endless_target)
+
     if startup_settings.tile_shm:
         # ENDLESS LOOP x4 lane: headless, but mirroring its screen into the batch's
         # shared memory so the dashboard can paint it as a tile.
         from modules.gui.tile_child import PokebotTileChild
-
-        if startup_settings.endless_target is not None:
-            from plugins.custom_modes import story_mode as _sm
-
-            _sm.ENDLESS_RESET_TARGET = int(startup_settings.endless_target)
 
         gui = PokebotTileChild(
             main_loop,

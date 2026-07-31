@@ -310,6 +310,24 @@ region, where "train near the gym" is actively wrong.
       Hiding it was the 2026-07-26 choice and it is what made the layout move.
       Story modes matched by PREFIX, so a future `Story (…)` is hoisted automatically.
 
+- [x] **`#24-x4headless` — DONE 2026-07-31. Headless ENDLESS-RESET batch runner**
+      (`tools/story-dev/x4_headless.py`, repro `repro_x4_headless.py`, 55 checks, no emulator).
+      Runs N parallel lanes of the USER'S mode — `Story (ENDLESS RESET)`, headless — instead of
+      livetest's plain `Story`, so finish rates measured here are finally comparable to the
+      user's bundles (plain `Story` ENDS a run on a `BotModeError`; `ENDLESS RESET` swallows it
+      and starts a fresh run, so livetest has always been the harsher measurement).
+      `--lanes N` (default 4 = the dashboard's split; 8 = **2 per starter + 2 random**, which
+      doubles per-starter sample size — needed for starter-specific bugs like
+      `#24-starter-gym3`). Bounded by `--minutes` and/or `--runs` (refuses to run unbounded).
+      Output `x4-runs/<stamp>/` with `MANIFEST.txt`, `summary.json`, per-lane stdout + the
+      debug logs **from this window only**, plus root `INDEX.md`/`LATEST.txt` recording each
+      batch's **COMMIT HASH**.
+      ‼ **Emulation is ASSERTED, not re-set:** every run's RUN HEADER must read
+      `emulation: speed=0 video=True`, checked for the WHOLE batch (the historical bug is
+      "run 1 fine, run 2 at 1x"); a violation aborts loudly. Empirically confirmed on a 2-lane
+      smoke batch at **~1,211 fps/lane**. Shipped with a fix for `--endless-target`, which was
+      parsed and then discarded by every frontend except the tile lane.
+
 - [ ] **‼ `#24-journey` — CROSS-MAP OVERWORLD ROUTE PLANNING (new, 2026-07-30; see KI-39).
       This is now the biggest structural blocker in the project.** The bot cannot plan a
       journey to a place more than a directly-connected map away. Measured from Mauville:

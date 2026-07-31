@@ -2721,3 +2721,50 @@ bundles were 13 h and 3 h long.
 at least one of them an outcome metric (runs finished per hour), never only a failure metric
 (errors seen). A failure metric can be driven to zero by better recovery while the bot makes
 no progress at all — and "recovered" reads exactly like "fine".*
+
+---
+
+## 2026-07-31 — A CLI flag that parses and then does nothing (`--endless-target` outside the tile lane)
+
+**Symptom.** None, yet — caught while building the headless batch runner. A lane launched with
+`--endless-target 0` ("run forever") would have stopped after 10 runs, and from the outside a
+lane that stops is indistinguishable from a lane that died. An overnight 8-lane batch would
+have silently produced ~1/3 of the sample it reported bounds for.
+
+**Root cause.** `pokebot.py` applied `story_mode.ENDLESS_RESET_TARGET` *inside* the
+`if startup_settings.tile_shm:` frontend branch. `argparse` accepted the flag for every
+frontend; only one of four acted on it. The flag was added at the same time as the tile lane,
+for the tile lane, and its scope was never revisited when `-hl` became a way to run the mode.
+
+**The fix that worked.** Hoist the application out of the branch into a module-level
+`apply_endless_target()` called once before the frontend dispatch — which also makes it
+callable from a repro without booting an emulator.
+
+**How it was proven.** An AST checker asking one question ("is every application of this name
+nested inside a conditional on `tile_shm`?"), run against BOTH the pre-fix source (recovered
+with `git show HEAD:…`) and the working tree. Same checker, verdict flips. That is a real A/B
+for a structural change, and it costs no emulator.
+
+**Prevention rule.** *When a startup flag is applied inside ONE frontend/branch, it is a bug
+the day a second frontend can reach the same mode. Apply startup settings BEFORE the dispatch
+that chooses a frontend — and if a flag must be branch-scoped, make the other branches reject
+it loudly rather than ignore it.*
+
+## 2026-07-31 — rich wraps a lane's stdout at 78 columns, and a summarizer over it silently reads zero
+
+**Symptom.** Long console lines in a lane's `stdout.txt` are physically split mid-word:
+`Story (DEBUG - RESET): debug logging ON -> C:\Remote \nProjects\...`. Verified in the user's
+own bundle `P1-stdout-20260726-233837.txt`. Any regex spanning more than ~78 characters —
+including `=== ENDLESS RESET: run N/M -> <outcome> (F frames) ===`, the line that carries
+EVERY run outcome — matches nothing, and the summary reports 0 runs on a healthy batch.
+
+**Root cause.** `rich.Console` sizes itself from the terminal; with stdout redirected to a
+file there is no terminal, so it falls back to 80 columns and hard-wraps.
+
+**The fix that worked.** Launch lanes with `COLUMNS=400` in the environment — rich reads it
+(verified: `Console().width == 399`). The repro asserts a deliberately wrapped sample stays
+unparseable, so if the parser is ever loosened to "fix" this the wrong way, that check fails.
+
+**Prevention rule.** *Any subprocess whose stdout you will PARSE must be launched with
+`COLUMNS` pinned wide, not just `PYTHONUNBUFFERED`. A wrapped line does not error — it reads
+as an absent event, which is the failure mode hardest to notice.*
