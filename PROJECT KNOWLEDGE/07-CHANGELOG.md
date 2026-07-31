@@ -5570,3 +5570,68 @@ compare **watchdog fires per hour** and **finish rate**. That isolates my 4 prod
 commits from the 10 that preceded them, which is the only open question.
 ‼ Note the recorded validation of `d7d493d8` was *"no unrecovered errors"* — it was never
 checked against **finish rate**, so it may not be the clean baseline the handoff implies.
+
+---
+
+## 2026-07-30 — KI-38/KI-40 mitigation (A): `FAINT_CHOOSER_GIVEUP_LIMIT` 3 → 20, clamped and tunable
+
+**This is a MITIGATION, not a fix.** The real fix is `#24-menutext` (B, next).
+
+**What it changes.** `battle_handler.FAINT_CHOOSER_GIVEUP_LIMIT` defaults to **20** instead of
+3, overridable with `POKEBOT_FAINT_GIVEUP_LIMIT`, and **clamped to `FAINT_CHOOSER_GIVEUP_MAX
+= 200`**. Proof: `tools/story-dev/repro_faint_giveup_limit.py` — ALL PASS, pure, no emulator.
+
+**Why.** Each give-up is one 6,000-frame invocation, so the limit is a frame budget in
+disguise: 3 ≈ 18,000 frames, 20 ≈ 120,000 (2.4% of the 5M per-run budget). KI-34 introduced
+the limit to bound a genuinely unbounded re-entry, and that was right — but 3 is far too tight
+for a chooser that still mis-selects, and **giving up abandons an ACTIVE battle**: the party
+menu is left open, the mode gets a fault its recovery cannot act on, and the run wedges.
+Measured (KI-40):
+
+| build | limit | index bug | watchdog/h | runs finished |
+|---|---|---|---|---|
+| `21b587f1` | none | present | 0.4 | **48%** |
+| `d7d493d8` | 3 | fixed | ~20 | 0 of 2 |
+| `ffb062ce` | 3 | fixed | ~29 | 0 of 30 |
+
+The pre-fix livelock measured ~35 re-entries in one battle, so 20 restores most of that
+tolerance while still terminating. KI-34's index-space fix is untouched and is what should
+make the extra attempts more likely to land than they were before.
+
+‼ **Unbounded is NOT an option, and the reason is easy to forget:** KI-36 — the per-run frame
+budget is a GENERATOR WRAPPER that cannot fire while a battle handler sits on the flat
+controller stack. An unbounded chooser is therefore bounded only by `debug_logger`'s
+60,000-frame stall net, which exists only while debug logging is ON.
+
+### The clamp exists because the test caught a real hole
+The first version validated the env var (`>= 1`) but did not bound it, so
+`POKEBOT_FAINT_GIVEUP_LIMIT=99999999999999999999` — one fat-fingered env var on the batch
+machine — produced an effectively unbounded chooser and **silently reintroduced the exact
+KI-36 hazard the finite limit exists to prevent.** `repro_faint_giveup_limit.py` case 4 caught
+it before it shipped. The case now asserts *clamped*, not merely *no exception*.
+
+### What to watch on the next batch
+`GAVE UP` should still appear (the chooser is still wrong — that is KI-38), but
+`battle handler gave up` (the hand-over) and `global watchdog` should drop sharply, and runs
+should start reaching `finished` again. **If the finish rate recovers, that is the mitigation
+working, NOT the bug being fixed.** Do not let it close KI-38.
+
+**Also in this commit — `#24-menutext` groundwork (start of fix B).** The `GAVE UP` log line
+now records the live `gDisplayedStringBattle` and `gStringVar4`, tagged `[#24-menutext]`.
+Diagnostic only (wrapped, never branched on), so it cannot change battle behaviour — the same
+move that cracked the move-learn hang (ML-11: *"read what the game ACTUALLY says"*). Indices
+cannot diagnose this because the indices are the thing in doubt. **The next batch's logs
+should therefore show what the screen said at each failure**, which is what makes the real
+text-driven chooser buildable.
+
+Action-menu strings fetched and verified from the decomp (`src/strings.c`, 2026-07-30) and
+recorded in `03-PUNCH-LIST` so they are never re-derived or written from memory:
+`SEND OUT` (`gText_SendOut`), `SHIFT`, `SWITCH`, `SUMMARY`, `CANCEL`, `ENTER`, and
+`Do what with this {PKMN}?` (`gText_DoWhatWithPokemon`, shown when the ACTION menu is open).
+
+**Fixed a brittle assertion the change exposed:** `repro_faint_chooser_index_space.py` asserted
+`FAINT_CHOOSER_GIVEUP_LIMIT == 3` and went red for a deliberate, correct retune. It now asserts
+the INVARIANT — the limit exists, is finite (KI-36) and is greater than the old too-tight 3.
+Same brittleness class as `repro_navigate_failfast`'s string assertion, fixed the same day.
+
+**Sweep: 61 pass, 0 fail, 1 skip.**

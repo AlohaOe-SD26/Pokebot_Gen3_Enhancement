@@ -40,8 +40,64 @@ _last_handled_battle_result: HandledBattleResult | None = None
 _faint_chooser_giveups: int = 0
 
 #: Give-ups in one battle before we stop trying and hand the run a recoverable derail.
-#: 3 = ~18,000 frames of trying, well past any legitimate menu delay.
-FAINT_CHOOSER_GIVEUP_LIMIT = 3
+#: Each give-up is one 6,000-frame invocation, so the limit is a frame budget in disguise:
+#: worst case ≈ LIMIT × 6,000 frames inside a single battle.
+#:
+#: ‼ RAISED 3 → 20 (2026-07-30) AS AN INTERIM MITIGATION FOR KI-38/KI-40. READ THIS BEFORE
+#: TUNING IT AGAIN.
+#:
+#: The limit itself is correct and must stay finite — see "why not unbounded" below. What was
+#: wrong is that 3 is far too tight for a chooser that still mis-selects, and giving up
+#: ABANDONS AN ACTIVE BATTLE: the after-faint party menu is left open, the mode is handed a
+#: fault its recovery cannot act on (B-ride / re-orient cannot answer an in-battle menu), and
+#: recovery re-enters the same step and wedges again — derail #2, #3, #5 on the identical step.
+#:
+#: MEASURED (A/B, 2026-07-30, `05-KNOWN-ISSUES` KI-40):
+#:   21b587f1  no limit, WITH the index bug     0.4 watchdog/h   **48% of runs finished**
+#:   d7d493d8  limit 3, index bug FIXED        ~20 watchdog/h    **0 of 2 finished**
+#:   ffb062ce  limit 3, index bug FIXED        ~29 watchdog/h    **0 of 30 finished**
+#: `GAVE UP` runs at ~22/h on both limited builds and `NO ELIGIBLE REPLACEMENT` is **0** —
+#: the chooser always had a living, valid target and still failed to select it. So the bound
+#: converted a slow leak (spin inside one battle, often eventually succeeding) into a hard
+#: stop. The pre-fix livelock measured ~35 re-entries in one battle; 20 restores most of that
+#: tolerance while still terminating.
+#:
+#: ‼ WHY NOT UNBOUNDED (do not "simplify" this away): KI-36 — the per-run frame budget is a
+#: GENERATOR WRAPPER and cannot fire while a battle handler sits on the flat controller stack.
+#: An unbounded chooser is therefore bounded only by `debug_logger`'s 60,000-frame stall net,
+#: which exists only while debug logging is ON. Finite here is what makes the failure bounded
+#: with logging OFF.
+#:
+#: ‼ THIS IS A MITIGATION, NOT A FIX. The real fix is `#24-menutext` — read the party-menu
+#: TEXT so the bot knows what the cursor is actually on, instead of inferring from indices.
+#: KI-38's evidence (`presses={'Down': 3, 'A': 273}`, `cursors_seen=[0,2,3,7]` in a 4-mon
+#: party, where 7 is probably CANCEL) says the cursor MODEL is wrong, and no number of retries
+#: fixes a wrong model. Do not let a restored finish rate be mistaken for a solved bug.
+#:
+#: Tunable without a code edit, because the right number is empirical and this file lives on a
+#: machine that pulls: `POKEBOT_FAINT_GIVEUP_LIMIT=<n>`.
+#: Hard ceiling on the tunable above. ‼ CLAMPED, not merely validated: the first version
+#: accepted any positive integer, so `POKEBOT_FAINT_GIVEUP_LIMIT=99999999999999999999` — one
+#: fat-fingered env var on the batch machine — produced an EFFECTIVELY UNBOUNDED chooser and
+#: silently reintroduced the exact KI-36 hazard the finite limit exists to prevent. Caught by
+#: `repro_faint_giveup_limit.py` before it shipped. 200 × 6,000 ≈ 1.2M frames, ~24% of the 5M
+#: per-run budget: far more tolerance than any real chooser should need, still terminating.
+FAINT_CHOOSER_GIVEUP_MAX = 200
+
+
+def _faint_giveup_limit_default() -> int:
+    import os
+
+    try:
+        value = int(os.environ.get("POKEBOT_FAINT_GIVEUP_LIMIT", "20"))
+    except Exception:  # noqa: BLE001 - a bad env value must never break battles
+        return 20
+    if value < 1:
+        return 20
+    return min(value, FAINT_CHOOSER_GIVEUP_MAX)
+
+
+FAINT_CHOOSER_GIVEUP_LIMIT = _faint_giveup_limit_default()
 
 
 def _dump_battle_stall_diagnostic() -> None:
@@ -630,11 +686,39 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
             try:
                 from modules import debug_logger
 
+                # ‼ CAPTURE WHAT THE SCREEN ACTUALLY SAYS (#24-menutext groundwork, 2026-07-30).
+                # KI-38's data proves the chooser's CURSOR MODEL is wrong, not its patience:
+                # `cursors_seen=[0,2,3,7]` in a 4-mon party (7 is almost certainly CANCEL) with
+                # 273 A-presses and a living target available every time. Indices alone cannot
+                # tell us what went wrong, because indices are the thing in doubt — so record
+                # the TEXT, which is ground truth. This is exactly the move that cracked the
+                # move-learn hang (ML-11: "read what the game ACTUALLY says").
+                #
+                # DECOMP-VERIFIED action-menu strings (src/strings.c, fetched 2026-07-30 —
+                # never write these from memory): SEND OUT (gText_SendOut), SHIFT (gText_Shift),
+                # SWITCH (gText_Switch2), SUMMARY (gText_Summary5), CANCEL (gText_Cancel),
+                # ENTER (gText_Enter). "Do what with this {PKMN}?" (gText_DoWhatWithPokemon) is
+                # the prompt shown when the ACTION menu is open over a chosen mon.
+                #
+                # DIAGNOSTIC ONLY — it must never change battle behaviour, hence the try/except
+                # and no branching on the result. The next batch's logs are what make the real
+                # text-driven chooser buildable.
+                _screen = {}
+                try:
+                    from modules.game import decode_string
+
+                    _screen["battle"] = decode_string(read_symbol("gDisplayedStringBattle")).strip()
+                    _screen["field"] = decode_string(read_symbol("gStringVar4")).strip()
+                except Exception:  # noqa: BLE001
+                    pass
+
                 debug_logger.event(
                     f"[FAINT-CHOOSER] GAVE UP after {frames} frames without sending a mon out "
                     f"— presses={dict(_presses)} cursors_seen={sorted(_cursors)}(menu-order) "
                     f"alive_slots={alive_slots}(party-order) -> {sorted(alive_slots_menu)}(menu-order). "
-                    f"give-up {_faint_chooser_giveups + 1}/{FAINT_CHOOSER_GIVEUP_LIMIT} this battle.",
+                    f"give-up {_faint_chooser_giveups + 1}/{FAINT_CHOOSER_GIVEUP_LIMIT} this battle. "
+                    f"[#24-menutext] on-screen battle_text={_screen.get('battle', '?')!r} "
+                    f"field_text={_screen.get('field', '?')!r}",
                     category="BATTLE",
                 )
             except Exception:  # noqa: BLE001

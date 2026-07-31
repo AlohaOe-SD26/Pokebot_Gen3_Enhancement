@@ -2691,3 +2691,33 @@ have been, and the actual blocker under `#24-dexhunt`, `#24-pc` and the team/PC-
 Probe it before saying it — and never let a plausible route sketch turn a measurement's
 "no path found" into "the path exists but the planner is dumb". Those are different claims
 and only one of them was measured.*
+
+---
+
+## 2026-07-30 — A "clean" verdict measured on the wrong metric hid a total collapse in finish rate for a day
+
+**Symptom.** `04-HANDOFF` recorded `d7d493d8` as live-validated: *"The last two logs … show no
+unrecovered errors."* A full day of work (the whole `#24-counters` phase 2 build) was done on
+top of that verdict. A controlled A/B then measured `d7d493d8` finishing **0 of 2 runs** with
+**~20 global-watchdog fires per hour**, against `21b587f1`'s **48% finish rate** and **0.4
+fires per hour**. The build called clean was the build where runs stopped finishing.
+
+**Root cause of the wrong verdict.** *"No unrecovered errors"* is a statement about the
+RECOVERY machinery — and the recovery machinery was working perfectly: every wedge was caught,
+derailed and recovered. What it never asked was whether the run made PROGRESS. A run that
+wedges, recovers, wedges again and never reaches the end of content is 100% "recovered" and 0%
+useful. The handoff even carried the warning *"'No unrecovered errors' is not 'clean'"* — and
+the metric still went unchallenged, because no one had written down what the alternative
+metric was.
+
+**Cost.** A day of feature work built on a broken baseline, plus a wasted A/B arm chasing my
+own commits, which the same data then cleared.
+
+**What actually found it.** Not the error counts — the **finish rate** and the
+**watchdog-fires-per-hour**, both of which required normalising per hour because the two
+bundles were 13 h and 3 h long.
+
+**Prevention rule.** *State the METRIC beside every "validated" claim in the handoff, and make
+at least one of them an outcome metric (runs finished per hour), never only a failure metric
+(errors seen). A failure metric can be driven to zero by better recovery while the bot makes
+no progress at all — and "recovered" reads exactly like "fine".*

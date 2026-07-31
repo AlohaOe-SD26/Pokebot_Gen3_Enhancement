@@ -330,6 +330,40 @@ region, where "train near the gym" is actively wrong.
       (`probe_counter_gateway.py`): a same-region gateway is routed by the same broken
       branch and fails identically.
 
+- [~] **‼‼ `#24-menutext` — THE REAL FIX for KI-38/KI-40. NOW THE #1 ITEM (2026-07-30).**
+      Runs stopped finishing entirely (48% → 0%) because the after-faint chooser cannot select
+      a living replacement: measured `NO ELIGIBLE REPLACEMENT` = **0** while `GAVE UP` runs at
+      **~22/hour**, i.e. a valid target always existed and was never chosen. KI-38's own
+      evidence says the CURSOR MODEL is wrong (`presses={'Down': 3, 'A': 273}`,
+      `cursors_seen=[0,2,3,7]` in a 4-mon party, 7 probably CANCEL) — and no number of retries
+      fixes a wrong model.
+      **Build:** read the party-menu TEXT so the bot knows what the cursor is actually on,
+      instead of inferring it from indices. ‼ **The strings MUST come from the decomp**
+      (`gh api repos/pret/pokeemerald/contents/...`), never from memory — that rule has already
+      been broken once today (08-MISTAKES, the Hoenn route claim).
+      ✅ **STRINGS ALREADY FETCHED AND VERIFIED 2026-07-30** from `src/strings.c` — use these,
+      do not re-derive or guess:
+      | symbol | text |
+      |---|---|
+      | `gText_SendOut` | `SEND OUT` |
+      | `gText_Shift` | `SHIFT` |
+      | `gText_Switch2` / `gText_Switch` | `SWITCH` |
+      | `gText_Summary5` | `SUMMARY` |
+      | `gText_Cancel` / `gText_Cancel2` | `CANCEL` |
+      | `gText_Enter` | `ENTER` |
+      | `gText_DoWhatWithPokemon` | `Do what with this {PKMN}?` — shown when the ACTION menu is open over a chosen mon |
+      ✅ **INSTRUMENTATION ALREADY SHIPPED:** the `GAVE UP` log line now also records the live
+      `gDisplayedStringBattle` and `gStringVar4` (tagged `[#24-menutext]`), diagnostic-only.
+      **The next batch's logs should therefore SHOW what the screen said at each failure** —
+      read those before writing the chooser, rather than reasoning from indices again.
+      **MITIGATION (A) SHIPPED 2026-07-30:** `FAINT_CHOOSER_GIVEUP_LIMIT` 3 → 20, clamped to
+      200, tunable via `POKEBOT_FAINT_GIVEUP_LIMIT` (`repro_faint_giveup_limit.py`).
+      ‼ **If the finish rate recovers, that is the MITIGATION working, not this item done.**
+- [x] **`#24-giveuplimit` — DONE 2026-07-30 (mitigation A for KI-38/KI-40).** See above.
+      Test caught a real hole pre-ship: the env override was validated but not CLAMPED, so a
+      fat-fingered value gave an effectively unbounded chooser and silently reintroduced the
+      KI-36 hazard the finite limit exists to prevent.
+
 ### ‼ #1 EXECUTION PRIORITY — the counter chain is now 72% of all derails
 - [~] **`#24-counters` phase 2 — BUILT 2026-07-30, AWAITING LIVE VALIDATION.**
       **STEP 1 — the hunting-ground gate** (`hunt_ground_tile` / `huntable` /

@@ -76,6 +76,30 @@ all `tile: None`**. No bot behaviour has changed yet — nothing travels or catc
 - KI-25 (defensive-only lead), KI-26 (Route 110 rival: no prep/cap), KI-27 (Weather Institute
   hang), KI-28 (training livelocks), KI-29 (P4 canary), KI-31 (fodder gate), KI-33.
 
+## ‼‼ STOP — READ THIS BEFORE ANY FEATURE WORK (2026-07-30, evening)
+
+**RUNS STOPPED FINISHING: 48% → 0%.** Root-caused to **KI-38** (see `05-KNOWN-ISSUES` KI-40):
+the after-faint chooser cannot select a living replacement, gives up, and **abandons an ACTIVE
+battle** with the party menu open. The mode gets a fault its recovery cannot act on, recovery
+re-enters the same step, and the run wedges. Measured `NO ELIGIBLE REPLACEMENT` = **0** with
+`GAVE UP` at **~22/h** — a valid target always existed.
+
+| build | limit | watchdog/h | runs finished |
+|---|---|---|---|
+| `21b587f1` | none | 0.4 | **48%** |
+| `d7d493d8` | 3 | ~20 | 0 of 2 |
+| `ffb062ce` | 3 | ~29 | 0 of 30 |
+
+* **MITIGATION A SHIPPED:** `FAINT_CHOOSER_GIVEUP_LIMIT` 3 → 20 (clamped 200, env-tunable).
+* **THE REAL FIX IS `#24-menutext`** — now the #1 punch-list item.
+* ‼ **The 2026-07-30 counter-chain and menu commits are CLEARED** by controlled A/B — the
+  regression predates them, in the KI-34/35/36/37 work.
+* ‼ **`#24-counters` and `#24-journey` are BOTH ON HOLD.** Neither matters while runs die at
+  Gym 2. Do not resume them until the finish rate is back.
+* ‼ **`d7d493d8` was recorded here as "live-validated" and was NOT** — that verdict was
+  measured on *"no unrecovered errors"*, never on finish rate. **State the METRIC beside every
+  validated claim, and make one of them an OUTCOME metric** (08-MISTAKES 2026-07-30).
+
 ## ‼ NEXT, IN THIS ORDER (agreed with the user 2026-07-30)
 1. **`#24-counters` phase 2 — the biggest lever by far.** ~**72% of all derails** are the counter
    chain correctly NAMING the answer it needs and then ENDING THE RUN. **User ruling: price

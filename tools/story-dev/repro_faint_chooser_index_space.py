@@ -118,7 +118,19 @@ print("\n== the OUTCOME is bounded, not just the frames ==")
 import modules.battle_handler as bh  # noqa: E402
 
 check(hasattr(bh, "FAINT_CHOOSER_GIVEUP_LIMIT"), "a per-battle give-up limit exists")
-check(bh.FAINT_CHOOSER_GIVEUP_LIMIT == 3, f"limit is 3 (got {bh.FAINT_CHOOSER_GIVEUP_LIMIT})")
+# ‼ ASSERT THE INVARIANT, NOT THE LITERAL (2026-07-30). This read `== 3` and broke the moment
+# the value was deliberately retuned to 20 as the KI-38/KI-40 mitigation — a red sweep for a
+# change that was correct. The number is empirical and expected to move again; what this repro
+# actually guards is that the limit EXISTS, is FINITE (KI-36: the per-run frame budget cannot
+# fire while a battle handler holds the flat stack, so unbounded means unbounded) and is
+# generous enough not to abandon a battle after a few honest tries. Same brittleness class as
+# repro_navigate_failfast's string assertion, fixed the same day — see 08-MISTAKES 2026-07-30.
+check(
+    isinstance(bh.FAINT_CHOOSER_GIVEUP_LIMIT, int)
+    and 3 < bh.FAINT_CHOOSER_GIVEUP_LIMIT <= bh.FAINT_CHOOSER_GIVEUP_MAX,
+    f"limit is finite and > the old too-tight 3 "
+    f"(got {bh.FAINT_CHOOSER_GIVEUP_LIMIT}, max {bh.FAINT_CHOOSER_GIVEUP_MAX})",
+)
 check("_faint_chooser_giveups = 0" in src, "the counter resets per battle")
 check("request_mode_recovery" in sweep,
       "on exceeding it, the run gets a RECOVERABLE derail via the battle-fault channel")
