@@ -1267,3 +1267,50 @@ grass and is exactly where listener traffic is heaviest.
 **Next step is DIAGNOSIS, not more batches** — the remaining suspect set is 3 commits and the
 symptom is reproducible in-run. A further 1-hour arm on `00db4a81` or `4f1e02f9` would bisect
 it if reading the diffs does not.
+
+### KI-40 → ROOT-CAUSED 2026-07-30: it is **KI-38**, and KI-38 is not "residual" — it is the dominant run-killer
+
+`05-KNOWN-ISSUES`/`04-HANDOFF` describe KI-38 as *"3 residual after-faint give-ups"*. That
+figure came from one sample. Measured across both A/B arms it is the thing ending the runs.
+
+**The STUCK dump (baseline `d7d493d8`, P2, f623813) is unambiguous:**
+```
+message='Story: entering Dewford Gym to challenge Brawly...'
+game_state=3  controllable=False
+battle: active=True  instr=BattleScript_FaintedMonTryChoose
+tasks=['Task_HandleChooseMonInput']            <- the after-faint party menu is OPEN
+party=['Taillow L19 0/48', 'Marshtomp L17 55/55', 'Nincada L10 0/28', 'Whismur L17 51/51']
+controllers=['StoryEndlessResetMode.run']      <- ‼ NO battle handler on the stack
+===== DUMP [STUCK — 111000 frames no progress] =====
+```
+Two healthy mons (Marshtomp 55/55, Whismur 51/51) were available to send in. Nothing was
+driving the battle: the faint chooser had already given up and left the menu open.
+
+**Rates (`GAVE UP` / hour), stable across builds:** baseline `d7d493d8` 9 in ~0.4 h ≈ **22/h**;
+`ffb062ce` 75 in ~3.2 h ≈ **23/h**. Faults handed to the mode: 5 and 48 respectively.
+‼ **`NO ELIGIBLE REPLACEMENT` = 0 in BOTH.** The chooser always had a valid, living target and
+still failed to select it. This is not a "no legal move" case; it is a selection bug.
+
+**Why KI-34's fix made the SYMPTOM worse while being correct in itself.** `4f1e02f9` added
+`FAINT_CHOOSER_GIVEUP_LIMIT = 3` to bound an unbounded re-entry (previously ~35 re-entries /
+210,000 frames per battle). The bound works — but on giving up it leaves **the battle still
+active with the menu open**, hands a fault to the mode, and the mode's recovery (B-ride,
+re-orient, resume) cannot answer an in-battle party menu. So recovery re-enters the same step
+and wedges again — derail #2, #3, #5 on the identical step. Before the limit, the handler span
+forever inside one battle (wasteful, but it stayed on the stack and could still succeed, which
+is why `21b587f1` still finished 48% of its runs). **The limit converted a slow leak into a
+hard stop.** Both the index-space fix and the bound are right; what is missing is a
+give-up path that RESOLVES the battle instead of abandoning it.
+
+**Therefore the fix must be one of:**
+1. ‼ **Make the chooser actually select** — `#24-menutext`, already named in the handoff as
+   the resolver: read the party-menu text so the bot knows what the cursor is on, instead of
+   inferring from indices. **The string MUST come from the decomp.** KI-38's own evidence
+   (`presses={'Down': 3, 'A': 273}`, `cursors_seen=[0,2,3,7]` in a 4-mon party, where 7 is
+   probably CANCEL) says the cursor model is wrong, which no amount of retrying fixes.
+2. **Make the give-up SAFE** — on give-up, drive the battle to a resolved state rather than
+   returning with the menu open. A fault the mode cannot act on is worse than no fault.
+3. **Interim mitigation only:** raise `FAINT_CHOOSER_GIVEUP_LIMIT`. This trades a hard wedge
+   for the old slow leak; it keeps KI-34's index-space fix (which is correct and unrelated).
+   Cheap to try, one constant, and it should restore something like the 48% finish rate —
+   but it is a mitigation, not a fix, and it must not be mistaken for one.
