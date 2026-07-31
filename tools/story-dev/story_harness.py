@@ -1164,9 +1164,14 @@ class SmashRouteMode(BotMode):
             saved = oc.find_obstacle_on_route
             oc.find_obstacle_on_route = lambda *a, **k: None
 
+        # Match the production call site: `counter_hunt.hunt()` passes tries=24, because a
+        # counter hunt is the longest journey the bot makes and the default 10 was being
+        # exhausted WHILE STILL ADVANCING. A driver that used the default would be testing
+        # a call the bot never makes.
+        tries = int(os.environ.get("SMASH_TRIES", "24"))
         arrived, detail = False, ""
         try:
-            yield from _navigate_riding_out(target, target_tile)
+            yield from _navigate_riding_out(target, target_tile, tries=tries)
             arrived = tuple(get_player_avatar().map_group_and_number) == tuple(target.value)
             detail = "arrived" if arrived else "returned on the wrong map"
         except Exception as error:  # noqa: BLE001

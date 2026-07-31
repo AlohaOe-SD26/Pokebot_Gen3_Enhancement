@@ -1129,6 +1129,27 @@ execute with re-planning). The executor already re-plans from the real position 
 warp, so a full leg list would be re-derived and thrown away each iteration. One warp at a
 time, validated, is less code and self-corrects when the world disagrees with the graph.
 
+> ‼ **CORRECTION, same day (2026-07-31 PM).** That rejection was wrong, and the reasoning
+> above shows exactly how: *"the executor already re-plans after every warp"* is only true
+> **once the first warp is reachable**. Measured from `norman_done.ss1` (PETALBURG_CITY,
+> which is where the Norman counter ladder actually fires — not Mauville, where I had been
+> testing): `warp_candidates(PETALBURG -> FIERY_PATH)` returns only the two ROUTE112 doors,
+> because the ROM headers describe ROUTE104 as one connected map. It is not —
+> **PETALBURG_WOODS is a separate map entered by a warp and splits Route 104 in two** — so
+> both candidates sit behind a split we have not crossed, neither validates, and the
+> executor has nothing to do. From Petalburg: ROUTE104 31/200 tiles reachable,
+> **PETALBURG_WOODS 0/132, RUSTBORO_CITY 0/150, ROUTE116 0/125.**
+>
+> The fix is `_staged_progress_warp`: when nothing on a route to the goal is reachable, take
+> any reachable warp that does not INCREASE the distance to the target, and re-plan. It is
+> still not a precomputed leg list — the objection to that stands — but it is the "make
+> partial progress and re-plan" half of KI-39's shape, which I dismissed along with it.
+>
+> **What I should have done:** tested from the position where the feature actually fires.
+> Every measurement behind the original decision was taken from Mauville, one hop from the
+> obstacle, which is the easy case. See `08-MISTAKES` 2026-07-31.
+
+
 **Consequence accepted.** One extra `calculate_path` per `navigate_to_anywhere` call on the
 happy path. It is the same call `navigate_to` makes microseconds later, so the cost is one
 extra plan per navigation, not per frame.

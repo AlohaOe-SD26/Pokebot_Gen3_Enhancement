@@ -145,6 +145,23 @@ class WarpGraph:
             out.append(first)
         return out
 
+    def warps_from(self, map_group_and_number: tuple[int, int]) -> list[WarpEdge]:
+        """Every warp you can step into on this map. Public accessor for the executor's
+        staged-progress step, which needs to consider warps that are NOT on any planned
+        route (see `navigate_to_anywhere`)."""
+        return list(self._edges_by_map.get(tuple(map_group_and_number), ()))
+
+    def onward_exits(self, map_group_and_number: tuple[int, int]) -> int:
+        """How many ways lead out of this map (warps + edge connections).
+
+        Used as a tie-break so a DEAD END is not mistaken for progress. Measured from
+        Petalburg: the Woods entrance and Mr Briney's front door are BOTH exactly 8 hops
+        from Fiery Path, so distance alone cannot separate "the way onward" from "a
+        one-room house". Exit count can: Petalburg Woods has several, Mr Briney's has one.
+        """
+        m = tuple(map_group_and_number)
+        return len(self._edges_by_map.get(m, ())) + len(self.connections.get(m, ()))
+
     def map_route(self, from_map: tuple[int, int], to_map: tuple[int, int]) -> "list[tuple[int, int]] | None":
         """The maps a shortest journey passes through, EXCLUDING `from_map`, or None.
 

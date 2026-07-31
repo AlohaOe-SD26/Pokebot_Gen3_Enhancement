@@ -2872,3 +2872,46 @@ after an exception.
 it and you need a re-entrancy guard, not a bigger counter. And when a change makes one repro
 SLOWER without failing it, treat the runtime as the failure: it is what an infinite loop looks
 like from outside.*
+
+---
+
+## 2026-07-31 — I validated a travel fix from the EASY starting position, and shipped it as done
+
+**Symptom.** `#24-journey` and `#24-smashroute` both passed live A/B tests and both were
+recorded as done. The very next batch showed the counter chain still failing to reach Fiery
+Path — with a *different* error than before, from a place I had never tested.
+
+**Root cause.** Every measurement behind both features was taken from `rocksmash_taught.ss1`,
+i.e. standing in **MAUVILLE_CITY** — one map from the blocking rock, and inside the same
+walkable component as most of the route. The Norman counter ladder does not fire there. It
+fires at **PETALBURG_CITY**, and from Petalburg the world looks completely different:
+
+| from Petalburg | walkable |
+|---|---|
+| ROUTE104 | 31/200 tiles |
+| PETALBURG_WOODS | **0/132** |
+| RUSTBORO_CITY | **0/150** |
+| ROUTE116 | **0/125** |
+
+`PETALBURG_WOODS` is a separate map entered by a warp, and it splits Route 104 in two — a
+fact the ROM's map headers do not encode, since they describe ROUTE104 as one connected map.
+So the planner believed the whole journey needed exactly ONE warp (`ROUTE112 -> FIERY_PATH`),
+both candidates for it were behind that split, neither validated, and the executor stopped
+with nothing to do. From Mauville that case cannot arise, so no amount of testing there would
+ever have found it.
+
+**Why the test suite did not catch it either.** The repro and the harness driver both used the
+same save. A second save was the entire difference between "proven" and "unproven", and I
+never asked which position the feature would actually run from.
+
+**The fix that worked.** `_staged_progress_warp`: when nothing on a route to the goal is
+reachable, take any reachable warp that does not INCREASE the map-graph distance to the
+target, and re-plan. Ranked by distance, tie-broken by onward exit count — both thresholds
+measured, not guessed (from Petalburg every house/gym/mart door is 9 hops against the current
+8, so the distance rule alone excludes them; the Woods entrance and Mr Briney's front door are
+BOTH 8, so exit count is what separates the way onward from a one-room house).
+
+**Prevention rule.** *Validate a feature from the position it will ACTUALLY run from, and find
+that position in the code (which segment/ladder invokes it) rather than reusing whichever save
+was already loaded. A save chosen for convenience tests the easy case by construction — and if
+one save is all the evidence there is, the claim is "it works from there", not "it works".*

@@ -53,11 +53,42 @@ writing a cause into this file.**
 ## WHAT SHIPPED 2026-07-31 PM (all pushed, all with repro + green sweep)
 | item | state |
 |---|---|
-| `#24-x4headless` — headless ENDLESS-RESET batch runner (`tools/story-dev/x4_headless.py`) | done; `repro_x4_headless.py`, 55 checks |
+| `#24-x4headless` — headless ENDLESS-RESET batch runner (`tools/story-dev/x4_headless.py`) | done; `repro_x4_headless.py` |
 | fix: `--endless-target` was parsed then discarded by every frontend but the tile lane | done; fault-injected AST A/B |
-| `#24-journey` / KI-39 — warp planning at **MAP** granularity | done; live A/B, bot now reaches Route 116 |
-| `#24-smashroute` / KI-41 — clear a field-move obstacle that seals a journey | done; live A/B, **bot now reaches FIERY_PATH** |
-| KI-39 corrected, KI-41 logged then fixed | docs |
+| `#24-journey` / KI-39 — warp planning at **MAP** granularity | done; live A/B, bot reaches Route 116 from Mauville |
+| `#24-smashroute` / KI-41 — clear a field-move obstacle that seals a journey | done; live A/B, bot reaches FIERY_PATH from Mauville |
+| `#24-journey` part 2 — **staged progress** (see below) | the Mauville-only proofs were not general |
+| fix: TWO bugs in my own batch summariser | see below — the first batch summary was wrong |
+| KI-39 corrected, KI-41 logged then fixed, **KI-42** logged + mitigated | docs |
+| **USER RULING** `#24-dexhunt` = "always catch new, when it is cheap" | `06-DECISIONS-LOG` 2026-07-31 |
+
+## ‼ MEASURED: THE BASELINE, AND WHAT THE FIXES DID
+**Baseline** (`x4-runs/20260731-105549`, commit `289d1710`, 8 lanes, 180 min, 46 runs started):
+* **38 runs ended, 9 finished = 23.7%**
+* **25 of 29 non-finishes (86%) are the counter chain** naming an answer it cannot reach —
+  Norman/Fighting **15**, Winona/Rock-Ice-Dragon **5**, Wattson/Ground **5**. Everything else
+  is 4 events, one each. This CONFIRMS the handoff's old "~72% of derails" and sharpens it.
+* KI-38 `GAVE UP` 20 with `NO ELIGIBLE REPLACEMENT` 1.
+
+**Post-fix batch** (`x4-runs/20260731-140514`, commit `1b9e690f`) — the counter hunt **FIRES**
+for the first time (`counter hunt — going to FIERY_PATH (18, 19) to catch Machop`, 4× in the
+first 8 runs; baseline had it 0×) and then **fails to travel**. That is what produced the
+staged-progress work below; the batch predates it.
+
+## ‼ TWO BUGS WERE IN MY MEASURING INSTRUMENT — CHECK YOURS
+The first summary of the baseline claimed **69% finish rate** and showed the counter chain
+**zero** times. Both wrong; the raw logs were fine.
+1. `COLUMNS=400` was set to stop rich wrapping the outcome lines and **was not enough** (a
+   counter derail message is ~1,000 chars). The `(N frames) ===` tail landed on the next line.
+   **And `repro_x4_headless.py` asserted that a wrapped line IS unparseable** — the workaround
+   pinned as intended behaviour, so the suite defended the bug. Parser is wrap-tolerant now.
+2. Batch totals used `Counter({k: v for lane in lanes ...})` — an inner **dict comprehension**,
+   so a reason in several lanes kept only the LAST lane's count. It reported 9 end reasons for
+   29 non-finishing runs; every number looked plausible and only the arithmetic exposed it.
+
+`x4_headless.py --resummarise <dir>` re-reads stored logs. **The logs are the data; the summary
+is only a reading of them.** Never re-run hours of emulation to fix a regex — it also produces
+a different sample and destroys the comparison.
 
 ## ‼ I CAN RUN BATCHES ON THIS BOX — THIS CHANGES HOW TO WORK
 mgba is **vendored** at `sandbox-pokebot/mgba/`. Measured throughput **~1,211 fps per lane**;
@@ -126,12 +157,26 @@ for anything that will be compared against a user bundle.
    reaches Fiery Path. ‼ Only **Rock Smash** is actionable; **Strength is excluded on purpose**
    (a boulder is pushed, not removed, so the success test cannot see it) and Cut is
    known-but-unvalidated — both recorded in `obstacle_clearing.KNOWN_BUT_UNSUPPORTED`.
-4. ‼ **NEXT: MEASURE `#24-counters` end to end** with `x4_headless --lanes 8`. Both
-   navigational blockers are gone but **nothing has measured whether the chain actually hunts,
-   catches and trains** — read `summary.json`'s `end_reasons` and compare against the
-   pre-fix baseline batch recorded in `x4-runs/INDEX.md`. Do not mark it working on anything
-   less; this project has twice recorded a fix as validated on a metric that could not see the
-   failure.
+4. ‼ **NEXT: MEASURE `#24-counters` end to end** with `x4_headless --lanes 8` **on a build that
+   includes staged progress**, and compare `end_reasons` against the baseline above. The
+   question is narrow and answerable: **does the `15× Norman` line shrink?**
+   * If it does, the chain is travelling and hunting — then look at what the NEW end reasons
+     are (they should be about catching/training, not reachability).
+   * If it does not, the chain is still not completing the journey, and the next thing to read
+     is how far it got: `grep 'counter hunt — going to' L*/stdout.txt` then the error that
+     follows it. That single pair of lines is what localised every blocker so far.
+   ‼ Do not mark `#24-counters` working on anything less than that comparison. This project has
+   twice recorded a fix as validated on a metric that could not see the failure.
+
+5. ‼ **The long journey is NOT finished.** Measured from `norman_done.ss1` (Petalburg), the
+   trip to Fiery Path now crosses the Petalburg Woods split and reaches **ROUTE116** — a
+   journey that previously made zero progress — but it has not yet completed end to end. The
+   last observed failure was the `_navigate_riding_out` retry budget being exhausted **while
+   still advancing** (now `tries=24` from `counter_hunt`), with a trailing
+   "The game is currently not in the overworld" from `walking.navigate_to`. **That is the next
+   thing to debug if the batch shows the Norman line unchanged** — and debug it from
+   `norman_done.ss1`, NOT from `rocksmash_taught.ss1`; testing from Mauville is what hid this
+   whole class for a day (`08-MISTAKES` 2026-07-31).
 5. `#24-dexhunt` / `#24-pc` / team-PC-reserve — the "travel to a known place on request"
    capability they were gated on now exists, but they are still gated on the **ruling below**.
 

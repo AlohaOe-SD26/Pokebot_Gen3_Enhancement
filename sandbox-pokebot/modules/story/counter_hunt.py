@@ -232,7 +232,18 @@ def hunt(candidate, needed_type_names) -> Generator:
             console.print("[yellow]Story: counter hunt abandoned — could not buy Poké Balls.[/]")
             return None
 
-    yield from _navigate_riding_out(map_enum, tile)
+    # ‼ MORE TRIES THAN THE DEFAULT 10, and this is not a "just retry harder" band-aid.
+    # A counter hunt is the LONGEST journey the bot ever makes: measured 2026-07-31, the
+    # Norman ladder fires at PETALBURG_CITY and Fiery Path is 8 map-hops away across
+    # several warp chains (Petalburg Woods, Rustboro, Route 116…). `navigate_to_anywhere`'s
+    # staged progress crosses those one warp at a time, and each leg that ends in a
+    # recoverable error costs one try — so a run of 10 was being exhausted WHILE THE BOT WAS
+    # STILL ADVANCING (it reached Route 116 from Petalburg and then gave up). The retry
+    # count is not what protects against a hopeless loop here; `_navigate_riding_out`'s
+    # fail-fast guard is (it bails the moment the field is idle AND the position has not
+    # changed, i.e. when retrying genuinely cannot help). So a bigger budget costs nothing
+    # on a stuck journey and is the difference between arriving and not on a long one.
+    yield from _navigate_riding_out(map_enum, tile, tries=24)
 
     before = _party_count()
     arm([species_name])

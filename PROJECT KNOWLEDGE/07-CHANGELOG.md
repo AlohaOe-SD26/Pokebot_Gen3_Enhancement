@@ -5984,3 +5984,87 @@ also produce a different sample and destroy the comparison being attempted.
 This **confirms the handoff's claim** ("~72% of derails are the counter chain") and sharpens
 it to 86%, measured on a build where nothing deadlocks first. It is the control the post-fix
 batch will be compared against.
+
+## 2026-07-31 — `#24-journey` part 2: STAGED PROGRESS, because one warp at a time was not general
+
+**Found by the post-fix batch, not by a test.** The batch showed the counter hunt FIRING for
+the first time — `counter hunt — going to FIERY_PATH (18, 19) to catch Machop` appeared 4
+times in the first 8 runs, where the baseline had it zero times — and then failing to travel:
+
+```
+Could not find a path from (20/17 @ PETALBURG_CITY) to (11/36 @ ROUTE112)
+Story: no counter destination worked (Machop@FIERY_PATH: unreachable) — stopping honestly.
+```
+
+**Why every earlier test missed it.** `#24-journey` and `#24-smashroute` were both proven from
+`rocksmash_taught.ss1` — standing in **MAUVILLE_CITY**, one map from the obstacle. The Norman
+ladder does not fire there; it fires at **PETALBURG_CITY**. Measured from Petalburg:
+
+| map | walkable from Petalburg |
+|---|---|
+| ROUTE104 | 31/200 tiles |
+| PETALBURG_WOODS | **0/132** |
+| RUSTBORO_CITY | **0/150** |
+| ROUTE116 | **0/125** |
+
+`PETALBURG_WOODS` is a separate map entered by a warp and it **splits Route 104 in two** — a
+fact the ROM's map headers do not encode, since they describe ROUTE104 as one connected map.
+So `warp_candidates` returned only the two ROUTE112 doors (the graph believes the whole
+journey needs exactly one warp), both were behind that split, neither validated, and the
+executor had nothing to do.
+
+**The fix — `_staged_progress_warp`.** When nothing on a route to the goal is reachable, take
+any reachable warp that does not INCREASE the map-graph distance to the target, then re-plan.
+Both ranking rules were measured from Petalburg, not guessed:
+* **distance must not increase** — every Petalburg house/gym/mart door is 9 hops from Fiery
+  Path against the current 8, so this rule alone excludes all of them; the Woods entrance is 8
+  and is kept;
+* **more onward exits wins ties** — the Woods entrance and Mr Briney's front door are BOTH
+  exactly 8, so distance cannot separate "the way onward" from "a one-room house". Exit count
+  can.
+Candidates are drawn from the current map and its directly-connected maps (the useful door
+from Petalburg is on ROUTE104, not in the city) and each is validated with `calculate_path`;
+validations are capped, because the search is synchronous and the emulator is frozen during it.
+
+‼ **This is not the refuted "gateway waypoints" idea** (KI-39, 2026-07-30). That one
+hand-picked a gateway and routed to it with `navigate_to_anywhere`, which took the same broken
+same-region branch and failed identically — it could not have worked. These waypoints are
+derived from the graph, ranked by measured distance, and validated before use.
+
+**Also: `counter_hunt` now passes `tries=24`** to `_navigate_riding_out` (default 10). A
+counter hunt is the longest journey the bot makes, and staged progress spends one try per leg
+that ends in a recoverable error — so a budget of 10 was being exhausted **while the bot was
+still advancing**. The retry count is not what protects against a hopeless loop; the fail-fast
+guard is (it bails the moment the field is idle AND the position has not changed).
+
+**Corrected in `06-DECISIONS-LOG.md`:** this morning I explicitly rejected building the
+leg-list planner KI-39 sketched, reasoning that "the executor already re-plans after every
+warp". That is only true once the FIRST warp is reachable. The rejection is annotated in place
+rather than left to mislead the next session.
+
+### ‼ HONEST STATUS: the long journey is IMPROVED, NOT FINISHED
+Measured from `norman_done.ss1` (PETALBURG_CITY), target FIERY_PATH (18,19), production path
+(`_navigate_riding_out`, the call `counter_hunt.hunt()` makes):
+
+| build | result |
+|---|---|
+| before staged progress | **no progress at all** — dies in Petalburg, "Could not find a path … to (11/36 @ ROUTE112)" |
+| with staged progress, `tries=10` | reaches **ROUTE116** (crosses the Petalburg Woods split, Rustboro, Route 116) |
+| with staged progress, `tries=24` | reaches **ROUTE116** — *identical*, so the retry budget was never the limit |
+
+**The remaining blocker, with evidence.** All 24 tries fail with
+`The game is currently not in the overworld. Cannot navigate.` — `walking.navigate_to`'s
+entry guard (`modules/modes/util/walking.py:175`). The harness heartbeat at the failure shows
+`ctrl=SmashRouteMode.run state=BATTLE_STARTING`, and the surrounding log is a run of wild
+encounters on Route 116 grass resolving as `BattleOutcome.RanAway`. So the bot is being asked
+to navigate during the **BATTLE_STARTING transition**, not while genuinely stuck.
+
+**Two things that follow, for whoever picks this up:**
+1. `navigate_to_anywhere` waits for `GameState.OVERWORLD` at the top of its loop, so a guard
+   firing at `navigate_to`'s ENTRY means the state changed between that wait and the call, or
+   a `navigate_to` is being reached by a path that does not wait. Find which — do not add
+   another retry.
+2. ‼ **A transient "not in the overworld" must not consume a try.** `_navigate_riding_out`
+   counts it the same as a real plan failure, and its fail-fast guard cannot help because that
+   guard only records a position when the avatar is CONTROLLABLE — which it is not mid-battle.
+   So 24 tries burned on a condition that resolves by itself in a few frames.

@@ -98,6 +98,70 @@ def _map_name(map_group_and_number: tuple[int, int]) -> str:
         return str(tuple(map_group_and_number))
 
 
+#: How many candidate warps the staged-progress step may VALIDATE with `calculate_path`.
+#: Each validation is synchronous (the emulator does not advance during it), so this is a
+#: freeze budget, not a search-quality knob.
+_STAGED_VALIDATIONS = 10
+
+
+def _staged_progress_warp(graph, current_map, target_map, used_warps,
+                          avoid_encounters: bool, avoid_scripted_events: bool):
+    """Pick a warp that gets us CLOSER even though it is not on any planned route.
+
+    ‼ WHY THIS IS NEEDED, and why "one warp at a time" was not enough (measured
+    2026-07-31, from `norman_done.ss1`). `warp_candidates` returns the first warp of a
+    route to the TARGET — but the map graph is built from ROM headers, and those describe
+    ROUTE104 as one connected map. It is not: **PETALBURG_WOODS is a separate map entered
+    by a warp, and it splits Route 104 in two.** So the graph believes the whole journey
+    Petalburg -> Fiery Path needs exactly ONE warp (`ROUTE112 -> FIERY_PATH`), both
+    candidates for it are hundreds of tiles away behind that split, neither validates, and
+    the executor stops with nothing to do. Measured from Petalburg: ROUTE104 31/200 tiles
+    reachable, **PETALBURG_WOODS 0/132, RUSTBORO_CITY 0/150, ROUTE116 0/125**.
+
+    The fix is to stop requiring the next step to be on a route to the goal, and instead
+    take any reachable warp that does not move us further away — then re-plan from there.
+    The loop in `navigate_to_anywhere` already re-plans after every warp, so partial
+    progress compounds.
+
+    ‼ THIS IS NOT THE REFUTED "GATEWAY WAYPOINTS" IDEA (KI-39, 2026-07-30). That one
+    hand-picked a gateway and routed to it with `navigate_to_anywhere`, which took the same
+    broken same-region branch and failed identically — it could not have worked. These
+    waypoints are DERIVED from the graph, ranked by measured distance, and each is
+    VALIDATED with `calculate_path` before being committed to.
+
+    Ranking, both parts measured rather than assumed:
+      * **distance to the target must not INCREASE.** From Petalburg every house/gym/mart
+        door is 9 hops from Fiery Path against the current 8 — strictly worse — so this one
+        rule excludes all of them. The Woods entrance is 8, and is kept.
+      * **more onward exits wins ties.** The Woods entrance and Mr Briney's front door are
+        BOTH exactly 8, so distance alone cannot tell "the way onward" from "a one-room
+        house". Exit count can.
+    """
+    here_distance = graph.map_distance(current_map, target_map)
+    if here_distance is None:
+        return None
+
+    # Warps on this map, and on maps directly connected to it (from Petalburg the useful
+    # door is on ROUTE104, not in the city). Deliberately NOT the whole route: each
+    # candidate costs a `calculate_path` to validate and the emulator is frozen throughout.
+    nearby = [tuple(current_map), *sorted(graph.connections.get(tuple(current_map), ()))]
+    scored = []
+    for near_map in nearby:
+        for edge in graph.warps_from(near_map):
+            if edge in used_warps:
+                continue
+            distance = graph.map_distance(edge.to_map, target_map)
+            if distance is None or distance > here_distance:
+                continue
+            scored.append((distance, -graph.onward_exits(edge.to_map), edge))
+    scored.sort(key=lambda row: (row[0], row[1]))
+
+    for _distance, _exits, edge in scored[:_STAGED_VALIDATIONS]:
+        if _walk_is_possible(edge.from_map, edge.from_coords, avoid_encounters, avoid_scripted_events):
+            return edge
+    return None
+
+
 def _warp_fired(leg, arrived_map: tuple[int, int]) -> bool:
     """Did stepping on `leg.from_coords` actually take us somewhere?
 
@@ -218,6 +282,19 @@ def navigate_to_anywhere(
             ):
                 leg = candidate
                 break
+
+        if leg is None:
+            # --- 2b. STAGED PROGRESS ------------------------------------------------
+            # Nothing on a route to the goal is reachable. That does NOT mean we are
+            # stuck: it usually means the graph is wrong about a map being walkable
+            # (PETALBURG_WOODS splits ROUTE104, which the ROM headers do not say), so the
+            # planned first warp is on the far side of a split we have not crossed yet.
+            # Take a reachable warp that does not move us further away and re-plan from
+            # there; the loop above turns partial progress into a journey.
+            leg = _staged_progress_warp(
+                graph, current_map, target_map, used_warps,
+                avoid_encounters, avoid_scripted_events,
+            )
 
         if leg is None:
             if region_route:

@@ -166,6 +166,81 @@ check("a warp that did NOT fire is recognised as not fired",
 check("a cross-region warp still works", _warp_fired(TUNNEL_DOOR, TUNNEL))
 check("...and its non-firing case too", not _warp_fired(TUNNEL_DOOR, VERD))
 
+print("\n9. STAGED PROGRESS — the Petalburg case, where 'one warp at a time' stalls")
+# ‼ Measured 2026-07-31 from `norman_done.ss1`. The Norman ladder fires at PETALBURG_CITY,
+# and PETALBURG_WOODS is a separate map entered by a warp that SPLITS ROUTE104 — a fact the
+# ROM headers do not encode. So the graph believes the whole journey to Fiery Path needs one
+# warp (ROUTE112 -> FIERY_PATH), both candidates sit behind that split, neither is reachable,
+# and the executor has nothing to do. From Petalburg: ROUTE104 31/200 tiles walkable,
+# PETALBURG_WOODS 0/132, RUSTBORO_CITY 0/150, ROUTE116 0/125.
+import modules.modes.util.global_navigation as gn  # noqa: E402
+
+PETAL = (0, 12)
+R104 = (0, 17)
+WOODS = (0, 18)
+BRINEY = (24, 60)       # a one-room house off ROUTE104 — the decoy
+PETAL_MART = (24, 61)   # an interior off PETALBURG itself
+FIERY = (24, 14)
+R112 = (0, 27)
+
+WOODS_DOOR = WarpEdge(from_map=R104, from_coords=(10, 38), to_map=WOODS, to_coords=(5, 40))
+# ‼ Modelled as a THROUGH map, because that is what it is: the real ROUTE104 declares SIX
+# warps into PETALBURG_WOODS ((10,30),(11,30),(10,38),(11,38),(32,42),(33,42)), i.e. doors at
+# both ends. Mr Briney's house declares exactly one. That asymmetry is the whole basis of the
+# tie-break, so a model that gave both one exit would test nothing.
+WOODS_EXIT = WarpEdge(from_map=WOODS, from_coords=(5, 2), to_map=R104, to_coords=(14, 20))
+WOODS_EXIT_N = WarpEdge(from_map=WOODS, from_coords=(5, 42), to_map=R104, to_coords=(32, 42))
+BRINEY_DOOR = WarpEdge(from_map=R104, from_coords=(17, 50), to_map=BRINEY, to_coords=(4, 8))
+BRINEY_EXIT = WarpEdge(from_map=BRINEY, from_coords=(4, 8), to_map=R104, to_coords=(17, 50))
+MART_DOOR = WarpEdge(from_map=PETAL, from_coords=(25, 12), to_map=PETAL_MART, to_coords=(3, 7))
+MART_EXIT = WarpEdge(from_map=PETAL_MART, from_coords=(3, 7), to_map=PETAL, to_coords=(25, 12))
+FIERY_DOOR = WarpEdge(from_map=R112, from_coords=(11, 36), to_map=FIERY, to_coords=(26, 36))
+
+staged = WarpGraph(
+    regions={PETAL: 0, R104: 0, WOODS: 1, BRINEY: 2, PETAL_MART: 3, R112: 0, FIERY: 4},
+    edges=[WOODS_DOOR, WOODS_EXIT, WOODS_EXIT_N, BRINEY_DOOR, BRINEY_EXIT,
+           MART_DOOR, MART_EXIT, FIERY_DOOR],
+    connections={PETAL: {R104}, R104: {PETAL, R112}, R112: {R104}},
+)
+
+check("the target really is unreachable one-warp-at-a-time (the stall being fixed)",
+      [c.from_map for c in staged.warp_candidates(PETAL, FIERY)] == [R112],
+      str([c.from_coords for c in staged.warp_candidates(PETAL, FIERY)]))
+
+# Only the ROUTE104 doors are walkable from Petalburg — Route 112 is far away, and the
+# Petalburg Mart door is walkable but leads the wrong way.
+walkable = {(R104, (10, 38)), (R104, (17, 50)), (PETAL, (25, 12))}
+saved_walk = gn._walk_is_possible
+gn._walk_is_possible = lambda m, xy, ae, ase: (tuple(m), tuple(xy)) in walkable
+try:
+    picked = gn._staged_progress_warp(staged, PETAL, FIERY, set(), True, True)
+    check("staged progress finds a move when nothing on the route is reachable",
+          picked is not None)
+    check("it takes the PETALBURG WOODS door — the way onward",
+          picked is not None and picked.to_map == WOODS, str(picked and picked.to_map))
+    # The distance rule alone excludes the Mart: from Petalburg every interior door is one
+    # hop FURTHER from the target than staying put.
+    check("the Mart door is further from the target than we already are",
+          staged.map_distance(PETAL_MART, FIERY) > staged.map_distance(PETAL, FIERY),
+          f"mart={staged.map_distance(PETAL_MART, FIERY)} here={staged.map_distance(PETAL, FIERY)}")
+    # ‼ ...but distance CANNOT separate the Woods from Mr Briney's house: both are exactly
+    # as far as ROUTE104 itself. That is why onward-exit count is the tie-break, and it is
+    # what stops the bot walking into a one-room house and calling it progress.
+    check("Woods and Briney's house are EQUALLY distant (so distance can't choose)",
+          staged.map_distance(WOODS, FIERY) == staged.map_distance(BRINEY, FIERY),
+          f"woods={staged.map_distance(WOODS, FIERY)} briney={staged.map_distance(BRINEY, FIERY)}")
+    check("...and onward-exit count is what separates them",
+          staged.onward_exits(WOODS) > staged.onward_exits(BRINEY),
+          f"woods={staged.onward_exits(WOODS)} briney={staged.onward_exits(BRINEY)}")
+
+    check("a warp already used this journey is not offered again",
+          gn._staged_progress_warp(staged, PETAL, FIERY, {WOODS_DOOR}, True, True) != WOODS_DOOR)
+    walkable = set()
+    check("nothing reachable -> no staged move (never invents one)",
+          gn._staged_progress_warp(staged, PETAL, FIERY, set(), True, True) is None)
+finally:
+    gn._walk_is_possible = saved_walk
+
 print()
 if FAILURES:
     print(f"FAILED ({len(FAILURES)}): " + "; ".join(FAILURES))
