@@ -5941,3 +5941,46 @@ silent path was one map-graph hop away from swallowing the whole Norman counter 
 prints and debug-logs `why_unreachable`'s reason, which already separates "reachable but N
 hops away (limit M)" from "no path" and from "needs Surf". The diagnostic is wrapped so it
 can never change the verdict. Sweep: 64 pass, 0 fail, 1 skip.
+
+## 2026-07-31 — ‼ TWO BUGS IN MY OWN MEASURING INSTRUMENT, and the corrected baseline
+
+The first 8-lane batch (`20260731-105549`, commit `289d1710`, 180 min) reported **69% finish
+rate** and showed the counter chain **zero times** in `end_reasons`. Both were wrong, and the
+raw logs were fine the whole time — only the reading of them was broken.
+
+**Bug 1 — the wrap mitigation was not enough, and the repro pinned it as a feature.**
+`COLUMNS=400` was set specifically to stop rich wrapping the run-outcome lines. A
+counter-chain derail message is ~1,000 characters (it lists every candidate counter with map,
+tile, level band and rate), so it wrapped anyway and the `(N frames) ===` tail landed on the
+next line. `_RUN_END_RE` matched 1 of 7 outcomes on one lane. Worse, `repro_x4_headless.py`
+contained a check asserting that a wrapped line *is unparseable* — I had encoded the
+WORKAROUND as the intended behaviour, so the suite actively defended the bug. `_RUN_END_RE`
+is now `re.DOTALL` with a bounded gap (so a truncated record cannot swallow the next one),
+`COLUMNS` is 20000, and the repro asserts wrapped records parse.
+
+**Bug 2 — cross-lane aggregation silently overwrote.** Batch totals used
+`Counter({k: v for lane in lanes for k, v in lane.items()})`. The inner **dict comprehension**
+dedupes keys, so a reason appearing in several lanes kept only the LAST lane's count. It
+reported 9 end reasons for 29 non-finishing runs. Nothing looked wrong — the counts were all
+plausible — and only the arithmetic failing to add up exposed it. Now a named
+`_merge_end_reasons()` that accumulates, with a repro asserting a shared reason SUMS.
+
+**`--resummarise` added.** The logs are the data; the summary is a reading of them. A parser
+bug is re-read from stored logs, never re-measured — re-running three hours of emulation would
+also produce a different sample and destroy the comparison being attempted.
+
+### The corrected baseline (commit `289d1710`, 8 lanes, 180 min, 46 runs started)
+| metric | value |
+|---|---|
+| runs ended | 38 |
+| finished | 9 (**23.7%**) |
+| **counter chain naming an answer it cannot reach** | **25 of 29 non-finishes (86%)** |
+| — Norman (needs Fighting) | 15 |
+| — Winona (needs Rock/Ice/Dragon) | 5 |
+| — Wattson (needs Ground) | 5 |
+| everything else | 4 (one each: cutscene, Surf-learner party full, no balls for a Surf learner, watchdog) |
+| KI-38 `GAVE UP` | 20, with `NO ELIGIBLE REPLACEMENT` = 1 |
+
+This **confirms the handoff's claim** ("~72% of derails are the counter chain") and sharpens
+it to 86%, measured on a build where nothing deadlocks first. It is the control the post-fix
+batch will be compared against.

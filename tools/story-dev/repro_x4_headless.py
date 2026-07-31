@@ -192,12 +192,49 @@ check("the wedge's battle script is named",
 check("whiteouts/losses counted", (s["whiteouts"], s["losses"]) == (1, 1))
 check("battle outcome tally + flee rate", s["battles"] == 3 and s["flee_rate"] == 0.333)
 
-# The wrapping trap, asserted: a lane whose stdout rich split at 78 columns yields NOTHING,
-# which is why COLUMNS is pinned above. If this ever starts passing, the parser got laxer.
+# ‼ THE WRAPPING TRAP — this check used to assert the OPPOSITE, and that was a bug pinned
+# as a feature. It read "a rich-wrapped outcome line is genuinely unparseable (hence
+# COLUMNS=400)", i.e. it encoded the WORKAROUND as the intended behaviour. Then batch
+# `20260731-105549` ran with COLUMNS=400 and the counter-chain derail messages are ~1,000
+# characters — they wrapped anyway, the `(N frames) ===` tail landed on the next line, and
+# the batch reported a **69% finish rate against a true 23.7%** with the dominant end reason
+# (the counter chain, 25 of 29 non-finishes) appearing ZERO times. Width is a mitigation;
+# any width can be exceeded. The PARSER must tolerate wrapping, and that is what is asserted
+# now.
 wrapped = STDOUT.replace("-> derailed: Norman: 6 losses, no super-effective ",
                          "-> derailed: Norman: 6 losses, no super-effective \n")
-check("a rich-wrapped outcome line is genuinely unparseable (hence COLUMNS=400)",
-      x4.summarize_lane(wrapped, "")["runs_ended"] < s["runs_ended"])
+w = x4.summarize_lane(wrapped, "")
+check("a rich-wrapped outcome line is STILL parsed (width is a mitigation, not the fix)",
+      w["runs_ended"] == s["runs_ended"], f"{w['runs_ended']} vs {s['runs_ended']}")
+check("...and the wrapped reason still groups with its unwrapped twin",
+      len(w["end_reasons"]) == 1, str(w["end_reasons"]))
+# Real shape from the batch: the tail lands on its own line after a ~400-char body.
+split_tail = STDOUT.replace(" (412,004 frames) ===", "\n (412,004 frames) ===")
+check("a record split immediately before the frame tail is parsed",
+      x4.summarize_lane(split_tail, "")["runs_ended"] == s["runs_ended"])
+# ...but a truncated record must NOT swallow the following one (the bound on the gap).
+truncated = "=== ENDLESS RESET: run 9/infinite -> derailed: died mid-print\n" + STDOUT
+check("a truncated record does not consume the next run's outcome",
+      x4.summarize_lane(truncated, "")["runs_ended"] == s["runs_ended"],
+      str(x4.summarize_lane(truncated, "")["runs_ended"]))
+
+# ‼ CROSS-LANE AGGREGATION. The batch totals used
+# `Counter({k: v for lane in lanes for k, v in lane.items()})` — an inner dict
+# comprehension, so a reason appearing in several lanes had every lane but the LAST
+# silently overwritten. It reported 9 end reasons for 29 non-finishing runs, and only the
+# arithmetic not adding up exposed it: the numbers looked entirely plausible.
+lanes = {
+    "H1": {"end_reasons": {"norman needs Fighting": 6, "watchdog": 1}},
+    "H2": {"end_reasons": {"norman needs Fighting": 9}},
+    "H3": {"end_reasons": {"winona needs Rock": 5}},
+}
+merged = x4._merge_end_reasons(lanes)
+check("a reason shared by several lanes SUMS rather than overwrites",
+      merged["norman needs Fighting"] == 15, str(dict(merged)))
+check("lane-unique reasons survive the merge",
+      merged["winona needs Rock"] == 5 and merged["watchdog"] == 1, str(dict(merged)))
+check("the merged total equals the sum of every lane's counts",
+      sum(merged.values()) == 21, str(sum(merged.values())))
 
 
 # ---------------------------------------------------------------------------

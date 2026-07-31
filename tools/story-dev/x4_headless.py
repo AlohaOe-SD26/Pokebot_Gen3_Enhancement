@@ -41,10 +41,12 @@ downgrade), because a mis-configured lane makes the whole sample worthless.
 
 TWO TRAPS THIS RUNNER HANDLES FOR YOU
 -------------------------------------
-* **rich wraps a lane's stdout at ~78 columns** when it is a file, so long lines are
-  physically split mid-word and a naive regex over `=== ENDLESS RESET: run N -> … ===`
-  matches nothing. Verified in the user's own bundle `P1-stdout-20260726-233837.txt`.
-  Lanes are launched with `COLUMNS=400` so their stdout is greppable.
+* **rich wraps a lane's stdout** when it is a file, so long lines are physically split
+  mid-word and a naive regex over `=== ENDLESS RESET: run N -> … ===` matches nothing.
+  Verified in the user's own bundle `P1-stdout-20260726-233837.txt`. Lanes launch with
+  `COLUMNS=20000`, AND `_RUN_END_RE` is wrap-tolerant — ‼ width alone is not enough, and
+  believing it was cost batch `20260731-105549` its finish rate (reported 69%, true 23.7%,
+  with the dominant end reason missing entirely). Any width can be exceeded.
 * **Eight lanes all bind HTTP port 8888** and eight thread tracebacks land in the logs.
   Each lane profile gets its own `http.yml` with `enable: false`.
 
@@ -61,6 +63,12 @@ STORAGE (mirrors livetest's rule: a batch must never be compared to code it did 
 Usage (from tools/story-dev/):
     PYTHONUTF8=1 py -3.12 x4_headless.py --lanes 8 --minutes 180
     PYTHONUTF8=1 py -3.12 x4_headless.py --lanes 4 --runs 5          # 5 runs per lane
+    PYTHONUTF8=1 py -3.12 x4_headless.py --resummarise x4-runs/<stamp>   # re-read stored logs
+
+‼ `--resummarise` exists because the LOGS are the data and the summary is only a reading of
+them. When a parser bug is found, re-read the stored batch — never re-run three hours of
+emulation to fix a regex, which would also produce a different sample and destroy the
+comparison you were trying to make.
 """
 
 from __future__ import annotations
@@ -170,7 +178,22 @@ def header_verdict(header: dict | None) -> tuple[str, str]:
 # Outcome parsing (pure — covered by repro_x4_headless.py)
 # ---------------------------------------------------------------------------
 _RUN_START_RE = re.compile(r"=== ENDLESS RESET: starting run (\d+)/(\S+) ===")
-_RUN_END_RE = re.compile(r"=== ENDLESS RESET: run (\d+)/\S+ -> (.*?) \(([\d,\-]+) frames\) ===")
+
+#: ‼ `re.DOTALL` + a bounded gap, because A RUN-OUTCOME RECORD CAN SPAN LINES. Learned the
+#: expensive way on batch `20260731-105549`: `COLUMNS=400` was set precisely to stop rich
+#: wrapping these lines, and it was not enough — a counter-chain derail message is ~1,000
+#: characters (it lists every candidate counter with map, tile, level band and rate), so it
+#: still wrapped and the `(N frames) ===` tail landed on the following line. The parser then
+#: matched 1 of 7 outcomes on that lane and the batch summary reported a **69% finish rate
+#: against a true ~22%**, with the counter chain — the dominant end reason — appearing ZERO
+#: times.
+#:
+#: `COLUMNS` is now far larger, but width is a mitigation and this is the fix: any message
+#: long enough will wrap at any width, so the PARSER must tolerate it. The gap is bounded so
+#: a truncated record (a lane killed mid-print) cannot swallow the next one.
+_RUN_END_RE = re.compile(
+    r"=== ENDLESS RESET: run (\d+)/\S+ -> (.{0,4000}?) \(([\d,\-]+) frames\) ===", re.DOTALL
+)
 _BATCH_DONE = "=== ENDLESS RESET: batch complete ==="
 
 
@@ -493,7 +516,10 @@ def lane_env() -> dict:
     env["PYTHONUNBUFFERED"] = "1"
     # ‼ rich wraps at ~78 columns when stdout is a file, physically splitting the run
     # outcome lines this runner parses. Verified against the user's own lane logs.
-    env["COLUMNS"] = "400"
+    # 400 was NOT enough — a counter-chain derail message is ~1,000 chars and still wrapped,
+    # which cost batch `20260731-105549` its finish-rate number entirely. This is a
+    # mitigation only; `_RUN_END_RE` is wrap-tolerant because ANY width can be exceeded.
+    env["COLUMNS"] = "20000"
     env.pop("SAVE_POST_RIVAL", None)     # never clobber committed checkpoints from a sweep
     return env
 
@@ -595,6 +621,101 @@ def collect_logs(lane: Lane, since: float) -> int:
     return n
 
 
+
+def _merge_end_reasons(lanes_detail: dict) -> Counter:
+    """Sum each lane's `end_reasons` into one Counter.
+
+    Trivial, and it exists as a named function ONLY because getting it wrong was invisible:
+    the buggy version returned a plausible-looking dict with plausible-looking counts.
+    `repro_x4_headless.py` asserts a reason shared by several lanes sums rather than
+    overwrites.
+    """
+    merged: Counter = Counter()
+    for lane in lanes_detail.values():
+        merged.update(lane.get("end_reasons", {}))
+    return merged
+
+def resummarise(batch_dir: Path) -> int:
+    """Re-parse a stored batch's logs and rewrite its `summary.json` / `MANIFEST.txt`.
+
+    ‼ WHY THIS EXISTS. On batch `20260731-105549` the parser under-counted run outcomes
+    (see `_RUN_END_RE`) and the summary claimed a 69% finish rate against a true ~22%,
+    with the dominant end reason missing entirely. **The raw logs were fine** — only the
+    reading of them was wrong. Re-running three hours of emulation to fix a regex would
+    have been absurd, and worse, it would have produced a DIFFERENT sample, so the old and
+    new numbers could not be compared. Separating "the data" from "a reading of the data"
+    is what makes a parser bug cheap.
+
+    The recorded `code_commit` is preserved: it describes the code that PRODUCED the logs,
+    not the code that parsed them.
+    """
+    summary_path = batch_dir / "summary.json"
+    if not summary_path.exists():
+        print(f"[x4h] FATAL: no summary.json in {batch_dir}", flush=True)
+        return 2
+    old = json.loads(summary_path.read_text(encoding="utf-8"))
+    print(f"[x4h] re-summarising {batch_dir.name} (code_commit {old.get('code_commit')})", flush=True)
+
+    lanes_detail: dict[str, dict] = {}
+    lane_rows = []
+    for row in old.get("lane_rows", []):
+        tag = row["tag"]
+        slot = int(tag.lstrip("H")) - 1
+        out_dir = batch_dir / f"L{slot + 1:02d}"
+        try:
+            stdout_text = (out_dir / "stdout.txt").read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            stdout_text = ""
+        debug_text = ""
+        for f in sorted((out_dir / "debug-logs").glob("*.log")):
+            try:
+                debug_text += f.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                pass
+        s = summarize_lane(stdout_text, debug_text)
+        previous = old.get("lanes_detail", {}).get(tag, {})
+        # Carry forward the facts that come from the RUN, not from parsing.
+        for key in ("header_verdict", "headers_checked", "restarts", "starter", "profile",
+                    "debug_logs_collected"):
+            s[key] = previous.get(key, row.get(key))
+        lanes_detail[tag] = s
+        lane_rows.append({**row, "runs_ended": s["runs_ended"], "finished": s["finished"]})
+        print(f"[x4h]   {tag}: runs {previous.get('runs_ended', '?')} -> {s['runs_ended']}, "
+              f"finished {previous.get('finished', '?')} -> {s['finished']}", flush=True)
+
+    total_runs = sum(s["runs_ended"] for s in lanes_detail.values())
+    total_fin = sum(s["finished"] for s in lanes_detail.values())
+    batch = {
+        **old,
+        "resummarised": True,
+        "lane_rows": lane_rows,
+        "lanes_detail": lanes_detail,
+        "totals": {
+            "runs": total_runs,
+            "finished": total_fin,
+            "finish_rate": round(total_fin / total_runs, 3) if total_runs else None,
+            "global_watchdog": sum(s["global_watchdog"] for s in lanes_detail.values()),
+            "faint_chooser_gave_up": sum(s["faint_chooser_gave_up"] for s in lanes_detail.values()),
+            "no_eligible_replacement": sum(s["no_eligible_replacement"] for s in lanes_detail.values()),
+            "stuck_dumps": sum(s["stuck_dumps"] for s in lanes_detail.values()),
+            # ‼ MUST ACCUMULATE, NOT REBUILD A DICT. This was
+            # `Counter({k: v for s in ... for k, v in s["end_reasons"].items()})` — an inner
+            # dict comprehension, so a reason appearing in several lanes had every lane but
+            # the LAST silently overwritten. Batch `20260731-105549` reported 9 end reasons
+            # for 29 non-finishing runs and the discrepancy is the only thing that exposed
+            # it. Sum across lanes.
+            "end_reasons": dict(_merge_end_reasons(lanes_detail).most_common()),
+        },
+    }
+    summary_path.write_text(json.dumps(batch, indent=2), encoding="utf-8")
+    (batch_dir / "MANIFEST.txt").write_text(render_manifest(batch), encoding="utf-8")
+    if batch_dir.parent == RUNS_ROOT:
+        rebuild_index(RUNS_ROOT)
+    print(f"\n[x4h] TOTALS now: {total_fin}/{total_runs} finished "
+          f"({batch['totals']['finish_rate']})", flush=True)
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(
         description="Headless ENDLESS-RESET batch runner (matches the GUI x4 mode exactly).")
@@ -618,7 +739,14 @@ def main() -> int:
     ap.add_argument("--wipe-saves", action="store_true",
                     help="delete each lane's current_save.sav/current_state.ss1 first "
                          "(NOT needed: ENDLESS RESET hard-resets and picks NEW GAME itself)")
+    ap.add_argument("--resummarise", default=None, metavar="BATCH_DIR",
+                    help="re-parse a stored batch's logs and rewrite its summary/MANIFEST, "
+                         "without running anything. Use after fixing a parser bug: the raw "
+                         "logs are the data, the summary is only a reading of them.")
     args = ap.parse_args()
+
+    if args.resummarise:
+        return resummarise(Path(args.resummarise))
 
     if args.lanes < 1:
         print("[x4h] FATAL: --lanes must be >= 1", flush=True)
@@ -776,9 +904,13 @@ def main() -> int:
             "faint_chooser_gave_up": sum(s["faint_chooser_gave_up"] for s in lanes_detail.values()),
             "no_eligible_replacement": sum(s["no_eligible_replacement"] for s in lanes_detail.values()),
             "stuck_dumps": sum(s["stuck_dumps"] for s in lanes_detail.values()),
-            "end_reasons": dict(Counter({
-                k: v for s in lanes_detail.values() for k, v in s["end_reasons"].items()
-            }).most_common()),
+            # ‼ MUST ACCUMULATE, NOT REBUILD A DICT. This was
+            # `Counter({k: v for s in ... for k, v in s["end_reasons"].items()})` — an inner
+            # dict comprehension, so a reason appearing in several lanes had every lane but
+            # the LAST silently overwritten. Batch `20260731-105549` reported 9 end reasons
+            # for 29 non-finishing runs and the discrepancy is the only thing that exposed
+            # it. Sum across lanes.
+            "end_reasons": dict(_merge_end_reasons(lanes_detail).most_common()),
         },
         "lane_rows": lane_rows,
         "lanes_detail": lanes_detail,
