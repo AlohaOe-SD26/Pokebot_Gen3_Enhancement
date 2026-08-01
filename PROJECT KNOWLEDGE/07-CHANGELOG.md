@@ -6246,3 +6246,52 @@ the journey the code was actually for.**
 
 ‼ **Still unmeasured:** whether the counter chain, having arrived, actually CATCHES and TRAINS
 a Machop and beats Norman. Arrival is not the same claim. That is what the next batch answers.
+
+## 2026-07-31 — ‼ THE BATCH INSTRUMENT CANNOT MEASURE FINISH RATE. Read this before quoting one.
+
+Second batch in (`x4-runs/20260731-140514`, commit `1b9e690f`, 8 lanes, 180 min):
+
+| metric | baseline `289d1710` | `1b9e690f` |
+|---|---|---|
+| runs ended | 38 | 39 |
+| finished | 9 (**23.7%**) | 12 (**30.8%**) |
+| counter chain as a share of non-finishes | 25/29 (86%) | 19/27 (70%) |
+| — Norman (needs Fighting) | 15 | 11 |
+| — Winona | 5 | 5 |
+| — Wattson (needs Ground) | 5 | 3 |
+| `GAVE UP` | 20 | 30 |
+| global watchdog | 9 | 20 |
+
+**It is tempting to read that as "finish rate up 7 points, Norman down 4". Do not.** Two-
+proportion z test on 9/38 vs 12/39: **z = 0.70**, against the 1.96 needed for 95% confidence.
+That is squarely **within noise**, and so is every other row of the table at these counts.
+
+### What this instrument can and cannot resolve (~38 runs per arm, one 3h 8-lane batch)
+| change in finish rate | runs per arm needed (80% power) |
+|---|---|
+| 24% → 30% | ~776 |
+| 24% → 35% | ~255 |
+| 24% → 40% | ~129 |
+| 24% → 48% | ~62 |
+| **24% → 65%** | **~23 — detectable** |
+
+So a 3-hour batch can only detect changes of roughly **+30 percentage points or more**.
+Anything smaller is unmeasurable at this sample size, no matter how confident the table looks.
+Reaching ~130 runs per arm would take about **10 hours per arm** at current throughput.
+
+### What to use instead — and this is the whole lesson
+1. **Direct capability tests in the harness are worth more than a batch, and cost minutes.**
+   "Does the bot reach Fiery Path from Petalburg?" is BINARY and answered definitively by one
+   `story_harness.py --driver smashroute` run. Every real conclusion today came from one of
+   those, not from a batch.
+2. **Near-binary batch signals are trustworthy; rates are not.** The hunt firing **0 → 9 times**
+   is a real, unambiguous change. "30.8% vs 23.7%" is not.
+3. **Say the metric AND its uncertainty.** This project has already recorded one fix as
+   "live-validated" on a metric that could not see the failure (`d7d493d8`). Quoting a finish
+   rate from ~38 runs as evidence of improvement is the same error wearing a lab coat.
+
+‼ **Do not run longer batches to chase small finish-rate deltas.** ~10 hours per arm to resolve
+a 16-point difference is a poor trade against a 5-minute harness run that answers a specific
+capability question outright. Use batches for what they are good at: discovering FAILURE MODES
+you did not know about (which is exactly how the Petalburg travel bug was found), not for
+grading improvements.
