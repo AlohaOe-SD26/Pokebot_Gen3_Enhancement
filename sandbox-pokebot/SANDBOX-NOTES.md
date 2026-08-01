@@ -1020,3 +1020,24 @@ process.
   `repro_x4_badgelog.py` updated to the debounce contract. Suite now 11, all green.
 - ‼ ANALYSIS NOTE: battle outcomes appear ONLY in `*-debug-*.log`, never in stdout. A
   summarizer reading stdout reports `battles=0` — same trap livetest.py documents for whiteouts.
+
+## 2026-08-01 — PROMOTED TO CUSTOM (BATCH-4), and the sandbox re-based
+
+The entire sandbox code surface was promoted into `custom-pokebot/` on explicit user approval:
+**37 files, 16 new**. Full record in `custom-pokebot/DIVERGENCE-LOG.md` → **BATCH-4** (which is
+now also this folder's copy — see below).
+
+**Sandbox == custom again**, except by design:
+`SANDBOX-NOTES.md` and `SANDBOX-PROPOSALS.md`, which are sandbox-vs-custom meta and have no
+meaning inside custom.
+
+‼ **THE TRAP THIS ROUND, RECORDED SO IT IS NOT RE-LEARNED.** Before this re-base,
+`sandbox-pokebot/DIVERGENCE-LOG.md` was a **stale 91-line fork frozen at 2026-07-18** while
+custom's had grown to 606 lines through BATCH-3d. Any blind mirror of sandbox → custom would
+have silently destroyed 515 lines of append-only history. It is now a byte-for-byte copy of
+custom's, so a mirror in EITHER direction is harmless. **Keep it that way**: promote code, and
+never let this file fork again.
+
+**Do NOT promote:** `backups/`, `profiles/`, `cache/`, `.last-update-check` — runtime artifacts.
+**Never delete on promotion:** `DOCUMENTATION/03-cheats.md`, `04-automation-and-sync.md`,
+`05-hunting-and-livingdex.md` exist only in custom; a mirror-with-delete would remove them.

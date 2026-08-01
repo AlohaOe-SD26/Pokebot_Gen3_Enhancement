@@ -33,7 +33,7 @@ plugins/*
 !plugins/watchdog_plugin.py
 !plugins/custom_modes/
 
-# Sandbox A1: local backup archives are user data — never committed.
+# Local backup archives are user data — never committed.
 backups/
 tests/last_frame_timeout.png
 modules/web/static/stream-overlay/config.js

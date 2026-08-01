@@ -2979,3 +2979,41 @@ or go fix the travel.
    become visible. Budget the follow-up before calling such a fix done, and do not read the
    newly-visible failure as a regression the fix caused — check whether the code path could
    even execute before.
+
+## 2026-08-01 — "Import every module to verify the promotion" GUTTED `map_data.py` in BOTH builds
+
+**Symptom.** After promoting sandbox → custom I wanted a stronger check than spot-importing 18
+modules, so I imported every `.py` under `modules/` and `plugins/`. It reported
+`imported 189, FAILED 4` — which looked like a clean result. `git status` then showed
+`modules/map_data.py` **modified in both `custom-pokebot/` and `sandbox-pokebot/`**, cut from
+**1,591 lines to 7**: the entire `MapRSE`/`MapFRLG` enums (518 maps) gone. Plus 19 untracked
+artifacts (`*.sym`, `flags.c`, `vars.c`) downloaded/generated into both trees.
+
+**Root cause.** Three of those modules are dev-only code generators that run at IMPORT time,
+not under `if __name__ == "__main__"`: `modules/data/get_pret_maps.py` REWRITES
+`modules/map_data.py` from a pret decomp checkout. The decomp is not present, so it wrote a
+stub header, then died with `FileNotFoundError` — which my harness dutifully recorded as one
+of "4 expected failures". **The traceback was the evidence of destruction and I read it as a
+tidy skip.**
+
+**Why it was nearly invisible.** Every real check still passed afterwards: the 18 promoted
+modules imported fine, because nothing in that list imports `map_data` at module level. Had I
+not run `git status`, a gutted map table would have been committed as part of a
+"verified" promotion.
+
+**The fix.** `git checkout --` on exactly those two files (they were committed seconds earlier
+at `581b7bb4`, so the restore was exact), then `rm` of exactly the 19 enumerated artifacts —
+targeted, not `git reset --hard` or `git clean -f`. Confirmed recovered: 1,591 lines and
+`MapRSE` resolving 518 maps in **both** builds.
+
+**Prevention rules.**
+1. **Never bulk-import a package as a verification step.** Import is not a read-only
+   operation — module-level code runs, and in this repo some of it writes source files. Verify
+   a promotion by *parsing* (`ast.parse`, which cannot execute) plus importing the SPECIFIC
+   modules the change touched.
+2. **`git status` is part of every verification, not just before committing.** The check that
+   caught this was not the 189/4 result; it was noticing the tree had changed. A verification
+   that mutates the thing it verifies has proved nothing.
+3. **An "expected failure" in a sweep still deserves its traceback read.** `FileNotFoundError`
+   from a module named `get_pret_maps` was announcing that it had tried to regenerate a map
+   table. I classified it as environmental noise without reading what it had already done.
