@@ -1600,3 +1600,65 @@ is already in `08-MISTAKES.md`), plus a control tile that DOES path.
 
 Related: **KI-24/24b** (`calculate_path` unsound at region scale; `_training_area_allowed`
 still uses it), **KI-39 CORRECTED**, **KI-43** (fixed).
+
+### KI-44 — ROOT CAUSE FOUND AND FIXED 2026-08-01 (live-probed; awaiting a batch for the outcome proof)
+
+**It was never a routing bug.** `train_counter` used `cfg["grass"]` — the **BOSS's** patch —
+so a Machop caught in FIERY_PATH was sent to Norman's `PETALBURG_TRAINING_GRASS =
+(ROUTE102, (9, 2))`. Two independent faults; the log only ever showed the first.
+
+| | |
+|---|---|
+| 1. it cannot get there | 6 of 7 stranded on ROUTE103 (45, 7) — eight maps from the catch |
+| 2. it would not be worth going | **ROUTE102's land wilds are L3-4** |
+
+Fault 2 was invisible in every log and is arguably the worse one. Probed 2026-08-01
+(`tools/story-dev/probe_counter_grass.py`, reads the ROM's own encounter tables):
+
+| map | land wild levels | |
+|---|---|---|
+| **ROUTE102** | **3-4** | what Norman's cfg used |
+| FIERY_PATH | 14-16 | where the counter is caught |
+| ROUTE112 | 14-16 | adjacent |
+| JAGGED_PASS | 20-22 | adjacent |
+
+`story_mode.py:739` already described this exact patch as *"Route 102 at L4 ... ~25 xp a
+kill, i.e. never"* — the pathological case `FODDER_LEVEL_GAP` was invented for. So even a
+perfect journey would have bought a near-worthless grind.
+
+‼ **AND THE OBVIOUS REPAIR IS ALSO WRONG.** "Train where you caught it" picks FIERY_PATH,
+which is in `NO_RETURN_GROUNDS`: reachable and exitable (fine for catch-and-leave hunting)
+but **the heal leg back to Lavaridge FAILS**, and a training loop needs that third leg.
+ROUTE112 is there for the same measured reason (Lavaridge→door OK at 60 waypoints,
+door→Lavaridge FAILS) and JAGGED_PASS cannot even path within itself. There was simply **no
+legal training ground** for a counter caught in Fiery Path — a structural hole in the chain,
+not a wrong constant.
+
+**THE FIX** — `counter_hunt.counter_training_ground()`. Ask `best_training_area`, the picker
+the rest of the bot already uses: it refuses no-return grounds FIRST, applies the winnability
+guard, honours the live reachability predicate, and prefers the band closest to the trainee.
+Falls back to `cfg`'s pair when it has no answer, so a boss whose configured grass IS correct
+keeps exactly today's behaviour, and a picker failure can never destroy a successful catch.
+
+**Live probe from `lavaridge.ss1`** (one map from the catch site), with the real
+`_counter_area_allowed` predicate:
+```
+best_training_area(L15) -> (ROUTE117, (31,16), (13,14))
+best_training_area(L20) -> (ROUTE111, (25,55), (19,22))     # level-matching works
+counter_training_ground(L15, Norman cfg)
+    -> grass=(ROUTE117,(31,16))  heal=PokemonCenter.VerdanturfTown   => RELOCATED, fix fired
+```
+So the counter now trains on **L13-14 wilds with a working heal loop** instead of L3-4 on the
+far side of Hoenn.
+
+**Repro:** `tools/story-dev/repro_counter_training_ground.py` — asserts the PROPERTY (never a
+no-return ground at any level L10-30 even with `allow=<always true>`, never an unwinnable
+band, never ROUTE102 for a L15 counter, and safe degradation with no ROM) rather than one
+hardcoded map, so a future table edit cannot quietly reintroduce the hole.
+
+‼ **WHAT IS NOT YET PROVEN.** The probe stood on LAVARIDGE_TOWN, not on FIERY_PATH (18,19)
+where the catch actually happens — one map short of the exact case. And the OUTCOME claim
+(that a trained counter beats Norman) is unmeasured: that needs a batch, and batch4's own
+lesson is that the mechanism firing is not the same as the funnel moving. Read
+`Heat→Balance` against batch4's 24/29 (83%), and count `counter training failed` — it was
+**7 of 7**.

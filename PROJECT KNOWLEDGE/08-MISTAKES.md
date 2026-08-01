@@ -3017,3 +3017,35 @@ targeted, not `git reset --hard` or `git clean -f`. Confirmed recovered: 1,591 l
 3. **An "expected failure" in a sweep still deserves its traceback read.** `FileNotFoundError`
    from a module named `get_pret_maps` was announcing that it had tried to regenerate a map
    table. I classified it as environmental noise without reading what it had already done.
+
+## 2026-08-01 — The visible failure ("can't get there") was hiding a worse invisible one ("not worth going")
+
+**Symptom.** KI-44: counter training failed 7 of 7 with `Could not reach (9, 2) on ROUTE102 …
+not walkable from ROUTE103`. Every instinct — and the KI I had just written — said *routing
+bug*, and the obvious next step was to probe the ROUTE103→OLDALE→ROUTE102 path.
+
+**What was actually true.** The destination was wrong in the first place. `train_counter`
+used `cfg["grass"]` — the **boss's** patch — so a counter caught in FIERY_PATH was sent to
+Norman's Route 102. Reading the ROM's own encounter tables: **Route 102's land wilds are
+L3-4**, against a L15 counter. Even a perfect journey would have bought a worthless grind.
+The codebase already said so at `story_mode.py:739` ("~25 xp a kill, i.e. never") — in a
+comment about a different feature, so nothing connected it to the counter chain.
+
+**And the obvious repair was also wrong.** "Train where you caught it" picks FIERY_PATH, which
+is in `NO_RETURN_GROUNDS` — reachable and exitable, but the heal leg back to Lavaridge fails.
+Same for ROUTE112 and JAGGED_PASS. Had I "fixed" it that way the training loop would have
+stranded the bot with no way to heal, and it would have looked like a NEW navigation bug.
+
+**Prevention rules.**
+1. **When a step fails to REACH somewhere, ask whether it should be going there at all
+   before debugging the route.** A navigation error names a destination; it never says the
+   destination was chosen correctly. Here the destination was chosen by boss identity when it
+   should have been chosen by the trainee's level and position — one question upstream of the
+   error.
+2. **Before adding a new picker, check whether a vetted one already exists.** The repair was
+   `best_training_area`, which already refused every no-return ground, applied a winnability
+   guard and honoured reachability. Hand-rolling "train where you caught it" would have
+   re-derived — badly — rules the project had already measured and written down.
+3. **Assert the PROPERTY, not the answer.** `repro_counter_training_ground.py` asserts "never
+   a no-return ground, at any level, even with allow=<always true>" rather than "picks
+   ROUTE117", so a future edit to the training tables cannot quietly reintroduce the hole.

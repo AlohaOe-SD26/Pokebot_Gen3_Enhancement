@@ -75,23 +75,39 @@ by one frame every time and its `break` was dead code. It now uses its own
 STATE, which flips during a cutscene and keeps resetting the watchdog signature, so it does
 not produce the frozen signature the wrapper did.
 
+## ‼ KI-44 — FIXED 2026-08-01 (and it was NOT a routing bug)
+
+`train_counter` used `cfg["grass"]` — the **boss's** patch — so a Machop caught in FIERY_PATH
+was sent to Norman's `PETALBURG_TRAINING_GRASS = (ROUTE102, (9,2))`. Two faults, and the log
+only showed the first: it **cannot get there** (7/7 failures, stranded on ROUTE103), and
+**ROUTE102's land wilds are L3-4** so it was never worth going. ‼ The obvious repair is also
+wrong — FIERY_PATH / ROUTE112 / JAGGED_PASS are all `NO_RETURN_GROUNDS` (the heal leg fails),
+so there was **no legal training ground at all**. Structural hole, not a wrong constant.
+
+Fixed by `counter_hunt.counter_training_ground()` deferring to `best_training_area` — the
+picker that already refuses no-return grounds, guards winnability and honours reachability.
+Live-probed from `lavaridge.ss1`: relocates to **ROUTE117 (31,16) L13-14, heal Verdanturf**
+("RELOCATED, fix fired"). Full detail in `05-KNOWN-ISSUES.md` KI-44.
+
 ## ‼ NEXT, IN THIS ORDER
-1. **`KI-44` — counter training cannot reach ROUTE102 from ROUTE103.** This is the counter
-   chain's blocker now and the whole `#24-counters` line is stalled behind it. Probe from the
-   ACTUAL captured position (ROUTE103, x≈45) plus a control tile that DOES path — do not
-   validate from an easy starting position (that mistake is already in `08-MISTAKES.md`).
-   Suspect KI-24's `calculate_path` unsoundness rather than a genuinely sealed route.
-2. **`#24-wdcanary-dedupe`** — `summarize_lane` counts `global watchdog` in stdout AND the
+1. **RUN A BATCH — the KI-44 fix has NO outcome proof.** `x4_headless.py --lanes 8
+   --minutes 180`. Read `Heat→Balance` against batch4's **24/29 (83%)** and count
+   **`counter training failed`**, which was **7 of 7**. ‼ Batch4's own lesson: the mechanism
+   firing is not the funnel moving — instrument both.
+2. **Two gaps in the KI-44 proof, stated so they are not mistaken for done:** the probe stood
+   on LAVARIDGE_TOWN, one map short of FIERY_PATH (18,19) where the catch happens; and no run
+   has yet trained a counter end-to-end.
+3. **`#24-wdcanary-dedupe`** — `summarize_lane` counts `global watchdog` in stdout AND the
    debug log, so every reported figure is ~2×. Dedupe, then `--resummarise` **all four**
    batches so one instrument reads them all.
-3. Re-measure the counter chain only AFTER KI-44 — batch4 says the chain cannot be evaluated
-   until training can actually run.
+4. The KI-44 fix is **sandbox-only** — it lands after the BATCH-4 promotion, so sandbox and
+   custom have diverged again by exactly this change. Promote it with the next round.
 
 # ‼ START HERE — 2026-07-31 PM (most recent; supersedes every section below)
 
 ## READ THIS, THEN `14-AGENT-PLAYBOOK.md`. You need nothing from any chat transcript.
 
-**Repro suite: 67 pass, 0 fail** — measured 2026-08-01 with the KI-43 fix in the tree, all 67
+**Repro suite: 68 pass, 0 fail** — measured 2026-08-01 with the KI-43 + KI-44 fixes in the tree, all 68
 `repro_*.py` at 90 s each. ‼ `repro_x4_lanes` did NOT need skipping this time (it spawns real
 lane processes and had been recorded as a by-design skip); it ran and passed on an idle box.
 `repro_watchdog_budget_collision.py` (KI-43) is the newest and is GREEN as of the fix.

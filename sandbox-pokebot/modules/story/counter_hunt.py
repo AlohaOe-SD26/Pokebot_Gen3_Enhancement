@@ -322,6 +322,51 @@ def affordable_training_target(current_level: int, wanted: int, budget: int, est
     return best
 
 
+def counter_training_ground(counter_level: int, cfg: dict):
+    """Where to train a freshly-caught counter, and where to heal. -> ((map, tile), heal)
+
+    ‼ KI-44. THIS USED TO BE `cfg["grass"]` UNCONDITIONALLY, AND THAT IS THE BOSS'S PATCH,
+    NOT THE COUNTER'S. Measured in batch4 (`x4-runs/20260731-201554`), Norman's config sends
+    a Machop **caught in FIERY_PATH** to `PETALBURG_TRAINING_GRASS = (ROUTE102, (9, 2))`.
+    Two independent things are wrong with that, and the log only ever showed the first:
+
+    1. **It cannot get there.** Training failed **7 of 7**, six with the bot stranded on
+       ROUTE103 (45, 7) — eight maps from the catch, across a corridor it cannot cross.
+    2. **It would not be worth going.** Probed 2026-08-01 (`probe_counter_grass.py`):
+       ROUTE102's land wilds are **L3-4**. `story_mode.py` already calls this patch
+       "~25 xp a kill, i.e. never" — it is the pathological case `FODDER_LEVEL_GAP` exists
+       for. A counter is L14-16 by construction (it came off a hunting ground's own table).
+
+    The obvious repair — "just train where you caught it" — is WRONG and the codebase
+    already says so: FIERY_PATH, ROUTE112 and JAGGED_PASS are all in `NO_RETURN_GROUNDS`.
+    They can be reached and left (fine for a catch-and-leave hunt) but the heal leg back to
+    Lavaridge FAILS, and a training loop needs that third leg. Measured 2026-07-26.
+
+    So ask `best_training_area`, the picker the rest of the bot already uses: it refuses
+    no-return grounds FIRST, applies the winnability guard (never a band whose low end is
+    above the trainee), honours the reachability predicate, and prefers the band closest to
+    the trainee's level. For a L15 counter it answers **ROUTE117 (31,16), L13-14** — a
+    ground with a working heal loop — instead of L3-4 on the far side of Hoenn.
+
+    Falls back to `cfg`'s pair when the picker has no answer, so a boss whose configured
+    grass IS the right one keeps exactly today's behaviour.
+    """
+    fallback = (cfg.get("grass"), cfg.get("heal"))
+    try:
+        from modules.story.training_areas import best_training_area
+        from plugins.custom_modes.story_mode import _counter_area_allowed, _training_area_heal_map
+
+        best = best_training_area(counter_level, allow=_counter_area_allowed)
+        if best is None:
+            return fallback
+        map_enum, tile, _band = best
+        return ((map_enum, tile), _training_area_heal_map().get(map_enum, cfg.get("heal")))
+    except Exception:
+        # A picker failure must never destroy a successful CATCH — degrade to the
+        # configured pair, which is what shipped before this function existed.
+        return fallback
+
+
 def train_counter(slot: int, cfg: dict) -> Generator:
     """Rung 3 — bring the fresh catch up to the team, bounded by a frame estimate.
 
@@ -360,11 +405,27 @@ def train_counter(slot: int, cfg: dict) -> Generator:
             )
             return False
 
+        # ‼ KI-44 — pick the ground for the COUNTER, not for the boss. See
+        # `counter_training_ground` for the measurement that motivates this.
+        grass, heal = counter_training_ground(mon.level, cfg)
+        if grass is None:
+            console.print(
+                f"[yellow]Story: no training ground available for {mon.species.name} — "
+                f"it goes in untrained at L{mon.level}.[/]"
+            )
+            return False
+        if tuple(grass) != tuple(cfg["grass"]):
+            console.print(
+                f"[cyan]Story: training the counter at {grass[0].name} {grass[1]} rather than "
+                f"the boss's own patch {cfg['grass'][0].name} — closer to L{mon.level} and it "
+                f"has a working heal loop.[/]"
+            )
+
         # FRAME-COST GATE, same contract as every other training entry point in this
         # file's neighbours: an UNKNOWN estimate is not a cheap one, so it declines.
         from plugins.custom_modes.story_mode import StoryMode, _wild_land_max
 
-        wild_level = _wild_land_max(cfg["grass"][0])
+        wild_level = _wild_land_max(grass[0])
         estimate = (
             estimate_frames_to_level(mon, target, wild_level) if wild_level is not None else None
         )
@@ -401,7 +462,7 @@ def train_counter(slot: int, cfg: dict) -> Generator:
             f"L{mon.level} -> L{target} (team is L{team_level}, est {int(estimate)} frames).[/]"
         )
         yield from train_team(
-            target, slots={slot}, grass=cfg["grass"], heal_center=cfg["heal"]
+            target, slots={slot}, grass=grass, heal_center=heal
         )
         return True
     except Exception as error:

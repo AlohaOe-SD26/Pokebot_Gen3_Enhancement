@@ -25,7 +25,20 @@ open-vs-built sweep of all 80 open items has **not** been done.
 
 ### ‼ BATCH 4 LANDED 2026-07-31 23:15 — the counter chain's blocker MOVED to KI-44
 
-- [ ] `#24-counters-travel` (**KI-44**) — **‼ THE COUNTER CHAIN'S CURRENT BLOCKER.** Counter
+- [x] `#24-counters-travel` (**KI-44**) — **FIXED 2026-08-01, awaiting a batch for the OUTCOME
+      proof.** It was never a routing bug: `train_counter` used the BOSS's grass, so a Machop
+      caught in FIERY_PATH was sent to ROUTE102 — eight maps away AND **L3-4 wilds** (the
+      "~25 xp a kill, i.e. never" patch `story_mode.py:739` already documents). The obvious
+      repair is also wrong: FIERY_PATH/ROUTE112/JAGGED_PASS are all `NO_RETURN_GROUNDS` (the
+      heal leg fails), so there was **no legal training ground at all** — a structural hole.
+      Fixed by `counter_training_ground()` deferring to `best_training_area`. Live-probed from
+      `lavaridge.ss1`: relocates to ROUTE117 (31,16) L13-14, heal Verdanturf.
+      `repro_counter_training_ground.py` pins the property. **Still unproven:** the probe stood
+      on LAVARIDGE_TOWN not FIERY_PATH, and the outcome needs a batch — read `Heat→Balance`
+      vs batch4's 24/29 (83%) and count `counter training failed` (was 7/7).
+
+      *The original diagnosis, kept because it is the evidence:*
+      `#24-counters-travel` — **‼ THE COUNTER CHAIN'S BLOCKER.** Counter
       training now starts (the budget fix works: refusal 4 → 0, affordable target fires 7×)
       and then **fails 7 of 7** — 6× `Could not reach (9, 2) on MapRSE.ROUTE102 … not walkable
       from ROUTE103`, 1× whiteout. **Zero counters trained**, so batch4's badge funnel is flat

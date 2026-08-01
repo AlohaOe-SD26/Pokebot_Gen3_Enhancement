@@ -6587,3 +6587,44 @@ identical to sandbox, where the pre-fix code completed 0.
 **Shipped with known open issues, stated rather than buried:** KI-44 (counter training reaches
 its grass 0 of 7 times, so no counter is ever trained), ball starvation (14 events in batch4),
 the still-elevated watchdog count, and the party cap of 4.
+
+## 2026-08-01 — KI-44 fixed: a counter now trains somewhere it can reach AND heal from
+
+`train_counter` used `cfg["grass"]`, the **boss's** patch. A Machop caught in FIERY_PATH was
+sent to Norman's `PETALBURG_TRAINING_GRASS = (ROUTE102, (9, 2))` — eight maps away, through a
+corridor the bot cannot cross (training failed **7 of 7** in batch4), and once there the land
+wilds are **L3-4**. `story_mode.py:739` already called that patch "~25 xp a kill, i.e. never".
+So the visible failure (cannot get there) was hiding a second one that no log showed: it was
+not worth going.
+
+**Probed** with `tools/story-dev/probe_counter_grass.py` (new — boots the ROM, reads the real
+encounter tables, never steps a frame): ROUTE102 **L3-4** vs FIERY_PATH **L14-16**,
+ROUTE112 L14-16, JAGGED_PASS L20-22.
+
+‼ **The obvious repair is also wrong**, which is the part worth remembering: "train where you
+caught it" picks FIERY_PATH, and FIERY_PATH / ROUTE112 / JAGGED_PASS are all in
+`NO_RETURN_GROUNDS` — reachable and exitable, but the heal leg back to Lavaridge fails, and a
+training loop needs that third leg. There was **no legal training ground at all** for a
+counter caught in Fiery Path. A structural hole in the chain, not a wrong constant.
+
+**Fix:** `counter_hunt.counter_training_ground()` asks `best_training_area` — the picker the
+rest of the bot already uses, which refuses no-return grounds first, applies the winnability
+guard, honours the live reachability predicate, and prefers the band closest to the trainee.
+Falls back to the configured pair when it has no answer, so bosses whose grass is already
+right are unchanged and a picker failure can never destroy a successful catch.
+
+**Live probe from `lavaridge.ss1`** with the real predicate: `best_training_area(L15)` →
+`ROUTE117 (31,16) L13-14`; at L20 → `ROUTE111 L19-22`; `counter_training_ground(L15, Norman
+cfg)` → grass `ROUTE117 (31,16)`, heal `VerdanturfTown` — **RELOCATED, the fix fires** rather
+than falling back.
+
+**Repro:** `repro_counter_training_ground.py` asserts a PROPERTY, not an answer — no
+no-return ground at any level L10-30 even with `allow=<always true>`, no unwinnable band,
+never ROUTE102 for a L15 counter, and safe degradation with no ROM — so a future table edit
+cannot quietly reintroduce the hole.
+
+**Not proven yet, stated plainly:** the probe stood on LAVARIDGE_TOWN, one map short of
+FIERY_PATH (18,19) where the catch happens; and the outcome (a trained counter beating
+Norman) needs a batch. Batch4's lesson applies — the mechanism firing is not the funnel
+moving. Next batch: read `Heat→Balance` against 24/29 (83%) and count `counter training
+failed`, which was 7 of 7.
