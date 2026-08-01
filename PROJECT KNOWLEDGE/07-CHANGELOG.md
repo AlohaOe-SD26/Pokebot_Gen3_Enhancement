@@ -6355,3 +6355,62 @@ trade — but it is a real behavioural change and it is not mine to make unilate
 ‼ Option 2 is probably right, but "probably" is exactly what this project keeps getting wrong.
 **Measure option 3 first** — it is a binary question and cheap — because if an L18 counter does
 beat Norman, options 1 and 2 are both unnecessary.
+
+## 2026-07-31 — ‼ RESULT: the day's work is MEASURED, SIGNIFICANT, and the right instrument is the BADGE FUNNEL
+
+Third batch (`x4-runs/20260731-170603`, commit `3875843c`, 8 lanes, 180 min):
+**35 runs ended, 20 finished = 57.1%** against the baseline's 23.7% — **z = 2.92,
+significant at 95%**, and comfortably above the ~+30 point floor the power analysis says a
+3-hour batch can resolve. Counter-chain derails fell from **25 of 29 non-finishes (86%) to
+8 of 15 (53%)**, and the Norman line specifically from **15 to 3** (z = −3.06, significant).
+
+### ‼ THE BADGE FUNNEL IS A BETTER INSTRUMENT THAN FINISH RATE — use it from now on
+Finish rate is ~38 binary outcomes per batch and can only resolve enormous changes. Badge
+records are ~200 per batch and say **where** runs are lost. From `badge-log.json`, segmented
+by batch window:
+
+| window | Stone | Knuckle | Dynamo | Heat | Balance (Norman) | Feather (content end) |
+|---|---|---|---|---|---|---|
+| baseline `289d1710` | 46 | 45 | 37 | 36 | 20 | 9 |
+| batch2 `1b9e690f` | 47 | 45 | 37 | 35 | 22 | 12 |
+| **batch3 `3875843c`** | 43 | 42 | 32 | 31 | **24** | **20** |
+
+Conversion through the funnel — this is the part that matters:
+
+| window | Kn/St | Dy/Kn | Ht/Dy | **Bal/Ht** | **Fea/Bal** | **Fea/St** |
+|---|---|---|---|---|---|---|
+| baseline | 98% | 82% | 97% | 56% | 45% | **20%** |
+| batch2 | 96% | 82% | 95% | 63% | 55% | 26% |
+| **batch3** | 98% | 76% | 97% | **77%** | **83%** | **47%** |
+
+* **Whole-funnel completion 20% → 47%** (z = 2.71, **significant**)
+* **Balance → Feather 45% → 83%** (z = 2.67, **significant**) — once past Norman, the travel
+  fixes help everywhere
+* **Heat → Balance 56% → 77%** (z = 1.88, *just short of 95%*) — beating Norman itself
+  improved, but say "directional", not "proven"
+
+Note the early rungs are flat (98% / 97% in both) — the change is concentrated exactly where
+the counter chain and long-distance travel operate, which is what makes this credible rather
+than a lucky sample.
+
+### The counter chain, end to end
+`CAUGHT Machop` ×4 this batch. Every one still hit the ALL-OR-NOTHING training refusal, because
+this batch predates `affordable_training_target` (commit `1c4b183d`) — so the gain above was
+achieved **with the counter still entering underlevelled**, and the training fix is not yet
+represented in any measurement.
+
+### A caveat recorded honestly
+`global watchdog` rose **9 → 143**. Runs now travel much further, and long journeys trip the
+18,000-frame no-progress watchdog which then recovers — but this is a large jump and it has
+NOT been investigated. It is not obviously harmful (the finish rate went up regardless), and it
+is exactly the kind of number that turns out to matter later. **Do not dismiss it.**
+
+### An isolated test that CONTRADICTED the batch — and why the batch wins
+`--driver normancounter` injected a Machop at L18 and then L26 into
+`prenorman_fodder_grind.ss1` and both whited out, implying the counter never works. The batch
+says otherwise (24 Balance Badges). The isolated test is the weaker evidence: that save is a
+deliberately awkward "fodder grind" scenario with a thin team, so it measures *that team's*
+chances, not the counter's contribution. **A capability test is only as good as the state it
+starts from** — the same lesson as testing travel from Mauville instead of Petalburg, one level
+up. Do not trust the L18/L26 numbers; re-run that driver from a representative pre-Norman save
+before drawing any conclusion about training levels.

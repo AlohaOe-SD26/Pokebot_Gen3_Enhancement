@@ -63,6 +63,34 @@ writing a cause into this file.**
 | KI-39 corrected, KI-41 logged then fixed, **KI-42** logged + mitigated | docs |
 | **USER RULING** `#24-dexhunt` = "always catch new, when it is cheap" | `06-DECISIONS-LOG` 2026-07-31 |
 
+## ‼‼ THE RESULT — MEASURED AND SIGNIFICANT (read this first)
+Three 8-lane / 180-min batches, same box, same runner:
+
+| | baseline `289d1710` | batch3 `3875843c` | |
+|---|---|---|---|
+| finish rate | 23.7% (9/38) | **57.1% (20/35)** | z = 2.92 ✅ |
+| whole-funnel completion (Stone→Feather) | 20% | **47%** | z = 2.71 ✅ |
+| Balance→Feather (finishing after Norman) | 45% | **83%** | z = 2.67 ✅ |
+| Heat→Balance (beating Norman) | 56% | 77% | z = 1.88 — directional only |
+| Norman counter-chain derails | 15 | **3** | z = −3.06 ✅ |
+| counter-chain share of non-finishes | 25/29 (86%) | 8/15 (53%) | |
+
+‼ **USE THE BADGE FUNNEL, NOT THE FINISH RATE.** Finish rate is ~38 binary outcomes and can
+only resolve ~+30-point changes; badge records are ~200 per batch and show WHERE runs are
+lost. The early rungs were FLAT (98%/97% in both arms) with the whole change concentrated
+where the counter chain and long-distance travel operate — that is what makes this credible
+rather than a lucky sample, and a finish rate could not have shown it. Segment
+`badge-log.json` by window (sort by `earned_at`; new batch wherever `run_index` stops
+increasing).
+
+‼ **Two caveats, recorded so they are not lost:**
+* `global watchdog` rose **9 → 143**. Runs travel much further now and long journeys trip the
+  18k-frame no-progress watchdog, which then recovers — but this is a big jump and it has NOT
+  been investigated. Do not dismiss it.
+* Batch3 predates `affordable_training_target` (`1c4b183d`), so all four `CAUGHT Machop`
+  events still hit the all-or-nothing training refusal. **The gain above was achieved with the
+  counter still entering underlevelled**, and the training fix is in NO measurement yet.
+
 ## ‼ MEASURED: THE BASELINE, AND WHAT THE FIXES DID
 **Baseline** (`x4-runs/20260731-105549`, commit `289d1710`, 8 lanes, 180 min, 46 runs started):
 * **38 runs ended, 9 finished = 23.7%**
