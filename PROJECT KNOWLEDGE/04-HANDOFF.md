@@ -47,11 +47,32 @@ movepools."*
 Catching and training a type counter and then not fielding it is the cost of the whole chain
 with the benefit of none of it.
 
+## ‼ `#24-leadpolicy` — BUILT 2026-08-01 (ruling A+C), AND IT IS NOT THE WHOLE ANSWER
+(a) the lead must have a ≥neutral damaging move; (c) a Wonder Guard 1-HP body is demoted.
+Pure rule in `team_policy.lead_rank_key()` / `best_lead_index()`; `_lead_best_matchup` defers
+to it. Sort terms, not filters — a lone Shedinja is still led. Both predicates fail SAFE.
+Option (b) was NOT ruled and is NOT implemented; `repro_lead_policy.py` check 4 pins the
+unchanged Whismur-over-Marshtomp behaviour.
+
+‼ **MEASURED LIMIT (repro check 5): A+C does NOT field the trained counter.** On batch5's
+real Norman party — Shedinja L20 / Machoke L29 / Marshtomp L35 — it correctly stops leading
+Shedinja and then picks **Marshtomp L35, not Machoke L29**, because `can_attack` is binary
+and Machoke's **2× STAB earns no credit**. So the fatal lead is gone but the counter still
+does not fight.
+
+## ‼ THE OPEN DECISION — should super-effectiveness outrank raw level?
+This is a **NEW question, outside ruling A+C**, and it is the last link in the chain:
+budget → training ground → lead. Without it the whole counter chain still ends with the
+counter on the bench, just benched by a different mon.
+* FOR: the chain only fires after ~6 losses, so the strongest mon is already PROVEN
+  insufficient — that is the entire premise of hunting a counter.
+* AGAINST: a L29 2× attacker is not automatically better than a L35 neutral one; bulk and
+  movepool matter, and this model reads neither.
+* Cheapest resolution: add an `outgoing` term ranked between `can_attack` and `incoming`,
+  then measure with the **counter-hunt-runs-only** conditional (batch4 5/9 → batch5 6/10).
+
 ## ‼ NEXT, IN THIS ORDER
-1. **`#24-leadpolicy` — BUILD IT (ruling A+C, already given).**
-   (a) require the lead to also have a ≥neutral attacking option;
-   (c) special-case 1-HP Wonder Guard mons.
-   This is what stands between a trained counter and it actually fighting.
+1. **Get a ruling on the question above**, then implement and re-measure.
 2. **Then re-measure.** ‼ The counter chain fires on only ~10 of 29 Heat-reaching runs, and
    those runs sit at ~60%. Even a perfect chain moves the overall Heat→Balance rung from 79%
    to ~93% AT BEST — so size the expectation before running a batch, and prefer the
@@ -172,7 +193,7 @@ Live-probed from `lavaridge.ss1`: relocates to **ROUTE117 (31,16) L13-14, heal V
 
 ## READ THIS, THEN `14-AGENT-PLAYBOOK.md`. You need nothing from any chat transcript.
 
-**Repro suite: 69 pass, 0 fail** — measured 2026-08-01 with KI-43 + KI-44 + #24-relocfloor in the tree, all 69
+**Repro suite: 70 pass, 0 fail** — measured 2026-08-01 with KI-43 + KI-44 + #24-relocfloor + #24-leadpolicy in the tree, all 70
 `repro_*.py` at 90 s each. ‼ `repro_x4_lanes` did NOT need skipping this time (it spawns real
 lane processes and had been recorded as a by-design skip); it ran and passed on an idle box.
 `repro_watchdog_budget_collision.py` (KI-43) is the newest and is GREEN as of the fix.

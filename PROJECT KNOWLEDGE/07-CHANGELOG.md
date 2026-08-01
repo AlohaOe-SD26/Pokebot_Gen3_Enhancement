@@ -6706,3 +6706,38 @@ L35 (stragglers L12/L20) floor 23 → **None**, trainee-keyed 8 → **ROUTE111**
 **None**, trainee 4 → **ROUTE111**; L33 already worked either way — matching the 12 real
 ROUTE111 relocations observed. Repro `repro_relocation_floor_wrong_mon.py` (checks 1-3 pass
 on the public API before the fix; check 4 green after).
+
+## 2026-08-01 — `#24-leadpolicy` (ruling A+C): stop leading a 1-HP Wonder Guard mon into a boss
+
+Batch5 proved the counter chain works end to end and the funnel still did not move, because
+`_lead_best_matchup` scored ONLY defence — `min(incoming_multiplier, -level)`. Shedinja is
+Bug/Ghost, so Normal → 0× wins that score outright, and the bot **led Shedinja into Norman 9
+times out of 9 while the freshly-trained L29 Machoke sat in the bag.**
+
+Implemented exactly the ruling, no more:
+* **(a)** the lead must also have a **≥neutral damaging move** against the foe's types;
+* **(c)** a **Wonder Guard 1-HP body** (Shedinja) is demoted — it wins a purely defensive
+  score and is then deleted by any super-effective move, which this model cannot predict
+  because it does not read the foe's movepool.
+
+The rule is the pure `team_policy.lead_rank_key()` / `best_lead_index()` — `team_policy` is a
+deliberately emulator-free decision module, so the whole policy is unit-testable.
+`early_game._lead_best_matchup` now computes `can_attack` / `glass_wonder_guard` from the live
+mon and defers to it. Both new predicates **fail SAFE** (a read error returns "can attack" /
+"not Wonder Guard"), so a memory hiccup can never bench a mon.
+
+‼ **These are SORT TERMS, NOT FILTERS.** A filter could empty the candidate set and leave no
+lead at all; ordering always yields an answer and degrades to today's choice when nothing
+better exists. Pinned: a lone Shedinja is still led.
+
+‼ **Ordering is deliberate** — `incoming` stays ahead of the level tie-break, so the proven
+Rustboro-rival behaviour is untouched. **Option (b) was NOT ruled and is NOT implemented**;
+`repro_lead_policy.py` check 4 pins Whismur-over-Marshtomp so nobody "helpfully" changes it
+without asking.
+
+‼ **THE HONEST LIMIT, ASSERTED IN THE REPRO RATHER THAN BURIED (check 5).** On batch5's real
+Norman party, A+C stops the Shedinja lead but **still does not field the counter**: Marshtomp
+L35 outranks Machoke L29 because `can_attack` is binary and gives Machoke's 2× STAB no
+credit. So A+C removes a demonstrably fatal lead but does not by itself make the counter
+fight. Whether super-effectiveness should outrank raw level is a **new decision**, outside
+ruling A+C — see the handoff.

@@ -25,8 +25,17 @@ open-vs-built sweep of all 80 open items has **not** been done.
 
 ### ‼ BATCH 5 LANDED — the blocker moved a THIRD time, to the LEAD
 
-- [ ] `#24-leadpolicy` — **‼ NOW THE COUNTER CHAIN'S BLOCKER. Ruling A+C already given;
-      BUILD IT.** Batch5 proved the chain works end to end — 7 of 9 counters trained,
+- [x] `#24-leadpolicy` — **A+C BUILT 2026-08-01.** Pure `team_policy.lead_rank_key()` /
+      `best_lead_index()`; `_lead_best_matchup` defers to it. Sort terms not filters (a lone
+      Shedinja is still led); both predicates fail SAFE. Option (b) NOT ruled, NOT built —
+      `repro_lead_policy.py` check 4 pins the unchanged Whismur-over-Marshtomp behaviour.
+      ‼ **MEASURED LIMIT (check 5): this does NOT field the trained counter.** On batch5's
+      real party it stops the Shedinja lead and then picks **Marshtomp L35 over Machoke
+      L29**, because `can_attack` is binary and 2× STAB earns no credit. **OPEN DECISION —
+      should super-effectiveness outrank raw level? That is a NEW question outside A+C and
+      is the last link in the chain.** Original diagnosis below.
+
+      `#24-leadpolicy` — **the counter chain's blocker as of batch5. Ruling A+C.** Batch5 proved the chain works end to end — 7 of 9 counters trained,
       `Machop L15 -> L29` evolving to **Machoke** — and then **MACHOKE WAS LED INTO NORMAN
       ZERO TIMES**. Leads chosen: SHEDINJA ×9, MARSHTOMP ×4, SWAMPERT ×4, BLAZIKEN ×2.
       `_lead_best_matchup(["Normal"])` scores `min(incoming_multiplier, -level)`, so Shedinja

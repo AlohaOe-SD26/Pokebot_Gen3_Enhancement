@@ -226,3 +226,72 @@ def rotation_plan(party_views, box_views=(), *, needed_types=(), sweep_score=Non
     worth_it = bool(deposit) or bool(withdraw)
     return {"deposit": deposit, "withdraw": withdraw,
             "reasons": reasons, "worth_it": worth_it}
+
+
+# --- LEAD SELECTION (#24-leadpolicy, user ruling A+C, 2026-08-01) ----------------------
+#
+# ‼ WHY. `_lead_best_matchup` scored ONLY defence — `min(incoming_multiplier, -level)` —
+# and that benched the mon the whole counter chain existed to produce. Measured in batch5
+# (`x4-runs/20260801-075805`): the bot caught a Machop, trained it L15 -> L29, watched it
+# evolve into MACHOKE, and then led **SHEDINJA into Norman 9 times out of 9**. Machoke was
+# led ZERO times. Shedinja is Bug/Ghost, so Normal -> 0x, which wins a purely defensive
+# score outright — and then Slaking's Faint Attack (Dark) is 2x on Ghost and one-shots its
+# single hit point. The model cannot see that, because it does not read movepools.
+#
+# Catching, travelling for, and training a type counter and then not fielding it is the
+# cost of the entire chain with the benefit of none of it. Batch5's badge funnel did not
+# move at all (Heat->Balance 83% -> 79%) despite the chain working end to end.
+#
+# THE RULING WAS A+C, and this implements exactly that — no more:
+#   (a) require the lead to also have a >=neutral attacking option;
+#   (c) special-case 1-HP Wonder Guard mons.
+# ‼ Option (b) — "weight the level gap so a resistant chaff mon can't bench a much stronger
+# one" — was NOT selected, so the Route 110 rival case (Whismur L15 led over Marshtomp L24)
+# is deliberately UNCHANGED. Do not quietly fix it here; re-ask if it matters.
+#
+# ‼ THESE ARE SORT TERMS, NOT FILTERS. A filter could empty the candidate set and leave the
+# bot with no lead at all; ordering always yields an answer and degrades to today's choice
+# when nothing better exists.
+#
+# ‼ ORDERING IS DELIBERATE — `incoming` stays AHEAD of the level tie-break so the proven
+# Rustboro-rival behaviour is preserved (Marshtomp is 4x weak to Grovyle and must stay
+# benched). (a) and (c) only reorder mons that the old rule considered equivalent, plus the
+# Wonder Guard trap it considered ideal.
+
+
+def lead_rank_key(*, incoming: float, can_attack: bool, glass_wonder_guard: bool,
+                  level: int) -> tuple:
+    """Sort key for choosing a lead before a type-countered fight. LOWER is better.
+
+    ``incoming``            worst-case STAB multiplier the foe can hit this mon for.
+    ``can_attack``          does it have a damaging move that is >=1x on the foe?
+    ``glass_wonder_guard``  Wonder Guard on a 1-HP body (Shedinja) — immune to most things
+                            and deleted by anything super-effective, which the type model
+                            cannot predict.
+    """
+    return (
+        1 if glass_wonder_guard else 0,   # (c) never the default lead into a boss
+        0 if can_attack else 1,           # (a) a lead that cannot damage the foe cannot win
+        float(incoming),                  # unchanged original criterion
+        -int(level),                      # unchanged original tie-break
+    )
+
+
+def best_lead_index(candidates) -> "int | None":
+    """Index of the best lead among ``candidates``.
+
+    Each candidate is a mapping with ``incoming``, ``can_attack``, ``glass_wonder_guard``
+    and ``level``. Returns None for an empty list. Pure — no memory reads, no buttons.
+    """
+    items = list(candidates)
+    if not items:
+        return None
+    return min(
+        range(len(items)),
+        key=lambda i: lead_rank_key(
+            incoming=items[i]["incoming"],
+            can_attack=items[i]["can_attack"],
+            glass_wonder_guard=items[i]["glass_wonder_guard"],
+            level=items[i]["level"],
+        ),
+    )

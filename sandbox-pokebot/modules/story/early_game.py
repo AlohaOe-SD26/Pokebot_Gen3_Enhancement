@@ -1645,9 +1645,60 @@ def _lead_best_matchup(foe_type_names, *, min_incoming_only: bool = True) -> Gen
             worst = max(worst, m)
         return worst
 
-    # Lowest incoming multiplier first; tie-break by higher level so we lead a resistant
-    # mon that's also as strong as possible.
-    best = min(slots, key=lambda i: (_incoming(party[i]), -party[i].level))
+    def _can_attack(mon) -> bool:
+        """Does `mon` have a DAMAGING move that is at least neutral on the foe? (#24-leadpolicy
+        option (a).) A lead that cannot hurt the foe cannot win — it only stalls until PP runs
+        out. Unknown/unreadable movepools return True so this can never bench a mon on a
+        read failure."""
+        if not foe_types:
+            return True
+        try:
+            learned = list(getattr(mon, "moves", []) or [])
+        except Exception:
+            return True
+        saw_move = False
+        for lm in learned:
+            if lm is None:
+                continue
+            mv = getattr(lm, "move", None)
+            if mv is None or getattr(mv, "base_power", 0) <= 0:
+                continue
+            saw_move = True
+            try:
+                mult = 1.0
+                for ft in foe_types:
+                    mult *= mv.type.get_effectiveness_against(ft)
+            except Exception:
+                return True
+            if mult >= 1.0:
+                return True
+        return not saw_move  # no readable damaging moves at all -> don't penalise
+
+    def _glass_wonder_guard(mon) -> bool:
+        """Wonder Guard on a 1-HP body (Shedinja) — #24-leadpolicy option (c). It wins a
+        purely defensive score outright and is then deleted by any super-effective move,
+        which this type model cannot predict because it does not read the foe's movepool.
+        Measured batch5: led into Norman 9/9 and the trained counter sat in the bag."""
+        try:
+            return getattr(mon.ability, "name", "") == "Wonder Guard"
+        except Exception:
+            return False
+
+    # #24-leadpolicy (user ruling A+C). The ordering keeps `incoming` ahead of the level
+    # tie-break, so the proven Rustboro-rival behaviour is unchanged; (a) and (c) only
+    # reorder mons the old rule treated as equivalent, plus the Wonder Guard trap it
+    # treated as ideal. Ruling (b) — weight the level gap — was NOT selected.
+    from modules.story.team_policy import lead_rank_key
+
+    best = min(
+        slots,
+        key=lambda i: lead_rank_key(
+            incoming=_incoming(party[i]),
+            can_attack=_can_attack(party[i]),
+            glass_wonder_guard=_glass_wonder_guard(party[i]),
+            level=party[i].level,
+        ),
+    )
     if best != 0:
         yield from _rotate_lead_safely(best)
 
