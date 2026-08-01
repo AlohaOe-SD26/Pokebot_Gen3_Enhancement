@@ -3049,3 +3049,35 @@ stranded the bot with no way to heal, and it would have looked like a NEW naviga
 3. **Assert the PROPERTY, not the answer.** `repro_counter_training_ground.py` asserts "never
    a no-return ground, at any level, even with allow=<always true>" rather than "picks
    ROUTE117", so a future edit to the training tables cannot quietly reintroduce the hole.
+
+## 2026-08-01 — The fix worked perfectly and changed nothing, because the thing it produced was never used
+
+**Symptom.** Batch5 was run to prove KI-44. The mechanism came back perfect: `counter
+training failed` **7/7 → 2/9**, `Machop L15 -> L29` eight times, evolving to Machoke. And the
+badge funnel did not move at all — Heat→Balance 83% → 79%, z = −0.33.
+
+**What was actually happening.** The trained Machoke was **never led into the fight**. Leads
+chosen for Norman in batch5: SHEDINJA ×9, MARSHTOMP ×4, SWAMPERT ×4 … MACHOKE **zero**.
+`_lead_best_matchup(["Normal"])` scores `min(incoming_multiplier, -level)`, so Shedinja
+(Bug/Ghost, Normal → 0×) always wins the score. The whole catch-travel-train chain ran, and
+its product sat in the bag.
+
+**‼ It was already written down.** `#24-leadpolicy` had diagnosed this and had a user ruling
+(A+C) — and its entry literally predicted the run: *"P4 led Shedinja L20 vs Norman … and lost
+to Slaking's Faint Attack (Dark)."* Two sessions were spent unblocking a chain whose output
+a known, unbuilt item was discarding.
+
+**Prevention rules.**
+1. **When a fix produces an ARTEFACT, instrument its CONSUMPTION, not just its production.**
+   "Was the counter trained?" and "did the counter fight?" are different questions, and only
+   the second one can move an outcome. One grep for the chosen lead would have found this
+   before the batch, not after.
+2. **Before building a fix, grep the punch list for the thing it feeds.** The blocker chain
+   here went budget → training ground → lead selection, and the third link was already an
+   open item with a ruling. Reading the punch list forward from the fix — "what happens to
+   the output?" — is cheaper than a 3-hour batch.
+3. **Do not use a within-batch split as evidence of harm.** Counter-hunt runs beat Norman
+   71% vs 89% for runs that never hunted — but the chain only fires on runs already losing,
+   so that gap is selection bias. The honest comparison is the same subpopulation across
+   batches (5/9 → 6/10, z = 0.20), which resolves nothing at n≈10. Say "cannot resolve"
+   rather than reporting a direction.

@@ -3,62 +3,73 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-08-01 (07:58 PDT) — read "‼ BATCH 5 IN FLIGHT" immediately below, then
+**Last updated:** 2026-08-01 (11:00 PDT) — read "‼ BATCH 5 LANDED" immediately below, then
 "‼ START HERE — 2026-07-31 PM". Older "START HERE" sections further down are HISTORY.
 
 ---
 
-# ‼ BATCH 5 IN FLIGHT — DO NOT LOAD THE BOX (launched 2026-08-01 07:58 PDT)
+# ‼ BATCH 5 LANDED — KI-44 IS FIXED, THE FUNNEL DID NOT MOVE (2026-08-01 10:58 PDT)
 
-| | |
-|---|---|
-| dir | `x4-runs/20260801-075805` |
-| command | `x4_headless.py --lanes 8 --minutes 180 --stagger 5` |
-| commit | **`b7345ffd`** — the first build containing the **KI-44** fix |
-| ends | **~10:58 PDT** |
+`x4-runs/20260801-075805`, commit `b7345ffd`, 8 lanes / 180.1 min, VERDICT OK, 42 headers,
+**0 violations, 0 restarts**. 34 runs ended, 16 finished = 47.1% (batch4: 60.0%).
 
-‼ **WHAT IT MUST ANSWER — and it is a MECHANISM question first, an outcome question second.**
-No counter has EVER been trained in any batch, so this is the first chance to see the chain
-complete. Read, in this order:
+## The mechanism WORKS — counters were trained for the first time ever
+| | batch4 | batch5 |
+|---|---|---|
+| `counter hunt CAUGHT` | 9 | 10 |
+| relocation line (KI-44 fix firing) | *(didn't exist)* | **9** |
+| **`counter training failed`** | **7 of 7** | **2 of 9** |
 
-1. **`counter training failed`** — it was **7 of 7** in batch4. If it is still ~7/7, KI-44 is
-   not really fixed and the funnel is irrelevant.
-2. **`training the counter at … rather than the boss's own patch`** — the new relocation line.
-   Its absence means `counter_training_ground` fell back to the boss's grass and the fix never
-   fired in a real run (the live probe only proved it from LAVARIDGE_TOWN, one map short of
-   FIERY_PATH where the catch happens).
-3. **`Heat→Balance`** against batch4's **24/29 (83%)** — the outcome. ‼ Batch4's own lesson:
-   the mechanism firing is NOT the funnel moving. Instrument both or the result is unreadable.
-4. `local grass (max L4) … no better area is available` — **167** in batch4. See the pre-emptive
-   training discussion below; a drop here would be a bonus, not the thing under test.
+`Machop L15/L16 -> L29` ×8 (reaching L28 it **evolves to Machoke**), `Combusken L31 -> L33`.
+8× relocated to ROUTE117, 1× to ROUTE121 — the picker adapting on its own. Neither remaining
+failure is KI-44 (one whiteout, one UnreachableDestinationError).
 
-**CPU discipline:** 8 lanes ≈ 8 cores. The batches this is compared against ran on an idle
-box — do not start a repro sweep or a second batch until it lands. Docs and single-file edits
-are fine. If it must be stopped, `--resummarise x4-runs/20260801-075805` reads whatever
-completed; the logs are the data.
+## The funnel did NOT move
+Heat→Balance **83% → 79% (z = −0.33)**; whole funnel 49% → 38% (z = −0.95). Nothing
+significant. Like-for-like on the only population the fix can touch — runs that ran a counter
+hunt — **batch4 5/9 (56%) → batch5 6/10 (60%), z = 0.20**. n≈10 cannot resolve this.
 
-## ‼ AGREED NEXT, ONCE IT LANDS — pre-emptive training for Norman (user idea, 2026-08-01)
-**User ruling: measure first, then build this.** The bot's counter chain is REACTIVE —
-`_counter_ladder(cfg, losses, needed)` fires on LOSSES — so today it travels to Petalburg,
-loses to Norman repeatedly, then crosses Hoenn to Fiery Path, catches, tries to train, and
-crosses back. The user's proposal is to train BEFORE travelling to Petalburg at all.
+‼ **Do NOT quote the within-batch comparison** (counter-hunt runs 71% vs never-hunted 89%).
+That is selection bias: the chain only fires on runs already losing to Norman.
 
-The evidence supports it:
-* Norman's local grass `ROUTE102` is **L3-4** (probed 2026-08-01) — `story_mode.py:739` already
-  calls it "~25 xp a kill, i.e. never".
-* From Petalburg **nothing better is reachable**: `no better area is available` fired **167**
-  times in batch4, every one of them `local grass (max L4)`, teams L32-41.
-* From Lavaridge — where the Norman leg begins — **ROUTE111 (L19-22) and ROUTE117 (L13-14) ARE
-  reachable** (proved by the KI-44 probe, and 12 successful relocations to ROUTE111 in batch4).
-* Every failure this week (KI-43, KI-44, the journey bugs) lives in the long cross-Hoenn trips.
-  Removing the round trip removes the failure surface rather than hardening it.
+## ‼‼ WHY — THE TRAINED COUNTER IS BENCHED. THIS IS THE NEXT ITEM.
+Leads chosen for Norman in batch5: **SHEDINJA ×9**, MARSHTOMP ×4, SWAMPERT ×4, BLAZIKEN ×2,
+others ×1. **MACHOKE: ZERO.** `_lead_best_matchup(["Normal"])` scores
+`min(incoming_multiplier, -level)`, so Shedinja (Bug/Ghost, Normal → 0×) always wins and the
+freshly-trained L29 Machoke stays in the bag.
 
-‼ **It needs a second fix to work: the relocation search is keyed on the WRONG MON.**
-`floor = max(local_max, team_max_now - FODDER_LEVEL_GAP)` and `best_training_area(team_max_now…)`
-both use the team's STRONGEST mon, while the mons that need training are the stragglers
-(L12 Poochyena, L20 Shedinja in these runs). For a L35 team the floor is 23, which rejects
-ROUTE111 (L19-22) — the one ground actually reachable there. **Same error class as KI-44:
-choosing the ground by the wrong entity.** Pre-emptive training would hit this identical wall.
+This is **`#24-leadpolicy`** — already diagnosed, **USER RULING A+C**, never built. Its own
+punch-list entry predicted this exact batch: *"P4 led Shedinja L20 vs Norman … and lost to
+Slaking's Faint Attack (Dark), which the model cannot see because it does not read
+movepools."*
+
+⇒ **The blocker has moved a third time: budget → training ground → LEAD SELECTION.**
+Catching and training a type counter and then not fielding it is the cost of the whole chain
+with the benefit of none of it.
+
+## ‼ NEXT, IN THIS ORDER
+1. **`#24-leadpolicy` — BUILD IT (ruling A+C, already given).**
+   (a) require the lead to also have a ≥neutral attacking option;
+   (c) special-case 1-HP Wonder Guard mons.
+   This is what stands between a trained counter and it actually fighting.
+2. **Then re-measure.** ‼ The counter chain fires on only ~10 of 29 Heat-reaching runs, and
+   those runs sit at ~60%. Even a perfect chain moves the overall Heat→Balance rung from 79%
+   to ~93% AT BEST — so size the expectation before running a batch, and prefer the
+   **counter-hunt-runs-only** conditional as the instrument (it is the population that can
+   actually change; the whole-batch rung dilutes it 3:1).
+3. **`#24-relocfloor` — DONE 2026-08-01** (see below). Its value is mostly in unlocking the
+   pre-emptive plan, not in isolation.
+4. **Pre-emptive training for Norman** (user idea) — still queued and still right, but note
+   batch5 shows the counter chain is NOT the dominant loss cause: 19 of 29 Heat-reaching runs
+   never hunted at all and won 89% of the time.
+
+## `#24-relocfloor` — FIXED 2026-08-01
+`floor = max(local_max, team_max_now - FODDER_LEVEL_GAP)` keyed on the party's STRONGEST mon
+while the trainees are the stragglers, so a L35 team demanded wilds above L23 and rejected
+ROUTE111 (L19-22). Measured: `no better area is available` **167×** in batch4. Now
+`training_areas.relocation_floor(local_max, trainee_levels, gap)`. ‼ Only the floor moved —
+swap-train means a stronger team-mate fights, so `best_training_area`'s `team_level` argument
+correctly stays the team max. Repro `repro_relocation_floor_wrong_mon.py`.
 
 ---
 
@@ -161,7 +172,7 @@ Live-probed from `lavaridge.ss1`: relocates to **ROUTE117 (31,16) L13-14, heal V
 
 ## READ THIS, THEN `14-AGENT-PLAYBOOK.md`. You need nothing from any chat transcript.
 
-**Repro suite: 68 pass, 0 fail** — measured 2026-08-01 with the KI-43 + KI-44 fixes in the tree, all 68
+**Repro suite: 69 pass, 0 fail** — measured 2026-08-01 with KI-43 + KI-44 + #24-relocfloor in the tree, all 69
 `repro_*.py` at 90 s each. ‼ `repro_x4_lanes` did NOT need skipping this time (it spawns real
 lane processes and had been recorded as a by-design skip); it ran and passed on an idle box.
 `repro_watchdog_budget_collision.py` (KI-43) is the newest and is GREEN as of the fix.

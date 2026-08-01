@@ -23,10 +23,30 @@ open-vs-built sweep of all 80 open items has **not** been done.
 
 ## Now (active focus)
 
-### ‼ READY TO APPLY THE MOMENT BATCH `20260801-075805` LANDS (~10:58 PDT 2026-08-01)
+### ‼ BATCH 5 LANDED — the blocker moved a THIRD time, to the LEAD
 
-- [ ] `#24-relocfloor` — **the training-relocation floor is keyed on the WRONG MON.**
-      Diagnosed + repro'd 2026-08-01; the code edit is deliberately held because
+- [ ] `#24-leadpolicy` — **‼ NOW THE COUNTER CHAIN'S BLOCKER. Ruling A+C already given;
+      BUILD IT.** Batch5 proved the chain works end to end — 7 of 9 counters trained,
+      `Machop L15 -> L29` evolving to **Machoke** — and then **MACHOKE WAS LED INTO NORMAN
+      ZERO TIMES**. Leads chosen: SHEDINJA ×9, MARSHTOMP ×4, SWAMPERT ×4, BLAZIKEN ×2.
+      `_lead_best_matchup(["Normal"])` scores `min(incoming_multiplier, -level)`, so Shedinja
+      (Bug/Ghost, Normal → 0×) always wins and the trained counter sits in the bag. The entry
+      below PREDICTED this exact batch. Catching and training a type counter and then not
+      fielding it is the cost of the whole chain with the benefit of none of it.
+      **Build (a) require the lead to also have a ≥neutral attacking option + (c) special-case
+      1-HP Wonder Guard mons.** ‼ Then size expectations before re-measuring: the chain fires
+      on only ~10 of 29 Heat-reaching runs, so even a perfect fix moves the overall
+      Heat→Balance rung 79% → ~93% AT BEST. Use the **counter-hunt-runs-only** conditional as
+      the instrument (batch4 5/9 → batch5 6/10, z=0.20 — the whole-batch rung dilutes it 3:1).
+
+### ‼ APPLIED 2026-08-01 AFTER BATCH `20260801-075805` LANDED
+
+- [x] `#24-relocfloor` — **DONE 2026-08-01.** Extracted as the pure
+      `training_areas.relocation_floor(local_max, trainee_levels, gap)` and wired into
+      `_prepare_for_fight`. Repro green, full suite 69/69. Original diagnosis below.
+
+      `#24-relocfloor` — **the training-relocation floor is keyed on the WRONG MON.**
+      Diagnosed + repro'd 2026-08-01; the code edit was deliberately held because
       `x4_headless.py:843` relaunches a dead lane's process and a restarted lane would
       re-import mid-batch, mixing two code versions into one measurement.
 

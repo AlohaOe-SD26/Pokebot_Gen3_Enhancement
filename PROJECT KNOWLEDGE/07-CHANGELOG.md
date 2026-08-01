@@ -6628,3 +6628,81 @@ FIERY_PATH (18,19) where the catch happens; and the outcome (a trained counter b
 Norman) needs a batch. Batch4's lesson applies — the mechanism firing is not the funnel
 moving. Next batch: read `Heat→Balance` against 24/29 (83%) and count `counter training
 failed`, which was 7 of 7.
+
+## 2026-08-01 — BATCH 5 RESULT: KI-44 is fixed and the funnel did NOT move; the blocker is now the LEAD
+
+`x4-runs/20260801-075805`, commit `b7345ffd`, 8 lanes / 180.1 min, VERDICT OK, 42 headers,
+0 violations, 0 restarts. **34 runs ended, 16 finished = 47.1%** (batch4 60.0%).
+
+### The mechanism is FIXED — counters are trained for the first time ever
+
+| | batch4 | batch5 |
+|---|---|---|
+| `counter hunt CAUGHT` | 9 | 10 |
+| relocation line (`… rather than the boss's own patch`) | *(didn't exist)* | **9** |
+| `training the counter —` (starts) | 7 | 9 |
+| **`counter training failed`** | **7 of 7** | **2 of 9** |
+
+```
+Story: training the counter at ROUTE117 (31, 16) rather than the boss's own patch ROUTE102  ×8
+Story: training the counter at ROUTE121 (44, 14) …                                          ×1
+Story: training the counter — Machop L15 -> L29  ×5    Machop L16 -> L29  ×3
+Story: training the counter — Combusken L31 -> L33 ×1
+```
+The Machop reaches **L28 and evolves to Machoke**. The picker also adapted on its own
+(ROUTE121 for a L31 Combusken). Neither remaining failure is KI-44 — one whiteout abort,
+one `UnreachableDestinationError`.
+
+### And the funnel did not move
+
+| rung | batch4 | batch5 | z |
+|---|---|---|---|
+| Stone→Knuckle | 35/37 (95%) | 40/42 (95%) | 0.13 |
+| Knuckle→Dynamo | 31/35 (89%) | 32/40 (80%) | −1.01 |
+| Dynamo→Heat | 29/31 (94%) | 29/32 (91%) | −0.43 |
+| **Heat→Balance** | 24/29 (83%) | 23/29 (79%) | **−0.33** |
+| Balance→Feather | 18/24 (75%) | 16/23 (70%) | −0.42 |
+| Stone→Feather | 18/37 (49%) | 16/42 (38%) | −0.95 |
+
+Nothing significant. Like-for-like on the only population the fix can affect —
+**runs that ran a counter hunt: batch4 5/9 (56%) → batch5 6/10 (60%), z = 0.20.**
+n=9 vs n=10 cannot resolve this; do not read either number as an effect.
+
+‼ **Beware the seductive wrong comparison.** Within batch5, counter-hunt runs beat Norman
+5/7 (71%) while runs that never needed one went 17/19 (89%). That is **selection bias, not
+harm** — the chain only fires on runs already losing to Norman. The like-for-like
+cross-batch comparison above is the honest one.
+
+### ‼ WHY IT DIDN'T MOVE — the trained counter is BENCHED
+
+Leads chosen for the Norman fight in batch5: **SHEDINJA ×9**, MARSHTOMP ×4, SWAMPERT ×4,
+BLAZIKEN ×2, COMBUSKEN/LINOONE/LOUDRED/SWELLOW ×1. **MACHOKE: zero.**
+
+`_lead_best_matchup(["Normal"])` scores `min(incoming_multiplier, -level)`, so Shedinja
+(Bug/Ghost, Normal → 0×) always wins the score and the freshly-trained L29 Machoke sits in
+the bag. This is **`#24-leadpolicy`**, already diagnosed with **USER RULING A+C** and never
+built — and its own entry predicted this exact run: *"P4 led Shedinja L20 vs Norman … and
+lost to Slaking's Faint Attack (Dark), which the model cannot see because it does not read
+movepools."*
+
+**So the blocker has moved a third time: budget → training ground → LEAD SELECTION.**
+Catching and training a type counter and then not fielding it is the cost of the whole chain
+with the benefit of none of it.
+
+## 2026-08-01 — `#24-relocfloor`: the relocation floor is keyed to the trainee, not the team max
+
+`floor = max(local_max, team_max_now - FODDER_LEVEL_GAP)` used the party's STRONGEST mon
+while `need` is the stragglers, so a L35 team demanded wilds above L23 and rejected
+ROUTE111 (L19-22) — the one reachable area. Measured: `no better area is available` fired
+**167×** in batch4, every one on ROUTE102's L3-4 grass, teams L32-41.
+
+Extracted as the pure `training_areas.relocation_floor(local_max, trainee_levels, gap)`.
+‼ Only the floor moved — `train_team` runs with SWAP-TRAIN, so a stronger team-mate fights
+and `best_training_area`'s own `team_level` argument stays the team max; keying that to the
+trainee would be a second bug.
+
+Effect with the real tables, `allow` restricted to what is reachable near Petalburg:
+L35 (stragglers L12/L20) floor 23 → **None**, trainee-keyed 8 → **ROUTE111**; L36 floor 24 →
+**None**, trainee 4 → **ROUTE111**; L33 already worked either way — matching the 12 real
+ROUTE111 relocations observed. Repro `repro_relocation_floor_wrong_mon.py` (checks 1-3 pass
+on the public API before the fix; check 4 green after).

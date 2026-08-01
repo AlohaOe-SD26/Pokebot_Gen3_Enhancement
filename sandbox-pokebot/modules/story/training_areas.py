@@ -396,6 +396,33 @@ def xp_per_battle(wild_level) -> float:
     return _CALIBRATED_AVG_WILD_BASE_EXP_YIELD * wild_level / 7
 
 
+def relocation_floor(local_max: int, trainee_levels, fodder_gap: int) -> int:
+    """Minimum wild level worth RELOCATING FOR, keyed to the mons actually being trained.
+
+    ‼ THIS USED TO BE `max(local_max, team_max_now - FODDER_LEVEL_GAP)` INLINE IN
+    `_prepare_for_fight`, AND `team_max_now` IS THE WRONG MON. It is the party's strongest
+    member, but the mons in `need` are the stragglers. Measured in batch4
+    (`x4-runs/20260731-201554`), a typical Norman party is `Marshtomp L35 / Ninjask L30 /
+    Swellow L32 / Poochyena L12 / Shedinja L20` and `need` is the L12 and L20. Keying the
+    floor to L35 demands wilds above L23, which rejects **ROUTE111 (L19-22)** — the one
+    area reachable in that part of Hoenn — even though L19-22 is near-ideal for a L20
+    trainee. The bot then printed `no better area is available` and skipped prep entirely:
+    **167 times in one batch**, every one of them on ROUTE102's L3-4 grass.
+
+    ‼ ONLY THE FLOOR MOVES. `train_team` runs with SWAP-TRAIN on, so a STRONGER team-mate
+    does the fighting — `best_training_area`'s own `team_level` argument (winnability and
+    scoring) is correctly the team max, and keying THAT to the trainee would be a second
+    bug. This function answers a different question: "is somewhere worth walking to?"
+
+    Never drops below `local_max` — relocating to something no better than the patch we are
+    standing on is pure travel for nothing.
+    """
+    levels = [lv for lv in (trainee_levels or []) if lv is not None]
+    if not levels:
+        return local_max
+    return max(local_max, max(levels) - fodder_gap)
+
+
 def local_patch_is_fodder(local_max, team_max, fodder_level_gap, *,
                           best_available_max=None, rule: str = None) -> bool:
     """Is the LOCAL grass not worth grinding? PURE — no ROM, no emulator, no walking.
