@@ -1128,6 +1128,17 @@ class NormanCounterMode(BotMode):
     Env:
       NORMAN_MACHOP_LEVEL  level to inject (default 18 — what the current budget buys)
     Emits: [normancounter] RESULT level=<L> badge=<bool> detail=<...>
+
+    ‼ HOW TO READ A RUN THAT PRINTS NO RESULT LINE. A boss loss ends in a whiteout, and the
+    whiteout path calls `set_manual_mode()`, which CLEARS `context.controller_stack` — so
+    this generator is destroyed mid-flight and never reaches its own logging. That is not a
+    driver bug to chase; it is the documented shape of a loss. Read the verdict off the
+    no-progress dump instead, which says it plainly:
+
+        instr=BattleScript_LocalBattleLostEnd  bt='NICK whited out!'  bot_mode=Manual
+
+    A WIN prints the RESULT line with `badge=True`. So: RESULT line -> read it; no RESULT
+    line plus `whited out` -> the counter LOST at that level.
     """
 
     @staticmethod
