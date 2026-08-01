@@ -25,6 +25,34 @@ from modules.modes import BattleAction, BotMode
 from modules.battle_strategies import BattleStrategyUtil, TurnAction
 from modules.battle_strategies.catch import CatchStrategy
 from modules.battle_strategies.level_up import LevelUpLeadBattleStrategy
+from modules.battle_strategies.run_away import RunAwayStrategy
+
+
+class StoryFleeStrategy(RunAwayStrategy):
+    """Flee a WILD battle without tripping the post-battle lead rotation.
+
+    ‼ CRASHED A LIVE RUN (batch 20260726-052205 run03, fixed same day). Stock
+    `RunAwayStrategy.choose_new_lead_after_battle()` returns **False**, though it is
+    annotated `int | None`. The framework only ever drove that class from
+    `BattleListener.run_away_from_battle()`, which does NOT rotate leads, so the odd
+    return value was harmless and invisible. SURVIVAL MODE returns a flee strategy from
+    `on_battle_started` instead, which routes it through `BattleListener.fight()` — and
+    that path does:
+
+        if strategy.choose_new_lead_after_battle() is not None:
+            yield from self.rotate_lead_pokemon(...)
+
+    `False is not None`, so it rotated to party index `False`, and `RotatePokemon`
+    raised `RuntimeError: Cannot rotate Pokémon #False with itself` right after
+    "Got away safely!" — dropping the run to Manual with no controller on the stack.
+
+    Returning a proper `None` says "keep the current lead", which is what fleeing wants.
+    Done as a SUBCLASS rather than by editing the upstream file, so the framework's own
+    flee path keeps its existing behaviour exactly.
+    """
+
+    def choose_new_lead_after_battle(self) -> int | None:
+        return None
 
 
 class StoryCatchStrategy(CatchStrategy):
@@ -527,6 +555,29 @@ def _training_area_allowed(map_enum, tile, prereq) -> bool:
         return False
 
 
+#: Hop budget for COUNTER-CATCH candidates (`_counter_area_allowed`).
+#: ‼ 8, RAISED FROM 4 ON MEASUREMENT (2026-07-26). From the real pre-Norman anchor
+#: (`saves/prenorman_fodder_grind.ss1`, Route 102, party avg L27) every Fighting-counter
+#: map sits at 5-7 hops — FIERY_PATH 7, JAGGED_PASS 7, GRANITE_CAVE_1F 5 — so a bound of
+#: 4 admitted only the NEAREST one and excluded the cheap ones. That is the
+#: encounter-rate error again: a proximity proxy overriding measured cost.
+#: The arithmetic: reaching FIERY_PATH costs ~3 hops more walking than GRANITE_CAVE, and
+#: even at a generous ~5,000 frames per map crossing that is ~15,000 frames — against a
+#: **174,000-frame** difference in training cost (Makuhita 363,982 vs Machop 190,589).
+#: The filter was off by an order of magnitude against its own purpose.
+#: WHY 8 AND NOT MORE, measured from the same anchor: 8 admits FIERY_PATH/JAGGED_PASS (7)
+#: and MT_PYRE (8) while still excluding SAFARI_ZONE (10-11) — a paid, step-limited
+#: minigame area the bot cannot farm — and PACIFIDLOG (10 from ROUTE120), which is what
+#: the original bound existed to cut. Maps admitted from this anchor: 4 -> 52, 6 -> 123,
+#: 8 -> 175, 10 -> 226.
+#: Safe to loosen only because two other guards now exist: candidates are ranked by
+#: measured COST (so a far map must also be cheap to win), and `_training_unreachable`
+#: bounds a wrong YES to one wasted walk instead of the run.
+#: ‼ Travel cost is still NOT in the cost model — no measured frames-per-hop figure
+#: exists in this codebase. Add one and fold it in, then this bound can go away.
+COUNTER_MAX_HOPS = 8
+
+
 def _counter_area_allowed(map_enum, tile, prereq) -> bool:
     """`allow=` predicate for `counter_plan.find_counter_candidates`, used ONLY from
     `_boss_plan_is_hopeless`'s counter-catch wiring (KI-23 -> #24-counters).
@@ -537,7 +588,12 @@ def _counter_area_allowed(map_enum, tile, prereq) -> bool:
     unreachable (KI-24). `region_reach.is_map_reachable` answers reachability from the
     ROM's own MapConnections + warps instead, which is sound at region scale.
 
-    `max_hops=4` is a documented sanity FILTER, not a rank: measured hops from
+    ‼ `max_hops` RAISED 4 -> 8 (2026-07-26, measured — see `COUNTER_MAX_HOPS`). At 4 the
+    filter was excluding the CHEAP counters and admitting an expensive one purely because
+    it sat nearer, which is the encounter-rate mistake wearing a different hat.
+
+    The original note, still true about what the bound is FOR:
+    a documented sanity FILTER, not a rank: measured hops from
     ROUTE120 are Fortree 1, Route119 2, Lilycove 2, Route118 3, Mossdeep 4,
     Pacifidlog 10 — 4 keeps the same-landmass cluster and cuts the far-flung.
     Hop count must NOT be used to rank; `counter_plan`'s own criteria (type coverage
@@ -547,7 +603,33 @@ def _counter_area_allowed(map_enum, tile, prereq) -> bool:
     try:
         from modules.story import region_reach
 
-        return bool(region_reach.is_map_reachable(map_enum, max_hops=4))
+        allowed = bool(region_reach.is_map_reachable(map_enum, max_hops=COUNTER_MAX_HOPS))
+        if not allowed:
+            # ‼ KI-42. SAY WHY A CANDIDATE WAS DROPPED. Measured 2026-07-31: FIERY_PATH —
+            # the Machop that answers Norman, i.e. the ~72%-of-derails item — is EXACTLY 8
+            # hops from PETALBURG_CITY against a limit of 8. Zero margin. One extra hop and
+            # this predicate starts returning False, `best_huntable()` returns nothing, and
+            # the ladder reports the generic "no huntable counter candidate" with no hint
+            # that a distance bound is what did it. That is precisely the KI-24 failure
+            # shape: a false negative that gives no reason at all, invisible in every log.
+            # `why_unreachable` already distinguishes "reachable but N hops away (limit M)"
+            # from "no path" and from "needs Surf", so the reason costs one call on a path
+            # that has already decided to reject.
+            try:
+                from modules.console import console
+
+                reason = region_reach.why_unreachable(map_enum, max_hops=COUNTER_MAX_HOPS)
+                console.print(f"[dim]counter gate: {getattr(map_enum, 'name', map_enum)} "
+                              f"rejected — {reason}[/]")
+                from modules import debug_logger
+
+                debug_logger.event(
+                    f"counter gate rejected {getattr(map_enum, 'name', map_enum)}: {reason}",
+                    category="STORY",
+                )
+            except Exception:  # noqa: BLE001 - a diagnostic must never change the verdict
+                pass
+        return allowed
     except Exception:
         return False
 
@@ -615,6 +697,11 @@ def _training_area_heal_map() -> dict:
         # reachable from that tile.
         MapRSE.ROUTE111: PokemonCenter.FallarborTown,
         MapRSE.ROUTE112: PokemonCenter.LavaridgeTown,
+        # FIERY_PATH is a counter-hunting ground (Machop, the Norman answer). Its south
+        # door is Route 112 (11,36), so Lavaridge is the natural heal — and it is the same
+        # side `_CAVE_EXITS` surfaces the bot on, so the heal trip is a short walk rather
+        # than a trek around the mountain.
+        MapRSE.FIERY_PATH: PokemonCenter.LavaridgeTown,
         MapRSE.ROUTE113: PokemonCenter.FallarborTown,
         MapRSE.ROUTE114: PokemonCenter.FallarborTown,
         MapRSE.ROUTE115: PokemonCenter.RustboroCity,
@@ -629,6 +716,15 @@ def _training_area_heal_map() -> dict:
 
 
 class StoryMode(BotMode):
+    #: OPT IN to the battle-handler fault channel (#24-movelearn-recovery, 2026-07-25).
+    #: A sub-handler that gives up (e.g. an unanswerable move-learn offer) records the
+    #: fault via `modules.battle_fault` instead of raising across the controller stack
+    #: into `main_loop` — which would drop the run to Manual, outside our recovery. We
+    #: re-raise it inside run()'s try below, so it costs a DERAIL, not the whole run.
+    #: This attribute is the promise that we consume it; nothing else may set it
+    #: without also calling `take_pending_fault()` on every frame it holds control.
+    handles_battle_faults = True
+
     #: Pre-gym training only readies a battler that's already within this many levels
     #: of the target band; fresh catches further below are left to level organically
     #: rather than grinding them up via half-XP swap-training (user 2026-07-21).
@@ -666,6 +762,48 @@ class StoryMode(BotMode):
     #: than 41 whiteout cycles before we say so.
     PLATEAU_LOSS_THRESHOLD = 6
 
+    #: Defeats on ONE map (this run) after which wild battles there are fled rather than
+    #: fought — see the SURVIVAL MODE block in `on_battle_started`. 3, not 6: the boss
+    #: threshold can afford patience because a lost boss attempt still banks EXP (Gen 3
+    #: keeps mid-battle EXP through a whiteout), whereas a travel wipe banks almost
+    #: nothing and costs the whole walk back from the respawn Poké Center. Measured
+    #: worst case before this existed: **25 whiteouts on ROUTE110 in a single run**.
+    SURVIVAL_WHITEOUT_THRESHOLD = 3
+
+    #: Minimum EFFECTIVE power (base power x type effectiveness x STAB) for a move to
+    #: count as a real answer to a boss's ace type in `_boss_plan_is_hopeless`.
+    #: ‼ WITHOUT THIS THE DETECTOR IS POWER-BLIND AND SILENTLY DISABLES ITSELF ON
+    #: NORMAN (measured, night5 run3, 2026-07-25). Norman's team is all NORMAL, and the
+    #: only type super-effective against Normal is FIGHTING — so the party's sole
+    #: "answer" was **Rock Smash**, the 20-base-power HM the bot is REQUIRED to carry to
+    #: progress at all. 20 x 2.0 x 1.0 = 40: super-effective on paper, useless against a
+    #: L31 Slaking. The old `eff >= 2.0` test accepted it, declared the plan not
+    #: hopeless, and let the run make **27 losing attempts over 508,000 frames** with
+    #: KOs flat at 1-2 of 4 the entire time. The boss most likely to plateau was the one
+    #: the guard could never fire on.
+    #: ‼ RAISED 60 -> 75 on measured evidence (batch 20260726-052205 run05). 60 was
+    #: calibrated against Rock Smash on a NON-Fighting carrier (20 x 2.0 x 1.0 = 40) and
+    #: missed the STAB case: **Combusken is Fire/FIGHTING**, so its Rock Smash scores
+    #: 20 x 2.0 x 1.5 = **exactly 60** and passed on the boundary. The guard stayed
+    #: silent and that run took **21 Norman losses** — the same failure the threshold
+    #: exists to prevent, arriving through STAB instead of raw power.
+    #: The two measured points bracket it: 60 (Combusken + Rock Smash) demonstrably does
+    #: NOT beat Norman; 90 (Combusken + Double Kick) demonstrably does. 75 sits between
+    #: them and still keeps ordinary answers — a plain 40-power super-effective move
+    #: (80), Surf off a Water mon (95 x 2.0 x 1.5 = 285), Thunderbolt vs Winona (270).
+    #: ‼ Do NOT "fix" this by excluding HM moves categorically: Surf/Strength/Waterfall
+    #: are real attacking moves and are often the bot's best answer. Only Rock Smash and
+    #: Cut are weak enough to be the problem, and the power floor already handles them.
+    CREDIBLE_ANSWER_POWER = 75
+
+    #: How many distinct counter DESTINATIONS one ladder invocation may try before giving
+    #: up. Each rejected destination costs only a fail-fast navigation (~255 frames
+    #: measured), so a small fallback list is nearly free — and it is necessary: driven
+    #: navigation on 2026-07-30 showed the TOP huntable destination unreachable for two of
+    #: the three measured bosses. Bounded because the ladder must terminate; the expensive
+    #: failure (arrived, caught nothing) deliberately does NOT consume one of these.
+    COUNTER_HUNT_MAX_DESTINATIONS = 3
+
     @staticmethod
     def name() -> str:
         return "Story"
@@ -684,10 +822,42 @@ class StoryMode(BotMode):
 
     def __init__(self):
         super().__init__()
+        self.reset_per_run_state()
+
+    def reset_per_run_state(self) -> None:
+        """Clear every counter whose meaning is scoped to ONE playthrough.
+
+        ‼ WHY THIS IS A METHOD AND NOT JUST `__init__` (real failure, user's x4 bundle
+        `20260726-231412`). All of this state used to be assigned directly in `__init__`,
+        under a comment that claimed "Instance state, not module state, so ENDLESS RESET's
+        next run starts with a clean slate." **That was false.**
+        `StoryEndlessResetMode.run()` loops `yield from super().run()` on the SAME mode
+        object, so `__init__` runs once per BATCH — the counters accumulated across every
+        run of an overnight batch. Two measured consequences:
+
+          * `_rival_attempts` (cap 3) reached its cap after 3 runs, so **run 4 onward died
+            at the Rustboro rival without ever fighting it** — P1 run 8's debug log contains
+            ZERO `BattleOutcome.Lost` yet the run ended "couldn't beat the Rustboro rival in
+            3 tries". It killed 16 of 20 P1 runs, 6 of 9 P2 runs, 5 of 8 P3 runs.
+          * `_defeat_counts` carried each run's losses into the next, so the "give up on this
+            boss" threshold tripped on borrowed losses: MT_CHIMNEY went `#7`(run 1) → `#8`
+            (run 2), FORTREE_GYM `#8`(run 1) → `#9`(run 3), and P4 run 2 derailed as
+            "6 losses" to Wattson after only THREE real losses that run.
+
+        PREVENTION RULE: per-run state goes in here, never in `__init__`, and the endless
+        loop calls this at the top of every run. A comment asserting a lifetime is not a
+        mechanism that enforces it.
+        """
         # DEFEAT RECOVERY (user directive 2026-07-21). Consecutive losses are counted
         # per LOCATION (map) so repeated faints at the same obstacle mean a power/level
-        # problem → trigger a retrain. These live on the instance and survive whiteout
-        # restarts because run() loops in place (it does NOT bounce through Manual).
+        # problem → trigger a retrain. These survive whiteout restarts within a run,
+        # because run() loops in place (it does NOT bounce through Manual).
+        # Training grounds proven unreachable FROM a given standing map, this run
+        # (#24-regionreach, 2026-07-25). Keyed (here_map, target_map, tile) because
+        # reachability is directional and positional: Route 111's grass is genuinely
+        # reachable from Fallarbor and genuinely not from Mauville, so a flat blacklist
+        # would throw away a good area for the rest of the run.
+        self._training_unreachable: set = set()
         self._defeat_counts: dict = {}
         self._loss_ko_history: dict = {}  # map key -> [(seq, opponent KOs) per lost attempt]
         self._loss_seq: int = 0
@@ -695,9 +865,32 @@ class StoryMode(BotMode):
         self._last_defeat_key = None
         self._derails = 0  # consecutive non-whiteout derails (self-correct before Manual)
         self._last_derail_sig = None  # progress fingerprint at the last derail (see run())
+        # Boss/rival attempt caps. These are PER-RUN budgets: a thin team that cannot win
+        # stops cleanly instead of looping forever, but the NEXT run must start fresh.
+        self._rival_attempts = 0
+        # Set only by the genuine end-of-built-content return, so the endless loop can tell
+        # a real completion from a give-up — both hand to Manual and return normally.
+        self._reached_end_of_content = False
+        # Nudge debounce for the Ki15 wedge (see run()); positional, so per-run.
+        self._ki15_nudge_stable = 0
+        self._ki15_nudge_pos = None
         # Organic team-building (user directive 2026-07-21): catch NEW species while
         # travelling to Gym 1 until the party has this many members (starter + helpers).
         self._catch_team_target = 4
+        # #24-counters phase 2: boss key -> what the counter hunt did, ONE entry per boss
+        # per run. This dict IS the bound (see `_counter_ladder`) — a retry or frame
+        # budget cannot bound it, because `_prepare_for_fight` is re-entered by the run
+        # loop after every lost attempt, which turns any per-call budget into a per-attempt
+        # one. Per-RUN by construction, so the next run gets a fresh chance.
+        self._counter_hunts: dict = {}
+        # A hunt that was interrupted mid-flight (whiteout, derail) must not leave the
+        # catch-on-sight targets armed for the rest of the run.
+        try:
+            from modules.story import counter_hunt as _ch
+
+            _ch.disarm()
+        except Exception:
+            pass
 
     def on_battle_ended(self, outcome) -> None:
         from modules.battle_state import BattleOutcome
@@ -1020,14 +1213,29 @@ class StoryMode(BotMode):
             if not battlers:
                 return False, []
             for i in battlers:
+                # STAB needs the carrier's own types; the decision repros pass
+                # lightweight stand-ins with no `species`, so treat that as "no STAB"
+                # rather than letting an AttributeError abort the whole diagnosis.
+                try:
+                    own_types = tuple(party[i].species.types)
+                except Exception:
+                    own_types = ()
                 for learned in party[i].moves:
                     if learned is None or learned.pp == 0 or learned.move.base_power == 0:
                         continue
                     eff = 1.0
                     for t in ace_types:
                         eff *= learned.move.type.get_effectiveness_against(t)
-                    if eff >= 2.0:
-                        return False, []  # we DO have an answer — not hopeless
+                    if eff < 2.0:
+                        continue
+                    # ‼ SUPER-EFFECTIVE IS NOT THE SAME AS SUFFICIENT. Weight by real
+                    # power before accepting it as an answer — a 20-power HM is 2.0x
+                    # against Normal and still loses to Slaking 27 times running
+                    # (see CREDIBLE_ANSWER_POWER). Being generous here does not make
+                    # the bot try harder; it makes the bot never notice it is stuck.
+                    stab = 1.5 if learned.move.type in own_types else 1.0
+                    if learned.move.base_power * eff * stab >= self.CREDIBLE_ANSWER_POWER:
+                        return False, []  # we DO have a credible answer — not hopeless
 
             # No answer in the party: work out what WOULD be super-effective by asking
             # the type chart directly (never hardcode a type-matchup table).
@@ -1039,8 +1247,158 @@ class StoryMode(BotMode):
                 if eff >= 2.0:
                     needed.append(atk_name)
             return True, needed
-        except Exception:
+        except Exception as error:
+            # ‼ THIS `except` FAILS TOWARD "KEEP GRINDING FOREVER". Returning
+            # "not hopeless" is the safe answer for a crash, but it is also exactly
+            # what a WORKING detector returns — so a bug in here is indistinguishable
+            # from a healthy boss plan and costs ~19,000 frames per losing attempt,
+            # silently, forever. Caught once already: a stand-in `self` missing a class
+            # constant swallowed an AttributeError and disabled the whole diagnosis.
+            # Never let it be silent again.
+            console.print(
+                f"[yellow]Story: boss-plateau detector errored ({error!r}) — treating "
+                f"the plan as viable, but this guard is NOT protecting the run.[/]"
+            )
             return False, []
+
+    def _counter_ladder(self, cfg: dict, losses: int, needed: list) -> Generator:
+        """#24-counters phase 2 — ACT on a hopeless boss diagnosis. Yields as it works;
+        returns True if it changed the party's answer to this boss, False to fall through
+        to the honest terminal raise.
+
+        THE BOUND, and why it is shaped this way. The hunt runs **once per boss per run**.
+        That is not timidity — it is the only bound that actually terminates:
+
+          * A retry budget would not work. The chain fires from inside `_prepare_for_fight`,
+            which the run loop re-enters after every lost attempt, so "N tries" becomes N
+            per re-entry, i.e. unbounded. (KI-34 burned 23.9M frames on exactly this shape:
+            a bounded loop re-entered by its dispatcher is still infinite.)
+          * A frame budget would not work either, for the same reason.
+
+        So the bound is on the OUTCOME and recorded in per-run state: this boss gets one
+        hunt, and whatever happens, the next hopeless verdict here falls straight through
+        to the raise. `14-AGENT-PLAYBOOK.md` rule 3.
+
+        ‼ The catch is only half the job — see `counter_hunt.train_counter`. Catching a
+        L15 Machop for a L30 team and leaving it untrained would make
+        `_boss_plan_is_hopeless` answer "not hopeless" for ever after (the party now has a
+        Fighting move), converting this bounded stop into an unbounded loop.
+        """
+        from modules.story import counter_hunt, counter_plan
+        from modules.story.early_game import UnreachableDestinationError
+
+        key = tuple(cfg["keys"])[0] if cfg.get("keys") else cfg.get("name", "boss")
+        if key in self._counter_hunts:
+            console.print(
+                f"[yellow]Story: already hunted a counter for {cfg.get('name', 'this boss')} "
+                f"this run ({self._counter_hunts[key]}) — not trying again; stopping honestly.[/]"
+            )
+            return False
+        # Record the attempt BEFORE doing any of it. If the hunt derails mid-way (a
+        # whiteout, a navigation failure), the run recovers and re-enters here — and
+        # without this the "once per run" bound would never be written down.
+        self._counter_hunts[key] = "started"
+
+        try:
+            candidates = counter_plan.find_counter_candidates(
+                needed, allow=_counter_area_allowed, max_results=10
+            )
+        except Exception as error:
+            console.print(f"[yellow]Story: counter planner failed ({error!r}) — stopping honestly.[/]")
+            self._counter_hunts[key] = "planner failed"
+            return False
+
+        # A resource wall applies to EVERY destination, so it ends the ladder outright —
+        # walking somewhere else with a full party or one ball is pure waste.
+        resource = counter_hunt.resource_blocker()
+        if resource is not None:
+            console.print(f"[yellow]Story: cannot hunt a counter — {resource}. Stopping honestly.[/]")
+            self._counter_hunts[key] = f"blocked: {resource}"
+            return False
+
+        # ‼ huntable_candidates, NEVER candidates[0]. Rank 1 for Norman is a Victory Road
+        # Hariyama L38-42 — the cost model prices a wild already above the team at ~0 to
+        # train, so it ranks endgame maps as CHEAPEST. See counter_plan.huntable_candidates.
+        #
+        # ‼ AND NOT JUST THE BEST ONE EITHER. Measured 2026-07-30 by driving the real
+        # navigation from real saves: Wattson's top huntable destination (ROUTE111 (25,55),
+        # north of the Go-Goggles desert) and Winona's (ROUTE118 (29,15), the KI-24
+        # dual-elevation-bridge case) BOTH fail to path, in 255 frames, while Norman's
+        # FIERY_PATH (18,19) arrives in 2,922. Taking only the best meant two of three
+        # bosses burned their one hunt on a place the bot cannot walk to.
+        shortlist = counter_plan.huntable_candidates(candidates)[: self.COUNTER_HUNT_MAX_DESTINATIONS]
+        if not shortlist:
+            blocker = counter_hunt.destination_blocker(None)
+            console.print(f"[yellow]Story: cannot hunt a counter — {blocker}. Stopping honestly.[/]")
+            self._counter_hunts[key] = f"blocked: {blocker}"
+            return False
+
+        attempts = []
+        for candidate in shortlist:
+            map_enum, tile = candidate["map_enum"], candidate["hunt_tile"]
+            # Already proven unreachable from where we stand, this run (#24-regionreach).
+            if self._training_blocked(map_enum, tile):
+                attempts.append(f"{candidate['species_name']}@{map_enum.name}: known-unreachable")
+                continue
+            try:
+                slot = yield from counter_hunt.hunt(candidate, needed)
+            except UnreachableDestinationError as error:
+                # ‼ A NAVIGATION failure is CHEAP (255 frames, fail-fast) and specific to
+                # ONE place, so it earns a fallback rather than ending the ladder. Record
+                # it so nothing re-walks it later this run.
+                self._note_training_unreachable(map_enum, tile)
+                attempts.append(f"{candidate['species_name']}@{map_enum.name}: unreachable")
+                console.print(
+                    f"[yellow]Story: {map_enum.name} is not reachable from here "
+                    f"({error}) — trying the next counter destination.[/]"
+                )
+                continue
+            if slot is None:
+                # ‼ ARRIVED AND CAUGHT NOTHING IS NOT THE SAME FAILURE, and must NOT
+                # fall through to another destination. It already cost a full
+                # HUNT_SPIN_BUDGET_FRAMES (120,000); doing it again somewhere else would
+                # turn a bounded ladder into a multi-hundred-thousand-frame excursion.
+                # Cheap failures cascade, expensive ones do not.
+                attempts.append(f"{candidate['species_name']}@{map_enum.name}: none found")
+                self._counter_hunts[key] = "; ".join(attempts)
+                return False
+
+            self._counter_hunts[key] = f"caught {candidate['species_name']}"
+            yield from counter_hunt.train_counter(slot, cfg)
+            return True
+
+        self._counter_hunts[key] = "; ".join(attempts) or "no destination attempted"
+        console.print(
+            f"[yellow]Story: no counter destination worked ({self._counter_hunts[key]}) "
+            f"— stopping honestly.[/]"
+        )
+        return False
+
+    def _here_map(self):
+        """The map we are standing on, as a (group, number) tuple — None if unreadable."""
+        try:
+            from modules.map import get_map_data_for_current_position
+
+            return tuple(get_map_data_for_current_position().map_group_and_number)
+        except Exception:
+            return None
+
+    def _note_training_unreachable(self, map_enum, tile) -> None:
+        """Record that `tile` on `map_enum` could NOT be reached from where we stand."""
+        here = self._here_map()
+        if here is None:
+            return  # can't key it safely — better to retry later than to blacklist wrongly
+        self._training_unreachable.add((here, tuple(map_enum.value), tuple(tile)))
+        console.print(
+            f"[yellow]Story: {map_enum.name} {tuple(tile)} is not reachable from here — "
+            f"dropping it as a training option for the rest of this run.[/]"
+        )
+
+    def _training_blocked(self, map_enum, tile) -> bool:
+        here = self._here_map()
+        if here is None:
+            return False
+        return (here, tuple(map_enum.value), tuple(tile)) in self._training_unreachable
 
     def _prepare_for_fight(self, cfg: dict) -> Generator:
         """Before a major fight, train the team to a sensible level (user directive
@@ -1051,7 +1409,7 @@ class StoryMode(BotMode):
         import random
 
         from modules.pokemon_party import get_party
-        from modules.story.early_game import train_team
+        from modules.story.early_game import train_team, UnreachableDestinationError
 
         losses = max((self._defeat_counts.get(k, 0) for k in cfg["keys"]), default=0)
         lo, hi = cfg["band"]
@@ -1147,7 +1505,20 @@ class StoryMode(BotMode):
                 if hopeless:
                     from modules.modes import BotModeError
 
-                    raise BotModeError(_counter_catch_message(cfg, losses, needed))
+                    # #24-counters PHASE 2: try to ACT on the diagnosis before stopping.
+                    # Bounded to ONE attempt per boss per run (see `_counter_ladder`), and
+                    # it falls through to the SAME raise below on every failure path.
+                    acted = yield from self._counter_ladder(cfg, losses, needed)
+                    if not acted:
+                        # ‼ NEVER DELETE THIS RAISE. Silent non-progress is worse than an
+                        # honest stop: before phase 1 existed this boss looped for ever,
+                        # and the whole value of the diagnosis is that it ENDS the run
+                        # with the reason attached.
+                        raise BotModeError(_counter_catch_message(cfg, losses, needed))
+                    # A rung fired. Re-prepare from the top so the new party member is
+                    # taken into account by the sufficiency/boss-mode logic rather than
+                    # by this stale pass — the party is not what it was when we entered.
+                    return
                 boss_mode = True
                 target = team_max + 1  # light top-up only — the boss battle is the trainer
                 console.print(
@@ -1220,7 +1591,38 @@ class StoryMode(BotMode):
             levels_now = [p.level for p in party if p is not None and not p.is_egg]
             team_max_now = max(levels_now, default=target)
             local_max = _wild_land_max(grass_map)
-            if local_max is not None and local_max + self.FODDER_LEVEL_GAP < team_max_now:
+            # ‼ THE FODDER TEST IS NOW A PURE FUNCTION (KI-31, 2026-07-29).
+            # `training_areas.local_patch_is_fodder` holds BOTH rules behind
+            # `FODDER_RULE`, which defaults to "legacy" — the expression that used to be
+            # inline here, unchanged. Under the default this block behaves exactly as
+            # before, including doing NO extra area lookup. The alternative "xp_rate" rule
+            # fixes a measured hole (teams below ~L17 can never relocate, because
+            # 5 + 12 = 17) but moves early-game prep that `repro_fodder_grass.py` records
+            # as proven-good — and that repro needs a real mgba, so it cannot be validated
+            # on the dev box. Flip the flag only alongside an A/B on the batch machine.
+            _allow = lambda m, t, p: (  # noqa: E731 - shared by the probe and the pick
+                _training_area_allowed(m, t, p) and not self._training_blocked(m, t)
+            )
+            _is_fodder = False
+            if local_max is not None:
+                from modules.story import training_areas as _ta
+
+                _probe_hi = None
+                if _ta.FODDER_RULE == "xp_rate":
+                    # Only this rule needs to know the alternative BEFORE deciding, so the
+                    # legacy path keeps its original single-lookup shape.
+                    try:
+                        _probe = _ta.best_training_area(
+                            team_max_now, min_wild_max=local_max, allow=_allow
+                        )
+                        _probe_hi = _probe[2][1] if _probe else None
+                    except Exception:  # noqa: BLE001 - a probe failure must not block prep
+                        _probe_hi = None
+                _is_fodder = _ta.local_patch_is_fodder(
+                    local_max, team_max_now, self.FODDER_LEVEL_GAP,
+                    best_available_max=_probe_hi,
+                )
+            if _is_fodder:
                 better = None
                 try:
                     from modules.story.training_areas import best_training_area
@@ -1228,8 +1630,12 @@ class StoryMode(BotMode):
                     # The replacement must beat the local patch AND not be fodder itself
                     # — otherwise we'd walk somewhere new to grind equally-worthless xp.
                     floor = max(local_max, team_max_now - self.FODDER_LEVEL_GAP)
+                    # Skip anything this run has ALREADY walked into a wall trying to
+                    # reach from where we now stand — see `_training_unreachable`.
                     better = best_training_area(
-                        team_max_now, min_wild_max=floor, allow=_training_area_allowed
+                        team_max_now,
+                        min_wild_max=floor,
+                        allow=_allow,
                     )
                 except Exception:
                     better = None
@@ -1238,26 +1644,44 @@ class StoryMode(BotMode):
                     local_name = grass_map.name
                     grass_map, grass_tile = b_map, b_tile
                     heal_at_center = _training_area_heal_map().get(b_map, cfg["heal"])
-                    console.print(
-                        f"[bold cyan]Story: {local_name} (max L{local_max}) is fodder for a "
-                        f"L{team_max_now} team — relocating to {b_map.name} "
-                        f"(L{b_lo}-{b_hi}) to train for real.[/]"
-                    )
+                    _msg = (f"Story: {local_name} (max L{local_max}) is fodder for a "
+                            f"L{team_max_now} team — relocating to {b_map.name} "
+                            f"(L{b_lo}-{b_hi}) to train for real. [rule={_ta.FODDER_RULE}]")
+                    console.print(f"[bold cyan]{_msg}[/]")
+                    # ‼ ALSO INTO THE DEBUG LOG (2026-07-29). This decision was `console.print`
+                    # ONLY, so it never reached a debug log — and a debug log is what gets
+                    # shared for review. It made the KI-31 xp_rate A/B unevaluable from a
+                    # single-lane run: the effect of the experiment was invisible in the one
+                    # artefact describing the run. (x4 bundles ship stdout too, which is why
+                    # the control arm was still measurable there — but a debug log should not
+                    # depend on that.)
+                    _log_story_event(_msg)
                 else:
-                    console.print(
-                        f"[yellow]Story: local grass (max L{local_max}) is fodder for a "
-                        f"L{team_max_now} team and no better area is available — skipping "
-                        f"the grind; the boss attempt itself is the training.[/]"
-                    )
+                    _msg = (f"Story: local grass (max L{local_max}) is fodder for a "
+                            f"L{team_max_now} team and no better area is available — skipping "
+                            f"the grind; the boss attempt itself is the training. "
+                            f"[rule={_ta.FODDER_RULE}]")
+                    console.print(f"[yellow]{_msg}[/]")
+                    _log_story_event(_msg)
                     need = []
             if need:
                 console.print(
                     f"[cyan]Story: prepping — training {len(need)} battler(s) to Lv {target} "
                     f"in {grass_map.name} (fresh low catches left to level organically).[/]"
                 )
-                yield from train_team(
-                    target, slots=to_train, grass=(grass_map, grass_tile), heal_center=heal_at_center
-                )
+                try:
+                    yield from train_team(
+                        target, slots=to_train, grass=(grass_map, grass_tile), heal_center=heal_at_center
+                    )
+                except UnreachableDestinationError:
+                    # The reachability oracle said yes and the map disagreed. Remember it
+                    # so the next pick differs, THEN re-raise so the normal derail recovery
+                    # still runs. Without the memory this is a deterministic death loop:
+                    # re-running `_play` re-picks the identical unreachable tile every
+                    # derail until the budget drops the run to Manual (2/5 runs, batch
+                    # 20260725-194810, Route 111 (25,55) from Mauville).
+                    self._note_training_unreachable(grass_map, grass_tile)
+                    raise
 
     def on_battle_started(self, encounter):
         # Story battles (the first Birch battle, training, the rival) are meant
@@ -1330,6 +1754,87 @@ class StoryMode(BotMode):
                     return StoryCatchStrategy()
         except Exception:
             pass
+        # COUNTER-CATCH HUNT (#24-counters phase 2): while `counter_hunt.hunt` is spinning
+        # for the species that answers a boss we cannot beat, catch it on sight. Deliberate
+        # clone of the HM branch above — same gates (party room, a SPARE ball, not a shiny),
+        # same failure mode if they are skipped.
+        try:
+            from modules.story import counter_hunt as _chunt
+
+            if (
+                _chunt.COUNTER_CATCH_TARGET_DEX
+                and encounter is not None
+                and not getattr(encounter, "is_shiny", False)
+            ):
+                from modules.items import get_item_bag
+                from modules.pokemon_party import get_party as _gp_c
+
+                sp = getattr(getattr(encounter, "pokemon", None), "species", None)
+                if (
+                    sp is not None
+                    and sp.national_dex_number in _chunt.COUNTER_CATCH_TARGET_DEX
+                    and len([m for m in _gp_c() if m is not None]) < 6
+                    and sum(sl.quantity for sl in get_item_bag().poke_balls) > 1
+                ):
+                    # ‼ LOCAL IMPORT REQUIRED — the same trap that silently ate the HM
+                    # branch and survival mode (08-MISTAKES 2026-07-26, three times in one
+                    # day). Other branches in this method import `console` locally, which
+                    # makes the name function-local for the WHOLE method, so touching the
+                    # module-level one here is an UnboundLocalError that the `except` below
+                    # would swallow — the catch would simply never happen, silently.
+                    from modules.console import console
+
+                    console.print(
+                        f"[bold green]Story: catching {sp.name} — it is the type counter "
+                        f"this boss needs![/]"
+                    )
+                    return StoryCatchStrategy()
+        except Exception:
+            pass
+        # ‼ SURVIVAL MODE (#24-whiteout, from live batch 20260725-194810). WILD battles
+        # on a map that has already wiped us repeatedly stop being an XP opportunity and
+        # become the thing to escape. run01 whited out **25 times on ROUTE110** — respawn
+        # in Slateport, walk back north, wipe again — and nothing ever noticed, because
+        # the default `LevelUpTravelBattleStrategy` fights every wild to level the lead.
+        # Its own docstring says it "flees only at low HP, which the training loop covers
+        # by healing" — but this is a TRAVEL leg, where no training loop and therefore no
+        # healing exists, so HP only ever goes down across consecutive encounters.
+        #
+        # Scope is deliberately narrow:
+        #   * WILD only (`encounter is not None`) — a trainer battle cannot be fled, and
+        #     the boss/gym re-attempt path must stay exactly as it is.
+        #   * NOT during `train_team` — there the swap strategy plus its heal loop are the
+        #     correct answer, and fleeing would starve the grind it was sent to do.
+        #   * Threshold is per-MAP defeats this run, so it cannot fire on a first bad
+        #     encounter; it takes a demonstrated pattern.
+        try:
+            from modules.story.early_game import swap_train_active
+
+            if (
+                encounter is not None
+                and not swap_train_active()
+                and self._defeat_counts.get(self._location_key(), 0)
+                >= self.SURVIVAL_WHITEOUT_THRESHOLD
+            ):
+                # ‼ StoryFleeStrategy, NOT the stock RunAwayStrategy — the stock one
+                # returns False from choose_new_lead_after_battle(), which crashed a
+                # live run through fight()'s rotation path. See the class docstring.
+                # ‼ LOCAL IMPORT REQUIRED — same trap as the HM branch above, and it
+                # caught this block too (2026-07-25): other branches in this method
+                # import `console` locally, which makes the name function-local for the
+                # WHOLE method, so touching the module-level one here is an
+                # UnboundLocalError that the `except` below silently ate. The repro
+                # showed survival mode simply "not firing"; nothing was logged.
+                from modules.console import console
+
+                console.print(
+                    f"[bold yellow]Story: {self._defeat_counts.get(self._location_key(), 0)} "
+                    f"defeats on this map already — fleeing wild battles to get through "
+                    f"instead of levelling into another whiteout.[/]"
+                )
+                return StoryFleeStrategy()
+        except Exception:
+            pass
         # PRE-GYM-1 CATCHING (user directive 2026-07-21): build an organic team by
         # catching NEW species (never a dup) while travelling to the first gym.
         try:
@@ -1370,6 +1875,10 @@ class StoryMode(BotMode):
         from modules.modes import BotModeError
         from modules.story.early_game import set_story_abort, exit_building_after_whiteout
         from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
+        from modules.battle_fault import take_pending_fault, clear_pending_fault
+
+        # Never inherit a fault recorded just before this mode started.
+        clear_pending_fault()
 
         recoveries = 0
         while True:
@@ -1389,6 +1898,20 @@ class StoryMode(BotMode):
                 _stall_sig = None
                 _stall_frames = 0
                 while True:
+                    # RECOVERABLE BATTLE FAULT (#24-movelearn-recovery, 2026-07-25).
+                    # The battle handler runs as a SIBLING generator on the controller
+                    # stack, so an error it raises goes straight to main_loop → Manual
+                    # and never reaches the `except BotModeError` below. Instead it
+                    # parks the reason in `battle_fault`; we claim it HERE, inside the
+                    # try, so a battle we cannot finish costs one derail (with the
+                    # normal B-ride/re-orient/resume) instead of the entire run.
+                    _fault = take_pending_fault()
+                    if _fault is not None:
+                        try:
+                            _play_gen.close()
+                        except Exception:
+                            pass
+                        raise BotModeError(f"Story: battle handler gave up — {_fault}")
                     try:
                         next(_play_gen)
                     except StopIteration:
@@ -1900,7 +2423,11 @@ class StoryMode(BotMode):
                 return False
 
         if not _rustboro_rival_resolved():
-            self._rival_attempts = getattr(self, "_rival_attempts", 0) + 1
+            # PER-RUN budget — `reset_per_run_state()` zeroes this at every run boundary.
+            # It used to be a `getattr(self, ..., 0) + 1` on state that was only ever
+            # initialised in `__init__`, which is why an endless batch went permanently
+            # over cap on run 4 and never fought this rival again.
+            self._rival_attempts += 1
             if self._rival_attempts > self.RIVAL_MAX_ATTEMPTS:
                 context.message = (
                     f"Story: couldn't beat the Rustboro rival in {self.RIVAL_MAX_ATTEMPTS} tries "
@@ -2441,8 +2968,85 @@ class StoryMode(BotMode):
             "NEXT (WIP): Mt. Pyre and the Magma hideout. Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
+        # ‼ Mark a GENUINE completion. Both this path and the give-up paths call
+        # `set_manual_mode()` and return normally, so the endless loop cannot tell them
+        # apart from the outside — and without this flag it would relabel real successes
+        # as "stopped" (P2 run 1 of bundle `20260726-231412` reached exactly here and
+        # earned the Feather Badge).
+        self._reached_end_of_content = True
         context.set_manual_mode()
         return
+
+
+def _log_story_event(message: str, category: str = "STORY") -> None:
+    """Mirror a console decision into the DEBUG LOG.
+
+    ‼ `console.print` and `modules/debug_logger.py` are SEPARATE STREAMS — the debug logger
+    never sees console output. Any decision that only reaches the console is invisible in the
+    artefact people actually share for review. Bitten three times now: the training-relocation
+    rule banner, the relocation decision itself, and the after-faint chooser's filter state.
+    If a decision matters to a reviewer, it goes through here as well.
+    """
+    try:
+        from modules import debug_logger
+
+        debug_logger.event(message, category=category)
+    except Exception:  # noqa: BLE001 - logging must never end a run
+        pass
+
+
+#: Set to "0" to leave emulation speed/video exactly as the GUI or CLI configured them.
+#: Anything else (or unset) applies the debug-run config below.
+_TURBO_ENV = "POKEBOT_STORY_DEBUG_TURBO"
+
+
+def _apply_debug_emulation_config() -> None:
+    """Give a SINGLE-LANE debug Story run the same emulation config an x4 lane gets.
+
+    ‼ WHY (user directive 2026-07-29): the user cannot run ENDLESS LOOP x4 on their work
+    machine — it lacks the power for four emulators — but x4 lanes are configured far better
+    for test runs than a hand-launched single bot, and they get there automatically:
+
+        modules/endless_x4.py:160   "-s", "0",   # unthrottled, as requested
+        modules/gui/tile_child.py:84  context.video = True  # REQUIRED
+
+    A hand-launched debug run inherited whatever the GUI happened to have — the
+    `20260729-122709` log shows `speed=1 video=True`, i.e. throttled, which made a
+    2.78M-frame run take hours. So the debug modes now configure themselves.
+
+    ‼ VIDEO IS FORCED **ON**, AND THAT IS DELIBERATE — it is what makes the FAITHFUL path
+    work. The PokéNav Match-Call tutorial only advances with the renderer on; run
+    `20260729-122709` (video=True) played it faithfully with no state-write fallback, while
+    the user's earlier video-off runs fell back 8 times out of 9.
+
+    ‼ THIS SUPERSEDES the 2026-07-26 "SPEED ONLY — NEVER TOUCH `context.video`" directive,
+    and the distinction matters. That rule was written because the endless loop used to
+    CAPTURE video at batch start and RE-PIN it every run — so a batch begun with video off
+    kept it off for ever, silently degrading the faithful path. The harm was PINNING TO AN
+    ARBITRARY VALUE, not writing the field. Forcing it ON, once, is the opposite: it is the
+    value the faithful path requires, and it is what x4 already does.
+    Ruling recorded in `06-DECISIONS-LOG.md` 2026-07-29.
+
+    Escape hatch: `POKEBOT_STORY_DEBUG_TURBO=0` leaves both settings untouched. The resulting
+    values are printed in every debug log's RUN HEADER (`emulation: speed=… video=…`), so
+    there is never any doubt about what was applied.
+    """
+    import os
+
+    from modules.console import console
+
+    if os.environ.get(_TURBO_ENV, "1").strip().lower() in ("0", "false", "no", "off"):
+        console.print(f"[dim]Story (DEBUG): {_TURBO_ENV}=0 — leaving speed/video as configured.[/]")
+        return
+    try:
+        if context.emulation_speed != 0:
+            context.emulation_speed = 0
+        if not context.video:
+            context.video = True
+        console.print("[dim]Story (DEBUG): emulation set to unthrottled + video ON "
+                      "(matches an x4 lane; POKEBOT_STORY_DEBUG_TURBO=0 to opt out).[/]")
+    except Exception:  # noqa: BLE001 - never let a display setting stop a run
+        pass
 
 
 class StoryDebugMode(StoryMode):
@@ -2456,6 +3060,7 @@ class StoryDebugMode(StoryMode):
         return "Story (DEBUG)"
 
     def run(self):
+        _apply_debug_emulation_config()
         try:
             from modules import debug_logger
             from modules.console import console
@@ -2486,6 +3091,7 @@ class StoryDebugResetMode(StoryMode):
         from modules.modes.util.sleep import wait_for_n_frames
         from modules.tasks import task_is_active
 
+        _apply_debug_emulation_config()
         try:
             from modules import debug_logger
 
@@ -2534,6 +3140,12 @@ class StoryDebugResetMode(StoryMode):
 #: 10 so picking the mode straight from the dropdown still does something sensible.
 ENDLESS_RESET_TARGET = 10
 
+#: How many runs of the CURRENT batch have FINISHED. Read across the process boundary by
+#: ENDLESS LOOP x4 (`modules/gui/tile_child.py`) so each tile can show its lane's run count
+#: — a lane's progress is otherwise invisible from the dashboard, which has no access to a
+#: child's `context`. Reset at batch start; purely informational, never a control input.
+ENDLESS_RESET_COMPLETED = 0
+
 
 class StoryEndlessResetMode(StoryDebugResetMode):
     """"Story (ENDLESS RESET)" (user request 2026-07-25): chained DEBUG-RESET runs, IN-PROCESS.
@@ -2559,21 +3171,110 @@ class StoryEndlessResetMode(StoryDebugResetMode):
       * a per-run outcome line, so the console shows progress without opening a log.
     """
 
-    #: Hard per-run frame cap. Deliberately generous — the deepest real run to date reached the
-    #: end of built content in ~2.24M frames, so this is ~1.5x headroom and fires only on a
-    #: genuine wedge.
-    MAX_FRAMES_PER_RUN = 3_500_000
+    #: Hard per-run frame cap, ENFORCED DURING the run (see `_run_with_frame_budget`).
+    #:
+    #: ‼ RAISED 3.5M -> 5M on 2026-07-29 (KI-35) BECAUSE IT WAS ABOUT TO KILL GOOD RUNS.
+    #: The old value came with the note "the deepest real run to date reached the end of built
+    #: content in ~2.24M frames, so this is ~1.5x headroom". Runs have since got much longer:
+    #:     20260729-151635  3,058,007 frames — COMPLETED (six leaders incl. Winona, 462 wins)
+    #:     20260727 bundle  3,117,110 / 3,063,506 / 2,946,810 / 2,932,778 — near-complete runs
+    #: So a SUCCESSFUL run was using 87% of the cap and the real headroom was 1.14x, not 1.5x.
+    #: One unluckier run — a few more heal round trips — and the budget would have terminated a
+    #: winning run and reported it as wedged, throwing away exactly the data it exists to
+    #: protect. 5M restores ~1.6x over the deepest observed run (3.12M).
+    #:
+    #: WHY RUNS GREW, measured in the same log: **78 heal round trips in one run**
+    #: (Route 116<->Rustboro x34, Dewford<->Granite Cave x29, Route 117<->Mauville x15). With no
+    #: potion layer every HP dip is a full Poké Center walk — `#24-provisions`. Expect to raise
+    #: this again as more content is built, and re-derive it from the deepest COMPLETED run
+    #: rather than guessing.
+    #:
+    #: ‼ Raising it is cheap NOW in a way it was not before: since KI-32, an in-battle wedge
+    #: produces a STUCK dump (with the generator stack) after 18,000 frames, so the frame cap is
+    #: no longer the only thing that notices a hang — it is just the thing that ENDS one. A
+    #: wedge is diagnosed ~270x sooner than the cap fires.
+    MAX_FRAMES_PER_RUN = 5_000_000
 
     @staticmethod
     def name() -> str:
         return "Story (ENDLESS RESET)"
 
+    #: How often (in yields ~= frames) to re-check the per-run frame budget. The check is a
+    #: single memory read; sampling keeps it free even at unthrottled speed.
+    BUDGET_CHECK_INTERVAL = 2048
+
+    def _run_with_frame_budget(self, inner, start_frame: int):
+        """Drive the story generator, ENFORCING `MAX_FRAMES_PER_RUN` while it runs.
+
+        ‼ WHY THIS EXISTS (user's x4 bundle `20260727-063751`). `MAX_FRAMES_PER_RUN` was
+        only evaluated AFTER `super().run()` returned, so it could report a runaway run but
+        never stop one — despite its own docstring promising "a run that neither finishes
+        nor raises cannot hold the batch forever". In that bundle three of four lanes did
+        exactly that, and the batch lost more than half its wall-clock to them:
+
+          * P3 run 1 — HARD HUNG at the Weather Institute: `state=3 controllable=False`,
+            position frozen at ROUTE 119(32,1) (10, 10), for **27 million frames / ~6.5 h**.
+            Not one STUCK dump fired in that whole stretch, so the global watchdog never
+            saw it either — the watchdog is exactly what wedged.
+          * P1 run 7 — 19.9M frames spinning Route 103 and healing at Oldale, forever.
+          * P2 run 35 — 13.4M frames doing the same on Route 116.
+            (P1/P2 are LIVELOCKS, not hangs: they generate real encounters and battles, so
+            no "no progress" detector can ever fire. Only a budget catches them.)
+
+        P4 run 12 shows the old behaviour's other half: it did report `frame-cap
+        (7,545,828 > 3,500,000)` — after burning more than twice the cap.
+
+        The framework advances bot-mode generators with a bare `next()` (`modules/main.py`
+        drives `context.controller_stack`), so stepping `inner` by hand is safe; there are
+        no `send()` values to lose. `close()` is forwarded in a `finally` so a parked batch
+        still unwinds the story generator cleanly.
+        """
+        from modules.modes import BotModeError
+
+        budget_base = start_frame
+        ticks = 0
+        try:
+            while True:
+                try:
+                    next(inner)
+                except StopIteration:
+                    return
+                yield
+                ticks += 1
+                if ticks % self.BUDGET_CHECK_INTERVAL:
+                    continue
+                try:
+                    now = context.emulator.get_frame_count()
+                except Exception:
+                    continue
+                # The hard reset happens INSIDE the run, and `get_frame_count()` restarts
+                # with the emulator — so the counter legitimately goes backwards early on.
+                # Re-base instead of measuring a negative elapsed (the same trap that made
+                # the old post-hoc cap silently unenforceable after a mid-run reset).
+                if now < budget_base:
+                    budget_base = 0
+                elapsed = now - budget_base
+                if elapsed > self.MAX_FRAMES_PER_RUN:
+                    raise BotModeError(
+                        f"per-run frame budget exhausted ({elapsed:,} > "
+                        f"{self.MAX_FRAMES_PER_RUN:,}) — the run is wedged or looping; "
+                        "resetting to the next run"
+                    )
+        finally:
+            try:
+                inner.close()
+            except Exception:  # noqa: BLE001
+                pass
+
     def run(self):
         from modules.console import console
         from modules.modes import BotModeError
 
+        global ENDLESS_RESET_COMPLETED
+
         target = int(ENDLESS_RESET_TARGET)
         completed = 0
+        ENDLESS_RESET_COMPLETED = 0
         outcomes: list[str] = []
 
         # ‼ CAPTURE AND RE-APPLY THE SPEED/VIDEO SETTINGS EVERY RUN (user report 2026-07-25:
@@ -2584,18 +3285,36 @@ class StoryEndlessResetMode(StoryDebugResetMode):
         # batch. The first version of this loop restored `bot_mode` and not the speed, so run 1
         # ran unthrottled and every run after it crawled at 1x. Remember what the batch STARTED
         # with and restore exactly that, rather than forcing a value the user did not choose.
+        # ‼ SPEED ONLY — NEVER TOUCH `context.video` (user directive 2026-07-26).
+        # This used to capture and re-apply `video` alongside the speed, which had two
+        # bad effects. (1) It PINNED the renderer to whatever it was at batch start, so a
+        # batch begun with video off kept it off for every subsequent run — and the
+        # FAITHFUL PokéNav Match-Call tutorial only advances with the renderer ON, so it
+        # silently degraded to the last-resort state-write fallback in **8 of 9** of the
+        # user's real-hardware runs (#24-pokenav-faithful; the 1 success was a run whose
+        # renderer was still on). (2) Worse, the `except` fell back to
+        # `batch_video = False`, so a single failed read of `context.video` would force
+        # the renderer OFF for the entire batch.
+        # The SPEED restore stays — it fixes a real user report ("on its second run it was
+        # at normal speed, it should have been set to unlimited"): a derail calls
+        # `set_manual_mode()`, whose `enable_video_and_slow_down` default sets
+        # `emulation_speed = 1`, which throttles the rest of an unattended batch.
+        # Video is the user's to control; if they turn it on mid-batch it stays on.
+        # ‼ APPLY THE DEBUG CONFIG **BEFORE** CAPTURING `batch_speed`. The capture below is
+        # what every run's speed gets restored to after a `set_manual_mode()` drops it to 1x,
+        # so if the config were applied afterwards the batch would be pinned to the OLD speed
+        # and every run after the first would crawl — the exact 2026-07-25 bug this capture
+        # was written to fix, reintroduced from the other direction.
+        _apply_debug_emulation_config()
         try:
             batch_speed = context.emulation_speed
-            batch_video = context.video
         except Exception:
-            batch_speed, batch_video = 0, False
+            batch_speed = 0
 
         def _restore_speed() -> None:
             try:
                 if context.emulation_speed != batch_speed:
                     context.emulation_speed = batch_speed
-                if context.video != batch_video:
-                    context.video = batch_video
             except Exception:
                 pass
 
@@ -2603,20 +3322,94 @@ class StoryEndlessResetMode(StoryDebugResetMode):
             completed += 1
             label = f"{completed}/{'infinite' if target == 0 else target}"
             console.print(f"[bold cyan]=== ENDLESS RESET: starting run {label} ===[/]")
+            # ‼ NAME THE EXPERIMENT IN THE LOG. An A/B whose variable is invisible in the
+            # output is not an A/B — without this line a bundle gives no way to tell which
+            # training-relocation rule produced it, and the comparison cannot be attributed
+            # after the fact. Printed per run so it survives log rotation.
+            try:
+                from modules.story.training_areas import active_fodder_rule_banner
+
+                _banner = active_fodder_rule_banner()
+                console.print(f"[dim]{_banner}[/]")
+                # ‼ ALSO INTO THE DEBUG LOG. `console.print` and the debug log are SEPARATE
+                # STREAMS — `modules/debug_logger.py` never sees console output. The first
+                # version of this banner printed to the console only, so a debug log (which
+                # is what gets shared for review) carried NO record of which rule produced
+                # it. A run's own log must be able to describe the run.
+                try:
+                    from modules import debug_logger
+
+                    debug_logger.event(_banner, category="STORY")
+                except Exception:  # noqa: BLE001
+                    pass
+            except Exception:  # noqa: BLE001 - a banner must never end a batch
+                pass
             context.message = f"Endless reset: run {label}"
             start_frame = context.emulator.get_frame_count()
+            # ‼ AUTHORITATIVE RUN BOUNDARY for the badge recorder. `modules/main.py` also
+            # watches for the frame counter going backwards, but that proved unreliable —
+            # the user's 2026-07-26 x4 bundle had P4 complete two runs with every badge
+            # record still stamped `run_started_frame=0`. This mode KNOWS when a run
+            # starts, so it says so, and per-run badge de-duplication becomes trustworthy.
+            try:
+                from modules import badge_log
+
+                # `authoritative=True`: this mode KNOWS where its run boundaries are, so
+                # main.py's frame-counter fallback must stand down. Without it both fired
+                # and `run_index` advanced by two per run (1, 3, 5 … 37 across 19 runs).
+                badge_log.reset_for_new_run(start_frame, authoritative=True)
+            except Exception:
+                pass
+            # ‼ CLEAN SLATE PER RUN. Every counter scoped to one playthrough is zeroed
+            # here. Without this the batch silently degrades: `_rival_attempts` hit its
+            # cap of 3 after three runs and every later run gave up at the Rustboro rival
+            # WITHOUT FIGHTING (P1: 16 of 20 runs), and `_defeat_counts` carried losses
+            # forward so boss give-up thresholds tripped on borrowed defeats.
+            # See `StoryMode.reset_per_run_state` for the measured evidence.
+            self.reset_per_run_state()
             outcome = "finished"
             try:
                 # The parent does the hard reset + NEW GAME, then hands to StoryMode.run().
-                yield from super().run()
+                yield from self._run_with_frame_budget(super().run(), start_frame)
             except BotModeError as exc:
                 outcome = f"derailed: {exc}"  # EXPECTED — never ends the batch
             except Exception as exc:  # noqa: BLE001
                 outcome = f"crashed: {type(exc).__name__}: {exc}"
-            frames = context.emulator.get_frame_count() - start_frame
+            else:
+                # ‼ "finished" MUST MEAN FINISHED (user's x4 bundle `20260726-231412`).
+                # `outcome` defaults to "finished" and only a raised BotModeError changed
+                # it — but a derail deep inside StoryMode can instead call
+                # `context.set_manual_mode()` and `return` normally. Every one of those
+                # was reported as a SUCCESS: all 16 P1 "finished" runs in that bundle were
+                # dead runs, several printed as "finished (0 frames)", and any summary of
+                # the batch read ~80% success against a true ~20%. A run that handed
+                # itself to Manual did not finish — say so.
+                # ‼ The genuine end-of-content return ALSO calls set_manual_mode(), so the
+                # mode flags a real completion explicitly — otherwise this would relabel
+                # true successes as failures, which is the same crime in the other
+                # direction. P2 run 1 of that bundle really did reach the Feather Badge.
+                try:
+                    handed_to_manual = context.bot_mode != self.name()
+                except Exception:
+                    handed_to_manual = False
+                if handed_to_manual and not getattr(self, "_reached_end_of_content", False):
+                    outcome = "stopped: handed to Manual mid-run (see the run's log for why)"
+            # ‼ CLAMP. `get_frame_count()` is "frames since this emulation session began" and
+            # it RESETS with the emulator, so if a reset happens inside a run this
+            # subtraction goes negative — the user's 2026-07-26 20:18 bundle recorded
+            # "finished (-959,198 frames)". A negative value also silently disabled the
+            # MAX_FRAMES_PER_RUN wedge guard below, since nothing is ever > the cap.
+            raw_frames = context.emulator.get_frame_count() - start_frame
+            frames = raw_frames if raw_frames >= 0 else 0
+            if raw_frames < 0:
+                console.print(
+                    "[yellow]=== ENDLESS RESET: the emulator reset mid-run, so this run's "
+                    "frame count is unknown (reported as 0). ===[/]"
+                )
             if frames > self.MAX_FRAMES_PER_RUN:
                 outcome = f"frame-cap ({frames:,} > {self.MAX_FRAMES_PER_RUN:,})"
             outcomes.append(f"run {completed}: {outcome} ({frames:,} frames)")
+            ENDLESS_RESET_COMPLETED = completed
             console.print(f"[cyan]=== ENDLESS RESET: run {label} -> {outcome} ({frames:,} frames) ===[/]")
 
             # A derail deep inside StoryMode can flip us to Manual; restore ourselves or the

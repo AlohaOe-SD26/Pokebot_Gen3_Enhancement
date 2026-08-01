@@ -197,6 +197,16 @@ class BattleListener(BotListener):
     @debug.track
     def _wait_until_battle_is_over(self):
         while self._in_battle:
+            # A recoverable battle fault is pending (#24-movelearn-recovery): the
+            # battle is wedged, so `_in_battle` may never clear and this would press
+            # B forever while the MODE — the only thing that can recover — is starved
+            # of frames. Return so the controller stack pops back to it. `_in_battle`
+            # deliberately stays True: clearing it would re-arm handle_frame() and
+            # push a fresh fight() next frame, re-entering the same wedge.
+            from modules.battle_fault import battle_fault_pending
+
+            if battle_fault_pending():
+                return
             if get_game_state() != GameState.OVERWORLD or get_map_data_for_current_position().map_type != "Underwater":
                 context.emulator.press_button("B")
             yield
@@ -302,7 +312,28 @@ class TrainerApproachListener(BotListener):
     @isolate_inputs
     @debug.track
     def handle_trainer_approach(self):
+        # ‼ HONOUR A PENDING BATTLE FAULT (2026-07-30). This loop is unbounded and presses B
+        # while the trainer script is active. If a battle wedges, that script NEVER clears —
+        # so this listener sits on top of the controller stack pressing B for ever, and the
+        # MODE, the only thing that can consume the fault and derail, is never advanced.
+        # Result: a deadlock strictly worse than the wedge it followed.
+        #
+        # MEASURED (user log `20260730-081347`): `handle_fainted_pokemon` gave up 3× and
+        # correctly handed over a recoverable fault at f1,797,401 — and nothing claimed it.
+        # The run then sat at `state=3 controllable=False` for **1,182,000 frames** until the
+        # user stopped it by hand. In the sibling ENDLESS-RESET log the same handover was
+        # claimed ONE FRAME later (`DERAIL #1`), because there the mode was still reachable.
+        #
+        # ‼ `BattleListener` ALREADY DOES EXACTLY THIS, ~110 lines above, with a comment
+        # explaining the identical hazard ("...this would press B forever while the MODE — the
+        # only thing that can recover — is starved of frames"). This listener simply never
+        # mirrored it. That is the third instance of this shape in this file's history; see
+        # 08-MISTAKES 2026-07-30.
+        from modules.battle_fault import battle_fault_pending
+
         while get_global_script_context().is_active:
+            if battle_fault_pending():
+                return  # pop back to the mode so it can claim the fault and derail cleanly
             context.emulator.press_button("B")
             yield
 

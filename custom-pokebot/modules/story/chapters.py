@@ -216,14 +216,29 @@ CHAPTERS: list[Chapter] = [
             flag("KYOGRE_ESCAPED_SEAFLOOR_CAVERN"),
             "Dive on Route 128 into the Seafloor Cavern; Archie awakens "
             "Kyogre."),
+    # ‼ COMPLETION MARKER FIXED 2026-07-26. This used to be `flag("DEFEATED_RAYQUAZA")`,
+    # which a STORY RUN CAN NEVER SET: that flag is only written inside `TryShowRayquaza`
+    # (`SkyPillar_Top/scripts.inc:57,62`), which is gated on `VAR_SKY_PILLAR_STATE >= 2` —
+    # the POST-GAME catchable Rayquaza. The story visit runs at state 0/1, where Rayquaza
+    # is roused in a cutscene and flies off; it is never battled and never "defeated".
+    # So this chapter could never report complete and the bot's progress readout would
+    # stick here forever. (Scope: `chapters.py` feeds `progress.py` reporting only, so this
+    # was a REPORTING defect, not a dispatch deadlock — but a wrong "current chapter"
+    # misleads every log review, which is how we read these runs.)
+    # `RECEIVED_HM_WATERFALL` is the correct marker: Wallace hands Waterfall over once the
+    # legendaries are quelled (`SootopolisCity/scripts.inc:1287`), which IS the end of this
+    # chapter — and it happens BEFORE Juan, not after.
     Chapter("21", 26, "Sootopolis crisis & Rayquaza", "Sootopolis / Sky Pillar",
-            flag("DEFEATED_RAYQUAZA"),
-            "Dive into Sootopolis; climb the Sky Pillar (Mach Bike) to rouse "
-            "Rayquaza and quell the legendaries."),
+            flag("RECEIVED_HM_WATERFALL"),
+            "Dive into Sootopolis; climb the Sky Pillar to rouse Rayquaza and quell the "
+            "legendaries; Wallace then gives HM07 Waterfall. ‼ NO Mach Bike and NO cracked "
+            "floors on the story ascent — every floor swaps to a _Clean layout below "
+            "VAR_SKY_PILLAR_STATE 2 (`SkyPillar_2F/scripts.inc:6-16`)."),
     Chapter("22", 27, "Gym 8 — Juan (Water)", "Sootopolis City",
             flag("BADGE08_GET"), badge="Rain",
-            objective="Beat Juan at the Sootopolis Gym for the Rain Badge; get "
-                      "HM07 Waterfall from Wallace."),
+            objective="Beat Juan at the Sootopolis Gym for the Rain Badge. (HM07 Waterfall "
+                      "is a Ch21 outcome — Wallace gives it BEFORE the gym; Badge 8 is "
+                      "what makes it field-usable.)"),
     Chapter("23", 28, "Victory Road", "Rt 128/132-134 → Ever Grande",
             flag("DEFEATED_WALLY_VICTORY_ROAD"),
             "Surf/Waterfall/Dive to Ever Grande and clear Victory Road "

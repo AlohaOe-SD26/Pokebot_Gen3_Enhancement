@@ -604,3 +604,84 @@ survive a wedged emulator process), so it remains the right tool for a scripted 
 
 **No upstream file is touched by either change.** `dashboard_gui.py` is already ours (see the GUI
 batches above); `story_mode.py` is ours.
+
+## BATCH-4 — the full story-bot round: journey planning, counter chain, x4 headless, KI-38/KI-43 (2026-08-01, on explicit user approval)
+
+Promoted from `sandbox-pokebot/` after batch4 (`x4-runs/20260731-201554`) landed. **Scope: the
+FULL sandbox code surface** — 37 files, 16 of them new. Unlike BATCH-3, nothing was held back:
+the sandbox modules are interdependent (`early_game` → `counter_hunt` → `obstacle_clearing`,
+and the x4 GUI bundle → `endless_x4`/`x4_logs`/`tile_*`), so a partial promotion is precisely
+what would have broken custom. Pre-promotion custom HEAD: `9105d6d3`.
+
+**Pre-promotion safety check** (same method as BATCH-3): compared every `def`/`class`/CONSTANT
+name in the custom copies against the sandbox copies for all 19 modified `.py` files —
+**0 lost symbols**, sandbox is a strict superset (+87 new symbols overall, e.g. `dashboard_gui`
++25, `story_mode` +17). No custom-only functionality was reverted.
+
+### NEW modules
+`modules/story/counter_hunt.py` (the type-counter ladder: diagnose a boss loss → pick a
+huntable counter → travel → catch → train), `modules/story/obstacle_clearing.py` (clear a
+field-move obstacle that seals a route; Rock Smash only — Strength is excluded on purpose,
+a boulder is pushed not removed so the success test cannot see it), `modules/story/team_policy.py`,
+`modules/badge_log.py`, `modules/badge_case.py`, `modules/battle_fault.py`,
+`modules/endless_x4.py`, `modules/x4_logs.py`, `modules/tile_bridge.py`,
+`modules/tile_mosaic.py`, `modules/remote_party.py`, `modules/story_milestones.py`,
+`modules/gui/milestone_window.py`, `modules/gui/tile_child.py`, `tools/mapdump.py`,
+`CHEATS-DESIGN.md` (a doc `modules/game_cheats.py` already referenced — custom had a dangling
+pointer to it before this).
+
+‼ `story_milestones` / `milestone_window` were the bundle BATCH-3 deliberately left behind.
+They come across now because `dashboard_gui` has since taken a hard dependency on them.
+
+### Modified
+- `modules/modes/util/global_navigation.py` — **warp planning at MAP granularity** (`plan()`
+  answered at REGION granularity and the whole Hoenn overworld is one region, so every
+  overworld→overworld trip fell through and died); `pick_leg` two-pass warp choice preferring
+  a door to somewhere NEW; `_staged_progress_warp`; `_warp_fired` compares MAPS not regions;
+  **`_navigate_when_ready` + `_TRANSIENT_WAIT_FRAMES = 600` (KI-43 — see below)**.
+- `plugins/custom_modes/story_mode.py` — KI-38 after-faint chooser LEARNS refusals; counter
+  ladder wiring; global watchdog unchanged at 18,000 frames.
+- `modules/story/early_game.py` — counter-hunt integration, obstacle search re-runs PER MAP
+  (the latch that searched once in Petalburg then walked seven maps with the feature off),
+  `affordable_training_target` consumption.
+- `modules/story/training_areas.py`, `counter_plan.py`, `region_reach.py`, `chapters.py`,
+  `intro.py`, `warp_graph.py`, `battle_handler.py`, `battle_move_replacing.py`,
+  `battle_strategies/level_up.py`, `debug_logger.py`, `exceptions_hook.py`, `main.py`,
+  `modes/_listeners.py`, `profiles.py`, `pokebot.py`, `gui/dashboard_gui.py` (x4 tile mosaic,
+  badge case, Story block at the TOP of the Bot-mode popup), `DOCUMENTATION/01`, `02`.
+
+### ‼ DELIBERATELY NOT PROMOTED
+- **`DIVERGENCE-LOG.md`** — the sandbox copy is a **stale 91-line fork frozen at 2026-07-18**;
+  this file is 606 lines through BATCH-3d. Mirroring it would have destroyed 515 lines of
+  append-only history. *Any future promotion must exclude it too.*
+- `SANDBOX-NOTES.md`, `SANDBOX-PROPOSALS.md` — sandbox-vs-custom meta, meaningless in custom.
+- `.gitignore` — differs only by the word "Sandbox" in one comment.
+- `backups/`, `profiles/`, `cache/`, `.last-update-check` — runtime artifacts, never promoted.
+- `DOCUMENTATION/03-cheats.md`, `04-automation-and-sync.md`, `05-hunting-and-livingdex.md`
+  exist only in custom and were **preserved** (a blind mirror would have deleted them).
+
+### Post-promotion verification (on custom)
+- **210 files parse**, 0 syntax errors.
+- **18/18** promoted modules import cleanly with `sys.path` at `custom-pokebot/`.
+- Constants confirmed live: `_TRANSIENT_WAIT_FRAMES=600`, `_MAX_NON_OVERWORLD_FRAMES=18000`,
+  `MAX_PREP_TRAINING_FRAMES=250000`, `affordable_training_target(16,35,250k)=18`.
+- ML-2 check: every new path is git-trackable (no `.gitignore` swallowing).
+- **Live run against `--build custom`** — `gym1_done.ss1 --driver martbuy BUYN=30`, 40k frames:
+  **3 purchases, 3 free Premier Balls, money 8628 → 2628**, identical to the sandbox arm. This
+  is the KI-43 proof; before the fix the same run completed **0** purchases.
+
+### KI-43, carried in with this promotion
+`_navigate_when_ready` waited on `_MAX_NON_OVERWORLD_FRAMES` = 18,000 — the SAME number as
+StoryMode's global-watchdog stall threshold — while pressing nothing and changing nothing. The
+watchdog fires on frame 18,000 (`>=`), the wrapper's `break` needed 18,001 (`>`), so the derail
+won by one frame every time and the escape hatch was unreachable code. Measured cost: the
+Rustboro ball restock completed **0 of 36** times (baseline 33/33), buying 10 balls per trip
+instead of 30. Now bounded by its own `_TRANSIENT_WAIT_FRAMES = 600`.
+
+### ‼ OUTSTANDING AT PROMOTION TIME (known, measured, NOT fixed)
+- **KI-44** — counter training cannot reach ROUTE102 from ROUTE103; training fails **7 of 7**,
+  so **zero counters are ever trained** and batch4's badge funnel is flat at every rung. This
+  is the story bot's current blocker and it ships with the promotion.
+- Ball starvation: `no money to buy any` appeared **14×** in batch4 (3 ended runs).
+- `global watchdog` still elevated (72 → 58 stdout-deduped); the summariser double-counts it.
+- Party cap is still 4 (`target_size: int = 4`) — the bot catches 3 and stops, by design.

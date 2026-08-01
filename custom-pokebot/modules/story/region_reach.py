@@ -45,9 +45,16 @@ trusting a level gap alone. A refusal because of `max_hops` is reported as
 exists at all" or "gated by a missing capability" -- those are three different
 facts and KI-24 is exactly about not collapsing them into a silent no.
 
-NOT wired into story_mode.py or counter_plan.py yet -- this module is proven
-standalone first (tools/story-dev/repro_region_reach.py); wiring it in is a
-follow-up task.
+WIRED IN as of 2026-07-25 -- `story_mode.py` calls `is_map_reachable()` from BOTH
+consumers: `_training_area_allowed` (story_mode.py:553, max_hops=_MAX_TRAINING_TRAVEL_LEGS)
+and `_counter_area_allowed` (story_mode.py:606, max_hops=COUNTER_MAX_HOPS) -- the latter is
+how `counter_plan`'s candidates get reachability-gated, since counter_plan does not call
+this module directly. Still proven standalone by tools/story-dev/repro_region_reach.py.
+
+(This docstring said "NOT wired into story_mode.py or counter_plan.py yet ... wiring it in
+is a follow-up task" until 2026-07-27, long after the wiring landed. A stale "not done yet"
+note is worse than none: it invites a future session to redo finished work. If you change
+the wiring, change this paragraph in the same commit.)
 """
 
 from __future__ import annotations
@@ -78,9 +85,25 @@ KNOWN_GATES: dict[tuple[tuple[int, int], tuple[int, int]], str] = {
     # to Dewford) -- Surf is required to physically stand on either edge tile.
     ((0, 11), (0, 21)): "surf",  # DEWFORD_TOWN <-> ROUTE106
     ((0, 11), (0, 22)): "surf",  # DEWFORD_TOWN <-> ROUTE107
+    # ‼ VICTORY ROAD (added 2026-07-26, #24-counters blocker #3). Probed: the ONLY
+    # boundary edge into the whole VICTORY_ROAD_* cluster is
+    # EVER_GRANDE_CITY (0,8) <-> VICTORY_ROAD_1F (24,43), and it was UNGATED. In Emerald
+    # that entrance sits at the TOP OF A WATERFALL, so HM07 is mandatory to stand on it.
+    # WHY IT MATTERS NOW: counter candidates are ranked by estimated cost, and Victory
+    # Road's Hariyama is L38-42 — already above a mid-game team, so its training cost is
+    # ~0 and it ranks **#1** the instant anything calls the map reachable. It stayed out
+    # of the live answer only because of the `max_hops=4` distance bound, i.e. luck, not
+    # a gate. One entry closes the entire cluster, since every path in crosses this edge.
+    ((0, 8), (24, 43)): "waterfall",  # EVER_GRANDE_CITY <-> VICTORY_ROAD_1F
 }
 
-_GATE_MOVE_NAMES = {"surf": "Surf", "rock_smash": "Rock Smash", "cut": "Cut", "strength": "Strength"}
+_GATE_MOVE_NAMES = {
+    "surf": "Surf",
+    "rock_smash": "Rock Smash",
+    "cut": "Cut",
+    "strength": "Strength",
+    "waterfall": "Waterfall",
+}
 
 # modules/menuing.py's use_field_move() is the ROM-verified ground truth for which
 # badge unlocks which field move outside of battle (RSE vs FRLG differ) -- mirrored
@@ -91,6 +114,11 @@ _RSE_BADGE_BY_MOVE = {
     "Rock Smash": "BADGE03_GET",
     "Strength": "BADGE04_GET",
     "Surf": "BADGE05_GET",
+    # Waterfall is gated by the RAIN BADGE (Juan, badge 8) in RSE. Added with the
+    # Victory Road gate below. Absent from _FRLG_BADGE_BY_MOVE on purpose: an unknown
+    # move resolves to "capability unavailable", which closes the edge — the fail-safe
+    # direction (a wrong NO costs a detour, a wrong YES sends the bot across Hoenn).
+    "Waterfall": "BADGE08_GET",
 }
 _FRLG_BADGE_BY_MOVE = {
     "Cut": "BADGE02_GET",

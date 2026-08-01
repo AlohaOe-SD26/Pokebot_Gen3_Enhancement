@@ -20,6 +20,25 @@ from modules.map_data import MapRSE, PokemonCenter
 from modules.map_path import Direction
 from modules.memory import GameState, get_game_state
 from modules.modes import BotModeError
+
+
+class UnreachableDestinationError(BotModeError):
+    """A destination TILE could not be reached from where we are standing.
+
+    A SUBCLASS of BotModeError on purpose: every existing `except BotModeError`
+    (StoryMode's derail recovery above all) keeps handling it exactly as before. It
+    exists so a caller that made an OPTIONAL choice — "relocate to a better training
+    ground" — can tell "that place is not reachable from here" apart from "training
+    itself went wrong", and drop that option instead of retrying it forever.
+
+    ‼ Added 2026-07-25 (#24-regionreach) after a live batch killed 2 of 5 runs on it.
+    `_training_area_allowed`'s own docstring argued that a wrong YES from `region_reach`
+    "costs ONE wasted walk, which navigation then fails RECOVERABLY and loudly" — the
+    batch proved that wrong. The picker is DETERMINISTIC, so every derail re-ran `_play`,
+    re-picked the same unreachable Route 111 tile, and failed identically until the derail
+    budget dropped the run to Manual. A wrong YES cost the RUN, not a walk. Recognising
+    this failure by TYPE is what lets the caller make the docstring's claim true.
+    """
 from modules.modes.util.tasks_scripts import (
     wait_for_yes_no_question,
     wait_until_script_is_no_longer_active,
@@ -173,6 +192,29 @@ def _navigate_riding_out(dest_map, dest_tile, *, avoid_encounters: bool = True, 
     Used by training/catching where the grass route can cross a trainer's line."""
     last_error = None
     last_where = None
+    #: Obstacle tiles already cleared on THIS trip. ‼ Rock-Smash rocks RESPAWN on map
+    #: reload, so without this a respawn turns the retry loop into an endless
+    #: smash-and-retry — and a bounded loop re-entered by its dispatcher is still infinite
+    #: (KI-34 burned 23.9M frames exactly that way).
+    cleared_obstacles: set = set()
+    #: The map an empty obstacle search was last performed on, or None to search now.
+    #:
+    #: ‼ THIS USED TO BE A PLAIN `obstacle_search_exhausted` LATCH, AND THE LATCH WAS WRONG.
+    #: Its stated premise was "riding out a scene cannot create new rocks, so one empty
+    #: answer is final for this trip". That is true for scenes and false for JOURNEYS: a
+    #: long trip crosses many maps, and what is reachable — and therefore what counts as a
+    #: clearable obstacle — changes completely with every one. Measured 2026-07-31: a
+    #: Petalburg -> Fiery Path run searched once in PETALBURG (correctly empty, the rock is
+    #: seven maps away), latched, and then walked all the way to **ROUTE111 (31,114)** —
+    #: standing on the very map whose rock at (18,101) seals the corridor — with obstacle
+    #: clearing permanently switched off. It stopped there.
+    #:
+    #: The reason the latch exists is still real: the search is SYNCHRONOUS, running several
+    #: `calculate_path` calls without yielding, so the emulator is frozen throughout and
+    #: re-running it on every retry costs seconds per failed navigation. Keying it to the
+    #: MAP keeps that saving (no repeat searches while stuck in one place) without the bug
+    #: (a new map always gets a fresh look).
+    obstacle_search_done_on = None
     for _ in range(tries):
         _check_abort()
         try:
@@ -182,6 +224,46 @@ def _navigate_riding_out(dest_map, dest_tile, *, avoid_encounters: bool = True, 
             return
         except BotModeError as e:
             last_error = e
+            # ‼ #24-smashroute / KI-41 — TRY THIS **BEFORE** THE FAIL-FAST BELOW. A
+            # FIELD-MOVE OBSTACLE seals some corridors, and neither retrying nor riding out
+            # a scene can ever help with one: measured 2026-07-31, a Rock Smash rock at
+            # ROUTE111 (18,101) makes ROUTE112 score **0 of 76** reachable tiles from
+            # Mauville, which is why FIERY_PATH — and so the Machop the `#24-counters`
+            # ladder names for Norman — was out of reach. The fail-fast guard below is
+            # right that "the field is idle and we have not moved, so retrying cannot
+            # change the result" — but SMASHING THE ROCK CHANGES THE WORLD, which is
+            # exactly the premise the guard tests for. So this must run first, and only
+            # once per obstacle.
+            #
+            # `find_obstacle_on_route` returns None unless the party has the move AND the
+            # badge AND the approach tile is reachable right now, so a "no" costs one cheap
+            # search on a path that was already failing.
+            obstacle = None
+            here_map = _map_group_number()
+            if obstacle_search_done_on != here_map:
+                try:
+                    from modules.story.obstacle_clearing import clear_obstacle, find_obstacle_on_route
+
+                    obstacle = find_obstacle_on_route(
+                        here_map,
+                        dest_map.value if hasattr(dest_map, "value") else dest_map,
+                        prefer_toward=dest_tile,
+                    )
+                except Exception:  # noqa: BLE001 - a search must never end a trip
+                    obstacle = None
+                if obstacle is None or obstacle.tile in cleared_obstacles:
+                    # Nothing to do HERE. Remember the map, not a boolean — moving to a new
+                    # map must get a fresh search (see the note above the declaration).
+                    obstacle_search_done_on = here_map
+            if obstacle is not None and obstacle.tile not in cleared_obstacles:
+                cleared_obstacles.add(obstacle.tile)
+                context.message = f"Story: clearing the way — {obstacle.describe()}"
+                yield from clear_obstacle(obstacle)
+                # The world changed, so the fail-fast's "nothing can differ" premise no
+                # longer holds — forget where we failed from and let the next try plan
+                # against the newly-open corridor.
+                last_where = None
+                continue
             # ‼ FAIL FAST ON A HOPELESS RETRY (2026-07-24, user log 12:39 + my treecko
             # run — BOTH died here). This retry loop only helps when a SCENE aborted the
             # path, because riding the scene out changes the world. If the field is idle
@@ -201,7 +283,7 @@ def _navigate_riding_out(dest_map, dest_tile, *, avoid_encounters: bool = True, 
             except Exception:
                 where = None
             if where is not None and where == last_where:
-                raise BotModeError(
+                raise UnreachableDestinationError(
                     f"Could not reach {dest_tile} on {dest_map}: the field is idle and we are "
                     f"still at {where[1]}, so retrying cannot change the result "
                     f"({last_error})."
@@ -211,7 +293,7 @@ def _navigate_riding_out(dest_map, dest_tile, *, avoid_encounters: bool = True, 
     # Surface the REAL last error: runs 11-13 each burned all retries on instant
     # PLAN failures (an unreachable tile) while this message blamed "scene
     # interruptions" — two full validation runs were misdiagnosed off it.
-    raise BotModeError(
+    raise UnreachableDestinationError(
         f"Could not reach {dest_tile} on {dest_map} after {tries} tries (last error: {last_error})."
     )
 
@@ -722,6 +804,14 @@ LITTLEROOT_NORTH_APPROACH = (11, 3)   # walk here, then step North through the G
 ROUTE101_BAG_FACE = (8, 14)           # stand here facing West; Birch's bag is at (7,14)
 STARTER_BY_NAME = {"treecko": "Treecko", "torchic": "Torchic", "mudkip": "Mudkip"}
 
+#: The species actually chosen on THIS run — set by `help_birch_and_choose_starter()` at
+#: the moment it resolves the config. Exists because a lane configured `starter: random`
+#: is otherwise indistinguishable from a lane pinned to whatever it happened to roll:
+#: ENDLESS LOOP x4's P4 lane is `random`, and when it rolls Treecko it looks exactly like
+#: the pinned-Treecko P3 lane (user report 2026-07-26). The x4 tile reads this across the
+#: process boundary so the label can say `random -> Treecko`.
+LAST_CHOSEN_STARTER: str | None = None
+
 
 def _go_north_to_birch_rescue() -> Generator:
     """Leave Littleroot to the north to trigger Professor Birch's rescue.
@@ -814,9 +904,20 @@ def help_birch_and_choose_starter(starter: str = "random") -> Generator:
 
     :param starter: "random" | "treecko" | "torchic" | "mudkip".
     """
+    global LAST_CHOSEN_STARTER
+
     resolved = STARTER_BY_NAME.get(str(starter).strip().lower())
     if resolved is None:
         resolved = random.choice(list(STARTER_BY_NAME.values()))
+    LAST_CHOSEN_STARTER = resolved
+    # Say it in the log too: "which starter did THIS run actually play?" is the first
+    # question asked of any batch, and `random` in story.yml does not answer it.
+    try:
+        from modules.console import console
+
+        console.print(f"[bold cyan]STARTER: config={starter!r} -> playing {resolved}[/]")
+    except Exception:
+        pass
 
     yield from _go_north_to_birch_rescue()
     yield from navigate_to(
@@ -950,6 +1051,40 @@ def _min_battler_hp_pct() -> float:
 def _lead_level() -> int:
     party = get_party()
     return party[0].level if party else 0
+
+
+def _team_is_out_of_pp() -> bool:
+    """True when NO (non-egg) battler still has a damaging move with PP left.
+
+    ‼ THE HEAL TRIGGER CANNOT BE HP-ONLY (user's real-HW log, 2026-07-26). HP and PP do
+    not deplete together: a starter that WINS without being hit keeps full HP while its
+    only attacking move drains. When the last damaging PP goes, the stock
+    `LevelUpLeadBattleStrategy.decide_turn` finds no usable move, takes the
+    `lead_cannot_battle_action` branch (default **flee**) — and fleeing takes no damage,
+    so HP stays pinned at 100% and the HP-gated heal can NEVER fire.
+    Measured cost of that livelock in one run: **3,011 consecutive flees**, Treecko stuck
+    at L6 21/21 HP on the Route 103 training tile, ~2.9 MILLION frames burned without a
+    single level gained, until the run budget expired.
+    A Poké Center heal restores PP as well as HP, so routing this into the SAME heal the
+    HP path already uses fixes it — no new mechanism needed.
+    Fails SAFE: any read error returns False (assume we still have PP) so a bad read can
+    never cause an endless heal loop; the HP trigger is unaffected either way.
+    """
+    try:
+        for p in get_party():
+            if p is None or getattr(p, "is_egg", False):
+                continue
+            for learned in getattr(p, "moves", []) or []:
+                if learned is None:
+                    continue
+                try:
+                    if learned.move.base_power > 0 and learned.pp > 0:
+                        return False
+                except Exception:
+                    continue
+        return True
+    except Exception:
+        return False
 
 
 def travel_to_route103() -> Generator:
@@ -1587,33 +1722,77 @@ def _battler_slots() -> list[int]:
     return slots
 
 
+#: Caves usable as training / counter-hunting grounds, and the warp tile that leads back
+#: OUT to a route. Every entry is ROM-verified (`get_map_data(...).warps`), not guessed.
+#:
+#: ‼ WHY A TABLE AND NOT ONE HARDCODED CAVE (2026-07-26, #24-counters blocker #1). The
+#: global navigator cannot cross warp levels, so ANY target outside a cave plan-fails
+#: from within it ("not on connected maps") — that is what dropped two real-HW runs to
+#: Manual on 2026-07-22. This helper existed but knew only Granite Cave, so the moment a
+#: SECOND cave became a training ground the same stranding would ship again. The
+#: two-way sweep proved exactly that: FIERY_PATH (18,19) is reachable OUT from Lavaridge,
+#: but the return leg failed *inside the cave* — the tile could not be promoted until
+#: this table existed.
+_CAVE_EXITS: dict = {
+    # -> ROUTE106. The Dewford-arc training spot; verified 2026-07-22.
+    MapRSE.GRANITE_CAVE_1F: (37, 12),
+    # -> ROUTE112. Fiery Path has exactly TWO warps, (26,36) south and (26,4) north, and
+    # BOTH land on Route 112. South is the correct exit: Route 112's heal centre is
+    # Lavaridge (`_training_area_heal_map`), which sits at the southern end, and it is
+    # also the side the bot enters from (2 hops from Lavaridge). Leaving by the north
+    # warp would surface it on the Route 111 side, further from any Poké Center.
+    MapRSE.FIERY_PATH: (26, 36),
+}
+
+
 def _exit_training_cave_if_inside() -> Generator:
-    """If standing inside GRANITE CAVE (the Dewford-arc training area — the only in-cave
-    training spot so far), thread the cave mouth back out to Route 106. The global
-    navigator can NOT cross warp levels, so a heal that targets a town PC from inside a
-    cave plan-fails ('not on connected maps') — two real-HW runs dropped to Manual on
-    exactly that (2026-07-22, both at the (35,11) training spot with a hurt trainee)."""
-    cave_1f = MapRSE.GRANITE_CAVE_1F.value
-    if _map_group_number() == cave_1f:
-        yield from _enter_warp_by_navigation(
-            lambda: _map_group_number() != cave_1f,
-            MapRSE.GRANITE_CAVE_1F,
-            (37, 12),
-            label="Granite Cave exit (training heal)",
-        )
-        yield from wait_until_truly_controllable()
+    """If standing inside a known training CAVE, thread its mouth back out to the route.
+
+    The global navigator can NOT cross warp levels, so a heal that targets a town PC from
+    inside a cave plan-fails ('not on connected maps') — two real-HW runs dropped to
+    Manual on exactly that (2026-07-22, both at the Granite Cave (35,11) training spot
+    with a hurt trainee). A cheap no-op anywhere that is not in `_CAVE_EXITS`."""
+    here = _map_group_number()
+    for cave_map, exit_tile in _CAVE_EXITS.items():
+        if here == cave_map.value:
+            yield from _enter_warp_by_navigation(
+                lambda: _map_group_number() != cave_map.value,
+                cave_map,
+                exit_tile,
+                label=f"{cave_map.name} exit (training heal)",
+            )
+            yield from wait_until_truly_controllable()
+            return
+
+
+#: The OUTSIDE approach for each cave in `_CAVE_EXITS`: the route map + the warp tile on
+#: it that leads IN. The mirror of `_CAVE_EXITS`, used when the training/hunting ground
+#: lives inside a cave and we are currently outside it. ROM-verified warps.
+_CAVE_ENTRANCES: dict = {
+    MapRSE.GRANITE_CAVE_1F: (MapRSE.ROUTE106, (48, 16)),
+    # Route 112's SOUTH Fiery Path door — ROM-verified, and it PAIRS with the (26,36)
+    # exit above: Route112 (11,36) is warp_id 0, which is exactly Fiery Path's (26,36).
+    # (The other pair is Route112 (22,10) <-> Fiery Path (26,4), the north side.) So the
+    # bot goes in and comes back out on the Lavaridge side it heals at.
+    MapRSE.FIERY_PATH: (MapRSE.ROUTE112, (11, 36)),
+}
 
 
 def _goto_training_area(grass_map, grass_tile) -> Generator:
-    """Navigate to the training spin tile, threading the Granite Cave door first when the
-    area lives INSIDE the cave and we're currently outside it (Dewford/Route 106) — the
-    counterpart of `_exit_training_cave_if_inside` for the return trip after a heal."""
-    if grass_map is MapRSE.GRANITE_CAVE_1F and _map_group_number() != MapRSE.GRANITE_CAVE_1F.value:
+    """Navigate to the training spin tile, threading the CAVE door first when the area
+    lives inside a cave and we're currently outside it — the counterpart of
+    `_exit_training_cave_if_inside` for the return trip after a heal.
+
+    Table-driven (2026-07-26) for the same reason as `_CAVE_EXITS`: it knew only Granite
+    Cave, so a second in-cave ground would have failed to enter at all."""
+    approach = _CAVE_ENTRANCES.get(grass_map)
+    if approach is not None and _map_group_number() != grass_map.value:
+        outside_map, door_tile = approach
         yield from _enter_warp_by_navigation(
-            lambda: _map_group_number() == MapRSE.GRANITE_CAVE_1F.value,
-            MapRSE.ROUTE106,
-            (48, 16),
-            label="Granite Cave entrance (training)",
+            lambda: _map_group_number() == grass_map.value,
+            outside_map,
+            door_tile,
+            label=f"{grass_map.name} entrance (training)",
         )
         yield from wait_until_truly_controllable()
     yield from _navigate_riding_out(grass_map, grass_tile, avoid_encounters=False)
@@ -1677,15 +1856,62 @@ def train_team(
             context.message = f"Story: training the team to Lv {target_level} in the grass…"
             yield from _goto_training_area(grass_map, grass_tile)
 
+            # ‼ STOP SPINNING FOR PP TOO, NOT JUST HP (2026-07-26). Out of PP the bot
+            # flees every encounter, gains nothing, and — because fleeing takes no
+            # damage — never trips the HP trigger. See `_team_is_out_of_pp`.
             yield from _story_spin(
-                lambda: _lead_level() >= target_level or _min_battler_hp_pct() <= heal_at
+                lambda: _lead_level() >= target_level
+                or _min_battler_hp_pct() <= heal_at
+                or _team_is_out_of_pp()
             )
-            if _min_battler_hp_pct() <= heal_at and _lead_level() < target_level:
+            _dry = _team_is_out_of_pp()
+            if _dry:
+                # ‼ SAY SO. A fix you cannot see fire cannot be validated — the whole
+                # reason this bug survived ~2.9M frames is that nothing logged the
+                # difference between "training" and "fleeing everything". A distinct
+                # message makes the PP path observable in run logs and batch summaries.
+                # ‼ LOCAL IMPORT REQUIRED: `early_game.py` has NO module-level `console`
+                # (it is imported locally in three other functions only), so a bare
+                # `console.print` here is a NameError — and this sits inside train_team's
+                # try/finally, which does NOT swallow it, so every PP exhaustion would
+                # CRASH instead of healing. Third time this shadowing/scope trap has bitten
+                # in one day; see 08-MISTAKES 2026-07-26.
+                from modules.console import console
+
+                console.print(
+                    "[bold yellow]Story: out of PP — healing at the Poké Center "
+                    "(a heal restores PP, which is what lets training continue).[/]"
+                )
+            if (_min_battler_hp_pct() <= heal_at or _dry) and _lead_level() < target_level:
                 # CAVE-AWARE HEAL (2× real-HW Manual drops 2026-07-22): healing from INSIDE
                 # Granite Cave targeted the Dewford PC across warp levels — the global
                 # navigator can't do that ("not on connected maps"). Exit the cave first.
                 yield from _exit_training_cave_if_inside()
                 yield from heal_in_pokemon_center(heal_center)
+
+        # ‼ RESTORE THE STRONGEST LEAD BEFORE LEAVING THE GRIND.
+        #
+        # Swap-training deliberately rotates the LOWEST-level trainee into slot 0 so it
+        # shares XP. Nothing used to put the good mon back, so the bot walked away from
+        # training with its weakest battler leading — and the next trainer sight-line it
+        # crossed opened with that mon.
+        #
+        # LIVE COST (user batch 20260726-201838, lane P2): **19 losses and 44 whiteouts**,
+        # every single one at the SAME tile, ROUTE 110 (34,56), with the same party every
+        # time — lead Dustox **L13** while Marshtomp **L21** sat in slot 2. KO one of
+        # theirs, lose, white out to Slateport, walk back, lose again. Forever.
+        #
+        # ‼ Survival mode cannot save this: it is scoped to WILD battles
+        # (`story_mode.py:1531`, `encounter is not None`) precisely because a TRAINER
+        # battle cannot be fled. So the only fix is to not walk into it weak.
+        #
+        # `_lead_strongest_battler()`'s own docstring already described this hazard — it
+        # was simply only ever applied before GYMS, never before travel.
+        #
+        # Placed after the loop rather than in `finally` on purpose: a `yield` inside a
+        # finally block raises if the generator is being closed, and on the exception path
+        # the run derails and resets anyway, so the lead does not survive to matter.
+        yield from _lead_strongest_battler()
     finally:
         set_swap_train(False)
 

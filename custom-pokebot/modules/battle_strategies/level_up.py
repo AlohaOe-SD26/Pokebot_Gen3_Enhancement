@@ -41,6 +41,7 @@ class LevelUpLeadBattleStrategy(DefaultBattleStrategy):
     def choose_new_lead_after_faint(self, battle_state: BattleState) -> int:
         new_lead: int | None = None
         new_lead_current_hp: int = 0
+        new_lead_level: int = 0
         for index, pokemon in enumerate(get_party()):
             # In a DOUBLE battle, skip the Pokémon already ON THE FIELD (our other active
             # battler): it can't be picked as the replacement, and returning its index
@@ -59,9 +60,21 @@ class LevelUpLeadBattleStrategy(DefaultBattleStrategy):
             ):
                 continue
             if pokemon.current_hp > 0 and not pokemon.is_egg and self.pokemon_can_battle(pokemon):
-                if pokemon.current_hp > new_lead_current_hp:
+                # ‼ BREAK TIES BY LEVEL (2026-07-25, user's double-battle report, KI-18).
+                # The score is raw `current_hp` and the comparison was a strict `>`, so on an
+                # EQUAL-HP tie the earlier party index always won and a later one could never
+                # be chosen. The user's exact observation: Beautifly L23 (67/67, index 3) never
+                # came in while Mightyena L21 (67/67, index 2) kept winning the tie — same HP
+                # number, lower level, earlier slot. Raw HP also ignores level completely, so a
+                # tie between mons of different strength was decided purely by slot order.
+                # Keeping `current_hp` as the PRIMARY metric (it is proven behaviour across
+                # every mode that inherits this strategy) and adding level as the tiebreaker is
+                # the minimal correct change: strictly better on ties, identical otherwise.
+                _score = (pokemon.current_hp, pokemon.level)
+                if _score > (new_lead_current_hp, new_lead_level):
                     new_lead = index
                     new_lead_current_hp = pokemon.current_hp
+                    new_lead_level = pokemon.level
         if new_lead is not None:
             return new_lead
         else:

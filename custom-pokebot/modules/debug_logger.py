@@ -44,6 +44,47 @@ _capped: bool = False
 _MAX_BYTES = 30 * 1024 * 1024         # after this, keep STUCK dumps but drop chatter
 _STALL_DUMP_AFTER = 300               # frames unchanged before the first stuck dump
 _STALL_REDUMP_EVERY = 3000            # while still stalled, re-dump every N frames
+
+#: ‼ IN-BATTLE stall threshold. A battle legitimately holds still mid-turn and during the EXP
+#: fill, so the 300-frame overworld threshold would false-trigger on every turn — which is why
+#: stall detection used to be disabled OUTRIGHT while `battle_active`. That made the detector
+#: STRUCTURALLY BLIND to an in-battle wedge.
+#:
+#: MEASURED (user log `20260729-122709`): a mid-battle rotation wedged the PARTY MENU in
+#: Fortree Gym. The run then sat at `state=3 controllable=False`, one fixed position, for
+#: **~280,000 frames** and emitted **ZERO stuck dumps** — no generator stack, nothing to
+#: diagnose from. The frame budget would eventually have ended the run (at 3.5M; it was at
+#: 2.78M), but a budget only STOPS a wedge, it cannot tell you where it was.
+#:
+#: 18,000 frames = 5 minutes of real time at 60fps. The longest legitimate quiet stretch in a
+#: battle is an EXP fill plus level-up/move-learn dialogue — thousands of frames at worst, and
+#: a two-order-of-magnitude margin keeps this from crying wolf. A battle whose entire observed
+#: state is unchanged for five minutes is wedged, not thinking.
+_BATTLE_STALL_DUMP_AFTER = 18_000
+
+#: ‼ AND AFTER THIS, STOP IT (KI-36). Diagnosis without termination is what let one lane burn
+#: 25,632,106 frames — 5x the per-run cap — while the batch reported `frame-cap=0`.
+#:
+#: WHY THE PER-RUN FRAME BUDGET CANNOT DO THIS. `StoryEndlessResetMode._run_with_frame_budget`
+#: is a GENERATOR WRAPPER, and the controller stack is FLAT: `main_loop` advances only the TOP
+#: generator. During that 25.6M-frame wedge the stack was
+#: `[StoryEndlessResetMode.run, TrainerApproachListener.handle_trainer_approach,
+#: BattleListener.fight]` in 8,022 of ~8,200 samples — so the story generator, and its budget,
+#: was never stepped. The budget is structurally blind to the one failure class it was written
+#: for, because every wedge we have is inside a battle handler.
+#:
+#: THIS module is not. `on_frame()` is called from `modules/main.py` as a per-frame LISTENER,
+#: so it keeps sampling no matter what sits on top of the stack — which is exactly why the
+#: stall DUMPS worked when the budget did not. So the thing that already NOTICES becomes the
+#: thing that ENDS it, through the designed channel (`modules/battle_fault.py`): the mode
+#: claims a recoverable derail and the endless loop starts the next run.
+#:
+#: 60,000 frames ≈ 16 minutes of real time at 60fps, and >3x the dump threshold: by then the
+#: state has been byte-identical for over three re-dumps. A legitimate battle cannot do that.
+#: ‼ LIMITATION, STATED: this only works while debug logging is ON. It is a net for batch runs
+#: (which always enable it), NOT a general-purpose watchdog. A stack-independent budget in
+#: `main_loop` remains the complete fix — see KI-36.
+_BATTLE_STALL_FAULT_AFTER = 60_000
 _HEARTBEAT_EVERY = 3600               # periodic state line even without events
 
 
@@ -58,9 +99,167 @@ def log_path() -> Optional[str]:
     return str(_path) if _path else None
 
 
-def enable(profile=None) -> str:
+#: A prefix applied to EVERY subsequent log filename. ENDLESS LOOP x4 sets it once per
+#: lane so files are self-identifying (`P1-…`).
+#: ‼ THIS EXISTS BECAUSE PASSING THE PREFIX PER CALL WAS NOT ENOUGH. The lane frontend
+#: enabled logging with `name_prefix="P1-"`, and then `StoryDebugResetMode` re-enabled it
+#: per run (`plugins/custom_modes/story_mode.py:2704,2733`) with no prefix — so the tiny
+#: startup log was tagged and the REAL story log, the one anyone would actually read, was
+#: not. Confirmed in the user's 2026-07-26 bundle: `P1-Manual-debug-*.log` (1 KB) beside an
+#: untagged `Story_(ENDLESS_RESET)-debug-*.log` (649 KB). A module-level prefix is picked
+#: up by every caller, including ones that know nothing about lanes.
+_name_prefix: str = ""
+
+
+def set_name_prefix(prefix: str) -> None:
+    """Tag every subsequent log file. Call once at lane startup."""
+    global _name_prefix
+    _name_prefix = str(prefix or "")
+
+
+def _git_facts() -> "dict[str, str]":
+    """Identify the checkout WITHOUT shelling out to git.
+
+    Reads `.git/HEAD` and the ref file directly: a subprocess costs ~50-150ms on Windows,
+    this costs a couple of file reads, and it still works when `git` is not on PATH — which
+    is common on a machine that only ever runs the installer.
+    """
+    facts: dict[str, str] = {}
+    try:
+        from pathlib import Path
+
+        here = Path(__file__).resolve()
+        git_dir = None
+        for parent in here.parents:
+            candidate = parent / ".git"
+            if candidate.is_dir():
+                git_dir = candidate
+                break
+        if git_dir is None:
+            return {"repo": "not a git checkout"}
+        head = (git_dir / "HEAD").read_text(encoding="utf-8").strip()
+        if head.startswith("ref: "):
+            ref = head[5:].strip()
+            facts["branch"] = ref.rsplit("/", 1)[-1]
+            ref_file = git_dir / ref
+            if ref_file.is_file():
+                facts["commit"] = ref_file.read_text(encoding="utf-8").strip()[:12]
+            else:  # packed-refs
+                packed = git_dir / "packed-refs"
+                if packed.is_file():
+                    for line in packed.read_text(encoding="utf-8").splitlines():
+                        if line.endswith(" " + ref):
+                            facts["commit"] = line.split(" ", 1)[0][:12]
+                            break
+        else:  # detached HEAD
+            facts["branch"] = "(detached)"
+            facts["commit"] = head[:12]
+    except Exception as e:  # noqa: BLE001
+        facts["repo"] = f"unreadable ({type(e).__name__})"
+    return facts
+
+
+#: Env vars that CHANGE BEHAVIOUR. Any experiment flag added later belongs here, or a log
+#: cannot say which arm produced it.
+_BEHAVIOUR_ENV_VARS = ("POKEBOT_FODDER_RULE",)
+
+
+def _write_run_header() -> None:
+    """Emit everything needed to identify the build, the config and the experiment.
+
+    ‼ WHY THIS EXISTS (user, 2026-07-29): *"all of this should be native to the debug
+    logging... I should not have to make arbitrary cmd commands to do this"*. Correct. The
+    header used to be two lines — a timestamp and the log path — so answering "which build
+    produced this log?" meant running `git log` on the machine that made it, and answering
+    "which experiment arm was this?" was impossible after the fact. Three separate times a
+    shared log could not be interpreted without going back to the user.
+
+    A forensic log must be SELF-DESCRIBING. Everything here is wrapped so that a failure to
+    read any one fact degrades that line to "unknown" and never blocks logging.
+    """
+    def _line(label: str, value) -> None:
+        _raw(f"    {label:<14} {value}")
+
+    _raw("--- RUN HEADER (build, config, experiment) ---")
+
+    try:
+        g = _git_facts()
+        if "commit" in g:
+            _line("build:", f"{g.get('commit', '?')} on branch {g.get('branch', '?')}")
+        else:
+            _line("build:", g.get("repo", "unknown"))
+    except Exception:  # noqa: BLE001
+        _line("build:", "unknown")
+
+    try:
+        from modules.version import pokebot_name, pokebot_version
+
+        _line("bot:", f"{pokebot_name} {pokebot_version}")
+    except Exception:  # noqa: BLE001
+        pass
+
+    try:
+        import platform
+        import sys
+
+        _line("python:", f"{sys.version.split()[0]} on {platform.system()} {platform.release()}")
+    except Exception:  # noqa: BLE001
+        pass
+
+    try:
+        from modules.context import context
+
+        _line("mode:", context.bot_mode)
+        try:
+            _line("profile:", context.profile.path.name)
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            rom = context.rom
+            _line("rom:", f"{rom.short_name if hasattr(rom, 'short_name') else rom.game_name} "
+                          f"({rom.language}) rev {getattr(rom, 'revision', '?')}")
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            _line("emulation:", f"speed={context.emulation_speed} video={context.video} "
+                                f"audio={context.audio}")
+        except Exception:  # noqa: BLE001
+            pass
+    except Exception:  # noqa: BLE001
+        pass
+
+    # ‼ EXPERIMENT FLAGS. Without these a log cannot be attributed to a condition, which is
+    # the whole point of running an A/B.
+    try:
+        import os
+
+        from modules.story import training_areas as _ta
+
+        how = "env" if "POKEBOT_FODDER_RULE" in os.environ else "default"
+        _line("fodder-rule:", f"{_ta.FODDER_RULE} ({how})"
+                              + (f" ratio={_ta.XP_RATE_RELOCATE_RATIO}"
+                                 if _ta.FODDER_RULE == "xp_rate" else ""))
+    except Exception:  # noqa: BLE001
+        pass
+
+    try:
+        import os
+
+        set_vars = {k: os.environ[k] for k in _BEHAVIOUR_ENV_VARS if k in os.environ}
+        _line("env:", set_vars if set_vars else "(no behaviour env vars set)")
+    except Exception:  # noqa: BLE001
+        pass
+
+    _raw("--- END RUN HEADER ---")
+
+
+def enable(profile=None, name_prefix: str | None = None) -> str:
     """Open a fresh log file and start logging. Returns the path (or an error
-    string). `profile` defaults to context.profile."""
+    string). `profile` defaults to context.profile.
+
+    `name_prefix` is prepended to the filename — ENDLESS LOOP x4 passes the lane tag
+    ("P1-", "P2-", ...) so that logs handed over for review say which bot produced
+    them without having to open them."""
     global _enabled, _file, _path, _prev, _stall_frames, _last_sig, _last_dump_stall
     global _start_frame, _bytes_written, _capped
     disable()
@@ -74,7 +273,8 @@ def enable(profile=None) -> str:
         now = datetime.datetime.now()
         ts = now.strftime("%Y%m%d-%H%M%S")
         mode = _safe(_cur_mode) or "run"
-        _path = base / f"{str(mode).replace(' ', '_').replace('/', '-')}-debug-{ts}.log"
+        prefix = _name_prefix if name_prefix is None else name_prefix
+        _path = base / f"{prefix}{str(mode).replace(' ', '_').replace('/', '-')}-debug-{ts}.log"
         _file = open(_path, "w", encoding="utf-8", buffering=1)  # line-buffered
         _enabled = True
         _prev = None
@@ -86,6 +286,7 @@ def enable(profile=None) -> str:
         _capped = False
         _raw(f"=== DEBUG LOG START {now.isoformat(timespec='seconds')} ===")
         _raw(f"    log: {_path}")
+        _write_run_header()
         _dump("enable — initial state")
         return str(_path)
     except Exception as e:  # noqa: BLE001
@@ -139,27 +340,44 @@ def on_frame(frame_info=None) -> None:
             pass
 
     # --- stall detection ---
-    # A battle is always progress (its state legitimately holds still mid-turn /
-    # during EXP fill), so never flag a stall while one is active — otherwise every
-    # battle turn false-triggers. Bug #2 freezes are in the OVERWORLD after a battle,
-    # which this still catches (battle_active is False there).
+    # ‼ A battle is USUALLY progress — its state legitimately holds still mid-turn and during
+    # the EXP fill — so it gets a far larger threshold than the overworld. But it is NOT
+    # exempt. This branch used to reset `_stall_frames` to 0 on every in-battle frame, which
+    # made the detector structurally unable to see an in-battle wedge: the 2026-07-29 Fortree
+    # party-menu freeze held one state for ~280,000 frames and produced ZERO dumps, so there
+    # was no generator stack to diagnose it from. See `_BATTLE_STALL_DUMP_AFTER`.
     sig = _progress_signature(st)
-    if st.get("battle_active"):
-        if _stall_frames >= _STALL_DUMP_AFTER:
-            _event(fc, f"[RESUMED] after {_stall_frames} frames with no progress")
-        _stall_frames = 0
-        _last_sig = sig
-        _last_dump_stall = 0
-    elif sig == _last_sig:
+    in_battle = bool(st.get("battle_active"))
+    threshold = _BATTLE_STALL_DUMP_AFTER if in_battle else _STALL_DUMP_AFTER
+    if sig == _last_sig:
         _stall_frames += 1
     else:
-        if _stall_frames >= _STALL_DUMP_AFTER:
+        if _stall_frames >= threshold:
             _event(fc, f"[RESUMED] after {_stall_frames} frames with no progress")
         _stall_frames = 0
         _last_sig = sig
         _last_dump_stall = 0
-    if _stall_frames == _STALL_DUMP_AFTER or (
-        _stall_frames > _STALL_DUMP_AFTER and (_stall_frames - _last_dump_stall) >= _STALL_REDUMP_EVERY
+    # ‼ TERMINATE a wedge the per-run frame budget cannot see (KI-36). Fires ONCE per stall,
+    # only in battle, and only via the recoverable battle-fault channel — never by raising,
+    # which on this flat controller stack would drop straight to Manual.
+    if in_battle and _stall_frames == _BATTLE_STALL_FAULT_AFTER:
+        try:
+            from modules.battle_fault import request_mode_recovery
+
+            _reason = (
+                f"in-battle wedge: state unchanged for {_stall_frames:,} frames "
+                f"(KI-36; the per-run frame budget cannot fire while a battle handler is on "
+                f"the controller stack)"
+            )
+            if request_mode_recovery(_reason):
+                _event(fc, f"[STALL] handing a recoverable derail to the mode — {_reason}")
+            else:
+                _event(fc, f"[STALL] {_reason} — no mode accepted the fault; it will NOT be ended here")
+        except Exception:  # noqa: BLE001 - a watchdog must never break the run it watches
+            pass
+
+    if _stall_frames == threshold or (
+        _stall_frames > threshold and (_stall_frames - _last_dump_stall) >= _STALL_REDUMP_EVERY
     ):
         _last_dump_stall = _stall_frames
         try:

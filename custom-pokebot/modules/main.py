@@ -106,9 +106,29 @@ def main_loop() -> None:
             except Exception:
                 pass
 
+            # Badge acquisition recorder (sandbox, #24-badges): freezes the party at the
+            # instant each badge flag flips, into <profile>/badge-log.json. Polls 8 event
+            # flags once a second, not once a frame; fully guarded internally.
+            try:
+                from modules import badge_log
+
+                badge_log.on_frame(frame_info.frame_count)
+            except Exception:
+                pass
+
             # Reset all bot listeners if the emulator has been reset.
             if previous_frame_info is not None and previous_frame_info.frame_count > frame_info.frame_count:
                 state_cache.reset()
+                # A hard reset means a NEW playthrough: the badge flags are all back to 0,
+                # so the recorder must forget what it had seen or the next run's badges
+                # would look already-earned and never be logged. This is the right seam
+                # because it catches EVERY reset path, not just the endless mode's.
+                try:
+                    from modules import badge_log
+
+                    badge_log.reset_for_new_run(frame_info.frame_count)
+                except Exception:
+                    pass
                 context.bot_listeners = get_bot_listeners(context.rom)
 
             if context.bot_mode == "Manual":

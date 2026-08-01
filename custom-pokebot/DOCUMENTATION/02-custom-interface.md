@@ -1,21 +1,5 @@
 # Custom Interface
 
-> **Current GUI (2026-07-19, batch-2):** a **two-row tabbed** tool column —
-> **Play** (bot mode, speed, video/audio, macros; in handheld the top menu's
-> commands appear here as a GAME MENU), **Party** (HP + XP bars, sprites,
-> shiny log), **Hunt** (Hunt Planner + Living-Dex + Catch-Balls allowlist —
-> see `05-hunting-and-livingdex.md`), **Stats** (KPIs, status, ANALYTICS card
-> [luck meter / trend / stats browser], Watchdog line, event log), **Cheats**
-> (see `03-cheats.md`; incl. adjustable money + Lock), **Backups**
-> (backup/restore + cloud sync). A **Left Party Section** shows clean mon
-> sprites down the left of the video (both modes); each mon's **caught ball**
-> now appears in the themed **HOVER TOOLTIP** (type badges, IV grid, moves,
-> 3×-size ball icon), not on the strip. Popups float above the emulator and
-> are touch-formatted for handheld. Gamepad (XInput) drives Manual-mode game
-> input; opening the Pokéball drawer switches the controller to GUI
-> navigation (and ONLY then — it never interrupts gameplay). Automation /
-> backup / sync features: `04-automation-and-sync.md`.
-
 ## Native dashboard GUI (the program's own window — DEFAULT)
 > ✅ User-confirmed hands-on 2026-07-18 ("worked!").
 

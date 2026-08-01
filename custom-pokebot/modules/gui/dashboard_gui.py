@@ -40,6 +40,8 @@ from tkinter import Canvas, Menu, ttk
 from typing import TYPE_CHECKING, Callable
 
 import PIL.Image
+import PIL.ImageDraw
+import PIL.ImageFont
 import PIL.ImageTk
 
 from modules.context import context
@@ -105,6 +107,114 @@ SIDEBAR_REFRESH_FRAMES = 30  # refresh party/labels every N rendered frames
 KPI_REFRESH_SECONDS = 5.0  # stats DB reads are not free — refresh sparsely
 UI_STATE_FILE = "dashboard_ui.json"
 
+#: Any bot mode whose name starts with this is hoisted to the top of the Bot-mode popup,
+#: together with the Story batch controls. ‼ A PREFIX, not a hand-written list: a new
+#: `Story (…)` mode must be findable the day it is added, and hand-listed collections in
+#: this project have a measured habit of rotting (08-MISTAKES 2026-07-30).
+STORY_MODE_PREFIX = "Story"
+
+#: Action keys used by `build_mode_menu_plan`; the renderer maps them to callbacks.
+ACTION_ENDLESS_RESET = "endless_reset"
+ACTION_X4_TOGGLE = "x4_toggle"
+ACTION_X4_PARK = "x4_park"
+ACTION_DEBUG_LOG = "debug_log"
+
+
+
+def build_mode_menu_plan(
+    mode_names,
+    *,
+    current_mode: str,
+    selectable,
+    x4_running: bool,
+    story_prefix: str = STORY_MODE_PREFIX,
+) -> list:
+    """Decide WHAT the Bot-mode popup shows and in WHICH ORDER. Pure — no Tk, no globals —
+    so the ordering can be tested without building a window (`repro_mode_menu_order.py`).
+
+    ‼ USER REQUEST 2026-07-30: the Story modes and the ×4 batch controls go at the TOP.
+    Previously the popup ran `Manual` → ~23 upstream modes → disabled modes → Debug Logging
+    → Endless Debug-Reset → Endless Loop ×4 → Park ×4, i.e. the two controls used most often
+    (park and stop a running batch) were the LAST two entries, below a block of greyed-out
+    modes. The user had to scroll to reach them every time.
+
+    Two ordering rules, both aimed at "findable without looking":
+      * The Story block is always in the same place, whether or not its entries are
+        selectable right now. A greyed-out Story mode stays at the top rather than dropping
+        into the disabled block at the bottom — an entry that MOVES depending on game state
+        is the scrolling problem wearing a different hat.
+      * `Park ×4 & Collect Logs` is now always PRESENT, greyed out when no batch is running,
+        for the same reason. This reverses a deliberate 2026-07-26 choice to hide it unless
+        meaningful; hiding it made the block's height change, so the entry below it moved.
+
+    `Manual` stays first — it is the stop button, its position is muscle memory, and it
+    costs exactly one line above the Story block.
+
+    Returns a list of tuples the renderer walks:
+      ("separator",)
+      ("header",  label)                       -- a disabled caption
+      ("mode",    label, mode_name, enabled)   -- selects that bot mode
+      ("command", label, key,       enabled)   -- one of the ACTION_* keys below
+    The ACTIVE mode is emitted as ("active", label) and is never clickable.
+    """
+    is_selectable = selectable if callable(selectable) else (lambda name: name in selectable)
+    plan: list = []
+
+    def emit_mode(name: str, *, always_enabled: bool = False) -> None:
+        if name == current_mode:
+            plan.append(("active", name))
+        else:
+            plan.append(("mode", name, name, True if always_enabled else bool(is_selectable(name))))
+
+    # 1. Manual — the stop button, always first and ALWAYS enabled.
+    # ‼ `always_enabled`: "Manual" is not a registered bot mode, so it is absent from
+    # `mode_names`/`selectable` and the plain selectability test would render the one
+    # entry that must always work as GREYED OUT.
+    emit_mode("Manual", always_enabled=True)
+    plan.append(("separator",))
+
+    # 2. THE STORY BLOCK — modes first, then the batch controls that drive them.
+    story_modes = [n for n in mode_names if n.startswith(story_prefix)]
+    if story_modes:
+        plan.append(("header", "STORY"))
+        for name in story_modes:
+            emit_mode(name)
+    plan.append(("command", "Endless Debug-Reset Runs…", ACTION_ENDLESS_RESET, True))
+    plan.append(
+        (
+            "command",
+            "Stop Endless Loop ×4" if x4_running else "Endless Loop ×4…",
+            ACTION_X4_TOGGLE,
+            True,
+        )
+    )
+    plan.append(("command", "Park ×4 & Collect Logs…", ACTION_X4_PARK, bool(x4_running)))
+
+    # 3. Everything else, in registry order, selectable first then greyed out.
+    # "Manual" is filtered out in case a future registry does list it — it is already
+    # emitted at the top and must never appear twice.
+    others = [n for n in mode_names if not n.startswith(story_prefix) and n != "Manual"]
+    enabled_others = [n for n in others if n != current_mode and is_selectable(n)]
+    disabled_others = [n for n in others if n != current_mode and not is_selectable(n)]
+    active_other = [n for n in others if n == current_mode]
+    if enabled_others or active_other:
+        plan.append(("separator",))
+        plan.append(("header", "OTHER MODES"))
+        for name in active_other:
+            emit_mode(name)
+        for name in enabled_others:
+            emit_mode(name)
+    if disabled_others:
+        plan.append(("separator",))
+        for name in disabled_others:
+            plan.append(("mode", name, name, False))
+
+    # 4. Diagnostics last — set once and forgotten, unlike the controls above.
+    plan.append(("separator",))
+    plan.append(("checkbutton", "Debug Logging (diagnostic file)", ACTION_DEBUG_LOG))
+    return plan
+
+
 GBA_ASPECT = 240 / 160
 
 
@@ -138,6 +248,22 @@ class DashboardScreen:
         self._last_kpi_refresh = 0.0
         self._plugin_registered = False
         self._mousewheel_bound = False
+
+        # ENDLESS LOOP x4 (punch-list #24-x4). When a batch is running, the video area
+        # shows a 2x2 grid of LANE screens read out of shared memory instead of this
+        # process's own emulator — see modules/endless_x4.py.
+        self._x4_batch = None
+        self._x4_focus = 0
+        self._x4_last_paint = 0.0
+
+        # Badge case (#24-badges): the Bag button under the party strip and its overlay.
+        self._bag_button = None
+        self._bag_icon_cache = None
+        self._badge_case_frame = None
+        self._badge_case_detail = None
+        self._badge_case_selected = 0
+        self._badge_case_entries_cache = None
+        self._badge_sprite_cache: dict = {}
 
         self._handheld = False
         self._drawer_open = False
@@ -322,6 +448,8 @@ class DashboardScreen:
         if self._party_strip is not None:
             self._party_strip.destroy()
             self._party_strip = None
+        # The badge case is placed on the root window, so it outlives `frame` too.
+        self.close_badge_case()
         if self._party_tooltip is not None:
             self._party_tooltip.destroy()
             self._party_tooltip = None
@@ -412,7 +540,13 @@ class DashboardScreen:
             # Screen is disabled — never touch destroyed widgets.
             return
         if context.emulator._performance_tracker.time_since_last_render() >= (1 / 60) * 1_000_000_000:
-            if context.emulator.get_video_enabled():
+            if self._x4_batch is not None:
+                # An x4 batch takes over the video area: this process's own emulator is
+                # parked in Manual purely to keep pumping the Tk queue (there is no
+                # mainloop — see the module docstring), and the four LANES are what the
+                # user is actually watching.
+                self._update_x4_tiles()
+            elif context.emulator.get_video_enabled():
                 self._update_video(context.emulator.get_current_screen_image())
 
             self._frame_counter += 1
@@ -552,18 +686,21 @@ class DashboardScreen:
         self.canvas.bind("<Configure>", self._on_video_resized)
         self.canvas.bind("<Double-Button-1>", lambda _event: self.toggle_handheld())
 
-        if context.debug:
+        def handle_click_on_video_output(event):
+            # An x4 batch owns the video area, so a click there picks a LANE; the debug
+            # pixel-probe below would be meaningless (those coordinates belong to a
+            # different process's screen).
+            if self._x4_click(event):
+                return
+            if context.debug and context.video:
+                offset_x, offset_y, size = self._video_draw_rect()
+                scale = max(1, size[0] // 240)
+                position = ((event.x - offset_x) // scale, (event.y - offset_y) // scale)
+                if 0 <= position[0] < 240 and 0 <= position[1] < 160:
+                    for tab in self._debug_tabs:
+                        tab.on_video_output_click(position, scale)
 
-            def handle_click_on_video_output(event):
-                if context.video:
-                    offset_x, offset_y, size = self._video_draw_rect()
-                    scale = max(1, size[0] // 240)
-                    position = ((event.x - offset_x) // scale, (event.y - offset_y) // scale)
-                    if 0 <= position[0] < 240 and 0 <= position[1] < 160:
-                        for tab in self._debug_tabs:
-                            tab.on_video_output_click(position, scale)
-
-            self.canvas.bind("<Button-1>", handle_click_on_video_output)
+        self.canvas.bind("<Button-1>", handle_click_on_video_output)
 
     def _build_tool_column(self) -> None:
         self.frame = ttk.Frame(self.window, width=TOOL_COLUMN_WIDTH)
@@ -1112,7 +1249,268 @@ class DashboardScreen:
             slot.bind("<Enter>", lambda event, i=index: self._party_hover_enter(i, event.x_root, event.y_root))
             slot.bind("<Leave>", lambda _event: self._party_hover_leave())
             self._party_slots.append(slot)
+
+        # BAG BUTTON (#24-badges, user request 2026-07-26): sits under the 6th ball and
+        # opens the badge case. Deliberately smaller than a party slot so it never reads
+        # as a 7th Pokémon.
+        tkinter.Frame(strip, background=COLOR_HAIRLINE, height=1).pack(fill="x", padx=10, pady=(8, 6))
+        bag = tkinter.Label(strip, background=COLOR_SURFACE, borderwidth=0, cursor="hand2")
+        bag.pack(pady=(0, 6))
+        icon = self._bag_icon()
+        bag.config(image=icon if icon is not None else "", text="" if icon else "BAG",
+                   foreground=COLOR_INK_2, font=("Segoe UI", 8, "bold"))
+        bag.image = icon
+        bag.bind("<Button-1>", lambda _event: self.toggle_badge_case())
+        self._bag_button = bag
+
         self._refresh_party_strip()
+
+    _BAG_ICON_SIZE = 54
+
+    def _bag_icon(self) -> "PIL.ImageTk.PhotoImage | None":
+        """The Bag button's icon.
+
+        ‼ DRAWN, NOT AN ASSET. The repo ships no bag artwork (`sprites/` has badges, items,
+        Pokémon and a handful of `other/` icons, but nothing bag-like), and the real one
+        lives in ROM graphics we do not extract. This is a deliberate stand-in shaped like
+        Emerald's satchel — swap it for a real sprite if one is ever added, by dropping a
+        `Bag.png` into `sprites/other/` and loading it here instead.
+        """
+        if getattr(self, "_bag_icon_cache", None) is not None:
+            return self._bag_icon_cache
+        try:
+            size = self._BAG_ICON_SIZE
+            scale = 4  # draw big, downsample — cheap antialiasing for the curves
+            image = PIL.Image.new("RGBA", (size * scale, size * scale), (0, 0, 0, 0))
+            draw = PIL.ImageDraw.Draw(image)
+            w = size * scale
+            body_top = int(w * 0.34)
+            # strap
+            draw.arc([int(w * 0.28), int(w * 0.10), int(w * 0.72), int(w * 0.62)],
+                     start=200, end=340, fill=(96, 74, 44, 255), width=int(w * 0.055))
+            # body
+            draw.rounded_rectangle([int(w * 0.12), body_top, int(w * 0.88), int(w * 0.88)],
+                                   radius=int(w * 0.14), fill=(214, 168, 78, 255),
+                                   outline=(120, 88, 36, 255), width=int(w * 0.035))
+            # flap
+            draw.rounded_rectangle([int(w * 0.12), body_top, int(w * 0.88), int(w * 0.58)],
+                                   radius=int(w * 0.12), fill=(178, 130, 52, 255),
+                                   outline=(120, 88, 36, 255), width=int(w * 0.035))
+            # clasp
+            draw.rounded_rectangle([int(w * 0.42), int(w * 0.50), int(w * 0.58), int(w * 0.66)],
+                                   radius=int(w * 0.04), fill=(238, 226, 196, 255),
+                                   outline=(120, 88, 36, 255), width=int(w * 0.025))
+            image = image.resize((size, size), resample=PIL.Image.LANCZOS)
+            self._bag_icon_cache = PIL.ImageTk.PhotoImage(image=image)
+        except Exception:
+            self._bag_icon_cache = None
+        return self._bag_icon_cache
+
+    # ------------------------------------------------------------------
+    # Badge case overlay (#24-badges)
+    # ------------------------------------------------------------------
+    def _badge_case_source(self) -> tuple[str, "Path | None", list[str]]:
+        """(label, profile path, earned flag names) for whatever the case should show.
+
+        During an x4 batch the case follows the FOCUSED LANE, exactly as the party strip
+        does — a badge case showing this window's idle profile while four lanes play would
+        be actively misleading.
+        """
+        from pathlib import Path
+
+        if self._x4_batch is not None:
+            status = self._x4_focused_status()
+            lanes = self._x4_batch.lanes
+            if 0 <= self._x4_focus < len(lanes):
+                lane = lanes[self._x4_focus]
+                from modules.profiles import PROFILES_DIRECTORY
+
+                return (f"{lane.tag} · {lane.starter}",
+                        PROFILES_DIRECTORY / lane.profile_name,
+                        list(status.get("badges") or []))
+        try:
+            from modules import badge_log
+
+            label = context.profile.path.name if context.profile else "—"
+            path = Path(context.profile.path) if context.profile else None
+            return label, path, sorted(badge_log.known_badges())
+        except Exception:
+            return "—", None, []
+
+    def _badge_case_entries(self):
+        from modules import badge_case, badge_log
+
+        _label, path, flags = self._badge_case_source()
+        records = []
+        if path is not None:
+            try:
+                import types as _types
+
+                records = badge_log.read_log(_types.SimpleNamespace(path=path))
+            except Exception:
+                records = []
+        return badge_case.build_case(flags, records)
+
+    def toggle_badge_case(self) -> None:
+        if self._badge_case_frame is not None:
+            self.close_badge_case()
+        else:
+            self.open_badge_case()
+
+    def close_badge_case(self) -> None:
+        if self._badge_case_frame is not None:
+            try:
+                self._badge_case_frame.destroy()
+            except Exception:
+                pass
+        self._badge_case_frame = None
+        self._badge_case_detail = None
+        self._badge_case_entries_cache = None
+
+    def open_badge_case(self) -> None:
+        """Draw the badge case as an in-window overlay to the right of the party strip.
+
+        ‼ An in-window `place()`d frame, NOT a Toplevel. This module's docstring records
+        that a plain Toplevel opens BEHIND the video in handheld fullscreen and looks like
+        nothing happened; the overlay has to work in handheld, which is where the Bag
+        button is most useful.
+        """
+        from modules import badge_case
+
+        self.close_badge_case()
+        entries = self._badge_case_entries()
+        self._badge_case_entries_cache = entries
+        label, _path, _flags = self._badge_case_source()
+
+        frame = tkinter.Frame(self.window, background=COLOR_CARD,
+                              highlightbackground=COLOR_ACCENT, highlightthickness=2)
+        self._badge_case_frame = frame
+
+        header = tkinter.Frame(frame, background=COLOR_CARD)
+        header.pack(fill="x", padx=12, pady=(10, 4))
+        tkinter.Label(header, text="BADGE CASE", background=COLOR_CARD, foreground=COLOR_INK,
+                      font=("Segoe UI", 12, "bold")).pack(side="left")
+        tkinter.Label(header, text=f"{badge_case.earned_count(entries)} / {len(entries)}",
+                      background=COLOR_CARD, foreground=COLOR_ACCENT,
+                      font=("Segoe UI", 12, "bold")).pack(side="right")
+        tkinter.Label(frame, text=label, background=COLOR_CARD, foreground=COLOR_MUTED,
+                      font=("Segoe UI", 8), anchor="w").pack(fill="x", padx=12)
+
+        # 2 rows x 4 — the in-game case's layout.
+        grid = tkinter.Frame(frame, background=COLOR_CARD)
+        grid.pack(padx=10, pady=8)
+        for index, entry in enumerate(entries):
+            cell = tkinter.Frame(grid, background=COLOR_SURFACE, padx=4, pady=4,
+                                 highlightbackground=COLOR_HAIRLINE, highlightthickness=1)
+            cell.grid(row=index // 4, column=index % 4, padx=3, pady=3)
+            icon = self._badge_sprite(entry.info.sprite, entry.earned)
+            slot = tkinter.Label(cell, background=COLOR_SURFACE, borderwidth=0, cursor="hand2")
+            slot.config(image=icon if icon is not None else "",
+                        text="" if icon else entry.info.badge)
+            slot.image = icon
+            slot.pack()
+            tkinter.Label(cell, text=entry.info.badge, background=COLOR_SURFACE,
+                          foreground=COLOR_INK_2 if entry.earned else COLOR_MUTED,
+                          font=("Segoe UI", 7)).pack()
+            for widget in (cell, slot):
+                widget.bind("<Enter>", lambda _e, i=index: self._show_badge_detail(i))
+                widget.bind("<Button-1>", lambda _e, i=index: self._show_badge_detail(i, pin=True))
+
+        detail = tkinter.Frame(frame, background=COLOR_SURFACE)
+        detail.pack(fill="both", expand=True, padx=10, pady=(0, 10))
+        self._badge_case_detail = detail
+
+        close = tkinter.Button(frame, text="Close", command=self.close_badge_case,
+                               background=COLOR_SURFACE, foreground=COLOR_INK,
+                               activebackground=COLOR_ACCENT, relief="flat",
+                               font=("Segoe UI", 8))
+        close.pack(pady=(0, 8))
+
+        strip_width = self._PARTY_ICON_SIZE + 14
+        frame.place(x=strip_width + 8, y=8, width=430)
+        frame.lift()
+        self._show_badge_detail(self._badge_case_selected)
+
+    def _show_badge_detail(self, index: int, pin: bool = False) -> None:
+        detail = self._badge_case_detail
+        if detail is None:
+            return
+        if pin:
+            self._badge_case_selected = index
+        # Snapshotted when the case is opened: re-reading badge-log.json on every hover
+        # would be a disk read per mouse move.
+        entries = self._badge_case_entries_cache or self._badge_case_entries()
+        if not (0 <= index < len(entries)):
+            return
+        entry = entries[index]
+        info = entry.info
+
+        for child in detail.winfo_children():
+            child.destroy()
+
+        def line(text, colour=COLOR_INK_2, font=("Segoe UI", 8), pady=0):
+            tkinter.Label(detail, text=text, background=COLOR_SURFACE, foreground=colour,
+                          font=font, anchor="w", justify="left", wraplength=390).pack(
+                fill="x", padx=8, pady=pady)
+
+        line(f"{info.badge} Badge — {info.leader}", COLOR_INK, ("Segoe UI", 10, "bold"), (6, 0))
+        line(f"{info.city} Gym · {info.type}-type")
+        line(f"Ace: {info.ace} (Lv {info.ace_level})")
+        if info.tm:
+            line(f"Reward: {info.tm}")
+        if info.grants:
+            line(f"Enables: {info.grants}", COLOR_ACCENT)
+
+        if not entry.earned:
+            line("Not yet earned.", COLOR_MUTED, ("Segoe UI", 8, "italic"), (6, 6))
+            return
+
+        if not entry.records:
+            # Earned, but before the recorder existed (or on another machine).
+            line("Earned — no team recorded.", COLOR_MUTED, ("Segoe UI", 8, "italic"), (6, 0))
+            line("The team is captured only for badges won after the badge log was "
+                 "switched on.", COLOR_MUTED, ("Segoe UI", 7), (0, 6))
+            return
+
+        latest = entry.latest
+        line(f"Beaten {len(entry.records)}× · latest {str(latest.get('earned_at', ''))[:19]}",
+             COLOR_GOOD, ("Segoe UI", 8, "bold"), (6, 0))
+        line("Team that won:", COLOR_MUTED, ("Segoe UI", 7, "bold"), (2, 0))
+        for mon in latest.get("team", []):
+            name = mon.get("name") or mon.get("species") or "?"
+            hp = f"{mon.get('hp', '?')}/{mon.get('max_hp', '?')}"
+            shiny = " ✦" if mon.get("shiny") else ""
+            line(f"   {name}{shiny}  Lv {mon.get('level', '?')}   HP {hp}")
+        if len(entry.records) > 1:
+            line(f"({len(entry.records) - 1} earlier win(s) also recorded — see badge-log.json)",
+                 COLOR_MUTED, ("Segoe UI", 7), (4, 4))
+
+    def _badge_sprite(self, filename: str, earned: bool):
+        """The badge image, or a black silhouette of it when not yet earned."""
+        key = (filename, earned)
+        if key in self._badge_sprite_cache:
+            return self._badge_sprite_cache[key]
+        photo = None
+        try:
+            from modules.runtime import get_sprites_path
+
+            path = get_sprites_path() / "badges" / filename
+            image = PIL.Image.open(path).convert("RGBA")
+            image = image.resize((48, 48), resample=PIL.Image.LANCZOS)
+            if not earned:
+                # Keep the SHAPE, drop the colour: every visible pixel becomes near-black,
+                # which is the "empty slot in the case" look the user asked for.
+                pixels = image.load()
+                for y in range(image.height):
+                    for x in range(image.width):
+                        r, g, b, a = pixels[x, y]
+                        if a:
+                            pixels[x, y] = (18, 18, 20, a)
+            photo = PIL.ImageTk.PhotoImage(image=image)
+        except Exception:
+            photo = None
+        self._badge_sprite_cache[key] = photo
+        return photo
 
     def _refresh_party_strip(self) -> None:
         if not self._party_slots:
@@ -2628,6 +3026,283 @@ class DashboardScreen:
         )
 
     # ------------------------------------------------------------------
+    # ENDLESS LOOP x4 — tiled lane view (punch-list #24-x4)
+    # ------------------------------------------------------------------
+    #: Tile repaint rate. The LANES emulate unthrottled; this only governs how often the
+    #: dashboard reads shared memory and redraws. 30 Hz is smooth to watch and leaves the
+    #: pump plenty of headroom.
+    X4_PAINT_HZ = 30
+
+    def _update_x4_tiles(self) -> None:
+        """Paint the 2x2 lane grid. Must never raise — it runs on the frame callback.
+
+        The drawing itself lives in `modules/tile_mosaic.py` (pure PIL, no Tk), so the
+        grid can be rendered to a PNG and inspected without a running emulator.
+        """
+        batch = self._x4_batch
+        if batch is None or self.canvas is None:
+            return
+        now = time.monotonic()
+        if now - self._x4_last_paint < 1.0 / self.X4_PAINT_HZ:
+            return
+        self._x4_last_paint = now
+
+        try:
+            batch.poll()  # respawn any lane whose process died
+        except Exception:
+            pass
+
+        try:
+            from modules.tile_mosaic import MosaicTile, compose_mosaic
+
+            offset_x, offset_y, size = self._video_draw_rect()
+            tiles = []
+            for slot, lane in enumerate(batch.lanes[:4]):
+                try:
+                    frame = batch.bridge.read(slot) if batch.bridge is not None else None
+                except Exception:
+                    frame = None
+                status = frame.status if frame is not None else {}
+                tiles.append(
+                    MosaicTile(
+                        tag=lane.tag,
+                        starter=lane.starter,
+                        alive=lane.is_alive,
+                        exhausted=lane.restarts >= batch.max_restarts,
+                        restarts=lane.restarts,
+                        runs_completed=frame.runs_completed if frame is not None else 0,
+                        message=str(status.get("message", "") or ""),
+                        party=str(status.get("party", "") or ""),
+                        pixels=frame.pixels if frame is not None else None,
+                        width=frame.width if frame is not None else 240,
+                        height=frame.height if frame is not None else 160,
+                        log_bytes=status.get("log_bytes") if status.get("log") else None,
+                        starter_chosen=status.get("starter_chosen"),
+                    )
+                )
+
+            mosaic = compose_mosaic(size, tiles, focus=self._x4_focus, accent=COLOR_ACCENT)
+            if self._current_canvas_image_id:
+                self.canvas.delete(self._current_canvas_image_id)
+            self._current_canvas_image = PIL.ImageTk.PhotoImage(image=mosaic)
+            self._current_canvas_image_id = self.canvas.create_image(
+                offset_x + mosaic.width // 2, offset_y + mosaic.height // 2,
+                image=self._current_canvas_image, state="normal",
+            )
+        except Exception:
+            if context.debug:
+                from modules.console import console
+
+                console.print_exception()
+
+    def _x4_focused_status(self) -> dict:
+        """The focused lane's most recent status blob ({} if it has not published)."""
+        batch = self._x4_batch
+        if batch is None or batch.bridge is None:
+            return {}
+        try:
+            frame = batch.bridge.read(self._x4_focus)
+        except Exception:
+            return {}
+        return frame.status if frame is not None else {}
+
+    def _x4_focused_party(self) -> list:
+        """The focused lane's party, rebuilt as `RemotePokemon` stand-ins."""
+        try:
+            from modules.remote_party import party_from_status
+
+            return party_from_status(self._x4_focused_status())
+        except Exception:
+            return []
+
+    def _x4_click(self, event) -> bool:
+        """Focus the clicked lane. Returns True if the click was consumed."""
+        if self._x4_batch is None:
+            return False
+        offset_x, offset_y, size = self._video_draw_rect()
+        x, y = event.x - offset_x, event.y - offset_y
+        if not (0 <= x < size[0] and 0 <= y < size[1]):
+            return True
+        slot = (0 if y < size[1] // 2 else 2) + (0 if x < size[0] // 2 else 1)
+        if slot < len(self._x4_batch.lanes):
+            self._x4_focus = slot
+            lane = self._x4_batch.lanes[slot]
+            self._log_event(f"Endless x4: focused {lane.tag} ({lane.starter}) — profile `{lane.profile_name}`.")
+            # Repaint the party immediately: waiting for the sidebar cycle would leave the
+            # PREVIOUS lane's team on screen for up to a second after the click, which
+            # reads as "the strip is not following the focus".
+            try:
+                self._refresh_party()
+                self._refresh_party_strip()
+            except Exception:
+                pass
+        return True
+
+    def start_endless_x4(self) -> None:
+        """Launch (or stop) a 4-lane endless batch.
+
+        Each lane is its own process, its own profile and its own starter, looping
+        `Story (ENDLESS RESET)` forever and restarting independently. This process's
+        emulator drops to Manual at 1x and becomes nothing but the Tk pump — there is no
+        mainloop in this GUI, the frame callback is what keeps the window alive.
+        """
+        import tkinter.messagebox
+
+        if self._x4_batch is not None:
+            self.stop_endless_x4()
+            return
+
+        if context.profile is None:
+            tkinter.messagebox.showerror("Endless Loop x4", "No profile is loaded.", parent=self.window)
+            return
+
+        from modules import endless_x4
+
+        lanes = 4
+        roster = "\n".join(
+            f"    {endless_x4.lane_tag(i)} — {endless_x4.lane_starter(i)}"
+            f"   (profile `{endless_x4.lane_profile_name(i)}`)"
+            for i in range(lanes)
+        )
+        if not tkinter.messagebox.askokcancel(
+            "Endless Loop x4",
+            f"Start FOUR independent endless story bots, one per tile?\n\n{roster}\n\n"
+            "Each lane runs in its own process and its own profile, hard-resets to a NEW\n"
+            "GAME, plays the story until it finishes or derails, then starts again — for\n"
+            "ever, and independently of the other lanes.\n\n"
+            "All four run UNTHROTTLED and MUTED, with debug logging on. Logs are written\n"
+            "per lane under profiles/endless-P#-<starter>/debug-logs/ and are prefixed\n"
+            "P1..P4.\n\n"
+            "This window's own emulator drops to Manual at 1x while the batch runs; it is\n"
+            "only there to keep the window responsive. Use this menu again to stop.",
+            parent=self.window,
+        ):
+            return
+
+        try:
+            batch = endless_x4.EndlessX4Batch()
+            batch.start(context.profile.rom, lanes)
+        except Exception as exc:  # noqa: BLE001
+            tkinter.messagebox.showerror(
+                "Endless Loop x4",
+                f"Could not start the batch:\n{type(exc).__name__}: {exc}",
+                parent=self.window,
+            )
+            return
+
+        # Park the local emulator. ‼ Speed only — `context.video` is deliberately NOT
+        # touched (user directive 2026-07-26: endless runs must not move the video
+        # toggle); the tile painter overrides the video area regardless of that setting.
+        self._x4_prev_speed = getattr(context, "emulation_speed", 1)
+        self._x4_prev_mode = getattr(context, "bot_mode", "Manual")
+        try:
+            context.bot_mode = "Manual"
+            context.emulation_speed = 1
+        except Exception:
+            pass
+
+        self._x4_batch = batch
+        self._x4_focus = 0
+        self._log_event(f"Endless Loop x4 started: {lanes} lanes ({', '.join(l.starter for l in batch.lanes)}).")
+        # ‼ SAY WHERE THE LOGS GO. The first time this ran, the logs were being written
+        # correctly and the user could not find them, because a lane logs into its OWN
+        # profile — not the one the dashboard was opened with (user, 2026-07-26).
+        for lane in batch.lanes:
+            self._log_event(f"  {lane.tag} logs → profiles/{lane.profile_name}/debug-logs/")
+
+    def collect_x4_logs(self) -> None:
+        """Park every lane, then bundle all four lanes' logs into one verified zip.
+
+        Order is park -> copy -> VERIFY -> archive, and nothing is moved until the finished
+        zip has been reopened and proved complete. See `modules/x4_logs.py`.
+        """
+        import tkinter.messagebox
+
+        batch = self._x4_batch
+        if batch is None:
+            return
+
+        from modules import x4_logs
+        from modules.profiles import PROFILES_DIRECTORY
+
+        if not tkinter.messagebox.askokcancel(
+            "Park ×4 & Collect Logs",
+            "Stop all four lanes and bundle their logs?\n\n"
+            "Each lane is dropped to Manual at 1×, reset to the title screen, and its log\n"
+            "file is CLOSED — that is what makes the copy safe.\n\n"
+            f"Everything then goes into one zip under profiles/{x4_logs.FOLDER_NAME}/, and\n"
+            "the originals are moved to each profile's debug-logs/Old/ — but ONLY after the\n"
+            "zip has been reopened and verified. badge-log.json is copied but never moved\n"
+            "(it is cumulative history).\n\n"
+            "The window will be unresponsive for a moment while the lanes park.\n"
+            "The batch does NOT resume afterwards — use the menu again to stop it.",
+            parent=self.window,
+        ):
+            return
+
+        self._log_event("Endless x4: parking lanes for log collection…")
+        parked, notes = batch.park_all()
+        for note in notes:
+            self._log_event(f"  {note}", highlight=True)
+        if not parked:
+            # Copying an open log risks a truncated final line; moving it fails outright on
+            # Windows. Let the user decide rather than silently producing a bad bundle.
+            if not tkinter.messagebox.askokcancel(
+                "Park ×4 & Collect Logs",
+                "Not every lane confirmed it had parked:\n\n  "
+                + "\n  ".join(notes)
+                + "\n\nCollect anyway? A lane that is still writing may contribute a\n"
+                  "truncated log, and its file may fail to archive.",
+                parent=self.window,
+            ):
+                self._log_event("Endless x4: log collection cancelled (lanes not parked).")
+                return
+
+        result = x4_logs.collect(PROFILES_DIRECTORY, batch.lanes)
+        self._log_event(f"Endless x4: {result.summary()}", highlight=not result.ok)
+        for note in result.notes:
+            self._log_event(f"  {note}")
+
+        if result.ok:
+            tkinter.messagebox.showinfo(
+                "Park ×4 & Collect Logs",
+                f"Bundled {result.files_bundled} file(s) "
+                f"({result.bytes_bundled / 1024:.0f} KB) from {len(result.lanes)} lane(s).\n\n"
+                f"{result.zip_path}\n\n"
+                f"{result.archived} original(s) moved to each profile's debug-logs/Old/."
+                + ("\n\nNotes:\n  " + "\n  ".join(result.notes) if result.notes else ""),
+                parent=self.window,
+            )
+        else:
+            tkinter.messagebox.showerror(
+                "Park ×4 & Collect Logs",
+                f"{result.error}\n\nNothing was archived — your logs are untouched."
+                + (f"\n\nThe zip was left at:\n{result.zip_path}" if result.zip_path else ""),
+                parent=self.window,
+            )
+
+    def stop_endless_x4(self) -> None:
+        """Terminate every lane and hand the video area back to the local emulator."""
+        batch, self._x4_batch = self._x4_batch, None
+        if batch is not None:
+            try:
+                batch.stop()
+            except Exception:
+                pass
+        try:
+            context.emulation_speed = getattr(self, "_x4_prev_speed", 1)
+            context.bot_mode = getattr(self, "_x4_prev_mode", "Manual")
+        except Exception:
+            pass
+        if self.canvas is not None and self._current_canvas_image_id:
+            try:
+                self.canvas.delete(self._current_canvas_image_id)
+            except Exception:
+                pass
+            self._current_canvas_image_id = None
+        self._log_event("Endless Loop x4 stopped.")
+
+    # ------------------------------------------------------------------
     # Sidebar data
     # ------------------------------------------------------------------
 
@@ -2945,12 +3620,20 @@ class DashboardScreen:
         self._prepare_dialog(dialog)
 
     def _refresh_party(self) -> None:
-        try:
-            from modules.pokemon_party import get_party
+        # ENDLESS LOOP x4: the party the user is looking at belongs to the FOCUSED LANE,
+        # which is a different process — `get_party()` here would read this window's idle
+        # profile and show a party that belongs to nobody on screen. The lane ships its
+        # team in its status blob; `modules/remote_party.py` rebuilds stand-ins with the
+        # same attribute surface, so everything below this point is unchanged.
+        if self._x4_batch is not None:
+            party = self._x4_focused_party()
+        else:
+            try:
+                from modules.pokemon_party import get_party
 
-            party = list(get_party())
-        except Exception:
-            party = []
+                party = list(get_party())
+            except Exception:
+                party = []
 
         self._current_party = party  # shared by the party tab rows + left strip hover
 
@@ -3362,16 +4045,17 @@ class DashboardScreen:
             self._log_event(f"Bot mode set to {mode_name}")
             self._refresh_controls()
 
-        if context.bot_mode == "Manual":
-            menu.add_command(label="Manual", font=bold_font)
-        else:
-            menu.add_command(label="Manual", command=lambda: select_bot_mode("Manual"))
-        menu.add_separator()
-        disabled_modes = []
+        # ‼ ORDER IS DECIDED BY `build_mode_menu_plan`, not here (user request 2026-07-30:
+        # Story modes and the ×4 controls belong at the TOP — Park and Stop used to be the
+        # last two entries, under a block of greyed-out modes, so reaching them meant
+        # scrolling every time). This method now only RENDERS the plan, which keeps the
+        # ordering pure and testable (`repro_mode_menu_order.py`) instead of being locked
+        # inside a Tk callback that needs a window to observe.
+        modes_by_name = {}
+        selectable_names = set()
         for mode in get_bot_modes():
-            if mode.name() == context.bot_mode:
-                menu.add_command(label=mode.name(), font=bold_font)
-                continue
+            name = mode.name()
+            modes_by_name[name] = mode
             try:
                 game_state = get_game_state()
             except Exception:
@@ -3381,48 +4065,73 @@ class DashboardScreen:
                 # which drives the New Game intro) are offered; everything else
                 # needs an in-game overworld and stays greyed out.
                 try:
-                    is_selectable = mode.is_selectable_from_title_screen() and mode.is_selectable()
+                    ok = mode.is_selectable_from_title_screen() and mode.is_selectable()
                 except Exception:
                     if context.debug:
                         console.print_exception()
-                    is_selectable = False
+                    ok = False
             elif game_state is None:
-                is_selectable = False
+                ok = False
             else:
                 try:
-                    is_selectable = mode.is_selectable()
+                    ok = mode.is_selectable()
                 except Exception:
                     if context.debug:
                         console.print_exception()
-                    is_selectable = False
-            if is_selectable:
-                menu.add_command(label=mode.name(), command=lambda m=mode: select_bot_mode(m.name()))
-            else:
-                disabled_modes.append(mode.name())
-        if disabled_modes:
-            menu.add_separator()
-            for mode_name in disabled_modes:
-                menu.add_command(label=mode_name, state="disabled")
+                    ok = False
+            if ok:
+                selectable_names.add(name)
+
         # Debug logging toggle (sandbox) — default OFF. When on, the whole run is
         # written to an extensive diagnostic log (<profile>/debug-logs/…) so hard
         # freezes can be diagnosed from the file.
         from modules import debug_logger
 
-        menu.add_separator()
         if self._debug_log_var is None:
             self._debug_log_var = tkinter.BooleanVar(self.window)
         self._debug_log_var.set(debug_logger.is_enabled())
-        menu.add_checkbutton(
-            label="Debug Logging (diagnostic file)",
-            variable=self._debug_log_var,
-            command=self._toggle_debug_logging,
-        )
-        # ENDLESS DEBUG-RESET RUNS (user request 2026-07-25). ‼ This is the DASHBOARD GUI,
-        # which `pokebot.py` launches BY DEFAULT — the classic GUI in emulator_controls.py is
-        # only reached via `--classic-gui`. The first attempt at this feature added the item
-        # to the classic GUI only, so the user tested twice and could not find it.
-        menu.add_separator()
-        menu.add_command(label="Endless Debug-Reset Runs…", command=self._start_endless_runs)
+
+        # ‼ These three are the DASHBOARD GUI's, which `pokebot.py` launches BY DEFAULT —
+        # the classic GUI in emulator_controls.py is only reached via `--classic-gui`. The
+        # first attempt at the Endless-Reset feature added its item to the classic GUI only,
+        # so the user tested twice and could not find it. Keep them here.
+        actions = {
+            ACTION_ENDLESS_RESET: self._start_endless_runs,
+            ACTION_X4_TOGGLE: self.start_endless_x4,
+            ACTION_X4_PARK: self.collect_x4_logs,
+        }
+
+        for entry in build_mode_menu_plan(
+            list(modes_by_name),
+            current_mode=context.bot_mode,
+            selectable=selectable_names,
+            x4_running=self._x4_batch is not None,
+        ):
+            kind = entry[0]
+            if kind == "separator":
+                menu.add_separator()
+            elif kind == "header":
+                menu.add_command(label=f"— {entry[1]} —", state="disabled")
+            elif kind == "active":
+                menu.add_command(label=entry[1], font=bold_font)
+            elif kind == "mode":
+                _, label, mode_name, enabled = entry
+                if enabled:
+                    menu.add_command(label=label, command=lambda n=mode_name: select_bot_mode(n))
+                else:
+                    menu.add_command(label=label, state="disabled")
+            elif kind == "command":
+                _, label, key, enabled = entry
+                if enabled:
+                    menu.add_command(label=label, command=actions[key])
+                else:
+                    menu.add_command(label=label, state="disabled")
+            elif kind == "checkbutton":
+                menu.add_checkbutton(
+                    label=entry[1],
+                    variable=self._debug_log_var,
+                    command=self._toggle_debug_logging,
+                )
         menu.tk_popup(
             self._mode_button.winfo_rootx(), self._mode_button.winfo_rooty() + self._mode_button.winfo_height()
         )
@@ -3653,6 +4362,15 @@ class PokebotDashboardGui(PokebotGui):
         process dies. Sync is config-gated and time-boxed; any failure only
         prints a warning. (Killing the console window bypasses this — that
         path only flushes the save; the next clean exit will sync it.)"""
+        # ‼ FIRST: kill any ENDLESS LOOP x4 lanes. This path ends in `os._exit(0)`, so
+        # nothing below it and no atexit handler will ever run — without this, closing the
+        # window would leave four orphaned emulator processes running forever with no
+        # window to stop them from.
+        try:
+            self._emulator_screen.stop_endless_x4()
+        except Exception:
+            pass
+
         profile = context.profile
         if context.emulator:
             context.emulator.shutdown()

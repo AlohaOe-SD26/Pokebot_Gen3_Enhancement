@@ -33,6 +33,72 @@ if TYPE_CHECKING:
 
 _last_handled_battle_result: HandledBattleResult | None = None
 
+#: Consecutive `handle_fainted_pokemon` give-ups within ONE battle (KI-34). The handler's own
+#: `if frames > 6000: return` bounds a single INVOCATION, but the dispatcher re-enters it
+#: immediately — measured at ~35 re-entries / 210,000 frames in one battle, and 3,975 give-ups
+#: across a single overnight lane. Bounding the OUTCOME needs state that survives the call.
+_faint_chooser_giveups: int = 0
+
+#: Give-ups in one battle before we stop trying and hand the run a recoverable derail.
+#: Each give-up is one 6,000-frame invocation, so the limit is a frame budget in disguise:
+#: worst case ≈ LIMIT × 6,000 frames inside a single battle.
+#:
+#: ‼ RAISED 3 → 20 (2026-07-30) AS AN INTERIM MITIGATION FOR KI-38/KI-40. READ THIS BEFORE
+#: TUNING IT AGAIN.
+#:
+#: The limit itself is correct and must stay finite — see "why not unbounded" below. What was
+#: wrong is that 3 is far too tight for a chooser that still mis-selects, and giving up
+#: ABANDONS AN ACTIVE BATTLE: the after-faint party menu is left open, the mode is handed a
+#: fault its recovery cannot act on (B-ride / re-orient cannot answer an in-battle menu), and
+#: recovery re-enters the same step and wedges again — derail #2, #3, #5 on the identical step.
+#:
+#: MEASURED (A/B, 2026-07-30, `05-KNOWN-ISSUES` KI-40):
+#:   21b587f1  no limit, WITH the index bug     0.4 watchdog/h   **48% of runs finished**
+#:   d7d493d8  limit 3, index bug FIXED        ~20 watchdog/h    **0 of 2 finished**
+#:   ffb062ce  limit 3, index bug FIXED        ~29 watchdog/h    **0 of 30 finished**
+#: `GAVE UP` runs at ~22/h on both limited builds and `NO ELIGIBLE REPLACEMENT` is **0** —
+#: the chooser always had a living, valid target and still failed to select it. So the bound
+#: converted a slow leak (spin inside one battle, often eventually succeeding) into a hard
+#: stop. The pre-fix livelock measured ~35 re-entries in one battle; 20 restores most of that
+#: tolerance while still terminating.
+#:
+#: ‼ WHY NOT UNBOUNDED (do not "simplify" this away): KI-36 — the per-run frame budget is a
+#: GENERATOR WRAPPER and cannot fire while a battle handler sits on the flat controller stack.
+#: An unbounded chooser is therefore bounded only by `debug_logger`'s 60,000-frame stall net,
+#: which exists only while debug logging is ON. Finite here is what makes the failure bounded
+#: with logging OFF.
+#:
+#: ‼ THIS IS A MITIGATION, NOT A FIX. The real fix is `#24-menutext` — read the party-menu
+#: TEXT so the bot knows what the cursor is actually on, instead of inferring from indices.
+#: KI-38's evidence (`presses={'Down': 3, 'A': 273}`, `cursors_seen=[0,2,3,7]` in a 4-mon
+#: party, where 7 is probably CANCEL) says the cursor MODEL is wrong, and no number of retries
+#: fixes a wrong model. Do not let a restored finish rate be mistaken for a solved bug.
+#:
+#: Tunable without a code edit, because the right number is empirical and this file lives on a
+#: machine that pulls: `POKEBOT_FAINT_GIVEUP_LIMIT=<n>`.
+#: Hard ceiling on the tunable above. ‼ CLAMPED, not merely validated: the first version
+#: accepted any positive integer, so `POKEBOT_FAINT_GIVEUP_LIMIT=99999999999999999999` — one
+#: fat-fingered env var on the batch machine — produced an EFFECTIVELY UNBOUNDED chooser and
+#: silently reintroduced the exact KI-36 hazard the finite limit exists to prevent. Caught by
+#: `repro_faint_giveup_limit.py` before it shipped. 200 × 6,000 ≈ 1.2M frames, ~24% of the 5M
+#: per-run budget: far more tolerance than any real chooser should need, still terminating.
+FAINT_CHOOSER_GIVEUP_MAX = 200
+
+
+def _faint_giveup_limit_default() -> int:
+    import os
+
+    try:
+        value = int(os.environ.get("POKEBOT_FAINT_GIVEUP_LIMIT", "20"))
+    except Exception:  # noqa: BLE001 - a bad env value must never break battles
+        return 20
+    if value < 1:
+        return 20
+    return min(value, FAINT_CHOOSER_GIVEUP_MAX)
+
+
+FAINT_CHOOSER_GIVEUP_LIMIT = _faint_giveup_limit_default()
+
 
 def _dump_battle_stall_diagnostic() -> None:
     """Snapshot the live frame when the in-battle no-progress watchdog fires.
@@ -108,6 +174,9 @@ def handle_battle(strategy: BattleStrategy) -> Generator[None, None, HandledBatt
     :return: A data class structure listing some things that have changed
              during the battle.
     """
+    global _faint_chooser_giveups
+    _faint_chooser_giveups = 0  # per-battle: see FAINT_CHOOSER_GIVEUP_LIMIT (KI-34)
+
     before_cash = get_player().money
     before_party = get_party()
     encounter_type = get_encounter_type()
@@ -178,6 +247,13 @@ def handle_battle(strategy: BattleStrategy) -> Generator[None, None, HandledBatt
     _last_progress_sig = None
 
     while (battle_is_active() or _learn_or_evo_pending()) and context.bot_mode != "Manual":
+        # A sub-handler has given up and handed a recoverable fault to the mode
+        # (#24-movelearn-recovery). Stop driving immediately: re-invoking the handler
+        # that just failed is precisely the loop the fault was raised to escape.
+        from modules.battle_fault import battle_fault_pending
+
+        if battle_fault_pending():
+            break
         try:
             from modules.battle_move_replacing import get_learn_move_state
 
@@ -465,16 +541,137 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
     # proven on the live wedge state: read WHERE the menu actually is each step and
     # press the one button that advances it, with release gaps so every press registers.
     party_in_menu = get_party()
+    # ‼ EXCLUDE MONS ALREADY ON THE FIELD (2026-07-25, user's DOUBLE-battle report, KI-18).
+    # This gate used to be raw `current_hp > 0` only. In a DOUBLE battle the partner is
+    # alive AND on the field, so it passed the filter — and the party menu REFUSES to
+    # select an already-active mon. With the cursor parked on that slot the sweep below
+    # pressed A on it forever: fault-injected repro measured 1500 A-presses over the
+    # 6000-frame cap with ZERO escape, versus 8 frames to resolve when the cursor lands on
+    # a real bench mon. Single battles cannot hit it (no `right_battler` slot exists), which
+    # is why this only ever showed up in doubles. `choose_new_lead_after_faint` already
+    # performs this exclusion (level_up.py) — the driver simply never mirrored it.
+    _on_field = set()
+    try:
+        # ‼ Do NOT re-import get_battle_state here. It is already imported at module
+        # scope, and a function-local `from ... import` makes the name local for the
+        # WHOLE function — which left the EARLIER call at the top of handle_fainted_pokemon
+        # referencing an unbound local (`UnboundLocalError`, caught immediately by this
+        # repro's control arm). Just call the module-level one.
+        _bs = get_battle_state()
+        for _side in (_bs.own_side.left_battler, _bs.own_side.right_battler):
+            if _side is not None and getattr(_side, "party_index", None) is not None:
+                _on_field.add(_side.party_index)
+    except Exception:
+        _on_field = set()  # can't read it — fall back to the old, looser filter
     alive_slots = [
         i for i, mon in enumerate(party_in_menu)
-        if mon is not None and not mon.is_egg and mon.current_hp > 0
+        if mon is not None and not mon.is_egg and mon.current_hp > 0 and i not in _on_field
     ]
+    # ‼ RECORD THE FILTER'S OWN DECISION (KI-34, 2026-07-29). The STUCK dumps for the P2
+    # livelock in bundle `20260729-172342` captured tasks and party but NOT `alive_slots` or
+    # `_on_field` — and those are the ONLY things that distinguish the two candidate causes:
+    #   (a) `alive_slots` is EMPTY, because the KI-18 on-field exclusion removed the only
+    #       living mons (a DOUBLE battle whose two actives are the survivors), so A is never
+    #       pressed and the cursor walks for ever; versus
+    #   (b) the printer-task branch starving the cursor-walk branch.
+    # They need OPPOSITE fixes, so guessing was refused. One log line settles it.
+    # An EMPTY `alive_slots` is called out explicitly: it means this handler has been asked to
+    # choose a replacement it believes does not exist, which cannot succeed however long it
+    # spins.
+    try:
+        from modules import debug_logger
+
+        debug_logger.event(
+            f"[FAINT-CHOOSER] alive_slots={alive_slots} on_field={sorted(_on_field)} "
+            f"party={[(i, getattr(m.species, 'name', '?'), m.current_hp) for i, m in enumerate(party_in_menu) if m is not None]}"
+            + ("  ‼ NO ELIGIBLE REPLACEMENT — cannot succeed" if not alive_slots else ""),
+            category="BATTLE",
+        )
+    except Exception:  # noqa: BLE001 - instrumentation must never affect the battle
+        pass
+    # ‼ TRANSLATE INTO THE CURSOR'S INDEX SPACE BEFORE COMPARING (KI-34, 2026-07-30).
+    #
+    # `alive_slots` above is in REGULAR party order (`get_party()`). The cursor read below
+    # comes from `gPartyMenu.slotId`, which is the IN-BATTLE party-menu order — and the two
+    # DIVERGE once mons have been switched in and out, which is exactly what a double battle
+    # after a faint looks like. `BattleState.map_battle_party_index()` exists solely to convert
+    # between them; its docstring says so outright.
+    #
+    # Comparing them raw made `cursor in alive_slots` TRUE for a mon that was ON THE FIELD, so
+    # the sweep pressed A on a selection the game REFUSES, which re-armed
+    # `Task_PrintAndWaitForText` and restarted the loop. Measured in bundle `20260730-062818`:
+    # `presses={'A': 289}` with a STATIC cursor, 3,975 give-ups in P3 alone, ~23.9M frames
+    # (~7.8 complete runs) burned in one night. The user diagnosed it by WATCHING THE SCREEN;
+    # the instrumentation could not, because it logged the values without their units.
+    #
+    # ‼ This function's PRIMARY path already maps (see `index_needs_mapping` above). Only this
+    # recovery sweep never mirrored it — the same shape as the KI-18 note one layer up.
+    def _to_menu_order(regular_index: int) -> int:
+        try:
+            return battle_state.map_battle_party_index(regular_index)
+        except Exception:  # noqa: BLE001 - no battle state / index absent: assume identity
+            return regular_index
+
+    global _faint_chooser_giveups
+    alive_slots_menu = {_to_menu_order(i) for i in alive_slots}
+    try:
+        from modules import debug_logger
+
+        debug_logger.event(
+            f"[FAINT-CHOOSER] index spaces: alive_slots={alive_slots}(party-order) -> "
+            f"{sorted(alive_slots_menu)}(menu-order) on_field={sorted(_on_field)}(party-order)"
+            + ("  [orders DIVERGE]" if alive_slots_menu != set(alive_slots) else "  [orders agree]"),
+            category="BATTLE",
+        )
+    except Exception:  # noqa: BLE001
+        pass
+
+    import collections as _collections
+
+    _presses: "_collections.Counter" = _collections.Counter()
+    _cursors: set = set()
     frames = 0
+    # ‼ LEARN WHAT THE GAME REFUSES, INSTEAD OF TRUSTING THE INDEX MODEL (KI-38, 2026-07-30).
+    #
+    # THE BUG THIS FIXES. Below, `A` is pressed whenever `cursor in alive_slots_menu` and
+    # `Down` ONLY when it is not. So if the game REFUSES that selection, the cursor never
+    # moves, the refusal re-arms `Task_PrintAndWaitForText`, we dismiss it, land on the same
+    # cursor, and press A again — for ever. That is exactly KI-38's signature
+    # (`presses={'Down': 3, 'A': 273}` with a near-static cursor) and it hung 11 of 12 runs in
+    # batch A on this box, always at `BattleScript_FaintedMonTryChoose` with healthy mons
+    # available.
+    #
+    # WHY NOT "FIX THE INDEX MAPPING". Because the mapping is the thing in doubt, and it has
+    # now been wrong twice in two different ways (KI-18's on-field filter, KI-34's index
+    # space). A third correction would be another guess. Refusal is OBSERVABLE: press A, and
+    # if we are still in the party menu with the printer re-armed, that slot is not selectable
+    # — whatever the model believes. So the model becomes a HINT and the game gets the vote.
+    #
+    # WHY THIS TERMINATES (the property that matters): every A-press either leaves the menu
+    # (done) or eliminates one slot for good. There are at most `len(party_in_menu)` slots
+    # plus CANCEL, so the loop cannot revisit a dead slot and cannot spin.
+    _refused: set = set()
+    _last_a_cursor = None
     while get_game_state() == GameState.PARTY_MENU:
         try:
             cursor = get_party_menu_cursor_pos(len(party_in_menu))["slot_id"]
         except Exception:
             cursor = None
+        # A refusal shows up as: we pressed A on a slot, and we are STILL in the party menu
+        # with the text printer armed again. Detected structurally rather than by matching the
+        # refusal string, so it needs no decomp lookup and cannot break on a text change.
+        if _last_a_cursor is not None and (
+            task_is_active("Task_PrintAndWaitForText") or task_is_active("Task_ReturnToChooseMonAfterText")
+        ):
+            _refused.add(_last_a_cursor)
+            _last_a_cursor = None
+        # Candidates: what the model believes, minus what the game has actually refused. If
+        # that empties, the MODEL is wrong rather than the party being unusable — fall back to
+        # every slot we have not yet had refused, which is what makes this robust to an index
+        # model that is simply incorrect.
+        _candidates = alive_slots_menu - _refused
+        if not _candidates:
+            _candidates = {i for i in range(len(party_in_menu))} - _refused
         # KI-17 (2026-07-24, decomp-confirmed race): selecting a living mon while the
         # "X has no energy left!" printer tasks are still winding down can exit the
         # party menu WITHOUT destroying the printer — its orphaned DMA request then
@@ -490,13 +687,24 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
         elif task_is_active("Task_HandleSelectionMenuInput"):
             # Shift/Summary/Cancel popup: SHIFT is first, so A on a living mon sends
             # it out; on a fainted mon the popup is useless — close it.
-            button = "A" if cursor in alive_slots else "B"
-        elif cursor is not None and cursor not in alive_slots:
-            button = "Down"  # walk the cursor to a living slot
+            # ‼ `cursor` is MENU-order, so it must be tested against the MENU-order set.
+            button = "A" if cursor in _candidates else "B"
+        elif cursor is not None and cursor not in _candidates:
+            button = "Down"  # walk to a slot that is still worth trying
         elif cursor is not None:
-            button = "A"     # cursor verified on a LIVING slot — safe to confirm
+            # Cursor is on a candidate the game has not yet refused — confirm, and REMEMBER
+            # that we did, so the next iteration can tell acceptance from refusal.
+            button = "A"
+            _last_a_cursor = cursor
         else:
             button = None    # cursor unreadable: wait, never gamble an A (KI-17)
+        # ‼ COUNT WHAT WE PRESS AND WHERE THE CURSOR WAS (KI-34). Playbook §7: "pressing the
+        # wrong thing" and "pressing nothing" look IDENTICAL from a state trace but need
+        # opposite fixes — only the button ratio separates them. Counted here, emitted once
+        # when the loop gives up, so it costs nothing per frame and cannot flood the log.
+        _presses[button if button is not None else "(none)"] += 1
+        if cursor is not None:
+            _cursors.add(cursor)
         if button is not None:
             for _ in range(2):
                 context.emulator.press_button(button)
@@ -508,6 +716,86 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
             yield
         frames += 2 + post_gap
         if frames > 6000:
+            # ‼ THIS RETURN DOES NOT END ANYTHING. The dispatcher re-enters this handler with
+            # `frames = 0`, so the 6,000-frame bound is per-invocation, not per-wedge: the P2
+            # livelock (KI-34) survived ~35 re-entries over 210,000 frames. Bounding the
+            # OUTCOME rather than the frames is the real fix and is NOT attempted here — it
+            # needs the cause below settled first. Until then, at least say so out loud, so a
+            # log reader sees a repeating give-up instead of silence.
+            try:
+                from modules import debug_logger
+
+                # ‼ CAPTURE WHAT THE SCREEN ACTUALLY SAYS (#24-menutext groundwork, 2026-07-30).
+                # KI-38's data proves the chooser's CURSOR MODEL is wrong, not its patience:
+                # `cursors_seen=[0,2,3,7]` in a 4-mon party (7 is almost certainly CANCEL) with
+                # 273 A-presses and a living target available every time. Indices alone cannot
+                # tell us what went wrong, because indices are the thing in doubt — so record
+                # the TEXT, which is ground truth. This is exactly the move that cracked the
+                # move-learn hang (ML-11: "read what the game ACTUALLY says").
+                #
+                # DECOMP-VERIFIED action-menu strings (src/strings.c, fetched 2026-07-30 —
+                # never write these from memory): SEND OUT (gText_SendOut), SHIFT (gText_Shift),
+                # SWITCH (gText_Switch2), SUMMARY (gText_Summary5), CANCEL (gText_Cancel),
+                # ENTER (gText_Enter). "Do what with this {PKMN}?" (gText_DoWhatWithPokemon) is
+                # the prompt shown when the ACTION menu is open over a chosen mon.
+                #
+                # DIAGNOSTIC ONLY — it must never change battle behaviour, hence the try/except
+                # and no branching on the result. The next batch's logs are what make the real
+                # text-driven chooser buildable.
+                _screen = {}
+                try:
+                    from modules.game import decode_string
+
+                    _screen["battle"] = decode_string(read_symbol("gDisplayedStringBattle")).strip()
+                    _screen["field"] = decode_string(read_symbol("gStringVar4")).strip()
+                except Exception:  # noqa: BLE001
+                    pass
+
+                debug_logger.event(
+                    f"[FAINT-CHOOSER] GAVE UP after {frames} frames without sending a mon out "
+                    f"— presses={dict(_presses)} cursors_seen={sorted(_cursors)}(menu-order) "
+                    f"alive_slots={alive_slots}(party-order) -> {sorted(alive_slots_menu)}(menu-order). "
+                    f"give-up {_faint_chooser_giveups + 1}/{FAINT_CHOOSER_GIVEUP_LIMIT} this battle. "
+                    f"refused={sorted(_refused)}(menu-order) "
+                    f"[#24-menutext] on-screen battle_text={_screen.get('battle', '?')!r} "
+                    f"field_text={_screen.get('field', '?')!r}",
+                    category="BATTLE",
+                )
+            except Exception:  # noqa: BLE001
+                pass
+            # ‼ BOUND THE OUTCOME, NOT THE FRAMES. Returning here only ends this INVOCATION;
+            # the dispatcher re-enters immediately, which is why the 6,000-frame bound produced
+            # a 210,000-frame livelock. After a few honest attempts, hand the run a RECOVERABLE
+            # derail through the designed channel: `request_mode_recovery` makes `handle_battle`
+            # and `BattleListener` short-circuit, the mode claims the fault on its next frame
+            # (`story_mode.py` `take_pending_fault`) and derails cleanly, and the endless loop
+            # starts the next run instead of burning the night.
+            # ‼ NEVER `raise` here — battle code is a SIBLING of the mode on a FLAT controller
+            # stack, so a BotModeError would reach `main_loop` and drop straight to Manual
+            # (see modules/battle_fault.py's module docstring).
+            _faint_chooser_giveups += 1
+            if _faint_chooser_giveups >= FAINT_CHOOSER_GIVEUP_LIMIT:
+                try:
+                    from modules.battle_fault import request_mode_recovery
+
+                    _reason = (
+                        f"after-faint chooser could not send a mon out after "
+                        f"{_faint_chooser_giveups} attempts (KI-34): "
+                        f"alive_slots={alive_slots}(party-order) -> {sorted(alive_slots_menu)}"
+                        f"(menu-order), cursor stuck at {sorted(_cursors)}, presses={dict(_presses)}"
+                    )
+                    if request_mode_recovery(_reason):
+                        try:
+                            from modules import debug_logger
+
+                            debug_logger.event(
+                                f"[FAINT-CHOOSER] handing a recoverable derail to the mode: {_reason}",
+                                category="BATTLE",
+                            )
+                        except Exception:  # noqa: BLE001
+                            pass
+                except Exception:  # noqa: BLE001 - never let recovery signalling break a battle
+                    pass
             return
 
 

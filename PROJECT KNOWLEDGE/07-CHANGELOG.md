@@ -6555,3 +6555,35 @@ The old arm's stall signature names the mechanism outright: parked at `(3, 3)` w
 `RustboroCity_Mart_EventScript_PokemartBasic` + `Std_MsgboxDefault` active — the shop script
 is up, so `player_avatar_is_controllable()` is False, and the wrapper waits on it while
 pressing nothing. Exactly the predicted shape.
+
+## 2026-08-01 — PROMOTION: the full story-bot round sandbox → custom (BATCH-4)
+
+On explicit user approval. **37 files, 16 new**, pre-promotion custom HEAD `9105d6d3`. Full
+detail in `custom-pokebot/DIVERGENCE-LOG.md` → **BATCH-4**.
+
+Scope was the FULL sandbox code surface rather than a curated subset, because the modules are
+interdependent (`early_game` → `counter_hunt` → `obstacle_clearing`; `dashboard_gui` → the x4
+bundle) and a partial promotion is exactly what would break custom. That also finally brings
+across `story_milestones`/`milestone_window`, which BATCH-3 held back — `dashboard_gui` has
+since taken a hard dependency on them.
+
+**Two traps caught by checking instead of mirroring:**
+1. `sandbox-pokebot/DIVERGENCE-LOG.md` is a **stale 91-line fork frozen at 2026-07-18**, while
+   custom's is 606 lines through BATCH-3d. `robocopy`/blind-mirror would have destroyed 515
+   lines of append-only history. Excluded, and the exclusion is recorded for future rounds.
+2. `DOCUMENTATION/03-cheats.md`, `04-automation-and-sync.md`, `05-hunting-and-livingdex.md`
+   exist ONLY in custom. A mirror-with-delete would have removed them. Preserved.
+
+**Safety check before copying:** every `def`/`class`/CONSTANT in the custom copies of all 19
+modified `.py` files compared against sandbox — **0 lost symbols**, +87 gained. Sandbox is a
+strict superset, so no custom-only functionality was reverted.
+
+**Verified after:** 210 files parse (0 errors); 18/18 promoted modules import; constants live
+(`_TRANSIENT_WAIT_FRAMES=600`, `MAX_PREP_TRAINING_FRAMES=250000`); ML-2 git-trackability
+checked on every new path; and a **live run on `--build custom`** (`gym1_done.ss1 --driver
+martbuy BUYN=30`) reproduced the KI-43 fix — **3 purchases, 3 Premier Balls, 8628 → 2628**,
+identical to sandbox, where the pre-fix code completed 0.
+
+**Shipped with known open issues, stated rather than buried:** KI-44 (counter training reaches
+its grass 0 of 7 times, so no counter is ever trained), ball starvation (14 events in batch4),
+the still-elevated watchdog count, and the party cap of 4.

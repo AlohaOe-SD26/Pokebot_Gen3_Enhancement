@@ -5,6 +5,7 @@ import atexit
 import os
 import pathlib
 import platform
+import sys
 from dataclasses import dataclass
 
 from modules.runtime import is_bundled_app, get_base_path
@@ -25,7 +26,18 @@ def on_exit() -> None:
         import os
 
         parent_process_name = psutil.Process(os.getppid()).name()
-        if parent_process_name == "py.exe" or is_bundled_app():
+        # ‼ ALSO PAUSE WHEN LAUNCHED FROM A TERMINAL BY ANYTHING ELSE. `install_sandbox.py`
+        # runs the bot as a subprocess of the installer using `python.exe`, so the old
+        # `py.exe`-only check never fired and a startup crash flashed past as the window
+        # closed (user, 2026-07-26). `isatty()` is False for the ENDLESS LOOP x4 lanes
+        # (spawned with stdin=DEVNULL) and for headless/piped runs, so they still exit
+        # immediately.
+        interactive_terminal = False
+        try:
+            interactive_terminal = sys.stdin is not None and sys.stdin.isatty()
+        except Exception:
+            interactive_terminal = False
+        if parent_process_name == "py.exe" or is_bundled_app() or interactive_terminal:
             if gui is not None and gui.window is not None:
                 gui.window.withdraw()
 
@@ -49,6 +61,31 @@ class StartupSettings:
     always_on_top: bool
     config_path: str
     classic_gui: bool = False  # fork addition: opt back into upstream's GUI
+    # ENDLESS LOOP x4 (punch-list #24-x4): set only when this process is ONE LANE of a
+    # batch launched by the dashboard. `tile_shm` being non-empty is what selects the
+    # tile-child frontend; see modules/endless_x4.py.
+    tile_shm: str = ""
+    tile_slot: int = 0
+    tile_lanes: int = 4
+    tile_tag: str = ""
+    endless_target: int | None = None
+
+
+def apply_endless_target(endless_target: "int | None") -> bool:
+    """Set how many chained runs `Story (ENDLESS RESET)` performs, for ANY frontend.
+
+    Extracted to module level (2026-07-31) so it is reachable from a repro without
+    booting an emulator, and so the "which frontends honour this?" answer is one call
+    site instead of a branch. Returns True when a value was applied.
+
+    `0` means "run forever"; `None` (flag absent) leaves the module default alone.
+    """
+    if endless_target is None:
+        return False
+    from plugins.custom_modes import story_mode as _sm
+
+    _sm.ENDLESS_RESET_TARGET = int(endless_target)
+    return True
 
 
 def directory_arg(value: str) -> pathlib.Path:
@@ -93,6 +130,13 @@ def parse_arguments(bot_mode_names: list[str]) -> StartupSettings:
     # Fork addition: the dashboard GUI is the default; this restores upstream's window.
     parser.add_argument("-cg", "--classic-gui", action="store_true", help="Use the original (upstream) GUI.")
     parser.add_argument("-c", "--config", type=directory_arg, dest="config_path", help=argparse.SUPPRESS)
+    # ENDLESS LOOP x4 lane plumbing — set by the dashboard when it spawns a lane, never
+    # by a human, so they are hidden from --help.
+    parser.add_argument("--tile-shm", default="", help=argparse.SUPPRESS)
+    parser.add_argument("--tile-slot", type=int, default=0, help=argparse.SUPPRESS)
+    parser.add_argument("--tile-lanes", type=int, default=4, help=argparse.SUPPRESS)
+    parser.add_argument("--tile-tag", default="", help=argparse.SUPPRESS)
+    parser.add_argument("--endless-target", type=int, default=None, help=argparse.SUPPRESS)
     args = parser.parse_args()
 
     preselected_profile: Profile | None = None
@@ -105,18 +149,35 @@ def parse_arguments(bot_mode_names: list[str]) -> StartupSettings:
         bot_mode=args.bot_mode or "Manual",
         headless=bool(args.headless),
         no_video=bool(args.no_video),
-        no_audio=bool(args.no_audio),
+        # SANDBOX: start with audio OFF no matter how the bot is launched (quiet
+        # for testing at work); audio stays toggleable in the GUI. Custom keeps
+        # the normal behaviour. This is the reliable version of the earlier
+        # install_sandbox `--no-audio` launch flag, which only applied when the
+        # installer's own launch prompt was used.
+        no_audio=True,
         no_theme=bool(args.no_theme),
         use_opengl=bool(args.use_opengl),
         emulation_speed=int(args.emulation_speed or "1"),
         always_on_top=bool(args.always_on_top),
         config_path=args.config_path,
         classic_gui=bool(args.classic_gui),
+        tile_shm=str(args.tile_shm or ""),
+        tile_slot=int(args.tile_slot or 0),
+        tile_lanes=int(args.tile_lanes or 4),
+        tile_tag=str(args.tile_tag or ""),
+        endless_target=args.endless_target,
     )
 
 
 if __name__ == "__main__":
-    if not is_bundled_app():
+    # ‼ ENDLESS LOOP x4 lanes SKIP the requirements check. A batch launches four
+    # processes within milliseconds of each other; on a machine where
+    # `.last-requirements-check` is absent that means four concurrent pip installs into
+    # the same environment, which is a good way to corrupt it. A lane can only ever be
+    # spawned BY a running dashboard, so the check has necessarily already passed in the
+    # parent — there is nothing for the lane to verify.
+    _tile_lane_argv = any(arg == "--tile-shm" or arg.startswith("--tile-shm=") for arg in sys.argv)
+    if not is_bundled_app() and not _tile_lane_argv:
         from requirements import check_requirements
 
         check_requirements()
@@ -136,12 +197,19 @@ if __name__ == "__main__":
     # before any GUI, profile or emulator exists — so applying a newer cloud
     # save can never race a live save file. Opt-in via backup.yml `sync:`;
     # when disabled (default) this returns immediately without any network.
-    try:
-        from modules.cloud_sync import run_launch_sync
+    # ‼ NOT for ENDLESS LOOP x4 lanes. A batch starts four processes within milliseconds of
+    # each other; four concurrent launch-syncs racing over the same cloud store is exactly
+    # the situation this check is meant to protect against. Lane profiles are disposable
+    # test rigs with nothing worth syncing, so lanes skip it entirely. `--tile-shm` is
+    # inspected straight off argv because arguments are not parsed until further down.
+    _is_tile_lane = any(arg == "--tile-shm" or arg.startswith("--tile-shm=") for arg in sys.argv)
+    if not _is_tile_lane:
+        try:
+            from modules.cloud_sync import run_launch_sync
 
-        run_launch_sync()
-    except Exception as sync_error:
-        console.print(f"[yellow]Cloud sync check failed (continuing normally): {sync_error}[/]")
+            run_launch_sync()
+        except Exception as sync_error:
+            console.print(f"[yellow]Cloud sync check failed (continuing normally): {sync_error}[/]")
 
     # This catches the signal Windows emits when the underlying console window is closed
     # by the user. We still want to save the emulator state in that case, which would not
@@ -169,7 +237,29 @@ if __name__ == "__main__":
     if not is_bundled_app() and not _is_git_checkout:
         run_updater()
 
-    if startup_settings.headless:
+    # ‼ APPLIED FOR EVERY FRONTEND, NOT JUST THE TILE LANE (fixed 2026-07-31).
+    # This used to live INSIDE the `tile_shm` branch below, so `--endless-target` was
+    # parsed and then silently discarded by every other frontend. A headless batch
+    # (`-hl --endless-target 0`, which is how `tools/story-dev/x4_headless.py` asks for
+    # "run forever") therefore fell back to the module default of 10 and each lane quietly
+    # stopped after 10 runs — indistinguishable, from the outside, from a lane that died.
+    # A flag that parses and does nothing is worse than a missing flag.
+    apply_endless_target(startup_settings.endless_target)
+
+    if startup_settings.tile_shm:
+        # ENDLESS LOOP x4 lane: headless, but mirroring its screen into the batch's
+        # shared memory so the dashboard can paint it as a tile.
+        from modules.gui.tile_child import PokebotTileChild
+
+        gui = PokebotTileChild(
+            main_loop,
+            on_exit,
+            shm_name=startup_settings.tile_shm,
+            slot=startup_settings.tile_slot,
+            lanes=startup_settings.tile_lanes,
+            lane_tag=startup_settings.tile_tag or f"P{startup_settings.tile_slot + 1}",
+        )
+    elif startup_settings.headless:
         from modules.gui.headless import PokebotHeadless
 
         gui = PokebotHeadless(main_loop, on_exit)

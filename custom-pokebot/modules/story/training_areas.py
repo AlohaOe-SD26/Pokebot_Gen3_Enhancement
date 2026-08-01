@@ -19,6 +19,7 @@ swap-train as fallback) is punch-list #24-trainmap.
 """
 
 import math
+import os as _os
 
 from modules.map_data import MapRSE
 
@@ -61,6 +62,40 @@ PENDING_GRASS: list[tuple] = [
     # Abra/Geodude); the ONLY wild source reachable from Dewford before Surf — Route 106 /
     # Route 107 / Dewford itself are SURF-ONLY (no land table at all; probed 2026-07-22).
     # Kept out of TRAINING_GRASS until the spin tile is validated live.
+    #
+    # ‼ DEEPER FLOORS — DECOMP-VERIFIED 2026-07-26, BLOCKED ON ONE THING (see below).
+    # User request: train on B1F/B2F rather than 1F, which is the weakest floor.
+    # Encounter tables (src/data/wild_encounters.json, rate 10 = 5.56 %/step):
+    #   B1F  Zubat 30 / Aron 40 / Abra 10 / Makuhita 10 / Sableye 10   L9-11
+    #   B2F  Zubat 30 / Aron 40 / Abra 10 / Sableye 20                 L10-12
+    # Neither floor is gated by any HM, item or flag (B2F's scripts.inc is `.byte 0`).
+    # Flash is locked behind Badge 2 so both are dark pre-Brawly — COSMETIC ONLY,
+    # collision and pathing are unaffected.
+    #
+    # Spin tiles below were derived by decoding map.bin (collision/elevation) +
+    # metatile_attributes.bin and flood-filling with the game's own rules. Both are
+    # MB_CAVE with MB_CAVE-or-wall on all four sides, ~4 steps from their arrival ladder.
+    #
+    # ‼ B1F's 62 CRACKED-FLOOR TILES ARE ALL UNREACHABLE ON FOOT. They sit north of the
+    # muddy slope at (9,9)/(9,10), which cannot be climbed without the Mach Bike, so the
+    # 126-tile arrival region (y=11..22) contains ZERO of them. Do not send the bot north
+    # of that slope, and do not let it train here on a bike.
+    (MapRSE.GRANITE_CAVE_B1F, (3, 18), (9, 11)),   # 1-wide N-S corridor, walls BOTH sides
+    # for (3,18) and its partner (3,17), so a stray left/right input is a physical no-op.
+    # 4 steps from the arrival ladder (4,21); 11 tiles from the nearest cracked floor.
+    (MapRSE.GRANITE_CAVE_B2F, (28, 17), (10, 12)),  # dead-end nook vs the east wall,
+    # partner (28,16); 4 steps from the (28,21) ladder. B2F has ZERO cracked floors and
+    # 203 MB_CAVE tiles in this pocket. Corroborated independently: upstream
+    # `modules/modes/rock_smash.py:409` already navigates to GRANITE_CAVE_B2F (28,21).
+    #
+    # ‼ WHY THESE ARE STILL PENDING AND NOT PROMOTED: `_CAVE_EXITS` / `_CAVE_ENTRANCES`
+    # in `early_game.py` are SINGLE-HOP tables — one warp in, one warp out. B1F and B2F
+    # are two and three hops deep from Route 106, so promoting them without first making
+    # that threading chain-aware would break the post-training HEAL: the global navigator
+    # cannot cross warp levels, and that exact failure already dropped two real-hardware
+    # runs to Manual (2026-07-22, see `_exit_training_cave_if_inside`). Make the entry and
+    # exit chain-aware FIRST, then promote — and validate live, because this is
+    # navigation code and this project's regressions live there.
 ]
 
 
@@ -78,6 +113,12 @@ def best_training_grass(mon_level: int):
     best_score = None
     for map_enum, tile, (lo, hi) in TRAINING_GRASS:
         if tile is None:
+            continue
+        # ‼ REFUSE NO-RETURN GROUNDS FIRST. A training loop must be able to walk BACK to
+        # a Poké Center to heal; a ground that cannot strands the run. Checked before the
+        # reachability predicate because `allow` answers "can I get there", which is TRUE
+        # for these — being reachable is exactly what makes them dangerous.
+        if _return_blocked(map_enum) is not None:
             continue
         if mon_level < lo - 1:
             continue  # wilds too strong — the mon would lose here
@@ -108,6 +149,129 @@ AREA_PREREQ: dict = {
 }
 
 
+#: ‼ ONE-WAY / NO-RETURN GROUNDS — maps you can REACH but cannot get BACK from, so they
+#: can never host a training or hunting loop (which must return to a Poké Center to heal).
+#: A ground whose return leg fails strands the run; that is the exact class that dropped
+#: two real-HW runs to Manual (2026-07-22) and it is what this table exists to prevent.
+#:
+#: ‼‼ WHY THIS TABLE EXISTS AT ALL (user directive 2026-07-26). Every fact below was
+#: ALREADY KNOWN — recorded 2026-07-23 in 03-PUNCH-LIST/04-HANDOFF as "LAVARIDGE HAS NO
+#: REACHABLE TRAINING GRASS ... Jagged Pass cannot be re-entered from the town (one-way
+#: ledges) and Route 112's lower grass has no return path". It lived only in PROSE, in
+#: documents nobody reads while choosing a tile, so on 2026-07-26 it was re-derived from
+#: scratch by a full two-way probe cycle — after the same session had *quoted* the Jagged
+#: Pass half and still asserted Fiery Path was "traversable both ways". Prose did not stop
+#: it; a table the picker consults does. ADD TO THIS TABLE, never to a doc alone.
+#:
+#: Measured evidence for each entry is in the value string. `best_training_area` and
+#: `best_training_grass` refuse these outright, before any reachability predicate runs.
+NO_RETURN_GROUNDS: dict = {
+    # Two-way sweep 2026-07-23 (tools/story-dev/jaggedgrass_probe.py): Jagged Pass is
+    # entered by DESCENDING one-way ledges from Mt. Chimney and cannot be re-entered from
+    # Lavaridge. Re-confirmed 2026-07-26 by probe_counter_tiles.py --nav, which reached
+    # JAGGED_PASS (14,40) and then could not path WITHIN the map to (16,22).
+    MapRSE.JAGGED_PASS: (
+        "one-way ledges from Mt. Chimney; not re-enterable from Lavaridge "
+        "(sweep 2026-07-23, re-confirmed 2026-07-26)"
+    ),
+    # Route 112's LOWER section (the Fiery Path south door side) cannot path back to
+    # Lavaridge. Measured 2026-07-26 and the asymmetry is stark on the identical pair:
+    #   Lavaridge (9,6) -> ROUTE112 (11,36) = OK, 60 waypoints
+    #   ROUTE112 (11,36) -> Lavaridge (9,6) = FAIL
+    # so a heal trip from there cannot complete. Recorded in prose 2026-07-23 as
+    # "Route 112's lower grass has no return path".
+    MapRSE.ROUTE112: (
+        "lower section cannot path back to Lavaridge (ledges); Lavaridge->door OK at 60 "
+        "waypoints, door->Lavaridge FAILS (measured 2026-07-26; prose 2026-07-23)"
+    ),
+    # Reached from Lavaridge and exits cleanly onto ROUTE112 (both legs PASS,
+    # story_harness --driver fierycave 2026-07-26) — but it inherits Route 112's problem:
+    # the heal leg to Lavaridge then fails, so it cannot host a training loop. It remains
+    # a fine CATCH-AND-LEAVE hunting ground (#24-counters phase 2), which needs no heal
+    # trip; that is a different use and must not go through this picker.
+    MapRSE.FIERY_PATH: (
+        "reachable and exitable (both legs PASS, story_harness --driver fierycave "
+        "2026-07-26), but the onward heal leg to Lavaridge fails — see ROUTE112. Usable "
+        "for catch-and-leave hunting, NOT for a training loop (measured 2026-07-26)"
+    ),
+}
+
+
+def _return_blocked(map_enum) -> "str | None":
+    """Reason this ground can be reached but not returned FROM, or None if it is fine."""
+    return NO_RETURN_GROUNDS.get(map_enum)
+
+
+#: ‼ CATCH-AND-LEAVE HUNTING GROUNDS (#24-counters phase 2, added 2026-07-30).
+#:
+#: A counter HUNT is not a training loop and must not be judged by the same rule. A
+#: training loop needs three legs — reach the ground, spin on it, and walk BACK to a
+#: Poké Center to heal — which is why `NO_RETURN_GROUNDS` exists. A hunt needs only
+#: TWO: reach the ground and LEAVE it. So a ground can be illegal for `train_team`
+#: and still perfectly legal here, and `NO_RETURN_GROUNDS`' own FIERY_PATH entry says
+#: exactly that in prose ("a fine CATCH-AND-LEAVE hunting ground ... which needs no
+#: heal trip; that is a different use and must not go through this picker").
+#: This table is that different use, made consultable — prose in a table nobody
+#: queries is the mistake NO_RETURN_GROUNDS' own header warns about.
+#:
+#: Each entry: ``map -> (spin_tile, measured evidence)``. Nothing goes in here on a
+#: guess: the standing prevention rule is that a tile is adopted only after it is
+#: proven FROM THE REAL ENTRY POINT, in both directions of the legs it needs.
+HUNTING_GROUNDS: dict = {
+    # Legs 1 and 2 both PASS from the real pre-Norman anchor: `story_harness.py
+    # lavaridge --driver fierycave` walked Lavaridge -> FIERY_PATH (18,19) and then
+    # back OUT of the cave onto Route 112 (2026-07-26). Only its leg 3 — the onward
+    # heal trip Route 112 -> Lavaridge — fails, and a hunt never takes that leg.
+    # This is the Norman answer's only home: Machop lives on FIERY_PATH (L15-16) and
+    # JAGGED_PASS (L20-22), and Jagged Pass is no-return in the strong sense (it
+    # cannot even path WITHIN itself — see NO_RETURN_GROUNDS).
+    MapRSE.FIERY_PATH: (
+        (18, 19),
+        "Lavaridge -> (18,19) and (18,19) -> out of the cave both PASS "
+        "(story_harness --driver fierycave, 2026-07-26); only the onward heal leg "
+        "to Lavaridge fails, which a catch-and-leave hunt never walks",
+    ),
+}
+
+
+def hunt_ground_tile(map_enum) -> "tuple | None":
+    """The tile a COUNTER HUNT may stand on to spin for wild encounters on `map_enum`,
+    or None if this map is not a proven hunting ground.
+
+    ‼ WHITELIST, DELIBERATELY — it fails CLOSED. The counter planner ranks candidates
+    over the WHOLE-GAME encounter index, so its raw output includes places the story
+    has no business walking into mid-run: measured 2026-07-30, the top-ranked Fighting
+    answer for Norman is a Victory Road Hariyama, and the Ground answers for Wattson
+    include the Magma Hideout and Mirage Tower. Those rank high precisely BECAUSE they
+    are endgame — the cost model prices "train it up to the team's level" at ~0 for a
+    wild that is already above the team, so deep-game encounters look CHEAP.
+    A blacklist of such places would be an ever-growing list of game facts written from
+    memory (the one thing this project forbids); a whitelist needs no claim about
+    Mirage Tower at all — it is simply not a ground anyone has swept, so it is refused.
+
+    Two sources, both evidence-backed:
+      * `TRAINING_GRASS` — two-way swept spin tiles (the strongest evidence we hold).
+      * `HUNTING_GROUNDS` — reach-and-leave grounds, proven for this weaker requirement.
+
+    A ground in `NO_RETURN_GROUNDS` is refused unless `HUNTING_GROUNDS` explicitly
+    clears it, so JAGGED_PASS and ROUTE112 stay refused while FIERY_PATH does not.
+    """
+    try:
+        entry = HUNTING_GROUNDS.get(map_enum)
+        if entry is not None:
+            tile = entry[0]
+            return tuple(tile) if tile is not None else None
+        if _return_blocked(map_enum) is not None:
+            return None  # no-return and not cleared for hunting — refuse
+        for candidate_map, tile, _band in TRAINING_GRASS:
+            if candidate_map is map_enum and tile is not None:
+                return tuple(tile)
+        return None
+    except Exception:
+        # Fail CLOSED: an unreadable table must never widen where the bot may walk.
+        return None
+
+
 def best_training_area(team_level: int, *, min_wild_max: int = 0, allow=None):
     """Pick the training area best matched to `team_level` for FULL-xp grinding.
 
@@ -129,6 +293,11 @@ def best_training_area(team_level: int, *, min_wild_max: int = 0, allow=None):
     for map_enum, tile, (lo, hi) in TRAINING_GRASS:
         if tile is None:
             continue
+        # ‼ REFUSE NO-RETURN GROUNDS FIRST — same rule as `best_training_grass`. These
+        # ARE reachable, which is precisely why `allow` cannot catch them: the problem is
+        # getting BACK to heal. See NO_RETURN_GROUNDS for the measured evidence.
+        if _return_blocked(map_enum) is not None:
+            continue
         if hi <= min_wild_max:
             continue  # doesn't beat the floor the caller already has
         if team_level < lo - 1:
@@ -143,6 +312,113 @@ def best_training_area(team_level: int, *, min_wild_max: int = 0, allow=None):
         if best_score is None or score < best_score:
             best, best_score = (map_enum, tile, (lo, hi)), score
     return best
+
+
+#: Which rule decides "is the local patch fodder?" (KI-31).
+#:
+#: ``"xp_rate"`` — **THE DEFAULT since 2026-07-29 (user directive).** Relocate when the better
+#:                 area at least `XP_RATE_RELOCATE_RATIO`×es the xp rate. Fixes the measured
+#:                 hole (teams at/below L17 could never relocate). Still not validated
+#:                 end-to-end — see the note on `FODDER_RULE` below.
+#: ``"legacy"``  — `local_max + FODDER_LEVEL_GAP < team_max`. The previous default; set
+#:                 `POKEBOT_FODDER_RULE=legacy` to get it back, e.g. to A/B a regression.
+#:
+#: ‼ WHY A FLAG AND NOT A FIX. The legacy rule compares the WILD level to the TEAM level,
+#: but this module's own calibrated model says `xp/battle = 50.2 * wild_level / 7` — xp is
+#: proportional to the WILD level and does not depend on the team at all. Measured against
+#: the real TRAINING_GRASS bands, teams **below ~L17** can never relocate (5 + 12 = 17), so a
+#: L15 team on Route 102's L3-5 wilds forgoes a **2.8x** speedup. Above L17 the rule works.
+#:
+#: BUT the conservatism is DELIBERATE: `tools/story-dev/repro_fodder_grass.py` records the
+#: contract — *"WATTSON / ROXANNE / an early team -> UNCHANGED 'train locally' (the whole
+#: point of the conservative gap: proven-good prep must not move)"* — and L10-17 is exactly
+#: those bosses. That repro needs a real ROM + save state, so it CANNOT run on the dev box.
+#: Flipping the rule blind would gamble the user's overnight batches on an unrunnable test.
+#: Hence: both rules live here, the pure decision is exhaustively testable without an
+#: emulator, and the switch defaults to the proven behaviour.
+#: ‼ SET IT WITHOUT EDITING CODE:  POKEBOT_FODDER_RULE=xp_rate
+#: The first version of this flag was a bare constant, which meant running the A/B required
+#: hand-editing this file on the batch machine — and `install.py`'s self-healing step does
+#: `git checkout -- <drifted>`, so that edit could be REVERTED by the very installer the
+#: user was told to run. An env var is immune to that, needs no code change on a remote
+#: machine, and disappears when the shell closes.
+#: ‼ DEFAULT FLIPPED TO "xp_rate" (user directive 2026-07-29).
+#: The user runs the bot by DOUBLE-CLICKING `install_sandbox.py`, which cannot set an
+#: environment variable — so an env-var-only switch meant the intended rule never actually
+#: ran. Requiring a shell to get the intended behaviour is a broken interface, and the
+#: earlier lesson applies: a flag whose only interface is inconvenient will silently sit at
+#: the wrong value. Making it the default is the honest fix — every launch path (double-click,
+#: GUI, CLI, x4 lane) now agrees, and `POKEBOT_FODDER_RULE=legacy` is the documented way back.
+#:
+#: ‼ RESIDUAL RISK, STATED PLAINLY: `repro_fodder_grass.py` — the test that governs this
+#: decision, and the reason the default was `legacy` until now — STILL HAS NOT BEEN RUN, on
+#: any machine. It needs a real ROM + save state. The rules provably differ only for teams at
+#: or below L17 and only at boss prep (see `repro_fodder_rule.py`), so the blast radius is
+#: bounded and every run reports the active rule in its log header — but this is a
+#: user-directed default, not a validated one. If early-game prep regresses, set
+#: `POKEBOT_FODDER_RULE=legacy` and say so.
+_VALID_FODDER_RULES = ("legacy", "xp_rate")
+FODDER_RULE = _os.environ.get("POKEBOT_FODDER_RULE", "xp_rate").strip().lower()
+if FODDER_RULE not in _VALID_FODDER_RULES:
+    # ‼ FAIL LOUDLY. A silent fallback here would be the worst possible outcome for an A/B:
+    # a typo'd value would quietly run the LEGACY rule while the operator believed they were
+    # testing the new one, and we would draw a confident conclusion from the wrong data.
+    raise ValueError(
+        f"POKEBOT_FODDER_RULE={FODDER_RULE!r} is not one of {_VALID_FODDER_RULES}. "
+        "Refusing to guess — an unnoticed fallback would invalidate the A/B it was set for."
+    )
+
+
+def active_fodder_rule_banner() -> str:
+    """One line naming the active rule, for the run header.
+
+    ‼ WHY: without this, a log gives no way to tell WHICH rule produced it, so an A/B
+    cannot be attributed after the fact. Any experiment whose variable is invisible in the
+    output is not an experiment.
+    """
+    how = "env POKEBOT_FODDER_RULE" if "POKEBOT_FODDER_RULE" in _os.environ else "default"
+    extra = f", ratio {XP_RATE_RELOCATE_RATIO}x" if FODDER_RULE == "xp_rate" else ""
+    return f"Story: training-relocation rule = {FODDER_RULE} ({how}{extra})"
+
+#: For ``FODDER_RULE = "xp_rate"``: how much better the candidate area's xp rate must be.
+#: 2.0 = "at least halves the grind". Chosen because xp/battle is exactly proportional to
+#: wild level, so a 2x band is a 2x rate — a plainly-worth-a-walk win. It needs no travel
+#: measurement, which matters: travel cost is still UNMEASURED (`story_mode.py:576`), so the
+#: rule is deliberately set to fire only on large wins.
+XP_RATE_RELOCATE_RATIO = 2.0
+
+
+def xp_per_battle(wild_level) -> float:
+    """Modelled xp for one wild KO at `wild_level`. Proportional to the WILD level — it does
+    NOT depend on the trainee (see `_CALIBRATED_AVG_WILD_BASE_EXP_YIELD`'s provenance)."""
+    if not wild_level or wild_level <= 0:
+        return 0.0
+    return _CALIBRATED_AVG_WILD_BASE_EXP_YIELD * wild_level / 7
+
+
+def local_patch_is_fodder(local_max, team_max, fodder_level_gap, *,
+                          best_available_max=None, rule: str = None) -> bool:
+    """Is the LOCAL grass not worth grinding? PURE — no ROM, no emulator, no walking.
+
+    Extracted from `story_mode._prepare_for_fight` so the decision can be tested
+    exhaustively off-emulator (KI-31). Behaviour under the default ``rule`` is byte-for-byte
+    the legacy expression it replaced.
+
+    `best_available_max` is the HIGH band of the best reachable alternative, or None if the
+    caller has not looked yet — the ``"xp_rate"`` rule needs it; ``"legacy"`` ignores it.
+    """
+    if local_max is None:
+        return False
+    rule = rule or FODDER_RULE
+    if rule == "xp_rate":
+        if not best_available_max:
+            return False
+        local_rate = xp_per_battle(local_max)
+        if local_rate <= 0:
+            return True
+        return xp_per_battle(best_available_max) / local_rate >= XP_RATE_RELOCATE_RATIO
+    # "legacy" (default) — the exact original test.
+    return local_max + fodder_level_gap < team_max
 
 
 # ‼ FRAME-COST ESTIMATOR (2026-07-24, punch-list #24). Both the evo-lookahead and the
