@@ -23,6 +23,26 @@ open-vs-built sweep of all 80 open items has **not** been done.
 
 ## Now (active focus)
 
+### ‼ QUEUED FOR THE MOMENT BATCH `20260731-201554` LANDS (~23:16 PDT 2026-07-31)
+Both are blocked ONLY on the box being busy — the batch's runner restarts crashed lanes, so
+an edit under `sandbox-pokebot/` would be imported mid-batch and contaminate the measurement.
+
+- [ ] `#24-navready-budget` (**KI-43**) — **`_navigate_when_ready`'s escape hatch is budgeted
+      at EXACTLY the watchdog's 18,000 frames, so the `break` is dead code and the derail
+      always wins by one frame.** Diagnosed 2026-07-31 from stored logs: 35 of 72 watchdog
+      fires are inside `RUSTBORO_CITY_MART` right after `bought Poké Balls`, 31 in
+      `LAVARIDGE_TOWN` after the Heat Badge — stationary wedges, NOT the "long journeys"
+      the handoff assumed. The mart restock completes **0 of 36** times (baseline 33/33), so
+      every restock buys 10 balls instead of 30 and loses 2 free Premier Balls.
+      **Fix:** lower the wrapper's cap to ~600 frames (the battle transition it exists for
+      clears in a few), so `navigate_to` raises its honest error and `_navigate_riding_out`
+      spends a retry. **Prove with a live A/B** — the Rustboro restock is a cheap, 36/36
+      failing site today. `repro_watchdog_budget_collision.py` is RED until it is fixed.
+- [ ] `#24-wdcanary-dedupe` — `summarize_lane` counts `global watchdog` in stdout AND the
+      debug log, so every reported figure is ~2× (`9 → 143` is really `5 → 72`). Dedupe the
+      source, then `--resummarise` **all four** batches so they are read by one instrument.
+      ‼ Specific to this canary — `GAVE UP` is debug-only, `BADGE:`/`losses` stdout-only.
+
 ### ‼ BATCH REVIEW 2026-07-26 (bundle `20260726-231412`) — two catastrophic bugs found & FIXED
 The x4 bundle showed the batch was **silently producing almost no usable data**, while
 reporting most runs as successes. Both root causes are fixed in sandbox with A/B repros.
