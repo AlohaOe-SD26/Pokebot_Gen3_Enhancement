@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "normancounter"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -1111,6 +1111,82 @@ class JourneyMode(BotMode):
         return
 
 
+class NormanCounterMode(BotMode):
+    """#24-counters: does an UNDERLEVELLED Fighting counter actually beat Norman?
+
+    ‼ THE POINT IS TO AVOID SPENDING A BUDGET DECISION ON A GUESS. Batch `20260731-170603`
+    showed the chain catch a Machop and field it at **L16 against Norman's L28-31 team**,
+    winning **0** Balance Badges. At the measured ~89k frames/level, the current 250k
+    training budget buys ~2 levels; closing to within 5 levels of Norman would cost ~890k.
+    Before raising any budget — or re-ranking counter candidates by level gap — answer the
+    cheap binary question first: **is a 2x-STAB counter at level L enough?**
+
+    This injects a Machop at `NORMAN_MACHOP_LEVEL` into the existing party and runs the real
+    `do_petalburg_gym()`. One run per level, a few minutes each, versus three hours for a
+    batch that (per the power analysis) could not resolve the difference anyway.
+
+    Env:
+      NORMAN_MACHOP_LEVEL  level to inject (default 18 — what the current budget buys)
+    Emits: [normancounter] RESULT level=<L> badge=<bool> detail=<...>
+    """
+
+    @staticmethod
+    def name():
+        return "NormanCounter"
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+
+        return LevelUpTravelBattleStrategy()
+
+    def run(self):
+        import os
+
+        from modules.debug_utilities import debug_create_pokemon, debug_write_party
+        from modules.memory import get_event_flag
+        from modules.pokemon import LearnedMove, get_move_by_name, get_species_by_name
+        from modules.pokemon_party import get_party
+        from modules.story.early_game import do_petalburg_gym, wait_until_truly_controllable
+
+        level = int(os.environ.get("NORMAN_MACHOP_LEVEL", "18"))
+        yield from wait_until_truly_controllable()
+
+        machop = get_species_by_name("Machop")
+        # Moves a wild Machop actually has around this level — Karate Chop is the STAB
+        # Fighting move that makes it a "counter" at all. Read from the species learnset
+        # rather than hard-coded, so this cannot drift from the game.
+        wanted = ["Karate Chop", "Low Kick", "Leer", "Focus Energy"]
+        moves = []
+        for name in wanted:
+            try:
+                moves.append(LearnedMove.create(get_move_by_name(name)))
+            except Exception:  # noqa: BLE001 - skip anything this ROM names differently
+                pass
+        mon = debug_create_pokemon(
+            species=machop, level=level,
+            experience=machop.level_up_type.get_experience_needed_for_level(level),
+            moves=moves, nickname="MACHOP", current_hp=None,
+        )
+        existing = [m for m in get_party() if m is not None and not m.is_egg]
+        party = (existing[:5] + [mon]) if len(existing) >= 5 else (existing + [mon])
+        debug_write_party(party)
+        log(f"[normancounter] injected Machop L{level} moves={[m.move.name for m in moves]}")
+        log(f"[normancounter] party now: {[(m.species.name, m.level) for m in get_party() if m is not None]}")
+
+        badge_before = bool(get_event_flag("BADGE05_GET"))
+        detail = ""
+        try:
+            yield from do_petalburg_gym()
+            detail = "gym segment returned"
+        except Exception as error:  # noqa: BLE001
+            detail = f"{type(error).__name__}: {str(error)[:150]}".replace("\n", " ")
+        badge = bool(get_event_flag("BADGE05_GET"))
+        log(f"[normancounter] RESULT level={level} badge={badge} "
+            f"(was {badge_before}) detail={detail}")
+        context.set_manual_mode()
+        return
+
+
 class SmashRouteMode(BotMode):
     """#24-smashroute / KI-41: can the bot now reach FIERY_PATH from Mauville?
 
@@ -2078,6 +2154,8 @@ for step in range(args.frames):
             context.bot_mode_instance = JourneyMode()
         elif args.driver == "smashroute":
             context.bot_mode_instance = SmashRouteMode()
+        elif args.driver == "normancounter":
+            context.bot_mode_instance = NormanCounterMode()
         elif args.driver == "traintest":
             from plugins.custom_modes.story_mode import StoryMode as _SM
 
