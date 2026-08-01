@@ -158,16 +158,41 @@ for anything that will be compared against a user bundle.
    reaches Fiery Path. ‼ Only **Rock Smash** is actionable; **Strength is excluded on purpose**
    (a boulder is pushed, not removed, so the success test cannot see it) and Cut is
    known-but-unvalidated — both recorded in `obstacle_clearing.KNOWN_BUT_UNSUPPORTED`.
-4. ‼ **NEXT: MEASURE `#24-counters` end to end** with `x4_headless --lanes 8` **on a build that
-   includes staged progress**, and compare `end_reasons` against the baseline above. The
-   question is narrow and answerable: **does the `15× Norman` line shrink?**
-   * If it does, the chain is travelling and hunting — then look at what the NEW end reasons
-     are (they should be about catching/training, not reachability).
-   * If it does not, the chain is still not completing the journey, and the next thing to read
-     is how far it got: `grep 'counter hunt — going to' L*/stdout.txt` then the error that
-     follows it. That single pair of lines is what localised every blocker so far.
-   ‼ Do not mark `#24-counters` working on anything less than that comparison. This project has
-   twice recorded a fix as validated on a metric that could not see the failure.
+4. ✅ **`#24-counters` MEASURED — and the blocker has MOVED to training.** Batch
+   `x4-runs/20260731-170603` (commit `3875843c`) shows the chain working end to end through
+   the CATCH, three times:
+   ```
+   Story: counter hunt CAUGHT Machop (slot 5).
+   Story: training Machop to L35 rejected — estimated 1693806 frames exceeds the
+          budget (250000). It joins the fight at L16.
+   ```
+   Diagnose → travel to Fiery Path → **catch the Machop** → field it at **L16 vs Norman's
+   L28-31**. **Balance Badges that batch: 0.**
+
+   **Shipped:** `affordable_training_target()` — the gate was ALL-OR-NOTHING and a fresh catch
+   is ~15 levels below the team BY CONSTRUCTION, so it resolved to "don't train" every time
+   (the cost of catching with the benefit of neither option the user priced). It now buys the
+   highest level the budget covers. `repro_counter_training_budget.py`, 14 checks, no emulator.
+
+   ‼ **AND THAT IS NOT SUFFICIENT — the next step is a DECISION, not a fix.** Measured
+   ~**89k frames per level**:
+   | budget | levels bought | result |
+   |---|---|---|
+   | 250,000 (current `MAX_PREP_TRAINING_FRAMES`) | 2 | L18 vs L28-31 |
+   | ~890,000 | 10 | L26 — a real answer |
+
+   Three options, priced in `07-CHANGELOG.md` 2026-07-31: raise a counter-specific budget;
+   rank counter candidates by LEVEL GAP (more principled, raises no budget); or accept the
+   underlevelled counter and lean on 2× STAB.
+   ‼ **MEASURE THE THIRD ONE FIRST** — it is binary and costs minutes, and if an L18 counter
+   beats Norman the other two are unnecessary:
+   ```
+   cd tools/story-dev
+   NORMAN_MACHOP_LEVEL=18 PYTHONUTF8=1 py -3.12 story_harness.py \
+       prenorman_fodder_grind.ss1 --driver normancounter --frames 800000 --profile repro-live3
+   ```
+   Sweep the level (18 / 22 / 26) to find where it starts winning — THAT number is what the
+   budget or the candidate ranking has to deliver.
 
 5. ✅ **`#24-journey` IS COMPLETE.** From `norman_done.ss1` (PETALBURG_CITY — the position the
    Norman ladder actually fires from), through the production call path:
