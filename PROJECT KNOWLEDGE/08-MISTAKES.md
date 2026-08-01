@@ -2951,3 +2951,31 @@ purchases completed at baseline, 0/36 in the new build.
 3. **When a metric moves, confirm the instrument reads one event once.** This canary was
    counted in both stdout and the debug log, so every headline figure was ~2× — but only for
    that canary, which is worse than a uniform error because it survives a spot check.
+
+## 2026-08-01 — A flat funnel would have read as "the fix did nothing"; the MECHANISM counters said the opposite
+
+**Symptom.** Batch4 was run to measure `affordable_training_target`. Every badge rung came
+back flat (Heat→Balance 77% → 83%, z = 0.52; whole funnel z = 0.19). On the outcome metric
+alone the honest conclusion is "the training fix bought us nothing — try something else."
+
+**What was actually true.** The fix works perfectly. Counting the mechanism, not the outcome:
+`training … rejected` went **4 → 0**, the affordable target fired **7×**, training **started
+7×** — and then failed **7 of 7** because the bot could not walk from ROUTE103 to the ROUTE102
+training grass (KI-44). Zero counters were ever trained, so the counter met Norman at L15-16
+exactly as it had in batch3. The funnel *had* to be flat; nothing downstream had changed.
+
+**The trap.** The blocker MOVED one step down the chain — budget → travel — and an
+outcome-only reading cannot distinguish "the fix does not help" from "the fix works and the
+next thing is broken". Those two conclusions lead to opposite next actions: abandon the fix,
+or go fix the travel.
+
+**Prevention rules.**
+1. **Instrument the MECHANISM alongside the outcome.** For any fix, log the chain it is
+   supposed to unblock — attempted / succeeded / failed — so a flat outcome can be attributed
+   rather than guessed at. Three greps distinguished "didn't help" from "worked, next thing
+   broke"; the funnel alone never could.
+2. **A fix that removes a refusal will expose whatever the refusal was hiding.** When a gate
+   stops declining work, the work starts running for the first time and its own failures
+   become visible. Budget the follow-up before calling such a fix done, and do not read the
+   newly-visible failure as a regression the fix caused — check whether the code path could
+   even execute before.

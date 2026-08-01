@@ -3,72 +3,98 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-07-31 (evening) — see "‼ BATCH IN FLIGHT" then "‼ START HERE —
-2026-07-31 PM" immediately below. Older "START HERE" sections further down are HISTORY.
+**Last updated:** 2026-08-01 (00:00 PDT) — read "‼ BATCH 4 LANDED" immediately below, then
+"‼ START HERE — 2026-07-31 PM". Older "START HERE" sections further down are HISTORY.
 
 ---
 
-# ‼ BATCH IN FLIGHT — DO NOT LOAD THE BOX (added 2026-07-31 20:19 PDT)
+# ‼ BATCH 4 LANDED — READ THIS FIRST (2026-08-01 00:00 PDT)
 
-**`x4-runs/20260731-201554` is RUNNING RIGHT NOW.** The 2026-07-31 evening session launched it
-and was then interrupted before it could be recorded anywhere, so this note exists to stop the
-next agent from re-deriving it or, worse, killing it.
+`x4-runs/20260731-201554`, commit **`92d220d5`**, 8 lanes / **180.1 min**, `VERDICT OK`,
+38 headers checked, **0 emulation violations, 0 lane restarts**. It completed its full bound
+and self-terminated; nothing was interrupted.
 
-| | |
-|---|---|
-| command | `x4_headless.py --lanes 8 --minutes 180 --stagger 5` |
-| launched | 2026-07-31 20:15:54 PDT → **ends ~23:16 PDT** |
-| commit | **`92d220d5`** = HEAD, tree clean; code-equivalent to `1c4b183d` |
-| verified healthy | 2026-07-31 20:19 — 9 live processes, all 8 lanes on run 1, all `stdout.txt` growing |
+## ‼ THE RESULT: the training fix FIRES, then 7/7 training runs FAIL. The funnel is FLAT.
 
-‼ **WHAT IT MEASURES, AND WHY IT MATTERS:** this is the **first batch that contains
-`affordable_training_target` (`1c4b183d`)**. Batch3 (`20260731-170603`, 57.1% finish) predates
-it — every `CAUGHT Machop` there still hit the all-or-nothing training refusal and entered
-Norman at L16. This batch is the answer to "does buying the levels the budget CAN afford turn
-those catches into Balance Badges?", and it retires the handoff's own caveat that the training
-fix appeared in no measurement.
+**30 runs ended, 18 finished = 60.0%** (batch3: 20/35 = 57.1%). Badge funnel, which is the
+instrument that matters:
 
-**HOW TO READ IT WHEN IT LANDS** (do not invent a new method — batch3's was hard-won):
-* **Use the badge funnel, not the finish rate.** Compare `Heat→Balance` (beating Norman) and
-  `Balance→Feather` against batch3's 77% / 83%. Finish rate resolves only ~+30-point changes.
-* Segment `badge-log.json` by window — sort by `earned_at`, new batch wherever `run_index`
-  stops increasing.
-* Count `counter hunt CAUGHT` events and check each one is followed by a **bought** training
-  level rather than the refusal line. That is the specific mechanism under test.
-* Also re-check the **`global watchdog` 9 → 143** jump from batch3, still uninvestigated.
-* `x4_headless.py --resummarise <dir>` re-reads stored logs. **Never re-run hours of emulation
-  to fix a regex** — it produces a different sample and destroys the comparison.
+| rung | batch3 `3875843c` | batch4 `92d220d5` | z |
+|---|---|---|---|
+| Stone→Knuckle | 42/43 (98%) | 35/37 (95%) | −0.72 |
+| Knuckle→Dynamo | 32/42 (76%) | 31/35 (89%) | 1.40 |
+| Dynamo→Heat | 31/32 (97%) | 29/31 (94%) | −0.62 |
+| **Heat→Balance (beating Norman)** | 24/31 (77%) | 24/29 (83%) | **0.52** |
+| Balance→Feather | 20/24 (83%) | 18/24 (75%) | −0.71 |
+| Stone→Feather (whole funnel) | 20/43 (47%) | 18/37 (49%) | 0.19 |
 
-‼ **CPU DISCIPLINE WHILE IT RUNS:** 8 lanes ≈ 8 cores on a 16C/32T box. The three batches it
-will be compared against all ran on an otherwise-idle machine. Do NOT start the 63-script repro
-sweep, a second batch, or any other heavy job until it finishes — fewer frames per lane means
-fewer runs per lane, which biases the very comparison this batch exists to make. Docs work,
-reading and single-file edits are fine.
+**Not one rung is significant.** Do not read the 57.1% → 60.0% finish rate as an improvement;
+it cannot resolve a change this size, which is exactly why the funnel is the instrument.
 
-If it must be stopped, the logs already on disk are still valid data:
-`--resummarise x4-runs/20260731-201554` summarises whatever completed.
+## WHY — and the blocker has MOVED AGAIN, to `KI-44`
 
-## ‼ THE FIRST THING TO DO WHEN IT LANDS (queued while the box was busy)
-1. **Apply the KI-43 fix** — `_navigate_when_ready`'s cap must expire well inside the
-   watchdog's 18,000-frame window (~600 frames). `repro_watchdog_budget_collision.py` is RED
-   today and goes green with it. Then prove it live: the Rustboro restock fails **36/36** at
-   the moment, so it is a cheap, high-signal A/B site. Full diagnosis in **KI-43**.
-2. **Dedupe the `global_watchdog` canary** in `x4_headless.py` (`summarize_lane` counts it in
-   stdout AND the debug log). Then `--resummarise` **all four** batches so they are read by
-   the same instrument — never compare a deduped batch to a double-counted one.
-3. Only then read batch4 against batch3's badge funnel, per the method above.
+| | batch3 | batch4 |
+|---|---|---|
+| `counter hunt CAUGHT` | 5 | 9 |
+| `training … rejected` (old all-or-nothing gate) | 4 | **0** |
+| affordable target chosen | 0 | **7** |
+| `training the counter —` (training STARTS) | 0 | **7** |
+| **`counter training failed`** | 0 | **7** |
 
----
+`affordable_training_target` is working — it picks e.g. `Machop L15 -> L21 (team is L35, est
+222115 frames)` and the refusal is gone. Training then fails **7 of 7**: six with
+`Could not reach (9, 2) on MapRSE.ROUTE102 … not walkable from ROUTE103`, one to a whiteout.
+**Zero counters were ever trained**, so the Machop still meets Norman at L15-16 vs L28-31 —
+batch3's exact situation, hence the flat funnel.
+
+‼ **KI-44 is EXPOSED, not caused, by the training fix.** Before it, the gate refused before
+any travel was attempted, so this failure could not appear in a log. **Do not revert the
+training fix.** Full detail + how to probe it in `05-KNOWN-ISSUES.md` **KI-44**.
+
+Also new: `no money to buy any` **0 → 14** occurrences (3 ended runs) — ball starvation,
+consistent with KI-43 (catches rose 5 → 9 while each restock bought 10 balls, not 30).
+Clean canary: KI-38's `GAVE UP` **10 → 0**.
+
+## ‼ KI-43 — FIXED AND PROVEN (this session)
+
+`_navigate_when_ready` waited on a budget of 18,000 frames — **the same number as the global
+watchdog's stall threshold** — while pressing nothing and changing nothing, so the derail won
+by one frame every time and its `break` was dead code. It now uses its own
+`_TRANSIENT_WAIT_FRAMES = 600`.
+
+* **Structural proof:** `repro_watchdog_budget_collision.py` (no emulator) parses whichever
+  constant the wrapper actually uses. Green at 600; fault-inject `60*60*5` → 3 checks red;
+  restore → green.
+* **Live A/B**, `gym1_done.ss1 --driver martbuy BUYN=30`, 40,000 frames:
+  **OLD arm 0 purchases** (no `[buy] AFTER` line at all), **NEW arm 3 purchases + 3 Premier
+  Balls**, money 8628 → 2628. The old arm parks at `(3,3)` with
+  `RustboroCity_Mart_EventScript_PokemartBasic` active — the shop script keeps the avatar
+  non-controllable and the wrapper waits on it silently.
+
+`_MAX_NON_OVERWORLD_FRAMES` was deliberately left at 18,000: the outer loop waits on game
+STATE, which flips during a cutscene and keeps resetting the watchdog signature, so it does
+not produce the frozen signature the wrapper did.
+
+## ‼ NEXT, IN THIS ORDER
+1. **`KI-44` — counter training cannot reach ROUTE102 from ROUTE103.** This is the counter
+   chain's blocker now and the whole `#24-counters` line is stalled behind it. Probe from the
+   ACTUAL captured position (ROUTE103, x≈45) plus a control tile that DOES path — do not
+   validate from an easy starting position (that mistake is already in `08-MISTAKES.md`).
+   Suspect KI-24's `calculate_path` unsoundness rather than a genuinely sealed route.
+2. **`#24-wdcanary-dedupe`** — `summarize_lane` counts `global watchdog` in stdout AND the
+   debug log, so every reported figure is ~2×. Dedupe, then `--resummarise` **all four**
+   batches so one instrument reads them all.
+3. Re-measure the counter chain only AFTER KI-44 — batch4 says the chain cannot be evaluated
+   until training can actually run.
 
 # ‼ START HERE — 2026-07-31 PM (most recent; supersedes every section below)
 
 ## READ THIS, THEN `14-AGENT-PLAYBOOK.md`. You need nothing from any chat transcript.
 
-**Repro suite: 63 pass, 1 fail, 1 skip** (`repro_x4_lanes` skipped by design — it spawns real
-lane processes). Run it with the loop in `14-AGENT-PLAYBOOK.md` §2b, 90s per script.
-‼ **The 1 fail is `repro_watchdog_budget_collision.py`, and it is RED ON PURPOSE** — it
-reproduces KI-43 (reproduce first, then fix). You did not break it. It goes green when the
-`_navigate_when_ready` cap is lowered; if it is still red, KI-43 is still unfixed.
+**Repro suite: 67 pass, 0 fail** — measured 2026-08-01 with the KI-43 fix in the tree, all 67
+`repro_*.py` at 90 s each. ‼ `repro_x4_lanes` did NOT need skipping this time (it spawns real
+lane processes and had been recorded as a by-design skip); it ran and passed on an idle box.
+`repro_watchdog_budget_collision.py` (KI-43) is the newest and is GREEN as of the fix.
 
 ## WHERE WE ARE — the blocker chain, ordered by MEASURED evidence
 1. ~~**KI-38** after-faint chooser~~ **FIXED 2026-07-31 AM** (`1099e9d9`). It was the reason

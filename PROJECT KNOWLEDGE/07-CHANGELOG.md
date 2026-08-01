@@ -6476,3 +6476,82 @@ until the fix lands** (reproduce first, then fix).
 **Deliberately NOT fixed in this commit.** Batch `20260731-201554` was mid-flight and the
 runner restarts crashed lanes, so any edit under `sandbox-pokebot/` would have been imported
 by a restarted lane and contaminated the measurement. Queued as step 1 in the handoff.
+
+## 2026-07-31 (late) — batch4 RESULT: the training fix fires, 7/7 training runs FAIL, funnel flat; KI-43 FIXED
+
+### Batch 4 — `x4-runs/20260731-201554`, commit `92d220d5`, 8 lanes / 180.1 min, VERDICT OK
+38 headers checked, 0 emulation violations, 0 lane restarts. **30 runs ended, 18 finished =
+60.0%** (batch3: 20/35 = 57.1%).
+
+**Badge funnel — nothing moved.** Per the standing instruction to read the funnel, not the
+finish rate:
+
+| rung | batch3 `3875843c` | batch4 `92d220d5` | z |
+|---|---|---|---|
+| Stone→Knuckle | 42/43 (98%) | 35/37 (95%) | −0.72 |
+| Knuckle→Dynamo | 32/42 (76%) | 31/35 (89%) | 1.40 |
+| Dynamo→Heat | 31/32 (97%) | 29/31 (94%) | −0.62 |
+| **Heat→Balance (beating Norman)** | 24/31 (77%) | 24/29 (83%) | **0.52** |
+| Balance→Feather | 20/24 (83%) | 18/24 (75%) | −0.71 |
+| Stone→Feather (whole funnel) | 20/43 (47%) | 18/37 (49%) | 0.19 |
+
+Not one rung is significant. **`affordable_training_target` did not move the needle**, and
+the log says exactly why.
+
+### WHY — the fix works, and then the bot cannot reach the training grass
+
+| | batch3 | batch4 |
+|---|---|---|
+| `counter hunt CAUGHT` | 5 | 9 |
+| `training … rejected` (the old all-or-nothing gate) | 4 | **0** |
+| affordable target chosen (`… would cost N — training to LN instead`) | 0 | **7** |
+| `training the counter —` (training actually STARTS) | 0 | **7** |
+| **`counter training failed`** | 0 | **7** |
+
+The gate is fixed: it now picks e.g. `Machop L15 -> L21 (team is L35, est 222115 frames)`.
+Training then starts and **fails 7 times out of 7** — 6 with
+
+```
+UnreachableDestinationError('Could not reach (9, 2) on MapRSE.ROUTE102: the field is idle
+and we are still at (45, …) … Cannot reach PETALBURG_CITY: it is not walkable from
+ROUTE103, and none of the 6 candidate warp route(s) start at a tile that can be walked to
+from here (tried: OLDALE_TOWN(…)×4, PETALBURG_CITY(…)×2).')
+```
+
+and 1 to a whiteout. **Zero counters were ever trained.** The counter still enters Norman at
+L15-16 against L28-31, which is precisely the state batch3 was in — hence the flat funnel.
+
+‼ **This is EXPOSED, not CAUSED, by the training fix.** In batch3 the gate refused before any
+travel was attempted, so the travel failure could not be observed. Logged as **KI-44**.
+
+### Also new in batch4 — ball starvation
+`no money to buy any` end-reason: **0 → 14 occurrences (3 ended runs)**, e.g. *"Cannot hunt a
+Surf learner: no Poké Balls and no money to buy any."* Consistent with KI-43: catches rose
+5 → 9 while every restock bought 10 balls instead of 30.
+
+Clean canary: KI-38's `GAVE UP` **10 → 0**.
+
+### KI-43 — FIXED and PROVEN
+
+`_navigate_when_ready` now uses its own `_TRANSIENT_WAIT_FRAMES = 600` (10 s) instead of
+`_MAX_NON_OVERWORLD_FRAMES` (18,000 = the watchdog's own threshold). Left
+`_MAX_NON_OVERWORLD_FRAMES` alone deliberately: the outer loop waits on game STATE, which
+flips during a cutscene and so keeps resetting the watchdog's signature — it does not produce
+the frozen signature this wrapper did.
+
+**Proof 1 — structural, fault-injected both ways.**
+`repro_watchdog_budget_collision.py` now reads whichever constant the wrapper actually uses
+(parsed from its body — hardcoding the name would let the bug return under a new name).
+Green at 600; re-inject `60 * 60 * 5` and 3 checks go red; restore and green again.
+
+**Proof 2 — live A/B**, `gym1_done.ss1`, `--driver martbuy`, `BUYN=30`, 40,000 frames:
+
+| arm | purchases completed | Premier Balls | money |
+|---|---|---|---|
+| OLD (`_TRANSIENT_WAIT_FRAMES = 18,000`) | **0** — no `[buy] AFTER` line at all | — | unspent |
+| NEW (`= 600`) | **3** | **3** | 8628 → 2628 (30 balls) |
+
+The old arm's stall signature names the mechanism outright: parked at `(3, 3)` with
+`RustboroCity_Mart_EventScript_PokemartBasic` + `Std_MsgboxDefault` active — the shop script
+is up, so `player_avatar_is_controllable()` is False, and the wrapper waits on it while
+pressing nothing. Exactly the predicted shape.

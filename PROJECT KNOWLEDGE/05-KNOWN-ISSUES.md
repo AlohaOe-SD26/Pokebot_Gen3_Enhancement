@@ -1558,3 +1558,45 @@ restock is a cheap repro site: it fails 36/36 today).
 
 Related: **KI-40** (a *different*, earlier watchdog spike, attributed to the KI-34/35/36/37
 work). The `289d1710` baseline shows only 5 fires, so KI-40's regression is not what this is.
+
+---
+
+## KI-44 — Counter training cannot REACH its training grass: ROUTE102 is unwalkable from ROUTE103 (2026-07-31, severity: HIGH — this is now the counter chain's blocker)
+
+**Measured**, batch4 `x4-runs/20260731-201554` (commit `92d220d5`), 7 of 7 attempts:
+
+```
+Story: training the counter — Machop L15 -> L21 (team is L35, est 222115 frames).
+Story: counter training failed (UnreachableDestinationError('Could not reach (9, 2) on
+  MapRSE.ROUTE102: the field is idle and we are still at (45, …), so retrying cannot change
+  the result (Cannot reach PETALBURG_CITY: it is not walkable from ROUTE103, and none of the
+  6 candidate warp route(s) start at a tile that can be walked to from here
+  (tried: OLDALE_TOWN(…)×4, PETALBURG_CITY(…)×2).).')) — continuing untrained.
+```
+
+6 of 7 are this exact error; the 7th is a whiteout abort. **Zero counters were trained**, so
+the Machop still fights Norman's L28-31 team at L15-16 — the same state as batch3, which is
+why batch4's badge funnel is flat at every rung (Heat→Balance 77% → 83%, z = 0.52).
+
+‼ **EXPOSED, NOT CAUSED, BY `affordable_training_target` (`1c4b183d`).** Before that fix the
+gate refused to train at all, so the bot never attempted the journey and this failure could
+not appear in any log. Do not "revert the training fix" — the fix is correct and is doing its
+job (`training … rejected` went 4 → 0, the affordable target fires 7×). The blocker simply
+MOVED from the budget to the travel, exactly one step further down the chain.
+
+**What the error says.** The bot stands on **ROUTE103** and wants **ROUTE102 (9,2)**.
+`_walk_is_possible` says no for the direct route, and all six warp candidates it was offered
+(4× OLDALE_TOWN, 2× PETALBURG_CITY) are judged unwalkable from where it stands. Route 103
+connects to Oldale Town by an ordinary map CONNECTION, so "no candidate is walkable" is the
+suspicious part — this smells like KI-24's `calculate_path` unsoundness at region scale
+rather than a genuinely sealed route.
+
+**Do not fix by raising retries.** The message already contains the fail-fast reasoning —
+*"the field is idle and we are still at (45, …), so retrying cannot change the result"* — so
+retrying is known-useless here. Establish first whether ROUTE103 → OLDALE_TOWN → ROUTE102 is
+genuinely walkable from that tile with a live probe from the ACTUAL captured position (the
+2026-07-31 lesson: validating travel from an easy starting position and shipping it as done
+is already in `08-MISTAKES.md`), plus a control tile that DOES path.
+
+Related: **KI-24/24b** (`calculate_path` unsound at region scale; `_training_area_allowed`
+still uses it), **KI-39 CORRECTED**, **KI-43** (fixed).

@@ -89,6 +89,26 @@ def _walk_is_possible(
 # (the game never returning to the overworld) rather than yield forever.
 _MAX_NON_OVERWORLD_FRAMES = 60 * 60 * 5  # ~5 minutes at 60 fps
 
+# ‼ KI-43. `_navigate_when_ready` may NOT use the cap above, and the reason is a hard
+# constraint rather than a preference. StoryMode's global watchdog derails the run after
+# **18,000 frames** with an unchanged progress signature (`story_mode.py`, `_stall_frames
+# >= 18000`) — and a wrapper that waits while pressing nothing and changing nothing IS an
+# unchanged signature. `_MAX_NON_OVERWORLD_FRAMES` is 60*60*5 = 18,000: the SAME number.
+# The watchdog fires on frame 18,000 (`>=`) and the wrapper's `break` needs 18,001 (`>`),
+# so the derail won by one frame every single time and the escape hatch was dead code.
+#
+# Measured (batch3 `3875843c` vs baseline `289d1710`): the Rustboro Poké Ball restock buys
+# in batches of ten to farm the free Premier Ball per purchase, and the SECOND purchase
+# re-enters navigation while the avatar is still settling out of the shop UI. Baseline
+# chained three purchases 33/33; batch3 completed **0 of 36** — every one sat here for
+# 18,000 frames and derailed, so each restock bought 10 balls instead of 30.
+#
+# So this wait must expire comfortably INSIDE the watchdog window, letting `navigate_to`
+# raise its own honest "not in the overworld" error so `_navigate_riding_out` can spend a
+# retry on it. The condition it exists for — a battle transition — clears in a few frames;
+# ten seconds is already generous. Pinned by `repro_watchdog_budget_collision.py`.
+_TRANSIENT_WAIT_FRAMES = 600  # 10s at 60 fps — must stay well under the 18,000 watchdog
+
 
 def _map_name(map_group_and_number: tuple[int, int]) -> str:
     enum = MapRSE if context.rom.is_rse else MapFRLG
@@ -229,15 +249,19 @@ def _navigate_when_ready(navigate_to, *args, **kwargs):
     retry on it (its fail-fast guard cannot help: that guard only records a position while
     the avatar is CONTROLLABLE, which it is not mid-battle).
 
-    Bounded by the same generous cap as the loop's own wait, so a genuine softlock still
-    surfaces rather than yielding for ever.
+    ‼ KI-43 — THIS USED TO BE BOUNDED BY `_MAX_NON_OVERWORLD_FRAMES`, "the same generous cap
+    as the loop's own wait, so a genuine softlock still surfaces rather than yielding for
+    ever". That cap is 18,000 frames and the global watchdog derails at 18,000 frames of
+    unchanged progress signature — which is exactly what this loop produces, because it
+    presses nothing and changes nothing. The derail won by one frame EVERY time and the
+    `break` below never once executed. See `_TRANSIENT_WAIT_FRAMES` above for the measurement.
     """
     from modules.player import player_avatar_is_controllable
 
     waited = 0
     while get_game_state() is not GameState.OVERWORLD or not player_avatar_is_controllable():
         waited += 1
-        if waited > _MAX_NON_OVERWORLD_FRAMES:
+        if waited > _TRANSIENT_WAIT_FRAMES:
             break  # let `navigate_to` raise its own honest error rather than hang here
         yield
     yield from navigate_to(*args, **kwargs)

@@ -23,11 +23,26 @@ open-vs-built sweep of all 80 open items has **not** been done.
 
 ## Now (active focus)
 
-### ‼ QUEUED FOR THE MOMENT BATCH `20260731-201554` LANDS (~23:16 PDT 2026-07-31)
-Both are blocked ONLY on the box being busy — the batch's runner restarts crashed lanes, so
-an edit under `sandbox-pokebot/` would be imported mid-batch and contaminate the measurement.
+### ‼ BATCH 4 LANDED 2026-07-31 23:15 — the counter chain's blocker MOVED to KI-44
 
-- [ ] `#24-navready-budget` (**KI-43**) — **`_navigate_when_ready`'s escape hatch is budgeted
+- [ ] `#24-counters-travel` (**KI-44**) — **‼ THE COUNTER CHAIN'S CURRENT BLOCKER.** Counter
+      training now starts (the budget fix works: refusal 4 → 0, affordable target fires 7×)
+      and then **fails 7 of 7** — 6× `Could not reach (9, 2) on MapRSE.ROUTE102 … not walkable
+      from ROUTE103`, 1× whiteout. **Zero counters trained**, so batch4's badge funnel is flat
+      at every rung (Heat→Balance z = 0.52). Exposed, NOT caused, by `affordable_training_target`
+      — before it the gate refused before any travel was attempted. **Do not revert that fix.**
+      Probe from the ACTUAL captured position (ROUTE103, x≈45) plus a control tile that DOES
+      path; suspect KI-24's `calculate_path` unsoundness, not a sealed route. Do NOT "fix" by
+      raising retries — the error already reasons that retrying cannot help.
+
+- [x] `#24-navready-budget` (**KI-43**) — **DONE 2026-07-31.** Fixed via a dedicated
+      `_TRANSIENT_WAIT_FRAMES = 600`. Proven twice: `repro_watchdog_budget_collision.py` green
+      with a both-ways fault injection, and a live A/B (`gym1_done.ss1 --driver martbuy
+      BUYN=30`, 40k frames) — **OLD arm 0 purchases, NEW arm 3 purchases + 3 Premier Balls**,
+      money 8628 → 2628. Original diagnosis below.
+
+      **The original diagnosis, kept because it is the evidence:**
+      `#24-navready-budget` (**KI-43**) — **`_navigate_when_ready`'s escape hatch is budgeted
       at EXACTLY the watchdog's 18,000 frames, so the `break` is dead code and the derail
       always wins by one frame.** Diagnosed 2026-07-31 from stored logs: 35 of 72 watchdog
       fires are inside `RUSTBORO_CITY_MART` right after `bought Poké Balls`, 31 in
@@ -38,6 +53,8 @@ an edit under `sandbox-pokebot/` would be imported mid-batch and contaminate the
       clears in a few), so `navigate_to` raises its honest error and `_navigate_riding_out`
       spends a retry. **Prove with a live A/B** — the Rustboro restock is a cheap, 36/36
       failing site today. `repro_watchdog_budget_collision.py` is RED until it is fixed.
+      *(That repro is now GREEN — see the DONE line above.)*
+
 - [ ] `#24-wdcanary-dedupe` — `summarize_lane` counts `global watchdog` in stdout AND the
       debug log, so every reported figure is ~2× (`9 → 143` is really `5 → 72`). Dedupe the
       source, then `--resummarise` **all four** batches so they are read by one instrument.

@@ -82,12 +82,25 @@ story_src = _read(STORY)
 
 print("1. both budgets are still where this test thinks they are")
 
-# `_MAX_NON_OVERWORLD_FRAMES = 60 * 60 * 5` — evaluate the literal arithmetic, don't
-# import: importing the module drags in the emulator-facing package and this test is
-# deliberately emulator-free.
-m = re.search(r"^_MAX_NON_OVERWORLD_FRAMES\s*=\s*([0-9*\s]+)", nav_src, re.M)
-check("global_navigation defines _MAX_NON_OVERWORLD_FRAMES", m is not None)
-wrapper_cap = eval(m.group(1).strip(), {"__builtins__": {}}, {}) if m else None  # noqa: S307
+# ‼ Find the constant the WRAPPER ACTUALLY USES, by reading its body — do not hardcode a
+# name. The whole defect was the wrapper pointing at a constant sized for something else,
+# so a test that assumes the name would happily pass while the bug was back.
+body = re.search(
+    r"def _navigate_when_ready\(.*?(?=\n(?:def|@|\Z))", nav_src, re.S
+)
+check("_navigate_when_ready's body can be located", body is not None)
+used = re.search(r"waited\s*>\s*([A-Za-z_][A-Za-z0-9_]*)", body.group(0)) if body else None
+check("its wait is bounded by a named constant", used is not None,
+      f"uses `{used.group(1)}`" if used else "no `waited > <CONST>` bound found")
+
+wrapper_cap = None
+if used:
+    # Evaluate the literal arithmetic (e.g. `60 * 60 * 5`); don't import — importing drags
+    # in the emulator-facing package and this test is deliberately emulator-free.
+    lit = re.search(rf"^{re.escape(used.group(1))}\s*=\s*([0-9_*\s]+)", nav_src, re.M)
+    check(f"{used.group(1)} is defined in global_navigation", lit is not None)
+    if lit:
+        wrapper_cap = eval(lit.group(1).strip(), {"__builtins__": {}}, {})  # noqa: S307
 print(f"       wrapper cap      = {wrapper_cap:,} frames" if wrapper_cap else "")
 
 m2 = re.search(r"_stall_frames\s*>=\s*([0-9_]+)", story_src)
@@ -103,7 +116,11 @@ check(
 )
 check(
     "the wrapper still waits without pressing anything",
-    "player_avatar_is_controllable()" in nav_src and "waited > _MAX_NON_OVERWORLD_FRAMES" in nav_src,
+    body is not None
+    and "player_avatar_is_controllable()" in body.group(0)
+    and "press_button" not in body.group(0),
+    "if it ever starts pressing a button while waiting it is no longer a silent stall "
+    "and this whole test needs rethinking",
 )
 
 print("2. ‼ THE DEFECT — the guard must expire BEFORE the watchdog, or it never runs")
