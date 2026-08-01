@@ -3,12 +3,66 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-08-01 (00:00 PDT) — read "‼ BATCH 4 LANDED" immediately below, then
+**Last updated:** 2026-08-01 (07:58 PDT) — read "‼ BATCH 5 IN FLIGHT" immediately below, then
 "‼ START HERE — 2026-07-31 PM". Older "START HERE" sections further down are HISTORY.
 
 ---
 
-# ‼ BATCH 4 LANDED — READ THIS FIRST (2026-08-01 00:00 PDT)
+# ‼ BATCH 5 IN FLIGHT — DO NOT LOAD THE BOX (launched 2026-08-01 07:58 PDT)
+
+| | |
+|---|---|
+| dir | `x4-runs/20260801-075805` |
+| command | `x4_headless.py --lanes 8 --minutes 180 --stagger 5` |
+| commit | **`b7345ffd`** — the first build containing the **KI-44** fix |
+| ends | **~10:58 PDT** |
+
+‼ **WHAT IT MUST ANSWER — and it is a MECHANISM question first, an outcome question second.**
+No counter has EVER been trained in any batch, so this is the first chance to see the chain
+complete. Read, in this order:
+
+1. **`counter training failed`** — it was **7 of 7** in batch4. If it is still ~7/7, KI-44 is
+   not really fixed and the funnel is irrelevant.
+2. **`training the counter at … rather than the boss's own patch`** — the new relocation line.
+   Its absence means `counter_training_ground` fell back to the boss's grass and the fix never
+   fired in a real run (the live probe only proved it from LAVARIDGE_TOWN, one map short of
+   FIERY_PATH where the catch happens).
+3. **`Heat→Balance`** against batch4's **24/29 (83%)** — the outcome. ‼ Batch4's own lesson:
+   the mechanism firing is NOT the funnel moving. Instrument both or the result is unreadable.
+4. `local grass (max L4) … no better area is available` — **167** in batch4. See the pre-emptive
+   training discussion below; a drop here would be a bonus, not the thing under test.
+
+**CPU discipline:** 8 lanes ≈ 8 cores. The batches this is compared against ran on an idle
+box — do not start a repro sweep or a second batch until it lands. Docs and single-file edits
+are fine. If it must be stopped, `--resummarise x4-runs/20260801-075805` reads whatever
+completed; the logs are the data.
+
+## ‼ AGREED NEXT, ONCE IT LANDS — pre-emptive training for Norman (user idea, 2026-08-01)
+**User ruling: measure first, then build this.** The bot's counter chain is REACTIVE —
+`_counter_ladder(cfg, losses, needed)` fires on LOSSES — so today it travels to Petalburg,
+loses to Norman repeatedly, then crosses Hoenn to Fiery Path, catches, tries to train, and
+crosses back. The user's proposal is to train BEFORE travelling to Petalburg at all.
+
+The evidence supports it:
+* Norman's local grass `ROUTE102` is **L3-4** (probed 2026-08-01) — `story_mode.py:739` already
+  calls it "~25 xp a kill, i.e. never".
+* From Petalburg **nothing better is reachable**: `no better area is available` fired **167**
+  times in batch4, every one of them `local grass (max L4)`, teams L32-41.
+* From Lavaridge — where the Norman leg begins — **ROUTE111 (L19-22) and ROUTE117 (L13-14) ARE
+  reachable** (proved by the KI-44 probe, and 12 successful relocations to ROUTE111 in batch4).
+* Every failure this week (KI-43, KI-44, the journey bugs) lives in the long cross-Hoenn trips.
+  Removing the round trip removes the failure surface rather than hardening it.
+
+‼ **It needs a second fix to work: the relocation search is keyed on the WRONG MON.**
+`floor = max(local_max, team_max_now - FODDER_LEVEL_GAP)` and `best_training_area(team_max_now…)`
+both use the team's STRONGEST mon, while the mons that need training are the stragglers
+(L12 Poochyena, L20 Shedinja in these runs). For a L35 team the floor is 23, which rejects
+ROUTE111 (L19-22) — the one ground actually reachable there. **Same error class as KI-44:
+choosing the ground by the wrong entity.** Pre-emptive training would hit this identical wall.
+
+---
+
+# ‼ BATCH 4 LANDED (2026-08-01 00:00 PDT)
 
 `x4-runs/20260731-201554`, commit **`92d220d5`**, 8 lanes / **180.1 min**, `VERDICT OK`,
 38 headers checked, **0 emulation violations, 0 lane restarts**. It completed its full bound
