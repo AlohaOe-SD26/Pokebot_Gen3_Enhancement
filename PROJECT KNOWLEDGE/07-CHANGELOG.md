@@ -6295,3 +6295,63 @@ a 16-point difference is a poor trade against a 5-minute harness run that answer
 capability question outright. Use batches for what they are good at: discovering FAILURE MODES
 you did not know about (which is exactly how the Petalburg travel bug was found), not for
 grading improvements.
+
+## 2026-07-31 — `#24-counters`: the chain CATCHES its counter now, and the blocker moved to training
+
+**The batch answered the question.** `x4-runs/20260731-170603` (commit `3875843c`) shows the
+counter chain working end to end through the catch, three times:
+
+```
+Story: counter hunt CAUGHT Machop (slot 5).
+Story: training Machop to L35 rejected — estimated 1693806 frames exceeds the
+       budget (250000). It joins the fight at L16.
+```
+
+Diagnose → travel to Fiery Path → **catch the Machop** → then field it at **L16 against
+Norman's L28-31 team**. **Balance Badges earned that batch: 0.**
+
+Note which signals are trustworthy here: `CAUGHT Machop` ×3 and `Balance Badge` ×0 are
+near-binary and real. The finish rate is not — see the power analysis above.
+
+### Fix shipped: spend the budget instead of refusing it
+The gate was ALL-OR-NOTHING — train to within `TRAIN_TO_TEAM_GAP` of the team, or not at all.
+A hunting-ground counter is ~15 levels below the team **by construction**, so that resolves to
+NOT AT ALL essentially every time, and the chain paid for a cross-Hoenn journey and a Poké Ball
+to gain nothing. It also contradicted the user's own ruling — *"price both, then
+catch-and-train a Fighting type for Norman"*: catching and then declining to train is the cost
+of one option with the benefit of neither.
+
+`affordable_training_target()` (pure, injectable, `repro_counter_training_budget.py` — 14
+checks, no emulator) buys the highest level the budget covers. The honest decline is preserved
+for the case where not even one level is affordable, and an UNKNOWN estimate still declines.
+
+### ‼ AND THE HONEST LIMIT, WHICH IS A DECISION FOR THE USER
+This is strictly better and **it is not sufficient**, which the repro pins so nobody
+over-claims it. From the measured numbers — Machop L16 → L35 = 1,693,806 frames, i.e. **~89k
+frames per level**:
+
+| budget | levels bought | resulting counter |
+|---|---|---|
+| 250,000 (current `MAX_PREP_TRAINING_FRAMES`) | **2** | L18 vs Norman's L28-31 |
+| ~890,000 | 10 | L26 — within ~5 levels, a real answer |
+
+So the current budget cannot make this candidate work no matter how it is spent. **The
+decision is the user's**, and the economics are worth stating plainly: when the counter ladder
+fires the run is otherwise OVER (it fires after 6 boss losses and ends the run), and a full run
+costs 2-3M frames. Spending ~890k to save a run that would otherwise be lost is arguably a good
+trade — but it is a real behavioural change and it is not mine to make unilaterally.
+
+**Three options, to be priced against each other rather than guessed between:**
+1. **Raise the counter-training budget** to ~900k (its own constant, not
+   `MAX_PREP_TRAINING_FRAMES`, which serves ordinary prep). Simple; costs ~30% of a run.
+2. **Pick a counter by LEVEL GAP, not just by reachability and rate.** A candidate 15 levels
+   below the team is a poor answer whatever the budget. The cost model already prices training
+   — the ranking should weight it much harder, or exclude candidates whose gap cannot be closed
+   within budget. This is the more principled fix and does not raise any budget.
+3. **Accept the underlevelled counter** and lean on the 2x STAB type advantage. Cheapest;
+   untested, and an L18 against an L31 is likely still a loss. **Testable in minutes** with a
+   direct harness capability test rather than another batch.
+
+‼ Option 2 is probably right, but "probably" is exactly what this project keeps getting wrong.
+**Measure option 3 first** — it is a binary question and cheap — because if an L18 counter does
+beat Norman, options 1 and 2 are both unnecessary.

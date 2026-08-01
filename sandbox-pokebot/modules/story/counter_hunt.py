@@ -287,6 +287,41 @@ def hunt(candidate, needed_type_names) -> Generator:
     return slot
 
 
+def affordable_training_target(current_level: int, wanted: int, budget: int, estimate) -> int:
+    """The highest level ≤ `wanted` whose training estimate fits `budget`.
+
+    Pure and injectable so it can be tested without an emulator.
+
+    ‼ WHY THIS EXISTS — the gate used to be ALL-OR-NOTHING, and that is how the counter
+    chain came to spend a whole journey and a Poké Ball and then gain nothing. Measured
+    live in batch `20260731-170603`, three times, verbatim:
+
+        Story: counter hunt CAUGHT Machop (slot 5).
+        Story: training Machop to L35 rejected — estimated 1693806 frames exceeds the
+               budget (250000). It joins the fight at L16.
+
+    A fresh catch is ~15 levels below the team BY CONSTRUCTION (that is what a
+    hunting-ground counter is), so "train it all the way to the team, or not at all"
+    resolves to NOT AT ALL essentially every time. The bot then fielded a L16 Machop
+    against Norman's L28-31 team and lost — Balance Badges earned that batch: **0**.
+
+    ‼ This also contradicted the user's own ruling for `#24-counters` — *"price both, then
+    catch-and-train a Fighting type for Norman"*. Catching and then declining to train is
+    not the cheaper of the two options that were priced; it is the cost of one with the
+    benefit of neither.
+
+    So: spend the budget rather than refusing it. Returns `current_level` when not even one
+    level is affordable, which is the honest decline the caller still handles.
+    """
+    best = current_level
+    for level in range(current_level + 1, wanted + 1):
+        cost = estimate(level)
+        if cost is None or cost > budget:
+            break  # costs rise monotonically with level, so the first miss ends it
+        best = level
+    return best
+
+
 def train_counter(slot: int, cfg: dict) -> Generator:
     """Rung 3 — bring the fresh catch up to the team, bounded by a frame estimate.
 
@@ -335,12 +370,31 @@ def train_counter(slot: int, cfg: dict) -> Generator:
         )
         budget = StoryMode.MAX_PREP_TRAINING_FRAMES
         if estimate is None or estimate > budget:
+            # ‼ SPEND THE BUDGET, DON'T REFUSE IT. Training all the way to the team is
+            # unaffordable for essentially every fresh catch (see
+            # `affordable_training_target`), and declining outright is what made three
+            # successful Machop catches worthless in batch `20260731-170603`. Buy as many
+            # levels as the budget covers instead — an L25 counter with a 2x type advantage
+            # is a real answer where an L16 one is not.
+            afford = affordable_training_target(
+                mon.level, target, budget,
+                lambda level: estimate_frames_to_level(mon, level, wild_level),
+            ) if wild_level is not None else mon.level
+            if afford <= mon.level:
+                console.print(
+                    f"[yellow]Story: training {mon.species.name} to L{target} rejected — "
+                    f"estimated {estimate if estimate is not None else 'UNKNOWN'} frames "
+                    f"exceeds the budget ({budget}), and not even ONE level is affordable. "
+                    f"It joins the fight at L{mon.level}.[/]"
+                )
+                return False
             console.print(
-                f"[yellow]Story: training {mon.species.name} to L{target} rejected — "
-                f"estimated {estimate if estimate is not None else 'UNKNOWN'} frames "
-                f"exceeds the budget ({budget}). It joins the fight at L{mon.level}.[/]"
+                f"[cyan]Story: training {mon.species.name} to L{target} would cost "
+                f"{estimate if estimate is not None else 'UNKNOWN'} frames (budget {budget}) "
+                f"— training to L{afford} instead, which the budget covers.[/]"
             )
-            return False
+            target = afford
+            estimate = estimate_frames_to_level(mon, target, wild_level)
 
         console.print(
             f"[bold cyan]Story: training the counter — {mon.species.name} "
