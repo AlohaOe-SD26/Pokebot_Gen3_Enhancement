@@ -3,8 +3,50 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-07-31 (afternoon) — see "‼ START HERE — 2026-07-31 PM" immediately
-below. Older "START HERE" sections further down are HISTORY; read this one first.
+**Last updated:** 2026-07-31 (evening) — see "‼ BATCH IN FLIGHT" then "‼ START HERE —
+2026-07-31 PM" immediately below. Older "START HERE" sections further down are HISTORY.
+
+---
+
+# ‼ BATCH IN FLIGHT — DO NOT LOAD THE BOX (added 2026-07-31 20:19 PDT)
+
+**`x4-runs/20260731-201554` is RUNNING RIGHT NOW.** The 2026-07-31 evening session launched it
+and was then interrupted before it could be recorded anywhere, so this note exists to stop the
+next agent from re-deriving it or, worse, killing it.
+
+| | |
+|---|---|
+| command | `x4_headless.py --lanes 8 --minutes 180 --stagger 5` |
+| launched | 2026-07-31 20:15:54 PDT → **ends ~23:16 PDT** |
+| commit | **`92d220d5`** = HEAD, tree clean; code-equivalent to `1c4b183d` |
+| verified healthy | 2026-07-31 20:19 — 9 live processes, all 8 lanes on run 1, all `stdout.txt` growing |
+
+‼ **WHAT IT MEASURES, AND WHY IT MATTERS:** this is the **first batch that contains
+`affordable_training_target` (`1c4b183d`)**. Batch3 (`20260731-170603`, 57.1% finish) predates
+it — every `CAUGHT Machop` there still hit the all-or-nothing training refusal and entered
+Norman at L16. This batch is the answer to "does buying the levels the budget CAN afford turn
+those catches into Balance Badges?", and it retires the handoff's own caveat that the training
+fix appeared in no measurement.
+
+**HOW TO READ IT WHEN IT LANDS** (do not invent a new method — batch3's was hard-won):
+* **Use the badge funnel, not the finish rate.** Compare `Heat→Balance` (beating Norman) and
+  `Balance→Feather` against batch3's 77% / 83%. Finish rate resolves only ~+30-point changes.
+* Segment `badge-log.json` by window — sort by `earned_at`, new batch wherever `run_index`
+  stops increasing.
+* Count `counter hunt CAUGHT` events and check each one is followed by a **bought** training
+  level rather than the refusal line. That is the specific mechanism under test.
+* Also re-check the **`global watchdog` 9 → 143** jump from batch3, still uninvestigated.
+* `x4_headless.py --resummarise <dir>` re-reads stored logs. **Never re-run hours of emulation
+  to fix a regex** — it produces a different sample and destroys the comparison.
+
+‼ **CPU DISCIPLINE WHILE IT RUNS:** 8 lanes ≈ 8 cores on a 16C/32T box. The three batches it
+will be compared against all ran on an otherwise-idle machine. Do NOT start the 63-script repro
+sweep, a second batch, or any other heavy job until it finishes — fewer frames per lane means
+fewer runs per lane, which biases the very comparison this batch exists to make. Docs work,
+reading and single-file edits are fine.
+
+If it must be stopped, the logs already on disk are still valid data:
+`--resummarise x4-runs/20260731-201554` summarises whatever completed.
 
 ---
 
