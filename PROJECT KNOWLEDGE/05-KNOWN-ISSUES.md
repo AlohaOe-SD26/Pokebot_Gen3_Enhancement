@@ -1455,3 +1455,106 @@ reachable). Any change needs the same measurement that justified 8.
 candidate for distance and by how much (`why_unreachable` already returns
 "reachable but N hops away (limit M)"). A silent filter at exactly the boundary is the
 thing that will waste the next debugging session.
+
+---
+
+## KI-43 — `_navigate_when_ready`'s escape hatch is budgeted EXACTLY like the watchdog, so it is dead code (2026-07-31, severity: HIGH — ROOT CAUSE FOUND, FIX NOT YET APPLIED)
+
+**This is the `global watchdog 9 → 143` caveat from the batch3 result, investigated.** The
+handoff's own hypothesis — *"runs travel much further now and long journeys trip the
+18k-frame no-progress watchdog"* — is **WRONG**. It is a hard regression introduced by
+`fea2bb19` (`#24-journey` part 3), and it has nothing to do with journey length.
+
+### The mechanism
+
+`_navigate_when_ready` (`modules/modes/util/global_navigation.py`) wraps every `navigate_to`
+call and waits for the overworld instead of letting `navigate_to` raise:
+
+```python
+while get_game_state() is not GameState.OVERWORLD or not player_avatar_is_controllable():
+    waited += 1
+    if waited > _MAX_NON_OVERWORLD_FRAMES:
+        break      # "so a genuine softlock still surfaces rather than yielding for ever"
+    yield
+```
+
+```
+_MAX_NON_OVERWORLD_FRAMES = 60 * 60 * 5   = 18,000    (global_navigation.py:90)
+StoryMode global watchdog: _stall_frames >= 18,000     (story_mode.py:2002)
+```
+
+**The same number.** The wrapper presses no buttons and changes no state, so map, coords,
+game state, progress signature and `context.message` stay frozen while it waits — which is
+exactly the watchdog's stall signature. The watchdog fires ON frame 18,000 (`>=`); the break
+needs frame 18,001 (`>`). **The watchdog wins by one frame, every time.** The docstring's
+promise that "a genuine softlock still surfaces" is unreachable code.
+
+The constant is not new — but at `289d1710` it guarded only the outer `navigate_to_anywhere`
+loop's `get_game_state() is not OVERWORLD` wait, which is rare. `fea2bb19` added the far
+stickier `not player_avatar_is_controllable()` to it and put it on EVERY `navigate_to` call.
+That is what made the collision reachable.
+
+### The measurement (stored logs only — no emulation was re-run)
+
+| | baseline `289d1710` | batch3 `3875843c` |
+|---|---|---|
+| `global watchdog` (stdout, deduped — see below) | **5** | **72** |
+| RUSTBORO_CITY_MART purchases completing cleanly | **33 / 33** | **0 / 36** |
+
+Where the 72 fire — **not** on long journeys:
+
+| trips | map | stage | fires immediately after |
+|---|---|---|---|
+| 35 | `RUSTBORO_CITY_MART` | 3: Woods & Cut | `bought Poké Balls` |
+| 31 | `LAVARIDGE_TOWN` | 13: Gym 5 — Norman | `BADGE: Heat Badge` |
+| 3 | `ROUTE112` | 11 | — |
+| 1 | `ROUTE116` | 3 | — |
+
+Both clusters are **stationary wedges at a step boundary**, not travel.
+
+### The Rustboro cluster, in full
+
+`early_game.py:2171` restocks balls, then `:2174` navigates to the grass. The restock buys in
+batches of ten to farm the free Premier Ball each purchase gives, and each batch re-enters
+`buy_poke_balls`, which opens with `_navigate_riding_out(mart_map, approach)` while the avatar
+is still settling out of the shop UI and is therefore **not controllable**. The wrapper sits
+on that for the full 18,000 frames and the watchdog derails the run.
+
+Proof it is the *second* purchase, from the ball-count transitions:
+
+```
+baseline  (0→10) ×17   (11→21) ×17   (22→32) ×16      three purchases, chained
+batch3    (0→10) ×13   (1→11)  ×23   — and NOTHING ELSE, 36 of 36 are FIRST buys
+```
+
+**So the cost is not only the burned frames.** Every restock now buys 10 balls instead of 30,
+loses 2 free Premier Balls, and spends a derail out of the budget that protects against
+genuine stuck loops.
+
+### ‼ Instrument note — `global_watchdog` in `summary.json` is DOUBLE-COUNTED
+
+`summarize_lane` counts over `stdout + debug logs`, and a watchdog derail is written to
+**both** (console line, and `[STORY] DERAIL #N:` in the debug log). So the headline
+`9 → 143` is really **5 → 72**. This is specific to the watchdog: `GAVE UP` appears only in
+debug logs and `BADGE:`/`losses` only in stdout, so those canaries are NOT inflated. Do not
+"fix" this by halving — dedupe the source.
+
+### Reproduce
+
+`tools/story-dev/repro_watchdog_budget_collision.py` — no emulator, reads both constants from
+source. **RED on purpose** until the cap is lowered.
+
+### The fix, and why it is not applied yet
+
+Lower `_MAX_NON_OVERWORLD_FRAMES` for the wrapper to something sized for the transient it was
+built for (a battle transition clears in a few frames; ~600 frames / 10 s is generous), so
+`navigate_to` gets to raise its own honest error and `_navigate_riding_out` spends a retry on
+it — the pre-`fea2bb19` behaviour, but without the spurious failure `fea2bb19` fixed.
+
+**NOT APPLIED 2026-07-31:** batch `20260731-201554` was mid-flight and the runner restarts
+crashed lanes, so an edit to `sandbox-pokebot/` would have been imported by a restarted lane
+and contaminated the batch. Apply after it lands, then prove with a live A/B (the Rustboro
+restock is a cheap repro site: it fails 36/36 today).
+
+Related: **KI-40** (a *different*, earlier watchdog spike, attributed to the KI-34/35/36/37
+work). The `289d1710` baseline shows only 5 fires, so KI-40's regression is not what this is.

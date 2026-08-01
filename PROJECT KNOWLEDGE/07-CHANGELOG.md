@@ -6414,3 +6414,65 @@ chances, not the counter's contribution. **A capability test is only as good as 
 starts from** — the same lesson as testing travel from Mauville instead of Petalburg, one level
 up. Do not trust the L18/L26 numbers; re-run that driver from a representative pre-Norman save
 before drawing any conclusion about training levels.
+
+## 2026-07-31 (evening) — the `global watchdog 9 → 143` caveat is a REGRESSION, not longer journeys (KI-43)
+
+Investigated the one open caveat left by the batch3 result, using only stored logs — no
+emulation was re-run (a fresh batch would have produced a different sample and destroyed the
+comparison, and the box was busy with batch4 anyway).
+
+**The handoff's hypothesis was wrong.** It read the jump as *"runs travel much further now and
+long journeys trip the 18k-frame no-progress watchdog"*. Where the fires actually land:
+
+| trips | map | fires immediately after |
+|---|---|---|
+| 35 | `RUSTBORO_CITY_MART` | `bought Poké Balls` |
+| 31 | `LAVARIDGE_TOWN` | `BADGE: Heat Badge` |
+| 3 | `ROUTE112` | — |
+| 1 | `ROUTE116` | — |
+
+Both clusters are stationary wedges at a step boundary. Nothing about journey length.
+
+**Root cause — `_navigate_when_ready` (added by `fea2bb19`, `#24-journey` part 3):**
+
+```
+_MAX_NON_OVERWORLD_FRAMES = 60 * 60 * 5   = 18,000   (global_navigation.py:90)
+global watchdog: _stall_frames >= 18,000             (story_mode.py:2002)
+```
+
+The wrapper waits for the overworld while pressing nothing and changing nothing — which is
+precisely the watchdog's stall signature — and its escape hatch is budgeted at *exactly* the
+watchdog's threshold. The watchdog fires on frame 18,000 (`>=`), the break needs 18,001 (`>`).
+**The derail wins by one frame every time; the `break` is unreachable code**, and its
+docstring's promise that "a genuine softlock still surfaces" has never once held.
+
+The constant predates the regression, but at `289d1710` it guarded only the rare
+"not in the overworld" case. `fea2bb19` added the far stickier `not
+player_avatar_is_controllable()` and applied it to every `navigate_to` call, which is what
+made the collision reachable.
+
+**Measured cost beyond burned frames.** The mart restock buys in batches of ten to farm the
+free Premier Ball per purchase. Ball-count transitions:
+
+```
+baseline 289d1710   (0→10)×17  (11→21)×17  (22→32)×16    three purchases, chained
+batch3   3875843c   (0→10)×13  (1→11)×23   and nothing else — 36 of 36 are FIRST buys
+```
+
+Every second purchase wedges: **33/33 clean at baseline, 0/36 in batch3.** So each restock
+now yields 10 balls instead of 30, loses 2 free Premier Balls, and spends a derail out of the
+budget that exists to catch genuine stuck loops.
+
+**Instrument correction.** `summary.json`'s `global_watchdog` counts over `stdout + debug
+logs` and a watchdog derail is written to both (console line + `[STORY] DERAIL #N:`), so the
+headline `9 → 143` is really **5 → 72**. Verified this is specific to that canary — `GAVE UP`
+is debug-log-only and `BADGE:`/`losses` are stdout-only, so those are not inflated. An earlier
+draft of this analysis claimed every `both`-based canary was doubled; that was too broad.
+
+**Added** `tools/story-dev/repro_watchdog_budget_collision.py` — no emulator, reads both
+constants from source, asserts the guard expires inside the watchdog window. **RED on purpose
+until the fix lands** (reproduce first, then fix).
+
+**Deliberately NOT fixed in this commit.** Batch `20260731-201554` was mid-flight and the
+runner restarts crashed lanes, so any edit under `sandbox-pokebot/` would have been imported
+by a restarted lane and contaminated the measurement. Queued as step 1 in the handoff.

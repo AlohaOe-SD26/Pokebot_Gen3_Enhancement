@@ -2915,3 +2915,39 @@ BOTH 8, so exit count is what separates the way onward from a one-room house).
 that position in the code (which segment/ladder invokes it) rather than reusing whichever save
 was already loaded. A save chosen for convenience tests the easy case by construction — and if
 one save is all the evidence there is, the claim is "it works from there", not "it works".*
+
+## 2026-07-31 — A recovery guard budgeted EXACTLY like the watchdog is dead code, and it read as "the feature works"
+
+**Symptom.** `global watchdog` fires rose from 5 to 72 between two batches. The handoff
+explained it away as a side-effect of success — *"runs travel much further now, and long
+journeys trip the no-progress watchdog, which then recovers"* — and flagged it as
+uninvestigated. It was actually a hard regression that also silently cut every Poké Ball
+restock from 30 balls to 10.
+
+**Root cause.** `_navigate_when_ready` waits out a transient with
+`if waited > _MAX_NON_OVERWORLD_FRAMES: break`, where that constant is 18,000 — the *same*
+number as the story watchdog's stall threshold. The wrapper presses nothing and changes
+nothing while it waits, so it *is* a stall by the watchdog's definition. `>=` beats `>`; the
+derail always pre-empts the break. The escape hatch never executed once.
+
+**What made it hard to see.** Recovery worked. Every one of these ended in a clean
+`derail #1 → re-localise → continue`, so no run FAILED because of it — the only visible trace
+was a counter going up, next to a plausible story about why success would raise it.
+
+**How it was found.** Not by re-running anything — by asking the stored logs *where* the
+fires landed. 35 of 72 were inside `RUSTBORO_CITY_MART` immediately after `bought Poké Balls`,
+which is nowhere near a long journey. The A/B that settled it was already on disk: 33/33
+purchases completed at baseline, 0/36 in the new build.
+
+**Prevention rules.**
+1. **A bounded wait that changes nothing while it waits must expire comfortably INSIDE the
+   watchdog's stall window.** Equal budgets are not "generous", they are unreachable — the
+   watchdog is guaranteed to fire first. Pinned by
+   `tools/story-dev/repro_watchdog_budget_collision.py`.
+2. **A rising counter next to a plausible success story is still an unexplained counter.**
+   "We do more of X now, so more X-ish things happen" predicts a *proportional* rise spread
+   across the work; before accepting it, check that the events actually land where X happens.
+   Asking WHERE cost minutes and refuted it outright.
+3. **When a metric moves, confirm the instrument reads one event once.** This canary was
+   counted in both stdout and the debug log, so every headline figure was ~2× — but only for
+   that canary, which is worse than a uniform error because it survives a spot check.

@@ -48,14 +48,27 @@ reading and single-file edits are fine.
 If it must be stopped, the logs already on disk are still valid data:
 `--resummarise x4-runs/20260731-201554` summarises whatever completed.
 
+## ‼ THE FIRST THING TO DO WHEN IT LANDS (queued while the box was busy)
+1. **Apply the KI-43 fix** — `_navigate_when_ready`'s cap must expire well inside the
+   watchdog's 18,000-frame window (~600 frames). `repro_watchdog_budget_collision.py` is RED
+   today and goes green with it. Then prove it live: the Rustboro restock fails **36/36** at
+   the moment, so it is a cheap, high-signal A/B site. Full diagnosis in **KI-43**.
+2. **Dedupe the `global_watchdog` canary** in `x4_headless.py` (`summarize_lane` counts it in
+   stdout AND the debug log). Then `--resummarise` **all four** batches so they are read by
+   the same instrument — never compare a deduped batch to a double-counted one.
+3. Only then read batch4 against batch3's badge funnel, per the method above.
+
 ---
 
 # ‼ START HERE — 2026-07-31 PM (most recent; supersedes every section below)
 
 ## READ THIS, THEN `14-AGENT-PLAYBOOK.md`. You need nothing from any chat transcript.
 
-**Repro suite: 63 pass, 0 fail, 1 skip** (`repro_x4_lanes` skipped by design — it spawns real
+**Repro suite: 63 pass, 1 fail, 1 skip** (`repro_x4_lanes` skipped by design — it spawns real
 lane processes). Run it with the loop in `14-AGENT-PLAYBOOK.md` §2b, 90s per script.
+‼ **The 1 fail is `repro_watchdog_budget_collision.py`, and it is RED ON PURPOSE** — it
+reproduces KI-43 (reproduce first, then fix). You did not break it. It goes green when the
+`_navigate_when_ready` cap is lowered; if it is still red, KI-43 is still unfixed.
 
 ## WHERE WE ARE — the blocker chain, ordered by MEASURED evidence
 1. ~~**KI-38** after-faint chooser~~ **FIXED 2026-07-31 AM** (`1099e9d9`). It was the reason
@@ -126,9 +139,19 @@ rather than a lucky sample, and a finish rate could not have shown it. Segment
 increasing).
 
 ‼ **Two caveats, recorded so they are not lost:**
-* `global watchdog` rose **9 → 143**. Runs travel much further now and long journeys trip the
-  18k-frame no-progress watchdog, which then recovers — but this is a big jump and it has NOT
-  been investigated. Do not dismiss it.
+* ~~`global watchdog` rose **9 → 143**. Runs travel much further now and long journeys trip
+  the 18k-frame no-progress watchdog, which then recovers.~~ ‼ **INVESTIGATED 2026-07-31 PM
+  AND THAT EXPLANATION IS WRONG — it is a hard regression. See KI-43.** Real figures are
+  **5 → 72** (the summariser double-counts this canary). It is not travel: **35 of 72 fire
+  inside `RUSTBORO_CITY_MART`** right after `bought Poké Balls`, and 31 in `LAVARIDGE_TOWN`
+  right after the Heat Badge — both stationary wedges at a step boundary. Root cause:
+  `_navigate_when_ready`'s escape hatch is budgeted at **exactly** the watchdog's 18,000
+  frames, so the derail always wins the race and the `break` is dead code. Measured cost
+  beyond the frames: the mart restock completes **0 of 36** times (baseline 33/33), so the
+  bot buys 10 balls instead of 30 and loses 2 free Premier Balls per trip.
+  Repro (no emulator, RED on purpose): `tools/story-dev/repro_watchdog_budget_collision.py`.
+  ‼ **The fix is NOT applied** — batch `20260731-201554` was mid-flight and restarted lanes
+  re-import from disk. Apply it after that batch lands, then prove with a live A/B.
 * Batch3 predates `affordable_training_target` (`1c4b183d`), so all four `CAUGHT Machop`
   events still hit the all-or-nothing training refusal. **The gain above was achieved with the
   counter still entering underlevelled**, and the training fix is in NO measurement yet.
