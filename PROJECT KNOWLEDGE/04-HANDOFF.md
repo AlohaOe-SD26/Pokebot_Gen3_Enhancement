@@ -3,8 +3,68 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-08-01 (11:00 PDT) — read "‼ BATCH 5 LANDED" immediately below, then
-"‼ START HERE — 2026-07-31 PM". Older "START HERE" sections further down are HISTORY.
+**Last updated:** 2026-08-01 (session wrapped, planned power outage) — read "‼ RESUME HERE"
+immediately below, then "‼ BATCH 5 LANDED". Older "START HERE" sections are HISTORY.
+
+---
+
+# ‼ RESUME HERE — session wrapped 2026-08-01 for a planned power outage
+
+**Everything is committed and pushed. Nothing exists only on the dev box.**
+
+| | |
+|---|---|
+| branch / HEAD | `main` @ **`9252e238`**, clean, 0 ahead / 0 behind `origin/main` |
+| repro suite | **70 / 70 PASS** |
+| running processes at wrap-up | **none** — no batch, no emulator; the outage loses nothing |
+| last batch | `x4-runs/20260801-075805` — **complete**, `VERDICT OK`, fully summarised |
+
+## What to do first when the power is back
+1. Run the normal session-start ritual (`git status` / `git fetch`; the tree should be clean
+   at `9252e238`).
+2. **Answer the ONE open decision below.** It is the only thing blocking the next step — no
+   code is half-written, no measurement is half-run.
+
+## ‼ THE OPEN DECISION (needs the user, do not decide it alone)
+**Should super-effectiveness outrank raw level when choosing a lead?**
+
+This is the LAST link in a chain that has been unblocked three times this session:
+**budget → training ground → lead.** Batch5 proved the counter chain now works end to end
+(7 of 9 counters trained, `Machop L15 → L29`, evolving to Machoke) and the badge funnel still
+did not move (Heat→Balance 83% → 79%), because the trained counter never fights.
+
+`#24-leadpolicy` A+C shipped this session and fixed the *fatal* half — the bot no longer leads
+Shedinja (1-HP Wonder Guard) into Norman, which it did **9 times out of 9**. But A+C then
+picks **Marshtomp L35 over Machoke L29**, because `can_attack` is binary and 2× STAB earns no
+credit. `repro_lead_policy.py` check 5 asserts this limit so it cannot be forgotten.
+
+* **FOR:** the chain only fires after ~6 losses, so the strongest mon is already PROVEN
+  insufficient — that is the whole premise of hunting a counter.
+* **AGAINST:** a L29 2× attacker is not automatically better than a L35 neutral one; bulk and
+  movepool matter and this model reads neither.
+* **Cheapest implementation:** an `outgoing` term ranked between `can_attack` and `incoming`
+  in `team_policy.lead_rank_key()`.
+* **How to measure it:** the **counter-hunt-runs-only** conditional (batch4 5/9 → batch5
+  6/10), NOT the whole-batch rung — the chain fires on only ~10 of 29 Heat-reaching runs, so
+  the whole-batch number dilutes any effect 3:1. Even a perfect fix moves Heat→Balance from
+  79% to ~93% AT BEST. Size the expectation before spending 3 hours.
+
+‼ Option **(b)** of `#24-leadpolicy` (weight the level gap) was **NOT ruled and NOT built**;
+`repro_lead_policy.py` check 4 pins the unchanged Whismur-over-Marshtomp behaviour. Do not
+change it without a ruling.
+
+## Also queued, in order, once that is answered
+1. **Pre-emptive training for Norman** (user idea, still right, still unbuilt) — train before
+   travelling to Petalburg instead of after losing there. Full evidence in the batch-4 section
+   below. ‼ Note batch5 tempers it: the counter chain is NOT the dominant loss cause — 19 of
+   29 Heat-reaching runs never hunted at all and won 89% of the time.
+2. `#24-wdcanary-dedupe` — `summarize_lane` counts `global watchdog` in stdout AND the debug
+   log, so every reported figure is ~2×. Dedupe, then `--resummarise` **all five** batches so
+   one instrument reads them all.
+3. **Promotion debt:** sandbox and custom have diverged again by exactly this session's work
+   (KI-44, `#24-relocfloor`, `#24-leadpolicy`). Promote with the next round — and re-read the
+   BATCH-4 entry in `custom-pokebot/DIVERGENCE-LOG.md` first: it lists the files that must
+   NEVER be mirrored (the sandbox `DIVERGENCE-LOG.md` is the trap).
 
 ---
 
