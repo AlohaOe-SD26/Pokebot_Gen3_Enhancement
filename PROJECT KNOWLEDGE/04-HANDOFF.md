@@ -3,8 +3,44 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-08-02 — read "‼ AUTONOMOUS WORK PLAN"
+**Last updated:** 2026-08-02 (16:06 PDT) — read "‼ BATCH 6 IN FLIGHT", then "‼ AUTONOMOUS WORK PLAN"
 immediately below, then "‼ BATCH 5 LANDED". Older "START HERE" sections are HISTORY.
+
+---
+
+# ‼ BATCH 6 IN FLIGHT — DO NOT LOAD THE BOX (launched 2026-08-02 16:06 PDT)
+
+| | |
+|---|---|
+| dir | `x4-runs/20260802-160603` |
+| command | `x4_headless.py --lanes 8 --minutes 180 --stagger 5` |
+| commit | **`1700b965`** — first build with **`#24-pc`** AND **`#24-areaitemgate`** |
+| ends | **~19:06 PDT** |
+
+‼ **IT EXISTS TO LIVE-PROVE TWO FIXES THAT ARE ONLY EMULATOR-FREE-PROVEN.** Read in this
+order — mechanism first, funnel last:
+
+1. **`#24-pc` — did a deposit ever execute?** No run has driven the PC menu.
+   ```
+   grep -h "PC rotation — depositing"  L0*/stdout.txt   # the trip started
+   grep -h "PC rotation done"          L0*/stdout.txt   # the menu drive succeeded
+   grep -h "PC rotation failed"        L0*/stdout.txt   # degraded (must NOT break the heal)
+   grep -h "the party is full"         L0*/stdout.txt   # was 5 in batch5 — should fall
+   ```
+   ‼ "depositing" without "done" means the menu drive is broken; the guard then degrades and
+   the heal still completes, so this will NOT show up as a crash. Check both lines.
+2. **`#24-areaitemgate` — did the wasted treks stop?**
+   `grep -hc "dropping it as a training option"` — **was 28** in batch5.
+   Expect it to fall, and `ROUTE111` to stop being proposed unless Go-Goggles are held.
+3. **Then the funnel**, against batch5: Heat→Balance **23/29 (79%)**, whole funnel
+   **16/42 (38%)**, finish rate **16/34 (47.1%)**. ‼ Neither fix targets a badge rung
+   directly — both remove waste and unblock the counter chain — so a flat funnel here is NOT
+   a failure. Judge them on the mechanism counts above.
+
+**CPU discipline:** 8 lanes ≈ 8 cores. Do not start a repro sweep or a second batch until it
+lands, and do NOT edit `sandbox-pokebot/` — `x4_headless.py:843` relaunches dead lanes, which
+re-import from disk and would mix two code versions into one measurement. Docs are fine.
+`--resummarise x4-runs/20260802-160603` reads whatever completed if it must be stopped.
 
 ---
 
