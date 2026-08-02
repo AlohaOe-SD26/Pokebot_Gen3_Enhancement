@@ -37,7 +37,18 @@ hunts actually started .............. 19   FIERY_PATH 11, ROUTE111 4, ROUTE116 4
 ```
 
 ## THE ORDER TO WORK IN — do these without asking
-1. **`#24-pc` — party-full blocks the chain outright (5 runs).** The DECISION half is already
+1. ~~**`#24-pc`**~~ **BUILT 2026-08-02 — `modules/story/pc_trip.py`.** `plan_deposits()` +
+   `deposit_dead_weight_if_worth_it()`, reusing upstream `interact_with_pc()`. Piggybacked
+   INSIDE `heal_in_pokemon_center` between the nurse and the exit; no-ops unless
+   `rotation_plan` says `worth_it`. PC tile **(10,1), stand (10,2), face Up** — proven across
+   six centres by `probe_pc_tile.py`, corroborated by upstream `daycare.py`.
+   `repro_pc_trip.py` = 14 checks; suite 71/71.
+   ‼ **NOT LIVE-PROVEN: no run has executed a deposit yet.** The decision half, the tile, the
+   wiring and the failure paths are covered emulator-free; the MENU DRIVE is not. Prove it in
+   the next batch by grepping `Story: PC rotation — depositing` and `PC rotation done`, and
+   check the party-full blocker count falls from 5.
+
+   *(original diagnosis)* `#24-pc` — party-full blocks the chain outright (5 runs). The DECISION half is already
    built and pure-tested: `team_policy.rotation_plan()` / `dead_weight()` / `find_dead_weight()`.
    What is missing is the ACTION — walk to a PC and deposit — which that module deliberately
    excludes ("this module only decides"). ‼ Its own header records the motivating case: P1
@@ -262,7 +273,7 @@ Live-probed from `lavaridge.ss1`: relocates to **ROUTE117 (31,16) L13-14, heal V
 
 ## READ THIS, THEN `14-AGENT-PLAYBOOK.md`. You need nothing from any chat transcript.
 
-**Repro suite: 70 pass, 0 fail** — measured 2026-08-01 with KI-43 + KI-44 + #24-relocfloor + #24-leadpolicy in the tree, all 70
+**Repro suite: 71 pass, 0 fail** — measured 2026-08-02 with KI-43 + KI-44 + #24-relocfloor + #24-leadpolicy + #24-pc in the tree, all 71
 `repro_*.py` at 90 s each. ‼ `repro_x4_lanes` did NOT need skipping this time (it spawns real
 lane processes and had been recorded as a by-design skip); it ran and passed on an idle box.
 `repro_watchdog_budget_collision.py` (KI-43) is the newest and is GREEN as of the fix.

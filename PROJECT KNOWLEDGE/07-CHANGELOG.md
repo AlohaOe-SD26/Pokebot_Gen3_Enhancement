@@ -6741,3 +6741,44 @@ L35 outranks Machoke L29 because `can_attack` is binary and gives Machoke's 2× 
 credit. So A+C removes a demonstrably fatal lead but does not by itself make the counter
 fight. Whether super-effectiveness should outrank raw level is a **new decision**, outside
 ruling A+C — see the handoff.
+
+## 2026-08-02 — `#24-pc`: the PC rotation ACTION, piggybacked on a heal
+
+**Why this and not the lead question:** batch5's `end_reasons` say 13 of 18 non-finishes
+(72%) are the counter chain stopping honestly, and its own logs name the wall — **5 runs were
+blocked before the hunt could even start** by *"the party is full, so a catch would go to the
+PC box (needs #24-pc)"*. `team_policy` already DECIDED what to rotate and is deliberately
+pure; nothing executed it.
+
+**Built** `modules/story/pc_trip.py` — `plan_deposits()` + `deposit_dead_weight_if_worth_it()`.
+It reuses upstream's `interact_with_pc()` / `PCAction.deposit_pokemon_to_box()`, so no PC-menu
+driving was written from scratch.
+
+‼ **PIGGYBACK, NOT DETOUR** (`21-TEAM-POLICY-DESIGN.md` §4). Wired **inside**
+`heal_in_pokemon_center`, between the nurse and the exit — we are already in the building for
+a heal that was happening anyway, so it costs a few steps rather than a journey. It no-ops
+unless `rotation_plan` reports `worth_it`, so a level party never burns a PC visit.
+
+‼ **THE TILE IS PROVEN, NOT RECALLED.** New `tools/story-dev/probe_pc_tile.py` scans Poké
+Centre map headers from the ROM: all six centres put the PC at **(10, 1)**, approachable only
+from **(10, 2)** facing **Up**. Upstream `daycare.py` independently navigates to (10,2) and
+faces Up, which corroborates it. `interact_with_pc` refuses unless the faced tile really is a
+PC, so a wrong tile fails loudly rather than silently doing nothing.
+
+‼ **Instrument check that mattered:** the probe first reported "no PC tiles in any centre".
+That was **my call signature**, not the map — `get_map_data(map, coords)`, not
+`(group, number, coords)` — and it returned 192 `TypeError`s that the scan was swallowing as
+empty tiles. Checking *what the instrument actually read* turned a false "the PC does not
+exist" into the answer.
+
+**Guards, each pinned by `repro_pc_trip.py` (14 checks):** a healthy party is left alone; the
+Makuhita case frees a slot and deposits chaff rather than a battler; the party never drops
+below `MIN_PARTY_AFTER_ROTATION`; the wiring really is nurse → rotate → exit; every failure
+path degrades instead of raising (a PC hiccup must not destroy a heal that already
+succeeded); and **Pokémon OBJECTS are resolved before the first deposit, never indices** —
+depositing shifts later party indices down, which is the classic way this loop deposits the
+wrong mon.
+
+**Not yet proven:** no live run has executed a deposit. The decision half, the tile, the
+wiring and the failure paths are all covered without an emulator, but the menu drive itself
+needs a batch or a targeted save state.
