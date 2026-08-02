@@ -6782,3 +6782,47 @@ wrong mon.
 **Not yet proven:** no live run has executed a deposit. The decision half, the tile, the
 wiring and the failure paths are all covered without an emulator, but the menu drive itself
 needs a batch or a targeted save state.
+
+## 2026-08-02 — `#24-areaitemgate`: refuse a training area behind an ITEM gate BEFORE the trek
+
+Second item on the autonomous plan — the 40 `is not reachable from here` events in batch5.
+Split by source, they are not what the phrase suggested:
+
+```
+28  ROUTE111 (25, 55) dropped as a TRAINING option for the rest of the run
+ 4  ROUTE116 (11, 7) dropped likewise
+ 8  counter-hunt destinations (ROUTE111 x4, ROUTE116 x4)
+```
+
+The 28 come from the handler *after* `train_team` raises — **the oracle said yes and the map
+disagreed**, roughly one wasted cross-Hoenn trek per run.
+
+**Root cause.** `_training_area_allowed(map_enum, tile, prereq)` is handed the TILE and never
+uses it. It asks `region_reach.is_map_reachable(ROUTE111)`, which answers at MAP granularity
+and is *correctly* True — Route 111's southern half really is walkable from Mauville — while
+the training tile **(25,55) sits NORTH of the Go-Goggles desert**.
+
+‼ **The fact was already written down twice and neither copy was queryable:**
+`counter_plan.huntable_candidates` ("whose tile sits north of the Go-Goggles desert") and
+`early_game` ("Go-Goggles-gated by a script"). That is precisely the failure
+`NO_RETURN_GROUNDS`' own header warns about — *prose in a table nobody queries*.
+
+**Fix:** new `training_areas.AREA_ITEM_PREREQ = {ROUTE111: "Go-Goggles"}`, consulted by
+`_training_area_allowed` **before** the map-granular oracle, failing CLOSED like every other
+gate there. ‼ `KNOWN_GATES` could not express this: it keys map-PAIR EDGES and its values are
+FIELD MOVES, whereas this barrier is INSIDE one map and the key is an ITEM.
+
+‼ **Deliberately conservative, and worth stating:** the tile is also reachable from the
+FALLARBOR side without goggles, so requiring the item can refuse a legitimately-walkable case.
+That is the right trade and it is the same asymmetry this module already argues elsewhere — a
+false NO costs one skipped relocation (the picker takes the next area), a false YES costs a
+whole wasted trek, measured 28 times.
+
+**Repro** `repro_area_item_gate.py` (14 checks) pins: the gate exists; **every gated item name
+really exists in `items.json`** (a typo would fail closed forever and *silently*, which is the
+KI-24 shape); the area entry has not drifted; the gate is evaluated before the oracle CALL and
+fails closed; ungated areas are untouched.
+
+‼ **A test bug worth recording:** the ordering check first FAILED because `.find("is_map_
+reachable")` matched the function's own docstring, which discusses the oracle at length. The
+code order was right; the assertion was imprecise. Anchored on the call site instead.

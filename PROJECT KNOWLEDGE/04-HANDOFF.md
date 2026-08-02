@@ -55,10 +55,18 @@ hunts actually started .............. 19   FIERY_PATH 11, ROUTE111 4, ROUTE116 4
    *"caught a Makuhita — a FIGHTING type, exactly the counter Norman needs — and carried it
    from L8 to L9 across FIVE badges"*. Dead weight fills the party, and a full party then
    forbids catching the counter. Build the deposit trip; reuse `rotation_plan` as-is.
-2. **`is not reachable from here` (40).** The chain shortlists up to
-   `COUNTER_HUNT_MAX_DESTINATIONS` and burns attempts on unreachable ones. Measure WHICH
-   destinations and whether the reachability oracle disagrees with the live map (KI-24 shape),
-   before changing any ranking.
+2. ~~**`is not reachable from here` (40)**~~ **MEASURED AND FIXED 2026-08-02
+   (`#24-areaitemgate`).** Split by source: **28** were `ROUTE111 (25,55)` dropped as a
+   TRAINING option (the oracle said yes, the map disagreed — ~1 wasted cross-Hoenn trek per
+   run), 4 ROUTE116, 8 counter-hunt. Root cause: `_training_area_allowed` is handed the TILE
+   and never uses it; `is_map_reachable(ROUTE111)` is *correctly* True because the map's
+   southern half is walkable, while the grass at (25,55) is north of the **Go-Goggles**
+   desert. Fixed with `training_areas.AREA_ITEM_PREREQ`, checked BEFORE the oracle, failing
+   closed. `repro_area_item_gate.py`. ‼ Deliberately conservative — the tile is also
+   reachable from Fallarbor without goggles, so this can refuse a walkable case; a false NO
+   costs one skipped relocation, a false YES cost 28 treks.
+   ‼ **Still unmeasured live**: whether the wasted-trek count actually falls. Grep the next
+   batch for `dropping it as a training option` (was 28).
 3. **The lead question (below).** Only worth doing after 1 — a counter that cannot be caught
    cannot be led.
 
@@ -273,7 +281,7 @@ Live-probed from `lavaridge.ss1`: relocates to **ROUTE117 (31,16) L13-14, heal V
 
 ## READ THIS, THEN `14-AGENT-PLAYBOOK.md`. You need nothing from any chat transcript.
 
-**Repro suite: 71 pass, 0 fail** — measured 2026-08-02 with KI-43 + KI-44 + #24-relocfloor + #24-leadpolicy + #24-pc in the tree, all 71
+**Repro suite: 72 pass, 0 fail** — measured 2026-08-02 with KI-43 + KI-44 + #24-relocfloor + #24-leadpolicy + #24-pc + #24-areaitemgate in the tree, all 72
 `repro_*.py` at 90 s each. ‼ `repro_x4_lanes` did NOT need skipping this time (it spawns real
 lane processes and had been recorded as a by-design skip); it ran and passed on an idle box.
 `repro_watchdog_budget_collision.py` (KI-43) is the newest and is GREEN as of the fix.

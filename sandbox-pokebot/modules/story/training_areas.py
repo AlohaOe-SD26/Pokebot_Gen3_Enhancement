@@ -149,6 +149,35 @@ AREA_PREREQ: dict = {
 }
 
 
+#: ‼ AREA **ITEM** PREREQUISITES — a within-map split that no move unlocks (added 2026-08-02).
+#:
+#: `KNOWN_GATES` in `region_reach` gates map-PAIR EDGES and its values are FIELD MOVES, so it
+#: cannot express either half of this: the barrier is INSIDE one map, and the key is an ITEM.
+#: `is_map_reachable(ROUTE111)` is therefore correctly True — Route 111's southern half is
+#: walkable from Mauville — while the training tile (25,55) sits NORTH of the Go-Goggles
+#: desert and is not.
+#:
+#: ‼ MEASURED COST OF NOT HAVING THIS (batch5, `x4-runs/20260801-075805`): **28 events** of
+#: `ROUTE111 (25, 55) is not reachable from here — dropping it as a training option for the
+#: rest of this run`, i.e. roughly one wasted cross-Hoenn trek PER RUN. The oracle said yes,
+#: the map disagreed, and the run paid for the trip to find out.
+#:
+#: ‼ THE FACT WAS ALREADY WRITTEN DOWN — TWICE — AND NEITHER COPY WAS QUERYABLE:
+#: `counter_plan.huntable_candidates` ("whose tile sits north of the Go-Goggles desert") and
+#: `early_game` ("it is Go-Goggles-gated by a script"). That is exactly the failure
+#: `NO_RETURN_GROUNDS`' own header warns about — prose in a table nobody queries. This table
+#: is queried.
+#:
+#: ‼ DELIBERATELY CONSERVATIVE. Strictly, the tile is also reachable from the FALLARBOR side
+#: without goggles, so requiring the item can refuse a legitimately-walkable case. That is the
+#: right trade and it is the same asymmetry this module already argues elsewhere: a false NO
+#: costs one skipped relocation (the picker takes the next area), a false YES costs a whole
+#: wasted trek — and the bot is on the SOUTH side for the boss preps that consult this.
+AREA_ITEM_PREREQ: dict = {
+    MapRSE.ROUTE111: "Go-Goggles",
+}
+
+
 #: ‼ ONE-WAY / NO-RETURN GROUNDS — maps you can REACH but cannot get BACK from, so they
 #: can never host a training or hunting loop (which must return to a Poké Center to heal).
 #: A ground whose return leg fails strands the run; that is the exact class that dropped

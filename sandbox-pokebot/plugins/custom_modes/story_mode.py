@@ -536,6 +536,22 @@ def _training_area_allowed(map_enum, tile, prereq) -> bool:
         return False
     if prereq not in (None, "surf", "region"):
         return False  # unknown prerequisite → fail closed
+    # ‼ ITEM GATE (2026-08-02). `is_map_reachable` answers at MAP granularity, so it says YES
+    # for ROUTE111 — its southern half really is walkable from Mauville — while the training
+    # tile (25,55) sits NORTH of the Go-Goggles desert. Measured in batch5: **28 events** of
+    # "ROUTE111 (25, 55) is not reachable from here — dropping it", about one wasted
+    # cross-Hoenn trek per run, paid to discover a fact the codebase already knew in prose.
+    # See `training_areas.AREA_ITEM_PREREQ`. Fails CLOSED, like every other gate here.
+    try:
+        from modules.items import get_item_bag, get_item_by_name
+        from modules.story.training_areas import AREA_ITEM_PREREQ
+
+        needed_item = AREA_ITEM_PREREQ.get(map_enum)
+        if needed_item is not None:
+            if get_item_bag().quantity_of(get_item_by_name(needed_item)) <= 0:
+                return False
+    except Exception:  # noqa: BLE001
+        return False
     # "region" carries no extra requirement here — it exists so the conservative
     # allow=None default refuses the area; the live reachability check below is its gate.
     try:
