@@ -1041,3 +1041,10 @@ never let this file fork again.
 **Do NOT promote:** `backups/`, `profiles/`, `cache/`, `.last-update-check` — runtime artifacts.
 **Never delete on promotion:** `DOCUMENTATION/03-cheats.md`, `04-automation-and-sync.md`,
 `05-hunting-and-livingdex.md` exist only in custom; a mirror-with-delete would remove them.
+
+## 2026-08-02 — PROMOTED TO CUSTOM (BATCH-5), sandbox re-based
+KI-44 (`counter_training_ground`), `#24-relocfloor` (`relocation_floor`) and
+`#24-leadpolicy` A+C (`lead_rank_key`/`best_lead_index`) promoted — 5 files, 0 new modules,
+0 lost symbols. Record in `custom-pokebot/DIVERGENCE-LOG.md` → **BATCH-5**, which is again a
+byte-for-byte copy here. Sandbox == custom for all code; the only differences by design are
+`SANDBOX-NOTES.md` / `SANDBOX-PROPOSALS.md` and custom's `DOCUMENTATION/03-05`.

@@ -685,3 +685,60 @@ instead of 30. Now bounded by its own `_TRANSIENT_WAIT_FRAMES = 600`.
 - Ball starvation: `no money to buy any` appeared **14×** in batch4 (3 ended runs).
 - `global watchdog` still elevated (72 → 58 stdout-deduped); the summariser double-counts it.
 - Party cap is still 4 (`target_size: int = 4`) — the bot catches 3 and stops, by design.
+
+## BATCH-5 — the counter chain made usable: KI-44, `#24-relocfloor`, `#24-leadpolicy` (2026-08-02, on explicit user approval)
+
+Promoted from `sandbox-pokebot/` after batch5 (`x4-runs/20260801-075805`) measured the chain
+end to end. **Scope: 5 modified files, 0 new modules.** Pre-promotion custom HEAD `771e6213`.
+
+**Pre-promotion safety check:** every `def`/`class`/CONSTANT in the custom copies of all 5
+files compared against sandbox — **0 lost symbols**, +6 gained (`counter_training_ground`,
+`relocation_floor`, `lead_rank_key`, `best_lead_index`, `_can_attack`, `_glass_wonder_guard`).
+
+### What changed and why
+* **`modules/story/counter_hunt.py` — KI-44.** `train_counter` used `cfg["grass"]`, the
+  **boss's** patch, so a Machop caught in FIERY_PATH was sent to Norman's
+  `PETALBURG_TRAINING_GRASS = (ROUTE102, (9,2))` — eight maps away AND **L3-4 wilds**
+  (probed from the ROM's own tables; `story_mode.py:739` already called that patch "~25 xp a
+  kill, i.e. never"). Training failed **7 of 7**. New `counter_training_ground()` defers to
+  `best_training_area`. ‼ The obvious repair — "train where you caught it" — is WRONG:
+  FIERY_PATH / ROUTE112 / JAGGED_PASS are all in `NO_RETURN_GROUNDS` because the heal leg
+  fails, so there was **no legal training ground at all**. Structural hole, not a constant.
+* **`modules/story/training_areas.py` — `#24-relocfloor`.** New pure `relocation_floor()`.
+  The old inline `floor = max(local_max, team_max_now - FODDER_LEVEL_GAP)` keyed on the
+  party's STRONGEST mon while the trainees are the stragglers, so a L35 team demanded wilds
+  above L23 and rejected ROUTE111 (L19-22) — the one reachable area. `no better area is
+  available` fired **167×** in batch4. ‼ Only the floor moved: swap-train means a stronger
+  team-mate fights, so `best_training_area`'s `team_level` argument correctly stays team max.
+* **`modules/story/team_policy.py` + `modules/story/early_game.py` — `#24-leadpolicy` (ruling
+  A+C).** `_lead_best_matchup` scored ONLY defence, so it led **SHEDINJA into Norman 9 times
+  out of 9** while the freshly-trained L29 Machoke sat in the bag — Bug/Ghost makes Normal 0×,
+  which wins a defensive score outright, and then Slaking's Faint Attack (Dark) one-shots its
+  single HP. New pure `lead_rank_key()`/`best_lead_index()`: (a) the lead must have a
+  ≥neutral damaging move; (c) a Wonder Guard 1-HP body is demoted. **Sort terms, not
+  filters** — a lone Shedinja is still led. Both predicates **fail SAFE**.
+* **`plugins/custom_modes/story_mode.py`** — call-site wiring for the relocation floor.
+
+### ‼ NOT PROMOTED (same list as BATCH-4 — re-read before any future round)
+`DIVERGENCE-LOG.md` (the sandbox copy was a stale fork before BATCH-4; both are identical now
+and **must stay that way**), `SANDBOX-NOTES.md`, `SANDBOX-PROPOSALS.md`, `.gitignore`,
+`backups/`, `profiles/`, `cache/`, `.last-update-check`. **Never delete on promotion:**
+`DOCUMENTATION/03-cheats.md`, `04-automation-and-sync.md`, `05-hunting-and-livingdex.md`
+exist only in custom.
+
+### Post-promotion verification (on custom)
+210 files parse, 0 errors. **Targeted** imports only — never a bulk import, which on
+2026-08-01 executed `modules/data/get_pret_maps.py` at import time and gutted `map_data.py`
+in both builds (08-MISTAKES). Constants live: `relocation_floor(4,[12,20],12)=8`,
+`best_lead_index(Shedinja/Machoke/Marshtomp)=2` (**Shedinja no longer led**),
+`_TRANSIENT_WAIT_FRAMES=600`, `MAX_PREP_TRAINING_FRAMES=250000`. **Live run on
+`--build custom`** (`probe_counter_grass.py --state lavaridge.ss1`): relocates to
+`ROUTE117 (31,16)` heal `VerdanturfTown` — "RELOCATED (fix fired)", identical to sandbox.
+Repro suite 70/70 before promotion.
+
+### ‼ OUTSTANDING AT PROMOTION TIME
+The chain now runs end to end and **the badge funnel has not moved** — batch5 Heat→Balance
+83% → 79% (z = −0.33), like-for-like on counter-hunt runs 5/9 → 6/10 (z = 0.20, n too small
+to resolve). `#24-leadpolicy` A+C removed the fatal lead but **still does not field the
+counter**: it picks Marshtomp L35 over Machoke L29 because `can_attack` is binary and 2× STAB
+earns no credit. That open question is recorded in `04-HANDOFF.md`.

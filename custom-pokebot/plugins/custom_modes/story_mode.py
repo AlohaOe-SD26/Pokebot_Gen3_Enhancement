@@ -1629,7 +1629,18 @@ class StoryMode(BotMode):
 
                     # The replacement must beat the local patch AND not be fodder itself
                     # — otherwise we'd walk somewhere new to grind equally-worthless xp.
-                    floor = max(local_max, team_max_now - self.FODDER_LEVEL_GAP)
+                    # ‼ KEYED TO THE MONS BEING TRAINED, NOT THE TEAM MAX (#24-relocfloor).
+                    # `team_max_now` is the strongest mon; `need` is the stragglers. Keying
+                    # the floor to L35 when the trainees are L12/L20 rejected ROUTE111
+                    # (L19-22) — the one reachable area — and printed "no better area is
+                    # available" 167 times in batch4. See `relocation_floor`.
+                    from modules.story.training_areas import relocation_floor
+
+                    floor = relocation_floor(
+                        local_max,
+                        [party[i].level for i in need if party[i] is not None],
+                        self.FODDER_LEVEL_GAP,
+                    )
                     # Skip anything this run has ALREADY walked into a wall trying to
                     # reach from where we now stand — see `_training_unreachable`.
                     better = best_training_area(
