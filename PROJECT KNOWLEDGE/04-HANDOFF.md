@@ -3,68 +3,77 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-08-01 (session wrapped, planned power outage) — read "‼ RESUME HERE"
+**Last updated:** 2026-08-02 — read "‼ AUTONOMOUS WORK PLAN"
 immediately below, then "‼ BATCH 5 LANDED". Older "START HERE" sections are HISTORY.
 
 ---
 
-# ‼ RESUME HERE — session wrapped 2026-08-01 for a planned power outage
+# ‼ AUTONOMOUS WORK PLAN — story mode (set 2026-08-02, user: "continue autonomously")
 
-**Everything is committed and pushed. Nothing exists only on the dev box.**
+**State:** `main` @ latest, clean, pushed. Repro suite **70/70**. Sandbox == custom for all
+code (**BATCH-5 promoted 2026-08-02**). Last batch `x4-runs/20260801-075805` complete.
 
-| | |
-|---|---|
-| branch / HEAD | `main` @ **`9252e238`**, clean, 0 ahead / 0 behind `origin/main` |
-| repro suite | **70 / 70 PASS** |
-| running processes at wrap-up | **none** — no batch, no emulator; the outage loses nothing |
-| last batch | `x4-runs/20260801-075805` — **complete**, `VERDICT OK`, fully summarised |
+## ‼ THE EVIDENCE THAT SETS THE PRIORITY — batch5's 18 non-finishes
+| cause | n | share |
+|---|---|---|
+| **Winona** — needs Rock/Ice/Dragon | 5 | 28% |
+| **Norman** — needs Fighting | 4 | 22% |
+| **Wattson** — needs Ground | 4 | 22% |
+| whiteout loops | 3 | 17% |
+| pathing / cutscene | 2 | 11% |
 
-## What to do first when the power is back
-1. Run the normal session-start ritual (`git status` / `git fetch`; the tree should be clean
-   at `9252e238`).
-2. **Answer the ONE open decision below.** It is the only thing blocking the next step — no
-   code is half-written, no measurement is half-run.
+‼ **13 of 18 (72%) are the counter chain stopping honestly — across THREE bosses, not just
+Norman.** An earlier note in this handoff worried the counter work might not be where runs are
+lost; **that was wrong and is corrected here.** It is exactly where they are lost. (Batch4's
+out-of-balls deaths are gone — the KI-43 ball fix landed.)
 
-## ‼ THE OPEN DECISION (needs the user, do not decide it alone)
-**Should super-effectiveness outrank raw level when choosing a lead?**
+## Why the chain still stops (batch5 counts, from `L0*/stdout.txt`)
+```
+already hunted a counter ............ 51   once-per-run bound
+is not reachable from here .......... 40   destination thrash before falling back
+party is FULL, catch would go to PC .. 5   ‼ chain blocked before it can even start (#24-pc)
+no spare Poké Balls .................. 1
+hunts actually started .............. 19   FIERY_PATH 11, ROUTE111 4, ROUTE116 4
+```
 
-This is the LAST link in a chain that has been unblocked three times this session:
-**budget → training ground → lead.** Batch5 proved the counter chain now works end to end
-(7 of 9 counters trained, `Machop L15 → L29`, evolving to Machoke) and the badge funnel still
-did not move (Heat→Balance 83% → 79%), because the trained counter never fights.
+## THE ORDER TO WORK IN — do these without asking
+1. **`#24-pc` — party-full blocks the chain outright (5 runs).** The DECISION half is already
+   built and pure-tested: `team_policy.rotation_plan()` / `dead_weight()` / `find_dead_weight()`.
+   What is missing is the ACTION — walk to a PC and deposit — which that module deliberately
+   excludes ("this module only decides"). ‼ Its own header records the motivating case: P1
+   *"caught a Makuhita — a FIGHTING type, exactly the counter Norman needs — and carried it
+   from L8 to L9 across FIVE badges"*. Dead weight fills the party, and a full party then
+   forbids catching the counter. Build the deposit trip; reuse `rotation_plan` as-is.
+2. **`is not reachable from here` (40).** The chain shortlists up to
+   `COUNTER_HUNT_MAX_DESTINATIONS` and burns attempts on unreachable ones. Measure WHICH
+   destinations and whether the reachability oracle disagrees with the live map (KI-24 shape),
+   before changing any ranking.
+3. **The lead question (below).** Only worth doing after 1 — a counter that cannot be caught
+   cannot be led.
 
-`#24-leadpolicy` A+C shipped this session and fixed the *fatal* half — the bot no longer leads
-Shedinja (1-HP Wonder Guard) into Norman, which it did **9 times out of 9**. But A+C then
-picks **Marshtomp L35 over Machoke L29**, because `can_attack` is binary and 2× STAB earns no
-credit. `repro_lead_policy.py` check 5 asserts this limit so it cannot be forgotten.
+## ‼ THE OPEN DECISION — deliberately still open, and why
+**Should super-effectiveness outrank raw level when choosing a lead?** `#24-leadpolicy` A+C
+shipped and removed the fatal Shedinja lead (9/9 into Norman), but then picks **Marshtomp L35
+over Machoke L29** because `can_attack` is binary and 2× STAB earns no credit
+(`repro_lead_policy.py` check 5 asserts this).
 
-* **FOR:** the chain only fires after ~6 losses, so the strongest mon is already PROVEN
-  insufficient — that is the whole premise of hunting a counter.
-* **AGAINST:** a L29 2× attacker is not automatically better than a L35 neutral one; bulk and
-  movepool matter and this model reads neither.
-* **Cheapest implementation:** an `outgoing` term ranked between `can_attack` and `incoming`
-  in `team_policy.lead_rank_key()`.
-* **How to measure it:** the **counter-hunt-runs-only** conditional (batch4 5/9 → batch5
-  6/10), NOT the whole-batch rung — the chain fires on only ~10 of 29 Heat-reaching runs, so
-  the whole-batch number dilutes any effect 3:1. Even a perfect fix moves Heat→Balance from
-  79% to ~93% AT BEST. Size the expectation before spending 3 hours.
+‼ **DO NOT decide this one unilaterally even when working autonomously.** It changes how the
+bot *plays* rather than fixing a defect, option (b) of the same item was already ruled OUT by
+the user, and the "obvious" repair has been wrong twice in this codebase (KI-44's
+train-where-you-caught-it; the relocation floor's key-it-all-to-the-trainee). Implement it
+only on a ruling. Everything else above is a defect and needs no ruling.
 
-‼ Option **(b)** of `#24-leadpolicy` (weight the level gap) was **NOT ruled and NOT built**;
-`repro_lead_policy.py` check 4 pins the unchanged Whismur-over-Marshtomp behaviour. Do not
-change it without a ruling.
-
-## Also queued, in order, once that is answered
-1. **Pre-emptive training for Norman** (user idea, still right, still unbuilt) — train before
-   travelling to Petalburg instead of after losing there. Full evidence in the batch-4 section
-   below. ‼ Note batch5 tempers it: the counter chain is NOT the dominant loss cause — 19 of
-   29 Heat-reaching runs never hunted at all and won 89% of the time.
-2. `#24-wdcanary-dedupe` — `summarize_lane` counts `global watchdog` in stdout AND the debug
-   log, so every reported figure is ~2×. Dedupe, then `--resummarise` **all five** batches so
-   one instrument reads them all.
-3. **Promotion debt:** sandbox and custom have diverged again by exactly this session's work
-   (KI-44, `#24-relocfloor`, `#24-leadpolicy`). Promote with the next round — and re-read the
-   BATCH-4 entry in `custom-pokebot/DIVERGENCE-LOG.md` first: it lists the files that must
-   NEVER be mirrored (the sandbox `DIVERGENCE-LOG.md` is the trap).
+## Standing rules for autonomous work here (learned the hard way — do not relearn)
+* **Never bulk-import a package to "verify"** — `modules/data/*` runs generators at import
+  time and gutted `map_data.py` in both builds. `ast.parse` + targeted imports only.
+* **Never edit `sandbox-pokebot/` while a batch runs** — `x4_headless.py:843` relaunches dead
+  lanes, which re-import from disk and mix two code versions into one measurement.
+* **Instrument the MECHANISM, not just the outcome.** A flat funnel read as "the fix did
+  nothing" when the truth was "it works and the next thing is broken" — twice.
+* **Size the expectation before a 3-hour batch.** Use the sub-population that can actually
+  change (e.g. counter-hunt runs only), not the whole-batch rung, which dilutes 3:1.
+* **A batch must be recorded in this file the moment it launches** — an interrupted session
+  once left 8 lanes running with nothing written down.
 
 ---
 
