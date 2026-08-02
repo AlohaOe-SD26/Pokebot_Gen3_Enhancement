@@ -1211,3 +1211,44 @@ returns a reason string rather than a bool — keep that.
 travel this needs exists. It is still sequenced behind the `#24-counters` measurement: do not
 add a new source of ball spend and party churn to the build being measured until that
 measurement is in.
+
+## 2026-08-02 — Lead policy: super-effectiveness outranks level ONLY for a hunted counter
+
+**Question.** `#24-leadpolicy` A+C stopped the bot leading a 1-HP Wonder Guard Shedinja into
+Norman (9 of 9 runs in batch5). But `can_attack` is binary, so on the real party —
+Shedinja L20 / **Machoke L29** / Marshtomp L35 — Machoke and Marshtomp tie on every term the
+key measures and **level breaks it**. The freshly-trained counter was benched again, now by a
+stronger neutral mon. Should 2× STAB outrank raw level?
+
+**RULING (user, 2026-08-02): YES, but ONLY when the counter chain caught that mon for THIS
+boss.** Not as a general rule.
+
+**Why this option.** It is scoped to exactly the case that motivated it. The counter chain
+only fires after ~6 losses, so for that boss the strongest mon is *already proven
+insufficient* — which is the entire premise of travelling to catch a counter, and benching it
+makes the catch-travel-train chain pointless. Everywhere else the existing behaviour is left
+alone, so the proven Rustboro / Route 110 picks cannot regress.
+
+**Rejected, with reasons:**
+* **A general `outgoing` term.** Simpler and more consistent, but it changes lead selection in
+  every fight, including ones that currently work — a L29 2× attacker is not automatically
+  better than a L35 neutral one, and this model reads neither bulk nor movepool. Marshtomp led
+  4 of batch5's Norman wins.
+* **Leave as-is.** Safest, but the catch-travel-train chain would rarely change who actually
+  fights, and batch5 already showed the funnel does not move while the counter sits in the bag.
+* **"Prefer super-effective unless more than N levels below the strongest."** Close in spirit
+  to option **(b)** of `#24-leadpolicy` ("weight the level gap"), which the same user had
+  already ruled OUT — so it was not re-proposed as a live option.
+
+**Implementation (agreed shape).** A new `is_hunted_counter` term in
+`team_policy.lead_rank_key()`, ranked **after `incoming` and before the level tie-break**:
+
+    (glass_wonder_guard, not can_attack, incoming, not is_hunted_counter, -level)
+
+‼ Ordering matters and is deliberate. Placing it *after* `incoming` means a hunted counter
+that is 4× weak to the boss still loses on defence — the term promotes the counter over an
+equally-safe mon, it does not override type safety.
+
+‼ **The edit was deliberately NOT applied when the ruling was given** — batch
+`20260802-160603` was mid-flight and `x4_headless.py:843` relaunches dead lanes, which
+re-import from disk and would mix two code versions into one measurement.

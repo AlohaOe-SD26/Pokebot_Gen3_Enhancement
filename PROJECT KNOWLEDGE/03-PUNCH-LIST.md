@@ -23,6 +23,38 @@ open-vs-built sweep of all 80 open items has **not** been done.
 
 ## Now (active focus)
 
+### ‼ READY TO APPLY THE MOMENT BATCH `20260802-160603` LANDS (~19:06 PDT 2026-08-02)
+
+- [ ] `#24-leadcounter` — **USER RULING 2026-08-02: super-effectiveness outranks raw level
+      ONLY for a mon the counter chain caught for THIS boss.** Not a general rule (that option
+      was offered and declined; so was the level-gap variant, which is option (b) of
+      `#24-leadpolicy` and was already ruled out). Rationale + rejected alternatives in
+      `06-DECISIONS-LOG.md` 2026-08-02.
+
+      **THE EXACT CHANGE:**
+      1. `team_policy.lead_rank_key()` gains an OPTIONAL `is_hunted_counter: bool = False`,
+         and the key becomes:
+         ```python
+         (glass_wonder_guard, not can_attack, incoming, not is_hunted_counter, -level)
+         ```
+         ‼ **AFTER `incoming`, BEFORE the level tie-break.** It promotes the counter over an
+         EQUALLY SAFE mon; it must never let a 4×-weak counter lead. Getting this backwards is
+         the plausible way the fix becomes a new bug — `repro_lead_hunted_counter.py` check 3
+         pins it.
+      2. `best_lead_index()` passes the candidate's `is_hunted_counter` through.
+      3. Record WHICH mon was hunted for this boss. `StoryMode._counter_hunts[key]` already
+         tracks the attempt; store the caught mon's **PID/personality value**, not its slot —
+         a party index goes stale the moment anything reorders or deposits (the same hazard
+         `pc_trip` guards against).
+      4. `early_game._lead_best_matchup()` takes an optional `hunted_pid=None` and sets the
+         term for the matching party mon; the Norman/Wattson/Winona prep passes it.
+      5. `repro_lead_hunted_counter.py` goes green (currently RED by design). Re-run the suite.
+
+      **Why it matters:** batch5 caught, travelled for and trained a counter to L29 and then
+      led **Marshtomp L35** instead, because Machoke and Marshtomp tie on every term the key
+      measures and level breaks it. The chain only fires after ~6 losses, so for that boss the
+      strongest mon is already PROVEN insufficient.
+
 ### ‼ BATCH 5 LANDED — the blocker moved a THIRD time, to the LEAD
 
 - [x] `#24-leadpolicy` — **A+C BUILT 2026-08-01.** Pure `team_policy.lead_rank_key()` /
