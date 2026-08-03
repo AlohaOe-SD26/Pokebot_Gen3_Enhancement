@@ -7026,3 +7026,50 @@ instance and refuses those PIDs, logging each refusal. `team_policy` already pro
 HM carrier for exactly this reason: a mon can be dead weight *by level* and still have a ROLE.
 
 Suite 73/73.
+
+## 2026-08-03 — BATCH 9: the counter chain works END TO END for the first time
+
+`x4-runs/20260803-105323`, commit `b726fcd6`, VERDICT OK, 0 restarts. **27 runs, 10 finished
+= 37.0%.**
+
+### ‼ THE CHAIN COMPLETED — every link, for the first time
+| | batch8 | batch9 |
+|---|---|---|
+| `counter registered (pid=…)` | didn't exist | **6 of 6 catches** |
+| `hunted_pids>0` at the lead decision | **0 of 684** | **46** |
+| `NOT depositing … hunted counter` | — | **4** |
+| counter chosen as the Norman lead | **0** | **35** |
+| **Norman WINS led by the counter** | **0** | **4 (MACHOP)** |
+
+Norman victories by lead: SWAMPERT 4, **MACHOP 4**, BLAZIKEN 4, MIGHTYENA 3, SWELLOW 1,
+SHEDINJA 1, DUSTOX 1. **A hunted counter has now won a boss fight — the first time in this
+project.** Both bugs found this morning (the swallowed `NameError`, and the PC rotation
+depositing the counter) are confirmed fixed live.
+
+### The outcome did NOT move, and that was the stated expectation
+| batch | rate |
+|---|---|
+| batch4 | 60.0% |
+| batch5 | 47.1% |
+| batch8 | 45.8% |
+| **batch9** | **37.0%** (z = −0.64 vs batch8, −0.79 vs batch5) |
+
+Indistinguishable from the plateau, at its low end. ‼ **Lane H6 contributed ZERO runs** — it
+spent the whole batch hung on **KI-45** (`_select_in_menu`, 1,430 STUCK dumps), so this batch
+is effectively 7 lanes. That is a direct, measurable cost of KI-45, not a rounding error.
+
+**The conditional is the honest instrument** — runs that actually ran a counter hunt:
+
+| batch | counter-hunt runs beating Norman | runs that never needed one |
+|---|---|---|
+| batch4 | 5/9 (56%) | 19/20 (95%) |
+| batch5 | 6/10 (60%) | 17/19 (89%) |
+| **batch9** | **4/6 (67%)** | 14/18 (78%) |
+
+The gap between "needed a counter" and "never needed one" has closed from ~35 points to ~11.
+‼ **n = 6. This resolves nothing on its own** — it is a direction, recorded as such, not a
+result. It would take ~80-100 counter-hunt runs (8-10 batches) to call it.
+
+### ⇒ NEXT: KI-45, not another feature
+KI-45 has now cost a full lane in 2 of the last 4 batches. It is a pure loss, unrelated to any
+feature, and it is the largest single measurable drag left. Fix it before adding anything.
