@@ -260,7 +260,7 @@ def rotation_plan(party_views, box_views=(), *, needed_types=(), sweep_score=Non
 
 
 def lead_rank_key(*, incoming: float, can_attack: bool, glass_wonder_guard: bool,
-                  level: int) -> tuple:
+                  level: int, is_hunted_counter: bool = False) -> tuple:
     """Sort key for choosing a lead before a type-countered fight. LOWER is better.
 
     ``incoming``            worst-case STAB multiplier the foe can hit this mon for.
@@ -268,11 +268,31 @@ def lead_rank_key(*, incoming: float, can_attack: bool, glass_wonder_guard: bool
     ``glass_wonder_guard``  Wonder Guard on a 1-HP body (Shedinja) — immune to most things
                             and deleted by anything super-effective, which the type model
                             cannot predict.
+    ``is_hunted_counter``   the counter chain caught this mon FOR THIS BOSS (user ruling
+                            2026-08-02).
+
+    ‼ WHY `is_hunted_counter` EXISTS. In batch5 the chain travelled across Hoenn, caught a
+    Machop, trained it to L29 and watched it evolve into Machoke — and then led **Marshtomp
+    L35** into Norman instead, because `can_attack` is binary so the two tied on every term
+    and LEVEL broke it. The chain only fires after ~6 losses to that boss, so the strongest
+    mon is by then PROVEN insufficient; benching the counter makes the whole
+    catch-travel-train chain pointless.
+
+    ‼ ITS POSITION IS THE WHOLE DESIGN: **after `incoming`, before the level tie-break.** It
+    promotes the counter over an EQUALLY SAFE mon; it must never let a counter that is 4x
+    weak to the boss lead. Moving it above `incoming` would turn this fix into a new bug —
+    `repro_lead_hunted_counter.py` check 3 pins exactly that.
+
+    ‼ SCOPED ON PURPOSE (`06-DECISIONS-LOG` 2026-08-02). A general "super-effective beats
+    level" rule was offered and DECLINED: a L29 2x attacker is not automatically better than
+    a L35 neutral one, and this model reads neither bulk nor movepool. Unflagged mons keep
+    exactly today's ordering.
     """
     return (
         1 if glass_wonder_guard else 0,   # (c) never the default lead into a boss
         0 if can_attack else 1,           # (a) a lead that cannot damage the foe cannot win
         float(incoming),                  # unchanged original criterion
+        0 if is_hunted_counter else 1,    # the answer we went and got, over an equal mon
         -int(level),                      # unchanged original tie-break
     )
 
@@ -293,5 +313,6 @@ def best_lead_index(candidates) -> "int | None":
             can_attack=items[i]["can_attack"],
             glass_wonder_guard=items[i]["glass_wonder_guard"],
             level=items[i]["level"],
+            is_hunted_counter=bool(items[i].get("is_hunted_counter", False)),
         ),
     )

@@ -899,6 +899,17 @@ class StoryMode(BotMode):
         # loop after every lost attempt, which turns any per-call budget into a per-attempt
         # one. Per-RUN by construction, so the next run gets a fresh chance.
         self._counter_hunts: dict = {}
+        #: PERSONALITY VALUES of mons the counter chain caught this run (`#24-leadcounter`,
+        #: user ruling 2026-08-02). `_lead_best_matchup` promotes these over an EQUALLY SAFE
+        #: mon so the answer we travelled for actually fights — batch5 trained a Machoke to
+        #: L29 and then led Marshtomp L35 nine times.
+        #:
+        #: ‼ PER-RUN, and it lives on `self` for that reason. A module-level set would
+        #: survive between runs of an ENDLESS RESET batch and start promoting a Pokémon that
+        #: no longer exists — that is exactly the `#24-x4-staleslate` bug shape, where
+        #: per-run state was never reset and one batch produced almost no usable data.
+        #: ‼ PIDs, never slots: `#24-pc` now deposits mid-run, so a slot index goes stale.
+        self._hunted_counter_pids: set = set()
         # A hunt that was interrupted mid-flight (whiteout, derail) must not leave the
         # catch-on-sight targets armed for the rest of the run.
         try:
@@ -1380,6 +1391,15 @@ class StoryMode(BotMode):
                 return False
 
             self._counter_hunts[key] = f"caught {candidate['species_name']}"
+            # ‼ #24-leadcounter — remember WHICH mon this is, by PID, so the lead picker can
+            # actually field it. Recorded BEFORE training: training can evolve it (Machop ->
+            # Machoke at L28, seen 8x in batch5) and can derail, and the PID survives both.
+            try:
+                _caught = get_party()[slot]
+                if _caught is not None:
+                    self._hunted_counter_pids.add(_caught.personality_value)
+            except Exception:  # noqa: BLE001 - never let bookkeeping break the chain
+                pass
             yield from counter_hunt.train_counter(slot, cfg)
             return True
 
@@ -2665,7 +2685,7 @@ class StoryMode(BotMode):
                 "heal": PokemonCenter.MauvilleCity,
             }
             yield from self._prepare_for_fight(wattson_fight)
-            yield from _lead_best_matchup(["Electric"])
+            yield from _lead_best_matchup(["Electric"], hunted_pids=self._hunted_counter_pids)
             yield from heal_in_pokemon_center(PokemonCenter.MauvilleCity)
             yield from do_mauville_gym()
         else:
@@ -2854,7 +2874,7 @@ class StoryMode(BotMode):
             # heal fix; the gate also spares pointless PC round-trips).
             if _cur_map() != MapRSE.PETALBURG_CITY_GYM.value:
                 yield from self._prepare_for_fight(norman_fight)
-                yield from _lead_best_matchup(["Normal"])
+                yield from _lead_best_matchup(["Normal"], hunted_pids=self._hunted_counter_pids)
                 yield from heal_in_pokemon_center(PokemonCenter.PetalburgCity)
             yield from do_petalburg_gym()
         else:
@@ -2980,7 +3000,7 @@ class StoryMode(BotMode):
             }
             if _cur_map() != MapRSE.FORTREE_CITY_GYM.value:
                 yield from self._prepare_for_fight(winona_fight)
-            yield from _lead_best_matchup(["Flying"])
+            yield from _lead_best_matchup(["Flying"], hunted_pids=self._hunted_counter_pids)
             yield from heal_in_pokemon_center(PokemonCenter.FortreeCity)
             yield from do_fortree_gym()
         else:

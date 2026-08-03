@@ -1605,7 +1605,8 @@ def _lead_strongest_battler() -> Generator:
         yield from _rotate_lead_safely(best)
 
 
-def _lead_best_matchup(foe_type_names, *, min_incoming_only: bool = True) -> Generator:
+def _lead_best_matchup(foe_type_names, *, min_incoming_only: bool = True,
+                       hunted_pids=None) -> Generator:
     """Put the CAPABLE battler that best resists the foe's ace type(s) in slot 0 — used
     before a TYPE-COUNTERED trainer where "lead strongest" is a trap. (Rustboro rival:
     if we started Mudkip, the rival leads a grass Grovyle, and our Marshtomp — Water/Ground
@@ -1688,6 +1689,20 @@ def _lead_best_matchup(foe_type_names, *, min_incoming_only: bool = True) -> Gen
     # tie-break, so the proven Rustboro-rival behaviour is unchanged; (a) and (c) only
     # reorder mons the old rule treated as equivalent, plus the Wonder Guard trap it
     # treated as ideal. Ruling (b) — weight the level gap — was NOT selected.
+    def _is_hunted_counter(mon) -> bool:
+        """Did the counter chain catch this exact mon for THIS boss? (`#24-leadcounter`.)
+
+        ‼ Matched by PERSONALITY VALUE, never by party slot. A slot goes stale the moment
+        anything reorders or deposits — and since `#24-pc` the bot now deposits mid-run, so a
+        slot-based identity would silently point at a different Pokémon. PID is immutable.
+        """
+        if not hunted_pids:
+            return False
+        try:
+            return mon.personality_value in hunted_pids
+        except Exception:  # noqa: BLE001 - an unreadable PID simply is not a counter
+            return False
+
     from modules.story.team_policy import lead_rank_key
 
     best = min(
@@ -1697,6 +1712,7 @@ def _lead_best_matchup(foe_type_names, *, min_incoming_only: bool = True) -> Gen
             can_attack=_can_attack(party[i]),
             glass_wonder_guard=_glass_wonder_guard(party[i]),
             level=party[i].level,
+            is_hunted_counter=_is_hunted_counter(party[i]),
         ),
     )
     if best != 0:

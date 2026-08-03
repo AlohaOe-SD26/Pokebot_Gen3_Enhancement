@@ -6882,3 +6882,32 @@ DEWFORD TOWN (3,3). Neither guard can see it — the global watchdog needs an *u
 progress signature and a menu loop keeps changing it, and it is KI-36's documented shape
 ("the per-run frame budget CANNOT fire while a battle handler is on the stack"). Filed as
 **KI-45**.
+
+## 2026-08-02 — `#24-leadcounter`: the hunted counter finally gets to fight
+
+User ruling 2026-08-02 (`06-DECISIONS-LOG`): super-effectiveness outranks raw level **only**
+for a mon the counter chain caught for THIS boss — not as a general rule.
+
+`team_policy.lead_rank_key()` gains an optional `is_hunted_counter`, and the key becomes:
+
+    (glass_wonder_guard, not can_attack, incoming, not is_hunted_counter, -level)
+
+‼ **Position is the design.** After `incoming`, before the level tie-break: it promotes the
+counter over an EQUALLY SAFE mon and can never let a 4×-weak counter lead. `repro_lead_hunted_
+counter.py` check 3 pins that, because inverting it is how this fix would become a new bug.
+
+**Identity is the caught mon's PERSONALITY VALUE, never its party slot.** Since `#24-pc` the
+bot deposits mid-run, so a slot index goes stale and would silently point at a different
+Pokémon. The PID is recorded BEFORE training, because training can evolve the mon (Machop →
+Machoke at L28, seen 8× in batch5) and can derail — the PID survives both.
+
+**Per-run, on `self`.** `StoryMode._hunted_counter_pids` is reset with the rest of the per-run
+state. A module-level set would survive between runs of an ENDLESS RESET batch and start
+promoting a Pokémon that no longer exists — the `#24-x4-staleslate` shape, which once made a
+whole batch produce almost no usable data.
+
+Wired at the three bosses the chain can fire for: Norman (`Normal`), Wattson (`Electric`),
+Winona (`Flying`). Everywhere else keeps exactly today's ordering — the ruling is scoped, and
+`repro_lead_hunted_counter.py` check 2 asserts an unflagged L29 still loses to a neutral L35.
+
+Suite 73/73.
