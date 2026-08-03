@@ -8,6 +8,44 @@ immediately below, then "‼ BATCH 5 LANDED". Older "START HERE" sections are HI
 
 ---
 
+# ‼ BATCH 8 IN FLIGHT — THE SHEDINJA A/B (launched 2026-08-03 ~02:10 PDT)
+
+| | |
+|---|---|
+| dir | `x4-runs/` newest (stamp `20260803-*`) |
+| commit | **`1811148a`** — `#24-leadpolicy` **(c) flagged OFF** (`POKEBOT_LEAD_DEMOTE_WONDER_GUARD` defaults 0) |
+| ends | ~3h after launch |
+
+## THE ONE QUESTION IT ANSWERS
+Did demoting Shedinja cause the batch7 regression? `BADGE:` lines print only on a WIN:
+
+| | batch5 (no (c)) | batch7 (with (c)) | batch8 (c OFF again) |
+|---|---|---|---|
+| Shedinja as a WINNING lead | **12** | **0** | ? |
+| Norman victories it led | 9 of 23 | 0 | ? |
+| Balance Badges | 23 | 18 | ? |
+| finish rate | 47.1% | 26.9% | ? |
+
+```
+grep -ho "lead SHEDINJA" L0*/stdout.txt | wc -l      # was 12, then 0
+grep -h  "BADGE: Balance Badge" L0*/stdout.txt | wc -l
+```
+**If Shedinja-led wins return and the finish rate climbs toward 47-60%, (c) was the
+regression** and it should be deleted, not merely flagged. If they return and the rate does
+NOT recover, the cause is one of the other four changes since batch5 — bisect
+`#24-areaitemgate` next (it changes where the bot trains, and the batch7 watchdogs clustered
+on ROUTE117/ROUTE118).
+
+‼ **ALSO READ:** `Story: lead vs Normal -> … hunted_pids=N`. This log line is NEW; batch7
+showed `#24-leadcounter` never firing in 6 of 6 runs and there was no way to tell why.
+N=0 means the per-run registry is being cleared (prime suspect: a derail re-instantiates
+`StoryMode` between the catch and the fight).
+
+‼ **BASELINE IS BATCH 4/5, NEVER BATCH 6 OR 7.** The healthy plateau is 57% / 60% / 47%
+(pairwise |z| < 1.05). Batch6 (5.4%) is void — my `#24-pc` regression.
+
+---
+
 # ‼ BATCH 7 LANDED (2026-08-03 00:55) — gate held, leadcounter DID NOT FIRE
 
 `x4-runs/20260802-215519`, commit `09c6129e`. **26 runs, 7 finished = 26.9%.**
