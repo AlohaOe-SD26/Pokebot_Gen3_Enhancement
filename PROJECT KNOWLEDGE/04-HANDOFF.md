@@ -3,8 +3,37 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-08-02 (19:10 PDT) — read "‼ BATCH 6 LANDED", then "‼ AUTONOMOUS WORK PLAN"
+**Last updated:** 2026-08-02 (21:55 PDT) — read "‼ BATCH 7 IN FLIGHT", then "‼ BATCH 6 LANDED", then "‼ AUTONOMOUS WORK PLAN"
 immediately below, then "‼ BATCH 5 LANDED". Older "START HERE" sections are HISTORY.
+
+---
+
+# ‼ BATCH 7 IN FLIGHT — DO NOT LOAD THE BOX (launched 2026-08-02 21:55 PDT)
+
+| | |
+|---|---|
+| dir | `x4-runs/20260802-215519` |
+| commit | **`09c6129e`** — `#24-pc` **GATED**, `#24-areaitemgate`, `#24-leadcounter` |
+| ends | **~00:55 PDT** |
+
+‼ **BASELINE IS BATCH 5, NOT BATCH 6.** Batch6 is void for comparison — a regression I shipped
+collapsed it to 5.4%. Compare against **batch5: 16/34 = 47.1% finish, Heat→Balance 23/29
+(79%)**.
+
+**READ IN THIS ORDER:**
+1. ‼ **DID THE GATE HOLD?** This is the first question, because the last batch died of this.
+   `PC rotation done — party is now 3` should be **RARE** (was **73 of 75**), and
+   `the party is full` should stay at **0** (was 5 before `#24-pc`). If "party is now 3" is
+   common again, STOP and re-read `pc_trip.ROTATE_ONLY_WHEN_PARTY_AT_LEAST`.
+2. **Sanity vs the collapse:** `global watchdog` (batch5 **1**, batch6 **67**) and
+   `Cutscene did not end` (5 → 35). Both must come back down or the gate did not fix it.
+3. **`#24-leadcounter` — does the counter now FIGHT?** Grep the Norman badge lines for the
+   lead: batch5 was `SHEDINJA x9 … MACHOKE 0`. A Machoke/Makuhita lead is the whole point.
+   Also count `counter training failed` (batch5: 2 of 9).
+4. **Only then the funnel.**
+
+**CPU discipline:** do not edit `sandbox-pokebot/` while it runs — `x4_headless.py:843`
+relaunches dead lanes, which re-import from disk. Docs are fine.
 
 ---
 
