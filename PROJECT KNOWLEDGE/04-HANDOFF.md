@@ -8,6 +8,36 @@ immediately below, then "‼ BATCH 5 LANDED". Older "START HERE" sections are HI
 
 ---
 
+# ‼ BATCH 10 IN FLIGHT — first clean 8-lane measurement in a while
+(launched 2026-08-03 ~14:20 PDT, commit **`d8879750`**, dir `x4-runs/20260803-14*`)
+
+## What is new since batch9
+**KI-45 fixed** — stock `_select_in_menu` was an unbounded `while True` that hung a whole lane
+in 2 of the last 4 batches (batch9's H6 completed **0 runs in 180 minutes**). Batches should
+get their eighth lane back.
+
+## READ IN THIS ORDER
+1. ‼ **Did every lane produce runs?** `MANIFEST.txt` — batch9's H6 had `runs 0`. If a lane is
+   still at 0, KI-45 is not fully fixed. Also grep `KI-45:` — that message means the bound
+   FIRED, which is a success (a recoverable derail) and tells you the menu really does get
+   stuck. Its absence means the situation did not arise this batch, NOT that it is gone.
+2. **Counter chain, still the mechanism to watch:** `counter registered` = catches,
+   `NOT depositing` > 0, `lead vs Normal -> Machoke/Machop`, and Norman WINS by lead
+   (batch9: MACHOP 4 of 18).
+3. **The conditional, not the headline:** counter-hunt runs beating Norman —
+   batch4 5/9 (56%), batch5 6/10 (60%), batch9 4/6 (67%). Still n≈6; a direction, not a result.
+4. **Then the funnel.**
+
+## THE BASELINE — got wrong twice, do not get it wrong again
+Healthy plateau **57% / 60% / 47% / 45.8% / 37%** (batch3/4/5/8/9; all pairwise |z| < 1.1).
+**batch6 (5.4%) and batch7 (26.9%) are VOID** — my `#24-pc`-ungated and `#24-leadpolicy` (c)
+regressions. ‼ batch9's 37% was measured on **7 effective lanes** (H6 hung all batch), so it
+is a low-side estimate.
+
+‼ `POKEBOT_LEAD_DEMOTE_WONDER_GUARD` stays **0**. Batch8 proved (c) cost ~20 points.
+
+---
+
 # ‼ BATCH 9 IN FLIGHT — the first batch where the counter chain CAN work end to end
 (launched 2026-08-03 ~10:53 PDT, commit **`b726fcd6`**, dir `x4-runs/20260803-105*`)
 
