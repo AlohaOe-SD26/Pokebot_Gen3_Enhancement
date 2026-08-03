@@ -109,7 +109,40 @@ check("the heal-side call is also guarded",
 check("it resolves Pokemon OBJECTS before depositing, not indices",
       "deposit_pokemon_to_box(mon)" in pt and "targets = [party[i]" in pt)
 
-print("7. plan_deposits degrades on a malformed party instead of raising")
+print("7. ‼ THE REGRESSION GUARD — only a FULL party is rotated")
+# Batch6 (`x4-runs/20260802-160603`) finished 2 of 37 runs, down from 16 of 34, because this
+# ran on EVERY heal: `PC rotation done — party is now 3` appeared 73 times out of 75. With
+# MIN_PARTY_AFTER_ROTATION=3 the bot lived on a permanent three-mon party and wedged in gyms
+# (global watchdog 1 -> 67). team_policy decided correctly; the WIRING was wrong.
+class _Sp:
+    def __init__(self, name): self.name = name
+
+class _Mv:
+    def __init__(self, name, power): self.name, self.base_power = name, power
+
+class _LM:
+    def __init__(self, mv): self.move = mv
+
+class _P:
+    """Stand-in party member. ‼ It must satisfy `view_from_party` too — species AND moves —
+    or `plan_deposits` swallows the AttributeError and returns an empty plan, which reads
+    exactly like the gate working. That false PASS is why this double is spelled out."""
+    is_egg = False
+    def __init__(self, lvl, name="Mon"):
+        self.level, self.species = lvl, _Sp(name)
+        self.moves = (_LM(_Mv("Tackle", 35)),)
+
+check("ROTATE_ONLY_WHEN_PARTY_AT_LEAST is 6 (resource_blocker's own threshold)",
+      pc_trip.ROTATE_ONLY_WHEN_PARTY_AT_LEAST == 6,
+      str(pc_trip.ROTATE_ONLY_WHEN_PARTY_AT_LEAST))
+for n in (3, 4, 5):
+    got = pc_trip.plan_deposits([_P(40)] + [_P(4)] * (n - 1))
+    check(f"a {n}-mon party is NOT rotated", not got["worth_it"], str(got["deposit"]))
+# A full party of mostly chaff must still be rotated - that is the whole point.
+got = pc_trip.plan_deposits([_P(42), _P(40), _P(38), _P(36), _P(8), _P(8)])
+check("a FULL party is still rotated", got["worth_it"], str(got["deposit"]))
+
+print("8. plan_deposits degrades on a malformed party instead of raising")
 got = pc_trip.plan_deposits(None)
 check("returns an empty, not-worth-it plan", got == {"deposit": [], "withdraw": [],
                                                      "reasons": {}, "worth_it": False}, str(got))

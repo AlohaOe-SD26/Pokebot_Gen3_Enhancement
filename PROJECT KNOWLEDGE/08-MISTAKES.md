@@ -3081,3 +3081,45 @@ a known, unbuilt item was discarding.
    so that gap is selection bias. The honest comparison is the same subpopulation across
    batches (5/9 → 6/10, z = 0.20), which resolves nothing at n≈10. Say "cannot resolve"
    rather than reporting a direction.
+
+## 2026-08-02 — I shipped a fix that stripped the party on every heal and cut the finish rate from 47% to 5%
+
+**Symptom.** Batch6 (`x4-runs/20260802-160603`) finished **2 of 37 runs (5.4%)**, down from
+16 of 34 (47.1%). `global watchdog` went **1 → 67**, most of them inside MAUVILLE_CITY_GYM,
+and `Cutscene did not end` went 5 → 35.
+
+**Cause — mine.** `#24-pc` piggybacked the PC rotation on **every** heal. With
+`MIN_PARTY_AFTER_ROTATION = 3` the plan deposits until three mons remain, so the log reads
+**`PC rotation done — party is now 3` 73 times out of 75**. The bot spent the entire batch in
+a catch → deposit → catch cycle on a permanent three-mon party, then wedged in gyms it could
+not win. It even deposited a **Shedinja L21** — a real battler.
+
+**‼ `team_policy` was not wrong.** Its rule is "more than 8 levels behind the best is
+unrecoverable", and an early-game party genuinely IS four low catches that far behind. The
+DECISION was right every time; the **wiring** was wrong. Design §4 says "piggyback on a heal
+that was happening anyway", and I read that as *every* heal — but it assumed rotation is
+occasional, and every-heal makes it continuous.
+
+**The fix.** `ROTATE_ONLY_WHEN_PARTY_AT_LEAST = 6`. The blocker this feature exists for is
+exactly one condition — `resource_blocker()` refuses a counter hunt only when
+`_party_count() >= 6` — so that is the only moment a slot must be freed. A four-mon party has
+room already and rotating it buys nothing.
+
+**Why the repros did not catch it.** Every check I wrote was about a SINGLE rotation in
+isolation — does it pick the right mon, does it respect the floor, does it degrade safely.
+All still pass. None asked *how often it would run*, and the damage was entirely in the
+frequency. **A correct decision invoked at the wrong cadence is a bug the unit tests cannot
+see.**
+
+**Prevention rules.**
+1. **When wiring a decision to a trigger, state the expected RATE and test it.** "Runs on
+   every heal" vs "runs when the party is full" differ by ~30× here. `repro_pc_trip.py` now
+   asserts that 3-, 4- and 5-mon parties are NOT rotated — a rate test, not a decision test.
+2. **A feature that CONSUMES a resource must be gated on the condition that motivated it,
+   not on a convenient hook.** The motivating log line said "the party is full"; the gate
+   should have said `>= 6` from the start. I chose the hook (a heal) because it was
+   convenient, and never re-derived the trigger from the requirement.
+3. **Suspect your own newest change first when a batch collapses.** The regression was two
+   commits old and the end_reasons named gyms, not the PC — it would have been easy to chase
+   the gym wedges. `PC rotation done — party is now 3` × 73 was the tell, and it was one grep
+   away because the feature logs what it does.

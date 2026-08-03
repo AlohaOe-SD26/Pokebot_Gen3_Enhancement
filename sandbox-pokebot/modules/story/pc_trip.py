@@ -37,9 +37,37 @@ PC_STAND_TILE = (10, 2)
 PC_FACING = "Up"
 
 
+#: ‼ ONLY ROTATE WHEN THE PARTY IS FULL — added 2026-08-02 after this module CAUSED a
+#: catastrophic regression in batch6 (`x4-runs/20260802-160603`): **2 of 37 runs finished,
+#: down from 16 of 34**. The rotation ran on EVERY heal, and `MIN_PARTY_AFTER_ROTATION = 3`
+#: means it deposits until three mons remain, so the log reads
+#: `PC rotation done — party is now 3` **73 times out of 75**. The bot spent the whole batch
+#: in a catch → deposit → catch cycle on a permanent three-mon party, and then wedged inside
+#: gyms it could not win (`global watchdog` 1 → 67, most of them MAUVILLE_CITY_GYM).
+#:
+#: `team_policy` decides correctly — an early-game party genuinely IS four low catches more
+#: than 8 levels behind, so they genuinely ARE dead weight by its rule. The error was mine, in
+#: the WIRING: §4's "piggyback on a heal" assumed rotation is occasional, and every-heal makes
+#: it continuous.
+#:
+#: The blocker this feature exists for is exactly one condition — `resource_blocker()` refuses
+#: a counter hunt only when `_party_count() >= 6`. So that is the only time a slot must be
+#: freed. A four-mon party has room already and rotating it buys nothing.
+ROTATE_ONLY_WHEN_PARTY_AT_LEAST = 6
+
+
 def plan_deposits(party) -> dict:
     """The rotation plan for `party`, or an empty plan. Pure apart from reading the party."""
     from modules.story.team_policy import rotation_plan, view_from_party
+
+    # ‼ THE GATE. Without it this strips every party to the floor on every heal — see the
+    # constant above and 08-MISTAKES 2026-08-02.
+    try:
+        alive = sum(1 for p in (party or []) if p is not None and not getattr(p, "is_egg", False))
+    except Exception:  # noqa: BLE001
+        return {"deposit": [], "withdraw": [], "reasons": {}, "worth_it": False}
+    if alive < ROTATE_ONLY_WHEN_PARTY_AT_LEAST:
+        return {"deposit": [], "withdraw": [], "reasons": {}, "worth_it": False}
 
     try:
         views = view_from_party(party)

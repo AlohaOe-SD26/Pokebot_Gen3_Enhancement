@@ -3,44 +3,51 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-08-02 (16:06 PDT) — read "‼ BATCH 6 IN FLIGHT", then "‼ AUTONOMOUS WORK PLAN"
+**Last updated:** 2026-08-02 (19:10 PDT) — read "‼ BATCH 6 LANDED", then "‼ AUTONOMOUS WORK PLAN"
 immediately below, then "‼ BATCH 5 LANDED". Older "START HERE" sections are HISTORY.
 
 ---
 
-# ‼ BATCH 6 IN FLIGHT — DO NOT LOAD THE BOX (launched 2026-08-02 16:06 PDT)
+# ‼ BATCH 6 LANDED — `#24-pc` CAUSED A 47% → 5% COLLAPSE, NOW GATED (2026-08-02 19:06)
 
-| | |
-|---|---|
-| dir | `x4-runs/20260802-160603` |
-| command | `x4_headless.py --lanes 8 --minutes 180 --stagger 5` |
-| commit | **`1700b965`** — first build with **`#24-pc`** AND **`#24-areaitemgate`** |
-| ends | **~19:06 PDT** |
+`x4-runs/20260802-160603`, commit `1700b965`. **37 runs, 2 finished = 5.4%** (batch5: 47.1%).
 
-‼ **IT EXISTS TO LIVE-PROVE TWO FIXES THAT ARE ONLY EMULATOR-FREE-PROVEN.** Read in this
-order — mechanism first, funnel last:
+## Both fixes worked; the wiring of one of them wrecked the batch
+| signal | batch5 | batch6 |
+|---|---|---|
+| `the party is full` (chain blocked) | 5 | **0** ✅ |
+| `PC rotation` depositing / done / failed | — | 90 / **75** / 15 ✅ |
+| `dropping it as a training option` | 32 | **0** ✅ |
+| **finish rate** | 47.1% | **5.4%** ❌ |
+| `global watchdog` | 1 | **67** (24 in MAUVILLE_CITY_GYM) ❌ |
+| `relocating to` | 24 | **0** |
 
-1. **`#24-pc` — did a deposit ever execute?** No run has driven the PC menu.
-   ```
-   grep -h "PC rotation — depositing"  L0*/stdout.txt   # the trip started
-   grep -h "PC rotation done"          L0*/stdout.txt   # the menu drive succeeded
-   grep -h "PC rotation failed"        L0*/stdout.txt   # degraded (must NOT break the heal)
-   grep -h "the party is full"         L0*/stdout.txt   # was 5 in batch5 — should fall
-   ```
-   ‼ "depositing" without "done" means the menu drive is broken; the guard then degrades and
-   the heal still completes, so this will NOT show up as a crash. Check both lines.
-2. **`#24-areaitemgate` — did the wasted treks stop?**
-   `grep -hc "dropping it as a training option"` — **was 28** in batch5.
-   Expect it to fall, and `ROUTE111` to stop being proposed unless Go-Goggles are held.
-3. **Then the funnel**, against batch5: Heat→Balance **23/29 (79%)**, whole funnel
-   **16/42 (38%)**, finish rate **16/34 (47.1%)**. ‼ Neither fix targets a badge rung
-   directly — both remove waste and unblock the counter chain — so a flat funnel here is NOT
-   a failure. Judge them on the mechanism counts above.
+**Cause:** the rotation ran on EVERY heal. `MIN_PARTY_AFTER_ROTATION = 3`, so
+**`PC rotation done — party is now 3` appeared 73 times out of 75** — a permanent three-mon
+party in a catch → deposit → catch cycle, then wedging in gyms it could not win. It deposited
+a **Shedinja L21**.
 
-**CPU discipline:** 8 lanes ≈ 8 cores. Do not start a repro sweep or a second batch until it
-lands, and do NOT edit `sandbox-pokebot/` — `x4_headless.py:843` relaunches dead lanes, which
-re-import from disk and would mix two code versions into one measurement. Docs are fine.
-`--resummarise x4-runs/20260802-160603` reads whatever completed if it must be stopped.
+‼ `team_policy` was RIGHT every time; **the wiring was mine and wrong**. Design §4's
+"piggyback on a heal" assumes rotation is OCCASIONAL.
+
+**FIXED:** `pc_trip.ROTATE_ONLY_WHEN_PARTY_AT_LEAST = 6` — the exact condition
+`resource_blocker()` refuses a hunt on. `repro_pc_trip.py` now has a **rate** test (3/4/5-mon
+parties are not rotated; a full one still is). Suite 72/73 — the one red is
+`repro_lead_hunted_counter.py`, RED BY DESIGN until `#24-leadcounter` is applied.
+
+‼ **The lesson (08-MISTAKES 2026-08-02): a correct decision invoked at the wrong CADENCE is
+invisible to unit tests.** Every existing repro checked a single rotation in isolation and all
+still passed; none asked how often it would run, and the damage was entirely frequency.
+
+## ‼ NEXT
+1. **Apply `#24-leadcounter`** (user ruling given 2026-08-02; exact patch in `03-PUNCH-LIST`).
+2. **Re-batch.** Batch6 is NOT a valid baseline for anything — the collapse dominates it. The
+   comparison batch is **batch5: 47.1% finish, Heat→Balance 23/29 (79%)**.
+   ‼ Verify the gate held: `PC rotation done — party is now 3` should be RARE, and
+   `the party is full` should stay at 0.
+3. **KI-45** — a battle MOVE-menu loop hung lane H4 for 27 minutes (866 STUCK dumps in
+   `_select_in_menu`). Neither the watchdog nor the frame budget can see it. Not caused by
+   this round's changes. Diagnose WHY the cursor never arrives before bounding anything.
 
 ---
 

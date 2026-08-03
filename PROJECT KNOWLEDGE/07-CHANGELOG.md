@@ -6826,3 +6826,59 @@ fails closed; ungated areas are untouched.
 ‼ **A test bug worth recording:** the ordering check first FAILED because `.find("is_map_
 reachable")` matched the function's own docstring, which discusses the oracle at length. The
 code order was right; the assertion was imprecise. Anchored on the call site instead.
+
+## 2026-08-02 — BATCH 6 RESULT: `#24-pc` caused a 47% → 5% collapse; gated and fixed
+
+`x4-runs/20260802-160603`, commit `1700b965`, 8 lanes / 180.1 min, VERDICT OK, 45 headers,
+0 violations, 0 restarts. **37 runs, 2 finished = 5.4%** (batch5: 16/34 = 47.1%).
+
+### Both fixes did what they were built to do
+| signal | batch5 | batch6 |
+|---|---|---|
+| `the party is full` (counter chain blocked) | 5 | **0** |
+| `PC rotation — depositing` / `done` / `failed` | — | 90 / **75** / 15 |
+| `dropping it as a training option` (wasted treks) | 32 | **0** |
+
+`#24-pc`'s menu drive works live (75 successful deposits) and `#24-areaitemgate` eliminated
+the wasted treks outright.
+
+### And the batch collapsed anyway
+| | batch5 | batch6 |
+|---|---|---|
+| finish rate | 47.1% | **5.4%** |
+| `global watchdog` | 1 | **67** (24 in MAUVILLE_CITY_GYM) |
+| `Cutscene did not end` | 5 | **35** |
+| `relocating to` (training) | 24 | **0** |
+
+**Cause: the rotation ran on EVERY heal.** With `MIN_PARTY_AFTER_ROTATION = 3` it deposits
+until three remain — **`PC rotation done — party is now 3` 73 times out of 75**. The bot lived
+the whole batch in a catch → deposit → catch cycle on a three-mon party and then wedged in
+gyms it could not win. It deposited a **Shedinja L21**, a real battler.
+
+‼ **`team_policy` was not wrong.** Its rule ("more than 8 levels behind the best is
+unrecoverable") is correct, and an early-game party genuinely is four low catches that far
+behind. The decision was right every time; **my wiring** was wrong — §4's "piggyback on a heal
+that was happening anyway" assumes rotation is OCCASIONAL, and every-heal makes it continuous.
+
+**Fix:** `pc_trip.ROTATE_ONLY_WHEN_PARTY_AT_LEAST = 6`. The blocker this feature exists for is
+exactly one condition — `resource_blocker()` refuses a hunt only when `_party_count() >= 6` —
+so that is the only moment a slot must be freed. `repro_pc_trip.py` now asserts 3-, 4- and
+5-mon parties are NOT rotated while a full one still is: a **rate** test, not a decision test.
+
+‼ **Why the existing repros missed it:** every check was about a SINGLE rotation in isolation
+(right mon, respects the floor, degrades safely) and all of them still pass. None asked *how
+often it would run*, and the damage was entirely in the frequency. A correct decision invoked
+at the wrong cadence is invisible to a unit test.
+
+‼ **A test-double trap, recorded:** the new rate check first FAILED on "a FULL party is still
+rotated" because my stand-in party member lacked `species`/`moves`, so `view_from_party` threw
+and `plan_deposits` returned an empty plan — which reads exactly like the gate working. A
+false PASS was one line away; the double is now spelled out with a comment saying why.
+
+### Also found — a NEW hang site (not caused by this change)
+Lane H4 produced no output for 27 minutes while burning CPU: **866 STUCK dumps** in
+`battle_menuing._select_in_menu` via `scroll_to_move`, in a Brawly trainer battle at
+DEWFORD TOWN (3,3). Neither guard can see it — the global watchdog needs an *unchanged*
+progress signature and a menu loop keeps changing it, and it is KI-36's documented shape
+("the per-run frame budget CANNOT fire while a battle handler is on the stack"). Filed as
+**KI-45**.
