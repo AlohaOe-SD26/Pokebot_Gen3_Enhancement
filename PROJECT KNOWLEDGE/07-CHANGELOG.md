@@ -7073,3 +7073,32 @@ result. It would take ~80-100 counter-hunt runs (8-10 batches) to call it.
 ### ⇒ NEXT: KI-45, not another feature
 KI-45 has now cost a full lane in 2 of the last 4 batches. It is a pure loss, unrelated to any
 feature, and it is the largest single measurable drag left. Fix it before adding anything.
+
+## 2026-08-03 — KI-45 FIXED: a stock `while True` in the battle menu was hanging whole lanes
+
+Chosen over more features because it is a pure loss and it was corrupting the sample size of
+every measurement: it cost a full lane in **2 of the last 4 batches** — batch6 H4 (866 STUCK
+dumps, 27 min silent) and batch9 H6 (1,430 dumps, **0 runs completed in 180 minutes**).
+
+**Root cause** (stock `modules/battle_menuing.py`): `_select_in_menu` is `while True:`, pressing
+a direction until the cursor read equals the target. If the menu is not open — or the read
+returns anything outside 0..3 — no press can change it, and the movement logic still picks a
+direction: `current_index=5` with `target_index=0` presses **"Up" forever**.
+
+**Fix:** `_MAX_CURSOR_STEPS = 60` (~180 frames; a real selection needs ≤3 presses). On
+exhaustion it reports via `battle_fault.request_mode_recovery()` — costing an opted-in mode
+ONE recoverable derail instead of a Manual drop — and raises `BotModeError` only when no mode
+can take it, preserving stock behaviour for every other mode.
+
+‼ The message carries the **last cursor value**, because that is the diagnosis: out-of-range
+means the menu was never open, stuck-in-range means the presses are not landing.
+
+**Repro** `repro_ki45_cursor_bound.py` **drives the real generator** against a stuck cursor
+rather than asserting on source text — a regression to `while True` hangs the test instead of
+passing it. It also proves a normal selection still completes in ≤4 presses, and that the
+recoverable channel is preferred when a mode opts in. Suite 74/74.
+
+‼ **Two independent guards were structurally blind to this**: the global watchdog needs an
+UNCHANGED progress signature (a menu loop keeps changing map/coords/state), and the per-run
+frame budget is KI-36's documented "cannot fire while a battle handler is on the stack". Any
+new `while True` on the battle path has no safety net but its own bound.
