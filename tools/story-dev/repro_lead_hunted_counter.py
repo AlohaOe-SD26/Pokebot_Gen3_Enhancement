@@ -110,6 +110,28 @@ if HAS_TERM:
     except TypeError as error:
         check("is_hunted_counter defaults to False", False, str(error))
 
+print("7. ‼ THE DECISION IS OBSERVABLE (batch7 could not be diagnosed without this)")
+# 6 runs caught AND trained a Machop to L29 and every one still led something else into
+# Norman - and nothing in the log said whether hunted_pids was empty, whether the mon was a
+# candidate, or how it scored. A decision with no trace cannot be debugged from a batch.
+import re as _re  # noqa: E402
+
+eg = (REPO / "sandbox-pokebot" / "modules" / "story" / "early_game.py").read_text(
+    encoding="utf-8", errors="replace")
+fn = _re.search(r"def _lead_best_matchup\(.*?(?=\ndef )", eg, _re.S)
+check("_lead_best_matchup is present", fn is not None)
+if fn:
+    body = fn.group(0)
+    check("it logs the chosen lead", "Story: lead vs" in body)
+    check("it logs the CANDIDATE SET, not just the winner", "from {" in body or "from " in body)
+    check("it logs hunted_pids count (empty-set is the prime suspect)",
+          "hunted_pids=" in body)
+    check("it logs the per-mon inputs that drove the key",
+          all(t in body for t in ("in=", "COUNTER", "NOATK")))
+    check("logging cannot affect the choice (guarded)",
+          _re.search(r"except Exception:.*?# noqa: BLE001 - logging must never", body, _re.S)
+          is not None)
+
 print()
 if FAILURES:
     print(f"REPRO: {len(FAILURES)} FAILING CHECK(S) — {', '.join(FAILURES)}")

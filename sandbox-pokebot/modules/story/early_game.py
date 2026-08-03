@@ -1715,6 +1715,30 @@ def _lead_best_matchup(foe_type_names, *, min_incoming_only: bool = True,
             is_hunted_counter=_is_hunted_counter(party[i]),
         ),
     )
+
+    # ‼ LOG THE DECISION AND ITS INPUTS (added 2026-08-03). `#24-leadcounter` shipped without
+    # this and batch7 could not be diagnosed: 6 runs caught AND trained a Machop to L29 and
+    # every one of them still led something else into Norman, with nothing in the log saying
+    # whether `hunted_pids` was empty, whether the mon was a candidate, or how it scored. A
+    # decision with no trace is a decision nobody can debug — the same lesson as the KI-31
+    # relocation, which was `console.print`-only and made its own A/B unevaluable.
+    try:
+        from modules.console import console
+
+        _tag = lambda i: (  # noqa: E731
+            f"{getattr(party[i].species, 'name', '?')}L{party[i].level}"
+            f"[in={_incoming(party[i]):g}"
+            f"{',atk' if _can_attack(party[i]) else ',NOATK'}"
+            f"{',WG' if _glass_wonder_guard(party[i]) else ''}"
+            f"{',COUNTER' if _is_hunted_counter(party[i]) else ''}]"
+        )
+        console.print(
+            f"[dim]Story: lead vs {'/'.join(foe_type_names)} -> {_tag(best)} "
+            f"(from {' '.join(_tag(i) for i in slots)}; "
+            f"hunted_pids={len(hunted_pids or ())})[/]"
+        )
+    except Exception:  # noqa: BLE001 - logging must never affect the choice
+        pass
     if best != 0:
         yield from _rotate_lead_safely(best)
 

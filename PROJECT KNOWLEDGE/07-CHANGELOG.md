@@ -6911,3 +6911,56 @@ Winona (`Flying`). Everywhere else keeps exactly today's ordering — the ruling
 `repro_lead_hunted_counter.py` check 2 asserts an unflagged L29 still loses to a neutral L35.
 
 Suite 73/73.
+
+## 2026-08-03 — BATCH 7: the gate held, the collapse mostly reversed, `#24-leadcounter` did NOT take effect
+
+`x4-runs/20260802-215519`, commit `09c6129e`, 8 lanes / 180.1 min, VERDICT OK, 0 restarts.
+**26 runs, 7 finished = 26.9%.**
+
+### 1. The gate held — the batch6 regression is fixed
+| | batch6 | batch7 |
+|---|---|---|
+| `PC rotation done — party is now 3` | **73 of 75** | **0** ✅ |
+| … now 4 / now 5 | — | 11 / 5 |
+| `PC rotation` depositing / done / failed | 90/75/15 | 16/16/**0** |
+
+It now deposits one or two mons from a FULL party only, and every attempt succeeded.
+
+### 2. The collapse mostly reversed — but not all the way back
+| | batch5 | batch6 | batch7 |
+|---|---|---|---|
+| finish rate | 47.1% | 5.4% | **26.9%** (z = −1.59 vs batch5) |
+| `global watchdog` | 1 | 67 | **18** |
+| `Cutscene did not end` | 5 | 35 | **7** |
+
+‼ **Not a clean recovery and I am not calling it one.** z = −1.59 cannot distinguish 26.9%
+from 47.1% at n=26 vs 34 — but the watchdog at **18 vs batch5's 1** is not noise, and it is
+unexplained. It fires on ROUTE118 (4), ROUTE117 (4), MAUVILLE_CITY_GYM (3), ROUTE112 (3).
+**Something besides the PC rotation regressed between batch5 and batch7**, and the remaining
+candidates are `#24-areaitemgate` and `#24-leadcounter`.
+
+### 3. ‼ `#24-leadcounter` DID NOT TAKE EFFECT — 6 of 6
+Every run that hunted caught AND trained a Machop to L29 (0 training failures, down from 2 of
+9), and **not one led it into Norman**:
+```
+L02 run2: caught Machop, trained -> L29, Norman lead = SWAMPERT
+L06 run1: caught Machop, trained -> L29, Norman lead = MARSHTOMP
+L06 run4: caught Machop, trained -> L29, Norman lead = SWELLOW
+(3 more caught+trained runs never reached a Balance Badge)
+```
+`_battler_slots` is permissive, so a L29 Machoke WAS a candidate; and L02 run2 won its badge
+*after* the catch, so the lead call definitely ran. The fix simply did not fire.
+
+‼ **AND I COULD NOT DIAGNOSE IT, BECAUSE I SHIPPED IT WITH NO OBSERVABILITY.** Nothing in the
+log said whether `hunted_pids` was empty, whether the mon was in the candidate set, or how it
+scored. **Added:** `_lead_best_matchup` now logs the choice, the whole candidate set with the
+per-mon inputs that drove the key (`in=`, `atk/NOATK`, `WG`, `COUNTER`) and
+`hunted_pids=<count>`. Guarded so logging can never affect the choice; pinned by
+`repro_lead_hunted_counter.py` check 7. The prime suspect is an empty `hunted_pids` — a derail
+between the catch and the fight would re-instantiate `StoryMode` and clear the per-run set —
+but that is a HYPOTHESIS and the next batch's log will say.
+
+### Suite note
+73 scripts; one run showed `repro_x4_dashboard.py` red, then 4 consecutive passes plus one
+under parallel load. Recorded as a **rare flake** (it drives tkinter), not as a regression, so
+a future red on it is not mistaken for one.

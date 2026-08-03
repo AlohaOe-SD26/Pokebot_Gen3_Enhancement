@@ -3,37 +3,51 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-08-02 (21:55 PDT) — read "‼ BATCH 7 IN FLIGHT", then "‼ BATCH 6 LANDED", then "‼ AUTONOMOUS WORK PLAN"
+**Last updated:** 2026-08-03 (01:10 PDT) — read "‼ BATCH 7 LANDED", then "‼ BATCH 6 LANDED", then "‼ AUTONOMOUS WORK PLAN"
 immediately below, then "‼ BATCH 5 LANDED". Older "START HERE" sections are HISTORY.
 
 ---
 
-# ‼ BATCH 7 IN FLIGHT — DO NOT LOAD THE BOX (launched 2026-08-02 21:55 PDT)
+# ‼ BATCH 7 LANDED (2026-08-03 00:55) — gate held, leadcounter DID NOT FIRE
 
-| | |
-|---|---|
-| dir | `x4-runs/20260802-215519` |
-| commit | **`09c6129e`** — `#24-pc` **GATED**, `#24-areaitemgate`, `#24-leadcounter` |
-| ends | **~00:55 PDT** |
+`x4-runs/20260802-215519`, commit `09c6129e`. **26 runs, 7 finished = 26.9%.**
 
-‼ **BASELINE IS BATCH 5, NOT BATCH 6.** Batch6 is void for comparison — a regression I shipped
-collapsed it to 5.4%. Compare against **batch5: 16/34 = 47.1% finish, Heat→Balance 23/29
-(79%)**.
+| | batch5 | batch6 | batch7 |
+|---|---|---|---|
+| finish rate | **47.1%** | 5.4% | 26.9% (z = −1.59 vs batch5) |
+| `global watchdog` | **1** | 67 | **18** ← unexplained |
+| `Cutscene did not end` | 5 | 35 | 7 |
+| `party is now 3` | — | **73/75** | **0** ✅ |
 
-**READ IN THIS ORDER:**
-1. ‼ **DID THE GATE HOLD?** This is the first question, because the last batch died of this.
-   `PC rotation done — party is now 3` should be **RARE** (was **73 of 75**), and
-   `the party is full` should stay at **0** (was 5 before `#24-pc`). If "party is now 3" is
-   common again, STOP and re-read `pc_trip.ROTATE_ONLY_WHEN_PARTY_AT_LEAST`.
-2. **Sanity vs the collapse:** `global watchdog` (batch5 **1**, batch6 **67**) and
-   `Cutscene did not end` (5 → 35). Both must come back down or the gate did not fix it.
-3. **`#24-leadcounter` — does the counter now FIGHT?** Grep the Norman badge lines for the
-   lead: batch5 was `SHEDINJA x9 … MACHOKE 0`. A Machoke/Makuhita lead is the whole point.
-   Also count `counter training failed` (batch5: 2 of 9).
-4. **Only then the funnel.**
+**The `#24-pc` gate held** — deposits only from a full party, 16/16 succeeded, 0 failures.
 
-**CPU discipline:** do not edit `sandbox-pokebot/` while it runs — `x4_headless.py:843`
-relaunches dead lanes, which re-import from disk. Docs are fine.
+‼ **BUT THE WATCHDOG IS 18 vs BATCH5's 1, AND THAT IS NOT NOISE.** Something besides the PC
+rotation regressed between batch5 and batch7. Remaining candidates: `#24-areaitemgate`,
+`#24-leadcounter`. Fires on ROUTE118 (4), ROUTE117 (4), MAUVILLE_CITY_GYM (3), ROUTE112 (3).
+**Batch5 remains the best result this project has produced.**
+
+## ‼ `#24-leadcounter` DID NOT TAKE EFFECT — 6 of 6 runs
+All six caught AND trained a Machop to L29 (0 training failures) and none led it into Norman
+(SWAMPERT / MARSHTOMP / SWELLOW instead). `_battler_slots` is permissive so the Machoke WAS a
+candidate, and one run won its badge *after* the catch, so the lead call ran. It just did not
+fire.
+
+‼ **I shipped it with NO OBSERVABILITY and could not diagnose it.** Now fixed:
+`_lead_best_matchup` logs the choice, the full candidate set with per-mon inputs
+(`in=`, `atk/NOATK`, `WG`, `COUNTER`) and `hunted_pids=<count>`.
+**Prime suspect (hypothesis, not fact): `hunted_pids` is empty** — a derail between the catch
+and the fight re-instantiates `StoryMode` and clears the per-run set. The next batch's log
+answers it directly; do not "fix" it before reading that line.
+
+## ‼ NEXT, IN THIS ORDER
+1. **Re-batch and read ONE line:** `Story: lead vs Normal -> …  hunted_pids=N`. If N=0 the
+   registry is being cleared; if N>0 but a non-counter still wins, the key inputs are printed
+   right there.
+2. **Explain the watchdog 1 → 18.** Bisect against batch5 if needed — `#24-areaitemgate` is
+   the likelier culprit since it changes where the bot trains.
+3. **KI-45** — the `_select_in_menu` move-menu hang (866 STUCK dumps, 27 min). Batch7 shows
+   its sibling: `battle handler gave up — in-battle wedge` ended 2 runs.
+4. Baseline for ALL comparisons is **batch5: 34 runs, 16 finished (47.1%), Heat→Balance 79%**.
 
 ---
 
