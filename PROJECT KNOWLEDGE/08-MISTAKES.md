@@ -3123,3 +3123,40 @@ see.**
    commits old and the end_reasons named gyms, not the PC — it would have been easy to chase
    the gym wedges. `PC rotation done — party is now 3` × 73 was the tell, and it was one grep
    away because the feature logs what it does.
+
+## 2026-08-03 — I removed a lead that was WINNING, on the strength of one observed loss
+
+**Symptom.** Finish rate 47.1% (batch5) → 26.9% (batch7), and the three healthy batches before
+that were 57%/60%/47% — mutually indistinguishable, so 26.9% is a real drop, not noise.
+
+**What I did.** `#24-leadpolicy` option **(c)** demotes a 1-HP Wonder Guard mon (Shedinja) so
+it never leads a boss. My entire justification was ONE observed loss recorded in the punch
+list: *"P4 led Shedinja L20 vs Norman … and lost to Slaking's Faint Attack (Dark)."*
+
+**What the logs said all along.** `BADGE:` lines only print on a **win**:
+
+| | batch5 (no (c)) | batch7 (with (c)) |
+|---|---|---|
+| Shedinja appearances | 12 | 6 |
+| …as a WINNING lead | **12** | **0** |
+| Norman victories it led | **9 of 23 (39%)** | 0 |
+| Balance Badges | 23 | 18 |
+
+Wonder Guard makes Shedinja immune to Norman's ENTIRE Normal STAB. Faint Attack is the
+exception; I generalised from it and deleted the rule.
+
+**‼ The failure was asymmetric attention.** The loss was vivid, narrated in a punch-list entry
+and easy to find. The nine wins were silent — they looked like ordinary successes. I searched
+for evidence of the failure mode and found it, and never ran the one-line grep that would have
+counted the successes.
+
+**Prevention rules.**
+1. **Before removing a behaviour, count how often it WINS, not just that it can lose.** One
+   grep (`lead SHEDINJA` in `BADGE:` lines) was the whole answer and took seconds. A behaviour
+   that appears in the logs only when it loses is not a behaviour that only loses.
+2. **A punch-list entry describing a failure is a SAMPLE, not a base rate.** These entries are
+   written when something goes wrong, so they are a biased sample by construction. Treat one
+   as "here is a case to measure", never as "here is what usually happens".
+3. **Ship a behaviour REMOVAL behind a flag.** `POKEBOT_LEAD_DEMOTE_WONDER_GUARD` now defaults
+   OFF. Additions can be judged by whether they fire; removals can only be judged against what
+   they replaced, so they need an A/B, not an argument.

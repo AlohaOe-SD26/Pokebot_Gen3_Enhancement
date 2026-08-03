@@ -6964,3 +6964,24 @@ but that is a HYPOTHESIS and the next batch's log will say.
 73 scripts; one run showed `repro_x4_dashboard.py` red, then 4 consecutive passes plus one
 under parallel load. Recorded as a **rare flake** (it drives tkinter), not as a regression, so
 a future red on it is not mistaken for one.
+
+## 2026-08-03 — `#24-leadpolicy` (c) flagged OFF by default: it removed a winning lead
+
+Investigating the batch5 → batch7 regression (47.1% → 26.9%, against a stable 57/60/47%
+plateau) found the likeliest cause, and it is mine.
+
+`BADGE:` lines print only on a win. Shedinja appeared **12 times in batch5 and all 12 were
+winning leads**, including **9 of the 23 Norman victories (39%)**. In batch7, with (c) active,
+it appears 6 times and leads **zero** wins; Balance Badges fell 23 → 18.
+
+I added (c) on the strength of a single narrated loss (Slaking's Faint Attack) and never
+counted the wins. Wonder Guard makes Shedinja immune to Norman's entire Normal STAB.
+
+**Change:** the demotion is now behind `POKEBOT_LEAD_DEMOTE_WONDER_GUARD`, **default OFF** —
+restoring the batch5 behaviour. `lead_rank_key` is untouched and still demotes when told to;
+only what the caller *reports* changed, so the pure rule stays testable both ways.
+`repro_lead_policy.py` check 7 pins the default and the evidence. Suite 73/73.
+
+‼ **Stated as a hypothesis, not a finding.** Batch7 carried FIVE changes since batch5
+(`#24-relocfloor`, `#24-leadpolicy`, `#24-pc`, `#24-areaitemgate`, `#24-leadcounter`) and
+correlation is not causation. The flag exists so the A/B can be *run* rather than argued.

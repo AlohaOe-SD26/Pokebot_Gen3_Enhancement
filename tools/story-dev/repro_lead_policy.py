@@ -117,6 +117,31 @@ check("incoming outranks the level tie-break",
       lead_rank_key(incoming=2.0, can_attack=True, glass_wonder_guard=False, level=99)
       > lead_rank_key(incoming=1.0, can_attack=True, glass_wonder_guard=False, level=1))
 
+print("7. ‼ (c) IS NOW FLAGGED OFF BY DEFAULT — the measurement that forced it")
+# I added (c) on ONE observed loss (Shedinja dying to Slaking's Faint Attack) and never
+# checked how often it WON. BADGE: lines only print on a win:
+#   batch5 (no (c)): Shedinja 12 appearances, ALL 12 winning leads, 9 of 23 Norman wins
+#   batch7 (with (c)): 6 appearances, 0 winning leads; Balance 23 -> 18; finish 47% -> 27%
+import os as _os, re as _re  # noqa: E402
+
+eg = (REPO / "sandbox-pokebot" / "modules" / "story" / "early_game.py").read_text(encoding="utf-8",
+                                                                errors="replace")
+fn = _re.search(r"def _lead_best_matchup\(.*?(?=\ndef )", eg, _re.S)
+check("_lead_best_matchup is present", fn is not None)
+if fn:
+    body = fn.group(0)
+    check("(c) is behind POKEBOT_LEAD_DEMOTE_WONDER_GUARD",
+          "POKEBOT_LEAD_DEMOTE_WONDER_GUARD" in body)
+    check("it defaults to OFF (restoring the batch5 behaviour)",
+          _re.search(r'environ\.get\("POKEBOT_LEAD_DEMOTE_WONDER_GUARD",\s*"0"\)', body)
+          is not None)
+    check("the docstring records the win-rate evidence, not just the one loss",
+          "9 of the 23 Norman victories" in body or "ALL 12 as a WINNING lead" in body)
+# The pure key must be unchanged - the flag only decides what the CALLER reports.
+check("lead_rank_key still demotes when told to",
+      lead_rank_key(incoming=0.0, can_attack=True, glass_wonder_guard=True, level=99)
+      > lead_rank_key(incoming=1.0, can_attack=True, glass_wonder_guard=False, level=20))
+
 print()
 if FAILURES:
     print(f"REPRO: {len(FAILURES)} FAILING CHECK(S) — {', '.join(FAILURES)}")

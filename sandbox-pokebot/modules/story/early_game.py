@@ -1676,10 +1676,30 @@ def _lead_best_matchup(foe_type_names, *, min_incoming_only: bool = True,
         return not saw_move  # no readable damaging moves at all -> don't penalise
 
     def _glass_wonder_guard(mon) -> bool:
-        """Wonder Guard on a 1-HP body (Shedinja) — #24-leadpolicy option (c). It wins a
-        purely defensive score outright and is then deleted by any super-effective move,
-        which this type model cannot predict because it does not read the foe's movepool.
-        Measured batch5: led into Norman 9/9 and the trained counter sat in the bag."""
+        """Wonder Guard on a 1-HP body (Shedinja) — `#24-leadpolicy` option (c).
+
+        ‼ NOW OFF BY DEFAULT, AND THE MEASUREMENT SAYS WHY. I added (c) on the strength of a
+        SINGLE observed loss (P4's Shedinja dying to Slaking's Faint Attack) and never checked
+        how often it WON. `BADGE:` lines only print on a win, and the answer was in the logs
+        the whole time:
+
+            batch5 (before (c)):  Shedinja appears 12x — ALL 12 as a WINNING lead,
+                                  including 9 of the 23 Norman victories (39%).
+            batch7 (after (c)):   Shedinja appears 6x — 0 winning leads.
+                                  Balance Badges 23 -> 18; finish rate 47.1% -> 26.9%.
+
+        Wonder Guard makes Shedinja immune to Norman's ENTIRE Normal STAB, which is a genuinely
+        strong lead there; Faint Attack is the exception, not the rule. Demoting it removed a
+        lead that was winning.
+
+        ‼ This is a HYPOTHESIS under test, not a settled fact — batch7 carried five changes and
+        correlation is not causation. The flag exists so the A/B can be run instead of argued.
+        `POKEBOT_LEAD_DEMOTE_WONDER_GUARD=1` restores the batch7 behaviour.
+        """
+        import os
+
+        if os.environ.get("POKEBOT_LEAD_DEMOTE_WONDER_GUARD", "0").strip() not in ("1", "true", "yes"):
+            return False
         try:
             return getattr(mon.ability, "name", "") == "Wonder Guard"
         except Exception:
