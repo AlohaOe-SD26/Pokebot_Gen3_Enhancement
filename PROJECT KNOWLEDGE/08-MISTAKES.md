@@ -3160,3 +3160,54 @@ counted the successes.
 3. **Ship a behaviour REMOVAL behind a flag.** `POKEBOT_LEAD_DEMOTE_WONDER_GUARD` now defaults
    OFF. Additions can be judged by whether they fire; removals can only be judged against what
    they replaced, so they need an A/B, not an argument.
+
+## 2026-08-03 — A bare `except Exception` around "bookkeeping" hid a NameError for two batches
+
+**Symptom.** `#24-leadcounter` never fired: batch7 6 of 6, batch8 `hunted_pids=0` on **all 684**
+logged lead decisions.
+
+**Cause.** The registry write was `_caught = get_party()[slot]` inside
+`try/except Exception: pass` — and **`get_party` is not in `_counter_ladder`'s scope.** Every
+other user in that file imports it locally. So every catch raised `NameError`, the bare except
+swallowed it, and the set stayed empty. A plain typo, invisible for two batches, because I
+wrapped bookkeeping in a catch-all "so it can never break the chain".
+
+**Fix.** Import it locally, and make the except **log** rather than `pass`. Also added a
+success line (`counter registered (pid=…)`), so both outcomes are visible.
+
+**Prevention rule.** **A bare `except: pass` around code that WRITES state is a silent-failure
+generator.** Guard the caller if you must, but the handler has to say something — this project
+has now lost time three separate ways to failures that produced no output (KI-24's invisible
+NO, the KI-31 relocation that was `console.print`-only, and this). If it is worth protecting,
+it is worth logging.
+
+## 2026-08-03 — The PC rotation deposited the counter the chain had just crossed Hoenn to fetch
+
+**Symptom.** Batch8: 5 Machops caught, and the Norman lead candidate sets contained no counter
+at all (`from SwampertL38 BeautiflyL23 RaltsL6 PoochyenaL10`).
+
+**Cause, verbatim from one run:**
+```
+Story: counter hunt CAUGHT Machop (slot 5).
+Story: training the counter — Machop L15 -> L29 (team is L39…).
+Story: PC rotation — depositing Cascoon L5 …, Machop L17 (25 behind the team's best (L42))
+```
+A freshly-caught counter is ~25 levels behind the team **by construction**, so it is textbook
+dead weight by `team_policy`'s level rule. `#24-pc` therefore threw it away — 2 of 5 that
+batch. It also deposited **Shedinja ×2**, which the same batch showed winning 39% of Norman
+fights.
+
+**‼ Two of my own features actively fighting each other**, each correct in isolation:
+`counter_hunt` fetches a low-level answer; `pc_trip` deletes low-level mons.
+
+**Fix.** `plan_deposits` reads `_hunted_counter_pids` from the LIVE mode instance and refuses
+to deposit those PIDs, logging the refusal. `team_policy` already protects the only HM
+carrier for exactly this reason — a mon can be dead weight *by level* and still have a ROLE.
+
+**Prevention rules.**
+1. **When adding a feature that DELETES something, enumerate what else in the system CREATES
+   that kind of thing.** A counter hunt and a dead-weight deposit are obviously in tension the
+   moment they are named side by side; nothing but haste stopped me seeing it.
+2. **"Dead weight" must be a judgement about ROLE, not only about level.** The level rule is a
+   heuristic for role, and the exceptions (HM carrier, hunted counter, proven boss lead) are
+   where the value is.

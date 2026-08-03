@@ -1394,12 +1394,24 @@ class StoryMode(BotMode):
             # ‼ #24-leadcounter — remember WHICH mon this is, by PID, so the lead picker can
             # actually field it. Recorded BEFORE training: training can evolve it (Machop ->
             # Machoke at L28, seen 8x in batch5) and can derail, and the PID survives both.
+            # ‼ IMPORT IT HERE. `get_party` is NOT in this function's scope — every other
+            # user in this file imports it locally — so the original version raised NameError
+            # on every catch and the broad `except` below swallowed it. Result: the registry
+            # was ALWAYS empty and `#24-leadcounter` could never fire. Batch8 printed
+            # `hunted_pids=0` on all 684 lead decisions, which is how it was finally caught.
+            # A bare `except Exception` around bookkeeping hid a plain typo for two batches.
+            from modules.pokemon_party import get_party as _gp_counter
+
             try:
-                _caught = get_party()[slot]
+                _caught = _gp_counter()[slot]
                 if _caught is not None:
                     self._hunted_counter_pids.add(_caught.personality_value)
-            except Exception:  # noqa: BLE001 - never let bookkeeping break the chain
-                pass
+                    console.print(
+                        f"[dim]Story: counter registered (pid={_caught.personality_value:08X}); "
+                        f"it will lead this boss and is protected from PC deposit.[/]"
+                    )
+            except Exception as _err:  # noqa: BLE001 - never let bookkeeping break the chain
+                console.print(f"[yellow]Story: could not register the counter ({_err!r}).[/]")
             yield from counter_hunt.train_counter(slot, cfg)
             return True
 

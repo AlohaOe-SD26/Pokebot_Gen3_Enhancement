@@ -142,6 +142,24 @@ for n in (3, 4, 5):
 got = pc_trip.plan_deposits([_P(42), _P(40), _P(38), _P(36), _P(8), _P(8)])
 check("a FULL party is still rotated", got["worth_it"], str(got["deposit"]))
 
+print("9. ‼ A HUNTED COUNTER IS NEVER DEPOSITED")
+# Measured batch8: "counter hunt CAUGHT Machop" -> "training the counter — Machop L15 -> L29"
+# -> "PC rotation — depositing ... Machop L17 (25 behind the team's best)". The rotation threw
+# away the mon the chain had just crossed Hoenn to fetch, because a fresh counter is ~25
+# levels behind BY CONSTRUCTION and so is textbook dead weight by the level rule.
+src = (SANDBOX / "modules" / "story" / "pc_trip.py").read_text(encoding="utf-8",
+                                                              errors="replace")
+check("plan_deposits consults a protected-PID set", "_hunted_counter_pids" in src)
+check("it reads them from the LIVE mode instance, not a module global",
+      "context.bot_mode_instance" in src)
+check("it matches by personality_value, not slot", "personality_value in protected" in src)
+check("it logs the refusal (a silent skip is indistinguishable from a broken feature)",
+      "NOT depositing" in src)
+# The protection must not resurrect the batch6 bug: with nothing protected, a full chaff
+# party is still rotated.
+got = pc_trip.plan_deposits([_P(42), _P(40), _P(38), _P(36), _P(8), _P(8)])
+check("with nothing protected, a full party is still rotated", got["worth_it"], str(got["deposit"]))
+
 print("8. plan_deposits degrades on a malformed party instead of raising")
 got = pc_trip.plan_deposits(None)
 check("returns an empty, not-worth-it plan", got == {"deposit": [], "withdraw": [],

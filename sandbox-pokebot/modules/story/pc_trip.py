@@ -69,14 +69,62 @@ def plan_deposits(party) -> dict:
     if alive < ROTATE_ONLY_WHEN_PARTY_AT_LEAST:
         return {"deposit": [], "withdraw": [], "reasons": {}, "worth_it": False}
 
+    empty = {"deposit": [], "withdraw": [], "reasons": {}, "worth_it": False}
+
     try:
         views = view_from_party(party)
     except Exception:  # noqa: BLE001 - a malformed party must not break the heal
-        return {"deposit": [], "withdraw": [], "reasons": {}, "worth_it": False}
+        return empty
     try:
-        return rotation_plan(views)
+        plan = rotation_plan(views)
     except Exception:  # noqa: BLE001
-        return {"deposit": [], "withdraw": [], "reasons": {}, "worth_it": False}
+        return empty
+
+    # ‼ NEVER DEPOSIT A HUNTED COUNTER (measured batch8, `x4-runs/20260803-063939`):
+    #
+    #     Story: counter hunt CAUGHT Machop (slot 5).
+    #     Story: training the counter — Machop L15 -> L29 (team is L39…).
+    #     Story: PC rotation — depositing Cascoon L5 …, Machop L17 (25 behind the team's best)
+    #
+    # The rotation deposited the very mon the chain had just crossed Hoenn to catch, because
+    # a fresh counter is ~25 levels behind the team BY CONSTRUCTION and so is textbook "dead
+    # weight" by the level rule. 2 of the 5 counters caught that batch were thrown away, and
+    # the Norman lead candidates then contained no counter at all.
+    #
+    # `team_policy` is right that it is dead weight *by level*; it simply cannot know the mon
+    # has a ROLE. It already protects the party's only HM carrier for the same reason — this
+    # is that idea, applied to the answer we went and fetched.
+    #
+    # ‼ Read from the LIVE mode instance, not a module global: `_hunted_counter_pids` is
+    # per-RUN state, and a module-level copy would survive into the next run of an ENDLESS
+    # RESET batch and protect a Pokémon that no longer exists (`#24-x4-staleslate`).
+    protected = set()
+    try:
+        from modules.context import context
+
+        protected = set(getattr(context.bot_mode_instance, "_hunted_counter_pids", ()) or ())
+    except Exception:  # noqa: BLE001 - no mode instance (tests) simply means nothing protected
+        protected = set()
+
+    if protected and plan.get("deposit"):
+        kept = []
+        for i in plan["deposit"]:
+            try:
+                if party[i] is not None and party[i].personality_value in protected:
+                    from modules.console import console
+
+                    console.print(
+                        f"[cyan]Story: NOT depositing "
+                        f"{getattr(party[i].species, 'name', '?')} — it is this boss's hunted "
+                        f"counter, not dead weight.[/]"
+                    )
+                    continue
+            except Exception:  # noqa: BLE001 - an unreadable mon is not provably protected
+                pass
+            kept.append(i)
+        plan = dict(plan, deposit=kept,
+                    worth_it=bool(kept) or bool(plan.get("withdraw")))
+    return plan
 
 
 def deposit_dead_weight_if_worth_it() -> Generator:

@@ -6985,3 +6985,44 @@ only what the caller *reports* changed, so the pure rule stays testable both way
 ‼ **Stated as a hypothesis, not a finding.** Batch7 carried FIVE changes since batch5
 (`#24-relocfloor`, `#24-leadpolicy`, `#24-pc`, `#24-areaitemgate`, `#24-leadcounter`) and
 correlation is not causation. The flag exists so the A/B can be *run* rather than argued.
+
+## 2026-08-03 — BATCH 8: the Shedinja hypothesis is CONFIRMED; two more bugs found by the new logging
+
+`x4-runs/20260803-063939`, commit `1811148a`, VERDICT OK. **24 runs, 11 finished = 45.8%.**
+
+### ‼ CONFIRMED — `#24-leadpolicy` (c) was the regression
+| | batch5 (no (c)) | batch7 (with (c)) | **batch8 ((c) off)** |
+|---|---|---|---|
+| Shedinja as a WINNING lead | 12 | **0** | **7** |
+| Balance Badges | 23 | 18 | **21** |
+| finish rate | 47.1% | 26.9% | **45.8%** |
+
+batch7 → batch8 z = +1.39; **batch8 vs batch5 z = −0.09 — statistically indistinguishable,
+i.e. fully recovered to the plateau.** The mechanism moved with it (Shedinja wins 0 → 7), so
+this is not a lucky sample. `global watchdog` also fell 18 → 5.
+
+**Verdict: option (c) removed a lead that was winning.** It stays flagged OFF.
+
+### The new lead logging paid for itself immediately — two further bugs
+`Story: lead vs Normal -> SwampertL38 (from SwampertL38 BeautiflyL23 RaltsL6 PoochyenaL10;
+hunted_pids=0)` — the counter is not merely unpicked, it is **not in the party at all**.
+
+**Bug 1 — the registry write never ran.** `get_party` is not in `_counter_ladder`'s scope, so
+`_caught = get_party()[slot]` raised `NameError` into a bare `except: pass`. `hunted_pids=0`
+on **all 684** logged decisions across batch8. Fixed: local import, and the handler now LOGS
+instead of `pass`, plus a success line.
+
+**Bug 2 — `#24-pc` deposited the counter.** Verbatim:
+```
+Story: counter hunt CAUGHT Machop (slot 5).
+Story: training the counter — Machop L15 -> L29 (team is L39…).
+Story: PC rotation — depositing Cascoon L5 …, Machop L17 (25 behind the team's best (L42))
+```
+A fresh counter is ~25 levels behind the team **by construction**, so it is textbook dead
+weight by level. 2 of 5 counters were thrown away; **Shedinja ×2** as well. Two of my own
+features were fighting each other — one fetches a low-level answer, the other deletes
+low-level mons. Fixed: `plan_deposits` reads `_hunted_counter_pids` from the LIVE mode
+instance and refuses those PIDs, logging each refusal. `team_policy` already protects the only
+HM carrier for exactly this reason: a mon can be dead weight *by level* and still have a ROLE.
+
+Suite 73/73.
