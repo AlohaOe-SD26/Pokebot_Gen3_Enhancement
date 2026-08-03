@@ -8,6 +8,35 @@ immediately below, then "‼ BATCH 5 LANDED". Older "START HERE" sections are HI
 
 ---
 
+# ‼ BATCH 9 IN FLIGHT — the first batch where the counter chain CAN work end to end
+(launched 2026-08-03 ~10:53 PDT, commit **`b726fcd6`**, dir `x4-runs/20260803-105*`)
+
+## Why this one matters
+Every prior batch had at least one link broken. This is the first with all of them fixed:
+catch → train → **not deposited** → **registered** → lead the fight.
+
+## READ IN THIS ORDER
+1. ‼ **`hunted_pids=N`** in `Story: lead vs Normal -> …`. It was **0 on all 684 decisions** in
+   batch8 because `get_party` was out of scope in `_counter_ladder` and a bare `except: pass`
+   ate the `NameError`. **N>0 is the proof the registry finally works.**
+2. ‼ **`Story: NOT depositing <mon> — it is this boss's hunted counter`.** Batch8 deposited
+   2 of 5 counters as "dead weight". Also confirm no `depositing Machop` / `depositing Machoke`.
+3. ‼ **Does a MACHOKE/MAKUHITA appear in the Norman lead line at all?** Batch8's candidate sets
+   contained no counter (`from SwampertL38 BeautiflyL23 RaltsL6 PoochyenaL10`).
+4. **Then the funnel.** ‼ Expect the counter to FIGHT, not the finish rate to jump — the chain
+   touches only ~1/3 of Norman runs. Judging this on finish rate alone repeats the batch4/5
+   mistake.
+
+## THE BASELINE — memorise this, it has been got wrong twice
+Healthy plateau **57% / 60% / 47% / 45.8%** (batch3/4/5/8; all pairwise |z| < 1.05).
+**batch6 (5.4%) and batch7 (26.9%) are VOID** — both were my regressions (`#24-pc` ungated,
+and `#24-leadpolicy` (c) removing a winning lead). Never baseline against them.
+
+‼ `POKEBOT_LEAD_DEMOTE_WONDER_GUARD` stays **0**. Batch8 proved (c) cost ~20 points of finish
+rate; Shedinja led 12 wins in batch5 and 7 in batch8, and 0 while (c) was on.
+
+---
+
 # ‼ BATCH 8 IN FLIGHT — THE SHEDINJA A/B (launched 2026-08-03 ~02:10 PDT)
 
 | | |
