@@ -96,6 +96,22 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
             unrecognised += 1
             continue
 
+        elif get_battle_controller_callback(0) in (
+            # ‼ KNOWN WAIT STATES — recognised, so they must NOT count toward the KI-46 bound.
+            # Measured batch11 (`x4-runs/20260804-062303`): the KI-46 diagnostic named this
+            # exact callback — `controller0='CompleteOnInactiveTextPrinter2'` at Norman — and
+            # faulted a battle that was merely waiting for text to finish printing. That is
+            # the bound doing its job (it reported the state instead of spinning) AND a real
+            # gap in the branch list: the game IS progressing, we simply had no branch for it.
+            #
+            # Safe to wait rather than bound tightly, because the KI-47 net still backstops
+            # this whole handler at ~50s if the printer genuinely never completes.
+            "CompleteOnInactiveTextPrinter",
+            "CompleteOnInactiveTextPrinter2",
+        ):
+            yield
+            continue
+
         else:
             yield
             unrecognised += 1

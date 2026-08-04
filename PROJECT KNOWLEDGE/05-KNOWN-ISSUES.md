@@ -1820,3 +1820,36 @@ bound only where a real hang has been observed — the net makes that safe to wa
 **Repro:** `repro_ki47_subhandler_net.py` — asserts no sub-handler is called unwrapped, that a
 forever-yielding handler faults, that a long BUT PROGRESSING one does not (no false positive),
 and that the error is not a `NameError`.
+
+
+---
+
+## KI-38 — REOPENED 2026-08-04. It was MITIGATED, not fixed, and it is the dominant battle hang
+
+The handoff has recorded KI-38 as "FIXED 2026-07-31 AM" since the hang rate went 11/12 → 1/8.
+Batch11's KI-47 net makes that reading untenable:
+
+```
+KI-47  7 of 8 hits   handle_fainted_pokemon, frozen at 'BattleScript_FaintedMonTryChoose'
+KI-46  1 of 8 hits   controller0='CompleteOnInactiveTextPrinter2'
+```
+
+**Every one of the seven is the after-faint chooser.** It is still wedging ~7 times per
+180-minute batch. What changed on 2026-07-31 is that it stopped being *fatal*; what changed
+on 2026-08-04 is that the net converts each wedge into a bounded recoverable derail instead of
+an infinite lane. Neither is a fix — the run still pays for every one.
+
+‼ **WHY THE RATE DROP WAS MISREAD.** "Hangs 11/12 → 1/8" measured how often a wedge *killed a
+run*, not how often it *happened*. Recovery improving is not the fault going away — the same
+error as `d7d493d8` being called live-validated on "no unrecovered errors" while finishing 0%
+of runs. **State the metric beside any "fixed" claim, and prefer a rate of OCCURRENCE over a
+rate of SURVIVAL.**
+
+**The real fix is still `#24-menutext`,** as KI-38's own entry already says: read the party-menu
+TEXT instead of inferring from cursor indices. Its evidence — `cursors_seen=[0,2,3,7]` in a
+4-mon party, `presses={'Down': 3, 'A': 273}` — says the cursor MODEL is wrong, and no retry
+limit or bound can fix a wrong model. `FAINT_CHOOSER_GIVEUP_LIMIT` and the KI-47 net are both
+mitigations layered over it.
+
+**Measured drag:** ~7 derails per batch, each costing recovery time and one unit of the derail
+budget that protects against genuine stuck loops.

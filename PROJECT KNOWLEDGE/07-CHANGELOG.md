@@ -7169,3 +7169,45 @@ Two mistakes avoided during the work, both caught by driving real code rather th
 the constant was first inserted **between `@debug.track` and its function** (caught by an
 `ast.parse` check), and the KI-46 fix had referenced `BotModeError` without importing it.
 Suite 76/76.
+
+## 2026-08-04 — BATCH 11: the first CLEAN batch in four, and the nets named the real culprit
+
+`x4-runs/20260804-062303`, commit `fe4a2369`, VERDICT OK, 0 restarts.
+**26 runs, 10 finished = 38.5%. ‼ ALL 8 LANES PRODUCED RUNS** (2-4 each) — the gate passes for
+the first time since batch8.
+
+### The nets worked, and 7 of 8 hits were ONE site
+```
+KI-47  7   handle_fainted_pokemon, frozen at 'BattleScript_FaintedMonTryChoose'
+KI-46  1   controller0='CompleteOnInactiveTextPrinter2'   (at Norman)
+```
+Eight hangs that would previously have eaten a lane became bounded, recoverable derails.
+‼ **7 of the 8 were caught by the GENERIC net, not the two specific bounds** — vindicating the
+choice to build one net rather than 32 hand-picked bounds, and confirming there really is a
+class of these rather than two bugs.
+
+### ‼ THE REAL FINDING: KI-38 IS NOT FIXED
+Every one of those 7 is `BattleScript_FaintedMonTryChoose` — **KI-38, the after-faint
+chooser**, which this handoff has recorded as "FIXED 2026-07-31 AM" since the hang rate went
+11/12 → 1/8. It was **mitigated, not fixed**, and it is still the dominant battle hang. The
+KI-45/46/47 work did not fix it either — it converted an infinite lane into ~7 derails per
+batch, which is a large improvement in lane availability and **not** a fix.
+
+### The KI-46 diagnostic named its own gap
+`controller0='CompleteOnInactiveTextPrinter2'` — a battle merely waiting for text to print was
+counted as "unrecognised" and faulted. That is the bound working (it reported instead of
+spinning) AND a real missing branch. **Fixed:** `CompleteOnInactiveTextPrinter`/`…2` are now
+recognised wait states that do not count toward the bound. Safe to wait rather than bound
+tightly, because the KI-47 net still backstops the handler at ~50 s.
+
+### The finish rate, honestly
+38.5% against the pooled clean plateau of **65/123 = 52.8%**, z = **−1.33** — not significant,
+but below every individual plateau batch (z = −0.53 to −1.61 vs batch8/batch4). ‼ **This is
+the first clean sample since the counter-chain work landed, and it does not show an
+improvement.** With ~7 KI-38 derails per batch still occurring, that is unsurprising: the
+lanes survive now, but the runs still pay for the wedges.
+
+⇒ **NEXT: KI-38 for real** — it is 7 of 8 battle hangs and the largest identified drag. The
+existing note says the true fix is `#24-menutext` (read the party-menu TEXT rather than
+inferring from cursor indices), and KI-38's own evidence — `cursors_seen=[0,2,3,7]` in a
+4-mon party — says the cursor MODEL is wrong, which no retry limit can fix.

@@ -124,6 +124,20 @@ outcome, err, steps = drive(bas.handle_battle_action_selection(strategy=None))
 check("it exits cleanly when the battle ends", outcome == "done", f"outcome={outcome} err={err!r}")
 check("and parks NO fault", not bf.battle_fault_pending())
 
+print("6. ‼ a KNOWN WAIT STATE is recognised and does NOT count toward the bound")
+# Batch11's KI-46 diagnostic named the gap itself: controller0='CompleteOnInactiveTextPrinter2'
+# at Norman - a battle merely waiting for text to print was faulted as "unrecognised". The
+# bound did its job (reported instead of spinning) and revealed a real missing branch.
+install(controller0="CompleteOnInactiveTextPrinter2")
+bas.context = types.SimpleNamespace(bot_mode="Story", emulator=types.SimpleNamespace(
+    press_button=lambda b: None), bot_mode_instance=None)
+bf.context = bas.context
+bf.clear_pending_fault()
+outcome, err, steps = drive(bas.handle_battle_action_selection(strategy=None), limit=3000)
+check("a text-printer wait does NOT fault", outcome == "hung",
+      f"outcome={outcome} err={err!r} - it should keep waiting, not raise")
+check("and parks no fault", not bf.battle_fault_pending())
+
 print()
 if FAILURES:
     print(f"REPRO: {len(FAILURES)} FAILING CHECK(S) — {', '.join(FAILURES)}")
