@@ -1740,3 +1740,46 @@ progress signature and a menu loop keeps changing map/coords/state; the per-run 
 is KI-36's documented hole ("cannot fire while a battle handler is on the stack"). **Two
 independent guards were both structurally blind to the same loop.** Any new `while True` on
 the battle path has no safety net but its own bound.
+
+---
+
+## KI-46 — Battle ACTION SELECTION spins for ever on an unrecognised controller callback (2026-08-03, FIXED same day)
+
+**KI-45 was one instance of a pattern. This is another, at a different site.**
+
+**Observed**, batch10 (`x4-runs/20260803-164713`): lanes **H2 and H8 both wedged for ~59
+minutes**. **H8 completed 0 runs in the whole 180-minute batch**; H2 managed 2 against 4-5
+elsewhere. Both stacks stopped at `battle_action_selection.py:55`, with **zero**
+`_select_in_menu` dumps — so the KI-45 bound was not involved.
+
+```
+BattleListener.fight → handle_battle → handle_battle_action_selection  @ :55
+```
+
+**Cause.** `handle_battle_action_selection`'s loop conditions are sound (battle over, or the
+main callback moves on). But if the battle stays ACTIVE in turn-action-selection while the
+CONTROLLER callback matches none of the branches, control reaches a bare
+`else: yield; continue` and spins there indefinitely.
+
+**Fix.** `_MAX_UNRECOGNISED_FRAMES = 600` (~10 s) counting only frames where the state is NOT
+recognised; the counter **resets the moment a real decision is made**, so a long multi-turn
+battle never accumulates toward it. On exhaustion it reports via
+`battle_fault.request_mode_recovery()` — one recoverable derail for an opted-in mode — and
+raises `BotModeError` otherwise. The message carries **both observed callbacks**, because that
+is the diagnosis: it names the unrecognised state so the branch can be added properly.
+
+‼ **The fix contained the exact bug it was fixing a sibling of.** `BotModeError` is not
+imported at that module's top, so the first version would have raised `NameError` *instead of*
+the honest error — the same shape as the swallowed `get_party` NameError that made
+`#24-leadcounter` silently dead for two batches. Caught only because
+`repro_ki46_action_selection_bound.py` **drives the real generator** and asserts the exception
+is not a `NameError`. A source-text assertion would have passed.
+
+**Repro:** `repro_ki46_action_selection_bound.py` — drives the generator, and check 5 proves a
+battle that ends normally is unaffected (no false positive).
+
+‼ **THE STANDING LESSON (now twice measured): both project-level guards are structurally blind
+to any loop on the battle path.** The global watchdog needs an UNCHANGED progress signature and
+a battle keeps changing it; the per-run frame budget is KI-36's documented "cannot fire while a
+battle handler is on the stack". **Any `while` loop under `BattleListener.fight` has no safety
+net but its own bound.** Audit the remaining ones rather than waiting for the next lost lane.

@@ -7102,3 +7102,38 @@ recoverable channel is preferred when a mode opts in. Suite 74/74.
 UNCHANGED progress signature (a menu loop keeps changing map/coords/state), and the per-run
 frame budget is KI-36's documented "cannot fire while a battle handler is on the stack". Any
 new `while True` on the battle path has no safety net but its own bound.
+
+## 2026-08-03 — BATCH 10 + KI-46: the battle path has a CLASS of unbounded loops, not one bug
+
+**Batch 10** (`x4-runs/20260803-164713`, commit `d8879750`): **21 runs, 8 finished = 38.1%** —
+and again contaminated. **H8 completed 0 runs**, H2 only 2, both wedged ~59 minutes.
+
+‼ **KI-45's bound fired 0 times**, and neither stalled lane had a single `_select_in_menu`
+dump. The hang was at `battle_action_selection.py:55` — a **different site**. The KI-45 fix was
+correct and simply did not apply.
+
+**KI-46 filed and fixed:** `handle_battle_action_selection` reaches a bare
+`else: yield; continue` whenever the controller callback matches none of its branches, and
+spins there indefinitely. Bounded at `_MAX_UNRECOGNISED_FRAMES = 600` (~10 s), counting only
+unrecognised frames and **resetting on every real decision**, so long battles never accumulate
+toward it. Reports via `battle_fault.request_mode_recovery()`; the message carries **both
+observed callbacks** so the missing branch can be identified rather than guessed.
+
+‼ **The fix shipped with the very bug it was a sibling of.** `BotModeError` is not imported in
+that module, so the first version would have raised `NameError` *instead of* the honest error —
+exactly the swallowed-`NameError` shape that made `#24-leadcounter` silently dead for two
+batches. It was caught only because the repro **drives the real generator** and explicitly
+asserts the exception is not a `NameError`; a source-text check would have passed. Suite 75/75.
+
+### The measurement problem, stated plainly
+Three consecutive batches have been contaminated by battle-path hangs — batch9 (1 lane),
+batch10 (2 lanes). Finish rates of 37% and 38.1% are therefore **low-side estimates on ~6.5-7
+effective lanes**, not comparable to the clean 47-60% plateau. **No conclusion about the
+counter chain's value can be drawn until a batch completes with all 8 lanes producing runs.**
+
+Counter chain in batch10 (for the record, not as evidence): 5 registered, 2 protected from
+deposit, MACHOP led 1 of 16 Norman wins; SHEDINJA led 7, consistent with the (c)-off ruling.
+
+⇒ **NEXT: audit every remaining `while` loop under `BattleListener.fight`.** Two of them have
+now each cost a lane, and both project-level guards are structurally blind to all of them.
+Waiting for the next lost lane to find the third one is not a strategy.
