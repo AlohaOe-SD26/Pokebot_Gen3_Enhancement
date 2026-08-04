@@ -1,0 +1,359 @@
+Story: PC rotation — depositing Zigzagoon L4 (level 4 is 12 behind the team's best (L16); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 3, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 3, lead BLAZIKEN. Logged to badge-log.json.
+BADGE: Balance Badge (Norman, Petalburg) — team of 3, lead BLAZIKEN. Logged to badge-log.json.
+Story: PC rotation — depositing Wurmple L4 (level 4 is 10 behind the team's best (L14); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 3, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 3, lead BLAZIKEN. Logged to badge-log.json.
+BADGE: Balance Badge (Norman, Petalburg) — team of 3, lead BLAZIKEN. Logged to badge-log.json.
+Story: PC rotation — depositing Poochyena L4 (level 4 is 12 behind the team's best (L16); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead NINCADA. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: PC rotation — depositing Loudred L23 (level 23 is 9 behind the team's best (L32); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation failed (BotModeError('Could not find a path from (7/4 @ FALLARBOR_TOWN_POKEMON_CENTER_1F) to (10/2 @ FALLARBOR_TOWN_POKEMON_CENTER_1F).')) — carrying on with the party we have.
+Story: PC rotation — depositing Ninjask L23 (level 23 is 9 behind the team's best (L32); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation failed (BotModeError('Could not find a path from (7/4 @ FALLARBOR_TOWN_POKEMON_CENTER_1F) to (10/2 @ FALLARBOR_TOWN_POKEMON_CENTER_1F).')) — carrying on with the party we have.
+Story: PC rotation — depositing Ninjask L23 (level 23 is 11 behind the team's best (L34); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation failed (BotModeError('Could not find a path from (7/4 @ FALLARBOR_TOWN_POKEMON_CENTER_1F) to (10/2 @ FALLARBOR_TOWN_POKEMON_CENTER_1F).')) — carrying on with the party we have.
+Story: PC rotation — depositing Ninjask L23 (level 23 is 11 behind the team's best (L34); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation failed (BotModeError('Could not find a path from (7/4 @ FALLARBOR_TOWN_POKEMON_CENTER_1F) to (10/2 @ FALLARBOR_TOWN_POKEMON_CENTER_1F).')) — carrying on with the party we have.
+Story: PC rotation — depositing Ninjask L23 (level 23 is 12 behind the team's best (L35); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 3, lead BLAZIKEN. Logged to badge-log.json.
+BADGE: Balance Badge (Norman, Petalburg) — team of 3, lead BLAZIKEN. Logged to badge-log.json.
+Story: PC rotation — depositing Shedinja L23 (level 23 is 22 behind the team's best (L45); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6), Castform L25 (level 25 is 20 behind the team's best (L45); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+Story: PC rotation — depositing Poochyena L3 (level 3 is 13 behind the team's best (L16); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead NINCADA. Logged to badge-log.json.
+Story: PC rotation — depositing Shedinja L21 (level 21 is 9 behind the team's best (L30); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 3, lead COMBUSKEN. Logged to badge-log.json.
+Story: PC rotation — depositing Wurmple L4 (level 4 is 10 behind the team's best (L14); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+Story: PC rotation — depositing Whismur L6 (level 6 is 10 behind the team's best (L16); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead NINCADA. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: PC rotation — depositing Shedinja L24 (level 24 is 9 behind the team's best (L33); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation failed (BotModeError('Could not find a path from (7/4 @ FALLARBOR_TOWN_POKEMON_CENTER_1F) to (10/2 @ FALLARBOR_TOWN_POKEMON_CENTER_1F).')) — carrying on with the party we have.
+Story: PC rotation — depositing Shedinja L24 (level 24 is 11 behind the team's best (L35); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 3, lead BLAZIKEN. Logged to badge-log.json.
+BADGE: Balance Badge (Norman, Petalburg) — team of 3, lead BLAZIKEN. Logged to badge-log.json.
+Story: PC rotation — depositing Shedinja L25 (level 25 is 19 behind the team's best (L44); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6), Mightyena L25 (level 25 is 19 behind the team's best (L44); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+Story: PC rotation — depositing Wurmple L4 (level 4 is 10 behind the team's best (L14); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+Story: PC rotation — depositing Wurmple L4 (level 4 is 10 behind the team's best (L14); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: counter hunt CAUGHT Machop (slot 4).
+Story: training the counter at ROUTE117 (31, 16) rather than the boss's own patch ROUTE102 — closer to L15 and it has a working heal loop.
+Story: training the counter — Machop L15 -> L29 (team is L34, est 249342 frames).
+Story: counter training failed (BotModeError('Story: aborting the current step to recover from a whiteout.')) — continuing untrained.
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: PC rotation — depositing Machop L15 (level 15 is 19 behind the team's best (L34); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+Story: PC rotation — depositing Wurmple L4 (level 4 is 10 behind the team's best (L14); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: PC rotation — depositing Lotad L3 (level 3 is 11 behind the team's best (L14); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+Story: PC rotation — depositing Poochyena L4 (level 4 is 10 behind the team's best (L14); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead NINCADA. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: PC rotation — depositing Shedinja L20 (level 20 is 9 behind the team's best (L29); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+Story: local grass (max L4) is fodder for a L31 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L32 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L32 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L32 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: PC rotation — depositing Zigzagoon L4 (level 4 is 10 behind the team's best (L14); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+Story: PC rotation — depositing Wurmple L4 (level 4 is 10 behind the team's best (L14); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead NINCADA. Logged to badge-log.json.
+Story: PC rotation — depositing Zigzagoon L4 (level 4 is 9 behind the team's best (L13); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead GROVYLE. Logged to badge-log.json.
+Story: PC rotation — depositing Whismur L7 (level 7 is 11 behind the team's best (L18); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead NINCADA. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead GROVYLE. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead SWELLOW. Logged to badge-log.json.
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L37 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+BADGE: Balance Badge (Norman, Petalburg) — team of 4, lead GROVYLE. Logged to badge-log.json.
+Story: PC rotation — depositing Castform L25 (level 25 is 14 behind the team's best (L39); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6), Shedinja L30 (level 30 is 9 behind the team's best (L39); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 4.
+Story: PC rotation — depositing Wurmple L4 (level 4 is 11 behind the team's best (L15); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+Story: PC rotation — depositing Whismur L6 (level 6 is 11 behind the team's best (L17); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead GROVYLE. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead NINCADA. Logged to badge-log.json.
+Story: PC rotation — depositing Nincada L6 (level 6 is 9 behind the team's best (L15); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+Story: PC rotation — depositing Whismur L6 (level 6 is 11 behind the team's best (L17); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead GROVYLE. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead GROVYLE. Logged to badge-log.json.
+Story: PC rotation — depositing Poochyena L4 (level 4 is 10 behind the team's best (L14); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+Story: PC rotation — depositing Cascoon L5 (level 5 is 11 behind the team's best (L16); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead GROVYLE. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead GROVYLE. Logged to badge-log.json.
+Story: PC rotation — depositing Wurmple L4 (level 4 is 11 behind the team's best (L15); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+Story: PC rotation — depositing Whismur L6 (level 6 is 11 behind the team's best (L17); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead GROVYLE. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead NINCADA. Logged to badge-log.json.
+Story: PC rotation — depositing Cascoon L6 (no damaging move and no HM — cannot battle and cannot open a route).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead MUDKIP. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead NINCADA. Logged to badge-log.json.
+Story: PC rotation — depositing Wurmple L4 (level 4 is 10 behind the team's best (L14); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+Story: PC rotation — depositing Poochyena L4 (level 4 is 10 behind the team's best (L14); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead NINCADA. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+Story: PC rotation — depositing Poochyena L4 (level 4 is 9 behind the team's best (L13); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead GROVYLE. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead NINCADA. Logged to badge-log.json.
+Story: PC rotation — depositing Poochyena L4 (level 4 is 10 behind the team's best (L14); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead COMBUSKEN. Logged to badge-log.json.
+Story: PC rotation — depositing Poochyena L4 (level 4 is 10 behind the team's best (L14); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+Story: PC rotation — depositing Whismur L6 (level 6 is 9 behind the team's best (L15); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+Story: PC rotation — depositing Shroomish L7 (level 7 is 9 behind the team's best (L16); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 3, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 3, lead BLAZIKEN. Logged to badge-log.json.
+BADGE: Balance Badge (Norman, Petalburg) — team of 3, lead BLAZIKEN. Logged to badge-log.json.
+Story: PC rotation — depositing Abra L10 (level 10 is 31 behind the team's best (L41); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6), Castform L25 (level 25 is 16 behind the team's best (L41); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Feather Badge (Winona, Fortree) — team of 3, lead SWELLOW. Logged to badge-log.json.
+Story: PC rotation — depositing Wurmple L4 (level 4 is 10 behind the team's best (L14); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead COMBUSKEN. Logged to badge-log.json.
+Story: PC rotation — depositing Nincada L6 (level 6 is 9 behind the team's best (L15); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 3, lead MIGHTYENA. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 3, lead COMBUSKEN. Logged to badge-log.json.
+Story: local grass (max L4) is fodder for a L37 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L38 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+BADGE: Balance Badge (Norman, Petalburg) — team of 3, lead SWELLOW. Logged to badge-log.json.
+Story: PC rotation — depositing Castform L25 (level 25 is 16 behind the team's best (L41); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6), Combusken L30 (level 30 is 11 behind the team's best (L41); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+Story: PC rotation — depositing Wurmple L6 (level 6 is 10 behind the team's best (L16); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead COMBUSKEN. Logged to badge-log.json.
+Story: PC rotation — depositing Wurmple L4 (level 4 is 11 behind the team's best (L15); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead NINCADA. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead MIGHTYENA. Logged to badge-log.json.
+Story: PC rotation — depositing Shedinja L21 (level 21 is 10 behind the team's best (L31); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation failed (BotModeError('Could not find a path from (7/4 @ FALLARBOR_TOWN_POKEMON_CENTER_1F) to (10/2 @ FALLARBOR_TOWN_POKEMON_CENTER_1F).')) — carrying on with the party we have.
+Story: PC rotation — depositing Shedinja L21 (level 21 is 11 behind the team's best (L32); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation failed (BotModeError('Could not find a path from (7/4 @ FALLARBOR_TOWN_POKEMON_CENTER_1F) to (10/2 @ FALLARBOR_TOWN_POKEMON_CENTER_1F).')) — carrying on with the party we have.
+Story: PC rotation — depositing Shedinja L21 (level 21 is 13 behind the team's best (L34); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 3, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Balance Badge (Norman, Petalburg) — team of 3, lead MIGHTYENA. Logged to badge-log.json.
+Story: PC rotation — depositing Shedinja L23 (level 23 is 15 behind the team's best (L38); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6), Castform L25 (level 25 is 13 behind the team's best (L38); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+Story: PC rotation — depositing Poochyena L4 (level 4 is 11 behind the team's best (L15); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead NINCADA. Logged to badge-log.json.
+Story: PC rotation — depositing Wurmple L4 (level 4 is 10 behind the team's best (L14); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+Story: PC rotation — depositing Wurmple L4 (level 4 is 10 behind the team's best (L14); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+Story: PC rotation — depositing Nincada L6 (level 6 is 9 behind the team's best (L15); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead DUSTOX. Logged to badge-log.json.
+Story: PC rotation — depositing Poochyena L4 (level 4 is 10 behind the team's best (L14); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead NINJASK. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: PC rotation — depositing Shedinja L20 (level 20 is 10 behind the team's best (L30); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation failed (BotModeError('Could not find a path from (7/4 @ FALLARBOR_TOWN_POKEMON_CENTER_1F) to (10/2 @ FALLARBOR_TOWN_POKEMON_CENTER_1F).')) — carrying on with the party we have.
+Story: PC rotation — depositing Shedinja L20 (level 20 is 11 behind the team's best (L31); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation failed (BotModeError('Could not find a path from (7/4 @ FALLARBOR_TOWN_POKEMON_CENTER_1F) to (10/2 @ FALLARBOR_TOWN_POKEMON_CENTER_1F).')) — carrying on with the party we have.
+Story: PC rotation — depositing Shedinja L20 (level 20 is 12 behind the team's best (L32); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation failed (BotModeError('Could not find a path from (7/4 @ FALLARBOR_TOWN_POKEMON_CENTER_1F) to (10/2 @ FALLARBOR_TOWN_POKEMON_CENTER_1F).')) — carrying on with the party we have.
+Story: PC rotation — depositing Shedinja L20 (level 20 is 13 behind the team's best (L33); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation failed (BotModeError('Could not find a path from (7/4 @ FALLARBOR_TOWN_POKEMON_CENTER_1F) to (10/2 @ FALLARBOR_TOWN_POKEMON_CENTER_1F).')) — carrying on with the party we have.
+Story: PC rotation — depositing Shedinja L20 (level 20 is 14 behind the team's best (L34); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 3, lead SWAMPERT. Logged to badge-log.json.
+Story: local grass (max L4) is fodder for a L38 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L38 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L38 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L39 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+BADGE: Balance Badge (Norman, Petalburg) — team of 3, lead SWAMPERT. Logged to badge-log.json.
+Story: PC rotation — depositing Poochyena L5 (level 5 is 9 behind the team's best (L14); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead TAILLOW. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+Story: local grass (max L4) is fodder for a L33 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L33 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: counter hunt CAUGHT Machop (slot 4).
+Story: training the counter at ROUTE117 (31, 16) rather than the boss's own patch ROUTE102 — closer to L15 and it has a working heal loop.
+Story: training the counter — Machop L15 -> L29 (team is L35, est 249342 frames).
+Story: PC rotation — depositing Machop L15 (level 15 is 20 behind the team's best (L35); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+Story: PC rotation — depositing Poochyena L6 (level 6 is 10 behind the team's best (L16); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+Story: PC rotation — depositing Poochyena L4 (level 4 is 10 behind the team's best (L14); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead NINCADA. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 3, lead SWAMPERT. Logged to badge-log.json.
+Story: PC rotation — depositing Poochyena L4 (level 4 is 10 behind the team's best (L14); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+Story: PC rotation — depositing Shroomish L5 (level 5 is 10 behind the team's best (L15); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead GROVYLE. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead NINJASK. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead GROVYLE. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead LOUDRED. Logged to badge-log.json.
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+BADGE: Balance Badge (Norman, Petalburg) — team of 4, lead GROVYLE. Logged to badge-log.json.
+Story: PC rotation — depositing Castform L25 (level 25 is 14 behind the team's best (L39); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6), Shedinja L28 (level 28 is 11 behind the team's best (L39); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 4.
+Story: PC rotation — depositing Shedinja L28 (level 28 is 11 behind the team's best (L39); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+Story: PC rotation — depositing Wurmple L4 (level 4 is 9 behind the team's best (L13); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead POOCHYENA. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead GROVYLE. Logged to badge-log.json.
+Story: PC rotation — depositing Whismur L6 (level 6 is 9 behind the team's best (L15); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+Story: PC rotation — depositing Taillow L6 (level 6 is 9 behind the team's best (L15); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead GROVYLE. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead NINCADA. Logged to badge-log.json.
+Story: PC rotation — depositing Taillow L6 (level 6 is 9 behind the team's best (L15); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead GROVYLE. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead NINJASK. Logged to badge-log.json.
+Story: PC rotation — depositing Shedinja L21 (level 21 is 9 behind the team's best (L30); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 3, lead GROVYLE. Logged to badge-log.json.
+Story: PC rotation — depositing Poochyena L6 (level 6 is 10 behind the team's best (L16); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead GROVYLE. Logged to badge-log.json.
+Story: PC rotation — depositing Abra L7 (level 7 is 14 behind the team's best (L21); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead NINJASK. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 3, lead GROVYLE. Logged to badge-log.json.
+Story: PC rotation — depositing Wurmple L4 (level 4 is 9 behind the team's best (L13); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead MUDKIP. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead NINCADA. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+Story: PC rotation — depositing Taillow L6 (level 6 is 10 behind the team's best (L16); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead NINCADA. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: PC rotation — depositing Shedinja L20 (level 20 is 12 behind the team's best (L32); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation failed (BotModeError('Could not find a path from (7/4 @ FALLARBOR_TOWN_POKEMON_CENTER_1F) to (10/2 @ FALLARBOR_TOWN_POKEMON_CENTER_1F).')) — carrying on with the party we have.
+Story: PC rotation — depositing Shedinja L20 (level 20 is 13 behind the team's best (L33); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation failed (BotModeError('Could not find a path from (7/4 @ FALLARBOR_TOWN_POKEMON_CENTER_1F) to (10/2 @ FALLARBOR_TOWN_POKEMON_CENTER_1F).')) — carrying on with the party we have.
+Story: PC rotation — depositing Shedinja L20 (level 20 is 15 behind the team's best (L35); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation failed (BotModeError('Could not find a path from (7/4 @ FALLARBOR_TOWN_POKEMON_CENTER_1F) to (10/2 @ FALLARBOR_TOWN_POKEMON_CENTER_1F).')) — carrying on with the party we have.
+Story: PC rotation — depositing Shedinja L20 (level 20 is 16 behind the team's best (L36); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 3, lead BLAZIKEN. Logged to badge-log.json.
+BADGE: Balance Badge (Norman, Petalburg) — team of 3, lead BLAZIKEN. Logged to badge-log.json.
+Story: PC rotation — depositing Shedinja L20 (level 20 is 22 behind the team's best (L42); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6), Castform L25 (level 25 is 17 behind the team's best (L42); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Feather Badge (Winona, Fortree) — team of 3, lead MIGHTYENA. Logged to badge-log.json.
+Story: PC rotation — depositing Poochyena L4 (level 4 is 10 behind the team's best (L14); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead NINJASK. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: PC rotation — depositing Shedinja L21 (level 21 is 10 behind the team's best (L31); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation failed (BotModeError('Could not find a path from (7/4 @ FALLARBOR_TOWN_POKEMON_CENTER_1F) to (10/2 @ FALLARBOR_TOWN_POKEMON_CENTER_1F).')) — carrying on with the party we have.
+Story: PC rotation — depositing Shedinja L21 (level 21 is 11 behind the team's best (L32); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 3, lead MARSHTOMP. Logged to badge-log.json.
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead GROVYLE. Logged to badge-log.json.
+Story: PC rotation — depositing Nincada L6 (level 6 is 12 behind the team's best (L18); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 3.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 3, lead GROVYLE. Logged to badge-log.json.

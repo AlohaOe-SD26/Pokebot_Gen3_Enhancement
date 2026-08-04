@@ -1,0 +1,959 @@
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: lead vs Grass -> BeautiflyL10 (from CombuskenL19 TaillowL10 BeautiflyL10 WhismurL10; hunted_pids=0)
+Story: lead vs Fighting -> BeautiflyL15 (from CombuskenL20 TaillowL15 WhismurL15 BeautiflyL15; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead BEAUTIFLY. Logged to badge-log.json.
+Story: lead vs Water -> BeautiflyL16 (from BeautiflyL16 TaillowL16 WhismurL15 CombuskenL20; hunted_pids=0)
+Story: lead vs Water -> BeautiflyL18 (from BeautiflyL18 TaillowL18 WhismurL15 CombuskenL20; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL23 (from CombuskenL23 SwellowL23 WhismurL16 BeautiflyL23; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL24 (from SwellowL24 LoudredL20 CombuskenL24 BeautiflyL23; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL26 (from CombuskenL26 SwellowL26 BeautiflyL26 LoudredL26; hunted_pids=0)
+Story: lead vs Electric -> LoudredL27 (from LoudredL27 CombuskenL27 SwellowL27 BeautiflyL27; hunted_pids=0)
+Story: lead vs Electric -> LoudredL28 (from BeautiflyL28 LoudredL28 CombuskenL28 SwellowL28; hunted_pids=0)
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead LOUDRED. Logged to badge-log.json.
+Story: lead vs Fire/Poison -> LoudredL30 (from LoudredL30 BeautiflyL30 CombuskenL28 SwellowL29; hunted_pids=0)
+Story: lead vs Fire -> CombuskenL29 (from LoudredL31 BeautiflyL31 CombuskenL29 SwellowL30; hunted_pids=0)
+Story: lead vs Fire -> CombuskenL29 (from CombuskenL29 BeautiflyL31 LoudredL31 SwellowL30; hunted_pids=0)
+Story: lead vs Fire -> CombuskenL30 (from CombuskenL30 BeautiflyL31 LoudredL32 SwellowL30; hunted_pids=0)
+Story: lead vs Fire -> CombuskenL30 (from CombuskenL30 BeautiflyL31 LoudredL32 SwellowL30; hunted_pids=0)
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: lead vs Normal -> LoudredL32 (from CombuskenL30 BeautiflyL31 LoudredL32 SwellowL32; hunted_pids=0)
+Story: lead vs Normal -> LoudredL33 (from LoudredL33 BeautiflyL31 CombuskenL31 SwellowL33; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L33 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> LoudredL33 (from LoudredL33 BeautiflyL31 CombuskenL31 SwellowL33; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L33 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> LoudredL33 (from LoudredL33 BeautiflyL31 CombuskenL31 SwellowL33; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L33 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> LoudredL33 (from LoudredL33 BeautiflyL31 CombuskenL31 SwellowL33; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L33 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> LoudredL33 (from LoudredL33 BeautiflyL31 CombuskenL32 SwellowL33; hunted_pids=0)
+Story: counter hunt CAUGHT Combusken (slot 3).
+Story: counter registered (pid=3E751CAF); it will lead this boss and is protected from PC deposit.
+Story: lead vs Normal -> CombuskenL33 (from LoudredL34 BeautiflyL31 CombuskenL33 SwellowL33; hunted_pids=1)
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: lead vs Grass -> BeautiflyL10 (from CombuskenL19 TaillowL10 BeautiflyL10 WhismurL10; hunted_pids=0)
+Story: lead vs Fighting -> BeautiflyL15 (from CombuskenL20 BeautiflyL15 WhismurL15 TaillowL15; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead BEAUTIFLY. Logged to badge-log.json.
+Story: lead vs Water -> BeautiflyL17 (from BeautiflyL17 CombuskenL20 WhismurL15 TaillowL15; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL22 (from CombuskenL22 BeautiflyL21 LoudredL21 TaillowL21; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL23 (from CombuskenL23 BeautiflyL21 LoudredL22 TaillowL21; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL24 (from CombuskenL24 LoudredL24 SwellowL24 BeautiflyL24; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL25 (from BeautiflyL25 CombuskenL25 LoudredL25 SwellowL25; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL26 (from SwellowL26 CombuskenL26 BeautiflyL26 LoudredL26; hunted_pids=0)
+Story: lead vs Electric -> LoudredL27 (from LoudredL27 CombuskenL27 SwellowL27 BeautiflyL27; hunted_pids=0)
+Story: lead vs Electric -> LoudredL28 (from BeautiflyL28 LoudredL28 CombuskenL28 SwellowL28; hunted_pids=0)
+Story: lead vs Electric -> LoudredL29 (from SwellowL29 LoudredL29 BeautiflyL29 CombuskenL29; hunted_pids=0)
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead LOUDRED. Logged to badge-log.json.
+Story: lead vs Fire/Poison -> SwellowL32 (from LoudredL30 SwellowL32 BeautiflyL29 CombuskenL29; hunted_pids=0)
+Story: lead vs Fire -> CombuskenL29 (from SwellowL34 LoudredL31 BeautiflyL29 CombuskenL29; hunted_pids=0)
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: lead vs Normal -> SwellowL34 (from CombuskenL32 LoudredL31 BeautiflyL29 SwellowL34; hunted_pids=0)
+Story: lead vs Normal -> SwellowL35 (from SwellowL35 LoudredL31 BeautiflyL29 CombuskenL32; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> SwellowL35 (from SwellowL35 LoudredL31 BeautiflyL29 CombuskenL32; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> SwellowL36 (from SwellowL36 LoudredL31 BeautiflyL29 CombuskenL32; hunted_pids=0)
+BADGE: Balance Badge (Norman, Petalburg) — team of 4, lead SWELLOW. Logged to badge-log.json.
+Story: PC rotation — depositing Castform L25 (level 25 is 13 behind the team's best (L38); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 5.
+Story: lead vs Flying -> SwellowL38 (from SwellowL38 LoudredL34 BeautiflyL30 CombuskenL35 ZigzagoonL3; hunted_pids=0)
+Story: lead vs Flying -> SwellowL40 (from SwellowL40 LoudredL35 BeautiflyL30 CombuskenL35 ZigzagoonL3; hunted_pids=0)
+BADGE: Feather Badge (Winona, Fortree) — team of 5, lead SWELLOW. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: lead vs Grass -> CombuskenL19 (from CombuskenL19 TaillowL10 PoochyenaL10 WhismurL10; hunted_pids=0)
+Story: lead vs Fighting -> CombuskenL21 (from CombuskenL21 WhismurL14 TaillowL14 PoochyenaL14; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: lead vs Water -> WhismurL14 (from CombuskenL23 WhismurL14 TaillowL14 PoochyenaL14; hunted_pids=0)
+Story: lead vs Water -> WhismurL16 (from WhismurL16 CombuskenL24 TaillowL14 PoochyenaL14; hunted_pids=0)
+Story: lead vs Water -> WhismurL16 (from WhismurL16 CombuskenL24 TaillowL15 PoochyenaL14; hunted_pids=0)
+Story: lead vs Water -> WhismurL17 (from WhismurL17 CombuskenL24 TaillowL16 PoochyenaL15; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL26 (from CombuskenL26 MightyenaL20 LoudredL20 TaillowL20; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL27 (from CombuskenL27 MightyenaL21 LoudredL20 TaillowL20; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL29 (from CombuskenL29 MightyenaL29 LoudredL29 TaillowL20; hunted_pids=0)
+Story: lead vs Electric -> LoudredL30 (from LoudredL30 CombuskenL30 MightyenaL30 TaillowL20; hunted_pids=0)
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead LOUDRED. Logged to badge-log.json.
+Story: lead vs Fire/Poison -> CombuskenL33 (from LoudredL31 CombuskenL33 MightyenaL31 TaillowL20; hunted_pids=0)
+Story: lead vs Fire -> CombuskenL35 (from CombuskenL35 LoudredL31 MightyenaL31 TaillowL20; hunted_pids=0)
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead BLAZIKEN. Logged to badge-log.json.
+Story: lead vs Normal -> BlazikenL36 (from BlazikenL36 LoudredL32 MightyenaL31 TaillowL20; hunted_pids=0)
+BADGE: Balance Badge (Norman, Petalburg) — team of 4, lead BLAZIKEN. Logged to badge-log.json.
+Story: PC rotation — depositing Taillow L20 (level 20 is 21 behind the team's best (L41); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6), Castform L25 (level 25 is 16 behind the team's best (L41); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 4.
+Story: lead vs Flying -> LoudredL34 (from BlazikenL41 LoudredL34 MightyenaL31 ZigzagoonL3; hunted_pids=0)
+BADGE: Feather Badge (Winona, Fortree) — team of 4, lead LOUDRED. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: lead vs Grass -> BeautiflyL10 (from CombuskenL19 TaillowL10 WhismurL10 BeautiflyL10; hunted_pids=0)
+Story: lead vs Fighting -> BeautiflyL16 (from CombuskenL19 TaillowL16 BeautiflyL16 WhismurL16; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead BEAUTIFLY. Logged to badge-log.json.
+Story: lead vs Water -> BeautiflyL18 (from BeautiflyL18 TaillowL16 CombuskenL19 WhismurL16; hunted_pids=0)
+Story: lead vs Water -> BeautiflyL19 (from BeautiflyL19 TaillowL17 CombuskenL20 WhismurL16; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL21 (from CombuskenL21 TaillowL20 LoudredL20 BeautiflyL20; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL23 (from BeautiflyL23 CombuskenL23 SwellowL23 LoudredL23; hunted_pids=0)
+Story: lead vs Electric -> LoudredL24 (from LoudredL24 CombuskenL24 BeautiflyL24 SwellowL24; hunted_pids=0)
+Story: lead vs Electric -> LoudredL25 (from SwellowL25 LoudredL25 CombuskenL25 BeautiflyL25; hunted_pids=0)
+Story: lead vs Electric -> LoudredL26 (from BeautiflyL26 LoudredL26 SwellowL26 CombuskenL26; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL27 (from CombuskenL27 LoudredL27 BeautiflyL27 SwellowL27; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL28 (from SwellowL28 CombuskenL28 LoudredL28 BeautiflyL28; hunted_pids=0)
+Story: ROUTE111 (25, 55) is not reachable from here — dropping it as a training option for the rest of this run.
+Story: ROUTE111 is not reachable from here (Could not reach (25, 55) on MapRSE.ROUTE111: the field is idle and we are still at (31, 114), so retrying cannot change the result (Could not find a path from (31/114 @ ROUTE111) to (25/55 @ ROUTE111).).) — trying the next counter destination.
+Story: ROUTE116 (11, 7) is not reachable from here — dropping it as a training option for the rest of this run.
+Story: ROUTE116 is not reachable from here (Could not reach (11, 7) on MapRSE.ROUTE116: the field is idle and we are still at (65, 11), so retrying cannot change the result (Could not find a path from (65/11 @ ROUTE116) to (11/7 @ ROUTE116).).) — trying the next counter destination.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: lead vs Grass -> CombuskenL19 (from CombuskenL19 WhismurL10 PoochyenaL10 SkittyL10; hunted_pids=0)
+Story: lead vs Fighting -> CombuskenL21 (from CombuskenL21 WhismurL15 PoochyenaL15 SkittyL15; hunted_pids=0)
+Story: lead vs Fighting -> CombuskenL22 (from CombuskenL22 WhismurL15 PoochyenaL15 SkittyL15; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: lead vs Water -> WhismurL15 (from CombuskenL23 WhismurL15 PoochyenaL15 SkittyL15; hunted_pids=0)
+Story: lead vs Water -> WhismurL16 (from WhismurL16 CombuskenL24 PoochyenaL15 SkittyL15; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL25 (from WhismurL16 CombuskenL25 PoochyenaL15 SkittyL15; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL27 (from CombuskenL27 MightyenaL20 LoudredL20 SkittyL20; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL29 (from CombuskenL29 MightyenaL28 LoudredL28 SkittyL20; hunted_pids=0)
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: lead vs Fire/Poison -> CombuskenL32 (from CombuskenL32 MightyenaL30 LoudredL29 SkittyL20; hunted_pids=0)
+Story: lead vs Fire -> CombuskenL34 (from CombuskenL34 MightyenaL31 LoudredL29 SkittyL20; hunted_pids=0)
+Story: lead vs Fire -> CombuskenL34 (from CombuskenL34 MightyenaL31 LoudredL30 SkittyL20; hunted_pids=0)
+Story: lead vs Fire -> CombuskenL34 (from CombuskenL34 MightyenaL31 LoudredL30 SkittyL20; hunted_pids=0)
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: lead vs Normal -> BlazikenL36 (from BlazikenL36 MightyenaL32 LoudredL32 SkittyL20; hunted_pids=0)
+Story: lead vs Normal -> BlazikenL36 (from BlazikenL36 MightyenaL32 LoudredL32 SkittyL20; hunted_pids=0)
+BADGE: Balance Badge (Norman, Petalburg) — team of 4, lead BLAZIKEN. Logged to badge-log.json.
+Story: PC rotation — depositing Skitty L20 (level 20 is 19 behind the team's best (L39); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6), Castform L25 (level 25 is 14 behind the team's best (L39); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 4.
+Story: lead vs Flying -> MightyenaL34 (from BlazikenL40 MightyenaL34 LoudredL34 ZigzagoonL3; hunted_pids=0)
+Story: lead vs Flying -> MightyenaL35 (from MightyenaL35 BlazikenL41 LoudredL34 ZigzagoonL3; hunted_pids=0)
+Story: lead vs Flying -> MightyenaL36 (from LoudredL34 BlazikenL41 MightyenaL36 ZigzagoonL3; hunted_pids=0)
+Story: lead vs Flying -> MightyenaL36 (from LoudredL34 BlazikenL41 MightyenaL36 ZigzagoonL3; hunted_pids=0)
+Story: lead vs Flying -> MightyenaL36 (from LoudredL34 BlazikenL41 MightyenaL36 ZigzagoonL3; hunted_pids=0)
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: lead vs Grass -> BeautiflyL10 (from CombuskenL19 BeautiflyL10 LotadL10 NincadaL10; hunted_pids=0)
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Grass -> BeautiflyL10 (from MarshtompL19 NincadaL10 BeautiflyL10 PoochyenaL10; hunted_pids=0)
+Story: lead vs Fighting -> BeautiflyL11 (from BeautiflyL11 NincadaL10 MarshtompL19 PoochyenaL10; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead BEAUTIFLY. Logged to badge-log.json.
+Story: lead vs Grass -> BeautiflyL12 (from BeautiflyL12 NincadaL10 MarshtompL21 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> BeautiflyL13 (from BeautiflyL13 NincadaL11 MarshtompL21 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> BeautiflyL14 (from BeautiflyL14 NincadaL11 MarshtompL21 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> BeautiflyL14 (from BeautiflyL14 NincadaL11 MarshtompL22 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> BeautiflyL14 (from BeautiflyL14 NincadaL11 MarshtompL22 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> BeautiflyL14 (from BeautiflyL14 NincadaL11 MarshtompL22 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> BeautiflyL14 (from BeautiflyL14 NincadaL11 MarshtompL22 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> BeautiflyL14 (from BeautiflyL14 NincadaL11 MarshtompL23 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> BeautiflyL14 (from BeautiflyL14 NincadaL11 MarshtompL23 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> BeautiflyL14 (from BeautiflyL14 NincadaL11 MarshtompL23 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> BeautiflyL14 (from BeautiflyL14 NincadaL11 MarshtompL23 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> BeautiflyL15 (from BeautiflyL15 NincadaL11 MarshtompL23 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> BeautiflyL15 (from BeautiflyL15 NincadaL11 MarshtompL23 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> BeautiflyL15 (from BeautiflyL15 NincadaL11 MarshtompL24 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> BeautiflyL15 (from BeautiflyL15 NincadaL11 MarshtompL24 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> BeautiflyL15 (from BeautiflyL15 NincadaL11 MarshtompL24 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> BeautiflyL15 (from BeautiflyL15 NincadaL11 MarshtompL24 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> BeautiflyL16 (from BeautiflyL16 NincadaL11 MarshtompL24 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> BeautiflyL16 (from BeautiflyL16 NincadaL11 MarshtompL25 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> BeautiflyL16 (from BeautiflyL16 NincadaL11 MarshtompL25 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> BeautiflyL16 (from BeautiflyL16 NincadaL11 MarshtompL25 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> BeautiflyL16 (from BeautiflyL16 NincadaL11 MarshtompL25 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> BeautiflyL17 (from BeautiflyL17 NincadaL11 MarshtompL25 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> BeautiflyL17 (from BeautiflyL17 NincadaL11 MarshtompL25 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> BeautiflyL17 (from BeautiflyL17 NincadaL11 MarshtompL26 PoochyenaL10; hunted_pids=0)
+Story: lead vs Electric -> MarshtompL27 (from MarshtompL27 NincadaL12 BeautiflyL23 PoochyenaL10; hunted_pids=0)
+Story: lead vs Electric -> MarshtompL29 (from MarshtompL29 NincadaL13 BeautiflyL23 PoochyenaL11; hunted_pids=0)
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Fire/Poison -> MarshtompL32 (from MarshtompL32 NincadaL14 BeautiflyL26 PoochyenaL12; hunted_pids=0)
+Story: lead vs Fire/Poison -> MarshtompL33 (from MarshtompL33 NincadaL15 BeautiflyL27 PoochyenaL12; hunted_pids=0)
+Story: lead vs Fire -> MarshtompL34 (from MarshtompL34 NincadaL15 BeautiflyL27 PoochyenaL12; hunted_pids=0)
+Story: lead vs Fire -> MarshtompL35 (from MarshtompL35 NincadaL15 BeautiflyL27 PoochyenaL12; hunted_pids=0)
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead SWAMPERT. Logged to badge-log.json.
+Story: lead vs Normal -> SwampertL36 (from SwampertL36 NincadaL16 BeautiflyL28 PoochyenaL12; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L37 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> SwampertL37 (from SwampertL37 NincadaL16 BeautiflyL28 PoochyenaL12; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L37 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> SwampertL37 (from SwampertL37 NincadaL16 BeautiflyL28 PoochyenaL12; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L37 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> SwampertL37 (from SwampertL37 NincadaL16 BeautiflyL28 PoochyenaL12; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L38 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> SwampertL38 (from SwampertL38 NincadaL16 BeautiflyL28 PoochyenaL12; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L38 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> SwampertL38 (from SwampertL38 NincadaL16 BeautiflyL28 PoochyenaL12; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L38 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> SwampertL38 (from SwampertL38 NincadaL16 BeautiflyL28 PoochyenaL12; hunted_pids=0)
+BADGE: Balance Badge (Norman, Petalburg) — team of 4, lead SWAMPERT. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Grass -> TaillowL10 (from MarshtompL19 TaillowL10 PoochyenaL10 WhismurL10; hunted_pids=0)
+Story: lead vs Fighting -> MarshtompL19 (from TaillowL12 MarshtompL19 PoochyenaL11 WhismurL10; hunted_pids=0)
+Story: lead vs Fighting -> MarshtompL19 (from MarshtompL19 TaillowL12 PoochyenaL11 WhismurL10; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Grass -> TaillowL12 (from MarshtompL21 TaillowL12 PoochyenaL11 WhismurL10; hunted_pids=0)
+Story: lead vs Grass -> TaillowL14 (from TaillowL14 MarshtompL22 PoochyenaL11 WhismurL10; hunted_pids=0)
+Story: lead vs Grass -> TaillowL14 (from TaillowL14 MarshtompL23 PoochyenaL11 WhismurL10; hunted_pids=0)
+Story: lead vs Grass -> TaillowL14 (from TaillowL14 MarshtompL23 PoochyenaL11 WhismurL10; hunted_pids=0)
+Story: lead vs Grass -> TaillowL14 (from TaillowL14 MarshtompL23 PoochyenaL11 WhismurL10; hunted_pids=0)
+Story: lead vs Grass -> TaillowL14 (from TaillowL14 MarshtompL23 PoochyenaL11 WhismurL10; hunted_pids=0)
+Story: lead vs Grass -> TaillowL15 (from TaillowL15 MarshtompL23 PoochyenaL11 WhismurL10; hunted_pids=0)
+Story: lead vs Grass -> TaillowL15 (from TaillowL15 MarshtompL24 PoochyenaL11 WhismurL10; hunted_pids=0)
+Story: lead vs Grass -> TaillowL16 (from TaillowL16 MarshtompL24 PoochyenaL11 WhismurL10; hunted_pids=0)
+Story: lead vs Grass -> TaillowL16 (from TaillowL16 MarshtompL24 PoochyenaL11 WhismurL10; hunted_pids=0)
+Story: lead vs Grass -> TaillowL17 (from TaillowL17 MarshtompL24 PoochyenaL11 WhismurL10; hunted_pids=0)
+Story: lead vs Grass -> TaillowL17 (from TaillowL17 MarshtompL24 PoochyenaL11 WhismurL10; hunted_pids=0)
+Story: lead vs Grass -> TaillowL17 (from TaillowL17 MarshtompL24 PoochyenaL12 WhismurL10; hunted_pids=0)
+Story: lead vs Grass -> TaillowL18 (from TaillowL18 MarshtompL24 PoochyenaL12 WhismurL10; hunted_pids=0)
+Story: lead vs Grass -> TaillowL19 (from TaillowL19 MarshtompL24 PoochyenaL12 WhismurL10; hunted_pids=0)
+Story: lead vs Electric -> MarshtompL26 (from MarshtompL26 SwellowL22 PoochyenaL12 WhismurL10; hunted_pids=0)
+Story: lead vs Electric -> MarshtompL27 (from MarshtompL27 SwellowL23 PoochyenaL12 WhismurL10; hunted_pids=0)
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Fire/Poison -> MarshtompL31 (from MarshtompL31 SwellowL27 PoochyenaL13 WhismurL11; hunted_pids=0)
+Story: lead vs Fire/Poison -> MarshtompL32 (from MarshtompL32 SwellowL28 PoochyenaL13 WhismurL11; hunted_pids=0)
+Story: lead vs Fire/Poison -> MarshtompL33 (from MarshtompL33 SwellowL28 PoochyenaL13 WhismurL11; hunted_pids=0)
+Story: lead vs Fire -> MarshtompL34 (from MarshtompL34 SwellowL29 PoochyenaL13 WhismurL11; hunted_pids=0)
+Story: lead vs Fire -> MarshtompL35 (from MarshtompL35 SwellowL29 PoochyenaL13 WhismurL11; hunted_pids=0)
+Story: lead vs Fire -> MarshtompL35 (from MarshtompL35 SwellowL29 PoochyenaL13 WhismurL11; hunted_pids=0)
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead SWAMPERT. Logged to badge-log.json.
+Story: lead vs Normal -> SwampertL36 (from SwampertL36 SwellowL31 PoochyenaL13 WhismurL13; hunted_pids=0)
+Story: lead vs Normal -> SwampertL36 (from SwampertL36 SwellowL31 PoochyenaL13 WhismurL13; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> SwampertL36 (from SwampertL36 SwellowL31 PoochyenaL13 WhismurL13; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> SwampertL36 (from SwampertL36 SwellowL32 PoochyenaL13 WhismurL13; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L37 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> SwampertL37 (from SwampertL37 SwellowL32 PoochyenaL13 WhismurL13; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L37 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> SwampertL37 (from SwampertL37 SwellowL32 PoochyenaL13 WhismurL13; hunted_pids=0)
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Grass -> BeautiflyL16 (from MarshtompL17 WhismurL16 BeautiflyL16 TaillowL16; hunted_pids=0)
+Story: lead vs Fighting -> BeautiflyL18 (from TaillowL18 WhismurL16 MarshtompL17 BeautiflyL18; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead BEAUTIFLY. Logged to badge-log.json.
+Story: lead vs Grass -> BeautiflyL19 (from BeautiflyL19 WhismurL16 MarshtompL17 TaillowL18; hunted_pids=0)
+Story: lead vs Grass -> BeautiflyL20 (from BeautiflyL20 WhismurL17 MarshtompL17 TaillowL18; hunted_pids=0)
+Story: lead vs Electric -> MarshtompL20 (from BeautiflyL22 MarshtompL20 LoudredL20 TaillowL20; hunted_pids=0)
+Story: lead vs Electric -> MarshtompL23 (from MarshtompL23 BeautiflyL23 LoudredL20 TaillowL20; hunted_pids=0)
+Story: lead vs Electric -> MarshtompL25 (from MarshtompL25 BeautiflyL25 LoudredL25 SwellowL25; hunted_pids=0)
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Fire/Poison -> MarshtompL28 (from MarshtompL28 BeautiflyL28 LoudredL26 SwellowL25; hunted_pids=0)
+Story: lead vs Fire -> MarshtompL31 (from MarshtompL31 BeautiflyL28 LoudredL26 SwellowL26; hunted_pids=0)
+Story: lead vs Fire -> MarshtompL32 (from MarshtompL32 BeautiflyL28 LoudredL26 SwellowL26; hunted_pids=0)
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Normal -> MarshtompL32 (from MarshtompL32 BeautiflyL30 LoudredL26 SwellowL26; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L33 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MarshtompL33 (from MarshtompL33 BeautiflyL30 LoudredL26 SwellowL26; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L33 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MarshtompL33 (from MarshtompL33 BeautiflyL30 LoudredL26 SwellowL26; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L33 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MarshtompL33 (from MarshtompL33 BeautiflyL31 LoudredL26 SwellowL26; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MarshtompL34 (from MarshtompL34 BeautiflyL31 LoudredL26 SwellowL26; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MarshtompL34 (from MarshtompL34 BeautiflyL31 LoudredL26 SwellowL27; hunted_pids=0)
+Story: counter hunt CAUGHT Machop (slot 5).
+Story: counter registered (pid=048EB7F2); it will lead this boss and is protected from PC deposit.
+Story: training the counter at ROUTE117 (31, 16) rather than the boss's own patch ROUTE102 — closer to L16 and it has a working heal loop.
+Story: training the counter — Machop L16 -> L29 (team is L34, est 242177 frames).
+Story: lead vs Normal -> MachopL16 (from MarshtompL34 MachopL16 LoudredL26 SwellowL28 BeautiflyL31; hunted_pids=1)
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MachopL17 (from MachopL17 MarshtompL34 LoudredL26 SwellowL28 BeautiflyL31; hunted_pids=1)
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MachopL17 (from MachopL17 MarshtompL35 LoudredL26 SwellowL29 BeautiflyL31; hunted_pids=1)
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MachopL17 (from MachopL17 MarshtompL35 LoudredL26 SwellowL29 BeautiflyL31; hunted_pids=1)
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MachopL17 (from MachopL17 MarshtompL35 LoudredL26 SwellowL29 BeautiflyL31; hunted_pids=1)
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MachopL17 (from MachopL17 MarshtompL35 LoudredL26 SwellowL30 BeautiflyL32; hunted_pids=1)
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MachopL17 (from MachopL17 MarshtompL35 LoudredL26 SwellowL30 BeautiflyL32; hunted_pids=1)
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MachopL17 (from MachopL17 MarshtompL35 LoudredL26 SwellowL30 BeautiflyL32; hunted_pids=1)
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MachopL17 (from MachopL17 MarshtompL35 LoudredL26 SwellowL30 BeautiflyL32; hunted_pids=1)
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MachopL17 (from MachopL17 MarshtompL36 LoudredL26 SwellowL31 BeautiflyL32; hunted_pids=1)
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MachopL17 (from MachopL17 MarshtompL36 LoudredL26 SwellowL31 BeautiflyL33; hunted_pids=1)
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MachopL17 (from MachopL17 MarshtompL36 LoudredL26 SwellowL31 BeautiflyL33; hunted_pids=1)
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MachopL17 (from MachopL17 MarshtompL36 LoudredL26 SwellowL32 BeautiflyL33; hunted_pids=1)
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MachopL17 (from MachopL17 MarshtompL36 LoudredL26 SwellowL32 BeautiflyL33; hunted_pids=1)
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MachopL17 (from MachopL17 MarshtompL36 LoudredL26 SwellowL32 BeautiflyL33; hunted_pids=1)
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MachopL17 (from MachopL17 MarshtompL36 LoudredL26 SwellowL32 BeautiflyL33; hunted_pids=1)
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MachopL17 (from MachopL17 MarshtompL36 LoudredL26 SwellowL32 BeautiflyL34; hunted_pids=1)
+Story: local grass (max L4) is fodder for a L37 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MachopL17 (from MachopL17 MarshtompL37 LoudredL26 SwellowL32 BeautiflyL34; hunted_pids=1)
+Story: local grass (max L4) is fodder for a L37 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MachopL17 (from MachopL17 MarshtompL37 LoudredL26 SwellowL32 BeautiflyL34; hunted_pids=1)
+BADGE: Balance Badge (Norman, Petalburg) — team of 5, lead MACHOP. Logged to badge-log.json.
+Story: NOT depositing Machop — it is this boss's hunted counter, not dead weight.
+Story: PC rotation — depositing Castform L25 (level 25 is 13 behind the team's best (L38); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 5.
+Story: lead vs Flying -> SwampertL38 (from MachopL17 SwampertL38 LoudredL29 SwellowL37 BeautiflyL34; hunted_pids=1)
+Story: lead vs Flying -> SwampertL39 (from SwampertL39 MachopL19 LoudredL29 SwellowL38 BeautiflyL34; hunted_pids=1)
+Story: lead vs Flying -> SwampertL39 (from SwampertL39 MachopL19 LoudredL29 SwellowL39 BeautiflyL34; hunted_pids=1)
+BADGE: Feather Badge (Winona, Fortree) — team of 5, lead SWAMPERT. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Grass -> WhismurL10 (from MarshtompL19 WhismurL10 ZigzagoonL10 PoochyenaL10; hunted_pids=0)
+Story: lead vs Fighting -> MarshtompL20 (from WhismurL12 MarshtompL20 ZigzagoonL10 PoochyenaL10; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Grass -> WhismurL12 (from MarshtompL22 WhismurL12 ZigzagoonL10 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> WhismurL14 (from WhismurL14 MarshtompL23 ZigzagoonL10 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> WhismurL14 (from WhismurL14 MarshtompL23 ZigzagoonL10 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> WhismurL14 (from WhismurL14 MarshtompL23 ZigzagoonL10 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> WhismurL14 (from WhismurL14 MarshtompL23 ZigzagoonL10 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> WhismurL14 (from WhismurL14 MarshtompL24 ZigzagoonL10 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> WhismurL14 (from WhismurL14 MarshtompL24 ZigzagoonL10 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> WhismurL14 (from WhismurL14 MarshtompL24 ZigzagoonL10 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> WhismurL14 (from WhismurL14 MarshtompL24 ZigzagoonL10 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> WhismurL14 (from WhismurL14 MarshtompL24 ZigzagoonL10 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> WhismurL14 (from WhismurL14 MarshtompL24 ZigzagoonL10 PoochyenaL10; hunted_pids=0)
+Story: lead vs Electric -> MarshtompL25 (from WhismurL14 MarshtompL25 ZigzagoonL10 PoochyenaL10; hunted_pids=0)
+Story: lead vs Electric -> MarshtompL27 (from MarshtompL27 WhismurL16 ZigzagoonL11 PoochyenaL11; hunted_pids=0)
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Fire/Poison -> MarshtompL33 (from MarshtompL33 WhismurL18 ZigzagoonL11 PoochyenaL12; hunted_pids=0)
+Story: lead vs Fire/Poison -> MarshtompL34 (from MarshtompL34 WhismurL19 ZigzagoonL12 PoochyenaL12; hunted_pids=0)
+Story: lead vs Fire/Poison -> MarshtompL34 (from MarshtompL34 WhismurL19 ZigzagoonL12 PoochyenaL12; hunted_pids=0)
+Story: lead vs Fire/Poison -> MarshtompL35 (from MarshtompL35 WhismurL19 ZigzagoonL12 PoochyenaL12; hunted_pids=0)
+Story: lead vs Fire/Poison -> MarshtompL35 (from MarshtompL35 WhismurL19 ZigzagoonL12 PoochyenaL12; hunted_pids=0)
+Story: lead vs Fire/Poison -> MarshtompL36 (from MarshtompL36 WhismurL19 ZigzagoonL12 PoochyenaL12; hunted_pids=0)
+Story: lead vs Fire/Poison -> MarshtompL36 (from MarshtompL36 WhismurL19 ZigzagoonL12 PoochyenaL12; hunted_pids=0)
+Story: lead vs Fire/Poison -> MarshtompL36 (from MarshtompL36 WhismurL19 ZigzagoonL12 PoochyenaL12; hunted_pids=0)
+Story: lead vs Fire -> SwampertL37 (from SwampertL37 WhismurL19 ZigzagoonL12 PoochyenaL12; hunted_pids=0)
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead SWAMPERT. Logged to badge-log.json.
+Story: lead vs Normal -> SwampertL39 (from SwampertL39 LoudredL20 ZigzagoonL12 PoochyenaL12; hunted_pids=0)
+Story: lead vs Normal -> SwampertL40 (from SwampertL40 LoudredL20 ZigzagoonL12 PoochyenaL12; hunted_pids=0)
+BADGE: Balance Badge (Norman, Petalburg) — team of 4, lead SWAMPERT. Logged to badge-log.json.
+Story: lead vs Flying -> SwampertL44 (from SwampertL44 LoudredL22 ZigzagoonL12 PoochyenaL12 CastformL25; hunted_pids=0)
+Story: lead vs Flying -> SwampertL45 (from SwampertL45 LoudredL24 ZigzagoonL12 PoochyenaL15 CastformL26; hunted_pids=0)
+BADGE: Feather Badge (Winona, Fortree) — team of 5, lead SWAMPERT. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Grass -> DustoxL10 (from MarshtompL19 DustoxL10 SlakothL10 NincadaL10; hunted_pids=0)
+Story: lead vs Fighting -> DustoxL11 (from DustoxL11 MarshtompL19 SlakothL10 NincadaL10; hunted_pids=0)
+Story: lead vs Fighting -> DustoxL11 (from DustoxL11 MarshtompL19 SlakothL10 NincadaL11; hunted_pids=0)
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead TAILLOW. Logged to badge-log.json.
+Story: lead vs Grass -> GrovyleL19 (from GrovyleL19 TaillowL19 PoochyenaL10 WhismurL10; hunted_pids=0)
+Story: lead vs Fighting -> GrovyleL20 (from GrovyleL20 TaillowL19 PoochyenaL10 WhismurL10; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead GROVYLE. Logged to badge-log.json.
+Story: lead vs Fire -> TaillowL19 (from GrovyleL22 TaillowL19 PoochyenaL10 WhismurL10; hunted_pids=0)
+Story: lead vs Fire -> TaillowL20 (from TaillowL20 GrovyleL23 PoochyenaL10 WhismurL10; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL25 (from GrovyleL25 SwellowL24 PoochyenaL11 WhismurL10; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL26 (from GrovyleL26 SwellowL25 PoochyenaL11 WhismurL10; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL27 (from MightyenaL27 SwellowL27 GrovyleL27 WhismurL10; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL28 (from MightyenaL28 GrovyleL28 SwellowL28 WhismurL10; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL29 (from SwellowL29 GrovyleL29 MightyenaL29 WhismurL10; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL30 (from MightyenaL30 GrovyleL30 SwellowL30 WhismurL10; hunted_pids=0)
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead GROVYLE. Logged to badge-log.json.
+Story: lead vs Fire/Poison -> MightyenaL32 (from GrovyleL32 MightyenaL32 SwellowL30 WhismurL10; hunted_pids=0)
+Story: lead vs Fire -> MightyenaL34 (from MightyenaL34 GrovyleL32 SwellowL30 WhismurL10; hunted_pids=0)
+Story: lead vs Fire -> MightyenaL35 (from MightyenaL35 GrovyleL33 SwellowL30 WhismurL10; hunted_pids=0)
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead MIGHTYENA. Logged to badge-log.json.
+Story: lead vs Normal -> MightyenaL36 (from MightyenaL36 GrovyleL33 SwellowL30 WhismurL10; hunted_pids=0)
+Story: lead vs Normal -> MightyenaL37 (from MightyenaL37 GrovyleL33 SwellowL31 WhismurL10; hunted_pids=0)
+BADGE: Balance Badge (Norman, Petalburg) — team of 4, lead MIGHTYENA. Logged to badge-log.json.
+Story: PC rotation — depositing Whismur L10 (level 10 is 27 behind the team's best (L37); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6), Castform L25 (level 25 is 12 behind the team's best (L37); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 4.
+Story: lead vs Flying -> MightyenaL38 (from MightyenaL38 GrovyleL35 SwellowL36 ZigzagoonL4; hunted_pids=0)
+Story: lead vs Flying -> MightyenaL38 (from MightyenaL38 GrovyleL35 SwellowL38 ZigzagoonL9; hunted_pids=0)
+Story: lead vs Flying -> MightyenaL38 (from MightyenaL38 GrovyleL35 SwellowL38 ZigzagoonL9; hunted_pids=0)
+Story: lead vs Flying -> SwellowL39 (from MightyenaL38 GrovyleL35 SwellowL39 ZigzagoonL9; hunted_pids=0)
+Story: lead vs Flying -> SwellowL39 (from SwellowL39 GrovyleL35 MightyenaL38 ZigzagoonL9; hunted_pids=0)
+Story: lead vs Flying -> SwellowL40 (from MightyenaL38 GrovyleL35 SwellowL40 ZigzagoonL9; hunted_pids=0)
+Story: lead vs Flying -> SwellowL40 (from MightyenaL38 GrovyleL35 SwellowL40 ZigzagoonL9; hunted_pids=0)
+Story: lead vs Flying -> SwellowL40 (from MightyenaL38 GrovyleL35 SwellowL40 ZigzagoonL9; hunted_pids=0)
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead GROVYLE. Logged to badge-log.json.
+Story: lead vs Grass -> DustoxL10 (from GrovyleL19 WhismurL11 DustoxL10 PoochyenaL10; hunted_pids=0)
+Story: lead vs Fighting -> DustoxL15 (from GrovyleL19 DustoxL15 PoochyenaL15 WhismurL15; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead DUSTOX. Logged to badge-log.json.
+Story: lead vs Fire -> PoochyenaL15 (from DustoxL17 GrovyleL19 PoochyenaL15 WhismurL15; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL16 (from PoochyenaL16 GrovyleL20 DustoxL17 WhismurL15; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL16 (from PoochyenaL16 GrovyleL21 DustoxL17 WhismurL15; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL16 (from PoochyenaL16 GrovyleL21 DustoxL17 WhismurL15; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL17 (from PoochyenaL17 GrovyleL21 DustoxL17 WhismurL15; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL23 (from MightyenaL23 GrovyleL23 DustoxL23 WhismurL16; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL24 (from GrovyleL24 MightyenaL23 DustoxL23 LoudredL21; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL26 (from GrovyleL26 DustoxL26 MightyenaL26 LoudredL26; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL27 (from LoudredL27 GrovyleL27 DustoxL27 MightyenaL27; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL28 (from MightyenaL28 GrovyleL28 LoudredL28 DustoxL28; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL29 (from DustoxL29 GrovyleL29 MightyenaL29 LoudredL29; hunted_pids=0)
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead GROVYLE. Logged to badge-log.json.
+Story: lead vs Fire/Poison -> LoudredL30 (from GrovyleL31 DustoxL31 MightyenaL29 LoudredL30; hunted_pids=0)
+Story: lead vs Fire -> LoudredL32 (from LoudredL32 DustoxL32 MightyenaL29 GrovyleL32; hunted_pids=0)
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead LOUDRED. Logged to badge-log.json.
+Story: lead vs Normal -> DustoxL33 (from LoudredL32 DustoxL33 MightyenaL30 GrovyleL32; hunted_pids=0)
+Story: lead vs Normal -> DustoxL33 (from DustoxL33 LoudredL33 MightyenaL30 GrovyleL33; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L33 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> DustoxL33 (from DustoxL33 LoudredL33 MightyenaL30 GrovyleL33; hunted_pids=0)
+BADGE: Balance Badge (Norman, Petalburg) — team of 4, lead DUSTOX. Logged to badge-log.json.
+Story: PC rotation — depositing Castform L25 (level 25 is 10 behind the team's best (L35); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 5.
+Story: lead vs Flying -> LoudredL35 (from DustoxL36 LoudredL35 MightyenaL32 GrovyleL34 ZigzagoonL3; hunted_pids=0)
+Story: lead vs Flying -> LoudredL36 (from LoudredL36 DustoxL37 MightyenaL32 GrovyleL34 ZigzagoonL3; hunted_pids=0)
+Story: lead vs Flying -> LoudredL36 (from LoudredL36 DustoxL37 MightyenaL32 GrovyleL34 ZigzagoonL3; hunted_pids=0)
+Story: lead vs Flying -> LoudredL37 (from LoudredL37 DustoxL38 MightyenaL32 GrovyleL34 ZigzagoonL3; hunted_pids=0)
+Story: lead vs Flying -> LoudredL37 (from LoudredL37 DustoxL38 MightyenaL32 GrovyleL34 ZigzagoonL3; hunted_pids=0)
+Story: lead vs Flying -> LoudredL38 (from LoudredL38 DustoxL38 MightyenaL32 GrovyleL34 ZigzagoonL3; hunted_pids=0)
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead GROVYLE. Logged to badge-log.json.
+Story: lead vs Grass -> GrovyleL19 (from GrovyleL19 PoochyenaL16 TaillowL16 WhismurL16; hunted_pids=0)
+Story: lead vs Fighting -> GrovyleL21 (from GrovyleL21 PoochyenaL16 TaillowL18 WhismurL16; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead GROVYLE. Logged to badge-log.json.
+Story: lead vs Fire -> TaillowL18 (from GrovyleL22 PoochyenaL16 TaillowL18 WhismurL16; hunted_pids=0)
+Story: lead vs Fire -> TaillowL19 (from TaillowL19 PoochyenaL17 GrovyleL23 WhismurL16; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL24 (from GrovyleL24 PoochyenaL17 SwellowL24 WhismurL16; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL24 (from SwellowL25 GrovyleL24 MightyenaL23 LoudredL23; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL26 (from MightyenaL26 GrovyleL26 LoudredL26 SwellowL26; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL27 (from SwellowL27 GrovyleL27 MightyenaL27 LoudredL27; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL28 (from LoudredL28 GrovyleL28 SwellowL28 MightyenaL28; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL29 (from MightyenaL29 GrovyleL29 LoudredL29 SwellowL29; hunted_pids=0)
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead GROVYLE. Logged to badge-log.json.
+Story: lead vs Fire/Poison -> MightyenaL31 (from GrovyleL30 MightyenaL31 LoudredL29 SwellowL30; hunted_pids=0)
+Story: lead vs Fire -> MightyenaL33 (from MightyenaL33 GrovyleL31 LoudredL29 SwellowL31; hunted_pids=0)
+Story: lead vs Fire -> MightyenaL33 (from MightyenaL33 GrovyleL31 LoudredL29 SwellowL31; hunted_pids=0)
+Story: lead vs Fire -> MightyenaL33 (from MightyenaL33 GrovyleL31 LoudredL29 SwellowL32; hunted_pids=0)
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead MIGHTYENA. Logged to badge-log.json.
+Story: lead vs Normal -> MightyenaL34 (from MightyenaL34 GrovyleL32 LoudredL29 SwellowL32; hunted_pids=0)
+Story: lead vs Normal -> MightyenaL34 (from MightyenaL34 GrovyleL33 LoudredL29 SwellowL33; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MightyenaL34 (from MightyenaL34 GrovyleL33 LoudredL29 SwellowL33; hunted_pids=0)
+BADGE: Balance Badge (Norman, Petalburg) — team of 4, lead MIGHTYENA. Logged to badge-log.json.
+Story: PC rotation — depositing Castform L25 (level 25 is 11 behind the team's best (L36); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 5.
+Story: lead vs Flying -> MightyenaL37 (from MightyenaL37 GrovyleL34 LoudredL31 SwellowL35 ZigzagoonL3; hunted_pids=0)
+Story: lead vs Flying -> MightyenaL38 (from MightyenaL38 SceptileL36 LoudredL31 SwellowL36 ZigzagoonL3; hunted_pids=0)
+Story: lead vs Flying -> MightyenaL38 (from MightyenaL38 SceptileL36 LoudredL31 SwellowL36 ZigzagoonL3; hunted_pids=0)
+Story: lead vs Flying -> MightyenaL38 (from MightyenaL38 SceptileL36 LoudredL31 SwellowL37 ZigzagoonL3; hunted_pids=0)
+Story: lead vs Flying -> MightyenaL38 (from MightyenaL38 SceptileL36 LoudredL31 SwellowL38 ZigzagoonL3; hunted_pids=0)
+Story: lead vs Flying -> MightyenaL38 (from MightyenaL38 SceptileL36 LoudredL31 SwellowL38 ZigzagoonL3; hunted_pids=0)
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead GROVYLE. Logged to badge-log.json.
+Story: lead vs Grass -> DustoxL10 (from GrovyleL19 ShroomishL10 DustoxL10 PoochyenaL10; hunted_pids=0)
+Story: lead vs Fighting -> DustoxL14 (from GrovyleL20 DustoxL14 PoochyenaL14 ShroomishL14; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead DUSTOX. Logged to badge-log.json.
+Story: lead vs Fire -> PoochyenaL14 (from DustoxL16 GrovyleL20 PoochyenaL14 ShroomishL14; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL15 (from PoochyenaL15 GrovyleL21 DustoxL16 ShroomishL14; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL15 (from PoochyenaL15 GrovyleL21 DustoxL16 ShroomishL14; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL15 (from PoochyenaL15 GrovyleL22 DustoxL16 ShroomishL14; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL15 (from PoochyenaL15 GrovyleL22 DustoxL17 ShroomishL14; hunted_pids=0)
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead GROVYLE. Logged to badge-log.json.
+Story: lead vs Grass -> GrovyleL19 (from GrovyleL19 PoochyenaL10 NincadaL10 WhismurL10; hunted_pids=0)
+Story: lead vs Fighting -> NincadaL14 (from GrovyleL21 NincadaL14 PoochyenaL14 WhismurL14; hunted_pids=0)
+Story: lead vs Fighting -> NincadaL14 (from NincadaL14 GrovyleL21 PoochyenaL14 WhismurL14; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead NINCADA. Logged to badge-log.json.
+Story: lead vs Fire -> PoochyenaL14 (from NincadaL14 GrovyleL22 PoochyenaL14 WhismurL14; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL15 (from PoochyenaL15 GrovyleL23 NincadaL14 WhismurL14; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL16 (from PoochyenaL16 GrovyleL23 NincadaL14 WhismurL14; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL16 (from PoochyenaL16 GrovyleL23 NincadaL14 WhismurL14; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL16 (from PoochyenaL16 GrovyleL23 NincadaL14 WhismurL14; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL16 (from PoochyenaL16 GrovyleL23 NincadaL14 WhismurL14; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL16 (from PoochyenaL16 GrovyleL23 NincadaL14 WhismurL14; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL16 (from PoochyenaL16 GrovyleL23 NincadaL14 WhismurL14; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL16 (from PoochyenaL16 GrovyleL23 NincadaL14 WhismurL15; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL16 (from PoochyenaL16 GrovyleL23 NincadaL14 WhismurL15; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL16 (from PoochyenaL16 GrovyleL23 NincadaL14 WhismurL15; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL16 (from PoochyenaL16 GrovyleL23 NincadaL14 WhismurL15; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL16 (from PoochyenaL16 GrovyleL23 NincadaL14 WhismurL16; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL16 (from PoochyenaL16 GrovyleL23 NincadaL14 WhismurL16; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL16 (from PoochyenaL16 GrovyleL23 NincadaL14 WhismurL16; hunted_pids=0)
+Story: lead vs Fire -> WhismurL17 (from PoochyenaL16 GrovyleL23 NincadaL14 WhismurL17; hunted_pids=0)
+Story: lead vs Fire -> WhismurL17 (from WhismurL17 GrovyleL23 NincadaL14 PoochyenaL17; hunted_pids=0)
+Story: lead vs Fire -> WhismurL17 (from WhismurL17 GrovyleL23 NincadaL14 PoochyenaL17; hunted_pids=0)
+Story: lead vs Fire -> WhismurL17 (from WhismurL17 GrovyleL23 NincadaL14 PoochyenaL17; hunted_pids=0)
+Story: lead vs Fire -> WhismurL17 (from WhismurL17 GrovyleL23 NincadaL14 PoochyenaL17; hunted_pids=0)
+Story: lead vs Fire -> WhismurL17 (from WhismurL17 GrovyleL23 NincadaL14 PoochyenaL17; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL18 (from WhismurL17 GrovyleL23 NincadaL14 PoochyenaL18; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL18 (from PoochyenaL18 GrovyleL23 NincadaL14 WhismurL17; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL18 (from PoochyenaL18 GrovyleL23 NincadaL14 WhismurL17; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL18 (from PoochyenaL18 GrovyleL23 NincadaL14 WhismurL17; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL18 (from PoochyenaL18 GrovyleL23 NincadaL14 WhismurL17; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL18 (from PoochyenaL18 GrovyleL23 NincadaL14 WhismurL18; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL18 (from PoochyenaL18 GrovyleL23 NincadaL14 WhismurL18; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL18 (from PoochyenaL18 GrovyleL23 NincadaL14 WhismurL18; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL18 (from PoochyenaL18 GrovyleL23 NincadaL14 WhismurL18; hunted_pids=0)
+Story: lead vs Electric -> NincadaL14 (from GrovyleL25 MightyenaL23 NincadaL14 LoudredL23; hunted_pids=0)
+Story: lead vs Electric -> NincadaL15 (from GrovyleL26 MightyenaL24 NincadaL15 LoudredL24; hunted_pids=0)
+Story: lead vs Electric -> NincadaL16 (from MightyenaL27 NincadaL16 GrovyleL27 LoudredL27; hunted_pids=0)
+Story: lead vs Electric -> NincadaL17 (from MightyenaL28 NincadaL17 GrovyleL28 LoudredL28; hunted_pids=0)
+Story: lead vs Electric -> NincadaL19 (from MightyenaL29 NincadaL19 GrovyleL29 LoudredL29; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL30 (from MightyenaL30 NinjaskL20 GrovyleL30 LoudredL30 ShedinjaL20; hunted_pids=0)
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 5, lead GROVYLE. Logged to badge-log.json.
+Story: lead vs Fire/Poison -> MightyenaL30 (from GrovyleL34 NinjaskL22 MightyenaL30 LoudredL30 ShedinjaL20; hunted_pids=0)
+Story: lead vs Fire -> MightyenaL31 (from MightyenaL31 NinjaskL22 GrovyleL34 LoudredL30 ShedinjaL20; hunted_pids=0)
+Story: lead vs Fire -> MightyenaL31 (from MightyenaL31 NinjaskL22 GrovyleL34 LoudredL30 ShedinjaL20; hunted_pids=0)
+Story: lead vs Fire -> MightyenaL32 (from MightyenaL32 NinjaskL22 GrovyleL34 LoudredL31 ShedinjaL20; hunted_pids=0)
+Story: lead vs Fire -> MightyenaL32 (from MightyenaL32 NinjaskL22 GrovyleL34 LoudredL31 ShedinjaL20; hunted_pids=0)
+Story: lead vs Fire -> MightyenaL32 (from MightyenaL32 NinjaskL22 GrovyleL34 LoudredL31 ShedinjaL20; hunted_pids=0)
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 5, lead MIGHTYENA. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: lead vs Grass -> DustoxL16 (from CombuskenL20 PoochyenaL16 DustoxL16; hunted_pids=0)
+Story: lead vs Fighting -> DustoxL17 (from DustoxL17 PoochyenaL16 CombuskenL20; hunted_pids=0)
+Story: lead vs Fighting -> DustoxL18 (from DustoxL18 PoochyenaL16 CombuskenL20; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead DUSTOX. Logged to badge-log.json.
+Story: lead vs Water -> DustoxL18 (from DustoxL18 PoochyenaL16 CombuskenL21; hunted_pids=0)
+Story: lead vs Water -> DustoxL19 (from DustoxL19 PoochyenaL17 CombuskenL22; hunted_pids=0)
+Story: lead vs Water -> DustoxL19 (from DustoxL19 PoochyenaL17 CombuskenL22; hunted_pids=0)
+Story: lead vs Water -> DustoxL20 (from DustoxL20 PoochyenaL17 CombuskenL22; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL23 (from CombuskenL23 DustoxL22 MightyenaL22; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL25 (from CombuskenL25 MightyenaL24 DustoxL24; hunted_pids=0)
+Story: lead vs Electric -> MightyenaL27 (from MightyenaL27 DustoxL27 CombuskenL27; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL28 (from CombuskenL28 MightyenaL28 DustoxL28; hunted_pids=0)
+Story: lead vs Electric -> DustoxL29 (from DustoxL29 CombuskenL29 MightyenaL29; hunted_pids=0)
+Story: lead vs Electric -> MightyenaL30 (from MightyenaL30 DustoxL30 CombuskenL30; hunted_pids=0)
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead MIGHTYENA. Logged to badge-log.json.
+Story: lead vs Fire/Poison -> MightyenaL33 (from MightyenaL33 DustoxL31 CombuskenL30; hunted_pids=0)
+Story: lead vs Fire -> CombuskenL31 (from MightyenaL34 DustoxL32 CombuskenL31; hunted_pids=0)
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: lead vs Normal -> MightyenaL35 (from CombuskenL31 DustoxL33 MightyenaL35; hunted_pids=0)
+Story: lead vs Normal -> MightyenaL35 (from MightyenaL35 DustoxL33 CombuskenL32; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MightyenaL35 (from MightyenaL35 DustoxL33 CombuskenL32; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MightyenaL35 (from MightyenaL35 DustoxL33 CombuskenL33; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MightyenaL36 (from MightyenaL36 DustoxL33 CombuskenL34; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MightyenaL36 (from MightyenaL36 DustoxL33 CombuskenL34; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MightyenaL36 (from MightyenaL36 DustoxL33 CombuskenL35; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MightyenaL36 (from MightyenaL36 DustoxL33 CombuskenL35; hunted_pids=0)
+BADGE: Balance Badge (Norman, Petalburg) — team of 4, lead MIGHTYENA. Logged to badge-log.json.
+Story: PC rotation — depositing Abra L7 (level 7 is 31 behind the team's best (L38); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6), Castform L25 (level 25 is 13 behind the team's best (L38); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 4.
+Story: lead vs Flying -> MightyenaL38 (from MightyenaL38 DustoxL36 BlazikenL38 ZigzagoonL5; hunted_pids=0)
+Story: lead vs Flying -> MightyenaL38 (from MightyenaL38 DustoxL37 BlazikenL39 ZigzagoonL7; hunted_pids=0)
+BADGE: Feather Badge (Winona, Fortree) — team of 4, lead MIGHTYENA. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: lead vs Grass -> DustoxL10 (from CombuskenL19 TaillowL17 DustoxL10 WhismurL10; hunted_pids=0)
+Story: lead vs Fighting -> DustoxL13 (from CombuskenL19 TaillowL18 DustoxL13 WhismurL10; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead DUSTOX. Logged to badge-log.json.
+Story: lead vs Water -> TaillowL18 (from DustoxL16 TaillowL18 CombuskenL19 WhismurL10; hunted_pids=0)
+Story: lead vs Water -> TaillowL19 (from TaillowL19 DustoxL18 CombuskenL20 WhismurL10; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL23 (from CombuskenL23 DustoxL23 SwellowL23 WhismurL10; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL24 (from CombuskenL24 DustoxL23 SwellowL23 WhismurL10; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL25 (from CombuskenL25 SwellowL25 DustoxL25 WhismurL10; hunted_pids=0)
+Story: lead vs Electric -> DustoxL26 (from DustoxL26 CombuskenL26 SwellowL26 WhismurL10; hunted_pids=0)
+Story: lead vs Electric -> DustoxL27 (from SwellowL27 DustoxL27 CombuskenL27 WhismurL10; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL28 (from CombuskenL28 DustoxL28 SwellowL28 WhismurL10; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL29 (from SwellowL29 CombuskenL29 DustoxL29 WhismurL10; hunted_pids=0)
+Story: ROUTE111 (25, 55) is not reachable from here — dropping it as a training option for the rest of this run.
+Story: ROUTE111 is not reachable from here (Could not reach (25, 55) on MapRSE.ROUTE111: the field is idle and we are still at (31, 114), so retrying cannot change the result (Could not find a path from (31/114 @ ROUTE111) to (25/55 @ ROUTE111).).) — trying the next counter destination.
+Story: ROUTE116 (11, 7) is not reachable from here — dropping it as a training option for the rest of this run.
+Story: ROUTE116 is not reachable from here (Could not reach (11, 7) on MapRSE.ROUTE116: the field is idle and we are still at (65, 11), so retrying cannot change the result (Could not find a path from (65/11 @ ROUTE116) to (11/7 @ ROUTE116).).) — trying the next counter destination.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Grass -> DustoxL16 (from MarshtompL18 WhismurL16 DustoxL16 PoochyenaL16; hunted_pids=0)
+Story: lead vs Fighting -> DustoxL17 (from DustoxL17 WhismurL16 MarshtompL18 PoochyenaL16; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead DUSTOX. Logged to badge-log.json.
+Story: lead vs Grass -> DustoxL19 (from DustoxL19 WhismurL16 MarshtompL18 PoochyenaL16; hunted_pids=0)
+Story: lead vs Grass -> DustoxL20 (from DustoxL20 WhismurL17 MarshtompL19 PoochyenaL16; hunted_pids=0)
+Story: lead vs Electric -> MarshtompL24 (from DustoxL24 WhismurL18 MarshtompL24 PoochyenaL16; hunted_pids=0)
+Story: lead vs Electric -> MarshtompL26 (from MarshtompL26 WhismurL18 DustoxL24 PoochyenaL16; hunted_pids=0)
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Fire/Poison -> MarshtompL31 (from MarshtompL31 LoudredL20 DustoxL26 PoochyenaL17; hunted_pids=0)
+Story: lead vs Fire/Poison -> MarshtompL32 (from MarshtompL32 LoudredL20 DustoxL26 PoochyenaL17; hunted_pids=0)
+Story: lead vs Fire/Poison -> MarshtompL33 (from MarshtompL33 LoudredL21 DustoxL26 PoochyenaL17; hunted_pids=0)
+Story: lead vs Fire -> MarshtompL34 (from MarshtompL34 LoudredL21 DustoxL27 PoochyenaL17; hunted_pids=0)
+Story: lead vs Fire -> MarshtompL34 (from MarshtompL34 LoudredL21 DustoxL27 PoochyenaL17; hunted_pids=0)
+Story: lead vs Fire -> MarshtompL35 (from MarshtompL35 LoudredL21 DustoxL27 PoochyenaL17; hunted_pids=0)
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Normal -> SwampertL36 (from SwampertL36 LoudredL22 DustoxL27 PoochyenaL18; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L37 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> SwampertL37 (from SwampertL37 LoudredL22 DustoxL27 PoochyenaL18; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L37 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> SwampertL37 (from SwampertL37 LoudredL22 DustoxL27 PoochyenaL18; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L37 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> SwampertL37 (from SwampertL37 LoudredL22 DustoxL27 PoochyenaL18; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L38 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> SwampertL38 (from SwampertL38 LoudredL22 DustoxL27 PoochyenaL18; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L38 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> SwampertL38 (from SwampertL38 LoudredL22 DustoxL27 PoochyenaL18; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L38 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> SwampertL38 (from SwampertL38 LoudredL22 DustoxL27 PoochyenaL18; hunted_pids=0)
+BADGE: Balance Badge (Norman, Petalburg) — team of 4, lead SWAMPERT. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: lead vs Grass -> CombuskenL19 (from CombuskenL19 PoochyenaL16; hunted_pids=0)
+Story: lead vs Fighting -> CombuskenL21 (from CombuskenL21 PoochyenaL16; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: lead vs Water -> PoochyenaL16 (from CombuskenL23 PoochyenaL16; hunted_pids=0)
+Story: lead vs Water -> PoochyenaL16 (from PoochyenaL16 CombuskenL23; hunted_pids=0)
+Story: lead vs Water -> PoochyenaL16 (from PoochyenaL16 CombuskenL24; hunted_pids=0)
+Story: lead vs Water -> PoochyenaL17 (from PoochyenaL17 CombuskenL24; hunted_pids=0)
+Story: lead vs Water -> PoochyenaL17 (from PoochyenaL17 CombuskenL24; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL27 (from CombuskenL27 MightyenaL20; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL28 (from CombuskenL28 BeautiflyL14 MightyenaL24; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL33 (from CombuskenL33 BeautiflyL29 MightyenaL29; hunted_pids=0)
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: lead vs Fire/Poison -> BlazikenL37 (from BlazikenL37 BeautiflyL29 MightyenaL29; hunted_pids=0)
+Story: lead vs Fire -> BlazikenL39 (from BlazikenL39 BeautiflyL29 MightyenaL29; hunted_pids=0)
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead BLAZIKEN. Logged to badge-log.json.
+Story: lead vs Normal -> BlazikenL41 (from BlazikenL41 BeautiflyL30 MightyenaL29; hunted_pids=0)
+BADGE: Balance Badge (Norman, Petalburg) — team of 4, lead BLAZIKEN. Logged to badge-log.json.
+Story: PC rotation — depositing Abra L7 (level 7 is 38 behind the team's best (L45); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6), Castform L25 (level 25 is 20 behind the team's best (L45); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 4.
+Story: lead vs Flying -> MightyenaL29 (from BlazikenL45 BeautiflyL31 MightyenaL29 ZigzagoonL3; hunted_pids=0)
+Story: lead vs Flying -> MightyenaL29 (from MightyenaL29 BeautiflyL31 BlazikenL45 ZigzagoonL3; hunted_pids=0)
+Story: lead vs Flying -> MightyenaL29 (from MightyenaL29 BeautiflyL31 BlazikenL45 ZigzagoonL3; hunted_pids=0)
+Story: lead vs Flying -> MightyenaL29 (from MightyenaL29 BeautiflyL31 BlazikenL45 ZigzagoonL3; hunted_pids=0)
+Story: lead vs Flying -> MightyenaL29 (from MightyenaL29 BeautiflyL31 BlazikenL45 ZigzagoonL3; hunted_pids=0)
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: lead vs Grass -> CombuskenL19 (from CombuskenL19 PoochyenaL16; hunted_pids=0)
+Story: lead vs Fighting -> CombuskenL21 (from CombuskenL21 PoochyenaL16; hunted_pids=0)
+Story: lead vs Fighting -> CombuskenL21 (from CombuskenL21 PoochyenaL16; hunted_pids=0)
+Story: lead vs Fighting -> CombuskenL23 (from CombuskenL23 MightyenaL23; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: lead vs Water -> MightyenaL23 (from CombuskenL24 MightyenaL23; hunted_pids=0)
+Story: lead vs Electric -> MightyenaL24 (from MightyenaL24 CombuskenL24; hunted_pids=0)
+Story: lead vs Electric -> MightyenaL26 (from MightyenaL26 CombuskenL25; hunted_pids=0)
+Story: lead vs Electric -> MightyenaL27 (from MightyenaL27 CombuskenL27; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL28 (from CombuskenL28 MightyenaL28; hunted_pids=0)
+Story: lead vs Electric -> MightyenaL29 (from MightyenaL29 CombuskenL29; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL30 (from CombuskenL30 MightyenaL30; hunted_pids=0)
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: lead vs Fire/Poison -> CombuskenL33 (from CombuskenL33 BeautiflyL13 MightyenaL31; hunted_pids=0)
+Story: lead vs Fire -> CombuskenL35 (from CombuskenL35 BeautiflyL14 MightyenaL32; hunted_pids=0)
+Story: lead vs Fire -> CombuskenL35 (from CombuskenL35 BeautiflyL14 MightyenaL32; hunted_pids=0)
+Story: lead vs Fire -> CombuskenL35 (from CombuskenL35 BeautiflyL14 MightyenaL33; hunted_pids=0)
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead BLAZIKEN. Logged to badge-log.json.
+Story: lead vs Normal -> BlazikenL37 (from BlazikenL37 BeautiflyL15 MightyenaL33; hunted_pids=0)
+Story: lead vs Normal -> BlazikenL38 (from BlazikenL38 BeautiflyL15 MightyenaL33; hunted_pids=0)
+BADGE: Balance Badge (Norman, Petalburg) — team of 4, lead BLAZIKEN. Logged to badge-log.json.
+Story: PC rotation — depositing Abra L8 (level 8 is 33 behind the team's best (L41); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6), Beautifly L18 (level 18 is 23 behind the team's best (L41); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 4.
+Story: lead vs Flying -> MightyenaL34 (from BlazikenL42 MightyenaL34 ZigzagoonL3 CastformL25; hunted_pids=0)
+Story: lead vs Flying -> MightyenaL36 (from MightyenaL36 BlazikenL43 ZigzagoonL3 CastformL26; hunted_pids=0)
+Story: lead vs Flying -> MightyenaL36 (from MightyenaL36 BlazikenL43 ZigzagoonL3 CastformL26; hunted_pids=0)
+Story: lead vs Flying -> MightyenaL37 (from MightyenaL37 BlazikenL43 ZigzagoonL3 CastformL26; hunted_pids=0)
+BADGE: Feather Badge (Winona, Fortree) — team of 4, lead MIGHTYENA. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: lead vs Grass -> CombuskenL19 (from CombuskenL19 ZigzagoonL10 PoochyenaL10; hunted_pids=0)
+Story: lead vs Fighting -> CombuskenL21 (from CombuskenL21 PoochyenaL14 ZigzagoonL14; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: lead vs Water -> PoochyenaL14 (from CombuskenL22 PoochyenaL14 ZigzagoonL14; hunted_pids=0)
+Story: lead vs Water -> PoochyenaL15 (from PoochyenaL15 CombuskenL24 ZigzagoonL14; hunted_pids=0)
+Story: lead vs Water -> PoochyenaL15 (from PoochyenaL15 CombuskenL24 ZigzagoonL14; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL25 (from PoochyenaL16 CombuskenL25 ZigzagoonL14; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL26 (from CombuskenL26 ZigzagoonL15 PoochyenaL16; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL26 (from CombuskenL26 ZigzagoonL15 PoochyenaL16; hunted_pids=0)
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: lead vs Grass -> CombuskenL20 (from CombuskenL20 WhismurL16 PoochyenaL16 LombreL16; hunted_pids=0)
+Story: lead vs Fighting -> CombuskenL21 (from CombuskenL21 WhismurL16 PoochyenaL16 LombreL16; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: lead vs Water -> LombreL16 (from CombuskenL23 WhismurL16 PoochyenaL16 LombreL16; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL29 (from CombuskenL29 LoudredL23 MightyenaL23 LombreL23; hunted_pids=0)
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: lead vs Fire/Poison -> CombuskenL34 (from CombuskenL34 LoudredL24 MightyenaL24 LombreL24; hunted_pids=0)
+Story: lead vs Fire/Poison -> CombuskenL36 (from CombuskenL36 LoudredL25 MightyenaL24 LombreL24; hunted_pids=0)
+Story: lead vs Fire/Poison -> CombuskenL36 (from CombuskenL36 LoudredL25 MightyenaL24 LombreL25; hunted_pids=0)
+Story: lead vs Fire -> BlazikenL37 (from BlazikenL37 LoudredL25 MightyenaL25 LombreL25; hunted_pids=0)
+Story: lead vs Fire -> BlazikenL37 (from BlazikenL37 LoudredL25 MightyenaL25 LombreL25; hunted_pids=0)
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead BLAZIKEN. Logged to badge-log.json.
+Story: local grass (max L4) is fodder for a L39 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> BlazikenL39 (from BlazikenL39 LoudredL25 MightyenaL25 LombreL26; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L39 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> BlazikenL39 (from BlazikenL39 LoudredL25 MightyenaL25 LombreL26; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L40 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> BlazikenL40 (from BlazikenL40 LoudredL25 MightyenaL25 LombreL26; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L40 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> BlazikenL40 (from BlazikenL40 LoudredL25 MightyenaL25 LombreL26; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L41 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> BlazikenL41 (from BlazikenL41 LoudredL25 MightyenaL25 LombreL26; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L41 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> BlazikenL41 (from BlazikenL41 LoudredL25 MightyenaL25 LombreL26; hunted_pids=0)
+Story: counter hunt CAUGHT Blaziken (slot 1).
+Story: counter registered (pid=8A9FFD99); it will lead this boss and is protected from PC deposit.
+Story: lead vs Normal -> BlazikenL42 (from BlazikenL42 LoudredL25 MightyenaL25 LombreL26; hunted_pids=1)
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: lead vs Grass -> CombuskenL19 (from CombuskenL19 TaillowL10 WhismurL10 PoochyenaL10; hunted_pids=0)
+Story: lead vs Fighting -> CombuskenL21 (from CombuskenL21 PoochyenaL14 TaillowL14 WhismurL14; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: lead vs Water -> PoochyenaL14 (from CombuskenL23 PoochyenaL14 TaillowL14 WhismurL14; hunted_pids=0)
+Story: lead vs Electric -> CombuskenL25 (from CombuskenL25 LoudredL20 MightyenaL20 TaillowL20; hunted_pids=0)
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Grass -> TaillowL10 (from MarshtompL18 TaillowL10 WhismurL10 PoochyenaL10; hunted_pids=0)
+Story: lead vs Fighting -> MarshtompL18 (from TaillowL13 MarshtompL18 WhismurL10 PoochyenaL10; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Grass -> TaillowL13 (from MarshtompL20 TaillowL13 WhismurL10 PoochyenaL10; hunted_pids=0)
+Story: lead vs Electric -> MarshtompL23 (from TaillowL15 MarshtompL23 WhismurL11 PoochyenaL10; hunted_pids=0)
+Story: lead vs Electric -> MarshtompL25 (from MarshtompL25 TaillowL15 WhismurL11 PoochyenaL11; hunted_pids=0)
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Fire/Poison -> MarshtompL32 (from MarshtompL32 TaillowL18 WhismurL12 PoochyenaL12; hunted_pids=0)
+Story: lead vs Fire/Poison -> MarshtompL33 (from MarshtompL33 TaillowL19 WhismurL12 PoochyenaL12; hunted_pids=0)
+Story: lead vs Fire -> MarshtompL35 (from MarshtompL35 TaillowL20 WhismurL13 PoochyenaL12; hunted_pids=0)
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead SWAMPERT. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead GROVYLE. Logged to badge-log.json.
+Story: lead vs Grass -> BeautiflyL10 (from GrovyleL19 NincadaL10 BeautiflyL10 WhismurL10; hunted_pids=0)
+Story: lead vs Fighting -> BeautiflyL15 (from GrovyleL20 WhismurL15 NincadaL15 BeautiflyL15; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead BEAUTIFLY. Logged to badge-log.json.
+Story: lead vs Fire -> WhismurL15 (from BeautiflyL17 WhismurL15 NincadaL15 GrovyleL20; hunted_pids=0)
+Story: lead vs Fire -> WhismurL16 (from WhismurL16 BeautiflyL18 NincadaL15 GrovyleL20; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL22 (from LoudredL22 NinjaskL22 BeautiflyL22 GrovyleL22 ShedinjaL20; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL23 (from GrovyleL23 NinjaskL22 BeautiflyL22 LoudredL22 ShedinjaL21; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL24 (from GrovyleL24 ShedinjaL24 NinjaskL24 BeautiflyL24 LoudredL24 PoochyenaL13; hunted_pids=0)
+Story: PC rotation — depositing Poochyena L13 (level 13 is 11 behind the team's best (L24); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 5.
+Story: lead vs Electric -> GrovyleL25 (from LoudredL25 GrovyleL25 ShedinjaL25 NinjaskL25 BeautiflyL25; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL26 (from BeautiflyL26 GrovyleL26 LoudredL26 ShedinjaL26 NinjaskL26; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL27 (from NinjaskL27 GrovyleL27 BeautiflyL27 LoudredL27 ShedinjaL27; hunted_pids=0)
+Story: ROUTE111 (25, 55) is not reachable from here — dropping it as a training option for the rest of this run.
+Story: ROUTE111 is not reachable from here (Could not reach (25, 55) on MapRSE.ROUTE111: the field is idle and we are still at (31, 114), so retrying cannot change the result (Could not find a path from (31/114 @ ROUTE111) to (25/55 @ ROUTE111).).) — trying the next counter destination.
+Story: ROUTE116 (11, 7) is not reachable from here — dropping it as a training option for the rest of this run.
+Story: ROUTE116 is not reachable from here (Could not reach (11, 7) on MapRSE.ROUTE116: the field is idle and we are still at (65, 11), so retrying cannot change the result (Could not find a path from (65/11 @ ROUTE116) to (11/7 @ ROUTE116).).) — trying the next counter destination.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead GROVYLE. Logged to badge-log.json.
+Story: lead vs Grass -> GrovyleL19 (from GrovyleL19 PoochyenaL10 WhismurL10 NincadaL10; hunted_pids=0)
+Story: lead vs Fighting -> NincadaL16 (from GrovyleL22 NincadaL16 PoochyenaL16 WhismurL16; hunted_pids=0)
+Story: lead vs Fighting -> NincadaL16 (from NincadaL16 GrovyleL22 PoochyenaL16 WhismurL16; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead NINCADA. Logged to badge-log.json.
+Story: lead vs Fire -> PoochyenaL16 (from NincadaL16 GrovyleL23 PoochyenaL16 WhismurL16; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL17 (from PoochyenaL17 GrovyleL23 NincadaL16 WhismurL16; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL26 (from GrovyleL26 LoudredL21 NinjaskL21 MightyenaL21 ShedinjaL20; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL27 (from GrovyleL27 MightyenaL23 LoudredL23 NinjaskL23 ShedinjaL23; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL29 (from LoudredL29 GrovyleL29 ShedinjaL29 NinjaskL29 MightyenaL29; hunted_pids=0)
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 5, lead GROVYLE. Logged to badge-log.json.
+Story: lead vs Fire/Poison -> LoudredL29 (from GrovyleL33 LoudredL29 ShedinjaL29 NinjaskL30 MightyenaL29; hunted_pids=0)
+Story: lead vs Fire -> LoudredL30 (from LoudredL30 GrovyleL35 ShedinjaL29 NinjaskL30 MightyenaL29; hunted_pids=0)
+Story: lead vs Fire -> LoudredL30 (from LoudredL30 GrovyleL35 ShedinjaL29 NinjaskL30 MightyenaL29; hunted_pids=0)
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 5, lead LOUDRED. Logged to badge-log.json.
+Story: lead vs Normal -> ShedinjaL29 (from LoudredL31 GrovyleL35 ShedinjaL29 NinjaskL30 MightyenaL29; hunted_pids=0)
+BADGE: Balance Badge (Norman, Petalburg) — team of 5, lead SHEDINJA. Logged to badge-log.json.
+Story: PC rotation — depositing Shedinja L30 (level 30 is 10 behind the team's best (L40); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6), Mightyena L30 (level 30 is 10 behind the team's best (L40); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 4.
+Story: lead vs Flying -> LoudredL33 (from SceptileL40 LoudredL33 NinjaskL31 ZigzagoonL3; hunted_pids=0)
+Story: lead vs Flying -> LoudredL34 (from LoudredL34 SceptileL41 NinjaskL31 ZigzagoonL3; hunted_pids=0)
+Story: lead vs Flying -> LoudredL34 (from LoudredL34 SceptileL42 NinjaskL31 ZigzagoonL3; hunted_pids=0)
+Story: lead vs Flying -> LoudredL34 (from LoudredL34 SceptileL42 NinjaskL31 ZigzagoonL3; hunted_pids=0)
+Story: lead vs Flying -> LoudredL35 (from LoudredL35 SceptileL42 NinjaskL31 ZigzagoonL3; hunted_pids=0)
+Story: lead vs Flying -> LoudredL35 (from LoudredL35 SceptileL42 NinjaskL31 ZigzagoonL3; hunted_pids=0)
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead GROVYLE. Logged to badge-log.json.
+Story: lead vs Grass -> DustoxL10 (from GrovyleL18 DustoxL10 PoochyenaL10; hunted_pids=0)
+Story: lead vs Fighting -> DustoxL15 (from GrovyleL18 PoochyenaL15 DustoxL15; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead DUSTOX. Logged to badge-log.json.
+Story: lead vs Fire -> PoochyenaL15 (from DustoxL17 PoochyenaL15 GrovyleL18; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL17 (from PoochyenaL17 DustoxL18 GrovyleL18; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL17 (from PoochyenaL17 DustoxL18 GrovyleL18; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL17 (from PoochyenaL17 DustoxL18 GrovyleL19; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL17 (from PoochyenaL17 DustoxL18 GrovyleL19; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL17 (from PoochyenaL17 DustoxL18 GrovyleL19; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL17 (from PoochyenaL17 DustoxL18 GrovyleL19; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL17 (from PoochyenaL17 DustoxL18 GrovyleL19; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL17 (from PoochyenaL17 DustoxL18 GrovyleL20; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL17 (from PoochyenaL17 DustoxL19 GrovyleL20; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL22 (from GrovyleL22 MightyenaL21 DustoxL21; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL23 (from GrovyleL23 MightyenaL21 DustoxL21; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL25 (from DustoxL25 MightyenaL25 GrovyleL25; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL26 (from DustoxL26 GrovyleL26 MightyenaL26; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL27 (from MightyenaL27 GrovyleL27 DustoxL27; hunted_pids=0)
+Story: lead vs Electric -> GrovyleL28 (from DustoxL28 GrovyleL28 MightyenaL28; hunted_pids=0)
+Story: ROUTE111 (25, 55) is not reachable from here — dropping it as a training option for the rest of this run.
+Story: ROUTE111 is not reachable from here (Could not reach (25, 55) on MapRSE.ROUTE111: the field is idle and we are still at (31, 114), so retrying cannot change the result (Could not find a path from (31/114 @ ROUTE111) to (25/55 @ ROUTE111).).) — trying the next counter destination.
+Story: ROUTE116 (11, 7) is not reachable from here — dropping it as a training option for the rest of this run.
+Story: ROUTE116 is not reachable from here (Could not reach (11, 7) on MapRSE.ROUTE116: the field is idle and we are still at (65, 11), so retrying cannot change the result (Could not find a path from (65/11 @ ROUTE116) to (11/7 @ ROUTE116).).) — trying the next counter destination.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead GROVYLE. Logged to badge-log.json.
+Story: lead vs Grass -> DustoxL10 (from GrovyleL19 DustoxL10 PoochyenaL10; hunted_pids=0)
+Story: lead vs Fighting -> DustoxL14 (from GrovyleL19 PoochyenaL14 DustoxL14; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead DUSTOX. Logged to badge-log.json.
+Story: lead vs Fire -> PoochyenaL14 (from DustoxL16 PoochyenaL14 GrovyleL19; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL15 (from PoochyenaL15 DustoxL17 GrovyleL20; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL16 (from PoochyenaL16 DustoxL17 GrovyleL20; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL16 (from PoochyenaL16 DustoxL17 GrovyleL21; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL16 (from PoochyenaL16 DustoxL17 GrovyleL21; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL16 (from PoochyenaL16 DustoxL17 GrovyleL21; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL16 (from PoochyenaL16 DustoxL17 GrovyleL21; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL16 (from PoochyenaL16 DustoxL17 GrovyleL21; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL16 (from PoochyenaL16 DustoxL17 GrovyleL21; hunted_pids=0)
+Story: lead vs Fire -> PoochyenaL16 (from PoochyenaL16 DustoxL17 GrovyleL21; hunted_pids=0)
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Grass -> BeautiflyL16 (from MarshtompL18 WhismurL16 TaillowL16 BeautiflyL16; hunted_pids=0)
+Story: lead vs Fighting -> BeautiflyL18 (from BeautiflyL18 WhismurL16 TaillowL18 MarshtompL18; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead BEAUTIFLY. Logged to badge-log.json.
+Story: lead vs Grass -> BeautiflyL19 (from BeautiflyL19 WhismurL16 TaillowL18 MarshtompL18; hunted_pids=0)
+Story: lead vs Electric -> MarshtompL21 (from LoudredL21 BeautiflyL21 MarshtompL21 TaillowL21; hunted_pids=0)
+Story: lead vs Electric -> MarshtompL22 (from MarshtompL22 BeautiflyL22 LoudredL21 TaillowL21; hunted_pids=0)
+Story: lead vs Electric -> MarshtompL24 (from MarshtompL24 SwellowL24 BeautiflyL24 LoudredL24; hunted_pids=0)
+Story: lead vs Electric -> MarshtompL26 (from MarshtompL26 LoudredL26 SwellowL26 BeautiflyL26; hunted_pids=0)
+Story: lead vs Electric -> MarshtompL27 (from BeautiflyL27 MarshtompL27 LoudredL27 SwellowL27; hunted_pids=0)
+Story: lead vs Electric -> MarshtompL28 (from SwellowL28 MarshtompL28 BeautiflyL28 LoudredL28; hunted_pids=0)
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Fire/Poison -> MarshtompL30 (from MarshtompL30 SwellowL32 BeautiflyL28 LoudredL28; hunted_pids=0)
+Story: lead vs Fire -> MarshtompL31 (from MarshtompL31 SwellowL33 BeautiflyL28 LoudredL28; hunted_pids=0)
+Story: lead vs Fire -> MarshtompL32 (from MarshtompL32 SwellowL33 BeautiflyL28 LoudredL28; hunted_pids=0)
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Normal -> SwellowL34 (from MarshtompL33 SwellowL34 BeautiflyL28 LoudredL28; hunted_pids=0)
+Story: lead vs Normal -> SwellowL35 (from SwellowL35 MarshtompL33 BeautiflyL28 LoudredL28; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> SwellowL36 (from SwellowL36 MarshtompL33 BeautiflyL28 LoudredL28; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> SwellowL36 (from SwellowL36 MarshtompL33 BeautiflyL28 LoudredL28; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> SwellowL36 (from SwellowL36 MarshtompL33 BeautiflyL28 LoudredL28; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L37 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> SwellowL37 (from SwellowL37 MarshtompL33 BeautiflyL28 LoudredL28; hunted_pids=0)
+Story: counter hunt CAUGHT Machop (slot 5).
+Story: counter registered (pid=6BEB0310); it will lead this boss and is protected from PC deposit.
+Story: training the counter at ROUTE117 (31, 16) rather than the boss's own patch ROUTE102 — closer to L15 and it has a working heal loop.
+Story: training the counter — Machop L15 -> L29 (team is L39, est 249342 frames).
+Story: lead vs Normal -> MachopL17 (from SwellowL39 MarshtompL34 BeautiflyL28 LoudredL29 MachopL17; hunted_pids=1)
+Story: local grass (max L4) is fodder for a L39 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MachopL17 (from MachopL17 MarshtompL34 BeautiflyL28 LoudredL29 SwellowL39; hunted_pids=1)
+Story: local grass (max L4) is fodder for a L39 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MachopL17 (from MachopL17 MarshtompL34 BeautiflyL28 LoudredL29 SwellowL39; hunted_pids=1)
+Story: local grass (max L4) is fodder for a L39 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MachopL17 (from MachopL17 MarshtompL34 BeautiflyL28 LoudredL29 SwellowL39; hunted_pids=1)
+Story: local grass (max L4) is fodder for a L40 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MachopL17 (from MachopL17 MarshtompL34 BeautiflyL28 LoudredL29 SwellowL40; hunted_pids=1)
+Story: local grass (max L4) is fodder for a L40 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MachopL17 (from MachopL17 MarshtompL34 BeautiflyL28 LoudredL29 SwellowL40; hunted_pids=1)
+Story: local grass (max L4) is fodder for a L40 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MachopL17 (from MachopL17 MarshtompL35 BeautiflyL28 LoudredL29 SwellowL40; hunted_pids=1)
+Story: local grass (max L4) is fodder for a L40 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MachopL17 (from MachopL17 MarshtompL35 BeautiflyL28 LoudredL29 SwellowL40; hunted_pids=1)
+Story: local grass (max L4) is fodder for a L41 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MachopL17 (from MachopL17 MarshtompL35 BeautiflyL28 LoudredL29 SwellowL41; hunted_pids=1)
+BADGE: Balance Badge (Norman, Petalburg) — team of 5, lead MACHOP. Logged to badge-log.json.
+Story: NOT depositing Machop — it is this boss's hunted counter, not dead weight.
+Story: PC rotation — depositing Castform L25 (level 25 is 18 behind the team's best (L43); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 5.
+Story: lead vs Flying -> SwellowL44 (from MachopL17 MarshtompL35 BeautiflyL30 LoudredL30 SwellowL44; hunted_pids=1)
+Story: lead vs Flying -> SwellowL45 (from SwellowL45 SwampertL37 BeautiflyL30 LoudredL30 MachopL17; hunted_pids=1)
+BADGE: Feather Badge (Winona, Fortree) — team of 5, lead SWELLOW. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Grass -> TaillowL10 (from MarshtompL17 TaillowL10 PoochyenaL10 WhismurL10; hunted_pids=0)
+Story: lead vs Fighting -> MarshtompL19 (from TaillowL11 MarshtompL19 PoochyenaL10 WhismurL12; hunted_pids=0)
+Story: lead vs Fighting -> MarshtompL19 (from MarshtompL19 TaillowL11 PoochyenaL10 WhismurL12; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Grass -> TaillowL12 (from MarshtompL21 TaillowL12 PoochyenaL10 WhismurL12; hunted_pids=0)
+Story: lead vs Grass -> TaillowL14 (from TaillowL14 MarshtompL22 PoochyenaL10 WhismurL12; hunted_pids=0)
+Story: lead vs Grass -> TaillowL14 (from TaillowL14 MarshtompL23 PoochyenaL10 WhismurL12; hunted_pids=0)
+Story: lead vs Grass -> TaillowL15 (from TaillowL15 MarshtompL23 PoochyenaL10 WhismurL12; hunted_pids=0)
+Story: lead vs Electric -> MarshtompL24 (from TaillowL16 MarshtompL24 PoochyenaL10 WhismurL12; hunted_pids=0)
+Story: lead vs Electric -> MarshtompL26 (from MarshtompL26 TaillowL16 PoochyenaL10 WhismurL14; hunted_pids=0)
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Fire/Poison -> MarshtompL32 (from MarshtompL32 TaillowL19 PoochyenaL10 WhismurL15; hunted_pids=0)
+Story: lead vs Fire/Poison -> MarshtompL33 (from MarshtompL33 TaillowL20 PoochyenaL10 WhismurL15; hunted_pids=0)
+Story: lead vs Fire/Poison -> MarshtompL34 (from MarshtompL34 TaillowL20 PoochyenaL10 WhismurL16; hunted_pids=0)
+Story: lead vs Fire -> MarshtompL35 (from MarshtompL35 TaillowL20 PoochyenaL10 WhismurL17; hunted_pids=0)
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead SWAMPERT. Logged to badge-log.json.
+Story: lead vs Normal -> SwampertL37 (from SwampertL37 SwellowL22 PoochyenaL10 WhismurL17; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L38 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> SwampertL38 (from SwampertL38 SwellowL22 PoochyenaL10 WhismurL17; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L38 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> SwampertL38 (from SwampertL38 SwellowL22 PoochyenaL10 WhismurL17; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L38 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> SwampertL38 (from SwampertL38 SwellowL22 PoochyenaL10 WhismurL17; hunted_pids=0)
+Story: counter hunt CAUGHT Machop (slot 5).
+Story: counter registered (pid=A842E758); it will lead this boss and is protected from PC deposit.
+Story: training the counter at ROUTE117 (31, 16) rather than the boss's own patch ROUTE102 — closer to L15 and it has a working heal loop.
+Story: training the counter — Machop L15 -> L29 (team is L39, est 249342 frames).
+Story: counter training failed (BotModeError('Story: aborting the current step to recover from a whiteout.')) — continuing untrained.
+Story: lead vs Normal -> MachopL15 (from MachopL15 SwellowL22 PoochyenaL12 WhismurL17 SwampertL39; hunted_pids=1)
+Story: local grass (max L4) is fodder for a L39 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MachopL15 (from MachopL15 SwellowL22 PoochyenaL12 WhismurL17 SwampertL39; hunted_pids=1)
+BADGE: Balance Badge (Norman, Petalburg) — team of 5, lead MACHOP. Logged to badge-log.json.
+Story: NOT depositing Machop — it is this boss's hunted counter, not dead weight.
+Story: PC rotation — depositing Poochyena L15 (level 15 is 27 behind the team's best (L42); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 5.
+Story: lead vs Flying -> SwampertL42 (from MachopL16 SwellowL29 WhismurL17 SwampertL42 CastformL25; hunted_pids=1)
+BADGE: Feather Badge (Winona, Fortree) — team of 5, lead SWAMPERT. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Grass -> DustoxL10 (from MarshtompL18 ZigzagoonL10 DustoxL10; hunted_pids=0)
+Story: lead vs Fighting -> DustoxL11 (from DustoxL11 ZigzagoonL11 MarshtompL18; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead DUSTOX. Logged to badge-log.json.
+Story: lead vs Grass -> DustoxL13 (from DustoxL13 ZigzagoonL12 MarshtompL19; hunted_pids=0)
+Story: lead vs Grass -> DustoxL14 (from DustoxL14 ZigzagoonL13 MarshtompL20; hunted_pids=0)
+Story: lead vs Grass -> DustoxL14 (from DustoxL14 ZigzagoonL13 MarshtompL20; hunted_pids=0)
+Story: lead vs Grass -> DustoxL15 (from DustoxL15 ZigzagoonL14 MarshtompL20; hunted_pids=0)
+Story: lead vs Grass -> DustoxL15 (from DustoxL15 ZigzagoonL15 MarshtompL20; hunted_pids=0)
+Story: lead vs Grass -> DustoxL15 (from DustoxL15 ZigzagoonL15 MarshtompL20; hunted_pids=0)
+Story: lead vs Grass -> DustoxL15 (from DustoxL15 ZigzagoonL16 MarshtompL20; hunted_pids=0)
+Story: lead vs Grass -> DustoxL15 (from DustoxL15 ZigzagoonL16 MarshtompL21; hunted_pids=0)
+Story: lead vs Grass -> DustoxL15 (from DustoxL15 ZigzagoonL16 MarshtompL21; hunted_pids=0)
+Story: lead vs Grass -> DustoxL15 (from DustoxL15 ZigzagoonL17 MarshtompL21; hunted_pids=0)
+Story: lead vs Electric -> MarshtompL23 (from MarshtompL23 ZigzagoonL18 DustoxL15; hunted_pids=0)
+Story: lead vs Electric -> MarshtompL24 (from MarshtompL24 ZigzagoonL19 DustoxL15; hunted_pids=0)
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Fire/Poison -> MarshtompL30 (from MarshtompL30 LinooneL22 DustoxL16; hunted_pids=0)
+Story: lead vs Fire/Poison -> MarshtompL32 (from MarshtompL32 LinooneL22 DustoxL16; hunted_pids=0)
+Story: lead vs Fire/Poison -> MarshtompL32 (from MarshtompL32 LinooneL23 DustoxL16; hunted_pids=0)
+Story: lead vs Fire -> MarshtompL33 (from MarshtompL33 LinooneL24 DustoxL16; hunted_pids=0)
+Story: lead vs Fire -> MarshtompL33 (from MarshtompL33 LinooneL24 DustoxL16; hunted_pids=0)
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Normal -> MarshtompL35 (from MarshtompL35 LinooneL24 DustoxL17; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> SwampertL36 (from SwampertL36 LinooneL24 DustoxL17; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L37 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> SwampertL37 (from SwampertL37 LinooneL24 DustoxL17; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L37 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> SwampertL37 (from SwampertL37 LinooneL25 DustoxL17; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L37 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> SwampertL37 (from SwampertL37 LinooneL25 DustoxL17; hunted_pids=0)
+Story: counter hunt CAUGHT Machop (slot 5).
+Story: counter registered (pid=C4D80116); it will lead this boss and is protected from PC deposit.
+Story: training the counter at ROUTE117 (31, 16) rather than the boss's own patch ROUTE102 — closer to L15 and it has a working heal loop.
+Story: training the counter — Machop L15 -> L29 (team is L38, est 249342 frames).
+Story: lead vs Normal -> MachopL17 (from SwampertL38 LinooneL26 DustoxL17 MachopL17; hunted_pids=1)
+Story: local grass (max L4) is fodder for a L38 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MachopL18 (from MachopL18 LinooneL26 DustoxL17 SwampertL38; hunted_pids=1)
+Story: local grass (max L4) is fodder for a L38 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MachopL18 (from MachopL18 LinooneL26 DustoxL17 SwampertL38; hunted_pids=1)
+Story: local grass (max L4) is fodder for a L38 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MachopL18 (from MachopL18 LinooneL26 DustoxL17 SwampertL38; hunted_pids=1)
+Story: local grass (max L4) is fodder for a L38 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MachopL18 (from MachopL18 LinooneL26 DustoxL17 SwampertL38; hunted_pids=1)
+BADGE: Balance Badge (Norman, Petalburg) — team of 5, lead MACHOP. Logged to badge-log.json.
+Story: NOT depositing Machop — it is this boss's hunted counter, not dead weight.
+Story: PC rotation — depositing Dustox L12 (level 12 is 29 behind the team's best (L41); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 5.
+Story: lead vs Flying -> SwampertL42 (from MachopL18 LinooneL28 DustoxL19 SwampertL42 CastformL25; hunted_pids=1)
+Story: lead vs Flying -> SwampertL42 (from SwampertL42 LinooneL30 DustoxL19 MachopL18 CastformL26; hunted_pids=1)
+Story: lead vs Flying -> SwampertL43 (from SwampertL43 LinooneL30 DustoxL19 MachopL18 CastformL26; hunted_pids=1)
+Story: lead vs Flying -> SwampertL44 (from SwampertL44 LinooneL30 DustoxL19 MachopL18 CastformL26; hunted_pids=1)
+BADGE: Feather Badge (Winona, Fortree) — team of 5, lead SWAMPERT. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Grass -> PoochyenaL10 (from MarshtompL17 PoochyenaL10; hunted_pids=0)
+Story: lead vs Fighting -> MarshtompL18 (from PoochyenaL11 MarshtompL18; hunted_pids=0)
+Story: lead vs Fighting -> MarshtompL19 (from MarshtompL19 PoochyenaL11; hunted_pids=0)
+Story: lead vs Fighting -> MarshtompL20 (from MightyenaL20 MarshtompL20; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Grass -> MightyenaL20 (from MarshtompL22 MightyenaL20; hunted_pids=0)
+Story: lead vs Grass -> MightyenaL21 (from MightyenaL21 MarshtompL23; hunted_pids=0)
+Story: lead vs Grass -> MightyenaL21 (from MightyenaL21 MarshtompL23; hunted_pids=0)
+Story: lead vs Electric -> MarshtompL23 (from MightyenaL23 MarshtompL23; hunted_pids=0)
+Story: lead vs Electric -> MarshtompL25 (from MarshtompL25 MightyenaL24; hunted_pids=0)
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Fire/Poison -> MarshtompL30 (from MarshtompL30 MightyenaL27; hunted_pids=0)
+Story: lead vs Fire/Poison -> MarshtompL31 (from MarshtompL31 MightyenaL28; hunted_pids=0)
+Story: lead vs Fire -> MarshtompL32 (from MarshtompL32 MightyenaL28; hunted_pids=0)
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Normal -> MarshtompL34 (from MarshtompL34 MightyenaL29; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MarshtompL34 (from MarshtompL34 MightyenaL30; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MarshtompL34 (from MarshtompL34 MightyenaL30; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MarshtompL34 (from MarshtompL34 MightyenaL30; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> MarshtompL35 (from MarshtompL35 MightyenaL30; hunted_pids=0)
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Grass -> WhismurL10 (from MarshtompL19 WhismurL10 PoochyenaL10; hunted_pids=0)
+Story: lead vs Fighting -> MarshtompL19 (from WhismurL11 MarshtompL19 PoochyenaL10; hunted_pids=0)
+Story: lead vs Fighting -> MarshtompL20 (from MarshtompL20 WhismurL11 PoochyenaL10; hunted_pids=0)
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Grass -> WhismurL12 (from MarshtompL22 WhismurL12 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> WhismurL14 (from WhismurL14 MarshtompL23 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> WhismurL15 (from WhismurL15 MarshtompL23 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> WhismurL15 (from WhismurL15 MarshtompL23 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> WhismurL16 (from WhismurL16 MarshtompL23 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> WhismurL16 (from WhismurL16 MarshtompL24 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> WhismurL17 (from WhismurL17 MarshtompL24 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> WhismurL17 (from WhismurL17 MarshtompL24 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> WhismurL17 (from WhismurL17 MarshtompL24 PoochyenaL10; hunted_pids=0)
+Story: lead vs Grass -> WhismurL18 (from WhismurL18 MarshtompL24 PoochyenaL10; hunted_pids=0)
+Story: lead vs Electric -> MarshtompL25 (from WhismurL18 MarshtompL25 PoochyenaL10; hunted_pids=0)
+Story: lead vs Electric -> MarshtompL27 (from MarshtompL27 WhismurL19 PoochyenaL12; hunted_pids=0)
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: lead vs Fire/Poison -> MarshtompL33 (from MarshtompL33 LoudredL21 PoochyenaL12; hunted_pids=0)
+Story: lead vs Fire -> MarshtompL35 (from MarshtompL35 LoudredL22 PoochyenaL12; hunted_pids=0)
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead SWAMPERT. Logged to badge-log.json.
+Story: lead vs Normal -> SwampertL37 (from SwampertL37 LoudredL22 PoochyenaL12; hunted_pids=0)
+Story: lead vs Normal -> SwampertL38 (from SwampertL38 LoudredL22 PoochyenaL12; hunted_pids=0)
+Story: local grass (max L4) is fodder for a L39 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: lead vs Normal -> SwampertL39 (from SwampertL39 LoudredL22 PoochyenaL12; hunted_pids=0)
+BADGE: Balance Badge (Norman, Petalburg) — team of 4, lead SWAMPERT. Logged to badge-log.json.
+Story: lead vs Flying -> SwampertL44 (from SwampertL44 LoudredL24 PoochyenaL12 CastformL25; hunted_pids=0)
+Story: lead vs Flying -> SwampertL45 (from SwampertL45 LoudredL26 PoochyenaL12 CastformL26; hunted_pids=0)
+Story: lead vs Flying -> SwampertL45 (from SwampertL45 LoudredL26 PoochyenaL12 CastformL26; hunted_pids=0)
+BADGE: Feather Badge (Winona, Fortree) — team of 5, lead SWAMPERT. Logged to badge-log.json.

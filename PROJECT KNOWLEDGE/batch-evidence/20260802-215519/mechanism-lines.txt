@@ -1,0 +1,306 @@
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead BEAUTIFLY. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead LOUDRED. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+BADGE: Balance Badge (Norman, Petalburg) — team of 4, lead SWELLOW. Logged to badge-log.json.
+Story: PC rotation — depositing Castform L25 (level 25 is 12 behind the team's best (L37); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 5.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead BEAUTIFLY. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: local grass (max L4) is fodder for a L33 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L33 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L33 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+BADGE: Balance Badge (Norman, Petalburg) — team of 4, lead LOUDRED. Logged to badge-log.json.
+Story: PC rotation — depositing Castform L25 (level 25 is 9 behind the team's best (L34); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 5.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead BEAUTIFLY. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead LOUDRED. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: local grass (max L4) is fodder for a L33 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+BADGE: Balance Badge (Norman, Petalburg) — team of 4, lead SWELLOW. Logged to badge-log.json.
+Story: PC rotation — depositing Castform L25 (level 25 is 13 behind the team's best (L38); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 5.
+BADGE: Feather Badge (Winona, Fortree) — team of 5, lead SWELLOW. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead BEAUTIFLY. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Balance Badge (Norman, Petalburg) — team of 4, lead BLAZIKEN. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead NINCADA. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead SWAMPERT. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead BEAUTIFLY. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: local grass (max L4) is fodder for a L37 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L37 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L37 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L38 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: counter hunt CAUGHT Machop (slot 5).
+Story: training the counter at ROUTE117 (31, 16) rather than the boss's own patch ROUTE102 — closer to L15 and it has a working heal loop.
+Story: training the counter — Machop L15 -> L29 (team is L38, est 249342 frames).
+Story: local grass (max L4) is fodder for a L38 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+BADGE: Balance Badge (Norman, Petalburg) — team of 5, lead SWAMPERT. Logged to badge-log.json.
+Story: PC rotation — depositing Ralts L6 (level 6 is 35 behind the team's best (L41); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6), Machop L16 (level 16 is 25 behind the team's best (L41); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 4.
+BADGE: Feather Badge (Winona, Fortree) — team of 4, lead SWAMPERT. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead NINCADA. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 5, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 5, lead MARSHTOMP. Logged to badge-log.json.
+Story: local grass (max L4) is fodder for a L32 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L33 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L33 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L33 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L33 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L33 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L33 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: counter hunt CAUGHT Machop (slot 6).
+Story: training the counter at ROUTE117 (31, 16) rather than the boss's own patch ROUTE102 — closer to L15 and it has a working heal loop.
+Story: training the counter — Machop L15 -> L29 (team is L35, est 249342 frames).
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead GROVYLE. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead DUSTOX. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 5, lead GROVYLE. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 5, lead MIGHTYENA. Logged to badge-log.json.
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+BADGE: Balance Badge (Norman, Petalburg) — team of 5, lead MIGHTYENA. Logged to badge-log.json.
+Story: PC rotation — depositing Shedinja L23 (level 23 is 13 behind the team's best (L36); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6), Dustox L24 (level 24 is 12 behind the team's best (L36); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 4.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead GROVYLE. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead NINCADA. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 5, lead GROVYLE. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 5, lead LINOONE. Logged to badge-log.json.
+BADGE: Balance Badge (Norman, Petalburg) — team of 5, lead LINOONE. Logged to badge-log.json.
+Story: PC rotation — depositing Shedinja L21 (level 21 is 16 behind the team's best (L37); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6), Castform L25 (level 25 is 12 behind the team's best (L37); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 4.
+BADGE: Feather Badge (Winona, Fortree) — team of 4, lead LINOONE. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead GROVYLE. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 5, lead NINJASK. Logged to badge-log.json.
+Story: ROUTE111 (25, 55) is not reachable from here — dropping it as a training option for the rest of this run.
+Story: ROUTE111 is not reachable from here (Could not reach (25, 55) on MapRSE.ROUTE111: the field is idle and we are still at (31, 114), so retrying cannot change the result (Could not find a path from (31/114 @ ROUTE111) to (25/55 @ ROUTE111).).) — trying the next counter destination.
+Story: ROUTE116 (11, 7) is not reachable from here — dropping it as a training option for the rest of this run.
+Story: ROUTE116 is not reachable from here (Could not reach (11, 7) on MapRSE.ROUTE116: the field is idle and we are still at (65, 11), so retrying cannot change the result (Could not find a path from (65/11 @ ROUTE116) to (11/7 @ ROUTE116).).) — trying the next counter destination.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead GROVYLE. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead GROVYLE. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 5, lead NINJASK. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 5, lead GROVYLE. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 5, lead SWELLOW. Logged to badge-log.json.
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+BADGE: Balance Badge (Norman, Petalburg) — team of 5, lead SWELLOW. Logged to badge-log.json.
+Story: PC rotation — depositing Shedinja L28 (level 28 is 10 behind the team's best (L38); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 5.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead DUSTOX. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead DUSTOX. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead GROVYLE. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead BEAUTIFLY. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead NINCADA. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead MIGHTYENA. Logged to badge-log.json.
+BADGE: Balance Badge (Norman, Petalburg) — team of 4, lead MIGHTYENA. Logged to badge-log.json.
+Story: PC rotation — depositing Ninjask L20 (level 20 is 20 behind the team's best (L40); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6), Castform L25 (level 25 is 15 behind the team's best (L40); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 4.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead NINCADA. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 5, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 5, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Balance Badge (Norman, Petalburg) — team of 5, lead MIGHTYENA. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead NINCADA. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 5, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 5, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Balance Badge (Norman, Petalburg) — team of 5, lead SWELLOW. Logged to badge-log.json.
+Story: PC rotation — depositing Shedinja L21 (level 21 is 19 behind the team's best (L40); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6), Mightyena L27 (level 27 is 13 behind the team's best (L40); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 4.
+BADGE: Feather Badge (Winona, Fortree) — team of 4, lead SWELLOW. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead BEAUTIFLY. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: local grass (max L4) is fodder for a L33 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L37 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+BADGE: Balance Badge (Norman, Petalburg) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: PC rotation — depositing Castform L25 (level 25 is 14 behind the team's best (L39); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6), Beautifly L29 (level 29 is 10 behind the team's best (L39); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 4.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead DUSTOX. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: counter hunt CAUGHT Machop (slot 5).
+Story: training the counter at ROUTE117 (31, 16) rather than the boss's own patch ROUTE102 — closer to L15 and it has a working heal loop.
+Story: training the counter — Machop L15 -> L29 (team is L35, est 249342 frames).
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L37 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L37 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L37 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L37 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L38 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L38 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L38 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L39 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L39 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L40 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+BADGE: Balance Badge (Norman, Petalburg) — team of 5, lead MARSHTOMP. Logged to badge-log.json.
+Story: PC rotation — depositing Machop L15 (level 15 is 26 behind the team's best (L41); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6), Poochyena L17 (level 17 is 24 behind the team's best (L41); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 4.
+BADGE: Feather Badge (Winona, Fortree) — team of 4, lead SWAMPERT. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead NINCADA. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead SWAMPERT. Logged to badge-log.json.
+Story: local grass (max L4) is fodder for a L39 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+BADGE: Balance Badge (Norman, Petalburg) — team of 4, lead SWAMPERT. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead DUSTOX. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: local grass (max L4) is fodder for a L32 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L32 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L32 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L32 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: counter hunt CAUGHT Machop (slot 5).
+Story: training the counter at ROUTE117 (31, 16) rather than the boss's own patch ROUTE102 — closer to L16 and it has a working heal loop.
+Story: training the counter — Machop L16 -> L29 (team is L32, est 242177 frames).
+Story: local grass (max L4) is fodder for a L32 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L33 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L33 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L33 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L33 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L33 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L33 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L33 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead TAILLOW. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: local grass (max L4) is fodder for a L33 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L33 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L34 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: counter hunt CAUGHT Machop (slot 5).
+Story: training the counter at ROUTE117 (31, 16) rather than the boss's own patch ROUTE102 — closer to L15 and it has a working heal loop.
+Story: training the counter — Machop L15 -> L29 (team is L35, est 249342 frames).
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+BADGE: Balance Badge (Norman, Petalburg) — team of 5, lead SWELLOW. Logged to badge-log.json.
+Story: PC rotation — depositing Whismur L15 (level 15 is 25 behind the team's best (L40); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6), Machop L17 (level 17 is 23 behind the team's best (L40); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 4.
+BADGE: Feather Badge (Winona, Fortree) — team of 4, lead SWELLOW. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead BEAUTIFLY. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead GROVYLE. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead BEAUTIFLY. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead GROVYLE. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead DUSTOX. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead GROVYLE. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead MIGHTYENA. Logged to badge-log.json.
+BADGE: Balance Badge (Norman, Petalburg) — team of 4, lead MIGHTYENA. Logged to badge-log.json.
+Story: PC rotation — depositing Castform L25 (level 25 is 12 behind the team's best (L37); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 5.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead GROVYLE. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead BEAUTIFLY. Logged to badge-log.json.
+Story: ROUTE111 (25, 55) is not reachable from here — dropping it as a training option for the rest of this run.
+Story: ROUTE111 is not reachable from here (Could not reach (25, 55) on MapRSE.ROUTE111: the field is idle and we are still at (31, 114), so retrying cannot change the result (Could not find a path from (31/114 @ ROUTE111) to (25/55 @ ROUTE111).).) — trying the next counter destination.
+Story: ROUTE116 (11, 7) is not reachable from here — dropping it as a training option for the rest of this run.
+Story: ROUTE116 is not reachable from here (Could not reach (11, 7) on MapRSE.ROUTE116: the field is idle and we are still at (65, 11), so retrying cannot change the result (Could not find a path from (65/11 @ ROUTE116) to (11/7 @ ROUTE116).).) — trying the next counter destination.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead GROVYLE. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead DUSTOX. Logged to badge-log.json.
+Story: ROUTE111 (25, 55) is not reachable from here — dropping it as a training option for the rest of this run.
+Story: ROUTE111 is not reachable from here (Could not reach (25, 55) on MapRSE.ROUTE111: the field is idle and we are still at (31, 114), so retrying cannot change the result (Could not find a path from (31/114 @ ROUTE111) to (25/55 @ ROUTE111).).) — trying the next counter destination.
+Story: ROUTE116 (11, 7) is not reachable from here — dropping it as a training option for the rest of this run.
+Story: ROUTE116 is not reachable from here (Could not reach (11, 7) on MapRSE.ROUTE116: the field is idle and we are still at (65, 11), so retrying cannot change the result (Could not find a path from (65/11 @ ROUTE116) to (11/7 @ ROUTE116).).) — trying the next counter destination.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead GROVYLE. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead BEAUTIFLY. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead DUSTOX. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 5, lead MARSHTOMP. Logged to badge-log.json.
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: counter hunt CAUGHT Machop (slot 6).
+Story: training the counter at ROUTE117 (31, 16) rather than the boss's own patch ROUTE102 — closer to L15 and it has a working heal loop.
+Story: training the counter — Machop L15 -> L29 (team is L36, est 249342 frames).
+Story: PC rotation — depositing Machop L15 (level 15 is 21 behind the team's best (L36); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6), Shedinja L20 (level 20 is 16 behind the team's best (L36); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 4.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead NINCADA. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 5, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 5, lead COMBUSKEN. Logged to badge-log.json.
+Story: local grass (max L4) is fodder for a L35 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L36 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L37 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L37 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L38 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L38 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L39 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+Story: local grass (max L4) is fodder for a L39 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
+BADGE: Balance Badge (Norman, Petalburg) — team of 5, lead BLAZIKEN. Logged to badge-log.json.
+Story: PC rotation — depositing Poochyena L16 (level 16 is 27 behind the team's best (L43); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6), Shedinja L21 (level 21 is 22 behind the team's best (L43); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 4.
+BADGE: Feather Badge (Winona, Fortree) — team of 4, lead LINOONE. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead GROVYLE. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead NINCADA. Logged to badge-log.json.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead BLAZIKEN. Logged to badge-log.json.
+BADGE: Balance Badge (Norman, Petalburg) — team of 4, lead BLAZIKEN. Logged to badge-log.json.
+Story: PC rotation — depositing Castform L25 (level 25 is 17 behind the team's best (L42); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6), Loudred L30 (level 30 is 12 behind the team's best (L42); >8 is unrecoverable by construction — _prepare_for_fight stops catching a mon up at TRAIN_CATCHUP_GAP=6).
+Story: PC rotation done — party is now 4.
+BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead GROVYLE. Logged to badge-log.json.

@@ -1,0 +1,769 @@
+{
+  "stamp": "20260804-062303",
+  "code_commit": "fe4a2369",
+  "bot_mode": "Story (ENDLESS RESET)",
+  "lanes": 8,
+  "runs_per_lane": 0,
+  "minutes": 180.0,
+  "started": "2026-08-04T06:23:03",
+  "ended": "2026-08-04T09:23:12",
+  "wall_minutes": 180.2,
+  "verdict": "OK",
+  "headers_checked": 34,
+  "header_violations": [],
+  "totals": {
+    "runs": 26,
+    "finished": 10,
+    "finish_rate": 0.385,
+    "global_watchdog": 13,
+    "faint_chooser_gave_up": 0,
+    "no_eligible_replacement": 0,
+    "stuck_dumps": 8965,
+    "end_reasons": {
+      "Cutscene did not end after N frames (controllable=False, script_active=True).": 4,
+      "Story: battle handler gave up \u2014 in-battle wedge: state unchanged for N frames (KI-N; the per-run frame budget cannot fire while a battle han": 3,
+      "Story: too many whiteout recoveries in a row \u2014 stopping so I don't loop forever. Check the team/route.": 3,
+      "Winona: N losses with no super-effective answer to Dragon/Flying. Need one of: Rock, Ice, Dragon. Grinding levels will not fix this. Nearest": 2,
+      "this boss: N losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable co": 2,
+      "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 1,
+      "this boss: N losses with no super-effective answer to Electric. Need one of: Ground. Grinding levels will not fix this. Nearest reachable co": 1
+    }
+  },
+  "lane_rows": [
+    {
+      "tag": "H1",
+      "starter": "torchic",
+      "profile": "endless-H1-torchic",
+      "runs_ended": 4,
+      "finished": 2,
+      "header_verdict": "ok",
+      "restarts": 0
+    },
+    {
+      "tag": "H2",
+      "starter": "mudkip",
+      "profile": "endless-H2-mudkip",
+      "runs_ended": 3,
+      "finished": 1,
+      "header_verdict": "ok",
+      "restarts": 0
+    },
+    {
+      "tag": "H3",
+      "starter": "treecko",
+      "profile": "endless-H3-treecko",
+      "runs_ended": 3,
+      "finished": 1,
+      "header_verdict": "ok",
+      "restarts": 0
+    },
+    {
+      "tag": "H4",
+      "starter": "random",
+      "profile": "endless-H4-random",
+      "runs_ended": 4,
+      "finished": 1,
+      "header_verdict": "ok",
+      "restarts": 0
+    },
+    {
+      "tag": "H5",
+      "starter": "torchic",
+      "profile": "endless-H5-torchic",
+      "runs_ended": 3,
+      "finished": 1,
+      "header_verdict": "ok",
+      "restarts": 0
+    },
+    {
+      "tag": "H6",
+      "starter": "mudkip",
+      "profile": "endless-H6-mudkip",
+      "runs_ended": 3,
+      "finished": 3,
+      "header_verdict": "ok",
+      "restarts": 0
+    },
+    {
+      "tag": "H7",
+      "starter": "treecko",
+      "profile": "endless-H7-treecko",
+      "runs_ended": 2,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0
+    },
+    {
+      "tag": "H8",
+      "starter": "random",
+      "profile": "endless-H8-random",
+      "runs_ended": 4,
+      "finished": 1,
+      "header_verdict": "ok",
+      "restarts": 0
+    }
+  ],
+  "lanes_detail": {
+    "H1": {
+      "runs_started": 5,
+      "runs_ended": 4,
+      "batch_completed_naturally": false,
+      "finished": 2,
+      "derailed": 2,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.5,
+      "end_reasons": {
+        "Cutscene did not end after N frames (controllable=False, script_active=True).": 1,
+        "Story: battle handler gave up \u2014 in-battle wedge: state unchanged for N frames (KI-N; the per-run frame budget cannot fire while a battle han": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 1298,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 1059,
+        "BattleScript_LocalBattleLostEnd": 65,
+        "BattleScript_FaintedMonTryChoose": 38,
+        "BattleScript_GotAwaySafely": 28,
+        "BattleScript_WallyBallThrow": 25,
+        "BattleScript_MoveEnd": 17,
+        "BattleScript_SuccessBallThrowEnd": 9,
+        "BattleScript_EffectAbsorb": 3,
+        "BattleScript_AbsorbUpdateHp": 1,
+        "BattleScript_HitFromAtkAnimation": 1
+      },
+      "derails": 21,
+      "whiteouts": 36,
+      "losses": 36,
+      "losses_by_map": {
+        "4, 1": 7,
+        "10, 0": 5,
+        "12, 1": 5,
+        "0, 25": 3,
+        "8, 1": 3,
+        "24, 12": 3,
+        "0, 34": 2,
+        "0, 28": 2,
+        "3, 3": 1,
+        "0, 32": 1
+      },
+      "battle_outcomes": {
+        "Won": 2012,
+        "OpponentTeleported": 83,
+        "Lost": 36,
+        "RanAway": 33,
+        "Caught": 22
+      },
+      "battles": 2186,
+      "flee_rate": 0.015,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 2197841
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Cutscene did not end after 8000 frames (controllable=False, script_active=True).",
+          "bucket": "derailed",
+          "frames": 0
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: Story: battle handler gave up \u2014 in-battle wedge: state unchanged for 60,000 frames (KI-36; the per-run frame budget cannot fire while a battle handler is on the controller stack)",
+          "bucket": "derailed",
+          "frames": 1289716
+        },
+        {
+          "run": 4,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 28048
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 5,
+      "restarts": 0,
+      "starter": "torchic",
+      "profile": "endless-H1-torchic",
+      "debug_logs_collected": 5
+    },
+    "H2": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 1,
+      "derailed": 2,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.333,
+      "end_reasons": {
+        "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 1,
+        "Cutscene did not end after N frames (controllable=False, script_active=True).": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 9,
+      "stuck_dumps": 1229,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 786,
+        "BattleScript_LocalBattleLostEnd": 281,
+        "BattleScript_GotAwaySafely": 54,
+        "BattleScript_FaintedMonTryChoose": 22,
+        "BattleScript_WallyBallThrow": 20,
+        "BattleScript_PrintCantEscapeFromBattle": 14,
+        "BattleScript_MoveEnd": 7,
+        "BattleScript_SuccessBallThrowEnd": 3,
+        "BattleScript_RanAwayUsingMonAbility": 1
+      },
+      "derails": 20,
+      "whiteouts": 95,
+      "losses": 94,
+      "losses_by_map": {
+        "8, 1": 47,
+        "0, 25": 32,
+        "10, 0": 3,
+        "24, 12": 3,
+        "3, 3": 2,
+        "0, 17": 1,
+        "0, 32": 1,
+        "4, 1": 1,
+        "0, 33": 1,
+        "12, 1": 1
+      },
+      "battle_outcomes": {
+        "Won": 1535,
+        "Lost": 94,
+        "RanAway": 93,
+        "OpponentTeleported": 63,
+        "Caught": 19,
+        "Draw": 1
+      },
+      "battles": 1805,
+      "flee_rate": 0.052,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 2215133
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 210569
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: Cutscene did not end after 8000 frames (controllable=False, script_active=True).",
+          "bucket": "derailed",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "mudkip",
+      "profile": "endless-H2-mudkip",
+      "debug_logs_collected": 4
+    },
+    "H3": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 1,
+      "derailed": 2,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.333,
+      "end_reasons": {
+        "Winona: N losses with no super-effective answer to Dragon/Flying. Need one of: Rock, Ice, Dragon. Grinding levels will not fix this. Nearest": 1,
+        "Story: too many whiteout recoveries in a row \u2014 stopping so I don't loop forever. Check the team/route.": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 2,
+      "stuck_dumps": 1100,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 781,
+        "BattleScript_LocalBattleLostEnd": 176,
+        "BattleScript_GotAwaySafely": 39,
+        "BattleScript_WallyBallThrow": 20,
+        "BattleScript_SuccessBallThrowEnd": 12,
+        "BattleScript_MoveEnd": 11,
+        "BattleScript_RanAwayUsingMonAbility": 7,
+        "BattleScript_AbsorbUpdateHp": 3,
+        "BattleScript_EffectAbsorb": 3,
+        "BattleScript_HitFromAtkAnimation": 2
+      },
+      "derails": 16,
+      "whiteouts": 98,
+      "losses": 99,
+      "losses_by_map": {
+        "0, 25": 45,
+        "10, 0": 15,
+        "4, 1": 12,
+        "8, 1": 12,
+        "12, 1": 6,
+        "0, 28": 2,
+        "0, 33": 2,
+        "3, 3": 2,
+        "0, 34": 1,
+        "0, 32": 1
+      },
+      "battle_outcomes": {
+        "Won": 1716,
+        "Lost": 99,
+        "RanAway": 70,
+        "OpponentTeleported": 46,
+        "Caught": 20
+      },
+      "battles": 1951,
+      "flee_rate": 0.036,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Winona: 6 losses with no super-effective answer to Dragon/Flying. Need one of: Rock, Ice, Dragon. Grinding levels will not fix this. Nearest reachable counters: Spheal (Ice/Water) on Shoal Cave (Low Tide), Entrance Room (tile unmapped, NOT HUNTABLE, L26-32, 50% rate) \u2014 reachable; Spheal (Ice/Water) on Shoal Cave (Low Tide), Inner Room (tile unmapped, NOT HUNTABLE, L26-32, 50% rate) \u2014 reachable; Spheal (Ice/Water) on Shoal Cave (Low Tide), Lower Room (tile unmapped, NOT HUNTABLE, L26-32, 50% rate) \u2014 reachable; Spheal (Ice/Water) on Shoal Cave (Low Tide), Stairs Room (tile unmapped, NOT HUNTABLE, L26-32, 50% rate) \u2014 reachable; Graveler (Ground/Rock) on Magma Hideout (1F) (tile unmapped, NOT HUNTABLE, L30-33, 15% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 2639294
+        },
+        {
+          "run": 2,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 0
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: Story: too many whiteout recoveries in a row \u2014 stopping so I don't loop forever. Check the team/route.",
+          "bucket": "derailed",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "treecko",
+      "profile": "endless-H3-treecko",
+      "debug_logs_collected": 4
+    },
+    "H4": {
+      "runs_started": 5,
+      "runs_ended": 4,
+      "batch_completed_naturally": false,
+      "finished": 1,
+      "derailed": 3,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.25,
+      "end_reasons": {
+        "this boss: N losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable co": 1,
+        "Cutscene did not end after N frames (controllable=False, script_active=True).": 1,
+        "Story: too many whiteout recoveries in a row \u2014 stopping so I don't loop forever. Check the team/route.": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 1092,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 801,
+        "BattleScript_LocalBattleLostEnd": 123,
+        "BattleScript_GotAwaySafely": 32,
+        "BattleScript_WallyBallThrow": 25,
+        "BattleScript_FaintedMonTryChoose": 22,
+        "BattleScript_SuccessBallThrowEnd": 15,
+        "BattleScript_RanAwayUsingMonAbility": 11,
+        "BattleScript_MoveEnd": 7,
+        "BattleScript_HitFromAtkAnimation": 2,
+        "BattleScript_AbsorbUpdateHp": 1
+      },
+      "derails": 19,
+      "whiteouts": 69,
+      "losses": 69,
+      "losses_by_map": {
+        "4, 1": 23,
+        "0, 25": 19,
+        "8, 1": 7,
+        "3, 3": 3,
+        "10, 0": 3,
+        "0, 27": 3,
+        "12, 1": 3,
+        "0, 28": 1,
+        "24, 12": 1,
+        "0, 2": 1
+      },
+      "battle_outcomes": {
+        "Won": 1541,
+        "RanAway": 85,
+        "Lost": 69,
+        "OpponentTeleported": 56,
+        "Caught": 21,
+        "Draw": 1
+      },
+      "battles": 1773,
+      "flee_rate": 0.048,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: this boss: 7 losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable counters: Machop (Fighting) on Jagged Pass (tile unmapped, NOT HUNTABLE, L20-22, 25% rate) \u2014 reachable; Machop (Fighting) on Fiery Path (tile (18, 19), L15-16, 15% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave (B1F) (tile unmapped, NOT HUNTABLE, L10-11, 10% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave (1F) (tile unmapped, NOT HUNTABLE, L6-10, 50% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave Steven\u2019s Room (tile unmapped, NOT HUNTABLE, L6-10, 50% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 1881186
+        },
+        {
+          "run": 2,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 822233
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: Cutscene did not end after 8000 frames (controllable=False, script_active=True).",
+          "bucket": "derailed",
+          "frames": 0
+        },
+        {
+          "run": 4,
+          "outcome": "derailed: Story: too many whiteout recoveries in a row \u2014 stopping so I don't loop forever. Check the team/route.",
+          "bucket": "derailed",
+          "frames": 1413576
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 5,
+      "restarts": 0,
+      "starter": "random",
+      "profile": "endless-H4-random",
+      "debug_logs_collected": 5
+    },
+    "H5": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 1,
+      "derailed": 2,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.333,
+      "end_reasons": {
+        "this boss: N losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable co": 1,
+        "Story: battle handler gave up \u2014 in-battle wedge: state unchanged for N frames (KI-N; the per-run frame budget cannot fire while a battle han": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 1049,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 828,
+        "BattleScript_LocalBattleLostEnd": 75,
+        "BattleScript_GotAwaySafely": 46,
+        "BattleScript_WallyBallThrow": 20,
+        "BattleScript_FaintedMonTryChoose": 16,
+        "BattleScript_SuccessBallThrowEnd": 15,
+        "BattleScript_MoveEnd": 4,
+        "BattleScript_StatDownPrintString": 2,
+        "BattleScript_EffectStatDown": 2
+      },
+      "derails": 21,
+      "whiteouts": 39,
+      "losses": 39,
+      "losses_by_map": {
+        "8, 1": 10,
+        "12, 1": 7,
+        "10, 0": 6,
+        "0, 25": 5,
+        "0, 32": 3,
+        "24, 4": 2,
+        "0, 34": 2,
+        "3, 3": 1,
+        "0, 26": 1,
+        "0, 18": 1
+      },
+      "battle_outcomes": {
+        "Won": 2064,
+        "OpponentTeleported": 66,
+        "RanAway": 56,
+        "Lost": 39,
+        "Caught": 18
+      },
+      "battles": 2243,
+      "flee_rate": 0.025,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 2433090
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: this boss: 6 losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable counters: Machop (Fighting) on Jagged Pass (tile unmapped, NOT HUNTABLE, L20-22, 25% rate) \u2014 reachable; Machop (Fighting) on Fiery Path (tile (18, 19), L15-16, 15% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave (B1F) (tile unmapped, NOT HUNTABLE, L10-11, 10% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave (1F) (tile unmapped, NOT HUNTABLE, L6-10, 50% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave Steven\u2019s Room (tile unmapped, NOT HUNTABLE, L6-10, 50% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 360164
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: Story: battle handler gave up \u2014 in-battle wedge: state unchanged for 60,000 frames (KI-36; the per-run frame budget cannot fire while a battle handler is on the controller stack)",
+          "bucket": "derailed",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "torchic",
+      "profile": "endless-H5-torchic",
+      "debug_logs_collected": 4
+    },
+    "H6": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 3,
+      "derailed": 0,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 1.0,
+      "end_reasons": {},
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 1192,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 864,
+        "BattleScript_LocalBattleLostEnd": 182,
+        "BattleScript_GotAwaySafely": 65,
+        "BattleScript_WallyBallThrow": 20,
+        "BattleScript_SuccessBallThrowEnd": 11,
+        "BattleScript_MoveEnd": 8,
+        "BattleScript_RanAwayUsingMonAbility": 1
+      },
+      "derails": 14,
+      "whiteouts": 87,
+      "losses": 87,
+      "losses_by_map": {
+        "0, 25": 28,
+        "8, 1": 21,
+        "24, 12": 8,
+        "12, 1": 6,
+        "10, 0": 5,
+        "3, 3": 4,
+        "0, 34": 3,
+        "0, 33": 2,
+        "0, 27": 2,
+        "0, 28": 2
+      },
+      "battle_outcomes": {
+        "Won": 1490,
+        "RanAway": 103,
+        "Lost": 87,
+        "OpponentTeleported": 55,
+        "Caught": 18
+      },
+      "battles": 1753,
+      "flee_rate": 0.059,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 2037232
+        },
+        {
+          "run": 2,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 555138
+        },
+        {
+          "run": 3,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "mudkip",
+      "profile": "endless-H6-mudkip",
+      "debug_logs_collected": 4
+    },
+    "H7": {
+      "runs_started": 3,
+      "runs_ended": 2,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 2,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "Story: battle handler gave up \u2014 in-battle wedge: state unchanged for N frames (KI-N; the per-run frame budget cannot fire while a battle han": 1,
+        "this boss: N losses with no super-effective answer to Electric. Need one of: Ground. Grinding levels will not fix this. Nearest reachable co": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 2,
+      "stuck_dumps": 796,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 642,
+        "BattleScript_LocalBattleLostEnd": 46,
+        "BattleScript_GotAwaySafely": 36,
+        "BattleScript_FaintedMonTryChoose": 16,
+        "BattleScript_WallyBallThrow": 15,
+        "BattleScript_SuccessBallThrowEnd": 5,
+        "BattleScript_MoveEnd": 3,
+        "BattleScript_EffectAbsorb": 2
+      },
+      "derails": 16,
+      "whiteouts": 43,
+      "losses": 42,
+      "losses_by_map": {
+        "10, 0": 15,
+        "4, 1": 13,
+        "0, 32": 3,
+        "12, 1": 3,
+        "0, 34": 2,
+        "0, 25": 2,
+        "11, 3": 1,
+        "0, 26": 1,
+        "24, 13": 1,
+        "0, 19": 1
+      },
+      "battle_outcomes": {
+        "Won": 2155,
+        "OpponentTeleported": 60,
+        "Lost": 42,
+        "RanAway": 34,
+        "Caught": 15,
+        "Draw": 1
+      },
+      "battles": 2307,
+      "flee_rate": 0.015,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Story: battle handler gave up \u2014 in-battle wedge: state unchanged for 60,000 frames (KI-36; the per-run frame budget cannot fire while a battle handler is on the controller stack)",
+          "bucket": "derailed",
+          "frames": 2586788
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: this boss: 6 losses with no super-effective answer to Electric. Need one of: Ground. Grinding levels will not fix this. Nearest reachable counters: Trapinch (Ground) on Route 111 (tile (25, 55), L19-21, 35% rate) \u2014 reachable; Sandshrew (Ground) on Route 111 (tile (25, 55), L19-21, 35% rate) \u2014 reachable; Baltoy (Ground/Psychic) on Route 111 (tile (25, 55), L19-21, 24% rate) \u2014 reachable; Nincada (Bug/Ground) on Route 116 (tile (11, 7), L6-7, 20% rate) \u2014 reachable; Geodude (Ground/Rock) on Magma Hideout (1F) (tile unmapped, NOT HUNTABLE, L27-30, 55% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 3,
+      "restarts": 0,
+      "starter": "treecko",
+      "profile": "endless-H7-treecko",
+      "debug_logs_collected": 3
+    },
+    "H8": {
+      "runs_started": 5,
+      "runs_ended": 4,
+      "batch_completed_naturally": false,
+      "finished": 1,
+      "derailed": 3,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.25,
+      "end_reasons": {
+        "Story: too many whiteout recoveries in a row \u2014 stopping so I don't loop forever. Check the team/route.": 1,
+        "Winona: N losses with no super-effective answer to Dragon/Flying. Need one of: Rock, Ice, Dragon. Grinding levels will not fix this. Nearest": 1,
+        "Cutscene did not end after N frames (controllable=False, script_active=True).": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 1209,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 857,
+        "BattleScript_LocalBattleLostEnd": 177,
+        "BattleScript_GotAwaySafely": 54,
+        "BattleScript_WallyBallThrow": 25,
+        "BattleScript_FaintedMonTryChoose": 22,
+        "BattleScript_MoveEnd": 11,
+        "BattleScript_SuccessBallThrowEnd": 6,
+        "BattleScript_RanAwayUsingMonAbility": 6
+      },
+      "derails": 19,
+      "whiteouts": 103,
+      "losses": 103,
+      "losses_by_map": {
+        "0, 25": 50,
+        "12, 1": 14,
+        "8, 1": 10,
+        "10, 0": 9,
+        "4, 1": 5,
+        "3, 3": 3,
+        "24, 12": 3,
+        "0, 32": 2,
+        "0, 18": 2,
+        "0, 27": 1
+      },
+      "battle_outcomes": {
+        "Won": 2069,
+        "Lost": 103,
+        "OpponentTeleported": 80,
+        "RanAway": 72,
+        "Caught": 21
+      },
+      "battles": 2345,
+      "flee_rate": 0.031,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Story: too many whiteout recoveries in a row \u2014 stopping so I don't loop forever. Check the team/route.",
+          "bucket": "derailed",
+          "frames": 1357459
+        },
+        {
+          "run": 2,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 714586
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: Winona: 6 losses with no super-effective answer to Dragon/Flying. Need one of: Rock, Ice, Dragon. Grinding levels will not fix this. Nearest reachable counters: Geodude (Ground/Rock) on Magma Hideout (1F) (tile unmapped, NOT HUNTABLE, L27-30, 55% rate) \u2014 reachable; Geodude (Ground/Rock) on Magma Hideout (2F) 1R (tile unmapped, NOT HUNTABLE, L27-30, 55% rate) \u2014 reachable; Geodude (Ground/Rock) on Magma Hideout (2F) 2R (tile unmapped, NOT HUNTABLE, L27-30, 55% rate) \u2014 reachable; Geodude (Ground/Rock) on Magma Hideout (2F) 3R (tile unmapped, NOT HUNTABLE, L27-30, 55% rate) \u2014 reachable; Spheal (Ice/Water) on Shoal Cave (Low Tide), Entrance Room (tile unmapped, NOT HUNTABLE, L26-32, 50% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 381616
+        },
+        {
+          "run": 4,
+          "outcome": "derailed: Cutscene did not end after 8000 frames (controllable=False, script_active=True).",
+          "bucket": "derailed",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 5,
+      "restarts": 0,
+      "starter": "random",
+      "profile": "endless-H8-random",
+      "debug_logs_collected": 5
+    }
+  }
+}

@@ -1,0 +1,128 @@
+{
+  "stamp": "20260731-104459",
+  "code_commit": "3109cfa7-dirty",
+  "bot_mode": "Story (ENDLESS RESET)",
+  "lanes": 2,
+  "runs_per_lane": 0,
+  "minutes": 4.0,
+  "started": "2026-07-31T10:44:59",
+  "ended": "2026-07-31T10:49:06",
+  "wall_minutes": 4.1,
+  "verdict": "OK",
+  "headers_checked": 2,
+  "header_violations": [],
+  "totals": {
+    "runs": 0,
+    "finished": 0,
+    "finish_rate": null,
+    "global_watchdog": 0,
+    "faint_chooser_gave_up": 0,
+    "no_eligible_replacement": 0,
+    "stuck_dumps": 126,
+    "end_reasons": {}
+  },
+  "lane_rows": [
+    {
+      "tag": "H1",
+      "starter": "torchic",
+      "profile": "endless-H1-torchic",
+      "runs_ended": 0,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0
+    },
+    {
+      "tag": "H2",
+      "starter": "mudkip",
+      "profile": "endless-H2-mudkip",
+      "runs_ended": 0,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0
+    }
+  ],
+  "lanes_detail": {
+    "H1": {
+      "runs_started": 1,
+      "runs_ended": 0,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 0,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": null,
+      "end_reasons": {},
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 62,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 46,
+        "BattleScript_WallyBallThrow": 5
+      },
+      "derails": 0,
+      "whiteouts": 0,
+      "losses": 0,
+      "losses_by_map": {},
+      "battle_outcomes": {
+        "Won": 66,
+        "Caught": 4,
+        "OpponentTeleported": 2,
+        "RanAway": 1
+      },
+      "battles": 73,
+      "flee_rate": 0.014,
+      "badges": {},
+      "runs": [],
+      "header_verdict": "ok",
+      "headers_checked": 1,
+      "restarts": 0,
+      "starter": "torchic",
+      "profile": "endless-H1-torchic",
+      "debug_logs_collected": 1
+    },
+    "H2": {
+      "runs_started": 1,
+      "runs_ended": 0,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 0,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": null,
+      "end_reasons": {},
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 64,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 36,
+        "BattleScript_GotAwaySafely": 9,
+        "BattleScript_WallyBallThrow": 5,
+        "BattleScript_SuccessBallThrowEnd": 3
+      },
+      "derails": 0,
+      "whiteouts": 0,
+      "losses": 0,
+      "losses_by_map": {},
+      "battle_outcomes": {
+        "Won": 50,
+        "RanAway": 5,
+        "Caught": 4,
+        "OpponentTeleported": 1
+      },
+      "battles": 60,
+      "flee_rate": 0.083,
+      "badges": {},
+      "runs": [],
+      "header_verdict": "ok",
+      "headers_checked": 1,
+      "restarts": 0,
+      "starter": "mudkip",
+      "profile": "endless-H2-mudkip",
+      "debug_logs_collected": 1
+    }
+  }
+}

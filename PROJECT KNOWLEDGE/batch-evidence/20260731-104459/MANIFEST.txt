@@ -1,0 +1,31 @@
+ENDLESS-RESET HEADLESS BATCH — MANIFEST
+========================================================================
+stamp          20260731-104459
+code_commit    3109cfa7-dirty
+bot_mode       Story (ENDLESS RESET)
+lanes          2
+bound          runs/lane=infinite  minutes=4.0
+started        2026-07-31T10:44:59
+ended          2026-07-31T10:49:06
+wall_minutes   4.1
+VERDICT        OK
+
+LANES
+------------------------------------------------------------------------
+tag   starter   profile                     runs  fin header   restarts
+H1    torchic   endless-H1-torchic             0    0 ok       0
+H2    mudkip    endless-H2-mudkip              0    0 ok       0
+
+EMULATION ASSERTION
+------------------------------------------------------------------------
+Every run's debug-log RUN HEADER must read `emulation: speed=0 video=True`.
+headers checked: 2   violations: 0
+  all clean.
+
+READ NEXT
+------------------------------------------------------------------------
+summary.json  — per-lane finish rate, end_reasons, canaries (KI-38/KI-40), outcomes
+L*/stdout.txt — run boundaries and outcomes
+L*/debug-logs — one file per run: [MAP]/[PARTY]/[BATTLE]/[STEP] + STUCK dumps
+
+!! A batch may only be compared against the code whose commit is recorded above.
