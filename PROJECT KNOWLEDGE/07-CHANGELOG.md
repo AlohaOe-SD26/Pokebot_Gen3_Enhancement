@@ -7211,3 +7211,41 @@ lanes survive now, but the runs still pay for the wedges.
 existing note says the true fix is `#24-menutext` (read the party-menu TEXT rather than
 inferring from cursor indices), and KI-38's own evidence — `cursors_seen=[0,2,3,7]` in a
 4-mon party — says the cursor MODEL is wrong, which no retry limit can fix.
+
+## 2026-08-04 — KI-38: bound the party-menu cursor, self-correct it, and CAPTURE THE EVIDENCE
+
+Batch11 made this the top item: the KI-47 net fired 8 times and **7 were this one site**
+(`handle_fainted_pokemon` frozen at `BattleScript_FaintedMonTryChoose`) — ~7 recoverable
+derails per 180-minute batch, the largest identified drag on the story bot.
+
+**The site is `menuing.scroll_to_party_menu_index`, and it was another `while True`.**
+
+‼ **The model is wrong, which is why no retry limit ever fixed it.** `gPartyMenu[9]` is not a
+plain party index — KI-38's own evidence records `cursors_seen=[0,2,3,7]` in a **four**-mon
+party, so the cursor also takes values that are not Pokémon slots (7 is CANCEL). The stock
+rule `cursor < target -> Down` then walks the wrong way, or the value never responds, and the
+loop spins (`presses={'Down': 3, 'A': 273}`).
+
+**This does not claim to fix the model.** `#24-menutext` — read the menu TEXT instead of
+inferring from an index — is still the fix. What changed:
+1. **bounded** (40 presses) so it can never spin;
+2. **self-corrects** — if the cursor stops responding for 6 presses it reverses direction once,
+   which handles the commonest failure (a wrong direction guess from an out-of-range sentinel)
+   instead of hammering one key hundreds of times;
+3. ‼ **reports `cursors_seen`, the party size, and a pointer to `#24-menutext`.** That is the
+   evidence `#24-menutext` needs to model the cursor correctly, and **every previous report of
+   this bug lacked exactly that** — which is why four days of mitigations never converged.
+
+Reports through `battle_fault.request_mode_recovery()` so an opted-in mode takes one
+recoverable derail; raises `BotModeError` otherwise.
+
+**Repro** `repro_ki38_party_cursor.py` drives the real generator against a cursor stuck on the
+CANCEL sentinel: it terminates, raises the honest error (not a `NameError`), reports
+`cursors seen: [7]`, tries **both** directions, and gives up in 40 presses rather than 273. It
+also proves a normal scroll still takes exactly the presses needed and that an already-on-target
+call makes none. Suite 77/77.
+
+‼ **Expect the next batch to still show KI-38 derails.** The wedge is not gone; it is now
+bounded, self-correcting and *diagnosable*. The number to watch is not whether the message
+disappears but what `cursors seen` contains — that is what turns `#24-menutext` from a design
+note into a change someone can make.
