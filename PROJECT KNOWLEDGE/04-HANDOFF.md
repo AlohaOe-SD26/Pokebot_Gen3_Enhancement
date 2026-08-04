@@ -8,6 +8,37 @@ immediately below, then "‼ BATCH 5 LANDED". Older "START HERE" sections are HI
 
 ---
 
+# ‼ BATCH 12 IN FLIGHT — a DATA-COLLECTION run, not an improvement run
+(launched 2026-08-04, commit **`32ba1dec`**, dir `x4-runs/20260804-1*`)
+
+‼ **SET THE EXPECTATION BEFORE READING IT: this batch is not expected to raise the finish
+rate.** KI-38 is bounded, self-correcting and diagnosable — **not fixed**. The wedge still
+happens; it now costs a bounded derail instead of an infinite lane.
+
+## THE ONE THING THIS BATCH IS FOR
+```
+grep -ho "cursors seen: \[[0-9, ]*\]" L0*/stdout.txt | sort | uniq -c
+```
+`gPartyMenu[9]` is NOT a plain party index — KI-38 recorded `cursors_seen=[0,2,3,7]` in a
+FOUR-mon party (7 = CANCEL). **The distribution of those values is what turns `#24-menutext`
+from a design note into a change someone can make.** Every previous report of this bug lacked
+it, which is why four days of retry-limit mitigations never converged.
+
+Also record: party size alongside each observation (the message carries it), and whether the
+**reverse-direction self-correction** rescued the scroll (a KI-38 message means it did NOT).
+
+## THEN, in order
+1. All 8 lanes producing runs? (batch11 passed this for the first time in four.)
+2. Net hits by site: `grep -ho "KI-3[8]:\|KI-4[567]:"`. KI-38's share should FALL relative to
+   batch11's 7-of-8 if the self-correction works, even though the message still appears.
+3. Counter chain, then the funnel.
+
+## BASELINE
+Clean plateau **57 / 60 / 47 / 45.8%** (batch3/4/5/8); batch11 **38.5%** (clean, z = −1.33 vs
+the pooled 52.8%). VOID: batch6, batch7. CONTAMINATED: batch9, batch10.
+
+---
+
 # ‼ BATCH 11 IN FLIGHT — the first batch with ALL THREE hang fixes
 (launched 2026-08-04, commit **`fe4a2369`**, dir `x4-runs/20260804-*`)
 
