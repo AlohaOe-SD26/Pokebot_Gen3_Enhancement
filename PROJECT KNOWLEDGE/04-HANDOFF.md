@@ -8,6 +8,36 @@ immediately below, then "‼ BATCH 5 LANDED". Older "START HERE" sections are HI
 
 ---
 
+# ‼ BATCH 11 IN FLIGHT — the first batch with ALL THREE hang fixes
+(launched 2026-08-04, commit **`fe4a2369`**, dir `x4-runs/20260804-*`)
+
+## Why it matters
+**Three consecutive batches were contaminated by battle-path hangs** — batch9 lost 1 lane,
+batch10 lost 2 (H8 produced **0 runs in 180 minutes**). Their 37% / 38.1% are low-side
+estimates on ~6.5-7 effective lanes and are NOT comparable to the clean 47-60% plateau. This
+build carries KI-45 (cursor bound), KI-46 (action-selection bound) and the **KI-47 net** that
+covers the remaining 30 unbounded loops.
+
+## READ IN THIS ORDER
+1. ‼ **Did all 8 lanes produce runs?** `MANIFEST.txt`. **This is the gate — if a lane is at 0
+   runs, nothing else in the batch is worth interpreting**, and the priority becomes finding
+   the fourth hang site.
+2. **Did the nets fire?** `grep -c "KI-4[567]:"` — a hit is a SUCCESS (a bounded, recoverable
+   derail replacing an infinite lane) and names the site. Absence means the condition did not
+   arise, NOT that it is gone.
+3. **Counter chain:** `counter registered`, `NOT depositing`, `lead vs Normal -> Machoke`, and
+   Norman WINS by lead.
+4. **The conditional, then the funnel:** counter-hunt runs beating Norman — batch4 5/9 (56%),
+   batch5 6/10 (60%), batch9 4/6 (67%). Still n≈6.
+
+## BASELINE — do not get this wrong again
+Clean plateau **57% / 60% / 47% / 45.8%** (batch3/4/5/8). **VOID: batch6 (5.4%), batch7
+(26.9%)** — my `#24-pc`-ungated and `#24-leadpolicy` (c) regressions. **CONTAMINATED:
+batch9 (37%), batch10 (38.1%)** — hung lanes.
+‼ `POKEBOT_LEAD_DEMOTE_WONDER_GUARD` stays **0**.
+
+---
+
 # ‼ BATCH 10 IN FLIGHT — first clean 8-lane measurement in a while
 (launched 2026-08-03 ~14:20 PDT, commit **`d8879750`**, dir `x4-runs/20260803-14*`)
 
