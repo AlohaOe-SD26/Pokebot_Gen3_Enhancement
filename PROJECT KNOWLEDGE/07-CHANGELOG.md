@@ -7299,3 +7299,40 @@ bounds convert hangs into derails, which is a plausible mechanism for *more comp
 failed runs* — but the funnel drop says play itself got worse post-Norman, which points at
 `#24-areaitemgate` (it changed where the bot trains) or `#24-leadcounter` (it changed who
 leads at Winona). Run one batch per suspect from a reverted build; do not guess.
+
+## 2026-08-04 — THE DECLINE IS FOUND: `#24-areaitemgate` killed the bot's only training relocation
+
+Bisecting the 52.8% → 37.0% decline (pooled z = −1.94). Two corrections to my own earlier
+analysis on the way, both worth recording because each would have sent the bisect the wrong way:
+
+1. I said the suspects were `#24-areaitemgate` and `#24-leadcounter` "between batch8 and
+   batch11". **Wrong** — both were already in batch8's build, which scored 45.8%, on-plateau.
+2. I said the funnel loss was between batch8 and batch11. **Wrong** — a PER-BATCH funnel (not
+   pooled) shows Balance→Feather at **83% / 75% / 70%** in batch3/4/5 and **52-59%** from
+   batch8 on. The drop is between **batch5 and batch8**.
+
+Pooling had hidden the step change. The per-batch table is now the first thing to compute.
+
+### The cause, measured
+| batch | `relocating to ROUTE111` | Balance→Feather |
+|---|---|---|
+| b3 / b4 / b5 (gate off) | 19 / 12 / **24** | 83% / 75% / 70% |
+| b8…b12 (gate ON) | **0** | 52-59% |
+
+**ROUTE111 (L19-22) is the ONLY training relocation this bot ever performs.** `#24-areaitemgate`
+refused it without Go-Goggles to eliminate 28 wasted treks per batch — and eliminated all 24
+successful relocations with them. Real success rate before the gate: ~43% (24 vs 32). After:
+zero. The team stopped being levelled for the post-Norman band and the last rung collapsed.
+
+**Fix:** the gate is now behind `POKEBOT_AREA_ITEM_GATE`, **default OFF**. `AREA_ITEM_PREREQ`
+stays — the Go-Goggles fact is correct game knowledge, it is simply not worth enforcing here,
+because the failures it targets are ALREADY bounded by `_note_training_unreachable` (one
+wasted trek per RUN, not per attempt). Suite 77/77.
+
+‼ **SECOND TIME IN A WEEK.** `#24-leadpolicy` (c) removed a Shedinja lead winning 39% of Norman
+fights; this removed the only training relocation. Both were REMOVALS justified by counting a
+behaviour's failures and never its successes — and after the first one I wrote the prevention
+rule into `08-MISTAKES` and then failed to apply it to the second. The failure line
+(`dropping it as a training option`) prints; the success line (`relocating to`) is silent
+unless you go looking. New rule recorded: **grep the positive counterpart of every failure
+line you are about to eliminate.**

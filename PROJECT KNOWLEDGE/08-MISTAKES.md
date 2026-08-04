@@ -3211,3 +3211,41 @@ carrier for exactly this reason — a mon can be dead weight *by level* and stil
 2. **"Dead weight" must be a judgement about ROLE, not only about level.** The level rule is a
    heuristic for role, and the exceptions (HM carrier, hunted counter, proven boss lead) are
    where the value is.
+
+## 2026-08-04 — I removed a WINNING behaviour for the second time in a week, having already written the rule against it
+
+**Symptom.** The badge funnel's last rung, Balance→Feather, fell from **83% / 75% / 70%**
+(batch3/4/5) to **52-59%** (batch8-12), and the finish rate from a 52.8% plateau to 37.0%
+(pooled z = −1.94).
+
+**Cause.** `#24-areaitemgate`. I built it to stop **28 wasted treks per batch** — the
+`ROUTE111 (25,55) is not reachable … dropping it as a training option` events — by refusing
+the area unless Go-Goggles are held.
+
+| batch | relocations to ROUTE111 | Balance→Feather |
+|---|---|---|
+| b3 / b4 / b5 (gate off) | 19 / 12 / **24** | 83% / 75% / 70% |
+| b8…b12 (gate ON) | **0** | 52-59% |
+
+**ROUTE111 (L19-22) is the ONLY training relocation this bot ever performs.** Its real success
+rate was ~43% (24 successes against 32 failures in batch5). My gate took it to **zero**, the
+team stopped being levelled for the post-Norman band, and the last rung collapsed.
+
+‼ **THE FAILURES WERE LOGGED; THE SUCCESSES WERE SILENT.** `dropping it as a training option`
+prints on failure. A successful relocation prints `relocating to ROUTE111` — and I never
+grepped for it, because nothing was going wrong to make me look.
+
+‼ **THIS IS THE SECOND TIME IN A WEEK.** The first was `#24-leadpolicy` (c), which deleted a
+Shedinja lead that was winning 39% of Norman fights. After that one I wrote, in this very
+file: *"Before removing a behaviour, count how often it WINS, not just that it can lose."*
+I then applied that rule to the lead policy and **not** to the training gate, four days later.
+
+**Prevention rules.**
+1. **A rule written in 08-MISTAKES is not applied until it is applied to the CURRENT change.**
+   Re-read the file's own prevention rules when the change under review is a REMOVAL. Both of
+   these were removals dressed as fixes.
+2. **Grep the positive counterpart of every failure line you are about to eliminate.** For
+   `dropping it as a training option` the counterpart is `relocating to` — it was one grep
+   away, in logs I already had, both times.
+3. **A "wasted work" metric is not a cost metric.** 28 wasted treks looked like pure loss
+   because I never priced what the same code path bought when it succeeded.

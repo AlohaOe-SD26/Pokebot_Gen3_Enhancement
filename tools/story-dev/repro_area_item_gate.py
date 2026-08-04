@@ -96,6 +96,27 @@ print("5. an ungated area is unaffected")
 for area in (MapRSE.ROUTE116, MapRSE.ROUTE117, MapRSE.ROUTE102):
     check(f"{area.name} has no item gate", area not in AREA_ITEM_PREREQ)
 
+print("6. IT IS NOW OFF BY DEFAULT - it cost more than it saved")
+# Measured across the batch evidence:
+#   relocations to ROUTE111   b3=19  b4=12  b5=24   -> b8..b12 = 0
+#   Balance->Feather          83% / 75% / 70%       -> 52-59%
+# ROUTE111 (L19-22) is the ONLY training relocation this bot ever performs. The gate took its
+# success rate from ~43% to zero and the last funnel rung fell ~20 points. Same mistake as
+# #24-leadpolicy (c): counting a behaviour's failures without counting its successes.
+import re as _re  # noqa: E402
+fn = _re.search(r"def _training_area_allowed\(.*?(?=\ndef )", src, _re.S)
+check("_training_area_allowed located", fn is not None)
+if fn:
+    b = fn.group(0)
+    check("the gate is behind POKEBOT_AREA_ITEM_GATE", "POKEBOT_AREA_ITEM_GATE" in b)
+    check("it defaults to OFF",
+          _re.search(r'environ\.get\("POKEBOT_AREA_ITEM_GATE",\s*"0"\)', b) is not None)
+    check("the evidence is recorded beside the flag",
+          "ONLY training relocation" in b or "Balance->Feather" in b)
+# The table itself stays - it is correct game knowledge, just not worth enforcing here.
+check("AREA_ITEM_PREREQ still documents the Go-Goggles fact",
+      AREA_ITEM_PREREQ.get(MapRSE.ROUTE111) == "Go-Goggles")
+
 print()
 if FAILURES:
     print(f"REPRO: {len(FAILURES)} FAILING CHECK(S) — {', '.join(FAILURES)}")

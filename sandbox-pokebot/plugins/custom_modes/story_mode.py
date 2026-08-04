@@ -542,16 +542,42 @@ def _training_area_allowed(map_enum, tile, prereq) -> bool:
     # "ROUTE111 (25, 55) is not reachable from here — dropping it", about one wasted
     # cross-Hoenn trek per run, paid to discover a fact the codebase already knew in prose.
     # See `training_areas.AREA_ITEM_PREREQ`. Fails CLOSED, like every other gate here.
-    try:
-        from modules.items import get_item_bag, get_item_by_name
-        from modules.story.training_areas import AREA_ITEM_PREREQ
+    # ‼ OFF BY DEFAULT SINCE 2026-08-04 — THIS GATE COST MORE THAN IT SAVED, AND THE NUMBERS
+    # WERE AVAILABLE THE WHOLE TIME. I built it to stop 28 "dropping it as a training option"
+    # events per batch. Measured across the batch evidence:
+    #
+    #   batch          relocations to ROUTE111      Balance->Feather
+    #   b3 3875843c              19                       83%
+    #   b4 92d220d5              12                       75%
+    #   b5 b7345ffd              24                       70%
+    #   b8..b12 (gate ON)         0                    52-59%
+    #
+    # **ROUTE111 (L19-22) is the ONLY training relocation this bot ever performs.** The gate
+    # took its success rate from ~43% (24 successes against 32 failures in batch5) to ZERO,
+    # the team stopped being levelled for the post-Norman band, and the last funnel rung fell
+    # by ~20 points. I counted the wasted treks and never counted the successful ones.
+    #
+    # ‼ THIS IS THE SECOND TIME I MADE EXACTLY THIS MISTAKE IN A WEEK — the first was
+    # `#24-leadpolicy` (c), which removed a Shedinja lead that was winning 39% of Norman
+    # fights. 08-MISTAKES already carried the rule ("before removing a behaviour, count how
+    # often it WINS") and I applied it to the lead policy and not to this.
+    #
+    # The failures it targeted are ALREADY handled: `_note_training_unreachable` records a
+    # failed area for the rest of the run, so the cost is one trek per run, not per attempt.
+    # `POKEBOT_AREA_ITEM_GATE=1` restores it.
+    import os as _os
 
-        needed_item = AREA_ITEM_PREREQ.get(map_enum)
-        if needed_item is not None:
-            if get_item_bag().quantity_of(get_item_by_name(needed_item)) <= 0:
-                return False
-    except Exception:  # noqa: BLE001
-        return False
+    if _os.environ.get("POKEBOT_AREA_ITEM_GATE", "0").strip() in ("1", "true", "yes"):
+        try:
+            from modules.items import get_item_bag, get_item_by_name
+            from modules.story.training_areas import AREA_ITEM_PREREQ
+
+            needed_item = AREA_ITEM_PREREQ.get(map_enum)
+            if needed_item is not None:
+                if get_item_bag().quantity_of(get_item_by_name(needed_item)) <= 0:
+                    return False
+        except Exception:  # noqa: BLE001
+            return False
     # "region" carries no extra requirement here — it exists so the conservative
     # allow=None default refuses the area; the live reachability check below is its gate.
     try:
