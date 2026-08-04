@@ -7249,3 +7249,53 @@ call makes none. Suite 77/77.
 bounded, self-correcting and *diagnosable*. The number to watch is not whether the message
 disappears but what `cursors seen` contains — that is what turns `#24-menutext` from a design
 note into a change someone can make.
+
+## 2026-08-04 — BATCH 12 + a decline that is now worth taking seriously
+
+`x4-runs/20260804-1…`, commit `32ba1dec`. **28 runs, 10 finished = 35.7%**, all 8 lanes
+producing runs (second clean batch running).
+
+### The KI-38 cursor fix WORKS — and was not the cause
+**0 `cursors seen` messages**: the reverse-direction self-correction rescues every scroll
+before the 40-press bound. But the net still fired **9 times, 7 of them at the same handler**
+(`handle_fainted_pokemon`, frozen at `BattleScript_FaintedMonTryChoose`) — the same count as
+batch11.
+
+‼ **Judging that fix by "did the KI-38 message disappear?" would have scored it a success.**
+It did disappear. The wedge did not. The KI-47 net firing at an unchanged rate is the only
+reason that is visible — a real instance of "rate of survival vs rate of occurrence", caught
+this time because two independent instruments were watching.
+
+⇒ The after-faint wedge is **not** in the cursor scroll. Next suspect is the loop *before* it:
+`while … press A` waiting for `Task_HandleChooseMonInput` — i.e. **the menu never opens**,
+rather than the cursor never moving. A second signature also appeared once:
+`BattleScript_PrintCantEscapeFromBattle` in action selection (an un-fleeable battle).
+
+### ‼ TWO CLEAN BATCHES NOW SHOW A DECLINE, AND IT IS NOT A DENOMINATOR ARTIFACT
+| | clean plateau (b3/4/5/8) | clean recent (b11/12) | z |
+|---|---|---|---|
+| finish rate | **65/123 = 52.8%** | **20/54 = 37.0%** | **−1.94** |
+| whole funnel Stone→Feather | 42.2% | 29.0% | −1.88 |
+
+The obvious confound — hung lanes used to produce ZERO runs, so their failures never entered
+the denominator — is **ruled out**: the badge funnel is per-badge-record, not per-run, and it
+fell too. The loss is concentrated in the LAST rung:
+
+| rung | plateau | recent | z |
+|---|---|---|---|
+| Stone→Knuckle | 95% | 96% | +0.27 |
+| Knuckle→Dynamo | 82% | 74% | −1.21 |
+| Dynamo→Heat | 95% | 92% | −0.78 |
+| Heat→Balance | 81% | 80% | −0.20 |
+| **Balance→Feather** | **71%** | **56%** | **−1.63** |
+
+**Post-Norman is where it is lost.** `#24-leadpolicy` option **(a)** is ruled out as a cause —
+it is inert: **0 of 723** logged lead decisions contained a `NOATK` candidate, so it has never
+demoted anything.
+
+⇒ **NEXT: BISECT, do not add anything.** Candidates between batch8 (45.8%) and batch11/12 are
+`#24-pc` (gated), `#24-areaitemgate`, `#24-leadcounter`, and the KI-45/46/47/38 bounds. The
+bounds convert hangs into derails, which is a plausible mechanism for *more completed-but-
+failed runs* — but the funnel drop says play itself got worse post-Norman, which points at
+`#24-areaitemgate` (it changed where the bot trains) or `#24-leadcounter` (it changed who
+leads at Winona). Run one batch per suspect from a reverted build; do not guess.
