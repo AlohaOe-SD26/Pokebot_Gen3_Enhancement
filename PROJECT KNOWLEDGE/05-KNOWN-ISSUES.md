@@ -1783,3 +1783,40 @@ to any loop on the battle path.** The global watchdog needs an UNCHANGED progres
 a battle keeps changing it; the per-run frame budget is KI-36's documented "cannot fire while a
 battle handler is on the stack". **Any `while` loop under `BattleListener.fight` has no safety
 net but its own bound.** Audit the remaining ones rather than waiting for the next lost lane.
+
+---
+
+## KI-47 — The battle path has a CLASS of unbounded loops; the existing watchdog is STARVED by them (2026-08-04, NET ADDED)
+
+**Audit result** (`ast` sweep of `battle_handler`, `battle_action_selection`, `battle_menuing`,
+`battle_move_replacing`, `battle_evolution_scene`, `modes/_listeners`): **32 `while` loops with
+no counter, no `break` and no `raise`.** Two have each already cost a whole lane:
+
+| | site | cost |
+|---|---|---|
+| KI-45 | `battle_menuing._select_in_menu` | batch6 H4; batch9 H6 = **0 runs / 180 min** |
+| KI-46 | `handle_battle_action_selection` | batch10 H2 **and** H8, ~59 min each |
+
+‼ **WHY `handle_battle`'s OWN ML-11 WATCHDOG DID NOT CATCH EITHER.** It is correct, and it is
+**starved**: it only runs between iterations of its own loop, and a sub-generator that yields
+for ever consumes the frames on its behalf, so `_no_progress` never increments. Same
+starvation shape as **KI-37** (a listener above the mode starving it).
+
+**The fix is ONE NET, not 32 bounds.** `handle_battle._watch(subgen, label)` wraps every
+sub-handler call and counts frames **where they are actually consumed** — inside the
+sub-generator's yields — faulting after `_SUBHANDLER_STALL_FRAMES = 3000` (~50 s) with the
+battle progress signature frozen. It therefore covers all 32 loops, **including ones not yet
+written**. Reports via `battle_fault.request_mode_recovery()`; raises `BotModeError` otherwise.
+
+‼ **ORDERING IS DELIBERATE — the net sits BEHIND the specific bounds** (KI-45's 60 cursor
+steps ≈ 180 frames, KI-46's 600 frames). A tighter net would pre-empt them and destroy their
+specific diagnoses, leaving only "the battle stopped progressing". `repro_ki47_subhandler_net.py`
+check 2 asserts that ordering.
+
+**Deliberately NOT done: bounding the other 30 individually.** Most legitimately wait for the
+game to move on, and 30 hand-picked bounds are 30 chances to pick a wrong one. Add a specific
+bound only where a real hang has been observed — the net makes that safe to wait for.
+
+**Repro:** `repro_ki47_subhandler_net.py` — asserts no sub-handler is called unwrapped, that a
+forever-yielding handler faults, that a long BUT PROGRESSING one does not (no false positive),
+and that the error is not a `NameError`.

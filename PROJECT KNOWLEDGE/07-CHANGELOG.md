@@ -7137,3 +7137,35 @@ deposit, MACHOP led 1 of 16 Norman wins; SHEDINJA led 7, consistent with the (c)
 ⇒ **NEXT: audit every remaining `while` loop under `BattleListener.fight`.** Two of them have
 now each cost a lane, and both project-level guards are structurally blind to all of them.
 Waiting for the next lost lane to find the third one is not a strategy.
+
+## 2026-08-04 — KI-47: one net for the battle path's 32 unbounded loops
+
+The audit that batch10 called for. An `ast` sweep of the battle path found **32 `while` loops
+with no counter, no `break` and no `raise`** — and two of them had already each cost a full
+lane (KI-45, KI-46).
+
+‼ **The important discovery is why `handle_battle`'s OWN watchdog never fired.** ML-11's
+no-progress counter is correct and **starved**: it only runs between iterations of its own
+loop, and a sub-generator that yields for ever consumes the frames on its behalf, so
+`_no_progress` never increments. That is the same starvation shape as KI-37 — and it means
+every one of those 32 loops was unprotected in practice, not just in theory.
+
+**Fix: `handle_battle._watch(subgen, label)`** wraps every sub-handler call and counts frames
+**where they are actually consumed** — inside the sub-generator's yields — faulting after
+`_SUBHANDLER_STALL_FRAMES = 3000` (~50 s) with the battle progress signature frozen. One net
+covers all 32, **including loops not yet written**. It reports through
+`battle_fault.request_mode_recovery()` so an opted-in mode takes one recoverable derail.
+
+‼ **The net sits BEHIND the specific bounds on purpose** (KI-45 ≈180 frames, KI-46 600). A
+tighter net would pre-empt them and destroy their specific diagnoses, leaving only "the battle
+stopped progressing". The repro asserts that ordering explicitly.
+
+‼ **Deliberately NOT bounding the other 30.** Most legitimately wait for the game to move on,
+and 30 hand-picked bounds are 30 chances to pick a wrong one — the "obvious repair" trap this
+project keeps hitting. Add a specific bound only where a real hang is observed; the net makes
+waiting for that evidence safe.
+
+Two mistakes avoided during the work, both caught by driving real code rather than reading it:
+the constant was first inserted **between `@debug.track` and its function** (caught by an
+`ast.parse` check), and the KI-46 fix had referenced `BotModeError` without importing it.
+Suite 76/76.

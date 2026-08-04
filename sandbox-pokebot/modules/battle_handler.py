@@ -163,6 +163,14 @@ def _dump_battle_stall_diagnostic() -> None:
         pass
 
 
+#: ‼ KI-47 last-resort net for battle SUB-handlers (see `_watch`). ~50 s at 1x —
+#: deliberately generous, because this sits BEHIND the specific bounds (KI-45's 60
+#: cursor steps, KI-46's 600 unrecognised frames) rather than replacing them. A
+#: specific bound gives a specific diagnosis; this one only reports that the battle
+#: stopped progressing at all.
+_SUBHANDLER_STALL_FRAMES = 3000
+
+
 @debug.track
 def handle_battle(strategy: BattleStrategy) -> Generator[None, None, HandledBattleResult]:
     """
@@ -246,6 +254,65 @@ def handle_battle(strategy: BattleStrategy) -> Generator[None, None, HandledBatt
     _no_progress = 0
     _last_progress_sig = None
 
+    def _progress_sig():
+        """The battle's progress fingerprint. Shared by the outer watchdog and `_watch`."""
+        try:
+            from modules.battle_move_replacing import get_learn_move_state
+
+            return (
+                get_current_battle_script_instruction(),
+                get_main_battle_callback(),
+                str(get_learn_move_state()),
+                sum(getattr(p, "total_exp", 0) for p in get_party()),
+            )
+        except Exception:  # noqa: BLE001
+            return None
+
+    def _watch(subgen, label):
+        """‼ KI-47 — the ONE net that covers every loop inside a battle sub-handler.
+
+        The ML-11 watchdog above is correct but STARVED: it only runs between iterations of
+        THIS loop, and a sub-generator that yields for ever consumes the frames on its behalf,
+        so the outer counter never increments. That is why it caught neither KI-45
+        (`_select_in_menu`) nor KI-46 (`handle_battle_action_selection`) — the same
+        starvation shape as KI-37.
+
+        An audit on 2026-08-04 found **32 unbounded `while` loops** on the battle path.
+        Bounding all 32 individually would be 32 chances to get a bound wrong, and most of
+        them legitimately wait for the game to move on. Counting frames HERE — where they are
+        actually consumed — covers all of them at once, including ones not yet written.
+
+        Bound is deliberately generous (~50 s): this is a LAST-RESORT net behind the specific
+        bounds, not a replacement for them. A specific bound gives a specific diagnosis; this
+        one only says "the battle stopped progressing", which is why it names the sub-handler
+        and the frozen signature.
+        """
+        stale = 0
+        last = None
+        while True:
+            try:
+                value = next(subgen)
+            except StopIteration as stop:
+                return stop.value
+            sig = _progress_sig()
+            if sig is not None and sig == last:
+                stale += 1
+                if stale > _SUBHANDLER_STALL_FRAMES:
+                    reason = (
+                        f"KI-47: battle sub-handler '{label}' ran {stale} frames with no "
+                        f"battle progress (frozen at {sig!r})"
+                    )
+                    from modules.battle_fault import request_mode_recovery
+                    from modules.modes import BotModeError
+
+                    if request_mode_recovery(reason):
+                        return None
+                    raise BotModeError(reason)
+            else:
+                stale = 0
+                last = sig
+            yield value
+
     while (battle_is_active() or _learn_or_evo_pending()) and context.bot_mode != "Manual":
         # A sub-handler has given up and handed a recoverable fault to the mode
         # (#24-movelearn-recovery). Stop driving immediately: re-invoking the handler
@@ -297,13 +364,13 @@ def handle_battle(strategy: BattleStrategy) -> Generator[None, None, HandledBatt
         # check ran first it would swallow the frame in action-selection and the
         # move-learn prompt would NEVER be handled — the exact hang the user hit.
         if instruction == "BattleScript_AskToLearnMove" or _move_learn_dialogue_active():
-            yield from handle_move_replacement_dialogue(strategy)
+            yield from _watch(handle_move_replacement_dialogue(strategy), "handle_move_replacement_dialogue")
         elif _evolution_animating():
             # Evolution scene in progress (not at its move-learn substate) — let
             # the evolution handler advance it; never the move-dialogue (ML-11).
-            yield from handle_evolution_scene(strategy)
+            yield from _watch(handle_evolution_scene(strategy), "handle_evolution_scene")
         elif get_main_battle_callback() in ("HandleTurnActionSelectionState", "sub_8012324"):
-            yield from handle_battle_action_selection(strategy)
+            yield from _watch(handle_battle_action_selection(strategy), "handle_battle_action_selection")
         elif get_current_battle_script_instruction() == "BattleScript_ItemSteal":
             result = yield from handle_item_stealing()
             if result is not None:
@@ -315,7 +382,7 @@ def handle_battle(strategy: BattleStrategy) -> Generator[None, None, HandledBatt
             items_before_pickup = [pokemon.held_item for pokemon in get_party()]
             yield
         elif task_is_active("Task_EvolutionScene"):
-            yield from handle_evolution_scene(strategy)
+            yield from _watch(handle_evolution_scene(strategy), "handle_evolution_scene")
         elif (
             (
                 # FORK (2026-07-22, Ch9 hang): the script pointer can already have ADVANCED
@@ -330,7 +397,7 @@ def handle_battle(strategy: BattleStrategy) -> Generator[None, None, HandledBatt
             and get_battle_state().own_side.is_fainted
             and len(get_party().non_fainted_pokemon) > 0
         ):
-            yield from handle_fainted_pokemon(strategy)
+            yield from _watch(handle_fainted_pokemon(strategy), "handle_fainted_pokemon")
         elif instruction in ("BattleScript_TryNicknameCaughtMon", "BattleScript_CaughtPokemonSkipNewDex"):
             yield from handle_nickname_caught_pokemon(context.stats.last_encounter)
         else:
