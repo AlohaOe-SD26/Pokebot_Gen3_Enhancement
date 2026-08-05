@@ -79,16 +79,24 @@ Full ROM-verified recon is in `12-STORYMODE-DESIGN.md` **§Ch14**; re-derive any
    Granite Cave 1F: within-floor reachability is DIRECTIONAL, so one graph node is really two
    disjoint sections and a map-granular planner cannot see it.
 
-   ⏭ Settle it in minutes, once the box is free:
+   ✅ **PROBED LIVE 2026-08-05 — and multi-hop threading WORKS:**
    ```
-   cd tools/story-dev
-   PYTHONUTF8=1 py -3.12 story_harness.py saves/dewford.ss1 --driver cavethread \
-       --frames 600000 --profile repro-cave1
+   PYTHONUTF8=1 py -3.12 story_harness.py dewford.ss1 --driver cavethread --frames 600000
+   [cavethread] leg=in from=DEWFORD_TOWN to=GRANITE_CAVE_B2F(29, 13) graph_hops=4
+   [cavethread] RESULT leg=in arrived=False map=GRANITE_CAVE_B1F detail=returned on the wrong map
    ```
-   Granite Cave is the deliberate test case (same 3-warp depth as Mt. Pyre, hardest hazard).
-   **Passes ⇒ the item collapses to "delete two stale tables" and Mt. Pyre unblocks. Fails ⇒ the
-   log names the leg and map to fix.** Full reasoning: `07-CHANGELOG.md` + `08-MISTAKES.md`
-   2026-08-05, and the re-scoped `03-PUNCH-LIST.md` entry.
+   The bot drove **DEWFORD → ROUTE106 → GRANITE_CAVE_1F → GRANITE_CAVE_B1F** — two cave warps —
+   through the generic navigator with **no chain table involved**. So the item is NOT "build a
+   chain system" (now refuted twice, statically and live).
+
+   ⏭ **THE REAL DEFECT: it stops one hop short, standing ON the final ladder** — B1F (29,13),
+   which `_FROM_STEVEN` documents as the ladder DOWN to B2F. Make that last hop fire.
+   ‼ **Re-run with an unambiguous B2F tile first.** I picked (29,13) from the graph's
+   `to_coords`, and B1F(29,13)/B2F(29,13) are a warp PAIR at identical coordinates — the worst
+   possible test tile, since "right coords, wrong floor" looks like "arrived". The probe only
+   survived because it asserts on MAP. The current evidence cannot yet separate "the ladder
+   never fired" from "the navigator thought it had arrived". Mt. Pyre Summit is the same 3-warp
+   shape, so this one defect likely gates it too.
 2. **Mt. Pyre** — 3 hops, one branch (the 2F-6F tower is a skippable side dungeon).
 3. **Magma Hideout — DEFER.** Its door at JAGGED_PASS (16,18) is unreachable from the
    ROUTE112 side (one-way ledges; a 2026-07-26 probe already failed to path there). Only

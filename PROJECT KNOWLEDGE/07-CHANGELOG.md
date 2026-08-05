@@ -7647,3 +7647,39 @@ The cap is not the lever; **HM-slot reservation** is. Options, unpriced:
    is the shape of `POKEBOT_PC_ROTATION`, which is disabled for costing ~19 points by
    depositing team members. Do not build it without reading that first.
 3. **Cap 5** — one free seat for the Surf learner. Plausible, entirely unmeasured, needs a batch.
+
+## 2026-08-05 — `#24-cavethread` PROBED LIVE: multi-hop threading WORKS, and stops one hop short
+
+`story_harness.py dewford.ss1 --driver cavethread --frames 600000`, target `GRANITE_CAVE_B2F`.
+
+```
+[cavethread] leg=in from=DEWFORD_TOWN to=GRANITE_CAVE_B2F(29, 13) graph_hops=4
+[cavethread] RESULT leg=in arrived=False map=GRANITE_CAVE_B1F detail=returned on the wrong map
+```
+
+### ‼ THE STALE-COMMENT FINDING IS CONFIRMED LIVE, NOT JUST STATICALLY
+
+The bot went **DEWFORD_TOWN → ROUTE106 → GRANITE_CAVE_1F → GRANITE_CAVE_B1F** — a route
+connection plus **two cave warps** — driven entirely by the generic `_navigate_riding_out` /
+`navigate_to_anywhere` path, with **no chain table involved**. The `_CAVE_EXITS` comment
+claiming *"the global navigator can NOT cross warp levels"* is therefore **false today**, and
+`#24-cavethread` does **not** need a hand-built chain system to represent deep routes.
+
+### WHERE IT ACTUALLY STOPS — one hop short, standing ON the ladder
+
+It halted on **GRANITE_CAVE_B1F at (29,13)**, which `_FROM_STEVEN` documents as *the ladder
+DOWN to B2F*. So it reached the correct final ladder and did not take it. That — not route
+representation — is the real `#24-cavethread` defect, and it is a much smaller target.
+
+‼ **A FLAW IN MY OWN PROBE, recorded so the next run does not inherit it.** I derived the
+destination tile from the warp graph's `to_coords` and got **(29,13)**, which is one of the
+worst possible test coordinates here: B1F(29,13) and B2F(29,13) are a warp PAIR at *identical
+coordinates*, so "right coords, wrong floor" is indistinguishable from "arrived" by coordinate
+alone. The probe survived only because it asserts on **MAP**, not coordinates. **Re-run with an
+unambiguous interior B2F tile before drawing a firm conclusion about the ladder** — the current
+evidence cannot fully separate "the ladder warp never fired" from "the navigator believed it had
+arrived because the coordinates matched".
+
+**Status: `#24-cavethread` is re-scoped and now has a live measurement.** Not "build a chain
+system" (refuted twice, statically and live); it is "make the last ladder hop fire". Mt. Pyre
+Summit is the same 3-warp shape, so this one defect very likely gates it too.
