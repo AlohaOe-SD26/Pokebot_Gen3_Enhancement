@@ -30,10 +30,17 @@ cross warp levels … that exact failure already dropped two real-hardware runs 
 **⇒ BUILD ORDER (do not reorder):**
 1. **Chain-aware cave threading** — the blocking capability; also unparks Granite Cave B1F/B2F.
 2. **Mt. Pyre** — 3 hops, one branch; the 2F-6F tower is a skippable side dungeon.
-3. **Magma Hideout** — 4 hops, and gated behind an open question:
-   ‼ **JAGGED_PASS (its only door) is in `NO_RETURN_GROUNDS`** — "one-way ledges from
-   Mt. Chimney; not re-enterable from Lavaridge". **Probe the approach before designing the
-   route.** This is the riskiest single fact in the chapter.
+3. **Magma Hideout — DEFER.** ‼ **The approach question is now SETTLED and the answer is
+   bad:** the hideout door is at JAGGED_PASS **(16,18)**, between the pass's two ends
+   ((14,40)→ROUTE112 at the bottom, (13,5)→MT_CHIMNEY at the top). The pass descends by
+   one-way ledges, so **it is unreachable from the Route 112 side** — and that is not
+   inference: `NO_RETURN_GROUNDS` already records a 2026-07-26 probe that reached
+   JAGGED_PASS (14,40) and *could not path within the map to (16,22)*, four tiles from the
+   door. The only approach is **ROUTE112 → cable car → MT_CHIMNEY → descend the pass**, making
+   the objective **~8 warps deep behind a scripted cable-car ride**. Hardest area the story
+   bot has ever been asked to traverse. Do not attempt it until Mt. Pyre proves the threading.
+   ‼ Do NOT delete the JAGGED_PASS `NO_RETURN_GROUNDS` entry — it is correct; the map simply
+   has a second entrance from above.
 
 Full recon, with every warp tile and the two Mt. Pyre branches, is in `12-STORYMODE-DESIGN.md`
 **§Ch14**. Re-derive any of it with `probe_ch14_recon.py --area pyre|magma|approach`.

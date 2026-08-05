@@ -2946,3 +2946,43 @@ JAGGED_PASS <--(10,34)-- MAGMA_HIDEOUT_1F --(25,34)--> 2F_1R --(17,33)--> 3F_1R 
   burned this project twice — see `ai-research-notes/00-READ-THIS-FIRST.md`).
 * Whether JAGGED_PASS is reachable at all from the post-Winona position.
 * Encounter tables / level bands for both areas (for the training and counter pickers).
+
+### §Ch14 — THE MAGMA HIDEOUT APPROACH IS SETTLED (ROM + existing measurement, 2026-08-05)
+
+**The hideout cannot be entered from the Route 112 side.** Probed warps:
+
+```
+JAGGED_PASS (30x46)
+  (14,40)/(15,40) -> ROUTE112      <- BOTTOM of the pass
+  (13,5)/(14,5)   -> MT_CHIMNEY    <- TOP of the pass
+  (16,18)         -> MAGMA_HIDEOUT_1F
+```
+
+The hideout door sits at **y=18**, between the two ends. Jagged Pass descends by **one-way
+ledges**, so from the ROUTE112 entrance at y=40 the door is *above* the player and unreachable.
+
+‼ **This is not inference alone — it was already measured.** `NO_RETURN_GROUNDS`' own entry
+records a 2026-07-26 probe that *"reached JAGGED_PASS (14,40) and then could not path WITHIN
+the map to (16,22)"* — four tiles from the hideout door. The ROM topology explains a failure
+the project had already observed and filed under a different heading.
+
+**⇒ THE ONLY APPROACH IS FROM ABOVE:**
+```
+ROUTE112 (28,27)/(29,27) -> ROUTE112_CABLE_CAR_STATION -> [CABLE CAR] ->
+MT_CHIMNEY_CABLE_CAR_STATION -> MT_CHIMNEY (20,41)/(21,41) -> JAGGED_PASS ->
+descend to (16,18) -> MAGMA_HIDEOUT_1F -> ... -> 4F
+```
+
+**That makes the Magma Hideout objective ~8 warps deep AND behind a cable-car ride**, which is
+a scripted scene, not a warp. Revised difficulty: this is the hardest area the story bot has
+ever been asked to traverse — deeper than Granite Cave B2F (parked) and Mt. Pyre (3 hops).
+
+### ‼ REVISED BUILD ORDER
+1. **Chain-aware cave threading** (unchanged — still the blocking capability).
+2. **Mt. Pyre** — 3 hops, one branch, no scripted transport. The right first chapter.
+3. **Magma Hideout — DEFER.** It needs chain-aware threading *plus* cable-car handling *plus*
+   descending a one-way pass. Do not attempt it until Mt. Pyre proves the threading works.
+
+‼ Do NOT "fix" `NO_RETURN_GROUNDS`' JAGGED_PASS entry by deleting it. It is correct: the pass
+genuinely cannot be climbed. What was missing is that the map has a SECOND entrance from the
+top, which makes the hideout reachable by a different route rather than making the entry wrong.
