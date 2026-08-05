@@ -3360,3 +3360,36 @@ the first live proof of `#24-pcoverflow`. It logged `withdrawing` **0** times �
 killed runs before any full-party catch reached the overflow path. **Bundling two changes into
 one batch measures the bundle, not each part**; when the first one derails runs early, the
 second gets no exposure at all. `#24-pcoverflow` remains unproven and needs its own probe.
+
+## 2026-08-05 — Twice I read "the trip failed" off a final position, when the trip had SUCCEEDED and walked one map further
+
+**Symptom.** The `#24-cavethread` probe reported `arrived=False map=GRANITE_CAVE_B1F` and I was
+one edit away from writing "multi-hop threading stops one hop short" into the handoff as the
+project's top blocker. The return-leg probe then reported `arrived=False map=DEWFORD_TOWN_HOUSE1`.
+**Both trips had actually succeeded.**
+
+**Root cause — mine, in the probe.** I derived destination tiles from the warp graph's
+`to_coords`, reasoning that "where the ROM says you land" is walkable by construction. It is —
+but it is also, always, **a warp tile**. Walking onto a warp FIRES it, so the bot reached the
+target and was immediately carried one map beyond it: a B2F ladder bounced it back up to B1F, a
+Dewford door put it inside a house. `navigate_to_anywhere` returned SUCCESS both times, correctly
+by its own lights, and my final-position check turned that into "failed".
+
+**The fix that worked.** Record the set of maps VISITED during the leg (`tracked()`), not the
+position at the end. That answers "did it ever get there" and needs no non-warp tile to exist —
+which mattered, because **every** B2F tile the warp graph knows is a ladder.
+
+‼ **Prevention rule: NEVER pass a warp tile (door, ladder, stairs, cave mouth) as a navigation
+destination — target a plain walkable tile.** The trip will overshoot by exactly one map and
+report success. And when writing a probe, **assert on the strongest available evidence, not the
+most convenient**: a final position is a snapshot, and a snapshot cannot distinguish "never got
+there" from "got there and moved on". 14.8% of this ROM's warp edges have identical from/to
+coordinates, so even the coordinates agree with the wrong answer.
+
+‼ **Second lesson — the near-miss is the point.** The first run's wrong reading was *plausible,
+specific and actionable* ("it halts on the ladder tile"), which is exactly what makes that class
+of error expensive: it would have sent the next session hunting a bug in the ladder code that
+does not exist. What caught it was refusing to accept a negative result whose mechanism I could
+not explain — the no-exception return did not fit "the warp failed", and chasing that mismatch is
+what produced the real answer. **An unexplained detail in a result you already believe is the
+cheapest bug you will ever find.**

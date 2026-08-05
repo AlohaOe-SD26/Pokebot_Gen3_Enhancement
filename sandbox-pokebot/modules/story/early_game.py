@@ -1844,6 +1844,22 @@ def _battler_slots() -> list[int]:
 #: two-way sweep proved exactly that: FIERY_PATH (18,19) is reachable OUT from Lavaridge,
 #: but the return leg failed *inside the cave* — the tile could not be promoted until
 #: this table existed.
+#:
+#: ‼‼ THE PARAGRAPH ABOVE IS HISTORY — IT STOPPED BEING TRUE ON 2026-07-31. `#24-journey`
+#: made `navigate_to_anywhere` a multi-hop, self-replanning, live-validated warp navigator,
+#: and `_navigate_riding_out` wraps it. MEASURED 2026-08-05 (`--driver cavethread`), with
+#: NO table involved in either direction:
+#:     IN  DEWFORD_TOWN -> ROUTE106 -> GRANITE_CAVE_1F -> B1F -> **B2F**  (3 warps)
+#:     OUT GRANITE_CAVE_B1F -> GRANITE_CAVE_1F -> ROUTE106 -> **DEWFORD_TOWN**
+#: So these two tables are now REDUNDANT, not load-bearing. They are kept because they are
+#: harmless and cheap (a pre-step that threads one door via `_enter_warp_by_navigation`,
+#: which handles warp tiles correctly) — but do NOT build a deeper "chain table" on the
+#: premise above. `#24-cavethread` was scoped that way and the premise was already stale.
+#:
+#: ‼ THE ONE REAL GOTCHA, demonstrated twice: **NEVER pass a WARP TILE as a navigation
+#: destination.** Walking onto a warp FIRES it, so the trip ends one map PAST the target and
+#: the navigator reports success. Both probe runs hit this — a B2F ladder bounced the bot up
+#: to B1F, and a Dewford door put it inside DEWFORD_TOWN_HOUSE1. Target a plain walkable tile.
 _CAVE_EXITS: dict = {
     # -> ROUTE106. The Dewford-arc training spot; verified 2026-07-22.
     MapRSE.GRANITE_CAVE_1F: (37, 12),

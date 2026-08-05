@@ -67,7 +67,21 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       collect it at the next heal. Frees exactly ONE slot, never deposits its own target.
       `repro_pc_overflow.py`. **NOT live-proven.**
 
-- [ ] `#24-cavethread` — **THE BLOCKER FOR ALL STORY CONTENT PAST WINONA.**
+- [x] `#24-cavethread` — **‼ CLOSED 2026-08-05: IT WAS NEVER A BLOCKER. Multi-hop cave
+      threading ALREADY WORKS, in both directions, with no chain table.**
+      Measured (`--driver cavethread`, `reached_dest` = maps actually visited):
+      **IN** `DEWFORD_TOWN → ROUTE106 → GRANITE_CAVE_1F → B1F → B2F` (3 warps);
+      **OUT** `GRANITE_CAVE_B1F → GRANITE_CAVE_1F → ROUTE106 → DEWFORD_TOWN`.
+      MT_PYRE_SUMMIT is the same 3-warp shape ⇒ **`#24-mtpyre` is UNBLOCKED**, and Granite Cave
+      B1F/B2F can be unparked as training grounds.
+      ‼ **THE ONE REAL GOTCHA: never pass a WARP TILE (door/ladder/stairs) as a navigation
+      destination** — walking onto it FIRES it, so the trip ends one map PAST the target and
+      the navigator reports success. Both probe runs hit this and both first read as failures.
+      Only the stale `_CAVE_EXITS` comment was changed; the tables are kept (redundant, cheap,
+      harmless). Full detail: `07-CHANGELOG.md` + `08-MISTAKES.md` 2026-08-05.
+
+      <details><summary>superseded framing (kept for the reasoning trail)</summary>
+
       ‼ **RE-SCOPED 2026-08-05 — DO NOT BUILD THE CHAIN TABLE YET. MEASURE FIRST.**
 
       The item used to read "`_CAVE_EXITS`/`_CAVE_ENTRANCES` are SINGLE-HOP, therefore build a
@@ -112,9 +126,16 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       from "build a chain system" to "delete the two stale tables" — and Mt. Pyre unblocks.
       If it fails, the log names which leg and where, and THAT is the thing to fix.
       ‼ Needs the box; do not run it while a batch is using the lanes.
+      </details>
 
-- [ ] `#24-mtpyre` — first chapter past Winona. 3 hops, one branch; the 2F-6F tower is a
-      skippable side dungeon. Blocked on `#24-cavethread`.
+- [ ] `#24-mtpyre` — **‼ NOW UNBLOCKED (2026-08-05) AND THE TOP ITEM. First chapter past
+      Winona.** 3 hops, one branch; the 2F-6F tower is a skippable side dungeon.
+      `#24-cavethread` was its only blocker and is closed — the navigator already threads a
+      3-warp cave in both directions, which is exactly MT_PYRE_SUMMIT's shape.
+      ‼ **Pick plain walkable destination tiles — never a ladder/door/stairs warp tile** (see
+      `08-MISTAKES.md` 2026-08-05; it costs one map of overshoot AND reports success).
+      Recon is already done and ROM-verified: `12-STORYMODE-DESIGN.md` §Ch14 +
+      `probe_ch14_recon.py --area pyre`.
 
 - [ ] `#24-magmahideout` — **DEFERRED.** Door at JAGGED_PASS (16,18) is unreachable from the
       ROUTE112 side (one-way ledges; a 2026-07-26 probe already failed to path there). Only

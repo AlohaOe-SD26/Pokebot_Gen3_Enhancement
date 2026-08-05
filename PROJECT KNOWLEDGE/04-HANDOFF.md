@@ -63,49 +63,38 @@ heal and train" — plausible, and false). Only the per-rung funnel showed stren
   like a regular player would… once we finish mapping the story out"). **Accepted cost: teams
   look thin EARLY, knowingly unsolved.** GATE: finish story mapping first.
 
-## ‼ THE NEXT ACTION — `#24-cavethread`, one ladder hop
-Everything above is closed. The blocker for ALL post-Winona content is now a single defect:
-the navigator threads Dewford → R106 → 1F → **B1F** unaided, then halts standing ON the B1F
-(29,13) ladder to B2F. See §Ch14 item 1 below for the probe, the caveat about ambiguous test
-tiles, and what to measure next.
+## ‼‼ THE NEXT ACTION — BUILD `#24-mtpyre`. THE BLOCKER WAS NEVER REAL.
+
+`#24-cavethread` is **CLOSED**. It was recorded for days as *"THE BLOCKER FOR ALL STORY CONTENT
+PAST WINONA"*, and multi-hop cave threading **already works**. Measured 2026-08-05 in both
+directions, with **no chain table involved**:
+
+| leg | route | |
+|---|---|---|
+| IN | `DEWFORD_TOWN → ROUTE106 → GRANITE_CAVE_1F → B1F → B2F` | 3 warps ✅ |
+| OUT | `GRANITE_CAVE_B1F → GRANITE_CAVE_1F → ROUTE106 → DEWFORD_TOWN` | ✅ |
+
+MT_PYRE_SUMMIT is the same 3-warp shape, so **`#24-mtpyre` is unblocked and is now the top
+item.** Granite Cave B1F/B2F can also be unparked as training grounds.
+
+‼ **THE ONE GOTCHA TO CARRY INTO MT PYRE — never pass a WARP TILE (door / ladder / stairs) as a
+navigation destination.** Walking onto a warp FIRES it, so the trip finishes one map PAST the
+target *and the navigator reports success*. Both probe runs hit this and both first read as
+failures (a B2F ladder bounced the bot to B1F; a Dewford door left it in
+`DEWFORD_TOWN_HOUSE1`). 14.8% of graph edges share from/to coordinates, so coordinates cannot
+detect it — **assert on the MAP, or on maps VISITED**. `08-MISTAKES.md` 2026-08-05.
+
+Recon for Mt. Pyre is already done and ROM-verified: `12-STORYMODE-DESIGN.md` §Ch14 and
+`probe_ch14_recon.py --area pyre`.
 
 ## AFTER THAT: §Ch14 — story content past Winona
 Full ROM-verified recon is in `12-STORYMODE-DESIGN.md` **§Ch14**; re-derive any of it with
 `tools/story-dev/probe_ch14_recon.py --area pyre|magma|approach`.
 
-1. **Chain-aware cave threading — THE BLOCKER, and it just got RE-SCOPED (2026-08-05).**
-   ‼ **DO NOT BUILD THE CHAIN TABLE. RUN THE PROBE FIRST — it is already written.**
+1. ~~**Chain-aware cave threading**~~ — **CLOSED 2026-08-05, it was never a blocker.**
+   Multi-hop threading already works in both directions (Dewford ⇄ Granite Cave B2F,
+   3 warps, no chain table). See the top banner. Granite Cave B1F/B2F unpark.
 
-   The old plan rested on a **stale comment**: `_CAVE_EXITS`/`_CAVE_ENTRANCES` (2026-07-26) say
-   *"the global navigator cannot cross warp levels"*, which **`#24-journey` fixed on 2026-07-31**.
-   Offline BFS over the committed ROM warp-graph cache (`probe_cavethread_static.py`, no
-   emulator) shows the graph **already knows every route, both ways**: `ROUTE106→GRANITE_CAVE_B2F`
-   3 hops, `GRANITE_CAVE_B2F→DEWFORD_TOWN` 4, `ROUTE122→MT_PYRE_SUMMIT` 3,
-   `JAGGED_PASS→MAGMA_HIDEOUT_4F` 4.
-
-   ‼ **That proves the route is KNOWN, not WALKABLE** — `map_route`'s own docstring warns its
-   edges can be phantoms (Verdanturf→Route116). The named risk is the **one-way ledge** on
-   Granite Cave 1F: within-floor reachability is DIRECTIONAL, so one graph node is really two
-   disjoint sections and a map-granular planner cannot see it.
-
-   ✅ **PROBED LIVE 2026-08-05 — and multi-hop threading WORKS:**
-   ```
-   PYTHONUTF8=1 py -3.12 story_harness.py dewford.ss1 --driver cavethread --frames 600000
-   [cavethread] leg=in from=DEWFORD_TOWN to=GRANITE_CAVE_B2F(29, 13) graph_hops=4
-   [cavethread] RESULT leg=in arrived=False map=GRANITE_CAVE_B1F detail=returned on the wrong map
-   ```
-   The bot drove **DEWFORD → ROUTE106 → GRANITE_CAVE_1F → GRANITE_CAVE_B1F** — two cave warps —
-   through the generic navigator with **no chain table involved**. So the item is NOT "build a
-   chain system" (now refuted twice, statically and live).
-
-   ⏭ **THE REAL DEFECT: it stops one hop short, standing ON the final ladder** — B1F (29,13),
-   which `_FROM_STEVEN` documents as the ladder DOWN to B2F. Make that last hop fire.
-   ‼ **Re-run with an unambiguous B2F tile first.** I picked (29,13) from the graph's
-   `to_coords`, and B1F(29,13)/B2F(29,13) are a warp PAIR at identical coordinates — the worst
-   possible test tile, since "right coords, wrong floor" looks like "arrived". The probe only
-   survived because it asserts on MAP. The current evidence cannot yet separate "the ladder
-   never fired" from "the navigator thought it had arrived". Mt. Pyre Summit is the same 3-warp
-   shape, so this one defect likely gates it too.
 2. **Mt. Pyre** — 3 hops, one branch (the 2F-6F tower is a skippable side dungeon).
 3. **Magma Hideout — DEFER.** Its door at JAGGED_PASS (16,18) is unreachable from the
    ROUTE112 side (one-way ledges; a 2026-07-26 probe already failed to path there). Only

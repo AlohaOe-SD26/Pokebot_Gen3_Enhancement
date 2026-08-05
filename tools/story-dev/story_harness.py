@@ -1351,6 +1351,26 @@ class CaveThreadMode(BotMode):
 
         yield from wait_until_truly_controllable()
 
+        def tracked(gen, seen):
+            """Sample the avatar's map on every yield of `gen`.
+
+            ‼ WHY THIS EXISTS (2026-08-05, second cavethread run). The first run reported
+            `arrived=False map=GRANITE_CAVE_B1F` and I nearly recorded "threading stops one hop
+            short". It did not: **every tile the warp graph knows on B2F is a LADDER**, so the
+            destination I picked, B2F (29,13), is the ladder back UP to B1F. Navigating ONTO a
+            warp tile FIRES it — so the bot threaded all the way down to B2F, stepped on the
+            target, and was warped straight back out. `navigate_to_anywhere` then returned
+            perfectly happily, because by its own lights it had reached the tile it was asked for.
+
+            A final-position check cannot see that; it reads a successful 3-warp thread as a
+            failure. Recording the maps VISITED can, and needs no non-warp tile to exist."""
+            for value in gen:
+                try:
+                    seen.add(tuple(get_player_avatar().map_group_and_number))
+                except Exception:  # noqa: BLE001
+                    pass
+                yield value
+
         def drive(name, dest_map, dest_tile):
             arrived, detail = False, ""
             if dest_tile is None:
@@ -1364,8 +1384,9 @@ class CaveThreadMode(BotMode):
             hops = graph.map_route(here, tuple(dest_map.value))
             log(f"[cavethread] leg={name} from={start} to={dest_map.name}{dest_tile} "
                 f"graph_hops={len(hops) if hops is not None else 'none'}")
+            seen: set = set()
             try:
-                yield from _navigate_riding_out(dest_map, dest_tile, tries=tries)
+                yield from tracked(_navigate_riding_out(dest_map, dest_tile, tries=tries), seen)
                 arrived = tuple(get_player_avatar().map_group_and_number) == tuple(dest_map.value)
                 detail = "arrived" if arrived else "returned on the wrong map"
             except Exception as error:  # noqa: BLE001
@@ -1374,8 +1395,21 @@ class CaveThreadMode(BotMode):
                 final = MapRSE(tuple(get_player_avatar().map_group_and_number)).name
             except Exception:  # noqa: BLE001
                 final = "?"
-            log(f"[cavethread] RESULT leg={name} arrived={arrived} map={final} detail={detail}")
-            return arrived
+            # ‼ `reached_dest` is the REAL question for `#24-cavethread` — did the generic
+            # navigator ever set foot on the deep interior? `arrived` only says whether it was
+            # STANDING there when the call returned, which a warp tile destination makes
+            # unanswerable (see `tracked`).
+            reached = tuple(dest_map.value) in seen
+            names = []
+            for m in seen:
+                try:
+                    names.append(MapRSE(m).name)
+                except Exception:  # noqa: BLE001
+                    names.append(str(m))
+            log(f"[cavethread] RESULT leg={name} arrived={arrived} reached_dest={reached} "
+                f"map={final} detail={detail}")
+            log(f"[cavethread] maps visited during leg={name}: {sorted(names)}")
+            return reached
 
         went_in = True
         if leg in ("in", "both"):

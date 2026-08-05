@@ -7695,3 +7695,47 @@ the goal is to revisit it so the bot "plays more organically like a regular play
 the story is mapped and there is time to do it properly. Tracked as `#24-organicteam`, gated on
 story mapping. **Accepted cost meanwhile: teams look thin early — the original complaint, and
 knowingly unsolved.** Rationale and the three rejected options: `06-DECISIONS-LOG.md` 2026-08-05.
+
+## 2026-08-05 — ‼ `#24-cavethread` IS NOT A BLOCKER. Multi-hop cave threading ALREADY WORKS.
+
+**Measured both directions with `--driver cavethread`, no chain table involved:**
+
+```
+[cavethread] leg=in  from=DEWFORD_TOWN      to=GRANITE_CAVE_B2F(29,13)  graph_hops=4
+             reached_dest=True
+             maps visited: DEWFORD_TOWN, ROUTE106, GRANITE_CAVE_1F, GRANITE_CAVE_B1F, GRANITE_CAVE_B2F
+[cavethread] leg=out from=GRANITE_CAVE_B1F  to=DEWFORD_TOWN(17,14)      graph_hops=3
+             reached_dest=True
+             maps visited: GRANITE_CAVE_B1F, GRANITE_CAVE_1F, ROUTE106, DEWFORD_TOWN, DEWFORD_TOWN_HOUSE1
+```
+
+The generic `_navigate_riding_out` / `navigate_to_anywhere` path threaded **3 warps deep into
+Granite Cave and back out to Dewford**. `MT_PYRE_SUMMIT` is the same 3-warp shape, so the item
+that has been recorded as **"THE BLOCKER FOR ALL STORY CONTENT PAST WINONA"** is refuted.
+
+### ‼ THE REAL GOTCHA — never pass a WARP TILE as a navigation destination
+
+Both probe runs first read as FAILURES (`arrived=False`), and both were my probe's fault:
+* IN: B2F (29,13) is a **ladder back up**, so stepping on the target warped the bot to B1F.
+* OUT: DEWFORD_TOWN (17,14) is a **door**, so the bot finished inside `DEWFORD_TOWN_HOUSE1`.
+
+**Walking onto a warp FIRES it**, so a warp-tile destination ends one map PAST the target — and
+`navigate_to_anywhere` returns SUCCESS, because by its own lights it reached the tile it was
+given. This is not hypothetical: 188 of 1268 graph edges (14.8%) have identical from/to
+coordinates, so a coordinate-only arrival check cannot even detect the bounce.
+
+**The probe now records the maps VISITED** (`tracked()`), which answers the real question
+without needing a non-warp tile to exist — and every tile the graph knows on B2F is a ladder,
+so no such tile was available from that source.
+
+### What changed in code
+Only the stale `_CAVE_EXITS` comment, corrected in place with the measurement. **The tables are
+kept**: they are redundant now, not load-bearing, but harmless and cheap (they thread one door
+via `_enter_warp_by_navigation`, which handles warp tiles correctly). Deleting them is a
+behaviour change and would need its own measurement; nothing needs it today.
+
+### Consequences
+* **`#24-mtpyre` is UNBLOCKED** — it was waiting on this and the capability already exists.
+* **Granite Cave B1F/B2F can be unparked** as training/hunting grounds (they were parked for
+  exactly this reason, and it once dropped two real-hardware runs to Manual).
+* ‼ Whoever builds Mt. Pyre: **pick plain walkable destination tiles, never ladders or doors.**
