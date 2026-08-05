@@ -7416,3 +7416,37 @@ in logs on disk:
 **Next batch predicts:** team size at Feather back toward ~5.7, and Balance→Feather **> 65%**.
 If team size recovers and the rung does NOT, a third cause remains and the bisect continues
 into `#24-leadcounter` (the only untested change left in the batch5→batch8 window).
+
+## 2026-08-05 — REGRESSION CLOSED. Bisect ends here; story content resumes.
+
+`x4-runs/20260805-075638`, commit `054fa8c6`, all 8 lanes producing runs.
+**25 runs, 13 finished = 52.0%.**
+
+| signal | b3/4/5 (healthy) | b8-b13 (regressed) | predicted | **actual** |
+|---|---|---|---|---|
+| PC deposits | 0 | 14-18 | 0 | **0** ✅ |
+| relocations to ROUTE111 | 19/12/24 | 0 | > 0 | **15** ✅ |
+| avg team at Feather | 5.65-5.81 | 4.45-4.75 | ~5.7 | **5.85** ✅ |
+| **Balance→Feather** | 70-83% | 52-57% | **> 65%** | **76%** ✅ |
+| whole funnel | 42.2% (pooled) | 28-36% | — | **42%** ✅ |
+| finish rate | 47-60% | 36-44% | 45-55% | **52.0%** ✅ |
+
+**Finish rate 52.0% against the clean plateau's 52.8% — fully recovered.** Every number the
+prediction named landed inside its band, which is the strongest form of confirmation available
+here: the causal story (two features silently removing things the bot needed) predicted five
+independent quantities before the run, and all five came back.
+
+### The three reverts, and what each cost
+| feature | counted | never counted | recovered |
+|---|---|---|---|
+| `#24-leadpolicy` (c) | 1 Shedinja loss | 12 Shedinja WINS | ~20 pts finish rate |
+| `#24-areaitemgate` | 28 wasted treks | 24 relocations | ~7 pts finish rate |
+| `#24-pc` | 5 blocked hunts | ~1 team member/run | ~19 pts of the last rung |
+
+‼ **STOPPING RULE SATISFIED** (`06-DECISIONS-LOG` 2026-08-05, user directive):
+Balance→Feather ≥ 65%, so the regression is CLOSED and **regression-hunting ends here**. Next
+work is STORY CONTENT past Winona. Only a logic-breaking bug — hang, crash, run-ending derail,
+or a feature provably not doing what it says — reopens this.
+
+‼ Three flags stay `0` permanently unless re-measured with a batch:
+`POKEBOT_LEAD_DEMOTE_WONDER_GUARD`, `POKEBOT_AREA_ITEM_GATE`, `POKEBOT_PC_ROTATION`.
