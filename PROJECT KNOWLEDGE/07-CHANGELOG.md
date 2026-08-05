@@ -7336,3 +7336,42 @@ rule into `08-MISTAKES` and then failed to apply it to the second. The failure l
 (`dropping it as a training option`) prints; the success line (`relocating to`) is silent
 unless you go looking. New rule recorded: **grep the positive counterpart of every failure
 line you are about to eliminate.**
+
+## 2026-08-04 — BATCH 13: the prediction was HALF right, and my own falsifier says keep bisecting
+
+`x4-runs/20260804-174700`, commit `ad7307f2`. **27 runs, 12 finished = 44.4%.** All 8 lanes
+produced runs.
+
+| signal | predicted (written first) | actual | |
+|---|---|---|---|
+| `relocating to ROUTE111` | > 0, order 10-25 | **12** | ✅ |
+| Balance→Feather | **> 65%** | **57%** | ❌ |
+| finish rate | toward 45-55% | 44.4% | ✅ |
+
+**The gate WAS blocking relocation** (0 → 12) and removing it recovered the finish rate from
+35.7/38.5% to 44.4%, back level with batch8. ‼ **But Balance→Feather did not recover**, and the
+falsifier recorded before the run says plainly: *"if relocations return but Balance→Feather
+does NOT, the gate was not the cause"*. It was **a** cause, not **the** cause.
+
+### The second signal, which the bisect must now follow
+| batch | reloc | no-better | **fodder detected** | B→F |
+|---|---|---|---|---|
+| b3 | 19 | 114 | **133** | 83% |
+| b4 | 12 | 167 | **179** | 75% |
+| b5 | 24 | 146 | **170** | 70% |
+| b8 | 0 | 73 | **73** | 52% |
+| b12 | 0 | 99 | **99** | 53% |
+| **b13 (gate off)** | **12** | 58 | **70** | **57%** |
+
+`is fodder for a … team` — the bot deciding the local patch is worthless and looking for
+better — fired **133-179 times** in b3/4/5 and only **70-99** since, **including b13 with the
+gate off**. Normalised per run it is ~5.0/run then vs ~2.6/run now. So the bot now *considers*
+relocating about half as often, and removing the item gate did not restore that.
+
+⇒ **NEXT SUSPECT: `#24-relocfloor`** — the other change in the batch5→batch8 window that
+touches training. It altered the floor fed to `best_training_area`, and the fodder test
+consults a probe built from the same call. Flag it off and re-batch, exactly as with the last
+two. **Do not add anything until Balance→Feather is back above 65%.**
+
+‼ Two flags now hold reverted-because-measured behaviour and must stay `0`:
+`POKEBOT_LEAD_DEMOTE_WONDER_GUARD`, `POKEBOT_AREA_ITEM_GATE`.
