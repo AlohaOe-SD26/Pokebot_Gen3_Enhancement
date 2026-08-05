@@ -3002,3 +3002,87 @@ ever been asked to traverse — deeper than Granite Cave B2F (parked) and Mt. Py
 ‼ Do NOT "fix" `NO_RETURN_GROUNDS`' JAGGED_PASS entry by deleting it. It is correct: the pass
 genuinely cannot be climbed. What was missing is that the map has a SECOND entrance from the
 top, which makes the hideout reachable by a different route rather than making the entry wrong.
+
+## §Ch14a — MT. PYRE: COMPLETE BUILD SPEC (ROM + decomp verified 2026-08-05)
+
+Every fact below is read from the ROM (`mapfacts.py`) or the pret decomp
+(`gh api repos/pret/pokeemerald/contents/data/maps/MtPyre_Summit/…`). Nothing is recalled.
+**This supersedes the "STILL UNVERIFIED" list in the §Ch14 recon for the summit.**
+
+### ‼ THE HEADLINE: THE WHOLE CHAPTER IS ONE COORD TRIGGER. NO NPC INTERACTION AT ALL.
+
+`MtPyre_Summit_EventScript_TeamAquaExits` does everything the moment the player steps on a
+trigger tile — Archie leaves, the Old Lady walks over unprompted, and the Emblem is handed over:
+```
+removeobject ARCHIE + GRUNT_1..4
+setflag FLAG_HIDE_MT_PYRE_SUMMIT_ARCHIE      (916)
+setflag FLAG_HIDE_MT_PYRE_SUMMIT_TEAM_AQUA   (917)
+setvar  VAR_MT_PYRE_STATE, 1                 (185)
+msgbox  …BothOrbsTakenMagmaLeftThis
+giveitem ITEM_MAGMA_EMBLEM
+setflag FLAG_RECEIVED_RED_OR_BLUE_ORB
+setflag FLAG_HIDE_JAGGED_PASS_MAGMA_GUARD    ← THIS is what opens the Magma Hideout
+```
+So the bot never talks to the caretakers. **Walk to the tile, ride out the scene, done.**
+
+### THE TRIGGER TILES (`MtPyre_Summit/map.json` coord_events)
+| tile | var gate | script |
+|---|---|---|
+| **(22,7) (23,7) (24,7)** | `VAR_MT_PYRE_STATE == 0` | `…TeamAquaTrigger0/1/2` ← **THE ONE WE WANT** |
+| (22,9) (23,9) (24,9) | `VAR_MT_PYRE_STATE == 2` | `…ArchieMaxieTrigger0/1/2` — a LATER visit, not ours |
+
+‼ Both trigger rows sit in the same corridor. The y=9 row is **inert at state 0**, so walking
+up the corridor cannot fire the wrong one — but do NOT use state-2 tiles as a waypoint.
+
+### THE ROUTE — 3 warps, all ROM-verified, and a straight corridor at the end
+```
+ROUTE122 (22,29) --> MT_PYRE_1F (17,18)
+MT_PYRE_1F (3,6)|(4,6) --> MT_PYRE_EXTERIOR (10,42)
+MT_PYRE_EXTERIOR (19,10)|(20,10) --> MT_PYRE_SUMMIT (23,31)
+MT_PYRE_SUMMIT: walk (23,31) --> (23,7)      [clean vertical corridor at x=23, y=31..7]
+```
+Return: SUMMIT (22,31)|(23,31)|(24,31) → EXTERIOR (19,10) → 1F (3,6) → ROUTE122 (22,29).
+
+‼ **PAIRED / TRIPLED DOORWAYS — every one of those is a WARP TILE.** 1F↔R122 is (17,18)+(18,18);
+1F↔EXTERIOR is (3,6)+(4,6); EXTERIOR↔SUMMIT is (19,10)+(20,10); SUMMIT↔EXTERIOR is
+(22,31)+(23,31)+(24,31). **Never pass one as a navigation destination** — walking onto a warp
+FIRES it, so the trip ends one map past the target and reports success (`08-MISTAKES.md`
+2026-08-05). The target `(23,7)` is a plain walkable tile, which is exactly why it is the target.
+
+### ‼ THE LIKELY IMPLEMENTATION IS ONE CALL — VALIDATE THIS FIRST BEFORE WRITING A CHAPTER
+Multi-hop warp threading was proven working 2026-08-05 (Dewford ⇄ Granite Cave B2F, 3 warps).
+MT_PYRE_SUMMIT is the same depth, and the destination is a plain tile, so the entire traversal
+may reduce to:
+```python
+yield from _navigate_riding_out(MapRSE.MT_PYRE_SUMMIT, (23, 7))
+```
+**Measure that before building any warp chain by hand.** If it works, the chapter is: travel →
+that call → ride out the scene → guard on completion.
+
+### COMPLETION TEST — use the VAR, not the HIDE flag
+`VAR_MT_PYRE_STATE (185) == 1`, and/or `ITEM_MAGMA_EMBLEM` in the bag.
+‼ **Do NOT use `FLAG_HIDE_MT_PYRE_SUMMIT_MAXIE` (856) as the completion proxy** — this doc
+already records it reading True on a save nowhere near Mt. Pyre (§10.3), and the decomp confirms
+why: 856 hides an object that is only *positioned* at `MT_PYRE_STATE == 2`, a different visit.
+
+### SUMMIT MAP (50x37) — objects, from the ROM
+| obj | tile | script | hide flag |
+|---|---|---|---|
+| 1 | (22,5) | `MtPyre_Summit_EventScript_OldMan` | — |
+| 3 | (23,5) | `MtPyre_Summit_EventScript_OldLady` | — |
+| 2 | (23,6) | (none) | **916** Archie |
+| 8 | (23,6) | (none) | **856** Maxie |
+| 4,6,5,7 | (21,15) (21,11) (25,18) (25,11) | Grunt1-4 | **917** Team Aqua |
+
+The four grunts stand IN the corridor between the entrance and the trigger. They are
+`removeobject`d by the scene, but they are present on the way UP — **expect trainer sight-lines
+and treat this as a fight-through leg**, not a clean walk.
+
+### FREEBIES ON THE MAP (bg_events) — not required, listed so they are not "discovered" later
+`ITEM_RARE_CANDY` hidden at **(37,7)**; `ITEM_ZINC` hidden at **(9,25)**.
+
+### STILL OPEN (must be probed live — needs a post-Winona save)
+* **Reaching ROUTE122 at all.** It is across water — **SURF is required**, which is the same gate
+  that `#24-partycap` broke. Route 121 → 122 pathing is unmeasured.
+* Whether the 4 grunts' sight-lines derail the ascent.
+* The scene's ride-out length (it has `fadescreen`, `msgbox`, `giveitem` and an NPC walk).
