@@ -105,12 +105,32 @@ the Magma Hideout. The bot never talks to anyone.
 * ‼ The four Aqua grunts stand IN the ascent corridor — expect sight-lines; it is a
   fight-through leg, not a clean walk.
 
-### ⏭ THE ONE THING BLOCKING THE BUILD: there is NO post-Winona save
-Every Ch14 validation needs one and none exists. An attempt to generate one by driving Story
-from `fortree_gym_wedge.ss1` (`--profile mkpostwinona`) ground through **10 Winona attempts**,
-KO'ing 3-4 of her 5 each time without converging — that save's team (Mightyena/Sceptile/Swellow)
-has no super-effective answer to Flying, which is the documented Winona problem. **Getting a
-post-Winona save is the next practical task**; without it Mt. Pyre can be written but not proven.
+### ✅ POST-WINONA SAVE EXISTS — `tools/story-dev/saves/post_winona.ss1`
+Generated 2026-08-05 (Story from `fortree_gym_wedge.ss1`, `RUN COMPLETE — end of built content`).
+Party: Mightyena L42 / Sceptile L42 / Swellow L39 / Skitty L17 / **Zigzagoon L3 (SURF)** /
+Castform L35. Use it for every Ch14 probe.
+
+### ‼ THE ONE-CALL HYPOTHESIS IS REFUTED — AND THE BLOCKER MOVED TO **ROUTE 120**
+```
+CAVE_TARGET=MT_PYRE_SUMMIT CAVE_TILE=23,7 --driver cavethread   (from post_winona.ss1)
+RESULT arrived=False reached_dest=False map=ROUTE120
+       "...still at (7,56), so retrying cannot change the result"
+maps visited: FORTREE_CITY, FORTREE_CITY_GYM, ROUTE120
+```
+`_navigate_riding_out(MT_PYRE_SUMMIT, (23,7))` is **not** the whole chapter. The trip dies on
+**ROUTE120 at (7,56)** — before reaching any cave warp.
+
+‼ **This is NOT warp threading** (proven working today, both directions, 3 warps deep). It is
+**overland pathing ROUTE120 → ROUTE121**. Already ruled out: `calculate_path(no_surfing=False)`
+by default and `_walk_is_possible` does not disable it, so the party's Surf is not being ignored
+at the API level.
+
+⏭ **NEXT, IN THIS ORDER:**
+1. `PROBE_MAPS=ROUTE120 py -3.12 mapfacts.py` — what is at **(7,56)**? Route 120 is split by a
+   river and holds the Kecleon/Scorched Slab area. Prime suspect is a split section or an
+   obstacle — the `_staged_progress_warp` shape (ROUTE104 split by PETALBURG_WOODS).
+2. Probe `ROUTE121` alone (shorter trip, cleaner signal) before re-testing the summit.
+3. Then build the chapter per §Ch14a — the summit half is fully specified and unchanged.
 
 ## AFTER THAT: §Ch14 — story content past Winona
 Full ROM-verified recon is in `12-STORYMODE-DESIGN.md` **§Ch14**; re-derive any of it with

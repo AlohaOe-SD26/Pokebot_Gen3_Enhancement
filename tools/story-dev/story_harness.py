@@ -1343,7 +1343,16 @@ class CaveThreadMode(BotMode):
         graph = get_warp_graph()
 
         def arrival_tile(dest_map):
-            """A walkable tile on `dest_map`: where the ROM says a warp INTO it lands you."""
+            """A walkable tile on `dest_map`: where the ROM says a warp INTO it lands you.
+
+            ‼ EVERY tile this can return is a WARP tile, which is the wrong kind of target —
+            walking onto one fires it and the trip ends one map past the destination. Prefer
+            `CAVE_TILE`, an explicit PLAIN tile, whenever one is known (for MT_PYRE_SUMMIT it
+            is (23,7), the coord-trigger the whole chapter turns on)."""
+            override = os.environ.get("CAVE_TILE", "").strip()
+            if override:
+                x, _, y = override.partition(",")
+                return (int(x), int(y))
             for edge in graph.edges:
                 if tuple(edge.to_map) == tuple(dest_map.value):
                     return tuple(edge.to_coords)
