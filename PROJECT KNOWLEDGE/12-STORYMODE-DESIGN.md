@@ -3059,6 +3059,17 @@ yield from _navigate_riding_out(MapRSE.MT_PYRE_SUMMIT, (23, 7))
 **Measure that before building any warp chain by hand.** If it works, the chapter is: travel →
 that call → ride out the scene → guard on completion.
 
+### THE GRAPH ALREADY KNOWS THE WHOLE JOURNEY FROM WHERE THE STORY ENDS
+Offline BFS over the ROM warp-graph cache (`probe_cavethread_static.py` style), 2026-08-05:
+```
+FORTREE_CITY  -> ROUTE120 -> ROUTE121 -> ROUTE122 -> MT_PYRE_1F -> MT_PYRE_EXTERIOR -> MT_PYRE_SUMMIT
+LILYCOVE_CITY -> ROUTE121 -> ROUTE122 -> MT_PYRE_1F -> MT_PYRE_EXTERIOR -> MT_PYRE_SUMMIT
+```
+Fortree is exactly where the built content stops, so the journey is **6 hops from the current
+end state**. ‼ Route KNOWN is not route WALKABLE — `ROUTE121 -> ROUTE122` is a water crossing
+and these are connection edges, which can be phantoms (the Verdanturf case). **SURF is the
+gate.** Treat this as evidence the single-call approach is worth measuring FIRST, not as proof.
+
 ### COMPLETION TEST — use the VAR, not the HIDE flag
 `VAR_MT_PYRE_STATE (185) == 1`, and/or `ITEM_MAGMA_EMBLEM` in the bag.
 ‼ **Do NOT use `FLAG_HIDE_MT_PYRE_SUMMIT_MAXIE` (856) as the completion proxy** — this doc
