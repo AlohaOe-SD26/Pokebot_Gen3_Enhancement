@@ -918,7 +918,12 @@ class StoryMode(BotMode):
         self._ki15_nudge_pos = None
         # Organic team-building (user directive 2026-07-21): catch NEW species while
         # travelling to Gym 1 until the party has this many members (starter + helpers).
-        self._catch_team_target = 4
+        # ‼ 4 -> 6 on 2026-08-05 (`#24-partycap`). The user watches live runs and expects a
+        # full team; 4 was why they saw 4. It is only SAFE now because `#24-pcoverflow`
+        # landed the same day — before it, a full party made `resource_blocker` REFUSE every
+        # later catch, which would have killed the counter chain outright. The two changes
+        # are coupled and one batch measures both.
+        self._catch_team_target = 6
         # #24-counters phase 2: boss key -> what the counter hunt did, ONE entry per boss
         # per run. This dict IS the bound (see `_counter_ladder`) — a retry or frame
         # budget cannot bound it, because `_prepare_for_fight` is re-entered by the run

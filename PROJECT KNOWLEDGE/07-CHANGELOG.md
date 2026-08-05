@@ -7491,3 +7491,35 @@ the box and executing the withdraw. Suite 78/78.
 should show `PC — withdrawing <mon> from the box`, and the counter chain should stop reporting
 `cannot hunt a counter — the party is full`. **The party cap is still 4** — raising it is a
 separate change and would interact with this one, so it is deliberately not bundled here.
+
+## 2026-08-05 — `#24-partycap`: the pre-Gym-1 team fill goes 4 → 6
+
+**What changed (2 constants, both pre-Gym-1):**
+* `modules/story/early_game.py` — `catch_starter_team(target_size: int = 4)` → `6`.
+* `plugins/custom_modes/story_mode.py` — `self._catch_team_target = 4` → `6`.
+
+**Why.** The user watches live runs and reported 4-mon teams on 2026-08-05. These two
+constants are the reason; nothing else was capping the party.
+
+**Why NOW and not last week.** `#24-pcoverflow` landed earlier the same day. Before it, a full
+party made `resource_blocker` REFUSE every subsequent catch, so a cap of 6 would have shut the
+counter chain off at exactly the moment the chain is load-bearing — the chain is worth ~19
+points of the last badge rung. The two changes are coupled, which is why ONE batch measures
+both rather than two batches measuring one each.
+
+**Scope was checked before editing, not assumed.** Both use sites are gated pre-Gym-1: the
+catch-new predicate at `story_mode.py:1051` returns `False` once `BADGE01_GET` is set, and
+`catch_starter_team` is only called from the pre-Gym-1 chapter. So this moves WHEN the team
+reaches 6, not whether the bot catches late. Team size at badge moments was already ~5.8.
+
+**Verification.** `repro_pc_overflow`, `repro_team_policy`, `repro_survival_mode`,
+`repro_counter_hunt` all PASS. ‼ Worth recording: **no repro pinned the production constant** —
+the four repros that mention `_catch_team_target` each build their own `SimpleNamespace` shim
+and set the value themselves. Nothing had to be un-asserted, and equally nothing defends the
+new value. That is correct per the playbook (assert on behaviour, not source text); the batch
+is the instrument here.
+
+‼ **NOT MEASURED YET.** This entry records a code change, not an outcome. See the handoff for
+the batch and the four signals to read. **If team size rises but the finish rate falls, revert
+the CAP, not the overflow** — a deeper team is not free (more mons to heal, more to train), and
+that exact trap has cost this project three regressions in one week.

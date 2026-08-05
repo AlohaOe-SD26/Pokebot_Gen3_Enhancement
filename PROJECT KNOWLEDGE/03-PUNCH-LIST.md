@@ -26,8 +26,14 @@ open-vs-built sweep of all 80 open items has **not** been done.
 ### ‼ SESSION END 2026-08-05 — THE CURRENT TOP OF THE LIST
 Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batch 52.0%.
 
-- [ ] `#24-partycap` — **NEXT ACTION. Raise `target_size` 4 → 6, then ONE batch.**
-      `early_game.py` `target_size: int = 4` and `story_mode.py` `_catch_team_target = 4` are
+- [~] `#24-partycap` — **CODE LANDED 2026-08-05, AWAITING ITS BATCH.** Both constants are now
+      **6** (`early_game.catch_starter_team(target_size=6)`, `StoryMode._catch_team_target=6`).
+      Scope confirmed before editing: BOTH use sites are **pre-Gym-1 only** — the catch-new
+      predicate returns False once `BADGE01_GET` is set — so this changes the early team fill,
+      not late-game catching. 4 repros green (`pc_overflow`, `team_policy`, `survival_mode`,
+      `counter_hunt`); **no repro pinned the old value**, so nothing had to be un-asserted.
+      ‼ NOT MEASURED. The batch is what closes this — read the four signals below.
+      `early_game.py` `target_size: int = 4` and `story_mode.py` `_catch_team_target = 4` were
       why live runs show 4-mon teams (user-reported 2026-08-05). ‼ Only safe NOW because
       `#24-pcoverflow` landed: a full party no longer refuses a catch. The two are coupled, so
       one batch tests both. Read `PC — withdrawing … from the box` (never live-proven),
