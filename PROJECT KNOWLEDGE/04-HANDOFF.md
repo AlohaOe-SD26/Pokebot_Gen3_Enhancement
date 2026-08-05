@@ -125,10 +125,25 @@ maps visited: FORTREE_CITY, FORTREE_CITY_GYM, ROUTE120
 by default and `_walk_is_possible` does not disable it, so the party's Surf is not being ignored
 at the API level.
 
+### ✅ ROUTE 120 (7,56) IS DIAGNOSED — a pocket, and a dead-end warp
+ROUTE120 is 40x100 with TWO warps: `(7,55) -> ANCIENT TOMB` and `(19,23) -> SCORCHED SLAB`.
+The stall tile **(7,56) is directly below the Ancient Tomb door**, inside a **western pocket**
+sealed by a wall at **x=12-17**:
+```
+y 55 .##..##W##..######...   <- W = (7,55) ANCIENT TOMB
+y 56 ..............####...   <- stranded here
+```
+**ANCIENT TOMB is a sealed Regi chamber** — a dead end needing the Braille puzzle. So staged
+progress walked the bot INTO a pocket to reach a warp that goes nowhere.
+
+‼ **This is a `_staged_progress_warp` BUG, not a Mt. Pyre problem** — the same shape
+`#24-journey` was built for (ROUTE104 split by PETALBURG_WOODS). `onward_exits` is supposed to
+deprioritise dead ends and **Ancient Tomb has exactly ONE exit, so it should have ranked last.**
+
 ⏭ **NEXT, IN THIS ORDER:**
-1. `PROBE_MAPS=ROUTE120 py -3.12 mapfacts.py` — what is at **(7,56)**? Route 120 is split by a
-   river and holds the Kecleon/Scorched Slab area. Prime suspect is a split section or an
-   obstacle — the `_staged_progress_warp` shape (ROUTE104 split by PETALBURG_WOODS).
+1. **Instrument `_staged_progress_warp`'s ranking at that decision** — why did a 1-exit dead end
+   outrank the real route? ‼ Do NOT hard-code a Route 120 waypoint: gateway waypoints were tried
+   and REFUTED (KI-39, 2026-07-30).
 2. Probe `ROUTE121` alone (shorter trip, cleaner signal) before re-testing the summit.
 3. Then build the chapter per §Ch14a — the summit half is fully specified and unchanged.
 
