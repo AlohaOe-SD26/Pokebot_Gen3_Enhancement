@@ -8,6 +8,38 @@ immediately below, then "‼ BATCH 5 LANDED". Older "START HERE" sections are HI
 
 ---
 
+# ‼ BATCH 13 IN FLIGHT — CONFIRMING THE BISECT (launched 2026-08-04, commit `ad7307f2`)
+
+## ‼ THE PREDICTION, WRITTEN BEFORE THE DATA (this is the point of the batch)
+`#24-areaitemgate` is now flagged OFF. It had taken `relocating to ROUTE111` from 19/12/24 per
+batch to **ZERO**, and Balance→Feather from 83/75/70% to 52-59%. If that is the cause:
+
+| signal | b3/4/5 (gate off) | b8-12 (gate ON) | **b13 predicted** |
+|---|---|---|---|
+| `relocating to ROUTE111` | 19 / 12 / 24 | **0** | **> 0, order ~10-25** |
+| Balance→Feather | 83 / 75 / 70% | 52-59% | **> 65%** |
+| finish rate | 57 / 60 / 47% | 36-46% | toward 45-55% |
+
+‼ **If relocations return but Balance→Feather does NOT, the gate was not the cause** and the
+bisect must continue into `#24-relocfloor` / `#24-pc` (the other two changes between batch5 and
+batch8). Write that down before reading the result — a prediction that cannot fail is not one.
+
+## THEN, in order
+1. All 8 lanes producing runs (the contamination gate).
+2. `grep -c "relocating to"` and the per-batch funnel — **per batch, never pooled**. Pooling
+   hid this step change for four batches.
+3. Net hits: KI-38/45/46/47 — expect ~7-9, dominated by `handle_fainted_pokemon`. Not a
+   failure; the wedge is bounded, not fixed.
+4. Counter chain.
+
+## HOW TO COMPARE (got wrong twice)
+Clean plateau **57 / 60 / 47 / 45.8%**; recent clean **38.5 / 35.7%**. VOID: batch6, batch7.
+CONTAMINATED: batch9, batch10. Evidence for every batch is preserved in
+`PROJECT KNOWLEDGE/batch-evidence/` (the raw 2.2 GB is gitignored and single-machine).
+‼ Flags that must stay **0**: `POKEBOT_LEAD_DEMOTE_WONDER_GUARD`, `POKEBOT_AREA_ITEM_GATE`.
+
+---
+
 # ‼ BATCH 12 IN FLIGHT — a DATA-COLLECTION run, not an improvement run
 (launched 2026-08-04, commit **`32ba1dec`**, dir `x4-runs/20260804-1*`)
 
