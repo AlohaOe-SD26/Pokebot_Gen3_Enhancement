@@ -1252,3 +1252,33 @@ equally-safe mon, it does not override type safety.
 ‼ **The edit was deliberately NOT applied when the ruling was given** — batch
 `20260802-160603` was mid-flight and `x4_headless.py:843` relaunches dead lanes, which
 re-import from disk and would mix two code versions into one measurement.
+
+## 2026-08-05 — USER DIRECTIVE: stop bisecting after this batch; get back to STORY CONTENT
+
+**User, verbatim intent:** *"I don't want to focus too hard on this if you keep going back and
+forth unless you are actually solving a logic breaking bug. I want to eventually get back to
+working on the rest of the story."*
+
+**The ruling.** Regression-hunting is now TIME-BOXED. The last several days chased funnel
+differences of ~5 points on n≈25 samples — noise-adjacent — while the actual goal (story
+content past Winona, the end of built content) sat untouched.
+
+### THE STOPPING RULE — apply it literally
+Batch `20260805-*` is the LAST bisect batch.
+* **If Balance→Feather ≥ 65%** → the regression is closed. Move to story content.
+* **If it is < 65%** → **STOP ANYWAY.** Log the residual as a KNOWN ISSUE with the evidence,
+  and move to story content. Do NOT open a fourth revert.
+
+### What counts as "worth stopping the story for" from here
+Only a **logic-breaking bug**: a hang, a crash, a run-ending derail, a feature that provably
+does not do what it says. **Not** a few points of funnel movement on a small sample.
+
+### Why this ruling is right, recorded so it is not re-litigated
+Three regressions were found and reverted (`#24-leadpolicy` (c), `#24-areaitemgate`,
+`#24-pc`) — all real, all measured, all worth fixing. But each was found by a 3-hour batch, and
+the marginal value fell each time: the first was worth ~20 points of finish rate, the third
+~5 points of one rung. Meanwhile the bot has reached **Winona = end of built content** since
+2026-07-30 and no new content has been written in six days.
+
+‼ The three revert flags stay `0` regardless of what happens next:
+`POKEBOT_LEAD_DEMOTE_WONDER_GUARD`, `POKEBOT_AREA_ITEM_GATE`, `POKEBOT_PC_ROTATION`.

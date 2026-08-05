@@ -8,6 +8,36 @@ immediately below, then "‼ BATCH 5 LANDED". Older "START HERE" sections are HI
 
 ---
 
+# ‼ FINAL BISECT BATCH — then STORY CONTENT (user directive 2026-08-05)
+
+**USER DIRECTIVE:** stop regression-hunting after this batch and get back to building story
+content past Winona. Full ruling in `06-DECISIONS-LOG.md` 2026-08-05.
+
+## THE STOPPING RULE — apply it literally, do not re-litigate
+Batch `20260805-*` (commit `054fa8c6`) is the LAST bisect batch.
+* **Balance→Feather ≥ 65%** → regression closed. Move to story content.
+* **< 65%** → **STOP ANYWAY.** Log the residual as a KNOWN ISSUE and move to story content.
+  **Do NOT open a fourth revert.**
+
+From here, only a **logic-breaking bug** justifies pausing story work: a hang, a crash, a
+run-ending derail, or a feature that provably does not do what it says. NOT a few points of
+funnel movement on n≈25.
+
+## The prediction for this batch (recorded first, as always)
+| signal | b3/4/5 | b8-13 (features on) | predicted |
+|---|---|---|---|
+| avg team size at Feather | 5.65-5.81 | 4.45-4.75 | **~5.7** |
+| Balance→Feather | 70-83% | 52-57% | **> 65%** |
+| finish rate | 47-60% | 36-44% | 45-55% |
+
+## WHERE STORY WORK RESUMES
+The bot reaches **Winona / Gym 6 = END OF BUILT CONTENT** and has beaten her. Nothing past
+that exists. Start from `03-PUNCH-LIST.md` `#24` and `12-STORYMODE-DESIGN.md`.
+‼ Three flags stay `0` forever unless re-measured: `POKEBOT_LEAD_DEMOTE_WONDER_GUARD`,
+`POKEBOT_AREA_ITEM_GATE`, `POKEBOT_PC_ROTATION`.
+
+---
+
 # ‼ BATCH 13 IN FLIGHT — CONFIRMING THE BISECT (launched 2026-08-04, commit `ad7307f2`)
 
 ## ‼ THE PREDICTION, WRITTEN BEFORE THE DATA (this is the point of the batch)
