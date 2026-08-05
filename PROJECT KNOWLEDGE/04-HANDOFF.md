@@ -15,30 +15,37 @@ Every banner further down is HISTORY, newest first.
 ## STATE
 | | |
 |---|---|
-| branch / HEAD | `main`, clean, pushed. Restore tag `restore/session-end-20260805` |
-| repro suite | **78 / 78** (`14-AGENT-PLAYBOOK.md` §2b; ~15 min) |
-| last batch | `x4-runs/20260805-075638` — **25 runs, 13 finished = 52.0%**, all 8 lanes |
-| health | box idle, nothing running |
+| branch / HEAD | `main`, clean. **`be104e9c`** = `#24-partycap` (cap 4 → 6) |
+| repro suite | **78 / 78** at session start; 4 targeted repros re-run green after the edit |
+| **BATCH RUNNING** | **`x4-runs/20260805-122057`, code `be104e9c`, 8 lanes, 180 min, started 12:20 local — lands ~15:20.** ‼ Do NOT edit `sandbox-pokebot/` until it does |
+| baseline to beat | `x4-runs/20260805-075638` — **25 runs, 13 finished = 52.0%** |
 
 **The bot reaches and beats Winona / Gym 6 = END OF BUILT CONTENT.** Nothing past that exists.
 
-## ‼ THE NEXT ACTION (do this first — I was mid-decision when the session ended)
-**Raise the party cap 4 → 6, then run one batch.** Both halves of the reason:
-* The user is watching live runs and expects deeper teams; `target_size: int = 4` in
-  `early_game.py` (and `_catch_team_target = 4` in `story_mode.py`) is why they see 4.
-* **`#24-pcoverflow` (built 2026-08-05) makes a full party SAFE for the first time** — a full
-  party no longer refuses a catch, and a counter caught into the box is collected at the next
-  heal. Before this, cap 6 would have blocked the counter chain outright.
+## ‼ THE RUNNING BATCH — WHAT IT IS TESTING AND HOW TO READ IT
 
-These two are coupled, so ONE batch tests both. Read, in order:
+`#24-partycap` is IN (`be104e9c`): the pre-Gym-1 team fill is now **6**, not 4. It is bundled
+with `#24-pcoverflow` (built earlier the same day) **on purpose** — before the overflow work a
+full party made `resource_blocker` refuse every later catch, so a cap of 6 would have switched
+the counter chain off entirely. The two are coupled, so one batch measures both.
+
+Read the results in THIS ORDER — the first two are mechanism, the last two are outcome, and
+the batch4 lesson is that **the mechanism firing is not the funnel moving:**
 1. `PC — withdrawing <mon> from the box` — proves the overflow path ran live (**never proven**).
 2. `cannot hunt a counter — the party is full` — should be **gone** (was 5/batch).
 3. Team size at badge moments — should rise from ~5.8 toward 6.
-4. Finish rate against **52.0%**, and Balance→Feather against **76%**.
+4. Finish rate vs **52.0%**, and Balance→Feather vs **76%**. Use the badge funnel, not the
+   finish rate, for anything smaller than ~30 points.
 
-‼ If team size rises but the finish rate FALLS, suspect the same trap that caught me three
-times: a deeper team is not free (more mons to heal, more to train). Revert the cap, not the
-overflow.
+‼ **If team size rises but the finish rate FALLS, revert the CAP, not the overflow.** A deeper
+team is not free — more mons to heal, more to train — and that exact trap has produced three
+regressions in one week. The overflow work is what made the cap legal; it is not the suspect.
+
+**If the batch is still running when you pick this up:** leave it alone and do read-only work.
+`x4_headless.py --resummarise <dir>` re-reads stored logs afterwards, so a summariser bug never
+costs re-emulation. Scope was checked before the edit: both cap use sites are **pre-Gym-1 only**
+(the catch-new predicate returns `False` once `BADGE01_GET` is set), so late-game catching is
+untouched.
 
 ## AFTER THAT: §Ch14 — story content past Winona
 Full ROM-verified recon is in `12-STORYMODE-DESIGN.md` **§Ch14**; re-derive any of it with
