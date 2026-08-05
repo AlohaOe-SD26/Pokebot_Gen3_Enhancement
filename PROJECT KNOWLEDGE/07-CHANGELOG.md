@@ -7780,3 +7780,33 @@ at the API level.
 **Added `CAVE_TILE` to the `cavethread` driver** so a PLAIN destination tile can be forced; every
 tile `arrival_tile()` can derive from the warp graph is itself a warp, which is the wrong kind
 of target (it fires on contact).
+
+### ‼ ROUTE 120 (7,56) DIAGNOSED — the bot strands in a pocket chasing the ANCIENT TOMB warp
+
+`PROBE_MAPS=ROUTE120 mapfacts.py` — ROUTE120 is **40x100** with exactly TWO warps:
+```
+warp[0] (7, 55)  -> ANCIENT TOMB  (8,29)
+warp[1] (19, 23) -> SCORCHED SLAB (7,16)
+```
+The stall tile **(7,56) is directly below the Ancient Tomb door**, and the terrain shows why
+that is fatal:
+```
+y 54 .##..#####..######...
+y 55 .##..##W##..######...   <- W = (7,55) ANCIENT TOMB
+y 56 ..............####...   <- bot stranded here
+y 57 ..............####...
+```
+A wall at **x=12-17** runs down the map, so (7,56) sits in a **WESTERN POCKET** whose only
+special exit is that warp. **ANCIENT TOMB is a sealed Regi chamber** — a dead end that needs the
+Braille/Regi puzzle — so the pocket leads nowhere useful.
+
+‼ **This has the exact shape of the `_staged_progress_warp` failure `#24-journey` was built for**
+(ROUTE104 split in two by PETALBURG_WOODS): the planner takes any warp that does not increase
+graph distance, walks to it, and re-plans. Here that walked the bot INTO a pocket. `onward_exits`
+is supposed to deprioritise dead ends — **Ancient Tomb has exactly one exit, so it should have
+been ranked last.** Why it was chosen anyway is the open question, and it is a bug in staged
+progress, not in Mt. Pyre.
+
+**Do NOT "fix" this by hard-coding a Route 120 waypoint.** Gateway waypoints were tried and
+refuted (KI-39, 2026-07-30). The question to answer first is why a 1-exit dead end outranked the
+real route — instrument `_staged_progress_warp`'s ranking at that decision.
