@@ -7375,3 +7375,44 @@ two. **Do not add anything until Balance→Feather is back above 65%.**
 
 ‼ Two flags now hold reverted-because-measured behaviour and must stay `0`:
 `POKEBOT_LEAD_DEMOTE_WONDER_GUARD`, `POKEBOT_AREA_ITEM_GATE`.
+
+## 2026-08-05 — `#24-pc` flagged OFF: it removed ~1 team member per run
+
+The second cause of the Balance→Feather collapse, found by testing team COMPOSITION rather
+than guessing at the next commit.
+
+| batch | PC deposits | avg team size at Feather | Balance→Feather |
+|---|---|---|---|
+| b3 / b4 / b5 (off) | 0 | **5.65 / 5.72 / 5.81** | 83 / 75 / 70% |
+| b8 (on) | 14 | **4.45** | 52% |
+| b13 (on) | 18 | **4.75** | 57% |
+
+`#24-pc` permanently removes about **one whole team member**, and the last rung fell over
+exactly that transition — less depth post-Norman is less depth for Winona. It bought 5
+unblocked counter hunts per batch; it cost ~1 mon on every run.
+
+**Now behind `POKEBOT_PC_ROTATION`, default OFF.** `repro_pc_trip.py` keeps every existing
+guard (gate at party≥6, protect the hunted counter, never below `MIN_PARTY_AFTER_ROTATION`,
+PIDs-not-slots) — those checks now opt in explicitly, because the behaviour they pin is still
+required if the flag is ever turned back on. Suite 77/77.
+
+‼ **`#24-relocfloor` was RULED OUT without a batch**: the fodder-detection probe uses
+`min_wild_max=local_max`, not the floor it changed, so it cannot affect that path. Reading the
+call site beat spending 3 hours.
+
+### THREE flags now hold reverted-because-measured behaviour — all must stay `0`
+`POKEBOT_LEAD_DEMOTE_WONDER_GUARD`, `POKEBOT_AREA_ITEM_GATE`, `POKEBOT_PC_ROTATION`.
+
+All three were features that REMOVE or RESTRICT something, each justified by a visible failure
+count with no corresponding success count, and each with the counter-evidence already sitting
+in logs on disk:
+
+| feature | counted | never counted |
+|---|---|---|
+| `#24-leadpolicy` (c) | 1 Shedinja loss | 12 Shedinja WINS |
+| `#24-areaitemgate` | 28 wasted treks | 24 successful relocations |
+| `#24-pc` | 5 blocked hunts | ~1 team member every run |
+
+**Next batch predicts:** team size at Feather back toward ~5.7, and Balance→Feather **> 65%**.
+If team size recovers and the rung does NOT, a third cause remains and the bisect continues
+into `#24-leadcounter` (the only untested change left in the batch5→batch8 window).

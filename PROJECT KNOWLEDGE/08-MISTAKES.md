@@ -3249,3 +3249,41 @@ I then applied that rule to the lead policy and **not** to the training gate, fo
    away, in logs I already had, both times.
 3. **A "wasted work" metric is not a cost metric.** 28 wasted treks looked like pure loss
    because I never priced what the same code path bought when it succeeded.
+
+## 2026-08-05 — THIRD removal-shaped feature in a week that cost more than it saved (`#24-pc`)
+
+**Measured.**
+| batch | PC deposits | avg team size at Feather | Balance→Feather |
+|---|---|---|---|
+| b3 / b4 / b5 (off) | 0 | **5.65 / 5.72 / 5.81** | 83 / 75 / 70% |
+| b8 (on) | 14 | **4.45** | 52% |
+| b13 (on) | 18 | **4.75** | 57% |
+
+`#24-pc` removes **about one whole team member permanently**, and the last funnel rung fell
+over exactly that transition. Less depth post-Norman is less depth for Winona.
+
+**What it bought:** the counter chain was blocked by a full party **5 times in batch5**. So the
+trade was ~1 mon of depth on EVERY run to unblock 5 hunts per batch.
+
+**The pattern, three for three this week:**
+| feature | counted | never counted |
+|---|---|---|
+| `#24-leadpolicy` (c) | 1 Shedinja loss to Faint Attack | 12 Shedinja WINS (9 of 23 Norman victories) |
+| `#24-areaitemgate` | 28 wasted treks/batch | 24 successful relocations/batch |
+| `#24-pc` | 5 blocked hunts/batch | ~1 team member on every run |
+
+All three are features that REMOVE or RESTRICT something. All three were justified by a
+visible failure count with no corresponding success count. All three had the counter-evidence
+sitting in logs I already had.
+
+**Prevention rules.**
+1. **A feature that removes something needs a PRICE, not a justification.** Write both numbers
+   before building: what it saves per batch, and what it costs per run. `#24-pc` was "5 blocked
+   hunts" vs "1 mon on every run" — a bad trade that was computable in advance.
+2. **`08-MISTAKES` is not a diary, it is a checklist.** Rules 1 and 2 of the two previous
+   entries would each have caught this one. Read this file's REMOVAL rules before writing a
+   removal, not after measuring the damage.
+3. **Team/party composition is a shared resource with no owner.** `counter_hunt` wants a free
+   slot, `team_policy` wants dead weight gone, the boss prep wants depth. Three features have
+   now fought over it. Any future change touching party membership must state its effect on
+   the others.

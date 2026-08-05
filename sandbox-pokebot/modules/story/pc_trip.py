@@ -60,6 +60,29 @@ def plan_deposits(party) -> dict:
     """The rotation plan for `party`, or an empty plan. Pure apart from reading the party."""
     from modules.story.team_policy import rotation_plan, view_from_party
 
+    # ‼ OFF BY DEFAULT SINCE 2026-08-05 — MEASURED TO COST MORE THAN IT SAVES.
+    #
+    #   batch                    PC deposits   avg team size at Feather   Balance->Feather
+    #   b3/b4/b5 (feature off)             0      5.65 / 5.72 / 5.81         83 / 75 / 70%
+    #   b8       (feature on)             14                    4.45                   52%
+    #   b13      (feature on)             18                    4.75                   57%
+    #
+    # It removes ~ONE WHOLE TEAM MEMBER permanently, and the last funnel rung fell over
+    # exactly that transition. A thinner team post-Norman has less depth for Winona — which
+    # is the rung that collapsed.
+    #
+    # WHAT IT BOUGHT: the counter chain was blocked by a full party 5 times in batch5. So the
+    # trade was ~1 mon of team depth on EVERY run, to unblock 5 hunts per batch. That is a bad
+    # trade and the numbers were available before I built it.
+    #
+    # ‼ THIRD TIME IN A WEEK — see `#24-leadpolicy` (c) and `#24-areaitemgate`. All three were
+    # features that REMOVE something, justified by counting what they saved and never what
+    # they cost. `POKEBOT_PC_ROTATION=1` restores it.
+    import os as _os
+
+    if _os.environ.get("POKEBOT_PC_ROTATION", "0").strip() not in ("1", "true", "yes"):
+        return {"deposit": [], "withdraw": [], "reasons": {}, "worth_it": False}
+
     # ‼ THE GATE. Without it this strips every party to the floor on every heal — see the
     # constant above and 08-MISTAKES 2026-08-02.
     try:

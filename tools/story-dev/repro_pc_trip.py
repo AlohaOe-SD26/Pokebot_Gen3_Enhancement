@@ -139,8 +139,13 @@ for n in (3, 4, 5):
     got = pc_trip.plan_deposits([_P(40)] + [_P(4)] * (n - 1))
     check(f"a {n}-mon party is NOT rotated", not got["worth_it"], str(got["deposit"]))
 # A full party of mostly chaff must still be rotated - that is the whole point.
+# ‼ The feature is OFF by default since 2026-08-05 (it cost ~1 team member), so a test of the
+# rotation itself must opt in. The GATE behaviour above is what runs in production.
+import os as _os_r
+_os_r.environ["POKEBOT_PC_ROTATION"] = "1"
 got = pc_trip.plan_deposits([_P(42), _P(40), _P(38), _P(36), _P(8), _P(8)])
-check("a FULL party is still rotated", got["worth_it"], str(got["deposit"]))
+_os_r.environ.pop("POKEBOT_PC_ROTATION", None)
+check("a FULL party is still rotated (with the feature enabled)", got["worth_it"], str(got["deposit"]))
 
 print("9. ‼ A HUNTED COUNTER IS NEVER DEPOSITED")
 # Measured batch8: "counter hunt CAUGHT Machop" -> "training the counter — Machop L15 -> L29"
@@ -157,8 +162,33 @@ check("it logs the refusal (a silent skip is indistinguishable from a broken fea
       "NOT depositing" in src)
 # The protection must not resurrect the batch6 bug: with nothing protected, a full chaff
 # party is still rotated.
+import os as _os_p
+_os_p.environ["POKEBOT_PC_ROTATION"] = "1"
 got = pc_trip.plan_deposits([_P(42), _P(40), _P(38), _P(36), _P(8), _P(8)])
-check("with nothing protected, a full party is still rotated", got["worth_it"], str(got["deposit"]))
+_os_p.environ.pop("POKEBOT_PC_ROTATION", None)
+check("with nothing protected, a full party is still rotated (feature enabled)",
+      got["worth_it"], str(got["deposit"]))
+
+print("10. IT IS NOW OFF BY DEFAULT - measured to cost ~1 team member")
+#   batch      deposits   avg team at Feather   Balance->Feather
+#   b3/4/5            0    5.65 / 5.72 / 5.81      83 / 75 / 70%
+#   b8               14                  4.45                52%
+#   b13              18                  4.75                57%
+# It bought 5 unblocked counter hunts per batch and cost ~1 mon of depth on EVERY run.
+src2 = (SANDBOX / "modules" / "story" / "pc_trip.py").read_text(encoding="utf-8", errors="replace")
+check("the feature is behind POKEBOT_PC_ROTATION", "POKEBOT_PC_ROTATION" in src2)
+check("it defaults to OFF",
+      'environ.get("POKEBOT_PC_ROTATION", "0")' in src2)
+check("the measured cost is recorded beside the flag",
+      "avg team size at Feather" in src2 or "ONE WHOLE TEAM MEMBER" in src2)
+got_off = pc_trip.plan_deposits([_P(42), _P(40), _P(38), _P(36), _P(8), _P(8)])
+check("a full chaff party is NOT rotated while the flag is off", not got_off["worth_it"],
+      str(got_off["deposit"]))
+import os as _os
+_os.environ["POKEBOT_PC_ROTATION"] = "1"
+got_on = pc_trip.plan_deposits([_P(42), _P(40), _P(38), _P(36), _P(8), _P(8)])
+check("and IS rotated when explicitly enabled", got_on["worth_it"], str(got_on["deposit"]))
+_os.environ.pop("POKEBOT_PC_ROTATION", None)
 
 print("8. plan_deposits degrades on a malformed party instead of raising")
 got = pc_trip.plan_deposits(None)
