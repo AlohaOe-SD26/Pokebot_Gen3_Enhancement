@@ -2892,17 +2892,32 @@ may path where the Lavaridge side does not — measure both directions before ch
 The first chapter past Winona (Gym 6 = end of built content). Every number below is read from
 the ROM's own map headers, not recalled — `probe_ch14_recon.py` re-derives all of it in seconds.
 
-### ‼ THE HEADLINE: BOTH AREAS ARE 3-4 WARPS DEEP, AND THE NAVIGATOR IS SINGLE-HOP
+### ~~THE HEADLINE: BOTH AREAS ARE 3-4 WARPS DEEP, AND THE NAVIGATOR IS SINGLE-HOP~~
+### ‼‼ CORRECTED 2026-08-05 — THAT HEADLINE WAS FALSE. §Ch14 IS **NOT** BLOCKED.
 
-`_CAVE_EXITS` / `_CAVE_ENTRANCES` in `early_game.py` are **single-hop tables** (one warp in,
-one warp out). Granite Cave B1F/B2F are *already parked* for exactly this reason, and the
-punch list records why: *"the global navigator cannot cross warp levels … that exact failure
-already dropped two real-hardware runs to Manual (2026-07-22)."*
+**The navigator is not single-hop, and has not been since `#24-journey` (2026-07-31).** Measured
+live 2026-08-05 with `--driver cavethread`, asserting on maps VISITED, **no chain table involved
+in either direction**:
 
-**⇒ §Ch14 is BLOCKED on making the cave entry/exit threading chain-aware.** That is a
-navigation capability, not story content, and it must land first. Building the chapter on the
-single-hop tables would strand runs deep inside a cave with no way out — the known failure
-mode, at four times the depth.
+```
+IN   DEWFORD_TOWN -> ROUTE106 -> GRANITE_CAVE_1F -> B1F -> B2F     (3 warps deep)
+OUT  GRANITE_CAVE_B1F -> GRANITE_CAVE_1F -> ROUTE106 -> DEWFORD_TOWN
+```
+
+`MT_PYRE_SUMMIT` is the SAME 3-warp shape, so the capability the chapter was waiting on already
+exists. `_CAVE_EXITS`/`_CAVE_ENTRANCES` are single-hop, but they are a redundant *pre-step*, not
+the mechanism — `_navigate_riding_out` wraps the multi-hop `navigate_to_anywhere`.
+
+**How this doc came to say the opposite:** it inherited the justifying comment on `_CAVE_EXITS`,
+written 2026-07-26, which `#24-journey` invalidated five days later. Nobody re-read the comment
+after the fix. (`08-MISTAKES.md` 2026-08-05: *a comment that justifies a workaround by naming a
+limitation is a claim with an expiry date*.)
+
+‼ **THE ONE REAL CONSTRAINT TO CARRY INTO THE BUILD — never route to a WARP TILE.** Walking onto
+a door/ladder/stairs FIRES it, so navigation finishes one map PAST the target **and reports
+success**. This bit both cavethread probe runs. It matters here immediately: **MT_PYRE_1F's
+doorways are PAIRED two-tile warps** ((17,18)+(18,18) and (3,6)+(4,6)), so all four of those are
+warp tiles. Approach tiles must be plain walkable ones ADJACENT to the doorway, not the doorway.
 
 ### Mt. Pyre — 8 maps, TWO branches from 1F
 ```
@@ -2977,11 +2992,12 @@ descend to (16,18) -> MAGMA_HIDEOUT_1F -> ... -> 4F
 a scripted scene, not a warp. Revised difficulty: this is the hardest area the story bot has
 ever been asked to traverse — deeper than Granite Cave B2F (parked) and Mt. Pyre (3 hops).
 
-### ‼ REVISED BUILD ORDER
-1. **Chain-aware cave threading** (unchanged — still the blocking capability).
-2. **Mt. Pyre** — 3 hops, one branch, no scripted transport. The right first chapter.
-3. **Magma Hideout — DEFER.** It needs chain-aware threading *plus* cable-car handling *plus*
-   descending a one-way pass. Do not attempt it until Mt. Pyre proves the threading works.
+### ‼ BUILD ORDER — REVISED AGAIN 2026-08-05 (step 1 is DONE, and was never needed)
+1. ~~**Chain-aware cave threading**~~ — **CLOSED. The capability already existed** (see the
+   corrected headline above). Granite Cave B1F/B2F unpark as a side effect.
+2. **Mt. Pyre — NOW THE TOP ITEM.** 3 hops, one branch, no scripted transport.
+3. **Magma Hideout — STILL DEFERRED.** Unchanged: it needs cable-car handling *plus* descending
+   a one-way pass, ~8 warps deep. Do not attempt until Mt. Pyre ships.
 
 ‼ Do NOT "fix" `NO_RETURN_GROUNDS`' JAGGED_PASS entry by deleting it. It is correct: the pass
 genuinely cannot be climbed. What was missing is that the map has a SECOND entrance from the
