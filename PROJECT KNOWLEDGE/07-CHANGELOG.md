@@ -7450,3 +7450,44 @@ or a feature provably not doing what it says — reopens this.
 
 ‼ Three flags stay `0` permanently unless re-measured with a batch:
 `POKEBOT_LEAD_DEMOTE_WONDER_GUARD`, `POKEBOT_AREA_ITEM_GATE`, `POKEBOT_PC_ROTATION`.
+
+## 2026-08-05 — `#24-pcoverflow`: a full party no longer refuses a catch (user ruling)
+
+**User report that started this:** live runs still show teams of 4, and the "catch even if it
+overflows into the PC" behaviour appeared not to work.
+
+**Confirmed for the user: it was never built, and they were not running a stale script.** Two
+separate things:
+1. `target_size: int = 4` (and `_catch_team_target = 4`) — the party cap. Still the
+   punch-list item *"party cap 4 → 6 + PC rotation — ALREADY DESIGNED, BUILD IT"*.
+2. PC-overflow catching — the code did the OPPOSITE: `resource_blocker()` **refused** to hunt
+   when `_party_count() >= 6`, explicitly deferred behind `#24-pc`.
+
+**User ruling: build the real feature**, not a raised constant. Both halves, shipped together:
+
+* **`resource_blocker` no longer refuses a full party.** The ball gate is untouched. Verified
+  by AST, not text — the removed rule is still described in a comment right there, and a
+  `"party is full" in source` check passes either way (it did, on the first attempt).
+* **`pc_trip.box_views()` / `find_in_box()` / `withdraw_from_box()`** — read the PC, locate a
+  Pokémon **by PID** (a box slot moves whenever anything is deposited), and collect it on the
+  next Poké Centre heal, piggybacked between the nurse and the exit.
+
+‼ **THE TWO HALVES ONLY MAKE SENSE TOGETHER.** Relaxing the refusal alone would be strictly
+WORSE than the refusal: the counter would be caught — paid for with a cross-Hoenn journey —
+and then sit in the box unusable. `repro_pc_overflow.py` asserts the wiring, not just the
+functions.
+
+‼ **It frees exactly ONE slot, and only when the party is full.** That is deliberate, not
+conservatism: `#24-pc` thinned parties by ~1 mon per run and cost ~19 points of the
+Balance→Feather rung. A generous withdraw would reintroduce that regression by another door.
+It also refuses to deposit the very mon it came to collect, and gives up cleanly ("leaving it
+boxed") when nothing is safe to deposit.
+
+The decision layer was already there and unused: `team_policy.rotation_plan()` has taken
+`box_views` and returned a `withdraw` list since it was written. What was missing was reading
+the box and executing the withdraw. Suite 78/78.
+
+‼ **NOT YET LIVE-PROVEN.** No run has caught into a box or driven a withdraw. The next batch
+should show `PC — withdrawing <mon> from the box`, and the counter chain should stop reporting
+`cannot hunt a counter — the party is full`. **The party cap is still 4** — raising it is a
+separate change and would interact with this one, so it is deliberately not bundled here.

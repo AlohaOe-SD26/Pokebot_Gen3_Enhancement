@@ -215,6 +215,22 @@ def heal_in_pokemon_center(pokemon_center_door_location: PokemonCenter) -> Gener
         except Exception:  # noqa: BLE001 - never let the rotation break the heal path
             pass
 
+        # ‼ #24-pcoverflow — COLLECT A COUNTER THAT LANDED IN THE BOX.
+        # `resource_blocker` no longer refuses a catch when the party is full, so a hunted
+        # counter can now be caught straight into the PC. Without this it would STAY there —
+        # caught, paid for with a cross-Hoenn journey, and unusable, which is strictly worse
+        # than the old refusal. The two changes only make sense shipped together.
+        # Same piggyback contract as the deposit above: we are already inside for a heal.
+        try:
+            from modules.context import context as _ctx
+            from modules.story.pc_trip import withdraw_from_box
+
+            _pids = getattr(_ctx.bot_mode_instance, "_hunted_counter_pids", None)
+            if _pids:
+                yield from withdraw_from_box(_pids)
+        except Exception:  # noqa: BLE001 - never let a PC hiccup break the heal path
+            pass
+
         # Get out — robustly. `navigate_to` onto the exit warp (7,8) can stop ON the
         # tile without firing it, leaving the player stuck in the doorway (ML-9,
         # user-reported). Walk to the tile ABOVE the door and step DOWN so the warp

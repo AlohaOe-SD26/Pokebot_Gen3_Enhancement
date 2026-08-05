@@ -206,3 +206,152 @@ def deposit_dead_weight_if_worth_it() -> Generator:
             f"[yellow]Story: PC rotation failed ({error!r}) — carrying on with the party "
             f"we have.[/]"
         )
+
+
+# --- PC OVERFLOW (#24-pcoverflow, user ruling 2026-08-05) ------------------------------
+#
+# ‼ WHY. Until now a FULL PARTY meant the bot simply REFUSED to catch:
+#     `resource_blocker()` -> "the party is full, so a catch would go to the PC box"
+# That is what capped teams at 4 and blocked the counter chain 5 times in batch5. The user's
+# ruling is to build the real thing: **let the catch happen, let it go to the box, and manage
+# the box** — rather than raise a constant and hope.
+#
+# The decision half already existed and was never wired up: `team_policy.rotation_plan()`
+# takes `box_views` and returns a `withdraw` list. Upstream already ships
+# `PCAction.withdraw_pokemon_from_box()`. What was missing is the middle: READING the box, and
+# EXECUTING a withdraw. That is what this section is.
+
+
+def box_views():
+    """`MonView`s for everything in the PC, plus the live `Pokemon` objects, in one pass.
+
+    Returns `(views, mons)` — parallel lists, so an index from `rotation_plan`'s `withdraw`
+    maps straight to the Pokémon to act on. Empty on any read failure: a box we cannot read
+    is a box we must not act on.
+    """
+    from modules.story.team_policy import MonView
+
+    try:
+        from modules.pokemon_storage import get_pokemon_storage
+
+        storage = get_pokemon_storage()
+    except Exception:  # noqa: BLE001
+        return [], []
+
+    views, mons = [], []
+    for box in getattr(storage, "boxes", lambda: [])():
+        for slot in getattr(box, "slots", []) or []:
+            p = getattr(slot, "pokemon", None)
+            if p is None:
+                continue
+            try:
+                if getattr(p, "is_empty", False) or not getattr(p.species, "name", ""):
+                    continue
+                moves = tuple(
+                    (lm.move.name, lm.move.base_power)
+                    for lm in getattr(p, "moves", ()) or ()
+                    if lm is not None and lm.move is not None
+                )
+                views.append(MonView(p.species.name, p.level, moves,
+                                     is_egg=bool(getattr(p, "is_egg", False))))
+                mons.append(p)
+            except Exception:  # noqa: BLE001 - one unreadable slot must not lose the rest
+                continue
+    return views, mons
+
+
+def find_in_box(pids):
+    """The stored Pokémon whose personality value is in `pids`, or None.
+
+    ‼ PID, never slot index. A box slot moves whenever anything is deposited or withdrawn, so
+    a remembered index points at a different Pokémon later — the same hazard that made the
+    deposit path resolve objects up front.
+    """
+    if not pids:
+        return None
+    _, mons = box_views()
+    for mon in mons:
+        try:
+            if mon.personality_value in pids:
+                return mon
+        except Exception:  # noqa: BLE001
+            continue
+    return None
+
+
+def withdraw_from_box(pids) -> Generator:
+    """Retrieve a Pokémon from the PC box by PID, making room if the party is full.
+
+    ‼ THIS IS THE OTHER HALF OF `#24-pcoverflow`. `resource_blocker` no longer refuses a catch
+    when the party is full, so a hunted counter can now land in the BOX. Without this it would
+    stay there — caught, paid for with a cross-Hoenn journey, and unusable. That is strictly
+    worse than the old refusal, so the two changes must ship together.
+
+    Assumes we are INSIDE a Poké Centre and healed (same piggyback contract as
+    `deposit_dead_weight_if_worth_it`). Never raises: a PC hiccup must not destroy a heal that
+    already succeeded.
+    """
+    from modules.console import console
+    from modules.context import context
+    from modules.player import get_player_avatar
+    from modules.pokemon_party import get_party
+
+    target = find_in_box(pids)
+    if target is None:
+        return
+
+    name = getattr(getattr(target, "species", None), "name", "?")
+    try:
+        from modules.modes.util.pc_interaction import PCAction, interact_with_pc
+        from modules.modes.util.walking import ensure_facing_direction, navigate_to
+
+        party = get_party()
+        alive = [i for i, p in enumerate(party)
+                 if p is not None and not getattr(p, "is_egg", False)]
+
+        actions = []
+        # ‼ MAKE ROOM FIRST, AND ONLY IF FULL. A withdraw into a full party silently fails, so
+        # the deposit must be part of the SAME PC visit. We free exactly one slot — the worst
+        # dead weight — never more: thinning the team is what made `#24-pc` a regression
+        # (~1 mon/run, ~19 pts of the last funnel rung; 08-MISTAKES 2026-08-05).
+        if len(alive) >= 6:
+            from modules.story.team_policy import find_dead_weight, view_from_party
+
+            worst = None
+            try:
+                dead = find_dead_weight(view_from_party(party))  # worst-first
+                for i, _reason in dead:
+                    if i < len(party) and party[i] is not None:
+                        if party[i].personality_value in (pids or ()):
+                            continue  # never deposit the very mon we came to collect
+                        worst = party[i]
+                        break
+            except Exception:  # noqa: BLE001
+                worst = None
+            if worst is None:
+                console.print(
+                    f"[yellow]Story: {name} is in the PC but the party is full and nothing is "
+                    f"safe to deposit — leaving it boxed.[/]"
+                )
+                return
+            console.print(
+                f"[cyan]Story: PC — depositing {getattr(worst.species, 'name', '?')} "
+                f"L{worst.level} to make room for {name}.[/]"
+            )
+            actions.append(PCAction.deposit_pokemon_to_box(worst))
+
+        console.print(f"[bold cyan]Story: PC — withdrawing {name} from the box.[/]")
+        actions.append(PCAction.withdraw_pokemon_from_box(target))
+
+        here = get_player_avatar().map_group_and_number
+        yield from navigate_to(here, PC_STAND_TILE)
+        yield from ensure_facing_direction(PC_FACING)
+        yield from interact_with_pc(actions)
+
+        after = len(get_party())
+        console.print(f"[green]Story: PC — {name} is in the party; party is now {after}.[/]")
+        context.message = f"Story: withdrew {name} — party {after}."
+    except Exception as error:  # noqa: BLE001
+        console.print(
+            f"[yellow]Story: could not withdraw {name} ({error!r}) — it stays in the box.[/]"
+        )

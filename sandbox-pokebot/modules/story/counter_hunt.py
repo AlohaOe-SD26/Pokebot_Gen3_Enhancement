@@ -166,9 +166,19 @@ def resource_blocker() -> "str | None":
     Both walls below are real derail classes from the 2026-07-29 batch (`#24-pc`, and
     "no Poké Balls and no money to buy any"), not hypotheticals.
     """
-    if _party_count() >= 6:
-        # A catch would go to the PC, not the party — box management is #24-pc.
-        return "the party is full, so a catch would go to the PC box (needs #24-pc)"
+    # ‼ #24-pcoverflow (user ruling 2026-08-05) — A FULL PARTY NO LONGER REFUSES THE CATCH.
+    #
+    # This used to `return "the party is full, so a catch would go to the PC box (needs
+    # #24-pc)"`, and that refusal fired 5 times in batch5, blocking the counter chain outright.
+    # The ruling was to build the real thing rather than raise a constant: **let the catch
+    # happen, let it land in the box, and retrieve it** — see `pc_trip.withdraw_from_box`.
+    #
+    # A caught-to-box counter is not lost: `_hunted_counter_pids` records it by PID (which
+    # survives the box), `pc_trip.find_in_box` locates it, and the next Poké Centre heal
+    # withdraws it. The mon being in the box is a LOGISTICS problem, not a reason to skip the
+    # only answer to a boss we keep losing to.
+    #
+    # ‼ What is still true: a catch needs a BALL. That gate stays below, unchanged.
     # > 1 rather than > 0: the LAST ball is reserved, the same rule the HM hunt uses.
     # Randomising or relaxing this reintroduces the catch-without-balls bug
     # (21-TEAM-POLICY-DESIGN.md §6 lists it as never-randomise).
