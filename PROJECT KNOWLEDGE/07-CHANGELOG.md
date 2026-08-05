@@ -7523,3 +7523,60 @@ is the instrument here.
 the batch and the four signals to read. **If team size rises but the finish rate falls, revert
 the CAP, not the overflow** — a deeper team is not free (more mons to heal, more to train), and
 that exact trap has cost this project three regressions in one week.
+
+## 2026-08-05 — `#24-cavethread` RE-SCOPED by static recon, and a probe written
+
+**No production code changed.** This entry records a measurement and a plan change.
+
+**What was measured.** `#24-cavethread` was about to be built as a hand-written multi-hop cave
+chain table, on the premise that `_CAVE_EXITS`/`_CAVE_ENTRANCES` are single-hop and therefore
+the route data for deep interiors does not exist. Replaying `WarpGraph.map_route` (BFS over
+connections + warp edges) against the committed ROM-derived cache `cache/warp_graph_BPEE0.json`
+— **no emulator, no ROM, no CPU contention with the running batch** — shows the graph already
+knows every route, both directions:
+
+| route | hops |
+|---|---|
+| `ROUTE106 -> GRANITE_CAVE_B2F` | 3 |
+| `GRANITE_CAVE_B2F -> DEWFORD_TOWN` | 4 |
+| `ROUTE122 -> MT_PYRE_SUMMIT` | 3 |
+| `JAGGED_PASS -> MAGMA_HIDEOUT_4F` | 4 |
+
+Map names were taken by **`ast.parse` of `map_data.py`**, never a bulk import — `modules/data`
+runs generators at import and has gutted that file twice.
+
+**Why the premise was stale.** The two tables date from 2026-07-26 and their justifying comment
+reads *"the global navigator can NOT cross warp levels"*. True when written; **fixed five days
+later by `#24-journey` (2026-07-31)**, which made `navigate_to_anywhere` multi-hop, self-
+replanning and live-validated. `_navigate_riding_out` — which the training and hunting paths
+already call — wraps it. So the tables are a legacy PRE-STEP that manually threads one door
+before handing off to a navigator that now threads doors by itself.
+
+‼ **WHAT THIS DOES NOT PROVE, stated so it is not mistaken for a result.** It refutes "the route
+data is missing". It does **not** prove the bot can walk the route. `map_route`'s own docstring
+warns its connection edges can be **phantoms** — the measured Verdanturf->Route116 case, where a
+declared connection exists and 0 of 40 sampled tiles are actually walkable. Route known ≠ route
+walkable, and treating one measurement as settling both is precisely the KI-39 error.
+
+**The named risk.** `_walk_warp_chain` documents a **one-way ledge** on Granite Cave 1F: within-
+floor reachability is DIRECTIONAL, so the graph's single `GRANITE_CAVE_1F` node is really two
+disjoint sections. A map-granular planner cannot see that. The generic navigator's `used_warps`
++ revisit-deprioritisation is a plausible but unproven mitigation for it.
+
+**Shipped: `--driver cavethread`** in `tools/story-dev/story_harness.py` (new `CaveThreadMode`).
+Drives the PRODUCTION call (`_navigate_riding_out`) in two legs — IN to a deep interior, then
+OUT to a heal town — and reports `[cavethread] RESULT leg=<in|out> arrived=<bool> map=<...>`.
+Three deliberate design choices:
+* **Destination tiles are the warp graph's own ROM `to_coords`** (where the game says you ARRIVE
+  when taking that warp), so they are walkable by construction and nothing is written from memory.
+* **Granite Cave is the test case on purpose** — same 3-warp depth as Mt. Pyre Summit, already
+  parked for this, and it carries the hardest known hazard (the ledge). Passing it generalises.
+* **The OUT leg is SKIPPED unless we actually got inside**, and says so. An out-leg driven from
+  the overworld would trivially report `arrived=True` and read as a pass.
+
+Verified by AST parse only (the box is running a batch). ‼ `story_harness.py` has a **UTF-8 BOM**
+— parse it with `encoding='utf-8-sig'` or `ast.parse` raises on U+FEFF.
+
+**Outcome if it passes:** `#24-cavethread` collapses from "build a chain system" to "delete two
+stale tables", and Mt. Pyre unblocks. **If it fails:** the log names the leg and the map, which
+is the actual thing to fix. Either way the next step is minutes of measurement, not days of build.

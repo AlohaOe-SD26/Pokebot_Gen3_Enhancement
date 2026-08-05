@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "normancounter"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "normancounter"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -1276,6 +1276,127 @@ class SmashRouteMode(BotMode):
         return
 
 
+class CaveThreadMode(BotMode):
+    """`#24-cavethread`: can the EXISTING navigator already thread a MULTI-WARP cave?
+
+    ‼ WHY THIS PROBE EXISTS — it tests a claim the punch list currently assumes is false.
+    `#24-cavethread` says `_CAVE_EXITS`/`_CAVE_ENTRANCES` are SINGLE-HOP and concludes that
+    deep interiors (MT_PYRE_SUMMIT 3 warps, MAGMA_HIDEOUT_4F 4) need a hand-built chain
+    table. But those two tables were written 2026-07-26, and their justifying comment — "the
+    global navigator can NOT cross warp levels" — PREDATES `#24-journey` (2026-07-31), which
+    made `navigate_to_anywhere` a multi-hop, self-replanning, live-validated warp navigator.
+
+    STATIC RECON (2026-08-05, no emulator, replaying `WarpGraph.map_route` against the
+    committed ROM cache) says the graph already knows every route in question, BOTH ways:
+        ROUTE106 -> GRANITE_CAVE_B2F      3 hops
+        GRANITE_CAVE_B2F -> DEWFORD_TOWN  4 hops
+        ROUTE122  -> MT_PYRE_SUMMIT       3 hops
+        JAGGED_PASS -> MAGMA_HIDEOUT_4F   4 hops
+    ‼ That proves the route is KNOWN, not that it is WALKABLE — `map_route`'s own docstring
+    warns its connection edges can be PHANTOMS (the Verdanturf->Route116 case). Only a live
+    drive of the production call can settle it, which is this driver.
+
+    GRANITE CAVE IS THE DELIBERATE TEST CASE, not a convenience. It is the same 3-warp depth
+    as Mt. Pyre Summit, it is already PARKED as a training ground for exactly this reason, and
+    it carries the HARDEST known hazard: `_walk_warp_chain` documents a ONE-WAY LEDGE on 1F
+    that makes within-floor reachability DIRECTIONAL, so the graph's single "GRANITE_CAVE_1F"
+    node is really two disjoint sections. A map-granular planner cannot see that. If the
+    generic navigator survives Granite Cave, it will survive Mt. Pyre.
+
+    ‼ THE DESTINATION TILE IS NOT GUESSED. It is the warp graph's own `to_coords` — where the
+    ROM says you ARRIVE when taking that warp — so it is walkable by construction. Writing a
+    cave tile from memory is exactly what the project's "never write a game fact from memory"
+    rule forbids.
+
+    Env inputs:
+      CAVE_TARGET  deep interior map (default 'GRANITE_CAVE_B2F')
+      CAVE_OUT     town to return to  (default 'DEWFORD_TOWN')
+      CAVE_LEG     'in' | 'out' | 'both' (default 'both')
+      CAVE_TRIES   retries per leg (default 24, matching `counter_hunt.hunt()`)
+    Emits: [cavethread] RESULT leg=<in|out> arrived=<bool> map=<name> detail=<...>
+    """
+
+    @staticmethod
+    def name():
+        return "CaveThread"
+
+    def on_battle_started(self, encounter):
+        # Cave interiors are wild-encounter tiles; without a strategy the first Zubat
+        # freezes the probe and we would be measuring the battle system, not navigation.
+        from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+
+        return LevelUpTravelBattleStrategy()
+
+    def run(self):
+        import os
+
+        from modules.map_data import MapRSE
+        from modules.player import get_player_avatar
+        from modules.warp_graph import get_warp_graph
+        from modules.story.early_game import _navigate_riding_out, wait_until_truly_controllable
+
+        target = MapRSE[os.environ.get("CAVE_TARGET", "GRANITE_CAVE_B2F").strip()]
+        town = MapRSE[os.environ.get("CAVE_OUT", "DEWFORD_TOWN").strip()]
+        leg = os.environ.get("CAVE_LEG", "both").strip().lower()
+        tries = int(os.environ.get("CAVE_TRIES", "24"))
+
+        graph = get_warp_graph()
+
+        def arrival_tile(dest_map):
+            """A walkable tile on `dest_map`: where the ROM says a warp INTO it lands you."""
+            for edge in graph.edges:
+                if tuple(edge.to_map) == tuple(dest_map.value):
+                    return tuple(edge.to_coords)
+            return None
+
+        yield from wait_until_truly_controllable()
+
+        def drive(name, dest_map, dest_tile):
+            arrived, detail = False, ""
+            if dest_tile is None:
+                log(f"[cavethread] RESULT leg={name} arrived=False map=? detail=no ROM arrival tile for {dest_map.name}")
+                return False
+            here = tuple(get_player_avatar().map_group_and_number)
+            try:
+                start = MapRSE(here).name
+            except Exception:  # noqa: BLE001
+                start = str(here)
+            hops = graph.map_route(here, tuple(dest_map.value))
+            log(f"[cavethread] leg={name} from={start} to={dest_map.name}{dest_tile} "
+                f"graph_hops={len(hops) if hops is not None else 'none'}")
+            try:
+                yield from _navigate_riding_out(dest_map, dest_tile, tries=tries)
+                arrived = tuple(get_player_avatar().map_group_and_number) == tuple(dest_map.value)
+                detail = "arrived" if arrived else "returned on the wrong map"
+            except Exception as error:  # noqa: BLE001
+                detail = f"{type(error).__name__}: {str(error)[:160]}".replace("\n", " ")
+            try:
+                final = MapRSE(tuple(get_player_avatar().map_group_and_number)).name
+            except Exception:  # noqa: BLE001
+                final = "?"
+            log(f"[cavethread] RESULT leg={name} arrived={arrived} map={final} detail={detail}")
+            return arrived
+
+        went_in = True
+        if leg in ("in", "both"):
+            went_in = yield from drive("in", target, arrival_tile(target))
+
+        # ‼ The OUT leg is the one that matters most: a heal targeting a town PC from INSIDE a
+        # cave is what dropped two real-hardware runs to Manual on 2026-07-22. Run it even if
+        # the IN leg failed ONLY when we actually ended up inside — otherwise it would report
+        # a trivially-true "arrived" from the overworld and look like a pass.
+        if leg in ("out", "both"):
+            inside = tuple(get_player_avatar().map_group_and_number) == tuple(target.value)
+            if inside:
+                yield from drive("out", town, arrival_tile(town))
+            else:
+                log(f"[cavethread] leg=out SKIPPED — not inside {target.name} "
+                    f"(in-leg arrived={went_in}); an out-leg from the overworld proves nothing.")
+
+        context.set_manual_mode()
+        return
+
+
 class RivalRetryMode(BotMode):
     """VALIDATE the bug fix: with MET_RIVAL_RUSTBORO already set (simulating a PRIOR LOSS),
     confirm fight_rustboro_rival still steps onto the y=53 trigger and RE-ENGAGES the rival
@@ -2165,6 +2286,8 @@ for step in range(args.frames):
             context.bot_mode_instance = JourneyMode()
         elif args.driver == "smashroute":
             context.bot_mode_instance = SmashRouteMode()
+        elif args.driver == "cavethread":
+            context.bot_mode_instance = CaveThreadMode()
         elif args.driver == "normancounter":
             context.bot_mode_instance = NormanCounterMode()
         elif args.driver == "traintest":

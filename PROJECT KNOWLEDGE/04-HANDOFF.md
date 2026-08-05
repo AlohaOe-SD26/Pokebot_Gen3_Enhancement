@@ -51,10 +51,31 @@ untouched.
 Full ROM-verified recon is in `12-STORYMODE-DESIGN.md` **§Ch14**; re-derive any of it with
 `tools/story-dev/probe_ch14_recon.py --area pyre|magma|approach`.
 
-1. **Chain-aware cave threading — THE BLOCKER.** `_CAVE_EXITS`/`_CAVE_ENTRANCES` are
-   SINGLE-HOP. MT_PYRE_SUMMIT is **3 warps** deep; MAGMA_HIDEOUT_4F is **4**. Granite Cave
-   B1F/B2F are already parked for this, and it once dropped two real-hardware runs to Manual.
-   Fixing it unparks those too.
+1. **Chain-aware cave threading — THE BLOCKER, and it just got RE-SCOPED (2026-08-05).**
+   ‼ **DO NOT BUILD THE CHAIN TABLE. RUN THE PROBE FIRST — it is already written.**
+
+   The old plan rested on a **stale comment**: `_CAVE_EXITS`/`_CAVE_ENTRANCES` (2026-07-26) say
+   *"the global navigator cannot cross warp levels"*, which **`#24-journey` fixed on 2026-07-31**.
+   Offline BFS over the committed ROM warp-graph cache (`probe_cavethread_static.py`, no
+   emulator) shows the graph **already knows every route, both ways**: `ROUTE106→GRANITE_CAVE_B2F`
+   3 hops, `GRANITE_CAVE_B2F→DEWFORD_TOWN` 4, `ROUTE122→MT_PYRE_SUMMIT` 3,
+   `JAGGED_PASS→MAGMA_HIDEOUT_4F` 4.
+
+   ‼ **That proves the route is KNOWN, not WALKABLE** — `map_route`'s own docstring warns its
+   edges can be phantoms (Verdanturf→Route116). The named risk is the **one-way ledge** on
+   Granite Cave 1F: within-floor reachability is DIRECTIONAL, so one graph node is really two
+   disjoint sections and a map-granular planner cannot see it.
+
+   ⏭ Settle it in minutes, once the box is free:
+   ```
+   cd tools/story-dev
+   PYTHONUTF8=1 py -3.12 story_harness.py saves/dewford.ss1 --driver cavethread \
+       --frames 600000 --profile repro-cave1
+   ```
+   Granite Cave is the deliberate test case (same 3-warp depth as Mt. Pyre, hardest hazard).
+   **Passes ⇒ the item collapses to "delete two stale tables" and Mt. Pyre unblocks. Fails ⇒ the
+   log names the leg and map to fix.** Full reasoning: `07-CHANGELOG.md` + `08-MISTAKES.md`
+   2026-08-05, and the re-scoped `03-PUNCH-LIST.md` entry.
 2. **Mt. Pyre** — 3 hops, one branch (the 2F-6F tower is a skippable side dungeon).
 3. **Magma Hideout — DEFER.** Its door at JAGGED_PASS (16,18) is unreachable from the
    ROUTE112 side (one-way ledges; a 2026-07-26 probe already failed to path there). Only

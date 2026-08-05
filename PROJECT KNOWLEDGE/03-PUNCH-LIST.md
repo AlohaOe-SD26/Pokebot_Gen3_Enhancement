@@ -48,10 +48,50 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       `repro_pc_overflow.py`. **NOT live-proven.**
 
 - [ ] `#24-cavethread` — **THE BLOCKER FOR ALL STORY CONTENT PAST WINONA.**
-      `_CAVE_EXITS`/`_CAVE_ENTRANCES` are SINGLE-HOP. MT_PYRE_SUMMIT is **3 warps** deep,
-      MAGMA_HIDEOUT_4F is **4**. Granite Cave B1F/B2F are already parked for this and it once
-      dropped two real-HW runs to Manual. Fixing it unparks those too. Recon:
-      `12-STORYMODE-DESIGN.md` §Ch14 + `probe_ch14_recon.py`.
+      ‼ **RE-SCOPED 2026-08-05 — DO NOT BUILD THE CHAIN TABLE YET. MEASURE FIRST.**
+
+      The item used to read "`_CAVE_EXITS`/`_CAVE_ENTRANCES` are SINGLE-HOP, therefore build a
+      multi-hop chain table". **The premise behind that conclusion is stale.** Those two tables
+      date from 2026-07-26 and their justifying comment says *"the global navigator can NOT
+      cross warp levels"* — which was true then and **was fixed on 2026-07-31 by `#24-journey`**.
+      `navigate_to_anywhere` is now a multi-hop, self-replanning, live-validated warp navigator,
+      and `_navigate_riding_out` (what the training/hunting paths already call) wraps it.
+
+      **STATIC RECON DONE (2026-08-05, no emulator** — replayed `WarpGraph.map_route` against
+      the committed ROM cache `cache/warp_graph_BPEE0.json`; script in the changelog entry):
+      the graph **already knows every route in question, in BOTH directions** —
+      | route | hops |
+      |---|---|
+      | `ROUTE106 -> GRANITE_CAVE_B2F` | 3 |
+      | `GRANITE_CAVE_B2F -> DEWFORD_TOWN` (the leg that dropped 2 real-HW runs) | 4 |
+      | `ROUTE122 -> MT_PYRE_SUMMIT` | 3 |
+      | `JAGGED_PASS -> MAGMA_HIDEOUT_4F` | 4 |
+
+      ‼ **WHAT THIS DOES AND DOES NOT PROVE.** It refutes "the route data is missing" — the
+      thing a hand-built chain table would supply. It does **NOT** prove the bot can WALK it:
+      `map_route`'s own docstring warns its connection edges can be **PHANTOMS** (the measured
+      Verdanturf->Route116 case). Route known ≠ route walkable. That is the same
+      one-measurement-fits-all error KI-39 already cost this project a day on.
+
+      **THE REAL RISK, NAMED:** `_walk_warp_chain` documents a **ONE-WAY LEDGE** on Granite Cave
+      1F — within-floor reachability is **DIRECTIONAL**, so the graph's single `GRANITE_CAVE_1F`
+      node is really two disjoint sections, which a MAP-granular planner cannot see. The generic
+      navigator's `used_warps` + revisit-deprioritisation is a *plausible but unproven* mitigation.
+
+      ⏭ **NEXT ACTION — run the probe, it is already written** (`--driver cavethread`, added to
+      `story_harness.py` 2026-08-05; destination tiles come from the warp graph's own ROM
+      `to_coords`, so nothing is guessed):
+      ```
+      cd tools/story-dev
+      PYTHONUTF8=1 py -3.12 story_harness.py saves/dewford.ss1 --driver cavethread \
+          --frames 600000 --profile repro-cave1
+      ```
+      **Granite Cave is the deliberate test case, not a convenience:** same 3-warp depth as Mt.
+      Pyre Summit, already parked for this, and it carries the hardest known hazard (the ledge).
+      If the generic navigator threads Granite Cave in AND back out, `#24-cavethread` collapses
+      from "build a chain system" to "delete the two stale tables" — and Mt. Pyre unblocks.
+      If it fails, the log names which leg and where, and THAT is the thing to fix.
+      ‼ Needs the box; do not run it while a batch is using the lanes.
 
 - [ ] `#24-mtpyre` — first chapter past Winona. 3 hops, one branch; the 2F-6F tower is a
       skippable side dungeon. Blocked on `#24-cavethread`.

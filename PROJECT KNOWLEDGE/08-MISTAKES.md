@@ -3287,3 +3287,38 @@ sitting in logs I already had.
    slot, `team_policy` wants dead weight gone, the boss prep wants depth. Three features have
    now fought over it. Any future change touching party membership must state its effect on
    the others.
+
+## 2026-08-05 — A workaround's justifying comment outlived the limitation it named, and nearly bought a chain-threading system we already own
+
+**Symptom.** `#24-cavethread` — the project's stated blocker for ALL story content past Winona —
+was scoped as "build a multi-hop cave chain table", and was one session away from being built.
+
+**Root cause.** `_CAVE_EXITS`/`_CAVE_ENTRANCES` (`early_game.py`, 2026-07-26) carry a long,
+confident, CORRECT-WHEN-WRITTEN comment: *"The global navigator cannot cross warp levels, so ANY
+target outside a cave plan-fails from within it."* **`#24-journey` fixed exactly that on
+2026-07-31** — five days later, in a different file — and nobody went back to re-read the
+comment that the fix invalidated. The workaround kept working (single-hop caves still thread
+fine), so nothing failed loudly, and the stale justification sat there reading like a current
+constraint. The punch list then inherited the stale premise and turned it into a build plan.
+
+**What actually found it.** Not a probe — reading the call chain and noticing a DATE. The
+comment said the navigator cannot cross warps; the handoff said `#24-journey` shipped warp
+planning. Both could not be true. Cost to check: one offline BFS replay against the committed
+ROM cache, no emulator, ~10 minutes. It showed the graph already knows all four routes, in both
+directions, 3-4 hops deep.
+
+**The fix that worked.** Re-scoped the item to MEASURE before building, and wrote the probe
+(`--driver cavethread`) that drives the production call through Granite Cave — chosen because it
+is the same depth as Mt. Pyre and carries the hardest hazard (a one-way ledge that makes
+within-floor reachability directional).
+
+‼ **Prevention rule: when a comment JUSTIFIES a workaround by naming a limitation, that comment
+is a claim with an expiry date — check the limitation still exists before building on it.** A
+workaround does not fail when its reason disappears; it just quietly becomes cost. Grep the
+limitation, not the workaround. (Cheap habit: when a fix removes a limitation, grep the codebase
+for comments naming it and retire them in the same commit.)
+
+‼ **Second rule, from the same session — do not let this recon overshoot.** The BFS result
+refutes "the route data is missing"; it does NOT prove the route is WALKABLE, because
+`map_route`'s own docstring warns its connection edges can be phantoms. Stating both halves is
+the whole discipline: KI-39 cost a day precisely by letting one measurement answer two questions.
