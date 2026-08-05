@@ -2884,3 +2884,65 @@ sidesteps the heal trip entirely, and is a better fit for `#24-counters` phase 2
 `train_team` in place. Before that, decide the exit pairing deliberately: the NORTH mouth
 (`FIERY_PATH (26,4)` ↔ `ROUTE112 (22,10)`) surfaces on the Route 111 side toward Fallarbor, which
 may path where the Lavaridge side does not — measure both directions before choosing.
+
+---
+
+## §Ch14 — Mt. Pyre → Magma Hideout — RECON (ROM-verified 2026-08-05, `probe_ch14_recon.py`)
+
+The first chapter past Winona (Gym 6 = end of built content). Every number below is read from
+the ROM's own map headers, not recalled — `probe_ch14_recon.py` re-derives all of it in seconds.
+
+### ‼ THE HEADLINE: BOTH AREAS ARE 3-4 WARPS DEEP, AND THE NAVIGATOR IS SINGLE-HOP
+
+`_CAVE_EXITS` / `_CAVE_ENTRANCES` in `early_game.py` are **single-hop tables** (one warp in,
+one warp out). Granite Cave B1F/B2F are *already parked* for exactly this reason, and the
+punch list records why: *"the global navigator cannot cross warp levels … that exact failure
+already dropped two real-hardware runs to Manual (2026-07-22)."*
+
+**⇒ §Ch14 is BLOCKED on making the cave entry/exit threading chain-aware.** That is a
+navigation capability, not story content, and it must land first. Building the chapter on the
+single-hop tables would strand runs deep inside a cave with no way out — the known failure
+mode, at four times the depth.
+
+### Mt. Pyre — 8 maps, TWO branches from 1F
+```
+ROUTE122 <--(17,18)/(18,18)-- MT_PYRE_1F --(3,6)/(4,6)--> MT_PYRE_EXTERIOR --(19,10)/(20,10)--> MT_PYRE_SUMMIT
+                                   |
+                                   +--(11,1)/(20,9)--> 2F -> 3F -> 4F -> 5F -> 6F   [interior tower, DEAD END at 6F]
+```
+* **The story path is the EXTERIOR branch**, not the tower: `ROUTE122 → 1F → EXTERIOR → SUMMIT`.
+* **SUMMIT is 3 warps from the nearest outdoor route.** Exit chain: SUMMIT → EXTERIOR → 1F →
+  ROUTE122.
+* The interior tower (2F-6F) is a **side dungeon** — 6F's only warps go back to 5F. It is not
+  on the critical path; do not route through it.
+* Sizes: 1F 22×19, 2F-6F 13×13, EXTERIOR 38×51, SUMMIT (probe it when needed).
+* ‼ 1F has **paired warps** — (17,18)+(18,18) both → ROUTE122, and (3,6)+(4,6) both →
+  EXTERIOR. Two-tile doorways; either tile fires. Do not assume a single exit tile.
+
+### Magma Hideout — 8 maps, ONE outdoor exit, THREE routes to the goal
+```
+JAGGED_PASS <--(10,34)-- MAGMA_HIDEOUT_1F --(25,34)--> 2F_1R --(17,33)--> 3F_1R --(7,21)--> 4F
+                              |                            |                  |
+                              |                            +--(21,9)--> 3F_2R [DEAD END]
+                              +--(31,3)--> 2F_2R (loops back to 1F and 2F_1R)
+                              +--(20,22)--> 2F_3R --(16,13)--> 3F_3R --(16,21)--> 4F
+```
+* **`JAGGED_PASS (10,34)` is the ONLY outdoor exit** — every other warp is interior-to-interior.
+* **4F (the objective) is 4 warps deep**, via either `2F_1R→3F_1R` or `2F_3R→3F_3R`.
+* `3F_2R` is a dead-end side room off `3F_1R` (single warp back).
+* ‼ **JAGGED_PASS is in `NO_RETURN_GROUNDS`** ("one-way ledges from Mt. Chimney; not
+  re-enterable from Lavaridge", two-way sweep 2026-07-23). So the hideout's only door sits on
+  a map the bot is already recorded as unable to re-enter from one side. **Probe the approach
+  before designing the route** — this is the single riskiest fact in the chapter.
+
+### BUILD ORDER (do not reorder)
+1. **Chain-aware cave threading** — the blocking capability. Also unparks Granite Cave B1F/B2F.
+2. **Mt. Pyre** — simpler (3 hops, one branch to follow, the tower is skippable).
+3. **Magma Hideout** — 4 hops, and gated behind the JAGGED_PASS approach question.
+
+### STILL UNVERIFIED — do NOT build on these until probed
+* SUMMIT's internal layout and the orb/Magma scene trigger tiles.
+* The flags/vars that gate each scene (`audit_flag_names.py` + decomp; a phantom flag name has
+  burned this project twice — see `ai-research-notes/00-READ-THIS-FIRST.md`).
+* Whether JAGGED_PASS is reachable at all from the post-Winona position.
+* Encounter tables / level bands for both areas (for the training and counter pickers).

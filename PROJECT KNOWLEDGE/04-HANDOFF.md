@@ -8,6 +8,46 @@ immediately below, then "‼ BATCH 5 LANDED". Older "START HERE" sections are HI
 
 ---
 
+# ‼ STORY WORK RESUMED — §Ch14 recon done, and it named a BLOCKER (2026-08-05)
+
+**Regression closed** (batch `20260805-075638`: 52.0% finish, Balance→Feather 76%, team size
+5.85 — all five predictions held). Bisecting is OVER per the user directive; only a
+logic-breaking bug reopens it.
+
+## §Ch14 (Mt. Pyre → Magma Hideout) is BLOCKED on a navigation capability, not on content
+ROM-verified by `tools/story-dev/probe_ch14_recon.py` (seconds, no emulation loop):
+
+| area | depth from the nearest OUTDOOR map | note |
+|---|---|---|
+| MT_PYRE_SUMMIT | **3 warps** (SUMMIT → EXTERIOR → 1F → ROUTE122) | story path is the EXTERIOR branch |
+| MAGMA_HIDEOUT_4F | **4 warps** (4F → 3F_xR → 2F_xR → 1F → JAGGED_PASS) | only ONE outdoor exit |
+
+‼ **`_CAVE_EXITS` / `_CAVE_ENTRANCES` are SINGLE-HOP tables.** Granite Cave B1F/B2F are already
+parked for exactly this, and the punch list records the cost: *"the global navigator cannot
+cross warp levels … that exact failure already dropped two real-hardware runs to Manual
+(2026-07-22)."* Building §Ch14 on them would strand runs four warps deep.
+
+**⇒ BUILD ORDER (do not reorder):**
+1. **Chain-aware cave threading** — the blocking capability; also unparks Granite Cave B1F/B2F.
+2. **Mt. Pyre** — 3 hops, one branch; the 2F-6F tower is a skippable side dungeon.
+3. **Magma Hideout** — 4 hops, and gated behind an open question:
+   ‼ **JAGGED_PASS (its only door) is in `NO_RETURN_GROUNDS`** — "one-way ledges from
+   Mt. Chimney; not re-enterable from Lavaridge". **Probe the approach before designing the
+   route.** This is the riskiest single fact in the chapter.
+
+Full recon, with every warp tile and the two Mt. Pyre branches, is in `12-STORYMODE-DESIGN.md`
+**§Ch14**. Re-derive any of it with `probe_ch14_recon.py --area pyre|magma|approach`.
+
+## STILL UNVERIFIED — do not build on these
+SUMMIT's layout and scene triggers; the gating flags/vars (`audit_flag_names.py` + decomp — a
+phantom flag name has burned this project twice); whether JAGGED_PASS is reachable at all from
+the post-Winona position; encounter tables for both areas.
+
+‼ Three flags stay `0` unless re-measured: `POKEBOT_LEAD_DEMOTE_WONDER_GUARD`,
+`POKEBOT_AREA_ITEM_GATE`, `POKEBOT_PC_ROTATION`.
+
+---
+
 # ‼ FINAL BISECT BATCH — then STORY CONTENT (user directive 2026-08-05)
 
 **USER DIRECTIVE:** stop regression-hunting after this batch and get back to building story
