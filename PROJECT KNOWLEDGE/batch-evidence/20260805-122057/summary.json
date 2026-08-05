@@ -1,0 +1,697 @@
+{
+  "stamp": "20260805-122057",
+  "code_commit": "be104e9c",
+  "bot_mode": "Story (ENDLESS RESET)",
+  "lanes": 8,
+  "runs_per_lane": 0,
+  "minutes": 180.0,
+  "started": "2026-08-05T12:20:57",
+  "ended": "2026-08-05T15:21:03",
+  "wall_minutes": 180.1,
+  "verdict": "OK",
+  "headers_checked": 27,
+  "header_violations": [],
+  "totals": {
+    "runs": 19,
+    "finished": 3,
+    "finish_rate": 0.158,
+    "global_watchdog": 11,
+    "faint_chooser_gave_up": 0,
+    "no_eligible_replacement": 0,
+    "stuck_dumps": 7509,
+    "end_reasons": {
+      "No party mon can learn Surf and the party is full \u2014 needs PC box management (#N-pc) or a manual swap.": 10,
+      "this boss: N losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable co": 3,
+      "this boss: N losses with no super-effective answer to Electric. Need one of: Ground. Grinding levels will not fix this. Nearest reachable co": 1,
+      "Winona: N losses with no super-effective answer to Dragon/Flying. Need one of: Rock, Ice, Dragon. Grinding levels will not fix this. Nearest": 1,
+      "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 1
+    }
+  },
+  "lane_rows": [
+    {
+      "tag": "H1",
+      "starter": "torchic",
+      "profile": "endless-H1-torchic",
+      "runs_ended": 2,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0
+    },
+    {
+      "tag": "H2",
+      "starter": "mudkip",
+      "profile": "endless-H2-mudkip",
+      "runs_ended": 3,
+      "finished": 1,
+      "header_verdict": "ok",
+      "restarts": 0
+    },
+    {
+      "tag": "H3",
+      "starter": "treecko",
+      "profile": "endless-H3-treecko",
+      "runs_ended": 3,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0
+    },
+    {
+      "tag": "H4",
+      "starter": "random",
+      "profile": "endless-H4-random",
+      "runs_ended": 2,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0
+    },
+    {
+      "tag": "H5",
+      "starter": "torchic",
+      "profile": "endless-H5-torchic",
+      "runs_ended": 2,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0
+    },
+    {
+      "tag": "H6",
+      "starter": "mudkip",
+      "profile": "endless-H6-mudkip",
+      "runs_ended": 3,
+      "finished": 2,
+      "header_verdict": "ok",
+      "restarts": 0
+    },
+    {
+      "tag": "H7",
+      "starter": "treecko",
+      "profile": "endless-H7-treecko",
+      "runs_ended": 2,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0
+    },
+    {
+      "tag": "H8",
+      "starter": "random",
+      "profile": "endless-H8-random",
+      "runs_ended": 2,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0
+    }
+  ],
+  "lanes_detail": {
+    "H1": {
+      "runs_started": 3,
+      "runs_ended": 2,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 2,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "No party mon can learn Surf and the party is full \u2014 needs PC box management (#N-pc) or a manual swap.": 1,
+        "this boss: N losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable co": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 896,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 749,
+        "BattleScript_LocalBattleLostEnd": 52,
+        "BattleScript_GotAwaySafely": 34,
+        "BattleScript_WallyBallThrow": 15,
+        "BattleScript_MoveEnd": 5,
+        "BattleScript_SuccessBallThrowEnd": 4,
+        "BattleScript_EffectAbsorb": 2,
+        "BattleScript_StatDownPrintString": 1,
+        "BattleScript_EffectStatDown": 1,
+        "BattleScript_HitFromAtkString": 1
+      },
+      "derails": 18,
+      "whiteouts": 25,
+      "losses": 25,
+      "losses_by_map": {
+        "8, 1": 7,
+        "10, 0": 6,
+        "0, 25": 6,
+        "4, 1": 5,
+        "0, 26": 1
+      },
+      "battle_outcomes": {
+        "Won": 2082,
+        "OpponentTeleported": 77,
+        "RanAway": 30,
+        "Lost": 25,
+        "Caught": 18
+      },
+      "battles": 2232,
+      "flee_rate": 0.013,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: No party mon can learn Surf and the party is full \u2014 needs PC box management (#24-pc) or a manual swap.",
+          "bucket": "derailed",
+          "frames": 3077938
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: this boss: 6 losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable counters: Machop (Fighting) on Jagged Pass (tile unmapped, NOT HUNTABLE, L20-22, 25% rate) \u2014 reachable; Machop (Fighting) on Fiery Path (tile (18, 19), L15-16, 15% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave (B1F) (tile unmapped, NOT HUNTABLE, L10-11, 10% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave (1F) (tile unmapped, NOT HUNTABLE, L6-10, 50% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave Steven\u2019s Room (tile unmapped, NOT HUNTABLE, L6-10, 50% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 130066
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 3,
+      "restarts": 0,
+      "starter": "torchic",
+      "profile": "endless-H1-torchic",
+      "debug_logs_collected": 3
+    },
+    "H2": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 1,
+      "derailed": 2,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.333,
+      "end_reasons": {
+        "this boss: N losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable co": 2
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 1066,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 783,
+        "BattleScript_GotAwaySafely": 101,
+        "BattleScript_LocalBattleLostEnd": 98,
+        "BattleScript_WallyBallThrow": 20,
+        "BattleScript_SuccessBallThrowEnd": 18,
+        "BattleScript_MoveEnd": 5
+      },
+      "derails": 20,
+      "whiteouts": 46,
+      "losses": 46,
+      "losses_by_map": {
+        "8, 1": 13,
+        "24, 12": 10,
+        "0, 25": 4,
+        "4, 1": 4,
+        "0, 28": 3,
+        "0, 31": 3,
+        "10, 0": 2,
+        "12, 1": 2,
+        "0, 33": 1,
+        "32, 1": 1
+      },
+      "battle_outcomes": {
+        "Won": 1710,
+        "RanAway": 277,
+        "OpponentTeleported": 97,
+        "Lost": 46,
+        "Caught": 24
+      },
+      "battles": 2154,
+      "flee_rate": 0.129,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 1877554
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: this boss: 6 losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable counters: Machop (Fighting) on Jagged Pass (tile unmapped, NOT HUNTABLE, L20-22, 25% rate) \u2014 reachable; Machop (Fighting) on Fiery Path (tile (18, 19), L15-16, 15% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave (B1F) (tile unmapped, NOT HUNTABLE, L10-11, 10% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave (1F) (tile unmapped, NOT HUNTABLE, L6-10, 50% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave Steven\u2019s Room (tile unmapped, NOT HUNTABLE, L6-10, 50% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 499764
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: this boss: 6 losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable counters: Machop (Fighting) on Jagged Pass (tile unmapped, NOT HUNTABLE, L20-22, 25% rate) \u2014 reachable; Machop (Fighting) on Fiery Path (tile (18, 19), L15-16, 15% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave (B1F) (tile unmapped, NOT HUNTABLE, L10-11, 10% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave (1F) (tile unmapped, NOT HUNTABLE, L6-10, 50% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave Steven\u2019s Room (tile unmapped, NOT HUNTABLE, L6-10, 50% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "mudkip",
+      "profile": "endless-H2-mudkip",
+      "debug_logs_collected": 4
+    },
+    "H3": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 3,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "this boss: N losses with no super-effective answer to Electric. Need one of: Ground. Grinding levels will not fix this. Nearest reachable co": 1,
+        "Winona: N losses with no super-effective answer to Dragon/Flying. Need one of: Rock, Ice, Dragon. Grinding levels will not fix this. Nearest": 1,
+        "No party mon can learn Surf and the party is full \u2014 needs PC box management (#N-pc) or a manual swap.": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 916,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 751,
+        "BattleScript_LocalBattleLostEnd": 58,
+        "BattleScript_GotAwaySafely": 30,
+        "BattleScript_WallyBallThrow": 15,
+        "BattleScript_MoveEnd": 9,
+        "BattleScript_SuccessBallThrowEnd": 8,
+        "BattleScript_EffectTeleport": 1,
+        "BattleScript_HitFromAtkAnimation": 1,
+        "BattleScript_HitFromAtkString": 1,
+        "BattleScript_StatDownPrintString": 1
+      },
+      "derails": 22,
+      "whiteouts": 39,
+      "losses": 39,
+      "losses_by_map": {
+        "10, 0": 12,
+        "4, 1": 8,
+        "12, 1": 6,
+        "0, 25": 3,
+        "8, 1": 3,
+        "3, 3": 2,
+        "0, 27": 1,
+        "24, 13": 1,
+        "0, 32": 1,
+        "0, 33": 1
+      },
+      "battle_outcomes": {
+        "Won": 2068,
+        "OpponentTeleported": 75,
+        "Lost": 39,
+        "RanAway": 28,
+        "Caught": 18
+      },
+      "battles": 2228,
+      "flee_rate": 0.013,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: this boss: 6 losses with no super-effective answer to Electric. Need one of: Ground. Grinding levels will not fix this. Nearest reachable counters: Trapinch (Ground) on Route 111 (tile (25, 55), L19-21, 35% rate) \u2014 reachable; Sandshrew (Ground) on Route 111 (tile (25, 55), L19-21, 35% rate) \u2014 reachable; Baltoy (Ground/Psychic) on Route 111 (tile (25, 55), L19-21, 24% rate) \u2014 reachable; Nincada (Bug/Ground) on Route 116 (tile (11, 7), L6-7, 20% rate) \u2014 reachable; Numel (Fire/Ground) on Jagged Pass (tile unmapped, NOT HUNTABLE, L20-22, 55% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 2139934
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Winona: 6 losses with no super-effective answer to Dragon/Flying. Need one of: Rock, Ice, Dragon. Grinding levels will not fix this. Nearest reachable counters: Geodude (Ground/Rock) on Magma Hideout (1F) (tile unmapped, NOT HUNTABLE, L27-30, 55% rate) \u2014 reachable; Geodude (Ground/Rock) on Magma Hideout (2F) 1R (tile unmapped, NOT HUNTABLE, L27-30, 55% rate) \u2014 reachable; Geodude (Ground/Rock) on Magma Hideout (2F) 2R (tile unmapped, NOT HUNTABLE, L27-30, 55% rate) \u2014 reachable; Geodude (Ground/Rock) on Magma Hideout (2F) 3R (tile unmapped, NOT HUNTABLE, L27-30, 55% rate) \u2014 reachable; Spheal (Ice/Water) on Shoal Cave (Low Tide), Entrance Room (tile unmapped, NOT HUNTABLE, L26-32, 50% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 1171150
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: No party mon can learn Surf and the party is full \u2014 needs PC box management (#24-pc) or a manual swap.",
+          "bucket": "derailed",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "treecko",
+      "profile": "endless-H3-treecko",
+      "debug_logs_collected": 4
+    },
+    "H4": {
+      "runs_started": 3,
+      "runs_ended": 2,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 2,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "No party mon can learn Surf and the party is full \u2014 needs PC box management (#N-pc) or a manual swap.": 2
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 969,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 761,
+        "BattleScript_LocalBattleLostEnd": 97,
+        "BattleScript_GotAwaySafely": 38,
+        "BattleScript_WallyBallThrow": 15,
+        "BattleScript_MoveEnd": 11,
+        "BattleScript_SuccessBallThrowEnd": 10,
+        "BattleScript_RanAwayUsingMonAbility": 3,
+        "BattleScript_StatDownDoAnim": 1,
+        "BattleScript_StatDownPrintString": 1,
+        "BattleScript_GiveExp": 1
+      },
+      "derails": 15,
+      "whiteouts": 31,
+      "losses": 31,
+      "losses_by_map": {
+        "8, 1": 17,
+        "10, 0": 6,
+        "0, 25": 5,
+        "4, 1": 2,
+        "0, 32": 1
+      },
+      "battle_outcomes": {
+        "Won": 2107,
+        "OpponentTeleported": 71,
+        "RanAway": 39,
+        "Lost": 31,
+        "Caught": 18
+      },
+      "battles": 2266,
+      "flee_rate": 0.017,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: No party mon can learn Surf and the party is full \u2014 needs PC box management (#24-pc) or a manual swap.",
+          "bucket": "derailed",
+          "frames": 3275464
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: No party mon can learn Surf and the party is full \u2014 needs PC box management (#24-pc) or a manual swap.",
+          "bucket": "derailed",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 3,
+      "restarts": 0,
+      "starter": "random",
+      "profile": "endless-H4-random",
+      "debug_logs_collected": 3
+    },
+    "H5": {
+      "runs_started": 3,
+      "runs_ended": 2,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 2,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "No party mon can learn Surf and the party is full \u2014 needs PC box management (#N-pc) or a manual swap.": 2
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 919,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 792,
+        "BattleScript_LocalBattleLostEnd": 27,
+        "BattleScript_GotAwaySafely": 21,
+        "BattleScript_WallyBallThrow": 15,
+        "BattleScript_MoveEnd": 12,
+        "BattleScript_SuccessBallThrowEnd": 7,
+        "BattleScript_RanAwayUsingMonAbility": 4,
+        "BattleScript_HitFromAtkAnimation": 4,
+        "BattleScript_HitFromAtkString": 3,
+        "BattleScript_EffectStatDown": 1
+      },
+      "derails": 15,
+      "whiteouts": 19,
+      "losses": 19,
+      "losses_by_map": {
+        "10, 0": 8,
+        "8, 1": 4,
+        "0, 25": 3,
+        "0, 32": 3,
+        "0, 26": 1
+      },
+      "battle_outcomes": {
+        "Won": 2297,
+        "OpponentTeleported": 53,
+        "RanAway": 29,
+        "Caught": 19,
+        "Lost": 19
+      },
+      "battles": 2417,
+      "flee_rate": 0.012,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: No party mon can learn Surf and the party is full \u2014 needs PC box management (#24-pc) or a manual swap.",
+          "bucket": "derailed",
+          "frames": 3011252
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: No party mon can learn Surf and the party is full \u2014 needs PC box management (#24-pc) or a manual swap.",
+          "bucket": "derailed",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 3,
+      "restarts": 0,
+      "starter": "torchic",
+      "profile": "endless-H5-torchic",
+      "debug_logs_collected": 3
+    },
+    "H6": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 2,
+      "derailed": 1,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.667,
+      "end_reasons": {
+        "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 11,
+      "stuck_dumps": 1109,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 855,
+        "BattleScript_LocalBattleLostEnd": 115,
+        "BattleScript_GotAwaySafely": 44,
+        "BattleScript_WallyBallThrow": 20,
+        "BattleScript_FaintedMonTryChoose": 18,
+        "BattleScript_MoveEnd": 10,
+        "BattleScript_SuccessBallThrowEnd": 6
+      },
+      "derails": 13,
+      "whiteouts": 70,
+      "losses": 70,
+      "losses_by_map": {
+        "0, 25": 23,
+        "4, 1": 17,
+        "12, 1": 7,
+        "3, 3": 5,
+        "10, 0": 5,
+        "24, 12": 2,
+        "8, 1": 2,
+        "0, 34": 2,
+        "0, 31": 2,
+        "0, 27": 1
+      },
+      "battle_outcomes": {
+        "Won": 1570,
+        "RanAway": 99,
+        "Lost": 70,
+        "OpponentTeleported": 66,
+        "Caught": 24
+      },
+      "battles": 1829,
+      "flee_rate": 0.054,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 2073200
+        },
+        {
+          "run": 2,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 611928
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "mudkip",
+      "profile": "endless-H6-mudkip",
+      "debug_logs_collected": 4
+    },
+    "H7": {
+      "runs_started": 3,
+      "runs_ended": 2,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 2,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "No party mon can learn Surf and the party is full \u2014 needs PC box management (#N-pc) or a manual swap.": 2
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 809,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 694,
+        "BattleScript_GotAwaySafely": 27,
+        "BattleScript_LocalBattleLostEnd": 18,
+        "BattleScript_WallyBallThrow": 15,
+        "BattleScript_SuccessBallThrowEnd": 9,
+        "BattleScript_MoveEnd": 9,
+        "BattleScript_HitFromAtkString": 2,
+        "BattleScript_StatDownPrintString": 1,
+        "BattleScript_FaintTarget": 1,
+        "BattleScript_HitFromAtkAnimation": 1
+      },
+      "derails": 18,
+      "whiteouts": 12,
+      "losses": 12,
+      "losses_by_map": {
+        "10, 0": 7,
+        "4, 1": 1,
+        "0, 26": 1,
+        "0, 27": 1,
+        "8, 1": 1,
+        "0, 25": 1
+      },
+      "battle_outcomes": {
+        "Won": 2502,
+        "OpponentTeleported": 103,
+        "RanAway": 33,
+        "Caught": 19,
+        "Lost": 12
+      },
+      "battles": 2669,
+      "flee_rate": 0.012,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: No party mon can learn Surf and the party is full \u2014 needs PC box management (#24-pc) or a manual swap.",
+          "bucket": "derailed",
+          "frames": 3295345
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: No party mon can learn Surf and the party is full \u2014 needs PC box management (#24-pc) or a manual swap.",
+          "bucket": "derailed",
+          "frames": 126800
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 3,
+      "restarts": 0,
+      "starter": "treecko",
+      "profile": "endless-H7-treecko",
+      "debug_logs_collected": 3
+    },
+    "H8": {
+      "runs_started": 3,
+      "runs_ended": 2,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 2,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "No party mon can learn Surf and the party is full \u2014 needs PC box management (#N-pc) or a manual swap.": 2
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 825,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 716,
+        "BattleScript_LocalBattleLostEnd": 34,
+        "BattleScript_WallyBallThrow": 15,
+        "BattleScript_GotAwaySafely": 12,
+        "BattleScript_SuccessBallThrowEnd": 9,
+        "BattleScript_MoveEnd": 4,
+        "BattleScript_AbsorbUpdateHp": 2,
+        "BattleScript_HitFromAtkString": 1,
+        "BattleScript_AbsorbTryFainting": 1
+      },
+      "derails": 17,
+      "whiteouts": 27,
+      "losses": 27,
+      "losses_by_map": {
+        "10, 0": 9,
+        "4, 1": 9,
+        "0, 25": 3,
+        "3, 3": 2,
+        "0, 27": 2,
+        "24, 13": 1,
+        "0, 18": 1
+      },
+      "battle_outcomes": {
+        "Won": 2333,
+        "OpponentTeleported": 63,
+        "Lost": 27,
+        "Caught": 18,
+        "RanAway": 14
+      },
+      "battles": 2455,
+      "flee_rate": 0.006,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: No party mon can learn Surf and the party is full \u2014 needs PC box management (#24-pc) or a manual swap.",
+          "bucket": "derailed",
+          "frames": 2874412
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: No party mon can learn Surf and the party is full \u2014 needs PC box management (#24-pc) or a manual swap.",
+          "bucket": "derailed",
+          "frames": 385850
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 3,
+      "restarts": 0,
+      "starter": "random",
+      "profile": "endless-H8-random",
+      "debug_logs_collected": 3
+    }
+  }
+}

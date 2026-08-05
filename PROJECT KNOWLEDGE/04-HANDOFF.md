@@ -15,37 +15,50 @@ Every banner further down is HISTORY, newest first.
 ## STATE
 | | |
 |---|---|
-| branch / HEAD | `main`, clean. **`be104e9c`** = `#24-partycap` (cap 4 → 6) |
-| repro suite | **78 / 78** at session start; 4 targeted repros re-run green after the edit |
-| **BATCH RUNNING** | **`x4-runs/20260805-122057`, code `be104e9c`, 8 lanes, 180 min, started 12:20 local — lands ~15:20.** ‼ Do NOT edit `sandbox-pokebot/` until it does |
-| baseline to beat | `x4-runs/20260805-075638` — **25 runs, 13 finished = 52.0%** |
+| branch / HEAD | `main`, clean, pushed. Cap is back at **4** (see below) |
+| repro suite | **78 / 78** at session start; 4 targeted repros green after both edits |
+| last batch | `x4-runs/20260805-122057` (`be104e9c`) — **19 runs, 3 finished = 15.8%. REVERTED.** |
+| known-good baseline | `x4-runs/20260805-075638` (`054fa8c6`) — **25 runs, 13 = 52.0%** |
+| health | box idle, nothing running |
 
 **The bot reaches and beats Winona / Gym 6 = END OF BUILT CONTENT.** Nothing past that exists.
 
-## ‼ THE RUNNING BATCH — WHAT IT IS TESTING AND HOW TO READ IT
+## ‼ WHAT JUST HAPPENED — `#24-partycap` was measured, cost 36 points, and is REVERTED
 
-`#24-partycap` is IN (`be104e9c`): the pre-Gym-1 team fill is now **6**, not 4. It is bundled
-with `#24-pcoverflow` (built earlier the same day) **on purpose** — before the overflow work a
-full party made `resource_blocker` refuse every later catch, so a cap of 6 would have switched
-the counter chain off entirely. The two are coupled, so one batch measures both.
+Raising the pre-Gym-1 party fill 4 → 6 dropped the finish rate **52.0% → 15.8%**. Reverted the
+same day per the rule this file pre-registered before the data existed. Both constants are back
+at 4 and now carry a do-not-raise-this comment naming the batch and the mechanism.
 
-Read the results in THIS ORDER — the first two are mechanism, the last two are outcome, and
-the batch4 lesson is that **the mechanism firing is not the funnel moving:**
-1. `PC — withdrawing <mon> from the box` — proves the overflow path ran live (**never proven**).
-2. `cannot hunt a counter — the party is full` — should be **gone** (was 5/batch).
-3. Team size at badge moments — should rise from ~5.8 toward 6.
-4. Finish rate vs **52.0%**, and Balance→Feather vs **76%**. Use the badge funnel, not the
-   finish rate, for anything smaller than ~30 points.
+**The funnel is what diagnosed it — one rung moved, and only one:**
 
-‼ **If team size rises but the finish rate FALLS, revert the CAP, not the overflow.** A deeper
-team is not free — more mons to heal, more to train — and that exact trap has produced three
-regressions in one week. The overflow work is what made the cap legal; it is not the suspect.
+| rung | baseline (cap 4) | cap 6 | |
+|---|---|---|---|
+| Stone→Knuckle | 90% | 96% | flat |
+| Knuckle→Dynamo | 86% | 72% | ns |
+| Dynamo→Heat | 92% | 100% | flat |
+| Heat→Balance | 77% | 78% | flat |
+| **Balance→Feather** | **76%** | **21%** | **z=3.06** ✅ |
 
-**If the batch is still running when you pick this up:** leave it alone and do read-only work.
-`x4_headless.py --resummarise <dir>` re-reads stored logs afterwards, so a summariser bug never
-costs re-emulation. Scope was checked before the edit: both cap use sites are **pre-Gym-1 only**
-(the catch-new predicate returns `False` once `BADGE01_GET` is set), so late-game catching is
-untouched.
+‼ **A deeper team is FREE through five badges.** The cause is **HM coverage, not strength**: 10
+of 16 non-finishes are `No party mon can learn Surf and the party is full` — **0 occurrences in
+all 14 prior batches**. A party pre-filled with early wilds has no Surf learner and no slot to
+catch one.
+
+‼ **THE INSIGHT: a party's empty slots are not waste, they are the RUNWAY that HM and counter
+catches land on.** At cap 4 the team still reaches a mean of **5.85** by Feather — it fills up
+either way, with the mons the run actually needs. Read `08-MISTAKES.md` 2026-08-05 before
+touching any team-size limit.
+
+‼ **Note the finish rate alone would have given the WRONG cause** ("deeper teams cost more to
+heal and train" — plausible, and false). Only the per-rung funnel showed strength was never it.
+
+## ‼ TWO THINGS THIS LEFT OPEN
+* **`#24-pcoverflow` IS STILL UNPROVEN.** `withdrawing` logged **0** times all batch — the Surf
+  guard killed runs before any full-party catch reached the overflow path. Bundling two changes
+  measured the bundle, not the parts. It needs its own probe.
+* **`#24-hmslots` (new) needs a USER RULING** — the user still wants visibly deeper teams, and
+  the cap is the wrong lever. Three options priced in `03-PUNCH-LIST.md`; option 2 overlaps
+  `POKEBOT_PC_ROTATION`, which is disabled for costing ~19 points.
 
 ## AFTER THAT: §Ch14 — story content past Winona
 Full ROM-verified recon is in `12-STORYMODE-DESIGN.md` **§Ch14**; re-derive any of it with

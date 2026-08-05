@@ -2254,14 +2254,15 @@ def _party_size() -> int:
 
 
 def catch_starter_team(
-    target_size: int = 6,
+    target_size: int = 4,
     grass: tuple = RUSTBORO_TRAINING_GRASS,
     heal_center: "PokemonCenter" = PokemonCenter.RustboroCity,
 ) -> Generator:
     """Spin in grass catching NEW species until the party reaches ``target_size``
-    (organic team-building before the first gym, user directive 2026-07-21). ``target_size``
-    went 4 -> 6 on 2026-08-05 (`#24-partycap`) — see ``StoryMode._catch_team_target`` for the
-    coupling with `#24-pcoverflow` that makes a full party safe. The
+    (organic team-building before the first gym, user directive 2026-07-21).
+    ‼ ``target_size`` was raised 4 -> 6 on 2026-08-05 (`#24-partycap`) and REVERTED the same
+    day — it cost 36 points of finish rate by crowding out the party's HM runway. Read
+    ``StoryMode._catch_team_target`` before touching it. The
     catch-vs-fight decision per encounter is made by ``StoryMode.on_battle_started``
     (only NEW species, never a dup, never a shiny). Stops early if we run low on
     Poké Balls or hit a safety guard; a whiteout is handled by run()."""

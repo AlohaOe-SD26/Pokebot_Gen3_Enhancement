@@ -3322,3 +3322,41 @@ for comments naming it and retire them in the same commit.)
 refutes "the route data is missing"; it does NOT prove the route is WALKABLE, because
 `map_route`'s own docstring warns its connection edges can be phantoms. Stating both halves is
 the whole discipline: KI-39 cost a day precisely by letting one measurement answer two questions.
+
+## 2026-08-05 — I read a party's empty slots as waste. They were the runway the HM catches land on.
+
+**Symptom.** Raising the pre-Gym-1 party fill 4 → 6 (`#24-partycap`) dropped the finish rate
+from **52.0% to 15.8%** in one batch. 10 of 16 non-finishes were a failure that had never
+appeared in any of the 14 preceding batches: `No party mon can learn Surf and the party is full`.
+
+**Root cause.** Not team strength — **HM coverage**. A party pre-filled with early-route wilds
+has no Surf learner and no room to catch one, and Surf is mandatory to pass the Balance→Feather
+rung. The badge funnel showed every earlier rung FLAT and the entire loss on that one rung
+(76% → 21%, z=3.06), which is what identified the mechanism.
+
+**The wrong model I was operating on.** I treated `target_size = 4` as an arbitrary cap holding
+teams smaller than the user wanted, and "empty slots" as unused capacity. They are neither. At
+cap 4 the team still reaches a mean of **5.85** by the Feather Badge — it fills up on its own,
+with the mons the run actually needs (a Surf learner, a Fighting counter). The free slots are
+**scheduled capacity for catches that must happen later**. Filling them early with whatever
+walks out of the grass spends a resource whose whole value is being available at a specific
+future moment.
+
+‼ **Prevention rule: before raising a limit, ask what the headroom is currently SPENT ON.** A
+limit that looks arbitrary is often a reservation. Grep for what else catches, joins, or
+allocates into the same pool, and check whether it happens LATER than the change — a resource
+conflict that is invisible at the moment of the edit shows up several hours downstream.
+
+‼ **Second lesson — the pre-registered rule did its job, and the funnel is why.** The handoff
+had recorded, before any data existed: *"if team size rises but the finish rate falls, revert
+the CAP, not the overflow."* That is exactly what happened, and having the rule written in
+advance meant the revert took no argument. But note the finish rate alone would have supported
+the WRONG diagnosis ("a deeper team costs more to heal and train" — plausible, pre-registered,
+and false). Only the per-rung funnel showed strength was never the issue. **Keep pre-registering
+the decision rule; keep reading the funnel for the CAUSE.**
+
+‼ **Third: a coupled change can leave its partner unproven.** This batch was also meant to be
+the first live proof of `#24-pcoverflow`. It logged `withdrawing` **0** times — the Surf guard
+killed runs before any full-party catch reached the overflow path. **Bundling two changes into
+one batch measures the bundle, not each part**; when the first one derails runs early, the
+second gets no exposure at all. `#24-pcoverflow` remains unproven and needs its own probe.

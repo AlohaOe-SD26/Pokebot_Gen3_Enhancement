@@ -7580,3 +7580,70 @@ Verified by AST parse only (the box is running a batch). ‼ `story_harness.py` 
 **Outcome if it passes:** `#24-cavethread` collapses from "build a chain system" to "delete two
 stale tables", and Mt. Pyre unblocks. **If it fails:** the log names the leg and the map, which
 is the actual thing to fix. Either way the next step is minutes of measurement, not days of build.
+
+## 2026-08-05 — `#24-partycap` MEASURED AND REVERTED. The party's empty slots are the HM RUNWAY.
+
+**Batch `20260805-122057`, code `be104e9c`, 8 lanes / 180.1 min, VERDICT OK, 27 headers
+checked, 0 violations, 0 lane restarts.** Baseline: `20260805-075638` (`054fa8c6`), 52.0%.
+
+| | baseline (cap 4) | cap 6 |
+|---|---|---|
+| finish rate | **13/25 = 52.0%** | **3/19 = 15.8%** |
+| mean team size at Feather | 5.85 | 6.00 |
+
+### ‼ THE FUNNEL IS WHAT MADE THIS DIAGNOSABLE — one rung moved, and only one
+
+| rung | baseline | cap 6 | z |
+|---|---|---|---|
+| Stone→Knuckle | 28/31 (90%) | 25/26 (96%) | flat |
+| Knuckle→Dynamo | 24/28 (86%) | 18/25 (72%) | −1.23, ns |
+| Dynamo→Heat | 22/24 (92%) | 18/18 (100%) | flat |
+| Heat→Balance | 17/22 (77%) | 14/18 (78%) | flat |
+| **Balance→Feather** | **13/17 (76%)** | **3/14 (21%)** | **3.06** ✅ |
+| Stone→Feather | 13/31 (42%) | 3/26 (12%) | |
+
+**A deeper team is FREE through five badges.** The entire 36-point loss sits on the single
+rung where **Surf** becomes mandatory. Had this been read on finish rate alone, the obvious
+(and wrong) conclusion was "deeper teams cost more to heal and train" — the trap the handoff
+pre-registered. The funnel says the opposite: strength was never the issue.
+
+### ROOT CAUSE — HM coverage, not team strength
+
+`end_reasons`: **10 of 16 non-finishes** are
+`No party mon can learn Surf and the party is full`. A party pre-filled with early-route wilds
+(Skitty / Mightyena / Loudred / Ninjask / Taillow) has **no Surf learner and no slot to catch
+one**, so the run derails at the Surf gate and ends.
+
+**Control (this is what makes it attributable, not suspected):** that message appears **0
+times** in all 14 preceding batches, including the immediate 52.0% predecessor. It appears in
+exactly one other batch ever — the original 2026-07-31 baseline.
+
+‼ **THE INSIGHT WORTH KEEPING: the empty slots were never waste — they are the RUNWAY the HM
+and counter catches land on.** At cap 4 the team still reaches a mean of **5.85** by the
+Feather Badge. It fills up either way. Letting early wilds take the seats first is what breaks
+it, because the mons that MUST board later (a Surf learner, a Fighting counter) then cannot.
+
+‼ `#24-pcoverflow` does NOT rescue this, and the reason is worth stating: it lets a catch
+overflow into the BOX, but a Surf learner in a box cannot be taught Surf. The guard refuses
+before any catch is attempted. `withdrawing` logged **0** times all batch — **the overflow path
+still has no live proof**, and this batch could never have supplied it.
+
+### REVERTED — both constants back to 4
+
+Per the rule pre-registered in the handoff BEFORE the data was seen ("if team size rises but
+the finish rate falls, revert the CAP, not the overflow"). Both sites now carry a
+do-not-raise-this comment naming the batch, the rung and the mechanism. 4 repros green.
+
+**What is NOT reverted:** `#24-pcoverflow` stays. It was never implicated — it simply never
+fired.
+
+### The real fix, if deeper teams are still wanted (NOT built, needs a ruling)
+
+The cap is not the lever; **HM-slot reservation** is. Options, unpriced:
+1. **Reserve slots** — cap the pre-Gym-1 wild fill at 4 and let HM learners / counters claim
+   the rest, which is what already happens organically (4.00 → 5.85). Lowest risk.
+2. **Make room on demand** — let the HM path deposit a non-essential mon so a Surf learner can
+   board. ‼ This is what the guard's own message asks for ("needs PC box management"), but it
+   is the shape of `POKEBOT_PC_ROTATION`, which is disabled for costing ~19 points by
+   depositing team members. Do not build it without reading that first.
+3. **Cap 5** — one free seat for the Surf learner. Plausible, entirely unmeasured, needs a batch.

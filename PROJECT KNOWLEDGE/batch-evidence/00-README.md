@@ -31,6 +31,9 @@ part that cannot be regenerated and that every comparison depends on.
 | 20260803-164713 | `d8879750` | 38.1% | ‼ CONTAMINATED — 2 lanes hung (H8 = 0 runs) |
 | 20260804-062303 | `fe4a2369` | 38.5% | clean (all 8 lanes) |
 | 20260804-1… | `32ba1dec` | 35.7% | clean (all 8 lanes) |
+| 20260804-174700 | `ad7307f2` | 44.4% | clean (all 8 lanes), VERDICT OK |
+| 20260805-075638 | `054fa8c6` | **52.0%** | clean, VERDICT OK — **the current known-good baseline** |
+| 20260805-122057 | `be104e9c` | 15.8% | ‼ **VOID** — `#24-partycap` cap 4→6; the party's HM runway was crowded out (10/16 non-finishes = no Surf learner). Reverted same day. Batch itself was clean (VERDICT OK, 0 violations, 0 restarts) — VOID means the CODE was regressed, not the measurement |
 
 ‼ **Clean plateau = 65/123 = 52.8%. Clean recent (last two) = 20/54 = 37.0%, z = −1.94.**
 That decline is the open question the bisect exists to answer. **Never baseline against a VOID

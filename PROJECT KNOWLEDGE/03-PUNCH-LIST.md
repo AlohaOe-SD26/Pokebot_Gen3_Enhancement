@@ -26,20 +26,30 @@ open-vs-built sweep of all 80 open items has **not** been done.
 ### ‼ SESSION END 2026-08-05 — THE CURRENT TOP OF THE LIST
 Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batch 52.0%.
 
-- [~] `#24-partycap` — **CODE LANDED 2026-08-05, AWAITING ITS BATCH.** Both constants are now
-      **6** (`early_game.catch_starter_team(target_size=6)`, `StoryMode._catch_team_target=6`).
-      Scope confirmed before editing: BOTH use sites are **pre-Gym-1 only** — the catch-new
-      predicate returns False once `BADGE01_GET` is set — so this changes the early team fill,
-      not late-game catching. 4 repros green (`pc_overflow`, `team_policy`, `survival_mode`,
-      `counter_hunt`); **no repro pinned the old value**, so nothing had to be un-asserted.
-      ‼ NOT MEASURED. The batch is what closes this — read the four signals below.
-      `early_game.py` `target_size: int = 4` and `story_mode.py` `_catch_team_target = 4` were
-      why live runs show 4-mon teams (user-reported 2026-08-05). ‼ Only safe NOW because
-      `#24-pcoverflow` landed: a full party no longer refuses a catch. The two are coupled, so
-      one batch tests both. Read `PC — withdrawing … from the box` (never live-proven),
-      `cannot hunt a counter — the party is full` (should vanish), team size, then the funnel.
-      ‼ If team size rises but finish rate FALLS, revert the CAP, not the overflow — a deeper
-      team is not free (more to heal, more to train).
+- [x] `#24-partycap` — **MEASURED AND REVERTED 2026-08-05. DO NOT RAISE THE CAP AGAIN.**
+      Batch `20260805-122057` (`be104e9c`, VERDICT OK, 0 violations): **52.0% → 15.8%**.
+      The badge funnel put the ENTIRE loss on one rung — **Balance→Feather 76% → 21% (z=3.06)**
+      — with every earlier rung flat, so **a deeper team is FREE through five badges**.
+      Cause is **HM coverage, not strength**: 10 of 16 non-finishes are `No party mon can learn
+      Surf and the party is full` (**0 occurrences in all 14 prior batches**). The empty slots
+      are the RUNWAY that HM/counter catches land on — at cap 4 the team still reaches a mean
+      **5.85** by Feather. Both constants back to 4, each with a do-not-raise comment.
+      Full detail: `07-CHANGELOG.md` + `08-MISTAKES.md` 2026-08-05.
+
+- [ ] `#24-hmslots` — **NEW, NEEDS A USER RULING. The real lever behind `#24-partycap`.**
+      The user wants visibly deeper teams; the cap is the wrong way to get them. Options:
+      **(1) reserve slots** — keep the wild fill at 4 and let HM learners / counters claim the
+      rest (what already happens organically, 4.00 → 5.85); lowest risk, arguably already done.
+      **(2) make room on demand** — let the HM path deposit a non-essential mon so a Surf
+      learner can board. ‼ This is what the guard's own message asks for ("needs PC box
+      management") but it is the shape of `POKEBOT_PC_ROTATION`, **disabled for costing ~19
+      points by depositing team members** — read that before building it.
+      **(3) cap 5** — one free seat for the Surf learner; plausible, unmeasured, needs a batch.
+
+- [ ] `#24-pcoverflow-proof` — **STILL UNPROVEN, and batch `20260805-122057` could not prove it.**
+      `withdrawing` logged **0** times all batch: the Surf guard derailed runs before any
+      full-party catch reached the box-overflow path. Bundling it with the cap measured the
+      BUNDLE, not the part. It needs its own targeted probe from a save with a full party.
 
 - [x] `#24-pcoverflow` — **BUILT 2026-08-05** (user ruling: build the real thing, not a raised
       constant). `resource_blocker` no longer refuses a full party (ball gate untouched);

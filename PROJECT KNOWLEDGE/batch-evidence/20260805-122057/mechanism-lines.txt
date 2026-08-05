@@ -1,0 +1,24 @@
+     10 derail #5: No party mon can learn Surf and the party is full 
+     10 derail #4: No party mon can learn Surf and the party is full 
+     10 derail #3: No party mon can learn Surf and the party is full 
+     10 derail #2: No party mon can learn Surf and the party is full 
+     10 derail #1: No party mon can learn Surf and the party is full 
+      5 Story: counter hunt 
+      5 === ENDLESS RESET: run 1/infinite -> derailed: No party mon can learn Surf and the party is full 
+      4 === ENDLESS RESET: run 2/infinite -> derailed: No party mon can learn Surf and the party is full 
+      2 Story: counter hunt for Machop found nothing in 120000 frames.
+      2 === ENDLESS RESET: run 2/infinite -> derailed: this boss: 6 losses with no super-effective answer to N
+      1 derail #5: Story: global watchdog 
+      1 derail #4: Story: global watchdog 
+      1 derail #3: Story: global watchdog 
+      1 derail #2: Story: global watchdog 
+      1 derail #1: Story: global watchdog 
+      1 Story: counter hunt CAUGHT Combusken (slot 3).
+      1 === ENDLESS RESET: run 3/infinite -> derailed: this boss: 6 losses with no super-effective answer to N
+      1 === ENDLESS RESET: run 3/infinite -> derailed: Story: global watchdog 
+      1 === ENDLESS RESET: run 3/infinite -> derailed: No party mon can learn Surf and the party is full 
+      1 === ENDLESS RESET: run 2/infinite -> finished (611,928 frames) ===
+      1 === ENDLESS RESET: run 2/infinite -> derailed: Winona: 6 losses with no super-effective answer to Drag
+      1 === ENDLESS RESET: run 1/infinite -> finished (2,073,200 frames) ===
+      1 === ENDLESS RESET: run 1/infinite -> finished (1,877,554 frames) ===
+      1 === ENDLESS RESET: run 1/infinite -> derailed: this boss: 6 losses with no super-effective answer to E

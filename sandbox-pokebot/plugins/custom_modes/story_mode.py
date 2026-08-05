@@ -918,12 +918,22 @@ class StoryMode(BotMode):
         self._ki15_nudge_pos = None
         # Organic team-building (user directive 2026-07-21): catch NEW species while
         # travelling to Gym 1 until the party has this many members (starter + helpers).
-        # ‼ 4 -> 6 on 2026-08-05 (`#24-partycap`). The user watches live runs and expects a
-        # full team; 4 was why they saw 4. It is only SAFE now because `#24-pcoverflow`
-        # landed the same day — before it, a full party made `resource_blocker` REFUSE every
-        # later catch, which would have killed the counter chain outright. The two changes
-        # are coupled and one batch measures both.
-        self._catch_team_target = 6
+        # ‼ 4 IS LOAD-BEARING — DO NOT RAISE IT AGAIN WITHOUT READING THIS.
+        # Raised 4 -> 6 on 2026-08-05 (`#24-partycap`) and REVERTED the same day by batch
+        # `20260805-122057` (be104e9c): finish rate 52.0% -> 15.8%, and the badge funnel put
+        # the entire loss on ONE rung — Balance->Feather 76% -> 21% (z=3.06). Every earlier
+        # rung was flat, so a deeper team is genuinely FREE through five badges.
+        #
+        # The cause is not team strength, it is **HM COVERAGE**. Filling the party with
+        # early-route wilds (Skitty/Mightyena/Loudred/Ninjask/Taillow) leaves no Surf learner
+        # and no slot to catch one, so the run derails at the Surf gate: "No party mon can
+        # learn Surf and the party is full" — 10 of 16 non-finishes, and ZERO occurrences in
+        # any of the 14 preceding batches.
+        #
+        # ‼ The empty slots were never waste — they are the RUNWAY the HM/counter catches
+        # land on. Measured: at cap 4 the team still reaches a mean of 5.85 by the Feather
+        # Badge. It fills up either way; letting wilds take the seats first is what breaks it.
+        self._catch_team_target = 4
         # #24-counters phase 2: boss key -> what the counter hunt did, ONE entry per boss
         # per run. This dict IS the bound (see `_counter_ladder`) — a retry or frame
         # budget cannot bound it, because `_prepare_for_fight` is re-entered by the run
