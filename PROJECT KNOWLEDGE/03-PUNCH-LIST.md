@@ -134,8 +134,20 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       3-warp cave in both directions, which is exactly MT_PYRE_SUMMIT's shape.
       ‼ **Pick plain walkable destination tiles — never a ladder/door/stairs warp tile** (see
       `08-MISTAKES.md` 2026-08-05; it costs one map of overshoot AND reports success).
-      Recon is already done and ROM-verified: `12-STORYMODE-DESIGN.md` §Ch14 +
-      `probe_ch14_recon.py --area pyre`.
+      ‼ **FULLY SPECIFIED 2026-08-05 — `12-STORYMODE-DESIGN.md` §Ch14a** (ROM + pret decomp).
+      The chapter is ONE COORD TRIGGER: step on `(23,7)` at `VAR_MT_PYRE_STATE == 0` and the
+      scene gives the Magma Emblem and sets `FLAG_HIDE_JAGGED_PASS_MAGMA_GUARD` by itself.
+      Completion test `get_event_var("MT_PYRE_STATE") >= 1` (name verified to exist).
+      Measure `_navigate_riding_out(MT_PYRE_SUMMIT, (23,7))` FIRST — it may be the whole thing.
+      ⏭ **BLOCKED ONLY ON: no post-Winona save exists.** See `#24-postwinona-save`.
+
+- [ ] `#24-postwinona-save` — **THE PRACTICAL BLOCKER FOR ALL Ch14 WORK. Do this first.**
+      No save exists past Winona, so nothing in Mt. Pyre can be validated. A 2026-08-05 attempt
+      drove Story from `fortree_gym_wedge.ss1` and ground through 10 Winona attempts (KO'ing
+      3-4 of her 5 each) without converging — that save's team has no super-effective answer to
+      Flying. Options: drive a fresh run to completion and keep the end state; or build the save
+      from a run that already beat her (52% of batch runs do). Once it exists, commit it to
+      `tools/story-dev/saves/` as `post_winona.ss1` — every Ch14 probe will want it.
 
 - [ ] `#24-magmahideout` — **DEFERRED.** Door at JAGGED_PASS (16,18) is unreachable from the
       ROUTE112 side (one-way ledges; a 2026-07-26 probe already failed to path there). Only

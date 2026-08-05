@@ -84,8 +84,33 @@ failures (a B2F ladder bounced the bot to B1F; a Dewford door left it in
 `DEWFORD_TOWN_HOUSE1`). 14.8% of graph edges share from/to coordinates, so coordinates cannot
 detect it — **assert on the MAP, or on maps VISITED**. `08-MISTAKES.md` 2026-08-05.
 
-Recon for Mt. Pyre is already done and ROM-verified: `12-STORYMODE-DESIGN.md` §Ch14 and
-`probe_ch14_recon.py --area pyre`.
+### ‼ MT. PYRE IS FULLY SPECIFIED — `12-STORYMODE-DESIGN.md` **§Ch14a**. Read it before building.
+
+**The whole chapter is ONE COORD TRIGGER, not an NPC conversation** (decomp-verified). Step on
+`(23,7)` at `VAR_MT_PYRE_STATE == 0` and `MtPyre_Summit_EventScript_TeamAquaExits` does the rest:
+Archie and the four grunts vanish, the Old Lady walks over unprompted, `giveitem
+ITEM_MAGMA_EMBLEM`, and it sets **`FLAG_HIDE_JAGGED_PASS_MAGMA_GUARD`** — the thing that opens
+the Magma Hideout. The bot never talks to anyone.
+
+* **Route (ROM):** `ROUTE122 (22,29) → MT_PYRE_1F → (3,6) → EXTERIOR → (19,10) → SUMMIT (23,31)`,
+  then a **clean vertical corridor at x=23 from y=31 up to y=7**.
+* **Graph knows the whole journey from where content stops:** `FORTREE_CITY → ROUTE120 →
+  ROUTE121 → ROUTE122 → MT_PYRE_1F → EXTERIOR → SUMMIT` (6 hops). ‼ Known ≠ walkable —
+  `ROUTE121→ROUTE122` is water, so **SURF is the gate**.
+* **Completion test:** `get_event_var("MT_PYRE_STATE") >= 1` (name verified present in
+  `modules/data/event_vars/emerald.txt:186`, so it cannot silently return −1).
+  ‼ **NOT** flag 856 — this project already caught 856 reading True far from Mt. Pyre.
+* **Measure the one-call hypothesis FIRST:** `_navigate_riding_out(MapRSE.MT_PYRE_SUMMIT, (23,7))`
+  may be the entire traversal, since multi-hop threading works and (23,7) is a plain tile.
+* ‼ The four Aqua grunts stand IN the ascent corridor — expect sight-lines; it is a
+  fight-through leg, not a clean walk.
+
+### ⏭ THE ONE THING BLOCKING THE BUILD: there is NO post-Winona save
+Every Ch14 validation needs one and none exists. An attempt to generate one by driving Story
+from `fortree_gym_wedge.ss1` (`--profile mkpostwinona`) ground through **10 Winona attempts**,
+KO'ing 3-4 of her 5 each time without converging — that save's team (Mightyena/Sceptile/Swellow)
+has no super-effective answer to Flying, which is the documented Winona problem. **Getting a
+post-Winona save is the next practical task**; without it Mt. Pyre can be written but not proven.
 
 ## AFTER THAT: §Ch14 — story content past Winona
 Full ROM-verified recon is in `12-STORYMODE-DESIGN.md` **§Ch14**; re-derive any of it with
