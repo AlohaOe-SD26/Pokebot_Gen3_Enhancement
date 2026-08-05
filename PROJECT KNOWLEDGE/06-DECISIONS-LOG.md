@@ -1282,3 +1282,42 @@ the marginal value fell each time: the first was worth ~20 points of finish rate
 
 ‼ The three revert flags stay `0` regardless of what happens next:
 `POKEBOT_LEAD_DEMOTE_WONDER_GUARD`, `POKEBOT_AREA_ITEM_GATE`, `POKEBOT_PC_ROTATION`.
+
+## 2026-08-05 — `#24-hmslots`: RESERVE SLOTS. Deeper teams are deferred to an organic-play pass.
+
+**USER RULING.** After `#24-partycap` measured a 36-point loss and was reverted, the user was
+given four options for how to get visibly deeper teams. Ruling: **option 1, reserve slots** —
+keep the pre-Gym-1 wild fill at **4** and let HM learners and counter catches claim the
+remaining seats.
+
+**‼ WHAT THIS MEANS CONCRETELY: NO CODE CHANGE. This ratifies the current behaviour.** The
+reverted state already IS "reserve slots": the party fills to 4 with early wilds and then grows
+organically to a measured mean of **5.85 by the Feather Badge** as the mons the run actually
+needs come aboard. Nothing is being built. Recording it as a ruling so the next agent does not
+read the open item as unfinished work and re-raise the cap — which is exactly how this cost
+36 points once already.
+
+### The user's stated intent, which is the important half
+> "note that we want to revisit this in the future to make the bot play more organically like a
+> regular player would (once we finish mapping the story out and can dedicate more time to this
+> sort of thing)"
+
+So this is explicitly a **HOLDING POSITION, not the end state.** The accepted cost is that teams
+look thin EARLY — which was the user's original complaint and is deliberately not being solved
+now. Tracked as `#24-organicteam`.
+
+### Why the other three were rejected
+* **Cap 5 (one free seat)** — plausible, and the funnel says a deeper team is free through five
+  badges, but entirely unmeasured; it would cost a 3-hour batch to learn something cosmetic
+  while the actual progress blocker (`#24-cavethread`) is unstarted.
+* **Deposit to make room** — the real fix for a genuine 6-mon team, and what the Surf guard's own
+  message asks for ("needs PC box management"). Rejected FOR NOW because it is the shape of
+  `POKEBOT_PC_ROTATION`, which is disabled for costing ~19 points by depositing team members.
+  It belongs in the organic-play pass, with a batch, not as a quick win.
+* **Drop it entirely** — rejected only in framing; the effort does go to `#24-cavethread`, but
+  the user wants the team-quality goal kept on the books rather than closed.
+
+### Why this is the right call
+The bot has sat at Winona = end of built content since 2026-07-30. Team depth is cosmetic;
+the cave ladder gates Mt. Pyre, Magma Hideout and everything after. Spending the next batch on
+seat allocation would repeat the pattern the 2026-08-04 ruling above was written to stop.

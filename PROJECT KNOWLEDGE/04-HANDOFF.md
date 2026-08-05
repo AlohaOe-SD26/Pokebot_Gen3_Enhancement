@@ -56,9 +56,18 @@ heal and train" — plausible, and false). Only the per-rung funnel showed stren
 * **`#24-pcoverflow` IS STILL UNPROVEN.** `withdrawing` logged **0** times all batch — the Surf
   guard killed runs before any full-party catch reached the overflow path. Bundling two changes
   measured the bundle, not the parts. It needs its own probe.
-* **`#24-hmslots` (new) needs a USER RULING** — the user still wants visibly deeper teams, and
-  the cap is the wrong lever. Three options priced in `03-PUNCH-LIST.md`; option 2 overlaps
-  `POKEBOT_PC_ROTATION`, which is disabled for costing ~19 points.
+* **`#24-hmslots` — RULED 2026-08-05: RESERVE SLOTS, no code change.** This ratifies the
+  reverted state: fill to 4, grow organically to ~5.85 by Feather. ‼ Recorded as a ruling so it
+  is not read as unfinished work — re-raising the cap is what cost 36 points.
+  **The user deferred the real goal to `#24-organicteam`** ("make the bot play more organically
+  like a regular player would… once we finish mapping the story out"). **Accepted cost: teams
+  look thin EARLY, knowingly unsolved.** GATE: finish story mapping first.
+
+## ‼ THE NEXT ACTION — `#24-cavethread`, one ladder hop
+Everything above is closed. The blocker for ALL post-Winona content is now a single defect:
+the navigator threads Dewford → R106 → 1F → **B1F** unaided, then halts standing ON the B1F
+(29,13) ladder to B2F. See §Ch14 item 1 below for the probe, the caveat about ambiguous test
+tiles, and what to measure next.
 
 ## AFTER THAT: §Ch14 — story content past Winona
 Full ROM-verified recon is in `12-STORYMODE-DESIGN.md` **§Ch14**; re-derive any of it with

@@ -7683,3 +7683,15 @@ arrived because the coordinates matched".
 **Status: `#24-cavethread` is re-scoped and now has a live measurement.** Not "build a chain
 system" (refuted twice, statically and live); it is "make the last ladder hop fire". Mt. Pyre
 Summit is the same 3-warp shape, so this one defect very likely gates it too.
+
+## 2026-08-05 — USER RULING `#24-hmslots` = reserve slots; deeper teams deferred to `#24-organicteam`
+
+Closes the question `#24-partycap` opened. **No code change** — the ruling ratifies the reverted
+behaviour (fill to 4, grow organically to a measured mean 5.85 by Feather). Recorded as a ruling
+specifically so a future session does not read the open item as unfinished and re-raise the cap.
+
+The user attached intent that matters more than the choice: this is a **holding position**, and
+the goal is to revisit it so the bot "plays more organically like a regular player would", once
+the story is mapped and there is time to do it properly. Tracked as `#24-organicteam`, gated on
+story mapping. **Accepted cost meanwhile: teams look thin early — the original complaint, and
+knowingly unsolved.** Rationale and the three rejected options: `06-DECISIONS-LOG.md` 2026-08-05.

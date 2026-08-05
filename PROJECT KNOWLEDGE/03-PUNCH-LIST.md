@@ -36,15 +36,25 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       **5.85** by Feather. Both constants back to 4, each with a do-not-raise comment.
       Full detail: `07-CHANGELOG.md` + `08-MISTAKES.md` 2026-08-05.
 
-- [ ] `#24-hmslots` — **NEW, NEEDS A USER RULING. The real lever behind `#24-partycap`.**
-      The user wants visibly deeper teams; the cap is the wrong way to get them. Options:
-      **(1) reserve slots** — keep the wild fill at 4 and let HM learners / counters claim the
-      rest (what already happens organically, 4.00 → 5.85); lowest risk, arguably already done.
-      **(2) make room on demand** — let the HM path deposit a non-essential mon so a Surf
-      learner can board. ‼ This is what the guard's own message asks for ("needs PC box
-      management") but it is the shape of `POKEBOT_PC_ROTATION`, **disabled for costing ~19
-      points by depositing team members** — read that before building it.
-      **(3) cap 5** — one free seat for the Surf learner; plausible, unmeasured, needs a batch.
+- [x] `#24-hmslots` — **RULED 2026-08-05: RESERVE SLOTS. No code change; this ratifies current
+      behaviour.** The party fills to 4 with early wilds and grows organically to a measured mean
+      **5.85 by Feather** as HM learners and counters board. Logged as a ruling so nobody reads it
+      as unfinished and re-raises the cap — that mistake cost 36 points once already.
+      Rejected: cap 5 (unmeasured, cosmetic, costs a batch), deposit-to-make-room (the real fix,
+      but it is `POKEBOT_PC_ROTATION`'s shape — disabled for costing ~19 points).
+      Full rationale: `06-DECISIONS-LOG.md` 2026-08-05.
+
+- [ ] `#24-organicteam` — **DEFERRED BY USER 2026-08-05, on purpose. Do not start early.**
+      > "we want to revisit this in the future to make the bot play more organically like a
+      > regular player would (once we finish mapping the story out and can dedicate more time)"
+
+      The accepted cost meanwhile: **teams look thin EARLY**, which was the user's original
+      complaint and is knowingly unsolved. The real design question is not a seat count — it is
+      the bot CHOOSING a team on purpose (type coverage, HM duties, keeping a favourite) instead
+      of taking whatever slot is free. Likely needs PC deposit/withdraw to be trustworthy first,
+      so it subsumes `#24-pcoverflow-proof` and the retired `POKEBOT_PC_ROTATION`.
+      ‼ **GATE: story mapping must be finished first.** Starting this before then trades the
+      actual progress blocker for a cosmetic one.
 
 - [ ] `#24-pcoverflow-proof` — **STILL UNPROVEN, and batch `20260805-122057` could not prove it.**
       `withdrawing` logged **0** times all batch: the Surf guard derailed runs before any
