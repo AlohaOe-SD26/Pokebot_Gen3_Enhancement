@@ -3,535 +3,91 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-08-03 (01:10 PDT) — read "‼ BATCH 7 LANDED", then "‼ BATCH 6 LANDED", then "‼ AUTONOMOUS WORK PLAN"
-immediately below, then "‼ BATCH 5 LANDED". Older "START HERE" sections are HISTORY.
+**Last updated:** 2026-08-05 (session end) — read "‼ YOU ARE HERE" immediately below.
+Every banner further down is HISTORY, newest first.
 
 ---
 
-# ‼ STORY WORK RESUMED — §Ch14 recon done, and it named a BLOCKER (2026-08-05)
+# ‼ YOU ARE HERE — 2026-08-05 (session end). Read this, then `14-AGENT-PLAYBOOK.md`.
 
-**Regression closed** (batch `20260805-075638`: 52.0% finish, Balance→Feather 76%, team size
-5.85 — all five predictions held). Bisecting is OVER per the user directive; only a
-logic-breaking bug reopens it.
+**Everything below is current. Older `START HERE` banners further down are HISTORY.**
 
-## §Ch14 (Mt. Pyre → Magma Hideout) is BLOCKED on a navigation capability, not on content
-ROM-verified by `tools/story-dev/probe_ch14_recon.py` (seconds, no emulation loop):
-
-| area | depth from the nearest OUTDOOR map | note |
-|---|---|---|
-| MT_PYRE_SUMMIT | **3 warps** (SUMMIT → EXTERIOR → 1F → ROUTE122) | story path is the EXTERIOR branch |
-| MAGMA_HIDEOUT_4F | **4 warps** (4F → 3F_xR → 2F_xR → 1F → JAGGED_PASS) | only ONE outdoor exit |
-
-‼ **`_CAVE_EXITS` / `_CAVE_ENTRANCES` are SINGLE-HOP tables.** Granite Cave B1F/B2F are already
-parked for exactly this, and the punch list records the cost: *"the global navigator cannot
-cross warp levels … that exact failure already dropped two real-hardware runs to Manual
-(2026-07-22)."* Building §Ch14 on them would strand runs four warps deep.
-
-**⇒ BUILD ORDER (do not reorder):**
-1. **Chain-aware cave threading** — the blocking capability; also unparks Granite Cave B1F/B2F.
-2. **Mt. Pyre** — 3 hops, one branch; the 2F-6F tower is a skippable side dungeon.
-3. **Magma Hideout — DEFER.** ‼ **The approach question is now SETTLED and the answer is
-   bad:** the hideout door is at JAGGED_PASS **(16,18)**, between the pass's two ends
-   ((14,40)→ROUTE112 at the bottom, (13,5)→MT_CHIMNEY at the top). The pass descends by
-   one-way ledges, so **it is unreachable from the Route 112 side** — and that is not
-   inference: `NO_RETURN_GROUNDS` already records a 2026-07-26 probe that reached
-   JAGGED_PASS (14,40) and *could not path within the map to (16,22)*, four tiles from the
-   door. The only approach is **ROUTE112 → cable car → MT_CHIMNEY → descend the pass**, making
-   the objective **~8 warps deep behind a scripted cable-car ride**. Hardest area the story
-   bot has ever been asked to traverse. Do not attempt it until Mt. Pyre proves the threading.
-   ‼ Do NOT delete the JAGGED_PASS `NO_RETURN_GROUNDS` entry — it is correct; the map simply
-   has a second entrance from above.
-
-Full recon, with every warp tile and the two Mt. Pyre branches, is in `12-STORYMODE-DESIGN.md`
-**§Ch14**. Re-derive any of it with `probe_ch14_recon.py --area pyre|magma|approach`.
-
-## STILL UNVERIFIED — do not build on these
-SUMMIT's layout and scene triggers; the gating flags/vars (`audit_flag_names.py` + decomp — a
-phantom flag name has burned this project twice); whether JAGGED_PASS is reachable at all from
-the post-Winona position; encounter tables for both areas.
-
-‼ Three flags stay `0` unless re-measured: `POKEBOT_LEAD_DEMOTE_WONDER_GUARD`,
-`POKEBOT_AREA_ITEM_GATE`, `POKEBOT_PC_ROTATION`.
-
----
-
-# ‼ FINAL BISECT BATCH — then STORY CONTENT (user directive 2026-08-05)
-
-**USER DIRECTIVE:** stop regression-hunting after this batch and get back to building story
-content past Winona. Full ruling in `06-DECISIONS-LOG.md` 2026-08-05.
-
-## THE STOPPING RULE — apply it literally, do not re-litigate
-Batch `20260805-*` (commit `054fa8c6`) is the LAST bisect batch.
-* **Balance→Feather ≥ 65%** → regression closed. Move to story content.
-* **< 65%** → **STOP ANYWAY.** Log the residual as a KNOWN ISSUE and move to story content.
-  **Do NOT open a fourth revert.**
-
-From here, only a **logic-breaking bug** justifies pausing story work: a hang, a crash, a
-run-ending derail, or a feature that provably does not do what it says. NOT a few points of
-funnel movement on n≈25.
-
-## The prediction for this batch (recorded first, as always)
-| signal | b3/4/5 | b8-13 (features on) | predicted |
-|---|---|---|---|
-| avg team size at Feather | 5.65-5.81 | 4.45-4.75 | **~5.7** |
-| Balance→Feather | 70-83% | 52-57% | **> 65%** |
-| finish rate | 47-60% | 36-44% | 45-55% |
-
-## WHERE STORY WORK RESUMES
-The bot reaches **Winona / Gym 6 = END OF BUILT CONTENT** and has beaten her. Nothing past
-that exists. Start from `03-PUNCH-LIST.md` `#24` and `12-STORYMODE-DESIGN.md`.
-‼ Three flags stay `0` forever unless re-measured: `POKEBOT_LEAD_DEMOTE_WONDER_GUARD`,
-`POKEBOT_AREA_ITEM_GATE`, `POKEBOT_PC_ROTATION`.
-
----
-
-# ‼ BATCH 13 IN FLIGHT — CONFIRMING THE BISECT (launched 2026-08-04, commit `ad7307f2`)
-
-## ‼ THE PREDICTION, WRITTEN BEFORE THE DATA (this is the point of the batch)
-`#24-areaitemgate` is now flagged OFF. It had taken `relocating to ROUTE111` from 19/12/24 per
-batch to **ZERO**, and Balance→Feather from 83/75/70% to 52-59%. If that is the cause:
-
-| signal | b3/4/5 (gate off) | b8-12 (gate ON) | **b13 predicted** |
-|---|---|---|---|
-| `relocating to ROUTE111` | 19 / 12 / 24 | **0** | **> 0, order ~10-25** |
-| Balance→Feather | 83 / 75 / 70% | 52-59% | **> 65%** |
-| finish rate | 57 / 60 / 47% | 36-46% | toward 45-55% |
-
-‼ **If relocations return but Balance→Feather does NOT, the gate was not the cause** and the
-bisect must continue into `#24-relocfloor` / `#24-pc` (the other two changes between batch5 and
-batch8). Write that down before reading the result — a prediction that cannot fail is not one.
-
-## THEN, in order
-1. All 8 lanes producing runs (the contamination gate).
-2. `grep -c "relocating to"` and the per-batch funnel — **per batch, never pooled**. Pooling
-   hid this step change for four batches.
-3. Net hits: KI-38/45/46/47 — expect ~7-9, dominated by `handle_fainted_pokemon`. Not a
-   failure; the wedge is bounded, not fixed.
-4. Counter chain.
-
-## HOW TO COMPARE (got wrong twice)
-Clean plateau **57 / 60 / 47 / 45.8%**; recent clean **38.5 / 35.7%**. VOID: batch6, batch7.
-CONTAMINATED: batch9, batch10. Evidence for every batch is preserved in
-`PROJECT KNOWLEDGE/batch-evidence/` (the raw 2.2 GB is gitignored and single-machine).
-‼ Flags that must stay **0**: `POKEBOT_LEAD_DEMOTE_WONDER_GUARD`, `POKEBOT_AREA_ITEM_GATE`.
-
----
-
-# ‼ BATCH 12 IN FLIGHT — a DATA-COLLECTION run, not an improvement run
-(launched 2026-08-04, commit **`32ba1dec`**, dir `x4-runs/20260804-1*`)
-
-‼ **SET THE EXPECTATION BEFORE READING IT: this batch is not expected to raise the finish
-rate.** KI-38 is bounded, self-correcting and diagnosable — **not fixed**. The wedge still
-happens; it now costs a bounded derail instead of an infinite lane.
-
-## THE ONE THING THIS BATCH IS FOR
-```
-grep -ho "cursors seen: \[[0-9, ]*\]" L0*/stdout.txt | sort | uniq -c
-```
-`gPartyMenu[9]` is NOT a plain party index — KI-38 recorded `cursors_seen=[0,2,3,7]` in a
-FOUR-mon party (7 = CANCEL). **The distribution of those values is what turns `#24-menutext`
-from a design note into a change someone can make.** Every previous report of this bug lacked
-it, which is why four days of retry-limit mitigations never converged.
-
-Also record: party size alongside each observation (the message carries it), and whether the
-**reverse-direction self-correction** rescued the scroll (a KI-38 message means it did NOT).
-
-## THEN, in order
-1. All 8 lanes producing runs? (batch11 passed this for the first time in four.)
-2. Net hits by site: `grep -ho "KI-3[8]:\|KI-4[567]:"`. KI-38's share should FALL relative to
-   batch11's 7-of-8 if the self-correction works, even though the message still appears.
-3. Counter chain, then the funnel.
-
-## BASELINE
-Clean plateau **57 / 60 / 47 / 45.8%** (batch3/4/5/8); batch11 **38.5%** (clean, z = −1.33 vs
-the pooled 52.8%). VOID: batch6, batch7. CONTAMINATED: batch9, batch10.
-
----
-
-# ‼ BATCH 11 IN FLIGHT — the first batch with ALL THREE hang fixes
-(launched 2026-08-04, commit **`fe4a2369`**, dir `x4-runs/20260804-*`)
-
-## Why it matters
-**Three consecutive batches were contaminated by battle-path hangs** — batch9 lost 1 lane,
-batch10 lost 2 (H8 produced **0 runs in 180 minutes**). Their 37% / 38.1% are low-side
-estimates on ~6.5-7 effective lanes and are NOT comparable to the clean 47-60% plateau. This
-build carries KI-45 (cursor bound), KI-46 (action-selection bound) and the **KI-47 net** that
-covers the remaining 30 unbounded loops.
-
-## READ IN THIS ORDER
-1. ‼ **Did all 8 lanes produce runs?** `MANIFEST.txt`. **This is the gate — if a lane is at 0
-   runs, nothing else in the batch is worth interpreting**, and the priority becomes finding
-   the fourth hang site.
-2. **Did the nets fire?** `grep -c "KI-4[567]:"` — a hit is a SUCCESS (a bounded, recoverable
-   derail replacing an infinite lane) and names the site. Absence means the condition did not
-   arise, NOT that it is gone.
-3. **Counter chain:** `counter registered`, `NOT depositing`, `lead vs Normal -> Machoke`, and
-   Norman WINS by lead.
-4. **The conditional, then the funnel:** counter-hunt runs beating Norman — batch4 5/9 (56%),
-   batch5 6/10 (60%), batch9 4/6 (67%). Still n≈6.
-
-## BASELINE — do not get this wrong again
-Clean plateau **57% / 60% / 47% / 45.8%** (batch3/4/5/8). **VOID: batch6 (5.4%), batch7
-(26.9%)** — my `#24-pc`-ungated and `#24-leadpolicy` (c) regressions. **CONTAMINATED:
-batch9 (37%), batch10 (38.1%)** — hung lanes.
-‼ `POKEBOT_LEAD_DEMOTE_WONDER_GUARD` stays **0**.
-
----
-
-# ‼ BATCH 10 IN FLIGHT — first clean 8-lane measurement in a while
-(launched 2026-08-03 ~14:20 PDT, commit **`d8879750`**, dir `x4-runs/20260803-14*`)
-
-## What is new since batch9
-**KI-45 fixed** — stock `_select_in_menu` was an unbounded `while True` that hung a whole lane
-in 2 of the last 4 batches (batch9's H6 completed **0 runs in 180 minutes**). Batches should
-get their eighth lane back.
-
-## READ IN THIS ORDER
-1. ‼ **Did every lane produce runs?** `MANIFEST.txt` — batch9's H6 had `runs 0`. If a lane is
-   still at 0, KI-45 is not fully fixed. Also grep `KI-45:` — that message means the bound
-   FIRED, which is a success (a recoverable derail) and tells you the menu really does get
-   stuck. Its absence means the situation did not arise this batch, NOT that it is gone.
-2. **Counter chain, still the mechanism to watch:** `counter registered` = catches,
-   `NOT depositing` > 0, `lead vs Normal -> Machoke/Machop`, and Norman WINS by lead
-   (batch9: MACHOP 4 of 18).
-3. **The conditional, not the headline:** counter-hunt runs beating Norman —
-   batch4 5/9 (56%), batch5 6/10 (60%), batch9 4/6 (67%). Still n≈6; a direction, not a result.
-4. **Then the funnel.**
-
-## THE BASELINE — got wrong twice, do not get it wrong again
-Healthy plateau **57% / 60% / 47% / 45.8% / 37%** (batch3/4/5/8/9; all pairwise |z| < 1.1).
-**batch6 (5.4%) and batch7 (26.9%) are VOID** — my `#24-pc`-ungated and `#24-leadpolicy` (c)
-regressions. ‼ batch9's 37% was measured on **7 effective lanes** (H6 hung all batch), so it
-is a low-side estimate.
-
-‼ `POKEBOT_LEAD_DEMOTE_WONDER_GUARD` stays **0**. Batch8 proved (c) cost ~20 points.
-
----
-
-# ‼ BATCH 9 IN FLIGHT — the first batch where the counter chain CAN work end to end
-(launched 2026-08-03 ~10:53 PDT, commit **`b726fcd6`**, dir `x4-runs/20260803-105*`)
-
-## Why this one matters
-Every prior batch had at least one link broken. This is the first with all of them fixed:
-catch → train → **not deposited** → **registered** → lead the fight.
-
-## READ IN THIS ORDER
-1. ‼ **`hunted_pids=N`** in `Story: lead vs Normal -> …`. It was **0 on all 684 decisions** in
-   batch8 because `get_party` was out of scope in `_counter_ladder` and a bare `except: pass`
-   ate the `NameError`. **N>0 is the proof the registry finally works.**
-2. ‼ **`Story: NOT depositing <mon> — it is this boss's hunted counter`.** Batch8 deposited
-   2 of 5 counters as "dead weight". Also confirm no `depositing Machop` / `depositing Machoke`.
-3. ‼ **Does a MACHOKE/MAKUHITA appear in the Norman lead line at all?** Batch8's candidate sets
-   contained no counter (`from SwampertL38 BeautiflyL23 RaltsL6 PoochyenaL10`).
-4. **Then the funnel.** ‼ Expect the counter to FIGHT, not the finish rate to jump — the chain
-   touches only ~1/3 of Norman runs. Judging this on finish rate alone repeats the batch4/5
-   mistake.
-
-## THE BASELINE — memorise this, it has been got wrong twice
-Healthy plateau **57% / 60% / 47% / 45.8%** (batch3/4/5/8; all pairwise |z| < 1.05).
-**batch6 (5.4%) and batch7 (26.9%) are VOID** — both were my regressions (`#24-pc` ungated,
-and `#24-leadpolicy` (c) removing a winning lead). Never baseline against them.
-
-‼ `POKEBOT_LEAD_DEMOTE_WONDER_GUARD` stays **0**. Batch8 proved (c) cost ~20 points of finish
-rate; Shedinja led 12 wins in batch5 and 7 in batch8, and 0 while (c) was on.
-
----
-
-# ‼ BATCH 8 IN FLIGHT — THE SHEDINJA A/B (launched 2026-08-03 ~02:10 PDT)
-
+## STATE
 | | |
 |---|---|
-| dir | `x4-runs/` newest (stamp `20260803-*`) |
-| commit | **`1811148a`** — `#24-leadpolicy` **(c) flagged OFF** (`POKEBOT_LEAD_DEMOTE_WONDER_GUARD` defaults 0) |
-| ends | ~3h after launch |
+| branch / HEAD | `main`, clean, pushed. Restore tag `restore/session-end-20260805` |
+| repro suite | **78 / 78** (`14-AGENT-PLAYBOOK.md` §2b; ~15 min) |
+| last batch | `x4-runs/20260805-075638` — **25 runs, 13 finished = 52.0%**, all 8 lanes |
+| health | box idle, nothing running |
 
-## THE ONE QUESTION IT ANSWERS
-Did demoting Shedinja cause the batch7 regression? `BADGE:` lines print only on a WIN:
+**The bot reaches and beats Winona / Gym 6 = END OF BUILT CONTENT.** Nothing past that exists.
 
-| | batch5 (no (c)) | batch7 (with (c)) | batch8 (c OFF again) |
-|---|---|---|---|
-| Shedinja as a WINNING lead | **12** | **0** | ? |
-| Norman victories it led | 9 of 23 | 0 | ? |
-| Balance Badges | 23 | 18 | ? |
-| finish rate | 47.1% | 26.9% | ? |
+## ‼ THE NEXT ACTION (do this first — I was mid-decision when the session ended)
+**Raise the party cap 4 → 6, then run one batch.** Both halves of the reason:
+* The user is watching live runs and expects deeper teams; `target_size: int = 4` in
+  `early_game.py` (and `_catch_team_target = 4` in `story_mode.py`) is why they see 4.
+* **`#24-pcoverflow` (built 2026-08-05) makes a full party SAFE for the first time** — a full
+  party no longer refuses a catch, and a counter caught into the box is collected at the next
+  heal. Before this, cap 6 would have blocked the counter chain outright.
 
-```
-grep -ho "lead SHEDINJA" L0*/stdout.txt | wc -l      # was 12, then 0
-grep -h  "BADGE: Balance Badge" L0*/stdout.txt | wc -l
-```
-**If Shedinja-led wins return and the finish rate climbs toward 47-60%, (c) was the
-regression** and it should be deleted, not merely flagged. If they return and the rate does
-NOT recover, the cause is one of the other four changes since batch5 — bisect
-`#24-areaitemgate` next (it changes where the bot trains, and the batch7 watchdogs clustered
-on ROUTE117/ROUTE118).
+These two are coupled, so ONE batch tests both. Read, in order:
+1. `PC — withdrawing <mon> from the box` — proves the overflow path ran live (**never proven**).
+2. `cannot hunt a counter — the party is full` — should be **gone** (was 5/batch).
+3. Team size at badge moments — should rise from ~5.8 toward 6.
+4. Finish rate against **52.0%**, and Balance→Feather against **76%**.
 
-‼ **ALSO READ:** `Story: lead vs Normal -> … hunted_pids=N`. This log line is NEW; batch7
-showed `#24-leadcounter` never firing in 6 of 6 runs and there was no way to tell why.
-N=0 means the per-run registry is being cleared (prime suspect: a derail re-instantiates
-`StoryMode` between the catch and the fight).
+‼ If team size rises but the finish rate FALLS, suspect the same trap that caught me three
+times: a deeper team is not free (more mons to heal, more to train). Revert the cap, not the
+overflow.
 
-‼ **BASELINE IS BATCH 4/5, NEVER BATCH 6 OR 7.** The healthy plateau is 57% / 60% / 47%
-(pairwise |z| < 1.05). Batch6 (5.4%) is void — my `#24-pc` regression.
+## AFTER THAT: §Ch14 — story content past Winona
+Full ROM-verified recon is in `12-STORYMODE-DESIGN.md` **§Ch14**; re-derive any of it with
+`tools/story-dev/probe_ch14_recon.py --area pyre|magma|approach`.
 
----
+1. **Chain-aware cave threading — THE BLOCKER.** `_CAVE_EXITS`/`_CAVE_ENTRANCES` are
+   SINGLE-HOP. MT_PYRE_SUMMIT is **3 warps** deep; MAGMA_HIDEOUT_4F is **4**. Granite Cave
+   B1F/B2F are already parked for this, and it once dropped two real-hardware runs to Manual.
+   Fixing it unparks those too.
+2. **Mt. Pyre** — 3 hops, one branch (the 2F-6F tower is a skippable side dungeon).
+3. **Magma Hideout — DEFER.** Its door at JAGGED_PASS (16,18) is unreachable from the
+   ROUTE112 side (one-way ledges; a 2026-07-26 probe already failed to path there). Only
+   approach is ROUTE112 → cable car → MT_CHIMNEY → descend ⇒ ~8 warps + a scripted ride.
 
-# ‼ BATCH 7 LANDED (2026-08-03 00:55) — gate held, leadcounter DID NOT FIRE
-
-`x4-runs/20260802-215519`, commit `09c6129e`. **26 runs, 7 finished = 26.9%.**
-
-| | batch5 | batch6 | batch7 |
-|---|---|---|---|
-| finish rate | **47.1%** | 5.4% | 26.9% (z = −1.59 vs batch5) |
-| `global watchdog` | **1** | 67 | **18** ← unexplained |
-| `Cutscene did not end` | 5 | 35 | 7 |
-| `party is now 3` | — | **73/75** | **0** ✅ |
-
-**The `#24-pc` gate held** — deposits only from a full party, 16/16 succeeded, 0 failures.
-
-‼ **BUT THE WATCHDOG IS 18 vs BATCH5's 1, AND THAT IS NOT NOISE.** Something besides the PC
-rotation regressed between batch5 and batch7. Remaining candidates: `#24-areaitemgate`,
-`#24-leadcounter`. Fires on ROUTE118 (4), ROUTE117 (4), MAUVILLE_CITY_GYM (3), ROUTE112 (3).
-**Batch5 remains the best result this project has produced.**
-
-## ‼ `#24-leadcounter` DID NOT TAKE EFFECT — 6 of 6 runs
-All six caught AND trained a Machop to L29 (0 training failures) and none led it into Norman
-(SWAMPERT / MARSHTOMP / SWELLOW instead). `_battler_slots` is permissive so the Machoke WAS a
-candidate, and one run won its badge *after* the catch, so the lead call ran. It just did not
-fire.
-
-‼ **I shipped it with NO OBSERVABILITY and could not diagnose it.** Now fixed:
-`_lead_best_matchup` logs the choice, the full candidate set with per-mon inputs
-(`in=`, `atk/NOATK`, `WG`, `COUNTER`) and `hunted_pids=<count>`.
-**Prime suspect (hypothesis, not fact): `hunted_pids` is empty** — a derail between the catch
-and the fight re-instantiates `StoryMode` and clears the per-run set. The next batch's log
-answers it directly; do not "fix" it before reading that line.
-
-## ‼ NEXT, IN THIS ORDER
-1. **Re-batch and read ONE line:** `Story: lead vs Normal -> …  hunted_pids=N`. If N=0 the
-   registry is being cleared; if N>0 but a non-counter still wins, the key inputs are printed
-   right there.
-2. **Explain the watchdog 1 → 18.** Bisect against batch5 if needed — `#24-areaitemgate` is
-   the likelier culprit since it changes where the bot trains.
-3. **KI-45** — the `_select_in_menu` move-menu hang (866 STUCK dumps, 27 min). Batch7 shows
-   its sibling: `battle handler gave up — in-battle wedge` ended 2 runs.
-4. Baseline for ALL comparisons is **batch5: 34 runs, 16 finished (47.1%), Heat→Balance 79%**.
-
----
-
-# ‼ BATCH 6 LANDED — `#24-pc` CAUSED A 47% → 5% COLLAPSE, NOW GATED (2026-08-02 19:06)
-
-`x4-runs/20260802-160603`, commit `1700b965`. **37 runs, 2 finished = 5.4%** (batch5: 47.1%).
-
-## Both fixes worked; the wiring of one of them wrecked the batch
-| signal | batch5 | batch6 |
+## ‼ THREE FLAGS MUST STAY `0` — each hides a MEASURED regression
+| flag | what it did | cost |
 |---|---|---|
-| `the party is full` (chain blocked) | 5 | **0** ✅ |
-| `PC rotation` depositing / done / failed | — | 90 / **75** / 15 ✅ |
-| `dropping it as a training option` | 32 | **0** ✅ |
-| **finish rate** | 47.1% | **5.4%** ❌ |
-| `global watchdog` | 1 | **67** (24 in MAUVILLE_CITY_GYM) ❌ |
-| `relocating to` | 24 | **0** |
+| `POKEBOT_LEAD_DEMOTE_WONDER_GUARD` | benched Shedinja vs Norman | ~20 pts finish rate |
+| `POKEBOT_AREA_ITEM_GATE` | killed the only training relocation | ~7 pts |
+| `POKEBOT_PC_ROTATION` | deposited ~1 team member per run | ~19 pts of the last rung |
 
-**Cause:** the rotation ran on EVERY heal. `MIN_PARTY_AFTER_ROTATION = 3`, so
-**`PC rotation done — party is now 3` appeared 73 times out of 75** — a permanent three-mon
-party in a catch → deposit → catch cycle, then wedging in gyms it could not win. It deposited
-a **Shedinja L21**.
+All three were features that REMOVE something, justified by counting failures and never
+successes. **Do not re-enable any of them without a batch.**
 
-‼ `team_policy` was RIGHT every time; **the wiring was mine and wrong**. Design §4's
-"piggyback on a heal" assumes rotation is OCCASIONAL.
+## THE ONE RULE THAT WOULD HAVE SAVED THIS WHOLE WEEK
+**Before removing or restricting a behaviour, grep the POSITIVE counterpart of the failure
+line you are about to eliminate.** Failure lines print; success lines are silent.
+`dropping it as a training option` was loud — `relocating to` was one grep away, in logs
+already on disk, and cost three regressions and ~6 batches to rediscover.
 
-**FIXED:** `pc_trip.ROTATE_ONLY_WHEN_PARTY_AT_LEAST = 6` — the exact condition
-`resource_blocker()` refuses a hunt on. `repro_pc_trip.py` now has a **rate** test (3/4/5-mon
-parties are not rotated; a full one still is). Suite 72/73 — the one red is
-`repro_lead_hunted_counter.py`, RED BY DESIGN until `#24-leadcounter` is applied.
+## EVIDENCE — the measurements are backed up
+`tools/story-dev/x4-runs/` is **2.2 GB and gitignored, single-machine**. The irreplaceable
+subset (manifests, summaries, and every line the analyses grep) is committed under
+`PROJECT KNOWLEDGE/batch-evidence/` — 15 batches, 1.7 MB. Its `00-README.md` records which
+batches are USABLE: **clean plateau 57/60/47/45.8/52.0%; batch6 and batch7 VOID (my
+regressions); batch9 and batch10 CONTAMINATED (hung lanes).** Never baseline against a VOID or
+CONTAMINATED batch — that error was made twice.
 
-‼ **The lesson (08-MISTAKES 2026-08-02): a correct decision invoked at the wrong CADENCE is
-invisible to unit tests.** Every existing repro checked a single rotation in isolation and all
-still passed; none asked how often it would run, and the damage was entirely frequency.
-
-## ‼ NEXT
-1. **Apply `#24-leadcounter`** (user ruling given 2026-08-02; exact patch in `03-PUNCH-LIST`).
-2. **Re-batch.** Batch6 is NOT a valid baseline for anything — the collapse dominates it. The
-   comparison batch is **batch5: 47.1% finish, Heat→Balance 23/29 (79%)**.
-   ‼ Verify the gate held: `PC rotation done — party is now 3` should be RARE, and
-   `the party is full` should stay at 0.
-3. **KI-45** — a battle MOVE-menu loop hung lane H4 for 27 minutes (866 STUCK dumps in
-   `_select_in_menu`). Neither the watchdog nor the frame budget can see it. Not caused by
-   this round's changes. Diagnose WHY the cursor never arrives before bounding anything.
-
----
-
-# ‼ AUTONOMOUS WORK PLAN — story mode (set 2026-08-02, user: "continue autonomously")
-
-**State:** `main` @ latest, clean, pushed. Repro suite **70/70**. Sandbox == custom for all
-code (**BATCH-5 promoted 2026-08-02**). Last batch `x4-runs/20260801-075805` complete.
-
-## ‼ THE EVIDENCE THAT SETS THE PRIORITY — batch5's 18 non-finishes
-| cause | n | share |
-|---|---|---|
-| **Winona** — needs Rock/Ice/Dragon | 5 | 28% |
-| **Norman** — needs Fighting | 4 | 22% |
-| **Wattson** — needs Ground | 4 | 22% |
-| whiteout loops | 3 | 17% |
-| pathing / cutscene | 2 | 11% |
-
-‼ **13 of 18 (72%) are the counter chain stopping honestly — across THREE bosses, not just
-Norman.** An earlier note in this handoff worried the counter work might not be where runs are
-lost; **that was wrong and is corrected here.** It is exactly where they are lost. (Batch4's
-out-of-balls deaths are gone — the KI-43 ball fix landed.)
-
-## Why the chain still stops (batch5 counts, from `L0*/stdout.txt`)
-```
-already hunted a counter ............ 51   once-per-run bound
-is not reachable from here .......... 40   destination thrash before falling back
-party is FULL, catch would go to PC .. 5   ‼ chain blocked before it can even start (#24-pc)
-no spare Poké Balls .................. 1
-hunts actually started .............. 19   FIERY_PATH 11, ROUTE111 4, ROUTE116 4
-```
-
-## THE ORDER TO WORK IN — do these without asking
-1. ~~**`#24-pc`**~~ **BUILT 2026-08-02 — `modules/story/pc_trip.py`.** `plan_deposits()` +
-   `deposit_dead_weight_if_worth_it()`, reusing upstream `interact_with_pc()`. Piggybacked
-   INSIDE `heal_in_pokemon_center` between the nurse and the exit; no-ops unless
-   `rotation_plan` says `worth_it`. PC tile **(10,1), stand (10,2), face Up** — proven across
-   six centres by `probe_pc_tile.py`, corroborated by upstream `daycare.py`.
-   `repro_pc_trip.py` = 14 checks; suite 71/71.
-   ‼ **NOT LIVE-PROVEN: no run has executed a deposit yet.** The decision half, the tile, the
-   wiring and the failure paths are covered emulator-free; the MENU DRIVE is not. Prove it in
-   the next batch by grepping `Story: PC rotation — depositing` and `PC rotation done`, and
-   check the party-full blocker count falls from 5.
-
-   *(original diagnosis)* `#24-pc` — party-full blocks the chain outright (5 runs). The DECISION half is already
-   built and pure-tested: `team_policy.rotation_plan()` / `dead_weight()` / `find_dead_weight()`.
-   What is missing is the ACTION — walk to a PC and deposit — which that module deliberately
-   excludes ("this module only decides"). ‼ Its own header records the motivating case: P1
-   *"caught a Makuhita — a FIGHTING type, exactly the counter Norman needs — and carried it
-   from L8 to L9 across FIVE badges"*. Dead weight fills the party, and a full party then
-   forbids catching the counter. Build the deposit trip; reuse `rotation_plan` as-is.
-2. ~~**`is not reachable from here` (40)**~~ **MEASURED AND FIXED 2026-08-02
-   (`#24-areaitemgate`).** Split by source: **28** were `ROUTE111 (25,55)` dropped as a
-   TRAINING option (the oracle said yes, the map disagreed — ~1 wasted cross-Hoenn trek per
-   run), 4 ROUTE116, 8 counter-hunt. Root cause: `_training_area_allowed` is handed the TILE
-   and never uses it; `is_map_reachable(ROUTE111)` is *correctly* True because the map's
-   southern half is walkable, while the grass at (25,55) is north of the **Go-Goggles**
-   desert. Fixed with `training_areas.AREA_ITEM_PREREQ`, checked BEFORE the oracle, failing
-   closed. `repro_area_item_gate.py`. ‼ Deliberately conservative — the tile is also
-   reachable from Fallarbor without goggles, so this can refuse a walkable case; a false NO
-   costs one skipped relocation, a false YES cost 28 treks.
-   ‼ **Still unmeasured live**: whether the wasted-trek count actually falls. Grep the next
-   batch for `dropping it as a training option` (was 28).
-3. **The lead question (below).** Only worth doing after 1 — a counter that cannot be caught
-   cannot be led.
-
-## ‼ THE OPEN DECISION — deliberately still open, and why
-**Should super-effectiveness outrank raw level when choosing a lead?** `#24-leadpolicy` A+C
-shipped and removed the fatal Shedinja lead (9/9 into Norman), but then picks **Marshtomp L35
-over Machoke L29** because `can_attack` is binary and 2× STAB earns no credit
-(`repro_lead_policy.py` check 5 asserts this).
-
-‼ **DO NOT decide this one unilaterally even when working autonomously.** It changes how the
-bot *plays* rather than fixing a defect, option (b) of the same item was already ruled OUT by
-the user, and the "obvious" repair has been wrong twice in this codebase (KI-44's
-train-where-you-caught-it; the relocation floor's key-it-all-to-the-trainee). Implement it
-only on a ruling. Everything else above is a defect and needs no ruling.
-
-## Standing rules for autonomous work here (learned the hard way — do not relearn)
-* **Never bulk-import a package to "verify"** — `modules/data/*` runs generators at import
-  time and gutted `map_data.py` in both builds. `ast.parse` + targeted imports only.
-* **Never edit `sandbox-pokebot/` while a batch runs** — `x4_headless.py:843` relaunches dead
-  lanes, which re-import from disk and mix two code versions into one measurement.
-* **Instrument the MECHANISM, not just the outcome.** A flat funnel read as "the fix did
-  nothing" when the truth was "it works and the next thing is broken" — twice.
-* **Size the expectation before a 3-hour batch.** Use the sub-population that can actually
-  change (e.g. counter-hunt runs only), not the whole-batch rung, which dilutes 3:1.
-* **A batch must be recorded in this file the moment it launches** — an interrupted session
-  once left 8 lanes running with nothing written down.
-
----
-
-# ‼ BATCH 5 LANDED — KI-44 IS FIXED, THE FUNNEL DID NOT MOVE (2026-08-01 10:58 PDT)
-
-`x4-runs/20260801-075805`, commit `b7345ffd`, 8 lanes / 180.1 min, VERDICT OK, 42 headers,
-**0 violations, 0 restarts**. 34 runs ended, 16 finished = 47.1% (batch4: 60.0%).
-
-## The mechanism WORKS — counters were trained for the first time ever
-| | batch4 | batch5 |
-|---|---|---|
-| `counter hunt CAUGHT` | 9 | 10 |
-| relocation line (KI-44 fix firing) | *(didn't exist)* | **9** |
-| **`counter training failed`** | **7 of 7** | **2 of 9** |
-
-`Machop L15/L16 -> L29` ×8 (reaching L28 it **evolves to Machoke**), `Combusken L31 -> L33`.
-8× relocated to ROUTE117, 1× to ROUTE121 — the picker adapting on its own. Neither remaining
-failure is KI-44 (one whiteout, one UnreachableDestinationError).
-
-## The funnel did NOT move
-Heat→Balance **83% → 79% (z = −0.33)**; whole funnel 49% → 38% (z = −0.95). Nothing
-significant. Like-for-like on the only population the fix can touch — runs that ran a counter
-hunt — **batch4 5/9 (56%) → batch5 6/10 (60%), z = 0.20**. n≈10 cannot resolve this.
-
-‼ **Do NOT quote the within-batch comparison** (counter-hunt runs 71% vs never-hunted 89%).
-That is selection bias: the chain only fires on runs already losing to Norman.
-
-## ‼‼ WHY — THE TRAINED COUNTER IS BENCHED. THIS IS THE NEXT ITEM.
-Leads chosen for Norman in batch5: **SHEDINJA ×9**, MARSHTOMP ×4, SWAMPERT ×4, BLAZIKEN ×2,
-others ×1. **MACHOKE: ZERO.** `_lead_best_matchup(["Normal"])` scores
-`min(incoming_multiplier, -level)`, so Shedinja (Bug/Ghost, Normal → 0×) always wins and the
-freshly-trained L29 Machoke stays in the bag.
-
-This is **`#24-leadpolicy`** — already diagnosed, **USER RULING A+C**, never built. Its own
-punch-list entry predicted this exact batch: *"P4 led Shedinja L20 vs Norman … and lost to
-Slaking's Faint Attack (Dark), which the model cannot see because it does not read
-movepools."*
-
-⇒ **The blocker has moved a third time: budget → training ground → LEAD SELECTION.**
-Catching and training a type counter and then not fielding it is the cost of the whole chain
-with the benefit of none of it.
-
-## ‼ `#24-leadpolicy` — BUILT 2026-08-01 (ruling A+C), AND IT IS NOT THE WHOLE ANSWER
-(a) the lead must have a ≥neutral damaging move; (c) a Wonder Guard 1-HP body is demoted.
-Pure rule in `team_policy.lead_rank_key()` / `best_lead_index()`; `_lead_best_matchup` defers
-to it. Sort terms, not filters — a lone Shedinja is still led. Both predicates fail SAFE.
-Option (b) was NOT ruled and is NOT implemented; `repro_lead_policy.py` check 4 pins the
-unchanged Whismur-over-Marshtomp behaviour.
-
-‼ **MEASURED LIMIT (repro check 5): A+C does NOT field the trained counter.** On batch5's
-real Norman party — Shedinja L20 / Machoke L29 / Marshtomp L35 — it correctly stops leading
-Shedinja and then picks **Marshtomp L35, not Machoke L29**, because `can_attack` is binary
-and Machoke's **2× STAB earns no credit**. So the fatal lead is gone but the counter still
-does not fight.
-
-## ‼ THE OPEN DECISION — should super-effectiveness outrank raw level?
-This is a **NEW question, outside ruling A+C**, and it is the last link in the chain:
-budget → training ground → lead. Without it the whole counter chain still ends with the
-counter on the bench, just benched by a different mon.
-* FOR: the chain only fires after ~6 losses, so the strongest mon is already PROVEN
-  insufficient — that is the entire premise of hunting a counter.
-* AGAINST: a L29 2× attacker is not automatically better than a L35 neutral one; bulk and
-  movepool matter, and this model reads neither.
-* Cheapest resolution: add an `outgoing` term ranked between `can_attack` and `incoming`,
-  then measure with the **counter-hunt-runs-only** conditional (batch4 5/9 → batch5 6/10).
-
-## ‼ NEXT, IN THIS ORDER
-1. **Get a ruling on the question above**, then implement and re-measure.
-2. **Then re-measure.** ‼ The counter chain fires on only ~10 of 29 Heat-reaching runs, and
-   those runs sit at ~60%. Even a perfect chain moves the overall Heat→Balance rung from 79%
-   to ~93% AT BEST — so size the expectation before running a batch, and prefer the
-   **counter-hunt-runs-only** conditional as the instrument (it is the population that can
-   actually change; the whole-batch rung dilutes it 3:1).
-3. **`#24-relocfloor` — DONE 2026-08-01** (see below). Its value is mostly in unlocking the
-   pre-emptive plan, not in isolation.
-4. **Pre-emptive training for Norman** (user idea) — still queued and still right, but note
-   batch5 shows the counter chain is NOT the dominant loss cause: 19 of 29 Heat-reaching runs
-   never hunted at all and won 89% of the time.
-
-## `#24-relocfloor` — FIXED 2026-08-01
-`floor = max(local_max, team_max_now - FODDER_LEVEL_GAP)` keyed on the party's STRONGEST mon
-while the trainees are the stragglers, so a L35 team demanded wilds above L23 and rejected
-ROUTE111 (L19-22). Measured: `no better area is available` **167×** in batch4. Now
-`training_areas.relocation_floor(local_max, trainee_levels, gap)`. ‼ Only the floor moved —
-swap-train means a stronger team-mate fights, so `best_training_area`'s `team_level` argument
-correctly stays the team max. Repro `repro_relocation_floor_wrong_mon.py`.
+## STANDING RULES LEARNED EXPENSIVELY THIS SESSION
+* **Never bulk-import a package to "verify"** — `modules/data/*` runs generators at import and
+  gutted `map_data.py` in both builds. `ast.parse` + targeted imports only.
+* **Never edit `sandbox-pokebot/` while a batch runs** — dead lanes relaunch and re-import.
+* **Record a batch in this file the moment it launches.** An interrupted session once left 8
+  lanes running with nothing written down.
+* **Assert on behaviour, not source text.** Two repros passed while the code was wrong; one
+  fix referenced `BotModeError` without importing it. Drive the real generator.
+* **Per-batch, never pooled.** Pooling hid a step change for four batches.
+* **A bare `except: pass` around state writes is a silent-failure generator** — one hid a
+  `NameError` for two batches.
 
 ---
 

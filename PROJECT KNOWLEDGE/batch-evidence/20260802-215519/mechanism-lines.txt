@@ -120,6 +120,11 @@ BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead NINCADA. Logged to ba
 BADGE: Dynamo Badge (Wattson, Mauville) — team of 5, lead COMBUSKEN. Logged to badge-log.json.
 BADGE: Heat Badge (Flannery, Lavaridge) — team of 5, lead COMBUSKEN. Logged to badge-log.json.
 BADGE: Balance Badge (Norman, Petalburg) — team of 5, lead MIGHTYENA. Logged to badge-log.json.
+Story: cannot hunt a counter — the party is full, so a catch would go to the PC box (needs #24-pc). Stopping honestly.
+Story: already hunted a counter for Winona this run (blocked: the party is full, so a catch would go to the PC box (needs #24-pc)) — not trying again; stopping honestly.
+Story: already hunted a counter for Winona this run (blocked: the party is full, so a catch would go to the PC box (needs #24-pc)) — not trying again; stopping honestly.
+Story: already hunted a counter for Winona this run (blocked: the party is full, so a catch would go to the PC box (needs #24-pc)) — not trying again; stopping honestly.
+Story: already hunted a counter for Winona this run (blocked: the party is full, so a catch would go to the PC box (needs #24-pc)) — not trying again; stopping honestly.
 BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
 BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead NINCADA. Logged to badge-log.json.
 BADGE: Dynamo Badge (Wattson, Mauville) — team of 5, lead COMBUSKEN. Logged to badge-log.json.

@@ -1,4 +1,5 @@
 BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: ROUTE116 (max L8) is fodder for a L19 team — relocating to ROUTE111 (L19-22) to train for real. 
 Story: ROUTE111 (25, 55) is not reachable from here — dropping it as a training option for the rest of this run.
 BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead RALTS. Logged to badge-log.json.
 BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead KIRLIA. Logged to badge-log.json.
@@ -18,6 +19,7 @@ BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead BLAZIKEN. Logged to 
 BADGE: Balance Badge (Norman, Petalburg) — team of 4, lead BLAZIKEN. Logged to badge-log.json.
 BADGE: Feather Badge (Winona, Fortree) — team of 5, lead MIGHTYENA. Logged to badge-log.json.
 BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: ROUTE116 (max L8) is fodder for a L19 team — relocating to ROUTE111 (L19-22) to train for real. 
 Story: ROUTE111 (25, 55) is not reachable from here — dropping it as a training option for the rest of this run.
 BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead DUSTOX. Logged to badge-log.json.
 BADGE: Dynamo Badge (Wattson, Mauville) — team of 5, lead MIGHTYENA. Logged to badge-log.json.
@@ -28,9 +30,11 @@ Story: local grass (max L4) is fodder for a L34 team and no better area is avail
 BADGE: Balance Badge (Norman, Petalburg) — team of 5, lead SHEDINJA. Logged to badge-log.json.
 BADGE: Feather Badge (Winona, Fortree) — team of 6, lead MIGHTYENA. Logged to badge-log.json.
 BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: ROUTE116 (max L8) is fodder for a L19 team — relocating to ROUTE111 (L19-22) to train for real. 
 Story: ROUTE111 (25, 55) is not reachable from here — dropping it as a training option for the rest of this run.
 BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead NINCADA. Logged to badge-log.json.
 BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: ROUTE116 (max L8) is fodder for a L18 team — relocating to ROUTE111 (L19-22) to train for real. 
 Story: ROUTE111 (25, 55) is not reachable from here — dropping it as a training option for the rest of this run.
 BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead NINCADA. Logged to badge-log.json.
 BADGE: Dynamo Badge (Wattson, Mauville) — team of 5, lead MARSHTOMP. Logged to badge-log.json.
@@ -67,6 +71,7 @@ Story: local grass (max L4) is fodder for a L41 team and no better area is avail
 Story: local grass (max L4) is fodder for a L41 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
 Story: local grass (max L4) is fodder for a L41 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
 BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: ROUTE116 (max L8) is fodder for a L18 team — relocating to ROUTE111 (L19-22) to train for real. 
 Story: ROUTE111 (25, 55) is not reachable from here — dropping it as a training option for the rest of this run.
 BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead BEAUTIFLY. Logged to badge-log.json.
 BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
@@ -99,6 +104,7 @@ BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead DUSTOX. Logged to bad
 BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
 BADGE: Heat Badge (Flannery, Lavaridge) — team of 4, lead SWAMPERT. Logged to badge-log.json.
 BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: ROUTE116 (max L8) is fodder for a L18 team — relocating to ROUTE111 (L19-22) to train for real. 
 Story: ROUTE111 (25, 55) is not reachable from here — dropping it as a training option for the rest of this run.
 BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
 BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
@@ -109,6 +115,7 @@ BADGE: Heat Badge (Flannery, Lavaridge) — team of 5, lead LINOONE. Logged to b
 BADGE: Balance Badge (Norman, Petalburg) — team of 5, lead SHEDINJA. Logged to badge-log.json.
 BADGE: Feather Badge (Winona, Fortree) — team of 6, lead LINOONE. Logged to badge-log.json.
 BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead GROVYLE. Logged to badge-log.json.
+Story: ROUTE116 (max L8) is fodder for a L18 team — relocating to ROUTE111 (L19-22) to train for real. 
 Story: ROUTE111 (25, 55) is not reachable from here — dropping it as a training option for the rest of this run.
 BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead BEAUTIFLY. Logged to badge-log.json.
 BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead GROVYLE. Logged to badge-log.json.
@@ -207,7 +214,13 @@ BADGE: Dynamo Badge (Wattson, Mauville) — team of 5, lead COMBUSKEN. Logged to
 BADGE: Heat Badge (Flannery, Lavaridge) — team of 5, lead BLAZIKEN. Logged to badge-log.json.
 Story: local grass (max L4) is fodder for a L39 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
 BADGE: Balance Badge (Norman, Petalburg) — team of 5, lead SHEDINJA. Logged to badge-log.json.
+Story: cannot hunt a counter — the party is full, so a catch would go to the PC box (needs #24-pc). Stopping honestly.
+Story: already hunted a counter for Winona this run (blocked: the party is full, so a catch would go to the PC box (needs #24-pc)) — not trying again; stopping honestly.
+Story: already hunted a counter for Winona this run (blocked: the party is full, so a catch would go to the PC box (needs #24-pc)) — not trying again; stopping honestly.
+Story: already hunted a counter for Winona this run (blocked: the party is full, so a catch would go to the PC box (needs #24-pc)) — not trying again; stopping honestly.
+Story: already hunted a counter for Winona this run (blocked: the party is full, so a catch would go to the PC box (needs #24-pc)) — not trying again; stopping honestly.
 BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
+Story: ROUTE116 (max L8) is fodder for a L19 team — relocating to ROUTE111 (L19-22) to train for real. 
 Story: ROUTE111 (25, 55) is not reachable from here — dropping it as a training option for the rest of this run.
 BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead BEAUTIFLY. Logged to badge-log.json.
 Story: ROUTE111 (25, 55) is not reachable from here — dropping it as a training option for the rest of this run.
@@ -244,6 +257,7 @@ Story: local grass (max L4) is fodder for a L37 team and no better area is avail
 BADGE: Balance Badge (Norman, Petalburg) — team of 6, lead SHEDINJA. Logged to badge-log.json.
 BADGE: Feather Badge (Winona, Fortree) — team of 6, lead SWAMPERT. Logged to badge-log.json.
 BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
+Story: ROUTE116 (max L8) is fodder for a L18 team — relocating to ROUTE111 (L19-22) to train for real. 
 Story: ROUTE111 (25, 55) is not reachable from here — dropping it as a training option for the rest of this run.
 BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead TAILLOW. Logged to badge-log.json.
 BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead MARSHTOMP. Logged to badge-log.json.
@@ -320,6 +334,7 @@ Story: local grass (max L4) is fodder for a L35 team and no better area is avail
 BADGE: Balance Badge (Norman, Petalburg) — team of 4, lead LOUDRED. Logged to badge-log.json.
 BADGE: Feather Badge (Winona, Fortree) — team of 5, lead LOUDRED. Logged to badge-log.json.
 BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead GROVYLE. Logged to badge-log.json.
+Story: ROUTE116 (max L8) is fodder for a L19 team — relocating to ROUTE111 (L19-22) to train for real. 
 Story: ROUTE111 (25, 55) is not reachable from here — dropping it as a training option for the rest of this run.
 BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead DUSTOX. Logged to badge-log.json.
 BADGE: Dynamo Badge (Wattson, Mauville) — team of 4, lead GROVYLE. Logged to badge-log.json.
@@ -363,11 +378,17 @@ Story: local grass (max L4) is fodder for a L38 team and no better area is avail
 Story: local grass (max L4) is fodder for a L38 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
 Story: local grass (max L4) is fodder for a L39 team and no better area is available — skipping the grind; the boss attempt itself is the training. 
 BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead GROVYLE. Logged to badge-log.json.
+Story: ROUTE116 (max L8) is fodder for a L18 team — relocating to ROUTE111 (L19-22) to train for real. 
 Story: ROUTE111 (25, 55) is not reachable from here — dropping it as a training option for the rest of this run.
 BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead BEAUTIFLY. Logged to badge-log.json.
 BADGE: Dynamo Badge (Wattson, Mauville) — team of 5, lead GROVYLE. Logged to badge-log.json.
 BADGE: Heat Badge (Flannery, Lavaridge) — team of 5, lead MIGHTYENA. Logged to badge-log.json.
 BADGE: Balance Badge (Norman, Petalburg) — team of 5, lead SHEDINJA. Logged to badge-log.json.
+Story: cannot hunt a counter — the party is full, so a catch would go to the PC box (needs #24-pc). Stopping honestly.
+Story: already hunted a counter for Winona this run (blocked: the party is full, so a catch would go to the PC box (needs #24-pc)) — not trying again; stopping honestly.
+Story: already hunted a counter for Winona this run (blocked: the party is full, so a catch would go to the PC box (needs #24-pc)) — not trying again; stopping honestly.
+Story: already hunted a counter for Winona this run (blocked: the party is full, so a catch would go to the PC box (needs #24-pc)) — not trying again; stopping honestly.
+Story: already hunted a counter for Winona this run (blocked: the party is full, so a catch would go to the PC box (needs #24-pc)) — not trying again; stopping honestly.
 BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead COMBUSKEN. Logged to badge-log.json.
 BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead BEAUTIFLY. Logged to badge-log.json.
 BADGE: Dynamo Badge (Wattson, Mauville) — team of 5, lead COMBUSKEN. Logged to badge-log.json.
@@ -375,6 +396,7 @@ BADGE: Heat Badge (Flannery, Lavaridge) — team of 5, lead COMBUSKEN. Logged to
 BADGE: Balance Badge (Norman, Petalburg) — team of 5, lead SHEDINJA. Logged to badge-log.json.
 BADGE: Feather Badge (Winona, Fortree) — team of 6, lead ZIGZAGOON. Logged to badge-log.json.
 BADGE: Stone Badge (Roxanne, Rustboro) — team of 4, lead GROVYLE. Logged to badge-log.json.
+Story: ROUTE116 (max L8) is fodder for a L18 team — relocating to ROUTE111 (L19-22) to train for real. 
 Story: ROUTE111 (25, 55) is not reachable from here — dropping it as a training option for the rest of this run.
 BADGE: Knuckle Badge (Brawly, Dewford) — team of 4, lead DUSTOX. Logged to badge-log.json.
 BADGE: Dynamo Badge (Wattson, Mauville) — team of 5, lead GROVYLE. Logged to badge-log.json.

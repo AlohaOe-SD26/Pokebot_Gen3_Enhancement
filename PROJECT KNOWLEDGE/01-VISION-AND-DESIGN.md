@@ -190,3 +190,26 @@ it.
   always tied to code with `file:line` references; explain why, not just what.
 - Enhancements should prefer extension points (plugins, bot modes, HTTP API)
   over invasive edits to upstream files, to keep upstream merges cheap.
+
+## Story bot — where the intent stands (2026-08-05)
+
+**Intent (unchanged):** a Story bot that plays Emerald from a cold start the way a person
+would — faithfully, never hanging, never silently derailing — far enough to be left running.
+
+**Reality:** it reliably reaches and beats **Winona / Gym 6, the end of built content**, at a
+**52.0% cold-start finish rate** across 8 parallel lanes. Everything past Gym 6 is unwritten.
+
+**What this week actually bought.** No new chapters. What changed is that the bot's failures
+are now *bounded and diagnosable* rather than fatal and silent:
+* three battle-path hangs that each ate a whole lane are bounded (KI-45/46/47), plus one net
+  covering the 32 unbounded loops that remain;
+* the counter chain works end to end for the first time — it catches, trains and now *fields*
+  a type counter, and a Machop has won a Norman fight;
+* a full party no longer refuses a catch (`#24-pcoverflow`).
+
+**And a correction worth keeping in the vision doc, because it shaped the design:** three
+features I added made the bot measurably *worse* and were reverted behind flags. All three
+REMOVED or RESTRICTED something and were justified by counting a behaviour's failures without
+counting its successes. The bot's own logs print failures loudly and successes quietly, so
+that asymmetry is a property of this system, not an accident. **Any future change that takes
+something away must price what it takes.**

@@ -23,6 +23,44 @@ open-vs-built sweep of all 80 open items has **not** been done.
 
 ## Now (active focus)
 
+### ‼ SESSION END 2026-08-05 — THE CURRENT TOP OF THE LIST
+Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batch 52.0%.
+
+- [ ] `#24-partycap` — **NEXT ACTION. Raise `target_size` 4 → 6, then ONE batch.**
+      `early_game.py` `target_size: int = 4` and `story_mode.py` `_catch_team_target = 4` are
+      why live runs show 4-mon teams (user-reported 2026-08-05). ‼ Only safe NOW because
+      `#24-pcoverflow` landed: a full party no longer refuses a catch. The two are coupled, so
+      one batch tests both. Read `PC — withdrawing … from the box` (never live-proven),
+      `cannot hunt a counter — the party is full` (should vanish), team size, then the funnel.
+      ‼ If team size rises but finish rate FALLS, revert the CAP, not the overflow — a deeper
+      team is not free (more to heal, more to train).
+
+- [x] `#24-pcoverflow` — **BUILT 2026-08-05** (user ruling: build the real thing, not a raised
+      constant). `resource_blocker` no longer refuses a full party (ball gate untouched);
+      `pc_trip.box_views/find_in_box/withdraw_from_box` read the PC, find a mon **by PID**, and
+      collect it at the next heal. Frees exactly ONE slot, never deposits its own target.
+      `repro_pc_overflow.py`. **NOT live-proven.**
+
+- [ ] `#24-cavethread` — **THE BLOCKER FOR ALL STORY CONTENT PAST WINONA.**
+      `_CAVE_EXITS`/`_CAVE_ENTRANCES` are SINGLE-HOP. MT_PYRE_SUMMIT is **3 warps** deep,
+      MAGMA_HIDEOUT_4F is **4**. Granite Cave B1F/B2F are already parked for this and it once
+      dropped two real-HW runs to Manual. Fixing it unparks those too. Recon:
+      `12-STORYMODE-DESIGN.md` §Ch14 + `probe_ch14_recon.py`.
+
+- [ ] `#24-mtpyre` — first chapter past Winona. 3 hops, one branch; the 2F-6F tower is a
+      skippable side dungeon. Blocked on `#24-cavethread`.
+
+- [ ] `#24-magmahideout` — **DEFERRED.** Door at JAGGED_PASS (16,18) is unreachable from the
+      ROUTE112 side (one-way ledges; a 2026-07-26 probe already failed to path there). Only
+      approach is ROUTE112 → cable car → MT_CHIMNEY → descend ⇒ ~8 warps + a scripted ride.
+
+### ‼ THREE FLAGS THAT MUST STAY `0` (each hides a MEASURED regression)
+`POKEBOT_LEAD_DEMOTE_WONDER_GUARD` (~20 pts) · `POKEBOT_AREA_ITEM_GATE` (~7 pts) ·
+`POKEBOT_PC_ROTATION` (~19 pts of the last rung). All three REMOVED something and were
+justified by counting failures without counting successes. Do not re-enable without a batch.
+
+
+
 ### ‼ READY TO APPLY THE MOMENT BATCH `20260802-160603` LANDS (~19:06 PDT 2026-08-02)
 
 - [ ] `#24-leadcounter` — **USER RULING 2026-08-02: super-effectiveness outranks raw level
