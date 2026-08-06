@@ -1391,6 +1391,19 @@ class CaveThreadMode(BotMode):
             context.set_manual_mode()
             return
 
+        # ‼ A/B ARM for the 2026-08-05 connection-step fix. `old` blinds `_connection_step` so
+        # the trip behaves exactly as it did before the change — same build, same save, one
+        # variable. (Monkeypatched rather than env-gated in production: this is a temporary
+        # experiment, not a regression flag that should live in the bot.)
+        arm = os.environ.get("CAVE_ARM", "new").strip().lower()
+        _saved_conn = None
+        if arm == "old":
+            from modules.modes.util import global_navigation as _gn
+
+            _saved_conn = _gn._connection_step
+            _gn._connection_step = lambda *a, **k: None
+        log(f"[cavethread] arm={arm}")
+
         def tracked(gen, seen):
             """Sample the avatar's map on every yield of `gen`.
 

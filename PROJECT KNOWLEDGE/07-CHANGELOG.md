@@ -7925,3 +7925,51 @@ preserves today's working cross-region journeys; removing it blind is the exact
 remove-a-behaviour-because-a-failure-is-loud move that cost this project three regressions in a
 week. Add the connection step FIRST so the fallback stops being reached, then measure whether it
 is still load-bearing.
+
+## 2026-08-05 — `#24-connstep`: the navigator can now WALK ACROSS A MAP CONNECTION as a step
+
+**The fix.** New `_connection_step()` in `modules/modes/util/global_navigation.py`. When neither
+warp picker validates a leg, it walks to a reachable tile on the **next map along
+`graph.map_route()`** — but only when that hop is a genuine map CONNECTION — then lets the loop
+re-plan. This is the connection analogue of `_staged_progress_warp`, which only ever learned the
+warp half.
+
+**LIVE A/B — same build, same save (`post_winona.ss1`), one variable** (`CAVE_ARM` monkeypatches
+`_connection_step` to `None` for the old arm):
+
+| arm | ends at | maps visited |
+|---|---|---|
+| **old** | ROUTE120 (7,56) | FORTREE_CITY, FORTREE_CITY_GYM, ROUTE120 |
+| **new** | ROUTE121 (21,5) | FORTREE_CITY, FORTREE_CITY_GYM, ROUTE120, **ROUTE121** |
+
+**The bot crosses a border it previously could not.** Repros green: `journey_planner`,
+`navigate_failfast`, `navigate_stuck`, `smashrock_battle_wedge`, `smashrock_parked_script`,
+`cave_exit_table`, `watchdog_budget_collision`.
+
+### Two design choices, both deliberate
+* **It sits AFTER both warp pickers and BEFORE the unvalidated `region_route[0]` branch**, so
+  that branch stops being REACHED rather than being deleted. Its comment claims it keeps working
+  cross-region journeys alive; that claim is untested either way, and deleting a behaviour
+  because its failure is loud is what cost three regressions in one week. Leave it.
+* **It never offers a WARP TILE** as the step target (walking onto one fires it), and it counts
+  against `legs_taken` so an oscillation between two maps stays bounded.
+
+### ‼ NOT DONE — the honest limits
+* **NOT batch-validated.** Live A/B only, exactly like KI-43/KI-44 shipped. `navigate_to_anywhere`
+  is used everywhere, so a batch must run before this is trusted or promoted.
+* **Tile choice is a coarse lattice** — the first walkable, non-warp, `calculate_path`-validated
+  sample. It is not aimed at the onward route, so it can land somewhere with less onward
+  reachability than an ideal tile. No stranding was observed (ROUTE121 (21,5) is in a broad open
+  corridor, not an island), but it is a real weakness worth revisiting.
+* **Mt. Pyre is still not reachable** — the journey now dies one border later, at
+  **ROUTE121 → ROUTE122**, which is an open-water SURF crossing.
+
+### ‼ NEXT — and do NOT repeat my error here
+`calculate_path` from ROUTE121 (21,5) failed to ROUTE122 (22,29)/(10,10)/(20,20) **and** to
+LILYCOVE_CITY (20,20). I briefly read that as "nothing is reachable, the bot is stranded" —
+**wrong**: those target tiles were picked arbitrarily and may simply be WALLS or water. The
+Route 121 dump shows (21,5) sits in a wide open corridor.
+**Re-run the check with COLLISION-VERIFIED target tiles** (take them from `mapfacts.py`, which
+prints the passability grid) before concluding anything about the surf crossing. An arbitrary
+target tile is not a measurement — that is the third time today an arbitrary tile produced a
+false negative.
