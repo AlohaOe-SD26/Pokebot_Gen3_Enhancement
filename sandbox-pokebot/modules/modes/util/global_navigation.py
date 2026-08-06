@@ -45,7 +45,7 @@ _CONNECTION_SAMPLES = 8  # per axis, so up to 64 probes
 _CONNECTION_VALIDATIONS = 6
 
 
-def _connection_step(graph, current_map, target_map, avoid_encounters, avoid_scripted_events):
+def _connection_step(graph, current_map, target_map, avoid_encounters, avoid_scripted_events, used_steps):
     """A tile to WALK TO on the next map along the route, when no WARP validates.
 
     ‼ WHY THIS EXISTS — measured 2026-08-05, Fortree -> Mt. Pyre. The journey died on
@@ -115,7 +115,7 @@ def _connection_step(graph, current_map, target_map, avoid_encounters, avoid_scr
     for y in range(1, height, step_y):
         for x in range(1, width, step_x):
             tile = (x, y)
-            if tile in warp_tiles:
+            if tile in warp_tiles or (next_map, tile) in used_steps:
                 continue
             try:
                 if not get_map_data(next_map, tile).collision:
@@ -123,10 +123,52 @@ def _connection_step(graph, current_map, target_map, avoid_encounters, avoid_scr
             except Exception:  # noqa: BLE001
                 continue
 
+    # ‼ AIM THE CHOICE AT THE ONWARD ROUTE. Taking the first walkable tile is a coin flip with a
+    # SYSTEMATIC BIAS — the lattice scans `y` from the TOP, so it favours northern tiles. That is
+    # exactly how this stranded the bot on 2026-08-05: stepping ROUTE120 -> ROUTE121 it picked
+    # (21,5) in Route 121's NORTH band, from which Route 121's own south edge is unreachable,
+    # sealing off ROUTE122 (which lies south).
+    #
+    # `map_path` gives every edge-connected map a global `offset` and a shared `level`, so
+    # candidates and the map we head for NEXT can be compared in one coordinate space. Aim at
+    # the centre of the map AFTER next (not the final target, which is usually an interior map
+    # on a different level and therefore not comparable).
+    aim = _global_aim_point(route[1]) if len(route) > 1 else None
+    if aim is not None:
+        aim_xy, aim_level = aim
+        here = _global_aim_point(next_map)
+        if here is not None and here[1] == aim_level:
+            offset_x = here[0][0] - width // 2
+            offset_y = here[0][1] - height // 2
+            candidates.sort(
+                key=lambda t: (offset_x + t[0] - aim_xy[0]) ** 2 + (offset_y + t[1] - aim_xy[1]) ** 2
+            )
+
     for tile in candidates[:_CONNECTION_VALIDATIONS]:
         if _walk_is_possible(next_map, tile, avoid_encounters, avoid_scripted_events):
+            used_steps.add((next_map, tile))
             return next_map, tile
     return None
+
+
+def _global_aim_point(map_group_and_number):
+    """`((global_x, global_y), level)` for a map's CENTRE, or None if it has no global offset.
+
+    Offsets are only comparable WITHIN a `level` (map_path assigns one per edge-connected
+    cluster), so the caller must check the levels match before comparing distances.
+    """
+    try:
+        from modules.map_path import _get_map_metadata
+
+        path_map = _get_map_metadata(tuple(map_group_and_number))
+        if path_map.offset is None:
+            return None
+        return (
+            path_map.offset[0] + path_map.size[0] // 2,
+            path_map.offset[1] + path_map.size[1] // 2,
+        ), path_map.level
+    except Exception:  # noqa: BLE001 — no opinion is always a safe answer here
+        return None
 
 
 def _walk_is_possible(
@@ -412,6 +454,10 @@ def navigate_to_anywhere(
     #: Warps already taken on THIS journey. Without it a re-plan after arriving can pick
     #: the warp straight back where it came from and ping-pong until `_MAX_LEGS`.
     used_warps: set = set()
+    #: Connection-step targets already walked to on THIS journey. Without it a re-plan that
+    #: lands back on the same map re-derives the SAME tile forever — the `used_warps` lesson
+    #: ("a deterministic picker re-picks a failed choice unless the failure is REMEMBERED").
+    used_steps: set = set()
     #: Maps we have already stood on during THIS journey. Used to deprioritise a warp that
     #: would take us somewhere we have already been — see `_staged_progress_warp`, which is
     #: where the ROUTE116 <-> RUSTURF_TUNNEL ping-pong was closed.
@@ -520,7 +566,7 @@ def navigate_to_anywhere(
             # three regressions in one week — its own comment claims it keeps working
             # cross-region journeys alive, and that claim is untested either way.
             step = _connection_step(
-                graph, current_map, target_map, avoid_encounters, avoid_scripted_events
+                graph, current_map, target_map, avoid_encounters, avoid_scripted_events, used_steps
             )
             if step is not None:
                 step_map, step_tile = step

@@ -1374,6 +1374,18 @@ class CaveThreadMode(BotMode):
 
             here = get_player_location()
             log(f"[cavethread] PATHCHECK from {here}")
+            # ‼ `calculate_path.can_surf()` gates every water tile on exactly these two, so
+            # print them: a False here makes any "unreachable" verdict about a water crossing
+            # meaningless (2026-08-05 — Route 121's south shore reads as unreachable and the
+            # question is whether that is terrain or a missing capability).
+            try:
+                from modules.memory import get_event_flag
+                from modules.pokemon_party import get_party
+
+                log(f"[cavethread] SURF-GATE BADGE05_GET={get_event_flag('BADGE05_GET')} "
+                    f"party_has_surf={get_party().has_pokemon_with_move('Surf')}")
+            except Exception as error:  # noqa: BLE001
+                log(f"[cavethread] SURF-GATE unreadable: {type(error).__name__}: {error}")
             for spec in pathcheck.split(";"):
                 mname, _, tile = spec.strip().partition(":")
                 x, _, y = tile.partition(",")

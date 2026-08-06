@@ -8012,3 +8012,47 @@ Then batch it against the **52.0%** baseline.
 with less onward reachability" as a caveat and shipped it anyway. **A caveat you can state is a
 test you can run.** The measurement that demoted this from "works" to "gated off" took four
 minutes and used a save the failing run had already written.
+
+### `#24-connstep` — aiming implemented, and it is STILL not enough. Surf is RULED OUT.
+
+**Implemented both items the previous entry demanded**, still behind `POKEBOT_CONNECTION_STEP=0`:
+1. **Aimed tile choice** — `_global_aim_point()` reads `map_path`'s per-map global `offset` and
+   `level` and sorts candidates by distance to the centre of the map AFTER next (not the final
+   target, which is an interior map on a different `level` and therefore not comparable).
+2. **`used_steps`** threaded through `navigate_to_anywhere`, so a re-plan cannot re-derive the
+   same tile — the `used_warps` lesson.
+
+**Result: it now does not cross at all.** With aiming on, the trip dies at ROUTE120 (7,56) —
+identical to the old arm. The southern ROUTE121 candidates it now prefers are **not reachable
+from ROUTE120's entry point**, so all six validations fail and it returns None.
+
+| variant | outcome |
+|---|---|
+| unaimed | crosses to ROUTE121, then **strands** in the north band |
+| **aimed** | **never crosses** — southern candidates unreachable from the entry point |
+| gate off (default) | unchanged pre-existing behaviour |
+
+### ‼ SURF IS RULED OUT AS THE CAUSE — measured, not assumed
+```
+[cavethread] SURF-GATE BADGE05_GET=True party_has_surf=True
+```
+`calculate_path.can_surf()` gates every water tile on exactly those two, and both are TRUE, so
+**surfing is permitted by the planner.** The earlier suspicion that "Route 121 → 122 needs a surf
+capability the planner lacks" is **wrong** — do not go looking for one.
+
+### ⇒ WHAT THIS ACTUALLY MEANS (the honest boundary)
+From ROUTE121 (21,5) — the north band, where the ROUTE120 connection lands — `calculate_path`
+reaches **neither ROUTE121's own south edge nor any ROUTE122 tile**, with surf allowed. So the
+north band is a genuine dead end *for this journey*, and no tile-selection heuristic inside
+`_connection_step` can fix that: the problem is not WHICH tile on Route 121, it is that the
+reachable part of Route 121 does not connect onward.
+
+**The remaining question is topological, and needs data rather than another heuristic:** the
+Route 121 dumps so far cover only x=0-46 of an **80-wide** map. The north band may join the south
+band further EAST. **Dump the full width and run a reachability sweep from (21,5)** (the
+`calculate_path`-per-sampled-tile method used for KI-39's partial-reachability figures) before
+touching `_connection_step` again.
+
+‼ **STOP TUNING THE HEURISTIC.** Two variants, two different failures, both inside the same
+unmeasured assumption — that Route 121 is traversable from where we enter it. **Measure the map
+first.** This is the "four failures, one fitted cause" shape from KI-39 in a new costume.
