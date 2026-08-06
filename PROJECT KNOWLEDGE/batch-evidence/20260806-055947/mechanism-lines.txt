@@ -1,0 +1,24 @@
+      9 Story: MAGMA EMBLEM obtained - end of built content. NEXT (WIP): the Magma hideout. Handing to man
+      4 === ENDLESS RESET: run 2/infinite -> derailed: Story: too many whiteout recoveries in a row 
+      2 derail #5: Story: global watchdog 
+      2 derail #4: Story: global watchdog 
+      2 derail #3: Story: global watchdog 
+      2 derail #2: Story: global watchdog 
+      2 === ENDLESS RESET: run 3/infinite -> finished (0 frames) ===
+      2 === ENDLESS RESET: run 3/infinite -> derailed: this boss: 6 losses with no super-effective a
+      2 === ENDLESS RESET: run 1/infinite -> derailed: this boss: 6 losses with no super-effective a
+      1 derail #1: Story: global watchdog 
+      1 === ENDLESS RESET: run 4/infinite -> derailed: Story: global watchdog 
+      1 === ENDLESS RESET: run 3/infinite -> finished (36,185 frames) ===
+      1 === ENDLESS RESET: run 3/infinite -> finished (119,565 frames) ===
+      1 === ENDLESS RESET: run 3/infinite -> derailed: Winona: 6 losses with no super-effective answ
+      1 === ENDLESS RESET: run 2/infinite -> finished (634,263 frames) ===
+      1 === ENDLESS RESET: run 2/infinite -> finished (1,519,874 frames) ===
+      1 === ENDLESS RESET: run 2/infinite -> derailed: Winona: 8 losses with no super-effective answ
+      1 === ENDLESS RESET: run 2/infinite -> derailed: Story: global watchdog 
+      1 === ENDLESS RESET: run 1/infinite -> finished (2,827,892 frames) ===
+      1 === ENDLESS RESET: run 1/infinite -> finished (2,400,995 frames) ===
+      1 === ENDLESS RESET: run 1/infinite -> finished (2,145,178 frames) ===
+      1 === ENDLESS RESET: run 1/infinite -> derailed: Winona: 9 losses with no super-effective answ
+      1 === ENDLESS RESET: run 1/infinite -> derailed: Winona: 6 losses with no super-effective answ
+      1 === ENDLESS RESET: run 1/infinite -> derailed: Story: too many whiteout recoveries in a row 

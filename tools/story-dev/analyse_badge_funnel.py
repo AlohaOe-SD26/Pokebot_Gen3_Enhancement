@@ -9,8 +9,8 @@ import pathlib
 from collections import defaultdict
 
 WINDOWS = {
-    "baseline 054fa8c6 (cap 4)": ("2026-08-05T07:56:00", "2026-08-05T11:00:00"),
-    "cap-6    be104e9c":         ("2026-08-05T12:20:57", "2026-08-05T15:21:03"),
+    "baseline 054fa8c6 (pre-MtPyre)": ("2026-08-05T07:56:00", "2026-08-05T11:00:00"),
+    "MtPyre  498eedd9":              ("2026-08-06T05:59:47", "2026-08-06T08:59:54"),
 }
 ORDER = ["Stone", "Knuckle", "Dynamo", "Heat", "Balance", "Feather"]
 

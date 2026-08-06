@@ -8159,3 +8159,47 @@ Final position: standing on `MT_PYRE_SUMMIT (23,7)`. 8 repros green.
 **No batch.** Every run that beats Winona now continues into this segment, so the endless-reset
 finish rate and run length both change. Batch against the **52.0%** baseline before treating the
 finish rate as comparable — `#24-mtpyre-batch`.
+
+## 2026-08-06 — `#24-mtpyre-batch`: Segment 14 MEASURED IN PRODUCTION. It holds.
+
+**Batch `20260806-055947`, code `498eedd9`, 8 lanes / 180.1 min, `VERDICT OK`, 32 headers
+checked, 0 emulation violations, 0 lane restarts.** Baseline: `20260805-075638` (52.0%).
+
+### ‼ SEGMENT 14 RUNS IN PRODUCTION — and completes 9 times out of 10 that reach it
+Debug logs (collected at batch end) confirm the traversal is real, not inferred:
+**`MT. PYRE` 274 mentions, `ROUTE 121` 171, `ROUTE 122` 89.**
+**9 runs finished with the Magma Emblem, against 10 runs that reached the Feather Badge — a
+~90% conversion on the new segment.** Zero `BotModeError` from either new guard
+(`Route 121:` 0, `Mt. Pyre:` 0).
+
+### ‼ THE FINISH RATE FELL 52.0% → 37.5% AND THAT IS NOT A REGRESSION
+"Finished" now REQUIRES Mt. Pyre as well as six badges, so the two numbers measure different
+things. The badge funnel — every rung of which is UPSTREAM of the new code — is the honest
+comparison, and **not one rung moved significantly:**
+
+| rung | baseline | Mt. Pyre build | |
+|---|---|---|---|
+| Stone→Knuckle | 28/31 (90%) | 29/32 (91%) | flat |
+| Knuckle→Dynamo | 24/28 (86%) | 23/29 (79%) | ns |
+| Dynamo→Heat | 22/24 (92%) | 23/23 (100%) | flat |
+| Heat→Balance | 17/22 (77%) | 19/23 (83%) | flat |
+| Balance→Feather | 13/17 (76%) | 10/19 (53%) | **z = 1.49, ns** |
+| Stone→Feather (whole) | 13/31 (42%) | 10/32 (31%) | **z = 0.88, ns** |
+
+Balance→Feather is directionally down, but it is **the Winona rung — upstream of Segment 14,
+which cannot affect it** — and `Winona: no super-effective answer to Dragon/Flying` is 4 of the
+15 non-finishes. That is the long-standing Winona weakness, not new damage.
+
+### ‼ THE WHITEOUT UPTICK IS NOT MT. PYRE'S — measured, not assumed
+`too many whiteout recoveries in a row` was the top end reason (5 of 15) and rose from 2 in the
+baseline, so I suspected the four Aqua-grunt trainers in the summit corridor. **Refuted by a
+per-run correlation:** one run logged **0 `MT. PYRE` mentions and 3 whiteouts**, while several
+runs with heavy Mt. Pyre presence (14-20 mentions) logged none. Whiteouts occur independently of
+Segment 14. Left as an open item; **do not attribute it to Mt. Pyre.**
+
+### Method note worth keeping
+Mid-batch I checked `*/debug-logs/*.log` for map names, got **zero hits**, and briefly took that
+as "runs finished without visiting Mt. Pyre". **The directories are EMPTY until the batch ends** —
+the runner collects them at teardown. That was absence of LOGS, not absence of evidence.
+‼ **Do not run map-presence checks against a live batch's `debug-logs/`.** Use `stdout.txt`
+mid-flight, and the debug logs only after `VERDICT OK`.
