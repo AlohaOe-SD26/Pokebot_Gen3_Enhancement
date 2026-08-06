@@ -3424,3 +3424,31 @@ justified by *"this can never make a journey that works now start failing"*. Lik
 `_CAVE_EXITS` comment (*"the navigator cannot cross warp levels"*), it was true when written and
 became a trap. **A justification containing "can never" or "cannot" is a claim with an expiry
 date — re-read it whenever the surrounding capability changes.**
+
+## 2026-08-05 — I wrote the caveat, then shipped past it. A caveat you can state is a test you can run.
+
+**Symptom.** `#24-connstep` (letting the navigator walk across a map connection) passed a clean
+live A/B — old arm dies on ROUTE120, new arm reaches ROUTE121 — and I committed it enabled, with
+a changelog note that the coarse tile choice "can land somewhere with less onward reachability
+than an ideal tile". **That sentence was the bug report.** Four minutes of measurement, using a
+stall save the failing run had already written, turned it from a caveat into a defect: from the
+tile the step chose, ROUTE121 (21,5), the bot cannot reach ROUTE121's OWN south edge — the
+onward route was sealed the moment it stepped.
+
+**Root cause of the bad choice.** The candidate lattice iterates `for y in range(1, height, …)`
+— from the TOP of the map. The target was SOUTH. "First walkable tile" is a coin flip with a
+systematic bias, and it lost.
+
+**The fix that worked (for now).** Gated behind `POKEBOT_CONNECTION_STEP`, default `0`, verified
+to reproduce pre-change behaviour exactly. Kept rather than reverted because the diagnosis and
+the A/B harness are worth having; the tile choice needs `map_path`'s global offsets to be aimed.
+
+‼ **Prevention rule: when you can STATE a limitation precisely, you can usually MEASURE it —
+do that before shipping, not in the changelog.** A named caveat is a hypothesis with a known
+experiment attached. Writing it down instead of running it converts a four-minute check into a
+defect that ships.
+
+‼ **Second rule — "it cannot be worse, that journey fails anyway" is scoped to THAT journey.**
+`_connection_step` runs BEFORE the unvalidated `region_route[0]` fallback, so it can divert trips
+that succeed today, across every chapter. A new branch placed ahead of an existing one is never
+purely additive, however dead the path it replaces looks on the case you are debugging.

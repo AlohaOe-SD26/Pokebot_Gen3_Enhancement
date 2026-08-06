@@ -141,7 +141,14 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       Measure `_navigate_riding_out(MT_PYRE_SUMMIT, (23,7))` FIRST — it may be the whole thing.
       ⏭ **BLOCKED ONLY ON: no post-Winona save exists.** See `#24-postwinona-save`.
 
-- [ ] `#24-connstep-batch` — **RUN A BATCH BEFORE TRUSTING `#24-connstep`.**
+- [ ] `#24-connstep` — **WRITTEN, MEASURED HARMFUL, GATED OFF (`POKEBOT_CONNECTION_STEP=0`).**
+      It crosses the ROUTE120→ROUTE121 border the old code could not, then strands the bot in
+      Route 121's north band (its own south edge is unreachable from the tile chosen). Cause:
+      the candidate lattice scans `y` from the TOP, biasing north when the target is south.
+      **Fix before enabling:** (1) aim the choice with `map_path`'s global `offset`/`level`;
+      (2) remember rejected targets (`used_warps` pattern). **Then batch it.**
+
+- [ ] `#24-connstep-batch` — **RUN A BATCH BEFORE ENABLING `#24-connstep`.**
       The connection step (shipped 2026-08-05, live A/B: old dies on ROUTE120, new reaches
       ROUTE121) has **no outcome measurement**. `navigate_to_anywhere` is used by every chapter,
       so a regression here is broad. Read the finish rate against the **52.0%** baseline
