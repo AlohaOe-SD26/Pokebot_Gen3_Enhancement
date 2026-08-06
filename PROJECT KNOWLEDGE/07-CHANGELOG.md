@@ -7810,3 +7810,36 @@ progress, not in Mt. Pyre.
 **Do NOT "fix" this by hard-coding a Route 120 waypoint.** Gateway waypoints were tried and
 refuted (KI-39, 2026-07-30). The question to answer first is why a 1-exit dead end outranked the
 real route — instrument `_staged_progress_warp`'s ranking at that decision.
+
+### ‼ CORRECTION (same day) — I OVERSTATED THE ROUTE 120 DIAGNOSIS. "Sealed pocket" is NOT established.
+
+The entry immediately above claims (7,56) sits in a **western pocket whose only exit is the
+Ancient Tomb warp**. **Retracting the "sealed" half.** It was inferred from a 17-row slice of a
+**100-row** map. Printing rows 56-99 shows the western column continues south to at least y≈68
+and the map opens eastward further down, so the terrain does **not** plainly support "sealed",
+and I am not going to defend a connectivity claim built by hand-parsing 100 rows of ASCII —
+that is precisely the error-prone recall this project has a rule against.
+
+**WHAT SURVIVES (ROM warp data, not inference):**
+* ROUTE120 is 40x100 with exactly TWO warps: `(7,55) -> ANCIENT TOMB`, `(19,23) -> SCORCHED SLAB`.
+* The bot stalled at **(7,56)**, which is **directly below the Ancient Tomb door**. Adjacency to
+  the only nearby warp remains a strong hint that warp selection walked it there.
+* ANCIENT TOMB is a sealed Regi chamber, so it is a dead end **as a destination** regardless of
+  how the bot arrived.
+
+**WHAT IS NOT ESTABLISHED:** that the bot was trapped, that staged progress chose the tomb, or
+that terrain caused the failure. ‼ **Also note the ranking code argues AGAINST the tomb having
+been chosen at all:** `_staged_progress_warp` filters any edge whose `map_distance(to_map,
+target) > here_distance`, and Ancient Tomb's only exit is back to ROUTE120, so its distance to
+MT_PYRE_SUMMIT is strictly greater — it should have been filtered before `onward_exits` ever
+mattered. A theory the code contradicts needs measurement, not more reading.
+
+**THE ACTUAL NEXT STEP — instrument, do not infer.** From `post_winona.ss1`, log inside
+`navigate_to_anywhere`: which branch is taken, the `scored` list `_staged_progress_warp` builds,
+and the exact `calculate_path` error. The surfaced error was truncated at 160 chars by the
+driver — **raise that truncation first**, the full text likely names the failing leg.
+
+‼ **Prevention rule: a terrain claim read off a PARTIAL map dump is a guess.** Print the whole
+map or say "unknown". The first version of this entry would have sent the next session hunting a
+trap that may not exist — the same failure shape as the cavethread probe earlier today, where a
+confident negative turned out to be my own instrument.

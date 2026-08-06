@@ -125,27 +125,28 @@ maps visited: FORTREE_CITY, FORTREE_CITY_GYM, ROUTE120
 by default and `_walk_is_possible` does not disable it, so the party's Surf is not being ignored
 at the API level.
 
-### ✅ ROUTE 120 (7,56) IS DIAGNOSED — a pocket, and a dead-end warp
-ROUTE120 is 40x100 with TWO warps: `(7,55) -> ANCIENT TOMB` and `(19,23) -> SCORCHED SLAB`.
-The stall tile **(7,56) is directly below the Ancient Tomb door**, inside a **western pocket**
-sealed by a wall at **x=12-17**:
-```
-y 55 .##..##W##..######...   <- W = (7,55) ANCIENT TOMB
-y 56 ..............####...   <- stranded here
-```
-**ANCIENT TOMB is a sealed Regi chamber** — a dead end needing the Braille puzzle. So staged
-progress walked the bot INTO a pocket to reach a warp that goes nowhere.
+### ROUTE 120 (7,56) — PARTIALLY diagnosed. ‼ READ THE CAVEAT.
+ROUTE120 is 40x100 with exactly TWO warps: `(7,55) -> ANCIENT TOMB` and
+`(19,23) -> SCORCHED SLAB`. The bot stalled at **(7,56) — directly below the Ancient Tomb
+door**. ANCIENT TOMB is a sealed Regi chamber, so it is a dead end as a destination.
 
-‼ **This is a `_staged_progress_warp` BUG, not a Mt. Pyre problem** — the same shape
-`#24-journey` was built for (ROUTE104 split by PETALBURG_WOODS). `onward_exits` is supposed to
-deprioritise dead ends and **Ancient Tomb has exactly ONE exit, so it should have ranked last.**
+‼ **AN EARLIER VERSION OF THIS SECTION CLAIMED (7,56) IS A SEALED POCKET. THAT IS RETRACTED** —
+it was read off a 17-row slice of a 100-row map; the western column actually continues south.
+**Do not build on "the bot was trapped".** What is established is only the warp adjacency.
 
-⏭ **NEXT, IN THIS ORDER:**
-1. **Instrument `_staged_progress_warp`'s ranking at that decision** — why did a 1-exit dead end
-   outrank the real route? ‼ Do NOT hard-code a Route 120 waypoint: gateway waypoints were tried
-   and REFUTED (KI-39, 2026-07-30).
-2. Probe `ROUTE121` alone (shorter trip, cleaner signal) before re-testing the summit.
-3. Then build the chapter per §Ch14a — the summit half is fully specified and unchanged.
+‼ **The ranking code argues AGAINST staged progress having chosen the tomb at all:**
+`_staged_progress_warp` filters edges whose `map_distance(to_map, target) > here_distance`, and
+Ancient Tomb's only exit is back to ROUTE120, so its distance to the summit is strictly greater
+— it should have been filtered before `onward_exits` mattered. **A theory the code contradicts
+needs measurement, not more reading.**
+
+⏭ **NEXT — INSTRUMENT, DO NOT INFER:**
+1. **Raise the driver's 160-char error truncation** (`story_harness.py` CaveThreadMode) — the
+   full `calculate_path` text likely names the failing leg outright. Cheapest possible step.
+2. From `post_winona.ss1`, log inside `navigate_to_anywhere`: which branch is taken, and the
+   `scored` list `_staged_progress_warp` builds at that decision.
+3. ‼ Do NOT hard-code a Route 120 waypoint — gateway waypoints were tried and REFUTED
+   (KI-39, 2026-07-30).
 
 ## AFTER THAT: §Ch14 — story content past Winona
 Full ROM-verified recon is in `12-STORYMODE-DESIGN.md` **§Ch14**; re-derive any of it with
