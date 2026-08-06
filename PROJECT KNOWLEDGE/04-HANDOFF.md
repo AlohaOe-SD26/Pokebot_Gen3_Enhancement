@@ -125,40 +125,45 @@ maps visited: FORTREE_CITY, FORTREE_CITY_GYM, ROUTE120
 by default and `_walk_is_possible` does not disable it, so the party's Surf is not being ignored
 at the API level.
 
-### ⚠ ROUTE 120 — ROOT-CAUSED, FIX WRITTEN, **GATED OFF** (`#24-connstep`)
-**Root cause:** both leg pickers dealt only in WARPS, but `ROUTE120 → ROUTE121` is a
-**CONNECTION**. With no warp to offer, control fell through to the UNVALIDATED
-`region_route[0]` branch, which handed `navigate_to` a tile two connections away that
-`calculate_path` can never span — while Route 121 sat reachable in 79 waypoints.
+### ⚠ ROUTE 120 → MT. PYRE — ROOT-CAUSED, FIX WRITTEN, **GATED OFF** (`#24-connstep`)
+**Root cause of the original failure:** both leg pickers dealt only in WARPS, but
+`ROUTE120 → ROUTE121` is a **CONNECTION**. With no warp to offer, control fell through to the
+UNVALIDATED `region_route[0]` branch, which handed `navigate_to` a tile two connections away
+that `calculate_path` can never span.
 
-**`_connection_step()`** (in `global_navigation.py`) walks to a validated non-warp tile on the
-next map along `map_route()`, then re-plans. Live A/B: old dies on ROUTE120, **new reaches
-ROUTE121**. But it then **STRANDS the bot** — from the tile it picked, ROUTE121 (21,5),
-`calculate_path` cannot reach ROUTE121's OWN south edge, let alone ROUTE122:
+`_connection_step()` (in `global_navigation.py`) walks to a validated non-warp tile on the next
+map along `map_route()`, aims the choice with `map_path`'s global `offset`/`level`, and
+remembers rejected targets via `used_steps`. **It is behind `POKEBOT_CONNECTION_STEP` (default
+`0`) and does NOT complete the journey in either variant:**
 
-| from ROUTE121 (21,5) | result |
+| variant | outcome |
 |---|---|
-| 5 collision-verified ROUTE122 tiles | all FAIL |
-| **ROUTE121 (10,19)/(20,19)/(0,19)** — its own south edge | **all FAIL** |
+| unaimed | crosses to ROUTE121, then **strands** in the north band |
+| aimed | **never crosses** — southern candidates unreachable from the entry point |
+| **gate off (default)** | **pre-existing behaviour, verified identical** |
 
-Route 121 has a north band and a south band that don't connect in the sampled region, and
-**the lattice scans `y` from the TOP — biased to NORTHERN tiles, the wrong end.**
+### ‼ SURF IS RULED OUT — measured, do not chase it
+`SURF-GATE BADGE05_GET=True party_has_surf=True`. `calculate_path.can_surf()` gates every water
+tile on exactly those two, so **surfing is permitted**. "Route 121→122 needs a surf capability
+the planner lacks" is **refuted**.
 
-**⇒ GATED behind `POKEBOT_CONNECTION_STEP` (default `0`).** Verified: gate-off reproduces the
-pre-change behaviour EXACTLY, so default behaviour is untouched. 5 navigation repros green.
-‼ Gated (not left on) because it runs BEFORE the unvalidated `region_route[0]` branch and can
-divert journeys that work today — `navigate_to_anywhere` is used by every chapter.
+### ⇒ THE REAL BOUNDARY, and it is TOPOLOGICAL
+From ROUTE121 **(21,5)** — the north band, where the ROUTE120 connection lands —
+`calculate_path` reaches **neither Route 121's own south edge nor any Route 122 tile**, with surf
+allowed. **No tile heuristic can fix that**: the problem is not WHICH tile, it is that the
+reachable part of Route 121 does not connect onward.
 
-⏭ **TO FINISH IT (both needed, then a batch):**
-1. **Aim the tile choice** using `map_path.py`'s global map `offset`/`level`
-   (`PathTile.global_coordinates`) — pick the candidate nearest the NEXT map on the route
-   instead of the first walkable one.
-2. **Remember rejected step targets** (the `used_warps` pattern) so a re-plan tries a different
-   tile rather than re-deriving the same one.
+⏭ **NEXT — MEASURE THE MAP, DO NOT TUNE THE HEURISTIC.**
+1. **Dump ROUTE121 at FULL WIDTH** — every dump so far covers only **x=0-46 of 80**. The north
+   band may join the south band further EAST.
+2. **Reachability sweep from (21,5)** (`calculate_path` per sampled tile, the method behind
+   KI-39's partial-reachability figures) to find what IS reachable.
+3. Only then decide whether `_connection_step` needs different candidates, or whether the route
+   to Mt. Pyre goes somewhere else entirely (e.g. via LILYCOVE).
 
-‼ **The surf question is still OPEN and was NOT what blocked this** — do not assume Route
-121→122 needs a planner change until it is measured from a tile that can actually reach the
-south band.
+‼ Two heuristic variants have now failed inside the same unmeasured assumption — that Route 121
+is traversable from where we enter it. **That is KI-39's "four failures, one fitted cause" shape.
+Measure before coding.**
 
 ## AFTER THAT: §Ch14 — story content past Winona
 Full ROM-verified recon is in `12-STORYMODE-DESIGN.md` **§Ch14**; re-derive any of it with

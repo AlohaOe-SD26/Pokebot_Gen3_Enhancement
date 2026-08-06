@@ -141,7 +141,18 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       Measure `_navigate_riding_out(MT_PYRE_SUMMIT, (23,7))` FIRST — it may be the whole thing.
       ⏭ **BLOCKED ONLY ON: no post-Winona save exists.** See `#24-postwinona-save`.
 
-- [ ] `#24-connstep` — **WRITTEN, MEASURED HARMFUL, GATED OFF (`POKEBOT_CONNECTION_STEP=0`).**
+- [ ] `#24-r121topology` — **DO THIS BEFORE ANY MORE NAVIGATION WORK ON MT. PYRE.**
+      From ROUTE121 (21,5) — where the ROUTE120 connection lands — `calculate_path` reaches
+      neither Route 121's own south edge nor ANY Route 122 tile, **with surf allowed**
+      (`BADGE05_GET=True`, `party_has_surf=True`, both measured). So the blocker is topological,
+      not a missing capability and not a tile-choice heuristic.
+      **(1)** Dump ROUTE121 at FULL WIDTH — every dump so far covers only x=0-46 of **80**.
+      **(2)** Reachability-sweep from (21,5) (`calculate_path` per sampled tile, the KI-39
+      method). **(3)** Then decide if the Mt. Pyre route goes via LILYCOVE instead.
+      ‼ Two `_connection_step` heuristics have already failed inside the untested assumption
+      that Route 121 is traversable from the entry point. Measure first.
+
+- [ ] `#24-connstep` — **WRITTEN, BOTH VARIANTS FAIL, GATED OFF (`POKEBOT_CONNECTION_STEP=0`).**
       It crosses the ROUTE120→ROUTE121 border the old code could not, then strands the bot in
       Route 121's north band (its own south edge is unreachable from the tile chosen). Cause:
       the candidate lattice scans `y` from the TOP, biasing north when the target is south.
