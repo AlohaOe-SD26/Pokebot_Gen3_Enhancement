@@ -1386,6 +1386,16 @@ class CaveThreadMode(BotMode):
                     f"party_has_surf={get_party().has_pokemon_with_move('Surf')}")
             except Exception as error:  # noqa: BLE001
                 log(f"[cavethread] SURF-GATE unreadable: {type(error).__name__}: {error}")
+            # ‼ Read named event flags LIVE. `mapfacts.py` dumps the map as AUTHORED, so an
+            # object it lists may be hidden at runtime — the flag is what decides. Used to
+            # settle whether Route 121's Team Aqua grunts are actually standing in the corridor.
+            for flag_name in [f for f in os.environ.get("CAVE_FLAGS", "").split(",") if f.strip()]:
+                try:
+                    from modules.memory import get_event_flag
+
+                    log(f"[cavethread] FLAG {flag_name.strip()} = {get_event_flag(flag_name.strip())}")
+                except Exception as error:  # noqa: BLE001
+                    log(f"[cavethread] FLAG {flag_name.strip()} unreadable: {error}")
             for spec in pathcheck.split(";"):
                 mname, _, tile = spec.strip().partition(":")
                 x, _, y = tile.partition(",")

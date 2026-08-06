@@ -8056,3 +8056,55 @@ touching `_connection_step` again.
 ‼ **STOP TUNING THE HEURISTIC.** Two variants, two different failures, both inside the same
 unmeasured assumption — that Route 121 is traversable from where we enter it. **Measure the map
 first.** This is the "four failures, one fitted cause" shape from KI-39 in a new costume.
+
+## 2026-08-05 — ‼‼ THE MT. PYRE BLOCKER IS A **STORY GATE**, NOT NAVIGATION. `#24-r121gate`
+
+**Route 121's north band is sealed by THREE TEAM AQUA GRUNTS standing in the only corridor
+south.** Everything else today — cave threading, ladder hops, staged progress, connection steps
+— was chasing a navigation defect that was never the cause.
+
+### The evidence chain (each step measured, none inferred)
+1. **Full-width ROUTE121 dump** (80 wide; every earlier dump showed only x=0-46 — that omission
+   is why this took so long). It reveals a vertical corridor at **x=30-31** running from y≈9 down
+   to y=15, the only link from the north band to the south band.
+2. **The corridor's top tiles are OBJECTS**: `(30,7)`, `(31,7)`, `(30,8)`, each
+   `graphics_id: OBJ_EVENT_GFX_AQUA_MEMBER_M`, `script: 0x0`, `flag:
+   FLAG_HIDE_ROUTE_121_TEAM_AQUA_GRUNTS`.
+3. **Flag identified from our own data**, not recall — `event_flags/emerald.txt:764` →
+   `914 HIDE_ROUTE_121_TEAM_AQUA_GRUNTS`.
+4. **Read LIVE from the save: `HIDE_ROUTE_121_TEAM_AQUA_GRUNTS = False`** — the grunts are
+   VISIBLE and blocking. (`mapfacts.py` shows the map as AUTHORED, so this check was required.)
+5. **`calculate_path` confirms the seal:** from ROUTE121 (21,5), corridor tiles (30,12) and
+   (31,10) are unreachable, as is Route 121's whole south edge and every ROUTE122 tile —
+   **with surf allowed** (`BADGE05_GET=True`, `party_has_surf=True`, both measured).
+
+### ‼ THE FIX IS FOUR TILES AWAY — a coord trigger, exactly like Mt. Pyre's
+`data/maps/Route121/map.json`:
+| trigger tiles | var gate | script |
+|---|---|---|
+| **(25,5) (25,6) (25,7) (25,8)** | `VAR_ROUTE121_STATE == 0` | `Route121_EventScript_AquaGruntsMoveOut` |
+
+`Route121_EventScript_AquaGruntsMoveOut` walks the three grunts off, `removeobject`s all three,
+and sets `VAR_ROUTE121_STATE = 1`. **The corridor then opens.**
+
+**And the bot was stranded at ROUTE121 (21,5) — `calculate_path` to (25,5) is `OK, 6 waypoints`.**
+It sat six steps from the trigger that unblocks the whole chapter, and no amount of navigator
+tuning could ever have found it: the pathfinder sees a wall of NPCs, not a scene to fire.
+
+### ⇒ WHAT THIS MEANS FOR THE BUILD
+The Mt. Pyre chapter is a normal hand-coded leg sequence, not a generic journey:
+1. `ROUTE121 (25,5)` — **fires the grunt trigger**; guard on `VAR_ROUTE121_STATE >= 1`.
+2. `ROUTE122 (22,30)` — the plain tile BELOW the Mt. Pyre door (never target the door itself).
+3. `MT_PYRE_1F` → `EXTERIOR` → `MT_PYRE_SUMMIT (23,7)` — the summit trigger (§Ch14a).
+Steps between directly-connected maps are what `calculate_path` handles natively, which is
+precisely why explicit legs work where "navigate to the summit" failed.
+
+‼ **`#24-connstep` stays GATED OFF.** It is not needed for this chapter and it is still
+unvalidated. The reason the generic call failed was never the missing connection step — it was
+that the destination was unreachable for a story reason.
+
+‼ **THE LESSON — and it is the biggest one of the session.** I spent hours treating an
+UNREACHABLE DESTINATION as a pathfinding defect. **When the pathfinder says "no path", ask what
+is STANDING there before asking what is wrong with the pathfinder.** A blocked corridor and a
+broken planner produce the identical error string. The distinguishing check — dump the map, look
+at the objects, read their hide flags live — costs minutes and was available from the first hour.

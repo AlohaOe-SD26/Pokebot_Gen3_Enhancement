@@ -3097,3 +3097,46 @@ and treat this as a fight-through leg**, not a clean walk.
   that `#24-partycap` broke. Route 121 → 122 pathing is unmeasured.
 * Whether the 4 grunts' sight-lines derail the ascent.
 * The scene's ride-out length (it has `fadescreen`, `msgbox`, `giveitem` and an NPC walk).
+
+## §Ch14-PRE — ROUTE 121: THE TEAM AQUA GATE (decomp + live verified 2026-08-05)
+
+**‼ THIS IS THE FIRST STEP OF THE MT. PYRE CHAPTER, AND WITHOUT IT NOTHING ELSE IS REACHABLE.**
+
+Route 121 (80x20) has a north band and a south band joined by ONE corridor at **x=30-31**.
+Three Team Aqua grunts stand in its mouth:
+
+| object | tile | graphics | script | flag |
+|---|---|---|---|---|
+| grunt 1 | (30,7) | `OBJ_EVENT_GFX_AQUA_MEMBER_M` | `0x0` | `FLAG_HIDE_ROUTE_121_TEAM_AQUA_GRUNTS` |
+| grunt 2 | (31,7) | same | `0x0` | same |
+| grunt 3 | (30,8) | same | `0x0` | same |
+
+Flag **914** (`event_flags/emerald.txt:764`). Measured LIVE on a post-Winona save:
+**`HIDE_ROUTE_121_TEAM_AQUA_GRUNTS = False`** — they are present and blocking. With them there,
+`calculate_path` cannot reach Route 121's south edge, the x=30-31 corridor, or **any** ROUTE122
+tile, **even with surf allowed** (`BADGE05_GET=True`, `party_has_surf=True`).
+
+### THE TRIGGER — walk onto it, that is all
+`data/maps/Route121/map.json`:
+```
+(25,5) (25,6) (25,7) (25,8)   var: VAR_ROUTE121_STATE == 0
+                              -> Route121_EventScript_AquaGruntsMoveOut
+```
+The script walks the three grunts away, `removeobject`s them, and sets
+**`VAR_ROUTE121_STATE = 1`**. No battle, no conversation.
+
+**Completion test:** `get_event_var("VAR_ROUTE121_STATE") >= 1` — ‼ verify the exact name
+resolves (`get_event_var` returns **-1** for an unknown name, which would make a guard never
+fire). `HIDE_ROUTE_121_TEAM_AQUA_GRUNTS` is an acceptable secondary check.
+
+### CHAPTER LEG SEQUENCE (use explicit legs, NOT one generic journey call)
+1. **`ROUTE121 (25,5)`** — fires the gate. Guard `VAR_ROUTE121_STATE >= 1`.
+2. **`ROUTE122 (22,30)`** — the plain tile directly BELOW the Mt. Pyre door at (22,29).
+   ‼ Never target (22,29) itself: walking onto a warp fires it, so a warp tile is only ever an
+   implicit destination, never an explicit one.
+3. **`MT_PYRE_1F` → `MT_PYRE_EXTERIOR` → `MT_PYRE_SUMMIT (23,7)`** — see §Ch14a.
+
+‼ **WHY EXPLICIT LEGS.** `calculate_path` spans only DIRECTLY CONNECTED maps. A single
+`navigate_to_anywhere(MT_PYRE_SUMMIT, …)` from Fortree fails because it commits to a leg two
+connections away; a chain of adjacent-map legs is exactly what the pathfinder handles natively.
+Measured from the stall position ROUTE121 (21,5): `(25,5)` is **OK, 6 waypoints**.
