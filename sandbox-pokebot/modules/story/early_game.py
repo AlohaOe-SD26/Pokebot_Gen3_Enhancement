@@ -4545,44 +4545,32 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
     # so there is no replace dialogue at all.
     #
     # ‼ A SETTLE-AND-RECHECK WOULD HAVE FIXED 0 OF 7 — they needed ~1,872 frames, not 300.
-    # The ride budget is the only correct knob. Two bounds, both required:
-    #   * `_TEACH_RIDE_HARD_CAP` — ABSOLUTE. Never "loop until progress": this generator is
-    #     re-entered by the derail dispatcher, and an unbounded-while-progressing loop is the
-    #     KI-34 shape that burned 23.9M frames.
-    #   * `_TEACH_RIDE_STALL_FRAMES` — a GENUINELY dead menu still dies fast. During all 7
-    #     failures the observable state changed every few hundred frames
-    #     (ContinueTaskAfterMessagePrints → ShowTMHMContainedMessage → CloseBagMenu →
-    #     ReplaceMoveYesNo → LearnNextMoveOrClosePartyMenu/Fanfare), so a stall counter
-    #     separates "slow but alive" from "wedged" without waiting out the hard cap.
-    # ‼ IMPORTED AT THE TOP OF THE LOOP, NOT INSIDE THE try. `get_learn_move_state` lives in
-    # `modules.battle_move_replacing`, and referencing it unimported would raise NameError
-    # INSIDE the signature's `except Exception`, silently pinning `_sig = None` and disabling
-    # the stall detector forever — a guard that looks present and does nothing. That exact
-    # shape (a bare except hiding a NameError) already cost this project two batches.
-    from modules.battle_move_replacing import get_learn_move_state
-
+    # The ride budget is the ONLY correct knob, and `_TEACH_RIDE_HARD_CAP` is ABSOLUTE: never
+    # "loop until progress", because this generator is re-entered by the derail dispatcher and
+    # an unbounded-while-progressing loop is the KI-34 shape that burned 23.9M frames.
+    #
+    # ‼‼ A STALL DETECTOR WAS TRIED HERE AND REMOVED — IT MADE THINGS WORSE. DO NOT RE-ADD.
+    # First attempt (2026-08-06) paired the hard cap with a 900-frame stall counter on a
+    # progress signature (task set ∪ learn-state ∪ the target's moves). Batch
+    # `20260806-103811` graded it against its own pre-registered target and it FAILED:
+    # `Teach flow finished but` went **7 → 8**, not to 0.
+    #
+    # WHY: the signature sits UNCHANGED through the long post-teach text scroll, so the stall
+    # counter fired at 900 frames — EARLIER than the flat 3,000 it replaced. The hard cap was
+    # never reached (9,000 comfortably exceeds the ~4,870 a Norman-tail teach needs), so the
+    # only possible early exit was the stall break. Corroborating evidence from the same batch:
+    # every SUCCESSFUL teach finishes in **35-86 frames**, and all 8 failures are Surf to an
+    # in-party 4-move mon (Swampert x5, Marshtomp x2, Linoone x1) — precisely the diagnosed
+    # case, untouched.
+    #
+    # ‼ The lesson: the diagnosis said "the ride budget is the only correct knob" and I added a
+    # second one anyway. The extra knob became the new failure. A guard added to make a fix
+    # "safer" is still a behaviour change and needs its own evidence.
     _TEACH_RIDE_HARD_CAP = 9000      # 1.85x the worst LEGITIMATE observed path (4,875)
-    _TEACH_RIDE_STALL_FRAMES = 900   # no observable change for this long ⇒ genuinely wedged
-    _stall = 0
-    _last_sig = None
     for _f in range(_TEACH_RIDE_HARD_CAP):
         if _knows() and get_game_state() is GameState.OVERWORLD and player_avatar_is_controllable():
             break
         t = _tasks()
-        # Progress signature: the task set, the learn-state machine, and the target's own
-        # moves. If ANY of these moves, the teach is alive.
-        try:
-            _sig = (tuple(sorted(t)), str(get_learn_move_state()),
-                    tuple(l.move.name for l in _mon().moves if l is not None))
-        except Exception:  # noqa: BLE001 — an unreadable signature must never end the teach
-            _sig = None
-        if _sig is not None and _sig == _last_sig:
-            _stall += 1
-            if _stall >= _TEACH_RIDE_STALL_FRAMES:
-                break  # wedged, not slow — fall through to the menus-closed guarantee
-        else:
-            _stall = 0
-            _last_sig = _sig
         if "Task_StopLearningMoveYesNo" in t:
             context.emulator.press_button("B")  # NO — never give up on the teach
         elif "Task_ReplaceMoveYesNo" in t and not _knows():

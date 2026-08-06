@@ -3557,3 +3557,37 @@ argue — find the command that reproduces BOTH numbers.** That is what resolved
 **What it nearly cost:** I had already told the user, on this false zero, that the HM-gate demand
 "measures zero" and that a roster targeting it would be unmeasurable. The real figure is ~42
 Surf-carrier hunt expeditions per batch, present in 16 of 17 stored batches.
+
+## 2026-08-06 — I added a second knob to make a fix "safer". The extra knob became the new bug.
+
+**Symptom.** `#24-hmteachloop` Fix A was graded against its own pre-registered target on batch
+`20260806-103811` and **FAILED**: `Teach flow finished but` went **7 → 8**, not to 0.
+
+**Root cause — my addition, not the original bug.** The diagnosis was correct and explicit: the
+flat `range(3000)` ride budget expired while the teach was still progressing, and *"the ride budget
+is the only correct knob."* I implemented the budget raise (9,000) **and also added a 900-frame
+stall detector** on a progress signature (task set ∪ learn-state ∪ the target's moves), reasoning
+that a genuinely wedged menu should still die fast.
+
+**The signature sits UNCHANGED through the long post-teach text scroll**, so the stall counter fired
+at 900 frames — **earlier than the 3,000 it replaced.** The hard cap was never reached (9,000 well
+exceeds the ~4,870 a Norman-tail teach needs), so the stall break was the only possible early exit.
+
+**Corroborating evidence from the same batch**, which also confirms the diagnosis was right:
+* every SUCCESSFUL teach completes in **35-86 frames** (n=40) — nowhere near any cap;
+* all 8 failures are Surf to an in-party 4-move mon — **Swampert ×5, Marshtomp ×2, Linoone ×1** —
+  exactly the case the diagnosis isolated, entirely untouched by my change.
+
+**The fix that followed:** delete the stall detector, keep the absolute 9,000 cap. Minimal, and
+exactly what the diagnosis prescribed in the first place.
+
+‼ **Prevention rule: a guard added to make a fix "safer" is itself a behaviour change and needs its
+own evidence.** I had a measured diagnosis naming ONE knob, and I shipped two. The second had no
+supporting measurement — I could not have said what a real stall looks like, because no stall had
+ever been observed. **Ship the knob the evidence names; add the safety knob only when something has
+actually failed unsafely.**
+
+‼ **Second rule — this is why the target is pre-registered BEFORE the batch.** `TEACH OK` = 40 and
+`Teach flow finished but` = 8 read, at a glance, like a mostly-working feature. Only the number
+written down in advance (**0**) made it unambiguously a failure rather than something to rationalise.
+The pre-registration did its job; I would otherwise have been tempted to call 8-vs-7 noise.

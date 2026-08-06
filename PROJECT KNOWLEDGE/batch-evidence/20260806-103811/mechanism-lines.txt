@@ -1,0 +1,13 @@
+      1 Teach flow finished but Linoone does not know Surf
+      2 Teach flow finished but Marshtomp does not know Surf
+      5 Teach flow finished but Swampert does not know Surf
+      3 duration 35
+      2 duration 36
+      5 duration 37
+      7 duration 40
+      9 duration 42
+      3 duration 44
+      2 duration 51
+      1 duration 53
+      3 duration 71
+      5 duration 86

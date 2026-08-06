@@ -1,0 +1,741 @@
+{
+  "stamp": "20260806-103811",
+  "code_commit": "5a84c2ca",
+  "bot_mode": "Story (ENDLESS RESET)",
+  "lanes": 8,
+  "runs_per_lane": 0,
+  "minutes": 180.0,
+  "started": "2026-08-06T10:38:11",
+  "ended": "2026-08-06T13:38:19",
+  "wall_minutes": 180.1,
+  "verdict": "OK",
+  "headers_checked": 33,
+  "header_violations": [],
+  "totals": {
+    "runs": 25,
+    "finished": 13,
+    "finish_rate": 0.52,
+    "global_watchdog": 2,
+    "faint_chooser_gave_up": 0,
+    "no_eligible_replacement": 1,
+    "stuck_dumps": 9034,
+    "end_reasons": {
+      "this boss: N losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable co": 3,
+      "this boss: N losses with no super-effective answer to Electric. Need one of: Ground. Grinding levels will not fix this. Nearest reachable co": 3,
+      "Story: too many whiteout recoveries in a row \u2014 stopping so I don't loop forever. Check the team/route.": 2,
+      "Winona: N losses with no super-effective answer to Dragon/Flying. Need one of: Rock, Ice, Dragon. Grinding levels will not fix this. Nearest": 2,
+      "No party mon can learn Surf and the party is full \u2014 needs PC box management (#N-pc) or a manual swap.": 1,
+      "Cannot hunt a Surf learner: no Pok\u00e9 Balls and no money to buy any.": 1
+    }
+  },
+  "lane_rows": [
+    {
+      "tag": "H1",
+      "starter": "torchic",
+      "profile": "endless-H1-torchic",
+      "runs_ended": 3,
+      "finished": 2,
+      "header_verdict": "ok",
+      "restarts": 0
+    },
+    {
+      "tag": "H2",
+      "starter": "mudkip",
+      "profile": "endless-H2-mudkip",
+      "runs_ended": 3,
+      "finished": 2,
+      "header_verdict": "ok",
+      "restarts": 0
+    },
+    {
+      "tag": "H3",
+      "starter": "treecko",
+      "profile": "endless-H3-treecko",
+      "runs_ended": 3,
+      "finished": 2,
+      "header_verdict": "ok",
+      "restarts": 0
+    },
+    {
+      "tag": "H4",
+      "starter": "random",
+      "profile": "endless-H4-random",
+      "runs_ended": 3,
+      "finished": 2,
+      "header_verdict": "ok",
+      "restarts": 0
+    },
+    {
+      "tag": "H5",
+      "starter": "torchic",
+      "profile": "endless-H5-torchic",
+      "runs_ended": 3,
+      "finished": 1,
+      "header_verdict": "ok",
+      "restarts": 0
+    },
+    {
+      "tag": "H6",
+      "starter": "mudkip",
+      "profile": "endless-H6-mudkip",
+      "runs_ended": 3,
+      "finished": 1,
+      "header_verdict": "ok",
+      "restarts": 0
+    },
+    {
+      "tag": "H7",
+      "starter": "treecko",
+      "profile": "endless-H7-treecko",
+      "runs_ended": 3,
+      "finished": 1,
+      "header_verdict": "ok",
+      "restarts": 0
+    },
+    {
+      "tag": "H8",
+      "starter": "random",
+      "profile": "endless-H8-random",
+      "runs_ended": 4,
+      "finished": 2,
+      "header_verdict": "ok",
+      "restarts": 0
+    }
+  ],
+  "lanes_detail": {
+    "H1": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 2,
+      "derailed": 1,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.667,
+      "end_reasons": {
+        "this boss: N losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable co": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 1074,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 858,
+        "BattleScript_LocalBattleLostEnd": 81,
+        "BattleScript_GotAwaySafely": 55,
+        "BattleScript_WallyBallThrow": 20,
+        "BattleScript_SuccessBallThrowEnd": 13,
+        "BattleScript_MoveEnd": 5,
+        "BattleScript_StatDownPrintString": 1
+      },
+      "derails": 16,
+      "whiteouts": 47,
+      "losses": 47,
+      "losses_by_map": {
+        "4, 1": 13,
+        "0, 25": 10,
+        "10, 0": 8,
+        "8, 1": 6,
+        "12, 1": 3,
+        "0, 27": 2,
+        "0, 34": 2,
+        "24, 12": 1,
+        "24, 4": 1,
+        "0, 31": 1
+      },
+      "battle_outcomes": {
+        "Won": 2071,
+        "RanAway": 98,
+        "Lost": 47,
+        "OpponentTeleported": 40,
+        "Caught": 19
+      },
+      "battles": 2275,
+      "flee_rate": 0.043,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 2289968
+        },
+        {
+          "run": 2,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 93318
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: this boss: 6 losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable counters: Machop (Fighting) on Jagged Pass (tile unmapped, NOT HUNTABLE, L20-22, 25% rate) \u2014 reachable; Machop (Fighting) on Fiery Path (tile (18, 19), L15-16, 15% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave (B1F) (tile unmapped, NOT HUNTABLE, L10-11, 10% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave (1F) (tile unmapped, NOT HUNTABLE, L6-10, 50% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave Steven\u2019s Room (tile unmapped, NOT HUNTABLE, L6-10, 50% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "torchic",
+      "profile": "endless-H1-torchic",
+      "debug_logs_collected": 4
+    },
+    "H2": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 2,
+      "derailed": 1,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.667,
+      "end_reasons": {
+        "Story: too many whiteout recoveries in a row \u2014 stopping so I don't loop forever. Check the team/route.": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 1295,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 787,
+        "BattleScript_LocalBattleLostEnd": 373,
+        "BattleScript_GotAwaySafely": 55,
+        "BattleScript_WallyBallThrow": 20,
+        "BattleScript_MoveEnd": 12,
+        "BattleScript_SuccessBallThrowEnd": 5,
+        "BattleScript_RanAwayUsingMonAbility": 1,
+        "BattleScript_MoveMissedPause": 1
+      },
+      "derails": 16,
+      "whiteouts": 100,
+      "losses": 101,
+      "losses_by_map": {
+        "8, 1": 70,
+        "12, 1": 5,
+        "3, 3": 4,
+        "10, 0": 3,
+        "0, 26": 3,
+        "0, 33": 3,
+        "0, 34": 2,
+        "0, 35": 2,
+        "0, 32": 2,
+        "24, 13": 1
+      },
+      "battle_outcomes": {
+        "Won": 1542,
+        "Lost": 101,
+        "RanAway": 77,
+        "OpponentTeleported": 59,
+        "Caught": 20
+      },
+      "battles": 1799,
+      "flee_rate": 0.043,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 2337548
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Story: too many whiteout recoveries in a row \u2014 stopping so I don't loop forever. Check the team/route.",
+          "bucket": "derailed",
+          "frames": 766965
+        },
+        {
+          "run": 3,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "mudkip",
+      "profile": "endless-H2-mudkip",
+      "debug_logs_collected": 4
+    },
+    "H3": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 2,
+      "derailed": 1,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.667,
+      "end_reasons": {
+        "this boss: N losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable co": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 1174,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 910,
+        "BattleScript_LocalBattleLostEnd": 102,
+        "BattleScript_GotAwaySafely": 72,
+        "BattleScript_WallyBallThrow": 20,
+        "BattleScript_SuccessBallThrowEnd": 13,
+        "BattleScript_MoveEnd": 11,
+        "BattleScript_PresentHealTarget": 1,
+        "BattleScript_HitFromAtkAnimation": 1,
+        "BattleScript_HitFromAtkString": 1,
+        "BattleScript_StatDownPrintString": 1
+      },
+      "derails": 14,
+      "whiteouts": 57,
+      "losses": 57,
+      "losses_by_map": {
+        "12, 1": 12,
+        "10, 0": 11,
+        "4, 1": 11,
+        "8, 1": 8,
+        "0, 25": 2,
+        "24, 13": 2,
+        "0, 34": 2,
+        "11, 3": 1,
+        "0, 3": 1,
+        "3, 3": 1
+      },
+      "battle_outcomes": {
+        "Won": 1727,
+        "RanAway": 136,
+        "Lost": 57,
+        "OpponentTeleported": 42,
+        "Caught": 19
+      },
+      "battles": 1981,
+      "flee_rate": 0.069,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 2226713
+        },
+        {
+          "run": 2,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 262373
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: this boss: 7 losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable counters: Machop (Fighting) on Jagged Pass (tile unmapped, NOT HUNTABLE, L20-22, 25% rate) \u2014 reachable; Machop (Fighting) on Fiery Path (tile (18, 19), L15-16, 15% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave (B1F) (tile unmapped, NOT HUNTABLE, L10-11, 10% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave (1F) (tile unmapped, NOT HUNTABLE, L6-10, 50% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave Steven\u2019s Room (tile unmapped, NOT HUNTABLE, L6-10, 50% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "treecko",
+      "profile": "endless-H3-treecko",
+      "debug_logs_collected": 4
+    },
+    "H4": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 2,
+      "derailed": 1,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.667,
+      "end_reasons": {
+        "this boss: N losses with no super-effective answer to Electric. Need one of: Ground. Grinding levels will not fix this. Nearest reachable co": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 1044,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 792,
+        "BattleScript_LocalBattleLostEnd": 102,
+        "BattleScript_GotAwaySafely": 70,
+        "BattleScript_WallyBallThrow": 20,
+        "BattleScript_SuccessBallThrowEnd": 13,
+        "BattleScript_MoveEnd": 6
+      },
+      "derails": 17,
+      "whiteouts": 60,
+      "losses": 60,
+      "losses_by_map": {
+        "0, 25": 23,
+        "10, 0": 10,
+        "8, 1": 9,
+        "0, 34": 4,
+        "12, 1": 4,
+        "0, 27": 2,
+        "24, 12": 2,
+        "11, 3": 2,
+        "3, 3": 1,
+        "24, 13": 1
+      },
+      "battle_outcomes": {
+        "Won": 1985,
+        "RanAway": 92,
+        "Lost": 60,
+        "OpponentTeleported": 57,
+        "Caught": 18
+      },
+      "battles": 2212,
+      "flee_rate": 0.042,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 2955617
+        },
+        {
+          "run": 2,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 0
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: this boss: 6 losses with no super-effective answer to Electric. Need one of: Ground. Grinding levels will not fix this. Nearest reachable counters: Trapinch (Ground) on Route 111 (tile (25, 55), L19-21, 35% rate) \u2014 reachable; Sandshrew (Ground) on Route 111 (tile (25, 55), L19-21, 35% rate) \u2014 reachable; Baltoy (Ground/Psychic) on Route 111 (tile (25, 55), L19-21, 24% rate) \u2014 reachable; Nincada (Bug/Ground) on Route 116 (tile (11, 7), L6-7, 20% rate) \u2014 reachable; Geodude (Ground/Rock) on Magma Hideout (1F) (tile unmapped, NOT HUNTABLE, L27-30, 55% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "random",
+      "profile": "endless-H4-random",
+      "debug_logs_collected": 4
+    },
+    "H5": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 1,
+      "derailed": 2,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.333,
+      "end_reasons": {
+        "No party mon can learn Surf and the party is full \u2014 needs PC box management (#N-pc) or a manual swap.": 1,
+        "this boss: N losses with no super-effective answer to Electric. Need one of: Ground. Grinding levels will not fix this. Nearest reachable co": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 975,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 806,
+        "BattleScript_LocalBattleLostEnd": 58,
+        "BattleScript_GotAwaySafely": 31,
+        "BattleScript_WallyBallThrow": 20,
+        "BattleScript_SuccessBallThrowEnd": 13,
+        "BattleScript_MoveEnd": 5,
+        "BattleScript_StatDownDoAnim": 1
+      },
+      "derails": 18,
+      "whiteouts": 44,
+      "losses": 43,
+      "losses_by_map": {
+        "4, 1": 20,
+        "10, 0": 11,
+        "0, 25": 7,
+        "12, 1": 2,
+        "0, 27": 1,
+        "32, 1": 1,
+        "0, 18": 1
+      },
+      "battle_outcomes": {
+        "Won": 2188,
+        "OpponentTeleported": 63,
+        "Lost": 43,
+        "RanAway": 32,
+        "Caught": 18
+      },
+      "battles": 2344,
+      "flee_rate": 0.014,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: No party mon can learn Surf and the party is full \u2014 needs PC box management (#24-pc) or a manual swap.",
+          "bucket": "derailed",
+          "frames": 2694410
+        },
+        {
+          "run": 2,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 0
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: this boss: 6 losses with no super-effective answer to Electric. Need one of: Ground. Grinding levels will not fix this. Nearest reachable counters: Trapinch (Ground) on Route 111 (tile (25, 55), L19-21, 35% rate) \u2014 reachable; Sandshrew (Ground) on Route 111 (tile (25, 55), L19-21, 35% rate) \u2014 reachable; Baltoy (Ground/Psychic) on Route 111 (tile (25, 55), L19-21, 24% rate) \u2014 reachable; Nincada (Bug/Ground) on Route 116 (tile (11, 7), L6-7, 20% rate) \u2014 reachable; Geodude (Ground/Rock) on Magma Hideout (1F) (tile unmapped, NOT HUNTABLE, L27-30, 55% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "torchic",
+      "profile": "endless-H5-torchic",
+      "debug_logs_collected": 4
+    },
+    "H6": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 1,
+      "derailed": 2,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.333,
+      "end_reasons": {
+        "Story: too many whiteout recoveries in a row \u2014 stopping so I don't loop forever. Check the team/route.": 1,
+        "Winona: N losses with no super-effective answer to Dragon/Flying. Need one of: Rock, Ice, Dragon. Grinding levels will not fix this. Nearest": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 1267,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 722,
+        "BattleScript_LocalBattleLostEnd": 395,
+        "BattleScript_GotAwaySafely": 79,
+        "BattleScript_WallyBallThrow": 20,
+        "BattleScript_SuccessBallThrowEnd": 10
+      },
+      "derails": 22,
+      "whiteouts": 132,
+      "losses": 133,
+      "losses_by_map": {
+        "8, 1": 60,
+        "0, 25": 38,
+        "12, 1": 10,
+        "24, 12": 6,
+        "10, 0": 5,
+        "0, 28": 2,
+        "0, 32": 2,
+        "0, 26": 2,
+        "3, 3": 1,
+        "4, 1": 1
+      },
+      "battle_outcomes": {
+        "Won": 1399,
+        "Lost": 133,
+        "RanAway": 101,
+        "OpponentTeleported": 32,
+        "Caught": 19
+      },
+      "battles": 1684,
+      "flee_rate": 0.06,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 1809295
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Story: too many whiteout recoveries in a row \u2014 stopping so I don't loop forever. Check the team/route.",
+          "bucket": "derailed",
+          "frames": 95457
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: Winona: 6 losses with no super-effective answer to Dragon/Flying. Need one of: Rock, Ice, Dragon. Grinding levels will not fix this. Nearest reachable counters: Spheal (Ice/Water) on Shoal Cave (Low Tide), Entrance Room (tile unmapped, NOT HUNTABLE, L26-32, 50% rate) \u2014 reachable; Spheal (Ice/Water) on Shoal Cave (Low Tide), Inner Room (tile unmapped, NOT HUNTABLE, L26-32, 50% rate) \u2014 reachable; Spheal (Ice/Water) on Shoal Cave (Low Tide), Lower Room (tile unmapped, NOT HUNTABLE, L26-32, 50% rate) \u2014 reachable; Spheal (Ice/Water) on Shoal Cave (Low Tide), Stairs Room (tile unmapped, NOT HUNTABLE, L26-32, 50% rate) \u2014 reachable; Graveler (Ground/Rock) on Magma Hideout (1F) (tile unmapped, NOT HUNTABLE, L30-33, 15% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 1229878
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "mudkip",
+      "profile": "endless-H6-mudkip",
+      "debug_logs_collected": 4
+    },
+    "H7": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 1,
+      "derailed": 2,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.333,
+      "end_reasons": {
+        "this boss: N losses with no super-effective answer to Electric. Need one of: Ground. Grinding levels will not fix this. Nearest reachable co": 1,
+        "Winona: N losses with no super-effective answer to Dragon/Flying. Need one of: Rock, Ice, Dragon. Grinding levels will not fix this. Nearest": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 941,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 777,
+        "BattleScript_LocalBattleLostEnd": 48,
+        "BattleScript_GotAwaySafely": 33,
+        "BattleScript_WallyBallThrow": 20,
+        "BattleScript_SuccessBallThrowEnd": 13,
+        "BattleScript_MoveEnd": 9
+      },
+      "derails": 17,
+      "whiteouts": 43,
+      "losses": 43,
+      "losses_by_map": {
+        "10, 0": 14,
+        "12, 1": 9,
+        "4, 1": 6,
+        "3, 3": 4,
+        "0, 32": 4,
+        "0, 25": 1,
+        "0, 27": 1,
+        "32, 1": 1,
+        "8, 1": 1,
+        "0, 34": 1
+      },
+      "battle_outcomes": {
+        "Won": 2319,
+        "RanAway": 55,
+        "Lost": 43,
+        "OpponentTeleported": 41,
+        "Caught": 18
+      },
+      "battles": 2476,
+      "flee_rate": 0.022,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: this boss: 6 losses with no super-effective answer to Electric. Need one of: Ground. Grinding levels will not fix this. Nearest reachable counters: Trapinch (Ground) on Route 111 (tile (25, 55), L19-21, 35% rate) \u2014 reachable; Sandshrew (Ground) on Route 111 (tile (25, 55), L19-21, 35% rate) \u2014 reachable; Baltoy (Ground/Psychic) on Route 111 (tile (25, 55), L19-21, 24% rate) \u2014 reachable; Nincada (Bug/Ground) on Route 116 (tile (11, 7), L6-7, 20% rate) \u2014 reachable; Geodude (Ground/Rock) on Magma Hideout (1F) (tile unmapped, NOT HUNTABLE, L27-30, 55% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 2305626
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Winona: 6 losses with no super-effective answer to Dragon/Flying. Need one of: Rock, Ice, Dragon. Grinding levels will not fix this. Nearest reachable counters: Geodude (Ground/Rock) on Magma Hideout (1F) (tile unmapped, NOT HUNTABLE, L27-30, 55% rate) \u2014 reachable; Geodude (Ground/Rock) on Magma Hideout (2F) 1R (tile unmapped, NOT HUNTABLE, L27-30, 55% rate) \u2014 reachable; Geodude (Ground/Rock) on Magma Hideout (2F) 2R (tile unmapped, NOT HUNTABLE, L27-30, 55% rate) \u2014 reachable; Geodude (Ground/Rock) on Magma Hideout (2F) 3R (tile unmapped, NOT HUNTABLE, L27-30, 55% rate) \u2014 reachable; Spheal (Ice/Water) on Shoal Cave (Low Tide), Entrance Room (tile unmapped, NOT HUNTABLE, L26-32, 50% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 1341001
+        },
+        {
+          "run": 3,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "treecko",
+      "profile": "endless-H7-treecko",
+      "debug_logs_collected": 4
+    },
+    "H8": {
+      "runs_started": 5,
+      "runs_ended": 4,
+      "batch_completed_naturally": false,
+      "finished": 2,
+      "derailed": 2,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.5,
+      "end_reasons": {
+        "Cannot hunt a Surf learner: no Pok\u00e9 Balls and no money to buy any.": 1,
+        "this boss: N losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable co": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 1,
+      "global_watchdog": 2,
+      "stuck_dumps": 1264,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 961,
+        "BattleScript_LocalBattleLostEnd": 113,
+        "BattleScript_GotAwaySafely": 103,
+        "BattleScript_WallyBallThrow": 25,
+        "BattleScript_MoveEnd": 6,
+        "BattleScript_SuccessBallThrowEnd": 2,
+        "BattleScript_PrintMoveMissed": 1,
+        "BattleScript_DoMultiHit": 1,
+        "BattleScript_HitFromAtkAnimation": 1
+      },
+      "derails": 25,
+      "whiteouts": 59,
+      "losses": 57,
+      "losses_by_map": {
+        "8, 1": 15,
+        "10, 0": 9,
+        "0, 25": 9,
+        "12, 1": 6,
+        "3, 3": 3,
+        "0, 26": 3,
+        "0, 34": 3,
+        "24, 12": 3,
+        "24, 22": 1,
+        "0, 32": 1
+      },
+      "battle_outcomes": {
+        "Won": 2062,
+        "RanAway": 303,
+        "OpponentTeleported": 57,
+        "Lost": 57,
+        "Caught": 19,
+        "Draw": 2
+      },
+      "battles": 2500,
+      "flee_rate": 0.121,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 3378406
+        },
+        {
+          "run": 2,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 0
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: Cannot hunt a Surf learner: no Pok\u00e9 Balls and no money to buy any.",
+          "bucket": "derailed",
+          "frames": 326329
+        },
+        {
+          "run": 4,
+          "outcome": "derailed: this boss: 6 losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable counters: Machop (Fighting) on Jagged Pass (tile unmapped, NOT HUNTABLE, L20-22, 25% rate) \u2014 reachable; Machop (Fighting) on Fiery Path (tile (18, 19), L15-16, 15% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave (B1F) (tile unmapped, NOT HUNTABLE, L10-11, 10% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave (1F) (tile unmapped, NOT HUNTABLE, L6-10, 50% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave Steven\u2019s Room (tile unmapped, NOT HUNTABLE, L6-10, 50% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 5,
+      "restarts": 0,
+      "starter": "random",
+      "profile": "endless-H8-random",
+      "debug_logs_collected": 5
+    }
+  }
+}
