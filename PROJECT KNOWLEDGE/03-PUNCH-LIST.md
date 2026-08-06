@@ -156,10 +156,40 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       "party is full" from "cannot obtain a carrier" — the exact mechanism that made the cap fatal.
       Prerequisites, in order: `#24-hmteachloop` → `#24-pcoverflow-proof` → re-baseline → slice.
 
-- [ ] `#24-rarepredicate` — **the duplicate-catch exemption (`#24-roster` ruling 3).**
-      Three OR'd rules: shiny (already works) / rare gender variant / rare species (low encounter
-      rate OR access-gated "pseudo-rare"). ‼ `Bagon` is median by rate (25%, rank 56/132) and is
-      only expressible via ACCESS GATING — possibly gated on the field-move reachability recon.
+- [ ] `#24-rarepredicate` — **the duplicate-catch exemption (`#24-roster` ruling 3). SOLVED — the
+      "pseudo-rare" axis is WARP DEPTH, and it needs no new recon.**
+      Three OR'd rules: shiny (already works) / rare gender variant / rare species.
+      **Rare species = `best_slot_rate <= 4%` OR `warp_depth >= 3`** — 26 of 132 wild species (19%).
+
+      **WARP DEPTH** = 0-1 BFS over the committed `cache/warp_graph_BPEE0.json`: seed every
+      non-underwater group-0 map at 0, connection edges cost 0, **warp edges cost 1**, take the MIN
+      over all of a species' locations. Histogram (independently reproduced 2026-08-06):
+      `d0=59 d1=21 d2=39 d3=7 d4+=3 d99=3` (d99 = no path = **Dive**-gated, deliberate — Dive edges
+      are excluded at `warp_graph.py:20`). **`depth>=3` = 13 species, ZERO false positives on
+      inspection.** Bagon = **d3** (METEOR_FALLS_B1F_2R, Surf+Waterfall); Skitty = d0 (rate rule
+      catches it at 2%).
+      **Threshold rationale: there is a CLIFF between 4% and 5%** — the 5% Safari slots add 18
+      species at once. 4% is the natural stop.
+
+      ‼ **REJECTED: the encounter-METHOD proxy** (a species available only via `surf_encounters` is
+      "Surf-gated"). Measured: 27/132 water-only species are the most UBIQUITOUS in Hoenn
+      (Magikarp 53 maps, Tentacool 38, Wailmer 33). Surf-gating is TEMPORAL, not rarity — and Bagon
+      is Grass-only anyway. Adding this axis takes the set from 26 to 61.
+      ‼ **REJECTED: `nmaps == 1`** — 62/132 (47%), half the dex.
+
+      ✅ **The field-move recon is NOT a prerequisite** — decisive. Warp depth is pure graph
+      topology off a cache the bot already loads (`get_warp_graph()`), and the predicate fires at
+      ENCOUNTER time, when the bot has by construction already cleared the gate. "Where is
+      Waterfall first required" is a routing question this filter never asks. (That recon is still
+      a real gap for `counter_plan` routing — just not for this.)
+
+      ‼ **KNOWN FALSE NEGATIVES, accepted:** **Feebas is not in the encounter index at all**
+      (`encounter_index.py:75-115` reads `gWildMonHeaders`; the 6-tile mechanic is not in that
+      table), so the most iconic pseudo-rare species can never fire this rule. Same for Beldum and
+      other gift/static/version-exclusives. Pure-sea endgame species (Luvdisc, Corsola, Staryu) are
+      structurally d0 and miss. ‼ And the cutoff is fragile at the boundary: Meteor Falls' d2 rooms
+      are ALSO Surf-gated in reality, so `>=3` earns some of its precision by luck of Bagon's room
+      being one warp deeper. Treat warp depth as a good INFERENCE, not proof of a required HM.
       Traps found: `custom_catch_filters` runs **≥2× per encounter**, so the "do I own this species"
       lookup must be cached, never a 420-slot box scan; and `is_repeat_encounter` is PID dedup, NOT
       species dedup — do not reuse or name anything near it.
