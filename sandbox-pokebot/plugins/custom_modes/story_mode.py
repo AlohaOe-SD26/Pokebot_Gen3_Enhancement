@@ -2290,6 +2290,21 @@ class StoryMode(BotMode):
             except Exception:
                 return False
 
+        def _done_var(var: str, at_least: int) -> bool:
+            # The `_done` treatment for event VARS, and it needs it MORE: `get_event_var`
+            # returns **-1** for a name that isn't in the table, so a typo does not merely
+            # read False — it reads a number that compares False against every threshold,
+            # forever, with no error. Mt. Pyre is gated on `MT_PYRE_STATE`, so a phantom name
+            # here would loop the last segment of the game silently.
+            from modules.memory import _event_vars, get_event_var
+
+            if var not in _event_vars:
+                raise BotModeError(f"Story: event-var name {var!r} is not in the table (typo/phantom name).")
+            try:
+                return int(get_event_var(var)) >= at_least
+            except Exception:
+                return False
+
         def _cur_map():
             try:
                 d = get_map_data_for_current_position()
@@ -3060,12 +3075,24 @@ class StoryMode(BotMode):
             console.print("[dim]Story: Feather Badge already earned — Gym 6 skipped.[/]")
         _guard("Gym 6 (Winona)", lambda: _done("BADGE06_GET"))
 
-        # END OF BUILT CONTENT. Next build (Ch14): Route 121 → Mt. Pyre exterior →
-        # Magma Emblem → Jagged Pass hideout → Maxie (§Ch12+ leads — decomp-verify,
-        # audit_flag_names, and probe every tile before wiring).
+        # --- Segment 14: Mt. Pyre (§Ch14-PRE + §Ch14a, built 2026-08-06). Two COORD
+        #     TRIGGERS, no conversations: Route 121's Aqua grunts move out, then the
+        #     summit scene hands over the Magma Emblem and opens the Magma Hideout. ---
+        from modules.story.early_game import do_mt_pyre_summit, open_route121_aqua_gate
+
+        if not _done_var("MT_PYRE_STATE", 1):
+            yield from open_route121_aqua_gate()
+            yield from do_mt_pyre_summit()
+        else:
+            console.print("[dim]Story: Mt. Pyre summit already done — skipping.[/]")
+        _guard("Mt. Pyre summit", lambda: _done_var("MT_PYRE_STATE", 1))
+
+        # END OF BUILT CONTENT. Next build: Magma Hideout (§Ch14 — DEFERRED: its door on
+        # JAGGED_PASS is only reachable from ABOVE, via the Route 112 cable car and a
+        # one-way descent, ~8 warps plus a scripted ride).
         context.message = (
-            "Story: FEATHER BADGE earned - end of built content. "
-            "NEXT (WIP): Mt. Pyre and the Magma hideout. Handing to manual."
+            "Story: MAGMA EMBLEM obtained - end of built content. "
+            "NEXT (WIP): the Magma hideout. Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         # ‼ Mark a GENUINE completion. Both this path and the give-up paths call

@@ -6279,3 +6279,148 @@ def do_dewford_gym() -> Generator:
         yield
     yield from _wait_until_cutscene_over("B")
     context.message = "Story: KNUCKLE BADGE earned — Gym 2 (Brawly) beaten!"
+
+
+# ---------------------------------------------------------------------------
+# Chapter 14 - Mt. Pyre: the Route 121 Aqua gate, then the summit (Magma Emblem)
+#
+# ‼ EVERY constant here is ROM- or decomp-verified (design §Ch14-PRE + §Ch14a,
+# 2026-08-05). Nothing is recalled. Re-derive with:
+#     PROBE_MAPS=ROUTE121,ROUTE122,MT_PYRE_SUMMIT py -3.12 tools/story-dev/mapfacts.py
+#     gh api repos/pret/pokeemerald/contents/data/maps/Route121/map.json
+# ---------------------------------------------------------------------------
+
+#: `Route121_EventScript_AquaGruntsMoveOut` fires here (coord_event, VAR_ROUTE121_STATE == 0).
+#: Three Team Aqua grunts at (30,7)/(31,7)/(30,8) seal Route 121's ONLY corridor south
+#: (x=30-31); the script walks them off, `removeobject`s all three and sets the var to 1.
+#: ‼ Until it fires, `calculate_path` cannot reach Route 121's south edge, the corridor, or
+#: ANY Route 122 tile - measured 2026-08-05, WITH surf available. This is a STORY gate, and
+#: hours were spent debugging the navigator before that was measured (08-MISTAKES).
+ROUTE121_AQUA_GATE_TRIGGER = (25, 5)
+
+#: The plain walkable tile DIRECTLY BELOW Mt. Pyre's door on Route 122 (the door is (22,29)).
+#: ‼ NEVER navigate to the door itself: walking onto a warp FIRES it, so a warp tile is only
+#: ever an implicit destination. Targeting one ends the trip a map further on - and reports
+#: success (08-MISTAKES 2026-08-05, hit twice).
+ROUTE122_MT_PYRE_DOOR_APPROACH = (22, 30)
+
+#: `MtPyre_Summit_EventScript_TeamAquaExits` fires here (coord_event, VAR_MT_PYRE_STATE == 0).
+#: It removes Archie + 4 grunts, walks the Old Lady over UNPROMPTED, `giveitem
+#: ITEM_MAGMA_EMBLEM`, and sets FLAG_HIDE_JAGGED_PASS_MAGMA_GUARD - which is what opens the
+#: Magma Hideout. The bot never talks to anyone. A clean vertical corridor runs x=23 from the
+#: summit entrance (23,31) up to y=7.
+MT_PYRE_SUMMIT_TRIGGER = (23, 7)
+
+
+def _route121_gate_open() -> bool:
+    """Have the Route 121 Team Aqua grunts moved out? (`VAR_ROUTE121_STATE >= 1`)
+
+    ‼ Name verified present in `modules/data/event_vars/emerald.txt:117` - `get_event_var`
+    returns **-1** for an unknown name, which would make this guard silently never fire."""
+    from modules.memory import get_event_var
+
+    return get_event_var("ROUTE121_STATE") >= 1
+
+
+def _mt_pyre_summit_done() -> bool:
+    """Has the summit scene run? (`VAR_MT_PYRE_STATE >= 1`; name verified at line 186.)
+
+    ‼ Deliberately NOT `HIDE_MT_PYRE_SUMMIT_MAXIE` (856): this project already recorded that
+    flag reading True on a save nowhere near Mt. Pyre, and the decomp explains why - 856 hides
+    an object that is only POSITIONED at state 2, a different visit."""
+    from modules.memory import get_event_var
+
+    return get_event_var("MT_PYRE_STATE") >= 1
+
+
+def open_route121_aqua_gate() -> Generator:
+    """Chapter 14a - walk onto the Route 121 trigger so the Team Aqua grunts move out.
+
+    INTENT: unseal the only corridor from Route 121's north band to its south band, which is
+    the sole land route toward Route 122 and Mt. Pyre.
+    STORY CONDITION: post-Winona, standing anywhere that can reach ROUTE121.
+    HOW IT WORKS: a COORD TRIGGER, not a conversation - step on (25,5) and the game runs
+    `Route121_EventScript_AquaGruntsMoveOut` itself.
+    GOAL/END STATE: `VAR_ROUTE121_STATE >= 1`, grunts gone, controllable."""
+    if _route121_gate_open():
+        return  # resume-safe: already done this run or a previous one
+
+    context.message = "Story: Mt. Pyre - clearing the Team Aqua grunts on Route 121..."
+    yield from _navigate_riding_out(MapRSE.ROUTE121, ROUTE121_AQUA_GATE_TRIGGER)
+    # The trigger fires ON the step, so control is taken immediately; ride the scene out.
+    yield from _ride_out_scripted_scene("B")
+    yield from wait_until_truly_controllable()
+
+    if not _route121_gate_open():
+        # ‼ Guard, never assume. A silent "no" here is indistinguishable from "the feature
+        # isn't running", which has cost this project time three times (KI-24, KI-39, KI-42).
+        raise BotModeError(
+            "Route 121: stepped on the Aqua-gate trigger at "
+            f"{ROUTE121_AQUA_GATE_TRIGGER} but ROUTE121_STATE is still 0 - "
+            "the grunts did not move out."
+        )
+    context.message = "Story: Route 121 is open - the Aqua grunts have moved out."
+
+
+def do_mt_pyre_summit() -> Generator:
+    """Chapter 14b - climb Mt. Pyre's exterior to the summit and take the Magma Emblem.
+
+    INTENT: run the summit scene, which yields the Magma Emblem and sets
+    `FLAG_HIDE_JAGGED_PASS_MAGMA_GUARD` - the gate on the Magma Hideout (§Ch14).
+    STORY CONDITION: the Route 121 gate is open (`open_route121_aqua_gate` ran).
+    HOW IT WORKS: EXPLICIT ADJACENT-MAP LEGS, not one generic journey call -
+    `calculate_path` spans only DIRECTLY CONNECTED maps, so a single
+    `navigate_to_anywhere(MT_PYRE_SUMMIT, ...)` commits to a leg two connections away and
+    fails (measured 2026-08-05). The route is ROUTE122 -> MT_PYRE_1F -> EXTERIOR -> SUMMIT.
+    ‼ The interior tower (2F-6F) is a SKIPPABLE side dungeon and is deliberately not entered.
+    GOAL/END STATE: `VAR_MT_PYRE_STATE >= 1`, Magma Emblem in the bag, controllable."""
+    if _mt_pyre_summit_done():
+        return  # resume-safe
+
+    context.message = "Story: heading for Mt. Pyre..."
+    # Leg 1 - Route 122, standing BELOW the door (never on it; a warp tile fires on contact).
+    yield from _navigate_riding_out(MapRSE.ROUTE122, ROUTE122_MT_PYRE_DOOR_APPROACH)
+
+    # Leg 2 - in through the door, then out onto the exterior, then up to the summit. Each hop
+    # is one warp, entered by NAVIGATING ONTO its tile (which is how a warp is meant to be
+    # taken); `_enter_warp_by_navigation` handles the already-standing-on-it case and rides
+    # out interruptions. Paired doorways are ROM-verified: 1F<->R122 (17,18)+(18,18),
+    # 1F<->EXTERIOR (3,6)+(4,6), EXTERIOR<->SUMMIT (19,10)+(20,10).
+    yield from _enter_warp_by_navigation(
+        lambda: _map_group_number() == MapRSE.MT_PYRE_1F.value,
+        MapRSE.ROUTE122,
+        (22, 29),
+        label="Mt. Pyre door (Route 122)",
+    )
+    yield from wait_until_truly_controllable()
+
+    yield from _enter_warp_by_navigation(
+        lambda: _map_group_number() == MapRSE.MT_PYRE_EXTERIOR.value,
+        MapRSE.MT_PYRE_1F,
+        (3, 6),
+        label="Mt. Pyre 1F to exterior",
+    )
+    yield from wait_until_truly_controllable()
+
+    yield from _enter_warp_by_navigation(
+        lambda: _map_group_number() == MapRSE.MT_PYRE_SUMMIT.value,
+        MapRSE.MT_PYRE_EXTERIOR,
+        (19, 10),
+        label="Mt. Pyre exterior to summit",
+    )
+    yield from wait_until_truly_controllable()
+
+    # Leg 3 - walk the summit corridor (x=23) up to the trigger. ‼ The four Aqua grunts stand
+    # IN this corridor at (21,15)/(21,11)/(25,18)/(25,11), so expect sight-lines: this is a
+    # fight-through leg, which `_navigate_riding_out` handles by riding out and retrying.
+    context.message = "Story: Mt. Pyre summit - climbing to the orb chamber..."
+    yield from _navigate_riding_out(MapRSE.MT_PYRE_SUMMIT, MT_PYRE_SUMMIT_TRIGGER)
+    yield from _ride_out_scripted_scene("B")
+    yield from wait_until_truly_controllable()
+
+    if not _mt_pyre_summit_done():
+        raise BotModeError(
+            f"Mt. Pyre: reached the summit trigger at {MT_PYRE_SUMMIT_TRIGGER} but "
+            "MT_PYRE_STATE is still 0 - the Team Aqua scene did not run."
+        )
+    context.message = "Story: MAGMA EMBLEM obtained - Mt. Pyre summit complete."

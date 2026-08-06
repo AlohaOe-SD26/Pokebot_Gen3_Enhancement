@@ -8108,3 +8108,54 @@ UNREACHABLE DESTINATION as a pathfinding defect. **When the pathfinder says "no 
 is STANDING there before asking what is wrong with the pathfinder.** A blocked corridor and a
 broken planner produce the identical error string. The distinguishing check — dump the map, look
 at the objects, read their hide flags live — costs minutes and was available from the first hour.
+
+## 2026-08-06 — ‼ MT. PYRE IS BUILT AND LIVE-PROVEN. First new story content past Winona.
+
+**The bot now plays past the end of previously-built content.** Two new chapter functions in
+`modules/story/early_game.py`, wired as Segment 14 in `story_mode.py` after the Gym 6 guard:
+
+* **`open_route121_aqua_gate()`** — walks onto `ROUTE121 (25,5)`, the coord trigger that runs
+  `Route121_EventScript_AquaGruntsMoveOut`. Three Team Aqua grunts sealing Route 121's only
+  corridor south move out; `VAR_ROUTE121_STATE` → 1.
+* **`do_mt_pyre_summit()`** — `ROUTE122 (22,30)` → door (22,29) → `MT_PYRE_1F (3,6)` →
+  `EXTERIOR (19,10)` → summit, then walks the x=23 corridor to `(23,7)`, the trigger that runs
+  `MtPyre_Summit_EventScript_TeamAquaExits`.
+
+### ‼ LIVE PROOF — end to end, from `post_winona.ss1`, 76,368 frames
+```
+Story: MAGMA EMBLEM obtained - end of built content.
+RUN COMPLETE — end of built content reached; the bot is idle by design, not hung.
+```
+**End state verified against the decomp**, read live from the resulting save (now committed as
+`tools/story-dev/saves/post_mtpyre.ss1`) — every flag `TeamAquaExits` sets is True:
+
+| flag | value |
+|---|---|
+| `HIDE_ROUTE_121_TEAM_AQUA_GRUNTS` | **True** (grunts moved out) |
+| `HIDE_MT_PYRE_SUMMIT_TEAM_AQUA` | **True** (summit scene ran) |
+| `RECEIVED_RED_OR_BLUE_ORB` | **True** |
+| **`HIDE_JAGGED_PASS_MAGMA_GUARD`** | **True — the Magma Hideout is now OPEN** |
+
+Final position: standing on `MT_PYRE_SUMMIT (23,7)`. 8 repros green.
+
+### Design decisions worth keeping
+* **Explicit adjacent-map legs, not one generic journey call.** `calculate_path` spans only
+  DIRECTLY CONNECTED maps, so `navigate_to_anywhere(MT_PYRE_SUMMIT, …)` from Fortree commits to
+  a leg two connections away and fails — measured repeatedly on 2026-08-05. A chain of
+  adjacent-map legs is what the pathfinder handles natively.
+* **`_done_var()` added to `story_mode.py`, mirroring `_done`'s fail-loud rule.** `get_event_var`
+  returns **-1** for an unknown name, so a typo does not read False — it reads a number that
+  compares False against every threshold, forever, silently. It now raises on a phantom name.
+  Both var names were checked against `modules/data/event_vars/emerald.txt` before use
+  (`ROUTE121_STATE` 116, `MT_PYRE_STATE` 185).
+* **Completion gated on `MT_PYRE_STATE`, never on flag 856** (`HIDE_MT_PYRE_SUMMIT_MAXIE`) —
+  this project already caught 856 reading True far from Mt. Pyre, and the decomp explains it.
+* **The 2F-6F interior tower is deliberately not entered** — a skippable side dungeon, not on
+  the critical path.
+* **Never navigate TO a warp tile.** Leg 1 targets `ROUTE122 (22,30)`, the plain tile BELOW the
+  door, because walking onto a warp fires it.
+
+### ‼ NOT DONE
+**No batch.** Every run that beats Winona now continues into this segment, so the endless-reset
+finish rate and run length both change. Batch against the **52.0%** baseline before treating the
+finish rate as comparable — `#24-mtpyre-batch`.
