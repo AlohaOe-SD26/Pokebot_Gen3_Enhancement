@@ -148,9 +148,19 @@ content`, `RUN COMPLETE`. End state read live and matching the decomp exactly:
 8 repros green. End save committed: **`tools/story-dev/saves/post_mtpyre.ss1`** — use it as the
 start point for the Magma Hideout work.
 
-‼ **NOT BATCHED.** Every run that beats Winona now continues into Segment 14, so finish rate and
-run length both change. **`#24-mtpyre-batch` is the next action** — read against the **52.0%**
-baseline (`20260805-075638`) and do not compare finish rates until it has run.
+### ‼ BATCH RUNNING — `x4-runs/20260806-055947`, code **`498eedd9`**, 8 lanes / 180 min
+Started 05:59 local, lands ~08:59. **Do NOT edit `sandbox-pokebot/` until it does.**
+This is the first batch containing Segment 14, so **finish rate and run length both change by
+construction** — every run that beats Winona now continues into Mt. Pyre.
+
+Read, in order:
+1. `Story: Route 121 is open` / `Story: MAGMA EMBLEM obtained` — does Segment 14 fire in a REAL
+   run? ‼ The live proof started from a save already past Winona; a real run approaches Route 121
+   from Fortree with a different party and position.
+2. `Mt. Pyre:` / `Route 121:` BotModeError text — the two guards name exactly what failed.
+3. Do the four summit-corridor Aqua grunts' sight-lines derail the ascent?
+4. Finish rate vs the **52.0%** baseline (`20260805-075638`) — ‼ expect it to FALL simply because
+   runs are longer now. Judge the badge funnel and Segment-14 completion, not the raw rate.
 
 ## AFTER THAT: §Ch14 — story content past Winona
 Full ROM-verified recon is in `12-STORYMODE-DESIGN.md` **§Ch14**; re-derive any of it with
