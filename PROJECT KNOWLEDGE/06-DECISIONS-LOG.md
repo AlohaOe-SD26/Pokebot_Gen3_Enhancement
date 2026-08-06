@@ -1321,3 +1321,58 @@ now. Tracked as `#24-organicteam`.
 The bot has sat at Winona = end of built content since 2026-07-30. Team depth is cosmetic;
 the cave ladder gates Mt. Pyre, Magma Hideout and everything after. Spending the next batch on
 seat allocation would repeat the pattern the 2026-08-04 ruling above was written to stop.
+
+## 2026-08-06 — `#24-roster`: USER RULINGS on the PC roster / duplicate-catch exemption
+
+Three rulings, given after a four-agent research round. Recorded so they are not re-litigated.
+
+### RULING 1 — the `#24-organicteam` GATE IS LIFTED. Build this now.
+The 2026-08-05 deferral ("once we finish mapping the story out") is **reversed knowingly**. The
+user's reason is that it is story-ENABLING infrastructure, in their words:
+> "if we implement this feature… it will help the story in the long run (less chance for failure,
+> less errors with incompatible pokemon for bosses/gym leaders or missing HMs to travel, etc…)
+> would make it easier to traverse the world mid-late game. We need this."
+
+‼ This justification is **supported by measurement**, which is why the reversal is sound rather
+than a preference: `no super-effective answer` accounts for **8 of 15 non-finishes** in batch
+`20260806-055947`, and `nobody can learn Surf — hunting…` fires **~42 times per batch** in 16 of
+17 stored batches. Both named failure classes are real and quantified.
+
+### RULING 2 — round one does NOT change catch policy (user deferred to recommendation)
+The roster operates on the catch stream the bot already produces. **No `#24-dexhunt`, no party-cap
+change, no deposit path.** Rationale: `#24-partycap` + `#24-pcoverflow` shipped together, the batch
+measured the BUNDLE, and the second is still unproven today. Catch policy gets its own round on a
+clean baseline. ‼ Note this leaves the `#24-dexhunt` ruling of 2026-07-31 INTACT — it is not
+reversed, merely not exercised.
+
+### RULING 3 — "rare" (the duplicate-catch exemption) = THREE OR'd rules
+> "Shiny, rare species (like a Male Skitty, Bagon, low encounter rate pokemon if that makes sense)"
+
+and, after being shown that Bagon is statistically median:
+> "Bagon although not considered rare per your explanation should be considered 'sudo-rare' as its
+> gated to a specific location"
+
+| rule | status |
+|---|---|
+| **shiny** | ALREADY WORKS — `StoryShinyCatchStrategy` catches duplicates into the box with a full party; both shiny paths pre-empt `custom_catch_filters`, so a duplicate rule cannot regress it |
+| **rare gender variant** ("Male Skitty") | Computable PRE-CATCH (`personality_value & 0xFF` vs `Species.gender_ratio`). ‼ Gen 3 has only **7** gender ratios, so only 4 cutoffs exist; the only one including Skitty (25.4%) admits **86 species** |
+| **rare species** | TWO sub-rules OR'd: **low encounter rate** (Skitty 2%, rank 11/132 — expressible) **OR access-gated / "pseudo-rare"** (Bagon 25%, rank 56/132 — NOT expressible by rate; rare because its only location is `METEOR_FALLS_B1F_2R` L25-35 behind Surf+Waterfall) |
+
+‼ **The "pseudo-rare" ruling introduces a new dimension: ACCESS GATING, not scarcity.** It likely
+makes the unresearched "where is each field move first required" recon a PREREQUISITE for that
+sub-rule — under investigation. The encounter METHOD may be a cheap sufficient proxy (a species
+available only via `surf_encounters` is Surf-gated by definition).
+
+**Rejected: a single composite rarity score.** The three kinds have different data sources and
+different failure modes, and with the two example species at ranks 11 and 56 of 132, no single
+score ranks both above a common species without ranking half the dex above it. OR'd rules also
+each log WHICH rule fired, which a composite cannot — and opacity of exactly this kind has already
+cost this project a diagnosis.
+
+### Sequencing agreed
+1. `#24-hmteachloop` FIRST — `teach skipped` fires **611×/24 runs (~25/run)**; it burns frames and
+   contaminates every HM counter that would serve as a baseline.
+2. Live-prove `#24-pcoverflow`'s withdraw path IN ISOLATION (`withdrawing` = **0** to date).
+3. Re-baseline one clean batch (the 52.0% baseline predates Mt. Pyre).
+4. Then the slice — serving BOTH targets, since the withdraw primitive is identical for an HM
+   carrier and a type counter.

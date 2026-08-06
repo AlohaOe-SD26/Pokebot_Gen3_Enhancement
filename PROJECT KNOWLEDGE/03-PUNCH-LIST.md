@@ -143,6 +143,27 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
 - [x] `#24-mtpyre-log` — **DONE 2026-08-06.** Segment 14's five milestones now `console.print`
       (`_ch14_say`), so a mid-way failure leaves a trail in batch stdout. Frame count identical.
 
+- [ ] `#24-roster` — **APPROVED 2026-08-06, gate LIFTED. The PC-roster feature.**
+      Catch overflow into the box + withdraw on demand, so the bot can field type counters and HM
+      carriers it could not otherwise hold. **Rulings + rationale: `06-DECISIONS-LOG.md` 2026-08-06.**
+      Measured targets: `no super-effective answer` = **8 of 15 non-finishes**;
+      `nobody can learn Surf — hunting…` = **~42/batch in 16 of 17 batches**.
+      ‼ Round one changes NO catch policy, NO party cap, and adds NO deposit path
+      (`POKEBOT_PC_ROTATION` stays pinned at 0 — it cost ~1 team member/run and a 5.4% VOID batch).
+      ‼ **KEY INSIGHT: the roster is the missing PRECONDITION for `#24-partycap`, not a competitor.**
+      At cap 4 the bot hunts a Surf carrier successfully (42×/batch, costly); at cap 6 the identical
+      need became a hard derail (127×) and the batch collapsed 52.0% → 15.8%. A roster decouples
+      "party is full" from "cannot obtain a carrier" — the exact mechanism that made the cap fatal.
+      Prerequisites, in order: `#24-hmteachloop` → `#24-pcoverflow-proof` → re-baseline → slice.
+
+- [ ] `#24-rarepredicate` — **the duplicate-catch exemption (`#24-roster` ruling 3).**
+      Three OR'd rules: shiny (already works) / rare gender variant / rare species (low encounter
+      rate OR access-gated "pseudo-rare"). ‼ `Bagon` is median by rate (25%, rank 56/132) and is
+      only expressible via ACCESS GATING — possibly gated on the field-move reachability recon.
+      Traps found: `custom_catch_filters` runs **≥2× per encounter**, so the "do I own this species"
+      lookup must be cached, never a 420-slot box scan; and `is_repeat_encounter` is PID dedup, NOT
+      species dedup — do not reuse or name anything near it.
+
 - [ ] `#24-hmteachloop` — **USER-REPORTED 2026-08-06. Real bug, wastes frames and looks buggy.**
       > "the hm learning feature works but it still loops trying to teach/get out of the teaching
       > cycle after it teaches an hm"
