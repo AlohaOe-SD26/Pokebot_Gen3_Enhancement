@@ -1409,7 +1409,7 @@ class StoryMode(BotMode):
                 attempts.append(f"{candidate['species_name']}@{map_enum.name}: known-unreachable")
                 continue
             try:
-                slot = yield from counter_hunt.hunt(candidate, needed)
+                caught = yield from counter_hunt.hunt(candidate, needed)
             except UnreachableDestinationError as error:
                 # ‼ A NAVIGATION failure is CHEAP (255 frames, fail-fast) and specific to
                 # ONE place, so it earns a fallback rather than ending the ladder. Record
@@ -1421,7 +1421,7 @@ class StoryMode(BotMode):
                     f"({error}) — trying the next counter destination.[/]"
                 )
                 continue
-            if slot is None:
+            if caught is None:
                 # ‼ ARRIVED AND CAUGHT NOTHING IS NOT THE SAME FAILURE, and must NOT
                 # fall through to another destination. It already cost a full
                 # HUNT_SPIN_BUDGET_FRAMES (120,000); doing it again somewhere else would
@@ -1441,18 +1441,42 @@ class StoryMode(BotMode):
             # was ALWAYS empty and `#24-leadcounter` could never fire. Batch8 printed
             # `hunted_pids=0` on all 684 lead decisions, which is how it was finally caught.
             # A bare `except Exception` around bookkeeping hid a plain typo for two batches.
-            from modules.pokemon_party import get_party as _gp_counter
+            # ‼ `hunt()` returns a DICT since 2026-08-06: {"slot": int|None, "pid": int}.
+            # `slot is None` means the party was FULL and the catch went to the PC box.
+            slot = caught.get("slot")
+            pid = caught.get("pid")
 
-            try:
-                _caught = _gp_counter()[slot]
-                if _caught is not None:
-                    self._hunted_counter_pids.add(_caught.personality_value)
-                    console.print(
-                        f"[dim]Story: counter registered (pid={_caught.personality_value:08X}); "
-                        f"it will lead this boss and is protected from PC deposit.[/]"
-                    )
-            except Exception as _err:  # noqa: BLE001 - never let bookkeeping break the chain
-                console.print(f"[yellow]Story: could not register the counter ({_err!r}).[/]")
+            # Register by PID for BOTH cases. This is what `#24-leadcounter` reads so the lead
+            # picker fields the counter, AND what `pc_trip.withdraw_from_box` is gated on, so a
+            # boxed catch is collected at the next heal. Registered BEFORE training: training
+            # can evolve it (Machop -> Machoke at L28, 8x in batch5) and can derail; the PID
+            # survives both.
+            # ‼ The old version indexed `get_party()[slot]` here and raised NameError because
+            # `get_party` was not in scope — the broad `except` swallowed it, the registry was
+            # ALWAYS empty, and `#24-leadcounter` could never fire. Batch8 printed
+            # `hunted_pids=0` on all 684 lead decisions. That is why the PID now comes from
+            # `hunt()` itself rather than being re-derived here.
+            if pid is not None:
+                self._hunted_counter_pids.add(pid)
+                where = "party" if slot is not None else "PC box"
+                console.print(
+                    f"[dim]Story: counter registered (pid={pid:08X}, in the {where}); "
+                    f"it will lead this boss and is protected from PC deposit.[/]"
+                )
+            else:
+                console.print("[yellow]Story: counter caught but its PID was unreadable — "
+                              "it will not be preferred as lead.[/]")
+
+            if slot is None:
+                # ‼ A BOXED COUNTER CANNOT BE TRAINED — it earns no XP in the PC. Skip rung 3
+                # rather than calling `train_counter(None, ...)`. The withdraw at the next heal
+                # puts it in the party; it arrives UNTRAINED, which is a known gap and is worth
+                # strictly more than the old behaviour (refuse the catch, end the run).
+                console.print(
+                    "[yellow]Story: the counter is in the PC box — skipping training; it is "
+                    "collected at the next heal. (Boxed mons gain no XP.)[/]"
+                )
+                return True
             yield from counter_hunt.train_counter(slot, cfg)
             return True
 
@@ -1870,10 +1894,24 @@ class StoryMode(BotMode):
                 from modules.pokemon_party import get_party as _gp_c
 
                 sp = getattr(getattr(encounter, "pokemon", None), "species", None)
+                # ‼ NO `party < 6` GATE HERE — deliberately, and unlike the HM branch above
+                # (`#24-pcoverflow` break 2, wired 2026-08-06). A catch with a full party is
+                # FULLY AUTOMATIC in Emerald: `Cmd_givecaughtmon` -> `GiveMonToPlayer` ->
+                # `CopyMonToPC`, no prompt, no input, deterministic destination box. The shiny
+                # branch at the top of this method already relies on exactly that.
+                #
+                # The old gate is why this feature never fired: the hunt would travel across
+                # Hoenn, arm the target, spin the full 120,000-frame budget, and REFUSE the
+                # catch — reporting "found nothing" while standing next to the answer. With
+                # 14 boxes x 30 = 420 slots against ~202 species, overflow is not a real risk;
+                # and if the PC ever were full the game simply refuses to throw the ball
+                # (`gText_BoxFull`), which is a no-op, not a lost Pokémon.
+                #
+                # ‼ The BALL gate stays. Never attempt a catch without a spare — that is the
+                # resource rule `resource_blocker` enforces, and it is unrelated to party space.
                 if (
                     sp is not None
                     and sp.national_dex_number in _chunt.COUNTER_CATCH_TARGET_DEX
-                    and len([m for m in _gp_c() if m is not None]) < 6
                     and sum(sl.quantity for sl in get_item_bag().poke_balls) > 1
                 ):
                     # ‼ LOCAL IMPORT REQUIRED — the same trap that silently ate the HM

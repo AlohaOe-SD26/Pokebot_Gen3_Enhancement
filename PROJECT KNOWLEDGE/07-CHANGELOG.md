@@ -8338,3 +8338,62 @@ either mistake would return None and read as "no counter in the box".
 
 **Next:** wire Break 2 — allow the full-party catch, make the hunt's success test see a box catch,
 and register the boxed PID so the existing withdraw path collects it at the next heal.
+
+## 2026-08-06 — `#24-pcoverflow` BREAK 2 WIRED. A full party now overflows to the box and is collected.
+
+With break 1 fixed (`box_views` raised `TypeError`), this closes the other half. Three connected
+changes, one behaviour:
+
+**1. The counter catch-on-sight branch no longer requires `party < 6`** (`story_mode.py`). The
+ball gate stays — that is a resource rule, unrelated to party space. A full-party catch is fully
+automatic in Emerald (`Cmd_givecaughtmon` → `GiveMonToPlayer` → `CopyMonToPC`, no prompt), the
+shiny branch already relies on it, and 14×30 = 420 slots vs ~202 species means overflow is not a
+real risk. If the PC ever were full the game refuses to throw the ball — a no-op, not a loss.
+
+**2. `counter_hunt.hunt()` can now SEE a box catch.** It snapshots `_box_count()` and `_box_pids()`
+before spinning; `_stop()` treats a box-count increase as success. New `box_counter_pid()` is the
+box-side twin of `party_counter_slot`, keyed on **PID** because box indices shift.
+‼ The PID snapshot is load-bearing: without it a counter stored by an EARLIER boss would be
+reported as this hunt's catch and the ladder would "succeed" having caught nothing.
+
+**3. Return contract widened** (one call site, so this is cheap and explicit):
+`{"slot": int, "pid": int}` party catch · `{"slot": None, "pid": int}` box catch · `None` nothing.
+A dict rather than a sentinel int, because a boxed catch has no party slot and a sentinel would be
+indexed eventually.
+
+**4. The caller registers the PID for BOTH cases** and, for a boxed catch, **skips training** —
+a boxed mon earns no XP. It is collected at the next heal by `pc_trip.withdraw_from_box`, arriving
+UNTRAINED. That is a known gap and still strictly better than the old behaviour, which was to
+refuse the catch and end the run.
+
+### ‼ THE REPRO CAUGHT THE CONTRACT CHANGE, AND THEN CAUGHT A LATENT BUG
+`repro_counter_hunt` failed with `'int' object has no attribute 'get'` — the stub still returned a
+bare slot. Correct behaviour from the suite. Then, with the stub fixed, it failed again:
+`stand-in 'self' has no '_hunted_counter_pids'`.
+
+‼ **That attribute was ALWAYS missing from the stub, and nothing noticed** — because the old
+registration sat inside a broad `except Exception` that swallowed the `AttributeError`. It is the
+same shape that made the registry always empty in production (batch8 printed `hunted_pids=0` on
+**all 684** lead decisions). Moving the registration OUT of the try surfaced it immediately.
+**A bare `except` around bookkeeping does not protect the feature; it hides whether the feature
+exists at all.**
+
+### Test changes, both deliberate
+* **Case 12 INVERTED**: was *"a FULL party is not counter-caught"* — the rule that made the whole
+  feature dead. Now asserts the catch DOES happen and overflows. This is a behaviour change with a
+  batch to grade it, not a test bent to pass.
+* **New cases 19b/19c/19d**: a boxed catch succeeds and does **not** train; its PID **is**
+  registered (what `withdraw_from_box` is gated on); a party catch still trains and still registers.
+
+7 repros green (`counter_hunt`, `pc_overflow`, `counter_huntable`, `counter_training_budget`,
+`team_policy`, `survival_mode`, `hm_move_replace_loop`).
+
+### ‼ NOT YET PROVEN LIVE — the pre-registered grade
+No run has caught into a box and collected it. **Next batch must show:**
+| counter | now | ship if |
+|---|---|---|
+| `withdrawing` | **0** | **≥1** — the primitive finally executes |
+| `INTO THE PC BOX` (new) | n/a | ≥1 — the catch path fires |
+| `no super-effective answer` (non-finishes) | **8 of 12** | ≤5 of 12 |
+| **mean team size at Feather** | **~5.80** | **≥5.7 — the `#24-pc` canary; it fell 5.8→4.5 there** |
+Also still owed on that batch: `Teach flow finished but` **8 → 0** (`#24-hmteachloop`).

@@ -174,6 +174,13 @@ def make_mode() -> "_Mode":
     # The ladder records unreachable destinations so nothing re-walks them this run
     # (#24-regionreach). Bind the REAL helpers, not stubs — they are part of the bound.
     mode._training_unreachable = set()
+    # ‼ `#24-leadcounter` / `#24-pcoverflow`: the ladder registers the caught counter's PID here,
+    # and `pc_trip.withdraw_from_box(pids)` is gated on it. This was MISSING from the stub and
+    # nothing noticed, because the old registration sat inside a broad `except Exception` that
+    # swallowed the AttributeError — the same shape that made the registry always empty in
+    # production (batch8: `hunted_pids=0` on all 684 lead decisions). The registration is now
+    # outside that try, so a missing attribute fails loudly here instead of silently there.
+    mode._hunted_counter_pids = set()
     mode._counter_ladder = lambda cfg, losses, needed: sm.StoryMode._counter_ladder(
         mode, cfg, losses, needed
     )
@@ -192,7 +199,8 @@ def drive(gen):
         return stop.value
 
 
-def run_ladder(mode, *, candidates=MACHOP, hunt_result=0, planner_raises=False,
+def run_ladder(mode, *, candidates=MACHOP, hunt_result={"slot": 0, "pid": 0xAABBCCDD},
+               planner_raises=False,
                blocker="__none__", hunt_raises=False, trained=True,
                unreachable_maps=(), extra=()):
     """Drive the REAL `_counter_ladder` with the planner/hunt/trainer stubbed."""
@@ -213,6 +221,12 @@ def run_ladder(mode, *, candidates=MACHOP, hunt_result=0, planner_raises=False,
             raise UnreachableDestinationError(
                 f"Could not reach {candidate['hunt_tile']} on {candidate['map_enum'].name}"
             )
+        # ‼ CONTRACT (changed 2026-08-06, `#24-pcoverflow` break 2): `hunt()` returns
+        # `{"slot": int|None, "pid": int}` or None — NOT a bare slot int. `slot is None`
+        # means the party was full and the catch went to the PC box, which is a SUCCESS and
+        # must skip training (a boxed mon earns no XP). This stub returning an int is what
+        # caught the contract change: the caller does `.get`, so an int raises
+        # AttributeError. Keep it a dict.
         return hunt_result
         yield  # pragma: no cover - makes this a generator
 
@@ -345,6 +359,24 @@ check("19. ‼ ARRIVED-but-caught-nothing does NOT cascade to another destinatio
       f"spin must not")
 
 fresh = make_mode()
+acted, calls = run_ladder(fresh, hunt_result={"slot": None, "pid": 0x1234ABCD})
+check("19b. ‼ A BOXED catch (party full) SUCCEEDS and does NOT train",
+      acted is True and calls["train"] == 0,
+      f"acted={acted} train_calls={calls['train']} — a boxed mon earns no XP, so rung 3 must "
+      f"be skipped; but the hunt still succeeded, so the ladder must return True")
+check("19c. ‼ the BOXED counter's PID is registered (this is what withdraw_from_box is gated on)",
+      0x1234ABCD in fresh._hunted_counter_pids,
+      f"_hunted_counter_pids={[hex(x) for x in fresh._hunted_counter_pids]} — without the PID "
+      f"the catch is unusable: pc_trip.withdraw_from_box(pids) can never collect it")
+
+fresh = make_mode()
+acted, calls = run_ladder(fresh, hunt_result={"slot": 2, "pid": 0x5678BEEF})
+check("19d. a PARTY catch still trains, and still registers its PID",
+      acted is True and calls["train"] == 1 and 0x5678BEEF in fresh._hunted_counter_pids,
+      f"acted={acted} train_calls={calls['train']} "
+      f"pids={[hex(x) for x in fresh._hunted_counter_pids]}")
+
+fresh = make_mode()
 acted, calls = run_ladder(fresh, blocker="the party is full", extra=[NINCADA])
 check("20. a RESOURCE wall stops the ladder outright (no point walking elsewhere)",
       acted is False and calls["walked"] == [], f"walked {calls['walked']}")
@@ -395,8 +427,17 @@ check("10. armed + target + room + spare ball -> StoryCatchStrategy",
       is_catch(battle_started(66)), type(battle_started(66)).__name__)
 check("11. a NON-target species is not counter-caught",
       not is_catch(battle_started(261)), type(battle_started(261)).__name__)
-check("12. a FULL party is not counter-caught",
-      not is_catch(battle_started(66, party_size=6)))
+# ‼ CASE 12 WAS INVERTED ON PURPOSE (2026-08-06, `#24-pcoverflow` break 2). It used to assert
+# "a FULL party is NOT counter-caught", and that rule is exactly what made the feature dead: the
+# hunt travelled across Hoenn, armed the target, spun the full 120,000-frame budget and then
+# REFUSED the catch. A catch with a full party is fully automatic in Emerald
+# (`GiveMonToPlayer` -> `CopyMonToPC`, no prompt), the shiny branch already relies on it, and
+# `withdraw_from_box` collects the mon at the next heal.
+# This is a DELIBERATE behaviour change with a batch to grade it — not a test bent to pass.
+check("12. ‼ a FULL party IS counter-caught (it overflows to the PC box)",
+      is_catch(battle_started(66, party_size=6)),
+      f"{type(battle_started(66, party_size=6)).__name__} — refusing here is what kept "
+      f"`withdrawing` at 0 in every batch")
 check("13. the RESERVE ball is not spent (balls == 1)",
       not is_catch(battle_started(66, balls=1)))
 check("14. disarmed -> not counter-caught", not is_catch(battle_started(66, armed_dex=())))

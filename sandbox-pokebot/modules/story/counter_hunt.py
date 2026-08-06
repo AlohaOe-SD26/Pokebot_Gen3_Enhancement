@@ -166,6 +166,28 @@ def _box_count() -> int:
         return -1  # unreadable -> callers treat as "no change"
 
 
+def _box_pids() -> frozenset:
+    """Every personality value currently in the PC. Used to snapshot the box BEFORE a hunt so
+    a pre-existing stored mon cannot be mistaken for this hunt's catch.
+
+    Returns an EMPTY set when unreadable — combined with `_box_count()`'s -1, an unreadable PC
+    means the box path simply never claims a success. Both fail toward "do less".
+    """
+    out = set()
+    try:
+        from modules.pokemon_storage import get_pokemon_storage
+
+        for box in get_pokemon_storage().boxes:
+            for slot in box.slots or []:
+                mon = getattr(slot, "pokemon", None)
+                pid = getattr(mon, "personality_value", None) if mon is not None else None
+                if pid is not None:
+                    out.add(pid)
+    except Exception:
+        return frozenset()
+    return frozenset(out)
+
+
 def box_counter_pid(needed_type_names, exclude_pids=frozenset()) -> "int | None":
     """PERSONALITY VALUE of a mon IN THE PC whose own type answers the boss, or None.
 
@@ -261,8 +283,18 @@ def hunt_blockers(candidate) -> "str | None":
 def hunt(candidate, needed_type_names) -> Generator:
     """Travel to `candidate`'s hunting ground and spin until one is caught.
 
-    Returns the party slot of the catch, or None if the hunt ran out of budget. Raises
-    nothing that the caller has not already been given a chance to avoid — check
+    ‼ RETURN CONTRACT CHANGED 2026-08-06 (`#24-pcoverflow` break 2). Was a bare party slot
+    (`int | None`); is now `dict | None`:
+        `{"slot": int,  "pid": int}`   caught into the PARTY  — train it, as before
+        `{"slot": None, "pid": int}`   caught into the PC BOX — party was full; the PID is
+                                       registered and `pc_trip.withdraw_from_box` collects it
+                                       at the next heal. It CANNOT be trained while boxed.
+        `None`                         the hunt ran out of budget and caught nothing.
+    The dict is deliberate rather than a magic slot value: a boxed catch has no party slot, and
+    a sentinel int would be indexed by the caller sooner or later. There is exactly one caller
+    (`StoryMode._counter_ladder`), so widening the contract is cheap and explicit.
+
+    Raises nothing that the caller has not already been given a chance to avoid — check
     `hunt_blockers` first.
 
     ‼ Shape cloned from `early_game.ensure_hm_learner`, which is the working precedent
@@ -313,6 +345,13 @@ def hunt(candidate, needed_type_names) -> Generator:
     yield from _navigate_riding_out(map_enum, tile, tries=24)
 
     before = _party_count()
+    # ‼ SNAPSHOT THE BOX TOO (`#24-pcoverflow` break 2, 2026-08-06). With a full party the
+    # catch lands in the PC and `_party_count()` never moves, so the old party-only test
+    # reported "found nothing" while the counter sat in box 1. Snapshot the PIDs, not just the
+    # count: `box_counter_pid` must not report a counter that was ALREADY stored before this
+    # hunt (a previous boss's counter, or one collected and re-deposited) as this hunt's catch.
+    before_box = _box_count()
+    before_box_pids = _box_pids()
     arm([species_name])
     try:
         frames = {"n": 0}
@@ -326,6 +365,10 @@ def hunt(candidate, needed_type_names) -> Generator:
                 return True
             if _party_count() > before:
                 return True
+            # A box catch is a SUCCESS, not a miss. `_box_count()` returns -1 when unreadable,
+            # so the `>= 0` guard keeps a read error from faking one.
+            if before_box >= 0 and _box_count() > before_box:
+                return True
             return party_counter_slot(needed_type_names) is not None
 
         yield from _story_spin(_stop)
@@ -337,21 +380,35 @@ def hunt(candidate, needed_type_names) -> Generator:
     yield from wait_until_truly_controllable()
 
     slot = party_counter_slot(needed_type_names)
-    if slot is None:
-        console.print(
-            f"[yellow]Story: counter hunt for {species_name} found nothing in "
-            f"{HUNT_SPIN_BUDGET_FRAMES} frames.[/]"
-        )
-        return None
-    try:
-        from modules.pokemon_party import get_party
+    if slot is not None:
+        try:
+            from modules.pokemon_party import get_party
 
-        caught_name = get_party()[slot].species.name
-    except Exception:
-        caught_name = species_name
-    console.print(f"[bold green]Story: counter hunt CAUGHT {caught_name} (slot {slot + 1}).[/]")
-    context.message = f"Story: caught {caught_name} — the counter this boss needs."
-    return slot
+            mon = get_party()[slot]
+            caught_name, caught_pid = mon.species.name, mon.personality_value
+        except Exception:
+            caught_name, caught_pid = species_name, None
+        console.print(f"[bold green]Story: counter hunt CAUGHT {caught_name} (slot {slot + 1}).[/]")
+        context.message = f"Story: caught {caught_name} — the counter this boss needs."
+        return {"slot": slot, "pid": caught_pid}
+
+    # ‼ THE BOX PATH. Only PIDs that were NOT in the PC before this hunt count — otherwise a
+    # previously-stored counter would be reported as this hunt's catch and the ladder would
+    # "succeed" without having caught anything.
+    boxed_pid = box_counter_pid(needed_type_names, exclude_pids=before_box_pids)
+    if boxed_pid is not None:
+        console.print(
+            f"[bold green]Story: counter hunt CAUGHT {species_name} INTO THE PC BOX "
+            f"(pid={boxed_pid:08X}) — the party was full; it will be collected at the next heal.[/]"
+        )
+        context.message = f"Story: caught {species_name} into the box — the counter this boss needs."
+        return {"slot": None, "pid": boxed_pid}
+
+    console.print(
+        f"[yellow]Story: counter hunt for {species_name} found nothing in "
+        f"{HUNT_SPIN_BUDGET_FRAMES} frames.[/]"
+    )
+    return None
 
 
 def affordable_training_target(current_level: int, wanted: int, budget: int, estimate) -> int:
