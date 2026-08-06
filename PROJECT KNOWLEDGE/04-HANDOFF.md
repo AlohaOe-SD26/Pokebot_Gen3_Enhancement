@@ -148,19 +148,29 @@ content`, `RUN COMPLETE`. End state read live and matching the decomp exactly:
 8 repros green. End save committed: **`tools/story-dev/saves/post_mtpyre.ss1`** — use it as the
 start point for the Magma Hideout work.
 
-### ‼ BATCH RUNNING — `x4-runs/20260806-055947`, code **`498eedd9`**, 8 lanes / 180 min
-Started 05:59 local, lands ~08:59. **Do NOT edit `sandbox-pokebot/` until it does.**
-This is the first batch containing Segment 14, so **finish rate and run length both change by
-construction** — every run that beats Winona now continues into Mt. Pyre.
+### ✅ SEGMENT 14 MEASURED IN PRODUCTION AND IT HOLDS
+`x4-runs/20260806-055947`, code `498eedd9`, `VERDICT OK`, 32 headers, 0 violations, 0 restarts.
 
-Read, in order:
-1. `Story: Route 121 is open` / `Story: MAGMA EMBLEM obtained` — does Segment 14 fire in a REAL
-   run? ‼ The live proof started from a save already past Winona; a real run approaches Route 121
-   from Fortree with a different party and position.
-2. `Mt. Pyre:` / `Route 121:` BotModeError text — the two guards name exactly what failed.
-3. Do the four summit-corridor Aqua grunts' sight-lines derail the ascent?
-4. Finish rate vs the **52.0%** baseline (`20260805-075638`) — ‼ expect it to FALL simply because
-   runs are longer now. Judge the badge funnel and Segment-14 completion, not the raw rate.
+* **It really runs:** debug logs show `MT. PYRE` **274**, `ROUTE 121` **171**, `ROUTE 122` **89**.
+* **9 finishes with the Magma Emblem against 10 runs reaching Feather — ~90% conversion** on the
+  new segment. **0 `BotModeError`** from either new guard.
+* **Finish rate 52.0% → 37.5% is NOT a regression** — "finished" now requires Mt. Pyre as well as
+  six badges. The badge funnel (entirely upstream of the new code) moved **no rung
+  significantly**: Balance→Feather z=1.49, whole funnel z=0.88, both ns.
+* **The whiteout uptick (5 of 15) is NOT Mt. Pyre's** — a run with **0 `MT. PYRE` mentions had 3
+  whiteouts**, while heavy-Mt.-Pyre runs had none. Open item, explicitly unattributed.
+* `#24-mtpyre-log` shipped after: the five milestones now `console.print`, so a future failure
+  leaves a trail. Verified identical frame count (76,367), so behaviour is unchanged.
+
+### ⏭ NEXT — pick one
+1. **`#24-magmahideout`** — now UNLOCKED (`HIDE_JAGGED_PASS_MAGMA_GUARD` is set by the summit).
+   ‼ Still the hardest area attempted: its door on JAGGED_PASS is reachable only from ABOVE, via
+   the Route 112 cable car and a one-way descent (~8 warps + a scripted ride). Start from
+   **`saves/post_mtpyre.ss1`**. Recon: `12-STORYMODE-DESIGN.md` §Ch14.
+2. **The whiteout-loop item** — top end reason (5 of 15) and NOT understood. Now that the
+   milestones print, a batch will show where runs are when it happens.
+3. **Winona** — `Balance→Feather` is the weakest rung (53%) and 4 of 15 non-finishes. The counter
+   chain names Rock/Ice/Dragon and cannot deliver one.
 
 ## AFTER THAT: §Ch14 — story content past Winona
 Full ROM-verified recon is in `12-STORYMODE-DESIGN.md` **§Ch14**; re-derive any of it with

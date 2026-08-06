@@ -133,7 +133,22 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       obtained, `HIDE_JAGGED_PASS_MAGMA_GUARD` True (Magma Hideout open). End save:
       `saves/post_mtpyre.ss1`. 8 repros green. ‼ NOT batched — see `#24-mtpyre-batch`.
 
-- [ ] `#24-mtpyre-batch` — **NEXT ACTION. Batch Segment 14 before trusting any finish rate.**
+- [x] `#24-mtpyre-batch` — **DONE 2026-08-06. Segment 14 holds in production.**
+      `20260806-055947` (`498eedd9`, VERDICT OK): MT. PYRE 274 / ROUTE 121 171 / ROUTE 122 89 in
+      the debug logs; **9 finishes vs 10 runs reaching Feather (~90% conversion)**; 0
+      BotModeError from either guard. Finish rate 52.0% → 37.5% is the new completion
+      requirement, not damage — **no funnel rung moved significantly** (Balance→Feather z=1.49,
+      whole funnel z=0.88). Whiteout uptick measured NOT attributable to Mt. Pyre.
+
+- [x] `#24-mtpyre-log` — **DONE 2026-08-06.** Segment 14's five milestones now `console.print`
+      (`_ch14_say`), so a mid-way failure leaves a trail in batch stdout. Frame count identical.
+
+- [ ] `#24-whiteoutloop` — **TOP END REASON AND NOT UNDERSTOOD (5 of 15 non-finishes, up from 2).**
+      ‼ Measured NOT to be Mt. Pyre's: a run with 0 `MT. PYRE` mentions logged 3 whiteouts while
+      heavy-Mt.-Pyre runs logged none. Now that chapter milestones print, the next batch should
+      show WHERE runs are when the loop starts. Do not attribute it without that.
+
+- [ ] ~~`#24-mtpyre-batch`~~ (superseded) — **NEXT ACTION. Batch Segment 14 before trusting any finish rate.**
       Every run that beats Winona now continues into Mt. Pyre, so run length and finish rate
       both change by construction. Read against the **52.0%** baseline (`20260805-075638`).
       Watch: does the Route 121 gate fire reliably from a real run's approach (the live proof
