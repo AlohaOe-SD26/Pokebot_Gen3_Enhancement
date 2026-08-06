@@ -125,28 +125,34 @@ maps visited: FORTREE_CITY, FORTREE_CITY_GYM, ROUTE120
 by default and `_walk_is_possible` does not disable it, so the party's Surf is not being ignored
 at the API level.
 
-### ROUTE 120 (7,56) — PARTIALLY diagnosed. ‼ READ THE CAVEAT.
-ROUTE120 is 40x100 with exactly TWO warps: `(7,55) -> ANCIENT TOMB` and
-`(19,23) -> SCORCHED SLAB`. The bot stalled at **(7,56) — directly below the Ancient Tomb
-door**. ANCIENT TOMB is a sealed Regi chamber, so it is a dead end as a destination.
+### ✅ ROUTE 120 — THE FAILURE IS IDENTIFIED (full error, 2026-08-05)
+```
+Could not reach (23,7) on MT_PYRE_SUMMIT: the field is idle and we are still at (7,56),
+so retrying cannot change the result
+(Could not find a path from (7/56 @ ROUTE120) to (22/29 @ ROUTE122).)
+```
+**The navigator's chosen LEG is `ROUTE122 (22,29)`** — the Mt. Pyre door. It walked to
+ROUTE120 (7,56) and from there `calculate_path` cannot reach that leg.
 
-‼ **AN EARLIER VERSION OF THIS SECTION CLAIMED (7,56) IS A SEALED POCKET. THAT IS RETRACTED** —
-it was read off a 17-row slice of a 100-row map; the western column actually continues south.
-**Do not build on "the bot was trapped".** What is established is only the warp adjacency.
+‼ **This is a LEG-VALIDITY problem, not warp threading and NOT the Ancient Tomb** (its adjacency
+to (7,56) was coincidence — the bot was never trying to enter it). Two earlier readings of this
+failure were wrong; both were fixed by one 30-second change — **raising the driver's 160-char
+error truncation.** Lesson logged: when a probe reports a failure you cannot explain, print the
+WHOLE error before theorising.
 
-‼ **The ranking code argues AGAINST staged progress having chosen the tomb at all:**
-`_staged_progress_warp` filters edges whose `map_distance(to_map, target) > here_distance`, and
-Ancient Tomb's only exit is back to ROUTE120, so its distance to the summit is strictly greater
-— it should have been filtered before `onward_exits` mattered. **A theory the code contradicts
-needs measurement, not more reading.**
+⏭ **NEXT — one clean A/B from `post_winona.ss1`:**
+Does `calculate_path(-> ROUTE122 (22,29))` succeed from FORTREE / northern ROUTE120 and fail
+from **(7,56)**?
+* **Fails everywhere** ⇒ the leg was never reachable; `calculate_path` spans only DIRECTLY
+  CONNECTED maps and ROUTE120→ROUTE122 is two connections (via ROUTE121). Leg selection is
+  offering an impossible target.
+* **Succeeds from the north, fails from (7,56)** ⇒ a real staged-progress defect: **a leg is
+  validated from where you STAND, then pursued from wherever you END UP** — and this trip
+  crosses ROUTE121 plus a SURF leg, with wild battles re-planning along the way (the run logged
+  many mid-trip `PARTY CHANGE` lines).
 
-⏭ **NEXT — INSTRUMENT, DO NOT INFER:**
-1. **Raise the driver's 160-char error truncation** (`story_harness.py` CaveThreadMode) — the
-   full `calculate_path` text likely names the failing leg outright. Cheapest possible step.
-2. From `post_winona.ss1`, log inside `navigate_to_anywhere`: which branch is taken, and the
-   `scored` list `_staged_progress_warp` builds at that decision.
-3. ‼ Do NOT hard-code a Route 120 waypoint — gateway waypoints were tried and REFUTED
-   (KI-39, 2026-07-30).
+These have completely different fixes, so measure before building.
+‼ Do NOT hard-code a Route 120 waypoint — refuted (KI-39, 2026-07-30).
 
 ## AFTER THAT: §Ch14 — story content past Winona
 Full ROM-verified recon is in `12-STORYMODE-DESIGN.md` **§Ch14**; re-derive any of it with
