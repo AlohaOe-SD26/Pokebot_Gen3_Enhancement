@@ -7876,3 +7876,52 @@ position is the variable.
 **Next:** run that A/B from `post_winona.ss1` (probe `calculate_path` from Fortree, from northern
 ROUTE120, and from (7,56)). It separates "the leg was never reachable" from "the bot ruined its
 own position", and those have completely different fixes.
+
+### ‼‼ ROUTE 120 — ROOT CAUSE FOUND. The navigator cannot WALK ACROSS A MAP CONNECTION as a step.
+
+**Measured from the stall save (`saves/stalls/repro-pyre2-f33678.ss1`, standing at ROUTE120 (7,56)),
+via a new `CAVE_PATHCHECK` mode that asks `calculate_path` directly without walking:**
+
+| target | result |
+|---|---|
+| `ROUTE121 (10,10)` | **OK — 79 waypoints** |
+| `ROUTE122 (22,29)` ← the leg the navigator chose | **FAIL** |
+| `ROUTE120 (20,90)` (far south, same map) | **OK — 49 waypoints** |
+| `ROUTE120 (7,47)` (**9 tiles NORTH**) | **FAIL** |
+
+**The bot was never stuck.** Route 121 was reachable the whole time.
+(Bonus: (7,47) unreachable from (7,56) confirms a one-way LEDGE there — the terrain is
+directional, which is why the earlier "pocket" instinct felt right. It is not a trap; south and
+east are open.)
+
+### The mechanism, in order
+1. **Fast path fails** — `MT_PYRE_SUMMIT (23,7)` is not walkable from ROUTE120. Correct.
+2. **`pick_leg` correctly REJECTS** the `ROUTE122 (22,29)` warp: `_walk_is_possible` says no, and
+   it is right — `calculate_path` spans only **DIRECTLY CONNECTED** maps, and ROUTE120→ROUTE122
+   is **two** connections (via ROUTE121). No walkability warning was logged, so this was a clean
+   `PathFindingError`, not the exception fallback.
+3. **`_staged_progress_warp` returns None** — and this is the gap. It scans
+   `graph.warps_from(...)` only. **ROUTE120→ROUTE121 is a map CONNECTION, not a warp**, so there
+   is no edge for it to offer. It has no way to express *"just walk south into the next route."*
+4. **`global_navigation.py:417` then takes the leg UNVALIDATED:**
+   ```python
+   if region_route:
+       # ...Take it unvalidated — this is precisely today's behaviour, so this
+       # change can never make a cross-region journey that works now start failing.
+       leg = region_route[0]
+   ```
+   That hands `navigate_to` the ROUTE122 tile it already knows is unreachable, which raises, and
+   the whole journey dies **while a 79-waypoint path to Route 121 sat available.**
+
+### ‼ THE FIX SHAPE (not built — measure it, then build)
+Give staged progress a **CONNECTION step**: when no warp validates, walk to a reachable tile on
+the **next map along `graph.map_route(current, target)`**, then re-plan. The loop already turns
+partial progress into a journey — this is the connection analogue of `_staged_progress_warp`,
+which only ever learned the warp half. The measurement above says it would have worked here on
+the first try.
+
+‼ **Do NOT just delete the unvalidated `region_route[0]` fallback.** Its comment claims it
+preserves today's working cross-region journeys; removing it blind is the exact
+remove-a-behaviour-because-a-failure-is-loud move that cost this project three regressions in a
+week. Add the connection step FIRST so the fallback stops being reached, then measure whether it
+is still load-bearing.

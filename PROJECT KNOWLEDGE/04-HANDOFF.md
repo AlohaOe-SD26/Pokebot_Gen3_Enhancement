@@ -125,34 +125,37 @@ maps visited: FORTREE_CITY, FORTREE_CITY_GYM, ROUTE120
 by default and `_walk_is_possible` does not disable it, so the party's Surf is not being ignored
 at the API level.
 
-### ✅ ROUTE 120 — THE FAILURE IS IDENTIFIED (full error, 2026-08-05)
-```
-Could not reach (23,7) on MT_PYRE_SUMMIT: the field is idle and we are still at (7,56),
-so retrying cannot change the result
-(Could not find a path from (7/56 @ ROUTE120) to (22/29 @ ROUTE122).)
-```
-**The navigator's chosen LEG is `ROUTE122 (22,29)`** — the Mt. Pyre door. It walked to
-ROUTE120 (7,56) and from there `calculate_path` cannot reach that leg.
+### ‼‼ ROUTE 120 — ROOT-CAUSED. The navigator cannot WALK ACROSS A MAP CONNECTION as a step.
+Measured from `saves/stalls/repro-pyre2-f33678.ss1` (standing at ROUTE120 (7,56)) with the new
+`CAVE_PATHCHECK` mode, which asks `calculate_path` directly without walking:
 
-‼ **This is a LEG-VALIDITY problem, not warp threading and NOT the Ancient Tomb** (its adjacency
-to (7,56) was coincidence — the bot was never trying to enter it). Two earlier readings of this
-failure were wrong; both were fixed by one 30-second change — **raising the driver's 160-char
-error truncation.** Lesson logged: when a probe reports a failure you cannot explain, print the
-WHOLE error before theorising.
+| target | result |
+|---|---|
+| `ROUTE121 (10,10)` | **OK — 79 waypoints** |
+| `ROUTE122 (22,29)` ← the leg chosen | **FAIL** |
+| `ROUTE120 (20,90)` far south | **OK — 49 waypoints** |
+| `ROUTE120 (7,47)` 9 tiles north | **FAIL** (a one-way LEDGE) |
 
-⏭ **NEXT — one clean A/B from `post_winona.ss1`:**
-Does `calculate_path(-> ROUTE122 (22,29))` succeed from FORTREE / northern ROUTE120 and fail
-from **(7,56)**?
-* **Fails everywhere** ⇒ the leg was never reachable; `calculate_path` spans only DIRECTLY
-  CONNECTED maps and ROUTE120→ROUTE122 is two connections (via ROUTE121). Leg selection is
-  offering an impossible target.
-* **Succeeds from the north, fails from (7,56)** ⇒ a real staged-progress defect: **a leg is
-  validated from where you STAND, then pursued from wherever you END UP** — and this trip
-  crosses ROUTE121 plus a SURF leg, with wild battles re-planning along the way (the run logged
-  many mid-trip `PARTY CHANGE` lines).
+**The bot was never stuck — Route 121 was reachable the whole time.** The mechanism:
+1. Fast path fails (summit not walkable). Correct.
+2. `pick_leg` correctly REJECTS `ROUTE122 (22,29)` — `calculate_path` spans only DIRECTLY
+   CONNECTED maps and ROUTE120→ROUTE122 is **two** connections (via ROUTE121).
+3. **`_staged_progress_warp` returns None — THE GAP.** It scans `graph.warps_from()` only, and
+   **ROUTE120→ROUTE121 is a CONNECTION, not a warp**, so it cannot express "walk south into the
+   next route."
+4. `global_navigation.py:417` then takes `region_route[0]` **UNVALIDATED** ("…this change can
+   never make a cross-region journey that works now start failing"), handing `navigate_to` the
+   tile it already knows is unreachable. The journey dies with a 79-waypoint path available.
 
-These have completely different fixes, so measure before building.
-‼ Do NOT hard-code a Route 120 waypoint — refuted (KI-39, 2026-07-30).
+⏭ **THE FIX (measure, then build): give staged progress a CONNECTION step** — when no warp
+validates, walk to a reachable tile on the next map along `graph.map_route(current, target)`,
+then re-plan. The loop already turns partial progress into a journey; staged progress only ever
+learned the warp half. The table above says this would have worked on the first try.
+
+‼ **Do NOT simply delete the unvalidated `region_route[0]` fallback.** Its comment claims it
+preserves working cross-region journeys. Add the connection step FIRST so it stops being
+reached, then measure whether it is still load-bearing. Deleting a behaviour because its failure
+is loud is what cost three regressions in a week.
 
 ## AFTER THAT: §Ch14 — story content past Winona
 Full ROM-verified recon is in `12-STORYMODE-DESIGN.md` **§Ch14**; re-derive any of it with

@@ -3393,3 +3393,34 @@ does not exist. What caught it was refusing to accept a negative result whose me
 not explain — the no-exception return did not fit "the warp failed", and chasing that mismatch is
 what produced the real answer. **An unexplained detail in a result you already believe is the
 cheapest bug you will ever find.**
+
+## 2026-08-05 — Three wrong readings of one failure, each cured by printing more of the error
+
+**Symptom.** The Mt. Pyre traversal died on ROUTE120 (7,56). I diagnosed it three times:
+1. *"Multi-hop threading stops one hop short"* — **wrong**, it was my probe targeting a warp tile.
+2. *"Stranded in a sealed pocket whose only exit is the Ancient Tomb"* — **wrong**, read off a
+   17-row slice of a 100-row map; the tomb's adjacency was pure coincidence.
+3. **Right, and only after raising the driver's error truncation from 160 → 800 characters**,
+   which revealed `Could not find a path from (7/56 @ ROUTE120) to (22/29 @ ROUTE122).`
+
+**Root cause (measured, not inferred).** The navigator can WALK to a target, or WARP toward one,
+but it cannot **walk across a map CONNECTION as an intermediate step**. `_staged_progress_warp`
+scans `graph.warps_from()` only, and ROUTE120→ROUTE121 is a connection, not a warp — so it had
+no move to offer, and control fell through to an **unvalidated** `region_route[0]` leg pointing
+at a tile two connections away that `calculate_path` can never reach. **Route 121 was reachable
+in 79 waypoints the entire time.**
+
+‼ **Prevention rule 1: when a probe reports a failure you cannot explain, print the WHOLE error
+before theorising.** Two full wrong diagnoses, several map dumps and a retraction commit were
+bought by 160 characters of truncation. The nested `calculate_path` message named the failing leg
+outright. **Budget error text generously in any probe — it is the cheapest diagnostic there is.**
+
+‼ **Prevention rule 2: a claim read off a PARTIAL map dump is a guess.** Print the whole map or
+write "unknown".
+
+‼ **Prevention rule 3 — the recurring shape, now seen a fourth time.** The dead code path was
+justified by *"this can never make a journey that works now start failing"*. Like the
+`obstacle_search_exhausted` latch (*"riding out a scene cannot create new rocks"*) and the
+`_CAVE_EXITS` comment (*"the navigator cannot cross warp levels"*), it was true when written and
+became a trap. **A justification containing "can never" or "cannot" is a claim with an expiry
+date — re-read it whenever the surrounding capability changes.**

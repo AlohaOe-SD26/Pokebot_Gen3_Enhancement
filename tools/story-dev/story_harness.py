@@ -1360,6 +1360,37 @@ class CaveThreadMode(BotMode):
 
         yield from wait_until_truly_controllable()
 
+        # ‼ CAVE_PATHCHECK — answer "is this leg reachable FROM HERE at all?" without walking.
+        # Route 120 (2026-08-05): the navigator picked leg ROUTE122 (22,29) and failed to reach
+        # it from ROUTE120 (7,56). Two explanations with different fixes — the leg was NEVER
+        # reachable (calculate_path spans only DIRECTLY CONNECTED maps, and ROUTE120->ROUTE122
+        # is two connections via ROUTE121), or the bot walked itself somewhere it stopped being
+        # reachable. Asking from the START position separates them in one cheap run.
+        pathcheck = os.environ.get("CAVE_PATHCHECK", "").strip()
+        if pathcheck:
+            from modules.map_path import calculate_path
+            from modules.player import get_player_location
+            from modules.items import get_item_bag, get_item_by_name
+
+            here = get_player_location()
+            log(f"[cavethread] PATHCHECK from {here}")
+            for spec in pathcheck.split(";"):
+                mname, _, tile = spec.strip().partition(":")
+                x, _, y = tile.partition(",")
+                dest = (tuple(MapRSE[mname.strip()].value), (int(x), int(y)))
+                try:
+                    wp = calculate_path(
+                        here, dest,
+                        has_acro_bike=get_item_bag().quantity_of(get_item_by_name("Acro Bike")) > 0,
+                        has_mach_bike=get_item_bag().quantity_of(get_item_by_name("Mach Bike")) > 0,
+                    )
+                    log(f"[cavethread] PATHCHECK {mname.strip()}{(int(x), int(y))} -> OK, {len(wp)} waypoints")
+                except Exception as error:  # noqa: BLE001
+                    log(f"[cavethread] PATHCHECK {mname.strip()}{(int(x), int(y))} -> "
+                        f"{type(error).__name__}: {str(error)[:300]}".replace("\n", " "))
+            context.set_manual_mode()
+            return
+
         def tracked(gen, seen):
             """Sample the avatar's map on every yield of `gen`.
 
