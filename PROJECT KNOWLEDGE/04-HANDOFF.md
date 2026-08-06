@@ -125,37 +125,32 @@ maps visited: FORTREE_CITY, FORTREE_CITY_GYM, ROUTE120
 by default and `_walk_is_possible` does not disable it, so the party's Surf is not being ignored
 at the API level.
 
-### ‼‼ THE MT. PYRE BLOCKER IS A **STORY GATE**, NOT NAVIGATION (`#24-r121gate`)
-**Route 121's north band is sealed by THREE TEAM AQUA GRUNTS** standing in the only corridor
-south — `(30,7)`, `(31,7)`, `(30,8)`, all `FLAG_HIDE_ROUTE_121_TEAM_AQUA_GRUNTS` (914).
-**Read LIVE from the save: the flag is `False`** — they are present and blocking. With them
-there, `calculate_path` cannot reach Route 121's south edge, the corridor, or ANY Route 122
-tile — **with surf allowed** (`BADGE05_GET=True`, `party_has_surf=True`, both measured).
+### ‼‼ MT. PYRE IS BUILT AND LIVE-PROVEN (2026-08-06) — the bot plays PAST Winona
+**First new story content since 2026-07-30.** `open_route121_aqua_gate()` +
+`do_mt_pyre_summit()` in `early_game.py`, wired as **Segment 14** in `story_mode.py`.
 
-**The fix is a coord trigger four tiles away:**
-```
-ROUTE121 (25,5) (25,6) (25,7) (25,8)   var VAR_ROUTE121_STATE == 0
-    -> Route121_EventScript_AquaGruntsMoveOut
-       walks the grunts off, removeobject x3, sets VAR_ROUTE121_STATE = 1
-```
-The bot stranded at ROUTE121 (21,5). `calculate_path` to (25,5) = **OK, 6 waypoints.** It sat
-six steps from the trigger that unblocks the whole chapter.
+Both beats are COORD TRIGGERS, no conversations:
+1. `ROUTE121 (25,5)` → `Route121_EventScript_AquaGruntsMoveOut` — three Team Aqua grunts
+   sealing Route 121's only southward corridor move out (`VAR_ROUTE121_STATE` → 1).
+2. `ROUTE122 (22,30)` → door → `1F (3,6)` → `EXTERIOR (19,10)` → summit → walk x=23 to
+   `(23,7)` → `MtPyre_Summit_EventScript_TeamAquaExits`.
 
-⏭ **BUILD THE CHAPTER — full spec in `12-STORYMODE-DESIGN.md` §Ch14-PRE + §Ch14a.**
-Use **explicit adjacent-map legs**, not one generic journey call:
-1. `ROUTE121 (25,5)` → guard `VAR_ROUTE121_STATE >= 1`
-2. `ROUTE122 (22,30)` — the plain tile BELOW the door; never target the door (22,29) itself
-3. `MT_PYRE_1F` → `EXTERIOR` → `MT_PYRE_SUMMIT (23,7)` → guard `MT_PYRE_STATE >= 1`
+**LIVE PROOF** from `post_winona.ss1`, **76,368 frames**: `MAGMA EMBLEM obtained - end of built
+content`, `RUN COMPLETE`. End state read live and matching the decomp exactly:
 
-‼ **`#24-connstep` stays GATED OFF** — not needed for this chapter and still unvalidated. The
-generic call never failed for want of a connection step; the destination was unreachable for a
-STORY reason.
+| flag | value |
+|---|---|
+| `HIDE_ROUTE_121_TEAM_AQUA_GRUNTS` | True |
+| `HIDE_MT_PYRE_SUMMIT_TEAM_AQUA` | True |
+| `RECEIVED_RED_OR_BLUE_ORB` | True |
+| **`HIDE_JAGGED_PASS_MAGMA_GUARD`** | **True — the Magma Hideout is OPEN** |
 
-‼ **THE LESSON OF THE WHOLE SESSION:** I treated an unreachable DESTINATION as a pathfinding
-defect for hours. **When the pathfinder says "no path", ask what is STANDING there before asking
-what is wrong with the pathfinder.** A blocked corridor and a broken planner emit the identical
-error. The distinguishing check — dump the map full width, read the objects, check their hide
-flags LIVE — costs minutes. Every earlier Route 121 dump covered only x=0-46 of 80.
+8 repros green. End save committed: **`tools/story-dev/saves/post_mtpyre.ss1`** — use it as the
+start point for the Magma Hideout work.
+
+‼ **NOT BATCHED.** Every run that beats Winona now continues into Segment 14, so finish rate and
+run length both change. **`#24-mtpyre-batch` is the next action** — read against the **52.0%**
+baseline (`20260805-075638`) and do not compare finish rates until it has run.
 
 ## AFTER THAT: §Ch14 — story content past Winona
 Full ROM-verified recon is in `12-STORYMODE-DESIGN.md` **§Ch14**; re-derive any of it with

@@ -128,7 +128,19 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       ‼ Needs the box; do not run it while a batch is using the lanes.
       </details>
 
-- [ ] `#24-mtpyre` — **‼ NOW UNBLOCKED (2026-08-05) AND THE TOP ITEM. First chapter past
+- [x] `#24-mtpyre` — **BUILT AND LIVE-PROVEN 2026-08-06.** `open_route121_aqua_gate()` +
+      `do_mt_pyre_summit()`, Segment 14. From `post_winona.ss1` in 76,368 frames: Magma Emblem
+      obtained, `HIDE_JAGGED_PASS_MAGMA_GUARD` True (Magma Hideout open). End save:
+      `saves/post_mtpyre.ss1`. 8 repros green. ‼ NOT batched — see `#24-mtpyre-batch`.
+
+- [ ] `#24-mtpyre-batch` — **NEXT ACTION. Batch Segment 14 before trusting any finish rate.**
+      Every run that beats Winona now continues into Mt. Pyre, so run length and finish rate
+      both change by construction. Read against the **52.0%** baseline (`20260805-075638`).
+      Watch: does the Route 121 gate fire reliably from a real run's approach (the live proof
+      started from a save already ON Route 121's north band)? Do the four summit-corridor Aqua
+      grunts' sight-lines derail the ascent?
+
+- [ ] ~~`#24-mtpyre`~~ (superseded) — **‼ NOW UNBLOCKED (2026-08-05) AND THE TOP ITEM. First chapter past
       Winona.** 3 hops, one branch; the 2F-6F tower is a skippable side dungeon.
       `#24-cavethread` was its only blocker and is closed — the navigator already threads a
       3-warp cave in both directions, which is exactly MT_PYRE_SUMMIT's shape.
