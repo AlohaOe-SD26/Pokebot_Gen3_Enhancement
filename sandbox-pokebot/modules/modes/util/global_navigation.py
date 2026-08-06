@@ -62,9 +62,33 @@ def _connection_step(graph, current_map, target_map, avoid_encounters, avoid_scr
     `_staged_progress_warp`; the loop in `navigate_to_anywhere` already turns partial progress
     into a journey, so one border per iteration is enough.
 
+    ‼‼ **DEFAULT OFF (`POKEBOT_CONNECTION_STEP=1` to enable). MEASURED HARMFUL AS WRITTEN.**
+    It does cross the border (live A/B: old dies on ROUTE120, new reaches ROUTE121) — but it
+    then STRANDS the bot. From the tile it chose, ROUTE121 (21,5), `calculate_path` cannot reach
+    ROUTE121's own south edge ((10,19)/(20,19)/(0,19)), nor (22,12), nor (25,16) — so the onward
+    route to ROUTE122 is sealed off. Route 121 has a north band and a south band that do not
+    connect in the sampled region, and **the lattice below scans `y` from the TOP, so it is
+    biased toward NORTHERN tiles — the wrong end when the target is south.**
+
+    Two things must be fixed before this is enabled by default:
+      1. **Aim the tile choice at the onward route.** `map_path.py` gives every edge-connected
+         map a global `offset` and a shared `level` (`PathTile.global_coordinates`), which is the
+         principled way to say "pick the candidate nearest where we go next". A first-walkable
+         lattice scan is a coin flip.
+      2. **Remember rejected step targets** (the `used_warps` pattern) so a re-plan offers a
+         DIFFERENT tile instead of re-deriving the same one.
+    ‼ And it must be BATCH-validated: this runs BEFORE the unvalidated `region_route[0]` branch,
+    so it can divert journeys that succeed today. That is a whole-game regression vector, and
+    this project has shipped three such regressions in one week by not measuring first.
+
     Returns `(map, tile)` to walk to, or None to leave existing behaviour untouched.
     """
+    import os
+
     from modules.map import get_map_data
+
+    if os.environ.get("POKEBOT_CONNECTION_STEP", "0").strip() not in ("1", "true", "True"):
+        return None
 
     route = graph.map_route(current_map, target_map)
     if not route:

@@ -7973,3 +7973,42 @@ Route 121 dump shows (21,5) sits in a wide open corridor.
 prints the passability grid) before concluding anything about the surf crossing. An arbitrary
 target tile is not a measurement — that is the third time today an arbitrary tile produced a
 false negative.
+
+### ‼ CORRECTION (same day) — `#24-connstep` IS GATED **OFF**. It crossed the border and then STRANDED the bot.
+
+The entry above reports the connection step reaching ROUTE121 and calls the weak tile choice a
+theoretical concern. **It is not theoretical — it is the failure.** Measured from the new arm's
+own stall save, standing at the tile the step chose, ROUTE121 (21,5):
+
+| target | result |
+|---|---|
+| `ROUTE122 (22,30)` / `(10,0)` / `(30,32)` / `(3,3)` / `(22,29)` — all collision-verified | **all FAIL** |
+| **`ROUTE121 (10,19)` / `(20,19)` / `(0,19)` — its OWN south edge** | **all FAIL** |
+| `ROUTE121 (22,12)`, `(25,16)` — same map | **FAIL** |
+
+**Not the surf border at all.** Route 121 has a north band and a south band that do not connect
+in the sampled region, and the step put the bot in the north one. ‼ **The lattice scans `y` from
+the TOP, so it is systematically biased toward NORTHERN tiles — the wrong end when the target is
+south.** "First walkable tile" is a coin flip, and here it lost.
+
+**Gated behind `POKEBOT_CONNECTION_STEP` (default `0`).** Verified: with the gate off the trip
+reproduces the pre-change behaviour EXACTLY (dies at ROUTE120 (7,56), same maps visited), so the
+default path is untouched and the regression risk is zero. 5 navigation repros green.
+
+‼ **WHY OFF RATHER THAN LEFT ON:** `_connection_step` runs BEFORE the unvalidated
+`region_route[0]` branch, so it can DIVERT journeys that succeed today. `navigate_to_anywhere` is
+used by every chapter — that is a whole-game regression vector, on a change with no batch behind
+it. "It cannot be worse, the journey fails anyway" is true only for THIS journey.
+
+**To finish it (both needed before enabling):**
+1. **Aim the tile choice at the onward route** using `map_path.py`'s global map `offset`/`level`
+   (`PathTile.global_coordinates`) — pick the candidate nearest the next map along the route,
+   instead of the first walkable one.
+2. **Remember rejected step targets** (the `used_warps` pattern) so a re-plan offers a different
+   tile rather than re-deriving the same one.
+Then batch it against the **52.0%** baseline.
+
+‼ **The lesson, and it is the same one twice in one session:** I wrote "it can land somewhere
+with less onward reachability" as a caveat and shipped it anyway. **A caveat you can state is a
+test you can run.** The measurement that demoted this from "works" to "gated off" took four
+minutes and used a save the failing run had already written.
