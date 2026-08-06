@@ -3452,3 +3452,36 @@ defect that ships.
 `_connection_step` runs BEFORE the unvalidated `region_route[0]` fallback, so it can divert trips
 that succeed today, across every chapter. A new branch placed ahead of an existing one is never
 purely additive, however dead the path it replaces looks on the case you are debugging.
+
+## 2026-08-05 — I debugged the pathfinder for hours. The destination was blocked by three NPCs.
+
+**Symptom.** The Fortree → Mt. Pyre journey failed. I root-caused it to a genuine navigator gap
+(staged progress cannot cross a map CONNECTION), wrote a fix, A/B'd it, watched it strand the
+bot, wrote a second variant, watched that fail differently, and ruled out surf. **All of it was
+downstream of the real cause: three Team Aqua grunts standing in Route 121's only corridor
+south, `FLAG_HIDE_ROUTE_121_TEAM_AQUA_GRUNTS` measured `False` — an UNFIRED STORY TRIGGER.**
+The trigger that clears them, `ROUTE121 (25,5)`, was **6 waypoints** from where the bot stranded.
+
+**Root cause of my error, and it is a measurement habit, not a reasoning slip.** Every Route 121
+map dump I took covered **x=0-46 of an 80-wide map** — I never printed the full width, so I never
+saw the x=30-31 corridor or the objects sealing it. I reasoned about traversability from 58% of
+the map, repeatedly, while writing code against the conclusions.
+
+‼ **Prevention rule: when the pathfinder says "no path", ask WHAT IS STANDING THERE before
+asking what is wrong with the pathfinder.** A blocked corridor and a broken planner emit the
+identical error string. The distinguishing check is cheap and specific:
+1. `PROBE_MAPS=<map> mapfacts.py` — **at full width**, and read the `-- objects --` list.
+2. Look up each blocker's hide flag in `modules/data/event_flags/<game>.txt`.
+3. **Read that flag LIVE** — `mapfacts.py` shows the map as AUTHORED, so a listed object may be
+   hidden at runtime. Only the live flag decides.
+4. If it is present, find its coord trigger in the decomp's `map.json` (`coord_events`).
+
+‼ **Second rule: an OBJECT with `script: 0x0` and a hide flag is a BLOCKER, not scenery.** It
+cannot be talked to and it will never appear in any script you grep for by interaction — it just
+occupies a tile until a scene removes it.
+
+‼ **Third — the cost was not the wrong hypothesis, it was building on it.** The navigator gap I
+found is REAL and the fix may still be worth having; it is committed, gated off. But I shipped
+code against an untested assumption ("Route 121 is traversable from where we enter") three times
+before testing it once. **A fix that does not resolve the symptom is evidence about the
+diagnosis — treat the second failed variant as a signal to re-measure, not to iterate.**

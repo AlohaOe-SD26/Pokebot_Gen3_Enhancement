@@ -141,7 +141,18 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       Measure `_navigate_riding_out(MT_PYRE_SUMMIT, (23,7))` FIRST — it may be the whole thing.
       ⏭ **BLOCKED ONLY ON: no post-Winona save exists.** See `#24-postwinona-save`.
 
-- [ ] `#24-r121topology` — **DO THIS BEFORE ANY MORE NAVIGATION WORK ON MT. PYRE.**
+- [x] `#24-r121topology` — **ANSWERED 2026-08-05: it is a STORY GATE, not topology.** See
+      `#24-r121gate`. Superseded text below kept for the reasoning trail.
+
+- [ ] `#24-r121gate` — **THE FIRST STEP OF THE MT. PYRE CHAPTER. Fully specified, ready to build.**
+      Three Team Aqua grunts at (30,7)/(31,7)/(30,8) seal Route 121's only corridor south
+      (`FLAG_HIDE_ROUTE_121_TEAM_AQUA_GRUNTS` = 914, measured **False** = visible). Coord trigger
+      **(25,5)-(25,8)** at `VAR_ROUTE121_STATE == 0` runs `Route121_EventScript_AquaGruntsMoveOut`,
+      which removes them and sets the var to 1. Guard on `VAR_ROUTE121_STATE >= 1`.
+      Spec: `12-STORYMODE-DESIGN.md` §Ch14-PRE. ‼ Use explicit adjacent-map legs, not one generic
+      journey call — `calculate_path` spans only DIRECTLY CONNECTED maps.
+
+- [ ] ~~`#24-r121topology`~~ (superseded) — **DO THIS BEFORE ANY MORE NAVIGATION WORK ON MT. PYRE.**
       From ROUTE121 (21,5) — where the ROUTE120 connection lands — `calculate_path` reaches
       neither Route 121's own south edge nor ANY Route 122 tile, **with surf allowed**
       (`BADGE05_GET=True`, `party_has_surf=True`, both measured). So the blocker is topological,
