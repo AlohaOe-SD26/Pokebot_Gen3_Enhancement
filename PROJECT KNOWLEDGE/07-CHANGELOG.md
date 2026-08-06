@@ -8203,3 +8203,17 @@ as "runs finished without visiting Mt. Pyre". **The directories are EMPTY until 
 the runner collects them at teardown. That was absence of LOGS, not absence of evidence.
 ‼ **Do not run map-presence checks against a live batch's `debug-logs/`.** Use `stdout.txt`
 mid-flight, and the debug logs only after `VERDICT OK`.
+
+### `#24-mtpyre-log` — Segment 14's milestones now reach stdout
+
+The batch proved Segment 14 works but **every progress line read 0**: the five milestones were
+`context.message` only, which the GUI shows and a headless lane's stdout never sees. Had the
+segment failed mid-way there would have been a guard error and **no trace of how far it got**.
+
+New `_ch14_say()` sets the message AND `console.print`s it; all five milestones route through it.
+Verified live from `post_winona.ss1` — all five now appear, and the run completes in **76,367
+frames, identical to before the change**, so this is purely observability. 5 repros green.
+
+‼ **Rule: a chapter's milestones are its only in-flight diagnostic — PRINT them.** A
+`context.message` that never reaches stdout is invisible to every batch, which is exactly where
+a chapter's failures will be found.

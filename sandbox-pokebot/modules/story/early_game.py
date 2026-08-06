@@ -6312,6 +6312,21 @@ ROUTE122_MT_PYRE_DOOR_APPROACH = (22, 30)
 MT_PYRE_SUMMIT_TRIGGER = (23, 7)
 
 
+
+def _ch14_say(message: str) -> None:
+    """Set the status message AND print it.
+
+    ‼ WHY BOTH (batch `20260806-055947`). These milestones were `context.message` only, which
+    the GUI shows but which NEVER reaches a headless lane's stdout. The batch proved Segment 14
+    worked, but every progress line read 0 — so if it had failed mid-way there would have been a
+    guard error and no trace of HOW FAR it got. A chapter's milestones are its only in-flight
+    diagnostic; print them."""
+    from modules.console import console
+
+    context.message = message
+    console.print(f"[cyan]{message}[/]")
+
+
 def _route121_gate_open() -> bool:
     """Have the Route 121 Team Aqua grunts moved out? (`VAR_ROUTE121_STATE >= 1`)
 
@@ -6345,7 +6360,7 @@ def open_route121_aqua_gate() -> Generator:
     if _route121_gate_open():
         return  # resume-safe: already done this run or a previous one
 
-    context.message = "Story: Mt. Pyre - clearing the Team Aqua grunts on Route 121..."
+    _ch14_say("Story: Mt. Pyre - clearing the Team Aqua grunts on Route 121...")
     yield from _navigate_riding_out(MapRSE.ROUTE121, ROUTE121_AQUA_GATE_TRIGGER)
     # The trigger fires ON the step, so control is taken immediately; ride the scene out.
     yield from _ride_out_scripted_scene("B")
@@ -6359,7 +6374,7 @@ def open_route121_aqua_gate() -> Generator:
             f"{ROUTE121_AQUA_GATE_TRIGGER} but ROUTE121_STATE is still 0 - "
             "the grunts did not move out."
         )
-    context.message = "Story: Route 121 is open - the Aqua grunts have moved out."
+    _ch14_say("Story: Route 121 is open - the Aqua grunts have moved out.")
 
 
 def do_mt_pyre_summit() -> Generator:
@@ -6386,7 +6401,7 @@ def do_mt_pyre_summit() -> Generator:
     if _mt_pyre_summit_done():
         return  # resume-safe
 
-    context.message = "Story: heading for Mt. Pyre..."
+    _ch14_say("Story: heading for Mt. Pyre...")
     # Leg 1 - Route 122, standing BELOW the door (never on it; a warp tile fires on contact).
     yield from _navigate_riding_out(MapRSE.ROUTE122, ROUTE122_MT_PYRE_DOOR_APPROACH)
 
@@ -6422,7 +6437,7 @@ def do_mt_pyre_summit() -> Generator:
     # Leg 3 - walk the summit corridor (x=23) up to the trigger. ‼ The four Aqua grunts stand
     # IN this corridor at (21,15)/(21,11)/(25,18)/(25,11), so expect sight-lines: this is a
     # fight-through leg, which `_navigate_riding_out` handles by riding out and retrying.
-    context.message = "Story: Mt. Pyre summit - climbing to the orb chamber..."
+    _ch14_say("Story: Mt. Pyre summit - climbing to the orb chamber...")
     yield from _navigate_riding_out(MapRSE.MT_PYRE_SUMMIT, MT_PYRE_SUMMIT_TRIGGER)
     yield from _ride_out_scripted_scene("B")
     yield from wait_until_truly_controllable()
@@ -6432,4 +6447,4 @@ def do_mt_pyre_summit() -> Generator:
             f"Mt. Pyre: reached the summit trigger at {MT_PYRE_SUMMIT_TRIGGER} but "
             "MT_PYRE_STATE is still 0 - the Team Aqua scene did not run."
         )
-    context.message = "Story: MAGMA EMBLEM obtained - Mt. Pyre summit complete."
+    _ch14_say("Story: MAGMA EMBLEM obtained - Mt. Pyre summit complete.")
