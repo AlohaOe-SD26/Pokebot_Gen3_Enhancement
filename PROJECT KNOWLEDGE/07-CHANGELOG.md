@@ -8217,3 +8217,77 @@ frames, identical to before the change**, so this is purely observability. 5 rep
 ‼ **Rule: a chapter's milestones are its only in-flight diagnostic — PRINT them.** A
 `context.message` that never reaches stdout is invisible to every batch, which is exactly where
 a chapter's failures will be found.
+
+## 2026-08-06 — `#24-hmteachloop` FIXED (Fix A). The teach never looped; the BUDGET expired early.
+
+**User report:** *"the hm learning feature works but it still loops trying to teach/get out of the
+teaching cycle after it teaches an hm."* Real bug, and the diagnosis overturned the obvious theory.
+
+### ‼ THE TEACH FLOW DOES NOT LOOP. The chapter LADDER replays.
+`teach skipped` = **611** across batch `20260806-055947` is **ladder-replay depth**, not HM events.
+Proof: `Dynamo Badge already earned` == `HM06 already received` == `already knows Rock Smash` ==
+**448 exactly**. Three unrelated predicates cannot share a count unless the number means "how many
+`_play()` restarts got this deep." Restart drivers: **590 whiteouts + 138 derails**. Clustering test:
+**0 of 611** skip lines lack a `resuming`/`new game` header within 40 lines — bursts, not a spin.
+
+### THE REAL BUG — a premature-timeout FALSE NEGATIVE
+`early_game.py` rode the post-teach dialogue on a flat `for _f in range(3000)`. In **7 of 19 Surf
+teaches** it expired **while the teach was still progressing**, raised
+`Teach flow finished but <mon> does not know Surf`, and the move was learned
+**1,867-1,878 frames later** (σ≈4) in *every* case. The raise derails → `_play()` restarts at the
+top of the ladder → the whole "already done" litany reprints. **That reprint is what the user saw.**
+
+**Why exactly those 7:** all start with the **Norman battle tail** resident
+(`callback=ReturnFromBattleToOverworld`), stretching the dialogue chain past 3,000 frames.
+| path | n | fails |
+|---|---|---|
+| Rock Smash (quiet map) | 23 | **0** |
+| Surf → freshly-hunted L3 Zigzagoon (free move slot, no replace dialogue) | 12 | **0** |
+| **Surf → in-party 4-move mon (Swampert/Marshtomp/Linoone)** | **7** | **7** |
+
+### THE FIX — a progress-aware budget, both bounds required
+* `_TEACH_RIDE_HARD_CAP = 9000` — **ABSOLUTE**. Never "loop while progressing": this generator is
+  re-entered by the derail dispatcher, and unbounded-while-progressing is the KI-34 shape that
+  burned 23.9M frames. 1.85× the worst legitimate observed path (4,875).
+* `_TEACH_RIDE_STALL_FRAMES = 900` — aborts when the task set ∪ learn-state ∪ the target's move
+  list is unchanged. In all 7 failures that signature changed every few hundred frames, so a
+  genuinely dead menu still dies fast.
+
+‼ **The raise at the end is KEPT.** It is the only in-flow detector of a real failed teach and it
+names the mon and move. Deleting a guard because its failure is loud is behind three reverts.
+‼ **REJECTED: a settle-and-recheck (300-600 frames + re-check) before the raise** — it would have
+fixed **0 of 7**; they needed ~1,872 frames. The ride budget was the only correct knob.
+
+### ‼ TWO NEAR-MISSES WHILE WRITING IT, both the same shape
+I referenced `get_learn_move_state` unimported, and used `from modules.debug import debug_logger`
+(the module is `modules/debug_logger.py`). **In both cases the surrounding `except Exception` would
+have swallowed the error and silently disabled the thing I had just added** — a stall detector that
+never detects, telemetry that never emits. Both are now explicit imports with the near-miss recorded
+inline. *A bare `except` around a NEW import is a silent-failure generator.*
+
+### ‼ TELEMETRY: the old HM counters are UNUSABLE as a baseline
+`already knows Surf` (163) and `already knows Rock Smash` (448) count replay depth. Inflation **5.1×
+and 14×**, and **not constant** — it scales with how often that game whited out, so no fixed divisor
+corrects it. Ground truth from `[STEP]`: **19 Surf + 23 Rock Smash teaches**. Closing check:
+`Surf already received (182) − already knows Surf (163) = 19` — exactly the Surf teach count.
+⇒ Added `debug_logger.event("TEACH OK <mon> learned <move> in <N> frames")`. Without it the fix is
+provable only by the ABSENCE of an error, and a suppressed feature looks identical to a working one.
+(`[STEP] '…learned…'` measured **0** against 42 real teaches — `context.message` is overwritten by
+the next segment before `[STEP]` can fire. Positive control: `got HM06 Rock Smash!` is also 0.)
+
+### ‼ VALIDATION STATUS — PARTIAL, stated plainly
+Live from `norman_done.ss1`: **`TEACH OK Zigzagoon learned Surf in 85 frames`**, `Teach flow
+finished but` = **0**. That proves the instrumentation works and the change does not regress the
+easy path — **but 85 frames on a hunted L3 Zigzagoon IS the easy path (12/12 clean before the fix).**
+That save's party (Blaziken/Shedinja/Mightyena) has no Surf-capable mon, so it hunted rather than
+teaching an in-party 4-move mon. **The failing case was not exercised.**
+⇒ **PRE-REGISTERED PROOF, to be read off the next batch:** `Teach flow finished but` **7 → 0** on
+`*/debug-logs/*.log`, with `TEACH OK` ≈ 42 (proving teaches were not suppressed rather than fixed).
+A mudkip lane reaches the Marshtomp path naturally.
+
+### Cost, measured honestly
+The ladder replay is near-free (no unconditional `yield` in a fully-done pass; ~114 frames median
+per replay = **0.095%** of the batch). This bug's own cost is **~32,800 frames (0.039%)** plus 7 of
+the 4-derail budget. ‼ **The real frame burn is 590 whiteouts (~18/game)** — a team-strength problem,
+logged separately. The user's "wastes frames" perception is console spam plus 7 visible re-entries;
+the spam itself is Fix B, not yet done.

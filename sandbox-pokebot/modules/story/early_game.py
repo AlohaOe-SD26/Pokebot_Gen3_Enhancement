@@ -4529,10 +4529,60 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
     # Ride the 'Poof!'/learned messages out STATE-AWARE (a blind A/B mash re-answers
     # the yes/no prompts in a loop — run 3 ping-ponged between 'wants to learn' and
     # 'Stop trying to teach?' until the frame cap died).
-    for _f in range(3000):
+    #
+    # ‼‼ THE BUDGET IS PROGRESS-AWARE, NOT FLAT (`#24-hmteachloop`, fixed 2026-08-06).
+    # It was `range(3000)`, and that expired while the teach was STILL PROGRESSING —
+    # measured on batch `20260806-055947`: **7 of 19 Surf teaches** raised
+    # "Teach flow finished but <mon> does not know Surf", and the move was then learned
+    # **1,867-1,878 frames later** (σ≈4) in every single case. The raise derailed the run,
+    # which restarts `_play()` from the top of the chapter ladder — that reprint of the
+    # whole "already done" litany is what the user saw as "it loops after teaching an HM".
+    #
+    # WHY THOSE 7 AND NOT THE OTHER 35: all 7 start with the NORMAN BATTLE TAIL still
+    # resident (`callback=ReturnFromBattleToOverworld`), which stretches the dialogue chain
+    # past 3,000 frames. Rock Smash (23/23 clean) ends on a quiet map; the Zigzagoon Surf
+    # path (12/12 clean) burns 10-19k frames hunting first AND an L3 mon has a free slot,
+    # so there is no replace dialogue at all.
+    #
+    # ‼ A SETTLE-AND-RECHECK WOULD HAVE FIXED 0 OF 7 — they needed ~1,872 frames, not 300.
+    # The ride budget is the only correct knob. Two bounds, both required:
+    #   * `_TEACH_RIDE_HARD_CAP` — ABSOLUTE. Never "loop until progress": this generator is
+    #     re-entered by the derail dispatcher, and an unbounded-while-progressing loop is the
+    #     KI-34 shape that burned 23.9M frames.
+    #   * `_TEACH_RIDE_STALL_FRAMES` — a GENUINELY dead menu still dies fast. During all 7
+    #     failures the observable state changed every few hundred frames
+    #     (ContinueTaskAfterMessagePrints → ShowTMHMContainedMessage → CloseBagMenu →
+    #     ReplaceMoveYesNo → LearnNextMoveOrClosePartyMenu/Fanfare), so a stall counter
+    #     separates "slow but alive" from "wedged" without waiting out the hard cap.
+    # ‼ IMPORTED AT THE TOP OF THE LOOP, NOT INSIDE THE try. `get_learn_move_state` lives in
+    # `modules.battle_move_replacing`, and referencing it unimported would raise NameError
+    # INSIDE the signature's `except Exception`, silently pinning `_sig = None` and disabling
+    # the stall detector forever — a guard that looks present and does nothing. That exact
+    # shape (a bare except hiding a NameError) already cost this project two batches.
+    from modules.battle_move_replacing import get_learn_move_state
+
+    _TEACH_RIDE_HARD_CAP = 9000      # 1.85x the worst LEGITIMATE observed path (4,875)
+    _TEACH_RIDE_STALL_FRAMES = 900   # no observable change for this long ⇒ genuinely wedged
+    _stall = 0
+    _last_sig = None
+    for _f in range(_TEACH_RIDE_HARD_CAP):
         if _knows() and get_game_state() is GameState.OVERWORLD and player_avatar_is_controllable():
             break
         t = _tasks()
+        # Progress signature: the task set, the learn-state machine, and the target's own
+        # moves. If ANY of these moves, the teach is alive.
+        try:
+            _sig = (tuple(sorted(t)), str(get_learn_move_state()),
+                    tuple(l.move.name for l in _mon().moves if l is not None))
+        except Exception:  # noqa: BLE001 — an unreadable signature must never end the teach
+            _sig = None
+        if _sig is not None and _sig == _last_sig:
+            _stall += 1
+            if _stall >= _TEACH_RIDE_STALL_FRAMES:
+                break  # wedged, not slow — fall through to the menus-closed guarantee
+        else:
+            _stall = 0
+            _last_sig = _sig
         if "Task_StopLearningMoveYesNo" in t:
             context.emulator.press_button("B")  # NO — never give up on the teach
         elif "Task_ReplaceMoveYesNo" in t and not _knows():
@@ -4569,8 +4619,27 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
     if get_game_state() is not GameState.OVERWORLD or _menu_task_active():
         raise BotModeError("Teach flow: could not close the menus back to the overworld.")
     if not _knows():
+        # ‼ KEPT ON PURPOSE (`#24-hmteachloop`, 2026-08-06). The bug was the BUDGET, not this
+        # raise — it is the only in-flow detector of a genuinely failed teach, and it names the
+        # mon and the move. `_guard("Teach Surf (Ch12c)")` would still catch a real failure one
+        # segment later, but with no diagnostic. Deleting a guard because its failure was loud
+        # is the pattern behind three reverts in one week.
         raise BotModeError(f"Teach flow finished but {_mon().species.name} does not know {target_move.name}.")
     context.message = f"Story: {_mon().species.name} learned {target_move.name}!"
+    # ‼ THE `context.message` ABOVE IS UNOBSERVABLE AND CANNOT BE THE PROOF. `[STEP]` only
+    # fires when the message CHANGES, and the next segment overwrites it immediately —
+    # measured: `[STEP] '…learned…'` appears **0** times against 42 real teaches (positive
+    # control: `got HM06 Rock Smash!` is also 0 on that surface). Without this event line the
+    # fix has no success counter, only the absence of a failure counter — and "the error
+    # stopped" is exactly how a suppressed feature looks identical to a working one.
+    # ‼ `from modules import debug_logger` — the module is `modules/debug_logger.py` with a
+    # module-level `event()`. I first wrote `from modules.debug import debug_logger`, which is
+    # wrong, and the `except` below would have swallowed the ImportError and silently produced
+    # no telemetry at all — the SECOND time in this one function that a bare except nearly hid
+    # a broken import. Idiom copied from `story_mode.py:666`, which does it correctly.
+    from modules import debug_logger
+
+    debug_logger.event(f"TEACH OK {_mon().species.name} learned {target_move.name} in {_f} frames")
 
 
 def get_rock_smash_hm() -> Generator:
