@@ -7843,3 +7843,36 @@ driver — **raise that truncation first**, the full text likely names the faili
 map or say "unknown". The first version of this entry would have sent the next session hunting a
 trap that may not exist — the same failure shape as the cavethread probe earlier today, where a
 confident negative turned out to be my own instrument.
+
+### ✅ ROUTE 120 — THE ACTUAL ERROR, and it supersedes both earlier readings
+
+Raising the driver's error truncation from 160 → 800 chars produced the diagnosis in one run:
+```
+UnreachableDestinationError: Could not reach (23,7) on MT_PYRE_SUMMIT:
+  the field is idle and we are still at (7, 56), so retrying cannot change the result
+  (Could not find a path from (7/56 @ ROUTE120) to (22/29 @ ROUTE122).)
+```
+
+**The navigator's chosen LEG is `ROUTE122 (22,29)`** — the Mt. Pyre door, the first warp of the
+route. It walked to **ROUTE120 (7,56)** and from there `calculate_path` could not reach that leg.
+
+**So the failure is a LEG-VALIDITY / POSITION problem, not a warp-threading one and not the
+Ancient Tomb.** The tomb adjacency was a coincidence of position; the bot was never trying to
+enter it. ‼ Both earlier readings of this failure were wrong, and the fix for both was the same
+30-second change: **stop truncating the error.**
+
+**The sharp question now, and it is a clean A/B:** does
+`calculate_path(ROUTE120 -> ROUTE122 (22,29))` succeed from FORTREE / northern ROUTE120 and fail
+from (7,56)? If yes, the leg validated when chosen and the bot then walked itself somewhere the
+leg no longer validates — legs are validated once at selection, and the trip crosses ROUTE121
+and a SURF leg on ROUTE122, with wild battles re-planning along the way (the run logged many
+mid-trip `PARTY CHANGE` lines). That is a real staged-progress defect: **a leg is validated from
+where you STAND, then pursued from wherever you END UP.**
+
+‼ Note `calculate_path` spans only DIRECTLY CONNECTED maps. ROUTE120→ROUTE122 is two connections
+(via ROUTE121), so whether that call can EVER succeed is itself worth measuring before assuming
+position is the variable.
+
+**Next:** run that A/B from `post_winona.ss1` (probe `calculate_path` from Fortree, from northern
+ROUTE120, and from (7,56)). It separates "the leg was never reachable" from "the bot ruined its
+own position", and those have completely different fixes.

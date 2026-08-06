@@ -1399,7 +1399,11 @@ class CaveThreadMode(BotMode):
                 arrived = tuple(get_player_avatar().map_group_and_number) == tuple(dest_map.value)
                 detail = "arrived" if arrived else "returned on the wrong map"
             except Exception as error:  # noqa: BLE001
-                detail = f"{type(error).__name__}: {str(error)[:160]}".replace("\n", " ")
+                # ‼ 160 chars was TOO SHORT and cost a diagnosis (2026-08-05): the Route 120
+                # failure surfaced as "...(Could not find a path fro" — cut off exactly where
+                # the useful part starts. Navigation errors here nest an inner `calculate_path`
+                # message that names the failing leg, so keep the whole thing.
+                detail = f"{type(error).__name__}: {str(error)[:800]}".replace("\n", " ")
             try:
                 final = MapRSE(tuple(get_player_avatar().map_group_and_number)).name
             except Exception:  # noqa: BLE001
