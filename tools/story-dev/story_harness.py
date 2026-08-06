@@ -1360,6 +1360,27 @@ class CaveThreadMode(BotMode):
 
         yield from wait_until_truly_controllable()
 
+        # ‼ CAVE_BOXCHECK — does `pc_trip.box_views()` actually read the PC? Suspicion
+        # 2026-08-06: it does `getattr(storage, "boxes", lambda: [])()`, calling `boxes` — but
+        # `PokemonStorage.boxes` is a @cached_property returning a LIST, so `list()` raises
+        # TypeError. If so, `find_in_box` (which calls it unguarded) can never find anything and
+        # `withdraw_from_box` can never fire — a second, independent reason `withdrawing` has
+        # logged 0 in every batch.
+        if os.environ.get("CAVE_BOXCHECK", "").strip():
+            from modules.pokemon_storage import get_pokemon_storage
+            from modules.story import pc_trip
+
+            st = get_pokemon_storage()
+            log(f"[cavethread] BOXCHECK storage.pokemon_count={st.pokemon_count} "
+                f"boxes_type={type(st.boxes).__name__}")
+            try:
+                views, mons = pc_trip.box_views()
+                log(f"[cavethread] BOXCHECK box_views() OK -> {len(views)} views, {len(mons)} mons")
+            except Exception as error:  # noqa: BLE001
+                log(f"[cavethread] BOXCHECK box_views() RAISED {type(error).__name__}: {error}")
+            context.set_manual_mode()
+            return
+
         # ‼ CAVE_PATHCHECK — answer "is this leg reachable FROM HERE at all?" without walking.
         # Route 120 (2026-08-05): the navigator picked leg ROUTE122 (22,29) and failed to reach
         # it from ROUTE120 (7,56). Two explanations with different fixes — the leg was NEVER

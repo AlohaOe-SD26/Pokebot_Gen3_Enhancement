@@ -239,7 +239,21 @@ def box_views():
         return [], []
 
     views, mons = [], []
-    for box in getattr(storage, "boxes", lambda: [])():
+    # ‼ `storage.boxes` IS A PROPERTY, NOT A METHOD. This line used to read
+    # `getattr(storage, "boxes", lambda: [])()` — calling the result — and
+    # `PokemonStorage.boxes` is a `@cached_property` returning a LIST
+    # (`modules/pokemon_storage.py:86`), so it raised `TypeError: 'list' object is not
+    # callable` on EVERY call. `find_in_box` calls this unguarded, so `withdraw_from_box`
+    # could never find anything.
+    #
+    # ‼ THIS IS WHY `withdrawing` LOGGED 0 IN EVERY BATCH — one of two independent breaks in
+    # `#24-pcoverflow` (the other: both catch-on-sight branches still required `party < 6`, so
+    # a full-party catch never happened either). The defensive `getattr(..., lambda: [])`
+    # DISGUISED the bug: it reads as "be safe if `boxes` is missing", and the fallback it
+    # supplies is a callable, which is what made calling the real attribute look correct.
+    # Proven live 2026-08-06 (`CAVE_BOXCHECK`): `boxes_type=list`, `box_views() RAISED
+    # TypeError`. A defensive default that changes the SHAPE of the value is not defensive.
+    for box in getattr(storage, "boxes", []) or []:
         for slot in getattr(box, "slots", []) or []:
             p = getattr(slot, "pokemon", None)
             if p is None:

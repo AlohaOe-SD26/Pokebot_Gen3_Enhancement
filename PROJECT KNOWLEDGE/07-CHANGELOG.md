@@ -8291,3 +8291,50 @@ per replay = **0.095%** of the batch). This bug's own cost is **~32,800 frames (
 the 4-derail budget. ‼ **The real frame burn is 590 whiteouts (~18/game)** — a team-strength problem,
 logged separately. The user's "wastes frames" perception is console spam plus 7 visible re-entries;
 the spam itself is Fix B, not yet done.
+
+## 2026-08-06 — ‼ `#24-pcoverflow` HAD TWO INDEPENDENT BREAKS. One is fixed and proven.
+
+`withdrawing` has logged **0** in every batch since the feature shipped. The changelog blamed
+"the Surf guard killed runs first". **Both of those explanations were wrong.** There are two
+structural breaks, and EITHER ALONE guarantees zero:
+
+### BREAK 1 (FIXED, PROVEN) — `box_views()` raised `TypeError` on every call
+`pc_trip.box_views()` read:
+```python
+for box in getattr(storage, "boxes", lambda: [])():      # <-- calls the result
+```
+`PokemonStorage.boxes` is a **`@cached_property` returning a list** (`pokemon_storage.py:86`), so
+this was `list()` → `TypeError: 'list' object is not callable`, **every time**. `find_in_box`
+calls `box_views()` **unguarded**, so `withdraw_from_box` could never find anything.
+
+**Proven live**, new `CAVE_BOXCHECK` probe on `post_mtpyre.ss1`:
+```
+BEFORE  BOXCHECK storage.pokemon_count=0 boxes_type=list
+        BOXCHECK box_views() RAISED TypeError: 'list' object is not callable
+AFTER   BOXCHECK box_views() OK -> 0 views, 0 mons
+```
+
+‼ **THE DEFENSIVE DEFAULT DISGUISED THE BUG.** `getattr(storage, "boxes", lambda: [])()` reads as
+"be safe if `boxes` is missing" — and the fallback it supplies is a **callable**, which is exactly
+what made calling the real attribute look correct. **A defensive default that changes the SHAPE of
+the value is not defensive; it is camouflage.** Prevention rule added to `08-MISTAKES.md`.
+
+### BREAK 2 (NOT YET FIXED) — the catch itself still cannot happen with a full party
+Both catch-on-sight branches still require `party < 6`
+(`story_mode.py:1876` counter, `:1844` HM), and `counter_hunt.hunt()`'s success test is entirely
+party-based (`_party_count() > before`, `party_counter_slot(...)`, returns a PARTY slot). So with a
+full party the hunt travels, arms, spins the full 120,000-frame budget, catches the counter into
+the box (the game does this automatically — `GiveMonToPlayer` → `CopyMonToPC`, no prompt), and
+reports "found nothing" — registering no PID, which `withdraw_from_box` is gated on.
+
+**Landed but NOT YET WIRED** (helpers only, no behaviour change): `counter_hunt._box_count()` and
+`counter_hunt.box_counter_pid(needed_types, exclude_pids)` — the box-side twin of
+`party_counter_slot`, keyed on **PID** because box indices shift. Both fail toward "no change" so
+they cannot fake a success.
+
+‼ Note `box_counter_pid` had to avoid the SAME two traps: `boxes` is a property (no parens) and
+`box.slots` holds `PokemonStorageSlot` **wrappers** — the mon is `slot.pokemon`. Inside its `try`,
+either mistake would return None and read as "no counter in the box".
+
+**Next:** wire Break 2 — allow the full-party catch, make the hunt's success test see a box catch,
+and register the boxed PID so the existing withdraw path collects it at the next heal.

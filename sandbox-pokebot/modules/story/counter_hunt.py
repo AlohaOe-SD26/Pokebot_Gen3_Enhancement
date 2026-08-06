@@ -144,6 +144,63 @@ def _party_count() -> int:
         return 6  # fail-safe: assume FULL, so a read error never starts a doomed hunt
 
 
+def _box_count() -> int:
+    """How many Pokémon are in the PC, across all 14 boxes.
+
+    ‼ WHY THIS EXISTS (`#24-pcoverflow`, wired 2026-08-06). With a FULL party the game sends a
+    catch straight to the PC (`GiveMonToPlayer` -> `CopyMonToPC`, no prompt), so `_party_count()`
+    does NOT change and the hunt's old success test could never see the catch. Measured
+    consequence: `withdrawing` logged **0 times** in every batch — not bad luck, a disconnected
+    path. The hunt travelled, armed, spun the full 120,000-frame budget, caught the counter into
+    the box, and reported "found nothing".
+
+    Fail-safe direction is the OPPOSITE of `_party_count()`'s: an unreadable box must read as
+    UNCHANGED (so a read error cannot fake a success), whereas an unreadable party reads as FULL
+    (so a read error cannot start a doomed hunt). Both choices fail toward "do less".
+    """
+    try:
+        from modules.pokemon_storage import get_pokemon_storage
+
+        return int(get_pokemon_storage().pokemon_count)
+    except Exception:
+        return -1  # unreadable -> callers treat as "no change"
+
+
+def box_counter_pid(needed_type_names, exclude_pids=frozenset()) -> "int | None":
+    """PERSONALITY VALUE of a mon IN THE PC whose own type answers the boss, or None.
+
+    The box-side twin of `party_counter_slot`, and deliberately keyed on PID rather than
+    (box, slot): `pc_trip.withdraw_from_box(pids)` already finds a stored mon by PID, and box
+    indices shift as mons are added or removed. Same TYPE-not-moves test as the party version —
+    see `party_counter_slot` for why the stricter move test would make a real catch look like a
+    failed hunt.
+    """
+    try:
+        from modules.pokemon_storage import get_pokemon_storage
+
+        needed = {str(n) for n in (needed_type_names or []) if n}
+        if not needed:
+            return None
+        # ‼ `boxes` is a PROPERTY (no parens) and `box.slots` holds `PokemonStorageSlot`
+        # WRAPPERS, not Pokémon — the mon is `slot.pokemon`. Getting either wrong is silent
+        # here: this whole function is inside a `try`, so a TypeError/AttributeError would
+        # just return None and read as "no counter in the box". `pc_trip.box_views` shipped
+        # with exactly that bug (calling the property) and it is why `withdrawing` was 0.
+        for box in get_pokemon_storage().boxes:
+            for slot in box.slots or []:
+                mon = getattr(slot, "pokemon", None)
+                if mon is None or getattr(mon, "is_egg", False):
+                    continue
+                pid = getattr(mon, "personality_value", None)
+                if pid is None or pid in exclude_pids:
+                    continue
+                if {str(t.name) for t in mon.species.types} & needed:
+                    return pid
+    except Exception:
+        return None
+    return None
+
+
 def _ball_count() -> int:
     try:
         from modules.items import get_item_bag
