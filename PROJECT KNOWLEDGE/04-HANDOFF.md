@@ -125,37 +125,36 @@ maps visited: FORTREE_CITY, FORTREE_CITY_GYM, ROUTE120
 by default and `_walk_is_possible` does not disable it, so the party's Surf is not being ignored
 at the API level.
 
-### ‼‼ ROUTE 120 — ROOT-CAUSED. The navigator cannot WALK ACROSS A MAP CONNECTION as a step.
-Measured from `saves/stalls/repro-pyre2-f33678.ss1` (standing at ROUTE120 (7,56)) with the new
-`CAVE_PATHCHECK` mode, which asks `calculate_path` directly without walking:
+### ✅ ROUTE 120 FIXED — `#24-connstep`. The navigator can now walk across a map CONNECTION.
+Root cause: both leg pickers dealt only in WARPS (`pick_leg` / `_staged_progress_warp`), but
+**ROUTE120 → ROUTE121 is a CONNECTION**. With no warp to offer, control fell through to the
+UNVALIDATED `region_route[0]` branch, which handed `navigate_to` a tile two connections away
+that `calculate_path` can never span — while Route 121 sat reachable in 79 waypoints.
 
-| target | result |
-|---|---|
-| `ROUTE121 (10,10)` | **OK — 79 waypoints** |
-| `ROUTE122 (22,29)` ← the leg chosen | **FAIL** |
-| `ROUTE120 (20,90)` far south | **OK — 49 waypoints** |
-| `ROUTE120 (7,47)` 9 tiles north | **FAIL** (a one-way LEDGE) |
+**Fix:** `_connection_step()` in `global_navigation.py` — walk to a validated, non-warp tile on
+the next map along `map_route()`, then re-plan. Placed AFTER both warp pickers and BEFORE the
+unvalidated branch, so that branch stops being REACHED rather than deleted (its own comment
+claims it keeps working journeys alive; untested either way — leave it).
 
-**The bot was never stuck — Route 121 was reachable the whole time.** The mechanism:
-1. Fast path fails (summit not walkable). Correct.
-2. `pick_leg` correctly REJECTS `ROUTE122 (22,29)` — `calculate_path` spans only DIRECTLY
-   CONNECTED maps and ROUTE120→ROUTE122 is **two** connections (via ROUTE121).
-3. **`_staged_progress_warp` returns None — THE GAP.** It scans `graph.warps_from()` only, and
-   **ROUTE120→ROUTE121 is a CONNECTION, not a warp**, so it cannot express "walk south into the
-   next route."
-4. `global_navigation.py:417` then takes `region_route[0]` **UNVALIDATED** ("…this change can
-   never make a cross-region journey that works now start failing"), handing `navigate_to` the
-   tile it already knows is unreachable. The journey dies with a 79-waypoint path available.
+**LIVE A/B, same build, same save, one variable:**
+| arm | ends at | maps visited |
+|---|---|---|
+| old | ROUTE120 (7,56) | FORTREE, GYM, ROUTE120 |
+| **new** | ROUTE121 (21,5) | FORTREE, GYM, ROUTE120, **ROUTE121** |
 
-⏭ **THE FIX (measure, then build): give staged progress a CONNECTION step** — when no warp
-validates, walk to a reachable tile on the next map along `graph.map_route(current, target)`,
-then re-plan. The loop already turns partial progress into a journey; staged progress only ever
-learned the warp half. The table above says this would have worked on the first try.
+7 navigation repros green. ‼ **NOT batch-validated** — live A/B only (as KI-43/KI-44 shipped).
+`navigate_to_anywhere` is used everywhere, so **run a batch before trusting or promoting it.**
 
-‼ **Do NOT simply delete the unvalidated `region_route[0]` fallback.** Its comment claims it
-preserves working cross-region journeys. Add the connection step FIRST so it stops being
-reached, then measure whether it is still load-bearing. Deleting a behaviour because its failure
-is loud is what cost three regressions in a week.
+### ⏭ NEXT: the journey now dies one border later — ROUTE121 → ROUTE122 (a SURF crossing)
+‼ **DO NOT REPEAT MY ERROR HERE.** `calculate_path` from ROUTE121 (21,5) failed to ROUTE122
+(22,29)/(10,10)/(20,20) *and* to LILYCOVE (20,20). I briefly read that as "stranded" — **wrong**,
+those targets were arbitrary and may be WALLS or water; (21,5) is in a wide open corridor.
+**Re-check with COLLISION-VERIFIED tiles from `mapfacts.py`'s passability grid** before drawing
+any conclusion about the surf crossing. An arbitrary target tile is not a measurement — that
+produced a false negative three separate times today.
+
+Then: does `calculate_path` mount SURF across a map connection at all? If not, that is the next
+capability gap, and it gates Mt. Pyre (Route 122 is open water).
 
 ## AFTER THAT: §Ch14 — story content past Winona
 Full ROM-verified recon is in `12-STORYMODE-DESIGN.md` **§Ch14**; re-derive any of it with

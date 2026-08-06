@@ -141,7 +141,15 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       Measure `_navigate_riding_out(MT_PYRE_SUMMIT, (23,7))` FIRST — it may be the whole thing.
       ⏭ **BLOCKED ONLY ON: no post-Winona save exists.** See `#24-postwinona-save`.
 
-- [ ] `#24-postwinona-save` — **THE PRACTICAL BLOCKER FOR ALL Ch14 WORK. Do this first.**
+- [ ] `#24-connstep-batch` — **RUN A BATCH BEFORE TRUSTING `#24-connstep`.**
+      The connection step (shipped 2026-08-05, live A/B: old dies on ROUTE120, new reaches
+      ROUTE121) has **no outcome measurement**. `navigate_to_anywhere` is used by every chapter,
+      so a regression here is broad. Read the finish rate against the **52.0%** baseline
+      (`20260805-075638`) and watch for journeys that now wander instead of failing fast.
+      ‼ Known weakness to watch: the step target is a coarse-lattice tile, not aimed at the
+      onward route, so it can land somewhere with less onward reachability than ideal.
+
+- [x] `#24-postwinona-save` — **THE PRACTICAL BLOCKER FOR ALL Ch14 WORK. Do this first.**
       No save exists past Winona, so nothing in Mt. Pyre can be validated. A 2026-08-05 attempt
       drove Story from `fortree_gym_wedge.ss1` and ground through 10 Winona attempts (KO'ing
       3-4 of her 5 each) without converging — that save's team has no super-effective answer to
