@@ -143,6 +143,20 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
 - [x] `#24-mtpyre-log` — **DONE 2026-08-06.** Segment 14's five milestones now `console.print`
       (`_ch14_say`), so a mid-way failure leaves a trail in batch stdout. Frame count identical.
 
+- [ ] `#24-hmteachloop` — **USER-REPORTED 2026-08-06. Real bug, wastes frames and looks buggy.**
+      > "the hm learning feature works but it still loops trying to teach/get out of the teaching
+      > cycle after it teaches an hm"
+
+      i.e. the teach SUCCEEDS, then the bot keeps re-entering the teach/exit cycle instead of
+      moving on. Suspects to check first: `early_game.teach_hm_move()` and `ensure_hm_learner()`
+      (`early_game.py` ~4280-4440) — specifically whether the post-teach success test actually
+      observes the learned move, or whether the caller re-enters because its own guard still
+      reads False. ‼ This is the "guard every did-it-work?" shape, and a bounded loop re-entered
+      by its dispatcher is still infinite (KI-34).
+      **USER SEQUENCING: fix this AFTER the roster feature lands and BEFORE resuming story
+      chapters.** Cheap to reproduce — `ensure_hm_learner` is wired for exactly two moves
+      (Rock Smash `story_mode.py:2793`, Surf `:2967`).
+
 - [ ] `#24-whiteoutloop` — **TOP END REASON AND NOT UNDERSTOOD (5 of 15 non-finishes, up from 2).**
       ‼ Measured NOT to be Mt. Pyre's: a run with 0 `MT. PYRE` mentions logged 3 whiteouts while
       heavy-Mt.-Pyre runs logged none. Now that chapter milestones print, the next batch should
