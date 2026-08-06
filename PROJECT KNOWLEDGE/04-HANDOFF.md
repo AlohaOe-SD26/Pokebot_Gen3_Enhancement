@@ -172,6 +172,27 @@ start point for the Magma Hideout work.
 3. **Winona** — `Balance→Feather` is the weakest rung (53%) and 4 of 15 non-finishes. The counter
    chain names Rock/Ice/Dragon and cannot deliver one.
 
+## ‼ BATCH RUNNING — `x4-runs/20260806-103811`, code **`5a84c2ca`**, 8 lanes / 180 min
+Started 10:38 local, lands ~13:38. **Do NOT edit `sandbox-pokebot/` until it does.**
+It serves TWO purposes:
+
+**1. THE PRE-REGISTERED PROOF for `#24-hmteachloop`** (the live test was PARTIAL — it took the easy
+hunted-Zigzagoon path, which already passed 12/12). Read on `*/debug-logs/*.log`:
+| counter | before | target |
+|---|---|---|
+| `Teach flow finished but` | **7** | **0** |
+| `TEACH OK` (new event) | n/a | **≈42** — proves teaches weren't SUPPRESSED rather than fixed |
+A **mudkip** lane reaches the failing Marshtomp path naturally.
+
+**2. THE RE-BASELINE for `#24-roster`.** The 52.0% baseline (`20260805-075638`) predates Mt. Pyre
+and is no longer apples-to-apples. Record for comparison: finish rate, the badge funnel, and
+`no super-effective answer` (was **8 of 15 non-finishes**), `withdrawing` (**0**),
+`nobody can learn Surf — hunting…` (**42**, debug surface), mean team size at Feather (**~5.80**).
+
+‼ **SEARCHING THIS BATCH: use Bash `grep -r`, NEVER the Grep tool** — `x4-runs/` is gitignored and
+ripgrep returns a silent zero. Name the SURFACE (`stdout.txt` vs `debug-logs/*.log`); they carry
+different facts. Any null result needs a positive control. See `08-MISTAKES.md` 2026-08-06.
+
 ## AFTER THAT: §Ch14 — story content past Winona
 Full ROM-verified recon is in `12-STORYMODE-DESIGN.md` **§Ch14**; re-derive any of it with
 `tools/story-dev/probe_ch14_recon.py --area pyre|magma|approach`.
