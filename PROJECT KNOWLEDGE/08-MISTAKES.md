@@ -3515,3 +3515,45 @@ coord trigger, six waypoints away).
 reason than I gave — each leg **fails where it broke**, naming the blocked map, instead of
 producing one opaque error for a seven-map journey. The rationale in the chapter docstring has
 been corrected to say so.
+
+## 2026-08-06 — ‼ THE GREP TOOL RETURNS A SILENT ZERO ON `x4-runs/`. I accused an agent of fabricating data because of it.
+
+**Symptom.** A research agent reported the counter `Story: nobody can learn <HM> — hunting …` at
+35-53 hits per batch. I "verified" it, got **0 in all 17 batches**, and told the user the agent had
+invented its central measurement. **The agent was right and I was wrong.**
+
+**Two independent causes, both of which produce a confident zero:**
+
+1. **I searched the wrong SURFACE.** I ran `grep -r … */stdout.txt`. That counter is emitted to
+   `*/debug-logs/*.log`. Measured now:
+   | batch | `nobody can learn` in **debug-logs** | in **stdout** |
+   |---|---|---|
+   | `20260806-055947` | **42** | 0 |
+   | `20260805-075638` | **36** | 0 |
+   | `20260804-174700` | **53** | 0 |
+   Per playbook §2c the two surfaces carry **different facts by design** — stdout has no battle
+   outcomes. Searching one and concluding "absent" is a category error.
+
+2. **‼ THE GREP TOOL CANNOT SEE `x4-runs/` AT ALL.** `tools/story-dev/.gitignore:10` ignores
+   `x4-runs/`, and the Grep tool wraps ripgrep, which **skips ignored files by default and reports
+   `No matches found. Found 0 total occurrences across 0 files.`** Not an error. Not a warning.
+   Confirmed directly: Grep on `x4-runs/20260806-055947` for `nobody can learn` → 0; Bash
+   `grep -r` on the same path → 42.
+
+**‼ STANDING RULE — SEARCHING BATCH LOGS:**
+* **Never use the Grep tool on `tools/story-dev/x4-runs/`.** Use Bash `grep -r` (or
+  `rg --no-ignore`). The whole batch evidence base is gitignored and reads as empty.
+* **Name the SURFACE in any log claim** — `stdout.txt` vs `debug-logs/*.log` vs `badge-log.json`.
+  A count without a surface is not a measurement.
+* **A NULL RESULT REQUIRES A POSITIVE CONTROL.** Before reporting `count = 0`, run the SAME
+  command over the SAME files for a string known to be present. One extra grep. It would have
+  caught this instantly — in both directions.
+
+‼ **Why this is the most dangerous shape in the project: a zero is byte-identical whether the
+thing is absent or the search was blind.** This is the same failure as a phantom flag name reading
+`False` forever, and as KI-39's "every case FAILS". **When two sources disagree on a count, do not
+argue — find the command that reproduces BOTH numbers.** That is what resolved this in one call.
+
+**What it nearly cost:** I had already told the user, on this false zero, that the HM-gate demand
+"measures zero" and that a roster targeting it would be unmeasurable. The real figure is ~42
+Surf-carrier hunt expeditions per batch, present in 16 of 17 stored batches.
