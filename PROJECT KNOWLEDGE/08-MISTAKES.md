@@ -3485,3 +3485,33 @@ found is REAL and the fix may still be worth having; it is committed, gated off.
 code against an untested assumption ("Route 121 is traversable from where we enter") three times
 before testing it once. **A fix that does not resolve the symptom is evidence about the
 diagnosis — treat the second failed variant as a signal to re-measure, not to iterate.**
+
+## 2026-08-06 — Two different error strings, one wrong conclusion: "not connected" vs "no path"
+
+**Symptom.** Across 2026-08-05 I concluded repeatedly that `calculate_path` "spans only DIRECTLY
+CONNECTED maps", and built on it: it was the stated rationale for `#24-connstep`, for preferring
+explicit legs, and it went into three docs and a chapter docstring.
+
+**It is false**, and the Mt. Pyre chapter disproved it the moment it worked: leg 1 runs
+**FORTREE → ROUTE120 → ROUTE121 in a single `calculate_path` call** — two connections.
+
+**Root cause — I treated two different errors as one.** `map_path` emits:
+* `"Source (…) and destination (…) are not on connected maps (note that warps don't count.)"`
+  → genuinely unreachable; a warp is needed.
+* `"Could not find a path from (…) to (…)."`
+  → the maps ARE connected; **something is standing in the way.**
+
+The ROUTE120 → ROUTE122 failure was always the SECOND kind — the Route 121 Team Aqua grunts
+blocking the corridor. I read it as the first kind and went looking for a planner limitation.
+Both strings appeared in my own logs, side by side, for hours.
+
+‼ **Prevention rule: when a library reports failure, read WHICH failure. Two error strings from
+the same call are two different facts.** Skimming them as "it failed" throws away the most
+specific diagnostic the code is offering — here it was the difference between "the navigator is
+missing a capability" (days of work, a gated-off feature) and "an NPC is standing there" (one
+coord trigger, six waypoints away).
+
+**What survives:** short explicit legs are still the right build pattern, but for a different
+reason than I gave — each leg **fails where it broke**, naming the blocked map, instead of
+producing one opaque error for a seven-map journey. The rationale in the chapter docstring has
+been corrected to say so.

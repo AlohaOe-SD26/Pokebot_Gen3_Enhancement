@@ -6368,10 +6368,19 @@ def do_mt_pyre_summit() -> Generator:
     INTENT: run the summit scene, which yields the Magma Emblem and sets
     `FLAG_HIDE_JAGGED_PASS_MAGMA_GUARD` - the gate on the Magma Hideout (§Ch14).
     STORY CONDITION: the Route 121 gate is open (`open_route121_aqua_gate` ran).
-    HOW IT WORKS: EXPLICIT ADJACENT-MAP LEGS, not one generic journey call -
-    `calculate_path` spans only DIRECTLY CONNECTED maps, so a single
-    `navigate_to_anywhere(MT_PYRE_SUMMIT, ...)` commits to a leg two connections away and
-    fails (measured 2026-08-05). The route is ROUTE122 -> MT_PYRE_1F -> EXTERIOR -> SUMMIT.
+    HOW IT WORKS: EXPLICIT SHORT LEGS rather than one generic
+    `navigate_to_anywhere(MT_PYRE_SUMMIT, ...)`. The route is
+    ROUTE122 -> MT_PYRE_1F -> EXTERIOR -> SUMMIT.
+
+    ‼ WHY SHORT LEGS - and note the reason is NOT what I first wrote. `calculate_path` DOES
+    span several connected maps (this chapter proves it: leg 1 runs Fortree -> ROUTE120 ->
+    ROUTE121 in one call). The 2026-08-05 failures that looked like a "two connections away"
+    limit were actually the Route 121 Team Aqua grunts BLOCKING the corridor - a blocked path,
+    not a topology limit. **The two errors are different strings and they mean different
+    things:** "are not on connected maps (note that warps don't count.)" = genuinely
+    unreachable; "Could not find a path from X to Y" = connected, but something is in the way.
+    Short legs are still right here because each one FAILS WHERE IT BROKE, naming the map that
+    is blocked, instead of reporting one opaque failure for a seven-map journey.
     ‼ The interior tower (2F-6F) is a SKIPPABLE side dungeon and is deliberately not entered.
     GOAL/END STATE: `VAR_MT_PYRE_STATE >= 1`, Magma Emblem in the bag, controllable."""
     if _mt_pyre_summit_done():
