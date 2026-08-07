@@ -229,7 +229,34 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       lookup must be cached, never a 420-slot box scan; and `is_repeat_encounter` is PID dedup, NOT
       species dedup — do not reuse or name anything near it.
 
-- [ ] `#24-hmteachloop` — **USER-REPORTED 2026-08-06. Real bug, wastes frames and looks buggy.**
+- [x] `#24-hmteachloop` — **ROOT-CAUSED AND FIXED 2026-08-07. The user's description was literally
+      accurate, and the bug was OUR BUTTONS re-arming the teach.**
+      After the move is learned, both replace branches switch themselves off (`and not _knows()`),
+      so the ride fell through to a blind `A`-every-third-frame — and a Gen 3 bag teach ends on
+      **"Do you want to teach <MOVE> to another POKéMON?"**, where **A means YES**. It reopened the
+      party menu and re-entered the cycle until the 9,000-frame cap expired. Fix: once `_knows()`
+      is true the only button is **B**.
+      **A/B** (`--driver teachfull`, `POKEBOT_HMTEACH_POSTLEARN_A` toggles the arms):
+      | arm | ride_exit | ride_frames | learned |
+      |---|---|---|---|
+      | OLD | `hard-cap` | **8,999** | True |
+      | NEW | `learned` | **479** | True |
+      Same outcome (`replaced=['Taunt']`), clean overworld exit instead of a dangling YES/NO.
+      `repro_hmteach_postlearn.py` — 17 checks, green; fault-inject the branch to A → 3 red.
+      ‼ **WHY FOUR BUDGET ROUNDS FAILED (7/8/9/4), and it is an instrument lesson:**
+      1. Only the SUCCESS path emitted telemetry, so no batch could say WHICH exit fired — every
+         hypothesis was unfalsifiable. Five exits are instrumented now (`TEACH EXIT`).
+      2. **"Every successful teach exits in 35-86 frames" was measuring the wrong loop.**
+         `TEACH OK … in {_f} frames` read `_f` AFTER the menus-closed loop rebound it (Python
+         leaks `for` variables). The ride's real cost was **8,999**. That bogus figure is what
+         justified "the budget governs only failures" and all four tunings.
+      3. The stall detector could never fire: the ping-pong keeps state changing
+         (`stall_peak=171` vs a 900 threshold). It was never frozen, it was busy.
+      ‼ `--driver hmtest` could not reproduce this — it teaches a freshly caught mon with a FREE
+      move slot, so there is no replace dialogue (12/12 clean). The failures are all on a mon with
+      **four** moves; `--driver teachfull` forces exactly that.
+
+- [x] `#24-hmteachloop` (original report) — **USER-REPORTED 2026-08-06. Real bug, wastes frames and looks buggy.**
       > "the hm learning feature works but it still loops trying to teach/get out of the teaching
       > cycle after it teaches an hm"
 

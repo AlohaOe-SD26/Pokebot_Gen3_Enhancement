@@ -61,7 +61,7 @@ I narrated all four as verdicts and used them to remove a component and then res
 | **`#24-pcoverflow` break 1** | **FIXED.** `pc_trip.box_views()` did `getattr(storage,"boxes",lambda:[])()` — calling a `@cached_property` that returns a list → `TypeError` on every call. This is why `withdrawing` was 0. |
 | **`#24-pcoverflow` break 2** | **WIRED + PROVEN + ENABLED.** Full-party catch overflows to the box. Capability test: `caught=True box 0→1 exited_clean=True exit_frames=120`, then `second_catch=True box_now=2`. `POKEBOT_BOX_OVERFLOW_CATCH` defaults **1**. |
 | **`#24-pcwithdraw-proof`** | **DONE 2026-08-07 — the WITHDRAW half now executes.** `--driver boxwithdraw` + `saves/boxwithdraw.ss1`, three identical runs: `withdrew=True … box_before=2 box_after=2 deposited=True`, then `second_heal_ok=True still_has_target=True`. `#24-pcoverflow-proof` closes with it. |
-| **`#24-hmteachloop`** | **NOT FIXED** (7/8/9/4 across four configs). Ride budget restored to the best config: `9000` hard cap + `900` stall. |
+| **`#24-hmteachloop`** | **‼ FIXED 2026-08-07, root-caused.** After the move is learned the ladder fell through to a blind `A`-mash — and a bag teach ends on *"teach it to another POKéMON?"*, where **A = YES**. The bot re-armed its own teach cycle for the full 9,000-frame cap. Now `_knows()` ⇒ press only `B`. A/B: **8,999 → 479** ride frames, same outcome. `repro_hmteach_postlearn.py`. |
 | **`#24-rarepredicate`** | **SOLVED on paper, not built.** |
 | `#24-mtpyre-log` | milestones now `console.print` so a mid-chapter failure leaves a trail |
 
@@ -108,17 +108,43 @@ convenience, it is the only place this operation can occur. Do not go looking fo
 with a full party AND a non-empty box is a prior probe's end state, so the party arrives near
 death and runs 1 and 2 never reached a Centre (trainer refusal; then a whiteout).
 
-## ⏭ NEXT ACTIONS, IN ORDER
-1. **`#24-rarepredicate`** — implement the three OR'd rules in `custom_catch_filters`
-   (`modules/config/templates/customcatchfilters.py:50`). ‼ Two traps: that hook runs **≥2× per
-   encounter**, so the "do I own this species" lookup must be cached (never a 420-slot scan); and
-   `is_repeat_encounter` is **PID dedup, not species dedup** — do not reuse or name anything near it.
-2. **`#24-hmteachloop`** — ‼ **DO NOT tune the budget a fifth time.** Every SUCCESSFUL teach exits
-   in **35-86 frames**, so the budget governs only failures. Instrument WHICH `break` fires, at
-   what frame, with what task set, then diagnose.
-3. **`#24-whiteoutloop`** — 590 whiteouts across one batch (~18/game) is the single largest frame
+## ⏭ NEXT ACTIONS — THIS ORDER IS A USER-AGREED SEQUENCE (`06-DECISIONS-LOG.md` 2026-08-06)
+‼ An earlier revision of this file listed `#24-rarepredicate` first. **That was wrong twice over**
+and is corrected here: the agreed sequence puts `#24-hmteachloop` first, and **RULING 2 says round
+one changes NO catch policy** — the duplicate-catch exemption *is* catch policy, so it belongs to
+a later round on a clean baseline, not to this one. Do not reorder these without a new ruling.
+
+1. ✅ **`#24-hmteachloop` — DONE 2026-08-07** (was step 1 of the agreed sequence). See the table
+   above and `07-CHANGELOG.md`. ‼ Two figures previously in this file were WRONG and are retired:
+   "every successful teach exits in 35-86 frames" was measuring the menus-closed loop, not the
+   ride (a leaked `for` variable) — the ride was burning **8,999**; and `teach skipped` at
+   ~25/run is **not this bug** — it is a benign `[dim]` line printed whenever derail recovery
+   replays an already-satisfied segment, and it costs no frames.
+2. **‼ NEXT ACTION — re-baseline ONE clean batch.** Nothing currently has a valid comparison arm
+   (the 52.0% baseline predates Mt. Pyre), and there are now TWO shipped changes since the last
+   batch. ‼ One change per batch is the rule; this batch is the BASELINE, so read it as the new
+   reference, not as a verdict on either fix — both are already proven by capability test, which
+   is the stronger evidence.
+   ```
+   cd tools/story-dev && PYTHONUTF8=1 py -3.12 x4_headless.py --lanes 8 --minutes 180
+   ```
+   Record it in this file **the moment it launches**. Then count `TEACH EXIT reason=ride:hard-cap`
+   in the debug logs — it should be ~0, and it is a near-binary counter, which is the only kind a
+   batch can resolve.
+3. **`#24-roster` / `#24-rarepredicate`** — the slice, AFTER the re-baseline. The withdraw
+   primitive it needs is now proven (above). Spec is complete in `03-PUNCH-LIST.md`; two traps:
+   `custom_catch_filters` runs **≥2× per encounter**, so the "do I own this species" lookup must be
+   cached (never a 420-slot box scan); and `is_repeat_encounter` is **PID dedup, not species
+   dedup** — do not reuse or name anything near it.
+   ‼ **And check the DEPLOYMENT SURFACE before writing code there:** `run_custom_catch_filters`
+   (`modules/encounter.py:72-81`) imports the filter from **the profile's own**
+   `customcatchfilters.py`, falling back to `profiles/customcatchfilters.py`. The file under
+   `modules/config/templates/` only seeds NEW profiles, so logic written there alone reaches
+   nothing that already exists. Put the predicate in a `modules/story/` module and have the filter
+   delegate to it.
+4. **`#24-whiteoutloop`** — 590 whiteouts across one batch (~18/game) is the single largest frame
    cost in the program and is NOT understood.
-4. **`#24-magmahideout`** — unlocked (`HIDE_JAGGED_PASS_MAGMA_GUARD` set by the summit) but the
+5. **`#24-magmahideout`** — unlocked (`HIDE_JAGGED_PASS_MAGMA_GUARD` set by the summit) but the
    hardest area attempted: cable car + one-way descent, ~8 warps. Start from `saves/post_mtpyre.ss1`.
 
 ## HOW TO RUN / TEST
@@ -140,8 +166,9 @@ PYTHONUTF8=1 py -3.12 x4_headless.py --lanes 8 --minutes 180
 `post_mtpyre.ss1` (6-mon party, EMPTY box, Magma Emblem), `boxwithdraw.ss1` (ROUTE121, **party 6
 AND box 2** — the only save that can exercise a PC withdraw), `norman_done.ss1`, `dewford.ss1`.
 **Harness drivers of note:** `boxcatch` (full-party catch capability), `boxwithdraw` (PC withdraw
-capability, drives the real heal-piggyback), `cavethread` (`CAVE_PATHCHECK` / `CAVE_BOXCHECK` /
-`CAVE_FLAGS` probes), `story` (drives real Story mode).
+capability, drives the real heal-piggyback), `teachfull` (HM teach down the REPLACE path — the one
+`hmtest` cannot reach, because `hmtest`'s freshly caught mon has a free move slot), `cavethread`
+(`CAVE_PATHCHECK` / `CAVE_BOXCHECK` / `CAVE_FLAGS` probes), `story` (drives real Story mode).
 
 ## GOTCHAS
 * Never bulk-import `modules/data/*` — it runs generators at import and has gutted `map_data.py`

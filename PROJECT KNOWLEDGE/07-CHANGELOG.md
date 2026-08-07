@@ -8523,3 +8523,61 @@ wild is allowed and is what we want while walking to a Centre).
 the party menu, or the overworld. So there is no cheaper retrieval point to go looking for: the
 heal-piggyback is not a convenience, it is the only place the operation can happen. Any future
 design that assumes a boxed mon can be fielded mid-journey is wrong by construction.
+
+---
+
+## 2026-08-07 — `#24-hmteachloop`: ROOT-CAUSED AND FIXED. The bot was re-arming the teach itself.
+
+The user reported it exactly right on 2026-08-06:
+> "the hm learning feature works but it still loops trying to teach/get out of the teaching cycle
+> after it teaches an hm"
+
+**The cause.** `teach_hm_move`'s ride loop drives the post-teach dialogue with an if/elif ladder.
+The moment the move IS learned, both replace branches switch themselves off via `and not
+_knows()` — so every remaining frame fell through to the blind fallback, `A` on one frame in
+three. But a Gen 3 bag teach ENDS on **"Do you want to teach <MOVE> to another POKéMON?"**
+(`Task_CallYesOrNoCallback`), and **A on that prompt means YES**: it reopens the party menu and
+re-enters the teach cycle, which the A-mash then drives again. The loop was never stuck. We were
+re-arming it, one frame in three, until the 9,000-frame cap killed it.
+
+**The fix.** Once `_knows()` is true there is nothing left to accept, so the only safe button is
+`B` — it declines "teach another", backs out of the bag, and cannot start an NPC conversation.
+
+**A/B, `--driver teachfull` (new), Mightyena with four moves, `POKEBOT_HMTEACH_POSTLEARN_A`:**
+
+| arm | ride_exit | ride_frames | learned | exit task set |
+|---|---|---|---|---|
+| OLD (`=1`) | `hard-cap` | **8,999** | True | `['ListMenuDummyTask', 'Task_CallYesOrNoCallback']` |
+| NEW (default) | `learned` | **479** | True | clean overworld tasks |
+
+Identical outcome (`replaced=['Taunt']`), 94.7% fewer frames, and the flow now exits on a settled
+overworld instead of a dangling YES/NO prompt. `repro_hmteach_postlearn.py` — 17 checks, green;
+fault-inject the branch back to `A` and 3 go red.
+
+### ‼ WHY FOUR BUDGET ROUNDS (7 / 8 / 9 / 4 failures) FOUND NOTHING — an instrument post-mortem
+
+1. **Only the SUCCESS path emitted telemetry.** `TEACH OK` fired on success and *nothing* fired on
+   any of the five failure exits, so no batch could say which one had run. Every hypothesis about
+   the cause was therefore unfalsifiable, and the only knob anyone could see was the budget. Five
+   exits now emit `TEACH EXIT reason=… frame=… tasks=… learn_state=… moves=…`, which is what
+   produced the diagnosis in a single ~5-minute run.
+2. **‼ "Every SUCCESSFUL teach exits in 35-86 frames (n=42)" was measuring the wrong loop.** That
+   line came from `TEACH OK … in {_f} frames` — and `_f` had already been REBOUND by the
+   menus-closed loop below the ride, because Python leaks `for` variables into the enclosing
+   scope. It was reporting menu-closing iterations. The ride's actual cost, once measured, was
+   **8,999 frames**. That bogus figure is precisely what justified "the budget is irrelevant to
+   successes and governs only failures", and every tuning round followed from it. Both counts are
+   now reported side by side (`ride_frames=` and `close_frames=`) so they cannot be confused.
+3. **The stall detector could never fire.** Its 900-frame threshold assumes a wedge is FROZEN, but
+   a ping-pong keeps the task set and dialogue state changing: measured `stall_peak=171`. It was
+   never stuck, it was busy — so "add a stall break" and "remove the stall break" were both
+   irrelevant, which is exactly what the flat 7/8/9 failure counts were saying.
+
+### ‼ WHY IT NEVER REPRODUCED: the existing driver tested the easy path
+`--driver hmtest` teaches to a mon `ensure_hm_learner` has just CAUGHT, which has a free move slot,
+so the game learns the move instantly and there is no replace dialogue at all — recorded as 12/12
+clean. Every recorded failure is on a mon with FOUR moves. New `--driver teachfull` picks a party
+member that is compatible, does not know the move, AND already has four moves, which is the only
+combination that exercises `Task_ReplaceMoveYesNo` → summary → the post-learn prompt.
+It also carries a positive control on the bag (`quantity_of`), because a missing HM makes the flow
+die at "`Task_CallYesOrNoCallback` never appeared" — indistinguishable from the bug.

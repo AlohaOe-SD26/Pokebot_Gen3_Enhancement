@@ -4474,6 +4474,35 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
         except Exception:
             return set()
 
+    # ‼ `#24-hmteachloop` INSTRUMENTATION (2026-08-07). Four budget configurations were batched
+    # (7 / 8 / 9 / 4 failures) and NONE of them could say WHICH of this flow's exits fired,
+    # because only the SUCCESS path emitted an event (`TEACH OK`). Every hypothesis about the
+    # cause was therefore unfalsifiable, and the budget was tuned four times on a number that
+    # governs only failures. This emits one `TEACH EXIT` line per non-success exit, carrying the
+    # frame, the live task set, the learn-move state and the target's moves — enough to tell a
+    # stall-misfire from a genuine wedge from a never-appeared task WITHOUT another batch.
+    # It changes no control flow: read it, diagnose, then fix.
+    def _teach_exit(reason: str, frame: int | None = None) -> None:
+        try:
+            from modules import debug_logger
+            from modules.battle_move_replacing import get_learn_move_state as _lms
+
+            try:
+                _state = str(_lms())
+            except Exception:  # noqa: BLE001
+                _state = "<unreadable>"
+            try:
+                _moves = [l.move.name for l in _mon().moves if l is not None]
+            except Exception:  # noqa: BLE001
+                _moves = ["<unreadable>"]
+            debug_logger.event(
+                f"TEACH EXIT reason={reason} move={target_move.name} "
+                f"slot={party_index} replace_slot={replace_slot} frame={frame} "
+                f"tasks={sorted(_tasks())} learn_state={_state} moves={_moves}"
+            )
+        except Exception:  # noqa: BLE001 - telemetry must never break the teach
+            pass
+
     def _wait_for(task_name: str, *, press: str | None = None, cap: int = 900) -> Generator:
         for _f in range(cap):
             if task_name in _tasks():
@@ -4481,6 +4510,7 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
             if press and _f % 12 == 0:
                 context.emulator.press_button(press)
             yield
+        _teach_exit(f"never-appeared:{task_name}", cap)
         raise BotModeError(f"Teach flow: {task_name} never appeared.")
 
     from modules.tasks import get_tasks
@@ -4498,15 +4528,23 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
     context.emulator.press_button("A")
     yield from wait_for_n_frames(30)
     # Either it learns instantly (<4 moves) or the replace YES/NO comes up.
+    _post_select_exit = "exhausted"
     for _f in range(900):
         t = _tasks()
         if "Task_ReplaceMoveYesNo" in t and "Task_PrintAndWaitForText" not in t:
+            _post_select_exit = "replace-prompt"
             break
         if "Task_PartyMenuReplaceMove" in t or "Task_HandleChooseMonInput" in t:
+            _post_select_exit = "instant-learn"
             break  # instant learn path
         if _f % 12 == 0:
             context.emulator.press_button("A")
         yield
+    if _post_select_exit == "exhausted":
+        # ‼ This falls through SILENTLY into the ride loop, so a teach that never reached
+        # either branch has always looked identical to one that did. Not raising here is
+        # deliberate (the ride loop can still recover it) — but it must be visible.
+        _teach_exit("post-select-900-exhausted", 900)
     def _knows() -> bool:
         return any(l is not None and l.move.name == target_move.name for l in _mon().moves)
 
@@ -4561,21 +4599,53 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
     # That is ~8,100 wasted frames per failure, which is exactly the shape that feeds the
     # 18,000-frame global watchdog.
     #
-    # ‼ THE REAL TEACH BUG IS STILL UNFIXED (7-9 failures across all three configs). The
-    # budget was never the knob — DO NOT tune it a fourth time. Re-diagnose by instrumenting
-    # WHICH break fires, at what frame, with what task set.
+    # ‼‼ RESOLVED 2026-08-07 — AND TWO OF THE MEASUREMENTS ABOVE ARE WRONG. Read this before
+    # trusting any figure in this comment block.
+    #
+    # THE BUG: after the move was learned, the button ladder below fell through to a blind
+    # `A`-every-third-frame, and Gen 3 ends a bag teach on "teach it to another POKéMON?" —
+    # where A means YES. We re-armed the teach cycle ourselves until the cap expired. Full
+    # detail at the `if _knows()` branch below; `repro_hmteach_postlearn.py` pins it.
+    #
+    # ‼ "every SUCCESSFUL teach exits in 35-86 frames (n=42)" IS NOT THE RIDE. That figure came
+    # from `TEACH OK … in {_f} frames`, and `_f` had already been REBOUND by the menus-closed
+    # loop — it was measuring menu closing. The ride's real cost, once measured properly, was
+    # **8,999 frames — the entire cap — on a teach that had already succeeded.** The inference
+    # "the budget is irrelevant to successes and governs only failures" was drawn from the
+    # wrong loop, and the four tuning rounds followed from it.
+    #
+    # ‼ "7 / 8 / 9 is noise" was right for the wrong reason. Every config burned the whole cap
+    # after success; the stall detector could not help because the ping-pong keeps the state
+    # changing (`stall_peak=171` against a 900 threshold). Changing the cap only changed how
+    # much was wasted, never whether it was wasted — which is why four rounds moved nothing.
+    #
+    # A/B (`--driver teachfull`, `POKEBOT_HMTEACH_POSTLEARN_A`):
+    #     OLD  ride_exit=hard-cap  ride_frames=8999   learned=True
+    #     NEW  ride_exit=learned   ride_frames=479    learned=True
     #
     # `_TEACH_RIDE_HARD_CAP` stays ABSOLUTE: never "loop until progress", because this
     # generator is re-entered by the derail dispatcher and an unbounded-while-progressing loop
     # is the KI-34 shape that burned 23.9M frames.
     from modules.battle_move_replacing import get_learn_move_state
 
+    # FAULT INJECTION for the `#24-hmteachloop` A/B (see the `_knows()` branch below).
+    # `POKEBOT_HMTEACH_POSTLEARN_A=1` restores the pre-fix behaviour — keep A-mashing after the
+    # move is learned — so the OLD arm can be measured on demand without reverting code.
+    # Default 0 = fixed. It exists because "the error stopped" is not proof a fix worked; an
+    # arm that reproduces the bug on request is.
+    import os as _os
+
+    _POSTLEARN_A = _os.environ.get("POKEBOT_HMTEACH_POSTLEARN_A", "0") == "1"
+
     _TEACH_RIDE_HARD_CAP = 9000      # 1.85x the worst LEGITIMATE observed path (4,875)
     _TEACH_RIDE_STALL_FRAMES = 900   # observable state frozen this long => wedged, stop cheaply
     _stall = 0
     _last_sig = None
+    _ride_exit = "hard-cap"
+    _stall_peak = 0
     for _f in range(_TEACH_RIDE_HARD_CAP):
         if _knows() and get_game_state() is GameState.OVERWORLD and player_avatar_is_controllable():
+            _ride_exit = "learned"
             break
         t = _tasks()
         # Progress signature: task set + learn-state + the target's own moves.
@@ -4586,12 +4656,43 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
             _sig = None
         if _sig is not None and _sig == _last_sig:
             _stall += 1
+            _stall_peak = max(_stall_peak, _stall)
             if _stall >= _TEACH_RIDE_STALL_FRAMES:
+                _ride_exit = "stall"
                 break  # frozen => fall through to the menus-closed guarantee, cheaply
         else:
             _stall = 0
             _last_sig = _sig
-        if "Task_StopLearningMoveYesNo" in t:
+        if _knows() and not _POSTLEARN_A:
+            # ‼‼ THE `#24-hmteachloop` BUG, FOUND 2026-08-07. THIS IS THE USER'S REPORT
+            # VERBATIM: "it still loops trying to teach/get out of the teaching cycle AFTER it
+            # teaches an hm."
+            #
+            # Once the move IS learned, both replace branches below switch themselves off via
+            # `and not _knows()` — so every remaining frame fell through to the blind
+            # `_f % 3 == 0 -> A, else B` policy. But Gen 3 follows a bag teach with
+            # **"Do you want to teach <MOVE> to another POKéMON?"** (`Task_CallYesOrNoCallback`),
+            # and **A on that prompt means YES**: it reopens the party menu and re-enters the
+            # teach cycle, which the A-mash then drives again. The loop is not stuck — it is
+            # being actively re-armed, one frame in three, by our own buttons.
+            #
+            # Measured (`--driver teachfull`, Mightyena with 4 moves, the replace path):
+            #     TEACH EXIT reason=ride:hard-cap stall_peak=171 frame=8999
+            #                tasks=['ListMenuDummyTask', 'Task_CallYesOrNoCallback']
+            #                moves=[... 'Rock Smash' ...]   <- learned LONG before frame 8999
+            # It burned the FULL 9,000-frame cap on a teach that had already succeeded.
+            #
+            # ‼ THIS IS WHY FOUR BUDGET ROUNDS FAILED (7/8/9/4). The cap only ever decided how
+            # long to churn AFTER success, and the stall detector could never fire because the
+            # ping-pong keeps the state changing — `stall_peak=171` against a 900 threshold.
+            # The budget was never the knob, exactly as `03-PUNCH-LIST.md` insisted.
+            #
+            # After the move is learned there is nothing left to accept, so the only safe
+            # button is B: it declines "teach another", backs out of the bag, and cannot start
+            # an NPC conversation. The `_knows()` success test at the top of the loop then
+            # exits as soon as the overworld is genuinely back.
+            context.emulator.press_button("B")
+        elif "Task_StopLearningMoveYesNo" in t:
             context.emulator.press_button("B")  # NO — never give up on the teach
         elif "Task_ReplaceMoveYesNo" in t and not _knows():
             context.emulator.press_button("A")  # YES — replace
@@ -4603,6 +4704,27 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
         else:
             context.emulator.press_button("B")
         yield
+    # ‼ THE LINE THAT FOUR BUDGET ROUNDS WERE MISSING. `_ride_exit` distinguishes the three
+    # ways out of the ride, which demand OPPOSITE fixes and were indistinguishable before:
+    #   learned    — success (also logged as `TEACH OK` below; recorded here for the frame/peak)
+    #   stall      — the signature froze for 900f. ‼ If `_stall_peak` is ~900 on a teach that
+    #                LATER succeeds, the stall detector is MISFIRING on a slow-but-legitimate
+    #                scene (the signature cannot see text scrolling), and the fix is a better
+    #                signature — NOT a bigger budget.
+    #   hard-cap   — 9,000 frames of mashing with the state still changing = a genuine
+    #                ping-pong, and the button policy is the thing to fix.
+    # ‼‼ CAPTURE THE RIDE'S FRAME COUNT *HERE*, BEFORE ANY OTHER LOOP REBINDS `_f`.
+    # Python leaks a `for` variable into the enclosing scope, and the menus-closed loop below
+    # is ALSO `for _f in range(...)`. The success event at the end of this function reads `_f`
+    # — so `TEACH OK … in {_f} frames` has always reported the MENUS-CLOSED loop's iteration
+    # count, never the ride's. That is where "every SUCCESSFUL teach exits in 35-86 frames
+    # (n=42)" came from, and that figure is what justified "the budget governs only failures"
+    # and four rounds of budget tuning. **The ride duration was never actually measured.**
+    _ride_frames = _f
+    _teach_exit(
+        f"ride:{_ride_exit} stall_peak={_stall_peak} post_select={_post_select_exit}",
+        _ride_frames,
+    )
     # HARD menus-closed guarantee: the ride above can expire with the BAG still open
     # (seen on a 5-mon roll, batch run02) — and neither the derail recovery nor the
     # global watchdog can close a bag (they ride SCRIPTS; a menu isn't one). B out
@@ -4625,8 +4747,10 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
         yield
     yield from wait_until_truly_controllable()
     if get_game_state() is not GameState.OVERWORLD or _menu_task_active():
+        _teach_exit("menus-never-closed", 1200)
         raise BotModeError("Teach flow: could not close the menus back to the overworld.")
     if not _knows():
+        _teach_exit(f"not-learned-after-ride:{_ride_exit} stall_peak={_stall_peak}", _ride_frames)
         # ‼ KEPT ON PURPOSE (`#24-hmteachloop`, 2026-08-06). The bug was the BUDGET, not this
         # raise — it is the only in-flow detector of a genuinely failed teach, and it names the
         # mon and the move. `_guard("Teach Surf (Ch12c)")` would still catch a real failure one
@@ -4647,7 +4771,15 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
     # a broken import. Idiom copied from `story_mode.py:666`, which does it correctly.
     from modules import debug_logger
 
-    debug_logger.event(f"TEACH OK {_mon().species.name} learned {target_move.name} in {_f} frames")
+    # ‼ `ride_frames` is the RIDE loop's count (captured before the menus loop rebound `_f`);
+    # `close_frames` is the menus-closed loop's. The old line printed the latter and called it
+    # the former — see the capture note above. Both are reported now so the two can never be
+    # confused again, and so the ride budget finally has a real distribution behind it.
+    debug_logger.event(
+        f"TEACH OK {_mon().species.name} learned {target_move.name} "
+        f"ride_frames={_ride_frames} ride_exit={_ride_exit} stall_peak={_stall_peak} "
+        f"post_select={_post_select_exit} close_frames={_f}"
+    )
 
 
 def get_rock_smash_hm() -> Generator:

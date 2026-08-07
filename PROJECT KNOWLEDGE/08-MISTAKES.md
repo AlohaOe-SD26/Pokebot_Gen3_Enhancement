@@ -3738,3 +3738,55 @@ driving it to a named positive outcome.
   `console.print` goes to stdout; the harness log file holds the harness's own `log()` lines only.
   This is the "NAME THE SURFACE" trap again, and the positive control is what caught it — the
   string was visible in the captured stdout of the very same run.
+
+---
+
+## 2026-08-07 — I tuned a budget FOUR times against a number that was measuring a different loop
+
+**Symptom.** `#24-hmteachloop` survived four batched configurations (7 / 8 / 9 / 4 failures). Each
+round changed `_TEACH_RIDE_HARD_CAP` and/or the stall threshold; the failure count never moved.
+
+**Root cause — two instrument faults, compounding.**
+
+1. **`TEACH OK … in {_f} frames` was reporting the wrong loop.** `teach_hm_move` has a ride loop
+   `for _f in range(_TEACH_RIDE_HARD_CAP)` and then a menus-closed loop `for _f in range(1200)`.
+   Python leaks a `for` variable into the enclosing scope, so by the time the success event ran,
+   `_f` was the SECOND loop's count. That is where "every successful teach exits in **35-86
+   frames**, so the budget governs only failures" came from. Measured properly, the ride was
+   taking **8,999 frames — the entire cap — on teaches that had already succeeded.** The one
+   sentence everyone reasoned from was false, and it read as hard data.
+2. **Only the success path emitted telemetry at all.** Five distinct failure exits (two
+   `never-appeared` raises, a silent 900-frame fall-through, a stall break, and cap exhaustion)
+   were indistinguishable in every log. So no batch could ever discriminate between hypotheses,
+   and the budget was the only visible knob — which is why it kept getting turned.
+
+**The actual bug, found in one ~5-minute run once the exits were instrumented:** after the move is
+learned the ladder's replace branches disable themselves (`and not _knows()`) and the flow falls
+through to a blind `A`-every-third-frame — on a prompt that asks *"teach it to another POKéMON?"*,
+where A means yes. The bot was re-arming its own teach cycle. Fix: press only `B` once `_knows()`.
+A/B: **8,999 → 479 frames**, same outcome. `repro_hmteach_postlearn.py`.
+
+‼ **Prevention rule: never reuse a loop variable name across two loops in one function, and never
+read one after a later loop could have rebound it.** Capture it (`_ride_frames = _f`) at the moment
+the loop ends. Python will not warn you; the number will just quietly become a different number.
+
+‼ **Second rule — the one that actually cost the four rounds: if a component has N failure exits
+and 1 of them is instrumented, you cannot diagnose it, and any fix you ship is a guess.** Before
+changing a constant a second time, make every exit say WHICH it was. Cost of the instrumentation:
+one function-local helper. Cost of not having it: four 3-hour batches and four wrong conclusions.
+
+‼ **Third: a repro that only exercises the easy path will stay green through the bug.**
+`--driver hmtest` teaches a freshly caught mon, which has a FREE move slot — no replace dialogue,
+no post-learn prompt, 12/12 clean. Every real failure was on a four-move mon. **When a feature has
+a branch the test never takes, the test is not covering the feature** — build the driver that
+forces the hard branch (`--driver teachfull`).
+
+### And my own probe repeated the session's other lesson, twice
+* `get_item_bag().tm_hm_case` does not exist (the pocket is `tms_hms`), and a bare `except` around
+  it turned the `AttributeError` into a confident "HM06 is not in the bag" on a save that had it.
+  **A guard that reports a clean negative when the guard itself is broken is worse than no guard.**
+  Use the intended API (`quantity_of`) and let errors be loud.
+* The first draft of `repro_hmteach_postlearn.py` matched the button ladder at the wrong indent and
+  anchored on "the first `if` in the loop" — which is the loop's own `break` test, not the ladder.
+  It passed every assertion for the wrong reason. **A structural test must anchor on the thing it
+  is testing (here: the branch that presses buttons), not on position.**

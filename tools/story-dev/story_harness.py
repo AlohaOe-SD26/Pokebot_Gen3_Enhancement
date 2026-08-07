@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "normancounter"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "normancounter"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -1719,6 +1719,104 @@ class BoxCatchMode(BotMode):
         return
 
 
+class TeachFullMode(BotMode):
+    """DIAGNOSE `#24-hmteachloop` — drive `teach_hm_move` down the REPLACE-DIALOGUE path.
+
+    ‼ WHY A NEW DRIVER. `--driver hmtest` teaches to a mon `ensure_hm_learner` just CAUGHT, so
+    it has free move slots and the game learns the move instantly — no replace prompt at all.
+    The changelog records that shape as **12/12 clean**, which is why four budget rounds never
+    reproduced anything. The 7 recorded failures are all on a mon with FOUR moves, where the
+    flow must answer `Task_ReplaceMoveYesNo` and pick a slot in the summary screen. This driver
+    forces exactly that: it teaches to a party mon that is compatible AND already has 4 moves.
+
+    Reads the `TEACH EXIT` / `TEACH OK` telemetry added 2026-08-07 — which exit fired, at what
+    frame, with what task set. **Diagnosis only; it changes no behaviour.**
+
+        PYTHONUTF8=1 TEACH_ITEM=HM06 py -3.12 story_harness.py boxwithdraw.ss1 \
+            --driver teachfull --frames 200000 --profile tf1
+
+    Emits: [teachfull] RESULT learned=<bool> target=<species> replaced=<move> frames=<n>
+    """
+
+    @staticmethod
+    def name():
+        return "TeachFull"
+
+    def on_battle_started(self, encounter):
+        from modules.battle_strategies import DefaultBattleStrategy
+
+        return DefaultBattleStrategy()
+
+    def run(self):
+        import os
+
+        from modules.items import get_item_bag, get_item_by_name
+        from modules.pokemon_party import get_party
+        from modules.story.early_game import teach_hm_move, wait_until_truly_controllable
+
+        yield from wait_until_truly_controllable()
+
+        item_name = os.environ.get("TEACH_ITEM", "HM06").strip()
+        item = get_item_by_name(item_name)
+        move = item.tm_hm_move()
+        log(f"[teachfull] item={item_name} teaches {getattr(move, 'name', '?')}")
+
+        # ‼ POSITIVE CONTROL: the bag must actually hold it. Without this a missing HM looks
+        # exactly like a broken teach flow — the bag scroll simply never finds the item and the
+        # flow dies at `Task_CallYesOrNoCallback never appeared`, which reads as the bug.
+        # ‼ AND THE CONTROL ITSELF NEEDS ONE. Run 1 of this driver reported "HM06 is not in the
+        # TM/HM case" on a save that has it: I wrote `get_item_bag().tm_hm_case`, the pocket is
+        # `tms_hms` (`modules/items.py:368`), and a bare `except` turned the AttributeError into
+        # a confident False. Use the intended `quantity_of()` API and let an error be LOUD — a
+        # guard that reports a clean negative when it is itself broken is worse than no guard.
+        have = get_item_bag().quantity_of(item)
+        log(f"[teachfull] bag holds {have}x {item_name}")
+        if have <= 0:
+            log(f"[teachfull] ABORT — {item_name} is not in the bag on this save. "
+                f"A missing item mimics the bug exactly; pick a save that has it.")
+            context.set_manual_mode()
+            return
+
+        # The DISCRIMINATING target: compatible, four moves already, does not know it yet.
+        target, why = None, []
+        for i, mon in enumerate(get_party()):
+            if mon is None or mon.is_egg:
+                continue
+            moves = [l for l in mon.moves if l is not None]
+            knows = any(l.move.name == move.name for l in moves)
+            compat = mon.species.can_learn_tm_hm(item)
+            why.append(f"{i}:{mon.species.name} moves={len(moves)} compat={compat} knows={knows}")
+            if compat and not knows and len(moves) >= 4 and target is None:
+                target = i
+        log(f"[teachfull] party — {why}")
+        if target is None:
+            log("[teachfull] ABORT — no party mon is compatible, ignorant of the move AND has "
+                "4 moves. That combination IS the test; without it this driver measures the "
+                "instant-learn path that `hmtest` already covers.")
+            context.set_manual_mode()
+            return
+
+        mon = get_party()[target]
+        before = [l.move.name for l in mon.moves if l is not None]
+        log(f"[teachfull] target=slot {target} {mon.species.name} L{mon.level} moves={before}")
+
+        try:
+            yield from teach_hm_move(item, target)
+            log("[teachfull] teach_hm_move returned without raising")
+        except Exception as error:  # noqa: BLE001
+            log(f"[teachfull] teach_hm_move RAISED {type(error).__name__}: {str(error)[:250]}")
+
+        after = [l.move.name for l in get_party()[target].moves if l is not None]
+        learned = move.name in after
+        lost = [m for m in before if m not in after]
+        log(f"[teachfull] RESULT learned={learned} target={mon.species.name} "
+            f"replaced={lost} before={before} after={after}")
+        log("[teachfull] ‼ Read the `TEACH EXIT` / `TEACH OK` lines in the debug log for the "
+            "exit reason, ride_frames and stall_peak.")
+        context.set_manual_mode()
+        return
+
+
 class BoxWithdrawMode(BotMode):
     """CAPABILITY TEST for the WITHDRAW half of `#24-pcoverflow` — the half that has NEVER run.
 
@@ -2829,6 +2927,8 @@ for step in range(args.frames):
             context.bot_mode_instance = BoxCatchMode()
         elif args.driver == "boxwithdraw":
             context.bot_mode_instance = BoxWithdrawMode()
+        elif args.driver == "teachfull":
+            context.bot_mode_instance = TeachFullMode()
         elif args.driver == "normancounter":
             context.bot_mode_instance = NormanCounterMode()
         elif args.driver == "traintest":
