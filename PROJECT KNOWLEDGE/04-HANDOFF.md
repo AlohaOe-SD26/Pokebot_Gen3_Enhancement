@@ -111,97 +111,44 @@ convenience, it is the only place this operation can occur. Do not go looking fo
 with a full party AND a non-empty box is a prior probe's end state, so the party arrives near
 death and runs 1 and 2 never reached a Centre (trainer refusal; then a whiteout).
 
-## ⏭ NEXT ACTIONS — THIS ORDER IS A USER-AGREED SEQUENCE (`06-DECISIONS-LOG.md` 2026-08-06)
-‼ An earlier revision of this file listed `#24-rarepredicate` first. **That was wrong twice over**
-and is corrected here: the agreed sequence puts `#24-hmteachloop` first, and **RULING 2 says round
-one changes NO catch policy** — the duplicate-catch exemption *is* catch policy, so it belongs to
-a later round on a clean baseline, not to this one. Do not reorder these without a new ruling.
+## ⏭ NEXT ACTIONS, IN ORDER
 
-1. ✅ **`#24-hmteachloop` — DONE 2026-08-07** (was step 1 of the agreed sequence). See the table
-   above and `07-CHANGELOG.md`. ‼ Two figures previously in this file were WRONG and are retired:
-   "every successful teach exits in 35-86 frames" was measuring the menus-closed loop, not the
-   ride (a leaked `for` variable) — the ride was burning **8,999**; and `teach skipped` at
-   ~25/run is **not this bug** — it is a benign `[dim]` line printed whenever derail recovery
-   replays an already-satisfied segment, and it costs no frames.
-2. 🔄 **RE-BASELINE BATCH IS IN FLIGHT — `20260807-102552`, launched 2026-08-07 10:25, code
-   `d878fa33`, 8 lanes × 180 min.** Due back ~13:25. **READ IT WHEN IT LANDS; that is the next
-   action.**
-   ‼ **This is a BASELINE, not a verdict.** It carries TWO shipped changes (the withdraw proof —
-   telemetry only — and the HM-teach fix), so it cannot attribute anything, and a finish rate
-   cannot resolve a change this size anyway. Both fixes are already proven by capability test,
-   which is the stronger evidence. What to read, in order:
-   1. **`TEACH EXIT reason=ride:hard-cap` should be ~0.** Near-binary, so a batch CAN resolve it.
-      Any non-zero count is a second, different teach failure worth its own probe — read the
-      `tasks=` field on those lines, which now names the state it died in.
-   2. `TEACH OK … ride_frames=` gives the ride's real distribution for the first time. If the
-      max is comfortably under 9,000, `_TEACH_RIDE_HARD_CAP` can finally be sized from data.
-   3. The **badge funnel** (`analyse_badge_funnel.py`) — ~200 records vs ~26 outcomes.
-   ‼ **Use Bash `grep -r`, never the Grep TOOL**, on `x4-runs/` — it is gitignored and ripgrep
-   silently reports 0 matches across 0 files.
-3. **`#24-roster` / `#24-rarepredicate`** — the slice, AFTER the re-baseline. The withdraw
-   primitive it needs is now proven (above). Spec is complete in `03-PUNCH-LIST.md`; two traps:
-   `custom_catch_filters` runs **≥2× per encounter**, so the "do I own this species" lookup must be
-   cached (never a 420-slot box scan); and `is_repeat_encounter` is **PID dedup, not species
-   dedup** — do not reuse or name anything near it.
-   ‼ **And check the DEPLOYMENT SURFACE before writing code there:** `run_custom_catch_filters`
+1. **‼ READ BATCH `20260807-160545` (see "HOW TO READ" above). It is the only thing outstanding.**
+   Everything else below is unstarted work, not work in progress.
+
+2. **`#24-winonaground`** — the top remaining failure class now that whiteouts are addressed.
+   Winona's counter **can never be hunted**: `hunt_ground_tile()`'s whitelist is
+   `HUNTING_GROUNDS` = {FIERY_PATH} + `TRAINING_GRASS` = {ROUTE116, ROUTE117, ROUTE102}, and
+   **none hosts a Rock/Electric/Ice wild**. Norman (Machop @ FIERY_PATH, 6 of 7 caught) and
+   Wattson (Nincada @ ROUTE116) work precisely because their answers live in that set.
+   ‼ **Do NOT widen the whitelist by guessing** — it fails closed on purpose, because the cost
+   model ranks endgame maps cheapest and the raw planner offers Victory Road / Mirage Tower.
+   **Sweep ROUTE118 (Electrike) live and add it with evidence**, exactly as FIERY_PATH was:
+   reach the tile FROM THE REAL ANCHOR and get back OUT, both directions, via
+   `_navigate_riding_out` — never `calculate_path`, which cannot cross warps and has caused
+   this exact mistake before. The onward heal leg may fail without disqualifying the ground.
+
+3. **`#24-roster` / `#24-rarepredicate`** — ‼ **NOW UNGATED.** The user-agreed sequence
+   (`06-DECISIONS-LOG.md` 2026-08-06) was `#24-hmteachloop` → prove the PC withdraw → re-baseline
+   → the slice. **All three prerequisites are done.** Spec is complete in `03-PUNCH-LIST.md`.
+   ‼ Two traps: `custom_catch_filters` runs **≥2× per encounter**, so the "do I own this species"
+   lookup must be cached (never a 420-slot box scan); and `is_repeat_encounter` is **PID dedup,
+   not species dedup** — do not reuse or name anything near it.
+   ‼ **Check the DEPLOYMENT SURFACE first:** `run_custom_catch_filters`
    (`modules/encounter.py:72-81`) imports the filter from **the profile's own**
    `customcatchfilters.py`, falling back to `profiles/customcatchfilters.py`. The file under
    `modules/config/templates/` only seeds NEW profiles, so logic written there alone reaches
-   nothing that already exists. Put the predicate in a `modules/story/` module and have the filter
-   delegate to it.
-3. ✅ **`#24-whiteoutloop` — BOTH PARTS SHIPPED 2026-08-07.** Nothing owed; see the table above.
-   ‼ **Outcome proof is IN FLIGHT — batch `20260807-160545` (see the state table).**
+   nothing that already exists. Put the predicate in a `modules/story/` module and delegate.
 
-## ‼ HOW TO READ BATCH `20260807-160545` WHEN IT LANDS — do this first
-It carries **THREE** changes (`#24-teachpathrace`, `#24-whiteoutloop` parts 1 and 2), so it
-**cannot attribute an outcome to any one of them** — that is accepted, because all three are
-already proven structurally and this batch exists to check they did no harm and moved the
-near-binary counters. **Do not narrate the finish rate**; compare these instead, all countable:
+4. **`#24-ballstarve`** — `Cannot hunt a Surf learner: no Poké Balls and no money to buy any`
+   (4 + one derailed run). Pairs with `No party mon can learn Surf and the party is full`, which
+   the now-proven withdraw path should be able to serve.
 
-| counter | baseline `20260807-102552` | why it can resolve |
-|---|---|---|
-| end reason `too many whiteout recoveries in a row` | **4 of 14 non-finishes** | near-binary |
-| `TEACH EXIT reason=ride:hard-cap` | **4** (of 37 teaches) | near-binary; target ~0 |
-| defeats at ROUTE110 / LAVARIDGE_GYM | run `analyse_defeat_loops.py` | counts, not rates |
-| deepest `defeat #N` at one map | **23** this batch, 32 in an earlier one | should FALL |
-
-```
-cd tools/story-dev
-PYTHONUTF8=1 py -3.12 analyse_defeat_loops.py x4-runs/20260807-160545
-grep -rh "TEACH EXIT" x4-runs/20260807-160545/L0*/debug-logs/*.log | sort | uniq -c
-```
-‼ Use Bash `grep -r` on `x4-runs/`, **never the Grep tool** — it is gitignored and ripgrep
-returns a confident `0 matches across 0 files`.
-‼ A finish-rate comparison needs its **z** computed first; this batch's predecessor moved
-52.0% → 39.1% at **z = −0.89**, i.e. noise.
-
-OLD ITEM (kept for its detail):
-3b. **`#24-whiteoutloop` — PART 2 SHIPPED, PART 1 WAS THE NEXT ACTION.**
-   Confirmed the **#1 end reason** of `20260807-102552` (4 of 14 non-finishes).
-   ✅ **Part 2 (shipped):** the hard plateau — past `HARD_PLATEAU_LOSS_THRESHOLD = 12` flat-KO
-   losses, the measurement overrides the type-chart "we have an answer" prediction and the
-   existing escalation runs. Keyed on FLAT KOs, never attempt count, so KI-26's
-   lost-13-then-reached-Fortree run cannot be capped. `repro_boss_plateau.py` cases 8-10.
-   ⏭ **Part 1 (TO DO, the bigger half):** real `_prepare_for_fight` cfgs for **Flannery / Gym 4**
-   and the **Route 110 rival**. Neither has one, so NONE of this machinery runs there — and they
-   are **48% of all defeats** (1,079 / 2,236 over four batches), top-4 in 4 of 4 batches.
-   ‼ Needs verified game facts — training grass tile, heal centre, ace types + level — by probe
-   or decomp, **never recall**. The Route 110 rival's ace depends on the player's starter, so it
-   is not a constant. Model it on the six existing cfgs (`story_mode.py:2558/2644/2717/2830/3014/3144`).
-   It is **KI-26 generalised: uncapped boss re-attempts.** Every whiteout is preceded by
-   `lost a battle at map (G,N) (defeat #K here; KO'd J of theirs first)` — the whiteout machinery
-   works fine, nothing stops the bot re-attempting a fight it keeps losing.
-   * **48% of all defeats (1,079 / 2,236 over four batches) are at maps with NO
-     `_prepare_for_fight` cfg.** `_prepare_for_fight` has exactly six call sites; **Flannery /
-     Gym 4 is not one of them**, and LAVARIDGE_GYM + ROUTE110 are top-4 in 4 of 4 batches.
-   * **Of 53 sequences with ≥3 defeats at one map, KO trend is FLAT in 37, improving in 15.**
-     Worst: `LAVARIDGE_GYM n=17 kos=[3]*17`; `PETALBURG_GYM n=32`.
-   **Do (1) then (2):** (1) real cfgs for Flannery + the Route 110 rival; (2) a cfg-independent
-   cap keyed on **flat KOs, not attempt count**. ‼ (2)'s shape is mandatory, not stylistic — it is
-   what honours KI-26's warning that a run losing 13 times still went on to reach Fortree.
-   Full measurement, method and the corrected KI-26 text: `05-KNOWN-ISSUES.md` KI-26.
 5. **`#24-magmahideout`** — unlocked (`HIDE_JAGGED_PASS_MAGMA_GUARD` set by the summit) but the
    hardest area attempted: cable car + one-way descent, ~8 warps. Start from `saves/post_mtpyre.ss1`.
+
+6. **`#24-trainmap`** — a swept Lavaridge-area training tile. Flannery's cfg is deliberately
+   grass-less because none exists; a swept tile would let her prep actually train.
 
 ## HOW TO RUN / TEST
 ```

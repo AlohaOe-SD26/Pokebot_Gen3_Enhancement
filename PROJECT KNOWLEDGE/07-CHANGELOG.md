@@ -8768,3 +8768,51 @@ because the reflex to "fix" the code when a new test goes red is exactly the 202
   **0 defeats in all four batches** — there is nothing there to detect, and inventing ace data for
   a fight that never loses is churn with a real chance of being wrong. The requirement now applies
   only to maps that measurably lose.
+
+---
+
+## 2026-08-07 — counter-chain post-mortem from batch `20260807-102552` (analysis only)
+
+Read-only, while the follow-up batch runs. With the whiteout loop addressed, `no super-effective
+answer` is the top remaining non-finish class (**5 of 14**). The chain's lifecycle, counted:
+
+| marker | count |
+|---|---|
+| `no super-effective answer` (the hopeless verdict) | 28 |
+| `counter hunt — going to …` (a hunt actually starts) | 9 |
+| `counter hunt CAUGHT Machop` | **6** |
+| `training the counter` | 12 |
+| **`counter training failed`** | **0** |
+| `already hunted a counter … — not trying again` | 19 |
+
+**Two things are working that previously were not.** The Norman rung catches its Machop **6 of 7
+times (86%)**, and `counter training failed` is **0** — it was **7 of 7** in batch 4, so the
+KI-44 training fix is holding in production. Neither had a clean production number before.
+
+**The 28 verdicts split exactly 9 + 19**: nine hunts, nineteen refusals by the one-hunt-per-boss
+bound. That bound is correct (it is the only thing that terminates — a per-call budget becomes
+per-attempt under the re-entering dispatcher, the KI-34 shape), but it means a boss whose first
+hunt fails is unwinnable for the rest of the run.
+
+### `#24-winonaground` — Winona's counter can never be hunted, and it is an unfilled table
+Eight of those refusals read `already hunted a counter for Winona this run (blocked: no huntable
+counter candidate (nothing reachable with a proven spin tile))`.
+
+`hunt_ground_tile()` is a deliberate WHITELIST that fails closed, and its entire universe is
+`HUNTING_GROUNDS` = **{FIERY_PATH}** plus `TRAINING_GRASS` = {ROUTE116, ROUTE117, ROUTE102}.
+Norman's Machop lives on FIERY_PATH and Wattson's Nincada on ROUTE116 — which is exactly why
+those two rungs work. **No map in that set hosts a Rock/Electric/Ice wild**, so Winona's rung
+resolves to "no candidate" every time and spends its one hunt saying so.
+
+‼ **This is not a bug and the whitelist must not be widened by guessing.** Its docstring already
+explains why: the cost model prices "train it up to the team's level" at ~0 for a wild already
+above the team, so the raw planner ranks *endgame* maps cheapest and offers Victory Road and
+Mirage Tower. A blacklist would be an ever-growing list of game facts written from memory. The
+fix is to SWEEP one ground and add it with evidence, exactly as FIERY_PATH was — ROUTE118
+(Electrike) is the named candidate. Tracked as `#24-winonaground` with the sweep's acceptance bar.
+
+### `#24-ballstarve`
+`Cannot hunt a Surf learner: no Poké Balls and no money to buy any` — 4 occurrences and one whole
+run derailed. Consistent with KI-43's note that catches rose while each restock still buys ten
+balls. It pairs with the end reason `No party mon can learn Surf and the party is full — needs PC
+box management`, which the now-proven `#24-pcoverflow` withdraw path should be able to serve.

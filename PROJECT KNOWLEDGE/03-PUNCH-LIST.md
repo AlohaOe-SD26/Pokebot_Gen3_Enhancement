@@ -270,6 +270,41 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       chapters.** Cheap to reproduce — `ensure_hm_learner` is wired for exactly two moves
       (Rock Smash `story_mode.py:2793`, Surf `:2967`).
 
+- [ ] `#24-winonaground` — **NEW 2026-08-07. Winona's counter can NEVER be hunted: the huntable
+      whitelist contains no ground that hosts a Rock/Electric/Ice wild.**
+      Measured in batch `20260807-102552` — the counter chain's remaining failure class, and with
+      whiteouts now addressed it is the **top one** (`no super-effective answer` = 5 of 14
+      non-finishes: Winona 2, Norman 2, Wattson 1):
+      | marker | count | reading |
+      |---|---|---|
+      | `counter hunt — going to FIERY_PATH (18,19) to catch Machop` | 7 | Norman's rung |
+      | `counter hunt CAUGHT Machop` | 6 | **86% catch rate — this rung WORKS** |
+      | `counter training failed` | **0** | training is fixed (was 7 of 7 failing in batch 4) |
+      | `already hunted a counter for Winona … (blocked: no huntable counter candidate)` | 8 | ‼ |
+      | `no huntable counter candidate (nothing reachable with a proven spin tile)` | 10 | ‼ |
+      **ROOT CAUSE — an unfilled evidence table, not a bug.** `hunt_ground_tile()` is a
+      deliberate WHITELIST that fails closed, and its whole universe is:
+      `HUNTING_GROUNDS` = **{FIERY_PATH}** plus `TRAINING_GRASS` = {ROUTE116, ROUTE117, ROUTE102}.
+      Norman's Machop lives on FIERY_PATH and Wattson's Nincada on ROUTE116, so those rungs work.
+      **Nothing in those four maps hosts a Rock/Electric/Ice wild**, so Winona's rung resolves to
+      "no candidate" every single time, then burns its one-hunt-per-boss bound saying so.
+      ‼ The whitelist is CORRECT and must not be widened by guessing — its docstring explains why
+      (the cost model ranks endgame maps as cheapest, so the raw planner offers Victory Road and
+      Mirage Tower). **The fix is to SWEEP one ground and add it with evidence**, exactly as
+      FIERY_PATH was added: ROUTE118 (Electrike, the previously-named Winona answer) is the
+      obvious candidate.
+      **What the sweep must prove** (the table's own bar): reach the tile FROM THE REAL ANCHOR the
+      hunt fires from, and get back OUT — both directions, live, via `_navigate_riding_out`, not
+      `calculate_path` (which cannot cross warps and has caused this exact mistake before).
+      A catch-and-leave hunt never walks the onward heal leg, so that leg may fail (FIERY_PATH's
+      does) without disqualifying the ground.
+
+- [ ] `#24-ballstarve` — **NEW 2026-08-07.** `Cannot hunt a Surf learner: no Poké Balls and no
+      money to buy any` — 4 occurrences + 1 whole run derailed, batch `20260807-102552`. Consistent
+      with KI-43's note that catches rose while each restock still buys 10 balls. Pairs with the
+      end reason `No party mon can learn Surf and the party is full — needs PC box management`,
+      which the now-proven `#24-pcoverflow` withdraw path should be able to serve.
+
 - [x] `#24-teachpathrace` — **FIXED 2026-08-07, same day it was found. Caught by the
       `#24-hmteachloop` telemetry in its FIRST batch — a SECOND, independent teach bug.**
       Batch `20260807-102552`: **33 of 37 teaches succeeded; all 4 failures were this**, on Surf,
