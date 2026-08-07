@@ -1778,6 +1778,13 @@ class TeachFullMode(BotMode):
             return
 
         # The DISCRIMINATING target: compatible, four moves already, does not know it yet.
+        # ‼ `TEACH_MIN_MOVES=1` selects a mon with a FREE SLOT instead — the positive control for
+        # the OTHER branch. `#24-teachpathrace`'s fix gates the instant-learn exit on a genuinely
+        # free slot, so "the replace path still works" is only half a proof: a gate that is too
+        # tight would strand every free-slot teach in the 900-frame loop instead, and the replace
+        # test cannot see that.
+        min_moves = int(os.environ.get("TEACH_MIN_MOVES", "4"))
+        want_slot = os.environ.get("TEACH_SLOT")
         target, why = None, []
         for i, mon in enumerate(get_party()):
             if mon is None or mon.is_egg:
@@ -1786,9 +1793,13 @@ class TeachFullMode(BotMode):
             knows = any(l.move.name == move.name for l in moves)
             compat = mon.species.can_learn_tm_hm(item)
             why.append(f"{i}:{mon.species.name} moves={len(moves)} compat={compat} knows={knows}")
-            if compat and not knows and len(moves) >= 4 and target is None:
+            if want_slot is not None:
+                if i == int(want_slot):
+                    target = i
+            elif compat and not knows and len(moves) >= min_moves and target is None:
                 target = i
         log(f"[teachfull] party — {why}")
+        log(f"[teachfull] selection: min_moves={min_moves} want_slot={want_slot}")
         if target is None:
             log("[teachfull] ABORT — no party mon is compatible, ignorant of the move AND has "
                 "4 moves. That combination IS the test; without it this driver measures the "

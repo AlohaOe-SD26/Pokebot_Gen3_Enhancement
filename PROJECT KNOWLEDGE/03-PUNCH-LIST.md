@@ -270,8 +270,24 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       chapters.** Cheap to reproduce — `ensure_hm_learner` is wired for exactly two moves
       (Rock Smash `story_mode.py:2793`, Surf `:2967`).
 
-- [ ] `#24-teachpathrace` — **NEW 2026-08-07, found by the `#24-hmteachloop` telemetry in its
-      FIRST batch. A SECOND, independent teach bug — not a regression of the fix.**
+- [x] `#24-teachpathrace` — **FIXED 2026-08-07, same day it was found. Caught by the
+      `#24-hmteachloop` telemetry in its FIRST batch — a SECOND, independent teach bug.**
+      Batch `20260807-102552`: **33 of 37 teaches succeeded; all 4 failures were this**, on Surf,
+      each burning the full 9,000-frame cap without learning the move.
+      **FIX:** the instant-learn exit now requires POSITIVE evidence — a genuinely free move slot
+      (`_free_slots` / `_may_instant_learn`) or `_knows()` — instead of the mere presence of
+      `Task_HandleChooseMonInput`.
+      **Live proof, both branches** (`--driver teachfull`; `TEACH_SLOT` picks the target):
+      | target | moves before | post_select | ride_frames | result |
+      |---|---|---|---|---|
+      | Mightyena (4 moves) | Tackle/Taunt/Take Down/Bite | `replace-prompt` | 479 | learned, replaced Taunt |
+      | Zigzagoon (3 moves) | Tackle/Growl/Surf | `instant-learn` | 252 | learned, replaced nothing |
+      ‼ The second row is not optional: the fix GATES the instant-learn exit, so proving the
+      replace path still works is only half a proof — a gate one notch too tight would strand
+      every free-slot teach in the 900-frame loop, and the replace test cannot see that.
+      `repro_hmteach_postlearn.py` §5 pins it (17 → 22 checks).
+
+- [x] `#24-teachpathrace` (original report) — **found 2026-08-07 by the `#24-hmteachloop` telemetry.**
       2 failures in 24 teaches (~8%) in `20260807-102552`, both on **Surf**, both fatal
       (`not-learned-after-ride:hard-cap`, the full 9,000 frames, Surf never learned):
       ```

@@ -20,7 +20,8 @@ game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror
 |---|---|
 | branch / HEAD | `main`, clean, pushed — see the newest commit |
 | story content | Littleroot → 6 badges → **Mt. Pyre → Magma Emblem**. Magma Hideout is UNLOCKED but UNBUILT. |
-| box idle | **‼ BATCH RUNNING — `20260807-102552`, launched 10:25, 8 lanes × 180 min, code `d878fa33`.** All 8 headers `speed=0 video=True`. **Do NOT edit `sandbox-pokebot/` until it lands** — a relaunched lane re-imports from disk. |
+| box idle | nothing running |
+| **re-baseline** | **`20260807-102552` LANDED** — code `d878fa33`, 180.1 min, `VERDICT OK`, 31 headers checked, **0 emulation violations, 0 lane restarts**. **23 runs, 9 finished = 39.1%.** ‼ vs the 52.0% arm: **z = −0.89, NOT resolvable** — this is the new BASELINE, not a regression. |
 | last batch | `20260806-174746` — 26 runs, 7 finished (26.9%) |
 | `#24-pcoverflow` | **BOTH HALVES LIVE-PROVEN 2026-08-07** — catch (`--driver boxcatch`) and withdraw (`--driver boxwithdraw`). |
 
@@ -61,6 +62,7 @@ I narrated all four as verdicts and used them to remove a component and then res
 | **`#24-pcoverflow` break 1** | **FIXED.** `pc_trip.box_views()` did `getattr(storage,"boxes",lambda:[])()` — calling a `@cached_property` that returns a list → `TypeError` on every call. This is why `withdrawing` was 0. |
 | **`#24-pcoverflow` break 2** | **WIRED + PROVEN + ENABLED.** Full-party catch overflows to the box. Capability test: `caught=True box 0→1 exited_clean=True exit_frames=120`, then `second_catch=True box_now=2`. `POKEBOT_BOX_OVERFLOW_CATCH` defaults **1**. |
 | **`#24-pcwithdraw-proof`** | **DONE 2026-08-07 — the WITHDRAW half now executes.** `--driver boxwithdraw` + `saves/boxwithdraw.ss1`, three identical runs: `withdrew=True … box_before=2 box_after=2 deposited=True`, then `second_heal_ok=True still_has_target=True`. `#24-pcoverflow-proof` closes with it. |
+| **`#24-teachpathrace`** | **FIXED 2026-08-07, same day it was found** — by the new `TEACH EXIT` telemetry, on its first batch. `post_select=instant-learn` on a FOUR-move mon was the tell: `Task_HandleChooseMonInput` lingers and won the race, so the replace prompt was never answered. Instant-learn now needs a genuinely free slot. Both branches live-proven. |
 | **`#24-hmteachloop`** | **‼ FIXED 2026-08-07, root-caused.** After the move is learned the ladder fell through to a blind `A`-mash — and a bag teach ends on *"teach it to another POKéMON?"*, where **A = YES**. The bot re-armed its own teach cycle for the full 9,000-frame cap. Now `_knows()` ⇒ press only `B`. A/B: **8,999 → 479** ride frames, same outcome. `repro_hmteach_postlearn.py`. |
 | **`#24-rarepredicate`** | **SOLVED on paper, not built.** |
 | `#24-mtpyre-log` | milestones now `console.print` so a mid-chapter failure leaves a trail |

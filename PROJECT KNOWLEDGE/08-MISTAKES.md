@@ -3790,3 +3790,42 @@ forces the hard branch (`--driver teachfull`).
   anchored on "the first `if` in the loop" — which is the loop's own `break` test, not the ladder.
   It passed every assertion for the wrong reason. **A structural test must anchor on the thing it
   is testing (here: the branch that presses buttons), not on position.**
+
+---
+
+## 2026-08-07 — A task that is present on BOTH branches was used to choose between them
+
+**Symptom.** 4 of 37 HM teaches in batch `20260807-102552` burned the full 9,000-frame cap and
+never learned the move — all on Surf, all reported `post_select=instant-learn` on a mon with
+**four** moves.
+
+**Root cause.** The post-select loop decided which path it was on like this:
+
+    if "Task_PartyMenuReplaceMove" in t or "Task_HandleChooseMonInput" in t:
+        break   # instant learn path
+
+`Task_HandleChooseMonInput` is the party menu — which is up on the *replace* path too, because it
+does not disappear the instant the mon is chosen. On a slow frame it won the race before
+`Task_ReplaceMoveYesNo` appeared, so the flow declared "instant learn", skipped the guarded
+`if "Task_ReplaceMoveYesNo" in _tasks():` block entirely, and never answered the prompt.
+
+**Fix.** Require positive evidence of the branch you are claiming: a genuinely free move slot, or
+the move already known. With four moves there IS no instant-learn path, so the party-menu task
+must not be allowed to signal one.
+
+‼ **Prevention rule: a signal that appears on both branches cannot discriminate between them —
+it can only tell you that you are somewhere in the middle.** Before using a task/flag/state as a
+path selector, ask what it looks like on the OTHER path. If the answer is "the same", it is a
+progress indicator, not a discriminator.
+
+‼ **Second rule, about proving a gate: when a fix TIGHTENS a condition, testing the branch you
+kept is only half the proof.** The other half is that the branch you gated is still reachable — a
+gate one notch too tight fails silently and in the opposite direction. Here that meant a second
+live run against a three-move mon (`instant-learn`, 252 frames, learned) alongside the four-move
+one (`replace-prompt`, 479 frames, learned).
+
+**The meta-point, and the reason this entry is worth the space:** this bug was found *by the
+telemetry added earlier the same day for a different bug*, on its first batch, from one
+self-contradicting field. It had been invisible for weeks, absorbed into the "7/8/9/4 teach
+failures" that four 3-hour budget rounds chased. **Instrumenting every exit did not just fix the
+bug it was built for — it made the next one fall out for free.**

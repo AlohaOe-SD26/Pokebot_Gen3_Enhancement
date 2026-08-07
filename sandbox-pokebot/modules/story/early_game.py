@@ -4528,15 +4528,43 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
     context.emulator.press_button("A")
     yield from wait_for_n_frames(30)
     # Either it learns instantly (<4 moves) or the replace YES/NO comes up.
+    #
+    # ‼‼ `#24-teachpathrace`, FIXED 2026-08-07 — a SECOND teach bug, caught by the `TEACH EXIT`
+    # telemetry in its very first batch (4 of 37 teaches, ~11%, all fatal):
+    #     TEACH EXIT reason=ride:hard-cap post_select=instant-learn move=Surf frame=8999
+    #                tasks=['ListMenuDummyTask', 'Task_BagMenu_HandleInput', …]
+    #                moves=['Take Down', 'Mud Shot', 'Rock Smash', 'Muddy Water']
+    # **`instant-learn` on a mon with FOUR moves is a contradiction, and that is the whole
+    # diagnosis.** `Task_HandleChooseMonInput` is STILL UP for a while after the mon is chosen,
+    # so on a slow frame it wins this race before `Task_ReplaceMoveYesNo` appears. The loop then
+    # declared the instant-learn path, the guarded `if "Task_ReplaceMoveYesNo" in _tasks():`
+    # block below was skipped entirely, the replace prompt was never answered, and the flow rode
+    # out the whole 9,000-frame cap stuck in the BAG without learning the move.
+    #
+    # ‼ THE RULE: **a task that is present on BOTH paths cannot discriminate between them.**
+    # The instant-learn exit now requires POSITIVE evidence — a genuinely free move slot, or the
+    # move already known. With four moves there is no instant-learn path to take, so the only
+    # legitimate exits are the replace prompt or the move being learned.
+    _free_slots = [i for i, l in enumerate(_mon().moves) if l is None]
+    _may_instant_learn = bool(_free_slots)
+
+    def _knows() -> bool:
+        return any(l is not None and l.move.name == target_move.name for l in _mon().moves)
+
     _post_select_exit = "exhausted"
     for _f in range(900):
         t = _tasks()
         if "Task_ReplaceMoveYesNo" in t and "Task_PrintAndWaitForText" not in t:
             _post_select_exit = "replace-prompt"
             break
-        if "Task_PartyMenuReplaceMove" in t or "Task_HandleChooseMonInput" in t:
+        if _knows():
             _post_select_exit = "instant-learn"
-            break  # instant learn path
+            break  # the move is on the mon — this really was the free-slot path
+        if _may_instant_learn and (
+            "Task_PartyMenuReplaceMove" in t or "Task_HandleChooseMonInput" in t
+        ):
+            _post_select_exit = "instant-learn-freeslot"
+            break
         if _f % 12 == 0:
             context.emulator.press_button("A")
         yield
@@ -4545,8 +4573,6 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
         # either branch has always looked identical to one that did. Not raising here is
         # deliberate (the ride loop can still recover it) — but it must be visible.
         _teach_exit("post-select-900-exhausted", 900)
-    def _knows() -> bool:
-        return any(l is not None and l.move.name == target_move.name for l in _mon().moves)
 
     def _select_forget_slot() -> Generator:
         # The overworld summary move-select CURSOR STARTS AT SLOT 0 (probed) — press

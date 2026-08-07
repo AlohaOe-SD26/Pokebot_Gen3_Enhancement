@@ -8626,3 +8626,49 @@ Route 110 rival; (2) a cfg-independent cap keyed on **flat KOs rather than attem
 reached Fortree, so a cap at 6 would have killed a recovering run". The KO series is the
 discriminator that warning lacked: climbing KOs mean recovering (15 of 53) and must not be
 capped; `[3]×17` means it never will.
+
+---
+
+## 2026-08-07 — `#24-teachpathrace`: found by the new telemetry and fixed the same day
+
+The `TEACH EXIT` instrumentation added hours earlier paid for itself on its first batch.
+`20260807-102552`: **33 of 37 teaches succeeded** — and the 4 failures were **not** a regression of
+the post-learn fix, but a second, independent bug that had been hiding inside the "7/8/9/4 teach
+failures" four budget rounds had been chasing.
+
+```
+TEACH EXIT reason=ride:hard-cap post_select=instant-learn move=Surf frame=8999
+           tasks=['ListMenuDummyTask', 'Task_BagMenu_HandleInput', 'Task_ScrollIndicatorArrowPair']
+           moves=['Take Down', 'Mud Shot', 'Rock Smash', 'Muddy Water']
+```
+
+**`post_select=instant-learn` on a mon with FOUR moves is a contradiction, and that single field
+is the whole diagnosis.** `Task_HandleChooseMonInput` remains up for a while after the mon is
+chosen, so on a slow frame it won the race before `Task_ReplaceMoveYesNo` appeared. The flow
+declared the instant-learn path, skipped the guarded replace-prompt block entirely, never answered
+the prompt, and rode out the full cap stuck in the bag (`Task_BagMenu_HandleInput`).
+`stall_peak=82` confirms it was churning, not frozen.
+
+**Fix:** the instant-learn exit requires positive evidence — a genuinely free move slot, or the
+move already known. With four moves there is no instant-learn path to take, so the only legitimate
+exits are the replace prompt or the move being learned.
+
+**Live proof, both branches** (`--driver teachfull`, new `TEACH_SLOT` / `TEACH_MIN_MOVES`):
+
+| target | moves before | post_select | ride_frames | result |
+|---|---|---|---|---|
+| Mightyena (4) | Tackle/Taunt/Take Down/Bite | `replace-prompt` | 479 | learned, replaced Taunt |
+| Zigzagoon (3) | Tackle/Growl/Surf | `instant-learn` | 252 | learned, replaced nothing |
+
+‼ The second row is the part that is easy to skip and must not be: the fix GATES an exit, so
+"the replace path still works" is only half a proof. A gate one notch too tight would strand every
+free-slot teach in the 900-frame loop instead, and the replace test cannot detect that.
+
+### ‼ The ride budget is now sized by real data for the first time
+`ride_frames` across the batch's 33 successes: **154** (×9, the free-slot path) and **468-488**
+(×24, the replace path). The worst legitimate ride is **488 frames** against a
+`_TEACH_RIDE_HARD_CAP` of **9,000** — an ~18× margin, and the old "1.85x the worst legitimate
+observed path (4,875)" justification came from the same broken `_f` measurement that produced the
+bogus 35-86 figure. **Not changed here on purpose** (one change at a time, and the cap now only
+governs failures, which are the thing being eliminated) — but it is now a data-backed decision
+rather than a guess, and it is recorded so the next person does not re-derive it.

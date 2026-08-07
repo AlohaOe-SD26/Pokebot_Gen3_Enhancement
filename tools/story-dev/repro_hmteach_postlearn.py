@@ -148,7 +148,32 @@ check("the success event no longer reports a bare `in {_f} frames`",
       "in {_f} frames" not in code_only,
       "that read the menus-closed loop and produced the bogus 35-86 figure")
 
-print("5. the OLD arm is still reproducible on demand")
+print("5. `#24-teachpathrace`: the instant-learn exit needs POSITIVE evidence of a free slot")
+
+# The bug: `Task_HandleChooseMonInput` is still up after the mon is chosen, so on a slow frame it
+# won the race before `Task_ReplaceMoveYesNo` appeared, the flow declared the instant-learn path,
+# and the replace prompt was never answered (4 of 37 teaches, batch 20260807-102552, all fatal).
+sel = re.search(r"# Either it learns instantly.*?\n    if _post_select_exit", body, re.S)
+check("the post-select loop can be located", sel is not None)
+sel_src = sel.group(0) if sel else ""
+
+check("a free-slot fact is computed before the loop", "_free_slots" in sel_src)
+check("the instant-learn exit is gated on it", "_may_instant_learn" in sel_src)
+
+# ‼ The gate must sit ON the party-menu branch. Computing `_may_instant_learn` and then not
+# using it in the condition would read as fixed and behave exactly as before.
+menu_branch = re.search(
+    r"if _may_instant_learn and \(\s*\"Task_PartyMenuReplaceMove\" in t\s*or\s*\"Task_HandleChooseMonInput\" in t\s*\)",
+    sel_src,
+)
+check("the party-menu branch itself is guarded by the free-slot fact", menu_branch is not None,
+      "a task present on BOTH paths cannot discriminate between them")
+
+# And an ungated `_knows()` exit must remain: the move actually being on the mon is the
+# strongest possible evidence that this really was the free-slot path.
+check("an unconditional `_knows()` exit remains", re.search(r"\n        if _knows\(\):", sel_src) is not None)
+
+print("6. the OLD arm is still reproducible on demand")
 
 check("the fault-injection switch exists",
       "POKEBOT_HMTEACH_POSTLEARN_A" in body,
