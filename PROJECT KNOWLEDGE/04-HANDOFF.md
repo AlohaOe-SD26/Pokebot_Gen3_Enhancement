@@ -18,10 +18,11 @@ game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror
 ## STATE
 | | |
 |---|---|
-| branch / HEAD | `main`, clean, pushed — **`70cf557f`** |
+| branch / HEAD | `main`, clean, pushed — see the newest commit |
 | story content | Littleroot → 6 badges → **Mt. Pyre → Magma Emblem**. Magma Hideout is UNLOCKED but UNBUILT. |
 | box idle | nothing running |
 | last batch | `20260806-174746` — 26 runs, 7 finished (26.9%) |
+| `#24-pcoverflow` | **BOTH HALVES LIVE-PROVEN 2026-08-07** — catch (`--driver boxcatch`) and withdraw (`--driver boxwithdraw`). |
 
 ## ‼‼ READ THIS BEFORE GRADING ANYTHING — the finish rate CANNOT resolve a change
 Four batches on 2026-08-06, ~25 runs each. **Not one pair of finish rates is statistically
@@ -59,6 +60,7 @@ I narrated all four as verdicts and used them to remove a component and then res
 | **`#24-cavethread`** | **CLOSED — it was never a blocker.** Multi-hop cave threading already worked (Dewford ⇄ Granite Cave B2F, 3 warps, both directions). The item rested on a comment that expired when `#24-journey` shipped. |
 | **`#24-pcoverflow` break 1** | **FIXED.** `pc_trip.box_views()` did `getattr(storage,"boxes",lambda:[])()` — calling a `@cached_property` that returns a list → `TypeError` on every call. This is why `withdrawing` was 0. |
 | **`#24-pcoverflow` break 2** | **WIRED + PROVEN + ENABLED.** Full-party catch overflows to the box. Capability test: `caught=True box 0→1 exited_clean=True exit_frames=120`, then `second_catch=True box_now=2`. `POKEBOT_BOX_OVERFLOW_CATCH` defaults **1**. |
+| **`#24-pcwithdraw-proof`** | **DONE 2026-08-07 — the WITHDRAW half now executes.** `--driver boxwithdraw` + `saves/boxwithdraw.ss1`, three identical runs: `withdrew=True … box_before=2 box_after=2 deposited=True`, then `second_heal_ok=True still_has_target=True`. `#24-pcoverflow-proof` closes with it. |
 | **`#24-hmteachloop`** | **NOT FIXED** (7/8/9/4 across four configs). Ride budget restored to the best config: `9000` hard cap + `900` stall. |
 | **`#24-rarepredicate`** | **SOLVED on paper, not built.** |
 | `#24-mtpyre-log` | milestones now `console.print` so a mid-chapter failure leaves a trail |
@@ -74,22 +76,49 @@ I narrated all four as verdicts and used them to remove a component and then res
   26 of 132 species. Bagon is "pseudo-rare" via warp depth (d3); Skitty via rate (2%).
   ‼ The field-move recon is NOT a prerequisite — the predicate fires at encounter time.
 
+## ✅ `#24-pcoverflow` IS COMPLETE — BOTH HALVES PROVEN (2026-08-07)
+```
+Story: PC — depositing Skitty L17 to make room for Poochyena.
+Story: PC — withdrawing Poochyena from the box.
+Story: PC — Poochyena is in the party; party is now 6.
+[boxwithdraw] RESULT withdrew=True target=Poochyena party_before=6 party_after=6
+              box_before=2 box_after=2 deposited=True map=(0, 5)
+[boxwithdraw] AFTER usable=True second_heal_ok=True still_has_target=True party=6 box=2
+```
+Reproduce (~45,000 frames, ~1 min):
+```
+cd tools/story-dev
+PYTHONUTF8=1 WITHDRAW_CENTER=LilycoveCity py -3.12 story_harness.py \
+    boxwithdraw.ss1 --driver boxwithdraw --frames 400000 --profile w1
+```
+Three things about this probe are load-bearing; do not "simplify" them away:
+* It sets `self._hunted_counter_pids` and calls **`heal_in_pokemon_center`** — the production call
+  site (`higher_level_actions.py:218-232`). Calling `withdraw_from_box` directly would prove the
+  function works and NOT that the piggyback fires, and the piggyback is what was dead.
+* It asserts `box_views()`/`find_in_box()` **before** the journey. Both fail silently (None reads
+  identically to "not there"), so a null result at the end would be unattributable.
+* It heals a **second** time and requires exactly ONE `withdrawing` line — the no-op assertion. A
+  duplicate-withdraw loop is the regression a fires-every-heal piggyback invites.
+
+‼ **GAME RULE (user, 2026-08-07):** a boxed Pokémon is reachable **only at a PC inside a Poké
+Centre** — never in battle, the party menu, or the field. The heal-piggyback is therefore not a
+convenience, it is the only place this operation can occur. Do not go looking for a cheaper one.
+
+‼ The `WITHDRAW_HEAL_FIXTURE=1` party heal is FIXTURE SETUP, not a behaviour change: the only save
+with a full party AND a non-empty box is a prior probe's end state, so the party arrives near
+death and runs 1 and 2 never reached a Centre (trainer refusal; then a whiteout).
+
 ## ⏭ NEXT ACTIONS, IN ORDER
-1. **Prove the WITHDRAW half of `#24-pcoverflow`.** The catch half is proven; `withdraw_from_box`
-   has still never executed (`withdrawing` = 0 in every batch). Build a save with a full party AND
-   a counter-typed mon already in the box — `--driver boxcatch` now produces exactly that state
-   (`profiles/repro-boxcatch6/states/`) — then drive a heal and assert the mon enters the party.
-   **Capability test, minutes. Do NOT grade this with a batch.**
-2. **`#24-rarepredicate`** — implement the three OR'd rules in `custom_catch_filters`
+1. **`#24-rarepredicate`** — implement the three OR'd rules in `custom_catch_filters`
    (`modules/config/templates/customcatchfilters.py:50`). ‼ Two traps: that hook runs **≥2× per
    encounter**, so the "do I own this species" lookup must be cached (never a 420-slot scan); and
    `is_repeat_encounter` is **PID dedup, not species dedup** — do not reuse or name anything near it.
-3. **`#24-hmteachloop`** — ‼ **DO NOT tune the budget a fifth time.** Every SUCCESSFUL teach exits
+2. **`#24-hmteachloop`** — ‼ **DO NOT tune the budget a fifth time.** Every SUCCESSFUL teach exits
    in **35-86 frames**, so the budget governs only failures. Instrument WHICH `break` fires, at
    what frame, with what task set, then diagnose.
-4. **`#24-whiteoutloop`** — 590 whiteouts across one batch (~18/game) is the single largest frame
+3. **`#24-whiteoutloop`** — 590 whiteouts across one batch (~18/game) is the single largest frame
    cost in the program and is NOT understood.
-5. **`#24-magmahideout`** — unlocked (`HIDE_JAGGED_PASS_MAGMA_GUARD` set by the summit) but the
+4. **`#24-magmahideout`** — unlocked (`HIDE_JAGGED_PASS_MAGMA_GUARD` set by the summit) but the
    hardest area attempted: cable car + one-way descent, ~8 warps. Start from `saves/post_mtpyre.ss1`.
 
 ## HOW TO RUN / TEST
@@ -101,14 +130,18 @@ PYTHONUTF8=1 py -3.12 repro_counter_hunt.py
 # a capability test (binary, minutes) — THE PREFERRED WAY TO GRADE A CHANGE
 PYTHONUTF8=1 POKEBOT_BOX_OVERFLOW_CATCH=1 BOXCATCH_GRASS=ROUTE121:44,14 \
   py -3.12 story_harness.py post_mtpyre.ss1 --driver boxcatch --frames 900000 --profile t1
+PYTHONUTF8=1 WITHDRAW_CENTER=LilycoveCity \
+  py -3.12 story_harness.py boxwithdraw.ss1 --driver boxwithdraw --frames 400000 --profile w1
 
 # a batch (3h, 8 lanes) — for DISCOVERING failure modes, not grading
 PYTHONUTF8=1 py -3.12 x4_headless.py --lanes 8 --minutes 180
 ```
 **Useful saves** (`tools/story-dev/saves/`): `post_winona.ss1` (6-mon party, pre-Mt.-Pyre),
-`post_mtpyre.ss1` (6-mon party, EMPTY box, Magma Emblem), `norman_done.ss1`, `dewford.ss1`.
-**Harness drivers of note:** `boxcatch` (full-party catch capability), `cavethread`
-(`CAVE_PATHCHECK` / `CAVE_BOXCHECK` / `CAVE_FLAGS` probes), `story` (drives real Story mode).
+`post_mtpyre.ss1` (6-mon party, EMPTY box, Magma Emblem), `boxwithdraw.ss1` (ROUTE121, **party 6
+AND box 2** — the only save that can exercise a PC withdraw), `norman_done.ss1`, `dewford.ss1`.
+**Harness drivers of note:** `boxcatch` (full-party catch capability), `boxwithdraw` (PC withdraw
+capability, drives the real heal-piggyback), `cavethread` (`CAVE_PATHCHECK` / `CAVE_BOXCHECK` /
+`CAVE_FLAGS` probes), `story` (drives real Story mode).
 
 ## GOTCHAS
 * Never bulk-import `modules/data/*` — it runs generators at import and has gutted `map_data.py`

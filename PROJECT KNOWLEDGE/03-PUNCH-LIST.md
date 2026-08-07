@@ -56,10 +56,13 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       ‼ **GATE: story mapping must be finished first.** Starting this before then trades the
       actual progress blocker for a cosmetic one.
 
-- [ ] `#24-pcoverflow-proof` — **STILL UNPROVEN, and batch `20260805-122057` could not prove it.**
-      `withdrawing` logged **0** times all batch: the Surf guard derailed runs before any
-      full-party catch reached the box-overflow path. Bundling it with the cap measured the
-      BUNDLE, not the part. It needs its own targeted probe from a save with a full party.
+- [x] `#24-pcoverflow-proof` — **CLOSED 2026-08-07. Both halves are now live-proven, each by its
+      own capability test.** Catch half: `--driver boxcatch` (see `#24-pcoverflow` below).
+      Withdraw half: `--driver boxwithdraw` (see `#24-pcwithdraw-proof` below).
+      The original blocker stands as a lesson: batch `20260805-122057` logged `withdrawing` **0**
+      times because the Surf guard derailed runs before any full-party catch reached the overflow
+      path. Bundling the feature with the cap measured the BUNDLE, not the part — and a targeted
+      probe answered in **~45,000 frames** what four 3-hour batches could not.
 
 - [x] `#24-pcoverflow` — **BUILT 2026-08-05** (user ruling: build the real thing, not a raised
       constant). `resource_blocker` no longer refuses a full party (ball gate untouched);
@@ -152,12 +155,28 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       ‼ The box-transfer message does NOT need dismissing — the existing battle handler already
       rides it out. I "confirmed" that wedge twice and both were my probe idling (`08-MISTAKES`).
 
-- [ ] `#24-pcwithdraw-proof` — **NEXT ACTION. The withdraw half has still NEVER executed**
-      (`withdrawing` = 0 in every batch). Now testable: `--driver boxcatch` leaves a save with a
-      full party AND mons in the box (`profiles/repro-boxcatch6/states/`). Drive a heal from there
-      and assert the PID-matched mon enters the party.
-      ‼ **Grade with a capability test, NOT a batch** — four batches on 2026-08-06 produced zero
-      statistically resolvable finish-rate differences.
+- [x] `#24-pcwithdraw-proof` — **PROVEN 2026-08-07. The withdraw half executes end to end.**
+      New harness driver `--driver boxwithdraw` + fixture save `saves/boxwithdraw.ss1` (the end
+      state of the proven box-catch run: party 6, box 2). Three consecutive runs, identical:
+      ```
+      Story: PC — depositing Skitty L17 to make room for Poochyena.
+      Story: PC — withdrawing Poochyena from the box.
+      Story: PC — Poochyena is in the party; party is now 6.
+      [boxwithdraw] RESULT withdrew=True target=Poochyena party_before=6 party_after=6
+                    box_before=2 box_after=2 deposited=True map=(0, 5)
+      [boxwithdraw] AFTER usable=True second_heal_ok=True still_has_target=True party=6 box=2
+      ```
+      ‼ **It drives the PRODUCTION call site**, not `withdraw_from_box` directly: the probe sets
+      `self._hunted_counter_pids` and calls `heal_in_pokemon_center`, which is the attribute and
+      the piggyback the story bot actually uses (`higher_level_actions.py:218-232`). Calling the
+      function directly would have proven the function works and NOT that the piggyback fires —
+      and the piggyback is the half that was dead.
+      ‼ **The no-op assertion matters as much as the positive one.** A second heal at the same
+      Centre produced **exactly one** `withdrawing` line in total: with the PID now in the party
+      `find_in_box` returns None and the piggyback returns without touching the PC. A
+      duplicate-withdraw loop is the regression shape a fires-every-heal piggyback invites.
+      ‼ Graded with a capability test, NOT a batch — four batches on 2026-08-06 produced zero
+      statistically resolvable finish-rate differences; this took ~45,000 frames.
 
 - [ ] `#24-roster` — **APPROVED 2026-08-06, gate LIFTED. The PC-roster feature.**
       Catch overflow into the box + withdraw on demand, so the bot can field type counters and HM

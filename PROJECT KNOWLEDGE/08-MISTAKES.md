@@ -3700,3 +3700,41 @@ first symptom.**
 came from a probe artifact, never from the bot. The cost was hours. **When a result contradicts
 the previous one, suspect the instrument first — this session had already caught the same class
 of error twice (`Grep` on a gitignored tree, `box_views` calling a property).**
+
+---
+
+## 2026-08-07 — A liveness check whose success condition the driven action CANNOT produce
+
+**Symptom.** The withdraw capability test succeeded — `withdrew=True`, the mon entered the party —
+and then the harness printed `HANG CONFIRMED (20000 frames no progress)` with the avatar frozen at
+LILYCOVE_CITY (24,15) and `bot_mode=Story`. It read exactly like the bot wedging immediately after
+a PC interaction, which is a plausible and alarming bug.
+
+**Root cause — mine, in the probe.** The post-PC liveness check was `_story_spin` until
+`local_coordinates` changes. **`spin` turns on the spot: it changes FACING, not position.** The
+only other thing that could have broken the loop was a wild encounter, and we had just walked out
+of a Poké Centre into a TOWN, which has no grass. So the stop condition was unreachable by
+construction — the loop could only ever run to its bound, on a perfectly healthy bot.
+
+**The fix that worked.** Replace it with an action that produces observable, un-fakeable progress:
+a SECOND full `heal_in_pokemon_center`. It navigates into a building, works a scripted nurse
+dialogue and walks back out — no in-place spin can imitate that — and it doubles as a real
+assertion (the withdraw must now no-op, exactly one `withdrawing` line in total).
+
+‼ **Prevention rule: before trusting a "did it keep working?" check, name the action that would
+make it PASS.** If the thing you are driving cannot produce the state you are waiting for, you
+have written a timer, not a test. This is the *third* variant of the same family in two days —
+after "a HANG CONFIRMED post-probe is the probe idling" and "stop on the END of the operation, not
+its first symptom" — and all three come from grading a capability by watching rather than by
+driving it to a named positive outcome.
+
+### Two smaller instrument errors in the same session, both of which printed a convincing lie
+
+* **A read-back of `get_party()` in the same frame as a party write returns the PRE-write values.**
+  The heal-fixture logged `Mightyena 0/124` right after healing it, on a run that then won four
+  battles and levelled two mons. The party is cached per frame and the probe had not yielded.
+  **Log the BEFORE→AFTER you wrote, never a same-frame read-back.**
+* **`grep -c "withdrawing" harness_*.log` returned 0 while the line was plainly in the output.**
+  `console.print` goes to stdout; the harness log file holds the harness's own `log()` lines only.
+  This is the "NAME THE SURFACE" trap again, and the positive control is what caught it — the
+  string was visible in the captured stdout of the very same run.

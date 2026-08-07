@@ -8446,3 +8446,80 @@ before changing anything.
 
 **Repro now asserts BOTH gate arms** (off = pre-2026-08-06 behaviour; on = catch happens), so
 neither side can rot and the flag cannot silently become a no-op.
+
+---
+
+## 2026-08-07 — `#24-pcwithdraw-proof`: the WITHDRAW half of `#24-pcoverflow` is LIVE-PROVEN
+
+The catch half shipped yesterday: a full party no longer blocks a catch, and the mon lands in the
+PC box. That is **strictly worse than the old refusal** unless the bot can get it back out, and
+`withdraw_from_box` had logged `withdrawing` **0 times in every batch ever run**. Two known breaks
+were fixed on 2026-08-06 (`box_views` calling a `@cached_property`; both catch branches requiring
+`party < 6`), but the collect path itself remained unexecuted code. It now executes.
+
+**New: `--driver boxwithdraw` in `tools/story-dev/story_harness.py`,** plus the fixture save
+`tools/story-dev/saves/boxwithdraw.ss1` (a copy of `profiles/repro-boxcatch6/current_state.ss1` —
+the end state of the proven box-catch run: party 6, box 2 = Poochyena L26 + Shuppet L26).
+
+```
+cd tools/story-dev
+PYTHONUTF8=1 WITHDRAW_CENTER=LilycoveCity py -3.12 story_harness.py \
+    boxwithdraw.ss1 --driver boxwithdraw --frames 400000 --profile w1
+```
+
+**Result — three consecutive runs, frame-identical:**
+
+```
+[boxwithdraw] box read: 2 views / 2 mons — ['PoochyenaL26', 'ShuppetL26']
+[boxwithdraw] target=Poochyena L26 pid=2982930983
+Story: PC — depositing Skitty L17 to make room for Poochyena.
+Story: PC — withdrawing Poochyena from the box.
+Story: PC — Poochyena is in the party; party is now 6.
+[boxwithdraw] RESULT withdrew=True target=Poochyena party_before=6 party_after=6
+              box_before=2 box_after=2 deposited=True map=(0, 5)
+[boxwithdraw] AFTER usable=True second_heal_ok=True still_has_target=True party=6 box=2
+```
+
+Party `[Mightyena, Zigzagoon, Swellow, Skitty, Sceptile, Castform]` →
+`[Mightyena, Zigzagoon, Swellow, Sceptile, Castform, Poochyena]`. Box stays at 2 — one out, one
+in — which is the make-room deposit and the withdraw landing in the same PC visit, as designed.
+
+### THREE DESIGN CHOICES IN THE PROBE, EACH OF WHICH CHANGES WHAT IT PROVES
+
+1. **It drives the PRODUCTION call site.** The probe sets `self._hunted_counter_pids` on itself
+   and calls `heal_in_pokemon_center`, because the harness makes the driver the
+   `bot_mode_instance` and that is the exact attribute production reads
+   (`higher_level_actions.py:218-232`). Calling `withdraw_from_box(pids)` directly would have
+   proven the function works and **not** that the piggyback fires — and the piggyback is precisely
+   the half that was dead.
+2. **A positive control BEFORE the journey.** `box_views()` raising `TypeError` is the exact break
+   that produced `withdrawing = 0`, and it fails *silently*: `find_in_box` swallows it and returns
+   None, which is indistinguishable from "the mon isn't there". So the probe asserts the box reads
+   and the PID re-resolves before spending a trip on it. A null result at the end would otherwise
+   be unattributable.
+3. **A no-op assertion, not just a positive one.** After the withdraw it heals a SECOND time at the
+   same Centre and requires **exactly one** `withdrawing` line in total. With the PID now in the
+   party, `find_in_box` returns None and the piggyback must return without touching the PC. A
+   duplicate-withdraw loop is the regression shape that a fires-on-every-heal piggyback invites,
+   and nothing else would have caught it.
+
+### FIXTURE NOTE — the heal-fixture is required, and is not a behaviour change
+The only save satisfying "full party AND non-empty box" is a previous probe's END state, so the
+party arrives at ~critical HP. Runs 1 and 2 never reached a Poké Centre at all: run 1 died to a
+trainer approach (`HP below threshold, and 'flee' is not allowed in a trainer battle`), run 2 won
+that trainer then **lost the next and whited out** at f5333. Neither measured the withdraw.
+`WITHDRAW_HEAL_FIXTURE=1` (default) restores current-HP-to-max and clears the status bitfield by
+patching the party struct's unencrypted tail (`data[86:88]`, `data[88:90]`, `data[80]`). PP is
+inside the ENCRYPTED substructure and is deliberately untouched — re-encrypting risks a checksum
+mismatch, and no PP is needed to talk to a nurse.
+
+Run 1 also used `DefaultBattleStrategy` for trainer battles; the story bot uses
+`LevelUpTravelBattleStrategy`, which exists specifically because it **never flees a trainer
+battle**. The probe now matches production for trainers and keeps Default for wilds (fleeing a
+wild is allowed and is what we want while walking to a Centre).
+
+### GAME RULE, recorded because it justifies the whole design (user, 2026-08-07)
+**A boxed Pokémon is reachable ONLY at a PC terminal inside a Poké Centre** — never from a battle,
+the party menu, or the overworld. So there is no cheaper retrieval point to go looking for: the
+heal-piggyback is not a convenience, it is the only place the operation can happen. Any future
+design that assumes a boxed mon can be fielded mid-journey is wrong by construction.

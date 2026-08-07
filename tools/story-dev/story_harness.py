@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "normancounter"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "normancounter"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -1719,6 +1719,221 @@ class BoxCatchMode(BotMode):
         return
 
 
+class BoxWithdrawMode(BotMode):
+    """CAPABILITY TEST for the WITHDRAW half of `#24-pcoverflow` — the half that has NEVER run.
+
+    THE CLAIM UNDER TEST. `--driver boxcatch` proved a full-party catch reaches the PC box.
+    That is strictly WORSE than the old refusal unless the bot can get the mon back out, and
+    `withdraw_from_box` has logged `withdrawing` **0 times in every batch** — the two known
+    breaks (`box_views` calling a property; both catch branches requiring `party < 6`) are
+    fixed, but the collect path itself is still unexecuted code.
+
+    ‼ THIS DRIVES THE PRODUCTION CALL SITE, NOT A STAND-IN. `higher_level_actions.
+    heal_in_pokemon_center` reads `context.bot_mode_instance._hunted_counter_pids` and calls
+    `withdraw_from_box(_pids)` between the nurse and the exit. The harness makes THIS mode the
+    `bot_mode_instance`, so setting `self._hunted_counter_pids` here is exactly what the story
+    bot does after a counter hunt. Calling `withdraw_from_box` directly would prove the
+    function works and NOT that the piggyback fires — which is the half that was broken.
+
+    Run from a save with a FULL PARTY and at least one mon in the box.
+    `profiles/repro-boxcatch6/current_state.ss1` is exactly that (the end state of the proven
+    box-catch run: party 6, box 2), copied to `saves/boxwithdraw.ss1`.
+
+        PYTHONUTF8=1 WITHDRAW_CENTER=LilycoveCity py -3.12 story_harness.py \
+            boxwithdraw.ss1 --driver boxwithdraw --frames 400000 --profile w1
+
+    Emits: [boxwithdraw] RESULT withdrew=<bool> party_before/after box_before/after
+           target=<species> deposited=<bool> frames=<n>
+    """
+
+    @staticmethod
+    def name():
+        return "BoxWithdraw"
+
+    def on_battle_started(self, encounter):
+        # ‼ A strategy is REQUIRED even for a walking probe (`boxcatch` run 1 hung 20,000
+        # frames on a trainer payout because it returned None), and the TRAINER one must be
+        # the PRODUCTION one. Run 1 of THIS probe used `DefaultBattleStrategy` for everything
+        # and died 1,926 frames in to a Route 121 trainer approach:
+        #     BotModeError -> Manual: Your Pokémon cannot battle due to HP below threshold,
+        #     and 'flee' is not allowed in a trainer battle.
+        # The save is a previous probe's end state, so the party arrives hurt — and
+        # `LevelUpTravelBattleStrategy` exists for exactly this ("NEVER flees a TRAINER
+        # battle", story_mode.py:118). Using Default here measured the probe's strategy
+        # choice, not the withdraw path.
+        # WILD battles keep Default on purpose: fleeing a wild IS allowed and is what we want
+        # while walking to a Poké Centre — the parent's level-the-lead behaviour is what
+        # walked `boxcatch` run 3's L3 HM slave into a whiteout.
+        from modules.battle_strategies import DefaultBattleStrategy
+
+        if encounter is None:
+            from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+
+            return LevelUpTravelBattleStrategy()
+        return DefaultBattleStrategy()
+
+    def run(self):
+        import os
+
+        from modules.map_data import PokemonCenter
+        from modules.modes.util.higher_level_actions import heal_in_pokemon_center
+        from modules.player import get_player_avatar
+        from modules.pokemon_party import get_party
+        from modules.pokemon_storage import get_pokemon_storage
+        from modules.story.early_game import wait_until_truly_controllable
+        from modules.story.pc_trip import box_views, find_in_box
+
+        yield from wait_until_truly_controllable()
+
+        # ‼ FIXTURE SETUP, NOT A BEHAVIOUR CHANGE — and it is required for the test to MEAN
+        # anything. The only save that satisfies "full party AND a non-empty box" is a previous
+        # box-catch probe's END state, so the party arrives at ~critical HP. Runs 1 and 2 both
+        # died on the Route 121 walk before reaching a PC at all (run 1: trainer refusal; run 2:
+        # won one trainer, LOST the next, whiteout at f5333). Neither measured the withdraw.
+        # The variable under test is "can the bot retrieve a boxed mon at the PC", not "can a
+        # battered party survive a route", so we remove the irrelevant variable rather than
+        # re-roll the walk and hope.
+        #
+        # HP + status ONLY, written to the PARTY struct's unencrypted tail (data[86:88] current
+        # HP, data[88:90] max, data[80] status bitfield — `modules/pokemon.py:1196-1227`). PP is
+        # inside the ENCRYPTED substructure and is deliberately left alone: re-encrypting to
+        # top up PP would risk a checksum mismatch, and no PP is needed to talk to a nurse.
+        # ‼ `debug_write_party` only ever reads `.data` off each element, so a byte-patched
+        # shim is enough and nothing is reconstructed — recreating the mons with
+        # `debug_create_pokemon` would silently change levels/moves/EVs and therefore change
+        # which mon `find_dead_weight` picks to deposit, which is part of what we are testing.
+        if os.environ.get("WITHDRAW_HEAL_FIXTURE", "1") == "1":
+            try:
+                from types import SimpleNamespace
+
+                from modules.debug_utilities import debug_write_party
+
+                patched, healed, shown = [], 0, []
+                for mon in get_party():
+                    if mon is None:
+                        continue
+                    d = bytearray(mon.data)
+                    if len(d) >= 90:
+                        if d[86:88] != d[88:90] or d[80] != 0:
+                            healed += 1
+                        shown.append(f"{mon.species.name} {mon.current_hp}->{mon.total_hp}")
+                        d[86:88] = d[88:90]      # current HP := max HP
+                        d[80:84] = b"\x00" * 4   # clear the status bitfield
+                    patched.append(SimpleNamespace(data=bytes(d)))
+                debug_write_party(patched)
+                # ‼ Log the BEFORE->AFTER we just wrote, never a `get_party()` read-back:
+                # the party is cached per frame and we have not yielded, so re-reading here
+                # returns the PRE-write values and prints `0/124` over a mon we just healed.
+                # Run 4's log said exactly that and looked like a failed write on a run that
+                # then won four battles.
+                log(f"[boxwithdraw] FIXTURE: restored HP/status on {healed} of {len(patched)} "
+                    f"party mons — {shown}")
+            except Exception as error:  # noqa: BLE001
+                log(f"[boxwithdraw] FIXTURE heal FAILED ({type(error).__name__}: "
+                    f"{str(error)[:200]}) — continuing, but a whiteout is now likely.")
+
+        party_before = len([m for m in get_party() if m is not None])
+        box_before = get_pokemon_storage().pokemon_count
+        here = tuple(get_player_avatar().map_group_and_number)
+        log(f"[boxwithdraw] start party={party_before} box={box_before} map={here}")
+
+        if party_before < 6 or box_before < 1:
+            log(f"[boxwithdraw] ABORT — need a FULL party AND a non-empty box; got "
+                f"party={party_before} box={box_before}. The test is meaningless otherwise: "
+                f"with room in the party the deposit-to-make-room branch never runs.")
+            context.set_manual_mode()
+            return
+
+        # ‼ POSITIVE CONTROL BEFORE THE TRIP. `box_views()` raising `TypeError` is precisely
+        # the break that made `withdrawing` 0, and it fails SILENTLY (`find_in_box` swallows
+        # it and returns None, which reads identically to "the mon isn't there"). Assert the
+        # box is readable and the PID resolves BEFORE spending a journey on it — a null result
+        # at the end would otherwise be unattributable.
+        views, mons = box_views()
+        log(f"[boxwithdraw] box read: {len(views)} views / {len(mons)} mons — "
+            f"{[f'{v.species}L{v.level}' for v in views][:6]}")
+        if not mons:
+            log("[boxwithdraw] ABORT — box_views() returned nothing while pokemon_count="
+                f"{box_before}. The box READ is broken; the withdraw cannot be graded.")
+            context.set_manual_mode()
+            return
+
+        target = mons[0]
+        pid = target.personality_value
+        tname = getattr(getattr(target, "species", None), "name", "?")
+        log(f"[boxwithdraw] target={tname} L{target.level} pid={pid}")
+        if find_in_box({pid}) is None:
+            log("[boxwithdraw] ABORT — find_in_box() cannot re-find the PID it just read. "
+                "PID lookup is broken; fix that before grading the trip.")
+            context.set_manual_mode()
+            return
+
+        # THE PRODUCTION HANDSHAKE: this is the attribute `heal_in_pokemon_center` reads.
+        self._hunted_counter_pids = {pid}
+
+        centre = os.environ.get("WITHDRAW_CENTER", "LilycoveCity").strip()
+        log(f"[boxwithdraw] calling heal_in_pokemon_center({centre}) with "
+            f"_hunted_counter_pids={{{pid}}}")
+        try:
+            yield from heal_in_pokemon_center(PokemonCenter[centre])
+            log("[boxwithdraw] heal_in_pokemon_center returned")
+        except Exception as error:  # noqa: BLE001
+            import traceback
+
+            log(f"[boxwithdraw] heal raised {type(error).__name__}: {str(error)[:300]}\n"
+                f"{traceback.format_exc()[-1200:]}")
+
+        party_after_mons = [m for m in get_party() if m is not None]
+        party_after = len(party_after_mons)
+        box_after = get_pokemon_storage().pokemon_count
+        withdrew = any(getattr(m, "personality_value", None) == pid for m in party_after_mons)
+        log(f"[boxwithdraw] RESULT withdrew={withdrew} target={tname} "
+            f"party_before={party_before} party_after={party_after} "
+            f"box_before={box_before} box_after={box_after} "
+            f"deposited={box_after >= box_before} map={tuple(get_player_avatar().map_group_and_number)}")
+        if not withdrew:
+            log("[boxwithdraw] ‼ THE TARGET IS STILL BOXED. Read the `Story: PC —` lines above: "
+                "no line at all = the piggyback never fired; 'nothing is safe to deposit' = "
+                "find_dead_weight refused; 'could not withdraw' = the PC interaction failed.")
+
+        # ‼ AND THE BOT MUST STILL BE PLAYABLE — but prove it by DRIVING IT TO A POSITIVE
+        # OUTCOME, never by absence of a stall (08-MISTAKES 2026-08-07: I "confirmed" a wedge
+        # twice and both times it was my probe idling).
+        #
+        # ‼ RUN 3 OF THIS PROBE GOT THAT WRONG TOO, and it is worth recording: the check here
+        # was `_story_spin` until `local_coordinates` changes. `spin` TURNS ON THE SPOT — it
+        # changes FACING, not position — and we exit the Centre into LILYCOVE_CITY, a town with
+        # no grass, so there was also no encounter to break the loop. The avatar sat at (24,15)
+        # for 20,000 frames and the harness printed `HANG CONFIRMED` over a bot that was
+        # perfectly healthy. **A liveness check whose success condition the driven action
+        # cannot produce is not a liveness check.**
+        #
+        # So: do a SECOND full `heal_in_pokemon_center`. It navigates into the building, works
+        # a scripted nurse dialogue and walks back out — progress no in-place spin can fake —
+        # and it doubles as a real assertion, because the withdraw must now NO-OP: the PID is
+        # in the party, so `find_in_box` returns None and the piggyback must return without
+        # touching the PC. A second `withdrawing` line here would mean a duplicate-withdraw
+        # loop, which is the regression shape to fear from a piggyback that fires every heal.
+        second_ok, second_frames = False, 0
+        try:
+            before_map = tuple(get_player_avatar().map_group_and_number)
+            yield from heal_in_pokemon_center(PokemonCenter[centre])
+            second_ok = True
+            log(f"[boxwithdraw] second heal returned; map {before_map} -> "
+                f"{tuple(get_player_avatar().map_group_and_number)}")
+        except Exception as error:  # noqa: BLE001
+            log(f"[boxwithdraw] second heal raised {type(error).__name__}: {str(error)[:200]}")
+
+        party_final = [m for m in get_party() if m is not None]
+        still_has = any(getattr(m, "personality_value", None) == pid for m in party_final)
+        box_final = get_pokemon_storage().pokemon_count
+        log(f"[boxwithdraw] AFTER usable={second_ok} second_heal_ok={second_ok} "
+            f"still_has_target={still_has} party={len(party_final)} box={box_final} "
+            f"frames={second_frames}")
+        context.set_manual_mode()
+        return
+
+
 class RivalRetryMode(BotMode):
     """VALIDATE the bug fix: with MET_RIVAL_RUSTBORO already set (simulating a PRIOR LOSS),
     confirm fight_rustboro_rival still steps onto the y=53 trigger and RE-ENGAGES the rival
@@ -2612,6 +2827,8 @@ for step in range(args.frames):
             context.bot_mode_instance = CaveThreadMode()
         elif args.driver == "boxcatch":
             context.bot_mode_instance = BoxCatchMode()
+        elif args.driver == "boxwithdraw":
+            context.bot_mode_instance = BoxWithdrawMode()
         elif args.driver == "normancounter":
             context.bot_mode_instance = NormanCounterMode()
         elif args.driver == "traintest":
