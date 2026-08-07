@@ -311,8 +311,24 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       invisible before because nothing logged which exit fired, and it was being absorbed into
       the "7/8/9/4 teach failures" that four budget rounds chased.
 
-- [~] `#24-whiteoutloop` — **PART 2 OF 2 SHIPPED 2026-08-07 (the general backstop). PART 1
-      (boss cfgs for Flannery + the Route 110 rival) IS STILL OPEN.**
+- [x] `#24-whiteoutloop` — **BOTH PARTS SHIPPED 2026-08-07.**
+      **Part 1 (cfgs):** `flannery_fight` + `rival110_fight` added — the two fights that had NO
+      boss cfg at all and were **48% of all defeats**. Team data decomp-verified
+      (`sParty_Flannery1`: Numel 24 / Slugma 24 / Camerupt 26 / **Torkoal 29**;
+      `sParty_MayRoute110*`: the ace is always the L20 evolved starter that counters yours).
+      ‼ Neither carries a `grass` key, on purpose — `_prepare_for_fight` explicitly supports a
+      grass-less cfg, and Lavaridge genuinely has none (two-way sweep, `jaggedgrass_probe.py`).
+      Inventing a training tile is how KI-44 happened.
+      ‼ Also corrected the Route 110 ace derivation to name TYPE PAIRS (Marshtomp =
+      Ground/Water, Combusken = Fighting/Fire) — effectiveness against a dual-type is the
+      PRODUCT, so the old primary-type-only version understated every matchup.
+      **NEW `repro_boss_cfg_coverage.py`** asserts every measured defeat map has a cfg carrying
+      ace data — fault-injected RED. ‼ It also caught two of my OWN wrong assumptions: Brawly's
+      ace really is L19 against a (14,16) band (the band is a training target, not a range
+      containing the ace), and the Rustboro rival's missing `ace_types` is fine because it
+      recorded **0 defeats in four batches**.
+
+- [x] `#24-whiteoutloop` (part 2) — **the hard plateau.**
       Confirmed as the **#1 end reason** of batch `20260807-102552`: *"too many whiteout
       recoveries in a row"* = **4 of 14 non-finishes (29%)**.
       **SHIPPED — the hard plateau.** `_boss_plan_is_hopeless` demanded BOTH a KO plateau AND

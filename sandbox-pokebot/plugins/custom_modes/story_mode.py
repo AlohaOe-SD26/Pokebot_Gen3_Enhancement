@@ -2838,19 +2838,52 @@ class StoryMode(BotMode):
             from modules.map_data import PokemonCenter
             from modules.story.early_game import _lead_best_matchup, heal_in_pokemon_center
 
-            ace_type = "Grass"
+            # ‼ THE RIVAL'S ACE DEPENDS ON THE PLAYER'S STARTER — decomp-verified 2026-08-07
+            # from `src/data/trainer_parties.h` (`sParty_MayRoute110{Treecko,Torchic,Mudkip}`;
+            # the Brendan parties are identical in species and level):
+            #     player Treecko -> Wingull 18, Lombre 18, COMBUSKEN 20   (Fighting/Fire)
+            #     player Torchic -> Lombre 18, Slugma 18, MARSHTOMP 20    (Ground/Water)
+            #     player Mudkip  -> Wingull 18, Slugma 18, GROVYLE 20     (Grass)
+            # Type pairs re-checked against our own `modules/data/generated/pokedex_data.json`.
+            #
+            # ‼ THE OLD CODE NAMED ONLY THE PRIMARY TYPE ("Water" / "Fire" / "Grass"). That is
+            # right as far as it goes but incomplete, and effectiveness against a dual-type is
+            # the PRODUCT over BOTH types — the same reason Winona's cfg carries
+            # ("Dragon", "Flying") rather than just "Dragon". Naming the pair is what lets the
+            # boss machinery judge an answer correctly.
+            ace_types = ("Grass",)
             try:
                 from modules.pokemon_party import get_party as _gp
 
                 names = " ".join(p.species.name for p in _gp() if p is not None)
                 if any(s in names for s in ("Torchic", "Combusken", "Blaziken")):
-                    ace_type = "Water"
+                    ace_types = ("Ground", "Water")      # rival fields Marshtomp
                 elif any(s in names for s in ("Treecko", "Grovyle", "Sceptile")):
-                    ace_type = "Fire"
+                    ace_types = ("Fighting", "Fire")     # rival fields Combusken
             except Exception:
                 pass
+
+            # ‼ `#24-whiteoutloop` PART 1 (2026-08-07). This segment had NO `_prepare_for_fight`
+            # cfg at all, so none of the boss machinery ran here — no sufficiency gate, no
+            # plateau detection, no counter escalation, no give-up. ROUTE110 is the **#1 or #2
+            # defeat map in 4 of 4 measured batches** (91-120 defeats each) and, with
+            # LAVARIDGE_GYM, accounts for 48% of all defeats (1,079 / 2,236). KI-26 has flagged
+            # "no prep and no attempt cap" here since 2026-07-27; this is that fix.
+            #
+            # ‼ NO `grass` KEY ON PURPOSE. `_prepare_for_fight` explicitly supports a grass-less
+            # cfg ("No training grass exists for this boss … the re-attempt itself is the only
+            # trainer available"), and inventing a Route 110 training tile would be writing a
+            # game fact from recall — exactly what KI-44 punished. Everything that matters here
+            # (the plateau detector and the escalation) needs only `keys`/`band`/`ace_*`.
+            rival110_fight = {
+                "keys": [MapRSE.ROUTE110.value],
+                "band": (18, 20),  # Wingull/Lombre/Slugma 18, evolved starter 20
+                "ace_types": ace_types, "ace_level": 20,
+                "heal": PokemonCenter.SlateportCity,
+            }
+            yield from self._prepare_for_fight(rival110_fight)
             yield from heal_in_pokemon_center(PokemonCenter.SlateportCity)
-            yield from _lead_best_matchup([ace_type])
+            yield from _lead_best_matchup(list(ace_types), hunted_pids=self._hunted_counter_pids)
             yield from travel_route110_and_fight_rival()
         else:
             console.print("[dim]Story: Route 110 rival already beaten — skipping.[/]")
@@ -3022,7 +3055,33 @@ class StoryMode(BotMode):
                 heal_in_pokemon_center,
             )
 
-            yield from _lead_best_matchup(["Fire"])
+            # ‼ `#24-whiteoutloop` PART 1 (2026-08-07). This segment had NO
+            # `_prepare_for_fight` cfg, so none of the boss machinery ran here — no
+            # sufficiency gate, no plateau detection, no counter escalation, no give-up.
+            # LAVARIDGE_TOWN_GYM_1F is a **top-4 defeat map in 4 of 4 measured batches**
+            # (87/57/53/73) and the single worst runaway observed anywhere: **17 consecutive
+            # losses with a perfectly constant KO series, `kos=[3]*17`**.
+            #
+            # ‼ NO `grass` KEY — and that is not a gap, it is the documented state of this
+            # town (see the header above): a two-way pathability sweep
+            # (`tools/story-dev/jaggedgrass_probe.py`) found NO usable training grass, because
+            # Jagged Pass cannot be re-entered from Lavaridge and Route 112's lower grass has
+            # no return path. `_prepare_for_fight` supports exactly this shape — *"No training
+            # grass exists for this boss (e.g. Lavaridge). The re-attempt itself is the only
+            # trainer available"* — so the cfg buys the DETECTION and the ESCALATION without
+            # inventing a tile. Adding a swept Lavaridge tile is still `#24-trainmap`.
+            #
+            # Team decomp-verified 2026-08-07 (`src/data/trainer_parties.h`, `sParty_Flannery1`):
+            # Numel 24, Slugma 24, Camerupt 26, **Torkoal 29** (ace, holds a White Herb).
+            # Torkoal is pure Fire — checked against our own `pokedex_data.json`, not recalled.
+            flannery_fight = {
+                "keys": [MapRSE.LAVARIDGE_TOWN_GYM_1F.value, MapRSE.LAVARIDGE_TOWN.value],
+                "band": (24, 29),  # Numel 24 / Slugma 24 / Camerupt 26 / Torkoal 29
+                "ace_types": ("Fire",), "ace_level": 29,  # Torkoal L29
+                "heal": PokemonCenter.LavaridgeTown,
+            }
+            yield from self._prepare_for_fight(flannery_fight)
+            yield from _lead_best_matchup(["Fire"], hunted_pids=self._hunted_counter_pids)
             yield from heal_in_pokemon_center(PokemonCenter.LavaridgeTown)
             yield from do_lavaridge_gym()
         else:

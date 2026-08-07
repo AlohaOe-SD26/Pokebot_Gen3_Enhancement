@@ -8716,3 +8716,55 @@ this machinery — plateau, escalation, prep — runs there. They account for **
 (1,079 / 2,236 across four batches) and are top-4 in 4 of 4. Adding them needs verified game facts
 (training grass tile, heal centre, ace types and level; the rival's ace depends on the starter) —
 probe or decomp, never recall.
+
+---
+
+## 2026-08-07 — `#24-whiteoutloop` part 1: the two fights that had no boss config at all
+
+`_prepare_for_fight` had **six** call sites. Eight fights can lose. The two without a cfg —
+**the Route 110 rival** and **Flannery / Gym 4** — got none of the boss machinery: no sufficiency
+gate, no plateau detection, no counter escalation, no give-up. They are **48% of all defeats**
+(1,079 / 2,236 across four batches), ROUTE110 is #1 or #2 in 4 of 4, and Lavaridge holds the worst
+runaway seen anywhere: **17 consecutive losses with `kos=[3]*17`**, a perfectly flat series.
+
+Nothing about this looked like a bug. The fights simply lost, quietly, for ever, because the code
+that would have noticed was never wired to them. KI-26 had flagged the Route 110 half since
+2026-07-27.
+
+**Game facts, verified — not recalled** (`src/data/trainer_parties.h` via `gh`/raw):
+
+* `sParty_Flannery1`: Numel 24, Slugma 24, Camerupt 26, **Torkoal 29** (ace, White Herb).
+  → `band (24, 29)`, `ace_types ("Fire",)`, `ace_level 29`. Torkoal's typing re-checked against
+  our own `modules/data/generated/pokedex_data.json`.
+* `sParty_MayRoute110{Treecko,Torchic,Mudkip}` (Brendan's are identical in species and level):
+  the ace is **always the L20 evolved starter that counters yours** —
+  Treecko → Combusken, Torchic → Marshtomp, Mudkip → Grovyle. → `band (18, 20)`, `ace_level 20`.
+
+### Two deliberate choices worth stating
+* **Neither cfg carries a `grass` key.** `_prepare_for_fight` explicitly supports a grass-less cfg
+  (*"No training grass exists for this boss (e.g. Lavaridge). The re-attempt itself is the only
+  trainer available"*), and Lavaridge genuinely has none — a two-way pathability sweep
+  (`jaggedgrass_probe.py`) found Jagged Pass unreachable from the town and Route 112's lower grass
+  without a return path. Inventing a training tile to fill the field is exactly how KI-44 happened.
+  A swept Lavaridge tile remains `#24-trainmap`.
+* **The Route 110 ace derivation now names TYPE PAIRS.** It previously resolved to a single
+  primary type ("Water" for Marshtomp, "Fire" for Combusken). Effectiveness against a dual-type is
+  the PRODUCT over both types — the same reason Winona's cfg carries `("Dragon", "Flying")` — so
+  the old version understated every matchup. Now `("Ground", "Water")` / `("Fighting", "Fire")`.
+
+### NEW `repro_boss_cfg_coverage.py` — assert the COVERAGE, not just the behaviour
+`repro_boss_plateau.py` proved the detector works. **Nothing proved it was connected**, and a
+perfect detector is worth nothing at a fight that never calls it. The new test walks every
+`_prepare_for_fight(<cfg>)` call site, resolves the dict literal, and requires that all seven
+measured defeat maps are covered by a cfg carrying real ace data. Fault-injected RED (remove the
+Flannery call → 2 checks fail).
+
+‼ **It also caught two of my own wrong assumptions before they became "fixes"** — worth recording,
+because the reflex to "fix" the code when a new test goes red is exactly the 2026-08-06 mistake:
+* I asserted `ace_level` must sit inside `band`. **False.** Brawly is Machop 16 / Meditite 16 /
+  **Makuhita 19** against a `(14, 16)` band — decomp-verified. `band` is the TRAINING TARGET
+  range; the ace is often above it. The assertion was wrong, the data was right.
+* I required `ace_types` on every cfg, which would have flagged the Rustboro rival. It records
+  **0 defeats in all four batches** — there is nothing there to detect, and inventing ace data for
+  a fight that never loses is churn with a real chance of being wrong. The requirement now applies
+  only to maps that measurably lose.
