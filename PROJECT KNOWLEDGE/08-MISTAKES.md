@@ -3624,3 +3624,40 @@ points and that near-binary counters are the only trustworthy batch signal. 7 vs
 The budget was never the knob — the failing teaches do not finish within ANY budget tried, and
 then learn the move ~1,872 frames after the raise. **Do not tune it a fourth time.** Instrument
 which `break` fires, at what frame, with what task set, and diagnose from that.
+
+## 2026-08-06 — ‼ FOUR BATCHES, ZERO RESOLVABLE FINISH-RATE DIFFERENCES. I narrated all of them.
+
+**Symptom.** Across four batches in one day I attributed finish-rate movements to specific code
+changes — a "36-point regression", a "recovery", a "collapse". **None of the differences are
+statistically resolvable.** Two-proportion z on the actual counts:
+
+| batches | rates | z | verdict |
+|---|---|---|---|
+| `103811` vs `174746` | 52.0% vs 26.9% | **1.83** | NOT RESOLVED |
+| `103811` vs `142418` | 52.0% vs 30.8% | **1.54** | NOT RESOLVED |
+| `055947` vs `103811` | 37.5% vs 52.0% | **−1.02** | NOT RESOLVED |
+| `142418` vs `174746` | 30.8% vs 26.9% | **0.31** | NOT RESOLVED |
+
+Every one needs |z| > 1.96. **The project's own docs already say this** — *"a batch is ~38 runs
+and can only resolve roughly ±30 percentage points… batches are for discovering failure modes,
+not grading improvements"* — and I violated it in both directions repeatedly, including to justify
+REMOVING a component and then to justify putting it back.
+
+‼ **Prevention rule: never state a finish-rate comparison without its z. Compute it BEFORE
+writing the sentence.** It is four lines of arithmetic against numbers already in `summary.json`.
+Had I run it on the first comparison, three hours of attribution would not have happened.
+
+‼ **What IS trustworthy is exactly what the project already said: near-binary counters and
+factor-of-N moves.** From the same four batches, these ARE readable:
+* `global watchdog` **68 → 33** — halved by restoring the stall detector. A factor, not a nudge.
+* `Teach flow finished but` **9 → 4** — best of all four configs.
+* `INTO THE PC BOX` / `withdrawing` **0** — a true zero, confirming the gate is off.
+
+**So the stall-detector restoration is SUPPORTED — by the counters, not by the finish rate I
+originally used to argue for it.** Right conclusion, wrong evidence, and the wrong evidence would
+have flipped the decision if the noise had landed the other way.
+
+‼ **Consequence for how this project measures.** The finish rate cannot grade a change at this
+sample size, and the batches are already 3 hours. **Stop using it as a verdict.** Grade with:
+(1) a direct capability test in the harness — binary, minutes; (2) near-binary counters; (3) the
+badge funnel, which has ~200 records per batch instead of ~26 outcomes.
