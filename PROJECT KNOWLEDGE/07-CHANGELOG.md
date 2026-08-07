@@ -8581,3 +8581,48 @@ member that is compatible, does not know the move, AND already has four moves, w
 combination that exercises `Task_ReplaceMoveYesNo` → summary → the post-learn prompt.
 It also carries a positive control on the bag (`quantity_of`), because a missing HM makes the flow
 die at "`Task_CallYesOrNoCallback` never appeared" — indistinguishable from the bug.
+
+---
+
+## 2026-08-07 — `#24-whiteoutloop` DIAGNOSED (analysis only, no code changed)
+
+Done while the re-baseline batch was in flight, so it is deliberately **read-only**: stored logs
+from four completed batches, no emulator, no `sandbox-pokebot/` edits (a relaunched lane
+re-imports from disk, and lane L03 restarted 32 minutes in — the rule is live risk, not theory).
+
+`#24-whiteoutloop` asked for "WHERE runs are when the loop starts" and forbade attributing it
+without that. **The answer was already in every log:** each whiteout is immediately preceded by
+`lost a battle at map (G,N) (defeat #K here; KO'd J of theirs first)` — map, attempt ordinal and
+a progress signal, all three. The whiteout machinery itself is fine; it fires and recovers every
+time. **The bug is that nothing stops the bot re-attempting a fight it keeps losing.**
+
+| batch | defeats | at maps with NO `_prepare_for_fight` cfg |
+|---|---|---|
+| `20260806-174746` | 554 | 283 (51%) |
+| `20260806-142418` | 547 | 271 (50%) |
+| `20260806-103811` | 541 | 234 (43%) |
+| `20260806-055947` | 594 | 291 (49%) |
+| **total** | **2,236** | **1,079 (48%)** |
+
+`_prepare_for_fight` is called at exactly six sites (Roxanne, the Rustboro rival, Brawly, Wattson,
+Norman, Winona). **Gym 4 / Flannery has none**, and LAVARIDGE_TOWN_GYM_1F is a top-4 defeat map in
+4 of 4 batches; ROUTE110 (KI-26) is #1 or #2 in 4 of 4. This also **corrects KI-26's own text**,
+which claimed Route 110 and Wally were the only unprepped combat segments.
+
+**Re-attempting mostly does not work**, which is the finding that makes a cap justifiable: of 53
+sequences with ≥3 defeats at one map, the best-KO trend is **FLAT in 37, improving in 15, worse in
+1**. The design premise — a lost attempt is still training, since Gen 3 keeps KO XP through a
+whiteout — holds only ~28% of the time. Worst observed: `LAVARIDGE_GYM n=17 kos=[3]*17` (a
+perfectly constant series) and `PETALBURG_GYM n=32`.
+
+And where a cfg DOES exist, `_boss_plan_is_hopeless` still cannot fire: it requires **both** a KO
+plateau **and** "no party mon has a ≥2.0-effective move against `ace_types`". An underlevelled
+party that HAS a super-effective move fails the second test for ever — that is Petalburg's
+32-attempt run.
+
+**Fix specified, not implemented** (waiting on the batch): (1) real cfgs for Flannery and the
+Route 110 rival; (2) a cfg-independent cap keyed on **flat KOs rather than attempt count**.
+‼ Part 2's shape is what lets it honour KI-26's standing warning — "P2 lost 13 times and then
+reached Fortree, so a cap at 6 would have killed a recovering run". The KO series is the
+discriminator that warning lacked: climbing KOs mean recovering (15 of 53) and must not be
+capped; `[3]×17` means it never will.

@@ -270,10 +270,24 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       chapters.** Cheap to reproduce — `ensure_hm_learner` is wired for exactly two moves
       (Rock Smash `story_mode.py:2793`, Surf `:2967`).
 
-- [ ] `#24-whiteoutloop` — **TOP END REASON AND NOT UNDERSTOOD (5 of 15 non-finishes, up from 2).**
+- [ ] `#24-whiteoutloop` — **DIAGNOSED 2026-08-07 from stored logs. It is KI-26, generalised:
+      uncapped boss re-attempts. Fix is specified and NOT yet implemented.**
       ‼ Measured NOT to be Mt. Pyre's: a run with 0 `MT. PYRE` mentions logged 3 whiteouts while
-      heavy-Mt.-Pyre runs logged none. Now that chapter milestones print, the next batch should
-      show WHERE runs are when the loop starts. Do not attribute it without that.
+      heavy-Mt.-Pyre runs logged none. **The "show WHERE" ask is now answered** — every whiteout is
+      preceded by `lost a battle at map (G,N) (defeat #K here; KO'd J of theirs first)`, so the
+      map, the attempt ordinal and the progress signal were in the logs all along.
+      * **48% of all defeats (1,079 / 2,236 across four batches) are at maps with NO
+        `_prepare_for_fight` cfg** — ROUTE110 and LAVARIDGE_GYM (Flannery) are top-4 in 4 of 4.
+      * **Re-attempting usually does not work:** of 53 sequences with ≥3 defeats at one map,
+        the KO trend is **FLAT in 37, improving in 15, worse in 1**. Worst: 17 straight losses at
+        Lavaridge with a constant `kos=[3]*17`; 32 straight at Petalburg.
+      * `_boss_plan_is_hopeless` already has the right plateau test but demands **plateau AND no
+        super-effective answer**, so an underlevelled party that HAS one never gives up.
+      **FIX (2 parts, both deferred until the batch lands — never edit `sandbox-pokebot/` mid-batch):**
+      1. Real `_prepare_for_fight` cfgs for Flannery and the Route 110 rival.
+      2. A cfg-independent cap keyed on **flat KOs, not attempt count** — which is precisely what
+         lets it honour KI-26's warning that a run losing 13 times still went on to reach Fortree.
+      Full measurement + method in `05-KNOWN-ISSUES.md` KI-26.
 
 - [ ] ~~`#24-mtpyre-batch`~~ (superseded) — **NEXT ACTION. Batch Segment 14 before trusting any finish rate.**
       Every run that beats Winona now continues into Mt. Pyre, so run length and finish rate

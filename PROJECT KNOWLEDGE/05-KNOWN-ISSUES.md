@@ -729,7 +729,60 @@ reason about them.
   `#24-leadpolicy` — **needs a user ruling**, since benching a 4×-weak mon is sometimes
   exactly right.
 
-## KI-26 — the Route 110 rival has no attempt cap and no fight prep (opened 2026-07-27, severity: HIGH)
+## KI-26 — boss fights with no prep and no attempt cap (opened 2026-07-27; **MEASURED AND
+## GENERALISED 2026-08-07** — severity: HIGH. This is `#24-whiteoutloop`.)
+
+### ‼ 2026-08-07: this is the whiteout loop, and it is now quantified from stored logs
+`#24-whiteoutloop` asked "show WHERE runs are when the loop starts, and do not attribute it
+without that." Answer, from four stored batches (read-only, no emulator, `x4-runs/2026080*`):
+
+**Every whiteout is preceded by `lost a battle at map (G,N) (defeat #K here; KO'd J of theirs
+first)`. The whiteout machinery is not the bug — it fires and recovers every time. The bug is
+that nothing stops the bot re-attempting a fight it keeps losing.**
+
+| batch | defeats | at maps with NO `_prepare_for_fight` cfg | top 2 |
+|---|---|---|---|
+| `20260806-174746` | 554 | 283 (51%) | ROUTE110 111*, PETALBURG_GYM 103 |
+| `20260806-142418` | 547 | 271 (50%) | PETALBURG_GYM 146, ROUTE110 108* |
+| `20260806-103811` | 541 | 234 (43%) | PETALBURG_GYM 169, ROUTE110 91* |
+| `20260806-055947` | 594 | 291 (49%) | ROUTE110 120*, PETALBURG_GYM 118 |
+| **total** | **2,236** | **1,079 (48%)** | (* = no boss cfg) |
+
+**Re-attempting mostly does not work.** Of 53 sequences with ≥3 defeats at the same map in one
+batch, the best-KO trend is **FLAT in 37, improving in 15, worse in 1**. The premise that a lost
+attempt is still training (Gen 3 keeps the XP) holds only ~28% of the time. Worst cases:
+
+    L08 run1 LAVARIDGE_GYM  n=17  kos=[3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3]   <- perfectly flat
+    L06 run1 ROUTE110       n=12  kos=[1,1,1,1,1,1,1,1,1,1,1,1]             <- perfectly flat
+    L04 run2 PETALBURG_GYM  n=32  kos=[0,2,2,2,2,2,2,2,3,2,...,3,2]         <- 32 attempts
+
+**‼ CORRECTION to this entry's own text below:** it says *"Route 110 and Wally are the only
+combat segments without [prep]"*. **That is no longer true.** `_prepare_for_fight` is called at
+exactly SIX sites — Roxanne `:2567`, Rustboro rival `:2658`, Brawly `:2724`, Wattson `:2837`,
+Norman `:3026`, Winona `:3152`. **Gym 4 / Flannery (Segment 11d, `:2957`) has none**, and
+LAVARIDGE_TOWN_GYM_1F is a top-4 defeat map in **4 of 4** batches (87/57/53/73). Mt. Chimney
+(21) has none either. Line numbers in the original text below are also stale (`:744` → `:812`,
+`:2335-2363` → `:2780-2808`).
+
+**‼ AND THE PLATEAU DETECTOR CANNOT SAVE THE CONFIGURED FIGHTS EITHER.**
+`_boss_plan_is_hopeless` (`:1250`) already implements exactly the right plateau test, but it
+returns hopeless only when **BOTH** (1) the KO count has plateaued **AND** (2) no party mon has a
+≥2.0-effective damaging move against `ace_types`. A party that HAS a super-effective answer and
+is simply **underlevelled** fails test (2) for ever — which is Petalburg's 32-attempt run.
+
+**FIX SHAPE (do not implement mid-batch; sandbox edits break running lanes):**
+1. Give Flannery and the Route 110 rival real `_prepare_for_fight` cfgs. Biggest lever, reuses
+   machinery that already exists and is already trusted for six other fights.
+2. A cfg-independent cap keyed on **flat KOs, not raw attempt count** — so the maps nobody
+   configured are still bounded.
+   ‼ **This is what honours the warning already recorded below.** "P2 lost 13 times and then
+   reached Fortree, so a cap at 6 would have killed a recovering run" is exactly right, and the
+   KO series is the discriminator that entry lacked: a run whose KOs are CLIMBING is recovering
+   (15 of 53) and must not be capped; a run flat at `[3]×17` is not, and never will be.
+
+---
+
+### Original entry (2026-07-27), retained
 - **Symptom:** repeated identical losses at ROUTE 110 (34,56) with no adaptation. The code's
   own note records the worst case: `plugins/custom_modes/story_mode.py:744` — *"Measured
   worst case before this existed: 25 whiteouts on ROUTE110 in a single run."*

@@ -146,8 +146,20 @@ a later round on a clean baseline, not to this one. Do not reorder these without
    `modules/config/templates/` only seeds NEW profiles, so logic written there alone reaches
    nothing that already exists. Put the predicate in a `modules/story/` module and have the filter
    delegate to it.
-4. **`#24-whiteoutloop`** — 590 whiteouts across one batch (~18/game) is the single largest frame
-   cost in the program and is NOT understood.
+3. **`#24-whiteoutloop` — ‼ DIAGNOSED 2026-08-07, FIX SPECIFIED, NOT YET WRITTEN.** Pick this up
+   the moment the batch lands; the analysis is done and the code change is small.
+   It is **KI-26 generalised: uncapped boss re-attempts.** Every whiteout is preceded by
+   `lost a battle at map (G,N) (defeat #K here; KO'd J of theirs first)` — the whiteout machinery
+   works fine, nothing stops the bot re-attempting a fight it keeps losing.
+   * **48% of all defeats (1,079 / 2,236 over four batches) are at maps with NO
+     `_prepare_for_fight` cfg.** `_prepare_for_fight` has exactly six call sites; **Flannery /
+     Gym 4 is not one of them**, and LAVARIDGE_GYM + ROUTE110 are top-4 in 4 of 4 batches.
+   * **Of 53 sequences with ≥3 defeats at one map, KO trend is FLAT in 37, improving in 15.**
+     Worst: `LAVARIDGE_GYM n=17 kos=[3]*17`; `PETALBURG_GYM n=32`.
+   **Do (1) then (2):** (1) real cfgs for Flannery + the Route 110 rival; (2) a cfg-independent
+   cap keyed on **flat KOs, not attempt count**. ‼ (2)'s shape is mandatory, not stylistic — it is
+   what honours KI-26's warning that a run losing 13 times still went on to reach Fortree.
+   Full measurement, method and the corrected KI-26 text: `05-KNOWN-ISSUES.md` KI-26.
 5. **`#24-magmahideout`** — unlocked (`HIDE_JAGGED_PASS_MAGMA_GUARD` set by the summit) but the
    hardest area attempted: cable car + one-way descent, ~8 warps. Start from `saves/post_mtpyre.ss1`.
 
