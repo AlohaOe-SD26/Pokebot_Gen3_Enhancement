@@ -143,6 +143,22 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
 - [x] `#24-mtpyre-log` — **DONE 2026-08-06.** Segment 14's five milestones now `console.print`
       (`_ch14_say`), so a mid-way failure leaves a trail in batch stdout. Frame count identical.
 
+- [x] `#24-pcoverflow` — **CATCH HALF PROVEN AND ENABLED 2026-08-07.** Two independent breaks
+      were found and fixed: (1) `pc_trip.box_views()` called `boxes`, a `@cached_property`
+      returning a list → `TypeError` every call; (2) both catch branches required `party < 6`.
+      Capability test (`--driver boxcatch`, `post_mtpyre.ss1`): `caught=True box 0→1
+      exited_clean=True exit_frames=120`, then `second_catch=True box_now=2`.
+      `POKEBOT_BOX_OVERFLOW_CATCH` defaults **1**.
+      ‼ The box-transfer message does NOT need dismissing — the existing battle handler already
+      rides it out. I "confirmed" that wedge twice and both were my probe idling (`08-MISTAKES`).
+
+- [ ] `#24-pcwithdraw-proof` — **NEXT ACTION. The withdraw half has still NEVER executed**
+      (`withdrawing` = 0 in every batch). Now testable: `--driver boxcatch` leaves a save with a
+      full party AND mons in the box (`profiles/repro-boxcatch6/states/`). Drive a heal from there
+      and assert the PID-matched mon enters the party.
+      ‼ **Grade with a capability test, NOT a batch** — four batches on 2026-08-06 produced zero
+      statistically resolvable finish-rate differences.
+
 - [ ] `#24-roster` — **APPROVED 2026-08-06, gate LIFTED. The PC-roster feature.**
       Catch overflow into the box + withdraw on demand, so the bot can field type counters and HM
       carriers it could not otherwise hold. **Rulings + rationale: `06-DECISIONS-LOG.md` 2026-08-06.**

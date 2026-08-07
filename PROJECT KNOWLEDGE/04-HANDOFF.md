@@ -3,267 +3,123 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-08-05 (session end) — read "‼ YOU ARE HERE" immediately below.
+**Last updated:** 2026-08-07 — read "‼ YOU ARE HERE" immediately below.
 Every banner further down is HISTORY, newest first.
 
 ---
 
-# ‼ YOU ARE HERE — 2026-08-05 (session end). Read this, then `14-AGENT-PLAYBOOK.md`.
+# ‼ YOU ARE HERE — 2026-08-07. Read this, then `14-AGENT-PLAYBOOK.md`.
 
-**Everything below is current. Older `START HERE` banners further down are HISTORY.**
+## WHAT THIS IS
+`sandbox-pokebot/` is the working build of a Pokémon Emerald bot. Its **Story mode** plays the
+game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror (never edit);
+`custom-pokebot/` is the promoted fork. **All work happens in `sandbox-pokebot/`.**
 
 ## STATE
 | | |
 |---|---|
-| branch / HEAD | `main`, clean, pushed. Cap is back at **4** (see below) |
-| repro suite | **78 / 78** at session start; 4 targeted repros green after both edits |
-| last batch | `x4-runs/20260805-122057` (`be104e9c`) — **19 runs, 3 finished = 15.8%. REVERTED.** |
-| known-good baseline | `x4-runs/20260805-075638` (`054fa8c6`) — **25 runs, 13 = 52.0%** |
-| health | box idle, nothing running |
+| branch / HEAD | `main`, clean, pushed — **`70cf557f`** |
+| story content | Littleroot → 6 badges → **Mt. Pyre → Magma Emblem**. Magma Hideout is UNLOCKED but UNBUILT. |
+| box idle | nothing running |
+| last batch | `20260806-174746` — 26 runs, 7 finished (26.9%) |
 
-**The bot reaches and beats Winona / Gym 6 = END OF BUILT CONTENT.** Nothing past that exists.
-
-## ‼ WHAT JUST HAPPENED — `#24-partycap` was measured, cost 36 points, and is REVERTED
-
-Raising the pre-Gym-1 party fill 4 → 6 dropped the finish rate **52.0% → 15.8%**. Reverted the
-same day per the rule this file pre-registered before the data existed. Both constants are back
-at 4 and now carry a do-not-raise-this comment naming the batch and the mechanism.
-
-**The funnel is what diagnosed it — one rung moved, and only one:**
-
-| rung | baseline (cap 4) | cap 6 | |
-|---|---|---|---|
-| Stone→Knuckle | 90% | 96% | flat |
-| Knuckle→Dynamo | 86% | 72% | ns |
-| Dynamo→Heat | 92% | 100% | flat |
-| Heat→Balance | 77% | 78% | flat |
-| **Balance→Feather** | **76%** | **21%** | **z=3.06** ✅ |
-
-‼ **A deeper team is FREE through five badges.** The cause is **HM coverage, not strength**: 10
-of 16 non-finishes are `No party mon can learn Surf and the party is full` — **0 occurrences in
-all 14 prior batches**. A party pre-filled with early wilds has no Surf learner and no slot to
-catch one.
-
-‼ **THE INSIGHT: a party's empty slots are not waste, they are the RUNWAY that HM and counter
-catches land on.** At cap 4 the team still reaches a mean of **5.85** by Feather — it fills up
-either way, with the mons the run actually needs. Read `08-MISTAKES.md` 2026-08-05 before
-touching any team-size limit.
-
-‼ **Note the finish rate alone would have given the WRONG cause** ("deeper teams cost more to
-heal and train" — plausible, and false). Only the per-rung funnel showed strength was never it.
-
-## ‼ TWO THINGS THIS LEFT OPEN
-* **`#24-pcoverflow` IS STILL UNPROVEN.** `withdrawing` logged **0** times all batch — the Surf
-  guard killed runs before any full-party catch reached the overflow path. Bundling two changes
-  measured the bundle, not the parts. It needs its own probe.
-* **`#24-hmslots` — RULED 2026-08-05: RESERVE SLOTS, no code change.** This ratifies the
-  reverted state: fill to 4, grow organically to ~5.85 by Feather. ‼ Recorded as a ruling so it
-  is not read as unfinished work — re-raising the cap is what cost 36 points.
-  **The user deferred the real goal to `#24-organicteam`** ("make the bot play more organically
-  like a regular player would… once we finish mapping the story out"). **Accepted cost: teams
-  look thin EARLY, knowingly unsolved.** GATE: finish story mapping first.
-
-## ‼‼ THE NEXT ACTION — BUILD `#24-mtpyre`. THE BLOCKER WAS NEVER REAL.
-
-`#24-cavethread` is **CLOSED**. It was recorded for days as *"THE BLOCKER FOR ALL STORY CONTENT
-PAST WINONA"*, and multi-hop cave threading **already works**. Measured 2026-08-05 in both
-directions, with **no chain table involved**:
-
-| leg | route | |
-|---|---|---|
-| IN | `DEWFORD_TOWN → ROUTE106 → GRANITE_CAVE_1F → B1F → B2F` | 3 warps ✅ |
-| OUT | `GRANITE_CAVE_B1F → GRANITE_CAVE_1F → ROUTE106 → DEWFORD_TOWN` | ✅ |
-
-MT_PYRE_SUMMIT is the same 3-warp shape, so **`#24-mtpyre` is unblocked and is now the top
-item.** Granite Cave B1F/B2F can also be unparked as training grounds.
-
-‼ **THE ONE GOTCHA TO CARRY INTO MT PYRE — never pass a WARP TILE (door / ladder / stairs) as a
-navigation destination.** Walking onto a warp FIRES it, so the trip finishes one map PAST the
-target *and the navigator reports success*. Both probe runs hit this and both first read as
-failures (a B2F ladder bounced the bot to B1F; a Dewford door left it in
-`DEWFORD_TOWN_HOUSE1`). 14.8% of graph edges share from/to coordinates, so coordinates cannot
-detect it — **assert on the MAP, or on maps VISITED**. `08-MISTAKES.md` 2026-08-05.
-
-### ‼ MT. PYRE IS FULLY SPECIFIED — `12-STORYMODE-DESIGN.md` **§Ch14a**. Read it before building.
-
-**The whole chapter is ONE COORD TRIGGER, not an NPC conversation** (decomp-verified). Step on
-`(23,7)` at `VAR_MT_PYRE_STATE == 0` and `MtPyre_Summit_EventScript_TeamAquaExits` does the rest:
-Archie and the four grunts vanish, the Old Lady walks over unprompted, `giveitem
-ITEM_MAGMA_EMBLEM`, and it sets **`FLAG_HIDE_JAGGED_PASS_MAGMA_GUARD`** — the thing that opens
-the Magma Hideout. The bot never talks to anyone.
-
-* **Route (ROM):** `ROUTE122 (22,29) → MT_PYRE_1F → (3,6) → EXTERIOR → (19,10) → SUMMIT (23,31)`,
-  then a **clean vertical corridor at x=23 from y=31 up to y=7**.
-* **Graph knows the whole journey from where content stops:** `FORTREE_CITY → ROUTE120 →
-  ROUTE121 → ROUTE122 → MT_PYRE_1F → EXTERIOR → SUMMIT` (6 hops). ‼ Known ≠ walkable —
-  `ROUTE121→ROUTE122` is water, so **SURF is the gate**.
-* **Completion test:** `get_event_var("MT_PYRE_STATE") >= 1` (name verified present in
-  `modules/data/event_vars/emerald.txt:186`, so it cannot silently return −1).
-  ‼ **NOT** flag 856 — this project already caught 856 reading True far from Mt. Pyre.
-* **Measure the one-call hypothesis FIRST:** `_navigate_riding_out(MapRSE.MT_PYRE_SUMMIT, (23,7))`
-  may be the entire traversal, since multi-hop threading works and (23,7) is a plain tile.
-* ‼ The four Aqua grunts stand IN the ascent corridor — expect sight-lines; it is a
-  fight-through leg, not a clean walk.
-
-### ✅ POST-WINONA SAVE EXISTS — `tools/story-dev/saves/post_winona.ss1`
-Generated 2026-08-05 (Story from `fortree_gym_wedge.ss1`, `RUN COMPLETE — end of built content`).
-Party: Mightyena L42 / Sceptile L42 / Swellow L39 / Skitty L17 / **Zigzagoon L3 (SURF)** /
-Castform L35. Use it for every Ch14 probe.
-
-### ‼ THE ONE-CALL HYPOTHESIS IS REFUTED — AND THE BLOCKER MOVED TO **ROUTE 120**
-```
-CAVE_TARGET=MT_PYRE_SUMMIT CAVE_TILE=23,7 --driver cavethread   (from post_winona.ss1)
-RESULT arrived=False reached_dest=False map=ROUTE120
-       "...still at (7,56), so retrying cannot change the result"
-maps visited: FORTREE_CITY, FORTREE_CITY_GYM, ROUTE120
-```
-`_navigate_riding_out(MT_PYRE_SUMMIT, (23,7))` is **not** the whole chapter. The trip dies on
-**ROUTE120 at (7,56)** — before reaching any cave warp.
-
-‼ **This is NOT warp threading** (proven working today, both directions, 3 warps deep). It is
-**overland pathing ROUTE120 → ROUTE121**. Already ruled out: `calculate_path(no_surfing=False)`
-by default and `_walk_is_possible` does not disable it, so the party's Surf is not being ignored
-at the API level.
-
-### ‼‼ MT. PYRE IS BUILT AND LIVE-PROVEN (2026-08-06) — the bot plays PAST Winona
-**First new story content since 2026-07-30.** `open_route121_aqua_gate()` +
-`do_mt_pyre_summit()` in `early_game.py`, wired as **Segment 14** in `story_mode.py`.
-
-Both beats are COORD TRIGGERS, no conversations:
-1. `ROUTE121 (25,5)` → `Route121_EventScript_AquaGruntsMoveOut` — three Team Aqua grunts
-   sealing Route 121's only southward corridor move out (`VAR_ROUTE121_STATE` → 1).
-2. `ROUTE122 (22,30)` → door → `1F (3,6)` → `EXTERIOR (19,10)` → summit → walk x=23 to
-   `(23,7)` → `MtPyre_Summit_EventScript_TeamAquaExits`.
-
-**LIVE PROOF** from `post_winona.ss1`, **76,368 frames**: `MAGMA EMBLEM obtained - end of built
-content`, `RUN COMPLETE`. End state read live and matching the decomp exactly:
-
-| flag | value |
-|---|---|
-| `HIDE_ROUTE_121_TEAM_AQUA_GRUNTS` | True |
-| `HIDE_MT_PYRE_SUMMIT_TEAM_AQUA` | True |
-| `RECEIVED_RED_OR_BLUE_ORB` | True |
-| **`HIDE_JAGGED_PASS_MAGMA_GUARD`** | **True — the Magma Hideout is OPEN** |
-
-8 repros green. End save committed: **`tools/story-dev/saves/post_mtpyre.ss1`** — use it as the
-start point for the Magma Hideout work.
-
-### ✅ SEGMENT 14 MEASURED IN PRODUCTION AND IT HOLDS
-`x4-runs/20260806-055947`, code `498eedd9`, `VERDICT OK`, 32 headers, 0 violations, 0 restarts.
-
-* **It really runs:** debug logs show `MT. PYRE` **274**, `ROUTE 121` **171**, `ROUTE 122` **89**.
-* **9 finishes with the Magma Emblem against 10 runs reaching Feather — ~90% conversion** on the
-  new segment. **0 `BotModeError`** from either new guard.
-* **Finish rate 52.0% → 37.5% is NOT a regression** — "finished" now requires Mt. Pyre as well as
-  six badges. The badge funnel (entirely upstream of the new code) moved **no rung
-  significantly**: Balance→Feather z=1.49, whole funnel z=0.88, both ns.
-* **The whiteout uptick (5 of 15) is NOT Mt. Pyre's** — a run with **0 `MT. PYRE` mentions had 3
-  whiteouts**, while heavy-Mt.-Pyre runs had none. Open item, explicitly unattributed.
-* `#24-mtpyre-log` shipped after: the five milestones now `console.print`, so a future failure
-  leaves a trail. Verified identical frame count (76,367), so behaviour is unchanged.
-
-### ⏭ NEXT — pick one
-1. **`#24-magmahideout`** — now UNLOCKED (`HIDE_JAGGED_PASS_MAGMA_GUARD` is set by the summit).
-   ‼ Still the hardest area attempted: its door on JAGGED_PASS is reachable only from ABOVE, via
-   the Route 112 cable car and a one-way descent (~8 warps + a scripted ride). Start from
-   **`saves/post_mtpyre.ss1`**. Recon: `12-STORYMODE-DESIGN.md` §Ch14.
-2. **The whiteout-loop item** — top end reason (5 of 15) and NOT understood. Now that the
-   milestones print, a batch will show where runs are when it happens.
-3. **Winona** — `Balance→Feather` is the weakest rung (53%) and 4 of 15 non-finishes. The counter
-   chain names Rock/Ice/Dragon and cannot deliver one.
-
-## ‼‼ READ THIS BEFORE GRADING ANYTHING — the finish rate cannot resolve a change
+## ‼‼ READ THIS BEFORE GRADING ANYTHING — the finish rate CANNOT resolve a change
 Four batches on 2026-08-06, ~25 runs each. **Not one pair of finish rates is statistically
-resolvable** (two-proportion z, all need |z| > 1.96):
+resolvable** (two-proportion z; all need |z| > 1.96):
 
 | batch | rate | vs 52.0% |
 |---|---|---|
 | `20260806-055947` | 37.5% | z = −1.02 |
-| `20260806-103811` | **52.0%** | — |
+| `20260806-103811` | 52.0% | — |
 | `20260806-142418` | 30.8% | z = 1.54 |
 | `20260806-174746` | 26.9% | z = 1.83 |
 
-I narrated all four as if they were verdicts and used them to remove a component and then restore
-it. **Never state a finish-rate comparison without computing its z first** (`08-MISTAKES.md`
-2026-08-06). Grade with a binary capability test, near-binary counters, or the badge funnel.
+I narrated all four as verdicts and used them to remove a component and then restore it.
+**Never state a finish-rate comparison without computing its z first.** Grade instead with:
+1. **A capability test in the harness** — binary, minutes (see `--driver boxcatch` for the model).
+2. **Near-binary counters** — "0 → 9" is real; a rate change is not.
+3. **The badge funnel** (`tools/story-dev/analyse_badge_funnel.py`) — ~200 records vs ~26 outcomes.
 
-## STATE — box idle, tree clean, everything pushed
-| | |
+## ‼ THREE TOOLING TRAPS THAT PRODUCED FALSE RESULTS THIS WEEK — all in `08-MISTAKES.md`
+1. **NEVER use the Grep TOOL on `tools/story-dev/x4-runs/`.** It is gitignored; ripgrep skips
+   ignored files and reports a confident `0 total occurrences across 0 files`. **Use Bash
+   `grep -r`.** This made me accuse an agent of fabricating data that was correct.
+2. **NAME THE SURFACE.** `*/stdout.txt` and `*/debug-logs/*.log` carry DIFFERENT facts by design.
+   `debug-logs/` is **empty until the batch ends**. **Every null result needs a positive control**
+   — the same command over the same files for a string known to be present.
+3. **A harness "HANG CONFIRMED" after a probe finishes is the PROBE idling, not the bot wedging.**
+   I "confirmed" a production wedge twice this way. Grade a capability by DRIVING it to a positive
+   outcome ("it kept playing and did the thing again"), never by absence of a hang. And a `bt='…'`
+   string in a dump is the STALE text buffer, not necessarily an active message.
+
+## WHAT SHIPPED 2026-08-06/07 (all pushed, all with evidence)
+| item | state |
 |---|---|
-| current code | `2a42e7aa` |
-| teach ride | **9,000 hard cap + 900-frame stall** — best config of three, RESTORED after I wrongly removed it |
-| overflow catch | **GATED OFF** (`POKEBOT_BOX_OVERFLOW_CATCH=0`); confirmed 0 in the last batch |
-| story content | Littleroot → Winona → **Mt. Pyre → Magma Emblem** (Magma Hideout unlocked, unbuilt) |
+| **`#24-mtpyre`** — Mt. Pyre chapter | **DONE, live-proven.** Two coord triggers, no NPC talk. `open_route121_aqua_gate()` + `do_mt_pyre_summit()` in `early_game.py`, Segment 14 in `story_mode.py`. Batch-confirmed: `MT. PYRE` 274 mentions, 9 finishes vs 10 runs reaching Feather (~90% conversion). |
+| **`#24-cavethread`** | **CLOSED — it was never a blocker.** Multi-hop cave threading already worked (Dewford ⇄ Granite Cave B2F, 3 warps, both directions). The item rested on a comment that expired when `#24-journey` shipped. |
+| **`#24-pcoverflow` break 1** | **FIXED.** `pc_trip.box_views()` did `getattr(storage,"boxes",lambda:[])()` — calling a `@cached_property` that returns a list → `TypeError` on every call. This is why `withdrawing` was 0. |
+| **`#24-pcoverflow` break 2** | **WIRED + PROVEN + ENABLED.** Full-party catch overflows to the box. Capability test: `caught=True box 0→1 exited_clean=True exit_frames=120`, then `second_catch=True box_now=2`. `POKEBOT_BOX_OVERFLOW_CATCH` defaults **1**. |
+| **`#24-hmteachloop`** | **NOT FIXED** (7/8/9/4 across four configs). Ride budget restored to the best config: `9000` hard cap + `900` stall. |
+| **`#24-rarepredicate`** | **SOLVED on paper, not built.** |
+| `#24-mtpyre-log` | milestones now `console.print` so a mid-chapter failure leaves a trail |
 
-**What the trustworthy counters say** (near-binary / factor moves, the only readable signals):
-* `global watchdog` **68 → 33** — halved by restoring the stall detector.
-* `Teach flow finished but` **9 → 4** — best of all three teach configs.
-* `withdrawing` / `INTO THE PC BOX` **0** — the overflow gate is genuinely off.
+## ‼ USER RULINGS 2026-08-06 — DO NOT RE-ASK (`06-DECISIONS-LOG.md`)
+* **`#24-organicteam` gate LIFTED** — build the roster now. Justification is story reliability
+  (fewer boss failures from type-incompatible parties; fewer HM stalls), and it is
+  measurement-backed: `no super-effective answer` is **~8 of every 12-19 non-finishes**.
+* **Round one changes NO catch policy, NO party cap, NO deposit path.** `POKEBOT_PC_ROTATION`
+  stays pinned at `0` (it cost ~1 team member per run and a 5.4% VOID batch).
+* **"Rare" (duplicate-catch exemption) = three OR'd rules:** shiny (already works) OR rare gender
+  variant OR rare species. **Rare species = `best_slot_rate <= 4%` OR `warp_depth >= 3`** —
+  26 of 132 species. Bagon is "pseudo-rare" via warp depth (d3); Skitty via rate (2%).
+  ‼ The field-move recon is NOT a prerequisite — the predicate fires at encounter time.
 
-## ⏭ NEXT, IN ORDER
-1. **`#24-boxmessage` — the blocker the user identified.** A box-send shows an EXTRA text box the
-   bot has NO handling for (`grep VAR_PC_BOX_TO_SEND_MON` across `modules/` = **0 hits**).
-   `Cmd_givecaughtmon` picks one of FOUR variants (`B_MSG_SENT_SOMEONES_PC` /
-   `B_MSG_SOMEONES_BOX_FULL`, each +1 once `FLAG_SYS_PC_LANETTE` is set). **Read the box from
-   `VAR_PC_BOX_TO_SEND_MON`, never parse the text.** Until this lands, do NOT enable
-   `POKEBOT_BOX_OVERFLOW_CATCH`. ‼ Same gap affects `StoryShinyCatchStrategy`, which claims to
-   box duplicates and has almost certainly never been exercised.
-   **Grade it with a CAPABILITY TEST, not a batch:** full party + a counter species + a ball →
-   does the catch complete and the battle exit cleanly? Binary, minutes.
-2. **`#24-hmteachloop` — still unfixed (7/8/9/4 across four configs). DO NOT tune the budget a
-   fifth time.** Successes exit in 35-86 frames, so the budget only governs failures. Instrument
-   WHICH `break` fires, at what frame, with what task set.
-3. **The counter problem is still the dominant failure** — `no super-effective answer` was 8 of 19
-   non-finishes here (Winona 5, Norman 2, Wattson 1). That is what `#24-roster` targets.
+## ⏭ NEXT ACTIONS, IN ORDER
+1. **Prove the WITHDRAW half of `#24-pcoverflow`.** The catch half is proven; `withdraw_from_box`
+   has still never executed (`withdrawing` = 0 in every batch). Build a save with a full party AND
+   a counter-typed mon already in the box — `--driver boxcatch` now produces exactly that state
+   (`profiles/repro-boxcatch6/states/`) — then drive a heal and assert the mon enters the party.
+   **Capability test, minutes. Do NOT grade this with a batch.**
+2. **`#24-rarepredicate`** — implement the three OR'd rules in `custom_catch_filters`
+   (`modules/config/templates/customcatchfilters.py:50`). ‼ Two traps: that hook runs **≥2× per
+   encounter**, so the "do I own this species" lookup must be cached (never a 420-slot scan); and
+   `is_repeat_encounter` is **PID dedup, not species dedup** — do not reuse or name anything near it.
+3. **`#24-hmteachloop`** — ‼ **DO NOT tune the budget a fifth time.** Every SUCCESSFUL teach exits
+   in **35-86 frames**, so the budget governs only failures. Instrument WHICH `break` fires, at
+   what frame, with what task set, then diagnose.
+4. **`#24-whiteoutloop`** — 590 whiteouts across one batch (~18/game) is the single largest frame
+   cost in the program and is NOT understood.
+5. **`#24-magmahideout`** — unlocked (`HIDE_JAGGED_PASS_MAGMA_GUARD` set by the summit) but the
+   hardest area attempted: cable car + one-way descent, ~8 warps. Start from `saves/post_mtpyre.ss1`.
 
-## AFTER THAT: §Ch14 — story content past Winona
-Full ROM-verified recon is in `12-STORYMODE-DESIGN.md` **§Ch14**; re-derive any of it with
-`tools/story-dev/probe_ch14_recon.py --area pyre|magma|approach`.
+## HOW TO RUN / TEST
+```
+cd tools/story-dev
+# one repro (all are py -3.12; plain `python` is 3.9 and fails)
+PYTHONUTF8=1 py -3.12 repro_counter_hunt.py
 
-1. ~~**Chain-aware cave threading**~~ — **CLOSED 2026-08-05, it was never a blocker.**
-   Multi-hop threading already works in both directions (Dewford ⇄ Granite Cave B2F,
-   3 warps, no chain table). See the top banner. Granite Cave B1F/B2F unpark.
+# a capability test (binary, minutes) — THE PREFERRED WAY TO GRADE A CHANGE
+PYTHONUTF8=1 POKEBOT_BOX_OVERFLOW_CATCH=1 BOXCATCH_GRASS=ROUTE121:44,14 \
+  py -3.12 story_harness.py post_mtpyre.ss1 --driver boxcatch --frames 900000 --profile t1
 
-2. **Mt. Pyre** — 3 hops, one branch (the 2F-6F tower is a skippable side dungeon).
-3. **Magma Hideout — DEFER.** Its door at JAGGED_PASS (16,18) is unreachable from the
-   ROUTE112 side (one-way ledges; a 2026-07-26 probe already failed to path there). Only
-   approach is ROUTE112 → cable car → MT_CHIMNEY → descend ⇒ ~8 warps + a scripted ride.
+# a batch (3h, 8 lanes) — for DISCOVERING failure modes, not grading
+PYTHONUTF8=1 py -3.12 x4_headless.py --lanes 8 --minutes 180
+```
+**Useful saves** (`tools/story-dev/saves/`): `post_winona.ss1` (6-mon party, pre-Mt.-Pyre),
+`post_mtpyre.ss1` (6-mon party, EMPTY box, Magma Emblem), `norman_done.ss1`, `dewford.ss1`.
+**Harness drivers of note:** `boxcatch` (full-party catch capability), `cavethread`
+(`CAVE_PATHCHECK` / `CAVE_BOXCHECK` / `CAVE_FLAGS` probes), `story` (drives real Story mode).
 
-## ‼ THREE FLAGS MUST STAY `0` — each hides a MEASURED regression
-| flag | what it did | cost |
-|---|---|---|
-| `POKEBOT_LEAD_DEMOTE_WONDER_GUARD` | benched Shedinja vs Norman | ~20 pts finish rate |
-| `POKEBOT_AREA_ITEM_GATE` | killed the only training relocation | ~7 pts |
-| `POKEBOT_PC_ROTATION` | deposited ~1 team member per run | ~19 pts of the last rung |
-
-All three were features that REMOVE something, justified by counting failures and never
-successes. **Do not re-enable any of them without a batch.**
-
-## THE ONE RULE THAT WOULD HAVE SAVED THIS WHOLE WEEK
-**Before removing or restricting a behaviour, grep the POSITIVE counterpart of the failure
-line you are about to eliminate.** Failure lines print; success lines are silent.
-`dropping it as a training option` was loud — `relocating to` was one grep away, in logs
-already on disk, and cost three regressions and ~6 batches to rediscover.
-
-## EVIDENCE — the measurements are backed up
-`tools/story-dev/x4-runs/` is **2.2 GB and gitignored, single-machine**. The irreplaceable
-subset (manifests, summaries, and every line the analyses grep) is committed under
-`PROJECT KNOWLEDGE/batch-evidence/` — 15 batches, 1.7 MB. Its `00-README.md` records which
-batches are USABLE: **clean plateau 57/60/47/45.8/52.0%; batch6 and batch7 VOID (my
-regressions); batch9 and batch10 CONTAMINATED (hung lanes).** Never baseline against a VOID or
-CONTAMINATED batch — that error was made twice.
-
-## STANDING RULES LEARNED EXPENSIVELY THIS SESSION
-* **Never bulk-import a package to "verify"** — `modules/data/*` runs generators at import and
-  gutted `map_data.py` in both builds. `ast.parse` + targeted imports only.
-* **Never edit `sandbox-pokebot/` while a batch runs** — dead lanes relaunch and re-import.
-* **Record a batch in this file the moment it launches.** An interrupted session once left 8
-  lanes running with nothing written down.
-* **Assert on behaviour, not source text.** Two repros passed while the code was wrong; one
-  fix referenced `BotModeError` without importing it. Drive the real generator.
-* **Per-batch, never pooled.** Pooling hid a step change for four batches.
-* **A bare `except: pass` around state writes is a silent-failure generator** — one hid a
-  `NameError` for two batches.
+## GOTCHAS
+* Never bulk-import `modules/data/*` — it runs generators at import and has gutted `map_data.py`
+  twice. Use `ast.parse` or targeted reads.
+* Never edit `sandbox-pokebot/` while a batch runs; dead lanes relaunch and re-import.
+* **Record a batch in this file the moment it launches.**
+* **Never route to a WARP TILE** (door/ladder/stairs) — walking onto one FIRES it, so the trip ends
+  one map PAST the target *and reports success*.
+* `story_harness.py` has a **UTF-8 BOM** — parse with `encoding='utf-8-sig'`.
+* `get_event_var()` returns **−1** for an unknown name; `get_event_flag()` returns False. Use
+  `_done_var()` / `_done()` in `story_mode.py`, which raise on a phantom name.
 
 ---
 
