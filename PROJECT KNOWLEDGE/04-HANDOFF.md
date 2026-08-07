@@ -20,7 +20,7 @@ game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror
 |---|---|
 | branch / HEAD | `main`, clean, pushed — see the newest commit |
 | story content | Littleroot → 6 badges → **Mt. Pyre → Magma Emblem**. Magma Hideout is UNLOCKED but UNBUILT. |
-| box idle | nothing running |
+| box idle | **‼ BATCH RUNNING — `20260807-102552`, launched 10:25, 8 lanes × 180 min, code `d878fa33`.** All 8 headers `speed=0 video=True`. **Do NOT edit `sandbox-pokebot/` until it lands** — a relaunched lane re-imports from disk. |
 | last batch | `20260806-174746` — 26 runs, 7 finished (26.9%) |
 | `#24-pcoverflow` | **BOTH HALVES LIVE-PROVEN 2026-08-07** — catch (`--driver boxcatch`) and withdraw (`--driver boxwithdraw`). |
 
@@ -120,17 +120,21 @@ a later round on a clean baseline, not to this one. Do not reorder these without
    ride (a leaked `for` variable) — the ride was burning **8,999**; and `teach skipped` at
    ~25/run is **not this bug** — it is a benign `[dim]` line printed whenever derail recovery
    replays an already-satisfied segment, and it costs no frames.
-2. **‼ NEXT ACTION — re-baseline ONE clean batch.** Nothing currently has a valid comparison arm
-   (the 52.0% baseline predates Mt. Pyre), and there are now TWO shipped changes since the last
-   batch. ‼ One change per batch is the rule; this batch is the BASELINE, so read it as the new
-   reference, not as a verdict on either fix — both are already proven by capability test, which
-   is the stronger evidence.
-   ```
-   cd tools/story-dev && PYTHONUTF8=1 py -3.12 x4_headless.py --lanes 8 --minutes 180
-   ```
-   Record it in this file **the moment it launches**. Then count `TEACH EXIT reason=ride:hard-cap`
-   in the debug logs — it should be ~0, and it is a near-binary counter, which is the only kind a
-   batch can resolve.
+2. 🔄 **RE-BASELINE BATCH IS IN FLIGHT — `20260807-102552`, launched 2026-08-07 10:25, code
+   `d878fa33`, 8 lanes × 180 min.** Due back ~13:25. **READ IT WHEN IT LANDS; that is the next
+   action.**
+   ‼ **This is a BASELINE, not a verdict.** It carries TWO shipped changes (the withdraw proof —
+   telemetry only — and the HM-teach fix), so it cannot attribute anything, and a finish rate
+   cannot resolve a change this size anyway. Both fixes are already proven by capability test,
+   which is the stronger evidence. What to read, in order:
+   1. **`TEACH EXIT reason=ride:hard-cap` should be ~0.** Near-binary, so a batch CAN resolve it.
+      Any non-zero count is a second, different teach failure worth its own probe — read the
+      `tasks=` field on those lines, which now names the state it died in.
+   2. `TEACH OK … ride_frames=` gives the ride's real distribution for the first time. If the
+      max is comfortably under 9,000, `_TEACH_RIDE_HARD_CAP` can finally be sized from data.
+   3. The **badge funnel** (`analyse_badge_funnel.py`) — ~200 records vs ~26 outcomes.
+   ‼ **Use Bash `grep -r`, never the Grep TOOL**, on `x4-runs/` — it is gitignored and ripgrep
+   silently reports 0 matches across 0 files.
 3. **`#24-roster` / `#24-rarepredicate`** — the slice, AFTER the re-baseline. The withdraw
    primitive it needs is now proven (above). Spec is complete in `03-PUNCH-LIST.md`; two traps:
    `custom_catch_filters` runs **≥2× per encounter**, so the "do I own this species" lookup must be
