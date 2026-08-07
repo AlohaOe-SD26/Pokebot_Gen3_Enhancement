@@ -128,7 +128,16 @@ death and runs 1 and 2 never reached a Centre (trainer refusal; then a whiteout)
    `_navigate_riding_out` — never `calculate_path`, which cannot cross warps and has caused
    this exact mistake before. The onward heal leg may fail without disqualifying the ground.
 
-3. **`#24-roster` / `#24-rarepredicate`** — ‼ **NOW UNGATED.** The user-agreed sequence
+3. **`#24-roster` / `#24-rarepredicate`** — ‼ **UNGATED BY SEQUENCE, BUT ITS DATASET DOES NOT
+   REPRODUCE — pin that first (2026-08-07).** `tools/story-dev/rare_species_dataset.py` is the
+   first script that computes the rare-species set; the recorded figures were prose only.
+   Skitty reproduces exactly (rate 2%, d0). **Bagon computes to depth 2**, one short of the
+   `>=3` threshold that exists for Bagon's sake — so the rule as written fails the example the
+   user named. ‼ **Do NOT tune the BFS until Bagon comes out at 3.** Pin one definition of warp
+   depth (seed set / connection-closure transitivity / warp directionality — making warps
+   bidirectional moved d99 from 34 to 1, so that choice alone dominates), write the reasoning
+   down, make the script authoritative, then re-decide the threshold. Rate rule is unaffected.
+   The user-agreed sequence
    (`06-DECISIONS-LOG.md` 2026-08-06) was `#24-hmteachloop` → prove the PC withdraw → re-baseline
    → the slice. **All three prerequisites are done.** Spec is complete in `03-PUNCH-LIST.md`.
    ‼ Two traps: `custom_catch_filters` runs **≥2× per encounter**, so the "do I own this species"
