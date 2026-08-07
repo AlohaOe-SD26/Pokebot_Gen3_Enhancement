@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "normancounter"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "normancounter"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -1531,6 +1531,194 @@ class CaveThreadMode(BotMode):
         return
 
 
+class BoxCatchMode(BotMode):
+    """`#24-boxmessage` — CAPABILITY TEST: does a FULL-PARTY catch complete and exit cleanly?
+
+    ‼ WHY A CAPABILITY TEST AND NOT A BATCH. Measured 2026-08-06: four batches of ~25 runs each,
+    and NOT ONE pair of finish rates was statistically resolvable (all |z| < 1.96). A 3-hour batch
+    cannot grade this. This asks the question directly, in minutes, and answers binary.
+
+    THE CLAIM UNDER TEST. With a full party the game sends a catch straight to the PC
+    (`Cmd_givecaughtmon` -> `GiveMonToPlayer` -> `CopyMonToPC`) and shows an EXTRA text box the
+    party-catch path never shows — one of FOUR variants (`B_MSG_SENT_SOMEONES_PC` /
+    `B_MSG_SOMEONES_BOX_FULL`, each +1 once `FLAG_SYS_PC_LANETTE` is set). The bot has NO handling
+    for it: `grep VAR_PC_BOX_TO_SEND_MON` across `modules/` returns zero. If that message wedges
+    the battle exit, this test hangs — which is exactly the suspected cause of the overflow path
+    never firing.
+
+    Run from a save with a FULL PARTY and ideally an EMPTY BOX (`post_mtpyre.ss1` is both), so a
+    box arrival is unambiguous:
+        PYTHONUTF8=1 py -3.12 story_harness.py post_mtpyre.ss1 --driver boxcatch --frames 400000
+
+    Emits: [boxcatch] RESULT caught=<bool> box_before=<n> box_after=<n> exited_clean=<bool>
+           frames=<n> box_var=<VAR_PC_BOX_TO_SEND_MON>
+    """
+
+    @staticmethod
+    def name():
+        return "BoxCatch"
+
+    def on_battle_started(self, encounter):
+        # Catch EVERY wild. The party is full by construction, so every catch is a box-send —
+        # which is the path under test. `StoryCatchStrategy` is the same strategy the story
+        # bot's counter branch returns, so this exercises production code, not a stand-in.
+        from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy, StoryCatchStrategy
+
+        # ‼ TRAINER battles need a strategy too. First run of this probe returned None for
+        # them and hung 20,000 frames on `NICK got $1200 for winning!` — Mt. Pyre's summit has
+        # trainers, and with no strategy nothing drives the post-battle dialogue. That is the
+        # probe failing, NOT the box path; the same trap `cavethread` documents ("without a
+        # strategy the first Zubat freezes the probe and we measure the battle system").
+        # ‼ AND the trainer strategy must not TRAIN. `LevelUpTravelBattleStrategy` levels the
+        # LEAD, which on `post_mtpyre.ss1` is an L3 Zigzagoon HM slave — run 3 of this probe
+        # walked it into a whiteout (`bt='NICK whited out!'`, Zigzagoon L3 -> L11). For a catch
+        # test we want to survive the walk, not grind. `DefaultBattleStrategy` fights normally
+        # with the party as-is.
+        if encounter is None:
+            try:
+                from modules.battle_strategies import DefaultBattleStrategy
+
+                return DefaultBattleStrategy()
+            except Exception:  # noqa: BLE001
+                return LevelUpTravelBattleStrategy()
+        return StoryCatchStrategy()
+
+    def run(self):
+        import os
+
+        from modules.memory import GameState, get_game_state, get_event_var
+        from modules.player import get_player_avatar, player_avatar_is_controllable
+        from modules.pokemon_party import get_party
+        from modules.pokemon_storage import get_pokemon_storage
+        from modules.story.early_game import _story_spin, wait_until_truly_controllable
+
+        budget = int(os.environ.get("BOXCATCH_FRAMES", "300000"))
+
+        yield from wait_until_truly_controllable()
+        party_n = len([m for m in get_party() if m is not None])
+        box_before = get_pokemon_storage().pokemon_count
+        log(f"[boxcatch] start party={party_n} box={box_before} "
+            f"map={tuple(get_player_avatar().map_group_and_number)}")
+        if party_n < 6:
+            log(f"[boxcatch] ABORT — party is {party_n}, not 6. This test is meaningless without "
+                f"a full party; a catch would go to the party and never touch the box.")
+            context.set_manual_mode()
+            return
+
+        # ‼ WALK TO VERIFIED GRASS FIRST. The first two runs of this probe spun 20,000 frames
+        # on MT_PYRE_SUMMIT (23,7) and produced no encounter — that tile is not grass, so
+        # `_story_spin` had nothing to do and the harness called it a hang. The probe was
+        # broken, not the box path. Targets come from `training_areas.TRAINING_GRASS`, which is
+        # two-way swept, rather than a tile picked by eye.
+        from modules.map_data import MapRSE
+        from modules.story.early_game import _navigate_riding_out
+
+        raw = os.environ.get("BOXCATCH_GRASS", "ROUTE119:21,109").strip()
+        gname, _, gtile = raw.partition(":")
+        gx, _, gy = gtile.partition(",")
+        grass_map, grass_tile = MapRSE[gname.strip()], (int(gx), int(gy))
+        log(f"[boxcatch] walking to grass {grass_map.name}{grass_tile}…")
+        try:
+            yield from _navigate_riding_out(grass_map, grass_tile, avoid_encounters=False, tries=24)
+        except Exception as error:  # noqa: BLE001
+            log(f"[boxcatch] ABORT — could not reach the grass: "
+                f"{type(error).__name__}: {str(error)[:180]}")
+            context.set_manual_mode()
+            return
+        log(f"[boxcatch] at {tuple(get_player_avatar().map_group_and_number)} — spinning for a wild")
+
+        frames = {"n": 0}
+
+        def _stop() -> bool:
+            frames["n"] += 1
+            if frames["n"] > budget:
+                return True
+            try:
+                return get_pokemon_storage().pokemon_count > box_before
+            except Exception:  # noqa: BLE001
+                return False
+
+        try:
+            yield from _story_spin(_stop)
+        except Exception as error:  # noqa: BLE001
+            log(f"[boxcatch] spin raised {type(error).__name__}: {str(error)[:200]}")
+
+        # ‼‼ KEEP DRIVING THROUGH THE FULL EXIT — DO NOT STOP AT THE CATCH.
+        # Run 4 of this probe stopped the moment `pokemon_count` rose, logged
+        # `exited_clean=True` at frame 30, and handed to Manual. The box-transfer message
+        # appeared AFTER that, with nothing driving, and the harness called it a 20,000-frame
+        # hang. **That hang was the PROBE exiting mid-exit, not production wedging** — I nearly
+        # reported it as the confirmed bug. The catch itself was genuinely fine (box 0 -> 1).
+        #
+        # A real answer needs the battle exit to be DRIVEN to completion, and "clean" must mean
+        # sustained: the game is in the overworld, controllable, and STAYS that way — a single
+        # matching frame is exactly what produced the false positive.
+        settle, stable = 0, 0
+        while settle < 4000 and stable < 120:
+            settle += 1
+            if get_game_state() is GameState.OVERWORLD and player_avatar_is_controllable():
+                stable += 1
+            else:
+                stable = 0
+                # Nothing else is driving this generator, so the probe must advance the
+                # post-catch dialogue itself — including the box-transfer message.
+                context.emulator.press_button("B")
+            yield
+        exit_frames = settle
+
+        box_after = get_pokemon_storage().pokemon_count
+        exited = get_game_state() is GameState.OVERWORLD and player_avatar_is_controllable()
+        try:
+            box_var = get_event_var("PC_BOX_TO_SEND_MON")
+        except Exception:  # noqa: BLE001
+            box_var = "unreadable"
+        log(f"[boxcatch] RESULT caught={box_after > box_before} box_before={box_before} "
+            f"box_after={box_after} exited_clean={exited} spin_frames={frames['n']} "
+            f"exit_frames={exit_frames} box_var={box_var}")
+        if box_after > box_before and not exited:
+            log("[boxcatch] ‼ CAUGHT INTO THE BOX BUT THE EXIT NEVER SETTLED — this is the "
+                "box-transfer message wedging the battle exit, driven, with a bound.")
+
+        # ‼‼ THE DECISIVE PART: CAN THE BOT KEEP PLAYING AFTERWARDS?
+        # Everything above only proves the catch stored a mon and the exit settled. It does NOT
+        # prove the bot is usable afterwards — and "the probe stopped driving, then the harness
+        # called it a hang" has already produced TWO false alarms here. So keep spinning and
+        # require OBSERVABLE PROGRESS: a second box arrival, or the avatar actually moving.
+        if box_after > box_before:
+            start_pos = tuple(get_player_avatar().local_coordinates)
+            moved, second = False, False
+            f2 = {"n": 0}
+
+            def _stop2() -> bool:
+                f2["n"] += 1
+                if f2["n"] > 60000:
+                    return True
+                try:
+                    if tuple(get_player_avatar().local_coordinates) != start_pos:
+                        return False  # movement is progress, but keep going for a 2nd catch
+                except Exception:  # noqa: BLE001
+                    pass
+                try:
+                    return get_pokemon_storage().pokemon_count > box_after
+                except Exception:  # noqa: BLE001
+                    return False
+
+            try:
+                yield from _story_spin(_stop2)
+            except Exception as error:  # noqa: BLE001
+                log(f"[boxcatch] post-catch spin raised {type(error).__name__}: {str(error)[:160]}")
+            try:
+                moved = tuple(get_player_avatar().local_coordinates) != start_pos
+                second = get_pokemon_storage().pokemon_count > box_after
+            except Exception:  # noqa: BLE001
+                pass
+            log(f"[boxcatch] AFTER-CATCH usable={moved or second} moved={moved} "
+                f"second_catch={second} frames={f2['n']} box_now="
+                f"{get_pokemon_storage().pokemon_count}")
+        context.set_manual_mode()
+        return
+
+
 class RivalRetryMode(BotMode):
     """VALIDATE the bug fix: with MET_RIVAL_RUSTBORO already set (simulating a PRIOR LOSS),
     confirm fight_rustboro_rival still steps onto the y=53 trigger and RE-ENGAGES the rival
@@ -2422,6 +2610,8 @@ for step in range(args.frames):
             context.bot_mode_instance = SmashRouteMode()
         elif args.driver == "cavethread":
             context.bot_mode_instance = CaveThreadMode()
+        elif args.driver == "boxcatch":
+            context.bot_mode_instance = BoxCatchMode()
         elif args.driver == "normancounter":
             context.bot_mode_instance = NormanCounterMode()
         elif args.driver == "traintest":

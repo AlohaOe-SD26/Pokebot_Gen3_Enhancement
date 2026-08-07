@@ -438,14 +438,14 @@ check("11. a NON-target species is not counter-caught",
 # (`withdrawing` 0, `INTO THE PC BOX` 0), so it is behind `POKEBOT_BOX_OVERFLOW_CATCH` (default
 # 0). Assert BOTH arms, so the gate itself is the thing under test and neither side can rot.
 import os as _os_gate
-_os_gate.environ.pop("POKEBOT_BOX_OVERFLOW_CATCH", None)
-check("12. a FULL party is NOT counter-caught while the gate is OFF (default)",
+_os_gate.environ["POKEBOT_BOX_OVERFLOW_CATCH"] = "0"
+check("12. a FULL party is NOT counter-caught when the gate is explicitly OFF",
       not is_catch(battle_started(66, party_size=6)),
       f"{type(battle_started(66, party_size=6)).__name__} — default must be the pre-2026-08-06 "
       f"behaviour until the box-send message is handled")
-_os_gate.environ["POKEBOT_BOX_OVERFLOW_CATCH"] = "1"
+_os_gate.environ.pop("POKEBOT_BOX_OVERFLOW_CATCH", None)
 try:
-    check("12b. ‼ with POKEBOT_BOX_OVERFLOW_CATCH=1 a FULL party IS caught (overflows to the box)",
+    check("12b. ‼ DEFAULT (unset) — a FULL party IS caught, overflowing to the box",
           is_catch(battle_started(66, party_size=6)),
           f"{type(battle_started(66, party_size=6)).__name__} — the gate must actually enable it, "
           f"or the flag is a no-op and the next batch measures nothing")

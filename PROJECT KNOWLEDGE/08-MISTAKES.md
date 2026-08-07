@@ -3661,3 +3661,42 @@ have flipped the decision if the noise had landed the other way.
 sample size, and the batches are already 3 hours. **Stop using it as a verdict.** Grade with:
 (1) a direct capability test in the harness — binary, minutes; (2) near-binary counters; (3) the
 badge funnel, which has ~200 records per batch instead of ~26 outcomes.
+
+## 2026-08-07 — I "confirmed" a wedge TWICE. Both times it was my probe stopping, not the bot.
+
+**Symptom.** Building a capability test for the full-party box catch, I twice reported the
+box-transfer message as a confirmed production wedge:
+
+    RESULT caught=True box_before=0 box_after=1 ... frames=30
+    f8194: stall (bt='POOCHYENA was transferred to SOMEONE'S PC. It was placed in BOX "BOX1."')
+    f27294: HANG CONFIRMED (20000 frames no progress)
+
+It reads like proof. **It is not.** My `_stop()` fired the instant `pokemon_count` rose, the probe
+logged its RESULT and called `context.set_manual_mode()`, and then **nothing was driving the
+game.** The harness dutifully reported the idle as a hang. The `bt=` string is the STALE battle
+text buffer — this project already recorded that trap ("the whiteout screen was just what was
+left on screen").
+
+**What the bot actually does**, once the probe drives the exit and then keeps playing:
+
+    RESULT      caught=True box_before=0 box_after=1 exited_clean=True exit_frames=120 box_var=0
+    AFTER-CATCH usable=True second_catch=True frames=20 box_now=2
+
+`exit_frames=120` is the MINIMUM the settle loop can report — the exit was already clean before a
+single forced `B`. Then it caught a SECOND mon into the box 20 frames later. **The full-party
+overflow catch works end to end and was never broken.**
+
+‼ **Prevention rule: a harness "HANG CONFIRMED" after a probe finishes is the PROBE idling, not
+the bot wedging.** Any probe that hands to Manual and then gets graded on progress will always
+look like a hang. **Grade a capability by DRIVING it to a positive outcome — "it kept playing and
+did the thing again" — never by the absence of a hang.**
+
+‼ **Second rule: a stop condition that fires on the FIRST observable sign of success stops too
+early.** `pokemon_count > before` is true the moment the mon is stored, which is *mid*-sequence.
+The interesting behaviour is everything after it. **Stop on the END of the operation, not its
+first symptom.**
+
+‼ **Third — I flip-flopped three times on this one question** (works / wedges / works). Each flip
+came from a probe artifact, never from the bot. The cost was hours. **When a result contradicts
+the previous one, suspect the instrument first — this session had already caught the same class
+of error twice (`Grep` on a gitignored tree, `box_views` calling a property).**

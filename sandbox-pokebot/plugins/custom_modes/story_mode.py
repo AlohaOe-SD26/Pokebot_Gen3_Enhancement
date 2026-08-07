@@ -1936,8 +1936,20 @@ class StoryMode(BotMode):
                 # duplicates into the box and has almost certainly never been exercised.
                 import os as _os
 
+                # ‼ DEFAULT ON since 2026-08-07 — the CAPABILITY TEST PASSES.
+                # `story_harness.py post_mtpyre.ss1 --driver boxcatch` (full party of 6, empty
+                # box) measured, live:
+                #     RESULT      caught=True box_before=0 box_after=1 exited_clean=True
+                #                 exit_frames=120 box_var=0   (box_var 0 = BOX1, matches the
+                #                                              on-screen "placed in BOX1")
+                #     AFTER-CATCH usable=True second_catch=True frames=20 box_now=2
+                # i.e. the catch stored the mon, the battle exit settled with ZERO forced
+                # presses, and the bot then caught a SECOND mon into the box 20 frames later.
+                # The overflow path is not broken; it simply never had a full party when the
+                # counter hunt fired (batch `20260806-142418`: 10 counter catches, all to the
+                # party). Set to "0" to disable.
                 _allow_box_overflow = _os.environ.get(
-                    "POKEBOT_BOX_OVERFLOW_CATCH", "0"
+                    "POKEBOT_BOX_OVERFLOW_CATCH", "1"
                 ).strip() in ("1", "true", "True")
                 _party_has_room = len([m for m in _gp_c() if m is not None]) < 6
                 if (
