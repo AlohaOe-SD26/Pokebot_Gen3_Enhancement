@@ -20,7 +20,7 @@ game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror
 |---|---|
 | branch / HEAD | `main`, clean, pushed — see the newest commit |
 | story content | Littleroot → 6 badges → **Mt. Pyre → Magma Emblem**. Magma Hideout is UNLOCKED but UNBUILT. |
-| box idle | nothing running |
+| box idle | **‼ BATCH RUNNING — `20260807-160545`, launched 16:05 PDT, 8 lanes × 180 min, code `c335a204`, due ~19:05.** All 8 headers `speed=0 video=True`. **Do NOT edit `sandbox-pokebot/` until it lands.** |
 | **re-baseline** | **`20260807-102552` LANDED** — code `d878fa33`, 180.1 min, `VERDICT OK`, 31 headers checked, **0 emulation violations, 0 lane restarts**. **23 runs, 9 finished = 39.1%.** ‼ vs the 52.0% arm: **z = −0.89, NOT resolvable** — this is the new BASELINE, not a regression. |
 | last batch | `20260806-174746` — 26 runs, 7 finished (26.9%) |
 | `#24-pcoverflow` | **BOTH HALVES LIVE-PROVEN 2026-08-07** — catch (`--driver boxcatch`) and withdraw (`--driver boxwithdraw`). |
@@ -150,11 +150,30 @@ a later round on a clean baseline, not to this one. Do not reorder these without
    nothing that already exists. Put the predicate in a `modules/story/` module and have the filter
    delegate to it.
 3. ✅ **`#24-whiteoutloop` — BOTH PARTS SHIPPED 2026-08-07.** Nothing owed; see the table above.
-   ‼ **It has NO outcome proof yet.** Both parts are structurally proven (`repro_boss_plateau.py`
-   cases 8-10, `repro_boss_cfg_coverage.py` fault-injected RED) but no batch has run on them.
-   **The next batch's job is to read `too many whiteout recoveries in a row` against this
-   batch's 4 of 14**, plus the ROUTE110 / LAVARIDGE defeat counts from
-   `analyse_defeat_loops.py`. Those are near-binary and countable; the finish rate is not.
+   ‼ **Outcome proof is IN FLIGHT — batch `20260807-160545` (see the state table).**
+
+## ‼ HOW TO READ BATCH `20260807-160545` WHEN IT LANDS — do this first
+It carries **THREE** changes (`#24-teachpathrace`, `#24-whiteoutloop` parts 1 and 2), so it
+**cannot attribute an outcome to any one of them** — that is accepted, because all three are
+already proven structurally and this batch exists to check they did no harm and moved the
+near-binary counters. **Do not narrate the finish rate**; compare these instead, all countable:
+
+| counter | baseline `20260807-102552` | why it can resolve |
+|---|---|---|
+| end reason `too many whiteout recoveries in a row` | **4 of 14 non-finishes** | near-binary |
+| `TEACH EXIT reason=ride:hard-cap` | **4** (of 37 teaches) | near-binary; target ~0 |
+| defeats at ROUTE110 / LAVARIDGE_GYM | run `analyse_defeat_loops.py` | counts, not rates |
+| deepest `defeat #N` at one map | **23** this batch, 32 in an earlier one | should FALL |
+
+```
+cd tools/story-dev
+PYTHONUTF8=1 py -3.12 analyse_defeat_loops.py x4-runs/20260807-160545
+grep -rh "TEACH EXIT" x4-runs/20260807-160545/L0*/debug-logs/*.log | sort | uniq -c
+```
+‼ Use Bash `grep -r` on `x4-runs/`, **never the Grep tool** — it is gitignored and ripgrep
+returns a confident `0 matches across 0 files`.
+‼ A finish-rate comparison needs its **z** computed first; this batch's predecessor moved
+52.0% → 39.1% at **z = −0.89**, i.e. noise.
 
 OLD ITEM (kept for its detail):
 3b. **`#24-whiteoutloop` — PART 2 SHIPPED, PART 1 WAS THE NEXT ACTION.**
