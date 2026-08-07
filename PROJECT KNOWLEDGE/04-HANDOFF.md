@@ -62,6 +62,7 @@ I narrated all four as verdicts and used them to remove a component and then res
 | **`#24-pcoverflow` break 1** | **FIXED.** `pc_trip.box_views()` did `getattr(storage,"boxes",lambda:[])()` — calling a `@cached_property` that returns a list → `TypeError` on every call. This is why `withdrawing` was 0. |
 | **`#24-pcoverflow` break 2** | **WIRED + PROVEN + ENABLED.** Full-party catch overflows to the box. Capability test: `caught=True box 0→1 exited_clean=True exit_frames=120`, then `second_catch=True box_now=2`. `POKEBOT_BOX_OVERFLOW_CATCH` defaults **1**. |
 | **`#24-pcwithdraw-proof`** | **DONE 2026-08-07 — the WITHDRAW half now executes.** `--driver boxwithdraw` + `saves/boxwithdraw.ss1`, three identical runs: `withdrew=True … box_before=2 box_after=2 deposited=True`, then `second_heal_ok=True still_has_target=True`. `#24-pcoverflow-proof` closes with it. |
+| **`#24-whiteoutloop`** | **PART 2 SHIPPED 2026-08-07** — hard plateau (12 flat-KO losses override the on-paper answer). It was the **#1 end reason**, 4 of 14 non-finishes. **Part 1 — cfgs for Flannery + the Route 110 rival — is still open and is 48% of all defeats.** |
 | **`#24-teachpathrace`** | **FIXED 2026-08-07, same day it was found** — by the new `TEACH EXIT` telemetry, on its first batch. `post_select=instant-learn` on a FOUR-move mon was the tell: `Task_HandleChooseMonInput` lingers and won the race, so the replace prompt was never answered. Instant-learn now needs a genuinely free slot. Both branches live-proven. |
 | **`#24-hmteachloop`** | **‼ FIXED 2026-08-07, root-caused.** After the move is learned the ladder fell through to a blind `A`-mash — and a bag teach ends on *"teach it to another POKéMON?"*, where **A = YES**. The bot re-armed its own teach cycle for the full 9,000-frame cap. Now `_knows()` ⇒ press only `B`. A/B: **8,999 → 479** ride frames, same outcome. `repro_hmteach_postlearn.py`. |
 | **`#24-rarepredicate`** | **SOLVED on paper, not built.** |
@@ -148,8 +149,18 @@ a later round on a clean baseline, not to this one. Do not reorder these without
    `modules/config/templates/` only seeds NEW profiles, so logic written there alone reaches
    nothing that already exists. Put the predicate in a `modules/story/` module and have the filter
    delegate to it.
-3. **`#24-whiteoutloop` — ‼ DIAGNOSED 2026-08-07, FIX SPECIFIED, NOT YET WRITTEN.** Pick this up
-   the moment the batch lands; the analysis is done and the code change is small.
+3. **`#24-whiteoutloop` — PART 2 SHIPPED, ‼ PART 1 IS THE NEXT ACTION.**
+   Confirmed the **#1 end reason** of `20260807-102552` (4 of 14 non-finishes).
+   ✅ **Part 2 (shipped):** the hard plateau — past `HARD_PLATEAU_LOSS_THRESHOLD = 12` flat-KO
+   losses, the measurement overrides the type-chart "we have an answer" prediction and the
+   existing escalation runs. Keyed on FLAT KOs, never attempt count, so KI-26's
+   lost-13-then-reached-Fortree run cannot be capped. `repro_boss_plateau.py` cases 8-10.
+   ⏭ **Part 1 (TO DO, the bigger half):** real `_prepare_for_fight` cfgs for **Flannery / Gym 4**
+   and the **Route 110 rival**. Neither has one, so NONE of this machinery runs there — and they
+   are **48% of all defeats** (1,079 / 2,236 over four batches), top-4 in 4 of 4 batches.
+   ‼ Needs verified game facts — training grass tile, heal centre, ace types + level — by probe
+   or decomp, **never recall**. The Route 110 rival's ace depends on the player's starter, so it
+   is not a constant. Model it on the six existing cfgs (`story_mode.py:2558/2644/2717/2830/3014/3144`).
    It is **KI-26 generalised: uncapped boss re-attempts.** Every whiteout is preceded by
    `lost a battle at map (G,N) (defeat #K here; KO'd J of theirs first)` — the whiteout machinery
    works fine, nothing stops the bot re-attempting a fight it keeps losing.

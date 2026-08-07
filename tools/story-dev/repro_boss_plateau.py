@@ -63,6 +63,13 @@ def make_self(defeat_counts, loss_ko_history):
     instance (the rest comes from the class or is passed in via `cfg`)."""
     fake_self = SimpleNamespace()
     fake_self.PLATEAU_LOSS_THRESHOLD = sm.StoryMode.PLATEAU_LOSS_THRESHOLD
+    # ‼ MIRROR EVERY CONSTANT THE REAL METHOD READS. A stand-in missing one raises
+    # AttributeError inside `_boss_plan_is_hopeless`, whose `except` returns "not hopeless" —
+    # i.e. exactly what a HEALTHY detector returns. That has now disabled this diagnosis twice
+    # (the second time on 2026-08-07, when HARD_PLATEAU_LOSS_THRESHOLD was added). The method
+    # prints a loud warning for precisely this reason; if you see it in this repro's output,
+    # the stand-in is stale, not the code.
+    fake_self.HARD_PLATEAU_LOSS_THRESHOLD = sm.StoryMode.HARD_PLATEAU_LOSS_THRESHOLD
     # Every class constant the method reads off `self` must be mirrored here. A missing
     # one raises AttributeError inside the method's broad `except`, which returns
     # "not hopeless" — i.e. a typo in this stand-in silently PASSES cases 2/3/4 while
@@ -258,3 +265,70 @@ print()
 print("-" * 78)
 print("ALL PASS (case 7): the power floor is calibrated by two REAL runs -- 60 loses 21")
 print("times, 90 wins -- not by taste.")
+
+
+# ============================================================================
+# CASES 8-10 — `#24-whiteoutloop` HARD PLATEAU (added 2026-08-07)
+#
+# The party-answer test is a PREDICTION from the type chart. A long flat KO series is a
+# MEASUREMENT. Past HARD_PLATEAU_LOSS_THRESHOLD the measurement must win, or an
+# UNDERLEVELLED party holding a good move on paper never gives up — measured worst case:
+# PETALBURG_CITY_GYM, 32 consecutive losses, KOs stuck at 2-3 the whole way.
+#
+# ‼ CASE 9 IS THE ONE THAT MATTERS MOST. KI-26 records a run that lost 13 times at ROUTE110
+# and then went on to reach Fortree, so a plain "give up after N attempts" would have killed
+# a recovering run. The flat-KO requirement is what makes this safe, and case 9 pins it.
+# ============================================================================
+
+print("=" * 78)
+print("CASE 8 -- 12+ losses, FLAT KOs, party HAS a credible answer -> HOPELESS (new)")
+print("=" * 78)
+set_party(HAS_ANSWER_PARTY)
+fake_self = make_self(
+    defeat_counts={"winona": 12},
+    # two flat six-windows: best of last 6 == best of previous 6
+    loss_ko_history={"winona": ko_history(1, [2, 3, 2, 2, 3, 2, 2, 2, 3, 2, 3, 2])},
+)
+hopeless, needed = call(fake_self, WINONA_CFG)
+print(f"    -> hopeless={hopeless}, needed={needed}")
+assert hopeless is True, (
+    f"expected HOPELESS: 12 flat losses must override the on-paper answer, got {hopeless}"
+)
+assert needed, "the needed-types list must still be populated for the escalation path"
+print("PASS: a credible answer that has failed 12x with no improvement is now called hopeless.")
+
+print()
+print("=" * 78)
+print("CASE 9 -- 13 losses but KOs IMPROVING -> NOT hopeless (KI-26 protection)")
+print("=" * 78)
+set_party(HAS_ANSWER_PARTY)
+fake_self = make_self(
+    defeat_counts={"winona": 13},
+    # climbing: best of last 6 (5) > best of previous 6 (3) -> recovering, must not trip
+    loss_ko_history={"winona": ko_history(1, [1, 1, 2, 2, 3, 3, 3, 4, 4, 5, 4, 5, 5])},
+)
+hopeless, needed = call(fake_self, WINONA_CFG)
+print(f"    -> hopeless={hopeless}, needed={needed}")
+assert hopeless is False, (
+    "a run whose KO count is CLIMBING must never be capped -- KI-26's run lost 13 times "
+    f"and then reached Fortree. got {hopeless}"
+)
+print("PASS: a recovering run is not capped, however many attempts it has taken.")
+
+print()
+print("=" * 78)
+print("CASE 10 -- 12+ FLAT losses but NO answer -> still HOPELESS, unchanged path")
+print("=" * 78)
+set_party(NO_ANSWER_PARTY)
+fake_self = make_self(
+    defeat_counts={"winona": 14},
+    loss_ko_history={"winona": ko_history(1, [1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2])},
+)
+hopeless, needed = call(fake_self, WINONA_CFG)
+print(f"    -> hopeless={hopeless}, needed={needed}")
+assert hopeless is True and needed, f"expected HOPELESS with needed types, got {hopeless}/{needed}"
+print("PASS: the original no-answer diagnosis is untouched by the hard-plateau addition.")
+
+print()
+print("ALL PASS (cases 8-10): the hard plateau lets a MEASUREMENT override the type-chart")
+print("PREDICTION after 12 flat losses, and cannot fire on a run that is still improving.")

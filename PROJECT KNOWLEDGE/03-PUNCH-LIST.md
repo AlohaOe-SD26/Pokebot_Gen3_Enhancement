@@ -311,7 +311,28 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       invisible before because nothing logged which exit fired, and it was being absorbed into
       the "7/8/9/4 teach failures" that four budget rounds chased.
 
-- [ ] `#24-whiteoutloop` — **DIAGNOSED 2026-08-07 from stored logs. It is KI-26, generalised:
+- [~] `#24-whiteoutloop` — **PART 2 OF 2 SHIPPED 2026-08-07 (the general backstop). PART 1
+      (boss cfgs for Flannery + the Route 110 rival) IS STILL OPEN.**
+      Confirmed as the **#1 end reason** of batch `20260807-102552`: *"too many whiteout
+      recoveries in a row"* = **4 of 14 non-finishes (29%)**.
+      **SHIPPED — the hard plateau.** `_boss_plan_is_hopeless` demanded BOTH a KO plateau AND
+      "no credible super-effective answer", so an UNDERLEVELLED party holding a good move on
+      paper never gave up (measured worst case: PETALBURG_CITY_GYM, **32 consecutive losses**,
+      KOs stuck at 2-3 throughout). The type-chart answer test is a **prediction**; a long flat
+      KO series is a **measurement**. Past `HARD_PLATEAU_LOSS_THRESHOLD = 12` the measurement now
+      wins and the existing counter/training escalation runs instead of another identical attempt.
+      ‼ **Keyed on FLAT KOs across two six-attempt windows, never on attempt count** — that is
+      what honours KI-26's record of a run that lost **13 times** at ROUTE110 and then reached
+      Fortree. `repro_boss_plateau.py` cases 8-10 pin all three behaviours (fires on flat;
+      **does NOT fire on a climbing run**; leaves the original no-answer path untouched); 1-7
+      still pass unchanged.
+      **STILL TO DO (part 1):** real `_prepare_for_fight` cfgs for **Flannery / Gym 4** and the
+      **Route 110 rival**. They have none, so none of this machinery runs there at all — and
+      they are **48% of all defeats** (1,079 / 2,236 over four batches) and top-4 in 4 of 4.
+      ‼ Needs verified game facts (training grass tile, heal centre, ace types/level) — probe or
+      decomp, never recall. The Route 110 rival's ace depends on the player's starter.
+
+- [x] `#24-whiteoutloop` (diagnosis) — **DIAGNOSED 2026-08-07 from stored logs. It is KI-26, generalised:
       uncapped boss re-attempts. Fix is specified and NOT yet implemented.**
       ‼ Measured NOT to be Mt. Pyre's: a run with 0 `MT. PYRE` mentions logged 3 whiteouts while
       heavy-Mt.-Pyre runs logged none. **The "show WHERE" ask is now answered** — every whiteout is

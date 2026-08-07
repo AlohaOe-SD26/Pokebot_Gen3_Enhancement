@@ -803,6 +803,13 @@ class StoryMode(BotMode):
     #: Flying; 6 is enough to separate bad luck from a wrong plan while costing far less
     #: than 41 whiteout cycles before we say so.
     PLATEAU_LOSS_THRESHOLD = 6
+    #: `#24-whiteoutloop` RUNAWAY BACKSTOP (2026-08-07). Losses at ONE map after which a flat
+    #: KO series overrides the type-chart "we have a credible answer" prediction entirely.
+    #: Deliberately far above PLATEAU_LOSS_THRESHOLD: this is not the primary detector, it is
+    #: the thing that stops a 32-loss run. Paired with a TWO-window (12-attempt) flatness test
+    #: so a recovering run — KI-26's run that lost 13 times and then reached Fortree — cannot
+    #: trip it. ‼ Never re-key this on attempt count alone; the KO series is the discriminator.
+    HARD_PLATEAU_LOSS_THRESHOLD = 12
 
     #: Defeats on ONE map (this run) after which wild battles there are fled rather than
     #: fought — see the SURVIVAL MODE block in `on_battle_started`. 3, not 6: the boss
@@ -1268,6 +1275,43 @@ class StoryMode(BotMode):
             if recent_best > previous_best:
                 return False, []  # improving — the existing escalation path is working
 
+            # ‼‼ HARD PLATEAU (`#24-whiteoutloop`, added 2026-08-07). The party-answer test
+            # below is a PREDICTION from the type chart: "you own a ≥2.0-effective move of
+            # credible power, therefore this fight is winnable." A long flat KO series is a
+            # MEASUREMENT that says otherwise, and the measurement has to win eventually —
+            # otherwise an UNDERLEVELLED party holding a good move on paper never gives up.
+            #
+            # MEASURED (four batches, `analyse_defeat_loops.py`): of 53 sequences with >=3
+            # defeats at one map, the best-KO trend is FLAT in 37, improving in 15, worse in 1.
+            # The worst offender is exactly this shape — PETALBURG_CITY_GYM, **32 consecutive
+            # losses**, kos hovering at 2-3 the whole way, with a credible answer in the party
+            # the entire time. Whiteout-recovery exhaustion was the TOP end reason of batch
+            # `20260807-102552` (4 of 14 non-finishes).
+            #
+            # ‼ WHY THIS IS KEYED ON FLAT KOs AND NOT ON AN ATTEMPT COUNT — this is the whole
+            # design, not a detail. KI-26 records that a run lost **13 times** at ROUTE110 and
+            # then went on to reach Fortree, so a plain "give up after N" would have killed a
+            # recovering run. The KO series is the discriminator that warning lacked: a run
+            # whose KOs are CLIMBING never reaches this branch (the `recent_best > previous_best`
+            # return above fires first), and one flat across TWO six-attempt windows is not
+            # recovering. Twelve losses is deliberately far above PLATEAU_LOSS_THRESHOLD (6):
+            # this is the runaway backstop, not the primary detector.
+            hard_plateau = False
+            if losses >= self.HARD_PLATEAU_LOSS_THRESHOLD and len(history) >= 12:
+                recent_six = max(kos for _seq, kos in history[-6:])
+                previous_six = max(kos for _seq, kos in history[-12:-6])
+                hard_plateau = recent_six <= previous_six
+                if hard_plateau:
+                    console.print(
+                        # ‼ This prints BEFORE the answer test, so it must not claim anything
+                        # about the party's moves — an early draft said "despite the party
+                        # holding a type-effective move" and printed that on a party with no
+                        # answer at all (repro case 10).
+                        f"[bold yellow]Story: {losses} losses here and the KO count has not "
+                        f"improved across the last 12 (best {previous_six} -> {recent_six}) — "
+                        f"the plan is not working, so escalating instead of re-attempting.[/]"
+                    )
+
             # --- no-answer test: does any battler have a super-effective damaging move? ---
             if "ace_types" not in cfg:
                 return False, []
@@ -1280,7 +1324,12 @@ class StoryMode(BotMode):
             battlers = _battler_slots()
             if not battlers:
                 return False, []
-            for i in battlers:
+            # ‼ `hard_plateau` SKIPS THE WHOLE ANSWER TEST, it does not `break` out of the
+            # inner move loop. The first draft used a break — which exits only the move loop,
+            # so the NEXT battler could still `return False, []` and the escalation would fire
+            # or not depending on party order. A guard that works for party slot 0 and not for
+            # slot 3 is worse than none.
+            for i in (battlers if not hard_plateau else ()):
                 # STAB needs the carrier's own types; the decision repros pass
                 # lightweight stand-ins with no `species`, so treat that as "no STAB"
                 # rather than letting an AttributeError abort the whole diagnosis.

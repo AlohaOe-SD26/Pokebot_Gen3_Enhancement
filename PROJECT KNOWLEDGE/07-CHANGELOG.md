@@ -8672,3 +8672,47 @@ observed path (4,875)" justification came from the same broken `_f` measurement 
 bogus 35-86 figure. **Not changed here on purpose** (one change at a time, and the cap now only
 governs failures, which are the thing being eliminated) — but it is now a data-backed decision
 rather than a guess, and it is recorded so the next person does not re-derive it.
+
+---
+
+## 2026-08-07 — `#24-whiteoutloop` part 2: the hard plateau (a measurement now beats a prediction)
+
+Batch `20260807-102552` confirmed the diagnosis: *"too many whiteout recoveries in a row —
+stopping so I don't loop forever"* was the **#1 end reason, 4 of 14 non-finishes (29%)**.
+
+`_boss_plan_is_hopeless` already had the right plateau test, but it fired only when **both** the
+KO count had plateaued **and** no party mon held a credible ≥2.0-effective move. An UNDERLEVELLED
+party holding a good move *on paper* therefore never gave up — measured worst case
+**PETALBURG_CITY_GYM, 32 consecutive losses**, KOs stuck at 2-3 the entire way.
+
+**The change, in one sentence:** the type-chart answer test is a **prediction**, a long flat KO
+series is a **measurement**, and past `HARD_PLATEAU_LOSS_THRESHOLD = 12` the measurement wins —
+the existing counter/training escalation runs instead of another identical attempt.
+
+‼ **It is keyed on FLAT KOs across two six-attempt windows, never on attempt count.** That is the
+whole design and not a detail: KI-26 records a run that lost **13 times** at ROUTE110 and then
+went on to reach Fortree, so a plain "give up after N" would have killed a recovering run. A run
+whose KOs are climbing never reaches the branch — the existing `recent_best > previous_best`
+return fires first. Twelve is deliberately double `PLATEAU_LOSS_THRESHOLD`: this is the runaway
+backstop, not the primary detector.
+
+`repro_boss_plateau.py` gains cases 8-10, pinning all three behaviours: fires on 12 flat losses
+**with** a credible answer; **does not fire** on a climbing run at 13 losses; leaves the original
+no-answer diagnosis untouched. Cases 1-7 pass unchanged.
+
+### Two implementation traps worth recording
+* **The first draft used `break` to skip the answer test.** That exits only the inner move loop,
+  so the NEXT battler could still `return False` — the guard would have worked or not depending
+  on party order. It now skips the battler loop entirely.
+* **The new class constant broke `repro_boss_plateau.py` instantly**, because its `SimpleNamespace`
+  stand-in for `self` did not carry it — and `_boss_plan_is_hopeless`'s broad `except` returns
+  "not hopeless", which is exactly what a HEALTHY detector returns. This is the second time a
+  stale stand-in has disabled this diagnosis; the method's loud warning print is what caught it
+  both times, and the stand-in now documents the trap.
+
+### Part 1 is still open, and it is the bigger half
+**Flannery / Gym 4 and the Route 110 rival have no `_prepare_for_fight` cfg at all**, so none of
+this machinery — plateau, escalation, prep — runs there. They account for **48% of all defeats**
+(1,079 / 2,236 across four batches) and are top-4 in 4 of 4. Adding them needs verified game facts
+(training grass tile, heal centre, ace types and level; the rival's ace depends on the starter) —
+probe or decomp, never recall.
