@@ -191,7 +191,31 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       "party is full" from "cannot obtain a carrier" — the exact mechanism that made the cap fatal.
       Prerequisites, in order: `#24-hmteachloop` → `#24-pcoverflow-proof` → re-baseline → slice.
 
-- [ ] `#24-rarepredicate` — **the duplicate-catch exemption (`#24-roster` ruling 3). SOLVED — the
+- [ ] `#24-rarepredicate` — ‼ **NOT READY TO BUILD. 2026-08-07: the dataset does not reproduce,
+      and as computed it FAILS the user's own named example.**
+      `tools/story-dev/rare_species_dataset.py` (new) is the **first script in this repo that
+      computes this dataset** — the figures below were prose only, with nothing to regenerate or
+      audit them, and `#24-roster` is approved to build ON them.
+      | | recorded 2026-08-06 | computed 2026-08-07 |
+      |---|---|---|
+      | histogram | `d0=59 d1=21 d2=39 d3=7 d4+=3 d99=3` | `d0=62 d1=36 d2=22 d3=11 d99=1` |
+      | depth>=3 | 13 species | 12 |
+      | RARE (either rule) | 26 of 132 | 23 of 132 |
+      | **Skitty** | rare via rate (2%) | ✅ **rate 2%, depth 0 — reproduces exactly** |
+      | **Bagon** | pseudo-rare via warp depth, **d3** | ❌ **depth 2 — NOT selected** |
+      ‼ **The `>=3` threshold exists FOR BAGON**, and under this derivation Bagon is d2, so the
+      rule as written does not select the example that motivated it.
+      ‼ **DO NOT tune the BFS until Bagon comes out at 3** — that is fitting the method to the
+      desired answer. The punch list already predicted this exact fragility ("Meteor Falls' d2
+      rooms are ALSO Surf-gated in reality, so `>=3` earns some of its precision by luck of
+      Bagon's room being one warp deeper"); that luck does not hold here.
+      **WHAT UNBLOCKS IT:** pin ONE definition of warp depth deliberately — the seed set, whether
+      the connection closure is transitive, and warp directionality (making warps bidirectional
+      moved d99 from 34 to 1, so that choice alone dominates the answer) — write the reasoning
+      down, and make that script authoritative. Then re-decide the threshold with Bagon's real
+      depth known. Skitty's rate rule is unaffected and is already reproduced.
+
+- [ ] `#24-rarepredicate` (original spec, 2026-08-06) — **the duplicate-catch exemption (`#24-roster` ruling 3). SOLVED — the
       "pseudo-rare" axis is WARP DEPTH, and it needs no new recon.**
       Three OR'd rules: shiny (already works) / rare gender variant / rare species.
       **Rare species = `best_slot_rate <= 4%` OR `warp_depth >= 3`** — 26 of 132 wild species (19%).

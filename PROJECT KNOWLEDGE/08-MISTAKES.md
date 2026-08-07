@@ -3829,3 +3829,46 @@ telemetry added earlier the same day for a different bug*, on its first batch, f
 self-contradicting field. It had been invisible for weeks, absorbed into the "7/8/9/4 teach
 failures" that four 3-hour budget rounds chased. **Instrumenting every exit did not just fix the
 bug it was built for — it made the next one fall out for free.**
+
+---
+
+## 2026-08-07 — A load-bearing dataset existed only as prose, and it does not reproduce
+
+**What happened.** `#24-rarepredicate`'s "rare species" set — `best_slot_rate <= 4% OR
+warp_depth >= 3`, with a published histogram (`d0=59 d1=21 d2=39 d3=7 d4+=3 d99=3`), "13 species
+at depth>=3", "26 of 132 rare" — was recorded in `03-PUNCH-LIST.md` on 2026-08-06 and described
+as "independently reproduced". `#24-roster` was then approved to build on it.
+
+**There was no script.** Checked 2026-08-07: nothing in the repo produces those numbers.
+`tools/story-dev/rare_species_dataset.py` is the first. Re-deriving from the same two committed
+caches gives a materially different histogram (`d0=62 d1=36 d2=22 d3=11 d99=1`), 12 species at
+depth>=3, and 23 rare.
+
+**And the disagreement lands exactly where it hurts.** Skitty reproduces perfectly (rate 2%,
+depth 0 — selected by the rate rule). **Bagon computes to depth 2**, one short of the `>=3`
+threshold *that exists for Bagon's sake* — the user's ruling named it specifically ("gated to a
+specific location"). As computed, the rule fails its own motivating example.
+
+‼ **Prevention rule: a number that no committed script can regenerate is not a verified number,
+however confidently it was recorded — and "independently reproduced" by a second pass of the same
+kind of work is not reproduction, it is a second opinion.** Before a feature is approved to build
+on a derived dataset, the derivation must exist as a runnable artifact. This is the same lesson as
+"the logs are the data; the summary is only a reading of them", one level up.
+
+‼ **Second rule — the one I had to actively resist: DO NOT tune the method until the answer comes
+out right.** The obvious move was to adjust the BFS until Bagon landed on 3. That is fitting the
+method to the desired conclusion, and it would have produced a dataset that looks validated and
+is not. The punch list had already flagged this exact fragility in advance ("`>=3` earns some of
+its precision by luck of Bagon's room being one warp deeper"); the honest outcome is to report
+that the luck does not hold and stop.
+
+**Also worth keeping — how sensitive this is.** Making warp edges bidirectional (a door works
+both ways; the cache stores them directed) moved "unreachable" species from **34 to 1**. One
+modelling choice dominates the entire answer, which is why the definition has to be pinned and
+written down rather than re-derived from memory each time.
+
+### And a smaller one in the same script
+The encounter index is keyed by **internal ROM species index, not national dex**. I looked up
+Skitty as 300 (its national dex) and got a different species, so the script reported "Skitty is
+not in the index" for a species that is plainly in it. Resolve through the same call production
+uses — `get_species_by_name(name).index` (Skitty is internal **315**, Bagon **395**).
