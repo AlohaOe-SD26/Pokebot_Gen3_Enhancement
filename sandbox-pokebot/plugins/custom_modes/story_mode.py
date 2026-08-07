@@ -1909,9 +1909,41 @@ class StoryMode(BotMode):
                 #
                 # ‼ The BALL gate stays. Never attempt a catch without a spare — that is the
                 # resource rule `resource_blocker` enforces, and it is unrelated to party space.
+                # ‼‼ GATED OFF (`POKEBOT_BOX_OVERFLOW_CATCH`, default 0) after batch
+                # `20260806-142418` graded it against its own pre-registered target and it
+                # FAILED: `withdrawing` **0** (target ≥1) and `INTO THE PC BOX` **0** — the
+                # path NEVER FIRED in 26 runs. Same batch: finish rate 52.0% → 30.8% and
+                # `global watchdog` 20 → 68.
+                #
+                # ‼ I am NOT claiming this change caused the regression — it is not supported.
+                # Of 43 watchdog STUCK dumps, only **10** had a full party; 33 were at party
+                # 4-5 where this gate has no effect. The wedges are battles with a mostly-dead
+                # team on `BattleScript_PrintCantEscapeFromBattle`, which is a battle-handler
+                # shape, not a catch shape. It is gated because it DELIVERED NOTHING, not
+                # because it was proven harmful.
+                #
+                # ‼ WHAT IS MISSING, and it is the reason it cannot work yet (user-identified
+                # 2026-08-06, then decomp-confirmed): a box-send shows an EXTRA TEXT BOX the
+                # party-catch path never shows, and the bot has NO handling for it —
+                # `grep` for `VAR_PC_BOX_TO_SEND_MON` or "sent to" across `modules/` returns
+                # ZERO. `Cmd_givecaughtmon` picks one of FOUR variants
+                # (`B_MSG_SENT_SOMEONES_PC` / `B_MSG_SOMEONES_BOX_FULL`, each +1 once
+                # `FLAG_SYS_PC_LANETTE` is set). Until that message is dismissed — and the
+                # destination box read from `VAR_PC_BOX_TO_SEND_MON` rather than parsed from
+                # text — enabling this risks wedging the battle exit on every full-party catch.
+                #
+                # ‼ The same gap applies to `StoryShinyCatchStrategy`, which claims to catch
+                # duplicates into the box and has almost certainly never been exercised.
+                import os as _os
+
+                _allow_box_overflow = _os.environ.get(
+                    "POKEBOT_BOX_OVERFLOW_CATCH", "0"
+                ).strip() in ("1", "true", "True")
+                _party_has_room = len([m for m in _gp_c() if m is not None]) < 6
                 if (
                     sp is not None
                     and sp.national_dex_number in _chunt.COUNTER_CATCH_TARGET_DEX
+                    and (_party_has_room or _allow_box_overflow)
                     and sum(sl.quantity for sl in get_item_bag().poke_balls) > 1
                 ):
                     # ‼ LOCAL IMPORT REQUIRED — the same trap that silently ate the HM

@@ -434,10 +434,23 @@ check("11. a NON-target species is not counter-caught",
 # (`GiveMonToPlayer` -> `CopyMonToPC`, no prompt), the shiny branch already relies on it, and
 # `withdraw_from_box` collects the mon at the next heal.
 # This is a DELIBERATE behaviour change with a batch to grade it — not a test bent to pass.
-check("12. ‼ a FULL party IS counter-caught (it overflows to the PC box)",
-      is_catch(battle_started(66, party_size=6)),
-      f"{type(battle_started(66, party_size=6)).__name__} — refusing here is what kept "
-      f"`withdrawing` at 0 in every batch")
+# ‼ GATED 2026-08-06 after batch `20260806-142418`: the overflow path fired 0 times in 26 runs
+# (`withdrawing` 0, `INTO THE PC BOX` 0), so it is behind `POKEBOT_BOX_OVERFLOW_CATCH` (default
+# 0). Assert BOTH arms, so the gate itself is the thing under test and neither side can rot.
+import os as _os_gate
+_os_gate.environ.pop("POKEBOT_BOX_OVERFLOW_CATCH", None)
+check("12. a FULL party is NOT counter-caught while the gate is OFF (default)",
+      not is_catch(battle_started(66, party_size=6)),
+      f"{type(battle_started(66, party_size=6)).__name__} — default must be the pre-2026-08-06 "
+      f"behaviour until the box-send message is handled")
+_os_gate.environ["POKEBOT_BOX_OVERFLOW_CATCH"] = "1"
+try:
+    check("12b. ‼ with POKEBOT_BOX_OVERFLOW_CATCH=1 a FULL party IS caught (overflows to the box)",
+          is_catch(battle_started(66, party_size=6)),
+          f"{type(battle_started(66, party_size=6)).__name__} — the gate must actually enable it, "
+          f"or the flag is a no-op and the next batch measures nothing")
+finally:
+    _os_gate.environ.pop("POKEBOT_BOX_OVERFLOW_CATCH", None)
 check("13. the RESERVE ball is not spent (balls == 1)",
       not is_catch(battle_started(66, balls=1)))
 check("14. disarmed -> not counter-caught", not is_catch(battle_started(66, armed_dex=())))

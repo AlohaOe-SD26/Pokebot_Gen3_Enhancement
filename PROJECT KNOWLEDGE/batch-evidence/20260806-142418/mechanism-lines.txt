@@ -1,0 +1,10 @@
+== pre-registered grades ==
+Teach flow finished but (debug): 9
+TEACH OK (debug): 42
+withdrawing (stdout): 0
+INTO THE PC BOX (stdout): 0
+counter hunt CAUGHT (stdout): 10
+== watchdog STUCK dumps by party size ==
+     22 4
+     11 5
+     10 6

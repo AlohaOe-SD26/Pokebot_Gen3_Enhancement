@@ -8397,3 +8397,52 @@ No run has caught into a box and collected it. **Next batch must show:**
 | `no super-effective answer` (non-finishes) | **8 of 12** | ≤5 of 12 |
 | **mean team size at Feather** | **~5.80** | **≥5.7 — the `#24-pc` canary; it fell 5.8→4.5 there** |
 Also still owed on that batch: `Teach flow finished but` **8 → 0** (`#24-hmteachloop`).
+
+## 2026-08-06 — batch `20260806-142418`: BOTH pre-registered grades FAILED. Overflow gated off.
+
+`VERDICT OK`, 34 headers, 0 violations. **26 runs, 8 finished = 30.8%** (baseline `5a84c2ca`:
+25 runs, 13 = **52.0%**). `global watchdog` **20 → 68**.
+
+| grade | baseline | target | actual | verdict |
+|---|---|---|---|---|
+| `withdrawing` (stdout) | 0 | ≥1 | **0** | **FAIL — never fired** |
+| `INTO THE PC BOX` (stdout) | n/a | ≥1 | **0** | **FAIL — never fired** |
+| `Teach flow finished but` (debug) | 8 | **0** | **9** | **FAIL — second attempt** |
+| `TEACH OK` (debug) | 40 | ~40 | 42 | ok — teaches not suppressed |
+
+### The overflow path is GATED OFF — for delivering nothing, NOT for proven harm
+`POKEBOT_BOX_OVERFLOW_CATCH`, default `0`. ‼ **I am not claiming it caused the regression, and
+the data does not support that claim.** Of **43** watchdog STUCK dumps: **22 at party 4, 11 at
+party 5, 10 at party 6.** Only 10 could possibly involve this gate; 33 are in states where it has
+no effect. The wedges are battles with a mostly-dead team stuck on
+`BattleScript_PrintCantEscapeFromBattle` with **no battle controller on the stack** — a
+battle-handler shape, not a catch shape.
+
+### ‼ WHY IT COULD NEVER HAVE WORKED — the user found the gap, the decomp confirmed it
+A box-send shows an **EXTRA TEXT BOX** the party-catch path never shows, and **the bot has no
+handling for it at all**: `grep` for `VAR_PC_BOX_TO_SEND_MON` or "sent to" across
+`sandbox-pokebot/modules/` returns **ZERO**. `Cmd_givecaughtmon`
+(`src/battle_script_commands.c:10055`) selects one of **four** variants —
+`B_MSG_SENT_SOMEONES_PC` / `B_MSG_SOMEONES_BOX_FULL`, each `+1` once `FLAG_SYS_PC_LANETTE` is set.
+**Detect the box from `VAR_PC_BOX_TO_SEND_MON`, not by parsing text** — the variable is immune to
+all four wordings. Until that message is dismissed, every full-party catch risks wedging the
+battle exit.
+‼ **The same gap applies to `StoryShinyCatchStrategy`**, which claims to catch duplicates into the
+box and has almost certainly never been exercised.
+
+### ‼ I BUNDLED TWO CHANGES AGAIN — the mistake I keep writing rules about
+This batch carried BOTH the `#24-hmteachloop` second attempt AND the overflow wiring. So the
+30.8% and the watchdog tripling **cannot be attributed to either one**. `#24-partycap` +
+`#24-pcoverflow` had exactly this problem, and I recorded the lesson from it two days ago.
+**The next batch must carry ONE change.**
+
+### `#24-hmteachloop` is 0-for-2 and needs a different approach
+7 → 8 → **9**. Attempt 1 (budget raise + stall detector) failed because the stall detector fired
+early. Attempt 2 (budget raise alone, 9,000 hard cap) still fails. Since `TEACH OK` durations are
+**35-86 frames** for every success, the failures are not "slightly too slow" — **something else
+ends the ride**, and the budget was never the knob. ‼ **Do not raise the cap a third time.**
+Re-diagnose: instrument the exit reason (which `break` fired, at what frame, with what task set)
+before changing anything.
+
+**Repro now asserts BOTH gate arms** (off = pre-2026-08-06 behaviour; on = catch happens), so
+neither side can rot and the flag cannot silently become a no-op.

@@ -1,0 +1,762 @@
+{
+  "stamp": "20260806-142418",
+  "code_commit": "5a7aa583",
+  "bot_mode": "Story (ENDLESS RESET)",
+  "lanes": 8,
+  "runs_per_lane": 0,
+  "minutes": 180.0,
+  "started": "2026-08-06T14:24:18",
+  "ended": "2026-08-06T17:24:25",
+  "wall_minutes": 180.1,
+  "verdict": "OK",
+  "headers_checked": 34,
+  "header_violations": [],
+  "totals": {
+    "runs": 26,
+    "finished": 8,
+    "finish_rate": 0.308,
+    "global_watchdog": 68,
+    "faint_chooser_gave_up": 0,
+    "no_eligible_replacement": 0,
+    "stuck_dumps": 8822,
+    "end_reasons": {
+      "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 8,
+      "this boss: N losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable co": 5,
+      "No party mon can learn Surf and the party is full \u2014 needs PC box management (#N-pc) or a manual swap.": 2,
+      "Story: battle handler gave up \u2014 in-battle wedge: state unchanged for N frames (KI-N; the per-run frame budget cannot fire while a battle han": 1,
+      "Story: too many whiteout recoveries in a row \u2014 stopping so I don't loop forever. Check the team/route.": 1,
+      "Winona: N losses with no super-effective answer to Dragon/Flying. Need one of: Rock, Ice, Dragon. Grinding levels will not fix this. Nearest": 1
+    }
+  },
+  "lane_rows": [
+    {
+      "tag": "H1",
+      "starter": "torchic",
+      "profile": "endless-H1-torchic",
+      "runs_ended": 3,
+      "finished": 2,
+      "header_verdict": "ok",
+      "restarts": 0
+    },
+    {
+      "tag": "H2",
+      "starter": "mudkip",
+      "profile": "endless-H2-mudkip",
+      "runs_ended": 3,
+      "finished": 1,
+      "header_verdict": "ok",
+      "restarts": 0
+    },
+    {
+      "tag": "H3",
+      "starter": "treecko",
+      "profile": "endless-H3-treecko",
+      "runs_ended": 3,
+      "finished": 1,
+      "header_verdict": "ok",
+      "restarts": 0
+    },
+    {
+      "tag": "H4",
+      "starter": "random",
+      "profile": "endless-H4-random",
+      "runs_ended": 3,
+      "finished": 1,
+      "header_verdict": "ok",
+      "restarts": 0
+    },
+    {
+      "tag": "H5",
+      "starter": "torchic",
+      "profile": "endless-H5-torchic",
+      "runs_ended": 4,
+      "finished": 1,
+      "header_verdict": "ok",
+      "restarts": 0
+    },
+    {
+      "tag": "H6",
+      "starter": "mudkip",
+      "profile": "endless-H6-mudkip",
+      "runs_ended": 5,
+      "finished": 1,
+      "header_verdict": "ok",
+      "restarts": 0
+    },
+    {
+      "tag": "H7",
+      "starter": "treecko",
+      "profile": "endless-H7-treecko",
+      "runs_ended": 2,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0
+    },
+    {
+      "tag": "H8",
+      "starter": "random",
+      "profile": "endless-H8-random",
+      "runs_ended": 3,
+      "finished": 1,
+      "header_verdict": "ok",
+      "restarts": 0
+    }
+  ],
+  "lanes_detail": {
+    "H1": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 2,
+      "derailed": 1,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.667,
+      "end_reasons": {
+        "this boss: N losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable co": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 1083,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 852,
+        "BattleScript_LocalBattleLostEnd": 123,
+        "BattleScript_GotAwaySafely": 27,
+        "BattleScript_WallyBallThrow": 20,
+        "BattleScript_MoveEnd": 9,
+        "BattleScript_SuccessBallThrowEnd": 5,
+        "BattleScript_HitFromAtkString": 2,
+        "BattleScript_PresentHealTarget": 1,
+        "BattleScript_StatDownPrintString": 1,
+        "BattleScript_HitFromAtkAnimation": 1
+      },
+      "derails": 20,
+      "whiteouts": 57,
+      "losses": 57,
+      "losses_by_map": {
+        "8, 1": 13,
+        "0, 25": 9,
+        "4, 1": 9,
+        "10, 0": 7,
+        "12, 1": 7,
+        "24, 12": 3,
+        "0, 32": 2,
+        "0, 27": 2,
+        "3, 3": 1,
+        "0, 28": 1
+      },
+      "battle_outcomes": {
+        "Won": 1851,
+        "OpponentTeleported": 70,
+        "Lost": 57,
+        "RanAway": 51,
+        "Caught": 17,
+        "PlayerTeleported": 1
+      },
+      "battles": 2047,
+      "flee_rate": 0.025,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: this boss: 7 losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable counters: Machop (Fighting) on Jagged Pass (tile unmapped, NOT HUNTABLE, L20-22, 25% rate) \u2014 reachable; Machop (Fighting) on Fiery Path (tile (18, 19), L15-16, 15% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave (B1F) (tile unmapped, NOT HUNTABLE, L10-11, 10% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave (1F) (tile unmapped, NOT HUNTABLE, L6-10, 50% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave Steven\u2019s Room (tile unmapped, NOT HUNTABLE, L6-10, 50% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 2004273
+        },
+        {
+          "run": 2,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 819204
+        },
+        {
+          "run": 3,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "torchic",
+      "profile": "endless-H1-torchic",
+      "debug_logs_collected": 4
+    },
+    "H2": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 1,
+      "derailed": 2,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.333,
+      "end_reasons": {
+        "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 1,
+        "this boss: N losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable co": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 7,
+      "stuck_dumps": 1215,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 822,
+        "BattleScript_LocalBattleLostEnd": 274,
+        "BattleScript_GotAwaySafely": 42,
+        "BattleScript_WallyBallThrow": 20,
+        "BattleScript_PrintCantEscapeFromBattle": 10,
+        "BattleScript_MoveEnd": 5,
+        "BattleScript_SuccessBallThrowEnd": 1
+      },
+      "derails": 28,
+      "whiteouts": 95,
+      "losses": 95,
+      "losses_by_map": {
+        "8, 1": 43,
+        "0, 25": 19,
+        "12, 1": 5,
+        "0, 26": 5,
+        "10, 0": 4,
+        "4, 1": 4,
+        "24, 12": 4,
+        "24, 13": 2,
+        "0, 31": 2,
+        "0, 33": 1
+      },
+      "battle_outcomes": {
+        "Won": 1680,
+        "Lost": 95,
+        "OpponentTeleported": 59,
+        "RanAway": 52,
+        "Caught": 18
+      },
+      "battles": 1904,
+      "flee_rate": 0.027,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 2980500
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 0
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: this boss: 6 losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable counters: Machop (Fighting) on Jagged Pass (tile unmapped, NOT HUNTABLE, L20-22, 25% rate) \u2014 reachable; Machop (Fighting) on Fiery Path (tile (18, 19), L15-16, 15% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave (B1F) (tile unmapped, NOT HUNTABLE, L10-11, 10% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave (1F) (tile unmapped, NOT HUNTABLE, L6-10, 50% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave Steven\u2019s Room (tile unmapped, NOT HUNTABLE, L6-10, 50% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "mudkip",
+      "profile": "endless-H2-mudkip",
+      "debug_logs_collected": 4
+    },
+    "H3": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 1,
+      "derailed": 2,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.333,
+      "end_reasons": {
+        "No party mon can learn Surf and the party is full \u2014 needs PC box management (#N-pc) or a manual swap.": 1,
+        "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 9,
+      "stuck_dumps": 998,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 784,
+        "BattleScript_LocalBattleLostEnd": 67,
+        "BattleScript_GotAwaySafely": 47,
+        "BattleScript_WallyBallThrow": 20,
+        "BattleScript_FaintedMonTryChoose": 18,
+        "BattleScript_MoveEnd": 11,
+        "BattleScript_SuccessBallThrowEnd": 10
+      },
+      "derails": 18,
+      "whiteouts": 46,
+      "losses": 45,
+      "losses_by_map": {
+        "10, 0": 13,
+        "4, 1": 9,
+        "12, 1": 8,
+        "0, 25": 4,
+        "8, 1": 4,
+        "11, 3": 1,
+        "24, 12": 1,
+        "0, 26": 1,
+        "0, 34": 1,
+        "32, 1": 1
+      },
+      "battle_outcomes": {
+        "Won": 2013,
+        "OpponentTeleported": 80,
+        "RanAway": 49,
+        "Lost": 45,
+        "Caught": 18
+      },
+      "battles": 2205,
+      "flee_rate": 0.022,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: No party mon can learn Surf and the party is full \u2014 needs PC box management (#24-pc) or a manual swap.",
+          "bucket": "derailed",
+          "frames": 3993576
+        },
+        {
+          "run": 2,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 0
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "treecko",
+      "profile": "endless-H3-treecko",
+      "debug_logs_collected": 4
+    },
+    "H4": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 1,
+      "derailed": 2,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.333,
+      "end_reasons": {
+        "this boss: N losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable co": 1,
+        "No party mon can learn Surf and the party is full \u2014 needs PC box management (#N-pc) or a manual swap.": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 1064,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 718,
+        "BattleScript_LocalBattleLostEnd": 236,
+        "BattleScript_GotAwaySafely": 44,
+        "BattleScript_WallyBallThrow": 20,
+        "BattleScript_MoveEnd": 2,
+        "BattleScript_AbsorbUpdateHp": 1,
+        "BattleScript_HitFromAtkAnimation": 1,
+        "BattleScript_EffectAbsorb": 1
+      },
+      "derails": 24,
+      "whiteouts": 77,
+      "losses": 76,
+      "losses_by_map": {
+        "8, 1": 40,
+        "4, 1": 17,
+        "10, 0": 10,
+        "12, 1": 2,
+        "0, 25": 2,
+        "0, 17": 1,
+        "3, 3": 1,
+        "24, 13": 1,
+        "24, 22": 1,
+        "0, 27": 1
+      },
+      "battle_outcomes": {
+        "Won": 2010,
+        "Lost": 76,
+        "RanAway": 55,
+        "OpponentTeleported": 46,
+        "Caught": 16,
+        "Draw": 1
+      },
+      "battles": 2204,
+      "flee_rate": 0.025,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 2109887
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: this boss: 6 losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable counters: Machop (Fighting) on Jagged Pass (tile unmapped, NOT HUNTABLE, L20-22, 25% rate) \u2014 reachable; Machop (Fighting) on Fiery Path (tile (18, 19), L15-16, 15% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave (B1F) (tile unmapped, NOT HUNTABLE, L10-11, 10% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave (1F) (tile unmapped, NOT HUNTABLE, L6-10, 50% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave Steven\u2019s Room (tile unmapped, NOT HUNTABLE, L6-10, 50% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 850663
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: No party mon can learn Surf and the party is full \u2014 needs PC box management (#24-pc) or a manual swap.",
+          "bucket": "derailed",
+          "frames": 296194
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "random",
+      "profile": "endless-H4-random",
+      "debug_logs_collected": 4
+    },
+    "H5": {
+      "runs_started": 5,
+      "runs_ended": 4,
+      "batch_completed_naturally": false,
+      "finished": 1,
+      "derailed": 3,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.25,
+      "end_reasons": {
+        "this boss: N losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable co": 2,
+        "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 7,
+      "stuck_dumps": 1122,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 889,
+        "BattleScript_LocalBattleLostEnd": 82,
+        "BattleScript_GotAwaySafely": 35,
+        "BattleScript_WallyBallThrow": 25,
+        "BattleScript_FaintedMonTryChoose": 24,
+        "BattleScript_SuccessBallThrowEnd": 7,
+        "BattleScript_MoveEnd": 6,
+        "BattleScript_EffectAbsorb": 2,
+        "BattleScript_StatDownDoAnim": 1
+      },
+      "derails": 27,
+      "whiteouts": 42,
+      "losses": 42,
+      "losses_by_map": {
+        "8, 1": 12,
+        "10, 0": 8,
+        "12, 1": 6,
+        "0, 25": 4,
+        "4, 1": 3,
+        "0, 26": 2,
+        "0, 32": 1,
+        "0, 34": 1,
+        "0, 35": 1,
+        "3, 3": 1
+      },
+      "battle_outcomes": {
+        "Won": 2116,
+        "OpponentTeleported": 73,
+        "RanAway": 64,
+        "Lost": 42,
+        "Caught": 21
+      },
+      "battles": 2316,
+      "flee_rate": 0.028,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: this boss: 6 losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable counters: Machop (Fighting) on Jagged Pass (tile unmapped, NOT HUNTABLE, L20-22, 25% rate) \u2014 reachable; Machop (Fighting) on Fiery Path (tile (18, 19), L15-16, 15% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave (B1F) (tile unmapped, NOT HUNTABLE, L10-11, 10% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave (1F) (tile unmapped, NOT HUNTABLE, L6-10, 50% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave Steven\u2019s Room (tile unmapped, NOT HUNTABLE, L6-10, 50% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 1635050
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 14630
+        },
+        {
+          "run": 3,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 583838
+        },
+        {
+          "run": 4,
+          "outcome": "derailed: this boss: 6 losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable counters: Machop (Fighting) on Jagged Pass (tile unmapped, NOT HUNTABLE, L20-22, 25% rate) \u2014 reachable; Machop (Fighting) on Fiery Path (tile (18, 19), L15-16, 15% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave (B1F) (tile unmapped, NOT HUNTABLE, L10-11, 10% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave (1F) (tile unmapped, NOT HUNTABLE, L6-10, 50% rate) \u2014 reachable; Makuhita (Fighting) on Granite Cave Steven\u2019s Room (tile unmapped, NOT HUNTABLE, L6-10, 50% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 374062
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 5,
+      "restarts": 0,
+      "starter": "torchic",
+      "profile": "endless-H5-torchic",
+      "debug_logs_collected": 5
+    },
+    "H6": {
+      "runs_started": 6,
+      "runs_ended": 5,
+      "batch_completed_naturally": false,
+      "finished": 1,
+      "derailed": 4,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.2,
+      "end_reasons": {
+        "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 2,
+        "Story: battle handler gave up \u2014 in-battle wedge: state unchanged for N frames (KI-N; the per-run frame budget cannot fire while a battle han": 1,
+        "Story: too many whiteout recoveries in a row \u2014 stopping so I don't loop forever. Check the team/route.": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 18,
+      "stuck_dumps": 1317,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 857,
+        "BattleScript_LocalBattleLostEnd": 230,
+        "BattleScript_GotAwaySafely": 87,
+        "BattleScript_FaintedMonTryChoose": 44,
+        "BattleScript_WallyBallThrow": 30,
+        "BattleScript_SuccessBallThrowEnd": 4,
+        "BattleScript_MoveEnd": 4
+      },
+      "derails": 29,
+      "whiteouts": 116,
+      "losses": 117,
+      "losses_by_map": {
+        "0, 25": 57,
+        "24, 12": 17,
+        "8, 1": 15,
+        "0, 26": 6,
+        "0, 27": 3,
+        "0, 28": 3,
+        "24, 13": 3,
+        "12, 1": 2,
+        "10, 0": 2,
+        "0, 32": 2
+      },
+      "battle_outcomes": {
+        "Won": 1392,
+        "Lost": 117,
+        "RanAway": 100,
+        "OpponentTeleported": 70,
+        "Caught": 26
+      },
+      "battles": 1705,
+      "flee_rate": 0.059,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 1915179
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Story: battle handler gave up \u2014 in-battle wedge: state unchanged for 60,000 frames (KI-36; the per-run frame budget cannot fire while a battle handler is on the controller stack)",
+          "bucket": "derailed",
+          "frames": 0
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 990364
+        },
+        {
+          "run": 4,
+          "outcome": "derailed: Story: too many whiteout recoveries in a row \u2014 stopping so I don't loop forever. Check the team/route.",
+          "bucket": "derailed",
+          "frames": 223959
+        },
+        {
+          "run": 5,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 6,
+      "restarts": 0,
+      "starter": "mudkip",
+      "profile": "endless-H6-mudkip",
+      "debug_logs_collected": 6
+    },
+    "H7": {
+      "runs_started": 3,
+      "runs_ended": 2,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 2,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 1,
+        "Winona: N losses with no super-effective answer to Dragon/Flying. Need one of: Rock, Ice, Dragon. Grinding levels will not fix this. Nearest": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 9,
+      "stuck_dumps": 866,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 688,
+        "BattleScript_LocalBattleLostEnd": 84,
+        "BattleScript_WallyBallThrow": 15,
+        "BattleScript_PrintCantEscapeFromBattle": 15,
+        "BattleScript_SuccessBallThrowEnd": 12,
+        "BattleScript_GotAwaySafely": 12,
+        "BattleScript_MoveEnd": 8,
+        "BattleScript_HitFromCritCalc": 1
+      },
+      "derails": 18,
+      "whiteouts": 53,
+      "losses": 53,
+      "losses_by_map": {
+        "12, 1": 24,
+        "10, 0": 11,
+        "0, 25": 5,
+        "8, 1": 3,
+        "0, 34": 2,
+        "0, 32": 2,
+        "3, 3": 1,
+        "4, 1": 1,
+        "24, 4": 1,
+        "0, 19": 1
+      },
+      "battle_outcomes": {
+        "Won": 2032,
+        "OpponentTeleported": 54,
+        "Lost": 53,
+        "RanAway": 22,
+        "Caught": 14
+      },
+      "battles": 2175,
+      "flee_rate": 0.01,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 2880206
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Winona: 6 losses with no super-effective answer to Dragon/Flying. Need one of: Rock, Ice, Dragon. Grinding levels will not fix this. Nearest reachable counters: Geodude (Ground/Rock) on Magma Hideout (1F) (tile unmapped, NOT HUNTABLE, L27-30, 55% rate) \u2014 reachable; Geodude (Ground/Rock) on Magma Hideout (2F) 1R (tile unmapped, NOT HUNTABLE, L27-30, 55% rate) \u2014 reachable; Geodude (Ground/Rock) on Magma Hideout (2F) 2R (tile unmapped, NOT HUNTABLE, L27-30, 55% rate) \u2014 reachable; Geodude (Ground/Rock) on Magma Hideout (2F) 3R (tile unmapped, NOT HUNTABLE, L27-30, 55% rate) \u2014 reachable; Spheal (Ice/Water) on Shoal Cave (Low Tide), Entrance Room (tile unmapped, NOT HUNTABLE, L26-32, 50% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 943348
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 3,
+      "restarts": 0,
+      "starter": "treecko",
+      "profile": "endless-H7-treecko",
+      "debug_logs_collected": 3
+    },
+    "H8": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 1,
+      "derailed": 2,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.333,
+      "end_reasons": {
+        "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 2
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 18,
+      "stuck_dumps": 1157,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 856,
+        "BattleScript_LocalBattleLostEnd": 131,
+        "BattleScript_GotAwaySafely": 39,
+        "BattleScript_PrintCantEscapeFromBattle": 28,
+        "BattleScript_WallyBallThrow": 20,
+        "BattleScript_SuccessBallThrowEnd": 17,
+        "BattleScript_MoveEnd": 10,
+        "BattleScript_EffectAbsorb": 9,
+        "BattleScript_RanAwayUsingMonAbility": 1,
+        "BattleScript_PresentHealTarget": 1
+      },
+      "derails": 22,
+      "whiteouts": 62,
+      "losses": 62,
+      "losses_by_map": {
+        "8, 1": 16,
+        "4, 1": 14,
+        "10, 0": 10,
+        "0, 25": 8,
+        "24, 12": 6,
+        "3, 3": 2,
+        "11, 3": 1,
+        "24, 14": 1,
+        "24, 13": 1,
+        "0, 34": 1
+      },
+      "battle_outcomes": {
+        "Won": 1820,
+        "Lost": 62,
+        "OpponentTeleported": 58,
+        "RanAway": 53,
+        "Caught": 20
+      },
+      "battles": 2013,
+      "flee_rate": 0.026,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 2545814
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 0
+        },
+        {
+          "run": 3,
+          "outcome": "finished",
+          "bucket": "finished",
+          "frames": 707792
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "random",
+      "profile": "endless-H8-random",
+      "debug_logs_collected": 4
+    }
+  }
+}
