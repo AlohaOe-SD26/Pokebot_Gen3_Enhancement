@@ -270,6 +270,31 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       chapters.** Cheap to reproduce — `ensure_hm_learner` is wired for exactly two moves
       (Rock Smash `story_mode.py:2793`, Surf `:2967`).
 
+- [ ] `#24-teachpathrace` — **NEW 2026-08-07, found by the `#24-hmteachloop` telemetry in its
+      FIRST batch. A SECOND, independent teach bug — not a regression of the fix.**
+      2 failures in 24 teaches (~8%) in `20260807-102552`, both on **Surf**, both fatal
+      (`not-learned-after-ride:hard-cap`, the full 9,000 frames, Surf never learned):
+      ```
+      TEACH EXIT reason=ride:hard-cap stall_peak=82 post_select=instant-learn move=Surf
+        slot=4 replace_slot=1 frame=8999 tasks=['ListMenuDummyTask',
+        'Task_BagMenu_HandleInput', 'Task_ScrollIndicatorArrowPair']
+        moves=['Take Down', 'Mud Shot', 'Rock Smash', 'Muddy Water']
+      ```
+      ‼ **`post_select=instant-learn` on a mon with FOUR moves is a contradiction, and that is
+      the smoking gun.** The post-select loop (`early_game.py`, `for _f in range(900)`) breaks on
+      `"Task_PartyMenuReplaceMove" in t or "Task_HandleChooseMonInput" in t` and calls it the
+      instant-learn path — but `Task_HandleChooseMonInput` is STILL UP for a while after the mon
+      is chosen, so it wins the race before `Task_ReplaceMoveYesNo` appears. The guarded
+      `if "Task_ReplaceMoveYesNo" in _tasks():` block is then skipped entirely, the replace
+      prompt is never answered, and the flow rides out the cap stuck in the BAG
+      (`Task_BagMenu_HandleInput`). `stall_peak=82` confirms it was churning, not frozen.
+      **FIX SHAPE:** the instant-learn break must require positive evidence of a FREE SLOT (or of
+      the move actually being known), not the mere presence of the party-menu task — a task that
+      is present on BOTH paths cannot discriminate between them.
+      ‼ **Pre-existing, not introduced:** that loop is untouched by the 2026-08-07 fix. It was
+      invisible before because nothing logged which exit fired, and it was being absorbed into
+      the "7/8/9/4 teach failures" that four budget rounds chased.
+
 - [ ] `#24-whiteoutloop` — **DIAGNOSED 2026-08-07 from stored logs. It is KI-26, generalised:
       uncapped boss re-attempts. Fix is specified and NOT yet implemented.**
       ‼ Measured NOT to be Mt. Pyre's: a run with 0 `MT. PYRE` mentions logged 3 whiteouts while
