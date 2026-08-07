@@ -172,25 +172,32 @@ start point for the Magma Hideout work.
 3. **Winona** — `Balance→Feather` is the weakest rung (53%) and 4 of 15 non-finishes. The counter
    chain names Rock/Ice/Dragon and cannot deliver one.
 
-## ‼ BATCH RUNNING — `x4-runs/20260806-142418`, code **`5a7aa583`**, 8 lanes / 180 min
-Started 14:24 local, lands ~17:24. **Do NOT edit `sandbox-pokebot/` until it does.**
-It grades THREE pre-registered things at once:
+## ‼ BATCH RUNNING — RECOVERY CONFIRMATION, code **`7f2f0e91`**, 8 lanes / 180 min
+Started ~17:35 local. **Do NOT edit `sandbox-pokebot/` until it lands.**
+**ONE change vs the 30.8% batch: the teach stall detector is restored.** The overflow catch is
+gated OFF (`POKEBOT_BOX_OVERFLOW_CATCH=0`), so this is a clean single-variable test — which the
+last batch was not, and that is why neither of its results was attributable.
 
-| # | counter | surface | baseline | ship if | revert if |
-|---|---|---|---|---|---|
-| 1 | `withdrawing` | stdout | **0** | **≥1** | still 0 — the primitive is dead |
-| 1b | `INTO THE PC BOX` (new) | stdout | n/a | ≥1 | 0 — the catch path never fires |
-| 2 | `no super-effective answer` (share of non-finishes) | stdout | **8 of 12** | ≤5 of 12 | ≥8 of 12 |
-| 3 | **mean team size at Feather** | `badge-log.json` | **~5.80** | ≥5.7 | **<5.5** — the `#24-pc` canary (it fell 5.8→4.5 there and preceded the funnel drop) |
-| 4 | `Teach flow finished but` | **debug-logs** | **8** | **0** | >0 (`#24-hmteachloop`, second attempt) |
-| 4b | `TEACH OK` | debug-logs | 40 | ~40 unchanged | a big drop = teaches SUPPRESSED, not fixed |
+| counter | 52.0% baseline (`5a84c2ca`) | last batch (`5a7aa583`) | expect now |
+|---|---|---|---|
+| finish rate | **52.0%** | 30.8% | **~52%** (recovery) |
+| `global watchdog` | 20 | **68** | **~20** |
+| `Teach flow finished but` (debug) | 8 | 9 | ~8 — **still unfixed, that is expected** |
+| `withdrawing` / `INTO THE PC BOX` | 0 | 0 | 0 — gated off, must stay 0 |
 
-**Previous clean baseline: `20260806-103811` (`5a84c2ca`) — 25 runs, 13 finished, 52.0%**, which
-already includes Mt. Pyre.
+**If the finish rate does NOT recover**, the teach config was not the cause and the regression is
+something else in `5a7aa583` — re-read the diff rather than tuning further.
 
-‼ **SEARCHING: Bash `grep -r` ONLY** — `x4-runs/` is gitignored and the Grep tool returns a silent
-zero. Name the SURFACE; `stdout.txt` and `debug-logs/*.log` carry different facts. Every null needs
-a positive control. `debug-logs/` is EMPTY until the batch ends. See `08-MISTAKES.md` 2026-08-06.
+### ‼ THE THREE-CONFIG TABLE — the thing to internalise before touching the teach flow again
+| teach ride config | `Teach flow finished but` | finish rate | watchdog |
+|---|---|---|---|
+| flat 3,000, no stall | 7 | 37.5% | — |
+| **9,000 cap + 900 stall (CURRENT)** | 8 | **52.0%** | 20 |
+| 9,000 cap, no stall | 9 | 30.8% | 68 |
+7/8/9 is NOISE. Every SUCCESSFUL teach exits in **35-86 frames**, so the budget governs only
+FAILURES — and the stall break is what makes a failure cost ~900 frames instead of 9,000.
+‼ **The underlying teach bug is unfixed in all three. DO NOT tune the budget a fourth time** —
+instrument which `break` fires, at what frame, with what task set.
 
 ## AFTER THAT: §Ch14 — story content past Winona
 Full ROM-verified recon is in `12-STORYMODE-DESIGN.md` **§Ch14**; re-derive any of it with
