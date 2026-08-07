@@ -172,32 +172,49 @@ start point for the Magma Hideout work.
 3. **Winona** — `Balance→Feather` is the weakest rung (53%) and 4 of 15 non-finishes. The counter
    chain names Rock/Ice/Dragon and cannot deliver one.
 
-## ‼ BATCH RUNNING — RECOVERY CONFIRMATION, code **`7f2f0e91`**, 8 lanes / 180 min
-Started ~17:35 local. **Do NOT edit `sandbox-pokebot/` until it lands.**
-**ONE change vs the 30.8% batch: the teach stall detector is restored.** The overflow catch is
-gated OFF (`POKEBOT_BOX_OVERFLOW_CATCH=0`), so this is a clean single-variable test — which the
-last batch was not, and that is why neither of its results was attributable.
+## ‼‼ READ THIS BEFORE GRADING ANYTHING — the finish rate cannot resolve a change
+Four batches on 2026-08-06, ~25 runs each. **Not one pair of finish rates is statistically
+resolvable** (two-proportion z, all need |z| > 1.96):
 
-| counter | 52.0% baseline (`5a84c2ca`) | last batch (`5a7aa583`) | expect now |
-|---|---|---|---|
-| finish rate | **52.0%** | 30.8% | **~52%** (recovery) |
-| `global watchdog` | 20 | **68** | **~20** |
-| `Teach flow finished but` (debug) | 8 | 9 | ~8 — **still unfixed, that is expected** |
-| `withdrawing` / `INTO THE PC BOX` | 0 | 0 | 0 — gated off, must stay 0 |
+| batch | rate | vs 52.0% |
+|---|---|---|
+| `20260806-055947` | 37.5% | z = −1.02 |
+| `20260806-103811` | **52.0%** | — |
+| `20260806-142418` | 30.8% | z = 1.54 |
+| `20260806-174746` | 26.9% | z = 1.83 |
 
-**If the finish rate does NOT recover**, the teach config was not the cause and the regression is
-something else in `5a7aa583` — re-read the diff rather than tuning further.
+I narrated all four as if they were verdicts and used them to remove a component and then restore
+it. **Never state a finish-rate comparison without computing its z first** (`08-MISTAKES.md`
+2026-08-06). Grade with a binary capability test, near-binary counters, or the badge funnel.
 
-### ‼ THE THREE-CONFIG TABLE — the thing to internalise before touching the teach flow again
-| teach ride config | `Teach flow finished but` | finish rate | watchdog |
-|---|---|---|---|
-| flat 3,000, no stall | 7 | 37.5% | — |
-| **9,000 cap + 900 stall (CURRENT)** | 8 | **52.0%** | 20 |
-| 9,000 cap, no stall | 9 | 30.8% | 68 |
-7/8/9 is NOISE. Every SUCCESSFUL teach exits in **35-86 frames**, so the budget governs only
-FAILURES — and the stall break is what makes a failure cost ~900 frames instead of 9,000.
-‼ **The underlying teach bug is unfixed in all three. DO NOT tune the budget a fourth time** —
-instrument which `break` fires, at what frame, with what task set.
+## STATE — box idle, tree clean, everything pushed
+| | |
+|---|---|
+| current code | `2a42e7aa` |
+| teach ride | **9,000 hard cap + 900-frame stall** — best config of three, RESTORED after I wrongly removed it |
+| overflow catch | **GATED OFF** (`POKEBOT_BOX_OVERFLOW_CATCH=0`); confirmed 0 in the last batch |
+| story content | Littleroot → Winona → **Mt. Pyre → Magma Emblem** (Magma Hideout unlocked, unbuilt) |
+
+**What the trustworthy counters say** (near-binary / factor moves, the only readable signals):
+* `global watchdog` **68 → 33** — halved by restoring the stall detector.
+* `Teach flow finished but` **9 → 4** — best of all three teach configs.
+* `withdrawing` / `INTO THE PC BOX` **0** — the overflow gate is genuinely off.
+
+## ⏭ NEXT, IN ORDER
+1. **`#24-boxmessage` — the blocker the user identified.** A box-send shows an EXTRA text box the
+   bot has NO handling for (`grep VAR_PC_BOX_TO_SEND_MON` across `modules/` = **0 hits**).
+   `Cmd_givecaughtmon` picks one of FOUR variants (`B_MSG_SENT_SOMEONES_PC` /
+   `B_MSG_SOMEONES_BOX_FULL`, each +1 once `FLAG_SYS_PC_LANETTE` is set). **Read the box from
+   `VAR_PC_BOX_TO_SEND_MON`, never parse the text.** Until this lands, do NOT enable
+   `POKEBOT_BOX_OVERFLOW_CATCH`. ‼ Same gap affects `StoryShinyCatchStrategy`, which claims to
+   box duplicates and has almost certainly never been exercised.
+   **Grade it with a CAPABILITY TEST, not a batch:** full party + a counter species + a ball →
+   does the catch complete and the battle exit cleanly? Binary, minutes.
+2. **`#24-hmteachloop` — still unfixed (7/8/9/4 across four configs). DO NOT tune the budget a
+   fifth time.** Successes exit in 35-86 frames, so the budget only governs failures. Instrument
+   WHICH `break` fires, at what frame, with what task set.
+3. **The counter problem is still the dominant failure** — `no super-effective answer` was 8 of 19
+   non-finishes here (Winona 5, Norman 2, Wattson 1). That is what `#24-roster` targets.
 
 ## AFTER THAT: §Ch14 — story content past Winona
 Full ROM-verified recon is in `12-STORYMODE-DESIGN.md` **§Ch14**; re-derive any of it with
