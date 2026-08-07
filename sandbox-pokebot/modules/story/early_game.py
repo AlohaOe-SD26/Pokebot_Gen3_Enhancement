@@ -4545,32 +4545,52 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
     # so there is no replace dialogue at all.
     #
     # ‼ A SETTLE-AND-RECHECK WOULD HAVE FIXED 0 OF 7 — they needed ~1,872 frames, not 300.
-    # The ride budget is the ONLY correct knob, and `_TEACH_RIDE_HARD_CAP` is ABSOLUTE: never
-    # "loop until progress", because this generator is re-entered by the derail dispatcher and
-    # an unbounded-while-progressing loop is the KI-34 shape that burned 23.9M frames.
     #
-    # ‼‼ A STALL DETECTOR WAS TRIED HERE AND REMOVED — IT MADE THINGS WORSE. DO NOT RE-ADD.
-    # First attempt (2026-08-06) paired the hard cap with a 900-frame stall counter on a
-    # progress signature (task set ∪ learn-state ∪ the target's moves). Batch
-    # `20260806-103811` graded it against its own pre-registered target and it FAILED:
-    # `Teach flow finished but` went **7 → 8**, not to 0.
+    # ‼‼ THE STALL DETECTOR IS BACK, AND REMOVING IT WAS MY ERROR. Three configurations have
+    # now been batched, and the failure count is FLAT while the finish rate is not:
+    #     flat 3000, no stall      -> 7 failures, finish 37.5%  (`20260806-055947`)
+    #     9000 cap + 900 stall     -> 8 failures, finish 52.0%  (`20260806-103811`)  <-- BEST
+    #     9000 cap, NO stall       -> 9 failures, finish 30.8%, watchdog 20 -> 68 (`20260806-142418`)
     #
-    # WHY: the signature sits UNCHANGED through the long post-teach text scroll, so the stall
-    # counter fired at 900 frames — EARLIER than the flat 3,000 it replaced. The hard cap was
-    # never reached (9,000 comfortably exceeds the ~4,870 a Norman-tail teach needs), so the
-    # only possible early exit was the stall break. Corroborating evidence from the same batch:
-    # every SUCCESSFUL teach finishes in **35-86 frames**, and all 8 failures are Surf to an
-    # in-party 4-move mon (Swampert x5, Marshtomp x2, Linoone x1) — precisely the diagnosed
-    # case, untouched.
+    # 7 / 8 / 9 is noise; I read the 7 -> 8 as "the stall detector made it worse" and removed
+    # it. It did not. What it actually did was make each FAILURE CHEAP.
     #
-    # ‼ The lesson: the diagnosis said "the ride budget is the only correct knob" and I added a
-    # second one anyway. The extra knob became the new failure. A guard added to make a fix
-    # "safer" is still a behaviour change and needs its own evidence.
+    # WHY THAT MATTERS, from this batch's own data: every SUCCESSFUL teach exits in **35-86
+    # frames** (n=42). So the budget is irrelevant to successes and governs only failures —
+    # and without the stall break a failure burns the FULL 9,000 frames instead of ~900.
+    # That is ~8,100 wasted frames per failure, which is exactly the shape that feeds the
+    # 18,000-frame global watchdog.
+    #
+    # ‼ THE REAL TEACH BUG IS STILL UNFIXED (7-9 failures across all three configs). The
+    # budget was never the knob — DO NOT tune it a fourth time. Re-diagnose by instrumenting
+    # WHICH break fires, at what frame, with what task set.
+    #
+    # `_TEACH_RIDE_HARD_CAP` stays ABSOLUTE: never "loop until progress", because this
+    # generator is re-entered by the derail dispatcher and an unbounded-while-progressing loop
+    # is the KI-34 shape that burned 23.9M frames.
+    from modules.battle_move_replacing import get_learn_move_state
+
     _TEACH_RIDE_HARD_CAP = 9000      # 1.85x the worst LEGITIMATE observed path (4,875)
+    _TEACH_RIDE_STALL_FRAMES = 900   # observable state frozen this long => wedged, stop cheaply
+    _stall = 0
+    _last_sig = None
     for _f in range(_TEACH_RIDE_HARD_CAP):
         if _knows() and get_game_state() is GameState.OVERWORLD and player_avatar_is_controllable():
             break
         t = _tasks()
+        # Progress signature: task set + learn-state + the target's own moves.
+        try:
+            _sig = (tuple(sorted(t)), str(get_learn_move_state()),
+                    tuple(l.move.name for l in _mon().moves if l is not None))
+        except Exception:  # noqa: BLE001 — an unreadable signature must never end the teach
+            _sig = None
+        if _sig is not None and _sig == _last_sig:
+            _stall += 1
+            if _stall >= _TEACH_RIDE_STALL_FRAMES:
+                break  # frozen => fall through to the menus-closed guarantee, cheaply
+        else:
+            _stall = 0
+            _last_sig = _sig
         if "Task_StopLearningMoveYesNo" in t:
             context.emulator.press_button("B")  # NO — never give up on the teach
         elif "Task_ReplaceMoveYesNo" in t and not _knows():

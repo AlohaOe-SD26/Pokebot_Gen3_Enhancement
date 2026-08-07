@@ -3591,3 +3591,36 @@ actually failed unsafely.**
 `Teach flow finished but` = 8 read, at a glance, like a mostly-working feature. Only the number
 written down in advance (**0**) made it unambiguously a failure rather than something to rationalise.
 The pre-registration did its job; I would otherwise have been tempted to call 8-vs-7 noise.
+
+## 2026-08-06 — I removed a component on a 7→8 reading, and it was the best-performing config
+
+**Symptom.** `#24-hmteachloop` has now been batched in three configurations. The failure counter
+barely moves; the FINISH RATE moves a lot:
+
+| teach ride config | `Teach flow finished but` | finish rate | watchdog |
+|---|---|---|---|
+| flat 3,000, no stall | 7 | 37.5% | — |
+| **9,000 cap + 900-frame stall (v1)** | 8 | **52.0%** | 20 |
+| 9,000 cap, stall REMOVED (v2) | 9 | **30.8%** | **68** |
+
+**My error.** I read v1's `7 → 8` as "the stall detector made it worse" and removed it. **7/8/9 is
+noise.** What the stall detector actually did was make each FAILURE CHEAP — and this batch's own
+data shows why that is the only thing that matters: every SUCCESSFUL teach exits in **35-86
+frames** (n=42), so the ride budget is irrelevant to successes and governs failures alone.
+Without the stall break, a failure burns the full **9,000** frames instead of ~900 — ~8,100 wasted
+frames each, which is exactly what feeds the 18,000-frame global watchdog.
+
+‼ **Prevention rule: before removing a component, check what it costs on the metric it was
+protecting — not on the metric you happened to be watching.** I graded a FRAME-COST guard on a
+CORRECTNESS counter it was never meant to move. The number that mattered (finish rate, watchdog)
+was in the same summary the whole time.
+
+‼ **Second rule, and this is the fourth removal-shaped regression in a fortnight: a difference of
+one on a single-digit counter is not a signal.** The project already knows a batch resolves ~±30
+points and that near-binary counters are the only trustworthy batch signal. 7 vs 8 is neither.
+**Require the counter to move by a factor, or to zero, before attributing anything to it.**
+
+**Also recorded:** the underlying teach bug is STILL unfixed across all three configs (7/8/9).
+The budget was never the knob — the failing teaches do not finish within ANY budget tried, and
+then learn the move ~1,872 frames after the raise. **Do not tune it a fourth time.** Instrument
+which `break` fires, at what frame, with what task set, and diagnose from that.
