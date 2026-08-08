@@ -20,7 +20,7 @@ game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror
 |---|---|
 | branch / HEAD | `main`, clean, pushed — see the newest commit |
 | story content | Littleroot → 6 badges → **Mt. Pyre → Magma Emblem**. Magma Hideout is UNLOCKED but UNBUILT. |
-| box idle | nothing running |
+| box idle | **‼ BATCH RUNNING — `20260808-131334`, started 1:13 PM PDT, 8 lanes × 180 min, code `def4b649`, ETA 4:13 PM PDT.** 8 clean headers. **Do NOT edit `sandbox-pokebot/` and do NOT run emulator probes until it lands.** |
 | **promotion** | **BATCH-6 PROMOTED 2026-08-08** (`e84b814f`) — sandbox → custom, on explicit user approval. 12 files + `pc_trip.py` + caches; residual code diff **0**. Verified ON CUSTOM (Norman→Machop control + Winona→Slugma). Outstanding items recorded in `custom-pokebot/DIVERGENCE-LOG.md`. **Sandbox and custom are now byte-identical in code**, so no re-base was needed. |
 | **latest batch** | **`20260808-095721` LANDED** — code `e84b814f`, `VERDICT OK`, 39 headers, **0 violations, 0 restarts**. 31 runs, 8 finished (25.8% vs 41.7%; **z = −1.24, NOT resolvable**). |
 | **‼‼ TOP FINDING** | **Only ONE counter rung has ever worked.** Machop @ FIERY_PATH converts **5/5**; every other destination **0 of 28**. `could not reach` 72 — **travel failures**. `#24-movepoolcounters` widened the set with unreachable grounds ⇒ **`#24-huntreachproof` is the top item.** |

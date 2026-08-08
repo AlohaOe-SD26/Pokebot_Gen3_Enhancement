@@ -386,6 +386,24 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       ‼ **Acceptance for the next batch is CONVERSION** (hunts started vs `counter hunt CAUGHT`):
       33 → 5 (15%) now, 18 → 7 (39%) before. NOT the finish rate, NOT the candidate count.
 
+      **PART 2 PLAN — every input verified present 2026-08-08, so this is ready to execute:**
+      Drive `_navigate_riding_out(ground, tile)` from each BOSS ANCHOR to each candidate ground,
+      **both directions**, and add only the pairs that pass. That is the bar `HUNTING_GROUNDS`
+      already sets and the one FIERY_PATH already meets.
+      * probe: `tools/story-dev/probe_counter_reachability.py` (exists — drives the REAL
+        navigation, not `calculate_path`, which cannot cross warps and has caused this exact
+        mistake before).
+      * anchors (from the six `_prepare_for_fight` cfgs) and the saves that sit on them:
+        PETALBURG → `norman_done.ss1`; MAUVILLE → `mauville_wedge.ss1` / `wattson_done.ss1`;
+        FORTREE → `fortree_gym_wedge.ss1` / `ch13_fortree_door.ss1`;
+        LAVARIDGE → `lavaridge.ss1`; DEWFORD → `dewford.ss1`; RUSTBORO → `rustboro.ss1`.
+      * grounds to test per anchor: FIERY_PATH, ROUTE111, ROUTE116, ROUTE117, ROUTE118.
+      ‼ **The single most informative pair is MAUVILLE → FIERY_PATH.** Numel went 5 hunts / 0
+      caught from there while Machop goes 5/5 from Petalburg to the SAME ground — so that one
+      run decides whether the (anchor, ground) model is right.
+      ‼ Do NOT run these while a batch is using the box: 8 lanes already occupy ~8 cores, and a
+      contended probe is exactly how this project has produced false timing results before.
+
 - [x] `#24-huntreachproof` (original finding) — ‼‼ **TOP ITEM 2026-08-08. Only ONE counter rung has ever worked, and
       `#24-movepoolcounters` widened the set with destinations the bot CANNOT TRAVEL TO.**
       Batch `20260808-095721`, conversion by target:
