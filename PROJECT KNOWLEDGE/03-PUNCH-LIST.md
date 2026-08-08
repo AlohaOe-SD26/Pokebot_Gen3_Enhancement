@@ -339,7 +339,24 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       non-finishes** — but it will NOT by itself fix Winona, and it must not be sold as the fix.
       Do `#24-winonaground`'s real diagnosis first.
 
-- [ ] `#24-counterdesertgate` — **NEW 2026-08-07, ROOT-CAUSED, one-line gap, HIGH VALUE.**
+- [x] `#24-counterdesertgate` — **FIXED 2026-08-07, same day it was found.**
+      `counter_plan` now checks `AREA_ITEM_PREREQ` per candidate location and skips the area
+      unless the item is in the bag; fails CLOSED, and sits before the reachability branch.
+      **A/B on the item, both arms, control in both:**
+      | arm | Winona's best_huntable |
+      |---|---|
+      | bag HOLDS Go-Goggles | Baltoy @ ROUTE111 `via=move:Rock Tomb@L15` (admitted) |
+      | bag EMPTY | **Slugma @ FIERY_PATH** `via=move:Rock Throw@L15` (ROUTE111 refused) |
+      | control | Norman → Machop @ FIERY_PATH, unchanged in both |
+      ‼ Both arms run on purpose — the gate fails closed, so a one-armed offline test would show
+      the right answer for the wrong reason. `probe_counter_item_gate.py`.
+      ‼ **Deliberately NOT done by flipping `POKEBOT_AREA_ITEM_GATE`** (one character, and it
+      would have re-litigated the measured 2026-08-04 ruling). That ruling was about TRAINING,
+      where a bad pick costs one trek; a counter hunt gets ONE attempt per boss per run, so a bad
+      pick costs the boss. `repro_movepool_counter_candidates.py` §5 asserts the flag stays off.
+      **NO OUTCOME PROOF YET** — needs a batch: `CAUGHT Slugma` > 0 with `CAUGHT Machop` unchanged.
+
+- [x] `#24-counterdesertgate` (original diagnosis) — **NEW 2026-08-07, ROOT-CAUSED.**
       Batch `20260807-200030`: **7 Baltoy hunts to ROUTE111 (25,55), 0 caught.**
       `AREA_ITEM_PREREQ = {ROUTE111: "Go-Goggles"}` gates the desert, and
       **`counter_plan.py` references `AREA_ITEM_PREREQ` ZERO times** — it consults only

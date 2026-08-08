@@ -9045,3 +9045,45 @@ Slugma@FIERY_PATH — a ground already proven by Norman's 6-of-7 catch rate.
 
 ### Also new: `global watchdog` end reason 0 → 4
 Worth watching, plausibly the longer counter journeys this change enables. Not diagnosed.
+
+---
+
+## 2026-08-07 — `#24-counterdesertgate`: the counter planner now refuses item-gated ground
+
+Batch `20260807-200030` sent **7 hunts to ROUTE111 (25,55) for Baltoy and caught 0**. Root cause:
+`AREA_ITEM_PREREQ` gates Route 111's desert on the **Go-Goggles**, the spin tile sits NORTH of
+that gate, and **`counter_plan.py` referenced `AREA_ITEM_PREREQ` zero times** — it consulted only
+`AREA_PREREQ`, which says `region` for ROUTE111 and passes. The bot trekked cross-Hoenn, could
+not enter, and spun wherever it stopped, filling the log with Zigzagoons.
+
+**Fix:** the planner checks `AREA_ITEM_PREREQ` per candidate location and skips the area unless
+the item is in the bag. Fails CLOSED — an unreadable bag refuses the area rather than assuming we
+own the item — and it sits BEFORE the reachability branch so an unusable area never scores.
+
+### ‼ WHY NOT JUST TURN THE EXISTING GATE BACK ON — this is the part worth keeping
+`_counter_area_allowed` already has an item gate behind `POKEBOT_AREA_ITEM_GATE`, **off by
+default since 2026-08-04** with the recorded note *"THIS GATE COST MORE THAN IT SAVED"*, measured
+against 28 wasted TRAINING relocations per batch. Re-flipping that flag would have been one
+character and would have silently re-litigated a decision made on evidence.
+
+**The cost models are different.** For TRAINING a bad pick costs one trek and the picker simply
+tries again. **A COUNTER HUNT GETS ONE ATTEMPT PER BOSS PER RUN** (`_counter_hunts` — the only
+bound that terminates under a re-entering dispatcher, the KI-34 shape), so a bad destination does
+not cost a trek, it costs the boss. Same table, opposite answer, so the gate belongs in the
+counter planner and NOT in the shared flag. `repro_movepool_counter_candidates.py` §5 asserts the
+flag is *not* re-enabled, so a future "simplification" cannot quietly merge the two.
+
+### PROVEN — A/B on the item itself, both arms, control in both
+| arm | Winona's `best_huntable` | ROUTE111 |
+|---|---|---|
+| bag HOLDS Go-Goggles | **Baltoy @ ROUTE111** `via=move:Rock Tomb@L15` | admitted |
+| bag EMPTY | **Slugma @ FIERY_PATH** `via=move:Rock Throw@L15` | refused |
+| control (both arms) | Norman → Machop @ FIERY_PATH | unchanged |
+
+‼ **Both arms are run on purpose.** The gate fails closed, so offline — no ROM, no readable bag —
+ROUTE111 would be refused anyway, for the WRONG reason. A one-armed test would have shown the
+desired answer and proved nothing. `probe_counter_item_gate.py` stubs the bag both ways so the
+discrimination is demonstrably on the ITEM.
+
+The fallback is the outcome that matters: Winona lands on FIERY_PATH, the ground Norman's hunt
+already proves at 6 catches in 7 attempts. Full counter/boss repro sweep: **11 of 11 green.**

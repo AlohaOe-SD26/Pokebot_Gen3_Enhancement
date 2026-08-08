@@ -114,15 +114,14 @@ death and runs 1 and 2 never reached a Centre (trainer refusal; then a whiteout)
 
 ## ⏭ NEXT ACTIONS, IN ORDER
 
-1. **‼ `#24-counterdesertgate` — TOP ITEM. Root-caused, a one-line gap, high value.**
-   `counter_plan.py` references `AREA_ITEM_PREREQ` **zero times**, so it offers ROUTE111's
-   Go-Goggles-gated desert tile: batch `20260807-200030` shows **7 Baltoy hunts, 0 catches**.
-   ‼ **Do NOT just flip `POKEBOT_AREA_ITEM_GATE` on** — measured and rejected for TRAINING on
-   2026-08-04 ("cost more than it saved"), where a bad pick costs one trek. A COUNTER HUNT gets
-   **one attempt per boss per run**, so a bad pick costs the boss. Make
-   `find_counter_candidates` honour the item prereq for its OWN destination choice; that demotes
-   Baltoy@ROUTE111 below Slugma@FIERY_PATH — a ground Norman already proves 6-of-7.
-   **Acceptance:** `CAUGHT Slugma` > 0 with `CAUGHT Machop` (control) unchanged.
+1. ✅ **`#24-counterdesertgate` — FIXED 2026-08-07.** `counter_plan` now honours
+   `AREA_ITEM_PREREQ` per location (fails closed, before the reachability branch). A/B on the
+   item, both arms, control in both: with goggles → Baltoy @ ROUTE111; **without → Slugma @
+   FIERY_PATH**, the ground Norman proves 6-of-7. Deliberately NOT done by flipping
+   `POKEBOT_AREA_ITEM_GATE` — that ruling was about TRAINING (a bad pick costs one trek); a
+   counter hunt gets ONE attempt per boss (a bad pick costs the boss). 11/11 repros green.
+   ‼ **NO OUTCOME PROOF YET — needs a batch.** Acceptance: `counter hunt CAUGHT Slugma` > 0
+   with `CAUGHT Machop` (control) unchanged, and `no super-effective answer` down from 12/16.
 
 2. **`#24-teachmsgstall`** — third teach bug, fully characterised, cheap repro
    (`--driver teachfull TEACH_ITEM=HM03`). All 9 failures share

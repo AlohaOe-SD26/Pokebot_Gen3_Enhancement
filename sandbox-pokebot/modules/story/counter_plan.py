@@ -137,6 +137,7 @@ def find_counter_candidates(needed_type_names, *, allow=None, max_results: int =
         from modules.map_data import get_map_enum
         from modules.pokemon import get_species_by_index
         from modules.story.training_areas import (
+            AREA_ITEM_PREREQ,
             AREA_PREREQ,
             TRAINING_GRASS,
             hunt_ground_tile,
@@ -210,6 +211,39 @@ def find_counter_candidates(needed_type_names, *, allow=None, max_results: int =
                     map_enum = get_map_enum(tuple(loc["map"]))
                 except Exception:
                     continue
+
+                # ‼‼ `#24-counterdesertgate` (2026-08-07). ITEM-GATED AREAS ARE REFUSED HERE,
+                # by the COUNTER PLANNER ITSELF, and deliberately not by flipping the global
+                # `POKEBOT_AREA_ITEM_GATE`.
+                #
+                # MEASURED, batch `20260807-200030`: **7 hunts to ROUTE111 (25,55) for Baltoy,
+                # 0 caught.** `AREA_ITEM_PREREQ` gates Route 111's desert on the Go-Goggles and
+                # the spin tile (25,55) sits NORTH of that gate, so the bot treks cross-Hoenn,
+                # cannot enter, and spins wherever it stopped — the log fills with Zigzagoons.
+                # This module referenced `AREA_ITEM_PREREQ` **zero times**; it consulted only
+                # `AREA_PREREQ`, which says `region` for ROUTE111 and passes.
+                #
+                # ‼ WHY NOT JUST TURN THE EXISTING GATE BACK ON. `_counter_area_allowed` has one
+                # behind `POKEBOT_AREA_ITEM_GATE`, OFF BY DEFAULT since 2026-08-04 with the note
+                # "THIS GATE COST MORE THAN IT SAVED" — measured against 28 wasted TRAINING
+                # relocations per batch. That ruling was about TRAINING, where a bad pick costs
+                # one trek and the picker simply tries again. **A COUNTER HUNT GETS ONE ATTEMPT
+                # PER BOSS PER RUN** (`_counter_hunts`, the only bound that terminates), so a bad
+                # destination does not cost a trek — it costs the boss. Different cost model,
+                # different answer; re-flipping the global flag would silently re-litigate a
+                # decision that was made on evidence.
+                #
+                # Fails CLOSED, like every other gate that decides where the bot walks: an
+                # unreadable bag refuses the area rather than guessing we own the item.
+                item_prereq = AREA_ITEM_PREREQ.get(map_enum)
+                if item_prereq is not None:
+                    try:
+                        from modules.items import get_item_bag, get_item_by_name
+
+                        if get_item_bag().quantity_of(get_item_by_name(item_prereq)) <= 0:
+                            continue
+                    except Exception:  # noqa: BLE001 - unreadable bag => refuse the area
+                        continue
 
                 prereq = AREA_PREREQ.get(map_enum)
                 if allow is None:

@@ -86,6 +86,34 @@ check("hunt_tile is computed BEFORE tier uses it",
       src.find("hunt_tile = hunt_ground_tile(map_enum)") < src.find("tier = ("))
 
 print()
+print("5. `#24-counterdesertgate`: item-gated areas are refused BY THE PLANNER")
+
+# Batch 20260807-200030: 7 hunts to ROUTE111 (25,55) for Baltoy, 0 caught. The desert is
+# Go-Goggles-gated and the spin tile sits NORTH of the gate. This module referenced
+# AREA_ITEM_PREREQ ZERO times.
+check("AREA_ITEM_PREREQ is imported", "AREA_ITEM_PREREQ," in src)
+gate = re.search(r"item_prereq = AREA_ITEM_PREREQ\.get\(map_enum\)(.*?)\n                prereq =", src, re.S)
+check("the item gate runs per candidate location", gate is not None)
+g = gate.group(1) if gate else ""
+check("it reads the actual bag", "get_item_bag()" in g and "quantity_of" in g)
+check("it SKIPS the location when the item is missing", "continue" in g)
+check("it FAILS CLOSED on an unreadable bag",
+      g.count("continue") >= 2,
+      "an unreadable bag must refuse the area, not assume we own the item")
+# ‼ The gate must sit BEFORE the reachability branch, or an unusable area still scores.
+check("the item gate precedes the AREA_PREREQ/reachability branch",
+      src.find("item_prereq = AREA_ITEM_PREREQ") < src.find("prereq = AREA_PREREQ.get(map_enum)"))
+# ‼ And it must NOT be done by flipping the global training flag, which was measured and
+# rejected on 2026-08-04 for a different cost model.
+# ‼ Strip comments first. The note explaining WHY we do not use that flag names it, so a naive
+# substring search over the whole file matches the documentation and fails correct code — the
+# same trap this suite already hit once in `repro_hmteach_postlearn.py`.
+code_only = "\n".join(l for l in src.splitlines() if not l.lstrip().startswith("#"))
+check("it does NOT re-enable the global POKEBOT_AREA_ITEM_GATE",
+      "POKEBOT_AREA_ITEM_GATE" not in code_only,
+      "that flag's off-by-default ruling was about TRAINING; a counter hunt has one attempt per boss")
+
+print()
 if FAILURES:
     print(f"FAILED {len(FAILURES)} check(s):")
     for f in FAILURES:
