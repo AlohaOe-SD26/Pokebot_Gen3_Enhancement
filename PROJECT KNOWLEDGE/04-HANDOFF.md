@@ -112,7 +112,7 @@ convenience, it is the only place this operation can occur. Do not go looking fo
 with a full party AND a non-empty box is a prior probe's end state, so the party arrives near
 death and runs 1 and 2 never reached a Centre (trainer refusal; then a whiteout).
 
-## (superseded next-actions list)
+## ⏭ NEXT ACTIONS, IN ORDER
 
 1. **‼ `#24-counterdesertgate` — TOP ITEM. Root-caused, a one-line gap, high value.**
    `counter_plan.py` references `AREA_ITEM_PREREQ` **zero times**, so it offers ROUTE111's
