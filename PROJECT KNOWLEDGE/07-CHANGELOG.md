@@ -9122,3 +9122,37 @@ Next probe: `ensure_hm_learner(HM03)` → `teach_hm_move` back to back with a FO
 * `wait_for_n_frames` is imported LOCALLY in other drivers, so using it in a new one is a
   `NameError` — which dropped the mode to Manual and produced a 20,000-frame "HANG CONFIRMED"
   that looked like a bot wedge. It was the probe.
+
+---
+
+## 2026-08-08 — `#24-teachmsgstall`: caller context IDENTIFIED (Norman's battle tail); probe not yet green
+
+Following the two eliminations above, traced Segment 12c: it runs `do_petalburg_gym()` and then
+**immediately** `ensure_hm_learner(HM03)` → `teach_hm_move` (`story_mode.py:3137-3163`).
+
+‼ **`teach_hm_move`'s own comment already said this, and I under-weighted it on the first pass:**
+*"all 7 start with the NORMAN BATTLE TAIL still resident (`callback=ReturnFromBattleToOverworld`),
+which stretches the dialogue chain past 3,000 frames."* The two eliminations — the moveset and the
+full-party-slot-4 shape both succeed from a clean overworld — converge on the same answer by
+exclusion. **A battle tail is RUNTIME state and cannot be loaded from a save**, which is exactly
+why every clean-overworld repro of this bug succeeds in ~460 frames.
+
+**Scaffold built, not yet green:** `--driver teachfull TEACH_AFTER_GYM=petalburg TEACH_ITEM=HM03`
+on `prenorman_fodder_grind.ss1` fights Norman then teaches with no settle (HM03 is *given* for
+beating him, so the bag control doubles as proof the gym leg completed).
+**It still needs a party that can beat Norman.** That save is a grind save — Whismur L18,
+Ninjask L27, Shedinja L25, Mightyena L30, Combusken L36 against L27-31. Run 1 died to a
+trainer-battle HP refusal; run 2 wedged inside the gym at f61848 and never reached the teach.
+
+Two driver defects fixed along the way, both repeats of already-logged traps:
+
+* `teachfull` returned `DefaultBattleStrategy` for TRAINER battles, which refuses at low HP and
+  raises `BotModeError`. `boxwithdraw` needed exactly this fix on 2026-08-07;
+  `LevelUpTravelBattleStrategy` is the production strategy and never flees a trainer.
+* A shell-escaping slip wrote a literal NUL byte into `story_harness.py` (a `b"\x00"` literal
+  through two layers of quoting), which Python rejects with "source code string cannot contain
+  null bytes". Use `bytes(4)` instead of an escaped byte string when writing code from a shell.
+
+**Stopped here deliberately** rather than iterate a fourth fixture at long context — the diagnosis
+is the valuable part and it is now specific, with the remaining work reduced to "give the probe a
+party that wins one gym fight".

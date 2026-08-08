@@ -1743,8 +1743,17 @@ class TeachFullMode(BotMode):
         return "TeachFull"
 
     def on_battle_started(self, encounter):
+        # ‼ TRAINER battles must use the PRODUCTION strategy. `DefaultBattleStrategy` refuses a
+        # trainer battle at low HP ("cannot battle due to HP below threshold, and flee is not
+        # allowed") -> BotModeError -> Manual, which killed the first AFTER_GYM run at f25831.
+        # `LevelUpTravelBattleStrategy` exists precisely because it NEVER flees a trainer.
+        # Identical fix to the one `boxwithdraw` needed; wilds keep Default (fleeing is fine).
         from modules.battle_strategies import DefaultBattleStrategy
 
+        if encounter is None:
+            from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+
+            return LevelUpTravelBattleStrategy()
         return DefaultBattleStrategy()
 
     def run(self):
@@ -1798,6 +1807,55 @@ class TeachFullMode(BotMode):
             yield from wait_for_n_frames(10)
             log("[teachfull] FIXTURE: injected Marshtomp L30 "
                 "[Take Down, Mud Shot, Rock Smash, Muddy Water] — the batch's failing shape")
+
+        # ‼‼ `#24-teachmsgstall` DECISIVE PROBE (2026-08-08). `TEACH_AFTER_GYM=petalburg` fights
+        # Norman FIRST, then teaches — which is exactly Segment 12c (`story_mode.py`:
+        # `do_petalburg_gym()` then `ensure_hm_learner(HM03)` -> `teach_hm_move`).
+        #
+        # WHY THIS AND NOT ANOTHER PARTY VARIANT. Two hypotheses were eliminated on 2026-08-08 by
+        # direct repro from a clean overworld — the failing MOVESET succeeds in 457 frames and a
+        # full party with the target at slot 4 succeeds in 463. So it is the CALLER CONTEXT, and
+        # `teach_hm_move`'s own comment already named it: *"all 7 start with the NORMAN BATTLE
+        # TAIL still resident (callback=ReturnFromBattleToOverworld), which stretches the
+        # dialogue chain past 3,000 frames."* A battle tail is RUNTIME state and cannot be
+        # loaded from a save — the fight has to actually happen in the probe.
+        #
+        # Run from `prenorman_fodder_grind.ss1`. HM03 is GIVEN for beating Norman, so the bag
+        # control below doubles as proof the gym leg really completed.
+        if os.environ.get("TEACH_AFTER_GYM", "").strip().lower() == "petalburg":
+            from modules.story.early_game import do_petalburg_gym
+
+            # FIXTURE: `prenorman_fodder_grind.ss1` is a GRIND save, so the party arrives hurt
+            # and loses the gym before the teach is ever reached. Same HP/status restore the
+            # `boxwithdraw` fixture uses; the variable under test is the post-battle TAIL, not
+            # whether a battered party can win Norman.
+            try:
+                from types import SimpleNamespace as _NS2
+
+                from modules.debug_utilities import debug_write_party as _dwp
+                from modules.modes.util.sleep import wait_for_n_frames as _wfn
+
+                _rows2 = []
+                for _m in get_party():
+                    if _m is None:
+                        continue
+                    _d = bytearray(_m.data)
+                    if len(_d) >= 90:
+                        _d[86:88] = _d[88:90]
+                        _d[80:84] = bytes(4)   # clear the status bitfield
+                    _rows2.append(_NS2(data=bytes(_d)))
+                _dwp(_rows2)
+                yield from _wfn(10)
+                log(f"[teachfull] AFTER-GYM fixture: healed {len(_rows2)} party mons")
+            except Exception as _e:  # noqa: BLE001
+                log(f"[teachfull] AFTER-GYM heal fixture failed: {type(_e).__name__}: {_e}")
+
+            log("[teachfull] AFTER-GYM: fighting Norman first so the battle tail is resident…")
+            try:
+                yield from do_petalburg_gym()
+                log("[teachfull] AFTER-GYM: gym returned — teaching IMMEDIATELY, no settle")
+            except Exception as error:  # noqa: BLE001
+                log(f"[teachfull] AFTER-GYM: gym raised {type(error).__name__}: {str(error)[:200]}")
 
         item_name = os.environ.get("TEACH_ITEM", "HM06").strip()
         item = get_item_by_name(item_name)

@@ -123,15 +123,16 @@ death and runs 1 and 2 never reached a Centre (trainer refusal; then a whiteout)
    ‼ **NO OUTCOME PROOF YET — needs a batch.** Acceptance: `counter hunt CAUGHT Slugma` > 0
    with `CAUGHT Machop` (control) unchanged, and `no super-effective answer` down from 12/16.
 
-2. **`#24-teachmsgstall`** — ‼ **two hypotheses ELIMINATED 2026-08-08; do not re-test them.**
-   New fixture `--driver teachfull TEACH_INJECT=marshtomp [TEACH_INJECT_SLOT=n]`.
-   **RULED OUT:** the moveset (HM in the set) — succeeds in 457f; a full party with the target
-   at slot 4 — succeeds in 463f; HM03/Surf itself. **It is not the party and not the item.**
-   ⇒ **It is the CALLER CONTEXT.** Production teaches immediately after `ensure_hm_learner`,
-   which returns while "Give a nickname to the captured X?" may still be on screen; the stuck
-   task set (`ListMenuDummyTask` + `Task_ContinueTaskAfterMessagePrints`) fits a lingering
-   post-catch dialogue. **NEXT PROBE:** drive `ensure_hm_learner(HM03)` → `teach_hm_move` back
-   to back with a FOUR-move target (`hmtest` is HM06 + a free-slot mon, hence 12/12 clean).
+2. **`#24-teachmsgstall`** — ‼ **CAUSE IDENTIFIED, probe one step from green.**
+   **RULED OUT** (direct repro, clean overworld): the moveset (457f), a full party with the
+   target at slot 4 (463f), HM03/Surf itself. **It is the NORMAN BATTLE TAIL** — Segment 12c
+   teaches immediately after `do_petalburg_gym()`, and `teach_hm_move`'s own comment records
+   "all 7 start with the NORMAN BATTLE TAIL still resident". A battle tail is RUNTIME state, so
+   it cannot be loaded from a save — the fight must happen inside the probe.
+   **Scaffold is built:** `--driver teachfull TEACH_AFTER_GYM=petalburg TEACH_ITEM=HM03` on
+   `prenorman_fodder_grind.ss1`. ‼ **It needs a party that can BEAT Norman** — that save's party
+   (Whismur L18 … vs L27-31) wedges in the gym at f61848 and never reaches the teach. Inject a
+   winning party, or capture a save at the moment Norman faints. Everything after that is wired.
 
 3. **`global watchdog` end reason 0 → 4** — new in `20260807-200030`, plausibly the longer
    counter journeys this round enabled. **Not diagnosed** — check before assuming.

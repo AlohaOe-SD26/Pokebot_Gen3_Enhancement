@@ -390,10 +390,25 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       set — `['ListMenuDummyTask', 'Task_ContinueTaskAfterMessagePrints']` — is a LIST MENU plus
       an unfinished message, which fits a lingering post-catch dialogue far better than anything
       about the moveset.
-      **NEXT PROBE:** drive `ensure_hm_learner(HM03)` → `teach_hm_move` back to back, i.e.
-      `--driver hmtest` but with **HM03** and a target that already has FOUR moves (hmtest uses
-      HM06 and a freshly-caught mon with a free slot, which is why it has always been 12/12
-      clean). Instrument what `Task_ContinueTaskAfterMessagePrints` is waiting on.
+      ‼‼ **THE CALLER CONTEXT IS IDENTIFIED: THE NORMAN BATTLE TAIL.** Segment 12c runs
+      `do_petalburg_gym()` and then IMMEDIATELY `ensure_hm_learner(HM03)` → `teach_hm_move`
+      (`story_mode.py:3137-3163`). `teach_hm_move`'s own comment already recorded this and I
+      under-weighted it: *"all 7 start with the NORMAN BATTLE TAIL still resident
+      (`callback=ReturnFromBattleToOverworld`), which stretches the dialogue chain past 3,000
+      frames."* The two eliminations above converge on it by exclusion.
+      ‼ **A battle tail is RUNTIME state — it cannot be loaded from a save.** The fight must
+      actually happen inside the probe, which is why every clean-overworld repro succeeds.
+
+      **PROBE SCAFFOLD IS BUILT BUT NOT YET GREEN:** `--driver teachfull TEACH_AFTER_GYM=petalburg
+      TEACH_ITEM=HM03` on `prenorman_fodder_grind.ss1` fights Norman, then teaches with no settle.
+      HM03 is GIVEN for beating Norman, so the bag control doubles as proof the gym leg completed.
+      ‼ **WHAT IT STILL NEEDS: a party that can actually BEAT Norman.**
+      That save is a grind save (Whismur L18 / Ninjask L27 / Shedinja L25 / Mightyena L30 /
+      Combusken L36 against Norman's L27-31); run 1 died to a trainer-battle HP refusal (fixed —
+      the driver now uses `LevelUpTravelBattleStrategy` for trainers, as `boxwithdraw` already
+      did) and run 2 wedged inside the gym at f61848 without ever reaching the teach.
+      **Inject a party that wins the fight, or capture a save at the moment Norman faints.**
+      Everything downstream of that is already wired.
 
 - [ ] `#24-teachmsgstall` (original characterisation) — **NEW 2026-08-07, THIRD teach bug.**
       All **9** teach failures in batch `20260807-160545` share one signature:
