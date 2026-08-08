@@ -1756,6 +1756,49 @@ class TeachFullMode(BotMode):
 
         yield from wait_until_truly_controllable()
 
+        # ‼ `#24-teachmsgstall` FIXTURE (2026-08-08). `TEACH_INJECT=marshtomp` writes the EXACT
+        # party shape every one of the 9 teach failures in batch `20260807-160545` had — a
+        # Marshtomp-line mon with four moves, one of which is an HM:
+        #     moves=['Take Down', 'Mud Shot', 'Rock Smash', 'Muddy Water']   move=Surf
+        # No committed save carries that shape (checked: `boxwithdraw.ss1`'s only Surf-compatible
+        # mon already knows Surf), and hunting for one is slower and less exact than building it.
+        # ‼ The Rock Smash slot is the point, not decoration: `replace_slot` EXCLUDES HM moves,
+        # so an HM in the moveset shrinks the eligible set and is a prime suspect for the stall.
+        if os.environ.get("TEACH_INJECT", "").strip().lower() == "marshtomp":
+            from modules.debug_utilities import debug_create_pokemon, debug_write_party
+            from modules.modes.util.sleep import wait_for_n_frames
+            from modules.pokemon import LearnedMove, get_move_by_name, get_species_by_name
+
+            mon = debug_create_pokemon(
+                species=get_species_by_name("Marshtomp"),
+                level=30,
+                moves=[LearnedMove.create(get_move_by_name(m))
+                       for m in ("Take Down", "Mud Shot", "Rock Smash", "Muddy Water")],
+                nickname="STALLME",
+            )
+            # ‼ KEEP THE PARTY FULL AND PUT THE TARGET AT SLOT 4. Run 1 of this fixture wrote a
+            # ONE-mon party and the teach SUCCEEDED in 457 frames — so the moveset alone does not
+            # reproduce the stall. The batch records mostly read `slot=4`, i.e. a full party with
+            # the target in a later slot, which is what makes `scroll_to_party_menu_index` do real
+            # work. Substitute in place rather than rebuilding: the other five mons stay exactly
+            # as the save has them, so the only changed variable is the target.
+            from types import SimpleNamespace as _NS
+            _slot = int(os.environ.get("TEACH_INJECT_SLOT", "4"))
+            _party = [m for m in get_party() if m is not None]
+            _rows = [_NS(data=m.data) for m in _party]
+            while len(_rows) <= _slot:
+                _rows.append(_NS(data=mon.data))
+            _rows[_slot] = _NS(data=mon.data)
+            debug_write_party(_rows)
+            # ‼ YIELD BEFORE READING THE PARTY BACK. `get_party()` is cached per frame, so the
+            # selection loop below sees the PRE-injection party otherwise — run 1 of this
+            # fixture printed the old six-mon party and aborted with "no party mon is
+            # compatible" on a save that now held exactly the target. Same trap as the
+            # `boxwithdraw` heal-fixture logging stale HP (08-MISTAKES 2026-08-07).
+            yield from wait_for_n_frames(10)
+            log("[teachfull] FIXTURE: injected Marshtomp L30 "
+                "[Take Down, Mud Shot, Rock Smash, Muddy Water] — the batch's failing shape")
+
         item_name = os.environ.get("TEACH_ITEM", "HM06").strip()
         item = get_item_by_name(item_name)
         move = item.tm_hm_move()

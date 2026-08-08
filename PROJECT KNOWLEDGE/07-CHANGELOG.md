@@ -9087,3 +9087,38 @@ discrimination is demonstrably on the ITEM.
 
 The fallback is the outcome that matters: Winona lands on FIERY_PATH, the ground Norman's hunt
 already proves at 6 catches in 7 attempts. Full counter/boss repro sweep: **11 of 11 green.**
+
+---
+
+## 2026-08-08 — `#24-teachmsgstall`: two hypotheses eliminated (no fix yet, search narrowed)
+
+Built a fixture that writes the batch's exact failing party shape into a live save —
+`--driver teachfull TEACH_INJECT=marshtomp [TEACH_INJECT_SLOT=n]` — because no committed save
+carries it (`boxwithdraw.ss1`'s only Surf-compatible mon already knows Surf).
+
+| hypothesis | result |
+|---|---|
+| the MOVESET — `Take Down / Mud Shot / Rock Smash / Muddy Water`, i.e. an HM occupying a slot, which shrinks `replace_slot`'s eligible set | ❌ **RULED OUT** — teach succeeds, **457 frames**, replaced Mud Shot |
+| a FULL party with the target at **slot 4** (most batch records read `slot=4`, so `scroll_to_party_menu_index` does real work) | ❌ **RULED OUT** — succeeds, **463 frames** |
+| HM03 / Surf specifically | ❌ ruled out by both runs |
+
+**Two negative results are the deliverable here.** The failure is not the party and not the item,
+which removes the whole search space I would otherwise have worked through next.
+
+‼ **What remains is the CALLER CONTEXT.** In production the teach runs immediately after
+`ensure_hm_learner`, which `teach_hm_move`'s own header warns *"returns the instant the catch
+registers while 'Give a nickname to the captured X?' is still on screen"* —
+`normalize_to_overworld()` exists to absorb exactly that. The stuck task set
+`['ListMenuDummyTask', 'Task_ContinueTaskAfterMessagePrints']` is a list menu plus an unfinished
+message, which fits a lingering post-catch dialogue far better than anything about the moveset.
+Next probe: `ensure_hm_learner(HM03)` → `teach_hm_move` back to back with a FOUR-move target
+(`--driver hmtest` is HM06 with a freshly-caught free-slot mon, which is why it is 12/12 clean).
+
+### Two fixture bugs worth recording, both already-documented traps
+* **Read-back after `debug_write_party` in the same frame returns the PRE-write party.** Run 1
+  printed the old six-mon party and aborted with "no party mon is compatible" on a save that
+  already held the target. Fixed with a `wait_for_n_frames(10)` before the read. This is the
+  third instance of the per-frame cache trap this week.
+* `wait_for_n_frames` is imported LOCALLY in other drivers, so using it in a new one is a
+  `NameError` — which dropped the mode to Manual and produced a 20,000-frame "HANG CONFIRMED"
+  that looked like a bot wedge. It was the probe.

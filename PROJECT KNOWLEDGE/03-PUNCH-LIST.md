@@ -374,7 +374,28 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       **Acceptance:** `counter hunt — … FIERY_PATH … Slugma` appears and `CAUGHT Slugma` > 0,
       with `CAUGHT Machop` (control) unchanged.
 
-- [ ] `#24-teachmsgstall` — **NEW 2026-08-07, fully characterised, THIRD teach bug.**
+- [ ] `#24-teachmsgstall` — **THIRD teach bug. 2026-08-08: TWO HYPOTHESES ELIMINATED by direct
+      repro; the search is now narrow. Read this before probing again.**
+      New fixture: `--driver teachfull TEACH_INJECT=marshtomp [TEACH_INJECT_SLOT=n]` writes the
+      batch's exact failing party shape into a live save.
+      | hypothesis | result |
+      |---|---|
+      | the MOVESET (`Take Down/Mud Shot/Rock Smash/Muddy Water`, an HM in the set) | ❌ **RULED OUT** — teach SUCCEEDS, 457 frames, replaced Mud Shot |
+      | a FULL party with the target at **slot 4** (most batch records read `slot=4`) | ❌ **RULED OUT** — succeeds, 463 frames |
+      | HM03/Surf specifically | ❌ ruled out by both runs above |
+      ‼ **So it is not the party and not the item — it is the CALLER CONTEXT.** In production the
+      teach runs immediately after `ensure_hm_learner`, which the function's own header warns
+      *"returns the instant the catch registers while 'Give a nickname to the captured X?' is
+      still on screen"*. `normalize_to_overworld()` is supposed to absorb that. The stuck task
+      set — `['ListMenuDummyTask', 'Task_ContinueTaskAfterMessagePrints']` — is a LIST MENU plus
+      an unfinished message, which fits a lingering post-catch dialogue far better than anything
+      about the moveset.
+      **NEXT PROBE:** drive `ensure_hm_learner(HM03)` → `teach_hm_move` back to back, i.e.
+      `--driver hmtest` but with **HM03** and a target that already has FOUR moves (hmtest uses
+      HM06 and a freshly-caught mon with a free slot, which is why it has always been 12/12
+      clean). Instrument what `Task_ContinueTaskAfterMessagePrints` is waiting on.
+
+- [ ] `#24-teachmsgstall` (original characterisation) — **NEW 2026-08-07, THIRD teach bug.**
       All **9** teach failures in batch `20260807-160545` share one signature:
       ```
       tasks=['ListMenuDummyTask', 'Task_ContinueTaskAfterMessagePrints']   9 of 9, identical

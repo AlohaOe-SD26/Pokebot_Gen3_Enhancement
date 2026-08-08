@@ -123,9 +123,15 @@ death and runs 1 and 2 never reached a Centre (trainer refusal; then a whiteout)
    ‼ **NO OUTCOME PROOF YET — needs a batch.** Acceptance: `counter hunt CAUGHT Slugma` > 0
    with `CAUGHT Machop` (control) unchanged, and `no super-effective answer` down from 12/16.
 
-2. **`#24-teachmsgstall`** — third teach bug, fully characterised, cheap repro
-   (`--driver teachfull TEACH_ITEM=HM03`). All 9 failures share
-   `tasks=['ListMenuDummyTask','Task_ContinueTaskAfterMessagePrints']` on Surf.
+2. **`#24-teachmsgstall`** — ‼ **two hypotheses ELIMINATED 2026-08-08; do not re-test them.**
+   New fixture `--driver teachfull TEACH_INJECT=marshtomp [TEACH_INJECT_SLOT=n]`.
+   **RULED OUT:** the moveset (HM in the set) — succeeds in 457f; a full party with the target
+   at slot 4 — succeeds in 463f; HM03/Surf itself. **It is not the party and not the item.**
+   ⇒ **It is the CALLER CONTEXT.** Production teaches immediately after `ensure_hm_learner`,
+   which returns while "Give a nickname to the captured X?" may still be on screen; the stuck
+   task set (`ListMenuDummyTask` + `Task_ContinueTaskAfterMessagePrints`) fits a lingering
+   post-catch dialogue. **NEXT PROBE:** drive `ensure_hm_learner(HM03)` → `teach_hm_move` back
+   to back with a FOUR-move target (`hmtest` is HM06 + a free-slot mon, hence 12/12 clean).
 
 3. **`global watchdog` end reason 0 → 4** — new in `20260807-200030`, plausibly the longer
    counter journeys this round enabled. **Not diagnosed** — check before assuming.
