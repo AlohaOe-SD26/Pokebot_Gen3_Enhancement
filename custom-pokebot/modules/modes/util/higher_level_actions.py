@@ -200,6 +200,37 @@ def heal_in_pokemon_center(pokemon_center_door_location: PokemonCenter) -> Gener
         yield from wait_for_no_script_to_run("B")
         yield from wait_for_player_avatar_to_be_standing_still("B")
 
+        # ‼ #24-pc — PIGGYBACK THE PC ROTATION HERE, between the nurse and the exit.
+        # A full party forbids catching a type counter, and that blocked the counter chain
+        # outright 5 times in batch5 while 72% of that batch's non-finishes were the chain
+        # stopping for want of an answer. This is the ONLY correct place for it: we are
+        # already inside the centre for a heal that was happening anyway, so it costs a few
+        # steps rather than a journey (`21-TEAM-POLICY-DESIGN.md` §4, "piggyback, do not
+        # detour"). It no-ops unless `rotation_plan` says `worth_it`, and it never raises —
+        # a PC hiccup must not destroy a heal that already succeeded.
+        try:
+            from modules.story.pc_trip import deposit_dead_weight_if_worth_it
+
+            yield from deposit_dead_weight_if_worth_it()
+        except Exception:  # noqa: BLE001 - never let the rotation break the heal path
+            pass
+
+        # ‼ #24-pcoverflow — COLLECT A COUNTER THAT LANDED IN THE BOX.
+        # `resource_blocker` no longer refuses a catch when the party is full, so a hunted
+        # counter can now be caught straight into the PC. Without this it would STAY there —
+        # caught, paid for with a cross-Hoenn journey, and unusable, which is strictly worse
+        # than the old refusal. The two changes only make sense shipped together.
+        # Same piggyback contract as the deposit above: we are already inside for a heal.
+        try:
+            from modules.context import context as _ctx
+            from modules.story.pc_trip import withdraw_from_box
+
+            _pids = getattr(_ctx.bot_mode_instance, "_hunted_counter_pids", None)
+            if _pids:
+                yield from withdraw_from_box(_pids)
+        except Exception:  # noqa: BLE001 - never let a PC hiccup break the heal path
+            pass
+
         # Get out — robustly. `navigate_to` onto the exit warp (7,8) can stop ON the
         # tile without firing it, leaving the player stuck in the doorway (ML-9,
         # user-reported). Walk to the tile ABOVE the door and step DOWN so the warp

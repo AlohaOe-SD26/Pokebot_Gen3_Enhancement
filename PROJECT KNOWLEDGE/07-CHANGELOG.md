@@ -9189,3 +9189,31 @@ beside old truth instead of replacing it — the exact failure mode the standing
 about for files `01`-`05` ("edit them in place so they always describe present reality"). The
 punch-list duplicates are the clearest case: prepending is cheap and safe-feeling in the moment,
 and it leaves two contradictory entries with the same ID.
+
+---
+
+## 2026-08-08 — PROMOTION (BATCH-6): sandbox → custom, on explicit user approval
+
+Last promotion was BATCH-5 (`2dba64d3`, 2026-08-02). **37 sandbox commits** landed since and
+custom was touched by none, verified with `git log -- custom-pokebot/` before copying anything —
+so sandbox was a clean superset and this is a straight forward-port rather than a merge.
+
+**12 modified files + 1 new** (`modules/story/pc_trip.py`), plus `cache/*.json`.
+Residual code diff after the copy: **0 files**.
+
+Carries six items: `#24-pcoverflow` (both halves), `#24-hmteachloop`, `#24-teachpathrace`,
+`#24-whiteoutloop` (both parts), `#24-movepoolcounters`, `#24-counterdesertgate`. Two of them are
+**batch-confirmed**, not merely repro-green: the whiteout end reason went 4 → 0 with the deepest
+repeated-loss ordinal 32 → 13, and `no huntable counter candidate` went 25 → 0.
+
+**Verification on custom, not sandbox:** all 13 files parse (targeted imports only — a bulk
+import gutted `map_data.py` in both builds on 2026-08-01), and a functional probe run against
+`custom-pokebot` returns Norman → Machop @ FIERY_PATH (the standing positive control) and
+Winona → Slugma @ FIERY_PATH `via=move:Rock Throw@L15`, identical to sandbox.
+
+‼ **Recorded as outstanding IN the divergence log, because this build ships with them:**
+`#24-counterdesertgate` has no outcome proof yet; **`#24-teachmsgstall` is open and present**
+(~9 of 47 teaches still burn the cap on Surf — pre-existing, cause identified as Norman's battle
+tail, not fixed); `global watchdog` 0 → 4 is new and undiagnosed; and **the finish rate has not
+moved resolvably** (39.1% → 36.0% → 41.7%, every pairwise z well under 1.96). This round is
+justified by near-binary counters, and the log says so explicitly so nobody later quotes a rate.

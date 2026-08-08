@@ -37,6 +37,140 @@ _MAX_LEGS = 32
 _WARP_CANDIDATES = 6
 
 
+#: Lattice points sampled on the NEXT map when looking for somewhere to walk to. These are
+#: cheap local ROM reads (`get_map_data(...).collision`), not pathfinding.
+_CONNECTION_SAMPLES = 8  # per axis, so up to 64 probes
+#: How many of those may be validated with `calculate_path`. Each validation is synchronous
+#: and freezes the emulator, so this is a freeze budget — same reasoning as `_STAGED_VALIDATIONS`.
+_CONNECTION_VALIDATIONS = 6
+
+
+def _connection_step(graph, current_map, target_map, avoid_encounters, avoid_scripted_events, used_steps):
+    """A tile to WALK TO on the next map along the route, when no WARP validates.
+
+    ‼ WHY THIS EXISTS — measured 2026-08-05, Fortree -> Mt. Pyre. The journey died on
+    ROUTE120 (7,56) with `Could not find a path from (7/56 @ ROUTE120) to (22/29 @ ROUTE122)`,
+    and the bot was NOT stuck: `calculate_path` reached ROUTE121 in **79 waypoints** the whole
+    time. The hole is that both leg-pickers deal exclusively in WARPS —
+    `pick_leg` walks `warp_candidates()` and `_staged_progress_warp` walks `warps_from()` —
+    but **ROUTE120 -> ROUTE121 is a map CONNECTION, not a warp.** With no warp to offer, control
+    fell through to the unvalidated `region_route[0]` branch, which handed `navigate_to` a tile
+    two connections away that `calculate_path` can never span, and the whole trip failed.
+
+    So: the navigator could WALK to a target, or WARP toward one, but it could not **walk across
+    a map border as an intermediate step**. This is the connection analogue of
+    `_staged_progress_warp`; the loop in `navigate_to_anywhere` already turns partial progress
+    into a journey, so one border per iteration is enough.
+
+    ‼‼ **DEFAULT OFF (`POKEBOT_CONNECTION_STEP=1` to enable). MEASURED HARMFUL AS WRITTEN.**
+    It does cross the border (live A/B: old dies on ROUTE120, new reaches ROUTE121) — but it
+    then STRANDS the bot. From the tile it chose, ROUTE121 (21,5), `calculate_path` cannot reach
+    ROUTE121's own south edge ((10,19)/(20,19)/(0,19)), nor (22,12), nor (25,16) — so the onward
+    route to ROUTE122 is sealed off. Route 121 has a north band and a south band that do not
+    connect in the sampled region, and **the lattice below scans `y` from the TOP, so it is
+    biased toward NORTHERN tiles — the wrong end when the target is south.**
+
+    Two things must be fixed before this is enabled by default:
+      1. **Aim the tile choice at the onward route.** `map_path.py` gives every edge-connected
+         map a global `offset` and a shared `level` (`PathTile.global_coordinates`), which is the
+         principled way to say "pick the candidate nearest where we go next". A first-walkable
+         lattice scan is a coin flip.
+      2. **Remember rejected step targets** (the `used_warps` pattern) so a re-plan offers a
+         DIFFERENT tile instead of re-deriving the same one.
+    ‼ And it must be BATCH-validated: this runs BEFORE the unvalidated `region_route[0]` branch,
+    so it can divert journeys that succeed today. That is a whole-game regression vector, and
+    this project has shipped three such regressions in one week by not measuring first.
+
+    Returns `(map, tile)` to walk to, or None to leave existing behaviour untouched.
+    """
+    import os
+
+    from modules.map import get_map_data
+
+    if os.environ.get("POKEBOT_CONNECTION_STEP", "0").strip() not in ("1", "true", "True"):
+        return None
+
+    route = graph.map_route(current_map, target_map)
+    if not route:
+        return None
+    next_map = tuple(route[0])
+    # ‼ ONLY for a genuine border crossing. If the next hop is reached by a WARP, the warp
+    # pickers above own it — walking "to" it here would duplicate their job and bypass the
+    # `used_warps` bookkeeping that stops ping-pong.
+    if next_map not in graph.connections.get(tuple(current_map), set()):
+        return None
+
+    try:
+        head = get_map_data(next_map, (0, 0))
+        width, height = head.map_size
+        # ‼ NEVER offer a warp tile. Walking onto a warp FIRES it, so the trip would end one
+        # map PAST the intended step and report success (08-MISTAKES 2026-08-05, twice).
+        warp_tiles = {tuple(w.local_coordinates) for w in head.warps}
+    except Exception:  # noqa: BLE001 — an unreadable map simply means "no opinion"
+        return None
+
+    step_x = max(1, width // _CONNECTION_SAMPLES)
+    step_y = max(1, height // _CONNECTION_SAMPLES)
+    candidates = []
+    for y in range(1, height, step_y):
+        for x in range(1, width, step_x):
+            tile = (x, y)
+            if tile in warp_tiles or (next_map, tile) in used_steps:
+                continue
+            try:
+                if not get_map_data(next_map, tile).collision:
+                    candidates.append(tile)
+            except Exception:  # noqa: BLE001
+                continue
+
+    # ‼ AIM THE CHOICE AT THE ONWARD ROUTE. Taking the first walkable tile is a coin flip with a
+    # SYSTEMATIC BIAS — the lattice scans `y` from the TOP, so it favours northern tiles. That is
+    # exactly how this stranded the bot on 2026-08-05: stepping ROUTE120 -> ROUTE121 it picked
+    # (21,5) in Route 121's NORTH band, from which Route 121's own south edge is unreachable,
+    # sealing off ROUTE122 (which lies south).
+    #
+    # `map_path` gives every edge-connected map a global `offset` and a shared `level`, so
+    # candidates and the map we head for NEXT can be compared in one coordinate space. Aim at
+    # the centre of the map AFTER next (not the final target, which is usually an interior map
+    # on a different level and therefore not comparable).
+    aim = _global_aim_point(route[1]) if len(route) > 1 else None
+    if aim is not None:
+        aim_xy, aim_level = aim
+        here = _global_aim_point(next_map)
+        if here is not None and here[1] == aim_level:
+            offset_x = here[0][0] - width // 2
+            offset_y = here[0][1] - height // 2
+            candidates.sort(
+                key=lambda t: (offset_x + t[0] - aim_xy[0]) ** 2 + (offset_y + t[1] - aim_xy[1]) ** 2
+            )
+
+    for tile in candidates[:_CONNECTION_VALIDATIONS]:
+        if _walk_is_possible(next_map, tile, avoid_encounters, avoid_scripted_events):
+            used_steps.add((next_map, tile))
+            return next_map, tile
+    return None
+
+
+def _global_aim_point(map_group_and_number):
+    """`((global_x, global_y), level)` for a map's CENTRE, or None if it has no global offset.
+
+    Offsets are only comparable WITHIN a `level` (map_path assigns one per edge-connected
+    cluster), so the caller must check the levels match before comparing distances.
+    """
+    try:
+        from modules.map_path import _get_map_metadata
+
+        path_map = _get_map_metadata(tuple(map_group_and_number))
+        if path_map.offset is None:
+            return None
+        return (
+            path_map.offset[0] + path_map.size[0] // 2,
+            path_map.offset[1] + path_map.size[1] // 2,
+        ), path_map.level
+    except Exception:  # noqa: BLE001 — no opinion is always a safe answer here
+        return None
+
+
 def _walk_is_possible(
     map_group_and_number: tuple[int, int],
     coordinates: tuple[int, int],
@@ -320,6 +454,10 @@ def navigate_to_anywhere(
     #: Warps already taken on THIS journey. Without it a re-plan after arriving can pick
     #: the warp straight back where it came from and ping-pong until `_MAX_LEGS`.
     used_warps: set = set()
+    #: Connection-step targets already walked to on THIS journey. Without it a re-plan that
+    #: lands back on the same map re-derives the SAME tile forever — the `used_warps` lesson
+    #: ("a deterministic picker re-picks a failed choice unless the failure is REMEMBERED").
+    used_steps: set = set()
     #: Maps we have already stood on during THIS journey. Used to deprioritise a warp that
     #: would take us somewhere we have already been — see `_staged_progress_warp`, which is
     #: where the ROUTE116 <-> RUSTURF_TUNNEL ping-pong was closed.
@@ -413,6 +551,39 @@ def navigate_to_anywhere(
                 graph, current_map, target_map, used_warps,
                 avoid_encounters, avoid_scripted_events, visited_maps,
             )
+
+        if leg is None:
+            # --- 2c. CONNECTION STEP (2026-08-05) -----------------------------------
+            # No WARP validates — but the next hop may simply be the map next door, which
+            # neither picker above can express (both deal only in warps). Measured: the
+            # Fortree -> Mt. Pyre journey died on ROUTE120 while ROUTE121 was reachable in
+            # 79 waypoints, because ROUTE120 -> ROUTE121 is a CONNECTION.
+            #
+            # ‼ ORDER IS DELIBERATE: this sits AFTER both warp pickers (a real warp route is
+            # always preferred) and BEFORE the unvalidated `region_route[0]` branch below, so
+            # that branch stops being REACHED rather than being deleted. Deleting it outright
+            # would be the "remove a behaviour because its failure is loud" move that cost
+            # three regressions in one week — its own comment claims it keeps working
+            # cross-region journeys alive, and that claim is untested either way.
+            step = _connection_step(
+                graph, current_map, target_map, avoid_encounters, avoid_scripted_events, used_steps
+            )
+            if step is not None:
+                step_map, step_tile = step
+                context.message = f"Story: crossing into {_map_name(step_map)}…"
+                yield from _navigate_when_ready(
+                    navigate_to,
+                    step_map,
+                    step_tile,
+                    run=run,
+                    avoid_encounters=avoid_encounters,
+                    avoid_scripted_events=avoid_scripted_events,
+                )
+                yield from wait_for_player_avatar_to_be_standing_still()
+                # Counts against the leg budget: a border crossing is progress, and without
+                # this an oscillation between two maps would be unbounded.
+                legs_taken += 1
+                continue
 
         if leg is None:
             if region_route:

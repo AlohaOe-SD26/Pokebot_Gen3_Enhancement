@@ -155,15 +155,73 @@ def scroll_to_party_menu_index(target_index: int) -> Generator:
     ):
         yield
 
+    # ‼ KI-38 — THIS LOOP WAS `while True` AND IT IS THE PROJECT'S SINGLE BIGGEST BATTLE DRAG.
+    #
+    # Measured batch11 (`x4-runs/20260804-062303`): the KI-47 net fired 8 times and **7 of
+    # them were this site** (`handle_fainted_pokemon` frozen at
+    # `BattleScript_FaintedMonTryChoose`) — ~7 recoverable derails per 180-minute batch.
+    #
+    # ‼ KI-38 WAS RECORDED AS "FIXED 2026-07-31" BECAUSE HANGS WENT 11/12 → 1/8. That measured
+    # how often a wedge KILLED A RUN, not how often it HAPPENED. It never stopped happening.
+    #
+    # THE MODEL IS WRONG, WHICH IS WHY NO RETRY LIMIT EVER FIXED IT. `gPartyMenu[9]` is not a
+    # plain party index: KI-38 recorded `cursors_seen=[0,2,3,7]` in a FOUR-mon party, so the
+    # cursor also takes values that are not Pokémon slots at all (7 is the CANCEL button).
+    # `cursor < target -> Down` then walks the wrong way, or the value does not respond to
+    # presses at all, and the loop spins for ever.
+    #
+    # This does NOT pretend to fix the model — `#24-menutext` (read the menu TEXT) is still
+    # the real fix. It does three things a bound alone would not:
+    #   1. bounds the loop so it can never spin;
+    #   2. if the cursor does not MOVE for several presses, tries the opposite direction —
+    #      which self-corrects the commonest failure (a wrong direction guess from an
+    #      out-of-range sentinel) instead of pressing the same wrong key 273 times;
+    #   3. reports `cursors_seen`, which is the evidence `#24-menutext` needs to model the
+    #      cursor correctly. Every previous report of this bug lacked exactly that.
+    _MAX_CURSOR_PRESSES = 40
+    _STUCK_BEFORE_REVERSING = 6
+    presses = 0
+    stuck = 0
+    reversed_once = False
+    last_cursor = None
+    cursors_seen: list[int] = []
+
     while True:
         cursor = get_current_party_menu_index()
+        if not cursors_seen or cursors_seen[-1] != cursor:
+            cursors_seen.append(cursor)
 
         if cursor == target_index:
             break
-        elif cursor < target_index:
-            context.emulator.press_button("Down")
+
+        if presses >= _MAX_CURSOR_PRESSES:
+            reason = (
+                f"KI-38: party-menu cursor never reached index {target_index} after {presses} "
+                f"presses (party size {get_party_size()}, cursors seen: {cursors_seen}). "
+                f"The cursor model is wrong — see #24-menutext."
+            )
+            from modules.battle_fault import request_mode_recovery
+            from modules.modes import BotModeError
+
+            if request_mode_recovery(reason):
+                return
+            raise BotModeError(reason)
+
+        # The cursor is not responding to presses in the direction we chose. That is the
+        # out-of-range-sentinel case; reverse once rather than hammering the same key.
+        if cursor == last_cursor:
+            stuck += 1
         else:
-            context.emulator.press_button("Up")
+            stuck = 0
+            last_cursor = cursor
+        direction_down = cursor < target_index
+        if stuck >= _STUCK_BEFORE_REVERSING and not reversed_once:
+            direction_down = not direction_down
+            reversed_once = True
+            stuck = 0
+
+        context.emulator.press_button("Down" if direction_down else "Up")
+        presses += 1
         yield
         yield
 

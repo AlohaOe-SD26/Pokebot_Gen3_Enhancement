@@ -536,6 +536,48 @@ def _training_area_allowed(map_enum, tile, prereq) -> bool:
         return False
     if prereq not in (None, "surf", "region"):
         return False  # unknown prerequisite → fail closed
+    # ‼ ITEM GATE (2026-08-02). `is_map_reachable` answers at MAP granularity, so it says YES
+    # for ROUTE111 — its southern half really is walkable from Mauville — while the training
+    # tile (25,55) sits NORTH of the Go-Goggles desert. Measured in batch5: **28 events** of
+    # "ROUTE111 (25, 55) is not reachable from here — dropping it", about one wasted
+    # cross-Hoenn trek per run, paid to discover a fact the codebase already knew in prose.
+    # See `training_areas.AREA_ITEM_PREREQ`. Fails CLOSED, like every other gate here.
+    # ‼ OFF BY DEFAULT SINCE 2026-08-04 — THIS GATE COST MORE THAN IT SAVED, AND THE NUMBERS
+    # WERE AVAILABLE THE WHOLE TIME. I built it to stop 28 "dropping it as a training option"
+    # events per batch. Measured across the batch evidence:
+    #
+    #   batch          relocations to ROUTE111      Balance->Feather
+    #   b3 3875843c              19                       83%
+    #   b4 92d220d5              12                       75%
+    #   b5 b7345ffd              24                       70%
+    #   b8..b12 (gate ON)         0                    52-59%
+    #
+    # **ROUTE111 (L19-22) is the ONLY training relocation this bot ever performs.** The gate
+    # took its success rate from ~43% (24 successes against 32 failures in batch5) to ZERO,
+    # the team stopped being levelled for the post-Norman band, and the last funnel rung fell
+    # by ~20 points. I counted the wasted treks and never counted the successful ones.
+    #
+    # ‼ THIS IS THE SECOND TIME I MADE EXACTLY THIS MISTAKE IN A WEEK — the first was
+    # `#24-leadpolicy` (c), which removed a Shedinja lead that was winning 39% of Norman
+    # fights. 08-MISTAKES already carried the rule ("before removing a behaviour, count how
+    # often it WINS") and I applied it to the lead policy and not to this.
+    #
+    # The failures it targeted are ALREADY handled: `_note_training_unreachable` records a
+    # failed area for the rest of the run, so the cost is one trek per run, not per attempt.
+    # `POKEBOT_AREA_ITEM_GATE=1` restores it.
+    import os as _os
+
+    if _os.environ.get("POKEBOT_AREA_ITEM_GATE", "0").strip() in ("1", "true", "yes"):
+        try:
+            from modules.items import get_item_bag, get_item_by_name
+            from modules.story.training_areas import AREA_ITEM_PREREQ
+
+            needed_item = AREA_ITEM_PREREQ.get(map_enum)
+            if needed_item is not None:
+                if get_item_bag().quantity_of(get_item_by_name(needed_item)) <= 0:
+                    return False
+        except Exception:  # noqa: BLE001
+            return False
     # "region" carries no extra requirement here — it exists so the conservative
     # allow=None default refuses the area; the live reachability check below is its gate.
     try:
@@ -761,6 +803,13 @@ class StoryMode(BotMode):
     #: Flying; 6 is enough to separate bad luck from a wrong plan while costing far less
     #: than 41 whiteout cycles before we say so.
     PLATEAU_LOSS_THRESHOLD = 6
+    #: `#24-whiteoutloop` RUNAWAY BACKSTOP (2026-08-07). Losses at ONE map after which a flat
+    #: KO series overrides the type-chart "we have a credible answer" prediction entirely.
+    #: Deliberately far above PLATEAU_LOSS_THRESHOLD: this is not the primary detector, it is
+    #: the thing that stops a 32-loss run. Paired with a TWO-window (12-attempt) flatness test
+    #: so a recovering run — KI-26's run that lost 13 times and then reached Fortree — cannot
+    #: trip it. ‼ Never re-key this on attempt count alone; the KO series is the discriminator.
+    HARD_PLATEAU_LOSS_THRESHOLD = 12
 
     #: Defeats on ONE map (this run) after which wild battles there are fled rather than
     #: fought — see the SURVIVAL MODE block in `on_battle_started`. 3, not 6: the boss
@@ -876,6 +925,21 @@ class StoryMode(BotMode):
         self._ki15_nudge_pos = None
         # Organic team-building (user directive 2026-07-21): catch NEW species while
         # travelling to Gym 1 until the party has this many members (starter + helpers).
+        # ‼ 4 IS LOAD-BEARING — DO NOT RAISE IT AGAIN WITHOUT READING THIS.
+        # Raised 4 -> 6 on 2026-08-05 (`#24-partycap`) and REVERTED the same day by batch
+        # `20260805-122057` (be104e9c): finish rate 52.0% -> 15.8%, and the badge funnel put
+        # the entire loss on ONE rung — Balance->Feather 76% -> 21% (z=3.06). Every earlier
+        # rung was flat, so a deeper team is genuinely FREE through five badges.
+        #
+        # The cause is not team strength, it is **HM COVERAGE**. Filling the party with
+        # early-route wilds (Skitty/Mightyena/Loudred/Ninjask/Taillow) leaves no Surf learner
+        # and no slot to catch one, so the run derails at the Surf gate: "No party mon can
+        # learn Surf and the party is full" — 10 of 16 non-finishes, and ZERO occurrences in
+        # any of the 14 preceding batches.
+        #
+        # ‼ The empty slots were never waste — they are the RUNWAY the HM/counter catches
+        # land on. Measured: at cap 4 the team still reaches a mean of 5.85 by the Feather
+        # Badge. It fills up either way; letting wilds take the seats first is what breaks it.
         self._catch_team_target = 4
         # #24-counters phase 2: boss key -> what the counter hunt did, ONE entry per boss
         # per run. This dict IS the bound (see `_counter_ladder`) — a retry or frame
@@ -883,6 +947,17 @@ class StoryMode(BotMode):
         # loop after every lost attempt, which turns any per-call budget into a per-attempt
         # one. Per-RUN by construction, so the next run gets a fresh chance.
         self._counter_hunts: dict = {}
+        #: PERSONALITY VALUES of mons the counter chain caught this run (`#24-leadcounter`,
+        #: user ruling 2026-08-02). `_lead_best_matchup` promotes these over an EQUALLY SAFE
+        #: mon so the answer we travelled for actually fights — batch5 trained a Machoke to
+        #: L29 and then led Marshtomp L35 nine times.
+        #:
+        #: ‼ PER-RUN, and it lives on `self` for that reason. A module-level set would
+        #: survive between runs of an ENDLESS RESET batch and start promoting a Pokémon that
+        #: no longer exists — that is exactly the `#24-x4-staleslate` bug shape, where
+        #: per-run state was never reset and one batch produced almost no usable data.
+        #: ‼ PIDs, never slots: `#24-pc` now deposits mid-run, so a slot index goes stale.
+        self._hunted_counter_pids: set = set()
         # A hunt that was interrupted mid-flight (whiteout, derail) must not leave the
         # catch-on-sight targets armed for the rest of the run.
         try:
@@ -1200,6 +1275,43 @@ class StoryMode(BotMode):
             if recent_best > previous_best:
                 return False, []  # improving — the existing escalation path is working
 
+            # ‼‼ HARD PLATEAU (`#24-whiteoutloop`, added 2026-08-07). The party-answer test
+            # below is a PREDICTION from the type chart: "you own a ≥2.0-effective move of
+            # credible power, therefore this fight is winnable." A long flat KO series is a
+            # MEASUREMENT that says otherwise, and the measurement has to win eventually —
+            # otherwise an UNDERLEVELLED party holding a good move on paper never gives up.
+            #
+            # MEASURED (four batches, `analyse_defeat_loops.py`): of 53 sequences with >=3
+            # defeats at one map, the best-KO trend is FLAT in 37, improving in 15, worse in 1.
+            # The worst offender is exactly this shape — PETALBURG_CITY_GYM, **32 consecutive
+            # losses**, kos hovering at 2-3 the whole way, with a credible answer in the party
+            # the entire time. Whiteout-recovery exhaustion was the TOP end reason of batch
+            # `20260807-102552` (4 of 14 non-finishes).
+            #
+            # ‼ WHY THIS IS KEYED ON FLAT KOs AND NOT ON AN ATTEMPT COUNT — this is the whole
+            # design, not a detail. KI-26 records that a run lost **13 times** at ROUTE110 and
+            # then went on to reach Fortree, so a plain "give up after N" would have killed a
+            # recovering run. The KO series is the discriminator that warning lacked: a run
+            # whose KOs are CLIMBING never reaches this branch (the `recent_best > previous_best`
+            # return above fires first), and one flat across TWO six-attempt windows is not
+            # recovering. Twelve losses is deliberately far above PLATEAU_LOSS_THRESHOLD (6):
+            # this is the runaway backstop, not the primary detector.
+            hard_plateau = False
+            if losses >= self.HARD_PLATEAU_LOSS_THRESHOLD and len(history) >= 12:
+                recent_six = max(kos for _seq, kos in history[-6:])
+                previous_six = max(kos for _seq, kos in history[-12:-6])
+                hard_plateau = recent_six <= previous_six
+                if hard_plateau:
+                    console.print(
+                        # ‼ This prints BEFORE the answer test, so it must not claim anything
+                        # about the party's moves — an early draft said "despite the party
+                        # holding a type-effective move" and printed that on a party with no
+                        # answer at all (repro case 10).
+                        f"[bold yellow]Story: {losses} losses here and the KO count has not "
+                        f"improved across the last 12 (best {previous_six} -> {recent_six}) — "
+                        f"the plan is not working, so escalating instead of re-attempting.[/]"
+                    )
+
             # --- no-answer test: does any battler have a super-effective damaging move? ---
             if "ace_types" not in cfg:
                 return False, []
@@ -1212,7 +1324,12 @@ class StoryMode(BotMode):
             battlers = _battler_slots()
             if not battlers:
                 return False, []
-            for i in battlers:
+            # ‼ `hard_plateau` SKIPS THE WHOLE ANSWER TEST, it does not `break` out of the
+            # inner move loop. The first draft used a break — which exits only the move loop,
+            # so the NEXT battler could still `return False, []` and the escalation would fire
+            # or not depending on party order. A guard that works for party slot 0 and not for
+            # slot 3 is worse than none.
+            for i in (battlers if not hard_plateau else ()):
                 # STAB needs the carrier's own types; the decision repros pass
                 # lightweight stand-ins with no `species`, so treat that as "no STAB"
                 # rather than letting an AttributeError abort the whole diagnosis.
@@ -1341,7 +1458,7 @@ class StoryMode(BotMode):
                 attempts.append(f"{candidate['species_name']}@{map_enum.name}: known-unreachable")
                 continue
             try:
-                slot = yield from counter_hunt.hunt(candidate, needed)
+                caught = yield from counter_hunt.hunt(candidate, needed)
             except UnreachableDestinationError as error:
                 # ‼ A NAVIGATION failure is CHEAP (255 frames, fail-fast) and specific to
                 # ONE place, so it earns a fallback rather than ending the ladder. Record
@@ -1353,7 +1470,7 @@ class StoryMode(BotMode):
                     f"({error}) — trying the next counter destination.[/]"
                 )
                 continue
-            if slot is None:
+            if caught is None:
                 # ‼ ARRIVED AND CAUGHT NOTHING IS NOT THE SAME FAILURE, and must NOT
                 # fall through to another destination. It already cost a full
                 # HUNT_SPIN_BUDGET_FRAMES (120,000); doing it again somewhere else would
@@ -1364,6 +1481,51 @@ class StoryMode(BotMode):
                 return False
 
             self._counter_hunts[key] = f"caught {candidate['species_name']}"
+            # ‼ #24-leadcounter — remember WHICH mon this is, by PID, so the lead picker can
+            # actually field it. Recorded BEFORE training: training can evolve it (Machop ->
+            # Machoke at L28, seen 8x in batch5) and can derail, and the PID survives both.
+            # ‼ IMPORT IT HERE. `get_party` is NOT in this function's scope — every other
+            # user in this file imports it locally — so the original version raised NameError
+            # on every catch and the broad `except` below swallowed it. Result: the registry
+            # was ALWAYS empty and `#24-leadcounter` could never fire. Batch8 printed
+            # `hunted_pids=0` on all 684 lead decisions, which is how it was finally caught.
+            # A bare `except Exception` around bookkeeping hid a plain typo for two batches.
+            # ‼ `hunt()` returns a DICT since 2026-08-06: {"slot": int|None, "pid": int}.
+            # `slot is None` means the party was FULL and the catch went to the PC box.
+            slot = caught.get("slot")
+            pid = caught.get("pid")
+
+            # Register by PID for BOTH cases. This is what `#24-leadcounter` reads so the lead
+            # picker fields the counter, AND what `pc_trip.withdraw_from_box` is gated on, so a
+            # boxed catch is collected at the next heal. Registered BEFORE training: training
+            # can evolve it (Machop -> Machoke at L28, 8x in batch5) and can derail; the PID
+            # survives both.
+            # ‼ The old version indexed `get_party()[slot]` here and raised NameError because
+            # `get_party` was not in scope — the broad `except` swallowed it, the registry was
+            # ALWAYS empty, and `#24-leadcounter` could never fire. Batch8 printed
+            # `hunted_pids=0` on all 684 lead decisions. That is why the PID now comes from
+            # `hunt()` itself rather than being re-derived here.
+            if pid is not None:
+                self._hunted_counter_pids.add(pid)
+                where = "party" if slot is not None else "PC box"
+                console.print(
+                    f"[dim]Story: counter registered (pid={pid:08X}, in the {where}); "
+                    f"it will lead this boss and is protected from PC deposit.[/]"
+                )
+            else:
+                console.print("[yellow]Story: counter caught but its PID was unreadable — "
+                              "it will not be preferred as lead.[/]")
+
+            if slot is None:
+                # ‼ A BOXED COUNTER CANNOT BE TRAINED — it earns no XP in the PC. Skip rung 3
+                # rather than calling `train_counter(None, ...)`. The withdraw at the next heal
+                # puts it in the party; it arrives UNTRAINED, which is a known gap and is worth
+                # strictly more than the old behaviour (refuse the catch, end the run).
+                console.print(
+                    "[yellow]Story: the counter is in the PC box — skipping training; it is "
+                    "collected at the next heal. (Boxed mons gain no XP.)[/]"
+                )
+                return True
             yield from counter_hunt.train_counter(slot, cfg)
             return True
 
@@ -1781,10 +1943,68 @@ class StoryMode(BotMode):
                 from modules.pokemon_party import get_party as _gp_c
 
                 sp = getattr(getattr(encounter, "pokemon", None), "species", None)
+                # ‼ NO `party < 6` GATE HERE — deliberately, and unlike the HM branch above
+                # (`#24-pcoverflow` break 2, wired 2026-08-06). A catch with a full party is
+                # FULLY AUTOMATIC in Emerald: `Cmd_givecaughtmon` -> `GiveMonToPlayer` ->
+                # `CopyMonToPC`, no prompt, no input, deterministic destination box. The shiny
+                # branch at the top of this method already relies on exactly that.
+                #
+                # The old gate is why this feature never fired: the hunt would travel across
+                # Hoenn, arm the target, spin the full 120,000-frame budget, and REFUSE the
+                # catch — reporting "found nothing" while standing next to the answer. With
+                # 14 boxes x 30 = 420 slots against ~202 species, overflow is not a real risk;
+                # and if the PC ever were full the game simply refuses to throw the ball
+                # (`gText_BoxFull`), which is a no-op, not a lost Pokémon.
+                #
+                # ‼ The BALL gate stays. Never attempt a catch without a spare — that is the
+                # resource rule `resource_blocker` enforces, and it is unrelated to party space.
+                # ‼‼ GATED OFF (`POKEBOT_BOX_OVERFLOW_CATCH`, default 0) after batch
+                # `20260806-142418` graded it against its own pre-registered target and it
+                # FAILED: `withdrawing` **0** (target ≥1) and `INTO THE PC BOX` **0** — the
+                # path NEVER FIRED in 26 runs. Same batch: finish rate 52.0% → 30.8% and
+                # `global watchdog` 20 → 68.
+                #
+                # ‼ I am NOT claiming this change caused the regression — it is not supported.
+                # Of 43 watchdog STUCK dumps, only **10** had a full party; 33 were at party
+                # 4-5 where this gate has no effect. The wedges are battles with a mostly-dead
+                # team on `BattleScript_PrintCantEscapeFromBattle`, which is a battle-handler
+                # shape, not a catch shape. It is gated because it DELIVERED NOTHING, not
+                # because it was proven harmful.
+                #
+                # ‼ WHAT IS MISSING, and it is the reason it cannot work yet (user-identified
+                # 2026-08-06, then decomp-confirmed): a box-send shows an EXTRA TEXT BOX the
+                # party-catch path never shows, and the bot has NO handling for it —
+                # `grep` for `VAR_PC_BOX_TO_SEND_MON` or "sent to" across `modules/` returns
+                # ZERO. `Cmd_givecaughtmon` picks one of FOUR variants
+                # (`B_MSG_SENT_SOMEONES_PC` / `B_MSG_SOMEONES_BOX_FULL`, each +1 once
+                # `FLAG_SYS_PC_LANETTE` is set). Until that message is dismissed — and the
+                # destination box read from `VAR_PC_BOX_TO_SEND_MON` rather than parsed from
+                # text — enabling this risks wedging the battle exit on every full-party catch.
+                #
+                # ‼ The same gap applies to `StoryShinyCatchStrategy`, which claims to catch
+                # duplicates into the box and has almost certainly never been exercised.
+                import os as _os
+
+                # ‼ DEFAULT ON since 2026-08-07 — the CAPABILITY TEST PASSES.
+                # `story_harness.py post_mtpyre.ss1 --driver boxcatch` (full party of 6, empty
+                # box) measured, live:
+                #     RESULT      caught=True box_before=0 box_after=1 exited_clean=True
+                #                 exit_frames=120 box_var=0   (box_var 0 = BOX1, matches the
+                #                                              on-screen "placed in BOX1")
+                #     AFTER-CATCH usable=True second_catch=True frames=20 box_now=2
+                # i.e. the catch stored the mon, the battle exit settled with ZERO forced
+                # presses, and the bot then caught a SECOND mon into the box 20 frames later.
+                # The overflow path is not broken; it simply never had a full party when the
+                # counter hunt fired (batch `20260806-142418`: 10 counter catches, all to the
+                # party). Set to "0" to disable.
+                _allow_box_overflow = _os.environ.get(
+                    "POKEBOT_BOX_OVERFLOW_CATCH", "1"
+                ).strip() in ("1", "true", "True")
+                _party_has_room = len([m for m in _gp_c() if m is not None]) < 6
                 if (
                     sp is not None
                     and sp.national_dex_number in _chunt.COUNTER_CATCH_TARGET_DEX
-                    and len([m for m in _gp_c() if m is not None]) < 6
+                    and (_party_has_room or _allow_box_overflow)
                     and sum(sl.quantity for sl in get_item_bag().poke_balls) > 1
                 ):
                     # ‼ LOCAL IMPORT REQUIRED — the same trap that silently ate the HM
@@ -2201,6 +2421,21 @@ class StoryMode(BotMode):
             except Exception:
                 return False
 
+        def _done_var(var: str, at_least: int) -> bool:
+            # The `_done` treatment for event VARS, and it needs it MORE: `get_event_var`
+            # returns **-1** for a name that isn't in the table, so a typo does not merely
+            # read False — it reads a number that compares False against every threshold,
+            # forever, with no error. Mt. Pyre is gated on `MT_PYRE_STATE`, so a phantom name
+            # here would loop the last segment of the game silently.
+            from modules.memory import _event_vars, get_event_var
+
+            if var not in _event_vars:
+                raise BotModeError(f"Story: event-var name {var!r} is not in the table (typo/phantom name).")
+            try:
+                return int(get_event_var(var)) >= at_least
+            except Exception:
+                return False
+
         def _cur_map():
             try:
                 d = get_map_data_for_current_position()
@@ -2603,19 +2838,52 @@ class StoryMode(BotMode):
             from modules.map_data import PokemonCenter
             from modules.story.early_game import _lead_best_matchup, heal_in_pokemon_center
 
-            ace_type = "Grass"
+            # ‼ THE RIVAL'S ACE DEPENDS ON THE PLAYER'S STARTER — decomp-verified 2026-08-07
+            # from `src/data/trainer_parties.h` (`sParty_MayRoute110{Treecko,Torchic,Mudkip}`;
+            # the Brendan parties are identical in species and level):
+            #     player Treecko -> Wingull 18, Lombre 18, COMBUSKEN 20   (Fighting/Fire)
+            #     player Torchic -> Lombre 18, Slugma 18, MARSHTOMP 20    (Ground/Water)
+            #     player Mudkip  -> Wingull 18, Slugma 18, GROVYLE 20     (Grass)
+            # Type pairs re-checked against our own `modules/data/generated/pokedex_data.json`.
+            #
+            # ‼ THE OLD CODE NAMED ONLY THE PRIMARY TYPE ("Water" / "Fire" / "Grass"). That is
+            # right as far as it goes but incomplete, and effectiveness against a dual-type is
+            # the PRODUCT over BOTH types — the same reason Winona's cfg carries
+            # ("Dragon", "Flying") rather than just "Dragon". Naming the pair is what lets the
+            # boss machinery judge an answer correctly.
+            ace_types = ("Grass",)
             try:
                 from modules.pokemon_party import get_party as _gp
 
                 names = " ".join(p.species.name for p in _gp() if p is not None)
                 if any(s in names for s in ("Torchic", "Combusken", "Blaziken")):
-                    ace_type = "Water"
+                    ace_types = ("Ground", "Water")      # rival fields Marshtomp
                 elif any(s in names for s in ("Treecko", "Grovyle", "Sceptile")):
-                    ace_type = "Fire"
+                    ace_types = ("Fighting", "Fire")     # rival fields Combusken
             except Exception:
                 pass
+
+            # ‼ `#24-whiteoutloop` PART 1 (2026-08-07). This segment had NO `_prepare_for_fight`
+            # cfg at all, so none of the boss machinery ran here — no sufficiency gate, no
+            # plateau detection, no counter escalation, no give-up. ROUTE110 is the **#1 or #2
+            # defeat map in 4 of 4 measured batches** (91-120 defeats each) and, with
+            # LAVARIDGE_GYM, accounts for 48% of all defeats (1,079 / 2,236). KI-26 has flagged
+            # "no prep and no attempt cap" here since 2026-07-27; this is that fix.
+            #
+            # ‼ NO `grass` KEY ON PURPOSE. `_prepare_for_fight` explicitly supports a grass-less
+            # cfg ("No training grass exists for this boss … the re-attempt itself is the only
+            # trainer available"), and inventing a Route 110 training tile would be writing a
+            # game fact from recall — exactly what KI-44 punished. Everything that matters here
+            # (the plateau detector and the escalation) needs only `keys`/`band`/`ace_*`.
+            rival110_fight = {
+                "keys": [MapRSE.ROUTE110.value],
+                "band": (18, 20),  # Wingull/Lombre/Slugma 18, evolved starter 20
+                "ace_types": ace_types, "ace_level": 20,
+                "heal": PokemonCenter.SlateportCity,
+            }
+            yield from self._prepare_for_fight(rival110_fight)
             yield from heal_in_pokemon_center(PokemonCenter.SlateportCity)
-            yield from _lead_best_matchup([ace_type])
+            yield from _lead_best_matchup(list(ace_types), hunted_pids=self._hunted_counter_pids)
             yield from travel_route110_and_fight_rival()
         else:
             console.print("[dim]Story: Route 110 rival already beaten — skipping.[/]")
@@ -2649,7 +2917,7 @@ class StoryMode(BotMode):
                 "heal": PokemonCenter.MauvilleCity,
             }
             yield from self._prepare_for_fight(wattson_fight)
-            yield from _lead_best_matchup(["Electric"])
+            yield from _lead_best_matchup(["Electric"], hunted_pids=self._hunted_counter_pids)
             yield from heal_in_pokemon_center(PokemonCenter.MauvilleCity)
             yield from do_mauville_gym()
         else:
@@ -2787,7 +3055,33 @@ class StoryMode(BotMode):
                 heal_in_pokemon_center,
             )
 
-            yield from _lead_best_matchup(["Fire"])
+            # ‼ `#24-whiteoutloop` PART 1 (2026-08-07). This segment had NO
+            # `_prepare_for_fight` cfg, so none of the boss machinery ran here — no
+            # sufficiency gate, no plateau detection, no counter escalation, no give-up.
+            # LAVARIDGE_TOWN_GYM_1F is a **top-4 defeat map in 4 of 4 measured batches**
+            # (87/57/53/73) and the single worst runaway observed anywhere: **17 consecutive
+            # losses with a perfectly constant KO series, `kos=[3]*17`**.
+            #
+            # ‼ NO `grass` KEY — and that is not a gap, it is the documented state of this
+            # town (see the header above): a two-way pathability sweep
+            # (`tools/story-dev/jaggedgrass_probe.py`) found NO usable training grass, because
+            # Jagged Pass cannot be re-entered from Lavaridge and Route 112's lower grass has
+            # no return path. `_prepare_for_fight` supports exactly this shape — *"No training
+            # grass exists for this boss (e.g. Lavaridge). The re-attempt itself is the only
+            # trainer available"* — so the cfg buys the DETECTION and the ESCALATION without
+            # inventing a tile. Adding a swept Lavaridge tile is still `#24-trainmap`.
+            #
+            # Team decomp-verified 2026-08-07 (`src/data/trainer_parties.h`, `sParty_Flannery1`):
+            # Numel 24, Slugma 24, Camerupt 26, **Torkoal 29** (ace, holds a White Herb).
+            # Torkoal is pure Fire — checked against our own `pokedex_data.json`, not recalled.
+            flannery_fight = {
+                "keys": [MapRSE.LAVARIDGE_TOWN_GYM_1F.value, MapRSE.LAVARIDGE_TOWN.value],
+                "band": (24, 29),  # Numel 24 / Slugma 24 / Camerupt 26 / Torkoal 29
+                "ace_types": ("Fire",), "ace_level": 29,  # Torkoal L29
+                "heal": PokemonCenter.LavaridgeTown,
+            }
+            yield from self._prepare_for_fight(flannery_fight)
+            yield from _lead_best_matchup(["Fire"], hunted_pids=self._hunted_counter_pids)
             yield from heal_in_pokemon_center(PokemonCenter.LavaridgeTown)
             yield from do_lavaridge_gym()
         else:
@@ -2838,7 +3132,7 @@ class StoryMode(BotMode):
             # heal fix; the gate also spares pointless PC round-trips).
             if _cur_map() != MapRSE.PETALBURG_CITY_GYM.value:
                 yield from self._prepare_for_fight(norman_fight)
-                yield from _lead_best_matchup(["Normal"])
+                yield from _lead_best_matchup(["Normal"], hunted_pids=self._hunted_counter_pids)
                 yield from heal_in_pokemon_center(PokemonCenter.PetalburgCity)
             yield from do_petalburg_gym()
         else:
@@ -2964,19 +3258,31 @@ class StoryMode(BotMode):
             }
             if _cur_map() != MapRSE.FORTREE_CITY_GYM.value:
                 yield from self._prepare_for_fight(winona_fight)
-            yield from _lead_best_matchup(["Flying"])
+            yield from _lead_best_matchup(["Flying"], hunted_pids=self._hunted_counter_pids)
             yield from heal_in_pokemon_center(PokemonCenter.FortreeCity)
             yield from do_fortree_gym()
         else:
             console.print("[dim]Story: Feather Badge already earned — Gym 6 skipped.[/]")
         _guard("Gym 6 (Winona)", lambda: _done("BADGE06_GET"))
 
-        # END OF BUILT CONTENT. Next build (Ch14): Route 121 → Mt. Pyre exterior →
-        # Magma Emblem → Jagged Pass hideout → Maxie (§Ch12+ leads — decomp-verify,
-        # audit_flag_names, and probe every tile before wiring).
+        # --- Segment 14: Mt. Pyre (§Ch14-PRE + §Ch14a, built 2026-08-06). Two COORD
+        #     TRIGGERS, no conversations: Route 121's Aqua grunts move out, then the
+        #     summit scene hands over the Magma Emblem and opens the Magma Hideout. ---
+        from modules.story.early_game import do_mt_pyre_summit, open_route121_aqua_gate
+
+        if not _done_var("MT_PYRE_STATE", 1):
+            yield from open_route121_aqua_gate()
+            yield from do_mt_pyre_summit()
+        else:
+            console.print("[dim]Story: Mt. Pyre summit already done — skipping.[/]")
+        _guard("Mt. Pyre summit", lambda: _done_var("MT_PYRE_STATE", 1))
+
+        # END OF BUILT CONTENT. Next build: Magma Hideout (§Ch14 — DEFERRED: its door on
+        # JAGGED_PASS is only reachable from ABOVE, via the Route 112 cable car and a
+        # one-way descent, ~8 warps plus a scripted ride).
         context.message = (
-            "Story: FEATHER BADGE earned - end of built content. "
-            "NEXT (WIP): Mt. Pyre and the Magma hideout. Handing to manual."
+            "Story: MAGMA EMBLEM obtained - end of built content. "
+            "NEXT (WIP): the Magma hideout. Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         # ‼ Mark a GENUINE completion. Both this path and the give-up paths call

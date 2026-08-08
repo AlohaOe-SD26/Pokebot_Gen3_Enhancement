@@ -1605,7 +1605,8 @@ def _lead_strongest_battler() -> Generator:
         yield from _rotate_lead_safely(best)
 
 
-def _lead_best_matchup(foe_type_names, *, min_incoming_only: bool = True) -> Generator:
+def _lead_best_matchup(foe_type_names, *, min_incoming_only: bool = True,
+                       hunted_pids=None) -> Generator:
     """Put the CAPABLE battler that best resists the foe's ace type(s) in slot 0 — used
     before a TYPE-COUNTERED trainer where "lead strongest" is a trap. (Rustboro rival:
     if we started Mudkip, the rival leads a grass Grovyle, and our Marshtomp — Water/Ground
@@ -1675,10 +1676,30 @@ def _lead_best_matchup(foe_type_names, *, min_incoming_only: bool = True) -> Gen
         return not saw_move  # no readable damaging moves at all -> don't penalise
 
     def _glass_wonder_guard(mon) -> bool:
-        """Wonder Guard on a 1-HP body (Shedinja) — #24-leadpolicy option (c). It wins a
-        purely defensive score outright and is then deleted by any super-effective move,
-        which this type model cannot predict because it does not read the foe's movepool.
-        Measured batch5: led into Norman 9/9 and the trained counter sat in the bag."""
+        """Wonder Guard on a 1-HP body (Shedinja) — `#24-leadpolicy` option (c).
+
+        ‼ NOW OFF BY DEFAULT, AND THE MEASUREMENT SAYS WHY. I added (c) on the strength of a
+        SINGLE observed loss (P4's Shedinja dying to Slaking's Faint Attack) and never checked
+        how often it WON. `BADGE:` lines only print on a win, and the answer was in the logs
+        the whole time:
+
+            batch5 (before (c)):  Shedinja appears 12x — ALL 12 as a WINNING lead,
+                                  including 9 of the 23 Norman victories (39%).
+            batch7 (after (c)):   Shedinja appears 6x — 0 winning leads.
+                                  Balance Badges 23 -> 18; finish rate 47.1% -> 26.9%.
+
+        Wonder Guard makes Shedinja immune to Norman's ENTIRE Normal STAB, which is a genuinely
+        strong lead there; Faint Attack is the exception, not the rule. Demoting it removed a
+        lead that was winning.
+
+        ‼ This is a HYPOTHESIS under test, not a settled fact — batch7 carried five changes and
+        correlation is not causation. The flag exists so the A/B can be run instead of argued.
+        `POKEBOT_LEAD_DEMOTE_WONDER_GUARD=1` restores the batch7 behaviour.
+        """
+        import os
+
+        if os.environ.get("POKEBOT_LEAD_DEMOTE_WONDER_GUARD", "0").strip() not in ("1", "true", "yes"):
+            return False
         try:
             return getattr(mon.ability, "name", "") == "Wonder Guard"
         except Exception:
@@ -1688,6 +1709,20 @@ def _lead_best_matchup(foe_type_names, *, min_incoming_only: bool = True) -> Gen
     # tie-break, so the proven Rustboro-rival behaviour is unchanged; (a) and (c) only
     # reorder mons the old rule treated as equivalent, plus the Wonder Guard trap it
     # treated as ideal. Ruling (b) — weight the level gap — was NOT selected.
+    def _is_hunted_counter(mon) -> bool:
+        """Did the counter chain catch this exact mon for THIS boss? (`#24-leadcounter`.)
+
+        ‼ Matched by PERSONALITY VALUE, never by party slot. A slot goes stale the moment
+        anything reorders or deposits — and since `#24-pc` the bot now deposits mid-run, so a
+        slot-based identity would silently point at a different Pokémon. PID is immutable.
+        """
+        if not hunted_pids:
+            return False
+        try:
+            return mon.personality_value in hunted_pids
+        except Exception:  # noqa: BLE001 - an unreadable PID simply is not a counter
+            return False
+
     from modules.story.team_policy import lead_rank_key
 
     best = min(
@@ -1697,8 +1732,33 @@ def _lead_best_matchup(foe_type_names, *, min_incoming_only: bool = True) -> Gen
             can_attack=_can_attack(party[i]),
             glass_wonder_guard=_glass_wonder_guard(party[i]),
             level=party[i].level,
+            is_hunted_counter=_is_hunted_counter(party[i]),
         ),
     )
+
+    # ‼ LOG THE DECISION AND ITS INPUTS (added 2026-08-03). `#24-leadcounter` shipped without
+    # this and batch7 could not be diagnosed: 6 runs caught AND trained a Machop to L29 and
+    # every one of them still led something else into Norman, with nothing in the log saying
+    # whether `hunted_pids` was empty, whether the mon was a candidate, or how it scored. A
+    # decision with no trace is a decision nobody can debug — the same lesson as the KI-31
+    # relocation, which was `console.print`-only and made its own A/B unevaluable.
+    try:
+        from modules.console import console
+
+        _tag = lambda i: (  # noqa: E731
+            f"{getattr(party[i].species, 'name', '?')}L{party[i].level}"
+            f"[in={_incoming(party[i]):g}"
+            f"{',atk' if _can_attack(party[i]) else ',NOATK'}"
+            f"{',WG' if _glass_wonder_guard(party[i]) else ''}"
+            f"{',COUNTER' if _is_hunted_counter(party[i]) else ''}]"
+        )
+        console.print(
+            f"[dim]Story: lead vs {'/'.join(foe_type_names)} -> {_tag(best)} "
+            f"(from {' '.join(_tag(i) for i in slots)}; "
+            f"hunted_pids={len(hunted_pids or ())})[/]"
+        )
+    except Exception:  # noqa: BLE001 - logging must never affect the choice
+        pass
     if best != 0:
         yield from _rotate_lead_safely(best)
 
@@ -1784,6 +1844,22 @@ def _battler_slots() -> list[int]:
 #: two-way sweep proved exactly that: FIERY_PATH (18,19) is reachable OUT from Lavaridge,
 #: but the return leg failed *inside the cave* — the tile could not be promoted until
 #: this table existed.
+#:
+#: ‼‼ THE PARAGRAPH ABOVE IS HISTORY — IT STOPPED BEING TRUE ON 2026-07-31. `#24-journey`
+#: made `navigate_to_anywhere` a multi-hop, self-replanning, live-validated warp navigator,
+#: and `_navigate_riding_out` wraps it. MEASURED 2026-08-05 (`--driver cavethread`), with
+#: NO table involved in either direction:
+#:     IN  DEWFORD_TOWN -> ROUTE106 -> GRANITE_CAVE_1F -> B1F -> **B2F**  (3 warps)
+#:     OUT GRANITE_CAVE_B1F -> GRANITE_CAVE_1F -> ROUTE106 -> **DEWFORD_TOWN**
+#: So these two tables are now REDUNDANT, not load-bearing. They are kept because they are
+#: harmless and cheap (a pre-step that threads one door via `_enter_warp_by_navigation`,
+#: which handles warp tiles correctly) — but do NOT build a deeper "chain table" on the
+#: premise above. `#24-cavethread` was scoped that way and the premise was already stale.
+#:
+#: ‼ THE ONE REAL GOTCHA, demonstrated twice: **NEVER pass a WARP TILE as a navigation
+#: destination.** Walking onto a warp FIRES it, so the trip ends one map PAST the target and
+#: the navigator reports success. Both probe runs hit this — a B2F ladder bounced the bot up
+#: to B1F, and a Dewford door put it inside DEWFORD_TOWN_HOUSE1. Target a plain walkable tile.
 _CAVE_EXITS: dict = {
     # -> ROUTE106. The Dewford-arc training spot; verified 2026-07-22.
     MapRSE.GRANITE_CAVE_1F: (37, 12),
@@ -2199,7 +2275,10 @@ def catch_starter_team(
     heal_center: "PokemonCenter" = PokemonCenter.RustboroCity,
 ) -> Generator:
     """Spin in grass catching NEW species until the party reaches ``target_size``
-    (organic team-building before the first gym, user directive 2026-07-21). The
+    (organic team-building before the first gym, user directive 2026-07-21).
+    ‼ ``target_size`` was raised 4 -> 6 on 2026-08-05 (`#24-partycap`) and REVERTED the same
+    day — it cost 36 points of finish rate by crowding out the party's HM runway. Read
+    ``StoryMode._catch_team_target`` before touching it. The
     catch-vs-fight decision per encounter is made by ``StoryMode.on_battle_started``
     (only NEW species, never a dup, never a shiny). Stops early if we run low on
     Poké Balls or hit a safety guard; a whiteout is handled by run()."""
@@ -4395,6 +4474,35 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
         except Exception:
             return set()
 
+    # ‼ `#24-hmteachloop` INSTRUMENTATION (2026-08-07). Four budget configurations were batched
+    # (7 / 8 / 9 / 4 failures) and NONE of them could say WHICH of this flow's exits fired,
+    # because only the SUCCESS path emitted an event (`TEACH OK`). Every hypothesis about the
+    # cause was therefore unfalsifiable, and the budget was tuned four times on a number that
+    # governs only failures. This emits one `TEACH EXIT` line per non-success exit, carrying the
+    # frame, the live task set, the learn-move state and the target's moves — enough to tell a
+    # stall-misfire from a genuine wedge from a never-appeared task WITHOUT another batch.
+    # It changes no control flow: read it, diagnose, then fix.
+    def _teach_exit(reason: str, frame: int | None = None) -> None:
+        try:
+            from modules import debug_logger
+            from modules.battle_move_replacing import get_learn_move_state as _lms
+
+            try:
+                _state = str(_lms())
+            except Exception:  # noqa: BLE001
+                _state = "<unreadable>"
+            try:
+                _moves = [l.move.name for l in _mon().moves if l is not None]
+            except Exception:  # noqa: BLE001
+                _moves = ["<unreadable>"]
+            debug_logger.event(
+                f"TEACH EXIT reason={reason} move={target_move.name} "
+                f"slot={party_index} replace_slot={replace_slot} frame={frame} "
+                f"tasks={sorted(_tasks())} learn_state={_state} moves={_moves}"
+            )
+        except Exception:  # noqa: BLE001 - telemetry must never break the teach
+            pass
+
     def _wait_for(task_name: str, *, press: str | None = None, cap: int = 900) -> Generator:
         for _f in range(cap):
             if task_name in _tasks():
@@ -4402,6 +4510,7 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
             if press and _f % 12 == 0:
                 context.emulator.press_button(press)
             yield
+        _teach_exit(f"never-appeared:{task_name}", cap)
         raise BotModeError(f"Teach flow: {task_name} never appeared.")
 
     from modules.tasks import get_tasks
@@ -4419,17 +4528,51 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
     context.emulator.press_button("A")
     yield from wait_for_n_frames(30)
     # Either it learns instantly (<4 moves) or the replace YES/NO comes up.
+    #
+    # ‼‼ `#24-teachpathrace`, FIXED 2026-08-07 — a SECOND teach bug, caught by the `TEACH EXIT`
+    # telemetry in its very first batch (4 of 37 teaches, ~11%, all fatal):
+    #     TEACH EXIT reason=ride:hard-cap post_select=instant-learn move=Surf frame=8999
+    #                tasks=['ListMenuDummyTask', 'Task_BagMenu_HandleInput', …]
+    #                moves=['Take Down', 'Mud Shot', 'Rock Smash', 'Muddy Water']
+    # **`instant-learn` on a mon with FOUR moves is a contradiction, and that is the whole
+    # diagnosis.** `Task_HandleChooseMonInput` is STILL UP for a while after the mon is chosen,
+    # so on a slow frame it wins this race before `Task_ReplaceMoveYesNo` appears. The loop then
+    # declared the instant-learn path, the guarded `if "Task_ReplaceMoveYesNo" in _tasks():`
+    # block below was skipped entirely, the replace prompt was never answered, and the flow rode
+    # out the whole 9,000-frame cap stuck in the BAG without learning the move.
+    #
+    # ‼ THE RULE: **a task that is present on BOTH paths cannot discriminate between them.**
+    # The instant-learn exit now requires POSITIVE evidence — a genuinely free move slot, or the
+    # move already known. With four moves there is no instant-learn path to take, so the only
+    # legitimate exits are the replace prompt or the move being learned.
+    _free_slots = [i for i, l in enumerate(_mon().moves) if l is None]
+    _may_instant_learn = bool(_free_slots)
+
+    def _knows() -> bool:
+        return any(l is not None and l.move.name == target_move.name for l in _mon().moves)
+
+    _post_select_exit = "exhausted"
     for _f in range(900):
         t = _tasks()
         if "Task_ReplaceMoveYesNo" in t and "Task_PrintAndWaitForText" not in t:
+            _post_select_exit = "replace-prompt"
             break
-        if "Task_PartyMenuReplaceMove" in t or "Task_HandleChooseMonInput" in t:
-            break  # instant learn path
+        if _knows():
+            _post_select_exit = "instant-learn"
+            break  # the move is on the mon — this really was the free-slot path
+        if _may_instant_learn and (
+            "Task_PartyMenuReplaceMove" in t or "Task_HandleChooseMonInput" in t
+        ):
+            _post_select_exit = "instant-learn-freeslot"
+            break
         if _f % 12 == 0:
             context.emulator.press_button("A")
         yield
-    def _knows() -> bool:
-        return any(l is not None and l.move.name == target_move.name for l in _mon().moves)
+    if _post_select_exit == "exhausted":
+        # ‼ This falls through SILENTLY into the ride loop, so a teach that never reached
+        # either branch has always looked identical to one that did. Not raising here is
+        # deliberate (the ride loop can still recover it) — but it must be visible.
+        _teach_exit("post-select-900-exhausted", 900)
 
     def _select_forget_slot() -> Generator:
         # The overworld summary move-select CURSOR STARTS AT SLOT 0 (probed) — press
@@ -4450,11 +4593,132 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
     # Ride the 'Poof!'/learned messages out STATE-AWARE (a blind A/B mash re-answers
     # the yes/no prompts in a loop — run 3 ping-ponged between 'wants to learn' and
     # 'Stop trying to teach?' until the frame cap died).
-    for _f in range(3000):
+    #
+    # ‼‼ THE BUDGET IS PROGRESS-AWARE, NOT FLAT (`#24-hmteachloop`, fixed 2026-08-06).
+    # It was `range(3000)`, and that expired while the teach was STILL PROGRESSING —
+    # measured on batch `20260806-055947`: **7 of 19 Surf teaches** raised
+    # "Teach flow finished but <mon> does not know Surf", and the move was then learned
+    # **1,867-1,878 frames later** (σ≈4) in every single case. The raise derailed the run,
+    # which restarts `_play()` from the top of the chapter ladder — that reprint of the
+    # whole "already done" litany is what the user saw as "it loops after teaching an HM".
+    #
+    # WHY THOSE 7 AND NOT THE OTHER 35: all 7 start with the NORMAN BATTLE TAIL still
+    # resident (`callback=ReturnFromBattleToOverworld`), which stretches the dialogue chain
+    # past 3,000 frames. Rock Smash (23/23 clean) ends on a quiet map; the Zigzagoon Surf
+    # path (12/12 clean) burns 10-19k frames hunting first AND an L3 mon has a free slot,
+    # so there is no replace dialogue at all.
+    #
+    # ‼ A SETTLE-AND-RECHECK WOULD HAVE FIXED 0 OF 7 — they needed ~1,872 frames, not 300.
+    #
+    # ‼‼ THE STALL DETECTOR IS BACK, AND REMOVING IT WAS MY ERROR. Three configurations have
+    # now been batched, and the failure count is FLAT while the finish rate is not:
+    #     flat 3000, no stall      -> 7 failures, finish 37.5%  (`20260806-055947`)
+    #     9000 cap + 900 stall     -> 8 failures, finish 52.0%  (`20260806-103811`)  <-- BEST
+    #     9000 cap, NO stall       -> 9 failures, finish 30.8%, watchdog 20 -> 68 (`20260806-142418`)
+    #
+    # 7 / 8 / 9 is noise; I read the 7 -> 8 as "the stall detector made it worse" and removed
+    # it. It did not. What it actually did was make each FAILURE CHEAP.
+    #
+    # WHY THAT MATTERS, from this batch's own data: every SUCCESSFUL teach exits in **35-86
+    # frames** (n=42). So the budget is irrelevant to successes and governs only failures —
+    # and without the stall break a failure burns the FULL 9,000 frames instead of ~900.
+    # That is ~8,100 wasted frames per failure, which is exactly the shape that feeds the
+    # 18,000-frame global watchdog.
+    #
+    # ‼‼ RESOLVED 2026-08-07 — AND TWO OF THE MEASUREMENTS ABOVE ARE WRONG. Read this before
+    # trusting any figure in this comment block.
+    #
+    # THE BUG: after the move was learned, the button ladder below fell through to a blind
+    # `A`-every-third-frame, and Gen 3 ends a bag teach on "teach it to another POKéMON?" —
+    # where A means YES. We re-armed the teach cycle ourselves until the cap expired. Full
+    # detail at the `if _knows()` branch below; `repro_hmteach_postlearn.py` pins it.
+    #
+    # ‼ "every SUCCESSFUL teach exits in 35-86 frames (n=42)" IS NOT THE RIDE. That figure came
+    # from `TEACH OK … in {_f} frames`, and `_f` had already been REBOUND by the menus-closed
+    # loop — it was measuring menu closing. The ride's real cost, once measured properly, was
+    # **8,999 frames — the entire cap — on a teach that had already succeeded.** The inference
+    # "the budget is irrelevant to successes and governs only failures" was drawn from the
+    # wrong loop, and the four tuning rounds followed from it.
+    #
+    # ‼ "7 / 8 / 9 is noise" was right for the wrong reason. Every config burned the whole cap
+    # after success; the stall detector could not help because the ping-pong keeps the state
+    # changing (`stall_peak=171` against a 900 threshold). Changing the cap only changed how
+    # much was wasted, never whether it was wasted — which is why four rounds moved nothing.
+    #
+    # A/B (`--driver teachfull`, `POKEBOT_HMTEACH_POSTLEARN_A`):
+    #     OLD  ride_exit=hard-cap  ride_frames=8999   learned=True
+    #     NEW  ride_exit=learned   ride_frames=479    learned=True
+    #
+    # `_TEACH_RIDE_HARD_CAP` stays ABSOLUTE: never "loop until progress", because this
+    # generator is re-entered by the derail dispatcher and an unbounded-while-progressing loop
+    # is the KI-34 shape that burned 23.9M frames.
+    from modules.battle_move_replacing import get_learn_move_state
+
+    # FAULT INJECTION for the `#24-hmteachloop` A/B (see the `_knows()` branch below).
+    # `POKEBOT_HMTEACH_POSTLEARN_A=1` restores the pre-fix behaviour — keep A-mashing after the
+    # move is learned — so the OLD arm can be measured on demand without reverting code.
+    # Default 0 = fixed. It exists because "the error stopped" is not proof a fix worked; an
+    # arm that reproduces the bug on request is.
+    import os as _os
+
+    _POSTLEARN_A = _os.environ.get("POKEBOT_HMTEACH_POSTLEARN_A", "0") == "1"
+
+    _TEACH_RIDE_HARD_CAP = 9000      # 1.85x the worst LEGITIMATE observed path (4,875)
+    _TEACH_RIDE_STALL_FRAMES = 900   # observable state frozen this long => wedged, stop cheaply
+    _stall = 0
+    _last_sig = None
+    _ride_exit = "hard-cap"
+    _stall_peak = 0
+    for _f in range(_TEACH_RIDE_HARD_CAP):
         if _knows() and get_game_state() is GameState.OVERWORLD and player_avatar_is_controllable():
+            _ride_exit = "learned"
             break
         t = _tasks()
-        if "Task_StopLearningMoveYesNo" in t:
+        # Progress signature: task set + learn-state + the target's own moves.
+        try:
+            _sig = (tuple(sorted(t)), str(get_learn_move_state()),
+                    tuple(l.move.name for l in _mon().moves if l is not None))
+        except Exception:  # noqa: BLE001 — an unreadable signature must never end the teach
+            _sig = None
+        if _sig is not None and _sig == _last_sig:
+            _stall += 1
+            _stall_peak = max(_stall_peak, _stall)
+            if _stall >= _TEACH_RIDE_STALL_FRAMES:
+                _ride_exit = "stall"
+                break  # frozen => fall through to the menus-closed guarantee, cheaply
+        else:
+            _stall = 0
+            _last_sig = _sig
+        if _knows() and not _POSTLEARN_A:
+            # ‼‼ THE `#24-hmteachloop` BUG, FOUND 2026-08-07. THIS IS THE USER'S REPORT
+            # VERBATIM: "it still loops trying to teach/get out of the teaching cycle AFTER it
+            # teaches an hm."
+            #
+            # Once the move IS learned, both replace branches below switch themselves off via
+            # `and not _knows()` — so every remaining frame fell through to the blind
+            # `_f % 3 == 0 -> A, else B` policy. But Gen 3 follows a bag teach with
+            # **"Do you want to teach <MOVE> to another POKéMON?"** (`Task_CallYesOrNoCallback`),
+            # and **A on that prompt means YES**: it reopens the party menu and re-enters the
+            # teach cycle, which the A-mash then drives again. The loop is not stuck — it is
+            # being actively re-armed, one frame in three, by our own buttons.
+            #
+            # Measured (`--driver teachfull`, Mightyena with 4 moves, the replace path):
+            #     TEACH EXIT reason=ride:hard-cap stall_peak=171 frame=8999
+            #                tasks=['ListMenuDummyTask', 'Task_CallYesOrNoCallback']
+            #                moves=[... 'Rock Smash' ...]   <- learned LONG before frame 8999
+            # It burned the FULL 9,000-frame cap on a teach that had already succeeded.
+            #
+            # ‼ THIS IS WHY FOUR BUDGET ROUNDS FAILED (7/8/9/4). The cap only ever decided how
+            # long to churn AFTER success, and the stall detector could never fire because the
+            # ping-pong keeps the state changing — `stall_peak=171` against a 900 threshold.
+            # The budget was never the knob, exactly as `03-PUNCH-LIST.md` insisted.
+            #
+            # After the move is learned there is nothing left to accept, so the only safe
+            # button is B: it declines "teach another", backs out of the bag, and cannot start
+            # an NPC conversation. The `_knows()` success test at the top of the loop then
+            # exits as soon as the overworld is genuinely back.
+            context.emulator.press_button("B")
+        elif "Task_StopLearningMoveYesNo" in t:
             context.emulator.press_button("B")  # NO — never give up on the teach
         elif "Task_ReplaceMoveYesNo" in t and not _knows():
             context.emulator.press_button("A")  # YES — replace
@@ -4466,6 +4730,27 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
         else:
             context.emulator.press_button("B")
         yield
+    # ‼ THE LINE THAT FOUR BUDGET ROUNDS WERE MISSING. `_ride_exit` distinguishes the three
+    # ways out of the ride, which demand OPPOSITE fixes and were indistinguishable before:
+    #   learned    — success (also logged as `TEACH OK` below; recorded here for the frame/peak)
+    #   stall      — the signature froze for 900f. ‼ If `_stall_peak` is ~900 on a teach that
+    #                LATER succeeds, the stall detector is MISFIRING on a slow-but-legitimate
+    #                scene (the signature cannot see text scrolling), and the fix is a better
+    #                signature — NOT a bigger budget.
+    #   hard-cap   — 9,000 frames of mashing with the state still changing = a genuine
+    #                ping-pong, and the button policy is the thing to fix.
+    # ‼‼ CAPTURE THE RIDE'S FRAME COUNT *HERE*, BEFORE ANY OTHER LOOP REBINDS `_f`.
+    # Python leaks a `for` variable into the enclosing scope, and the menus-closed loop below
+    # is ALSO `for _f in range(...)`. The success event at the end of this function reads `_f`
+    # — so `TEACH OK … in {_f} frames` has always reported the MENUS-CLOSED loop's iteration
+    # count, never the ride's. That is where "every SUCCESSFUL teach exits in 35-86 frames
+    # (n=42)" came from, and that figure is what justified "the budget governs only failures"
+    # and four rounds of budget tuning. **The ride duration was never actually measured.**
+    _ride_frames = _f
+    _teach_exit(
+        f"ride:{_ride_exit} stall_peak={_stall_peak} post_select={_post_select_exit}",
+        _ride_frames,
+    )
     # HARD menus-closed guarantee: the ride above can expire with the BAG still open
     # (seen on a 5-mon roll, batch run02) — and neither the derail recovery nor the
     # global watchdog can close a bag (they ride SCRIPTS; a menu isn't one). B out
@@ -4488,10 +4773,39 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
         yield
     yield from wait_until_truly_controllable()
     if get_game_state() is not GameState.OVERWORLD or _menu_task_active():
+        _teach_exit("menus-never-closed", 1200)
         raise BotModeError("Teach flow: could not close the menus back to the overworld.")
     if not _knows():
+        _teach_exit(f"not-learned-after-ride:{_ride_exit} stall_peak={_stall_peak}", _ride_frames)
+        # ‼ KEPT ON PURPOSE (`#24-hmteachloop`, 2026-08-06). The bug was the BUDGET, not this
+        # raise — it is the only in-flow detector of a genuinely failed teach, and it names the
+        # mon and the move. `_guard("Teach Surf (Ch12c)")` would still catch a real failure one
+        # segment later, but with no diagnostic. Deleting a guard because its failure was loud
+        # is the pattern behind three reverts in one week.
         raise BotModeError(f"Teach flow finished but {_mon().species.name} does not know {target_move.name}.")
     context.message = f"Story: {_mon().species.name} learned {target_move.name}!"
+    # ‼ THE `context.message` ABOVE IS UNOBSERVABLE AND CANNOT BE THE PROOF. `[STEP]` only
+    # fires when the message CHANGES, and the next segment overwrites it immediately —
+    # measured: `[STEP] '…learned…'` appears **0** times against 42 real teaches (positive
+    # control: `got HM06 Rock Smash!` is also 0 on that surface). Without this event line the
+    # fix has no success counter, only the absence of a failure counter — and "the error
+    # stopped" is exactly how a suppressed feature looks identical to a working one.
+    # ‼ `from modules import debug_logger` — the module is `modules/debug_logger.py` with a
+    # module-level `event()`. I first wrote `from modules.debug import debug_logger`, which is
+    # wrong, and the `except` below would have swallowed the ImportError and silently produced
+    # no telemetry at all — the SECOND time in this one function that a bare except nearly hid
+    # a broken import. Idiom copied from `story_mode.py:666`, which does it correctly.
+    from modules import debug_logger
+
+    # ‼ `ride_frames` is the RIDE loop's count (captured before the menus loop rebound `_f`);
+    # `close_frames` is the menus-closed loop's. The old line printed the latter and called it
+    # the former — see the capture note above. Both are reported now so the two can never be
+    # confused again, and so the ride budget finally has a real distribution behind it.
+    debug_logger.event(
+        f"TEACH OK {_mon().species.name} learned {target_move.name} "
+        f"ride_frames={_ride_frames} ride_exit={_ride_exit} stall_peak={_stall_peak} "
+        f"post_select={_post_select_exit} close_frames={_f}"
+    )
 
 
 def get_rock_smash_hm() -> Generator:
@@ -6200,3 +6514,172 @@ def do_dewford_gym() -> Generator:
         yield
     yield from _wait_until_cutscene_over("B")
     context.message = "Story: KNUCKLE BADGE earned — Gym 2 (Brawly) beaten!"
+
+
+# ---------------------------------------------------------------------------
+# Chapter 14 - Mt. Pyre: the Route 121 Aqua gate, then the summit (Magma Emblem)
+#
+# ‼ EVERY constant here is ROM- or decomp-verified (design §Ch14-PRE + §Ch14a,
+# 2026-08-05). Nothing is recalled. Re-derive with:
+#     PROBE_MAPS=ROUTE121,ROUTE122,MT_PYRE_SUMMIT py -3.12 tools/story-dev/mapfacts.py
+#     gh api repos/pret/pokeemerald/contents/data/maps/Route121/map.json
+# ---------------------------------------------------------------------------
+
+#: `Route121_EventScript_AquaGruntsMoveOut` fires here (coord_event, VAR_ROUTE121_STATE == 0).
+#: Three Team Aqua grunts at (30,7)/(31,7)/(30,8) seal Route 121's ONLY corridor south
+#: (x=30-31); the script walks them off, `removeobject`s all three and sets the var to 1.
+#: ‼ Until it fires, `calculate_path` cannot reach Route 121's south edge, the corridor, or
+#: ANY Route 122 tile - measured 2026-08-05, WITH surf available. This is a STORY gate, and
+#: hours were spent debugging the navigator before that was measured (08-MISTAKES).
+ROUTE121_AQUA_GATE_TRIGGER = (25, 5)
+
+#: The plain walkable tile DIRECTLY BELOW Mt. Pyre's door on Route 122 (the door is (22,29)).
+#: ‼ NEVER navigate to the door itself: walking onto a warp FIRES it, so a warp tile is only
+#: ever an implicit destination. Targeting one ends the trip a map further on - and reports
+#: success (08-MISTAKES 2026-08-05, hit twice).
+ROUTE122_MT_PYRE_DOOR_APPROACH = (22, 30)
+
+#: `MtPyre_Summit_EventScript_TeamAquaExits` fires here (coord_event, VAR_MT_PYRE_STATE == 0).
+#: It removes Archie + 4 grunts, walks the Old Lady over UNPROMPTED, `giveitem
+#: ITEM_MAGMA_EMBLEM`, and sets FLAG_HIDE_JAGGED_PASS_MAGMA_GUARD - which is what opens the
+#: Magma Hideout. The bot never talks to anyone. A clean vertical corridor runs x=23 from the
+#: summit entrance (23,31) up to y=7.
+MT_PYRE_SUMMIT_TRIGGER = (23, 7)
+
+
+
+def _ch14_say(message: str) -> None:
+    """Set the status message AND print it.
+
+    ‼ WHY BOTH (batch `20260806-055947`). These milestones were `context.message` only, which
+    the GUI shows but which NEVER reaches a headless lane's stdout. The batch proved Segment 14
+    worked, but every progress line read 0 — so if it had failed mid-way there would have been a
+    guard error and no trace of HOW FAR it got. A chapter's milestones are its only in-flight
+    diagnostic; print them."""
+    from modules.console import console
+
+    context.message = message
+    console.print(f"[cyan]{message}[/]")
+
+
+def _route121_gate_open() -> bool:
+    """Have the Route 121 Team Aqua grunts moved out? (`VAR_ROUTE121_STATE >= 1`)
+
+    ‼ Name verified present in `modules/data/event_vars/emerald.txt:117` - `get_event_var`
+    returns **-1** for an unknown name, which would make this guard silently never fire."""
+    from modules.memory import get_event_var
+
+    return get_event_var("ROUTE121_STATE") >= 1
+
+
+def _mt_pyre_summit_done() -> bool:
+    """Has the summit scene run? (`VAR_MT_PYRE_STATE >= 1`; name verified at line 186.)
+
+    ‼ Deliberately NOT `HIDE_MT_PYRE_SUMMIT_MAXIE` (856): this project already recorded that
+    flag reading True on a save nowhere near Mt. Pyre, and the decomp explains why - 856 hides
+    an object that is only POSITIONED at state 2, a different visit."""
+    from modules.memory import get_event_var
+
+    return get_event_var("MT_PYRE_STATE") >= 1
+
+
+def open_route121_aqua_gate() -> Generator:
+    """Chapter 14a - walk onto the Route 121 trigger so the Team Aqua grunts move out.
+
+    INTENT: unseal the only corridor from Route 121's north band to its south band, which is
+    the sole land route toward Route 122 and Mt. Pyre.
+    STORY CONDITION: post-Winona, standing anywhere that can reach ROUTE121.
+    HOW IT WORKS: a COORD TRIGGER, not a conversation - step on (25,5) and the game runs
+    `Route121_EventScript_AquaGruntsMoveOut` itself.
+    GOAL/END STATE: `VAR_ROUTE121_STATE >= 1`, grunts gone, controllable."""
+    if _route121_gate_open():
+        return  # resume-safe: already done this run or a previous one
+
+    _ch14_say("Story: Mt. Pyre - clearing the Team Aqua grunts on Route 121...")
+    yield from _navigate_riding_out(MapRSE.ROUTE121, ROUTE121_AQUA_GATE_TRIGGER)
+    # The trigger fires ON the step, so control is taken immediately; ride the scene out.
+    yield from _ride_out_scripted_scene("B")
+    yield from wait_until_truly_controllable()
+
+    if not _route121_gate_open():
+        # ‼ Guard, never assume. A silent "no" here is indistinguishable from "the feature
+        # isn't running", which has cost this project time three times (KI-24, KI-39, KI-42).
+        raise BotModeError(
+            "Route 121: stepped on the Aqua-gate trigger at "
+            f"{ROUTE121_AQUA_GATE_TRIGGER} but ROUTE121_STATE is still 0 - "
+            "the grunts did not move out."
+        )
+    _ch14_say("Story: Route 121 is open - the Aqua grunts have moved out.")
+
+
+def do_mt_pyre_summit() -> Generator:
+    """Chapter 14b - climb Mt. Pyre's exterior to the summit and take the Magma Emblem.
+
+    INTENT: run the summit scene, which yields the Magma Emblem and sets
+    `FLAG_HIDE_JAGGED_PASS_MAGMA_GUARD` - the gate on the Magma Hideout (§Ch14).
+    STORY CONDITION: the Route 121 gate is open (`open_route121_aqua_gate` ran).
+    HOW IT WORKS: EXPLICIT SHORT LEGS rather than one generic
+    `navigate_to_anywhere(MT_PYRE_SUMMIT, ...)`. The route is
+    ROUTE122 -> MT_PYRE_1F -> EXTERIOR -> SUMMIT.
+
+    ‼ WHY SHORT LEGS - and note the reason is NOT what I first wrote. `calculate_path` DOES
+    span several connected maps (this chapter proves it: leg 1 runs Fortree -> ROUTE120 ->
+    ROUTE121 in one call). The 2026-08-05 failures that looked like a "two connections away"
+    limit were actually the Route 121 Team Aqua grunts BLOCKING the corridor - a blocked path,
+    not a topology limit. **The two errors are different strings and they mean different
+    things:** "are not on connected maps (note that warps don't count.)" = genuinely
+    unreachable; "Could not find a path from X to Y" = connected, but something is in the way.
+    Short legs are still right here because each one FAILS WHERE IT BROKE, naming the map that
+    is blocked, instead of reporting one opaque failure for a seven-map journey.
+    ‼ The interior tower (2F-6F) is a SKIPPABLE side dungeon and is deliberately not entered.
+    GOAL/END STATE: `VAR_MT_PYRE_STATE >= 1`, Magma Emblem in the bag, controllable."""
+    if _mt_pyre_summit_done():
+        return  # resume-safe
+
+    _ch14_say("Story: heading for Mt. Pyre...")
+    # Leg 1 - Route 122, standing BELOW the door (never on it; a warp tile fires on contact).
+    yield from _navigate_riding_out(MapRSE.ROUTE122, ROUTE122_MT_PYRE_DOOR_APPROACH)
+
+    # Leg 2 - in through the door, then out onto the exterior, then up to the summit. Each hop
+    # is one warp, entered by NAVIGATING ONTO its tile (which is how a warp is meant to be
+    # taken); `_enter_warp_by_navigation` handles the already-standing-on-it case and rides
+    # out interruptions. Paired doorways are ROM-verified: 1F<->R122 (17,18)+(18,18),
+    # 1F<->EXTERIOR (3,6)+(4,6), EXTERIOR<->SUMMIT (19,10)+(20,10).
+    yield from _enter_warp_by_navigation(
+        lambda: _map_group_number() == MapRSE.MT_PYRE_1F.value,
+        MapRSE.ROUTE122,
+        (22, 29),
+        label="Mt. Pyre door (Route 122)",
+    )
+    yield from wait_until_truly_controllable()
+
+    yield from _enter_warp_by_navigation(
+        lambda: _map_group_number() == MapRSE.MT_PYRE_EXTERIOR.value,
+        MapRSE.MT_PYRE_1F,
+        (3, 6),
+        label="Mt. Pyre 1F to exterior",
+    )
+    yield from wait_until_truly_controllable()
+
+    yield from _enter_warp_by_navigation(
+        lambda: _map_group_number() == MapRSE.MT_PYRE_SUMMIT.value,
+        MapRSE.MT_PYRE_EXTERIOR,
+        (19, 10),
+        label="Mt. Pyre exterior to summit",
+    )
+    yield from wait_until_truly_controllable()
+
+    # Leg 3 - walk the summit corridor (x=23) up to the trigger. ‼ The four Aqua grunts stand
+    # IN this corridor at (21,15)/(21,11)/(25,18)/(25,11), so expect sight-lines: this is a
+    # fight-through leg, which `_navigate_riding_out` handles by riding out and retrying.
+    _ch14_say("Story: Mt. Pyre summit - climbing to the orb chamber...")
+    yield from _navigate_riding_out(MapRSE.MT_PYRE_SUMMIT, MT_PYRE_SUMMIT_TRIGGER)
+    yield from _ride_out_scripted_scene("B")
+    yield from wait_until_truly_controllable()
+
+    if not _mt_pyre_summit_done():
+        raise BotModeError(
+            f"Mt. Pyre: reached the summit trigger at {MT_PYRE_SUMMIT_TRIGGER} but "
+            "MT_PYRE_STATE is still 0 - the Team Aqua scene did not run."
+        )
+    _ch14_say("Story: MAGMA EMBLEM obtained - Mt. Pyre summit complete.")

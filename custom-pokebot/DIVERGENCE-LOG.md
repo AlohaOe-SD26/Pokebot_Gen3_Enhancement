@@ -742,3 +742,50 @@ The chain now runs end to end and **the badge funnel has not moved** — batch5 
 to resolve). `#24-leadpolicy` A+C removed the fatal lead but **still does not field the
 counter**: it picks Marshtomp L35 over Machoke L29 because `can_attack` is binary and 2× STAB
 earns no credit. That open question is recorded in `04-HANDOFF.md`.
+
+
+---
+
+## 2026-08-08 — PROMOTION (BATCH-6): the whiteout/teach/counter round, sandbox → custom
+
+**User approval: explicit, 2026-08-08.** Last promotion was BATCH-5 (`2dba64d3`, 2026-08-02);
+**37 sandbox commits** landed since and custom was touched by none of them, so sandbox was a
+clean superset and this is a straight forward-port. Verified before copying (`git log -- custom-pokebot/`).
+
+**Promoted: 12 modified files + 1 new.**
+`modules/` — `battle_action_selection.py`, `battle_handler.py`, `battle_menuing.py`,
+`menuing.py`, `modes/util/global_navigation.py`, `modes/util/higher_level_actions.py`,
+`story/counter_hunt.py`, `story/counter_plan.py`, `story/early_game.py`, `story/team_policy.py`,
+`story/training_areas.py`; `plugins/custom_modes/story_mode.py`; **NEW** `modules/story/pc_trip.py`.
+`cache/*.json` synced. Residual code diff after the copy: **0 files**.
+
+### WHAT THIS ROUND CHANGES, and the evidence each carries
+
+| item | what it does | evidence |
+|---|---|---|
+| **`#24-pcoverflow`** (both halves) | a full party no longer refuses a catch — it overflows to the PC box, and the mon is collected at the next Poké Centre heal (`pc_trip.py`, piggybacked in `heal_in_pokemon_center`) | capability tests: `caught=True box 0→1`, then `withdrew=True … deposited=True`, 3 identical runs |
+| **`#24-hmteachloop`** | after an HM is learned the ride presses only **B**. It was A-mashing onto *"teach it to another POKéMON?"* — re-arming its own teach cycle for the full 9,000-frame cap | A/B **8,999 → 479** ride frames, same outcome |
+| **`#24-teachpathrace`** | the instant-learn exit needs a genuinely free move slot, not the mere presence of `Task_HandleChooseMonInput` (a task present on BOTH paths) | both branches live-proven, 479f / 252f |
+| **`#24-whiteoutloop`** | boss cfgs for **Flannery** and the **Route 110 rival** (neither had one), plus a hard plateau: 12 flat-KO losses override the type-chart "we have an answer" prediction | **batch-confirmed** `20260807-160545`: end reason 4 → **0**, watchdog 11 → **0**, deepest `defeat #N` **32 → 13** |
+| **`#24-movepoolcounters`** | a counter is a **move**, not a type — candidates qualify on a damaging, level-up-obtainable, credible-power move of a needed type. Plus huntability added to `tier` | **batch-confirmed** `20260807-200030`: `no huntable counter candidate` **25 → 0**; control `CAUGHT Machop` 4 → 6 |
+| **`#24-counterdesertgate`** | the planner honours `AREA_ITEM_PREREQ`, so it stops sending hunts to Route 111's Go-Goggles desert | A/B on the item, both arms, control held in both |
+
+### Post-promotion verification (on custom)
+All 13 promoted files parse. **Targeted imports only** — never a bulk import, which on 2026-08-01
+executed `modules/data/get_pret_maps.py` at import time and gutted `map_data.py` in both builds.
+Functional check run against `custom-pokebot` directly (not sandbox), with the standing positive
+control: `best_huntable` returns **Norman → Machop @ FIERY_PATH `via=type`** (control) and
+**Winona → Slugma @ FIERY_PATH `via=move:Rock Throw@L15`**, identical to sandbox;
+`pc_trip.withdraw_from_box` present. Counter/boss repro suite 11/11 green before promotion.
+
+### ‼ OUTSTANDING AT PROMOTION TIME — read before trusting this build
+* **`#24-counterdesertgate` has NO outcome proof.** It is A/B-proven offline but no batch has run
+  on it. Acceptance when one does: `counter hunt CAUGHT Slugma` > 0 with `CAUGHT Machop` unchanged.
+* **`#24-teachmsgstall` is OPEN and ships in this build.** A third teach bug: ~9 of 47 teaches
+  burn the 9,000-frame cap without learning Surf. Cause identified (the **Norman battle tail** is
+  still resident when Segment 12c teaches) but not fixed. It is pre-existing, not introduced here.
+* **`global watchdog` end reason went 0 → 4** in `20260807-200030`, new and undiagnosed —
+  plausibly the longer counter journeys this round enables.
+* **The finish rate has NOT moved resolvably.** 39.1% → 36.0% → 41.7% across the three batches;
+  every pairwise z is well under 1.96. Everything above is justified by near-binary counters, not
+  by a rate. Do not quote a finish-rate improvement for this round.

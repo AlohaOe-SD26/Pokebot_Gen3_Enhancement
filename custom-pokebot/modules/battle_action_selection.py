@@ -22,8 +22,52 @@ from modules.pokemon_party import get_party, get_party_size
 def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
     battle_state = get_battle_state()
     previous_battler_index = None
+    #: ‼ KI-46 — CONSECUTIVE FRAMES SPENT WITHOUT RECOGNISING THE BATTLE STATE.
+    #:
+    #: The loop's own exit conditions are sound (battle over, or the main callback moves on),
+    #: but if the battle stays ACTIVE in turn-action-selection while the CONTROLLER callback
+    #: is something none of the branches below match, control falls to the bare
+    #: `else: yield; continue` and spins there for ever.
+    #:
+    #: Measured batch10 (`x4-runs/20260803-164713`): lanes H2 and H8 both wedged here for ~59
+    #: minutes; **H8 completed 0 runs in the whole 180-minute batch** and H2 managed 2 against
+    #: 4-5 elsewhere. Their stacks stopped at `battle_action_selection.py:55` with **zero**
+    #: `_select_in_menu` dumps, so this is NOT KI-45 — that fix was one instance of a pattern,
+    #: and this is another.
+    #:
+    #: ‼ Both existing guards are structurally blind here, for the same reasons as KI-45: the
+    #: global watchdog needs an UNCHANGED progress signature and a battle keeps changing it,
+    #: and the per-run frame budget is KI-36's "cannot fire while a battle handler is on the
+    #: stack". An unbounded wait on this path has no safety net but its own bound.
+    #:
+    #: 600 frames is ~10 seconds. Any legitimate wait here is a few frames of animation; the
+    #: counter RESETS the moment a real decision is made, so a long multi-turn battle never
+    #: accumulates toward it.
+    _MAX_UNRECOGNISED_FRAMES = 600
+    unrecognised = 0
 
     while battle_is_active() and get_main_battle_callback() in ("HandleTurnActionSelectionState", "sub_8012324"):
+        if unrecognised >= _MAX_UNRECOGNISED_FRAMES:
+            # RAISE through the designed channel (see `modules/battle_fault`): one recoverable
+            # derail for a mode that opted in, rather than an infinite lane. The reason names
+            # the callbacks BECAUSE THAT IS THE DIAGNOSIS — the next reader needs to know
+            # which unrecognised state the game was actually in.
+            reason = (
+                f"KI-46: battle action selection stuck for {unrecognised} frames — "
+                f"main={get_main_battle_callback()!r} "
+                f"controller0={get_battle_controller_callback(0)!r}"
+            )
+            # ‼ IMPORT BOTH LOCALLY. `BotModeError` is NOT imported at this module's top, and
+            # a NameError here would be raised INSTEAD of the honest error — the same trap
+            # that made `#24-leadcounter` silently dead for two batches (08-MISTAKES
+            # 2026-08-03). Checked by `repro_ki46_action_selection_bound.py`, which drives
+            # this branch for real rather than reading the source.
+            from modules.battle_fault import request_mode_recovery
+            from modules.modes import BotModeError
+
+            if request_mode_recovery(reason):
+                return
+            raise BotModeError(reason)
         if get_battle_controller_callback(0) in ("HandleInputChooseAction", "sub_802C098", "bx_battle_menu_t6_2"):
             battler_index = 0
             if battle_state.is_safari_zone_encounter:
@@ -49,11 +93,34 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
         ):
             context.emulator.press_button("B")
             yield
+            unrecognised += 1
+            continue
+
+        elif get_battle_controller_callback(0) in (
+            # ‼ KNOWN WAIT STATES — recognised, so they must NOT count toward the KI-46 bound.
+            # Measured batch11 (`x4-runs/20260804-062303`): the KI-46 diagnostic named this
+            # exact callback — `controller0='CompleteOnInactiveTextPrinter2'` at Norman — and
+            # faulted a battle that was merely waiting for text to finish printing. That is
+            # the bound doing its job (it reported the state instead of spinning) AND a real
+            # gap in the branch list: the game IS progressing, we simply had no branch for it.
+            #
+            # Safe to wait rather than bound tightly, because the KI-47 net still backstops
+            # this whole handler at ~50s if the printer genuinely never completes.
+            "CompleteOnInactiveTextPrinter",
+            "CompleteOnInactiveTextPrinter2",
+        ):
+            yield
             continue
 
         else:
             yield
+            unrecognised += 1
             continue
+
+        # A branch above assigned `battler_index`, i.e. the state was recognised and a real
+        # decision was made. Clear the stall counter so a long multi-turn battle never
+        # accumulates toward the KI-46 bound.
+        unrecognised = 0
 
         if context.bot_mode == "Manual":
             yield
