@@ -20,7 +20,8 @@ game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror
 |---|---|
 | branch / HEAD | `main`, clean, pushed — see the newest commit |
 | story content | Littleroot → 6 badges → **Mt. Pyre → Magma Emblem**. Magma Hideout is UNLOCKED but UNBUILT. |
-| box idle | nothing running |
+| box idle | **‼ BATCH RUNNING — `20260808-095721`, launched 09:57 PDT, 8 lanes × 180 min, code `e84b814f`, due ~12:57.** 8 clean headers. **Do NOT edit `sandbox-pokebot/` until it lands.** |
+| **promotion** | **BATCH-6 PROMOTED 2026-08-08** (`e84b814f`) — sandbox → custom, on explicit user approval. 12 files + `pc_trip.py` + caches; residual code diff **0**. Verified ON CUSTOM (Norman→Machop control + Winona→Slugma). Outstanding items recorded in `custom-pokebot/DIVERGENCE-LOG.md`. **Sandbox and custom are now byte-identical in code**, so no re-base was needed. |
 | **latest batch** | **`20260807-200030` LANDED** — code `dd25ee59`, `VERDICT OK`, 32 headers, **0 violations, 0 restarts**. **24 runs, 10 finished (41.7%)**. ‼ vs 36.0%: **z = +0.41, NOT resolvable.** |
 | **‼ `#24-whiteoutloop` RESULT** | **ELIMINATED** (batch `20260807-160545`). `too many whiteout recoveries` **4 → 0**; `global watchdog` **11 → 0**; deepest `defeat #N` **32 → 13**; hard plateau fired 20×; LAVARIDGE defeats/run **−83%**. |
 | **‼ `#24-movepoolcounters` RESULT** | **CONFIRMED** (batch `20260807-200030`). `no huntable counter candidate` **25 → 0**; hunts started 13 → 18; new movepool picks (ROUTE111/Baltoy ×7 + 4 others); control `CAUGHT Machop` 4 → 6, no regression. |
