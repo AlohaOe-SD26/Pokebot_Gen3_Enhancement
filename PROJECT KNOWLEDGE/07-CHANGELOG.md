@@ -9156,3 +9156,36 @@ Two driver defects fixed along the way, both repeats of already-logged traps:
 **Stopped here deliberately** rather than iterate a fourth fixture at long context — the diagnosis
 is the valuable part and it is now specific, with the remaining work reduced to "give the probe a
 party that wins one gym fight".
+
+---
+
+## 2026-08-08 — health check + documentation staleness sweep
+
+Ran the `/health` checklist and a manual audit of the current-state docs. Six of seven health
+items PASS; the failures were all documentation drift, now repaired.
+
+**Repaired:**
+* `04-HANDOFF.md` STATE table named `20260807-160545` as the latest batch — **`20260807-200030`
+  had landed after it.** Replaced with the real figures and split the two results apart
+  (`#24-whiteoutloop` ELIMINATED; `#24-movepoolcounters` CONFIRMED), plus the current top failure
+  (`no super-effective answer` 10 of 14 non-finishes, and the new undiagnosed `global watchdog`
+  0 → 4). "Last updated" moved 2026-08-07 → 2026-08-08.
+* `03-PUNCH-LIST.md` open count **101 → 93**, all bookkeeping, nothing reprioritised: **5** items
+  were struck-through-but-still-`[ ]`, and **3** were HISTORY duplicates I created by prepending a
+  new version above the old one instead of editing in place. One of those was actively
+  misleading — the superseded `#24-winonaground` text still read "her counter can NEVER be
+  hunted", which is now false, while flagged open.
+  ‼ **Ten history duplicates now exist in total.** They are labelled and closed, not deleted:
+  `03` is a current-state file so removal is sanctioned, but deleting content is the user's call.
+* `14-AGENT-PLAYBOOK.md` claimed the repro suite is "~52 scripts". It is **81** — the figure went
+  unrevised while the suite nearly doubled.
+* `02-ARCHITECTURE.md` had not been revised since 2026-07-30 and named none of the capability-test
+  drivers (`boxcatch`, `boxwithdraw`, `teachfull`) or the offline planner probes. Added both,
+  including the standing warning that those probes need a POSITIVE CONTROL because
+  `find_counter_candidates` returns `[]` on any internal error.
+
+**Root cause of the drift, worth naming:** every one of these came from *appending* new truth
+beside old truth instead of replacing it — the exact failure mode the standing directive warns
+about for files `01`-`05` ("edit them in place so they always describe present reality"). The
+punch-list duplicates are the clearest case: prepending is cheap and safe-feeling in the moment,
+and it leaves two contradictory entries with the same ID.

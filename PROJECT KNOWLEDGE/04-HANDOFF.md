@@ -3,7 +3,7 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-08-07 — read "‼ YOU ARE HERE" immediately below.
+**Last updated:** 2026-08-08 — read "‼ YOU ARE HERE" immediately below.
 Every banner further down is HISTORY, newest first.
 
 ---
@@ -21,9 +21,10 @@ game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror
 | branch / HEAD | `main`, clean, pushed — see the newest commit |
 | story content | Littleroot → 6 badges → **Mt. Pyre → Magma Emblem**. Magma Hideout is UNLOCKED but UNBUILT. |
 | box idle | nothing running |
-| **latest batch** | **`20260807-160545` LANDED** — code `c335a204`, 180.1 min, `VERDICT OK`, 33 headers, **0 violations, 0 restarts**. 25 runs, 9 finished (36.0%). ‼ vs 39.1%: **z = −0.22, NOT resolvable.** |
-| **‼ `#24-whiteoutloop` RESULT** | **ELIMINATED.** End reason `too many whiteout recoveries` **4 → 0**; `global watchdog` **11 → 0**; **deepest `defeat #N` 32 → 13**; hard plateau fired **20×**; LAVARIDGE defeats/run **−83%**, ROUTE110 **−40%**, whiteouts/run **−26%**. |
-| **‼ TOP FAILURE NOW** | `no super-effective answer` = **12 of 16 non-finishes (75%)** — Winona 6, Norman 3, Wattson 3. The counter chain is essentially the whole remaining failure mode ⇒ **`#24-winonaground` is the #1 item.** |
+| **latest batch** | **`20260807-200030` LANDED** — code `dd25ee59`, `VERDICT OK`, 32 headers, **0 violations, 0 restarts**. **24 runs, 10 finished (41.7%)**. ‼ vs 36.0%: **z = +0.41, NOT resolvable.** |
+| **‼ `#24-whiteoutloop` RESULT** | **ELIMINATED** (batch `20260807-160545`). `too many whiteout recoveries` **4 → 0**; `global watchdog` **11 → 0**; deepest `defeat #N` **32 → 13**; hard plateau fired 20×; LAVARIDGE defeats/run **−83%**. |
+| **‼ `#24-movepoolcounters` RESULT** | **CONFIRMED** (batch `20260807-200030`). `no huntable counter candidate` **25 → 0**; hunts started 13 → 18; new movepool picks (ROUTE111/Baltoy ×7 + 4 others); control `CAUGHT Machop` 4 → 6, no regression. |
+| **‼ TOP FAILURE NOW** | `no super-effective answer` = **10 of 14 non-finishes (71%)** — Winona 5, Norman 3, Grass 1, Fire 1. Plus **`global watchdog` 0 → 4**, new and undiagnosed. |
 | `#24-pcoverflow` | **BOTH HALVES LIVE-PROVEN 2026-08-07** — catch (`--driver boxcatch`) and withdraw (`--driver boxwithdraw`). |
 
 ## ‼‼ READ THIS BEFORE GRADING ANYTHING — the finish rate CANNOT resolve a change

@@ -198,4 +198,17 @@ done
   lane processes** — skip it unless you mean it.
 - Use a **~90s per-script timeout**; 25s misreports slow-but-healthy scripts as errors.
 - The faithful end-to-end harness is `tools/story-dev/story_harness.py` (needs a real mgba).
+  Its `--driver` list is the project's main debugging surface; the ones added since this file was
+  last revised (2026-08-08) are **capability tests**, each answering one binary question in
+  minutes rather than a 3-hour batch:
+  `boxcatch` (full-party catch overflows to the PC box), `boxwithdraw` (the mon comes back out at
+  a Poké Centre, driving the real heal-piggyback), `teachfull` (HM teach down the REPLACE path,
+  which `hmtest` cannot reach because its freshly-caught mon has a free slot; `TEACH_INJECT` /
+  `TEACH_AFTER_GYM` build the failing fixtures), `cavethread`, `normancounter`.
+- Offline planner probes need **no emulator**: `probe_counter_candidates_offline.py`,
+  `probe_counter_item_gate.py`, `probe_movepool_counters.py`, `rare_species_dataset.py`,
+  `analyse_defeat_loops.py`. ‼ They stub `get_map_enum`/`get_encounter_index`, and
+  `find_counter_candidates` returns `[]` on ANY internal error — so each one carries a POSITIVE
+  CONTROL (Norman must find Machop @ FIERY_PATH). Without it, a broken harness is indistinguishable
+  from a real "no answer".
   Full usage: `14-AGENT-PLAYBOOK.md` §2.

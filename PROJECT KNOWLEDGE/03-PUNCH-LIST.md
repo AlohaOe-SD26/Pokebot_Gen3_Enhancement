@@ -215,7 +215,7 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       down, and make that script authoritative. Then re-decide the threshold with Bagon's real
       depth known. Skitty's rate rule is unaffected and is already reproduced.
 
-- [ ] `#24-rarepredicate` (original spec, 2026-08-06) — **the duplicate-catch exemption (`#24-roster` ruling 3). SOLVED — the
+- [x] HISTORY — `#24-rarepredicate` (original spec, 2026-08-06) — **the duplicate-catch exemption (`#24-roster` ruling 3). SOLVED — the
       "pseudo-rare" axis is WARP DEPTH, and it needs no new recon.**
       Three OR'd rules: shiny (already works) / rare gender variant / rare species.
       **Rare species = `best_slot_rate <= 4%` OR `warp_depth >= 3`** — 26 of 132 wild species (19%).
@@ -280,7 +280,7 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       move slot, so there is no replace dialogue (12/12 clean). The failures are all on a mon with
       **four** moves; `--driver teachfull` forces exactly that.
 
-- [x] `#24-hmteachloop` (original report) — **USER-REPORTED 2026-08-06. Real bug, wastes frames and looks buggy.**
+- [x] HISTORY — `#24-hmteachloop` (original report) — **USER-REPORTED 2026-08-06. Real bug, wastes frames and looks buggy.**
       > "the hm learning feature works but it still loops trying to teach/get out of the teaching
       > cycle after it teaches an hm"
 
@@ -306,7 +306,7 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       ‼ Original measurement note kept below — its "+2, will not fix Winona" conclusion was
       WRONG, because I had not yet found the Grass-only filter that excludes her one type match.
 
-- [x] `#24-movepoolcounters` (original measurement) — **USER DIRECTIVE 2026-08-07.**
+- [x] HISTORY — `#24-movepoolcounters` (original measurement) — **USER DIRECTIVE 2026-08-07.**
       > "some pokemon can learn moves of types that can be a counter so its not just the pokemon
       > type, it can be the moves they learn… know the difference between damaging moves,
       > passive/defensive/stat boosting/debuff moves and area/effect moves as well as status
@@ -356,7 +356,7 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       pick costs the boss. `repro_movepool_counter_candidates.py` §5 asserts the flag stays off.
       **NO OUTCOME PROOF YET** — needs a batch: `CAUGHT Slugma` > 0 with `CAUGHT Machop` unchanged.
 
-- [x] `#24-counterdesertgate` (original diagnosis) — **NEW 2026-08-07, ROOT-CAUSED.**
+- [x] HISTORY — `#24-counterdesertgate` (original diagnosis) — **NEW 2026-08-07, ROOT-CAUSED.**
       Batch `20260807-200030`: **7 Baltoy hunts to ROUTE111 (25,55), 0 caught.**
       `AREA_ITEM_PREREQ = {ROUTE111: "Go-Goggles"}` gates the desert, and
       **`counter_plan.py` references `AREA_ITEM_PREREQ` ZERO times** — it consults only
@@ -410,7 +410,7 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       **Inject a party that wins the fight, or capture a save at the moment Norman faints.**
       Everything downstream of that is already wired.
 
-- [ ] `#24-teachmsgstall` (original characterisation) — **NEW 2026-08-07, THIRD teach bug.**
+- [x] HISTORY — `#24-teachmsgstall` (original characterisation) — **NEW 2026-08-07, THIRD teach bug.**
       All **9** teach failures in batch `20260807-160545` share one signature:
       ```
       tasks=['ListMenuDummyTask', 'Task_ContinueTaskAfterMessagePrints']   9 of 9, identical
@@ -439,7 +439,7 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       FIERY_PATH via Rock Throw. ‼ My first two stated causes were both wrong; the history is
       kept below because the wrong turns are the lesson.
 
-- [x] `#24-winonaground` (wrong-cause history) — ‼‼ **MY STATED CAUSE WAS WRONG.**
+- [x] HISTORY — `#24-winonaground` (wrong-cause history) — ‼‼ **MY STATED CAUSE WAS WRONG.**
       I wrote that the huntable whitelist was `{FIERY_PATH, ROUTE116, ROUTE117, ROUTE102}` and
       contained no Rock/Electric/Ice ground. **False.** I grepped for named `*_TRAINING_GRASS =`
       CONSTANTS instead of reading the `TRAINING_GRASS` TABLE, which has **10 entries**:
@@ -459,7 +459,7 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       ‼ **The lesson (3rd time this session): I read a proxy for the data instead of the data.**
       Same class as grepping a gitignored tree and as reading the profile dirs with a date glob.
 
-- [ ] `#24-winonaground` (superseded wrong text) — ~~Winona's counter can NEVER be hunted: the huntable
+- [x] HISTORY — `#24-winonaground` (superseded wrong text) — ~~Winona's counter can NEVER be hunted: the huntable
       whitelist contains no ground that hosts a Rock/Electric/Ice wild.~~
       Measured in batch `20260807-102552` — the counter chain's remaining failure class, and with
       whiteouts now addressed it is the **top one** (`no super-effective answer` = 5 of 14
@@ -511,7 +511,7 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       every free-slot teach in the 900-frame loop, and the replace test cannot see that.
       `repro_hmteach_postlearn.py` §5 pins it (17 → 22 checks).
 
-- [x] `#24-teachpathrace` (original report) — **found 2026-08-07 by the `#24-hmteachloop` telemetry.**
+- [x] HISTORY — `#24-teachpathrace` (original report) — **found 2026-08-07 by the `#24-hmteachloop` telemetry.**
       2 failures in 24 teaches (~8%) in `20260807-102552`, both on **Surf**, both fatal
       (`not-learned-after-ride:hard-cap`, the full 9,000 frames, Surf never learned):
       ```
@@ -552,7 +552,7 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       containing the ace), and the Rustboro rival's missing `ace_types` is fine because it
       recorded **0 defeats in four batches**.
 
-- [x] `#24-whiteoutloop` (part 2) — **the hard plateau.**
+- [x] HISTORY — `#24-whiteoutloop` (part 2) — **the hard plateau.**
       Confirmed as the **#1 end reason** of batch `20260807-102552`: *"too many whiteout
       recoveries in a row"* = **4 of 14 non-finishes (29%)**.
       **SHIPPED — the hard plateau.** `_boss_plan_is_hopeless` demanded BOTH a KO plateau AND
@@ -572,7 +572,7 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       ‼ Needs verified game facts (training grass tile, heal centre, ace types/level) — probe or
       decomp, never recall. The Route 110 rival's ace depends on the player's starter.
 
-- [x] `#24-whiteoutloop` (diagnosis) — **DIAGNOSED 2026-08-07 from stored logs. It is KI-26, generalised:
+- [x] HISTORY — `#24-whiteoutloop` (diagnosis) — **DIAGNOSED 2026-08-07 from stored logs. It is KI-26, generalised:
       uncapped boss re-attempts. Fix is specified and NOT yet implemented.**
       ‼ Measured NOT to be Mt. Pyre's: a run with 0 `MT. PYRE` mentions logged 3 whiteouts while
       heavy-Mt.-Pyre runs logged none. **The "show WHERE" ask is now answered** — every whiteout is
@@ -591,14 +591,14 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
          lets it honour KI-26's warning that a run losing 13 times still went on to reach Fortree.
       Full measurement + method in `05-KNOWN-ISSUES.md` KI-26.
 
-- [ ] ~~`#24-mtpyre-batch`~~ (superseded) — **NEXT ACTION. Batch Segment 14 before trusting any finish rate.**
+- [x] ~~`#24-mtpyre-batch`~~ (superseded) — **NEXT ACTION. Batch Segment 14 before trusting any finish rate.**
       Every run that beats Winona now continues into Mt. Pyre, so run length and finish rate
       both change by construction. Read against the **52.0%** baseline (`20260805-075638`).
       Watch: does the Route 121 gate fire reliably from a real run's approach (the live proof
       started from a save already ON Route 121's north band)? Do the four summit-corridor Aqua
       grunts' sight-lines derail the ascent?
 
-- [ ] ~~`#24-mtpyre`~~ (superseded) — **‼ NOW UNBLOCKED (2026-08-05) AND THE TOP ITEM. First chapter past
+- [x] ~~`#24-mtpyre`~~ (superseded) — **‼ NOW UNBLOCKED (2026-08-05) AND THE TOP ITEM. First chapter past
       Winona.** 3 hops, one branch; the 2F-6F tower is a skippable side dungeon.
       `#24-cavethread` was its only blocker and is closed — the navigator already threads a
       3-warp cave in both directions, which is exactly MT_PYRE_SUMMIT's shape.
@@ -622,7 +622,7 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       Spec: `12-STORYMODE-DESIGN.md` §Ch14-PRE. ‼ Use explicit adjacent-map legs, not one generic
       journey call — `calculate_path` spans only DIRECTLY CONNECTED maps.
 
-- [ ] ~~`#24-r121topology`~~ (superseded) — **DO THIS BEFORE ANY MORE NAVIGATION WORK ON MT. PYRE.**
+- [x] ~~`#24-r121topology`~~ (superseded) — **DO THIS BEFORE ANY MORE NAVIGATION WORK ON MT. PYRE.**
       From ROUTE121 (21,5) — where the ROUTE120 connection lands — `calculate_path` reaches
       neither Route 121's own south edge nor ANY Route 122 tile, **with surf allowed**
       (`BADGE05_GET=True`, `party_has_surf=True`, both measured). So the blocker is topological,
@@ -1173,7 +1173,7 @@ region, where "train near the gym" is actively wrong.
       `_smash_rock` → `_navigate_riding_out` runs through the hook itself. Guarded now; see
       `08-MISTAKES` 2026-07-31. Repro: `repro_obstacle_clearing.py` (24 checks, no emulator).
 
-- [ ] ~~**‼ `#24-smashroute` — clear a ROCK SMASH obstacle that seals a journey (new,
+- [x] ~~**‼ `#24-smashroute` — clear a ROCK SMASH obstacle that seals a journey (new,
       2026-07-31; see KI-41). This, not route planning, is what gates the counter chain.**~~
       (original entry, kept for the measurement)
       Measured: ROUTE111 reachability from Mauville has a hard floor at y≈100–101 across
@@ -1189,7 +1189,7 @@ region, where "train near the gym" is actively wrong.
       `_smash_rock` exists and is idempotent. ‼ Bound it — a respawning rock must not become an
       infinite smash-and-retry loop. Coordinates from map data or the decomp, never memory.
 
-- [ ] ~~**‼ `#24-journey` — CROSS-MAP OVERWORLD ROUTE PLANNING (new, 2026-07-30; see KI-39).
+- [x] ~~**‼ `#24-journey` — CROSS-MAP OVERWORLD ROUTE PLANNING (new, 2026-07-30; see KI-39).
       This is now the biggest structural blocker in the project.**~~ **(SUPERSEDED — the text
       below is the 2026-07-30 diagnosis, kept only because the handoff and KI-39 quote it.
       It is wrong; see above.)** The bot cannot plan a

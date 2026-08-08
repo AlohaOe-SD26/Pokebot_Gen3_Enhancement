@@ -81,7 +81,7 @@ to be True for *many consecutive* frames before trusting it (a single-frame True
 
 ### 2b. The repro suite — the project's actual verification bar
 
-`tools/story-dev/repro_*.py` is ~52 scripts and **most need no emulator**. Run the whole
+`tools/story-dev/repro_*.py` is ~81 scripts (count refreshed 2026-08-08; it was recorded as ~52 for weeks while the suite nearly doubled) and **most need no emulator**. Run the whole
 sweep before claiming any fix is clean:
 
 ```bash
