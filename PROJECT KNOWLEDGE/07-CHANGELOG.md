@@ -8879,3 +8879,57 @@ deterministically is the *shape*: `post_select=instant-learn` (0 now) → `exhau
 `#24-teachpathrace` working as designed — the flow no longer mislabels the path — and it
 **revealed rather than removed** the underlying stall, which the mislabel had been masking.
 `post-select-900-exhausted` went 0 → 7 and is the telemetry that made it visible at all.
+
+---
+
+## 2026-08-07 — movepool-based counters, measured; and a WRONG diagnosis of mine, corrected
+
+**User directive:** counters should be judged by the MOVES a species can learn, not only by its
+own type — and the move CATEGORIES matter (damaging vs stat-boost/debuff vs field-effect vs
+pure status). Both points are correct. `counter_plan.py:155-157` today does pure species typing.
+
+**Measured** (`tools/story-dev/probe_movepool_counters.py`, all 11 huntable grounds):
+
+| gating | Winona | Norman | Wattson |
+|---|---|---|---|
+| by species TYPE (today) | 1 | 1 | 1 |
+| + any learnable move of a needed type | +82 | +47 | — |
+| **+ DAMAGING, LEVEL-UP only, power×2.0×STAB ≥ 75** | **+2** | **+0** | **+0** |
+
+‼ **The naive version would be worse than what we have.** Nearly the whole raw gain is
+`TM13 Ice Beam` / `TM14 Blizzard` — Gen 3 TMs are single-use and we almost certainly do not own
+them — and `HM06 Rock Smash` at **20 power**, the exact case `CREDIBLE_ANSWER_POWER = 75` was
+calibrated to reject. Unfiltered, every Zigzagoon becomes a Norman counter.
+
+Three gates are mandatory: **damaging** (`base_power > 0`), **obtainable** (level-up in band, or
+a TM/HM we own), **credible** (`power × effectiveness × STAB ≥ 75`).
+
+‼ **On the move-category boundary, one correction to the example given:** our move data has
+**Smog at 20 base power, Poison, `effect=POISON_HIT`** — it is a DAMAGING move with a poison side
+effect, not a no-damage status move. The genuine zero-damage cases are Toxic, Growl, Sunny Day.
+This matters precisely because the classifier must key on `base_power`, never on the name or on
+the presence of a secondary effect — misclassifying Smog would reject a real answer.
+
+**Actionable total: 2 candidates, both Winona's** — Baltoy learns Rock Tomb (L15, 50bp) on
+ROUTE111; Slugma learns Rock Throw (L15, 50bp) on FIERY_PATH. Worth building (it is the correct
+model, and the counter chain is now 75% of all non-finishes) but it will not by itself fix Winona.
+
+### ‼‼ AND IT EXPOSED THAT MY `#24-winonaground` DIAGNOSIS WAS WRONG — same day, corrected
+I wrote, and committed, that the huntable whitelist was `{FIERY_PATH, ROUTE116, ROUTE117,
+ROUTE102}` and hosted no Rock/Electric/Ice wild. **False.** I grepped for named
+`*_TRAINING_GRASS =` CONSTANTS instead of reading the `TRAINING_GRASS` TABLE, which has **10
+entries** — ROUTE101/102/103/111/115/116/117/**118**/119/121 — plus FIERY_PATH, so **11**.
+
+* **ROUTE118 (29,15), Electrike — the named Winona answer — is ALREADY whitelisted.** The
+  recommendation to "sweep ROUTE118 and add it with evidence" was work already done.
+* **ROUTE111 hosts Geodude** (Ground/**Rock**, rate 100%, Lmax 20) — an existing by-TYPE answer.
+
+So the real rejection is downstream of the whitelist: the message is *"nothing **reachable** with
+a proven spin tile"*, and 2026-07-30 already measured `Electrike @ ROUTE118 — navigation FAILED,
+255 frames`. The next step is to log the rejection reason PER CANDIDATE from a real pre-Winona
+anchor; four different gates produce that one message and guessing between them is what caused
+this error in the first place.
+
+‼ **Third instance this session of the same mistake: I read a PROXY for the data instead of the
+data** (after grepping a gitignored tree, and after reading profile dirs through a date glob that
+excluded the files). Recorded in `08-MISTAKES.md`.

@@ -126,7 +126,24 @@ death and runs 1 and 2 never reached a Centre (trainer refusal; then a whiteout)
    share `tasks=['ListMenuDummyTask','Task_ContinueTaskAfterMessagePrints']` on Surf. Cheap to
    reproduce with `--driver teachfull TEACH_ITEM=HM03`. Details in `03-PUNCH-LIST.md`.
 
-2. **`#24-winonaground`** — the top remaining failure class now that whiteouts are addressed.
+2. **`#24-winonaground` — ‼ RE-DIAGNOSE. MY STATED CAUSE WAS WRONG (corrected 2026-08-07).**
+   The huntable whitelist is **11 grounds**, not 4 — `TRAINING_GRASS` has 10 entries plus
+   FIERY_PATH. **ROUTE118 (Electrike) is ALREADY whitelisted**, and ROUTE111 hosts Geodude
+   (Ground/Rock, 100%) as a by-TYPE Winona answer. **Do NOT sweep ROUTE118 — that is done.**
+   The message is "nothing **reachable** with a proven spin tile", so the rejection is downstream:
+   reachability, or `best_huntable`'s cost/level gates. 2026-07-30 already measured
+   `Electrike @ ROUTE118 — navigation FAILED, 255 frames`.
+   **NEXT PROBE:** log the rejection reason PER CANDIDATE from a real pre-Winona anchor. Four
+   gates produce that one message; guessing between them is what caused the wrong diagnosis.
+
+2b. **`#24-movepoolcounters`** (user directive 2026-08-07) — judge counters by learnable MOVES,
+   not only species type. Measured: the actionable gain is **+2 candidates, Winona only**, once
+   three mandatory gates apply (damaging `base_power > 0`; obtainable — level-up in band or a
+   TM/HM we own; credible `power × eff × STAB ≥ 75`). ‼ **Unfiltered it is WORSE than today** —
+   the raw +82/+47 is nearly all TMs we don't own and 20-power Rock Smash. Full detail and the
+   Smog classification caveat in `03-PUNCH-LIST.md` / `07-CHANGELOG.md`.
+
+2c. (superseded) the old `#24-winonaground` text below is retained only for its measurements.
    Winona's counter **can never be hunted**: `hunt_ground_tile()`'s whitelist is
    `HUNTING_GROUNDS` = {FIERY_PATH} + `TRAINING_GRASS` = {ROUTE116, ROUTE117, ROUTE102}, and
    **none hosts a Rock/Electric/Ice wild**. Norman (Machop @ FIERY_PATH, 6 of 7 caught) and

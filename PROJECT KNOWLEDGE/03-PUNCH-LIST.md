@@ -294,6 +294,40 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       chapters.** Cheap to reproduce — `ensure_hm_learner` is wired for exactly two moves
       (Rock Smash `story_mode.py:2793`, Surf `:2967`).
 
+- [ ] `#24-movepoolcounters` — **USER DIRECTIVE 2026-08-07: counters should be judged by the
+      MOVES a species can learn, not only by its own type. Measured; real but SMALL.**
+      > "some pokemon can learn moves of types that can be a counter so its not just the pokemon
+      > type, it can be the moves they learn… know the difference between damaging moves,
+      > passive/defensive/stat boosting/debuff moves and area/effect moves as well as status
+      > moves with no damage"
+
+      `counter_plan.py:155-157` today keeps a candidate only if
+      `{t.name for t in species.types} & needed` — pure species typing.
+      **Measured with `tools/story-dev/probe_movepool_counters.py` over all 11 huntable grounds:**
+      | gating | Winona | Norman | Wattson |
+      |---|---|---|---|
+      | by species TYPE (today) | 1 | 1 | 1 |
+      | + any learnable move of a needed type | +82 | +47 | — |
+      | **+ DAMAGING, LEVEL-UP only, power×2.0×STAB ≥ 75** | **+2** | **+0** | **+0** |
+      ‼ **The naive version is WORSE THAN TODAY.** Almost the entire raw gain is `TM13 Ice Beam` /
+      `TM14 Blizzard` (Gen 3 TMs are single-use and we almost certainly do not own them) and
+      `HM06 Rock Smash` at **20 power** — the exact case `CREDIBLE_ANSWER_POWER = 75` was
+      calibrated to reject ("a 20-power HM is 2.0x against Normal and still loses to Slaking 27
+      times running"). Unfiltered, every Zigzagoon becomes a Norman counter.
+      **THREE GATES ARE MANDATORY, in this order:**
+      1. **DAMAGING ONLY** — `move.base_power > 0`. Everything at 0 is status / stat-change /
+         field effect and cannot answer a type weakness: Toxic, Growl, Sunny Day.
+         ‼ **Smog is NOT in that group** — our data has it at **20 bp Poison, `effect=POISON_HIT`**.
+         Classify on `base_power`, never on the name or on the presence of a secondary effect.
+      2. **OBTAINABLE** — level-up moves within reach of the catch band, or a TM/HM **we own**.
+         Never "could learn if we had TM13".
+      3. **CREDIBLE POWER** — reuse the existing `power × effectiveness × STAB >= 75`.
+      **The whole actionable gain is 2 Winona candidates:** Baltoy learns **Rock Tomb** (L15,
+      50bp) on ROUTE111; Slugma learns **Rock Throw** (L15, 50bp) on FIERY_PATH.
+      ⇒ Worth building — it is the correct model and it widens a chain that is now **75% of all
+      non-finishes** — but it will NOT by itself fix Winona, and it must not be sold as the fix.
+      Do `#24-winonaground`'s real diagnosis first.
+
 - [ ] `#24-teachmsgstall` — **NEW 2026-08-07, fully characterised, THIRD teach bug.**
       All **9** teach failures in batch `20260807-160545` share one signature:
       ```
@@ -316,8 +350,29 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       and every mon already carries an HM — worth checking whether the HM-slot exclusion in
       `replace_slot` picking leaves no legal choice and the game silently refuses.
 
-- [ ] `#24-winonaground` — **NEW 2026-08-07. Winona's counter can NEVER be hunted: the huntable
-      whitelist contains no ground that hosts a Rock/Electric/Ice wild.**
+- [ ] `#24-winonaground` — ‼‼ **MY STATED CAUSE WAS WRONG (corrected 2026-08-07 same day).
+      RE-DIAGNOSE BEFORE DOING ANYTHING.**
+      I wrote that the huntable whitelist was `{FIERY_PATH, ROUTE116, ROUTE117, ROUTE102}` and
+      contained no Rock/Electric/Ice ground. **False.** I grepped for named `*_TRAINING_GRASS =`
+      CONSTANTS instead of reading the `TRAINING_GRASS` TABLE, which has **10 entries**:
+      ROUTE101/102/103/111/115/116/117/**118**/119/121, plus FIERY_PATH from `HUNTING_GROUNDS`
+      = **11 huntable grounds**.
+      * **ROUTE118 (29,15) — Electrike, the named Winona answer — is ALREADY whitelisted.**
+      * **ROUTE111 hosts Geodude (Ground/Rock, rate 100%, Lmax 20)** — a by-TYPE Rock answer to
+        Winona that is already huntable.
+      So there IS a candidate and there IS a swept ground. **Do NOT sweep ROUTE118; it is done.**
+      The failure message is `no huntable counter candidate (**nothing reachable** with a proven
+      spin tile)` — the rejection is downstream of the whitelist, in reachability or in
+      `best_huntable`'s cost/level gates. Prior evidence points the same way: 2026-07-30 measured
+      `Electrike @ ROUTE118 (29,15) — navigation FAILED, 255 frames`.
+      **NEXT PROBE:** call `counter_plan.huntable_candidates()` for Winona's needed types from a
+      REAL pre-Winona anchor and log the rejection reason PER CANDIDATE. Do not guess which gate
+      it is — four gates can produce this one message.
+      ‼ **The lesson (3rd time this session): I read a proxy for the data instead of the data.**
+      Same class as grepping a gitignored tree and as reading the profile dirs with a date glob.
+
+- [ ] `#24-winonaground` (superseded wrong text) — ~~Winona's counter can NEVER be hunted: the huntable
+      whitelist contains no ground that hosts a Rock/Electric/Ice wild.~~
       Measured in batch `20260807-102552` — the counter chain's remaining failure class, and with
       whiteouts now addressed it is the **top one** (`no super-effective answer` = 5 of 14
       non-finishes: Winona 2, Norman 2, Wattson 1):

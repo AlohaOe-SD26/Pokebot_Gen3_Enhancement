@@ -3872,3 +3872,37 @@ The encounter index is keyed by **internal ROM species index, not national dex**
 Skitty as 300 (its national dex) and got a different species, so the script reported "Skitty is
 not in the index" for a species that is plainly in it. Resolve through the same call production
 uses — `get_species_by_name(name).index` (Skitty is internal **315**, Bagon **395**).
+
+---
+
+## 2026-08-07 — I grepped for CONSTANTS and concluded the TABLE was almost empty
+
+**Symptom.** I diagnosed `#24-winonaground` as "Winona's counter can never be hunted — the
+huntable whitelist has only four grounds and none hosts a Rock/Electric/Ice wild", wrote it into
+the punch list, changelog and handoff, told the user, and recommended a live ROUTE118 sweep as
+the fix. All of it committed.
+
+**It was wrong.** I ran `grep -n "_TRAINING_GRASS = "` and found three named constants
+(ROUTE116/ROUTE117/ROUTE102), then treated those three as the whole table. The actual
+`TRAINING_GRASS` table has **10 entries** — ROUTE101/102/103/111/115/116/117/**118**/119/121 —
+and with `HUNTING_GROUNDS`' FIERY_PATH the bot has **11** huntable grounds. **ROUTE118 (29,15),
+Electrike, the exact Winona answer I was proposing to go sweep, was already in it**, and ROUTE111
+hosts Geodude (Ground/Rock, 100% rate) as a by-TYPE answer.
+
+**How it was caught:** only because a probe for a *different* question (movepool counters) printed
+`huntable grounds (11)` as a side effect. Nothing in the diagnosis itself would ever have failed.
+
+‼ **Prevention rule: never infer a table's contents from a grep for its named constants.**
+Named constants are a convenience for a few call sites; the table is the data. Print `len(TABLE)`
+and its keys. The one-line version: **if the claim is about a data structure, evaluate the data
+structure.**
+
+‼ **Second, sharper rule: a diagnosis whose fix is "go and produce evidence X" must first check
+whether X already exists.** I recommended sweeping a ground that had already been swept and
+committed. The check costs one line.
+
+**This is the THIRD instance of the same class in one session** — `Grep` on a gitignored tree
+reporting 0 matches; the hard-plateau count read from profile dirs through a date glob that
+excluded the files; and now this. All three: I queried a *proxy* for the data and reported the
+proxy's answer as the data's. The common fix is not more care, it is **a positive control** —
+print the size of what you searched, and confirm the search can find a thing you know is there.
