@@ -8996,3 +8996,52 @@ They now assert the stronger property (*if any candidate is huntable, rank 1 is 
 the unchanged one (*the planner still OFFERS unswept endgame maps; the gate is what refuses
 them*). Cases 2/4/5, which test the gate itself, were untouched and still pass.
 Full sweep of the 10 counter/boss repros: **all green.**
+
+---
+
+## 2026-08-07 — BATCH `20260807-200030`: the movepool fix WORKS, and exposes the next blocker
+
+Code `dd25ee59`, `VERDICT OK`, 32 headers, **0 violations, 0 restarts**. 24 runs, 10 finished
+(41.7% vs 36.0%; **z = +0.41, NOT resolvable — ignored**).
+
+### ✅ CONFIRMED: `#24-movepoolcounters` fires in production
+| counter | baseline `20260807-160545` | this batch |
+|---|---|---|
+| **`no huntable counter candidate`** | **25** | **0** — eliminated |
+| `counter hunt —` (hunts started) | 13 | **18** |
+| `counter hunt — … ROUTE111 … Baltoy` (movepool pick) | 0 (impossible) | **7** |
+| ROUTE115/118/121 → Wingull/Taillow (movepool picks) | 0 | 4 |
+| `counter hunt CAUGHT Machop` (‼ CONTROL) | 4 | **6** — no regression |
+
+Winona's chain no longer stops for want of a candidate. **Production chose BETTER than the
+offline probe predicted**: it picked Baltoy @ ROUTE111 (24% rate) over Slugma @ FIERY_PATH (10%),
+because `_counter_area_allowed` admits ROUTE111's `region` prereq while the offline `allow=None`
+refuses it. The hop-budget risk recorded before the run did NOT materialise — FIERY_PATH and
+ROUTE111 were both inside budget from Fortree.
+
+### ‼ BUT: 7 Baltoy hunts, 0 Baltoy caught — `#24-counterdesertgate`
+The bot travels, then spins somewhere that yields Zigzagoon/Oddish/Linoone/Manectric — **not
+Route 111 desert species**. Root cause, and it is a ONE-LINE GAP:
+
+* `AREA_ITEM_PREREQ = {ROUTE111: "Go-Goggles"}` — the desert is item-gated.
+* **`counter_plan.py` references `AREA_ITEM_PREREQ` ZERO times.** It consults only `AREA_PREREQ`
+  (which says `region`). So the planner offers the desert tile **(25,55), which sits NORTH of
+  the Go-Goggles gate**, the bot walks cross-Hoenn, cannot enter, and spins wherever it stopped.
+
+‼ **This is PRE-EXISTING and already documented — my change only made it load-bearing.** The
+gate exists in `_counter_area_allowed` behind `POKEBOT_AREA_ITEM_GATE`, and it has been **OFF BY
+DEFAULT since 2026-08-04** with the note *"THIS GATE COST MORE THAN IT SAVED"* — measured against
+28 "dropping it as a training option" events per batch. Its own comment predicts today's symptom
+exactly: *"the training tile (25,55) sits NORTH of the Go-Goggles desert… about one wasted
+cross-Hoenn trek per run."* Before this change ROUTE111 never won Winona's ranking, so it never
+cost a counter hunt.
+
+**‼ DO NOT SIMPLY FLIP `POKEBOT_AREA_ITEM_GATE` BACK ON** — that decision was measured and
+rejected for TRAINING, and re-flipping it would re-litigate it blind. The counter hunt has a
+different cost model: it gets **one hunt per boss per run**, so a wasted destination is not a
+wasted trek, it is the boss lost. The targeted fix is for `find_counter_candidates` to honour
+`AREA_ITEM_PREREQ` for its OWN destination choice, which would demote Baltoy@ROUTE111 below
+Slugma@FIERY_PATH — a ground already proven by Norman's 6-of-7 catch rate.
+
+### Also new: `global watchdog` end reason 0 → 4
+Worth watching, plausibly the longer counter journeys this change enables. Not diagnosed.

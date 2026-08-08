@@ -339,6 +339,24 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       non-finishes** — but it will NOT by itself fix Winona, and it must not be sold as the fix.
       Do `#24-winonaground`'s real diagnosis first.
 
+- [ ] `#24-counterdesertgate` — **NEW 2026-08-07, ROOT-CAUSED, one-line gap, HIGH VALUE.**
+      Batch `20260807-200030`: **7 Baltoy hunts to ROUTE111 (25,55), 0 caught.**
+      `AREA_ITEM_PREREQ = {ROUTE111: "Go-Goggles"}` gates the desert, and
+      **`counter_plan.py` references `AREA_ITEM_PREREQ` ZERO times** — it consults only
+      `AREA_PREREQ`. The planner offers the desert tile (which sits NORTH of the goggles gate),
+      the bot walks cross-Hoenn, cannot enter, and spins wherever it stopped.
+      ‼ **PRE-EXISTING.** The gate exists in `_counter_area_allowed` behind
+      `POKEBOT_AREA_ITEM_GATE` and is **OFF BY DEFAULT since 2026-08-04** ("THIS GATE COST MORE
+      THAN IT SAVED", measured). `#24-movepoolcounters` only made it load-bearing — before it,
+      ROUTE111 never won Winona's ranking.
+      ‼ **DO NOT just flip `POKEBOT_AREA_ITEM_GATE` on.** That was measured and rejected for
+      TRAINING, where a bad pick costs one trek. A COUNTER HUNT gets **one attempt per boss per
+      run**, so a bad pick costs the boss. **Fix `find_counter_candidates` to honour
+      `AREA_ITEM_PREREQ` for its own destination choice only** — that demotes Baltoy@ROUTE111
+      below Slugma@FIERY_PATH, a ground already proven by Norman's 6-of-7 catch rate.
+      **Acceptance:** `counter hunt — … FIERY_PATH … Slugma` appears and `CAUGHT Slugma` > 0,
+      with `CAUGHT Machop` (control) unchanged.
+
 - [ ] `#24-teachmsgstall` — **NEW 2026-08-07, fully characterised, THIRD teach bug.**
       All **9** teach failures in batch `20260807-160545` share one signature:
       ```

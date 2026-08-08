@@ -20,7 +20,7 @@ game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror
 |---|---|
 | branch / HEAD | `main`, clean, pushed — see the newest commit |
 | story content | Littleroot → 6 badges → **Mt. Pyre → Magma Emblem**. Magma Hideout is UNLOCKED but UNBUILT. |
-| box idle | **‼ BATCH RUNNING — `20260807-200030`, launched 20:00 PDT, 8 lanes × 180 min, code `dd25ee59`, due ~23:00.** 8 clean headers. **Do NOT edit `sandbox-pokebot/` until it lands.** |
+| box idle | nothing running |
 | **latest batch** | **`20260807-160545` LANDED** — code `c335a204`, 180.1 min, `VERDICT OK`, 33 headers, **0 violations, 0 restarts**. 25 runs, 9 finished (36.0%). ‼ vs 39.1%: **z = −0.22, NOT resolvable.** |
 | **‼ `#24-whiteoutloop` RESULT** | **ELIMINATED.** End reason `too many whiteout recoveries` **4 → 0**; `global watchdog` **11 → 0**; **deepest `defeat #N` 32 → 13**; hard plateau fired **20×**; LAVARIDGE defeats/run **−83%**, ROUTE110 **−40%**, whiteouts/run **−26%**. |
 | **‼ TOP FAILURE NOW** | `no super-effective answer` = **12 of 16 non-finishes (75%)** — Winona 6, Norman 3, Wattson 3. The counter chain is essentially the whole remaining failure mode ⇒ **`#24-winonaground` is the #1 item.** |
@@ -111,6 +111,48 @@ convenience, it is the only place this operation can occur. Do not go looking fo
 ‼ The `WITHDRAW_HEAL_FIXTURE=1` party heal is FIXTURE SETUP, not a behaviour change: the only save
 with a full party AND a non-empty box is a prior probe's end state, so the party arrives near
 death and runs 1 and 2 never reached a Centre (trainer refusal; then a whiteout).
+
+## ⏭ NEXT ACTIONS, IN ORDER
+
+1. ✅ **BATCH `20260807-160545` HAS BEEN READ** — results are in the state table above and in
+   `07-CHANGELOG.md`. `#24-whiteoutloop` is CONFIRMED eliminated. Nothing outstanding.
+   ‼ **Three numbers I reported while it was still running were WRONG** and are corrected in the
+   changelog: the whiteout baseline (used the wrong batch), the hard-plateau firing count (wrong
+   surface — profile dirs with a date glob that excluded the files), and the baseline deepest
+   defeat ordinal (a PARTIAL count of a running batch). **Never compare a finished number against
+   a partial one, and always name the surface.**
+
+1b. **`#24-teachmsgstall`** — a third teach bug, fully characterised, small. All 9 teach failures
+   share `tasks=['ListMenuDummyTask','Task_ContinueTaskAfterMessagePrints']` on Surf. Cheap to
+   reproduce with `--driver teachfull TEACH_ITEM=HM03`. Details in `03-PUNCH-LIST.md`.
+
+2. ✅ **`#24-winonaground` + `#24-movepoolcounters` — BOTH SHIPPED 2026-08-07.**
+   Winona had **0 huntable counter candidates**, and the cause was neither the whitelist (11
+   grounds, correct) nor reachability: across all 11 grounds her needed types appear ONCE
+   (Geodude @ ROUTE111) and it is a **Rock Smash** encounter, dropped by the `method == "Grass"`
+   filter. Fixed by judging counters on the MOVES a species learns (user directive) — she now
+   gets **Slugma @ FIERY_PATH via `move:Rock Throw@L15`**, caught already knowing it, on the
+   ground where Norman's hunt already succeeds 6/7.
+   ‼ Required a SECOND fix to be non-inert: `tier` had no huntability term, so the one huntable
+   candidate ranked 42 of 43 and `max_results=5` truncated it away.
+   ‼ **OUTCOME PROOF IS IN FLIGHT — batch `20260807-200030` (code `dd25ee59`, due ~23:00).**
+
+## ✅ BATCH `20260807-200030` HAS BEEN READ — `#24-movepoolcounters` CONFIRMED IN PRODUCTION
+Code `dd25ee59`, `VERDICT OK`, 32 headers, 0 violations, 0 restarts. 24 runs, 10 finished
+(41.7% vs 36.0%; **z = +0.41, NOT resolvable — ignored**).
+
+| counter | base | now |
+|---|---|---|
+| **`no huntable counter candidate`** | 25 | **0** — eliminated |
+| `counter hunt —` started | 13 | **18** |
+| `… ROUTE111 … Baltoy` (movepool pick) | 0 | **7** |
+| `CAUGHT Machop` (‼ control) | 4 | **6** — no regression |
+
+The hop-budget risk recorded before the run did NOT materialise. Production picked BETTER than
+the offline probe (Baltoy 24% over Slugma 10%), because `_counter_area_allowed` admits ROUTE111's
+`region` prereq while the offline `allow=None` refuses it.
+
+‼ **BUT 7 Baltoy hunts caught 0** — see `#24-counterdesertgate`, now the top item.
 
 ## ⏭ NEXT ACTIONS, IN ORDER
 
