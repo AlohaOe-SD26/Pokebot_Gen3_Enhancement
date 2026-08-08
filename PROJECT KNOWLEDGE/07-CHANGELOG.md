@@ -9217,3 +9217,61 @@ Winona → Slugma @ FIERY_PATH `via=move:Rock Throw@L15`, identical to sandbox.
 tail, not fixed); `global watchdog` 0 → 4 is new and undiagnosed; and **the finish rate has not
 moved resolvably** (39.1% → 36.0% → 41.7%, every pairwise z well under 1.96). This round is
 justified by near-binary counters, and the log says so explicitly so nobody later quotes a rate.
+
+---
+
+## 2026-08-08 — BATCH `20260808-095721`: ‼ the movepool round widens hunts that CANNOT TRAVEL
+
+Code `e84b814f` (the promoted BATCH-6 build), `VERDICT OK`, 39 headers, **0 violations, 0 lane
+restarts**. 31 runs, 8 finished (25.8% vs 41.7%; **z = −1.24, NOT resolvable — not narrated**).
+
+### ‼ THE FINDING: only ONE counter rung has ever worked, and widening the set did not help
+
+| target species | hunts | caught |
+|---|---|---|
+| **Machop @ FIERY_PATH** | 5 | **5 (100%)** |
+| Wingull (ROUTE115/118/121) | 12 | **0** |
+| Nincada (ROUTE116) | 5 | **0** |
+| Numel (FIERY_PATH) | 5 | **0** |
+| Oddish (ROUTE117) | 3 | **0** |
+| Baltoy (ROUTE111) | 2 | **0** |
+| Taillow | 1 | **0** |
+| **TOTAL** | **33** | **5 (15%)** |
+
+Previous batch: 18 hunts, 7 caught (39%). **Hunts nearly doubled and catches fell.**
+`could not reach` = **72**, `Could not find a path` = **45**, `hunt found nothing` = **0** —
+so these are **TRAVEL failures, not catch failures.** The bot cannot get to the new grounds.
+
+### WHAT I GOT WRONG, PLAINLY
+`huntable = reachable AND hunt_tile is not None`, and **`reachable` is a PREDICTION** —
+`_counter_area_allowed`'s hop budget plus the region oracle. It is wrong for **28 of 33** hunts.
+`hunt_ground_tile`'s whitelist is evidence-backed for *standing and spinning*, but the
+`TRAINING_GRASS` tiles inside it were two-way swept **for TRAINING, from training anchors** —
+not for a hunt that fires from wherever a boss is fought. `HUNTING_GROUNDS`, the table that
+actually encodes *driven, reach-and-leave* evidence, still has exactly **one** entry: FIERY_PATH.
+**That one entry is the only rung that converts, at 100%.** That is not a coincidence.
+
+‼ **And this is plausibly WORSE than before, which is the part that matters.** Before
+`#24-movepoolcounters`, Winona stopped immediately with "no huntable counter candidate". Now she
+burns a cross-Hoenn trek and *then* stops — and the hunt is bounded to **one attempt per boss per
+run**, so a failed destination does not cost a trek, it costs the boss. `no super-effective
+answer` rose from **10 of 14 (71%)** to **19 of 23 (83%)** of non-finishes.
+‼ The finish rate fell 41.7% → 25.8% at **z = −1.24**, which does NOT resolve — so this is stated
+as a concern grounded in the near-binary conversion counters (33→5), **not** as a measured
+regression in outcome.
+
+### WHAT THIS DOES NOT INVALIDATE
+* `#24-counterdesertgate` **works**: `to catch Baltoy` **7 → 2**, i.e. the goggle-less desert
+  hunts are gone; the 2 remaining fire when the bot legitimately holds the Go-Goggles.
+* `no huntable counter candidate` stays at **0** — the candidate-generation fix is intact.
+* `global watchdog` **34 → 9**.
+* ‼ My stated acceptance test (`CAUGHT Slugma > 0`) was **mis-specified** and I am not retrofitting
+  a pass onto it. The gate only refuses ROUTE111 when the goggles are absent; by Winona (gym 6)
+  the bot usually holds them, so Baltoy correctly outranks Slugma and the fallback rarely fires.
+
+### THE FIX THIS POINTS AT (not started)
+Counter-hunt destinations need **driven** evidence from the anchor the hunt actually fires from —
+the standard `HUNTING_GROUNDS` already sets and FIERY_PATH already meets — rather than a predicted
+`reachable`. Either grow `HUNTING_GROUNDS` by sweeping candidate grounds from real boss anchors,
+or make the ladder demote a destination that has failed to travel before. Tracked as
+`#24-huntreachproof`.

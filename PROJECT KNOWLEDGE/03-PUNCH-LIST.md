@@ -374,6 +374,33 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       **Acceptance:** `counter hunt — … FIERY_PATH … Slugma` appears and `CAUGHT Slugma` > 0,
       with `CAUGHT Machop` (control) unchanged.
 
+- [ ] `#24-huntreachproof` — ‼‼ **TOP ITEM 2026-08-08. Only ONE counter rung has ever worked, and
+      `#24-movepoolcounters` widened the set with destinations the bot CANNOT TRAVEL TO.**
+      Batch `20260808-095721`, conversion by target:
+      | species | hunts | caught |
+      |---|---|---|
+      | **Machop @ FIERY_PATH** | 5 | **5 (100%)** |
+      | Wingull / Nincada / Numel / Oddish / Baltoy / Taillow | 28 | **0** |
+      `could not reach` **72**, `Could not find a path` **45**, `hunt found nothing` **0** —
+      **travel failures, not catch failures.** Hunts 18 → 33 while catches fell 7 → 5.
+      **ROOT CAUSE:** `huntable = reachable AND hunt_tile is not None`, and **`reachable` is a
+      PREDICTION** (`_counter_area_allowed`'s hop budget + region oracle) that is wrong for 28 of
+      33. `hunt_ground_tile`'s whitelist is evidence-backed for STANDING AND SPINNING, but its
+      `TRAINING_GRASS` entries were two-way swept **for training, from training anchors** — not
+      for a hunt firing from a boss anchor. `HUNTING_GROUNDS` — the table that encodes *driven,
+      reach-and-leave* evidence — still has **one** entry, FIERY_PATH, and that is the only rung
+      that converts. Not a coincidence.
+      ‼ **Plausibly WORSE than before:** Winona used to stop immediately; now she burns a
+      cross-Hoenn trek and then stops, and the hunt is bounded to ONE attempt per boss per run —
+      so a failed destination costs the boss, not a trek. `no super-effective answer` rose from
+      10 of 14 (71%) to **19 of 23 (83%)** of non-finishes. (Finish 41.7% → 25.8% is z = −1.24,
+      NOT resolvable — the concern rests on the conversion counters, not on the rate.)
+      **FIX:** require DRIVEN evidence from the anchor the hunt fires from — the bar
+      `HUNTING_GROUNDS` already sets and FIERY_PATH already meets. Either sweep candidate grounds
+      from real boss anchors and add them, or have the ladder demote a destination that has
+      already failed to travel. ‼ Do NOT simply widen `HUNTING_GROUNDS` on a guess — its whole
+      value is that every entry is measured.
+
 - [ ] `#24-teachmsgstall` — **THIRD teach bug. 2026-08-08: TWO HYPOTHESES ELIMINATED by direct
       repro; the search is now narrow. Read this before probing again.**
       New fixture: `--driver teachfull TEACH_INJECT=marshtomp [TEACH_INJECT_SLOT=n]` writes the

@@ -3906,3 +3906,41 @@ reporting 0 matches; the hard-plateau count read from profile dirs through a dat
 excluded the files; and now this. All three: I queried a *proxy* for the data and reported the
 proxy's answer as the data's. The common fix is not more care, it is **a positive control** —
 print the size of what you searched, and confirm the search can find a thing you know is there.
+
+---
+
+## 2026-08-08 — I widened a candidate set on a PREDICTED reachability and never checked conversion
+
+**What I shipped.** `#24-movepoolcounters` made the counter planner accept species that can LEARN
+a counter-type move, not just species of that type. It was correct in principle, offline-proven
+with a positive control, and it eliminated the "no huntable counter candidate" stop (25 → 0).
+
+**What the batch said.** Hunts nearly doubled (18 → 33) and catches FELL (7 → 5). Conversion by
+target: **Machop @ FIERY_PATH 5 of 5 (100%); every other destination 0 of 28.**
+`could not reach` 72, `Could not find a path` 45, `hunt found nothing` 0 — **travel failures.**
+
+**Root cause.** `huntable = reachable AND hunt_tile is not None`, and `reachable` is a
+**prediction** (a hop budget plus a region oracle), not a driven fact. `hunt_ground_tile`'s
+whitelist is evidence-backed for *standing and spinning*, but most of its entries come from
+`TRAINING_GRASS`, which was two-way swept **for training, from training anchors** — not for a hunt
+firing from a boss anchor. `HUNTING_GROUNDS`, the table that actually encodes driven
+reach-and-leave evidence, has exactly one entry: FIERY_PATH. **It is the only rung that converts.**
+
+‼ **Prevention rule: when you widen a candidate set, the acceptance metric is CONVERSION, not
+population.** I measured "candidates exist" (25 → 0 stops) and "the planner picks them" (7 Baltoy
+hunts) and reported both as confirmation. Neither is the outcome. The question was always *how
+many hunts CATCH*, and that number moved the wrong way.
+
+‼ **Second rule: a whitelist's evidence is only valid for the QUESTION IT WAS SWEPT FOR.** Both
+tables answer "can we stand here and spin?", which is true. The counter hunt asks a different
+question — "can we get here from where the boss is fought, and leave?" — and only FIERY_PATH was
+ever measured for that. Reusing a table across two questions is how a fails-closed whitelist
+quietly became fails-open.
+
+‼ **Third: it may be worse than what it replaced, and that is the shape to fear.** Before, Winona
+stopped instantly. Now she spends a cross-Hoenn trek and then stops — and the hunt is bounded to
+one attempt per boss per run, so a bad destination costs the boss, not a trek. The handoff has
+warned about exactly that bound since 2026-07-30; I widened what feeds it without re-reading it.
+
+**Not claimed:** the finish rate fell 41.7% → 25.8% at z = −1.24, which does NOT resolve. The
+concern above rests on the conversion counters (33 → 5), which are near-binary and do.
