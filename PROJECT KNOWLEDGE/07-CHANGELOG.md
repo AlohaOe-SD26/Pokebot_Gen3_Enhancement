@@ -9275,3 +9275,41 @@ the standard `HUNTING_GROUNDS` already sets and FIERY_PATH already meets — rat
 `reachable`. Either grow `HUNTING_GROUNDS` by sweeping candidate grounds from real boss anchors,
 or make the ladder demote a destination that has failed to travel before. Tracked as
 `#24-huntreachproof`.
+
+---
+
+## 2026-08-08 — `#24-huntreachproof` part 1: counter hunts now require DRIVEN reach evidence
+
+Acting on the batch above: `hunt_ground_tile` gains `require_driven`, **strict by default**.
+A counter hunt may now only target a ground in `HUNTING_GROUNDS` — the table that encodes
+*driven, reach-and-leave* evidence — and no longer falls back to `TRAINING_GRASS`.
+
+**Why the two sources are not interchangeable, which is the whole bug:** `TRAINING_GRASS` tiles
+were two-way swept **for training, from training anchors**. A counter hunt fires from wherever a
+BOSS is fought — a different journey nobody measured. Batch `20260808-095721` priced the
+difference at **28 wasted cross-Hoenn treks**, and since the hunt is bounded to one attempt per
+boss per run, each one cost the boss rather than merely a trek.
+
+**A/B (offline, real `find_counter_candidates`, positive control in both arms):**
+
+| boss | permissive (old) | driven-only (new) |
+|---|---|---|
+| **Norman (CONTROL)** | Machop @ FIERY_PATH | **unchanged** |
+| Wattson | 5 huntable / 3 grounds → Trapinch @ ROUTE111 | 1 → Numel @ FIERY_PATH |
+| Winona | 2 huntable / 2 grounds → Baltoy @ ROUTE111 | 1 → Slugma @ FIERY_PATH |
+
+`POKEBOT_HUNT_ANYGROUND=1` restores the old behaviour so the 28/28 regression stays re-measurable
+without reverting code. `repro_hunt_driven_grounds.py`; counter/boss suite 8/8 green.
+
+### ‼ THIS IS A REDUCTION, NOT A CURE — stated so nobody reads it as the fix
+**`Numel @ FIERY_PATH` was 5 hunts, 0 caught in that same batch** — the SAME ground Machop
+converts 5/5 from. So reachability is a property of the **(boss anchor → ground) PAIR**, not of
+the ground: FIERY_PATH is proven from Petalburg (Norman) and unproven from Mauville (Wattson) or
+Fortree (Winona). This change stops the 28 known-bad destinations; it does NOT promise Wattson or
+Winona will now convert. Full coverage needs per-pair driven sweeps, which is `#24-huntreachproof`
+part 2 and is not started.
+
+**No outcome proof yet.** The acceptance test for the next batch is the CONVERSION ratio — hunts
+started vs `counter hunt CAUGHT` — which was 33 → 5 (15%) here and 18 → 7 (39%) before. Not the
+finish rate, and not the candidate count; measuring population instead of conversion is precisely
+what let this ship in the first place (`08-MISTAKES` 2026-08-08).

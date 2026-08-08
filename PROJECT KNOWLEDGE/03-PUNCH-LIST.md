@@ -374,7 +374,19 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       **Acceptance:** `counter hunt — … FIERY_PATH … Slugma` appears and `CAUGHT Slugma` > 0,
       with `CAUGHT Machop` (control) unchanged.
 
-- [ ] `#24-huntreachproof` — ‼‼ **TOP ITEM 2026-08-08. Only ONE counter rung has ever worked, and
+- [~] `#24-huntreachproof` — **PART 1 SHIPPED 2026-08-08 (narrowing). PART 2 (per-pair sweeps) NOT
+      STARTED.** `hunt_ground_tile(require_driven=...)`, strict by default: a counter hunt may only
+      target `HUNTING_GROUNDS` (driven reach-and-leave evidence), never the `TRAINING_GRASS`
+      fallback. A/B: Norman control unchanged; Wattson 5 huntable/3 grounds → 1; Winona 2/2 → 1;
+      all now FIERY_PATH. `POKEBOT_HUNT_ANYGROUND=1` reproduces the old arm.
+      `repro_hunt_driven_grounds.py`; suite 8/8 green.
+      ‼ **A REDUCTION, NOT A CURE:** `Numel @ FIERY_PATH` was **5 hunts, 0 caught** on the SAME
+      ground Machop converts 5/5 from — reachability is a property of the **(boss anchor →
+      ground) PAIR**. Part 2 is per-pair driven sweeps from real boss anchors.
+      ‼ **Acceptance for the next batch is CONVERSION** (hunts started vs `counter hunt CAUGHT`):
+      33 → 5 (15%) now, 18 → 7 (39%) before. NOT the finish rate, NOT the candidate count.
+
+- [x] `#24-huntreachproof` (original finding) — ‼‼ **TOP ITEM 2026-08-08. Only ONE counter rung has ever worked, and
       `#24-movepoolcounters` widened the set with destinations the bot CANNOT TRAVEL TO.**
       Batch `20260808-095721`, conversion by target:
       | species | hunts | caught |

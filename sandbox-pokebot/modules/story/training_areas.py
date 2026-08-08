@@ -263,7 +263,7 @@ HUNTING_GROUNDS: dict = {
 }
 
 
-def hunt_ground_tile(map_enum) -> "tuple | None":
+def hunt_ground_tile(map_enum, *, require_driven: bool | None = None) -> "tuple | None":
     """The tile a COUNTER HUNT may stand on to spin for wild encounters on `map_enum`,
     or None if this map is not a proven hunting ground.
 
@@ -284,12 +284,45 @@ def hunt_ground_tile(map_enum) -> "tuple | None":
 
     A ground in `NO_RETURN_GROUNDS` is refused unless `HUNTING_GROUNDS` explicitly
     clears it, so JAGGED_PASS and ROUTE112 stay refused while FIERY_PATH does not.
+
+    ‼‼ `require_driven` — MEASURED 2026-08-08, batch `20260808-095721`. **The two sources are
+    NOT equally strong for a HUNT, and treating them as such cost 28 wasted cross-Hoenn treks
+    in one batch.** Conversion by destination:
+
+        Machop @ FIERY_PATH   (HUNTING_GROUNDS)   5 hunts,  5 caught  = 100%
+        every other ground    (TRAINING_GRASS)   28 hunts,  0 caught  =   0%
+        `could not reach` 72 / `Could not find a path` 45 / `hunt found nothing` 0
+
+    **They are TRAVEL failures.** `TRAINING_GRASS` tiles were two-way swept for TRAINING, from
+    TRAINING anchors; a counter hunt fires from wherever a BOSS is fought, which is a different
+    journey the sweep never measured. `HUNTING_GROUNDS` is the table that encodes *driven,
+    reach-and-leave* evidence, it has one entry, and that entry is the only rung that converts.
+    Reusing a whitelist across two different questions is how a fails-closed gate quietly became
+    fails-open.
+
+    ‼ Why this is a NARROWING and not a loss: the counter hunt is bounded to **one attempt per
+    boss per run**, so an unreachable destination does not cost a trek — it costs the boss. An
+    honest immediate "no huntable candidate" is strictly better than a wasted journey that ends
+    in the same stop. Widening again is a matter of SWEEPING more grounds from real boss anchors
+    and adding them here — never of relaxing this flag.
+
+    Default: strict for the counter hunt (the only caller). `POKEBOT_HUNT_ANYGROUND=1` restores
+    the old permissive behaviour so the regression can be re-measured without reverting code.
     """
+    import os as _os
+
+    if require_driven is None:
+        require_driven = _os.environ.get("POKEBOT_HUNT_ANYGROUND", "0").strip() not in ("1", "true", "yes")
     try:
         entry = HUNTING_GROUNDS.get(map_enum)
         if entry is not None:
             tile = entry[0]
             return tuple(tile) if tile is not None else None
+        if require_driven:
+            # Only DRIVEN reach-and-leave evidence counts (see the note above). A
+            # TRAINING_GRASS tile proves we can stand and spin there; it does not prove a
+            # hunt can GET there from a boss anchor, which is the journey that failed 28/28.
+            return None
         if _return_blocked(map_enum) is not None:
             return None  # no-return and not cleared for hunting — refuse
         for candidate_map, tile, _band in TRAINING_GRASS:
