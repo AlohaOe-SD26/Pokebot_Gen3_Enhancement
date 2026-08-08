@@ -112,7 +112,31 @@ convenience, it is the only place this operation can occur. Do not go looking fo
 with a full party AND a non-empty box is a prior probe's end state, so the party arrives near
 death and runs 1 and 2 never reached a Centre (trainer refusal; then a whiteout).
 
-## ⏭ NEXT ACTIONS, IN ORDER
+## (superseded next-actions list)
+
+1. **‼ `#24-counterdesertgate` — TOP ITEM. Root-caused, a one-line gap, high value.**
+   `counter_plan.py` references `AREA_ITEM_PREREQ` **zero times**, so it offers ROUTE111's
+   Go-Goggles-gated desert tile: batch `20260807-200030` shows **7 Baltoy hunts, 0 catches**.
+   ‼ **Do NOT just flip `POKEBOT_AREA_ITEM_GATE` on** — measured and rejected for TRAINING on
+   2026-08-04 ("cost more than it saved"), where a bad pick costs one trek. A COUNTER HUNT gets
+   **one attempt per boss per run**, so a bad pick costs the boss. Make
+   `find_counter_candidates` honour the item prereq for its OWN destination choice; that demotes
+   Baltoy@ROUTE111 below Slugma@FIERY_PATH — a ground Norman already proves 6-of-7.
+   **Acceptance:** `CAUGHT Slugma` > 0 with `CAUGHT Machop` (control) unchanged.
+
+2. **`#24-teachmsgstall`** — third teach bug, fully characterised, cheap repro
+   (`--driver teachfull TEACH_ITEM=HM03`). All 9 failures share
+   `tasks=['ListMenuDummyTask','Task_ContinueTaskAfterMessagePrints']` on Surf.
+
+3. **`global watchdog` end reason 0 → 4** — new in `20260807-200030`, plausibly the longer
+   counter journeys this round enabled. **Not diagnosed** — check before assuming.
+
+4. **`#24-ballstarve`**, then **pin the rare-species dataset** before `#24-roster`.
+
+5. **`#24-magmahideout`** — next story content.
+
+## ⏭ SUPERSEDED LISTS BELOW (all items resolved; kept only for their detail)
+
 
 1. ✅ **BATCH `20260807-160545` HAS BEEN READ** — results are in the state table above and in
    `07-CHANGELOG.md`. `#24-whiteoutloop` is CONFIRMED eliminated. Nothing outstanding.
@@ -154,7 +178,7 @@ the offline probe (Baltoy 24% over Slugma 10%), because `_counter_area_allowed` 
 
 ‼ **BUT 7 Baltoy hunts caught 0** — see `#24-counterdesertgate`, now the top item.
 
-## ⏭ NEXT ACTIONS, IN ORDER
+## (superseded next-actions list)
 
 1. ✅ **BATCH `20260807-160545` HAS BEEN READ** — results are in the state table above and in
    `07-CHANGELOG.md`. `#24-whiteoutloop` is CONFIRMED eliminated. Nothing outstanding.
