@@ -126,34 +126,18 @@ death and runs 1 and 2 never reached a Centre (trainer refusal; then a whiteout)
    share `tasks=['ListMenuDummyTask','Task_ContinueTaskAfterMessagePrints']` on Surf. Cheap to
    reproduce with `--driver teachfull TEACH_ITEM=HM03`. Details in `03-PUNCH-LIST.md`.
 
-2. **`#24-winonaground` — ‼ RE-DIAGNOSE. MY STATED CAUSE WAS WRONG (corrected 2026-08-07).**
-   The huntable whitelist is **11 grounds**, not 4 — `TRAINING_GRASS` has 10 entries plus
-   FIERY_PATH. **ROUTE118 (Electrike) is ALREADY whitelisted**, and ROUTE111 hosts Geodude
-   (Ground/Rock, 100%) as a by-TYPE Winona answer. **Do NOT sweep ROUTE118 — that is done.**
-   The message is "nothing **reachable** with a proven spin tile", so the rejection is downstream:
-   reachability, or `best_huntable`'s cost/level gates. 2026-07-30 already measured
-   `Electrike @ ROUTE118 — navigation FAILED, 255 frames`.
-   **NEXT PROBE:** log the rejection reason PER CANDIDATE from a real pre-Winona anchor. Four
-   gates produce that one message; guessing between them is what caused the wrong diagnosis.
-
-2b. **`#24-movepoolcounters`** (user directive 2026-08-07) — judge counters by learnable MOVES,
-   not only species type. Measured: the actionable gain is **+2 candidates, Winona only**, once
-   three mandatory gates apply (damaging `base_power > 0`; obtainable — level-up in band or a
-   TM/HM we own; credible `power × eff × STAB ≥ 75`). ‼ **Unfiltered it is WORSE than today** —
-   the raw +82/+47 is nearly all TMs we don't own and 20-power Rock Smash. Full detail and the
-   Smog classification caveat in `03-PUNCH-LIST.md` / `07-CHANGELOG.md`.
-
-2c. (superseded) the old `#24-winonaground` text below is retained only for its measurements.
-   Winona's counter **can never be hunted**: `hunt_ground_tile()`'s whitelist is
-   `HUNTING_GROUNDS` = {FIERY_PATH} + `TRAINING_GRASS` = {ROUTE116, ROUTE117, ROUTE102}, and
-   **none hosts a Rock/Electric/Ice wild**. Norman (Machop @ FIERY_PATH, 6 of 7 caught) and
-   Wattson (Nincada @ ROUTE116) work precisely because their answers live in that set.
-   ‼ **Do NOT widen the whitelist by guessing** — it fails closed on purpose, because the cost
-   model ranks endgame maps cheapest and the raw planner offers Victory Road / Mirage Tower.
-   **Sweep ROUTE118 (Electrike) live and add it with evidence**, exactly as FIERY_PATH was:
-   reach the tile FROM THE REAL ANCHOR and get back OUT, both directions, via
-   `_navigate_riding_out` — never `calculate_path`, which cannot cross warps and has caused
-   this exact mistake before. The onward heal leg may fail without disqualifying the ground.
+2. ✅ **`#24-winonaground` + `#24-movepoolcounters` — BOTH SHIPPED 2026-08-07.**
+   Winona had **0 huntable counter candidates**, and the cause was neither the whitelist (11
+   grounds, correct) nor reachability: across all 11 grounds her needed types appear ONCE
+   (Geodude @ ROUTE111) and it is a **Rock Smash** encounter, dropped by the `method == "Grass"`
+   filter. Fixed by judging counters on the MOVES a species learns (user directive) — she now
+   gets **Slugma @ FIERY_PATH via `move:Rock Throw@L15`**, caught already knowing it, on the
+   ground where Norman's hunt already succeeds 6/7.
+   ‼ Required a SECOND fix to be non-inert: `tier` had no huntability term, so the one huntable
+   candidate ranked 42 of 43 and `max_results=5` truncated it away.
+   ‼ **NO OUTCOME PROOF YET.** Structurally proven + offline-proven against the real
+   `find_counter_candidates` with a positive control. **The next batch must read
+   `no super-effective answer` (was 12 of 16 non-finishes) and count `counter hunt CAUGHT`.**
 
 3. **`#24-roster` / `#24-rarepredicate`** — ‼ **UNGATED BY SEQUENCE, BUT ITS DATASET DOES NOT
    REPRODUCE — pin that first (2026-08-07).** `tools/story-dev/rare_species_dataset.py` is the

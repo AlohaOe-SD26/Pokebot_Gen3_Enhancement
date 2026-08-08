@@ -95,10 +95,31 @@ for c in norman[:9]:
         f"est={'?' if c['est_frames'] is None else int(c['est_frames'])!s:<8} "
         f"huntable={c['huntable']!s:<5} hunt_tile={c['hunt_tile']}"
     )
+# ‼ UPDATED 2026-08-07 (`#24-movepoolcounters`). This used to assert the OPPOSITE — "rank-1 is
+# NOT huntable" — as a measurement of the hazard that motivates the whitelist gate. That hazard
+# has now been fixed IN THE RANKING: `tier` gained a huntability term above type coverage, so an
+# unhuntable candidate can no longer outrank a huntable one.
+#
+# ‼ Asserting the old inequality would pin the LIMITATION rather than the property, and the
+# suite would then actively defend the bug — the exact failure mode recorded for
+# `repro_x4_headless.py` ("a wrapped line IS unparseable"). What must be TRUE is: *if any
+# candidate is huntable, the top-ranked one is huntable too*.
+#
+# ‼ THE GATE IS STILL LOAD-BEARING AND IS STILL TESTED (cases 2/4/5). When NOTHING is huntable,
+# `cands[0]` is still an unswept endgame map, so the executor must keep calling
+# `best_huntable()` and must never trust rank alone.
+_huntable = [c for c in norman if c["huntable"]]
 check(
-    "Norman's rank-1 candidate is NOT huntable (it is an unswept endgame map)",
-    bool(norman) and not norman[0]["huntable"],
-    f"rank 1 = {norman[0]['species_name']} @ {norman[0]['map_enum'].name}" if norman else "no candidates",
+    "if ANY candidate is huntable, rank 1 is huntable (ranking now agrees with the gate)",
+    (not _huntable) or norman[0]["huntable"],
+    f"rank 1 = {norman[0]['species_name']} @ {norman[0]['map_enum'].name} "
+    f"(huntable={norman[0]['huntable']}), {len(_huntable)} huntable of {len(norman)}"
+    if norman else "no candidates",
+)
+check(
+    "the planner STILL offers unswept endgame maps (the hazard is in the DATA, not the sort)",
+    any(not c["huntable"] for c in norman),
+    "so the whitelist gate remains necessary — it is what makes them unusable",
 )
 
 print()
@@ -123,11 +144,18 @@ check("Jagged Pass IS offered as a candidate (the planner still names it)", bool
 check("Fiery Path is offered too", bool(fiery))
 if jagged and fiery:
     j_rank, f_rank = norman.index(jagged[0]), norman.index(fiery[0])
+    # ‼ UPDATED 2026-08-07, same reason as CASE 1: this asserted `j_rank < f_rank` to MEASURE
+    # that cost-ranking alone would have picked the no-return ground. With huntability now a
+    # tier term, Jagged Pass (refused by NO_RETURN_GROUNDS ⇒ no hunt tile) can no longer outrank
+    # Fiery Path. Keeping the old inequality would require the ranking to stay wrong.
+    # The property that matters is unchanged and is asserted immediately below: Jagged Pass is
+    # still OFFERED by the planner and still REFUSED by the gate.
     check(
-        "Jagged Pass ranks ABOVE Fiery Path on cost — so rank alone would pick it",
-        j_rank < f_rank,
-        f"jagged rank {j_rank} (est {int(jagged[0]['est_frames'])}) vs "
-        f"fiery rank {f_rank} (est {int(fiery[0]['est_frames'])})",
+        "Jagged Pass no longer outranks Fiery Path (huntability is now a tier term)",
+        f_rank < j_rank,
+        f"fiery rank {f_rank} (est {int(fiery[0]['est_frames'])}) vs "
+        f"jagged rank {j_rank} (est {int(jagged[0]['est_frames'])}) "
+        f"— cost still favours Jagged Pass, which is why the gate stays",
     )
     check("...yet Jagged Pass is NOT huntable", not jagged[0]["huntable"])
     check("...and Fiery Path IS", fiery[0]["huntable"])

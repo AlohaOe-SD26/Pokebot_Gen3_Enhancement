@@ -8933,3 +8933,66 @@ this error in the first place.
 ‼ **Third instance this session of the same mistake: I read a PROXY for the data instead of the
 data** (after grepping a gitignored tree, and after reading profile dirs through a date glob that
 excluded the files). Recorded in `08-MISTAKES.md`.
+
+---
+
+## 2026-08-07 — `#24-movepoolcounters` SHIPPED, and it fixes `#24-winonaground`
+
+User directive: a counter is defined by the MOVES a species can learn, not only by its own type;
+and damaging moves must be distinguished from stat-change / field-effect / pure-status moves.
+Both correct, and together they turn out to be the fix for the #1 remaining failure class
+(`no super-effective answer` = **12 of 16 non-finishes, 75%**, in batch `20260807-160545`).
+
+### WHY WINONA HAD *ZERO* ANSWERS — the real cause, finally
+`counter_plan` kept a candidate only if `{t.name for t in species.types} & needed`, and separately
+accepts `method == "Grass"` only. Measured across all **11** huntable grounds, Winona's needed
+types (Rock/Ice/Dragon) appear **exactly once** — Geodude on ROUTE111, via **Rock Smash**. So
+after the Grass filter: **0 candidates.** Not a reachability problem, not a missing swept ground.
+
+### THE FIX — two changes, both required
+**1. Movepool-aware candidates.** A species also qualifies if its LEVEL-UP learnset contains a
+damaging move of a needed type that it already knows at capture. Three gates, all mandatory:
+* **damaging** — `base_power > 0`. Stat-change / field-effect / pure-status moves cannot answer a
+  type weakness (Growl, Sunny Day, Toxic). ‼ Judge on `base_power`, never on the name or on
+  having a secondary effect: **Smog is 20 bp Poison damage** (`POISON_HIT`), i.e. damaging.
+* **obtainable** — level-up only, and `entry.level <= the species' max wild level`, so it is
+  caught already knowing the move. No TM/tutor assumptions.
+* **credible** — `base_power × 2.0 × STAB >= 75`, the same floor the boss-answer test uses.
+‼ Unfiltered this is WORSE than pure typing: raw "can learn a needed-type move" gives Winona +82
+and Norman +47, nearly all `TM13 Ice Beam`/`TM14 Blizzard` (single-use TMs we do not own) and
+`HM06 Rock Smash` at **20 power** — the exact case the floor exists to reject.
+Candidates now record `answer_via` (`"type"` or `"move:Rock Throw@L15"`) so a log can say which.
+
+**2. ‼ HUNTABILITY IS NOW A `tier` TERM — without this the first change is INERT.**
+`tier` was `reachable(1e9) + type_coverage(1e7) + training_tile(1e5)` and contained **nothing
+about whether the executor could actually hunt the candidate**. Measured after change 1 alone:
+Winona's list sorted to 43 candidates led by **Geodude in MAGMA_HIDEOUT** (type match, no spin
+tile, unhuntable), with the one genuinely huntable candidate — Slugma @ FIERY_PATH — at **rank
+42**. Callers pass `max_results=5`, so `best_huntable` never saw it. `huntable` now sits between
+`reachable` and type coverage, which is what the function's own docstring said all along.
+
+### PROVEN — real `find_counter_candidates`, offline, WITH A POSITIVE CONTROL
+| boss | before | after |
+|---|---|---|
+| **Norman (control)** | Machop @ FIERY_PATH `via=type` | **unchanged** |
+| Wattson | 1 huntable | 2 huntable (Numel surfaced) |
+| **Winona** | **0 huntable** | **1 — Slugma @ FIERY_PATH `via=move:Rock Throw@L15`** |
+
+Slugma is Grass-method, 10%, L15, and learns Rock Throw AT L15 — so it is caught already knowing
+the answer, on the ground where Norman's hunt already succeeds 6 of 7 times.
+
+‼ **The positive control is not decoration.** `find_counter_candidates` swallows per-location
+errors and returns `[]` on any failure; offline, `get_map_enum` raises on `context.rom` and every
+location is skipped, giving **0 candidates with no error** — indistinguishable from a real "no
+answer". My first run of this probe reported exactly that and I nearly recorded it as a finding.
+`probe_counter_candidates_offline.py` now fails loudly unless Norman finds Machop.
+
+### An older repro had to be UPDATED, not deleted
+`repro_counter_huntable.py` asserted *"Norman's rank-1 candidate is NOT huntable"* and *"Jagged
+Pass ranks ABOVE Fiery Path"* — it MEASURED the hazard that motivates the whitelist gate. The
+ranking fix removes that hazard, so both assertions failed. Keeping them would pin the
+LIMITATION and make the suite defend the bug — the documented `repro_x4_headless.py` failure mode.
+They now assert the stronger property (*if any candidate is huntable, rank 1 is huntable*) plus
+the unchanged one (*the planner still OFFERS unswept endgame maps; the gate is what refuses
+them*). Cases 2/4/5, which test the gate itself, were untouched and still pass.
+Full sweep of the 10 counter/boss repros: **all green.**

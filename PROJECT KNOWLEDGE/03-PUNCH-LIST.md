@@ -294,8 +294,19 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       chapters.** Cheap to reproduce — `ensure_hm_learner` is wired for exactly two moves
       (Rock Smash `story_mode.py:2793`, Surf `:2967`).
 
-- [ ] `#24-movepoolcounters` — **USER DIRECTIVE 2026-08-07: counters should be judged by the
-      MOVES a species can learn, not only by its own type. Measured; real but SMALL.**
+- [x] `#24-movepoolcounters` — **SHIPPED 2026-08-07. It is the fix for `#24-winonaground`.**
+      Winona: **0 huntable candidates -> 1** (Slugma @ FIERY_PATH via `move:Rock Throw@L15`).
+      Norman control unchanged (Machop @ FIERY_PATH via type); Wattson 1 -> 2.
+      TWO changes, both required: (a) movepool-aware candidates behind three gates — damaging
+      (`base_power > 0`), obtainable (level-up only, known at capture), credible (`bp x 2.0 x
+      STAB >= 75`); (b) **huntability added to `tier`** — without it the huntable candidate
+      ranked **42 of 43** behind unhuntable MAGMA_HIDEOUT Geodudes and `max_results=5` truncated
+      it away, leaving the feature inert. `repro_movepool_counter_candidates.py` +
+      `probe_counter_candidates_offline.py` (with a positive control).
+      ‼ Original measurement note kept below — its "+2, will not fix Winona" conclusion was
+      WRONG, because I had not yet found the Grass-only filter that excludes her one type match.
+
+- [x] `#24-movepoolcounters` (original measurement) — **USER DIRECTIVE 2026-08-07.**
       > "some pokemon can learn moves of types that can be a counter so its not just the pokemon
       > type, it can be the moves they learn… know the difference between damaging moves,
       > passive/defensive/stat boosting/debuff moves and area/effect moves as well as status
@@ -350,8 +361,14 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       and every mon already carries an HM — worth checking whether the HM-slot exclusion in
       `replace_slot` picking leaves no legal choice and the game silently refuses.
 
-- [ ] `#24-winonaground` — ‼‼ **MY STATED CAUSE WAS WRONG (corrected 2026-08-07 same day).
-      RE-DIAGNOSE BEFORE DOING ANYTHING.**
+- [x] `#24-winonaground` — **SOLVED 2026-08-07 by `#24-movepoolcounters`. The real cause was
+      neither the whitelist nor reachability: across all 11 huntable grounds Winona's needed
+      types appear ONCE (Geodude @ ROUTE111) and it is a **Rock Smash** encounter, which the
+      `method == "Grass"` filter drops — leaving zero candidates.** She now has Slugma @
+      FIERY_PATH via Rock Throw. ‼ My first two stated causes were both wrong; the history is
+      kept below because the wrong turns are the lesson.
+
+- [x] `#24-winonaground` (wrong-cause history) — ‼‼ **MY STATED CAUSE WAS WRONG.**
       I wrote that the huntable whitelist was `{FIERY_PATH, ROUTE116, ROUTE117, ROUTE102}` and
       contained no Rock/Electric/Ice ground. **False.** I grepped for named `*_TRAINING_GRASS =`
       CONSTANTS instead of reading the `TRAINING_GRASS` TABLE, which has **10 entries**:

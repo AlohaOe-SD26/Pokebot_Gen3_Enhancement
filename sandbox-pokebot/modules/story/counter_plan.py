@@ -153,8 +153,55 @@ def find_counter_candidates(needed_type_names, *, allow=None, max_results: int =
             except Exception:
                 continue
             hit_types = {t.name for t in species.types} & needed
+            # ‼‼ `#24-movepoolcounters` (user directive 2026-08-07): A COUNTER IS A MOVE, NOT A
+            # TYPE. This filter used to be `if not hit_types: continue`, i.e. pure species
+            # typing — and that is why **Winona had ZERO huntable candidates**. Measured across
+            # all 11 huntable grounds, her needed types (Rock/Ice/Dragon) appear exactly once:
+            # Geodude on ROUTE111, via **Rock Smash**, which the `method != "Grass"` filter below
+            # then drops. Grass-method matches: 0.
+            #
+            # A species that LEARNS a counter-type move answers the boss just as well. With this,
+            # Winona gains two candidates on grounds the bot already walks:
+            #     Baltoy @ ROUTE111  Grass 24% L19-21 — Rock Tomb  at L15
+            #     Slugma @ FIERY_PATH Grass 10% L15   — Rock Throw at L15
+            # Both are caught ALREADY KNOWING the move (learn level <= the wild's level), and
+            # FIERY_PATH is the ground where Norman's hunt already succeeds 6 of 7 times.
+            #
+            # ‼ THREE GATES, ALL REQUIRED — the unfiltered version is WORSE THAN PURE TYPING.
+            # Raw "can learn a move of a needed type" yields +82 for Winona and +47 for Norman,
+            # and is nearly all junk: TM13 Ice Beam / TM14 Blizzard (Gen 3 TMs are SINGLE-USE and
+            # we almost certainly do not own them) and HM06 Rock Smash at **20 power** — the
+            # exact case CREDIBLE_ANSWER_POWER exists to reject. Unfiltered, every Zigzagoon
+            # becomes a Norman counter.
+            #   1. DAMAGING ONLY — `base_power > 0`. A stat-change, field-effect or pure-status
+            #      move cannot answer a type weakness (Growl, Sunny Day, Toxic).
+            #      ‼ Judge on base_power, NEVER on the name or on having a secondary effect:
+            #      Smog is 20 bp Poison damage with `POISON_HIT`, i.e. DAMAGING.
+            #   2. OBTAINABLE WITHOUT A PURCHASE — LEVEL-UP moves only, and only if the wild
+            #      already knows it at capture (`entry.level <= loc max level`). No TM/tutor
+            #      assumptions, and no dependency on training it up afterwards.
+            #   3. CREDIBLE POWER — the same floor the boss-answer test uses.
+            move_answer = None
             if not hit_types:
-                continue  # this species is not one of the types we need
+                try:
+                    best = None
+                    for entry in species.learnset.level_up:
+                        mv = entry.move
+                        if mv.base_power <= 0 or mv.type.name not in needed:
+                            continue
+                        if entry.level > _loc_max_level(locations):
+                            continue  # it would not know the move when we catch it
+                        stab = 1.5 if mv.type.name in {t.name for t in species.types} else 1.0
+                        if mv.base_power * 2.0 * stab < _CREDIBLE_ANSWER_POWER:
+                            continue
+                        if best is None or mv.base_power > best[1].base_power:
+                            best = (entry.level, mv)
+                    if best is not None:
+                        move_answer = best
+                except Exception:  # noqa: BLE001 — a learnset hiccup must not kill the plan
+                    move_answer = None
+            if not hit_types and move_answer is None:
+                continue  # neither its type nor its level-up movepool answers this boss
 
             for loc in locations:
                 if loc.get("method") != "Grass":
@@ -208,8 +255,34 @@ def find_counter_candidates(needed_type_names, *, allow=None, max_results: int =
                 # many needed types it answers > do we have a verified tile to path to.
                 # Kept separate from `score` so cost can rank WITHIN a tier without the
                 # rate term drowning it (rate*1000 dwarfed a 20-level gap by ~1000x).
+                # Where a HUNT could actually stand (see the docstring): deliberately
+                # computed here rather than by the caller, so no executor can forget to
+                # ask and walk into an unswept endgame interior. Fails closed.
+                # ‼ Computed BEFORE `tier` because huntability is now a RANKING term.
+                try:
+                    hunt_tile = hunt_ground_tile(map_enum)
+                except Exception:
+                    hunt_tile = None
+
                 tier = (
                     (1_000_000_000.0 if reachable else 0.0)
+                    # ‼‼ HUNTABILITY OUTRANKS TYPE COVERAGE (fixed 2026-08-07). It used to be
+                    # absent from `tier` entirely, so a candidate the executor CANNOT ACT ON
+                    # outranked one it can, purely for being the right type.
+                    #
+                    # Measured, and it silently cost Winona her only answer: her list sorted
+                    # to 43 candidates led by **Geodude in MAGMA_HIDEOUT** (a type match, no
+                    # spin tile, unhuntable) while the one genuinely huntable candidate —
+                    # Slugma @ FIERY_PATH via Rock Throw — sat at **rank 42**. Callers use
+                    # `max_results=5`, so `best_huntable` never saw it and the run reported
+                    # "no huntable counter candidate".
+                    #
+                    # `huntable` is the executor's ONLY usable set (`huntable_candidates`,
+                    # `best_huntable`), so ranking an unhuntable candidate above a huntable
+                    # one cannot help any caller. Sits below `reachable` and above type
+                    # coverage, keeping the docstring's order honest: get there at all >
+                    # can we actually hunt it > how many needed types it answers.
+                    + (100_000_000.0 if (reachable and hunt_tile is not None) else 0.0)
                     + len(hit_types) * 10_000_000.0
                     + (100_000.0 if tile is not None else 0.0)
                 )
@@ -217,18 +290,15 @@ def find_counter_candidates(needed_type_names, *, allow=None, max_results: int =
                 # for display and for callers that read it.
                 score = tier + rate * 1_000.0 - level_gap
 
-                # Where a HUNT could actually stand (see the docstring): deliberately
-                # computed here rather than by the caller, so no executor can forget to
-                # ask and walk into an unswept endgame interior. Fails closed.
-                try:
-                    hunt_tile = hunt_ground_tile(map_enum)
-                except Exception:
-                    hunt_tile = None
-
                 candidates.append(
                     {
                         "species_name": species.name,
                         "types": [t.name for t in species.types],
+                        # WHY this species answers the boss. A silent "no" and a silent "yes"
+                        # have both cost this project time; the log must be able to say which
+                        # rule fired, and a move-answer must never be mistaken for a STAB one.
+                        "answer_via": ("type" if hit_types
+                                       else f"move:{move_answer[1].name}@L{move_answer[0]}"),
                         "map_enum": map_enum,
                         "tile": tile,
                         "level_band": (lo, hi),
@@ -261,6 +331,26 @@ def find_counter_candidates(needed_type_names, *, allow=None, max_results: int =
     except Exception as error:
         _log.warning("find_counter_candidates failed: %s", error)
         return []
+
+
+#: Mirrors `StoryMode.CREDIBLE_ANSWER_POWER` (story_mode.py). Kept as a literal rather than an
+#: import because `counter_plan` must stay importable without the bot-mode plugin (the repros
+#: rely on that). If the plugin's floor changes, change this with it.
+_CREDIBLE_ANSWER_POWER = 75
+
+
+def _loc_max_level(locations) -> int:
+    """The highest wild level this species reaches anywhere, for the "does it already know the
+    move when caught?" test. Uses the species' best location rather than the one being scored:
+    the per-location check is applied by the caller's own level band, and being generous here
+    only ever ADMITS a candidate that the credible-power and level-band gates still judge."""
+    best = 0
+    for loc in locations or ():
+        try:
+            best = max(best, int(loc.get("max_level", 0) or 0))
+        except Exception:  # noqa: BLE001
+            continue
+    return best
 
 
 def huntable_candidates(cands) -> list:
