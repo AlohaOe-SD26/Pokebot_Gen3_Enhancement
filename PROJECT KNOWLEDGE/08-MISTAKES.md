@@ -3944,3 +3944,38 @@ warned about exactly that bound since 2026-07-30; I widened what feeds it withou
 
 **Not claimed:** the finish rate fell 41.7% → 25.8% at z = −1.24, which does NOT resolve. The
 concern above rests on the conversion counters (33 → 5), which are near-binary and do.
+
+---
+
+## 2026-08-08 — I inferred a structural cause from ONE confound and scoped a campaign around it
+
+**The inference.** `Numel @ FIERY_PATH` was 5 hunts / 0 caught (Wattson, from Mauville) while
+`Machop @ FIERY_PATH` was 5/5 (Norman, from Petalburg). Same ground, opposite outcomes — so I
+concluded reachability is a property of the **(boss anchor → ground) PAIR**, wrote it into three
+docs, and scoped `#24-huntreachproof` part 2 as a per-anchor driven-sweep campaign across six
+anchors × five grounds.
+
+**It was wrong.** After the narrowing shipped, the very next batch gave
+`Numel @ FIERY_PATH` **7 hunts / 3 caught**. FIERY_PATH is reachable from Mauville and always was.
+
+**The real cause was DESTINATION ORDERING.** The ladder tries up to three destinations but the
+hunt is bounded to **one attempt per boss per run**, so ROUTE111/ROUTE116 consumed the bound
+before FIERY_PATH was ever reached. Removing the bad destinations let the good one convert.
+
+‼ **Prevention rule: two outcomes that differ do not identify the variable that differs.** I had
+exactly one Numel/Machop contrast and read the anchor as the cause, when the ladder's ORDER — a
+thing I already knew was bounded, and had written about twice — explained it at least as well.
+**Before scoping work around a structural claim, list the alternatives that fit the same data
+and find the measurement that separates them.** This is the same shape as the 2026-07-31 entry
+("a probe that returns FAIL for every case has found a common SYMPTOM, not a common cause").
+
+‼ **What saved it: shipping the narrowing FIRST and measuring before building on it.** I nearly
+did part 2 first. The batch that validated the small change also demolished the premise of the
+large one — six anchors × five grounds of emulator sweeps that would have fixed nothing.
+**When a cheap change and an expensive one rest on the same hypothesis, ship the cheap one and
+let it test the hypothesis.**
+
+**The good news, recorded so the method is not lost:** the acceptance metric was CONVERSION
+(hunts started vs caught), adopted after the 2026-08-08 population-vs-conversion mistake, and it
+returned **15% → 50%, z = +2.73 — the project's first resolvable counter-chain result.**
+The metric change is what made the win legible.

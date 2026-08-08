@@ -20,9 +20,11 @@ game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror
 |---|---|
 | branch / HEAD | `main`, clean, pushed — see the newest commit |
 | story content | Littleroot → 6 badges → **Mt. Pyre → Magma Emblem**. Magma Hideout is UNLOCKED but UNBUILT. |
-| box idle | **‼ BATCH RUNNING — `20260808-131334`, started 1:13 PM PDT, 8 lanes × 180 min, code `def4b649`, ETA 4:13 PM PDT.** 8 clean headers. **Do NOT edit `sandbox-pokebot/` and do NOT run emulator probes until it lands.** |
+| box idle | nothing running |
 | **promotion** | **BATCH-6 PROMOTED 2026-08-08** (`e84b814f`) — sandbox → custom, on explicit user approval. 12 files + `pc_trip.py` + caches; residual code diff **0**. Verified ON CUSTOM (Norman→Machop control + Winona→Slugma). Outstanding items recorded in `custom-pokebot/DIVERGENCE-LOG.md`. **Sandbox and custom are now byte-identical in code**, so no re-base was needed. |
-| **latest batch** | **`20260808-095721` LANDED** — code `e84b814f`, `VERDICT OK`, 39 headers, **0 violations, 0 restarts**. 31 runs, 8 finished (25.8% vs 41.7%; **z = −1.24, NOT resolvable**). |
+| **latest batch** | **`20260808-131334` LANDED** — code `def4b649`, `VERDICT OK`, 36 headers, 0 violations, 0 restarts. 28 runs, 8 finished (28.6%; z = +0.24 vs 25.8%, NOT resolvable). |
+| **✅ `#24-huntreachproof` RESULT** | **CONVERSION 15% → 50%** (5/33 → 10/20), **z = +2.73 — RESOLVABLE.** `could not reach` 72 → 53; `global watchdog` 9 → **0**. The project's first resolvable counter-chain result. |
+| **‼ HYPOTHESIS REFUTED** | The (anchor → ground) model was WRONG — `Numel @ FIERY_PATH` 0/5 → **3/7**. The old failure was destination ORDERING consuming the one-hunt-per-boss bound. **`#24-huntreachproof` part 2 (per-anchor sweeps) is CANCELLED — do not run it.** |
 | **‼‼ TOP FINDING** | **Only ONE counter rung has ever worked.** Machop @ FIERY_PATH converts **5/5**; every other destination **0 of 28**. `could not reach` 72 — **travel failures**. `#24-movepoolcounters` widened the set with unreachable grounds ⇒ **`#24-huntreachproof` is the top item.** |
 | **‼ `#24-whiteoutloop` RESULT** | **ELIMINATED** (batch `20260807-160545`). `too many whiteout recoveries` **4 → 0**; `global watchdog` **11 → 0**; deepest `defeat #N` **32 → 13**; hard plateau fired 20×; LAVARIDGE defeats/run **−83%**. |
 | **‼ `#24-movepoolcounters` RESULT** | **CONFIRMED** (batch `20260807-200030`). `no huntable counter candidate` **25 → 0**; hunts started 13 → 18; new movepool picks (ROUTE111/Baltoy ×7 + 4 others); control `CAUGHT Machop` 4 → 6, no regression. |

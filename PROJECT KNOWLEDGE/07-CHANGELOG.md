@@ -9313,3 +9313,49 @@ part 2 and is not started.
 started vs `counter hunt CAUGHT` — which was 33 → 5 (15%) here and 18 → 7 (39%) before. Not the
 finish rate, and not the candidate count; measuring population instead of conversion is precisely
 what let this ship in the first place (`08-MISTAKES` 2026-08-08).
+
+---
+
+## 2026-08-08 — BATCH `20260808-131334`: the narrowing WORKS — conversion 15% → 50%, z = +2.73 ✅
+
+Code `def4b649`, `VERDICT OK`, 36 headers, **0 violations, 0 restarts**. 28 runs, 8 finished.
+
+### ‼ THE ACCEPTANCE TEST PASSED, AND IT RESOLVES
+| | prev `20260808-095721` | now |
+|---|---|---|
+| hunts started | 33 | **20** |
+| `counter hunt CAUGHT` | 5 | **10** |
+| **CONVERSION** | **15%** | **50%** — **z = +2.73, RESOLVABLE** ✅ |
+
+Restricting counter hunts to `HUNTING_GROUNDS` (driven reach-and-leave evidence) cut the wasted
+destinations and **doubled the catches from a smaller number of attempts**. `could not reach`
+72 → 53; `global watchdog` 9 → **0**; `no huntable counter candidate` stays **0**.
+This is one of the few statistically resolvable results the project has produced — and it is on
+CONVERSION, the metric adopted after measuring population instead cost a whole round.
+
+‼ Finish rate 25.8% → 28.6% is **z = +0.24, NOT resolvable** and is not claimed.
+
+### ‼‼ AND IT REFUTES MY OWN (anchor → ground) HYPOTHESIS — read this before doing part 2
+I wrote that reachability is a property of the **(boss anchor → ground) PAIR**, on the evidence
+that `Numel @ FIERY_PATH` was 5 hunts / 0 caught from Mauville while `Machop @ FIERY_PATH` was
+5/5 from Petalburg. **That inference was wrong.** This batch:
+
+    Numel @ FIERY_PATH    5 hunts, 0 caught   ->   7 hunts, 3 caught
+    Machop @ FIERY_PATH   5 hunts, 5 caught   ->   8 hunts, 6 caught
+
+FIERY_PATH is reachable from Mauville after all. The previous 0/5 was **destination ORDERING**:
+the ladder spent the boss's single hunt on ROUTE111/ROUTE116 first, so by the time FIERY_PATH
+would have been tried, the one-attempt-per-boss bound had already been consumed. Remove the bad
+destinations and the good one converts.
+
+⇒ **Part 2 should NOT be the per-anchor sweep campaign I planned.** That was scoped to fix a
+problem that does not exist. The remaining question is much narrower and is below.
+
+### WHAT IS STILL OPEN
+**`Slugma @ FIERY_PATH`: 5 hunts, 0 caught.** Winona's rung fires for the first time ever — the
+movepool work reaching production — but does not convert, on a ground that converts 6/8 for
+Machop and 3/7 for Numel in the same batch. So this is NOT travel. Likeliest candidates, in
+order: the 10% encounter rate (vs Machop 15% / Numel 30%) against the spin budget; or the
+catch-on-sight branch not targeting it. **Next probe: instrument the Slugma spin — arrivals,
+encounters seen, and species matched — before changing anything.**
+`no super-effective answer` is still 19 of 20 non-finishes, and Winona is 6 of them.

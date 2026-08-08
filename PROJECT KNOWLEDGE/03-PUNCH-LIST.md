@@ -374,8 +374,26 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       **Acceptance:** `counter hunt — … FIERY_PATH … Slugma` appears and `CAUGHT Slugma` > 0,
       with `CAUGHT Machop` (control) unchanged.
 
-- [~] `#24-huntreachproof` — **PART 1 SHIPPED 2026-08-08 (narrowing). PART 2 (per-pair sweeps) NOT
-      STARTED.** `hunt_ground_tile(require_driven=...)`, strict by default: a counter hunt may only
+- [x] `#24-huntreachproof` — **PART 1 SHIPPED AND BATCH-CONFIRMED 2026-08-08.**
+      **CONVERSION 15% → 50% (5/33 → 10/20), z = +2.73 — RESOLVABLE ✅.** Hunts fell 33 → 20 and
+      catches DOUBLED. `could not reach` 72 → 53; `global watchdog` 9 → 0.
+      ‼‼ **PART 2 AS PLANNED IS CANCELLED — the batch REFUTED my (anchor → ground) hypothesis.**
+      `Numel @ FIERY_PATH` went 5 hunts/0 caught → **7 hunts/3 caught**, so FIERY_PATH *is*
+      reachable from Mauville. The old 0/5 was **destination ORDERING**: the ladder spent the
+      boss's single hunt on ROUTE111/ROUTE116 first and the bound was consumed before the good
+      ground was tried. The per-anchor sweep campaign would have fixed a problem that does not
+      exist. **Do not run it.**
+
+- [ ] `#24-slugmaspin` — **NEW 2026-08-08. Winona's rung FIRES but does not convert.**
+      `Slugma @ FIERY_PATH`: **5 hunts, 0 caught** — on the same ground that converts 6/8 for
+      Machop and 3/7 for Numel in the same batch, so **it is not travel**. This is the movepool
+      work reaching production for the first time; the catch is the last missing step.
+      Likeliest causes, in order: the **10% encounter rate** (vs Machop 15% / Numel 30%) against
+      the spin budget; or the catch-on-sight branch not targeting the species.
+      **NEXT PROBE: instrument the Slugma spin — arrivals, encounters seen, species matched —
+      BEFORE changing anything.** Winona is 6 of 20 non-finishes.
+
+- [x] `#24-huntreachproof` (part 1 detail) — **narrowing.** `hunt_ground_tile(require_driven=...)`, strict by default: a counter hunt may only
       target `HUNTING_GROUNDS` (driven reach-and-leave evidence), never the `TRAINING_GRASS`
       fallback. A/B: Norman control unchanged; Wattson 5 huntable/3 grounds → 1; Winona 2/2 → 1;
       all now FIERY_PATH. `POKEBOT_HUNT_ANYGROUND=1` reproduces the old arm.
