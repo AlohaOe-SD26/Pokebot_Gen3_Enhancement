@@ -20,9 +20,10 @@ game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror
 |---|---|
 | branch / HEAD | `main`, clean, pushed — see the newest commit |
 | story content | Littleroot → 6 badges → **Mt. Pyre → Magma Emblem**. Magma Hideout is UNLOCKED but UNBUILT. |
-| box idle | **‼ BATCH RUNNING — `20260807-160545`, launched 16:05 PDT, 8 lanes × 180 min, code `c335a204`, due ~19:05.** All 8 headers `speed=0 video=True`. **Do NOT edit `sandbox-pokebot/` until it lands.** |
-| **re-baseline** | **`20260807-102552` LANDED** — code `d878fa33`, 180.1 min, `VERDICT OK`, 31 headers checked, **0 emulation violations, 0 lane restarts**. **23 runs, 9 finished = 39.1%.** ‼ vs the 52.0% arm: **z = −0.89, NOT resolvable** — this is the new BASELINE, not a regression. |
-| last batch | `20260806-174746` — 26 runs, 7 finished (26.9%) |
+| box idle | nothing running |
+| **latest batch** | **`20260807-160545` LANDED** — code `c335a204`, 180.1 min, `VERDICT OK`, 33 headers, **0 violations, 0 restarts**. 25 runs, 9 finished (36.0%). ‼ vs 39.1%: **z = −0.22, NOT resolvable.** |
+| **‼ `#24-whiteoutloop` RESULT** | **ELIMINATED.** End reason `too many whiteout recoveries` **4 → 0**; `global watchdog` **11 → 0**; **deepest `defeat #N` 32 → 13**; hard plateau fired **20×**; LAVARIDGE defeats/run **−83%**, ROUTE110 **−40%**, whiteouts/run **−26%**. |
+| **‼ TOP FAILURE NOW** | `no super-effective answer` = **12 of 16 non-finishes (75%)** — Winona 6, Norman 3, Wattson 3. The counter chain is essentially the whole remaining failure mode ⇒ **`#24-winonaground` is the #1 item.** |
 | `#24-pcoverflow` | **BOTH HALVES LIVE-PROVEN 2026-08-07** — catch (`--driver boxcatch`) and withdraw (`--driver boxwithdraw`). |
 
 ## ‼‼ READ THIS BEFORE GRADING ANYTHING — the finish rate CANNOT resolve a change
@@ -113,8 +114,17 @@ death and runs 1 and 2 never reached a Centre (trainer refusal; then a whiteout)
 
 ## ⏭ NEXT ACTIONS, IN ORDER
 
-1. **‼ READ BATCH `20260807-160545` (see "HOW TO READ" above). It is the only thing outstanding.**
-   Everything else below is unstarted work, not work in progress.
+1. ✅ **BATCH `20260807-160545` HAS BEEN READ** — results are in the state table above and in
+   `07-CHANGELOG.md`. `#24-whiteoutloop` is CONFIRMED eliminated. Nothing outstanding.
+   ‼ **Three numbers I reported while it was still running were WRONG** and are corrected in the
+   changelog: the whiteout baseline (used the wrong batch), the hard-plateau firing count (wrong
+   surface — profile dirs with a date glob that excluded the files), and the baseline deepest
+   defeat ordinal (a PARTIAL count of a running batch). **Never compare a finished number against
+   a partial one, and always name the surface.**
+
+1b. **`#24-teachmsgstall`** — a third teach bug, fully characterised, small. All 9 teach failures
+   share `tasks=['ListMenuDummyTask','Task_ContinueTaskAfterMessagePrints']` on Surf. Cheap to
+   reproduce with `--driver teachfull TEACH_ITEM=HM03`. Details in `03-PUNCH-LIST.md`.
 
 2. **`#24-winonaground`** — the top remaining failure class now that whiteouts are addressed.
    Winona's counter **can never be hunted**: `hunt_ground_tile()`'s whitelist is

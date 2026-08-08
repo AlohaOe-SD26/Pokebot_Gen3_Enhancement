@@ -8816,3 +8816,66 @@ fix is to SWEEP one ground and add it with evidence, exactly as FIERY_PATH was �
 run derailed. Consistent with KI-43's note that catches rose while each restock still buys ten
 balls. It pairs with the end reason `No party mon can learn Surf and the party is full — needs PC
 box management`, which the now-proven `#24-pcoverflow` withdraw path should be able to serve.
+
+---
+
+## 2026-08-07 — BATCH `20260807-160545` LANDED: the whiteout loop is GONE
+
+Code `c335a204`, 180.1 min, `VERDICT OK`, 33 headers checked, **0 emulation violations, 0 lane
+restarts**. 25 runs ended, 9 finished. Carries three changes (`#24-teachpathrace`,
+`#24-whiteoutloop` parts 1 and 2), so it cannot attribute — it was run to check for harm and to
+move the countable numbers.
+
+| metric | baseline `20260807-102552` | this batch | verdict |
+|---|---|---|---|
+| finish rate | 39.1% (9/23) | 36.0% (9/25) | **z = −0.22 — NOT resolvable, ignore** |
+| end reason `too many whiteout recoveries in a row` | **4** (the #1 reason) | **0** | ✅ eliminated |
+| `global watchdog` | 11 | **0** | ✅ |
+| **deepest `defeat #N` at one map** | **32** | **13** | ✅ the runaway is bounded |
+| hard-plateau firings | n/a (new) | **20** | ✅ the mechanism fires |
+| LAVARIDGE_GYM defeats/run | 3.26 | 0.56 | **−83%** (new cfg) |
+| PETALBURG_GYM defeats/run | 5.87 | 3.00 | −49% |
+| ROUTE110 defeats/run | 3.48 | 2.08 | −40% (new cfg) |
+| FORTREE_GYM defeats/run | 3.35 | 3.12 | −7% |
+| whiteouts/run | 21.43 | 15.96 | −26% |
+| teach successes | 33 | 38 | |
+| teach failures | 4 | 9 | z = +1.05 — NOT resolvable |
+
+**The single clearest result is `defeat #N` max 32 → 13**, because it is the exact quantity both
+parts of `#24-whiteoutloop` were built to bound, and it is a count rather than a rate.
+
+### ‼ TWO NUMBERS I REPORTED MID-BATCH WERE WRONG — both my own surface errors
+* I quoted the whiteout baseline as **24.17/run** and a **−51%** change. That figure was
+  `20260806-174746`'s, not the baseline batch's. Against the real baseline
+  (`20260807-102552`, 21.43/run) the change is **−26%**. Still a real drop, roughly half the size.
+* I reported the hard plateau firing **0** times and read that as "the cfgs prevent runs reaching
+  12 flat losses". Wrong surface: I grepped the live profile directories with a date glob that
+  excluded the matching files. From the batch directory it is **20**. The mechanism is firing.
+* And "baseline deepest ordinal 23" was a PARTIAL mid-batch count of a running batch; the final
+  figure is **32**, which makes the 13 a larger improvement than I said.
+  ‼ All three are the same class of error and it is already in `08-MISTAKES` twice: **name the
+  surface, and never compare a finished number against a partial one.**
+
+### The failure profile has shifted completely
+`no super-effective answer` is now **12 of 16 non-finishes (75%)** — Winona 6, Norman 3,
+Wattson 3 — up from 5 of 14. The counter chain is essentially the *whole* remaining failure mode,
+which is exactly what `#24-winonaground` predicts: Winona alone is half of it and her counter can
+never be hunted.
+
+### `#24-teachmsgstall` — a THIRD teach bug, now fully characterised
+All **9** teach failures share one signature, and it is not the one I fixed:
+
+```
+tasks=['ListMenuDummyTask', 'Task_ContinueTaskAfterMessagePrints']   (9 of 9, identical)
+move=Surf                                                            (9 of 9)
+post_select=exhausted (7)  |  post_select=replace-prompt (2)
+```
+A message never completes with the bag list still up. **`post_select` does not matter** — the two
+that *did* reach the replace prompt still died in the same place, which rules out the path
+selection as the cause and rules out my `#24-teachpathrace` fix as the culprit.
+
+‼ **4 → 9 is `z = +1.05`, NOT resolvable, and is not narrated as a regression.** What did change
+deterministically is the *shape*: `post_select=instant-learn` (0 now) → `exhausted` (7). That is
+`#24-teachpathrace` working as designed — the flow no longer mislabels the path — and it
+**revealed rather than removed** the underlying stall, which the mislabel had been masking.
+`post-select-900-exhausted` went 0 → 7 and is the telemetry that made it visible at all.

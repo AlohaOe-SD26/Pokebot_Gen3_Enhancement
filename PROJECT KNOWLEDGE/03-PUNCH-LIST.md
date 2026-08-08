@@ -294,6 +294,28 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       chapters.** Cheap to reproduce — `ensure_hm_learner` is wired for exactly two moves
       (Rock Smash `story_mode.py:2793`, Surf `:2967`).
 
+- [ ] `#24-teachmsgstall` — **NEW 2026-08-07, fully characterised, THIRD teach bug.**
+      All **9** teach failures in batch `20260807-160545` share one signature:
+      ```
+      tasks=['ListMenuDummyTask', 'Task_ContinueTaskAfterMessagePrints']   9 of 9, identical
+      move=Surf                                                            9 of 9
+      post_select=exhausted (7)   |   post_select=replace-prompt (2)
+      ```
+      A message never completes with the bag list still up, so the teach rides out the full
+      9,000-frame cap and Surf is never learned.
+      ‼ **`post_select` DOES NOT MATTER** — the two that reached the replace prompt died in the
+      same place. That rules out path selection as the cause, and rules out `#24-teachpathrace`
+      (my 2026-08-07 fix) as the culprit: it changed the shape (`instant-learn` → `exhausted`)
+      because it stopped the flow mislabelling the path, which **revealed** this stall rather
+      than creating it.
+      ‼ 4 → 9 failures is **z = +1.05, NOT resolvable** — do not call it a regression. Teach
+      SUCCESSES rose 33 → 38 over the same window.
+      **NEXT STEP:** reproduce with `--driver teachfull TEACH_ITEM=HM03` on a save whose party
+      matches the failing shape (a 4-move Marshtomp-line mon that already knows Rock Smash), then
+      instrument what `Task_ContinueTaskAfterMessagePrints` is waiting on. Every failure is Surf
+      and every mon already carries an HM — worth checking whether the HM-slot exclusion in
+      `replace_slot` picking leaves no legal choice and the game silently refuses.
+
 - [ ] `#24-winonaground` — **NEW 2026-08-07. Winona's counter can NEVER be hunted: the huntable
       whitelist contains no ground that hosts a Rock/Electric/Ice wild.**
       Measured in batch `20260807-102552` — the counter chain's remaining failure class, and with
