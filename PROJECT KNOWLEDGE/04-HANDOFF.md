@@ -20,7 +20,7 @@ game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror
 |---|---|
 | branch / HEAD | `main`, clean, pushed — see the newest commit |
 | story content | Littleroot → 6 badges → **Mt. Pyre → Magma Emblem**. Magma Hideout is UNLOCKED but UNBUILT. |
-| box idle | nothing running |
+| box idle | **‼ BATCH RUNNING — `20260807-200030`, launched 20:00 PDT, 8 lanes × 180 min, code `dd25ee59`, due ~23:00.** 8 clean headers. **Do NOT edit `sandbox-pokebot/` until it lands.** |
 | **latest batch** | **`20260807-160545` LANDED** — code `c335a204`, 180.1 min, `VERDICT OK`, 33 headers, **0 violations, 0 restarts**. 25 runs, 9 finished (36.0%). ‼ vs 39.1%: **z = −0.22, NOT resolvable.** |
 | **‼ `#24-whiteoutloop` RESULT** | **ELIMINATED.** End reason `too many whiteout recoveries` **4 → 0**; `global watchdog` **11 → 0**; **deepest `defeat #N` 32 → 13**; hard plateau fired **20×**; LAVARIDGE defeats/run **−83%**, ROUTE110 **−40%**, whiteouts/run **−26%**. |
 | **‼ TOP FAILURE NOW** | `no super-effective answer` = **12 of 16 non-finishes (75%)** — Winona 6, Norman 3, Wattson 3. The counter chain is essentially the whole remaining failure mode ⇒ **`#24-winonaground` is the #1 item.** |
@@ -135,9 +135,30 @@ death and runs 1 and 2 never reached a Centre (trainer refusal; then a whiteout)
    ground where Norman's hunt already succeeds 6/7.
    ‼ Required a SECOND fix to be non-inert: `tier` had no huntability term, so the one huntable
    candidate ranked 42 of 43 and `max_results=5` truncated it away.
-   ‼ **NO OUTCOME PROOF YET.** Structurally proven + offline-proven against the real
-   `find_counter_candidates` with a positive control. **The next batch must read
-   `no super-effective answer` (was 12 of 16 non-finishes) and count `counter hunt CAUGHT`.**
+   ‼ **OUTCOME PROOF IS IN FLIGHT — batch `20260807-200030` (code `dd25ee59`, due ~23:00).**
+
+## ‼ HOW TO READ BATCH `20260807-200030` — the counter-chain batch
+Structural + offline proof is done (`repro_movepool_counter_candidates.py`,
+`probe_counter_candidates_offline.py` with a positive control). This batch answers the ONE
+question those cannot: **does the fix survive production's reachability gate?**
+
+‼ **THE SPECIFIC RISK, stated up front so a null result is interpretable.** The offline proof
+used `allow=None` (conservative). Production passes `_counter_area_allowed`, which bounds
+candidates by an **8-hop budget** from the CURRENT position. Norman reaches FIERY_PATH from
+Petalburg (measured 5-7 hops, 6 of 7 catches). **Winona is fought at FORTREE**, which is further
+— if FIERY_PATH is outside 8 hops from there, Slugma is filtered out and the fix is inert in
+production even though it is correct. That would be a hop-budget item, NOT a defect in this fix.
+
+Read in this order — all near-binary or countable:
+| counter | baseline `20260807-160545` | meaning |
+|---|---|---|
+| `counter hunt — going to FIERY_PATH … Slugma` | **0** (impossible before) | did it even try? |
+| `counter hunt CAUGHT Slugma` | **0** | did it work? |
+| `no super-effective answer` | **12 of 16 non-finishes (75%)** | the target |
+| `already hunted a counter for Winona … no huntable` | 8 (prev batch) | should fall |
+| `counter hunt CAUGHT Machop` | 6 of 7 | ‼ **CONTROL — must not regress** |
+| `TEACH EXIT reason=ride:hard-cap` | 9 | `#24-teachmsgstall`, still open |
+‼ Bash `grep -r` on `x4-runs/`, never the Grep tool. Compute z before quoting any rate.
 
 3. **`#24-roster` / `#24-rarepredicate`** — ‼ **UNGATED BY SEQUENCE, BUT ITS DATASET DOES NOT
    REPRODUCE — pin that first (2026-08-07).** `tools/story-dev/rare_species_dataset.py` is the
