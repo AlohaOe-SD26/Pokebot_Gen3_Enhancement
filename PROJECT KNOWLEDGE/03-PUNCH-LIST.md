@@ -468,8 +468,33 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       A/B: pre-Wattson **0 huntable** (was the circular Numel @ FIERY_PATH); post-Wattson 1.
       Norman control preserved. Suite 8/8.
 
-- [ ] `#24-r116sweep` — **TOOL BUILT 2026-08-09, ANSWER NOT YET OBTAINED — the two anchors I
-      tried were both invalid, and the probe itself is what proved it.**
+- [x] `#24-r116sweep` — ‼ **ANSWERED 2026-08-09: DO NOT ADD ROUTE116 to `HUNTING_GROUNDS`.**
+      Driven sweep from the newly captured, verified anchor `saves/mauville_prewattson.ss1`
+      (MAUVILLE_CITY (19,15), **badge03=False**, party L16-L20):
+      ```
+      [sweep] RESULT ground=ROUTE116 arrived=False left=False badge03=False verdict=DO NOT ADD
+      ```
+      ‼ **READ THE FAILURE PRECISELY — it is not "Route 116 is unreachable".** The journey
+      SUCCEEDED: the bot reached ROUTE116 in ~32,000 frames and stood at **(65, 11)**. The
+      *intra-map* leg then failed — `Could not find a path from (65/11 @ ROUTE116) to
+      (11/7 @ ROUTE116)`. `(11, 7)` is `RUSTBORO_TRAINING_GRASS`, a tile chosen for the
+      **pre-Roxanne** era when the route is entered from the WEST; the counter hunt arrives
+      from the EAST. `probe_r116_east_grass.py` (2 positive controls, both PASS) measured the
+      split: from the east arrival **0 of 138** grass tiles are reachable (17 of 151 walkable,
+      a pocket at x 64-78); from the west **136 of 138** are. Logged as **KI-49**.
+      **CONSEQUENCE FOR WATTSON — this closes handoff concern #5.** His only legal pre-badge
+      counter (Nincada @ ROUTE116) is **not huntable from where the hunt fires**. Combined with
+      `#24-progressiongate` (his other option is behind him), **Wattson has no legal huntable
+      counter**, and the chain stopping honestly is the CORRECT behaviour, not a gap to fix.
+      Beat him with levels/lead. ‼ Do NOT relax the narrowing to manufacture a candidate —
+      permissiveness measured 28 wasted treks and 15% conversion; the narrowing took conversion
+      to 50% (z = +2.73).
+      ‼ **The one thing that could revisit this is KI-49, not the sweep**: if journey planning
+      learns to pick an entrance from which the tile is reachable, ROUTE116 becomes worth
+      re-sweeping. Until then the verdict stands on driven evidence.
+
+      HISTORY — **TOOL BUILT 2026-08-09, and the two anchors first tried were both invalid;
+      the probe itself is what proved it.**
       New `--driver groundsweep` (`SWEEP_GROUND=MAP:x,y SWEEP_RETURN=MAP:x,y`) drives
       `_navigate_riding_out` there and back and prints
       `arrived=… left=… badge03=… verdict=ADD/DO NOT ADD`.

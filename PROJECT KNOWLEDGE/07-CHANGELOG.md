@@ -9633,3 +9633,47 @@ field is idle"* — the shape of `#24-journey` part 3 (never navigate during a b
 but for door warps. The driver was given a retry-after-settle loop as an A/B: **3 identical
 failures at the identical tile refuted it.** Attempt 1 is the production behaviour, so the arms
 stay readable; the loop is kept for that reason.
+
+---
+
+## 2026-08-09 — `#24-r116sweep` ANSWERED: DO NOT ADD ROUTE116. Wattson has no legal huntable counter.
+
+With the anchor problem solved, the sweep that had been blocked for two sessions ran from
+`saves/mauville_prewattson.ss1` (MAUVILLE_CITY (19,15), **badge03=False** — the state Wattson's
+counter hunt actually fires from):
+
+```
+[sweep] start map=(0, 2) badge03=False -> ground ROUTE116(11, 7), return MAUVILLE_CITY(19, 15)
+[sweep] leg 1 FAILED: Could not find a path from (65/11 @ ROUTE116) to (11/7 @ ROUTE116)
+[sweep] RESULT ground=ROUTE116 arrived=False left=False badge03=False verdict=DO NOT ADD
+```
+
+**‼ The failure is more interesting than the verdict, and the distinction is load-bearing.**
+The journey SUCCEEDED — the bot reached ROUTE116 in ~32,000 frames and stood on it at (65, 11).
+Only the last, intra-map leg failed. `(11, 7)` is `RUSTBORO_TRAINING_GRASS`: a tile chosen for
+the pre-Roxanne era, when the route is entered from the WEST. The counter hunt arrives from the
+EAST.
+
+`probe_r116_east_grass.py` (new; static, seconds, two positive controls, both PASS) measured how
+much that matters:
+
+| from | walkable tiles reachable | GRASS tiles reachable |
+|---|---|---|
+| (65, 11) — the measured arrival, east | 17 of 151 (pocket, x 64-78 y 6-14) | **0 of 138** |
+| (11, 7) — west side | 104 of 151 | **136 of 138** |
+
+‼ The east/west comparison exists because "0 of 138" on its own is a **uniform FAIL**, and this
+project's own rule (08-MISTAKES 2026-07-31) is that a probe failing every case has found a
+symptom, not a cause. The two worlds it separates — "the grass is walled off from the east" and
+"the bot arrived in a pocket and can barely move" — imply completely different work. The answer
+is the second, and it became **KI-49**: journey planning is MAP-granular, so it can arrive at an
+entrance from which the destination TILE is unreachable, and nothing tries another entrance.
+
+**CONSEQUENCE — handoff concern #5 is now CLOSED, in the direction the concern feared.**
+Wattson's only legal pre-badge counter (Nincada @ ROUTE116) is not huntable from where the hunt
+fires; his other candidate is gated out by `#24-progressiongate` because it sits behind him. So
+**Wattson has no legal huntable counter, and the chain stopping honestly is CORRECT behaviour
+rather than a gap to fix.** He is to be beaten by levels/lead. Recorded so that a future agent
+does not read the honest stop as a bug and "fix" it by relaxing the narrowing — that
+permissiveness is exactly what measured 28 wasted treks and 15% conversion before the narrowing
+took it to 50% (z = +2.73).

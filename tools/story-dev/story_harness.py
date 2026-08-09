@@ -1743,6 +1743,12 @@ class TeachFullMode(BotMode):
         return "TeachFull"
 
     def on_battle_started(self, encounter):
+        # ‼ COUNT THE BATTLE HERE, AND ONLY HERE. This hook is called by the framework on the
+        # MODE INSTANCE, so it fires even while the mode's own generator is suspended — which
+        # is exactly what the `TEACH_AFTER_BATTLE` spin could not see. See the long note at that
+        # block for the measurement.
+        self._battles_seen = getattr(self, "_battles_seen", 0) + 1
+
         # ‼ TRAINER battles must use the PRODUCTION strategy. `DefaultBattleStrategy` refuses a
         # trainer battle at low HP ("cannot battle due to HP below threshold, and flee is not
         # allowed") -> BotModeError -> Manual, which killed the first AFTER_GYM run at f25831.
@@ -1838,25 +1844,45 @@ class TeachFullMode(BotMode):
             from modules.story.early_game import _story_spin
             from modules.battle_handler import battle_is_active
 
+            # ‼‼ THE DETECTOR WAS BLIND, NOT THE SPIN — CORRECTED 2026-08-09, FROM THE LOG.
+            # Attempt 6 reported `battle_seen=False frames=2466` and was written down as "the
+            # spin produced no encounter". `harness_afterbattle.log` says otherwise:
+            # **197 `CONTROLLER -> BattleListener.fight` transitions**, with Marshtomp's EXP
+            # climbing 21760 -> 24240 across them. Encounters were never the problem.
+            #
+            # The old condition polled `battle_is_active()` from inside `_story_spin`'s
+            # stop-condition — and the mode's generator is NOT pumped while `BattleListener`
+            # owns the controller stack. Only the top of the stack is advanced, so the callback
+            # ran on ~2,466 of ~44,000 frames and every one of those frames was, by
+            # construction, a frame where no battle was active. It could not have returned True.
+            #
+            # `on_battle_started` is called by the framework ON THE MODE INSTANCE, so it fires
+            # while the generator is suspended. Counting there and reading the count here means
+            # the first pump AFTER the battle ends stops the spin — which is precisely the
+            # battle-tail-resident moment this fixture is trying to create.
+            # ‼ The `not battle_is_active()` guard is load-bearing: without it a stop could land
+            # between `on_battle_started` and the listener claiming the stack, and the teach
+            # would run INSIDE a battle — a different bug wearing this one's clothes.
+            budget = int(os.environ.get("TEACH_SPIN_PUMPS", "40000"))
             log("[teachfull] AFTER-BATTLE: spinning for a wild so a battle tail is resident…")
-            seen = {"n": 0, "fought": False}
+            seen = {"n": 0}
+            self._battles_seen = 0
 
             def _stop_after_battle() -> bool:
                 seen["n"] += 1
-                if seen["n"] > 40000:
+                if seen["n"] > budget:
                     return True
+                if getattr(self, "_battles_seen", 0) < 1:
+                    return False
                 try:
-                    if battle_is_active():
-                        seen["fought"] = True
-                        return False
+                    return not battle_is_active()   # first pump after the battle ends
                 except Exception:  # noqa: BLE001
                     return False
-                return seen["fought"]      # stop the FRAME the battle ends
 
             try:
                 yield from _story_spin(_stop_after_battle)
-                log(f"[teachfull] AFTER-BATTLE: battle_seen={seen['fought']} frames={seen['n']} "
-                    f"— teaching IMMEDIATELY, no settle")
+                log(f"[teachfull] AFTER-BATTLE: battles={getattr(self, '_battles_seen', 0)} "
+                    f"pumps={seen['n']}/{budget} — teaching IMMEDIATELY, no settle")
             except Exception as error:  # noqa: BLE001
                 log(f"[teachfull] AFTER-BATTLE spin raised {type(error).__name__}: {str(error)[:160]}")
 

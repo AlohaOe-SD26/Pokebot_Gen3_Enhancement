@@ -1948,3 +1948,37 @@ budget that protects against genuine stuck loops.
   Route 110's dual-elevation Cycling Road, which is the KI-24 failure shape.
 - **Workaround:** capture anchors with `--driver anchorstory` (the bot's own route) rather than
   `--driver anchorcapture` for any Slateport → Mauville leg.
+
+---
+
+## KI-49 — Journey planning is MAP-granular, so it can arrive at an entrance from which the destination TILE is unreachable — and nothing tries another entrance (2026-08-09, severity: MED, MEASURED)
+
+- **Symptom.** Asked to walk to `ROUTE116 (11, 7)` from Mauville, the bot **reaches ROUTE116**
+  (~32,000 frames) and lands at **(65, 11)**, then fails the final intra-map leg:
+  `Could not find a path from (65/11 @ ROUTE116) to (11/7 @ ROUTE116)`. It reports the
+  destination as unreachable and stops. No other entrance to the same map is attempted.
+- **Why it happens.** `#24-journey` deliberately plans at MAP granularity (`06-DECISIONS-LOG`
+  2026-07-31 rejected the full leg-list planner). Once the map is reached, the tile leg is on
+  its own. If the map has more than one entrance and the arrival one is in a disconnected
+  region, the trip fails at the last step having done all the work.
+- **Measured, `probe_r116_east_grass.py` (static, two positive controls, both PASS):**
+  | from | walkable tiles reachable | GRASS tiles reachable |
+  |---|---|---|
+  | (65, 11) — the arrival, east | **17 of 151** (bbox x 64-78, y 6-14) | **0 of 138** |
+  | (11, 7) — the west side | 104 of 151 | **136 of 138** |
+  Route 116's grass is essentially all on the WEST side; the east arrival is a small isolated
+  pocket. So the trip did not fail because the destination is unreachable in principle — it
+  failed because of WHICH ENTRANCE the journey chose.
+- **‼ How independent is that evidence?** Only partly, and it should not be oversold: the
+  driven `_navigate_riding_out` leg and the static `calculate_path` region check share the
+  tile-graph machinery, so their agreement is weaker than two genuinely separate instruments.
+  What is strong is the CONTRAST between east and west, which is measured the same way on both
+  sides and is a 0/138 vs 136/138 split.
+- **‼ OPEN, and not guessed at here:** which map path the journey took to land on the EAST end
+  (the harness log records the sweep's own lines, not map transitions), and therefore whether a
+  west approach is even available pre-badge03. Answer that before designing a fix.
+- **Possible shapes of a fix (none chosen):** rank candidate entrances by whether the
+  destination tile is reachable from them; or fall back to another entrance when the tile leg
+  fails; or let hunting grounds declare the entrance their tile belongs to.
+- **Repro:** `PYTHONUTF8=1 py -3.12 probe_r116_east_grass.py` (seconds, no emulation loop), or
+  the full driven version in the `#24-r116sweep` punch-list entry.
