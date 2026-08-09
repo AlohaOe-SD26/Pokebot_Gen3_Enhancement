@@ -204,7 +204,23 @@ done
   `boxcatch` (full-party catch overflows to the PC box), `boxwithdraw` (the mon comes back out at
   a Poké Centre, driving the real heal-piggyback), `teachfull` (HM teach down the REPLACE path,
   which `hmtest` cannot reach because its freshly-caught mon has a free slot; `TEACH_INJECT` /
-  `TEACH_AFTER_GYM` build the failing fixtures), `cavethread`, `normancounter`.
+  `TEACH_AFTER_GYM` / `TEACH_AFTER_BATTLE` / `TEACH_AFTER_CATCH` build the failing fixtures),
+  `cavethread`, `normancounter`, `groundsweep` (driven reach-AND-leave evidence for a candidate
+  hunting ground), and the two **anchor-manufacturing** drivers below.
+- **Anchors (save states) are now made, not only scavenged** — added 2026-08-09 because
+  `#24-r116sweep` twice picked an anchor by NAME and both were the wrong map or era:
+  - `probe_anchor_inventory.py` — loads every save in `saves/` and prints map (**as a `MapRSE`
+    enum**, because `map_name` is a display label and interiors carry their city's), tile, game
+    state, controllability, badges, party, money. Carries a positive control.
+  - `--driver anchorcapture` — navigate to a named map/tile and snapshot; refuses to overwrite
+    an existing anchor, and refuses to write a non-arrived or non-controllable state.
+  - `--driver anchorstory` — drive the REAL story bot until it stands on the wanted map, then
+    snapshot; `CAPTURE_FORBID_FLAG` fails loudly if the era window closes first. Needed because
+    direct navigation cannot make some trips the bot itself makes (KI-48).
+- **`saves/stalls/<profile>-f<frame>.ss1`** — the harness auto-snapshots at every stall. ‼ A
+  `.ss1` is a full machine snapshot and **preserves battle callbacks / mid-script state**
+  (measured 2026-08-09, 6 of 6), unlike a `.sav`. That makes a stall state a loadable fixture
+  for bugs that need a runtime tail resident.
 - Offline planner probes need **no emulator**: `probe_counter_candidates_offline.py`,
   `probe_counter_item_gate.py`, `probe_movepool_counters.py`, `rare_species_dataset.py`,
   `analyse_defeat_loops.py`. ‼ They stub `get_map_enum`/`get_encounter_index`, and
