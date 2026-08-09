@@ -4127,3 +4127,25 @@ answered in twenty minutes what a day of reasoning from the crash signature got 
 ‼ **Corollary, and the reason the repro was DELETED rather than left red:** a committed test for
 a refuted design is worse than no test — it hands the next agent a wrong target with an
 authoritative-looking assertion attached.
+
+---
+
+## 2026-08-09 — the acceptance bar was set from a number computed a different way than the check
+
+**Symptom.** The batch confirming the `party_counter_slot` fence was graded against a written bar
+of *"REAL conversion back to ≥50%"*. It came in at 39.1% and looked like a miss, next to two
+results (Machop 0/7 → 6/7 at z = +3.24, false catches 10 → 0) that were unambiguous successes.
+
+**Root cause.** The 50% came from the week's headline *"conversion 15% → 50% (z = +2.73)"*, which
+was computed on **REPORTED** catches. The check was specified on **REAL** catches — the stricter
+definition adopted afterwards, precisely because reported catches were found to include
+pre-existing party mons. Recomputed consistently, the earlier pair is **15.2% → 45.0%
+(z = +2.39)**. Nothing about the earlier conclusion changes; the *target* was inflated by ~5
+points, and a genuine restoration was set up to read as a shortfall.
+
+‼ **Prevention rule: when a metric's DEFINITION is tightened, restate every historical number in
+the new definition before any of them is used as a threshold.** An acceptance bar inherited from
+the looser definition silently compares two different quantities — the same reported-vs-real error
+this project already documents, one level up, at the level of the metric rather than the data.
+‼ Practical version: this is why `analyse_conversion.py` now exists and prints hunts / reported /
+REAL together. A number that cannot say which definition produced it should never become a bar.

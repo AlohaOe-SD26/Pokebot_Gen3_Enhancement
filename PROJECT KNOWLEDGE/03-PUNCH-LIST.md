@@ -384,7 +384,17 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       ground was tried. The per-anchor sweep campaign would have fixed a problem that does not
       exist. **Do not run it.**
 
-- [x] `#24-slugmaspin` — **FIXED 2026-08-08, same day it was found. It was the SUCCESS TEST, not
+- [x] `#24-slugmaspin` — ‼ **BATCH-CONFIRMED 2026-08-09** (`x4-runs/20260809-081643`, code
+      `16283010`, VERDICT OK): the fence reverses the regression on the species that carried it —
+      **`CAUGHT Machop` 0/7 → 6/7, z = +3.24 (RESOLVABLE)** — and **FALSE catches 10 → 0**, so
+      reported (9) now equals REAL (9). Overall REAL conversion 15.0% → 39.1% (z = +1.76,
+      directional), statistically indistinguishable from the 45.0% before the regression.
+      ‼ The written bar of "≥50%" was itself mis-derived — that figure counted REPORTED catches;
+      on REAL catches the historical pair is 15.2% → 45.0% (z = +2.39). See `08-MISTAKES` 2026-08-09.
+      ‼ **Promotion to `custom-pokebot/` is READY and NOT DONE — it needs an explicit user YES**
+      (`CLAUDE.md` standing directive). Until then production runs this regression WITHOUT its fix.
+
+      HISTORY — **FIXED 2026-08-08, same day it was found. It was the SUCCESS TEST, not
       the spin.** `party_counter_slot()` checked the caught mon's OWN TYPE, so a Slugma (Fire)
       caught for Winona (Rock/Ice/Dragon) was never recognised: `_stop()` never fired, the spin
       ran to budget, the hunt reported nothing caught. **34 Slugma encounters, 0 registered.**

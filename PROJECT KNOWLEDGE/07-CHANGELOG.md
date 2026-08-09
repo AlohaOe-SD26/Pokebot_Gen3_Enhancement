@@ -9834,3 +9834,39 @@ still-printing post-battle message does not block the hand-off; the teach opens 
 of it and the two tasks that result are precisely the recorded signature. Proposed fix, its two
 risks, and the controls that must stay green are on the punch-list item. Reproduction confirmed
 **2 of 2** runs.
+
+---
+
+## 2026-08-09 — BATCH `20260809-081643`: ✅ the `party_counter_slot` fence is CONFIRMED
+
+8 lanes / 180 min, code `16283010`, `VERDICT OK`, **0 header violations**, 29 runs.
+
+| batch | code | REAL conversion | `CAUGHT Machop` | FALSE catches | finish rate |
+|---|---|---|---|---|---|
+| `20260808-095721` | `e84b814f` | 5/33 = 15.2% | 5/5 | 0 | — |
+| `20260808-131334` (best before) | `def4b649` | 9/20 = **45.0%** | 6/8 | 1 | 28.6% |
+| `20260808-174145` (the regression) | `85fc8416` | 3/20 = 15.0% | **0/7** | **10** | 19.4% |
+| **`20260809-081643` (the fence)** | `16283010` | 9/23 = **39.1%** | **6/7** | **0** | 17.2% |
+
+**Two sharp results, both exactly what the fence was for:**
+* **`CAUGHT Machop` 0/7 → 6/7 — z = +3.24, RESOLVABLE.** The `#24-slugmaspin` regression is
+  reversed, measured on the species that carried it.
+* **FALSE catches 10 → 0**; reported (9) now equals REAL (9). The fence's literal job was to stop
+  counting pre-existing party mons as hunt catches, and it does so completely.
+* Overall REAL conversion 15.0% → 39.1%, **z = +1.76 — directional only.** Against the
+  pre-regression 45.0% it is statistically indistinguishable, i.e. restored rather than improved.
+
+‼ **A RECORDED NUMBER WAS WRONG, and it was the acceptance bar.** The week's celebrated result
+*"conversion 15% → 50%, z = +2.73"* was computed on **REPORTED** catches. Recomputed on REAL
+catches the same pair is **15.2% → 45.0%, z = +2.39** — still resolvable, so the conclusion holds,
+but the bar to beat was always ~45%, not the 50% written into the acceptance criteria. 39.1% sits
+inside that noise. This is the same reported-vs-real split the handoff itself warns about, applied
+one level up: the *metric definition* drifted between the claim and the check.
+
+‼ **Finish rate 17.2% (5/29) is the lowest recorded — do NOT read it as a regression.** 29 binary
+outcomes cannot resolve a change this size; that is precisely why conversion is the instrument.
+`global_watchdog` 26 (vs 18, then 0) is unexplained and is the one number here worth a look before
+the next batch.
+
+**Promotion of the 3 drifted files is READY but NOT DONE** — `CLAUDE.md` requires explicit user
+approval for sandbox → `custom-pokebot/`, and a generic "proceed autonomously" is not that.
