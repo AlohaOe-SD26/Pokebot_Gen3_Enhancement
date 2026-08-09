@@ -10024,3 +10024,33 @@ Three distinct causes, none of which is type coverage:
 four different configurations rather than four samples. What is established is about
 `prenorman_fodder_grind.ss1`; whether it represents the batch's 5 Norman deaths is still not
 established, and remains the first thing to check before acting on it.
+
+---
+
+## 2026-08-09 — `probe_fainted_ace.py`: a strong signal, deliberately NOT promoted to a finding
+
+Mines batches already on disk for the `--driver normancounter` observation (the bot fought Norman
+with its L36 ace already at 0 HP). The signature needs no new instrumentation: the after-faint
+chooser prints the whole party with HP, so at the FIRST faint of a battle exactly one mon should
+be at 0 — every extra zero was already down when the battle began.
+
+Batch `20260809-081643` (37 logs, 26,134,455 bytes, 470 first-faint readings):
+**467 of 470 = 99.4%** had a party member already fainted, distribution of zeros
+`{1: 3, 3: 270, 4: 97, 5: 100}`; last-battle proxy 34 of 34.
+
+‼ **I am NOT recording that as a finding, for three reasons written into the probe itself:**
+1. **The sample is CONDITIONED on a faint occurring** — the chooser fired **36 times across 607
+   battles** in one lane. So this describes hard/losing battles, not battles in general, and must
+   never be quoted as "the bot enters battles with a dead party".
+2. **~99% is itself a warning sign.** The standing rule (`08-MISTAKES` 2026-07-31) is that a probe
+   answering identically for every case has probably found a symptom or a misreading.
+3. **Nothing here reads party HP at battle START** — it INFERS it from the first faint.
+
+**The next step is one log line:** party HP at `[BATTLE] started`, alongside the
+`#24-bosstelemetry` turn records. That converts an inference into a measurement, and it is the
+only thing standing between this lead and a real answer about whether boss losses are actually
+preparation failures.
+
+**Segmentation was verified before any of this was read:** 607 `[BATTLE] started` against 607
+`[BATTLE] ended` in a sampled log, so battles are delimited correctly and the "first faint per
+battle" reading is what it claims to be.
