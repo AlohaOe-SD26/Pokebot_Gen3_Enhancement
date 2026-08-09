@@ -1212,7 +1212,17 @@ class NormanCounterMode(BotMode):
         # "a counter does not beat Norman" result may be measuring a BROKEN INJECTED MON.
         # This arm omits `moves=` entirely and lets the species' natural learnset stand, which
         # is the discriminating test.
-        natural = os.environ.get("NORMAN_MACHOP_NATURAL", "").strip() in ("1", "true", "yes")
+        # ‼‼ NATURAL IS NOW THE DEFAULT, AND THE EXPLICIT PATH IS KNOWN-BROKEN (2026-08-09).
+        # `moves=[LearnedMove.create(...)]` builds slots the battle engine SELECTS BUT NEVER
+        # EXECUTES: measured `Karate Chop(pp22)` chosen on five consecutive turns with PP frozen
+        # and the opponent untouched at 143/143. Six arms of this experiment were run on that
+        # mon and its conclusion had to be retracted (`08-MISTAKES` 2026-08-09). Passing
+        # `NORMAN_MACHOP_MOVES=explicit` restores it ONLY so the broken behaviour stays
+        # reproducible for whoever fixes `debug_create_pokemon`; it must never be used to
+        # measure anything.
+        natural = os.environ.get("NORMAN_MACHOP_MOVES", "natural").strip().lower() != "explicit"
+        if os.environ.get("NORMAN_MACHOP_NATURAL", "").strip() in ("1", "true", "yes"):
+            natural = True
         create_kwargs = dict(
             species=machop, level=level,
             experience=machop.level_up_type.get_experience_needed_for_level(level),

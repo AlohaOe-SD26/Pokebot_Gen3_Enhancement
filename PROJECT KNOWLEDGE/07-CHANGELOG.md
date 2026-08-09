@@ -9984,3 +9984,43 @@ natural-moves run, and both stated as leads rather than findings):
 ‼ The natural-moves arm still LOST, so "a counter alone does not automatically win" survives —
 but it survives as an observation with visible causes (a 1-HP Shedinja leading, PP burned on the
 gym's earlier mons, Norman healing), not as the sweeping claim that was retracted.
+
+---
+
+## 2026-08-09 — the counter sweep RE-RUN with a working fixture: same verdict, and now the REASONS are visible
+
+The six-arm result was retracted because the injected mon could not attack. Re-run with the
+species learnset (now the DEFAULT — the explicit path is left only as
+`NORMAN_MACHOP_MOVES=explicit`, so the known-broken behaviour stays reproducible for whoever
+fixes `debug_create_pokemon`, and can never be picked by accident again):
+
+| arm | counter | outcome |
+|---|---|---|
+| CONTROL | none | **LOST** |
+| 18 / 22 / 26 | natural moveset | **LOST** |
+
+**Four arms, four losses — and this time the fixture is PROVEN to act:** `Machop L26 -> Karate
+Chop(pp25)` takes Vigoroth **73 → 33** in one hit, PP decrementing 25 → 24. So the earlier
+conclusion — *a counter at an obtainable level does not flip this fight* — is **re-established on
+correct evidence**, having been retracted for the right reason.
+
+**‼ And `#24-bosstelemetry` shows WHY, which is the part nobody could see before:**
+```
+[TURN 0] Shedinja L26 1/1   -> Scratch      vs Spinda   75/75      <- the LEAD is a 1-HP mon
+[TURN 2] Machop  L26 76/76  -> Karate Chop  vs Vigoroth 73/86
+[TURN 3] Machop  L26 37/76  -> Karate Chop  vs Vigoroth 33/86      <- real damage, but half HP gone
+[TURN 5] Mightyena   73/94  -> Bite         vs Vigoroth  1/86
+[TURN 6] Mightyena   73/94  -> Bite         vs Vigoroth 53/86      <- ‼ NORMAN HEALS (1 -> 53)
+[TURN 12] Ninjask    80/80  -> Scratch      vs Slaking 130/143     <- 7 damage a turn into 143 HP
+```
+Three distinct causes, none of which is type coverage:
+1. **The lead is a 1-HP Shedinja**, which burns the opening turns and dies. A lead policy problem.
+2. **The counter is FRAIL at obtainable levels** — it lands a 46% hit and is at half HP
+   immediately, dead a turn later. Level gap, not move choice.
+3. **Norman HEALS.** Vigoroth 1 → 53 here; Slaking 27 → 136 in the earlier run. Chip damage of
+   6-8 per turn against a healing 143-HP boss cannot win, whatever type it is.
+
+‼ **Scope, stated plainly:** one anchor, one party, and the harness is deterministic, so these are
+four different configurations rather than four samples. What is established is about
+`prenorman_fodder_grind.ss1`; whether it represents the batch's 5 Norman deaths is still not
+established, and remains the first thing to check before acting on it.
