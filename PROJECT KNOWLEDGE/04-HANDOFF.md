@@ -165,47 +165,39 @@ training attempts with **1** failure, false catches **0**. And it does not help:
 **19 of 24 non-finishing runs (79%) still end on the chain's own "N losses with no
 super-effective answer to X" stop**, and the finish rate has not moved in a week.
 
-So the assumption underneath the whole week was finally measured — *"is an obtainable counter
-enough to win the fight?"* (specified 2026-07-31, never run until now).
-`--driver normancounter`, four arms from `prenorman_fodder_grind.ss1`:
+‼‼ **A RESULT I PUBLISHED EARLIER TODAY IS RETRACTED — read this before quoting anything about
+counters.** I ran the long-specified experiment (`--driver normancounter`, a Fighting counter
+injected at L18/22/26/40/55 plus a no-counter control), got **six losses**, and concluded that
+beating a boss "cannot be a type-coverage or level problem". **That conclusion was wrong: all six
+arms measured a mon that COULD NOT ATTACK.**
+`#24-bosstelemetry` (shipped hours later) showed it on its first run:
+```
+[TURN  8] Machop L55 83/150 -> UseMove:Karate Chop(pp22)  vs Slaking L31 143/143
+[TURN  9] Machop L55 83/150 -> UseMove:Karate Chop(pp22)  vs Slaking L31 143/143
+[TURN 12] Machop L55 32/150 -> UseMove:Karate Chop(pp22)  vs Slaking L31 143/143
+```
+PP frozen at 22, Slaking untouched — while a natural party member in the SAME battle behaved
+normally (`Mightyena -> Bite(pp24)`, Slaking 143 → 125 → 108). Cause:
+`debug_create_pokemon(moves=[LearnedMove.create(...)])` builds move slots the engine selects but
+never executes. With `NORMAN_MACHOP_NATURAL=1` (omit `moves=`) the same L55 Machop fights properly
+— **Cross Chop, PP 5 → 4 → 3 → 2**, opponents knocked down.
+‼ **What survives:** the natural-moves arm still LOST, so "a counter alone does not automatically
+win" stands — but as an observation with visible causes, not as a sweeping claim.
+‼ **The prevention rule is in `08-MISTAKES` and is worth the 30 seconds:** an injected fixture mon
+must be proven to **ACT**, not merely to exist. Full HP, in the party, sent out — three checks, all
+passing, none of which asked whether its moves worked.
 
-| arm | Machop | Machop sent out | outcome |
-|---|---|---|---|
-| **CONTROL** | none | — | **LOST** (whiteout f34503) |
-| 18 | L18 | yes, fainted | **LOST** (f34728) |
-| 22 | L22 | yes, fainted | **LOST** (f34816) |
-| 26 | L26 | yes, fainted | **LOST** (f35524) |
-
-**4 arms, 4 losses.** The counter really is fielded (`party=[(0,'Machop',0)]` in the
-faint-chooser) and dies, at every level tested — including L26, about what an ~890k-frame
-training budget buys.
-**‼ AND TWO MORE ARMS KILL THE "it was just too weak" ESCAPE HATCH:** L40 **LOST** (f35427) and
-**L55 LOST** (f39864) — six arms, six losses, against a team of **L28-31**. A L55 Fighting type
-with Karate Chop is fielded and knocked out. Both obvious confounds were checked and cleared: the
-injected mon starts at FULL hp (`debug_create_pokemon(current_hp=None)` → `max_hp`), and the
-driver's battle brain is exactly production's default for a trainer battle
-(`LevelUpTravelBattleStrategy`).
-⇒ **This cannot be a coverage or level problem. It points at HOW the fight is conducted** — move
-selection, switching, healing, send-in order. ‼ HYPOTHESIS, not finding: the logs carry only
-battle start/end + faint-chooser, **no per-turn move telemetry**. **Adding that telemetry to the
-boss path is the single highest-value next instrument** — it is missing for every "why does the
-bot lose to bosses" question, and it is the reason six arms could be run without learning WHY.
-
-‼ **The CONTROL row is the one that constrains the conclusion:** the party loses with no counter
-at all, so this anchor cannot isolate *which level wins* — it loses regardless. What is
-established is the practical claim: **adding an obtainable counter does not convert this loss.**
-‼ **Do not "get more samples" by repeating arms — the harness is DETERMINISTIC** (the teach
-fixture stalled at the identical frame f19130 across two profiles). Vary the ANCHOR.
-‼ **Limitation:** one anchor, one party, and a peculiar one (Shedinja has 1 max HP by species;
-Whismur L18 is filler). Whether it represents the batch's 5 Norman deaths is NOT established —
-that is the first thing to check if this direction is pursued.
-
-⇒ **THE OPEN STRATEGIC QUESTION, stated plainly for the user:** the counter chain has absorbed a
-week, every mechanism win is real and measured, and **no outcome metric has moved.** The choices
-are (a) find out why the fight is lost even WITH the counter — party quality / lead policy /
-items / level gap, which this sweep points at; or (b) stop spending here and build story content
-(`#24-magmahideout`), the largest untouched lever. This is a judgement call about where money
-goes, not a bug — it needs the user.
+## ‼ WHAT `#24-bosstelemetry` IS, AND THE TWO LEADS IT ALREADY FOUND
+`modules/battle_action_selection.py` now logs **one line per turn decision** — actor + HP, the
+action (move NAME and remaining PP), and the opponent with HP. It is the instrument this project
+did not have: six arms could be run without learning why a fight was lost. Leads, both stated as
+leads:
+1. **Norman HEALS and the bot has no answer.** Slaking was ground to **27/143** and came back to
+   **136/143** on turn 31; the team re-ground it with Bite/Scratch and lost. A boss out-healing
+   chip damage is a different problem from type coverage.
+2. **A "selected but not executed" pattern also appears on NATURAL mons mid-battle** (Cross Chop
+   stuck at pp2 for three turns, Ninjask's Scratch at pp30). Could be misses (Cross Chop is 80%)
+   plus a display artifact, or something real. **Undiagnosed — and now instrumented.**
 
 ## ⏭ NEXT ACTIONS, IN ORDER
 1. ✅ ~~**PROMOTE the 3 drifted files**~~ — **DONE 2026-08-09, user-approved.** Zero source
