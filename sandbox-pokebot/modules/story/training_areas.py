@@ -141,6 +141,15 @@ def best_training_grass(mon_level: int):
 #              north of the desert = Fallarbor-side only). Marked so the conservative
 #              `allow=None` default refuses to propose it on a guess.
 AREA_PREREQ: dict = {
+    # ‼ `#24-progressiongate` (user-identified 2026-08-08). FIERY_PATH is reachable ONLY through
+    # ROUTE112, and the Mauville→Route 112 corridor is sealed by a Rock Smash rock at ROUTE111
+    # (18,101) — measured under `#24-smashroute`. Rock Smash FIELD USE requires the Dynamo Badge
+    # (decomp: `src/party_menu.c:122`, `FIELD_MOVE_ROCK_SMASH, // FLAG_BADGE03_GET`), which is
+    # WATTSON's badge. So every Fiery Path species is unobtainable until Wattson is beaten.
+    # Without this line the counter planner offered Numel @ FIERY_PATH as Wattson's ONLY answer —
+    # circular: the counter for Wattson sits behind Wattson.
+    # ‼ This also correctly gates TRAINING there, which was equally impossible pre-badge.
+    MapRSE.FIERY_PATH: "rocksmash",
     MapRSE.ROUTE111: "region",
     MapRSE.ROUTE115: "surf",
     MapRSE.ROUTE118: "surf",

@@ -9475,3 +9475,48 @@ probe, never recall.
 **The standing rule this establishes:** a hunt target is valid only if its LOCATION is reachable
 AT THAT POINT IN THE STORY. Availability is a function of story progress, not just of the
 encounter table.
+
+---
+
+## 2026-08-08 — `#24-progressiongate` SHIPPED: the planner now knows Fiery Path is behind Wattson
+
+User-identified: *"Slugma is gated behind Rocksmash which you can only use after beating Wattson…
+keep this sort of logic in mind (pokemon availability)."*
+
+**DECOMP-VERIFIED** (`pret/pokeemerald`, `src/party_menu.c:122`):
+`FIELD_MOVE_ROCK_SMASH,  // FLAG_BADGE03_GET` — Rock Smash **field use requires the Dynamo
+Badge**, i.e. Wattson's own badge. Combined with the already-measured fact that Fiery Path is
+reachable only through ROUTE112 and that corridor is sealed by a Rock Smash rock at ROUTE111
+(18,101) (`#24-smashroute`), every Fiery Path species is unobtainable until Wattson is beaten.
+
+**Shipped:** a `"rocksmash"` prereq in `AREA_PREREQ` on `FIERY_PATH`, resolved by a new
+`_party_can_rock_smash()` requiring BOTH the move and `BADGE03_GET` (fails closed). Note this
+also correctly gates TRAINING there, which was equally impossible pre-badge.
+
+**A/B, real `find_counter_candidates`:**
+
+| | pre-Wattson | post-Wattson |
+|---|---|---|
+| **Wattson** (needs Ground) | **0 huntable** (was: Numel @ FIERY_PATH — circular) | 1 → Numel @ FIERY_PATH |
+| Norman (control) | 0 | 1 → Machop @ FIERY_PATH |
+
+Suite 8/8 green.
+
+### ‼ AND IT EXPOSES THAT WATTSON NOW HAS NO COUNTER AT ALL — partly my doing
+The gate correctly removes the circular option. But Wattson's **legal** pre-badge answer is
+**Nincada @ ROUTE116** — verified Bug/**GROUND**, and ROUTE116 carries no prereq of any kind, so
+it is reachable long before Wattson. **`#24-huntreachproof` part 1 removed it**, because ROUTE116
+sits in `TRAINING_GRASS` and not in `HUNTING_GROUNDS`, and the narrowing accepts only driven
+reach-and-leave evidence.
+
+So the two changes together leave Wattson with nothing: the circular option is gated out (right)
+and the legal option is evidence-gated out (defensible, but it is the only one he has).
+
+**This is not an argument to relax the narrowing** — batch `20260808-131334` measured that
+permissiveness at 28 wasted treks and conversion 15%, and the narrowing took conversion to 50%
+(z = +2.73). It is an argument to EARN the entry: **sweep ROUTE116 from Wattson's real anchor
+(MAUVILLE) with `probe_counter_reachability.py`, both directions, and add it to `HUNTING_GROUNDS`
+if it passes.** That is bounded, specific, and now motivated by a named need rather than the
+speculative six-anchor campaign that was cancelled.
+‼ Prior data says do not assume it passes: Nincada @ ROUTE116 was **5 hunts, 0 caught** in batch
+`20260808-095721`. The sweep exists precisely to answer that rather than guess.

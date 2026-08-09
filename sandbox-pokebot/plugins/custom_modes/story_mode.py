@@ -477,6 +477,40 @@ def _wild_land_max(map_enum) -> "int | None":
         return None
 
 
+def _party_can_rock_smash() -> bool:
+    """Can we actually USE Rock Smash in the field? Needs BOTH the move and the badge.
+
+    ‼ DECOMP-VERIFIED (`pret/pokeemerald`, `src/party_menu.c:122`):
+        FIELD_MOVE_ROCK_SMASH,  // FLAG_BADGE03_GET
+    i.e. field use is gated on the **Dynamo Badge — Wattson's own badge**. This is not the same
+    shape as `_party_can_surf`, which needs only the move; Surf's badge is earned long before the
+    move is, so the move is the binding constraint there. For Rock Smash the badge binds.
+
+    ‼ WHY THIS EXISTS (`#24-progressiongate`, user-identified 2026-08-08): FIERY_PATH is reachable
+    only through ROUTE112, and the Mauville→Route 112 corridor is sealed by a Rock Smash rock at
+    ROUTE111 (18,101) (measured, `#24-smashroute`). So every Fiery Path species — Numel, Slugma,
+    Machop, Torkoal, Koffing — is unobtainable until BADGE03 is held. Without this gate the
+    counter planner offered **Numel @ FIERY_PATH as Wattson's only answer**, which is circular:
+    the counter for Wattson sits behind Wattson.
+
+    Fails CLOSED, like every other gate that decides where the bot walks.
+    """
+    try:
+        from modules.memory import get_event_flag
+        from modules.pokemon_party import get_party as _gp
+
+        if not get_event_flag("BADGE03_GET"):
+            return False
+        return any(
+            learned is not None and learned.move.name == "Rock Smash"
+            for mon in _gp()
+            if mon is not None and not mon.is_egg
+            for learned in mon.moves
+        )
+    except Exception:
+        return False
+
+
 def _party_can_surf() -> bool:
     """Does a party mon actually know Surf? (The field-move gate for the water routes —
     the badge alone is not enough, `map_path.can_surf()` requires the move too.)"""
@@ -534,7 +568,9 @@ def _training_area_allowed(map_enum, tile, prereq) -> bool:
     """
     if prereq == "surf" and not _party_can_surf():
         return False
-    if prereq not in (None, "surf", "region"):
+    if prereq == "rocksmash" and not _party_can_rock_smash():
+        return False
+    if prereq not in (None, "surf", "region", "rocksmash"):
         return False  # unknown prerequisite → fail closed
     # ‼ ITEM GATE (2026-08-02). `is_map_reachable` answers at MAP granularity, so it says YES
     # for ROUTE111 — its southern half really is walkable from Mauville — while the training

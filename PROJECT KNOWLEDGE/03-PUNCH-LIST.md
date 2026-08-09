@@ -462,7 +462,25 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       already failed to travel. ‼ Do NOT simply widen `HUNTING_GROUNDS` on a guess — its whole
       value is that every entry is measured.
 
-- [ ] `#24-progressiongate` — ‼‼ **USER-IDENTIFIED 2026-08-08, VERIFIED. The counter planner has
+- [x] `#24-progressiongate` — **SHIPPED 2026-08-08.** `AREA_PREREQ[FIERY_PATH] = "rocksmash"`,
+      resolved by `_party_can_rock_smash()` (move AND `BADGE03_GET`, fails closed).
+      **DECOMP-VERIFIED**: `src/party_menu.c:122` — `FIELD_MOVE_ROCK_SMASH, // FLAG_BADGE03_GET`.
+      A/B: pre-Wattson **0 huntable** (was the circular Numel @ FIERY_PATH); post-Wattson 1.
+      Norman control preserved. Suite 8/8.
+
+- [ ] `#24-r116sweep` — **NEW 2026-08-08. Wattson now has NO counter at all, and the fix is one
+      bounded sweep.** His only LEGAL pre-badge answer is **Nincada @ ROUTE116** (verified
+      Bug/**Ground**; ROUTE116 carries no prereq), and `#24-huntreachproof` part 1 removed it
+      because ROUTE116 is in `TRAINING_GRASS`, not `HUNTING_GROUNDS`.
+      ‼ **Do NOT relax the narrowing to get it back** — permissiveness measured 28 wasted treks
+      and 15% conversion; the narrowing took conversion to 50% (z = +2.73). **EARN the entry:**
+      sweep ROUTE116 from Wattson's real anchor (**MAUVILLE**) with
+      `probe_counter_reachability.py`, both directions, and add it to `HUNTING_GROUNDS` only if
+      it passes.
+      ‼ Do not assume it will: Nincada @ ROUTE116 was **5 hunts, 0 caught** in batch
+      `20260808-095721`. The sweep exists to answer that, not to confirm a hope.
+
+- [x] `#24-progressiongate` (original finding) — ‼‼ **USER-IDENTIFIED 2026-08-08, VERIFIED. The counter planner has
       NO progression model, and for Wattson it proposes a counter that is behind Wattson.**
       > "I think Slugma is not available before Wattson… keep this sort of logic in mind (pokemon
       > availability). In this instance Slugma is gated behind Rocksmash which you can only use
