@@ -9433,3 +9433,45 @@ reproduce in minutes. **Do not return to the gym route — three attempts, zero 
 ‼ **Stopped here deliberately at five iterations.** The project's own recurring lesson is that
 iterating a fixture at length is where wrong conclusions get made; the diagnosis is specific and
 the remaining work is one well-defined change.
+
+---
+
+## 2026-08-08 — ‼ USER-IDENTIFIED: the counter planner has no progression model (`#24-progressiongate`)
+
+User, 2026-08-08: *"I think Slugma is not available before Wattson… keep this sort of logic in
+mind (pokemon availability). In this instance Slugma is gated behind Rocksmash which you can only
+use after beating Wattson."*
+
+**Verified, and it is worse than the single example.** Running the real `find_counter_candidates`
+against a pre-Wattson team (L22):
+
+```
+WATTSON needs Ground  ->  only huntable candidate: Numel @ FIERY_PATH (30%)
+```
+
+**Circular.** Fiery Path's only two doors are on ROUTE112; the Mauville→Route 112 corridor is
+sealed by a Rock Smash rock at ROUTE111 (18,101) — measured under `#24-smashroute`; and Rock Smash
+**field use requires BADGE03**, Wattson's own badge. Every Fiery Path species — Numel, Slugma,
+Machop, Torkoal, Koffing — is unobtainable until Wattson is already beaten.
+
+`FIERY_PATH` has **no entry in `AREA_PREREQ` or `AREA_ITEM_PREREQ`** (both return `None`), so the
+planner treats it as freely reachable at any story stage.
+
+‼ **`#24-huntreachproof` part 1 made this the ONLY option for Wattson.** Before that narrowing he
+was also offered ROUTE111/ROUTE116 — unreachable in practice, but not circular. My change reduced
+the set to a single candidate that he gates himself.
+
+‼ **And it was invisible to every metric I was watching.** Conversion counts hunts that CATCH;
+this rung can never even start, so it contributes nothing to the numerator or the denominator and
+the 15% → 50% result is untouched by it. A metric that only sees attempts cannot see a boss whose
+attempt is impossible — which is exactly why the user spotting it matters more than another batch.
+
+**Fix (not started — a batch is running, no sandbox edits):** teach the gate about field moves and
+badges. `AREA_PREREQ` already has a vocabulary (`"surf"`, `"region"`) and `_counter_area_allowed`
+already resolves `"surf"` against the party; add a badge-checked `"rocksmash"` and populate
+FIERY_PATH and any other ground behind a field move. Every entry is a GAME FACT — decomp or live
+probe, never recall.
+
+**The standing rule this establishes:** a hunt target is valid only if its LOCATION is reachable
+AT THAT POINT IN THE STORY. Availability is a function of story progress, not just of the
+encounter table.

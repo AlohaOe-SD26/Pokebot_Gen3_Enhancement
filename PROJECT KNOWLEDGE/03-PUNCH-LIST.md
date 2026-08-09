@@ -462,6 +462,39 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       already failed to travel. ‼ Do NOT simply widen `HUNTING_GROUNDS` on a guess — its whole
       value is that every entry is measured.
 
+- [ ] `#24-progressiongate` — ‼‼ **USER-IDENTIFIED 2026-08-08, VERIFIED. The counter planner has
+      NO progression model, and for Wattson it proposes a counter that is behind Wattson.**
+      > "I think Slugma is not available before Wattson… keep this sort of logic in mind (pokemon
+      > availability). In this instance Slugma is gated behind Rocksmash which you can only use
+      > after beating Wattson"
+
+      **Verified with the real `find_counter_candidates`** against a pre-Wattson team (L22):
+      ```
+      WATTSON needs Ground -> only huntable candidate: Numel @ FIERY_PATH (30%)
+      ```
+      **That is CIRCULAR.** Fiery Path's only two doors are on ROUTE112; the Mauville→Route 112
+      corridor is sealed by a Rock Smash rock at ROUTE111 (18,101) (measured, `#24-smashroute`);
+      and Rock Smash **field use requires BADGE03** — Wattson's own badge (`get_rock_smash_hm`
+      docstring). So every Fiery Path species — Numel, Slugma, Machop, Torkoal, Koffing — is
+      unobtainable until Wattson is already beaten.
+      **`FIERY_PATH` has NO entry in `AREA_PREREQ` or `AREA_ITEM_PREREQ`** — confirmed, both
+      return `None` — so the planner treats it as freely reachable at any story stage.
+      ‼ **`#24-huntreachproof` part 1 made this the ONLY option for Wattson.** Before the
+      narrowing he was also offered ROUTE111/ROUTE116 (unreachable in practice, but not
+      circular). Now the single surviving candidate is one he gates himself. That is a real
+      consequence of my change and it was invisible to every metric I was watching, because
+      conversion counts catches and this rung can never even start.
+      **FIX:** teach the gate about FIELD MOVES / BADGES. `AREA_PREREQ` already carries a
+      vocabulary (`"surf"`, `"region"`) and `_counter_area_allowed` already resolves `"surf"`
+      against the party — add `"rocksmash"` (badge-checked) and populate FIERY_PATH, plus any
+      other ground behind a field move.
+      ‼ **Every entry is a GAME FACT — verify each from the decomp or a live probe, never from
+      recall.** The three facts above are already measured and cited; anything added beyond them
+      needs the same treatment.
+      ‼ **The general rule the user is asking for, beyond this instance:** a counter/hunt target
+      is only valid if its LOCATION is reachable AT THAT POINT IN THE STORY. Availability is a
+      function of story progress, not just of the encounter table.
+
 - [ ] `#24-teachmsgstall` — **THIRD teach bug. 2026-08-08: TWO HYPOTHESES ELIMINATED by direct
       repro; the search is now narrow. Read this before probing again.**
       New fixture: `--driver teachfull TEACH_INJECT=marshtomp [TEACH_INJECT_SLOT=n]` writes the
