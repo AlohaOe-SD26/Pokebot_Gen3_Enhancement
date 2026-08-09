@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "normancounter"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "normancounter"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -1967,6 +1967,86 @@ class TeachFullMode(BotMode):
         return
 
 
+class GroundSweepMode(BotMode):
+    """`#24-r116sweep`: DRIVEN reach-and-leave evidence for a candidate HUNTING_GROUND.
+
+    ‼ WHY A NEW DRIVER RATHER THAN `probe_counter_reachability.py`. That probe answers with
+    `calculate_path` + `region_reach` — a STATIC oracle. This project's standing rule is that
+    only a DRIVEN `_navigate_riding_out` counts as reach evidence: `calculate_path` cannot cross
+    warps and says so in its own error text, and trusting it here nearly retired a working
+    feature once already (08-MISTAKES 2026-07-30).
+
+    ‼ AND THE BAR IS REACH **AND LEAVE**, not reach. That is what `HUNTING_GROUNDS` encodes and
+    what makes FIERY_PATH the only entry that converts (5/5 for Machop). A hunt walks in, spins,
+    and walks out; a ground it cannot leave strands the run.
+
+        PYTHONUTF8=1 SWEEP_GROUND=ROUTE116:11,7 SWEEP_RETURN=MAUVILLE_CITY:22,6           py -3.12 story_harness.py mauville_wedge.ss1 --driver groundsweep --frames 600000
+
+    Emits: [sweep] RESULT ground=<map> arrived=<bool> left=<bool> badge03=<bool>
+    ‼ `badge03` is reported because it decides WHICH question was answered: Wattson's counter
+    hunt fires BEFORE his badge, so a sweep run post-badge proves nothing about his rung.
+    """
+
+    @staticmethod
+    def name():
+        return "GroundSweep"
+
+    def on_battle_started(self, encounter):
+        from modules.battle_strategies import DefaultBattleStrategy
+
+        if encounter is None:
+            from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+
+            return LevelUpTravelBattleStrategy()
+        return DefaultBattleStrategy()
+
+    def run(self):
+        import os
+
+        from modules.map_data import MapRSE
+        from modules.memory import get_event_flag
+        from modules.player import get_player_avatar
+        from modules.story.early_game import _navigate_riding_out, wait_until_truly_controllable
+
+        yield from wait_until_truly_controllable()
+
+        def _parse(raw):
+            name, _, tile = raw.partition(":")
+            x, _, y = tile.partition(",")
+            return MapRSE[name.strip()], (int(x), int(y))
+
+        ground, gtile = _parse(os.environ.get("SWEEP_GROUND", "ROUTE116:11,7"))
+        back, btile = _parse(os.environ.get("SWEEP_RETURN", "MAUVILLE_CITY:22,6"))
+
+        try:
+            badge03 = bool(get_event_flag("BADGE03_GET"))
+        except Exception:
+            badge03 = None
+        start = tuple(get_player_avatar().map_group_and_number)
+        log(f"[sweep] start map={start} badge03={badge03} -> ground {ground.name}{gtile}, return {back.name}{btile}")
+
+        arrived = left = False
+        try:
+            yield from _navigate_riding_out(ground, gtile, tries=24)
+            arrived = tuple(get_player_avatar().map_group_and_number) == tuple(ground.value)
+            log(f"[sweep] leg 1 done: arrived={arrived} at {tuple(get_player_avatar().map_group_and_number)}")
+        except Exception as error:
+            log(f"[sweep] leg 1 FAILED: {type(error).__name__}: {str(error)[:200]}")
+
+        if arrived:
+            try:
+                yield from _navigate_riding_out(back, btile, tries=24)
+                left = tuple(get_player_avatar().map_group_and_number) == tuple(back.value)
+                log(f"[sweep] leg 2 done: left={left}")
+            except Exception as error:
+                log(f"[sweep] leg 2 FAILED: {type(error).__name__}: {str(error)[:200]}")
+
+        log(f"[sweep] RESULT ground={ground.name} arrived={arrived} left={left} badge03={badge03} "
+            f"verdict={'ADD to HUNTING_GROUNDS' if (arrived and left) else 'DO NOT ADD'}")
+        context.set_manual_mode()
+        return
+
+
 class BoxWithdrawMode(BotMode):
     """CAPABILITY TEST for the WITHDRAW half of `#24-pcoverflow` — the half that has NEVER run.
 
@@ -3077,6 +3157,8 @@ for step in range(args.frames):
             context.bot_mode_instance = BoxCatchMode()
         elif args.driver == "boxwithdraw":
             context.bot_mode_instance = BoxWithdrawMode()
+        elif args.driver == "groundsweep":
+            context.bot_mode_instance = GroundSweepMode()
         elif args.driver == "teachfull":
             context.bot_mode_instance = TeachFullMode()
         elif args.driver == "normancounter":

@@ -9520,3 +9520,30 @@ if it passes.** That is bounded, specific, and now motivated by a named need rat
 speculative six-anchor campaign that was cancelled.
 ‼ Prior data says do not assume it passes: Nincada @ ROUTE116 was **5 hunts, 0 caught** in batch
 `20260808-095721`. The sweep exists precisely to answer that rather than guess.
+
+---
+
+## 2026-08-09 — `#24-r116sweep`: driven-sweep tool built; both anchors I tried were invalid
+
+Built `--driver groundsweep` — the DRIVEN reach-and-leave probe the `HUNTING_GROUNDS` standard
+actually requires. ‼ Deliberately NOT `probe_counter_reachability.py`, which answers with
+`calculate_path` + `region_reach` (a STATIC oracle); `calculate_path` cannot cross warps and
+trusting it here nearly retired a working feature once already.
+
+It drives `_navigate_riding_out` to the ground and back, printing
+`arrived=… left=… badge03=… verdict=ADD/DO NOT ADD`.
+
+**No answer yet, because both anchors were wrong — and the probe's own output is what caught it:**
+
+| save | what it actually is | why it cannot answer the question |
+|---|---|---|
+| `mauville_wedge.ss1` | `badge03=False`, but starts INSIDE the gym at (10,0); leg 1 failed stuck at (4,13) | `_prepare_for_fight` runs from Mauville **City**, before entering |
+| `wally_done.ss1` | **lone Mudkip L14**, no Devon goods, no PokéNav, no Rustboro rival — the **Petalburg tutorial** Wally | wrong era entirely; `arrived=True` there means Route 116 is reachable from PETALBURG early-game, which is not the question |
+
+‼ **`probe_counter_reachability.py`'s docstring already warned me:** *"Anchors are verified on
+load, never trusted by name — several saves in this directory have proven misnamed."* I ran two
+before reading it. Reporting `badge03` and the party in the sweep output is what made both
+failures visible in one line each rather than becoming a wrong conclusion — that part worked.
+
+**Still needed:** a MAUVILLE_CITY save (not the gym) with `badge03=False` and a mid-game party.
+If none exists, capture one with `--driver story` at the Wattson prep and snapshot there.

@@ -468,8 +468,29 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       A/B: pre-Wattson **0 huntable** (was the circular Numel @ FIERY_PATH); post-Wattson 1.
       Norman control preserved. Suite 8/8.
 
-- [ ] `#24-r116sweep` — **NEW 2026-08-08. Wattson now has NO counter at all, and the fix is one
-      bounded sweep.** His only LEGAL pre-badge answer is **Nincada @ ROUTE116** (verified
+- [ ] `#24-r116sweep` — **TOOL BUILT 2026-08-09, ANSWER NOT YET OBTAINED — the two anchors I
+      tried were both invalid, and the probe itself is what proved it.**
+      New `--driver groundsweep` (`SWEEP_GROUND=MAP:x,y SWEEP_RETURN=MAP:x,y`) drives
+      `_navigate_riding_out` there and back and prints
+      `arrived=… left=… badge03=… verdict=ADD/DO NOT ADD`.
+      ‼ It reports `badge03` and the party ON PURPOSE, because that is what exposed both bad
+      anchors:
+      | save | what it actually is | verdict |
+      |---|---|---|
+      | `mauville_wedge.ss1` | badge03=False but starts INSIDE the gym at (10,0); leg 1 failed stuck at (4,13) | wrong position — prep runs from the CITY |
+      | `wally_done.ss1` | **lone Mudkip L14**, no Devon goods, no PokéNav, no Rustboro rival — the PETALBURG tutorial Wally, not the Mauville one | wrong ERA entirely |
+      ‼ **`probe_counter_reachability.py`'s own docstring already warned about this** — *"Anchors
+      are verified on load, never trusted by name — several saves in this directory have proven
+      misnamed"* — and I ran two before reading it. **Verify the anchor's era and position BEFORE
+      spending a run.**
+      **WHAT IS STILL NEEDED:** a save at **MAUVILLE_CITY** (not the gym) with `badge03=False`
+      and a mid-game party, then
+      `SWEEP_GROUND=ROUTE116:11,7 SWEEP_RETURN=MAUVILLE_CITY:22,6 --driver groundsweep`.
+      If no such save exists, capture one — `--driver story` to the Wattson prep and snapshot.
+      ‼ Do not read the `wally_done` run as evidence: `arrived=True` there says Route 116 is
+      reachable from PETALBURG in the early game, which is not the question.
+
+- [x] `#24-r116sweep` (original framing) — **NEW 2026-08-08.** His only LEGAL pre-badge answer is **Nincada @ ROUTE116** (verified
       Bug/**Ground**; ROUTE116 carries no prereq), and `#24-huntreachproof` part 1 removed it
       because ROUTE116 is in `TRAINING_GRASS`, not `HUNTING_GROUNDS`.
       ‼ **Do NOT relax the narrowing to get it back** — permissiveness measured 28 wasted treks
