@@ -179,6 +179,18 @@ enough to win the fight?"* (specified 2026-07-31, never run until now).
 **4 arms, 4 losses.** The counter really is fielded (`party=[(0,'Machop',0)]` in the
 faint-chooser) and dies, at every level tested — including L26, about what an ~890k-frame
 training budget buys.
+**‼ AND TWO MORE ARMS KILL THE "it was just too weak" ESCAPE HATCH:** L40 **LOST** (f35427) and
+**L55 LOST** (f39864) — six arms, six losses, against a team of **L28-31**. A L55 Fighting type
+with Karate Chop is fielded and knocked out. Both obvious confounds were checked and cleared: the
+injected mon starts at FULL hp (`debug_create_pokemon(current_hp=None)` → `max_hp`), and the
+driver's battle brain is exactly production's default for a trainer battle
+(`LevelUpTravelBattleStrategy`).
+⇒ **This cannot be a coverage or level problem. It points at HOW the fight is conducted** — move
+selection, switching, healing, send-in order. ‼ HYPOTHESIS, not finding: the logs carry only
+battle start/end + faint-chooser, **no per-turn move telemetry**. **Adding that telemetry to the
+boss path is the single highest-value next instrument** — it is missing for every "why does the
+bot lose to bosses" question, and it is the reason six arms could be run without learning WHY.
+
 ‼ **The CONTROL row is the one that constrains the conclusion:** the party loses with no counter
 at all, so this anchor cannot isolate *which level wins* — it loses regardless. What is
 established is the practical claim: **adding an obtainable counter does not convert this loss.**

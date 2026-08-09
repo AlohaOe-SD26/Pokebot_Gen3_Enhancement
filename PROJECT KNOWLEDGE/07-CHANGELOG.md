@@ -9913,3 +9913,37 @@ catches (39.1%), 12 training attempts with 1 failure — and yet **19 of 24 non-
 (79%) still end on the counter chain's "no super-effective answer" stop**, and the finish rate has
 not moved in a week. This sweep is the first direct evidence on the link that was always assumed:
 catching and training the named counter does not, on its own, win the fight.
+
+### Follow-up the same hour: an OVERWHELMING counter loses too — so this is not a coverage problem
+
+Two more arms, chosen to falsify "the counter is just too weak":
+
+| arm | Machop | fielded | outcome |
+|---|---|---|---|
+| 40 | L40 | yes, KO'd | **LOST** (whiteout f35427) |
+| 55 | **L55** | yes, KO'd | **LOST** (whiteout f39864) |
+
+**Six arms, six losses.** Norman's team is **L28-31**. A **L55** Fighting type with Karate Chop
+(2x vs Normal) is fielded, and is knocked out.
+
+**Two confounds were checked and BOTH cleared before this was written down:**
+* *Was the injected mon created at 0 HP?* No — `debug_create_pokemon(current_hp=None)` resolves to
+  `max_hp` (`debug_utilities.py:180`). It enters at full health.
+* *Was the fixture using the wrong battle brain?* No — the driver returns
+  `LevelUpTravelBattleStrategy`, and that is exactly what production's
+  `StoryMode.on_battle_started` returns as its default for a trainer battle (the earlier branches
+  are shiny / flee / catch / swap-train, none of which apply to a gym leader).
+* Reading check: the faint-chooser rotates the just-fainted mon into slot 0, and reserves keep
+  their HP (`Whismur 52`, `Ninjask 80` unchanged across lines) — so `Machop 0` really is a faint.
+
+⇒ **A L55 counter losing to L28-31 opponents cannot be a type-coverage or level problem. It
+points at HOW the fight is conducted** — move selection, switching, healing, or the order mons
+are sent in. ‼ That is a HYPOTHESIS, not a finding: the debug log carries only battle
+start/end and faint-chooser records, **no per-turn move telemetry**, so what Machop actually did
+on its turns is unknown. **Adding per-turn move/damage logging to the boss path is the next
+step**, and it is the missing instrument for every "the bot loses to bosses" question.
+
+**If it holds, it reframes `#24-counters` entirely:** the chain diagnoses type coverage, hunts,
+catches (39.1%) and trains (12 attempts / 1 failure) correctly — and coverage was never what was
+losing the fight. That would explain 79% of non-finishes still ending on "no super-effective
+answer" while the finish rate stays flat.
