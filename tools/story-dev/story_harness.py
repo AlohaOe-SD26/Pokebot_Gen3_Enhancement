@@ -1162,6 +1162,36 @@ class NormanCounterMode(BotMode):
         level = int(os.environ.get("NORMAN_MACHOP_LEVEL", "18"))
         yield from wait_until_truly_controllable()
 
+        # ‼ CONTROL ARM (`NORMAN_MACHOP_LEVEL=0`) — added 2026-08-09, and this experiment is
+        # UNINTERPRETABLE without it. The question is "does a counter at level L win the fight",
+        # and the only way "L26 wins" means anything is if the SAME party without the counter
+        # LOSES. Otherwise a win measures the anchor's own team, not the counter — and this
+        # anchor is not weak (Combusken L35 / Mightyena L30 / Ninjask L27 vs Norman's L28-31).
+        # ‼ The party's existing MOVES are logged for the same reason: if something already
+        # carries a Fighting move, the boss's "no super-effective answer" stop could never have
+        # fired here and the fixture is answering a different question than the batch asks.
+        for _m in [m for m in get_party() if m is not None and not m.is_egg]:
+            try:
+                log(f"[normancounter] existing {_m.species.name} L{_m.level} "
+                    f"moves={[lm.move.name for lm in _m.moves if lm is not None]}")
+            except Exception:  # noqa: BLE001
+                pass
+
+        if level <= 0:
+            log("[normancounter] CONTROL ARM — injecting NOTHING; measuring whether this party "
+                "beats Norman on its own.")
+            badge_before = bool(get_event_flag("BADGE05_GET"))
+            detail = ""
+            try:
+                yield from do_petalburg_gym()
+                detail = "gym segment returned"
+            except Exception as error:  # noqa: BLE001
+                detail = f"{type(error).__name__}: {str(error)[:150]}".replace("\n", " ")
+            badge = bool(get_event_flag("BADGE05_GET"))
+            log(f"[normancounter] RESULT level=CONTROL badge={badge} (was {badge_before}) detail={detail}")
+            context.set_manual_mode()
+            return
+
         machop = get_species_by_name("Machop")
         # Moves a wild Machop actually has around this level — Karate Chop is the STAB
         # Fighting move that makes it a "counter" at all. Read from the species learnset

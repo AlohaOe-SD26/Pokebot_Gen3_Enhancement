@@ -9870,3 +9870,46 @@ the next batch.
 
 **Promotion of the 3 drifted files is READY but NOT DONE** — `CLAUDE.md` requires explicit user
 approval for sandbox → `custom-pokebot/`, and a generic "proceed autonomously" is not that.
+
+---
+
+## 2026-08-09 — ‼ THE WEEK'S UNMEASURED ASSUMPTION, MEASURED: an obtainable counter does NOT beat Norman
+
+The 2026-07-31 plan said to answer this **first**, because it is binary and costs minutes:
+*"is a 2x-STAB counter at level L enough?"* It was specified with `--driver normancounter` and a
+level sweep, and never run. It has now been run — **with a control arm added, without which the
+result would have been uninterpretable.**
+
+Four arms from `prenorman_fodder_grind.ss1` (badges 1-4; Combusken L35 → Blaziken L36, Shedinja
+L25, Whismur L18, Ninjask L27, Mightyena L30), each driving the real `do_petalburg_gym()`:
+
+| arm | Machop | reached Norman | Machop sent out | outcome |
+|---|---|---|---|---|
+| **CONTROL** | none | yes | — | **LOST** (whiteout f34503) |
+| 18 | L18 | yes | **yes, fainted** | **LOST** (f34728) |
+| 22 | L22 | yes | **yes, fainted** | **LOST** (f34816) |
+| 26 | L26 | yes | **yes, fainted** | **LOST** (f35524) |
+
+**4 arms, 4 losses.** The counter is genuinely fielded — the faint-chooser records
+`party=[(0, 'Machop', 0)]`, i.e. it entered and was knocked out — at every level tested,
+including L26, which is roughly what an ~890k-frame training budget would buy.
+
+‼ **THE CONTROL IS THE MOST IMPORTANT ROW, and it is why this cannot be over-read.** The party
+loses to Norman *with no counter at all*, so this anchor **cannot** isolate "which level wins" —
+it loses regardless. The 2026-07-31 experiment as specified is unanswerable from it. What the
+sweep DOES establish is the practical claim: **adding an obtainable Fighting counter does not
+convert this loss into a win.**
+
+‼ **More repetitions would add nothing: the harness is deterministic.** The `#24-teachmsgstall`
+fixture stalled at the *identical frame* (f19130) across two different profiles. Vary the ANCHOR,
+not the rep count.
+
+‼ **Limitation, stated so it is not overstated:** one anchor, one party. Real runs arrive at
+Norman with varied teams, and this one is peculiar (Shedinja has 1 max HP by species; Whismur L18
+is filler). Whether it represents the batch's 5 Norman deaths is not established.
+
+**Why it matters strategically.** The chain's mechanism now works end to end — 23 hunts, 9 real
+catches (39.1%), 12 training attempts with 1 failure — and yet **19 of 24 non-finishing runs
+(79%) still end on the counter chain's "no super-effective answer" stop**, and the finish rate has
+not moved in a week. This sweep is the first direct evidence on the link that was always assumed:
+catching and training the named counter does not, on its own, win the fight.

@@ -159,6 +159,42 @@ input: how the previous battle ended.
 ‼ Cross-map fixture travel failed **four** times today (Slateport→Mauville, ROUTE116 intra-map,
 Fortree→ROUTE119, Mt. Pyre→ROUTE119). **Prefer an anchor already standing on the map you need.**
 
+## ‼‼ THE STRATEGIC RESULT OF THIS SESSION — read before choosing what to do next
+The counter chain's MECHANISM now works end to end: 23 hunts, **9 real catches (39.1%)**, 12
+training attempts with **1** failure, false catches **0**. And it does not help:
+**19 of 24 non-finishing runs (79%) still end on the chain's own "N losses with no
+super-effective answer to X" stop**, and the finish rate has not moved in a week.
+
+So the assumption underneath the whole week was finally measured — *"is an obtainable counter
+enough to win the fight?"* (specified 2026-07-31, never run until now).
+`--driver normancounter`, four arms from `prenorman_fodder_grind.ss1`:
+
+| arm | Machop | Machop sent out | outcome |
+|---|---|---|---|
+| **CONTROL** | none | — | **LOST** (whiteout f34503) |
+| 18 | L18 | yes, fainted | **LOST** (f34728) |
+| 22 | L22 | yes, fainted | **LOST** (f34816) |
+| 26 | L26 | yes, fainted | **LOST** (f35524) |
+
+**4 arms, 4 losses.** The counter really is fielded (`party=[(0,'Machop',0)]` in the
+faint-chooser) and dies, at every level tested — including L26, about what an ~890k-frame
+training budget buys.
+‼ **The CONTROL row is the one that constrains the conclusion:** the party loses with no counter
+at all, so this anchor cannot isolate *which level wins* — it loses regardless. What is
+established is the practical claim: **adding an obtainable counter does not convert this loss.**
+‼ **Do not "get more samples" by repeating arms — the harness is DETERMINISTIC** (the teach
+fixture stalled at the identical frame f19130 across two profiles). Vary the ANCHOR.
+‼ **Limitation:** one anchor, one party, and a peculiar one (Shedinja has 1 max HP by species;
+Whismur L18 is filler). Whether it represents the batch's 5 Norman deaths is NOT established —
+that is the first thing to check if this direction is pursued.
+
+⇒ **THE OPEN STRATEGIC QUESTION, stated plainly for the user:** the counter chain has absorbed a
+week, every mechanism win is real and measured, and **no outcome metric has moved.** The choices
+are (a) find out why the fight is lost even WITH the counter — party quality / lead policy /
+items / level gap, which this sweep points at; or (b) stop spending here and build story content
+(`#24-magmahideout`), the largest untouched lever. This is a judgement call about where money
+goes, not a bug — it needs the user.
+
 ## ⏭ NEXT ACTIONS, IN ORDER
 1. **PROMOTE the 3 drifted files to `custom-pokebot/`** — ‼ **needs an explicit user YES first**
    (`CLAUDE.md`: promotion happens only on explicit approval). The confirmation it was waiting on
