@@ -21,7 +21,7 @@ game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror
 | branch / HEAD | `main`, clean, **0 unpushed** |
 | box | **idle** — the batch finished 11:16 PDT, verdict OK |
 | story content | Littleroot → 6 badges → **Mt. Pyre → Magma Emblem**. Magma Hideout UNLOCKED but UNBUILT. |
-| promotion | ✅ **PROMOTED 2026-08-09 (user-approved) — `custom-pokebot` and `sandbox-pokebot` have ZERO source drift**, re-verified with `diff -rq`. The fence + `#24-progressiongate` are live in production; the `#24-slugmaspin` regression is no longer shipping. Verification diffed custom against sandbox (identical on all ten checks) — see `custom-pokebot/DIVERGENCE-LOG.md` 2026-08-09. |
+| promotion | ✅ **PROMOTED 2026-08-09 (user-approved)** — the fence + `#24-progressiongate` are live in production; the `#24-slugmaspin` regression no longer ships. Verification diffed custom against sandbox (identical on all ten checks); see `custom-pokebot/DIVERGENCE-LOG.md`. ‼ **ONE file has drifted SINCE that promotion:** `modules/battle_action_selection.py` (`#24-bosstelemetry`, sandbox-only, log-only). Promote it when the user next approves — it changes no behaviour, but production is blind without it. |
 | ‼ is code frozen? | Only while a batch runs. **Never edit `sandbox-pokebot/` mid-batch** — restarted lanes re-import from disk and corrupt the measurement. Editing `tools/story-dev/` IS safe (lanes spawn `sandbox-pokebot/pokebot.py`; nothing there is imported from story-dev). |
 
 ## ‼ THE ONE NUMBER THAT MATTERS, AND HOW TO GRADE ANYTHING HERE

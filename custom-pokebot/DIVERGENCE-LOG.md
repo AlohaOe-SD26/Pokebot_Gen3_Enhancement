@@ -849,3 +849,21 @@ asserting the old expectation would have made the check defend the behaviour thi
   size at n=29 and must not be read as a regression, but it has not improved either.
 * **KI-48 / KI-49** (travel: Route 110 → Mauville, and map-granular journeys arriving at a
   dead-end entrance) are OPEN and ship here.
+
+### ‼ CORRECTION to the entry above, same day (2026-08-09, later)
+
+The "OUTSTANDING AT PROMOTION TIME" note above states that a counter injected at
+**L18/22/26/40/55** was "fielded and knocked out" in all six `normancounter` arms, and concludes
+that boss losses point at *how the fight is conducted* rather than at type coverage.
+
+**That is RETRACTED. All six arms measured a mon that could not attack.** `#24-bosstelemetry`
+(added to sandbox after this promotion) logs one line per turn decision and showed the injected
+Machop selecting Karate Chop on five consecutive turns with **PP frozen at 22 and the opponent
+untouched at 143/143**, while a natural party member's Bite decremented PP and dealt damage in the
+same battle. `debug_create_pokemon(moves=[LearnedMove.create(...)])` builds move slots the engine
+selects but never executes. Full detail and the prevention rule: `08-MISTAKES.md` 2026-08-09.
+
+**Nothing about the PROMOTED CODE changes** — the fence and `#24-progressiongate` are unaffected,
+and their batch evidence (Machop 0/7 → 6/7, z = +3.24; false catches 10 → 0) stands. Only the
+commentary about the counter chain's *value* was wrong, and it is corrected here rather than
+edited above, because this log is append-only history.
