@@ -789,3 +789,63 @@ control: `best_huntable` returns **Norman → Machop @ FIERY_PATH `via=type`** (
 * **The finish rate has NOT moved resolvably.** 39.1% → 36.0% → 41.7% across the three batches;
   every pairwise z is well under 1.96. Everything above is justified by near-binary counters, not
   by a rate. Do not quote a finish-rate improvement for this round.
+
+---
+
+## 2026-08-09 — PROMOTION: the `party_counter_slot` fence + `#24-progressiongate` (3 files)
+
+**User-approved 2026-08-09.** Promotes the three files that had drifted since the BATCH-6
+promotion (`e84b814f`). Until now `custom-pokebot` carried the **`#24-slugmaspin` regression
+WITHOUT its fix**, which is what made this urgent.
+
+| file | what changed |
+|---|---|
+| `modules/story/counter_hunt.py` | `party_counter_slot(needed_type_names, exclude_pids=None)` — **THE FENCE** |
+| `modules/story/training_areas.py` | `AREA_PREREQ[FIERY_PATH] = "rocksmash"` (`#24-progressiongate`) |
+| `plugins/custom_modes/story_mode.py` | `_party_can_rock_smash()` (move AND `BADGE03_GET`, fails closed) |
+
+### Why the fence: it is BATCH-CONFIRMED, not merely repro-green
+Batch `20260809-081643` (8 lanes / 180 min, code `16283010`, `VERDICT OK`, 0 header violations):
+
+| batch | REAL conversion | `CAUGHT Machop` | FALSE catches |
+|---|---|---|---|
+| `20260808-131334` (before the regression) | 9/20 = 45.0% | 6/8 | 1 |
+| `20260808-174145` (the regression) | 3/20 = 15.0% | **0/7** | **10** |
+| **`20260809-081643` (this build)** | 9/23 = **39.1%** | **6/7** | **0** |
+
+**`CAUGHT Machop` 0/7 → 6/7, z = +3.24 (resolvable)**, and **false catches 10 → 0** — reported (9)
+now equals REAL (9), which was the fence's literal job. Overall conversion 15.0% → 39.1% is
+z = +1.76 (directional only) and statistically indistinguishable from the pre-regression 45.0%.
+
+### Verification — run against `custom-pokebot`, then DIFFED against sandbox
+Targeted imports only (never a bulk `modules/data/*` import — that gutted `map_data.py` in both
+builds on 2026-08-01). Ten checks: three files parse; `party_counter_slot` accepts `exclude_pids`;
+`_party_can_rock_smash` present; `AREA_PREREQ[FIERY_PATH] == "rocksmash"`; and the gate's own A/B
+— **no party/badge → FIERY_PATH gated out (fails closed); post-badge03 save → rock smash
+available.**
+‼ **The decisive check for a PROMOTION is not "what answer" but "does custom match sandbox".** The
+identical script was run against both builds and produced **identical results on all ten checks**,
+including one that returns `None`.
+‼ That `None` (`best_huntable` after loading `rocksmash_taught.ss1`) is a **harness-context
+artifact, not a fault**: it reproduces identically in sandbox, and the same rung demonstrably
+fires in production — 7 Machop hunts / 6 catches in the batch above. It is recorded rather than
+hidden because the previous promotion's control ("Norman → Machop @ FIERY_PATH, unconditionally")
+is now **obsolete by design**: `#24-progressiongate` makes that answer depend on party + badge, so
+asserting the old expectation would have made the check defend the behaviour this promotion adds.
+
+### ‼ OUTSTANDING AT PROMOTION TIME — read before trusting this build
+* **`#24-teachmsgstall` is OPEN and ships in this build**, as it did last time — but it is now
+  **REPRODUCED deterministically** (`--driver teachfull TEACH_AFTER_TRAINER=1` from
+  `journey_r116_wedge.ss1`, ~19,000 frames, identical frame twice). Cost this batch: 4 hard-caps
+  against 38 successful teaches, and **zero run-ending events**. Frame burner, not a run killer.
+  ‼ Three candidate causes are REFUTED with evidence (see `03-PUNCH-LIST.md`) — do not re-walk them.
+* **The counter chain does not convert its wins into finished runs.** 19 of 24 non-finishes (79%)
+  still end on its own "no super-effective answer" stop. Measured the same day with
+  `--driver normancounter`: a Machop injected at **L18/22/26/40/55** is fielded and knocked out and
+  the run loses in **all six arms**, including a control with no counter — against a team of
+  L28-31. That points at how the fight is CONDUCTED, not at type coverage. Treat this build's
+  counter chain as a working diagnosis engine whose premise is under question.
+* **Finish rate 17.2% (5/29) this batch** — the lowest recorded. It cannot resolve a change this
+  size at n=29 and must not be read as a regression, but it has not improved either.
+* **KI-48 / KI-49** (travel: Route 110 → Mauville, and map-granular journeys arriving at a
+  dead-end entrance) are OPEN and ship here.
