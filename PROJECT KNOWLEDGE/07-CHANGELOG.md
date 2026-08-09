@@ -9737,3 +9737,37 @@ prompt, which is *after* item selection. That suggests the stall happens in the 
 item-selection step**, before the party menu is reached, while three fixtures in a row have been
 faithfully recreating the replace dialogue instead. ‼ Recorded as a lead inferred from task
 names, not as a finding.
+
+---
+
+## 2026-08-09 — `#24-teachmsgstall`: the production tail is a TRAINER prize-money message, and no fixture has ever used one
+
+Read from the batch's own debug logs (`x4-runs/20260807-160545`; 33 logs / 309,276 lines, with
+`TEACH EXIT` x63 and `TEACH OK` x38 visible as the positive control). A failing teach dumps:
+
+```
+message='Story: teaching Surf to Swampert...'   controllable=False
+battle: active=False  callback=ReturnFromBattleToOverworld
+        instr=BattleScript_PayDayMoneyAndPickUpItems
+battle_text='H2 got $3100 for winning!'   learn_state=LearnMoveState.DialogueNotActive
+tasks=['Task_ContinueTaskAfterMessagePrints', 'ListMenuDummyTask']
+TEACH EXIT reason=post-select-900-exhausted ... frame=900     (then ride:hard-cap at 8999)
+```
+
+`'... got $3100 for winning!'` is a **trainer prize-money** message. Fixtures 6, 7 and 8 all
+used **wild** battles, whose tails complete (`'Got away safely'`, `'Give a nickname to the
+captured NINCADA?'`) — and all three taught successfully. ‼ That one difference plausibly
+explains all five eliminated hypotheses at once: the variable was never the party, the item, the
+moveset or the catch — it is **which battle tail is resident**.
+
+**Corroborated incidentally by unrelated runs today.** `--driver anchorcapture` and
+`--driver groundsweep` both logged `STUCK-OW cb=ReturnFromBattleToOverworld
+instr=BattleScript_PayDayMoneyAndPickUpItems bt='NICK got $468 for winning!'` with no teach
+involved at all, so this tail appears to linger generally rather than only under the teach —
+which also makes it a candidate contributor to the travel failures in KI-48.
+
+**Also flagged for re-test:** the item assumes *"a tail is RUNTIME state and cannot be loaded
+from a save"*. True of a `.sav`; a **`.ss1` is a full machine snapshot**, and the harness already
+auto-saves one at every stall. If a stall state captured at the money message reloads with the
+tail intact, the fixture becomes seconds long. Not verified yet — today's two stall states are
+early-game (no HMs) and were captured at other stall causes.

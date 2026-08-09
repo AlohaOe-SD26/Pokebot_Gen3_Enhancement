@@ -615,8 +615,41 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       nickname prompt is still resident" — the hypothesis this item has rested on since
       2026-08-08 — does NOT reproduce the stall.** Five hypotheses are now eliminated.
 
-      ‼ **WHERE TO LOOK NEXT — the task sets say the stall is EARLIER than anyone has been
-      probing.** Compare the failing batch signature with what every successful fixture shows:
+      ‼‼ **THE PRODUCTION CONTEXT, READ FROM THE BATCH'S OWN DEBUG LOGS 2026-08-09 — and it is
+      a tail NO fixture has used.** (`x4-runs/20260807-160545`, 33 logs / 309,276 lines searched;
+      positive control: `TEACH EXIT` x63 and `TEACH OK` x38 are visible in that sweep.) A
+      failing teach dumps this:
+      ```
+      message='Story: teaching Surf to Swampert...'   controllable=False
+      battle: active=False  callback=ReturnFromBattleToOverworld
+              instr=BattleScript_PayDayMoneyAndPickUpItems
+      battle_text='H2 got $3100 for winning!'   learn_state=LearnMoveState.DialogueNotActive
+      tasks=['Task_ContinueTaskAfterMessagePrints', 'ListMenuDummyTask']
+      TEACH EXIT reason=post-select-900-exhausted ... frame=900   (then ride:hard-cap at 8999)
+      ```
+      **`'... got $3100 for winning!'` is a TRAINER prize-money message.** Every fixture so far
+      (6, 7, 8) used **WILD** battles, whose tails complete — fixture 6's read `'Got away
+      safely'`, fixture 8's `'Give a nickname to the captured NINCADA?'`, and both taught fine.
+      ‼ That single difference plausibly explains all five dead hypotheses at once: the variable
+      was never the party, the item, the moveset or the catch — it is **which battle tail**.
+      ‼ **Independent corroboration from today's UNRELATED runs:** `--driver anchorcapture` and
+      `--driver groundsweep` both logged the same stuck signature after trainer fights —
+      `STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems
+      bt='NICK got $468 for winning!'` — with no teach anywhere in sight. So this tail appears to
+      linger **generally**, not only under the teach. That makes it a candidate cause for
+      unrelated travel failures too (see KI-48).
+      **NEXT FIXTURE (spec):** teach immediately after a **TRAINER** battle. ‼ Attempts 3-5 had
+      the right instinct here and failed on execution — they tried to win a GYM first and wedged
+      three times; **any trainer battle is enough, do not return to the gym route.**
+      ‼ **And re-test one assumption this item is built on:** it records that *"a tail is RUNTIME
+      state and cannot be loaded from a save"*. That is true of a `.sav`, but a **`.ss1` is a
+      full machine snapshot**, and the harness already auto-saves one at every stall
+      (`saves/stalls/<profile>-f<frame>.ss1`). If a stall state captured AT the money message
+      reloads with the tail intact, this whole item becomes a seconds-long fixture instead of a
+      battle-driving one. ‼ NOT yet verified: the two stall states available today are early-game
+      (no HMs in the bag) and were captured at other stall causes, so they could not answer it.
+
+      ‼ **The task sets independently say the stall is EARLIER than anyone has been probing.** Compare the failing batch signature with what every successful fixture shows:
       | | tasks on screen |
       |---|---|
       | batch failures (9 of 9, `20260807-160545`) | `['ListMenuDummyTask', 'Task_ContinueTaskAfterMessagePrints']` |
