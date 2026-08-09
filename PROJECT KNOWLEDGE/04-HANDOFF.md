@@ -199,6 +199,38 @@ leads:
    stuck at pp2 for three turns, Ninjask's Scratch at pp30). Could be misses (Cross Chop is 80%)
    plus a display artifact, or something real. **Undiagnosed — and now instrumented.**
 
+## ‼‼ THE STRONGEST LEAD IN THIS FILE — the bot fights Norman with its best mon ALREADY FAINTED
+The counter sweep was re-run with a working fixture (natural learnset; the broken explicit path is
+now opt-in only). **Four arms — control, 18, 22, 26 — four losses**, with the counter PROVEN to
+act this time (`Machop L26 -> Karate Chop(pp25)` takes Vigoroth **73 → 33**). So *"a counter at an
+obtainable level does not flip this fight"* is re-established on correct evidence.
+
+**`#24-bosstelemetry` then showed what actually loses it, and it is not type coverage:**
+```
+[TURN 0] Shedinja L26 1/1  -> Scratch      vs Spinda   75/75    <- a 1-HP mon is LEADING
+[TURN 3] Machop  L26 37/76 -> Karate Chop  vs Vigoroth 33/86    <- real damage, half HP gone
+[TURN 6] Mightyena  73/94  -> Bite         vs Vigoroth 53/86    <- ‼ NORMAN HEALS (1 -> 53)
+[TURN 12] Ninjask   80/80  -> Scratch      vs Slaking 130/143   <- 7 damage a turn into 143 HP
+```
+And the faint-chooser's first row of that battle gives the reason for the bad lead:
+```
+party=[(0,'Shedinja',0), (1,'Blaziken',0), (2,'Whismur',52), (3,'Ninjask',80), (4,'Mightyena',94), (5,'Machop',76)]
+```
+**`Blaziken L36` — the team's strongest Pokémon — is at 0 HP before the first turn.** The bot
+entered the boss fight with its ace already dead, which is why a 1-HP Shedinja led.
+
+⇒ **Three causes, ranked by how fixable they look, none of them type coverage:**
+1. **Arriving at the boss with a fainted ace** (no heal between the gym's trainers and Norman).
+   If this generalises it is the single biggest lever in the project — it would mean the "no
+   super-effective answer" stop is a MISDIAGNOSIS of a fight lost on preparation.
+2. **Norman heals** (Vigoroth 1 → 53; Slaking 27 → 136 in another run). Chip damage of 6-8 a turn
+   into a healing 143-HP boss cannot win, whatever type it is.
+3. **The counter is frail at obtainable levels** — lands a 46% hit, then dies.
+‼ **NOT yet established: that this anchor represents the batch's 5 Norman deaths.** One anchor,
+one party, deterministic harness — four configurations, not four samples. **Check that first**,
+by looking for the same "entered the boss battle with a fainted ace" signature in a batch's logs
+now that the telemetry exists to see it.
+
 ## ⏭ NEXT ACTIONS, IN ORDER
 1. ✅ ~~**PROMOTE the 3 drifted files**~~ — **DONE 2026-08-09, user-approved.** Zero source
    drift remains. **`#24-bosstelemetry` is now the top item:** add per-turn move/damage logging to
