@@ -105,7 +105,7 @@ def disarm() -> None:
     COUNTER_HUNT_TARGET_NAMES = []
 
 
-def party_counter_slot(needed_type_names) -> "int | None":
+def party_counter_slot(needed_type_names, exclude_pids=None) -> "int | None":
     """Party slot of a battle-capable mon whose OWN type is one of `needed_type_names`,
     or None. This is how the hunt knows it succeeded.
 
@@ -138,9 +138,29 @@ def party_counter_slot(needed_type_names) -> "int | None":
         needed = {str(n) for n in (needed_type_names or []) if n}
         if not needed:
             return None
+        skip = set(exclude_pids or ())
         for index, mon in enumerate(get_party()):
             if mon is None or mon.is_egg:
                 continue
+            # ‼‼ IGNORE MONS THAT WERE ALREADY IN THE PARTY WHEN THE HUNT ARMED (2026-08-08).
+            # This is the exact protection `before_box_pids` already gives the BOX side, and the
+            # party side went without it. Measured cost in batch `20260808-174145`: **20 hunts,
+            # 13 reported catches, only 3 real** — Marshtomp 6, Castform 3 and Combusken 1 were
+            # "caught" without ever being hunt targets, and **Machop fell from 6-of-8 to 0-of-7**
+            # because the hunt "succeeded" on a party mon before the Machop was ever caught.
+            #
+            # WHY IT ONLY BROKE NOW: the old test matched the mon's own TYPE, and a party mon of
+            # the needed type would have made `_boss_plan_is_hopeless` return False so no hunt
+            # would fire at all — the guard was implicit. Making the test accept a MOVE answer
+            # (`#24-slugmaspin`) removed that accident, because `hopeless` uses the STRICT
+            # credible-power test while this one is deliberately lenient: a mon carrying a
+            # 20-power Rock Smash is "hopeless" to that function and "success" to this one.
+            # Two tests with different thresholds over the same party need an explicit fence.
+            try:
+                if mon.personality_value in skip:
+                    continue
+            except Exception:  # noqa: BLE001
+                pass
             try:
                 if {t.name for t in mon.species.types} & needed:
                     return index
@@ -376,6 +396,18 @@ def hunt(candidate, needed_type_names) -> Generator:
     # hunt (a previous boss's counter, or one collected and re-deposited) as this hunt's catch.
     before_box = _box_count()
     before_box_pids = _box_pids()
+    # Party twin of `before_box_pids` — see `party_counter_slot`'s exclusion note.
+    # ‼ IMPORT EXPLICITLY. `get_party` is imported locally per-function in this module and is
+    # NOT in scope here; without this line the comprehension raises NameError, the `except`
+    # swallows it, and the fence is silently EMPTY — i.e. the bug it exists to stop would still
+    # be live while every test looked green. Same shape as `box_views` returning [] on a
+    # TypeError (08-MISTAKES 2026-08-06).
+    from modules.pokemon_party import get_party as _gp_snapshot
+
+    try:
+        before_party_pids = {m.personality_value for m in _gp_snapshot() if m is not None}
+    except Exception:  # noqa: BLE001
+        before_party_pids = set()
     arm([species_name])
     try:
         frames = {"n": 0}
@@ -393,7 +425,7 @@ def hunt(candidate, needed_type_names) -> Generator:
             # so the `>= 0` guard keeps a read error from faking one.
             if before_box >= 0 and _box_count() > before_box:
                 return True
-            return party_counter_slot(needed_type_names) is not None
+            return party_counter_slot(needed_type_names, before_party_pids) is not None
 
         yield from _story_spin(_stop)
     finally:
@@ -403,7 +435,7 @@ def hunt(candidate, needed_type_names) -> Generator:
     yield from normalize_to_overworld()
     yield from wait_until_truly_controllable()
 
-    slot = party_counter_slot(needed_type_names)
+    slot = party_counter_slot(needed_type_names, before_party_pids)
     if slot is not None:
         try:
             from modules.pokemon_party import get_party
