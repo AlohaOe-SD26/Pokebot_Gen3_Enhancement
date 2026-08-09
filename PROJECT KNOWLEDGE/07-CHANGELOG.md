@@ -9824,3 +9824,13 @@ from disk.
 
 A stall state was auto-saved at the wedge — `saves/stalls/tf-trainer1-f19130.ss1`, the first
 HM-bearing one.
+
+**Root cause located in code, same day.** `teach_hm_move` hands off through
+`normalize_to_overworld()` (`early_game.py:4466`), which calls the field settled on
+OVERWORLD + controllable + no script + no *menu task*, where menu task means
+`_MENU_TASK_MARKERS = ("Task_ShowStartMenu", "ListMenuDummyTask", "Task_HandleChooseMonInput")`
+(`early_game.py:452`). **`Task_ContinueTaskAfterMessagePrints` is not in that list**, so a
+still-printing post-battle message does not block the hand-off; the teach opens the bag on top
+of it and the two tasks that result are precisely the recorded signature. Proposed fix, its two
+risks, and the controls that must stay green are on the punch-list item. Reproduction confirmed
+**2 of 2** runs.

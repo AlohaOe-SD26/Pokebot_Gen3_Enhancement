@@ -610,13 +610,31 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       | 7 | caught -> box | `BattleScript_SuccessBallThrowEnd` | ✅ taught |
       | 8 | caught -> party | `'Give a nickname to the captured NINCADA?'` | ✅ taught |
       | 9 | **won** | `BattleScript_PayDayMoneyAndPickUpItems` + `Task_ContinueTaskAfterMessagePrints` | ❌ **STALLS** |
-      ⇒ **Working hypothesis for the fix:** `teach_hm_move` opens the BAG while the won-battle
-      message chain is still printing; the bag's list menu then never advances, `post_select`
-      exhausts at 900, the ride hard-caps at 8,999, and the move is never learned. The gate
-      belongs BEFORE the bag is opened — `normalize_to_overworld()` must actually wait out
-      `Task_ContinueTaskAfterMessagePrints` / `BattleScript_PayDayMoneyAndPickUpItems`.
-      ‼ Not yet verified — that is the next step, and it must be proven by fault-inject A/B
-      against this fixture, which is now cheap.
+      ⇒ **ROOT CAUSE LOCATED IN CODE (read 2026-08-09; fix NOT written, see why below).**
+      `teach_hm_move` hands off through `normalize_to_overworld()` (`early_game.py:4466`), which
+      declares the field settled when it is OVERWORLD + controllable + no script + **no menu
+      task** — and "menu task" is this list (`early_game.py:452`):
+      ```python
+      _MENU_TASK_MARKERS = ("Task_ShowStartMenu", "ListMenuDummyTask", "Task_HandleChooseMonInput")
+      ```
+      **`Task_ContinueTaskAfterMessagePrints` is not in it.** So a post-battle message chain
+      that is still printing does not block the hand-off; the teach then opens the BAG on top of
+      it, `ListMenuDummyTask` joins the still-running message task — which is *exactly* the
+      recorded signature `['ListMenuDummyTask', 'Task_ContinueTaskAfterMessagePrints']` — the bag
+      list never advances, `post_select` exhausts at 900, the ride hard-caps at 8,999.
+      **PROPOSED FIX:** treat "a message is still printing" as not-settled in
+      `normalize_to_overworld` (a separate predicate, NOT by adding it to `_MENU_TASK_MARKERS` —
+      it is not a menu), so the existing B-cadence rides the chain out before anything opens the
+      bag.
+      ‼ **Two things to check when writing it, both cheap and both able to make it worse:**
+      (1) whether `Task_ContinueTaskAfterMessagePrints` is ever *permanently* resident — if so
+      `normalize_to_overworld` would burn its 3,600-frame bound on every call (bounded, so a
+      delay rather than a hang, but a real cost); (2) that the settle still fires promptly on the
+      paths that work today — fixtures 6/7/8 are the controls and all three must stay green.
+      ‼ **Not verified, and NOT written today on purpose:** a batch was mid-flight and restarted
+      lanes re-import `sandbox-pokebot/` from disk, so touching production mid-batch would have
+      corrupted the measurement. Prove it with a fault-inject A/B against the fixture above,
+      which now costs ~19,000 frames.
       ‼ A stall state was auto-saved at the wedge: **`saves/stalls/tf-trainer1-f19130.ss1`** —
       the first HM-bearing one, and (per the `.ss1` finding below) it should reload wedged.
 
