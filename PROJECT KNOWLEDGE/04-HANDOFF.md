@@ -124,17 +124,28 @@ identical frame f19130.**
 **Condition: teach right after a WON battle** (its EXP/money message chain) — *not* trainers, and
 *not* the catch/nickname prompt. Fled, caught-to-box and caught-to-party all teach fine.
 
-**ROOT CAUSE:** `normalize_to_overworld()` calls the field settled on OVERWORLD + controllable +
-no script + no *menu task*, and `_MENU_TASK_MARKERS` (`early_game.py:452`) is
-`("Task_ShowStartMenu","ListMenuDummyTask","Task_HandleChooseMonInput")` — it does **not** include
-`Task_ContinueTaskAfterMessagePrints`. So a still-printing message never blocks the hand-off, the
-teach opens the BAG on top of it, and the bag list never advances.
+**CAUSE: STILL OPEN — and three candidate causes were REFUTED today, each in minutes.** Do not
+re-walk them:
+1. *"`normalize_to_overworld` settles while a message is printing"* (it omits
+   `Task_ContinueTaskAfterMessagePrints` from `_MENU_TASK_MARKERS`, `early_game.py:452`). Fits the
+   crash signature perfectly. **REFUTED:** at the hand-off instant `message_task_active=False` —
+   that task only appears AFTER the bag opens, so the gate would have been inert. A repro
+   asserting it was written, committed RED, then deleted.
+2. *"the parked battle script is the discriminator"* (`instr=BattleScript_PayDayMoneyAndPickUpItems`
+   on the failing run vs `BattleScript_SuccessBallThrowEnd` on the passing one — at first look the
+   ONLY differing field). **REFUTED:** six ordinary controllable saves nowhere near a teach report
+   the identical pair, 6 of 6. `instr` is **residue of the last battle script**, not live state.
+3. *"the teach's own parameters differ"*. **REFUTED:** both runs are `move=Surf slot=2
+   replace_slot=1` on the same target with the same four moves.
 
-**FIX (specified, unwritten):** treat "a message is still printing" as not-settled — a separate
-predicate, **not** an addition to `_MENU_TASK_MARKERS` (it is not a menu). Risk measured: across
-**386** captured states the task is resident in **5**, and in **0** of those is the game a settled
-controllable overworld. Controls that must stay green: fixtures 6, 7 and 8 (all three teach fine).
-Prove it with a fault-inject A/B against the fixture above.
+‼ **WHERE THE DIFFERENCE ACTUALLY SHOWS — start here.** Downstream of the bag, in `TEACH EXIT`:
+failing `post_select=exhausted` (the 900-frame window expires and the replace prompt NEVER
+appears) with `stall_peak=82`, ending `ride:hard-cap` at 8,999; passing `post_select=replace-prompt`,
+`stall_peak=171`, `ride:learned` at **463**. `stall_peak=82` against a 900 threshold means the
+failing run is **CYCLING, not frozen**.
+**NEXT STEP: diff the two runs frame-by-frame from the moment the bag opens** — logs are on disk
+(`profiles/tf-premise/` fails, `profiles/tf-premise-pass/` passes), and they differ in exactly one
+input: how the previous battle ended.
 
 ## NEW KNOWN ISSUES (both measured today)
 * **KI-48** — direct navigation cannot walk ROUTE110 → MAUVILLE_CITY: 3/3 identical deterministic

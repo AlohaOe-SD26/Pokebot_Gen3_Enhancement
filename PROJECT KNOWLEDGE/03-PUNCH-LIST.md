@@ -650,15 +650,30 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       `repro_teach_message_gate.py` asserting that gate was written, committed RED, and then
       **deleted**, because a committed test for a refuted design misleads the next agent more
       than no test at all.
-      ⇒ **THE ONLY FIELD THAT DIFFERS AT HAND-OFF IS THE BATTLE SCRIPT INSTRUCTION.** The
-      won-battle end script is parked with its "got $N for winning!" message still PENDING;
-      opening the BAG is what makes it emit, and it then deadlocks with the bag list.
-      ‼ **The obvious next gate is ALSO suspect — measure before writing it.** "Wait for the
-      battle script to clear" would catch the passing path too: `BattleScript_SuccessBallThrowEnd`
-      is equally parked, and is *still* parked much later (`f9242`, mid replace-prompt, fixture 8).
-      `instr` looks like **residue of the last battle script** rather than "currently executing",
-      so a naive wait could burn `normalize_to_overworld`'s full 3,600-frame bound on every teach.
-      **Establish whether it ever clears on its own first.**
+      ⇒ At first reading, the only field that differed was `instr` — so the next candidate gate was
+      "wait for the parked battle script". ‼ **THAT IS REFUTED TOO, measured the same hour:** load
+      six perfectly ordinary controllable overworld saves nowhere near a teach
+      (`post_winona`, `norman_done`, `lavaridge`, `mauville_prewattson`, `rocksmash_taught`,
+      `slateport`), run 120 frames, and **6 of 6** report
+      `cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems`. `instr` is
+      **residue of the last battle script**, not "currently executing". Gating on it would block
+      every teach forever.
+      ⇒ **SO THE HAND-OFF STATE DOES NOT DISTINGUISH THE TWO RUNS AT ALL.** Nor do the teach's own
+      parameters: failing and passing runs share `move=Surf slot=2 replace_slot=1` and the same
+      target with the same four moves.
+
+      ‼ **WHERE THE DIFFERENCE ACTUALLY SHOWS UP — start here next time.** It is downstream of the
+      bag, in the `TEACH EXIT` records themselves:
+      | | FAILING (`tf-premise`) | PASSING (`tf-premise-pass`) |
+      |---|---|---|
+      | `post_select` | **`exhausted`** — the 900-frame window expires without the replace prompt ever appearing | **`replace-prompt`** |
+      | `stall_peak` | **82** | 171 |
+      | outcome | `ride:hard-cap` at 8,999 | `ride:learned` at **463** |
+      `stall_peak=82` against a 900 threshold means the failing run is **CYCLING, not frozen** —
+      something is changing every ~82 frames while the flow never reaches the replace prompt.
+      **NEXT STEP: diff the two runs frame-by-frame from the moment the bag opens.** Both logs are
+      on disk (`profiles/tf-premise*/debug-logs/`), the fixtures are ~19,000 frames, and the two
+      differ in exactly one input — how the previous battle ended.
       ‼ **Two things flagged when the (now refuted) fix was proposed, kept because risk (2)
       still applies to ANY fix here:**
       (1) whether `Task_ContinueTaskAfterMessagePrints` is ever *permanently* resident — if so
