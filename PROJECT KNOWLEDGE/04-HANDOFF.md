@@ -21,7 +21,7 @@ game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror
 | branch / HEAD | `main`, clean, **0 unpushed** |
 | box | **idle** — the batch finished 11:16 PDT, verdict OK |
 | story content | Littleroot → 6 badges → **Mt. Pyre → Magma Emblem**. Magma Hideout UNLOCKED but UNBUILT. |
-| promotion | **BATCH-6 promoted 2026-08-08** (`e84b814f`). ‼ **3 source files have drifted since** — re-verified today with `diff -rq`: `modules/story/counter_hunt.py`, `modules/story/training_areas.py`, `plugins/custom_modes/story_mode.py`. The fence is among them, so **custom currently holds the `#24-slugmaspin` regression WITHOUT its fix.** |
+| promotion | ✅ **PROMOTED 2026-08-09 (user-approved) — `custom-pokebot` and `sandbox-pokebot` have ZERO source drift**, re-verified with `diff -rq`. The fence + `#24-progressiongate` are live in production; the `#24-slugmaspin` regression is no longer shipping. Verification diffed custom against sandbox (identical on all ten checks) — see `custom-pokebot/DIVERGENCE-LOG.md` 2026-08-09. |
 | ‼ is code frozen? | Only while a batch runs. **Never edit `sandbox-pokebot/` mid-batch** — restarted lanes re-import from disk and corrupt the measurement. Editing `tools/story-dev/` IS safe (lanes spawn `sandbox-pokebot/pokebot.py`; nothing there is imported from story-dev). |
 
 ## ‼ THE ONE NUMBER THAT MATTERS, AND HOW TO GRADE ANYTHING HERE
@@ -208,11 +208,12 @@ items / level gap, which this sweep points at; or (b) stop spending here and bui
 goes, not a bug — it needs the user.
 
 ## ⏭ NEXT ACTIONS, IN ORDER
-1. **PROMOTE the 3 drifted files to `custom-pokebot/`** — ‼ **needs an explicit user YES first**
-   (`CLAUDE.md`: promotion happens only on explicit approval). The confirmation it was waiting on
-   is now in hand (Machop 0/7 → 6/7, z = +3.24; false catches 10 → 0). Until then the production
-   fork keeps running the `#24-slugmaspin` regression WITHOUT its fix, so this is the most
-   time-sensitive item in this file. Promote together with DIVERGENCE-LOG entries.
+1. ✅ ~~**PROMOTE the 3 drifted files**~~ — **DONE 2026-08-09, user-approved.** Zero source
+   drift remains. **`#24-bosstelemetry` is now the top item:** add per-turn move/damage logging to
+   the boss path. Six `normancounter` arms could be run without learning WHY the fight is lost,
+   because the logs carry only battle start/end and faint-chooser records. It is small, and it is
+   the missing instrument behind every "why does the bot lose to bosses" question — which is 79%
+   of all non-finishes.
 2. **Write the `#24-teachmsgstall` fix** (spec + risks above). Cheap, provable, and it is a THIRD
    teach bug affecting real runs. Its A/B needs no batch, so it can go first.
 3. **KI-49 / KI-48** — the travel bugs. KI-49 gates any future hunting ground with more than one
