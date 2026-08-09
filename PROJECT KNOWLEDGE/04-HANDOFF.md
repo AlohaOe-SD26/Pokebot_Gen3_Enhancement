@@ -21,7 +21,7 @@ game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror
 | branch / HEAD | `main`, clean, **0 unpushed** |
 | box | **idle** — the batch finished 11:16 PDT, verdict OK |
 | story content | Littleroot → 6 badges → **Mt. Pyre → Magma Emblem**. Magma Hideout UNLOCKED but UNBUILT. |
-| promotion | ✅ **PROMOTED 2026-08-09 (user-approved)** — the fence + `#24-progressiongate` are live in production; the `#24-slugmaspin` regression no longer ships. Verification diffed custom against sandbox (identical on all ten checks); see `custom-pokebot/DIVERGENCE-LOG.md`. ‼ **ONE file has drifted SINCE that promotion:** `modules/battle_action_selection.py` (`#24-bosstelemetry`, sandbox-only, log-only). Promote it when the user next approves — it changes no behaviour, but production is blind without it. |
+| promotion | ✅ **PROMOTED TWICE 2026-08-09 (both user-approved)** — the fence, `#24-progressiongate`, and `#24-bosstelemetry` part 1 are all live in production. ‼ **ONE file has drifted since:** `modules/debug_logger.py` (`#24-bosstelemetry` part 2 — party HP at `[BATTLE] started`; sandbox-only, log-only). |
 | ‼ is code frozen? | Only while a batch runs. **Never edit `sandbox-pokebot/` mid-batch** — restarted lanes re-import from disk and corrupt the measurement. Editing `tools/story-dev/` IS safe (lanes spawn `sandbox-pokebot/pokebot.py`; nothing there is imported from story-dev). |
 
 ## ‼ THE ONE NUMBER THAT MATTERS, AND HOW TO GRADE ANYTHING HERE
@@ -227,9 +227,13 @@ entered the boss fight with its ace already dead, which is why a 1-HP Shedinja l
    into a healing 143-HP boss cannot win, whatever type it is.
 3. **The counter is frail at obtainable levels** — lands a 46% hit, then dies.
 ‼ **NOT yet established: that this anchor represents the batch's 5 Norman deaths.** One anchor,
-one party, deterministic harness — four configurations, not four samples. **Check that first**,
-by looking for the same "entered the boss battle with a fainted ace" signature in a batch's logs
-now that the telemetry exists to see it.
+one party, deterministic harness — four configurations, not four samples. **Check that first** — and the instrument now exists: `[BATTLE] started` records party HP.
+On this anchor it is CONFIRMED and the mechanism is visible: the bot fights the gym's earlier
+trainers without healing (`Blaziken 23/120`), then **enters the Norman battle at `0/120`**.
+**Run a batch and read the `hp=` field at each `[BATTLE] started`** — that settles whether
+boss losses are preparation failures across real runs, which is the question the whole
+counter chain rests on. `probe_fainted_ace.py` should then be rewritten to read that field
+instead of inferring from the first faint.
 
 ## ⏭ NEXT ACTIONS, IN ORDER
 1. ✅ ~~**PROMOTE the 3 drifted files**~~ — **DONE 2026-08-09, user-approved.** Zero source

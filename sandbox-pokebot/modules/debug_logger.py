@@ -461,7 +461,29 @@ def _detect_events(prev: dict, st: dict) -> None:
         _event(fc, f"[MAP] {_fmt_map(prev.get('map'))} -> {_fmt_map(st.get('map'))} pos={st.get('pos')}")
     if prev.get("battle_active") != st.get("battle_active"):
         if st.get("battle_active"):
-            _event(fc, "[BATTLE] started")
+            # ‼ PARTY HP AT THE START OF THE BATTLE (`#24-bosstelemetry` part 2, 2026-08-09).
+            # `probe_fainted_ace.py` had to INFER the starting party state from the first faint,
+            # because nothing recorded it — and that inference produced a ~99% rate that is far
+            # more likely a misreading than a fact. This is the direct measurement it needs: what
+            # the party's HP actually was when the battle opened. The question it settles matters
+            # — `--driver normancounter` showed the bot fighting Norman with its L36 ace already
+            # at 0 HP, and if THAT generalises then the counter chain's "no super-effective
+            # answer" stop (79% of all non-finishing runs) is a misdiagnosis of fights lost on
+            # preparation.
+            _hp = ""
+            try:
+                from modules.pokemon_party import get_party
+
+                _hp = " hp=" + str(
+                    [
+                        (getattr(getattr(m, "species", None), "name", "?"), m.current_hp, m.total_hp)
+                        for m in get_party()
+                        if m is not None
+                    ]
+                )
+            except Exception:  # noqa: BLE001 - instrumentation must never affect the battle
+                _hp = " hp=<unreadable>"
+            _event(fc, f"[BATTLE] started{_hp}")
         else:
             _event(fc, f"[BATTLE] ended (outcome={_safe(_last_outcome)}) party={st.get('party_key')}")
     # party: level-up / evolution / size (catch)

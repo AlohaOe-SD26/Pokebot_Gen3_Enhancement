@@ -10054,3 +10054,28 @@ preparation failures.
 **Segmentation was verified before any of this was read:** 607 `[BATTLE] started` against 607
 `[BATTLE] ended` in a sampled log, so battles are delimited correctly and the "first faint per
 battle" reading is what it claims to be.
+
+---
+
+## 2026-08-09 — `#24-bosstelemetry` part 2: party HP at BATTLE START — the inference is now a measurement
+
+`probe_fainted_ace.py` had to infer the party's opening state from the first faint, and produced a
+~99% rate that was more likely a misreading than a fact. `[BATTLE] started` now records the party
+with HP, so the question is measured rather than reasoned about:
+
+```
+f3011092 [BATTLE] started hp=[('Blaziken', 23, 120), ('Shedinja', 1, 1), ('Whismur', 52, 52), ...]
+f3015343 [BATTLE] started hp=[('Blaziken', 23, 120), ...]
+f3024831 [BATTLE] started hp=[('Blaziken',  0, 120), ...]      <- the NORMAN battle
+```
+
+**On this anchor the lead is confirmed, and the mechanism is visible:** the bot fights the gym's
+earlier trainers without healing, its ace falls to **23/120**, stays there for the next fight, and
+**enters the Norman battle at 0/120**. That is why a 1-HP Shedinja was leading, and it is a
+preparation failure, not a type-coverage one.
+
+‼ **Still ONE anchor.** Generalisation needs a batch — but the instrument is now in place, so the
+next batch answers it directly instead of by inference. `probe_fainted_ace.py` can then be
+rewritten to read `hp=` at battle start rather than guess from the first faint.
+‼ Log-only, same contract as part 1: inside a try/except, `<unreadable>` on any error, and it
+fires once per battle.
