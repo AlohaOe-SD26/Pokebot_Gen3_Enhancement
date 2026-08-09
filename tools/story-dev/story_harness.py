@@ -2081,6 +2081,23 @@ class TeachFullMode(BotMode):
         item_name = os.environ.get("TEACH_ITEM", "HM06").strip()
         item = get_item_by_name(item_name)
         move = item.tm_hm_move()
+        # ‼ PROVE THE FIX'S PREMISE BEFORE THE FIX IS WRITTEN. The proposed repair gates
+        # `normalize_to_overworld`'s settle on "a message is still printing"
+        # (`Task_ContinueTaskAfterMessagePrints`). That only helps if the message chain is
+        # ALREADY RUNNING when the teach takes over — if it only starts later, after the bag is
+        # open, the gate would settle before there is anything to see and the fix would be
+        # INERT. This line is the measurement that decides it, taken at the hand-off instant.
+        try:
+            from modules.player import player_avatar_is_controllable as _ctrl
+
+            _t = sorted(t.symbol for t in get_tasks())
+            log(f"[teachfull] HANDOFF-STATE controllable={_ctrl()} "
+                f"cb={get_main_battle_callback()} instr={get_current_battle_script_instruction()}")
+            log(f"[teachfull] HANDOFF-STATE message_task_active="
+                f"{'Task_ContinueTaskAfterMessagePrints' in _t} tasks={_t}")
+        except Exception as _error:  # noqa: BLE001
+            log(f"[teachfull] HANDOFF-STATE unreadable: {type(_error).__name__}: {_error}")
+
         log(f"[teachfull] item={item_name} teaches {getattr(move, 'name', '?')}")
 
         # ‼ POSITIVE CONTROL: the bag must actually hold it. Without this a missing HM looks

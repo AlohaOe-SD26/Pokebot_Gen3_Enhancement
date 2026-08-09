@@ -622,16 +622,40 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       it, `ListMenuDummyTask` joins the still-running message task — which is *exactly* the
       recorded signature `['ListMenuDummyTask', 'Task_ContinueTaskAfterMessagePrints']` — the bag
       list never advances, `post_select` exhausts at 900, the ride hard-caps at 8,999.
-      **PROPOSED FIX:** treat "a message is still printing" as not-settled in
-      `normalize_to_overworld` (a separate predicate, NOT by adding it to `_MENU_TASK_MARKERS` —
-      it is not a menu), so the existing B-cadence rides the chain out before anything opens the
-      bag.
-      ‼ **Two things to check when writing it, both cheap and both able to make it worse:**
+      **PROPOSED FIX (2026-08-09, morning):** treat "a message is still printing" as not-settled
+      in `normalize_to_overworld`, so the existing B-cadence rides the chain out before anything
+      opens the bag.
+      ‼‼ **AND THAT FIX WAS REFUTED THE SAME DAY, BEFORE IT WAS WRITTEN.** A `HANDOFF-STATE` line
+      was added to `--driver teachfull` to print the exact state at the instant the teach takes
+      over, and run on a FAILING and a PASSING fixture:
+      | field | FAILING (won battle) | PASSING (catch) |
+      |---|---|---|
+      | `controllable` | True | True |
+      | `cb` | `ReturnFromBattleToOverworld` | `ReturnFromBattleToOverworld` |
+      | tasks | `['Task_MuddySlope','Task_RunPerStepCallback','Task_RunTimeBasedEvents','Task_WeatherMain']` | **identical** |
+      | `message_task_active` | **False** | **False** |
+      | `instr` | **`BattleScript_PayDayMoneyAndPickUpItems`** | `BattleScript_SuccessBallThrowEnd` |
+      **`Task_ContinueTaskAfterMessagePrints` is NOT running at hand-off** — it only appears
+      AFTER the bag opens. Gating `normalize_to_overworld` on it would have been **INERT.** A
+      `repro_teach_message_gate.py` asserting that gate was written, committed RED, and then
+      **deleted**, because a committed test for a refuted design misleads the next agent more
+      than no test at all.
+      ⇒ **THE ONLY FIELD THAT DIFFERS AT HAND-OFF IS THE BATTLE SCRIPT INSTRUCTION.** The
+      won-battle end script is parked with its "got $N for winning!" message still PENDING;
+      opening the BAG is what makes it emit, and it then deadlocks with the bag list.
+      ‼ **The obvious next gate is ALSO suspect — measure before writing it.** "Wait for the
+      battle script to clear" would catch the passing path too: `BattleScript_SuccessBallThrowEnd`
+      is equally parked, and is *still* parked much later (`f9242`, mid replace-prompt, fixture 8).
+      `instr` looks like **residue of the last battle script** rather than "currently executing",
+      so a naive wait could burn `normalize_to_overworld`'s full 3,600-frame bound on every teach.
+      **Establish whether it ever clears on its own first.**
+      ‼ **Two things flagged when the (now refuted) fix was proposed, kept because risk (2)
+      still applies to ANY fix here:**
       (1) whether `Task_ContinueTaskAfterMessagePrints` is ever *permanently* resident — if so
       `normalize_to_overworld` would burn its 3,600-frame bound on every call (bounded, so a
       delay rather than a hang, but a real cost); (2) that the settle still fires promptly on the
       paths that work today — fixtures 6/7/8 are the controls and all three must stay green.
-      ✅ **RISK (1) MEASURED 2026-08-09 and it looks small.** Across **386** captured states
+      ✅ **RISK (1) MEASURED 2026-08-09 — moot for the refuted fix, kept as data.** Across **386** captured states
       (every `saves/*.ss1` plus every `saves/stalls/*.ss1`, each run 30 frames after load) the
       task is resident in **5**, and in **0 of them** is the game a settled controllable
       overworld. All five are teach-stall captures — `hmteach-new-f17130`, `repro-teach2-f2706`,

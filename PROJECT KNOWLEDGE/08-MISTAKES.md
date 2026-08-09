@@ -4097,3 +4097,33 @@ themselves within an hour: a ball-supply check (a run spun through 125 battles c
 because the save had zero balls), a `caught=False` guard, and this `trainers=0` guard. ‼ The
 corollary is the valuable half: **when the condition was NOT created and the bug happens anyway,
 that is a finding — read what the fixture did instead.**
+
+---
+
+## 2026-08-09 — I nearly shipped an INERT fix, and a 10-minute measurement stopped it
+
+**What almost happened.** `#24-teachmsgstall` was root-caused to `_MENU_TASK_MARKERS` not
+containing `Task_ContinueTaskAfterMessagePrints`: `normalize_to_overworld` settles while a
+message is printing, the teach opens the BAG on top of it, and the two tasks that result are
+*exactly* the failing signature `['ListMenuDummyTask','Task_ContinueTaskAfterMessagePrints']`.
+The reasoning was clean, it explained the signature perfectly, I had written the proposed fix
+into the punch list and committed a deliberately-RED structural repro asserting the gate.
+
+**Why it was wrong.** The signature is what the failure looks like *afterwards*. Printing the
+state at the moment the teach actually takes over (a `HANDOFF-STATE` line in the driver) shows
+**`message_task_active=False`** and a plain overworld task list — the message task does not exist
+yet; it appears only once the bag is open. A gate on it would have settled anyway and changed
+nothing. The A/B against a PASSING fixture then showed the two hand-offs are identical in every
+field but one: `instr=BattleScript_PayDayMoneyAndPickUpItems` (fails) vs
+`BattleScript_SuccessBallThrowEnd` (passes).
+
+**Cost of catching it:** two ~10-minute fixture runs. **Cost of not catching it:** a shipped
+no-op, a green repro asserting it, and a bug still live behind both.
+
+‼ **Prevention rule: a signature captured at the STALL describes the wreck, not the moment of
+failure. Instrument the HAND-OFF — the last instant the code still had a choice — and compare a
+failing run against a passing one.** Two runs of the same fixture with one variable flipped
+answered in twenty minutes what a day of reasoning from the crash signature got backwards.
+‼ **Corollary, and the reason the repro was DELETED rather than left red:** a committed test for
+a refuted design is worse than no test — it hands the next agent a wrong target with an
+authoritative-looking assertion attached.
