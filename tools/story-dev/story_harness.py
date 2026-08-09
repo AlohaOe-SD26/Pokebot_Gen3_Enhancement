@@ -1748,6 +1748,12 @@ class TeachFullMode(BotMode):
         # is exactly what the `TEACH_AFTER_BATTLE` spin could not see. See the long note at that
         # block for the measurement.
         self._battles_seen = getattr(self, "_battles_seen", 0) + 1
+        # ‼ TRAINER battles are counted SEPARATELY, because the production failure's tail is a
+        # trainer PRIZE-MONEY message (`'... got $3100 for winning!'`,
+        # `BattleScript_PayDayMoneyAndPickUpItems`) and every wild-battle fixture so far taught
+        # fine. `encounter is None` is this codebase's trainer test — see the strategy branch.
+        if encounter is None:
+            self._trainers_seen = getattr(self, "_trainers_seen", 0) + 1
 
         # ‼ `TEACH_AFTER_CATCH` needs the wild CAUGHT, so it uses the same production strategy
         # the story bot's counter branch returns. Trainers still fall through to the branch
@@ -1986,6 +1992,56 @@ class TeachFullMode(BotMode):
                         "Fix the fixture (ball supply / catchable wilds) before reading a result.")
             except Exception as error:  # noqa: BLE001
                 log(f"[teachfull] AFTER-CATCH spin raised {type(error).__name__}: {str(error)[:160]}")
+
+        # ‼‼ FIXTURE 9 — TEACH IMMEDIATELY AFTER A **TRAINER** BATTLE (2026-08-09).
+        # This is the tail the production failures actually carry, read out of the batch's own
+        # debug logs (`x4-runs/20260807-160545`):
+        #     callback=ReturnFromBattleToOverworld  instr=BattleScript_PayDayMoneyAndPickUpItems
+        #     battle_text='H2 got $3100 for winning!'
+        #     tasks=['Task_ContinueTaskAfterMessagePrints', 'ListMenuDummyTask']
+        # Fixtures 6/7/8 all used WILD battles and all taught successfully, so "which tail" is
+        # the last untested variable.
+        #
+        # ‼ DO NOT DO THIS BY WINNING A GYM. Attempts 3-5 tried and wedged in the gym three
+        # times (f61848, f56868) without ever reaching the teach. ANY trainer is enough, so this
+        # walks a patrol between two tiles and lets `TrainerApproachListener` do the work.
+        if os.environ.get("TEACH_AFTER_TRAINER", "").strip() in ("1", "true", "yes"):
+            from modules.map_data import MapRSE as _MapRSE
+            from modules.story.early_game import _navigate_riding_out as _nav
+
+            def _parse(raw, default):
+                name, _, tile = (raw or default).partition(":")
+                x, _, y = tile.partition(",")
+                return _MapRSE[name.strip()], (int(x), int(y))
+
+            a_map, a_tile = _parse(os.environ.get("TEACH_PATROL_A"), "ROUTE116:11,7")
+            b_map, b_tile = _parse(os.environ.get("TEACH_PATROL_B"), "ROUTE116:47,9")
+            laps = int(os.environ.get("TEACH_PATROL_LAPS", "4"))
+            self._trainers_seen = 0
+            log(f"[teachfull] AFTER-TRAINER: patrolling {a_map.name}{a_tile} <-> {b_map.name}{b_tile} "
+                f"for up to {laps} laps until a TRAINER engages…")
+            for lap in range(1, laps + 1):
+                for dest_map, dest_tile in ((a_map, a_tile), (b_map, b_tile)):
+                    if getattr(self, "_trainers_seen", 0) > 0:
+                        break
+                    try:
+                        yield from _nav(dest_map, dest_tile, avoid_encounters=True, tries=24)
+                    except Exception as error:  # noqa: BLE001
+                        log(f"[teachfull] AFTER-TRAINER lap {lap} leg failed: "
+                            f"{type(error).__name__}: {str(error)[:140]}")
+                log(f"[teachfull] AFTER-TRAINER lap {lap}: trainers={getattr(self, '_trainers_seen', 0)} "
+                    f"battles={getattr(self, '_battles_seen', 0)}")
+                if getattr(self, "_trainers_seen", 0) > 0:
+                    break
+
+            trainers = getattr(self, "_trainers_seen", 0)
+            log(f"[teachfull] AFTER-TRAINER: trainers={trainers} — teaching IMMEDIATELY, no settle")
+            if trainers == 0:
+                # ‼ Same guard as the catch fixture: a run that never created its condition is
+                # NOT evidence about the teach, and must not be read as one.
+                log("[teachfull] ‼ NO TRAINER ENGAGED — this run is NOT evidence. The patrol maps "
+                    "probably have no undefeated trainers left; pick a route the save has not "
+                    "cleared (TEACH_PATROL_A / TEACH_PATROL_B).")
 
         if os.environ.get("TEACH_AFTER_GYM", "").strip().lower() == "petalburg":
             from modules.story.early_game import do_petalburg_gym

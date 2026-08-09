@@ -576,8 +576,51 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       is only valid if its LOCATION is reachable AT THAT POINT IN THE STORY. Availability is a
       function of story progress, not just of the encounter table.
 
-- [ ] `#24-teachmsgstall` — **THIRD teach bug. 2026-08-09: FOUR hypotheses now eliminated, and
-      ONE RECORDED RESULT WAS WRONG. Read this whole entry before probing again.**
+- [~] `#24-teachmsgstall` — ‼‼ **REPRODUCED 2026-08-09, LOCALLY, IN ~19,000 FRAMES. Fix not yet
+      written.** Nine fixtures in, the failure is now a command anyone can run:
+      ```
+      cd tools/story-dev
+      PYTHONUTF8=1 TEACH_ITEM=HM03 TEACH_INJECT=marshtomp TEACH_AFTER_TRAINER=1 \
+        py -3.12 story_harness.py journey_r116_wedge.ss1 --driver teachfull \
+        --frames 600000 --profile tf-trainer1
+      ```
+      **It is the production failure, not a lookalike.** Side by side with the batch:
+      | | batch `20260807-160545` | this fixture |
+      |---|---|---|
+      | exit 1 | `reason=post-select-900-exhausted move=Surf replace_slot=1 frame=900` | **identical** |
+      | exit 2 | `reason=ride:hard-cap stall_peak=82 post_select=exhausted frame=8999` | **identical** |
+      | exit 3 | `reason=not-learned-after-ride:hard-cap stall_peak=82 frame=8999` | **identical** |
+      | tasks | `['ListMenuDummyTask', 'Task_ContinueTaskAfterMessagePrints']` | **identical** |
+      Only `slot` differs (2 here vs 4 there) — the target's party position, which is incidental.
+      Live symptom: `state=BAG_MENU` frozen ~9,000 frames at `teach_hm_move @ early_game.py:4732`,
+      `instr=BattleScript_PayDayMoneyAndPickUpItems`, ending in
+      `BotModeError: Teach flow finished but Marshtomp does not know Surf`.
+
+      ‼ **THE CONDITION IS "TEACH RIGHT AFTER A **WON** BATTLE", AND IT IS NOT ABOUT TRAINERS.**
+      The fixture is named `AFTER_TRAINER` because it was built to test the trainer-tail
+      hypothesis — and it reproduced the bug with **`trainers=0`**. Its guard said so out loud
+      (*"NO TRAINER ENGAGED — this run is NOT evidence"*), which is the only reason the
+      reproduction was not misattributed to trainers. What the patrol actually produced was **9
+      won WILD battles**, and the tail on screen was `'STALLME gained a boosted 109 EXP.
+      Points!'` — the post-battle EXP/money message chain.
+      That fits every prior fixture exactly:
+      | fixture | battle outcome before the teach | tail | result |
+      |---|---|---|---|
+      | 6 | **fled** (`'Got away safely'`) | no EXP/money chain | ✅ taught |
+      | 7 | caught -> box | `BattleScript_SuccessBallThrowEnd` | ✅ taught |
+      | 8 | caught -> party | `'Give a nickname to the captured NINCADA?'` | ✅ taught |
+      | 9 | **won** | `BattleScript_PayDayMoneyAndPickUpItems` + `Task_ContinueTaskAfterMessagePrints` | ❌ **STALLS** |
+      ⇒ **Working hypothesis for the fix:** `teach_hm_move` opens the BAG while the won-battle
+      message chain is still printing; the bag's list menu then never advances, `post_select`
+      exhausts at 900, the ride hard-caps at 8,999, and the move is never learned. The gate
+      belongs BEFORE the bag is opened — `normalize_to_overworld()` must actually wait out
+      `Task_ContinueTaskAfterMessagePrints` / `BattleScript_PayDayMoneyAndPickUpItems`.
+      ‼ Not yet verified — that is the next step, and it must be proven by fault-inject A/B
+      against this fixture, which is now cheap.
+      ‼ A stall state was auto-saved at the wedge: **`saves/stalls/tf-trainer1-f19130.ss1`** —
+      the first HM-bearing one, and (per the `.ss1` finding below) it should reload wedged.
+
+      HISTORY — **2026-08-09: FOUR hypotheses eliminated, and ONE RECORDED RESULT WAS WRONG.**
 
       ‼‼ **CORRECTION — attempt 6 was NOT "a broken probe with no evidence".** It was recorded
       as *"the spin produced no encounter (`battle_seen=False`), fix the spin"*. Its own log

@@ -9788,3 +9788,39 @@ then run `--driver teachfull` from that state — the production tail is residen
 states that exist today are early-game (no HMs in the bag), so one HM-bearing stall state is the
 only thing this item still needs. Prevention rule in `08-MISTAKES`: `.sav` and `.ss1` are not the
 same kind of save, and "X is runtime state so a save can't hold it" is a claim about `.sav` only.
+
+---
+
+## 2026-08-09 — ‼‼ `#24-teachmsgstall` REPRODUCED locally in ~19,000 frames (nine fixtures in)
+
+```
+cd tools/story-dev
+PYTHONUTF8=1 TEACH_ITEM=HM03 TEACH_INJECT=marshtomp TEACH_AFTER_TRAINER=1 \
+  py -3.12 story_harness.py journey_r116_wedge.ss1 --driver teachfull --frames 600000 --profile tf-trainer1
+```
+
+It is the production failure, not a lookalike — all three `TEACH EXIT` records match the batch's
+byte for byte (`post-select-900-exhausted` at frame 900, `ride:hard-cap stall_peak=82` at 8999,
+`not-learned-after-ride:hard-cap`, tasks `['ListMenuDummyTask',
+'Task_ContinueTaskAfterMessagePrints']`, `replace_slot=1`). Only the party slot differs.
+
+**The condition is "teach right after a WON battle", and it is not about trainers.** The fixture
+was built to test the trainer-tail hypothesis and reproduced the bug with **`trainers=0`** — its
+own guard printed *"NO TRAINER ENGAGED — this run is NOT evidence"*, which is the only reason
+the reproduction was not misattributed. What the patrol produced was nine **won wild** battles,
+with `'STALLME gained a boosted 109 EXP. Points!'` on screen.
+
+That single variable explains every earlier fixture: fled (`'Got away safely'`) taught, catch to
+box taught, catch to party (nickname prompt) taught — none of those run the post-battle
+EXP/money message chain. The one that stalls is the one that does.
+
+**Working hypothesis for the fix (unverified):** `teach_hm_move` opens the BAG while the
+won-battle message chain is still printing, and the bag list never advances; the gate belongs
+before the bag is opened — `normalize_to_overworld()` must wait out
+`Task_ContinueTaskAfterMessagePrints` / `BattleScript_PayDayMoneyAndPickUpItems`. Next step is a
+fault-inject A/B against this fixture, which is now cheap. ‼ No fix is written yet, and none was
+attempted today because a batch was mid-flight and restarted lanes re-import `sandbox-pokebot/`
+from disk.
+
+A stall state was auto-saved at the wedge — `saves/stalls/tf-trainer1-f19130.ss1`, the first
+HM-bearing one.

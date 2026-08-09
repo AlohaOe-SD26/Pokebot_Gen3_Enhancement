@@ -4076,3 +4076,24 @@ claim of the form "X is runtime state so a save can't hold it" is about `.sav` o
 ‼ This is the same shape as the 2026-07-31 entry ("an optimisation whose justification contains
 the word *cannot* deserves a second look") — that one cost a latched obstacle search, this one
 cost three wedged probe runs and a day.
+
+---
+
+## 2026-08-09 — (not a mistake — the method that worked, recorded so it is repeated)
+
+`#24-teachmsgstall` was reproduced by a fixture built to test a **different** hypothesis, and the
+thing that made the result usable was a guard that declared the run invalid for its own stated
+purpose. `TEACH_AFTER_TRAINER` patrolled for a trainer, found none (`trainers=0`), printed
+*"NO TRAINER ENGAGED — this run is NOT evidence"* — and the teach stalled anyway, on the nine
+**won wild** battles the patrol had produced as a side effect.
+
+Without that guard the obvious write-up would have been "reproduced after a trainer battle",
+which is false and would have sent the fix at trainer handling. With it, the actual variable was
+visible in one line.
+
+‼ **Prevention rule (generalising the three guards added today): a fixture must ASSERT that it
+created its condition, and print the assertion beside the result.** The three that paid for
+themselves within an hour: a ball-supply check (a run spun through 125 battles catching nothing
+because the save had zero balls), a `caught=False` guard, and this `trainers=0` guard. ‼ The
+corollary is the valuable half: **when the condition was NOT created and the bug happens anyway,
+that is a finding — read what the fixture did instead.**
