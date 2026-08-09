@@ -9709,3 +9709,31 @@ fixture that never created its condition be read as a result.
 **Incidental:** cross-map fixture travel failed four separate times today
 (Slateport->Mauville, ROUTE116 intra-map, Fortree->ROUTE119, Mt. Pyre->ROUTE119). Prefer a save
 already standing on a map with grass. See KI-48 and KI-49.
+
+---
+
+## 2026-08-09 — `#24-teachmsgstall` fixture 8: the production shape reproduces the CONTEXT and the teach still works
+
+Fixture 7 caught into the BOX, so it tested the wrong tail. The cause was a one-line fixture
+defect — catching was armed BEFORE the walk to grass, so a wild caught in transit filled the
+party. Arming it after the walk gave a **PARTY catch (5 -> 6)** and, 8 pumps later, a teach with
+production's dialogue verbatim on screen:
+
+```
+f9242 st=PARTY_MENU  instr=BattleScript_SuccessBallThrowEnd cb=ReturnFromBattleToOverworld
+      ml=AskWhetherToLearn tasks=['Task_HandleReplaceMoveYesNoInput']
+      bt='Give a nickname to the captured NINCADA?'
+```
+
+`learned=True`, Mud Shot replaced by Surf. **The hypothesis this item has rested on since
+2026-08-08 — that the teach stalls because it runs while `ensure_hm_learner`'s post-catch
+nickname prompt is still resident — is ELIMINATED.** Five hypotheses are now dead.
+
+**And the task sets point somewhere nobody has been probing.** The nine batch failures all show
+`['ListMenuDummyTask', 'Task_ContinueTaskAfterMessagePrints']` — a LIST MENU (the bag) plus an
+unfinished message. Every successful fixture, including this one, shows
+`['Task_HandleReplaceMoveYesNoInput']` then `['Task_HandleReplaceMoveInput']` — the replace
+prompt, which is *after* item selection. That suggests the stall happens in the **bag /
+item-selection step**, before the party menu is reached, while three fixtures in a row have been
+faithfully recreating the replace dialogue instead. ‼ Recorded as a lead inferred from task
+names, not as a finding.

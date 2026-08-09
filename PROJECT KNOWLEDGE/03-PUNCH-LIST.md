@@ -599,13 +599,34 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       | 6 | teach with a **wild BATTLE tail** resident | ❌ **RULED OUT** — succeeds, twice (attempt 6 re-read, plus the fixed-detector rerun) |
       | 7 | teach with a **CATCH tail** resident (`TEACH_AFTER_CATCH=1`, new) | ❌ **RULED OUT for the box-transfer tail** — `instr=BattleScript_SuccessBallThrowEnd`, `cb=ReturnFromBattleToOverworld`, `bt='TAILLOW was transferred to SOMEONE'S PC'`, `Task_HandleReplaceMoveYesNoInput` — teach SUCCEEDS |
 
-      ‼ **WHAT FIXTURE 7 DID NOT TEST, stated so it is not mistaken for done.** The catch landed
-      in the **BOX** (party was already 6), so the tail was the PC-transfer message — not
-      production's *"Give a nickname to the captured X?"* prompt, which only appears when the
-      catch enters the **PARTY**. That prompt is the one `ensure_hm_learner`'s own header warns
-      about, so **the exact production shape is still untested**. Next fixture: same command from
-      a save whose party has **room** at spin time (the fixture logs `(party,box)` before
-      spinning — if party is 6, a party catch is impossible and the run cannot answer this).
+      ‼‼ **FIXTURE 8 — THE EXACT PRODUCTION SHAPE — ALSO SUCCEEDS. The leading hypothesis is
+      DEAD.** Fixture 7's catch went to the BOX (party was already 6), so it only tested the
+      PC-transfer tail. Fixture 8 fixed that (arm catching only AFTER the walk — a wild caught
+      in transit was filling the party) and produced a **PARTY catch, 5 -> 6**, teaching 8 pumps
+      later with the production dialogue verbatim on screen:
+      ```
+      f9242 st=PARTY_MENU  instr=BattleScript_SuccessBallThrowEnd cb=ReturnFromBattleToOverworld
+            ml=AskWhetherToLearn tasks=['Task_HandleReplaceMoveYesNoInput']
+            bt='Give a nickname to the captured NINCADA?'
+      f9435 st=POKEMON_SUMMARY_SCREEN ... tasks=['Task_HandleReplaceMoveInput']
+            bt='Give a nickname to the captured NINCADA?'
+      ```
+      `learned=True`, Mud Shot replaced by Surf. **So "the teach runs while the post-catch
+      nickname prompt is still resident" — the hypothesis this item has rested on since
+      2026-08-08 — does NOT reproduce the stall.** Five hypotheses are now eliminated.
+
+      ‼ **WHERE TO LOOK NEXT — the task sets say the stall is EARLIER than anyone has been
+      probing.** Compare the failing batch signature with what every successful fixture shows:
+      | | tasks on screen |
+      |---|---|
+      | batch failures (9 of 9, `20260807-160545`) | `['ListMenuDummyTask', 'Task_ContinueTaskAfterMessagePrints']` |
+      | every successful fixture, incl. 8 | `['Task_HandleReplaceMoveYesNoInput']` -> `['Task_HandleReplaceMoveInput']` |
+      `ListMenuDummyTask` is a **LIST MENU** — the BAG — plus an unfinished message. The
+      successful runs are stuck-free at the *replace prompt*, which is **after** item selection.
+      ⇒ **The failure is very likely in the BAG/item-selection step, before the party menu is
+      ever reached**, not in the replace dialogue the last three fixtures have been recreating.
+      ‼ This is an inference from task NAMES and is not yet verified — treat it as the next
+      thing to measure, not as a finding.
 
       ‼ **A fixture guard earned its keep immediately.** Run 1 of `TEACH_AFTER_CATCH` spun
       through **125 battles and caught nothing** because `boxwithdraw.ss1`'s bag holds **zero

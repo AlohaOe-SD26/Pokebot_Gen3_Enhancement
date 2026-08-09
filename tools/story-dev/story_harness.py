@@ -1910,7 +1910,6 @@ class TeachFullMode(BotMode):
             from modules.pokemon_storage import get_pokemon_storage as _gps
             from modules.story.early_game import _story_spin
 
-            self._catch_wilds = True          # read by on_battle_started, below
             budget = int(os.environ.get("TEACH_SPIN_PUMPS", "40000"))
 
             def _counts() -> tuple[int, int]:
@@ -1955,9 +1954,20 @@ class TeachFullMode(BotMode):
                     context.set_manual_mode()
                     return
 
+            # ‼ ARM CATCHING ONLY *AFTER* THE WALK — this cost run 2 its entire point. With the
+            # flag set before the walk, a wild caught IN TRANSIT (a Nincada) filled the party to
+            # 6, so the catch under test could only be a BOX send and the tail on screen was
+            # "transferred to SOMEONE'S PC" rather than "Give a nickname to the captured X?".
+            # The nickname prompt is the production hazard, and it only appears for a PARTY
+            # catch. Arm late, and the party still has room when it matters.
+            self._catch_wilds = True          # read by on_battle_started, above
+
             before = _counts()
             log(f"[teachfull] AFTER-CATCH: spinning to CATCH a wild (party,box)={before} "
-                f"balls={balls} — the teach then runs with the nickname prompt still resident")
+                f"balls={balls} — the teach then runs with the catch tail still resident")
+            if before[0] >= 6:
+                log("[teachfull] ‼ PARTY IS FULL — this run can only test the BOX-SEND tail, not "
+                    "production's nickname prompt. Use a save with party room to test that.")
             pumps = {"n": 0}
 
             def _stop_after_catch() -> bool:
