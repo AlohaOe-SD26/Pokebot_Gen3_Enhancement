@@ -4014,3 +4014,38 @@ known-early save from a known-late one — and it still did not save me, because
 covered a different column than the one I got wrong.** A control proves the instrument can see
 *the thing it tests*. When a probe reports several fields, the field a DECISION reads is the one
 that needs the control.
+
+---
+
+## 2026-08-09 — A blind DETECTOR was written down as a broken FIXTURE, and it cost a hypothesis
+
+**Symptom.** `#24-teachmsgstall` attempt 6 (`TEACH_AFTER_BATTLE=1`) reported
+`battle_seen=False frames=2466`. That was recorded in the handoff and punch list as *"the spin
+produced no encounter, so the probe is broken, NOT evidence"*, and the item's next step became
+"fix the spin (verified grass tile + real budget)".
+
+**Root cause — the spin was fine; the instrument reading it was not.** The log shows **197
+`CONTROLLER -> BattleListener.fight` transitions** and the target's EXP climbing 21760 -> 24240.
+The stop-condition polled `battle_is_active()` from inside `_story_spin`, but the mode's
+generator is **not pumped while `BattleListener` owns the controller stack** — only the top of
+the stack is advanced. So the callback ran on ~2,466 of ~44,000 frames, and *every one of those
+frames was, by construction, a frame with no battle active*. The check could never have
+returned True; `battle_seen=False` was a tautology, not a measurement.
+
+**The fix that worked.** Count the battle in `on_battle_started`, which the framework calls on
+the MODE INSTANCE while its generator is suspended. A/B on the identical fixture:
+**old `battle_seen=False` after 2,466 pumps -> new `battles=1` after 7 pumps.**
+
+**And the cost, which is the real lesson.** Attempt 6 had actually reached the teach with a
+battle tail resident (`cb=ReturnFromBattleToOverworld`, `bt='Got away safely'`) and **taught
+successfully**. It was a *negative result for the battle-tail hypothesis* — filed as "no
+evidence" for a day, while the hypothesis it refuted stayed live and the next step pointed at
+fixing a spin that was never broken.
+
+‼ **Prevention rule: a NEGATIVE from a detector is only evidence if the detector could have
+returned POSITIVE.** Before recording "X did not happen", show the check ran on frames where X
+*could* have been observed — print how many times it ran alongside the answer (`pumps=7/40000`
+is readable; a bare `False` is not). ‼ Corollary specific to this codebase: **anything sampled
+from inside a generator on the controller stack is blind to whatever preempts that stack.**
+Sample those from `on_battle_started` / a listener instead — the same shape as KI-37, where a
+listener starving the mode produced a symptom that looked like the mode's own bug.

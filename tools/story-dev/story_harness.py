@@ -1749,6 +1749,14 @@ class TeachFullMode(BotMode):
         # block for the measurement.
         self._battles_seen = getattr(self, "_battles_seen", 0) + 1
 
+        # ‼ `TEACH_AFTER_CATCH` needs the wild CAUGHT, so it uses the same production strategy
+        # the story bot's counter branch returns. Trainers still fall through to the branch
+        # below — a catch strategy in a trainer battle is not a thing.
+        if getattr(self, "_catch_wilds", False) and encounter is not None:
+            from plugins.custom_modes.story_mode import StoryCatchStrategy
+
+            return StoryCatchStrategy()
+
         # ‼ TRAINER battles must use the PRODUCTION strategy. `DefaultBattleStrategy` refuses a
         # trainer battle at low HP ("cannot battle due to HP below threshold, and flee is not
         # allowed") -> BotModeError -> Manual, which killed the first AFTER_GYM run at f25831.
@@ -1885,6 +1893,89 @@ class TeachFullMode(BotMode):
                     f"pumps={seen['n']}/{budget} — teaching IMMEDIATELY, no settle")
             except Exception as error:  # noqa: BLE001
                 log(f"[teachfull] AFTER-BATTLE spin raised {type(error).__name__}: {str(error)[:160]}")
+
+        # ‼‼ FIXTURE 7 — TEACH IMMEDIATELY AFTER A **CATCH**, NOT AFTER A BATTLE (2026-08-09).
+        # WHY THIS AND NOT ANOTHER BATTLE VARIANT. `TEACH_AFTER_BATTLE` has now run twice with a
+        # battle tail genuinely resident (`cb=ReturnFromBattleToOverworld`) and the teach
+        # SUCCEEDED both times — so "a battle tail is resident" does not, on its own, reproduce
+        # `#24-teachmsgstall`. The punch list's description of the production caller names a
+        # different tail: `ensure_hm_learner` *"returns the instant the catch registers while
+        # 'Give a nickname to the captured X?' is still on screen"*. A CATCH tail and a BATTLE
+        # tail are not the same screen, and only one of them is what production does.
+        #
+        # The catch is detected AFTER the battle ends (party/box count change), which is exactly
+        # when the nickname prompt is up — the hazard, not a workaround for it.
+        if os.environ.get("TEACH_AFTER_CATCH", "").strip() in ("1", "true", "yes"):
+            from modules.pokemon_party import get_party as _gp
+            from modules.pokemon_storage import get_pokemon_storage as _gps
+            from modules.story.early_game import _story_spin
+
+            self._catch_wilds = True          # read by on_battle_started, below
+            budget = int(os.environ.get("TEACH_SPIN_PUMPS", "40000"))
+
+            def _counts() -> tuple[int, int]:
+                try:
+                    return len([m for m in _gp() if m is not None]), _gps().pokemon_count
+                except Exception:  # noqa: BLE001
+                    return -1, -1
+
+            # ‼ A FIXTURE MUST BE ABLE TO CREATE ITS CONDITION, AND BOTH HALVES ARE CHECKED.
+            # Run 1 of this fixture spun through **125 battles** on `boxwithdraw.ss1` and caught
+            # nothing, because that save's bag holds **zero Poké Balls** — measured, not guessed.
+            # The `caught=False` guard below turned that into "NOT evidence" instead of a fourth
+            # confident non-result. Balls are checked up front for the same reason, and the walk
+            # to VERIFIED grass is the same step `--driver boxcatch` needs (a tile picked by eye
+            # cost that probe two runs on a non-grass summit tile).
+            try:
+                from modules.items import get_item_bag
+
+                balls = sum(slot.quantity for slot in get_item_bag().poke_balls)
+            except Exception:  # noqa: BLE001
+                balls = -1
+            if balls == 0:
+                log("[teachfull] AFTER-CATCH ABORT — the bag holds NO Poké Balls, so this save "
+                    "cannot catch anything and the run could only produce a false negative. "
+                    "Use a save with balls (post_winona.ss1 / post_mtpyre.ss1 hold 16).")
+                context.set_manual_mode()
+                return
+            grass_raw = os.environ.get("TEACH_GRASS", "").strip()
+            if grass_raw:
+                from modules.map_data import MapRSE as _MapRSE
+                from modules.story.early_game import _navigate_riding_out as _nav
+
+                gname, _, gtile = grass_raw.partition(":")
+                gx, _, gy = gtile.partition(",")
+                gmap, gpos = _MapRSE[gname.strip()], (int(gx), int(gy))
+                log(f"[teachfull] AFTER-CATCH: walking to verified grass {gmap.name}{gpos}…")
+                try:
+                    yield from _nav(gmap, gpos, avoid_encounters=False, tries=24)
+                except Exception as error:  # noqa: BLE001
+                    log(f"[teachfull] AFTER-CATCH ABORT — could not reach the grass: "
+                        f"{type(error).__name__}: {str(error)[:180]}")
+                    context.set_manual_mode()
+                    return
+
+            before = _counts()
+            log(f"[teachfull] AFTER-CATCH: spinning to CATCH a wild (party,box)={before} "
+                f"balls={balls} — the teach then runs with the nickname prompt still resident")
+            pumps = {"n": 0}
+
+            def _stop_after_catch() -> bool:
+                pumps["n"] += 1
+                if pumps["n"] > budget:
+                    return True
+                return _counts() != before
+
+            try:
+                yield from _story_spin(_stop_after_catch)
+                after = _counts()
+                log(f"[teachfull] AFTER-CATCH: caught={after != before} (party,box) {before} -> "
+                    f"{after} battles={getattr(self, '_battles_seen', 0)} pumps={pumps['n']}/{budget}")
+                if after == before:
+                    log("[teachfull] ‼ NO CATCH — this run is NOT evidence about the teach. "
+                        "Fix the fixture (ball supply / catchable wilds) before reading a result.")
+            except Exception as error:  # noqa: BLE001
+                log(f"[teachfull] AFTER-CATCH spin raised {type(error).__name__}: {str(error)[:160]}")
 
         if os.environ.get("TEACH_AFTER_GYM", "").strip().lower() == "petalburg":
             from modules.story.early_game import do_petalburg_gym

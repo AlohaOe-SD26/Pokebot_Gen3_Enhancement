@@ -576,8 +576,48 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       is only valid if its LOCATION is reachable AT THAT POINT IN THE STORY. Availability is a
       function of story progress, not just of the encounter table.
 
-- [ ] `#24-teachmsgstall` — **THIRD teach bug. 2026-08-08: TWO HYPOTHESES ELIMINATED by direct
-      repro; the search is now narrow. Read this before probing again.**
+- [ ] `#24-teachmsgstall` — **THIRD teach bug. 2026-08-09: FOUR hypotheses now eliminated, and
+      ONE RECORDED RESULT WAS WRONG. Read this whole entry before probing again.**
+
+      ‼‼ **CORRECTION — attempt 6 was NOT "a broken probe with no evidence".** It was recorded
+      as *"the spin produced no encounter (`battle_seen=False`), fix the spin"*. Its own log
+      (`tools/story-dev/harness_afterbattle.log`) says otherwise: **197
+      `CONTROLLER -> BattleListener.fight` transitions**, Marshtomp's EXP climbing 21760 ->
+      24240. Encounters were never missing. **The DETECTOR was blind:** the stop-condition
+      polled `battle_is_active()` from inside `_story_spin`, and the mode's generator is not
+      pumped while `BattleListener` owns the controller stack — so the callback only ran on
+      ~2,466 of ~44,000 frames, every one of them a frame with no battle active. It could not
+      have returned True. **FIXED:** count in `on_battle_started` (the framework calls it on the
+      mode instance while the generator is suspended). A/B on the identical fixture:
+      **old `battle_seen=False` after 2,466 pumps -> new `battles=1` after 7 pumps.**
+      And attempt 6's real result, read correctly, is a **negative for the hypothesis**: it
+      taught SUCCESSFULLY (`learned=True`) with a battle tail resident
+      (`cb=ReturnFromBattleToOverworld`, `bt='Got away safely'`).
+
+      | # | hypothesis / fixture | result |
+      |---|---|---|
+      | 6 | teach with a **wild BATTLE tail** resident | ❌ **RULED OUT** — succeeds, twice (attempt 6 re-read, plus the fixed-detector rerun) |
+      | 7 | teach with a **CATCH tail** resident (`TEACH_AFTER_CATCH=1`, new) | ❌ **RULED OUT for the box-transfer tail** — `instr=BattleScript_SuccessBallThrowEnd`, `cb=ReturnFromBattleToOverworld`, `bt='TAILLOW was transferred to SOMEONE'S PC'`, `Task_HandleReplaceMoveYesNoInput` — teach SUCCEEDS |
+
+      ‼ **WHAT FIXTURE 7 DID NOT TEST, stated so it is not mistaken for done.** The catch landed
+      in the **BOX** (party was already 6), so the tail was the PC-transfer message — not
+      production's *"Give a nickname to the captured X?"* prompt, which only appears when the
+      catch enters the **PARTY**. That prompt is the one `ensure_hm_learner`'s own header warns
+      about, so **the exact production shape is still untested**. Next fixture: same command from
+      a save whose party has **room** at spin time (the fixture logs `(party,box)` before
+      spinning — if party is 6, a party catch is impossible and the run cannot answer this).
+
+      ‼ **A fixture guard earned its keep immediately.** Run 1 of `TEACH_AFTER_CATCH` spun
+      through **125 battles and caught nothing** because `boxwithdraw.ss1`'s bag holds **zero
+      Poké Balls** (measured). The `caught=False` guard reported *"this run is NOT evidence"*
+      instead of producing a fourth confident non-result. Ball supply is now checked up front.
+
+      ‼ **Cross-map fixture travel failed FOUR times today** (Slateport->Mauville, ROUTE116
+      intra-map, Fortree->ROUTE119, Mt. Pyre->ROUTE119). Prefer a save that is ALREADY on a map
+      with grass — `journey_r116_wedge.ss1` + `TEACH_GRASS=ROUTE116:11,7` works and is what
+      produced fixture 7. See KI-48/KI-49.
+
+      HISTORY — **2026-08-08: TWO HYPOTHESES ELIMINATED by direct repro.**
       New fixture: `--driver teachfull TEACH_INJECT=marshtomp [TEACH_INJECT_SLOT=n]` writes the
       batch's exact failing party shape into a live save.
       | hypothesis | result |

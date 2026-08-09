@@ -9677,3 +9677,35 @@ rather than a gap to fix.** He is to be beaten by levels/lead. Recorded so that 
 does not read the honest stop as a bug and "fix" it by relaxing the narrowing — that
 permissiveness is exactly what measured 28 wasted treks and 15% conversion before the narrowing
 took it to 50% (z = +2.73).
+
+---
+
+## 2026-08-09 — `#24-teachmsgstall`: a blind detector fixed, two more hypotheses eliminated
+
+**The detector, not the fixture, was broken.** Attempt 6 was on record as *"the spin produced no
+encounter"*. Its log shows **197 battles** during that spin. The stop-condition sampled
+`battle_is_active()` from inside `_story_spin`, which is not pumped while `BattleListener` owns
+the controller stack, so it only ever ran on frames where no battle was active. Counting in
+`on_battle_started` instead fixes it — A/B on the identical fixture: **`battle_seen=False` after
+2,466 pumps -> `battles=1` after 7 pumps.** Details and the prevention rule in `08-MISTAKES`.
+
+**Read correctly, attempt 6 refutes its own hypothesis:** it taught successfully with a battle
+tail resident. The fixed-detector rerun agrees (`battles=1`, teach immediately, `learned=True`).
+So "a battle tail is resident" does not reproduce the stall — **eliminated, twice**.
+
+**New fixture 7 — `TEACH_AFTER_CATCH=1`** — teaches the instant a CATCH registers, which is what
+the production caller (`ensure_hm_learner`) actually does. Verified it created its condition
+(`caught=True`, teach 3 pumps later, `instr=BattleScript_SuccessBallThrowEnd`,
+`cb=ReturnFromBattleToOverworld`, `Task_HandleReplaceMoveYesNoInput` on screen) — and the teach
+**succeeded**. ‼ Scope limit recorded on the item: the catch went to the BOX, so the tail was
+the PC-transfer message, NOT production's *"Give a nickname to the captured X?"* prompt, which
+needs a party with room. The exact production shape remains untested and is the next fixture.
+
+**Two fixture guards were added and both immediately paid for themselves:** a ball-supply check
+(run 1 spun through **125 battles catching nothing** — `boxwithdraw.ss1` holds zero Poké Balls)
+and a `caught=False` guard that reports *"this run is NOT evidence"* rather than letting a
+fixture that never created its condition be read as a result.
+
+**Incidental:** cross-map fixture travel failed four separate times today
+(Slateport->Mauville, ROUTE116 intra-map, Fortree->ROUTE119, Mt. Pyre->ROUTE119). Prefer a save
+already standing on a map with grass. See KI-48 and KI-49.
