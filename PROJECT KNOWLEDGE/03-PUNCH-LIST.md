@@ -483,12 +483,29 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       are verified on load, never trusted by name — several saves in this directory have proven
       misnamed"* — and I ran two before reading it. **Verify the anchor's era and position BEFORE
       spending a run.**
-      **WHAT IS STILL NEEDED:** a save at **MAUVILLE_CITY** (not the gym) with `badge03=False`
-      and a mid-game party, then
-      `SWEEP_GROUND=ROUTE116:11,7 SWEEP_RETURN=MAUVILLE_CITY:22,6 --driver groundsweep`.
-      If no such save exists, capture one — `--driver story` to the Wattson prep and snapshot.
+      ✅ **ANCHOR OBTAINED 2026-08-09 — the blocker is gone.** `probe_anchor_inventory.py` read
+      all 60 saves and answered the question properly for the first time: **none of them** stood
+      in MAUVILLE_CITY with badge03 unheld, so the anchor did not exist and no third guess would
+      have found it. It was then MADE with the new `--driver anchorstory` (the real story bot
+      plays until it stands on the wanted map, then snapshots; `CAPTURE_FORBID_FLAG=BADGE03_GET`
+      guarantees the era) and verified by the inventory probe as a separate instrument:
+      **`saves/mauville_prewattson.ss1` — MAUVILLE_CITY (19, 15), badges [1, 2], party L16-L20,
+      controllable**, captured in 13,666 frames.
+      Run the sweep with:
+      `SWEEP_GROUND=ROUTE116:11,7 SWEEP_RETURN=MAUVILLE_CITY:19,15 --driver groundsweep`
+      (return tile 19,15 — the anchor's own tile, which the bot provably stood on; 22,6 is
+      unverified and Mauville's walkability is exactly what KI-48 shows is not safe to assume).
       ‼ Do not read the `wally_done` run as evidence: `arrived=True` there says Route 116 is
       reachable from PETALBURG in the early game, which is not the question.
+
+- [ ] `#24-r110mauville` — **NEW 2026-08-09, MEASURED (KI-48).** `_navigate_riding_out` cannot
+      walk ROUTE110 → MAUVILLE_CITY: **3/3 identical deterministic failures** at (16, 89), with
+      the planner enumerating only Mauville's **six building doors** and never the map
+      connection. Story mode makes the same trip every run, so it is a gap in the direct
+      navigation entry point, not a map fact. Repro is ~1,400 frames (see KI-48).
+      ‼ A door-warp transition race is **RULED OUT** by a retry-after-settle A/B — do not
+      re-test it. ‼ Do NOT assume it explains the batch's 72 `could not reach` events without a
+      measurement that could discriminate.
 
 - [x] `#24-r116sweep` (original framing) — **NEW 2026-08-08.** His only LEGAL pre-badge answer is **Nincada @ ROUTE116** (verified
       Bug/**Ground**; ROUTE116 carries no prereq), and `#24-huntreachproof` part 1 removed it

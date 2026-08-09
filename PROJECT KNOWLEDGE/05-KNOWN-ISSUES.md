@@ -1906,3 +1906,45 @@ mitigations layered over it.
 
 **Measured drag:** ~7 derails per batch, each costing recovery time and one unit of the derail
 budget that protects against genuine stuck loops.
+
+---
+
+## KI-48 — Direct navigation cannot walk ROUTE110 → MAUVILLE_CITY: it only considers Mauville's building DOORS, never the map connection (2026-08-09, severity: MED — measured, not yet root-caused)
+
+- **Symptom.** `_navigate_riding_out(MapRSE.MAUVILLE_CITY, (22, 6))` from ROUTE110 fails
+  **3 of 3** attempts, identically and deterministically, at tile (16, 89):
+  ```
+  Could not reach (22, 6) on MapRSE.MAUVILLE_CITY: the field is idle and we are still at
+  (16, 89), so retrying cannot change the result (Cannot reach MAUVILLE_CITY: it is not
+  walkable from ROUTE110, and none of the 6 candidate warp route(s) start at a tile that can
+  be walked to from here (tried: MAUVILLE_CITY(8, 5), MAUVILLE_CITY(22, 5),
+  MAUVILLE_CITY(35, 5), MAUVILLE_CITY(23, 14), MAUVILLE_CITY(32, 14), MAUVILLE_CITY(8, 13)).)
+  ```
+- **The tell.** All six candidates it enumerated are **building doors inside Mauville**. The
+  plain ROUTE110 → MAUVILLE_CITY **map connection** is not in the candidate set at all, so the
+  planner never tried the route a player would use.
+- **Repro** (~1,400 frames, no batch needed):
+  ```
+  cd tools/story-dev
+  PYTHONUTF8=1 CAPTURE_TARGET=MAUVILLE_CITY:22,6 CAPTURE_NAME=throwaway.ss1 \
+      py -3.12 story_harness.py slateport.ss1 --driver anchorcapture --frames 600000 --profile ki48
+  ```
+- **‼ It is NOT a map fact, and that is what makes it a bug.** Story mode walks
+  Slateport → Mauville every run; `--driver anchorstory` did it here in **13,666 frames** from
+  the same save, producing `saves/mauville_prewattson.ss1`. Whatever story mode's travel path
+  does, the direct entry point does not.
+- **Ruled out — do not re-run these:** a door-warp transition race (`Task_DoDoorWarp` +
+  `Task_AnimateDoor` were live while the error claimed *"the field is idle"*, which looked
+  exactly like `#24-journey` part 3 for door warps). A retry-after-settle A/B produced **three
+  identical failures at the identical tile**. Deterministic failure is not a race.
+- **Why it may matter beyond this probe.** `could not reach` was **72 occurrences** in batch
+  `20260808-095721` and is the largest unexplained travel-failure bucket in the counter chain.
+  This is one concrete, cheap-to-reproduce instance of that class. It is NOT yet established
+  that they share a cause — ‼ that claim needs a measurement that could discriminate, per the
+  2026-07-31 prevention rule.
+- **Suspected cause (UNVERIFIED, stated as a hypothesis only):** the candidate enumeration is
+  warp-only, so a destination reachable purely by an edge connection has no candidate to plan
+  toward. Check whether the connection path is skipped because (16, 89) sits on/next to
+  Route 110's dual-elevation Cycling Road, which is the KI-24 failure shape.
+- **Workaround:** capture anchors with `--driver anchorstory` (the bot's own route) rather than
+  `--driver anchorcapture` for any Slateport → Mauville leg.

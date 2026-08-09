@@ -9576,3 +9576,60 @@ three fixes currently unmeasured; `custom-pokebot/` sitting 3 files behind and t
 the `#24-slugmaspin` regression WITHOUT its fix; the possibility that Wattson has no legal counter
 at all; and the fact that **no outcome metric has moved all week** — six batches, not one
 resolvable finish-rate pair — which is a real question about where to spend next.
+
+---
+
+## 2026-08-09 — ANCHOR MANUFACTURING: the project can now MAKE a save anchor, not only scavenge one
+
+**Why this was blocking.** `#24-r116sweep` had failed twice for want of an anchor, and both
+failures were anchors picked by NAME. The real problem was one level down: there was no way to
+ASK what a save contains, and no way to MAKE one that did not exist yet. Every anchor in
+`saves/` is a crash site that happened to be useful. Three new pieces close that:
+
+**1. `tools/story-dev/probe_anchor_inventory.py` — what era is each save actually from?**
+Loads all 60 saves and prints, per save: map (as a `MapRSE` *enum*), tile, game state,
+controllability, badges held, party with levels, money. It carries a POSITIVE CONTROL (a
+known-early save must read 0 badges, a known-late one >= 5) and refuses to be trusted if the
+control fails, because a badge reader that returns a constant looks exactly like a game with no
+badges. It then answers the specific question that motivated it: which saves, if any, stand in
+MAUVILLE_CITY with badge03 unheld.
+**Its first answer: NONE of the 60 did.** That is why the sweep kept failing — the anchor did
+not exist and could not be picked.
+
+**2. `--driver anchorcapture`** — navigate from an existing anchor to a named map/tile and
+snapshot. Refuses to overwrite an existing anchor without `CAPTURE_FORCE=1` (an anchor is
+evidence; several results are only interpretable against the exact save they ran from) and
+refuses to write anything that is not an *arrived, controllable overworld*.
+
+**3. `--driver anchorstory`** — let the REAL story bot play until it stands where the anchor is
+needed, then snapshot. `CAPTURE_FORBID_FLAG=BADGE03_GET` aborts with a stated reason if the
+window closes before the snapshot, so a slow capture cannot silently produce a save from the
+wrong era — the exact failure that cost `#24-r116sweep` two runs.
+
+**Result: `saves/mauville_prewattson.ss1`** — MAUVILLE_CITY (19, 15), badges `[1, 2]`,
+party Dustox L20 / Marshtomp L20 / Taillow L18 / Poochyena L16, controllable overworld.
+Captured in **13,666 frames** and then verified by the inventory probe as a separate instrument
+(the driver reports what it believes; the probe reports what the file contains).
+`#24-r116sweep` is unblocked for the first time.
+
+**‼ A REAL FINDING FELL OUT OF THIS, and it is not small.** `anchorcapture` could not walk
+SLATEPORT -> MAUVILLE_CITY at all. `_navigate_riding_out` failed **3 of 3** attempts,
+identically and deterministically, at ROUTE110 (16, 89):
+
+```
+Cannot reach MAUVILLE_CITY: it is not walkable from ROUTE110, and none of the 6 candidate
+warp route(s) start at a tile that can be walked to from here (tried: MAUVILLE_CITY(8, 5),
+MAUVILLE_CITY(22, 5), MAUVILLE_CITY(35, 5), MAUVILLE_CITY(23, 14), MAUVILLE_CITY(32, 14),
+MAUVILLE_CITY(8, 13)).
+```
+
+Every candidate it considered is a **building door inside Mauville**; the plain Route 110 ->
+Mauville City **map connection** is not among them. Story mode makes that trip every run, so
+this is a gap in the direct-navigation entry point, not a map fact. Logged as `#24-r110mauville`.
+
+**One hypothesis was raised and killed in the same run, cheaply.** The first failure happened
+with `Task_DoDoorWarp` + `Task_AnimateDoor` on the task list while the error text said *"the
+field is idle"* — the shape of `#24-journey` part 3 (never navigate during a battle transition),
+but for door warps. The driver was given a retry-after-settle loop as an A/B: **3 identical
+failures at the identical tile refuted it.** Attempt 1 is the production behaviour, so the arms
+stay readable; the loop is kept for that reason.

@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "normancounter"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "normancounter"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -1967,6 +1967,127 @@ class TeachFullMode(BotMode):
         return
 
 
+class AnchorCaptureMode(BotMode):
+    """MAKE a save anchor at a named map/tile, starting from an existing one.
+
+    ‼ WHY. `#24-r116sweep` has now failed twice for want of an anchor, and
+    `probe_anchor_inventory.py` proved WHY the second pick was no better than the first:
+    **no save in `saves/` stands in MAUVILLE_CITY with badge03 unheld**. The two that look
+    like they do are in `MAUVILLE_CITY_GYM` (whose `map_name` label is literally "MAUVILLE
+    CITY" — that label is what wrote the bad anchor down in the first place). When the anchor
+    a measurement needs does not exist, the measurement is blocked until something MAKES it;
+    until now nothing here could, so anchors were only ever scavenged from crash sites.
+
+    It drives `_navigate_riding_out` — the same call the executor uses — so an anchor it
+    produces is by construction one the bot could actually have walked to.
+
+        PYTHONUTF8=1 CAPTURE_TARGET=MAUVILLE_CITY:22,6 CAPTURE_NAME=mauville_prewattson.ss1 \
+            py -3.12 story_harness.py slateport.ss1 --driver anchorcapture --frames 600000
+
+    ‼ It REFUSES to overwrite an existing anchor unless `CAPTURE_FORCE=1`. An anchor is
+    evidence: several results in this project are only interpretable against the exact save
+    they ran from, and silently replacing one rewrites the past.
+
+    Emits: [capture] RESULT wrote=<path|None> arrived=<bool> map=<enum> tile=<x,y>
+           controllable=<bool> badges=<list> party=<n>
+    ‼ Verify the file afterwards with `probe_anchor_inventory.py --filter <name>` — this
+    driver reports what it believes; the inventory reports what the file contains.
+    """
+
+    @staticmethod
+    def name():
+        return "AnchorCapture"
+
+    def on_battle_started(self, encounter):
+        from modules.battle_strategies import DefaultBattleStrategy
+
+        if encounter is None:
+            from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+
+            return LevelUpTravelBattleStrategy()
+        return DefaultBattleStrategy()
+
+    def run(self):
+        import os
+        import pathlib
+
+        from modules.map_data import MapRSE
+        from modules.memory import get_event_flag
+        from modules.player import get_player_avatar, player_avatar_is_controllable
+        from modules.pokemon_party import get_party
+        from modules.story.early_game import _navigate_riding_out, wait_until_truly_controllable
+
+        raw = os.environ.get("CAPTURE_TARGET", "MAUVILLE_CITY:22,6")
+        name = os.environ.get("CAPTURE_NAME", "")
+        force = os.environ.get("CAPTURE_FORCE", "") == "1"
+        map_name, _, tile = raw.partition(":")
+        x, _, y = tile.partition(",")
+        target, ttile = MapRSE[map_name.strip()], (int(x), int(y))
+
+        out = pathlib.Path(__file__).resolve().parent / "saves" / (name or f"capture_{map_name.lower()}.ss1")
+        if out.exists() and not force:
+            log(f"[capture] REFUSING to overwrite an existing anchor: {out.name} (set CAPTURE_FORCE=1 to replace)")
+            context.set_manual_mode()
+            return
+
+        yield from wait_until_truly_controllable()
+        start = get_player_avatar()
+        log(f"[capture] start map={tuple(start.map_group_and_number)} tile={tuple(start.local_coordinates)} "
+            f"-> {target.name}{ttile}")
+
+        # ‼ ATTEMPT THE NAVIGATION MORE THAN ONCE, AND SAY SO PER ATTEMPT. The first run of this
+        # driver aborted after 1,327 frames with "the field is idle and we are still at (16, 89)"
+        # while `Task_DoDoorWarp` + `Task_AnimateDoor` were on the task list — i.e. the field was
+        # NOT idle, it was mid door-warp. `#24-journey` part 3 already fixed exactly this shape
+        # for BATTLE transitions; whether it is also a hole for DOOR transitions is a production
+        # question, and this loop is the cheap A/B that says whether a second attempt would have
+        # arrived. Attempt 1 IS the production behaviour, so the two arms are readable separately.
+        attempts = int(os.environ.get("CAPTURE_ATTEMPTS", "3"))
+        arrived = False
+        for attempt in range(1, attempts + 1):
+            try:
+                yield from _navigate_riding_out(target, ttile, tries=24)
+                arrived = tuple(get_player_avatar().map_group_and_number) == tuple(target.value)
+                log(f"[capture] attempt {attempt}: arrived={arrived} at "
+                    f"{tuple(get_player_avatar().local_coordinates)}")
+            except Exception as error:
+                log(f"[capture] attempt {attempt} FAILED: {type(error).__name__}: {str(error)[:600]}")
+            if arrived:
+                break
+            # ride out whatever transition was running, then let the field settle before retrying
+            for _ in range(180):
+                context.emulator.press_button("B")
+                yield
+            yield from wait_until_truly_controllable()
+
+        avatar = get_player_avatar()
+        here = tuple(avatar.map_group_and_number)
+        try:
+            here_name = MapRSE(here).name
+        except Exception:
+            here_name = f"UNKNOWN{here}"
+        controllable = player_avatar_is_controllable()
+        badges = [n for n in range(1, 9) if get_event_flag(f"BADGE0{n}_GET")]
+        party = [(mon.species.name, mon.level) for mon in get_party()]
+
+        # ‼ Only a CONTROLLABLE overworld arrival is worth writing. An anchor captured mid-scene
+        # makes every later navigation leg fail for one harness reason instead of a map reason —
+        # exactly the confound `prenorman_fodder_grind.ss1` (which loads inside a wild battle)
+        # created for `probe_counter_reachability.py`.
+        wrote = None
+        if arrived and controllable:
+            out.write_bytes(context.emulator.get_save_state())
+            wrote = out
+        else:
+            log("[capture] NOT writing — an anchor must be an arrived, controllable overworld.")
+
+        log(f"[capture] RESULT wrote={wrote.name if wrote else None} arrived={arrived} map={here_name} "
+            f"tile={tuple(avatar.local_coordinates)} controllable={controllable} badges={badges} "
+            f"party={len(party)} {party}")
+        context.set_manual_mode()
+        return
+
+
 class GroundSweepMode(BotMode):
     """`#24-r116sweep`: DRIVEN reach-and-leave evidence for a candidate HUNTING_GROUND.
 
@@ -3159,6 +3280,8 @@ for step in range(args.frames):
             context.bot_mode_instance = BoxWithdrawMode()
         elif args.driver == "groundsweep":
             context.bot_mode_instance = GroundSweepMode()
+        elif args.driver == "anchorcapture":
+            context.bot_mode_instance = AnchorCaptureMode()
         elif args.driver == "teachfull":
             context.bot_mode_instance = TeachFullMode()
         elif args.driver == "normancounter":
@@ -3213,6 +3336,99 @@ for step in range(args.frames):
                         yield
 
             context.bot_mode_instance = _GymTest()
+        elif args.driver == "anchorstory":
+            from plugins.custom_modes.story_mode import StoryMode as _SM
+
+            class _AnchorStory(_SM):
+                """Let the REAL story bot play until it is standing where an anchor is needed,
+                then snapshot. `--driver anchorcapture` navigates there directly and is cheaper;
+                use THIS when direct navigation cannot get there but the bot demonstrably can.
+
+                ‼ THAT IS NOT HYPOTHETICAL — it is why this exists. `anchorcapture` could not
+                walk SLATEPORT -> MAUVILLE_CITY at all: `_navigate_riding_out` failed 3/3
+                identically at ROUTE110 (16, 89) with *"not walkable from ROUTE110, and none of
+                the 6 candidate warp route(s) start at a tile that can be walked to from here"*
+                — it only ever considered Mauville's six building DOORS and never the plain
+                map connection. Story mode makes that trip every single run. So the bot's own
+                route is the instrument, and a save it produced is by construction a state the
+                bot can actually be in.
+
+                    PYTHONUTF8=1 CAPTURE_TARGET=MAUVILLE_CITY CAPTURE_NAME=mauville_prewattson.ss1 \\
+                        CAPTURE_FORBID_FLAG=BADGE03_GET \\
+                        py -3.12 story_harness.py slateport.ss1 --driver anchorstory --frames 900000
+
+                ‼ `CAPTURE_FORBID_FLAG` is the whole point of the pre-badge case: the window is
+                "in Mauville, before Wattson", and it CLOSES the moment the badge is won. Without
+                the guard a slow snapshot silently captures a post-badge save that then answers a
+                different question than the one asked — which is exactly how `#24-r116sweep` lost
+                two runs to anchors that were the wrong era.
+                """
+
+                def run(self):
+                    import os
+
+                    from modules.map_data import MapRSE
+                    from modules.memory import GameState, get_event_flag, get_game_state
+                    from modules.player import get_player_avatar, player_avatar_is_controllable
+
+                    want = MapRSE[os.environ.get("CAPTURE_TARGET", "MAUVILLE_CITY").split(":")[0].strip()]
+                    name = os.environ.get("CAPTURE_NAME", f"capture_{want.name.lower()}.ss1")
+                    forbid = os.environ.get("CAPTURE_FORBID_FLAG", "")
+                    settle = int(os.environ.get("CAPTURE_SETTLE", "60"))
+                    force = os.environ.get("CAPTURE_FORCE", "") == "1"
+                    out = Path(__file__).resolve().parent / "saves" / name
+
+                    if out.exists() and not force:
+                        log(f"[anchorstory] REFUSING to overwrite {out.name} (set CAPTURE_FORCE=1)")
+                        context.set_manual_mode()
+                        return
+
+                    log(f"[anchorstory] hunting for an anchor on {want.name}"
+                        f"{f' while {forbid} is UNSET' if forbid else ''}, settle={settle}f")
+                    held = 0
+                    frames = 0
+                    for _ in super().run():
+                        frames += 1
+                        yield
+                        # the forbidden flag closing the window is a RESULT, not a silent miss
+                        if forbid and frames % 30 == 0:
+                            try:
+                                if get_event_flag(forbid):
+                                    log(f"[anchorstory] RESULT wrote=None — {forbid} became SET at "
+                                        f"frame {frames} before the anchor was captured. The window "
+                                        f"is closed; start from an EARLIER save.")
+                                    context.set_manual_mode()
+                                    return
+                            except Exception:
+                                pass
+                        try:
+                            if get_game_state() is not GameState.OVERWORLD or not player_avatar_is_controllable():
+                                held = 0
+                                continue
+                            avatar = get_player_avatar()
+                            if tuple(avatar.map_group_and_number) != tuple(want.value):
+                                held = 0
+                                continue
+                        except Exception:
+                            held = 0
+                            continue
+                        held += 1
+                        if held < settle:
+                            continue
+                        out.write_bytes(context.emulator.get_save_state())
+                        badges = [n for n in range(1, 9) if get_event_flag(f"BADGE0{n}_GET")]
+                        log(f"[anchorstory] RESULT wrote={out.name} map={want.name} "
+                            f"tile={tuple(get_player_avatar().local_coordinates)} badges={badges} "
+                            f"frames={frames}")
+                        log("[anchorstory] ‼ verify it with: py -3.12 probe_anchor_inventory.py "
+                            f"--filter {out.stem}")
+                        context.set_manual_mode()
+                        return
+                    log(f"[anchorstory] RESULT wrote=None — story mode ended after {frames} frames "
+                        f"without ever standing controllable on {want.name}.")
+                    context.set_manual_mode()
+
+            context.bot_mode_instance = _AnchorStory()
         else:
             context.bot_mode_instance = get_bot_mode_by_name(context.bot_mode)()
         context.controller_stack.append(context.bot_mode_instance.run())

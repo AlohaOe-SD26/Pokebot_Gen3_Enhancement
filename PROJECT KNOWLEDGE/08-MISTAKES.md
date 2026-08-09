@@ -3979,3 +3979,38 @@ let it test the hypothesis.**
 (hunts started vs caught), adopted after the 2026-08-08 population-vs-conversion mistake, and it
 returned **15% → 50%, z = +2.73 — the project's first resolvable counter-chain result.**
 The metric change is what made the win legible.
+
+---
+
+## 2026-08-09 — I read `map_name` and wrote down a GYM save as a CITY save
+
+**Symptom.** `probe_anchor_inventory.py`'s first run reported `mauville_wedge.ss1` as
+`MAUVILLE CITY (4, 12), badges=12, controllable=True` and flagged it **USABLE** as the anchor
+`#24-r116sweep` needs. The handoff said the opposite — that this save starts *inside the gym*.
+I had a fresh measurement disagreeing with a written record, which is the moment a wrong fact
+gets committed.
+
+**Root cause.** I printed `get_map_data_for_current_position().map_name`, which is the human
+LABEL, and interiors carry their city's label: `MAUVILLE_CITY_GYM` reads as `"MAUVILLE CITY"`.
+The (group, number) tuple was unambiguous the whole time — `MAUVILLE_CITY = (0, 2)`,
+`MAUVILLE_CITY_GYM = (10, 0)` — and I had simply not printed it. Worse, the handoff's own
+phrase *"starts INSIDE the gym at (10,0)"* was a previous agent reading that same tuple as a
+TILE. So the identical ambiguity produced two different wrong readings, in opposite directions,
+in two different sessions.
+
+**The fix that worked.** Resolve `MapRSE((group, number)).name` and report THAT; never report
+`map_name` as identity. The probe now says `MAUVILLE_CITY_GYM (4, 12)` and correctly answers
+"no save satisfies the requirement", which is what sent the work to building a capture driver
+instead of burning a third run on a bad anchor.
+
+‼ **Prevention rule: report IDENTITY as the enum, never as the display label.** A label is
+chosen for humans and is deliberately non-unique; a label that matches is not an identity that
+matches. Where a fact has a canonical key (an enum, an ID, a `(group, number)` tuple), print
+the key — and if a label is printed too, never let it be the field a decision reads.
+
+‼ **Second, general one, because this is the SEVENTH proxy-reading error in eight days:** the
+positive control worked exactly as intended here — it proved the badge reader could separate a
+known-early save from a known-late one — and it still did not save me, because **the control
+covered a different column than the one I got wrong.** A control proves the instrument can see
+*the thing it tests*. When a probe reports several fields, the field a DECISION reads is the one
+that needs the control.
