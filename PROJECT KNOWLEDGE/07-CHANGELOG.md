@@ -9771,3 +9771,20 @@ from a save"*. True of a `.sav`; a **`.ss1` is a full machine snapshot**, and th
 auto-saves one at every stall. If a stall state captured at the money message reloads with the
 tail intact, the fixture becomes seconds long. Not verified yet — today's two stall states are
 early-game (no HMs) and were captured at other stall causes.
+
+---
+
+## 2026-08-09 — MEASURED: a `.ss1` DOES preserve a battle tail, so `#24-teachmsgstall`'s fixture is now trivial
+
+The item assumed *"a tail is RUNTIME state and cannot be loaded from a save"* — the belief that
+sent attempts 3-5 into the gym, where they wedged three times. It is true of a `.sav` and false
+of a `.ss1`. All **six** stall states in `saves/stalls/` reload, after 66 frames of running, with
+the tail intact (`cb=ReturnFromBattleToOverworld`,
+`instr=BattleScript_PayDayMoneyAndPickUpItems` — 6 of 6 identical).
+
+**So the fixture does not have to fight anything.** Run any driver from a badge-5+ save through
+a trainer fight, let the harness auto-save `saves/stalls/<profile>-f<frame>.ss1` at the stall,
+then run `--driver teachfull` from that state — the production tail is resident on load. The six
+states that exist today are early-game (no HMs in the bag), so one HM-bearing stall state is the
+only thing this item still needs. Prevention rule in `08-MISTAKES`: `.sav` and `.ss1` are not the
+same kind of save, and "X is runtime state so a save can't hold it" is a claim about `.sav` only.

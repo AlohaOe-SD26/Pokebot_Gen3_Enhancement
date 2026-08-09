@@ -79,6 +79,35 @@ the fresh-run recipe in `tools/story-dev/README.md`; committed checkpoints are i
 NOTE: event flags have a **1-frame read flicker** during memory updates — require a flag
 to be True for *many consecutive* frames before trusting it (a single-frame True is noise).
 
+### 2b. ANCHORS: look one up, and MAKE one when it does not exist (added 2026-08-09)
+
+Most measurements here start from a save anchor, and for a long time anchors were only ever
+*scavenged* from crash sites. `#24-r116sweep` then burned two runs on anchors chosen by NAME.
+Three tools close that loop — use them in this order:
+
+1. **`probe_anchor_inventory.py` — look it up first.** Loads every save in `saves/` and prints
+   map, tile, game state, controllability, badges, party+levels, money. Seconds, no emulation
+   loop. `--filter <substring>` for one save.
+   ‼ **It reports the map as a `MapRSE` ENUM, and you must too.** `map_name` is a display
+   LABEL and interiors carry their city's: `MAUVILLE_CITY_GYM` reads as `"MAUVILLE CITY"`. That
+   single ambiguity produced two *different* wrong readings in two sessions (08-MISTAKES
+   2026-08-09). **Report identity as the key (enum / id / `(group, number)`), never the label.**
+2. **`--driver anchorcapture`** — navigate from an existing anchor to a named map/tile and
+   snapshot. `CAPTURE_TARGET=MAP:x,y CAPTURE_NAME=foo.ss1`. Refuses to overwrite an existing
+   anchor without `CAPTURE_FORCE=1`, and refuses to write anything that is not an **arrived,
+   controllable overworld** (an anchor captured mid-scene makes every later leg fail for one
+   harness reason instead of a map reason).
+3. **`--driver anchorstory`** — when direct navigation cannot get there but the BOT
+   demonstrably can, let the real story bot play until it stands on the wanted map, then
+   snapshot. `CAPTURE_FORBID_FLAG=BADGE03_GET` aborts, with a stated reason, if the era window
+   closes first. This is what produced `mauville_prewattson.ss1` in 13,666 frames after
+   `anchorcapture` failed the same trip 3/3 (KI-48).
+
+‼ **Verify the file with the INVENTORY, not with the driver's own log.** The driver reports
+what it believes; the probe reports what the file contains.
+‼ **Cross-map fixture travel is unreliable right now** — it failed four separate times on
+2026-08-09 (KI-48, KI-49). Prefer an anchor that already stands on the map you need.
+
 ### 2b. The repro suite — the project's actual verification bar
 
 `tools/story-dev/repro_*.py` is ~81 scripts (count refreshed 2026-08-08; it was recorded as ~52 for weeks while the suite nearly doubled) and **most need no emulator**. Run the whole

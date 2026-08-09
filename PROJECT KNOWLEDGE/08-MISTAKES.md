@@ -4049,3 +4049,30 @@ is readable; a bare `False` is not). ‼ Corollary specific to this codebase: **
 from inside a generator on the controller stack is blind to whatever preempts that stack.**
 Sample those from `on_battle_started` / a listener instead — the same shape as KI-37, where a
 listener starving the mode produced a symptom that looked like the mode's own bug.
+
+---
+
+## 2026-08-09 — "a battle tail cannot be loaded from a save" sent three attempts down a road that wedged
+
+**Symptom.** `#24-teachmsgstall` attempts 3-5 tried to WIN NORMAN'S GYM inside a probe so that a
+battle tail would be resident when the teach ran. All three wedged in the gym (f61848, f56868)
+without ever reaching the teach, and the item acquired a standing warning: *"do not return to
+the gym route"*.
+
+**Root cause of the detour.** The item recorded, as a fact, that *"a tail is RUNTIME state and
+cannot be loaded from a save"*. That is true of a `.sav` (the game's own save file) and **false
+of a `.ss1`**, which is a full emulator snapshot — the harness's own save format, and the thing
+every fixture here already loads. Measured: all **six** stall states in `saves/stalls/` reload
+with `cb=ReturnFromBattleToOverworld` and `instr=BattleScript_PayDayMoneyAndPickUpItems` still
+set. The condition three probes tried to manufacture by playing the game was sitting on disk,
+loadable in seconds.
+
+**Prevention rule: when a note says a state "cannot" be reached, check the cheapest thing that
+would disprove it before designing around it.** ‼ The specific confusion worth naming, because
+it will recur: **`.sav` and `.ss1` are not the same kind of save.** A `.sav` holds what the game
+persists; a `.ss1` holds the whole machine — RAM, callbacks, task list, mid-script state. Any
+claim of the form "X is runtime state so a save can't hold it" is about `.sav` only.
+
+‼ This is the same shape as the 2026-07-31 entry ("an optimisation whose justification contains
+the word *cannot* deserves a second look") — that one cost a latched obstacle search, this one
+cost three wedged probe runs and a day.

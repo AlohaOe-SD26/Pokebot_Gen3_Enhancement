@@ -641,13 +641,23 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       **NEXT FIXTURE (spec):** teach immediately after a **TRAINER** battle. ‼ Attempts 3-5 had
       the right instinct here and failed on execution — they tried to win a GYM first and wedged
       three times; **any trainer battle is enough, do not return to the gym route.**
-      ‼ **And re-test one assumption this item is built on:** it records that *"a tail is RUNTIME
-      state and cannot be loaded from a save"*. That is true of a `.sav`, but a **`.ss1` is a
-      full machine snapshot**, and the harness already auto-saves one at every stall
-      (`saves/stalls/<profile>-f<frame>.ss1`). If a stall state captured AT the money message
-      reloads with the tail intact, this whole item becomes a seconds-long fixture instead of a
-      battle-driving one. ‼ NOT yet verified: the two stall states available today are early-game
-      (no HMs in the bag) and were captured at other stall causes, so they could not answer it.
+      ‼‼ **AN ASSUMPTION THIS ITEM WAS BUILT ON IS FALSE — MEASURED 2026-08-09.** The item
+      records that *"a tail is RUNTIME state and cannot be loaded from a save"*, and that is why
+      attempts 3-5 went down the fight-Norman-first road that wedged in the gym three times.
+      True of a `.sav`; **FALSE of a `.ss1`, which is a full machine snapshot.** All **six**
+      stall states in `saves/stalls/` reload — after 66 frames of running — with the tail intact:
+      ```
+      anchorcap-f1004.ss1  cb=ReturnFromBattleToOverworld  instr=BattleScript_PayDayMoneyAndPickUpItems
+      anchorcap-f2421.ss1  cb=ReturnFromBattleToOverworld  instr=BattleScript_PayDayMoneyAndPickUpItems
+      ... 6 of 6 identical
+      ```
+      ⇒ **The fixture does not have to fight anything.** Recipe: run any driver from a
+      **badge-5+** save (so the bag holds HM03) through a TRAINER fight; the harness auto-saves
+      `saves/stalls/<profile>-f<frame>.ss1` at the stall; then run `--driver teachfull` FROM that
+      state. The tail is already resident on load, so the teach starts in the exact production
+      condition in seconds. ‼ The six states available today are early-game (badges 1-2, **no HMs
+      in the bag**), so they cannot drive a Surf teach — one HM-bearing stall state is all this
+      item still needs.
 
       ‼ **The task sets independently say the stall is EARLIER than anyone has been probing.** Compare the failing batch signature with what every successful fixture shows:
       | | tasks on screen |
