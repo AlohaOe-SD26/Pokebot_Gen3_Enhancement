@@ -631,6 +631,17 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       `normalize_to_overworld` would burn its 3,600-frame bound on every call (bounded, so a
       delay rather than a hang, but a real cost); (2) that the settle still fires promptly on the
       paths that work today — fixtures 6/7/8 are the controls and all three must stay green.
+      ✅ **RISK (1) MEASURED 2026-08-09 and it looks small.** Across **386** captured states
+      (every `saves/*.ss1` plus every `saves/stalls/*.ss1`, each run 30 frames after load) the
+      task is resident in **5**, and in **0 of them** is the game a settled controllable
+      overworld. All five are teach-stall captures — `hmteach-new-f17130`, `repro-teach2-f2706`,
+      `repro-teachab1-f2706`, `tf-trainer1-f19130`, `tf-trainer2-f19130` — i.e. it shows up in
+      exactly this bug and nowhere else in the corpus.
+      ‼ Caveat, so this is not over-read: those are captured SNAPSHOTS (anchors and stall
+      captures), not a uniform sample of gameplay frames, so this bounds residency in the states
+      we keep, not in all play. Risk (2) is untouched by it and still needs the three controls.
+      ‼ Incidentally: `tf-trainer2` stalled at the **same frame (f19130)** as `tf-trainer1` — the
+      reproduction is not merely repeatable, it is frame-identical.
       ‼ **Not verified, and NOT written today on purpose:** a batch was mid-flight and restarted
       lanes re-import `sandbox-pokebot/` from disk, so touching production mid-batch would have
       corrupted the measurement. Prove it with a fault-inject A/B against the fixture above,
