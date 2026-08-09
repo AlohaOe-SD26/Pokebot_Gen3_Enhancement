@@ -3,12 +3,12 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-08-08 — read "‼ YOU ARE HERE" immediately below.
+**Last updated:** 2026-08-09 — read "‼ YOU ARE HERE" immediately below.
 Every banner further down is HISTORY, newest first.
 
 ---
 
-# ‼ YOU ARE HERE — 2026-08-07. Read this, then `14-AGENT-PLAYBOOK.md`.
+# ‼ YOU ARE HERE — 2026-08-09. Read this, then `14-AGENT-PLAYBOOK.md`.
 
 ## WHAT THIS IS
 `sandbox-pokebot/` is the working build of a Pokémon Emerald bot. Its **Story mode** plays the
@@ -18,289 +18,143 @@ game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror
 ## STATE
 | | |
 |---|---|
-| branch / HEAD | `main`, clean, pushed — see the newest commit |
-| story content | Littleroot → 6 badges → **Mt. Pyre → Magma Emblem**. Magma Hideout is UNLOCKED but UNBUILT. |
-| box idle | nothing running |
-| **promotion** | **BATCH-6 PROMOTED 2026-08-08** (`e84b814f`) — sandbox → custom, on explicit user approval. 12 files + `pc_trip.py` + caches; residual code diff **0**. Verified ON CUSTOM (Norman→Machop control + Winona→Slugma). Outstanding items recorded in `custom-pokebot/DIVERGENCE-LOG.md`. **Sandbox and custom are now byte-identical in code**, so no re-base was needed. |
-| **latest batch** | **`20260808-131334` LANDED** — code `def4b649`, `VERDICT OK`, 36 headers, 0 violations, 0 restarts. 28 runs, 8 finished (28.6%; z = +0.24 vs 25.8%, NOT resolvable). |
-| **✅ `#24-huntreachproof` RESULT** | **CONVERSION 15% → 50%** (5/33 → 10/20), **z = +2.73 — RESOLVABLE.** `could not reach` 72 → 53; `global watchdog` 9 → **0**. The project's first resolvable counter-chain result. |
-| **‼ HYPOTHESIS REFUTED** | The (anchor → ground) model was WRONG — `Numel @ FIERY_PATH` 0/5 → **3/7**. The old failure was destination ORDERING consuming the one-hunt-per-boss bound. **`#24-huntreachproof` part 2 (per-anchor sweeps) is CANCELLED — do not run it.** |
-| **‼‼ TOP FINDING** | **Only ONE counter rung has ever worked.** Machop @ FIERY_PATH converts **5/5**; every other destination **0 of 28**. `could not reach` 72 — **travel failures**. `#24-movepoolcounters` widened the set with unreachable grounds ⇒ **`#24-huntreachproof` is the top item.** |
-| **‼ `#24-whiteoutloop` RESULT** | **ELIMINATED** (batch `20260807-160545`). `too many whiteout recoveries` **4 → 0**; `global watchdog` **11 → 0**; deepest `defeat #N` **32 → 13**; hard plateau fired 20×; LAVARIDGE defeats/run **−83%**. |
-| **‼ `#24-movepoolcounters` RESULT** | **CONFIRMED** (batch `20260807-200030`). `no huntable counter candidate` **25 → 0**; hunts started 13 → 18; new movepool picks (ROUTE111/Baltoy ×7 + 4 others); control `CAUGHT Machop` 4 → 6, no regression. |
-| **‼ TOP FAILURE NOW** | `no super-effective answer` = **10 of 14 non-finishes (71%)** — Winona 5, Norman 3, Grass 1, Fire 1. Plus **`global watchdog` 0 → 4**, new and undiagnosed. |
-| `#24-pcoverflow` | **BOTH HALVES LIVE-PROVEN 2026-08-07** — catch (`--driver boxcatch`) and withdraw (`--driver boxwithdraw`). |
+| branch / HEAD | `main`, clean, 0 unpushed — **`0b49a7a4`** |
+| box | **nothing running** |
+| story content | Littleroot → 6 badges → **Mt. Pyre → Magma Emblem**. Magma Hideout UNLOCKED but UNBUILT. |
+| promotion | **BATCH-6 promoted 2026-08-08** (`e84b814f`). ‼ **3 files have drifted since:** `modules/story/counter_hunt.py`, `modules/story/training_areas.py`, `plugins/custom_modes/story_mode.py` — the fence, the driven-grounds narrowing and the rocksmash gate are **sandbox-only**. |
+| latest batch | `20260808-174145` (code `85fc8416`) — 36 runs, 7 finished. **Its purpose was to measure a fix that turned out to be broken; see "the regression" below.** |
 
-## ‼‼ READ THIS BEFORE GRADING ANYTHING — the finish rate CANNOT resolve a change
-Four batches on 2026-08-06, ~25 runs each. **Not one pair of finish rates is statistically
-resolvable** (two-proportion z; all need |z| > 1.96):
+## ‼ THE ONE NUMBER THAT MATTERS, AND HOW TO GRADE ANYTHING HERE
+**Grade the counter chain on CONVERSION — hunts started vs `counter hunt CAUGHT` — never on the
+finish rate and never on candidate counts.** Measuring population instead of conversion cost a
+whole round this week (`08-MISTAKES` 2026-08-08).
 
-| batch | rate | vs 52.0% |
-|---|---|---|
-| `20260806-055947` | 37.5% | z = −1.02 |
-| `20260806-103811` | 52.0% | — |
-| `20260806-142418` | 30.8% | z = 1.54 |
-| `20260806-174746` | 26.9% | z = 1.83 |
-
-I narrated all four as verdicts and used them to remove a component and then restore it.
-**Never state a finish-rate comparison without computing its z first.** Grade instead with:
-1. **A capability test in the harness** — binary, minutes (see `--driver boxcatch` for the model).
-2. **Near-binary counters** — "0 → 9" is real; a rate change is not.
-3. **The badge funnel** (`tools/story-dev/analyse_badge_funnel.py`) — ~200 records vs ~26 outcomes.
-
-## ‼ THREE TOOLING TRAPS THAT PRODUCED FALSE RESULTS THIS WEEK — all in `08-MISTAKES.md`
-1. **NEVER use the Grep TOOL on `tools/story-dev/x4-runs/`.** It is gitignored; ripgrep skips
-   ignored files and reports a confident `0 total occurrences across 0 files`. **Use Bash
-   `grep -r`.** This made me accuse an agent of fabricating data that was correct.
-2. **NAME THE SURFACE.** `*/stdout.txt` and `*/debug-logs/*.log` carry DIFFERENT facts by design.
-   `debug-logs/` is **empty until the batch ends**. **Every null result needs a positive control**
-   — the same command over the same files for a string known to be present.
-3. **A harness "HANG CONFIRMED" after a probe finishes is the PROBE idling, not the bot wedging.**
-   I "confirmed" a production wedge twice this way. Grade a capability by DRIVING it to a positive
-   outcome ("it kept playing and did the thing again"), never by absence of a hang. And a `bt='…'`
-   string in a dump is the STALE text buffer, not necessarily an active message.
-
-## WHAT SHIPPED 2026-08-06/07 (all pushed, all with evidence)
-| item | state |
-|---|---|
-| **`#24-mtpyre`** — Mt. Pyre chapter | **DONE, live-proven.** Two coord triggers, no NPC talk. `open_route121_aqua_gate()` + `do_mt_pyre_summit()` in `early_game.py`, Segment 14 in `story_mode.py`. Batch-confirmed: `MT. PYRE` 274 mentions, 9 finishes vs 10 runs reaching Feather (~90% conversion). |
-| **`#24-cavethread`** | **CLOSED — it was never a blocker.** Multi-hop cave threading already worked (Dewford ⇄ Granite Cave B2F, 3 warps, both directions). The item rested on a comment that expired when `#24-journey` shipped. |
-| **`#24-pcoverflow` break 1** | **FIXED.** `pc_trip.box_views()` did `getattr(storage,"boxes",lambda:[])()` — calling a `@cached_property` that returns a list → `TypeError` on every call. This is why `withdrawing` was 0. |
-| **`#24-pcoverflow` break 2** | **WIRED + PROVEN + ENABLED.** Full-party catch overflows to the box. Capability test: `caught=True box 0→1 exited_clean=True exit_frames=120`, then `second_catch=True box_now=2`. `POKEBOT_BOX_OVERFLOW_CATCH` defaults **1**. |
-| **`#24-pcwithdraw-proof`** | **DONE 2026-08-07 — the WITHDRAW half now executes.** `--driver boxwithdraw` + `saves/boxwithdraw.ss1`, three identical runs: `withdrew=True … box_before=2 box_after=2 deposited=True`, then `second_heal_ok=True still_has_target=True`. `#24-pcoverflow-proof` closes with it. |
-| **`#24-whiteoutloop`** | **BOTH PARTS SHIPPED 2026-08-07.** It was the **#1 end reason** (4 of 14 non-finishes). **Part 2:** hard plateau — 12 flat-KO losses override the on-paper answer. **Part 1:** `flannery_fight` + `rival110_fight`, the two fights that had NO cfg and were **48% of all defeats**; team data decomp-verified. New `repro_boss_cfg_coverage.py` pins that every measured defeat map has a cfg. ‼ **No outcome proof yet — needs a batch.** |
-| **`#24-teachpathrace`** | **FIXED 2026-08-07, same day it was found** — by the new `TEACH EXIT` telemetry, on its first batch. `post_select=instant-learn` on a FOUR-move mon was the tell: `Task_HandleChooseMonInput` lingers and won the race, so the replace prompt was never answered. Instant-learn now needs a genuinely free slot. Both branches live-proven. |
-| **`#24-hmteachloop`** | **‼ FIXED 2026-08-07, root-caused.** After the move is learned the ladder fell through to a blind `A`-mash — and a bag teach ends on *"teach it to another POKéMON?"*, where **A = YES**. The bot re-armed its own teach cycle for the full 9,000-frame cap. Now `_knows()` ⇒ press only `B`. A/B: **8,999 → 479** ride frames, same outcome. `repro_hmteach_postlearn.py`. |
-| **`#24-rarepredicate`** | **SOLVED on paper, not built.** |
-| `#24-mtpyre-log` | milestones now `console.print` so a mid-chapter failure leaves a trail |
-
-## ‼ USER RULINGS 2026-08-06 — DO NOT RE-ASK (`06-DECISIONS-LOG.md`)
-* **`#24-organicteam` gate LIFTED** — build the roster now. Justification is story reliability
-  (fewer boss failures from type-incompatible parties; fewer HM stalls), and it is
-  measurement-backed: `no super-effective answer` is **~8 of every 12-19 non-finishes**.
-* **Round one changes NO catch policy, NO party cap, NO deposit path.** `POKEBOT_PC_ROTATION`
-  stays pinned at `0` (it cost ~1 team member per run and a 5.4% VOID batch).
-* **"Rare" (duplicate-catch exemption) = three OR'd rules:** shiny (already works) OR rare gender
-  variant OR rare species. **Rare species = `best_slot_rate <= 4%` OR `warp_depth >= 3`** —
-  26 of 132 species. Bagon is "pseudo-rare" via warp depth (d3); Skitty via rate (2%).
-  ‼ The field-move recon is NOT a prerequisite — the predicate fires at encounter time.
-
-## ✅ `#24-pcoverflow` IS COMPLETE — BOTH HALVES PROVEN (2026-08-07)
-```
-Story: PC — depositing Skitty L17 to make room for Poochyena.
-Story: PC — withdrawing Poochyena from the box.
-Story: PC — Poochyena is in the party; party is now 6.
-[boxwithdraw] RESULT withdrew=True target=Poochyena party_before=6 party_after=6
-              box_before=2 box_after=2 deposited=True map=(0, 5)
-[boxwithdraw] AFTER usable=True second_heal_ok=True still_has_target=True party=6 box=2
-```
-Reproduce (~45,000 frames, ~1 min):
+‼ **And split reported vs REAL catches**: cross-reference caught species against hunt targets. A
+"catch" of a species that was never hunted is a pre-existing party mon, not a catch.
 ```
 cd tools/story-dev
-PYTHONUTF8=1 WITHDRAW_CENTER=LilycoveCity py -3.12 story_harness.py \
-    boxwithdraw.ss1 --driver boxwithdraw --frames 400000 --profile w1
+PYTHONUTF8=1 py -3.12 -c "
+import re,glob,collections
+h=collections.Counter(); c=collections.Counter()
+for f in glob.glob('x4-runs/<STAMP>/L0*/stdout.txt'):
+    t=open(f,encoding='utf-8',errors='replace').read()
+    for m in re.finditer(r'to catch ([A-Za-z]+)', t): h[m.group(1)]+=1
+    for m in re.finditer(r'counter hunt CAUGHT ([A-Za-z]+)', t): c[m.group(1)]+=1
+real={k:v for k,v in c.items() if k in h}
+print('hunts',sum(h.values()),'reported',sum(c.values()),'REAL',sum(real.values()))
+print('hunts',dict(h)); print('real',real); print('FALSE',{k:v for k,v in c.items() if k not in h})"
 ```
-Three things about this probe are load-bearing; do not "simplify" them away:
-* It sets `self._hunted_counter_pids` and calls **`heal_in_pokemon_center`** — the production call
-  site (`higher_level_actions.py:218-232`). Calling `withdraw_from_box` directly would prove the
-  function works and NOT that the piggyback fires, and the piggyback is what was dead.
-* It asserts `box_views()`/`find_in_box()` **before** the journey. Both fail silently (None reads
-  identically to "not there"), so a null result at the end would be unattributable.
-* It heals a **second** time and requires exactly ONE `withdrawing` line — the no-op assertion. A
-  duplicate-withdraw loop is the regression a fires-every-heal piggyback invites.
+‼ Every finish-rate claim needs its **z** computed first. Six batches this week; **not one**
+finish-rate pair was resolvable. The only resolvable result all week was conversion 15% → 50%
+(z = +2.73).
 
-‼ **GAME RULE (user, 2026-08-07):** a boxed Pokémon is reachable **only at a PC inside a Poké
-Centre** — never in battle, the party menu, or the field. The heal-piggyback is therefore not a
-convenience, it is the only place this operation can occur. Do not go looking for a cheaper one.
+## BATCH LEDGER — what each one actually measured
+| batch | code | result |
+|---|---|---|
+| `20260807-102552` | `d878fa33` | re-baseline. 39.1%. Teach: 33 OK / 4 fail. |
+| `20260807-160545` | `c335a204` | **`#24-whiteoutloop` ELIMINATED** — end reason 4→0, watchdog 11→0, deepest `defeat #N` **32→13**, hard plateau fired 20×. |
+| `20260807-200030` | `dd25ee59` | **`#24-movepoolcounters` CONFIRMED** — `no huntable counter candidate` **25→0**. But 7 Baltoy hunts / 0 caught ⇒ found `#24-counterdesertgate`. |
+| `20260808-095721` | `e84b814f` | ‼ **NEGATIVE.** 33 hunts / 5 caught (15%). Only Machop converted; 28 others 0. `could not reach` 72 ⇒ travel failures ⇒ `#24-huntreachproof`. |
+| `20260808-131334` | `def4b649` | ✅ **BEST RESULT OF THE WEEK.** Narrowing works: conversion **15% → 50%, z = +2.73 RESOLVABLE**. Also refuted my (anchor→ground) hypothesis: Numel 0/5 → 3/7. |
+| `20260808-174145` | `85fc8416` | ‼ **REGRESSION I CAUSED.** 20 hunts, 13 *reported* catches, **3 real**; Machop **6/8 → 0/7**. Cause + fix below. |
 
-‼ The `WITHDRAW_HEAL_FIXTURE=1` party heal is FIXTURE SETUP, not a behaviour change: the only save
-with a full party AND a non-empty box is a prior probe's end state, so the party arrives near
-death and runs 1 and 2 never reached a Centre (trainer refusal; then a whiteout).
+## WHAT SHIPPED THIS SESSION (35 commits, all pushed, all with evidence)
+| item | state |
+|---|---|
+| **`#24-pcwithdraw-proof`** | **DONE, live-proven.** `--driver boxwithdraw`; withdraw fires, deposits to make room, no-ops on a second heal. Closes `#24-pcoverflow-proof`. |
+| **`#24-hmteachloop`** | **ROOT-CAUSED + FIXED.** After the move is learned the ride pressed `A` onto *"teach it to another POKéMON?"*, re-arming its own cycle. Now B-only. **8,999 → 479** ride frames. |
+| **`#24-teachpathrace`** | **FIXED.** Instant-learn exit needs a genuinely free slot, not `Task_HandleChooseMonInput` (present on both paths). |
+| **`#24-whiteoutloop`** | **BOTH PARTS DONE, BATCH-CONFIRMED.** Boss cfgs for Flannery + Route 110 rival; hard plateau at 12 flat-KO losses. |
+| **`#24-movepoolcounters`** | **DONE, BATCH-CONFIRMED.** A counter is a MOVE, not a type (user directive). Plus huntability added to `tier` — without it the fix was inert. |
+| **`#24-counterdesertgate`** | **DONE.** Planner honours `AREA_ITEM_PREREQ`; stops hunting Route 111's Go-Goggles desert. |
+| **`#24-huntreachproof` pt 1** | **DONE, BATCH-CONFIRMED (z = +2.73).** Counter hunts require DRIVEN reach-and-leave evidence (`HUNTING_GROUNDS` only). |
+| **`#24-progressiongate`** | **DONE.** `AREA_PREREQ[FIERY_PATH] = "rocksmash"`, decomp-verified (`src/party_menu.c:122`). User-identified. |
+| **fence on `party_counter_slot`** | **DONE.** Excludes mons already in the party at arm time. Fixes the regression below. |
+| **docs/health sweep** | handoff was a batch behind; punch list 101 → 93 open; playbook repro count 52 → 81; architecture refreshed. |
+
+## ‼ WHAT DID **NOT** WORK — read before repeating it
+1. **`#24-teachmsgstall` — SIX fixtures, none reproduced.** Cause is identified (Segment 12c
+   teaches with **Norman's battle tail** resident; a tail is RUNTIME state and cannot be loaded
+   from a save). Ruled out: the moveset (457f, succeeds), a full party with target at slot 4
+   (463f, succeeds), HM03/Surf itself. Attempts 3–5 tried to fight Norman first and **wedged in
+   the gym every time** (f61848, f56868) — *do not return to the gym route*. Attempt 6
+   (`TEACH_AFTER_BATTLE=1`, any battle) is the **right design** and failed only because the spin
+   produced no encounter (`battle_seen=False`). **Fix the spin (verified grass tile + real
+   budget, as `--driver boxcatch` does) and it should reproduce in minutes.**
+2. **`#24-r116sweep` — tool built, answer NOT obtained.** Both anchors invalid:
+   `mauville_wedge.ss1` starts INSIDE the gym; `wally_done.ss1` is a **lone Mudkip L14** (the
+   Petalburg *tutorial* Wally). Needs a **MAUVILLE_CITY** save, `badge03=False`, mid-game party.
+3. **`#24-rarepredicate` dataset does not reproduce.** My derivation disagrees with the recorded
+   figures and **Bagon computes to depth 2** against a `>=3` threshold that exists for Bagon.
+   ‼ Do NOT tune the BFS until Bagon comes out at 3 — that is fitting method to answer.
+4. **The per-anchor sweep campaign was CANCELLED** — batch `20260808-131334` refuted the
+   hypothesis it rested on. Do not run it.
+
+## ‼‼ MY CONCERNS — read these; they are about how I worked, not just what shipped
+1. **I made SIX "read a proxy instead of the data" errors this week**, and every one produced a
+   confident wrong statement before it was caught: `Grep` on a gitignored tree; profile dirs
+   behind a date glob; grepping named constants instead of the `TRAINING_GRASS` *table* (this one
+   produced an entirely wrong `#24-winonaground` diagnosis that I committed and reported);
+   comparing a partial mid-batch count against a final one; a regex that missed box-drawing
+   characters and reported "Slugma encountered 0 times" when it was 34; and trusting two save
+   names without checking their era. **The fix that actually works is a POSITIVE CONTROL** — prove
+   the search can find something you know is there, and print the size of what you searched.
+2. **Two of my own fixes broke things their own tests passed.** `#24-movepoolcounters` widened
+   candidates without checking conversion; `#24-slugmaspin` loosened a predicate and silently
+   removed an *accidental* guard, costing Machop 6/8 → 0/7. **When you loosen a predicate, ask
+   what was previously IMPOSSIBLE that is now merely unlikely.**
+3. **Three fixes are UNMEASURED**: the fence, `#24-progressiongate`, and the `groundsweep` driver.
+   The fence in particular reverses a measured regression and *should* restore conversion — but
+   nothing has confirmed that. **The next batch's first job is the reported-vs-real conversion
+   split above.**
+4. **`custom-pokebot/` is 3 files behind** and those 3 include the fence — i.e. **the production
+   fork currently contains the `#24-slugmaspin` regression without its fix.** If anyone runs
+   custom, that matters. Promote after the next batch confirms the fence.
+5. **Wattson may have no legal counter at all.** The circular option is correctly gated out and
+   his only legal one (Nincada @ ROUTE116) is evidence-gated out. `#24-r116sweep` decides it. If
+   ROUTE116 fails the sweep, the honest answer is that Wattson must be beaten by levels/lead, not
+   by a hunt — and the chain should stop honestly rather than pretend.
+6. **The finish rate has not moved all week** (39.1 / 36.0 / 41.7 / 25.8 / 28.6 / 19.4%, no pair
+   resolvable). Real mechanism wins are proven, but **no outcome win is**. Worth deciding whether
+   the counter chain is still the right place to spend, or whether story content (`#24-magmahideout`)
+   is now the better lever.
 
 ## ⏭ NEXT ACTIONS, IN ORDER
-
-1. ✅ **`#24-counterdesertgate` — FIXED 2026-08-07.** `counter_plan` now honours
-   `AREA_ITEM_PREREQ` per location (fails closed, before the reachability branch). A/B on the
-   item, both arms, control in both: with goggles → Baltoy @ ROUTE111; **without → Slugma @
-   FIERY_PATH**, the ground Norman proves 6-of-7. Deliberately NOT done by flipping
-   `POKEBOT_AREA_ITEM_GATE` — that ruling was about TRAINING (a bad pick costs one trek); a
-   counter hunt gets ONE attempt per boss (a bad pick costs the boss). 11/11 repros green.
-   ‼ **NO OUTCOME PROOF YET — needs a batch.** Acceptance: `counter hunt CAUGHT Slugma` > 0
-   with `CAUGHT Machop` (control) unchanged, and `no super-effective answer` down from 12/16.
-
-2. **`#24-teachmsgstall`** — ‼ **CAUSE IDENTIFIED, probe one step from green.**
-   **RULED OUT** (direct repro, clean overworld): the moveset (457f), a full party with the
-   target at slot 4 (463f), HM03/Surf itself. **It is the NORMAN BATTLE TAIL** — Segment 12c
-   teaches immediately after `do_petalburg_gym()`, and `teach_hm_move`'s own comment records
-   "all 7 start with the NORMAN BATTLE TAIL still resident". A battle tail is RUNTIME state, so
-   it cannot be loaded from a save — the fight must happen inside the probe.
-   **Scaffold is built:** `--driver teachfull TEACH_AFTER_GYM=petalburg TEACH_ITEM=HM03` on
-   `prenorman_fodder_grind.ss1`. ‼ **It needs a party that can BEAT Norman** — that save's party
-   (Whismur L18 … vs L27-31) wedges in the gym at f61848 and never reaches the teach. Inject a
-   winning party, or capture a save at the moment Norman faints. Everything after that is wired.
-
-3. **`global watchdog` end reason 0 → 4** — new in `20260807-200030`, plausibly the longer
-   counter journeys this round enabled. **Not diagnosed** — check before assuming.
-
-4. **`#24-ballstarve`**, then **pin the rare-species dataset** before `#24-roster`.
-
-5. **`#24-magmahideout`** — next story content.
-
-## ⏭ SUPERSEDED LISTS BELOW (all items resolved; kept only for their detail)
-
-
-1. ✅ **BATCH `20260807-160545` HAS BEEN READ** — results are in the state table above and in
-   `07-CHANGELOG.md`. `#24-whiteoutloop` is CONFIRMED eliminated. Nothing outstanding.
-   ‼ **Three numbers I reported while it was still running were WRONG** and are corrected in the
-   changelog: the whiteout baseline (used the wrong batch), the hard-plateau firing count (wrong
-   surface — profile dirs with a date glob that excluded the files), and the baseline deepest
-   defeat ordinal (a PARTIAL count of a running batch). **Never compare a finished number against
-   a partial one, and always name the surface.**
-
-1b. **`#24-teachmsgstall`** — a third teach bug, fully characterised, small. All 9 teach failures
-   share `tasks=['ListMenuDummyTask','Task_ContinueTaskAfterMessagePrints']` on Surf. Cheap to
-   reproduce with `--driver teachfull TEACH_ITEM=HM03`. Details in `03-PUNCH-LIST.md`.
-
-2. ✅ **`#24-winonaground` + `#24-movepoolcounters` — BOTH SHIPPED 2026-08-07.**
-   Winona had **0 huntable counter candidates**, and the cause was neither the whitelist (11
-   grounds, correct) nor reachability: across all 11 grounds her needed types appear ONCE
-   (Geodude @ ROUTE111) and it is a **Rock Smash** encounter, dropped by the `method == "Grass"`
-   filter. Fixed by judging counters on the MOVES a species learns (user directive) — she now
-   gets **Slugma @ FIERY_PATH via `move:Rock Throw@L15`**, caught already knowing it, on the
-   ground where Norman's hunt already succeeds 6/7.
-   ‼ Required a SECOND fix to be non-inert: `tier` had no huntability term, so the one huntable
-   candidate ranked 42 of 43 and `max_results=5` truncated it away.
-   ‼ **OUTCOME PROOF IS IN FLIGHT — batch `20260807-200030` (code `dd25ee59`, due ~23:00).**
-
-## ✅ BATCH `20260807-200030` HAS BEEN READ — `#24-movepoolcounters` CONFIRMED IN PRODUCTION
-Code `dd25ee59`, `VERDICT OK`, 32 headers, 0 violations, 0 restarts. 24 runs, 10 finished
-(41.7% vs 36.0%; **z = +0.41, NOT resolvable — ignored**).
-
-| counter | base | now |
-|---|---|---|
-| **`no huntable counter candidate`** | 25 | **0** — eliminated |
-| `counter hunt —` started | 13 | **18** |
-| `… ROUTE111 … Baltoy` (movepool pick) | 0 | **7** |
-| `CAUGHT Machop` (‼ control) | 4 | **6** — no regression |
-
-The hop-budget risk recorded before the run did NOT materialise. Production picked BETTER than
-the offline probe (Baltoy 24% over Slugma 10%), because `_counter_area_allowed` admits ROUTE111's
-`region` prereq while the offline `allow=None` refuses it.
-
-‼ **BUT 7 Baltoy hunts caught 0** — see `#24-counterdesertgate`, now the top item.
-
-## (superseded next-actions list)
-
-1. ✅ **BATCH `20260807-160545` HAS BEEN READ** — results are in the state table above and in
-   `07-CHANGELOG.md`. `#24-whiteoutloop` is CONFIRMED eliminated. Nothing outstanding.
-   ‼ **Three numbers I reported while it was still running were WRONG** and are corrected in the
-   changelog: the whiteout baseline (used the wrong batch), the hard-plateau firing count (wrong
-   surface — profile dirs with a date glob that excluded the files), and the baseline deepest
-   defeat ordinal (a PARTIAL count of a running batch). **Never compare a finished number against
-   a partial one, and always name the surface.**
-
-1b. **`#24-teachmsgstall`** — a third teach bug, fully characterised, small. All 9 teach failures
-   share `tasks=['ListMenuDummyTask','Task_ContinueTaskAfterMessagePrints']` on Surf. Cheap to
-   reproduce with `--driver teachfull TEACH_ITEM=HM03`. Details in `03-PUNCH-LIST.md`.
-
-2. ✅ **`#24-winonaground` + `#24-movepoolcounters` — BOTH SHIPPED 2026-08-07.**
-   Winona had **0 huntable counter candidates**, and the cause was neither the whitelist (11
-   grounds, correct) nor reachability: across all 11 grounds her needed types appear ONCE
-   (Geodude @ ROUTE111) and it is a **Rock Smash** encounter, dropped by the `method == "Grass"`
-   filter. Fixed by judging counters on the MOVES a species learns (user directive) — she now
-   gets **Slugma @ FIERY_PATH via `move:Rock Throw@L15`**, caught already knowing it, on the
-   ground where Norman's hunt already succeeds 6/7.
-   ‼ Required a SECOND fix to be non-inert: `tier` had no huntability term, so the one huntable
-   candidate ranked 42 of 43 and `max_results=5` truncated it away.
-   ‼ **OUTCOME PROOF IS IN FLIGHT — batch `20260807-200030` (code `dd25ee59`, due ~23:00).**
-
-## ‼ HOW TO READ BATCH `20260807-200030` — the counter-chain batch
-Structural + offline proof is done (`repro_movepool_counter_candidates.py`,
-`probe_counter_candidates_offline.py` with a positive control). This batch answers the ONE
-question those cannot: **does the fix survive production's reachability gate?**
-
-‼ **THE SPECIFIC RISK, stated up front so a null result is interpretable.** The offline proof
-used `allow=None` (conservative). Production passes `_counter_area_allowed`, which bounds
-candidates by an **8-hop budget** from the CURRENT position. Norman reaches FIERY_PATH from
-Petalburg (measured 5-7 hops, 6 of 7 catches). **Winona is fought at FORTREE**, which is further
-— if FIERY_PATH is outside 8 hops from there, Slugma is filtered out and the fix is inert in
-production even though it is correct. That would be a hop-budget item, NOT a defect in this fix.
-
-Read in this order — all near-binary or countable:
-| counter | baseline `20260807-160545` | meaning |
-|---|---|---|
-| `counter hunt — going to FIERY_PATH … Slugma` | **0** (impossible before) | did it even try? |
-| `counter hunt CAUGHT Slugma` | **0** | did it work? |
-| `no super-effective answer` | **12 of 16 non-finishes (75%)** | the target |
-| `already hunted a counter for Winona … no huntable` | 8 (prev batch) | should fall |
-| `counter hunt CAUGHT Machop` | 6 of 7 | ‼ **CONTROL — must not regress** |
-| `TEACH EXIT reason=ride:hard-cap` | 9 | `#24-teachmsgstall`, still open |
-‼ Bash `grep -r` on `x4-runs/`, never the Grep tool. Compute z before quoting any rate.
-
-3. **`#24-roster` / `#24-rarepredicate`** — ‼ **UNGATED BY SEQUENCE, BUT ITS DATASET DOES NOT
-   REPRODUCE — pin that first (2026-08-07).** `tools/story-dev/rare_species_dataset.py` is the
-   first script that computes the rare-species set; the recorded figures were prose only.
-   Skitty reproduces exactly (rate 2%, d0). **Bagon computes to depth 2**, one short of the
-   `>=3` threshold that exists for Bagon's sake — so the rule as written fails the example the
-   user named. ‼ **Do NOT tune the BFS until Bagon comes out at 3.** Pin one definition of warp
-   depth (seed set / connection-closure transitivity / warp directionality — making warps
-   bidirectional moved d99 from 34 to 1, so that choice alone dominates), write the reasoning
-   down, make the script authoritative, then re-decide the threshold. Rate rule is unaffected.
-   The user-agreed sequence
-   (`06-DECISIONS-LOG.md` 2026-08-06) was `#24-hmteachloop` → prove the PC withdraw → re-baseline
-   → the slice. **All three prerequisites are done.** Spec is complete in `03-PUNCH-LIST.md`.
-   ‼ Two traps: `custom_catch_filters` runs **≥2× per encounter**, so the "do I own this species"
-   lookup must be cached (never a 420-slot box scan); and `is_repeat_encounter` is **PID dedup,
-   not species dedup** — do not reuse or name anything near it.
-   ‼ **Check the DEPLOYMENT SURFACE first:** `run_custom_catch_filters`
-   (`modules/encounter.py:72-81`) imports the filter from **the profile's own**
-   `customcatchfilters.py`, falling back to `profiles/customcatchfilters.py`. The file under
-   `modules/config/templates/` only seeds NEW profiles, so logic written there alone reaches
-   nothing that already exists. Put the predicate in a `modules/story/` module and delegate.
-
-4. **`#24-ballstarve`** — `Cannot hunt a Surf learner: no Poké Balls and no money to buy any`
-   (4 + one derailed run). Pairs with `No party mon can learn Surf and the party is full`, which
-   the now-proven withdraw path should be able to serve.
-
-5. **`#24-magmahideout`** — unlocked (`HIDE_JAGGED_PASS_MAGMA_GUARD` set by the summit) but the
-   hardest area attempted: cable car + one-way descent, ~8 warps. Start from `saves/post_mtpyre.ss1`.
-
-6. **`#24-trainmap`** — a swept Lavaridge-area training tile. Flannery's cfg is deliberately
-   grass-less because none exists; a swept tile would let her prep actually train.
+1. **Run a batch to confirm the fence** (code `0b49a7a4`). Acceptance: **REAL** conversion back
+   to ≥50%, `CAUGHT Machop` restored to ~6/8, and reported≈real (few or no false catches).
+2. **`#24-r116sweep`** — capture a MAUVILLE_CITY / `badge03=False` / mid-game save, then
+   `SWEEP_GROUND=ROUTE116:11,7 SWEEP_RETURN=MAUVILLE_CITY:22,6 --driver groundsweep`.
+   ‼ Verify the anchor's era and position BEFORE spending the run.
+3. **`#24-teachmsgstall`** — fix attempt 6's spin (grass tile + budget); do not touch the gym route.
+4. **Promote to `custom-pokebot/`** once the fence is confirmed (3 files).
+5. **`#24-magmahideout`** — next story content; the largest untouched lever.
+6. **Pin the rare-species dataset** before `#24-roster` builds on it.
 
 ## HOW TO RUN / TEST
 ```
 cd tools/story-dev
-# one repro (all are py -3.12; plain `python` is 3.9 and fails)
-PYTHONUTF8=1 py -3.12 repro_counter_hunt.py
-
-# a capability test (binary, minutes) — THE PREFERRED WAY TO GRADE A CHANGE
-PYTHONUTF8=1 POKEBOT_BOX_OVERFLOW_CATCH=1 BOXCATCH_GRASS=ROUTE121:44,14 \
-  py -3.12 story_harness.py post_mtpyre.ss1 --driver boxcatch --frames 900000 --profile t1
-PYTHONUTF8=1 WITHDRAW_CENTER=LilycoveCity \
-  py -3.12 story_harness.py boxwithdraw.ss1 --driver boxwithdraw --frames 400000 --profile w1
-
-# a batch (3h, 8 lanes) — for DISCOVERING failure modes, not grading
+# capability tests (binary, minutes) — THE PREFERRED WAY TO GRADE A CHANGE
+PYTHONUTF8=1 WITHDRAW_CENTER=LilycoveCity py -3.12 story_harness.py boxwithdraw.ss1 \
+  --driver boxwithdraw --frames 400000 --profile w1
+PYTHONUTF8=1 SWEEP_GROUND=ROUTE116:11,7 SWEEP_RETURN=MAUVILLE_CITY:22,6 \
+  py -3.12 story_harness.py <anchor>.ss1 --driver groundsweep --frames 600000
+# offline planner probes (no emulator) — each carries a POSITIVE CONTROL
+PYTHONUTF8=1 py -3.12 probe_counter_candidates_offline.py
+PYTHONUTF8=1 py -3.12 probe_counter_item_gate.py
+# a batch (3h, 8 lanes) — for DISCOVERING failure modes, and for conversion
 PYTHONUTF8=1 py -3.12 x4_headless.py --lanes 8 --minutes 180
 ```
-**Useful saves** (`tools/story-dev/saves/`): `post_winona.ss1` (6-mon party, pre-Mt.-Pyre),
-`post_mtpyre.ss1` (6-mon party, EMPTY box, Magma Emblem), `boxwithdraw.ss1` (ROUTE121, **party 6
-AND box 2** — the only save that can exercise a PC withdraw), `norman_done.ss1`, `dewford.ss1`.
-**Harness drivers of note:** `boxcatch` (full-party catch capability), `boxwithdraw` (PC withdraw
-capability, drives the real heal-piggyback), `teachfull` (HM teach down the REPLACE path — the one
-`hmtest` cannot reach, because `hmtest`'s freshly caught mon has a free move slot), `cavethread`
-(`CAVE_PATHCHECK` / `CAVE_BOXCHECK` / `CAVE_FLAGS` probes), `story` (drives real Story mode).
+**Counter/boss repro suite (8, all green at `0b49a7a4`):** `repro_counter_hunt`,
+`repro_counter_huntable`, `repro_movepool_counter_candidates`, `repro_hunt_driven_grounds`,
+`repro_counter_move_answer`, `repro_boss_plateau`, `repro_boss_cfg_coverage`, `repro_area_item_gate`.
 
-## GOTCHAS
-* Never bulk-import `modules/data/*` — it runs generators at import and has gutted `map_data.py`
-  twice. Use `ast.parse` or targeted reads.
-* Never edit `sandbox-pokebot/` while a batch runs; dead lanes relaunch and re-import.
-* **Record a batch in this file the moment it launches.**
-* **Never route to a WARP TILE** (door/ladder/stairs) — walking onto one FIRES it, so the trip ends
-  one map PAST the target *and reports success*.
-* `story_harness.py` has a **UTF-8 BOM** — parse with `encoding='utf-8-sig'`.
-* `get_event_var()` returns **−1** for an unknown name; `get_event_flag()` returns False. Use
-  `_done_var()` / `_done()` in `story_mode.py`, which raise on a phantom name.
+## GOTCHAS (unchanged, still true)
+* **Never use the Grep TOOL on `tools/story-dev/x4-runs/`** — gitignored, ripgrep silently reports 0.
+* **NAME THE SURFACE** — `*/stdout.txt` and `*/debug-logs/*.log` carry different facts; debug logs
+  are copied into the run dir only when the batch ends.
+* **A harness "HANG CONFIRMED" after a probe finishes is the PROBE idling, not the bot.**
+* Never bulk-import `modules/data/*`; never route to a WARP TILE; `story_harness.py` has a UTF-8 BOM.
+* `get_event_var()` returns **−1** for an unknown name — use `_done_var()` / `_done()`.
 
 ---
 

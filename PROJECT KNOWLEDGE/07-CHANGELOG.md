@@ -9547,3 +9547,32 @@ failures visible in one line each rather than becoming a wrong conclusion — th
 
 **Still needed:** a MAUVILLE_CITY save (not the gym) with `badge03=False` and a mid-game party.
 If none exists, capture one with `--driver story` at the Wattson prep and snapshot there.
+
+---
+
+## 2026-08-09 — SESSION WRAP-UP (context reset). 35 commits, 6 batches, 9 items shipped.
+
+`04-HANDOFF.md`'s "YOU ARE HERE" rewritten as a complete resume point: state, a **batch ledger**
+(what each of the six batches actually measured), what shipped, **what did NOT work**, and an
+explicit **concerns** section. A fresh session needs nothing but that file and the playbook.
+
+**Shipped and evidenced:** `#24-pcwithdraw-proof`, `#24-hmteachloop`, `#24-teachpathrace`,
+`#24-whiteoutloop` (both parts), `#24-movepoolcounters`, `#24-counterdesertgate`,
+`#24-huntreachproof` pt 1, `#24-progressiongate`, the `party_counter_slot` fence, plus a docs
+health sweep. Two are batch-confirmed rather than merely repro-green: the whiteout loop
+(end reason 4→0, deepest `defeat #N` 32→13) and the driven-grounds narrowing
+(**conversion 15% → 50%, z = +2.73 — the only resolvable result of the week**).
+
+**Not finished, recorded so it is not re-walked:** `#24-teachmsgstall` (six fixtures, none
+reproduced; cause identified, attempt 6 is one small spin fix away — and *do not return to the gym
+route*), `#24-r116sweep` (tool built, both anchors invalid), the `#24-rarepredicate` dataset
+(does not reproduce; Bagon computes to d2 against a `>=3` threshold that exists for Bagon), and
+the cancelled per-anchor sweep campaign.
+
+**Concerns written into the handoff, not softened:** six "read a proxy instead of the data"
+errors this week (one of which produced a wrong `#24-winonaground` diagnosis that was committed
+and reported before being caught); two fixes of mine that broke things their own tests passed;
+three fixes currently unmeasured; `custom-pokebot/` sitting 3 files behind and therefore holding
+the `#24-slugmaspin` regression WITHOUT its fix; the possibility that Wattson has no legal counter
+at all; and the fact that **no outcome metric has moved all week** — six batches, not one
+resolvable finish-rate pair — which is a real question about where to spend next.
