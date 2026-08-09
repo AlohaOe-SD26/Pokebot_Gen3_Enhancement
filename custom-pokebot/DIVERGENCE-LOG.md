@@ -867,3 +867,37 @@ selects but never executes. Full detail and the prevention rule: `08-MISTAKES.md
 and their batch evidence (Machop 0/7 → 6/7, z = +3.24; false catches 10 → 0) stands. Only the
 commentary about the counter chain's *value* was wrong, and it is corrected here rather than
 edited above, because this log is append-only history.
+
+---
+
+## 2026-08-09 (later) — PROMOTION: `#24-bosstelemetry`, per-turn battle logging (1 file)
+
+**User-approved 2026-08-09.** `modules/battle_action_selection.py` now emits **one line per turn
+decision**:
+```
+[TURN 14] Mightyena L30 94/94 -> UseMove:Bite(pp24)  vs Slaking L31 125/143
+```
+Actor + level + HP, the action (for a move: its NAME and remaining PP), and the opponent with HP.
+
+**Why it is worth a promotion on its own.** Boss losses end **79% of all non-finishing runs**, and
+until now the logs recorded only `[BATTLE] started/ended` and the faint-chooser — nothing about
+what was DONE on a turn. Six experiment arms were run without learning why a fight was lost. Its
+first two runs immediately produced: an invalidated fixture (an injected mon selecting a move with
+**PP frozen and the opponent untouched**, which retracted a same-day conclusion — `08-MISTAKES`
+2026-08-09), **Norman healing** (Vigoroth 1 → 53, Slaking 27 → 136), and the observation that the
+bot enters the Norman battle **with its L36 ace already at 0 HP**.
+
+**It is LOG-ONLY, and that was verified rather than asserted:** the whole block sits inside one
+`try/except` under the existing contract that *instrumentation must never affect the battle*; it
+assigns none of `action` / `index` / `battler_index` / `unrecognised`; and it fires once per
+DECISION, not per frame (63 records across a full gym run). Placement is the single common point
+after any recognised decision, so every branch is covered by one insertion.
+
+`custom-pokebot` and `sandbox-pokebot` are at **zero source drift** after this promotion.
+
+### ‼ OUTSTANDING — unchanged from the earlier entry today, plus one
+* The counter chain's premise is under active question. Re-run with a WORKING fixture: four arms
+  (control / L18 / L22 / L26) all lose to Norman, with three visible causes and **none of them
+  type coverage** — the ace arrives fainted, Norman heals, and the counter is frail. See
+  `04-HANDOFF.md`. ‼ It is NOT established that the test anchor represents real runs; the next
+  step is to look for the same fainted-ace signature in a batch, which this telemetry now permits.
