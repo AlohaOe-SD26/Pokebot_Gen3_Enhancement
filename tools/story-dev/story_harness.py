@@ -1778,9 +1778,15 @@ class TeachFullMode(BotMode):
             from modules.modes.util.sleep import wait_for_n_frames
             from modules.pokemon import LearnedMove, get_move_by_name, get_species_by_name
 
+            # ‼ LEVEL IS A FIXTURE KNOB, NOT A GAME FACT. With TEACH_AFTER_GYM the probe must
+            # actually WIN the Norman fight before the teach is reachable, and
+            # prenorman_fodder_grind.ss1 cannot (Whismur L18 / Ninjask L27 vs L27-31) — run 2
+            # wedged in the gym at f61848 and never reached the teach at all. L45 lets the
+            # fixture clear the gym so the thing under test (the battle TAIL) is reached.
+            # The failing SHAPE is unchanged: four moves, one of them an HM.
             mon = debug_create_pokemon(
                 species=get_species_by_name("Marshtomp"),
-                level=30,
+                level=int(os.environ.get("TEACH_INJECT_LEVEL", "30")),
                 moves=[LearnedMove.create(get_move_by_name(m))
                        for m in ("Take Down", "Mud Shot", "Rock Smash", "Muddy Water")],
                 nickname="STALLME",
@@ -1805,7 +1811,7 @@ class TeachFullMode(BotMode):
             # compatible" on a save that now held exactly the target. Same trap as the
             # `boxwithdraw` heal-fixture logging stale HP (08-MISTAKES 2026-08-07).
             yield from wait_for_n_frames(10)
-            log("[teachfull] FIXTURE: injected Marshtomp L30 "
+            log(f"[teachfull] FIXTURE: injected Marshtomp L{mon.level} "
                 "[Take Down, Mud Shot, Rock Smash, Muddy Water] — the batch's failing shape")
 
         # ‼‼ `#24-teachmsgstall` DECISIVE PROBE (2026-08-08). `TEACH_AFTER_GYM=petalburg` fights
@@ -1822,6 +1828,38 @@ class TeachFullMode(BotMode):
         #
         # Run from `prenorman_fodder_grind.ss1`. HM03 is GIVEN for beating Norman, so the bag
         # control below doubles as proof the gym leg really completed.
+        # ‼‼ THE CHEAP VERSION OF THE SAME EXPERIMENT (2026-08-08). The hypothesis is that a
+        # BATTLE TAIL (callback=ReturnFromBattleToOverworld) is still resident when the teach
+        # starts — and that does NOT require Norman specifically, only a battle that just ended.
+        # TEACH_AFTER_GYM needs the probe to WIN a gym first and wedged three times trying
+        # (f61848, f56868) without ever reaching the teach. This spins for any wild battle,
+        # then teaches THE INSTANT it ends, with no settle. Same variable, one-line fixture.
+        if os.environ.get("TEACH_AFTER_BATTLE", "").strip() in ("1", "true", "yes"):
+            from modules.story.early_game import _story_spin
+            from modules.battle_handler import battle_is_active
+
+            log("[teachfull] AFTER-BATTLE: spinning for a wild so a battle tail is resident…")
+            seen = {"n": 0, "fought": False}
+
+            def _stop_after_battle() -> bool:
+                seen["n"] += 1
+                if seen["n"] > 40000:
+                    return True
+                try:
+                    if battle_is_active():
+                        seen["fought"] = True
+                        return False
+                except Exception:  # noqa: BLE001
+                    return False
+                return seen["fought"]      # stop the FRAME the battle ends
+
+            try:
+                yield from _story_spin(_stop_after_battle)
+                log(f"[teachfull] AFTER-BATTLE: battle_seen={seen['fought']} frames={seen['n']} "
+                    f"— teaching IMMEDIATELY, no settle")
+            except Exception as error:  # noqa: BLE001
+                log(f"[teachfull] AFTER-BATTLE spin raised {type(error).__name__}: {str(error)[:160]}")
+
         if os.environ.get("TEACH_AFTER_GYM", "").strip().lower() == "petalburg":
             from modules.story.early_game import do_petalburg_gym
 

@@ -487,7 +487,24 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       ‼ **A battle tail is RUNTIME state — it cannot be loaded from a save.** The fight must
       actually happen inside the probe, which is why every clean-overworld repro succeeds.
 
-      **PROBE SCAFFOLD IS BUILT BUT NOT YET GREEN:** `--driver teachfull TEACH_AFTER_GYM=petalburg
+      ‼‼ **FIVE FIXTURE ATTEMPTS, NONE REPRODUCED. Read this before trying a sixth.**
+      Every attempt so far has failed to even REACH the teach with a battle tail resident:
+      | # | fixture | outcome |
+      |---|---|---|
+      | 1 | clean overworld, failing moveset | teach SUCCEEDS 457f — moveset ruled out |
+      | 2 | clean overworld, full party, target at slot 4 | SUCCEEDS 463f — slot ruled out |
+      | 3 | `TEACH_AFTER_GYM` on `prenorman_fodder_grind` | died to a trainer HP refusal (driver fixed) |
+      | 4 | same, healed party | wedged IN the gym at f61848 — teach never reached |
+      | 5 | same, Marshtomp L45 injected to win | wedged at f56868 — teach never reached |
+      | 6 | `TEACH_AFTER_BATTLE=1` (any battle, not the gym) | `battle_seen=False` at 2,466f — **the spin never triggered a battle**, so the probe is broken, NOT evidence |
+      ‼ **Attempt 6 is the right IDEA and the cheapest path** — the hypothesis is only that a
+      battle tail (`ReturnFromBattleToOverworld`) is resident, which needs ANY battle, not
+      Norman's. It failed because `_story_spin` returned without producing an encounter from
+      `boxwithdraw.ss1`. **Fix the spin (verified grass tile + a longer budget, the way
+      `--driver boxcatch` does it) and attempt 6 should reproduce in minutes.**
+      ‼ Do NOT go back to the gym route — three attempts, zero teaches reached.
+
+      **PROBE SCAFFOLD (all wired, only the spin is wrong):** `--driver teachfull TEACH_AFTER_GYM=petalburg
       TEACH_ITEM=HM03` on `prenorman_fodder_grind.ss1` fights Norman, then teaches with no settle.
       HM03 is GIVEN for beating Norman, so the bag control doubles as proof the gym leg completed.
       ‼ **WHAT IT STILL NEEDS: a party that can actually BEAT Norman.**

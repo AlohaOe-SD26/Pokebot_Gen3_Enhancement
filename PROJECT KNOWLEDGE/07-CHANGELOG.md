@@ -9404,3 +9404,32 @@ is multi-byte, so the pattern never matched. Stripping the box characters gave *
 Fifth instance this week of reading a proxy instead of the data; the fix is the same as always —
 a positive control (365 encounter lines existed at that map, so "0 Slugma" should have been
 suspicious immediately).
+
+---
+
+## 2026-08-08 — `#24-teachmsgstall`: five fixtures, none reproduced (probe work, no fix)
+
+The cause remains as identified — Segment 12c teaches with Norman's battle tail resident — but
+**no fixture has yet reached the teach in that state**, so there is still nothing to fix against.
+Recording all five so a sixth attempt does not repeat them:
+
+1. clean overworld + the failing moveset → teach **succeeds** in 457f (moveset ruled out)
+2. clean overworld + full party, target at slot 4 → **succeeds** in 463f (slot ruled out)
+3. `TEACH_AFTER_GYM` on `prenorman_fodder_grind` → died to a trainer HP refusal (driver fixed:
+   trainers now use `LevelUpTravelBattleStrategy`, the identical fix `boxwithdraw` needed)
+4. same, healed party → **wedged inside the gym at f61848**, teach never reached
+5. same, Marshtomp injected at L45 to win the fight → **wedged at f56868**, teach never reached
+
+**Attempt 6 changed the design and is the right idea:** the hypothesis is only that a battle tail
+(`ReturnFromBattleToOverworld`) is resident — which needs ANY battle, not Norman's. `TEACH_AFTER_BATTLE=1`
+spins for a wild and teaches the frame it ends. It reported `battle_seen=False` at 2,466 frames:
+**the spin never produced an encounter, so the probe is broken and this is not evidence about the
+bug.** `boxwithdraw.ss1` starts on ROUTE121 and `_story_spin` returned early.
+
+**Next step is small and specific:** give attempt 6 a verified grass tile and a proper budget, the
+way `--driver boxcatch` does (`BOXCATCH_GRASS=ROUTE121:44,14`, 300k frames), and it should
+reproduce in minutes. **Do not return to the gym route — three attempts, zero teaches reached.**
+
+‼ **Stopped here deliberately at five iterations.** The project's own recurring lesson is that
+iterating a fixture at length is where wrong conclusions get made; the diagnosis is specific and
+the remaining work is one well-defined change.
