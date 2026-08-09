@@ -122,6 +122,59 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
         # accumulates toward the KI-46 bound.
         unrecognised = 0
 
+        # ‼ `#24-bosstelemetry` (2026-08-09) — ONE LINE PER DECISION. This is the instrument the
+        # project has been missing. Six `--driver normancounter` arms (a Fighting counter injected
+        # at L18/22/26/40/55, plus a no-counter control) ALL lost to Norman's L28-31 team, and the
+        # logs could not say WHY: they carry `[BATTLE] started/ended` and the faint-chooser, and
+        # NOTHING about what was actually done on a turn. **79% of all non-finishing runs end on a
+        # lost boss fight**, so "which move did we pick, against what, at what HP" is the
+        # highest-value fact this bot does not record.
+        #
+        # ‼ INSTRUMENTATION MUST NEVER AFFECT THE BATTLE — the same contract as the faint-chooser
+        # event: everything inside one try/except, no state mutated, and one line per DECISION
+        # (not per frame), so even a long battle costs a handful of lines.
+        try:
+            from modules import debug_logger
+
+            _me = (
+                battle_state.own_side.left_battler
+                if battler_index == 0
+                else battle_state.own_side.right_battler
+            )
+            _foe = battle_state.opponent.left_battler
+            _what = getattr(action, "name", str(action))
+            if (
+                action
+                in (
+                    TurnAction.UseMove,
+                    TurnAction.UseMoveAgainstRightSideOpponent,
+                    TurnAction.UseMoveAgainstPartner,
+                )
+                and _me is not None
+            ):
+                try:
+                    _lm = _me.moves[index]
+                    _what = f"{_what}:{_lm.move.name}(pp{_lm.pp})"
+                except Exception:  # noqa: BLE001
+                    _what = f"{_what}:idx{index}"
+
+            def _describe(mon) -> str:
+                if mon is None:
+                    return "?"
+                return (
+                    f"{getattr(getattr(mon, 'species', None), 'name', '?')}"
+                    f" L{getattr(mon, 'level', '?')}"
+                    f" {getattr(mon, 'current_hp', '?')}/{getattr(mon, 'total_hp', '?')}"
+                )
+
+            debug_logger.event(
+                f"[TURN {getattr(battle_state, 'current_turn', '?')}] "
+                f"{_describe(_me)} -> {_what}  vs {_describe(_foe)}",
+                category="BATTLE",
+            )
+        except Exception:  # noqa: BLE001 - instrumentation must never affect the battle
+            pass
+
         if context.bot_mode == "Manual":
             yield
             continue

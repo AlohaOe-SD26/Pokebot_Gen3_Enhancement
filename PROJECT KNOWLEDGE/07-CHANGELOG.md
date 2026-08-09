@@ -9947,3 +9947,40 @@ step**, and it is the missing instrument for every "the bot loses to bosses" que
 catches (39.1%) and trains (12 attempts / 1 failure) correctly — and coverage was never what was
 losing the fight. That would explain 79% of non-finishes still ending on "no super-effective
 answer" while the finish rate stays flat.
+
+---
+
+## 2026-08-09 — `#24-bosstelemetry` SHIPPED, and its first run RETRACTED the finding above
+
+**What shipped.** `modules/battle_action_selection.py` now emits **one line per turn decision**:
+```
+[TURN 14] Mightyena L30 94/94 -> UseMove:Bite(pp24)  vs Slaking L31 125/143
+```
+Actor + level + HP, the action (and for a move, its NAME and remaining PP), and the opponent with
+HP. Placed at the single common point after any recognised decision, wrapped in one try/except
+under the existing contract that **instrumentation must never affect the battle**, one line per
+decision rather than per frame. Verified live: 63 turn records in one gym run.
+
+**‼ ITS FIRST RUN INVALIDATED THE SAME DAY'S HEADLINE RESULT.** The six `normancounter` arms were
+measuring a mon that **could not attack**: the injected Machop selected Karate Chop on five
+consecutive turns with **PP frozen at 22 and Slaking untouched at 143/143**, while natural party
+members' moves decremented PP and dealt damage in the same battle. `debug_create_pokemon(moves=[
+LearnedMove.create(...)])` builds move slots the engine will select but never execute.
+**"An obtainable counter does not beat Norman" is RETRACTED** — see `08-MISTAKES` 2026-08-09.
+New arm `NORMAN_MACHOP_NATURAL=1` omits `moves=` and the same L55 Machop then fights properly
+(**Cross Chop, PP 5 → 4 → 3 → 2**, opponents knocked down).
+
+**Two real leads the instrument produced immediately** (both previously invisible, both from the
+natural-moves run, and both stated as leads rather than findings):
+1. **Norman HEALS and the bot has no answer.** Slaking was ground from 143 to **27/143** and came
+   back to **136/143** on turn 31. The team then re-ground it with Bite and Scratch and lost. A
+   boss that out-heals the party's chip damage is a different problem from type coverage.
+2. **A "selected but not executed" pattern also appears mid-battle on NATURAL mons** — Machop's
+   Cross Chop sits at pp2 for three turns with no damage, and Ninjask's Scratch at pp30 for three
+   turns. ‼ Not diagnosed; it may be misses (Cross Chop is 80% accurate) plus a display artifact,
+   or the same execution failure. **This is the next thing to look at, and it now has an
+   instrument.**
+
+‼ The natural-moves arm still LOST, so "a counter alone does not automatically win" survives —
+but it survives as an observation with visible causes (a 1-HP Shedinja leading, PP burned on the
+gym's earlier mons, Norman healing), not as the sweeping claim that was retracted.

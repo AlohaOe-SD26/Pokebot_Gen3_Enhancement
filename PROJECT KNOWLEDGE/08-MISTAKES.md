@@ -4149,3 +4149,40 @@ the looser definition silently compares two different quantities — the same re
 this project already documents, one level up, at the level of the metric rather than the data.
 ‼ Practical version: this is why `analyse_conversion.py` now exists and prints hunts / reported /
 REAL together. A number that cannot say which definition produced it should never become a bar.
+
+---
+
+## 2026-08-09 — ‼ I RETRACT "an obtainable counter does not beat Norman". Six arms measured a BROKEN INJECTED MON.
+
+**What I claimed, hours earlier.** Six `--driver normancounter` arms (a Fighting counter injected
+at L18/22/26/40/55 plus a no-counter control) all lost to Norman's L28-31 team, and I concluded —
+in the changelog, the handoff and to the user — that this "cannot be a type-coverage or level
+problem" and "points at how the fight is conducted". I even cleared two confounds (full HP;
+production's own battle strategy) before writing it, which made it feel well-checked.
+
+**What the new telemetry showed on its FIRST run.** `#24-bosstelemetry` logs one line per turn
+decision. The injected Machop:
+```
+[TURN  8] Machop L55 83/150 -> UseMove:Karate Chop(pp22)  vs Slaking L31 143/143
+[TURN  9] Machop L55 83/150 -> UseMove:Karate Chop(pp22)  vs Slaking L31 143/143
+[TURN 12] Machop L55 32/150 -> UseMove:Karate Chop(pp22)  vs Slaking L31 143/143
+```
+**Five consecutive turns: PP frozen at 22, Slaking untouched at 143/143.** The move was selected
+and never executed. Meanwhile a natural party member in the same battle behaved normally
+(`Mightyena -> Bite(pp24)`, Slaking 143 → 125 → 108 → 88). The A/B confirms it: with
+`NORMAN_MACHOP_NATURAL=1` (omit `moves=`, let the species learnset stand) the same L55 Machop uses
+**Cross Chop with PP decrementing 5 → 4 → 3 → 2** and knocks opponents down.
+
+**Root cause of the bad experiment.** `debug_create_pokemon(moves=[LearnedMove.create(...)])`
+produced move slots the battle engine will select but not execute. **Every one of the six arms was
+measuring a mon that could not attack.** The control arm was real, but it was the only real one.
+
+‼ **Prevention rule: an injected fixture mon must be proven to ACT, not merely to exist.** I
+checked that it was created at full HP, that it was in the party, and that it was sent out — three
+checks, all passing, none of which asked whether its moves worked. **The assertion that mattered
+was "did the opponent's HP change".** For any injected combatant, assert an effect on the world,
+not a property of the object.
+‼ **Second: the conclusion was seductive because it was surprising.** "A L55 counter loses" is
+exactly the kind of counter-intuitive result that feels like insight, and I promoted it to a
+strategic recommendation within the hour. **A result that overturns a week of assumptions deserves
+MORE instrument-checking than a boring one, not less.**

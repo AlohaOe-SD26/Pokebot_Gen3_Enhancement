@@ -1203,11 +1203,26 @@ class NormanCounterMode(BotMode):
                 moves.append(LearnedMove.create(get_move_by_name(name)))
             except Exception:  # noqa: BLE001 - skip anything this ROM names differently
                 pass
-        mon = debug_create_pokemon(
+        # ‼ `NORMAN_MACHOP_NATURAL=1` — THE ARM THAT CHECKS THE FIXTURE ITSELF (2026-08-09).
+        # `#24-bosstelemetry`'s first run showed the injected Machop selecting Karate Chop on
+        # five consecutive turns with **PP frozen at 22 and Slaking on 143/143 throughout** —
+        # i.e. the move was never executed — while natural party members' moves decremented PP
+        # and dealt damage normally. That correlates exactly with "built by
+        # `LearnedMove.create` and written in by `debug_create_pokemon`", so the six-arm
+        # "a counter does not beat Norman" result may be measuring a BROKEN INJECTED MON.
+        # This arm omits `moves=` entirely and lets the species' natural learnset stand, which
+        # is the discriminating test.
+        natural = os.environ.get("NORMAN_MACHOP_NATURAL", "").strip() in ("1", "true", "yes")
+        create_kwargs = dict(
             species=machop, level=level,
             experience=machop.level_up_type.get_experience_needed_for_level(level),
-            moves=moves, nickname="MACHOP", current_hp=None,
+            nickname="MACHOP", current_hp=None,
         )
+        if not natural:
+            create_kwargs["moves"] = moves
+        else:
+            log("[normancounter] NATURAL-MOVES ARM — not passing moves=; the species learnset stands")
+        mon = debug_create_pokemon(**create_kwargs)
         existing = [m for m in get_party() if m is not None and not m.is_egg]
         party = (existing[:5] + [mon]) if len(existing) >= 5 else (existing + [mon])
         debug_write_party(party)
