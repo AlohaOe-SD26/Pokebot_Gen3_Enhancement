@@ -109,11 +109,28 @@ def party_counter_slot(needed_type_names) -> "int | None":
     """Party slot of a battle-capable mon whose OWN type is one of `needed_type_names`,
     or None. This is how the hunt knows it succeeded.
 
-    ‼ Deliberately tests the mon's TYPE, not its moves, and is NOT a re-implementation of
-    `_boss_plan_is_hopeless`. That function asks the harder question ("do we have a
-    CREDIBLE super-effective move right now?") and a freshly-caught L15 Machop may well
-    fail it until it grows into its moves — which is precisely why rung 3 exists. Using
-    the strict test here would make a successful catch look like a failed hunt.
+    ‼ NOT a re-implementation of `_boss_plan_is_hopeless`. That function asks the harder
+    question ("do we have a CREDIBLE super-effective move right now?") and a freshly-caught
+    L15 Machop may well fail it until it grows into its moves — which is precisely why rung 3
+    exists. Using the strict test here would make a successful catch look like a failed hunt.
+
+    ‼‼ IT ALSO ACCEPTS A MOVE ANSWER (fixed 2026-08-08). This used to test the mon's OWN TYPE
+    only, and the docstring said so deliberately — which was right while every candidate WAS a
+    type match, and became wrong the moment `#24-movepoolcounters` let the planner hunt a
+    species that merely LEARNS a counter-type move.
+
+    MEASURED, batch `20260808-131334`: the Winona rung fired 5 times, reached Fiery Path, and
+    **encountered Slugma 34 times** (9.3% of 365 encounters there — exactly its 10% slot) while
+    `counter hunt CAUGHT Slugma` stayed at **0**. Slugma is FIRE; Winona needs Rock/Ice/Dragon.
+    So catch-on-sight caught it, this function did not recognise it, `_stop()` never fired, the
+    spin ran to budget and the hunt reported nothing caught. In the same batch Machop (a TYPE
+    match) converted 6 of 64 encounters and Numel 3 of 112 — so it was never the spin or the rate.
+    **I taught the planner about movepools and left the success test behind; this is that half.**
+
+    The move test stays LENIENT on purpose, matching the paragraph above: it asks only that the
+    mon KNOW a damaging move of a needed type, not that the move clear the credible-power floor.
+    A freshly caught L15 Slugma already knows Rock Throw, which is exactly the case that has to
+    register as success.
     """
     try:
         from modules.pokemon_party import get_party
@@ -127,6 +144,13 @@ def party_counter_slot(needed_type_names) -> "int | None":
             try:
                 if {t.name for t in mon.species.types} & needed:
                     return index
+                # MOVE ANSWER: a damaging move of a needed type counts, even when the mon's own
+                # type does not. Damaging only — a status/stat-change move answers nothing.
+                for learned in (mon.moves or ()):
+                    if learned is None or learned.move is None:
+                        continue
+                    if learned.move.base_power > 0 and learned.move.type.name in needed:
+                        return index
             except Exception:
                 continue
         return None

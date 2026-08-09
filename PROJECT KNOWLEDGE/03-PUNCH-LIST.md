@@ -384,7 +384,20 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       ground was tried. The per-anchor sweep campaign would have fixed a problem that does not
       exist. **Do not run it.**
 
-- [ ] `#24-slugmaspin` — **NEW 2026-08-08. Winona's rung FIRES but does not convert.**
+- [x] `#24-slugmaspin` — **FIXED 2026-08-08, same day it was found. It was the SUCCESS TEST, not
+      the spin.** `party_counter_slot()` checked the caught mon's OWN TYPE, so a Slugma (Fire)
+      caught for Winona (Rock/Ice/Dragon) was never recognised: `_stop()` never fired, the spin
+      ran to budget, the hunt reported nothing caught. **34 Slugma encounters, 0 registered.**
+      `#24-movepoolcounters` taught the PLANNER about movepools and left this behind.
+      **Fix:** also accept a mon that knows a DAMAGING move of a needed type. Lenient by design
+      (no credible-power floor — a fresh L15 Slugma knows Rock Throw and that IS success; the
+      strict question belongs to `_boss_plan_is_hopeless`).
+      `repro_counter_move_answer.py` — 4 cases, incl. Sandstorm (Rock, **0 power**) correctly
+      REJECTED, pinning the damaging-only rule. Suite 6/6.
+      ‼ **NO OUTCOME PROOF YET.** Acceptance next batch: `counter hunt CAUGHT Slugma` > 0, and
+      overall CONVERSION at or above this batch's 50%.
+
+- [x] `#24-slugmaspin` (original finding) — **Winona's rung FIRES but does not convert.**
       `Slugma @ FIERY_PATH`: **5 hunts, 0 caught** — on the same ground that converts 6/8 for
       Machop and 3/7 for Numel in the same batch, so **it is not travel**. This is the movepool
       work reaching production for the first time; the catch is the last missing step.

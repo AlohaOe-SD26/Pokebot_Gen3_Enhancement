@@ -9359,3 +9359,48 @@ order: the 10% encounter rate (vs Machop 15% / Numel 30%) against the spin budge
 catch-on-sight branch not targeting it. **Next probe: instrument the Slugma spin — arrivals,
 encounters seen, and species matched — before changing anything.**
 `no super-effective answer` is still 19 of 20 non-finishes, and Winona is 6 of them.
+
+---
+
+## 2026-08-08 — `#24-slugmaspin`: the hunt's SUCCESS TEST also needed to know about movepools
+
+Winona's rung fired 5 times in batch `20260808-131334`, reached Fiery Path, and **encountered
+Slugma 34 times** — 9.3% of the 365 encounters there, exactly its 10% slot — while
+`counter hunt CAUGHT Slugma` stayed at **0**. Machop converted 6 of 64 and Numel 3 of 112 on the
+same ground in the same batch, so it was never travel, the spin, or the rate.
+
+**Cause:** `party_counter_slot()` — the test by which the hunt knows it succeeded — checked the
+caught mon's **OWN TYPE** against the needed types. Slugma is FIRE; Winona needs Rock/Ice/Dragon.
+Catch-on-sight caught it, this function did not recognise it, `_stop()` never fired, the spin ran
+to budget, and the hunt reported nothing caught. Its docstring even said *"‼ Deliberately tests
+the mon's TYPE, not its moves"* — correct while every candidate was a type match, and wrong from
+the moment `#24-movepoolcounters` let the planner hunt a species that merely LEARNS the answer.
+
+**`#24-movepoolcounters` taught the PLANNER about movepools and left the SUCCESS TEST behind.**
+This is the other half.
+
+**Fix:** accept a mon that knows a **damaging** move of a needed type, in addition to a type match.
+Deliberately lenient — it does not apply the credible-power floor, because a freshly caught L15
+Slugma knows Rock Throw and that must register as success; the strict question belongs to
+`_boss_plan_is_hopeless`, and asking it here would make a real catch look like a failed hunt.
+
+`repro_counter_move_answer.py`, four cases including two negative controls:
+
+| case | recognised |
+|---|---|
+| Slugma knowing Rock Throw (the batch's real case) | ✅ yes |
+| Slugma with no counter move | ✅ no |
+| Geodude (TYPE match — control) | ✅ yes |
+| Zigzagoon knowing **Sandstorm** (Rock type, **0 power**) | ✅ **no** |
+
+That last case is the guard for the damaging-only rule: a stat-change / field-effect / status move
+answers no type weakness. Counter/boss suite: 6/6 green.
+
+### ‼ A REGEX ERROR OF MINE NEARLY BURIED THIS
+My first pass grepped `Slugma[♂♀]? encountered` and got **0**, which reads exactly like "the bot
+never meets one" — I was one step from concluding the encounter rate was the problem. The log
+draws encounters inside a box (`┌─── Slugma♂ encountered at Fiery Path ───┐`) and the gender glyph
+is multi-byte, so the pattern never matched. Stripping the box characters gave **34**.
+Fifth instance this week of reading a proxy instead of the data; the fix is the same as always —
+a positive control (365 encounter lines existed at that map, so "0 Slugma" should have been
+suspicious immediately).
