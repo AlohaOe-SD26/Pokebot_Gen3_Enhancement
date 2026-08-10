@@ -19,9 +19,9 @@ game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror
 | | |
 |---|---|
 | branch / HEAD | `main`, clean, **0 unpushed** |
-| box | **idle** — batch `20260809-155844` finished, verdict OK |
+| box | **BATCH RUNNING** — `20260809-214515`, code `5a2f0182`, 8 lanes / 180 min, started 21:45 PDT. ‼ Do NOT edit `sandbox-pokebot/` until it ends: restarted lanes re-import from disk. |
 | story content | Littleroot → 6 badges → **Mt. Pyre → Magma Emblem**. Magma Hideout UNLOCKED but UNBUILT. |
-| promotion | ✅ **PROMOTED TWICE 2026-08-09 (both user-approved)** — the fence, `#24-progressiongate`, and `#24-bosstelemetry` part 1 are all live in production. ‼ **ONE file has drifted since:** `modules/debug_logger.py` (`#24-bosstelemetry` part 2 — party HP at `[BATTLE] started`; sandbox-only, log-only). |
+| promotion | ✅ **three promotions 2026-08-09, all user-approved** (the fence, `#24-progressiongate`, `#24-bosstelemetry` parts 1+2). ‼ **`#24-battleitems` is sandbox-only and UNMEASURED** — 3 files drifted (`modules/story/battle_items.py`, `plugins/custom_modes/story_mode.py`, `modules/battle_action_selection.py`). Do not promote until the running batch says it helps. |
 | ‼ is code frozen? | Only while a batch runs. **Never edit `sandbox-pokebot/` mid-batch** — restarted lanes re-import from disk and corrupt the measurement. Editing `tools/story-dev/` IS safe (lanes spawn `sandbox-pokebot/pokebot.py`; nothing there is imported from story-dev). |
 
 ## ‼ THE ONE NUMBER THAT MATTERS, AND HOW TO GRADE ANYTHING HERE
@@ -232,6 +232,25 @@ hunts, catches (34.8% conversion) and trains — and a super-effective attacker 
 opponent that restores 81 HP at a time. The plausible answers are burst damage, the bot **using
 its own items**, or not entering a fight it cannot close. ‼ **That is a design decision, and it is
 the user's** — do not pick one unilaterally.
+
+## ‼ `#24-battleitems` — THE USER'S DIRECTIVE, BUILT AND NOW WORKING (outcome still unmeasured)
+**Directive 2026-08-09: "I want the bot to use items intelligently and strategically."** It exists
+because the bot was the only side of a boss fight not using items: `Slaking` healed **27 times,
+median +81 HP**, and 61.8% of boss-length battles show an opponent heal.
+
+* **Policy** (`modules/story/battle_items.py`) is PURE and unit-proven — `repro_battle_items.py`,
+  **27 checks, no emulator**. Heal amounts come from `items.json`, never memory. Rules: only below
+  35% HP; **cheapest sufficient** item; **never heal into a losing race**; **bounded per battle**
+  (the opponent heals too — unbounded is an infinite battle).
+* **Integration** is TRAINER-battles-only and fails open, so wilds/training/catching are unchanged.
+* ‼ **A real bug was found and fixed underneath it**: `battle_action_use_item` fed a BATTLE-order
+  index into a PARTY-MENU scroll, so item use silently did nothing unless the active mon sat at
+  index 0. Instrumentation showed it in one line (`target=0->0` worked, `target=0->1` did nothing).
+  **After the fix: 3 requests → 3 potions consumed, `Blaziken 23/120 → 120/120`.**
+* ‼ **DO NOT quote the fixture's `badge=True` as proof the feature helps** — it reproduced even
+  when items did nothing (the harness is deterministic, so the extra menu turn diverges the fight
+  identically every time). **The running batch is the real test; grade it on BOSS-BATTLE WIN RATE
+  and on `[ITEM] using` appearing in real runs at all — not on the finish rate.**
 
 ## ⏭ NEXT ACTIONS, IN ORDER
 1. **DECIDE what to do about boss healing** — this is a user call, and everything else here is
