@@ -233,7 +233,7 @@ opponent that restores 81 HP at a time. The plausible answers are burst damage, 
 its own items**, or not entering a fight it cannot close. ‼ **That is a design decision, and it is
 the user's** — do not pick one unilaterally.
 
-## ‼ `#24-battleitems` — THE USER'S DIRECTIVE: WORKING IN LIVE RUNS, ~2/3 OF USES LAND
+## ‼ `#24-battleitems` — THE USER'S DIRECTIVE: WORKING IN LIVE RUNS
 **Directive: "use items intelligently and strategically."** Built because the bot was the only
 side of a boss fight not using items (`Slaking` healed 27 times, median +81 HP).
 
@@ -248,8 +248,16 @@ side of a boss fight not using items (`Slaking` healed 27 times, median +81 HP).
 quote a finish-rate improvement for this feature — that is the exact mistake this project has
 made repeatedly at n≈30.
 
-‼ **~1/3 of item uses still do not land, and the cause is located:** 85 targeted uses completed
-the entire menu flow yet 32 battles saw no HP rise, so the heal goes to the WRONG MON. The two
+‼ **A REPORTED FAILURE RATE OF ~1/3 WAS INFLATED — CORRECTED 2026-08-10.** The "no HP rise"
+guard compares `own_side.left_battler`'s HP at the NEXT decision against the value recorded for
+the mon that requested the item — and after a faint that is a DIFFERENT POKÉMON. **9 of the 10
+"both index spaces failed" cases in `20260810-035733` are immediately followed by a
+`[FAINT-CHOOSER]`**: the target died, and the guard blamed the item. The true failure rate is much
+lower and is not yet known. ‼ The INDEX-SPACE RULE is unaffected — it was derived from the 29
+LANDINGS (HP demonstrably rising on the same mon), not from failure counts.
+**Queued fix:** key the recorded HP by `party_index`, and treat "subject changed" or
+`current_hp == 0` as NO VERDICT rather than as a failure (`08-MISTAKES` 2026-08-10).
+Historically: 85 targeted uses completed the entire menu flow while some battles saw no HP rise. The two
 index spaces disagree constantly in the logs — `(party 0, battle-order 1)` x19, `(1, 0)` x12.
 Yesterday's fix (pass the party index) took the fixture from 1-of-5 landing to 3-of-3, **but
 `battle_handler`'s after-faint chooser does the OPPOSITE and is correct there** (that conversion
