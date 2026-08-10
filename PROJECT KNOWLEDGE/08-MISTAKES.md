@@ -4186,3 +4186,40 @@ not a property of the object.
 exactly the kind of counter-intuitive result that feels like insight, and I promoted it to a
 strategic recommendation within the hour. **A result that overturns a week of assumptions deserves
 MORE instrument-checking than a boring one, not less.**
+
+---
+
+## 2026-08-10 — my "item didn't work" detector compared HP ACROSS a Pokémon switch
+
+**Symptom.** `#24-battleitems`'s no-op guard reported **10 cases where "both index spaces failed"**
+in batch `20260810-035733`, and 32 guard fires in the batch before — figures I used to describe
+the feature as landing only ~2/3 of the time.
+
+**What the logs actually say.** Of those 10, **9 are followed immediately by a `[FAINT-CHOOSER]`**
+— the target fainted. And the detector works like this:
+
+```python
+mon = battle_state.own_side.left_battler          # whoever is active AT THIS DECISION
+...
+if mon.current_hp <= self._hp_when_item_requested: # HP recorded for a DIFFERENT mon
+```
+
+When the target faints, the next decision's `left_battler` is its **replacement**, so the guard
+compares one Pokémon's HP against another's, concludes "no effect", and blames the item. The
+genuine item-failure rate is therefore much lower than reported, and "both index spaces failed"
+was mostly a mislabelled death.
+
+**What is NOT affected, and why the index rule still stands:** the rule was derived from the 29
+**landings** — positive detections where HP demonstrably rose on the same mon — not from the
+failure counts. Those are reliable.
+
+‼ **Prevention rule: a before/after comparison must prove it is comparing the SAME SUBJECT.** I
+recorded `hp_when_item_requested` without recording WHOSE hp it was, and in a battle the active
+Pokémon changes underneath you. Key such state by identity (`party_index`), and skip the check
+when the subject has changed. ‼ This is the same family as KI-34 (party-menu vs `get_party()`
+indices) and as the 2026-08-09 detector that could never observe the thing it tested: **state
+sampled from a moving frame of reference needs its frame recorded alongside it.**
+
+**Fix (queued, not yet applied — a batch is mid-flight and lanes re-import `sandbox-pokebot/`):**
+key `_hp_when_item_requested` by `mon.party_index` and treat "subject changed" or `current_hp == 0`
+as *no verdict* rather than as a failure.
