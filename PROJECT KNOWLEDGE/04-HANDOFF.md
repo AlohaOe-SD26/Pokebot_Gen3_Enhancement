@@ -19,7 +19,7 @@ game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror
 | | |
 |---|---|
 | branch / HEAD | `main`, clean, **0 unpushed** |
-| box | **BATCH RUNNING** — `20260809-214515`, code `5a2f0182`, 8 lanes / 180 min, started 21:45 PDT. ‼ Do NOT edit `sandbox-pokebot/` until it ends: restarted lanes re-import from disk. |
+| box | **idle** — batch `20260809-214515` finished, verdict OK |
 | story content | Littleroot → 6 badges → **Mt. Pyre → Magma Emblem**. Magma Hideout UNLOCKED but UNBUILT. |
 | promotion | ✅ **three promotions 2026-08-09, all user-approved** (the fence, `#24-progressiongate`, `#24-bosstelemetry` parts 1+2). ‼ **`#24-battleitems` is sandbox-only and UNMEASURED** — 3 files drifted (`modules/story/battle_items.py`, `plugins/custom_modes/story_mode.py`, `modules/battle_action_selection.py`). Do not promote until the running batch says it helps. |
 | ‼ is code frozen? | Only while a batch runs. **Never edit `sandbox-pokebot/` mid-batch** — restarted lanes re-import from disk and corrupt the measurement. Editing `tools/story-dev/` IS safe (lanes spawn `sandbox-pokebot/pokebot.py`; nothing there is imported from story-dev). |
@@ -233,24 +233,32 @@ opponent that restores 81 HP at a time. The plausible answers are burst damage, 
 its own items**, or not entering a fight it cannot close. ‼ **That is a design decision, and it is
 the user's** — do not pick one unilaterally.
 
-## ‼ `#24-battleitems` — THE USER'S DIRECTIVE, BUILT AND NOW WORKING (outcome still unmeasured)
-**Directive 2026-08-09: "I want the bot to use items intelligently and strategically."** It exists
-because the bot was the only side of a boss fight not using items: `Slaking` healed **27 times,
-median +81 HP**, and 61.8% of boss-length battles show an opponent heal.
+## ‼ `#24-battleitems` — THE USER'S DIRECTIVE: WORKING IN LIVE RUNS, ~2/3 OF USES LAND
+**Directive: "use items intelligently and strategically."** Built because the bot was the only
+side of a boss fight not using items (`Slaking` healed 27 times, median +81 HP).
 
-* **Policy** (`modules/story/battle_items.py`) is PURE and unit-proven — `repro_battle_items.py`,
-  **27 checks, no emulator**. Heal amounts come from `items.json`, never memory. Rules: only below
-  35% HP; **cheapest sufficient** item; **never heal into a losing race**; **bounded per battle**
-  (the opponent heals too — unbounded is an infinite battle).
-* **Integration** is TRAINER-battles-only and fails open, so wilds/training/catching are unchanged.
-* ‼ **A real bug was found and fixed underneath it**: `battle_action_use_item` fed a BATTLE-order
-  index into a PARTY-MENU scroll, so item use silently did nothing unless the active mon sat at
-  index 0. Instrumentation showed it in one line (`target=0->0` worked, `target=0->1` did nothing).
-  **After the fix: 3 requests → 3 potions consumed, `Blaziken 23/120 → 120/120`.**
-* ‼ **DO NOT quote the fixture's `badge=True` as proof the feature helps** — it reproduced even
-  when items did nothing (the harness is deterministic, so the extra menu turn diverges the fight
-  identically every time). **The running batch is the real test; grade it on BOSS-BATTLE WIN RATE
-  and on `[ITEM] using` appearing in real runs at all — not on the finish rate.**
+**Batch `20260809-214515` (code `5a2f0182`, VERDICT OK, 27 runs) — it fires for real: 86
+`[ITEM] using` events**, up from 0 by construction.
+| metric | before | after | z |
+|---|---|---|---|
+| finish rate | 25.0% (8/32) | **33.3% (9/27)** | 0.70 |
+| boss-length battle win rate | 51.1% (425/831) | **53.3% (426/799)** | 0.88 |
+| counter-chain stops per run | 65.6% | **55.6%** | — |
+‼ **Everything moved the right way and NOTHING is resolvable** (both z well under 1.96). Do NOT
+quote a finish-rate improvement for this feature — that is the exact mistake this project has
+made repeatedly at n≈30.
+
+‼ **~1/3 of item uses still do not land, and the cause is located:** 85 targeted uses completed
+the entire menu flow yet 32 battles saw no HP rise, so the heal goes to the WRONG MON. The two
+index spaces disagree constantly in the logs — `(party 0, battle-order 1)` x19, `(1, 0)` x12.
+Yesterday's fix (pass the party index) took the fixture from 1-of-5 landing to 3-of-3, **but
+`battle_handler`'s after-faint chooser does the OPPOSITE and is correct there** (that conversion
+is what fixed KI-34). ⇒ **the item-target menu and the after-faint menu are not ordered the same
+way.**
+**NEXT: log what the cursor is actually sitting on (species/HP) at each menu index during a use**,
+and derive the ordering from that instead of borrowing the other menu's convention. Safe to leave
+enabled meanwhile: the no-op guard costs one turn per battle, then disables items for that battle.
+‼ Sandbox-only, 3 files, deliberately UNPROMOTED until an outcome is resolvable.
 
 ## ⏭ NEXT ACTIONS, IN ORDER
 1. **DECIDE what to do about boss healing** — this is a user call, and everything else here is

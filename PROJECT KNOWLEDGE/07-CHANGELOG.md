@@ -10213,3 +10213,44 @@ never enters the changed code. Suite check after the change: `repro_battle_items
 — the badge win in these arms reproduced even when items did nothing, so it is a deterministic
 turn-order divergence and must not be quoted as the feature working. **A batch is the next step**,
 and its acceptance metric should be boss-battle win rate, not the finish rate.
+
+---
+
+## 2026-08-10 — BATCH `20260809-214515`: `#24-battleitems` WORKS IN LIVE RUNS; every outcome up, none resolvable
+
+8 lanes / 180 min, code `5a2f0182`, `VERDICT OK`, 0 header violations, 27 runs.
+
+**The feature fires for real** — 86 `[ITEM] using` events across the batch (`Super Potion` on
+Mightyena/Blaziken/Loudred/Grovyle/Combusken, `Potion` on Swellow). It was 0 before, by
+construction.
+
+| metric | `20260809-155844` (before) | `20260809-214515` (after) | z |
+|---|---|---|---|
+| finish rate | 25.0% (8/32) | **33.3% (9/27)** | 0.70 |
+| boss-length battle win rate (>=12 turn records) | 51.1% (425/831) | **53.3% (426/799)** | 0.88 |
+| counter-chain stops per run | 65.6% (21/32) | **55.6% (15/27)** | — |
+| conversion (counter chain) | 34.8% | (chain unchanged this round) | — |
+
+‼ **Everything moved the right way and NOTHING is resolvable.** Both z values are well under 1.96.
+This is a directional result on ~30 runs, exactly the regime this project has repeatedly been
+burned reading as a win. **Do not quote a finish-rate improvement for this feature.**
+
+### ‼ Items still fail to land about a third of the time, and the index space is why
+The no-effect guard fired **32 times** against 86 uses. Flow instrumentation locates it precisely:
+* `confirmed-item` is the last stage for **339** flows — those are **Poké Ball throws**, which
+  pass no target and correctly skip the party menu. Not a fault.
+* **85 targeted uses completed the whole flow** (`returned-to-battle`) and yet 32 battles saw no
+  HP rise. So the flow finishes and the heal lands on the WRONG MON.
+* The logged index pairs show the two spaces disagree constantly: `(party 0, battle-order 1)` x19,
+  `(1, 0)` x12, `(3, 0)` x7, `(2, 0)` x7.
+
+‼ **And the fix from yesterday is only PARTLY right.** Passing the party index took the fixture
+from **1 of 5** item uses landing to **3 of 3**, but `battle_handler`'s after-faint chooser does
+the opposite — it treats `map_battle_party_index()` output as MENU order — and it is correct there
+(that conversion is what fixed KI-34). **So the item-target party menu and the after-faint party
+menu are not ordered the same way**, and neither raw index is universally right.
+
+**NEXT:** determine the ITEM-target menu's ordering directly — log what the cursor is actually
+sitting on (species/HP) at each menu index during a use — rather than reasoning from the other
+menu's convention. The guard makes this safe to leave enabled meanwhile: one wasted turn per
+battle, then items are disabled for that battle.
