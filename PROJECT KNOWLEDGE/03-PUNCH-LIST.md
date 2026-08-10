@@ -1207,6 +1207,17 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       capture a MT_CHIMNEY/JAGGED_PASS anchor with `--driver anchorstory`, then drive
       `--driver groundsweep SWEEP_GROUND=JAGGED_PASS:16,18`. ~20 minutes, and it converts a
       three-week-old deferral into a measured yes/no. **DO THAT BEFORE WRITING THE CHAPTER.**
+      ✅ **RE-TESTED PROPERLY 2026-08-10 (two DRIVEN attempts + a purpose-captured anchor):
+      the blocker is REAL, and the chapter is BUILDABLE with scripted movement.**
+      From the bot's OWN in-descent position `JAGGED_PASS (14,9)` the door and both its
+      neighbours are unreachable while the control (continue to the ROUTE112 exit) succeeds
+      in 34 waypoints. A walkable flood fill shows the door is in the SAME 238-tile region as
+      every warp, so it is **ledge-isolated, not walled off** — `(15,18)`/`(17,18)` are solid
+      and the nearest reachable tile is `(14,18)`, two away.
+      ⇒ **Do not try to fix generic navigation for this. Write the approach as EXPLICIT
+      SCRIPTED MOVEMENT**, which is already this item's own instruction and the project's
+      pattern for ledge terrain. Anchors to develop against now exist:
+      `saves/jagged_descent.ss1` (JAGGED_PASS (14,9)) and `saves/mt_chimney_top.ss1`.
       HISTORY — **DEFERRED.** Door at JAGGED_PASS (16,18) is unreachable from the
       ROUTE112 side (one-way ledges; a 2026-07-26 probe already failed to path there). Only
       approach is ROUTE112 → cable car → MT_CHIMNEY → descend ⇒ ~8 warps + a scripted ride.

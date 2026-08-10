@@ -10394,3 +10394,42 @@ telemetry is no longer truncated. Verified on the fixture: **three uses, three l
 Counter-chain stops were 16 of 20 non-finishes (80%). **This is the empirical case for retiring
 finish rate as a target**: the arithmetic predicted it (≈300 runs ≈ 30 h to resolve a 10-point
 change) and four batches have now confirmed it.
+
+---
+
+## 2026-08-10 — `#24-magmahideout`: the blocker is REAL, and the chapter needs SCRIPTED MOVEMENT
+
+The next unwritten chapter is the Magma Hideout (content ends at `do_mt_pyre_summit()`; there is
+no hideout code). Its 2026-07-26 deferral rested on one static probe, so it was re-tested properly
+— including two DRIVEN attempts and a purpose-captured anchor.
+
+**Decomp facts first** (`JaggedPass/map.json` warps): `(14,40)`/`(15,40)` → ROUTE112,
+`(13,5)`/`(14,5)` → MT_CHIMNEY, and **`(16,18)` → MAGMA_HIDEOUT_1F**. The door tile is walkable.
+
+| approach | result |
+|---|---|
+| MT_CHIMNEY entries (13,5) / (14,5) → door | FAIL (static) |
+| ROUTE112 entry — **DRIVEN** from `lavaridge.ss1` | reached JAGGED_PASS (14,40), then FAIL to (16,19) |
+| MT_CHIMNEY — **DRIVEN** from a captured `mt_chimney_top.ss1` | failed even to leave MT_CHIMNEY (a KI-49 travel failure, not an answer) |
+| **the bot's OWN in-descent position (14,9)** — from `jagged_descent.ss1`, captured out of `do_jagged_descent()` | **FAIL** to the door AND to both its neighbours |
+| CONTROL: (14,9) → ROUTE112 exit (14,40) | **OK, 34 waypoints** |
+
+‼ **And the shape of the obstruction is now known.** A raw 4-way walkable flood fill puts the door
+in the **same 238-tile region as every warp on the map** — so it is not walled off, it is
+**ledge-isolated**: the separation exists only in the DIRECTED graph. `(15,18)` and `(17,18)` are
+solid; the door sits in a one-tile column `(16,17)-(16,19)`, and the nearest reachable tile is
+`(14,18)` — **two tiles away**.
+
+**CONCLUSION — the deferral was right, but the reason matters more than the verdict.** The bot's
+generic navigation cannot deliver it to that door from any entry, including its own descent path.
+‼ What is NOT established is whether that is a game constraint or a KI-24 planner blind spot, and
+**for the chapter it does not matter**: the fix is the same either way.
+
+⇒ **BUILD IT WITH EXPLICIT SCRIPTED MOVEMENT, not `_navigate_riding_out`.** That is already this
+project's pattern for ledge-y terrain and the punch list says so for this very chapter (*"use
+explicit adjacent-map legs, not one generic journey call"*). Two anchors now exist to develop
+against: **`saves/jagged_descent.ss1`** (JAGGED_PASS (14,9), mid-descent) and
+**`saves/mt_chimney_top.ss1`** (MT_CHIMNEY (20,37)).
+
+**Also found:** `#24-r121gate` was already built — the THIRD stale "ready to build" item this week
+(see the punch list). Caught only because the spec was verified before coding.
