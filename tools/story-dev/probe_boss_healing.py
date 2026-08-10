@@ -21,6 +21,21 @@ A HEAL is the same opponent's current HP going UP between consecutive turns of o
 Identity is `(name, max_hp)`, so a switch to a different species — or to the same species with
 different bulk — is not mistaken for healing.
 
+‼ TWO CLASSES OF HEAL, AND ONLY ONE OF THEM IS UNDERSTOOD — do not let a claim mix them.
+Across 2,565 events in two batches the magnitudes split cleanly:
+  * **LARGE (>= `BIG_HEAL_HP`, default 50)** — `Slaking` dominates, at **+106 / +108 / +119** and a
+    median of +81. That is a trainer using a Full Restore / Hyper Potion, and it is the only class
+    any conclusion in this project rests on.
+  * **SMALL (mostly +1 / +2 / +3, decaying smoothly)** — **UNEXPLAINED.** It was investigated on
+    2026-08-10 and the obvious candidate was RULED OUT: held berries would spike at exactly +10
+    (Oran) and +30 (Sitrus), and the histogram shows no such spike — it is a smooth decay
+    (`+1` x374, `+2` x139, `+3` x127, …). Leftovers-style per-turn regen fits the tiny values for
+    small wild mons but not the +14/+15/+16 cluster on `Illumise`. A reading artifact is possible
+    and has not been excluded.
+So the probe reports the two classes SEPARATELY, and the headline number is the large-heal one.
+Anyone extending this should either explain the small class or leave it quarantined — folding it
+into a total would silently inflate every "bosses heal" statement.
+
 ‼ POSITIVE CONTROLS, printed before any result:
   * files and bytes read (`x4-runs/` is gitignored; "no data" must be distinguishable from
     "could not look");
@@ -38,6 +53,10 @@ import glob
 import os
 import re
 import sys
+
+#: Heals at or above this are the understood class (trainer item usage). Below it lies the
+#: unexplained small class — see the module docstring. Quarantined, never folded into a total.
+BIG_HEAL_HP = 50
 
 TURN_RE = re.compile(r"\[TURN (\d+)\] .*? vs ([A-Za-z' .-]+?) L(\d+) (\d+)/(\d+)\s*$")
 START_RE = re.compile(r"\[BATTLE\] started")
@@ -101,15 +120,21 @@ def main() -> int:
 
     healed = [(b, heals_in(b)) for b in battles]
     with_heal = [(b, e) for b, e in healed if e]
+    big = [(b, [e for e in ev if e[3] - e[2] >= BIG_HEAL_HP]) for b, ev in healed]
+    big = [(b, ev) for b, ev in big if ev]
     print()
-    print(f"  battles where an opponent HEALED: {len(with_heal)} of {len(battles)} "
-          f"({100.0*len(with_heal)/len(battles):.1f}%)")
-    print(f"  total heal events: {sum(len(e) for _, e in with_heal)}")
+    print(f"  ⇒ battles with a LARGE heal (>= {BIG_HEAL_HP} HP — the understood class): "
+          f"{len(big)} of {len(battles)} ({100.0*len(big)/len(battles):.1f}%), "
+          f"{sum(len(e) for _, e in big)} events")
+    print(f"     [quarantined] battles with ANY heal incl. the unexplained small class: "
+          f"{len(with_heal)} ({100.0*len(with_heal)/len(battles):.1f}%), "
+          f"{sum(len(e) for _, e in with_heal)} events")
 
     # Long battles are the closest available proxy for boss fights — labelled as a proxy.
     long_battles = [(b, e) for b, e in healed if len(b) >= 12]
     if long_battles:
-        lh = [x for x in long_battles if x[1]]
+        lh = [(b, [e for e in ev if e[3] - e[2] >= BIG_HEAL_HP]) for b, ev in long_battles]
+        lh = [x for x in lh if x[1]]
         print(f"  PROXY — battles of >=12 turn records (boss-length): "
               f"{len(lh)} of {len(long_battles)} show healing "
               f"({100.0*len(lh)/len(long_battles):.1f}%)")

@@ -222,7 +222,7 @@ HP out of the turn records:
 * **`Slaking` healed 27 times, median +81 HP, max +119** (`24 -> 143`, `13 -> 123`, `8 -> 117`, …)
   — Norman restoring his ace from near-death to near-full while the party does **6-8 chip damage a
   turn**.
-* **61.8% of boss-length battles (>=12 turn records) show an opponent healing** (455 of 736).
+* **17.0% of boss-length battles show a LARGE (>=50 HP) heal** — i.e. trainer item usage. ‼ An earlier figure of 61.8% was INFLATED: it counted any HP increase, including an unexplained small class (+1/+2/+3) that is now quarantined in the probe. See `07-CHANGELOG` 2026-08-10.
 ‼ Honest edge: of 1,261 heal events, **140 are >=50 HP** (Slaking dominates, unmistakable item
 usage) but **386 are <=5 HP** and mid-size ones cluster on wild species — those are **unexplained**
 and no claim rests on them. The Slaking result stands alone.

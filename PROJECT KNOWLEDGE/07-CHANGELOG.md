@@ -10283,3 +10283,34 @@ Verified on the deterministic fixture: two uses, both `✔ landed using the part
 `24/120 → 120/120` and `23/120 → 120/120`. ‼ The fixture only ever heals the ACTIVE mon at party
 slot 0, where the spaces agree — which is precisely why it could not settle the question and a
 batch is needed. Those `✔ landed using the …-order index` lines are the dataset.
+
+---
+
+## 2026-08-10 — ‼ CORRECTION: "61.8% of boss-length battles show an opponent healing" was INFLATED
+
+That figure was quoted in the 2026-08-09 batch entry, in `04-HANDOFF.md`, and to the user. It
+counted **any** HP increase, and `probe_boss_healing.py` has since been split into two classes
+because only one of them is understood:
+
+| | figure |
+|---|---|
+| boss-length battles with **any** heal (as previously quoted) | 61.8% |
+| boss-length battles with a **LARGE** heal (>= 50 HP — trainer item usage) | **17.0%** |
+| all battles with a large heal | 130 of 17,480 = **0.7%** (160 events) |
+
+**The corrected number is 17.0%.** The difference is the unexplained small class (+1/+2/+3,
+decaying smoothly), which was investigated on 2026-08-10: held berries are RULED OUT (they would
+spike at exactly +10 Oran / +30 Sitrus and the histogram shows no spike), Leftovers-style regen
+fits the tiny values but not the +14/+15/+16 cluster on `Illumise`, and a reading artifact has not
+been excluded. It is now quarantined in the probe rather than folded into a total.
+
+**What does NOT change:** `Slaking` still dominates the large class outright — `18 -> 133`,
+`6 -> 117`, `33 -> 143`, `11 -> 116`, `19 -> 122` — so Norman really does restore his ace from
+near-death to near-full, repeatedly, and that remains the motivation for `#24-battleitems`. What
+changes is the claim's SCOPE: boss healing is a real and severe problem *in the fights where it
+happens*, not a property of most boss-length battles.
+
+‼ Prevention rule, and it is the same one this project keeps relearning: **a metric that sums two
+populations you cannot both explain is not a measurement.** The small class was flagged as
+unexplained the moment it was found and no conclusion was built on it — but it was still allowed
+into a headline percentage, which is how it reached the user.
