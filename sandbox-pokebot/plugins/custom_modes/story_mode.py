@@ -433,8 +433,12 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
         self._hp_seen: dict = {}
         #: ‼ NO-OP DETECTOR (see `_maybe_use_item`). HP at the moment we last asked for an item.
         self._hp_when_item_requested = None
-        #: set once an item request demonstrably did nothing; stops this battle wasting more turns
+        #: set once BOTH index spaces have demonstrably done nothing; stops wasting more turns
         self._items_ineffective = False
+        #: which index space to address the party menu in — see the self-correcting block below
+        self._index_space = "party"
+        #: only ever flip once per battle, so a failure costs one extra turn and not a loop
+        self._index_space_flipped = False
 
     def decide_turn(self, battle_state):
         try:
@@ -474,13 +478,42 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
         # That bounds the damage to one wasted turn while the execution bug is still open.
         if self._hp_when_item_requested is not None:
             if mon.current_hp <= self._hp_when_item_requested:
-                self._items_ineffective = True
+                # ‼‼ SELF-CORRECTING INDEX SPACE (2026-08-10) — because the question cannot be
+                # settled by reading the code. Measured: 85 targeted uses completed the FULL menu
+                # flow and 32 battles saw no HP rise, so the potion lands on the WRONG MON; and
+                # the two candidate spaces disagree constantly in the logs (`party 0` vs
+                # `battle-order 1` x19, `(1,0)` x12). The after-faint chooser treats
+                # `map_battle_party_index()` as MENU order and is right there (that is the KI-34
+                # fix), while the fixture proved the PARTY index right for the item menu — so the
+                # two menus are simply not ordered the same way, and a third guess would be a
+                # guess. Instead: when a use demonstrably does nothing, FLIP the space and try
+                # once more, and LOG which one worked. One wasted turn buys the answer, and a
+                # batch of these lines settles the convention with data instead of argument.
+                if not self._index_space_flipped:
+                    self._index_space_flipped = True
+                    self._index_space = "battle" if self._index_space == "party" else "party"
+                    note = f"retrying with the {self._index_space}-order index"
+                else:
+                    self._items_ineffective = True
+                    note = "both index spaces failed; disabling items for the rest of this battle"
                 try:
                     from modules import debug_logger
 
                     debug_logger.event(
-                        f"[ITEM] ‼ no effect (HP still {mon.current_hp}/{mon.total_hp}) — item use "
-                        f"is not executing; disabling items for the rest of this battle",
+                        f"[ITEM] ‼ no effect (HP still {mon.current_hp}/{mon.total_hp}) — {note}",
+                        category="BATTLE",
+                    )
+                except Exception:  # noqa: BLE001
+                    pass
+            elif self._item_uses == 1 or self._index_space_flipped:
+                # It WORKED — record which space did it. This is the line that answers the
+                # question across a batch.
+                try:
+                    from modules import debug_logger
+
+                    debug_logger.event(
+                        f"[ITEM] ✔ landed using the {self._index_space}-order index "
+                        f"(HP now {mon.current_hp}/{mon.total_hp})",
                         category="BATTLE",
                     )
                 except Exception:  # noqa: BLE001
@@ -516,9 +549,16 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
             )
         except Exception:  # noqa: BLE001
             pass
-        # ‼ `use_item_on` takes the REGULAR party index; `battle_action_use_item` converts it via
-        # `map_battle_party_index`. Passing a battle-order index here would be the KI-34 bug.
-        return TurnAction.use_item_on(item, mon.party_index)
+        # ‼ THE STRATEGY OWNS THE INDEX SPACE, not the menu driver. `battle_action_use_item` now
+        # uses whatever index it is given verbatim, so the choice — and the self-correction above
+        # — belong here, where the outcome can actually be observed.
+        target = mon.party_index
+        if self._index_space == "battle":
+            try:
+                target = battle_state.map_battle_party_index(mon.party_index)
+            except Exception:  # noqa: BLE001
+                target = mon.party_index
+        return TurnAction.use_item_on(item, target)
 
 
 class SwapTrainBattleStrategy(LevelUpTravelBattleStrategy):

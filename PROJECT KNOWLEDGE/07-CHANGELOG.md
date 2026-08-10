@@ -10254,3 +10254,32 @@ menu are not ordered the same way**, and neither raw index is universally right.
 sitting on (species/HP) at each menu index during a use — rather than reasoning from the other
 menu's convention. The guard makes this safe to leave enabled meanwhile: one wasted turn per
 battle, then items are disabled for that battle.
+
+---
+
+## 2026-08-10 — `#24-battleitems`: the index space now SELF-CORRECTS and reports which one worked
+
+The open question was which index space the ITEM-target party menu uses. It cannot be settled by
+reading the code: the after-faint chooser treats `map_battle_party_index()` as MENU order and is
+demonstrably right there (that conversion is the KI-34 fix), while the fixture proved the PARTY
+index right for the item menu. Two menus, two conventions, and a third guess would be a guess.
+
+**So the code now answers it empirically.** When a use demonstrably does nothing (HP did not rise
+by the next decision), the strategy **flips the index space and tries once more**, then logs which
+one landed:
+```
+[ITEM] ✔ landed using the party-order index (HP now 120/120)
+[ITEM] ‼ no effect (HP still 23/120) — retrying with the battle-order index
+[ITEM] ‼ no effect (...) — both index spaces failed; disabling items for the rest of this battle
+```
+Bounded: the flip happens **once per battle**, so a wrong first guess costs one turn rather than a
+loop, and if both fail items are disabled for that battle exactly as before.
+
+‼ **The index choice moved OUT of `battle_action_use_item` and INTO the strategy**, which is the
+layer that can actually observe the outcome. The menu driver now uses the index it is given
+verbatim.
+
+Verified on the deterministic fixture: two uses, both `✔ landed using the party-order index`,
+`24/120 → 120/120` and `23/120 → 120/120`. ‼ The fixture only ever heals the ACTIVE mon at party
+slot 0, where the spaces agree — which is precisely why it could not settle the question and a
+batch is needed. Those `✔ landed using the …-order index` lines are the dataset.
