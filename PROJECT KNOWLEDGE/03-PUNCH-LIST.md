@@ -533,6 +533,26 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       ‼ Do not read the `wally_done` run as evidence: `arrived=True` there says Route 116 is
       reachable from PETALBURG in the early game, which is not the question.
 
+- [~] `#24-battleitems` — **USER DIRECTIVE 2026-08-09: "use items intelligently and
+      strategically." BUILT, ROOT-CAUSED, FIXED — but its OUTCOME EFFECT IS UNMEASURED.**
+      Motivated by measurement: `Slaking` healed **27 times, median +81 HP** in batch
+      `20260809-155844` while the bot never used an item; 61.8% of boss-length battles show an
+      opponent heal; boss losses end ~88% of non-finishing runs.
+      * `modules/story/battle_items.py` — PURE policy (heal amounts from `items.json`, never
+        memory). Four rules: only below 35% HP; **cheapest sufficient** item; **never heal into a
+        losing race**; **bounded per battle** (the opponent heals too — unbounded is an infinite
+        battle, the KI-34 shape). `repro_battle_items.py`: **27 checks, ALL PASS**, no emulator.
+      * `StoryItemBattleStrategy` — TRAINER battles only, fails open, so wilds/training/catching
+        are bit-identical to before.
+      * ‼ **Found and fixed a real bug in `battle_action_use_item`**: it fed a BATTLE-order index
+        into a PARTY-MENU scroll, so item use silently did nothing whenever the active mon was not
+        at index 0 (5 requests → 1 consumed). After the fix: **3 requests → 3 consumed, Blaziken
+        `23/120` → `120/120`**. Ball throwing passes no target and never enters that branch.
+      * A **no-op guard** remains: if a request does not raise HP by the next decision, items are
+        disabled for that battle (bounds the cost to one turn if execution ever breaks again).
+      **NEXT: a batch.** Acceptance should be **boss-battle win rate**, not the finish rate. ‼ Do
+      NOT quote the fixture's `badge=True` as proof — it reproduced even when items did nothing.
+
 - [ ] `#24-r110mauville` — **NEW 2026-08-09, MEASURED (KI-48).** `_navigate_riding_out` cannot
       walk ROUTE110 → MAUVILLE_CITY: **3/3 identical deterministic failures** at (16, 89), with
       the planner enumerating only Mauville's **six building doors** and never the map

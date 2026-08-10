@@ -306,23 +306,56 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
 
 @debug.track
 def battle_action_use_item(battle_state: BattleState, item: Item, target_index: int = 0):
+    # ‼ `#24-battleitems` INSTRUMENTATION (2026-08-09). This flow is SELECTED BUT DOES NOT
+    # RELIABLY EXECUTE: measured 5 requests -> **1 potion actually consumed**, with `Hyper Potion`
+    # chosen four times on one turn of the Norman fight and HP frozen at 23/120. Every failed
+    # request costs a turn in the fight this feature exists for, so the flow needs to say WHERE it
+    # loses the thread rather than failing silently. One line per stage, log-only, never raises.
+    def _stage(name: str) -> None:
+        try:
+            from modules import debug_logger
+
+            debug_logger.event(
+                f"[ITEM-FLOW] {name} state={get_game_state_symbol()!r} item={item.name}",
+                category="BATTLE",
+            )
+        except Exception:  # noqa: BLE001
+            pass
+
+    _stage("enter")
     yield from scroll_to_battle_action(1)
     context.emulator.press_button("A")
     yield
+    _stage("opened-bag")
     yield from scroll_to_item_in_bag(item)
+    _stage("scrolled-to-item")
     context.emulator.press_button("A")
     for _ in range(4 if context.rom.is_rse else 5):
         yield
     context.emulator.press_button("A")
     yield
+    _stage("confirmed-item")
     if target_index is not None:
+        # ‼‼ INDEX-SPACE BUG (`#24-battleitems`, 2026-08-09) — THE KI-34 SHAPE, AGAIN.
+        # This used to feed `map_battle_party_index(target_index)` — a BATTLE-order index — into
+        # `scroll_to_party_menu_index`, which drives the PARTY MENU cursor. Those two spaces are
+        # not the same, and KI-34 is the entry that documents exactly this class of bug
+        # ("prove two integers share a coordinate system before comparing them").
+        # Measured: the one item use that WORKED logged `target=0->0` (the spaces happened to
+        # agree, hiding the bug); the four that silently did nothing logged `target=0->1` for the
+        # very same Blaziken, so the cursor was sent to the wrong entry and the use was cancelled.
+        # The menu is driven in PARTY order, so pass the party index straight through. Both
+        # numbers stay in the log so a regression here is one grep away.
         in_battle_index = battle_state.map_battle_party_index(target_index)
-        yield from scroll_to_party_menu_index(in_battle_index)
+        _stage(f"party-menu target={target_index} (battle-order would be {in_battle_index})")
+        yield from scroll_to_party_menu_index(target_index)
         context.emulator.press_button("A")
         yield
+        _stage("target-chosen")
         while get_game_state_symbol() != "BATTLEMAINCB2":
             context.emulator.press_button("B")
             yield
+        _stage("returned-to-battle")
 
 
 @debug.track

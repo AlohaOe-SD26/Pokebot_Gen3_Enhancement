@@ -10176,3 +10176,40 @@ disabling items for the rest of this battle"* — **1 wasted turn instead of 4.*
 
 **NEXT: fix `battle_action_use_item`.** That is the whole remaining distance between this feature
 and a working answer to boss healing.
+
+### ‼ ROOT-CAUSED AND FIXED THE SAME SESSION — `battle_action_use_item` fed the WRONG INDEX SPACE
+
+Stage-by-stage instrumentation of the item flow made the difference between the one request that
+worked and the four that did nothing visible in a single line:
+
+```
+WORKS : [ITEM-FLOW] party-menu target=0->0   <- the two index spaces happened to AGREE
+FAILS : [ITEM-FLOW] party-menu target=0->1   <- same Blaziken, cursor sent to the wrong entry
+```
+
+`battle_action_use_item` converted the party index with `map_battle_party_index()` — a **BATTLE**-
+order index — and handed it to `scroll_to_party_menu_index()`, which drives the **PARTY MENU**
+cursor. Different coordinate systems. **This is the KI-34 shape exactly**, and KI-34's own
+prevention rule is *"prove two integers share a coordinate system before comparing them"*. The bug
+was invisible whenever the active mon sat at index 0, which is why one use worked.
+
+**Fix:** pass the party index straight through; both numbers stay in the log so a regression is
+one grep away. **Proven live on the same deterministic repro:**
+
+| | before | after |
+|---|---|---|
+| requests → potions consumed | 5 → **1** | 3 → **3** |
+| HP after a use | frozen at `23/120` | **`23/120` → `120/120`** |
+| bag (4 stocked) | 3 left | **1 left** |
+
+`[TURN 3] Blaziken 23/120 -> UseItem` then `[TURN 4] Blaziken 120/120` — the heal lands.
+
+‼ **Blast radius is provably narrow:** the party-menu branch only runs when a TARGET is supplied.
+Ball throwing uses `use_item(item)`, which returns a bare item and no target, so the catching path
+never enters the changed code. Suite check after the change: `repro_battle_items` 27/27,
+`repro_counter_hunt`, `repro_counter_huntable` all green.
+
+**Status: the feature now FUNCTIONS.** ‼ What is NOT yet established is that it improves OUTCOMES
+— the badge win in these arms reproduced even when items did nothing, so it is a deterministic
+turn-order divergence and must not be quoted as the feature working. **A batch is the next step**,
+and its acceptance metric should be boss-battle win rate, not the finish rate.
