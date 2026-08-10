@@ -10364,3 +10364,33 @@ EMPIRICAL (29 observations), not a proof, which is exactly why the flip stays. E
 and the acceptance metric for the next batch: **flips should collapse from 20 toward 0** while
 landings hold or rise. Verified no regression on the fixture (target is slot 0, still lands
 first try: `24/120 → 120/120`, `23/120 → 120/120`).
+
+---
+
+## 2026-08-10 — BATCH `20260810-082509` validates the index rule, and the detector bug is FIXED
+
+**Batch, VERDICT OK, 0 violations, 28 runs.** Acceptance was "flips collapse from 20 toward 0":
+
+| | `20260810-035733` | `20260810-082509` |
+|---|---|---|
+| flips to the other index space | **20** | **2** |
+| both index spaces failed | **10** | **0** |
+| landings recorded | 29 | 15 |
+
+**The data-derived rule works** (first guess = party-order for slot 0, battle-order above it), and
+`both failed: 0` independently corroborates the detector-bug diagnosis — those 10 were mislabelled
+faints, not item failures. The verdict stays **conditional**: one flip to battle-order landed, so
+party-order is not universal and the self-correction keeps earning its place.
+
+**Detector fixed the same session.** `_hp_when_item_requested` now stores `(party_index, hp)`, and
+the check returns NO VERDICT when the active mon is a different Pokémon or is fainted — instead of
+blaming the item for a death. The landing log also widened from "first use only" to every use, so
+telemetry is no longer truncated. Verified on the fixture: **three uses, three landings**
+(`24/120`, `23/120`, `5/120` all → `120/120`), where the previous build recorded only two.
+`repro_battle_items.py` 27/27 green.
+
+‼ **Finish rate 28.6% (8/28) — the FOURTH unresolvable reading.** The series is now
+**25.0 → 33.3 → 16.1 → 28.6%**, mean ≈25.8%, no pair resolvable, ~12 hours of batching spent.
+Counter-chain stops were 16 of 20 non-finishes (80%). **This is the empirical case for retiring
+finish rate as a target**: the arithmetic predicted it (≈300 runs ≈ 30 h to resolve a 10-point
+change) and four batches have now confirmed it.

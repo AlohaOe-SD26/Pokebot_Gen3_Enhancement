@@ -431,7 +431,9 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
         self._worst_hit = 0
         #: last seen HP per party index, to derive the above
         self._hp_seen: dict = {}
-        #: ‼ NO-OP DETECTOR (see `_maybe_use_item`). HP at the moment we last asked for an item.
+        #: ‼ NO-OP DETECTOR (see `_maybe_use_item`). `(party_index, hp)` at the moment we last
+        #: asked for an item — the INDEX is half the value: without it the check compares two
+        #: different Pokémon. See `08-MISTAKES` 2026-08-10.
         self._hp_when_item_requested = None
         #: set once BOTH index spaces have demonstrably done nothing; stops wasting more turns
         self._items_ineffective = False
@@ -479,7 +481,17 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
         # So: if a request did not raise our HP by the next decision, stop asking for this battle.
         # That bounds the damage to one wasted turn while the execution bug is still open.
         if self._hp_when_item_requested is not None:
-            if mon.current_hp <= self._hp_when_item_requested:
+            requested_index, requested_hp = self._hp_when_item_requested
+            # ‼‼ ONLY JUDGE THE SAME POKÉMON, AND ONLY IF IT IS STILL ALIVE (fixed 2026-08-10).
+            # This check used to read `own_side.left_battler` at the next decision and compare it
+            # against the HP recorded for whoever asked for the item — but after a faint that is
+            # the REPLACEMENT mon, so the guard blamed the item for a death. Measured: **9 of the
+            # 10 "both index spaces failed" verdicts** in batch `20260810-035733` were immediately
+            # followed by a `[FAINT-CHOOSER]`. A before/after comparison must prove it is
+            # comparing the same subject.
+            if mon.party_index != requested_index or mon.current_hp == 0:
+                self._hp_when_item_requested = None
+            elif mon.current_hp <= requested_hp:
                 # ‼‼ SELF-CORRECTING INDEX SPACE (2026-08-10) — because the question cannot be
                 # settled by reading the code. Measured: 85 targeted uses completed the FULL menu
                 # flow and 32 battles saw no HP rise, so the potion lands on the WRONG MON; and
@@ -507,7 +519,7 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
                     )
                 except Exception:  # noqa: BLE001
                     pass
-            elif self._item_uses == 1 or self._index_space_flipped:
+            elif self._item_uses >= 1:
                 # It WORKED — record which space did it. This is the line that answers the
                 # question across a batch.
                 try:
@@ -540,7 +552,7 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
             return None
 
         self._item_uses += 1
-        self._hp_when_item_requested = mon.current_hp
+        self._hp_when_item_requested = (mon.party_index, mon.current_hp)
         try:
             from modules import debug_logger
 
