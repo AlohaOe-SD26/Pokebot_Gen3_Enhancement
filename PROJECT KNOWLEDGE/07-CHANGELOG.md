@@ -10079,3 +10079,49 @@ next batch answers it directly instead of by inference. `probe_fainted_ace.py` c
 rewritten to read `hp=` at battle start rather than guess from the first faint.
 ‼ Log-only, same contract as part 1: inside a try/except, `<unreadable>` on any error, and it
 fires once per battle.
+
+---
+
+## 2026-08-09 — BATCH `20260809-155844`: the preparation hypothesis is DEAD, boss HEALING is real
+
+8 lanes / 180 min, code `728320fe`, `VERDICT OK`, 0 header violations, 32 runs, finish rate 25.0%.
+Counter chain conversion 8/23 = 34.8% (vs 39.1%, z = −0.31, not resolvable — stable).
+**21 of 24 non-finishes (87.5%) are still the counter chain's "no super-effective answer" stop.**
+
+### ‼ REFUTED: "the bot arrives at bosses with a fainted party"
+The `normancounter` anchor showed the ace at 0/120 entering Norman, and that looked like the
+biggest lever in the project. Measured directly across the batch (`[BATTLE] started hp=...`,
+16,749 battles, control: 35.5% entered at FULL health):
+
+| | rate |
+|---|---|
+| battles entered with **>=1 mon fainted** | **6.4%** |
+| battles entered with the **ace** fainted | **2.9%** |
+| mean party HP at battle start | **90.6%** |
+| last battle of each run, >=1 fainted | 17.5% (n=40) |
+
+**The anchor was not representative, and the hypothesis does not generalise.** ‼ This is also the
+retirement of the inference-based reading that returned **99.4%** — it was never promoted to a
+finding precisely because ~99% looked like a misreading, and the direct measurement confirms it
+was. `probe_fainted_ace.py` has been rewritten to read the `hp=` field instead of inferring.
+
+### ‼ CONFIRMED, and quantified: bosses HEAL, and the bot has no answer
+`probe_boss_healing.py` (new) reads opponent HP from the turn records and counts increases for the
+same opponent identity `(name, max_hp)` within a battle:
+
+* **`Slaking` healed 27 times, median +81 HP, max +119** (`24 -> 143`, `13 -> 123`, `8 -> 117`, …).
+  That is Norman restoring his ace from near-death to near-full, repeatedly, while the party does
+  6-8 chip damage a turn.
+* **61.8% of boss-length battles (>=12 turn records) show an opponent healing** (455 of 736).
+* Overall 831 of 16,709 battles (5.0%), 1,261 heal events.
+
+‼ **Not everything here is explained, and it is not being smoothed over.** Splitting by size:
+**140 events are >=50 HP** (Slaking dominates — unmistakable item usage), while **386 are <=5 HP**
+and mid-size ones cluster on wild species (`Illumise` median +10, `Nincada` median +1). Those small
+increases have NOT been explained — plausibly a different mechanic or a reading artifact in double
+battles — and no claim rests on them. **The Slaking result stands on its own.**
+
+⇒ **The counter chain's diagnosis is answering the wrong question.** A super-effective attacker
+does not beat an opponent that restores 81 HP a time; the answers are burst damage, the bot using
+its own items, or not entering a fight it cannot close. That is a design decision for the user,
+not a bug to fix unilaterally.
