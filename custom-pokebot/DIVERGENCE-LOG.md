@@ -901,3 +901,24 @@ after any recognised decision, so every branch is covered by one insertion.
   type coverage** — the ace arrives fainted, Norman heals, and the counter is frail. See
   `04-HANDOFF.md`. ‼ It is NOT established that the test anchor represents real runs; the next
   step is to look for the same fainted-ace signature in a batch, which this telemetry now permits.
+
+---
+
+## 2026-08-09 (third) — PROMOTION: `#24-bosstelemetry` part 2 — party HP at `[BATTLE] started` (1 file)
+
+**User-approved 2026-08-09.** `modules/debug_logger.py` now records the party with HP when a
+battle opens:
+```
+[BATTLE] started hp=[('Blaziken', 23, 120), ('Shedinja', 1, 1), ('Whismur', 52, 52), ...]
+```
+Log-only, inside a `try/except`, `<unreadable>` on any error, once per battle.
+
+**It earned its place immediately by KILLING a hypothesis I was about to build on.** An earlier
+probe INFERRED the opening party state from the after-faint chooser and reported that **99.4%** of
+battles began with a mon already down; that was never promoted to a finding because ~99% looks
+like a misreading. This field measured it directly over **16,749 battles**: **6.4%** start with any
+mon fainted, **2.9%** with the ace fainted, mean party health **90.6%** (control: 35.5% of battles
+start at FULL health). The single anchor that motivated the hypothesis was simply not
+representative.
+
+`custom-pokebot` and `sandbox-pokebot` are at **zero source drift** after this promotion.
