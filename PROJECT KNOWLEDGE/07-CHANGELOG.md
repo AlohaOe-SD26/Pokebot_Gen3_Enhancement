@@ -10125,3 +10125,54 @@ battles — and no claim rests on them. **The Slaking result stands on its own.*
 does not beat an opponent that restores 81 HP a time; the answers are burst damage, the bot using
 its own items, or not entering a fight it cannot close. That is a design decision for the user,
 not a bug to fix unilaterally.
+
+---
+
+## 2026-08-09 — `#24-battleitems`: policy BUILT and unit-proven; execution BLOCKED by a menu bug
+
+**User directive:** *"I want the bot to use items intelligently and strategically."* Motivated by
+measurement: batch `20260809-155844` showed `Slaking` healed **27 times, median +81 HP**, 61.8% of
+boss-length battles involving an opponent heal, and the bot never using an item.
+
+**Shipped (sandbox):**
+* `modules/story/battle_items.py` — a **PURE** policy, no emulator, no game state. Heal amounts
+  come from `modules/data/items.json` (`battle_use == "healing"`, `parameter` = HP, 255 = full) —
+  **not from memory**, per the standing rule. Four rules, each with its rationale in the file:
+  (1) only below 35% HP; (2) **cheapest sufficient** item, so a Full Restore is never burned on a
+  scratch; (3) **never heal into a losing race** — if our best heal is smaller than the biggest hit
+  taken, attack instead; (4) **bounded per battle**, because the opponent heals too and two
+  healers with no bound is an infinite battle (the KI-34 shape).
+* `repro_battle_items.py` — **27 checks, ALL PASS**, no emulator. Includes a positive control (a
+  function that always returned None would pass half the suite) and a real-data check that fails
+  if `items.json` stops saying what the policy assumes.
+* `StoryItemBattleStrategy` in `story_mode.py` — supplies HP/bag/worst-hit to the policy and turns
+  its answer into `TurnAction.use_item_on(item, party_index)` (‼ the REGULAR party index —
+  `battle_action_use_item` converts it; passing a battle-order index would be the KI-34 bug).
+  **Scoped to TRAINER battles only** and it **fails open**, so wilds, training and catching are
+  bit-identical to before.
+
+**‼ AND IT DOES NOT WORK YET — the honest result of the live A/B.** Same save, same L26 counter,
+same 4 Hyper Potions stocked in both arms; only the strategy differs:
+
+| arm | item requests | potions actually consumed | outcome |
+|---|---|---|---|
+| OLD strategy | 0 | 0 | lost (whiteout) |
+| NEW strategy | 5 | **1** | badge=True |
+
+The Norman battle shows `Hyper Potion` selected **four times on the SAME turn** with HP frozen at
+`23/120`, and the bag afterwards held **3 of 4** potions. **`TurnAction.UseItem` is selected but
+not executed** — the failure lives in the battle-menu flow (`battle_action_use_item`), not in the
+policy. Each failed request costs a TURN.
+
+‼ **THE BADGE WIN IS NOT EVIDENCE THE FEATURE WORKS, and must not be quoted as such.** With the
+guard added (below) the Norman battle used **zero** effective items and still won, so the win is
+almost certainly a deterministic turn-order/RNG divergence from the extra menu turn — the harness
+is deterministic, which is why it reproduces.
+
+**Guard added, because shipping without it would be a REGRESSION** in exactly the fight this was
+built for: if a request does not raise our HP by the next decision, items are disabled for the
+rest of that battle. Verified live — *"‼ no effect (HP still 23/120) — item use is not executing;
+disabling items for the rest of this battle"* — **1 wasted turn instead of 4.**
+
+**NEXT: fix `battle_action_use_item`.** That is the whole remaining distance between this feature
+and a working answer to boss healing.

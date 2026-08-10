@@ -397,6 +397,130 @@ class LevelUpTravelBattleStrategy(LevelUpLeadBattleStrategy):
         return True
 
 
+class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
+    """`#24-battleitems` — fights like LevelUpTravel, but USES HEALING ITEMS in trainer battles.
+
+    USER DIRECTIVE 2026-08-09: *"I want the bot to use items intelligently and strategically."*
+
+    ‼ WHY, MEASURED. Batch `20260809-155844` (16,749 battles) found **the opponent healing and the
+    bot never doing so**: Norman's `Slaking` was restored **27 times, median +81 HP, max +119**
+    while the party did 6-8 chip damage a turn, and **61.8% of boss-length battles** show an
+    opponent heal. Boss losses end **~88% of all non-finishing runs**. The counter chain answers
+    "what type beats this" — which cannot beat an opponent that out-heals us.
+
+    ‼ SCOPE IS TRAINER BATTLES ONLY, deliberately. Wild encounters keep the existing behaviour
+    exactly: spending potions on a route wild is the opposite of "strategically", and narrowing
+    the blast radius means a mistake here cannot touch the training/catching paths that are
+    already measured and working.
+
+    ‼ THE POLICY IS NOT IN THIS CLASS. It lives in `modules/story/battle_items.py` as a PURE
+    function so it can be tested exhaustively without an emulator (`repro_battle_items.py`, 27
+    checks). This class only supplies the facts the policy needs — current HP, what is in the bag,
+    the biggest hit taken so far — and turns its answer into a `TurnAction`.
+
+    ‼ AND IT FAILS OPEN. Every part of the decision is wrapped so that any error falls straight
+    through to the normal strategy: a new feature must not be able to break a battle that worked
+    before it existed.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        #: items used THIS battle — the bound that stops a heal-war with a healing boss
+        self._item_uses = 0
+        #: biggest single HP loss observed this battle, for the "don't heal into a losing race" rule
+        self._worst_hit = 0
+        #: last seen HP per party index, to derive the above
+        self._hp_seen: dict = {}
+        #: ‼ NO-OP DETECTOR (see `_maybe_use_item`). HP at the moment we last asked for an item.
+        self._hp_when_item_requested = None
+        #: set once an item request demonstrably did nothing; stops this battle wasting more turns
+        self._items_ineffective = False
+
+    def decide_turn(self, battle_state):
+        try:
+            action = self._maybe_use_item(battle_state)
+        except Exception:  # noqa: BLE001 - a battle that worked before must keep working
+            action = None
+        if action is not None:
+            return action
+        return super().decide_turn(battle_state)
+
+    def _maybe_use_item(self, battle_state):
+        from modules.battle_state import BattleType
+        from modules.items import ItemBattleUse, get_item_bag
+        from modules.story.battle_items import choose_healing_item
+
+        if BattleType.Trainer not in battle_state.type:
+            return None  # wilds keep the existing behaviour, untouched
+        mon = battle_state.own_side.left_battler
+        if mon is None or mon.total_hp <= 0:
+            return None
+
+        # Track the biggest hit we have actually taken, per mon, so the policy can refuse to
+        # heal when healing would still lose the exchange.
+        previous = self._hp_seen.get(mon.party_index)
+        if previous is not None and previous > mon.current_hp:
+            self._worst_hit = max(self._worst_hit, previous - mon.current_hp)
+        self._hp_seen[mon.party_index] = mon.current_hp
+
+        # ‼‼ NO-OP DETECTOR — MEASURED NECESSARY, NOT DEFENSIVE PROGRAMMING (2026-08-09).
+        # The first live A/B of this feature selected `Hyper Potion` FOUR times on the SAME turn
+        # of the Norman fight with HP frozen at `23/120`, and the bag afterwards showed **3 of 4
+        # potions still there** — i.e. one of five requests actually consumed an item. The battle
+        # menu flow does not reliably execute a `UseItem` action, and each failed request costs a
+        # TURN. Without this guard the feature is a REGRESSION in exactly the fight it was built
+        # for: four donated turns against a boss.
+        # So: if a request did not raise our HP by the next decision, stop asking for this battle.
+        # That bounds the damage to one wasted turn while the execution bug is still open.
+        if self._hp_when_item_requested is not None:
+            if mon.current_hp <= self._hp_when_item_requested:
+                self._items_ineffective = True
+                try:
+                    from modules import debug_logger
+
+                    debug_logger.event(
+                        f"[ITEM] ‼ no effect (HP still {mon.current_hp}/{mon.total_hp}) — item use "
+                        f"is not executing; disabling items for the rest of this battle",
+                        category="BATTLE",
+                    )
+                except Exception:  # noqa: BLE001
+                    pass
+            self._hp_when_item_requested = None
+        if self._items_ineffective:
+            return None
+
+        options = [
+            (slot.item, slot.quantity, slot.item.parameter)
+            for slot in get_item_bag().items
+            if slot.item.battle_use is ItemBattleUse.Healing and slot.item.parameter > 0
+        ]
+        item = choose_healing_item(
+            mon.current_hp,
+            mon.total_hp,
+            options,
+            worst_hit_taken=self._worst_hit,
+            uses_so_far=self._item_uses,
+        )
+        if item is None:
+            return None
+
+        self._item_uses += 1
+        self._hp_when_item_requested = mon.current_hp
+        try:
+            from modules import debug_logger
+
+            debug_logger.event(
+                f"[ITEM] using {item.name} on {getattr(mon.species, 'name', '?')} "
+                f"{mon.current_hp}/{mon.total_hp} (use {self._item_uses}, worst hit {self._worst_hit})",
+                category="BATTLE",
+            )
+        except Exception:  # noqa: BLE001
+            pass
+        # ‼ `use_item_on` takes the REGULAR party index; `battle_action_use_item` converts it via
+        # `map_battle_party_index`. Passing a battle-order index here would be the KI-34 bug.
+        return TurnAction.use_item_on(item, mon.party_index)
+
+
 class SwapTrainBattleStrategy(LevelUpTravelBattleStrategy):
     """SWAP-TRAINING (user directive 2026-07-21). Level a weak team member by having a
     stronger team-mate secure the KO while the trainee (which was sent out first)
@@ -2130,7 +2254,12 @@ class StoryMode(BotMode):
         # refuses to flee a TRAINER battle (single-mon party can't — see ML-8),
         # fighting on instead; used for training wilds, the rival, and route
         # trainers. The scripted first battle is a Tutorial (framework-handled).
-        return LevelUpTravelBattleStrategy()
+        #
+        # ‼ `#24-battleitems` (user directive 2026-08-09): this is now the ITEM-AWARE subclass.
+        # It is a strict superset — `StoryItemBattleStrategy` only acts in TRAINER battles, and
+        # falls through to exactly this behaviour everywhere else and whenever its policy says
+        # no. Wild encounters, training and catching are therefore bit-identical to before.
+        return StoryItemBattleStrategy()
 
     def run(self) -> Generator:
         # DEFEAT / WHITEOUT RECOVERY (user directive 2026-07-21): the segmented resume

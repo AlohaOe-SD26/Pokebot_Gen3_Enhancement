@@ -1146,9 +1146,16 @@ class NormanCounterMode(BotMode):
         return "NormanCounter"
 
     def on_battle_started(self, encounter):
-        from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+        # ‼ `#24-battleitems` A/B (2026-08-09). `NORMAN_STRATEGY=old` forces the PRE-FEATURE
+        # strategy so the two arms differ in exactly one thing: whether the bot may use items.
+        # Default is the production strategy, so this fixture keeps testing what actually ships.
+        import os
 
-        return LevelUpTravelBattleStrategy()
+        from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy, StoryItemBattleStrategy
+
+        if os.environ.get("NORMAN_STRATEGY", "new").strip().lower() == "old":
+            return LevelUpTravelBattleStrategy()
+        return StoryItemBattleStrategy()
 
     def run(self):
         import os
@@ -1161,6 +1168,38 @@ class NormanCounterMode(BotMode):
 
         level = int(os.environ.get("NORMAN_MACHOP_LEVEL", "18"))
         yield from wait_until_truly_controllable()
+
+        # ‼ FIXTURE WRITE — STOCK THE BAG (`NORMAN_ITEMS`, default `4x Hyper Potion`).
+        # `prenorman_fodder_grind.ss1` holds **zero** healing items (measured), so without this
+        # the `#24-battleitems` arms would differ in nothing and the A/B would silently compare
+        # two identical runs — the "a fixture must create its condition" rule, which has already
+        # cost this project two wasted runs today. The write is declared, not hidden: the RESULT
+        # line reports what the bag actually held once it was done.
+        try:
+            from modules.debug_utilities import debug_write_item_bag
+            from modules.items import ItemSlot, get_item_bag, get_item_by_name
+            from modules.modes.util.sleep import wait_for_n_frames
+
+            spec = os.environ.get("NORMAN_ITEMS", "Hyper Potion:4").strip()
+            if spec and spec.lower() not in ("none", "0"):
+                extra = []
+                for chunk in spec.split(","):
+                    name, _, qty = chunk.partition(":")
+                    extra.append(ItemSlot(get_item_by_name(name.strip()), int(qty or 1)))
+                bag = get_item_bag()
+                debug_write_item_bag(
+                    items=list(bag.items) + extra,
+                    key_items=list(bag.key_items),
+                    poke_balls=list(bag.poke_balls),
+                    tms_hms=list(bag.tms_hms),
+                    berries=list(bag.berries),
+                )
+                yield from wait_for_n_frames(10)  # the bag is cached per frame; read it back after
+                log(f"[normancounter] FIXTURE: stocked {spec}; bag now "
+                    f"{[(s.item.name, s.quantity) for s in get_item_bag().items]}")
+        except Exception as error:  # noqa: BLE001
+            log(f"[normancounter] ‼ could not stock the bag: {type(error).__name__}: {error} "
+                f"— an items A/B from this save would be MEANINGLESS; fix before reading a result.")
 
         # ‼ CONTROL ARM (`NORMAN_MACHOP_LEVEL=0`) — added 2026-08-09, and this experiment is
         # UNINTERPRETABLE without it. The question is "does a counter at level L win the fight",
