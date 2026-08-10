@@ -19,7 +19,7 @@ game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror
 | | |
 |---|---|
 | branch / HEAD | `main`, clean, **0 unpushed** |
-| box | **idle** — the batch finished 11:16 PDT, verdict OK |
+| box | **idle** — batch `20260809-155844` finished, verdict OK |
 | story content | Littleroot → 6 badges → **Mt. Pyre → Magma Emblem**. Magma Hideout UNLOCKED but UNBUILT. |
 | promotion | ✅ **PROMOTED TWICE 2026-08-09 (both user-approved)** — the fence, `#24-progressiongate`, and `#24-bosstelemetry` part 1 are all live in production. ‼ **ONE file has drifted since:** `modules/debug_logger.py` (`#24-bosstelemetry` part 2 — party HP at `[BATTLE] started`; sandbox-only, log-only). |
 | ‼ is code frozen? | Only while a batch runs. **Never edit `sandbox-pokebot/` mid-batch** — restarted lanes re-import from disk and corrupt the measurement. Editing `tools/story-dev/` IS safe (lanes spawn `sandbox-pokebot/pokebot.py`; nothing there is imported from story-dev). |
@@ -199,55 +199,56 @@ leads:
    stuck at pp2 for three turns, Ninjask's Scratch at pp30). Could be misses (Cross Chop is 80%)
    plus a display artifact, or something real. **Undiagnosed — and now instrumented.**
 
-## ‼‼ THE STRONGEST LEAD IN THIS FILE — the bot fights Norman with its best mon ALREADY FAINTED
-The counter sweep was re-run with a working fixture (natural learnset; the broken explicit path is
-now opt-in only). **Four arms — control, 18, 22, 26 — four losses**, with the counter PROVEN to
-act this time (`Machop L26 -> Karate Chop(pp25)` takes Vigoroth **73 → 33**). So *"a counter at an
-obtainable level does not flip this fight"* is re-established on correct evidence.
+## ‼‼ WHY BOSS FIGHTS ARE LOST — one hypothesis REFUTED, one CONFIRMED AND QUANTIFIED
+Boss losses end **~88% of all non-finishing runs** (21 of 24 in batch `20260809-155844`), so this
+is the project's dominant failure mode. Two candidate causes came out of the `normancounter` work;
+batch `20260809-155844` settled both, and they went opposite ways.
 
-**`#24-bosstelemetry` then showed what actually loses it, and it is not type coverage:**
-```
-[TURN 0] Shedinja L26 1/1  -> Scratch      vs Spinda   75/75    <- a 1-HP mon is LEADING
-[TURN 3] Machop  L26 37/76 -> Karate Chop  vs Vigoroth 33/86    <- real damage, half HP gone
-[TURN 6] Mightyena  73/94  -> Bite         vs Vigoroth 53/86    <- ‼ NORMAN HEALS (1 -> 53)
-[TURN 12] Ninjask   80/80  -> Scratch      vs Slaking 130/143   <- 7 damage a turn into 143 HP
-```
-And the faint-chooser's first row of that battle gives the reason for the bad lead:
-```
-party=[(0,'Shedinja',0), (1,'Blaziken',0), (2,'Whismur',52), (3,'Ninjask',80), (4,'Mightyena',94), (5,'Machop',76)]
-```
-**`Blaziken L36` — the team's strongest Pokémon — is at 0 HP before the first turn.** The bot
-entered the boss fight with its ace already dead, which is why a 1-HP Shedinja led.
+**❌ REFUTED — "the bot arrives at bosses with a fainted party."** The anchor really did enter
+Norman with its ace at `0/120`, and it looked like the biggest lever here. Measured directly over
+**16,749 battles** with the new `[BATTLE] started hp=…` field (control: 35.5% of battles entered
+at FULL health):
+| | rate |
+|---|---|
+| entered with **>=1 mon fainted** | **6.4%** |
+| entered with the **ace** fainted | **2.9%** |
+| mean party HP at battle start | **90.6%** |
+**One anchor was not representative.** ‼ This also retires an earlier inference-based reading that
+said **99.4%** — it was deliberately never promoted to a finding because ~99% looked like a
+misreading, and the direct measurement proved it was. `probe_fainted_ace.py` now reads the field.
 
-⇒ **Three causes, ranked by how fixable they look, none of them type coverage:**
-1. **Arriving at the boss with a fainted ace** (no heal between the gym's trainers and Norman).
-   If this generalises it is the single biggest lever in the project — it would mean the "no
-   super-effective answer" stop is a MISDIAGNOSIS of a fight lost on preparation.
-2. **Norman heals** (Vigoroth 1 → 53; Slaking 27 → 136 in another run). Chip damage of 6-8 a turn
-   into a healing 143-HP boss cannot win, whatever type it is.
-3. **The counter is frail at obtainable levels** — lands a 46% hit, then dies.
-‼ **NOT yet established: that this anchor represents the batch's 5 Norman deaths.** One anchor,
-one party, deterministic harness — four configurations, not four samples. **Check that first** — and the instrument now exists: `[BATTLE] started` records party HP.
-On this anchor it is CONFIRMED and the mechanism is visible: the bot fights the gym's earlier
-trainers without healing (`Blaziken 23/120`), then **enters the Norman battle at `0/120`**.
-**Run a batch and read the `hp=` field at each `[BATTLE] started`** — that settles whether
-boss losses are preparation failures across real runs, which is the question the whole
-counter chain rests on. `probe_fainted_ace.py` should then be rewritten to read that field
-instead of inferring from the first faint.
+**✅ CONFIRMED — bosses HEAL, and the bot has no answer.** `probe_boss_healing.py` reads opponent
+HP out of the turn records:
+* **`Slaking` healed 27 times, median +81 HP, max +119** (`24 -> 143`, `13 -> 123`, `8 -> 117`, …)
+  — Norman restoring his ace from near-death to near-full while the party does **6-8 chip damage a
+  turn**.
+* **61.8% of boss-length battles (>=12 turn records) show an opponent healing** (455 of 736).
+‼ Honest edge: of 1,261 heal events, **140 are >=50 HP** (Slaking dominates, unmistakable item
+usage) but **386 are <=5 HP** and mid-size ones cluster on wild species — those are **unexplained**
+and no claim rests on them. The Slaking result stands alone.
+
+⇒ **THE COUNTER CHAIN IS ANSWERING THE WRONG QUESTION.** It correctly diagnoses type coverage,
+hunts, catches (34.8% conversion) and trains — and a super-effective attacker does not beat an
+opponent that restores 81 HP at a time. The plausible answers are burst damage, the bot **using
+its own items**, or not entering a fight it cannot close. ‼ **That is a design decision, and it is
+the user's** — do not pick one unilaterally.
 
 ## ⏭ NEXT ACTIONS, IN ORDER
-1. ✅ ~~**PROMOTE the 3 drifted files**~~ — **DONE 2026-08-09, user-approved.** Zero source
-   drift remains. **`#24-bosstelemetry` is now the top item:** add per-turn move/damage logging to
-   the boss path. Six `normancounter` arms could be run without learning WHY the fight is lost,
-   because the logs carry only battle start/end and faint-chooser records. It is small, and it is
-   the missing instrument behind every "why does the bot lose to bosses" question — which is 79%
-   of all non-finishes.
-2. **Write the `#24-teachmsgstall` fix** (spec + risks above). Cheap, provable, and it is a THIRD
-   teach bug affecting real runs. Its A/B needs no batch, so it can go first.
-3. **KI-49 / KI-48** — the travel bugs. KI-49 gates any future hunting ground with more than one
-   entrance, and `could not reach` was 72 events in one batch.
-4. **`#24-magmahideout`** — next story content; the largest untouched lever.
-5. Pin the rare-species dataset before `#24-roster` builds on it.
+1. **DECIDE what to do about boss healing** — this is a user call, and everything else here is
+   downstream of it. Options seen in the data: give the bot **item usage** of its own (it never
+   heals mid-fight while the boss does), aim for **burst damage** instead of chip, or stop the
+   counter chain from promising an answer it cannot deliver. ‼ Do not pick one unilaterally.
+2. **Re-scope `#24-counters` once (1) is decided.** Its mechanism is healthy — conversion 34.8%,
+   training 12 attempts / 1 failure, 0 false catches — and it still ends ~88% of non-finishing
+   runs by naming a type answer that does not win the fight.
+3. **`#24-teachmsgstall`** — reproduced deterministically, three candidate causes refuted, next
+   step written on the item. Low priority: 4 hard-caps against 38 successful teaches and **zero**
+   run-ending events.
+4. **KI-48 / KI-49** — the travel bugs (Route 110 → Mauville; map-granular journeys arriving at a
+   dead-end entrance).
+5. **`#24-magmahideout`** — next story content; still the largest untouched lever.
+6. Explain the small (<=5 HP) opponent heals, or prove them an artifact, so `probe_boss_healing.py`
+   can be trusted end to end rather than only on its large-heal result.
 
 ## ‼ STANDING CONCERNS (carried forward, still true)
 1. **The finish rate has not moved in a week** (39.1 / 36.0 / 41.7 / 25.8 / 28.6 / 19.4%, no pair
