@@ -435,7 +435,9 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
         self._hp_when_item_requested = None
         #: set once BOTH index spaces have demonstrably done nothing; stops wasting more turns
         self._items_ineffective = False
-        #: which index space to address the party menu in — see the self-correcting block below
+        #: which index space to address the party menu in. ‼ NOT a constant: the FIRST choice is
+        #: made per use by `_preferred_index_space()` from measured data, and the self-correcting
+        #: block below flips it once if that guess is wrong.
         self._index_space = "party"
         #: only ever flip once per battle, so a failure costs one extra turn and not a loop
         self._index_space_flipped = False
@@ -552,6 +554,16 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
         # ‼ THE STRATEGY OWNS THE INDEX SPACE, not the menu driver. `battle_action_use_item` now
         # uses whatever index it is given verbatim, so the choice — and the self-correction above
         # — belong here, where the outcome can actually be observed.
+        # ‼ FIRST CHOICE IS NOW DATA-DRIVEN (batch `20260810-035733`, 29 landings). Cross-tabulating
+        # which space LANDED against the target's party position gave a clean split:
+        #     party-order landed  19 of 19  when the target was party slot 0, and 0 times above it
+        #     battle-order landed  9 of 10  when the target was ABOVE slot 0
+        # (Every one of those 9 is a case where party order had already failed and cost a turn.)
+        # So guess accordingly instead of always opening with party order. The flip below is kept
+        # as the safety net — the rule is empirical, from 29 observations, not a proof.
+        if not self._index_space_flipped:
+            self._index_space = "party" if mon.party_index == 0 else "battle"
+
         target = mon.party_index
         if self._index_space == "battle":
             try:

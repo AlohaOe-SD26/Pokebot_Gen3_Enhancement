@@ -10344,3 +10344,23 @@ each landing against the `[BATTLE] started hp=` field.
 −1.53). The three item-era batches read 25.0% → 33.3% → 16.1% on n≈30 each; that is the noise
 regime this file has warned about for a week. **Do not read this as the feature hurting, and do
 not read the previous batch as it helping.** Counter-chain stops were 21 of 26 non-finishes.
+
+### The CONDITION, found in the same batch's data — the first index guess is now data-driven
+
+Cross-tabulating which space LANDED against the target's party position (29 landings):
+
+| landed space | target at party slot 0 | target above slot 0 |
+|---|---|---|
+| **party-order** | **19** | **0** |
+| battle-order | 1 | **9** |
+
+**Party order landed 19 of 19 when the target was party slot 0, and never once above it; every
+landing above slot 0 was battle-order.** Each of those 9 cost a wasted turn, because the first
+attempt always opened with party order.
+
+So `StoryItemBattleStrategy` now picks the FIRST space from the target's position —
+`party` for slot 0, `battle` otherwise — and keeps the flip as the safety net. ‼ The rule is
+EMPIRICAL (29 observations), not a proof, which is exactly why the flip stays. Expected effect,
+and the acceptance metric for the next batch: **flips should collapse from 20 toward 0** while
+landings hold or rise. Verified no regression on the fixture (target is slot 0, still lands
+first try: `24/120 → 120/120`, `23/120 → 120/120`).
