@@ -19,7 +19,7 @@ game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror
 | | |
 |---|---|
 | branch / HEAD | `main`, clean, **0 unpushed** |
-| box | **idle** — batch `20260810-035733` finished 6:57 AM, verdict OK |
+| box | **BATCH RUNNING** — `batch_rule` started 7:38 AM, code `5d504463`, 8 lanes / 180 min, ends ~10:38 AM. ‼ Do NOT edit `sandbox-pokebot/` until it ends. **Acceptance: index-space FLIPS collapse from 20 toward 0** (`probe_item_index_space.py`). |
 | story content | Littleroot → 6 badges → **Mt. Pyre → Magma Emblem**. Magma Hideout UNLOCKED but UNBUILT. |
 | promotion | ✅ **three promotions 2026-08-09, all user-approved** (the fence, `#24-progressiongate`, `#24-bosstelemetry` parts 1+2). ‼ **`#24-battleitems` is sandbox-only and UNMEASURED** — 3 files drifted (`modules/story/battle_items.py`, `plugins/custom_modes/story_mode.py`, `modules/battle_action_selection.py`). Do not promote until the running batch says it helps. |
 | ‼ is code frozen? | Only while a batch runs. **Never edit `sandbox-pokebot/` mid-batch** — restarted lanes re-import from disk and corrupt the measurement. Editing `tools/story-dev/` IS safe (lanes spawn `sandbox-pokebot/pokebot.py`; nothing there is imported from story-dev). |
