@@ -19,7 +19,7 @@ game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror
 | | |
 |---|---|
 | branch / HEAD | `main`, clean, **0 unpushed** |
-| box | **idle** — batch `20260809-214515` finished, verdict OK |
+| box | **BATCH RUNNING** — `20260810-035733`, code `83a9e2f1`, 8 lanes / 180 min, started 03:57. ‼ Do NOT edit `sandbox-pokebot/` until it ends. **Its job: collect `[ITEM] ✔ landed using the …-order index` lines to settle which index space the item-target party menu uses.** |
 | story content | Littleroot → 6 badges → **Mt. Pyre → Magma Emblem**. Magma Hideout UNLOCKED but UNBUILT. |
 | promotion | ✅ **three promotions 2026-08-09, all user-approved** (the fence, `#24-progressiongate`, `#24-bosstelemetry` parts 1+2). ‼ **`#24-battleitems` is sandbox-only and UNMEASURED** — 3 files drifted (`modules/story/battle_items.py`, `plugins/custom_modes/story_mode.py`, `modules/battle_action_selection.py`). Do not promote until the running batch says it helps. |
 | ‼ is code frozen? | Only while a batch runs. **Never edit `sandbox-pokebot/` mid-batch** — restarted lanes re-import from disk and corrupt the measurement. Editing `tools/story-dev/` IS safe (lanes spawn `sandbox-pokebot/pokebot.py`; nothing there is imported from story-dev). |
@@ -255,9 +255,16 @@ Yesterday's fix (pass the party index) took the fixture from 1-of-5 landing to 3
 `battle_handler`'s after-faint chooser does the OPPOSITE and is correct there** (that conversion
 is what fixed KI-34). ⇒ **the item-target menu and the after-faint menu are not ordered the same
 way.**
-**NEXT: log what the cursor is actually sitting on (species/HP) at each menu index during a use**,
-and derive the ordering from that instead of borrowing the other menu's convention. Safe to leave
-enabled meanwhile: the no-op guard costs one turn per battle, then disables items for that battle.
+✅ **ADDRESSED 2026-08-10 — the code now settles it empirically instead of by argument.** When a
+use demonstrably does nothing, the strategy **flips the index space, retries once, and logs which
+one landed** (`[ITEM] ✔ landed using the party-order index (HP now 120/120)`). Bounded to one flip
+per battle, so a wrong first guess costs a turn rather than a loop; if both fail, items are
+disabled for that battle as before. The index choice also moved OUT of `battle_action_use_item`
+and INTO the strategy — the only layer that can observe the outcome.
+‼ The fixture cannot settle it (it only ever heals the ACTIVE mon at party slot 0, where the two
+spaces agree — both uses logged `✔ party-order`). **The running batch is the dataset:** count the
+`✔ landed using the …-order index` lines by space, and the `retrying with the …-order index`
+lines, to learn the real convention.
 ‼ Sandbox-only, 3 files, deliberately UNPROMOTED until an outcome is resolvable.
 
 ## ⏭ NEXT ACTIONS, IN ORDER
