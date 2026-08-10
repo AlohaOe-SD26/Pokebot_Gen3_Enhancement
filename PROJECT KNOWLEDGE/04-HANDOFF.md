@@ -19,7 +19,7 @@ game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror
 | | |
 |---|---|
 | branch / HEAD | `main`, clean, **0 unpushed** |
-| box | **BATCH RUNNING** — `20260810-035733`, code `83a9e2f1`, 8 lanes / 180 min, started 03:57. ‼ Do NOT edit `sandbox-pokebot/` until it ends. **Its job: collect `[ITEM] ✔ landed using the …-order index` lines to settle which index space the item-target party menu uses.** |
+| box | **idle** — batch `20260810-035733` finished 6:57 AM, verdict OK |
 | story content | Littleroot → 6 badges → **Mt. Pyre → Magma Emblem**. Magma Hideout UNLOCKED but UNBUILT. |
 | promotion | ✅ **three promotions 2026-08-09, all user-approved** (the fence, `#24-progressiongate`, `#24-bosstelemetry` parts 1+2). ‼ **`#24-battleitems` is sandbox-only and UNMEASURED** — 3 files drifted (`modules/story/battle_items.py`, `plugins/custom_modes/story_mode.py`, `modules/battle_action_selection.py`). Do not promote until the running batch says it helps. |
 | ‼ is code frozen? | Only while a batch runs. **Never edit `sandbox-pokebot/` mid-batch** — restarted lanes re-import from disk and corrupt the measurement. Editing `tools/story-dev/` IS safe (lanes spawn `sandbox-pokebot/pokebot.py`; nothing there is imported from story-dev). |
@@ -261,10 +261,14 @@ one landed** (`[ITEM] ✔ landed using the party-order index (HP now 120/120)`).
 per battle, so a wrong first guess costs a turn rather than a loop; if both fail, items are
 disabled for that battle as before. The index choice also moved OUT of `battle_action_use_item`
 and INTO the strategy — the only layer that can observe the outcome.
-‼ The fixture cannot settle it (it only ever heals the ACTIVE mon at party slot 0, where the two
-spaces agree — both uses logged `✔ party-order`). **The running batch is the dataset:** count the
-`✔ landed using the …-order index` lines by space, and the `retrying with the …-order index`
-lines, to learn the real convention.
+✅ **ANSWERED by batch `20260810-035733`: the ordering is CONDITIONAL.** 68 requests →
+`landed {party: 19, battle: 10}`, 20 flips to battle-order of which **10 LANDED (50%)**, 10 where
+both failed. So neither convention is universally right, and the flip is doing real work — 10 of
+29 landings exist only because of it. **KEEP the self-correction.**
+**REMAINING: find the CONDITION.** Leading candidate — whether any party member has FAINTED, since
+`map_battle_party_index` exists precisely because the game reorders the battle party on a faint.
+Testable from these same logs: correlate each `✔ landed using the …-order` line against the
+`[BATTLE] started hp=` field of its battle. `probe_item_index_space.py` is the starting point.
 ‼ Sandbox-only, 3 files, deliberately UNPROMOTED until an outcome is resolvable.
 
 ## ⏭ NEXT ACTIONS, IN ORDER

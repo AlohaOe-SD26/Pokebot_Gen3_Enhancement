@@ -10314,3 +10314,33 @@ happens*, not a property of most boss-length battles.
 populations you cannot both explain is not a measurement.** The small class was flagged as
 unexplained the moment it was found and no conclusion was built on it — but it was still allowed
 into a headline percentage, which is how it reached the user.
+
+---
+
+## 2026-08-10 — BATCH `20260810-035733` ANSWERS IT: the item-menu index space is **CONDITIONAL**
+
+8 lanes / 180 min, code `83a9e2f1`, `VERDICT OK`, 0 header violations, 31 runs.
+
+The question was which index space `TurnAction.use_item_on` should address the party menu in.
+It could not be settled by reading code — the after-faint chooser treats `map_battle_party_index()`
+as MENU order and is right there (the KI-34 fix), while the fixture proved the raw PARTY index
+right for the item menu. The self-correcting code answered it with data:
+
+```
+68 `[ITEM] using` requests
+landed, by index space : {'party': 19, 'battle': 10}
+flips (first try failed): {'battle': 20}       both spaces failed: 10
+⇒ of 20 flips to battle-order, 10 LANDED (50%) — each one a case where PARTY order was WRONG
+```
+
+**VERDICT: neither convention is universally correct — the menu ordering is CONDITIONAL**, and
+the self-correction is doing real work (10 of 29 landings exist only because of the flip).
+**Keep the flip.** The remaining task is to find the CONDITION; the leading candidate is whether
+any party member has fainted, since `map_battle_party_index` exists precisely because the game
+reorders the battle party when mons faint. That is testable from these same logs by correlating
+each landing against the `[BATTLE] started hp=` field.
+
+‼ **Finish rate 16.1% (5/31), against 33.3% the batch before — and it resolves NOTHING** (z =
+−1.53). The three item-era batches read 25.0% → 33.3% → 16.1% on n≈30 each; that is the noise
+regime this file has warned about for a week. **Do not read this as the feature hurting, and do
+not read the previous batch as it helping.** Counter-chain stops were 21 of 26 non-finishes.
