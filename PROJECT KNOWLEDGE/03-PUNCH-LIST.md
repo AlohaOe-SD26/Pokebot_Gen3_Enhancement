@@ -1129,7 +1129,19 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
 - [x] `#24-r121topology` — **ANSWERED 2026-08-05: it is a STORY GATE, not topology.** See
       `#24-r121gate`. Superseded text below kept for the reasoning trail.
 
-- [ ] `#24-r121gate` — **THE FIRST STEP OF THE MT. PYRE CHAPTER. Fully specified, ready to build.**
+- [x] `#24-r121gate` — ✅ **CLOSED 2026-08-10: it is ALREADY BUILT. The "ready to build" header
+      was the THIRD stale item found this week** (after `#24-leadcounter` and `#24-counters`
+      phase 2), and it was caught only because the spec was verified before coding.
+      In code: `ROUTE121_AQUA_GATE_TRIGGER = (25, 5)` (`early_game.py:6534`), the guard
+      `get_event_var("ROUTE121_STATE") >= 1` (:6572), and `do_mt_pyre_summit()` (:6615),
+      which the story run calls at `story_mode.py:3504`.
+      ‼ The spec itself was re-verified against the decomp and is CORRECT: coord events at
+      **(25,5) (25,6) (25,7) (25,8)** gated on `VAR_ROUTE121_STATE == 0`, grunts at
+      (30,7)/(30,8)/(31,7), flag **914** `HIDE_ROUTE_121_TEAM_AQUA_GRUNTS`, and
+      `Route121_EventScript_AquaGruntsMoveOut` ends with `setvar VAR_ROUTE121_STATE, 1`.
+      ‼ Note the accessor names carry NO `FLAG_`/`VAR_` prefix — `get_event_var` returns −1
+      for an unknown name, so `VAR_ROUTE121_STATE` would fail silently.
+      HISTORY — **Fully specified, ready to build.**
       Three Team Aqua grunts at (30,7)/(31,7)/(30,8) seal Route 121's only corridor south
       (`FLAG_HIDE_ROUTE_121_TEAM_AQUA_GRUNTS` = 914, measured **False** = visible). Coord trigger
       **(25,5)-(25,8)** at `VAR_ROUTE121_STATE == 0` runs `Route121_EventScript_AquaGruntsMoveOut`,
@@ -1176,7 +1188,26 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       the ROUTE112 side), while `04-HANDOFF.md` lists it as the **next story content and the
       largest untouched lever**. Both are current-state files and they disagree, which is
       exactly the case `CLAUDE.md` says to raise rather than resolve unilaterally.
-      The technical objection below is concrete and may still stand. HISTORY — **DEFERRED.** Door at JAGGED_PASS (16,18) is unreachable from the
+      ‼ **THE TECHNICAL OBJECTION IS NOW CORROBORATED, AND IT IS THE ONLY THING BETWEEN THE BOT
+      AND NEW CONTENT** — measured 2026-08-10 (static, with a PASSING control):
+      | from | to `MAGMA_HIDEOUT_1F` door (16,18) |
+      |---|---|
+      | MT_CHIMNEY entry (13,5) | **FAIL** |
+      | MT_CHIMNEY entry (14,5) | **FAIL** |
+      | door → ROUTE112 exit (14,40) | **FAIL** |
+      | CONTROL: entry (13,5) → ROUTE112 exit (14,40) | **OK, 39 waypoints** |
+      Warps confirmed from the decomp: JaggedPass exits are (14,40)/(15,40)→ROUTE112,
+      (13,5)/(14,5)→MT_CHIMNEY, and **(16,18)→MAGMA_HIDEOUT_1F**. The door tile IS walkable;
+      it simply sits in a pocket the descent cannot enter. So `do_jagged_descent()` already
+      walking this map does NOT get us the door.
+      ‼ **BUT A STATIC FAIL IS 'UNPROVEN', NOT 'IMPOSSIBLE'** — `calculate_path` reads
+      dual-elevation terrain and ledges as walls and has called a reachable place
+      unreachable before (KI-24). **The deciding test is a DRIVEN one**, and the anchor
+      tooling to run it did not exist when this was deferred on 2026-07-26:
+      capture a MT_CHIMNEY/JAGGED_PASS anchor with `--driver anchorstory`, then drive
+      `--driver groundsweep SWEEP_GROUND=JAGGED_PASS:16,18`. ~20 minutes, and it converts a
+      three-week-old deferral into a measured yes/no. **DO THAT BEFORE WRITING THE CHAPTER.**
+      HISTORY — **DEFERRED.** Door at JAGGED_PASS (16,18) is unreachable from the
       ROUTE112 side (one-way ledges; a 2026-07-26 probe already failed to path there). Only
       approach is ROUTE112 → cable car → MT_CHIMNEY → descend ⇒ ~8 warps + a scripted ride.
 
