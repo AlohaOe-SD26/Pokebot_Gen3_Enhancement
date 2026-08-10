@@ -4,6 +4,57 @@
 > off with `[x]` and move them to Done with the completion date).
 > Full future-idea catalog: `09-FEATURE-BRAINSTORM.md`.
 
+## ‼ TRIAGE INDEX (2026-08-10) — read this before scanning 100+ entries
+
+**The problem this solves:** the list carried **117 open/partial entries**, and a scan could not
+distinguish "being worked on today" from a roadmap line written three weeks ago. Two entries were
+found stale-open for **8 days** while their code had shipped, and one contradicts the handoff.
+Nothing below was deleted — items are closed only with evidence, and conflicts are flagged for the
+user rather than resolved unilaterally.
+
+### 1. ACTIVE — the only things being worked on now
+| item | state |
+|---|---|
+| `#24-battleitems` | user directive; built + unit-proven (27 checks), live, self-correcting. Batch `20260810-082509` validating; detector fix queued. |
+| `#24-teachmsgstall` | reproduced deterministically; 3 candidate causes refuted. ‼ LOW priority — 4 failures vs 38 successes and **zero** run-ending events. |
+| `#24-r110mauville` / KI-48 / KI-49 | travel bugs, measured, unstarted. `could not reach` was 72 events in one batch. |
+
+### 2. BLOCKED ON A USER DECISION — no work should start on these
+| item | the decision |
+|---|---|
+| `#24-magmahideout` | **status conflict**: this list says DEFERRED (door unreachable), the handoff calls it the next lever. |
+| the boss-healing response | items / burst damage / stop promising an answer — see `04-HANDOFF.md`. |
+| `#doc-policy-05` | should `05-KNOWN-ISSUES` drop an entry at sandbox-fix or at promotion? |
+| `#24-organicteam` | **deferred by the user on purpose 2026-08-05.** Do not start early. |
+
+### 3. THE MEASUREMENT PROBLEM — affects every outcome item above
+Finish rate has been unresolvable in **every** batch: 25.0 → 33.3 → 16.1% at n≈30 runs each. To
+resolve a 10-point change needs ~300 runs ≈ **30 hours of batching per question**. Battle-level
+metrics have ~800 samples per batch instead. **Grade mechanism work on battle-level metrics**
+(boss win rate, item landings, heal events); treat finish rate as a lagging indicator only.
+
+### 4. DORMANT BACKLOG — real ideas, nobody is working on them
+GUI/dashboard (`#30`, `#31`, `#32`, `#33`, `#36b`, `#25`, `#26`, `#28`), dex/analytics tooling
+(`#9`, `#11`, `#22`, `#23`, `#34`, `#35`, `#41`, `#42`, `#45`), and story sub-features not yet
+scheduled (`#24-ui`, `#24-shops`, `#24-autosave`, `#24-defeat`, `#24-personality`, `#24-favourite`,
+`#24-badges*`, `#24-gymtrainers`, `#24-partyvariety`). ‼ Several are marked "BUILT IN SANDBOX
+2026-07-19" and were never verified or closed.
+
+### 5. DUPLICATE / OVERLAPPING IDS — flagged, not merged (IDs are never reused here)
+* **`#24` appears three times** as the umbrella (L≈1828 "STORY AUTO-PLAYER", L≈2040 "STORY-MODE
+  BOT", L≈2292 "Story auto-player"). Two are roadmap-era restatements of the third.
+* **`#24-pc` appears twice** (the resource-wall entry and the PC/box team-management entry) and
+  **overlaps `#24-roster`**, which is the approved PC-roster feature.
+* **`#24-organicteam` and `#24-team`** are the same concept under two IDs.
+⇒ Recommend consolidating each group under its newest ID with the older ones pointing at it.
+**Not done unilaterally — it rewrites history in a current-state file.**
+
+### 6. CLOSED BY THIS TRIAGE (evidence in each entry)
+* `#24-leadcounter` — shipped; `is_hunted_counter` is in `team_policy.lead_rank_key`.
+* `#24-counters` phase 2 — shipped and batch-validated repeatedly (z = +3.24 on Machop).
+* the "READY TO APPLY THE MOMENT BATCH `20260802-160603` LANDS" heading — that batch landed
+  2026-08-02.
+
 ### Marker states (documented 2026-07-27 — the file uses THREE, not two)
 | marker | meaning | count |
 |---|---|---|
@@ -1120,7 +1171,12 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       from a run that already beat her (52% of batch runs do). Once it exists, commit it to
       `tools/story-dev/saves/` as `post_winona.ss1` — every Ch14 probe will want it.
 
-- [ ] `#24-magmahideout` — **DEFERRED.** Door at JAGGED_PASS (16,18) is unreachable from the
+- [ ] `#24-magmahideout` — ‼ **STATUS CONFLICT, FLAGGED BY TRIAGE 2026-08-10 — needs a user
+      ruling.** THIS entry says **DEFERRED** (the JAGGED_PASS (16,18) door is unreachable from
+      the ROUTE112 side), while `04-HANDOFF.md` lists it as the **next story content and the
+      largest untouched lever**. Both are current-state files and they disagree, which is
+      exactly the case `CLAUDE.md` says to raise rather than resolve unilaterally.
+      The technical objection below is concrete and may still stand. HISTORY — **DEFERRED.** Door at JAGGED_PASS (16,18) is unreachable from the
       ROUTE112 side (one-way ledges; a 2026-07-26 probe already failed to path there). Only
       approach is ROUTE112 → cable car → MT_CHIMNEY → descend ⇒ ~8 warps + a scripted ride.
 
@@ -1131,9 +1187,15 @@ justified by counting failures without counting successes. Do not re-enable with
 
 
 
-### ‼ READY TO APPLY THE MOMENT BATCH `20260802-160603` LANDS (~19:06 PDT 2026-08-02)
+### ~~READY TO APPLY THE MOMENT BATCH `20260802-160603` LANDS~~ — ✅ APPLIED; header stale
+> Closed by triage 2026-08-10. That batch landed on 2026-08-02 and the item below shipped;
+> the heading sat here for eight days implying pending work that did not exist.
 
-- [ ] `#24-leadcounter` — **USER RULING 2026-08-02: super-effectiveness outranks raw level
+- [x] `#24-leadcounter` — ✅ **CLOSED 2026-08-10 by triage: it SHIPPED and this entry was stale.**
+      Verified in code: `team_policy.lead_rank_key(..., is_hunted_counter: bool = False)`
+      (`team_policy.py:263`) and `early_game.py:1712/1735` compute and pass it. It also has a
+      recorded post-ship bug (`08-MISTAKES` 2026-08-03 — it was silently dead for two batches),
+      which is further proof it was applied. HISTORY — **USER RULING 2026-08-02: super-effectiveness outranks raw level
       ONLY for a mon the counter chain caught for THIS boss.** Not a general rule (that option
       was offered and declined; so was the level-gap variant, which is option (b) of
       `#24-leadpolicy` and was already ruled out). Rationale + rejected alternatives in
@@ -1710,7 +1772,14 @@ region, where "train near the gym" is actively wrong.
       KI-36 hazard the finite limit exists to prevent.
 
 ### ‼ #1 EXECUTION PRIORITY — the counter chain is now 72% of all derails
-- [~] **`#24-counters` phase 2 — BUILT 2026-07-30, AWAITING LIVE VALIDATION.**
+- [x] **`#24-counters` phase 2 — ✅ BUILT 2026-07-30, and LIVE-VALIDATED many times since;
+      the "awaiting validation" header was 8 days stale (closed by triage 2026-08-10).**
+      Evidence: `best_huntable` (`counter_plan.py:435`) and `hunt` (`counter_hunt.py:327`) are
+      live; batch `20260808-131334` measured conversion 15% → 45% (z = +2.39 on REAL catches),
+      and `20260809-081643` restored `CAUGHT Machop` 0/7 → 6/7 (z = +3.24) with FALSE catches
+      10 → 0. ‼ Its open FOLLOW-UPS live in newer items, not here — see `#24-battleitems`
+      and the boss-healing work; the chain's DIAGNOSIS is sound and its premise is what is
+      now in question. HISTORY —
       **STEP 1 — the hunting-ground gate** (`hunt_ground_tile` / `huntable` /
       `best_huntable`; `repro_counter_huntable.py`, ALL PASS). Had to land first: the cost
       ranking puts **Victory Road Hariyama at rank 1** for Norman, so an executor built on
