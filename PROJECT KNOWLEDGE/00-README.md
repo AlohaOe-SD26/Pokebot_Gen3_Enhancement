@@ -26,6 +26,7 @@ following the reading order above, which stopped at 16.*
 
 | File | What it tells you | Type |
 |---|---|---|
+| `24-PLAIN-ENGLISH-STATUS.md` | **START HERE FOR A HUMAN ANSWER** — what the bot does, what we fixed, what is stuck, in GAME terms with no jargon. Written for reading cold. | current-state |
 | `09-FEATURE-BRAINSTORM.md` | the full future-idea catalog the punch list draws from | reference |
 | `10-DEX-RESEARCH.md` / `11-LIVINGDEX-DESIGN.md` | Living-Dex feature research + design (#23) | reference |
 | `17-PORTABLE-ORCHESTRATION-GUIDE.md` | running this orchestration setup on another machine/project | reference |
