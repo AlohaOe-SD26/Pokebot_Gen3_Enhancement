@@ -16,7 +16,7 @@ user rather than resolved unilaterally.
 | item | state |
 |---|---|
 | `#24-battleitems` | ✅ **DONE & PROMOTED 2026-08-10.** Built, unit-proven (27 checks), live, self-correcting; validation batch `20260810-082509` passed (flips 20 → 2, both-failed 10 → 0). ‼ Outcome unproven — grade any follow-up on BATTLE-level metrics. |
-| `#24-teachmsgstall` | ‼‼ **THE TOP BUG (2026-08-10 night).** Reproduced deterministically; 3 candidate causes refuted. Ch15 shipped by **DODGING** it (teach at a heal stop), so it is no longer strictly run-ending — but it is the only thing between the bot and reliable HM teaching, and it now has a **cheap repro** (`magma_door.ss1` + `--driver teachfull`) plus three discriminating facts. |
+| `#24-teachmsgstall` | ✅ **DONE 2026-08-11 — ROOT-CAUSED, FIXED, A/B-PROVEN.** The replace-prompt detector had a **ONE-FRAME window**: `Task_ReplaceMoveYesNo` swaps itself out for `Task_HandleReplaceMoveYesNoInput` on the frame it becomes answerable (decomp `src/party_menu.c`; measured f3232735 → f3232736). Missing it left a blind A-mash that reaches `Task_HandleStopLearningMoveYesNoInput`, where **A = give up**. Fixed by watching both spellings, an `already-advanced` exit, and B at the stop prompt. **A/B (same save, one env var): OLD `learned=False` / NEW `learned=True`.** ‼ Not yet promoted to `custom-pokebot` — needs user approval. |
 | `#24-r110mauville` / KI-48 / KI-49 | travel bugs, measured, unstarted. `could not reach` was 72 events in one batch. |
 | `#24-magmahideout` + `#24-strength` | ✅ **DONE 2026-08-10 night** — `GROUDON_AWAKENED_MAGMA_HIDEOUT` set, wired as Segment 15. Listed here only so the next reader sees they closed; details in the entries below. |
 
@@ -683,7 +683,55 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       is only valid if its LOCATION is reachable AT THAT POINT IN THE STORY. Availability is a
       function of story progress, not just of the encounter table.
 
-- [~] `#24-teachmsgstall` — ‼‼ **PRIORITY RAISED 2026-08-10: THIS IS NOW THE PROJECT'S TOP
+- [x] `#24-teachmsgstall` — ✅ **DONE 2026-08-11. ROOT-CAUSED, FIXED, A/B-PROVEN, GATE GREEN.**
+
+      **THE CAUSE — a ONE-FRAME detector window.** The post-select loop waited on
+      `"Task_ReplaceMoveYesNo" in t and "Task_PrintAndWaitForText" not in t`. Frame trace
+      (`TEACH_TRACE=1`, `magma_door.ss1`, HM02 → Swellow):
+      ```
+      f3232735  tasks=['Task_ReplaceMoveYesNo']              <- the ONLY frame it is visible
+      f3232736  tasks=['Task_HandleReplaceMoveYesNoInput']   <- gone, and it never comes back
+      ```
+      `pret/pokeemerald src/party_menu.c` — the task **retires itself on the frame it becomes
+      answerable**, which is the same frame the condition first became true:
+      `Task_ReplaceMoveYesNo` → `PartyMenuDisplayYesNoMenu(); func = Task_HandleReplaceMoveYesNoInput;`
+
+      **WHY MISSING IT LOST THE TEACH.** The loop kept mashing A every 12 frames, and
+      `Task_HandleStopLearningMoveYesNoInput` reads **A as YES = ABANDON** (decomp case 0 →
+      "did not learn X" → `Task_ClosePartyMenuAfterText`). ‼ **The three "different" failure
+      points are three phases of that one road** — summary handoff
+      (`Task_ClosePartyMenuAndSetCB2`), "did not learn FLY" (`Task_ClosePartyMenuAfterText` +
+      `Task_PrintAndWaitForText`), back in the bag (`Task_BagMenu_HandleInput`). The standing
+      note "one broken menu step cannot move like that" was right — it was never one step.
+
+      ‼ **AND WHY IT WAS DETERMINISTIC *AND* INTERMITTENT** (the property that made it
+      unfalsifiable for four rounds): a `.ss1` replays identical frame timing, so a save that
+      misses the window misses it every replay (0/3); live runs land on a random phase (38/42).
+
+      **THE FIX** (`modules/story/early_game.py`): match BOTH task spellings (`_PROMPT_TASKS`,
+      `_STOP_TASKS`); add an `already-advanced` exit that picks the flow up past the prompt
+      (non-fatal, `_wait_for(..., required=False)`); press **B** at the stop-learning prompt
+      *before* the blind-A fallback. The ride ladder had the identical exposure and is fixed
+      the same way.
+
+      **THE PROOF — live A/B, same save, same item, same target, one env var apart:**
+      | arm | env | exit | result |
+      |---|---|---|---|
+      | OLD | `POKEBOT_TEACHWINDOW_A=1 TEACH_CANCEL_FORGET=1` | `ride:hard-cap stall_peak=61 frame=8999` | **`learned=False`** |
+      | NEW | `TEACH_CANCEL_FORGET=1` | `ride:learned stall_peak=250 frame=896` | **`learned=True`** |
+      The OLD arm's record is structurally identical to the 2026-08-10 production failure.
+
+      ‼ **THE OLD "CHEAP REPRO" IS DEAD — do not chase it.** `saves/magma_door.ss1` is
+      re-captured by `--driver magmatravel` on every success, and a chapter run at 22:05 on
+      2026-08-10 overwrote the save the 21:27/21:34 failures were measured on. Both documented
+      arms now PASS on it. Use the injections instead.
+
+      **New test:** `repro_teach_prompt_window.py` (26 checks, no emulator; fault-injected to
+      3 red, restored green). Gate: **12 of 12 PASS**.
+
+      ‼ **NOT YET PROMOTED** to `custom-pokebot` — that needs explicit user approval.
+
+      HISTORY — **PRIORITY RAISED 2026-08-10: THIS IS NOW THE PROJECT'S TOP
       BLOCKER.** It stops `#24-strength`, which stops `#24-magmahideout` increment 3, which is
       all of the new story content. Its old note ("LOW priority — zero run-ending events") was
       true when the only teaches were opportunistic; it is false now that a chapter REQUIRES one.

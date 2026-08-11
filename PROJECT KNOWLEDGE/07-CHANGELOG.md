@@ -10806,3 +10806,133 @@ two Windows checkouts is a line-ending question until proven otherwise.**
 * **`04-HANDOFF.md` gained an "ALREADY PROVEN — DO NOT RE-RUN" evidence index**: 17 rows of
   claim → verdict → where to review it, plus **three dead ends not to re-walk**. This exists so
   the next session reviews evidence instead of regenerating it.
+
+---
+
+## 2026-08-11 — `#24-teachmsgstall` ROOT-CAUSED AND FIXED: the replace prompt had a ONE-FRAME window
+
+**The project's top bug for four rounds, now closed with a decomp-confirmed cause and a live A/B.**
+
+### The cause
+`teach_hm_move`'s post-select loop waited for the replace prompt with
+
+```python
+if "Task_ReplaceMoveYesNo" in t and "Task_PrintAndWaitForText" not in t:
+    _post_select_exit = "replace-prompt"; break
+```
+
+A new frame trace (`TEACH_TRACE=1`, `magma_door.ss1`, HM02 → Swellow) shows that condition is
+true for **exactly one frame**:
+
+```
+f3232735  tasks=['Task_ReplaceMoveYesNo']              <- the ONLY frame it is visible
+f3232736  tasks=['Task_HandleReplaceMoveYesNoInput']   <- gone, and it never comes back
+```
+
+`pret/pokeemerald src/party_menu.c` says why — the task **retires itself on the very frame it
+becomes answerable**, which is the same frame the old condition first became true:
+
+```c
+static void Task_ReplaceMoveYesNo(u8 taskId) {
+    if (IsPartyMenuTextPrinterActive() != TRUE) {
+        PartyMenuDisplayYesNoMenu();
+        gTasks[taskId].func = Task_HandleReplaceMoveYesNoInput;   // swaps ITSELF out
+    }
+}
+```
+
+**The detector's window was one frame wide. That is the bug.**
+
+### What missing it cost, and why the failure point "moved"
+The loop kept mashing A every 12 frames, and per the same decomp
+`Task_HandleStopLearningMoveYesNoInput` reads **A as YES = ABANDON THE TEACH** (case 0 → "<mon>
+did not learn <MOVE>" → `Task_ClosePartyMenuAfterText`). Our own buttons therefore walked the
+flow: YES-replace → summary screen → "Stop trying to teach?" → **YES** → back to the bag → and
+the same mash re-armed the teach from the item. ‼ **The three "different" failure points
+recorded across runs are three phases of that one road** — `Task_ClosePartyMenuAndSetCB2`
+(summary handoff), `Task_ClosePartyMenuAfterText` + `Task_PrintAndWaitForText` ("did not learn
+FLY"), `ListMenuDummyTask` + `Task_BagMenu_HandleInput` (back in the bag). The standing note
+"a single broken menu step cannot move like that" was right — it was never one step.
+
+‼ **And this is why it read as DETERMINISTIC and INTERMITTENT at once**, the property that made
+it unfalsifiable for four rounds. A `.ss1` replays identical frame timing, so a save that misses
+the window misses it on EVERY replay (0 of 3 from the old `magma_door.ss1`); live runs land on a
+random phase and hit it rarely (38 of 42 in batch `20260810-082509`, ~90% pass). One bug, both
+readings.
+
+### The fix (`modules/story/early_game.py`)
+1. **Both spellings.** `_PROMPT_TASKS = (Task_ReplaceMoveYesNo, Task_HandleReplaceMoveYesNoInput)`
+   — the second is the task that actually READS input, so it is up for as long as the prompt is
+   answerable. A one-frame window becomes an open-ended one.
+2. **`already-advanced`.** `_ADVANCED_TASKS` (summary screen / forget-move input / return-to-party)
+   ends the loop with a new exit reason, and the downstream replace block now runs on that path
+   too instead of falling into the ride loop with the forget-move screen still waiting.
+   ‼ That new path is **non-fatal** (`_wait_for(..., required=False)`) — a new run-ending class
+   is not an acceptable price for this fix.
+3. **Never blind-mash A at a live yes/no.** `_STOP_TASKS` gets **B** (NO), which the decomp routes
+   straight back to `Task_ReplaceMoveYesNo` for another attempt. A is still pressed to advance
+   TEXT — that is what carries "…can't learn more than four moves…" to its end (41 A presses over
+   489 frames on the passing trace); removing it would trade this bug for a stall.
+4. **The ride ladder had the identical exposure** and is fixed the same way: it named only
+   `Task_StopLearningMoveYesNo`, so the *answerable* frames fell through to the blind `_f % 3`
+   policy — which presses A one frame in three, and A there means give up.
+
+### The proof
+‼ **The documented "cheap repro" no longer reproduces**, and that is a finding, not a
+convenience: `saves/magma_door.ss1` was re-captured by a `magmatravel` success at 22:05 on
+2026-08-10, *after* the failing runs at 21:27/21:34. Both documented arms now PASS on it
+(HM04 → Sceptile, HM02 → Swellow, `slot=2 replace_slot=0` — same parameters that failed 3/3).
+Consistent with the race model, and it left the bug with no natural fixture, so the fault is now
+injected instead.
+
+**Two injections, because the first proved insufficient — measured, not assumed:**
+* `TEACH_MISS_WINDOW=1` (ignore the 1-frame sighting) with the pre-fix loop exits
+  `post_select=exhausted` and **the ride loop still recovers it** (`ride:learned`, 323f).
+  ⇒ Missing the window is **NECESSARY BUT NOT SUFFICIENT**; where the blind A-mash then lands is
+  what decides survival. That is exactly why the recorded failure point moved between runs.
+* `TEACH_CANCEL_FORGET=1` (one mistimed cancel at the forget screen → the decomp routes to
+  `StopLearningMovePrompt`, the prompt where A means give up) is the discriminating arm.
+
+**LIVE A/B — same save, same item, same target, same replace slot, one env var apart:**
+
+| arm | env | exit | result |
+|---|---|---|---|
+| OLD | `POKEBOT_TEACHWINDOW_A=1 TEACH_CANCEL_FORGET=1` | `ride:hard-cap stall_peak=61 frame=8999` | **`learned=False`**, moves unchanged |
+| NEW | `TEACH_CANCEL_FORGET=1` | **`ride:learned stall_peak=250 frame=896`** | **`learned=True`**, Fly replaced Peck |
+
+**POSITIVE CONTROLS — the fix must not buy this at the healthy path's expense:**
+
+| control | result |
+|---|---|
+| healthy REPLACE path, no env | `ride:learned ride_frames=458 stall_peak=167 post_select=replace-prompt` — ‼ **byte-identical to the pre-fix run**, i.e. a no-op when nothing goes wrong |
+| healthy FREE-SLOT path (`TEACH_SLOT=1 TEACH_ITEM=HM06`, Zigzagoon L3, 3 moves) | `learned=True replaced=[]` — the branch that `#24-teachpathrace` gated is unharmed, and `_ADVANCED_TASKS` has zero overlap with it |
+
+‼ **The OLD arm's failure record is structurally identical to the 2026-08-10 production
+failure** — `not-learned-after-ride:hard-cap`, `stall_peak=61`, `frame=8999`, same overworld task
+set as `tf-hm04`. The injection reproduces the real wedge, it does not merely break something.
+
+‼ **An honest correction to my own first attempt:** the always-on version of
+`TEACH_CANCEL_FORGET` made the NEW arm loop for ever (replace-prompt → cancel → stop-prompt → NO
+→ replace-prompt) and *looked* like the fix was broken. It was the injection: a fault that
+re-fires on every retry can never be satisfied, so the arm that recovers correctly is punished
+for recovering. The latch is now one-shot.
+
+### New instrumentation and tests
+* **`TEACH_TRACE=1`** — one line per observable change (phase + game state + task set + learn
+  state + knows), carrying **the buttons WE pressed since the previous line**. That last field is
+  the whole point: a ping-pong our own A-mash is driving looks identical, in a plain task dump, to
+  one the game is driving. This is what cracked a bug that three summary records could not.
+  Default OFF, changes no control flow.
+* **`repro_teach_prompt_window.py`** (new, no emulator) — 26 checks pinning both task spellings,
+  the `already-advanced` exit, the non-fatal path, B-at-the-stop-prompt **before** the blind A
+  fallback, the ride ladder's matching indirection, and that every injection defaults OFF.
+  Fault-injected to **3 red**, restored to **ALL PASS**.
+* **Regression gate: 12 of 12 PASS** (the ten standing checks plus `repro_teach_under_dialogue`
+  and the new file).
+* `repro_hmteach_postlearn.py` updated to match **meaning, not spelling** — every button in the
+  teach flow now goes through a recording `_press()` wrapper, and three checks had pinned the
+  literal `context.emulator.press_button("B")` text. A structural test that pins a call's
+  spelling turns a legitimate refactor into a false red.
+
+### Upstream
+Daily check 2026-08-11: `upstream-pokebot/main` still `5dd898f8`, unchanged.

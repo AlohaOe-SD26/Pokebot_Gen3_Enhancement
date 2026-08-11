@@ -3,12 +3,114 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-08-10 (night) — read "‼ YOU ARE HERE" immediately below.
+**Last updated:** 2026-08-11 — read "‼ YOU ARE HERE" immediately below.
 Every banner further down is HISTORY, newest first.
 
 ---
 
-# ‼ YOU ARE HERE — 2026-08-10 night. Read this, then `14-AGENT-PLAYBOOK.md`.
+# ‼ YOU ARE HERE — 2026-08-11. Read this, then `14-AGENT-PLAYBOOK.md`.
+
+## WHAT THIS IS
+`sandbox-pokebot/` is the working build of a Pokémon Emerald bot. Its **Story mode** plays the
+game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror (never edit);
+`custom-pokebot/` is the promoted fork. **All work happens in `sandbox-pokebot/`.**
+
+## STATE
+| | |
+|---|---|
+| branch / HEAD | `main`, clean, pushed |
+| box | **IDLE.** No batch running. |
+| story content | Littleroot → 6 badges → Mt. Pyre → Magma Hideout (Groudon awakened). Next unwritten beat: the **Slateport submarine**. |
+| ‼ is code frozen? | **No.** The freeze rule applies only during an `x4_headless` BATCH. |
+| upstream | checked **2026-08-11**, `5dd898f8`, unchanged |
+| **if stopped mid-task** | **NOTHING IS PARKED.** The session ended on a completed, verified item (`#24-teachmsgstall`), gate 12/12 green, docs current, tree clean. Start at "NEXT ACTIONS". |
+| promotion | ⏳ **`#24-teachmsgstall` is NOT promoted** — awaiting user approval. Everything before it is promoted at ZERO source drift. |
+
+## ✅ WHAT JUST SHIPPED — `#24-teachmsgstall`, the project's top bug, CLOSED
+**The replace-prompt detector had a ONE-FRAME window.** Measured with a new frame trace
+(`TEACH_TRACE=1`, `magma_door.ss1`, HM02 → Swellow):
+```
+f3232735  tasks=['Task_ReplaceMoveYesNo']              <- the ONLY frame it is visible
+f3232736  tasks=['Task_HandleReplaceMoveYesNoInput']   <- gone, and it never comes back
+```
+`pret/pokeemerald src/party_menu.c` explains it exactly — `Task_ReplaceMoveYesNo` displays the
+menu and **sets its own function to `Task_HandleReplaceMoveYesNoInput` in the same frame**, i.e.
+it retires on the frame it becomes answerable, which is the frame our condition first became true.
+
+**Missing it lost the teach** because the loop kept mashing A every 12 frames, and
+`Task_HandleStopLearningMoveYesNoInput` reads **A as YES = ABANDON THE TEACH**. ‼ The three
+"different" failure points recorded across runs are **three phases of that one road**: summary
+handoff → "did not learn FLY" → back in the bag, re-arming. ‼ And it read as deterministic *and*
+intermittent at once because a `.ss1` replays identical frame timing (0/3 from one save) while
+live runs land on a random phase (38/42) — that property is what made it unfalsifiable for four
+rounds.
+
+**Fix:** match both task spellings (`_PROMPT_TASKS`/`_STOP_TASKS`), add an `already-advanced`
+exit (non-fatal), press **B** at the stop-learning prompt before the blind-A fallback. The ride
+ladder had the identical exposure and is fixed the same way.
+
+**A/B — same save, same item, same target, one env var apart:**
+| arm | env | exit | result |
+|---|---|---|---|
+| OLD | `POKEBOT_TEACHWINDOW_A=1 TEACH_CANCEL_FORGET=1` | `ride:hard-cap stall_peak=61 frame=8999` | **`learned=False`** |
+| NEW | `TEACH_CANCEL_FORGET=1` | `ride:learned stall_peak=250 frame=896` | **`learned=True`** |
+
+The OLD arm's record is structurally identical to the 2026-08-10 production failure
+(`not-learned-after-ride:hard-cap`, `stall_peak=61`, `frame=8999`).
+
+**Positive controls (the fix must not cost the healthy path):** replace path with no env →
+`ride:learned frame=458 stall_peak=167`, **byte-identical to the pre-fix run**; free-slot path
+(`TEACH_SLOT=1 TEACH_ITEM=HM06`, Zigzagoon L3) → `learned=True replaced=[]`.
+‼ One arm is a **negative** result worth keeping: `TEACH_MISS_WINDOW=1` alone with the pre-fix
+loop still LEARNS (`ride:learned`, 323f) — the ride ladder recovers it. Missing the window is
+**necessary but not sufficient**; where the blind A-mash then lands decides survival. That is
+exactly why the recorded failure point moved between runs.
+
+```
+cd tools/story-dev
+PYTHONUTF8=1 py -3.12 repro_teach_prompt_window.py                    # 26 checks, seconds, offline
+PYTHONUTF8=1 TEACH_TRACE=1 TEACH_ITEM=HM02 py -3.12 story_harness.py magma_door.ss1 \
+  --driver teachfull --frames 400000 --profile tftrace                # the trace that found it
+```
+
+## ‼‼ THREE THINGS THAT WILL SAVE THE NEXT AGENT REAL TIME
+1. **A Gen 3 `Task_XxxYesNo` hands off to `Task_HandleXxxYesNoInput` on the frame the menu
+   becomes answerable.** Never key a detector on the DISPLAY task alone — watch the input
+   handler too, or you have a one-frame lottery. This one cost four rounds.
+2. **Never blind-mash A at a live yes/no.** Somewhere in Gen 3 there is a prompt where A means
+   "give up", and a 900-frame mash will find it. Mash only to advance TEXT.
+3. **A fault injection that models a TIMING miss must fire ONCE.** My first version re-fired on
+   every retry, which made the FIXED arm loop for ever and look worse than the broken one. If the
+   fix's mechanism is retry, an always-on fault is unsatisfiable by construction.
+
+## ‼ THE OLD `#24-teachmsgstall` REPRO IS DEAD — do not chase it
+`saves/magma_door.ss1` is **re-captured by `--driver magmatravel` on every success**, and a
+chapter run at 22:05 on 2026-08-10 overwrote the save the 21:27/21:34 failures were measured on.
+Both documented arms (HM04, HM02) now **PASS** on it with identical parameters. Nothing was wrong
+with the finding; the fixture underneath it moved. **A save any driver re-captures is a cache, not
+a fixture.**
+
+## ⏭ NEXT ACTIONS, IN ORDER
+1. **ASK ABOUT PROMOTION** of `#24-teachmsgstall` to `custom-pokebot/`. `CLAUDE.md` requires
+   explicit user approval; a generic "proceed autonomously" is not that. Everything else is ready.
+2. **Build the SLATEPORT SUBMARINE beat** — Maxie's defeat opens it (`VAR_SLATEPORT_CITY_STATE`
+   and `VAR_SLATEPORT_HARBOR_STATE` → 1, Stern / Gabby-and-Ty hide flags cleared). Recon it the
+   way §Ch15 was: decomp first, then a driven probe, graded on a flag.
+3. **KI-48 / KI-49** — the travel bugs; `could not reach` was 72 events in one batch.
+4. **Do NOT grade any of this on the finish rate.** Four batches read 25.0 → 33.3 → 16.1 → 28.6%
+   at n≈30 and resolved nothing.
+
+## HOW TO RUN / TEST — the gate is now **12 of 12** (re-run 2026-08-11)
+`repro_battle_items`, `repro_counter_hunt`, `repro_counter_huntable`,
+`repro_movepool_counter_candidates`, `repro_hunt_driven_grounds`, `repro_counter_move_answer`,
+`repro_boss_plateau`, `repro_boss_cfg_coverage`, `repro_area_item_gate`, `repro_hmteach_postlearn`,
+`repro_teach_under_dialogue`, **`repro_teach_prompt_window`** (new).
+‼ `repro_counter_hunt` and `repro_area_item_gate` print `RESULT: ALL PASS` / `all checks pass.` —
+grepping only for "ALL PASS" reports them as false failures.
+
+---
+
+# HISTORY — 2026-08-10 night
 
 ## WHAT THIS IS
 `sandbox-pokebot/` is the working build of a Pokémon Emerald bot. Its **Story mode** plays the

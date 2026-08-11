@@ -1504,3 +1504,51 @@ cause of a later whiteout and the two must not be confused.
 
 **Rejected — require every heal** (throws away successful hauls). **Rejected — drop the heals**
 (the party arrives 3/6 fainted; the first build with a single late heal whited out at f23674).
+
+---
+
+## 2026-08-11 — menu detectors watch the INPUT HANDLER, not just the display task
+
+**Decision.** Where the bot waits on a Gen 3 yes/no prompt, it matches a **tuple** of task names
+covering both the display task (`Task_XxxYesNo`) and the input handler
+(`Task_HandleXxxYesNoInput`) — `_PROMPT_TASKS` and `_STOP_TASKS` in `teach_hm_move`, shared by
+both loops that read them so the two can never drift apart.
+
+**Why.** The decomp's yes/no tasks set their own function pointer to the input handler in the
+same frame they display the menu, so the display task is observable for exactly one frame.
+Measured on a live trace: `f3232735` it is there, `f3232736` it is gone for ever.
+
+**Alternatives rejected.**
+* *Poll faster / raise the budget.* Four rounds of budget tuning already failed on this bug; the
+  window is one frame wide, so no budget fixes it.
+* *Read the menu TEXT instead* (`#24-menutext`). Correct in the long run and still open, but it is
+  a much larger change and this fix needs none of it.
+* *Stop pressing A in the post-select loop.* The A presses are what carry the "…can't learn more
+  than four moves…" chain to its end (41 presses over 489 frames, measured). Removing them trades
+  a wedge for a stall.
+
+## 2026-08-11 — a fault injection that models a TIMING miss must fire exactly once
+
+**Decision.** `TEACH_CANCEL_FORGET` is latched to one shot; fault-injection switches in this
+project model a single mistimed event unless the bug is genuinely repetitive.
+
+**Why.** The fix's mechanism is retry. An always-on fault makes recovery impossible by
+construction, so the corrected arm looks worse than the broken one — which is what the first run
+of this A/B reported.
+
+**Alternative rejected.** Grading the arms on "did it wedge" rather than "did it learn". That
+hides the difference: both arms wedge under an unsatisfiable fault.
+
+## 2026-08-11 — every button in the teach flow goes through a recording `_press()` wrapper
+
+**Decision.** `teach_hm_move` presses only via `_press()`, which appends to a trace buffer;
+`TEACH_TRACE=1` then emits one line per observable change carrying the buttons pressed since the
+previous line.
+
+**Why.** A menu ping-pong that our own A-mash is driving is indistinguishable, in a plain
+per-frame task dump, from one the game is driving. Pairing cause with effect on the same line is
+what cracked this bug after three summary-only records could not.
+
+**Cost accepted.** Structural repros that pinned the literal `context.emulator.press_button(...)`
+text went red and were updated to match meaning rather than spelling — noted as the risk of
+spelling-based structural tests.

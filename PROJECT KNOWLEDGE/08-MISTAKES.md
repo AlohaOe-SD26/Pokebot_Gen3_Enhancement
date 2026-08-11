@@ -4365,3 +4365,72 @@ reference moved with it.
 from a moving frame of reference needs its subject pinned by IDENTITY, not by location. Track the
 object by `local_id`. The prior two: `#24-battleitems`' HP comparison that spanned a Pokémon
 switch (2026-08-10), and KI-34's party-menu vs `get_party()` index confusion.
+
+---
+
+## 2026-08-11 — four rounds lost to a detector keyed on a task that RETIRES ITSELF on the frame it becomes useful
+
+**Symptom.** `#24-teachmsgstall`: HM teaches wedged, "the replace prompt never appears", and the
+failure point MOVED between runs (`Task_BagMenu_HandleInput` / `Task_ClosePartyMenuAfterText` /
+`Task_ClosePartyMenuAndSetCB2`). It read as deterministic from a save (0 of 3) and as intermittent
+in production (38 of 42) at the same time. Four rounds of budget tuning and three refuted causes.
+
+**Root cause.** The detector was
+`if "Task_ReplaceMoveYesNo" in t and "Task_PrintAndWaitForText" not in t`. Per
+`pret/pokeemerald src/party_menu.c`, `Task_ReplaceMoveYesNo` displays the yes/no menu and
+**sets its own task function to `Task_HandleReplaceMoveYesNoInput` in the same frame** — so the
+condition is true for exactly one frame, measured. Miss that frame and the prompt is unobservable
+for ever, and the loop's blind `A` every 12 frames then walks the flow into
+`Task_HandleStopLearningMoveYesNoInput`, where **A means YES, ABANDON THE TEACH**.
+
+**The fix that worked.** Watch the task that READS INPUT as well as the one that DISPLAYS
+(`_PROMPT_TASKS`, `_STOP_TASKS`); add an `already-advanced` exit for "someone already answered
+it"; press **B** at the stop-learning prompt, before the blind-A fallback in the ladder.
+
+**Prevention rule.** *A Gen 3 `Task_XxxYesNo` hands off to `Task_HandleXxxYesNoInput` on the frame
+the menu becomes answerable — so never key a detector on the DISPLAY task alone. Watch the input
+handler too, or accept a one-frame lottery.*
+
+**Second prevention rule (this one is general).** *Never blind-mash the ACCEPT button at a live
+yes/no. Somewhere in Gen 3 there is a prompt where A means "give up", and a 900-frame mash will
+find it. Mash only to advance TEXT; every yes/no needs a named branch.*
+
+---
+
+## 2026-08-11 — my fault injection re-fired on every retry, so the FIXED arm looked broken
+
+**Symptom.** The A/B for the above: `TEACH_CANCEL_FORGET=1` cancelled the forget-move screen to
+land the flow on "Stop trying to teach?". **Both arms failed**, and the NEW arm failed *worse*
+(`menus-never-closed` after `stall_peak=250`). Read naively, the fix made things worse.
+
+**Root cause.** The injection had no latch. The whole point of the fix is "say NO to giving up and
+come back for another attempt" — so on the fixed arm the flow came back to the forget screen, the
+injection cancelled it *again*, and it looped until the cap. **The injection was unsatisfiable, and
+it punished precisely the recovery behaviour under test.**
+
+**The fix that worked.** A one-shot latch: the fault models a SINGLE mistimed press. OLD then
+fails (`learned=False`), NEW then succeeds (`learned=True`, 896 frames).
+
+**Prevention rule.** *If a fix's mechanism is RETRY, the injected fault must fire ONCE. A fault
+that re-fires on every attempt cannot be recovered from by design, so the arm that recovers
+correctly looks identical to the arm that never tries.*
+
+---
+
+## 2026-08-11 — the committed "cheap repro" had been silently invalidated by a later successful run
+
+**Symptom.** Both documented `#24-teachmsgstall` repro commands (`magma_door.ss1` + `--driver
+teachfull`, HM04 and HM02) — recorded in `04-HANDOFF.md` and `03-PUNCH-LIST.md` as failing 3/3 —
+**passed on the first attempt**, with identical parameters (`slot=2 replace_slot=0`).
+
+**Root cause.** `saves/magma_door.ss1` is **re-captured by `--driver magmatravel` on every
+success**. A chapter run at 22:05 on 2026-08-10 overwrote the exact save the 21:27/21:34 failures
+were measured on. Different frame phase, so the race lands the other way. Nothing was wrong with
+the finding; the fixture underneath it moved.
+
+**The fix that worked.** Stop depending on it: the fault is now injected
+(`TEACH_MISS_WINDOW` / `TEACH_CANCEL_FORGET`), which is reproducible regardless of the save.
+
+**Prevention rule.** *A save that any driver RE-CAPTURES is not a fixture — it is a cache. If a
+repro's evidence depends on an exact save, copy it to a name nothing writes to, and record the
+mtime beside the measurement.*

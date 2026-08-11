@@ -208,6 +208,19 @@ done
   `cavethread`, `normancounter`, `groundsweep` (driven reach-AND-leave evidence for a candidate
   hunting ground), the two **Magma Hideout** drivers below, and the two
   **anchor-manufacturing** drivers below that.
+- **`teach_hm_move` instrumentation and fault injection (added 2026-08-11, `#24-teachmsgstall`).**
+  Every button in the teach flow goes through a recording `_press()` wrapper, so the trace can pair
+  a state change with **the buttons we pressed to cause it** — the field that finally separated
+  "the game is stuck" from "our own A-mash is driving a ping-pong". All four switches default OFF
+  and change no control flow when unset:
+  | env | what it does |
+  |---|---|
+  | `TEACH_TRACE=1` | one `TEACH TRACE` line per observable change: phase, game state, task set, learn state, knows, `pressed_since` |
+  | `TEACH_MISS_WINDOW=1` | model a mistimed frame — ignore the 1-frame `Task_ReplaceMoveYesNo` sighting. ‼ Measured NOT sufficient on its own to wedge a teach |
+  | `TEACH_CANCEL_FORGET=1` | **one-shot**: cancel the forget-move screen once, which the decomp routes to `StopLearningMovePrompt` — the prompt where A means give up. This is the discriminating arm |
+  | `POKEBOT_TEACHWINDOW_A=1` | restore the pre-fix post-select loop AND ride ladder (the OLD arm) |
+  ‼ The OLD arm must restore **both** loops (`_PROMPT_MATCH` / `_STOP_MATCH`), or it quietly enjoys
+  half the fix and the A/B measures nothing.
 - **`--driver magmatravel` / `--driver magmahideout` (added 2026-08-10, §Ch15)** — the chapter
   split into two separately-graded halves, which is what let a party problem, an instrument bug
   and a Strength gate each name themselves instead of arriving as one opaque failure:

@@ -93,7 +93,16 @@ print("2. THE FIX: a learned move short-circuits the button policy BEFORE any ac
 # that instead — and the body regex then ran from the break test all the way to the first
 # `elif`, swallowing the real branch and passing every assertion for the wrong reason. The
 # ladder is identified by the branch that presses buttons.
-ladder_at = ride_src.find('press_button("B")')
+# ‼ MATCH BOTH SPELLINGS (2026-08-11). `#24-teachmsgstall`'s frame trace routes every button in
+# this flow through a recording wrapper — `_press("B")` instead of
+# `context.emulator.press_button("B")` — so that a trace line can carry the buttons WE pressed
+# beside the state they produced. A structural test that pins the *spelling* of a call rather
+# than its *meaning* turns a legitimate refactor into three red checks, which is exactly what
+# happened here. Accept either form; the wrapper's only job is to press and record.
+_PRESS_B = re.compile(r'(?:context\.emulator\.press_button|_press)\("B"\)')
+_PRESS_A = re.compile(r'(?:context\.emulator\.press_button|_press)\("A"\)')
+_ladder_m = _PRESS_B.search(ride_src)
+ladder_at = _ladder_m.start() if _ladder_m else -1
 check("the button-pressing ladder can be located", ladder_at != -1)
 ladder_src = ride_src[:ladder_at]
 ladder_head = re.findall(r"\n        (if|elif)\b([^\n]*)", ladder_src)
@@ -112,16 +121,25 @@ check("that branch's body exists", first_body is not None)
 if first_body:
     b = first_body.group(1)
     check("it presses B (decline 'teach it to another POKéMON?')",
-          'press_button("B")' in b)
+          _PRESS_B.search(b) is not None)
     check("it never presses A after the move is learned",
-          'press_button("A")' not in b,
+          _PRESS_A.search(b) is None,
           "an A here re-answers YES and re-enters the teach cycle")
 
 print("3. the accept branches still refuse to fire once the move is known")
 
-for task in ("Task_ReplaceMoveYesNo", "Task_HandleReplaceMoveInput"):
-    m = re.search(rf'"{task}" in t([^\n:]*)', ride_src)
-    check(f"{task}'s branch still carries its `not _knows()` guard",
+# ‼ MEANING, NOT SPELLING (2026-08-11). `#24-teachmsgstall` replaced the literal
+# `"Task_ReplaceMoveYesNo" in t` test with `any(x in t for x in _PROMPT_TASKS)`, because that
+# task exists for exactly ONE FRAME before the game swaps it for
+# `Task_HandleReplaceMoveYesNoInput` — naming only the first is the bug. The invariant this
+# check defends is "the accept branch cannot fire once the move is known", so match the branch
+# by either spelling and then assert the guard.
+for label, pattern in (
+    ("the replace-prompt", r'(?:"Task_ReplaceMoveYesNo" in t|_PROMPT_(?:TASKS|MATCH)\))([^\n:]*)'),
+    ("Task_HandleReplaceMoveInput", r'"Task_HandleReplaceMoveInput" in t([^\n:]*)'),
+):
+    m = re.search(pattern, ride_src)
+    check(f"{label}'s branch still carries its `not _knows()` guard",
           m is not None and "not _knows()" in m.group(1))
 
 print("4. the exits are still instrumented (this is how the bug was found)")
