@@ -16,13 +16,15 @@ user rather than resolved unilaterally.
 | item | state |
 |---|---|
 | `#24-battleitems` | ✅ **DONE & PROMOTED 2026-08-10.** Built, unit-proven (27 checks), live, self-correcting; validation batch `20260810-082509` passed (flips 20 → 2, both-failed 10 → 0). ‼ Outcome unproven — grade any follow-up on BATTLE-level metrics. |
-| `#24-teachmsgstall` | reproduced deterministically; 3 candidate causes refuted. ‼‼ **PRIORITY RAISED 2026-08-10 — it is now RUN-ENDING**: it blocks `#24-strength`, and so all of `#24-magmahideout`. Cheap new repro: `magma_door.ss1` + `--driver teachfull`. |
+| `#24-teachmsgstall` | ‼‼ **THE TOP BUG (2026-08-10 night).** Reproduced deterministically; 3 candidate causes refuted. Ch15 shipped by **DODGING** it (teach at a heal stop), so it is no longer strictly run-ending — but it is the only thing between the bot and reliable HM teaching, and it now has a **cheap repro** (`magma_door.ss1` + `--driver teachfull`) plus three discriminating facts. |
 | `#24-r110mauville` / KI-48 / KI-49 | travel bugs, measured, unstarted. `could not reach` was 72 events in one batch. |
+| `#24-magmahideout` + `#24-strength` | ✅ **DONE 2026-08-10 night** — `GROUDON_AWAKENED_MAGMA_HIDEOUT` set, wired as Segment 15. Listed here only so the next reader sees they closed; details in the entries below. |
 
 ### 2. BLOCKED ON A USER DECISION — no work should start on these
 | item | the decision |
 |---|---|
-| `#24-magmahideout` | **status conflict**: this list says DEFERRED (door unreachable), the handoff calls it the next lever. |
+| **PROMOTE Ch15 + `#24-strength`** | ‼ **NEW 2026-08-10 night.** `sandbox-pokebot/` has drifted from `custom-pokebot/` by the whole Magma Hideout chapter and the Strength support. `CLAUDE.md` requires **explicit user approval** to promote, and a generic "proceed autonomously" is not it. Everything else for the promotion is ready. |
+| ~~`#24-magmahideout` status conflict~~ | ✅ **RESOLVED 2026-08-10.** The conflict was "this list says DEFERRED, the handoff calls it the next lever". The handoff was right, the deferral's *reason* was wrong three separate times (see the entry below), and the chapter is now **DONE**. |
 | the boss-healing response | items / burst damage / stop promising an answer — see `04-HANDOFF.md`. |
 | `#doc-policy-05` | should `05-KNOWN-ISSUES` drop an entry at sandbox-fix or at promotion? |
 | `#24-organicteam` | **deferred by the user on purpose 2026-08-05.** Do not start early. |

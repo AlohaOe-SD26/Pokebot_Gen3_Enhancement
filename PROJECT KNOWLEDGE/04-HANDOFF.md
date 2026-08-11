@@ -23,6 +23,7 @@ game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror
 | story content | Littleroot → 6 badges → Mt. Pyre → **MAGMA HIDEOUT (Groudon awakened)**. Next unwritten beat: the Slateport submarine. |
 | ‼ is code frozen? | **No.** The freeze rule applies only during an `x4_headless` BATCH. |
 | upstream | checked 2026-08-10, `5dd898f8`, unchanged |
+| **if stopped mid-task** | **NOTHING IS PARKED.** The session ended on a completed, verified item: chapter done, full regression gate 10/10 green, all docs current, working tree clean, 0 unpushed. Start at "NEXT ACTIONS" below — there is no interrupted work to resume. |
 | promotion | ‼ `sandbox-pokebot/` has DRIFTED from `custom-pokebot/` by all of Ch15 + `#24-strength`. **Promotion needs explicit user approval** — a generic "proceed autonomously" is NOT that. |
 
 ## ✅ WHAT JUST SHIPPED — `#24-magmahideout` AND `#24-strength`, BOTH DONE

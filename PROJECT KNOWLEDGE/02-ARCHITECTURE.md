@@ -206,7 +206,22 @@ done
   which `hmtest` cannot reach because its freshly-caught mon has a free slot; `TEACH_INJECT` /
   `TEACH_AFTER_GYM` / `TEACH_AFTER_BATTLE` / `TEACH_AFTER_CATCH` build the failing fixtures),
   `cavethread`, `normancounter`, `groundsweep` (driven reach-AND-leave evidence for a candidate
-  hunting ground), and the two **anchor-manufacturing** drivers below.
+  hunting ground), the two **Magma Hideout** drivers below, and the two
+  **anchor-manufacturing** drivers below that.
+- **`--driver magmatravel` / `--driver magmahideout` (added 2026-08-10, §Ch15)** — the chapter
+  split into two separately-graded halves, which is what let a party problem, an instrument bug
+  and a Strength gate each name themselves instead of arriving as one opaque failure:
+  - `magmatravel` runs `travel_to_magma_hideout_door()` from `saves/post_mtpyre.ss1`. Acceptance
+    is `VAR_JAGGED_PASS_STATE == 2` **and** standing on `JAGGED_PASS (16,20)` — ‼ the var, not
+    the tile, because the door is walled by a `setmetatile` a path check cannot see. On success
+    it **captures `saves/magma_door.ss1`**.
+  - `magmahideout` runs `enter_magma_hideout()` + `do_magma_hideout()` from that anchor.
+    Acceptance is `FLAG_GROUDON_AWAKENED_MAGMA_HIDEOUT`; it reports `floors=[...]` (how far it
+    got) and captures `saves/magma_1f_fail.ss1` on failure.
+  - ‼ Both override `on_whiteout()` to **True**, mirroring StoryMode. The framework default is
+    False (= drop to Manual), and inheriting it made two runs stop at the identical frame and
+    read as a route failure. **A driver standing in for a mode must mirror that mode's
+    overrides, not merely call its functions.**
 - **Anchors (save states) are now made, not only scavenged** — added 2026-08-09 because
   `#24-r116sweep` twice picked an anchor by NAME and both were the wrong map or era:
   - `probe_anchor_inventory.py` — loads every save in `saves/` and prints map (**as a `MapRSE`

@@ -196,11 +196,20 @@ it.
 **Intent (unchanged):** a Story bot that plays Emerald from a cold start the way a person
 would — faithfully, never hanging, never silently derailing — far enough to be left running.
 
-**Reality:** it reliably reaches and beats **Winona / Gym 6, the end of built content**, at a
-**52.0% cold-start finish rate** across 8 parallel lanes. Everything past Gym 6 is unwritten.
+**Reality (updated 2026-08-10 night):** it reliably reaches and beats **Winona / Gym 6** at a
+**52.0% cold-start finish rate** across 8 parallel lanes, and built content now runs **two
+chapters further**: **Mt. Pyre / the Magma Emblem** (2026-08-06) and **the Magma Hideout /
+Groudon** (2026-08-10, `FLAG_GROUDON_AWAKENED_MAGMA_HIDEOUT`, wired as Segment 15). The next
+unwritten beat is the **Slateport submarine**, which Maxie's defeat opens.
+‼ The 52.0% figure is a Gym-6 measurement and says nothing about the two new chapters — they are
+graded **BINARY on their completion flags**, deliberately, because four batches at n≈30 moved the
+finish rate 25.0 → 33.3 → 16.1 → 28.6% and resolved nothing. **Content is verifiable; a finish
+rate at that sample size is not.**
 
-**What this week actually bought.** No new chapters. What changed is that the bot's failures
-are now *bounded and diagnosable* rather than fatal and silent:
+**What this week actually bought.** ‼ *Written before 2026-08-06; the "no new chapters" line was
+true then and is not now — **two** chapters have since shipped (Mt. Pyre, Magma Hideout), and the
+Magma Hideout also brought the bot its first **Strength** support.* What the week itself bought
+was that the bot's failures became *bounded and diagnosable* rather than fatal and silent:
 * three battle-path hangs that each ate a whole lane are bounded (KI-45/46/47), plus one net
   covering the 32 unbounded loops that remain;
 * the counter chain works end to end for the first time — it catches, trains and now *fields*

@@ -10740,3 +10740,33 @@ successful push**, because the player steps onto exactly that tile (`id=255@(7,2
 dump). The boulder is now tracked by `local_id`. Same family as the `#24-battleitems` bug where
 an HP comparison spanned a Pokémon switch: **state sampled from a moving frame of reference needs
 its subject pinned by identity.**
+
+---
+
+## 2026-08-10 (night) — wrap-up pass: doc truth, and a health check
+
+Closing-out pass after `#24-magmahideout` shipped. **No code changed.**
+* **`01-VISION-AND-DESIGN.md`** — "Reality" said built content ended at **Winona / Gym 6**, which
+  had been stale since 2026-08-06. It now records Mt. Pyre and the Magma Hideout, names the next
+  unwritten beat (the Slateport submarine), and states plainly that the 52.0% figure is a Gym-6
+  measurement that says nothing about the new chapters — they are graded binary on their flags.
+  The "What this week actually bought: **no new chapters**" line is marked as what it is: true
+  when written, false now.
+* **`02-ARCHITECTURE.md`** — added `--driver magmatravel` / `--driver magmahideout`, their
+  acceptance tests and the anchors they capture, plus the note that **both override
+  `on_whiteout()` to True to mirror StoryMode** (the framework default is False = drop to Manual,
+  and inheriting it made two runs read as a route failure).
+* **`03-PUNCH-LIST.md`** — the ACTIVE table said `#24-teachmsgstall` "blocks all of
+  `#24-magmahideout`", which stopped being true the moment the chapter shipped by dodging it;
+  reworded to what it is now (still the top bug, no longer run-ending). The "BLOCKED ON A USER
+  DECISION" section's **`#24-magmahideout` status conflict is closed** — the handoff was right —
+  and is replaced by a real pending decision: **promoting Ch15 + `#24-strength` to
+  `custom-pokebot/`**, which needs explicit user approval.
+* **`04-HANDOFF.md`** — added an explicit **"if stopped mid-task: NOTHING IS PARKED"** row, so
+  the next session's first question is answered without reading further.
+
+**Health check — all PASS.** Nine PROJECT KNOWLEDGE docs present; exactly one Project-Kit
+directive block, `kit v1.10` matching `PROJECT KIT/VERSION`; branch `main`, remote reachable, no
+unpushed commits; no tracked file over 95 MB (largest is the 16 MB ROM); `git`/`gh` on PATH and
+`gh` authenticated; `claude doctor` reports no installation issues. **Regression gate re-run in
+full: 10 of 10 green**, including `repro_battle_items` and the whole counter/boss suite.
