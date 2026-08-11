@@ -4434,3 +4434,23 @@ the finding; the fixture underneath it moved.
 **Prevention rule.** *A save that any driver RE-CAPTURES is not a fixture — it is a cache. If a
 repro's evidence depends on an exact save, copy it to a name nothing writes to, and record the
 mtime beside the measurement.*
+
+---
+
+## 2026-08-11 — an "ALREADY PROVEN" row with no sample size beside it, and n was 1
+
+**Symptom.** `04-HANDOFF.md` carried, in a table headed *"‼‼ ALREADY PROVEN — DO NOT RE-RUN THESE"*:
+"The Magma Hideout chapter completes — ✅ `groudon=True`, floors `[1F,2F_1R,3F_1R,4F]`, **0
+whiteouts**". The second driven run of the identical command **lost to Maxie**: 7 whiteouts,
+respawn at MAUVILLE_CITY. The row was true and also, as written, unfalsifiable-looking.
+
+**Root cause.** The row recorded an OUTCOME without its **n**, on a step that contains a boss
+fight — i.e. a stochastic step — and the table's own heading actively discourages re-measuring it.
+The evidence index was built to stop wasteful re-derivation, which is right; but "do not re-run"
+plus a missing sample size turns one lucky run into settled fact.
+
+**The fix that worked.** KI-50 records the second result and re-states the claim as "reaches Maxie
+reliably; *completes* 1 of 2". The chapter's navigation really is proven — the fight is not.
+
+**Prevention rule.** *Every row in an "already proven" table needs its n. A claim about a step
+containing a battle is a RATE, never a fact — write it as k/n or do not write it.*

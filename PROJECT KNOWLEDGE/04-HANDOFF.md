@@ -114,8 +114,24 @@ a fixture.**
      Hideout**, which is the next (much larger) chapter.
    * ‼ `OnTransition` rewrites the harbor's population (patrons hidden, Stern moved to `(12,13)`).
      **Do not model this map from `map.json` alone** — same class as the Jagged Pass guard.
-   Start at §Ch16's "SUGGESTED BUILD ORDER": anchor first, and **assert the var on the anchor**
-   before spending a probe on it.
+   **✅ STEP 1 IS PART-DONE (2026-08-11), and it exposed two bugs — read this before retrying:**
+   * `--driver magmahideout` now **captures `saves/post_maxie.ss1` on success**
+     (`MAGMA_HIDEOUT_CAPTURE=0` to suppress), gated on `groudon` so a failed run cannot write a
+     wrong-era anchor. `probe_ch16_anchor.py` is the era gate for it (NAME / ERA / not-yet-run /
+     PATH controls).
+   * ‼ **THE ANCHOR WAS NOT PRODUCED — the chapter LOST to Maxie (KI-50).** The chapter is
+     **not deterministic**: it reaches Maxie reliably but completes 1 of 2 driven runs. Just
+     re-run `--driver magmahideout` from `magma_door.ss1` until `groudon=True`; the capture is
+     automatic. **Then run `probe_ch16_anchor.py` before building anything on it.** ‼ Budget for
+     it: **the chapter wins 1 in 3**, so expect ~3 runs of ~6-10 min each. Give each run a
+     timeout well over 10 minutes — one of mine was cut off by a 10-minute cap mid-fight.
+   * ‼ **KI-51, FIXED (structurally proven; live firing UNCONFIRMED)**: a losing run used to ride
+     60,000 frames at an empty overworld and then blame "the Maxie challenge never resolved". It
+     now fails after 300 off-map frames with the real state (map, tile, `party_alive`), so a retry
+     loop is cheap. `repro_maxie_whiteout_guard.py` pins it (18 checks, fault-injected red).
+     **If you re-run the chapter and it loses, grab the stdout** — a line reading
+     `left MAGMA_HIDEOUT_4F during the Maxie challenge` is the missing live confirmation.
+   Then §Ch16's steps 2-4: travel leg, walk onto `(8,14)`, ride to `releaseall`.
 3. **KI-48 / KI-49** — the travel bugs; `could not reach` was 72 events in one batch.
 4. **Do NOT grade any of this on the finish rate.** Four batches read 25.0 → 33.3 → 16.1 → 28.6%
    at n≈30 and resolved nothing.
@@ -181,7 +197,7 @@ the code it covers.
 
 | claim | verdict | how to review (do not re-run unless you changed it) |
 |---|---|---|
-| The Magma Hideout chapter completes | ✅ `groudon=True`, floors `[1F,2F_1R,3F_1R,4F]`, **0 whiteouts** | `07-CHANGELOG` 2026-08-10 (night); re-run only via `--driver magmahideout` from `saves/magma_door.ss1` |
+| The Magma Hideout chapter completes | ‼ **1 of 3 driven runs** (see KI-50). Run 1 `groudon=True`, 0 whiteouts; runs 2 and 3 (2026-08-11) both **LOST to Maxie** (7 and 4 whiteouts). **Reaches Maxie 3/3; WINS 1/3.** The navigation is proven, the fight is not. | `07-CHANGELOG` 2026-08-10 (night); re-run only via `--driver magmahideout` from `saves/magma_door.ss1` |
 | The promotion works in `custom-pokebot`, driven | ✅ `groudon=True`, identical result | `custom-pokebot/DIVERGENCE-LOG.md`, last entry |
 | Source drift sandbox ↔ custom | ✅ **ZERO** (`modules/`, `plugins/` diff clean) | `diff -rq --exclude=__pycache__ sandbox-pokebot/modules custom-pokebot/modules` |
 | The travel leg reaches the door and opens it | ✅ `arrived=True opened=True JAGGED_PASS_STATE=2 party_alive=6/6`, 1 whiteout | `--driver magmatravel` from `saves/post_mtpyre.ss1` (~75k frames, several minutes) |

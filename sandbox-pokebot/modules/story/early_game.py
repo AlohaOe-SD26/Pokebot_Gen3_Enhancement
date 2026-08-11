@@ -7422,14 +7422,53 @@ def do_magma_hideout() -> Generator:
     yield from ensure_facing_direction(facing)
     yield
     frames = 0
+    off_map = 0
     while not _groudon_awakened():
         _check_abort()
+        # ‼‼ A WHITEOUT MOVES THE PLAYER TWO TOWNS AWAY AND `_groudon_awakened()` CANNOT SEE IT.
+        # MEASURED 2026-08-11 (`--profile mh-anchor`): this run LOST to Maxie, whited out to
+        # MAUVILLE_CITY (22,6), and this loop went on mashing A/B at an empty overworld — 13
+        # STUCK dumps and 18,300+ frames of "no progress" with the step message frozen at
+        # "at (15, 21), facing Right at Maxie (16, 21)" while the avatar was two towns away.
+        # The 60,000-frame bound would eventually have fired, but its message names the wrong
+        # thing entirely ("the Maxie challenge never resolved"), which is the exact failure this
+        # project has a standing rule about: **a failure message must report STATE, not a
+        # HYPOTHESIS** (`08-MISTAKES` 2026-08-10 — "check the destination is walkable" on three
+        # runs where it always was).
+        #
+        # ‼ DEBOUNCED, not instant. The map read can be transient across the battle's own screen
+        # transitions, and ending a HEALTHY Maxie fight because of one odd frame would be a far
+        # worse bug than the one being fixed. 300 frames (~5s) is longer than any transition here
+        # and still ~200x cheaper than riding the full bound out.
+        try:
+            _on_4f = (
+                get_map_data_for_current_position().map_group_and_number
+                == MapRSE.MAGMA_HIDEOUT_4F.value
+            )
+        except Exception:  # noqa: BLE001 - an unreadable map must never end the fight
+            _on_4f = True
+        off_map = 0 if _on_4f else off_map + 1
+        if off_map > 300:
+            try:
+                _where = get_map_data_for_current_position().map_group_and_number
+                _tile = tuple(get_player_avatar().local_coordinates)
+                _alive = sum(1 for m in get_party() if m is not None and m.current_hp > 0)
+                _state = f"map={_where} tile={_tile} party_alive={_alive}/{len(get_party())}"
+            except Exception as _error:  # noqa: BLE001
+                _state = f"<state unreadable: {type(_error).__name__}>"
+            raise BotModeError(
+                "Magma Hideout: left MAGMA_HIDEOUT_4F during the Maxie challenge without "
+                f"Groudon awakening — almost certainly a WHITEOUT. {_state} "
+                f"(was standing {standing_on} facing {facing} at Maxie {MAXIE_TILE}, "
+                f"{frames} frames in). The chapter cannot continue from here; the caller's "
+                "whiteout recovery should re-run the segment."
+            )
         context.emulator.press_button("B" if frames % 3 else "A")
         frames += 1
         if frames > 60000:
             raise BotModeError(
                 "Magma Hideout: the Maxie challenge never resolved in 60,000 frames "
-                f"(standing {MAXIE_APPROACH} facing {MAXIE_FACING} at {MAXIE_TILE})."
+                f"(standing {standing_on} facing {facing} at Maxie {MAXIE_TILE}, still on 4F)."
             )
         yield
 

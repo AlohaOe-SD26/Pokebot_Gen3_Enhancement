@@ -2628,6 +2628,35 @@ class MagmaHideoutMode(BotMode):
             f"floors={floors} whiteouts={MagmaHideoutMode._whiteouts} "
             f"frames={context.emulator.get_frame_count()}"
             + (f" error=({error_text})" if error_text else ""))
+
+        # ‼ CAPTURE THE POST-MAXIE ANCHOR (added 2026-08-11 for §Ch16). Maxie's defeat sets
+        # `VAR_SLATEPORT_HARBOR_STATE = 1`, which is the gate on all four Slateport Harbor coord
+        # triggers — so the NEXT beat cannot be developed at all without a save from this era, and
+        # no committed save had it. `magmatravel` already captures its own anchor this way; this
+        # mirrors it so the chain keeps producing the anchor the next chapter needs instead of
+        # making someone re-drive a whole dungeon to get one.
+        # ‼ GATED ON `groudon`, NOT on "the driver finished". A save captured after a FAILED run
+        # would be the wrong era while looking exactly like the right one — which is the mistake
+        # that cost seven probes on 2026-08-10 (`08-MISTAKES`: verify an anchor against the STORY
+        # CLOCK, not the map).
+        if groudon and os.environ.get("MAGMA_HIDEOUT_CAPTURE", "1") != "0":
+            try:
+                _harbor = get_event_var("VAR_SLATEPORT_HARBOR_STATE")
+                _city = get_event_var("VAR_SLATEPORT_CITY_STATE")
+                out = SAVES / "post_maxie.ss1"
+                out.write_bytes(context.emulator.get_save_state())
+                log(f"[magmahideout] captured anchor -> {out} "
+                    f"(SLATEPORT_HARBOR_STATE={_harbor} SLATEPORT_CITY_STATE={_city})")
+                # ‼ SAY IT OUT LOUD IF THE ERA IS NOT WHAT THE DECOMP PROMISED. `get_event_var`
+                # returns -1 for an unknown NAME, so a typo here would otherwise be recorded as a
+                # real reading of 1 vs -1 and believed later.
+                if _harbor != 1:
+                    log(f"[magmahideout] ‼ EXPECTED VAR_SLATEPORT_HARBOR_STATE == 1 after Maxie, "
+                        f"read {_harbor}. Either the var name is wrong or the era is not what "
+                        f"§Ch16 assumes — do NOT build the harbor beat on this anchor.")
+            except Exception as _error:  # noqa: BLE001 - capture must never fail the run
+                log(f"[magmahideout] anchor capture failed: {type(_error).__name__}: {_error}")
+
         context.set_manual_mode()
         return
 

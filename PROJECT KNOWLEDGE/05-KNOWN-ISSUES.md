@@ -1982,3 +1982,93 @@ budget that protects against genuine stuck loops.
   fails; or let hunting grounds declare the entrance their tile belongs to.
 - **Repro:** `PYTHONUTF8=1 py -3.12 probe_r116_east_grass.py` (seconds, no emulation loop), or
   the full driven version in the `#24-r116sweep` punch-list entry.
+
+---
+
+## KI-50 — The Magma Hideout chapter is NOT deterministic: it can LOSE to Maxie (2026-08-11, severity: MED, MEASURED)
+
+**What was measured.** A second driven run of `--driver magmahideout` from `saves/magma_door.ss1`
+— the identical command that produced `groudon=True, whiteouts=0` on 2026-08-10 — **lost**:
+```
+whiteouts in the run: 7      (vs 0 on 2026-08-10)
+battle_text='NICK whited out!'  instr=BattleScript_LocalBattleLostEnd
+respawn: MAUVILLE_CITY (22,6)
+floors reached: 1F -> 2F_1R -> 3F_1R -> 4F, standing at (15,21) facing Maxie (16,21)
+```
+It navigated the whole dungeon correctly and reached Maxie — the *content* works. It then lost
+the fight.
+
+‼ **A THIRD RUN (`mh-anchor2`, same command) ALSO LOST** — 4 whiteouts, same respawn. So the
+tally is **1 win in 3 driven runs**, and the two losses were consecutive. Reaching Maxie is 3/3;
+winning is 1/3.
+
+‼ **THIS AMENDS AN "ALREADY PROVEN" ROW.** `04-HANDOFF.md` carried
+"The Magma Hideout chapter completes — ✅ `groudon=True`, 0 whiteouts" with no sample size beside
+it. **n was 1.** The chapter reaching Maxie is reliable; the chapter *completing* is not, because
+it depends on winning a boss fight with a party that arrives worn down. Quote it as
+"1 of 2 driven runs" until there are more.
+
+**Why it matters beyond this chapter:** the post-Maxie era is the precondition for §Ch16 (the
+Slateport Harbor beat), so anchor manufacture for the next chapter inherits this coin-flip.
+
+**Not yet investigated:** whether the 7 whiteouts are the same worn-party problem the travel leg
+already has (Ch14 hands over 3-of-6 fainted, no Revives), or whether the interior's own trainer
+chain grinds the party down. `#24-bosstelemetry` is already in the tree and logs per-turn
+decisions — read it before theorising.
+
+**Repro:** `PYTHONUTF8=1 py -3.12 story_harness.py magma_door.ss1 --driver magmahideout
+--frames 2500000 --profile mhN` and count `whited out` in the debug log.
+
+---
+
+## KI-51 — FIXED 2026-08-11: `do_magma_hideout` rode 60,000 frames at an empty overworld after a whiteout, then blamed the wrong thing
+
+**Symptom (found by KI-50's run).** After the whiteout above, the Maxie challenge loop kept
+mashing A/B for **18,300+ frames and counting** — 13 `STUCK` dumps — with the step message frozen
+at `"at (15, 21), facing Right at Maxie (16, 21)"` while the avatar was standing in
+**MAUVILLE CITY (22,6)**, two towns away.
+
+**Root cause.** The loop's only exit condition was `while not _groudon_awakened()`. A whiteout
+cannot make that true, so the loop was structurally incapable of noticing it. It *was* bounded
+(60,000 frames), so this was never an infinite hang — but the bound's message names the wrong
+cause entirely: *"the Maxie challenge never resolved in 60,000 frames"*, when what actually
+happened is that the party fainted and the game teleported the player out.
+
+‼ **Same class as the 2026-08-10 lesson, one week later**: *a failure message must report STATE,
+not a HYPOTHESIS* — that one said "check the destination is walkable" across three runs where it
+always was.
+
+**The fix.** The loop now also watches the map: if the player is off `MAGMA_HIDEOUT_4F` for more
+than **300 consecutive frames**, it raises immediately and reports the real state (map, tile,
+`party_alive`, frames elapsed) instead of riding the bound out.
+* **Debounced, deliberately.** An instant check would risk ending a HEALTHY Maxie fight on one
+  odd frame across a battle screen transition — a far worse bug than the one being fixed. 300
+  frames (~5s) is longer than any transition here and still ~200x cheaper than the full bound.
+* **An unreadable map counts as "still on 4F"**, so a reader error can never end the fight.
+
+‼ **WHAT IS NOT PROVEN: the guard FIRING LIVE.** Run `mh-anchor2` lost and stopped ~20,600
+frames into the Maxie step — far short of the 60,000 bound — but that is **not** evidence the new
+guard did it, because **`_check_abort()` is an equally possible raise in the same loop** and that
+run's stdout was lost. Do not record "the guard fired" until a run prints the message
+`left MAGMA_HIDEOUT_4F during the Maxie challenge`.
+‼ And note WHY `_check_abort()` did not save the PRE-fix run: it raises on `_STORY_ABORT`, which
+**StoryMode's** whiteout handling sets — a harness driver need not mirror that override
+(`04-HANDOFF`: "a harness driver must mirror the OVERRIDES of the mode it stands in for"). **A
+guard that only works in one of the two ways the code is run is not a guard**, which is the
+argument for the map check existing at all.
+
+**Structural proof:** `repro_maxie_whiteout_guard.py` (no emulator, 18 checks — the map read, the
+debounce, the unreadable-map default, the STATE fields in the message, and the ordering against
+the 60,000 bound). Fault-injected to **2 red**, restored to **ALL PASS**.
+
+**Verified, both directions, on real committed saves** (`map_group_and_number` is a plain tuple;
+`== MapRSE.X.value` is a valid identity test):
+```
+magma_door.ss1      (24,13)  == JAGGED_PASS       -> True    == MAGMA_HIDEOUT_4F -> False
+magma_1f_fail.ss1   (24,91)  == MAGMA_HIDEOUT_4F  -> True
+```
+⇒ on 4F the guard never fires; off 4F it fires. ‼ Note the second control also shows
+**`saves/magma_1f_fail.ss1` is misnamed — it stands on 4F, not 1F.**
+
+**Prevention rule.** *A loop whose exit condition is a story flag must ALSO watch for the ways the
+game can move the player out from under it. A whiteout satisfies no flag.*

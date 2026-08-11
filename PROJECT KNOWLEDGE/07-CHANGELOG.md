@@ -10977,3 +10977,66 @@ proven and its failure mode is closed" — **not** a reliability percentage. Ful
 `custom-pokebot/DIVERGENCE-LOG.md`, including that the Magma Hideout chapter still teaches at a
 heal stop (the routing built to dodge this bug) because nobody has measured whether an in-dungeon
 teach is now safe.
+
+---
+
+## 2026-08-11 (later) — §Ch16 groundwork: anchor manufacture, an era probe, and two findings the attempt exposed
+
+Started §Ch16's own "SUGGESTED BUILD ORDER" at step 1 (**anchor first**). No committed save has
+`VAR_SLATEPORT_HARBOR_STATE == 1`, so the harbor beat could not be developed at all without
+manufacturing one.
+
+### Built
+* **`--driver magmahideout` now captures `saves/post_maxie.ss1` on success** (`MAGMA_HIDEOUT_CAPTURE=0`
+  to suppress), mirroring what `magmatravel` already does for `magma_door.ss1`, so the chapter
+  chain keeps producing the anchor the NEXT chapter needs instead of making someone re-drive a
+  dungeon for it. ‼ **Gated on `groudon`, not on "the driver finished"** — a save captured after a
+  FAILED run would be the wrong era while looking exactly like the right one, which is the mistake
+  that cost seven probes on 2026-08-10. It also reads `VAR_SLATEPORT_HARBOR_STATE` back and shouts
+  if it is not 1, because `get_event_var` returns −1 for an unknown NAME and a typo would otherwise
+  be recorded as a real reading.
+* **`probe_ch16_anchor.py`** — the era gate for §Ch16, with the controls this project requires:
+  a NAME control (refuses to answer at all if a var/flag name does not resolve, rather than
+  reporting a confident −1/False), an ERA control (the anchor and one-beat-earlier
+  `magma_door.ss1` must DISAGREE), a "the beat has not happened yet" control (the Aqua-hideout
+  blocking flags must still be UNSET — this catches an anchor taken one beat LATE, which check 1
+  alone would not), and a PATH control.
+
+### ‼ TWO FINDINGS FROM THE ATTEMPT — see `05-KNOWN-ISSUES.md` KI-50 and KI-51
+* **KI-50: the Magma Hideout chapter is NOT deterministic.** The identical command that produced
+  `groudon=True, whiteouts=0` on 2026-08-10 **lost to Maxie** this time — **7 whiteouts**,
+  respawn at MAUVILLE_CITY (22,6). It navigated the whole dungeon and reached Maxie, so the
+  content works; the fight is the coin-flip. ‼ **This amends an "ALREADY PROVEN" row in the
+  handoff that carried no sample size: n was 1.** Quote it as 1 of 2 driven runs.
+* **KI-51 (FIXED): `do_magma_hideout` rode an empty overworld after the whiteout.** The Maxie
+  loop's only exit was `while not _groudon_awakened()`, which a whiteout can never satisfy — so
+  it mashed A/B for 18,300+ frames (13 STUCK dumps) with the step message frozen at "facing
+  Maxie" while the avatar stood two towns away. It was bounded at 60,000 frames, so never an
+  infinite hang, but the bound's message names the wrong cause. Same class as the 2026-08-10
+  rule, one week later: **a failure message must report STATE, not a HYPOTHESIS.**
+  Now: off `MAGMA_HIDEOUT_4F` for 300 consecutive frames → raise immediately with map, tile,
+  `party_alive` and frames elapsed. **Debounced on purpose** — an instant check could end a
+  HEALTHY fight on one odd frame across a battle transition, which would be a worse bug than the
+  one being fixed; an unreadable map counts as "still on 4F" for the same reason.
+  **Verified both directions on real committed saves** (`map_group_and_number` is a plain tuple,
+  so `== MapRSE.X.value` is a valid identity test): `magma_door.ss1` (24,13) is JAGGED_PASS and
+  NOT 4F; `magma_1f_fail.ss1` (24,91) IS 4F. ⇒ on 4F the guard never fires, off 4F it does.
+  ‼ That second control also revealed **`saves/magma_1f_fail.ss1` is misnamed — it stands on 4F.**
+  **Structural proof:** `repro_maxie_whiteout_guard.py` (18 checks, no emulator; fault-injected to
+  2 red, restored green).
+
+‼ **AN OVERCLAIM I CAUGHT AND WITHDREW.** A third run also lost and stopped ~20,600 frames into
+the Maxie step — well short of the 60,000 bound — and I was about to record that as the new guard
+firing live. It is not evidence: **`_check_abort()` is an equally possible raise in the same
+loop**, and that run's stdout was lost. The guard's live firing is **UNCONFIRMED**; what is proven
+is the structure and the map comparison. ‼ The related fact worth keeping is *why* `_check_abort()`
+did not save the PRE-fix run: it raises on `_STORY_ABORT`, which **StoryMode** sets — a harness
+driver need not mirror that override. **A guard that only works in one of the two ways the code is
+run is not a guard**, which is the argument for the map check existing at all.
+
+‼ **THE ANCHOR WAS NOT PRODUCED.** `saves/post_maxie.ss1` does not exist — the chapter lost twice
+in a row. §Ch16 remains blocked on it, and unblocking it is now just "re-run until `groudon=True`".
+
+Chapter tally after this session: **reaches Maxie 3/3, completes 1/3.**
+
+Gate re-run after the change: green (`repro_maxie_whiteout_guard` added).
