@@ -148,8 +148,9 @@ if runs.is_dir():
             live = newest[0].name
             warnings.append(
                 f"‼ A BATCH APPEARS TO BE RUNNING ({live}, written {age_min:.1f} min ago). "
-                f"DO NOT edit `sandbox-pokebot/` or `tools/story-dev/` — restarted lanes re-import "
-                f"from disk. Documentation is always safe."
+                f"DO NOT edit `sandbox-pokebot/` — restarted lanes re-import from disk. "
+                f"`tools/story-dev/` and docs ARE safe, with one exception: do not edit "
+                f"`x4_headless.py` itself, since it spawns and restarts the lanes."
             )
     elif not QUIET:
         print("  no batch directories found")

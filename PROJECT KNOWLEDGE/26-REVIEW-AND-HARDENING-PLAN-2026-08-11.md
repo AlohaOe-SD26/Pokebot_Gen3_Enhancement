@@ -150,11 +150,21 @@ whose change *removes, disables, deposits, skips or narrows* anything must carry
 marked done**, a `COST:` line stating what it takes away and the measurement that bounds it.
 `lint_docs.py` enforces the presence of the line; a human judges its content.
 
-**H4. Ban the bare `except` in new bot code** *(family B — 2+ repeats, silent)*
-A `repro_no_silent_except.py` that greps `sandbox-pokebot/modules/story/` and the strategies for
-`except Exception:` / `except:` **without** either a `raise`, a `log(`/`debug_logger` call, or an
-explicit `# noqa` justification comment. The project already uses `# noqa: BLE001` with a reason —
-this makes that convention load-bearing instead of optional.
+**H4. Ban the bare `except` in new bot code** *(family B — 2+ repeats, silent)* — ✅ **BUILT 2026-08-11 as a RATCHET**
+`repro_no_silent_except.py` AST-scans `modules/story/`, the battle strategies and
+`battle_action_selection.py` for handlers that neither re-raise, nor report, nor carry a prose
+justification. The project already uses `# noqa: BLE001` with a reason — this makes that convention
+load-bearing instead of optional.
+
+‼ **MEASURED: 140 of 203 handlers (69%) are silent**, 99 of them in `early_game.py` alone. That is
+too many to gate on, so it ships as a **RATCHET**: the count may never RISE, and lowering the
+baseline is a reviewable one-line diff. A permanently-red check gets switched off, and a
+switched-off check is an advisory rule with extra steps — the very thing this plan exists to
+replace. Non-worsening today beats theoretically-fixed some day.
+
+‼ **The first draft was WRONG and its own output caught it**: it only looked for a justification on
+the `except` LINE, so it reported 158 offenders including `chapters.py:68`, which carries a good
+two-line justification *inside* the block. Comments anywhere in the handler now count.
 
 ### TIER 2 — high value, more effort
 
