@@ -1,6 +1,47 @@
 # Vision & Design — Pokebot_Gen3_Enhancement
 > Current-state file: edit in place. Source of truth for INTENT.
 
+---
+
+# ‼‼ THE NORTH STAR (user directive, 2026-08-11) — read this before anything else
+
+Everything below serves **two** ends, and the second one is the reason the first is built the way
+it is.
+
+## 1. A bot that plays Pokémon Emerald **organically and faithfully — as if a human were playing**
+Not "a bot that reaches the Hall of Fame by any means". The bot must reach it the way a person
+would: walking the routes, talking to the NPCs, fighting the trainers, teaching the HMs, healing at
+Centres, losing and recovering. **Faithfulness is the product, not a style preference.** This is why
+`14-AGENT-PLAYBOOK.md` treats a state-write as a documented last-resort fallback that must reproduce
+vanilla's exact end-state, and why "never hang / never silently derail" is a standing rule: a human
+does not freeze mid-battle, and a human does not teleport.
+
+## 2. A documented substrate for a FUTURE self-training AI agent
+The user intends to build a separate program in which **a custom AI agent trains itself to play the
+game as faithfully and organically as a human would.** This repository is that project's ground
+truth. That is why the documentation burden here is so much heavier than a normal bot's, and it
+changes *what* must be written down:
+
+| what must be documented | why the future agent needs it |
+|---|---|
+| **INTENT** — what a component is FOR, in human language | an agent can read code; it cannot recover the *purpose* a human had for it |
+| **INJECTION** — how state is observed and how inputs are applied (memory reads, task/flag/var surfaces, button timing) | this is the agent's entire sensorimotor contract with the game |
+| **CODE + LOGIC** — the mechanics, tied to `file:line` | so a claim can be checked rather than believed |
+| **REASONING** — *why this approach and not the alternatives* | the decisions log and mistakes log are the training signal that stops the agent re-deriving dead ends |
+| **WHAT WAS TRIED AND FAILED** — `08-MISTAKES.md`, refuted hypotheses, retracted findings | negative results are the scarcest and most valuable data. A future agent that only sees what worked will confidently repeat everything that did not |
+
+‼ **THE PRACTICAL CONSEQUENCE.** A change is not "done" when the code works. It is done when a
+reader — human or agent — can reconstruct *what was intended, what was observed, what was decided,
+and what was rejected*, without access to this chat. That is already the Definition of Done in
+`CLAUDE.md`; the north star is the reason it is worth its cost.
+
+‼ **AND IT RAISES THE BAR ON HONESTY.** Documentation that will be used to train something must not
+contain confident wrong statements. A measured result, an inference, and a guess must be
+distinguishable on the page — which is why this project writes "MEASURED", "REFUTED", "UNVERIFIED"
+and "n=" inline, and why retractions are recorded rather than edited away.
+
+---
+
 ## One-liner
 An enhanced, deeply documented fork of [40Cakes/pokebot-gen3](https://github.com/40Cakes/pokebot-gen3) — a Python shiny-hunting bot that drives Gen-3 Pokémon games (Ruby/Sapphire/Emerald/FireRed/LeafGreen) through libmgba — maintained in this repo with custom automations, a one-script installer, and a fully custom interface.
 
