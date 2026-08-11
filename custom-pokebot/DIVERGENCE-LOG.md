@@ -1139,3 +1139,56 @@ and the fix. `repro_teach_prompt_window.py` also passes against this build
   (`ride:learned`, 323f). Missing the window is **necessary but not sufficient**; where the blind
   A-mash then lands decides survival. Kept as a negative result so the next agent does not read it
   as a broken injection.
+
+---
+
+## 2026-08-11 (second promotion of the day) — KI-51 whiteout guard, KI-52 fight-it-out fallback, and battle STATUS telemetry
+**Promoted with explicit user approval.** Three files, all ours (upstream has no Story mode; the
+battle-strategy change is a fork-level policy change to upstream code).
+
+| file | change | +/− |
+|---|---|---|
+| `modules/story/early_game.py` | KI-51: the Maxie loop watches the MAP, not only the completion flag | +40 / −1 |
+| `modules/battle_strategies/default.py` | KI-52: rotate → flee → **FIGHT ON**; never raise inside a battle | +163 / −12 |
+| `modules/battle_action_selection.py` | the turn logger prints STATUS (`[Confused]`, `[Sleep]`, …) | +36 / −0 |
+
+‼ **Pre-copy check:** the diff against `custom-pokebot` matched `git diff --numstat` for the three
+sandbox commits **exactly** (36/0, 163/12, 40/1), proving custom was precisely these three changes
+behind with nothing else hiding in the gap. Source drift after promotion: **ZERO**.
+
+### ✅ VERIFIED DRIVEN IN `custom-pokebot`, on the DETERMINISTIC loss fixture
+`story_harness.py magma_door_losing.ss1 --build custom --driver magmahideout` — a save that
+reaches Maxie and loses the identical fight on every replay, so sandbox and custom are directly
+comparable rather than merely "both ran".
+
+**KI-51 guard — identical to sandbox, to the frame:**
+```
+[magmahideout] FAILED: BotModeError: Magma Hideout: left MAGMA_HIDEOUT_4F during the Maxie
+challenge without Groudon awakening — almost certainly a WHITEOUT. map=(0, 2) tile=(22, 6)
+party_alive=6/6 (was standing (15, 21) facing Right at Maxie (16, 21), 2209 frames in).
+[magmahideout] RESULT groudon=False map=MAUVILLE_CITY at=(22, 6) whiteouts=1 frames=3295572
+```
+**2,209 frames** against a 60,000-frame bound, same as sandbox.
+
+**STATUS telemetry — identical turns:** `[TURN 4] Sceptile L44 110/122 [Confused]` (8 status lines
+in the run). This is the field that refuted `#24-bosstelemetry` LEAD 2.
+
+### ‼ OUTSTANDING AT PROMOTION TIME — read before quoting any of this
+* **KI-52's fallback has NO live A/B.** It is structurally proven only
+  (`repro_lead_cannot_battle.py`, 34 checks, fault-injected red then green) because the
+  reproduction was lost before the A/B ran — the fixture was pinned *after* an in-flight job had
+  overwritten it (`08-MISTAKES` 2026-08-11). **Do not record it as live-proven.** This run does not
+  exercise it either: no lead-cannot-battle event occurred.
+  ✅ What *is* known: on a healthy run OLD and NEW arms completed the chapter identically, so the
+  change is behaviourally inert when nothing goes wrong.
+* **KI-52 is a policy change to a SHARED battle strategy**, not story-only code. It affects every
+  mode that uses `DefaultBattleStrategy`. The ladder only changes what happens where the old code
+  **raised**, so no previously-working path is altered — but that is reasoning, not measurement.
+  ‼ Related and deliberately NOT changed: `lead_cannot_battle_action` still defaults to `flee`,
+  because `flee` is correct for shiny hunting; the scope question (mode-scoped `rotate`?) is open
+  and is the user's.
+* **A faithfulness bug found and left alone:** `get_escape_chance` uses
+  `opponent.speed < battler.speed` (strictly faster) where the decomp escapes free on faster **or
+  EQUAL**. It is a different function, it did not cause KI-52, and changing escape odds affects
+  every hunting mode.
+* **No production batch has run with any of these in.** Nothing here has an outcome metric.

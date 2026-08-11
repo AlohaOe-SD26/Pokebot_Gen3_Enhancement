@@ -3,7 +3,7 @@ from typing import Optional
 from modules.battle_state import BattleState, BattlePokemon, get_battle_state
 from modules.context import context
 from modules.modes._interface import BotModeError
-from modules.pokemon import Pokemon, Move, LearnedMove
+from modules.pokemon import Pokemon, Move, LearnedMove, get_ability_by_name
 from modules.pokemon_party import get_party
 from ._interface import BattleStrategy, TurnAction, SafariTurnAction
 from ._util import BattleStrategyUtil
@@ -239,6 +239,32 @@ class DefaultBattleStrategy(BattleStrategy):
     def _pokemon_has_enough_hp(self, pokemon: Pokemon | BattlePokemon):
         return pokemon.current_hp_percentage > context.config.battle.hp_threshold
 
+    # ‼‼ KI-52 (user directive, 2026-08-11): NEVER WEDGE MID-BATTLE. FIGHT IT OUT.
+    #
+    # WHAT HAPPENED. Driving the Magma Hideout, a wild **Torkoal** ground the lead down and the
+    # bot stopped dead with FIVE HEALTHY POKÉMON ON THE BENCH:
+    #     Bot stopped: Your Pokémon cannot battle due to HP below threshold, and escape is
+    #     not possible.
+    #     party=['Sceptile L46 10/128', 'Zigzagoon 24/24', 'Swellow 112/112',
+    #            'Skitty 45/45', 'Mightyena 127/127', 'Castform 100/100']
+    # It then sat in Manual, MID-BATTLE, for 18,000+ frames. Reproduced byte-identically twice.
+    #
+    # ‼ THE POLICY ONLY EVER LOOKED AT THE LEAD. `lead_cannot_battle_action` is `flee` (the
+    # upstream default) and asks "can the LEAD fight?", never "can ANYONE fight?". When flee then
+    # turned out to be impossible there was no third option, so it raised.
+    #
+    # THE USER'S DIRECTIVE: add a fallback that simply carries the fight through to a natural win
+    # or loss rather than getting wedged. A lost battle is a recoverable event this project
+    # already handles (whiteout recovery); a bot frozen inside a battle is not — nothing can
+    # recover it, because the derail riders ride SCRIPTS and a battle is not one.
+    #
+    # ‼ WHY THIS IS SAFE FROM THE "unbounded loop" FAMILY (KI-34's shape): this does NOT loop. It
+    # returns ONE action for ONE turn, exactly like every other branch. The bound is the battle
+    # itself, which always terminates in a win, a loss or a successful escape.
+    #
+    # ‼ ORDER MATTERS AND IS DELIBERATE: rotate (keep fighting with a healthy mon) → flee (leave
+    # cheaply) → FIGHT ON (never freeze). Escaping is preferred over fighting with a dying lead
+    # because fleeing costs nothing, but being UNABLE to escape must not be fatal.
     def _handle_lead_cannot_battle(
         self, battle_state: BattleState, util: BattleStrategyUtil, reason: str
     ) -> tuple["TurnAction", Optional[any]]:
@@ -247,38 +273,163 @@ class DefaultBattleStrategy(BattleStrategy):
         """
         lead_action = context.config.battle.lead_cannot_battle_action
 
+        # FAULT INJECTION for the A/B: restore the pre-fix behaviour (raise instead of fighting
+        # on), so the wedge can be re-measured without reverting code. Default 0 = fixed.
+        import os as _os
+
+        legacy = _os.environ.get("POKEBOT_LEADCANTBATTLE_A", "0") == "1"
+
         if lead_action == "flee":
-            return self._handle_flee(battle_state, util, reason)
+            return self._handle_flee(battle_state, util, reason, legacy=legacy)
 
         if lead_action == "rotate":
-            return self._handle_rotate(battle_state, util)
+            return self._handle_rotate(battle_state, util, legacy=legacy)
 
-        raise BotModeError(f"Your Pokémon cannot battle due to {reason}, switching to manual mode...")
+        if legacy:
+            raise BotModeError(f"Your Pokémon cannot battle due to {reason}, switching to manual mode...")
+        return self._fight_on(battle_state, util, reason, why="lead_cannot_battle_action is 'stop'")
+
+    def _fight_on(
+        self, battle_state: BattleState, util: BattleStrategyUtil, reason: str, why: str
+    ) -> tuple["TurnAction", Optional[any]]:
+        """LAST RESORT: keep battling until the fight resolves naturally. Never raises.
+
+        Picks the strongest move it can find; if the strategy can't rank one (no PP, every move
+        banned, an unreadable move table) it falls back to move slot 0 — the game itself
+        substitutes Struggle when nothing is usable, which still ENDS the battle. The one thing
+        this must never do is hand back an action the caller can't execute.
+        """
+        try:
+            move = util.get_strongest_move_against(
+                battle_state.own_side.active_battler, battle_state.opponent.active_battler
+            )
+        except Exception:  # noqa: BLE001 - a ranking error must not become a wedge
+            move = None
+        if move is None:
+            move = 0
+        # LOUD, because this is the branch that used to end the run. `[BATTLE]` keeps it in the
+        # same surface as the per-turn telemetry, so a batch can count how often it fires.
+        try:
+            from modules import debug_logger
+
+            debug_logger.event(
+                f"[KI-52] lead cannot battle ({reason}); {why} -> FIGHTING ON with move slot "
+                f"{move} instead of stopping",
+                category="BATTLE",
+            )
+        except Exception:  # noqa: BLE001
+            pass
+        return TurnAction.use_move(move)
 
     def _handle_flee(
-        self, battle_state: BattleState, util: BattleStrategyUtil, reason: str
+        self, battle_state: BattleState, util: BattleStrategyUtil, reason: str, legacy: bool = False
     ) -> tuple["TurnAction", Optional[any]]:
         """
         Handles the flee action when the lead Pokémon cannot battle.
         """
+        # ‼ KI-52: a TRAINER battle can never be fled (decomp `TryRunFromBattle`: the
+        # `BATTLE_TYPE_TRAINER` branch never reaches the run formula). That is not an error
+        # condition — it is the normal state of every gym, rival and boss fight. **Rotate if we
+        # can, otherwise fight.** Raising here used to end the run inside built story content.
         if battle_state.is_trainer_battle:
-            raise BotModeError(
-                f"Your Pokémon cannot battle due to {reason}, and 'flee' is not allowed in a trainer battle."
-            )
+            if legacy:
+                raise BotModeError(
+                    f"Your Pokémon cannot battle due to {reason}, and 'flee' is not allowed in a trainer battle."
+                )
+            if len(util.get_potential_rotation_targets(battle_state)) > 0 and util.can_switch():
+                return TurnAction.rotate_lead(util.select_rotation_target(battle_state))
+            return self._fight_on(battle_state, util, reason, why="trainer battle, cannot flee")
 
         best_escape_method = util.get_best_escape_method()
         if best_escape_method is not None:
             return best_escape_method
 
-        raise BotModeError(f"Your Pokémon cannot battle due to {reason}, and escape is not possible.")
+        if legacy:
+            raise BotModeError(f"Your Pokémon cannot battle due to {reason}, and escape is not possible.")
+        # Escape is impossible THIS TURN. Prefer a healthy mon; otherwise fight it out.
+        # ‼ Do NOT keep re-attempting the run: when the block is a TRAPPING ability or move it is
+        # permanent for as long as that battler is out, so retrying is a guaranteed wasted turn
+        # while the lead keeps taking damage. See `_escape_block_reason` for what can cause it.
+        if len(util.get_potential_rotation_targets(battle_state)) > 0 and util.can_switch():
+            return TurnAction.rotate_lead(util.select_rotation_target(battle_state))
+        return self._fight_on(
+            battle_state, util, reason, why=f"escape impossible ({self._escape_block_reason(battle_state, util)})"
+        )
 
-    def _handle_rotate(self, battle_state: BattleState, util: BattleStrategyUtil) -> tuple["TurnAction", Optional[any]]:
+    @staticmethod
+    def _escape_block_reason(battle_state: BattleState, util: BattleStrategyUtil) -> str:
+        """Name WHY escape/switching is blocked, for the log. Never raises.
+
+        ‼‼ THE GEN 3 TRAPPING SET, decomp-verified 2026-08-11 against `pret/pokeemerald`
+        (`src/battle_util.c` `TryRunFromBattle`, `src/battle_script_commands.c`
+        `Cmd_jumpifcantswitch`). Both switching and fleeing are blocked by:
+          * **STATUS2_ESCAPE_PREVENTION** — set by `EFFECT_MEAN_LOOK`: **Mean Look, Block,
+            Spider Web**.
+          * **STATUS2_WRAPPED** — the partial-trapping moves: **Wrap, Bind, Fire Spin, Clamp,
+            Whirlpool, Sand Tomb**.
+          * **STATUS3_ROOTED** — **Ingrain** (self-inflicted; traps the USER).
+          * Trapping ABILITIES on the opponent: **Shadow Tag** (all), **Arena Trap** (except
+            Flying types and Levitate holders), **Magnet Pull** (Steel types only).
+        Guaranteed ESCAPE, by contrast: the **Run Away** ability, or a **Smoke Ball** held item.
+
+        ‼ MESSAGES the game prints, so a human reading a log can recognise these
+        (`src/battle_message.c`, exact strings):
+            "{MON} prevents\\nescape with {ABILITY}!"   <- a trapping ABILITY
+            "Can't escape!"                             <- a failed run attempt
+            "{MON} can't escape!"                       <- attacker trapped (wrapped/mean-looked)
+            "{MON} can't\\nescape now!"                 <- target just trapped by Mean Look etc.
+
+        ‼ SUCTION CUPS IS **NOT** IN THIS LIST AND THAT IS DELIBERATE. It prevents being FORCED
+        out (Roar / Whirlwind); it does not stop voluntary switching or running, and the existing
+        `get_best_escape_method` already models it correctly by refusing to use Roar against a
+        Suction Cups holder. ‼ UNVERIFIED: its Gen 3 implementation was NOT located in the decomp
+        during this pass — treat the "prevents forced switch only" reading as the working model,
+        not as decomp-confirmed.
+        """
+        try:
+            battler = battle_state.own_side.active_battler
+            temps = {getattr(t, "name", str(t)) for t in (battler.status_temporary or [])}
+            for name, label in (
+                ("EscapePrevention", "Mean Look / Block / Spider Web"),
+                ("Wrapped", "a partial-trapping move (Wrap/Bind/Fire Spin/Clamp/Whirlpool/Sand Tomb)"),
+                ("Rooted", "Ingrain"),
+            ):
+                if name in temps:
+                    return label
+            for ability in ("Shadow Tag", "Arena Trap", "Magnet Pull"):
+                try:
+                    if battle_state.opponent.has_ability(get_ability_by_name(ability)):
+                        return f"the opponent's {ability}"
+                except Exception:  # noqa: BLE001
+                    continue
+            # ‼ NOT trapped, yet the run still scored 0. That is the Gen 3 run formula's own u8
+            # WRAPAROUND — decomp `TryRunFromBattle`: `u8 speedVar = (speed*128)/oppSpeed +
+            # runTries*30;`. It really can land on 0, and the game then just fails that ONE
+            # attempt (`runTries++` changes the next one). Our reader turns that single-turn 0
+            # into "impossible", which is why this branch can fire on a mon that is plainly
+            # faster than its opponent.
+            return "no trap found — likely the run formula's u8 wraparound, which is per-turn, not permanent"
+        except Exception as error:  # noqa: BLE001
+            return f"unreadable ({type(error).__name__})"
+
+    def _handle_rotate(
+        self, battle_state: BattleState, util: BattleStrategyUtil, legacy: bool = False
+    ) -> tuple["TurnAction", Optional[any]]:
         """
         Handles the rotate action when the lead Pokémon cannot battle.
         """
         if len(util.get_potential_rotation_targets(battle_state)) > 0 and util.can_switch():
             return TurnAction.rotate_lead(util.select_rotation_target(battle_state))
 
-        raise BotModeError(
-            "Your Pokémon cannot battle, 'lead_cannot_battle_action' is set to 'rotate', but no eligible Pokémon are available for switching."
+        if legacy:
+            raise BotModeError(
+                "Your Pokémon cannot battle, 'lead_cannot_battle_action' is set to 'rotate', but no eligible Pokémon are available for switching."
+            )
+        # ‼ KI-52: no eligible switch is the NORMAL end-state of a hard fight (everyone else
+        # fainted, or a trapping ability is holding this mon in). Fight it out.
+        return self._fight_on(
+            battle_state,
+            util,
+            "no eligible Pokémon to switch to",
+            why=f"rotate blocked ({self._escape_block_reason(battle_state, util)})",
         )

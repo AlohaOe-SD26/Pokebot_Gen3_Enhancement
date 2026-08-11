@@ -24,7 +24,7 @@ game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror
 | ‼ is code frozen? | **No.** The freeze rule applies only during an `x4_headless` BATCH. |
 | upstream | checked **2026-08-11**, `5dd898f8`, unchanged |
 | **if stopped mid-task** | **NOTHING IS PARKED.** The session ended on a completed, verified item (`#24-teachmsgstall`), gate 12/12 green, docs current, tree clean. Start at "NEXT ACTIONS". |
-| promotion | ✅ `#24-teachmsgstall` promoted 2026-08-11 (user-approved), **verified DRIVEN in `custom-pokebot` as the same A/B**, frame-for-frame identical. ‼ **THE SANDBOX HAS DRIFTED AGAIN SINCE**, by exactly one change: the **KI-51 whiteout guard** in `do_magma_hideout` (`modules/story/early_game.py`). Not promoted — needs approval, and arguably should wait until its live firing is confirmed. |
+| promotion | ✅ **ALL CURRENT WORK IS PROMOTED (two rounds, both user-approved, 2026-08-11).** `#24-teachmsgstall`; then KI-51 guard + KI-52 fallback + battle STATUS telemetry. Both verified **DRIVEN in `custom-pokebot`** on deterministic fixtures, frame-for-frame identical to sandbox. **Source drift: ZERO.** ‼ KI-52's fallback is structurally proven only — no live A/B (see `DIVERGENCE-LOG`). |
 
 ## ✅ WHAT JUST SHIPPED — `#24-teachmsgstall`, the project's top bug, CLOSED
 **The replace-prompt detector had a ONE-FRAME window.** Measured with a new frame trace

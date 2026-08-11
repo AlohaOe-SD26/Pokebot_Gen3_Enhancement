@@ -11205,3 +11205,20 @@ non-execution itself is still unexplained and the block now logs unconditionally
 `emulator.get_save_state()`. It loads and reads correctly — `probe_ch16_anchor.py` verified five
 independent facts out of it — but it is a different serialisation, so do not compare its size to
 the others and conclude it is truncated.
+
+### ✅ PROMOTION (user-approved): KI-51 guard + KI-52 fallback + battle STATUS telemetry → `custom-pokebot`
+Three files (+239 / −13 total). ‼ Pre-copy check: the diff against custom matched
+`git diff --numstat` for the three sandbox commits **exactly** (36/0, 163/12, 40/1), proving custom
+was precisely these changes behind. Source drift after promotion: **ZERO**.
+
+**Verified DRIVEN in custom on the DETERMINISTIC loss fixture** (`magma_door_losing.ss1`), so the
+two builds are directly comparable rather than merely "both ran":
+* KI-51 guard fired with the **identical message at the identical 2,209 frames** as sandbox
+  (against a 60,000-frame bound), `RESULT groudon=False … whiteouts=1 frames=3295572`.
+* STATUS telemetry produced `[TURN 4] Sceptile L44 110/122 [Confused]` — the same turns as sandbox.
+
+‼ **KI-52's fallback is NOT exercised by that run and still has no live A/B** — structurally proven
+only. Recorded as such in `custom-pokebot/DIVERGENCE-LOG.md` along with the fact that it is a
+policy change to a **shared** battle strategy (every mode using `DefaultBattleStrategy`), that
+`lead_cannot_battle_action` still defaults to `flee` on purpose (correct for shiny hunting), and
+that the `get_escape_chance` speed-tie faithfulness bug was found and deliberately left alone.
