@@ -2276,3 +2276,47 @@ longer the thing standing in the way.
 **What would actually vary a run** (none tried): a different starting anchor than
 `post_mtpyre.ss1`; a party/level change; or fixing KI-52 so the wild fight stops ending the run.
 The third is the real fix and it is the one that needs the scope decision.
+
+---
+
+## KI-53 — `calculate_path` is DIRECTIONAL between ROUTE110 and SLATEPORT_CITY: southbound plans, northbound-to-city fails (2026-08-11, severity: MED, MEASURED, blocks §Ch16's travel leg)
+
+**The measurement** (static `calculate_path`, `probe_ch16_travel.py`, all controls green):
+```
+SLATEPORT(28,13) -> ROUTE110(14,97) : OK, 30 waypoints
+ROUTE110(14,97)  -> SLATEPORT(28,13): FAIL          <- the exact reverse of the line above
+ROUTE110(14,5)   -> SLATEPORT(28,13): FAIL
+ROUTE110(14,97)  -> SLATEPORT(14,4) : FAIL
+ROUTE110(14,97)  -> ROUTE110(14,5)  : OK, 168 waypoints   (intra-map is healthy)
+ROUTE110(14,97)  -> MAUVILLE(22,6)  : OK, 203 waypoints   (the other neighbour is fine)
+MAUVILLE(22,6)   -> ROUTE110(14,97) : OK, 203 waypoints
+```
+‼ **Same two tiles, opposite directions, opposite answers.** Both maps plan internally, the
+intra-ROUTE110 path plans, and ROUTE110's *other* neighbour (Mauville) plans in both directions.
+The failure is specific to **arriving at SLATEPORT_CITY from ROUTE110**.
+
+**CONTROLS.** Every map used here passed an intra-map hop first. ‼ And the control tiles are chosen
+**empirically** — the first draft hard-coded `SLATEPORT_CITY (28,13) -> (28,14)`, which FAILED
+because `(28,14)` is simply not walkable, making a healthy planner look dead. *A control that can
+legitimately fail is not a control.*
+
+**Why it matters:** §Ch16's travel leg is `post_maxie.ss1` (Magma Hideout) → Slateport Harbor. The
+last mile is exactly this hop, so a single `navigate_to(SLATEPORT_CITY, …)` from the north is
+expected to fail.
+
+### ‼ WHAT THIS IS *NOT*
+* **Not a contradiction of KI-48.** KI-48 is about the **driven navigator** failing ROUTE110 →
+  MAUVILLE_CITY (3/3) and explicitly notes `calculate_path` disagrees with it. This entry is about
+  the **static planner**. Static-plans-but-driven-fails is an established pattern here; do not
+  merge the two entries.
+* **Not proof the leg is impossible.** `calculate_path` has called reachable places unreachable
+  before (KI-24), and `_navigate_riding_out` does strictly more than the static planner (it clears
+  obstacles and retries) — which is exactly how §Ch15's Mauville → Route 112 leg succeeded while
+  planning statically as FAIL. **A static FAIL is a strong signal to plan around, not a verdict.**
+
+### NEXT STEP (not yet done)
+Build §Ch16's travel leg as **explicit short legs** in the §Ch15 pattern, with **ROUTE110 →
+SLATEPORT_CITY as its own leg**, so that if it breaks it names itself instead of arriving as
+"the chapter does not work". Only if that driven leg also fails is this a planner bug worth
+chasing — and then the discriminator is whether a *one-way ledge* on Route 110's south edge makes
+the asymmetry legitimate terrain rather than a defect.
