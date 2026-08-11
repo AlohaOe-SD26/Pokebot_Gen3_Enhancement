@@ -4312,3 +4312,56 @@ When writing a harness driver, diff its overridden methods against the mode it i
 party really is 3/6 fainted with no Revives, the nearest Pokémon Center really is 276+ waypoints
 away, and it really did die on Route 123. A correct-sounding story assembled from true facts is
 exactly what a wrong instrument produces.
+
+---
+
+## 2026-08-10 — a flag set by a script is NOT the end of that script (two runs lost to a locked avatar)
+
+**Symptom.** The new Strength push refused to work on Magma Hideout 1F. Eight pushes, boulder
+unmoved, twice in a row, and **every diagnostic looked healthy**: `strength_active=True`, the
+boulder present at the expected tile with the right graphics id, the destination tile collision 0
+and elevation 3 (same as the source), the player standing adjacent and facing it. I twice
+suspected the destination and twice re-measured it as fine.
+
+**Root cause.** `EventScript_ActivateStrength` does `setflag FLAG_SYS_USE_STRENGTH` **and then
+keeps going** — field-move animation, "STRENGTH made it possible to move boulders around",
+`releaseall`. My activation loop exited the instant the flag flipped, which is while the player
+is still held by the script's `lockall`. Every subsequent push pressed a direction at a **locked
+avatar**, which does nothing and reports nothing.
+
+**The fix that worked.** After the flag is set, `_ride_out_scripted_scene("B")` then
+`wait_until_truly_controllable()` before touching the D-pad.
+
+‼ **Prevention rule: a flag is an EVENT INSIDE a script, not the script's end.** When you wait on
+a flag to know a scripted action happened, you have learned that it *started*, not that control
+came back. Ride the scene out and wait for control before acting on it.
+
+‼ **Second rule, and it is what actually broke the deadlock: a failure message must report STATE,
+not a HYPOTHESIS.** Mine said *"check that the destination is walkable and empty"* — which sent me
+to re-measure the destination twice. When I replaced it with a dump of the world
+(`strength_active`, the tracked object id, every object with coords and graphics id), the cause
+fell out of a single run. The message had encoded my best guess and I kept re-testing the guess.
+
+**Two more bugs in the same code, both found only by driving it, both worth the line:**
+* **A one-frame `press_button` is not a walk.** Movement needs the direction held until the tile
+  changes (`walk_one_tile`); a single press just turns.
+* **`walk_one_tile` leaves the direction and B HELD if you abandon it early** — it releases only
+  after the position changes. Abandoning it in a retry loop jams the D-pad for every later
+  attempt. Release in a `finally`.
+
+---
+
+## 2026-08-10 — I tested "is anything on that tile" for an object I had just displaced myself onto
+
+**Symptom.** `strength_push`'s success test was *"the boulder is no longer on its tile AND
+something is on the destination"*. That reads **False on a push that worked perfectly** — because
+pushing a boulder moves the PLAYER onto the tile the boulder just left. The object dump shows it
+plainly: `id=255@(7,23)` is the player, standing exactly where the test was looking.
+
+**Root cause.** I tested a POSITION for an identity question. The subject moved, and my frame of
+reference moved with it.
+
+‼ **Prevention rule (this is the THIRD instance in this project — promote it):** state sampled
+from a moving frame of reference needs its subject pinned by IDENTITY, not by location. Track the
+object by `local_id`. The prior two: `#24-battleitems`' HP comparison that spanned a Pokémon
+switch (2026-08-10), and KI-34's party-menu vs `get_party()` index confusion.

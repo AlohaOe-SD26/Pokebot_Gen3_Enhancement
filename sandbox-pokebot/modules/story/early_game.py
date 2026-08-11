@@ -6949,6 +6949,23 @@ def travel_to_magma_hideout_door() -> Generator:
                 yield from _navigate_riding_out(city, door_approach)
                 yield from heal_in_pokemon_center(center)
                 yield from wait_until_truly_controllable()
+                # ‼‼ TEACH STRENGTH **HERE**, AT A HEAL STOP — AND THE PLACEMENT IS THE POINT.
+                # 1F is sealed by Strength boulders, so this chapter needs a teach; but the
+                # obvious place (inside the hideout, where the need arises) is the WORST
+                # possible one. `#24-teachmsgstall` wedges a teach performed just after a won
+                # battle, and a dungeon is nothing but won battles: measured 0 of 3 from
+                # committed post-battle saves, against **38 of 42 in the live batch
+                # `20260810-082509`** where teaches happen at ordinary moments.
+                # Coming out of a Pokémon Centre is the calmest state a run ever reaches, so the
+                # teach is piggybacked on the heal exactly as `#24-pc` piggybacks the PC
+                # rotation — "piggyback, do not detour" (`21-TEAM-POLICY-DESIGN.md` §4).
+                # ‼ It never raises: a failed teach here must not destroy a heal that worked,
+                # and `open_magma_hideout_1f` calls `ensure_strength_learner()` again anyway.
+                # This is a DODGE, not a fix — `#24-teachmsgstall` is still the real blocker.
+                try:
+                    yield from ensure_strength_learner()
+                except BotModeError as error:
+                    _ch14_say(f"Story: teaching Strength at {city.name} SKIPPED - {str(error)[:120]}")
             except BotModeError as error:
                 # ‼ BEST EFFORT, AND SAID OUT LOUD. These are opportunistic top-ups; failing
                 # one must not end a chapter that could still succeed. But a silently skipped
@@ -7036,8 +7053,17 @@ MAGMA_HIDEOUT_ROUTE = (
 #: four neighbours the planner can reach ((16,22)/(15,21)/(16,20) all FAIL) - measured
 #: `probe_ch15_interior.py` 2026-08-10.
 MAXIE_TILE = (16, 21)
-MAXIE_APPROACH = (17, 21)
-MAXIE_FACING = "Left"
+#: Every neighbour of Maxie with the direction to face from it, tried in order at runtime.
+#: ‼ NOT a single hard-coded tile - which side is reachable depends on live state, and the
+#: static and live readings disagreed (see the comment at the use site).
+MAXIE_APPROACHES = (
+    ((17, 21), "Left"),
+    ((15, 21), "Right"),
+    ((16, 22), "Up"),
+    ((16, 20), "Down"),
+)
+MAXIE_APPROACH = MAXIE_APPROACHES[0][0]  # kept for the probe's reporting
+MAXIE_FACING = MAXIE_APPROACHES[0][1]
 
 #: `trainerbattle_no_intro TRAINER_MAXIE_MAGMA_HIDEOUT` - Mightyena 37 / Crobat 38 / Camerupt 39.
 #: On defeat the script sets `FLAG_GROUDON_AWAKENED_MAGMA_HIDEOUT` (111), which is the chapter's
@@ -7156,21 +7182,40 @@ def do_magma_hideout() -> Generator:
         )
 
     # --- Maxie -------------------------------------------------------------------------
+    # ‼‼ TRY EVERY NEIGHBOUR, DO NOT HARD-CODE ONE. A static probe of 4F from the map's default
+    # state said `(17,21)` was the only reachable neighbour and `(15,21)` was not; the LIVE
+    # arrival measured the exact opposite - from the real arrival tile `(46,8)`, `(15,21)`
+    # plans and `(17,21)` does not. Which side is open depends on live state the static read
+    # cannot see, and this chapter has now been bitten three times by trusting a static answer
+    # about this dungeon. So ask the planner at the moment it matters, and take what it gives.
     _ch14_say(f"Story: Magma Hideout 4F - challenging Maxie ({MAXIE_PARTY_NOTE})...")
-    yield from _navigate_riding_out(MapRSE.MAGMA_HIDEOUT_4F, MAXIE_APPROACH)
-    yield from wait_for_player_avatar_to_be_standing_still()
+    standing_on = None
+    facing = None
+    tried: list[str] = []
+    for candidate, candidate_facing in MAXIE_APPROACHES:
+        _check_abort()
+        try:
+            yield from _navigate_riding_out(MapRSE.MAGMA_HIDEOUT_4F, candidate, tries=4)
+        except BotModeError as error:
+            tried.append(f"{candidate}: {str(error)[:60]}")
+            continue
+        yield from wait_for_player_avatar_to_be_standing_still()
+        if tuple(get_player_avatar().local_coordinates) == candidate:
+            standing_on, facing = candidate, candidate_facing
+            break
+        tried.append(f"{candidate}: arrived at {tuple(get_player_avatar().local_coordinates)}")
 
-    if tuple(get_player_avatar().local_coordinates) != MAXIE_APPROACH:
+    if standing_on is None:
         raise BotModeError(
-            "Magma Hideout: could not stand on Maxie's approach tile "
-            f"{MAXIE_APPROACH} (we are at {tuple(get_player_avatar().local_coordinates)}). "
-            "It is the only one of his four neighbours the planner can reach."
+            f"Magma Hideout: could not stand on ANY tile beside Maxie {MAXIE_TILE}. "
+            f"Tried {MAXIE_APPROACHES}: {tried}"
         )
+    _ch14_say(f"Story: at {standing_on}, facing {facing} at Maxie {MAXIE_TILE}.")
 
     # Face him, then A-ride the conversation and the battle. ‼ Alternate A and B the way the
     # Flannery challenge does: A advances and confirms, B clears the message chain, and a
     # pure-A loop can re-open a menu it just closed.
-    context.emulator.press_button(MAXIE_FACING)
+    yield from ensure_facing_direction(facing)
     yield
     frames = 0
     while not _groudon_awakened():
@@ -7320,27 +7365,57 @@ def strength_push(map_enum, approach_tile, face_dir: str, *, tries: int = 8) -> 
     boulder_tile = (approach_tile[0] + dx, approach_tile[1] + dy)
     dest_tile = (boulder_tile[0] + dx, boulder_tile[1] + dy)
 
-    def _object_on(tile) -> bool:
+    def _object_on(tile):
+        """The map object standing on `tile`, or None."""
         try:
-            return any(tuple(obj.current_coords) == tile for obj in get_map_objects())
+            for obj in get_map_objects():
+                if tuple(obj.current_coords) == tile:
+                    return obj
         except Exception:  # noqa: BLE001 - cannot read objects; report "unknown" as absent
-            return False
+            return None
+        return None
+
+    #: ‼ THE BOULDER IS TRACKED BY `local_id`, NOT BY "is anything on that tile".
+    #: A push moves the PLAYER TOO - onto the tile the boulder just left - so a test of the
+    #: shape "nothing is on the old tile any more" reads FALSE on a push that worked perfectly,
+    #: because the player is standing right there. That is the same family as the `#24-battleitems`
+    #: bug where an HP comparison spanned a Pokémon switch: state sampled from a moving frame of
+    #: reference needs its subject pinned. Pin it by identity.
+    boulder_id: int | None = None
+
+    def _boulder_now():
+        """Where the TRACKED boulder is right now, or None if it cannot be read."""
+        if boulder_id is None:
+            return None
+        try:
+            for obj in get_map_objects():
+                if getattr(obj, "local_id", None) == boulder_id:
+                    return tuple(obj.current_coords)
+        except Exception:  # noqa: BLE001
+            return None
+        return None
 
     def _pushed() -> bool:
-        return (not _object_on(boulder_tile)) and _object_on(dest_tile)
+        return _boulder_now() == dest_tile
 
     yield from _navigate_riding_out(map_enum, approach_tile)
     yield from wait_for_player_avatar_to_be_standing_still()
 
-    if _pushed():
-        return  # already done on an earlier attempt - a recovery re-entry must be a no-op
+    # ‼ IDEMPOTENCY IS CHECKED ON THE TILES, NOT ON THE TRACKED ID - the id can only be read
+    # while the boulder is still on its ORIGINAL tile, so a resume after a successful push has
+    # nothing to track. "Something on the destination and nothing on the source" is the only
+    # question answerable from a cold re-entry.
+    if _object_on(dest_tile) is not None and _object_on(boulder_tile) is None:
+        return  # already pushed on an earlier attempt - a recovery re-entry must be a no-op
 
-    if not _object_on(boulder_tile):
+    boulder = _object_on(boulder_tile)
+    if boulder is None:
         raise BotModeError(
             f"Strength: no object on {boulder_tile} to push (standing {approach_tile} facing "
             f"{face_dir}). Either the map state is not what this plan assumed, or the boulder "
             "was already moved somewhere other than the expected destination."
         )
+    boulder_id = getattr(boulder, "local_id", None)
 
     # --- 1. Switch the field move ON (once per SAVE - the flag is never cleared) ------------
     # `EventScript_StrengthBoulder`: interacting with the boulder opens "Would you like to use
@@ -7370,22 +7445,78 @@ def strength_push(map_enum, approach_tile, face_dir: str, *, tries: int = 8) -> 
                 f"(standing {approach_tile} facing {face_dir}). A party member knows Strength "
                 "and BADGE04 is held, so the boulder prompt did not appear as expected."
             )
+        # ‼‼ THE FLAG IS SET *MID-SCRIPT*, AND THAT COST TWO RUNS. `EventScript_ActivateStrength`
+        # does `setflag FLAG_SYS_USE_STRENGTH` and then keeps going - field-move animation,
+        # "STRENGTH made it possible to move boulders around", `releaseall`. The activation loop
+        # above exits the instant the flag flips, which is while the player is still LOCKED by
+        # `lockall`. Every push then pressed a direction at a locked avatar and did nothing, and
+        # the failure looked exactly like "the destination is blocked" - with strength_active
+        # True, the boulder present and the destination clear, which is what made it so
+        # confusing. Ride the rest of the scene out before touching the D-pad.
+        # ‼ GENERAL RULE: a flag set by a script is NOT the end of that script.
+        yield from _ride_out_scripted_scene("B")
+        yield from wait_until_truly_controllable()
 
     # --- 2. Push ---------------------------------------------------------------------------
+    # ‼ A PUSH IS A WALK, AND A ONE-FRAME `press_button` IS NOT A WALK. The first build pressed
+    # the direction once per attempt and waited: 8 attempts, the boulder never moved, and the
+    # error said "check that the destination is walkable" — which was a red herring, because
+    # (6,23)->(5,23) is collision 0 and elevation 3 on BOTH tiles (measured). The avatar simply
+    # never took a step. `walk_one_tile` holds the direction until the tile actually changes,
+    # which is what the game needs; it is UNBOUNDED by design (its own docstring: "will create
+    # an endless loop if trying to run into a wall"), so it is bounded here — the same fix, and
+    # the same reason, as `_fortree_walk_one_tile`.
+    from modules.modes.util.walking import walk_one_tile
+
     for _attempt in range(tries):
         _check_abort()
-        context.emulator.press_button(face_dir)
-        yield
-        yield from wait_for_n_frames(24)
+        stepper = walk_one_tile(face_dir)
+        frames = 0
+        try:
+            while True:
+                next(stepper)
+                frames += 1
+                if frames > 600:
+                    break  # blocked: the push did not take. The world test below decides.
+                yield
+        except StopIteration:
+            pass
+        finally:
+            # ‼ `walk_one_tile` HOLDS the direction and B and only releases them once the tile
+            # changes - so abandoning it early leaves BOTH STUCK DOWN, and every later attempt
+            # in this loop then runs with a jammed D-pad. Releasing here is not tidiness; it is
+            # what makes the retry loop mean anything.
+            context.emulator.release_button(face_dir)
+            context.emulator.release_button("B")
+        yield from wait_for_n_frames(12)
         if _pushed():
             _ch14_say(f"Story: pushed the boulder {boulder_tile} -> {dest_tile}.")
             yield from wait_for_player_avatar_to_be_standing_still()
             return
 
+    # ‼ A FAILED PUSH MUST REPORT THE WORLD, NOT JUST THE INTENT. The first two failures here
+    # cost a run each because the message named a hypothesis ("check the destination is
+    # walkable") instead of the state - and the destination WAS walkable both times. Dump what
+    # the game actually shows: the flag, where we ended up, and every object with its id and
+    # graphics, so the next failure is diagnosed from the log rather than from another run.
+    try:
+        where = tuple(get_player_avatar().local_coordinates)
+    except Exception:  # noqa: BLE001
+        where = None
+    objects = []
+    try:
+        for obj in get_map_objects():
+            objects.append(
+                f"id={getattr(obj, 'local_id', '?')}@{tuple(obj.current_coords)}"
+                f"/{getattr(obj, 'graphics_id', '?')}"
+            )
+    except Exception as error:  # noqa: BLE001
+        objects.append(f"<unreadable: {type(error).__name__}>")
     raise BotModeError(
         f"Strength: the boulder at {boulder_tile} did not move to {dest_tile} in {tries} "
-        f"pushes (standing {approach_tile} facing {face_dir}). A push into a blocked tile "
-        "fails silently in-game, so check that the destination is walkable and empty."
+        f"pushes (standing {approach_tile} facing {face_dir}; we are now at {where}). "
+        f"strength_active={_strength_active()} tracked_id={boulder_id} "
+        f"boulder_now={_boulder_now()} objects={objects}"
     )
 
 

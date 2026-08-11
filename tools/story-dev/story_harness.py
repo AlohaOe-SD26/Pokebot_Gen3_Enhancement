@@ -2611,8 +2611,17 @@ class MagmaHideoutMode(BotMode):
                     floors.append(map_name(current))
                 yield
         except Exception as error:  # noqa: BLE001 - the failure IS the measurement
-            error_text = f"{type(error).__name__}: {str(error)[:220]}"
+            error_text = f"{type(error).__name__}: {str(error)[:1200]}"
             log(f"[magmahideout] FAILED: {error_text}")
+            # ‼ CAPTURE THE FAILURE SITE. Iterating on the 1F boulder puzzle by re-driving
+            # the whole entry every time is minutes per attempt; a save at the point of
+            # failure makes the next inspection offline and instant.
+            try:
+                _fail = SAVES / "magma_1f_fail.ss1"
+                _fail.write_bytes(context.emulator.get_save_state())
+                log(f"[magmahideout] captured the failure site -> {_fail}")
+            except Exception:  # noqa: BLE001
+                pass
 
         groudon = get_event_flag("GROUDON_AWAKENED_MAGMA_HIDEOUT")
         log(f"[magmahideout] RESULT groudon={groudon} map={map_name(here()[0])} at={here()[1]} "

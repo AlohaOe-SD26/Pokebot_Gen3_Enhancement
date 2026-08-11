@@ -10669,3 +10669,74 @@ PYTHONUTF8=1 TEACH_ITEM=HM02 py -3.12 story_harness.py magma_door.ss1 --driver t
 ```
 Both fail deterministically. Use these — they are ~3,000 frames of setup instead of 19,000, and
 the HM02 arm is a second, independent instance of the same bug to fix against.
+
+---
+
+## 2026-08-10 (night) — ✅ `#24-magmahideout` IS COMPLETE. Groudon is awake, and Story mode has a new chapter.
+
+```
+[magmahideout] RESULT groudon=True map=MAGMA_HIDEOUT_4F at=(15, 21)
+               floors=['MAGMA_HIDEOUT_1F','MAGMA_HIDEOUT_2F_1R','MAGMA_HIDEOUT_3F_1R','MAGMA_HIDEOUT_4F']
+               whiteouts=0
+```
+**`FLAG_GROUDON_AWAKENED_MAGMA_HIDEOUT` is SET** — the binary acceptance the whole chapter was
+graded on, and the flag the decomp's own `MagmaHideout_4F_EventScript_Maxie` sets on defeat.
+**No batch, no statistics, no z-score.** `do_magma_hideout_chapter()` is wired into
+`story_mode.py` as **Segment 15**; the end-of-content marker moves to the Slateport submarine.
+
+**The full chain, all driven:** Mt. Pyre summit → heal at Lilycove → heal at Mauville **and teach
+Strength there** → Route 111/112 (clearing the Rock Smash rock) → cable car → Mt. Chimney →
+Jagged Pass → fire the coord trigger → push two Strength boulders → 1F → 2F_1R → 3F_1R → 4F →
+beat Maxie. Regression gate re-run green (`repro_counter_hunt`, `repro_boss_plateau`,
+`repro_area_item_gate`, `repro_battle_items`).
+
+### ‼ THE `#24-teachmsgstall` DODGE THAT UNBLOCKED IT — placement, not a fix
+The chapter needs a teach (1F is Strength-gated), and the obvious place — inside the hideout,
+where the need arises — is **the worst possible one**: `#24-teachmsgstall` wedges a teach taken
+just after a won battle, and a dungeon is nothing but won battles (**0 of 3** from committed
+post-battle saves, against **38 of 42 in the live batch `20260810-082509`**, so the bug is real
+but narrow). Teaching at a **heal stop** dodges it. Measured in one run:
+* Lilycove heal → teach **FAILED** (the bug), logged and skipped, chapter continued;
+* Mauville heal → teach **SUCCEEDED**: *"Mightyena learned Strength (lost Taunt)"*.
+
+The best-effort-and-retry-at-the-next-heal structure absorbed the failure without losing the run.
+‼ **This is a DODGE. `#24-teachmsgstall` is still unfixed and still the right thing to fix.**
+And the predicted cost was exactly right: Taunt, power 0, so the damaging-move count held.
+
+### ‼ THREE BUGS IN MY OWN PUSH CODE, ALL FOUND BY DRIVING IT
+Each looked like "the destination is blocked" and none of them was:
+1. **A one-frame `press_button` is not a walk.** Eight "pushes" never moved the avatar.
+   `walk_one_tile` holds the direction until the tile changes; that is what the game needs.
+2. **`walk_one_tile` leaves the direction and B HELD** if you abandon it early (it only releases
+   once the position changes). Every later retry then ran with a jammed D-pad. Released in a
+   `finally`.
+3. ‼‼ **A FLAG SET BY A SCRIPT IS NOT THE END OF THAT SCRIPT.** `EventScript_ActivateStrength`
+   sets `FLAG_SYS_USE_STRENGTH` and then keeps going — animation, message, `releaseall`. My
+   activation loop exited the instant the flag flipped, i.e. while the avatar was still
+   `lockall`ed, so every push pressed a direction at a locked player. **This is the one that
+   cost two runs**, because the diagnostics all looked healthy: `strength_active=True`, boulder
+   present, destination clear, player adjacent and facing it.
+   **Prevention rule: after a script sets the flag you were waiting on, ride the scene out and
+   wait for control before acting on it.**
+
+‼ **And the error message was part of the problem.** It said *"check that the destination is
+walkable"* — a hypothesis, not a state — and the destination was walkable all three times. Once
+it dumped the world instead (`strength_active`, the tracked id, every object with coords and
+graphics), the cause fell out of a single run. **A failure message should report state, not
+guesses.**
+
+### ‼ TWO MORE STATIC-VS-LIVE DISAGREEMENTS, both resolved in favour of LIVE
+* **Maxie's approach tile.** A static read of 4F said `(17,21)` was the only reachable
+  neighbour and `(15,21)` was not. From the real arrival tile `(46,8)` the planner said the
+  **exact opposite**. The code no longer hard-codes one: it tries all four neighbours with their
+  facings and takes the first that works — and the winning run stood on **`(15,21)`**.
+* **The 4F arrival tile is `(46,8)`, not `(46,7)`** as the warp table implied.
+⇒ **Every static claim about this dungeon has now been wrong at least once.** Ask the planner at
+the moment it matters.
+
+### Also corrected
+`_pushed()` originally tested "nothing on the boulder's old tile" — which is **false on a
+successful push**, because the player steps onto exactly that tile (`id=255@(7,23)` in the object
+dump). The boulder is now tracked by `local_id`. Same family as the `#24-battleitems` bug where
+an HP comparison spanned a Pokémon switch: **state sampled from a moving frame of reference needs
+its subject pinned by identity.**

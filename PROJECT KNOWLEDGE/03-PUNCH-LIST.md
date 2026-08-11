@@ -1230,7 +1230,20 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       from a run that already beat her (52% of batch runs do). Once it exists, commit it to
       `tools/story-dev/saves/` as `post_winona.ss1` — every Ch14 probe will want it.
 
-- [ ] `#24-magmahideout` — 🔨 **IN PROGRESS 2026-08-10 (evening). Increments 1-3 WRITTEN;
+- [x] `#24-magmahideout` — ✅ **DONE 2026-08-10. `GROUDON_AWAKENED_MAGMA_HIDEOUT` is SET, and
+      `do_magma_hideout_chapter()` is wired into `story_mode.py` as Segment 15.**
+      ```
+      [magmahideout] RESULT groudon=True map=MAGMA_HIDEOUT_4F at=(15, 21)
+        floors=['MAGMA_HIDEOUT_1F','MAGMA_HIDEOUT_2F_1R','MAGMA_HIDEOUT_3F_1R','MAGMA_HIDEOUT_4F']
+        whiteouts=0
+      ```
+      Binary acceptance, no batch. Full chain driven: Mt. Pyre → Lilycove heal → Mauville heal
+      **+ teach Strength** → R111/112 (Rock Smash rock cleared) → cable car → Mt. Chimney →
+      Jagged Pass → coord trigger → two Strength pushes → 1F→2F_1R→3F_1R→4F → Maxie.
+      ‼ **Maxie is approached ADAPTIVELY** — all four neighbours are tried at runtime, because the
+      static read said `(17,21)` and the live arrival said `(15,21)`. The winning run used
+      `(15,21)`. Every static claim about this dungeon has been wrong at least once.
+      HISTORY — **IN PROGRESS 2026-08-10 (evening). Increments 1-3 WRITTEN;
       increment 1 driven-tested and iterating. Entry model CORRECTED twice today.**
 
       ‼‼ **THE ENTRY IS A STEP TRIGGER, NOT A WALK.** The door `JAGGED_PASS (16,18)` is covered
@@ -1282,7 +1295,16 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       `1F (25,34) → 2F_1R → (17,33) → 3F_1R → (7,21) → 4F`, then stand `(17,21)` facing Left and
       TALK to Maxie at `(16,21)`. **Everything past 1F is already proven connected.**
 
-- [ ] `#24-strength` — **NEW 2026-08-10. The blocker on `#24-magmahideout` increment 3, and the
+- [x] `#24-strength` — ✅ **DONE 2026-08-10.** `ensure_strength_learner()` +
+      `strength_push()` + `open_magma_hideout_1f()` in `modules/story/early_game.py`, proven by
+      the chapter completing. Kept OUT of `obstacle_clearing` on purpose: that framework's success
+      test is "the object is GONE", and a boulder is PUSHED — so the test here is **the boulder
+      MOVED**, tracked by `local_id` (the player ends up standing on its old tile).
+      ‼ Three bugs found only by driving it, all logged in `08-MISTAKES`: a one-frame press is not
+      a walk; `walk_one_tile` leaves the D-pad HELD if abandoned early; and **a flag set by a
+      script is not the end of that script** (the avatar was still `lockall`ed — that one cost two
+      runs). The teach is done at a HEAL STOP to dodge `#24-teachmsgstall`.
+      HISTORY — **NEW 2026-08-10. The blocker on `#24-magmahideout` increment 3, and the
       first hard dependency the story bot has had on an unsupported field move.**
       `obstacle_clearing.KNOWN_BUT_UNSUPPORTED` excludes `EventScript_StrengthBoulder` on purpose:
       *"a boulder is PUSHED, not removed; the success test cannot see it"* — i.e. the existing

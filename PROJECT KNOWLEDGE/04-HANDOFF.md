@@ -3,12 +3,12 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-08-10 (evening) — read "‼ YOU ARE HERE" immediately below.
+**Last updated:** 2026-08-10 (night) — read "‼ YOU ARE HERE" immediately below.
 Every banner further down is HISTORY, newest first.
 
 ---
 
-# ‼ YOU ARE HERE — 2026-08-10 evening. Read this, then `14-AGENT-PLAYBOOK.md`.
+# ‼ YOU ARE HERE — 2026-08-10 night. Read this, then `14-AGENT-PLAYBOOK.md`.
 
 ## WHAT THIS IS
 `sandbox-pokebot/` is the working build of a Pokémon Emerald bot. Its **Story mode** plays the
@@ -18,145 +18,102 @@ game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror
 ## STATE
 | | |
 |---|---|
-| branch / HEAD | `main`, see the commit below |
-| box | **IDLE unless a `--driver magmahideout` run is still going.** No batch is running. |
-| story content | Littleroot → 6 badges → Mt. Pyre → Magma Emblem → **Magma Hideout: increments 1 & 2 GREEN, increment 3 (Maxie) under test** |
+| branch / HEAD | `main`, clean, pushed |
+| box | **IDLE.** No batch running. |
+| story content | Littleroot → 6 badges → Mt. Pyre → **MAGMA HIDEOUT (Groudon awakened)**. Next unwritten beat: the Slateport submarine. |
 | ‼ is code frozen? | **No.** The freeze rule applies only during an `x4_headless` BATCH. |
 | upstream | checked 2026-08-10, `5dd898f8`, unchanged |
+| promotion | ‼ `sandbox-pokebot/` has DRIFTED from `custom-pokebot/` by all of Ch15 + `#24-strength`. **Promotion needs explicit user approval** — a generic "proceed autonomously" is NOT that. |
 
-## ‼ WHAT JUST HAPPENED — `#24-magmahideout` is being BUILT, and increment 1 is PROVEN GREEN
-The next unwritten chapter is now three functions in `modules/story/early_game.py`, each with its
-own binary acceptance and its own harness driver:
+## ✅ WHAT JUST SHIPPED — `#24-magmahideout` AND `#24-strength`, BOTH DONE
+```
+[magmahideout] RESULT groudon=True map=MAGMA_HIDEOUT_4F at=(15, 21)
+  floors=['MAGMA_HIDEOUT_1F','MAGMA_HIDEOUT_2F_1R','MAGMA_HIDEOUT_3F_1R','MAGMA_HIDEOUT_4F']
+  whiteouts=0
+```
+`FLAG_GROUDON_AWAKENED_MAGMA_HIDEOUT` is set — the flag the decomp's own Maxie script sets on
+defeat, and the chapter's whole acceptance test. **Binary. No batch, no z-score.**
+`do_magma_hideout_chapter()` is wired into `story_mode.py` as **Segment 15**.
 
-| increment | function | acceptance | state |
-|---|---|---|---|
-| 1 travel + open the door | `travel_to_magma_hideout_door()` | `VAR_JAGGED_PASS_STATE == 2` **and** standing on `JAGGED_PASS (16,20)` | ✅ **GREEN** (run 4, `--driver magmatravel` from `saves/post_mtpyre.ss1`) |
-| 2 go in | `enter_magma_hideout()` | map == `MAGMA_HIDEOUT_1F` | ✅ **GREEN** |
-| 3 beat Maxie | `do_magma_hideout()` | `FLAG_GROUDON_AWAKENED_MAGMA_HIDEOUT` | ⛔ 1F is Strength-gated; `#24-strength` is **BUILT** but blocked by **`#24-teachmsgstall`** |
-
-‼ **NOT wired into `story_mode.py` yet.** `do_magma_hideout_chapter()` composes all three and is
-ready to drop in as Segment 15 once increment 3 is green.
+**The chain, all driven:** Mt. Pyre summit → heal Lilycove → heal Mauville **+ teach Strength**
+→ Route 111/112 (clearing the `#24-smashroute` rock) → cable car → Mt. Chimney → Jagged Pass →
+coord trigger un-walls the entrance → **two Strength pushes** → 1F → 2F_1R → 3F_1R → 4F → Maxie.
 
 ```
 cd tools/story-dev
-PYTHONUTF8=1 py -3.12 probe_magma_anchor.py                       # era gate, 4 controls
-PYTHONUTF8=1 py -3.12 probe_ch15_travel.py                        # the route
-PYTHONUTF8=1 py -3.12 probe_ch15_interior.py                      # the interior
-PYTHONUTF8=1 COLUMNS=400 py -3.12 story_harness.py post_mtpyre.ss1 --driver magmatravel --frames 2500000 --profile mtN
-PYTHONUTF8=1 COLUMNS=400 py -3.12 story_harness.py magma_door.ss1 --driver magmahideout --frames 900000 --profile mhN
+PYTHONUTF8=1 py -3.12 probe_magma_anchor.py     # era gate, 4 controls
+PYTHONUTF8=1 py -3.12 probe_ch15_travel.py      # the route
+PYTHONUTF8=1 py -3.12 probe_ch15_interior.py    # the interior
+PYTHONUTF8=1 COLUMNS=400 py -3.12 story_harness.py post_mtpyre.ss1 --driver magmatravel  --frames 2500000 --profile mtN
+PYTHONUTF8=1 COLUMNS=400 py -3.12 story_harness.py magma_door.ss1  --driver magmahideout --frames 2500000 --profile mhN
 ```
-**`saves/magma_door.ss1` is a NEW anchor** captured by a successful `magmatravel` run: it stands
-at the OPEN door, so increment 3 iterates in seconds instead of re-driving ~75,000 frames.
+**New anchors:** `saves/magma_door.ss1` (at the OPEN hideout door, party knows Strength) and
+`saves/magma_1f_fail.ss1` (a failure site kept for iterating). `magmatravel` re-captures the
+first on every success.
 
-## ‼‼ THE FINDING THAT MATTERS MOST — a static PASS on a runtime WALL
-The door `JAGGED_PASS (16,18)` is covered by `METATILE_Lavaridge_RockWall` by
-`JaggedPass_OnLoad` while `VAR_JAGGED_PASS_STATE <= 1`. A **coord_event** on one of
-`(21,15) (22,20) (21,20) (14,15) (13,15)` runs `JaggedPass_EventScript_OpenMagmaHideout`, which
-opens the metatiles and sets the var to **2**. The var reaches 1 by itself once the Magma Emblem
-is in the bag. **We use `(13,15)`** (8-10 waypoints from the descent vs 15-23 for the others).
+## ‼‼ THE FIVE THINGS THAT WILL SAVE THE NEXT AGENT REAL TIME
+1. **A flag set by a script is NOT the end of that script.** `EventScript_ActivateStrength` sets
+   `FLAG_SYS_USE_STRENGTH` and then keeps running (animation, message, `releaseall`). Exiting the
+   wait the instant the flag flips leaves the avatar `lockall`ed, so every button press does
+   nothing. **This cost two runs** while every diagnostic looked healthy. Ride the scene out and
+   wait for control.
+2. **A failure message must report STATE, not a HYPOTHESIS.** Mine said "check the destination is
+   walkable"; the destination was walkable all three times. Dumping the world instead
+   (flag, tracked object id, every object with coords + graphics) cracked it in one run.
+3. **Every static claim about the Magma Hideout has been wrong at least once.** The door read as
+   "2 waypoints" while walled shut by a `setmetatile`; the "shortest route" started on a nine-tile
+   island; Maxie's approach tile was `(17,21)` statically and `(15,21)` live. **Ask the planner at
+   the moment it matters** — Maxie's approach now tries all four neighbours at runtime.
+4. **`walk_one_tile` leaves the direction and B HELD if you abandon it early.** Release in a
+   `finally`, or every later retry runs with a jammed D-pad.
+5. **Track a displaced object by `local_id`, not by "is anything on that tile".** Pushing a
+   boulder moves the PLAYER onto its old tile, so the obvious test reads False on success. Third
+   instance of this family in the project (see `08-MISTAKES`).
 
-‼ **`calculate_path` said "2 waypoints" to that sealed tile the entire time**, because it reads
-the ROM LAYOUT and cannot see a `setmetatile`. **Three** separate conclusions about this one door
-— "one-way ledges", "ledge-isolated, needs scripted movement", and `magmadoor`'s "a real
-south-facing ledge" — were all this wall. **A static PASS is not evidence on a map whose scripts
-rewrite metatiles**, and the PASS form is worse than KI-24's FAIL form because it reads as
-confirmation instead of prompting a re-test.
+## ‼ `#24-teachmsgstall` — DODGED, NOT FIXED. STILL THE BEST BUG TO FIX NEXT.
+1F is Strength-gated, so the chapter needs a teach — and the natural place (inside the dungeon)
+is the worst one, because that bug wedges a teach taken right after a won battle. Measured:
+**0 of 3** teaches from committed post-battle saves, against **38 of 42 in live batch
+`20260810-082509`**. The chapter dodges it by teaching **at a heal stop**; in the winning run
+Lilycove's teach failed (logged, skipped) and Mauville's succeeded
+(*"Mightyena learned Strength (lost Taunt)"*).
 
-## ‼ TWO THINGS THAT BIT ME, AND WILL BITE THE NEXT AGENT
-1. **Ch14 hands over a WRECKED party.** `post_mtpyre.ss1` is **3 of 6 fainted**, survivors at
-   21/117 and 18/109, best move at 0 PP, **one Hyper Potion and no Revives**, and the nearest
-   Pokémon Center is **276+ waypoints** away (Mauville 276 / Fortree 432 / Lilycove 883). It dies
-   ~61 waypoints in, on ROUTE123. The travel leg now heals at Lilycove and Mauville en route.
-   ‼ **Direction matters:** back north over Route 121/122 is ground Ch14 already cleared, so its
-   trainers are beaten; ROUTE123/118 westward are FRESH trainers.
-2. **My driver inherited `BotMode.on_whiteout()`'s default of `False`** (= drop to Manual) while
-   **StoryMode overrides it to `True` and recovers** (`story_mode.py:1221`). Two runs ended at the
-   *identical* frame f23674 and I nearly recorded "the travel leg is blocked".
-   ‼ **Two independent runs failing at the same frame is a fact about a code path, not the
-   world.** Any new harness driver must diff its overrides against the mode it stands in for.
-
-## ⛔ INCREMENT 3 IS BLOCKED: **1F IS STRENGTH-GATED** (measured, not suspected)
-The driven run entered 1F cleanly and stopped dead:
-`RESULT groudon=False map=MAGMA_HIDEOUT_1F at=(10,34) floors=['MAGMA_HIDEOUT_1F'] whiteouts=0`.
-
-The cause was pinned with an **independent instrument** — a plain COLLISION flood of 1F, no
-elevation and no pathfinder:
-* 1F has **three collision components**: **#0, 299 tiles** (the entrance `(10,34)` **and**
-  `(25,34)→2F_1R`), **#1, 70 tiles** (`(31,3)→2F_2R`), **#2, NINE tiles** (`(20,22)→2F_3R`).
-* `calculate_path` reaches **44** of #0's 299 tiles, and the boundary is **exactly three edges,
-  every one into a Strength boulder**: `(7,23)→(7,22)`, `(7,23)→(6,23)`, `(8,22)→(7,22)`.
-
-⇒ The boulders at `(5,22)/(7,22)/(6,23)` **are the gate**. `obstacle_clearing` excludes
-`EventScript_StrengthBoulder` by design, and no mon on the anchor knows Strength.
-**New punch item `#24-strength` — it is now the single thing between the bot and new content.**
-‼ An earlier note of mine said those boulders were "west of the arrival and off-route". That was
-read off their coordinates, never measured. **Adjacency is a measurement, not an inference.**
-
-## THE ROUTE AND THE FIGHT — ‼ the §Ch15 "shortest route" was WRONG; this is the corrected one
-`(20,22)` sits on that **nine-tile island**: it is an EXIT from 2F_3R, never an entrance to it.
-The real route is the branch the design doc dismissed as "longer". Every leg below is verified in
-one connected component with its arrival tile (2F_1R **383**, 3F_1R **154**, 4F **293**), so
-**the entire interior past 1F is already proven connected**:
+✅ **A far cheaper repro than the 19,000-frame fixture on file:**
 ```
-JAGGED_PASS (16,18) -> 1F   [arrive (10,34)]   ⛔ Strength boulders gate the way out
-1F (25,34) -> 2F_1R         [arrive (8,2)]
-2F_1R (17,33) -> 3F_1R      [arrive (23,3)]
-3F_1R (7,21) -> 4F          [arrive (46,7)]
-4F: walk to (17,21), face Left, TALK to Maxie at (16,21)
-```
-* ‼ **Maxie is TALKED to, not stepped on** — there are no coord_events anywhere in the hideout.
-  `(17,21)` is the ONLY one of his four neighbours the planner can reach.
-* `TRAINER_MAXIE_MAGMA_HIDEOUT` = Mightyena 37 / Crobat 38 / Camerupt 39. Also inside: Tabitha
-  (Numel 26 / Mightyena 28 / Zubat 30 / Camerupt 33) and grunts at L29.
-* On defeat: `FLAG_GROUDON_AWAKENED_MAGMA_HIDEOUT` (111) — **the completion test, already
-  referenced by `modules/story/chapters.py:200`** — plus `HIDE_MAGMA_HIDEOUT_GRUNTS` and the two
-  Slateport vars that open the following beat.
-
-## ‼‼ THE BLOCKER MOVED AGAIN — `#24-teachmsgstall` IS NOW THE TOP ITEM
-`#24-strength` is **BUILT** (`ensure_strength_learner`, `strength_push`,
-`open_magma_hideout_1f`, wired into `do_magma_hideout`). It cannot run, because **teaching HM04
-wedges**. Reproduced with the purpose-built `--driver teachfull`; the three `TEACH EXIT` records
-match `#24-teachmsgstall`'s signature already on file.
-
-‼ **That bug was filed as "LOW priority — zero run-ending events". That is no longer true:** a
-chapter now REQUIRES a teach, so it is run-ending. **Reprioritise it as the top blocker.**
-
-✅ **A far cheaper repro than the 19,000-frame fixture on file — a committed save plus one flag:**
-```
-cd tools/story-dev
 PYTHONUTF8=1 TEACH_ITEM=HM04 py -3.12 story_harness.py magma_door.ss1 --driver teachfull --frames 400000 --profile tf-hm04
 PYTHONUTF8=1 TEACH_ITEM=HM02 py -3.12 story_harness.py magma_door.ss1 --driver teachfull --frames 400000 --profile tf-hm02
 ```
-‼ **THREE NEW FACTS, from a discriminating test.** HM02/Fly → Swellow fails *identically* to
-HM04/Strength → Mightyena. So the wedge is **not item-specific**, **not target-specific**
-(slot 0 vs 2), **not replace-slot-specific** (1 vs 0).
-‼‼ **And the failure point MOVES**: HM04 exhausts its 900-frame post-select window still in
-`Task_BagMenu_HandleInput`; HM02 in `['Task_ClosePartyMenuAfterText','Task_PrintAndWaitForText']`.
-**One broken menu step cannot do that.** This is evidence against the standing framing ("the
-replace prompt never appears" — one step too late) and for something generic starving the flow.
+‼ **THREE NEW FACTS.** HM02/Fly → Swellow fails *identically* to HM04/Strength → Mightyena, so
+the wedge is **not item-**, **not target-** and **not replace-slot-specific**. ‼‼ **And the
+failure POINT MOVES** — `Task_BagMenu_HandleInput` / `Task_ClosePartyMenuAfterText` /
+`Task_ClosePartyMenuAndSetCB2` across three runs. **One broken menu step cannot do that**, which
+is evidence against the standing framing ("the replace prompt never appears" — one step too
+late). Also confirmed **not a regression**: the session-start commit fails identically.
 
 ## ⏭ NEXT ACTIONS, IN ORDER
-0. **FIX `#24-teachmsgstall`** using the cheap repro above. Everything below waits on it.
-1. **`#24-strength` — BUILT, blocked only by (0). Half of it was already free.**
-   ✅ **`HM04` is ALREADY IN THE BAG and badges 1-6 are held** (field Strength is gated on
-   BADGE04, the Heat Badge) — no Rusturf Tunnel trip.
-   ‼ **But only Mightyena L43 and Sceptile L43 can learn it, and both have four moves** —
-   `can_learn_tm_hm(HM04)` is **False** for Zigzagoon (my first note said Zigzagoon would carry
-   it because it has a free slot; that was inference, and it was wrong). `hm_learner_slot()`
-   picks **Mightyena**, and the expendable-slot picker takes **Taunt** (power 0, a status move,
-   so the damaging-move count holds). Verify that outcome rather than assume it.
-   That leaves (b): give `obstacle_clearing` a success test
-   that works for a **PUSH** — the boulder MOVES rather than disappearing, which is exactly why
-   it is in `KNOWN_BUT_UNSUPPORTED`. ‼ Bound the push loop: a boulder pushed against a wall must
-   fail loudly, not retry (KI-34 burned 23.9M frames on a retry loop of this shape).
-   Iterate with `saves/magma_door.ss1` + `--driver magmahideout` — seconds per attempt.
-2. **Then wire `do_magma_hideout_chapter()` into `story_mode.py`** as Segment 15, replacing the
-   "END OF BUILT CONTENT" block at ~line 3509.
-3. **Grade the chapter BINARY** on `GROUDON_AWAKENED_MAGMA_HIDEOUT`. **No batch.** Four batches
-   read 25.0 → 33.3 → 16.1 → 28.6% at n≈30 and resolved nothing; that is why content, not
-   finish-rate tuning, is where this session spent.
-4. Only then: consider promoting to `custom-pokebot/` — ‼ **which needs explicit user approval**
-   and a generic "proceed autonomously" is NOT that approval.
+1. **`#24-teachmsgstall`** — now the best-value bug in the project: a cheap deterministic repro,
+   three fresh discriminating facts, and it is the only thing standing between the story bot and
+   reliable HM teaching. Start upstream of the replace prompt.
+2. **Build the SLATEPORT SUBMARINE beat** — Maxie's defeat opens it (`VAR_SLATEPORT_CITY_STATE`
+   and `VAR_SLATEPORT_HARBOR_STATE` → 1, Stern / Gabby-and-Ty hide flags cleared). Recon it the
+   way §Ch15 was: decomp first, then a driven probe, graded on a flag.
+3. **Ask the user about PROMOTION.** Sandbox has drifted from `custom-pokebot/` by Ch15 +
+   `#24-strength`. It needs explicit approval.
+4. **Do NOT grade any of this on the finish rate.** Four batches read 25.0 → 33.3 → 16.1 → 28.6%
+   at n≈30 and resolved nothing. Content is binary and instantly verifiable, which is exactly
+   why this session spent there.
+
+## ‼ CARRIED FORWARD — still true
+* **Ch14 hands over a WRECKED party**: `post_mtpyre.ss1` is 3 of 6 fainted, survivors at 21/117
+  and 18/109, one Hyper Potion, **no Revives**, nearest Pokémon Centre 276+ waypoints away. The
+  travel leg heals at Lilycove and Mauville because of it, and it still costs **one whiteout**.
+  ‼ Direction matters: north over Route 121/122 is ground Ch14 already cleared (trainers beaten);
+  ROUTE123/118 westward are FRESH trainers.
+* **`LAVARIDGE_TOWN` is not reachable from `ROUTE112` by the live navigator** (3/3) though
+  `calculate_path` scores it 66 waypoints. That staging heal is best-effort.
+* **A harness driver must mirror the OVERRIDES of the mode it stands in for**, not just call its
+  functions — `on_whiteout()` defaults to False (drop to Manual) while StoryMode overrides it to
+  True. Two runs stopped at the identical frame before I noticed.
 
 ---
 
