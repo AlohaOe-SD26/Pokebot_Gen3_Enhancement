@@ -2964,6 +2964,17 @@ JAGGED_PASS <--(10,34)-- MAGMA_HIDEOUT_1F --(25,34)--> 2F_1R --(17,33)--> 3F_1R 
 
 ### §Ch14 — THE MAGMA HIDEOUT APPROACH IS SETTLED (ROM + existing measurement, 2026-08-05)
 
+> ‼‼ **CORRECTED 2026-08-10 — THE LEDGE EXPLANATION BELOW IS WRONG.** The door is not blocked by
+> one-way ledges. A **Team Magma guard stands on (16,19)**, the door column's only entry
+> (`OBJ_EVENT_GFX_MAGMA_MEMBER_M`, flag **847 `HIDE_JAGGED_PASS_MAGMA_GUARD`**, decomp
+> `JaggedPass/map.json`). With the guard gone the door is **2 waypoints** from `(16,20)`, a tile
+> the bot already reaches. Measured: `jagged_descent.ss1` (badges 1-3, guard present) → FAIL;
+> `post_mtpyre.ss1` (guard hidden) → **OK, 2 waypoints**. The 2026-07-26 probe that "could not
+> path to (16,22)" was run pre-Emblem and was blocked by the guard, not the terrain.
+> **The verdict "approach from above" still holds** (the pass IS ledge-descended), but the door
+> itself was never the obstacle. Full build spec: **§Ch15** below.
+
+
 **The hideout cannot be entered from the Route 112 side.** Probed warps:
 
 ```
@@ -3140,3 +3151,62 @@ fire). `HIDE_ROUTE_121_TEAM_AQUA_GRUNTS` is an acceptable secondary check.
 `navigate_to_anywhere(MT_PYRE_SUMMIT, …)` from Fortree fails because it commits to a leg two
 connections away; a chain of adjacent-map legs is exactly what the pathfinder handles natively.
 Measured from the stall position ROUTE121 (21,5): `(25,5)` is **OK, 6 waypoints**.
+
+
+## §Ch15 — MAGMA HIDEOUT: COMPLETE BUILD SPEC (decomp-verified 2026-08-10)
+
+**This is the next unwritten chapter.** Built content ends at `do_mt_pyre_summit()`; there is no
+hideout code. Everything below is verified against the pret/pokeemerald decomp and against live
+ROM data, not recalled.
+
+### ENTRY — solved, and it was never a terrain problem
+* Door: **`JAGGED_PASS (16,18)` → `MAGMA_HIDEOUT_1F`** (warp id 4).
+* Its only entry is **`(16,19)`**, occupied by a **Team Magma guard** until flag **847
+  `HIDE_JAGGED_PASS_MAGMA_GUARD`** is set. That flag is set by the Mt. Pyre / Magma Emblem
+  sequence, i.e. by the time this chapter runs it is already true.
+* With the guard gone: `(16,20) → (16,18)` is **2 waypoints**, and `(16,20)` is planner-reachable.
+* ‼ **Develop only from a post-Emblem anchor.** `saves/post_mtpyre.ss1` has the flag set;
+  `jagged_descent.ss1` and `post_winona.ss1` do NOT. Using a pre-Emblem save cost seven probes and
+  two wrong conclusions (`08-MISTAKES` 2026-08-10).
+
+### THE WARP GRAPH (all eight maps, from each map.json)
+```
+JAGGED_PASS (16,18) ──> 1F (10,34)
+1F (25,34) ──> 2F_1R        1F (31,3) ──> 2F_2R        1F (20,22) ──> 2F_3R
+2F_1R (8,2) ──> 1F          2F_1R (11,23) ──> 2F_2R    2F_1R (17,33) ──> 3F_1R
+2F_2R (36,4) ──> 1F         2F_2R (10,22) ──> 2F_1R
+2F_3R (16,1) ──> 1F         2F_3R (16,13) ──> 3F_3R
+3F_1R (23,3) ──> 2F_1R      3F_1R (21,9) ──> 3F_2R     3F_1R (7,21) ──> 4F
+3F_2R (12,15) ──> 3F_1R
+3F_3R (16,1) ──> 2F_3R      3F_3R (16,21) ──> 4F
+4F (46,7) ──> 3F_1R         4F (20,21) ──> 3F_3R
+```
+**SHORTEST ROUTE TO 4F — three warps:**
+`1F (20,22)` → `2F_3R` → `(16,13)` → `3F_3R` → `(16,21)` → **4F**
+(The 2F_1R/3F_1R branch is longer and passes `3F_2R`, a dead end.)
+
+### THE OBJECTIVE — a clean binary completion test
+`MagmaHideout_4F_EventScript_Maxie` runs `trainerbattle_no_intro TRAINER_MAXIE_MAGMA_HIDEOUT`,
+and on defeat sets:
+* **`FLAG_GROUDON_AWAKENED_MAGMA_HIDEOUT`** ← ‼ the chapter's DONE condition, and
+  `modules/story/chapters.py:200` already references this flag
+* `FLAG_HIDE_MAGMA_HIDEOUT_GRUNTS`, `VAR_SLATEPORT_CITY_STATE = 1`,
+  `VAR_SLATEPORT_HARBOR_STATE = 1` (these open the following beat), plus
+  `FLAG_HIDE_SLATEPORT_CITY_CAPTAIN_STERN` / `..._GABBY_AND_TY` cleared.
+
+⇒ **Grade this chapter binary**: from a cold start (or from `post_mtpyre.ss1`), does
+`GROUDON_AWAKENED_MAGMA_HIDEOUT` end up set? No statistics needed — which is the whole argument
+for spending here rather than on finish-rate tuning.
+
+### OPPOSITION on the way
+4F holds `TRAINER_MAXIE_MAGMA_HIDEOUT`, `TRAINER_TABITHA_MAGMA_HIDEOUT` and
+`TRAINER_GRUNT_MAGMA_HIDEOUT_11/12/13`; the lower floors hold the other numbered grunts. All are
+ordinary trainer battles — the boss-prep machinery already applies.
+
+### ‼ THE ONE MEASURED RISK — the travel leg, not the hideout
+An `--driver anchorcapture` probe from `post_mtpyre.ss1` to `JAGGED_PASS (16,20)` **whited out at
+f24808** and never arrived. That probe drives RAW navigation with no prep or healing, unlike the
+production story path — so it is a probe limitation, not proof the trip is impossible. **But it
+does mean the chapter must reach Jagged Pass through the normal heal/prep path, and that leg
+should be built and proven BEFORE the interior.** Treat "get to the door in one piece" as
+increment 1, entering as increment 2, and the 4F fight as increment 3.
