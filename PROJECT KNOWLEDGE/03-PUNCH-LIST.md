@@ -26,7 +26,8 @@ user rather than resolved unilaterally.
 |---|---|
 | ~~PROMOTE Ch15 + `#24-strength`~~ | ✅ **DONE 2026-08-10 night — user-approved.** Promoted and **verified DRIVEN in `custom-pokebot`** (`--build custom` → `groudon=True`, 0 whiteouts). **Source drift: ZERO**, so the sandbox re-base is a no-op. See `custom-pokebot/DIVERGENCE-LOG.md`. |
 | ~~`#24-magmahideout` status conflict~~ | ✅ **RESOLVED 2026-08-10.** The conflict was "this list says DEFERRED, the handoff calls it the next lever". The handoff was right, the deferral's *reason* was wrong three separate times (see the entry below), and the chapter is now **DONE**. |
-| the boss-healing response | items / burst damage / stop promising an answer — see `04-HANDOFF.md`. |
+| the boss-healing response | items / burst damage / stop promising an answer — see `04-HANDOFF.md`. ‼ **2026-08-11 sharpened it**: the Magma Hideout loss is **Crobat CONFUSING the two best attackers into killing themselves** + Maxie healing Camerupt 22→67. So the menu of answers now includes **status response** (switch out / Persim Berry), not just burst damage and items. |
+| **KI-52 — `lead_cannot_battle_action`** | ‼ **NEW 2026-08-11.** A WILD battle ends the run when the lead drops below `hp_threshold`, **with five healthy party members unused** (measured, Magma Hideout 4F). `rotate` is obviously right there — but **`flee` is CORRECT for shiny hunting**, so a global flip trades a story derail for a hunting regression. Needs a scope decision: mode-scoped override, a story battle strategy, or leave it. |
 | `#doc-policy-05` | should `05-KNOWN-ISSUES` drop an entry at sandbox-fix or at promotion? |
 | `#24-organicteam` | **deferred by the user on purpose 2026-08-05.** Do not start early. |
 

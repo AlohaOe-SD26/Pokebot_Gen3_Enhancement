@@ -2178,3 +2178,54 @@ magma_1f_fail.ss1   (24,91)  == MAGMA_HIDEOUT_4F  -> True
 
 **Prevention rule.** *A loop whose exit condition is a story flag must ALSO watch for the ways the
 game can move the player out from under it. A whiteout satisfies no flag.*
+
+---
+
+## KI-52 — A WILD battle ends the run when the LEAD drops below `hp_threshold`, with a full healthy bench unused (2026-08-11, severity: HIGH, MEASURED)
+
+**What was measured** (`mintrun1`, driving the Magma Hideout from a freshly-minted `magma_door.ss1`):
+```
+Bot stopped: Your Pokémon cannot battle due to HP below threshold, and escape is not possible.
+map=MAGMA HIDEOUT(24,91) pos=(15,6)  game_state=4  battle: active=True
+callback=HandleTurnActionSelectionState  battle_text='What will SCEPTILE do?'
+party=['Sceptile L46 10/128', 'Zigzagoon L7 24/24', 'Swellow L40 112/112',
+       'Skitty L17 45/45', 'Mightyena L43 127/127', 'Castform L35 100/100']
+```
+**Five healthy party members**, and the run stopped. It then sat wedged **mid-battle in Manual for
+18,000+ frames** (the `[STUCK — 18000 frames no progress]` dump above is that).
+
+**The chain**, all in stock code:
+* `profiles/battle.yml`: `hp_threshold: 20`, `lead_cannot_battle_action: flee` (the **upstream
+  default** — `modules/config/templates/battle.yml:16`).
+* Sceptile at 10/128 = **7.8%** < 20 ⇒ `_is_healthy()` False ⇒ `_handle_lead_cannot_battle`.
+* Action is `flee`; this was a **WILD** battle (a Magma Hideout Geodude — had it been a trainer the
+  message would have been *"'flee' is not allowed in a trainer battle"*), so it tried to escape,
+  `get_best_escape_method()` returned None, and it raised
+  `BotModeError("… escape is not possible.")` → Manual.
+* `modules/battle_strategies/default.py:242-273`.
+
+⇒ **`rotate` is the obviously correct action here and it already exists.** `_handle_rotate` switches
+to a rotation target and only raises when there is genuinely no eligible switch — which was not the
+case: there were five.
+
+### ‼ WHY THE FIX IS *NOT* "flip the global config"
+**`flee` is CORRECT for shiny hunting**, which is what this bot mostly does — you do not want a
+hunting run rotating in a fresh mon and fighting every wild that outlasts the lead. A global flip
+would trade a story-mode derail for a hunting-mode regression across every other mode.
+
+**Candidate shapes (none chosen — this is a design decision):**
+1. **Mode-scoped override**: StoryMode sets `rotate` for its own duration. Narrow blast radius,
+   matches how `on_whiteout` is already overridden per-mode.
+2. **A story battle strategy** that subclasses the default and rotates instead of fleeing.
+3. Leave the config and make the story chapters heal more aggressively — weakest option, because it
+   treats a symptom and the lead can always be unlucky.
+
+### ‼ WHAT IS NOT YET KNOWN
+This was measured under the **harness driver**, which does not necessarily mirror StoryMode's
+overrides (`04-HANDOFF`: "a harness driver must mirror the OVERRIDES of the mode it stands in for").
+**Whether production StoryMode recovers from this `BotModeError` is UNMEASURED.** Do not record it
+as a live run-killer until a batch log shows it; do not record it as harmless either. The wedge
+itself — Manual, mid-battle, 18,000 frames — is real in the harness.
+
+**Repro:** drive `--driver magmahideout` from a `magma_door.ss1` whose lead takes a bad wild
+encounter on 4F, or lower `hp_threshold` in a profile to force it.
