@@ -2639,23 +2639,39 @@ class MagmaHideoutMode(BotMode):
         # would be the wrong era while looking exactly like the right one — which is the mistake
         # that cost seven probes on 2026-08-10 (`08-MISTAKES`: verify an anchor against the STORY
         # CLOCK, not the map).
-        if groudon and os.environ.get("MAGMA_HIDEOUT_CAPTURE", "1") != "0":
+        # ‼ ALWAYS SAY WHETHER THIS BLOCK RAN. On 2026-08-11 a run reported `groudon=True` and then
+        # emitted NEITHER the success line NOR the failure line, and no anchor appeared — a
+        # completely silent path that cost a chapter's worth of driving to notice. A branch whose
+        # non-execution is invisible cannot be debugged from a log.
+        _cap_env = os.environ.get("MAGMA_HIDEOUT_CAPTURE", "1")
+        log(f"[magmahideout] anchor capture: groudon={groudon} MAGMA_HIDEOUT_CAPTURE={_cap_env!r}")
+        if groudon and _cap_env != "0":
+            # ‼ WRITE THE SAVE **FIRST**, DIAGNOSTICS SECOND. The previous order read two event
+            # vars before writing, so any error in the *telemetry* would have cost the *capture* —
+            # and the capture is the expensive thing (a whole dungeon of driving), while the
+            # numbers beside it are a convenience.
+            out = SAVES / "post_maxie.ss1"
             try:
-                _harbor = get_event_var("VAR_SLATEPORT_HARBOR_STATE")
-                _city = get_event_var("VAR_SLATEPORT_CITY_STATE")
-                out = SAVES / "post_maxie.ss1"
                 out.write_bytes(context.emulator.get_save_state())
-                log(f"[magmahideout] captured anchor -> {out} "
-                    f"(SLATEPORT_HARBOR_STATE={_harbor} SLATEPORT_CITY_STATE={_city})")
-                # ‼ SAY IT OUT LOUD IF THE ERA IS NOT WHAT THE DECOMP PROMISED. `get_event_var`
-                # returns -1 for an unknown NAME, so a typo here would otherwise be recorded as a
-                # real reading of 1 vs -1 and believed later.
-                if _harbor != 1:
-                    log(f"[magmahideout] ‼ EXPECTED VAR_SLATEPORT_HARBOR_STATE == 1 after Maxie, "
-                        f"read {_harbor}. Either the var name is wrong or the era is not what "
-                        f"§Ch16 assumes — do NOT build the harbor beat on this anchor.")
+                log(f"[magmahideout] captured anchor -> {out}")
             except Exception as _error:  # noqa: BLE001 - capture must never fail the run
-                log(f"[magmahideout] anchor capture failed: {type(_error).__name__}: {_error}")
+                log(f"[magmahideout] ‼ anchor WRITE failed: {type(_error).__name__}: {_error}")
+            try:
+                # ‼ NO `VAR_` PREFIX. The reader's table is keyed WITHOUT it
+                # (`SLATEPORT_HARBOR_STATE`), and `get_event_var` returns **-1** for an unknown
+                # name rather than raising — so the first version of this line read -1 in silence
+                # and would have been believed. Verified against `modules.memory._event_vars` with
+                # a ROM loaded; `probe_ch16_anchor.py`'s NAME CONTROL is what catches this class.
+                _harbor = get_event_var("SLATEPORT_HARBOR_STATE")
+                _city = get_event_var("SLATEPORT_CITY_STATE")
+                log(f"[magmahideout] anchor era: SLATEPORT_HARBOR_STATE={_harbor} "
+                    f"SLATEPORT_CITY_STATE={_city}")
+                if _harbor != 1:
+                    log(f"[magmahideout] ‼ EXPECTED SLATEPORT_HARBOR_STATE == 1 after Maxie, read "
+                        f"{_harbor} (-1 means the NAME is wrong, not that the era is). Run "
+                        f"probe_ch16_anchor.py before building the harbor beat on this anchor.")
+            except Exception as _error:  # noqa: BLE001
+                log(f"[magmahideout] anchor era unreadable: {type(_error).__name__}: {_error}")
 
         context.set_manual_mode()
         return
