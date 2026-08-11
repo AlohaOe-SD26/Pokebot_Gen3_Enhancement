@@ -2352,6 +2352,30 @@ that transition.
 ⇒ **The SWAP version is impossible (empty box); the DEPOSIT-ONLY version is that disproven feature
 in narrower clothing.** Do not rebuild it from the boss-fight evidence alone.
 
+### ✅ THE MISSING PIECE, FOUND 2026-08-11 BY THE NEW FLAG REGISTRY — WHY the box is empty
+`POKEBOT_BOX_OVERFLOW_CATCH` (default **0**, `#24-pcoverflow`) is the feature that lets a catch
+overflow **into the PC box** when the party is full. **It is off, so nothing ever puts anything in
+the box.** That is the direct cause of BLOCKER 1.
+
+It was gated after batch `20260806-142418` graded it against its own **pre-registered** target and
+it FAILED: `withdrawing` **0** (target ≥1) and `INTO THE PC BOX` **0** — the path **never fired in
+26 runs**. ‼ The code is careful to add that it is off because it **delivered nothing**, not
+because it was proven harmful (only 10 of 43 watchdog dumps had a full party; the wedges were
+battle-handler shaped).
+
+‼‼ **AND THE BLOCKER IS NAMED AND SMALL:** a box-send shows an **EXTRA TEXT BOX** that the
+party-catch path never shows, and the bot has no handling for it (user-identified 2026-08-06, then
+decomp-confirmed).
+
+⇒ **This re-orders the roster options.** Option (a) "populate the box first" is not a large new
+project — it is **one unhandled text box** away from firing. That is a far better first move than
+(b) re-enabling the measured-harmful deposit path.
+
+‼ **How this was found is the point:** the measurement lived in a code comment in
+`story_mode.py`, where nobody looks before proposing a feature. `lint_docs.py`'s new R6 rule forced
+every `POKEBOT_*` flag into `29-DISABLED-FEATURES-REGISTRY.md`, and this flag surfaced immediately —
+an 11th flag that my own hand-written grep had missed.
+
 ### ‼ THE LIKELY CAUSAL LOOP, stated as a hypothesis
 With deposits OFF, **anything caught stays in the party for ever** — so the party fills with
 passengers. The dead weight may be a *symptom* of deposits being off, and deposits are off because

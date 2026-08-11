@@ -1,0 +1,89 @@
+# 29 — DISABLED FEATURES & FLAG REGISTRY
+
+> **Current-state file.** Every `POKEBOT_*` environment flag in the bot code must appear here.
+> `lint_docs.py` **fails** if one does not — see R6.
+
+---
+
+## ‼‼ WHY THIS FILE EXISTS
+
+The 2026-08-11 review's error taxonomy names **family C — "removing/altering something that was
+WORKING"** as the family with the worst measured cost in the project's history:
+
+* a heal-time party deposit cut the finish rate **47% → 5%** (2026-08-02);
+* a **WINNING** lead was removed on the strength of one observed loss (2026-08-03);
+* *"I removed a WINNING behaviour for **the second time in a week, having already written the rule
+  against it**"* (2026-08-04);
+* *"**THIRD** removal-shaped feature in a week that cost more than it saved"* (2026-08-05);
+* a component was removed on a **7→8** reading and it was the best-performing config (2026-08-06).
+
+`pc_trip.py`'s own comment states the shared cause exactly:
+
+> *"All three were features that REMOVE something, justified by counting what they SAVED and never
+> what they COST."*
+
+‼ **AND IT HAPPENED AGAIN ON 2026-08-11.** Asked to improve boss performance, I recommended
+"roster hygiene before bosses" — **a feature that had already been built, measured harmful, and
+pinned off months of runs earlier.** Only a manual pre-build check caught it (KI-54). Nothing in the
+repo would have stopped me: the measurement lived in a code comment inside `pc_trip.py`, where
+nobody looks before proposing a feature.
+
+⇒ **This registry is that measurement, moved somewhere it will be found.** A flag pinned at `0` is
+not a leftover — it is usually a *result*, and the result is expensive to re-derive.
+
+## HOW TO USE IT
+* **Before proposing or building anything**, check whether a flag here already covers it.
+* **Never flip a `HARMFUL` flag on in production** without a batch that measures the cost the
+  original measurement recorded.
+* When a new flag is added to bot code, add a row here **in the same commit** — the linter enforces it.
+
+---
+
+## A. FEATURES MEASURED HARMFUL AND PINNED OFF
+‼ These are **results, not TODOs.** Re-enabling one is a decision that needs a batch, and it is the
+user's call.
+
+| flag | default | what it does when ON | the measurement that turned it off |
+|---|---|---|---|
+| `POKEBOT_PC_ROTATION` | `0` | deposits "dead weight" to the PC at heal stops (`pc_trip.deposit_dead_weight_if_worth_it`) | **Team size at Feather 5.65 / 5.72 / 5.81 (off) → 4.45 / 4.75 (on). Balance→Feather 83 / 75 / 70% → 52 / 57%.** It removes ~one whole team member permanently and the last funnel rung collapsed over that transition. ‼ It also deposited a **hunted counter** the chain had crossed Hoenn to fetch (2026-08-03) |
+| `POKEBOT_AREA_ITEM_GATE` | `0` | refuses item-gated hunting areas (`#24-areaitemgate`, `#24-counterdesertgate`) | one of the **three removal-shaped features in one week** named in `pc_trip.py`'s comment. ‼ Its specific numbers are in `07-CHANGELOG` / `08-MISTAKES` around 2026-08-05 and are **not transcribed here yet** — do not quote a figure from this row |
+| `POKEBOT_LEAD_DEMOTE_WONDER_GUARD` | `0` | demotes a Wonder Guard lead (`#24-leadpolicy` (c)) | the code's own comment says it is **"a HYPOTHESIS under test, not a settled fact — batch7 carried five changes"**, i.e. it was never cleanly attributed. Off because unproven, not because disproven |
+| `POKEBOT_HUNT_ANYGROUND` | `0` | relaxes hunting-ground narrowing to any ground | **permissiveness measured 28 wasted treks and 15% conversion; the narrowing took conversion to ~50%.** ‼ "Do NOT relax the narrowing to manufacture a candidate" is a standing note |
+
+## A2. BUILT BUT NEVER WORKED — off because it DELIVERED NOTHING, not because it was harmful
+‼ This distinction matters and the code is careful about it: *"it is gated because it DELIVERED
+NOTHING, not because it was proven harmful."*
+
+| flag | default | what it does when ON | why it is off |
+|---|---|---|---|
+| `POKEBOT_BOX_OVERFLOW_CATCH` | `0` | lets a catch overflow into the **PC box** when the party is full (`#24-pcoverflow`) | Batch `20260806-142418` graded it against its own **pre-registered** target and it FAILED: `withdrawing` **0** (target ≥1) and `INTO THE PC BOX` **0** — **the path never fired in 26 runs.** ‼ The same batch saw finish 52.0% → 30.8% and watchdog 20 → 68, and the code explicitly **declines to blame this change**: only 10 of 43 watchdog dumps had a full party, and the wedges were battle-handler shaped. ‼‼ **THE KNOWN BLOCKER:** a box-send shows an **EXTRA TEXT BOX** the party-catch path never shows, and the bot has no handling for it (user-identified 2026-08-06, decomp-confirmed) |
+
+‼‼ **THIS IS THE MISSING PRECONDITION FOR ROSTER WORK (KI-54).** The box is empty at the §Ch16
+anchor because nothing ever puts anything in it. Any "swap dead weight for a better mon before a
+boss" plan needs *this* to work first — and what stands in its way is one unhandled text box, not a
+design problem.
+
+## B. FAULT-INJECTION SWITCHES (restore a pre-fix behaviour for A/B)
+These exist so a fixed bug can be **re-measured without reverting code** — the project's standard
+idiom. **The fix is always the default; the switch restores the bug.**
+
+| flag | default | restores |
+|---|---|---|
+| `POKEBOT_HMTEACH_POSTLEARN_A` | `0` | the `#24-hmteachloop` bug: keep A-mashing after the move is learned, which re-arms "teach it to another POKéMON?" |
+| `POKEBOT_TEACHWINDOW_A` | `0` | the `#24-teachmsgstall` bug: the **one-frame** `Task_ReplaceMoveYesNo` detector, and the pre-fix ride ladder |
+| `POKEBOT_LEADCANTBATTLE_A` | `0` | the KI-52 bug: raise (and wedge mid-battle) instead of fighting it out |
+
+## C. TUNING KNOBS (not results)
+| flag | default | what it tunes |
+|---|---|---|
+| `POKEBOT_FAINT_GIVEUP_LIMIT` | `20` | how many faints before a run gives up |
+| `POKEBOT_FODDER_RULE` | `xp_rate` | which rule picks fodder |
+| `POKEBOT_CONNECTION_STEP` | `0` | ‼ **rationale not yet transcribed.** Documented here only so the linter passes; read the code before assuming what it does |
+
+---
+
+## ‼ HONESTY NOTE ON THIS FILE
+Rows in section A marked *"not transcribed here yet"* are **deliberately blank rather than
+guessed**. This project's north star includes producing training material for a future agent, and
+an invented measurement is worse than an absent one. Fill them from `07-CHANGELOG` /
+`08-MISTAKES` when someone next touches the relevant area.

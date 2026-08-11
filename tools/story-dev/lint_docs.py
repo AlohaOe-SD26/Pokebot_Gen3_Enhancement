@@ -121,6 +121,40 @@ if readme.is_file():
     for name in sorted(named - existing):
         fail("R5", f"00-README's reading order names `{name}`, which does not exist")
 
+# ---------- R6: every POKEBOT_* flag in bot code must be in the registry ----------
+# ‼‼ FAMILY C — the family with the worst measured cost in this project's history. A flag pinned at
+# 0 is usually a RESULT ("this was measured harmful"), not a leftover, and those results were
+# living in code comments where nobody looks before PROPOSING a feature. On 2026-08-11 that cost a
+# recommendation: "roster hygiene before bosses" was proposed as new work when it had already been
+# built, measured harmful and pinned off (KI-54). Only a manual pre-build check caught it.
+section_r6 = DOCS / "29-DISABLED-FEATURES-REGISTRY.md"
+flag_re = re.compile(r'environ\.get\(\s*"(POKEBOT_[A-Z0-9_]+)"')
+found: set[str] = set()
+bot_roots = [REPO / "sandbox-pokebot" / "modules", REPO / "sandbox-pokebot" / "plugins"]
+for root in bot_roots:
+    if not root.is_dir():
+        continue
+    for py in root.rglob("*.py"):
+        try:
+            found |= set(flag_re.findall(py.read_text(encoding="utf-8", errors="replace")))
+        except Exception as error:  # noqa: BLE001 — an unreadable file is reported, never skipped
+            fail("R6", f"could not read {py.name} while scanning for flags: {type(error).__name__}")
+
+print("\nFEATURE FLAGS (POKEBOT_*) — every one must be in 29-DISABLED-FEATURES-REGISTRY.md")
+if not section_r6.is_file():
+    fail("R6", "29-DISABLED-FEATURES-REGISTRY.md is missing")
+elif not found:
+    # ‼ A scan that finds nothing must not silently pass — that is the silent-zero family.
+    fail("R6", "found ZERO POKEBOT_* flags in the bot code — the scan is probably broken, "
+               "since the project is known to use them")
+else:
+    registry = section_r6.read_text(encoding="utf-8", errors="replace")
+    missing = sorted(f for f in found if f not in registry)
+    print(f"  {len(found)} flag(s) in code, {len(found) - len(missing)} documented")
+    for f in missing:
+        fail("R6", f"`{f}` is used in bot code but is NOT in the registry — a flag pinned off is "
+                   f"usually a MEASUREMENT, and it must be findable before someone re-proposes it")
+
 # ---------- INFO ----------
 punch = DOCS / "03-PUNCH-LIST.md"
 if punch.is_file():
