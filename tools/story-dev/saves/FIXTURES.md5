@@ -1,0 +1,31 @@
+# LOAD-BEARING SAVE FIXTURES — md5 manifest
+#
+# ‼‼ WHY THIS FILE EXISTS. On 2026-08-11 the SAME hazard cost three separate results in one day:
+#   1. the `#24-teachmsgstall` "cheap repro" stopped reproducing — `magma_door.ss1` had been
+#      re-captured by a `magmatravel` success hours after the failures were measured on it;
+#   2. KI-50 was written up as "the chapter wins 1 in 3" — a RATE — when all three losing runs
+#      were byte-identical and the single win had been on different bytes of the same filename;
+#   3. the KI-52 live A/B was VOIDED — the fixture was pinned *after* a still-in-flight background
+#      job had overwritten it, and only the copy was md5'd, never compared to the failing run's.
+# Every one of them is "same name, different bytes". Resolving to be careful did not work; this
+# file plus `verify_fixtures.py` makes the check mechanical.
+#
+# HOW TO USE:
+#   PYTHONUTF8=1 py -3.12 verify_fixtures.py            # before trusting any fixture-based result
+#   PYTHONUTF8=1 py -3.12 verify_fixtures.py --update    # ONLY when you intend a fixture to change
+#
+# ‼ A save that any DRIVER re-captures is a CACHE, not a fixture. `magma_door.ss1` is rewritten by
+# `--driver magmatravel` on every success and `magma_1f_fail.ss1` by `--driver magmahideout` on
+# every failure — they are listed as VOLATILE and are expected to drift. Anything you need to hold
+# still must be copied to a name nothing writes to.
+#
+# format:  <md5>  <filename>  <VOLATILE|PINNED>  <what it is / what it is for>
+
+19399688e7302dfe820a2cdbcf04ff1f  post_maxie.ss1  PINNED  §Ch16 build anchor. Post-Maxie era: SLATEPORT_HARBOR_STATE=1, GROUDON_AWAKENED set, Aqua Hideout blocking flags still UNSET. Verified by probe_ch16_anchor.py (all controls green). 59,053 bytes because it came from a profile states/ snapshot, not emulator.get_save_state() — that is a serialisation difference, NOT truncation.
+80602159694bf6e95ca0e698481a4cc9  post_mtpyre.ss1  PINNED  Ch15 build anchor. Badges 1-6, Magma Emblem held, MT_PYRE_STATE=1. The start of the Magma Hideout travel leg.
+76ef84a3e70c831de06dbe26569d271e  magma_door_losing.ss1  PINNED  DETERMINISTIC boss-loss fixture: reaches Maxie and loses the identical fight every replay (41 turn lines, md5 07f99a10ac8b). Crobat Confuse Ray + Maxie healing Camerupt 22→67. The right fixture for boss-response work.
+273d19b34d96733ddda1dee7e7704378  magma_door_ki52.ss1  PINNED  A magma_door save that WINS the chapter (groudon=True, whiteouts=0). ‼ It is NOT the save that produced the KI-52 wedge — that one (8171734228f3) was lost before it could be pinned. Kept because a reliably-winning door save is scarce.
+
+# --- VOLATILE: expected to change; never base a measurement on these without copying first ---
+273d19b34d96733ddda1dee7e7704378  magma_door.ss1  VOLATILE  re-captured by `--driver magmatravel` on every success
+275d332a3eb64f195be600bc5c585d8d  magma_1f_fail.ss1  VOLATILE  re-captured by `--driver magmahideout` on every failure. ‼ MISNAMED: it stands on MAGMA_HIDEOUT_4F (24,91), not 1F.
