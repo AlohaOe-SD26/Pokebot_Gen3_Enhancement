@@ -24,7 +24,7 @@ game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror
 | ‼ is code frozen? | **No.** The freeze rule applies only during an `x4_headless` BATCH. |
 | upstream | checked 2026-08-10, `5dd898f8`, unchanged |
 | **if stopped mid-task** | **NOTHING IS PARKED.** The session ended on a completed, verified item: chapter done, full regression gate 10/10 green, all docs current, working tree clean, 0 unpushed. Start at "NEXT ACTIONS" below — there is no interrupted work to resume. |
-| promotion | ‼ `sandbox-pokebot/` has DRIFTED from `custom-pokebot/` by all of Ch15 + `#24-strength`. **Promotion needs explicit user approval** — a generic "proceed autonomously" is NOT that. |
+| promotion | ✅ **DONE 2026-08-10 night, user-approved.** Ch15 + `#24-strength` promoted to `custom-pokebot/`, **verified DRIVEN there** (`--build custom` → `groudon=True`). **Source drift: ZERO.** |
 
 ## ✅ WHAT JUST SHIPPED — `#24-magmahideout` AND `#24-strength`, BOTH DONE
 ```
@@ -51,6 +51,41 @@ PYTHONUTF8=1 COLUMNS=400 py -3.12 story_harness.py magma_door.ss1  --driver magm
 **New anchors:** `saves/magma_door.ss1` (at the OPEN hideout door, party knows Strength) and
 `saves/magma_1f_fail.ss1` (a failure site kept for iterating). `magmatravel` re-captures the
 first on every success.
+
+## ‼‼ ALREADY PROVEN — DO NOT RE-RUN THESE. Review the evidence instead.
+Everything below was measured on 2026-08-10 with a control. **Re-deriving any of it is wasted
+tokens.** Each row says how to *review* it cheaply if you need to; only re-run if you have changed
+the code it covers.
+
+| claim | verdict | how to review (do not re-run unless you changed it) |
+|---|---|---|
+| The Magma Hideout chapter completes | ✅ `groudon=True`, floors `[1F,2F_1R,3F_1R,4F]`, **0 whiteouts** | `07-CHANGELOG` 2026-08-10 (night); re-run only via `--driver magmahideout` from `saves/magma_door.ss1` |
+| The promotion works in `custom-pokebot`, driven | ✅ `groudon=True`, identical result | `custom-pokebot/DIVERGENCE-LOG.md`, last entry |
+| Source drift sandbox ↔ custom | ✅ **ZERO** (`modules/`, `plugins/` diff clean) | `diff -rq --exclude=__pycache__ sandbox-pokebot/modules custom-pokebot/modules` |
+| The travel leg reaches the door and opens it | ✅ `arrived=True opened=True JAGGED_PASS_STATE=2 party_alive=6/6`, 1 whiteout | `--driver magmatravel` from `saves/post_mtpyre.ss1` (~75k frames, several minutes) |
+| Full regression gate | ✅ **10 of 10 PASS** | the ten `repro_*.py` listed under HOW TO RUN / TEST |
+| `saves/post_mtpyre.ss1` is the right ERA | ✅ READY (guard flag True, `MT_PYRE_STATE`=1, Emblem held; era control vs `jagged_descent.ss1` passes) | `py -3.12 probe_magma_anchor.py` — seconds, offline |
+| The Jagged Pass door is walled until a coord trigger fires | ✅ decomp-verified; `calculate_path` says "2 waypoints" to a sealed tile | `12-STORYMODE-DESIGN.md` §Ch15 |
+| 1F is **Strength-gated** | ✅ 3 collision components (299/70/9); the 44-tile pocket's only exits are 3 edges into boulders | `03-PUNCH-LIST` `#24-magmahideout`; `probe_ch15_interior.py` |
+| The 2-push plan opens the route | ✅ end state boulders `[(4,22),(5,23),(7,22)]`, 295 tiles, goal reachable | the `MAGMA_HIDEOUT_1F_PUSHES` docstring in `early_game.py` |
+| The documented "shortest route" via `1F (20,22)` | ❌ **unwalkable** — that warp is on a 9-tile island | `12-STORYMODE-DESIGN.md` §Ch15 (corrected) |
+| Maxie's reachable approach tile | ⚠ **varies** — static said `(17,21)`, live said `(15,21)` | code now tries all four neighbours at runtime; do not hard-code |
+| Zigzagoon can learn Strength | ❌ **False** (`can_learn_tm_hm(HM04)`) — only Mightyena & Sceptile, both full | `03-PUNCH-LIST` `#24-strength` |
+| `LAVARIDGE_TOWN` reachable from `ROUTE112` | ❌ live navigator refuses 3/3 (though `calculate_path` says 66 wp) | that staging heal is best-effort by design |
+| `#24-teachmsgstall` still reproduces | ✅ **0 of 3** teaches from post-battle saves vs **38 of 42** in live batch `20260810-082509` | the two `--driver teachfull` commands below |
+| …and is **not** a regression from this work | ✅ the session-start commit (`320f55a5`) fails identically | already A/B'd; do not repeat |
+| …and is not item-, target- or replace-slot-specific | ✅ HM04→Mightyena and HM02→Swellow fail identically | `07-CHANGELOG` 2026-08-10 (evening, part 3) |
+| Upstream moved | ❌ `5dd898f8`, unchanged; checked 2026-08-10 | `40cakes repo/UPDATE-LOG.md` |
+
+### ‼ THREE DEAD ENDS — do not re-walk them
+1. **Do not try to "fix" navigation to reach the hideout door.** The door was never a pathfinding
+   problem; it is a metatile the coord trigger removes.
+2. **Do not add Strength to `obstacle_clearing`.** Its success test ("the object is gone") cannot
+   express a push. That is why `strength_push()` exists separately.
+3. **Do not chase `#24-teachmsgstall` at the replace prompt.** The failure point *moves* across
+   runs (`Task_BagMenu_HandleInput` / `Task_ClosePartyMenuAfterText` /
+   `Task_ClosePartyMenuAndSetCB2`), so a single broken menu step cannot be the cause. Start
+   upstream of it.
 
 ## ‼‼ THE FIVE THINGS THAT WILL SAVE THE NEXT AGENT REAL TIME
 1. **A flag set by a script is NOT the end of that script.** `EventScript_ActivateStrength` sets
@@ -98,8 +133,8 @@ late). Also confirmed **not a regression**: the session-start commit fails ident
 2. **Build the SLATEPORT SUBMARINE beat** — Maxie's defeat opens it (`VAR_SLATEPORT_CITY_STATE`
    and `VAR_SLATEPORT_HARBOR_STATE` → 1, Stern / Gabby-and-Ty hide flags cleared). Recon it the
    way §Ch15 was: decomp first, then a driven probe, graded on a flag.
-3. **Ask the user about PROMOTION.** Sandbox has drifted from `custom-pokebot/` by Ch15 +
-   `#24-strength`. It needs explicit approval.
+3. ~~Ask about PROMOTION~~ — ✅ **DONE 2026-08-10 night, user-approved and verified driven in
+   `custom-pokebot`. Zero source drift.** The next promotion decision is whatever ships next.
 4. **Do NOT grade any of this on the finish rate.** Four batches read 25.0 → 33.3 → 16.1 → 28.6%
    at n≈30 and resolved nothing. Content is binary and instantly verifiable, which is exactly
    why this session spent there.

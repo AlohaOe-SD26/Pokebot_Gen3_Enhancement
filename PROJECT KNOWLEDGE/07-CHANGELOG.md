@@ -10770,3 +10770,39 @@ directive block, `kit v1.10` matching `PROJECT KIT/VERSION`; branch `main`, remo
 unpushed commits; no tracked file over 95 MB (largest is the 16 MB ROM); `git`/`gh` on PATH and
 `gh` authenticated; `claude doctor` reports no installation issues. **Regression gate re-run in
 full: 10 of 10 green**, including `repro_battle_items` and the whole counter/boss suite.
+
+---
+
+## 2026-08-10 (night) — PROMOTION: the Magma Hideout chapter + `#24-strength`, sandbox → custom
+
+**User-approved.** The first new *story content* promoted since Mt. Pyre, and the fork's first
+support for a field move that **moves** an obstacle rather than removing it.
+
+| file | change |
+|---|---|
+| `custom-pokebot/modules/story/early_game.py` | **+905 lines, pure addition** — the five Ch15 functions plus `#24-strength` (`ensure_strength_learner`, `strength_push`, `open_magma_hideout_1f`) |
+| `custom-pokebot/plugins/custom_modes/story_mode.py` | Segment 15 wired in; end-of-content marker moves to the Slateport submarine |
+
+**‼ VERIFIED DRIVEN IN `custom-pokebot` ITSELF, NOT MERELY COMPILED.**
+`story_harness.py magma_door.ss1 --build custom --driver magmahideout` →
+`groudon=True`, floors `[1F, 2F_1R, 3F_1R, 4F]`, **0 whiteouts** — identical to the sandbox run.
+**Source drift after promotion: ZERO** (`modules/` and `plugins/` diff clean), so the
+"re-base the sandbox on the new custom" step is a no-op. `DIVERGENCE-LOG.md` entry appended with
+the mechanism, the corrected route, and what is outstanding.
+
+‼ **A line-ending scare, checked rather than assumed.** A raw `diff` reported **14,275** changed
+lines in `early_game.py`, which would have meant catastrophic drift. It was CRLF vs LF: the
+sandbox copy had been normalised to bare LF by a `git checkout` earlier in the session. With
+`--strip-trailing-cr` the real diff is **905 lines with ZERO removals** — a pure addition — and
+git stores both as LF (`text=auto eol=lf`), so the commit is clean. **A whole-file diff between
+two Windows checkouts is a line-ending question until proven otherwise.**
+
+### Documentation accuracy pass (the point of doing this before clearing context)
+* **`custom-pokebot/DOCUMENTATION/README.md` said "No divergences yet".** It had been wrong for
+  three weeks and eight promotions. It now states the real count, names Story mode as the
+  headline divergence, records how far built content reaches, and points at
+  `12-STORYMODE-DESIGN.md` / `04-HANDOFF.md` — noting that Story mode has **no upstream
+  counterpart**, so the 40cakes docs will never describe it.
+* **`04-HANDOFF.md` gained an "ALREADY PROVEN — DO NOT RE-RUN" evidence index**: 17 rows of
+  claim → verdict → where to review it, plus **three dead ends not to re-walk**. This exists so
+  the next session reviews evidence instead of regenerating it.

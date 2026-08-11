@@ -6683,3 +6683,908 @@ def do_mt_pyre_summit() -> Generator:
             "MT_PYRE_STATE is still 0 - the Team Aqua scene did not run."
         )
     _ch14_say("Story: MAGMA EMBLEM obtained - Mt. Pyre summit complete.")
+
+
+# ---------------------------------------------------------------------------
+# Chapter 15 - the Magma Hideout (Jagged Pass). INCREMENT 1: reach the pass and OPEN the door.
+#
+# ‼ EVERY constant here is decomp- or probe-verified (design §Ch15, 2026-08-10). Re-derive:
+#     cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_magma_anchor.py   (the era gate)
+#     cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_ch15_travel.py    (the route)
+#     gh api repos/pret/pokeemerald/contents/data/maps/JaggedPass/scripts.inc
+# ---------------------------------------------------------------------------
+
+#: `JAGGED_PASS (16,18)` -> `MAGMA_HIDEOUT_1F` (warp id 4, unconditional in `map.json`).
+#: ‼ This is a WARP TILE and is therefore NEVER a navigation destination - walking onto one
+#: FIRES it, so the trip ends a map further on and reports success (08-MISTAKES 2026-08-05).
+MAGMA_HIDEOUT_DOOR = (16, 18)
+
+#: The plain walkable tile below the door column, and the tile every reachability measurement
+#: for this chapter was taken from.
+MAGMA_HIDEOUT_DOOR_APPROACH = (16, 20)
+
+#: ‼‼ THE DOOR IS WALLED SHUT UNTIL A STEP TRIGGER OPENS IT, AND THIS IS THE FACT THAT
+#: INVALIDATES EVERY EARLIER "the door is unreachable" READING OF THIS MAP.
+#: `JaggedPass_OnLoad` runs `JaggedPass_EventScript_ConcealHideoutEntrance`, which
+#: `setmetatile`s (16,17) and (16,18) to `METATILE_Lavaridge_RockWall` while
+#: `VAR_JAGGED_PASS_STATE <= 1`. The opening scene is a COORD EVENT on one of five tiles,
+#: gated on `VAR_JAGGED_PASS_STATE == 1`:
+#:     (21,15) (22,20) (21,20) (14,15) (13,15)  ->  JaggedPass_EventScript_OpenMagmaHideout
+#: which shakes the camera twice, prints "the boulder is shaking in response to the emblem",
+#: `setmetatile`s the entrance open and sets `VAR_JAGGED_PASS_STATE = 2`.
+#: The var reaches 1 BY ITSELF: `JaggedPass_OnResume` checks `ITEM_MAGMA_EMBLEM` on every map
+#: load and sets it. So the Emblem is the gate, and the trigger walk is the ACTION.
+#: ‼ `(13,15)` is chosen because it is NEAREST THE DESCENT: 8-10 waypoints from every arrival
+#: tile below the top warps, against 15-23 for the (21,*)/(22,*) trio (measured 2026-08-10).
+JAGGED_PASS_HIDEOUT_TRIGGER = (13, 15)
+JAGGED_PASS_HIDEOUT_TRIGGERS = ((13, 15), (14, 15), (21, 20), (22, 20), (21, 15))
+
+#: Mt. Chimney's south edge, above the warp into Jagged Pass. `do_jagged_descent()` (Ch11c)
+#: has walked this exact tile since 2026-07 and then stepped Down through the warp.
+MT_CHIMNEY_JAGGED_DESCENT = (21, 40)
+
+#: The staging heal. Lavaridge sits one connection west of Route 112's cable-car station
+#: (66 waypoints, measured), so healing HERE puts a full-health party on the mountain.
+MAGMA_STAGING_CENTER = PokemonCenter.LavaridgeTown
+
+#: ‼ THE TWO EN-ROUTE HEALS, AND WHY THEY EXIST - THIS IS A MEASURED FIX, NOT A PRECAUTION.
+#: Ch14 hands over a WRECKED party: `saves/post_mtpyre.ss1`, captured from a real run, is
+#: **3 of 6 fainted** with the survivors at 21/117 and 18/109 and the lead's best move at 0 PP.
+#: The first build of this leg healed only at Lavaridge, five maps away, and the live run
+#: (2026-08-10) whited out on ROUTE123 at f23674 - two maps in - and respawned at Fortree.
+#: ‼ And note WHICH direction killed it: Route 121/122 back toward Lilycove is ground Ch14
+#: already cleared, so its trainers are beaten; ROUTE123/118 westward are FRESH trainers.
+#: So heal FIRST (Lilycove, back over beaten ground) and again at the western midpoint.
+MAGMA_ROUTE_HEALS = (
+    (PokemonCenter.LilycoveCity, (24, 15)),
+    (PokemonCenter.MauvilleCity, (22, 6)),
+)
+
+#: Every map inside the hideout - used only to make the travel leg RESUME-SAFE (if a previous
+#: attempt already got in, do not walk back out to the door and in again).
+_MAGMA_HIDEOUT_MAPS = (
+    MapRSE.MAGMA_HIDEOUT_1F.value,
+    MapRSE.MAGMA_HIDEOUT_2F_1R.value,
+    MapRSE.MAGMA_HIDEOUT_2F_2R.value,
+    MapRSE.MAGMA_HIDEOUT_2F_3R.value,
+    MapRSE.MAGMA_HIDEOUT_3F_1R.value,
+    MapRSE.MAGMA_HIDEOUT_3F_2R.value,
+    MapRSE.MAGMA_HIDEOUT_3F_3R.value,
+    MapRSE.MAGMA_HIDEOUT_4F.value,
+)
+
+#: The Mt. Pyre maps the chapter can START on, since Ch14 ends standing on the summit.
+_MT_PYRE_MAPS = (
+    MapRSE.MT_PYRE_SUMMIT.value,
+    MapRSE.MT_PYRE_EXTERIOR.value,
+    MapRSE.MT_PYRE_1F.value,
+)
+
+#: The mountain side of the one-way descent - reachable only by cable car, never on foot.
+_MAGMA_ON_MOUNTAIN = (
+    MapRSE.MT_CHIMNEY.value,
+    MapRSE.MT_CHIMNEY_CABLE_CAR_STATION.value,
+    MapRSE.JAGGED_PASS.value,
+)
+
+#: The mountain, PLUS Route 112 - i.e. everywhere that means "the overland haul is done".
+#: ROUTE112 (28,28) is the cable-car station's own approach tile, so standing anywhere on
+#: Route 112 means the long trip across Hoenn has already succeeded and must not be re-walked.
+_MAGMA_PAST_HAUL = _MAGMA_ON_MOUNTAIN + (MapRSE.ROUTE112.value,)
+
+
+def _magma_guard_gone() -> bool:
+    """Is the Team Magma guard off `(16,19)`, the door column's only entry? (flag 847)
+
+    ‼ Name verified present in `modules.memory._event_flags` by `probe_magma_anchor.py`
+    (NAME CONTROL PASS, 2026-08-10). `get_event_flag` returns **False** for an unknown flag
+    name, silently - so a phantom name here would read exactly like a guard still standing
+    there, and the chapter would refuse forever with a plausible-looking reason."""
+    from modules.memory import get_event_flag
+
+    return get_event_flag("HIDE_JAGGED_PASS_MAGMA_GUARD")
+
+
+def _hideout_entrance_open() -> bool:
+    """Has `JaggedPass_EventScript_OpenMagmaHideout` run? (`VAR_JAGGED_PASS_STATE == 2`)
+
+    ‼ Name verified present in `modules/data/event_vars/emerald.txt`; `get_event_var` returns
+    **-1** for an unknown name, which would make this guard silently never fire. The values
+    are the decomp's own: 0 = no Emblem yet, 1 = Emblem held and the trigger armed, 2 = the
+    entrance metatiles have been opened."""
+    from modules.memory import get_event_var
+
+    return get_event_var("JAGGED_PASS_STATE") >= 2
+
+
+def _inside_magma_hideout() -> bool:
+    return _map_group_number() in _MAGMA_HIDEOUT_MAPS
+
+
+def _at_magma_door_approach() -> bool:
+    if _map_group_number() != MapRSE.JAGGED_PASS.value:
+        return False
+    return tuple(get_player_avatar().local_coordinates) == MAGMA_HIDEOUT_DOOR_APPROACH
+
+
+def open_magma_hideout_entrance() -> Generator:
+    """Chapter 15b - walk onto a Jagged Pass trigger tile so the hideout entrance opens.
+
+    INTENT: turn `VAR_JAGGED_PASS_STATE` from 1 to 2, which is what physically removes the
+    `METATILE_Lavaridge_RockWall` pair covering (16,17)/(16,18). Until that happens the warp
+    at (16,18) exists in `map.json` but cannot be walked onto.
+    STORY CONDITION: standing on JAGGED_PASS with the Magma Emblem in the bag.
+    HOW IT WORKS: navigate to `(13,15)` - the nearest of the five trigger tiles to the descent
+    - and ride out the scene, which is two `ShakeCamera` specials and one `msgbox`. Falls back
+    through the other four tiles, because a trainer or a ledge can leave us on the wrong side
+    of any one of them and they are equivalent for this purpose.
+    GOAL/END STATE: `VAR_JAGGED_PASS_STATE >= 2`."""
+    if _hideout_entrance_open():
+        return  # resume-safe
+
+    tried: list[str] = []
+    for trigger in JAGGED_PASS_HIDEOUT_TRIGGERS:
+        _check_abort()
+        try:
+            yield from _navigate_riding_out(MapRSE.JAGGED_PASS, trigger)
+        except BotModeError as error:
+            tried.append(f"{trigger}: unreachable ({str(error)[:60]})")
+            continue
+        # The trigger fires ON the step, so control is taken immediately; ride the scene out.
+        yield from _ride_out_scripted_scene("B")
+        yield from wait_until_truly_controllable()
+        if _hideout_entrance_open():
+            _ch14_say("Story: the Magma Hideout entrance has opened.")
+            return
+        tried.append(f"{trigger}: stepped, but JAGGED_PASS_STATE is still "
+                     f"{_jagged_pass_state()}")
+
+    raise BotModeError(
+        "Magma Hideout: could not open the entrance - none of the five trigger tiles "
+        f"{JAGGED_PASS_HIDEOUT_TRIGGERS} fired `JaggedPass_EventScript_OpenMagmaHideout`. "
+        f"Attempts: {tried}. ‼ The trigger is gated on VAR_JAGGED_PASS_STATE == 1, which "
+        "`JaggedPass_OnResume` sets only when ITEM_MAGMA_EMBLEM is in the bag."
+    )
+
+
+def _jagged_pass_state() -> int:
+    from modules.memory import get_event_var
+
+    return get_event_var("JAGGED_PASS_STATE")
+
+
+def travel_to_magma_hideout_door() -> Generator:
+    """Chapter 15a - cross to Jagged Pass, OPEN the hideout entrance, and stand beside it.
+
+    INTENT: get the party from Mt. Pyre to the Magma Hideout door ALIVE, healed, and with the
+    entrance actually open. This is deliberately a separate increment from going IN, because
+    it is the only part of §Ch15 with measured failures against it - two of them now.
+
+    STORY CONDITION: the Mt. Pyre summit scene has run, so the Magma Emblem is in the bag and
+    flag 847 has cleared the guard off `(16,19)`. Checked, not assumed.
+
+    HOW IT WORKS - EXPLICIT SHORT LEGS, each failing where it broke (the §Ch14a pattern):
+      1. OFF MT. PYRE. Ch14 ends on the summit; three warps put us back on Route 122.
+      2. HEAL, TWICE, BEFORE THE HAUL. See `MAGMA_ROUTE_HEALS` - this is the fix for a
+         measured whiteout, not a precaution.
+      3. LAVARIDGE. One `_navigate_riding_out` call spans ROUTE122 -> ROUTE123 -> ROUTE118 ->
+         MAUVILLE -> ROUTE111 -> ROUTE112 (all connection edges). ‼ It is BLOCKED statically
+         (measured: Mauville -> Route 112 FAILs to both targets) by the `#24-smashroute` Rock
+         Smash rock at ROUTE111 (18,101) - and clearing that rock is exactly what
+         `_navigate_riding_out` does on a failed leg, proven live 2026-07-31. A plain
+         `navigate_to` would simply fail here.
+      4. THE CABLE CAR. Jagged Pass descends by ONE-WAY LEDGES, so the door at y=18 cannot be
+         reached from the Route 112 entrance at y=40 - the pass must be entered from the TOP.
+      5. DOWN INTO THE PASS, reusing Ch11c's proven Chimney (21,40) -> warp Down leg.
+      6. OPEN THE ENTRANCE, then walk to `(16,20)`.
+
+    ‼ WHY STEP 6 IS TWO THINGS AND NOT ONE, AND WHY EVERY EARLIER READING OF THIS MAP WAS
+    WRONG. The door is covered by a rock-wall metatile until a coord trigger opens it
+    (see `JAGGED_PASS_HIDEOUT_TRIGGER`). A STATIC probe cannot see that: `get_map_data` reads
+    the ROM's layout, where (16,18) is already a cave entrance, so `calculate_path` happily
+    reports "(16,20) -> (16,18), 2 waypoints" for a tile the game has walled off. That static
+    YES is what made the door look reachable; the pre-Emblem driven run that pressed Up twelve
+    times and did not move was reading the WALL, and wrote it down as "a real south-facing
+    ledge". Neither the ledge nor (only) the guard was the obstacle.
+
+    GOAL/END STATE: `VAR_JAGGED_PASS_STATE >= 2` and standing on `JAGGED_PASS (16,20)`,
+    controllable. Grade it BINARY."""
+    if _inside_magma_hideout():
+        _ch14_say("Story: already inside the Magma Hideout - skipping the approach.")
+        return
+
+    if not _magma_guard_gone():
+        # ‼ Guard, never assume. A trip that ends at a tile the bot cannot leave is far worse
+        # than a refusal that names its own reason - and this exact gate is what made three
+        # weeks of "the door is unreachable" look like a terrain bug.
+        raise BotModeError(
+            "Magma Hideout: HIDE_JAGGED_PASS_MAGMA_GUARD is not set, so a Team Magma guard "
+            "still stands on (16,19) - the door column's only entry. The Mt. Pyre summit "
+            "scene must run first (VAR_MT_PYRE_STATE >= 1)."
+        )
+
+    yield from wait_until_truly_controllable()
+
+    # --- Leg 1: off Mt. Pyre and back onto Route 122 --------------------------------------
+    if _map_group_number() in _MT_PYRE_MAPS:
+        _ch14_say("Story: leaving Mt. Pyre for the Magma Hideout...")
+        if _map_group_number() == MapRSE.MT_PYRE_SUMMIT.value:
+            yield from _enter_warp_by_navigation(
+                lambda: _map_group_number() == MapRSE.MT_PYRE_EXTERIOR.value,
+                MapRSE.MT_PYRE_SUMMIT,
+                (23, 31),
+                label="Mt. Pyre summit to exterior",
+            )
+            yield from wait_until_truly_controllable()
+        if _map_group_number() == MapRSE.MT_PYRE_EXTERIOR.value:
+            yield from _enter_warp_by_navigation(
+                lambda: _map_group_number() == MapRSE.MT_PYRE_1F.value,
+                MapRSE.MT_PYRE_EXTERIOR,
+                (10, 42),
+                label="Mt. Pyre exterior to 1F",
+            )
+            yield from wait_until_truly_controllable()
+        if _map_group_number() == MapRSE.MT_PYRE_1F.value:
+            yield from _enter_warp_by_navigation(
+                lambda: _map_group_number() == MapRSE.ROUTE122.value,
+                MapRSE.MT_PYRE_1F,
+                (17, 18),
+                label="Mt. Pyre 1F to Route 122",
+            )
+            yield from wait_until_truly_controllable()
+
+    # ‼ Skip the whole overland section once we are PAST IT. `_MAGMA_PAST_HAUL` includes
+    # ROUTE112 as well as the mountain, because ROUTE112 (28,28) IS the cable-car station
+    # approach: arriving there means the haul succeeded. Without this the driver's retry loop
+    # walked all the way back to Lilycove from the station on every attempt (measured, run 3).
+    if _map_group_number() not in _MAGMA_PAST_HAUL:
+        # --- Leg 2: heal on the way, before the fresh-trainer half of the haul ------------
+        for center, door_approach in MAGMA_ROUTE_HEALS:
+            _check_abort()
+            city = center.value[0]
+            if _map_group_number() in _MAGMA_PAST_HAUL:
+                break
+            try:
+                _ch14_say(f"Story: healing at {city.name} before the Magma Hideout haul...")
+                yield from _navigate_riding_out(city, door_approach)
+                yield from heal_in_pokemon_center(center)
+                yield from wait_until_truly_controllable()
+                # ‼‼ TEACH STRENGTH **HERE**, AT A HEAL STOP — AND THE PLACEMENT IS THE POINT.
+                # 1F is sealed by Strength boulders, so this chapter needs a teach; but the
+                # obvious place (inside the hideout, where the need arises) is the WORST
+                # possible one. `#24-teachmsgstall` wedges a teach performed just after a won
+                # battle, and a dungeon is nothing but won battles: measured 0 of 3 from
+                # committed post-battle saves, against **38 of 42 in the live batch
+                # `20260810-082509`** where teaches happen at ordinary moments.
+                # Coming out of a Pokémon Centre is the calmest state a run ever reaches, so the
+                # teach is piggybacked on the heal exactly as `#24-pc` piggybacks the PC
+                # rotation — "piggyback, do not detour" (`21-TEAM-POLICY-DESIGN.md` §4).
+                # ‼ It never raises: a failed teach here must not destroy a heal that worked,
+                # and `open_magma_hideout_1f` calls `ensure_strength_learner()` again anyway.
+                # This is a DODGE, not a fix — `#24-teachmsgstall` is still the real blocker.
+                try:
+                    yield from ensure_strength_learner()
+                except BotModeError as error:
+                    _ch14_say(f"Story: teaching Strength at {city.name} SKIPPED - {str(error)[:120]}")
+            except BotModeError as error:
+                # ‼ BEST EFFORT, AND SAID OUT LOUD. These are opportunistic top-ups; failing
+                # one must not end a chapter that could still succeed. But a silently skipped
+                # heal is exactly how a later whiteout gets misattributed to the route, so it
+                # is never silent.
+                _ch14_say(f"Story: en-route heal at {city.name} SKIPPED - {str(error)[:120]}")
+
+    # --- Leg 3: up the cable car ----------------------------------------------------------
+    # ‼ `ride_cable_car_to_summit()` does the haul itself - it navigates to ROUTE112 (28,28)
+    # with `_navigate_riding_out`, which is what clears the `#24-smashroute` rock at
+    # ROUTE111 (18,101) that seals the Mauville corridor. It no-ops if already up top.
+    if _map_group_number() not in _MAGMA_ON_MOUNTAIN:
+        # ‼ THE STAGING HEAL IS BEST-EFFORT, AND THIS IS A MEASURED DECISION, not caution.
+        # Lavaridge is one connection west of the station and `calculate_path` scores it at 66
+        # waypoints - but the LIVE navigator refuses it: run 3 reached ROUTE112 (28,28) and
+        # then failed three times with "Cannot reach LAVARIDGE_TOWN: it is not walkable from
+        # ROUTE112". Two instruments, two answers; the live one governs. The chapter is not
+        # allowed to die on a nice-to-have, so the Mauville heal above is the real one.
+        try:
+            _ch14_say("Story: topping up at Lavaridge before the mountain...")
+            yield from _navigate_riding_out(MapRSE.LAVARIDGE_TOWN, (9, 7), tries=3)
+            yield from heal_in_pokemon_center(MAGMA_STAGING_CENTER)
+            yield from wait_until_truly_controllable()
+        except BotModeError as error:
+            _ch14_say(f"Story: Lavaridge staging heal SKIPPED - {str(error)[:120]}")
+
+        _ch14_say("Story: riding the cable car up to Mt. Chimney...")
+        yield from ride_cable_car_to_summit()
+        yield from wait_until_truly_controllable()
+
+    # --- Leg 5: down into Jagged Pass -----------------------------------------------------
+    if _map_group_number() == MapRSE.MT_CHIMNEY.value:
+        _ch14_say("Story: descending into Jagged Pass...")
+        yield from _navigate_riding_out(MapRSE.MT_CHIMNEY, MT_CHIMNEY_JAGGED_DESCENT)
+        yield from _walk_through_warp("Down", MapRSE.MT_CHIMNEY.value)
+        yield from wait_until_truly_controllable()
+
+    if _map_group_number() != MapRSE.JAGGED_PASS.value:
+        raise BotModeError(
+            "Magma Hideout: the approach never reached JAGGED_PASS (we are on "
+            f"{_map_group_number()}). The cable car / Mt. Chimney descent is the only way in - "
+            "the pass cannot be climbed from the Route 112 end."
+        )
+
+    # --- Leg 6: open the entrance, then stand beside it ------------------------------------
+    yield from open_magma_hideout_entrance()
+
+    _ch14_say("Story: walking to the Magma Hideout door...")
+    yield from _navigate_riding_out(MapRSE.JAGGED_PASS, MAGMA_HIDEOUT_DOOR_APPROACH)
+    yield from wait_until_truly_controllable()
+
+    if not _at_magma_door_approach():
+        where = tuple(get_player_avatar().local_coordinates)
+        raise BotModeError(
+            f"Magma Hideout: ended the approach at JAGGED_PASS {where}, not "
+            f"{MAGMA_HIDEOUT_DOOR_APPROACH}. The door is 2 waypoints from there and this is "
+            "the tile every reachability measurement was taken from."
+        )
+    _ch14_say("Story: standing at the Magma Hideout door, and it is OPEN.")
+
+
+# --- Chapter 15, increments 2 and 3: inside the hideout -----------------------------------
+
+#: The route to 4F, as (map we are on, its warp tile, the map that warp leads to). THREE warps.
+#:
+#: ‼‼ THIS IS THE `2F_1R` BRANCH, AND THE "SHORTEST ROUTE" IN §Ch15 WAS WRONG. That route began
+#: `1F (20,22) -> 2F_3R`, which is unreachable from the hideout entrance: a plain COLLISION flood
+#: of 1F (no elevation, no pathfinder) finds **three separate components** —
+#:     #0  299 tiles  holds the entrance (10,34) AND (25,34) -> 2F_1R
+#:     #1   70 tiles  holds (31,3) -> 2F_2R
+#:     #2  ‼ 9 tiles  holds (20,22) -> 2F_3R
+#: so `(20,22)` sits on a NINE-TILE ISLAND and is an EXIT from 2F_3R, never an entrance to it.
+#: Measured 2026-08-10; every leg below is in one connected component with its arrival tile
+#: (2F_1R 383 tiles, 3F_1R 154, 4F 293).
+MAGMA_HIDEOUT_ROUTE = (
+    (MapRSE.MAGMA_HIDEOUT_1F, (25, 34), MapRSE.MAGMA_HIDEOUT_2F_1R),
+    (MapRSE.MAGMA_HIDEOUT_2F_1R, (17, 33), MapRSE.MAGMA_HIDEOUT_3F_1R),
+    (MapRSE.MAGMA_HIDEOUT_3F_1R, (7, 21), MapRSE.MAGMA_HIDEOUT_4F),
+)
+
+#: Maxie stands at 4F `(16,21)` facing up. ‼ There is NO coord trigger anywhere in the hideout -
+#: `MagmaHideout_4F_EventScript_Maxie` runs only when he is TALKED to, so this chapter cannot be
+#: completed by walking onto a tile the way Ch14 was.
+#: We arrive on 4F at its warp `(20,21)`; `(17,21)` is 3 waypoints away and the ONLY one of his
+#: four neighbours the planner can reach ((16,22)/(15,21)/(16,20) all FAIL) - measured
+#: `probe_ch15_interior.py` 2026-08-10.
+MAXIE_TILE = (16, 21)
+#: Every neighbour of Maxie with the direction to face from it, tried in order at runtime.
+#: ‼ NOT a single hard-coded tile - which side is reachable depends on live state, and the
+#: static and live readings disagreed (see the comment at the use site).
+MAXIE_APPROACHES = (
+    ((17, 21), "Left"),
+    ((15, 21), "Right"),
+    ((16, 22), "Up"),
+    ((16, 20), "Down"),
+)
+MAXIE_APPROACH = MAXIE_APPROACHES[0][0]  # kept for the probe's reporting
+MAXIE_FACING = MAXIE_APPROACHES[0][1]
+
+#: `trainerbattle_no_intro TRAINER_MAXIE_MAGMA_HIDEOUT` - Mightyena 37 / Crobat 38 / Camerupt 39.
+#: On defeat the script sets `FLAG_GROUDON_AWAKENED_MAGMA_HIDEOUT` (111), which is the chapter's
+#: completion test and is ALREADY referenced by `modules/story/chapters.py:200`.
+MAXIE_PARTY_NOTE = "Mightyena 37 / Crobat 38 / Camerupt 39"
+
+
+def _groudon_awakened() -> bool:
+    """Has Maxie been beaten on 4F? (`FLAG_GROUDON_AWAKENED_MAGMA_HIDEOUT`, 111)
+
+    ‼ Name verified present in `modules/data/event_flags/emerald.txt:60` (2026-08-10);
+    `get_event_flag` returns **False** for an unknown name, so a phantom would make this
+    chapter never finish while looking like an honest "not done yet"."""
+    from modules.memory import get_event_flag
+
+    return get_event_flag("GROUDON_AWAKENED_MAGMA_HIDEOUT")
+
+
+def enter_magma_hideout() -> Generator:
+    """Chapter 15c - step through the opened door into `MAGMA_HIDEOUT_1F`.
+
+    STORY CONDITION: `VAR_JAGGED_PASS_STATE >= 2`, i.e. the entrance metatiles are open.
+    Refuses otherwise, because before that the door tile is `METATILE_Lavaridge_RockWall` and
+    walking at it does nothing at all - which is exactly what an earlier driven probe recorded
+    and misread as a ledge."""
+    if _inside_magma_hideout():
+        return  # resume-safe
+
+    if not _hideout_entrance_open():
+        raise BotModeError(
+            "Magma Hideout: refusing to enter - VAR_JAGGED_PASS_STATE is "
+            f"{_jagged_pass_state()}, so the entrance at (16,18) is still a rock wall. "
+            "`open_magma_hideout_entrance()` must run first."
+        )
+
+    _ch14_say("Story: entering the Magma Hideout...")
+    yield from _enter_warp_by_navigation(
+        lambda: _map_group_number() == MapRSE.MAGMA_HIDEOUT_1F.value,
+        MapRSE.JAGGED_PASS,
+        MAGMA_HIDEOUT_DOOR,
+        label="Magma Hideout door (Jagged Pass)",
+    )
+    yield from wait_until_truly_controllable()
+
+    if _map_group_number() != MapRSE.MAGMA_HIDEOUT_1F.value:
+        raise BotModeError(
+            "Magma Hideout: stepped onto the open door at "
+            f"{MAGMA_HIDEOUT_DOOR} but we are not on MAGMA_HIDEOUT_1F."
+        )
+    _ch14_say("Story: inside the Magma Hideout (1F).")
+
+
+def do_magma_hideout() -> Generator:
+    """Chapter 15d - descend to 4F and beat Maxie, awakening Groudon.
+
+    INTENT: set `FLAG_GROUDON_AWAKENED_MAGMA_HIDEOUT`, the chapter's completion condition and
+    the gate on the following beat (the script also opens Slateport: it clears
+    `HIDE_SLATEPORT_CITY_CAPTAIN_STERN` / `..._GABBY_AND_TY` and sets `SLATEPORT_CITY_STATE`
+    and `SLATEPORT_HARBOR_STATE` to 1).
+    STORY CONDITION: standing inside the hideout.
+    HOW IT WORKS: three warps, each taken with `_enter_warp_by_navigation` so the success test
+    is THE MAP CHANGING rather than "we are standing on the tile" - the only correct test for a
+    warp, since walking onto one fires it. Then talk to Maxie.
+    ‼ The floors hold `TRAINER_TABITHA_MAGMA_HIDEOUT` and the numbered grunts, all ordinary
+    trainer battles with sight-lines across the corridors; treat every leg as fight-through,
+    which is what `_enter_warp_by_navigation` already does by riding out and retrying.
+
+    ‼‼ BLOCKED ON 1F, AND THE CAUSE IS **STRENGTH** - MEASURED, NOT SUSPECTED (2026-08-10).
+    A driven run (`--driver magmahideout` from `saves/magma_door.ss1`) entered 1F cleanly and then
+    could not path off it: `floors=['MAGMA_HIDEOUT_1F']`, stopped at the arrival tile (10,34).
+    The cause is exact. `calculate_path` reaches **44** of the entrance component's 299 tiles, and
+    the boundary between the two is **three edges, every one of them into a Strength boulder**:
+        (7,23)->(7,22)   (7,23)->(6,23)   (8,22)->(7,22)
+    - i.e. the boulders at (5,22)/(7,22)/(6,23) are not "off to the west", they ARE the gate out
+    of the entrance pocket. ‼ An earlier note in this file said they were off-route; that was
+    read off their coordinates rather than measured, and it was wrong.
+    **`obstacle_clearing.KNOWN_BUT_UNSUPPORTED` excludes `EventScript_StrengthBoulder` on
+    purpose** ("a boulder is PUSHED, not removed; the success test cannot see it"), and no party
+    member on the anchor knows Strength. So this chapter cannot complete until Strength support
+    exists - tracked as `#24-strength`. Everything past 1F is already proven connected.
+
+    GOAL/END STATE: `FLAG_GROUDON_AWAKENED_MAGMA_HIDEOUT` set. Grade it BINARY - no batch."""
+    if _groudon_awakened():
+        return  # resume-safe
+
+    if not _inside_magma_hideout():
+        raise BotModeError(
+            "Magma Hideout: do_magma_hideout() called from outside the hideout "
+            f"(map {_map_group_number()}). `enter_magma_hideout()` must run first."
+        )
+
+    # ‼ 1F IS SEALED BY STRENGTH BOULDERS AND MUST BE OPENED BEFORE THE ROUTE CAN BE WALKED.
+    # Without this the very first leg fails: measured live, the bot entered 1F and stopped at
+    # the arrival tile with `floors=['MAGMA_HIDEOUT_1F']`. See `open_magma_hideout_1f`.
+    if _map_group_number() == MapRSE.MAGMA_HIDEOUT_1F.value:
+        yield from open_magma_hideout_1f()
+
+    for from_map, warp_tile, to_map in MAGMA_HIDEOUT_ROUTE:
+        _check_abort()
+        if _map_group_number() != from_map.value:
+            continue  # resume-safe: we are already deeper in
+        _ch14_say(f"Story: Magma Hideout - {from_map.name} to {to_map.name}...")
+        yield from _enter_warp_by_navigation(
+            lambda expected=to_map: _map_group_number() == expected.value,
+            from_map,
+            warp_tile,
+            label=f"Magma Hideout {from_map.name} -> {to_map.name}",
+        )
+        yield from wait_until_truly_controllable()
+
+    if _map_group_number() != MapRSE.MAGMA_HIDEOUT_4F.value:
+        raise BotModeError(
+            "Magma Hideout: never reached 4F - stopped on map "
+            f"{_map_group_number()}. The route is 1F (20,22) -> 2F_3R (16,13) -> "
+            "3F_3R (16,21) -> 4F."
+        )
+
+    # --- Maxie -------------------------------------------------------------------------
+    # ‼‼ TRY EVERY NEIGHBOUR, DO NOT HARD-CODE ONE. A static probe of 4F from the map's default
+    # state said `(17,21)` was the only reachable neighbour and `(15,21)` was not; the LIVE
+    # arrival measured the exact opposite - from the real arrival tile `(46,8)`, `(15,21)`
+    # plans and `(17,21)` does not. Which side is open depends on live state the static read
+    # cannot see, and this chapter has now been bitten three times by trusting a static answer
+    # about this dungeon. So ask the planner at the moment it matters, and take what it gives.
+    _ch14_say(f"Story: Magma Hideout 4F - challenging Maxie ({MAXIE_PARTY_NOTE})...")
+    standing_on = None
+    facing = None
+    tried: list[str] = []
+    for candidate, candidate_facing in MAXIE_APPROACHES:
+        _check_abort()
+        try:
+            yield from _navigate_riding_out(MapRSE.MAGMA_HIDEOUT_4F, candidate, tries=4)
+        except BotModeError as error:
+            tried.append(f"{candidate}: {str(error)[:60]}")
+            continue
+        yield from wait_for_player_avatar_to_be_standing_still()
+        if tuple(get_player_avatar().local_coordinates) == candidate:
+            standing_on, facing = candidate, candidate_facing
+            break
+        tried.append(f"{candidate}: arrived at {tuple(get_player_avatar().local_coordinates)}")
+
+    if standing_on is None:
+        raise BotModeError(
+            f"Magma Hideout: could not stand on ANY tile beside Maxie {MAXIE_TILE}. "
+            f"Tried {MAXIE_APPROACHES}: {tried}"
+        )
+    _ch14_say(f"Story: at {standing_on}, facing {facing} at Maxie {MAXIE_TILE}.")
+
+    # Face him, then A-ride the conversation and the battle. ‼ Alternate A and B the way the
+    # Flannery challenge does: A advances and confirms, B clears the message chain, and a
+    # pure-A loop can re-open a menu it just closed.
+    yield from ensure_facing_direction(facing)
+    yield
+    frames = 0
+    while not _groudon_awakened():
+        _check_abort()
+        context.emulator.press_button("B" if frames % 3 else "A")
+        frames += 1
+        if frames > 60000:
+            raise BotModeError(
+                "Magma Hideout: the Maxie challenge never resolved in 60,000 frames "
+                f"(standing {MAXIE_APPROACH} facing {MAXIE_FACING} at {MAXIE_TILE})."
+            )
+        yield
+
+    yield from wait_until_truly_controllable()
+    _ch14_say("Story: MAXIE BEATEN - Groudon is awake. Magma Hideout complete.")
+
+
+def do_magma_hideout_chapter() -> Generator:
+    """Chapter 15 end to end: travel -> open the entrance -> enter -> beat Maxie.
+
+    The three increments stay separate functions because each has its own binary acceptance and
+    its own driver, which is what let the travel leg's two failures be diagnosed as a party
+    problem and a driver problem rather than as "the chapter does not work"."""
+    if _groudon_awakened():
+        return
+    yield from travel_to_magma_hideout_door()
+    yield from enter_magma_hideout()
+    yield from do_magma_hideout()
+
+
+# ---------------------------------------------------------------------------
+# `#24-strength` — Strength boulders. THE FIELD MOVE `obstacle_clearing` CANNOT EXPRESS.
+#
+# ‼ WHY THIS IS NOT IN `obstacle_clearing.py` WITH Rock Smash and Cut. That framework's
+# success test is "the obstacle OBJECT IS GONE", and its own `KNOWN_BUT_UNSUPPORTED` entry
+# says exactly why Strength cannot use it: *"a boulder is PUSHED, not destroyed: the object
+# still exists afterwards, one tile over."* So the test here is the opposite shape — **the
+# boulder MOVED**, checked on both tiles — and that is the entire reason this lives apart.
+# ---------------------------------------------------------------------------
+
+#: `FLAG_SYS_USE_STRENGTH` (2185, `modules/data/event_flags/emerald.txt:1064`; decomp
+#: `include/constants/flags.h:1399`). Set by `EventScript_ActivateStrength`, and — verified by a
+#: decomp-wide search for `clearflag` — **NEVER CLEARED**. So Strength is switched on ONCE PER
+#: SAVE, not once per map: after that, `TryPushBoulder` (`src/field_player_avatar.c:754`) pushes
+#: any `OBJ_EVENT_GFX_PUSHABLE_BOULDER` you walk into, one tile, and does NOTHING AT ALL if the
+#: destination is blocked — no message, no failure signal. That silence is why the test below
+#: has to watch the world.
+_STRENGTH_FLAG = "SYS_USE_STRENGTH"
+
+#: face direction -> (dx, dy). Matches `_smash_rock`'s and `obstacle_clearing._STEP`'s tables.
+_STRENGTH_STEP = {"Up": (0, -1), "Down": (0, 1), "Left": (-1, 0), "Right": (1, 0)}
+
+
+def _strength_active() -> bool:
+    """Is the Strength field move switched on right now?
+
+    ‼ Name verified present in `modules/data/event_flags/emerald.txt:1064`. `get_event_flag`
+    returns **False** for an unknown name, so a phantom here would look exactly like "not
+    activated yet" and would make the activation loop run its whole budget every time."""
+    from modules.memory import get_event_flag
+
+    return get_event_flag(_STRENGTH_FLAG)
+
+
+def _party_knows_strength() -> bool:
+    return any(
+        learned is not None and learned.move.name == "Strength"
+        for mon in get_party()
+        if mon is not None
+        for learned in mon.moves
+    )
+
+
+def ensure_strength_learner() -> Generator:
+    """Make sure SOMEBODY in the party knows Strength, teaching HM04 from the bag if not.
+
+    ‼ MEASURED, AND IT IS NOT THE CHEAP TEACH IT FIRST LOOKED LIKE (2026-08-10, on
+    `saves/magma_door.ss1`). HM04 is already in the bag and BADGE04 is held, so no fetch quest —
+    but `can_learn_tm_hm(HM04)` is **False for Zigzagoon**, the established HM slave with a free
+    move slot. Only **Mightyena L43 and Sceptile L43** can learn it and **both are full**, so the
+    teach COSTS A MOVE SLOT ON A FIGHTER. `hm_learner_slot` breaks the level tie toward slot 0
+    (Mightyena) and the expendable-slot picker takes **Taunt** — base power 0, a status move, so
+    the damaging-move count does not drop. That is the good outcome, and it is asserted below
+    rather than assumed."""
+    if _party_knows_strength():
+        return
+
+    from modules.items import get_item_bag
+
+    hm04 = next((slot.item for slot in get_item_bag().tms_hms if slot.item.name == "HM04"), None)
+    if hm04 is None:
+        raise BotModeError(
+            "Strength: HM04 is not in the bag, so nobody can be taught Strength. It is obtained "
+            "in Rusturf Tunnel; every save this chapter was built against already had it."
+        )
+
+    slot = hm_learner_slot(hm04)
+    if slot is None:
+        raise BotModeError(
+            "Strength: no party member can learn HM04. ‼ Note Zigzagoon CANNOT (measured) - "
+            "the usual HM slave is not an option for this one."
+        )
+
+    learner = get_party()[slot]
+    before = [learned.move.name for learned in learner.moves if learned is not None]
+    _ch14_say(f"Story: teaching Strength to {learner.species.name} (slot {slot})...")
+    yield from teach_hm_move(hm04, slot)
+
+    if not _party_knows_strength():
+        raise BotModeError(
+            f"Strength: taught HM04 to {learner.species.name} (slot {slot}) but no party member "
+            "knows Strength afterwards."
+        )
+    after = [learned.move.name for learned in get_party()[slot].moves if learned is not None]
+    lost = [name for name in before if name not in after]
+    # ‼ SAY WHAT IT COST. A silent move replacement on a front-line fighter is the kind of
+    # change that shows up three batches later as "the lead got worse" with no trace of why.
+    _ch14_say(
+        f"Story: {get_party()[slot].species.name} learned Strength"
+        + (f" (lost {', '.join(lost)})" if lost else "")
+    )
+
+
+def strength_push(map_enum, approach_tile, face_dir: str, *, tries: int = 8) -> Generator:
+    """Stand beside a Strength boulder, face it, and push it ONE tile in `face_dir`.
+
+    IDEMPOTENT and judged by the WORLD, following `_smash_rock`'s pattern - but with the
+    opposite success test, because a boulder is not destroyed:
+
+        SUCCESS = the boulder is NO LONGER on its tile **and** IS on the destination tile.
+
+    ‼ Checking only "it left its tile" would call a push successful when the object was merely
+    re-read badly, and checking only "something is on the destination" would be fooled by an NPC.
+    Both halves are required.
+
+    ‼ A push into a blocked tile FAILS SILENTLY IN-GAME - the boulder simply does not move and no
+    message is printed. So this bounds its attempts and raises with the tiles named, rather than
+    pressing a direction forever. (KI-34: a bounded loop re-entered by its dispatcher is still
+    infinite; the caller must not retry a raise from here in a loop of its own.)
+
+    Requires a party member that knows Strength (`ensure_strength_learner`) and BADGE04."""
+    from modules.map import get_map_objects
+
+    if face_dir not in _STRENGTH_STEP:
+        raise BotModeError(f"strength_push: bad direction {face_dir!r}")
+    dx, dy = _STRENGTH_STEP[face_dir]
+    boulder_tile = (approach_tile[0] + dx, approach_tile[1] + dy)
+    dest_tile = (boulder_tile[0] + dx, boulder_tile[1] + dy)
+
+    def _object_on(tile):
+        """The map object standing on `tile`, or None."""
+        try:
+            for obj in get_map_objects():
+                if tuple(obj.current_coords) == tile:
+                    return obj
+        except Exception:  # noqa: BLE001 - cannot read objects; report "unknown" as absent
+            return None
+        return None
+
+    #: ‼ THE BOULDER IS TRACKED BY `local_id`, NOT BY "is anything on that tile".
+    #: A push moves the PLAYER TOO - onto the tile the boulder just left - so a test of the
+    #: shape "nothing is on the old tile any more" reads FALSE on a push that worked perfectly,
+    #: because the player is standing right there. That is the same family as the `#24-battleitems`
+    #: bug where an HP comparison spanned a Pokémon switch: state sampled from a moving frame of
+    #: reference needs its subject pinned. Pin it by identity.
+    boulder_id: int | None = None
+
+    def _boulder_now():
+        """Where the TRACKED boulder is right now, or None if it cannot be read."""
+        if boulder_id is None:
+            return None
+        try:
+            for obj in get_map_objects():
+                if getattr(obj, "local_id", None) == boulder_id:
+                    return tuple(obj.current_coords)
+        except Exception:  # noqa: BLE001
+            return None
+        return None
+
+    def _pushed() -> bool:
+        return _boulder_now() == dest_tile
+
+    yield from _navigate_riding_out(map_enum, approach_tile)
+    yield from wait_for_player_avatar_to_be_standing_still()
+
+    # ‼ IDEMPOTENCY IS CHECKED ON THE TILES, NOT ON THE TRACKED ID - the id can only be read
+    # while the boulder is still on its ORIGINAL tile, so a resume after a successful push has
+    # nothing to track. "Something on the destination and nothing on the source" is the only
+    # question answerable from a cold re-entry.
+    if _object_on(dest_tile) is not None and _object_on(boulder_tile) is None:
+        return  # already pushed on an earlier attempt - a recovery re-entry must be a no-op
+
+    boulder = _object_on(boulder_tile)
+    if boulder is None:
+        raise BotModeError(
+            f"Strength: no object on {boulder_tile} to push (standing {approach_tile} facing "
+            f"{face_dir}). Either the map state is not what this plan assumed, or the boulder "
+            "was already moved somewhere other than the expected destination."
+        )
+    boulder_id = getattr(boulder, "local_id", None)
+
+    # --- 1. Switch the field move ON (once per SAVE - the flag is never cleared) ------------
+    # `EventScript_StrengthBoulder`: interacting with the boulder opens "Would you like to use
+    # STRENGTH?"; A advances the messages and takes the default YES, and
+    # `EventScript_ActivateStrength` sets the flag. Judged by the FLAG, never by "the script
+    # finished" - the YES/NO prompt IS an active script, and a field script interrupted by
+    # anything can leave the script context reading active forever (the wedge `_smash_rock`
+    # documents, and the reason `puzzle_solver.use_strength`'s
+    # `wait_for_script_to_start_and_finish` gating is not reused here).
+    # ‼ FACE FIRST, AND PRESS ONLY A IN THIS LOOP. Once the flag is set, a direction press
+    # PUSHES - so a loop that mashes the direction to "make sure we are facing" would shove the
+    # boulder an unknown number of tiles before the push phase ever runs, and this puzzle's
+    # destinations are one tile wide.
+    yield from ensure_facing_direction(face_dir)
+    if not _strength_active():
+        _ch14_say("Story: switching on Strength...")
+        for _frame in range(1200):
+            _check_abort()
+            if _strength_active():
+                break
+            context.emulator.press_button("A")
+            yield
+            yield from wait_for_n_frames(3)
+        if not _strength_active():
+            raise BotModeError(
+                f"Strength: could not switch the field move on at {boulder_tile} "
+                f"(standing {approach_tile} facing {face_dir}). A party member knows Strength "
+                "and BADGE04 is held, so the boulder prompt did not appear as expected."
+            )
+        # ‼‼ THE FLAG IS SET *MID-SCRIPT*, AND THAT COST TWO RUNS. `EventScript_ActivateStrength`
+        # does `setflag FLAG_SYS_USE_STRENGTH` and then keeps going - field-move animation,
+        # "STRENGTH made it possible to move boulders around", `releaseall`. The activation loop
+        # above exits the instant the flag flips, which is while the player is still LOCKED by
+        # `lockall`. Every push then pressed a direction at a locked avatar and did nothing, and
+        # the failure looked exactly like "the destination is blocked" - with strength_active
+        # True, the boulder present and the destination clear, which is what made it so
+        # confusing. Ride the rest of the scene out before touching the D-pad.
+        # ‼ GENERAL RULE: a flag set by a script is NOT the end of that script.
+        yield from _ride_out_scripted_scene("B")
+        yield from wait_until_truly_controllable()
+
+    # --- 2. Push ---------------------------------------------------------------------------
+    # ‼ A PUSH IS A WALK, AND A ONE-FRAME `press_button` IS NOT A WALK. The first build pressed
+    # the direction once per attempt and waited: 8 attempts, the boulder never moved, and the
+    # error said "check that the destination is walkable" — which was a red herring, because
+    # (6,23)->(5,23) is collision 0 and elevation 3 on BOTH tiles (measured). The avatar simply
+    # never took a step. `walk_one_tile` holds the direction until the tile actually changes,
+    # which is what the game needs; it is UNBOUNDED by design (its own docstring: "will create
+    # an endless loop if trying to run into a wall"), so it is bounded here — the same fix, and
+    # the same reason, as `_fortree_walk_one_tile`.
+    from modules.modes.util.walking import walk_one_tile
+
+    for _attempt in range(tries):
+        _check_abort()
+        stepper = walk_one_tile(face_dir)
+        frames = 0
+        try:
+            while True:
+                next(stepper)
+                frames += 1
+                if frames > 600:
+                    break  # blocked: the push did not take. The world test below decides.
+                yield
+        except StopIteration:
+            pass
+        finally:
+            # ‼ `walk_one_tile` HOLDS the direction and B and only releases them once the tile
+            # changes - so abandoning it early leaves BOTH STUCK DOWN, and every later attempt
+            # in this loop then runs with a jammed D-pad. Releasing here is not tidiness; it is
+            # what makes the retry loop mean anything.
+            context.emulator.release_button(face_dir)
+            context.emulator.release_button("B")
+        yield from wait_for_n_frames(12)
+        if _pushed():
+            _ch14_say(f"Story: pushed the boulder {boulder_tile} -> {dest_tile}.")
+            yield from wait_for_player_avatar_to_be_standing_still()
+            return
+
+    # ‼ A FAILED PUSH MUST REPORT THE WORLD, NOT JUST THE INTENT. The first two failures here
+    # cost a run each because the message named a hypothesis ("check the destination is
+    # walkable") instead of the state - and the destination WAS walkable both times. Dump what
+    # the game actually shows: the flag, where we ended up, and every object with its id and
+    # graphics, so the next failure is diagnosed from the log rather than from another run.
+    try:
+        where = tuple(get_player_avatar().local_coordinates)
+    except Exception:  # noqa: BLE001
+        where = None
+    objects = []
+    try:
+        for obj in get_map_objects():
+            objects.append(
+                f"id={getattr(obj, 'local_id', '?')}@{tuple(obj.current_coords)}"
+                f"/{getattr(obj, 'graphics_id', '?')}"
+            )
+    except Exception as error:  # noqa: BLE001
+        objects.append(f"<unreadable: {type(error).__name__}>")
+    raise BotModeError(
+        f"Strength: the boulder at {boulder_tile} did not move to {dest_tile} in {tries} "
+        f"pushes (standing {approach_tile} facing {face_dir}; we are now at {where}). "
+        f"strength_active={_strength_active()} tracked_id={boulder_id} "
+        f"boulder_now={_boulder_now()} objects={objects}"
+    )
+
+
+#: The MAGMA_HIDEOUT_1F boulder puzzle, as (approach tile, push direction).
+#:
+#: ‼ DERIVED FROM A MEASURED SIMULATION, NOT FROM LOOKING AT THE MAP (2026-08-10). A plain
+#: collision flood of 1F (boulders treated as walls) was run over every subset of the three
+#: boulders, and only these connect the entrance `(10,34)` to `(25,34)`:
+#:      move (5,22) + (6,23) -> 298 tiles reachable, GOAL True
+#:      move (5,22) + (7,22) -> 298 tiles reachable, GOAL True
+#:      move (5,22) alone    ->  44 tiles, GOAL False   <- it is BEHIND the other two
+#:      move either other alone -> 46-49 tiles, GOAL False
+#: so **two pushes are the minimum** and `(5,22)` must be one of them.
+#:
+#: This plan was then validated step by step against its own END STATE - each approach tile
+#: reachable at the moment it is needed, each destination walkable and empty - finishing with
+#: boulders at `[(4,22), (5,23), (7,22)]`, **295 tiles reachable and `(25,34)` among them**.
+#: ‼ That last check matters: a pushed boulder still exists, so a plan can open one corridor
+#: and seal another. Simulating "the boulder is gone" would have missed it.
+MAGMA_HIDEOUT_1F_PUSHES = (
+    ((7, 23), "Left"),   # boulder (6,23) -> (5,23), opening the way to (6,22)
+    ((6, 22), "Left"),   # boulder (5,22) -> (4,22), opening the northward corridor at x=5
+)
+
+
+#: 1F's only onward warp inside the entrance's collision component: `(25,34)` -> 2F_1R.
+#: (`(20,22)` -> 2F_3R sits on a NINE-TILE ISLAND and `(31,3)` -> 2F_2R in a 70-tile one.)
+MAGMA_HIDEOUT_1F_ONWARD = (25, 34)
+
+
+def open_magma_hideout_1f() -> Generator:
+    """Clear the Strength boulders that seal MAGMA_HIDEOUT_1F's entrance pocket.
+
+    INTENT: make `1F (25,34)` - the warp to 2F_1R, and the only onward warp in the entrance's
+    collision component - reachable. Until this runs, the bot can walk 44 of 1F's tiles and the
+    chapter cannot proceed; this was measured live (`floors=['MAGMA_HIDEOUT_1F']`).
+    GOAL/END STATE: `calculate_path` reaches `(25,34)`."""
+    from modules.map import get_map_data
+    from modules.map_path import calculate_path
+
+    if _map_group_number() != MapRSE.MAGMA_HIDEOUT_1F.value:
+        raise BotModeError(
+            f"Magma Hideout: open_magma_hideout_1f() called on map {_map_group_number()}, "
+            "not MAGMA_HIDEOUT_1F."
+        )
+
+    def _route_open() -> bool:
+        """Can we path to the onward warp yet? The one test that matters."""
+        try:
+            here = get_map_data(MapRSE.MAGMA_HIDEOUT_1F, tuple(get_player_avatar().local_coordinates))
+            calculate_path(here, get_map_data(MapRSE.MAGMA_HIDEOUT_1F, MAGMA_HIDEOUT_1F_ONWARD))
+            return True
+        except Exception:  # noqa: BLE001 - any planner refusal means "not open"
+            return False
+
+    if _route_open():
+        return  # resume-safe: a previous visit already cleared it
+
+    yield from ensure_strength_learner()
+
+    for approach_tile, face_dir in MAGMA_HIDEOUT_1F_PUSHES:
+        _check_abort()
+        yield from strength_push(MapRSE.MAGMA_HIDEOUT_1F, approach_tile, face_dir)
+
+    if not _route_open():
+        raise BotModeError(
+            "Magma Hideout 1F: both Strength pushes reported success but "
+            f"{MAGMA_HIDEOUT_1F_ONWARD} is still unreachable. The push plan opens the route in "
+            "simulation, so the live map state differs from the one it was derived from."
+        )
+    _ch14_say("Story: Magma Hideout 1F is open - the route to 2F_1R is clear.")

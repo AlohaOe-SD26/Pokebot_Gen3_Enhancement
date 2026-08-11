@@ -971,3 +971,92 @@ flips **20 → 2**, both-spaces-failed **10 → 0**.
 * Verified against `custom-pokebot` itself: three files parse, and the policy answers correctly on
   heal/decline/cheapest-sufficient/losing-race/bound, with the strategy, the self-correcting index
   and the same-subject guard all present.
+
+---
+
+## `#24-magmahideout` + `#24-strength` — the Magma Hideout chapter, and Strength
+
+**User-approved 2026-08-10 (night).** The first new *story content* promoted since Mt. Pyre, and
+the bot's first support for a **field move that moves an obstacle rather than removing it**.
+
+| file | what it adds |
+|---|---|
+| `modules/story/early_game.py` | `travel_to_magma_hideout_door()`, `open_magma_hideout_entrance()`, `enter_magma_hideout()`, `do_magma_hideout()`, `do_magma_hideout_chapter()`; plus `#24-strength`: `ensure_strength_learner()`, `strength_push()`, `open_magma_hideout_1f()` |
+| `plugins/custom_modes/story_mode.py` | **Segment 15** — calls `do_magma_hideout_chapter()`, guarded on the completion flag; the end-of-content marker moves to the Slateport submarine |
+
+**Acceptance — BINARY, and that is the point.** `FLAG_GROUDON_AWAKENED_MAGMA_HIDEOUT` (111), the
+flag `MagmaHideout_4F_EventScript_Maxie` sets on defeat in the decomp:
+```
+[magmahideout] RESULT groudon=True map=MAGMA_HIDEOUT_4F at=(15, 21)
+  floors=['MAGMA_HIDEOUT_1F','MAGMA_HIDEOUT_2F_1R','MAGMA_HIDEOUT_3F_1R','MAGMA_HIDEOUT_4F']
+  whiteouts=0
+```
+No batch, no z-score, no finish-rate claim. Content is verifiable; a finish rate at n≈30 is not —
+four batches read 25.0 → 33.3 → 16.1 → 28.6% and resolved nothing.
+
+### THE ENTRY IS A STEP TRIGGER, NOT A WALK (and this had been wrong three times)
+`JaggedPass_OnLoad` covers the door at `(16,18)` with `METATILE_Lavaridge_RockWall` while
+`VAR_JAGGED_PASS_STATE <= 1`. A **coord_event** on one of `(21,15) (22,20) (21,20) (14,15)
+(13,15)` runs `JaggedPass_EventScript_OpenMagmaHideout`, which opens the metatiles and sets the
+var to **2**; the var reaches 1 by itself once the Magma Emblem is in the bag. The chapter uses
+`(13,15)` — 8-10 waypoints from the descent's arrival tiles against 15-23 for the others.
+
+‼ **`calculate_path` reported "2 waypoints" to that sealed tile the whole time**, because it
+reads the ROM *layout* and cannot see a `setmetatile`. Three separate conclusions across three
+weeks — "one-way ledges", "ledge-isolated, needs scripted movement", and "a real south-facing
+ledge" — were all this one wall. Reachability on such a map is graded by the VAR, never the
+planner.
+
+### STRENGTH — deliberately NOT in `obstacle_clearing`
+That framework's success test is *"the obstacle OBJECT IS GONE"*, and its own
+`KNOWN_BUT_UNSUPPORTED` entry says why Strength cannot use it: a boulder is **pushed**, not
+destroyed. So `strength_push()` tests the opposite shape — **the boulder MOVED** — and tracks it
+by `local_id`, because pushing moves the PLAYER onto the boulder's old tile and a
+"nothing there any more" test reads False on a push that worked.
+
+Decomp-verified contract (`data/scripts/field_move_scripts.inc`, `src/field_player_avatar.c:754`):
+interacting opens a YES/NO, `EventScript_ActivateStrength` sets `FLAG_SYS_USE_STRENGTH` (2185),
+and that flag is **never cleared anywhere in the decomp** — so Strength is switched on once per
+save, not per map. After activation, walking into a boulder pushes it one tile and **does nothing
+at all, silently, if the destination is blocked**. That silence is why the test watches the world.
+
+**The 1F puzzle was solved by simulation, not by eye.** A collision flood over every subset of the
+three boulders showed only two subsets connect the entrance to the onward warp, and `(5,22)` must
+be one of them. The chosen two-push plan was then validated against its **end state** — boulders
+finishing at `[(4,22), (5,23), (7,22)]`, 295 tiles reachable including the goal — because a pushed
+boulder still exists and can seal the corridor it was meant to open.
+
+### THE DOCUMENTED "SHORTEST ROUTE" WAS UNWALKABLE — corrected
+`1F (20,22) → 2F_3R` sits on a **nine-tile island**: it is an EXIT from 2F_3R, never an entrance.
+1F has three collision components (299 / 70 / 9). The chapter uses the branch previously dismissed
+as "longer", every leg verified connected to its arrival tile:
+```
+1F (25,34) -> 2F_1R [arrive (8,2)] -> (17,33) -> 3F_1R [arrive (23,3)] -> (7,21) -> 4F [arrive (46,8)]
+4F: stand beside Maxie (16,21) and TALK — there is no coord trigger anywhere in the hideout.
+```
+‼ **Maxie is approached ADAPTIVELY**, trying all four neighbours at runtime: the static read said
+`(17,21)`, the live arrival said `(15,21)`, and the winning run used `(15,21)`. Every static claim
+about this dungeon has been wrong at least once.
+
+### ‼ OUTSTANDING AT PROMOTION TIME
+* **The teach dodges `#24-teachmsgstall` rather than fixing it.** 1F is Strength-gated, so the
+  chapter needs an HM teach, and the natural place — inside the dungeon — is the worst one,
+  because that bug wedges a teach taken right after a won battle (**0 of 3** from post-battle
+  saves, against **38 of 42** in live batch `20260810-082509`). The chapter therefore teaches at a
+  **heal stop**, best-effort, retrying at the next one. In the winning run Lilycove's teach failed
+  (logged and skipped) and Mauville's succeeded. **The bug is still there and is still the right
+  thing to fix.**
+* **The teach costs a move slot on a fighter.** Only Mightyena and Sceptile can learn HM04 and
+  both carry four moves; `hm_learner_slot` picks Mightyena and the expendable-slot rule takes
+  **Taunt** (base power 0, a status move, so the damaging-move count holds). Zigzagoon — the
+  established HM slave, with a free slot — **cannot** learn Strength.
+* **The travel leg costs one whiteout.** Ch14 hands over a party that is 3 of 6 fainted with no
+  Revives and the nearest Pokémon Centre 276+ waypoints away. The leg heals at Lilycove and
+  Mauville and still whites out once; StoryMode's own `on_whiteout` recovery absorbs it.
+* **The full chapter has been driven in two halves, not in one uninterrupted run** — the travel
+  leg from `saves/post_mtpyre.ss1` and the interior from `saves/magma_door.ss1`. Both are green;
+  a single cold-start pass through Segment 15 has not been observed end to end.
+* ✅ **PROMOTION VERIFIED IN `custom-pokebot` ITSELF, DRIVEN — not just compiled.**
+  `PYTHONUTF8=1 py -3.12 story_harness.py magma_door.ss1 --build custom --driver magmahideout`
+  → `groudon=True`, floors `[1F, 2F_1R, 3F_1R, 4F]`, **0 whiteouts** — identical to the sandbox
+  run. Source drift after promotion: **ZERO** (`modules/` and `plugins/` diff clean).

@@ -23,7 +23,7 @@ user rather than resolved unilaterally.
 ### 2. BLOCKED ON A USER DECISION — no work should start on these
 | item | the decision |
 |---|---|
-| **PROMOTE Ch15 + `#24-strength`** | ‼ **NEW 2026-08-10 night.** `sandbox-pokebot/` has drifted from `custom-pokebot/` by the whole Magma Hideout chapter and the Strength support. `CLAUDE.md` requires **explicit user approval** to promote, and a generic "proceed autonomously" is not it. Everything else for the promotion is ready. |
+| ~~PROMOTE Ch15 + `#24-strength`~~ | ✅ **DONE 2026-08-10 night — user-approved.** Promoted and **verified DRIVEN in `custom-pokebot`** (`--build custom` → `groudon=True`, 0 whiteouts). **Source drift: ZERO**, so the sandbox re-base is a no-op. See `custom-pokebot/DIVERGENCE-LOG.md`. |
 | ~~`#24-magmahideout` status conflict~~ | ✅ **RESOLVED 2026-08-10.** The conflict was "this list says DEFERRED, the handoff calls it the next lever". The handoff was right, the deferral's *reason* was wrong three separate times (see the entry below), and the chapter is now **DONE**. |
 | the boss-healing response | items / burst damage / stop promising an answer — see `04-HANDOFF.md`. |
 | `#doc-policy-05` | should `05-KNOWN-ISSUES` drop an entry at sandbox-fix or at promotion? |

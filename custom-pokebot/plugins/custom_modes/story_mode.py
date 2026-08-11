@@ -3506,12 +3506,24 @@ class StoryMode(BotMode):
             console.print("[dim]Story: Mt. Pyre summit already done — skipping.[/]")
         _guard("Mt. Pyre summit", lambda: _done_var("MT_PYRE_STATE", 1))
 
-        # END OF BUILT CONTENT. Next build: Magma Hideout (§Ch14 — DEFERRED: its door on
-        # JAGGED_PASS is only reachable from ABOVE, via the Route 112 cable car and a
-        # one-way descent, ~8 warps plus a scripted ride).
+        # --- Segment 15: the MAGMA HIDEOUT (§Ch15, built 2026-08-10). Cross to Jagged
+        #     Pass, fire the coord trigger that un-walls the entrance, push the two
+        #     Strength boulders that seal 1F, then 1F -> 2F_1R -> 3F_1R -> 4F and beat
+        #     Maxie. Completion is the FLAG the decomp's own script sets. ---
+        from modules.story.early_game import do_magma_hideout_chapter
+
+        if not _done("GROUDON_AWAKENED_MAGMA_HIDEOUT"):
+            yield from do_magma_hideout_chapter()
+        else:
+            console.print("[dim]Story: Magma Hideout already done — skipping.[/]")
+        _guard("Magma Hideout (Ch15)", lambda: _done("GROUDON_AWAKENED_MAGMA_HIDEOUT"))
+
+        # END OF BUILT CONTENT. Next build: the Slateport submarine beat, which Maxie's
+        # defeat opens (it sets VAR_SLATEPORT_CITY_STATE / VAR_SLATEPORT_HARBOR_STATE to 1
+        # and clears the Stern / Gabby-and-Ty hide flags).
         context.message = (
-            "Story: MAGMA EMBLEM obtained - end of built content. "
-            "NEXT (WIP): the Magma hideout. Handing to manual."
+            "Story: GROUDON AWAKENED - end of built content. "
+            "NEXT (WIP): the Slateport submarine. Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         # ‼ Mark a GENUINE completion. Both this path and the give-up paths call
