@@ -2011,10 +2011,53 @@ it depends on winning a boss fight with a party that arrives worn down. Quote it
 **Why it matters beyond this chapter:** the post-Maxie era is the precondition for §Ch16 (the
 Slateport Harbor beat), so anchor manufacture for the next chapter inherits this coin-flip.
 
-**Not yet investigated:** whether the 7 whiteouts are the same worn-party problem the travel leg
+### ✅ THE MAXIE FIGHT, READ TURN BY TURN (2026-08-11, from `mh-anchor2`'s own telemetry)
+`#24-bosstelemetry` was already in the tree, so the losing fight is on record. Maxie's team is
+**Mightyena L37 / Crobat L38 / Camerupt L39**; the party opened at full strength (Sceptile 122/122).
+
+**✅ FINDING 1 — SOLID AND UNAMBIGUOUS: Maxie HEALED Camerupt out of the kill.**
+```
+[TURN 14] Skitty L17 45/45 -> UseMove:Tackle(pp35)  vs Camerupt L39  22/110
+[TURN 15] Skitty L17 45/45 -> UseMove:Tackle(pp34)  vs Camerupt L39  67/110
+```
+Skitty's PP went 35 -> 34, so its Tackle DID execute — and Camerupt still went **22 -> 67, a heal
+of at least +45**, one or two hits from death. This is the known boss-healing problem
+(`probe_boss_healing.py`: 17.0% of boss-length battles show a >=50 HP heal) **deciding a
+story-content chapter for the first time on record.** The party had Camerupt beaten and could not
+close.
+
+**⚠ FINDING 2 — REAL OBSERVATION, NOT DIAGNOSABLE WITH TODAY'S TELEMETRY.** The party's best
+attacker did nothing for three consecutive selections while dying:
+```
+[TURN 3] Sceptile L44 122/122 -> UseMove:Slam(pp19)  vs Crobat L38 90/119
+[TURN 4] Sceptile L44 110/122 -> UseMove:Slam(pp19)  vs Crobat L38 90/119
+[TURN 5] Sceptile L44  30/122 -> UseItem              vs Crobat L38 90/119
+[TURN 6] Sceptile L44   4/122 -> UseMove:Slam(pp19)  vs Crobat L38 90/119
+```
+**PP frozen at 19 across all three Slams, Crobat's HP frozen at 90/119, Sceptile 122 -> 4.**
+(Its Leaf Blade had decremented normally on turns 0-2: pp12 -> 11 -> 10, killing Mightyena — so
+the mon and the logger were both working moments earlier.)
+
+‼ **A MISS CANNOT EXPLAIN FROZEN PP** — a missed move still consumes it. But **two causes remain
+and this telemetry cannot separate them**:
+1. the standing `#24-bosstelemetry` **lead 2**, "selected but not executed" on natural mons
+   (2026-08-09, undiagnosed); or
+2. **ordinary incapacitation** — sleep, freeze, flinch, full paralysis, or a confusion self-hit.
+   None of those consume PP either, and Crobat learns **Confuse Ray** and **Bite** (flinch). The
+   HP pattern (−12, then −80, then −26 while never acting) fits confusion self-damage well.
+
+⇒ **DO NOT record this as a bot bug.** It is 50/50 on the evidence available.
+
+### ‼ THE ACTIONABLE ITEM: the telemetry is missing the ONE field that would settle its own lead
+`modules/battle_action_selection.py`'s `_describe(mon)` prints species / level / HP and **no
+status**. Adding status to that one helper turns "either a bot bug or Confuse Ray" into a decided
+question — for this fight and for every logged battle since. It has been the open half of
+`#24-bosstelemetry` lead 2 since 2026-08-09, and it is a one-line change in a helper that already
+exists. **Do that before theorising about boss losses again.**
+
+**Also not yet investigated:** whether the whiteouts are the same worn-party problem the travel leg
 already has (Ch14 hands over 3-of-6 fainted, no Revives), or whether the interior's own trainer
-chain grinds the party down. `#24-bosstelemetry` is already in the tree and logs per-turn
-decisions — read it before theorising.
+chain grinds the party down.
 
 **Repro:** `PYTHONUTF8=1 py -3.12 story_harness.py magma_door.ss1 --driver magmahideout
 --frames 2500000 --profile mhN` and count `whited out` in the debug log.

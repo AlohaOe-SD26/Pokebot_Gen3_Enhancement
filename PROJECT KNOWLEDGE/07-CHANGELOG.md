@@ -11040,3 +11040,30 @@ in a row. §Ch16 remains blocked on it, and unblocking it is now just "re-run un
 Chapter tally after this session: **reaches Maxie 3/3, completes 1/3.**
 
 Gate re-run after the change: green (`repro_maxie_whiteout_guard` added).
+
+### Why the Magma Hideout loses (KI-50), read from the telemetry rather than guessed
+`#24-bosstelemetry` was already in the tree, so the losing Maxie fight was on record and cost
+nothing to read. Two results, and they are of very different strength — which is the point of
+writing them separately.
+
+**✅ SOLID: Maxie healed Camerupt out of the kill.** `Skitty Tackle(pp35) vs Camerupt 22/110` →
+next decision `Tackle(pp34) vs Camerupt 67/110`. Skitty's PP decremented, so its attack landed —
+and Camerupt still went **22 → 67, ≥ +45**, one or two hits from death. This is the known
+boss-healing problem (`probe_boss_healing.py`: 17.0% of boss-length battles show a ≥50 HP heal)
+**deciding a story chapter for the first time on record.**
+
+**⚠ OBSERVED BUT NOT DIAGNOSABLE: Sceptile did nothing for three selections while dying.**
+Slam selected on turns 3, 4 and 6 with **PP frozen at 19** and Crobat's HP frozen at 90/119, while
+Sceptile went 122 → 4. Its Leaf Blade had decremented normally on turns 0-2, so mon and logger were
+both fine moments earlier. ‼ A miss cannot explain frozen PP — a missed move still consumes it.
+**But two causes remain and the telemetry cannot separate them:** the standing lead 2
+("selected but not executed", open since 2026-08-09), or **ordinary incapacitation** — sleep,
+flinch, full paralysis or a confusion self-hit, none of which consume PP either. Crobat learns
+**Confuse Ray** and **Bite**, and the HP pattern (−12, −80, −26 while never acting) fits confusion
+self-damage well. **Recorded as 50/50, NOT as a bot bug.**
+
+‼ **THE ACTIONABLE ITEM, and it is small:** `battle_action_selection.py`'s `_describe(mon)` prints
+species / level / HP and **no status**. That one missing field is exactly what would settle lead 2
+— for this fight and for every battle logged since 2026-08-09. A one-line change in a helper that
+already exists. Queued rather than done because the sandbox source is frozen while the anchor
+retry loop is re-importing `modules/` on every attempt.
