@@ -239,6 +239,8 @@ the code it covers.
 | `#24-teachmsgstall` still reproduces | ✅ **0 of 3** teaches from post-battle saves vs **38 of 42** in live batch `20260810-082509` | the two `--driver teachfull` commands below |
 | …and is **not** a regression from this work | ✅ the session-start commit (`320f55a5`) fails identically | already A/B'd; do not repeat |
 | …and is not item-, target- or replace-slot-specific | ✅ HM04→Mightyena and HM02→Swellow fail identically | `07-CHANGELOG` 2026-08-10 (evening, part 3) |
+| Why the Magma Hideout loses | ✅ **Crobat CONFUSES the top attackers (they kill themselves) + Maxie HEALS Camerupt 22→67.** Neither is a bug — both are missing bot RESPONSES | `05-KNOWN-ISSUES` KI-50; the turn log now prints `[Confused]` |
+| `#24-bosstelemetry` LEAD 2 ("selected but not executed") | ❌ **REFUTED for the Magma Hideout instance** — it was confusion; self-hits do not consume PP. ‼ The 2026-08-09 sightings were logged WITHOUT status and are NOT retro-explained | re-check them with the new status field |
 | Upstream moved | ❌ `5dd898f8`, unchanged; checked 2026-08-10 | `40cakes repo/UPDATE-LOG.md` |
 
 ### ‼ THREE DEAD ENDS — do not re-walk them
