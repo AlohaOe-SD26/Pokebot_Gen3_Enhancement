@@ -1183,8 +1183,22 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       from a run that already beat her (52% of batch runs do). Once it exists, commit it to
       `tools/story-dev/saves/` as `post_winona.ss1` — every Ch14 probe will want it.
 
-- [ ] `#24-magmahideout` — ‼ **STATUS CONFLICT, FLAGGED BY TRIAGE 2026-08-10 — needs a user
-      ruling.** THIS entry says **DEFERRED** (the JAGGED_PASS (16,18) door is unreachable from
+- [ ] `#24-magmahideout` — ✅ **NOT BLOCKED. READY TO BUILD (2026-08-10). The three-week-old
+      deferral was right by accident and wrong in its reason.**
+      The door at JAGGED_PASS (16,18) is guarded by a **Team Magma NPC standing on (16,19)**,
+      the column's only entry — `OBJ_EVENT_GFX_MAGMA_MEMBER_M`, hidden by flag **847**
+      `HIDE_JAGGED_PASS_MAGMA_GUARD` (decomp `JaggedPass/map.json`). Measured:
+      | save | guard hidden | `(16,20)→door` |
+      |---|---|---|
+      | `jagged_descent.ss1` (badges 1-3) | False | FAIL |
+      | `post_mtpyre.ss1` (badges 1-6) | **True** | **OK, 2 waypoints** |
+      ⇒ **No ledge problem, no KI-24 blind spot, no scripted movement needed** — the planner
+      was correctly modelling the guard. In the right era the door is 2 waypoints from a
+      tile the bot already reaches, and the chapter runs after Mt. Pyre so the flag is set
+      by the time it matters.
+      **BUILD ANCHOR: `saves/post_mtpyre.ss1`.** ‼ Do NOT develop this from a pre-Emblem
+      save — that error cost seven probes and two wrong conclusions (`08-MISTAKES` 2026-08-10).
+      HISTORY — status conflict flagged by triage: THIS entry says **DEFERRED** (the JAGGED_PASS (16,18) door is unreachable from
       the ROUTE112 side), while `04-HANDOFF.md` lists it as the **next story content and the
       largest untouched lever**. Both are current-state files and they disagree, which is
       exactly the case `CLAUDE.md` says to raise rather than resolve unilaterally.

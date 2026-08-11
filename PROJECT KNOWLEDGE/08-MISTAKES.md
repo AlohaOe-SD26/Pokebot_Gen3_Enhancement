@@ -4223,3 +4223,32 @@ sampled from a moving frame of reference needs its frame recorded alongside it.*
 **Fix (queued, not yet applied — a batch is mid-flight and lanes re-import `sandbox-pokebot/`):**
 key `_hp_when_item_requested` by `mon.party_index` and treat "subject changed" or `current_hp == 0`
 as *no verdict* rather than as a failure.
+
+---
+
+## 2026-08-10 — I answered a post-Mt-Pyre question from a badges-1-3 anchor, seven probes running
+
+**Symptom.** `#24-magmahideout` was deferred three weeks ago as "the door is unreachable; one-way
+ledges". I re-tested with four static probes and three DRIVEN ones, each with a passing control,
+and concluded — in the changelog, the punch list and to the user — that "the blocker is REAL" and
+the chapter needed **explicit scripted movement**. Then one look at the decomp's object list
+dissolved it: a **Team Magma guard stands on the single entry tile (16,19)** until flag 847
+`HIDE_JAGGED_PASS_MAGMA_GUARD` is set. In the correct era the door is **2 waypoints** from a tile
+the bot already reaches.
+
+**Root cause.** Every probe ran from `jagged_descent.ss1` / `lavaridge.ss1` — **badges 1-3**, long
+before the Magma Emblem — to answer a question about content that happens **after Mt. Pyre**. The
+anchors were chosen to be geographically right and I never asked whether they were
+chronologically right.
+
+‼ **This is the SAME mistake as `#24-r116sweep`**, whose entry reads *"wrong ERA entirely"*, and
+it is why `--driver anchorstory` has a `CAPTURE_FORBID_FLAG` guard **that I wrote earlier the same
+day**. I built the era guard and then picked an anchor by geography anyway.
+
+‼ **Prevention rule: an anchor must be verified against the STORY CLOCK, not just the map.**
+Before probing, name the flag/var that gates the content under test and assert it on the anchor —
+here, one `get_event_flag("HIDE_JAGGED_PASS_MAGMA_GUARD")` would have ended it in seconds.
+‼ **Second, sharper rule: when a tile is walkable in collision data but the avatar cannot enter
+it, suspect an OBJECT before suspecting the terrain model.** I reached for "KI-24 planner blind
+spot" — a real, documented failure of that instrument — when the planner was correctly modelling
+an NPC. A known bug in a tool is a seductive explanation for anything that tool reports.

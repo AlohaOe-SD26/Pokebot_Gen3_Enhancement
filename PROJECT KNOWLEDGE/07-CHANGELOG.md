@@ -10433,3 +10433,38 @@ against: **`saves/jagged_descent.ss1`** (JAGGED_PASS (14,9), mid-descent) and
 
 **Also found:** `#24-r121gate` was already built — the THIRD stale "ready to build" item this week
 (see the punch list). Caught only because the spec was verified before coding.
+
+### ‼‼ CORRECTION, SAME SESSION: `#24-magmahideout` is NOT BLOCKED. It was a GUARD, and I had the wrong ERA.
+
+Everything above about ledge-isolation and scripted movement is **WRONG**, including my own
+conclusion an hour earlier that "the blocker is REAL". The decomp's `JaggedPass/map.json`
+object list settles it:
+
+```
+{'x': 16, 'y': 19, 'gfx': 'OBJ_EVENT_GFX_MAGMA_MEMBER_M',
+ 'flag': 'FLAG_HIDE_JAGGED_PASS_MAGMA_GUARD', 'script': 'JaggedPass_EventScript_MagmaHideoutGuard'}
+```
+
+**A Team Magma guard stands on (16,19) — the only entry to the door column — until flag 847
+`HIDE_JAGGED_PASS_MAGMA_GUARD` is set.** Measured across eras:
+
+| save | guard hidden | badges | `(16,20)→(16,19)` | `(16,20)→ door` |
+|---|---|---|---|---|
+| `jagged_descent.ss1` | **False** (guard present) | 1-3 | FAIL | FAIL |
+| `post_mtpyre.ss1` | **True** (guard gone) | 1-6 | **OK, 1 waypoint** | **OK, 2 waypoints** |
+| `post_winona.ss1` | False | 1-6 | — | — |
+
+⇒ **The door is trivially reachable in the correct era, and the planner was RIGHT the whole
+time** — it was modelling the guard as the obstacle he is. There is no ledge problem, no KI-24
+blind spot, and **no need for scripted movement**. The three-week-old deferral ("unreachable from
+the ROUTE112 side; one-way ledges") had the right verdict for the wrong reason, which is why it
+never got revisited.
+
+**What the driven probes DID buy:** they proved the obstruction was physical (all three
+approaches to (16,19) blocked while the tile reads walkable in collision data), which is what
+pointed at an OBJECT rather than terrain and led to the decomp check. Not wasted — just aimed
+from the wrong era.
+
+**`#24-magmahideout` is now READY TO BUILD**, with `saves/post_mtpyre.ss1` as the development
+anchor (guard already gone, Magma Emblem held). The chapter runs after Mt. Pyre, so in a real run
+the flag is set by the time it matters.

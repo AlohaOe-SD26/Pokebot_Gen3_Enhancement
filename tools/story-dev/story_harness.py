@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "normancounter"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "normancounter"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -2261,6 +2261,111 @@ class TeachFullMode(BotMode):
         return
 
 
+class MagmaDoorMode(BotMode):
+    """`#24-magmahideout`: can the bot ENTER the Magma Hideout? Scripted movement, not the planner.
+
+    ‼ WHY SCRIPTED. The tile planner cannot route to the hideout door at JAGGED_PASS (16,18) from
+    ANY entry — measured 2026-08-10 from both MT_CHIMNEY warps, the ROUTE112 warp, and the bot's
+    own in-descent position, every time with a passing control. Worse, a catchment scan found
+    **only 3 tiles in the whole map that can reach the door** — `(16,17)/(16,18)/(16,19)`, its own
+    column — with **zero** overlap with the 272 tiles the bot can reach. A 3-tile island is not
+    game design, it is a modelling artifact (the KI-24 class).
+
+    ‼ THE ELEVATION MAP IS WHAT GIVES IT AWAY, and it is why this driver is 3 button presses:
+        (15,19) elev=3 REACHABLE | (16,19) elev=3 NOT reachable | (17,19) elev=3 REACHABLE
+                                 | (16,18) elev=0 = THE DOOR    | (16,20) elev=3 REACHABLE
+    `(16,19)` is walkable and at the SAME elevation as three reachable neighbours, and the planner
+    still refuses it. So: navigate normally to `(16,20)` — which the planner CAN reach — then walk
+    NORTH twice by hand, onto `(16,19)` and then onto the door.
+
+        PYTHONUTF8=1 py -3.12 story_harness.py jagged_descent.ss1 --driver magmadoor --frames 300000
+
+    Emits: [magmadoor] RESULT reached_2016=<bool> stepped_1619=<bool> entered=<map> badges=<list>
+    ‼ ERA: `jagged_descent.ss1` is badges 1-3, BEFORE the Magma Emblem. If the warp does not fire
+    the REACHABILITY result still stands and is the thing under test — read the two booleans, not
+    just `entered`.
+    """
+
+    @staticmethod
+    def name():
+        return "MagmaDoor"
+
+    def on_battle_started(self, encounter):
+        from modules.battle_strategies import DefaultBattleStrategy
+
+        if encounter is None:
+            from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+
+            return LevelUpTravelBattleStrategy()
+        return DefaultBattleStrategy()
+
+    def run(self):
+        from modules.map_data import MapRSE
+        from modules.memory import get_event_flag
+        from modules.modes.util.sleep import wait_for_n_frames
+        from modules.player import get_player_avatar
+        from modules.story.early_game import _navigate_riding_out, wait_until_truly_controllable
+
+        yield from wait_until_truly_controllable()
+
+        def here():
+            a = get_player_avatar()
+            return tuple(a.map_group_and_number), tuple(a.local_coordinates)
+
+        log(f"[magmadoor] start {here()}")
+        reached = False
+        try:
+            yield from _navigate_riding_out(MapRSE.JAGGED_PASS, (16, 20), tries=24)
+            reached = here()[1] == (16, 20)
+        except Exception as error:  # noqa: BLE001
+            log(f"[magmadoor] navigation to (16,20) FAILED: {type(error).__name__}: {str(error)[:160]}")
+        log(f"[magmadoor] after navigate: {here()} reached_2016={reached}")
+
+        # ‼ TRY EVERY APPROACH TO (16,19), because the first one FAILED and that was informative.
+        # Pressing Up from (16,20) 12x did not move the avatar, so there is a real south-facing
+        # LEDGE on that edge — the planner was right about it and my elevation reasoning was wrong.
+        # (16,19) also touches (15,19) and (17,19), both of which the planner CAN reach, so the
+        # remaining question is whether either side can be walked in.
+        approaches = [((16, 20), "Up"), ((15, 19), "Right"), ((17, 19), "Left")]
+        stepped = False
+        for tile, button in approaches:
+            if stepped:
+                break
+            try:
+                yield from _navigate_riding_out(MapRSE.JAGGED_PASS, tile, tries=16)
+            except Exception as error:  # noqa: BLE001
+                log(f"[magmadoor] could not reach staging tile {tile}: {type(error).__name__}")
+                continue
+            if here()[1] != tile:
+                log(f"[magmadoor] staging {tile} not reached (at {here()[1]})")
+                continue
+            for _ in range(10):
+                context.emulator.press_button(button)
+                yield from wait_for_n_frames(8)
+                if here()[1] == (16, 19):
+                    stepped = True
+                    break
+            log(f"[magmadoor] approach from {tile} pressing {button}: "
+                f"now {here()[1]} stepped={stepped}")
+
+        if stepped:
+            for attempt in range(16):
+                context.emulator.press_button("Up")
+                yield from wait_for_n_frames(8)
+                if here()[0] != tuple(MapRSE.JAGGED_PASS.value):
+                    break
+
+        try:
+            final_map = MapRSE(here()[0]).name
+        except Exception:  # noqa: BLE001
+            final_map = str(here()[0])
+        badges = [n for n in range(1, 9) if get_event_flag(f"BADGE0{n}_GET")]
+        log(f"[magmadoor] RESULT reached_2016={reached} stepped_1619={stepped} "
+            f"entered={final_map} at={here()[1]} badges={badges}")
+        context.set_manual_mode()
+        return
+
+
 class AnchorCaptureMode(BotMode):
     """MAKE a save anchor at a named map/tile, starting from an existing one.
 
@@ -3576,6 +3681,8 @@ for step in range(args.frames):
             context.bot_mode_instance = GroundSweepMode()
         elif args.driver == "anchorcapture":
             context.bot_mode_instance = AnchorCaptureMode()
+        elif args.driver == "magmadoor":
+            context.bot_mode_instance = MagmaDoorMode()
         elif args.driver == "teachfull":
             context.bot_mode_instance = TeachFullMode()
         elif args.driver == "normancounter":

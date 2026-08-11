@@ -279,6 +279,24 @@ Testable from these same logs: correlate each `✔ landed using the …-order` l
 `[BATTLE] started hp=` field of its battle. `probe_item_index_space.py` is the starting point.
 ‼ Sandbox-only, 3 files, deliberately UNPROMOTED until an outcome is resolvable.
 
+## ✅ THE NEXT CHAPTER IS UNBLOCKED — `#24-magmahideout` is READY TO BUILD
+Built content ends at `do_mt_pyre_summit()`; there is no Magma Hideout code. That chapter was
+deferred three weeks ago as *"the door is unreachable; one-way ledges"*. **That reason was wrong.**
+
+The door at `JAGGED_PASS (16,18)` has a **Team Magma guard standing on `(16,19)`** — the column's
+only entry — hidden by flag **847 `HIDE_JAGGED_PASS_MAGMA_GUARD`** (decomp `JaggedPass/map.json`).
+
+| save | guard hidden | `(16,20)→door` |
+|---|---|---|
+| `jagged_descent.ss1` (badges 1-3) | False | FAIL |
+| **`post_mtpyre.ss1` (badges 1-6)** | **True** | **OK, 2 waypoints** |
+
+⇒ In the correct era the door is **2 waypoints** from a tile the bot already reaches. No scripted
+movement, no navigation fix — the planner was right, it was modelling the guard.
+**BUILD ANCHOR: `saves/post_mtpyre.ss1`.** ‼ Never develop this from a pre-Emblem save: doing so
+cost seven probes and two wrong conclusions in one session (`08-MISTAKES` 2026-08-10). **Verify an
+anchor against the STORY CLOCK, not just the map.**
+
 ## ⏭ NEXT ACTIONS, IN ORDER
 1. **DECIDE what to do about boss healing** — this is a user call, and everything else here is
    downstream of it. Options seen in the data: give the bot **item usage** of its own (it never
