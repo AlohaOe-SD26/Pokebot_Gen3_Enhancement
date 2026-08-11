@@ -3518,12 +3518,27 @@ class StoryMode(BotMode):
             console.print("[dim]Story: Magma Hideout already done — skipping.[/]")
         _guard("Magma Hideout (Ch15)", lambda: _done("GROUDON_AWAKENED_MAGMA_HIDEOUT"))
 
-        # END OF BUILT CONTENT. Next build: the Slateport submarine beat, which Maxie's
-        # defeat opens (it sets VAR_SLATEPORT_CITY_STATE / VAR_SLATEPORT_HARBOR_STATE to 1
-        # and clears the Stern / Gabby-and-Ty hide flags).
+        # --- Segment 16: the SLATEPORT HARBOR submarine theft (§Ch16, built 2026-08-11).
+        #     A COORD TRIGGER, no battle: Maxie's defeat set VAR_SLATEPORT_HARBOR_STATE to 1,
+        #     which arms four triggers at SLATEPORT_CITY_HARBOR x=8, y=11..14. Stepping on one
+        #     runs the Aqua escape scene, which sets the var to 2 and clears the two grunts
+        #     blocking the Lilycove Aqua Hideout - the next chapter's door. ---
+        # ‼ `_done_var` RAISES on a phantom var name rather than returning False, which is
+        #    deliberate: `get_event_var` returns -1 for an unknown name and -1 compares False
+        #    against every threshold, for ever. Do not hand-roll this comparison.
+        from modules.story.early_game import do_slateport_harbor_theft
+
+        if not _done_var("SLATEPORT_HARBOR_STATE", 2):
+            yield from do_slateport_harbor_theft()
+        else:
+            console.print("[dim]Story: Slateport Harbor theft already done — skipping.[/]")
+        _guard("Slateport Harbor theft (Ch16)", lambda: _done_var("SLATEPORT_HARBOR_STATE", 2))
+
+        # END OF BUILT CONTENT. Next build: the LILYCOVE AQUA HIDEOUT (ladder row 17) — room
+        # keys + the Electrode puzzle — whose entrance Segment 16 has just unblocked.
         context.message = (
-            "Story: GROUDON AWAKENED - end of built content. "
-            "NEXT (WIP): the Slateport submarine. Handing to manual."
+            "Story: SUBMARINE STOLEN - end of built content. "
+            "NEXT (WIP): the Lilycove Aqua Hideout. Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         # ‼ Mark a GENUINE completion. Both this path and the give-up paths call

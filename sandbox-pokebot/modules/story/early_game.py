@@ -7831,3 +7831,144 @@ def open_magma_hideout_1f() -> Generator:
             "simulation, so the live map state differs from the one it was derived from."
         )
     _ch14_say("Story: Magma Hideout 1F is open - the route to 2F_1R is clear.")
+
+
+# ---------------------------------------------------------------------------
+# Chapter 16 - the SLATEPORT HARBOR submarine theft (§Ch16).
+#
+# ‼ EVERY constant here is decomp-verified (design §Ch16, 2026-08-11). Re-derive:
+#     gh api repos/pret/pokeemerald/contents/data/maps/SlateportCity_Harbor/scripts.inc
+#     gh api repos/pret/pokeemerald/contents/data/maps/SlateportCity_Harbor/map.json
+#     cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_ch16_anchor.py   (the era gate)
+#     cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_ch16_travel.py   (the route, static)
+# ---------------------------------------------------------------------------
+
+#: `SLATEPORT_CITY (28,12)` -> `SLATEPORT_CITY_HARBOR` (warp id 8, lands at harbor (11,14)).
+#: ‼ A WARP TILE: stepping onto it FIRES it, so it is an `_enter_warp_by_navigation` target,
+#: never a plain `navigate_to` destination (ML-9).
+SLATEPORT_HARBOR_DOOR = (28, 12)
+
+#: The plain walkable tile below the door - and the harbor's own `setescapewarp` return tile,
+#: so it is guaranteed to exist and be standable.
+SLATEPORT_HARBOR_DOOR_APPROACH = (28, 13)
+
+#: ‼ THE TRIGGER. Four coord events fire `SlateportCity_Harbor_EventScript_AquaEscapeTrigger0..3`,
+#: all gated on `VAR_SLATEPORT_HARBOR_STATE == 1`, at x=8, y=11..14 (elevation 3).
+#: **Trigger 3 (8,14) is chosen deliberately**: it is the only one that `applymovement`s the
+#: player UP into the scene itself, so the walk-in is scripted rather than something we must get
+#: right. It is also the closest to the landing tile (3 waypoints, static).
+HARBOR_AQUA_TRIGGER = (8, 14)
+
+
+def _harbor_state() -> int:
+    """`VAR_SLATEPORT_HARBOR_STATE`, or -1 if unreadable.
+
+    ‼ NO `VAR_` PREFIX - the reader's table is keyed `SLATEPORT_HARBOR_STATE`, and
+    `get_event_var` returns **-1** for an unknown name *without raising*. A `VAR_`-prefixed read
+    silently cost an anchor capture on 2026-08-11 (see `27-INJECTION-SURFACE.md` section 2.2).
+    """
+    from modules.memory import get_event_var
+
+    try:
+        return int(get_event_var("SLATEPORT_HARBOR_STATE"))
+    except Exception as error:  # noqa: BLE001 - a probe reports, it does not crash the chapter
+        _ch14_say(f"Story: could not read SLATEPORT_HARBOR_STATE ({type(error).__name__})")
+        return -1
+
+
+def do_slateport_harbor_theft() -> Generator:
+    """Chapter 16 - watch Team Aqua steal the submarine at Slateport Harbor.
+
+    INTENT: the beat Maxie's defeat opens. Archie takes Captain Stern's submarine and names
+    Lilycove as Aqua's base; the scene clears the two grunts blocking the Aqua Hideout entrance,
+    which is the NEXT chapter's door.
+
+    STORY CONDITION: `VAR_SLATEPORT_HARBOR_STATE == 1`. Maxie's defeat sets it
+    (`MagmaHideout_4F_EventScript_Maxie`), so Ch15 is the prerequisite and nothing else is.
+    Checked, not assumed.
+
+    ‼ THERE IS NO BATTLE IN THIS CHAPTER. It is a coord-trigger cutscene, which makes it the
+    cheapest remaining beat and its acceptance test binary.
+
+    HOW IT WORKS - EXPLICIT SHORT LEGS, each failing where it broke (the Ch14a/Ch15 pattern):
+      1. Cross to SLATEPORT_CITY and stand beside the harbor door.
+      2. Step onto the door tile to warp in.
+      3. Walk west along row 14 to trigger 3.
+      4. Ride the scene out and WAIT FOR CONTROL.
+
+    ‼‼ THE TRAP, AND IT HAS COST THIS PROJECT TWO RUNS BEFORE. `setvar VAR_SLATEPORT_HARBOR_STATE,
+    2` runs roughly HALFWAY through the script - Stern's approach, a second `msgbox`, two
+    `setflag`s and `releaseall` all follow it. Exiting the wait the instant the var flips leaves
+    the avatar `lockall`ed and every later button press does nothing. That is exactly the
+    `EventScript_ActivateStrength` failure of 2026-08-10.
+    => **Grade on the var; WAIT FOR CONTROL.** Both halves, in that order.
+
+    ‼ KNOWN RISK - KI-53. Static `calculate_path` FAILS for `ROUTE110 -> SLATEPORT_CITY` while the
+    exact reverse plans in 30 waypoints. That is why leg 1 is its own leg: if it breaks, it names
+    itself instead of arriving as "the chapter does not work". ‼ A static FAIL is NOT a verdict -
+    `navigate_to_anywhere` routes through the WARP GRAPH and re-plans after every warp, and Ch15's
+    Mauville -> Route 112 leg succeeded while planning statically as FAIL.
+
+    GOAL/END STATE: `VAR_SLATEPORT_HARBOR_STATE == 2` AND the avatar controllable. Grade it BINARY.
+    """
+    if _harbor_state() >= 2:
+        _ch14_say("Story: the Slateport submarine scene has already run - skipping.")
+        return
+
+    # ‼ GUARD, NEVER ASSUME. A wrong-era save reads 0 here and the coord triggers are simply
+    # inert - the bot would walk to the tile, nothing would happen, and the failure would look
+    # like a navigation bug. Seven probes were spent on exactly that confusion on 2026-08-10.
+    state = _harbor_state()
+    if state != 1:
+        raise BotModeError(
+            f"Slateport Harbor: SLATEPORT_HARBOR_STATE is {state}, not 1, so the Aqua-escape "
+            f"coord triggers are inert. "
+            + (
+                "It reads -1, which means the VAR NAME is wrong, not that the era is. "
+                if state == -1
+                else "Beat Maxie in the Magma Hideout first (Ch15 sets this var). "
+            )
+            + "Run probe_ch16_anchor.py before building on this save."
+        )
+
+    # --- Leg 1: cross to Slateport and stand beside the harbor door -------------------------
+    _ch14_say("Story: Ch16 - crossing to Slateport Harbor...")
+    yield from _navigate_riding_out(MapRSE.SLATEPORT_CITY, SLATEPORT_HARBOR_DOOR_APPROACH)
+    yield from wait_until_truly_controllable()
+
+    # --- Leg 2: through the door ------------------------------------------------------------
+    def _in_harbor() -> bool:
+        try:
+            return (
+                get_map_data_for_current_position().map_group_and_number
+                == MapRSE.SLATEPORT_CITY_HARBOR.value
+            )
+        except Exception as error:  # noqa: BLE001 - an unreadable map means "not there yet"
+            _ch14_say(f"Story: Ch16 map read failed ({type(error).__name__})")
+            return False
+
+    _ch14_say("Story: Ch16 - entering the harbour...")
+    yield from _enter_warp_by_navigation(
+        _in_harbor, MapRSE.SLATEPORT_CITY, SLATEPORT_HARBOR_DOOR, label="Slateport Harbor door"
+    )
+    yield from wait_until_truly_controllable()
+
+    # --- Leg 3: walk to trigger 3 -----------------------------------------------------------
+    # ‼ `OnTransition` REWRITES THIS MAP: it hides the patrons and moves Capt. Stern to (12,13)
+    # when the era is right, so `map.json`'s object list is NOT what is standing here. Do not
+    # derive walkability around objects from the static file (design Ch16).
+    _ch14_say("Story: Ch16 - walking to the Aqua trigger...")
+    yield from _navigate_riding_out(MapRSE.SLATEPORT_CITY_HARBOR, HARBOR_AQUA_TRIGGER)
+
+    # --- Leg 4: ride the scene out, then WAIT FOR CONTROL ------------------------------------
+    yield from _ride_out_scripted_scene("B")
+    yield from wait_until_truly_controllable()
+
+    if _harbor_state() < 2:
+        raise BotModeError(
+            f"Slateport Harbor: reached the trigger at {HARBOR_AQUA_TRIGGER} but "
+            f"SLATEPORT_HARBOR_STATE is {_harbor_state()}, not 2 - the Aqua escape scene did "
+            f"not run. ‼ Check that the trigger tile was actually STEPPED ON (a coord event "
+            f"fires on entry, not on standing)."
+        )
+    _ch14_say("Story: SUBMARINE STOLEN - Slateport Harbor complete. Aqua's hideout is open.")

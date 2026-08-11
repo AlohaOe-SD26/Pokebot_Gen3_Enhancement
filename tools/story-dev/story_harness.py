@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "normancounter"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "slateporttheft", "normancounter"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -2513,6 +2513,91 @@ class MagmaTravelMode(BotMode):
         return
 
 
+class SlateportTheftMode(BotMode):
+    """Ch16 - drive `do_slateport_harbor_theft()` from the post-Maxie anchor.
+
+        PYTHONUTF8=1 py -3.12 verify_fixtures.py --assert post_maxie.ss1=19399688e730 &&         PYTHONUTF8=1 py -3.12 story_harness.py post_maxie.ss1 --driver slateporttheft             --frames 2500000 --profile ch16a
+
+    ACCEPTANCE IS BOTH HALVES: `SLATEPORT_HARBOR_STATE == 2` **AND** the avatar controllable.
+    The var is set roughly HALFWAY through the script, so grading on it alone would call a
+    `lockall`ed avatar a success - the exact `EventScript_ActivateStrength` trap of 2026-08-10.
+
+    Emits: [ch16] RESULT harbor_state=<n> controllable=<bool> map=<enum> at=<tile> frames=<n>
+    """
+
+    _whiteouts = 0
+
+    @staticmethod
+    def name() -> str:
+        return "Story"
+
+    def on_whiteout(self) -> bool:
+        # A harness driver must MIRROR the overrides of the mode it stands in for: StoryMode
+        # returns True here (recover) while the default is False (drop to Manual). Two runs
+        # stopped at the identical frame before that was noticed (04-HANDOFF).
+        SlateportTheftMode._whiteouts += 1
+        log(f"[ch16] WHITEOUT #{SlateportTheftMode._whiteouts} - recovering, as StoryMode does")
+        return True
+
+    # ‼ NO `-> Generator` ANNOTATION: `Generator` is never imported in this harness, and the
+    # annotation is evaluated at class-definition time, so it is an import-time NameError that
+    # kills the run before a single frame executes. No other mode here annotates it either.
+    def run(self):
+        from modules.map import get_map_data_for_current_position
+        from modules.map_data import MapRSE
+        from modules.memory import _event_vars, get_event_var
+        from modules.player import get_player_avatar, player_avatar_is_controllable
+        from modules.story.early_game import do_slateport_harbor_theft
+
+        def here():
+            a = get_player_avatar()
+            return tuple(a.map_group_and_number), tuple(a.local_coordinates)
+
+        def map_name(mgn):
+            try:
+                return MapRSE(mgn).name
+            except Exception as error:  # noqa: BLE001 - report the raw tuple rather than crash
+                return f"?{mgn}({type(error).__name__})"
+
+        # ‼ NAME CONTROL FIRST. `get_event_var` returns -1 for an unknown name WITHOUT raising,
+        # so a typo would read as "wrong era" for the whole run and be believed.
+        if "SLATEPORT_HARBOR_STATE" not in _event_vars:
+            log("[ch16] ABORT - 'SLATEPORT_HARBOR_STATE' is not a known var name; every reading "
+                "below would be a silent -1. Fix the name before trusting anything.")
+            context.set_manual_mode()
+            return
+
+        mgn, tile = here()
+        start_state = get_event_var("SLATEPORT_HARBOR_STATE")
+        log(f"[ch16] START {map_name(mgn)}{tile} SLATEPORT_HARBOR_STATE={start_state}")
+        if start_state != 1:
+            log(f"[ch16] ‼ ERA WARNING - expected 1, got {start_state}. The coord triggers are "
+                f"inert unless this is 1; the chapter should refuse.")
+
+        error_text = ""
+        try:
+            yield from do_slateport_harbor_theft()
+            log("[ch16] do_slateport_harbor_theft returned without raising")
+        except Exception as error:  # noqa: BLE001 - the failure IS the measurement
+            error_text = f"{type(error).__name__}: {str(error)[:900]}"
+            log(f"[ch16] FAILED: {error_text}")
+
+        mgn, tile = here()
+        final = get_event_var("SLATEPORT_HARBOR_STATE")
+        try:
+            ctrl = player_avatar_is_controllable()
+        except Exception as error:  # noqa: BLE001 - an unreadable avatar is reported, not hidden
+            ctrl = f"?({type(error).__name__})"
+        log(f"[ch16] RESULT harbor_state={final} controllable={ctrl} map={map_name(mgn)} "
+            f"at={tile} whiteouts={SlateportTheftMode._whiteouts} "
+            f"frames={context.emulator.get_frame_count()}"
+            + (f" error=({error_text})" if error_text else ""))
+        log(f"[ch16] ACCEPTANCE: {'PASS' if (final == 2 and ctrl is True) else 'FAIL'} "
+            f"(needs harbor_state==2 AND controllable==True)")
+        context.set_manual_mode()
+        return
+
+
 class MagmaHideoutMode(BotMode):
     """`#24-magmahideout` INCREMENTS 2+3 — go IN and beat Maxie, from the door anchor.
 
@@ -3998,6 +4083,8 @@ for step in range(args.frames):
             context.bot_mode_instance = MagmaTravelMode()
         elif args.driver == "magmahideout":
             context.bot_mode_instance = MagmaHideoutMode()
+        elif args.driver == "slateporttheft":
+            context.bot_mode_instance = SlateportTheftMode()
         elif args.driver == "teachfull":
             context.bot_mode_instance = TeachFullMode()
         elif args.driver == "normancounter":
