@@ -19,10 +19,10 @@ game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror
 | | |
 |---|---|
 | branch / HEAD | `main`, clean, **0 unpushed** |
-| box | **BATCH RUNNING** — `20260810-082509`, code `5d504463`, 8 lanes / 180 min, started **8:25 AM**, ends **~11:25 AM**. ‼ Do NOT edit `sandbox-pokebot/` until it ends. **Acceptance: index-space FLIPS collapse from 20 toward 0** — run `probe_item_index_space.py 20260810-082509`. |
+| box | **IDLE — nothing running.** Last batch `20260810-082509` finished ~11:25 AM 2026-08-10 (VERDICT OK, 28 runs). |
 | story content | Littleroot → 6 badges → **Mt. Pyre → Magma Emblem**. Magma Hideout UNLOCKED but UNBUILT. |
-| promotion | ✅ **three promotions 2026-08-09, all user-approved** (the fence, `#24-progressiongate`, `#24-bosstelemetry` parts 1+2). ‼ **`#24-battleitems` is sandbox-only and UNMEASURED** — 3 files drifted (`modules/story/battle_items.py`, `plugins/custom_modes/story_mode.py`, `modules/battle_action_selection.py`). Do not promote until the running batch says it helps. |
-| ‼ is code frozen? | Only while a batch runs. **Never edit `sandbox-pokebot/` mid-batch** — restarted lanes re-import from disk and corrupt the measurement. Editing `tools/story-dev/` IS safe (lanes spawn `sandbox-pokebot/pokebot.py`; nothing there is imported from story-dev). |
+| promotion | ✅ four promotions, all user-approved (the fence, `#24-progressiongate`, `#24-bosstelemetry` parts 1+2). ‼ **`#24-battleitems` is sandbox-only and UNPROMOTED — 3 files**: `modules/story/battle_items.py` (NEW — `diff -rq` reports new files as "Only in", so a plain diff under-counts drift), `plugins/custom_modes/story_mode.py`, `modules/battle_action_selection.py`. Deliberate: no outcome metric has resolved. |
+| ‼ is code frozen? | **No — nothing is running.** The rule applies only during a batch: never edit `sandbox-pokebot/` mid-batch, because restarted lanes re-import from disk. `tools/story-dev/` and docs are always safe. |
 
 ## ‼ THE ONE NUMBER THAT MATTERS, AND HOW TO GRADE ANYTHING HERE
 **Grade the counter chain on CONVERSION — hunts started vs `counter hunt CAUGHT` — never on the
@@ -298,21 +298,34 @@ cost seven probes and two wrong conclusions in one session (`08-MISTAKES` 2026-0
 anchor against the STORY CLOCK, not just the map.**
 
 ## ⏭ NEXT ACTIONS, IN ORDER
-1. **DECIDE what to do about boss healing** — this is a user call, and everything else here is
-   downstream of it. Options seen in the data: give the bot **item usage** of its own (it never
-   heals mid-fight while the boss does), aim for **burst damage** instead of chip, or stop the
-   counter chain from promising an answer it cannot deliver. ‼ Do not pick one unilaterally.
-2. **Re-scope `#24-counters` once (1) is decided.** Its mechanism is healthy — conversion 34.8%,
-   training 12 attempts / 1 failure, 0 false catches — and it still ends ~88% of non-finishing
-   runs by naming a type answer that does not win the fight.
-3. **`#24-teachmsgstall`** — reproduced deterministically, three candidate causes refuted, next
-   step written on the item. Low priority: 4 hard-caps against 38 successful teaches and **zero**
-   run-ending events.
-4. **KI-48 / KI-49** — the travel bugs (Route 110 → Mauville; map-granular journeys arriving at a
-   dead-end entrance).
-5. **`#24-magmahideout`** — next story content; still the largest untouched lever.
-6. Explain the small (<=5 HP) opponent heals, or prove them an artifact, so `probe_boss_healing.py`
-   can be trusted end to end rather than only on its large-heal result.
+1. **BUILD `#24-magmahideout` — the next unwritten chapter, now fully specified in
+   `12-STORYMODE-DESIGN.md` §Ch15** (decomp-verified entry, warp graph, route, completion flag).
+   ‼ **Start with INCREMENT 1: the TRAVEL LEG to Jagged Pass** — it is the only part with a
+   measured failure against it (an `anchorcapture` probe from `post_mtpyre.ss1` whited out at
+   f24808; that driver has no prep/heal, unlike the production path, so build it through the
+   normal heal/prep machinery). Then 2: enter. Then 3: win 4F.
+   ‼ **Develop from `saves/post_mtpyre.ss1` ONLY** — pre-Emblem saves have the Magma guard on the
+   door's entry tile and will waste your time exactly as they wasted mine.
+   **Grade it BINARY**: does `GROUDON_AWAKENED_MAGMA_HIDEOUT` end up set? No batch needed.
+2. **Do NOT grade mechanism work on the finish rate.** Four batches read 25.0 → 33.3 → 16.1 →
+   28.6% at n≈30; nothing resolved, ~12 hours spent. Battle-level metrics have ~800 samples per
+   batch — use `probe_boss_healing.py`, `probe_item_index_space.py`, `analyse_conversion.py`.
+3. **`#24-battleitems`** — works and is measured, still sandbox-only by choice. Promote when an
+   outcome resolves, not before.
+4. **KI-48 / KI-49** — the travel bugs. KI-49 (map-granular journeys arriving at a dead-end
+   entrance) is the one most likely to bite the Ch15 travel leg.
+5. `#24-teachmsgstall` — reproduced deterministically, 3 causes refuted, LOW priority (zero
+   run-ending events).
+
+## ‼ THE HABIT THAT PAID OFF TODAY, AND THE ONE THAT COST
+**Verify before building.** THREE punch-list items marked "ready to build" / "awaiting validation"
+had already shipped (`#24-leadcounter`, `#24-counters` phase 2, `#24-r121gate`), and a three-week
+deferral (`#24-magmahideout`) was wrong. All four were caught by checking the code or the decomp
+before writing anything. **Treat the punch list as a hypothesis about what exists.**
+**And check the STORY CLOCK on every anchor.** Seven probes ran from badges-1-3 saves to answer a
+post-Mt-Pyre question, producing two confident wrong conclusions before the decomp settled it.
+Name the flag that gates the content and assert it on the anchor first.
+
 
 ## ‼ STANDING CONCERNS (carried forward, still true)
 1. **The finish rate has not moved in a week** (39.1 / 36.0 / 41.7 / 25.8 / 28.6 / 19.4%, no pair
