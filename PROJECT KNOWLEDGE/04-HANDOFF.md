@@ -277,7 +277,9 @@ both failed. So neither convention is universally right, and the flip is doing r
 `map_battle_party_index` exists precisely because the game reorders the battle party on a faint.
 Testable from these same logs: correlate each `✔ landed using the …-order` line against the
 `[BATTLE] started hp=` field of its battle. `probe_item_index_space.py` is the starting point.
-‼ Sandbox-only, 3 files, deliberately UNPROMOTED until an outcome is resolvable.
+✅ **PROMOTED 2026-08-10 (user-approved); zero source drift.** ‼ It shipped with **no resolved
+outcome metric** — promoted because the mechanism is proven and its failure modes bounded, NOT
+because outcomes moved. See its `custom-pokebot/DIVERGENCE-LOG.md` entry before quoting it.
 
 ## ✅ THE NEXT CHAPTER IS UNBLOCKED — `#24-magmahideout` is READY TO BUILD
 Built content ends at `do_mt_pyre_summit()`; there is no Magma Hideout code. That chapter was

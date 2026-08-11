@@ -15,7 +15,7 @@ user rather than resolved unilaterally.
 ### 1. ACTIVE — the only things being worked on now
 | item | state |
 |---|---|
-| `#24-battleitems` | user directive; built + unit-proven (27 checks), live, self-correcting. Batch `20260810-082509` validating; detector fix queued. |
+| `#24-battleitems` | ✅ **DONE & PROMOTED 2026-08-10.** Built, unit-proven (27 checks), live, self-correcting; validation batch `20260810-082509` passed (flips 20 → 2, both-failed 10 → 0). ‼ Outcome unproven — grade any follow-up on BATTLE-level metrics. |
 | `#24-teachmsgstall` | reproduced deterministically; 3 candidate causes refuted. ‼ LOW priority — 4 failures vs 38 successes and **zero** run-ending events. |
 | `#24-r110mauville` / KI-48 / KI-49 | travel bugs, measured, unstarted. `could not reach` was 72 events in one batch. |
 
@@ -584,7 +584,18 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       ‼ Do not read the `wally_done` run as evidence: `arrived=True` there says Route 116 is
       reachable from PETALBURG in the early game, which is not the question.
 
-- [~] `#24-battleitems` — **USER DIRECTIVE 2026-08-09: "use items intelligently and
+- [x] `#24-battleitems` — ✅ **DONE, PROMOTED 2026-08-10 (user-approved), zero source drift.**
+      Policy unit-proven (`repro_battle_items.py`, 27 checks, no emulator); a real
+      `battle_action_use_item` index-space bug found and fixed underneath it (5 requests → 1
+      potion consumed, became 3 → 3); index space proven CONDITIONAL and handled by a
+      self-correcting flip; validation batch `20260810-082509` passed its acceptance test
+      (flips **20 → 2**, both-spaces-failed **10 → 0**).
+      ‼ **OUTCOME UNPROVEN and that is on the record** — finish rate across the four item-era
+      batches reads 25.0 → 33.3 → 16.1 → 28.6% at n≈30, nothing resolvable. It was promoted
+      because the mechanism is proven and bounded, not because outcomes moved. **Any follow-up
+      must be graded on BATTLE-level metrics** (`probe_item_index_space.py`,
+      `probe_boss_healing.py`), never the finish rate.
+      HISTORY — **USER DIRECTIVE 2026-08-09: "use items intelligently and
       strategically." BUILT, ROOT-CAUSED, FIXED — but its OUTCOME EFFECT IS UNMEASURED.**
       Motivated by measurement: `Slaking` healed **27 times, median +81 HP** in batch
       `20260809-155844` while the bot never used an item; 61.8% of boss-length battles show an
