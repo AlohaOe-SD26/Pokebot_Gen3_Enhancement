@@ -1207,7 +1207,76 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       from a run that already beat her (52% of batch runs do). Once it exists, commit it to
       `tools/story-dev/saves/` as `post_winona.ss1` — every Ch14 probe will want it.
 
-- [ ] `#24-magmahideout` — ✅ **NOT BLOCKED. READY TO BUILD (2026-08-10). The three-week-old
+- [ ] `#24-magmahideout` — 🔨 **IN PROGRESS 2026-08-10 (evening). Increments 1-3 WRITTEN;
+      increment 1 driven-tested and iterating. Entry model CORRECTED twice today.**
+
+      ‼‼ **THE ENTRY IS A STEP TRIGGER, NOT A WALK.** The door `JAGGED_PASS (16,18)` is covered
+      by `METATILE_Lavaridge_RockWall` at runtime (`JaggedPass_OnLoad` →
+      `..._ConcealHideoutEntrance`) while `VAR_JAGGED_PASS_STATE <= 1`. A coord_event on one of
+      **(21,15) (22,20) (21,20) (14,15) (13,15)** runs `JaggedPass_EventScript_OpenMagmaHideout`,
+      which opens the metatiles and sets the var to **2**. The var reaches 1 by itself
+      (`JaggedPass_OnResume` checks for the Magma Emblem). **Use `(13,15)`** — 8-10 waypoints
+      from the descent's arrival tiles vs 15-23 for the (21,*)/(22,*) trio.
+      ‼ `calculate_path` said "(16,20) → (16,18), 2 waypoints" for that sealed tile, because it
+      reads the ROM LAYOUT and cannot see a `setmetatile`. **A static PASS is not evidence on a
+      map whose scripts rewrite metatiles** (`08-MISTAKES` 2026-08-10). This is the third wrong
+      answer about this one door; the other two were "one-way ledges" and "a real south-facing
+      ledge", both the same wall.
+
+      **BUILT (in `modules/story/early_game.py`, all compile-clean):**
+      `travel_to_magma_hideout_door()` · `open_magma_hideout_entrance()` ·
+      `enter_magma_hideout()` · `do_magma_hideout()` · `do_magma_hideout_chapter()`.
+      Driver `--driver magmatravel`; probes `probe_magma_anchor.py` (era gate, 4 controls),
+      `probe_ch15_travel.py` (route), `probe_ch15_interior.py` (interior).
+      ‼ **NOT yet wired into `story_mode.py`** — waiting on a green increment-1 run.
+
+      **MEASURED THIS SESSION:**
+      * anchor `post_mtpyre.ss1` VERIFIED READY (guard flag True, `MT_PYRE_STATE`=1, Emblem in
+        bag; era control passes against `jagged_descent.ss1`).
+      * ‼ **Ch14 hands over a WRECKED party** — 3 of 6 fainted, survivors at 21/117 and 18/109,
+        lead's best move at 0 PP, **one Hyper Potion and no Revives**, and the nearest Pokémon
+        Center is 276+ waypoints away (Mauville 276 / Fortree 432 / Lilycove 883). It dies ~61
+        waypoints in, on ROUTE123. **The whiteout is the game's own recovery and StoryMode
+        already handles it** (`on_whiteout` → True); the travel leg now heals at Lilycove and
+        Mauville en route and survives.
+      * the overland haul WORKS: run 3 reached **ROUTE112 (28,28)**, the cable-car station
+        approach, after one whiteout.
+      * ‼ **Lavaridge is NOT reachable from ROUTE112 by the live navigator** ("it is not
+        walkable from ROUTE112", 3/3) although `calculate_path` scores it 66 waypoints. The
+        staging heal there is now best-effort.
+
+      ‼‼ **INCREMENT 3 IS BLOCKED ON `#24-strength` — MEASURED, NOT SUSPECTED.** The driven run
+      entered 1F cleanly and stopped dead: `groudon=False map=MAGMA_HIDEOUT_1F at=(10,34)
+      floors=['MAGMA_HIDEOUT_1F'] whiteouts=0`. A plain COLLISION flood (no elevation, no
+      pathfinder — an independent instrument) shows 1F has **three components**: #0 **299 tiles**
+      with the entrance (10,34) and `(25,34)→2F_1R`; #1 **70** with `(31,3)→2F_2R`; #2 **NINE**
+      with `(20,22)→2F_3R`. `calculate_path` reaches **44** of #0's 299, and the boundary is
+      **exactly three edges, all into Strength boulders** — `(7,23)→(7,22)`, `(7,23)→(6,23)`,
+      `(8,22)→(7,22)`. The boulders ARE the gate.
+      ‼ **The §Ch15 "shortest route" was WRONG and is corrected**: `(20,22)` is on that nine-tile
+      island, i.e. an EXIT from 2F_3R, never an entrance. Real route (all legs verified connected
+      to their arrival tiles — 2F_1R 383, 3F_1R 154, 4F 293):
+      `1F (25,34) → 2F_1R → (17,33) → 3F_1R → (7,21) → 4F`, then stand `(17,21)` facing Left and
+      TALK to Maxie at `(16,21)`. **Everything past 1F is already proven connected.**
+
+- [ ] `#24-strength` — **NEW 2026-08-10. The blocker on `#24-magmahideout` increment 3, and the
+      first hard dependency the story bot has had on an unsupported field move.**
+      `obstacle_clearing.KNOWN_BUT_UNSUPPORTED` excludes `EventScript_StrengthBoulder` on purpose:
+      *"a boulder is PUSHED, not removed; the success test cannot see it"* — i.e. the existing
+      obstacle framework's success test ("is the obstacle gone?") cannot express this move. Two
+      pieces are needed and they are independent:
+      1. **A party member that knows Strength** (HM04, Rusturf Tunnel). No mon on
+         `saves/post_mtpyre.ss1` has it; Zigzagoon L3 is already the Surf slave and is the obvious
+         carrier. This is a `#24-partycap`-shaped problem — the HM-teaching machinery exists.
+      2. **A success test that works for a PUSH.** The obstacle is not removed, it MOVES, so the
+         test must be "did the boulder's tile change / is the target tile now walkable", not
+         "did the object disappear". ‼ Do NOT reuse the Rock Smash path unmodified — its test is
+         exactly the one that cannot see this.
+      ‼ Bound any push loop: a boulder that will not move (pushed against a wall) must fail
+      loudly rather than retry, and Rock-Smash rocks respawning on map reload already turned one
+      retry loop into 23.9M wasted frames (KI-34).
+
+      HISTORY — ✅ **NOT BLOCKED. READY TO BUILD (2026-08-10). The three-week-old
       deferral was right by accident and wrong in its reason.**
       The door at JAGGED_PASS (16,18) is guarded by a **Team Magma NPC standing on (16,19)**,
       the column's only entry — `OBJ_EVENT_GFX_MAGMA_MEMBER_M`, hidden by flag **847**

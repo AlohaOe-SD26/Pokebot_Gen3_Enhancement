@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "normancounter"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "normancounter"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -2366,6 +2366,263 @@ class MagmaDoorMode(BotMode):
         return
 
 
+class MagmaTravelMode(BotMode):
+    """`#24-magmahideout` INCREMENT 1 — drive the real travel leg to the hideout door.
+
+    WHAT IS UNDER TEST: `modules.story.early_game.travel_to_magma_hideout_door()`, i.e. the
+    production routine, not a hand-rolled probe path. That distinction is the whole point —
+    the one measured failure against this chapter is an `--driver anchorcapture` run from
+    `post_mtpyre.ss1` that whited out at f24808, and that driver has no prep and no heal.
+    This one goes through the normal heal/prep path, which is the difference being measured.
+
+        PYTHONUTF8=1 py -3.12 story_harness.py post_mtpyre.ss1 --driver magmatravel --frames 900000
+
+    ‼ ERA: it MUST be run from a post-Emblem anchor. `probe_magma_anchor.py` reports
+    `post_mtpyre.ss1` as READY (guard flag True, MT_PYRE_STATE=1, Emblem in bag) and
+    `jagged_descent.ss1` as the wrong era. Running this from a pre-Emblem save measures the
+    Team Magma guard, which is exactly the error that cost seven probes on 2026-08-10.
+
+    ACCEPTANCE — BINARY, no statistics: `arrived=True`, i.e. standing on JAGGED_PASS (16,20).
+
+    ON SUCCESS IT CAPTURES AN ANCHOR (`saves/magma_door.ss1`) so increments 2 and 3 can be
+    developed against the door in seconds instead of re-driving the whole journey. Set
+    `MAGMA_TRAVEL_CAPTURE=0` to suppress.
+
+    Emits: [magmatravel] RESULT arrived=<bool> map=<enum> at=<tile> guard_hidden=<bool>
+           party_alive=<n>/<n> frames=<n>
+    """
+
+    _whiteouts = 0
+
+    @staticmethod
+    def name():
+        return "MagmaTravel"
+
+    def on_battle_started(self, encounter):
+        from modules.battle_strategies import DefaultBattleStrategy
+
+        if encounter is None:
+            # Trainers on the pass are fought with the story's own travel strategy, so the
+            # run measures the trip the BOT would make, not an idealised one.
+            from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+
+            return LevelUpTravelBattleStrategy()
+        return DefaultBattleStrategy()
+
+    def on_whiteout(self) -> bool:
+        """‼ MATCH PRODUCTION. `BotMode.on_whiteout` defaults to **False**, which drops the bot
+        to Manual — and StoryMode OVERRIDES it to True and recovers (`story_mode.py:1221`).
+
+        Without this override the first two runs of this driver (2026-08-10) both ended at the
+        identical frame f23674 on ROUTE123 and were read as "the travel leg fails". They were
+        reading the DRIVER's default, not the route: in the real bot a whiteout is a survivable
+        event that respawns a FULL party at the last Pokémon Center. This is precisely the
+        "probe with the SAME call the production path uses" rule (08-MISTAKES 2026-07-30).
+
+        The whiteout count is REPORTED, never hidden — the party this chapter inherits from
+        Ch14 is 3/6 fainted, so how many whiteouts the trip costs is a real result."""
+        MagmaTravelMode._whiteouts += 1
+        log(f"[magmatravel] WHITEOUT #{MagmaTravelMode._whiteouts} — recovering, as StoryMode does")
+        return True
+
+    def run(self):
+        import os
+
+        from modules.map_data import MapRSE
+        from modules.memory import get_event_flag, get_event_var
+        from modules.player import get_player_avatar
+        from modules.pokemon_party import get_party
+        from modules.story.early_game import (
+            MAGMA_HIDEOUT_DOOR_APPROACH,
+            travel_to_magma_hideout_door,
+            wait_until_truly_controllable,
+        )
+
+        yield from wait_until_truly_controllable()
+
+        def here():
+            avatar = get_player_avatar()
+            return tuple(avatar.map_group_and_number), tuple(avatar.local_coordinates)
+
+        def map_name(group_and_number):
+            try:
+                return MapRSE(group_and_number).name
+            except ValueError:
+                return str(group_and_number)
+
+        # ‼ ERA ASSERTION FIRST, and LOUDLY. A run from the wrong save produces a confident
+        # failure about terrain, which is precisely the wrong conclusion this chapter has
+        # already produced twice.
+        guard_hidden = get_event_flag("HIDE_JAGGED_PASS_MAGMA_GUARD")
+        pyre_state = get_event_var("MT_PYRE_STATE")
+        log(f"[magmatravel] START {map_name(here()[0])} {here()[1]} "
+            f"guard_hidden={guard_hidden} MT_PYRE_STATE={pyre_state}")
+        if not guard_hidden:
+            log("[magmatravel] ‼ WRONG ERA — the Magma guard is still on (16,19). This run "
+                "would measure the guard, not the route. Use a post-Emblem anchor.")
+
+        arrived = False
+        error_text = ""
+        # ‼ RETRY, because `travel_to_magma_hideout_door()` is resume-safe and a whiteout is a
+        # NORMAL event for this party — it respawns a full team at the last Pokémon Center, from
+        # which the trip is genuinely easier. StoryMode's own loop re-enters a chapter the same
+        # way. Bounded at 4 so a hopeless party cannot spin: the ATTEMPT COUNT is a result.
+        attempts = 0
+        for attempt in range(1, 5):
+            attempts = attempt
+            try:
+                yield from wait_until_truly_controllable()
+                yield from travel_to_magma_hideout_door()
+                arrived = (
+                    here()[0] == tuple(MapRSE.JAGGED_PASS.value)
+                    and here()[1] == MAGMA_HIDEOUT_DOOR_APPROACH
+                )
+                if arrived:
+                    error_text = ""
+                    break
+                error_text = f"attempt {attempt} finished at {map_name(here()[0])} {here()[1]}"
+                log(f"[magmatravel] {error_text}")
+            except Exception as error:  # noqa: BLE001 - the failure IS the measurement
+                error_text = f"{type(error).__name__}: {str(error)[:220]}"
+                log(f"[magmatravel] attempt {attempt} FAILED: {error_text}")
+            log(f"[magmatravel] retrying from {map_name(here()[0])} {here()[1]} "
+                f"(whiteouts so far: {MagmaTravelMode._whiteouts})")
+
+        party = get_party()
+        alive = sum(1 for mon in party if mon.current_hp > 0)
+        # ‼ `opened` is the REAL acceptance, not `arrived`. The door at (16,18) is covered by
+        # a rock-wall metatile until `JaggedPass_EventScript_OpenMagmaHideout` sets
+        # VAR_JAGGED_PASS_STATE to 2, and NO static path check can see that wall — standing
+        # beside a sealed door would otherwise read as success.
+        jagged_state = get_event_var("JAGGED_PASS_STATE")
+        opened = jagged_state >= 2
+        log(f"[magmatravel] RESULT arrived={arrived} opened={opened} "
+            f"JAGGED_PASS_STATE={jagged_state} map={map_name(here()[0])} at={here()[1]} "
+            f"guard_hidden={guard_hidden} party_alive={alive}/{len(party)} "
+            f"whiteouts={MagmaTravelMode._whiteouts} attempts={attempts} "
+            f"frames={context.emulator.get_frame_count()}"
+            + (f" error=({error_text})" if error_text else ""))
+        arrived = arrived and opened
+
+        if arrived and os.environ.get("MAGMA_TRAVEL_CAPTURE", "1") != "0":
+            out = SAVES / "magma_door.ss1"
+            out.write_bytes(context.emulator.get_save_state())
+            log(f"[magmatravel] captured anchor -> {out}")
+
+        context.set_manual_mode()
+        return
+
+
+class MagmaHideoutMode(BotMode):
+    """`#24-magmahideout` INCREMENTS 2+3 — go IN and beat Maxie, from the door anchor.
+
+    Runs the production `enter_magma_hideout()` then `do_magma_hideout()`.
+
+        PYTHONUTF8=1 py -3.12 story_harness.py magma_door.ss1 --driver magmahideout --frames 900000
+
+    ‼ ANCHOR: `saves/magma_door.ss1` is captured by `--driver magmatravel` on success — it stands
+    on JAGGED_PASS (16,20) with VAR_JAGGED_PASS_STATE already 2, i.e. the entrance OPEN. Running
+    this from anything earlier measures the rock wall, not the hideout.
+
+    ACCEPTANCE — BINARY: `FLAG_GROUDON_AWAKENED_MAGMA_HIDEOUT`. No statistics.
+
+    ‼ THE THING MOST LIKELY TO FAIL, stated in advance so the result is read correctly: the
+    static planner reaches only 44 tiles on 1F from the arrival (10,34) and calls all three
+    onward warps unreachable. If this run dies on 1F that is the KI-24-class question answered
+    the hard way; if it walks straight through, the static reading was the artifact.
+
+    Emits: [magmahideout] RESULT groudon=<bool> map=<enum> at=<tile> floors=<visited> frames=<n>
+    """
+
+    _whiteouts = 0
+
+    @staticmethod
+    def name():
+        return "MagmaHideout"
+
+    def on_battle_started(self, encounter):
+        from modules.battle_strategies import DefaultBattleStrategy
+
+        if encounter is None:
+            # ‼ The hideout is wall-to-wall trainers (Tabitha + the numbered grunts + Maxie), so
+            # use the STORY item strategy — the one that actually uses potions in a boss fight
+            # (`#24-battleitems`). A weaker strategy here measures the strategy, not the chapter.
+            from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+            return StoryItemBattleStrategy()
+        return DefaultBattleStrategy()
+
+    def on_whiteout(self) -> bool:
+        # Same reason as MagmaTravelMode: the default is False, StoryMode overrides it to True.
+        MagmaHideoutMode._whiteouts += 1
+        log(f"[magmahideout] WHITEOUT #{MagmaHideoutMode._whiteouts} — recovering, as StoryMode does")
+        return True
+
+    def run(self):
+        from modules.map_data import MapRSE
+        from modules.memory import get_event_flag, get_event_var
+        from modules.player import get_player_avatar
+        from modules.story.early_game import (
+            do_magma_hideout,
+            enter_magma_hideout,
+            wait_until_truly_controllable,
+        )
+
+        yield from wait_until_truly_controllable()
+
+        def here():
+            avatar = get_player_avatar()
+            return tuple(avatar.map_group_and_number), tuple(avatar.local_coordinates)
+
+        def map_name(group_and_number):
+            try:
+                return MapRSE(group_and_number).name
+            except ValueError:
+                return str(group_and_number)
+
+        # ‼ ERA/STATE ASSERTION FIRST. `JAGGED_PASS_STATE < 2` means the entrance is still a
+        # rock wall and every result below would be about the wall.
+        jagged_state = get_event_var("JAGGED_PASS_STATE")
+        log(f"[magmahideout] START {map_name(here()[0])} {here()[1]} "
+            f"JAGGED_PASS_STATE={jagged_state}")
+        if jagged_state < 2:
+            log("[magmahideout] ‼ WRONG STATE — the entrance has not been opened; this run "
+                "would measure the rock wall. Use an anchor captured by --driver magmatravel.")
+
+        #: Which floors we actually set foot on — the diagnostic that says HOW FAR it got.
+        floors: list[str] = []
+        last_map = None
+
+        error_text = ""
+        try:
+            yield from enter_magma_hideout()
+            # ‼ Track the floors from inside the generator loop by sampling as it runs: the
+            # chapter's own error names the map it stopped on, but a list of what was VISITED
+            # is what distinguishes "1F is a dead end" from "died on 3F".
+            gen = do_magma_hideout()
+            while True:
+                try:
+                    next(gen)
+                except StopIteration:
+                    break
+                current = here()[0]
+                if current != last_map:
+                    last_map = current
+                    floors.append(map_name(current))
+                yield
+        except Exception as error:  # noqa: BLE001 - the failure IS the measurement
+            error_text = f"{type(error).__name__}: {str(error)[:220]}"
+            log(f"[magmahideout] FAILED: {error_text}")
+
+        groudon = get_event_flag("GROUDON_AWAKENED_MAGMA_HIDEOUT")
+        log(f"[magmahideout] RESULT groudon={groudon} map={map_name(here()[0])} at={here()[1]} "
+            f"floors={floors} whiteouts={MagmaHideoutMode._whiteouts} "
+            f"frames={context.emulator.get_frame_count()}"
+            + (f" error=({error_text})" if error_text else ""))
+        context.set_manual_mode()
+        return
+
+
 class AnchorCaptureMode(BotMode):
     """MAKE a save anchor at a named map/tile, starting from an existing one.
 
@@ -3683,6 +3940,10 @@ for step in range(args.frames):
             context.bot_mode_instance = AnchorCaptureMode()
         elif args.driver == "magmadoor":
             context.bot_mode_instance = MagmaDoorMode()
+        elif args.driver == "magmatravel":
+            context.bot_mode_instance = MagmaTravelMode()
+        elif args.driver == "magmahideout":
+            context.bot_mode_instance = MagmaHideoutMode()
         elif args.driver == "teachfull":
             context.bot_mode_instance = TeachFullMode()
         elif args.driver == "normancounter":

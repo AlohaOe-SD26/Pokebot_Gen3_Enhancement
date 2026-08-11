@@ -10503,3 +10503,103 @@ scripted movement" (it was an NPC in the wrong era).
 
 **Next:** build `§Ch15` starting with the travel leg, from `post_mtpyre.ss1`, graded binary on
 `GROUDON_AWAKENED_MAGMA_HIDEOUT`.
+
+---
+
+## 2026-08-10 (evening) — `#24-magmahideout` INCREMENT 1: the bot reaches the Magma Hideout door, and it is OPEN
+
+**Result — GREEN, binary, on the fourth driven run** (`--driver magmatravel` from
+`saves/post_mtpyre.ss1`): the bot leaves Mt. Pyre's summit, crosses Hoenn, rides the cable car,
+descends Jagged Pass, **fires the entrance trigger** and stands on `JAGGED_PASS (16,20)` with the
+door open. The run captures `saves/magma_door.ss1` so increments 2-3 develop from the door in
+seconds instead of re-driving ~75,000 frames.
+
+**‼ THE HEADLINE FINDING — the entry is a STEP TRIGGER, and three earlier conclusions were one
+misread wall.** `JaggedPass_OnLoad` covers the door at `(16,18)` with
+`METATILE_Lavaridge_RockWall` while `VAR_JAGGED_PASS_STATE <= 1`. A coord_event on one of
+`(21,15) (22,20) (21,20) (14,15) (13,15)` runs `JaggedPass_EventScript_OpenMagmaHideout`, which
+opens the metatiles and sets the var to **2**; the var reaches 1 by itself once the Magma Emblem
+is in the bag. **We use `(13,15)`** — 8-10 waypoints from the descent's arrival tiles against
+15-23 for the others.
+‼ `calculate_path` reported "2 waypoints" to that sealed tile the whole time, because it reads
+the ROM **layout** and cannot see a `setmetatile`. "One-way ledges" (2026-07-26), "ledge-isolated,
+needs scripted movement" (2026-08-10 AM) and `magmadoor`'s "a real south-facing ledge" were all
+this wall. **A static PASS is not evidence on a map whose scripts rewrite metatiles**
+(`08-MISTAKES`), and the PASS form is more dangerous than KI-24's FAIL form because it reads as
+confirmation.
+
+**Shipped**
+| item | what |
+|---|---|
+| `modules/story/early_game.py` | `travel_to_magma_hideout_door()`, `open_magma_hideout_entrance()`, `enter_magma_hideout()`, `do_magma_hideout()`, `do_magma_hideout_chapter()` — ‼ **not yet wired into `story_mode.py`** |
+| `tools/story-dev/story_harness.py` | `--driver magmatravel` (increment 1) and `--driver magmahideout` (increments 2-3) |
+| `probe_magma_anchor.py` | era gate: NAME control + ERA contrast + PATH control; `post_mtpyre.ss1` = READY |
+| `probe_ch15_travel.py` | the route, with descent and overland spans |
+| `probe_ch15_interior.py` | the interior route and the Maxie approach tile |
+| `12-STORYMODE-DESIGN.md` §Ch15 | corrected entry model, the five trigger tiles, the prevention rule |
+
+**Two failures on the way, both worth the record (full entries in `08-MISTAKES`)**
+1. **Ch14 hands over a WRECKED party** — 3 of 6 fainted, survivors at 21/117 and 18/109, best
+   move at 0 PP, **one Hyper Potion and no Revives**, nearest Pokémon Center 276+ waypoints away
+   (Mauville 276 / Fortree 432 / Lilycove 883). It dies ~61 waypoints in, on ROUTE123. Fixed by
+   healing at Lilycove and Mauville en route; the leg now survives the haul.
+2. **My driver inherited `BotMode.on_whiteout()`'s default of False** (→ drop to Manual) while
+   **StoryMode overrides it to True and recovers**. Two runs ended at the *identical* frame
+   f23674 and I was one step from recording "the travel leg is blocked". ‼ Two independent runs
+   failing at the same frame is a fact about a code path, not about the world.
+
+**Also measured**
+* The overland haul is real work: it needs `_navigate_riding_out`'s obstacle clearing, because
+  Mauville → Route 112 is statically BLOCKED by the `#24-smashroute` rock at ROUTE111 (18,101).
+* **`LAVARIDGE_TOWN` is not reachable from `ROUTE112` by the live navigator** (3/3, "it is not
+  walkable from ROUTE112") though `calculate_path` scores it 66 waypoints. Staging heal there is
+  best-effort; by that point the bot is already on the station's approach tile anyway.
+* Maxie is **talked to**, not stepped on — there are no coord_events anywhere inside the hideout.
+  He is at 4F `(16,21)`; `(17,21)` is the only one of his four neighbours the planner can reach.
+* Decomp: no `setmetatile` anywhere inside the hideout; the three Strength boulders on 1F
+  (5,22)/(7,22)/(6,23) are west of the arrival and off-route.
+
+**‼ OPEN RISK carried into increment 3.** From 1F's arrival `(10,34)` the planner reaches only
+**44 tiles** and calls all three onward warps unreachable, control passing. Since 1F is the
+game's own main path this is most likely the **KI-24 class** (an elevation transition read as a
+wall) — but it is unproven, and `--driver magmahideout` is the test.
+
+---
+
+## 2026-08-10 (evening, part 2) — `#24-magmahideout` increments 2 & 3: IN is green, 1F is **Strength-gated**
+
+**Increment 2 — GREEN.** `enter_magma_hideout()` steps through the opened door and lands on
+`MAGMA_HIDEOUT_1F` (`--driver magmahideout` from the new `saves/magma_door.ss1`).
+
+**Increment 3 — BLOCKED, with the cause measured exactly.** The run stopped on the first interior
+leg: `RESULT groudon=False map=MAGMA_HIDEOUT_1F at=(10,34) floors=['MAGMA_HIDEOUT_1F'] whiteouts=0`.
+
+‼ **The blocker is STRENGTH, and it is not a pathfinder artifact.** A plain COLLISION flood of 1F
+— no elevation, no pathfinder — was used as the independent instrument:
+* 1F has **three separate collision components**: **#0, 299 tiles**, holding the entrance
+  `(10,34)` and `(25,34) → 2F_1R`; **#1, 70 tiles**, holding `(31,3) → 2F_2R`; and **#2, NINE
+  tiles**, holding `(20,22) → 2F_3R`.
+* `calculate_path` reaches **44** of component #0's 299 tiles, and the boundary between the 44
+  and the rest is **exactly three edges, every one into a Strength boulder**:
+  `(7,23)→(7,22)`, `(7,23)→(6,23)`, `(8,22)→(7,22)`.
+
+⇒ The boulders at `(5,22)/(7,22)/(6,23)` **are the gate**, not scenery beside it, and
+`obstacle_clearing.KNOWN_BUT_UNSUPPORTED` excludes `EventScript_StrengthBoulder` by design ("a
+boulder is PUSHED, not removed; the success test cannot see it"). No party member on the anchor
+knows Strength either. **New punch item `#24-strength`; `#24-magmahideout` now depends on it.**
+
+**‼ AND THE §Ch15 "SHORTEST ROUTE" WAS WRONG — corrected in code and doc.** It opened with
+`1F (20,22) → 2F_3R`, but `(20,22)` sits on that **nine-tile island**: it is an EXIT from 2F_3R,
+never an entrance to it. The real route is the branch the doc called "longer":
+```
+1F (25,34) -> 2F_1R   [arrive (8,2)]     2F_1R (17,33) -> 3F_1R  [arrive (23,3)]
+3F_1R (7,21) -> 4F    [arrive (46,7)]    4F: stand (17,21), face Left, talk to Maxie (16,21)
+```
+Every leg verified in one connected component with its arrival tile (2F_1R **383**, 3F_1R **154**,
+4F **293**), and `(17,21)` is reachable from 4F's real arrival `(46,7)`. **So the entire interior
+past 1F is already proven connected** — Strength is the only thing in the way.
+
+‼ **A claim of mine from three hours earlier was wrong and is corrected here:** "the three
+Strength boulders are WEST of the arrival and off this route". That was read off their
+coordinates, never measured. The lesson is the cheap one: *adjacency is a measurement, not an
+inference from two numbers.*

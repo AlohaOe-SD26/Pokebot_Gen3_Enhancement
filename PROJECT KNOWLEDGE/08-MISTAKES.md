@@ -4252,3 +4252,63 @@ here, one `get_event_flag("HIDE_JAGGED_PASS_MAGMA_GUARD")` would have ended it i
 it, suspect an OBJECT before suspecting the terrain model.** I reached for "KI-24 planner blind
 spot" — a real, documented failure of that instrument — when the planner was correctly modelling
 an NPC. A known bug in a tool is a seductive explanation for anything that tool reports.
+
+---
+
+## 2026-08-10 — the THIRD wrong answer about the same door: a static PASS on a runtime WALL
+
+**Symptom.** The entry above closed `#24-magmahideout` with "in the correct era the door is **2
+waypoints** from a tile the bot already reaches", measured post-Emblem with a passing control. I
+built the travel leg against that number. It is **an artifact**: the door at `JAGGED_PASS (16,18)`
+is covered by `METATILE_Lavaridge_RockWall` at runtime and cannot be walked onto at all until a
+**step trigger** opens it.
+
+**Root cause.** `JaggedPass_OnLoad` calls `JaggedPass_EventScript_ConcealHideoutEntrance`, which
+`setmetatile`s (16,17) and (16,18) to rock wall while `VAR_JAGGED_PASS_STATE <= 1`. A coord_event
+on one of five tiles — `(21,15) (22,20) (21,20) (14,15) (13,15)`, gated on the var being 1, which
+`JaggedPass_OnResume` sets by itself once the Magma Emblem is in the bag — runs
+`JaggedPass_EventScript_OpenMagmaHideout`, which `setmetatile`s the entrance open and sets the var
+to **2**. ‼ `calculate_path` reads the ROM's **layout**, where (16,18) is already a cave entrance.
+So the static planner cheerfully returned "OK, 2 waypoints" for a tile the running game had
+walled off.
+
+‼ **Three separate conclusions about this one door were all the same wall, misread:** "one-way
+ledges make it unreachable" (2026-07-26); "ledge-isolated, needs SCRIPTED MOVEMENT" (2026-08-10
+AM); and `--driver magmadoor`'s "pressing Up from (16,20) twelve times did not move the avatar, so
+there is a real south-facing LEDGE". Each was a real measurement fitted to the wrong cause.
+
+‼ **Prevention rule: a static PASS is not evidence on a map whose scripts rewrite metatiles.**
+This is KI-24 INVERTED, and the inverted form is the more dangerous one — KI-24 is a static FAIL
+on reachable terrain, which prompts a re-test, while this is a static **PASS** on unreachable
+terrain, which reads as confirmation and gets built on. Before trusting `calculate_path` on a
+story map, check whether the decomp's `OnLoad`/`OnResume`/`OnTransition` calls `setmetatile`; if
+it does, grade reachability by the VAR the script sets, never by the planner.
+
+---
+
+## 2026-08-10 — my driver inherited a framework DEFAULT and I nearly reported it as a route failure
+
+**Symptom.** Two driven runs of the new `--driver magmatravel` (the `#24-magmahideout` travel leg)
+ended at the **identical frame f23674**, whiting out on ROUTE123 and dropping to Manual. I was one
+step from writing down "the post-Mt-Pyre party cannot cross Hoenn; the travel leg is blocked".
+
+**Root cause.** `BotMode.on_whiteout()` returns **False** by default, and False means *"switch the
+bot to Manual so the user can handle it"*. **StoryMode overrides it to True and recovers**
+(`story_mode.py:1221` — "We handle the whiteout ourselves — do NOT drop to Manual"). My driver
+overrode `on_battle_started` and nothing else, so it measured the *default framework policy*, not
+the production behaviour. In the real bot a whiteout is a survivable event that respawns a FULL
+party at the last Pokémon Center.
+
+‼ The tell was there and I nearly walked past it: **two independent runs failing at the exact same
+frame is not a fact about the world, it is a fact about a deterministic code path** — and a
+deterministic stop right after a state transition points at a handler, not at terrain.
+
+‼ **Prevention rule: a driver that stands in for a production mode must mirror that mode's
+OVERRIDES, not just call its functions.** "Probe with the SAME call the production path uses"
+(2026-07-30) is not enough — the same call under different *policy* is a different experiment.
+When writing a harness driver, diff its overridden methods against the mode it is standing in for
+(`on_whiteout`, `on_battle_started`, `on_battle_ended`, …) and justify every difference.
+‼ Corollary, and the reason this is worth the words: the surrounding facts were all TRUE — the
+party really is 3/6 fainted with no Revives, the nearest Pokémon Center really is 276+ waypoints
+away, and it really did die on Route 123. A correct-sounding story assembled from true facts is
+exactly what a wrong instrument produces.

@@ -1446,3 +1446,61 @@ and produces the data to settle it.
 
 **Rejected — hard-code party-order** (fails above slot 0) **or battle-order** (fails at slot 0).
 **Rejected — "fix" the planner.** It was modelling the game correctly; the bug was ours.
+
+---
+
+## 2026-08-10 — Ch15 is built as THREE separately-graded increments, not one chapter function
+
+**Decision.** The Magma Hideout ships as `travel_to_magma_hideout_door()` →
+`open_magma_hideout_entrance()` → `enter_magma_hideout()` → `do_magma_hideout()`, each with its
+own binary acceptance and its own harness driver, with a thin
+`do_magma_hideout_chapter()` composing them.
+
+**Why.** The first driven run of the travel leg failed for **two independent reasons at once** —
+a party that Ch14 hands over 3/6 fainted, and a driver that inherited `BotMode.on_whiteout()`'s
+default of False. As one monolithic chapter both would have surfaced as a single opaque
+"chapter failed at frame N" and the second (an instrument bug) would very likely have been
+written down as the first (a route blocker). Separately-graded increments made each one name
+itself. This is the §Ch14a "explicit short legs" principle applied one level up.
+
+**Rejected — one `do_magma_hideout()` that does everything**, matching some earlier chapters.
+Cheaper to write, and it hides exactly the distinction that cost this chapter three wrong
+conclusions already.
+
+---
+
+## 2026-08-10 — grade Jagged Pass reachability by VAR_JAGGED_PASS_STATE, never by calculate_path
+
+**Decision.** The hideout entrance's availability is tested with
+`get_event_var("JAGGED_PASS_STATE") >= 2`, and the harness driver's acceptance is that var —
+not "are we standing next to the door".
+
+**Why.** `JaggedPass_OnLoad` walls the door shut with `setmetatile`, and `calculate_path` reads
+the ROM **layout**, so it reports "2 waypoints" to a tile the running game has made solid. Three
+separate conclusions about this door across three weeks were that wall, misread. The var is
+written by the very script that opens the metatiles, so it cannot disagree with reality.
+
+**Generalised (now also in `08-MISTAKES`):** on any map whose decomp `OnLoad`/`OnResume`/
+`OnTransition` calls `setmetatile`, a static path result is not evidence in either direction.
+
+**Rejected — trust the static planner and step at the door.** That is what the pre-Emblem
+`--driver magmadoor` run effectively did; it pressed Up twelve times, did not move, and the
+result was recorded as "a real south-facing ledge".
+
+---
+
+## 2026-08-10 — the en-route heals are best-effort; the chapter does not die on a nice-to-have
+
+**Decision.** Ch15's Lilycove, Mauville and Lavaridge heals are wrapped and logged on failure;
+only the journey legs themselves are allowed to end the chapter.
+
+**Why.** Measured: the live navigator refuses `LAVARIDGE_TOWN` from `ROUTE112` 3 times out of 3
+("it is not walkable from ROUTE112") even though `calculate_path` scores that span at 66
+waypoints — and by then the bot is already **standing on the cable-car station's approach tile**,
+i.e. the trip has succeeded. Letting an optional top-up abort a completed haul would have thrown
+away ~70,000 frames of correct work on every attempt.
+‼ **But never silently:** each skipped heal prints, because a skipped heal is the most likely
+cause of a later whiteout and the two must not be confused.
+
+**Rejected — require every heal** (throws away successful hauls). **Rejected — drop the heals**
+(the party arrives 3/6 fainted; the first build with a single late heal whited out at f23674).

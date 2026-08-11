@@ -3160,14 +3160,79 @@ hideout code. Everything below is verified against the pret/pokeemerald decomp a
 ROM data, not recalled.
 
 ### ENTRY — solved, and it was never a terrain problem
-* Door: **`JAGGED_PASS (16,18)` → `MAGMA_HIDEOUT_1F`** (warp id 4).
+
+> ‼‼ **CORRECTED 2026-08-10 (second pass) — THE ENTRY MODEL BELOW WAS INCOMPLETE, AND THE
+> MISSING PIECE IS THE WHOLE MECHANISM.** The guard is real but it is not what seals the door.
+> **`JaggedPass_OnLoad` walls the door shut with a metatile**, and a **STEP TRIGGER** opens it.
+> Full decomp listing in the next block. Read that before writing or trusting anything here.
+
+* Door: **`JAGGED_PASS (16,18)` → `MAGMA_HIDEOUT_1F`** (warp id 4, **unconditional** in `map.json`).
 * Its only entry is **`(16,19)`**, occupied by a **Team Magma guard** until flag **847
   `HIDE_JAGGED_PASS_MAGMA_GUARD`** is set. That flag is set by the Mt. Pyre / Magma Emblem
   sequence, i.e. by the time this chapter runs it is already true.
-* With the guard gone: `(16,20) → (16,18)` is **2 waypoints**, and `(16,20)` is planner-reachable.
+* With the guard gone: `(16,20) → (16,18)` is **2 waypoints** *according to `calculate_path`* —
+  ‼ and that number is **an artifact**, see the metatile block below. `(16,20)` itself is
+  genuinely planner-reachable, and the descent reaches it: from every arrival tile below the top
+  warps, 13–17 waypoints, control passing (`probe_ch15_travel.py`, 2026-08-10).
 * ‼ **Develop only from a post-Emblem anchor.** `saves/post_mtpyre.ss1` has the flag set;
   `jagged_descent.ss1` and `post_winona.ss1` do NOT. Using a pre-Emblem save cost seven probes and
   two wrong conclusions (`08-MISTAKES` 2026-08-10).
+
+### ‼‼ THE DOOR IS WALLED SHUT UNTIL A STEP TRIGGER OPENS IT (decomp, 2026-08-10)
+
+`data/maps/JaggedPass/scripts.inc`:
+
+```
+JaggedPass_OnResume:
+    call_if_eq VAR_JAGGED_PASS_STATE, 0, JaggedPass_EventScript_CheckHasMagmaEmblem
+JaggedPass_EventScript_CheckHasMagmaEmblem::
+    checkitem ITEM_MAGMA_EMBLEM
+    goto_if_eq VAR_RESULT, TRUE, JaggedPass_EventScript_SetReadyToOpenHideout
+JaggedPass_EventScript_SetReadyToOpenHideout::
+    setvar VAR_JAGGED_PASS_STATE, 1          ← AUTOMATIC, on every map load, if the Emblem is held
+
+JaggedPass_EventScript_ConcealHideoutEntrance::   ← called from JaggedPass_OnLoad while state <= 1
+    setmetatile 16, 17, METATILE_Lavaridge_RockWall, TRUE
+    setmetatile 16, 18, METATILE_Lavaridge_RockWall, TRUE
+
+JaggedPass_EventScript_OpenMagmaHideout::         ← coord_event, gated VAR_JAGGED_PASS_STATE == 1
+    special ShakeCamera … msgbox …BoulderShakingInResponseToEmblem … special ShakeCamera
+    playse SE_EFFECTIVE
+    setmetatile 16, 17, METATILE_Lavaridge_CaveEntrance_Top, TRUE
+    setmetatile 16, 18, METATILE_Lavaridge_CaveEntrance_Bottom, FALSE
+    special DrawWholeMapView
+    setvar VAR_JAGGED_PASS_STATE, 2               ← THE CHAPTER'S REAL ENTRY GATE
+```
+
+**The five trigger tiles** (`JaggedPass/map.json` coord_events, all `VAR_JAGGED_PASS_STATE == 1`,
+all → `JaggedPass_EventScript_OpenMagmaHideout`): `(21,15) (22,20) (21,20) (14,15) (13,15)`.
+
+‼ **Use `(13,15)`.** Measured from the four plausible descent arrival tiles: `(13,15)`/`(14,15)`
+are **8–10 waypoints**, the `(21,*)`/`(22,*)` trio **15–23**. The bot descends at x=13–14.
+
+⇒ **THE SEQUENCE IS: hold the Emblem → enter the pass (state auto-set to 1) → step on a trigger
+tile → ride out the scene → state 2, door open → walk onto (16,18).**
+
+### ‼ WHY EVERY EARLIER READING OF THIS MAP WAS WRONG — and the rule that follows
+
+Three separate conclusions were written into this project about this door. All three were the
+metatile wall, misread:
+
+| reading | what it actually was |
+|---|---|
+| "one-way ledges make the door unreachable" (2026-07-26) | the wall (and the guard) |
+| "ledge-isolated, needs SCRIPTED MOVEMENT" (2026-08-10 AM, driven from `(14,9)`) | the wall |
+| "`(16,20)` → Up ×12 does not move: a real south-facing LEDGE" (`--driver magmadoor`) | the wall |
+
+‼ **AND THE STATIC PROBE CANNOT SEE IT.** `calculate_path` reads the ROM's **layout**, where
+`(16,18)` is already a cave entrance — so it cheerfully answers "2 waypoints" for a tile the
+running game has walled off. **A static PASS is not evidence when a script rewrites the
+metatiles.** This is the KI-24 failure mode inverted: KI-24 was a static FAIL on reachable
+terrain; this is a static **PASS** on unreachable terrain, and it is the more dangerous of the
+two because it looks like confirmation.
+
+**Prevention rule:** when the decomp shows a map's `OnLoad`/`OnResume` calling `setmetatile`,
+reachability on that map must be graded by the VAR the script sets, never by `calculate_path`.
 
 ### THE WARP GRAPH (all eight maps, from each map.json)
 ```
@@ -3181,9 +3246,43 @@ JAGGED_PASS (16,18) ──> 1F (10,34)
 3F_3R (16,1) ──> 2F_3R      3F_3R (16,21) ──> 4F
 4F (46,7) ──> 3F_1R         4F (20,21) ──> 3F_3R
 ```
-**SHORTEST ROUTE TO 4F — three warps:**
-`1F (20,22)` → `2F_3R` → `(16,13)` → `3F_3R` → `(16,21)` → **4F**
-(The 2F_1R/3F_1R branch is longer and passes `3F_2R`, a dead end.)
+~~**SHORTEST ROUTE TO 4F — three warps:** `1F (20,22)` → `2F_3R` → `(16,13)` → `3F_3R` →
+`(16,21)` → **4F**. (The 2F_1R/3F_1R branch is longer and passes `3F_2R`, a dead end.)~~
+
+> ‼‼ **CORRECTED 2026-08-10 — THAT ROUTE CANNOT BE WALKED FROM THE ENTRANCE.** A plain COLLISION
+> flood of 1F (no elevation, no pathfinder) finds **three separate components**:
+>
+> | component | size | warps it holds |
+> |---|---|---|
+> | #0 | **299** | the entrance `(10,34)` **and** `(25,34)` → 2F_1R |
+> | #1 | 70 | `(31,3)` → 2F_2R |
+> | #2 | ‼ **9** | `(20,22)` → 2F_3R |
+>
+> `(20,22)` sits on a **nine-tile island**: it is an **EXIT from 2F_3R, never an entrance to it**.
+> Counting warp hops on the graph made it look shortest; the graph does not know what is walkable.
+
+**THE REAL ROUTE TO 4F — the `2F_1R` branch, every leg verified in one connected component with
+its arrival tile (2F_1R **383** tiles, 3F_1R **154**, 4F **293**):**
+```
+1F (25,34)    -> 2F_1R   [arrive (8,2)]
+2F_1R (17,33) -> 3F_1R   [arrive (23,3)]
+3F_1R (7,21)  -> 4F      [arrive (46,7)]
+4F: stand (17,21), face Left, TALK to Maxie (16,21)
+```
+‼ `3F_2R` is still a dead end and is still not entered — the branch was dismissed for the wrong
+reason, not for a wrong conclusion about `3F_2R`.
+
+### ⛔ 1F IS STRENGTH-GATED — the chapter's real blocker (measured 2026-08-10)
+`calculate_path` reaches **44** of component #0's 299 tiles, and the boundary between the 44 and
+the rest is **exactly three edges, every one into a Strength boulder**:
+`(7,23)→(7,22)`, `(7,23)→(6,23)`, `(8,22)→(7,22)`.
+
+⇒ The boulders at `(5,22)/(7,22)/(6,23)` **are the gate out of the entrance pocket**, not scenery
+beside it. `obstacle_clearing.KNOWN_BUT_UNSUPPORTED` excludes `EventScript_StrengthBoulder` by
+design ("a boulder is PUSHED, not removed; the success test cannot see it"), and no party member
+on `post_mtpyre.ss1` knows Strength. **Tracked as `#24-strength`.**
+‼ An earlier pass asserted these boulders were "west of the arrival and off the direct path".
+That was inferred from their coordinates and it was wrong. **Adjacency is a measurement.**
 
 ### THE OBJECTIVE — a clean binary completion test
 `MagmaHideout_4F_EventScript_Maxie` runs `trainerbattle_no_intro TRAINER_MAXIE_MAGMA_HIDEOUT`,

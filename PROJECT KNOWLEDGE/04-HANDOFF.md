@@ -3,12 +3,134 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-08-09 — read "‼ YOU ARE HERE" immediately below.
+**Last updated:** 2026-08-10 (evening) — read "‼ YOU ARE HERE" immediately below.
 Every banner further down is HISTORY, newest first.
 
 ---
 
-# ‼ YOU ARE HERE — 2026-08-09 (second session of the day). Read this, then `14-AGENT-PLAYBOOK.md`.
+# ‼ YOU ARE HERE — 2026-08-10 evening. Read this, then `14-AGENT-PLAYBOOK.md`.
+
+## WHAT THIS IS
+`sandbox-pokebot/` is the working build of a Pokémon Emerald bot. Its **Story mode** plays the
+game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror (never edit);
+`custom-pokebot/` is the promoted fork. **All work happens in `sandbox-pokebot/`.**
+
+## STATE
+| | |
+|---|---|
+| branch / HEAD | `main`, see the commit below |
+| box | **IDLE unless a `--driver magmahideout` run is still going.** No batch is running. |
+| story content | Littleroot → 6 badges → Mt. Pyre → Magma Emblem → **Magma Hideout: increments 1 & 2 GREEN, increment 3 (Maxie) under test** |
+| ‼ is code frozen? | **No.** The freeze rule applies only during an `x4_headless` BATCH. |
+| upstream | checked 2026-08-10, `5dd898f8`, unchanged |
+
+## ‼ WHAT JUST HAPPENED — `#24-magmahideout` is being BUILT, and increment 1 is PROVEN GREEN
+The next unwritten chapter is now three functions in `modules/story/early_game.py`, each with its
+own binary acceptance and its own harness driver:
+
+| increment | function | acceptance | state |
+|---|---|---|---|
+| 1 travel + open the door | `travel_to_magma_hideout_door()` | `VAR_JAGGED_PASS_STATE == 2` **and** standing on `JAGGED_PASS (16,20)` | ✅ **GREEN** (run 4, `--driver magmatravel` from `saves/post_mtpyre.ss1`) |
+| 2 go in | `enter_magma_hideout()` | map == `MAGMA_HIDEOUT_1F` | ✅ **GREEN** |
+| 3 beat Maxie | `do_magma_hideout()` | `FLAG_GROUDON_AWAKENED_MAGMA_HIDEOUT` | ⛔ **BLOCKED on `#24-strength`** — 1F is Strength-gated (measured) |
+
+‼ **NOT wired into `story_mode.py` yet.** `do_magma_hideout_chapter()` composes all three and is
+ready to drop in as Segment 15 once increment 3 is green.
+
+```
+cd tools/story-dev
+PYTHONUTF8=1 py -3.12 probe_magma_anchor.py                       # era gate, 4 controls
+PYTHONUTF8=1 py -3.12 probe_ch15_travel.py                        # the route
+PYTHONUTF8=1 py -3.12 probe_ch15_interior.py                      # the interior
+PYTHONUTF8=1 COLUMNS=400 py -3.12 story_harness.py post_mtpyre.ss1 --driver magmatravel --frames 2500000 --profile mtN
+PYTHONUTF8=1 COLUMNS=400 py -3.12 story_harness.py magma_door.ss1 --driver magmahideout --frames 900000 --profile mhN
+```
+**`saves/magma_door.ss1` is a NEW anchor** captured by a successful `magmatravel` run: it stands
+at the OPEN door, so increment 3 iterates in seconds instead of re-driving ~75,000 frames.
+
+## ‼‼ THE FINDING THAT MATTERS MOST — a static PASS on a runtime WALL
+The door `JAGGED_PASS (16,18)` is covered by `METATILE_Lavaridge_RockWall` by
+`JaggedPass_OnLoad` while `VAR_JAGGED_PASS_STATE <= 1`. A **coord_event** on one of
+`(21,15) (22,20) (21,20) (14,15) (13,15)` runs `JaggedPass_EventScript_OpenMagmaHideout`, which
+opens the metatiles and sets the var to **2**. The var reaches 1 by itself once the Magma Emblem
+is in the bag. **We use `(13,15)`** (8-10 waypoints from the descent vs 15-23 for the others).
+
+‼ **`calculate_path` said "2 waypoints" to that sealed tile the entire time**, because it reads
+the ROM LAYOUT and cannot see a `setmetatile`. **Three** separate conclusions about this one door
+— "one-way ledges", "ledge-isolated, needs scripted movement", and `magmadoor`'s "a real
+south-facing ledge" — were all this wall. **A static PASS is not evidence on a map whose scripts
+rewrite metatiles**, and the PASS form is worse than KI-24's FAIL form because it reads as
+confirmation instead of prompting a re-test.
+
+## ‼ TWO THINGS THAT BIT ME, AND WILL BITE THE NEXT AGENT
+1. **Ch14 hands over a WRECKED party.** `post_mtpyre.ss1` is **3 of 6 fainted**, survivors at
+   21/117 and 18/109, best move at 0 PP, **one Hyper Potion and no Revives**, and the nearest
+   Pokémon Center is **276+ waypoints** away (Mauville 276 / Fortree 432 / Lilycove 883). It dies
+   ~61 waypoints in, on ROUTE123. The travel leg now heals at Lilycove and Mauville en route.
+   ‼ **Direction matters:** back north over Route 121/122 is ground Ch14 already cleared, so its
+   trainers are beaten; ROUTE123/118 westward are FRESH trainers.
+2. **My driver inherited `BotMode.on_whiteout()`'s default of `False`** (= drop to Manual) while
+   **StoryMode overrides it to `True` and recovers** (`story_mode.py:1221`). Two runs ended at the
+   *identical* frame f23674 and I nearly recorded "the travel leg is blocked".
+   ‼ **Two independent runs failing at the same frame is a fact about a code path, not the
+   world.** Any new harness driver must diff its overrides against the mode it stands in for.
+
+## ⛔ INCREMENT 3 IS BLOCKED: **1F IS STRENGTH-GATED** (measured, not suspected)
+The driven run entered 1F cleanly and stopped dead:
+`RESULT groudon=False map=MAGMA_HIDEOUT_1F at=(10,34) floors=['MAGMA_HIDEOUT_1F'] whiteouts=0`.
+
+The cause was pinned with an **independent instrument** — a plain COLLISION flood of 1F, no
+elevation and no pathfinder:
+* 1F has **three collision components**: **#0, 299 tiles** (the entrance `(10,34)` **and**
+  `(25,34)→2F_1R`), **#1, 70 tiles** (`(31,3)→2F_2R`), **#2, NINE tiles** (`(20,22)→2F_3R`).
+* `calculate_path` reaches **44** of #0's 299 tiles, and the boundary is **exactly three edges,
+  every one into a Strength boulder**: `(7,23)→(7,22)`, `(7,23)→(6,23)`, `(8,22)→(7,22)`.
+
+⇒ The boulders at `(5,22)/(7,22)/(6,23)` **are the gate**. `obstacle_clearing` excludes
+`EventScript_StrengthBoulder` by design, and no mon on the anchor knows Strength.
+**New punch item `#24-strength` — it is now the single thing between the bot and new content.**
+‼ An earlier note of mine said those boulders were "west of the arrival and off-route". That was
+read off their coordinates, never measured. **Adjacency is a measurement, not an inference.**
+
+## THE ROUTE AND THE FIGHT — ‼ the §Ch15 "shortest route" was WRONG; this is the corrected one
+`(20,22)` sits on that **nine-tile island**: it is an EXIT from 2F_3R, never an entrance to it.
+The real route is the branch the design doc dismissed as "longer". Every leg below is verified in
+one connected component with its arrival tile (2F_1R **383**, 3F_1R **154**, 4F **293**), so
+**the entire interior past 1F is already proven connected**:
+```
+JAGGED_PASS (16,18) -> 1F   [arrive (10,34)]   ⛔ Strength boulders gate the way out
+1F (25,34) -> 2F_1R         [arrive (8,2)]
+2F_1R (17,33) -> 3F_1R      [arrive (23,3)]
+3F_1R (7,21) -> 4F          [arrive (46,7)]
+4F: walk to (17,21), face Left, TALK to Maxie at (16,21)
+```
+* ‼ **Maxie is TALKED to, not stepped on** — there are no coord_events anywhere in the hideout.
+  `(17,21)` is the ONLY one of his four neighbours the planner can reach.
+* `TRAINER_MAXIE_MAGMA_HIDEOUT` = Mightyena 37 / Crobat 38 / Camerupt 39. Also inside: Tabitha
+  (Numel 26 / Mightyena 28 / Zubat 30 / Camerupt 33) and grunts at L29.
+* On defeat: `FLAG_GROUDON_AWAKENED_MAGMA_HIDEOUT` (111) — **the completion test, already
+  referenced by `modules/story/chapters.py:200`** — plus `HIDE_MAGMA_HIDEOUT_GRUNTS` and the two
+  Slateport vars that open the following beat.
+
+## ⏭ NEXT ACTIONS, IN ORDER
+1. **`#24-strength` — the whole chapter now hangs on it.** Two independent pieces: (a) get
+   **HM04 Strength** onto a party member (Zigzagoon L3 is already the Surf slave and the obvious
+   carrier; the HM-teaching machinery exists), and (b) give `obstacle_clearing` a success test
+   that works for a **PUSH** — the boulder MOVES rather than disappearing, which is exactly why
+   it is in `KNOWN_BUT_UNSUPPORTED`. ‼ Bound the push loop: a boulder pushed against a wall must
+   fail loudly, not retry (KI-34 burned 23.9M frames on a retry loop of this shape).
+   Iterate with `saves/magma_door.ss1` + `--driver magmahideout` — seconds per attempt.
+2. **Then wire `do_magma_hideout_chapter()` into `story_mode.py`** as Segment 15, replacing the
+   "END OF BUILT CONTENT" block at ~line 3509.
+3. **Grade the chapter BINARY** on `GROUDON_AWAKENED_MAGMA_HIDEOUT`. **No batch.** Four batches
+   read 25.0 → 33.3 → 16.1 → 28.6% at n≈30 and resolved nothing; that is why content, not
+   finish-rate tuning, is where this session spent.
+4. Only then: consider promoting to `custom-pokebot/` — ‼ **which needs explicit user approval**
+   and a generic "proceed autonomously" is NOT that approval.
+
+---
+
+# HISTORY — 2026-08-09 (second session of the day)
 
 ## WHAT THIS IS
 `sandbox-pokebot/` is the working build of a Pokémon Emerald bot. Its **Story mode** plays the
