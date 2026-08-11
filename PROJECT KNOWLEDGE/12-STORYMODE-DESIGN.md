@@ -3309,3 +3309,72 @@ production story path — so it is a probe limitation, not proof the trip is imp
 does mean the chapter must reach Jagged Pass through the normal heal/prep path, and that leg
 should be built and proven BEFORE the interior.** Treat "get to the door in one piece" as
 increment 1, entering as increment 2, and the 4F fight as increment 3.
+
+---
+
+# §Ch16 — SLATEPORT HARBOR: the submarine theft (SPEC, 2026-08-11, decomp-verified, UNBUILT)
+
+**Status: fully specified, nothing written.** This is the next unwritten beat, and it is the
+CHEAPEST one in the remaining ladder: **there is no battle in it at all.** Sources read directly:
+`data/maps/SlateportCity_Harbor/scripts.inc` and `.../map.json` (`pret/pokeemerald`).
+
+## PRECONDITION — already satisfied by Ch15, for free
+`VAR_SLATEPORT_HARBOR_STATE == 1`, which `MagmaHideout_4F_EventScript_Maxie` sets on defeat
+(alongside `VAR_SLATEPORT_CITY_STATE = 1` and the Stern / Gabby-and-Ty hide flags). ‼ So the
+entry condition needs **no new work** — assert it on the anchor rather than building toward it.
+Every one of the four coord triggers is gated on exactly `VAR_SLATEPORT_HARBOR_STATE == 1`.
+
+## THE MAP — `SLATEPORT_CITY_HARBOR`
+| | |
+|---|---|
+| doors back to `SLATEPORT_CITY` | `(11,14)` / `(12,14)` → city warp 8; `(19,15)` / `(20,15)` → city warp 9 |
+| escape warp | `MAP_SLATEPORT_CITY, (28,13)` (`setescapewarp` in `OnTransition`) |
+| **the trigger column** | **`x=8`, `y=11,12,13,14`, elevation 3** — four triggers, `AquaEscapeTrigger0..3` |
+| Archie | `(8,10)` — directly ABOVE the top trigger `(8,11)` |
+| Aqua grunt | `(7,10)` |
+| submarine shadow | `(7,9)` |
+| Capt. Stern | `(6,13)`, but `ReadyAquaEscapeScene` **moves him to `(12,13)`** on transition |
+
+‼ `OnTransition` also sets `FLAG_HIDE_SLATEPORT_CITY_HARBOR_PATRONS`, so the Beauty / Sailor /
+Fat Man vanish for this scene. **Do not model the harbor's population from `map.json` alone** —
+the transition script rewrites it. (Same class as the Jagged Pass guard, which cost a three-week
+deferral: `map.json` describes the map, the `OnTransition` script describes the *era*.)
+
+## THE SCENE — a cutscene, not a fight
+`AquaEscapeTrigger0..3` → `lockall` → Archie's "you again / our hideout is in Lilycove" →
+the grunt and Archie board → the submarine leaves → **`setvar VAR_SLATEPORT_HARBOR_STATE, 2`**,
+`setflag FLAG_MET_TEAM_AQUA_HARBOR`, `setflag FLAG_HIDE_LILYCOVE_MOTEL_SCOTT` → Stern walks over
+→ "why steal my submarine" → `setflag FLAG_HIDE_AQUA_HIDEOUT_1F_GRUNT_1/2_BLOCKING_ENTRANCE` →
+`copyobjectxytoperm` → **`releaseall`**.
+
+‼ Trigger 3 (`y=14`) is the one to aim for from the south doors — it `applymovement`s the player
+UP into the scene itself, so the walk-in is scripted for you. Triggers 0-2 assume you are already
+level with Archie.
+
+## ‼‼ THE ONE TRAP, AND THIS PROJECT HAS ALREADY PAID FOR IT ONCE
+**`VAR_SLATEPORT_HARBOR_STATE` is set to 2 roughly HALFWAY through the script**, with Stern's
+approach, a second `msgbox`, two more `setflag`s and the `releaseall` still to run. Exiting the
+wait the instant the var flips leaves the avatar `lockall`ed and every later button press does
+nothing — **this is the exact failure that cost two runs on 2026-08-10**
+(`EventScript_ActivateStrength`; see `08-MISTAKES` and `04-HANDOFF` "a flag set by a script is NOT
+the end of that script"). **Grade on the var, but wait for CONTROL.**
+
+## COMPLETION TEST — binary, no batch
+**`VAR_SLATEPORT_HARBOR_STATE == 2`.** Secondary confirmations: `FLAG_MET_TEAM_AQUA_HARBOR` set,
+and the avatar controllable again on `SLATEPORT_CITY_HARBOR`.
+
+## WHAT IT OPENS
+`FLAG_HIDE_AQUA_HIDEOUT_1F_GRUNT_1/2_BLOCKING_ENTRANCE` — the two grunts barring the **Lilycove
+Aqua Hideout** entrance are removed. That is ladder row 17 (`TEAM_AQUA_ESCAPED_IN_SUBMARINE`,
+room keys, the Electrode puzzle) and it is a much larger chapter. **This beat is the key to it.**
+
+## SUGGESTED BUILD ORDER
+1. **Anchor first.** Manufacture or find a save with `VAR_SLATEPORT_HARBOR_STATE == 1` — i.e.
+   post-Maxie. `probe_anchor_inventory.py` first; if none exists, `--driver anchorstory` with
+   `CAPTURE_TARGET=SLATEPORT_CITY`. ‼ **Assert the var on the anchor before spending a probe on
+   it** — seven probes ran from the wrong era on 2026-08-10.
+2. **Travel leg**: reach `SLATEPORT_CITY` and the harbor door. ‼ KI-48 (ROUTE110 → MAUVILLE
+   direct navigation, 3/3 failures) and KI-49 (map-granular journeys) are the standing risks on
+   any cross-map leg; prefer an anchor already standing in Slateport.
+3. **The scene**: walk onto `(8,14)` (trigger 3) and ride to `releaseall`.
+4. Grade `VAR_SLATEPORT_HARBOR_STATE == 2`. No statistics.

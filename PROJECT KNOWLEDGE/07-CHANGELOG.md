@@ -10936,3 +10936,19 @@ for recovering. The latch is now one-shot.
 
 ### Upstream
 Daily check 2026-08-11: `upstream-pokebot/main` still `5dd898f8`, unchanged.
+
+### Recon (same day): `12-STORYMODE-DESIGN.md` §Ch16 — the Slateport Harbor submarine theft
+Decomp read (`SlateportCity_Harbor/scripts.inc` + `map.json`) and written up as a build-ready
+spec. **The beat has NO BATTLE in it** — four coord triggers at `x=8, y=11..14`, all gated on
+`VAR_SLATEPORT_HARBOR_STATE == 1` which Ch15's Maxie defeat already sets, so the entry condition
+costs nothing. Completion is binary: `VAR_SLATEPORT_HARBOR_STATE == 2`.
+
+‼ Two traps recorded with the spec, both of which this project has already paid for once:
+* **The var is set roughly halfway through the script**, with Stern's approach, a second msgbox,
+  two setflags and `releaseall` still to run — the `EventScript_ActivateStrength` shape that cost
+  two runs on 2026-08-10. Grade on the var, wait for CONTROL.
+* **`OnTransition` rewrites the map's population** (patrons hidden, Capt. Stern relocated to
+  `(12,13)`), so `map.json` alone does not describe what will be standing there — the same class
+  as the Jagged Pass guard, whose misreading deferred a chapter for three weeks.
+
+It opens `FLAG_HIDE_AQUA_HIDEOUT_1F_GRUNT_1/2_BLOCKING_ENTRANCE`, i.e. the Lilycove Aqua Hideout.

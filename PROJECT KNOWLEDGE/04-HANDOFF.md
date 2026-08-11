@@ -93,9 +93,25 @@ a fixture.**
 ## ⏭ NEXT ACTIONS, IN ORDER
 1. **ASK ABOUT PROMOTION** of `#24-teachmsgstall` to `custom-pokebot/`. `CLAUDE.md` requires
    explicit user approval; a generic "proceed autonomously" is not that. Everything else is ready.
-2. **Build the SLATEPORT SUBMARINE beat** — Maxie's defeat opens it (`VAR_SLATEPORT_CITY_STATE`
-   and `VAR_SLATEPORT_HARBOR_STATE` → 1, Stern / Gabby-and-Ty hide flags cleared). Recon it the
-   way §Ch15 was: decomp first, then a driven probe, graded on a flag.
+2. **Build the SLATEPORT SUBMARINE beat — ✅ RECON IS DONE, the spec is
+   `12-STORYMODE-DESIGN.md` §Ch16** (written 2026-08-11 from `SlateportCity_Harbor/scripts.inc`
+   + `map.json`). Headlines so the next agent can judge the cost before opening it:
+   * **There is NO BATTLE in this beat.** It is a coord-trigger cutscene — the cheapest
+     remaining chapter by a wide margin.
+   * **The precondition is already satisfied by Ch15 for free** — every trigger is gated on
+     `VAR_SLATEPORT_HARBOR_STATE == 1`, which Maxie's defeat sets.
+   * The trigger column is **`SLATEPORT_CITY_HARBOR x=8, y=11..14`**; trigger 3 (`y=14`)
+     `applymovement`s the player into the scene, so aim there from the south doors.
+   * **Completion test: `VAR_SLATEPORT_HARBOR_STATE == 2`.** Binary, no batch.
+   * ‼ **THE TRAP:** that var is set roughly HALFWAY through the script — Stern's approach, a
+     second msgbox, two setflags and `releaseall` all follow. Exiting on the var leaves the
+     avatar `lockall`ed. **This is the exact failure that cost two runs on 2026-08-10.**
+   * It opens `FLAG_HIDE_AQUA_HIDEOUT_1F_GRUNT_1/2_BLOCKING_ENTRANCE` — i.e. the **Lilycove Aqua
+     Hideout**, which is the next (much larger) chapter.
+   * ‼ `OnTransition` rewrites the harbor's population (patrons hidden, Stern moved to `(12,13)`).
+     **Do not model this map from `map.json` alone** — same class as the Jagged Pass guard.
+   Start at §Ch16's "SUGGESTED BUILD ORDER": anchor first, and **assert the var on the anchor**
+   before spending a probe on it.
 3. **KI-48 / KI-49** — the travel bugs; `could not reach` was 72 events in one batch.
 4. **Do NOT grade any of this on the finish rate.** Four batches read 25.0 → 33.3 → 16.1 → 28.6%
    at n≈30 and resolved nothing.
