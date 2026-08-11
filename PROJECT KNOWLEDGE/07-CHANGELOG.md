@@ -11067,3 +11067,36 @@ species / level / HP and **no status**. That one missing field is exactly what w
 — for this fight and for every battle logged since 2026-08-09. A one-line change in a helper that
 already exists. Queued rather than done because the sandbox source is frozen while the anchor
 retry loop is re-importing `modules/` on every attempt.
+
+### ✅ SETTLED: the turn logger now prints STATUS, and it resolved the frozen-PP question in one run
+`_describe(mon)` in `modules/battle_action_selection.py` printed species / level / HP and **no
+status**, so every boss-loss post-mortem in this project had to end in "either a bot bug or
+ordinary status". It now appends `[Confused]` / `[Sleep]` / `[Paralysis]` / … from
+`status_permanent` + `status_temporary`, and only when there IS something — a healthy mon must not
+add noise to the ~800 battle-level samples a batch produces.
+
+Re-running the **deterministic** losing fixture (`magma_door_losing.ss1`) answered it immediately:
+```
+[TURN 3] Sceptile L44 122/122            -> UseMove:Slam(pp19)  vs Crobat L38 90/119
+[TURN 4] Sceptile L44 110/122 [Confused] -> UseMove:Slam(pp19)  vs Crobat L38 90/119
+[TURN 5] Sceptile L44  30/122 [Confused] -> UseItem              vs Crobat L38 90/119
+[TURN 6] Sceptile L44   4/122 [Confused] -> UseMove:Slam(pp19)  vs Crobat L38 90/119
+```
+**Crobat used Confuse Ray and Sceptile hit itself to death** (122 → 110 → 30 → 4). Confusion
+self-hits do not consume PP — that is the entire "frozen PP" mystery. Castform was confused too
+(turns 8-9, 100 → 46).
+
+‼ **`#24-bosstelemetry` LEAD 2 is REFUTED for this instance.** The action pipeline is fine. The bot
+has **no answer to confusion** — it neither switches out nor carries a Persim Berry — which is a
+STRATEGY gap, not a bug. ‼ Scope it honestly: the 2026-08-09 sightings (Cross Chop at pp2,
+Ninjask's Scratch at pp30) were recorded without status and are **not** retro-explained by this;
+confusion is now the leading hypothesis for them and the field to check them with exists.
+
+**CONTROL — the change is behaviourally inert:** with the status suffix stripped, the new run's 41
+turn lines are md5-identical to the three earlier runs (`07f99a10ac8b`). Same fight, one extra
+field.
+
+⇒ **Why the Magma Hideout chapter loses, in one sentence: Crobat confuses the two strongest
+attackers into killing themselves, then Maxie heals Camerupt out of the kill.** Neither is a bug;
+both are gaps in what the bot can DO about a boss. **That is a design decision and it is the
+user's** — see the boss-healing item in `03-PUNCH-LIST` §2.

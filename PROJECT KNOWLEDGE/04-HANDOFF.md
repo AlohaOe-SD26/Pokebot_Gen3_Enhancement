@@ -73,6 +73,21 @@ PYTHONUTF8=1 TEACH_TRACE=1 TEACH_ITEM=HM02 py -3.12 story_harness.py magma_door.
   --driver teachfull --frames 400000 --profile tftrace                # the trace that found it
 ```
 
+## ✅ AND WHY THE MAGMA HIDEOUT CHAPTER LOSES — ANSWERED 2026-08-11, no longer a mystery
+**Crobat confuses the two strongest attackers into killing themselves, then Maxie heals Camerupt
+out of the kill.** Both measured from the chapter's own telemetry:
+```
+[TURN 4] Sceptile L44 110/122 [Confused] -> UseMove:Slam(pp19)  vs Crobat L38 90/119   # 122->110->30->4
+[TURN 14] Skitty L17 45/45 -> UseMove:Tackle(pp35)  vs Camerupt L39  22/110
+[TURN 15] Skitty L17 45/45 -> UseMove:Tackle(pp34)  vs Camerupt L39  67/110            # +45 heal
+```
+‼ **Neither is a BUG.** The action pipeline is fine — confusion self-hits simply do not consume
+PP, which is why "frozen PP" looked like a broken move. The bot has **no answer to confusion**
+(no switch-out, no Persim Berry) and **no answer to a healing boss**. Both are DESIGN decisions and
+they are the user's — see `03-PUNCH-LIST` §2.
+‼ This also **refutes `#24-bosstelemetry` LEAD 2 for this instance**. The 2026-08-09 sightings were
+logged without status and are NOT retro-explained — but the field now exists to re-check them.
+
 ## ‼‼ THREE THINGS THAT WILL SAVE THE NEXT AGENT REAL TIME
 1. **A Gen 3 `Task_XxxYesNo` hands off to `Task_HandleXxxYesNoInput` on the frame the menu
    becomes answerable.** Never key a detector on the DISPLAY task alone — watch the input

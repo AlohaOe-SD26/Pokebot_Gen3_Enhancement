@@ -2071,14 +2071,39 @@ and this telemetry cannot separate them**:
    None of those consume PP either, and Crobat learns **Confuse Ray** and **Bite** (flinch). The
    HP pattern (−12, then −80, then −26 while never acting) fits confusion self-damage well.
 
-⇒ **DO NOT record this as a bot bug.** It is 50/50 on the evidence available.
+⇒ **RESOLVED THE SAME DAY — IT IS CONFUSION, NOT A BOT BUG.** The status field was added to the
+turn logger and the deterministic fixture re-run. One run answered it:
+```
+[TURN 3] Sceptile L44 122/122            -> UseMove:Slam(pp19)  vs Crobat L38 90/119
+[TURN 4] Sceptile L44 110/122 [Confused] -> UseMove:Slam(pp19)  vs Crobat L38 90/119
+[TURN 5] Sceptile L44  30/122 [Confused] -> UseItem              vs Crobat L38 90/119
+[TURN 6] Sceptile L44   4/122 [Confused] -> UseMove:Slam(pp19)  vs Crobat L38 90/119
+```
+Crobat used **Confuse Ray**; Sceptile hit itself 122 -> 110 -> 30 -> 4. Confusion self-hits do not
+consume PP, which is the whole of the "frozen PP" mystery. **Castform was confused too**
+(turns 8-9, 100 -> 46). ‼ **`#24-bosstelemetry` LEAD 2 is REFUTED for this instance** — the action
+pipeline is fine; the bot simply has **no answer to confusion** (it neither switches out nor
+carries a Persim Berry), which is a STRATEGY gap, not a bug.
+‼ Scope it honestly: the 2026-08-09 sightings (Cross Chop at pp2, Ninjask's Scratch at pp30) were
+recorded WITHOUT status and are not retro-explained by this — but confusion is now the leading
+hypothesis for them, and the field to check them with exists.
 
-### ‼ THE ACTIONABLE ITEM: the telemetry is missing the ONE field that would settle its own lead
-`modules/battle_action_selection.py`'s `_describe(mon)` prints species / level / HP and **no
-status**. Adding status to that one helper turns "either a bot bug or Confuse Ray" into a decided
-question — for this fight and for every logged battle since. It has been the open half of
-`#24-bosstelemetry` lead 2 since 2026-08-09, and it is a one-line change in a helper that already
-exists. **Do that before theorising about boss losses again.**
+**CONTROL: the telemetry change is behaviourally inert.** With the status suffix stripped, the new
+run's 41 turn lines are md5-identical to the three earlier runs (`07f99a10ac8b`) — same fight, one
+extra field.
+
+### ✅ DONE: the turn logger now prints STATUS
+`modules/battle_action_selection.py`'s `_describe(mon)` printed species / level / HP and no status,
+which is why every boss-loss post-mortem here had to end in "either a bot bug or ordinary status".
+It now appends `[Confused]` / `[Sleep]` / `[Paralysis]` / … from `status_permanent` +
+`status_temporary`, and **only when there is something** — a healthy mon must not add noise to the
+~800 battle-level samples a batch produces.
+
+### ⇒ SO WHY THE CHAPTER LOSES, in one sentence
+**Crobat confuses the two strongest attackers into killing themselves, and then Maxie heals
+Camerupt out of the kill.** Neither is a bug: both are gaps in what the bot can DO about a boss.
+That is a design decision (status response / burst damage / item policy) and belongs to the user —
+see the boss-healing entry in `03-PUNCH-LIST` §2.
 
 **Also not yet investigated:** whether the whiteouts are the same worn-party problem the travel leg
 already has (Ch14 hands over 3-of-6 fainted, no Revives), or whether the interior's own trainer

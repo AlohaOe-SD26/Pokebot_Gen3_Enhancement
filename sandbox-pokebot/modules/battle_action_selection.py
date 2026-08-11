@@ -158,13 +158,49 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
                 except Exception:  # noqa: BLE001
                     _what = f"{_what}:idx{index}"
 
+            def _status_of(mon) -> str:
+                """Permanent + temporary status, compactly. '' when perfectly healthy.
+
+                ‼‼ THIS IS NOT DECORATION — it is the field that decides `#24-bosstelemetry`'s
+                LEAD 2, open since 2026-08-09 ("a 'selected but not executed' pattern also appears
+                on NATURAL mons mid-battle"). Measured 2026-08-11 on the Maxie fight:
+
+                    [TURN 3] Sceptile L44 122/122 -> UseMove:Slam(pp19)  vs Crobat L38 90/119
+                    [TURN 4] Sceptile L44 110/122 -> UseMove:Slam(pp19)  vs Crobat L38 90/119
+                    [TURN 6] Sceptile L44   4/122 -> UseMove:Slam(pp19)  vs Crobat L38 90/119
+
+                PP frozen at 19 across three selections, the opponent untouched, and the party's
+                best attacker dead. ‼ A MISS cannot explain frozen PP — a missed move still
+                consumes it. But **sleep, freeze, full paralysis, flinch and a confusion self-hit
+                do not consume PP either**, and Crobat learns Confuse Ray and Bite. Two causes,
+                opposite fixes, and the turn line could not tell them apart because it printed
+                species / level / HP and nothing else.
+
+                Without this field every boss-loss post-mortem in the project has had to end in
+                "either a bot bug or ordinary status". With it, the log answers.
+                """
+                try:
+                    perm = getattr(getattr(mon, "status_permanent", None), "name", None)
+                    parts = [perm] if perm and perm != "Healthy" else []
+                    parts += [
+                        getattr(t, "name", str(t))
+                        for t in (getattr(mon, "status_temporary", None) or [])
+                    ]
+                    return "/".join(parts)
+                except Exception:  # noqa: BLE001 - instrumentation must never affect the battle
+                    return "?"
+
             def _describe(mon) -> str:
                 if mon is None:
                     return "?"
+                status = _status_of(mon)
                 return (
                     f"{getattr(getattr(mon, 'species', None), 'name', '?')}"
                     f" L{getattr(mon, 'level', '?')}"
                     f" {getattr(mon, 'current_hp', '?')}/{getattr(mon, 'total_hp', '?')}"
+                    # Only printed when there IS something — a healthy mon must not gain noise on
+                    # every one of the ~800 battle-level samples a batch produces.
+                    + (f" [{status}]" if status else "")
                 )
 
             debug_logger.event(
