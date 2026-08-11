@@ -397,6 +397,194 @@ class LevelUpTravelBattleStrategy(LevelUpLeadBattleStrategy):
         return True
 
 
+class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
+    """`#24-battleitems` — fights like LevelUpTravel, but USES HEALING ITEMS in trainer battles.
+
+    USER DIRECTIVE 2026-08-09: *"I want the bot to use items intelligently and strategically."*
+
+    ‼ WHY, MEASURED. Batch `20260809-155844` (16,749 battles) found **the opponent healing and the
+    bot never doing so**: Norman's `Slaking` was restored **27 times, median +81 HP, max +119**
+    while the party did 6-8 chip damage a turn, and **61.8% of boss-length battles** show an
+    opponent heal. Boss losses end **~88% of all non-finishing runs**. The counter chain answers
+    "what type beats this" — which cannot beat an opponent that out-heals us.
+
+    ‼ SCOPE IS TRAINER BATTLES ONLY, deliberately. Wild encounters keep the existing behaviour
+    exactly: spending potions on a route wild is the opposite of "strategically", and narrowing
+    the blast radius means a mistake here cannot touch the training/catching paths that are
+    already measured and working.
+
+    ‼ THE POLICY IS NOT IN THIS CLASS. It lives in `modules/story/battle_items.py` as a PURE
+    function so it can be tested exhaustively without an emulator (`repro_battle_items.py`, 27
+    checks). This class only supplies the facts the policy needs — current HP, what is in the bag,
+    the biggest hit taken so far — and turns its answer into a `TurnAction`.
+
+    ‼ AND IT FAILS OPEN. Every part of the decision is wrapped so that any error falls straight
+    through to the normal strategy: a new feature must not be able to break a battle that worked
+    before it existed.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        #: items used THIS battle — the bound that stops a heal-war with a healing boss
+        self._item_uses = 0
+        #: biggest single HP loss observed this battle, for the "don't heal into a losing race" rule
+        self._worst_hit = 0
+        #: last seen HP per party index, to derive the above
+        self._hp_seen: dict = {}
+        #: ‼ NO-OP DETECTOR (see `_maybe_use_item`). `(party_index, hp)` at the moment we last
+        #: asked for an item — the INDEX is half the value: without it the check compares two
+        #: different Pokémon. See `08-MISTAKES` 2026-08-10.
+        self._hp_when_item_requested = None
+        #: set once BOTH index spaces have demonstrably done nothing; stops wasting more turns
+        self._items_ineffective = False
+        #: which index space to address the party menu in. ‼ NOT a constant: the FIRST choice is
+        #: made per use by `_preferred_index_space()` from measured data, and the self-correcting
+        #: block below flips it once if that guess is wrong.
+        self._index_space = "party"
+        #: only ever flip once per battle, so a failure costs one extra turn and not a loop
+        self._index_space_flipped = False
+
+    def decide_turn(self, battle_state):
+        try:
+            action = self._maybe_use_item(battle_state)
+        except Exception:  # noqa: BLE001 - a battle that worked before must keep working
+            action = None
+        if action is not None:
+            return action
+        return super().decide_turn(battle_state)
+
+    def _maybe_use_item(self, battle_state):
+        from modules.battle_state import BattleType
+        from modules.items import ItemBattleUse, get_item_bag
+        from modules.story.battle_items import choose_healing_item
+
+        if BattleType.Trainer not in battle_state.type:
+            return None  # wilds keep the existing behaviour, untouched
+        mon = battle_state.own_side.left_battler
+        if mon is None or mon.total_hp <= 0:
+            return None
+
+        # Track the biggest hit we have actually taken, per mon, so the policy can refuse to
+        # heal when healing would still lose the exchange.
+        previous = self._hp_seen.get(mon.party_index)
+        if previous is not None and previous > mon.current_hp:
+            self._worst_hit = max(self._worst_hit, previous - mon.current_hp)
+        self._hp_seen[mon.party_index] = mon.current_hp
+
+        # ‼‼ NO-OP DETECTOR — MEASURED NECESSARY, NOT DEFENSIVE PROGRAMMING (2026-08-09).
+        # The first live A/B of this feature selected `Hyper Potion` FOUR times on the SAME turn
+        # of the Norman fight with HP frozen at `23/120`, and the bag afterwards showed **3 of 4
+        # potions still there** — i.e. one of five requests actually consumed an item. The battle
+        # menu flow does not reliably execute a `UseItem` action, and each failed request costs a
+        # TURN. Without this guard the feature is a REGRESSION in exactly the fight it was built
+        # for: four donated turns against a boss.
+        # So: if a request did not raise our HP by the next decision, stop asking for this battle.
+        # That bounds the damage to one wasted turn while the execution bug is still open.
+        if self._hp_when_item_requested is not None:
+            requested_index, requested_hp = self._hp_when_item_requested
+            # ‼‼ ONLY JUDGE THE SAME POKÉMON, AND ONLY IF IT IS STILL ALIVE (fixed 2026-08-10).
+            # This check used to read `own_side.left_battler` at the next decision and compare it
+            # against the HP recorded for whoever asked for the item — but after a faint that is
+            # the REPLACEMENT mon, so the guard blamed the item for a death. Measured: **9 of the
+            # 10 "both index spaces failed" verdicts** in batch `20260810-035733` were immediately
+            # followed by a `[FAINT-CHOOSER]`. A before/after comparison must prove it is
+            # comparing the same subject.
+            if mon.party_index != requested_index or mon.current_hp == 0:
+                self._hp_when_item_requested = None
+            elif mon.current_hp <= requested_hp:
+                # ‼‼ SELF-CORRECTING INDEX SPACE (2026-08-10) — because the question cannot be
+                # settled by reading the code. Measured: 85 targeted uses completed the FULL menu
+                # flow and 32 battles saw no HP rise, so the potion lands on the WRONG MON; and
+                # the two candidate spaces disagree constantly in the logs (`party 0` vs
+                # `battle-order 1` x19, `(1,0)` x12). The after-faint chooser treats
+                # `map_battle_party_index()` as MENU order and is right there (that is the KI-34
+                # fix), while the fixture proved the PARTY index right for the item menu — so the
+                # two menus are simply not ordered the same way, and a third guess would be a
+                # guess. Instead: when a use demonstrably does nothing, FLIP the space and try
+                # once more, and LOG which one worked. One wasted turn buys the answer, and a
+                # batch of these lines settles the convention with data instead of argument.
+                if not self._index_space_flipped:
+                    self._index_space_flipped = True
+                    self._index_space = "battle" if self._index_space == "party" else "party"
+                    note = f"retrying with the {self._index_space}-order index"
+                else:
+                    self._items_ineffective = True
+                    note = "both index spaces failed; disabling items for the rest of this battle"
+                try:
+                    from modules import debug_logger
+
+                    debug_logger.event(
+                        f"[ITEM] ‼ no effect (HP still {mon.current_hp}/{mon.total_hp}) — {note}",
+                        category="BATTLE",
+                    )
+                except Exception:  # noqa: BLE001
+                    pass
+            elif self._item_uses >= 1:
+                # It WORKED — record which space did it. This is the line that answers the
+                # question across a batch.
+                try:
+                    from modules import debug_logger
+
+                    debug_logger.event(
+                        f"[ITEM] ✔ landed using the {self._index_space}-order index "
+                        f"(HP now {mon.current_hp}/{mon.total_hp})",
+                        category="BATTLE",
+                    )
+                except Exception:  # noqa: BLE001
+                    pass
+            self._hp_when_item_requested = None
+        if self._items_ineffective:
+            return None
+
+        options = [
+            (slot.item, slot.quantity, slot.item.parameter)
+            for slot in get_item_bag().items
+            if slot.item.battle_use is ItemBattleUse.Healing and slot.item.parameter > 0
+        ]
+        item = choose_healing_item(
+            mon.current_hp,
+            mon.total_hp,
+            options,
+            worst_hit_taken=self._worst_hit,
+            uses_so_far=self._item_uses,
+        )
+        if item is None:
+            return None
+
+        self._item_uses += 1
+        self._hp_when_item_requested = (mon.party_index, mon.current_hp)
+        try:
+            from modules import debug_logger
+
+            debug_logger.event(
+                f"[ITEM] using {item.name} on {getattr(mon.species, 'name', '?')} "
+                f"{mon.current_hp}/{mon.total_hp} (use {self._item_uses}, worst hit {self._worst_hit})",
+                category="BATTLE",
+            )
+        except Exception:  # noqa: BLE001
+            pass
+        # ‼ THE STRATEGY OWNS THE INDEX SPACE, not the menu driver. `battle_action_use_item` now
+        # uses whatever index it is given verbatim, so the choice — and the self-correction above
+        # — belong here, where the outcome can actually be observed.
+        # ‼ FIRST CHOICE IS NOW DATA-DRIVEN (batch `20260810-035733`, 29 landings). Cross-tabulating
+        # which space LANDED against the target's party position gave a clean split:
+        #     party-order landed  19 of 19  when the target was party slot 0, and 0 times above it
+        #     battle-order landed  9 of 10  when the target was ABOVE slot 0
+        # (Every one of those 9 is a case where party order had already failed and cost a turn.)
+        # So guess accordingly instead of always opening with party order. The flip below is kept
+        # as the safety net — the rule is empirical, from 29 observations, not a proof.
+        if not self._index_space_flipped:
+            self._index_space = "party" if mon.party_index == 0 else "battle"
+
+        target = mon.party_index
+        if self._index_space == "battle":
+            try:
+                target = battle_state.map_battle_party_index(mon.party_index)
+            except Exception:  # noqa: BLE001
+                target = mon.party_index
+        return TurnAction.use_item_on(item, target)
+
+
 class SwapTrainBattleStrategy(LevelUpTravelBattleStrategy):
     """SWAP-TRAINING (user directive 2026-07-21). Level a weak team member by having a
     stronger team-mate secure the KO while the trainee (which was sent out first)
@@ -2130,7 +2318,12 @@ class StoryMode(BotMode):
         # refuses to flee a TRAINER battle (single-mon party can't — see ML-8),
         # fighting on instead; used for training wilds, the rival, and route
         # trainers. The scripted first battle is a Tutorial (framework-handled).
-        return LevelUpTravelBattleStrategy()
+        #
+        # ‼ `#24-battleitems` (user directive 2026-08-09): this is now the ITEM-AWARE subclass.
+        # It is a strict superset — `StoryItemBattleStrategy` only acts in TRAINER battles, and
+        # falls through to exactly this behaviour everywhere else and whenever its policy says
+        # no. Wild encounters, training and catching are therefore bit-identical to before.
+        return StoryItemBattleStrategy()
 
     def run(self) -> Generator:
         # DEFEAT / WHITEOUT RECOVERY (user directive 2026-07-21): the segmented resume

@@ -922,3 +922,52 @@ start at FULL health). The single anchor that motivated the hypothesis was simpl
 representative.
 
 `custom-pokebot` and `sandbox-pokebot` are at **zero source drift** after this promotion.
+
+---
+
+## 2026-08-10 — PROMOTION: `#24-battleitems` — the bot uses healing items in trainer battles (3 files)
+
+**User-approved 2026-08-10.** User directive: *"I want the bot to use items intelligently and
+strategically."*
+
+| file | what it adds |
+|---|---|
+| `modules/story/battle_items.py` | **NEW.** The pure decision policy — no emulator, no game state. |
+| `plugins/custom_modes/story_mode.py` | `StoryItemBattleStrategy` (trainer battles only, fails open) |
+| `modules/battle_action_selection.py` | fixes a real index-space bug + per-turn/flow telemetry |
+
+**Why it exists — measured, not assumed.** Batch `20260809-155844` (16,749 battles) found the
+opponent healing and the bot never doing so: Norman's `Slaking` restored **27 times, median +81
+HP, max +119**, while the party did 6-8 chip damage a turn. Boss losses end **~80-88% of all
+non-finishing runs**.
+
+**The policy** (heal amounts read from `items.json`, never from memory): only below 35% HP;
+**cheapest sufficient** item so a Full Restore is never burned on a scratch; **never heal into a
+losing race** (if our best heal is smaller than the biggest hit taken, attack instead); and
+**bounded per battle** — the opponent heals too, and two healers with no bound is an infinite
+battle. `repro_battle_items.py`: **27 checks, no emulator.**
+
+**‼ A REAL UPSTREAM BUG WAS FIXED UNDERNEATH IT.** `battle_action_use_item` converted the target
+with `map_battle_party_index()` — a BATTLE-order index — and fed it to `scroll_to_party_menu_index`,
+which drives the PARTY MENU cursor. Item use therefore did nothing whenever the two spaces
+disagreed (measured: **5 requests → 1 potion consumed**). After the fix: **3 requests → 3
+consumed, `Blaziken 23/120 → 120/120`.** ‼ Ball throwing passes no target and never enters that
+branch, so catching is untouched.
+
+**‼ THE INDEX SPACE IS CONDITIONAL, and the code knows it.** Measured over a batch: party-order
+landed **19/19** when the target was party slot 0 and **never** above it; every landing above slot
+0 was battle-order. The strategy now picks its first guess from the target's position and **flips
+once and logs which space landed** if that guess is wrong. Validation batch `20260810-082509`:
+flips **20 → 2**, both-spaces-failed **10 → 0**.
+
+### ‼ OUTSTANDING AT PROMOTION TIME
+* **NO OUTCOME METRIC HAS RESOLVED.** Finish rate across the four item-era batches reads
+  **25.0 → 33.3 → 16.1 → 28.6%** at n≈30 each — mean ≈25.8%, not one pair resolvable, ~12 hours of
+  batching. Boss-length battle win rate moved 51.1% → 53.3% (z = 0.88). **Do not quote this
+  feature as a finish-rate improvement.** It is promoted because the MECHANISM is proven and its
+  failure modes are bounded, not because outcomes moved.
+* The **no-op guard** stays: if a use does not raise HP by the next decision, items are disabled
+  for that battle. It costs at most one turn.
+* Verified against `custom-pokebot` itself: three files parse, and the policy answers correctly on
+  heal/decline/cheapest-sufficient/losing-race/bound, with the strategy, the self-correcting index
+  and the same-subject guard all present.
