@@ -82,6 +82,27 @@ repro-fresh` or `repro-ml`). Regenerate any by running the story to that point.
 (`saves/midstuck.ss1` is a SCRATCH state some drivers overwrite when stuck — gitignored,
 never rely on it across runs.)
 
+## ★ Tools added 2026-08-09/10 (each carries a POSITIVE CONTROL)
+
+‼ `x4-runs/` is **gitignored**, so the **Grep TOOL silently reports 0** on batch logs. Read them
+from Bash/Python and print the byte count, or you will confidently measure nothing.
+
+| tool | answers |
+|---|---|
+| `probe_anchor_inventory.py` | what era/map/party every save in `saves/` actually holds. ‼ reports the map as a **`MapRSE` enum** — `map_name` is a label and interiors carry their city's name |
+| `analyse_conversion.py <stamp> [--compare <stamp>]` | counter chain: hunts started vs **REAL** catches (+ a two-proportion z). Splits reported vs real — one batch reported 13 catches of which 3 were real |
+| `probe_boss_healing.py <stamp>` | do opponents heal mid-battle, and by how much. ‼ reports **two classes**: ≥50 HP is understood (trainer items); the small class is unexplained and quarantined |
+| `probe_fainted_ace.py <stamp>` | does the bot start battles with party members already fainted (reads the `hp=` field; older batches correctly report NO DATA rather than zero) |
+| `probe_item_index_space.py <stamp>` | which party-menu index space item use needs. Reports NO LANDING RECORDS for pre-telemetry batches instead of "it never works" |
+| `probe_r116_east_grass.py` | intra-map reachability with an east/west contrast — the pattern for any "is this pocket reachable" question |
+| `repro_battle_items.py` | the healing-item policy, exhaustively — **27 checks, no emulator, seconds** |
+
+**New drivers** (`story_harness.py --driver …`): `anchorcapture` / `anchorstory` (MAKE a save
+anchor; `anchorstory` has `CAPTURE_FORBID_FLAG` to guard the ERA — use it), `groundsweep` (DRIVEN
+reach-**and-leave** proof), `magmadoor` (Magma Hideout entry), and `normancounter` (‼ has a CONTROL
+arm `NORMAN_MACHOP_LEVEL=0`; the natural moveset is the default because the explicit one is
+**known-broken** — it builds move slots the engine selects but never executes).
+
 ## Recon / probe scripts (standalone; edit + rerun)
 - `maprecon.py` / `maprecon2.py` — static ROM map recon (`get_map_data`): warps, objects
   (NPC/item `script_symbol`), connections, sizes. How Area Atlases are built. Reliable data.

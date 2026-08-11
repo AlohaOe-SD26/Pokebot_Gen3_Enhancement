@@ -29,9 +29,9 @@ Pokebot_Gen3_Enhancement/
 ├── Pokemon_Emerald_AI_Notes.md    # Cross-project transfer notes (Emerald AI project)
 ├── install.py                     # installer/updater/healer for custom-pokebot
 ├── install_sandbox.py             # same, for sandbox-pokebot
-├── PROJECT KNOWLEDGE/             # ★ this documentation set (00–23 + playbooks)
+├── PROJECT KNOWLEDGE/             # ★ this documentation set (00–24 + playbooks)
 │   ├── 00–08 kit docs             # vision, architecture, punch list, handoff, logs
-│   ├── 09–23 design/recon docs    # storymode design, living dex, team policy, …
+│   ├── 09–24 design/recon docs    # storymode design, living dex, team policy, …
 │   ├── ai-research-notes/         # Gemini notes — RECALL ONLY, never authoritative
 │   └── REFERENCE-INSTALLER-PATTERN.md  # Nick's installer-as-codebase spec
 ├── PROJECT KIT/                   # portable bootstrap that makes the repo resumable anywhere
@@ -40,7 +40,7 @@ Pokebot_Gen3_Enhancement/
 ├── tools/story-dev/               # ★ the Story-bot test harness, drivers, recon scripts, repro suite
 │   ├── story_harness.py           # replicates main.py's loop exactly (see 14-AGENT-PLAYBOOK §2)
 │   ├── livetest.py                # headless batch runner
-│   ├── repro_*.py                 # 52 regression reproducers — THE verification bar (§2b)
+│   ├── repro_*.py                 # 84 regression reproducers — THE verification bar (§2b)
 │   ├── audit_flag_names.py        # proves a flag/var NAME is real before code depends on it
 │   └── saves/                     # committed checkpoint .ss1 progression sampler
 ├── 40cakes repo/                  # ★ everything about the ORIGINAL program

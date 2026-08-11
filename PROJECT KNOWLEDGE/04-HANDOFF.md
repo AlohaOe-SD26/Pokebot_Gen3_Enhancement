@@ -360,7 +360,8 @@ PYTHONUTF8=1 py -3.12 probe_r116_east_grass.py
 # a batch (3h, 8 lanes) — for DISCOVERING failure modes, and for conversion
 PYTHONUTF8=1 py -3.12 x4_headless.py --lanes 8 --minutes 180
 ```
-**Counter/boss repro suite (8, ALL GREEN — re-run 2026-08-09):** `repro_counter_hunt`,
+**Regression gate (ALL GREEN — re-run 2026-08-10):** `repro_battle_items` (27 checks, the item
+policy), plus the counter/boss suite — `repro_counter_hunt`,
 `repro_counter_huntable`, `repro_movepool_counter_candidates`, `repro_hunt_driven_grounds`,
 `repro_counter_move_answer`, `repro_boss_plateau`, `repro_boss_cfg_coverage`, `repro_area_item_gate`.
 
