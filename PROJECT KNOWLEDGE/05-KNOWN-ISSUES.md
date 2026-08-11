@@ -2089,11 +2089,24 @@ than **300 consecutive frames**, it raises immediately and reports the real stat
   frames (~5s) is longer than any transition here and still ~200x cheaper than the full bound.
 * **An unreadable map counts as "still on 4F"**, so a reader error can never end the fight.
 
-‼ **WHAT IS NOT PROVEN: the guard FIRING LIVE.** Run `mh-anchor2` lost and stopped ~20,600
-frames into the Maxie step — far short of the 60,000 bound — but that is **not** evidence the new
-guard did it, because **`_check_abort()` is an equally possible raise in the same loop** and that
-run's stdout was lost. Do not record "the guard fired" until a run prints the message
-`left MAGMA_HIDEOUT_4F during the Maxie challenge`.
+✅ **CONFIRMED LIVE 2026-08-11** (`mh-try1`, the anchor retry loop) — the guard fired and printed
+its own message, which is the evidence that was missing when this entry was first written:
+```
+[magmahideout] FAILED: BotModeError: Magma Hideout: left MAGMA_HIDEOUT_4F during the Maxie
+challenge without Groudon awakening — almost certainly a WHITEOUT. map=(0, 2) tile=(22, 6)
+party_alive=6/6 (was standing (15, 21) facing Right at Maxie (16, 21), 2209 frames in).
+```
+`map=(0,2)` is MAUVILLE_CITY and `(22,6)` is the whiteout respawn tile — exactly the state the
+pre-fix loop rode straight past. **It stopped at 2,209 frames against a 60,000-frame bound**, so
+this failure cost ~57,800 fewer frames than it used to. (An earlier run stopping at ~20,600 frames
+was NOT counted as proof, because `_check_abort()` is an equally possible raise in the same loop
+and that run's stdout was lost. This one prints the message, so it is decided.)
+
+‼ **AND IT CORRECTS ONE OF MY OWN CHOICES: `party_alive=6/6` is NOT diagnostic here.** I put that
+field in the message expecting it to be the corroborating fact for "whiteout" — but a whiteout
+HEALS the party, so it reads full precisely BECAUSE the thing happened. The diagnosis rests
+entirely on the **map**. The field is still worth printing (it rules out "the party is dying right
+now"), but a future reader must not treat 6/6 as contradicting the whiteout call.
 ‼ And note WHY `_check_abort()` did not save the PRE-fix run: it raises on `_STORY_ABORT`, which
 **StoryMode's** whiteout handling sets — a harness driver need not mirror that override
 (`04-HANDOFF`: "a harness driver must mirror the OVERRIDES of the mode it stands in for"). **A

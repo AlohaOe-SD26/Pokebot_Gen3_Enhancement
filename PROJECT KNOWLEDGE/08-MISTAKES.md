@@ -4454,3 +4454,24 @@ reliably; *completes* 1 of 2". The chapter's navigation really is proven — the
 
 **Prevention rule.** *Every row in an "already proven" table needs its n. A claim about a step
 containing a battle is a RATE, never a fact — write it as k/n or do not write it.*
+
+---
+
+## 2026-08-11 — I put a field in a failure message that reads the OPPOSITE of what I expected
+
+**Symptom.** KI-51's new guard reports `party_alive` so a reader can see *why* "whiteout" is the
+diagnosis. Its first live firing printed **`party_alive=6/6`** — a full, healthy party — beside the
+words "almost certainly a WHITEOUT".
+
+**Root cause.** A whiteout **heals the party**. The field reads full precisely BECAUSE the thing
+happened, so it corroborates nothing; the diagnosis rests entirely on the map having changed. I
+chose the field by asking "what would show the party lost?" instead of "what will this field
+actually read at the moment the message prints?".
+
+**The fix that worked.** Kept the field (it still rules out "the party is dying right now") and
+documented that 6/6 does not contradict the whiteout call, so the next reader does not spend time
+reconciling them.
+
+**Prevention rule.** *Before putting a field in a failure message, predict the value it will hold
+AT THAT MOMENT — not the value that would have made the failure obvious. A field that always reads
+healthy at the point of failure is decoration, and a misleading one if it looks like evidence.*

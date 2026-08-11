@@ -125,12 +125,12 @@ a fixture.**
      automatic. **Then run `probe_ch16_anchor.py` before building anything on it.** ‼ Budget for
      it: **the chapter wins 1 in 3**, so expect ~3 runs of ~6-10 min each. Give each run a
      timeout well over 10 minutes — one of mine was cut off by a 10-minute cap mid-fight.
-   * ‼ **KI-51, FIXED (structurally proven; live firing UNCONFIRMED)**: a losing run used to ride
-     60,000 frames at an empty overworld and then blame "the Maxie challenge never resolved". It
-     now fails after 300 off-map frames with the real state (map, tile, `party_alive`), so a retry
-     loop is cheap. `repro_maxie_whiteout_guard.py` pins it (18 checks, fault-injected red).
-     **If you re-run the chapter and it loses, grab the stdout** — a line reading
-     `left MAGMA_HIDEOUT_4F during the Maxie challenge` is the missing live confirmation.
+   * ✅ **KI-51, FIXED AND CONFIRMED LIVE**: a losing run used to ride toward 60,000 frames at an
+     empty overworld and then blame "the Maxie challenge never resolved". It now stops with the
+     real state — measured `mh-try1`: **2,209 frames**, `map=(0,2)` (MAUVILLE_CITY) `tile=(22,6)`,
+     i.e. ~57,800 frames cheaper than the bound. `repro_maxie_whiteout_guard.py` pins the
+     structure (18 checks, fault-injected red). ‼ **`party_alive` reads 6/6 in that message and
+     that is NOT a contradiction** — a whiteout heals the party; the diagnosis rests on the MAP.
    Then §Ch16's steps 2-4. **✅ THE IMPLEMENTATION PLAN IS WRITTEN** —
    `12-STORYMODE-DESIGN.md` §Ch16 "IMPLEMENTATION PLAN" has the decomp-read route
    (`SLATEPORT_CITY (28,12)` -> harbor `(11,14)` -> walk west to trigger 3 at `(8,14)`), the
