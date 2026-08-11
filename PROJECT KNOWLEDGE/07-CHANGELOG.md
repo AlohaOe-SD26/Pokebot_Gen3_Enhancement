@@ -10468,3 +10468,38 @@ from the wrong era.
 **`#24-magmahideout` is now READY TO BUILD**, with `saves/post_mtpyre.ss1` as the development
 anchor (guard already gone, Magma Emblem held). The chapter runs after Mt. Pyre, so in a real run
 the flag is set by the time it matters.
+
+---
+
+## 2026-08-10 — SESSION WRAP-UP. 55 commits. Zero drift. Next chapter specified.
+
+**Promoted (user-approved):** `#24-battleitems`. `custom-pokebot` and `sandbox-pokebot` are at
+**zero source drift** across five promotions this session.
+
+**What shipped:** the healing-item feature (pure policy + 27 unit checks, trainer-battles-only
+integration, a real `battle_action_use_item` index-space bug fixed, a self-correcting index guess
+derived from batch data, and a same-subject fix to its no-op detector); `#24-bosstelemetry`
+parts 1+2 (per-turn decisions, party HP at battle start); anchor manufacturing
+(`probe_anchor_inventory.py`, `--driver anchorcapture` / `anchorstory`); and five analysis probes
+(`analyse_conversion.py`, `probe_boss_healing.py`, `probe_fainted_ace.py`,
+`probe_item_index_space.py`, `probe_r116_east_grass.py`).
+
+**What was ANSWERED rather than built** — the higher-value half:
+* `#24-r116sweep` — DO NOT ADD ROUTE116; **Wattson has no legal huntable counter**, so the chain
+  stopping for him is correct behaviour.
+* `#24-teachmsgstall` — reproduced deterministically after nine fixtures; three candidate causes
+  refuted.
+* **Three punch-list items marked "ready to build"/"awaiting validation" had already shipped**
+  (`#24-leadcounter`, `#24-counters` phase 2, `#24-r121gate`).
+* `#24-magmahideout` — a three-week deferral was **wrong**: a Magma guard on the entry tile, not
+  one-way ledges. The chapter is unblocked and fully specified in `12-STORYMODE-DESIGN.md` §Ch15.
+* **Finish rate retired as a target** on evidence: 25.0 → 33.3 → 16.1 → 28.6% at n≈30, ~12 hours,
+  nothing resolvable.
+
+**Corrections made to my own work, in the record:** the six-arm counter sweep (measured a mon that
+could not attack), "the fainted ace generalises" (6.4%, not 99.4%), "61.8% of boss-length battles
+heal" (17.0% for the understood class), and "the magma hideout blocker is real, build with
+scripted movement" (it was an NPC in the wrong era).
+
+**Next:** build `§Ch15` starting with the travel leg, from `post_mtpyre.ss1`, graded binary on
+`GROUDON_AWAKENED_MAGMA_HIDEOUT`.

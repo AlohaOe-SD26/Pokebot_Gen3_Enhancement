@@ -21,7 +21,7 @@ game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror
 | branch / HEAD | `main`, clean, **0 unpushed** |
 | box | **IDLE — nothing running.** Last batch `20260810-082509` finished ~11:25 AM 2026-08-10 (VERDICT OK, 28 runs). |
 | story content | Littleroot → 6 badges → **Mt. Pyre → Magma Emblem**. Magma Hideout UNLOCKED but UNBUILT. |
-| promotion | ✅ four promotions, all user-approved (the fence, `#24-progressiongate`, `#24-bosstelemetry` parts 1+2). ‼ **`#24-battleitems` is sandbox-only and UNPROMOTED — 3 files**: `modules/story/battle_items.py` (NEW — `diff -rq` reports new files as "Only in", so a plain diff under-counts drift), `plugins/custom_modes/story_mode.py`, `modules/battle_action_selection.py`. Deliberate: no outcome metric has resolved. |
+| promotion | ✅ **FIVE promotions, all user-approved — `custom-pokebot` and `sandbox-pokebot` are at ZERO source drift** (the fence, `#24-progressiongate`, `#24-bosstelemetry` parts 1+2, and `#24-battleitems`). ‼ `#24-battleitems` shipped with **no resolved outcome metric** — see its DIVERGENCE-LOG entry before quoting it. |
 | ‼ is code frozen? | **No — nothing is running.** The rule applies only during a batch: never edit `sandbox-pokebot/` mid-batch, because restarted lanes re-import from disk. `tools/story-dev/` and docs are always safe. |
 
 ## ‼ THE ONE NUMBER THAT MATTERS, AND HOW TO GRADE ANYTHING HERE
@@ -310,8 +310,9 @@ anchor against the STORY CLOCK, not just the map.**
 2. **Do NOT grade mechanism work on the finish rate.** Four batches read 25.0 → 33.3 → 16.1 →
    28.6% at n≈30; nothing resolved, ~12 hours spent. Battle-level metrics have ~800 samples per
    batch — use `probe_boss_healing.py`, `probe_item_index_space.py`, `analyse_conversion.py`.
-3. **`#24-battleitems`** — works and is measured, still sandbox-only by choice. Promote when an
-   outcome resolves, not before.
+3. **`#24-battleitems`** — ✅ promoted 2026-08-10; zero drift. ‼ Its OUTCOME is still unproven, so
+   the open question is whether boss item usage actually converts fights — measure that with
+   BATTLE-level metrics (boss win rate), never the finish rate.
 4. **KI-48 / KI-49** — the travel bugs. KI-49 (map-granular journeys arriving at a dead-end
    entrance) is the one most likely to bite the Ch15 travel leg.
 5. `#24-teachmsgstall` — reproduced deterministically, 3 causes refuted, LOW priority (zero
