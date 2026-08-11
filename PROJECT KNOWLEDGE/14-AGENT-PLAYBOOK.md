@@ -97,6 +97,33 @@ which **3 were real** — the rest were Pokémon already in the party.
 
 ---
 
+## 0d. ‼ THE INSTRUMENTS — what already exists, so you do not rebuild it (added 2026-08-10)
+
+Every one carries a **positive control** and prints what it searched. ‼ `x4-runs/` is gitignored,
+so the **Grep TOOL silently reports 0 on it** — always read batch logs from Bash/Python and print
+the byte count.
+
+| tool | answers | note |
+|---|---|---|
+| `probe_anchor_inventory.py` | what era/map/party is in every save | reports the map as a **`MapRSE` enum** — `map_name` is a label and interiors carry their city's |
+| `--driver anchorcapture` | make an anchor by navigating there | refuses to overwrite, refuses non-controllable states |
+| `--driver anchorstory` | make an anchor by letting the REAL bot play to it | `CAPTURE_FORBID_FLAG` guards the ERA — **use it** |
+| `analyse_conversion.py` | counter chain: hunts vs **REAL** catches, with a z | splits reported vs real; `--compare <stamp>` |
+| `probe_boss_healing.py` | do opponents heal, and how much | **two classes**: ≥50 HP is understood (items); the small class is quarantined and unexplained |
+| `probe_fainted_ace.py` | does the bot start battles with mons already down | reads the `hp=` field; older batches correctly report NO DATA |
+| `probe_item_index_space.py` | which party-menu index space item use needs | reports NO LANDING RECORDS for pre-telemetry batches rather than "it never works" |
+| `probe_r116_east_grass.py` | intra-map reachability with an east/west contrast | the pattern for "is this pocket reachable" questions |
+| `--driver groundsweep` | DRIVEN reach-**and-leave** proof for a hunting ground | the only evidence that counts for `HUNTING_GROUNDS` |
+| `--driver normancounter` | does a counter at level L beat Norman | ‼ has a CONTROL arm (`NORMAN_MACHOP_LEVEL=0`); natural moveset is the default because the explicit one is **known-broken** |
+| `--driver magmadoor` | can the bot reach/enter the Magma Hideout door | scripted movement; see §Ch15 |
+| `repro_battle_items.py` | the healing-item policy, exhaustively | 27 checks, **no emulator**, seconds |
+
+**Telemetry now in the bot itself:** `[TURN n]` (one line per battle decision — actor, HP, move,
+PP, opponent), `[BATTLE] started hp=[...]` (party HP at battle open), `[ITEM] using/✔ landed/‼ no
+effect`, `[ITEM-FLOW]` (per-stage menu trace), `[FAINT-CHOOSER]`, `TEACH EXIT`.
+
+---
+
 ## 1. Orientation — get up to speed cheaply
 
 - `04-HANDOFF.md` = you-are-here (current state, next steps, open blockers).
