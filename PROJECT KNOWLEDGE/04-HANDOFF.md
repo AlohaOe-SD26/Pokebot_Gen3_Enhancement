@@ -113,9 +113,12 @@ JAGGED_PASS (16,18) -> 1F   [arrive (10,34)]   ⛔ Strength boulders gate the wa
   Slateport vars that open the following beat.
 
 ## ⏭ NEXT ACTIONS, IN ORDER
-1. **`#24-strength` — the whole chapter now hangs on it.** Two independent pieces: (a) get
-   **HM04 Strength** onto a party member (Zigzagoon L3 is already the Surf slave and the obvious
-   carrier; the HM-teaching machinery exists), and (b) give `obstacle_clearing` a success test
+1. **`#24-strength` — the whole chapter now hangs on it, and half of it is already free.**
+   ✅ **Measured on both anchors: `HM04` is ALREADY IN THE BAG, badges 1-6 are held (field
+   Strength is gated on BADGE04, the Heat Badge), and `Zigzagoon L3` has only THREE moves
+   (Tackle/Growl/Surf) — a free fourth slot.** So (a) is one `teach` call with existing
+   machinery (`TEACH_ITEM=HM04`), with no move-replacement decision, and no Rusturf Tunnel trip.
+   That leaves (b): give `obstacle_clearing` a success test
    that works for a **PUSH** — the boulder MOVES rather than disappearing, which is exactly why
    it is in `KNOWN_BUT_UNSUPPORTED`. ‼ Bound the push loop: a boulder pushed against a wall must
    fail loudly, not retry (KI-34 burned 23.9M frames on a retry loop of this shape).

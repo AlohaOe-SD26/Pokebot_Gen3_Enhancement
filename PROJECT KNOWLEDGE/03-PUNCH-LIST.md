@@ -1265,9 +1265,17 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       *"a boulder is PUSHED, not removed; the success test cannot see it"* — i.e. the existing
       obstacle framework's success test ("is the obstacle gone?") cannot express this move. Two
       pieces are needed and they are independent:
-      1. **A party member that knows Strength** (HM04, Rusturf Tunnel). No mon on
-         `saves/post_mtpyre.ss1` has it; Zigzagoon L3 is already the Surf slave and is the obvious
-         carrier. This is a `#24-partycap`-shaped problem — the HM-teaching machinery exists.
+      1. **A party member that knows Strength.** ✅ **CHEAPER THAN EXPECTED — measured
+         2026-08-10 on both `post_mtpyre.ss1` and `magma_door.ss1`:**
+         * **`HM04` is ALREADY IN THE BAG** (alongside HM02/HM03/HM06) — no Rusturf Tunnel trip.
+         * **Badges 1-6 are held**, and field Strength is gated on the **Heat Badge (BADGE04)**,
+           which is one of them.
+         * **`Zigzagoon L3` has only THREE moves** (Tackle / Growl / Surf) — a **free fourth
+           slot**, so the teach needs no move-replacement decision at all. It is already the
+           Surf slave, so the HM-slave role is established.
+         ⇒ this reduces to one `teach` call with the existing machinery (`--driver teachfull`,
+         `TEACH_ITEM=HM04`). ‼ Do the teach at a heal stop, the way `#24-pc` piggybacks — not as
+         a detour.
       2. **A success test that works for a PUSH.** The obstacle is not removed, it MOVES, so the
          test must be "did the boulder's tile change / is the target tile now walkable", not
          "did the object disappear". ‼ Do NOT reuse the Rock Smash path unmodified — its test is
