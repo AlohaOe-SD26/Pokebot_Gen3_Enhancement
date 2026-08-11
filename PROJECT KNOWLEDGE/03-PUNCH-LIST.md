@@ -40,7 +40,20 @@ scheduled (`#24-ui`, `#24-shops`, `#24-autosave`, `#24-defeat`, `#24-personality
 `#24-badges*`, `#24-gymtrainers`, `#24-partyvariety`). ‼ Several are marked "BUILT IN SANDBOX
 2026-07-19" and were never verified or closed.
 
-### 5. DUPLICATE / OVERLAPPING IDS — flagged, not merged (IDs are never reused here)
+### 5. ✅ DUPLICATE / OVERLAPPING IDS — CONSOLIDATED 2026-08-10 (user-approved)
+Each group now has ONE canonical entry; the duplicates were converted into **pointers** with all
+their original text kept underneath, because IDs are never reused here and the reasoning trail is
+worth more than the tidiness.
+| group | canonical (still open) | why it wins |
+|---|---|---|
+| the `#24` umbrella (was 3 entries) | **"STORY AUTO-PLAYER"** | the only one carrying CURRENT state ("a cold start reaches Badge 6"); the others are roadmap-era restatements |
+| PC / box team management | **`#24-roster`** | the user APPROVED it 2026-08-06 and lifted its gate, which outranks the older `#24-pc` design entry |
+| organic team building | **`#24-organicteam`** | it carries the user's 2026-08-05 DEFERRAL, i.e. the live instruction |
+‼ **`#24-pc` (Surf resource walls) REMAINS OPEN and was not touched** — it is a derail class, a
+different thing from the PC/box *feature* that shares its id.
+Counts after consolidation: **87 open / 22 partial / 97 done** (was 91/22/93).
+
+HISTORY — originally flagged as: duplicate / overlapping ids, not merged
 * **`#24` appears three times** as the umbrella (L≈1828 "STORY AUTO-PLAYER", L≈2040 "STORY-MODE
   BOT", L≈2292 "Story auto-player"). Two are roadmap-era restatements of the third.
 * **`#24-pc` appears twice** (the resource-wall entry and the PC/box team-management entry) and
@@ -2173,7 +2186,9 @@ region, where "train near the gym" is actively wrong.
 - [x] PROMOTE-2 â€” whole batch promoted to custom w/ extensive intent docs
       (DIVERGENCE-LOG aâ€“i + DOCUMENTATION/05-hunting-and-livingdex.md);
       live-verified on the real save; 29b9aae5.
-- [ ] #24 â€” STORY-MODE BOT (design-first, multi-pass/triple-check): play
+- [x] ~~`#24` (roadmap restatement)~~ — ‼ **SUPERSEDED by the canonical `#24`
+      entry (“STORY AUTO-PLAYER”). Consolidated 2026-08-10.**
+      HISTORY, kept for the design detail — #24 â€” STORY-MODE BOT (design-first, multi-pass/triple-check): play
       from a fresh save (user-set name; Oak intro/gender/name; Littleroot
       start) OR continue existing; goal = beat Elite 4 + complete the game
       (eventually pokedex); CHUNKED into chapters; must build+maintain a
@@ -2246,7 +2261,10 @@ region, where "train near the gym" is actively wrong.
       accept/deny of a new move + deleting an old one to replace it (uses the
       stock evolveâ†’learn path + `which_move_should_be_replaced`). "Random" mode =
       per-PokÃ©mon coin-flip whether to evolve (organic team variety, ties #24-team).
-- [ ] #24-team â€” ORGANIC TEAM-BUILDING / helper acquisition (user 2026-07-20;
+- [x] ~~`#24-team`~~ — ‼ **SUPERSEDED by `#24-organicteam`**, which carries the
+      user's 2026-08-05 DEFERRAL (“do not start early”) — the live instruction.
+      Consolidated 2026-08-10.
+      HISTORY — #24-team â€” ORGANIC TEAM-BUILDING / helper acquisition (user 2026-07-20;
       design in 12-STORYMODE-DESIGN Â§TB). Bot builds a team to beat gyms/trainers
       but decides to catch "helpers" ORGANICALLY: a rising "recruit urge" that
       grows with failed/struggled battles (increasing re-rolls/odds), weighted by
@@ -2262,7 +2280,11 @@ region, where "train near the gym" is actively wrong.
       MULTI-FLOOR (per-floor shop + stock, elevator nav); the **Elite Four PokÃ©
       Center** has a shop + mart; Slateport stalls / TM sellers use non-standard
       menus. Do NOT map all shops up front (unreachable â†’ can't verify).
-- [ ] #24-pc â€” PC / BOX TEAM MANAGEMENT (user 2026-07-21; planning doc Â§4b). Advanced
+- [x] ~~`#24-pc` (design entry)~~ — ‼ **SUPERSEDED by `#24-roster`**, which the
+      user APPROVED 2026-08-06 with its gate lifted. Consolidated 2026-08-10.
+      ‼ The OTHER `#24-pc` entry (Surf resource walls) is a DIFFERENT thing — a derail
+      class — and REMAINS OPEN.
+      HISTORY — #24-pc â€” PC / BOX TEAM MANAGEMENT (user 2026-07-21; planning doc Â§4b). Advanced
       team development via the PokÃ©mon Storage PC: store / move / withdraw PokÃ©mon
       (and items). Map PC access points (every PokÃ© Center + player's-house PC) and
       the PC UI (Deposit/Withdraw/Move, box navigation, partyâ†”box swaps, item
@@ -2425,7 +2447,9 @@ region, where "train near the gym" is actively wrong.
       monitor 24/7 hunts (builds on the existing HTTP API). (M)
 
 ## Later / icebox (catalog in 09-FEATURE-BRAINSTORM.md; user re-orders/culls)
-- [ ] #24 â€” Story auto-player (trainer/gym battler) â€” most ambitious, most
+- [x] ~~`#24` (roadmap restatement)~~ — ‼ **SUPERSEDED by the canonical `#24`
+      entry (“STORY AUTO-PLAYER”, the one carrying current state). Consolidated 2026-08-10.**
+      HISTORY, kept for the reasoning trail — #24 â€” Story auto-player (trainer/gym battler) â€” most ambitious, most
       transformative: progress the game to bootstrap a save to any hunt. (L)
 - [ ] #26 â€” Theme system (selectable color themes; palette is centralized). (S-M)
 - [ ] #29 â€” Box manager / auto-release by IV/nature/shiny filter (prevents
