@@ -27,6 +27,76 @@
 
 ---
 
+## 0b. ‼ BEFORE YOU BELIEVE A RESULT — the eight-question pre-flight (added 2026-08-10)
+
+**Read this before writing a conclusion into any file, and before starting work on any item.**
+It is distilled from **eleven wrong conclusions in nine days**, four of them on 2026-08-10 alone.
+Every single one had the same shape: **an instrument was trusted without checking it could see
+what it was pointed at.** None was carelessness; all were plausible readings of a broken view.
+
+### Before you START on an item
+1. **Does the punch list claim it is unbuilt? VERIFY IN CODE FIRST.**
+   ‼ **THREE** items marked *"ready to build"* / *"awaiting live validation"* had already shipped
+   (`#24-leadcounter`, `#24-counters` phase 2, `#24-r121gate`). One was 8 days stale under a
+   heading gating it on a batch that had already landed. **Treat the punch list as a HYPOTHESIS
+   about what exists**, and `grep` the code before writing a line.
+2. **Is the reason for a deferral still true?** `#24-magmahideout` sat deferred for three weeks on
+   *"unreachable — one-way ledges"*. It was an NPC standing on the entry tile. **A deferral is a
+   claim with an expiry date, especially if the tooling has improved since.**
+
+### Before you TRUST a measurement
+3. **Is my anchor the right ERA, not just the right MAP?** Seven probes ran from badges-1-3 saves
+   to answer a post-Mt-Pyre question. **Name the flag/var that gates the content and assert it on
+   the anchor** — one `get_event_flag()` would have saved all seven.
+4. **Could my detector have returned POSITIVE at all?** A "no" is only evidence if "yes" was
+   reachable. One detector polled `battle_is_active()` from inside a generator that is **frozen
+   during battles** — it ran 2,466 times, every one on a frame with no battle possible.
+   **Print how many times the check ran, beside its answer** (`pumps=7/40000` is readable; a bare
+   `False` is not).
+5. **Is my before/after comparing the SAME SUBJECT?** An item guard compared HP recorded for one
+   Pokémon against whichever mon was active at the next decision — a *replacement* after a faint —
+   and blamed the item for a death. **Key such state by identity (`party_index`), and record the
+   frame of reference alongside the value.**
+6. **Does my fixture actually CREATE its condition?** Assert it and print the assertion.
+   A catch fixture spun through **125 battles catching nothing** because the save held zero Poké
+   Balls. An injected Pokémon was checked for full HP, party membership and being sent out — none
+   of which asked whether **its moves worked**; they did not, and six experiments measured a mon
+   that could not attack. **For an injected combatant, assert an EFFECT ON THE WORLD** ("did the
+   opponent's HP change"), not a property of the object.
+7. **Am I summing populations I cannot both explain?** "62% of boss fights involve healing" mixed
+   real potion use with an unexplained small class; the honest figure was **17%**. **Quarantine
+   what you cannot explain; never fold it into a headline.**
+8. **Is n big enough to say anything?** Finish rate is ~30 runs per 3-hour batch and has resolved
+   **nothing in four batches** (25.0 → 33.3 → 16.1 → 28.6%). Battle-level metrics are ~800 per
+   batch. **See §0c.**
+
+### Two more that keep earning their place
+* **A uniform FAIL is a SYMPTOM, not a cause.** If every case fails, suspect the instrument or a
+  shared confound before believing a shared cause.
+* **A known bug in a tool is a SEDUCTIVE explanation for anything that tool reports.** KI-24
+  (the tile planner mis-reads terrain) was reached for when the planner was correctly modelling an
+  NPC. Check the boring explanation — an object, a flag, an era — before the famous one.
+
+---
+
+## 0c. ‼ WHICH METRIC ANSWERS WHICH QUESTION (added 2026-08-10)
+
+Choosing the wrong instrument has cost more time here than any bug.
+
+| question | metric | sample per 3-h batch | can it resolve? |
+|---|---|---|---|
+| did a whole-run outcome change? | finish rate | **~30 runs** | **NO** — needs ~300 runs (~30 h) for a 10-point move |
+| did a battle-level behaviour change? | boss-length win rate, heal events, item landings | **~800** | yes |
+| did the counter chain convert? | hunts started vs **REAL** catches (`analyse_conversion.py`) | ~20-30 hunts | only for large moves |
+| does a new CHAPTER work? | **the story flag it sets** | **1 run** | **yes — binary, no statistics** |
+
+⇒ **Grade mechanism work on BATTLE-level metrics. Grade content on its completion FLAG.** Quote
+the finish rate only as a lagging indicator, and never as evidence for a single change.
+‼ And **split reported vs REAL** on any success count: one batch reported 13 counter catches of
+which **3 were real** — the rest were Pokémon already in the party.
+
+---
+
 ## 1. Orientation — get up to speed cheaply
 
 - `04-HANDOFF.md` = you-are-here (current state, next steps, open blockers).
