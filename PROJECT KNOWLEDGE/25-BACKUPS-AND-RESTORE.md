@@ -1,0 +1,189 @@
+# 25 — BACKUPS & RESTORE POINTS
+
+> **Current-state file.** Edit in place; keep the inventory below complete. Every restore point
+> ever created must appear here, with what it captured and why it exists.
+
+## 0. TL;DR — how to get back to a known-good version
+
+```bash
+git fetch --tags                                   # restore points live on the REMOTE
+git tag -l 'restore/*' 'backup/*' 'baseline/*'     # what is available
+git show restore/2026-08-11-all-promoted           # what a point IS, before touching anything
+git switch -c inspect-0811 restore/2026-08-11-all-promoted   # look around SAFELY, on a branch
+```
+‼ **Reading a restore point never changes anything. Start there.** Only the recipes in §5 modify
+the working tree, and the destructive one requires the user's say-so.
+
+---
+
+## 1. The mechanism, and why it is this one
+
+A restore point is an **annotated git tag, pushed to `origin`**. Not a zip, not a folder copy.
+
+| property | why it matters here |
+|---|---|
+| **immutable** | a tag names one exact commit; it cannot silently drift the way a *file* can — and this project lost three separate results in one day to "same filename, different bytes" (`08-MISTAKES` 2026-08-11) |
+| **off-machine** | pushed to GitHub. This project is worked on from **multiple computers**; a local archive protects against nothing that matters |
+| **zero bloat** | the objects already exist in history. A 63 MiB zip per checkpoint would not |
+| **carries its reason** | an *annotated* tag holds a message. A restore point whose purpose nobody recorded is nearly useless a month later |
+
+‼ **A LIGHTWEIGHT TAG IS NOT ENOUGH.** Three of the 2026-07-23 points are lightweight
+(`objecttype=commit`), so their "subject" in any listing is just *the commit message that happened
+to be at HEAD* — not why the point was taken. Always `git tag -a`.
+
+### For true offline archival (optional, rarely needed)
+A single self-contained file with the entire history — restores everything even with no GitHub:
+```bash
+git bundle create ../Pokebot-backup-$(date +%Y-%m-%d).bundle --all
+# restore:  git clone Pokebot-backup-YYYY-MM-DD.bundle restored-repo
+```
+‼ Store it **outside** the repo. Committing a bundle *of* the repo *into* the repo is circular and
+bloats every future clone.
+
+---
+
+## 2. Naming convention (canonical from 2026-08-11)
+
+```
+restore/<YYYY-MM-DD>-<short-slug>
+```
+ISO date first so tags sort chronologically; slug says what the point is *for*.
+
+‼ **The history is inconsistent and that is deliberate not to rewrite.** Four shapes exist:
+`backup-pre-X-DATE` (legacy, no slash), `backup/DATE-X`, `baseline/X`, `restore/X-DATE`. **Do not
+rename or delete old tags** — they are published refs, and the project's git conduct rule forbids
+rewriting published history. New points use the canonical form; old ones stay as they are.
+
+**Prefix meanings as actually used:**
+| prefix | meaning |
+|---|---|
+| `restore/` | "put the tree back here if the next thing goes wrong" — the default |
+| `backup/` | same intent, older spelling |
+| `baseline/` | a point captured to be the **A arm of a comparison**, not to revert to |
+| `v*`, `2024*`, `2025*` | ‼ **UPSTREAM pokebot-gen3 release tags**, pulled in by the subtree. **Not ours.** 116 of them. Never treat these as project restore points |
+
+---
+
+## 3. ‼ What a restore point DOES and DOES NOT capture
+
+Measured on 2026-08-11 against `restore/2026-08-11-all-promoted`:
+
+**CAPTURED** (inside the tagged tree):
+* all code — `sandbox-pokebot/`, `custom-pokebot/`, `40cakes repo/`, `tools/`
+* all `PROJECT KNOWLEDGE/` docs and the divergence/update logs
+* **the ROM** — 2 `.gba` files are tracked
+* **all save fixtures** — 69 tracked files under `tools/story-dev/saves/` (67 of them `.ss1`),
+  including the pinned anchors and `FIXTURES.md5`
+
+**NOT CAPTURED** (git-ignored; a restore leaves these as they are on the machine):
+| not captured | how to get it back |
+|---|---|
+| `*/mgba/` — the emulator binary (**0 files tracked**) | re-run `install.py` / `install_sandbox.py` |
+| profile runtime state (`profiles/*/`) beyond 4 tracked files | regenerated on next run |
+| `logs/`, `cache/`, `backups/`, `__pycache__/` | disposable |
+| `tools/story-dev/x4-runs/` — batch output | **not recoverable.** Batch results live only in the docs that quote them, which is why every batch claim in `07-CHANGELOG` carries its numbers inline |
+
+⇒ **A checkout of a restore point gives you a runnable program** once `mgba` is present. It does
+**not** give you back a deleted batch log.
+
+---
+
+## 4. When to create one
+
+* **Before any autonomous or long unattended round** (this is what the 2026-07-20/21 points were for).
+* **Before a change with wide blast radius** — shared battle strategy, config defaults, anything
+  touching every mode.
+* **Before deliberately re-enabling a feature that was measured harmful** (e.g. `POKEBOT_PC_ROTATION`).
+* **At the end of a round where everything is green and promoted** — so there is a known-good floor.
+* **Before a bisect**, to name the far end (`restore/pre-bisect-20260804`).
+
+Cost is ~zero. Under-tagging is the only real failure mode.
+
+---
+
+## 5. Restore recipes
+
+### (a) Just look — never modifies anything
+```bash
+git show restore/2026-08-11-all-promoted --stat | head -40   # the message + what changed
+git show restore/2026-08-11-all-promoted:sandbox-pokebot/modules/story/early_game.py | head -60
+git diff restore/2026-08-11-all-promoted..HEAD --stat        # what has changed SINCE
+```
+
+### (b) Recover ONE file from a restore point (the common case)
+```bash
+git checkout restore/2026-08-11-all-promoted -- path/to/file.py
+```
+‼ Then run `tools/story-dev/verify_fixtures.py` if you restored anything under `saves/`.
+
+### (c) Undo a bad change while KEEPING history — **preferred**
+```bash
+git revert <bad-commit>          # or: git revert <oldest>..<newest>
+```
+Safe, reviewable, pushes normally, and leaves the record of what happened. **Use this by default.**
+
+### (d) Full rollback of the working tree — **ask the user first**
+```bash
+git switch -c rollback-from-0811 restore/2026-08-11-all-promoted
+```
+A **branch** at the restore point. Nothing is destroyed and it can be merged or abandoned.
+
+‼ **`git reset --hard`, `git clean -f`, force-push and branch deletion are DESTRUCTIVE and the
+project's git conduct rule requires asking the user before any of them.** Never force-push to move
+`main` back — that rewrites published history for every other machine.
+
+---
+
+## 6. INVENTORY — every restore point, oldest first
+
+| date | tag | annotated? | what it captures / why |
+|---|---|---|---|
+| 2026-07-20 | `backup-pre-overnight-2026-07-20` | ✅ | before autonomous overnight move-learn debugging. HEAD=`f24d8b99` |
+| 2026-07-21 | `backup-pre-features-2026-07-21` | ✅ | before autonomous build: defeat-handling, thresholds, catching, Ch5b |
+| 2026-07-23 | `backup-pre-sufficiency-2026-07-23` | ❌ lightweight | before the sweeper-sufficiency prep gate |
+| 2026-07-23 | `backup-pre-resume-robustness-2026-07-23` | ❌ lightweight | before resume-robustness work |
+| 2026-07-23 | `backup-pre-ch12-2026-07-23` | ❌ lightweight | before Ch12 |
+| 2026-07-29 | `backup/pre-trainmap-2026-07-29` | ✅ | before `#24-trainmap+` training-area work |
+| 2026-07-30 | `baseline/ki40` | ✅ | **comparison baseline, not a revert target** — isolates 4 production commits from 10 prior KI-34/35/36/37 ones |
+| 2026-07-31 | `backup/2026-07-31-ki38-fixed` | ✅ | KI-38 after-faint chooser fixed and live-confirmed |
+| 2026-08-04 | `restore/pre-bisect-20260804` | ✅ | before bisecting the batch8→11/12 decline (52.8%→37.0%). Suite 77/77 |
+| 2026-08-05 | `restore/session-end-20260805` | ✅ | regression closed (52.0%), three harmful features flagged off, counter chain end-to-end. Suite 78/78 |
+| **2026-08-11** | **`restore/2026-08-11-all-promoted`** | ✅ | **zero drift sandbox↔custom; `#24-teachmsgstall` + KI-51 + KI-52 + status telemetry all promoted; gate 14/14; all PINNED fixtures verified; §Ch16 anchor `post_maxie.ss1` (md5 `19399688e730`) era-verified.** Taken before boss-response / roster work |
+
+‼ **KNOWN WART on `restore/2026-08-11-all-promoted`:** its tag message points at
+`PROJECT KNOWLEDGE/15-BACKUPS-AND-RESTORE.md`, which was renumbered to **`25-`** minutes later
+because `15-` was already taken by `15-ESCALATION-RESEARCH.md`. **The tag was NOT recreated to fix
+it.** Deleting and re-pushing a published ref to correct a typo is exactly the mutable-reference
+habit that has cost this project real results, and the rule against rewriting published history
+does not get an exception for cosmetics. The tag's *content* is correct; only that one path in its
+message is stale. This file is the authority.
+
+**Verification of the newest point** (do this for every new one):
+```
+remote ref present : refs/tags/restore/2026-08-11-all-promoted -> 1195e857  ✅
+points at HEAD     : 1195e8570508 == 1195e8570508                          ✅
+tree contains      : 67 .ss1 fixtures, 2 ROM files                          ✅
+```
+
+---
+
+## 7. The checklist for creating one (follow it exactly)
+
+```bash
+# 1. tree must be CLEAN and pushed — a tag on a dirty tree records a state nobody has
+git status --short && git status -sb | head -1
+
+# 2. annotated, canonical name, message says STATE + WHY + what is/isn't captured
+git tag -a restore/$(date +%Y-%m-%d)-<slug> -m "…"
+
+# 3. PUSH IT. A local-only tag protects nothing on a multi-computer project
+git push origin restore/<name>
+
+# 4. VERIFY IT REACHED THE REMOTE — do not assume
+git ls-remote --tags origin | grep <name>
+git rev-parse restore/<name>^{commit}   # must equal the HEAD you meant
+
+# 5. ADD IT TO THE INVENTORY IN §6 ABOVE, in the same commit as any docs update
+```
+‼ Step 4 is not ceremony. A push can fail silently in a pipeline, and "I tagged it" is exactly the
+kind of unverified assumption that cost this project three results in one day.
