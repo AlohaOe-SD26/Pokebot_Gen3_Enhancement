@@ -121,10 +121,17 @@ a fixture.**
      PATH controls).
    * ‼ **THE ANCHOR WAS NOT PRODUCED — the chapter LOST to Maxie (KI-50).** The chapter is
      **not deterministic**: it reaches Maxie reliably but completes 1 of 2 driven runs. Just
-     re-run `--driver magmahideout` from `magma_door.ss1` until `groudon=True`; the capture is
-     automatic. **Then run `probe_ch16_anchor.py` before building anything on it.** ‼ Budget for
-     it: **the chapter wins 1 in 3**, so expect ~3 runs of ~6-10 min each. Give each run a
-     timeout well over 10 minutes — one of mine was cut off by a 10-minute cap mid-fight.
+     ‼‼ **DO NOT JUST RE-RUN `--driver magmahideout` — IT CANNOT WIN FROM THE CURRENT SAVE.**
+     `saves/magma_door.ss1` loses to Maxie **deterministically** (KI-50: three runs,
+     byte-identical telemetry). **Mint a new one first:**
+     ```
+     PYTHONUTF8=1 py -3.12 story_harness.py post_mtpyre.ss1 --driver magmatravel --frames 2500000
+     PYTHONUTF8=1 py -3.12 story_harness.py magma_door.ss1  --driver magmahideout --frames 2500000
+     ```
+     The first re-captures `magma_door.ss1` on success (a different party/RNG phase); the second
+     captures `post_maxie.ss1` on `groudon=True`. **Then run `probe_ch16_anchor.py`.**
+     ‼ Give each run a timeout well over 10 minutes — one of mine was cut off by a 10-minute cap
+     mid-fight.
    * ✅ **KI-51, FIXED AND CONFIRMED LIVE**: a losing run used to ride toward 60,000 frames at an
      empty overworld and then blame "the Maxie challenge never resolved". It now stops with the
      real state — measured `mh-try1`: **2,209 frames**, `map=(0,2)` (MAUVILLE_CITY) `tile=(22,6)`,
@@ -201,7 +208,7 @@ the code it covers.
 
 | claim | verdict | how to review (do not re-run unless you changed it) |
 |---|---|---|
-| The Magma Hideout chapter completes | ‼ **1 of 3 driven runs** (see KI-50). Run 1 `groudon=True`, 0 whiteouts; runs 2 and 3 (2026-08-11) both **LOST to Maxie** (7 and 4 whiteouts). **Reaches Maxie 3/3; WINS 1/3.** The navigation is proven, the fight is not. | `07-CHANGELOG` 2026-08-10 (night); re-run only via `--driver magmahideout` from `saves/magma_door.ss1` |
+| The Magma Hideout chapter completes | ‼ **NOT a rate — save-dependent (KI-50).** Reaches Maxie **3/3**. But the CURRENT `magma_door.ss1` **loses to Maxie DETERMINISTICALLY**: three runs, byte-identical telemetry (md5 `07f99a10ac8b`). The one win was on the save as it stood before `magmatravel` overwrote it at 22:05 on 08-10. **Do not retry — re-mint the save.** | `07-CHANGELOG` 2026-08-10 (night); re-run only via `--driver magmahideout` from `saves/magma_door.ss1` |
 | The promotion works in `custom-pokebot`, driven | ✅ `groudon=True`, identical result | `custom-pokebot/DIVERGENCE-LOG.md`, last entry |
 | Source drift sandbox ↔ custom | ✅ **ZERO** (`modules/`, `plugins/` diff clean) | `diff -rq --exclude=__pycache__ sandbox-pokebot/modules custom-pokebot/modules` |
 | The travel leg reaches the door and opens it | ✅ `arrived=True opened=True JAGGED_PASS_STATE=2 party_alive=6/6`, 1 whiteout | `--driver magmatravel` from `saves/post_mtpyre.ss1` (~75k frames, several minutes) |

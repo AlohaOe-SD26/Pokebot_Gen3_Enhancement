@@ -4475,3 +4475,34 @@ reconciling them.
 **Prevention rule.** *Before putting a field in a failure message, predict the value it will hold
 AT THAT MOMENT — not the value that would have made the failure obvious. A field that always reads
 healthy at the point of failure is decoration, and a misleading one if it looks like evidence.*
+
+---
+
+## 2026-08-11 — I read two losses as a RATE, wrote "wins 1 in 3", and launched a retry loop against a deterministic failure
+
+**Symptom.** The Magma Hideout chapter won once (2026-08-10) and then lost twice. I recorded that
+as KI-50 "reaches Maxie 3/3, **wins 1/3**" — a rate — and started an 8-attempt retry loop to roll
+the dice until it won.
+
+**Root cause.** It is not a rate. **All three losing runs are byte-identical** — 41 unique `[TURN]`
+lines, md5 `07f99a10ac8b`, same HP, same PP, same Camerupt heal on the same turn. A `.ss1` replays
+identical frame timing, so the current `magma_door.ss1` does not *sometimes* lose, it **always**
+loses. The single win was on the same filename holding **different bytes**: `magma_door.ss1` is
+re-captured by `--driver magmatravel` on every success, and a run at 22:05 on 2026-08-10 overwrote
+the winning-era save.
+
+‼ **This is the SAME fixture-overwrite hazard that had killed the `#24-teachmsgstall` repro earlier
+the same day**, on a completely different question — and I walked into it again within hours of
+writing the prevention rule for it. Writing a rule down is not the same as applying it.
+
+**The fix that worked.** md5 the telemetry across runs before believing a rate. Preserve the losing
+state as `saves/magma_door_losing.ss1` (nothing writes to that name) — a boss fight that loses
+identically every time is an excellent fixture, not just a nuisance. Re-mint `magma_door.ss1` via
+`--driver magmatravel` rather than retrying the dice.
+
+**Prevention rules.**
+1. *Before treating repeated failures as a RATE, prove the runs DIFFER. Identical telemetry means
+   n=1 no matter how many times you ran it — and a retry loop against a deterministic failure is
+   pure waste (8 attempts here would have been ~80 minutes for eight identical losses).*
+2. *When a result changes and the save filename did not, check the save's BYTES/mtime before
+   theorising about the code. Same name ≠ same fixture.*
