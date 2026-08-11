@@ -20,7 +20,7 @@ game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror
 |---|---|
 | branch / HEAD | `main`, clean, pushed |
 | box | **IDLE.** No batch running. |
-| story content | Littleroot → 6 badges → Mt. Pyre → Magma Hideout (Groudon awakened). Next unwritten beat: the **Slateport submarine**. |
+| story content | Littleroot → 6 badges → Mt. Pyre → Magma Hideout (Groudon awakened). Next unwritten beat: the **Slateport submarine** — ✅ **SPEC + PLAN + VERIFIED ANCHOR all ready; only the code is missing.** |
 | ‼ is code frozen? | **No.** The freeze rule applies only during an `x4_headless` BATCH. |
 | upstream | checked **2026-08-11**, `5dd898f8`, unchanged |
 | **if stopped mid-task** | **NOTHING IS PARKED.** The session ended on a completed, verified item (`#24-teachmsgstall`), gate 12/12 green, docs current, tree clean. Start at "NEXT ACTIONS". |
@@ -112,59 +112,22 @@ a fixture.**
    rate to beat is 38 of 42 in `20260810-082509`. The honest claim is "the mechanism is proven and
    its failure mode is closed", not a percentage. Do not quote an outcome number until a batch
    produces one.
-2. **Build the SLATEPORT SUBMARINE beat — ✅ RECON IS DONE, the spec is
-   `12-STORYMODE-DESIGN.md` §Ch16** (written 2026-08-11 from `SlateportCity_Harbor/scripts.inc`
-   + `map.json`). Headlines so the next agent can judge the cost before opening it:
-   * **There is NO BATTLE in this beat.** It is a coord-trigger cutscene — the cheapest
-     remaining chapter by a wide margin.
-   * **The precondition is already satisfied by Ch15 for free** — every trigger is gated on
-     `VAR_SLATEPORT_HARBOR_STATE == 1`, which Maxie's defeat sets.
-   * The trigger column is **`SLATEPORT_CITY_HARBOR x=8, y=11..14`**; trigger 3 (`y=14`)
-     `applymovement`s the player into the scene, so aim there from the south doors.
-   * **Completion test: `VAR_SLATEPORT_HARBOR_STATE == 2`.** Binary, no batch.
-   * ‼ **THE TRAP:** that var is set roughly HALFWAY through the script — Stern's approach, a
-     second msgbox, two setflags and `releaseall` all follow. Exiting on the var leaves the
-     avatar `lockall`ed. **This is the exact failure that cost two runs on 2026-08-10.**
-   * It opens `FLAG_HIDE_AQUA_HIDEOUT_1F_GRUNT_1/2_BLOCKING_ENTRANCE` — i.e. the **Lilycove Aqua
-     Hideout**, which is the next (much larger) chapter.
-   * ‼ `OnTransition` rewrites the harbor's population (patrons hidden, Stern moved to `(12,13)`).
-     **Do not model this map from `map.json` alone** — same class as the Jagged Pass guard.
-   **✅ STEP 1 IS PART-DONE (2026-08-11), and it exposed two bugs — read this before retrying:**
-   * `--driver magmahideout` now **captures `saves/post_maxie.ss1` on success**
-     (`MAGMA_HIDEOUT_CAPTURE=0` to suppress), gated on `groudon` so a failed run cannot write a
-     wrong-era anchor. `probe_ch16_anchor.py` is the era gate for it (NAME / ERA / not-yet-run /
-     PATH controls).
-   * ‼ **THE ANCHOR WAS NOT PRODUCED — the chapter LOST to Maxie (KI-50).** The chapter is
-     **not deterministic**: it reaches Maxie reliably but completes 1 of 2 driven runs. Just
-     ‼‼ **AND DO NOT RE-MINT EITHER — IT IS NOT A REROLL (KI-52, measured).** Two mint+run rounds
-     gave **byte-identical** failures (md5 `ed42726c80d4`) despite different save md5s, because
-     `magmatravel` is deterministic (identical `frames=3244720` both times). **The blocker is now
-     KI-52** — a wild Geodude on 4F ends the run with five healthy mons benched, before Maxie is
-     ever reached. Fix that (a scope decision, see `03-PUNCH-LIST` §2) or change the starting
-     anchor; re-running is waste.
-
-     ‼‼ **DO NOT JUST RE-RUN `--driver magmahideout` — IT CANNOT WIN FROM THE CURRENT SAVE.**
-     `saves/magma_door.ss1` loses to Maxie **deterministically** (KI-50: three runs,
-     byte-identical telemetry). **Mint a new one first:**
-     ```
-     PYTHONUTF8=1 py -3.12 story_harness.py post_mtpyre.ss1 --driver magmatravel --frames 2500000
-     PYTHONUTF8=1 py -3.12 story_harness.py magma_door.ss1  --driver magmahideout --frames 2500000
-     ```
-     The first re-captures `magma_door.ss1` on success (a different party/RNG phase); the second
-     captures `post_maxie.ss1` on `groudon=True`. **Then run `probe_ch16_anchor.py`.**
-     ‼ Give each run a timeout well over 10 minutes — one of mine was cut off by a 10-minute cap
-     mid-fight.
-   * ✅ **KI-51, FIXED AND CONFIRMED LIVE**: a losing run used to ride toward 60,000 frames at an
-     empty overworld and then blame "the Maxie challenge never resolved". It now stops with the
-     real state — measured `mh-try1`: **2,209 frames**, `map=(0,2)` (MAUVILLE_CITY) `tile=(22,6)`,
-     i.e. ~57,800 frames cheaper than the bound. `repro_maxie_whiteout_guard.py` pins the
-     structure (18 checks, fault-injected red). ‼ **`party_alive` reads 6/6 in that message and
-     that is NOT a contradiction** — a whiteout heals the party; the diagnosis rests on the MAP.
-   Then §Ch16's steps 2-4. **✅ THE IMPLEMENTATION PLAN IS WRITTEN** —
-   `12-STORYMODE-DESIGN.md` §Ch16 "IMPLEMENTATION PLAN" has the decomp-read route
-   (`SLATEPORT_CITY (28,12)` -> harbor `(11,14)` -> walk west to trigger 3 at `(8,14)`), the
-   function shape, the Segment 16 wiring copied from Segment 15's pattern, and the driver spec.
-   Once the anchor exists this is mechanical.
+2. ✅✅ **BUILD §Ch16 — IT IS FULLY UNBLOCKED. Everything except the code exists.**
+   * **ANCHOR: `saves/post_maxie.ss1`** — md5 **`19399688e730`**, 59,053 bytes. ‼ **Check that md5
+     before using it**; three separate fixture mix-ups happened on 2026-08-11 alone.
+   * **VERIFIED** by `probe_ch16_anchor.py`, every control green:
+     gate `SLATEPORT_HARBOR_STATE=1`; ERA control (1 vs `magma_door.ss1`'s 0 — they differ);
+     beat-not-yet-run (Aqua blocking flags unset); corroboration (`groudon=True`,
+     `SLATEPORT_CITY_STATE=1`); path control, and door `(11,14)` → trigger3 `(8,14)` = 3 waypoints.
+   * **SPEC + IMPLEMENTATION PLAN:** `12-STORYMODE-DESIGN.md` §Ch16 — route, function shape,
+     Segment 16 wiring copied from Segment 15's pattern, driver spec.
+   * **NO BATTLE in the beat.** Completion is binary: `SLATEPORT_HARBOR_STATE == 2`.
+   * ‼ **THE TRAP:** the var is set roughly HALFWAY through the script — Stern's approach, a second
+     msgbox, two setflags and `releaseall` all follow. **Wait for CONTROL, not the var**, and put
+     BOTH halves in the driver's acceptance test.
+   * ‼ **NO `VAR_` PREFIX** on event-var names — the reader's table is keyed `SLATEPORT_HARBOR_STATE`
+     and `get_event_var` returns **-1** for an unknown name *without raising*. That silently cost a
+     capture on 2026-08-11.
 3. **KI-48 / KI-49** — the travel bugs; `could not reach` was 72 events in one batch.
 4. **Do NOT grade any of this on the finish rate.** Four batches read 25.0 → 33.3 → 16.1 → 28.6%
    at n≈30 and resolved nothing.

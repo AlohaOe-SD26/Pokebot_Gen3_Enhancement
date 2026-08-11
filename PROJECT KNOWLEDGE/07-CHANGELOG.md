@@ -11186,3 +11186,22 @@ comparing it to the failing run's md5). Both arms therefore ran on a save that d
 ✅ **What the void A/B does show, and it is worth keeping:** OLD and NEW both completed the chapter
 identically (`MAXIE BEATEN — Groudon is awake`), so the change is **behaviourally inert on a healthy
 run**. That is the positive control the fix needed, obtained by accident.
+
+### ✅ §Ch16 UNBLOCKED — `saves/post_maxie.ss1` captured and era-verified
+md5 **`19399688e730`**, 59,053 bytes, committed. `probe_ch16_anchor.py` returns **VERDICT: READY**
+with every control green: gate `SLATEPORT_HARBOR_STATE=1`; ERA control (anchor 1 vs
+`magma_door.ss1` 0 — they differ, so the reader really is tracking the var); beat-not-yet-run (the
+Aqua Hideout blocking flags are still unset, which catches an anchor taken one beat LATE);
+corroboration `groudon=True` + `SLATEPORT_CITY_STATE=1`; and the static path door `(11,14)` →
+trigger 3 `(8,14)` = 3 waypoints.
+
+The chapter DID win from `magma_door_ki52.ss1` (`groudon=True, whiteouts=0`, all four floors) —
+twice, on both A/B arms. The anchor was recovered from that run's own state snapshot because the
+driver's capture block produced **no output at all** (see the two capture fixes above; the
+non-execution itself is still unexplained and the block now logs unconditionally).
+
+‼ **State-snapshot format note:** the anchor is **59,053 bytes**, not the 397,312 of the other
+`saves/*.ss1`. It came from a profile's `states/` directory rather than from
+`emulator.get_save_state()`. It loads and reads correctly — `probe_ch16_anchor.py` verified five
+independent facts out of it — but it is a different serialisation, so do not compare its size to
+the others and conclude it is truncated.
