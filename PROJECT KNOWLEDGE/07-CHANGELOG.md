@@ -11222,3 +11222,45 @@ only. Recorded as such in `custom-pokebot/DIVERGENCE-LOG.md` along with the fact
 policy change to a **shared** battle strategy (every mode using `DefaultBattleStrategy`), that
 `lead_cannot_battle_action` still defaults to `flee` on purpose (correct for shiny hunting), and
 that the `get_escape_chance` speed-tie faithfulness bug was found and deliberately left alone.
+
+---
+
+## 2026-08-11 (review round) — the directive-hardening work: advisory rules → code that refuses
+
+Commissioned by the user: pause production, review everything, and harden the directives against
+repeat errors. Full analysis in `26-REVIEW-AND-HARDENING-PLAN-2026-08-11.md`.
+
+**The finding that drove it:** of 164 logged mistakes in 26 days, **at least 12 are self-admitted
+repeats**, several committed while the author knew the rule (*"having already written the rule
+against it"*, *"an hour after writing a rule against exactly that"*, *"the second time"*, *"THIRD
+removal-shaped feature in a week"*). ⇒ **An advisory rule has a measurably poor prevention rate.**
+What held were rules converted into code that refuses — 87 `repro_*.py`, 51 hard-failing scripts,
+and `gemini_relay.py`, whose own comment records a doc rule failing where code succeeded.
+
+### ✅ H2 — `lint_docs.py`, and the 04-HANDOFF cut
+CLAUDE.md's documentation rules, enforced (exit 1): no `# HISTORY` inside a current-state file; at
+most one START-HERE banner; per-file line budgets; no duplicate doc numbers; the reading order must
+name real files. Fuzzy checks are INFO only — **precision over coverage**, because a linter with
+false positives gets ignored, and an ignored linter is an advisory rule with extra steps.
+
+It immediately caught `04-HANDOFF.md`: **3,240 lines of which only ~160 were current**, two
+`# HISTORY` blocks and **SIX** START-HERE/YOU-ARE-HERE banners — two more than I had found by hand.
+Superseded snapshots moved verbatim to **`28-HANDOFF-ARCHIVE.md`**; the handoff is now **167 lines**.
+‼ **Nothing deleted, verified twice**: the archived block was asserted byte-identical to the
+original tail, and an independent reconstruction from git HEAD confirmed **0 of 2,926** non-blank
+lines missing. Those snapshots hold measurements, dead ends and retractions — an archive was right;
+a delete would not have been.
+
+### ✅ H1 — `preflight.py`
+One command before touching anything, aggregating the hard gates and exiting 1: git sync
+(behind/ahead/diverged per CLAUDE.md's ritual, now blocking rather than advisory), `verify_fixtures`,
+`lint_docs`, plus a **live-batch freeze detector**. It shells out to the existing scripts rather than
+reimplementing them, so each rule has exactly one definition.
+
+‼ **A gate that cannot RUN fails rather than passes** — "I broke" is not "no problem", which is its
+own mistake family in `08-MISTAKES`.
+
+**Validated live on its first run:** git in sync; all PINNED fixtures matching; `magma_1f_fail.ss1`
+correctly reported as **drifted-but-VOLATILE** (a driver rewrites it by design); docs passing; and
+it **detected the running batch** and printed the code-freeze warning. Fault-injected: a one-byte
+change to a PINNED fixture → exit 1 with the recovery instruction; restored → exit 0.

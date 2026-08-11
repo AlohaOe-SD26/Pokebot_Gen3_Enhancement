@@ -127,7 +127,7 @@ Ranked by *(repeat frequency × cost of the repeat) ÷ effort*. Each item names 
 
 ### TIER 1 — do these first; they close the families that actually repeat
 
-**H1. A pre-flight gate script — `preflight.py`** *(families A, E, H)*
+**H1. A pre-flight gate script — `preflight.py`** *(families A, E, H)* — ✅ **BUILT 2026-08-11**
 One command every session runs before touching anything, that **fails hard**:
 * `verify_fixtures.py` (PINNED saves unchanged)
 * git sync state (behind/ahead/diverged) — already a hook, make it blocking
@@ -135,7 +135,7 @@ One command every session runs before touching anything, that **fails hard**:
 * "is a batch running?" → if yes, refuse edits to `sandbox-pokebot/`
 ‼ It must EXIT 1, not warn. Warnings are advisory rules with extra steps.
 
-**H2. A documentation linter — `lint_docs.py`** *(families H + the doc decay in Part 4)*
+**H2. A documentation linter — `lint_docs.py`** *(families H + the doc decay in Part 4)* — ✅ **BUILT 2026-08-11; the 04-HANDOFF cut is DONE (3,240 → 167 lines, nothing lost)**
 Mechanically enforceable rules, all currently violated:
 * a CURRENT-STATE file (01-05) must contain **no `# HISTORY` blocks** and **at most one**
   "START HERE"/"YOU ARE HERE" banner → *04-HANDOFF currently has 3*
