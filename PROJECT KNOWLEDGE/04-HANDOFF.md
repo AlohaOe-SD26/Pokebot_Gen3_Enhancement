@@ -128,6 +128,25 @@ a fixture.**
    * ‼ **NO `VAR_` PREFIX** on event-var names — the reader's table is keyed `SLATEPORT_HARBOR_STATE`
      and `get_event_var` returns **-1** for an unknown name *without raising*. That silently cost a
      capture on 2026-08-11.
+   * ‼‼ **THE ONE MEASURED RISK IS THE LAST MILE — `KI-53`.** Static recon
+     (`probe_ch16_travel.py`, all controls green) says the leg is plannable *until* Slateport:
+     ```
+     MAUVILLE(22,6)   -> ROUTE110(14,97) : OK, 203 wp
+     ROUTE110(14,97)  -> SLATEPORT(28,13): FAIL      <- the last mile
+     SLATEPORT(28,13) -> ROUTE110(14,97) : OK,  30 wp  (the exact reverse plans!)
+     SLATEPORT -> harbor door(28,12): OK 1 wp;  harbor(11,14) -> trigger3(8,14): OK 3 wp
+     ```
+     ⇒ **Do NOT write the travel leg as one `navigate_to(SLATEPORT_CITY, …)`** — build it as
+     EXPLICIT SHORT LEGS in the §Ch15 pattern with **ROUTE110 → SLATEPORT_CITY as its own leg**, so a
+     failure names itself. ‼ A static FAIL is NOT a verdict: `_navigate_riding_out` does strictly
+     more than the planner, and that is exactly how Ch15's Mauville → Route 112 leg succeeded while
+     planning statically as FAIL.
+
+3b. **RUN `verify_fixtures.py` FIRST, and after any long driven run.** New 2026-08-11. Three
+   results were lost in one day to "same filename, different bytes"; `saves/FIXTURES.md5` +
+   `verify_fixtures.py` make that check mechanical (exit 1 on drift of a PINNED save). ‼ The
+   §Ch16 anchor is PINNED at md5 `19399688e730` — if it drifts, a driver overwrote it; recover it,
+   do not bless it with `--update`.
 3. **KI-48 / KI-49** — the travel bugs; `could not reach` was 72 events in one batch.
 4. **Do NOT grade any of this on the finish rate.** Four batches read 25.0 → 33.3 → 16.1 → 28.6%
    at n≈30 and resolved nothing.
