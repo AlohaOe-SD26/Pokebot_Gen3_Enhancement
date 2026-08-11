@@ -2229,3 +2229,29 @@ itself — Manual, mid-battle, 18,000 frames — is real in the harness.
 
 **Repro:** drive `--driver magmahideout` from a `magma_door.ss1` whose lead takes a bad wild
 encounter on 4F, or lower `hp_threshold` in a profile to force it.
+
+### ‼‼ KI-52 REPRODUCES DETERMINISTICALLY — AND "MINT A FRESH SAVE" IS NOT A REROLL (2026-08-11)
+Two rounds of *mint a new `magma_door.ss1` via `magmatravel`, then drive the dungeon* produced
+**byte-identical failures**:
+```
+mintrun1  30 [TURN] lines  md5 ed42726c80d4
+mintrun2  30 [TURN] lines  md5 ed42726c80d4   -> IDENTICAL
+both stop at MAGMA_HIDEOUT_4F (15,6), Sceptile L46 10/128, five healthy mons on the bench
+```
+‼ **Even though the two minted saves have DIFFERENT md5s** (`58a191a14478`, `8171734228f3`).
+
+**Why: the travel leg is DETERMINISTIC.** Both `magmatravel` runs reported the *identical* frame
+count (`frames=3244720`) and identical result fields. The saves differ only in incidental bytes
+(in-game clock / RTC); the game state that drives the dungeon is the same every time. ⇒
+**`--driver magmatravel` cannot produce a VARIED anchor, so re-minting is not a reroll and running
+it repeatedly is waste.** The loop was stopped after round 2 rather than running round 3.
+
+⇒ **The blocker for §Ch16 is KI-52, not the Maxie fight.** From the current `post_mtpyre.ss1` the
+chapter now dies to a wild Geodude on 4F **before ever reaching Maxie**, every single time. The
+earlier Maxie analysis (confusion + the Camerupt heal) came from the OLD `magma_door.ss1`, whose
+party was a level lower (`Sceptile L44` vs `L46`) — it is still true of that save, but it is no
+longer the thing standing in the way.
+
+**What would actually vary a run** (none tried): a different starting anchor than
+`post_mtpyre.ss1`; a party/level change; or fixing KI-52 so the wild fight stops ending the run.
+The third is the real fix and it is the one that needs the scope decision.

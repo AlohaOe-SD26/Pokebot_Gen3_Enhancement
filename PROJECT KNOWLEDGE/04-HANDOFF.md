@@ -136,6 +136,13 @@ a fixture.**
      PATH controls).
    * ‼ **THE ANCHOR WAS NOT PRODUCED — the chapter LOST to Maxie (KI-50).** The chapter is
      **not deterministic**: it reaches Maxie reliably but completes 1 of 2 driven runs. Just
+     ‼‼ **AND DO NOT RE-MINT EITHER — IT IS NOT A REROLL (KI-52, measured).** Two mint+run rounds
+     gave **byte-identical** failures (md5 `ed42726c80d4`) despite different save md5s, because
+     `magmatravel` is deterministic (identical `frames=3244720` both times). **The blocker is now
+     KI-52** — a wild Geodude on 4F ends the run with five healthy mons benched, before Maxie is
+     ever reached. Fix that (a scope decision, see `03-PUNCH-LIST` §2) or change the starting
+     anchor; re-running is waste.
+
      ‼‼ **DO NOT JUST RE-RUN `--driver magmahideout` — IT CANNOT WIN FROM THE CURRENT SAVE.**
      `saves/magma_door.ss1` loses to Maxie **deterministically** (KI-50: three runs,
      byte-identical telemetry). **Mint a new one first:**
