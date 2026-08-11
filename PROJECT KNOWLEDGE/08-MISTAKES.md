@@ -4536,3 +4536,79 @@ command, not just beside it.*
 
 ‼ **Corollary, learned the hard way:** stopping a monitor/loop does not stop the work already in
 flight. Round 3's capture landed **after** I called TaskStop.
+
+---
+
+## 2026-08-11 — RETIREMENT NOTICE #2: what the new gates actually retire, and what they do NOT
+
+Following the 2026-07-25 precedent (R1-R4). Same bar: a rule is **RETIRED** only when a structural
+guard makes its mistake genuinely unreachable — not when a tool merely makes it *easier to notice*.
+
+‼‼ **THE HONEST HEADLINE, STATED FIRST BECAUSE IT IS THE MOST IMPORTANT PART.** The 2026-07-25
+retirements were earned by guards that made an error **unreachable** (`_done()` raises on a phantom
+name; `gemini_relay.py` refuses a weak model). **Most of today's tools do not do that — they
+DETECT, loudly, and only if someone runs them.** Detection is a large improvement over an advisory
+sentence, but it is a weaker claim, and inflating it would be exactly the "confident wrong
+statement" this project's north star forbids. Classified accordingly.
+
+### R5 — RETIRED (scoped): "do not add a bare `except` that swallows the error"
+*(entries: 2026-07-23 "a silent except turned a scope bug into 252 wasted encounters"; 2026-08-03
+"a bare `except Exception` hid a NameError for two batches"; 2026-07-30 "a test stub disabled the
+logic under test, SILENTLY — the second time")*
+
+`repro_no_silent_except.py` AST-scans `modules/story/`, the battle strategies and
+`battle_action_selection.py`, and **fails if the count of silent handlers RISES**. A NEW silent
+`except` in that scope now breaks the gate. The rule does not need to be remembered to be obeyed
+there.
+
+‼ **SCOPE IS THE WHOLE CAVEAT, AND IT IS NARROW.** This is a **ratchet at 140 of 203 (69%)**, not a
+clean slate — the existing 140 are still silent, 99 of them in `early_game.py`. And the scan does
+**not** cover `tools/story-dev/` probes, repros or `plugins/` beyond the listed file — where two of
+the three cited incidents actually happened. **KEPT for everything outside the scanned scope:** *a
+guard that cannot distinguish "no" from "I broke" is worse than no guard.*
+
+### R6 — PARTIALLY RETIRED: "check whether this was already built and disproven before proposing it"
+*(entry: 2026-08-11 KI-54 — I recommended "roster hygiene before bosses", a feature already built,
+measured harmful and pinned off; only a manual pre-build check caught it)*
+
+**Retired: the discovery half.** The measurements used to live in code comments
+(`pc_trip.py`, `story_mode.py`) where nobody looks before *proposing* a feature. They are now in
+`29-DISABLED-FEATURES-REGISTRY.md`, and `lint_docs.py`'s R6 **fails** if any `POKEBOT_*` flag in bot
+code is missing from it — so the registry cannot silently go stale. It found an 11th flag on its
+first run that a hand grep had missed.
+
+**KEPT: the looking half.** Nothing forces an agent to *read* the registry before proposing work.
+The rule stands as: **before proposing a feature, check `29-DISABLED-FEATURES-REGISTRY.md`** — now
+with the guarantee that it is complete.
+
+### R7 — NOT RETIRED, DOWNGRADED TO A TOOL POINTER: the fixture rules
+*(entries: 2026-08-11 ×3 — the invalidated "cheap repro"; "wins 1 in 3" read off byte-identical
+runs; a fixture pinned AFTER a background job overwrote it)*
+
+`verify_fixtures.py` + `FIXTURES.md5` make PINNED drift **exit 1**, `preflight.py` runs it at
+session start, and `--assert name=md5` puts the check inside the measurement command.
+
+‼ **But none of that is unreachable-by-construction.** A measurement run without `--assert`, or a
+session that skips preflight, fails exactly as before. So the rules are **kept**, restated as
+mechanics instead of vigilance:
+* run `preflight.py` before touching anything;
+* put `verify_fixtures.py --assert <name>=<md5> && …` in front of any measurement that depends on
+  specific bytes;
+* **prove runs DIFFER before calling repeated failures a RATE** — md5 the telemetry. *Nothing
+  enforces this one at all;* it remains pure advisory and it cost a published wrong result today.
+
+### R8 — NOT RETIRED: "the docs described a two-folder project; the code has been three for ten days"
+*(entry: 2026-07-27)*
+
+`lint_docs.py` R1-R3 catch **archive formation inside a current-state file** — a different failure
+from **doc-versus-CODE drift**, which nothing checks. A doc can be perfectly structured and
+completely wrong. **Rule kept in full.**
+
+---
+
+### ‼ WHAT THIS NOTICE CHANGES IN PRACTICE
+Two rules get shorter (R5 within its scope, R6's discovery half). Everything else becomes *a
+pointer to a command* rather than a habit to hold in mind — which is the real reduction, since a
+command can be run by anyone and a habit cannot be inherited.
+
+**If any guard named here is removed, its rule becomes live again.**
