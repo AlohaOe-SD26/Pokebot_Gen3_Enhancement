@@ -19,9 +19,9 @@ game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror
 | | |
 |---|---|
 | branch / HEAD | `main`, clean, pushed |
-| box | **BUSY — batch running** (8 lanes / 180 min, started 2026-08-11). Purpose: (1) the STATUS-TAX rate over INDEPENDENT battles (KI-55 — the instrument is validated, the rate is not), and (2) the **first outcome evidence for `#24-teachmsgstall`, KI-51 and KI-52**, all promoted with none. |
+| box | **IDLE.** Batch `20260811-130454` finished 4:05 PM (VERDICT OK, 28 runs, 0 header violations). **Freeze LIFTED.** |
 | story content | Littleroot → 6 badges → Mt. Pyre → Magma Hideout (Groudon awakened). Next unwritten beat: the **Slateport submarine** — ✅ **SPEC + PLAN + VERIFIED ANCHOR all ready; only the code is missing.** |
-| ‼ is code frozen? | **YES — A BATCH IS RUNNING** (launched 2026-08-11, `--lanes 8 --minutes 180`, log `/tmp/batch_20260811.log`). **Do NOT edit `sandbox-pokebot/` or `tools/story-dev/` until it ends** — restarted lanes re-import from disk. Docs are always safe. |
+| ‼ is code frozen? | **No.** The batch finished; `sandbox-pokebot/` is editable again. |
 | upstream | checked **2026-08-11**, `5dd898f8`, unchanged |
 | **if stopped mid-task** | **NOTHING IS PARKED.** The session ended on a completed, verified item (`#24-teachmsgstall`), gate 12/12 green, docs current, tree clean. Start at "NEXT ACTIONS". |
 | promotion | ✅ **ALL CURRENT WORK IS PROMOTED (two rounds, both user-approved, 2026-08-11).** `#24-teachmsgstall`; then KI-51 guard + KI-52 fallback + battle STATUS telemetry. Both verified **DRIVEN in `custom-pokebot`** on deterministic fixtures, frame-for-frame identical to sandbox. **Source drift: ZERO.** ‼ KI-52's fallback is structurally proven only — no live A/B (see `DIVERGENCE-LOG`). |

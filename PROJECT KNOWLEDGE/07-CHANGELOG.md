@@ -11264,3 +11264,60 @@ own mistake family in `08-MISTAKES`.
 correctly reported as **drifted-but-VOLATILE** (a driver rewrites it by design); docs passing; and
 it **detected the running batch** and printed the code-freeze warning. Fault-injected: a one-byte
 change to a PINNED fixture → exit 1 with the recovery instruction; restored → exit 0.
+
+---
+
+## 2026-08-11 (batch `20260811-130454`, code `3feb25f8`) — the first outcome measurement, and it is mixed
+
+8 lanes / 180.1 min, **VERDICT OK**, 36 headers checked, **0 violations**. 28 runs, 6 finished.
+‼ Finish rate **21.4%** — quoted for completeness and **used for nothing**, per `30-METRICS.md`:
+eight batches have never produced a resolvable finish-rate pair.
+
+### ✅ RESOLVED — the STATUS TAX is real, large, and now properly powered
+| bucket | lost / total | rate |
+|---|---|---|
+| turns while **incapacitated** (Confused/Sleep/Freeze/Paralysis/Flinched/Recharging/Infatuated) | **960 / 2,945** | **32.6%** |
+| turns while **clean** — the CONTROL | 1,259 / 33,017 | 3.8% |
+
+**8.5× the baseline, z = +62.2 — RESOLVABLE**, over 47,789 turns from 36 independent lane logs.
+This is the first properly-powered confirmation that incapacitation costs the bot real turns.
+
+‼ **AND IT CORRECTS MY OWN EARLIER FIGURE.** From two Magma Hideout fights I measured **64.3%**;
+the batch says **32.6%**. The single dungeon fight was roughly **twice as bad as typical**, so the
+n=2 estimate overstated the general rate by ~2×. Exactly why the batch was worth waiting for.
+
+‼ **AND THE CONTROL EXPOSED A GAP IN MY OWN INSTRUMENT.** The clean bucket read 4.1%, not ~0%.
+Cause: `Infatuated` skips a turn ~50% of the time and, like confusion, **does not consume PP** — it
+was missing from the incapacitating set, so real lost turns were being counted as clean. Added;
+control fell to 3.8% and the tax rose to 32.6%. **A control that is not ~zero is telling you the
+buckets are wrong.**
+
+### ❌ NOT RESOLVED — `#24-teachmsgstall` shows NO production effect
+Baseline `20260810-082509` was **recounted identically** rather than quoted from the handoff (a
+comparison between numbers computed two different ways is a documented mistake here):
+
+| metric | new (`3feb25f8`) | pre-fix (`20260810-082509`) | z | verdict |
+|---|---|---|---|---|
+| teach success | 38/47 = **80.9%** | 38/42 = **90.5%** | **−1.28** | **NOT resolvable** |
+| `post_select=exhausted` (the exact failure the fix targeted) | 8/85 = **9.4%** | 3/80 = **3.8%** | **+1.46** | **NOT resolvable** |
+
+‼‼ **AND `post_select=already-advanced` — the new exit the fix added — FIRED ZERO TIMES in 85
+teaches.**
+
+⇒ **The honest reading: the one-frame window was not the dominant production cause.** The A/B
+proved the fix handles the *injected* fault, and it does; production says the failure mode persists
+at a statistically unchanged rate. Both metrics moved the *wrong* way directionally, neither
+resolvably — so the fix is **not proven harmful and not proven beneficial**. It stays (it closes a
+real, decomp-confirmed hole and costs nothing), but **`#24-teachmsgstall` must be reopened**: there
+is another path to `exhausted` that this did not close.
+
+### ⬜ NO EVIDENCE EITHER WAY — KI-51 and KI-52 never fired
+`left MAGMA_HIDEOUT_4F` = **0**; `[KI-52]` fight-on = **0**, over 32.8 MB of debug logs (control:
+bytes searched printed). Neither code path was exercised — runs end far short of the Magma Hideout,
+and no lead-cannot-battle event occurred. **Both remain unmeasured in production**, exactly as
+their DIVERGENCE-LOG entries state.
+
+### What ended the runs (28 runs)
+**15 of 28 (54%)** ended on the counter chain's own "N losses with no super-effective answer to X"
+stop; 5 on the global watchdog; 1 cutscene timeout; 1 ball starvation. The dominant failure mode is
+unchanged and is a **boss** problem, which is what the status-tax result now speaks to.

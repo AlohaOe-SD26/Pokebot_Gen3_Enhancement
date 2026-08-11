@@ -67,7 +67,11 @@ MOVE_RE = re.compile(r"UseMove(?:AgainstRightSideOpponent)?:(?P<move>.+?)\(pp(?P
 #    *clean*. The baseline therefore contained the very thing it was supposed to exclude, and the
 #    6.2%-over-145,683-turns figure it produced is meaningless as a comparator. The control is now
 #    computed ONLY over logs that actually carry the instrument.
-INCAPACITATING = {"Confused", "Sleep", "Freeze", "Paralysis", "Flinched", "Recharging"}
+# ‼ REFINED 2026-08-11 AFTER THE FIRST BATCH. `Infatuated` (attraction) skips the turn ~50% of
+# the time and, like confusion, does NOT consume PP — so leaving it out put real lost turns into
+# the CLEAN bucket and inflated the control. The control reading 4.1% instead of ~0% is what
+# exposed it: a control that is not ~zero is telling you the buckets are wrong.
+INCAPACITATING = {"Confused", "Sleep", "Freeze", "Paralysis", "Flinched", "Recharging", "Infatuated"}
 
 
 def _incapacitating(status: str | None) -> bool:

@@ -2401,7 +2401,7 @@ deterministic fixture (`magma_door_losing.ss1`).
 
 ---
 
-## KI-55 — The STATUS TAX is measurable and looks large, but the RATE is not yet established (2026-08-11, instrument validated, n too small)
+## KI-55 — ✅ RESOLVED 2026-08-11 by batch `20260811-130454`: the STATUS TAX is **32.6% vs a 3.8% control, z = +62.2**
 
 **Built before changing anything:** `tools/story-dev/probe_status_tax.py` counts turns where a move
 was **selected but never executed** (PP did not decrement on the actor's next selection of that same
@@ -2434,7 +2434,23 @@ this.** A policy change touches every mode using `DefaultBattleStrategy`.
    excluded and counted separately.
 ‼ A silent zero is reported as "the instrument was not present", never as "no status occurred".
 
-### NEXT STEP
+### ✅ THE BATCH RESULT (n is now real)
+| bucket | lost / total | rate |
+|---|---|---|
+| incapacitated | **960 / 2,945** | **32.6%** |
+| clean CONTROL | 1,259 / 33,017 | 3.8% |
+**8.5×, z = +62.2, RESOLVABLE**, over 47,789 turns from 36 independent lane logs.
+
+‼ **My earlier n=2 figure of 64.3% was ~2× TOO HIGH** — the Magma Hideout fight is worse than
+typical. ‼ **And the control found a gap in the instrument**: `Infatuated` skips turns without
+consuming PP and was missing from the incapacitating set, so real losses sat in the clean bucket.
+Added. **A control that is not ~zero is telling you the buckets are wrong.**
+
+⇒ **A status response is now justified by a RATE, not an anecdote.** It remains a battle-policy
+change touching every mode using `DefaultBattleStrategy`, so it is still the user's call — but the
+evidence bar this needed has been met.
+
+### HISTORICAL — the pre-batch position
 Run a batch on the current build and re-run this probe over it. That single batch would also give
 the **first outcome data for three promoted-but-unmeasured changes** (`#24-teachmsgstall`, KI-51,
 KI-52), none of which has any batch evidence. Only then is a status-response policy justifiable.
