@@ -2181,7 +2181,7 @@ game can move the player out from under it. A whiteout satisfies no flag.*
 
 ---
 
-## KI-52 — A WILD battle ends the run when the LEAD drops below `hp_threshold`, with a full healthy bench unused (2026-08-11, severity: HIGH, MEASURED)
+## KI-52 — ✅ FIXED 2026-08-11 (user directive). A WILD battle used to end the run when the LEAD dropped below `hp_threshold`, with a full healthy bench unused
 
 **What was measured** (`mintrun1`, driving the Magma Hideout from a freshly-minted `magma_door.ss1`):
 ```
@@ -2227,8 +2227,29 @@ overrides (`04-HANDOFF`: "a harness driver must mirror the OVERRIDES of the mode
 as a live run-killer until a batch log shows it; do not record it as harmless either. The wedge
 itself — Manual, mid-battle, 18,000 frames — is real in the harness.
 
-**Repro:** drive `--driver magmahideout` from a `magma_door.ss1` whose lead takes a bad wild
-encounter on 4F, or lower `hp_threshold` in a profile to force it.
+### ✅ THE FIX (user directive: "carry out the fight until it wins/loses so it does not get wedged")
+Ladder is now **rotate → flee → FIGHT ON**; no default path can end the run.
+`_fight_on()` returns ONE action for ONE turn (strongest move, slot 0 if nothing ranks — the game
+substitutes Struggle, which still ends the battle). ‼ It does **not** loop: the bound is the battle.
+A TRAINER battle no longer raises either — gyms/rivals/bosses can never be fled, which is normal.
+`POKEBOT_LEADCANTBATTLE_A=1` restores the old raise. Full trapping set + the game's "can't escape"
+strings are in `_escape_block_reason()`'s docstring and in `07-CHANGELOG` 2026-08-11.
+
+**Why it was fleeing with a healthy bench:** `lead_cannot_battle_action` asks *"can the LEAD
+fight?"*, never *"can ANYONE fight?"*. **Nothing trapped it** — the opponent was a wild Torkoal
+(White Smoke) and Sceptile was far faster. The 0 came from the run formula's own **u8 wraparound**
+(decomp `u8 speedVar = (speed*128)/oppSpeed + runTries*30`), which in the real game just fails ONE
+attempt — our reader turned it into "impossible" permanently.
+
+**Proof:** ✅ `repro_lead_cannot_battle.py`, 34 checks, fault-injected red then restored green.
+❌ **NO live A/B** — the reproduction was lost before it ran (`08-MISTAKES`: the fixture was pinned
+*after* an in-flight job overwrote it). **Do not record the fallback as live-proven.** ✅ What the
+void A/B does show: OLD and NEW both completed the chapter identically, so the change is
+**behaviourally inert on a healthy run**.
+
+**Repro (to re-obtain a wedging save):** drive `--driver magmahideout` from a `magma_door.ss1` whose
+lead takes a bad wild encounter on 4F, or lower `hp_threshold` in a profile to force it. ‼ **md5 the
+save and put that md5 in the A/B command.**
 
 ### ‼‼ KI-52 REPRODUCES DETERMINISTICALLY — AND "MINT A FRESH SAVE" IS NOT A REROLL (2026-08-11)
 Two rounds of *mint a new `magma_door.ss1` via `magmatravel`, then drive the dungeon* produced

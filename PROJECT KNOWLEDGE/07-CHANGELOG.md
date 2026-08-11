@@ -11100,3 +11100,89 @@ field.
 attackers into killing themselves, then Maxie heals Camerupt out of the kill.** Neither is a bug;
 both are gaps in what the bot can DO about a boss. **That is a design decision and it is the
 user's** — see the boss-healing item in `03-PUNCH-LIST` §2.
+
+---
+
+## 2026-08-11 (later) — KI-52 FIXED: the bot fights it out instead of freezing mid-battle (user directive)
+
+**User directive:** *"maybe we add a fallback for it to simply carry out the fight until it
+wins/loses so it does not get wedged/stuck"* — plus a review of everything that prevents fleeing or
+switching, and the messages that flag it.
+
+### Why it was fleeing at all, which was the user's first question
+`lead_cannot_battle_action` defaults to **`flee`** (upstream, `modules/config/templates/battle.yml`)
+and the policy asks **"can the LEAD fight?"**, never "can ANYONE fight?". So a lead below
+`hp_threshold` triggers an escape attempt regardless of a full healthy bench. When escape then
+turned out to be impossible there was no third option and it **raised, inside a battle**.
+
+‼ **A raise is the worst of the three outcomes.** A LOST battle is recoverable — this project
+already has whiteout recovery. A bot frozen INSIDE a battle is recoverable by nothing: the derail
+riders ride SCRIPTS, and a battle is not a script.
+
+### The fix (`modules/battle_strategies/default.py`)
+Ladder is now **rotate → flee → FIGHT ON**, and no default path can end the run:
+* `_fight_on()` picks the strongest move (slot 0 if nothing ranks — the game substitutes Struggle,
+  which still ENDS the battle) and returns **one action for one turn**. ‼ It does not loop; the
+  bound is the battle itself. That is deliberate — an unbounded loop here would recreate the KI-34
+  shape that burned 23.9M frames.
+* **A trainer battle no longer raises.** Gyms, rivals and bosses can never be fled (decomp
+  `TryRunFromBattle`: the `BATTLE_TYPE_TRAINER` branch never reaches the run formula) — that is the
+  normal state of every boss fight, not an error.
+* When escape is impossible it **rotates if it can**, and does not keep re-attempting the run: if a
+  trapping ability or move is the cause it is permanent for as long as that battler is out, so
+  retrying is a guaranteed wasted turn while the lead takes damage.
+* `POKEBOT_LEADCANTBATTLE_A=1` restores the old raising behaviour for A/B. Default off.
+
+### ‼ THE GEN 3 TRAPPING SET — decomp-verified, as requested
+From `pret/pokeemerald` (`src/battle_util.c` `TryRunFromBattle`; `src/battle_script_commands.c`
+`Cmd_jumpifcantswitch`). **Both switching and fleeing** are blocked by:
+| cause | what |
+|---|---|
+| `STATUS2_ESCAPE_PREVENTION` (`EFFECT_MEAN_LOOK`) | **Mean Look, Block, Spider Web** |
+| `STATUS2_WRAPPED` | **Wrap, Bind, Fire Spin, Clamp, Whirlpool, Sand Tomb** |
+| `STATUS3_ROOTED` | **Ingrain** (traps the USER) |
+| abilities | **Shadow Tag** (all), **Arena Trap** (not Flying, not Levitate), **Magnet Pull** (Steel only) |
+
+Guaranteed **escape**: the **Run Away** ability, or a held **Smoke Ball**.
+
+**The messages the game prints** (`src/battle_message.c`, exact strings), so a log is readable:
+```
+"{MON} prevents\nescape with {ABILITY}!"   <- a trapping ABILITY
+"Can't escape!"                             <- a failed run attempt
+"{MON} can't escape!"                       <- attacker trapped
+"{MON} can't\nescape now!"                  <- target just trapped by Mean Look etc.
+```
+‼ **SUCTION CUPS is NOT a trapping ability** and is deliberately excluded — it prevents being
+FORCED out (Roar / Whirlwind), not voluntary switching or running, and `get_best_escape_method`
+already models that correctly by refusing Roar against a Suction Cups holder. ‼ **UNVERIFIED**: its
+Gen 3 implementation was **not located** in the decomp during this pass. That is the working model,
+not a decomp-confirmed fact — flagged rather than asserted.
+
+### ‼ AND THE ANSWER TO "did Geodude trap it?" — NO
+The opponent was a wild **Torkoal** (ability **White Smoke**, which does not trap), and Sceptile is
+far faster. Nothing trapped it. The escape returned 0 from the **run formula's own u8 wraparound** —
+decomp: `u8 speedVar = (speed*128)/oppSpeed + runTries*30;`. That genuinely wraps in the real game
+too, **but the game just fails that ONE attempt** (`runTries++` changes the next one), whereas our
+reader turned a single-turn 0 into "escape is impossible" permanently. `_escape_block_reason()` now
+says so in the log instead of leaving it a mystery.
+
+‼ **A SEPARATE FAITHFULNESS BUG, FOUND AND NOT YET FIXED:** the decomp escapes for free when
+`NOT (ourSpeed < theirSpeed)` — i.e. **faster OR EQUAL**. Our `get_escape_chance` uses
+`opponent.speed < battler.speed` (strictly faster), so a **speed tie** falls through to the
+probabilistic formula when vanilla would leave for free. Left alone deliberately: it is a different
+function, it is not what caused KI-52, and changing escape odds globally affects every hunting mode.
+
+### Proof — and an honest gap
+✅ **Structural:** `repro_lead_cannot_battle.py` (34 checks — the ladder, the ordering, that
+`_fight_on` never raises and never loops, the legacy switch defaulting off, the whole trapping set
+and its messages, and that `get_ability_by_name` is actually IMPORTED so the ability branch is not
+silently dead). Fault-injected to **red**, restored to **ALL PASS**.
+
+❌ **NO LIVE A/B. The reproduction was lost before the A/B ran** — see `08-MISTAKES` (I pinned the
+fixture *after* a still-in-flight background job had overwritten it, and md5'd the copy without
+comparing it to the failing run's md5). Both arms therefore ran on a save that does not wedge.
+**Do not record the fallback as live-proven.**
+
+✅ **What the void A/B does show, and it is worth keeping:** OLD and NEW both completed the chapter
+identically (`MAXIE BEATEN — Groudon is awake`), so the change is **behaviourally inert on a healthy
+run**. That is the positive control the fix needed, obtained by accident.

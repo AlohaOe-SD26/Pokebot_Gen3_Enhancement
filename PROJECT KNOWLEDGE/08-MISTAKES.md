@@ -4506,3 +4506,33 @@ identically every time is an excellent fixture, not just a nuisance. Re-mint `ma
    pure waste (8 attempts here would have been ~80 minutes for eight identical losses).*
 2. *When a result changes and the save filename did not, check the save's BYTES/mtime before
    theorising about the code. Same name ≠ same fixture.*
+
+---
+
+## 2026-08-11 — I "pinned" a repro fixture AFTER a background job had already overwritten it, and voided my own A/B
+
+**Symptom.** The KI-52 live A/B (pre-fix vs fixed, on the save that wedged twice byte-identically)
+came back with **both arms winning the chapter**. No wedge, no `[KI-52]` line — nothing to compare.
+
+**Root cause.** The wedging save was `magma_door.ss1` = **`8171734228f3`** (round 2's mint). I
+stopped the mint loop after round 2 — but **round 3's `magmatravel` had already started and
+completed its capture**, overwriting `magma_door.ss1` with `273d19b34d96` at 10:00. At 11:01 I
+copied that file to `magma_door_ki52.ss1` believing it was the wedging save, and **md5'd the copy
+without ever comparing it to the md5 of the run that failed.** The A/B therefore ran on a save that
+does not reproduce the bug.
+
+‼ **This is the THIRD time in one day** the same fixture-overwrite hazard has bitten (the
+`#24-teachmsgstall` repro; KI-50's "1 in 3"; now this) — and this time **I had already written the
+prevention rule and even pinned the file.** Pinning was not the missing step. Verifying *which
+bytes* I pinned was.
+
+**The fix that worked.** Compare the pinned copy's md5 against the md5 recorded for the failing
+run, and refuse to run the A/B if they differ.
+
+**Prevention rule.** *Pinning a fixture is not "copy the file now" — it is "copy the file and
+assert its md5 equals the one the failure was measured on". Any background job still running can
+have replaced it, and `cp` will happily preserve the wrong bytes. Record the md5 IN the A/B
+command, not just beside it.*
+
+‼ **Corollary, learned the hard way:** stopping a monitor/loop does not stop the work already in
+flight. Round 3's capture landed **after** I called TaskStop.
