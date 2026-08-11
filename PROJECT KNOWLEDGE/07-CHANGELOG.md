@@ -10603,3 +10603,69 @@ past 1F is already proven connected** — Strength is the only thing in the way.
 Strength boulders are WEST of the arrival and off this route". That was read off their
 coordinates, never measured. The lesson is the cheap one: *adjacency is a measurement, not an
 inference from two numbers.*
+
+---
+
+## 2026-08-10 (evening, part 3) — `#24-strength` built; the chapter is now blocked by `#24-teachmsgstall`, which is NOT low priority any more
+
+**Built (`modules/story/early_game.py`)** — Strength, the field move `obstacle_clearing` cannot
+express, kept deliberately outside that framework:
+* `ensure_strength_learner()` — teaches HM04 from the bag, and **reports which move it cost**.
+* `strength_push(map, approach_tile, face_dir)` — activation + push, **judged by the world**:
+  success is *the boulder is no longer on its tile **and** is on the destination tile*. Both
+  halves are required. Decomp-verified contract (`field_move_scripts.inc`,
+  `src/field_player_avatar.c:754`): interacting opens a YES/NO, `EventScript_ActivateStrength`
+  sets `FLAG_SYS_USE_STRENGTH` (2185), and **that flag is never cleared anywhere in the decomp**
+  — so Strength is switched on once per SAVE, not per map. ‼ After activation a direction press
+  PUSHES, so the activation loop faces once and then presses only A; a mash of the direction
+  would shove the boulder an unknown distance.
+* `open_magma_hideout_1f()` — the two-push plan, then asserts `(25,34)` is reachable.
+* ‼ `puzzle_solver.use_strength()` already exists upstream and is deliberately NOT reused: it
+  gates on `wait_for_script_to_start_and_finish`, which is the exact pattern `_smash_rock`
+  documents as a wedge (the YES/NO prompt IS an active script).
+
+**The push plan was derived by simulation, not by eye.** A collision flood over every subset of
+the three boulders showed only two subsets connect the entrance to `(25,34)`, and `(5,22)` must
+be one of them. The plan was then validated against its **end state** — boulders finishing at
+`[(4,22), (5,23), (7,22)]`, **295 tiles reachable including `(25,34)`** — because a pushed
+boulder still exists and can seal the corridor it was meant to open.
+
+**‼ AND A CORRECTION TO MY OWN NOTE FROM AN HOUR EARLIER.** I wrote that Zigzagoon would carry
+Strength since it has a free move slot. **`can_learn_tm_hm(HM04)` is False for Zigzagoon.** Only
+Mightyena L43 and Sceptile L43 can learn it and **both are full**, so the teach costs a move slot
+on a fighter (`hm_learner_slot` picks Mightyena; the expendable-slot rule takes Taunt, power 0).
+Same lesson as the boulders three hours before: *inference from two numbers is not a measurement.*
+
+## ‼‼ THE CHAPTER IS NOW BLOCKED BY `#24-teachmsgstall` — REPRIORITISE IT
+The teach wedges from `saves/magma_door.ss1`. Reproduced with the purpose-built instrument
+(`--driver teachfull`), and the three `TEACH EXIT` records match the signature already on file:
+```
+post-select-900-exhausted    frame=900    tasks=['ListMenuDummyTask','Task_BagMenu_HandleInput']
+ride:hard-cap  stall_peak=61 frame=8999   tasks=['ListMenuDummyTask','Task_ContinueTaskAfterMessagePrints']
+not-learned-after-ride:hard-cap
+```
+‼ **It was recorded as "LOW priority (zero run-ending events)". That is no longer true** — it is
+run-ending for §Ch15, because the chapter cannot be entered without teaching Strength.
+
+**A DISCRIMINATING TEST, and three new facts the earlier investigation did not have.** Teaching
+**HM02 Fly to Swellow** from the same save fails *identically* (same three exit records,
+`stall_peak=76`). So the wedge is:
+* **not item-specific** — HM04 and HM02 both;
+* **not target-specific** — slot 0 Mightyena and slot 2 Swellow;
+* **not replace-slot-specific** — `replace_slot=1` and `replace_slot=0`;
+* ‼ **and the point of failure MOVES**: HM04 exhausts its 900-frame window still in
+  `Task_BagMenu_HandleInput`, HM02 in `['Task_ClosePartyMenuAfterText','Task_PrintAndWaitForText']`.
+  A single broken menu step cannot do that. This argues for something generic upstream — the
+  flow being starved rather than one prompt being missed — and it is evidence the earlier
+  framing ("the replace prompt never appears") was looking one step too late.
+
+**‼ AND A MUCH CHEAPER REPRO THAN THE ONE ON FILE.** The recorded reproduction needed a
+19,000-frame fixture (`TEACH_INJECT`, `TEACH_AFTER_TRAINER`). This one is a committed save plus
+one flag:
+```
+cd tools/story-dev
+PYTHONUTF8=1 TEACH_ITEM=HM04 py -3.12 story_harness.py magma_door.ss1 --driver teachfull --frames 400000 --profile tf-hm04
+PYTHONUTF8=1 TEACH_ITEM=HM02 py -3.12 story_harness.py magma_door.ss1 --driver teachfull --frames 400000 --profile tf-hm02
+```
+Both fail deterministically. Use these — they are ~3,000 frames of setup instead of 19,000, and
+the HM02 arm is a second, independent instance of the same bug to fix against.

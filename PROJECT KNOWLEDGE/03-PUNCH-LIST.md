@@ -16,7 +16,7 @@ user rather than resolved unilaterally.
 | item | state |
 |---|---|
 | `#24-battleitems` | ✅ **DONE & PROMOTED 2026-08-10.** Built, unit-proven (27 checks), live, self-correcting; validation batch `20260810-082509` passed (flips 20 → 2, both-failed 10 → 0). ‼ Outcome unproven — grade any follow-up on BATTLE-level metrics. |
-| `#24-teachmsgstall` | reproduced deterministically; 3 candidate causes refuted. ‼ LOW priority — 4 failures vs 38 successes and **zero** run-ending events. |
+| `#24-teachmsgstall` | reproduced deterministically; 3 candidate causes refuted. ‼‼ **PRIORITY RAISED 2026-08-10 — it is now RUN-ENDING**: it blocks `#24-strength`, and so all of `#24-magmahideout`. Cheap new repro: `magma_door.ss1` + `--driver teachfull`. |
 | `#24-r110mauville` / KI-48 / KI-49 | travel bugs, measured, unstarted. `could not reach` was 72 events in one batch. |
 
 ### 2. BLOCKED ON A USER DECISION — no work should start on these
@@ -681,7 +681,30 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       is only valid if its LOCATION is reachable AT THAT POINT IN THE STORY. Availability is a
       function of story progress, not just of the encounter table.
 
-- [~] `#24-teachmsgstall` — ‼‼ **REPRODUCED 2026-08-09, LOCALLY, IN ~19,000 FRAMES. Fix not yet
+- [~] `#24-teachmsgstall` — ‼‼ **PRIORITY RAISED 2026-08-10: THIS IS NOW THE PROJECT'S TOP
+      BLOCKER.** It stops `#24-strength`, which stops `#24-magmahideout` increment 3, which is
+      all of the new story content. Its old note ("LOW priority — zero run-ending events") was
+      true when the only teaches were opportunistic; it is false now that a chapter REQUIRES one.
+
+      ✅ **A MUCH CHEAPER REPRO THAN THE 19,000-FRAME FIXTURE — use this one:**
+      ```
+      cd tools/story-dev
+      PYTHONUTF8=1 TEACH_ITEM=HM04 py -3.12 story_harness.py magma_door.ss1 --driver teachfull --frames 400000 --profile tf-hm04
+      PYTHONUTF8=1 TEACH_ITEM=HM02 py -3.12 story_harness.py magma_door.ss1 --driver teachfull --frames 400000 --profile tf-hm02
+      ```
+      Both fail deterministically from a committed save, ~3,000 frames of setup.
+
+      ‼ **THREE NEW FACTS from a discriminating test (2026-08-10).** HM02/Fly to Swellow fails
+      *identically* to HM04/Strength to Mightyena — same three `TEACH EXIT` records. So the wedge
+      is **not item-specific**, **not target-specific** (slot 0 vs slot 2) and **not
+      replace-slot-specific** (1 vs 0).
+      ‼‼ **And the point of failure MOVES**: HM04 exhausts its 900-frame post-select window still
+      in `Task_BagMenu_HandleInput`; HM02 in `['Task_ClosePartyMenuAfterText',
+      'Task_PrintAndWaitForText']`. **A single broken menu step cannot do that.** That is evidence
+      against the standing framing ("the replace prompt never appears" — one step too late) and
+      for something generic starving the flow upstream. Start there, not at the replace prompt.
+
+      HISTORY — **REPRODUCED 2026-08-09, LOCALLY, IN ~19,000 FRAMES. Fix not yet
       written.** Nine fixtures in, the failure is now a command anyone can run:
       ```
       cd tools/story-dev
@@ -1270,12 +1293,25 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
          * **`HM04` is ALREADY IN THE BAG** (alongside HM02/HM03/HM06) — no Rusturf Tunnel trip.
          * **Badges 1-6 are held**, and field Strength is gated on the **Heat Badge (BADGE04)**,
            which is one of them.
-         * **`Zigzagoon L3` has only THREE moves** (Tackle / Growl / Surf) — a **free fourth
-           slot**, so the teach needs no move-replacement decision at all. It is already the
-           Surf slave, so the HM-slave role is established.
-         ⇒ this reduces to one `teach` call with the existing machinery (`--driver teachfull`,
-         `TEACH_ITEM=HM04`). ‼ Do the teach at a heal stop, the way `#24-pc` piggybacks — not as
-         a detour.
+         * ‼ **CORRECTION (measured minutes later, and it reverses the easy part).** I first
+           wrote that `Zigzagoon L3` would carry it — it has a free fourth slot and is already
+           the Surf slave. **`can_learn_tm_hm(HM04)` is FALSE for Zigzagoon.** Only **two** party
+           members can learn Strength at all, and **both have four moves**:
+           | slot | mon | moves | can learn HM04 |
+           |---|---|---|---|
+           | 0 | Mightyena L43 | Tackle / Taunt / Take Down / Bite | **True** |
+           | 4 | Sceptile L43 | Rock Smash / Pursuit / Leaf Blade / Slam | **True** |
+           | 1,2,3,5 | Zigzagoon, Swellow, Skitty, Castform | — | False |
+           ⇒ the teach **costs a move slot on a fighter**. `hm_learner_slot()` picks the
+           highest-level compatible mon and breaks the L43 tie toward slot 0, i.e. **Mightyena**;
+           `teach_hm_move(replace_slot=None)` then takes the most expendable slot, which is
+           **Taunt** (base power 0) — a status move, so the damaging-move count does not drop.
+           That is the good outcome and it should be asserted, not assumed.
+           ‼ Sceptile is the WORSE carrier: its only 0-power-ish slot is protected (Rock Smash is
+           an HM) so the picker would eat a damaging move.
+         ⇒ still one `teach_hm_move()` call with existing machinery, but **verify the mon that
+         ends up knowing Strength and which move it lost**. ‼ Do the teach at a heal stop, the way
+         `#24-pc` piggybacks — not as a detour.
       2. **A success test that works for a PUSH.** The obstacle is not removed, it MOVES, so the
          test must be "did the boulder's tile change / is the target tile now walkable", not
          "did the object disappear". ‼ Do NOT reuse the Rock Smash path unmodified — its test is

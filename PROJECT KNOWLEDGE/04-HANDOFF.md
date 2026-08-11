@@ -32,7 +32,7 @@ own binary acceptance and its own harness driver:
 |---|---|---|---|
 | 1 travel + open the door | `travel_to_magma_hideout_door()` | `VAR_JAGGED_PASS_STATE == 2` **and** standing on `JAGGED_PASS (16,20)` | ✅ **GREEN** (run 4, `--driver magmatravel` from `saves/post_mtpyre.ss1`) |
 | 2 go in | `enter_magma_hideout()` | map == `MAGMA_HIDEOUT_1F` | ✅ **GREEN** |
-| 3 beat Maxie | `do_magma_hideout()` | `FLAG_GROUDON_AWAKENED_MAGMA_HIDEOUT` | ⛔ **BLOCKED on `#24-strength`** — 1F is Strength-gated (measured) |
+| 3 beat Maxie | `do_magma_hideout()` | `FLAG_GROUDON_AWAKENED_MAGMA_HIDEOUT` | ⛔ 1F is Strength-gated; `#24-strength` is **BUILT** but blocked by **`#24-teachmsgstall`** |
 
 ‼ **NOT wired into `story_mode.py` yet.** `do_magma_hideout_chapter()` composes all three and is
 ready to drop in as Segment 15 once increment 3 is green.
@@ -112,12 +112,39 @@ JAGGED_PASS (16,18) -> 1F   [arrive (10,34)]   ⛔ Strength boulders gate the wa
   referenced by `modules/story/chapters.py:200`** — plus `HIDE_MAGMA_HIDEOUT_GRUNTS` and the two
   Slateport vars that open the following beat.
 
+## ‼‼ THE BLOCKER MOVED AGAIN — `#24-teachmsgstall` IS NOW THE TOP ITEM
+`#24-strength` is **BUILT** (`ensure_strength_learner`, `strength_push`,
+`open_magma_hideout_1f`, wired into `do_magma_hideout`). It cannot run, because **teaching HM04
+wedges**. Reproduced with the purpose-built `--driver teachfull`; the three `TEACH EXIT` records
+match `#24-teachmsgstall`'s signature already on file.
+
+‼ **That bug was filed as "LOW priority — zero run-ending events". That is no longer true:** a
+chapter now REQUIRES a teach, so it is run-ending. **Reprioritise it as the top blocker.**
+
+✅ **A far cheaper repro than the 19,000-frame fixture on file — a committed save plus one flag:**
+```
+cd tools/story-dev
+PYTHONUTF8=1 TEACH_ITEM=HM04 py -3.12 story_harness.py magma_door.ss1 --driver teachfull --frames 400000 --profile tf-hm04
+PYTHONUTF8=1 TEACH_ITEM=HM02 py -3.12 story_harness.py magma_door.ss1 --driver teachfull --frames 400000 --profile tf-hm02
+```
+‼ **THREE NEW FACTS, from a discriminating test.** HM02/Fly → Swellow fails *identically* to
+HM04/Strength → Mightyena. So the wedge is **not item-specific**, **not target-specific**
+(slot 0 vs 2), **not replace-slot-specific** (1 vs 0).
+‼‼ **And the failure point MOVES**: HM04 exhausts its 900-frame post-select window still in
+`Task_BagMenu_HandleInput`; HM02 in `['Task_ClosePartyMenuAfterText','Task_PrintAndWaitForText']`.
+**One broken menu step cannot do that.** This is evidence against the standing framing ("the
+replace prompt never appears" — one step too late) and for something generic starving the flow.
+
 ## ⏭ NEXT ACTIONS, IN ORDER
-1. **`#24-strength` — the whole chapter now hangs on it, and half of it is already free.**
-   ✅ **Measured on both anchors: `HM04` is ALREADY IN THE BAG, badges 1-6 are held (field
-   Strength is gated on BADGE04, the Heat Badge), and `Zigzagoon L3` has only THREE moves
-   (Tackle/Growl/Surf) — a free fourth slot.** So (a) is one `teach` call with existing
-   machinery (`TEACH_ITEM=HM04`), with no move-replacement decision, and no Rusturf Tunnel trip.
+0. **FIX `#24-teachmsgstall`** using the cheap repro above. Everything below waits on it.
+1. **`#24-strength` — BUILT, blocked only by (0). Half of it was already free.**
+   ✅ **`HM04` is ALREADY IN THE BAG and badges 1-6 are held** (field Strength is gated on
+   BADGE04, the Heat Badge) — no Rusturf Tunnel trip.
+   ‼ **But only Mightyena L43 and Sceptile L43 can learn it, and both have four moves** —
+   `can_learn_tm_hm(HM04)` is **False** for Zigzagoon (my first note said Zigzagoon would carry
+   it because it has a free slot; that was inference, and it was wrong). `hm_learner_slot()`
+   picks **Mightyena**, and the expendable-slot picker takes **Taunt** (power 0, a status move,
+   so the damaging-move count holds). Verify that outcome rather than assume it.
    That leaves (b): give `obstacle_clearing` a success test
    that works for a **PUSH** — the boulder MOVES rather than disappearing, which is exactly why
    it is in `KNOWN_BUT_UNSUPPORTED`. ‼ Bound the push loop: a boulder pushed against a wall must

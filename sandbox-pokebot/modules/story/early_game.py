@@ -7129,6 +7129,12 @@ def do_magma_hideout() -> Generator:
             f"(map {_map_group_number()}). `enter_magma_hideout()` must run first."
         )
 
+    # ‼ 1F IS SEALED BY STRENGTH BOULDERS AND MUST BE OPENED BEFORE THE ROUTE CAN BE WALKED.
+    # Without this the very first leg fails: measured live, the bot entered 1F and stopped at
+    # the arrival tile with `floors=['MAGMA_HIDEOUT_1F']`. See `open_magma_hideout_1f`.
+    if _map_group_number() == MapRSE.MAGMA_HIDEOUT_1F.value:
+        yield from open_magma_hideout_1f()
+
     for from_map, warp_tile, to_map in MAGMA_HIDEOUT_ROUTE:
         _check_abort()
         if _map_group_number() != from_map.value:
@@ -7193,3 +7199,261 @@ def do_magma_hideout_chapter() -> Generator:
     yield from travel_to_magma_hideout_door()
     yield from enter_magma_hideout()
     yield from do_magma_hideout()
+
+
+# ---------------------------------------------------------------------------
+# `#24-strength` — Strength boulders. THE FIELD MOVE `obstacle_clearing` CANNOT EXPRESS.
+#
+# ‼ WHY THIS IS NOT IN `obstacle_clearing.py` WITH Rock Smash and Cut. That framework's
+# success test is "the obstacle OBJECT IS GONE", and its own `KNOWN_BUT_UNSUPPORTED` entry
+# says exactly why Strength cannot use it: *"a boulder is PUSHED, not destroyed: the object
+# still exists afterwards, one tile over."* So the test here is the opposite shape — **the
+# boulder MOVED**, checked on both tiles — and that is the entire reason this lives apart.
+# ---------------------------------------------------------------------------
+
+#: `FLAG_SYS_USE_STRENGTH` (2185, `modules/data/event_flags/emerald.txt:1064`; decomp
+#: `include/constants/flags.h:1399`). Set by `EventScript_ActivateStrength`, and — verified by a
+#: decomp-wide search for `clearflag` — **NEVER CLEARED**. So Strength is switched on ONCE PER
+#: SAVE, not once per map: after that, `TryPushBoulder` (`src/field_player_avatar.c:754`) pushes
+#: any `OBJ_EVENT_GFX_PUSHABLE_BOULDER` you walk into, one tile, and does NOTHING AT ALL if the
+#: destination is blocked — no message, no failure signal. That silence is why the test below
+#: has to watch the world.
+_STRENGTH_FLAG = "SYS_USE_STRENGTH"
+
+#: face direction -> (dx, dy). Matches `_smash_rock`'s and `obstacle_clearing._STEP`'s tables.
+_STRENGTH_STEP = {"Up": (0, -1), "Down": (0, 1), "Left": (-1, 0), "Right": (1, 0)}
+
+
+def _strength_active() -> bool:
+    """Is the Strength field move switched on right now?
+
+    ‼ Name verified present in `modules/data/event_flags/emerald.txt:1064`. `get_event_flag`
+    returns **False** for an unknown name, so a phantom here would look exactly like "not
+    activated yet" and would make the activation loop run its whole budget every time."""
+    from modules.memory import get_event_flag
+
+    return get_event_flag(_STRENGTH_FLAG)
+
+
+def _party_knows_strength() -> bool:
+    return any(
+        learned is not None and learned.move.name == "Strength"
+        for mon in get_party()
+        if mon is not None
+        for learned in mon.moves
+    )
+
+
+def ensure_strength_learner() -> Generator:
+    """Make sure SOMEBODY in the party knows Strength, teaching HM04 from the bag if not.
+
+    ‼ MEASURED, AND IT IS NOT THE CHEAP TEACH IT FIRST LOOKED LIKE (2026-08-10, on
+    `saves/magma_door.ss1`). HM04 is already in the bag and BADGE04 is held, so no fetch quest —
+    but `can_learn_tm_hm(HM04)` is **False for Zigzagoon**, the established HM slave with a free
+    move slot. Only **Mightyena L43 and Sceptile L43** can learn it and **both are full**, so the
+    teach COSTS A MOVE SLOT ON A FIGHTER. `hm_learner_slot` breaks the level tie toward slot 0
+    (Mightyena) and the expendable-slot picker takes **Taunt** — base power 0, a status move, so
+    the damaging-move count does not drop. That is the good outcome, and it is asserted below
+    rather than assumed."""
+    if _party_knows_strength():
+        return
+
+    from modules.items import get_item_bag
+
+    hm04 = next((slot.item for slot in get_item_bag().tms_hms if slot.item.name == "HM04"), None)
+    if hm04 is None:
+        raise BotModeError(
+            "Strength: HM04 is not in the bag, so nobody can be taught Strength. It is obtained "
+            "in Rusturf Tunnel; every save this chapter was built against already had it."
+        )
+
+    slot = hm_learner_slot(hm04)
+    if slot is None:
+        raise BotModeError(
+            "Strength: no party member can learn HM04. ‼ Note Zigzagoon CANNOT (measured) - "
+            "the usual HM slave is not an option for this one."
+        )
+
+    learner = get_party()[slot]
+    before = [learned.move.name for learned in learner.moves if learned is not None]
+    _ch14_say(f"Story: teaching Strength to {learner.species.name} (slot {slot})...")
+    yield from teach_hm_move(hm04, slot)
+
+    if not _party_knows_strength():
+        raise BotModeError(
+            f"Strength: taught HM04 to {learner.species.name} (slot {slot}) but no party member "
+            "knows Strength afterwards."
+        )
+    after = [learned.move.name for learned in get_party()[slot].moves if learned is not None]
+    lost = [name for name in before if name not in after]
+    # ‼ SAY WHAT IT COST. A silent move replacement on a front-line fighter is the kind of
+    # change that shows up three batches later as "the lead got worse" with no trace of why.
+    _ch14_say(
+        f"Story: {get_party()[slot].species.name} learned Strength"
+        + (f" (lost {', '.join(lost)})" if lost else "")
+    )
+
+
+def strength_push(map_enum, approach_tile, face_dir: str, *, tries: int = 8) -> Generator:
+    """Stand beside a Strength boulder, face it, and push it ONE tile in `face_dir`.
+
+    IDEMPOTENT and judged by the WORLD, following `_smash_rock`'s pattern - but with the
+    opposite success test, because a boulder is not destroyed:
+
+        SUCCESS = the boulder is NO LONGER on its tile **and** IS on the destination tile.
+
+    ‼ Checking only "it left its tile" would call a push successful when the object was merely
+    re-read badly, and checking only "something is on the destination" would be fooled by an NPC.
+    Both halves are required.
+
+    ‼ A push into a blocked tile FAILS SILENTLY IN-GAME - the boulder simply does not move and no
+    message is printed. So this bounds its attempts and raises with the tiles named, rather than
+    pressing a direction forever. (KI-34: a bounded loop re-entered by its dispatcher is still
+    infinite; the caller must not retry a raise from here in a loop of its own.)
+
+    Requires a party member that knows Strength (`ensure_strength_learner`) and BADGE04."""
+    from modules.map import get_map_objects
+
+    if face_dir not in _STRENGTH_STEP:
+        raise BotModeError(f"strength_push: bad direction {face_dir!r}")
+    dx, dy = _STRENGTH_STEP[face_dir]
+    boulder_tile = (approach_tile[0] + dx, approach_tile[1] + dy)
+    dest_tile = (boulder_tile[0] + dx, boulder_tile[1] + dy)
+
+    def _object_on(tile) -> bool:
+        try:
+            return any(tuple(obj.current_coords) == tile for obj in get_map_objects())
+        except Exception:  # noqa: BLE001 - cannot read objects; report "unknown" as absent
+            return False
+
+    def _pushed() -> bool:
+        return (not _object_on(boulder_tile)) and _object_on(dest_tile)
+
+    yield from _navigate_riding_out(map_enum, approach_tile)
+    yield from wait_for_player_avatar_to_be_standing_still()
+
+    if _pushed():
+        return  # already done on an earlier attempt - a recovery re-entry must be a no-op
+
+    if not _object_on(boulder_tile):
+        raise BotModeError(
+            f"Strength: no object on {boulder_tile} to push (standing {approach_tile} facing "
+            f"{face_dir}). Either the map state is not what this plan assumed, or the boulder "
+            "was already moved somewhere other than the expected destination."
+        )
+
+    # --- 1. Switch the field move ON (once per SAVE - the flag is never cleared) ------------
+    # `EventScript_StrengthBoulder`: interacting with the boulder opens "Would you like to use
+    # STRENGTH?"; A advances the messages and takes the default YES, and
+    # `EventScript_ActivateStrength` sets the flag. Judged by the FLAG, never by "the script
+    # finished" - the YES/NO prompt IS an active script, and a field script interrupted by
+    # anything can leave the script context reading active forever (the wedge `_smash_rock`
+    # documents, and the reason `puzzle_solver.use_strength`'s
+    # `wait_for_script_to_start_and_finish` gating is not reused here).
+    # ‼ FACE FIRST, AND PRESS ONLY A IN THIS LOOP. Once the flag is set, a direction press
+    # PUSHES - so a loop that mashes the direction to "make sure we are facing" would shove the
+    # boulder an unknown number of tiles before the push phase ever runs, and this puzzle's
+    # destinations are one tile wide.
+    yield from ensure_facing_direction(face_dir)
+    if not _strength_active():
+        _ch14_say("Story: switching on Strength...")
+        for _frame in range(1200):
+            _check_abort()
+            if _strength_active():
+                break
+            context.emulator.press_button("A")
+            yield
+            yield from wait_for_n_frames(3)
+        if not _strength_active():
+            raise BotModeError(
+                f"Strength: could not switch the field move on at {boulder_tile} "
+                f"(standing {approach_tile} facing {face_dir}). A party member knows Strength "
+                "and BADGE04 is held, so the boulder prompt did not appear as expected."
+            )
+
+    # --- 2. Push ---------------------------------------------------------------------------
+    for _attempt in range(tries):
+        _check_abort()
+        context.emulator.press_button(face_dir)
+        yield
+        yield from wait_for_n_frames(24)
+        if _pushed():
+            _ch14_say(f"Story: pushed the boulder {boulder_tile} -> {dest_tile}.")
+            yield from wait_for_player_avatar_to_be_standing_still()
+            return
+
+    raise BotModeError(
+        f"Strength: the boulder at {boulder_tile} did not move to {dest_tile} in {tries} "
+        f"pushes (standing {approach_tile} facing {face_dir}). A push into a blocked tile "
+        "fails silently in-game, so check that the destination is walkable and empty."
+    )
+
+
+#: The MAGMA_HIDEOUT_1F boulder puzzle, as (approach tile, push direction).
+#:
+#: ‼ DERIVED FROM A MEASURED SIMULATION, NOT FROM LOOKING AT THE MAP (2026-08-10). A plain
+#: collision flood of 1F (boulders treated as walls) was run over every subset of the three
+#: boulders, and only these connect the entrance `(10,34)` to `(25,34)`:
+#:      move (5,22) + (6,23) -> 298 tiles reachable, GOAL True
+#:      move (5,22) + (7,22) -> 298 tiles reachable, GOAL True
+#:      move (5,22) alone    ->  44 tiles, GOAL False   <- it is BEHIND the other two
+#:      move either other alone -> 46-49 tiles, GOAL False
+#: so **two pushes are the minimum** and `(5,22)` must be one of them.
+#:
+#: This plan was then validated step by step against its own END STATE - each approach tile
+#: reachable at the moment it is needed, each destination walkable and empty - finishing with
+#: boulders at `[(4,22), (5,23), (7,22)]`, **295 tiles reachable and `(25,34)` among them**.
+#: ‼ That last check matters: a pushed boulder still exists, so a plan can open one corridor
+#: and seal another. Simulating "the boulder is gone" would have missed it.
+MAGMA_HIDEOUT_1F_PUSHES = (
+    ((7, 23), "Left"),   # boulder (6,23) -> (5,23), opening the way to (6,22)
+    ((6, 22), "Left"),   # boulder (5,22) -> (4,22), opening the northward corridor at x=5
+)
+
+
+#: 1F's only onward warp inside the entrance's collision component: `(25,34)` -> 2F_1R.
+#: (`(20,22)` -> 2F_3R sits on a NINE-TILE ISLAND and `(31,3)` -> 2F_2R in a 70-tile one.)
+MAGMA_HIDEOUT_1F_ONWARD = (25, 34)
+
+
+def open_magma_hideout_1f() -> Generator:
+    """Clear the Strength boulders that seal MAGMA_HIDEOUT_1F's entrance pocket.
+
+    INTENT: make `1F (25,34)` - the warp to 2F_1R, and the only onward warp in the entrance's
+    collision component - reachable. Until this runs, the bot can walk 44 of 1F's tiles and the
+    chapter cannot proceed; this was measured live (`floors=['MAGMA_HIDEOUT_1F']`).
+    GOAL/END STATE: `calculate_path` reaches `(25,34)`."""
+    from modules.map import get_map_data
+    from modules.map_path import calculate_path
+
+    if _map_group_number() != MapRSE.MAGMA_HIDEOUT_1F.value:
+        raise BotModeError(
+            f"Magma Hideout: open_magma_hideout_1f() called on map {_map_group_number()}, "
+            "not MAGMA_HIDEOUT_1F."
+        )
+
+    def _route_open() -> bool:
+        """Can we path to the onward warp yet? The one test that matters."""
+        try:
+            here = get_map_data(MapRSE.MAGMA_HIDEOUT_1F, tuple(get_player_avatar().local_coordinates))
+            calculate_path(here, get_map_data(MapRSE.MAGMA_HIDEOUT_1F, MAGMA_HIDEOUT_1F_ONWARD))
+            return True
+        except Exception:  # noqa: BLE001 - any planner refusal means "not open"
+            return False
+
+    if _route_open():
+        return  # resume-safe: a previous visit already cleared it
+
+    yield from ensure_strength_learner()
+
+    for approach_tile, face_dir in MAGMA_HIDEOUT_1F_PUSHES:
+        _check_abort()
+        yield from strength_push(MapRSE.MAGMA_HIDEOUT_1F, approach_tile, face_dir)
+
+    if not _route_open():
+        raise BotModeError(
+            "Magma Hideout 1F: both Strength pushes reported success but "
+            f"{MAGMA_HIDEOUT_1F_ONWARD} is still unreachable. The push plan opens the route in "
+            "simulation, so the live map state differs from the one it was derived from."
+        )
+    _ch14_say("Story: Magma Hideout 1F is open - the route to 2F_1R is clear.")
