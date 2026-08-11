@@ -3378,3 +3378,74 @@ room keys, the Electrode puzzle) and it is a much larger chapter. **This beat is
    any cross-map leg; prefer an anchor already standing in Slateport.
 3. **The scene**: walk onto `(8,14)` (trigger 3) and ride to `releaseall`.
 4. Grade `VAR_SLATEPORT_HARBOR_STATE == 2`. No statistics.
+
+## §Ch16 IMPLEMENTATION PLAN (2026-08-11) — written so the build is mechanical once the anchor exists
+
+Every coordinate below is decomp-read, not inferred. The city-side door and the trigger tile are
+the only two the code needs.
+
+### The route, end to end
+```
+SLATEPORT_CITY (28,12)            <- warp id 8, the harbor door  (escape warp returns to (28,13))
+  -> SLATEPORT_CITY_HARBOR (11,14)   <- harbor warp id 0, where you land
+  -> walk WEST along row 14 to (8,14)  <- AquaEscapeTrigger3, three tiles
+```
+‼ Aim for **trigger 3** specifically. It is the only one of the four that `applymovement`s the
+player UP into the scene itself, so the walk-in is scripted rather than something the bot has to
+get right. The other three assume you are already level with Archie.
+
+### The function — `do_slateport_harbor_theft()` in `modules/story/early_game.py`
+Shape it on `do_mt_pyre_summit()` (the closest analogue: a coord trigger, no conversation, no
+battle), NOT on `do_magma_hideout()` (which is a dungeon crawl plus a boss).
+
+```
+if VAR_SLATEPORT_HARBOR_STATE >= 2: return            # already done, idempotent
+travel to SLATEPORT_CITY through the normal heal/prep path
+navigate to (28,12) and warp in
+navigate SLATEPORT_CITY_HARBOR (11,14) -> (8,14)
+ride the scene: press nothing but A/B advance, and WAIT FOR CONTROL  (see the trap below)
+```
+
+### ‼‼ THE TRAP — the completion var fires MID-SCRIPT
+`setvar VAR_SLATEPORT_HARBOR_STATE, 2` runs **before** Stern walks over, before the second
+`msgbox`, before two `setflag`s and before `releaseall`. **Exiting the wait the instant the var
+flips leaves the avatar `lockall`ed and every later button press does nothing.** This is exactly
+the `EventScript_ActivateStrength` failure that cost two runs on 2026-08-10.
+
+⇒ The wait condition is **`VAR_SLATEPORT_HARBOR_STATE == 2` AND the avatar is controllable**, in
+that order, with `wait_until_truly_controllable()` after it. Same shape the Strength fix ended up
+with.
+
+⇒ And apply KI-51's lesson while writing it: **the loop must also notice leaving
+`SLATEPORT_CITY_HARBOR`.** There is no battle here so a whiteout is not the risk, but the rule
+generalises — a loop whose exit is a story var must watch for the ways the game can move the
+player out from under it.
+
+### Wiring — Segment 16 in `plugins/custom_modes/story_mode.py`
+Follow Segment 15's pattern exactly (it sits directly above the "END OF BUILT CONTENT" banner):
+```python
+# --- Segment 16: the SLATEPORT HARBOR submarine theft (§Ch16). A coord trigger, no
+#     battle. Maxie's defeat set VAR_SLATEPORT_HARBOR_STATE to 1, which is what arms
+#     the four triggers; the scene sets it to 2. ---
+from modules.story.early_game import do_slateport_harbor_theft
+
+if not _done_var("SLATEPORT_HARBOR_STATE", 2):
+    yield from do_slateport_harbor_theft()
+else:
+    console.print("[dim]Story: Slateport Harbor theft already done — skipping.[/]")
+_guard("Slateport Harbor theft (Ch16)", lambda: _done_var("SLATEPORT_HARBOR_STATE", 2))
+```
+‼ `_done_var` **raises on a phantom var name** rather than returning False — that is deliberate
+(`get_event_var` returns −1 for an unknown name, which compares False against every threshold for
+ever). Use it; do not hand-roll the comparison.
+
+### The driver — `--driver slateporttheft`
+Mirror `MagmaHideoutMode`: run the production function, log
+`RESULT harbor_state=<n> map=<enum> at=<tile> controllable=<bool> whiteouts=<n>`, and **capture
+nothing** (this chapter's output is a var, not an anchor the next beat needs). Acceptance is
+`harbor_state == 2 AND controllable == True` — the second half is the trap above, so it belongs in
+the acceptance test, not just in the code.
+
+### What "done" unlocks
+`FLAG_HIDE_AQUA_HIDEOUT_1F_GRUNT_1/2_BLOCKING_ENTRANCE` — the Lilycove Aqua Hideout (ladder row
+17). That is a much larger chapter: room keys, an Electrode puzzle, `TEAM_AQUA_ESCAPED_IN_SUBMARINE`.

@@ -131,7 +131,11 @@ a fixture.**
      loop is cheap. `repro_maxie_whiteout_guard.py` pins it (18 checks, fault-injected red).
      **If you re-run the chapter and it loses, grab the stdout** — a line reading
      `left MAGMA_HIDEOUT_4F during the Maxie challenge` is the missing live confirmation.
-   Then §Ch16's steps 2-4: travel leg, walk onto `(8,14)`, ride to `releaseall`.
+   Then §Ch16's steps 2-4. **✅ THE IMPLEMENTATION PLAN IS WRITTEN** —
+   `12-STORYMODE-DESIGN.md` §Ch16 "IMPLEMENTATION PLAN" has the decomp-read route
+   (`SLATEPORT_CITY (28,12)` -> harbor `(11,14)` -> walk west to trigger 3 at `(8,14)`), the
+   function shape, the Segment 16 wiring copied from Segment 15's pattern, and the driver spec.
+   Once the anchor exists this is mechanical.
 3. **KI-48 / KI-49** — the travel bugs; `could not reach` was 72 events in one batch.
 4. **Do NOT grade any of this on the finish rate.** Four batches read 25.0 → 33.3 → 16.1 → 28.6%
    at n≈30 and resolved nothing.
