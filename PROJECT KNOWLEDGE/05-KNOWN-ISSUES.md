@@ -2320,3 +2320,57 @@ SLATEPORT_CITY as its own leg**, so that if it breaks it names itself instead of
 "the chapter does not work". Only if that driven leg also fails is this a planner bug worth
 chasing — and then the discriminator is whether a *one-way ledge* on Route 110's south edge makes
 the asymmetry legitimate terrain rather than a defect.
+
+---
+
+## KI-54 — "Roster hygiene before bosses" is BLOCKED: the box is EMPTY, and the deposit path it would need was already measured harmful (2026-08-11, severity: informational — a plan-blocker, not a defect)
+
+**Context.** The user approved "roster hygiene before bosses" on 2026-08-11 after the Magma Hideout
+loss showed **two dead party slots** (Zigzagoon L6, Skitty L17) in a **L38-39** boss fight, one of
+which (Skitty) cost the kill on Camerupt at 22/110 immediately before Maxie healed it to 67.
+**Verification before building found two blockers.**
+
+### ‼ BLOCKER 1 — there is nothing to swap TO. The box is EMPTY.
+```
+post_maxie.ss1         party 6, BOX 0
+magma_door_losing.ss1  party 6, BOX 0
+POSITIVE CONTROL boxwithdraw.ss1 -> 2 in box: ['Poochyena:L26', 'Shuppet:L26']
+```
+The control matters: an empty box and a broken box reader look identical. The reader works.
+
+### ‼ BLOCKER 2 — the deposit path EXISTS and is pinned OFF with measured harm
+`modules/story/pc_trip.py: deposit_dead_weight_if_worth_it()`, gated by `POKEBOT_PC_ROTATION`
+(default **0**) since 2026-08-05:
+| batch | PC deposits | avg team size at Feather | Balance→Feather |
+|---|---|---|---|
+| b3 / b4 / b5 (OFF) | 0 | 5.65 / 5.72 / 5.81 | 83 / 75 / 70% |
+| b8 (ON) | 14 | **4.45** | **52%** |
+| b13 (ON) | 18 | **4.75** | **57%** |
+It removed ~**one whole team member permanently** and the last funnel rung collapsed over exactly
+that transition.
+
+⇒ **The SWAP version is impossible (empty box); the DEPOSIT-ONLY version is that disproven feature
+in narrower clothing.** Do not rebuild it from the boss-fight evidence alone.
+
+### ‼ THE LIKELY CAUSAL LOOP, stated as a hypothesis
+With deposits OFF, **anything caught stays in the party for ever** — so the party fills with
+passengers. The dead weight may be a *symptom* of deposits being off, and deposits are off because
+they thinned the team. That is a genuine tension, not an oversight.
+‼ One nuance worth keeping: the old rotation policy was bad at **choosing** — it deposited a
+*hunted counter* and a Machop 25 levels behind the team's best. "That policy was harmful" is not
+the same claim as "depositing is harmful", but neither has been measured separately.
+
+### What is NOT blocked
+* Zigzagoon is the **HM slave** (Surf / Rock Smash / Strength) — it has a job and should not be
+  treated as dead weight. **Skitty L17 has no stated job**; it is the real passenger.
+* Passengers only reach the field after the competent mons faint — but that is exactly when the
+  fight is decided, and in the measured fight it cost the kill. The marginal value is real but it
+  is second-order to whatever fainted the first four.
+
+### DECISION REQUIRED (not taken)
+Options: (a) populate the box first — `#24-roster`'s actual scope, catch-overflow, with its own
+prerequisites; (b) re-enable deposits under a much tighter policy (never a hunted counter, never
+an HM carrier, never below party 5, only >N levels behind) — ‼ re-opens a measured-harmful path and
+must not ship without a batch; (c) a catch/keep policy so passengers never enter the party;
+(d) park roster work and do the STATUS response instead, which needs no box and has a
+deterministic fixture (`magma_door_losing.ss1`).
