@@ -4503,29 +4503,98 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
         except Exception:  # noqa: BLE001 - telemetry must never break the teach
             pass
 
-    def _wait_for(task_name: str, *, press: str | None = None, cap: int = 900) -> Generator:
-        for _f in range(cap):
-            if task_name in _tasks():
+    # ‼‼ `#24-teachmsgstall` FRAME TRACE (2026-08-11), env-gated by `TEACH_TRACE=1`, OFF by
+    # default and changing NO control flow. Four rounds of this bug were argued from `TEACH EXIT`
+    # alone — three summary records taken at the three EXITS — and every hypothesis drawn from
+    # them was refuted (parked battle script, normalize-settle, teach parameters). The reason is
+    # structural: `TEACH EXIT` reports the state where the flow GAVE UP, and the failing run is
+    # **cycling, not frozen** (`stall_peak=61` against a 900 threshold), so the give-up state is
+    # a random phase of the cycle. That is exactly why "the point of failure MOVES" across runs
+    # — the three observed task sets are three phases of one loop, not three different bugs.
+    #
+    # This emits ONE LINE PER OBSERVABLE CHANGE (phase + game state + task set + learn state +
+    # does-the-mon-know-it), carrying **the buttons WE pressed since the previous line**. That
+    # last field is the whole point: a bag↔party ping-pong that our own A-mash is driving looks
+    # identical, in a per-frame task dump, to one the game is driving by itself. Pair the cause
+    # with the effect on the same line or the trace answers nothing.
+    import os as _os_trace
+
+    _TEACH_TRACE = _os_trace.environ.get("TEACH_TRACE", "0") == "1"
+    _trace_press: list[str] = []
+    _trace_sig: list = [None, 0]  # [last signature, lines emitted] — list so the closure can write
+
+    def _press(btn: str) -> None:
+        """Press, and RECORD it for the trace. Every button in this flow goes through here."""
+        _trace_press.append(btn)
+        context.emulator.press_button(btn)
+
+    def _trace(phase: str) -> None:
+        if not _TEACH_TRACE or _trace_sig[1] >= 4000:
+            return
+        try:
+            from modules import debug_logger
+            from modules.battle_move_replacing import get_learn_move_state as _lms2
+
+            try:
+                _ls = str(_lms2()).replace("LearnMoveState.", "")
+            except Exception:  # noqa: BLE001
+                _ls = "?"
+            _kn = any(
+                l is not None and l.move.name == target_move.name for l in _mon().moves
+            )
+            _sig = (phase, str(get_game_state()), tuple(sorted(_tasks())), _ls, _kn)
+            if _sig == _trace_sig[0]:
                 return
+            _trace_sig[0] = _sig
+            _trace_sig[1] += 1
+            _p = "".join(_trace_press)
+            _trace_press.clear()
+            debug_logger.event(
+                f"TEACH TRACE phase={phase} state={_sig[1]} learn={_ls} knows={_kn} "
+                f"pressed_since={_p or '-'} tasks={list(_sig[2])}"
+            )
+        except Exception:  # noqa: BLE001 — telemetry must never break the teach
+            pass
+
+    def _wait_for(
+        task_name: str, *, press: str | None = None, cap: int = 900, required: bool = True
+    ) -> Generator:
+        """Wait for `task_name`. Returns True if it appeared, False only when `required=False`.
+
+        ‼ `required=False` is for callers that have a SAFE fallback (the ride loop). Every
+        other caller keeps the raise: a teach that silently gave up on a menu step is the
+        `#24-hmteachloop` shape, and the loud failure is the only in-flow detector there is.
+        """
+        for _f in range(cap):
+            _trace(f"wait:{task_name}")
+            if task_name in _tasks():
+                return True
             if press and _f % 12 == 0:
-                context.emulator.press_button(press)
+                _press(press)
             yield
         _teach_exit(f"never-appeared:{task_name}", cap)
+        if not required:
+            return False
         raise BotModeError(f"Teach flow: {task_name} never appeared.")
 
     from modules.tasks import get_tasks
 
-    context.emulator.press_button("A")  # item context menu
+    _trace("bag-open")
+    _press("A")  # item context menu
     yield from wait_for_n_frames(20)
-    context.emulator.press_button("A")  # USE
+    _trace("item-menu")
+    _press("A")  # USE
     yield from wait_for_n_frames(20)
     yield from _wait_for("Task_CallYesOrNoCallback", press="A")   # ride 'Booted up an HM.'
-    context.emulator.press_button("A")  # YES, teach it
+    _trace("teach-yesno")
+    _press("A")  # YES, teach it
     # The bag→party transition fades through a task-less state; keep tapping A like
     # the probe did or the party menu can take >600 frames to materialize.
     yield from _wait_for("Task_HandleChooseMonInput", press="A", cap=1200)
+    _trace("party-menu-up")
     yield from scroll_to_party_menu_index(party_index)
-    context.emulator.press_button("A")
+    _trace("party-scrolled")
+    _press("A")
     yield from wait_for_n_frames(30)
     # Either it learns instantly (<4 moves) or the replace YES/NO comes up.
     #
@@ -4551,10 +4620,101 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
     def _knows() -> bool:
         return any(l is not None and l.move.name == target_move.name for l in _mon().moves)
 
+    # ‼‼ `#24-teachmsgstall` — ROOT CAUSE, FOUND 2026-08-11 BY FRAME TRACE, DECOMP-CONFIRMED.
+    #
+    # THE OLD EXIT TEST HAD A **ONE-FRAME WINDOW**, and this is the whole bug. Measured
+    # (`TEACH_TRACE=1`, `magma_door.ss1`, HM02 → Swellow):
+    #     f3232735  tasks=['Task_ReplaceMoveYesNo']            <- the ONLY frame it is visible
+    #     f3232736  tasks=['Task_HandleReplaceMoveYesNoInput'] <- gone, and it never returns
+    # `src/party_menu.c`:
+    #     Task_ReplaceMoveYesNo: if (!IsPartyMenuTextPrinterActive()) {
+    #                                PartyMenuDisplayYesNoMenu();
+    #                                func = Task_HandleReplaceMoveYesNoInput; }
+    # So `Task_ReplaceMoveYesNo` **swaps itself out on the very frame it becomes answerable** —
+    # which is precisely the frame the old condition (`in t` AND no text printer) first became
+    # true. One missed yield and the prompt is unobservable for ever.
+    #
+    # WHAT HAPPENED WHEN IT WAS MISSED — every symptom this bug ever showed, in one road. The
+    # loop kept mashing A every 12 frames, and `Task_HandleStopLearningMoveYesNoInput` reads
+    # **A as YES = ABANDON THE TEACH** (decomp: case 0 → "did not learn X" →
+    # `Task_ClosePartyMenuAfterText`). The A-mash therefore walked the flow through
+    # YES-replace → summary screen (`Task_ClosePartyMenuAndSetCB2`) → "Stop trying to teach?"
+    # → **YES** → `Task_ClosePartyMenuAfterText` → back to the bag → and the same mash re-armed
+    # the whole teach from the item. ‼ THE THREE "DIFFERENT" FAILURE POINTS RECORDED ACROSS
+    # RUNS ARE THREE PHASES OF THAT ONE ROAD:
+    #     `Task_ClosePartyMenuAndSetCB2`                       (summary-screen handoff)
+    #     `Task_ClosePartyMenuAfterText` + `Task_PrintAndWaitForText`  ("did not learn FLY")
+    #     `ListMenuDummyTask` + `Task_BagMenu_HandleInput`     (back in the bag, re-arming)
+    # "A single broken menu step cannot move like that" was right — it was never one step.
+    #
+    # ‼ AND THIS IS WHY IT LOOKED DETERMINISTIC *AND* INTERMITTENT AT THE SAME TIME, which is
+    # what made it unfalsifiable for four rounds. A `.ss1` replays identical frame timing, so a
+    # save that misses the window misses it on EVERY replay (0 of 3 from the old
+    # `magma_door.ss1`); live runs land on a random phase, so they hit it rarely (38 of 42 in
+    # batch `20260810-082509` ≈ 90%). Same bug, both readings.
+    #
+    # THE FIX IS TO STOP DEPENDING ON ONE FRAME, in three parts:
+    #   1. `Task_HandleReplaceMoveYesNoInput` is the SAME prompt one task later — and it is the
+    #      one that actually reads input, so it is up for as long as the prompt is answerable.
+    #      Accept it. This alone turns a 1-frame window into an open-ended one.
+    #   2. If the flow has already advanced PAST the prompt, say so (`already-advanced`) and
+    #      pick the flow up there instead of hunting a prompt that is gone.
+    #   3. **Never blind-mash A at a live yes/no.** `Task_StopLearningMoveYesNo` gets B — NO,
+    #      never give up — which the decomp routes straight back to `Task_ReplaceMoveYesNo` for
+    #      another attempt. The ride loop already did exactly this; this loop did not, and it is
+    #      the loop that runs first.
+    #
+    # ‼ A is still pressed to advance TEXT — that is what carries "…can't learn more than four
+    # moves…" to its end (41 A presses over 489 frames on the passing trace). Removing it would
+    # trade this bug for a stall.
+    _PROMPT_TASKS = ("Task_ReplaceMoveYesNo", "Task_HandleReplaceMoveYesNoInput")
+    _ADVANCED_TASKS = (
+        "Task_ShowSummaryScreenToForgetMove",
+        "Task_SetHandleReplaceMoveInput",
+        "Task_HandleReplaceMoveInput",
+        "Task_ReturnToPartyMenuWhileLearningMove",
+    )
+    _STOP_TASKS = ("Task_StopLearningMoveYesNo", "Task_HandleStopLearningMoveYesNoInput")
+
+    # FAULT INJECTION, both default-off, so this bug can be re-measured without reverting code:
+    #   `TEACH_MISS_WINDOW=1`     — model the real-world miss: ignore the 1-frame
+    #                               `Task_ReplaceMoveYesNo` sighting, exactly as a mistimed
+    #                               frame does. This is the REPRO, and it is faithful because
+    #                               the game state is untouched — only our observation of it.
+    #   `POKEBOT_TEACHWINDOW_A=1` — restore the pre-fix loop (OLD arm of the A/B).
+    #   `TEACH_CANCEL_FORGET=1` — cancel the forget-move screen once, which is what a mistimed
+    #                             press does for real. Per the decomp that routes to
+    #                             `StopLearningMovePrompt` — the prompt where A means GIVE UP —
+    #                             so this injection lands the flow on the exact tile the real
+    #                             failures ended on. THIS is the arm that discriminates.
+    # ‼ `TEACH_MISS_WINDOW` alone was measured NOT to be enough: with the pre-fix loop it exits
+    # `post_select=exhausted` and the ride loop's ladder still recovers it (`ride:learned`,
+    # 323f). Missing the window is NECESSARY BUT NOT SUFFICIENT — where the blind A-mash then
+    # lands is what decides whether the teach survives, which is precisely why the recorded
+    # failure point moved between runs. Keep both injections; they test different halves.
+    _MISS_WINDOW = _os_trace.environ.get("TEACH_MISS_WINDOW", "0") == "1"
+    _CANCEL_FORGET = _os_trace.environ.get("TEACH_CANCEL_FORGET", "0") == "1"
+    _injected = [False]  # one-shot latch for _CANCEL_FORGET (list so the closure can write)
+    _WINDOW_A = _os_trace.environ.get("POKEBOT_TEACHWINDOW_A", "0") == "1"
+    # The pre-fix arm must restore the pre-fix RIDE ladder too, or the OLD arm quietly enjoys
+    # half the fix and the A/B measures nothing.
+    _PROMPT_MATCH = ("Task_ReplaceMoveYesNo",) if _WINDOW_A else _PROMPT_TASKS
+    _STOP_MATCH = ("Task_StopLearningMoveYesNo",) if _WINDOW_A else _STOP_TASKS
+
     _post_select_exit = "exhausted"
     for _f in range(900):
+        _trace("post-select")
         t = _tasks()
+        if not _WINDOW_A and any(x in t for x in _ADVANCED_TASKS):
+            # Someone already answered the replace prompt (our own text-advancing A, most
+            # likely). The prompt is gone and will not come back — pick the flow up here.
+            _post_select_exit = "already-advanced"
+            break
         if "Task_ReplaceMoveYesNo" in t and "Task_PrintAndWaitForText" not in t:
+            if not _MISS_WINDOW:
+                _post_select_exit = "replace-prompt"
+                break
+        elif not _WINDOW_A and "Task_HandleReplaceMoveYesNoInput" in t:
             _post_select_exit = "replace-prompt"
             break
         if _knows():
@@ -4565,8 +4725,10 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
         ):
             _post_select_exit = "instant-learn-freeslot"
             break
-        if _f % 12 == 0:
-            context.emulator.press_button("A")
+        if not _WINDOW_A and any(x in t for x in _STOP_TASKS):
+            _press("B")  # NO — never abandon the teach. A here means YES, give up.
+        elif _f % 12 == 0:
+            _press("A")
         yield
     if _post_select_exit == "exhausted":
         # ‼ This falls through SILENTLY into the ride loop, so a teach that never reached
@@ -4580,16 +4742,50 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
         # the battle/evolution variant and returns garbage here; trusting it walked
         # the cursor onto CANCEL and bounced the flow into 'Stop trying to teach?'.)
         yield from wait_for_n_frames(45)
+        _trace("forget-menu")
         for _ in range(replace_slot):
-            context.emulator.press_button("Down")
+            _press("Down")
             yield from wait_for_n_frames(8)
-        context.emulator.press_button("A")
+        _trace("forget-cursor")
+        if _CANCEL_FORGET and not _injected[0]:
+            # FAULT INJECTION ONLY, and **ONCE**. Cancelling here is what a single mistimed
+            # press does for real; the decomp then runs
+            # `Task_ReturnToPartyMenuWhileLearningMove` ->
+            # `GetMoveSlotToReplace() == MAX_MON_MOVES` -> `StopLearningMovePrompt`, i.e. the
+            # prompt where A means GIVE UP. The recovery under test is "say NO and come back",
+            # so the injection MUST NOT repeat — a fault that re-fires on every retry can never
+            # be satisfied, and the fixed arm then looks broken for doing the right thing.
+            # (Measured: the always-on version made the NEW arm loop replace-prompt -> cancel
+            # -> stop-prompt -> NO -> replace-prompt until the cap. That was the injection, not
+            # the fix.)
+            _injected[0] = True
+            _press("B")
+        else:
+            _press("A")
         yield from wait_for_n_frames(30)
 
-    if "Task_ReplaceMoveYesNo" in _tasks():
-        context.emulator.press_button("A")  # YES, replace a move
-        yield from _wait_for("Task_HandleReplaceMoveInput", press="A")
-        yield from _select_forget_slot()
+    # ‼ THE PROMPT HAS TWO SPELLINGS AND MAY ALREADY BE ANSWERED (`#24-teachmsgstall`, above).
+    # The old test named only `Task_ReplaceMoveYesNo` — the task that exists for ONE frame — so
+    # whenever the loop exited on the later `Task_HandleReplaceMoveYesNoInput`, or after our own
+    # A had already answered it, this whole block was skipped and the flow fell into the ride
+    # loop with the forget-move screen still waiting for a move to be chosen. Answer it if it is
+    # live; pick it up where it stands if it is not.
+    _prompt_live = any(x in _tasks() for x in _PROMPT_TASKS)
+    if _prompt_live or _post_select_exit == "already-advanced":
+        if _prompt_live:
+            _trace("replace-yesno")
+            _press("A")  # YES, replace a move
+        # ‼ NON-FATAL ON THE `already-advanced` PATH. The prompt path has always been allowed to
+        # raise here and that is kept; but `already-advanced` is a NEW way into this block, and
+        # making it raise would create a fresh run-ending class where the old code merely fell
+        # through. If the forget-move input never materialises, hand over to the ride loop —
+        # whose ladder already handles every task on this road, including B on "stop learning?".
+        if (yield from _wait_for(
+            "Task_HandleReplaceMoveInput",
+            press="A",
+            required=_post_select_exit != "already-advanced",
+        )):
+            yield from _select_forget_slot()
     # Ride the 'Poof!'/learned messages out STATE-AWARE (a blind A/B mash re-answers
     # the yes/no prompts in a loop — run 3 ping-ponged between 'wants to learn' and
     # 'Stop trying to teach?' until the frame cap died).
@@ -4670,6 +4866,7 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
     _ride_exit = "hard-cap"
     _stall_peak = 0
     for _f in range(_TEACH_RIDE_HARD_CAP):
+        _trace("ride")
         if _knows() and get_game_state() is GameState.OVERWORLD and player_avatar_is_controllable():
             _ride_exit = "learned"
             break
@@ -4717,18 +4914,24 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
             # button is B: it declines "teach another", backs out of the bag, and cannot start
             # an NPC conversation. The `_knows()` success test at the top of the loop then
             # exits as soon as the overworld is genuinely back.
-            context.emulator.press_button("B")
-        elif "Task_StopLearningMoveYesNo" in t:
-            context.emulator.press_button("B")  # NO — never give up on the teach
-        elif "Task_ReplaceMoveYesNo" in t and not _knows():
-            context.emulator.press_button("A")  # YES — replace
+            _press("B")
+        elif any(x in t for x in _STOP_MATCH):
+            # ‼ BOTH SPELLINGS (`#24-teachmsgstall`, 2026-08-11). `Task_StopLearningMoveYesNo`
+            # swaps itself out for `Task_HandleStopLearningMoveYesNoInput` on the frame the
+            # menu becomes answerable (same decomp pattern as the replace prompt), so naming
+            # only the first meant this branch pressed B at a prompt that could not yet read
+            # it, and the *answerable* frames fell through to the blind `_f % 3` policy — which
+            # presses A one frame in three, and A here is YES, ABANDON THE TEACH.
+            _press("B")  # NO — never give up on the teach
+        elif any(x in t for x in _PROMPT_MATCH) and not _knows():
+            _press("A")  # YES — replace
         elif "Task_HandleReplaceMoveInput" in t and not _knows():
             yield from _select_forget_slot()
             continue
         elif _f % 3 == 0:
-            context.emulator.press_button("A")
+            _press("A")
         else:
-            context.emulator.press_button("B")
+            _press("B")
         yield
     # ‼ THE LINE THAT FOUR BUDGET ROUNDS WERE MISSING. `_ride_exit` distinguishes the three
     # ways out of the ride, which demand OPPOSITE fixes and were indistinguishable before:
@@ -4762,13 +4965,14 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
     # wedged to Manual (user's 2026-07-23 fresh run). Menu-free means: OVERWORLD
     # state AND no menu task up AND the avatar actually controllable.
     for _f in range(1200):
+        _trace("close")
         if (
             get_game_state() is GameState.OVERWORLD
             and not _menu_task_active()
             and player_avatar_is_controllable()
         ):
             break
-        context.emulator.press_button("B")
+        _press("B")
         yield
         yield
     yield from wait_until_truly_controllable()

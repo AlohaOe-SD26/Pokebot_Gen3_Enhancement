@@ -24,7 +24,7 @@ game autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror
 | ‼ is code frozen? | **No.** The freeze rule applies only during an `x4_headless` BATCH. |
 | upstream | checked **2026-08-11**, `5dd898f8`, unchanged |
 | **if stopped mid-task** | **NOTHING IS PARKED.** The session ended on a completed, verified item (`#24-teachmsgstall`), gate 12/12 green, docs current, tree clean. Start at "NEXT ACTIONS". |
-| promotion | ⏳ **`#24-teachmsgstall` is NOT promoted** — awaiting user approval. Everything before it is promoted at ZERO source drift. |
+| promotion | ✅ **DONE 2026-08-11, user-approved.** `#24-teachmsgstall` promoted and **verified DRIVEN in `custom-pokebot` as the same A/B**, frame-for-frame identical. **Source drift: ZERO**, so the sandbox re-base is a no-op. |
 
 ## ✅ WHAT JUST SHIPPED — `#24-teachmsgstall`, the project's top bug, CLOSED
 **The replace-prompt detector had a ONE-FRAME window.** Measured with a new frame trace
@@ -91,8 +91,12 @@ with the finding; the fixture underneath it moved. **A save any driver re-captur
 a fixture.**
 
 ## ⏭ NEXT ACTIONS, IN ORDER
-1. **ASK ABOUT PROMOTION** of `#24-teachmsgstall` to `custom-pokebot/`. `CLAUDE.md` requires
-   explicit user approval; a generic "proceed autonomously" is not that. Everything else is ready.
+1. ~~Ask about promotion~~ — ✅ **DONE 2026-08-11, user-approved and verified driven in
+   `custom-pokebot` (OLD `learned=False` / NEW `learned=True`, identical to sandbox). Zero source
+   drift.** ‼ **Nothing about teach reliability has been measured in a BATCH yet** — the live
+   rate to beat is 38 of 42 in `20260810-082509`. The honest claim is "the mechanism is proven and
+   its failure mode is closed", not a percentage. Do not quote an outcome number until a batch
+   produces one.
 2. **Build the SLATEPORT SUBMARINE beat — ✅ RECON IS DONE, the spec is
    `12-STORYMODE-DESIGN.md` §Ch16** (written 2026-08-11 from `SlateportCity_Harbor/scripts.inc`
    + `map.json`). Headlines so the next agent can judge the cost before opening it:

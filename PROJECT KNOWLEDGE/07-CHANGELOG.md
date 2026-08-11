@@ -10952,3 +10952,28 @@ costs nothing. Completion is binary: `VAR_SLATEPORT_HARBOR_STATE == 2`.
   as the Jagged Pass guard, whose misreading deferred a chapter for three weeks.
 
 It opens `FLAG_HIDE_AQUA_HIDEOUT_1F_GRUNT_1/2_BLOCKING_ENTRANCE`, i.e. the Lilycove Aqua Hideout.
+
+### PROMOTION (same day, user-approved): `#24-teachmsgstall` → `custom-pokebot`
+One file (`modules/story/early_game.py`, +227/−23). **Source drift after promotion: ZERO**
+(`modules/` and `plugins/` diff clean). ‼ Verified before copying that custom was exactly ONE
+change behind: the pre-copy diff was 227/23, byte-for-byte the sandbox commit's own numstat, so
+nothing else was hiding in the gap.
+
+**Verified DRIVEN in `custom-pokebot` as the same fault-injected A/B — not a smoke test:**
+
+| arm | exit | result |
+|---|---|---|
+| OLD (`POKEBOT_TEACHWINDOW_A=1 TEACH_CANCEL_FORGET=1`) | `ride:hard-cap stall_peak=61 frame=8999` | `learned=False` |
+| NEW (`TEACH_CANCEL_FORGET=1`) | `ride:learned stall_peak=250 frame=896` | `learned=True` |
+
+**Frame-for-frame identical to the sandbox arms**, so the promoted copy reproduces both the bug
+and the fix. `repro_teach_prompt_window.py` gained a `REPRO_BUILD=custom` switch and passes
+against both builds — a promotion should be checkable structurally, not only by `diff -rq`, since
+the day the copy is partial is exactly the day nobody re-runs the diff.
+
+‼ **What this promotion does NOT claim.** No production batch has run with the fix in. The live
+rate to beat is **38 of 42 teaches** (`20260810-082509`). The honest statement is "the mechanism is
+proven and its failure mode is closed" — **not** a reliability percentage. Full outstanding list in
+`custom-pokebot/DIVERGENCE-LOG.md`, including that the Magma Hideout chapter still teaches at a
+heal stop (the routing built to dodge this bug) because nobody has measured whether an in-dungeon
+teach is now safe.

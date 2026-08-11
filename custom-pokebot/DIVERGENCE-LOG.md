@@ -1060,3 +1060,82 @@ about this dungeon has been wrong at least once.
   `PYTHONUTF8=1 py -3.12 story_harness.py magma_door.ss1 --build custom --driver magmahideout`
   → `groudon=True`, floors `[1F, 2F_1R, 3F_1R, 4F]`, **0 whiteouts** — identical to the sandbox
   run. Source drift after promotion: **ZERO** (`modules/` and `plugins/` diff clean).
+
+---
+
+## 2026-08-11 — `#24-teachmsgstall` FIXED: the HM-teach replace prompt had a ONE-FRAME window
+**Promoted with explicit user approval.** Supersedes the "OUTSTANDING AT PROMOTION TIME" bullet in
+the Magma Hideout entry above — that entry says "the chapter DODGES `#24-teachmsgstall` rather than
+fixing it, and the bug is still the right thing to fix". **It is now fixed.**
+
+**Files changed: one.** `modules/story/early_game.py` (+227 / −23). Source drift after promotion:
+**ZERO** (`modules/` and `plugins/` diff clean).
+
+### The divergence from upstream
+Upstream 40Cakes has no Story mode, so `teach_hm_move` is ours entirely; this is a fix inside our
+own code, not a change to anything upstream ships.
+
+### THE CAUSE — a detector with a one-frame window
+The post-select loop waited on
+`"Task_ReplaceMoveYesNo" in t and "Task_PrintAndWaitForText" not in t`. Frame trace
+(`TEACH_TRACE=1`, `magma_door.ss1`, HM02 → Swellow) shows that is true for **exactly one frame**:
+```
+f3232735  tasks=['Task_ReplaceMoveYesNo']              <- the ONLY frame it is visible
+f3232736  tasks=['Task_HandleReplaceMoveYesNoInput']   <- gone, and it never comes back
+```
+`pret/pokeemerald src/party_menu.c` explains it exactly — `Task_ReplaceMoveYesNo` displays the
+yes/no menu and **sets its own task function to `Task_HandleReplaceMoveYesNoInput` in the same
+frame**, i.e. it retires on the frame it becomes answerable, which is the frame the old condition
+first became true.
+
+Missing it left the loop mashing A every 12 frames, and `Task_HandleStopLearningMoveYesNoInput`
+reads **A as YES = ABANDON THE TEACH**. ‼ The three "different" failure points recorded across
+runs are **three phases of one road**: summary handoff (`Task_ClosePartyMenuAndSetCB2`) → "did not
+learn FLY" (`Task_ClosePartyMenuAfterText`) → back in the bag, re-arming.
+
+‼ **And this is why it read as deterministic AND intermittent at once** — the property that made
+it unfalsifiable for four rounds. A `.ss1` replays identical frame timing, so a save that misses
+the window misses it on every replay (0/3); live runs land on a random phase (38/42 ≈ 90%).
+
+### The fix
+1. Match **both** task spellings (`_PROMPT_TASKS`, `_STOP_TASKS`) — the input handler is up for as
+   long as the prompt is answerable, so a one-frame window becomes an open-ended one.
+2. An `already-advanced` exit picks the flow up past a prompt something already answered. ‼ That
+   path is **non-fatal** (`_wait_for(..., required=False)`): a new run-ending class is not an
+   acceptable price for this fix.
+3. **B, not A, at the stop-learning prompt**, placed *before* the blind-A fallback in the ladder.
+   A is still pressed to advance TEXT (41 presses over 489 frames on the passing trace) — removing
+   it would trade this bug for a stall.
+4. The ride ladder had the identical exposure and is fixed the same way.
+
+### ✅ PROMOTION VERIFIED IN `custom-pokebot` ITSELF, DRIVEN — and as an A/B, not a smoke test
+```
+py -3.12 story_harness.py magma_door.ss1 --build custom --driver teachfull TEACH_ITEM=HM02 \
+    TEACH_CANCEL_FORGET=1 [POKEBOT_TEACHWINDOW_A=1]
+```
+| arm | exit | result |
+|---|---|---|
+| OLD (`POKEBOT_TEACHWINDOW_A=1`) | `ride:hard-cap stall_peak=61 frame=8999` | **`learned=False`** |
+| NEW (default) | `ride:learned stall_peak=250 frame=896` | **`learned=True`**, Fly replaced Peck |
+
+**Frame-for-frame identical to the sandbox arms**, so the promoted copy reproduces both the bug
+and the fix. `repro_teach_prompt_window.py` also passes against this build
+(`REPRO_BUILD=custom`, 26 checks).
+
+### ‼ OUTSTANDING AT PROMOTION TIME
+* **The Magma Hideout chapter still teaches at a HEAL STOP, not inside the dungeon.** That routing
+  was built to dodge this bug and has not been changed back. It is now belt-and-braces rather than
+  a workaround, but nobody has measured whether an in-dungeon teach is safe — do that before
+  moving it.
+* **No production batch has run with this fix in.** The A/B is a fault-injected pair on one save.
+  The live rate to beat is **38 of 42 teaches** in batch `20260810-082509`; the honest claim today
+  is "the mechanism is proven and its failure mode is closed", **not** "teach reliability
+  improved by N%". ‼ Do not quote an outcome number for this until a batch produces one.
+* **The old repro fixture is gone and that is not recoverable.** `saves/magma_door.ss1` is
+  re-captured by `--driver magmatravel` on every success, and a 2026-08-10 22:05 chapter run
+  overwrote the save the original failures were measured on. The fault is injected now
+  (`TEACH_MISS_WINDOW`, `TEACH_CANCEL_FORGET`), which is reproducible regardless of the save.
+* **`TEACH_MISS_WINDOW=1` alone does NOT wedge a teach** — the ride ladder recovers it
+  (`ride:learned`, 323f). Missing the window is **necessary but not sufficient**; where the blind
+  A-mash then lands decides survival. Kept as a negative result so the next agent does not read it
+  as a broken injection.

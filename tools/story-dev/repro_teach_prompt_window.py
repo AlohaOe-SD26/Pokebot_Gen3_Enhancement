@@ -62,12 +62,20 @@ THE RULES THIS FILE PINS:
 
 from __future__ import annotations
 
+import os
 import pathlib
 import re
 import sys
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
-EARLY = REPO / "sandbox-pokebot" / "modules" / "story" / "early_game.py"
+# `REPRO_BUILD=custom` points this at the promoted fork, so a promotion can be checked
+# STRUCTURALLY and not only by `diff -rq`. (A byte-identical copy makes the two equivalent, but
+# the day the copy is partial is exactly the day nobody re-runs the diff.)
+BUILD = os.environ.get("REPRO_BUILD", "sandbox").strip().lower()
+if BUILD not in ("sandbox", "custom"):
+    raise SystemExit(f"REPRO_BUILD must be 'sandbox' or 'custom', got {BUILD!r}")
+EARLY = REPO / f"{BUILD}-pokebot" / "modules" / "story" / "early_game.py"
+print(f"(build: {BUILD} -> {EARLY.relative_to(REPO)})")
 
 FAILURES: list[str] = []
 

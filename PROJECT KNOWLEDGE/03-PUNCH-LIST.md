@@ -16,7 +16,7 @@ user rather than resolved unilaterally.
 | item | state |
 |---|---|
 | `#24-battleitems` | ✅ **DONE & PROMOTED 2026-08-10.** Built, unit-proven (27 checks), live, self-correcting; validation batch `20260810-082509` passed (flips 20 → 2, both-failed 10 → 0). ‼ Outcome unproven — grade any follow-up on BATTLE-level metrics. |
-| `#24-teachmsgstall` | ✅ **DONE 2026-08-11 — ROOT-CAUSED, FIXED, A/B-PROVEN.** The replace-prompt detector had a **ONE-FRAME window**: `Task_ReplaceMoveYesNo` swaps itself out for `Task_HandleReplaceMoveYesNoInput` on the frame it becomes answerable (decomp `src/party_menu.c`; measured f3232735 → f3232736). Missing it left a blind A-mash that reaches `Task_HandleStopLearningMoveYesNoInput`, where **A = give up**. Fixed by watching both spellings, an `already-advanced` exit, and B at the stop prompt. **A/B (same save, one env var): OLD `learned=False` / NEW `learned=True`.** ‼ Not yet promoted to `custom-pokebot` — needs user approval. |
+| `#24-teachmsgstall` | ✅ **DONE 2026-08-11 — ROOT-CAUSED, FIXED, A/B-PROVEN.** The replace-prompt detector had a **ONE-FRAME window**: `Task_ReplaceMoveYesNo` swaps itself out for `Task_HandleReplaceMoveYesNoInput` on the frame it becomes answerable (decomp `src/party_menu.c`; measured f3232735 → f3232736). Missing it left a blind A-mash that reaches `Task_HandleStopLearningMoveYesNoInput`, where **A = give up**. Fixed by watching both spellings, an `already-advanced` exit, and B at the stop prompt. **A/B (same save, one env var): OLD `learned=False` / NEW `learned=True`.** ✅ **PROMOTED 2026-08-11 (user-approved), verified DRIVEN in `custom-pokebot` as the same A/B, frame-for-frame identical. Source drift: ZERO.** |
 | `#24-r110mauville` / KI-48 / KI-49 | travel bugs, measured, unstarted. `could not reach` was 72 events in one batch. |
 | `#24-magmahideout` + `#24-strength` | ✅ **DONE 2026-08-10 night** — `GROUDON_AWAKENED_MAGMA_HIDEOUT` set, wired as Segment 15. Listed here only so the next reader sees they closed; details in the entries below. |
 
@@ -729,7 +729,12 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       **New test:** `repro_teach_prompt_window.py` (26 checks, no emulator; fault-injected to
       3 red, restored green). Gate: **12 of 12 PASS**.
 
-      ‼ **NOT YET PROMOTED** to `custom-pokebot` — that needs explicit user approval.
+      ✅ **PROMOTED 2026-08-11, user-approved.** Verified DRIVEN in `custom-pokebot` as the
+      same fault-injected A/B (OLD `ride:hard-cap f8999 learned=False` / NEW `ride:learned f896
+      learned=True`) — **frame-for-frame identical to the sandbox arms**. Source drift: **ZERO**.
+      `repro_teach_prompt_window.py` also passes with `REPRO_BUILD=custom`. See
+      `custom-pokebot/DIVERGENCE-LOG.md` for what is still outstanding (no production batch has
+      run with this fix in, so do NOT quote an outcome number for it yet).
 
       HISTORY — **PRIORITY RAISED 2026-08-10: THIS IS NOW THE PROJECT'S TOP
       BLOCKER.** It stops `#24-strength`, which stops `#24-magmahideout` increment 3, which is
