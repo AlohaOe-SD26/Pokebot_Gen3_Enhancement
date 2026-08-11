@@ -17,6 +17,7 @@ reads here FIRST. Created by the Claude Code Project Kit on 2026-07-17.
 | 8 | `07-CHANGELOG.md` | Everything that has ever changed | append-only |
 | 9 | `12-STORYMODE-DESIGN.md` | Story bot design: chapters, Area Atlas (§AA), resume/defeat/self-correct | reference |
 | 10 | `13-PLANNING-AND-RESILIENCE.md` | HOW the bot decides & stays robust: task model, resource ledger, contingency catalog, marts | reference |
+| 11 | `30-METRICS.md` | **Which instrument answers which question, and at what n.** Read BEFORE measuring anything. Includes why the finish rate can never resolve a change | current-state |
 | 11 | `27-INJECTION-SURFACE.md` | **How the bot OBSERVES and ACTS on the game** — the sensorimotor contract, every reader's silent failure mode, and the 8 timing traps. Written for the future self-training agent | reference |
 | 11 | `29-DISABLED-FEATURES-REGISTRY.md` | Every `POKEBOT_*` flag with the MEASUREMENT behind it. **Check before proposing a feature** — enforced by lint R6 | current-state |
 | 11 | `28-HANDOFF-ARCHIVE.md` | Superseded "you are here" snapshots, newest first. **Not current state** — read `04-HANDOFF.md` for the present | append-only |

@@ -173,7 +173,7 @@ Every analysis probe should print its own sample size and its control alongside 
 `probe_status_tax.py` now does. Retrofit `analyse_*.py`. A rate without an n should be impossible to
 *emit*, not merely discouraged.
 
-**H6. A fixture provenance record** *(family E)*
+**H6. A fixture provenance record** *(family E)* — ✅ **BUILT 2026-08-11** as `verify_fixtures.py --assert name=md5`, so the assertion lives IN the measurement command instead of in a human's memory
 Extend `FIXTURES.md5` so each PINNED save records **the run that produced it** and **the md5 of the
 telemetry that measured it**. Then "is this the save my result came from?" is a lookup, not a memory.
 
@@ -184,7 +184,7 @@ code smell that stands out rather than the default shape.
 ### TIER 3 — worth doing, lower urgency
 **H8.** Retire prevention rules whose mistake is now structurally impossible (the 2026-07-25
 precedent) — a stale rule costs context and dilutes the ones that matter.
-**H9.** A single `METRICS.md` naming, for each question the project asks, *which instrument answers
+**H9.** ✅ **BUILT 2026-08-11 — `30-METRICS.md`.** A single doc naming, for each question the project asks, *which instrument answers
 it and at what n* — the standing cure for the measurement problem in Part 5.
 
 ---

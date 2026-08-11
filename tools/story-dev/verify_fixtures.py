@@ -61,7 +61,57 @@ def parse() -> list[tuple[str, str, str, str]]:
     return rows
 
 
+def assert_mode(args: list[str]) -> int:
+    """`--assert name=md5prefix [...]` — REFUSE unless the named save is exactly those bytes.
+
+    ‼‼ THIS IS THE FIX FOR THE MISTAKE THAT VOIDED AN A/B ON 2026-08-11. The wedging save was
+    `magma_door.ss1` = `8171734228f3`. A still-in-flight background job overwrote it with
+    `273d19b34d96`; I copied *that* to a "pinned" name, md5'd the COPY, and never compared it to
+    the md5 of the run that had failed. Both A/B arms then ran on a save that does not reproduce
+    the bug, and the result was meaningless.
+
+    Pinning a fixture is not "copy the file now". It is **"copy the file AND assert its md5 equals
+    the one the failure was measured on"** — and the assertion belongs IN the command that runs the
+    measurement, not in a human's memory:
+
+        py -3.12 verify_fixtures.py --assert magma_door_ki52.ss1=273d19b34d96 && \\
+        py -3.12 story_harness.py magma_door_ki52.ss1 --driver magmahideout ...
+
+    A prefix of any length is accepted, so 12 characters from a log line is enough.
+    """
+    ok = True
+    for spec in args:
+        if "=" not in spec:
+            print(f"  ‼ bad --assert spec {spec!r}; expected name=md5prefix")
+            ok = False
+            continue
+        name, want = spec.split("=", 1)
+        path = SAVES / name.strip()
+        if not path.is_file():
+            print(f"  ‼ MISSING   {name} — cannot assert bytes for a file that is not there")
+            ok = False
+            continue
+        got = md5_of(path)
+        if got.startswith(want.strip().lower()):
+            print(f"  OK         {name} = {got[:12]}")
+        else:
+            print(f"  ‼ MISMATCH {name}: expected {want.strip()}…, got {got[:12]}")
+            print(f"             The save is NOT the one this measurement was defined against.")
+            print(f"             A driver or a background job probably rewrote it. Do NOT run the")
+            print(f"             measurement — recover the right bytes first.")
+            ok = False
+    return 0 if ok else 1
+
+
 def main() -> int:
+    if "--assert" in sys.argv:
+        i = sys.argv.index("--assert")
+        specs = [a for a in sys.argv[i + 1:] if not a.startswith("--")]
+        if not specs:
+            raise SystemExit("--assert needs at least one name=md5prefix")
+        print("FIXTURE ASSERTION")
+        return assert_mode(specs)
+
     update = "--update" in sys.argv
     rows = parse()
     if not rows:
