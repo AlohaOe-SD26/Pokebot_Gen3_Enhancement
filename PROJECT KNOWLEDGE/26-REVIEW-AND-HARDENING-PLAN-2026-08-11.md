@@ -144,7 +144,7 @@ Mechanically enforceable rules, all currently violated:
   → this is the direct fix for *"an ALREADY PROVEN row with no sample size"*
 * every `[~]` partial item must name what remains
 
-**H3. A "removal guard" checklist, enforced in the punch list** *(family C — 3+ repeats, worst cost)*
+**H3. A "removal guard"** *(family C — 3+ repeats, worst cost)* — ✅ **BUILT 2026-08-11, but NOT as specified.** The checklist version had no precise mechanical form (an advisory rule wearing a lint's clothes). The strong version shipped instead: **`29-DISABLED-FEATURES-REGISTRY.md` + lint rule R6**, which forces every `POKEBOT_*` flag and its MEASUREMENT into a file people read *before proposing features* — the measurements had been living in code comments, which is exactly how the roster recommendation was made against an already-disproven feature. ‼ On its first run R6 found an **11th flag** a hand grep had missed, and that flag turned out to be the missing cause of KI-54.
 Family C caused the single worst measured regression in the project (**finish 47% → 5%**). Any item
 whose change *removes, disables, deposits, skips or narrows* anything must carry, **before it may be
 marked done**, a `COST:` line stating what it takes away and the measurement that bounds it.
@@ -250,7 +250,7 @@ What this repo must produce for the future self-training agent, and where it alr
 | what faithful play *means* operationally | `14-AGENT-PLAYBOOK` faithfulness rules | scattered; worth consolidating |
 | negative results — what was tried and failed | `08-MISTAKES` (164), refutations, retractions | **strong; the project's most valuable asset** |
 | why, not just what | `06-DECISIONS-LOG` | good |
-⇒ **Proposed new doc: `27-INJECTION-SURFACE.md`** — the one place describing how the bot observes
+⇒ ✅ **BUILT 2026-08-11: `27-INJECTION-SURFACE.md`** — the one place describing how the bot observes
 and acts on the game. It is the highest-value missing artefact for goal #2, and it is mostly
 assembly of things already known.
 
