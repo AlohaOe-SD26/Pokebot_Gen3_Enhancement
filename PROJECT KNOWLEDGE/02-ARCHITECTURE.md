@@ -221,6 +221,18 @@ done
   `.ss1` is a full machine snapshot and **preserves battle callbacks / mid-script state**
   (measured 2026-08-09, 6 of 6), unlike a `.sav`. That makes a stall state a loadable fixture
   for bugs that need a runtime tail resident.
+- **`#24-battleitems` (promoted 2026-08-10)** — the bot uses healing items in TRAINER battles:
+  * `modules/story/battle_items.py` — a **PURE** policy (no emulator, no game state), so it is
+    unit-testable in milliseconds by `tools/story-dev/repro_battle_items.py` (27 checks). Heal
+    amounts are read from `modules/data/items.json` (`battle_use == "healing"`, `parameter` = HP,
+    255 = full), never hard-coded.
+  * `StoryItemBattleStrategy` in `plugins/custom_modes/story_mode.py` — supplies HP/bag/worst-hit
+    to the policy and turns its answer into `TurnAction.use_item_on`. **Trainer battles only**, and
+    it **fails open**, so wilds/training/catching are unchanged. It also self-corrects the
+    party-menu index space and disables items for a battle if a use demonstrably does nothing.
+  * `modules/battle_action_selection.py` — carries the fix for a real index-space bug (a
+    BATTLE-order index was being fed to a PARTY-MENU scroll) plus `[TURN …]` per-decision and
+    `[ITEM-FLOW]` per-stage telemetry.
 - Offline planner probes need **no emulator**: `probe_counter_candidates_offline.py`,
   `probe_counter_item_gate.py`, `probe_movepool_counters.py`, `rare_species_dataset.py`,
   `analyse_defeat_loops.py`. ‼ They stub `get_map_enum`/`get_encounter_index`, and

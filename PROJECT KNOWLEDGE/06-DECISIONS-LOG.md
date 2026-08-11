@@ -1376,3 +1376,73 @@ cost this project a diagnosis.
 3. Re-baseline one clean batch (the 52.0% baseline predates Mt. Pyre).
 4. Then the slice — serving BOTH targets, since the withdraw primitive is identical for an HM
    carrier and a type counter.
+
+---
+
+## 2026-08-10 — RETIRE the finish rate as a grading metric; grade content BINARY
+
+**Decision.** Stop using the cold-start finish rate to judge whether a change helped. Grade
+mechanism work on **battle-level** metrics (~800 samples per batch) and content on **the story
+flag the chapter sets** (1 run, yes/no).
+
+**Why.** Four batches read **25.0 → 33.3 → 16.1 → 28.6%** at n≈30 runs each — mean ≈25.8%, not one
+pair resolvable, ~12 hours of machine time spent to learn nothing. The arithmetic predicted it:
+resolving a 10-point move needs ~300 runs ≈ **30 hours per question**. A week of genuine mechanism
+wins produced no provable outcome win *because the instrument cannot resolve one*.
+
+**Rejected — run much longer batches.** 30 hours per question, for a bot whose behaviour changes
+daily. The answer would be stale before it arrived.
+**Rejected — keep quoting it directionally.** That is how three separate readings this week became
+"improvements" that were noise. Directional finish-rate claims are now explicitly disallowed.
+
+---
+
+## 2026-08-10 — PROMOTE `#24-battleitems` with NO resolved outcome metric
+
+**Decision.** Promote the healing-item feature to `custom-pokebot` even though no outcome metric
+moved resolvably.
+
+**Why.** The MECHANISM is proven (policy unit-tested 27 ways; item use verified landing 3-of-3
+after a real index-space bug was fixed; index guess derived from batch data; flips 20 → 2 and
+both-spaces-failed 10 → 0 on the validation batch), and every failure mode is BOUNDED — the no-op
+guard costs at most one turn per battle and then disables items for that battle. Given the
+decision above, waiting for a resolved finish-rate improvement would mean waiting ~30 hours per
+question, i.e. never.
+
+**Rejected — hold until an outcome resolves.** Under the retired metric that is indefinite.
+**Rejected — promote and claim it improves outcomes.** The DIVERGENCE-LOG entry states plainly
+that it must NOT be quoted as a finish-rate improvement.
+
+---
+
+## 2026-08-10 — SPEND ON CONTENT (coverage), not on optimising the first six badges
+
+**Decision.** The next work is the **Magma Hideout chapter**, not further reliability tuning.
+
+**Why.** `01-VISION-AND-DESIGN.md` says the Story bot exists to be a *"known-good, repeatable
+trajectory"* — a **reference/scaffold for the separate Pokémon Emerald AI project** — and that
+*"complete the story unattended is step 1"*. The bot has reached six badges for a week; coverage
+has not moved. **A failed run can be re-run; content that does not exist cannot be.** Coverage is
+also binary and instantly verifiable, which sidesteps the measurement problem entirely.
+
+**Rejected — keep optimising reliability first.** The vision's own status note says failures are
+already *"bounded and diagnosable rather than fatal and silent"*, which was the stated bar; more
+finish-rate work is past diminishing returns.
+‼ **What would reverse this:** if the user would rather have ~90% reliability to Gym 6 than a
+shakier path to Gym 8. That is a product call, and it was put to the user explicitly.
+
+---
+
+## 2026-08-10 — KEEP the self-correcting index space rather than hard-coding one rule
+
+**Decision.** `StoryItemBattleStrategy` picks its first party-menu index space from the target's
+position and **flips once, logging which space landed**, rather than committing to one convention.
+
+**Why.** Measured over a batch, party-order landed **19/19** when the target was party slot 0 and
+**never** above it, while every landing above slot 0 was battle-order — i.e. the ordering is
+**conditional**, and the after-faint chooser uses the opposite convention *correctly* in its own
+context. A single hard-coded rule would be wrong somewhere, and the flip both fixes it at runtime
+and produces the data to settle it.
+
+**Rejected — hard-code party-order** (fails above slot 0) **or battle-order** (fails at slot 0).
+**Rejected — "fix" the planner.** It was modelling the game correctly; the bug was ours.
