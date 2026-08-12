@@ -34,13 +34,17 @@ burden here is so heavy, and why negative results are treated as the most valuab
 | ‼ is code frozen? | **No.** Nothing is running. |
 | upstream | checked **2026-08-12**, still `5dd898f8` — no change. Daily check DONE. |
 | restore point | **`restore/2026-08-11-all-promoted`** (annotated, pushed, verified on the remote) |
-| sandbox ↔ custom drift | **NONE** — §Ch15 exit + §Ch16 + §Ch17 + heal stops + the MASTER BALL all PROMOTED 2026-08-12 (user-approved); the first promotion was verified by driving `--build custom` to an identical frame count |
+| sandbox ↔ custom drift | ‼ **§Ch18 IS IN SANDBOX ONLY — NOT PROMOTED.** `modules/story/mossdeep_gym.py`, `modules/story/mossdeep_gym_puzzle.py`, Segment 18 in `plugins/custom_modes/story_mode.py`, and the three `mossdeep*` drivers exist only in `sandbox-pokebot/`. Promotion needs the user's approval AND a driven `--build custom` check, never a diff. Everything BEFORE Ch18 is drift-free: — §Ch15 exit + §Ch16 + §Ch17 + heal stops + the MASTER BALL all PROMOTED 2026-08-12 (user-approved); the first promotion was verified by driving `--build custom` to an identical frame count |
 | **if stopped mid-task** | **NOTHING IS PARKED.** Everything is committed and pushed. Start at "NEXT ACTIONS". |
 
 ## ✅ WHAT SHIPPED THIS SESSION (2026-08-11 → 12)
-The story ladder went **16 → 18 of 24 beats**, and everything below is committed, pushed and
-**promoted to `custom-pokebot/`** (user-approved 2026-08-12; the promotion was verified by driving
-`--build custom` to a frame-identical PASS, not merely diffed).
+The story ladder went **16 → 19 of 24 beats**.
+
+‼ **§Ch18 (items 5, 6 and the block below) is COMMITTED AND PUSHED BUT *NOT* PROMOTED to
+`custom-pokebot/`.** Items 1-4 below were promoted on 2026-08-12 with the user's approval, verified
+by driving `--build custom` to a frame-identical PASS. **§Ch18 has had no such approval and no such
+verification — the sandbox↔custom drift row above is stale the moment you read it.** Promotion is
+the user's call, and it needs its own driven check in `custom-pokebot`, not a diff.
 
 1. **KI-56 FIXED — §Ch15 now LEAVES the Magma Hideout.** It used to pass its own binary test on
    runs that ended permanently stranded. No walk-out exists (18 of 20 warp-graph nodes reachable,
