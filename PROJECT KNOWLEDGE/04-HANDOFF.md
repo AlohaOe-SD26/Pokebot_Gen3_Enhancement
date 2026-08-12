@@ -73,14 +73,45 @@ the user's call, and it needs its own driven check in `custom-pokebot`, not a di
    `probe_anchor_inventory.py` now prints **party HP** — it immediately flagged three anchors as
    "cannot survive a journey".
 
-## ‼ THE ONE THING THAT MATTERS MOST FROM THIS SESSION
-**Four of my own instruments agreed that the Mossdeep Gym had no route to its own gym leaders.**
-All four were wrong, and all four shared one blind spot: they modelled the gym as *walk + warp*.
-The gym has a **third movement primitive** — floor switches that relocate 21 statues. Five parallel
-Claude agents (one explicitly ADVERSARIAL) found it; the adversarial one cracked it. Even the
-model-free brute-force walker was wrong, because it *changed the map while exploring it*.
-⇒ *When N of your own instruments agree on something impossible, they probably share a missing
-primitive.* Three new playbook rows.
+## ✅ AND THEN, LATER ON 2026-08-12 — §Ch18 BUILT, DRIVEN, FIXED AND WIRED (ladder 18 → 19 of 24)
+10. **The Mossdeep Gym puzzle is SIMULATABLE and the model is VALIDATED.**
+    `modules/story/mossdeep_gym_puzzle.py` predicts every object's tile after a switch press;
+    `probe_gym_simulate.py` made the GAME grade it — **11/11 loaded objects, identity-keyed on
+    `local_id`** — and caught a completely wrong model on its first run. Method written up as
+    playbook **§4b**.
+11. **The route is SOLVED and DRIVEN.** BFS over `(player tile × every object position)` →
+    **117 steps**, matching two independent agent routes switch-for-switch.
+    `--driver mossdeepgym` → `at_leaders=True at=(23,8) whiteouts=0`, one plan, zero re-plans.
+12. **§Ch18 COMPLETE.** `--driver mossdeepbadge` → `badge=True controllable=True whiteouts=0`,
+    `BADGE07_GET` after 754 frames. **Segment 18 wired into the ladder.**
+13. **‼ TWO REAL DEFECTS FOUND BY ADVERSARIAL AGENTS, NOT BY MY TESTS** — both invisible to a
+    passing run: the whiteout path checked the map only at entry AND raised an error type the
+    recovery could not catch (fixed, proven by fault injection, `repro_gym_whiteout_guard.py` 4/4);
+    and **§Ch18 stranded the run on an eleven-tile island** while passing `badge + controllable`
+    (fixed; **the acceptance now requires being out of the gym**).
+14. **KI-61 FIXED** — the chapter registry had the Space Center BEFORE the gym, which made the
+    progress detector skip two whole beats. A/B proven; the design doc's "order confirmed" was wrong.
+15. **§Ch19 groundwork + measured hazards** (`space_center.py`, `probe_space_center_recon.py`,
+    `probe_ch19_hazards.py`). **NOT built, NOT wired** — and it says so.
+16. **KI-62, KI-63 filed.** KI-63 is a real blocker: **no party member can learn Dive and the party
+    is full**, so `#24-pc` is a PREREQUISITE of §Ch21.
+
+## ‼ THE TWO THINGS THAT MATTER MOST FROM THIS SESSION
+
+**1. When N of your own instruments agree on something impossible, they share a missing primitive.**
+Four instruments agreed the Mossdeep Gym had no route to its own leaders. All four modelled it as
+*walk + warp*; the gym has a **third movement primitive** — floor switches that relocate 21 statues
+and nine trainers. Even the model-free brute-force walker was wrong, because it *changed the map
+while exploring it*. Five parallel Claude agents found it; the explicitly ADVERSARIAL one cracked it.
+
+**2. ‼ EVERY DEFECT THAT MATTERED THIS SESSION WAS FOUND BY AN ADVERSARIAL AGENT, NOT BY A TEST.**
+Three times: the statue model (caught by a validation gate I only built because the rule says to),
+the whiteout path, and §Ch18 stranding the run. In each case my own runs were **green** — the
+happy path cannot exercise an error path, and an acceptance test written by the same person who
+wrote the code inherits the same blind spot. ⇒ *Spend the agents on REFUTING finished work, not
+only on researching new work.* And: **write the predicted failure down BEFORE the run** — the
+§Ch19 hazard checks did this and 3/3 held, which is how two traps got designed out instead of
+debugged.
 
 ## ‼‼ THE BATCH RESULT — one thing resolved, one thing NOT
 **RESOLVED — the status tax is real:** incapacitated turns lost **960/2,945 = 32.6%** vs a clean
@@ -122,56 +153,25 @@ committed while the author knew the rule. **Run `preflight.py` before touching a
   behind it, but a status response is a battle-policy change touching every mode — **do not build
   it unilaterally.**
 
-## ✅ KI-56 — WAS: stranded in the Magma Hideout. **FIXED AND DRIVEN 2026-08-11.**
-Driving §Ch16 exposed it: **Ch15 completes its binary flag test and leaves the run permanently
-stuck four floors deep.** Measured from `profiles/ch16a/current_state.ss1`:
-* component containing the bot at `MAGMA_HIDEOUT_1F (25,34)`: **248 tiles, NO reachable exit warp**
-* the INBOUND route `(10,34) → (25,34)` now **also fails** — the way it walked in is gone
-* the push-from tiles are **unreachable**, so it cannot even re-push
-* boulders measured at `(5,22) (7,22) (6,23)` = the **ORIGINAL** positions ⇒ **Strength boulders
-  RESET on map reload**, exactly like Rock-Smash rocks
+## ✅ KI-56 (Magma Hideout strand) — resolved 2026-08-11, detail ARCHIVED
 
-‼ **The acceptance test never asked whether the bot could LEAVE** — `GROUDON_AWAKENED` is set the
-moment Maxie falls. New playbook rule added: *a chapter's test must include "and the bot can
-continue"*.
+Full block moved to `28-HANDOFF-ARCHIVE.md`; the issue itself is in
+`31-KNOWN-ISSUES-ARCHIVE.md`. ‼ Keep only this: its prevention rule — **a chapter's test must
+include "and the bot can continue"** — was violated AGAIN by §Ch18 on 2026-08-12, which passed
+`badge + controllable` while parked on an eleven-tile island. It is the most re-learned lesson
+in this project. Read it before writing any chapter's acceptance test.
 
-### ✅ CAUSE CONFIRMED, FIX BUILT, DRIVEN **PASS** (2026-08-11, later)
-`probe_hideout_warp_graph.py` re-tested the strand against the **whole eight-map warp graph**
-(KI-56's own evidence was a *same-map* path failure, and `calculate_path` "is not able to use
-warps", so a routing gap would have looked identical). It is not a routing gap: from the stranded
-tile the search reaches **18 of 20 nodes**, missing only the exit warp `1F (10,34)` and
-`JAGGED_PASS`. **Option 2 (return-route) is formally DEAD**; option 3 was already dead.
-
-**THE FIX — the dungeon supplies its own escape, so there is no detour:**
-| | |
-|---|---|
-| Escape Rope item ball | `MAGMA_HIDEOUT_3F_3R (9,19)` — a room §Ch15 already walks through |
-| flag | `ITEM_MAGMA_HIDEOUT_3F_3R_ECAPE_ROPE` (1059), **unset** ‼ the decomp misspells "ESCAPE"; the correct spelling reads `False` silently forever |
-| approach | **`(9,20)` only**, face Up. The other three sides are unreachable |
-| reachable from | both 3F_3R warp nodes — including from the STRANDED tile |
-| rope lands at | **`JAGGED_PASS (16,19)`**, collision 0 (`probe_escape_warp.py`, 3 controls) |
-| bag today | **0 Escape Ropes** on every save ‼ and Lavaridge Mart does not stock them |
-
-**BUILT AND PROVEN.** `collect_hideout_escape_rope()` + `use_escape_rope_to_leave_hideout()` +
-`leave_magma_hideout()`, and the chapter now ENDS with the exit — **outside** the
-`_groudon_awakened()` guard, so a resumed run still finishes it. Driver `--driver magmaexit`:
-```
-[mhexit] RESULT out=True map=JAGGED_PASS at=(16, 19) controllable=True landed_on_jagged_pass=True
-[mhexit] VERDICT PASS
-```
-‼ `(16,19)` is the exact tile predicted from `escapeWarp` before any code was written.
-Guarded by `repro_hideout_exit.py` (24 checks, fault-injected both ways). Gate: **15 of 15 green**.
-
-‼ **The one thing that did not work first time**, because it will bite the next dungeon too: the
-first run **consumed the rope and went nowhere**. `StartEscapeRopeFieldEffect()` runs from
-`DisplayItemMessageOnField`'s **callback**, which fires only when the message is DISMISSED — the
-wait loop has to press **B**, not just yield. *A consumed item is not the end of the script that
-consumed it.*
-
-**Not yet proven:** driven from `post_maxie.ss1` (on 4F). The exit has **not** been driven from a
-run that walked all the way back down to `1F (25,34)`; the warp graph says 3F_3R is reachable from
-there, but that is static.
 ## ⏭ NEXT ACTIONS, IN ORDER
+
+> **START HERE ON A FRESH CONTEXT.** Everything is committed and pushed; nothing is parked.
+> 1. **Run `preflight.py`.** Then read this list and the **§Ch19 section below it**.
+> 2. **The actual next build is §Ch19, the Mossdeep Space Center** — groundwork exists, hazards are
+>    measured, and the one genuine unknown is the party-selection menu. Item 1 below is a *record*
+>    that §Ch18 is finished, not a task.
+> 3. Two things are the USER's call, not yours: **promoting §Ch18 to `custom-pokebot/`**, and the
+>    **boss/status battle-policy** decision further down.
+> 4. Before building anything, skim `08-MISTAKES.md`'s last ten entries — six were written today and
+>    three of them are about tests that passed while the bot was broken.
 
 1. **✅ §Ch18 IS DONE (2026-08-12) — the Mind Badge is won and Segment 18 is wired into the ladder.**
    The ladder now runs **19 of 24 beats**. Three drivers, all PASS:
@@ -307,7 +307,23 @@ PYTHONUTF8=1 py -3.12 lint_docs.py          # doc rules (exit 1)
 PYTHONUTF8=1 py -3.12 verify_fixtures.py    # PINNED saves byte-identical
 PYTHONUTF8=1 py -3.12 probe_status_tax.py <batch-dir>   # the status tax, with its control
 PYTHONUTF8=1 py -3.12 x4_headless.py --lanes 8 --minutes 180   # a batch (3h)
+
+# --- §Ch18/§Ch19 (all exit 0 today; keep them green) ---
+PYTHONUTF8=1 py -3.12 repro_gym_whiteout_guard.py   # 4/4, fault-injected  (~1 min)
+PYTHONUTF8=1 py -3.12 probe_chapter_order.py        # KI-61 regression guard
+PYTHONUTF8=1 py -3.12 probe_ch19_hazards.py         # 3/3; H1 is now a stranding guard
+PYTHONUTF8=1 py -3.12 probe_space_center_recon.py   # §Ch19 area atlas (measured, not recalled)
+PYTHONUTF8=1 py -3.12 probe_gym_solve.py            # re-derive the 117-step gym route
+
+# --- drivers (these run under the REAL main loop, so they can fight) ---
+PYTHONUTF8=1 py -3.12 story_harness.py post_aqua.ss1          --driver mossdeeptravel --frames 500000
+PYTHONUTF8=1 py -3.12 story_harness.py in_mossdeep_gym.ss1    --driver mossdeepgym    --frames 400000
+PYTHONUTF8=1 py -3.12 story_harness.py at_mossdeep_leaders.ss1 --driver mossdeepbadge --frames 300000
 ```
+‼ **Never read an exit code through a pipe** — `| head` reports ITS status, not the script's. Write
+to a file and echo `$?` (this nearly recorded a PASS that had never run).
+‼ **A driver can fight; a hand-driven probe cannot.** Battle handling lives in the main loop's
+listeners, not inside a bot mode's generator (`modules/battle_fault.py:5`).
 **Regression gate — 15 of 15 green (2026-08-12):** plus `repro_gym_whiteout_guard.py` (4/4, fault-injected — ‼ it is a BOUNDED prefix test, because a hand-driven generator has no battle listeners and cannot win a gym fight; see 08-MISTAKES). Previously 14 of 14 (2026-08-11): the ten standing `repro_*` plus
 `repro_teach_under_dialogue`, `repro_teach_prompt_window`, `repro_maxie_whiteout_guard`,
 `repro_lead_cannot_battle`, and the `repro_no_silent_except` ratchet.

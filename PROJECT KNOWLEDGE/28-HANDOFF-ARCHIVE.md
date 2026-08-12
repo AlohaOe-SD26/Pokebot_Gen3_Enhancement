@@ -3093,3 +3093,60 @@ The snapshot exists for a reason — entries come from a disk read of `badge-log
 `_show_badge_detail` fires on every hover — so the fix is to refresh on focus-change and on
 the sidebar cadence, never per hover. Lanes already publish their badge set in the status
 blob, which answers "has anything changed?" without touching the disk. See punch list.
+
+## Archived 2026-08-12 — the KI-56 (Magma Hideout strand) block from the handoff
+
+Resolved and driven on 2026-08-11; the full issue write-up now lives in
+`31-KNOWN-ISSUES-ARCHIVE.md`. Moved out of `04-HANDOFF.md` so that file stays CURRENT
+state. ‼ Its prevention rule was violated again by §Ch18 on 2026-08-12 — see
+`08-MISTAKES.md` and playbook §7.
+
+## ✅ KI-56 — WAS: stranded in the Magma Hideout. **FIXED AND DRIVEN 2026-08-11.**
+Driving §Ch16 exposed it: **Ch15 completes its binary flag test and leaves the run permanently
+stuck four floors deep.** Measured from `profiles/ch16a/current_state.ss1`:
+* component containing the bot at `MAGMA_HIDEOUT_1F (25,34)`: **248 tiles, NO reachable exit warp**
+* the INBOUND route `(10,34) → (25,34)` now **also fails** — the way it walked in is gone
+* the push-from tiles are **unreachable**, so it cannot even re-push
+* boulders measured at `(5,22) (7,22) (6,23)` = the **ORIGINAL** positions ⇒ **Strength boulders
+  RESET on map reload**, exactly like Rock-Smash rocks
+
+‼ **The acceptance test never asked whether the bot could LEAVE** — `GROUDON_AWAKENED` is set the
+moment Maxie falls. New playbook rule added: *a chapter's test must include "and the bot can
+continue"*.
+
+### ✅ CAUSE CONFIRMED, FIX BUILT, DRIVEN **PASS** (2026-08-11, later)
+`probe_hideout_warp_graph.py` re-tested the strand against the **whole eight-map warp graph**
+(KI-56's own evidence was a *same-map* path failure, and `calculate_path` "is not able to use
+warps", so a routing gap would have looked identical). It is not a routing gap: from the stranded
+tile the search reaches **18 of 20 nodes**, missing only the exit warp `1F (10,34)` and
+`JAGGED_PASS`. **Option 2 (return-route) is formally DEAD**; option 3 was already dead.
+
+**THE FIX — the dungeon supplies its own escape, so there is no detour:**
+| | |
+|---|---|
+| Escape Rope item ball | `MAGMA_HIDEOUT_3F_3R (9,19)` — a room §Ch15 already walks through |
+| flag | `ITEM_MAGMA_HIDEOUT_3F_3R_ECAPE_ROPE` (1059), **unset** ‼ the decomp misspells "ESCAPE"; the correct spelling reads `False` silently forever |
+| approach | **`(9,20)` only**, face Up. The other three sides are unreachable |
+| reachable from | both 3F_3R warp nodes — including from the STRANDED tile |
+| rope lands at | **`JAGGED_PASS (16,19)`**, collision 0 (`probe_escape_warp.py`, 3 controls) |
+| bag today | **0 Escape Ropes** on every save ‼ and Lavaridge Mart does not stock them |
+
+**BUILT AND PROVEN.** `collect_hideout_escape_rope()` + `use_escape_rope_to_leave_hideout()` +
+`leave_magma_hideout()`, and the chapter now ENDS with the exit — **outside** the
+`_groudon_awakened()` guard, so a resumed run still finishes it. Driver `--driver magmaexit`:
+```
+[mhexit] RESULT out=True map=JAGGED_PASS at=(16, 19) controllable=True landed_on_jagged_pass=True
+[mhexit] VERDICT PASS
+```
+‼ `(16,19)` is the exact tile predicted from `escapeWarp` before any code was written.
+Guarded by `repro_hideout_exit.py` (24 checks, fault-injected both ways). Gate: **15 of 15 green**.
+
+‼ **The one thing that did not work first time**, because it will bite the next dungeon too: the
+first run **consumed the rope and went nowhere**. `StartEscapeRopeFieldEffect()` runs from
+`DisplayItemMessageOnField`'s **callback**, which fires only when the message is DISMISSED — the
+wait loop has to press **B**, not just yield. *A consumed item is not the end of the script that
+consumed it.*
+
+**Not yet proven:** driven from `post_maxie.ss1` (on 4F). The exit has **not** been driven from a
+run that walked all the way back down to `1F (25,34)`; the warp graph says 3F_3R is reachable from
+there, but that is static.

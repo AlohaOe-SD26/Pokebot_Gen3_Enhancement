@@ -369,6 +369,44 @@ authoritative), the harness (the ground truth — validate and correct the doc).
 
 ---
 
+## 4b. When a map has a MECHANIC: simulate it, then make the game grade your simulator
+
+Some rooms are not walk-and-warp. The Mossdeep Gym has a third movement primitive — floor switches
+that relocate 21 statues AND nine of the trainers — and four independent instruments all concluded
+it had no route to its own gym leaders, because none of them modelled it. The method that worked,
+and that generalises to any puzzle room:
+
+1. **Find the mechanic's DATA, not its behaviour.** The arrows are map layout: baked into ROM,
+   never moving. Dump them once (`probe_gym_arrows.py`) and the whole puzzle becomes simulatable
+   offline. ‼ DERIVE the encoding from the dump rather than assuming it — print the distinct values
+   and let the data name the scheme. Ours produced a free cross-check: the "direction 4/5" tiles
+   turned out to be the nine floor SWITCHES, independently reproducing a list obtained another way.
+2. **Write the simulator as a PURE module** (`mossdeep_gym_puzzle.py`): state in, state out, no
+   emulator. It is then testable in milliseconds and the search can run 10^5 states.
+3. **‼ MAKE THE GAME GRADE IT BEFORE YOU PLAN ANYTHING** (`probe_gym_simulate.py`). Walk to a
+   switch over the SIMULATED map, press it for real, and require the simulator to have predicted
+   every loaded object's new tile — **keyed on `local_id`**. This gate caught a completely wrong
+   movement model on its first run, before a single route was planned on it.
+   * compare only LOADED objects (`get_map_objects()` is a subset of the templates) and PRINT how
+     many were compared, or a comparison over zero objects passes silently;
+   * the walk itself is a second test: if the simulator misplaces a statue, the avatar fails to
+     arrive and the probe names the step that disagreed.
+4. **Search over `(position, world-state)`.** A `(map, position)` key merges genuinely different
+   worlds — that is exactly how a model-free brute-force walker found 35 tiles and "proved" the gym
+   unsolvable, because it was *changing the map while exploring it*.
+5. **Execute by RE-SOLVING, not replaying.** A 117-step plan desynchronises the moment a trainer
+   interrupts. Walk until something unexpected happens, then solve again from where you actually
+   are; a BFS costs a fraction of a second.
+6. **Cross-check the answer against independent derivations, and say which one you believe.** Ours
+   matched two offline agent routes switch-for-switch. That is reassuring and is still not proof —
+   the driven run is.
+
+‼ **Static ROM facts, live facts, and identity are three different things.** `MapLocation.objects`
+reads the map header in ROM and always returns ORIGINAL template positions; `get_map_objects()`
+returns live, mutated positions but only for LOADED objects; and neither tells you an object's
+identity as an NPC. Say which one you are using, every time — most of this room's wrong conclusions
+came from mixing them up.
+
 ## 5. Faithfulness rules (natural-first, state-write fallback)
 
 - **Do it the player way when you can.** We proved the "impossible" faithful path more than
@@ -430,6 +468,16 @@ authoritative), the harness (the ground truth — validate and correct the doc).
 | Building a chapter **before mapping** it | Static-recon → Atlas → build → validate. Always. |
 | A flag-gated combat segment with **unbounded** whiteout re-entry | Attempt-cap + clean fallback to manual; never loop forever. |
 | Talking to a **PATROLLING NPC** via its spawn tile, a navigate-chase, or blocking its route | `_talk_to_wandering_npc`: OBSERVE a lap (record both walkers' routes) → park BESIDE the route (on NOBODY's route, not a warp) → face-tap+A when he transits the adjacent tile. A tail-chase never catches a same-speed walker on a ring; blocking a shared ring queues the WRONG walker against you (Briney/Peeko, 2026-07-22). |
+| A chapter's test says **"controllable"** and calls that done | *"Controllable" is not "able to continue."* Assert the bot is somewhere the NEXT chapter can start from — cheapest form is a real `calculate_path` to where it must go next. §Ch18 passed `badge + controllable` twice while parked on an 11-tile island (2026-08-12); §Ch15 did the same four floors underground (KI-56). **This is the most re-learned rule in the project.** |
+| A world-model advanced from **the PLAN** rather than the observation | Update state from what actually happened — the tile the avatar LANDED on, not the step the route intended. The whole reason to re-plan is that the plan sometimes doesn't happen (Mossdeep gym warp, 2026-08-12). |
+| A movement rule inferred from a **set of positions** | A set says which tiles changed occupancy; it cannot say WHO moved where. Key any "what moved" measurement on `local_id`, or it will confirm whichever hypothesis you brought (statue puzzle, 2026-08-12: rigid rotation 6/6 vs ordered slide 2/6 on the same data). |
+| **"The avatar refuses to walk"** → theorising about input/timing | Print `get_global_script_context().stack` FIRST. Four runs were lost to input theories; the stack said `EventScript_ShowTrainerIntroMsg` in one line — a trainer had line of sight (2026-08-12). |
+| A **readiness check** used to decide that nothing will start | A readiness check tells you the game is ready NOW, never that nothing is about to start. Landing on a coord_event/warp tile has a window where the avatar reads idle before the script takes hold. Confirm a warp by its DESTINATION TILE; hold switch waits open with a frame floor. |
+| An **error type** that the recovery cannot catch | An error type is part of an interface. When you write a recovery, assert the failure it recovers from can actually REACH it — `walk_to_the_leaders` raised `RuntimeError` where its chapter caught `BotModeError`, silently disabling the whole retry (2026-08-12). |
+| A **hand-driven generator** used to test anything that must survive a battle | Battle handling does NOT run inside a bot mode's generator; it lives in the main loop's listeners (`modules/battle_fault.py:5`). A probe driving a generator by hand cannot win a fight — it will sit until its budget expires. Use a real `--driver` for that; use probes for logic and guards. |
+| A **green happy-path run** treated as coverage of the error paths | A branch exists because something can go wrong — so make it go wrong. Fault-inject (patch the predicate, force the loss) rather than asserting the fix. |
+| **ORDER** of a list that more than one consumer reads as meaning | A wrong order is a silent logic bug, not cosmetics. `chapters.py` ordering drove BOTH `badges_before` and the bracket in `current_chapter()`; one swapped pair made the detector skip two whole beats (KI-61, 2026-08-12). Order claims in docs need the same evidence bar as code — "order confirmed" was written there and was wrong. |
+| Markdown edited through a **double-quoted shell string** | Backticks become command substitution: your citations are deleted and the script still exits 0. Use the Edit tool or a quoted heredoc (`<<'EOF'`). Corrupted three doc edits in one session (2026-08-12). |
 | **Face-tap toward an empty tile STEPS** (if already facing that way) | Only face-tap toward a tile the NPC currently OCCUPIES (a bump can't step), and re-verify it's still there before pressing A. |
 | **Standing on a walk-sequence NPC's route tile** freezes the room | Walk-sequence NPCs wait forever for their exact next route tile (no re-routing) — a blocked queue can deadlock every actor incl. the player (three-body gridlock). Park OFF-route; if walkers freeze, step off the route to unfreeze. |
 | `navigate_to` reports **"no path" in a small room with walking NPCs** | `calculate_path` blocks every object's current AND previous tile — two walkers seal a tiny map at plan time. Use greedy manual steps (with perpendicular fallbacks + warp-tile avoidance) for indoor approach work. |
