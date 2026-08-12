@@ -11659,3 +11659,24 @@ a map disagree, build the second model rather than re-reading the first".
 **§Ch18 is still not solved, but the diagnosis is now correct and the next step is concrete:**
 re-run `probe_warp_maze.py --maze mossdeep_gym` from a save STANDING IN THE GYM, so the statues are
 live objects at their real positions instead of pessimistic template walls.
+
+## 2026-08-12 (night) — §Ch18 leg 1 SHIPPED; KI-58 narrowed to one honest open question
+
+**✅ `--driver mossdeeptravel`, driven PASS first try:**
+```
+[ch18] RESULT in_gym=True map=MOSSDEEP_CITY_GYM at=(6, 35) controllable=True whiteouts=0
+[ch18] ACCEPTANCE: PASS   captured anchor -> saves/in_mossdeep_gym.ss1
+```
+Heals at Lilycove, Surfs Lilycove → Mossdeep (the first Surf crossing in the project) and walks
+into the gym. `whiteouts=0` — the heal-before-the-haul lesson applied at build time again.
+
+**KI-58: the instrument bug was real and is fixed; it was not the whole story.** With the gym as
+the loaded map and its 21 statues live, the maze STILL yields no route. Three mechanisms are now
+decomp-ruled-out — `MB_MOSSDEEP_GYM_WARP` is an ordinary warp, its exit callback is cosmetic, and
+‼ **the R/S switch-and-arrow puzzle is dead code in Emerald** (the gym's own scripts say
+*"FLAG_MOSSDEEP_GYM_SWITCH_X is never set"*). The open question is narrow: what connects the
+Emerald gym's rooms?
+
+**Next step is a change of KIND, not more of the same:** every model tried has been offline. Drive
+it from the new anchor and watch the live router. Three static models now agree on something that
+cannot be true, which by KI-57's rule makes the models the suspect.

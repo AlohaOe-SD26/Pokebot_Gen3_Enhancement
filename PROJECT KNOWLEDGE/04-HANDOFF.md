@@ -158,8 +158,17 @@ there, but that is static.
    ‼ **AND THE REASON THE RECON WAS UNRELIABLE:** `map_path` blocks any tile whose object template
    is not in `active_objects`, which comes from the **currently loaded** map — so static recon of a
    36-object gym from a save inside the Aqua Hideout turns every object tile into a wall.
-   **NEXT STEP, concrete:** capture a save STANDING IN THE GYM (drive the travel leg), then re-run
-   `probe_warp_maze.py --maze mossdeep_gym` so the statues are live objects at real positions.
+   ✅ **Leg 1 is DONE** — `--driver mossdeeptravel` heals, Surfs Lilycove → Mossdeep and enters
+   the gym (PASS, `whiteouts=0`), capturing **`saves/in_mossdeep_gym.ss1`**. The pessimism bug is
+   fixed (the recon now runs with the gym LOADED) — **and the maze still does not solve.**
+   Three mechanisms are decomp-RULED OUT: `MB_MOSSDEEP_GYM_WARP` is an ordinary warp, its exit
+   callback is cosmetic, and ‼ the R/S switch-and-arrow puzzle is **dead code in Emerald**
+   (`FLAG_MOSSDEEP_GYM_SWITCH_X is never set`, per the gym's own scripts).
+   **NEXT STEP — change the KIND of question.** Every model tried has been OFFLINE and three of
+   them now agree on something that cannot be true, which by KI-57's rule makes the models the
+   suspect. **Drive it:** from `in_mossdeep_gym.ss1`, ask the live router
+   (`_navigate_riding_out(MOSSDEEP_CITY_GYM, (23,8))`) to reach Tate & Liza and watch where it
+   actually goes.
    ‼ §Ch18's boss is also a **DOUBLE battle** with a "need two Pokémon" branch — a party
    constraint no earlier chapter has had, and the party still carries Zigzagoon L11 / Skitty L17.
 

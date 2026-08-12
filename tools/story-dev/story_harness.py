@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "normancounter"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "normancounter"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -2513,6 +2513,133 @@ class MagmaTravelMode(BotMode):
         return
 
 
+class MossdeepTravelMode(BotMode):
+    """§Ch18 leg 1 — cross Lilycove -> Mossdeep and stand INSIDE the gym, then capture the anchor.
+
+        PYTHONUTF8=1 py -3.12 story_harness.py post_aqua.ss1 --driver mossdeeptravel \
+            --frames 500000 --profile ch18a
+
+    ‼ THIS EXISTS FOR TWO REASONS AT ONCE, and the second is why it is worth its own driver.
+    (1) It is §Ch18's first leg: the party has to get to Mossdeep before anything else happens.
+    (2) It unblocks **KI-58**. The gym maze could not be reconned because `map_path` blocks every
+        tile carrying an object template whose object is not in `active_objects` — and
+        `active_objects` comes from the CURRENTLY LOADED map. Reconning a **36-object** gym from a
+        save inside the Aqua Hideout turned all 21 statue tiles into pessimistic walls. A save
+        STANDING IN THE GYM makes them live objects at their real positions, which is the only way
+        the route question can be asked honestly.
+
+    ANCHOR: `saves/post_aqua.ss1` — post-Ch17, party ~90%, Master Ball held.
+    ROUTE: `MOSSDEEP_CITY (38,9)` is the gym door (ROM warp table).
+
+    ACCEPTANCE: standing on `MOSSDEEP_CITY_GYM`, controllable. Captures
+    `saves/in_mossdeep_gym.ss1` on success only.
+
+    ‼ WHAT IS MOST LIKELY TO FAIL, said in advance: the crossing needs **Surf** over Routes
+    124/125, and this is the first leg in the project to go that way. A failure here is a TRAVEL
+    result, not a gym result — the log distinguishes them.
+
+    Emits: [ch18] RESULT in_gym=<bool> map=<enum> at=<tile> controllable=<bool> whiteouts=<n>
+    """
+
+    _whiteouts = 0
+
+    @staticmethod
+    def name():
+        return "MossdeepTravel"
+
+    def on_battle_started(self, encounter):
+        from modules.battle_strategies import DefaultBattleStrategy
+
+        if encounter is None:
+            from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+            return StoryItemBattleStrategy()
+        return DefaultBattleStrategy()
+
+    def on_whiteout(self) -> bool:
+        MossdeepTravelMode._whiteouts += 1
+        log(f"[ch18] WHITEOUT #{MossdeepTravelMode._whiteouts} - recovering, as StoryMode does")
+        return True
+
+    def run(self):
+        import os
+
+        from modules.map_data import MapRSE, PokemonCenter
+        from modules.player import get_player_avatar, player_avatar_is_controllable
+        from modules.modes.util.higher_level_actions import heal_in_pokemon_center
+        from modules.story.early_game import (
+            _enter_warp_by_navigation,
+            _navigate_riding_out,
+            wait_until_truly_controllable,
+        )
+
+        yield from wait_until_truly_controllable()
+
+        def here():
+            avatar = get_player_avatar()
+            return tuple(avatar.map_group_and_number), tuple(avatar.local_coordinates)
+
+        def map_name(mgn):
+            try:
+                return MapRSE(mgn).name
+            except Exception as error:  # noqa: BLE001 - report the raw tuple rather than crash
+                return f"?{mgn}({type(error).__name__})"
+
+        GYM_DOOR = (38, 9)  # MOSSDEEP_CITY warp 1 -> MOSSDEEP_CITY_GYM
+
+        def in_gym() -> bool:
+            return here()[0] == MapRSE.MOSSDEEP_CITY_GYM.value
+
+        mgn, tile = here()
+        log(f"[ch18] START {map_name(mgn)}{tile}")
+
+        error_text = ""
+        try:
+            # ‼ HEAL FIRST — the §Ch16 lesson applied at build time, not after losing a run.
+            # Lilycove's centre is on the way out; a long Surf crossing on a damaged party is
+            # exactly the shape that whited out on the Slateport haul.
+            try:
+                log("[ch18] healing at Lilycove before the crossing...")
+                yield from _navigate_riding_out(MapRSE.LILYCOVE_CITY, (24, 15))
+                yield from heal_in_pokemon_center(PokemonCenter.LilycoveCity)
+                yield from wait_until_truly_controllable()
+            except Exception as error:  # noqa: BLE001 - a lost heal stop is not a lost run, but
+                # it is always REPORTED, so "healed" and "could not" never look alike.
+                log(f"[ch18] heal SKIPPED - {type(error).__name__}: {str(error)[:160]}")
+
+            log("[ch18] crossing to Mossdeep (needs Surf over Routes 124/125)...")
+            yield from _navigate_riding_out(MapRSE.MOSSDEEP_CITY, (38, 10))
+            yield from wait_until_truly_controllable()
+            log(f"[ch18] reached {map_name(here()[0])}{here()[1]}; entering the gym...")
+
+            yield from _enter_warp_by_navigation(
+                in_gym, MapRSE.MOSSDEEP_CITY, GYM_DOOR, label="Mossdeep Gym door"
+            )
+            yield from wait_until_truly_controllable()
+        except Exception as error:  # noqa: BLE001 - the failure IS the measurement
+            error_text = f"{type(error).__name__}: {str(error)[:900]}"
+            log(f"[ch18] FAILED: {error_text}")
+
+        mgn, tile = here()
+        try:
+            ctrl = player_avatar_is_controllable()
+        except Exception as error:  # noqa: BLE001
+            ctrl = f"<unreadable: {type(error).__name__}>"
+        ok = in_gym() and ctrl is True
+        log(f"[ch18] RESULT in_gym={in_gym()} map={map_name(mgn)} at={tile} controllable={ctrl} "
+            f"whiteouts={MossdeepTravelMode._whiteouts} frames={context.emulator.get_frame_count()}"
+            + (f" error=({error_text})" if error_text else ""))
+        log(f"[ch18] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (needs to be standing in the gym, controllable)")
+
+        if ok and os.environ.get("CH18_CAPTURE", "1") != "0":
+            out = SAVES / "in_mossdeep_gym.ss1"
+            out.write_bytes(context.emulator.get_save_state())
+            log(f"[ch18] captured anchor -> {out}")
+
+        context.set_manual_mode()
+        return
+
+
 class AquaHideoutMode(BotMode):
     """§Ch17 - drive `do_aqua_hideout_chapter()` from the post-Ch16 anchor.
 
@@ -4382,6 +4509,8 @@ for step in range(args.frames):
             context.bot_mode_instance = MagmaExitMode()
         elif args.driver == "aquahideout":
             context.bot_mode_instance = AquaHideoutMode()
+        elif args.driver == "mossdeeptravel":
+            context.bot_mode_instance = MossdeepTravelMode()
         elif args.driver == "slateporttheft":
             context.bot_mode_instance = SlateportTheftMode()
         elif args.driver == "teachfull":

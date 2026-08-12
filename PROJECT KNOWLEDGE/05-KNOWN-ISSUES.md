@@ -2814,3 +2814,28 @@ not the chain assumed above. **Next step:** re-run `probe_warp_maze.py --maze mo
 anchor where the GYM IS THE LOADED MAP, so the statues are live objects at their real positions
 rather than pessimistic template walls, and see whether a route appears. That requires a save
 standing in the gym — capture one, or drive the travel leg first.
+
+### KI-58, third pass 2026-08-12 — the pessimism was REAL but was not the whole story
+`--driver mossdeeptravel` now captures **`saves/in_mossdeep_gym.ss1`** (driven PASS, `whiteouts=0`),
+so the maze could finally be reconned with the gym as the LOADED map and its 21 statues as live
+objects at their real positions. **The route is still not found.** So the object-template pessimism
+was a genuine instrument bug — worth fixing, and now fixed — but it was not what was hiding the
+gym's route.
+
+**Three mechanisms RULED OUT, each decomp-confirmed:**
+| candidate | ruled out because |
+|---|---|
+| `MB_MOSSDEEP_GYM_WARP` has special destination logic | `DoMossdeepGymWarp()` is an ordinary warp; destination comes from the warp event |
+| the exit is direction-dependent | `FieldCB_MossdeepGymWarpExit` is cosmetic — music, fade, `Task_ExitNonDoor` |
+| the R/S switch-and-arrow puzzle moves barriers | ‼ the gym's own scripts say so: *"Mossdeep Gym was redesigned between R/S and E… All the below checks are leftover from RS. **`FLAG_MOSSDEEP_GYM_SWITCH_X` is never set**"* — that whole `setmetatile` machinery is DEAD CODE in Emerald |
+
+**So the open question is narrow and honest: what actually connects the Emerald gym's rooms?**
+The warp graph (14 warps, 12 same-map) plus live statues yields no path from `(6,34)` to Tate &
+Liza's room, and the game plainly permits one. Something structural in the model is still wrong.
+
+**‼ NEXT STEP, and it is cheap now that the anchor exists:** stop asking STATIC questions. Drive it
+— from `in_mossdeep_gym.ss1`, have the bot's own runtime router (`navigate_to_anywhere` /
+`_navigate_riding_out`) attempt `MOSSDEEP_CITY_GYM (23,8)` and watch where it actually goes. Every
+model used so far has been offline; the live router has information none of them had. (This is the
+KI-57 lesson again: when a measurement implies the game soft-locks itself, the measurement is the
+suspect — and three of them now say the same wrong thing.)

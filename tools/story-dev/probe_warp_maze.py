@@ -95,7 +95,13 @@ MAZES = {
         ],
     },
     "mossdeep_gym": {
-        "anchor": SAVES / "post_aqua.ss1",
+        # ‼‼ THE ANCHOR MUST STAND IN THE GYM, and that is not a convenience — it is the fix for
+        # KI-58. `map_path.is_tile_accessible` blocks any tile whose object template is not in
+        # `active_objects`, and `active_objects` comes from the CURRENTLY LOADED map. Reconning
+        # this **36-object** gym from `post_aqua.ss1` (standing in the Aqua Hideout) turned all 21
+        # TRICK_HOUSE_STATUE tiles into pessimistic walls and made a real route look impossible.
+        # `in_mossdeep_gym.ss1` is captured by `--driver mossdeeptravel` on a PASS.
+        "anchor": SAVES / "in_mossdeep_gym.ss1",
         "maps": [MapRSE.MOSSDEEP_CITY_GYM],
         "outside": MapRSE.MOSSDEEP_CITY,
         # ‼ START ON THE FLOOR TILE, NOT THE DOOR. `(6,35)`/`(7,35)` are the gym's two door tiles;
