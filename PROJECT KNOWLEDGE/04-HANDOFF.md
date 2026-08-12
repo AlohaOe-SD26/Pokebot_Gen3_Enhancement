@@ -24,11 +24,11 @@ burden here is so heavy, and why negative results are treated as the most valuab
 |---|---|
 | branch / HEAD | `main`, **clean, 0 unpushed** |
 | box | **IDLE.** Batch `20260811-130454` finished 4:05 PM (VERDICT OK, 28 runs, 0 violations). |
-| story content | Littleroot → 6 badges → Mt. Pyre → Magma Hideout (and out) → Slateport submarine theft → **the Lilycove AQUA HIDEOUT**. **18 of 24 ladder beats.** |
+| story content | Littleroot → 6 badges → Mt. Pyre → Magma Hideout (and out) → Slateport submarine theft → **the Lilycove AQUA HIDEOUT (with the MASTER BALL)**. **18 of 24 ladder beats.** |
 | ‼ is code frozen? | **No.** Nothing is running. |
 | upstream | checked 2026-08-11, `5dd898f8`, unchanged |
 | restore point | **`restore/2026-08-11-all-promoted`** (annotated, pushed, verified on the remote) |
-| sandbox ↔ custom drift | **NONE** — §Ch15 exit + §Ch16 + §Ch17 + the heal stops all PROMOTED 2026-08-12 (user-approved), and verified by driving `--build custom` to an identical frame count |
+| sandbox ↔ custom drift | **NONE** — §Ch15 exit + §Ch16 + §Ch17 + heal stops + the MASTER BALL all PROMOTED 2026-08-12 (user-approved); the first promotion was verified by driving `--build custom` to an identical frame count |
 | **if stopped mid-task** | **NOTHING IS PARKED.** Everything is committed and pushed. Start at "NEXT ACTIONS". |
 
 ## ✅ WHAT SHIPPED THIS SESSION

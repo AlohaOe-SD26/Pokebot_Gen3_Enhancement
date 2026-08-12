@@ -11567,3 +11567,39 @@ pickup — today `collect_hideout_escape_rope()` is the only, hard-coded, instan
 `RustboroCity_DevonCorp_3F_EventScript_MrStone` behind `FLAG_DELIVERED_STEVEN_LETTER`, **Quick
 Claw** from `RustboroCity_PokemonSchool_EventScript_Teacher`; both flags verified in our table),
 and `#24-masterball`.
+
+## 2026-08-12 — ✅ the MASTER BALL is collected, and item-ball pickup is now a shared capability
+
+```
+[ch17] RESULT escaped=True controllable=True map=AQUA_HIDEOUT_B2F at=(24, 19)
+       master_balls=1 nuggets=1 whiteouts=0
+[ch17] ACCEPTANCE: PASS (needs TEAM_AQUA_ESCAPED_IN_SUBMARINE AND controllable AND a MASTER BALL)
+```
+The driver's acceptance now **includes the Master Ball, read from the BAG** — not from
+`FLAG_ITEM_AQUA_HIDEOUT_B1F_MASTER_BALL`, because a full items pocket makes `finditem` set no flag
+*and* give no item, so the flag alone cannot separate "collected" from "could not collect".
+
+**‼ The Master Ball cannot be taken directly, and the geometry is why.** Four objects sit in a 2x2
+block on B1F: `(15,9)` Master Ball / `(16,9)` Electrode 1 / `(15,10)` Nugget / `(16,10)` Electrode 2
+— the Electrode are **disguised as item balls**. Measured: **both of the Master Ball's free
+neighbours, `(14,9)` and `(15,8)`, are unreachable**; the only walkable approach into the block is
+`(15,11)`, below the *Nugget*. So: take the Nugget, and **because an item ball VANISHES when
+collected**, step onto the tile it freed — the Master Ball is then directly above.
+‼ No Electrode is ever fought: facing Up from `(15,11)` targets `(15,10)`, and from `(15,10)`
+targets `(15,9)`, never `(16,9)`/`(16,10)`.
+
+**`#24-grounditems` groundwork shipped:** `collect_item_ball()` is now shared by the Magma Hideout
+Escape Rope (refactored onto it) and both Aqua Hideout balls, so the duplication that item existed
+to prevent never happened. `repro_hideout_exit.py` checks the escape-rope path **delegates** to it.
+
+**‼ The maze's defining hazard fired for real, and the graph — not the chapter — was wrong.**
+The first Master Ball run collected the ball (`master_balls=1`) and then died on the way back:
+the plotted walk `(42,13) -> (48,13)` goes straight through `(45,13)`, **itself a panel**, so the
+bot teleported to `(45,9)` mid-leg. The tile-level assertion caught it exactly as designed.
+Fix: `probe_aqua_hideout_graph.py`'s `can_walk` now **rejects any walk whose intermediate
+waypoints land on a warp tile**, and the re-derived leg B is panel-safe.
+‼ `Waypoint.is_warp` could NOT be used — `map_path.unroll_path` sets it only on the FINAL
+waypoint (`len(result) == 0`), so intermediate panels read as ordinary ground. The check compares
+coordinates against the ROM warp table.
+
+**Promoted to `custom-pokebot`** alongside the rest of the story work approved today.

@@ -4870,3 +4870,31 @@ checked against the geometry rather than just assumed safe.
 
 **Prevention rule.** *A warp table gives the destination WARP's tile, not the landing tile — allow
 one tile of slack when asserting an arrival, and check that slack cannot merge two nearby warps.*
+
+---
+
+## 2026-08-12 — my warp-maze route told the bot to walk over a warp panel
+
+**Symptom.** The first Master Ball run collected the ball and then failed on the return leg:
+`Could not enter the warp at (48,13) ... Could not find a path from (45/9)`. The bot was at
+`(45,9)`; the route expected it at `(42,13)`.
+
+**Root cause.** Leg B walked `(42,13) -> (48,13)`, and `(45,13)` sits between them — **itself a warp
+panel**. `calculate_path` treats panels as ordinary walkable ground, so it happily plotted a route
+across one; the bot stepped on it and was teleported. The chapter code was right and its
+tile-level assertion caught the problem immediately. **The GRAPH was wrong**: it had been building
+walk edges from paths it never inspected.
+
+**The first fix that did NOT work.** I filtered on `Waypoint.is_warp`, which reads like exactly the
+right field. It changed nothing, because `map_path.unroll_path` guards the warp branch with
+`len(result) == 0` — **`is_warp` is set only on the FINAL waypoint of a path**, so an intermediate
+panel is reported as ordinary ground by that flag too.
+
+**The fix that worked.** Compare each intermediate waypoint's COORDINATES against the map's own
+warp table (already read from ROM for the graph), and reject the edge if any of them is a panel.
+The destination is exempt — firing it is the point of the hop. Re-derived, leg B changed from
+`(48,17)/(48,13)` to `(45,17)/(48,9)/(45,3)` and the run passed.
+
+**Prevention rule.** *In a warp-panel maze, a "walk edge" is only real if the PATH avoids panels —
+check the waypoints' coordinates against the warp table, and do not trust `Waypoint.is_warp`, which
+is set only on the last waypoint.*

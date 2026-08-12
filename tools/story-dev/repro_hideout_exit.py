@@ -130,20 +130,36 @@ check(
 print("\n4. THE PICKUP IS GRADED ON THE BAG, NOT ON THE FLAG")
 collect = functions.get("collect_hideout_escape_rope")
 collect_src = ast.get_source_segment(source, collect) if collect else ""
+
+# ‼ THE PICKUP LOGIC MOVED (2026-08-12, `#24-grounditems`). It used to be inlined here; it now
+# lives in the shared `collect_item_ball`, which the Master Ball also uses. These checks follow it
+# — and the delegation check below is what stops a future edit quietly forking a second copy,
+# which is the whole reason the helper exists.
+generic = functions.get("collect_item_ball")
+generic_src = ast.get_source_segment(source, generic) if generic else ""
+check("the shared `collect_item_ball` helper exists", generic is not None)
 check(
-    "the A-press loop breaks on `_escape_ropes_held() > 0`",
-    "_escape_ropes_held() > 0" in (collect_src or ""),
+    "`collect_hideout_escape_rope` DELEGATES to it rather than keeping its own copy",
+    "collect_item_ball(" in (collect_src or ""),
+)
+check(
+    "the A-press loop is graded on a BAG DELTA, not on the flag",
+    "_held_quantity(item_name) > before" in (generic_src or ""),
     "with a FULL items pocket `finditem` sets no flag and gives no item — a flag-based test "
     "would hang forever on a ball that can never be collected",
 )
 check(
-    "a set flag with an empty bag is reported as the full-pocket case",
-    "FULL" in (collect_src or ""),
+    "a set flag with no bag change is reported as the full-pocket case",
+    "FULL" in (generic_src or ""),
+)
+check(
+    "an unknown flag name is refused rather than read as 'still there'",
+    "_event_flags" in (generic_src or ""),
 )
 
 # ---------------------------------------------------------------- 5. bounded loops
 print("\n5. EVERY LOOP IS BOUNDED (never hang — standing project rule)")
-for name in ("collect_hideout_escape_rope", "use_escape_rope_to_leave_hideout"):
+for name in ("collect_item_ball", "use_escape_rope_to_leave_hideout"):
     fn = functions.get(name)
     if fn is None:
         continue

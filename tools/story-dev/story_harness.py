@@ -2612,15 +2612,31 @@ class AquaHideoutMode(BotMode):
             ctrl = player_avatar_is_controllable()
         except Exception as error:  # noqa: BLE001
             ctrl = f"<unreadable: {type(error).__name__}>"
+
+        # ‼ THE MASTER BALL IS PART OF THE ACCEPTANCE (user directive 2026-08-12), and it is read
+        # from THE BAG rather than from `FLAG_ITEM_AQUA_HIDEOUT_B1F_MASTER_BALL`: a full items
+        # pocket makes `finditem` set no flag AND give no item, so the flag alone cannot tell
+        # "collected" from "could not collect". The Nugget is reported too because it is the
+        # stepping stone — if it is missing, the Master Ball was never reachable.
+        from modules.story.early_game import _held_quantity
+
+        try:
+            master_balls = _held_quantity("Master Ball")
+            nuggets = _held_quantity("Nugget")
+        except Exception as error:  # noqa: BLE001 — a bag we cannot read is reported as such
+            master_balls = nuggets = f"<unreadable: {type(error).__name__}>"
+
         log(f"[ch17] RESULT escaped={escaped} controllable={ctrl} map={map_name(mgn)} at={tile} "
+            f"master_balls={master_balls} nuggets={nuggets} "
             f"whiteouts={AquaHideoutMode._whiteouts} frames={context.emulator.get_frame_count()}"
             + (f" error=({error_text})" if error_text else ""))
-        log(f"[ch17] ACCEPTANCE: {'PASS' if (escaped and ctrl is True) else 'FAIL'} "
-            f"(needs {DONE} AND controllable==True)")
+        got_ball = isinstance(master_balls, int) and master_balls >= 1
+        log(f"[ch17] ACCEPTANCE: {'PASS' if (escaped and ctrl is True and got_ball) else 'FAIL'} "
+            f"(needs {DONE} AND controllable==True AND a MASTER BALL in the bag)")
 
         # Capture the post-Ch17 anchor on a PASS only, as `slateporttheft` does — it is the build
         # anchor for the next beat and expensive to reproduce.
-        if escaped and ctrl is True and os.environ.get("CH17_CAPTURE", "1") != "0":
+        if escaped and ctrl is True and got_ball and os.environ.get("CH17_CAPTURE", "1") != "0":
             out = SAVES / "post_aqua.ss1"
             out.write_bytes(context.emulator.get_save_state())
             log(f"[ch17] captured anchor -> {out}")

@@ -158,16 +158,38 @@ def read_warps(map_enum: MapRSE) -> list[dict]:
     return out
 
 
+#: map -> {every warp tile on it}, filled in from the ROM warp table below. Consulted by
+#: `can_walk` so the graph never proposes a walk that steps on a panel en route.
+WARP_TILES: dict = {}
+
+
 def can_walk(map_enum: MapRSE, start, end) -> bool:
+    """Is there a walk from `start` to `end` that does NOT step on a warp panel on the way?
+
+    ‼‼ THE PANEL CHECK IS THE WHOLE POINT, AND IT WAS PAID FOR BY A DRIVEN RUN. `calculate_path`
+    treats a warp panel as ordinary walkable ground. A first version of this probe returned a
+    route whose leg `(42,13) -> (48,13)` walks straight through `(45,13)` — itself a panel — so
+    the live bot was teleported to `(45,9)` mid-leg and the chapter failed one hop later with
+    "Could not find a path from (45/9)". The graph was proposing walks the bot cannot perform.
+
+    ‼ AND `Waypoint.is_warp` CANNOT BE USED FOR THIS, which cost a second attempt. In
+    `map_path.unroll_path` the warp branch is guarded by `len(result) == 0`, so **`is_warp` is set
+    only on the FINAL waypoint** — an intermediate panel is reported as ordinary ground by that
+    flag too. The check therefore compares each waypoint's COORDINATES against the map's own warp
+    table (`WARP_TILES`, read from ROM above).
+
+    The destination is allowed to be a panel — firing it is the point of the hop — so only the
+    waypoints before the last are tested."""
     if start == end:
         return True
     try:
-        calculate_path(get_map_data(map_enum, start), get_map_data(map_enum, end))
-        return True
+        path = calculate_path(get_map_data(map_enum, start), get_map_data(map_enum, end))
     except PathFindingError:
         return False
     except Exception:  # noqa: BLE001 — any refusal means "cannot walk it"
         return False
+    panels = WARP_TILES.get(map_enum, set())
+    return not any(tuple(waypoint.coordinates) in panels for waypoint in path[:-1])
 
 
 print("\n" + line)
@@ -185,6 +207,9 @@ for map_enum in HIDEOUT_MAPS + [MapRSE.LILYCOVE_CITY]:
         dest = warp["dest_map"].name if warp["dest_map"] else warp.get("dest_error", "?")
         same = "  <- SAME-MAP PANEL" if warp["dest_map"] is warp["map"] else ""
         print(f"      warp {warp['index']:>2}  {str(warp['tile']):<9} ->  {dest} {warp['dest_tile']}{same}")
+
+for warp in all_warps:
+    WARP_TILES.setdefault(warp["map"], set()).add(warp["tile"])
 
 hideout_set = set(HIDEOUT_MAPS)
 nodes: set[tuple] = {ENTRANCE}
@@ -301,5 +326,93 @@ else:
 
 print("\n  ‼ STATIC ONLY. Six Aqua grunts stand in these corridors "
       "(`FLAG_HIDE_AQUA_HIDEOUT_GRUNTS`) and this planner cannot see one of them.")
+
+# ---------------------------------------------------------------- side objectives
+# ‼ THE MASTER BALL (`#24-masterball`). `AquaHideout_B1F/map.json` puts it at (15,9) — and puts
+# **two ELECTRODE DISGUISED AS ITEM BALLS** immediately beside it at (16,9) and (16,10)
+# (`AquaHideout_B1F_EventScript_Electrode1/2`). ‼ Their hide flags are re-cleared by
+# `AquaHideout_B1F_OnResume`, so running from one brings it straight back.
+#
+# ‼‼ AND THE THING THAT WILL DECIDE THIS: those two Electrode are OBJECTS standing on tiles, and
+# this probe runs with B1F **not loaded**, so `calculate_path` cannot see them. Any approach that
+# routes through (16,9)/(16,10) will read as walkable here and FAIL live. So the useful answer is
+# not "is the ball reachable" but "is it reachable from the WEST/NORTH side, away from them".
+print("\n" + line)
+print("SIDE OBJECTIVES — the item balls, and whether we can get at them")
+print(line)
+
+ITEM_BALLS = [
+    ((15, 9), "MASTER BALL", "ITEM_AQUA_HIDEOUT_B1F_MASTER_BALL"),
+    ((15, 10), "Nugget", "ITEM_AQUA_HIDEOUT_B1F_NUGGET"),
+    ((29, 12), "Max Elixir", "ITEM_AQUA_HIDEOUT_B1F_MAX_ELIXIR"),
+]
+ELECTRODES = {(16, 9), (16, 10)}
+
+for ball_tile, label, flag in ITEM_BALLS:
+    print(f"\n  {label} at B1F {ball_tile}   flag={flag}")
+    known = flag in _event_flags
+    taken = get_event_flag(flag) if known else None
+    print(f"      flag resolves: {known}   already taken: {taken}")
+    if not known:
+        print("      ‼ name does not resolve — it would read False for ever. Fix before use.")
+    for dx, dy in ((-1, 0), (0, -1), (1, 0), (0, 1)):
+        approach = (ball_tile[0] + dx, ball_tile[1] + dy)
+        if approach in ELECTRODES:
+            print(f"      approach {str(approach):<9} ‼ AN ELECTRODE STANDS HERE — not a tile, a battle")
+            continue
+        if any(approach == other for other, _, _ in ITEM_BALLS):
+            print(f"      approach {str(approach):<9} another ITEM BALL stands here (an object, not floor)")
+            continue
+        # Which reachable node can walk to it?
+        hits = [n[1] for n in nodes
+                if n[0] is MapRSE.AQUA_HIDEOUT_B1F and can_walk(MapRSE.AQUA_HIDEOUT_B1F, n[1], approach)]
+        print(f"      approach {str(approach):<9} walkable from B1F node(s): {hits or 'NONE'}")
+
+print("\n  ‼ Read the MASTER BALL row narrowly: an approach that is 'walkable' here may still be")
+print("    blocked live by an Electrode, and picking the ball up may mean fighting one. The")
+print("    driven run is the proof.")
+
+# ‼‼ THE MASTER BALL IS REACHED THROUGH THE NUGGET, NOT AROUND THE ELECTRODE. The four tiles form
+# a 2x2 block: (15,9) Master Ball / (16,9) Electrode 1 / (15,10) Nugget / (16,10) Electrode 2.
+# Both of the Master Ball's free neighbours are unreachable — but `(15,11)` reaches the NUGGET,
+# and **an item ball is an object that DISAPPEARS when collected**. Take the Nugget, step onto the
+# tile it vacated, and the Master Ball is then directly above. No Electrode ever needs to be faced,
+# because facing Up from (15,10) targets (15,9), never (16,10).
+print("\n" + line)
+print("THE WAY TO THE MASTER BALL — via the Nugget's tile")
+print(line)
+STAGING = (MapRSE.AQUA_HIDEOUT_B1F, (23, 10))
+route = search(ENTRANCE, lambda n: n == STAGING)
+if route is None:
+    print(f"\n  ‼ {STAGING[0].name} {STAGING[1]} is NOT reachable from the entrance — the plan fails")
+    print("    at its first step. Re-derive before building anything on it.")
+else:
+    print(f"\n  entrance -> the staging node {STAGING[1]}: {len(route) - 1} hops")
+    print(f"          {render(route)}")
+    print(f"\n  then, on foot: {STAGING[1]} -> (15,11) -> face Up, take the NUGGET (15,10)")
+    print( "                 -> step onto (15,10) -> face Up, take the MASTER BALL (15,9)")
+    print(f"\n  sanity: (23,10) -> (15,11) walkable? {can_walk(MapRSE.AQUA_HIDEOUT_B1F, (23, 10), (15, 11))}")
+    print( "  ‼ The second half CANNOT be verified statically: (15,10) only becomes standable")
+    print( "    once the Nugget object is gone, and this planner sees the map with it still there.")
+
+    # And the way BACK: the detour is only usable if the chapter can rejoin the Matt line.
+    back = search(STAGING, lambda n: n == (MapRSE.AQUA_HIDEOUT_B2F, (24, 19)))
+    print(f"\n  REJOIN — {STAGING[1]} onward to Matt's approach (24,19): "
+          f"{'NO ROUTE' if back is None else f'{len(back) - 1} hops'}")
+    if back is not None:
+        print(f"          {render(back)}")
+    else:
+        print("      ‼ the detour would STRAND the chapter. Do not build it without a way back.")
+
+    # Where the detour leaves the main line, so the chapter can be spliced rather than rewritten.
+    main = [n[1] for n in (to_b2f or []) if n[0] is MapRSE.AQUA_HIDEOUT_B1F]
+    detour = [n[1] for n in route if n[0] is MapRSE.AQUA_HIDEOUT_B1F]
+    shared = []
+    for a, b in zip(main, detour):
+        if a != b:
+            break
+        shared.append(a)
+    print(f"\n  the detour shares this B1F prefix with the Matt route: {shared}")
+    print(f"  => splice the detour in after B1F {shared[-1] if shared else '(nothing)'}")
 print(line)
 raise SystemExit(0)

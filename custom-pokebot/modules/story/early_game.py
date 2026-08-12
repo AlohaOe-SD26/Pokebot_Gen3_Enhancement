@@ -7895,11 +7895,96 @@ HIDEOUT_4F_TO_3F_3R = (20, 21)
 HIDEOUT_ESCAPE_LANDING = MapRSE.JAGGED_PASS
 
 
-def _escape_ropes_held() -> int:
-    """How many Escape Ropes are in the bag."""
+def _held_quantity(item_name: str) -> int:
+    """How many of `item_name` are in the bag."""
     from modules.items import get_item_bag, get_item_by_name
 
-    return get_item_bag().quantity_of(get_item_by_name("Escape Rope"))
+    return get_item_bag().quantity_of(get_item_by_name(item_name))
+
+
+def _escape_ropes_held() -> int:
+    """How many Escape Ropes are in the bag."""
+    return _held_quantity("Escape Rope")
+
+
+def collect_item_ball(
+    map_enum, ball_tile, approach, facing, flag_name: str, item_name: str, *, label: str = ""
+) -> Generator:
+    """Walk to a visible ITEM BALL and pick it up. Returns True if we hold the item afterwards.
+
+    `#24-grounditems`. This is the generalisation of the Magma Hideout's Escape Rope pickup, which
+    was the only instance in the codebase; both callers now share it rather than diverging.
+
+    ‼‼ GRADED ON THE BAG, NOT ON THE FLAG, and that is not a style choice. `finditem` branches to
+    `Common_EventScript_ShowBagIsFull` when the pocket is full: it gives **no item AND sets no
+    flag**. A flag-based success test therefore hangs for its whole bound on a ball that can never
+    be collected, and then reports "the ball is still there" - which is true and useless. The bag
+    delta is the only signal that separates "collected" from "could not collect".
+
+    ‼ AN ITEM BALL IS AN OBJECT, NOT A TILE. You stand BESIDE it and press A. Not every neighbour
+    is reachable - the Magma Hideout's Escape Rope had exactly one usable approach out of four -
+    so the caller passes the approach and facing it measured, rather than this helper guessing.
+
+    ‼ AND THE BALL VANISHES WHEN TAKEN, freeing its tile. That is load-bearing for the Aqua
+    Hideout's Master Ball, which is only reachable by standing where the Nugget used to be.
+
+    :param flag_name: the ball's `FLAG_ITEM_...` (no `FLAG_` prefix). Set means already taken.
+    :param item_name: the bag item name, e.g. "Master Ball" - what success is measured on.
+    """
+    from modules.memory import _event_flags, get_event_flag
+
+    what = label or item_name
+
+    # ‼ NAME CONTROL. `get_event_flag` returns False for an unknown name WITHOUT raising, so a
+    # typo would read as "the ball is still there" for ever and we would walk to an empty tile
+    # on every visit.
+    if flag_name not in _event_flags:
+        raise BotModeError(
+            f"collect_item_ball({what}): unknown flag name {flag_name!r}. It reads False "
+            "SILENTLY, so 'already taken' could never be detected. Fix the name."
+        )
+
+    if get_event_flag(flag_name):
+        # Someone already took it - this run, an earlier run, or the player. Not an error here;
+        # the caller decides whether holding the item matters.
+        return _held_quantity(item_name) > 0
+
+    before = _held_quantity(item_name)
+
+    yield from _navigate_riding_out(map_enum, approach)
+    yield from wait_for_player_avatar_to_be_standing_still()
+    yield from ensure_facing_direction(facing)
+    yield
+
+    # `finditem` prints a message chain ("You found a MASTER BALL!" / "put away in the ... POCKET"),
+    # so A-ride it rather than pressing once.
+    for _frame in range(1200):
+        _check_abort()
+        if _held_quantity(item_name) > before:
+            break
+        context.emulator.press_button("A")
+        yield
+        yield from wait_for_n_frames(3)
+
+    if _held_quantity(item_name) <= before:
+        where = _map_group_number()
+        try:
+            tile = tuple(get_player_avatar().local_coordinates)
+        except Exception as error:  # noqa: BLE001 — this IS the failure report; an unreadable
+            # avatar must not replace the diagnosis with a crash from the diagnostic.
+            tile = f"<unreadable: {type(error).__name__}>"
+        raise BotModeError(
+            f"collect_item_ball({what}): pressed A at {ball_tile} for 1200 frames and the bag "
+            f"still holds {before} (standing {tile} on map {where}, facing {facing}; "
+            f"{flag_name}={get_event_flag(flag_name)}). ‼ A SET flag with no bag change means the "
+            "items pocket was FULL; an UNSET flag means we were not facing the ball."
+        )
+
+    # ‼ A flag set by a script is NOT the end of that script (the Strength lesson) - ride the rest
+    # of the message chain out before anything else touches the D-pad.
+    yield from _ride_out_scripted_scene("B")
+    _ch14_say(f"Story: collected {what} at {map_enum.name} {ball_tile}.")
+    return True
 
 
 def collect_hideout_escape_rope() -> Generator:
@@ -7913,8 +7998,6 @@ def collect_hideout_escape_rope() -> Generator:
     STORY CONDITION: inside the hideout, on 4F (post-Maxie) or already on 3F_3R.
     GOAL/END STATE: `_escape_ropes_held() > 0`. Graded on THE BAG, never on the flag - see below.
     """
-    from modules.memory import get_event_flag
-
     if _escape_ropes_held() > 0:
         return  # resume-safe: a previous attempt already collected it
 
@@ -7936,53 +8019,24 @@ def collect_hideout_escape_rope() -> Generator:
         )
 
     # ‼ THE BALL CAN ONLY BE TAKEN ONCE. If the flag is set and the bag is still empty, the rope
-    # was collected on some earlier run and then used or tossed - there is no second one, and
-    # mashing A at an empty tile would burn the bound and report nothing useful.
-    if get_event_flag(HIDEOUT_ESCAPE_ROPE_FLAG):
+    # was collected on some earlier run and then used or tossed - there is no second one, and this
+    # chapter cannot leave the hideout on foot (KI-56), so that IS fatal here even though
+    # `collect_item_ball` treats it as merely "nothing to do".
+    held = yield from collect_item_ball(
+        HIDEOUT_ESCAPE_ROPE_MAP,
+        HIDEOUT_ESCAPE_ROPE_TILE,
+        HIDEOUT_ESCAPE_ROPE_APPROACH,
+        HIDEOUT_ESCAPE_ROPE_FACING,
+        HIDEOUT_ESCAPE_ROPE_FLAG,
+        "Escape Rope",
+        label="the Magma Hideout Escape Rope",
+    )
+    if not held:
         raise BotModeError(
             f"Magma Hideout: the Escape Rope ball at {HIDEOUT_ESCAPE_ROPE_TILE} has already "
             f"been taken ({HIDEOUT_ESCAPE_ROPE_FLAG} is set) but the bag holds none. This run "
             "cannot leave the hideout on foot (KI-56) and has no rope to leave with."
         )
-
-    yield from _navigate_riding_out(HIDEOUT_ESCAPE_ROPE_MAP, HIDEOUT_ESCAPE_ROPE_APPROACH)
-    yield from wait_for_player_avatar_to_be_standing_still()
-    yield from ensure_facing_direction(HIDEOUT_ESCAPE_ROPE_FACING)
-    yield
-
-    # `finditem` shows "You found an ESCAPE ROPE!" then "put away in the ITEMS POCKET" - a
-    # message chain, so A-ride it. ‼ GRADED ON THE BAG, NOT THE FLAG: with a full items pocket
-    # the script says "the BAG is full" and sets NO flag and gives NO item, and a flag-based
-    # test would then hang on a ball that will never be collectable.
-    for _frame in range(1200):
-        _check_abort()
-        if _escape_ropes_held() > 0:
-            break
-        context.emulator.press_button("A")
-        yield
-        yield from wait_for_n_frames(3)
-
-    if _escape_ropes_held() == 0:
-        # A failure message reports the WORLD, not a hypothesis (08-MISTAKES 2026-08-10).
-        where = _map_group_number()
-        try:
-            tile = tuple(get_player_avatar().local_coordinates)
-        except Exception as error:  # noqa: BLE001 — this is the FAILURE REPORT itself; an
-            # unreadable avatar must not replace the real diagnosis with a crash from the
-            # diagnostic. The exception type is carried into the message rather than dropped.
-            tile = f"<unreadable: {type(error).__name__}>"
-        raise BotModeError(
-            f"Magma Hideout: pressed A at the Escape Rope ball {HIDEOUT_ESCAPE_ROPE_TILE} for "
-            f"1200 frames and the bag still holds none (standing {tile} on map {where}, facing "
-            f"{HIDEOUT_ESCAPE_ROPE_FACING}; flag {HIDEOUT_ESCAPE_ROPE_FLAG}="
-            f"{get_event_flag(HIDEOUT_ESCAPE_ROPE_FLAG)}). A set flag with an empty bag means "
-            "the items pocket was FULL."
-        )
-
-    # ‼ A flag set by a script is NOT the end of that script (the Strength lesson) - ride the
-    # rest of the message chain out before anything else touches the D-pad.
-    yield from _ride_out_scripted_scene("B")
-    _ch14_say(f"Story: collected the Escape Rope on {HIDEOUT_ESCAPE_ROPE_MAP.name}.")
 
 
 def use_escape_rope_to_leave_hideout() -> Generator:
@@ -8396,9 +8450,38 @@ AQUA_ENTRANCE_FLAGS = (
 
 #: The maze, as `(map we stand on, warp tile to step on, expected map, expected arrival tile)`.
 #: Solved by `probe_aqua_hideout_graph.py`; every destination is the ROM warp table's own answer.
-AQUA_HIDEOUT_ROUTE = (
+#:
+#: ‼ SPLIT IN TWO BY THE MASTER BALL DETOUR (`#24-masterball`). Leg A ends at `B1F (23,10)`, the
+#: staging node for the treasure room; leg B rejoins and runs on to Matt. The two legs share the
+#: prefix `(29,1) -> (27,4) -> (3,15)` with the direct route, and diverge there.
+AQUA_HIDEOUT_ROUTE_TO_TREASURE = (
     (MapRSE.AQUA_HIDEOUT_1F, (22, 1), MapRSE.AQUA_HIDEOUT_B1F, (29, 1)),
     (MapRSE.AQUA_HIDEOUT_B1F, (27, 4), MapRSE.AQUA_HIDEOUT_B1F, (3, 15)),
+    # --- into the 3x4 warp-panel grid at x=42/45/48: THIS is what guards the Master Ball ---
+    (MapRSE.AQUA_HIDEOUT_B1F, (3, 20), MapRSE.AQUA_HIDEOUT_B1F, (45, 3)),
+    (MapRSE.AQUA_HIDEOUT_B1F, (42, 5), MapRSE.AQUA_HIDEOUT_B1F, (48, 9)),
+    (MapRSE.AQUA_HIDEOUT_B1F, (45, 9), MapRSE.AQUA_HIDEOUT_B1F, (45, 13)),
+    (MapRSE.AQUA_HIDEOUT_B1F, (42, 13), MapRSE.AQUA_HIDEOUT_B1F, (48, 17)),
+    (MapRSE.AQUA_HIDEOUT_B1F, (42, 17), MapRSE.AQUA_HIDEOUT_B1F, (23, 10)),
+)
+
+#: Leg B: back out of the treasure room and on to Matt.
+#: ‼ The first hop steps on `(23,10)` — the tile we ARRIVE on. `_enter_warp_by_navigation` handles
+#: that case explicitly (step off one tile, then back on to fire it); it is not an oversight.
+#:
+#: ‼‼ THIS LEG WAS RE-DERIVED AFTER A DRIVEN FAILURE, and the reason is the maze's defining hazard.
+#: The first version walked `(42,13) -> (48,13)` — straight through `(45,13)`, which is ITSELF a
+#: panel — so the bot was teleported to `(45,9)` mid-leg and the next hop failed with "Could not
+#: find a path from (45/9)". `probe_aqua_hideout_graph.py`'s `can_walk` now rejects any walk whose
+#: intermediate waypoints land on a warp tile, and this is the panel-safe route it returns.
+#: ‼ `Waypoint.is_warp` could NOT be used for that check: `map_path.unroll_path` only sets it on
+#: the FINAL waypoint, so intermediate panels read as ordinary ground. The check compares
+#: COORDINATES against the ROM warp table instead.
+AQUA_HIDEOUT_ROUTE_TO_MATT = (
+    (MapRSE.AQUA_HIDEOUT_B1F, (23, 10), MapRSE.AQUA_HIDEOUT_B1F, (42, 17)),
+    (MapRSE.AQUA_HIDEOUT_B1F, (45, 17), MapRSE.AQUA_HIDEOUT_B1F, (45, 9)),
+    (MapRSE.AQUA_HIDEOUT_B1F, (48, 9), MapRSE.AQUA_HIDEOUT_B1F, (42, 5)),
+    (MapRSE.AQUA_HIDEOUT_B1F, (45, 3), MapRSE.AQUA_HIDEOUT_B1F, (3, 20)),
     (MapRSE.AQUA_HIDEOUT_B1F, (32, 19), MapRSE.AQUA_HIDEOUT_B1F, (20, 4)),
     (MapRSE.AQUA_HIDEOUT_B1F, (18, 1), MapRSE.AQUA_HIDEOUT_B2F, (18, 1)),
     (MapRSE.AQUA_HIDEOUT_B2F, (31, 8), MapRSE.AQUA_HIDEOUT_B2F, (5, 8)),
@@ -8406,6 +8489,27 @@ AQUA_HIDEOUT_ROUTE = (
     (MapRSE.AQUA_HIDEOUT_B1F, (12, 1), MapRSE.AQUA_HIDEOUT_B2F, (12, 1)),
     (MapRSE.AQUA_HIDEOUT_B2F, (8, 8), MapRSE.AQUA_HIDEOUT_B2F, (31, 17)),
 )
+
+# ‼‼ THE TREASURE ROOM, AND WHY THE ORDER IS NOT NEGOTIABLE (`#24-masterball`).
+# Four objects sit in a 2x2 block on B1F:
+#       (15,9)  MASTER BALL      (16,9)  ELECTRODE 1  (disguised as an item ball)
+#       (15,10) Nugget           (16,10) ELECTRODE 2  (disguised as an item ball)
+# MEASURED (`probe_aqua_hideout_graph.py`): **both of the Master Ball's free neighbours, `(14,9)`
+# and `(15,8)`, are unreachable** - the only walkable approach into the block is `(15,11)`, below
+# the Nugget. So the Master Ball cannot be taken directly at all.
+# ‼ THE WAY IN IS THROUGH THE NUGGET: an item ball is an OBJECT that DISAPPEARS when collected, so
+# taking the Nugget frees `(15,10)`, and from there the Master Ball is directly above.
+# ‼ AND NO ELECTRODE NEEDS TO BE FOUGHT. Facing Up from `(15,11)` targets `(15,10)`, and facing Up
+# from `(15,10)` targets `(15,9)` - never `(16,9)`/`(16,10)`. Their hide flags are re-cleared by
+# `AquaHideout_B1F_OnResume`, so fleeing one would only bring it back; we simply never face them.
+AQUA_NUGGET_TILE = (15, 10)
+AQUA_NUGGET_APPROACH = (15, 11)
+AQUA_MASTERBALL_TILE = (15, 9)
+#: ‼ standable ONLY after the Nugget above has been collected - see the block comment.
+AQUA_MASTERBALL_APPROACH = (15, 10)
+AQUA_TREASURE_FACING = "Up"
+AQUA_NUGGET_FLAG = "ITEM_AQUA_HIDEOUT_B1F_NUGGET"
+AQUA_MASTERBALL_FLAG = "ITEM_AQUA_HIDEOUT_B1F_MASTER_BALL"
 
 #: Matt, and every neighbour with the direction to face from it. ‼ The graph could reach ONLY
 #: `(24,19)` - but they are ALL tried at runtime, in that order, because §Ch15 was bitten by
@@ -8548,8 +8652,45 @@ def do_aqua_hideout_chapter() -> Generator:
         )
         yield from wait_until_truly_controllable()
 
-    # --- the maze -------------------------------------------------------------------------
-    for from_map, warp_tile, dest_map, dest_tile in AQUA_HIDEOUT_ROUTE:
+    # --- the maze, leg A: in as far as the treasure room ------------------------------------
+    yield from _aqua_run_route(AQUA_HIDEOUT_ROUTE_TO_TREASURE)
+
+    # --- the MASTER BALL (`#24-masterball`) --------------------------------------------------
+    # ‼ ORDER MATTERS: the Nugget first, because its tile is the only way to stand next to the
+    # Master Ball. See the block comment on `AQUA_NUGGET_TILE`.
+    _ch14_say("Story: Aqua Hideout - the treasure room. Nugget first, it is the stepping stone.")
+    yield from collect_item_ball(
+        MapRSE.AQUA_HIDEOUT_B1F, AQUA_NUGGET_TILE, AQUA_NUGGET_APPROACH,
+        AQUA_TREASURE_FACING, AQUA_NUGGET_FLAG, "Nugget", label="the Aqua Hideout Nugget",
+    )
+    yield from collect_item_ball(
+        MapRSE.AQUA_HIDEOUT_B1F, AQUA_MASTERBALL_TILE, AQUA_MASTERBALL_APPROACH,
+        AQUA_TREASURE_FACING, AQUA_MASTERBALL_FLAG, "Master Ball",
+        label="the MASTER BALL",
+    )
+    if _held_quantity("Master Ball") < 1:
+        raise BotModeError(
+            "Aqua Hideout: finished the treasure room without a Master Ball in the bag. "
+            f"({AQUA_MASTERBALL_FLAG} decides whether the ball is still there; the BAG decides "
+            "whether we got it, and they disagree only when the items pocket is full.)"
+        )
+    _ch14_say("Story: ‼ MASTER BALL COLLECTED.")
+
+    # --- the maze, leg B: back out and on to Matt --------------------------------------------
+    yield from _aqua_run_route(AQUA_HIDEOUT_ROUTE_TO_MATT)
+
+    if _map_group_number() != MapRSE.AQUA_HIDEOUT_B2F.value:
+        raise BotModeError(
+            f"Aqua Hideout: the maze never reached B2F - stopped on map {_map_group_number()}. "
+            "Re-derive the route with `probe_aqua_hideout_graph.py`."
+        )
+
+    yield from _aqua_challenge_matt()
+
+
+def _aqua_run_route(route) -> Generator:
+    """Walk one leg of the warp maze, hop by hop, proving each landing."""
+    for from_map, warp_tile, dest_map, dest_tile in route:
         _check_abort()
         # Resume-safe, and unambiguous BECAUSE the test is (map, tile): the route revisits both
         # floors, so a map-only check could not tell hop 2 from hop 7. `_aqua_at` also carries
@@ -8560,13 +8701,9 @@ def do_aqua_hideout_chapter() -> Generator:
         _ch14_say(f"Story: Aqua Hideout - {label}")
         yield from _aqua_hop(from_map, warp_tile, dest_map, dest_tile, label)
 
-    if _map_group_number() != MapRSE.AQUA_HIDEOUT_B2F.value:
-        raise BotModeError(
-            f"Aqua Hideout: the maze never reached B2F - stopped on map {_map_group_number()}. "
-            "Re-derive the route with `probe_aqua_hideout_graph.py`."
-        )
 
-    # --- Matt -----------------------------------------------------------------------------
+def _aqua_challenge_matt() -> Generator:
+    """Stand beside Matt, face him, and ride the fight out until the submarine flag flips."""
     _ch14_say("Story: Aqua Hideout B2F - challenging Matt...")
     standing_on = None
     facing = None
