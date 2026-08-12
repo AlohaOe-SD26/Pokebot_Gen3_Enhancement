@@ -41,8 +41,8 @@ burden here is so heavy, and why negative results are treated as the most valuab
    (your directive). Promoted. ‼ Structurally proven only; no live A/B.
 4. **Battle STATUS telemetry** — the turn log prints `[Confused]` etc. Promoted. It refuted
    `#24-bosstelemetry` lead 2 and made the status tax measurable for the first time.
-5. **§Ch16 (Slateport Harbor) BUILT** — function, driver, Segment 16. Was blocked by KI-56;
-   **now UNBLOCKED and waiting to be re-driven** (next action #1).
+5. **§Ch16 (Slateport Harbor) BUILT and RE-DRIVEN** — it got out of the hideout, crossed the
+   region into Slateport, and hit a **new** blocker on the last step of leg 1: **KI-57**.
 6. **A whole hardening round** (see below).
 7. **✅ KI-56 FIXED — §Ch15 now LEAVES the Magma Hideout.** Cause confirmed against the whole
    eight-map warp graph (no walk-out exists), fixed with the Escape Rope the dungeon itself
@@ -139,9 +139,20 @@ run that walked all the way back down to `1F (25,34)`; the warp graph says 3F_3R
 there, but that is static.
 ## ⏭ NEXT ACTIONS, IN ORDER
 
-1. **‼ RE-DRIVE §Ch16 — this is the next action.** KI-56 is fixed, so leg 1 (leaving the hideout)
-   should now pass. Code, driver (`--driver slateporttheft`) and Segment 16 are committed and
-   **legs 2-4 have never been exercised** — not implicated, not proven. Command:
+1. **‼ KI-57 — Capt. Stern stands on Ch16's target tile. This is the next action.**
+   Beating Maxie sets `VAR_SLATEPORT_CITY_STATE=1`, whose `OnTransition` runs
+   `setobjectxyperm LOCALID_SLATEPORT_CAPT_STERN, 28, 13` — and `SLATEPORT_HARBOR_DOOR_APPROACH`
+   **is** `(28,13)`. ‼ **Completing Ch15 spawns Ch16's blocker.** Stationary ⇒ deterministic.
+   ‼ **Do NOT just pick another staging tile** — measured, that cannot work: `(28,13)` is a
+   one-tile neck, and the door's neighbours `(27,12)/(29,12)/(28,11)` are in a DIFFERENT component
+   from every tile the bot can reach. **Start from the lead in KI-57:** the ROM warp table has a
+   second, unused harbor entrance, **warp 9 at `(40,7)`** (`(39,7)` plans in 37 wp), but `(40,7)`
+   itself did not plan and its harbor-side arrival `(19,15)` raised `IndexError`. That is one
+   probe's work. Repro fixture: `saves/stalls/ch16b-f20252.ss1`; probe:
+   `probe_slateport_harbor_approach.py`.
+   ‼ Also unmeasured: the run **whited out once** on the Jagged Pass -> Slateport haul.
+
+2. **Then re-drive §Ch16.** **Legs 2-4 have still never been exercised.** Command:
    ```
    cd tools/story-dev
    PYTHONUTF8=1 py -3.12 verify_fixtures.py --assert post_maxie.ss1=19399688e730 &&    PYTHONUTF8=1 COLUMNS=400 py -3.12 story_harness.py post_maxie.ss1        --driver slateporttheft --frames 2500000 --profile ch16b
@@ -150,7 +161,7 @@ there, but that is static.
    ‼ Still-unmeasured risk on the later legs: **KI-53** (`ROUTE110 → SLATEPORT_CITY` fails
    statically while the exact reverse plans in 30 wp). A static FAIL is not a verdict.
 
-2. **Optional hardening of the §Ch15 exit:** drive it from a run that walks back down to
+3. **Optional hardening of the §Ch15 exit:** drive it from a run that walks back down to
    `1F (25,34)` rather than from 4F. The warp graph says 3F_3R is reachable from there, but only
    statically. `sandbox-pokebot/profiles/ch16a/current_state.ss1` is a free repro of that state.
 

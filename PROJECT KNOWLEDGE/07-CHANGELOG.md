@@ -11397,3 +11397,32 @@ each turn it red, and the file was restored byte-identical (md5 verified).
 new bare `# noqa: BLE001` in this very change and was only satisfied by writing the justification.
 
 ‼ **Sandbox only. NOT promoted to `custom-pokebot/`** — promotion needs explicit user approval.
+
+## 2026-08-11 (evening) — §Ch16 re-driven: KI-56's fix holds; leg 1 blocked by KI-57
+
+**KI-56's fix confirmed a SECOND time, in a different driver.** The Ch16 driver now performs
+Ch15's hand-over explicitly as a labelled PRE-STEP (Ch16 itself is deliberately not taught about
+the Magma Hideout — leaving a dungeon is the previous chapter's job):
+```
+[ch16] PRE-STEP: anchor is inside the Magma Hideout - running Ch15's exit first.
+[ch16] PRE-STEP done - now at JAGGED_PASS(16, 19)
+```
+
+**Ch16 then got further than it ever has** — out of the dungeon, across the region, into Slateport
+— and failed on the **last step of leg 1**, which is now **KI-57**: `SlateportCity_OnTransition`
+runs `setobjectxyperm LOCALID_SLATEPORT_CAPT_STERN, 28, 13` whenever `VAR_SLATEPORT_CITY_STATE ==
+1`, and `SLATEPORT_HARBOR_DOOR_APPROACH` **is** `(28,13)`. ‼ **§Ch15 is what sets that var — so
+completing Ch15 spawns the thing that blocks Ch16.** Stationary (`FACE_DOWN`, `setobjectxyperm`)
+⇒ deterministic; retrying can never clear it.
+
+New probe `probe_slateport_harbor_approach.py` (live-vs-static arms + a planner control) measured
+it: live FAIL / static OK 20 wp, with Stern, Gabby and Ty occupying `(28,13)/(28,14)/(29,13)` as a
+three-tile plug. ‼ **And no alternative staging tile works** — the door's neighbours and the
+reachable tiles are in different components, because `(28,13)` is a one-tile neck.
+
+**Lead recorded, not acted on:** the ROM warp table has a SECOND harbor entrance, warp 9 at
+`(40,7)`, unused by our code. `(39,7)` plans in 37 wp — but `(40,7)` itself does not plan and its
+harbor-side arrival raised `IndexError`. One probe's worth of work, not a fix.
+
+‼ The run also WHITED OUT once on the haul, which is unmeasured; `(19,20)` is the Slateport
+Pokémon Center doorstep, i.e. a recovery position rather than a walked-to one.

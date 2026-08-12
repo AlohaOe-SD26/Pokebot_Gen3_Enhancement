@@ -2611,3 +2611,71 @@ consumed it.** Added to `14-AGENT-PLAYBOOK`.
 **not** been driven from a run that walked all the way back down to `1F (25,34)` — the warp graph
 says 3F_3R is reachable from there, but that is static. And `#24-slateportsub` (§Ch16) is now
 UNBLOCKED but still unexercised beyond leg 1.
+
+## KI-57 — ‼ §Ch16 leg 1: **beating Maxie PARKS Capt. Stern on the tile Ch16 walks to** (2026-08-11, severity: HIGH, MEASURED, decomp-confirmed)
+
+Found by re-driving §Ch16 once KI-56 was fixed. The bot got **out of the Magma Hideout, across the
+region, and into Slateport** — then died on the last step of leg 1:
+
+```
+[ch16] PRE-STEP done - now at JAGGED_PASS(16, 19)          <- KI-56's fix, working
+[ch16] WHITEOUT #1 - recovering, as StoryMode does
+[ch16] FAILED: UnreachableDestinationError: Could not reach (28, 13) on SLATEPORT_CITY:
+       the field is idle and we are still at (19, 20), so retrying cannot change the result
+[ch16] RESULT harbor_state=1 controllable=True map=SLATEPORT_CITY at=(19, 20) whiteouts=1
+```
+
+### THE CAUSE — decomp, not inference
+`SlateportCity_OnTransition` calls `SlateportCity_EventScript_MovePeopleForSternInterview`
+whenever `VAR_SLATEPORT_CITY_STATE == 1`, and that script begins:
+```
+setobjectxyperm       LOCALID_SLATEPORT_CAPT_STERN, 28, 13
+setobjectmovementtype LOCALID_SLATEPORT_CAPT_STERN, MOVEMENT_TYPE_FACE_DOWN
+```
+`SLATEPORT_HARBOR_DOOR_APPROACH` **is** `(28,13)`. ‼ **And §Ch15 is what sets that var** — the
+same `MagmaHideout_4F_EventScript_Maxie` that ends Ch15 sets `SLATEPORT_CITY_STATE` and clears
+`FLAG_HIDE_SLATEPORT_CITY_CAPTAIN_STERN` / `..._GABBY_AND_TY`. **Completing Ch15 spawns the thing
+that blocks Ch16.**
+
+It is `setobjectxyperm` with a `FACE_*` movement type ⇒ **stationary and deterministic**. Waiting
+or retrying can never clear it. (An early reading of this guessed "a wandering NPC may clear on its
+own" — the movement types refute that.)
+
+### THE MEASUREMENT (`probe_slateport_harbor_approach.py`, from `saves/stalls/ch16b-f20252.ss1`)
+| query | live (NPCs visible) | static (city not loaded) |
+|---|---|---|
+| `(19,20) -> (28,13)` | **FAIL** (reproduces) | **OK, 20 wp** |
+| `(28,13) -> (19,20)` | FAIL | OK, 20 wp |
+| control `(19,20) -> (20,20)` | OK, 1 wp | — |
+
+Live objects occupy **`(28,13)` Capt. Stern, `(28,14)` Gabby, `(29,13)` Ty** — a three-tile plug.
+Reachable near the door: `(27,13)` 19 wp, `(27,14)` 18 wp, `(28,15)` 18 wp, `(29,14)` 20 wp.
+
+### ‼ AND NO STAGING TILE WORKS — the plug seals the door, it does not merely cover it
+| candidate | reachable from `(19,20)`? | can it reach the door `(28,12)`? |
+|---|---|---|
+| `(27,13)` `(28,15)` `(27,14)` `(29,14)` | **yes** | **NO** |
+| `(27,12)` `(29,12)` `(28,11)` | **NO** | yes, 1 wp |
+
+The door's neighbours and the reachable tiles are in **different components**: `(28,13)` is a
+one-tile neck, and Stern is standing in it. So this is **not** fixable by picking a different
+staging tile near warp 8.
+
+### THE LEAD, NOT YET AN ANSWER — there is a SECOND harbor entrance
+The ROM warp table for `SLATEPORT_CITY` has **two** warps to `SLATEPORT_CITY_HARBOR`:
+* **warp 8 `(28,12)`** -> harbor `(11,14)` — the one Ch16 uses, and the one Stern seals.
+* **warp 9 `(40,7)`** -> harbor `(19,15)` — **unused by our code.**
+
+`(39,7)`, immediately west of it, **plans in 37 wp** from the stuck tile. But `(40,7)` itself does
+not plan, and the harbor-side arrival `(19,15)` raised `IndexError` when asked to path to the
+trigger `(8,14)` (whereas warp 8's arrival `(11,14) -> (8,14)` plans in 3 wp). **So warp 9 is a
+lead worth one probe, not a fix.** Do not wire it in on this evidence.
+
+### ‼ ALSO NOTE — the run WHITED OUT first
+`(19,20)` is directly below `warp 0 (19,19) -> SLATEPORT_CITY_POKEMON_CENTER_1F`, so the bot is
+standing where a **whiteout recovery** left it, not where it walked. That is incidental to this
+blocker (the static arm plans from there fine), but it means leg 1 also lost a fight somewhere on
+the Jagged Pass -> Slateport haul, which is unmeasured.
+
+**Repro fixture:** `tools/story-dev/saves/stalls/ch16b-f20252.ss1` (VOLATILE — a stall save; the
+harness overwrites the `stalls/` directory per run).

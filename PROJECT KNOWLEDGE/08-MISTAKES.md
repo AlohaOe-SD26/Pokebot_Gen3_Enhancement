@@ -4726,3 +4726,33 @@ every line** — the traceback was sitting at line 6 the whole time.
 **Prevention rule.** *Diagnose a stalled run from the flushed `harness_sandbox.log` and grep
 `EXCEPTION` FIRST — redirected stdout can be minutes behind, and a crashed driver in Manual mode is
 indistinguishable from a hung bot.*
+
+---
+
+## 2026-08-11 — I derived a route constant from `map.json` in the WRONG ERA, and the previous chapter is what invalidates it
+
+**Symptom.** §Ch16 leg 1 targets `SLATEPORT_HARBOR_DOOR_APPROACH = (28,13)`, described in its own
+comment as "the plain walkable tile below the door — and the harbor's own `setescapewarp` return
+tile, **so it is guaranteed to exist and be standable**". Driven, it was neither: Capt. Stern was
+standing on it, and the leg died with `UnreachableDestinationError`.
+
+**Root cause.** The tile is standable *in the era `map.json` describes*. `SlateportCity_OnTransition`
+calls `MovePeopleForSternInterview` whenever `VAR_SLATEPORT_CITY_STATE == 1`, whose first line is
+`setobjectxyperm LOCALID_SLATEPORT_CAPT_STERN, 28, 13`. ‼ **And the previous chapter sets that var** —
+`MagmaHideout_4F_EventScript_Maxie` sets `SLATEPORT_CITY_STATE` and un-hides Stern and Gabby & Ty.
+**Completing Ch15 spawns the thing that blocks Ch16.**
+
+The bitter part: the Ch16 constants block already carried the warning, four lines further down —
+*"`OnTransition` REWRITES THIS MAP ... so `map.json`'s object list is NOT what will be standing
+there. Do not derive walkability around objects from the static file."* It was written about the
+HARBOR map and not applied to the CITY map in the same chapter.
+
+**The fix that worked.** None yet — it is recorded as KI-57 with the measurement, because the
+obvious fix does not work either: `(28,13)` is a one-tile neck, so every reachable tile near the
+door is in a different component from the door's neighbours. Picking another staging tile cannot
+help. A second, unused harbor entrance (warp 9 at `(40,7)`) is a LEAD, and wiring it in on today's
+evidence would be the same mistake again.
+
+**Prevention rule.** *A route constant on a map the PREVIOUS chapter's completion touches must be
+derived in the era the bot will actually stand there — check every `setobjectxyperm` reachable from
+that map's `OnTransition` before trusting a tile is empty.*
