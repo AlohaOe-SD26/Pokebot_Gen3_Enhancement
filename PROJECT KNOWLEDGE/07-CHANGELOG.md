@@ -11680,3 +11680,46 @@ Emerald gym's rooms?
 **Next step is a change of KIND, not more of the same:** every model tried has been offline. Drive
 it from the new anchor and watch the live router. Three static models now agree on something that
 cannot be true, which by KI-57's rule makes the models the suspect.
+
+## 2026-08-12 — ✅ KI-58 RESOLVED: the Mossdeep Gym is a ROTATING-TILE STATUE PUZZLE
+
+Five parallel research agents (user directive) plus a model-free brute-force walker cracked what
+four of my own offline models could not. **Three agents converged independently**, each citing the
+decomp, and one reproduced my exact failures 6/6 offline.
+
+**THE MECHANIC.** Nine of the gym's `coord_events` are **floor switches**; their scripts call
+`moverotatingtileobjects N`, and `MoveRotatingTileObjects` (`src/rotating_tile_puzzle.c:108-188`)
+shifts every object standing on a coloured ARROW metatile one tile in that arrow's direction,
+mutating the object templates. All 21 `TRICK_HOUSE_STATUE` objects sit on arrow tiles and are what
+seal the corridors to the `(11,3)`, `(13,32)` and `(21,10)` panels. Statue state is **5 counters mod
+4** (1024 states); switches re-fire every time (`VAR_TEMP_1` is never set).
+
+‼ **VERIFIED LIVE IN OUR OWN HARNESS**, not taken on trust — the standing rule is that agent output
+is a NOTE. Stepping onto the yellow switch at `(3,30)` from `in_mossdeep_gym.ss1`:
+`(1,29)→(2,29)` and `(5,29)→(5,30)`. Statues moved.
+
+**WHY EVEN THE BRUTE FORCE FAILED — the best lesson here.** `probe_gym_bruteforce.py` presses buttons
+and reads positions, so it cannot be wrong about the map — yet it found 35 tiles and **zero** warp
+panels. It was *changing the map while exploring it*: it stepped on switches, statues moved, and its
+state key was only `(map, position)`, so two different worlds collapsed into one node. **In a puzzle
+whose world state mutates, the search state must include that state.** Its key now carries live
+object positions.
+
+**Other facts, each independently confirmed:** the gym's whole tile vocabulary is `MB_NORMAL` +
+`MB_MOSSDEEP_GYM_WARP` (13) + `MB_SOUTH_ARROW_WARP` (2) — no forced-movement tiles exist;
+`(23,7)/(24,7)` are **collision-1** (target `(23,8)/(24,8)` facing north); `(21,6)` is a **trap**
+(gym-warp behaviour, no warp event, its coord_event ejects to `(7,30)`); and ‼ **gym-internal warps
+PRESERVE puzzle progress while leaving the gym RESETS it** (`SKIP_OBJECT_EVENT_LOAD`) — which the
+bot must treat as a full reset.
+
+**TWO SEPARATE LATENT BUGS FOUND IN OUR OWN PATHFINDER**, both code-verified by me, both filed
+rather than fixed (shared subsystem):
+* **KI-59 / `#24-impassabledirs`** — `map_path.py` INVERTS `Impassable *` directions: it starts
+  all-`False` and *sets* one direction True, where the decomp's rule is start all-`True` and *clear*
+  the opposite. `"Impassable North and South"` becomes enterable only from N/S instead of only E/W.
+  Every such tile is over-blocked. It also models no "cannot EXIT in direction D" rule at all.
+* **KI-60 / `#24-pathsourcecheck`** — `calculate_path` never validates its SOURCE tile, which is the
+  code reason a path *out of solid rock* returns OK. That artifact is what sent KI-57's first
+  write-up toward a wrong "different components" story.
+
+**§Ch18 status:** leg 1 shipped and driven; the puzzle is understood; the executor is not built.

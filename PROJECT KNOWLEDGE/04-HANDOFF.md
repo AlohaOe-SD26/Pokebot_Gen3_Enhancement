@@ -143,36 +143,30 @@ run that walked all the way back down to `1F (25,34)`; the warp graph says 3F_3R
 there, but that is static.
 ## ⏭ NEXT ACTIONS, IN ORDER
 
-1. **‼ RESOLVE KI-58, THEN BUILD §Ch18 (the Mossdeep Gym).** ‼ **The Seafloor Cavern is NOT next
-   — it is three beats away.** The decomp says `HM08 Dive` comes from
-   `MossdeepCity_StevensHouse_EventScript_StevenGivesDive`, which also sets
-   `FLAG_HIDE_SEAFLOOR_CAVERN_ENTRANCE_AQUA_GRUNT`, so Steven's gift is the real gate. The mapped
-   arc (`#24-remainingarc`): **§Ch18** Mossdeep Gym → `BADGE07`; **§Ch19** Space Center → sets
-   `VAR_STEVENS_HOUSE_STATE`; **§Ch20** Steven gives Dive; **§Ch21** Seafloor Cavern.
+1. **‼ BUILD §Ch18's GYM EXECUTOR. The puzzle is now UNDERSTOOD (KI-58 RESOLVED).**
+   ✅ Leg 1 ships: `--driver mossdeeptravel` heals, Surfs Lilycove → Mossdeep, enters the gym
+   (PASS, `whiteouts=0`), anchor **`saves/in_mossdeep_gym.ss1`**.
 
-   **KI-58 blocks §Ch18, and its cause has been CORRECTED — read the correction, not the first
-   entry.** `MB_MOSSDEEP_GYM_WARP` is an **ordinary warp** (`DoMossdeepGymWarp` is a normal warp
-   with a different fade), so the warp-graph model was never wrong; I had inferred a mechanism from
-   a metatile name. The failing walks are blocked by **`TRICK_HOUSE_STATUE` templates** at `(11,5)`
-   and `(12,34)` — the gym has **21 statue tiles**, which are the puzzle's barrier walls.
-   ‼ **AND THE REASON THE RECON WAS UNRELIABLE:** `map_path` blocks any tile whose object template
-   is not in `active_objects`, which comes from the **currently loaded** map — so static recon of a
-   36-object gym from a save inside the Aqua Hideout turns every object tile into a wall.
-   ✅ **Leg 1 is DONE** — `--driver mossdeeptravel` heals, Surfs Lilycove → Mossdeep and enters
-   the gym (PASS, `whiteouts=0`), capturing **`saves/in_mossdeep_gym.ss1`**. The pessimism bug is
-   fixed (the recon now runs with the gym LOADED) — **and the maze still does not solve.**
-   Three mechanisms are decomp-RULED OUT: `MB_MOSSDEEP_GYM_WARP` is an ordinary warp, its exit
-   callback is cosmetic, and ‼ the R/S switch-and-arrow puzzle is **dead code in Emerald**
-   (`FLAG_MOSSDEEP_GYM_SWITCH_X is never set`, per the gym's own scripts).
-   **NEXT STEP — change the KIND of question.** Every model tried has been OFFLINE and three of
-   them now agree on something that cannot be true, which by KI-57's rule makes the models the
-   suspect. **Drive it:** from `in_mossdeep_gym.ss1`, ask the live router
-   (`_navigate_riding_out(MOSSDEEP_CITY_GYM, (23,8))`) to reach Tate & Liza and watch where it
-   actually goes.
-   ‼ §Ch18's boss is also a **DOUBLE battle** with a "need two Pokémon" branch — a party
-   constraint no earlier chapter has had, and the party still carries Zigzagoon L11 / Skitty L17.
+   **The gym is a ROTATING-TILE STATUE PUZZLE, not a maze.** Nine floor switches call
+   `moverotatingtileobjects`; `MoveRotatingTileObjects` (`src/rotating_tile_puzzle.c:108`) shifts
+   every statue standing on a coloured ARROW metatile one tile that way. The 21 statues are what
+   seal the corridors to the `(11,3)`, `(13,32)` and `(21,10)` panels. Statue state = **5 counters
+   mod 4**. ‼ **Verified live in our harness** — stepping on the yellow switch `(3,30)` moved
+   statues `(1,29)→(2,29)`, `(5,29)→(5,30)`.
 
-   Anchor: **`saves/post_aqua.ss1`** (VOLATILE; party 90%, Master Ball held).
+   Switches: Yellow `(2,21) (3,30)` · Blue `(8,10) (6,7)` · Green `(15,34)` · Purple
+   `(23,24) (23,21)` · Red `(8,6)`. They **re-fire every time** (`VAR_TEMP_1` never set).
+
+   ‼ THREE TRAPS: `(23,7)/(24,7)` are **collision-1** — target `(23,8)/(24,8)` facing NORTH;
+   `(21,6)` has gym-warp behaviour but **no warp event** and its coord_event ejects you to
+   `(7,30)`, four tiles from the champion-room arrival — treat as BLOCKED; and **leaving the gym
+   RESETS the puzzle** while internal warps preserve it (`SKIP_OBJECT_EVENT_LOAD`).
+
+   **HOW TO BUILD IT:** `probe_gym_bruteforce.py` is now statue-aware and model-free — let IT find
+   and CONFIRM a route (its state key is `(map, position, live object positions)`). A 116-step
+   agent-derived route is recorded in KI-58 as a **sanity check on its answer, never as the
+   answer**. Then Tate & Liza: a **DOUBLE battle** with a "need two Pokémon" script branch, and the
+   party still carries Zigzagoon L11 / Skitty L17.
 
 2. ✅ **DONE — the Slateport-haul whiteout is FIXED** (`whiteouts=0`, PASS, and 5,457 frames
    faster). Cause: the anchor hands Ch16 a party at **8.8% HP with 5 of 6 fainted**, and the

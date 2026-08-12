@@ -4929,3 +4929,49 @@ every probe ("static may call a walled tile walkable"). Both directions happen.
 **Prevention rule.** *Never infer a mechanism from a metatile/flag NAME — read the function it
 dispatches to. And when two models of the same map disagree, that disagreement is the fastest
 diagnostic you have; build the second model rather than re-reading the first.*
+
+---
+
+## 2026-08-12 — my model-free brute force was ALSO wrong, because it changed the map while measuring it
+
+**Symptom.** After four offline models each said "no route through the Mossdeep Gym", I built
+`probe_gym_bruteforce.py` — press a button, read where the avatar went, no map model at all — on the
+reasoning that it *cannot* be wrong about the map. It found 35 tiles and **zero** warp panels, and
+failed its own known-good control. I fixed a real bug in its stepper (two blind presses move two
+tiles) and got the identical result, which should have told me the stepper was never the problem.
+
+**Root cause.** The gym is a rotating-tile statue puzzle: nine floor switches move the statues. The
+walker was **stepping on switches while exploring**, so the map mutated underneath it — and because
+its state key was only `(map, position)`, two genuinely different worlds collapsed into the same
+node and the search truncated. An empirical instrument is only immune to *modelling* error; it is
+not immune to having the wrong notion of STATE.
+
+**The fix that worked.** Widen the state key to include the live object positions
+(`get_map_objects()`), so `(position, statue configuration)` is the node. No arrow-band model needed
+— the game moves the statues, we just read where they went.
+
+**Prevention rule.** *When the world can change in response to what you do, the search state must
+include the world — "I only pressed buttons, so I cannot be wrong" protects you from bad map models,
+not from a state key that is too small.*
+
+---
+
+## 2026-08-12 — four models agreed and all four were wrong, because they shared a blind spot
+
+**Symptom.** Warp-graph BFS, a collision flood fill, `calculate_path` spot-checks, and a
+statue-aware re-run all concluded the Mossdeep Gym has no route to Tate & Liza. I had written KI-58
+twice with two different wrong causes before this.
+
+**Root cause.** Every one of them modelled the gym as *walk + warp*. The gym has a **third movement
+primitive** — step on a floor switch to relocate the statues — and no amount of agreement between
+models that lack it could ever surface it. This is the project's own measured rule about Gemini
+("agreement is not a confidence signal; both models share the same misconceptions") applying to my
+own instruments, which I had not thought to apply to myself.
+
+**The fix that worked.** Fan out to five INDEPENDENT researchers with different angles, one of them
+explicitly adversarial ("refute this claim"). The adversarial one found it, and two others
+converged on it separately from the decomp. Then verify in our own harness before believing it.
+
+**Prevention rule.** *When N of your own instruments agree on something impossible, stop adding
+instruments of the same kind — they likely share a missing primitive. Ask what the game can DO that
+none of them models, and get an adversarial second opinion.*
