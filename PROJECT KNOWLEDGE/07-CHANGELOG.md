@@ -11321,3 +11321,13 @@ their DIVERGENCE-LOG entries state.
 **15 of 28 (54%)** ended on the counter chain's own "N losses with no super-effective answer to X"
 stop; 5 on the global watchdog; 1 cutscene timeout; 1 ball starvation. The dominant failure mode is
 unchanged and is a **boss** problem, which is what the status-tax result now speaks to.
+
+### Session wrap-up 2026-08-11
+`04-HANDOFF.md` rewritten as a true zero-context entry point for the whole session (162 lines,
+lint-clean): the north-star pointer, the state table with the restore tag and the deliberate §Ch16
+drift, what shipped, the batch's one resolved and one **not** resolved result, the hardening-round
+table, what the user decided, and six ordered next actions led by **KI-56**.
+
+‼ Recorded prominently because it is the session's most consequential finding: **Ch15 strands the
+bot in the Magma Hideout**, and its binary acceptance test could never have caught that. New
+playbook rule — *a chapter's acceptance test must include "and the bot can CONTINUE"*.
