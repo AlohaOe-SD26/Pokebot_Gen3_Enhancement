@@ -266,7 +266,7 @@ PYTHONUTF8=1 py -3.12 verify_fixtures.py    # PINNED saves byte-identical
 PYTHONUTF8=1 py -3.12 probe_status_tax.py <batch-dir>   # the status tax, with its control
 PYTHONUTF8=1 py -3.12 x4_headless.py --lanes 8 --minutes 180   # a batch (3h)
 ```
-**Regression gate — 14 of 14 green (2026-08-11):** the ten standing `repro_*` plus
+**Regression gate — 15 of 15 green (2026-08-12):** plus `repro_gym_whiteout_guard.py` (4/4, fault-injected — ‼ it is a BOUNDED prefix test, because a hand-driven generator has no battle listeners and cannot win a gym fight; see 08-MISTAKES). Previously 14 of 14 (2026-08-11): the ten standing `repro_*` plus
 `repro_teach_under_dialogue`, `repro_teach_prompt_window`, `repro_maxie_whiteout_guard`,
 `repro_lead_cannot_battle`, and the `repro_no_silent_except` ratchet.
 ‼ `repro_counter_hunt` and `repro_area_item_gate` print `RESULT: ALL PASS` / `all checks pass.` —

@@ -5082,3 +5082,32 @@ guard does not fire on the healthy path and a check that the chapter really retr
 **Prevention rules.** *An error type is part of an interface: when you write a recovery, assert that
 the failure it recovers from can actually reach it.* And: *a green happy-path run says nothing about
 the error paths — if a branch exists because something can go wrong, make something go wrong.*
+
+---
+
+## 2026-08-12 — my repro sat for 45 minutes because a bare generator harness cannot fight a battle
+
+**Symptom.** `repro_gym_whiteout_guard.py` check [3] — "unpatched, the walk must complete the route
+normally" — produced no output for 45 minutes. Checks [1] and [2] had already passed in the first
+minute, so the guard itself was fine.
+
+**Root cause.** The probe drives the bot's generator by hand: `for _ in generator: run_single_frame()`.
+**Battle handling does not run inside a bot mode's generator** — it lives in the main loop's
+listeners (`modules/battle_fault.py:5` says so explicitly, and the driven run's log shows
+`CONTROLLER -> TrainerApproachListener` and `CONTROLLER -> BattleListener.fight`). The Mossdeep Gym
+route walks past nine trainers, two of which reliably start a battle. In the harness there was
+nothing to win it, so the walk stalled until its frame budget ran out. Nothing was wrong with the
+code under test; the *test* could not run it.
+
+**A second, quieter mistake in the same session.** The very first attempt at this repro was piped
+through `| grep ... | head -40`, so the reported "exit code 0" was **head's**, not the repro's, and
+the output file was empty. I nearly recorded a PASS I had never seen.
+
+**The fix that worked.** Make check [3] a **bounded healthy prefix** (6,000 frames: enough to cover
+the entry guard, the puzzle build, several steps and a warp) and state plainly that the full healthy
+route is proven elsewhere — by the driven `--driver mossdeepgym` PASS, which runs under the real
+main loop and therefore *does* have listeners. 4/4 pass in under a minute.
+
+**Prevention rules.** *A hand-driven generator is not the bot: it has no battle listeners, no
+whiteout handling, no main loop. Use it for logic and guards, and use a real driver for anything
+that must survive a battle.* And: *never read an exit code through a pipe — `head` reports its own.*

@@ -20,8 +20,21 @@ does:
       raises, and the message names a WHITEOUT rather than blaming the statue model.
   [2] IS THE RIGHT TYPE — the error is a `BotModeError`. This is not pedantry: the chapter's retry
       loop catches exactly that type, so a `RuntimeError` here silently disables the recovery.
-  [3] DOES NOT FIRE WHEN IT SHOULD NOT — unpatched, the same call walks normally and reaches the
-      leaders. Without this control, "it raised" proves nothing.
+  [3] DOES NOT FIRE WHEN IT SHOULD NOT — unpatched, the same call walks a healthy PREFIX of the
+      route without raising and makes real progress. Without this control, "it raised" proves
+      nothing: a guard that always fires would pass check [1].
+
+‼ CHECK [3] IS A BOUNDED PREFIX, NOT THE WHOLE ROUTE, AND THAT IS A HARD CONSTRAINT RATHER THAN
+LAZINESS. **Battle handling does not run inside a bot mode's generator** — it lives in the main
+loop's listeners (`modules/battle_fault.py:5`; the driven run's log shows
+`CONTROLLER -> TrainerApproachListener` and `CONTROLLER -> BattleListener.fight`). Driving a
+generator by hand, as this file does, has no listeners at all, so the moment one of the gym's nine
+trainers starts a battle there is nothing that can win it and the walk stalls until its frame
+budget runs out. The first version of this repro tried to walk the full route here and sat for
+45 minutes doing exactly that.
+⇒ The FULL healthy route is proven elsewhere, by the thing that does have listeners: the driven
+`--driver mossdeepgym` PASS (`at_leaders=True at=(23,8) whiteouts=0`, 117 steps, one plan). This
+file's job is only the guard's two-sided behaviour, and it says so rather than overclaiming.
   [4] THE RECOVERY ACTUALLY RETRIES — `do_mossdeep_gym_chapter` is run against a
       `walk_to_the_leaders` that always raises `BotModeError`, and must make THREE attempts and
       then report all three, rather than dying on the first.
@@ -126,14 +139,21 @@ record(
 )
 
 # ---------------------------------------------------------------- [3] control: healthy path
-print("\n[3] CONTROL — unpatched, the same call must walk the route normally")
+print("\n[3] CONTROL — unpatched, a healthy PREFIX of the route must raise nothing and make progress")
 reset()
-error = drive(mossdeep_gym.walk_to_the_leaders(verbose=False))
+start_tile = mossdeep_gym._tile()
+# Bounded on purpose — see the module docstring. Without the main loop's battle listeners this
+# harness cannot win a gym trainer battle, so the walk is exercised only as far as it reliably
+# goes unattended. Long enough to cover the entry guard, the puzzle build, several steps and at
+# least one warp; short enough to finish in well under a minute.
+error = drive(mossdeep_gym.walk_to_the_leaders(verbose=False), limit=6_000)
 here = mossdeep_gym._tile()
+timed_out = isinstance(error, TimeoutError)
 record(
-    "[3] the guard does NOT fire on the healthy path",
-    error is None and here in mossdeep_gym.LEADER_APPROACH_TILES,
-    f"ended at {here} with {type(error).__name__ + ': ' + str(error)[:120] if error else 'no error'}",
+    "[3] the guard does NOT fire on the healthy path, and the walk progresses",
+    timed_out and here != start_tile,
+    f"walked {start_tile} -> {here} over 6,000 frames; outcome = "
+    f"{'hit the frame budget with no error raised (expected)' if timed_out else type(error).__name__ + ': ' + str(error)[:140] if error else 'the route completed'}",
 )
 
 # ---------------------------------------------------------------- [4] the recovery retries

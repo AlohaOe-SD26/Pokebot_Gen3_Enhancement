@@ -11855,3 +11855,29 @@ the fault rather than asserting the fix.
   Team Magma + Steven at the Space Center — which is §Ch19's setup.
 * Re-talking after victory is harmless and always terminates in `release`, so the chapter is
   resume-safe by the game's own design.
+
+## 2026-08-12 (follow-up) — the whiteout guard is PROVEN by fault injection: 4/4
+
+`tools/story-dev/repro_gym_whiteout_guard.py` — **RESULT: ALL PASS (4/4, exit 0)**:
+```
+[1] the guard FIRES when the player leaves the gym mid-route
+    BotModeError: Mossdeep Gym: no longer on the gym map (after stepping on (5, 35))
+    — almost certainly a WHITEOUT.
+[2] the error is a BotModeError, so the chapter's retry can catch it
+[3] the guard does NOT fire on the healthy path, and the walk progresses
+    walked (6, 35) -> (1, 31) over 6,000 frames, no error raised
+[4] the chapter retried 3 times and reported every attempt
+```
+Two-sided on purpose: a guard that always fired would pass [1] alone. [4] injects a failing
+`walk_to_the_leaders` and asserts the chapter makes three attempts and aggregates all three
+reasons — the recovery that the `RuntimeError`/`BotModeError` mismatch had silently disabled.
+
+### ‼ A GOTCHA FOR EVERY FUTURE REPRO AUTHOR: a bare generator harness cannot fight
+The first version of check [3] tried to walk the **whole** 117-step route and sat for 45 minutes
+going nowhere. **Battle handling does not run inside a bot mode's generator** — it lives in the main
+loop's listeners (`modules/battle_fault.py:5`; the driven run's log shows
+`CONTROLLER -> TrainerApproachListener` and `CONTROLLER -> BattleListener.fight`). A probe that
+drives a generator by hand has no listeners, so the moment one of the gym's nine trainers starts a
+battle there is nothing that can win it. Check [3] is now a **bounded healthy prefix**, and the file
+says so rather than overclaiming: the full healthy route is proven by the thing that *does* have
+listeners, the driven `--driver mossdeepgym` PASS.
