@@ -2719,126 +2719,12 @@ happily returns one. Every "OK, 1 wp" in that table was an artifact.
 ⇒ **A `calculate_path` result is only evidence about the DESTINATION side unless the source has
 been independently shown to be walkable.**
 
-## KI-58 — the MOSSDEEP GYM is not a warp-event maze; its tiles are `MB_MOSSDEEP_GYM_WARP` (2026-08-12, severity: MEDIUM, blocks §Ch18, MEASURED)
+## KI-58 — the Mossdeep Gym statue puzzle (2026-08-12, RESOLVED — see the two sections below)
 
-Found while reconning §Ch18 with the newly generalised `probe_warp_maze.py`. The gym *looks* like
-the two hideouts — `MossdeepCity_Gym/map.json` has **14 warps, 12 of them same-map** in 6 pairs —
-so the warp-graph method should have solved it. It does not, and the tool **withheld its verdict**
-rather than guessing.
-
-### WHAT WAS MEASURED
-The gym is genuinely a set of disconnected rooms joined only by those tiles (collision map drawn
-tile-by-tile). The apparent chain from the entrance is:
-```
-(6,34) --walk--> (1,33) --warp--> (20,24) --walk--> (23,20) --warp--> (9,18)
-       --walk--> (7,18) --warp--> (8,12) --walk?--> (11,3) --warp--> (11,35) --walk?--> (13,32)
-       --warp--> (21,10) --walk--> (23,8)  [beside Tate & Liza at (23,7)/(24,7)]
-```
-Four of those walks plan cleanly and **two do not**:
-| link | result |
-|---|---|
-| `(6,34) -> (1,33)` | OK, 10 wp, panel-free |
-| `(20,24) -> (23,20)` | OK, 7 wp |
-| `(9,18) -> (7,18)` | OK, 2 wp |
-| `(21,10) -> (23,8)` | OK, 4 wp |
-| **`(8,12) -> (11,3)`** | **FAIL, no path** |
-| **`(11,35) -> (13,32)`** | **FAIL, no path** |
-
-‼ **And it is neither collision nor elevation.** Every tile along both failing links reads
-`collision=0`, and the elevations alternate `0`/`3` — where `0` is the wildcard `map_path` accepts
-against anything (`tile.elevation not in (0, 15)`), so no transition there should be refused.
-
-### THE CAUSE — a distinct metatile BEHAVIOUR, not a warp event
-Reading `tile_type` on those tiles returns **`'Mossdeep Gym Warp'`** (`MB_MOSSDEEP_GYM_WARP`), not
-the ordinary warp behaviour the hideouts use. That is its own mechanic: in the decomp these tiles
-choose a destination from gym-specific logic rather than simply firing the warp event at their
-coordinates, so **modelling them as ordinary warp-table edges is wrong** — which is exactly why two
-links in a chain built that way have no walkable counterpart.
-
-### WHAT THIS MEANS FOR §Ch18
-The Aqua/Magma method does **not** transfer. Before building, read how the decomp handles
-`MB_MOSSDEEP_GYM_WARP` (start from `src/field_control_avatar.c` / `src/overworld.c` and the gym's
-own scripts) and decide whether the traversal can be expressed as a route at all, or has to be
-driven as a sequence of directional steps.
-‼ Do NOT extend `probe_warp_maze.py`'s `MAZES` table with a "fixed" Mossdeep entry until that
-question is answered — the tool's value is that it refuses mazes it cannot model.
-
-### ‼‼ KI-58 CORRECTED 2026-08-12 — my stated cause was WRONG on both counts
-The entry above blamed `MB_MOSSDEEP_GYM_WARP` ("a distinct behaviour whose destination comes from
-gym-specific logic"). **Both halves of that are false**, and the correction matters more than the
-original finding.
-
-**1. `MB_MOSSDEEP_GYM_WARP` is an ORDINARY warp.** In `src/field_control_avatar.c` it sits in the
-same `IsWarpMetatileBehavior` list as `MetatileBehavior_IsAquaHideoutWarp` — the panels the graph
-already models correctly — and `DoMossdeepGymWarp()` (`src/field_screen_effect.c:559`) is a normal
-warp with a different fade plus `SKIP_OBJECT_EVENT_LOAD`:
-```
-SetObjectEventLoadFlag(SKIP_OBJECT_EVENT_LOAD); LockPlayerFieldControls(); SaveObjectEvents();
-TryFadeOutOldMapMusic(); WarpFadeOutScreen(); PlaySE(SE_WARP_IN);
-CreateTask(Task_WarpAndLoadMap, 10); gFieldCallback = FieldCB_MossdeepGymWarpExit;
-```
-The destination is still the warp event's. **The warp-event model was never the problem.**
-
-**2. The two failing walks are blocked by STATUES**, found by flood-filling the collision map with
-`probe_gym_components.py` and cross-checking it against the planner. The two models DISAGREED on
-exactly the two failing links (flood: connected, planner: no), and the disagreement located the
-cause immediately:
-| link | blocked by |
-|---|---|
-| `(8,12) -> (11,3)` | `OBJ_EVENT_GFX_TRICK_HOUSE_STATUE` at **`(11,5)`** |
-| `(11,35) -> (13,32)` | `OBJ_EVENT_GFX_TRICK_HOUSE_STATUE` at **`(12,34)`** |
-
-The gym has **36 object templates, 21 of them statues** — they are the puzzle's barrier walls, so
-the planner refusing those routes is CORRECT. Statue tiles:
-`(1,29) (2,30) (4,30) (5,21) (5,29) (6,5) (6,6) (7,9) (10,8) (11,5) (11,34) (12,5) (12,33) (12,34)
-(21,22) (21,23) (22,22) (23,25) (23,26) (24,22) (24,23)`
-
-### ‼ THE GENERAL LESSON, which is the valuable part
-`map_path.is_tile_accessible` blocks any tile carrying an object template whose object is **not
-currently loaded**:
-```python
-if (tile.dynamic_collision_flag is None and tile.dynamic_object_id
-        and (tile.map.map_group_and_number, tile.dynamic_object_id) not in active_objects):
-    return False
-```
-`active_objects` comes from `get_map_objects()` — **the CURRENTLY LOADED map**. So static recon of a
-map from an anchor standing somewhere else treats **every object-template tile as a wall**.
-⇒ **Static recon of an object-dense map is PESSIMISTIC, not optimistic**, which is the opposite of
-the caveat this project has been writing on every probe ("static may call a walled tile walkable").
-Both directions are now known to happen. For the two hideouts it did no harm (few objects, and the
-routes worked when driven); for a 36-object gym it is decisive.
-
-### STATUS: §Ch18 still NOT solved, but the diagnosis is now correct
-The warp graph and the statue blocking are both faithful, so the route to Tate & Liza genuinely is
-not the chain assumed above. **Next step:** re-run `probe_warp_maze.py --maze mossdeep_gym` from an
-anchor where the GYM IS THE LOADED MAP, so the statues are live objects at their real positions
-rather than pessimistic template walls, and see whether a route appears. That requires a save
-standing in the gym — capture one, or drive the travel leg first.
-
-### KI-58, third pass 2026-08-12 — the pessimism was REAL but was not the whole story
-`--driver mossdeeptravel` now captures **`saves/in_mossdeep_gym.ss1`** (driven PASS, `whiteouts=0`),
-so the maze could finally be reconned with the gym as the LOADED map and its 21 statues as live
-objects at their real positions. **The route is still not found.** So the object-template pessimism
-was a genuine instrument bug — worth fixing, and now fixed — but it was not what was hiding the
-gym's route.
-
-**Three mechanisms RULED OUT, each decomp-confirmed:**
-| candidate | ruled out because |
-|---|---|
-| `MB_MOSSDEEP_GYM_WARP` has special destination logic | `DoMossdeepGymWarp()` is an ordinary warp; destination comes from the warp event |
-| the exit is direction-dependent | `FieldCB_MossdeepGymWarpExit` is cosmetic — music, fade, `Task_ExitNonDoor` |
-| the R/S switch-and-arrow puzzle moves barriers | ‼ the gym's own scripts say so: *"Mossdeep Gym was redesigned between R/S and E… All the below checks are leftover from RS. **`FLAG_MOSSDEEP_GYM_SWITCH_X` is never set**"* — that whole `setmetatile` machinery is DEAD CODE in Emerald |
-
-**So the open question is narrow and honest: what actually connects the Emerald gym's rooms?**
-The warp graph (14 warps, 12 same-map) plus live statues yields no path from `(6,34)` to Tate &
-Liza's room, and the game plainly permits one. Something structural in the model is still wrong.
-
-**‼ NEXT STEP, and it is cheap now that the anchor exists:** stop asking STATIC questions. Drive it
-— from `in_mossdeep_gym.ss1`, have the bot's own runtime router (`navigate_to_anywhere` /
-`_navigate_riding_out`) attempt `MOSSDEEP_CITY_GYM (23,8)` and watch where it actually goes. Every
-model used so far has been offline; the live router has information none of them had. (This is the
-KI-57 lesson again: when a measurement implies the game soft-locks itself, the measurement is the
-suspect — and three of them now say the same wrong thing.)
+‼ **This issue was written up three times with three different wrong causes before it was
+understood.** Those superseded write-ups are archived in **`31-KNOWN-ISSUES-ARCHIVE.md`** rather
+than deleted — they are the record of how a shared blind spot survived four instruments, and the
+lessons drawn from them are in `08-MISTAKES.md`. What follows is the CURRENT state only.
 
 ## ✅✅ KI-58 RESOLVED 2026-08-12 — the Mossdeep Gym is a ROTATING-TILE STATUE PUZZLE, not a maze
 
@@ -2988,3 +2874,61 @@ before you ever warp in**; every other value is a dead end you cannot fix from i
 ‼ **Still not driven.** Two independent solvers agree and one matches a walkthrough, which is strong
 — but by this project's own rule that is a NOTE. The build order is: let the statue-aware
 `probe_gym_bruteforce.py` confirm a route empirically, using these as the cross-check.
+
+### ✅ KI-58 — the model is now BUILT AND VALIDATED (2026-08-12, later). Corrections below.
+
+`sandbox-pokebot/modules/story/mossdeep_gym_puzzle.py` simulates the puzzle; `probe_gym_arrows.py`
+dumps the arrow field it reads; `probe_gym_simulate.py` is the validation gate and **PASSES** —
+11/11 loaded objects predicted on a live press, identity-keyed on `local_id`, plus a period-4
+identity control on all five colours. The route planner may now be built on this model.
+
+**The encoding, derived from the ROM dump rather than assumed.** Arrows are metatiles `0x250..0x27F`;
+band = `(mt-0x250)//8` → `0 Yellow 1 Blue 2 Green 3 Purple 4 Red`; code = `(mt-0x250)%8` →
+`0 Right 1 Down 2 Left 3 Up`. ‼ **Codes 4 and 5 are that colour's floor SWITCH, not an arrow** —
+which is why the dir-4/5 tiles reproduce the nine-switch list exactly. `METATILE_ROW_WIDTH` is 8 and
+`METATILE_MossdeepGym_YellowArrow_Right = 0x250` is the *only* MossdeepGym label in the decomp.
+
+#### ‼ WHAT WAS WRONG IN THE ENTRIES ABOVE
+| claim above | correction | evidence |
+|---|---|---|
+| statue state is "**5 counters mod 4**" | **Unsafe as a state model.** It holds only for a pad carrying three objects; the yellow pad at `(4,20)-(5,21)` carries two. Use the full tuple of object positions — hashable, small, and always right | `probe_gym_arrows.py` occupancy dump |
+| the 21 **statues** are what seal the corridors | **Nine TRAINERS stand on arrow pads and rotate with them** — Preston, Blake, Maura, Virgil, Nate, Sylvia, Clifford, Kathleen, Nicholas. A statue-only model mispredicts every pad holding one | decomp `map.json` × layout; live press moved trainer ids 2 and 4 |
+| statues are the `trainer_type == "None"` objects | **Statues are `graphics_id == 224`** (exactly 21). The `trainer_type` filter also catches Tate, Liza and the gym guide | template dump |
+| the gym is **6 islands** | **8 collision components.** `(6,1)` and `(23,18)` are collision-0 pockets walled in on all four sides with no warp — permanently unreachable | flood fill of `map.bin`'s 175 walkable tiles |
+| "the **ONLY** links are warp pads" | False. The `(21,6)` coord event is a seventh, non-warp, **one-way** link (platform → entrance hall) | `map.json` has no warp event at `(21,6)` |
+| `(21,6)` is a **TRAP** | Operationally yes — but it is **not gated on any flag**, so it is equally the designed one-way exit, live from arrival. "Treat as blocked" stays correct; the *reasoning* in the entry above is wrong | `scripts.inc:199-204`, no flag check |
+| **two** switches are unavoidable transit tiles | **Three.** `(23,20)`'s only walkable neighbour is `(23,21)`, the second purple switch. Budget for purple advancing twice on the way | neighbour scan of the collision map |
+| the green antechamber is a "**dead end you cannot fix from inside**" | Overstated. `(11,35)` is itself a return warp, so a wrong green value costs a lap, not the run | warp table |
+
+#### FACTS CONFIRMED (do not re-litigate)
+* **`MoveRotatingTileObjects` has NO collision check** — `objectEvents[i].x += x` is unconditional
+  (`src/rotating_tile_puzzle.c:171-172`). Two statues *could* collide, land on the player, or enter a
+  wall; none happens, because every colour's arrows form **disjoint closed 2x2 4-cycles**. A rotation
+  is therefore a permutation, and four presses of any colour is the identity (verified for all five).
+* It mutates **both** the save-block template (unconditionally) and the live object (if spawned).
+* Switches **re-fire every time**: `VAR_TEMP_1` is never written anywhere, and
+  `ClearTempFieldEventData()` zeroes temp vars on every map load. There is no "already triggered"
+  bookkeeping of any kind.
+* **Gym-internal warps preserve the puzzle; leaving resets it.** The 12 internal panels route to
+  `DoMossdeepGymWarp` by *metatile behaviour* `MB_MOSSDEEP_GYM_WARP == 14`, which sets
+  `SKIP_OBJECT_EVENT_LOAD` so `LoadMapFromWarp` skips `LoadObjEventTemplatesFromHeader()`. The two
+  exit tiles `(6,35)/(7,35)` are behaviour 101 → ordinary `DoWarp()` → full reset.
+* **Green must be 2 before warping into the antechamber.** Only `green == 2` frees `(12,34)`, the
+  unique tile joining `(11,35)`'s side to `(13,32)`'s. Exhaustively checked over all four values.
+* **No configuration is unsolvable.** 114,929 reachable states; **0** from which `(23,8)` or the exit
+  becomes unreachable. The purple pad at `(21,22)-(22,23)` holds four objects, so it is inert.
+* **Tate & Liza cannot approach you.** Both are `TRAINER_TYPE_NONE` with sight id 0, so
+  `CheckForTrainersWantingBattle` never considers them — the player *must* reach `(23,8)` or `(24,8)`
+  and face NORTH and press A. They need **≥2 usable Pokémon** (`GetMonsStateToDoubles`: party count
+  of 1 short-circuits; otherwise ≥2 non-egg, HP>0 party members).
+* **Ordinary gym trainers have sight range 1 ⇒ ZERO approach steps** — they never leave their tile
+  when they spot you. This is what keeps live positions in sync with the templates the puzzle mutates,
+  and it is why an offline model is sound at all.
+
+#### ‼ THE OPERATIONAL FACT THE EXECUTOR MUST HANDLE
+**Solving the puzzle aims the trainers at you.** Pressing yellow at `(3,30)` slides Maura from
+`(4,29)` to `(4,30)` — adjacent to the player standing on the switch — and turns her to face them;
+`EventScript_ShowTrainerIntroMsg` fires before the bot can step off. This is not avoidable by
+approaching the switch differently, and it is not a fault: **gym trainer battles are a consequence of
+the mechanic**. The executor must fight them, and a wait loop that does not expect a script will
+simply hang with the avatar "refusing to walk".

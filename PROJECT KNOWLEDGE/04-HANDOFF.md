@@ -32,7 +32,7 @@ burden here is so heavy, and why negative results are treated as the most valuab
 | box | **IDLE.** Nothing running. Last batch `20260811-130454` (VERDICT OK, 28 runs). |
 | story content | Littleroot → 6 badges → Mt. Pyre → Magma Hideout (and out) → Slateport submarine theft → **the Lilycove AQUA HIDEOUT (with the MASTER BALL)**. **18 of 24 ladder beats.** |
 | ‼ is code frozen? | **No.** Nothing is running. |
-| upstream | checked 2026-08-11, `5dd898f8`. ‼ **A daily check is DUE** (see CLAUDE.md). |
+| upstream | checked **2026-08-12**, still `5dd898f8` — no change. Daily check DONE. |
 | restore point | **`restore/2026-08-11-all-promoted`** (annotated, pushed, verified on the remote) |
 | sandbox ↔ custom drift | **NONE** — §Ch15 exit + §Ch16 + §Ch17 + heal stops + the MASTER BALL all PROMOTED 2026-08-12 (user-approved); the first promotion was verified by driving `--build custom` to an identical frame count |
 | **if stopped mid-task** | **NOTHING IS PARKED.** Everything is committed and pushed. Start at "NEXT ACTIONS". |
@@ -169,30 +169,42 @@ run that walked all the way back down to `1F (25,34)`; the warp graph says 3F_3R
 there, but that is static.
 ## ⏭ NEXT ACTIONS, IN ORDER
 
-1. **‼ BUILD §Ch18's GYM EXECUTOR. The puzzle is now UNDERSTOOD (KI-58 RESOLVED).**
+1. **‼ BUILD §Ch18's SOLVER, THEN ITS EXECUTOR. The puzzle is now MODELLED and the model is
+   VALIDATED (2026-08-12).**
    ✅ Leg 1 ships: `--driver mossdeeptravel` heals, Surfs Lilycove → Mossdeep, enters the gym
    (PASS, `whiteouts=0`), anchor **`saves/in_mossdeep_gym.ss1`**.
 
-   **The gym is a ROTATING-TILE STATUE PUZZLE, not a maze.** Nine floor switches call
-   `moverotatingtileobjects`; `MoveRotatingTileObjects` (`src/rotating_tile_puzzle.c:108`) shifts
-   every statue standing on a coloured ARROW metatile one tile that way. The 21 statues are what
-   seal the corridors to the `(11,3)`, `(13,32)` and `(21,10)` panels. Statue state = **5 counters
-   mod 4**. ‼ **Verified live in our harness** — stepping on the yellow switch `(3,30)` moved
-   statues `(1,29)→(2,29)`, `(5,29)→(5,30)`.
+   ✅ **`sandbox-pokebot/modules/story/mossdeep_gym_puzzle.py` simulates the puzzle offline**, and
+   `probe_gym_simulate.py` **PASSES**: 11/11 loaded objects predicted on a live press, identity-keyed
+   on `local_id`, plus a period-4 identity control on all five colours. Per-press object counts
+   (Yellow 8, Blue 4, Green 3, Purple 10, Red 5) independently reproduce the decomp's pad occupancy
+   table. **A route may now be planned on this model.**
 
-   Switches: Yellow `(2,21) (3,30)` · Blue `(8,10) (6,7)` · Green `(15,34)` · Purple
-   `(23,24) (23,21)` · Red `(8,6)`. They **re-fire every time** (`VAR_TEMP_1` never set).
+   Encoding (derived from the ROM dump, not assumed): arrows are `0x250..0x27F`; band =
+   `(mt-0x250)//8` → `0 Yellow 1 Blue 2 Green 3 Purple 4 Red`; code = `(mt-0x250)%8` →
+   `0 Right 1 Down 2 Left 3 Up`; ‼ **codes 4/5 are that colour's SWITCH**. Movement is a **rigid
+   simultaneous rotation with NO occupancy check**, so four presses of a colour is the identity.
 
-   ‼ THREE TRAPS: `(23,7)/(24,7)` are **collision-1** — target `(23,8)/(24,8)` facing NORTH;
-   `(21,6)` has gym-warp behaviour but **no warp event** and its coord_event ejects you to
-   `(7,30)`, four tiles from the champion-room arrival — treat as BLOCKED; and **leaving the gym
-   RESETS the puzzle** while internal warps preserve it (`SKIP_OBJECT_EVENT_LOAD`).
+   ‼ **THE THINGS THAT WILL BITE — all newly measured, all in KI-58:**
+   * **Nine TRAINERS stand on arrow pads and rotate with the statues.** A statue-only model is wrong.
+   * **Statues are `graphics_id == 224`** (21 of them), *not* `trainer_type == "None"`.
+   * **"5 counters mod 4" is UNSAFE** — not every pad holds three objects. Use the object-position
+     tuple (what the module does).
+   * **Solving the puzzle AIMS THE TRAINERS AT YOU.** Pressing yellow at `(3,30)` slides Maura to
+     `(4,30)`, adjacent and facing the player; the trainer intro fires before the bot can step off.
+     **Expect gym battles as part of the mechanic**, and never write a wait loop that assumes no
+     script will start.
+   * **Three** switches are unavoidable transit tiles: `(23,24)`, `(23,21)`, `(8,10)`.
+   * `(21,6)` ejects to `(7,30)` and is **not flag-gated**; treat as blocked. Leaving the gym RESETS
+     the puzzle; internal warps preserve it (`SKIP_OBJECT_EVENT_LOAD`).
+   * **No configuration is unsolvable** — 114,929 reachable states, 0 dead. The bot cannot strand
+     itself here, which is a change from every dungeon so far.
 
-   **HOW TO BUILD IT:** `probe_gym_bruteforce.py` is now statue-aware and model-free — let IT find
-   and CONFIRM a route (its state key is `(map, position, live object positions)`). A 116-step
-   agent-derived route is recorded in KI-58 as a **sanity check on its answer, never as the
-   answer**. Then Tate & Liza: a **DOUBLE battle** with a "need two Pokémon" script branch, and the
-   party still carries Zigzagoon L11 / Skitty L17.
+   **HOW TO BUILD IT:** A\* over `(player tile, object-position tuple)` using
+   `mossdeep_gym_puzzle.press` / `is_walkable`, with warps and forced switch tiles as edges. The
+   116-step agent route in KI-58 is a **cross-check on the solver's answer, never the answer**. Then
+   Tate & Liza at `(23,8)/(24,8)` facing NORTH: a **DOUBLE battle** needing **≥2 usable Pokémon**,
+   and the party still carries Zigzagoon L11 / Skitty L17.
 
 2. ✅ **DONE — the Slateport-haul whiteout is FIXED** (`whiteouts=0`, PASS, and 5,457 frames
    faster). Cause: the anchor hands Ch16 a party at **8.8% HP with 5 of 6 fainted**, and the

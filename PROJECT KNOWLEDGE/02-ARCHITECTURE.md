@@ -70,10 +70,11 @@ Pokebot_Gen3_Enhancement/
 └── sandbox-pokebot/               # ★★ THE ACTIVE COPY — all current work happens HERE
     ├── SANDBOX-NOTES.md  SANDBOX-PROPOSALS.md  CHEATS-DESIGN.md  DIVERGENCE-LOG.md
     ├── plugins/custom_modes/story_mode.py   # StoryMode + StoryDebug/DebugReset/EndlessReset
-    ├── modules/story/             # 11 modules: early_game, chapters, region_reach,
+    ├── modules/story/             # 12 modules: early_game, chapters, region_reach,
     │                              #   counter_plan (plans) + counter_hunt (executes),
     │                              #   training_areas, fortree_gates, intro, progress,
-    │                              #   config, team_policy (built, UNWIRED)
+    │                              #   config, team_policy (built, UNWIRED),
+    │                              #   mossdeep_gym_puzzle (PURE model, UNWIRED)
     └── modules/…                  # sandbox-ONLY modules (absent from custom-pokebot):
                                    #   endless_x4, tile_bridge, tile_mosaic, gui/tile_child,
                                    #   x4_logs, remote_party, badge_log, badge_case,
@@ -249,6 +250,20 @@ done
   `.ss1` is a full machine snapshot and **preserves battle callbacks / mid-script state**
   (measured 2026-08-09, 6 of 6), unlike a `.sav`. That makes a stall state a loadable fixture
   for bugs that need a runtime tail resident.
+- **`#24-mossdeepgym` (2026-08-12, model only — NOT yet wired into a chapter)** — the Mossdeep Gym
+  rotating-tile statue puzzle:
+  * `modules/story/mossdeep_gym_puzzle.py` — a **PURE** simulator (`press(state, colour)`,
+    `is_walkable(tile, state)`), so a 116-step route can be planned offline instead of pressed out
+    on the emulator. `build_puzzle_from_emulator()` is the only impure part: it reads the arrow
+    field, the nine switches, the 36 object templates and the collision layer from ROM.
+    ‼ It re-reads the raw metatile id itself, because `modules/map.py` computes it (line 779) but
+    returns only `(attributes, collision, elevation)` — widening a SHARED module for one puzzle was
+    not worth the blast radius.
+  * ‼ **The state is the full tuple of object positions**, not "5 counters mod 4": pads do not all
+    hold three objects, and nine TRAINERS rotate along with the 21 statues.
+  * `tools/story-dev/probe_gym_arrows.py` dumps the arrow field and derives the encoding from data;
+    `probe_gym_simulate.py` is the validation gate that presses a switch for real and requires the
+    simulator to have predicted every loaded object, keyed on `local_id`. **PASS: 11/11.**
 - **`#24-battleitems` (promoted 2026-08-10)** — the bot uses healing items in TRAINER battles:
   * `modules/story/battle_items.py` — a **PURE** policy (no emulator, no game state), so it is
     unit-testable in milliseconds by `tools/story-dev/repro_battle_items.py` (27 checks). Heal

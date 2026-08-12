@@ -4975,3 +4975,55 @@ converged on it separately from the decomp. Then verify in our own harness befor
 **Prevention rule.** *When N of your own instruments agree on something impossible, stop adding
 instruments of the same kind — they likely share a missing primitive. Ask what the game can DO that
 none of them models, and get an adversarial second opinion.*
+
+---
+
+## 2026-08-12 — I rebuilt the statue rule from a measurement that had no object identities in it
+
+**Symptom.** Building the Mossdeep Gym simulator, I re-derived the puzzle's movement rule from the
+observation recorded in KI-58 and concluded — with an A/B "proving" it — that the gym is a
+**sliding-block puzzle**: objects processed in template order, each moving only if its destination
+is free, with direction codes `0=Up 1=Right 2=Down 3=Left`. I wrote that into the module docstring
+as the correction that mattered, complete with a worked example showing the rigid model "loses two
+objects". Every part of it was wrong, and the original KI-58 note had been right all along.
+
+**Root cause.** The recorded observation was a **set of before/after positions with no object
+identities attached** — `left: (1,29) (5,29) … now occupy: (2,29) (5,30)`. A set tells you which
+tiles changed occupancy; it cannot tell you *which object went where*. Two completely different
+mechanics produce that same set, and I matched objects to destinations by assumption. My A/B then
+"confirmed" it, because I fitted both candidate rules to the same identity-free data — so the test
+could only ever return the story I had already brought to it.
+
+**The fix that worked.** Re-measure with identity kept: `probe_gym_simulate.py` keys the comparison
+on `local_id`, so each object's own before/after is known. Fitting the same two candidate rules to
+that data is instantly decisive — **rigid rotation 6/6, ordered slide 2/6** — and the decomp then
+confirmed it (`MoveRotatingTileObjects` does `objectEvents[i].x += x` with no collision check of any
+kind). The validation gate caught this on its first run, before a single route was planned on it.
+
+**Prevention rule.** *A set of positions cannot establish a movement rule. Any measurement meant to
+settle "what moved where" must carry object identity — otherwise it will confirm whichever
+hypothesis you arrived with, including a brand-new wrong one.*
+
+---
+
+## 2026-08-12 — "the avatar refuses to walk" cost four runs; the script stack named the cause in one line
+
+**Symptom.** After stepping on a gym floor switch, the bot could not step off it. I chased this
+through four emulator runs and three different theories: the settle loop returning mid-animation,
+then the codebase's own `player_avatar_is_standing_still()` being an insufficient readiness gate,
+then single-frame `press_button` being swallowed (I even re-tested with `hold_button` for 45
+frames). Each fix was reasonable, each was aimed at the input path, and none of them was the bug.
+
+**Root cause.** Nothing was wrong with the input path or the geometry. Rotating the pad had moved
+**trainer Maura from (4,29) to (4,30)** — directly beside the player standing on the switch — and
+turned her to face them. `EventScript_ShowTrainerIntroMsg` was running and field controls were
+locked. The gym was working exactly as designed: **solving the puzzle aims the trainers at you.**
+
+**The fix that worked.** Printing `get_global_script_context().stack` at the moment of failure. One
+line of output — `['EventScript_ShowTrainerIntroMsg']` — converted a suspected geometry/timing bug
+into a documented game mechanic that the executor must handle. All three earlier theories were
+about *why the game was not listening*; none asked *what the game was doing instead*.
+
+**Prevention rule.** *When the avatar will not move, read the script stack BEFORE theorising about
+timing or input. "Cannot walk" has many causes that are indistinguishable from outside the game and
+exactly one that names itself.*

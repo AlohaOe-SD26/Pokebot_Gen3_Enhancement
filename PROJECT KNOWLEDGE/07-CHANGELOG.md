@@ -11723,3 +11723,49 @@ rather than fixed (shared subsystem):
   write-up toward a wrong "different components" story.
 
 **§Ch18 status:** leg 1 shipped and driven; the puzzle is understood; the executor is not built.
+
+## 2026-08-12 — §Ch18 groundwork: the Mossdeep Gym puzzle is now SIMULATABLE and the model is validated
+
+**Added `sandbox-pokebot/modules/story/mossdeep_gym_puzzle.py`** — a simulator for the rotating-tile
+statue puzzle, so a route can be planned offline instead of pressed out on the emulator. It reads the
+arrow field, the nine floor switches, the 36 object templates and the collision layer straight from
+ROM, and exposes `press(state, colour)` plus object-aware walkability. Nothing is wired into a
+chapter yet; it is a pure model with no side effects.
+
+**Added `tools/story-dev/probe_gym_arrows.py`** — dumps the gym's raw metatile field and derives the
+arrow encoding from the data rather than assuming it. The metatile id is computed inside `map.py`
+(line 779) but never returned, so the probe re-reads the two bytes itself rather than widening a
+shared module for one puzzle.
+
+**Added `tools/story-dev/probe_gym_simulate.py`** — the validation gate. Walks to a switch over the
+SIMULATED map, presses it for real, and requires the simulator to have predicted every loaded
+object's new tile, keyed on `local_id`. **Result: PASS** — 11/11 objects on the live press, plus a
+period-4 identity control on all five colours.
+
+### What the measurements established
+* **The encoding, derived not assumed:** arrows are metatiles `0x250..0x27F`; band =
+  `(mt-0x250)//8` → `0 Yellow 1 Blue 2 Green 3 Purple 4 Red`; code = `(mt-0x250)%8` →
+  `0 Right 1 Down 2 Left 3 Up`, with **codes 4/5 being that colour's floor SWITCH, not an arrow**.
+  The dir-4/5 tiles reproduce KI-58's independently-obtained nine-switch list exactly.
+* **The movement rule is a rigid simultaneous rotation with NO occupancy check** — confirmed live
+  (6/6 identity-keyed) and in the decomp (`objectEvents[i].x += x`, unconditional).
+* **Trainers rotate too.** Nine of the gym's trainers stand on arrow pads. Filtering to statues
+  would mispredict every pad holding one.
+* **Statues are `graphics_id == 224`** (exactly 21), *not* `trainer_type == "None"` — that filter
+  wrongly sweeps in Tate, Liza and the gym guide.
+* **Per-press object counts — Yellow 8, Blue 4, Green 3, Purple 10, Red 5 — independently reproduce
+  the decomp-derived pad occupancy table**, a cross-check the probe was not designed to make.
+* **‼ Solving the puzzle aims the trainers at you.** Pressing yellow at `(3,30)` slides Maura to
+  `(4,30)`, adjacent to the player, and turns her to face them; the trainer intro fires immediately.
+  Gym trainer battles are a *consequence of the mechanic*, not a derail.
+
+### Corrections to KI-58 (details in `05-KNOWN-ISSUES.md`)
+* "5 counters mod 4" is **unsafe as a state model** — not every pad holds three objects. The honest
+  state is the full tuple of object positions.
+* The gym has **8 collision components, not 6** — `(6,1)` and `(23,18)` are walled-in unreachable
+  pockets.
+* "The only links between islands are warp pads" is **false**: the `(21,6)` coord event is a
+  seventh, non-warp, one-way link, and it is **not gated on any flag**.
+* **Three** switches are unavoidable transit tiles, not two — `(23,21)` joins `(23,24)` and `(8,10)`.
+* **No configuration is unsolvable:** 114,929 reachable states, 0 from which the leaders or the exit
+  become unreachable.
