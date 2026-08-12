@@ -191,3 +191,111 @@ def build_puzzle_from_emulator() -> MossdeepGymPuzzle:
     ]
 
     return MossdeepGymPuzzle(objects=objects, arrows=arrows, switches=switches, collision=collision)
+
+
+#: The gym's one non-warp inter-island link. `(21,6)` carries `MB_MOSSDEEP_GYM_WARP` but has NO warp
+#: event; its coord_event runs `warpmossdeepgym MAP_MOSSDEEP_CITY_GYM, 7, 30`. It is not flag-gated,
+#: so it is live from the moment the player reaches the leaders' platform — which makes walking north
+#: from `(21,10)` a way to LOSE the platform. Modelled as a real edge rather than deleted, so the
+#: solver can see the cost instead of being surprised by it.
+COORD_WARPS: dict[tuple[int, int], tuple[int, int]] = {(21, 6): (7, 30)}
+
+#: Where the leaders can be spoken to. Tate and Liza stand on collision-1 tiles at (23,7)/(24,7), so
+#: a planner asked for THEIR tiles can only ever answer "no route".
+LEADER_APPROACH_TILES: frozenset[tuple[int, int]] = frozenset({(23, 8), (24, 8)})
+
+
+class RouteStep(NamedTuple):
+    """One tile the bot must step onto, and what stepping there does."""
+
+    tile: tuple[int, int]          #: the tile to walk onto
+    kind: str                      #: "walk" | "switch" | "warp"
+    landed: tuple[int, int]        #: where the player ends up (differs from `tile` only for warps)
+    colour: int | None = None      #: for "switch", which colour band it rotates
+
+
+def solve_route(
+    puzzle: MossdeepGymPuzzle,
+    start: tuple[int, int],
+    warps: dict[tuple[int, int], tuple[int, int]],
+    goals: frozenset[tuple[int, int]] = LEADER_APPROACH_TILES,
+    state: tuple[tuple[int, int], ...] | None = None,
+    max_states: int = 400_000,
+) -> list[RouteStep] | None:
+    """Breadth-first search for the shortest route to `goals`, in real steps.
+
+    ‼ THE SEARCH STATE MUST CARRY THE WORLD. A node is `(player tile, object positions)`, not just
+    the tile. This is the lesson `probe_gym_bruteforce.py` paid for: with a `(map, position)` key it
+    explored 35 tiles and concluded the gym has no route to its own leaders, because two genuinely
+    different worlds — statues here, statues there — collapsed into one node.
+
+    ‼ STEPPING IS NOT FREE. Three tile kinds behave differently and all three are forced, never
+    optional: a SWITCH rotates its colour the moment you step on it, a WARP moves you, and the
+    `(21,6)` coord event throws you back to the entrance hall. Modelling them as edges means the
+    search accounts for the two switches it cannot avoid crossing rather than planning around them.
+
+    BFS rather than A*: the state space is ~10^5, every edge costs one step, and an admissible
+    heuristic across warps is not obvious. Shortest-in-steps is exactly what BFS gives.
+
+    :returns: the steps to walk, or None if the goal is unreachable within `max_states`.
+    """
+    from collections import deque
+
+    if state is None:
+        state = puzzle.initial_state
+    origin = (start, state)
+    came_from: dict[tuple, tuple | None] = {origin: None}
+    queue = deque([origin])
+
+    while queue and len(came_from) < max_states:
+        tile, objects = queue.popleft()
+        for dx, dy in DIRECTION_DELTAS.values():
+            neighbour = (tile[0] + dx, tile[1] + dy)
+            if not puzzle.is_walkable(neighbour, objects):
+                continue
+
+            next_objects, kind, colour = objects, "walk", None
+            if neighbour in puzzle.switches:
+                colour = puzzle.switches[neighbour]
+                next_objects = puzzle.press(objects, colour)
+                kind = "switch"
+
+            landed = warps.get(neighbour) or COORD_WARPS.get(neighbour) or neighbour
+            if landed != neighbour:
+                kind = "warp"
+
+            node = (landed, next_objects)
+            if node in came_from:
+                continue
+            came_from[node] = (tile, objects, neighbour, kind, colour, landed)
+            if landed in goals:
+                route: list[RouteStep] = []
+                cursor = node
+                while came_from[cursor] is not None:
+                    previous_tile, previous_objects, stepped, step_kind, step_colour, end = came_from[cursor]
+                    route.append(RouteStep(stepped, step_kind, end, step_colour))
+                    cursor = (previous_tile, previous_objects)
+                return list(reversed(route))
+            queue.append(node)
+    return None
+
+
+def read_internal_warps() -> dict[tuple[int, int], tuple[int, int]]:
+    """Gym-internal warp pads: the tile you step on -> the tile you arrive at.
+
+    Only same-map warps are returned. The two door tiles `(6,35)/(7,35)` lead OUT of the gym, and
+    leaving RESETS the whole puzzle (`LoadObjEventTemplatesFromHeader` re-copies every template from
+    ROM), so they are never a move the solver may make."""
+    from modules.map import get_map_data
+    from modules.map_data import MapRSE
+
+    gym = MapRSE.MOSSDEEP_CITY_GYM
+    warps = get_map_data(gym, (0, 0)).warps
+    internal: dict[tuple[int, int], tuple[int, int]] = {}
+    for warp in warps:
+        if (warp.destination_map_group, warp.destination_map_number) != gym.value:
+            continue
+        target = warp.destination_warp_id
+        if 0 <= target < len(warps):
+            internal[warp.local_coordinates] = warps[target].local_coordinates
+    return internal
