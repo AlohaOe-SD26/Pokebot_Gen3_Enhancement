@@ -2692,6 +2692,32 @@ class SlateportTheftMode(BotMode):
             log(f"[ch16] ‼ ERA WARNING - expected 1, got {start_state}. The coord triggers are "
                 f"inert unless this is 1; the chapter should refuse.")
 
+        # ‼ CH15's HANDOVER, PERFORMED EXPLICITLY - NOT part of what this driver measures.
+        # `post_maxie.ss1` stands on MAGMA_HIDEOUT_4F, but §Ch16's leg 1 is
+        # `_navigate_riding_out(SLATEPORT_CITY, ...)` from wherever it is, and NO walk-out of the
+        # hideout exists (KI-56: 18 of 20 warp-graph nodes reachable, the exit is not among
+        # them). In production Segment 15 now ends OUTSIDE, so Ch16 never starts underground;
+        # from this anchor the driver has to reproduce that hand-over itself, or leg 1 fails for
+        # a Ch15 reason and the failure gets read as a Ch16 routing bug - which is exactly what
+        # happened on the first §Ch16 run.
+        # ‼ Ch16 itself is deliberately NOT taught about the Magma Hideout: leaving a dungeon is
+        # the previous chapter's job, and a chapter that cleans up after its predecessor hides
+        # the predecessor's bugs.
+        from modules.story.early_game import _inside_magma_hideout, leave_magma_hideout
+
+        if _inside_magma_hideout():
+            log("[ch16] PRE-STEP: anchor is inside the Magma Hideout - running Ch15's exit "
+                "(`leave_magma_hideout`) first. This is SETUP, not part of the Ch16 result.")
+            try:
+                yield from leave_magma_hideout()
+            except Exception as error:  # noqa: BLE001 - a setup failure must be labelled as one
+                log(f"[ch16] ABORT - the Ch15 EXIT failed, so Ch16 never started: "
+                    f"{type(error).__name__}: {str(error)[:500]}")
+                context.set_manual_mode()
+                return
+            mgn, tile = here()
+            log(f"[ch16] PRE-STEP done - now at {map_name(mgn)}{tile}")
+
         error_text = ""
         try:
             yield from do_slateport_harbor_theft()
