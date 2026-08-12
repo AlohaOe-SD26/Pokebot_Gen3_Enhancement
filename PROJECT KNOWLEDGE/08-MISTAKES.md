@@ -5153,3 +5153,25 @@ the stranded version would fail it. `probe_ch19_hazards.py` keeps the check as a
 the bot is somewhere the NEXT chapter can start from — and the cheapest way to assert that is a real
 path query to where it must go next.* And: *a tile called a "trap" in one direction is often the
 only exit in the other; re-read hazard notes from the new chapter's point of view.*
+
+---
+
+## 2026-08-12 — I corrupted three doc edits by putting backticks inside a double-quoted shell string
+
+**Symptom.** Three separate documentation edits landed with words silently missing:
+`groundwork + measured hazards in  / ;` — and, earlier, a punch-list entry that read
+`**SOLVER + EXECUTOR BUILT AND DRIVEN:**  gives , the 117-step route...`.
+
+**Root cause.** I wrote the replacement text inside a **double-quoted** shell string passed to
+`py -3.12 -c "..."`. Markdown is full of backticks, and inside double quotes bash performs COMMAND
+SUBSTITUTION on them — so `` `modules/story/space_center.py` `` was executed as a command, produced
+`space_center.py: command not found` on stderr, and substituted **empty string** into the document.
+The script then reported "punch list updated" and exited 0. The damage is silent by construction:
+the file is written successfully, just with holes where the citations were.
+
+**The fix that worked.** Use the **Edit tool** for any text containing backticks, or a quoted
+heredoc (`<<'EOF'`), which does not substitute. Never a double-quoted shell string.
+
+**Prevention rule.** *Never pass Markdown through a double-quoted shell string — backticks become
+command substitution and silently delete your citations. Use the Edit tool or a quoted heredoc, and
+if you must use the shell, re-read the line afterwards rather than trusting the exit code.*

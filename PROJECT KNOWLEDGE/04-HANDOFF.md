@@ -194,12 +194,50 @@ there, but that is static.
    `RuntimeError` where the chapter catches `BotModeError`, so the re-enter-and-re-solve recovery
    **could never have fired**. Both fixed. *A green happy-path run says nothing about error paths.*
 
-⏭ **NEXT: §Ch19, the MOSSDEEP SPACE CENTER.** Beating the leaders has already done its setup —
-   `Common_EventScript_SetGymTrainers` case 7 force-sets all 12 gym trainer flags, and the script
-   sets `VAR_MOSSDEEP_CITY_STATE=1`, `VAR_MOSSDEEP_SPACE_CENTER_STATE=1` and CLEARS
-   `FLAG_HIDE_MOSSDEEP_CITY_TEAM_MAGMA`, `..._SPACE_CENTER_1F_TEAM_MAGMA`, `..._2F_TEAM_MAGMA`,
-   `..._2F_STEVEN`. Start from `saves/post_mossdeep_gym.ss1`. Then §Ch20 (Steven gives **HM08
-   Dive** — the real gate) and §Ch21 (Seafloor Cavern).
+   ‼ **AND §Ch18 WAS STRANDING THE RUN** — found later the same day, by the adversarial pass for
+   §Ch19, *after* §Ch18 had been driven twice, committed and reported complete. It ended on
+   `(23,8)`, part of an **eleven-tile island**; `calculate_path((23,8) → (7,35))` raises, and the
+   only exit is the `(21,6)` **coord event** (invisible to any warp-graph solver). Fixed with
+   `leave_the_gym()` — driven, now ends in `MOSSDEEP_CITY (38,10)` — and **the acceptance test now
+   requires being out of the gym**, so the stranded version would fail. *This is KI-56's rule
+   violated a second time in the session in which I re-read it.*
+
+## ⏭ §Ch19 — the MOSSDEEP SPACE CENTER. GROUNDWORK DONE, NOT BUILT, NOT WIRED.
+
+Start from **`saves/post_mossdeep_gym.ss1`** (re-captured: now standing in `MOSSDEEP_CITY (38,10)`,
+7 badges, ‼ **66% HP with one Pokémon fainted** — heal FIRST).
+`modules/story/space_center.py` holds the route and the first three legs and says plainly that it is
+groundwork. `probe_space_center_recon.py` is the measured area atlas.
+
+**Hazards were PREDICTED by an adversarial pass and then TESTED before building — 3/3 held**
+(`probe_ch19_hazards.py`, keep it green):
+* **The city is cut in two.** The five Team Magma NPCs the gym victory spawns occupy the ONLY land
+  bridge (x=44, y=23-26). A single route gym → Space Center cannot exist. **Route to the cutscene
+  trigger line first** — `(42,21) (41,22) (41,23) (41,24) (40,25) (40,26)` — ride the forced scene,
+  **observe `VAR_MOSSDEEP_CITY_STATE == 2`**, then plan leg 2.
+* **The 2F prompt must be answered with A.** It is a `MSGBOX_YESNO`; B answers NO, which warps you
+  back to 1F **with the var unchanged** — an infinite re-entry livelock, healthy avatar, no error.
+* **Completion is `VAR_MOSSDEEP_SPACE_CENTER_STATE == 3`.** ‼ NOT `FLAG_DEFEATED_MAGMA_SPACE_CENTER`,
+  which the Rayquaza PokéNav call **clears again** ~250 steps later — a chapter graded on it would
+  pass, then silently un-pass.
+* **Steven must be talked to TWICE**, and leaving 2F resets that (his first talk is dialogue only —
+  a bot waiting for a battle there will hang). The second talk opens a **party-selection menu**
+  (`ChooseHalfPartyForBattle`, 1-3 mons) that **nothing in this codebase has ever driven**; blind
+  A-mashing volunteers slots 0-2, i.e. Zigzagoon L15, into a fight with Maxie L42-44. **This is the
+  one genuine unknown — instrument it on the first run rather than guessing.**
+* **The multi battle puts Steven's Metang/Skarmory/Aggron into `gPlayerParty[3..5]`**, and our
+  faint-replacer picks by party index — it can try to send out the ALLY's Pokémon. Losing calls
+  `SetCB2WhiteOut` directly.
+
+⛔ **§Ch21 (Seafloor Cavern) IS BLOCKED — KI-63.** **No party member can learn Dive and the party is
+full** (measured: 0 learners, 6/6). Receiving HM08 is fine (a script gift needs no learner), so
+§Ch19/§Ch20 are unaffected — but **`#24-pc` is a PREREQUISITE of §Ch21**, not a later nicety. The
+natural single swap is a **Wailmer or Tentacool** (both learn Surf *and* Dive; Zigzagoon L15 is our
+only Surf carrier).
+
+⚠ **KI-59 is armed in the Seafloor Cavern** — 115 `Impassable *` tiles across Rooms 1-9, which
+`map_path` over-blocks. That is the reproduce-map KI-59 asked for: fix it with an A/B on
+`SEAFLOOR_CAVERN_ROOM1` **before** the cavern chapter exists.
 
    ✅ **`sandbox-pokebot/modules/story/mossdeep_gym_puzzle.py` simulates the puzzle offline**, and
    `probe_gym_simulate.py` **PASSES**: 11/11 loaded objects predicted on a live press, identity-keyed
