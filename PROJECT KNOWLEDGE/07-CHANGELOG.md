@@ -11769,3 +11769,41 @@ period-4 identity control on all five colours.
 * **Three** switches are unavoidable transit tiles, not two — `(23,21)` joins `(23,24)` and `(8,10)`.
 * **No configuration is unsolvable:** 114,929 reachable states, 0 from which the leaders or the exit
   become unreachable.
+
+## 2026-08-12 (later) — §Ch18 leg 2: the Mossdeep Gym puzzle is SOLVED AND DRIVEN
+
+**Added `sandbox-pokebot/modules/story/mossdeep_gym.py`** (the executor) and the `mossdeepgym`
+driver in `tools/story-dev/story_harness.py`.
+
+```
+[ch18b] RESULT at_leaders=True map=MOSSDEEP_CITY_GYM at=(23, 8) controllable=True whiteouts=0
+[ch18b] ACCEPTANCE: PASS
+```
+The 117-step route was walked **in a single plan with zero re-plans**, and the run captured a new
+anchor **`saves/at_mossdeep_leaders.ss1`**.
+
+**Design: it re-solves rather than replays.** Solving once and walking 117 steps blind is the
+obvious design and the wrong one, because the gym interrupts you. The executor walks until something
+unexpected happens and then re-solves from where it actually is; a BFS costs a fraction of a second.
+
+### The two bugs the first driven run exposed — both the same shape
+1. **A warp completes a STEP LATE.** Stepping onto a pad, the avatar reads as standing still and
+   script-free *before* the warp takes hold, so every warp desynchronised the plan by one step
+   (`expected (20,24) after stepping on (1,33), got (1,33)` — then it arrived during the next step).
+   Fixed by waiting for the destination TILE, not for the avatar to look idle.
+2. **The simulated statue state was updated from the PLAN, not from reality.** When a pending warp
+   carried the bot off mid-step, a purple press was booked for a switch it never stood on. Fixed by
+   reading where the avatar actually LANDED and pressing only if that tile is a switch — which is
+   also correct when an interruption drops the bot somewhere unplanned.
+
+Both are the same lesson already logged twice this session: **a readiness check tells you the game is
+ready now, never that nothing is about to start.** The drift guard caught bug 2 exactly as designed,
+41 steps from the goal, and named both offending object ids.
+
+### ‼ Honest scope of the evidence
+* **Two gym trainer battles fired during the PASS** (frames 49670 and 50040) and were won by the
+  bot's standard `TrainerApproachListener` / `BattleListener` machinery.
+* **The executor's own `_ride_out_interruption` branch logged ZERO times** and is therefore
+  **unexercised**. It is a safety net that has never been needed, not a proven path.
+* This leg is graded on *reaching* the leaders, deliberately **not** on beating them, so that a
+  navigation failure stays distinguishable from a battle failure. **Tate & Liza are not yet fought.**

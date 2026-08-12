@@ -5027,3 +5027,27 @@ about *why the game was not listening*; none asked *what the game was doing inst
 **Prevention rule.** *When the avatar will not move, read the script stack BEFORE theorising about
 timing or input. "Cannot walk" has many causes that are indistinguishable from outside the game and
 exactly one that names itself.*
+
+---
+
+## 2026-08-12 — I updated the puzzle state from the PLAN instead of from what actually happened
+
+**Symptom.** The gym executor's first driven run walked through five warps and then aborted 41 steps
+from the goal: `the simulated statue map drifted from the game after stepping on (13,33)
+(id 26: game (22,26), simulated (23,26); id 36: game (23,26), simulated (23,25))`.
+
+**Root cause.** Two defects with one shape. A warp completes a *step late* — landing on a pad, the
+avatar reads as standing still with no script active for a moment before the warp takes hold — so
+the executor believed it was still on the pad and moved on. The next planned step happened to be
+onto a purple switch; the warp fired during it and carried the bot to `(9,18)` instead, and the code
+booked the purple press anyway, because it updated state from `step.kind == "switch"` — what the
+plan *intended* — rather than from where the avatar actually ended up.
+
+**The fix that worked.** (1) Confirm a warp by waiting for the DESTINATION TILE, never by waiting
+for the avatar to look idle. (2) Update the puzzle state from the observed landing tile: press only
+if the tile the bot actually stands on is a switch. Reality-driven state is also automatically
+correct when a battle drops the bot somewhere unplanned. Re-driven: **PASS in a single plan, zero
+re-plans.**
+
+**Prevention rule.** *Never advance a world-model from the plan; advance it from the observation.
+A plan says what should have happened, and the whole reason to re-plan is that sometimes it didn't.*

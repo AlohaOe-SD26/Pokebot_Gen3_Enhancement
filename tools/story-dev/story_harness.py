@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "normancounter"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "normancounter"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -2640,6 +2640,108 @@ class MossdeepTravelMode(BotMode):
         return
 
 
+class MossdeepGymMode(BotMode):
+    """§Ch18 leg 2 — solve the rotating-tile statue puzzle and reach Tate & Liza.
+
+        PYTHONUTF8=1 py -3.12 story_harness.py in_mossdeep_gym.ss1 --driver mossdeepgym             --frames 400000 --profile ch18b
+
+    ANCHOR: `saves/in_mossdeep_gym.ss1`, captured by `--driver mossdeeptravel` on a PASS. It stands
+    on `MOSSDEEP_CITY_GYM` at the entrance, with the puzzle provably in its START configuration
+    (entering the gym reloads every object template from ROM).
+
+    WHAT IT DRIVES: `modules.story.mossdeep_gym.walk_to_the_leaders()`, which solves the puzzle on
+    the model validated by `probe_gym_simulate.py` (11/11 objects predicted on a live press) and
+    re-solves after every interruption.
+
+    ACCEPTANCE: standing on one of the leader-approach tiles `(23,8)/(24,8)`, controllable. That is
+    deliberately NOT "beat the gym" — this leg is the puzzle, and grading it separately keeps a
+    navigation failure distinguishable from a battle failure.
+
+    ‼ WHAT IS MOST LIKELY TO FAIL, said in advance. **Gym trainer battles are expected**, not a
+    derail: nine trainers stand on the rotating pads and every rotation re-aims them. The run
+    should show several `interrupted ... riding it out` lines followed by a fresh plan. What would
+    be a genuine fault is a `drifted from the game` abort, which means the simulated statue map and
+    the real one disagree — the model, not the gym, would then be wrong.
+
+    Emits: [ch18b] RESULT at_leaders=<bool> map=<enum> at=<tile> controllable=<bool> whiteouts=<n>
+    """
+
+    _whiteouts = 0
+
+    @staticmethod
+    def name():
+        return "MossdeepGym"
+
+    def on_battle_started(self, encounter):
+        from modules.battle_strategies import DefaultBattleStrategy
+
+        if encounter is None:
+            from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+            return StoryItemBattleStrategy()
+        return DefaultBattleStrategy()
+
+    def on_whiteout(self) -> bool:
+        MossdeepGymMode._whiteouts += 1
+        log(f"[ch18b] WHITEOUT #{MossdeepGymMode._whiteouts} - recovering, as StoryMode does")
+        return True
+
+    def run(self):
+        import os
+
+        from modules.map_data import MapRSE
+        from modules.player import get_player_avatar, player_avatar_is_controllable
+        from modules.story.early_game import wait_until_truly_controllable
+        from modules.story.mossdeep_gym import LEADER_APPROACH_TILES, walk_to_the_leaders
+
+        yield from wait_until_truly_controllable()
+
+        def here():
+            avatar = get_player_avatar()
+            return tuple(avatar.map_group_and_number), tuple(avatar.local_coordinates)
+
+        def map_name(mgn):
+            try:
+                return MapRSE(mgn).name
+            except Exception as error:  # noqa: BLE001 - report the raw tuple rather than crash
+                return f"?{mgn}({type(error).__name__})"
+
+        def at_leaders() -> bool:
+            mgn, tile = here()
+            return mgn == MapRSE.MOSSDEEP_CITY_GYM.value and tile in LEADER_APPROACH_TILES
+
+        mgn, tile = here()
+        log(f"[ch18b] START {map_name(mgn)}{tile}")
+
+        error_text = ""
+        try:
+            yield from walk_to_the_leaders()
+        except Exception as error:  # noqa: BLE001 - the failure IS the measurement
+            error_text = f"{type(error).__name__}: {str(error)[:900]}"
+            log(f"[ch18b] FAILED: {error_text}")
+
+        mgn, tile = here()
+        try:
+            ctrl = player_avatar_is_controllable()
+        except Exception as error:  # noqa: BLE001
+            ctrl = f"<unreadable: {type(error).__name__}>"
+        ok = at_leaders() and ctrl is True
+        log(f"[ch18b] RESULT at_leaders={at_leaders()} map={map_name(mgn)} at={tile} "
+            f"controllable={ctrl} whiteouts={MossdeepGymMode._whiteouts} "
+            f"frames={context.emulator.get_frame_count()}"
+            + (f" error=({error_text})" if error_text else ""))
+        log(f"[ch18b] ACCEPTANCE: {'PASS' if ok else 'FAIL'} "
+            f"(needs to be standing on {sorted(LEADER_APPROACH_TILES)}, controllable)")
+
+        if ok and os.environ.get("CH18B_CAPTURE", "1") != "0":
+            out = SAVES / "at_mossdeep_leaders.ss1"
+            out.write_bytes(context.emulator.get_save_state())
+            log(f"[ch18b] captured anchor -> {out}")
+
+        context.set_manual_mode()
+        return
+
+
 class AquaHideoutMode(BotMode):
     """§Ch17 - drive `do_aqua_hideout_chapter()` from the post-Ch16 anchor.
 
@@ -4511,6 +4613,8 @@ for step in range(args.frames):
             context.bot_mode_instance = AquaHideoutMode()
         elif args.driver == "mossdeeptravel":
             context.bot_mode_instance = MossdeepTravelMode()
+        elif args.driver == "mossdeepgym":
+            context.bot_mode_instance = MossdeepGymMode()
         elif args.driver == "slateporttheft":
             context.bot_mode_instance = SlateportTheftMode()
         elif args.driver == "teachfull":
