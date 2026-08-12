@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "normancounter"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "normancounter"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -2513,6 +2513,122 @@ class MagmaTravelMode(BotMode):
         return
 
 
+class AquaHideoutMode(BotMode):
+    """§Ch17 - drive `do_aqua_hideout_chapter()` from the post-Ch16 anchor.
+
+        PYTHONUTF8=1 py -3.12 story_harness.py post_harbor.ss1 --driver aquahideout \
+            --frames 400000 --profile ch17a
+
+    ANCHOR: `saves/post_harbor.ss1`, captured by `--driver slateporttheft` on a PASS. It stands in
+    SLATEPORT_CITY_HARBOR with `SLATEPORT_HARBOR_STATE=2`, both
+    `HIDE_AQUA_HIDEOUT_1F_GRUNT_*_BLOCKING_ENTRANCE` set (the way in is open) and — ‼ deliberately
+    — a party at **100% HP**, which is why the chapter is not starting the way §Ch16 did.
+
+    ACCEPTANCE IS BOTH HALVES: `FLAG_TEAM_AQUA_ESCAPED_IN_SUBMARINE` **AND** controllable. The
+    flag is set mid-script by `AquaHideout_B2F_EventScript_SubmarineEscape`, so grading on it
+    alone would call a `lockall`ed avatar a success — the `EventScript_ActivateStrength` trap.
+
+    ‼ THE THING MOST LIKELY TO FAIL, stated in advance so the result is read correctly: B1F is a
+    **warp-panel maze** (21 of its 25 warps return to B1F) and the route was solved STATICALLY,
+    blind to the six Aqua grunts standing in its corridors. If a hop lands somewhere unexpected,
+    `_aqua_hop` says so with both the expected and the actual tile — that is the designed
+    outcome, not a crash.
+
+    Emits: [ch17] RESULT escaped=<bool> controllable=<bool> map=<enum> at=<tile> whiteouts=<n>
+    """
+
+    _whiteouts = 0
+
+    @staticmethod
+    def name():
+        return "AquaHideout"
+
+    def on_battle_started(self, encounter):
+        from modules.battle_strategies import DefaultBattleStrategy
+
+        if encounter is None:
+            from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+            return StoryItemBattleStrategy()
+        return DefaultBattleStrategy()
+
+    def on_whiteout(self) -> bool:
+        AquaHideoutMode._whiteouts += 1
+        log(f"[ch17] WHITEOUT #{AquaHideoutMode._whiteouts} - recovering, as StoryMode does")
+        return True
+
+    def run(self):
+        import os
+
+        from modules.map_data import MapRSE
+        from modules.memory import _event_flags, get_event_flag
+        from modules.player import get_player_avatar, player_avatar_is_controllable
+        from modules.story.early_game import do_aqua_hideout_chapter, wait_until_truly_controllable
+
+        yield from wait_until_truly_controllable()
+
+        def here():
+            avatar = get_player_avatar()
+            return tuple(avatar.map_group_and_number), tuple(avatar.local_coordinates)
+
+        # ‼ every driver in this file defines its own `map_name`; omitting it crashed MagmaExit
+        # at frame 30 and the log then looked exactly like a hung bot.
+        def map_name(mgn):
+            try:
+                return MapRSE(mgn).name
+            except Exception as error:  # noqa: BLE001 - report the raw tuple rather than crash
+                return f"?{mgn}({type(error).__name__})"
+
+        DONE = "TEAM_AQUA_ESCAPED_IN_SUBMARINE"
+        GATES = ("HIDE_AQUA_HIDEOUT_1F_GRUNT_1_BLOCKING_ENTRANCE",
+                 "HIDE_AQUA_HIDEOUT_1F_GRUNT_2_BLOCKING_ENTRANCE")
+
+        # ‼ NAME CONTROL FIRST — an unknown flag reads False without raising, so every line
+        # below would be a confident lie about the era.
+        unknown = [n for n in (DONE,) + GATES if n not in _event_flags]
+        if unknown:
+            log(f"[ch17] ABORT - unknown flag name(s) {unknown}; they read False SILENTLY.")
+            context.set_manual_mode()
+            return
+
+        mgn, tile = here()
+        log(f"[ch17] START {map_name(mgn)}{tile} {DONE}={get_event_flag(DONE)} "
+            f"entrance_open={[get_event_flag(g) for g in GATES]}")
+        if not all(get_event_flag(g) for g in GATES):
+            log("[ch17] ‼ ERA WARNING - the hideout entrance is still blocked; Ch16 has not run. "
+                "The chapter should refuse.")
+
+        error_text = ""
+        try:
+            yield from do_aqua_hideout_chapter()
+            log("[ch17] do_aqua_hideout_chapter returned without raising")
+        except Exception as error:  # noqa: BLE001 - the failure IS the measurement
+            error_text = f"{type(error).__name__}: {str(error)[:900]}"
+            log(f"[ch17] FAILED: {error_text}")
+
+        mgn, tile = here()
+        escaped = get_event_flag(DONE)
+        try:
+            ctrl = player_avatar_is_controllable()
+        except Exception as error:  # noqa: BLE001
+            ctrl = f"<unreadable: {type(error).__name__}>"
+        log(f"[ch17] RESULT escaped={escaped} controllable={ctrl} map={map_name(mgn)} at={tile} "
+            f"whiteouts={AquaHideoutMode._whiteouts} frames={context.emulator.get_frame_count()}"
+            + (f" error=({error_text})" if error_text else ""))
+        log(f"[ch17] ACCEPTANCE: {'PASS' if (escaped and ctrl is True) else 'FAIL'} "
+            f"(needs {DONE} AND controllable==True)")
+
+        # Capture the post-Ch17 anchor on a PASS only, as `slateporttheft` does — it is the build
+        # anchor for the next beat and expensive to reproduce.
+        if escaped and ctrl is True and os.environ.get("CH17_CAPTURE", "1") != "0":
+            out = SAVES / "post_aqua.ss1"
+            out.write_bytes(context.emulator.get_save_state())
+            log(f"[ch17] captured anchor -> {out}")
+
+        context.set_manual_mode()
+        return
+
+
 class MagmaExitMode(BotMode):
     """KI-56 - drive `leave_magma_hideout()` from the post-Maxie anchor. THE EXIT LEG.
 
@@ -4248,6 +4364,8 @@ for step in range(args.frames):
             context.bot_mode_instance = MagmaHideoutMode()
         elif args.driver == "magmaexit":
             context.bot_mode_instance = MagmaExitMode()
+        elif args.driver == "aquahideout":
+            context.bot_mode_instance = AquaHideoutMode()
         elif args.driver == "slateporttheft":
             context.bot_mode_instance = SlateportTheftMode()
         elif args.driver == "teachfull":

@@ -11517,3 +11517,34 @@ two Electrode disguised as item balls at `(16,9)`/`(16,10)` (their hide flags ar
 
 Design + the two design decisions (graph-solved route; grade each hop on the TILE, not the map)
 recorded in `06-DECISIONS-LOG.md`.
+
+## 2026-08-11 (night) — ✅ §Ch17 BUILT: the Lilycove Aqua Hideout, driven PASS
+
+```
+[ch17] START  SLATEPORT_CITY_HARBOR(8, 13) TEAM_AQUA_ESCAPED_IN_SUBMARINE=False entrance_open=[True, True]
+[ch17] RESULT escaped=True controllable=True map=AQUA_HIDEOUT_B2F at=(24, 19) whiteouts=0
+[ch17] ACCEPTANCE: PASS (needs TEAM_AQUA_ESCAPED_IN_SUBMARINE AND controllable==True)
+[ch17] captured anchor -> saves/post_aqua.ss1
+```
+All **eight maze hops** executed in order, Matt beaten, **`whiteouts=0`** — the §Ch16 heal lesson
+applied at build time (the chapter heals at Lilycove before going in) rather than after a run.
+
+**Built** (`modules/story/early_game.py`): `do_aqua_hideout_chapter()`, `_aqua_hop()`, `_aqua_at()`,
+`AQUA_HIDEOUT_ROUTE` (the 18-hop graph-solved route), `AQUA_MATT_APPROACHES`. Driver
+`--driver aquahideout`, captures `saves/post_aqua.ss1` on a PASS only. **Segment 17** wired into
+Story mode with a `_guard`; the end-of-content banner now points at the Seafloor Cavern.
+
+**‼ The one thing that failed first time, and it is a general Gen 3 fact worth keeping:** the ROM
+warp table said `1F (22,1)` arrives at `B1F (29,1)`; the bot arrived at **`B1F (29,2)`**, one tile
+south, and the exact-match assertion failed with *"Could not enter the warp"* despite the warp
+having worked perfectly. **A warp table entry gives the coordinates of the destination WARP; for
+door-type warps the game then places the player on the tile in FRONT of it** (ladders/stairs land
+exactly on it). `_aqua_at` now allows one tile of slack — still unambiguous here, because B1F's
+panels are three or more tiles apart.
+
+**Design notes that survived contact:** grading each hop on **(map AND tile)** rather than Ch15's
+"did the map change?" was necessary — most hops are `B1F -> B1F` — and it is also the detector for
+a plotted walk crossing a panel. Neither the grunts nor the panels derailed a hop on this run.
+
+**Out of scope, deliberately:** the **MASTER BALL** at `B1F (15,9)` and the two Electrode disguised
+as item balls at `(16,9)`/`(16,10)`. Not required for Matt; a natural follow-up.

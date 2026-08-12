@@ -24,7 +24,7 @@ burden here is so heavy, and why negative results are treated as the most valuab
 |---|---|
 | branch / HEAD | `main`, **clean, 0 unpushed** |
 | box | **IDLE.** Batch `20260811-130454` finished 4:05 PM (VERDICT OK, 28 runs, 0 violations). |
-| story content | Littleroot → 6 badges → Mt. Pyre → Magma Hideout (and out) → **Slateport submarine theft**. **17 of 24 ladder beats.** |
+| story content | Littleroot → 6 badges → Mt. Pyre → Magma Hideout (and out) → Slateport submarine theft → **the Lilycove AQUA HIDEOUT**. **18 of 24 ladder beats.** |
 | ‼ is code frozen? | **No.** Nothing is running. |
 | upstream | checked 2026-08-11, `5dd898f8`, unchanged |
 | restore point | **`restore/2026-08-11-all-promoted`** (annotated, pushed, verified on the remote) |
@@ -143,17 +143,19 @@ run that walked all the way back down to `1F (25,34)`; the warp graph says 3F_3R
 there, but that is static.
 ## ⏭ NEXT ACTIONS, IN ORDER
 
-1. **‼ BUILD §Ch17 — the Lilycove AQUA HIDEOUT.** This is the next unbuilt beat and Ch16 has
-   just unblocked its door (the Aqua-escape scene clears the two grunts). The build anchor
-   already exists: **`saves/post_harbor.ss1`** (VOLATILE — copy it to a name nothing writes to
-   before measuring on it). Re-capture it any time with:
+1. **‼ BUILD §Ch18 — the SEAFLOOR CAVERN.** Team Aqua fled there in the submarine, and §Ch17 is
+   what sent them. The build anchor already exists: **`saves/post_aqua.ss1`** (VOLATILE — copy it
+   to a name nothing writes to before measuring on it), party 90% HP, captured on a Ch17 PASS.
+   Re-capture any time with:
    ```
    cd tools/story-dev
-   PYTHONUTF8=1 py -3.12 verify_fixtures.py --assert post_maxie.ss1=19399688e730 &&    PYTHONUTF8=1 COLUMNS=400 py -3.12 story_harness.py post_maxie.ss1        --driver slateporttheft --frames 40000 --profile ch16e
+   PYTHONUTF8=1 py -3.12 verify_fixtures.py --assert post_harbor.ss1=32adff78b86b &&    PYTHONUTF8=1 COLUMNS=400 py -3.12 story_harness.py post_harbor.ss1        --driver aquahideout --frames 400000 --profile ch17c
    ```
-   ‼ Before designing a route through that hideout, read the playbook's two NEW rows: **grep the
-   map's `scripts.inc` for a blocking NPC's `LOCALID_` first**, and **`calculate_path` does not
-   validate its source tile**. Both were paid for today.
+   ‼ Start with `probe_aqua_hideout_graph.py` as the TEMPLATE — the warp-graph instrument has now
+   solved two dungeons (Magma, Aqua) and the Seafloor Cavern is a third of the same kind. And
+   read the playbook rows paid for today: **grep `scripts.inc` for a blocking NPC's `LOCALID_`
+   first**, **`calculate_path` does not validate its source tile**, and **a warp table gives the
+   WARP's tile, not the landing tile**.
 
 2. ✅ **DONE — the Slateport-haul whiteout is FIXED** (`whiteouts=0`, PASS, and 5,457 frames
    faster). Cause: the anchor hands Ch16 a party at **8.8% HP with 5 of 6 fainted**, and the

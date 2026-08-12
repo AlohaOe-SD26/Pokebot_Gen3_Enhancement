@@ -4846,3 +4846,27 @@ end where Jagged Pass exits).
 **Prevention rule.** *A heal/resupply stop only counts if the party can REACH it in its current
 state — order them nearest-first, and treat an unchanged failure frame as proof the change came
 too late to matter.*
+
+---
+
+## 2026-08-11 — I asserted the warp table's coordinates as the LANDING tile, and every door failed
+
+**Symptom.** §Ch17's first driven run reported
+`Could not enter the warp at (22, 1) on AQUA_HIDEOUT_1F ... Last navigation error: None`, ending at
+`AQUA_HIDEOUT_B1F (29, 2)`. The message says the warp could not be entered. The warp had worked
+perfectly — the bot was standing on the other side of it.
+
+**Root cause.** §Ch17 grades each maze hop on the exact arrival tile (correct, and necessary: most
+hops are `B1F -> B1F`, so a map-level test cannot tell them apart). I took the expected tile
+straight from the ROM warp table — `B1F (29,1)` — but **a warp table entry gives the coordinates of
+the destination WARP, not where the player ends up.** For door-type warps Gen 3 places the player
+on the tile in FRONT of the door; only ladders and stairs land exactly on it. So the assertion was
+off by one on every door, and `_enter_warp_by_navigation` dutifully retried a warp that had already
+succeeded until it ran out of tries.
+
+**The fix that worked.** `_aqua_at()` allows one tile of slack around the predicted arrival. Still
+unambiguous for this maze because B1F's panels are three or more tiles apart — the tolerance was
+checked against the geometry rather than just assumed safe.
+
+**Prevention rule.** *A warp table gives the destination WARP's tile, not the landing tile — allow
+one tile of slack when asserting an arrival, and check that slack cannot merge two nearby warps.*

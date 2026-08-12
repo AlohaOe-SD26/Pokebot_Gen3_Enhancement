@@ -8361,3 +8361,272 @@ def do_slateport_harbor_theft() -> Generator:
             f"fires on entry, not on standing)."
         )
     _ch14_say("Story: SUBMARINE STOLEN - Slateport Harbor complete. Aqua's hideout is open.")
+
+
+# ---------------------------------------------------------------------------
+# Chapter 17 - the LILYCOVE AQUA HIDEOUT (§Ch17).
+#
+# ‼ EVERY constant here is decomp-verified and GRAPH-SOLVED, not eyeballed. Re-derive with:
+#     cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_aqua_hideout_graph.py
+#
+# THE BEAT: `AquaHideout_B2F_EventScript_Matt` -> `TRAINER_MATT` -> on defeat
+# `AquaHideout_B2F_EventScript_SubmarineEscape` sets **`FLAG_TEAM_AQUA_ESCAPED_IN_SUBMARINE`**
+# (and `FLAG_HIDE_LILYCOVE_CITY_AQUA_GRUNTS`). That flag is the whole acceptance.
+#
+# ‼‼ WHY THIS CHAPTER CANNOT USE A PLANNER, AND WHY IT LOOKS NOTHING LIKE THE OTHERS.
+# B1F is a **WARP-PANEL MAZE**: **21 of its 25 warps lead back to B1F itself** (including a 3x4
+# panel grid at x=42/45/48, y=3..17), and B2F carries six more same-map panels.
+# `calculate_path` "is not able to use warps" (its own docstring), so no planner can cross these
+# floors - the same shape that made KI-56 look like a strand. The route below was solved by BFS
+# over the ROM warp table and bounces **B1F -> B2F -> B1F -> B2F**; that is not the search being
+# silly, it is how the dungeon is built.
+# ---------------------------------------------------------------------------
+
+#: `LILYCOVE_CITY (70,5)` -> `AQUA_HIDEOUT_1F` (arrive `(13,27)`). A WARP TILE: stepping on it
+#: fires it, so it is an `_enter_warp_by_navigation` target, never a `navigate_to` destination.
+AQUA_HIDEOUT_DOOR = (70, 5)
+
+#: ‼ THE ERA GATE. Ch16's harbor scene **SETS** these two - a HIDE flag SET means the grunt is
+#: gone. Checked, never assumed: an unknown flag name reads False silently, which would look
+#: exactly like "still blocked".
+AQUA_ENTRANCE_FLAGS = (
+    "HIDE_AQUA_HIDEOUT_1F_GRUNT_1_BLOCKING_ENTRANCE",
+    "HIDE_AQUA_HIDEOUT_1F_GRUNT_2_BLOCKING_ENTRANCE",
+)
+
+#: The maze, as `(map we stand on, warp tile to step on, expected map, expected arrival tile)`.
+#: Solved by `probe_aqua_hideout_graph.py`; every destination is the ROM warp table's own answer.
+AQUA_HIDEOUT_ROUTE = (
+    (MapRSE.AQUA_HIDEOUT_1F, (22, 1), MapRSE.AQUA_HIDEOUT_B1F, (29, 1)),
+    (MapRSE.AQUA_HIDEOUT_B1F, (27, 4), MapRSE.AQUA_HIDEOUT_B1F, (3, 15)),
+    (MapRSE.AQUA_HIDEOUT_B1F, (32, 19), MapRSE.AQUA_HIDEOUT_B1F, (20, 4)),
+    (MapRSE.AQUA_HIDEOUT_B1F, (18, 1), MapRSE.AQUA_HIDEOUT_B2F, (18, 1)),
+    (MapRSE.AQUA_HIDEOUT_B2F, (31, 8), MapRSE.AQUA_HIDEOUT_B2F, (5, 8)),
+    (MapRSE.AQUA_HIDEOUT_B2F, (3, 3), MapRSE.AQUA_HIDEOUT_B1F, (3, 3)),
+    (MapRSE.AQUA_HIDEOUT_B1F, (12, 1), MapRSE.AQUA_HIDEOUT_B2F, (12, 1)),
+    (MapRSE.AQUA_HIDEOUT_B2F, (8, 8), MapRSE.AQUA_HIDEOUT_B2F, (31, 17)),
+)
+
+#: Matt, and every neighbour with the direction to face from it. ‼ The graph could reach ONLY
+#: `(24,19)` - but they are ALL tried at runtime, in that order, because §Ch15 was bitten by
+#: exactly this: a static probe named one reachable neighbour of Maxie and the LIVE arrival
+#: measured the opposite. Ask the planner at the moment it matters and take what it gives.
+AQUA_MATT_TILE = (23, 19)
+AQUA_MATT_APPROACHES = (
+    ((24, 19), "Left"),
+    ((22, 19), "Right"),
+    ((23, 18), "Down"),
+    ((23, 20), "Up"),
+)
+
+_AQUA_HIDEOUT_MAPS = (
+    MapRSE.AQUA_HIDEOUT_1F.value,
+    MapRSE.AQUA_HIDEOUT_B1F.value,
+    MapRSE.AQUA_HIDEOUT_B2F.value,
+)
+
+
+def _aqua_escaped() -> bool:
+    """`FLAG_TEAM_AQUA_ESCAPED_IN_SUBMARINE` - §Ch17's completion condition."""
+    from modules.memory import get_event_flag
+
+    return get_event_flag("TEAM_AQUA_ESCAPED_IN_SUBMARINE")
+
+
+def _inside_aqua_hideout() -> bool:
+    return _map_group_number() in _AQUA_HIDEOUT_MAPS
+
+
+def _aqua_at(dest_map, dest_tile) -> bool:
+    """Are we standing at (or beside) `dest_tile` on `dest_map`?
+
+    ‼‼ THE TOLERANCE IS ONE TILE, AND IT IS NOT SLOPPINESS - IT IS WHAT THE GAME DOES. MEASURED
+    on the first driven run: the ROM warp table says `1F (22,1)` arrives at `B1F (29,1)`, and the
+    bot arrived at **`B1F (29,2)`**, one tile south. A warp table entry gives the coordinates of
+    the destination WARP; for door-type warps Gen 3 then places the player on the tile in FRONT
+    of it, while ladders and stair warps land exactly on it. An exact-match test therefore fails
+    on every door - which is what the first run's `Could not enter the warp at (22,1)` was,
+    despite the warp having worked perfectly.
+    ‼ Still unambiguous for this maze: B1F's panels are three or more tiles apart, so "within one
+    tile" cannot confuse two of them."""
+    if _map_group_number() != dest_map.value:
+        return False
+    try:
+        here = tuple(get_player_avatar().local_coordinates)
+    except Exception as error:  # noqa: BLE001 — an unreadable avatar means "not there yet". This
+        # is a success TEST, and answering "yes" on a failed read is the worst possible default
+        # in a maze that navigates onward from the answer.
+        _ch14_say(f"Story: Ch17 position read failed ({type(error).__name__})")
+        return False
+    return abs(here[0] - dest_tile[0]) <= 1 and abs(here[1] - dest_tile[1]) <= 1
+
+
+def _aqua_hop(from_map, warp_tile, dest_map, dest_tile, label: str) -> Generator:
+    """Take ONE warp panel and PROVE where it put us.
+
+    ‼‼ GRADED ON THE TILE, NOT ON THE MAP - and that is the whole difference from §Ch15.
+    `MAGMA_HIDEOUT_ROUTE`'s hops each crossed a floor, so "did the map change?" was a correct
+    success test there. Here **most hops are `B1F -> B1F`**: a panel that dumped us in the wrong
+    corner would pass a map-level test, and the next leg would then navigate from a false position
+    and fail somewhere unrelated.
+    ‼ It is also the detector for this maze's other hazard: `calculate_path` treats a warp panel as
+    ordinary walkable ground, so a plotted walk can cross one and teleport us mid-leg. An
+    unexpected position is exactly what that looks like.
+    See `_aqua_at` for why the test allows one tile of slack rather than an exact match."""
+
+    def arrived() -> bool:
+        return _aqua_at(dest_map, dest_tile)
+
+    yield from _enter_warp_by_navigation(arrived, from_map, warp_tile, label=label)
+    yield from wait_until_truly_controllable()
+    if not arrived():
+        where = _map_group_number()
+        try:
+            tile = tuple(get_player_avatar().local_coordinates)
+        except Exception as error:  # noqa: BLE001 — report the world, not a hypothesis, even
+            # when part of the world will not read.
+            tile = f"<unreadable: {type(error).__name__}>"
+        raise BotModeError(
+            f"Aqua Hideout: {label} - stepped on {warp_tile} but landed on map {where} at {tile}, "
+            f"not {dest_map.name} {dest_tile}. ‼ In this maze that usually means a WARP PANEL was "
+            "crossed on the way to the target: the planner treats panels as ordinary ground."
+        )
+
+
+def do_aqua_hideout_chapter() -> Generator:
+    """Chapter 17 - the Lilycove Aqua Hideout, end to end.
+
+    INTENT: set `FLAG_TEAM_AQUA_ESCAPED_IN_SUBMARINE` by beating `TRAINER_MATT` on B2F, which
+    opens the following beat (Team Aqua flees to the Seafloor Cavern).
+    STORY CONDITION: Ch16 has run, so both `HIDE_AQUA_HIDEOUT_1F_GRUNT_*_BLOCKING_ENTRANCE` are
+    SET and the entrance is clear. Checked, not assumed.
+    GOAL/END STATE: the flag set AND the avatar controllable. Grade it BINARY - no batch.
+
+    ‼ HEAL FIRST. The measured lesson from §Ch16 (2026-08-11): anchors in this project are
+    routinely captured with wiped parties, and a chapter that walks into a dungeon on a damaged
+    team whites out and then PASSES anyway, because a whiteout heals. Lilycove's centre is on the
+    doorstep, so there is no excuse for entering hurt."""
+    from modules.memory import _event_flags
+
+    if _aqua_escaped():
+        return  # resume-safe
+
+    # ‼ NAME CONTROL, IN PRODUCTION. `get_event_flag` returns False for an unknown name without
+    # raising, so a typo here would read as "the entrance is still blocked" for ever and the
+    # chapter would refuse to start with a message naming the wrong cause.
+    missing = [name for name in AQUA_ENTRANCE_FLAGS if name not in _event_flags]
+    if missing:
+        raise BotModeError(
+            f"Aqua Hideout: unknown flag name(s) {missing}. These read False SILENTLY, so the "
+            "era gate below cannot be trusted. Fix the name before running this chapter."
+        )
+
+    from modules.memory import get_event_flag
+
+    if not _inside_aqua_hideout():
+        blocked = [name for name in AQUA_ENTRANCE_FLAGS if not get_event_flag(name)]
+        if blocked:
+            raise BotModeError(
+                f"Aqua Hideout: the entrance is still blocked - {blocked} not set. Ch16's harbor "
+                "scene sets these; run §Ch16 (`do_slateport_harbor_theft`) first."
+            )
+
+        _ch14_say("Story: Ch17 - healing at Lilycove before the Aqua Hideout...")
+        try:
+            yield from _navigate_riding_out(MapRSE.LILYCOVE_CITY, (24, 15))
+            yield from heal_in_pokemon_center(PokemonCenter.LilycoveCity)
+            yield from wait_until_truly_controllable()
+        except BotModeError as error:
+            _ch14_say(f"Story: Lilycove heal SKIPPED - {str(error)[:120]}")
+
+        _ch14_say("Story: Ch17 - entering the Aqua Hideout...")
+        yield from _enter_warp_by_navigation(
+            _inside_aqua_hideout,
+            MapRSE.LILYCOVE_CITY,
+            AQUA_HIDEOUT_DOOR,
+            label="Aqua Hideout entrance",
+        )
+        yield from wait_until_truly_controllable()
+
+    # --- the maze -------------------------------------------------------------------------
+    for from_map, warp_tile, dest_map, dest_tile in AQUA_HIDEOUT_ROUTE:
+        _check_abort()
+        # Resume-safe, and unambiguous BECAUSE the test is (map, tile): the route revisits both
+        # floors, so a map-only check could not tell hop 2 from hop 7. `_aqua_at` also carries
+        # the one-tile door tolerance — see its docstring.
+        if _aqua_at(dest_map, dest_tile):
+            continue  # this hop is already done
+        label = f"{from_map.name} {warp_tile} -> {dest_map.name} {dest_tile}"
+        _ch14_say(f"Story: Aqua Hideout - {label}")
+        yield from _aqua_hop(from_map, warp_tile, dest_map, dest_tile, label)
+
+    if _map_group_number() != MapRSE.AQUA_HIDEOUT_B2F.value:
+        raise BotModeError(
+            f"Aqua Hideout: the maze never reached B2F - stopped on map {_map_group_number()}. "
+            "Re-derive the route with `probe_aqua_hideout_graph.py`."
+        )
+
+    # --- Matt -----------------------------------------------------------------------------
+    _ch14_say("Story: Aqua Hideout B2F - challenging Matt...")
+    standing_on = None
+    facing = None
+    tried: list[str] = []
+    for candidate, candidate_facing in AQUA_MATT_APPROACHES:
+        _check_abort()
+        try:
+            yield from _navigate_riding_out(MapRSE.AQUA_HIDEOUT_B2F, candidate, tries=4)
+        except BotModeError as error:  # noqa: BLE001 — NOT swallowed: this loop is a deliberate
+            # try-every-neighbour search, so one candidate failing is an EXPECTED outcome. Every
+            # reason is accumulated into `tried` and raised together if all four fail.
+            tried.append(f"{candidate}: {str(error)[:60]}")
+            continue
+        yield from wait_for_player_avatar_to_be_standing_still()
+        if tuple(get_player_avatar().local_coordinates) == candidate:
+            standing_on, facing = candidate, candidate_facing
+            break
+        tried.append(f"{candidate}: arrived at {tuple(get_player_avatar().local_coordinates)}")
+
+    if standing_on is None:
+        raise BotModeError(
+            f"Aqua Hideout: could not stand on ANY tile beside Matt {AQUA_MATT_TILE}. "
+            f"Tried {[c for c, _ in AQUA_MATT_APPROACHES]}: {tried}"
+        )
+
+    yield from ensure_facing_direction(facing)
+    yield
+    frames = 0
+    off_map = 0
+    while not _aqua_escaped():
+        _check_abort()
+        # ‼ A WHITEOUT MOVES THE PLAYER TWO TOWNS AWAY AND THE FLAG CANNOT SEE IT - the KI-51
+        # lesson, applied at build time instead of after a 60,000-frame ride. Debounced, because
+        # the map read is transient across the battle's own screen transitions and ending a
+        # HEALTHY fight over one odd frame would be worse than the bug.
+        try:
+            _on_b2f = _map_group_number() == MapRSE.AQUA_HIDEOUT_B2F.value
+        except Exception:  # noqa: BLE001 — an unreadable map must never end the fight
+            _on_b2f = True
+        off_map = 0 if _on_b2f else off_map + 1
+        if off_map > 300:
+            try:
+                _alive = sum(1 for m in get_party() if m is not None and m.current_hp > 0)
+                _state = (f"map={_map_group_number()} tile={tuple(get_player_avatar().local_coordinates)} "
+                          f"party_alive={_alive}/{len(get_party())}")
+            except Exception as _error:  # noqa: BLE001 — say what could not be read, not nothing
+                _state = f"<state unreadable: {type(_error).__name__}>"
+            raise BotModeError(
+                "Aqua Hideout: left B2F during the Matt fight without the submarine flag - "
+                f"almost certainly a WHITEOUT. {_state} (was standing {standing_on} facing "
+                f"{facing}, {frames} frames in)."
+            )
+        context.emulator.press_button("B" if frames % 3 else "A")
+        frames += 1
+        if frames > 60000:
+            raise BotModeError(
+                "Aqua Hideout: the Matt challenge never resolved in 60,000 frames "
+                f"(standing {standing_on} facing {facing} at Matt {AQUA_MATT_TILE}, still on B2F)."
+            )
+        yield
+
+    yield from wait_until_truly_controllable()
+    _ch14_say("Story: MATT BEATEN - Team Aqua has fled in the submarine. Aqua Hideout complete.")
