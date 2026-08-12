@@ -2932,3 +2932,47 @@ which is why the dir-4/5 tiles reproduce the nine-switch list exactly. `METATILE
 approaching the switch differently, and it is not a fault: **gym trainer battles are a consequence of
 the mechanic**. The executor must fight them, and a wait loop that does not expect a script will
 simply hang with the avatar "refusing to walk".
+
+## KI-61 — the chapter DETECTOR named the wrong beat after badge 7 (2026-08-12, MEASURED, ✅ FIXED)
+
+**Symptom.** With seven badges and Dive not yet received, `progress.detect_live()` reported the
+current chapter as **"Seafloor Cavern — Kyogre"**, skipping both the Space Center and HM08 Dive.
+
+**Cause — a registry ORDER bug with a non-obvious blast radius.** `modules/story/chapters.py` listed
+*"Mossdeep & Space Center"* (milestone `RECEIVED_HM_DIVE`) **before** *"Gym 7 — Tate & Liza"*
+(`BADGE07_GET`). That order is impossible: the Space Center's Team Magma and Steven are HIDDEN until
+Tate & Liza are beaten — `MossdeepCity_Gym_EventScript_TateAndLizaDefeated`
+(`data/maps/MossdeepCity_Gym/scripts.inc:73-76`) is what clears the three `HIDE_..._SPACE_CENTER_*`
+flags. ‼ `12-STORYMODE-DESIGN.md` had recorded this order as **"order confirmed"**.
+
+The order is not cosmetic, and that is the part worth remembering: `_compute_badges_before()` derives
+each chapter's badge count *by walking the list*, and `current_chapter()` picks the bracket for the
+player's badge level and then the first unmet chapter in it. Listed ahead of the gym, the Space
+Center was computed as a **six**-badge chapter, so the instant the seventh badge landed it fell out
+of the bracket entirely and the detector jumped to the next seven-badge chapter.
+
+**MEASURED IN OUR OWN HARNESS** (`tools/story-dev/probe_chapter_order.py`), not taken from the decomp:
+| save | badges | Space Center objects hidden | `MOSSDEEP_SPACE_CENTER_STATE` |
+|---|---|---|---|
+| `post_aqua.ss1` | 6 | **3 of 3 — Magma and Steven do not exist yet** | 0 |
+| `post_mossdeep_gym.ss1` | 7 | **0 of 3 — both present** | 1 |
+
+**A/B on the fix:** before, `post_mossdeep_gym.ss1` → `ch20 'Seafloor Cavern — Kyogre'`; after,
+→ `ch19 'Mossdeep & Space Center'`. `badges_before` for the Space Center went 6 → 7.
+
+**Prevention rule.** *When a list's ORDER is read as meaning by more than one consumer, a wrong
+order is a silent logic bug, not a cosmetic one. Order claims in docs need the same evidence bar as
+code — "order confirmed" was written here and was wrong.*
+
+## KI-62 — the detector still names "To Lilycove" on a save long past Lilycove (2026-08-12, OPEN, LOW)
+
+Noticed while measuring KI-61 and deliberately **not** fixed, because it is a different question.
+On `post_aqua.ss1` — 6 badges, the Aqua Hideout already completed — `current_chapter()` returns
+**ch16 "To Lilycove"**, whose milestone is `MET_RIVAL_LILYCOVE`. Either our runs reach Lilycove
+without triggering that rival meeting, or the flag is the wrong completion proxy for that chapter.
+
+‼ Consequence: the detector's report is a **lower bound** on progress, not a position. Anything that
+reasons from `chapter_key` (the endless-run stage label, resume messages) may understate how far a
+save has got. `probe_chapter_order.py` deliberately does not assert on this save, and says why.
+**To settle it:** check `MET_RIVAL_LILYCOVE` across the anchors that have plainly passed Lilycove,
+and if it is unset on all of them, the milestone is wrong rather than the run.

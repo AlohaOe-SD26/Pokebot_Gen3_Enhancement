@@ -11881,3 +11881,27 @@ drives a generator by hand has no listeners, so the moment one of the gym's nine
 battle there is nothing that can win it. Check [3] is now a **bounded healthy prefix**, and the file
 says so rather than overclaiming: the full healthy route is proven by the thing that *does* have
 listeners, the driven `--driver mossdeepgym` PASS.
+
+## 2026-08-12 — KI-61 FIXED: the chapter registry had the Mossdeep beats in the wrong order
+
+Found while starting §Ch19. `modules/story/chapters.py` listed **"Mossdeep & Space Center" before
+"Gym 7 — Tate & Liza"**, and `12-STORYMODE-DESIGN.md` recorded that order as *"order confirmed"*.
+It is impossible: the Space Center's Team Magma and Steven are HIDDEN until Tate & Liza are beaten.
+
+**Measured in our own harness rather than argued from the decomp** (`probe_chapter_order.py`, new):
+on `post_aqua.ss1` (6 badges) all three `HIDE_..._SPACE_CENTER_*` flags are TRUE and
+`MOSSDEEP_SPACE_CENTER_STATE=0`; on `post_mossdeep_gym.ss1` (7 badges) all three are FALSE and the
+var is 1.
+
+**The blast radius was real, not cosmetic.** `_compute_badges_before()` derives each chapter's badge
+count by walking the list, and `current_chapter()` brackets by badge level. Listed ahead of the gym,
+the Space Center counted as a six-badge chapter, so at seven badges it fell out of the bracket and
+the detector reported **"Seafloor Cavern — Kyogre"** — skipping both the Space Center and Dive.
+
+**A/B:** before → `ch20 'Seafloor Cavern — Kyogre'`; after → `ch19 'Mossdeep & Space Center'`.
+`badges_before` 6 → 7. `probe_chapter_order.py` exits 0.
+
+Also filed **KI-62** (open, low): the detector still returns ch16 "To Lilycove" on a save well past
+Lilycove, because that chapter's milestone is `MET_RIVAL_LILYCOVE`. Its report is therefore a lower
+bound on progress, not a position. Deliberately not fixed — it is a milestone-accuracy question, and
+the probe says so rather than asserting on it.
