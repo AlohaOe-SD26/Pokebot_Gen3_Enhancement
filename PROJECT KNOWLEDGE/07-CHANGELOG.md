@@ -11331,3 +11331,32 @@ table, what the user decided, and six ordered next actions led by **KI-56**.
 ‼ Recorded prominently because it is the session's most consequential finding: **Ch15 strands the
 bot in the Magma Hideout**, and its binary acceptance test could never have caught that. New
 playbook rule — *a chapter's acceptance test must include "and the bot can CONTINUE"*.
+
+## 2026-08-11 (later) — KI-56 root cause CONFIRMED against the whole warp graph; the fix is chosen
+
+Two new probes, both control-gated (they withhold their verdict and exit 1 when a control fails —
+and the second one **did**, on its first run, exactly as intended).
+
+**`probe_escape_warp.py` — where would an Escape Rope actually go?** Reads
+`gSaveBlock1Ptr->escapeWarp` (SaveBlock1 +0x24, `include/global.h`) across four saves. Answer:
+**`JAGGED_PASS (16,19)`**, collision 0. The hideout has no `setescapewarp`, but `UpdateEscapeWarp`
+(`src/overworld.c:677`, called from `src/field_control_avatar.c:826`) stamps the field on any warp
+step leaving an outdoor map for a non-outdoor one — so walking in sets it. Controls: a DECODER
+control (`+0x04 location` must equal the live avatar's map — held on all four saves), a CONTRAST
+control (3 distinct values across 4 saves), and a NEGATIVE ARM (`magma_door.ss1`, pre-entry, reads
+`ROUTE112 (28,28)` instead). **Bag holds 0 Escape Ropes on every save.**
+
+**`probe_hideout_warp_graph.py` — is there a walk-out at all?** Builds a warp graph over the eight
+hideout maps from the ROM warp table, adds `calculate_path` walk edges, and BFSes. This existed to
+TEST KI-56's own conclusion, because `calculate_path` *"is not able to use warps"* — so a same-map
+failure is also what a routing gap looks like. It is not one: from the stranded tile the search
+reaches **18 of 20 nodes**, missing only the exit warp `1F (10,34)` and `JAGGED_PASS`.
+⇒ **cause CONFIRMED, option 2 (return-route) formally DEAD.**
+
+**The fix, now fully specified and recorded in KI-56 + the decisions log:** the **Escape Rope item
+ball inside the dungeon** at `MAGMA_HIDEOUT_3F_3R (9,19)` — flag `ITEM_MAGMA_HIDEOUT_3F_3R_ECAPE_ROPE`
+(‼ the decomp misspells it, and our flag table carries the typo; the correct spelling reads `False`
+silently forever), still unset, approached from **`(9,20)` only**, reachable from both 3F_3R warp
+nodes. No detour: ‼ Lavaridge Mart does not stock Escape Ropes.
+
+**STATUS: measured and designed, NOT BUILT.** Every number is STATIC; the driven run is the proof.

@@ -2518,3 +2518,64 @@ can continue".** A completion flag proves the CONTENT ran, not that the run surv
 **Until this is fixed, §Ch16 cannot start from `post_maxie.ss1`,** because its first leg is leaving
 the hideout. ‼ The Ch16 code itself is **unexercised beyond leg 1** — it is not implicated, and it
 is not yet proven either.
+
+### ✅ 2026-08-11 (later) — CAUSE CONFIRMED, FIX CHOSEN. `probe_hideout_warp_graph.py`
+The original entry proved a *same-map* path failure and inferred the strand. That inference was
+re-tested against the **whole eight-map warp graph**, because `calculate_path`'s own docstring says
+*"It is not able to use warps"* — so "no path from 1F (25,34) to 1F (10,34)" is also exactly what a
+**routing gap** would look like on a map whose rooms are joined by warps. It is not one.
+
+`probe_hideout_warp_graph.py` reads every warp from the ROM warp table, adds a walk edge wherever
+`calculate_path` plans between two nodes on one map, and BFSes. From the stranded tile it reaches
+**18 of 20 nodes**. The only two it cannot reach are the exit warp `1F (10,34)` and `JAGGED_PASS`:
+
+| control | result |
+|---|---|
+| POSITIVE — the driven ascent `1F (25,34) -> 4F` must be findable | **OK**, 5 hops, matches §Ch15 |
+| REPRODUCTION — walk-only, `(25,34)` must not reach the exit | **OK**, reproduces KI-56 exactly |
+| WARP-TABLE — the three driven inbound hops must be in the ROM table | **OK**, all three |
+
+⇒ **KI-56's stated cause is CONFIRMED** and **option 2 (a return-route study) is formally DEAD**:
+the bot can reach every chamber of the hideout *except* the 44-tile entrance pocket holding the
+exit. Option 3 (re-push) was already dead. **The fix must leave the map without walking.**
+
+‼ **The positive control had to be the ASCENT, not the full inbound journey.** The first inbound
+leg `1F (10,34) -> (25,34)` is opened by two **Strength pushes** (`MAGMA_HIDEOUT_1F_PUSHES`), and
+no static planner models a push — the first version of this probe used that leg as its control,
+failed, and correctly withheld its verdict. See `08-MISTAKES` 2026-08-11.
+
+### ‼ THE FIX: the dungeon supplies its own Escape Rope. No detour, no shopping.
+`MagmaHideout_3F_3R/map.json` places an **ITEM BALL holding an Escape Rope at `3F_3R (9,19)`** —
+inside a room §Ch15 already walks through, and (per the reachable set above) **still reachable from
+the stranded tile**. All four facts are measured, with controls:
+
+| fact | value | how |
+|---|---|---|
+| item ball | `MAGMA_HIDEOUT_3F_3R (9,19)` | decomp `map.json` |
+| flag | `ITEM_MAGMA_HIDEOUT_3F_3R_ECAPE_ROPE` (1059), **unset** on the stranded save | live |
+| approach tile | **`(9,20)` only** — face **Up**. `(9,18)`/`(8,19)`/`(10,19)` all unreachable | `calculate_path` |
+| reachable from | both 3F_3R warp nodes, `(16,1)` and `(16,21)` | live |
+| Escape Rope lands at | **`JAGGED_PASS (16,19)`**, collision=0, walkable | live, `probe_escape_warp.py` |
+
+**Why the landing tile is knowable even though the hideout has no `setescapewarp`:**
+`UpdateEscapeWarp` (decomp `src/overworld.c:677`, called from `src/field_control_avatar.c:826`)
+stamps `gSaveBlock1Ptr->escapeWarp` on **every** warp step where the map being LEFT is outdoors and
+the map being ENTERED is not. Walking Jagged Pass -> 1F sets it automatically.
+`MagmaHideout_1F/map.json` has `"allow_escaping": true`, so `CanUseDigOrEscapeRopeOnCurMap()`
+(`src/item_use.c:911`) permits the item. **NEGATIVE ARM:** on `magma_door.ss1` (hideout not yet
+entered) the same field reads `ROUTE112 (28,28)` — so the JAGGED_PASS value is the entry stamp, not
+a coincidence.
+
+‼ **THE FLAG IS MISSPELLED IN THE DECOMP — "ECAPE", not "ESCAPE"** — and
+`modules/data/event_flags/emerald.txt` carries the typo through as flag 1059. The correctly-spelled
+name **does not exist**, and an unknown flag name reads `False` **silently**, which is
+indistinguishable from "the ball is still there". Spelled right, that check is a permanent lie.
+
+**Bag state: 0 Escape Ropes on every save read** (`STRANDED`, `post_maxie`, `magma_door`,
+`post_mtpyre`), so the pickup is not optional — it is the whole acquisition. ‼ **Lavaridge Mart
+does NOT stock Escape Rope** (decomp): the only marts that do are Rustboro, Petalburg, Fallarbor,
+Slateport and Lilycove Dept. 2F — all a long detour from the Jagged Pass approach. The in-dungeon
+ball avoids that entirely.
+
+**STATUS: designed and measured, NOT BUILT.** Still unproven: the bot has no Escape Rope support at
+all (0 hits), and every number above is STATIC — the driven run is the proof.

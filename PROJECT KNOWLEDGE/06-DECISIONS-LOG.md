@@ -1552,3 +1552,31 @@ what cracked this bug after three summary-only records could not.
 **Cost accepted.** Structural repros that pinned the literal `context.emulator.press_button(...)`
 text went red and were updated to match meaning rather than spelling — noted as the risk of
 spelling-based structural tests.
+
+## 2026-08-11 — KI-56 is fixed with the Escape Rope the DUNGEON provides, not a shopping detour
+
+**Decision.** Unstrand the bot from the Magma Hideout by picking up the **Escape Rope item ball
+already inside it** — `MAGMA_HIDEOUT_3F_3R (9,19)`, approached from `(9,20)` facing Up — and using
+it. It lands at `JAGGED_PASS (16,19)`.
+
+**Why.** The strand is real: the eight-map warp graph reaches **18 of 20 nodes** from the stranded
+tile, and the two it misses are the exit warp and Jagged Pass. So the fix must leave the map
+without walking, which means Dig or an Escape Rope, and the bot has no Dig. The ball sits in a room
+§Ch15 **already walks through**, is still reachable from the stranded tile, and its flag reads
+unset — so the escape costs no travel at all. It is also almost certainly the intended answer:
+Game Freak could only ship a one-way boulder puzzle here *because* they put an escape inside it.
+
+**Alternatives rejected.**
+* **A return-route study (KI-56 option 2)** — formally DEAD. The warp graph shows no walk-out
+  exists once the Strength pushes reset; only the 44-tile entrance pocket holds the exit.
+* **Re-pushing on the way out (option 3)** — already dead: both push-from tiles sit in the pocket.
+* **Buying Escape Ropes before entering.** Works, and the bot already has `buy_in_shop()`, but
+  ‼ **Lavaridge Mart does not stock them.** The nearest that do are Fallarbor, Slateport,
+  Rustboro, Petalburg and Lilycove Dept. 2F — every one a long detour off the Jagged Pass
+  approach, added to a leg that has already produced a measured whiteout. Kept as the FALLBACK if
+  the pickup proves unreliable.
+* **Whiting out on purpose.** It is what a cornered human could do and it always works, but it
+  costs money and is a derail, not a route. Against the north star.
+
+**Cost accepted.** Escape Rope support is new capability the bot has never had (0 hits across
+`modules/story/` and `modules/modes/util/`). It is built once and every future dungeon wants it.

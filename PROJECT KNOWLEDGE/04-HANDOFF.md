@@ -97,15 +97,35 @@ stuck four floors deep.** Measured from `profiles/ch16a/current_state.ss1`:
 moment Maxie falls. New playbook rule added: *a chapter's test must include "and the bot can
 continue"*.
 
-**Fix options recorded in KI-56, none chosen.** The leading one is **Escape Rope support**, which
-the bot does not have at all (0 hits across `modules/story/` and `modules/modes/util/`).
+### ✅ CAUSE CONFIRMED AND FIX CHOSEN (2026-08-11, later) — but NOT BUILT
+`probe_hideout_warp_graph.py` re-tested the strand against the **whole eight-map warp graph**
+(KI-56's own evidence was a *same-map* path failure, and `calculate_path` "is not able to use
+warps", so a routing gap would have looked identical). It is not a routing gap: from the stranded
+tile the search reaches **18 of 20 nodes**, missing only the exit warp `1F (10,34)` and
+`JAGGED_PASS`. **Option 2 (return-route) is formally DEAD**; option 3 was already dead.
+
+**THE FIX — the dungeon supplies its own escape, so there is no detour:**
+| | |
+|---|---|
+| Escape Rope item ball | `MAGMA_HIDEOUT_3F_3R (9,19)` — a room §Ch15 already walks through |
+| flag | `ITEM_MAGMA_HIDEOUT_3F_3R_ECAPE_ROPE` (1059), **unset** ‼ the decomp misspells "ESCAPE"; the correct spelling reads `False` silently forever |
+| approach | **`(9,20)` only**, face Up. The other three sides are unreachable |
+| reachable from | both 3F_3R warp nodes — including from the STRANDED tile |
+| rope lands at | **`JAGGED_PASS (16,19)`**, collision 0 (`probe_escape_warp.py`, 3 controls) |
+| bag today | **0 Escape Ropes** on every save ‼ and Lavaridge Mart does not stock them |
+
+All of it is **STATIC**. The bot has **no Escape Rope support at all** — that is the build.
 ## ⏭ NEXT ACTIONS, IN ORDER
 
-1. **KI-56 — unstrand the bot from the Magma Hideout.** This blocks ALL further story content,
-   because every later beat starts by leaving that dungeon. Options are in KI-56; **none chosen**.
-   The leading one is **Escape Rope support**, which the bot does not have at all — and which every
-   future dungeon will want. ‼ First verify what an Escape Rope actually does from there: the
-   hideout has **no `setescapewarp`** in any of its four map scripts.
+1. **KI-56 — BUILD the escape.** Cause confirmed, fix chosen and fully specified (table above);
+   nothing is built. This blocks ALL further story content. Three pieces:
+   (a) a **`use_escape_rope()`** action — the bot has none; every future dungeon wants it;
+   (b) **pick up the ball** at `3F_3R (9,19)` from `(9,20)` facing Up, gated on flag 1059 so a
+   resumed run does not re-try a taken ball;
+   (c) **wire it into §Ch15's exit** so the chapter ENDS outside, and extend the chapter's
+   acceptance test to "and the bot can continue" (the rule this bug created).
+   ‼ Do (a) and (b) against the stranded save `sandbox-pokebot/profiles/ch16a/current_state.ss1`,
+   which is a free repro of the exact failure. Re-run both probes to re-derive any constant.
 
 2. **§Ch16 is BUILT and waiting on KI-56.** Code, driver (`--driver slateporttheft`) and Segment 16
    are committed. Its first run got the era gate right and failed in leg 1 (leaving the hideout).

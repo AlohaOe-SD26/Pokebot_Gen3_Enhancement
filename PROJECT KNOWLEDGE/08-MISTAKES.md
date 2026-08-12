@@ -4612,3 +4612,68 @@ pointer to a command* rather than a habit to hold in mind — which is the real 
 command can be run by anyone and a habit cannot be inherited.
 
 **If any guard named here is removed, its rule becomes live again.**
+
+---
+
+## 2026-08-11 — I built a control out of a journey the instrument was structurally unable to reproduce
+
+**Symptom.** `probe_hideout_warp_graph.py`'s POSITIVE CONTROL was "the inbound journey §Ch15
+actually drove must be findable in the graph". It failed on the first run, so the probe withheld
+its verdict — correctly, but for the wrong reason. Nothing was wrong with the graph.
+
+**Root cause.** The first leg of that journey, `1F (10,34) -> (25,34)`, is opened by two **Strength
+pushes**. The graph's walk edges come from `calculate_path`, which models no pushes at all. I had
+picked a control the instrument could never pass no matter how correct it was, so its failure
+carried no information about the thing under test.
+
+**The fix that worked.** Move the control to the **ascent** `1F (25,34) -> 4F` — the part of the
+same driven journey that is plain walking and warps. It passed in 5 hops and matched §Ch15's route
+exactly, and the real verdict followed immediately.
+
+**Prevention rule.** *A control must be something the instrument could pass if the thing under test
+is healthy — never a case that depends on a capability the instrument does not have.*
+
+---
+
+## 2026-08-11 — I called KI-56's cause wrong out loud, then the measurement refuted me (and that was the point)
+
+**Symptom.** Reading that KI-56's evidence was a *same-map* path failure, and that
+`calculate_path`'s docstring says *"It is not able to use warps"*, I concluded mid-session that the
+strand was probably a **routing gap** on a warp-joined map rather than the Strength-boulder reset
+KI-56 blamed. It was not. The warp graph reaches 18 of 20 nodes from the stranded tile; the boulder
+reset is the cause, exactly as written.
+
+**Root cause.** A true premise (the planner cannot use warps, so a same-map failure is ambiguous)
+carried me to an unmeasured conclusion. Ambiguous evidence means *the question is open*, not *the
+other answer is right*.
+
+**The fix that worked.** Building the instrument that could tell the two apart, with a control that
+would expose it if it were lying. The refutation is worth more than the guess would have been: the
+old entry could only say "this same-map path fails", the new one says "no walk-out exists anywhere
+in the eight-map graph", which is what let option 2 be closed for good and the fix be committed to.
+
+**Prevention rule.** *When an existing finding rests on an inference, the move is to build the
+instrument that separates the alternatives — never to re-label the finding from the armchair.*
+
+---
+
+## 2026-08-11 — `audit_flag_names.py` told me a deliberately misspelled flag name was valid
+
+**Symptom.** To check the Magma Hideout item-ball flag I ran
+`audit_flag_names.py ITEM_MAGMA_HIDEOUT_3F_3R_ECAPE_ROPE ITEM_MAGMA_HIDEOUT_3F_3R_ESCAPE_ROPE`.
+It printed **"all names valid"** — for two names, one of which does not exist.
+
+**Root cause.** The tool takes **no arguments**. It audits two hardcoded source files and silently
+ignored my argv; "all names valid" was a true statement about `early_game.py` and `story_mode.py`,
+and nothing at all about what I asked. A tool that ignores input looks identical to a tool that
+approves it.
+
+**The fix that worked.** Check a single name against the table directly:
+`grep <NAME> sandbox-pokebot/modules/data/event_flags/emerald.txt`. That showed flag **1059** is
+`ITEM_MAGMA_HIDEOUT_3F_3R_ECAPE_ROPE` — ‼ **the decomp misspells "ESCAPE" as "ECAPE" and our table
+carries the typo through.** The correctly-spelled name does not exist, and unknown names read
+`False` **silently** — so the sensible spelling would have been a permanent, invisible lie meaning
+"the item ball is still there".
+
+**Prevention rule.** *Before trusting a tool's PASS, confirm it actually consumed your input —
+`audit_flag_names.py` audits fixed files and ignores argv; single names go to the table by grep.*
