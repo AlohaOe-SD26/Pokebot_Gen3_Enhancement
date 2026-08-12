@@ -8090,6 +8090,41 @@ SLATEPORT_HARBOR_DOOR_APPROACH = (28, 13)
 #: right. It is also the closest to the landing tile (3 waypoints, static).
 HARBOR_AQUA_TRIGGER = (8, 14)
 
+#: ‼ CAPT. STERN, AND HE IS THE WAY IN - NOT AN OBSTACLE (KI-57).
+#: `SlateportCity_OnTransition` -> `MovePeopleForSternInterview` does
+#: `setobjectxyperm LOCALID_SLATEPORT_CAPT_STERN, 28, 13` whenever `VAR_SLATEPORT_CITY_STATE == 1`
+#: - a var **Ch15's own Maxie script sets**. `(28,13)` is the ONLY tile touching the harbor door
+#: `(28,12)`, which is set into a solid wall (measured tile-by-tile,
+#: `tools/story-dev/probe_slateport_harbor_map.py`). Talking to him warps the player inside.
+SLATEPORT_STERN_TILE = (28, 13)
+
+#: ‼ `(27,13)` IS THE ONLY APPROACH, and it is not a preference. Stern's four neighbours are
+#: `(28,12)` the door itself (a wall tile from this side), `(28,14)` Gabby and `(29,13)` Ty -
+#: both `setobjectxyperm`ed there by the same script - and `(27,13)`. Measured reachable in
+#: 19 waypoints from the Slateport Pokémon Center doorstep. Face RIGHT to look east at him.
+SLATEPORT_STERN_APPROACH = (27, 13)
+SLATEPORT_STERN_FACING = "Right"
+
+
+def _city_state() -> int:
+    """`VAR_SLATEPORT_CITY_STATE`, or -1 if unreadable.
+
+    0 = before the museum beat, **1 = the Stern interview is staged and Stern is standing in the
+    harbor doorway**, 2 = the interview scene has run, Stern is `removeobject`ed and the doorway
+    is clear. This is the var that decides whether Ch16 talks its way in or walks in.
+
+    ‼ NO `VAR_` PREFIX - same trap as `_harbor_state()`: `get_event_var` returns **-1** for an
+    unknown name without raising, and a -1 here would silently take the "already done" branch.
+    """
+    from modules.memory import get_event_var
+
+    try:
+        return int(get_event_var("SLATEPORT_CITY_STATE"))
+    except Exception as error:  # noqa: BLE001 - an unreadable var is reported as -1, not a crash,
+        # because this runs inside a chapter whose failure message must name the STATE it saw.
+        _ch14_say(f"Story: Ch16 could not read SLATEPORT_CITY_STATE ({type(error).__name__})")
+        return -1
+
 
 def _harbor_state() -> int:
     """`VAR_SLATEPORT_HARBOR_STATE`, or -1 if unreadable.
@@ -8162,12 +8197,6 @@ def do_slateport_harbor_theft() -> Generator:
             + "Run probe_ch16_anchor.py before building on this save."
         )
 
-    # --- Leg 1: cross to Slateport and stand beside the harbor door -------------------------
-    _ch14_say("Story: Ch16 - crossing to Slateport Harbor...")
-    yield from _navigate_riding_out(MapRSE.SLATEPORT_CITY, SLATEPORT_HARBOR_DOOR_APPROACH)
-    yield from wait_until_truly_controllable()
-
-    # --- Leg 2: through the door ------------------------------------------------------------
     def _in_harbor() -> bool:
         try:
             return (
@@ -8178,11 +8207,79 @@ def do_slateport_harbor_theft() -> Generator:
             _ch14_say(f"Story: Ch16 map read failed ({type(error).__name__})")
             return False
 
-    _ch14_say("Story: Ch16 - entering the harbour...")
-    yield from _enter_warp_by_navigation(
-        _in_harbor, MapRSE.SLATEPORT_CITY, SLATEPORT_HARBOR_DOOR, label="Slateport Harbor door"
-    )
-    yield from wait_until_truly_controllable()
+    # --- Legs 1+2: TALK TO CAPT. STERN. He is not an obstacle, he is the door. ---------------
+    #
+    # ‼‼ THIS IS NOT "WALK TO THE HARBOR DOOR", AND THE FIRST VERSION THAT WAS COST A RUN (KI-57).
+    # `SlateportCity_OnTransition` runs `MovePeopleForSternInterview` whenever
+    # `VAR_SLATEPORT_CITY_STATE == 1`, whose first line is
+    #       setobjectxyperm LOCALID_SLATEPORT_CAPT_STERN, 28, 13
+    # and `(28,13)` is the ONLY tile touching the harbor door `(28,12)` - the door is set into a
+    # solid wall, measured tile by tile (`probe_slateport_harbor_map.py`). ‼ And **§Ch15 is what
+    # sets that var**: `MagmaHideout_4F/scripts.inc` does `clearflag
+    # FLAG_HIDE_SLATEPORT_CITY_CAPTAIN_STERN` / `setvar VAR_SLATEPORT_CITY_STATE, 1`. So
+    # completing the previous chapter is precisely what puts Stern in the doorway.
+    #
+    # ‼ THE DOOR IS NOT MEANT TO BE WALKED THROUGH IN THIS ERA. `SlateportCity_EventScript_
+    # CaptStern` - i.e. TALKING to him - plays the interview and the Team Aqua announcement and
+    # ends with:
+    #       removeobject LOCALID_SLATEPORT_CAPT_STERN
+    #       setvar       VAR_SLATEPORT_CITY_STATE, 2
+    #       warp         MAP_SLATEPORT_CITY_HARBOR, 11, 14
+    # **The script carries the player in.** `(11,14)` is the same tile the door warp lands on, so
+    # leg 3 is unchanged. This is also the faithful reading: a human here talks to the man being
+    # interviewed, they do not shove past him.
+    if _city_state() < 2:
+        _ch14_say("Story: Ch16 - crossing to Slateport to talk to Capt. Stern...")
+        yield from _navigate_riding_out(MapRSE.SLATEPORT_CITY, SLATEPORT_STERN_APPROACH)
+        yield from wait_until_truly_controllable()
+        yield from ensure_facing_direction(SLATEPORT_STERN_FACING)
+        yield
+
+        # A-ride the scene. It is a long chain of MSGBOX_DEFAULT plus applymovements, and it ends
+        # in a `warp`, so the success test is THE MAP CHANGING (or the var reaching 2) - never
+        # "the script finished", which is true mid-scene while the avatar is still `lockall`ed.
+        # ‼ Alternate A and B as the Maxie and Flannery loops do: A advances and confirms, B
+        # clears the message chain, and a pure-A loop can re-open a menu it just closed.
+        _ch14_say(f"Story: Ch16 - talking to Capt. Stern at {SLATEPORT_STERN_TILE}...")
+        frames = 0
+        while not _in_harbor() and _city_state() < 2:
+            _check_abort()
+            context.emulator.press_button("B" if frames % 3 else "A")
+            frames += 1
+            if frames > 30000:
+                raise BotModeError(
+                    "Slateport: talked at Capt. Stern for 30,000 frames and neither reached the "
+                    f"harbor nor moved SLATEPORT_CITY_STATE off {_city_state()} (standing "
+                    f"{tuple(get_player_avatar().local_coordinates)} on map "
+                    f"{_map_group_number()}, facing {SLATEPORT_STERN_FACING}). ‼ Check we are "
+                    f"actually adjacent to {SLATEPORT_STERN_TILE} and that he is still there - "
+                    "if VAR_SLATEPORT_CITY_STATE is not 1, OnTransition never placed him."
+                )
+            yield
+
+        # The `warp` at the end of the scene is the last thing it does; ride out the rest.
+        yield from _ride_out_scripted_scene("B")
+        yield from wait_until_truly_controllable()
+    else:
+        # RESUME PATH ONLY. Once the scene has run, `VAR_SLATEPORT_CITY_STATE` is 2, Stern has
+        # been `removeobject`ed and the doorway is clear - so a re-entry walks in through the
+        # door like any other building. This branch is unreachable on a first pass.
+        _ch14_say("Story: Ch16 - the Stern scene has already run; entering the harbour by door.")
+        yield from _navigate_riding_out(MapRSE.SLATEPORT_CITY, SLATEPORT_HARBOR_DOOR_APPROACH)
+        yield from wait_until_truly_controllable()
+        yield from _enter_warp_by_navigation(
+            _in_harbor, MapRSE.SLATEPORT_CITY, SLATEPORT_HARBOR_DOOR, label="Slateport Harbor door"
+        )
+        yield from wait_until_truly_controllable()
+
+    if not _in_harbor():
+        raise BotModeError(
+            f"Slateport Harbor: expected to be inside the harbour but we are on map "
+            f"{_map_group_number()} at {tuple(get_player_avatar().local_coordinates)} "
+            f"(SLATEPORT_CITY_STATE={_city_state()}). The Stern scene ends in a `warp` to "
+            "SLATEPORT_CITY_HARBOR (11,14), so reaching state 2 without the map changing means "
+            "the scene was interrupted."
+        )
 
     # --- Leg 3: walk to trigger 3 -----------------------------------------------------------
     # ‼ `OnTransition` REWRITES THIS MAP: it hides the patrons and moves Capt. Stern to (12,13)

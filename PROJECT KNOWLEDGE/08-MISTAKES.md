@@ -4756,3 +4756,47 @@ evidence would be the same mistake again.
 **Prevention rule.** *A route constant on a map the PREVIOUS chapter's completion touches must be
 derived in the era the bot will actually stand there — check every `setobjectxyperm` reachable from
 that map's `OnTransition` before trusting a tile is empty.*
+
+---
+
+## 2026-08-11 — I hunted for a route around a blocked tile when the game's answer was "talk to him"
+
+**Symptom.** §Ch16 leg 1 could not reach the Slateport Harbor door. I measured the geometry, found
+Capt. Stern parked on the only tile touching the door, confirmed no alternative staging tile
+existed, and wrote KI-57 concluding the door was **sealed** — with a "lead" about a second harbor
+warp at `(40,7)` that turned out to be a boat dock surrounded by water.
+
+**Root cause.** I treated a story NPC as terrain. `SlateportCity_EventScript_CaptStern` — *talking
+to him* — plays the interview scene and ends with `removeobject`, `setvar VAR_SLATEPORT_CITY_STATE,
+2` and `warp MAP_SLATEPORT_CITY_HARBOR, 11, 14`. The script **carries the player inside**, to the
+same tile the door warp uses. The blocked door was not a bug to route around; it was the game
+telling me which way in it wanted.
+
+**What should have tipped me off sooner, and did eventually.** The measurement implied the game
+soft-locks its own next beat, in the exact era the game itself creates. When a measurement says
+that, the measurement is the suspect — and the missing piece is almost always a SCRIPT.
+
+**The fix that worked.** `grep` the map's own `scripts.inc` for the blocking object's `LOCALID_`
+before designing any route. One grep produced the whole answer.
+
+**Prevention rule.** *When an NPC blocks a required path, read that map's scripts for its
+`LOCALID_` FIRST — a story NPC standing in a doorway is usually the intended trigger, not an
+obstacle.*
+
+---
+
+## 2026-08-11 — `calculate_path` does not validate its SOURCE tile, and I published the artifact
+
+**Symptom.** KI-57's first write-up reported that `(27,12)`, `(29,12)` and `(28,11)` were "walkable
+tiles adjacent to the harbor door" that could "reach it in 1 wp" but lived in a different
+component. All three are **walls**.
+
+**Root cause.** `calculate_path(get_map_data(map, blocked_tile), destination)` returns a path
+happily — it validates the destination side, not the source. Every "OK, 1 wp" in that table was
+produced by asking for a route out of solid rock. Drawing the collision map showed it instantly.
+
+**The fix that worked.** `probe_slateport_harbor_map.py` reads `collision` per tile and draws it,
+with a control that the drawing must not contradict the planner.
+
+**Prevention rule.** *A `calculate_path` result is evidence about the DESTINATION only — before
+using a tile as a source, check its `collision` yourself.*

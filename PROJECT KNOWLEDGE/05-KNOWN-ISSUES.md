@@ -2679,3 +2679,42 @@ the Jagged Pass -> Slateport haul, which is unmeasured.
 
 **Repro fixture:** `tools/story-dev/saves/stalls/ch16b-f20252.ss1` (VOLATILE — a stall save; the
 harness overwrites the `stalls/` directory per run).
+
+### ✅✅ KI-57 RESOLVED 2026-08-11 — Stern is not an obstacle, he is THE DOOR
+```
+[ch16] RESULT harbor_state=2 controllable=True map=SLATEPORT_CITY_HARBOR at=(8, 13) whiteouts=1
+[ch16] ACCEPTANCE: PASS (needs harbor_state==2 AND controllable==True)
+```
+
+**The measurement that cracked it was a PICTURE, not more spot-checks.**
+`probe_slateport_harbor_map.py` draws the collision map with live objects overlaid:
+```
+  12 ....####D###.~~~     <- the door (28,12) is set into a SOLID WALL
+  13 .....O..OO......     <- (28,13) Stern, (29,13) Ty; (27,13) is his one free neighbour
+```
+`(28,13)` is the **only** tile touching the door, and Stern is on it. So the door genuinely is
+sealed — KI-57's geometry was right. What was wrong was the CONCLUSION drawn from it.
+
+‼ **The door is not meant to be walked through in this era.** `SlateportCity_EventScript_CaptStern`
+— i.e. **talking to him** — plays the interview and the Team Aqua announcement and ends:
+```
+removeobject LOCALID_SLATEPORT_CAPT_STERN
+setvar       VAR_SLATEPORT_CITY_STATE, 2
+warp         MAP_SLATEPORT_CITY_HARBOR, 11, 14
+```
+**The script carries the player in**, landing on `(11,14)` — the same tile the door warp lands on,
+so leg 3 needed no change at all. It is also the faithful reading: a human talks to the man being
+interviewed rather than shoving past him.
+
+**What changed in §Ch16:** legs 1+2 are now "walk to `SLATEPORT_STERN_APPROACH (27,13)`, face
+Right, A/B-ride the scene until the map changes or `SLATEPORT_CITY_STATE == 2`". The old
+door-walking path is kept as the **resume branch only** (`_city_state() >= 2`, i.e. Stern already
+`removeobject`ed). Bounded at 30,000 frames with a state-reporting failure message.
+
+### ‼ AND AN INSTRUMENT GOTCHA THAT PRODUCED A WRONG SUB-CLAIM
+KI-57 originally reported that `(27,12)`, `(29,12)` and `(28,11)` are "walkable tiles adjacent to
+the door" that "reach it in 1 wp" but sit in a different component. **They are walls.**
+`calculate_path` **does not validate its SOURCE tile** — asked for a path *from* a blocked tile it
+happily returns one. Every "OK, 1 wp" in that table was an artifact.
+⇒ **A `calculate_path` result is only evidence about the DESTINATION side unless the source has
+been independently shown to be walkable.**

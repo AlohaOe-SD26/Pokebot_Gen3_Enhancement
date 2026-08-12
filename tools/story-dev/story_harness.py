@@ -2738,6 +2738,25 @@ class SlateportTheftMode(BotMode):
             + (f" error=({error_text})" if error_text else ""))
         log(f"[ch16] ACCEPTANCE: {'PASS' if (final == 2 and ctrl is True) else 'FAIL'} "
             f"(needs harbor_state==2 AND controllable==True)")
+
+        # ‼ CAPTURE THE POST-CH16 ANCHOR, the same way `magmatravel` captures `magma_door.ss1`.
+        # This state is the build anchor for the NEXT chapter (the Lilycove Aqua Hideout, whose
+        # two blocking grunts the Aqua-escape scene has just cleared), and it is expensive to
+        # reproduce: getting here means leaving the Magma Hideout, crossing the region and
+        # riding the Stern scene. Captured ONLY on a pass, so a failed run can never overwrite a
+        # good anchor with a broken one.
+        # ‼ VOLATILE by construction — a driver re-captures it, so it must never be treated as a
+        # pinned fixture (`FIXTURES.md5`'s distinction).
+        # ‼ `os` is imported PER METHOD in this file, never at module scope — same trap as the
+        # per-driver local `map_name` helper. Omitting it raised `NameError` AFTER the acceptance
+        # line had already printed PASS, so the run looked successful and silently captured nothing.
+        import os
+
+        if final == 2 and ctrl is True and os.environ.get("CH16_CAPTURE", "1") != "0":
+            out = SAVES / "post_harbor.ss1"
+            out.write_bytes(context.emulator.get_save_state())
+            log(f"[ch16] captured anchor -> {out}")
+
         context.set_manual_mode()
         return
 

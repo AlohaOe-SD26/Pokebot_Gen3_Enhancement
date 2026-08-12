@@ -24,7 +24,7 @@ burden here is so heavy, and why negative results are treated as the most valuab
 |---|---|
 | branch / HEAD | `main`, **clean, 0 unpushed** |
 | box | **IDLE.** Batch `20260811-130454` finished 4:05 PM (VERDICT OK, 28 runs, 0 violations). |
-| story content | Littleroot → 6 badges → Mt. Pyre → Magma Hideout **(and back OUT of it)**. **16 of 24 ladder beats.** |
+| story content | Littleroot → 6 badges → Mt. Pyre → Magma Hideout (and out) → **Slateport submarine theft**. **17 of 24 ladder beats.** |
 | ‼ is code frozen? | **No.** Nothing is running. |
 | upstream | checked 2026-08-11, `5dd898f8`, unchanged |
 | restore point | **`restore/2026-08-11-all-promoted`** (annotated, pushed, verified on the remote) |
@@ -41,8 +41,12 @@ burden here is so heavy, and why negative results are treated as the most valuab
    (your directive). Promoted. ‼ Structurally proven only; no live A/B.
 4. **Battle STATUS telemetry** — the turn log prints `[Confused]` etc. Promoted. It refuted
    `#24-bosstelemetry` lead 2 and made the status tax measurable for the first time.
-5. **§Ch16 (Slateport Harbor) BUILT and RE-DRIVEN** — it got out of the hideout, crossed the
-   region into Slateport, and hit a **new** blocker on the last step of leg 1: **KI-57**.
+5. **✅ §Ch16 (Slateport Harbor) COMPLETE — driven PASS three times, frame-identical.**
+   `harbor_state=2 controllable=True map=SLATEPORT_CITY_HARBOR at=(8,13)`. Legs 2-4 had never
+   been exercised before today. The blocker (**KI-57**) was Capt. Stern standing in the only
+   tile touching the harbor door — ‼ **put there by Ch15's own Maxie script** — and the answer
+   was not a route but a conversation: talking to him `warp`s the player inside. Anchor
+   `saves/post_harbor.ss1` is captured on every PASS.
 6. **A whole hardening round** (see below).
 7. **✅ KI-56 FIXED — §Ch15 now LEAVES the Magma Hideout.** Cause confirmed against the whole
    eight-map warp graph (no walk-out exists), fixed with the Escape Rope the dungeon itself
@@ -139,27 +143,22 @@ run that walked all the way back down to `1F (25,34)`; the warp graph says 3F_3R
 there, but that is static.
 ## ⏭ NEXT ACTIONS, IN ORDER
 
-1. **‼ KI-57 — Capt. Stern stands on Ch16's target tile. This is the next action.**
-   Beating Maxie sets `VAR_SLATEPORT_CITY_STATE=1`, whose `OnTransition` runs
-   `setobjectxyperm LOCALID_SLATEPORT_CAPT_STERN, 28, 13` — and `SLATEPORT_HARBOR_DOOR_APPROACH`
-   **is** `(28,13)`. ‼ **Completing Ch15 spawns Ch16's blocker.** Stationary ⇒ deterministic.
-   ‼ **Do NOT just pick another staging tile** — measured, that cannot work: `(28,13)` is a
-   one-tile neck, and the door's neighbours `(27,12)/(29,12)/(28,11)` are in a DIFFERENT component
-   from every tile the bot can reach. **Start from the lead in KI-57:** the ROM warp table has a
-   second, unused harbor entrance, **warp 9 at `(40,7)`** (`(39,7)` plans in 37 wp), but `(40,7)`
-   itself did not plan and its harbor-side arrival `(19,15)` raised `IndexError`. That is one
-   probe's work. Repro fixture: `saves/stalls/ch16b-f20252.ss1`; probe:
-   `probe_slateport_harbor_approach.py`.
-   ‼ Also unmeasured: the run **whited out once** on the Jagged Pass -> Slateport haul.
-
-2. **Then re-drive §Ch16.** **Legs 2-4 have still never been exercised.** Command:
+1. **‼ BUILD §Ch17 — the Lilycove AQUA HIDEOUT.** This is the next unbuilt beat and Ch16 has
+   just unblocked its door (the Aqua-escape scene clears the two grunts). The build anchor
+   already exists: **`saves/post_harbor.ss1`** (VOLATILE — copy it to a name nothing writes to
+   before measuring on it). Re-capture it any time with:
    ```
    cd tools/story-dev
-   PYTHONUTF8=1 py -3.12 verify_fixtures.py --assert post_maxie.ss1=19399688e730 &&    PYTHONUTF8=1 COLUMNS=400 py -3.12 story_harness.py post_maxie.ss1        --driver slateporttheft --frames 2500000 --profile ch16b
+   PYTHONUTF8=1 py -3.12 verify_fixtures.py --assert post_maxie.ss1=19399688e730 &&    PYTHONUTF8=1 COLUMNS=400 py -3.12 story_harness.py post_maxie.ss1        --driver slateporttheft --frames 40000 --profile ch16e
    ```
-   Acceptance is BOTH halves: `SLATEPORT_HARBOR_STATE == 2` **AND** controllable.
-   ‼ Still-unmeasured risk on the later legs: **KI-53** (`ROUTE110 → SLATEPORT_CITY` fails
-   statically while the exact reverse plans in 30 wp). A static FAIL is not a verdict.
+   ‼ Before designing a route through that hideout, read the playbook's two NEW rows: **grep the
+   map's `scripts.inc` for a blocking NPC's `LOCALID_` first**, and **`calculate_path` does not
+   validate its source tile**. Both were paid for today.
+
+2. **‼ THE WHITEOUT ON THE SLATEPORT HAUL IS UNMEASURED.** Every Ch16 run so far reports
+   `whiteouts=1` on the Jagged Pass → Slateport leg. It recovers and the chapter still passes, so
+   nothing forces a look — which is exactly why it will keep being skipped. Find out what it is
+   losing to.
 
 3. **Optional hardening of the §Ch15 exit:** drive it from a run that walks back down to
    `1F (25,34)` rather than from 4F. The warp graph says 3F_3R is reachable from there, but only

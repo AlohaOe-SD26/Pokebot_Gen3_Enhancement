@@ -11426,3 +11426,34 @@ harbor-side arrival raised `IndexError`. One probe's worth of work, not a fix.
 
 ‼ The run also WHITED OUT once on the haul, which is unmeasured; `(19,20)` is the Slateport
 Pokémon Center doorstep, i.e. a recovery position rather than a walked-to one.
+
+## 2026-08-11 (night) — ✅ §Ch16 COMPLETE: the Slateport submarine theft runs end to end
+
+```
+[ch16] PRE-STEP done - now at JAGGED_PASS(16, 19)
+[ch16] RESULT harbor_state=2 controllable=True map=SLATEPORT_CITY_HARBOR at=(8, 13) whiteouts=1
+[ch16] ACCEPTANCE: PASS (needs harbor_state==2 AND controllable==True)
+```
+**Legs 2-4 had never been exercised before today.** Reproduced twice, frame-identical.
+
+**KI-57 resolved by reading the game rather than routing around it.** `probe_slateport_harbor_map.py`
+draws the collision map with live objects overlaid and shows the harbor door `(28,12)` set into a
+solid wall with `(28,13)` — Capt. Stern's tile — as its ONLY neighbour. The door is genuinely
+sealed. But it is not meant to be walked through in this era:
+`SlateportCity_EventScript_CaptStern` ends with `removeobject`, `setvar VAR_SLATEPORT_CITY_STATE, 2`
+and **`warp MAP_SLATEPORT_CITY_HARBOR, 11, 14`** — *talking to him carries the player in*, landing
+on the same tile the door warp uses, so leg 3 needed no change.
+
+§Ch16 legs 1+2 are now "walk to `(27,13)`, face Right, ride the scene"; the old door-walking path
+survives as the **resume branch** for `_city_state() >= 2` (Stern already removed). New helper
+`_city_state()` with the same no-`VAR_`-prefix guard as `_harbor_state()`.
+
+**New probe** `probe_slateport_harbor_map.py` (ASCII collision map + object overlay, with a
+planner-agreement control and an object control).
+
+**Driver:** `slateporttheft` now captures `saves/post_harbor.ss1` on a PASS only — the build anchor
+for the next chapter (Lilycove Aqua Hideout), whose blocking grunts this scene clears. VOLATILE by
+construction.
+
+‼ **Still unmeasured:** the run **whited out once** on the Jagged Pass -> Slateport haul, on both
+attempts. Not investigated.
