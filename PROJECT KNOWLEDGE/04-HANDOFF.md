@@ -143,19 +143,22 @@ run that walked all the way back down to `1F (25,34)`; the warp graph says 3F_3R
 there, but that is static.
 ## ⏭ NEXT ACTIONS, IN ORDER
 
-1. **‼ BUILD §Ch18 — the SEAFLOOR CAVERN.** Team Aqua fled there in the submarine, and §Ch17 is
-   what sent them. The build anchor already exists: **`saves/post_aqua.ss1`** (VOLATILE — copy it
-   to a name nothing writes to before measuring on it), party 90% HP, captured on a Ch17 PASS.
-   Re-capture any time with:
-   ```
-   cd tools/story-dev
-   PYTHONUTF8=1 py -3.12 verify_fixtures.py --assert post_harbor.ss1=32adff78b86b &&    PYTHONUTF8=1 COLUMNS=400 py -3.12 story_harness.py post_harbor.ss1        --driver aquahideout --frames 400000 --profile ch17c
-   ```
-   ‼ Start with `probe_aqua_hideout_graph.py` as the TEMPLATE — the warp-graph instrument has now
-   solved two dungeons (Magma, Aqua) and the Seafloor Cavern is a third of the same kind. And
-   read the playbook rows paid for today: **grep `scripts.inc` for a blocking NPC's `LOCALID_`
-   first**, **`calculate_path` does not validate its source tile**, and **a warp table gives the
-   WARP's tile, not the landing tile**.
+1. **‼ RESOLVE KI-58, THEN BUILD §Ch18 (the Mossdeep Gym).** ‼ **The Seafloor Cavern is NOT next
+   — it is three beats away.** The decomp says `HM08 Dive` comes from
+   `MossdeepCity_StevensHouse_EventScript_StevenGivesDive`, which also sets
+   `FLAG_HIDE_SEAFLOOR_CAVERN_ENTRANCE_AQUA_GRUNT`, so Steven's gift is the real gate. The mapped
+   arc (`#24-remainingarc`): **§Ch18** Mossdeep Gym → `BADGE07`; **§Ch19** Space Center → sets
+   `VAR_STEVENS_HOUSE_STATE`; **§Ch20** Steven gives Dive; **§Ch21** Seafloor Cavern.
+
+   **KI-58 blocks §Ch18 before it starts.** The gym looks like the two hideouts (14 warps, 12
+   same-map) but the warp-graph method does NOT solve it: its tiles are `MB_MOSSDEEP_GYM_WARP`, a
+   distinct behaviour, and two links of the apparent chain have no walkable counterpart while
+   collision AND elevation are both permissive. `probe_warp_maze.py` **refused** rather than
+   guessing. Read how the decomp handles that behaviour first.
+   ‼ §Ch18's boss is also a **DOUBLE battle** with a "need two Pokémon" branch — a party
+   constraint no earlier chapter has had, and the party still carries Zigzagoon L11 / Skitty L17.
+
+   Anchor: **`saves/post_aqua.ss1`** (VOLATILE; party 90%, Master Ball held).
 
 2. ✅ **DONE — the Slateport-haul whiteout is FIXED** (`whiteouts=0`, PASS, and 5,457 frames
    faster). Cause: the anchor hands Ch16 a party at **8.8% HP with 5 of 6 fainted**, and the

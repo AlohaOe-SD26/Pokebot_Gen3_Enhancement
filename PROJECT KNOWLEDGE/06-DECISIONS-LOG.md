@@ -1616,3 +1616,30 @@ false assumption.
 **Cost accepted.** The route is STATIC — six Aqua grunts (`FLAG_HIDE_AQUA_HIDEOUT_GRUNTS`) are
 invisible to the planner, and §Ch15 was bitten three times trusting a static answer about a
 dungeon. The route means "worth driving", and the driven run is the proof.
+
+## 2026-08-12 — the warp-maze solver is now a TOOL, and its control is a route we already drove
+
+**Decision.** Generalise the one-off hideout probes into `tools/story-dev/probe_warp_maze.py`,
+parameterised by a `MAZES` table (anchor, maps, start, goal tiles, planner control), and make its
+self-check **reproduce the §Ch17 Aqua Hideout route that has already been driven to a PASS**.
+
+**Why.** Three dungeons in a row have had the same shape — rooms joined by warps rather than
+corridors, which no planner here can cross (`calculate_path` "is not able to use warps"): the Magma
+Hideout (KI-56), the Aqua Hideout (§Ch17), and now the Mossdeep Gym. Rule of three; the method was
+already written twice.
+
+**Why that control and not a fresh assertion.** A regenerated route is only trustworthy if the
+generator still produces a route we know works in the real game. Comparing against a **driven**
+prefix turns the tool's own refactoring into a testable claim. ‼ It earned its keep immediately:
+the first version of the check compared bare TILES after filtering maze maps in, and reported FAIL
+on a route that was perfectly correct. It now compares full `(map, tile)` nodes — *a control that
+is ambiguous about what it compares cries wolf, and a control that cries wolf gets ignored.*
+
+**Carried into the tool:** the panel-crossing rule (a walk edge only counts if the path's
+intermediate waypoints avoid warp tiles) and the reason `Waypoint.is_warp` cannot express it
+(`map_path.unroll_path` sets it only on the final waypoint).
+
+**Cost accepted / what it does NOT do.** It solves **warp-EVENT** mazes. It did **not** solve the
+Mossdeep Gym — see `05-KNOWN-ISSUES` KI-58: that gym's tiles carry a distinct metatile behaviour,
+`MB_MOSSDEEP_GYM_WARP`, and are a different mechanic. The tool refused rather than guessing, which
+is the behaviour that matters.

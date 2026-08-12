@@ -11603,3 +11603,33 @@ waypoint (`len(result) == 0`), so intermediate panels read as ordinary ground. T
 coordinates against the ROM warp table.
 
 **Promoted to `custom-pokebot`** alongside the rest of the story work approved today.
+
+## 2026-08-12 — the remaining story arc MAPPED, and the warp-maze solver generalised
+
+**‼ The next beat is NOT the Seafloor Cavern.** My own handoff said it was; the decomp says
+otherwise, and checking beat the assumption. `HM08 Dive` comes from
+`MossdeepCity_StevensHouse_EventScript_StevenGivesDive`, which also sets
+**`FLAG_HIDE_SEAFLOOR_CAVERN_ENTRANCE_AQUA_GRUNT`** — so Steven's gift is the real gate on the
+cavern, and three beats sit in front of it. The remaining arc, with its gates:
+
+| beat | content | gate it sets |
+|---|---|---|
+| §Ch18 | travel Lilycove → Mossdeep, **Mossdeep Gym** (`trainerbattle_double TRAINER_TATE_AND_LIZA_1`) | `FLAG_BADGE07_GET` (Mind Badge) |
+| §Ch19 | **Mossdeep Space Center** (Magma attack) | sets `VAR_STEVENS_HOUSE_STATE` |
+| §Ch20 | **Steven's house** — receives HM08 Dive | `FLAG_RECEIVED_HM_DIVE` + unhides the cavern entrance guard |
+| §Ch21 | **Seafloor Cavern** (Kyogre) | — |
+
+‼ §Ch18's boss is a **DOUBLE battle** and its script has a "need two Pokémon" branch
+(`MossdeepCity_Gym_Text_TateAndLizaNeedTwoMons`) — a party constraint no earlier chapter has had.
+
+**`probe_warp_maze.py`** — the hideout warp-graph method, generalised to a `MAZES` table now that a
+third dungeon needs it. Carries the panel-crossing rule and the `Waypoint.is_warp` caveat. ‼ Its
+self-check **reproduces the §Ch17 Aqua Hideout route that has been DRIVEN to a PASS**, node for
+node, so refactoring the tool is a testable claim rather than a hope.
+
+**Honest result: it solved one of the two mazes it was pointed at.** Aqua reproduces exactly;
+**Mossdeep Gym does NOT solve, and the tool withheld its verdict** — now written up as **KI-58**.
+The gym's tiles carry a distinct behaviour, **`MB_MOSSDEEP_GYM_WARP`**, not ordinary warp events, so
+the warp-table method models them wrongly: two links of the apparent chain have no walkable
+counterpart while collision and elevation are both permissive. That is a different mechanic and
+needs its own study before §Ch18 is built.

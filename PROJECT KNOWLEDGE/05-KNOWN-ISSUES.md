@@ -2718,3 +2718,47 @@ the door" that "reach it in 1 wp" but sit in a different component. **They are w
 happily returns one. Every "OK, 1 wp" in that table was an artifact.
 ⇒ **A `calculate_path` result is only evidence about the DESTINATION side unless the source has
 been independently shown to be walkable.**
+
+## KI-58 — the MOSSDEEP GYM is not a warp-event maze; its tiles are `MB_MOSSDEEP_GYM_WARP` (2026-08-12, severity: MEDIUM, blocks §Ch18, MEASURED)
+
+Found while reconning §Ch18 with the newly generalised `probe_warp_maze.py`. The gym *looks* like
+the two hideouts — `MossdeepCity_Gym/map.json` has **14 warps, 12 of them same-map** in 6 pairs —
+so the warp-graph method should have solved it. It does not, and the tool **withheld its verdict**
+rather than guessing.
+
+### WHAT WAS MEASURED
+The gym is genuinely a set of disconnected rooms joined only by those tiles (collision map drawn
+tile-by-tile). The apparent chain from the entrance is:
+```
+(6,34) --walk--> (1,33) --warp--> (20,24) --walk--> (23,20) --warp--> (9,18)
+       --walk--> (7,18) --warp--> (8,12) --walk?--> (11,3) --warp--> (11,35) --walk?--> (13,32)
+       --warp--> (21,10) --walk--> (23,8)  [beside Tate & Liza at (23,7)/(24,7)]
+```
+Four of those walks plan cleanly and **two do not**:
+| link | result |
+|---|---|
+| `(6,34) -> (1,33)` | OK, 10 wp, panel-free |
+| `(20,24) -> (23,20)` | OK, 7 wp |
+| `(9,18) -> (7,18)` | OK, 2 wp |
+| `(21,10) -> (23,8)` | OK, 4 wp |
+| **`(8,12) -> (11,3)`** | **FAIL, no path** |
+| **`(11,35) -> (13,32)`** | **FAIL, no path** |
+
+‼ **And it is neither collision nor elevation.** Every tile along both failing links reads
+`collision=0`, and the elevations alternate `0`/`3` — where `0` is the wildcard `map_path` accepts
+against anything (`tile.elevation not in (0, 15)`), so no transition there should be refused.
+
+### THE CAUSE — a distinct metatile BEHAVIOUR, not a warp event
+Reading `tile_type` on those tiles returns **`'Mossdeep Gym Warp'`** (`MB_MOSSDEEP_GYM_WARP`), not
+the ordinary warp behaviour the hideouts use. That is its own mechanic: in the decomp these tiles
+choose a destination from gym-specific logic rather than simply firing the warp event at their
+coordinates, so **modelling them as ordinary warp-table edges is wrong** — which is exactly why two
+links in a chain built that way have no walkable counterpart.
+
+### WHAT THIS MEANS FOR §Ch18
+The Aqua/Magma method does **not** transfer. Before building, read how the decomp handles
+`MB_MOSSDEEP_GYM_WARP` (start from `src/field_control_avatar.c` / `src/overworld.c` and the gym's
+own scripts) and decide whether the traversal can be expressed as a route at all, or has to be
+driven as a sequence of directional steps.
+‼ Do NOT extend `probe_warp_maze.py`'s `MAZES` table with a "fixed" Mossdeep entry until that
+question is answered — the tool's value is that it refuses mazes it cannot model.
