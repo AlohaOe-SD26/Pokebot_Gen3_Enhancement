@@ -30,7 +30,7 @@ burden here is so heavy, and why negative results are treated as the most valuab
 |---|---|
 | branch / HEAD | `main`, **clean, 0 unpushed** |
 | box | **IDLE.** Nothing running. Last batch `20260811-130454` (VERDICT OK, 28 runs). |
-| story content | ‼ §Ch18 leg 2 (the gym PUZZLE) driven PASS 2026-08-12; Tate & Liza not yet fought. Littleroot → 6 badges → Mt. Pyre → Magma Hideout (and out) → Slateport submarine theft → **the Lilycove AQUA HIDEOUT (with the MASTER BALL)**. **18 of 24 ladder beats.** |
+| story content | ✅ **§Ch18 COMPLETE 2026-08-12 — the MIND BADGE is won and wired into the ladder. 19 of 24 beats.** Littleroot → 6 badges → Mt. Pyre → Magma Hideout (and out) → Slateport submarine theft → **the Lilycove AQUA HIDEOUT (with the MASTER BALL)**. (was 18 of 24 before Ch18.) |
 | ‼ is code frozen? | **No.** Nothing is running. |
 | upstream | checked **2026-08-12**, still `5dd898f8` — no change. Daily check DONE. |
 | restore point | **`restore/2026-08-11-all-promoted`** (annotated, pushed, verified on the remote) |
@@ -169,29 +169,33 @@ run that walked all the way back down to `1F (25,34)`; the warp graph says 3F_3R
 there, but that is static.
 ## ⏭ NEXT ACTIONS, IN ORDER
 
-1. **‼ §Ch18 — FIGHT TATE & LIZA. The PUZZLE IS SOLVED AND DRIVEN (2026-08-12); the gym battle is
-   all that remains of the chapter.**
-   ✅ Leg 1: `--driver mossdeeptravel` heals, Surfs Lilycove → Mossdeep, enters the gym
-   (PASS, `whiteouts=0`), anchor **`saves/in_mossdeep_gym.ss1`**.
-   ✅ **Leg 2: `--driver mossdeepgym` SOLVES AND WALKS THE STATUE PUZZLE — driven PASS.**
-   `at_leaders=True map=MOSSDEEP_CITY_GYM at=(23,8) controllable=True whiteouts=0`, the 117-step
-   route walked **in a single plan with zero re-plans**. New anchor
-   **`saves/at_mossdeep_leaders.ss1`**, standing on the tile that faces Tate.
+1. **✅ §Ch18 IS DONE (2026-08-12) — the Mind Badge is won and Segment 18 is wired into the ladder.**
+   The ladder now runs **19 of 24 beats**. Three drivers, all PASS:
+   * `--driver mossdeeptravel` → Surf Lilycove → Mossdeep, enter the gym. Anchor
+     `saves/in_mossdeep_gym.ss1`.
+   * `--driver mossdeepgym` → solve the statue puzzle. `at_leaders=True at=(23,8) whiteouts=0`,
+     117 steps in a single plan. Anchor `saves/at_mossdeep_leaders.ss1`.
+   * `--driver mossdeepbadge` → the whole chapter. `badge=True at=(23,8) controllable=True
+     whiteouts=0`, `BADGE07_GET` after 754 frames. Anchor **`saves/post_mossdeep_gym.ss1`**.
 
-   ⏭ **WHAT IS LEFT:** face NORTH from `(23,8)` and press A. It is a **DOUBLE battle** requiring
-   **≥2 usable Pokémon** (`GetMonsStateToDoubles`: a party count of 1 short-circuits; otherwise it
-   needs ≥2 non-egg party members at HP > 0). The party carries Sceptile L47 / Swellow L40 /
-   Mightyena L43 / Castform L36 plus Zigzagoon L15 and Skitty L17, so the gate is satisfied — but
-   check HP at the anchor before assuming. Beating them sets `BADGE07`.
-   ‼ **Grade the chapter on the badge AND controllable**, not the badge alone — `BADGE07` is set
-   mid-script, so a flag-only test would call a `lockall`ed avatar a success (the
-   `EventScript_ActivateStrength` trap that KI-56 was built on).
+   ‼ **TWO PATHS REMAIN UNEXERCISED, and neither should be described as tested.** (a) The
+   executor's own `_ride_out_interruption` branch logged **zero** times — the trainer battles that
+   fired were handled by the standard `TrainerApproachListener` / `BattleListener`. (b) The **real
+   whiteout path**: both runs had `whiteouts=0`, so the recovery is proven only by fault injection
+   (`repro_gym_whiteout_guard.py`), never by a live loss.
 
-   ‼ **THE EXECUTOR'S INTERRUPTION BRANCH IS UNEXERCISED.** Two gym trainer battles DID fire during
-   the PASS (frames 49670, 50040) and were won by the bot's standard `TrainerApproachListener` /
-   `BattleListener` machinery — `modules/story/mossdeep_gym.py`'s own `_ride_out_interruption` path
-   logged **zero** times. It is a safety net that has never been needed, not a proven path. Do not
-   describe it as tested.
+   ‼ **WHAT ADVERSARIAL REVIEW CAUGHT THAT THE PASSING RUN COULD NOT.** `walk_to_the_leaders`
+   checked the gym map only at entry and then reasoned in gym-local coordinates forever — a
+   whiteout would have had it planning gym routes from Pokémon Center coordinates — and it raised
+   `RuntimeError` where the chapter catches `BotModeError`, so the re-enter-and-re-solve recovery
+   **could never have fired**. Both fixed. *A green happy-path run says nothing about error paths.*
+
+⏭ **NEXT: §Ch19, the MOSSDEEP SPACE CENTER.** Beating the leaders has already done its setup —
+   `Common_EventScript_SetGymTrainers` case 7 force-sets all 12 gym trainer flags, and the script
+   sets `VAR_MOSSDEEP_CITY_STATE=1`, `VAR_MOSSDEEP_SPACE_CENTER_STATE=1` and CLEARS
+   `FLAG_HIDE_MOSSDEEP_CITY_TEAM_MAGMA`, `..._SPACE_CENTER_1F_TEAM_MAGMA`, `..._2F_TEAM_MAGMA`,
+   `..._2F_STEVEN`. Start from `saves/post_mossdeep_gym.ss1`. Then §Ch20 (Steven gives **HM08
+   Dive** — the real gate) and §Ch21 (Seafloor Cavern).
 
    ✅ **`sandbox-pokebot/modules/story/mossdeep_gym_puzzle.py` simulates the puzzle offline**, and
    `probe_gym_simulate.py` **PASSES**: 11/11 loaded objects predicted on a live press, identity-keyed

@@ -1667,3 +1667,24 @@ move. Three agents agreeing is a strong search signal and still not proof.
 
 **Alternative rejected:** asking per-use. The approval is standing precisely because the cost of
 asking exceeded the cost of the tokens.
+
+## 2026-08-12 — §Ch18's chapter function lives in `mossdeep_gym.py`, not `early_game.py`
+
+**Decision.** `do_mossdeep_gym_chapter()` is defined in `modules/story/mossdeep_gym.py` alongside
+the puzzle executor, and `plugins/custom_modes/story_mode.py` imports it from there. Every previous
+chapter (§Ch1-§Ch17) is defined in `modules/story/early_game.py`.
+
+**Why.** `early_game.py` is already 8,769 lines. All of §Ch18's logic — the puzzle model, the BFS
+solver, the executor, the leader fight — is gym-specific and already lives in its own module, so
+putting the chapter anywhere else would separate it from the only code it drives. The import site in
+the ladder is one line either way.
+
+**Alternatives rejected.**
+* *Put it in `early_game.py` for consistency.* Rejected: consistency with a file that is already too
+  large is not a virtue, and the chapter would then reach across modules for every helper it uses.
+* *Put the whole gym in `early_game.py`.* Rejected outright — it would add ~600 lines to the file the
+  project most needs to stop growing.
+
+**Consequence to watch.** There are now two places a chapter can live. If a third such module
+appears, the convention should be made explicit in `02-ARCHITECTURE.md` rather than left as
+precedent — a split that nobody wrote down is how the next agent ends up looking in the wrong file.

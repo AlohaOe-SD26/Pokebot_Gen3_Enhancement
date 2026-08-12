@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "normancounter"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "normancounter"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -2742,6 +2742,109 @@ class MossdeepGymMode(BotMode):
         return
 
 
+class MossdeepBadgeMode(BotMode):
+    """Ch18 END TO END - drive `do_mossdeep_gym_chapter()` and grade it on the Mind Badge.
+
+        PYTHONUTF8=1 py -3.12 story_harness.py at_mossdeep_leaders.ss1 --driver mossdeepbadge \
+            --frames 400000 --profile ch18c
+
+    ANCHORS: `saves/at_mossdeep_leaders.ss1` (standing at (23,8), puzzle already solved - the fast
+    way to exercise the BATTLE) or `saves/in_mossdeep_gym.ss1` (at the gym door - exercises the
+    whole chapter, puzzle included). The chapter is resume-safe and handles both.
+
+    ACCEPTANCE IS BOTH HALVES: `BADGE07_GET` AND controllable. Grading on the flag alone would call
+    a `lockall`ed avatar a success, because the badge is set MID-SCRIPT - the
+    `EventScript_ActivateStrength` trap that KI-56 was built on.
+
+    WHAT IS MOST LIKELY TO FAIL, said in advance. Tate & Liza are a DOUBLE battle and the game sends
+    out the first TWO party slots. On the current anchor that is Sceptile L47 and **Zigzagoon L15**,
+    which will faint almost immediately; the run is expected to win anyway on the strength of the
+    rest, but a whiteout is the realistic failure. A whiteout is EXPENSIVE here: it leaves the gym,
+    and leaving RESETS the statue puzzle, so the chapter re-enters and re-solves all 117 steps. It
+    allows three attempts before failing.
+
+    Emits: [ch18c] RESULT badge=<bool> map=<enum> at=<tile> controllable=<bool> whiteouts=<n>
+    """
+
+    _whiteouts = 0
+
+    @staticmethod
+    def name():
+        return "MossdeepBadge"
+
+    def on_battle_started(self, encounter):
+        from modules.battle_strategies import DefaultBattleStrategy
+
+        if encounter is None:
+            from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+            return StoryItemBattleStrategy()
+        return DefaultBattleStrategy()
+
+    def on_whiteout(self) -> bool:
+        MossdeepBadgeMode._whiteouts += 1
+        log(f"[ch18c] WHITEOUT #{MossdeepBadgeMode._whiteouts} - recovering, as StoryMode does")
+        return True
+
+    def run(self):
+        import os
+
+        from modules.map_data import MapRSE
+        from modules.memory import get_event_flag
+        from modules.player import get_player_avatar, player_avatar_is_controllable
+        from modules.pokemon_party import get_party
+        from modules.story.early_game import wait_until_truly_controllable
+        from modules.story.mossdeep_gym import do_mossdeep_gym_chapter
+
+        yield from wait_until_truly_controllable()
+
+        def here():
+            avatar = get_player_avatar()
+            return tuple(avatar.map_group_and_number), tuple(avatar.local_coordinates)
+
+        def map_name(mgn):
+            try:
+                return MapRSE(mgn).name
+            except Exception as error:  # noqa: BLE001 - report the raw tuple rather than crash
+                return f"?{mgn}({type(error).__name__})"
+
+        mgn, tile = here()
+        try:
+            party = " ".join(f"{m.species.name}:L{m.level}:{m.current_hp}/{m.total_hp}"
+                             for m in get_party() if m is not None)
+        except Exception as error:  # noqa: BLE001 - an unreadable party is reported, not hidden
+            party = f"<unreadable: {type(error).__name__}>"
+        log(f"[ch18c] START {map_name(mgn)}{tile} badge={get_event_flag('BADGE07_GET')}")
+        log(f"[ch18c] PARTY {party}")
+
+        error_text = ""
+        try:
+            yield from do_mossdeep_gym_chapter()
+        except Exception as error:  # noqa: BLE001 - the failure IS the measurement
+            error_text = f"{type(error).__name__}: {str(error)[:900]}"
+            log(f"[ch18c] FAILED: {error_text}")
+
+        mgn, tile = here()
+        try:
+            ctrl = player_avatar_is_controllable()
+        except Exception as error:  # noqa: BLE001
+            ctrl = f"<unreadable: {type(error).__name__}>"
+        badge = get_event_flag("BADGE07_GET")
+        ok = badge and ctrl is True
+        log(f"[ch18c] RESULT badge={badge} map={map_name(mgn)} at={tile} controllable={ctrl} "
+            f"whiteouts={MossdeepBadgeMode._whiteouts} frames={context.emulator.get_frame_count()}"
+            + (f" error=({error_text})" if error_text else ""))
+        log(f"[ch18c] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (needs BADGE07_GET AND controllable)")
+
+        if ok and os.environ.get("CH18C_CAPTURE", "1") != "0":
+            out = SAVES / "post_mossdeep_gym.ss1"
+            out.write_bytes(context.emulator.get_save_state())
+            log(f"[ch18c] captured anchor -> {out}")
+
+        context.set_manual_mode()
+        return
+
+
 class AquaHideoutMode(BotMode):
     """§Ch17 - drive `do_aqua_hideout_chapter()` from the post-Ch16 anchor.
 
@@ -4615,6 +4718,8 @@ for step in range(args.frames):
             context.bot_mode_instance = MossdeepTravelMode()
         elif args.driver == "mossdeepgym":
             context.bot_mode_instance = MossdeepGymMode()
+        elif args.driver == "mossdeepbadge":
+            context.bot_mode_instance = MossdeepBadgeMode()
         elif args.driver == "slateporttheft":
             context.bot_mode_instance = SlateportTheftMode()
         elif args.driver == "teachfull":

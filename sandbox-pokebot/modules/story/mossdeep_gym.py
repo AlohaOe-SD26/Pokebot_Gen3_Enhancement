@@ -145,7 +145,9 @@ def _step_towards(target: tuple[int, int]) -> Generator:
     delta = (target[0] - start[0], target[1] - start[1])
     direction = _DIRECTION_FOR_DELTA.get(delta)
     if direction is None:
-        raise RuntimeError(f"Mossdeep Gym: {target} is not adjacent to {start}")
+        from modules.modes import BotModeError
+
+        raise BotModeError(f"Mossdeep Gym: {target} is not adjacent to {start}")
 
     for attempt in range(2):
         context.emulator.press_button(direction)
@@ -163,17 +165,47 @@ def _step_towards(target: tuple[int, int]) -> Generator:
 def walk_to_the_leaders(*, verbose: bool = True) -> Generator:
     """Solve the statue puzzle and end up standing on a tile that faces Tate & Liza.
 
-    :raises RuntimeError: if the gym is not solvable from where we stand, or if the simulated
+    :raises BotModeError: if the gym is not solvable from where we stand, or if the simulated
         statue map drifts from the game. Both are conditions the caller must not paper over.
     """
+    from modules.modes import BotModeError
     from modules.story.early_game import _ch14_say
 
     def say(message: str) -> None:
         if verbose:
             _ch14_say(message)
 
-    if not _on_gym_map():
-        raise RuntimeError("Mossdeep Gym: walk_to_the_leaders called outside the gym")
+    def require_in_gym(context_note: str) -> None:
+        """‼ THE MAP MUST BE RE-CHECKED, NOT CHECKED ONCE.
+
+        Everything in this module reasons in the gym's LOCAL coordinates. A whiteout — the
+        realistic outcome of losing one of the nine trainer battles this route walks through —
+        deposits the player in front of a Pokémon Center, on a different map, whose local (x, y)
+        is a perfectly valid-looking pair of numbers. Checking the map only at entry meant the
+        replan loop would happily feed those coordinates to `solve_route` and either misdiagnose
+        the failure ("the simulated statue map is wrong") or, worse, find a phantom route and
+        start pressing buttons in the Pokémon Center — and if its local tile happened to collide
+        with a switch tile, book a phantom rotation into the model.
+
+        Raising `BotModeError` is what makes the recovery work: `do_mossdeep_gym_chapter` catches
+        it, walks back in, and re-solves. Leaving the gym resets the puzzle, so re-solving from
+        the start is not merely acceptable — it is the only correct thing to do."""
+        if not _on_gym_map():
+            raise BotModeError(
+                f"Mossdeep Gym: no longer on the gym map ({context_note}) — almost certainly a "
+                "WHITEOUT. ‼ Leaving the gym RESETS the statue puzzle, so recovery is to re-enter "
+                "and solve all 117 steps again, not to walk back to where we were."
+            )
+
+    require_in_gym("at entry")
+
+    # ‼ ANSWER THE GOAL QUESTION BEFORE THE START-STATE QUESTION. Standing at the leaders means
+    # there is nothing to solve, and the statues are — correctly — NOT at their template positions
+    # any more. Checking the start state first would abort the resume case ("resumed mid-puzzle")
+    # on a save that is actually FINISHED with the puzzle, which is exactly the anchor this
+    # chapter's battle leg is driven from.
+    if _tile() in LEADER_APPROACH_TILES:
+        return
 
     puzzle = build_puzzle_from_emulator()
     warps = read_internal_warps()
@@ -184,13 +216,14 @@ def walk_to_the_leaders(*, verbose: bool = True) -> Generator:
     # puzzle and the honest fix is to leave and re-enter, not to guess where the statues are.
     drift = _state_disagreements(puzzle, state)
     if drift:
-        raise RuntimeError(
+        raise BotModeError(
             "Mossdeep Gym: the statues are not in their starting positions, so this run resumed "
             f"mid-puzzle ({'; '.join(drift[:4])}). Leave the gym and re-enter — the door warp "
             "reloads every template from ROM and provably resets the puzzle."
         )
 
     for replan in range(MAX_REPLANS):
+        require_in_gym(f"before plan #{replan + 1}")
         here = _tile()
         if here in LEADER_APPROACH_TILES:
             say(f"Story: Ch18 reached the leaders' tile {here}")
@@ -198,7 +231,7 @@ def walk_to_the_leaders(*, verbose: bool = True) -> Generator:
 
         route = solve_route(puzzle, here, warps, state=state)
         if route is None:
-            raise RuntimeError(
+            raise BotModeError(
                 f"Mossdeep Gym: no route to {sorted(LEADER_APPROACH_TILES)} from {here}. "
                 "‼ Measured 2026-08-12: no reachable configuration is unsolvable (114,929 states, "
                 "0 dead), so this means the simulated statue map is wrong, not that the gym is."
@@ -226,6 +259,13 @@ def walk_to_the_leaders(*, verbose: bool = True) -> Generator:
                 yield from _ride_out_interruption()
                 yield from _wait_until_ready()
 
+            # ‼ A whiteout can fire at any step here — losing one of the nine trainer battles this
+            # route walks through is the ordinary way it happens. Check the MAP before the tile
+            # below is interpreted as a gym coordinate or used to book a switch press. Ordered
+            # after the interruption ride on purpose: the whiteout sequence IS a scene, so ride it
+            # out first and then ask where we ended up.
+            require_in_gym(f"after stepping on {step.tile}")
+
             # ‼‼ UPDATE THE STATE FROM WHERE WE ACTUALLY ARE, NEVER FROM WHAT THE PLAN INTENDED.
             # The first driven run applied a purple press for a switch the bot never stood on: the
             # plan's next step was onto (23,21), a pending warp fired mid-step and carried us to
@@ -245,7 +285,7 @@ def walk_to_the_leaders(*, verbose: bool = True) -> Generator:
 
             drift = _state_disagreements(puzzle, state)
             if drift:
-                raise RuntimeError(
+                raise BotModeError(
                     f"Mossdeep Gym: the simulated statue map drifted from the game after stepping "
                     f"on {step.tile} ({'; '.join(drift[:4])}). Refusing to plan on it — a wrong "
                     "statue map fails dozens of steps later, far from its cause."
@@ -253,7 +293,172 @@ def walk_to_the_leaders(*, verbose: bool = True) -> Generator:
         else:
             continue  # the whole route ran without interruption; the loop head re-checks the goal
 
-    raise RuntimeError(
+    raise BotModeError(
         f"Mossdeep Gym: still not at the leaders after {MAX_REPLANS} plans. Each re-plan follows a "
         "real interruption, so this many means something is wrong rather than merely busy."
+    )
+
+
+BADGE_FLAG = "BADGE07_GET"
+
+#: Tate & Liza refuse to battle unless the player has two Pokemon that can fight. The game's own
+#: test (`GetMonsStateToDoubles`, `src/pokemon.c:4507`) is: a party count of exactly 1 fails
+#: outright; otherwise it needs at least two party members that are non-egg and at HP > 0.
+MINIMUM_USABLE_POKEMON = 2
+
+#: Bounded ride for the double battle plus its whole aftermath (badge, TM, messages). Generous
+#: because a double battle is long, but a BOUND - never `while True`.
+BATTLE_TIMEOUT_FRAMES = 60_000
+
+#: Consecutive frames off the gym map before we call it a whiteout. Debounced, because the map read
+#: is transient across a battle's own screen transitions and ending a healthy fight over one odd
+#: frame would be worse than the bug it guards. (The KI-51 lesson, applied at build time.)
+OFF_MAP_FRAMES_BEFORE_WHITEOUT = 300
+
+
+def _usable_pokemon() -> int:
+    """Party members that could take part in a double battle: non-egg, non-empty, HP > 0."""
+    from modules.pokemon_party import get_party
+
+    return sum(
+        1
+        for mon in get_party()
+        if mon is not None and not mon.is_egg and mon.species is not None and mon.current_hp > 0
+    )
+
+
+def fight_the_leaders() -> Generator:
+    """Talk to Tate & Liza from an approach tile and ride the double battle out until the badge.
+
+    THE TWO-POKEMON GATE IS CHECKED UP FRONT, NOT DISCOVERED. If the party cannot field two
+    battlers the leaders simply deliver a message and no battle starts - so an A/B mash loop would
+    spin for its entire timeout and then report "no badge" with no hint why. The game's own
+    condition is cheap to evaluate, so evaluate it and say the real reason.
+
+    A WHITEOUT HERE IS SPECIAL. Losing does not merely cost time: it teleports the player to a
+    Pokemon Center, and LEAVING THE GYM RESETS THE STATUE PUZZLE (the door tiles are ordinary warps,
+    so `LoadObjEventTemplatesFromHeader` re-copies every template from ROM). The whole 117-step
+    solve has to be redone. So the loss is detected and reported precisely rather than being left to
+    surface as a mysterious timeout - and `do_mossdeep_gym_chapter` is what re-solves.
+    """
+    from modules.memory import get_event_flag
+    from modules.modes import BotModeError
+    from modules.modes.util.walking import ensure_facing_direction
+    from modules.story.early_game import _ch14_say, _check_abort, _wait_until_cutscene_over
+
+    if get_event_flag(BADGE_FLAG):
+        return  # resume-safe
+
+    here = _tile()
+    if not _on_gym_map() or here not in LEADER_APPROACH_TILES:
+        raise BotModeError(
+            f"Mossdeep Gym: cannot challenge the leaders from {here} - must be standing on one of "
+            f"{sorted(LEADER_APPROACH_TILES)}. Tate and Liza stand on collision-1 tiles at "
+            "(23,7)/(24,7), so those tiles can never be walked onto."
+        )
+
+    usable = _usable_pokemon()
+    if usable < MINIMUM_USABLE_POKEMON:
+        raise BotModeError(
+            f"Mossdeep Gym: Tate & Liza are a DOUBLE battle and need {MINIMUM_USABLE_POKEMON} "
+            f"Pokemon able to fight; the party has {usable}. They would only show "
+            "'you need two Pokemon' and no battle would start. Heal before challenging them."
+        )
+
+    _ch14_say(f"Story: Ch18 challenging Tate & Liza from {here} ({usable} able to battle)...")
+    yield from ensure_facing_direction("Up")
+    yield
+
+    frames = 0
+    off_map = 0
+    while not get_event_flag(BADGE_FLAG):
+        _check_abort()
+        if frames > BATTLE_TIMEOUT_FRAMES:
+            raise BotModeError(
+                f"Mossdeep Gym: {BADGE_FLAG} still unset after {frames} frames at {_tile()}. "
+                f"Party able to battle: {_usable_pokemon()}."
+            )
+        try:
+            on_gym = _on_gym_map()
+        except Exception:  # noqa: BLE001 - an unreadable map must never end a healthy fight
+            on_gym = True
+        off_map = 0 if on_gym else off_map + 1
+        if off_map > OFF_MAP_FRAMES_BEFORE_WHITEOUT:
+            raise BotModeError(
+                "Mossdeep Gym: left the gym during the Tate & Liza fight without the badge - "
+                f"almost certainly a WHITEOUT ({frames} frames in). Leaving the gym RESETS the "
+                "statue puzzle, so recovering means re-entering and solving all 117 steps again."
+            )
+        context.emulator.press_button("B" if frames % 3 else "A")
+        frames += 1
+        yield
+
+    _ch14_say(f"Story: Ch18 {BADGE_FLAG} set after {frames} frames - riding out the aftermath")
+    # The badge is set MID-SCRIPT. Returning here would hand the ladder a `lockall`ed avatar and
+    # the next chapter would fail somewhere unrelated - the `EventScript_ActivateStrength` trap.
+    yield from _wait_until_cutscene_over("B")
+
+
+def do_mossdeep_gym_chapter() -> Generator:
+    """Chapter 18 - the Mossdeep Gym, end to end: solve the statue puzzle, then beat the leaders.
+
+    INTENT: set `BADGE07_GET` (the Mind Badge), which gates the rest of the story arc.
+    STORY CONDITION: the player is in Mossdeep, or already inside the gym.
+    GOAL/END STATE: the badge set AND the avatar controllable. Graded BINARY.
+
+    THE RETRY LOOP IS NOT DEFENSIVE PADDING - it is whiteout recovery, and this gym needs it more
+    than any other. A loss teleports the player out, and leaving the gym RESETS the puzzle, so
+    recovery is not "walk back to the leader" but "solve the whole thing again". The loop re-enters
+    and re-solves; `walk_to_the_leaders` is safe to call repeatedly because it verifies the statues
+    are at their starting positions before planning anything.
+
+    WHY THIS CHAPTER LIVES HERE AND NOT IN `early_game.py`. Every other chapter is in that file,
+    which is already 8,700 lines. All of Ch18's logic - the puzzle model, the solver, the executor -
+    is gym-specific and already in this module, so the chapter sits with the code it drives and
+    `story_mode.py` imports it from here. Recorded in `06-DECISIONS-LOG.md`.
+    """
+    from modules.map_data import MapRSE
+    from modules.memory import get_event_flag
+    from modules.modes import BotModeError
+    from modules.story.early_game import (
+        _ch14_say,
+        _enter_warp_by_navigation,
+        _navigate_riding_out,
+        wait_until_truly_controllable,
+    )
+
+    if get_event_flag(BADGE_FLAG):
+        return  # resume-safe
+
+    GYM_DOOR = (38, 9)  # MOSSDEEP_CITY warp 1 -> MOSSDEEP_CITY_GYM
+    attempts = []
+
+    for attempt in range(1, 4):
+        if get_event_flag(BADGE_FLAG):
+            return
+
+        if not _on_gym_map():
+            _ch14_say(f"Story: Ch18 attempt {attempt} - entering the Mossdeep Gym")
+            yield from _navigate_riding_out(MapRSE.MOSSDEEP_CITY, (38, 10))
+            yield from _enter_warp_by_navigation(
+                _on_gym_map, MapRSE.MOSSDEEP_CITY, GYM_DOOR, label="Mossdeep Gym door"
+            )
+            yield from wait_until_truly_controllable()
+
+        try:
+            yield from walk_to_the_leaders()
+            yield from fight_the_leaders()
+        except BotModeError as error:  # noqa: BLE001 - NOT swallowed. A whiteout is an EXPECTED
+            # outcome of a gym fight, and the only recovery is to re-enter and re-solve. Every
+            # attempt's reason is accumulated and raised together if all three fail.
+            attempts.append(f"attempt {attempt}: {str(error)[:200]}")
+            _ch14_say(f"Story: Ch18 attempt {attempt} failed - {str(error)[:120]}")
+            continue
+
+        if get_event_flag(BADGE_FLAG):
+            _ch14_say("Story: Ch18 complete - the Mind Badge is won")
+            return
+
+    raise BotModeError(
+        f"Mossdeep Gym: {BADGE_FLAG} still unset after 3 attempts. " + " | ".join(attempts)
     )

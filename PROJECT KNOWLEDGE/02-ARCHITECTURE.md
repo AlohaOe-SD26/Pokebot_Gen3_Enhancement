@@ -250,8 +250,15 @@ done
   `.ss1` is a full machine snapshot and **preserves battle callbacks / mid-script state**
   (measured 2026-08-09, 6 of 6), unlike a `.sav`. That makes a stall state a loadable fixture
   for bugs that need a runtime tail resident.
-- **`#24-mossdeepgym` (2026-08-12, model only — NOT yet wired into a chapter)** — the Mossdeep Gym
+- **`#24-mossdeepgym` (2026-08-12, COMPLETE — Segment 18 in the ladder)** — the Mossdeep Gym
   rotating-tile statue puzzle:
+  * `modules/story/mossdeep_gym.py` — the EXECUTOR and the chapter. ‼ It **re-solves rather than
+    replays**: nine trainers stand on the rotating pads and every rotation re-aims them, so a blind
+    117-step replay desynchronises the moment one fires. It walks until something unexpected
+    happens, then solves again from where it actually is.
+    ‼ **`do_mossdeep_gym_chapter()` lives here, not in `early_game.py`** — see `06-DECISIONS-LOG.md`.
+    ‼ Every raise is a `BotModeError`, because the chapter's whiteout retry catches exactly that
+    type; a `RuntimeError` here silently disables the recovery (and once did).
   * `modules/story/mossdeep_gym_puzzle.py` — a **PURE** simulator (`press(state, colour)`,
     `is_walkable(tile, state)`), so a 116-step route can be planned offline instead of pressed out
     on the emulator. `build_puzzle_from_emulator()` is the only impure part: it reads the arrow

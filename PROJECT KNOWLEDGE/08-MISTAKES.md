@@ -5051,3 +5051,34 @@ re-plans.**
 
 **Prevention rule.** *Never advance a world-model from the plan; advance it from the observation.
 A plan says what should have happened, and the whole reason to re-plan is that sometimes it didn't.*
+
+---
+
+## 2026-08-12 — my error TYPE silently disabled the recovery I had just written
+
+**Symptom.** None. §Ch18 passed end to end (`badge=True controllable=True whiteouts=0`) and every
+test I had written was green. An adversarial review of the diff found the defect instead.
+
+**Root cause, two halves of one mistake.** `walk_to_the_leaders()` verified it was on the gym map
+**once, at entry**, and then reasoned in gym-local coordinates for the rest of the route. A whiteout
+— the realistic outcome of losing one of the nine trainer battles that route walks through — leaves
+the player at a Pokémon Center, on a different map, whose local `(x, y)` is a perfectly ordinary
+pair of numbers. The replan loop would have handed those to `solve_route` and either misdiagnosed
+the failure as "the simulated statue map is wrong" or found a phantom route and started pressing
+buttons inside the Pokémon Center. Worse: it raised `RuntimeError`, while the chapter I had written
+around it catches `BotModeError` — so **the entire re-enter-and-re-solve recovery could never have
+fired**. I wrote the recovery and the thing that was supposed to trigger it in the same sitting, and
+never checked that one could reach the other.
+
+**Why no test caught it.** The driven PASS had `whiteouts=0`. The happy path cannot exercise a
+recovery path *by construction*, and I had treated a green end-to-end run as though it covered the
+module.
+
+**The fix that worked.** Re-check the map before every plan and after every step; make every raise
+in the module a `BotModeError`; and prove it with `repro_gym_whiteout_guard.py`, which INJECTS the
+fault (forces `_on_gym_map` False mid-route) rather than asserting the fix, with a control that the
+guard does not fire on the healthy path and a check that the chapter really retries three times.
+
+**Prevention rules.** *An error type is part of an interface: when you write a recovery, assert that
+the failure it recovers from can actually reach it.* And: *a green happy-path run says nothing about
+the error paths — if a branch exists because something can go wrong, make something go wrong.*

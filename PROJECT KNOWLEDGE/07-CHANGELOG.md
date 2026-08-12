@@ -11807,3 +11807,51 @@ ready now, never that nothing is about to start.** The drift guard caught bug 2 
   **unexercised**. It is a safety net that has never been needed, not a proven path.
 * This leg is graded on *reaching* the leaders, deliberately **not** on beating them, so that a
   navigation failure stays distinguishable from a battle failure. **Tate & Liza are not yet fought.**
+
+## 2026-08-12 (later still) — §Ch18 COMPLETE: the Mind Badge is won, and Ch18 is wired into the ladder
+
+```
+[ch18c] RESULT badge=True map=MOSSDEEP_CITY_GYM at=(23, 8) controllable=True whiteouts=0
+[ch18c] ACCEPTANCE: PASS (needs BADGE07_GET AND controllable)
+```
+`BADGE07_GET` set after 754 frames of the fight. Anchor **`saves/post_mossdeep_gym.ss1`** captured.
+The story ladder now runs **19 of 24 beats**.
+
+**Added** `fight_the_leaders()` and `do_mossdeep_gym_chapter()` to
+`modules/story/mossdeep_gym.py`, the `mossdeepbadge` driver, and Segment 18 in
+`plugins/custom_modes/story_mode.py`.
+
+* **The two-Pokémon gate is checked UP FRONT, not discovered.** Tate & Liza refuse a double battle
+  unless two party members can fight; without the check an A/B mash loop would spin for its whole
+  timeout and report "no badge" with no hint why.
+* **Graded on the badge AND controllable.** `BADGE07_GET` is set mid-script, so a flag-only test
+  would call a `lockall`ed avatar a success — the `EventScript_ActivateStrength` trap.
+* **The chapter allows three attempts**, because losing here is uniquely expensive: a whiteout
+  leaves the gym, and leaving RESETS the statue puzzle, so recovery means re-solving all 117 steps.
+
+### ‼ A REAL DEFECT FOUND BY ADVERSARIAL REVIEW, NOT BY TESTING
+An adversarial review of the executor found a bug the driven PASS could never have caught, because
+the PASS had `whiteouts=0`:
+1. `walk_to_the_leaders()` checked the gym map **once, at entry**, then reasoned in gym-local
+   coordinates forever. A whiteout deposits the player at a Pokémon Center — a different map whose
+   local `(x, y)` looks perfectly ordinary — so the replan loop would have fed those coordinates to
+   `solve_route`, and either misdiagnosed the failure or found a phantom route and started pressing
+   buttons inside the Pokémon Center.
+2. It raised `RuntimeError`, while the chapter catches only `BotModeError` — so the entire
+   re-enter-and-re-solve recovery **could never have fired**, even once the error was correct.
+
+Both fixed: the map is re-checked before every plan and after every step, and every raise in the
+module is now `BotModeError`. Proven by `tools/story-dev/repro_gym_whiteout_guard.py`, which injects
+the fault rather than asserting the fix.
+
+### Decomp facts confirmed for the aftermath (independent agent, cited to source)
+* The badge is set at `scripts.inc:66`, **before** the TM04 Calm Mind gift at line 80 — so a full
+  bag costs the TM, never the badge, and the bag-full branch `return`s into the caller and finishes
+  the script normally.
+* The player is **never moved**: no `applymovement`, no `warp`. The script ends in `release`, and
+  the avatar finishes on `(23,8)`/`(24,8)` facing north — exactly what the run observed.
+* Beating the leaders force-sets **all 12 gym trainer flags** via `Common_EventScript_SetGymTrainers`
+  case 7, and sets `VAR_MOSSDEEP_CITY_STATE=1`, `VAR_MOSSDEEP_SPACE_CENTER_STATE=1` and unhides
+  Team Magma + Steven at the Space Center — which is §Ch19's setup.
+* Re-talking after victory is harmless and always terminates in `release`, so the chapter is
+  resume-safe by the game's own design.

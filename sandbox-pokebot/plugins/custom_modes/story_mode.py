@@ -3550,11 +3550,33 @@ class StoryMode(BotMode):
             console.print("[dim]Story: Aqua Hideout already done — skipping.[/]")
         _guard("Aqua Hideout (Ch17)", lambda: _done("TEAM_AQUA_ESCAPED_IN_SUBMARINE"))
 
-        # END OF BUILT CONTENT. Next build: the SEAFLOOR CAVERN (ladder row 18) — Team Aqua
-        # fled there in the submarine, and Segment 17 is what sent them.
+        # --- Segment 18: the MOSSDEEP GYM (§Ch18, built 2026-08-12). ---
+        #     Surf from Lilycove to Mossdeep, then solve the gym's ROTATING-TILE STATUE PUZZLE
+        #     and beat Tate & Liza for the Mind Badge.
+        # ‼ THIS GYM IS NOT A MAZE AND NOT A WALK. Nine floor switches call
+        #     `moverotatingtileobjects`, which rotates every object standing on a matching
+        #     coloured arrow — including NINE OF THE TRAINERS. The corridors to three warp
+        #     panels are sealed by statues, so a plain collision planner is CORRECT to say
+        #     "no route" (that wrong answer cost four instruments and three write-ups; KI-58).
+        #     The route is searched over (player tile x every object position) on a model
+        #     validated against the live game, and re-solved after every interruption.
+        # ‼ LOSING HERE IS EXPENSIVE: a whiteout leaves the gym, and leaving RESETS the puzzle,
+        #     so the chapter re-enters and re-solves all 117 steps. It allows three attempts.
+        # ‼ Graded on the BADGE **and** controllable — `BADGE07_GET` is set mid-script, so a
+        #     flag-only test would call a `lockall`ed avatar a success.
+        from modules.story.mossdeep_gym import do_mossdeep_gym_chapter
+
+        if not _done("BADGE07_GET"):
+            yield from do_mossdeep_gym_chapter()
+        else:
+            console.print("[dim]Story: Mossdeep Gym already done — skipping.[/]")
+        _guard("Mossdeep Gym (Ch18)", lambda: _done("BADGE07_GET"))
+
+        # END OF BUILT CONTENT. Next build: the MOSSDEEP SPACE CENTER (§Ch19), then Steven's
+        # HM08 Dive (§Ch20) — which is the real gate on the Seafloor Cavern (§Ch21).
         context.message = (
-            "Story: TEAM AQUA FLED IN THE SUBMARINE - end of built content. "
-            "NEXT (WIP): the Seafloor Cavern. Handing to manual."
+            "Story: THE MIND BADGE IS WON - end of built content. "
+            "NEXT (WIP): the Mossdeep Space Center. Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         # ‼ Mark a GENUINE completion. Both this path and the give-up paths call
