@@ -155,10 +155,13 @@ there, but that is static.
    map's `scripts.inc` for a blocking NPC's `LOCALID_` first**, and **`calculate_path` does not
    validate its source tile**. Both were paid for today.
 
-2. **‼ THE WHITEOUT ON THE SLATEPORT HAUL IS UNMEASURED.** Every Ch16 run so far reports
-   `whiteouts=1` on the Jagged Pass → Slateport leg. It recovers and the chapter still passes, so
-   nothing forces a look — which is exactly why it will keep being skipped. Find out what it is
-   losing to.
+2. ✅ **DONE — the Slateport-haul whiteout is FIXED** (`whiteouts=0`, PASS, and 5,457 frames
+   faster). Cause: the anchor hands Ch16 a party at **8.8% HP with 5 of 6 fainted**, and the
+   chapter was passing only *because* a whiteout heals. Fix: `SLATEPORT_ROUTE_HEALS`,
+   nearest-first (Lavaridge → Mauville → Slateport). ‼ **Three other anchors are in the same
+   state** — `post_mtpyre` 11%/3 fainted, `post_winona` 29%/3 fainted — so any NEW chapter built
+   on one inherits the same latent whiteout. `probe_anchor_inventory.py` now prints the HP line
+   and says so. **Heal early in Ch17.**
 
 3. **Optional hardening of the §Ch15 exit:** drive it from a run that walks back down to
    `1F (25,34)` rather than from 4F. The warp graph says 3F_3R is reachable from there, but only

@@ -8105,6 +8105,48 @@ SLATEPORT_STERN_TILE = (28, 13)
 SLATEPORT_STERN_APPROACH = (27, 13)
 SLATEPORT_STERN_FACING = "Right"
 
+#: ‼‼ HEAL BEFORE THE HAUL. THIS IS A FIX FOR A MEASURED WHITEOUT, NOT A PRECAUTION - the same
+#: sentence `MAGMA_ROUTE_HEALS` carries, for the same reason, one chapter later.
+#:
+#: MEASURED on `post_maxie.ss1`, the anchor this chapter starts from: the party is at
+#: **47/534 HP = 8.8%**, with **five of six members at 0 HP** and only Swellow (47/112) standing.
+#: That is what the Magma Hideout hands over - Ch15 ends four floors deep having fought Tabitha,
+#: the grunts and Maxie, and nothing heals in between. Leg 1 then walks Jagged Pass -> Route 112
+#: -> Route 111 -> Mauville -> Route 110 -> Slateport on one damaged Pokémon, and every driven
+#: run so far lost a fight and whited out (`whiteouts=1`, three for three).
+#:
+#: ‼ AND THE WHITEOUT WAS HIDING THE BUG, because a whiteout HEALS: the chapter still reached
+#: `harbor_state=2` and `post_harbor.ss1` reads 100% party HP - so the acceptance test passed
+#: **because** the run failed. A green chapter that only works via an accidental full heal is
+#: one unlucky fight away from a real failure, and nothing in the result said so.
+#:
+#: ‼ ORDER IS NEAREST-FIRST, AND THAT IS THE WHOLE POINT - MEASURED. The first version of this
+#: list started at Mauville, and the run was **frame-identical** to the unhealed one up to
+#: `f14345`: the route to Mauville is a strict PREFIX of the route to Slateport, so the same
+#: encounters happened at the same frames and the whiteout landed **before** the first heal.
+#: Both heals then ran (log: "healing at MAUVILLE_CITY", "healing at SLATEPORT_CITY") and the
+#: chapter passed - with `whiteouts=1` unchanged. A heal stop that the party cannot REACH alive
+#: is not a fix, and the identical frame number is what proved it rather than a hunch.
+#:
+#: ‼ LAVARIDGE IS FIRST DESPITE §Ch15 CALLING IT UNREACHABLE, because Ch15's measurement was
+#: taken somewhere else. Its three failures - *"Cannot reach LAVARIDGE_TOWN: it is not walkable
+#: from ROUTE112"* - were from `ROUTE112 (28,28)`, the **cable-car station on Route 112 NORTH**.
+#: This chapter comes DOWN Jagged Pass and leaves it at the *south* end (Ch15's own note: "the
+#: door at y=18 cannot be reached from the Route 112 entrance at y=40"), which is the side
+#: Lavaridge connects to. Same map name, different component - so Ch15's result does not
+#: transfer, and it is tried here best-effort rather than assumed either way.
+#:
+#: Slateport's own centre is the last stop: it is in the destination city anyway, and it makes
+#: the post-Ch16 anchor healthy BY DESIGN rather than by accidental whiteout.
+SLATEPORT_ROUTE_HEALS = (
+    (PokemonCenter.LavaridgeTown, (9, 7)),
+    (PokemonCenter.MauvilleCity, (22, 6)),
+    (PokemonCenter.SlateportCity, (19, 20)),
+)
+
+#: Being on either of these means the haul is done and the heal stops must not walk backwards.
+_SLATEPORT_PAST_HAUL = (MapRSE.SLATEPORT_CITY_HARBOR.value,)
+
 
 def _city_state() -> int:
     """`VAR_SLATEPORT_CITY_STATE`, or -1 if unreadable.
@@ -8228,6 +8270,25 @@ def do_slateport_harbor_theft() -> Generator:
     # **The script carries the player in.** `(11,14)` is the same tile the door warp lands on, so
     # leg 3 is unchanged. This is also the faithful reading: a human here talks to the man being
     # interviewed, they do not shove past him.
+    # --- Leg 0: HEAL. ‼ MEASURED, NOT PRECAUTIONARY - see `SLATEPORT_ROUTE_HEALS`. -----------
+    # The anchor hands this chapter a party at 8.8% HP with five of six fainted, and every run
+    # before this existed whited out on the haul. A heal stop is allowed to FAIL without killing
+    # the chapter (a PC we cannot route to is a lost nice-to-have, not a lost run) - but it is
+    # always REPORTED, never swallowed, so "we healed" and "we could not" never look alike.
+    if _map_group_number() not in _SLATEPORT_PAST_HAUL:
+        for center, door_approach in SLATEPORT_ROUTE_HEALS:
+            _check_abort()
+            if _map_group_number() in _SLATEPORT_PAST_HAUL:
+                break
+            city = center.value[0]
+            try:
+                _ch14_say(f"Story: healing at {city.name} before the Slateport haul...")
+                yield from _navigate_riding_out(city, door_approach)
+                yield from heal_in_pokemon_center(center)
+                yield from wait_until_truly_controllable()
+            except BotModeError as error:
+                _ch14_say(f"Story: heal stop at {city.name} SKIPPED - {str(error)[:120]}")
+
     if _city_state() < 2:
         _ch14_say("Story: Ch16 - crossing to Slateport to talk to Capt. Stern...")
         yield from _navigate_riding_out(MapRSE.SLATEPORT_CITY, SLATEPORT_STERN_APPROACH)

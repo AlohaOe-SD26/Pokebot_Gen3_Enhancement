@@ -29,4 +29,4 @@
 # --- VOLATILE: expected to change; never base a measurement on these without copying first ---
 273d19b34d96733ddda1dee7e7704378  magma_door.ss1  VOLATILE  re-captured by `--driver magmatravel` on every success
 275d332a3eb64f195be600bc5c585d8d  magma_1f_fail.ss1  VOLATILE  re-captured by `--driver magmahideout` on every failure. ‼ MISNAMED: it stands on MAGMA_HIDEOUT_4F (24,91), not 1F.
-af3bc07c803ba5d5883175ad5e13c145  post_harbor.ss1  VOLATILE  re-captured by `--driver slateporttheft` on every PASS. Post-Ch16 era: SLATEPORT_HARBOR_STATE=2, standing SLATEPORT_CITY_HARBOR (8,13), 6 badges. The build anchor for the NEXT chapter (Lilycove Aqua Hideout) — copy it to a name nothing writes to before measuring on it.
+32adff78b86bd4e261e31b6abd407836  post_harbor.ss1  VOLATILE  re-captured by `--driver slateporttheft` on every PASS. Post-Ch16 era: SLATEPORT_HARBOR_STATE=2, standing SLATEPORT_CITY_HARBOR (8,13), 6 badges, party 534/534 HP (healthy BY DESIGN since the heal stops landed, not by accidental whiteout). The build anchor for the NEXT chapter (Lilycove Aqua Hideout) — copy it to a name nothing writes to before measuring on it.

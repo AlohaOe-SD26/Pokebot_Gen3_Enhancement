@@ -11457,3 +11457,39 @@ construction.
 
 ‼ **Still unmeasured:** the run **whited out once** on the Jagged Pass -> Slateport haul, on both
 attempts. Not investigated.
+
+## 2026-08-11 (late) — the Ch16 whiteout FIXED, and the reason it was invisible
+
+**The A/B, three arms, same command and anchor:**
+| arm | whiteouts | frames | note |
+|---|---|---|---|
+| no heal (x3 runs) | **1** | 3,358,043 | frame-identical every time |
+| heal at Mauville first | **1** | 3,361,474 | ‼ whiteout at the **same frame f14345** |
+| heal at **Lavaridge** first | **0** | **3,352,586** | PASS, and 5,457 frames FASTER |
+
+**Root cause.** `post_maxie.ss1` — the anchor §Ch16 starts from — is at **47/534 HP = 8.8%, five of
+six members FAINTED**. Ch15 ends four floors underground straight after Maxie and nothing heals in
+between, so leg 1 walked Jagged Pass → Route 112 → Route 111 → Mauville → Route 110 → Slateport on
+one damaged Swellow.
+
+**‼ Why nobody noticed: the chapter passed BECAUSE it whited out.** A whiteout heals, so the run
+recovered, finished, and `post_harbor.ss1` read 100% HP. The acceptance test was green *because of*
+the failure — nothing in a PASS said the party had been wiped en route.
+
+**‼ And why the first fix did not work — proven by a frame number, not a hunch.** Healing at
+Mauville left the run **frame-identical to the unhealed one up to f14345**, because the route to
+Mauville is a strict PREFIX of the route to Slateport: same tiles, same encounters, same lost
+fight, and the heal came after. **A heal stop the party cannot reach alive is not a fix.**
+
+**The fix.** `SLATEPORT_ROUTE_HEALS` is now nearest-first: **Lavaridge → Mauville → Slateport**,
+each best-effort and each REPORTED when skipped. ‼ Ch15 had recorded Lavaridge as unreachable
+("not walkable from ROUTE112", three failures) — but that was measured from `ROUTE112 (28,28)`, the
+**cable-car station on Route 112 NORTH**, whereas Ch16 comes down Jagged Pass to the *south* end,
+which is the side Lavaridge connects to. Same map name, different component; the old result did not
+transfer, and testing it rather than trusting it is what produced `whiteouts=0`.
+
+**`probe_anchor_inventory.py` now reports party HP** (total, % and fainted count) with an explicit
+*"CANNOT SURVIVE A JOURNEY"* warning. On its first run it flagged **three** anchors:
+`post_maxie` 9% / 5 fainted, `post_mtpyre` 11% / 3 fainted, `post_winona` 29% / 3 fainted. The
+anchors are routinely captured with wiped parties because chapters end on boss fights — so this is
+a standing hazard for every future chapter built on one, not a one-off.

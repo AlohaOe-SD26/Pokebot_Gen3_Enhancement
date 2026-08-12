@@ -106,10 +106,22 @@ def read_anchor(save: pathlib.Path) -> dict:
             pass
     row["badges"] = badges
 
+    # ‼ HP IS PART OF WHAT AN ANCHOR *IS*, not a detail. `post_maxie.ss1` served as the §Ch16
+    # build anchor for a whole day before anyone read its HP: it sits at **47/534 = 8.8%, with
+    # FIVE OF SIX MEMBERS FAINTED**, because Ch15 ends four floors underground straight after
+    # Maxie and nothing heals in between. Every Ch16 run then lost a fight and whited out on the
+    # haul — and the chapter still reported PASS, because a whiteout HEALS. A table that shows
+    # species and level only cannot tell "a mid-game party" from "a corpse", which is exactly the
+    # class of bad-anchor mistake this probe exists to prevent.
     try:
-        row["party"] = [(mon.species.name, mon.level) for mon in get_party()]
+        party = [mon for mon in get_party() if mon is not None]
+        row["party"] = [(mon.species.name, mon.level) for mon in party]
+        row["hp_cur"] = sum(mon.current_hp for mon in party)
+        row["hp_max"] = sum(mon.total_hp for mon in party)
+        row["fainted"] = sum(1 for mon in party if mon.current_hp == 0)
     except Exception as error:
         row["party"] = []
+        row["hp_cur"] = row["hp_max"] = row["fainted"] = None
         row["note"] = f"{row.get('note', '')} no party ({type(error).__name__})".strip()
 
     try:
@@ -127,8 +139,18 @@ def fmt(row: dict) -> str:
     party = ", ".join(f"{name} L{level}" for name, level in row["party"]) or "EMPTY"
     where = f"{row.get('map_enum', '?')} {row.get('tile')}"
     flags = "" if row.get("controllable") else "  ‼ NOT a clean controllable overworld"
+    cur, mx, fainted = row.get("hp_cur"), row.get("hp_max"), row.get("fainted")
+    if cur is not None and mx:
+        pct = 100 * cur / mx
+        health = f"  HP {cur}/{mx} ({pct:.0f}%)" + (f", {fainted} FAINTED" if fainted else "")
+        # Say it where the anchor is CHOSEN, not three runs later in a whiteout log.
+        if fainted or pct < 50:
+            health += "   ‼ CANNOT SURVIVE A JOURNEY — heal before using this as a start point"
+    else:
+        health = "  HP unreadable"
     return (f"  {row['save']:<34} badges={badges:<9} {row['state']:<10} {where:<34}\n"
-            f"  {'':<34} party: {party}{flags}")
+            f"  {'':<34} party: {party}{flags}\n"
+            f"  {'':<34}{health}")
 
 
 def main() -> int:

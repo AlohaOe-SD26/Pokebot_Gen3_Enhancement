@@ -4800,3 +4800,49 @@ with a control that the drawing must not contradict the planner.
 
 **Prevention rule.** *A `calculate_path` result is evidence about the DESTINATION only — before
 using a tile as a source, check its `collision` yourself.*
+
+---
+
+## 2026-08-11 — a chapter's test was GREEN because the run FAILED: the whiteout was healing it
+
+**Symptom.** §Ch16 reported `ACCEPTANCE: PASS` on three consecutive runs, each also reporting
+`whiteouts=1`. I logged the whiteout as "unmeasured" and moved on, because the chapter passed.
+
+**Root cause.** The anchor `post_maxie.ss1` hands the chapter a party at **8.8% HP with five of six
+members fainted** (Ch15 ends four floors underground right after Maxie). Leg 1 then walks a long
+cross-region haul, loses a fight, and whites out — **and a whiteout fully heals the party**, so the
+run recovered and completed. The PASS was not despite the failure, it was *because of* it, and the
+post-chapter anchor read 100% HP for the same reason.
+
+**The fix that worked.** Heal stops before the haul — but see the next entry for the part I got
+wrong first. Result: `whiteouts=0`, still PASS, and 5,457 frames faster.
+
+**Prevention rule.** *When a run reports both PASS and a recovered failure (whiteout, retry,
+fallback), treat the PASS as unproven until you know the failure was not what made it pass — a
+whiteout heals, and healing is exactly what a struggling run needs.*
+
+---
+
+## 2026-08-11 — I put the heal stop somewhere the party could not reach alive
+
+**Symptom.** Having found the party arrives at 8.8% HP, I added heal stops at Mauville then
+Slateport. The run still reported `whiteouts=1`, and both heals appeared in the log as having
+executed successfully.
+
+**Root cause.** The route to Mauville is a strict **prefix** of the route to Slateport, so nothing
+about the journey changed before the fight: the run was **frame-identical to the unhealed one up to
+f14345**, the exact frame of the original whiteout. The heals ran, but only after the whiteout had
+already healed the party for free. I had fixed the symptom's location, not its distance.
+
+**What made this cheap to diagnose.** The identical frame number. Two runs of a `.ss1` diverge as
+soon as behaviour does, so *"the whiteout is at f14345 again"* proves the change had no effect
+before that point — far stronger evidence than re-reading the code.
+
+**The fix that worked.** Reorder nearest-first and put **Lavaridge** at the front — including
+re-testing a route §Ch15 had recorded as impossible, because Ch15's measurement was taken from a
+different component of the same map (`ROUTE112` north, at the cable-car station, versus the south
+end where Jagged Pass exits).
+
+**Prevention rule.** *A heal/resupply stop only counts if the party can REACH it in its current
+state — order them nearest-first, and treat an unchanged failure frame as proof the change came
+too late to matter.*
