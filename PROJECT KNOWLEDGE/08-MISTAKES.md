@@ -4898,3 +4898,34 @@ The destination is exempt — firing it is the point of the hop. Re-derived, leg
 **Prevention rule.** *In a warp-panel maze, a "walk edge" is only real if the PATH avoids panels —
 check the waypoints' coordinates against the warp table, and do not trust `Waypoint.is_warp`, which
 is set only on the last waypoint.*
+
+---
+
+## 2026-08-12 — I wrote a confident wrong cause into a known-issue, from a metatile name
+
+**Symptom.** `probe_warp_maze.py` could not route the Mossdeep Gym. I read the tile behaviour,
+saw `'Mossdeep Gym Warp'` (`MB_MOSSDEEP_GYM_WARP`), and wrote KI-58 saying the gym "is not a
+warp-event maze" because those tiles "choose a destination from gym-specific logic". I even added a
+warning not to extend the tool until that was resolved.
+
+**Root cause.** I inferred a mechanism from a NAME. The decomp says the opposite: that behaviour
+sits in the same `IsWarpMetatileBehavior` list as `MetatileBehavior_IsAquaHideoutWarp` — the panels
+my graph already handled — and `DoMossdeepGymWarp()` is an ordinary warp with a different fade and
+`SKIP_OBJECT_EVENT_LOAD`. The destination is still the warp event's. **The warp model was never
+wrong.** A distinctive name felt like an explanation, and I stopped looking.
+
+**The real cause, found by disagreeing with myself.** `probe_gym_components.py` flood-fills the
+collision map and cross-checks the planner. The two models disagreed on *exactly* the two failing
+links (flood: connected, planner: no), which located it in one run: an
+`OBJ_EVENT_GFX_TRICK_HOUSE_STATUE` template sits on each — `(11,5)` and `(12,34)`. The gym has 21
+statue tiles and they are the puzzle's barrier walls, so the planner was right all along.
+
+**And the lesson that generalises past this bug.** `map_path.is_tile_accessible` blocks any tile
+whose object template is not in `active_objects`, and `active_objects` comes from the **currently
+loaded** map. So static recon from a foreign anchor treats every object-template tile as a wall —
+**static recon of an object-dense map is PESSIMISTIC**, the opposite of the caveat we had written on
+every probe ("static may call a walled tile walkable"). Both directions happen.
+
+**Prevention rule.** *Never infer a mechanism from a metatile/flag NAME — read the function it
+dispatches to. And when two models of the same map disagree, that disagreement is the fastest
+diagnostic you have; build the second model rather than re-reading the first.*

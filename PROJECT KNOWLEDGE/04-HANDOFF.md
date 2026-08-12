@@ -150,11 +150,16 @@ there, but that is static.
    arc (`#24-remainingarc`): **§Ch18** Mossdeep Gym → `BADGE07`; **§Ch19** Space Center → sets
    `VAR_STEVENS_HOUSE_STATE`; **§Ch20** Steven gives Dive; **§Ch21** Seafloor Cavern.
 
-   **KI-58 blocks §Ch18 before it starts.** The gym looks like the two hideouts (14 warps, 12
-   same-map) but the warp-graph method does NOT solve it: its tiles are `MB_MOSSDEEP_GYM_WARP`, a
-   distinct behaviour, and two links of the apparent chain have no walkable counterpart while
-   collision AND elevation are both permissive. `probe_warp_maze.py` **refused** rather than
-   guessing. Read how the decomp handles that behaviour first.
+   **KI-58 blocks §Ch18, and its cause has been CORRECTED — read the correction, not the first
+   entry.** `MB_MOSSDEEP_GYM_WARP` is an **ordinary warp** (`DoMossdeepGymWarp` is a normal warp
+   with a different fade), so the warp-graph model was never wrong; I had inferred a mechanism from
+   a metatile name. The failing walks are blocked by **`TRICK_HOUSE_STATUE` templates** at `(11,5)`
+   and `(12,34)` — the gym has **21 statue tiles**, which are the puzzle's barrier walls.
+   ‼ **AND THE REASON THE RECON WAS UNRELIABLE:** `map_path` blocks any tile whose object template
+   is not in `active_objects`, which comes from the **currently loaded** map — so static recon of a
+   36-object gym from a save inside the Aqua Hideout turns every object tile into a wall.
+   **NEXT STEP, concrete:** capture a save STANDING IN THE GYM (drive the travel leg), then re-run
+   `probe_warp_maze.py --maze mossdeep_gym` so the statues are live objects at real positions.
    ‼ §Ch18's boss is also a **DOUBLE battle** with a "need two Pokémon" branch — a party
    constraint no earlier chapter has had, and the party still carries Zigzagoon L11 / Skitty L17.
 

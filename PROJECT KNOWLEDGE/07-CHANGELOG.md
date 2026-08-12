@@ -11633,3 +11633,29 @@ The gym's tiles carry a distinct behaviour, **`MB_MOSSDEEP_GYM_WARP`**, not ordi
 the warp-table method models them wrongly: two links of the apparent chain have no walkable
 counterpart while collision and elevation are both permissive. That is a different mechanic and
 needs its own study before §Ch18 is built.
+
+## 2026-08-12 (later) — KI-58's cause CORRECTED; the real one generalises past the gym
+
+`probe_gym_components.py` — a collision flood fill, cross-checked against `calculate_path`. The two
+models disagreed on **exactly** the two failing links, which located the cause in a single run.
+
+**‼ Both halves of KI-58's original explanation were wrong.**
+1. `MB_MOSSDEEP_GYM_WARP` is an **ordinary warp** — same `IsWarpMetatileBehavior` list as
+   `IsAquaHideoutWarp`, and `DoMossdeepGymWarp()` is a normal warp with a different fade plus
+   `SKIP_OBJECT_EVENT_LOAD`. The destination is still the warp event's, so the warp-graph model was
+   never at fault. I had inferred a mechanism from a metatile NAME.
+2. The failing walks are blocked by **`OBJ_EVENT_GFX_TRICK_HOUSE_STATUE` templates** at `(11,5)` and
+   `(12,34)`. The gym has 36 object templates, 21 of them statues — the puzzle's barrier walls — so
+   the planner refusing those routes was CORRECT.
+
+**The generalisable finding.** `map_path.is_tile_accessible` blocks any tile whose object template
+is not in `active_objects`, and `active_objects` comes from the **currently loaded** map. So
+**static recon of an object-dense map, from an anchor standing elsewhere, is PESSIMISTIC** — it
+turns every object-template tile into a wall. That is the opposite of the caveat this project has
+written on every probe ("static may call a walled tile walkable", §Ch15's Jagged Pass door). Both
+directions now have a measured example. Three playbook rows added, including "when two readings of
+a map disagree, build the second model rather than re-reading the first".
+
+**§Ch18 is still not solved, but the diagnosis is now correct and the next step is concrete:**
+re-run `probe_warp_maze.py --maze mossdeep_gym` from a save STANDING IN THE GYM, so the statues are
+live objects at their real positions instead of pessimistic template walls.

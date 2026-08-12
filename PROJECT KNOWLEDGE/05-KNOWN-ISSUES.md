@@ -2762,3 +2762,55 @@ own scripts) and decide whether the traversal can be expressed as a route at all
 driven as a sequence of directional steps.
 ‼ Do NOT extend `probe_warp_maze.py`'s `MAZES` table with a "fixed" Mossdeep entry until that
 question is answered — the tool's value is that it refuses mazes it cannot model.
+
+### ‼‼ KI-58 CORRECTED 2026-08-12 — my stated cause was WRONG on both counts
+The entry above blamed `MB_MOSSDEEP_GYM_WARP` ("a distinct behaviour whose destination comes from
+gym-specific logic"). **Both halves of that are false**, and the correction matters more than the
+original finding.
+
+**1. `MB_MOSSDEEP_GYM_WARP` is an ORDINARY warp.** In `src/field_control_avatar.c` it sits in the
+same `IsWarpMetatileBehavior` list as `MetatileBehavior_IsAquaHideoutWarp` — the panels the graph
+already models correctly — and `DoMossdeepGymWarp()` (`src/field_screen_effect.c:559`) is a normal
+warp with a different fade plus `SKIP_OBJECT_EVENT_LOAD`:
+```
+SetObjectEventLoadFlag(SKIP_OBJECT_EVENT_LOAD); LockPlayerFieldControls(); SaveObjectEvents();
+TryFadeOutOldMapMusic(); WarpFadeOutScreen(); PlaySE(SE_WARP_IN);
+CreateTask(Task_WarpAndLoadMap, 10); gFieldCallback = FieldCB_MossdeepGymWarpExit;
+```
+The destination is still the warp event's. **The warp-event model was never the problem.**
+
+**2. The two failing walks are blocked by STATUES**, found by flood-filling the collision map with
+`probe_gym_components.py` and cross-checking it against the planner. The two models DISAGREED on
+exactly the two failing links (flood: connected, planner: no), and the disagreement located the
+cause immediately:
+| link | blocked by |
+|---|---|
+| `(8,12) -> (11,3)` | `OBJ_EVENT_GFX_TRICK_HOUSE_STATUE` at **`(11,5)`** |
+| `(11,35) -> (13,32)` | `OBJ_EVENT_GFX_TRICK_HOUSE_STATUE` at **`(12,34)`** |
+
+The gym has **36 object templates, 21 of them statues** — they are the puzzle's barrier walls, so
+the planner refusing those routes is CORRECT. Statue tiles:
+`(1,29) (2,30) (4,30) (5,21) (5,29) (6,5) (6,6) (7,9) (10,8) (11,5) (11,34) (12,5) (12,33) (12,34)
+(21,22) (21,23) (22,22) (23,25) (23,26) (24,22) (24,23)`
+
+### ‼ THE GENERAL LESSON, which is the valuable part
+`map_path.is_tile_accessible` blocks any tile carrying an object template whose object is **not
+currently loaded**:
+```python
+if (tile.dynamic_collision_flag is None and tile.dynamic_object_id
+        and (tile.map.map_group_and_number, tile.dynamic_object_id) not in active_objects):
+    return False
+```
+`active_objects` comes from `get_map_objects()` — **the CURRENTLY LOADED map**. So static recon of a
+map from an anchor standing somewhere else treats **every object-template tile as a wall**.
+⇒ **Static recon of an object-dense map is PESSIMISTIC, not optimistic**, which is the opposite of
+the caveat this project has been writing on every probe ("static may call a walled tile walkable").
+Both directions are now known to happen. For the two hideouts it did no harm (few objects, and the
+routes worked when driven); for a 36-object gym it is decisive.
+
+### STATUS: §Ch18 still NOT solved, but the diagnosis is now correct
+The warp graph and the statue blocking are both faithful, so the route to Tate & Liza genuinely is
+not the chain assumed above. **Next step:** re-run `probe_warp_maze.py --maze mossdeep_gym` from an
+anchor where the GYM IS THE LOADED MAP, so the statues are live objects at their real positions
+rather than pessimistic template walls, and see whether a route appears. That requires a save
+standing in the gym — capture one, or drive the travel leg first.
