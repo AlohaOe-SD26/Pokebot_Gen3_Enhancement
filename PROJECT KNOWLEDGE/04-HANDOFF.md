@@ -3,16 +3,22 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-08-11 — read "‼ YOU ARE HERE" immediately below.
+**Last updated:** 2026-08-12 — read "‼ YOU ARE HERE" immediately below.
 Every banner further down is HISTORY, newest first.
 
 ---
-# ‼ YOU ARE HERE — 2026-08-11 (end of a long session). Read this, then `14-AGENT-PLAYBOOK.md`.
+# ‼ YOU ARE HERE — 2026-08-12 (end of a very long session). Read this, then `14-AGENT-PLAYBOOK.md`.
 
 ## WHAT THIS IS
 `sandbox-pokebot/` is the working build of a Pokémon Emerald bot. Its **Story mode** plays the game
 autonomously from Littleroot. `40cakes repo/` is a pristine upstream mirror (never edit);
 `custom-pokebot/` is the promoted fork. **All work happens in `sandbox-pokebot/`.**
+
+‼ **CLAUDE SUBAGENTS ARE STANDING-APPROVED** for research and assistance (user directive
+2026-08-12, in `CLAUDE.md`). Use them freely — fan out on different ANGLES in ONE message, include
+one explicitly ADVERSARIAL, tell them what is already ruled out, and keep working while they run.
+**Their output is a NOTE, never truth**: verify the load-bearing claim in our own harness. That is
+how KI-58 was cracked after four of my own models failed.
 
 ‼ **READ `01-VISION-AND-DESIGN.md`'s NORTH STAR FIRST if you have not.** The user restated the goal
 on 2026-08-11: (1) a bot that plays Emerald **organically and faithfully, as a human would**, and
@@ -23,34 +29,54 @@ burden here is so heavy, and why negative results are treated as the most valuab
 | | |
 |---|---|
 | branch / HEAD | `main`, **clean, 0 unpushed** |
-| box | **IDLE.** Batch `20260811-130454` finished 4:05 PM (VERDICT OK, 28 runs, 0 violations). |
+| box | **IDLE.** Nothing running. Last batch `20260811-130454` (VERDICT OK, 28 runs). |
 | story content | Littleroot → 6 badges → Mt. Pyre → Magma Hideout (and out) → Slateport submarine theft → **the Lilycove AQUA HIDEOUT (with the MASTER BALL)**. **18 of 24 ladder beats.** |
 | ‼ is code frozen? | **No.** Nothing is running. |
-| upstream | checked 2026-08-11, `5dd898f8`, unchanged |
+| upstream | checked 2026-08-11, `5dd898f8`. ‼ **A daily check is DUE** (see CLAUDE.md). |
 | restore point | **`restore/2026-08-11-all-promoted`** (annotated, pushed, verified on the remote) |
 | sandbox ↔ custom drift | **NONE** — §Ch15 exit + §Ch16 + §Ch17 + heal stops + the MASTER BALL all PROMOTED 2026-08-12 (user-approved); the first promotion was verified by driving `--build custom` to an identical frame count |
 | **if stopped mid-task** | **NOTHING IS PARKED.** Everything is committed and pushed. Start at "NEXT ACTIONS". |
 
-## ✅ WHAT SHIPPED THIS SESSION
-1. **`#24-teachmsgstall` root-caused and fixed** — the replace prompt was detectable for **one
-   frame** (decomp-confirmed). Promoted. ‼ **But see the batch result below: it has NO production
-   effect and the item is REOPENED.**
-2. **KI-51** — the Maxie loop now notices a whiteout instead of riding 60,000 frames (confirmed
-   live at 2,209 frames). Promoted.
-3. **KI-52** — the bot **fights it out** instead of freezing mid-battle with a healthy bench
-   (your directive). Promoted. ‼ Structurally proven only; no live A/B.
-4. **Battle STATUS telemetry** — the turn log prints `[Confused]` etc. Promoted. It refuted
-   `#24-bosstelemetry` lead 2 and made the status tax measurable for the first time.
-5. **✅ §Ch16 (Slateport Harbor) COMPLETE — driven PASS three times, frame-identical.**
-   `harbor_state=2 controllable=True map=SLATEPORT_CITY_HARBOR at=(8,13)`. Legs 2-4 had never
-   been exercised before today. The blocker (**KI-57**) was Capt. Stern standing in the only
-   tile touching the harbor door — ‼ **put there by Ch15's own Maxie script** — and the answer
-   was not a route but a conversation: talking to him `warp`s the player inside. Anchor
-   `saves/post_harbor.ss1` is captured on every PASS.
-6. **A whole hardening round** (see below).
-7. **✅ KI-56 FIXED — §Ch15 now LEAVES the Magma Hideout.** Cause confirmed against the whole
-   eight-map warp graph (no walk-out exists), fixed with the Escape Rope the dungeon itself
-   provides, **driven PASS**. Two new probes, a new driver, a fault-injected guard. See below.
+## ✅ WHAT SHIPPED THIS SESSION (2026-08-11 → 12)
+The story ladder went **16 → 18 of 24 beats**, and everything below is committed, pushed and
+**promoted to `custom-pokebot/`** (user-approved 2026-08-12; the promotion was verified by driving
+`--build custom` to a frame-identical PASS, not merely diffed).
+
+1. **KI-56 FIXED — §Ch15 now LEAVES the Magma Hideout.** It used to pass its own binary test on
+   runs that ended permanently stranded. No walk-out exists (18 of 20 warp-graph nodes reachable,
+   the exit not among them); fixed with the **Escape Rope the dungeon itself provides**. Driven
+   PASS, landing on the exact tile predicted from `escapeWarp` beforehand.
+2. **KI-57 FIXED — §Ch16 (Slateport) COMPLETE.** ‼ Beating Maxie *parks Capt. Stern on the only
+   tile touching the harbor door*: Ch15's own success spawns Ch16's blocker. The answer was not a
+   route but a conversation — talking to him `warp`s the player inside. Driven PASS x3.
+3. **§Ch17 (Lilycove Aqua Hideout) BUILT + the MASTER BALL.** An 18-hop warp-panel maze solved from
+   the ROM warp table. ‼ The Master Ball can't be taken directly — both free neighbours are
+   unreachable — so the route takes the **Nugget** first and steps onto the tile it vacates. Driven
+   PASS with `master_balls=1`.
+4. **The Ch16 haul whiteout FIXED** (`whiteouts` 1 → 0, and faster). The anchor hands the chapter a
+   party at **8.8% HP, 5 of 6 fainted**, and the chapter was passing only *because a whiteout
+   heals*. Heal stops are now nearest-first.
+5. **§Ch18 leg 1** — `--driver mossdeeptravel` Surfs Lilycove → Mossdeep and enters the gym
+   (PASS, `whiteouts=0`), capturing `saves/in_mossdeep_gym.ss1`.
+6. **KI-58 RESOLVED — the Mossdeep Gym is a ROTATING-TILE STATUE PUZZLE**, not a maze (see below).
+7. **KI-59 + KI-60 filed** — two latent bugs in the SHARED pathfinder, code-verified, deliberately
+   **not** fixed. `#24-impassabledirs`, `#24-pathsourcecheck`.
+8. **`#24-grounditems` groundwork** — `collect_item_ball()` is now shared by three callers;
+   `#24-npcgifts` and `#24-masterball` added on your direction.
+9. **New tools:** `probe_warp_maze.py` (generalised, self-checks against a DRIVEN route),
+   `probe_gym_bruteforce.py` (model-free walker), `probe_gym_components.py`, `probe_escape_warp.py`,
+   `probe_hideout_warp_graph.py`, `probe_slateport_harbor_map.py`, `repro_hideout_exit.py`.
+   `probe_anchor_inventory.py` now prints **party HP** — it immediately flagged three anchors as
+   "cannot survive a journey".
+
+## ‼ THE ONE THING THAT MATTERS MOST FROM THIS SESSION
+**Four of my own instruments agreed that the Mossdeep Gym had no route to its own gym leaders.**
+All four were wrong, and all four shared one blind spot: they modelled the gym as *walk + warp*.
+The gym has a **third movement primitive** — floor switches that relocate 21 statues. Five parallel
+Claude agents (one explicitly ADVERSARIAL) found it; the adversarial one cracked it. Even the
+model-free brute-force walker was wrong, because it *changed the map while exploring it*.
+⇒ *When N of your own instruments agree on something impossible, they probably share a missing
+primitive.* Three new playbook rows.
 
 ## ‼‼ THE BATCH RESULT — one thing resolved, one thing NOT
 **RESOLVED — the status tax is real:** incapacitated turns lost **960/2,945 = 32.6%** vs a clean

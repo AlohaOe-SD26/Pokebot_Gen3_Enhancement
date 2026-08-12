@@ -261,3 +261,28 @@ the newest commit recorded in `40cakes repo/UPDATE-LOG.md`.
   (decision if a real choice) + (mistake + one-line prevention rule if a bug was fixed)
   + handoff. When you learn a new trick, add it to the playbook. Retire stale rules.
   Aim to leave the docs so the next agent builds/debugs/documents *better* than the last.
+
+### ‼ CLAUDE SUBAGENTS ARE APPROVED FOR RESEARCH AND ASSISTANCE (user directive, 2026-08-12)
+**Standing approval — no need to ask, now or in future sessions.** Use Claude
+subagents (the Agent tool) freely for research, recon, cross-checking and any
+other assistance. They proved their worth immediately: five parallel agents
+resolved **KI-58** (the Mossdeep Gym) after four of my own offline models had
+each concluded something impossible, and they turned up **two latent bugs in our
+own pathfinder** (KI-59, KI-60) as a side effect.
+
+How to get value out of them, learned from that round:
+- **Fan out on different ANGLES, not the same question.** The five that worked
+  were: decomp/layout mechanics, how a human plays it, an audit of OUR code, a
+  live tile dump, and one explicitly ADVERSARIAL ("refute this claim"). The
+  adversarial one found the answer.
+- **Send them in ONE message so they run concurrently**, and keep working while
+  they do — do not idle.
+- **Tell them what is already RULED OUT**, with citations, so they do not re-derive
+  it — but invite them to say if a ruled-out item is wrong.
+- **‼ THEIR OUTPUT IS A NOTE, NEVER TRUTH — the same rule Gemini has.** Verify the
+  load-bearing claim in our own harness before building on it. KI-58's mechanic
+  was only believed after stepping on the switch live and watching the statues
+  move. Three agents agreeing is a strong signal and still not proof: agreement
+  is not a confidence signal (see the measured Gemini rules above).
+- **Prefer them for anything large or noisy** — big read-only sweeps, decomp
+  spelunking, adversarial review — so the bulk stays out of the main thread.

@@ -1643,3 +1643,27 @@ intermediate waypoints avoid warp tiles) and the reason `Waypoint.is_warp` canno
 Mossdeep Gym — see `05-KNOWN-ISSUES` KI-58: that gym's tiles carry a distinct metatile behaviour,
 `MB_MOSSDEEP_GYM_WARP`, and are a different mechanic. The tool refused rather than guessing, which
 is the behaviour that matters.
+
+## 2026-08-12 — Claude subagents are STANDING-APPROVED for research and assistance
+
+**Decision.** The user granted open-ended approval to use Claude subagents for research, recon and
+assistance, now and in future sessions. Recorded in  as a project directive so it does
+not have to be re-asked.
+
+**Why.** Measured, not assumed: five parallel agents resolved **KI-58** in one round after four of
+my own offline models had each concluded the Mossdeep Gym had no route to its own gym leaders — an
+impossibility none of them could see, because all four modelled the gym as *walk + warp* and the
+gym has a third primitive (floor switches that relocate 21 statues). The same round surfaced
+**KI-59** and **KI-60**, two latent bugs in our shared pathfinder, as a side effect.
+
+**What makes them work (from that round).** Different ANGLES rather than one broad question — the
+five were decomp mechanics, human-play walkthrough, an audit of our own code, a live tile dump, and
+one explicitly ADVERSARIAL. **The adversarial one found the answer.** Launch them in a single
+message so they run concurrently, and hand them the already-ruled-out list with citations.
+
+**Constraint, carried over from the Gemini rules.** Their output is a NOTE, never truth. KI-58's
+mechanic was believed only after stepping on the switch in our own harness and watching the statues
+move. Three agents agreeing is a strong search signal and still not proof.
+
+**Alternative rejected:** asking per-use. The approval is standing precisely because the cost of
+asking exceeded the cost of the tokens.
