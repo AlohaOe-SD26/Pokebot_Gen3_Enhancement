@@ -2454,3 +2454,67 @@ evidence bar this needed has been met.
 Run a batch on the current build and re-run this probe over it. That single batch would also give
 the **first outcome data for three promoted-but-unmeasured changes** (`#24-teachmsgstall`, KI-51,
 KI-52), none of which has any batch evidence. Only then is a status-response policy justifiable.
+
+---
+
+## KI-56 — ‼‼ Ch15 STRANDS THE BOT INSIDE THE MAGMA HIDEOUT. Strength boulders RESET on map reload (2026-08-11, severity: HIGH, MEASURED)
+
+**Found by driving §Ch16**, whose first leg is "leave the hideout and cross to Slateport". It never
+got out of the dungeon.
+
+```
+[ch16] START  MAGMA_HIDEOUT_4F(15, 21)  SLATEPORT_HARBOR_STATE=1
+[ch16] FAILED: Could not find a path from (25/34 @ MAGMA_HIDEOUT_1F) to (10/34 @ MAGMA_HIDEOUT_1F)
+[ch16] RESULT harbor_state=1 controllable=True map=MAGMA_HIDEOUT_1F at=(25, 34) whiteouts=0
+```
+
+### THE MEASUREMENT — it is stranded, not merely mis-routed
+From the failure state (`profiles/ch16a/current_state.ss1`), on `MAGMA_HIDEOUT_1F`:
+| question | answer |
+|---|---|
+| component containing the bot at `(25,34)` | **248 tiles** |
+| exit warp `(10,34)` → JAGGED_PASS reachable? | **NO** |
+| warp `(31,3)` → 2F_2R reachable? | **NO** |
+| warp `(20,22)` → 2F_3R reachable? | **NO** |
+| the INBOUND direction `(10,34)` → `(25,34)` | **NO** — the route it walked in through is gone |
+| push-from tiles `(7,23)` / `(6,22)` reachable? | **NO** — it cannot even re-push |
+| adjacent tiles `(24,34)`, `(26,34)`, `(25,33)` | OK — so the planner works and it is not boxed in locally |
+
+**The only warp in its component is the one it is standing on** — `(25,34)`, back up to 2F_1R.
+
+### ‼ THE CAUSE: the boulders RESET
+| | boulders |
+|---|---|
+| `MAGMA_HIDEOUT_1F_PUSHES` predicted end state | `(4,22)`, `(5,23)`, `(7,22)` |
+| **measured live after the chapter** | **`(5,22)`, `(7,22)`, `(6,23)`** |
+
+The measured set is the **ORIGINAL, un-pushed configuration**. Neither push persisted.
+⇒ **Strength boulder positions are not saved; they reset when the map reloads** — the same shape
+as the already-documented "Rock-Smash rocks RESPAWN on map reload" note in `_navigate_riding_out`.
+
+So the chapter pushes its way in, climbs to 4F, beats Maxie, walks back down to 1F — **and 1F has
+re-sealed behind it**, with the boulders on the far side of the wall from where it now stands.
+
+### ‼‼ WHY THE ACCEPTANCE TEST DID NOT CATCH THIS
+Ch15 is graded **binary on `GROUDON_AWAKENED_MAGMA_HIDEOUT`**, and that flag is set the moment
+Maxie is beaten — four floors deep. **The grade never asked whether the bot could LEAVE.** The
+chapter passes its own test on a run that ends permanently stuck.
+
+⇒ **NEW RULE (added to `14-AGENT-PLAYBOOK`): a chapter's acceptance test must include "and the bot
+can continue".** A completion flag proves the CONTENT ran, not that the run survived it.
+
+### THE FIX IS NOT YET CHOSEN — options, none taken
+1. **Escape Rope support** — the faithful player answer, and the bot has **none**
+   (`grep` for escape.?rope / dig across `modules/story/` and `modules/modes/util/`: **0 hits**).
+   ‼ The hideout has **no `setescapewarp`** in any of its four map scripts (decomp-checked), so
+   what an Escape Rope does from here needs verifying before relying on it. Generally useful — every
+   dungeon needs it.
+2. **A return-route study** — is there a walk-out at all? All three non-exit warps sit on small
+   islands per §Ch15's own recon (9-tile and 70-tile), so this may be genuinely impossible once the
+   boulders reset.
+3. **Re-push on the way out** — ‼ **ruled out by measurement**: the push-from tiles are not
+   reachable from the stranded side.
+
+**Until this is fixed, §Ch16 cannot start from `post_maxie.ss1`,** because its first leg is leaving
+the hideout. ‼ The Ch16 code itself is **unexercised beyond leg 1** — it is not implicated, and it
+is not yet proven either.

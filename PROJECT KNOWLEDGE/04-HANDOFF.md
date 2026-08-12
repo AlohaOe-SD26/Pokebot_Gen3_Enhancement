@@ -105,6 +105,22 @@ Both documented arms (HM04, HM02) now **PASS** on it with identical parameters. 
 with the finding; the fixture underneath it moved. **A save any driver re-captures is a cache, not
 a fixture.**
 
+## ‼‼ KI-56 — THE BOT IS STRANDED IN THE MAGMA HIDEOUT. READ THIS BEFORE ANY STORY WORK.
+Driving §Ch16 exposed it: **Ch15 completes its binary flag test and leaves the run permanently
+stuck four floors deep.** Measured from `profiles/ch16a/current_state.ss1`:
+* component containing the bot at `MAGMA_HIDEOUT_1F (25,34)`: **248 tiles, NO reachable exit warp**
+* the INBOUND route `(10,34) → (25,34)` now **also fails** — the way it walked in is gone
+* the push-from tiles are **unreachable**, so it cannot even re-push
+* boulders measured at `(5,22) (7,22) (6,23)` = the **ORIGINAL** positions ⇒ **Strength boulders
+  RESET on map reload**, exactly like Rock-Smash rocks
+
+‼ **The acceptance test never asked whether the bot could LEAVE** — `GROUDON_AWAKENED` is set the
+moment Maxie falls. New playbook rule added: *a chapter's test must include "and the bot can
+continue"*.
+
+**Fix options recorded in KI-56, none chosen.** The leading one is **Escape Rope support**, which
+the bot does not have at all (0 hits across `modules/story/` and `modules/modes/util/`).
+
 ## ⏭ NEXT ACTIONS, IN ORDER
 1. ~~Ask about promotion~~ — ✅ **DONE 2026-08-11, user-approved and verified driven in
    `custom-pokebot` (OLD `learned=False` / NEW `learned=True`, identical to sandbox). Zero source
