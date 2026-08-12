@@ -11905,3 +11905,47 @@ Also filed **KI-62** (open, low): the detector still returns ch16 "To Lilycove" 
 Lilycove, because that chapter's milestone is `MET_RIVAL_LILYCOVE`. Its report is therefore a lower
 bound on progress, not a position. Deliberately not fixed — it is a milestone-accuracy question, and
 the probe says so rather than asserting on it.
+
+## 2026-08-12 — §Ch18 was STRANDING the bot; fixed, and §Ch19 groundwork laid
+
+**‼ §Ch18 passed its own acceptance twice while leaving the run stuck.** The chapter ended on
+`(23,8)`, which is part of an **eleven-tile collision island**; the gym door is not reachable from
+it. Measured (`probe_ch19_hazards.py`, new):
+```
+(23,8) -> gym door (7,35) : PathFindingError
+(23,8) -> (21,6) CONTROL  : path found, 6 waypoint(s)
+```
+The only exit is the `(21,6)` **coord event** — not a warp event, so no warp-graph solver offers it,
+and KI-58 had (correctly, for the opposite purpose) labelled it a trap.
+
+Fixed by `leave_the_gym()`, driven:
+```
+Story: Ch18 leaving the leaders' platform via the (21, 6) coord warp
+Story: Ch18 back in the entrance hall at (7, 30)
+Story: Ch18 out of the gym, in Mossdeep City at (38, 10)
+[ch18c] RESULT badge=True map=MOSSDEEP_CITY at=(38,10) controllable=True whiteouts=0
+```
+**And the acceptance test was strengthened**, which matters more than the fix: it now requires being
+out of the gym, so the stranded version would FAIL. `post_mossdeep_gym.ss1` re-captured accordingly.
+
+### §Ch19 groundwork — predictions tested BEFORE building
+An adversarial planning pass predicted, with citations, how the first driven run would fail.
+`probe_ch19_hazards.py` tested each prediction with the outcome written down first — **3/3 held**:
+* **H1** the gym exit (above) — now inverted into a regression guard.
+* **H2** **no party member can learn Dive and the party is full** (0 learners, 6/6). ‼ This does not
+  block §Ch19/§Ch20 — HM08 is a scripted gift needing no learner — it blocks the **Seafloor Cavern**.
+  Filed as **KI-63**: `#24-pc` is a *prerequisite* of §Ch21, and the natural swap is a Wailmer or
+  Tentacool, which learn **both** Surf and Dive (Zigzagoon L15 is our only Surf carrier).
+* **H5** Mossdeep City is cut in two, so a single route to the Space Center cannot exist; the
+  trigger line IS reachable (22 waypoints), so a two-leg route works.
+
+**Added** `modules/story/space_center.py` (‼ GROUNDWORK, deliberately NOT wired into the ladder) and
+`probe_space_center_recon.py`. Key decisions already encoded:
+* completion is **`VAR_MOSSDEEP_SPACE_CENTER_STATE == 3`**, never `FLAG_DEFEATED_MAGMA_SPACE_CENTER`
+  — the flag is **cleared again** by the Rayquaza PokéNav call ~250 steps later, so a chapter graded
+  on it would pass and then silently un-pass;
+* the 2F prompt is ridden with **A only**. B answers NO, which warps the player back to 1F with the
+  var unchanged — an infinite re-entry livelock with a healthy avatar and no error. Predicted by the
+  adversarial pass before the code existed, which is why it is here and not in the mistakes log.
+
+Also archived KI-56/KI-57 to `31-KNOWN-ISSUES-ARCHIVE.md` to stay inside the R3 line budget.

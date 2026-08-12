@@ -399,6 +399,81 @@ def fight_the_leaders() -> Generator:
     yield from _wait_until_cutscene_over("B")
 
 
+#: The leaders' platform is an ELEVEN-TILE ISLAND. Measured, not assumed (`probe_ch19_hazards.py`):
+#: `calculate_path((23,8) -> (7,35))` raises `PathFindingError`, while the control
+#: `calculate_path((23,8) -> (21,6))` returns a 6-waypoint path. The only way off is the coord event
+#: at (21,6), which `warpmossdeepgym`s the player to (7,30) in the entrance hall.
+PLATFORM_EXIT_TILE = (21, 6)
+PLATFORM_EXIT_LANDING = (7, 30)
+GYM_DOOR_TILES = ((7, 35), (6, 35))
+
+
+def leave_the_gym() -> Generator:
+    """Get the player OUT of the gym after the badge, and back into Mossdeep City.
+
+    ‼‼ WITHOUT THIS THE CHAPTER STRANDS THE RUN, and it would have passed its own acceptance test
+    while doing so. §Ch18 graded itself on `BADGE07_GET` AND controllable — both true — but it left
+    the avatar on `(23,8)`, an eleven-tile collision island. The next chapter's very first
+    navigation call would have raised `PathFindingError` inside the gym, with zero city tiles
+    walked and nothing to suggest the gym was the cause.
+
+    ‼ THIS IS KI-56 HAPPENING A SECOND TIME. That entry's own prevention rule reads: *a chapter's
+    test must include "and the bot can continue"*. It was written about §Ch15 leaving the run four
+    floors deep in the Magma Hideout. The same mistake, in a new chapter, in the same session — so
+    the acceptance test now ends outside the gym rather than on the winning tile.
+
+    ‼ (21,6) IS NOT A TRAP HERE. KI-58 labelled it one, correctly, for a bot trying to REACH the
+    leaders — stepping on it costs you the platform. After the badge that is precisely what we want,
+    and it is the only cheap exit: it is a coord_event, not a warp event, so no warp-graph solver
+    will ever offer it."""
+    from modules.map_data import MapRSE
+    from modules.modes import BotModeError
+    from modules.story.early_game import (
+        _ch14_say,
+        _enter_warp_by_navigation,
+        _navigate_riding_out,
+        wait_until_truly_controllable,
+    )
+
+    if not _on_gym_map():
+        return  # already out — resume-safe
+
+    if _tile() in LEADER_APPROACH_TILES or _tile() == PLATFORM_EXIT_TILE:
+        _ch14_say(f"Story: Ch18 leaving the leaders' platform via the {PLATFORM_EXIT_TILE} coord warp")
+        # Stepping ON the tile is the whole action: the coord event fires and carries us away.
+        yield from _navigate_riding_out(GYM, PLATFORM_EXIT_TILE, tries=6)
+        yield from _wait_for_tile(PLATFORM_EXIT_LANDING, timeout=1200)
+        yield from wait_until_truly_controllable()
+        if _tile() != PLATFORM_EXIT_LANDING:
+            raise BotModeError(
+                f"Mossdeep Gym: stepped on {PLATFORM_EXIT_TILE} but landed on {_tile()}, not "
+                f"{PLATFORM_EXIT_LANDING}. The platform exit did not fire."
+            )
+        _ch14_say(f"Story: Ch18 back in the entrance hall at {_tile()}")
+
+    def outside() -> bool:
+        return tuple(get_player_avatar().map_group_and_number) == MapRSE.MOSSDEEP_CITY.value
+
+    last_error = ""
+    for door in GYM_DOOR_TILES:
+        try:
+            yield from _enter_warp_by_navigation(outside, GYM, door, label=f"gym door {door}")
+            yield from wait_until_truly_controllable()
+            if outside():
+                _ch14_say(f"Story: Ch18 out of the gym, in Mossdeep City at {_tile()}")
+                return
+        except BotModeError as error:  # noqa: BLE001 — NOT swallowed: two doors lead outside, so one
+            # failing is an expected outcome of trying both. The reason is kept and raised below if
+            # neither works.
+            last_error = f"{door}: {str(error)[:120]}"
+
+    raise BotModeError(
+        f"Mossdeep Gym: won the badge but could not get out of the gym (tried {GYM_DOOR_TILES}; "
+        f"{last_error}). ‼ Leaving the player inside would strand the run — the leaders' platform "
+        "is an island and the entrance hall is the only part of the gym that touches the door."
+    )
+
+
 def do_mossdeep_gym_chapter() -> Generator:
     """Chapter 18 - the Mossdeep Gym, end to end: solve the statue puzzle, then beat the leaders.
 
@@ -456,7 +531,11 @@ def do_mossdeep_gym_chapter() -> Generator:
             continue
 
         if get_event_flag(BADGE_FLAG):
-            _ch14_say("Story: Ch18 complete - the Mind Badge is won")
+            # ‼ THE BADGE IS NOT THE END OF THE CHAPTER. Winning leaves the avatar on the
+            # leaders' platform, an eleven-tile island; a chapter that returned here would pass its
+            # own test and strand the run. See `leave_the_gym`.
+            yield from leave_the_gym()
+            _ch14_say("Story: Ch18 complete - the Mind Badge is won and the bot is out of the gym")
             return
 
     raise BotModeError(

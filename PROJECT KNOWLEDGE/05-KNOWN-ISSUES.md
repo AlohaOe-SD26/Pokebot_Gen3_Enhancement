@@ -2457,267 +2457,15 @@ KI-52), none of which has any batch evidence. Only then is a status-response pol
 
 ---
 
-## KI-56 — ‼‼ Ch15 STRANDS THE BOT INSIDE THE MAGMA HIDEOUT. Strength boulders RESET on map reload (2026-08-11, severity: HIGH, MEASURED)
+## KI-56 / KI-57 — ✅ BOTH RESOLVED AND DRIVEN 2026-08-11 → archived
 
-**Found by driving §Ch16**, whose first leg is "leave the hideout and cross to Slateport". It never
-got out of the dungeon.
-
-```
-[ch16] START  MAGMA_HIDEOUT_4F(15, 21)  SLATEPORT_HARBOR_STATE=1
-[ch16] FAILED: Could not find a path from (25/34 @ MAGMA_HIDEOUT_1F) to (10/34 @ MAGMA_HIDEOUT_1F)
-[ch16] RESULT harbor_state=1 controllable=True map=MAGMA_HIDEOUT_1F at=(25, 34) whiteouts=0
-```
-
-### THE MEASUREMENT — it is stranded, not merely mis-routed
-From the failure state (`profiles/ch16a/current_state.ss1`), on `MAGMA_HIDEOUT_1F`:
-| question | answer |
-|---|---|
-| component containing the bot at `(25,34)` | **248 tiles** |
-| exit warp `(10,34)` → JAGGED_PASS reachable? | **NO** |
-| warp `(31,3)` → 2F_2R reachable? | **NO** |
-| warp `(20,22)` → 2F_3R reachable? | **NO** |
-| the INBOUND direction `(10,34)` → `(25,34)` | **NO** — the route it walked in through is gone |
-| push-from tiles `(7,23)` / `(6,22)` reachable? | **NO** — it cannot even re-push |
-| adjacent tiles `(24,34)`, `(26,34)`, `(25,33)` | OK — so the planner works and it is not boxed in locally |
-
-**The only warp in its component is the one it is standing on** — `(25,34)`, back up to 2F_1R.
-
-### ‼ THE CAUSE: the boulders RESET
-| | boulders |
-|---|---|
-| `MAGMA_HIDEOUT_1F_PUSHES` predicted end state | `(4,22)`, `(5,23)`, `(7,22)` |
-| **measured live after the chapter** | **`(5,22)`, `(7,22)`, `(6,23)`** |
-
-The measured set is the **ORIGINAL, un-pushed configuration**. Neither push persisted.
-⇒ **Strength boulder positions are not saved; they reset when the map reloads** — the same shape
-as the already-documented "Rock-Smash rocks RESPAWN on map reload" note in `_navigate_riding_out`.
-
-So the chapter pushes its way in, climbs to 4F, beats Maxie, walks back down to 1F — **and 1F has
-re-sealed behind it**, with the boulders on the far side of the wall from where it now stands.
-
-### ‼‼ WHY THE ACCEPTANCE TEST DID NOT CATCH THIS
-Ch15 is graded **binary on `GROUDON_AWAKENED_MAGMA_HIDEOUT`**, and that flag is set the moment
-Maxie is beaten — four floors deep. **The grade never asked whether the bot could LEAVE.** The
-chapter passes its own test on a run that ends permanently stuck.
-
-⇒ **NEW RULE (added to `14-AGENT-PLAYBOOK`): a chapter's acceptance test must include "and the bot
-can continue".** A completion flag proves the CONTENT ran, not that the run survived it.
-
-### THE FIX IS NOT YET CHOSEN — options, none taken
-1. **Escape Rope support** — the faithful player answer, and the bot has **none**
-   (`grep` for escape.?rope / dig across `modules/story/` and `modules/modes/util/`: **0 hits**).
-   ‼ The hideout has **no `setescapewarp`** in any of its four map scripts (decomp-checked), so
-   what an Escape Rope does from here needs verifying before relying on it. Generally useful — every
-   dungeon needs it.
-2. **A return-route study** — is there a walk-out at all? All three non-exit warps sit on small
-   islands per §Ch15's own recon (9-tile and 70-tile), so this may be genuinely impossible once the
-   boulders reset.
-3. **Re-push on the way out** — ‼ **ruled out by measurement**: the push-from tiles are not
-   reachable from the stranded side.
-
-**Until this is fixed, §Ch16 cannot start from `post_maxie.ss1`,** because its first leg is leaving
-the hideout. ‼ The Ch16 code itself is **unexercised beyond leg 1** — it is not implicated, and it
-is not yet proven either.
-
-### ✅ 2026-08-11 (later) — CAUSE CONFIRMED, FIX CHOSEN. `probe_hideout_warp_graph.py`
-The original entry proved a *same-map* path failure and inferred the strand. That inference was
-re-tested against the **whole eight-map warp graph**, because `calculate_path`'s own docstring says
-*"It is not able to use warps"* — so "no path from 1F (25,34) to 1F (10,34)" is also exactly what a
-**routing gap** would look like on a map whose rooms are joined by warps. It is not one.
-
-`probe_hideout_warp_graph.py` reads every warp from the ROM warp table, adds a walk edge wherever
-`calculate_path` plans between two nodes on one map, and BFSes. From the stranded tile it reaches
-**18 of 20 nodes**. The only two it cannot reach are the exit warp `1F (10,34)` and `JAGGED_PASS`:
-
-| control | result |
-|---|---|
-| POSITIVE — the driven ascent `1F (25,34) -> 4F` must be findable | **OK**, 5 hops, matches §Ch15 |
-| REPRODUCTION — walk-only, `(25,34)` must not reach the exit | **OK**, reproduces KI-56 exactly |
-| WARP-TABLE — the three driven inbound hops must be in the ROM table | **OK**, all three |
-
-⇒ **KI-56's stated cause is CONFIRMED** and **option 2 (a return-route study) is formally DEAD**:
-the bot can reach every chamber of the hideout *except* the 44-tile entrance pocket holding the
-exit. Option 3 (re-push) was already dead. **The fix must leave the map without walking.**
-
-‼ **The positive control had to be the ASCENT, not the full inbound journey.** The first inbound
-leg `1F (10,34) -> (25,34)` is opened by two **Strength pushes** (`MAGMA_HIDEOUT_1F_PUSHES`), and
-no static planner models a push — the first version of this probe used that leg as its control,
-failed, and correctly withheld its verdict. See `08-MISTAKES` 2026-08-11.
-
-### ‼ THE FIX: the dungeon supplies its own Escape Rope. No detour, no shopping.
-`MagmaHideout_3F_3R/map.json` places an **ITEM BALL holding an Escape Rope at `3F_3R (9,19)`** —
-inside a room §Ch15 already walks through, and (per the reachable set above) **still reachable from
-the stranded tile**. All four facts are measured, with controls:
-
-| fact | value | how |
-|---|---|---|
-| item ball | `MAGMA_HIDEOUT_3F_3R (9,19)` | decomp `map.json` |
-| flag | `ITEM_MAGMA_HIDEOUT_3F_3R_ECAPE_ROPE` (1059), **unset** on the stranded save | live |
-| approach tile | **`(9,20)` only** — face **Up**. `(9,18)`/`(8,19)`/`(10,19)` all unreachable | `calculate_path` |
-| reachable from | both 3F_3R warp nodes, `(16,1)` and `(16,21)` | live |
-| Escape Rope lands at | **`JAGGED_PASS (16,19)`**, collision=0, walkable | live, `probe_escape_warp.py` |
-
-**Why the landing tile is knowable even though the hideout has no `setescapewarp`:**
-`UpdateEscapeWarp` (decomp `src/overworld.c:677`, called from `src/field_control_avatar.c:826`)
-stamps `gSaveBlock1Ptr->escapeWarp` on **every** warp step where the map being LEFT is outdoors and
-the map being ENTERED is not. Walking Jagged Pass -> 1F sets it automatically.
-`MagmaHideout_1F/map.json` has `"allow_escaping": true`, so `CanUseDigOrEscapeRopeOnCurMap()`
-(`src/item_use.c:911`) permits the item. **NEGATIVE ARM:** on `magma_door.ss1` (hideout not yet
-entered) the same field reads `ROUTE112 (28,28)` — so the JAGGED_PASS value is the entry stamp, not
-a coincidence.
-
-‼ **THE FLAG IS MISSPELLED IN THE DECOMP — "ECAPE", not "ESCAPE"** — and
-`modules/data/event_flags/emerald.txt` carries the typo through as flag 1059. The correctly-spelled
-name **does not exist**, and an unknown flag name reads `False` **silently**, which is
-indistinguishable from "the ball is still there". Spelled right, that check is a permanent lie.
-
-**Bag state: 0 Escape Ropes on every save read** (`STRANDED`, `post_maxie`, `magma_door`,
-`post_mtpyre`), so the pickup is not optional — it is the whole acquisition. ‼ **Lavaridge Mart
-does NOT stock Escape Rope** (decomp): the only marts that do are Rustboro, Petalburg, Fallarbor,
-Slateport and Lilycove Dept. 2F — all a long detour from the Jagged Pass approach. The in-dungeon
-ball avoids that entirely.
-
-### ✅✅ RESOLVED 2026-08-11 — BUILT AND DRIVEN. `--driver magmaexit`, VERDICT PASS
-```
-[mhexit] START  MAGMA_HIDEOUT_4F(15, 21) inside=True ropes=0 ball_taken=False
-[mhexit] RESULT out=True map=JAGGED_PASS at=(16, 19) controllable=True
-                landed_on_jagged_pass=True ropes=0 whiteouts=0
-[mhexit] VERDICT PASS - acceptance is BOTH halves: outside AND controllable, on JAGGED_PASS.
-```
-‼ **The landing tile is `(16,19)` — the exact coordinate read out of `gSaveBlock1Ptr->escapeWarp`
-before a line of code was written.** The prediction and the driven result agree tile-for-tile.
-
-**What was built** (`modules/story/early_game.py`): `collect_hideout_escape_rope()`,
-`use_escape_rope_to_leave_hideout()`, `leave_magma_hideout()`, and the chapter now ENDS with
-`yield from leave_magma_hideout()` — deliberately **outside** the `_groudon_awakened()` guard, so a
-run resumed after the flag was set still finishes the exit. Driver: `--driver magmaexit`. Guard:
-`repro_hideout_exit.py` (24 structural checks, **fault-injected both ways** — "correcting" the flag
-typo and nesting the exit inside the guard each turn it red).
-
-### ‼ THE ONE THING THAT DID NOT WORK FIRST TIME — and the general rule it produced
-The first driven run **consumed the rope and went nowhere**: same tile, `controllable=False`,
-`ropes=0`. Not a refusal — the item was accepted. The harness's no-progress dump named the cause:
-**`Task_ContinueTaskAfterMessagePrints` was active.** `ItemUseOnFieldCB_EscapeRope` (decomp
-`src/item_use.c:903`) calls `DisplayItemMessageOnField(..., Task_UseDigEscapeRopeOnField)`, and
-`StartEscapeRopeFieldEffect()` runs only from that **callback**, which fires when the message is
-DISMISSED. The wait loop only `yield`ed, so it waited for ever on a text box. Fixed by pressing
-**B** every 4th frame while waiting (B dismisses and interacts with nothing; a stray A on the far
-side of the warp would talk to whoever is standing on Jagged Pass).
-
-⇒ **The Strength lesson generalises to items: a consumed item is NOT the end of the script that
-consumed it.** Added to `14-AGENT-PLAYBOOK`.
-
-**Still true / still not proven:** this was driven from `post_maxie.ss1` (on 4F). The exit has
-**not** been driven from a run that walked all the way back down to `1F (25,34)` — the warp graph
-says 3F_3R is reachable from there, but that is static. And `#24-slateportsub` (§Ch16) is now
-UNBLOCKED but still unexercised beyond leg 1.
-
-## KI-57 — ‼ §Ch16 leg 1: **beating Maxie PARKS Capt. Stern on the tile Ch16 walks to** (2026-08-11, severity: HIGH, MEASURED, decomp-confirmed)
-
-Found by re-driving §Ch16 once KI-56 was fixed. The bot got **out of the Magma Hideout, across the
-region, and into Slateport** — then died on the last step of leg 1:
-
-```
-[ch16] PRE-STEP done - now at JAGGED_PASS(16, 19)          <- KI-56's fix, working
-[ch16] WHITEOUT #1 - recovering, as StoryMode does
-[ch16] FAILED: UnreachableDestinationError: Could not reach (28, 13) on SLATEPORT_CITY:
-       the field is idle and we are still at (19, 20), so retrying cannot change the result
-[ch16] RESULT harbor_state=1 controllable=True map=SLATEPORT_CITY at=(19, 20) whiteouts=1
-```
-
-### THE CAUSE — decomp, not inference
-`SlateportCity_OnTransition` calls `SlateportCity_EventScript_MovePeopleForSternInterview`
-whenever `VAR_SLATEPORT_CITY_STATE == 1`, and that script begins:
-```
-setobjectxyperm       LOCALID_SLATEPORT_CAPT_STERN, 28, 13
-setobjectmovementtype LOCALID_SLATEPORT_CAPT_STERN, MOVEMENT_TYPE_FACE_DOWN
-```
-`SLATEPORT_HARBOR_DOOR_APPROACH` **is** `(28,13)`. ‼ **And §Ch15 is what sets that var** — the
-same `MagmaHideout_4F_EventScript_Maxie` that ends Ch15 sets `SLATEPORT_CITY_STATE` and clears
-`FLAG_HIDE_SLATEPORT_CITY_CAPTAIN_STERN` / `..._GABBY_AND_TY`. **Completing Ch15 spawns the thing
-that blocks Ch16.**
-
-It is `setobjectxyperm` with a `FACE_*` movement type ⇒ **stationary and deterministic**. Waiting
-or retrying can never clear it. (An early reading of this guessed "a wandering NPC may clear on its
-own" — the movement types refute that.)
-
-### THE MEASUREMENT (`probe_slateport_harbor_approach.py`, from `saves/stalls/ch16b-f20252.ss1`)
-| query | live (NPCs visible) | static (city not loaded) |
-|---|---|---|
-| `(19,20) -> (28,13)` | **FAIL** (reproduces) | **OK, 20 wp** |
-| `(28,13) -> (19,20)` | FAIL | OK, 20 wp |
-| control `(19,20) -> (20,20)` | OK, 1 wp | — |
-
-Live objects occupy **`(28,13)` Capt. Stern, `(28,14)` Gabby, `(29,13)` Ty** — a three-tile plug.
-Reachable near the door: `(27,13)` 19 wp, `(27,14)` 18 wp, `(28,15)` 18 wp, `(29,14)` 20 wp.
-
-### ‼ AND NO STAGING TILE WORKS — the plug seals the door, it does not merely cover it
-| candidate | reachable from `(19,20)`? | can it reach the door `(28,12)`? |
-|---|---|---|
-| `(27,13)` `(28,15)` `(27,14)` `(29,14)` | **yes** | **NO** |
-| `(27,12)` `(29,12)` `(28,11)` | **NO** | yes, 1 wp |
-
-The door's neighbours and the reachable tiles are in **different components**: `(28,13)` is a
-one-tile neck, and Stern is standing in it. So this is **not** fixable by picking a different
-staging tile near warp 8.
-
-### THE LEAD, NOT YET AN ANSWER — there is a SECOND harbor entrance
-The ROM warp table for `SLATEPORT_CITY` has **two** warps to `SLATEPORT_CITY_HARBOR`:
-* **warp 8 `(28,12)`** -> harbor `(11,14)` — the one Ch16 uses, and the one Stern seals.
-* **warp 9 `(40,7)`** -> harbor `(19,15)` — **unused by our code.**
-
-`(39,7)`, immediately west of it, **plans in 37 wp** from the stuck tile. But `(40,7)` itself does
-not plan, and the harbor-side arrival `(19,15)` raised `IndexError` when asked to path to the
-trigger `(8,14)` (whereas warp 8's arrival `(11,14) -> (8,14)` plans in 3 wp). **So warp 9 is a
-lead worth one probe, not a fix.** Do not wire it in on this evidence.
-
-### ‼ ALSO NOTE — the run WHITED OUT first
-`(19,20)` is directly below `warp 0 (19,19) -> SLATEPORT_CITY_POKEMON_CENTER_1F`, so the bot is
-standing where a **whiteout recovery** left it, not where it walked. That is incidental to this
-blocker (the static arm plans from there fine), but it means leg 1 also lost a fight somewhere on
-the Jagged Pass -> Slateport haul, which is unmeasured.
-
-**Repro fixture:** `tools/story-dev/saves/stalls/ch16b-f20252.ss1` (VOLATILE — a stall save; the
-harness overwrites the `stalls/` directory per run).
-
-### ✅✅ KI-57 RESOLVED 2026-08-11 — Stern is not an obstacle, he is THE DOOR
-```
-[ch16] RESULT harbor_state=2 controllable=True map=SLATEPORT_CITY_HARBOR at=(8, 13) whiteouts=1
-[ch16] ACCEPTANCE: PASS (needs harbor_state==2 AND controllable==True)
-```
-
-**The measurement that cracked it was a PICTURE, not more spot-checks.**
-`probe_slateport_harbor_map.py` draws the collision map with live objects overlaid:
-```
-  12 ....####D###.~~~     <- the door (28,12) is set into a SOLID WALL
-  13 .....O..OO......     <- (28,13) Stern, (29,13) Ty; (27,13) is his one free neighbour
-```
-`(28,13)` is the **only** tile touching the door, and Stern is on it. So the door genuinely is
-sealed — KI-57's geometry was right. What was wrong was the CONCLUSION drawn from it.
-
-‼ **The door is not meant to be walked through in this era.** `SlateportCity_EventScript_CaptStern`
-— i.e. **talking to him** — plays the interview and the Team Aqua announcement and ends:
-```
-removeobject LOCALID_SLATEPORT_CAPT_STERN
-setvar       VAR_SLATEPORT_CITY_STATE, 2
-warp         MAP_SLATEPORT_CITY_HARBOR, 11, 14
-```
-**The script carries the player in**, landing on `(11,14)` — the same tile the door warp lands on,
-so leg 3 needed no change at all. It is also the faithful reading: a human talks to the man being
-interviewed rather than shoving past him.
-
-**What changed in §Ch16:** legs 1+2 are now "walk to `SLATEPORT_STERN_APPROACH (27,13)`, face
-Right, A/B-ride the scene until the map changes or `SLATEPORT_CITY_STATE == 2`". The old
-door-walking path is kept as the **resume branch only** (`_city_state() >= 2`, i.e. Stern already
-`removeobject`ed). Bounded at 30,000 frames with a state-reporting failure message.
-
-### ‼ AND AN INSTRUMENT GOTCHA THAT PRODUCED A WRONG SUB-CLAIM
-KI-57 originally reported that `(27,12)`, `(29,12)` and `(28,11)` are "walkable tiles adjacent to
-the door" that "reach it in 1 wp" but sit in a different component. **They are walls.**
-`calculate_path` **does not validate its SOURCE tile** — asked for a path *from* a blocked tile it
-happily returns one. Every "OK, 1 wp" in that table was an artifact.
-⇒ **A `calculate_path` result is only evidence about the DESTINATION side unless the source has
-been independently shown to be walkable.**
+Full write-ups moved to **`31-KNOWN-ISSUES-ARCHIVE.md`** to keep this file inside its budget.
+* **KI-56** — §Ch15 stranded the run inside the Magma Hideout; Strength boulders RESET on map
+  reload. Fixed with the Escape Rope the dungeon itself provides. ‼ Its prevention rule — *a
+  chapter's test must include "and the bot can continue"* — was violated again by §Ch18 on
+  2026-08-12 (see `08-MISTAKES.md`). It is the single most re-learned lesson here.
+* **KI-57** — beating Maxie parked Capt. Stern on the tile §Ch16 needed; he was not an obstacle
+  but the door — talking to him warps the player in.
 
 ## KI-58 — the Mossdeep Gym statue puzzle (2026-08-12, RESOLVED — see the two sections below)
 
@@ -2976,3 +2724,30 @@ reasons from `chapter_key` (the endless-run stage label, resume messages) may un
 save has got. `probe_chapter_order.py` deliberately does not assert on this save, and says why.
 **To settle it:** check `MET_RIVAL_LILYCOVE` across the anchors that have plainly passed Lilycove,
 and if it is unset on all of them, the milestone is wrong rather than the run.
+
+## KI-63 — NO party member can learn Dive, and the party is full: §Ch21 is BLOCKED (2026-08-12, MEASURED, OPEN)
+
+Measured on `post_mossdeep_gym.ss1` by `tools/story-dev/probe_ch19_hazards.py`:
+```
+party 6/6: Sceptile L48, Zigzagoon L15, Swellow L40, Skitty L17, Mightyena L44, Castform L36
+Dive learners in party: NONE
+```
+Only 76 species learn Dive and none of ours is among them.
+
+**‼ WHAT THIS DOES AND DOES NOT BLOCK.** Receiving **HM08 is a scripted gift and needs no learner**,
+so §Ch19 (Space Center) and the Dive hand-over in Steven's house are unaffected — `FLAG_RECEIVED_HM_DIVE`
+will set normally, and it is that flag which removes the Seafloor Cavern entrance guard. What is
+blocked is **USING** Dive, i.e. actually reaching the Seafloor Cavern (§Ch21).
+
+**Why it is not a small fix.** The party is FULL, so a catch would go to the PC, and
+`early_game.py:4294` already refuses exactly this case:
+> `No party mon can learn {move} and the party is full — needs PC box management (#24-pc) or a
+> manual swap.`
+And `#24-roster`/`#24-pc` is itself gated by KI-54 (the box is empty and the deposit path was
+measured harmful). ⇒ **`#24-pc` is a PREREQUISITE of the Seafloor Cavern, not a later nicety.**
+
+**‼ The natural swap is not the obvious one.** Zigzagoon L15 is the party's ONLY Surf carrier, so it
+cannot simply be dropped. A **Wailmer or Tentacool** — both on the water this arc already crosses
+(Routes 124/126/127/128) — learns **Surf and Dive**, which makes it a single swap that covers both
+duties. To settle before building: confirm the encounter tables in `modules/data` rather than
+trusting this note.

@@ -2830,11 +2830,17 @@ class MossdeepBadgeMode(BotMode):
         except Exception as error:  # noqa: BLE001
             ctrl = f"<unreadable: {type(error).__name__}>"
         badge = get_event_flag("BADGE07_GET")
-        ok = badge and ctrl is True
+        # ‼ THE TEST MUST INCLUDE "AND THE BOT CAN CONTINUE". Grading on badge+controllable alone
+        # passed a version of this chapter that left the avatar on (23,8) - an eleven-tile collision
+        # island whose only exit is a coord event. Measured: calculate_path((23,8) -> (7,35)) raises.
+        # That is KI-56's prevention rule, and it had to be learned twice.
+        out_of_gym = mgn == MapRSE.MOSSDEEP_CITY.value
+        ok = badge and ctrl is True and out_of_gym
         log(f"[ch18c] RESULT badge={badge} map={map_name(mgn)} at={tile} controllable={ctrl} "
             f"whiteouts={MossdeepBadgeMode._whiteouts} frames={context.emulator.get_frame_count()}"
             + (f" error=({error_text})" if error_text else ""))
-        log(f"[ch18c] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (needs BADGE07_GET AND controllable)")
+        log(f"[ch18c] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (needs BADGE07_GET AND controllable "
+            f"AND out of the gym; out_of_gym={out_of_gym})")
 
         if ok and os.environ.get("CH18C_CAPTURE", "1") != "0":
             out = SAVES / "post_mossdeep_gym.ss1"

@@ -5111,3 +5111,45 @@ main loop and therefore *does* have listeners. 4/4 pass in under a minute.
 **Prevention rules.** *A hand-driven generator is not the bot: it has no battle listeners, no
 whiteout handling, no main loop. Use it for logic and guards, and use a real driver for anything
 that must survive a battle.* And: *never read an exit code through a pipe — `head` reports its own.*
+
+---
+
+## 2026-08-12 — §Ch18 passed its own test while leaving the bot on an island. KI-56, a second time.
+
+**Symptom.** None visible. §Ch18 was driven twice, PASSED both times
+(`badge=True controllable=True whiteouts=0`), was committed, documented and reported as complete.
+An adversarial planning pass for the NEXT chapter predicted that its first navigation call would
+raise `PathFindingError` inside the gym — before a single city tile was walked.
+
+**It was right, and it was my bug.** The chapter ended on `(23,8)`, the tile that faces Tate & Liza.
+That tile is part of an **eleven-tile collision island**: `(21,6) (21,7) (21,8) (21,9) (21,10)
+(22,9) (23,8) (23,9) (24,8) (24,9) (25,9)`. Measured (`probe_ch19_hazards.py`):
+```
+(23,8) -> gym door (7,35) : PathFindingError: Could not find a path
+(23,8) -> (21,6) CONTROL  : path found, 6 waypoint(s)
+```
+The only way off is the coord event at `(21,6)` — **not a warp event**, so no warp-graph solver will
+ever offer it. ‼ KI-58 had labelled `(21,6)` a "trap", which is correct for a bot trying to REACH
+the leaders and exactly backwards for one trying to leave.
+
+**Why the tests did not catch it.** The acceptance was `BADGE07_GET AND controllable`. Both were
+true. The avatar was healthy, in the overworld, and completely stuck. This is **KI-56's own
+prevention rule** — *a chapter's test must include "and the bot can continue"* — which was written
+about §Ch15 stranding a run four floors deep in the Magma Hideout, and which I re-read at the start
+of this same session.
+
+**The fix that worked.** `leave_the_gym()`: step on `(21,6)`, confirm the landing at `(7,30)` by
+TILE rather than by readiness, then walk out through the door. Driven:
+```
+Story: Ch18 leaving the leaders' platform via the (21, 6) coord warp
+Story: Ch18 back in the entrance hall at (7, 30)
+Story: Ch18 out of the gym, in Mossdeep City at (38, 10)
+[ch18c] RESULT badge=True map=MOSSDEEP_CITY at=(38,10) controllable=True whiteouts=0
+```
+And — more importantly than the fix — **the acceptance test now requires being out of the gym**, so
+the stranded version would fail it. `probe_ch19_hazards.py` keeps the check as a regression guard.
+
+**Prevention rules.** *"Controllable" is not "able to continue". A chapter's acceptance must assert
+the bot is somewhere the NEXT chapter can start from — and the cheapest way to assert that is a real
+path query to where it must go next.* And: *a tile called a "trap" in one direction is often the
+only exit in the other; re-read hazard notes from the new chapter's point of view.*
