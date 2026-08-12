@@ -1192,3 +1192,61 @@ in the run). This is the field that refuted `#24-bosstelemetry` LEAD 2.
   EQUAL**. It is a different function, it did not cause KI-52, and changing escape odds affects
   every hunting mode.
 * **No production batch has run with any of these in.** Nothing here has an outcome metric.
+
+---
+
+# PROMOTION 2026-08-12 — the §Ch15 EXIT, §Ch16 (Slateport) and §Ch17 (Aqua Hideout)
+
+**Approved by the user 2026-08-12.** Two files changed: `modules/story/early_game.py` and
+`plugins/custom_modes/story_mode.py`. Story-mode content only — **no shared subsystem is touched**,
+so no other bot mode can be affected by this promotion.
+
+**‼ VERIFIED ON THE CUSTOM BUILD ITSELF, not just diffed.** `--driver aquahideout --build custom`
+from `post_harbor.ss1`:
+```
+[ch17] RESULT escaped=True controllable=True map=AQUA_HIDEOUT_B2F at=(24, 19) whiteouts=0 frames=3409537
+[ch17] ACCEPTANCE: PASS
+```
+The frame count is **identical to the sandbox run** (3,409,537), i.e. the promoted build reproduces
+the sandbox behaviour exactly, not merely the source.
+
+## What is now in custom
+
+**1. §Ch15 gained an EXIT (KI-56).** The chapter was graded binary on
+`GROUDON_AWAKENED_MAGMA_HIDEOUT` — a flag set the instant Maxie falls, four floors underground — so
+it PASSED on runs that ended **permanently stranded**. A BFS over the whole eight-map warp graph
+reaches 18 of 20 nodes from the return tile and misses only the exit warp and Jagged Pass: there is
+no walk-out, because the two Strength pushes that opened 1F reset on map reload.
+Fix: `collect_hideout_escape_rope()` takes the **Escape Rope the dungeon itself provides** at
+`3F_3R (9,19)`, and `use_escape_rope_to_leave_hideout()` uses it, landing on `JAGGED_PASS (16,19)`.
+`do_magma_hideout_chapter()` now ENDS with `leave_magma_hideout()`, deliberately **outside** the
+flag guard so a resumed run still finishes the exit. Driven PASS.
+
+**2. §Ch16 — the Slateport submarine theft** (`do_slateport_harbor_theft`), Segment 16.
+‼ It does **not** walk through the harbor door: `SlateportCity_OnTransition` parks Capt. Stern on
+`(28,13)`, the only tile touching that door, whenever `VAR_SLATEPORT_CITY_STATE == 1` — a var
+**Ch15's own Maxie script sets**. `SlateportCity_EventScript_CaptStern` ends with `removeobject` /
+`setvar ..., 2` / `warp MAP_SLATEPORT_CITY_HARBOR, 11, 14`, so **talking to him carries the player
+in**. The door path survives only as the resume branch.
+
+**3. §Ch17 — the Lilycove Aqua Hideout** (`do_aqua_hideout_chapter`), Segment 17.
+B1F is a warp-panel maze (**21 of its 25 warps return to B1F**), so the 18-hop route was BFS-solved
+from the ROM warp table and every hop is graded on **(map AND tile)** — "did the map change?" cannot
+distinguish a `B1F -> B1F` panel. Acceptance `FLAG_TEAM_AQUA_ESCAPED_IN_SUBMARINE`.
+
+**4. Heal stops before long hauls** (`SLATEPORT_ROUTE_HEALS`, and Ch17 heals at Lilycove).
+‼ Measured: `post_maxie.ss1` hands Ch16 a party at **8.8% HP with five of six fainted**, and the
+chapter was passing only *because* a whiteout heals. Nearest-first ordering matters: a Mauville-only
+version left the run frame-identical to the unhealed one up to the whiteout frame.
+
+## ‼ OUTSTANDING AT PROMOTION TIME — read before quoting any of this
+* **Every chapter here has been driven, but only a handful of times.** Ch17 has **two** passes
+  (sandbox + custom, frame-identical). A `.ss1` replays identical timing, so repeated passes on one
+  anchor are **n=1**, not evidence of robustness. None of this has run in a production batch.
+* **The routes are STATIC.** Both hideout routes were solved from ROM warp tables with
+  `calculate_path`, which cannot see the grunts standing in those corridors. They survived contact
+  on the runs above; that is not the same as being robust to a grunt standing one tile over.
+* **The Master Ball at `AQUA_HIDEOUT_B1F (15,9)` is NOT collected** (nor the two Electrode guarding
+  it at `(16,9)`/`(16,10)`). §Ch17 walks past it. Being addressed next.
+* **`post_maxie.ss1` and `post_mtpyre.ss1` are still wiped-party anchors** (9% and 11%). The heal
+  stops work around that; the anchors themselves were not re-captured.

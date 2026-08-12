@@ -7477,16 +7477,23 @@ def do_magma_hideout() -> Generator:
 
 
 def do_magma_hideout_chapter() -> Generator:
-    """Chapter 15 end to end: travel -> open the entrance -> enter -> beat Maxie.
+    """Chapter 15 end to end: travel -> open the entrance -> enter -> beat Maxie -> GET OUT.
 
-    The three increments stay separate functions because each has its own binary acceptance and
-    its own driver, which is what let the travel leg's two failures be diagnosed as a party
-    problem and a driver problem rather than as "the chapter does not work"."""
-    if _groudon_awakened():
-        return
-    yield from travel_to_magma_hideout_door()
-    yield from enter_magma_hideout()
-    yield from do_magma_hideout()
+    The increments stay separate functions because each has its own binary acceptance and its
+    own driver, which is what let the travel leg's two failures be diagnosed as a party problem
+    and a driver problem rather than as "the chapter does not work".
+
+    ‼‼ THE CHAPTER IS NOT OVER WHEN `GROUDON_AWAKENED_MAGMA_HIDEOUT` IS SET. That flag fires the
+    moment Maxie falls, four floors underground, and for one whole session this function returned
+    successfully on runs that were **permanently stranded** (KI-56) - the boulder puzzle that let
+    the bot in reseals behind it on map reload, and no walk-out exists. So the acceptance is BOTH
+    halves: the flag AND being outside and controllable. `leave_magma_hideout()` is deliberately
+    OUTSIDE the flag guard, so a run resumed after the flag was set still finishes the exit."""
+    if not _groudon_awakened():
+        yield from travel_to_magma_hideout_door()
+        yield from enter_magma_hideout()
+        yield from do_magma_hideout()
+    yield from leave_magma_hideout()
 
 
 # ---------------------------------------------------------------------------
@@ -7831,3 +7838,795 @@ def open_magma_hideout_1f() -> Generator:
             "simulation, so the live map state differs from the one it was derived from."
         )
     _ch14_say("Story: Magma Hideout 1F is open - the route to 2F_1R is clear.")
+
+
+# ---------------------------------------------------------------------------
+# §Ch15 EXIT - LEAVING the Magma Hideout (KI-56).
+#
+# ‼ WHY A CHAPTER NEEDS AN EXIT LEG AT ALL. Ch15 was graded BINARY on
+# `GROUDON_AWAKENED_MAGMA_HIDEOUT`, which the game sets the instant Maxie falls - four floors
+# deep. It therefore PASSED ITS OWN TEST on runs that ended permanently stuck. 1F's 44-tile
+# entrance pocket is joined to the rest of the floor only by the two Strength pushes
+# `MAGMA_HIDEOUT_1F_PUSHES` performs, and **boulder positions RESET when the map reloads**
+# (KI-56, measured: the boulders read back at their ORIGINAL tiles). Walking back down, the bot
+# arrives at `1F (25,34)` on the far side of that wall, and both push-from tiles - `(7,23)` and
+# `(6,22)` - are inside the pocket it can no longer reach, so it cannot even re-push.
+#
+# MEASURED, with three controls (`tools/story-dev/probe_hideout_warp_graph.py`): from the return
+# tile, a BFS over the whole eight-map warp graph reaches **18 of 20 nodes**, and the only two it
+# misses are the exit warp `1F (10,34)` and `JAGGED_PASS` itself. **There is no walk-out.** A
+# return-route study and a re-push are both closed off; the way out cannot be walked at all.
+#
+# ‼ SO THE DUNGEON SUPPLIES ITS OWN ESCAPE - which is almost certainly why a one-way boulder
+# puzzle could be shipped here in the first place. `MagmaHideout_3F_3R/map.json` places an
+# **Escape Rope item ball at `(9,19)`**, and 3F_3R is reachable even from the stranded tile.
+# ---------------------------------------------------------------------------
+
+#: The Escape Rope item ball, decomp `data/maps/MagmaHideout_3F_3R/map.json`.
+HIDEOUT_ESCAPE_ROPE_MAP = MapRSE.MAGMA_HIDEOUT_3F_3R
+HIDEOUT_ESCAPE_ROPE_TILE = (9, 19)
+
+#: ‼ `(9,20)` IS THE ONLY APPROACH. An item ball is an object event, so it is reached by
+#: standing beside it and pressing A - and of the four neighbours, `calculate_path` reaches
+#: ONLY the one below it. `(9,18)`, `(8,19)` and `(10,19)` are all unreachable from both of
+#: 3F_3R's warp arrival tiles (measured, `probe_hideout_warp_graph.py`). Facing is Up.
+HIDEOUT_ESCAPE_ROPE_APPROACH = (9, 20)
+HIDEOUT_ESCAPE_ROPE_FACING = "Up"
+
+#: ‼‼ THE DECOMP MISSPELLS THIS FLAG - "ECAPE", not "ESCAPE" - and
+#: `modules/data/event_flags/emerald.txt` carries the typo through as flag 1059. The
+#: correctly-spelled name **does not exist**, and `get_event_flag` returns False **silently**
+#: for an unknown name, which is indistinguishable from "the ball is still there". Spelled the
+#: sensible way, this check would be a permanent, invisible lie. Do not "fix" it.
+HIDEOUT_ESCAPE_ROPE_FLAG = "ITEM_MAGMA_HIDEOUT_3F_3R_ECAPE_ROPE"
+
+#: 4F's OTHER warp. The route in is `1F (25,34) -> 2F_1R (17,33) -> 3F_1R (7,21) -> 4F`
+#: (`MAGMA_HIDEOUT_ROUTE`), which never touches 3F_3R - so collecting the rope is a deliberate
+#: one-warp detour off 4F after Maxie, not something the inbound route passes.
+HIDEOUT_4F_TO_3F_3R = (20, 21)
+
+#: Where an Escape Rope actually puts us. ‼ The hideout has NO `setescapewarp` in any of its
+#: four map scripts, so this is not read off a script: `UpdateEscapeWarp` (decomp
+#: `src/overworld.c:677`, called from `src/field_control_avatar.c:826`) stamps
+#: `gSaveBlock1Ptr->escapeWarp` on EVERY warp step where the map being left is outdoors and the
+#: map being entered is not - so walking Jagged Pass -> 1F sets it automatically. Read live out
+#: of the save block on the stranded state: `JAGGED_PASS (16,19)`, collision 0
+#: (`probe_escape_warp.py`, which also checks the pre-entry NEGATIVE ARM reads `ROUTE112`).
+HIDEOUT_ESCAPE_LANDING = MapRSE.JAGGED_PASS
+
+
+def _escape_ropes_held() -> int:
+    """How many Escape Ropes are in the bag."""
+    from modules.items import get_item_bag, get_item_by_name
+
+    return get_item_bag().quantity_of(get_item_by_name("Escape Rope"))
+
+
+def collect_hideout_escape_rope() -> Generator:
+    """Pick up the Escape Rope the Magma Hideout provides, on 3F_3R `(9,19)`.
+
+    INTENT: put an Escape Rope in the bag so the chapter can LEAVE. Nothing else in this era
+    supplies one - the bag reads **0 ropes on every anchor save**, and ‼ Lavaridge Mart (the
+    nearest to the Jagged Pass approach) does **not stock them**; the closest marts that do are
+    Fallarbor, Slateport, Rustboro, Petalburg and Lilycove, all a long detour off a leg that has
+    already produced a measured whiteout.
+    STORY CONDITION: inside the hideout, on 4F (post-Maxie) or already on 3F_3R.
+    GOAL/END STATE: `_escape_ropes_held() > 0`. Graded on THE BAG, never on the flag - see below.
+    """
+    from modules.memory import get_event_flag
+
+    if _escape_ropes_held() > 0:
+        return  # resume-safe: a previous attempt already collected it
+
+    if _map_group_number() == MapRSE.MAGMA_HIDEOUT_4F.value:
+        _ch14_say("Story: Magma Hideout - detouring to 3F_3R for the Escape Rope...")
+        yield from _enter_warp_by_navigation(
+            lambda: _map_group_number() == HIDEOUT_ESCAPE_ROPE_MAP.value,
+            MapRSE.MAGMA_HIDEOUT_4F,
+            HIDEOUT_4F_TO_3F_3R,
+            label="Magma Hideout 4F -> 3F_3R (Escape Rope)",
+        )
+        yield from wait_until_truly_controllable()
+
+    if _map_group_number() != HIDEOUT_ESCAPE_ROPE_MAP.value:
+        raise BotModeError(
+            "Magma Hideout: cannot collect the Escape Rope from map "
+            f"{_map_group_number()} - this leg starts on MAGMA_HIDEOUT_4F (warping via "
+            f"{HIDEOUT_4F_TO_3F_3R}) or on {HIDEOUT_ESCAPE_ROPE_MAP.name} itself."
+        )
+
+    # ‼ THE BALL CAN ONLY BE TAKEN ONCE. If the flag is set and the bag is still empty, the rope
+    # was collected on some earlier run and then used or tossed - there is no second one, and
+    # mashing A at an empty tile would burn the bound and report nothing useful.
+    if get_event_flag(HIDEOUT_ESCAPE_ROPE_FLAG):
+        raise BotModeError(
+            f"Magma Hideout: the Escape Rope ball at {HIDEOUT_ESCAPE_ROPE_TILE} has already "
+            f"been taken ({HIDEOUT_ESCAPE_ROPE_FLAG} is set) but the bag holds none. This run "
+            "cannot leave the hideout on foot (KI-56) and has no rope to leave with."
+        )
+
+    yield from _navigate_riding_out(HIDEOUT_ESCAPE_ROPE_MAP, HIDEOUT_ESCAPE_ROPE_APPROACH)
+    yield from wait_for_player_avatar_to_be_standing_still()
+    yield from ensure_facing_direction(HIDEOUT_ESCAPE_ROPE_FACING)
+    yield
+
+    # `finditem` shows "You found an ESCAPE ROPE!" then "put away in the ITEMS POCKET" - a
+    # message chain, so A-ride it. ‼ GRADED ON THE BAG, NOT THE FLAG: with a full items pocket
+    # the script says "the BAG is full" and sets NO flag and gives NO item, and a flag-based
+    # test would then hang on a ball that will never be collectable.
+    for _frame in range(1200):
+        _check_abort()
+        if _escape_ropes_held() > 0:
+            break
+        context.emulator.press_button("A")
+        yield
+        yield from wait_for_n_frames(3)
+
+    if _escape_ropes_held() == 0:
+        # A failure message reports the WORLD, not a hypothesis (08-MISTAKES 2026-08-10).
+        where = _map_group_number()
+        try:
+            tile = tuple(get_player_avatar().local_coordinates)
+        except Exception as error:  # noqa: BLE001 — this is the FAILURE REPORT itself; an
+            # unreadable avatar must not replace the real diagnosis with a crash from the
+            # diagnostic. The exception type is carried into the message rather than dropped.
+            tile = f"<unreadable: {type(error).__name__}>"
+        raise BotModeError(
+            f"Magma Hideout: pressed A at the Escape Rope ball {HIDEOUT_ESCAPE_ROPE_TILE} for "
+            f"1200 frames and the bag still holds none (standing {tile} on map {where}, facing "
+            f"{HIDEOUT_ESCAPE_ROPE_FACING}; flag {HIDEOUT_ESCAPE_ROPE_FLAG}="
+            f"{get_event_flag(HIDEOUT_ESCAPE_ROPE_FLAG)}). A set flag with an empty bag means "
+            "the items pocket was FULL."
+        )
+
+    # ‼ A flag set by a script is NOT the end of that script (the Strength lesson) - ride the
+    # rest of the message chain out before anything else touches the D-pad.
+    yield from _ride_out_scripted_scene("B")
+    _ch14_say(f"Story: collected the Escape Rope on {HIDEOUT_ESCAPE_ROPE_MAP.name}.")
+
+
+def use_escape_rope_to_leave_hideout() -> Generator:
+    """Use an Escape Rope and confirm we are OUT, on Jagged Pass.
+
+    INTENT: end §Ch15 standing outside the dungeon and able to continue - the half the old
+    binary acceptance test never asked about.
+    GOAL/END STATE: not on any hideout map, standing on `JAGGED_PASS`, truly controllable."""
+    from modules.items import get_item_by_name
+    from modules.modes.util.items import use_item_from_bag
+
+    if not _inside_magma_hideout():
+        return  # resume-safe: already out
+
+    if _escape_ropes_held() == 0:
+        raise BotModeError(
+            "Magma Hideout: use_escape_rope_to_leave_hideout() called with no Escape Rope in "
+            "the bag. `collect_hideout_escape_rope()` must run first."
+        )
+
+    _ch14_say("Story: using the Escape Rope to leave the Magma Hideout...")
+    # ‼ `wait_for_start_menu_to_reappear=False`: using an Escape Rope closes the menus and warps,
+    # so the start menu never comes back and waiting for it would burn that helper's own bound.
+    yield from use_item_from_bag(get_item_by_name("Escape Rope"), wait_for_start_menu_to_reappear=False)
+
+    # ‼‼ THE MESSAGE MUST BE DISMISSED OR THE WARP NEVER HAPPENS - MEASURED, NOT GUESSED.
+    # The first driven run consumed the rope and then sat on the same tile for 1800 frames with
+    # `controllable=False`. The harness's no-progress dump named the cause exactly:
+    # **`Task_ContinueTaskAfterMessagePrints` was active.** `ItemUseOnFieldCB_EscapeRope`
+    # (decomp `src/item_use.c:903`) calls `DisplayItemMessageOnField(taskId, gStringVar4,
+    # Task_UseDigEscapeRopeOnField)`, and `StartEscapeRopeFieldEffect()` only runs from that
+    # CALLBACK - which fires when the message is dismissed. A wait loop that merely yields waits
+    # forever on a text box. This is the same shape as the Strength lesson recorded above: an
+    # item being consumed is NOT the end of the script that consumes it.
+    # ‼ B, NEVER A. B dismisses a message and interacts with nothing; a stray A on the far side
+    # of the warp would talk to whoever is standing on Jagged Pass.
+    for _frame in range(1800):
+        _check_abort()
+        if not _inside_magma_hideout():
+            break
+        if _frame % 4 == 0:
+            context.emulator.press_button("B")
+        yield
+
+    if _inside_magma_hideout():
+        # Report the WORLD, not a hypothesis: a rope that was consumed but did not warp is a
+        # completely different bug from one the game refused, and the count separates them.
+        raise BotModeError(
+            "Magma Hideout: used an Escape Rope and 1800 frames later we are still inside "
+            f"(map {_map_group_number()}, tile {tuple(get_player_avatar().local_coordinates)}, "
+            f"{_escape_ropes_held()} rope(s) left, "
+            f"controllable={player_avatar_is_controllable()}). "
+            "`MagmaHideout_1F/map.json` has allow_escaping=true, so the item is legal here. "
+            "‼ If the rope count went DOWN, the item was accepted and the warp is what stalled - "
+            "check for `Task_ContinueTaskAfterMessagePrints`, i.e. an undismissed message box."
+        )
+
+    yield from wait_until_truly_controllable()
+
+    where = _map_group_number()
+    if where != HIDEOUT_ESCAPE_LANDING.value:
+        # Not fatal to the escape itself - we ARE out - but it means the landing tile this
+        # chapter was built on is not where the game put us, and the caller should know.
+        raise BotModeError(
+            f"Magma Hideout: the Escape Rope landed us on map {where}, not "
+            f"{HIDEOUT_ESCAPE_LANDING.name}. `escapeWarp` was measured as "
+            "JAGGED_PASS (16,19) on this anchor; it is stamped on the way IN, so a run that "
+            "entered the hideout by some other route would land somewhere else."
+        )
+
+    _ch14_say(f"Story: OUT of the Magma Hideout - standing on {HIDEOUT_ESCAPE_LANDING.name}.")
+
+
+def leave_magma_hideout() -> Generator:
+    """§Ch15's exit: get the Escape Rope, use it, be outside. No-op when already out."""
+    if not _inside_magma_hideout():
+        return
+    yield from collect_hideout_escape_rope()
+    yield from use_escape_rope_to_leave_hideout()
+
+
+# ---------------------------------------------------------------------------
+# Chapter 16 - the SLATEPORT HARBOR submarine theft (§Ch16).
+#
+# ‼ EVERY constant here is decomp-verified (design §Ch16, 2026-08-11). Re-derive:
+#     gh api repos/pret/pokeemerald/contents/data/maps/SlateportCity_Harbor/scripts.inc
+#     gh api repos/pret/pokeemerald/contents/data/maps/SlateportCity_Harbor/map.json
+#     cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_ch16_anchor.py   (the era gate)
+#     cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_ch16_travel.py   (the route, static)
+# ---------------------------------------------------------------------------
+
+#: `SLATEPORT_CITY (28,12)` -> `SLATEPORT_CITY_HARBOR` (warp id 8, lands at harbor (11,14)).
+#: ‼ A WARP TILE: stepping onto it FIRES it, so it is an `_enter_warp_by_navigation` target,
+#: never a plain `navigate_to` destination (ML-9).
+SLATEPORT_HARBOR_DOOR = (28, 12)
+
+#: The plain walkable tile below the door - and the harbor's own `setescapewarp` return tile,
+#: so it is guaranteed to exist and be standable.
+SLATEPORT_HARBOR_DOOR_APPROACH = (28, 13)
+
+#: ‼ THE TRIGGER. Four coord events fire `SlateportCity_Harbor_EventScript_AquaEscapeTrigger0..3`,
+#: all gated on `VAR_SLATEPORT_HARBOR_STATE == 1`, at x=8, y=11..14 (elevation 3).
+#: **Trigger 3 (8,14) is chosen deliberately**: it is the only one that `applymovement`s the
+#: player UP into the scene itself, so the walk-in is scripted rather than something we must get
+#: right. It is also the closest to the landing tile (3 waypoints, static).
+HARBOR_AQUA_TRIGGER = (8, 14)
+
+#: ‼ CAPT. STERN, AND HE IS THE WAY IN - NOT AN OBSTACLE (KI-57).
+#: `SlateportCity_OnTransition` -> `MovePeopleForSternInterview` does
+#: `setobjectxyperm LOCALID_SLATEPORT_CAPT_STERN, 28, 13` whenever `VAR_SLATEPORT_CITY_STATE == 1`
+#: - a var **Ch15's own Maxie script sets**. `(28,13)` is the ONLY tile touching the harbor door
+#: `(28,12)`, which is set into a solid wall (measured tile-by-tile,
+#: `tools/story-dev/probe_slateport_harbor_map.py`). Talking to him warps the player inside.
+SLATEPORT_STERN_TILE = (28, 13)
+
+#: ‼ `(27,13)` IS THE ONLY APPROACH, and it is not a preference. Stern's four neighbours are
+#: `(28,12)` the door itself (a wall tile from this side), `(28,14)` Gabby and `(29,13)` Ty -
+#: both `setobjectxyperm`ed there by the same script - and `(27,13)`. Measured reachable in
+#: 19 waypoints from the Slateport Pokémon Center doorstep. Face RIGHT to look east at him.
+SLATEPORT_STERN_APPROACH = (27, 13)
+SLATEPORT_STERN_FACING = "Right"
+
+#: ‼‼ HEAL BEFORE THE HAUL. THIS IS A FIX FOR A MEASURED WHITEOUT, NOT A PRECAUTION - the same
+#: sentence `MAGMA_ROUTE_HEALS` carries, for the same reason, one chapter later.
+#:
+#: MEASURED on `post_maxie.ss1`, the anchor this chapter starts from: the party is at
+#: **47/534 HP = 8.8%**, with **five of six members at 0 HP** and only Swellow (47/112) standing.
+#: That is what the Magma Hideout hands over - Ch15 ends four floors deep having fought Tabitha,
+#: the grunts and Maxie, and nothing heals in between. Leg 1 then walks Jagged Pass -> Route 112
+#: -> Route 111 -> Mauville -> Route 110 -> Slateport on one damaged Pokémon, and every driven
+#: run so far lost a fight and whited out (`whiteouts=1`, three for three).
+#:
+#: ‼ AND THE WHITEOUT WAS HIDING THE BUG, because a whiteout HEALS: the chapter still reached
+#: `harbor_state=2` and `post_harbor.ss1` reads 100% party HP - so the acceptance test passed
+#: **because** the run failed. A green chapter that only works via an accidental full heal is
+#: one unlucky fight away from a real failure, and nothing in the result said so.
+#:
+#: ‼ ORDER IS NEAREST-FIRST, AND THAT IS THE WHOLE POINT - MEASURED. The first version of this
+#: list started at Mauville, and the run was **frame-identical** to the unhealed one up to
+#: `f14345`: the route to Mauville is a strict PREFIX of the route to Slateport, so the same
+#: encounters happened at the same frames and the whiteout landed **before** the first heal.
+#: Both heals then ran (log: "healing at MAUVILLE_CITY", "healing at SLATEPORT_CITY") and the
+#: chapter passed - with `whiteouts=1` unchanged. A heal stop that the party cannot REACH alive
+#: is not a fix, and the identical frame number is what proved it rather than a hunch.
+#:
+#: ‼ LAVARIDGE IS FIRST DESPITE §Ch15 CALLING IT UNREACHABLE, because Ch15's measurement was
+#: taken somewhere else. Its three failures - *"Cannot reach LAVARIDGE_TOWN: it is not walkable
+#: from ROUTE112"* - were from `ROUTE112 (28,28)`, the **cable-car station on Route 112 NORTH**.
+#: This chapter comes DOWN Jagged Pass and leaves it at the *south* end (Ch15's own note: "the
+#: door at y=18 cannot be reached from the Route 112 entrance at y=40"), which is the side
+#: Lavaridge connects to. Same map name, different component - so Ch15's result does not
+#: transfer, and it is tried here best-effort rather than assumed either way.
+#:
+#: Slateport's own centre is the last stop: it is in the destination city anyway, and it makes
+#: the post-Ch16 anchor healthy BY DESIGN rather than by accidental whiteout.
+SLATEPORT_ROUTE_HEALS = (
+    (PokemonCenter.LavaridgeTown, (9, 7)),
+    (PokemonCenter.MauvilleCity, (22, 6)),
+    (PokemonCenter.SlateportCity, (19, 20)),
+)
+
+#: Being on either of these means the haul is done and the heal stops must not walk backwards.
+_SLATEPORT_PAST_HAUL = (MapRSE.SLATEPORT_CITY_HARBOR.value,)
+
+
+def _city_state() -> int:
+    """`VAR_SLATEPORT_CITY_STATE`, or -1 if unreadable.
+
+    0 = before the museum beat, **1 = the Stern interview is staged and Stern is standing in the
+    harbor doorway**, 2 = the interview scene has run, Stern is `removeobject`ed and the doorway
+    is clear. This is the var that decides whether Ch16 talks its way in or walks in.
+
+    ‼ NO `VAR_` PREFIX - same trap as `_harbor_state()`: `get_event_var` returns **-1** for an
+    unknown name without raising, and a -1 here would silently take the "already done" branch.
+    """
+    from modules.memory import get_event_var
+
+    try:
+        return int(get_event_var("SLATEPORT_CITY_STATE"))
+    except Exception as error:  # noqa: BLE001 - an unreadable var is reported as -1, not a crash,
+        # because this runs inside a chapter whose failure message must name the STATE it saw.
+        _ch14_say(f"Story: Ch16 could not read SLATEPORT_CITY_STATE ({type(error).__name__})")
+        return -1
+
+
+def _harbor_state() -> int:
+    """`VAR_SLATEPORT_HARBOR_STATE`, or -1 if unreadable.
+
+    ‼ NO `VAR_` PREFIX - the reader's table is keyed `SLATEPORT_HARBOR_STATE`, and
+    `get_event_var` returns **-1** for an unknown name *without raising*. A `VAR_`-prefixed read
+    silently cost an anchor capture on 2026-08-11 (see `27-INJECTION-SURFACE.md` section 2.2).
+    """
+    from modules.memory import get_event_var
+
+    try:
+        return int(get_event_var("SLATEPORT_HARBOR_STATE"))
+    except Exception as error:  # noqa: BLE001 - a probe reports, it does not crash the chapter
+        _ch14_say(f"Story: could not read SLATEPORT_HARBOR_STATE ({type(error).__name__})")
+        return -1
+
+
+def do_slateport_harbor_theft() -> Generator:
+    """Chapter 16 - watch Team Aqua steal the submarine at Slateport Harbor.
+
+    INTENT: the beat Maxie's defeat opens. Archie takes Captain Stern's submarine and names
+    Lilycove as Aqua's base; the scene clears the two grunts blocking the Aqua Hideout entrance,
+    which is the NEXT chapter's door.
+
+    STORY CONDITION: `VAR_SLATEPORT_HARBOR_STATE == 1`. Maxie's defeat sets it
+    (`MagmaHideout_4F_EventScript_Maxie`), so Ch15 is the prerequisite and nothing else is.
+    Checked, not assumed.
+
+    ‼ THERE IS NO BATTLE IN THIS CHAPTER. It is a coord-trigger cutscene, which makes it the
+    cheapest remaining beat and its acceptance test binary.
+
+    HOW IT WORKS - EXPLICIT SHORT LEGS, each failing where it broke (the Ch14a/Ch15 pattern):
+      1. Cross to SLATEPORT_CITY and stand beside the harbor door.
+      2. Step onto the door tile to warp in.
+      3. Walk west along row 14 to trigger 3.
+      4. Ride the scene out and WAIT FOR CONTROL.
+
+    ‼‼ THE TRAP, AND IT HAS COST THIS PROJECT TWO RUNS BEFORE. `setvar VAR_SLATEPORT_HARBOR_STATE,
+    2` runs roughly HALFWAY through the script - Stern's approach, a second `msgbox`, two
+    `setflag`s and `releaseall` all follow it. Exiting the wait the instant the var flips leaves
+    the avatar `lockall`ed and every later button press does nothing. That is exactly the
+    `EventScript_ActivateStrength` failure of 2026-08-10.
+    => **Grade on the var; WAIT FOR CONTROL.** Both halves, in that order.
+
+    ‼ KNOWN RISK - KI-53. Static `calculate_path` FAILS for `ROUTE110 -> SLATEPORT_CITY` while the
+    exact reverse plans in 30 waypoints. That is why leg 1 is its own leg: if it breaks, it names
+    itself instead of arriving as "the chapter does not work". ‼ A static FAIL is NOT a verdict -
+    `navigate_to_anywhere` routes through the WARP GRAPH and re-plans after every warp, and Ch15's
+    Mauville -> Route 112 leg succeeded while planning statically as FAIL.
+
+    GOAL/END STATE: `VAR_SLATEPORT_HARBOR_STATE == 2` AND the avatar controllable. Grade it BINARY.
+    """
+    if _harbor_state() >= 2:
+        _ch14_say("Story: the Slateport submarine scene has already run - skipping.")
+        return
+
+    # ‼ GUARD, NEVER ASSUME. A wrong-era save reads 0 here and the coord triggers are simply
+    # inert - the bot would walk to the tile, nothing would happen, and the failure would look
+    # like a navigation bug. Seven probes were spent on exactly that confusion on 2026-08-10.
+    state = _harbor_state()
+    if state != 1:
+        raise BotModeError(
+            f"Slateport Harbor: SLATEPORT_HARBOR_STATE is {state}, not 1, so the Aqua-escape "
+            f"coord triggers are inert. "
+            + (
+                "It reads -1, which means the VAR NAME is wrong, not that the era is. "
+                if state == -1
+                else "Beat Maxie in the Magma Hideout first (Ch15 sets this var). "
+            )
+            + "Run probe_ch16_anchor.py before building on this save."
+        )
+
+    def _in_harbor() -> bool:
+        try:
+            return (
+                get_map_data_for_current_position().map_group_and_number
+                == MapRSE.SLATEPORT_CITY_HARBOR.value
+            )
+        except Exception as error:  # noqa: BLE001 - an unreadable map means "not there yet"
+            _ch14_say(f"Story: Ch16 map read failed ({type(error).__name__})")
+            return False
+
+    # --- Legs 1+2: TALK TO CAPT. STERN. He is not an obstacle, he is the door. ---------------
+    #
+    # ‼‼ THIS IS NOT "WALK TO THE HARBOR DOOR", AND THE FIRST VERSION THAT WAS COST A RUN (KI-57).
+    # `SlateportCity_OnTransition` runs `MovePeopleForSternInterview` whenever
+    # `VAR_SLATEPORT_CITY_STATE == 1`, whose first line is
+    #       setobjectxyperm LOCALID_SLATEPORT_CAPT_STERN, 28, 13
+    # and `(28,13)` is the ONLY tile touching the harbor door `(28,12)` - the door is set into a
+    # solid wall, measured tile by tile (`probe_slateport_harbor_map.py`). ‼ And **§Ch15 is what
+    # sets that var**: `MagmaHideout_4F/scripts.inc` does `clearflag
+    # FLAG_HIDE_SLATEPORT_CITY_CAPTAIN_STERN` / `setvar VAR_SLATEPORT_CITY_STATE, 1`. So
+    # completing the previous chapter is precisely what puts Stern in the doorway.
+    #
+    # ‼ THE DOOR IS NOT MEANT TO BE WALKED THROUGH IN THIS ERA. `SlateportCity_EventScript_
+    # CaptStern` - i.e. TALKING to him - plays the interview and the Team Aqua announcement and
+    # ends with:
+    #       removeobject LOCALID_SLATEPORT_CAPT_STERN
+    #       setvar       VAR_SLATEPORT_CITY_STATE, 2
+    #       warp         MAP_SLATEPORT_CITY_HARBOR, 11, 14
+    # **The script carries the player in.** `(11,14)` is the same tile the door warp lands on, so
+    # leg 3 is unchanged. This is also the faithful reading: a human here talks to the man being
+    # interviewed, they do not shove past him.
+    # --- Leg 0: HEAL. ‼ MEASURED, NOT PRECAUTIONARY - see `SLATEPORT_ROUTE_HEALS`. -----------
+    # The anchor hands this chapter a party at 8.8% HP with five of six fainted, and every run
+    # before this existed whited out on the haul. A heal stop is allowed to FAIL without killing
+    # the chapter (a PC we cannot route to is a lost nice-to-have, not a lost run) - but it is
+    # always REPORTED, never swallowed, so "we healed" and "we could not" never look alike.
+    if _map_group_number() not in _SLATEPORT_PAST_HAUL:
+        for center, door_approach in SLATEPORT_ROUTE_HEALS:
+            _check_abort()
+            if _map_group_number() in _SLATEPORT_PAST_HAUL:
+                break
+            city = center.value[0]
+            try:
+                _ch14_say(f"Story: healing at {city.name} before the Slateport haul...")
+                yield from _navigate_riding_out(city, door_approach)
+                yield from heal_in_pokemon_center(center)
+                yield from wait_until_truly_controllable()
+            except BotModeError as error:
+                _ch14_say(f"Story: heal stop at {city.name} SKIPPED - {str(error)[:120]}")
+
+    if _city_state() < 2:
+        _ch14_say("Story: Ch16 - crossing to Slateport to talk to Capt. Stern...")
+        yield from _navigate_riding_out(MapRSE.SLATEPORT_CITY, SLATEPORT_STERN_APPROACH)
+        yield from wait_until_truly_controllable()
+        yield from ensure_facing_direction(SLATEPORT_STERN_FACING)
+        yield
+
+        # A-ride the scene. It is a long chain of MSGBOX_DEFAULT plus applymovements, and it ends
+        # in a `warp`, so the success test is THE MAP CHANGING (or the var reaching 2) - never
+        # "the script finished", which is true mid-scene while the avatar is still `lockall`ed.
+        # ‼ Alternate A and B as the Maxie and Flannery loops do: A advances and confirms, B
+        # clears the message chain, and a pure-A loop can re-open a menu it just closed.
+        _ch14_say(f"Story: Ch16 - talking to Capt. Stern at {SLATEPORT_STERN_TILE}...")
+        frames = 0
+        while not _in_harbor() and _city_state() < 2:
+            _check_abort()
+            context.emulator.press_button("B" if frames % 3 else "A")
+            frames += 1
+            if frames > 30000:
+                raise BotModeError(
+                    "Slateport: talked at Capt. Stern for 30,000 frames and neither reached the "
+                    f"harbor nor moved SLATEPORT_CITY_STATE off {_city_state()} (standing "
+                    f"{tuple(get_player_avatar().local_coordinates)} on map "
+                    f"{_map_group_number()}, facing {SLATEPORT_STERN_FACING}). ‼ Check we are "
+                    f"actually adjacent to {SLATEPORT_STERN_TILE} and that he is still there - "
+                    "if VAR_SLATEPORT_CITY_STATE is not 1, OnTransition never placed him."
+                )
+            yield
+
+        # The `warp` at the end of the scene is the last thing it does; ride out the rest.
+        yield from _ride_out_scripted_scene("B")
+        yield from wait_until_truly_controllable()
+    else:
+        # RESUME PATH ONLY. Once the scene has run, `VAR_SLATEPORT_CITY_STATE` is 2, Stern has
+        # been `removeobject`ed and the doorway is clear - so a re-entry walks in through the
+        # door like any other building. This branch is unreachable on a first pass.
+        _ch14_say("Story: Ch16 - the Stern scene has already run; entering the harbour by door.")
+        yield from _navigate_riding_out(MapRSE.SLATEPORT_CITY, SLATEPORT_HARBOR_DOOR_APPROACH)
+        yield from wait_until_truly_controllable()
+        yield from _enter_warp_by_navigation(
+            _in_harbor, MapRSE.SLATEPORT_CITY, SLATEPORT_HARBOR_DOOR, label="Slateport Harbor door"
+        )
+        yield from wait_until_truly_controllable()
+
+    if not _in_harbor():
+        raise BotModeError(
+            f"Slateport Harbor: expected to be inside the harbour but we are on map "
+            f"{_map_group_number()} at {tuple(get_player_avatar().local_coordinates)} "
+            f"(SLATEPORT_CITY_STATE={_city_state()}). The Stern scene ends in a `warp` to "
+            "SLATEPORT_CITY_HARBOR (11,14), so reaching state 2 without the map changing means "
+            "the scene was interrupted."
+        )
+
+    # --- Leg 3: walk to trigger 3 -----------------------------------------------------------
+    # ‼ `OnTransition` REWRITES THIS MAP: it hides the patrons and moves Capt. Stern to (12,13)
+    # when the era is right, so `map.json`'s object list is NOT what is standing here. Do not
+    # derive walkability around objects from the static file (design Ch16).
+    _ch14_say("Story: Ch16 - walking to the Aqua trigger...")
+    yield from _navigate_riding_out(MapRSE.SLATEPORT_CITY_HARBOR, HARBOR_AQUA_TRIGGER)
+
+    # --- Leg 4: ride the scene out, then WAIT FOR CONTROL ------------------------------------
+    yield from _ride_out_scripted_scene("B")
+    yield from wait_until_truly_controllable()
+
+    if _harbor_state() < 2:
+        raise BotModeError(
+            f"Slateport Harbor: reached the trigger at {HARBOR_AQUA_TRIGGER} but "
+            f"SLATEPORT_HARBOR_STATE is {_harbor_state()}, not 2 - the Aqua escape scene did "
+            f"not run. ‼ Check that the trigger tile was actually STEPPED ON (a coord event "
+            f"fires on entry, not on standing)."
+        )
+    _ch14_say("Story: SUBMARINE STOLEN - Slateport Harbor complete. Aqua's hideout is open.")
+
+
+# ---------------------------------------------------------------------------
+# Chapter 17 - the LILYCOVE AQUA HIDEOUT (§Ch17).
+#
+# ‼ EVERY constant here is decomp-verified and GRAPH-SOLVED, not eyeballed. Re-derive with:
+#     cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_aqua_hideout_graph.py
+#
+# THE BEAT: `AquaHideout_B2F_EventScript_Matt` -> `TRAINER_MATT` -> on defeat
+# `AquaHideout_B2F_EventScript_SubmarineEscape` sets **`FLAG_TEAM_AQUA_ESCAPED_IN_SUBMARINE`**
+# (and `FLAG_HIDE_LILYCOVE_CITY_AQUA_GRUNTS`). That flag is the whole acceptance.
+#
+# ‼‼ WHY THIS CHAPTER CANNOT USE A PLANNER, AND WHY IT LOOKS NOTHING LIKE THE OTHERS.
+# B1F is a **WARP-PANEL MAZE**: **21 of its 25 warps lead back to B1F itself** (including a 3x4
+# panel grid at x=42/45/48, y=3..17), and B2F carries six more same-map panels.
+# `calculate_path` "is not able to use warps" (its own docstring), so no planner can cross these
+# floors - the same shape that made KI-56 look like a strand. The route below was solved by BFS
+# over the ROM warp table and bounces **B1F -> B2F -> B1F -> B2F**; that is not the search being
+# silly, it is how the dungeon is built.
+# ---------------------------------------------------------------------------
+
+#: `LILYCOVE_CITY (70,5)` -> `AQUA_HIDEOUT_1F` (arrive `(13,27)`). A WARP TILE: stepping on it
+#: fires it, so it is an `_enter_warp_by_navigation` target, never a `navigate_to` destination.
+AQUA_HIDEOUT_DOOR = (70, 5)
+
+#: ‼ THE ERA GATE. Ch16's harbor scene **SETS** these two - a HIDE flag SET means the grunt is
+#: gone. Checked, never assumed: an unknown flag name reads False silently, which would look
+#: exactly like "still blocked".
+AQUA_ENTRANCE_FLAGS = (
+    "HIDE_AQUA_HIDEOUT_1F_GRUNT_1_BLOCKING_ENTRANCE",
+    "HIDE_AQUA_HIDEOUT_1F_GRUNT_2_BLOCKING_ENTRANCE",
+)
+
+#: The maze, as `(map we stand on, warp tile to step on, expected map, expected arrival tile)`.
+#: Solved by `probe_aqua_hideout_graph.py`; every destination is the ROM warp table's own answer.
+AQUA_HIDEOUT_ROUTE = (
+    (MapRSE.AQUA_HIDEOUT_1F, (22, 1), MapRSE.AQUA_HIDEOUT_B1F, (29, 1)),
+    (MapRSE.AQUA_HIDEOUT_B1F, (27, 4), MapRSE.AQUA_HIDEOUT_B1F, (3, 15)),
+    (MapRSE.AQUA_HIDEOUT_B1F, (32, 19), MapRSE.AQUA_HIDEOUT_B1F, (20, 4)),
+    (MapRSE.AQUA_HIDEOUT_B1F, (18, 1), MapRSE.AQUA_HIDEOUT_B2F, (18, 1)),
+    (MapRSE.AQUA_HIDEOUT_B2F, (31, 8), MapRSE.AQUA_HIDEOUT_B2F, (5, 8)),
+    (MapRSE.AQUA_HIDEOUT_B2F, (3, 3), MapRSE.AQUA_HIDEOUT_B1F, (3, 3)),
+    (MapRSE.AQUA_HIDEOUT_B1F, (12, 1), MapRSE.AQUA_HIDEOUT_B2F, (12, 1)),
+    (MapRSE.AQUA_HIDEOUT_B2F, (8, 8), MapRSE.AQUA_HIDEOUT_B2F, (31, 17)),
+)
+
+#: Matt, and every neighbour with the direction to face from it. ‼ The graph could reach ONLY
+#: `(24,19)` - but they are ALL tried at runtime, in that order, because §Ch15 was bitten by
+#: exactly this: a static probe named one reachable neighbour of Maxie and the LIVE arrival
+#: measured the opposite. Ask the planner at the moment it matters and take what it gives.
+AQUA_MATT_TILE = (23, 19)
+AQUA_MATT_APPROACHES = (
+    ((24, 19), "Left"),
+    ((22, 19), "Right"),
+    ((23, 18), "Down"),
+    ((23, 20), "Up"),
+)
+
+_AQUA_HIDEOUT_MAPS = (
+    MapRSE.AQUA_HIDEOUT_1F.value,
+    MapRSE.AQUA_HIDEOUT_B1F.value,
+    MapRSE.AQUA_HIDEOUT_B2F.value,
+)
+
+
+def _aqua_escaped() -> bool:
+    """`FLAG_TEAM_AQUA_ESCAPED_IN_SUBMARINE` - §Ch17's completion condition."""
+    from modules.memory import get_event_flag
+
+    return get_event_flag("TEAM_AQUA_ESCAPED_IN_SUBMARINE")
+
+
+def _inside_aqua_hideout() -> bool:
+    return _map_group_number() in _AQUA_HIDEOUT_MAPS
+
+
+def _aqua_at(dest_map, dest_tile) -> bool:
+    """Are we standing at (or beside) `dest_tile` on `dest_map`?
+
+    ‼‼ THE TOLERANCE IS ONE TILE, AND IT IS NOT SLOPPINESS - IT IS WHAT THE GAME DOES. MEASURED
+    on the first driven run: the ROM warp table says `1F (22,1)` arrives at `B1F (29,1)`, and the
+    bot arrived at **`B1F (29,2)`**, one tile south. A warp table entry gives the coordinates of
+    the destination WARP; for door-type warps Gen 3 then places the player on the tile in FRONT
+    of it, while ladders and stair warps land exactly on it. An exact-match test therefore fails
+    on every door - which is what the first run's `Could not enter the warp at (22,1)` was,
+    despite the warp having worked perfectly.
+    ‼ Still unambiguous for this maze: B1F's panels are three or more tiles apart, so "within one
+    tile" cannot confuse two of them."""
+    if _map_group_number() != dest_map.value:
+        return False
+    try:
+        here = tuple(get_player_avatar().local_coordinates)
+    except Exception as error:  # noqa: BLE001 — an unreadable avatar means "not there yet". This
+        # is a success TEST, and answering "yes" on a failed read is the worst possible default
+        # in a maze that navigates onward from the answer.
+        _ch14_say(f"Story: Ch17 position read failed ({type(error).__name__})")
+        return False
+    return abs(here[0] - dest_tile[0]) <= 1 and abs(here[1] - dest_tile[1]) <= 1
+
+
+def _aqua_hop(from_map, warp_tile, dest_map, dest_tile, label: str) -> Generator:
+    """Take ONE warp panel and PROVE where it put us.
+
+    ‼‼ GRADED ON THE TILE, NOT ON THE MAP - and that is the whole difference from §Ch15.
+    `MAGMA_HIDEOUT_ROUTE`'s hops each crossed a floor, so "did the map change?" was a correct
+    success test there. Here **most hops are `B1F -> B1F`**: a panel that dumped us in the wrong
+    corner would pass a map-level test, and the next leg would then navigate from a false position
+    and fail somewhere unrelated.
+    ‼ It is also the detector for this maze's other hazard: `calculate_path` treats a warp panel as
+    ordinary walkable ground, so a plotted walk can cross one and teleport us mid-leg. An
+    unexpected position is exactly what that looks like.
+    See `_aqua_at` for why the test allows one tile of slack rather than an exact match."""
+
+    def arrived() -> bool:
+        return _aqua_at(dest_map, dest_tile)
+
+    yield from _enter_warp_by_navigation(arrived, from_map, warp_tile, label=label)
+    yield from wait_until_truly_controllable()
+    if not arrived():
+        where = _map_group_number()
+        try:
+            tile = tuple(get_player_avatar().local_coordinates)
+        except Exception as error:  # noqa: BLE001 — report the world, not a hypothesis, even
+            # when part of the world will not read.
+            tile = f"<unreadable: {type(error).__name__}>"
+        raise BotModeError(
+            f"Aqua Hideout: {label} - stepped on {warp_tile} but landed on map {where} at {tile}, "
+            f"not {dest_map.name} {dest_tile}. ‼ In this maze that usually means a WARP PANEL was "
+            "crossed on the way to the target: the planner treats panels as ordinary ground."
+        )
+
+
+def do_aqua_hideout_chapter() -> Generator:
+    """Chapter 17 - the Lilycove Aqua Hideout, end to end.
+
+    INTENT: set `FLAG_TEAM_AQUA_ESCAPED_IN_SUBMARINE` by beating `TRAINER_MATT` on B2F, which
+    opens the following beat (Team Aqua flees to the Seafloor Cavern).
+    STORY CONDITION: Ch16 has run, so both `HIDE_AQUA_HIDEOUT_1F_GRUNT_*_BLOCKING_ENTRANCE` are
+    SET and the entrance is clear. Checked, not assumed.
+    GOAL/END STATE: the flag set AND the avatar controllable. Grade it BINARY - no batch.
+
+    ‼ HEAL FIRST. The measured lesson from §Ch16 (2026-08-11): anchors in this project are
+    routinely captured with wiped parties, and a chapter that walks into a dungeon on a damaged
+    team whites out and then PASSES anyway, because a whiteout heals. Lilycove's centre is on the
+    doorstep, so there is no excuse for entering hurt."""
+    from modules.memory import _event_flags
+
+    if _aqua_escaped():
+        return  # resume-safe
+
+    # ‼ NAME CONTROL, IN PRODUCTION. `get_event_flag` returns False for an unknown name without
+    # raising, so a typo here would read as "the entrance is still blocked" for ever and the
+    # chapter would refuse to start with a message naming the wrong cause.
+    missing = [name for name in AQUA_ENTRANCE_FLAGS if name not in _event_flags]
+    if missing:
+        raise BotModeError(
+            f"Aqua Hideout: unknown flag name(s) {missing}. These read False SILENTLY, so the "
+            "era gate below cannot be trusted. Fix the name before running this chapter."
+        )
+
+    from modules.memory import get_event_flag
+
+    if not _inside_aqua_hideout():
+        blocked = [name for name in AQUA_ENTRANCE_FLAGS if not get_event_flag(name)]
+        if blocked:
+            raise BotModeError(
+                f"Aqua Hideout: the entrance is still blocked - {blocked} not set. Ch16's harbor "
+                "scene sets these; run §Ch16 (`do_slateport_harbor_theft`) first."
+            )
+
+        _ch14_say("Story: Ch17 - healing at Lilycove before the Aqua Hideout...")
+        try:
+            yield from _navigate_riding_out(MapRSE.LILYCOVE_CITY, (24, 15))
+            yield from heal_in_pokemon_center(PokemonCenter.LilycoveCity)
+            yield from wait_until_truly_controllable()
+        except BotModeError as error:
+            _ch14_say(f"Story: Lilycove heal SKIPPED - {str(error)[:120]}")
+
+        _ch14_say("Story: Ch17 - entering the Aqua Hideout...")
+        yield from _enter_warp_by_navigation(
+            _inside_aqua_hideout,
+            MapRSE.LILYCOVE_CITY,
+            AQUA_HIDEOUT_DOOR,
+            label="Aqua Hideout entrance",
+        )
+        yield from wait_until_truly_controllable()
+
+    # --- the maze -------------------------------------------------------------------------
+    for from_map, warp_tile, dest_map, dest_tile in AQUA_HIDEOUT_ROUTE:
+        _check_abort()
+        # Resume-safe, and unambiguous BECAUSE the test is (map, tile): the route revisits both
+        # floors, so a map-only check could not tell hop 2 from hop 7. `_aqua_at` also carries
+        # the one-tile door tolerance — see its docstring.
+        if _aqua_at(dest_map, dest_tile):
+            continue  # this hop is already done
+        label = f"{from_map.name} {warp_tile} -> {dest_map.name} {dest_tile}"
+        _ch14_say(f"Story: Aqua Hideout - {label}")
+        yield from _aqua_hop(from_map, warp_tile, dest_map, dest_tile, label)
+
+    if _map_group_number() != MapRSE.AQUA_HIDEOUT_B2F.value:
+        raise BotModeError(
+            f"Aqua Hideout: the maze never reached B2F - stopped on map {_map_group_number()}. "
+            "Re-derive the route with `probe_aqua_hideout_graph.py`."
+        )
+
+    # --- Matt -----------------------------------------------------------------------------
+    _ch14_say("Story: Aqua Hideout B2F - challenging Matt...")
+    standing_on = None
+    facing = None
+    tried: list[str] = []
+    for candidate, candidate_facing in AQUA_MATT_APPROACHES:
+        _check_abort()
+        try:
+            yield from _navigate_riding_out(MapRSE.AQUA_HIDEOUT_B2F, candidate, tries=4)
+        except BotModeError as error:  # noqa: BLE001 — NOT swallowed: this loop is a deliberate
+            # try-every-neighbour search, so one candidate failing is an EXPECTED outcome. Every
+            # reason is accumulated into `tried` and raised together if all four fail.
+            tried.append(f"{candidate}: {str(error)[:60]}")
+            continue
+        yield from wait_for_player_avatar_to_be_standing_still()
+        if tuple(get_player_avatar().local_coordinates) == candidate:
+            standing_on, facing = candidate, candidate_facing
+            break
+        tried.append(f"{candidate}: arrived at {tuple(get_player_avatar().local_coordinates)}")
+
+    if standing_on is None:
+        raise BotModeError(
+            f"Aqua Hideout: could not stand on ANY tile beside Matt {AQUA_MATT_TILE}. "
+            f"Tried {[c for c, _ in AQUA_MATT_APPROACHES]}: {tried}"
+        )
+
+    yield from ensure_facing_direction(facing)
+    yield
+    frames = 0
+    off_map = 0
+    while not _aqua_escaped():
+        _check_abort()
+        # ‼ A WHITEOUT MOVES THE PLAYER TWO TOWNS AWAY AND THE FLAG CANNOT SEE IT - the KI-51
+        # lesson, applied at build time instead of after a 60,000-frame ride. Debounced, because
+        # the map read is transient across the battle's own screen transitions and ending a
+        # HEALTHY fight over one odd frame would be worse than the bug.
+        try:
+            _on_b2f = _map_group_number() == MapRSE.AQUA_HIDEOUT_B2F.value
+        except Exception:  # noqa: BLE001 — an unreadable map must never end the fight
+            _on_b2f = True
+        off_map = 0 if _on_b2f else off_map + 1
+        if off_map > 300:
+            try:
+                _alive = sum(1 for m in get_party() if m is not None and m.current_hp > 0)
+                _state = (f"map={_map_group_number()} tile={tuple(get_player_avatar().local_coordinates)} "
+                          f"party_alive={_alive}/{len(get_party())}")
+            except Exception as _error:  # noqa: BLE001 — say what could not be read, not nothing
+                _state = f"<state unreadable: {type(_error).__name__}>"
+            raise BotModeError(
+                "Aqua Hideout: left B2F during the Matt fight without the submarine flag - "
+                f"almost certainly a WHITEOUT. {_state} (was standing {standing_on} facing "
+                f"{facing}, {frames} frames in)."
+            )
+        context.emulator.press_button("B" if frames % 3 else "A")
+        frames += 1
+        if frames > 60000:
+            raise BotModeError(
+                "Aqua Hideout: the Matt challenge never resolved in 60,000 frames "
+                f"(standing {standing_on} facing {facing} at Matt {AQUA_MATT_TILE}, still on B2F)."
+            )
+        yield
+
+    yield from wait_until_truly_controllable()
+    _ch14_say("Story: MATT BEATEN - Team Aqua has fled in the submarine. Aqua Hideout complete.")

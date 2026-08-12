@@ -3518,12 +3518,43 @@ class StoryMode(BotMode):
             console.print("[dim]Story: Magma Hideout already done — skipping.[/]")
         _guard("Magma Hideout (Ch15)", lambda: _done("GROUDON_AWAKENED_MAGMA_HIDEOUT"))
 
-        # END OF BUILT CONTENT. Next build: the Slateport submarine beat, which Maxie's
-        # defeat opens (it sets VAR_SLATEPORT_CITY_STATE / VAR_SLATEPORT_HARBOR_STATE to 1
-        # and clears the Stern / Gabby-and-Ty hide flags).
+        # --- Segment 16: the SLATEPORT HARBOR submarine theft (§Ch16, built 2026-08-11).
+        #     A COORD TRIGGER, no battle: Maxie's defeat set VAR_SLATEPORT_HARBOR_STATE to 1,
+        #     which arms four triggers at SLATEPORT_CITY_HARBOR x=8, y=11..14. Stepping on one
+        #     runs the Aqua escape scene, which sets the var to 2 and clears the two grunts
+        #     blocking the Lilycove Aqua Hideout - the next chapter's door. ---
+        # ‼ `_done_var` RAISES on a phantom var name rather than returning False, which is
+        #    deliberate: `get_event_var` returns -1 for an unknown name and -1 compares False
+        #    against every threshold, for ever. Do not hand-roll this comparison.
+        from modules.story.early_game import do_slateport_harbor_theft
+
+        if not _done_var("SLATEPORT_HARBOR_STATE", 2):
+            yield from do_slateport_harbor_theft()
+        else:
+            console.print("[dim]Story: Slateport Harbor theft already done — skipping.[/]")
+        _guard("Slateport Harbor theft (Ch16)", lambda: _done_var("SLATEPORT_HARBOR_STATE", 2))
+
+        # --- Segment 17: the LILYCOVE AQUA HIDEOUT (§Ch17, built 2026-08-11). ---
+        #     Segment 16's harbor scene SET both
+        #     `FLAG_HIDE_AQUA_HIDEOUT_1F_GRUNT_*_BLOCKING_ENTRANCE` (HIDE set = grunt gone), so
+        #     the entrance is open. The chapter heals at Lilycove, walks an 18-hop WARP-PANEL
+        #     maze solved from the ROM warp table (‼ 21 of B1F's 25 warps return to B1F, so no
+        #     planner can cross it), and beats TRAINER_MATT on B2F — which runs
+        #     `AquaHideout_B2F_EventScript_SubmarineEscape` and sets the flag below.
+        # ‼ `_done` RAISES on a phantom flag name rather than returning False. Do not hand-roll.
+        from modules.story.early_game import do_aqua_hideout_chapter
+
+        if not _done("TEAM_AQUA_ESCAPED_IN_SUBMARINE"):
+            yield from do_aqua_hideout_chapter()
+        else:
+            console.print("[dim]Story: Aqua Hideout already done — skipping.[/]")
+        _guard("Aqua Hideout (Ch17)", lambda: _done("TEAM_AQUA_ESCAPED_IN_SUBMARINE"))
+
+        # END OF BUILT CONTENT. Next build: the SEAFLOOR CAVERN (ladder row 18) — Team Aqua
+        # fled there in the submarine, and Segment 17 is what sent them.
         context.message = (
-            "Story: GROUDON AWAKENED - end of built content. "
-            "NEXT (WIP): the Slateport submarine. Handing to manual."
+            "Story: TEAM AQUA FLED IN THE SUBMARINE - end of built content. "
+            "NEXT (WIP): the Seafloor Cavern. Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         # ‼ Mark a GENUINE completion. Both this path and the give-up paths call

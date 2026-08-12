@@ -11548,3 +11548,22 @@ a plotted walk crossing a panel. Neither the grunts nor the panels derailed a ho
 
 **Out of scope, deliberately:** the **MASTER BALL** at `B1F (15,9)` and the two Electrode disguised
 as item balls at `(16,9)`/`(16,10)`. Not required for Matt; a natural follow-up.
+
+## 2026-08-12 — PROMOTED to `custom-pokebot`: the §Ch15 exit, §Ch16 and §Ch17
+
+User-approved. Two files (`modules/story/early_game.py`, `plugins/custom_modes/story_mode.py`) —
+story content only, **no shared subsystem touched**. Full entry in
+`custom-pokebot/DIVERGENCE-LOG.md`, including what is still outstanding.
+
+‼ **Verified ON the custom build, not just diffed:** `--driver aquahideout --build custom` from
+`post_harbor.ss1` returned `ACCEPTANCE: PASS` at **frames=3409537 — identical to the sandbox run**,
+so the promoted build reproduces sandbox behaviour exactly rather than merely sharing its source.
+Sandbox and custom are now byte-identical for both files (`diff -q` clean), so the sandbox is
+re-based by construction.
+
+**Three punch-list items added on the user's direction:** `#24-grounditems` (generalise item-ball
+pickup — today `collect_hideout_escape_rope()` is the only, hard-coded, instance),
+`#24-npcgifts` (gift items from NPCs — decomp-anchored: **Exp Share** from
+`RustboroCity_DevonCorp_3F_EventScript_MrStone` behind `FLAG_DELIVERED_STEVEN_LETTER`, **Quick
+Claw** from `RustboroCity_PokemonSchool_EventScript_Teacher`; both flags verified in our table),
+and `#24-masterball`.
