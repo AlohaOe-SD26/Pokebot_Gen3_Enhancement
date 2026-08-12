@@ -11493,3 +11493,27 @@ transfer, and testing it rather than trusting it is what produced `whiteouts=0`.
 `post_maxie` 9% / 5 fainted, `post_mtpyre` 11% / 3 fainted, `post_winona` 29% / 3 fainted. The
 anchors are routinely captured with wiped parties because chapters end on boss fights — so this is
 a standing hazard for every future chapter built on one, not a one-off.
+
+## 2026-08-11 (night) — §Ch17 increment 0: the Aqua Hideout is RECONNED and its route SOLVED
+
+`probe_aqua_hideout_graph.py` — the Magma Hideout's warp-graph instrument, reused unchanged in
+shape — with four controls, all green on `post_harbor.ss1`:
+NAME (every flag resolves), ERA (`TEAM_AQUA_ESCAPED_IN_SUBMARINE` **False**, both
+`HIDE_AQUA_HIDEOUT_1F_GRUNT_*_BLOCKING_ENTRANCE` **True**, i.e. Ch16 opened the way),
+PLANNER (an adjacent 1F tile plans) and REACHABILITY (the search must reach B2F — the game
+requires the beat, so failure would mean a broken instrument).
+
+**The chapter, from the decomp:** entrance `LILYCOVE_CITY (70,5)` -> `AQUA_HIDEOUT_1F`;
+`TRAINER_MATT` on B2F at `(23,19)`; beating him runs `AquaHideout_B2F_EventScript_SubmarineEscape`
+which sets **`FLAG_TEAM_AQUA_ESCAPED_IN_SUBMARINE`** — the acceptance condition.
+
+**The maze:** **21 of B1F's 25 warps lead back to B1F**, plus six same-map panels on B2F. The
+solved route is **18 hops**, bouncing B1F -> B2F -> B1F -> B2F, ending beside Matt at **`(24,19)`**
+— ‼ the ONLY one of his four neighbours the search can reach.
+
+**Optional and deliberately out of scope for now:** a **MASTER BALL** at `B1F (15,9)`, guarded by
+two Electrode disguised as item balls at `(16,9)`/`(16,10)` (their hide flags are re-cleared by
+`OnResume`, so they return if you flee). Not required for Matt.
+
+Design + the two design decisions (graph-solved route; grade each hop on the TILE, not the map)
+recorded in `06-DECISIONS-LOG.md`.

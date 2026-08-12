@@ -1580,3 +1580,39 @@ Game Freak could only ship a one-way boulder puzzle here *because* they put an e
 
 **Cost accepted.** Escape Rope support is new capability the bot has never had (0 hits across
 `modules/story/` and `modules/modes/util/`). It is built once and every future dungeon wants it.
+
+## 2026-08-11 — §Ch17's route is SOLVED BY THE WARP GRAPH, and each hop is graded on the TILE
+
+**Decision.** Build the Lilycove Aqua Hideout as an explicit **18-hop warp route** derived from the
+ROM warp table by `probe_aqua_hideout_graph.py`, and grade every hop on **(map AND arrival tile)**,
+not on "the map changed".
+
+**Why the warp graph.** B1F is a warp-panel maze: **21 of its 25 warps lead back to B1F itself**
+(including a 3x4 panel grid at x=42/45/48, y=3..17), and B2F has six more same-map panels.
+`calculate_path` "is not able to use warps", so no planner can cross these floors — the same shape
+that made KI-56 look like a strand. The instrument built for the Magma Hideout answered it
+unchanged, which is the second time that graph has paid for itself.
+
+The solved route bounces **B1F -> B2F -> B1F -> B2F**, which is not a bug in the search: it is how
+the dungeon is built.
+
+**‼ Why the success test changes.** §Ch15 grades each warp hop with `_enter_warp_by_navigation`'s
+"did the MAP change?" — the correct test there, because every hop crossed floors. **It is useless
+here**: most hops in this maze are `B1F -> B1F`. A panel that dumped us in the wrong corner would
+read as success and the next leg would navigate from a false position. Every hop therefore asserts
+the exact arrival tile the warp table predicts.
+
+**‼ The hazard this creates, recorded before it bites.** Walking ACROSS a panel tile fires it, and
+`calculate_path` treats panels as ordinary walkable ground — so a plotted walk may teleport
+mid-leg. The tile-level assertion is also the detector for that: an unexpected position means a
+panel was crossed, and the leg re-plans from where it actually is rather than continuing on a
+false assumption.
+
+**Alternatives rejected.**
+* *Let `navigate_to_anywhere` route the dungeon.* It cannot: the maze is same-map warps.
+* *Grade on the map only (the Ch15 pattern).* Cannot distinguish the 21 same-map panels.
+* *Hard-code a movement script.* Brittle, and blind to the six grunts standing in the corridors.
+
+**Cost accepted.** The route is STATIC — six Aqua grunts (`FLAG_HIDE_AQUA_HIDEOUT_GRUNTS`) are
+invisible to the planner, and §Ch15 was bitten three times trusting a static answer about a
+dungeon. The route means "worth driving", and the driven run is the proof.
