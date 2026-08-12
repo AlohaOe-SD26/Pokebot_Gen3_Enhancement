@@ -2577,5 +2577,37 @@ does NOT stock Escape Rope** (decomp): the only marts that do are Rustboro, Peta
 Slateport and Lilycove Dept. 2F — all a long detour from the Jagged Pass approach. The in-dungeon
 ball avoids that entirely.
 
-**STATUS: designed and measured, NOT BUILT.** Still unproven: the bot has no Escape Rope support at
-all (0 hits), and every number above is STATIC — the driven run is the proof.
+### ✅✅ RESOLVED 2026-08-11 — BUILT AND DRIVEN. `--driver magmaexit`, VERDICT PASS
+```
+[mhexit] START  MAGMA_HIDEOUT_4F(15, 21) inside=True ropes=0 ball_taken=False
+[mhexit] RESULT out=True map=JAGGED_PASS at=(16, 19) controllable=True
+                landed_on_jagged_pass=True ropes=0 whiteouts=0
+[mhexit] VERDICT PASS - acceptance is BOTH halves: outside AND controllable, on JAGGED_PASS.
+```
+‼ **The landing tile is `(16,19)` — the exact coordinate read out of `gSaveBlock1Ptr->escapeWarp`
+before a line of code was written.** The prediction and the driven result agree tile-for-tile.
+
+**What was built** (`modules/story/early_game.py`): `collect_hideout_escape_rope()`,
+`use_escape_rope_to_leave_hideout()`, `leave_magma_hideout()`, and the chapter now ENDS with
+`yield from leave_magma_hideout()` — deliberately **outside** the `_groudon_awakened()` guard, so a
+run resumed after the flag was set still finishes the exit. Driver: `--driver magmaexit`. Guard:
+`repro_hideout_exit.py` (24 structural checks, **fault-injected both ways** — "correcting" the flag
+typo and nesting the exit inside the guard each turn it red).
+
+### ‼ THE ONE THING THAT DID NOT WORK FIRST TIME — and the general rule it produced
+The first driven run **consumed the rope and went nowhere**: same tile, `controllable=False`,
+`ropes=0`. Not a refusal — the item was accepted. The harness's no-progress dump named the cause:
+**`Task_ContinueTaskAfterMessagePrints` was active.** `ItemUseOnFieldCB_EscapeRope` (decomp
+`src/item_use.c:903`) calls `DisplayItemMessageOnField(..., Task_UseDigEscapeRopeOnField)`, and
+`StartEscapeRopeFieldEffect()` runs only from that **callback**, which fires when the message is
+DISMISSED. The wait loop only `yield`ed, so it waited for ever on a text box. Fixed by pressing
+**B** every 4th frame while waiting (B dismisses and interacts with nothing; a stray A on the far
+side of the warp would talk to whoever is standing on Jagged Pass).
+
+⇒ **The Strength lesson generalises to items: a consumed item is NOT the end of the script that
+consumed it.** Added to `14-AGENT-PLAYBOOK`.
+
+**Still true / still not proven:** this was driven from `post_maxie.ss1` (on 4F). The exit has
+**not** been driven from a run that walked all the way back down to `1F (25,34)` — the warp graph
+says 3F_3R is reachable from there, but that is static. And `#24-slateportsub` (§Ch16) is now
+UNBLOCKED but still unexercised beyond leg 1.

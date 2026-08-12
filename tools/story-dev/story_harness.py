@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "slateporttheft", "normancounter"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "normancounter"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -2513,6 +2513,124 @@ class MagmaTravelMode(BotMode):
         return
 
 
+class MagmaExitMode(BotMode):
+    """KI-56 - drive `leave_magma_hideout()` from the post-Maxie anchor. THE EXIT LEG.
+
+        PYTHONUTF8=1 py -3.12 verify_fixtures.py --assert post_maxie.ss1=19399688e730 && \
+        PYTHONUTF8=1 py -3.12 story_harness.py post_maxie.ss1 --driver magmaexit \
+            --frames 900000 --profile mhexit
+
+    ‼ WHY THIS DRIVER EXISTS AT ALL. §Ch15's acceptance was BINARY on
+    `GROUDON_AWAKENED_MAGMA_HIDEOUT`, a flag the game sets the instant Maxie falls - four floors
+    underground. The chapter therefore passed its own test on runs that ended PERMANENTLY
+    STRANDED (KI-56). This driver tests the half that was never asked: **can the bot get out.**
+
+    ANCHOR: `saves/post_maxie.ss1` - standing on MAGMA_HIDEOUT_4F (15,21), Maxie beaten. That is
+    exactly the state the strand begins from, so this is a free repro of the real failure.
+
+    ACCEPTANCE IS BOTH HALVES: **out of the hideout AND controllable**, landing on JAGGED_PASS.
+    Grading on "not in the hideout" alone would call a whiteout a success - a whiteout also
+    leaves the dungeon, two towns away, having lost money. The landing map is what separates
+    them, which is why it is asserted and not merely logged.
+
+    ‼ NEGATIVE CONTROL, printed before the run: the bag must hold **0 Escape Ropes** at the
+    start. Every anchor save reads 0 (`probe_escape_warp.py`), so a run that begins with one
+    would be testing a bag that was already stocked rather than the pickup this leg exists for.
+
+    Emits: [mhexit] RESULT out=<bool> map=<enum> at=<tile> controllable=<bool> ropes=<n> frames=<n>
+    """
+
+    _whiteouts = 0
+
+    @staticmethod
+    def name():
+        return "MagmaExit"
+
+    def on_battle_started(self, encounter):
+        from modules.battle_strategies import DefaultBattleStrategy
+
+        if encounter is None:
+            # The 3F_3R detour crosses grunt sight-lines; use the same strategy the chapter does.
+            from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+            return StoryItemBattleStrategy()
+        return DefaultBattleStrategy()
+
+    def on_whiteout(self) -> bool:
+        MagmaExitMode._whiteouts += 1
+        log(f"[mhexit] WHITEOUT #{MagmaExitMode._whiteouts} - recovering, as StoryMode does")
+        return True
+
+    def run(self):
+        from modules.map_data import MapRSE
+        from modules.memory import get_event_flag
+        from modules.player import get_player_avatar, player_avatar_is_controllable
+        from modules.story.early_game import (
+            _escape_ropes_held,
+            _inside_magma_hideout,
+            HIDEOUT_ESCAPE_ROPE_FLAG,
+            leave_magma_hideout,
+            wait_until_truly_controllable,
+        )
+
+        yield from wait_until_truly_controllable()
+
+        def here():
+            avatar = get_player_avatar()
+            return tuple(avatar.map_group_and_number), tuple(avatar.local_coordinates)
+
+        # ‼ `map_name` is a LOCAL helper in every driver in this file, not a module-level one.
+        # Leaving it out cost a run: this driver crashed at frame 30 with `NameError: name
+        # 'map_name' is not defined`, the harness dropped to Manual mode, and the log then filled
+        # with 900k frames of heartbeats that looked like a hung bot rather than a typo.
+        def map_name(mgn):
+            try:
+                return MapRSE(mgn).name
+            except Exception as error:  # noqa: BLE001 - report the raw tuple rather than crash
+                return f"?{mgn}({type(error).__name__})"
+
+        mgn, tile = here()
+        ropes_at_start = _escape_ropes_held()
+        ball_taken = get_event_flag(HIDEOUT_ESCAPE_ROPE_FLAG)
+        log(f"[mhexit] START {map_name(mgn)}{tile} inside={_inside_magma_hideout()} "
+            f"ropes={ropes_at_start} ball_taken={ball_taken}")
+
+        if not _inside_magma_hideout():
+            log("[mhexit] ‼ WRONG STATE - this anchor is not inside the hideout, so the exit "
+                "leg is a no-op and this run measures nothing.")
+            context.set_manual_mode()
+            return
+        if ropes_at_start != 0:
+            log(f"[mhexit] ‼ NEGATIVE CONTROL FAILED - the bag already holds {ropes_at_start} "
+                "Escape Rope(s). This run cannot test the pickup.")
+
+        error_text = ""
+        try:
+            yield from leave_magma_hideout()
+            log("[mhexit] leave_magma_hideout returned without raising")
+        except Exception as error:  # noqa: BLE001 - the failure IS the measurement
+            error_text = f"{type(error).__name__}: {str(error)[:900]}"
+            log(f"[mhexit] FAILED: {error_text}")
+
+        mgn, tile = here()
+        out = not _inside_magma_hideout()
+        landed_right = mgn == MapRSE.JAGGED_PASS.value
+        try:
+            controllable = player_avatar_is_controllable()
+        except Exception as error:  # noqa: BLE001
+            controllable = f"<unreadable: {type(error).__name__}>"
+        log(f"[mhexit] RESULT out={out} map={map_name(mgn)} at={tile} "
+            f"controllable={controllable} landed_on_jagged_pass={landed_right} "
+            f"ropes={_escape_ropes_held()} whiteouts={MagmaExitMode._whiteouts} "
+            f"frames={context.emulator.get_frame_count()}"
+            + (f" error=({error_text})" if error_text else ""))
+        log(f"[mhexit] VERDICT {'PASS' if (out and landed_right and controllable is True) else 'FAIL'}"
+            " - acceptance is BOTH halves: outside AND controllable, on JAGGED_PASS.")
+
+        context.set_manual_mode()
+        return
+
+
 class SlateportTheftMode(BotMode):
     """Ch16 - drive `do_slateport_harbor_theft()` from the post-Maxie anchor.
 
@@ -4083,6 +4201,8 @@ for step in range(args.frames):
             context.bot_mode_instance = MagmaTravelMode()
         elif args.driver == "magmahideout":
             context.bot_mode_instance = MagmaHideoutMode()
+        elif args.driver == "magmaexit":
+            context.bot_mode_instance = MagmaExitMode()
         elif args.driver == "slateporttheft":
             context.bot_mode_instance = SlateportTheftMode()
         elif args.driver == "teachfull":

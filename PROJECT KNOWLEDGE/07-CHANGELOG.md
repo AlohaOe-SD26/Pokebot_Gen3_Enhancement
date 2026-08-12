@@ -11360,3 +11360,40 @@ silently forever), still unset, approached from **`(9,20)` only**, reachable fro
 nodes. No detour: ‼ Lavaridge Mart does not stock Escape Ropes.
 
 **STATUS: measured and designed, NOT BUILT.** Every number is STATIC; the driven run is the proof.
+
+## 2026-08-11 (later still) — KI-56 FIXED: §Ch15 now leaves the Magma Hideout. Driven, PASS
+
+`§Ch15` gained an **exit leg**, the half its binary acceptance never asked about.
+
+**Built** (`modules/story/early_game.py`): `collect_hideout_escape_rope()` walks the one-warp
+detour off 4F to `MAGMA_HIDEOUT_3F_3R`, stands on `(9,20)` — the only reachable neighbour of the
+item ball — faces Up and takes the **Escape Rope the dungeon itself provides**;
+`use_escape_rope_to_leave_hideout()` uses it and asserts we are OUT, controllable, on Jagged Pass;
+`leave_magma_hideout()` composes them and no-ops when already outside.
+`do_magma_hideout_chapter()` now ENDS with `yield from leave_magma_hideout()`, **outside** the
+`_groudon_awakened()` guard so a run resumed after the flag was set still finishes the exit.
+
+**Driven proof** — `--driver magmaexit` from `post_maxie.ss1` (fixture asserted in the command):
+```
+[mhexit] RESULT out=True map=JAGGED_PASS at=(16, 19) controllable=True
+                landed_on_jagged_pass=True ropes=0 whiteouts=0
+[mhexit] VERDICT PASS
+```
+‼ `(16,19)` is the exact tile read out of `gSaveBlock1Ptr->escapeWarp` **before any code existed**.
+Acceptance is deliberately BOTH halves — a whiteout also leaves the dungeon, two towns away.
+
+**The A/B.** The first run of the same command FAILED: the rope was consumed and the bot did not
+move (`controllable=False`). The harness dump named it — `Task_ContinueTaskAfterMessagePrints` —
+i.e. an undismissed message box; the warp runs from `DisplayItemMessageOnField`'s **callback**.
+Pressing B every 4th frame while waiting turned the same command PASS. Same anchor, same driver,
+one changed line.
+
+**Guard:** `repro_hideout_exit.py` — 24 structural checks (wiring position, the measured
+constants, bag-not-flag grading, bounded loops, the driver's two-halves acceptance).
+**Fault-injected both ways**: "correcting" the flag typo and nesting the exit inside the flag guard
+each turn it red, and the file was restored byte-identical (md5 verified).
+
+**Regression gate: 15 of 15 green**, including the `repro_no_silent_except` ratchet — which caught a
+new bare `# noqa: BLE001` in this very change and was only satisfied by writing the justification.
+
+‼ **Sandbox only. NOT promoted to `custom-pokebot/`** — promotion needs explicit user approval.

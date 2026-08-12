@@ -24,11 +24,11 @@ burden here is so heavy, and why negative results are treated as the most valuab
 |---|---|
 | branch / HEAD | `main`, **clean, 0 unpushed** |
 | box | **IDLE.** Batch `20260811-130454` finished 4:05 PM (VERDICT OK, 28 runs, 0 violations). |
-| story content | Littleroot → 6 badges → Mt. Pyre → Magma Hideout. **16 of 24 ladder beats.** |
+| story content | Littleroot → 6 badges → Mt. Pyre → Magma Hideout **(and back OUT of it)**. **16 of 24 ladder beats.** |
 | ‼ is code frozen? | **No.** Nothing is running. |
 | upstream | checked 2026-08-11, `5dd898f8`, unchanged |
 | restore point | **`restore/2026-08-11-all-promoted`** (annotated, pushed, verified on the remote) |
-| sandbox ↔ custom drift | **§Ch16 only** (`early_game.py`, `story_mode.py`) — deliberately NOT promoted; it is blocked and unproven |
+| sandbox ↔ custom drift | **§Ch16 + the §Ch15 EXIT** (`early_game.py`, `story_mode.py`) — deliberately NOT promoted; promotion needs your approval |
 | **if stopped mid-task** | **NOTHING IS PARKED.** Everything is committed and pushed. Start at "NEXT ACTIONS". |
 
 ## ✅ WHAT SHIPPED THIS SESSION
@@ -41,8 +41,12 @@ burden here is so heavy, and why negative results are treated as the most valuab
    (your directive). Promoted. ‼ Structurally proven only; no live A/B.
 4. **Battle STATUS telemetry** — the turn log prints `[Confused]` etc. Promoted. It refuted
    `#24-bosstelemetry` lead 2 and made the status tax measurable for the first time.
-5. **§Ch16 (Slateport Harbor) BUILT** — function, driver, Segment 16. **Blocked by KI-56.**
+5. **§Ch16 (Slateport Harbor) BUILT** — function, driver, Segment 16. Was blocked by KI-56;
+   **now UNBLOCKED and waiting to be re-driven** (next action #1).
 6. **A whole hardening round** (see below).
+7. **✅ KI-56 FIXED — §Ch15 now LEAVES the Magma Hideout.** Cause confirmed against the whole
+   eight-map warp graph (no walk-out exists), fixed with the Escape Rope the dungeon itself
+   provides, **driven PASS**. Two new probes, a new driver, a fault-injected guard. See below.
 
 ## ‼‼ THE BATCH RESULT — one thing resolved, one thing NOT
 **RESOLVED — the status tax is real:** incapacitated turns lost **960/2,945 = 32.6%** vs a clean
@@ -84,7 +88,7 @@ committed while the author knew the rule. **Run `preflight.py` before touching a
   behind it, but a status response is a battle-policy change touching every mode — **do not build
   it unilaterally.**
 
-## ‼‼ KI-56 — THE BOT IS STRANDED IN THE MAGMA HIDEOUT. READ THIS BEFORE ANY STORY WORK.
+## ✅ KI-56 — WAS: stranded in the Magma Hideout. **FIXED AND DRIVEN 2026-08-11.**
 Driving §Ch16 exposed it: **Ch15 completes its binary flag test and leaves the run permanently
 stuck four floors deep.** Measured from `profiles/ch16a/current_state.ss1`:
 * component containing the bot at `MAGMA_HIDEOUT_1F (25,34)`: **248 tiles, NO reachable exit warp**
@@ -97,7 +101,7 @@ stuck four floors deep.** Measured from `profiles/ch16a/current_state.ss1`:
 moment Maxie falls. New playbook rule added: *a chapter's test must include "and the bot can
 continue"*.
 
-### ✅ CAUSE CONFIRMED AND FIX CHOSEN (2026-08-11, later) — but NOT BUILT
+### ✅ CAUSE CONFIRMED, FIX BUILT, DRIVEN **PASS** (2026-08-11, later)
 `probe_hideout_warp_graph.py` re-tested the strand against the **whole eight-map warp graph**
 (KI-56's own evidence was a *same-map* path failure, and `calculate_path` "is not able to use
 warps", so a routing gap would have looked identical). It is not a routing gap: from the stranded
@@ -114,22 +118,30 @@ tile the search reaches **18 of 20 nodes**, missing only the exit warp `1F (10,3
 | rope lands at | **`JAGGED_PASS (16,19)`**, collision 0 (`probe_escape_warp.py`, 3 controls) |
 | bag today | **0 Escape Ropes** on every save ‼ and Lavaridge Mart does not stock them |
 
-All of it is **STATIC**. The bot has **no Escape Rope support at all** — that is the build.
+**BUILT AND PROVEN.** `collect_hideout_escape_rope()` + `use_escape_rope_to_leave_hideout()` +
+`leave_magma_hideout()`, and the chapter now ENDS with the exit — **outside** the
+`_groudon_awakened()` guard, so a resumed run still finishes it. Driver `--driver magmaexit`:
+```
+[mhexit] RESULT out=True map=JAGGED_PASS at=(16, 19) controllable=True landed_on_jagged_pass=True
+[mhexit] VERDICT PASS
+```
+‼ `(16,19)` is the exact tile predicted from `escapeWarp` before any code was written.
+Guarded by `repro_hideout_exit.py` (24 checks, fault-injected both ways). Gate: **15 of 15 green**.
+
+‼ **The one thing that did not work first time**, because it will bite the next dungeon too: the
+first run **consumed the rope and went nowhere**. `StartEscapeRopeFieldEffect()` runs from
+`DisplayItemMessageOnField`'s **callback**, which fires only when the message is DISMISSED — the
+wait loop has to press **B**, not just yield. *A consumed item is not the end of the script that
+consumed it.*
+
+**Not yet proven:** driven from `post_maxie.ss1` (on 4F). The exit has **not** been driven from a
+run that walked all the way back down to `1F (25,34)`; the warp graph says 3F_3R is reachable from
+there, but that is static.
 ## ⏭ NEXT ACTIONS, IN ORDER
 
-1. **KI-56 — BUILD the escape.** Cause confirmed, fix chosen and fully specified (table above);
-   nothing is built. This blocks ALL further story content. Three pieces:
-   (a) a **`use_escape_rope()`** action — the bot has none; every future dungeon wants it;
-   (b) **pick up the ball** at `3F_3R (9,19)` from `(9,20)` facing Up, gated on flag 1059 so a
-   resumed run does not re-try a taken ball;
-   (c) **wire it into §Ch15's exit** so the chapter ENDS outside, and extend the chapter's
-   acceptance test to "and the bot can continue" (the rule this bug created).
-   ‼ Do (a) and (b) against the stranded save `sandbox-pokebot/profiles/ch16a/current_state.ss1`,
-   which is a free repro of the exact failure. Re-run both probes to re-derive any constant.
-
-2. **§Ch16 is BUILT and waiting on KI-56.** Code, driver (`--driver slateporttheft`) and Segment 16
-   are committed. Its first run got the era gate right and failed in leg 1 (leaving the hideout).
-   **Legs 2-4 are unexercised — not implicated, not proven.** To re-run once KI-56 is fixed:
+1. **‼ RE-DRIVE §Ch16 — this is the next action.** KI-56 is fixed, so leg 1 (leaving the hideout)
+   should now pass. Code, driver (`--driver slateporttheft`) and Segment 16 are committed and
+   **legs 2-4 have never been exercised** — not implicated, not proven. Command:
    ```
    cd tools/story-dev
    PYTHONUTF8=1 py -3.12 verify_fixtures.py --assert post_maxie.ss1=19399688e730 &&    PYTHONUTF8=1 COLUMNS=400 py -3.12 story_harness.py post_maxie.ss1        --driver slateporttheft --frames 2500000 --profile ch16b
@@ -137,6 +149,10 @@ All of it is **STATIC**. The bot has **no Escape Rope support at all** — that 
    Acceptance is BOTH halves: `SLATEPORT_HARBOR_STATE == 2` **AND** controllable.
    ‼ Still-unmeasured risk on the later legs: **KI-53** (`ROUTE110 → SLATEPORT_CITY` fails
    statically while the exact reverse plans in 30 wp). A static FAIL is not a verdict.
+
+2. **Optional hardening of the §Ch15 exit:** drive it from a run that walks back down to
+   `1F (25,34)` rather than from 4F. The warp graph says 3F_3R is reachable from there, but only
+   statically. `sandbox-pokebot/profiles/ch16a/current_state.ss1` is a free repro of that state.
 
 3. **`#24-teachmsgstall` is REOPENED** — the fix has no production effect (z = −1.28) and
    `already-advanced` never fired. Start from `post_select=exhausted`, which still occurs 8/85.

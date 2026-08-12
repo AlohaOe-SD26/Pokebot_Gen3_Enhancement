@@ -4677,3 +4677,52 @@ carries the typo through.** The correctly-spelled name does not exist, and unkno
 
 **Prevention rule.** *Before trusting a tool's PASS, confirm it actually consumed your input —
 `audit_flag_names.py` audits fixed files and ignores argv; single names go to the table by grep.*
+
+---
+
+## 2026-08-11 — a consumed item is NOT the end of the script that consumed it (the Strength lesson, again, for items)
+
+**Symptom.** The new Escape Rope exit ran, the rope count went 1 -> 0, and the bot then sat on the
+same tile for 1800 frames with `controllable=False`. It looked like the game had refused the item —
+except a refused item is not consumed.
+
+**Root cause.** `ItemUseOnFieldCB_EscapeRope` (decomp `src/item_use.c:903`) calls
+`DisplayItemMessageOnField(taskId, gStringVar4, Task_UseDigEscapeRopeOnField)`, and
+`StartEscapeRopeFieldEffect()` runs only from that **callback** — which fires when the message is
+DISMISSED. My wait loop only `yield`ed, so it waited for ever on a text box. This is the *same
+shape* as the `EventScript_ActivateStrength` bug already recorded above ("a flag set by a script is
+not the end of that script"), which I had read, quoted in a comment in the very same file, and
+still walked into from the item side.
+
+**The fix that worked.** Press **B** every 4th frame while waiting for the map to change. B
+dismisses a message and interacts with nothing; A would have talked to whoever is standing on the
+far side of the warp.
+
+**What made it cheap.** The harness's no-progress dump printed the active task list, and
+`Task_ContinueTaskAfterMessagePrints` was sitting in it. Reading the dump cost seconds; guessing
+would have cost runs.
+
+**Prevention rule.** *If a wait loop can only be satisfied by a script ADVANCING, it must press
+something — waiting harder never dismisses a text box.*
+
+---
+
+## 2026-08-11 — my driver crashed at frame 30 and the log looked exactly like a hung bot
+
+**Symptom.** The first `--driver magmaexit` run produced no `[mhexit]` output for ten minutes.
+Redirected stdout held two setup lines; the process was alive but using ~11 CPU-seconds. It read as
+a bot stuck somewhere early.
+
+**Root cause.** Two things stacked. (1) `map_name` is a **local helper redefined inside each
+driver** in `story_harness.py`, not a module-level function; my new driver used it without defining
+it and died at frame 30 with `NameError`. (2) The harness caught that, dropped to **Manual mode**,
+and went on emulating — filling the log with heartbeats and `NO-PROGRESS` dumps, which is precisely
+what a genuinely wedged bot looks like. Meanwhile the redirected stdout was still buffered and
+showed nothing at all.
+
+**The fix that worked.** Reading `tools/story-dev/harness_sandbox.log`, which `log()` **flushes on
+every line** — the traceback was sitting at line 6 the whole time.
+
+**Prevention rule.** *Diagnose a stalled run from the flushed `harness_sandbox.log` and grep
+`EXCEPTION` FIRST — redirected stdout can be minutes behind, and a crashed driver in Manual mode is
+indistinguishable from a hung bot.*

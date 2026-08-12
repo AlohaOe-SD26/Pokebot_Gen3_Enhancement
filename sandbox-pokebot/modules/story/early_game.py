@@ -7477,16 +7477,23 @@ def do_magma_hideout() -> Generator:
 
 
 def do_magma_hideout_chapter() -> Generator:
-    """Chapter 15 end to end: travel -> open the entrance -> enter -> beat Maxie.
+    """Chapter 15 end to end: travel -> open the entrance -> enter -> beat Maxie -> GET OUT.
 
-    The three increments stay separate functions because each has its own binary acceptance and
-    its own driver, which is what let the travel leg's two failures be diagnosed as a party
-    problem and a driver problem rather than as "the chapter does not work"."""
-    if _groudon_awakened():
-        return
-    yield from travel_to_magma_hideout_door()
-    yield from enter_magma_hideout()
-    yield from do_magma_hideout()
+    The increments stay separate functions because each has its own binary acceptance and its
+    own driver, which is what let the travel leg's two failures be diagnosed as a party problem
+    and a driver problem rather than as "the chapter does not work".
+
+    ‼‼ THE CHAPTER IS NOT OVER WHEN `GROUDON_AWAKENED_MAGMA_HIDEOUT` IS SET. That flag fires the
+    moment Maxie falls, four floors underground, and for one whole session this function returned
+    successfully on runs that were **permanently stranded** (KI-56) - the boulder puzzle that let
+    the bot in reseals behind it on map reload, and no walk-out exists. So the acceptance is BOTH
+    halves: the flag AND being outside and controllable. `leave_magma_hideout()` is deliberately
+    OUTSIDE the flag guard, so a run resumed after the flag was set still finishes the exit."""
+    if not _groudon_awakened():
+        yield from travel_to_magma_hideout_door()
+        yield from enter_magma_hideout()
+        yield from do_magma_hideout()
+    yield from leave_magma_hideout()
 
 
 # ---------------------------------------------------------------------------
@@ -7831,6 +7838,230 @@ def open_magma_hideout_1f() -> Generator:
             "simulation, so the live map state differs from the one it was derived from."
         )
     _ch14_say("Story: Magma Hideout 1F is open - the route to 2F_1R is clear.")
+
+
+# ---------------------------------------------------------------------------
+# §Ch15 EXIT - LEAVING the Magma Hideout (KI-56).
+#
+# ‼ WHY A CHAPTER NEEDS AN EXIT LEG AT ALL. Ch15 was graded BINARY on
+# `GROUDON_AWAKENED_MAGMA_HIDEOUT`, which the game sets the instant Maxie falls - four floors
+# deep. It therefore PASSED ITS OWN TEST on runs that ended permanently stuck. 1F's 44-tile
+# entrance pocket is joined to the rest of the floor only by the two Strength pushes
+# `MAGMA_HIDEOUT_1F_PUSHES` performs, and **boulder positions RESET when the map reloads**
+# (KI-56, measured: the boulders read back at their ORIGINAL tiles). Walking back down, the bot
+# arrives at `1F (25,34)` on the far side of that wall, and both push-from tiles - `(7,23)` and
+# `(6,22)` - are inside the pocket it can no longer reach, so it cannot even re-push.
+#
+# MEASURED, with three controls (`tools/story-dev/probe_hideout_warp_graph.py`): from the return
+# tile, a BFS over the whole eight-map warp graph reaches **18 of 20 nodes**, and the only two it
+# misses are the exit warp `1F (10,34)` and `JAGGED_PASS` itself. **There is no walk-out.** A
+# return-route study and a re-push are both closed off; the way out cannot be walked at all.
+#
+# ‼ SO THE DUNGEON SUPPLIES ITS OWN ESCAPE - which is almost certainly why a one-way boulder
+# puzzle could be shipped here in the first place. `MagmaHideout_3F_3R/map.json` places an
+# **Escape Rope item ball at `(9,19)`**, and 3F_3R is reachable even from the stranded tile.
+# ---------------------------------------------------------------------------
+
+#: The Escape Rope item ball, decomp `data/maps/MagmaHideout_3F_3R/map.json`.
+HIDEOUT_ESCAPE_ROPE_MAP = MapRSE.MAGMA_HIDEOUT_3F_3R
+HIDEOUT_ESCAPE_ROPE_TILE = (9, 19)
+
+#: ‼ `(9,20)` IS THE ONLY APPROACH. An item ball is an object event, so it is reached by
+#: standing beside it and pressing A - and of the four neighbours, `calculate_path` reaches
+#: ONLY the one below it. `(9,18)`, `(8,19)` and `(10,19)` are all unreachable from both of
+#: 3F_3R's warp arrival tiles (measured, `probe_hideout_warp_graph.py`). Facing is Up.
+HIDEOUT_ESCAPE_ROPE_APPROACH = (9, 20)
+HIDEOUT_ESCAPE_ROPE_FACING = "Up"
+
+#: ‼‼ THE DECOMP MISSPELLS THIS FLAG - "ECAPE", not "ESCAPE" - and
+#: `modules/data/event_flags/emerald.txt` carries the typo through as flag 1059. The
+#: correctly-spelled name **does not exist**, and `get_event_flag` returns False **silently**
+#: for an unknown name, which is indistinguishable from "the ball is still there". Spelled the
+#: sensible way, this check would be a permanent, invisible lie. Do not "fix" it.
+HIDEOUT_ESCAPE_ROPE_FLAG = "ITEM_MAGMA_HIDEOUT_3F_3R_ECAPE_ROPE"
+
+#: 4F's OTHER warp. The route in is `1F (25,34) -> 2F_1R (17,33) -> 3F_1R (7,21) -> 4F`
+#: (`MAGMA_HIDEOUT_ROUTE`), which never touches 3F_3R - so collecting the rope is a deliberate
+#: one-warp detour off 4F after Maxie, not something the inbound route passes.
+HIDEOUT_4F_TO_3F_3R = (20, 21)
+
+#: Where an Escape Rope actually puts us. ‼ The hideout has NO `setescapewarp` in any of its
+#: four map scripts, so this is not read off a script: `UpdateEscapeWarp` (decomp
+#: `src/overworld.c:677`, called from `src/field_control_avatar.c:826`) stamps
+#: `gSaveBlock1Ptr->escapeWarp` on EVERY warp step where the map being left is outdoors and the
+#: map being entered is not - so walking Jagged Pass -> 1F sets it automatically. Read live out
+#: of the save block on the stranded state: `JAGGED_PASS (16,19)`, collision 0
+#: (`probe_escape_warp.py`, which also checks the pre-entry NEGATIVE ARM reads `ROUTE112`).
+HIDEOUT_ESCAPE_LANDING = MapRSE.JAGGED_PASS
+
+
+def _escape_ropes_held() -> int:
+    """How many Escape Ropes are in the bag."""
+    from modules.items import get_item_bag, get_item_by_name
+
+    return get_item_bag().quantity_of(get_item_by_name("Escape Rope"))
+
+
+def collect_hideout_escape_rope() -> Generator:
+    """Pick up the Escape Rope the Magma Hideout provides, on 3F_3R `(9,19)`.
+
+    INTENT: put an Escape Rope in the bag so the chapter can LEAVE. Nothing else in this era
+    supplies one - the bag reads **0 ropes on every anchor save**, and ‼ Lavaridge Mart (the
+    nearest to the Jagged Pass approach) does **not stock them**; the closest marts that do are
+    Fallarbor, Slateport, Rustboro, Petalburg and Lilycove, all a long detour off a leg that has
+    already produced a measured whiteout.
+    STORY CONDITION: inside the hideout, on 4F (post-Maxie) or already on 3F_3R.
+    GOAL/END STATE: `_escape_ropes_held() > 0`. Graded on THE BAG, never on the flag - see below.
+    """
+    from modules.memory import get_event_flag
+
+    if _escape_ropes_held() > 0:
+        return  # resume-safe: a previous attempt already collected it
+
+    if _map_group_number() == MapRSE.MAGMA_HIDEOUT_4F.value:
+        _ch14_say("Story: Magma Hideout - detouring to 3F_3R for the Escape Rope...")
+        yield from _enter_warp_by_navigation(
+            lambda: _map_group_number() == HIDEOUT_ESCAPE_ROPE_MAP.value,
+            MapRSE.MAGMA_HIDEOUT_4F,
+            HIDEOUT_4F_TO_3F_3R,
+            label="Magma Hideout 4F -> 3F_3R (Escape Rope)",
+        )
+        yield from wait_until_truly_controllable()
+
+    if _map_group_number() != HIDEOUT_ESCAPE_ROPE_MAP.value:
+        raise BotModeError(
+            "Magma Hideout: cannot collect the Escape Rope from map "
+            f"{_map_group_number()} - this leg starts on MAGMA_HIDEOUT_4F (warping via "
+            f"{HIDEOUT_4F_TO_3F_3R}) or on {HIDEOUT_ESCAPE_ROPE_MAP.name} itself."
+        )
+
+    # ‼ THE BALL CAN ONLY BE TAKEN ONCE. If the flag is set and the bag is still empty, the rope
+    # was collected on some earlier run and then used or tossed - there is no second one, and
+    # mashing A at an empty tile would burn the bound and report nothing useful.
+    if get_event_flag(HIDEOUT_ESCAPE_ROPE_FLAG):
+        raise BotModeError(
+            f"Magma Hideout: the Escape Rope ball at {HIDEOUT_ESCAPE_ROPE_TILE} has already "
+            f"been taken ({HIDEOUT_ESCAPE_ROPE_FLAG} is set) but the bag holds none. This run "
+            "cannot leave the hideout on foot (KI-56) and has no rope to leave with."
+        )
+
+    yield from _navigate_riding_out(HIDEOUT_ESCAPE_ROPE_MAP, HIDEOUT_ESCAPE_ROPE_APPROACH)
+    yield from wait_for_player_avatar_to_be_standing_still()
+    yield from ensure_facing_direction(HIDEOUT_ESCAPE_ROPE_FACING)
+    yield
+
+    # `finditem` shows "You found an ESCAPE ROPE!" then "put away in the ITEMS POCKET" - a
+    # message chain, so A-ride it. ‼ GRADED ON THE BAG, NOT THE FLAG: with a full items pocket
+    # the script says "the BAG is full" and sets NO flag and gives NO item, and a flag-based
+    # test would then hang on a ball that will never be collectable.
+    for _frame in range(1200):
+        _check_abort()
+        if _escape_ropes_held() > 0:
+            break
+        context.emulator.press_button("A")
+        yield
+        yield from wait_for_n_frames(3)
+
+    if _escape_ropes_held() == 0:
+        # A failure message reports the WORLD, not a hypothesis (08-MISTAKES 2026-08-10).
+        where = _map_group_number()
+        try:
+            tile = tuple(get_player_avatar().local_coordinates)
+        except Exception as error:  # noqa: BLE001 — this is the FAILURE REPORT itself; an
+            # unreadable avatar must not replace the real diagnosis with a crash from the
+            # diagnostic. The exception type is carried into the message rather than dropped.
+            tile = f"<unreadable: {type(error).__name__}>"
+        raise BotModeError(
+            f"Magma Hideout: pressed A at the Escape Rope ball {HIDEOUT_ESCAPE_ROPE_TILE} for "
+            f"1200 frames and the bag still holds none (standing {tile} on map {where}, facing "
+            f"{HIDEOUT_ESCAPE_ROPE_FACING}; flag {HIDEOUT_ESCAPE_ROPE_FLAG}="
+            f"{get_event_flag(HIDEOUT_ESCAPE_ROPE_FLAG)}). A set flag with an empty bag means "
+            "the items pocket was FULL."
+        )
+
+    # ‼ A flag set by a script is NOT the end of that script (the Strength lesson) - ride the
+    # rest of the message chain out before anything else touches the D-pad.
+    yield from _ride_out_scripted_scene("B")
+    _ch14_say(f"Story: collected the Escape Rope on {HIDEOUT_ESCAPE_ROPE_MAP.name}.")
+
+
+def use_escape_rope_to_leave_hideout() -> Generator:
+    """Use an Escape Rope and confirm we are OUT, on Jagged Pass.
+
+    INTENT: end §Ch15 standing outside the dungeon and able to continue - the half the old
+    binary acceptance test never asked about.
+    GOAL/END STATE: not on any hideout map, standing on `JAGGED_PASS`, truly controllable."""
+    from modules.items import get_item_by_name
+    from modules.modes.util.items import use_item_from_bag
+
+    if not _inside_magma_hideout():
+        return  # resume-safe: already out
+
+    if _escape_ropes_held() == 0:
+        raise BotModeError(
+            "Magma Hideout: use_escape_rope_to_leave_hideout() called with no Escape Rope in "
+            "the bag. `collect_hideout_escape_rope()` must run first."
+        )
+
+    _ch14_say("Story: using the Escape Rope to leave the Magma Hideout...")
+    # ‼ `wait_for_start_menu_to_reappear=False`: using an Escape Rope closes the menus and warps,
+    # so the start menu never comes back and waiting for it would burn that helper's own bound.
+    yield from use_item_from_bag(get_item_by_name("Escape Rope"), wait_for_start_menu_to_reappear=False)
+
+    # ‼‼ THE MESSAGE MUST BE DISMISSED OR THE WARP NEVER HAPPENS - MEASURED, NOT GUESSED.
+    # The first driven run consumed the rope and then sat on the same tile for 1800 frames with
+    # `controllable=False`. The harness's no-progress dump named the cause exactly:
+    # **`Task_ContinueTaskAfterMessagePrints` was active.** `ItemUseOnFieldCB_EscapeRope`
+    # (decomp `src/item_use.c:903`) calls `DisplayItemMessageOnField(taskId, gStringVar4,
+    # Task_UseDigEscapeRopeOnField)`, and `StartEscapeRopeFieldEffect()` only runs from that
+    # CALLBACK - which fires when the message is dismissed. A wait loop that merely yields waits
+    # forever on a text box. This is the same shape as the Strength lesson recorded above: an
+    # item being consumed is NOT the end of the script that consumes it.
+    # ‼ B, NEVER A. B dismisses a message and interacts with nothing; a stray A on the far side
+    # of the warp would talk to whoever is standing on Jagged Pass.
+    for _frame in range(1800):
+        _check_abort()
+        if not _inside_magma_hideout():
+            break
+        if _frame % 4 == 0:
+            context.emulator.press_button("B")
+        yield
+
+    if _inside_magma_hideout():
+        # Report the WORLD, not a hypothesis: a rope that was consumed but did not warp is a
+        # completely different bug from one the game refused, and the count separates them.
+        raise BotModeError(
+            "Magma Hideout: used an Escape Rope and 1800 frames later we are still inside "
+            f"(map {_map_group_number()}, tile {tuple(get_player_avatar().local_coordinates)}, "
+            f"{_escape_ropes_held()} rope(s) left, "
+            f"controllable={player_avatar_is_controllable()}). "
+            "`MagmaHideout_1F/map.json` has allow_escaping=true, so the item is legal here. "
+            "‼ If the rope count went DOWN, the item was accepted and the warp is what stalled - "
+            "check for `Task_ContinueTaskAfterMessagePrints`, i.e. an undismissed message box."
+        )
+
+    yield from wait_until_truly_controllable()
+
+    where = _map_group_number()
+    if where != HIDEOUT_ESCAPE_LANDING.value:
+        # Not fatal to the escape itself - we ARE out - but it means the landing tile this
+        # chapter was built on is not where the game put us, and the caller should know.
+        raise BotModeError(
+            f"Magma Hideout: the Escape Rope landed us on map {where}, not "
+            f"{HIDEOUT_ESCAPE_LANDING.name}. `escapeWarp` was measured as "
+            "JAGGED_PASS (16,19) on this anchor; it is stamped on the way IN, so a run that "
+            "entered the hideout by some other route would land somewhere else."
+        )
+
+    _ch14_say(f"Story: OUT of the Magma Hideout - standing on {HIDEOUT_ESCAPE_LANDING.name}.")
+
+
+def leave_magma_hideout() -> Generator:
+    """§Ch15's exit: get the Escape Rope, use it, be outside. No-op when already out."""
+    if not _inside_magma_hideout():
+        return
+    yield from collect_hideout_escape_rope()
+    yield from use_escape_rope_to_leave_hideout()
 
 
 # ---------------------------------------------------------------------------
