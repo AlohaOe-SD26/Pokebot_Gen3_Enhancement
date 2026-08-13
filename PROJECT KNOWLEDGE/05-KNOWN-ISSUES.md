@@ -2787,6 +2787,25 @@ handed a target it can never accept.
 battle. Nothing before it could ever have exercised this path — which is exactly why "no bug has
 been observed" said nothing about whether one existed.
 
+‼ **AND THE PASSING RUN PROVED NOTHING ABOUT THE FIX.** §Ch19's end-to-end PASS reported
+`whiteouts=0` and **zero faints**, so `choose_new_lead_after_faint` was never called once — the fix
+rode along entirely unexercised. Proven instead by **fault injection**,
+`tools/story-dev/repro_multi_battle_partner.py` (no emulator, milliseconds), **3/3**:
+```
+ARM A  old rule      -> slot 5 (Aggron)     ALLY   [AS PREDICTED] the bug reproduces
+ARM B  shipped code  -> slot 2 (Mightyena)  OURS   [AS PREDICTED] the fix holds
+ARM C  plain double  -> slot 5                     unchanged (no over-correction)
+```
+ARM A is the **positive control** and is the reason ARM B means anything: a fixture where our own
+mon happened to win the ranking would pass under both arms and prove nothing. ARM C exists because a
+fix that also changed ordinary double battles would be a regression wearing a fix's clothes.
+
+**Still UNVERIFIED and worth knowing:** that `is_double_battle_with_partner` actually reads TRUE at
+the moment the chooser runs in the live battle (it depends on `BattleType.InGamePartner = 1 << 22`
+being right for Emerald). If that property is false in practice the fix is a no-op and the bug is
+still live — the repro pins the LOGIC, not the flag read. Settling it needs a driven multi battle in
+which one of our Pokémon actually faints.
+
 ## KI-65 — the HM-refusal re-pick has NEVER executed: `party_index` is unbound there (2026-08-12, code-verified, OPEN)
 
 Found by running **pyflakes** over the build for the first time (see `14-AGENT-PLAYBOOK.md`).
