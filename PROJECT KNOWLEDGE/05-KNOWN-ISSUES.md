@@ -2846,11 +2846,15 @@ None is fixed, and none has ever run live (every §Ch19 drive had zero faints).
 | `battle_handler.py:630-636` | `alive_slots` excludes only the on-field pair, so the ally's benched mons are A-press candidates; each refusal round-trips `Task_ReturnToChooseMonAfterText` — three of six slots are guaranteed-refused in this fight |
 | `_util.py:522-587` `get_potential_rotation_targets` / `select_rotation_target` | full-party, called live here from `default.py`; the result reaches `battle_action_selection.py:288`, an **unbounded** `while get_game_state() == PARTY_MENU: press A` |
 
-⚠ Also reported and NOT yet verified by me: `default.py`'s `decide_turn_in_double_battle` doing
-`get_party()[partner.party_index]` with an index of 3-5 while `gPlayerPartyCount` may still be 3
-(`ReducePlayerPartyToSelectedMons` sets 3 and `FillPartnerParty` does not update it) — claimed to be
-an `IndexError` before any menu opens. **Check this before the next multi battle**, since it would
-fire on turn 1 rather than on a faint.
+✅ **REFUTED 2026-08-12 — the `IndexError` on turn 1 does not happen.** The review flagged
+`decide_turn_in_double_battle` (`default.py:240-241`) doing `get_party()[partner.party_index]` with
+an index of 3-5 while `gPlayerPartyCount` might still be 3, which would have fired on the FIRST turn
+rather than on a faint. Refuted by our own driven run: `ch19d.log` f23255 shows `battle_is_active ->
+True` with a **six-entry** party (`Sceptile|Mightyena|Swellow|Metang|Skarmory|Aggron`), and the
+multi battle was won. `FillPartnerParty` does update the count in practice, so the index is in range.
+‼ Worth stating because it is the one item on this list that would have broken §Ch19 in production
+rather than merely on an error path — and it is the reason to check a "would fire immediately" claim
+against an existing log before scheduling work for it.
 
 **The right shape of the fix** is one choke point — `ally_party_indices()` already exists — rather
 than a guard per call site. That is a battle-layer refactor touching every mode, so it is filed
@@ -2908,3 +2912,31 @@ assuming the connection.
 
 **Severity:** MEDIUM, order-dependent (on iterations where line 371 already ran, the name is bound
 and the branch works), which is also why it has survived unnoticed.
+
+## ‼ KI-65 CORRECTED 2026-08-12 (same day) — my first description OVERSTATED it
+
+I originally wrote that the re-pick *"has quite possibly never executed"*. **That is too strong, and
+an inaccurate issue is worse than none.** Reading the control flow properly:
+
+`party_index` is assigned at line 371 inside branch **(2) `AskWhetherToLearn`** — the "Delete a move
+to make room for X?" prompt — which in the normal sequence runs BEFORE a slot is confirmed and
+therefore before the game can refuse with `CantForgetHM`. So on an ordinary teach the name IS bound
+and the re-pick DOES run.
+
+**The real, narrower bug:** line 371 sits inside a `try:` whose `except Exception:` (line 377-381)
+silently defaults `move_to_forget` when `_read_offered_move` fails. On that path `party_index` is
+**never bound**, so a later `CantForgetHM` raises `UnboundLocalError` into the *second* silent
+`except`, which declines. ⇒ The two failures COMPOUND: the read failed invisibly, and then the
+recovery from the refusal failed invisibly too. Both look like decisions.
+
+**Why it still matters and is still filed:** it is a real latent `UnboundLocalError` on a real path,
+it is exactly the "fail-safe `except` that returns the SUCCESS value" pattern, and it is the reason
+the pyflakes gate cannot yet be widened past the story surface. **Fix deliberately deferred** to a
+focused pass with its own repro (force `_read_offered_move` to fail, then force `CantForgetHM`, and
+assert the re-pick either runs or says loudly that it cannot) — changing the teach flow without that
+repro is how `#24-teachmsgstall` got its current "the fix had no production effect" verdict.
+
+‼ **Method note for the next agent:** this correction came from reading the ENCLOSING control flow
+rather than the flagged line. A linter tells you a name is not provably bound; it does not tell you
+how often that happens. Do not convert a static warning into a severity claim without tracing who
+assigns it first.

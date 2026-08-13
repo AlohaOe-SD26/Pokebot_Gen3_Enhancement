@@ -5337,6 +5337,27 @@ call sites (`default.py`, `level_up.py`, the story override). The repro gained *
 permuted array — the fix returns slot 3, OURS, which the positional rule would have hidden) and
 **ARM E** (the story bot's own chooser). 5/5, and §Ch19 re-driven to a PASS afterwards.
 
+## 2026-08-12 — I turned a linter warning into a severity claim without tracing the control flow
+
+**Symptom.** pyflakes flagged `party_index` as undefined at `battle_move_replacing.py:280`. I filed
+KI-65 saying the HM-refusal re-pick *"has quite possibly never executed"* and called it a candidate
+cause for the reopened `#24-teachmsgstall`. Re-reading the enclosing function the same day: the name
+is assigned at line 371 in the `AskWhetherToLearn` branch, which in the normal sequence runs BEFORE a
+slot is confirmed and therefore before `CantForgetHM` can fire. **On an ordinary teach the re-pick
+runs fine.**
+
+**Root cause.** I read the flagged LINE and not the flow that reaches it. A linter proves a name is
+not *provably* bound; it says nothing about how often the unbound path is taken.
+
+**What is actually true** (the narrower, still-real bug): line 371 is inside a `try:` whose `except`
+silently defaults on failure, and on THAT path `party_index` is never bound — so a later
+`CantForgetHM` raises `UnboundLocalError` into a second silent `except` that declines. The two
+failures compound, and both look like decisions.
+
+**Prevention rule.** *A static warning is a pointer, not a diagnosis. Before writing a severity or
+naming a suspect bug it might explain, trace who assigns the name first and on which path — and if
+the answer is "usually bound", say so in the issue rather than leaving the stronger claim standing.*
+
 **Prevention rules.** *(1) Before "fixing" a strategy method, print the MRO and find which class the
 framework will actually call — an override two levels down makes your edit dead code.
 (2) Never identify a Pokémon by party index across a battle-menu boundary: `UpdatePartyToBattleOrder`

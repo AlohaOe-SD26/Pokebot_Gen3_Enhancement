@@ -247,10 +247,14 @@ and never identify a Pokémon by party index across a battle-menu boundary.
   `FillPartnerParty` writes his Metang/Skarmory/Aggron into `gPlayerParty[3..5]`; both choosers
   excluded only the on-field mons and rank by condition, so three fresh L42-44 mons win outright.
   ‼ The guard needed already existed with **zero callers**: `is_double_battle_with_partner`.
-* **KI-65 (OPEN, unfixed)** — `battle_move_replacing.py:280` uses `party_index`, a function-local
-  assigned 90 lines lower, inside a `try:` whose `except` **declines**. So the "HM moves can't be
-  forgotten" re-pick may never have executed, and declining looks like a decision. **Candidate cause
-  for the reopened `#24-teachmsgstall`** — needs its own repro + A/B before that claim is made.
+* **KI-65 (OPEN, unfixed — ‼ and I CORRECTED MY OWN OVERSTATEMENT of it)** —
+  `battle_move_replacing.py:280` uses `party_index`, which is assigned lower down. I first wrote
+  that the HM-refusal re-pick "may never have executed"; **that was too strong.** Tracing the flow:
+  the name is bound in the `AskWhetherToLearn` branch, which normally runs first, so on an ordinary
+  teach the re-pick works. The real bug is narrower — line 371 is inside a `try:` whose `except`
+  silently defaults, and on THAT path the name is never bound, so a later `CantForgetHM` raises
+  `UnboundLocalError` into a SECOND silent `except` that declines. **Two invisible failures that
+  compound.** Still worth fixing, still needs its own repro first.
 * **KI-66 (OPEN)** — the multi-battle hazard is BROADER than the faint chooser: **four more**
   full-party scans on the same paths (two in `battle_handler.py`, `alive_slots`, and the rotation
   targets feeding an **unbounded** `while PARTY_MENU: press A`). The right fix is ONE choke point —
