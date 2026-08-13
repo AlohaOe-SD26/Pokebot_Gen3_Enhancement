@@ -626,3 +626,142 @@ approaching the switch differently, and it is not a fault: **gym trainer battles
 the mechanic**. The executor must fight them, and a wait loop that does not expect a script will
 simply hang with the avatar "refusing to walk".
 
+---
+
+# ARCHIVED 2026-08-12 — KI-61 (FIXED), moved out of `05-KNOWN-ISSUES.md` for the R3 budget
+> Moved verbatim, not rewritten. The live file keeps a stub pointing here.
+
+## KI-61 — the chapter DETECTOR named the wrong beat after badge 7 (2026-08-12, MEASURED, ✅ FIXED)
+
+**Symptom.** With seven badges and Dive not yet received, `progress.detect_live()` reported the
+current chapter as **"Seafloor Cavern — Kyogre"**, skipping both the Space Center and HM08 Dive.
+
+**Cause — a registry ORDER bug with a non-obvious blast radius.** `modules/story/chapters.py` listed
+*"Mossdeep & Space Center"* (milestone `RECEIVED_HM_DIVE`) **before** *"Gym 7 — Tate & Liza"*
+(`BADGE07_GET`). That order is impossible: the Space Center's Team Magma and Steven are HIDDEN until
+Tate & Liza are beaten — `MossdeepCity_Gym_EventScript_TateAndLizaDefeated`
+(`data/maps/MossdeepCity_Gym/scripts.inc:73-76`) is what clears the three `HIDE_..._SPACE_CENTER_*`
+flags. ‼ `12-STORYMODE-DESIGN.md` had recorded this order as **"order confirmed"**.
+
+The order is not cosmetic, and that is the part worth remembering: `_compute_badges_before()` derives
+each chapter's badge count *by walking the list*, and `current_chapter()` picks the bracket for the
+player's badge level and then the first unmet chapter in it. Listed ahead of the gym, the Space
+Center was computed as a **six**-badge chapter, so the instant the seventh badge landed it fell out
+of the bracket entirely and the detector jumped to the next seven-badge chapter.
+
+**MEASURED IN OUR OWN HARNESS** (`tools/story-dev/probe_chapter_order.py`), not taken from the decomp:
+| save | badges | Space Center objects hidden | `MOSSDEEP_SPACE_CENTER_STATE` |
+|---|---|---|---|
+| `post_aqua.ss1` | 6 | **3 of 3 — Magma and Steven do not exist yet** | 0 |
+| `post_mossdeep_gym.ss1` | 7 | **0 of 3 — both present** | 1 |
+
+**A/B on the fix:** before, `post_mossdeep_gym.ss1` → `ch20 'Seafloor Cavern — Kyogre'`; after,
+→ `ch19 'Mossdeep & Space Center'`. `badges_before` for the Space Center went 6 → 7.
+
+**Prevention rule.** *When a list's ORDER is read as meaning by more than one consumer, a wrong
+order is a silent logic bug, not a cosmetic one. Order claims in docs need the same evidence bar as
+code — "order confirmed" was written here and was wrong.*
+
+---
+
+# ARCHIVED 2026-08-12 — KI-52 (FIXED 2026-08-11), moved out of `05-KNOWN-ISSUES.md`
+> Moved verbatim, not rewritten. The live file keeps a stub pointing here.
+
+## KI-52 — ✅ FIXED 2026-08-11 (user directive). A WILD battle used to end the run when the LEAD dropped below `hp_threshold`, with a full healthy bench unused
+
+**What was measured** (`mintrun1`, driving the Magma Hideout from a freshly-minted `magma_door.ss1`):
+```
+Bot stopped: Your Pokémon cannot battle due to HP below threshold, and escape is not possible.
+map=MAGMA HIDEOUT(24,91) pos=(15,6)  game_state=4  battle: active=True
+callback=HandleTurnActionSelectionState  battle_text='What will SCEPTILE do?'
+party=['Sceptile L46 10/128', 'Zigzagoon L7 24/24', 'Swellow L40 112/112',
+       'Skitty L17 45/45', 'Mightyena L43 127/127', 'Castform L35 100/100']
+```
+**Five healthy party members**, and the run stopped. It then sat wedged **mid-battle in Manual for
+18,000+ frames** (the `[STUCK — 18000 frames no progress]` dump above is that).
+
+**The chain**, all in stock code:
+* `profiles/battle.yml`: `hp_threshold: 20`, `lead_cannot_battle_action: flee` (the **upstream
+  default** — `modules/config/templates/battle.yml:16`).
+* Sceptile at 10/128 = **7.8%** < 20 ⇒ `_is_healthy()` False ⇒ `_handle_lead_cannot_battle`.
+* Action is `flee`; this was a **WILD** battle (a Magma Hideout Geodude — had it been a trainer the
+  message would have been *"'flee' is not allowed in a trainer battle"*), so it tried to escape,
+  `get_best_escape_method()` returned None, and it raised
+  `BotModeError("… escape is not possible.")` → Manual.
+* `modules/battle_strategies/default.py:242-273`.
+
+⇒ **`rotate` is the obviously correct action here and it already exists.** `_handle_rotate` switches
+to a rotation target and only raises when there is genuinely no eligible switch — which was not the
+case: there were five.
+
+### ‼ WHY THE FIX IS *NOT* "flip the global config"
+**`flee` is CORRECT for shiny hunting**, which is what this bot mostly does — you do not want a
+hunting run rotating in a fresh mon and fighting every wild that outlasts the lead. A global flip
+would trade a story-mode derail for a hunting-mode regression across every other mode.
+
+**Candidate shapes (none chosen — this is a design decision):**
+1. **Mode-scoped override**: StoryMode sets `rotate` for its own duration. Narrow blast radius,
+   matches how `on_whiteout` is already overridden per-mode.
+2. **A story battle strategy** that subclasses the default and rotates instead of fleeing.
+3. Leave the config and make the story chapters heal more aggressively — weakest option, because it
+   treats a symptom and the lead can always be unlucky.
+
+### ‼ WHAT IS NOT YET KNOWN
+This was measured under the **harness driver**, which does not necessarily mirror StoryMode's
+overrides (`04-HANDOFF`: "a harness driver must mirror the OVERRIDES of the mode it stands in for").
+**Whether production StoryMode recovers from this `BotModeError` is UNMEASURED.** Do not record it
+as a live run-killer until a batch log shows it; do not record it as harmless either. The wedge
+itself — Manual, mid-battle, 18,000 frames — is real in the harness.
+
+### ✅ THE FIX (user directive: "carry out the fight until it wins/loses so it does not get wedged")
+Ladder is now **rotate → flee → FIGHT ON**; no default path can end the run.
+`_fight_on()` returns ONE action for ONE turn (strongest move, slot 0 if nothing ranks — the game
+substitutes Struggle, which still ends the battle). ‼ It does **not** loop: the bound is the battle.
+A TRAINER battle no longer raises either — gyms/rivals/bosses can never be fled, which is normal.
+`POKEBOT_LEADCANTBATTLE_A=1` restores the old raise. Full trapping set + the game's "can't escape"
+strings are in `_escape_block_reason()`'s docstring and in `07-CHANGELOG` 2026-08-11.
+
+**Why it was fleeing with a healthy bench:** `lead_cannot_battle_action` asks *"can the LEAD
+fight?"*, never *"can ANYONE fight?"*. **Nothing trapped it** — the opponent was a wild Torkoal
+(White Smoke) and Sceptile was far faster. The 0 came from the run formula's own **u8 wraparound**
+(decomp `u8 speedVar = (speed*128)/oppSpeed + runTries*30`), which in the real game just fails ONE
+attempt — our reader turned it into "impossible" permanently.
+
+**Proof:** ✅ `repro_lead_cannot_battle.py`, 34 checks, fault-injected red then restored green.
+❌ **NO live A/B** — the reproduction was lost before it ran (`08-MISTAKES`: the fixture was pinned
+*after* an in-flight job overwrote it). **Do not record the fallback as live-proven.** ✅ What the
+void A/B does show: OLD and NEW both completed the chapter identically, so the change is
+**behaviourally inert on a healthy run**.
+
+**Repro (to re-obtain a wedging save):** drive `--driver magmahideout` from a `magma_door.ss1` whose
+lead takes a bad wild encounter on 4F, or lower `hp_threshold` in a profile to force it. ‼ **md5 the
+save and put that md5 in the A/B command.**
+
+### ‼‼ KI-52 REPRODUCES DETERMINISTICALLY — AND "MINT A FRESH SAVE" IS NOT A REROLL (2026-08-11)
+Two rounds of *mint a new `magma_door.ss1` via `magmatravel`, then drive the dungeon* produced
+**byte-identical failures**:
+```
+mintrun1  30 [TURN] lines  md5 ed42726c80d4
+mintrun2  30 [TURN] lines  md5 ed42726c80d4   -> IDENTICAL
+both stop at MAGMA_HIDEOUT_4F (15,6), Sceptile L46 10/128, five healthy mons on the bench
+```
+‼ **Even though the two minted saves have DIFFERENT md5s** (`58a191a14478`, `8171734228f3`).
+
+**Why: the travel leg is DETERMINISTIC.** Both `magmatravel` runs reported the *identical* frame
+count (`frames=3244720`) and identical result fields. The saves differ only in incidental bytes
+(in-game clock / RTC); the game state that drives the dungeon is the same every time. ⇒
+**`--driver magmatravel` cannot produce a VARIED anchor, so re-minting is not a reroll and running
+it repeatedly is waste.** The loop was stopped after round 2 rather than running round 3.
+
+⇒ **The blocker for §Ch16 is KI-52, not the Maxie fight.** From the current `post_mtpyre.ss1` the
+chapter now dies to a wild Geodude on 4F **before ever reaching Maxie**, every single time. The
+earlier Maxie analysis (confusion + the Camerupt heal) came from the OLD `magma_door.ss1`, whose
+party was a level lower (`Sceptile L44` vs `L46`) — it is still true of that save, but it is no
+longer the thing standing in the way.
+
+**What would actually vary a run** (none tried): a different starting anchor than
+`post_mtpyre.ss1`; a party/level change; or fixing KI-52 so the wild fight stops ending the run.
+The third is the real fix and it is the one that needs the scope decision.
+
+---
+

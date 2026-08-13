@@ -5337,6 +5337,42 @@ call sites (`default.py`, `level_up.py`, the story override). The repro gained *
 permuted array — the fix returns slot 3, OURS, which the positional rule would have hidden) and
 **ARM E** (the story bot's own chooser). 5/5, and §Ch19 re-driven to a PASS afterwards.
 
+## 2026-08-12 — I spent a session's planning on a blocker that was not the blocker
+
+**Symptom.** §Ch21 (Seafloor Cavern) is blocked. Every document — KI-63, KI-54, my own handoff —
+said the gate was **the full party**: no member can learn Dive, so free a slot, catch a learner,
+teach it. I measured the party, measured the victim chooser, measured the hunting grounds, wrote the
+probe, and had the production edit written.
+
+**Root cause.** Nobody had asked whether the bot could USE Dive once it had it.
+`WaypointAction.Dive` / `Emerge` are declared at `map_path.py:592-593` and **assigned nowhere in the
+tree**; `can_dive()` has **zero callers**; `warp_graph.py:342` and `region_reach.py:68-70` exclude
+Dive edges *on purpose*. **The planner cannot emit a Dive waypoint at all.** The perfect execution of
+the entire plan ends at `UnreachableDestinationError` on the first dive spot — one line further down,
+minus a party member.
+
+**How it was caught.** An adversarial review of the PLAN, run before the code was committed. I had
+already verified the party, the chooser, the box and the grounds — all correctly, all irrelevant.
+‼ **I verified the parts of the plan I had thought of, and the review asked the question I had not.**
+
+**The fix that worked.** Reverted the production edits (they were inert behind a default-off flag,
+but inert-and-defective is worse than absent — a later agent may enable code believing it is ready).
+Filed KI-68 with the correct order: **inject Dive with `debug_utilities` and drive Route 128 →
+Seafloor Cavern FIRST**, because that work is required no matter how the learner is acquired and it
+risks nothing.
+
+‼ **A second trap in the same plan, also measured by the review:** adding the Shoal Cave row to
+`TRAINING_GRASS` would have made it the highest band in the table and **flipped
+`best_training_area` for every team from ~L30 up** — sending every post-Winona boss-prep relocation
+into a cave across the ocean, with no heal-map entry and no `NO_RETURN_GROUNDS` entry.
+`TRAINING_GRASS` is the training-relocation table, not an HM registry.
+
+**Prevention rules.** *(1) Before building the thing that unblocks X, prove the bot can DO X once
+unblocked. Check the consumer end of the chain first — it is usually cheaper and it is the half
+nobody documents. (2) A declared enum member with no assignment and a helper with no callers are
+not "support", they are a stub; grep for the ASSIGNMENT, not the declaration. (3) When a table has
+more than one consumer, adding a row is not additive — measure what the OTHER consumers do with it.*
+
 ## 2026-08-12 — the harness ran the retry loops in a configuration production never runs
 
 **Symptom.** KI-67 (a whiteout burning a chapter's whole retry budget and laundering itself into a

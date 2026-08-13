@@ -283,7 +283,19 @@ and never identify a Pokémon by party index across a battle-menu boundary.
 
 > **START HERE ON A FRESH CONTEXT.** Everything is committed and pushed; nothing is parked.
 > 1. **Run `preflight.py`**, then `repro_undefined_names.py` and `audit_flag_names.py`.
-> 2. **‼ THE NEXT BUILD IS NO LONGER BLOCKED THE WAY THE DOCS SAID.** §Ch20/§Ch21 need **Dive
+> 2. **‼‼ READ KI-68 BEFORE TOUCHING §Ch21. THE PARTY SLOT IS NOT THE BLOCKER — DIVE IS NOT
+>    ROUTABLE.** `WaypointAction.Dive`/`Emerge` are declared at `map_path.py:592-593` and assigned
+>    **nowhere**; `can_dive()` has **zero callers**; `warp_graph.py:342` and `region_reach.py:68-70`
+>    exclude Dive edges on purpose. So freeing a slot and catching a learner moves the failure one
+>    line down and costs a party member.
+>    **DO THIS FIRST, it is near-zero risk and required either way:** inject Dive with
+>    `debug_utilities.py:611` onto an existing mon and drive Route 128 → Seafloor Cavern, to find out
+>    what the planner actually needs.
+>    ‼ And if a hunting ground is ever added, **NOT to `TRAINING_GRASS`** — measured, a Shoal Cave
+>    row becomes the highest band and flips `best_training_area` for every team from ~L30 up.
+>    The text below is the OLDER framing, kept for its measurements, but its conclusion is superseded:
+
+> 2b. **‼ THE NEXT BUILD IS NO LONGER BLOCKED THE WAY THE DOCS SAID.** §Ch20/§Ch21 need **Dive
 >    USED**, and KI-63 is real (no party member learns it, party 6/6). But the thing four documents
 >    called the gate — `POKEBOT_BOX_OVERFLOW_CATCH` being off and "one unhandled text box" away —
 >    **is false and has been since 2026-08-07.** It defaults to ON; the text box needs no handling.
