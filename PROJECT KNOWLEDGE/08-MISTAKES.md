@@ -5538,3 +5538,46 @@ multi-minute drive on new code, import-check its symbols — it costs a second.
 (2) **"HANG CONFIRMED" is not a diagnosis.** It is what this harness prints for anything that
 empties the controller stack, including an immediate crash. Read the HEAD of the log, where the
 traceback is, not the tail.*
+
+---
+
+## 2026-08-13 — I wrote a prevention rule in the morning and violated it in the afternoon, in the same file
+
+**Symptom.** The §Ch21 dive driver reported `ACCEPTANCE: FAIL` on two consecutive runs whose
+ROUTE was completely correct. Run 1: `CAN-CONTINUE navigate raised IndexError: list index out of
+range`. Run 2: `CAN-CONTINUE no safe non-warp step on the real path; not moving.`
+
+**Root cause, both times: the liveness check, not the thing under test.**
+* Run 1 navigated to a **hardcoded** `ROUTE128 (38,27)` regardless of which map the run had
+  actually ended on. It ended on `UNDERWATER_SEAFLOOR_CAVERN`, which is **14×9** — so (38,27) is
+  off the map and the tile lookup fell off the end of a list.
+* Run 2 derived the target from a real path but aimed at `(38,27)` while **standing on (38,27)**,
+  so the path was empty and it reported `moved=False` over a run in perfect shape.
+
+**‼ THE PART WORTH RECORDING.** Hours earlier, in the *same file*, I wrote this comment into
+`--driver roster` after hitting the identical class of problem:
+
+> *"WALK TO A TILE ON THE REAL PATH, not to a coordinate I picked from memory. A hard-coded target
+> that happens to be unwalkable would report `moved=False` and blame the party menu for the probe's
+> own bad guess."*
+
+I then wrote a new driver and did exactly that. The rule was not forgotten — it was **filed under
+the wrong problem**. I had encoded it as "a lesson about the roster driver" rather than "a property
+every liveness check must have", so it did not fire when I wrote a different driver.
+
+**What it cost.** Two full runs (each a multi-map ocean journey), and — worse — two `FAIL` verdicts
+on a route that had been correct since run 1. A liveness check that is wrong in the *pessimistic*
+direction is not harmless: it hides a success and invites you to "fix" working code.
+
+**The fix that worked.** Stop shuffling a tile and assert the real end state: surface back onto
+`ROUTE128` and take a step there. The bot ends in the open ocean it started from — which is both a
+stronger non-strand proof and impossible to satisfy by accident.
+
+**Prevention rules.** *(1) A liveness/acceptance check must derive its target from the state the
+run actually reached — current map, current tile — and must assert a target that is **not where it
+already is**. Hardcode nothing; verify the target is on-map before using it.
+(2) When a probe FAILS, read the failing line before touching the thing under test: three times
+today the ROUTE was right and the CHECK was wrong.
+(3) ‼ When you write a prevention rule, write it as a PROPERTY ("every liveness check must …"), not
+as a story about the bug you just fixed. A rule filed under one feature's name will not fire when
+you build the next feature.*

@@ -12172,3 +12172,49 @@ The +28..31 deltas match `wait_until_truly_controllable`'s 30-frame `stable_fram
 * A run was lost to `from modules.game import GameState` (it lives in `modules.memory`); pyflakes
   reported it only as a style note and the harness reported it as **"HANG CONFIRMED"**. A ~15-line
   `ast` + `importlib` symbol check now precedes each drive. Both in `08-MISTAKES.md`.
+
+## 2026-08-13 (later) — THE FIRST DRIVEN DIVE: Mossdeep → SEAFLOOR_CAVERN_ENTRANCE, and back out
+
+**`--driver ch21dive` → `ACCEPTANCE: PASS`, `legs=6/6 at_entrance=True got_out=True
+can_continue=True`.** KI-68's step 1 is done: `dive()` and `surface_from_dive()` had **no caller
+anywhere in `modules/story/`**, and now the whole transition is proven live.
+
+```
+ROUTE128 (38,27) Deep Water -> dive()  -> UNDERWATER_ROUTE128 (38,27)   [same x,y]
+navigate (38,26) Water Door -> warp    -> UNDERWATER_SEAFLOOR_CAVERN (6,7)
+navigate the pool (6,6)     -> surface -> SEAFLOOR_CAVERN_ENTRANCE (10,17)
+```
+
+### ‼ THE STATIC WARP DATA IS MISLEADING AT BOTH ENDS OF THIS CAVERN
+* `UNDERWATER_SEAFLOOR_CAVERN` has **no warp and no connection** into the entrance. That edge is
+  created at RUNTIME by `Underwater_SeafloorCavern_OnResume: setdivewarp
+  MAP_SEAFLOOR_CAVERN_ENTRANCE, 10, 17`. No warp-graph or path scan can ever see it — this was
+  **predicted from the map script and then landed on the nose live at (10,17)**.
+* The table says `SEAFLOOR_CAVERN_ENTRANCE (10,18) -> UNDERWATER_ROUTE128 (38,26)`. **Live it does
+  not**: diving there returns you to the pool at (6,5). The real exit is three hops
+  (`dive → pool → navigate (6,7) → UNDERWATER_ROUTE128 → surface`). ⇒ **Drive it; do not read it.**
+
+### Also measured
+* `probe_ch21_topology.py` (new, read-only, positive **and** negative controls): 491 of 4800
+  ROUTE128 tiles are dive-capable; a dive lands on the **same (x,y)** (decomp-confirmed via
+  `SetDiveWarp()`); 419 of 491 landing tiles route to the cavern door.
+* **KI-59 is UNARMED on this leg** — 0 `Impassable *` tiles on `UNDERWATER_ROUTE128`. It arms one
+  map later: 27 `Impassable North` in `SEAFLOOR_CAVERN_ROOM1`.
+* The party's existing moves already satisfy the upstream cavern solver's asserts — Sceptile L49
+  has **Rock Smash + Strength**, Zigzagoon L15 has **Surf**. Only **Dive** was missing.
+
+### Predictions: 4 of 7 confirmed, including the one I was least sure of
+Pre-registered before the run. **P5** — that surfacing would land at (10,17) via a runtime
+`setdivewarp` — was called out as the least confident and was exactly right. **P1** (the ocean
+journey as the likely failure point) never fired.
+
+### ‼ All three FAILs across three runs were in MY CHECK, not the route
+The route was correct from run 1. Runs 1 and 2 failed on the CAN-CONTINUE check — a hardcoded
+off-map coordinate (`IndexError` on a 14×9 map), then a target identical to the tile it stood on.
+**The prevention rule against exactly this was written the same day into the same file** and did
+not fire, because it had been filed as a story about the roster driver rather than as a property
+every liveness check must have. New rule in `08-MISTAKES.md`: *write prevention rules as
+PROPERTIES, not as stories about the bug you just fixed.*
+
+‼ **This does NOT make §Ch21 unblocked.** The run injected Dive with a debug write (KI-68 sanctions
+exactly that). Acquiring a real Dive learner (KI-63) is still open work.

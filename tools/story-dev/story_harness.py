@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "ch21dive"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -4700,6 +4700,301 @@ class RosterMode(BotMode):
         return
 
 
+class Ch21DiveMode(BotMode):
+    """‼ THE FIRST DRIVEN DIVE IN THIS PROJECT — KI-68 step 1, Mossdeep → SEAFLOOR_CAVERN_ENTRANCE.
+
+    WHAT THIS MEASURES. `dive()` and `surface_from_dive()` both exist
+    (`higher_level_actions.py:682` / `:705`) and have **no caller in `modules/story/` at all**.
+    KI-68 says the planner will never emit a Dive waypoint — by design, because a dive is a MOVE
+    on a deep-water tile, not a warp — so a chapter must drive the transition itself. This proves
+    whether that actually works, and produces the coordinates a chapter would need.
+
+    THE ROUTE IS MEASURED, NOT RECALLED (`probe_ch21_topology.py`):
+        ROUTE128 (38,27) Deep Water  -> dive()              -> UNDERWATER_ROUTE128 (38,27)
+        navigate 1 waypoint          -> (38,26) Water Door  -> UNDERWATER_SEAFLOOR_CAVERN (6,7)
+        swim into the pool           -> surface_from_dive() -> SEAFLOOR_CAVERN_ENTRANCE (10,17)
+
+    ‼ THE LAST LEG IS NOT IN THE MAP DATA. `UNDERWATER_SEAFLOOR_CAVERN` has no connection and no
+    warp into the entrance; the edge is created at RUNTIME by
+    `Underwater_SeafloorCavern_OnResume: setdivewarp MAP_SEAFLOOR_CAVERN_ENTRANCE, 10, 17`.
+    No warp-graph or path scan can ever see it — which is why this has to be driven.
+
+    ‼ KI-72 IS ARMED HERE, AND THIS DRIVER OBEYS ITS RULE. `calculate_path` has never heard of
+    `Underwater Blocked Above` / `Seaweed No Surfacing`, so it will happily route you to a tile you
+    cannot surface from. **The surfacing tile is therefore chosen explicitly and its `tile_type` is
+    asserted before `surface_from_dive()` is called** — never left to the planner.
+
+    ‼ AND IT PROVES THE WAY OUT IN THE SAME RUN. §Ch15 ended four floors underground, §Ch18 on an
+    eleven-tile island, §Ch19 in a living room — all three "controllable". An underwater cavern is
+    the best place yet to strand a run, so the acceptance requires the RETURN dive as well.
+
+        PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch21dive --frames 900000
+
+    Emits: [ch21dive] RESULT legs=<n/6> at_entrance=<bool> got_out=<bool> can_continue=<bool>
+    """
+
+    #: Measured, not guessed — `probe_ch21_topology.py`. (38,26) is NOT deep water on the surface.
+    DIVE_TILE = (38, 27)
+    CAVERN_DOOR = (38, 26)          # UNDERWATER_ROUTE128, tile_type 'Water Door'
+    POOL_TILE = (6, 6)              # inside UNDERWATER_SEAFLOOR_CAVERN's 18-tile open pool
+    ENTRANCE_WATER = (10, 18)       # SEAFLOOR_CAVERN_ENTRANCE Deep Water — the way back out
+    CAVERN_EXIT = (6, 7)            # UNDERWATER_SEAFLOOR_CAVERN 'Water South Arrow Warp' -> R128
+
+    @staticmethod
+    def name():
+        return "Ch21Dive"
+
+    def on_battle_started(self, encounter):
+        # Same rule as every other driver here: a driver without a strategy hangs on a payout, and
+        # the TRAINER strategy must be the production one (it never flees a trainer battle).
+        # ‼ Underwater tiles are nearly all encounter tiles — `avoid_encounters` only minimises
+        # exposure, it cannot remove it — so wild battles on this leg are expected, not surprising.
+        from modules.battle_strategies import DefaultBattleStrategy
+
+        if encounter is None:
+            from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+
+            return LevelUpTravelBattleStrategy()
+        return DefaultBattleStrategy()
+
+    @staticmethod
+    def _where():
+        from modules.map_data import MapRSE
+        from modules.player import get_player_avatar
+
+        avatar = get_player_avatar()
+        try:
+            name = MapRSE(tuple(avatar.map_group_and_number)).name
+        except Exception:  # noqa: BLE001 - an unknown map id is itself a finding, not a crash
+            name = str(tuple(avatar.map_group_and_number))
+        return name, avatar.local_coordinates
+
+    @staticmethod
+    def _underwater():
+        from modules.player import AvatarFlags, get_player_avatar
+
+        return AvatarFlags.Underwater in get_player_avatar().flags
+
+    @staticmethod
+    def _tile_type():
+        from modules.map import get_map_data_for_current_position
+
+        return get_map_data_for_current_position().tile_type
+
+    def run(self):
+        from modules.context import context as _ctx
+        from modules.map_data import MapRSE
+        from modules.modes.util.higher_level_actions import dive, surface_from_dive
+        from modules.modes.util.walking import navigate_to
+        from modules.player import get_player_avatar
+        from modules.pokemon_party import get_party
+        from modules.story.early_game import _navigate_riding_out, wait_until_truly_controllable
+
+        yield from wait_until_truly_controllable()
+        legs, notes = 0, {}
+
+        # ---- FIXTURE (documented; NOT a behaviour change) --------------------------------
+        # Two variables are removed on purpose, because the question here is "does the ROUTE
+        # work", not "can a battered party survive an ocean":
+        #   (a) HP/status — `post_dive.ss1` arrives at 72% with ONE FAINTED mon, and
+        #       `probe_anchor_inventory.py` already flags it "CANNOT SURVIVE A JOURNEY".
+        #   (b) nobody in the party knows Dive (measured by `probe_dive_routing.py`), which is
+        #       KI-63 — a real blocker for the CHAPTER, but not the thing under test here.
+        # ‼ KI-68 sanctions exactly this: "inject Dive … near-zero risk — no deposit, no new data
+        # row, no party change". So: heal in place, and give ONE existing slot the move.
+        # ‼ THIS DOES NOT MAKE §Ch21 UNBLOCKED. Acquiring a Dive learner is still open work.
+        try:
+            from types import SimpleNamespace
+
+            from modules.debug_utilities import debug_create_pokemon, debug_write_party
+            from modules.pokemon import LearnedMove, get_move_by_name, get_species_by_name
+
+            keepers, replaced = [], None
+            for index, mon in enumerate(get_party()):
+                if mon is None:
+                    continue
+                if index == 3:  # Skitty L17 — the party's least useful slot
+                    replaced = f"{mon.species.name} L{mon.level}"
+                    keepers.append(
+                        debug_create_pokemon(
+                            species=get_species_by_name("Wailmer"),
+                            level=40,
+                            nickname="DIVER",
+                            moves=[
+                                LearnedMove.create(get_move_by_name("Dive")),
+                                LearnedMove.create(get_move_by_name("Surf")),
+                                LearnedMove.create(get_move_by_name("Water Gun")),
+                                LearnedMove.create(get_move_by_name("Rollout")),
+                            ],
+                        )
+                    )
+                    continue
+                data = bytearray(mon.data)
+                if len(data) >= 90:
+                    data[86:88] = data[88:90]     # current HP := max HP
+                    data[80:84] = b"\x00" * 4     # clear the status bitfield
+                keepers.append(SimpleNamespace(data=bytes(data)))
+            debug_write_party(keepers)
+            log(f"[ch21dive] FIXTURE: healed the party and replaced slot 3 ({replaced}) with "
+                f"Wailmer L40 knowing Dive+Surf. ‼ This measures the ROUTE, not the acquisition "
+                f"of a Dive learner — KI-63 is still open.")
+        except Exception as error:  # noqa: BLE001
+            log(f"[ch21dive] FIXTURE FAILED ({type(error).__name__}: {str(error)[:200]}) — "
+                f"aborting, because without Dive the run cannot measure anything.")
+            _ctx.set_manual_mode()
+            return
+
+        yield  # let the party write settle before anything reads it
+
+        # ---- LEG 1: the long sea journey (PREDICTED to be the riskiest leg) --------------
+        log(f"[ch21dive] LEG1 sailing {self._where()} -> ROUTE128 {self.DIVE_TILE}")
+        try:
+            yield from _navigate_riding_out(MapRSE.ROUTE128, self.DIVE_TILE)
+        except Exception as error:  # noqa: BLE001
+            log(f"[ch21dive] LEG1 FAILED {type(error).__name__}: {str(error)[:300]}")
+        where = self._where()
+        tile = self._tile_type()
+        arrived = where == ("ROUTE128", self.DIVE_TILE)
+        legs += 1 if arrived else 0
+        notes["leg1"] = (where, tile, arrived)
+        log(f"[ch21dive] LEG1 at={where} tile_type={tile!r} arrived={arrived}")
+        if not arrived:
+            log("[ch21dive] ‼ STOPPING — every later leg is measured FROM this tile, so "
+                "continuing would measure the wrong thing.")
+            log(f"[ch21dive] RESULT legs={legs}/6 at_entrance=False got_out=False "
+                f"can_continue=False detail={notes}")
+            log("[ch21dive] ACCEPTANCE: FAIL")
+            _ctx.set_manual_mode()
+            return
+
+        # ---- LEG 2: THE DIVE ------------------------------------------------------------
+        try:
+            yield from dive()
+            log("[ch21dive] LEG2 dive() returned")
+        except Exception as error:  # noqa: BLE001
+            log(f"[ch21dive] LEG2 dive() raised {type(error).__name__}: {str(error)[:300]}")
+        where = self._where()
+        under = self._underwater()
+        ok2 = under and where == ("UNDERWATER_ROUTE128", self.DIVE_TILE)
+        legs += 1 if ok2 else 0
+        notes["leg2"] = (where, under, ok2)
+        log(f"[ch21dive] LEG2 at={where} underwater={under} ok={ok2} "
+            f"(‼ same (x,y) as the surface tile is the DECOMP-confirmed behaviour)")
+
+        # ---- LEG 3: navigate to the Water Door; the warp should follow automatically -----
+        if ok2:
+            try:
+                yield from navigate_to(MapRSE.UNDERWATER_ROUTE128, self.CAVERN_DOOR, False)
+            except Exception as error:  # noqa: BLE001
+                log(f"[ch21dive] LEG3 raised {type(error).__name__}: {str(error)[:300]}")
+        where = self._where()
+        ok3 = where[0] == "UNDERWATER_SEAFLOOR_CAVERN"
+        legs += 1 if ok3 else 0
+        notes["leg3"] = (where, ok3)
+        log(f"[ch21dive] LEG3 at={where} in_cavern={ok3}")
+
+        # ---- LEG 4: swim to a surfaceable POOL tile — ‼ KI-72, chosen explicitly ---------
+        ok4 = False
+        if ok3:
+            try:
+                yield from navigate_to(MapRSE.UNDERWATER_SEAFLOOR_CAVERN, self.POOL_TILE, False)
+            except Exception as error:  # noqa: BLE001
+                log(f"[ch21dive] LEG4 raised {type(error).__name__}: {str(error)[:300]}")
+            where = self._where()
+            tile = self._tile_type()
+            # ‼ THE KI-72 GUARD. `surface_from_dive()` refuses on these two types, and the planner
+            # cannot see them — so assert BEFORE spending the call, and say which tile failed.
+            surfaceable = tile not in ("Underwater Blocked Above", "Seaweed No Surfacing")
+            ok4 = where == ("UNDERWATER_SEAFLOOR_CAVERN", self.POOL_TILE) and surfaceable
+            notes["leg4"] = (where, tile, surfaceable)
+            log(f"[ch21dive] LEG4 at={where} tile_type={tile!r} surfaceable={surfaceable} ok={ok4}")
+        legs += 1 if ok4 else 0
+
+        # ---- LEG 5: SURFACE — the leg no static analysis can see -------------------------
+        ok5 = False
+        if ok4:
+            try:
+                yield from surface_from_dive()
+                log("[ch21dive] LEG5 surface_from_dive() returned")
+            except Exception as error:  # noqa: BLE001
+                log(f"[ch21dive] LEG5 raised {type(error).__name__}: {str(error)[:300]}")
+            where = self._where()
+            ok5 = where[0] == "SEAFLOOR_CAVERN_ENTRANCE"
+            notes["leg5"] = (where, self._underwater(), ok5)
+            log(f"[ch21dive] LEG5 at={where} underwater={self._underwater()} "
+                f"at_entrance={ok5} (predicted (10,17) from the RUNTIME setdivewarp)")
+        legs += 1 if ok5 else 0
+        at_entrance = ok5
+
+        # ---- LEG 6: ‼ PROVE THE WAY OUT, IN THE SAME RUN ---------------------------------
+        # KI-56's rule, and this project's most re-learned lesson. An underwater cavern is the
+        # best place yet to strand a run, so "we got in" is not the result — "we can leave" is.
+        # ‼ MEASURED ON RUN 1, AND MY FIRST ASSERTION WAS WRONG BY ONE HOP. Diving at the
+        # entrance's (10,18) does NOT return you to ROUTE128 — it drops you back into
+        # UNDERWATER_SEAFLOOR_CAVERN at (6,5), i.e. the POOL. The static warp table reads
+        # "(10,18) -> UNDERWATER_ROUTE128 (38,26)", but the live dive warp is the runtime one
+        # again. So the way out is THREE hops, and the last two are ordinary navigation:
+        #     (10,18) dive -> POOL (6,5) -> navigate (6,7) 'Water South Arrow Warp'
+        #                                -> UNDERWATER_ROUTE128 (38,26)
+        got_out = False
+        if at_entrance:
+            try:
+                yield from navigate_to(MapRSE.SEAFLOOR_CAVERN_ENTRANCE, self.ENTRANCE_WATER)
+                log(f"[ch21dive] LEG6 on the exit water tile: {self._where()} "
+                    f"tile_type={self._tile_type()!r}")
+                yield from dive()
+                log(f"[ch21dive] LEG6 dived back down to {self._where()}")
+                yield from navigate_to(MapRSE.UNDERWATER_SEAFLOOR_CAVERN, self.CAVERN_EXIT, False)
+            except Exception as error:  # noqa: BLE001
+                log(f"[ch21dive] LEG6 raised {type(error).__name__}: {str(error)[:300]}")
+            where = self._where()
+            got_out = self._underwater() and where[0] == "UNDERWATER_ROUTE128"
+            notes["leg6"] = (where, got_out)
+            log(f"[ch21dive] LEG6 at={where} got_out={got_out}")
+        legs += 1 if got_out else 0
+
+        # ---- CAN-CONTINUE ----------------------------------------------------------------
+        # ‼ THE TARGET IS DERIVED FROM A REAL PATH ON THE MAP WE ARE ACTUALLY ON. Run 1 used the
+        # hardcoded ROUTE128 tile (38,27) regardless of map and hit `IndexError: list index out of
+        # range` — (38,27) does not exist on a 14x9 underwater map. That is EXACTLY the mistake I
+        # wrote a prevention rule against in `--driver roster` this morning ("walk to a tile on the
+        # real path, not a coordinate I picked from memory") and then made anyway a few hours later.
+        # ‼ THE REAL NON-STRAND PROOF IS SURFACING BACK INTO THE OPEN OCEAN, not shuffling a tile.
+        # Run 2 ended on UNDERWATER_ROUTE128 (38,27) and my check asked it to walk to (38,27) —
+        # the tile it was already on — so the path came back empty and it reported `moved=False`
+        # over a run that was in perfect shape. Third correction to this same block; the ROUTE has
+        # been right since run 1. So: surface, land back on ROUTE128, and take a real step there.
+        # That is the strongest end state available — the bot is back in the water it started from
+        # and can sail anywhere.
+        surfaced, moved = False, False
+        before = get_player_avatar().local_coordinates
+        try:
+            if self._underwater():
+                tile = self._tile_type()
+                if tile in ("Underwater Blocked Above", "Seaweed No Surfacing"):
+                    log(f"[ch21dive] CAN-CONTINUE ‼ KI-72: cannot surface from {tile!r}.")
+                else:
+                    yield from surface_from_dive()
+                    surfaced = self._where()[0] == "ROUTE128"
+                    log(f"[ch21dive] CAN-CONTINUE surfaced to {self._where()} ok={surfaced}")
+            if surfaced:
+                yield from navigate_to(MapRSE.ROUTE128, (37, 27))
+                moved = get_player_avatar().local_coordinates != before
+        except Exception as error:  # noqa: BLE001
+            log(f"[ch21dive] CAN-CONTINUE raised {type(error).__name__}: {str(error)[:200]}")
+        can_continue = surfaced and moved and _ctx.bot_mode != "Manual"
+        log(f"[ch21dive] CAN-CONTINUE surfaced={surfaced} moved={moved} {before}->"
+            f"{get_player_avatar().local_coordinates} at={self._where()} "
+            f"manual={_ctx.bot_mode == 'Manual'}")
+
+        log(f"[ch21dive] RESULT legs={legs}/6 at_entrance={at_entrance} got_out={got_out} "
+            f"can_continue={can_continue} detail={notes}")
+        log(f"[ch21dive] ACCEPTANCE: "
+            f"{'PASS' if (legs == 6 and at_entrance and got_out and can_continue) else 'FAIL'}")
+        _ctx.set_manual_mode()
+        return
+
+
 class RivalRetryMode(BotMode):
     """VALIDATE the bug fix: with MET_RIVAL_RUSTBORO already set (simulating a PRIOR LOSS),
     confirm fight_rustboro_rival still steps onto the y=53 trigger and RE-ENGAGES the rival
@@ -5597,6 +5892,8 @@ for step in range(args.frames):
             context.bot_mode_instance = BoxWithdrawMode()
         elif args.driver == "roster":
             context.bot_mode_instance = RosterMode()
+        elif args.driver == "ch21dive":
+            context.bot_mode_instance = Ch21DiveMode()
         elif args.driver == "groundsweep":
             context.bot_mode_instance = GroundSweepMode()
         elif args.driver == "anchorcapture":

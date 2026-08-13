@@ -50,6 +50,63 @@ off the end tile, an actual position change, **and** the exit proven — `SEAFLO
 ‼ §Ch15 ended four floors underground, §Ch18 on an eleven-tile island, §Ch19 in a living room.
 **An underwater cavern is the best place yet to strand a run — so prove the way out, in the same run.**
 
+---
+
+# 🔻 OUTCOME — `ACCEPTANCE: PASS`, `legs=6/6`. THE FIRST DRIVEN DIVE IN THIS PROJECT.
+
+```
+[ch21dive] LEG1 at=('ROUTE128', (38, 27)) tile_type='Deep Water' arrived=True
+[ch21dive] LEG2 at=('UNDERWATER_ROUTE128', (38, 27)) underwater=True ok=True
+[ch21dive] LEG3 at=('UNDERWATER_SEAFLOOR_CAVERN', (6, 7)) in_cavern=True
+[ch21dive] LEG4 at=('UNDERWATER_SEAFLOOR_CAVERN', (6, 6)) tile_type='Deep Water' surfaceable=True ok=True
+[ch21dive] LEG5 at=('SEAFLOOR_CAVERN_ENTRANCE', (10, 17)) underwater=False at_entrance=True
+[ch21dive] LEG6 on the exit water tile: ('SEAFLOOR_CAVERN_ENTRANCE', (10, 18)) tile_type='Deep Water'
+[ch21dive] LEG6 dived back down to ('UNDERWATER_SEAFLOOR_CAVERN', (6, 5))
+[ch21dive] LEG6 at=('UNDERWATER_ROUTE128', (38, 27)) got_out=True
+[ch21dive] CAN-CONTINUE surfaced to ('ROUTE128', (38, 27)) ok=True
+[ch21dive] CAN-CONTINUE surfaced=True moved=True (38, 27)->(37, 27) at=('ROUTE128', (37, 27))
+[ch21dive] RESULT legs=6/6 at_entrance=True got_out=True can_continue=True
+[ch21dive] ACCEPTANCE: PASS
+```
+
+## Adjudication
+
+| # | Predicted | Fired? | Evidence |
+|---|---|---|---|
+| P1 | the ocean journey is the riskiest leg | **NO** | sailed Mossdeep → ROUTE128 (38,27) cleanly, first attempt, every run |
+| P2 | `dive()` succeeds at (38,27) | ✅ **CONFIRMED** | underwater, same (x,y) — the decomp behaviour reproduced live |
+| P3 | `navigate_to` follows the warp automatically | ✅ **CONFIRMED** | landed `UNDERWATER_SEAFLOOR_CAVERN (6,7)` with no explicit warp step |
+| P4 | KI-72 armed at the surfacing step | **NO** — but the guard cost nothing | the chosen pool tile (6,6) is `Deep Water`; **the hazard is still real** — the planner was simply never given the chance to pick |
+| P5 | emerge lands at (10,17) via the RUNTIME `setdivewarp` — *"the one I am least sure of"* | ✅ **CONFIRMED EXACTLY** | `SEAFLOOR_CAVERN_ENTRANCE (10, 17)`, on the nose, from a prediction made off a map script no static scan can see |
+| P6 | wild encounters underwater are unavoidable | ✅ **FIRED, and was survivable** | battles occurred (`SCEPTILE gained 135 EXP`); the healed party won them |
+| P7 | KI-59 does not bite this leg | ✅ **CONFIRMED** | clean throughout; it arms one map later in `SEAFLOOR_CAVERN_ROOM1` |
+
+## ‼ THE WAY OUT IS THREE HOPS, AND THE STATIC TABLE IS MISLEADING ABOUT IT
+
+The warp table says `SEAFLOOR_CAVERN_ENTRANCE (10,18) -> UNDERWATER_ROUTE128 (38,26)`.
+**Live, it does not.** Diving at (10,18) drops you into `UNDERWATER_SEAFLOOR_CAVERN (6,5)` — the
+pool — because the live dive warp is the runtime one again. The real exit is:
+
+```
+(10,18) dive -> UNDERWATER_SEAFLOOR_CAVERN (6,5)
+             -> navigate (6,7) 'Water South Arrow Warp'
+             -> UNDERWATER_ROUTE128 (38,27)   [not (38,26)]
+             -> surface_from_dive()           -> ROUTE128 (38,27), open ocean
+```
+
+⇒ **A second instance of the same lesson**: around the Seafloor Cavern, the static warp data does
+not describe what actually happens. Both the way in *and* the way out are runtime dive warps.
+**Drive it; do not read it.**
+
+## ‼ ALL THREE FAILURES ACROSS THE THREE RUNS WERE IN MY CHECK, NOT THE ROUTE
+
+The route was correct from run 1. Runs 1 and 2 reported `FAIL` because the CAN-CONTINUE check was
+wrong — first a hardcoded off-map coordinate (`IndexError` on a 14×9 map), then a target identical
+to the tile it was standing on. Written up in `08-MISTAKES.md`, including the uncomfortable part:
+the prevention rule against exactly this was written **the same day, into the same file**, and did
+not fire because it had been filed as a story about the roster driver rather than as a property
+every liveness check must have.
+
 ## What I will NOT claim
 
 This probe injects Dive with a debug write. It measures **the ROUTE**, not the acquisition of a

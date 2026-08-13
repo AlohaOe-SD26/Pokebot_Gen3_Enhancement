@@ -34,6 +34,14 @@ Every banner further down is HISTORY, newest first.
   ‼ **But nobody here has ever RUN it**, its battle handling is `handle_encounter(auto_battle=True)`
   and NOT our `LevelUpTravelBattleStrategy`, and **the Regi encounter is UNRECOVERABLE** — so it
   must NOT be pointed at a tomb until that is settled.
+* **✅ THE FIRST DRIVEN DIVE IN THIS PROJECT — KI-68 step 1 IS DONE.** `--driver ch21dive` (NEW)
+  → `ACCEPTANCE: PASS legs=6/6 at_entrance=True got_out=True can_continue=True`. Mossdeep →
+  `SEAFLOOR_CAVERN_ENTRANCE (10,17)` **and back out to the open ocean**.
+  ‼ **THE STATIC WARP DATA IS MISLEADING AT BOTH ENDS OF THIS CAVERN** — the way in *and* the way
+  out are RUNTIME `setdivewarp`s that no warp-graph or path scan can see. **Drive it; do not read
+  it.** The way out is three hops, not the one the table implies.
+  ‼ **This does NOT make §Ch21 unblocked** — the run INJECTED Dive with a debug write. Acquiring a
+  real Dive learner (KI-63) is still open.
 * **KI-72 filed (NEW, code-verified):** `calculate_path` has never heard of
   `"Underwater Blocked Above"` / `"Seaweed No Surfacing"` — the two tile types you cannot surface
   from — so it will route a dive to a dead end. ⇒ **NEVER let the planner choose where you
@@ -617,6 +625,11 @@ PYTHONUTF8=1 py -3.12 repro_roster_reorder.py       # party-reorder PLANNER, 16/
 #   phases=4/4 saw_j_nonzero=True idempotent=True restored=True can_continue=True
 #   ‼ `saw_j_nonzero` is the one that matters — False means the run re-proved the OLD shape only.
 PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver roster --frames 400000
+# ‼ THE FIRST DRIVEN DIVE (added 2026-08-13). ~3 min. Expect ACCEPTANCE: PASS, legs=6/6.
+#   Mossdeep -> ROUTE128 (38,27) -> dive -> cavern -> surface (10,17) -> and back OUT.
+#   ‼ `got_out` is the one that matters: an underwater cavern is the best place yet to strand a run.
+PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch21dive --frames 900000
+PYTHONUTF8=1 py -3.12 probe_ch21_topology.py         # the measured route (read-only, 2 controls)
 PYTHONUTF8=1 py -3.12 probe_regi_capabilities.py    # what the Regi arc still needs (KI-69 Phase A)
 PYTHONUTF8=1 py -3.12 probe_dive_routing.py         # why a chapter must drive dive() (KI-68)
 PYTHONUTF8=1 py -3.12 repro_undefined_names.py      # ZERO undefined names in the story surface
