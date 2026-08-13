@@ -3223,10 +3223,16 @@ class StoryMode(BotMode):
 
         if not _party_knows_rock_smash():
             from modules.items import get_item_by_name
-            from modules.story.early_game import ensure_hm_learner, teach_hm_move
+            from modules.map_data import PokemonCenter
+            from modules.story.early_game import ensure_hm_learner_making_room, teach_hm_move
 
             _hm06 = get_item_by_name("HM06")
-            _slot = yield from ensure_hm_learner(_hm06)
+            # ‼ KI-63 WIRING: a FULL PARTY used to end the run here — this call site had no error
+            # handling, so the raise went straight to the mode handler and derailed to Manual.
+            # Centres are the ones this era already heals at, nearest-first.
+            _slot = yield from ensure_hm_learner_making_room(
+                _hm06, (PokemonCenter.MauvilleCity, PokemonCenter.SlateportCity)
+            )
             yield from teach_hm_move(_hm06, _slot)
         else:
             console.print("[dim]Story: someone already knows Rock Smash — teach skipped.[/]")
@@ -3423,10 +3429,17 @@ class StoryMode(BotMode):
 
         if not _party_knows_surf():
             from modules.items import get_item_by_name
-            from modules.story.early_game import ensure_hm_learner, teach_hm_move
+            from modules.map_data import PokemonCenter
+            from modules.story.early_game import ensure_hm_learner_making_room, teach_hm_move
 
             _hm03 = get_item_by_name("HM03")
-            _slot = yield from ensure_hm_learner(_hm03)
+            # ‼ KI-63 WIRING — and this is the one the measurements care about: "nobody can learn
+            # Surf" is the recorded top non-finish cause, and a full party turned it from a costly
+            # hunt into a hard derail. Centres are this era's own, nearest-first.
+            _slot = yield from ensure_hm_learner_making_room(
+                _hm03,
+                (PokemonCenter.PetalburgCity, PokemonCenter.LavaridgeTown, PokemonCenter.FallarborTown),
+            )
             yield from teach_hm_move(_hm03, _slot)
         else:
             console.print("[dim]Story: someone already knows Surf — teach skipped.[/]")

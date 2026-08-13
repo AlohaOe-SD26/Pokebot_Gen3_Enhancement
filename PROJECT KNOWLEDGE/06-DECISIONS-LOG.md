@@ -1864,3 +1864,37 @@ clock+flag gate above, in a **separate HM-ground table** so `best_training_area`
 untrustworthy" and nearly discarded a correct measurement. The tool *was* broken; the number was
 still right; the error was in what had been concluded from it. **Re-derive the number before
 throwing it away.**
+
+### 📌 User note, 2026-08-13 — Shoal Cave's encounters vary by ROOM (like Granite Cave), and land ≠ surf
+
+Checked against `probe_shoal_tide.py` / `probe_dive_learner_plan.py` output rather than agreed from
+memory. **Both halves are right, and both reinforce the ruling.**
+
+**By room** — each Shoal Cave room is its own map with its own header, exactly like Granite Cave's
+floors:
+| room | map | land table |
+|---|---|---|
+| `LOW_TIDE_ENTRANCE_ROOM` | (24,46) | Spheal ~50%, Zubat ~45%, Golbat 5% |
+| `LOW_TIDE_INNER_ROOM` | (24,47) | same |
+| `LOW_TIDE_STAIRS_ROOM` | (24,48) | same |
+| `LOW_TIDE_LOWER_ROOM` | (24,49) | same |
+| **`LOW_TIDE_ICE_ROOM`** | (24,83) | **Spheal 45%, Zubat 40%, SNORUNT 10%, Golbat 5%** ← differs |
+
+So "different Pokémon walking around the cave" is real at the **room** granularity (the Ice Room
+adds Snorunt); within a single room Gen 3 has one land table, so it does not vary tile-to-tile.
+
+**Land vs surf** — and this is the half that matters for the ruling. The entrance room carries
+**both** tables (`land_rate=10, surf_rate=4`), and they are very different: Spheal is ~**50% of the
+LAND** table but only **10% of the SURF** table (Tentacool 60%, Zubat 30%).
+
+‼ **Why that strengthens the "not adopted" ruling rather than weakening it.** At high tide the
+floor of the entrance room *becomes water*. So the room does not merely lose its land tiles — the
+encounters that remain are fired from the **surf** table, i.e. a different, Spheal-poor species mix
+that also requires Surf and a water-capable spin. `_hm_hunting_grounds` reads **land encounters
+only** (`early_game.py:4319`), so it cannot price or use that. This is a second, independent reason
+the room is a low-tide-only ground — on top of the measured **0 reachable land encounter tiles at
+high tide**.
+
+⇒ No change to the ruling. Added to the unlock conditions: any future spin tile must be validated
+as a **LAND** tile (on foot, `elevation != 1`), in a **named room**, at **low tide** — three
+qualifiers, not one.

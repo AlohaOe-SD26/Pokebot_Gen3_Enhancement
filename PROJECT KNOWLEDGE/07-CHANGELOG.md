@@ -12442,3 +12442,89 @@ tile → ship behind the clock+flag gate in a separate HM table.
 
 ‼ Method note in `08-MISTAKES.md`: I inferred "the tool is broken, so its numbers are wrong" and
 nearly discarded a correct measurement. **Re-derive the number before throwing it away.**
+
+## 2026-08-13 — KI-63 is now WIRED INTO PRODUCTION (it was capability-only until this)
+
+**The gap this closes.** `deposit_one_dead_weight` and the `_needs_party_slot` piggyback were
+built, driven to a PASS, documented **and promoted** — while **nothing in production ever set the
+flag**. Every part was correct and the chain was dead: in a real `StoryMode` run the piggyback
+never fired and `ensure_hm_learner` still ended the run. Nothing caught that — not a test, not a
+gate, not a green driver. An adversarial review reading the diff did.
+
+**NEW `early_game.ensure_hm_learner_making_room(item, heal_centers)`** — try `ensure_hm_learner`
+first; on the **specific** *"party is full"* failure, free ONE slot via the piggyback and retry
+**exactly once**. Properties, each of which is now gated:
+* `reraise_if_aborting` is the **first** statement of the handler (KI-67 — a whiteout unwind must
+  never be swallowed here);
+* **any other failure re-raises unchanged** — "no huntable ground", "no balls and no money" and
+  "never caught one" are different problems, and boxing a team member to "fix" one of them leaves
+  the run strictly worse off than the honest derail it replaced;
+* the flag is cleared in a `finally` — leaving it armed would deposit on **every** later heal,
+  which is the measured harm that keeps `POKEBOT_PC_ROTATION` pinned at 0;
+* it **verifies a slot was actually freed** before retrying, and re-raises the **original** error
+  if not (inventing a new message would send the next reader after the wrong bug);
+* **exactly one retry, no loop** — a loop would deposit a second team member on the next pass.
+
+**Both production call sites wired** (`story_mode.py`): Rock Smash (HM06, Segment 10b) and Surf
+(HM03, Segment 12c). Neither had *any* local error handling — a `BotModeError` went straight to the
+mode handler at `story_mode.py:4053` and ended the run in Manual. Heal-centre lists are taken from
+what each segment already heals at, nearest-first; ‼ **the ORDER is a judgement call, not a
+measured distance.**
+
+**NEW GATE `repro_hm_slot_wiring.py` — 22/22, and fault-injected.** A static gate that asserts the
+whole chain is still *connected*: wrapper exists and behaves, production calls it and no longer
+calls the bare function, the piggyback still reads the flag, and the depositor is still ungated,
+one-shot and slot-counting (not egg-blind). **Proven by fault injection:** reverting one call site
+to `ensure_hm_learner` makes it exit 1 naming both broken links.
+‼ Its first draft had a **false positive** — it matched `POKEBOT_PC_ROTATION` in the depositor's
+*docstring*. Now extracted via AST with the docstring stripped. *A gate that fires on prose is worse
+than no gate: it teaches the reader to ignore it.*
+
+**Driven proof:** `--driver divelearner` now drives the **production wrapper** instead of its own
+copy of the logic (the `boxwithdraw` rule — drive the call site, never a stand-in). Live console:
+```
+Story: no HM learner and the party is full — freeing ONE slot, then retrying
+Story: PC — depositing ONE mon to free a slot: Skitty L17 (level 17 is 32 …)
+Story: PC — party is now 5; room for a catch: True.
+Story: freed a slot (6 -> 5); retrying the HM hunt.
+```
+→ `ACCEPTANCE: PASS`, `knows_dive=True can_dive=True surf_intact=True can_continue=True`.
+
+‼ **And I fixed my own weak assertion.** The driver first measured `freed` by party COUNT — which
+ends at 6 either way (one deposited, one caught), so it would have read `True` even if nothing
+happened. Now asserted **by PID**: exactly one PID present at the start must be absent at the end,
+and exactly one new PID present. This is the *"assert by PID, never by slot or count"* rule the
+roster work established **the same morning**, violated again by me here.
+
+### What is NOT proven
+* **The happy path (party has room) was not separately driven.** It is unchanged *by construction*
+  — the wrapper's first act is to call `ensure_hm_learner` and return its value — and the gate
+  asserts the pass-through, but no run exercised it.
+* **Neither production call site was driven in a real ladder run.** Reaching Segment 10b/12c takes
+  a full early-game run; the wrapper was driven directly with HM08 instead. The wrapper is
+  HM-agnostic, so this tests the logic but not those two segments in situ.
+
+### 📊 AND IT IS NOW MEASURED — rare, but the COSTLIEST derail per event, and it kills the best runs
+
+Measured across **1,129 runs / 5.6 GB of `x4-runs` logs** (all of which postdate `ensure_hm_learner`,
+landed 2026-07-23, so no zero here is "before the feature existed"; `livetest-runs` yields 84
+`BotModeError` and 192 `derail #` lines over 779 MB, so its zero is attributable too):
+
+| | |
+|---|---|
+| "party is full" run-kills | **20 in 1,129 runs (1.8%)** — **0.91%** excluding one bundle that had deliberately raised the party cap to 6 and was reverted |
+| recovery | **none — all 20 are TERMINAL.** The bot retries 5× ~20 s apart against a deterministic condition, then the run is killed and restarted |
+| where | **all 20 at `stage 14: Rt 118/119 & Weather Institute`**, five badges deep, Surf already in the bag |
+| cost | **#1 of 14 derail causes by frames per event: 1,717k avg** (vs 843k across all 564 derails) — ~46 minutes of progress each |
+| total | 34.3M frames ≈ **12.4 lane-hours — 7.2% of all derailed lane time from 3.4% of derails** |
+| move | **100% Surf/HM03.** Zero Dive/HM08 and zero Rock Smash/HM06 — ‼ **not evidence those are safe**: every logged run died at stage 14, far short of §Ch19 where Dive is obtained. **The Dive case is entirely unmeasured by batches** — KI-63 was found by driving, not by logging |
+
+⇒ **The honest framing is "rare but the most expensive failure per occurrence, and it kills the
+deepest runs"** — not "a frequent run-killer". Of the 332 runs where nobody could learn Surf, 294
+(88.6%) hunted successfully; this is the 6.0% tail where the party was also full.
+
+‼ **And the measurement confirmed the fix was inert.** `custom-pokebot` *reads* `_needs_party_slot`
+but nothing in that tree ever set it, and its `story_mode.py` still calls the bare
+`ensure_hm_learner`. **So this change is not a new behaviour risk — it is the step that makes an
+already-promoted fix do anything at all.** It converts a terminal, five-badges-deep run kill into a
+PC trip.

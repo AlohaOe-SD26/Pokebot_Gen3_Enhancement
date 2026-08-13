@@ -4423,6 +4423,88 @@ def ensure_hm_learner(item) -> Generator:
     return slot
 
 
+def ensure_hm_learner_making_room(item, heal_centers=()) -> Generator:
+    """`ensure_hm_learner`, but if the ONLY blocker is a FULL PARTY, free one slot and retry once.
+
+    ‼ THIS IS THE WIRING KI-63 WAS MISSING. `deposit_one_dead_weight` and the
+    `_needs_party_slot` piggyback in `heal_in_pokemon_center` were built, driven to a PASS and
+    PROMOTED — but **nothing in production ever set the flag**, so in a real run the piggyback
+    never fired and `ensure_hm_learner` still derailed the whole run. The two production call
+    sites (`story_mode.py`, Rock Smash and Surf) have **no local error handling at all**: a
+    `BotModeError` there goes straight to the mode handler and ends the run in Manual.
+
+    ‼ ORDER: TRY FIRST, DEPOSIT ONLY ON THE SPECIFIC FAILURE. `ensure_hm_learner` checks
+    `hm_learner_slot` *before* the party-full check, so an unconditional deposit would cost a PC
+    trip and a team member even when no catch was ever needed.
+
+    ‼ AND IT REFUSES TO DEPOSIT FOR ANY OTHER FAILURE. "No huntable ground", "no balls and no
+    money" and "never caught one" are all real, different problems; boxing a team member to
+    "fix" one of them leaves the run strictly worse off than the honest derail it replaced.
+
+    :param heal_centers: candidate Poké Centres, NEAREST FIRST, tried in order and skipped on
+        failure — the `SLATEPORT_ROUTE_HEALS` pattern. ‼ The ORDER is a judgement call taken
+        from what each calling segment already heals at, **not** a measured distance.
+    """
+    from modules.console import console
+    from modules.context import context as _ctx
+    from modules.modes.util.higher_level_actions import heal_in_pokemon_center
+
+    def _party_size():
+        return len([m for m in get_party() if m is not None])
+
+    try:
+        return (yield from ensure_hm_learner(item))
+    except BotModeError as error:
+        # ‼ FIRST STATEMENT, ALWAYS (KI-67): a whiteout unwind must never be swallowed here.
+        reraise_if_aborting(error)
+        if "party is full" not in str(error):
+            raise
+        original = error
+
+    console.print(
+        f"[cyan]Story: no HM learner and the party is full — freeing ONE slot, then retrying "
+        f"(candidates: {[getattr(c, 'name', c) for c in heal_centers]}).[/]"
+    )
+    before = _party_size()
+    mode = _ctx.bot_mode_instance
+    healed = False
+    try:
+        setattr(mode, "_needs_party_slot", True)
+        for centre in heal_centers:
+            _check_abort()
+            try:
+                yield from heal_in_pokemon_center(centre)
+                healed = True
+                break
+            except Exception as error:  # noqa: BLE001 - try the next centre, like SLATEPORT_ROUTE_HEALS
+                reraise_if_aborting(error)
+                console.print(
+                    f"[yellow]Story: could not heal at {getattr(centre, 'name', centre)} "
+                    f"({error!r}) — trying the next centre.[/]"
+                )
+    finally:
+        # ‼ NEVER LEAVE THE HOOK ARMED. It fires on EVERY heal while set, and a stray deposit on
+        # an unrelated later heal is exactly the measured harm that keeps POKEBOT_PC_ROTATION
+        # pinned at 0 (~1 team member/run).
+        setattr(mode, "_needs_party_slot", False)
+
+    after = _party_size()
+    if after >= before:
+        # ‼ RE-RAISE THE ORIGINAL, not a new message. The blocker really is still "the party is
+        # full", and inventing a fresh sentence here would send the next reader after the PC code
+        # when the honest answer is that nothing was safe to deposit (every mon is a sole HM
+        # carrier / a favourite / not dead weight) or that no centre could be reached.
+        console.print(
+            f"[yellow]Story: the party is still {after} (healed={healed}) — no slot was freed.[/]"
+        )
+        raise original
+
+    console.print(f"[green]Story: freed a slot ({before} -> {after}); retrying the HM hunt.[/]")
+    # ‼ EXACTLY ONE RETRY. If it fails again the error is genuinely something else, and a loop
+    # here would deposit a second team member on the next pass.
+    return (yield from ensure_hm_learner(item))
+
+
 def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Generator:
     """Teach an HM (or TM) from the bag to a party mon — the OVERWORLD flow, state-
     driven off the live-probed task chain (2026-07-22): open bag → item context (USE is

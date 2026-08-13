@@ -2215,7 +2215,18 @@ and if it is unset on all of them, the milestone is wrong rather than the run.
 > failure — `hm_learner_slot` is checked *before* the party-full check, so deposit-first would
 > spend a PC trip and a team member even when no catch was needed.
 >
-> ‼‼ **WHAT THIS DOES NOT MEAN — AND THE HONEST HEADLINE IS NARROWER THAN "KI-63 IS FIXED".**
+> ## ✅ WIRED INTO PRODUCTION 2026-08-13 (later) — the caveat below is now RESOLVED **in sandbox**
+> `early_game.ensure_hm_learner_making_room` sets the flag and retries once; both `story_mode.py`
+> call sites (Rock Smash HM06, Surf HM03) now use it. Driven: `ACCEPTANCE: PASS`, with the deposit
+> asserted **by PID** (`deposited_pids=[1556928702]` = Skitty). New gate
+> **`repro_hm_slot_wiring.py` (22/22, fault-injected)** keeps the chain connected.
+> **MEASURED WORTH:** 20 terminal run-kills in 1,129 runs (**0.91%** excluding a reverted
+> party-cap bundle), **#1 of 14 derail causes by frames per event (1,717k avg)** — 7.2% of all
+> derailed lane time from 3.4% of derails, every one of them five badges deep.
+> ⛔ **`custom-pokebot` IS STILL INERT** — it reads the flag but nothing there sets it, and its
+> `story_mode.py` still calls the bare function. **Promotion has NOT been asked for.**
+>
+> ### (the caveat as it stood before the wiring)
 > **The CAPABILITY is proven; PRODUCTION IS NOT WIRED.** `_needs_party_slot` has **no setter
 > anywhere in `modules/` or `plugins/`** — only `--driver divelearner` sets it (verified by grep).
 > So in a real `StoryMode` run the piggyback **never fires**, `ensure_hm_learner(HM08)` still

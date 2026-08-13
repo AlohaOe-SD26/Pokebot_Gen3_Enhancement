@@ -48,6 +48,15 @@ Every banner further down is HISTORY, newest first.
   `"Underwater Blocked Above"` / `"Seaweed No Surfacing"` — the two tile types you cannot surface
   from — so it will route a dive to a dead end. ⇒ **NEVER let the planner choose where you
   surface**; pick the tile explicitly, as upstream already does.
+* **✅✅✅ KI-63 IS RESOLVED *AND NOW WIRED INTO PRODUCTION* (sandbox).** `story_mode.py`'s two HM
+  call sites (Rock Smash, Surf) call the new `ensure_hm_learner_making_room`, which frees ONE slot
+  and retries once — **only** on the specific "party is full" failure. New gate
+  **`repro_hm_slot_wiring.py` (22/22, fault-injected)** keeps the chain connected, because the
+  previous failure was *a chain of correct parts with one link missing* and nothing caught it.
+  **📊 MEASURED WORTH (1,129 runs):** 20 terminal run-kills (**0.91%** excl. a reverted party-cap
+  bundle), **#1 of 14 derail causes by frames per event (1,717k avg ≈ 46 min)** — 7.2% of all
+  derailed lane time from 3.4% of derails, **every one five badges deep**. Rare, but it kills the
+  best runs. ⛔ **`custom-pokebot` is still INERT — promotion NOT asked for.**
 * **✅✅ KI-63 IS RESOLVED — THE BOT ACQUIRES DIVE BY PLAYING.** `--driver divelearner` (NEW) →
   `ACCEPTANCE: PASS` **on the first drive**: freed a slot (Skitty L17 deposited), hunted and caught
   a **Marill L13** (balls 19→17), taught **Dive over Defense Curl** (the 0-power move), and
@@ -127,7 +136,7 @@ burden here is so heavy, and why negative results are treated as the most valuab
 | party ORDER | ✅ **PROVEN 2026-08-13.** `--driver roster` from `saves/post_dive.ss1` → `phases=4/4 saw_j_nonzero=True idempotent=True restored=True can_continue=True ACCEPTANCE: PASS`. Raw transcripts (both A/B arms) in `ai-research-notes/2026-08-13-roster-drive-predictions.md`. ‼ The **deposit/withdraw** half of `#24-roster` is still open. |
 | upstream | checked **2026-08-13**, still `5dd898f8` — no change. ‼ This row goes stale on a CALENDAR DAY, not on an event: if today's date is later than the one shown, **the daily check is DUE** (`git fetch upstream-pokebot`, compare against `40cakes repo/UPDATE-LOG.md`). Do not read it as satisfied. |
 | restore point | **`restore/2026-08-13-pre-ki63-promotion`** (annotated, pushed) — taken immediately BEFORE promoting KI-63's fix. Older: `restore/2026-08-13-pre-roster-promotion`, `restore/2026-08-12-pre-ch1819-promotion`. |
-| sandbox ↔ custom drift | ✅ **ZERO as of 2026-08-13 (later).** KI-63's fix (`pc_trip.deposit_one_dead_weight` + the `_needs_party_slot` piggyback in `higher_level_actions.py`) **PROMOTED**, user-approved — verified by DRIVING `--driver divelearner --build custom` → `ACCEPTANCE: PASS`, **frame-identical** to sandbox (both end f36047), with `find_spec` confirming the custom tree was the one imported. Post-copy compare: 0 differing, 0 missing. Restore point `restore/2026-08-13-pre-ki63-promotion`. Earlier the same day `roster.py` + `menuing.py` were promoted (`restore/2026-08-13-pre-roster-promotion`). ‼ **MEASURE, don't trust this row** — the loop is below in "HOW TO RUN / TEST"; **expect ZERO** now. |
+| sandbox ↔ custom drift | ⚠ **EXACTLY 2, both deliberate and sandbox-only (2026-08-13, latest):** `modules/story/early_game.py` (the new `ensure_hm_learner_making_room`) and `plugins/custom_modes/story_mode.py` (both HM call sites wired to it). **This is KI-63's PRODUCTION WIRING, driven to a PASS but NOT promoted — promotion has not been asked for.** ⛔ Until it is, `custom-pokebot`'s copy of the KI-63 fix is **INERT**: it reads `_needs_party_slot` and nothing there sets it. Earlier today drift was ZERO twice (`restore/2026-08-13-pre-roster-promotion`, `restore/2026-08-13-pre-ki63-promotion`). ‼ **MEASURE, don't trust this row** — the loop is below in "HOW TO RUN / TEST". |
 | **if stopped mid-task** | **NOTHING IS PARKED.** Everything is committed and pushed. Start at "NEXT ACTIONS". |
 
 ## ✅ WHAT SHIPPED IN THE LATEST SESSION (§Ch19 + promotion + roster)

@@ -5088,12 +5088,10 @@ class DiveLearnerMode(BotMode):
         from modules.context import context as _ctx
         from modules.items import get_item_by_name
         from modules.map_data import PokemonCenter
-        from modules.modes import BotModeError
-        from modules.modes.util.higher_level_actions import heal_in_pokemon_center
         from modules.pokemon_party import get_party
         from modules.story import early_game
         from modules.story.early_game import (
-            ensure_hm_learner,
+            ensure_hm_learner_making_room,
             hm_learner_slot,
             teach_hm_move,
             wait_until_truly_controllable,
@@ -5107,60 +5105,50 @@ class DiveLearnerMode(BotMode):
         log(f"[divelearner] balls={self._balls()} knows_dive_already={self._knows('Dive')} "
             f"hm_learner_slot(HM08)={hm_learner_slot(hm08)}")
 
-        # ---- STEP 1: TRY FIRST. Do not pay for a deposit that may not be needed. ----------
-        slot, first_error = None, None
+        # ---- THE PRODUCTION PATH, IN ONE CALL --------------------------------------------
+        # ‼ THIS NOW DRIVES `ensure_hm_learner_making_room`, NOT A STAND-IN. This driver
+        # originally carried its own try / deposit / retry logic — which proved the CAPABILITY but
+        # left `_needs_party_slot` with no production setter, so a real `StoryMode` run still
+        # derailed. That logic now lives in `modules/story/early_game.py` and is wired into both
+        # production call sites; the driver exercises the SAME function the story bot calls, which
+        # is the only way this test means anything (the `boxwithdraw` rule: drive the production
+        # call site, never a copy of it).
+        #
+        # Everything the old STEP1/2/3 asserted is still asserted, just from the outside:
+        # a slot must be freed, a learner must be caught, and balls are logged either side
+        # because the catch gate re-checks `balls > 1` on EVERY encounter and silently stops
+        # catching if they run out.
+        before_party = len([m for m in get_party() if m is not None])
+        # ‼ CAPTURE PIDs, NOT JUST A COUNT. The party ends at 6 either way — one deposited, one
+        # caught — so a count comparison would report `freed=True` even if NOTHING happened. This
+        # is the "assert by PID, never by slot/count" rule the roster work established the same
+        # day, and I had violated it here on the first pass.
+        before_pids = {m.personality_value for m in get_party() if m is not None}
+        balls_before = self._balls()
+        log(f"[divelearner] CALL ensure_hm_learner_making_room(HM08) — party={before_party} "
+            f"balls={balls_before}")
+        slot = None
         try:
-            slot = yield from ensure_hm_learner(hm08)
-            log(f"[divelearner] STEP1 ensure_hm_learner returned slot={slot} (no deposit needed)")
-        except BotModeError as error:
-            first_error = str(error)
-            log(f"[divelearner] STEP1 raised (EXPECTED on a full party): {first_error[:220]}")
+            slot = yield from ensure_hm_learner_making_room(hm08, (PokemonCenter.MossdeepCity,))
+            log(f"[divelearner] returned slot={slot}")
         except Exception as error:  # noqa: BLE001
-            first_error = f"{type(error).__name__}: {error}"
-            log(f"[divelearner] STEP1 raised UNEXPECTED {first_error[:220]}")
-        notes["step1"] = first_error or f"slot={slot}"
-
-        # ---- STEP 2: free EXACTLY ONE slot, only if that is what actually failed ----------
-        freed = slot is not None
-        if slot is None:
-            if first_error and "party is full" not in first_error:
-                # ‼ DO NOT PAPER OVER A DIFFERENT FAILURE WITH A DEPOSIT. Boxing a team member
-                # to "fix" an unrelated error is how a run ends up strictly worse off.
-                log("[divelearner] ‼ STEP1 did not fail on a FULL PARTY, so a deposit cannot "
-                    "help. Stopping rather than spending a team member on the wrong diagnosis.")
-            else:
-                before = len([m for m in get_party() if m is not None])
-                self._needs_party_slot = True     # the piggyback contract
-                log(f"[divelearner] STEP2 party={before}; healing at Mossdeep with "
-                    f"_needs_party_slot=True (deposit piggybacks between nurse and exit)")
-                try:
-                    yield from heal_in_pokemon_center(PokemonCenter.MossdeepCity)
-                except Exception as error:  # noqa: BLE001
-                    log(f"[divelearner] STEP2 heal raised {type(error).__name__}: "
-                        f"{str(error)[:220]}")
-                finally:
-                    self._needs_party_slot = False   # never leave the hook armed
-                after = len([m for m in get_party() if m is not None])
-                freed = after < before
-                log(f"[divelearner] STEP2 party {before} -> {after} freed={freed} "
-                    f"moves={self._party_moves()}")
+            log(f"[divelearner] raised {type(error).__name__}: {str(error)[:300]}")
+        after_party = len([m for m in get_party() if m is not None])
+        after_pids = {m.personality_value for m in get_party() if m is not None}
+        # A Pokemon that was in the party at the start and is not there now was DEPOSITED.
+        deposited = sorted(before_pids - after_pids)
+        # A Pokemon that is there now and was not before was CAUGHT.
+        gained = sorted(after_pids - before_pids)
+        freed = len(deposited) == 1          # exactly one, never more (#24-pc's regression shape)
+        caught = slot is not None and len(gained) == 1
+        notes["party"] = (before_party, after_party, {"deposited": deposited, "gained": gained})
         notes["freed"] = freed
-
-        # ---- STEP 3: the hunt + catch --------------------------------------------------
-        caught, balls_before = False, self._balls()
-        if slot is None and freed:
-            log(f"[divelearner] STEP3 hunting a Dive learner; balls_before={balls_before} "
-                f"(‼ the catch gate re-checks balls>1 EVERY encounter and silently stops "
-                f"catching if they run out — that is why this number is logged)")
-            try:
-                slot = yield from ensure_hm_learner(hm08)
-                caught = slot is not None
-                log(f"[divelearner] STEP3 ensure_hm_learner returned slot={slot}")
-            except Exception as error:  # noqa: BLE001
-                log(f"[divelearner] STEP3 raised {type(error).__name__}: {str(error)[:300]}")
-        log(f"[divelearner] STEP3 balls {balls_before} -> {self._balls()} caught={caught} "
-            f"party={self._party_moves()} HM_CATCH_TARGET_DEX={early_game.HM_CATCH_TARGET_DEX}")
         notes["caught"] = caught
+        log(f"[divelearner] party {before_party} -> {after_party} "
+            f"deposited_pids={deposited} gained_pids={gained} freed={freed} caught={caught} "
+            f"balls {balls_before} -> {self._balls()} "
+            f"HM_CATCH_TARGET_DEX={early_game.HM_CATCH_TARGET_DEX}")
+        log(f"[divelearner] party now {self._party_moves()}")
 
         # ---- STEP 4: teach, but only if it is actually needed ---------------------------
         taught_attempted = False
