@@ -5729,3 +5729,35 @@ actually support, and say which one you checked.
 (3) ‼ When a measurement looks suspect, ask what question it ANSWERED rather than whether it was
 taken correctly. KI-54's count was accurate and its conclusion was still wrong, because reachability
 was never part of the count.*
+
+---
+
+## 2026-08-13 — the gate I added to prevent a mistake BLOCKED the project's own Definition of Done
+
+**Symptom.** Within an hour of adding a `PreToolUse` hook that denies `git add -A`, a review found
+that `CLAUDE.md`'s Definition of Done **step 5**, `/wrapup` step 6 and `/checkpoint` step 3 all
+*instruct* exactly that command. Every future wrap-up would have hit a deny.
+
+**Why that is worse than it sounds.** The natural recovery from a deny is the escape hatch
+(`POKEBOT_ALLOW_BLIND_ADD=1`). Using it once is fine; using it *every wrap-up* makes the bypass
+routine and restores the precise failure the hook exists to prevent — while leaving everyone with
+the impression the hook is protecting them. **An enforcement that fights the documented workflow
+does not get obeyed; it gets bypassed.**
+
+**Root cause.** I added an enforcement without searching for what already *told* people to do the
+forbidden thing. Writing the rule and auditing for contradictions with the rule are two different
+jobs, and I did only the first.
+
+**The fix.** `/wrapup` and `/checkpoint` corrected outright. Step 5 sits **inside the Project Kit
+managed block**, where an edit would be reverted by the next `Bootstrap-Project` run — so it is
+**overridden outside the block and FLAGGED for the user**, rather than silently patched in a place
+that will silently revert.
+
+**Prevention rules.** *(1) When you add an enforcement, **grep the repo for anything that instructs
+the behaviour you just forbade** — commands, docs, templates, READMEs — and fix or override all of
+it in the SAME commit. A gate that contradicts the documented workflow will be bypassed, not obeyed.
+(2) Before editing a file to resolve a conflict, check whether that region is **generated or
+managed**. A fix in a block that regenerates is worse than no fix: it looks resolved and silently
+reverts. Override it from a durable location and flag the conflict.
+(3) An escape hatch is for the exceptional case. If the documented happy path needs it, the gate is
+scoped wrong — rescope the gate, do not normalise the hatch.*

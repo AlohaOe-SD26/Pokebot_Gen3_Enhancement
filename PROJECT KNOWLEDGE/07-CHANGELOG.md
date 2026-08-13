@@ -12528,3 +12528,39 @@ but nothing in that tree ever set it, and its `story_mode.py` still calls the ba
 `ensure_hm_learner`. **So this change is not a new behaviour risk — it is the step that makes an
 already-promoted fix do anything at all.** It converts a terminal, five-badges-deep run kill into a
 PC trip.
+
+## 2026-08-13 — WRAP-UP: doc backup, an enforcement hook, a real gate runner, and 8 review defects fixed
+
+**Backup first.** `DOCUMENT BACKUP BEFORE RESUME/2026-08-13/` — 113 markdown files (all of
+`PROJECT KNOWLEDGE/` incl. `ai-research-notes/`, plus `CLAUDE.md` and
+`custom-pokebot/DIVERGENCE-LOG.md`), taken **before** any wrap-up edit so there is a revert point.
+
+**`git add -A` is now IMPOSSIBLE, not merely forbidden.**
+`.claude/hooks/block-blind-git-add.ps1` (PreToolUse) denies the wildcard forms in command position.
+It exists because the rule recurred **twice in one session** and the second reached the remote —
+fixing the *commit* is not fixing the *habit*.
+‼ **Fault-tested, which caught a real defect in it:** the first draft matched the bare substring
+anywhere and blocked the very script written to test it. Narrowed to command position; **10/10**
+across four block-cases and six allow-cases (including "mentioned in a quote" and "grep for it").
+‼ **And it immediately contradicted our own Definition of Done** — see `08-MISTAKES.md`.
+
+**`run_gates.py` — the suite is a command now, not a comment.** It existed only as prose, which is
+why the handoff advertised 15 gates for a session after a 16th was added. **All 16 PASS (123s);
+`--quick` runs the 10 needing no ROM (3s).** It refuses to report a pass if a named script is
+missing, and reads `returncode` directly rather than through a pipe.
+
+**Eight defects found by a cold-resume test** (a zero-context agent read only `04-HANDOFF.md`, then
+verified every claim against reality). The engineering held — every named script, save and restore
+tag existed, HEAD matched origin, upstream matched. **The prose was the failure surface again:**
+* the drift-loop **expectation** named the *old* two files in both places it is quoted;
+* ⛔ **"§Ch21 (Seafloor Cavern)" is the wrong chapter** — `chapters.py:233` says **Chapter 20**;
+  21 is Sootopolis/Rayquaza. The misnomer leaked into `--driver ch21dive`,
+  `probe_ch21_topology.py` and two note filenames. Recorded prominently + punch item
+  **`#24-ch20rename`**; deliberately **not** renamed during a wrap-up;
+* two KI-63 summary bullets contradicted each other with no superseded tag;
+* no reproduction command existed for `--driver divelearner` — the session's headline result;
+* stale source refs (`pc_trip.py:314-315` → `:420-421`, verified by reading those lines).
+
+**Directives strengthened** — `CLAUDE.md` gains six rules written as **properties, not stories**,
+because every one of them was violated on 2026-08-13 by an agent who had written it that same day.
+A rule filed as "the lesson from bug X" does not fire when you are building Y.
