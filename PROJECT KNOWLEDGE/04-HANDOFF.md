@@ -148,7 +148,12 @@ committed while the author knew the rule. **Run `preflight.py` before touching a
 * **Promotions approved twice** (teach fix; then KI-51 + KI-52 + status telemetry).
 * **"Roster hygiene before bosses"** approved as the boss-response direction — then found
   **BLOCKED** (KI-54): the box is empty, and the deposit path was already measured harmful.
-  ‼ The real unlock is `POKEBOT_BOX_OVERFLOW_CATCH`, which is **one unhandled text box** away.
+  ⛔ **RETRACTED 2026-08-12:** the line below said the unlock was `POKEBOT_BOX_OVERFLOW_CATCH`,
+  "one unhandled text box away". **Both halves are false.** That flag has defaulted to **ON** since
+  2026-08-07 (`story_mode.py:2241-2243`, verified in the live code), and the text-box blocker was
+  refuted the same day (`exit_frames=120`, zero forced presses). Four docs repeated it because they
+  were written from a **stale code comment** instead of the default twenty lines below it. See
+  KI-54's retraction block.
 * **The boss-response design is still the user's call.** The status tax now has a resolved rate
   behind it, but a status response is a battle-policy change touching every mode — **do not build
   it unilaterally.**
@@ -272,14 +277,25 @@ and never identify a Pokémon by party index across a battle-menu boundary.
 
 > **START HERE ON A FRESH CONTEXT.** Everything is committed and pushed; nothing is parked.
 > 1. **Run `preflight.py`**, then `repro_undefined_names.py` and `audit_flag_names.py`.
-> 2. **The next build is blocked and the block is the interesting part.** §Ch20/§Ch21 (Seafloor
->    Cavern) need **Dive USED**, and **KI-63** says no party member can learn it and the party is
->    full. HM08 being in the bag is not enough. ⇒ **`#24-pc` is now the critical path**, not a later
->    nicety.
->    ‼ **KI-63's suggested swap was MEASURED WRONG and corrected**: Wailmer is rod-only (we have no
->    rod) and Tentacool spans L5-35. **Spheal** (~50% of the Shoal Cave low-tide LAND table, L26-32)
->    learns both Surf and Dive with no rod; the free **Super Rod** in `MOSSDEEP_CITY_HOUSE3` is
->    unclaimed (`RECEIVED_SUPER_ROD = False`) and would also open Sharpedo/Wailmer.
+> 2. **‼ THE NEXT BUILD IS NO LONGER BLOCKED THE WAY THE DOCS SAID.** §Ch20/§Ch21 need **Dive
+>    USED**, and KI-63 is real (no party member learns it, party 6/6). But the thing four documents
+>    called the gate — `POKEBOT_BOX_OVERFLOW_CATCH` being off and "one unhandled text box" away —
+>    **is false and has been since 2026-08-07.** It defaults to ON; the text box needs no handling.
+>    **Verify it yourself at `story_mode.py:2241-2243` before believing either version.**
+>    **THE PLAN (measured against `modules/data`, detail in KI-54's new section):**
+>    * **Spheal**, ~50% of the `SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM` LAND table at L26-32, catch rate
+>      255, learns **Surf AND Dive**. Mossdeep → Route 125 → the entrance room is **one warp**.
+>      ⚠ TIDE is the one risk: the high-tide maps have **no encounter header at all**, and which RTC
+>      hours give low tide is **UNVERIFIED**. Tide-free fallback: **Marill on Route 120** (15%, L25-27).
+>    * ‼ **Deposit-first, NOT box-first** — the opposite of the obvious guess. `ensure_hm_learner`
+>      tests the **party**, so a catch into the box never satisfies it and the spin burns its whole
+>      budget. Freeing one slot reuses `withdraw_from_box:331-355`, which is live-proven and deposits
+>      exactly ONE mon — it is **not** the measured-harmful `POKEBOT_PC_ROTATION` (which fires every
+>      heal, down to a floor of 3). Verified offline: it picks **Skitty L17** and correctly spares
+>      Zigzagoon L15, our only Surf carrier.
+>    * ⛔ **Do NOT fetch the Super Rod first** — Sharpedo/Wailmer are real, but it needs three missing
+>      subsystems (no rod chapter, no fishing capability at all, and `_hm_hunting_grounds` reads
+>      land encounters only) against one `TRAINING_GRASS` row.
 > 3. **Fix KI-59 before the cavern exists** — it is armed there (115 `Impassable *` tiles across
 >    Rooms 1-9). A/B on `SEAFLOOR_CAVERN_ROOM1`.
 > 4. Two things remain the USER's call: **promoting §Ch18 + §Ch19 to `custom-pokebot/`**, and the
@@ -404,7 +420,7 @@ only Surf carrier).
    (32.6% vs 3.8%, z = +62.2), which is the evidence a status response needed — but it is a
    battle-policy change touching every mode using `DefaultBattleStrategy`. **Do not build it
    unilaterally.** ‼ And roster hygiene is blocked (KI-54) until
-   `POKEBOT_BOX_OVERFLOW_CATCH` works — one unhandled text box.
+   `POKEBOT_BOX_OVERFLOW_CATCH` — ⛔ **RETRACTED 2026-08-12: it is already ON and already works.**
 
 5. **Remaining hardening (designed, not built):** H5 (make `n=` structural in every analysis probe)
    and H7 (a bounded-loop helper so an unbounded loop is a visible smell). See

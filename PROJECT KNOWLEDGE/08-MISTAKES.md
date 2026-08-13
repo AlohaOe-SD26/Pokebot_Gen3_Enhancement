@@ -5337,6 +5337,52 @@ call sites (`default.py`, `level_up.py`, the story override). The repro gained *
 permuted array — the fix returns slot 3, OURS, which the positional rule would have hidden) and
 **ARM E** (the story bot's own chooser). 5/5, and §Ch19 re-driven to a PASS afterwards.
 
+## 2026-08-12 — four documents recorded a blocker that had been refuted five days earlier
+
+**Symptom.** `POKEBOT_BOX_OVERFLOW_CATCH` was recorded in `29-DISABLED-FEATURES-REGISTRY.md`,
+KI-54, and twice in `04-HANDOFF.md` as **off by default** and "one unhandled text box away" from
+working. It became the stated gate on roster work, which is the gate on §Ch21. **All of it was
+false.** The live code is `story_mode.py:2241-2243` — `environ.get("POKEBOT_BOX_OVERFLOW_CATCH",
+"1")`, i.e. **ON** — and the text-box blocker was refuted on 2026-08-07 by a capability test
+(`--driver boxcatch`: `caught=True box_after=1 exited_clean=True exit_frames=120`, **zero forced
+presses**), whose result is written in the comment **twenty lines above the flag read**.
+
+**Root cause.** The four documents were written on 2026-08-11 from a **stale code comment**
+(`story_mode.py:2202-2226`, still saying "GATED OFF … default 0") instead of from the default just
+below it. ‼ And the file that got it wrong was **the flag registry itself** — the artifact created
+specifically to stop features being proposed against stale flag state. The failure it exists to
+prevent, committed one level up.
+
+**Cost.** It sent a full investigation after a blocker that did not exist, and it had been the
+recorded reason `#24-roster` was "blocked" for a day.
+
+**Prevention rule.** *A registry row is a claim with an expiry date, exactly like a deferral. Before
+believing any flag's documented default — especially in the registry — read the line of code that
+reads the flag. And when a comment and the code beside it disagree, the code wins and the comment is
+the bug.*
+
+## 2026-08-12 — I committed a "measured" correction with no measurement in it
+
+**Symptom.** I corrected KI-63's suggested roster swap (Wailmer is rod-only; Spheal is the real
+answer) and committed it as `docs: correct two of my own claims`. An adversarial pass noted the
+commit touched **one file, docs only** — no script, no artifact — while the text called itself
+measured. Every number in it was independently re-derived and turned out to be **right**, but it was
+right *by a good recall*, not by anything a later agent could re-run.
+
+**Root cause.** I applied the project's evidence bar to code and to other people's claims, and not
+to my own prose. `probe_ch19_hazards.py` checks only the party's learners — nothing checked the
+encounter tables the whole plan rests on.
+
+**The fix that worked.** `tools/story-dev/probe_dive_learner.py`, which reads `species.json` and the
+encounter index and reproduces the lot. ‼ Writing it immediately justified itself: the first draft
+read `evolutions[].target_species` as a national dex number, giving *"Zigzagoon -> Slaking"*. **That
+wrong mapping still produced the RIGHT ANSWER** to the question asked ("no evolution learns Dive") —
+a correct conclusion from garbage data, which no reader would ever have questioned.
+
+**Prevention rules.** *(1) If a doc sentence says "measured", the commit must contain the thing that
+measured it. (2) Put a printed CONTROL on every id→name resolution — check a pair you already know
+before trusting the pairs you do not.*
+
 ## 2026-08-12 — I turned a linter warning into a severity claim without tracing the control flow
 
 **Symptom.** pyflakes flagged `party_index` as undefined at `battle_move_replacing.py:280`. I filed
