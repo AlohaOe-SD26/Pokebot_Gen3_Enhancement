@@ -48,6 +48,22 @@ Every banner further down is HISTORY, newest first.
   `"Underwater Blocked Above"` / `"Seaweed No Surfacing"` — the two tile types you cannot surface
   from — so it will route a dive to a dead end. ⇒ **NEVER let the planner choose where you
   surface**; pick the tile explicitly, as upstream already does.
+* **⏭ THE NEXT BUILD IS SPECIFIED AND MEASURED: KI-63, acquiring a real Dive learner.** Read
+  `ai-research-notes/2026-08-13-ki63-dive-learner-acquisition-plan.md` — it has the build order,
+  the pre-registered failure modes, and **two corrections to this handoff's own older text**:
+  the deposit path KI-54 named (`withdraw_from_box:331-355`) **cannot free a slot pre-catch**
+  (it returns immediately when nothing is boxed), and `deposit_dead_weight_if_worth_it` is a
+  **silent no-op** behind `POKEBOT_PC_ROTATION`. **A new narrow ungated one-deposit function is
+  needed**, and **deposit-first is the wrong order.**
+  ✅ Already verified safe: teaching Dive **cannot** overwrite Surf (HM slots are filtered at two
+  layers), and `find_dead_weight` **exempts** the sole Surf carrier.
+  ‼ A real strategic choice is queued and should NOT be made silently: the only Dive ground today
+  is **Route 117, 1,055 waypoints, a 10% L13 Marill**. Shoal Cave's Spheal (50%, L26-32, catch rate
+  255, 103 waypoints + one door) is better on every axis — but `_hm_hunting_grounds` reads
+  `TRAINING_GRASS`, and adding a Shoal row there **flips `best_training_area` for every team from
+  ~L30 up**. The clean fix is a SEPARATE HM-ground table.
+* **`#24-ballstarve`'s premise does not hold at `post_dive.ss1`** — 19 balls, $54,334 measured.
+  ‼ **Not closed**: the item was filed from a mid-game Surf-era batch and may still be real there.
 * **Nothing is parked. Nothing is running.** All 15 gates exit 0 after the change.
 * **§Ch19 is DONE and the ladder runs 20 of 24 beats.** §Ch18 + §Ch19 are **PROMOTED** to
   `custom-pokebot/` and verified by driving `--build custom`, including the real ladder.
@@ -429,12 +445,18 @@ teaching Dive/Dig/Flash. ‼ **Relicanth is underwater-only, so Dive is upstream
 >      255, learns **Surf AND Dive**. Mossdeep → Route 125 → the entrance room is **one warp**.
 >      ⚠ TIDE is the one risk: the high-tide maps have **no encounter header at all**, and which RTC
 >      hours give low tide is **UNVERIFIED**. Tide-free fallback: **Marill on Route 120** (15%, L25-27).
->    * ‼ **Deposit-first, NOT box-first** — the opposite of the obvious guess. `ensure_hm_learner`
->      tests the **party**, so a catch into the box never satisfies it and the spin burns its whole
->      budget. Freeing one slot reuses `withdraw_from_box:331-355`, which is live-proven and deposits
->      exactly ONE mon — it is **not** the measured-harmful `POKEBOT_PC_ROTATION` (which fires every
->      heal, down to a floor of 3). Verified offline: it picks **Skitty L17** and correctly spares
->      Zigzagoon L15, our only Surf carrier.
+>    * ⛔ **RETRACTED 2026-08-13 — THE DEPOSIT PATH NAMED BELOW CANNOT DO THIS JOB.** Superseded by
+>      `ai-research-notes/2026-08-13-ki63-dive-learner-acquisition-plan.md`. Verified directly:
+>      `withdraw_from_box` opens with `target = find_in_box(pids); if target is None: return`
+>      (`pc_trip.py:314-315`), so with nothing yet boxed **it returns having done nothing** — its
+>      deposit block is only reachable as a side effect of withdrawing an already-boxed PID. And
+>      `deposit_dead_weight_if_worth_it` **is** a standalone one-deposit primitive but is a **silent
+>      no-op** behind `POKEBOT_PC_ROTATION` (`pc_trip.py:83`). ⇒ **A new narrow, ungated,
+>      one-deposit function must be written.** ‼ Also: **deposit-first is the wrong ORDER** —
+>      `ensure_hm_learner` checks for an existing learner *before* the party-full check, so try it
+>      first and deposit only on that specific failure. (Still true from the old text: the victim is
+>      **Skitty L17**, and Zigzagoon L15 is EXEMPT as sole Surf carrier — re-measured 2026-08-13.)
+>      Superseded text: Freeing one slot reuses `withdraw_from_box:331-355`, which is live-proven and deposits exactly ONE mon.
 >    * ⛔ **Do NOT fetch the Super Rod first** — Sharpedo/Wailmer are real, but it needs three missing
 >      subsystems (no rod chapter, no fishing capability at all, and `_hm_hunting_grounds` reads
 >      land encounters only) against one `TRAINING_GRASS` row.

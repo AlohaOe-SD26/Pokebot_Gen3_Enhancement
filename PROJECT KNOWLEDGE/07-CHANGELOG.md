@@ -12247,3 +12247,46 @@ bound cannot save it, because `_yield_bounded` counts `next()` returns.
 **zero production callers**; it has been driven on **one anchor** (n=1, since a `.ss1` replays
 identically); **KI-70** and **KI-71** are both open; and the freeze fix has still **never been
 observed firing** — it was found by adversarial review before the first drive.
+
+## 2026-08-13 — KI-63 measured and specified, and TWO of our own doc claims retracted
+
+`probe_dive_learner_plan.py` (new, read-only, four positive controls all PASS) measures everything
+the Dive-learner build needs. Full spec:
+`ai-research-notes/2026-08-13-ki63-dive-learner-acquisition-plan.md`.
+
+### ‼ RETRACTED — the deposit path KI-54 named cannot free a slot pre-catch
+`withdraw_from_box` opens with `target = find_in_box(pids); if target is None: return`
+(`pc_trip.py:314-315`). With nothing yet boxed it **returns having done nothing** — its deposit
+block is reachable only as a side effect of withdrawing an already-boxed PID. And
+`deposit_dead_weight_if_worth_it`, which *is* a standalone one-deposit primitive, is a **silent
+no-op** behind `POKEBOT_PC_ROTATION` (`pc_trip.py:83`, pinned 0 and measured harmful).
+⇒ **A new narrow, ungated, one-deposit function must be written.**
+‼ How this would have failed: the driver calls the obvious function, nothing happens, and the next
+`ensure_hm_learner` raises *"the party is full"* — sending the reader two calls downstream of the
+actual bug.
+
+### ‼ RETRACTED — "deposit-first" is the wrong ORDER
+`ensure_hm_learner` checks `hm_learner_slot` (`early_game.py:4338-4340`) **before** the party-full
+check (`:4342-4348`), so an unconditional deposit costs a PC trip and a team member even when no
+catch was needed. Try first; deposit only on that specific failure.
+
+### Measured
+* **19 Poké Balls, $54,334** at `post_dive.ss1` ⇒ `#24-ballstarve`'s premise does not hold here.
+  **Not closed** — it was filed from a mid-game Surf-era batch and may still be real there.
+* `_hm_hunting_grounds(HM08)` → `[(ROUTE117, (31,16), ['Marill'])]`, with the HM03 call returning
+  6 grounds as the control, so the one-ground answer is a real fact rather than a broken lookup.
+* Marill: Dive+Surf, catch rate 190, **10% of Route 117's land table at L13**, **1,055 waypoints**
+  away. Spheal at Shoal Cave: **50%, L26-32, catch rate 255**, 103 waypoints + one door.
+* `find_dead_weight` picks **Skitty L17**, and **exempts the sole Surf carrier** — verified.
+
+### ✅ Verified safe (so it need not be re-derived)
+Teaching Dive **cannot** overwrite Surf: `early_game.py:4473-4480` filters every slot whose
+`tm_hm.name` starts with `"HM"`, and `:4485-4495` raises rather than starting a teach it cannot
+finish; `items.py:188-205` guards the same way. The self-inflicted "forget Surf and strand the bot
+mid-ocean" scenario is structurally prevented at both layers.
+
+### ‼ A strategic choice is queued, deliberately NOT made
+`_hm_hunting_grounds` iterates `TRAINING_GRASS`, so the better Dive ground cannot simply be added
+there: a Shoal Cave row becomes the highest band in the table and **flips `best_training_area` for
+every team from ~L30 up**. The clean fix is a SEPARATE HM-ground table. Surfaced rather than
+assumed.

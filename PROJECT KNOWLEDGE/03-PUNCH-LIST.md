@@ -1136,6 +1136,15 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       with KI-43's note that catches rose while each restock still buys 10 balls. Pairs with the
       end reason `No party mon can learn Surf and the party is full — needs PC box management`,
       which the now-proven `#24-pcoverflow` withdraw path should be able to serve.
+      ⚠ **MEASURED 2026-08-13 — the premise DOES NOT HOLD at `post_dive.ss1`, which does NOT
+      close this item.** `probe_dive_learner_plan.py` reads **19 balls** (Poké 16 / Premier 1 /
+      Great 1 / Master 1) and **$54,334** there — `affordable_poke_balls()` = 269, and the Mossdeep
+      mart door is 27 waypoints away. So a hunt at the CURRENT era is not ball-starved.
+      ‼ **This is a late-game anchor and the item was filed from a mid-game BATCH** (4 occurrences,
+      Surf-era, party still small and poor). Ball starvation is plausibly a real EARLY/MID-game
+      condition that simply does not reproduce this late. ⇒ **Do not close on this evidence** —
+      it needs a measurement at the era the batch actually failed in. Recorded so the next reader
+      does not re-derive "we have no balls" from a stale headline.
 
 - [x] `#24-teachpathrace` — **FIXED 2026-08-07, same day it was found. Caught by the
       `#24-hmteachloop` telemetry in its FIRST batch — a SECOND, independent teach bug.**
