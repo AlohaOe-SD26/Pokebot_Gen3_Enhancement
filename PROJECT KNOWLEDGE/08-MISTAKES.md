@@ -5761,3 +5761,55 @@ managed**. A fix in a block that regenerates is worse than no fix: it looks reso
 reverts. Override it from a durable location and flag the conflict.
 (3) An escape hatch is for the exceptional case. If the documented happy path needs it, the gate is
 scoped wrong — rescope the gate, do not normalise the hatch.*
+
+## 2026-08-13 — I counted the tiles a bug applies to, but never checked whether the code REACHES them. The count was right; "armed here" was wrong. **This is the same shape as the Shoal Cave error, filed the same day.**
+
+**Symptom.** Four documents (`03-PUNCH-LIST`, `05-KNOWN-ISSUES`, `31-KNOWN-ISSUES-ARCHIVE`,
+`04-HANDOFF`) instructed the next agent: *"KI-59 is armed in the Seafloor Cavern — 115 `Impassable *`
+tiles across Rooms 1-9 — fix it with an A/B on `SEAFLOOR_CAVERN_ROOM1` BEFORE the cavern chapter
+exists."* It was a NEXT-ACTION, so a cold reader would have done exactly that.
+
+**What actually happens.** `modules/map_path.py:118` is `if tile.collision != 0:` and the
+`Impassable *` handler at `:128` is its **`elif`**. Any tile with `collision != 0` therefore never
+reaches the buggy branch — it is fully blocked before the branch is consulted, which is also what
+vanilla does (`GetCollisionAtCoords` ORs the collision bit *in addition to* the directional check).
+**All 115 cavern tiles have `collision=1`.** So the prescribed A/B would have produced a **zero
+delta**, and the honest reading of that null result — *"KI-59 must not be real"* — would have been
+exactly wrong, because the bug **is** real, just elsewhere. Measured game-wide: 2,658 such tiles,
+**2,257 dormant, 401 live (15.1%)**, concentrated on the Regi tombs, Shoal Cave and Victory Road.
+
+**Root cause.** The original audit grepped for tiles whose *tile_type* matched, and counted them.
+It never asked whether the **code path that mishandles them executes on them**. A pattern census
+answers "how many things look like this", which is a different question from "how many things does
+the buggy code act on", and the gap between the two was 85%.
+
+**‼ THE REPEAT.** `08-MISTAKES` already contains, from earlier the SAME DAY: *"KI-54's 65 encounter
+tiles at high tide are REAL — reproduced exactly — but form an ISLAND unreachable from the entrance
+warp. **What was never checked was reachability, not the count.**"* That is this identical error one
+layer down — there, tiles the *player* could not reach; here, tiles the *code* does not reach. Two
+independent instances in one day means the existing rule was scoped too narrowly (it read as a fact
+about Shoal Cave) and did not fire.
+
+**What found it.** Not the sweep. Looking for a live A/B site: the only two anchors on a map with
+such tiles put the avatar in RUSTURF_TUNNEL, and the map dump showed **all 11 of its Impassable
+tiles carry `collision=1`** — which made the `elif` matter. Trying to build the experiment exposed
+the flaw in the thing being measured.
+
+**Controls that kept the correction honest** (the sweep read 518 maps in one process, and KI-73 says
+`_map_layout_cache` is first-writer-wins): a second process read **only** the eight decisive maps in
+**reverse order** and matched exactly; `SEAFLOOR_CAVERN_ROOM1`'s 27 tiles have one distinct collision
+value `[1]`; and `collision` was confirmed to be a plain value, **not** a per-direction mask — had it
+been a mask, the whole conclusion would have collapsed.
+
+**Prevention rules.**
+*(1) **A census of things that MATCH is not a census of things the code ACTS ON.** Before writing
+"this bug is armed in X with N instances", find the branch that mishandles them and prove those N
+instances **reach that branch** — walk the enclosing `if/elif` chain and the guards above it. Report
+the number that reach it, not the number that match.*
+*(2) **Generalise a "reachability was never checked" lesson beyond the object it was found on.** The
+Shoal Cave version of this rule was filed as a fact about tiles and a player; it did not fire for
+tiles and a code path hours later. When a mistake is about a MISSING QUESTION, file the question,
+not the noun it was asked about.*
+*(3) **When a prescribed experiment is expected to show a delta, pre-compute whether it CAN.** If the
+inputs cannot reach the code under test, a green/zero result is uninformative, not exculpatory — and
+a null result on a real bug is worse than no experiment, because it retires a live issue.*

@@ -12564,3 +12564,101 @@ tag existed, HEAD matched origin, upstream matched. **The prose was the failure 
 **Directives strengthened** — `CLAUDE.md` gains six rules written as **properties, not stories**,
 because every one of them was violated on 2026-08-13 by an agent who had written it that same day.
 A rule filed as "the lesson from bug X" does not fire when you are building Y.
+
+## 2026-08-13 — KI-59 measured over all 518 maps: the inversion is REAL, its "Seafloor Cavern" headline is NOT
+
+**New:** `tools/story-dev/probe_impassable_dirs.py` — the REPRODUCE half of `#24-impassabledirs`,
+with a POSITIVE control (the cavern must contain such tiles), a NEGATIVE control (MOSSDEEP_CITY must
+contain none), a parse control (every distinct string run through the exact production parse), and
+the fix's hazards pre-registered and checked BEFORE any code change.
+
+**What was already known and still holds.** `modules/map_path.py:128-132` builds
+`accessible_from_direction` all-False and **sets** `[opposite]` True. Ground truth — decomp
+`event_object_movement.c:893-905` (`gOppositeDirectionBlockedMetatileFuncs` /
+`gDirectionBlockedMetatileFuncs`) and `:4715-4722` (`IsMetatileDirectionallyImpassable`) — is that
+`MB_IMPASSABLE_<D>` means **"this tile's `<D>` EDGE is a wall"**, blocking entry *and* exit across
+it. Correct is start all-True and **clear** `[opposite(D)]`.
+‼ **And it is worse than "over-blocked":** for `Impassable North` the shipped `[--S-]` is the
+**exact complement** of correct `[NE-W]` — it refuses all three legal entries **and permits the one
+illegal one**. The array's index is the **direction of travel**, established from the consumer
+(`map_path.py:851-858`) and corroborated by the waterfall/muddy-slope branches, not from its name.
+
+**⛔ WHAT WAS WRONG, in four documents.** `map_path.py:118` is `if tile.collision != 0:` and the
+`Impassable` handler is its **`elif`**, so a collision≠0 tile **never reaches it**. Measured:
+
+| | tiles |
+|---|---|
+| `Impassable *` game-wide (518 maps) | **2,658** |
+| collision≠0 → DORMANT, cannot reach the branch | **2,257** |
+| collision==0 → LIVE and mis-modelled | **401 (15.1%)** |
+| **Seafloor Cavern Rooms 1-9** | **115, of which LIVE = 0** |
+
+⇒ The instruction repeated by `03-PUNCH-LIST`, `05-KNOWN-ISSUES`, `31-KNOWN-ISSUES-ARCHIVE` and
+`04-HANDOFF` — *"KI-59 is armed in the Seafloor Cavern; A/B on `SEAFLOOR_CAVERN_ROOM1` before that
+chapter exists"* — **would have measured a zero delta**, and KI-59 never gated §Ch20/§Ch21.
+**Where it is actually live:** the **REGI TOMBS** (Desert Ruins / Island Cave / Ancient Tomb, 48
+each = **144**) — i.e. the user's own ask — plus **SHOAL CAVE 98**, **VICTORY ROAD 58**, Lilycove
+contest hall+lobby 48, Artisan Cave B1F 34, and a tail. Live strings: `North` 347, `East` 27,
+`West` 24, `North and South` 3.
+
+**Controls run, because the sweep read 518 maps in one process and KI-73 says `_map_layout_cache`
+is keyed on map number and first-writer-wins.** A second process read **only** the eight decisive
+maps, in **reverse order**: all eight matched exactly, and `SEAFLOOR_CAVERN_ROOM1`'s 27 tiles have
+**one distinct collision value, `[1]`**. Cache poisoning is ruled out for the claim that matters.
+`collision` was also confirmed to be a plain value (`map.py:866-867`), **not** a per-direction mask
+— had it been a mask, the dormancy conclusion would have collapsed.
+
+**Hazards pre-registered and checked (all clear), so the fix cannot trip over them:**
+* the four `_is_optional_blocker` salt-gate tiles are plain `Cave`, **not** Impassable — the fix
+  cannot make them walkable and defeat their flag gates;
+* `Secret Base Breakable Door` (0xBE) **is** a directional impassable the code misses entirely
+  (it gets `[True]*4`) — but it occurs **0 times** in this ROM, so handling it is correctness-only;
+* `Secret Base Impassable` (0xB9) is a **false friend** that must stay OUT of the match — also 0.
+
+**Knock-on flagged, not acted on:** `tools/story-dev/probe_shoal_tide.py:364-367` **replicates the
+inversion**, and that probe produced the *"reachable spin tiles: LOW 278, HIGH 0"* figure behind the
+user-delegated **"Shoal Cave is NOT adopted"** ruling — over rooms carrying **89 live tiles**. The
+ruling is not reopened; the number under it must be re-derived after the fix.
+
+**NOT DONE, deliberately:** the fix itself. It needs a **new exit-blocking concept** — `PathTile`
+cannot express "may not LEAVE in direction D", and without it the corrected entry rule still lets
+the planner walk north off a wall (22 of Island Cave's 48 live tiles have open floor to the north).
+That is a change to shared pathfinding every mode depends on, so it gets its own A/B **on a LIVE
+map** (ISLAND_CAVE or SHOAL_CAVE_LOW_TIDE_INNER_ROOM) — never on the Seafloor Cavern.
+
+All 16 standing gates PASS (123.5s) before and after; sandbox↔custom drift unchanged at exactly 2.
+
+### Addendum, same day — the finding was handed to an ADVERSARIAL reviewer and SURVIVED, with three corrections
+
+The reviewer was told to refute it, and instead **re-derived every number by parsing the `.gba` file
+directly off disk** — no emulator, no `modules/`, no caches, **zero shared code with the probe**:
+2,658 total / 2,257 dormant / 401 live (15.09%) / Seafloor 115 → **0** live / Mossdeep control 0.
+Byte-for-byte agreement. Two further controls it added, both clean:
+* the `:741` escape `and not (tile == destination_tile and tile.warps_to)` is the only way a
+  `[False]*4` tile can still be used — and **zero warp tiles in all 518 maps carry an `Impassable *`
+  behavior**, at either collision value, so it can never fire here;
+* the collision histogram over all 2,658 tiles is exactly `{0: 401, 1: 2257}` — values 2 and 3 never
+  occur, and `collision` is a **2-bit** field (`map.py:780`, `(block & 0x0C00) >> 10`;
+  decomp `global.fieldmap.h:8` agrees), so it cannot be a per-direction mask.
+
+**Three corrections it produced, now folded into the punch list:**
+1. ⛔ **"across Rooms 1-9" was wrong** — the 115 sit in **seven of the nine rooms**
+   (R1 27, R2 15, R3 12, R4 22, R5 11, R8 2, R9 26); **R6, R7, the ENTRANCE and
+   UNDERWATER_SEAFLOOR_CAVERN have none.** Our own probe output showed this and the first write-up
+   still repeated the inherited phrase.
+2. **The per-string live/total split bounds the fix**: `North` 347/2601, `East` 27/27, `West` 24/24,
+   `North and South` 3/3, `South` **0**/3. Five of the ten producible strings never occur at all.
+3. ⚠ **These are STATIC ROM layouts, not runtime truth.** `setmetatile` appears in `DesertRuins`,
+   `IslandCave`, `AncientTomb` (those *are* the braille walls opening), `ShoalCave_LowTideInnerRoom`
+   and `LilycoveCity_ContestLobby`; `setmaplayoutindex` in both Shoal Cave low-tide rooms. So the
+   77/48/48/48 counts describe the compiled layout, not what is on screen. ‼ **The Seafloor
+   conclusion is untouched — no `SEAFLOOR_CAVERN_ROOM*` script uses either command.**
+
+**And it improved the A/B target**, which is the actionable part: **`VICTORY_ROAD_1F` (29 live
+tiles)** is cleaner than the Island Cave / Shoal Cave sites first proposed, precisely *because* it
+does not rewrite itself at runtime — plus a **negative control on a Seafloor room** to prove the
+branch is inert there, and assertions on **both** directions (entry and exit).
+
+**Housekeeping forced by the edits:** `05-KNOWN-ISSUES.md` went 12 lines over its 3,000-line R3
+budget, so **KI-51** (FIXED 2026-08-11) was moved to `31-KNOWN-ISSUES-ARCHIVE.md` in full, leaving
+the house-style stub — content preserved, not deleted. `lint_docs.py` passes again.

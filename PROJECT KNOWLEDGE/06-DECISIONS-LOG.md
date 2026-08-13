@@ -1898,3 +1898,52 @@ high tide**.
 ⇒ No change to the ruling. Added to the unlock conditions: any future spin tile must be validated
 as a **LAND** tile (on foot, `elevation != 1`), in a **named room**, at **low tide** — three
 qualifiers, not one.
+
+## 2026-08-13 — KI-59: land the MEASUREMENT as its own item; the fix is FIX-A + a new exit-blocking concept, A/B'd on a LIVE map
+
+**Decision 1 — split the work: measurement now, fix next.**
+`map_path.py` is shared by every bot mode. The session's measurement produced a *retraction* of an
+instruction sitting in four documents, which is independently valuable and carries no code risk, so
+it ships as a completed item on its own rather than riding along with a pathfinding change. Rejected:
+doing both in one commit (a doc correction bundled with a shared-code change cannot be reverted
+independently, and this project's own rule is "steps 2-6 per completed item, not batched").
+
+**Decision 2 — the fix direction is FIX-A ("the named direction is a walled EDGE"), not FIX-B.**
+Two candidate readings existed and the codebase alone could not choose between them, because the
+array is a whitelist indexed by **direction of travel**:
+* **FIX-A** — `Impassable North` = the tile's north EDGE is a wall ⇒ clear `[opposite(D)]` ⇒ `[NE-W]`.
+* **FIX-B** — `Impassable North` = "you may not travel north onto it" ⇒ clear `[D]` ⇒ `[-ESW]`.
+They agree on `"… North and South"` and disagree on every single-direction string — and **347 of the
+401 live tiles are single-direction `Impassable North`**, so guessing was not an option.
+**Chosen: FIX-A**, on decomp ground truth: `IsMetatileDirectionallyImpassable`
+(`event_object_movement.c:4715-4722`) consults `gOppositeDirectionBlockedMetatileFuncs` on the tile
+you STAND ON and `gDirectionBlockedMetatileFuncs` on the DESTINATION (`:893-905`), which makes
+`MB_IMPASSABLE_<D>` a symmetric **edge wall** — blocking entry across that edge *and* exit across it.
+Corroborated by an independent derivation before the decomp was read, and by the geometry (live
+tiles form horizontal runs consistent with cliff edges). Rejected FIX-B: it contradicts the decomp's
+array pairing and would have inverted the most common case in the game.
+
+**Decision 3 — the fix is NOT complete without a new exit-blocking concept.**
+`PathTile` has no way to express "may not LEAVE in direction D"; `is_tile_accessible` only ever
+inspects the *neighbour*. Entry-only would still let the planner walk north off a wall — real, not
+theoretical: **22 of Island Cave's 48 live tiles have open floor to their north**. So the fix adds a
+per-tile blocked-exit set checked on the SOURCE tile in the A* expansion loop. Rejected: shipping
+the one-line entry fix alone (a strict improvement, but it trades a known wrong model for a
+half-right one and would be recorded as "fixed").
+
+**Decision 4 — the A/B runs on `VICTORY_ROAD_1F`, with a Seafloor room as the NEGATIVE control.**
+Zero of the cavern's 115 tiles reach the branch, so the A/B four documents prescribed would have
+shown no delta. ⚠ **First choice was ISLAND_CAVE (48 live) — and an adversarial review rejected it**:
+Island Cave, Desert Ruins, Ancient Tomb, Shoal Cave Low Tide Inner Room and the Lilycove Contest
+Lobby all rewrite their own tiles at runtime (`setmetatile` — in the tombs that *is* the braille wall
+opening — and `setmaplayoutindex` in both Shoal Cave low-tide rooms), so a static-layout A/B there
+measures a floor plan the game may replace. **Chosen: `VICTORY_ROAD_1F` (29 live tiles), which uses
+neither command**, plus a **negative control on a Seafloor room** to demonstrate the branch is inert
+there, and assertions on **both** directions (entry and exit). Rejected: the Regi tombs (runtime
+rewrite), Shoal Cave (same, and it is entangled with the tide question).
+
+**Decision 5 — the "Shoal Cave is NOT adopted" ruling is NOT reopened here.**
+`probe_shoal_tide.py:364-367` replicates the inversion and produced the number behind that
+user-delegated ruling, over rooms carrying 89 live tiles. Reopening a decision the user delegated
+and received is the user's call, not an agent's. Recorded as a flag with the re-derivation named, so
+it happens deliberately after the fix instead of by surprise.

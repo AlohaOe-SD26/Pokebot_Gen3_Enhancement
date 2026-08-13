@@ -122,6 +122,25 @@ list as `#24-ch20rename`. Until then: when this file says §Ch21 and means the c
 * **The REGI arc is the user's ask** — read **KI-69**. ‼ **Emerald reversed the party order:
   WAILORD first, RELICANTH last**, and the wrong order fails **silently**. ‼ **The Regi battle is
   UNRECOVERABLE** — a KO *or* a whiteout deletes the encounter permanently.
+* **‼ NEWEST RESULT (2026-08-13, this session): KI-59's HEADLINE WAS WRONG AND IS RETRACTED IN FOUR
+  DOCS.** The inversion in `map_path.py:128-132` is **real and decomp-confirmed** — for
+  `Impassable North` the shipped `[--S-]` is the *exact complement* of correct `[NE-W]`, so it
+  refuses all three legal entries **and permits the one illegal one**. ⛔ **But it was NEVER a
+  Seafloor Cavern blocker.** The handler is the `elif` of `if tile.collision != 0:`, and **all 115
+  cavern tiles have `collision=1` ⇒ zero reach it**; the A/B four documents prescribed
+  (`SEAFLOOR_CAVERN_ROOM1`) would have measured a **zero delta**. Swept over **all 518 maps**:
+  **2,658 tiles, 2,257 dormant, 401 live (15.1%)**, concentrated on the **REGI TOMBS (144)**,
+  **SHOAL CAVE (98)** and **VICTORY ROAD (58)**. ⇒ **KI-59 gates the REGI ARC, not the cavern.**
+  New artifact `tools/story-dev/probe_impassable_dirs.py`; a fresh-process reverse-order control
+  rules out KI-73 cache poisoning, and an **adversarial reviewer re-derived every number by parsing
+  the `.gba` off disk with ZERO shared code** — byte-for-byte agreement. **The fix is specified and
+  its hazards are pre-checked, but NOT YET WRITTEN** — see `#24-impassabledirs`. ⇒ **Run the A/B on
+  `VICTORY_ROAD_1F` (29 live tiles) with a Seafloor room as the negative control**, and assert BOTH
+  directions: ⚠ the counts are **static ROM layouts**, and the Regi tombs / Shoal Cave / Lilycove
+  lobby all rewrite their own tiles at runtime (`setmetatile`/`setmaplayoutindex`) — **no Seafloor
+  Cavern script does**, so that conclusion is unaffected. ‼ Knock-on: `probe_shoal_tide.py:364-367`
+  replicates the inversion, and that probe produced the number behind the **"Shoal Cave is NOT
+  adopted"** ruling.
 * **Run `preflight.py` first.** Then the gate list in "HOW TO RUN / TEST".
 
 ## WHAT THIS IS
@@ -531,8 +550,16 @@ teaching Dive/Dig/Flash. ‼ **Relicanth is underwater-only, so Dive is upstream
 >    * ⚠ Two hazards recorded in KI-54 before anyone codes in that room: `MapLocation` always
 >      resolves the **low-tide** layout for (24,46), so in-room planning at high tide plans against
 >      the wrong map; and (20,30) counts as a south-arrow warp, so never spin on or below it.
-> 3. **Fix KI-59 before the cavern exists** — it is armed there (115 `Impassable *` tiles across
->    Rooms 1-9). A/B on `SEAFLOOR_CAVERN_ROOM1`.
+> 3. ⛔ **RETRACTED 2026-08-13, MEASURED — "Fix KI-59 before the cavern exists" was WRONG.** The 115
+>    `Impassable *` tiles in the cavern are real, but **every one has `collision=1`** and
+>    `map_path.py:128` is the **`elif` of `if tile.collision != 0:` (`:118`)** — so **none of them
+>    reach the buggy branch**, and the prescribed A/B on `SEAFLOOR_CAVERN_ROOM1` would have measured
+>    a **zero delta**. KI-59 does **not** gate §Ch20/§Ch21. It is REAL and live on **401 of 2,658**
+>    such tiles game-wide (15.1%), chiefly the **REGI TOMBS (144)**, **SHOAL CAVE (98)** and
+>    **VICTORY ROAD (58)** ⇒ it is a prerequisite of the **REGI ARC (item 4)**, not of the cavern.
+>    Measured by `probe_impassable_dirs.py` (NEW), with a fresh-process reverse-order control against
+>    KI-73 cache poisoning. Fix specified + hazards pre-checked in `#24-impassabledirs`.
+>    Superseded text: Fix KI-59 before the cavern exists — it is armed there (115 `Impassable *` tiles across Rooms 1-9). A/B on `SEAFLOOR_CAVERN_ROOM1`.
 > 4. ✅ **THE PROMOTION ALREADY HAPPENED** (2026-08-12, user-approved, driven on `--build custom`).
 >    Do NOT ask for it again. The line below is superseded; only the battle-policy half is still
 >    the user's call. Superseded text: Two things remain the USER's call: **promoting §Ch18 + §Ch19 to `custom-pokebot/`**, and the

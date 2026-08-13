@@ -1800,70 +1800,13 @@ chain grinds the party down.
 
 ---
 
-## KI-51 — FIXED 2026-08-11: `do_magma_hideout` rode 60,000 frames at an empty overworld after a whiteout, then blamed the wrong thing
+## KI-51 — ✅ FIXED 2026-08-11 — a whiteout-blind loop rode 60,000 frames and blamed the wrong thing (ARCHIVED)
 
-**Symptom (found by KI-50's run).** After the whiteout above, the Maxie challenge loop kept
-mashing A/B for **18,300+ frames and counting** — 13 `STUCK` dumps — with the step message frozen
-at `"at (15, 21), facing Right at Maxie (16, 21)"` while the avatar was standing in
-**MAUVILLE CITY (22,6)**, two towns away.
-
-**Root cause.** The loop's only exit condition was `while not _groudon_awakened()`. A whiteout
-cannot make that true, so the loop was structurally incapable of noticing it. It *was* bounded
-(60,000 frames), so this was never an infinite hang — but the bound's message names the wrong
-cause entirely: *"the Maxie challenge never resolved in 60,000 frames"*, when what actually
-happened is that the party fainted and the game teleported the player out.
-
-‼ **Same class as the 2026-08-10 lesson, one week later**: *a failure message must report STATE,
-not a HYPOTHESIS* — that one said "check the destination is walkable" across three runs where it
-always was.
-
-**The fix.** The loop now also watches the map: if the player is off `MAGMA_HIDEOUT_4F` for more
-than **300 consecutive frames**, it raises immediately and reports the real state (map, tile,
-`party_alive`, frames elapsed) instead of riding the bound out.
-* **Debounced, deliberately.** An instant check would risk ending a HEALTHY Maxie fight on one
-  odd frame across a battle screen transition — a far worse bug than the one being fixed. 300
-  frames (~5s) is longer than any transition here and still ~200x cheaper than the full bound.
-* **An unreadable map counts as "still on 4F"**, so a reader error can never end the fight.
-
-✅ **CONFIRMED LIVE 2026-08-11** (`mh-try1`, the anchor retry loop) — the guard fired and printed
-its own message, which is the evidence that was missing when this entry was first written:
-```
-[magmahideout] FAILED: BotModeError: Magma Hideout: left MAGMA_HIDEOUT_4F during the Maxie
-challenge without Groudon awakening — almost certainly a WHITEOUT. map=(0, 2) tile=(22, 6)
-party_alive=6/6 (was standing (15, 21) facing Right at Maxie (16, 21), 2209 frames in).
-```
-`map=(0,2)` is MAUVILLE_CITY and `(22,6)` is the whiteout respawn tile — exactly the state the
-pre-fix loop rode straight past. **It stopped at 2,209 frames against a 60,000-frame bound**, so
-this failure cost ~57,800 fewer frames than it used to. (An earlier run stopping at ~20,600 frames
-was NOT counted as proof, because `_check_abort()` is an equally possible raise in the same loop
-and that run's stdout was lost. This one prints the message, so it is decided.)
-
-‼ **AND IT CORRECTS ONE OF MY OWN CHOICES: `party_alive=6/6` is NOT diagnostic here.** I put that
-field in the message expecting it to be the corroborating fact for "whiteout" — but a whiteout
-HEALS the party, so it reads full precisely BECAUSE the thing happened. The diagnosis rests
-entirely on the **map**. The field is still worth printing (it rules out "the party is dying right
-now"), but a future reader must not treat 6/6 as contradicting the whiteout call.
-‼ And note WHY `_check_abort()` did not save the PRE-fix run: it raises on `_STORY_ABORT`, which
-**StoryMode's** whiteout handling sets — a harness driver need not mirror that override
-(`04-HANDOFF`: "a harness driver must mirror the OVERRIDES of the mode it stands in for"). **A
-guard that only works in one of the two ways the code is run is not a guard**, which is the
-argument for the map check existing at all.
-
-**Structural proof:** `repro_maxie_whiteout_guard.py` (no emulator, 18 checks — the map read, the
-debounce, the unreadable-map default, the STATE fields in the message, and the ordering against
-the 60,000 bound). Fault-injected to **2 red**, restored to **ALL PASS**.
-
-**Verified, both directions, on real committed saves** (`map_group_and_number` is a plain tuple;
-`== MapRSE.X.value` is a valid identity test):
-```
-magma_door.ss1      (24,13)  == JAGGED_PASS       -> True    == MAGMA_HIDEOUT_4F -> False
-magma_1f_fail.ss1   (24,91)  == MAGMA_HIDEOUT_4F  -> True
-```
-⇒ on 4F the guard never fires; off 4F it fires. ‼ Note the second control also shows
-**`saves/magma_1f_fail.ss1` is misnamed — it stands on 4F, not 1F.**
-
-**Prevention rule.** *A loop whose exit condition is a story flag must ALSO watch for the ways the
-game can move the player out from under it. A whiteout satisfies no flag.*
+Full diagnosis, the two controls and its prevention rule moved to `31-KNOWN-ISSUES-ARCHIVE.md` on
+2026-08-13 to keep this current-state file inside its 3,000-line budget (lint rule R3). Keep only
+this: **a loop whose exit condition is a story flag must ALSO watch for the ways the game can move
+the player out from under it — a whiteout satisfies no flag.** ‼ It also recorded that
+`saves/magma_1f_fail.ss1` is MISNAMED: it stands on **4F**, not 1F.
 
 ---
 
@@ -2503,9 +2446,23 @@ Two **OPEN, code-verified, unfixed** bugs were moved to `31-KNOWN-ISSUES-ARCHIVE
 line budget, not because they were resolved. A cold read of that file's header says "issues that
 are now resolved live here", so they are listed here to stay findable:
 
-* **KI-59** — `map_path` **INVERTS `Impassable *` directions**, over-blocking every such tile.
-  ‼ **ARMED IN THE SEAFLOOR CAVERN**: 115 `Impassable *` tiles across Rooms 1-9. Fix it with an A/B
-  on `SEAFLOOR_CAVERN_ROOM1` **before** that chapter exists. (Archive line ~481.)
+* **KI-59** — `map_path` **INVERTS `Impassable *` directions**. ✅ **STILL REAL** (decomp-verified).
+  ⛔ **BUT ITS "ARMED IN THE SEAFLOOR CAVERN" HEADLINE IS RETRACTED, 2026-08-13, MEASURED.**
+  The handler at `map_path.py:128` is the **`elif` of `if tile.collision != 0:`** (`:118`), so a
+  collision≠0 tile never reaches it. **All 115 cavern tiles have `collision=1` ⇒ ZERO are live**, and
+  the prescribed A/B on `SEAFLOOR_CAVERN_ROOM1` would have measured a **zero delta**. KI-59 does
+  **not** gate §Ch20/§Ch21. Swept over all 518 maps by `tools/story-dev/probe_impassable_dirs.py`:
+  **2,658 such tiles, 2,257 dormant, 401 (15.1%) live.** It is live chiefly on the **REGI TOMBS**
+  (Desert Ruins / Island Cave / Ancient Tomb, 48 each = 144), **SHOAL CAVE** (98) and **VICTORY
+  ROAD** (58). ⇒ **It is a prerequisite of the REGI ARC, not of the cavern.** Full detail, the
+  decomp ground truth, the specified fix and its pre-checked hazards are in the punch list under
+  **`#24-impassabledirs`**. (Archive line ~481 — ‼ that archived entry's headline is now wrong;
+  a correction banner sits on it.)
+  ‼ **Knock-on:** `tools/story-dev/probe_shoal_tide.py:364-367` **replicates the inversion**, and
+  that probe produced the *"reachable spin tiles: LOW 278, HIGH 0"* figure behind the user-delegated
+  **"Shoal Cave is NOT adopted"** ruling — on rooms carrying **89 live tiles**. The ruling is NOT
+  being reopened here, but the number underneath it was computed with a model we now know is wrong,
+  and it should be **re-derived after the fix** before anyone leans on it again.
 * **KI-60** — `calculate_path` **never validates its SOURCE tile**, so a result is evidence about
   the DESTINATION only. Every probe in this project asserts the avatar's real position because of
   this. (Archive line ~513.)
