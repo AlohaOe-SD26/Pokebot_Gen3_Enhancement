@@ -137,7 +137,25 @@ class DefaultBattleStrategy(BattleStrategy):
         new_lead: int | None = None
         new_lead_current_hp: int = 0
         party = get_party()
-        for index in range(len(party)):
+
+        # ‼‼ IN A MULTI BATTLE, HALF OF `gPlayerParty` BELONGS TO THE ALLY — AND THEY SCORE BEST.
+        # `SPECIAL_BATTLE_STEVEN` (the Mossdeep Space Center) runs
+        # `ReducePlayerPartyToSelectedMons` and then `FillPartnerParty`, which writes Steven's
+        # Metang L42 / Skarmory L43 / Aggron L44 into `gPlayerParty[3..5]` and sets the party count
+        # to 6. `get_party()` therefore returns SIX Pokémon, only the first three of which are ours.
+        # The loop below excludes just the two mons currently ON THE FIELD, so the ally's benched
+        # pair are always candidates — and because the rule is "highest current HP wins", his fresh
+        # max-IV L42-44 mons BEAT our damaged party every time. The game then refuses the switch
+        # ("Can't switch with ALLY!") and the party menu is handed a choice it will never accept.
+        # `MULTI_PARTY_SIZE` is 3, which is why the cut is at 3.
+        # ‼ The property to test this with already existed and had ZERO callers anywhere in the
+        # tree — the guard was written and then never wired up. §Ch19 is the first content in this
+        # project to reach a multi battle, so this has been latent rather than harmless.
+        own_party_size = len(party)
+        if battle_state.is_double_battle_with_partner:
+            own_party_size = min(own_party_size, 3)
+
+        for index in range(own_party_size):
             pokemon = party[index]
             if battle_state.is_double_battle and (
                 (

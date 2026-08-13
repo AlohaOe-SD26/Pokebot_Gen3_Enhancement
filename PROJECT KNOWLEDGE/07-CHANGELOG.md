@@ -11949,3 +11949,76 @@ An adversarial planning pass predicted, with citations, how the first driven run
   adversarial pass before the code existed, which is why it is here and not in the mistakes log.
 
 Also archived KI-56/KI-57 to `31-KNOWN-ISSUES-ARCHIVE.md` to stay inside the R3 line budget.
+
+## 2026-08-12 (later) — the flag/var audit was checking TWO files, and none of the chapters
+
+`tools/story-dev/audit_flag_names.py` is the gate that stops a completion check being written
+against a name that does not exist (an unknown name reads `False`/`-1` **silently**, so the chapter
+can never pass and never says why). Run before building §Ch19, it reported *"all names valid
+(checked **2 files**)"*.
+
+**Two holes, both found by looking at what it printed rather than at its exit code:**
+1. **It scanned a hard-coded list of two paths** — `early_game.py` and `story_mode.py` — written
+   before the chapters moved out into `modules/story/*.py`. So `mossdeep_gym.py` (§Ch18),
+   `space_center.py` (§Ch19), `pc_trip.py`, `counter_hunt.py` and eleven more were **never audited**.
+   Fixed with a glob, which cannot go stale as code moves.
+2. **‼ It could only see names written as literals AT the call site**, and this codebase's idiom is
+   a module constant (`BADGE_FLAG = "BADGE07_GET"` … `get_event_flag(BADGE_FLAG)`). After the glob
+   fix `mossdeep_gym.py` still reported **0 names** while gating §Ch18 on `BADGE07_GET`. So the audit
+   was blindest exactly where it matters most — **the completion markers**. Fixed by resolving
+   `CONST = "LITERAL"` one level; unresolvable UPPER_SNAKE constants are now reported, while
+   lower-case identifiers (parameters of generic helpers, dynamic by design) are counted separately
+   so the gate does not cry wolf.
+
+Coverage went **2 files / 117 names → 19 files / 129 names**. It now also prints the per-file name
+count (an audit over zero names must not look like a pass) and **exits 1 when it finds a phantom** —
+it previously printed its findings and exited 0, so any caller checking the status code saw a PASS.
+
+**A/B PROOF (fault-injected).** With `STATE_VAR` in `space_center.py` changed to a name that does
+not exist, the OLD tool prints `all names valid (checked 2 files)`; the NEW tool prints
+`space_center.py: var-via-const STATE_VAR='MOSSDEEP_SPACE_CENTER_STATE_XX_FAULT'`. The fault was
+reverted and the clean tree exits 0.
+
+## 2026-08-12 (later) — §Ch19 legs 1-3 BUILT and DRIVEN: into the Space Center, up to Steven
+
+`--driver spacecenter1` → **ACCEPTANCE PASS**, `whiteouts=0`, anchor `saves/at_steven_2f.ss1`:
+```
+[ch19a] RESULT MOSSDEEP_SPACE_CENTER_STATE=2 map=MOSSDEEP_CITY_SPACE_CENTER_2F at=(13, 2)
+        controllable=True whiteouts=0
+[ch19a] REACH-STEVEN (1, 7):OK(19wp) (2, 8):OK(19wp)
+```
+The acceptance deliberately includes **a real `calculate_path` to Steven** — "and the bot can
+continue", the rule §Ch15 and §Ch18 each violated.
+
+**Two defects in the groundwork, both fixed, both proven by the driven run:**
+* **Leg 1 was one navigation and had to be two.** It planned straight to the door approach (64,16)
+  and failed instantly: `UnreachableDestinationError … still at (28,17)`. **Measured cause**
+  (`probe_ch19_route.py`, new): the gym victory SPAWNS five Team Magma NPCs onto the only land
+  bridge — grunts at (44,23)…(44,26) and Maxie at (45,25) — and our planner blocks every loaded
+  object's tile, so no route exists until they leave. Now: heal → ride the forced cutscene → **assert
+  `VAR_MOSSDEEP_CITY_STATE == 2`** → then plan to the door.
+* **Leg 2 navigated to a tile an NPC was standing on.** `STAIRS_APPROACH_1F = (13,2)` is the stair
+  grunt's own tile, so the destination could never be reached. That grunt has `sight_radius = 0` and
+  a `lock`/`faceplayer` script — it is an **interaction** trainer that never starts its own battle.
+  Added `_talk_to_the_stair_grunt()`: walk to a free adjacent tile, face it, press A, and grade on
+  **the grunt leaving its tile**. Driven: *"talking to the stair grunt from (12, 2) facing Right"* →
+  *"the stair grunt has stepped aside"*.
+
+Also hardened `clear_the_three_grunts()` to **bail when it leaves 2F** rather than A-mashing on the
+wrong map for its whole 60,000-frame budget — the two ways off that floor (answering the prompt NO,
+or losing a grunt battle) both left the old predicate false.
+
+## 2026-08-12 (later) — the multi-battle faint replacer would have sent out STEVEN's Pokémon
+
+Fixed in **both** choosers (`battle_strategies/default.py` and the story override in
+`story_mode.py`). In `SPECIAL_BATTLE_STEVEN` the game runs `FillPartnerParty`, which writes Steven's
+max-IV **Metang L42 / Skarmory L43 / Aggron L44 into `gPlayerParty[3..5]`** and sets the party count
+to 6 — so `get_party()` returns six Pokémon, only the first three of which are ours. Both choosers
+excluded *only the two mons on the field*, and both rank by condition (highest current HP; the story
+one by matchup then HP then level), so **three fresh high-level mons beat our damaged party every
+time**. The game then refuses the switch ("Can't switch with ALLY!") and the party menu is handed a
+target it can never accept.
+
+‼ The guard needed already existed and had **zero callers in the entire tree**:
+`BattleState.is_double_battle_with_partner`. It was written and never wired up. §Ch19 is the first
+content in this project to reach a multi battle, so this was latent rather than harmless.

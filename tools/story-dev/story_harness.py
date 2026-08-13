@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "normancounter"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -2851,6 +2851,433 @@ class MossdeepBadgeMode(BotMode):
         return
 
 
+class SpaceCenter1Mode(BotMode):
+    """§Ch19 LEGS 1-3 - reach Steven's floor of the Mossdeep Space Center, and capture the anchor.
+
+        PYTHONUTF8=1 py -3.12 story_harness.py post_mossdeep_gym.ss1 --driver spacecenter1 \
+            --frames 900000 --profile ch19a
+
+    ANCHOR IN: `saves/post_mossdeep_gym.ss1`, captured by `--driver mossdeepbadge` on a PASS. It
+    stands in MOSSDEEP_CITY (38,10) with 7 badges and - ‼ deliberately recorded - a party at 66%
+    HP with one Pokemon fainted, which is why leg 1 heals before it walks anywhere.
+    ANCHOR OUT: `saves/at_steven_2f.ss1`, so the party-selection menu (leg 5, the one genuinely
+    unknown thing in this chapter) can be instrumented over and over without replaying the walk.
+
+    ‼ WHY THE CHAPTER IS SPLIT HERE RATHER THAN DRIVEN WHOLE. Legs 1-3 are ordinary story work -
+    walk, ride a forced cutscene, fight grunts - and they are the LONG part. Leg 5 opens
+    `ChooseHalfPartyForBattle`, which nothing in this codebase has driven, and figuring that out
+    needs many short attempts from a fixed state, not one long one. Driving the whole chapter to
+    reach the unknown would pay the entire travel cost per experiment.
+
+    ‼ THE ACCEPTANCE INCLUDES "AND THE BOT CAN CONTINUE", not merely a var value. §Ch15 and §Ch18
+    each passed a binary test while leaving the run permanently stranded (KI-56, then §Ch18's
+    eleven-tile island the same session). So this asserts a REAL `calculate_path` from where we
+    stand to Steven's approach tile: if the three grunts left the floor in a state where Steven
+    cannot be reached, that is a FAIL here rather than a mystery in leg 4.
+
+    Emits: [ch19a] RESULT state_var=<n> map=<enum> at=<tile> controllable=<bool> whiteouts=<n>
+    """
+
+    _whiteouts = 0
+
+    @staticmethod
+    def name():
+        return "SpaceCenter1"
+
+    def on_battle_started(self, encounter):
+        # ‼ MIRRORS StoryMode's own choice, because a driver that fights differently from the
+        # production mode is measuring a bot the user does not run.
+        from modules.battle_strategies import DefaultBattleStrategy
+
+        if encounter is None:
+            from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+            return StoryItemBattleStrategy()
+        return DefaultBattleStrategy()
+
+    def on_whiteout(self) -> bool:
+        SpaceCenter1Mode._whiteouts += 1
+        log(f"[ch19a] WHITEOUT #{SpaceCenter1Mode._whiteouts} - recovering, as StoryMode does")
+        return True
+
+    def run(self):
+        import os
+
+        from modules.map_data import MapRSE
+        from modules.memory import get_event_var
+        from modules.player import get_player_avatar, player_avatar_is_controllable
+        from modules.pokemon_party import get_party
+        from modules.story.early_game import wait_until_truly_controllable
+        from modules.story.space_center import (
+            STATE_VAR,
+            STEVEN_APPROACHES_2F,
+            clear_the_three_grunts,
+            cross_first_floor,
+            walk_into_the_space_center,
+        )
+
+        yield from wait_until_truly_controllable()
+
+        def here():
+            avatar = get_player_avatar()
+            return tuple(avatar.map_group_and_number), tuple(avatar.local_coordinates)
+
+        def map_name(mgn):
+            try:
+                return MapRSE(mgn).name
+            except Exception as error:  # noqa: BLE001 - report the raw tuple rather than crash
+                return f"?{mgn}({type(error).__name__})"
+
+        mgn, tile = here()
+        try:
+            party = " ".join(f"{m.species.name}:L{m.level}:{m.current_hp}/{m.total_hp}"
+                             for m in get_party() if m is not None)
+        except Exception as error:  # noqa: BLE001 - an unreadable party is reported, not hidden
+            party = f"<unreadable: {type(error).__name__}>"
+        log(f"[ch19a] START {map_name(mgn)}{tile} {STATE_VAR}={get_event_var(STATE_VAR)}")
+        log(f"[ch19a] PARTY {party}")
+
+        error_text = ""
+        try:
+            yield from walk_into_the_space_center()
+            yield from cross_first_floor()
+            yield from clear_the_three_grunts()
+        except Exception as error:  # noqa: BLE001 - the failure IS the measurement
+            error_text = f"{type(error).__name__}: {str(error)[:900]}"
+            log(f"[ch19a] FAILED: {error_text}")
+
+        mgn, tile = here()
+        try:
+            ctrl = player_avatar_is_controllable()
+        except Exception as error:  # noqa: BLE001
+            ctrl = f"<unreadable: {type(error).__name__}>"
+        state = get_event_var(STATE_VAR)
+        on_2f = mgn == MapRSE.MOSSDEEP_CITY_SPACE_CENTER_2F.value
+
+        # ‼ "CAN THE BOT CONTINUE" - asked with a real path calculation, not asserted in prose.
+        # Steven stands on a collision tile, so the reachable target is an APPROACH tile beside
+        # him; either one will do, and needing neither would mean leg 4 could never start.
+        # ‼ `calculate_path` takes MapLocation OBJECTS from `get_map_data(map, tile)`, not raw
+        # tuples, and lives in `modules.map_path`. Both were wrong in the first draft of this
+        # driver; a tuple would have raised inside the guard below and reported the grade as
+        # "uncomputable" rather than as a real reachability answer.
+        # ‼ KI-60: `calculate_path` never validates its SOURCE, so this is evidence about the
+        # DESTINATION only - which is why `tile` is the avatar's measured position, not an assumed one.
+        reach = "not-attempted"
+        if on_2f:
+            try:
+                from modules.map import get_map_data
+                from modules.map_path import calculate_path
+
+                here_loc = get_map_data(MapRSE.MOSSDEEP_CITY_SPACE_CENTER_2F, tile)
+                reasons = []
+                for approach, _facing in STEVEN_APPROACHES_2F:
+                    try:
+                        path = calculate_path(
+                            here_loc,
+                            get_map_data(MapRSE.MOSSDEEP_CITY_SPACE_CENTER_2F, approach),
+                        )
+                        reasons.append(f"{approach}:OK({len(path)}wp)")
+                    except Exception as error:  # noqa: BLE001 - a failure here is the finding
+                        reasons.append(f"{approach}:{type(error).__name__}")
+                reach = " ".join(reasons)
+            except Exception as error:  # noqa: BLE001 - never let the probe crash the grade
+                reach = f"<uncomputable: {type(error).__name__}: {str(error)[:120]}>"
+        can_continue = ":OK(" in reach
+
+        ok = on_2f and state >= 2 and ctrl is True and can_continue
+        log(f"[ch19a] RESULT {STATE_VAR}={state} map={map_name(mgn)} at={tile} "
+            f"controllable={ctrl} whiteouts={SpaceCenter1Mode._whiteouts} "
+            f"frames={context.emulator.get_frame_count()}"
+            + (f" error=({error_text})" if error_text else ""))
+        log(f"[ch19a] REACH-STEVEN {reach}")
+        log(f"[ch19a] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (needs on 2F AND {STATE_VAR}>=2 AND "
+            f"controllable AND a real path to Steven; on_2f={on_2f} can_continue={can_continue})")
+
+        if ok and os.environ.get("CH19A_CAPTURE", "1") != "0":
+            out = SAVES / "at_steven_2f.ss1"
+            out.write_bytes(context.emulator.get_save_state())
+            log(f"[ch19a] captured anchor -> {out}")
+
+        context.set_manual_mode()
+        return
+
+
+class SpaceCenter2Mode(BotMode):
+    """§Ch19 LEG 5 - Steven's two talks, the PARTY-SELECTION MENU, and the multi battle.
+
+        PYTHONUTF8=1 py -3.12 story_harness.py at_steven_2f.ss1 --driver spacecenter2 \
+            --frames 600000 --profile ch19b
+
+    ANCHOR: `saves/at_steven_2f.ss1`, captured by `--driver spacecenter1` on a PASS. It stands on
+    SPACE_CENTER_2F (13,2) with `MOSSDEEP_SPACE_CENTER_STATE = 2` - the three grunts already beaten.
+
+    ‼ THIS IS THE ONE GENUINELY UNKNOWN THING IN THE CHAPTER. `ChooseHalfPartyForBattle` has never
+    been driven by this codebase. The decomp says the menu is entered with A (submenu) then A
+    (ENTER) per Pokemon, that THE CURSOR DOES NOT ADVANCE between picks, and that CONFIRM is cursor
+    slot 6 - so a blind A-mash toggles one slot on and off for ever (`ACTIONS_NO_ENTRY` deselects)
+    with a healthy screen and no error. Two independent agents read that from cited source. This
+    driver is what turns it from a claim into a measurement, so it logs the SELECTION ITSELF
+    (`gSelectedOrderFromParty`) rather than only the outcome.
+
+    ‼ WHY A DRIVER AND NOT A PROBE. A hand-driven generator has no battle listeners and cannot win
+    a fight (`modules/battle_fault.py:5`); this beat ends in a six-Pokemon multi battle. Probes are
+    for logic and guards; anything that must survive a battle needs a real driver.
+
+    WHAT IS MOST LIKELY TO FAIL, SAID IN ADVANCE (so a pass means something):
+      1. the party menu never opens (the second Steven talk mis-answered), or
+      2. it opens and the cursor/ENTER sequence does not register a pick, or
+      3. picks register but CONFIRM is never reached and the menu sits open, or
+      4. the battle is LOST - which is a legitimate outcome here, not a crash: the script calls
+         `SetCB2WhiteOut` itself, halves the money and warps to the last heal location, leaving
+         the var at 2 so the beat can be retried.
+
+    Emits: [ch19b] SELECTED <gSelectedOrderFromParty> / RESULT state_var=<n> ... / ACCEPTANCE
+    """
+
+    _whiteouts = 0
+
+    @staticmethod
+    def name():
+        return "SpaceCenter2"
+
+    def on_battle_started(self, encounter):
+        from modules.battle_strategies import DefaultBattleStrategy
+
+        if encounter is None:
+            from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+            return StoryItemBattleStrategy()
+        return DefaultBattleStrategy()
+
+    def on_whiteout(self) -> bool:
+        SpaceCenter2Mode._whiteouts += 1
+        log(f"[ch19b] WHITEOUT #{SpaceCenter2Mode._whiteouts} - the multi battle was lost")
+        return True
+
+    def run(self):
+        import os
+
+        from modules.map_data import MapRSE
+        from modules.memory import get_event_flag, get_event_var, read_symbol
+        from modules.player import get_player_avatar, player_avatar_is_controllable
+        from modules.pokemon_party import get_party
+        from modules.story.early_game import wait_until_truly_controllable
+        from modules.story.space_center import (
+            DONE_STATE,
+            STATE_VAR,
+            STEVEN_FLAG,
+            battle_party_slots,
+            fight_alongside_steven,
+        )
+
+        yield from wait_until_truly_controllable()
+
+        def here():
+            avatar = get_player_avatar()
+            return tuple(avatar.map_group_and_number), tuple(avatar.local_coordinates)
+
+        def map_name(mgn):
+            try:
+                return MapRSE(mgn).name
+            except Exception as error:  # noqa: BLE001
+                return f"?{mgn}({type(error).__name__})"
+
+        mgn, tile = here()
+        try:
+            party = " ".join(f"{m.species.name}:L{m.level}:{m.current_hp}/{m.total_hp}"
+                             for m in get_party() if m is not None)
+        except Exception as error:  # noqa: BLE001
+            party = f"<unreadable: {type(error).__name__}>"
+        log(f"[ch19b] START {map_name(mgn)}{tile} {STATE_VAR}={get_event_var(STATE_VAR)} "
+            f"{STEVEN_FLAG}={get_event_flag(STEVEN_FLAG)}")
+        log(f"[ch19b] PARTY {party}")
+        # ‼ SAY WHAT WE INTEND TO PICK *BEFORE* THE RUN, so the log can be graded against an
+        # intention rather than rationalised afterwards. The whole party is eligible only when
+        # healed - the anchor arrives with Zigzagoon fainted, which the game itself refuses.
+        try:
+            log(f"[ch19b] INTENDED-PICKS slots={battle_party_slots()} (strongest first, max 3)")
+        except Exception as error:  # noqa: BLE001
+            log(f"[ch19b] INTENDED-PICKS <unreadable: {type(error).__name__}>")
+
+        error_text = ""
+        try:
+            yield from fight_alongside_steven()
+        except Exception as error:  # noqa: BLE001 - the failure IS the measurement
+            error_text = f"{type(error).__name__}: {str(error)[:900]}"
+            log(f"[ch19b] FAILED: {error_text}")
+
+        try:
+            selected = list(read_symbol("gSelectedOrderFromParty")[:4])
+        except Exception as error:  # noqa: BLE001
+            selected = f"<unreadable: {type(error).__name__}>"
+        log(f"[ch19b] SELECTED gSelectedOrderFromParty={selected} (stored as slot+1; 0 = empty)")
+
+        mgn, tile = here()
+        try:
+            ctrl = player_avatar_is_controllable()
+        except Exception as error:  # noqa: BLE001
+            ctrl = f"<unreadable: {type(error).__name__}>"
+        state = get_event_var(STATE_VAR)
+        ok = state >= DONE_STATE and ctrl is True
+        log(f"[ch19b] RESULT {STATE_VAR}={state} map={map_name(mgn)} at={tile} "
+            f"controllable={ctrl} whiteouts={SpaceCenter2Mode._whiteouts} "
+            f"frames={context.emulator.get_frame_count()}"
+            + (f" error=({error_text})" if error_text else ""))
+        log(f"[ch19b] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (needs {STATE_VAR}>={DONE_STATE} "
+            f"AND controllable)")
+
+        if ok and os.environ.get("CH19B_CAPTURE", "1") != "0":
+            out = SAVES / "post_space_center.ss1"
+            out.write_bytes(context.emulator.get_save_state())
+            log(f"[ch19b] captured anchor -> {out}")
+
+        context.set_manual_mode()
+        return
+
+
+class SpaceCenterMode(BotMode):
+    """§Ch19 END TO END - drive `do_space_center_chapter()` and grade it the way the LADDER does.
+
+        PYTHONUTF8=1 py -3.12 story_harness.py post_space_center.ss1 --driver spacecenter \
+            --frames 400000 --profile ch19c          # leg 6 only, + proves resume-safety
+        PYTHONUTF8=1 py -3.12 story_harness.py post_mossdeep_gym.ss1 --driver spacecenter \
+            --frames 1500000 --profile ch19d         # the WHOLE chapter
+
+    ‼ THE SAME DRIVER FROM TWO ANCHORS IS THE POINT. Every leg is resume-safe, so running it from
+    `post_space_center.ss1` must SKIP straight to the Dive gift - which tests the resume guards and
+    leg 6 at once - while running it from `post_mossdeep_gym.ss1` plays the whole beat. A chapter
+    that only works from its first anchor is not resume-safe, and the ladder re-runs `_play` from
+    wherever the player actually is.
+
+    ‼ GRADED ON `RECEIVED_HM_DIVE`, NOT ON THE SPACE CENTER VAR - because that is what
+    `chapters.py` grades chapter 19 on, and the two are set in DIFFERENT BUILDINGS. A §Ch19 that
+    stopped at `MOSSDEEP_SPACE_CENTER_STATE == 3` would pass its own test while `current_chapter()`
+    returned chapter 19 for ever; and on the re-run the 2F Steven has been `removeobject`'d, so
+    there would be nobody left to talk to. Green acceptance, wedged ladder.
+
+    ‼ AND IT ASSERTS THE ITEM, NOT ONLY THE FLAG. `EventScript_StevenGivesDive` does `giveitem` and
+    then `setflag` with NO check of the result, so a full TM/HM pocket sets the flag while HM08 was
+    never received - the chapter would grade green and §Ch21 would fail on "cannot use Dive".
+
+    ‼ AND "THE BOT CAN CONTINUE". The acceptance requires being OUT of any interior and holding a
+    real path to the next beat's departure point. §Ch15 and §Ch18 each passed a binary test while
+    leaving the run stranded; that rule is the most re-learned one in this project.
+
+    Emits: [ch19c] RESULT dive=<bool> hm08=<bool> map=<enum> at=<tile> controllable=<bool>
+    """
+
+    _whiteouts = 0
+
+    @staticmethod
+    def name():
+        return "SpaceCenter"
+
+    def on_battle_started(self, encounter):
+        from modules.battle_strategies import DefaultBattleStrategy
+
+        if encounter is None:
+            from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+            return StoryItemBattleStrategy()
+        return DefaultBattleStrategy()
+
+    def on_whiteout(self) -> bool:
+        SpaceCenterMode._whiteouts += 1
+        log(f"[ch19c] WHITEOUT #{SpaceCenterMode._whiteouts} - recovering, as StoryMode does")
+        return True
+
+    def run(self):
+        import os
+
+        from modules.map_data import MapRSE
+        from modules.memory import get_event_flag, get_event_var
+        from modules.player import get_player_avatar, player_avatar_is_controllable
+        from modules.pokemon_party import get_party
+        from modules.story.early_game import wait_until_truly_controllable
+        from modules.story.space_center import (
+            DIVE_FLAG,
+            STATE_VAR,
+            _has_hm08,
+            do_space_center_chapter,
+        )
+
+        yield from wait_until_truly_controllable()
+
+        def here():
+            avatar = get_player_avatar()
+            return tuple(avatar.map_group_and_number), tuple(avatar.local_coordinates)
+
+        def map_name(mgn):
+            try:
+                return MapRSE(mgn).name
+            except Exception as error:  # noqa: BLE001
+                return f"?{mgn}({type(error).__name__})"
+
+        mgn, tile = here()
+        try:
+            party = " ".join(f"{m.species.name}:L{m.level}:{m.current_hp}/{m.total_hp}"
+                             for m in get_party() if m is not None)
+        except Exception as error:  # noqa: BLE001
+            party = f"<unreadable: {type(error).__name__}>"
+        log(f"[ch19c] START {map_name(mgn)}{tile} {STATE_VAR}={get_event_var(STATE_VAR)} "
+            f"{DIVE_FLAG}={get_event_flag(DIVE_FLAG)}")
+        log(f"[ch19c] PARTY {party}")
+
+        error_text = ""
+        try:
+            yield from do_space_center_chapter()
+        except Exception as error:  # noqa: BLE001 - the failure IS the measurement
+            error_text = f"{type(error).__name__}: {str(error)[:900]}"
+            log(f"[ch19c] FAILED: {error_text}")
+
+        mgn, tile = here()
+        try:
+            ctrl = player_avatar_is_controllable()
+        except Exception as error:  # noqa: BLE001
+            ctrl = f"<unreadable: {type(error).__name__}>"
+        dive = get_event_flag(DIVE_FLAG)
+        hm08 = _has_hm08()
+
+        # ‼ CAN THE BOT CONTINUE? Asked with a real path calculation from where we actually stand.
+        # §Ch20 leaves from Mossdeep City, so the honest question is "are we outside, and can we
+        # reach the south exit". Steven's house has ONE door; a chapter that ended inside it would
+        # look complete and strand the ladder in a living room.
+        outside = mgn == MapRSE.MOSSDEEP_CITY.value
+        reach = "not-attempted"
+        if outside:
+            try:
+                from modules.map import get_map_data
+                from modules.map_path import calculate_path
+
+                path = calculate_path(
+                    get_map_data(MapRSE.MOSSDEEP_CITY, tile),
+                    get_map_data(MapRSE.MOSSDEEP_CITY, (28, 17)),   # the Pokemon Center door
+                )
+                reach = f"OK({len(path)}wp to the Pokemon Center)"
+            except Exception as error:  # noqa: BLE001 - a failure here IS the finding
+                reach = f"{type(error).__name__}: {str(error)[:90]}"
+        can_continue = reach.startswith("OK(")
+
+        ok = dive and hm08 and ctrl is True and outside and can_continue
+        log(f"[ch19c] RESULT dive={dive} hm08={hm08} {STATE_VAR}={get_event_var(STATE_VAR)} "
+            f"map={map_name(mgn)} at={tile} controllable={ctrl} "
+            f"whiteouts={SpaceCenterMode._whiteouts} frames={context.emulator.get_frame_count()}"
+            + (f" error=({error_text})" if error_text else ""))
+        log(f"[ch19c] CAN-CONTINUE {reach}")
+        log(f"[ch19c] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (needs {DIVE_FLAG} AND HM08 in the bag "
+            f"AND controllable AND outside AND a real path onward; outside={outside} "
+            f"can_continue={can_continue})")
+
+        if ok and os.environ.get("CH19C_CAPTURE", "1") != "0":
+            out = SAVES / "post_dive.ss1"
+            out.write_bytes(context.emulator.get_save_state())
+            log(f"[ch19c] captured anchor -> {out}")
+
+        context.set_manual_mode()
+        return
+
+
 class AquaHideoutMode(BotMode):
     """§Ch17 - drive `do_aqua_hideout_chapter()` from the post-Ch16 anchor.
 
@@ -4726,6 +5153,12 @@ for step in range(args.frames):
             context.bot_mode_instance = MossdeepGymMode()
         elif args.driver == "mossdeepbadge":
             context.bot_mode_instance = MossdeepBadgeMode()
+        elif args.driver == "spacecenter1":
+            context.bot_mode_instance = SpaceCenter1Mode()
+        elif args.driver == "spacecenter2":
+            context.bot_mode_instance = SpaceCenter2Mode()
+        elif args.driver == "spacecenter":
+            context.bot_mode_instance = SpaceCenterMode()
         elif args.driver == "slateporttheft":
             context.bot_mode_instance = SlateportTheftMode()
         elif args.driver == "teachfull":

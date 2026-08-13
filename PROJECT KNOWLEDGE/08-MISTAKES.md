@@ -5175,3 +5175,126 @@ heredoc (`<<'EOF'`), which does not substitute. Never a double-quoted shell stri
 **Prevention rule.** *Never pass Markdown through a double-quoted shell string — backticks become
 command substitution and silently delete your citations. Use the Edit tool or a quoted heredoc, and
 if you must use the shell, re-read the line afterwards rather than trusting the exit code.*
+
+## 2026-08-12 — the flag/var audit had been checking TWO files, and none of the chapters
+
+**Symptom.** `audit_flag_names.py` — the gate whose entire job is to stop a chapter being graded on
+a name that does not exist — printed *"all names valid (checked **2 files**)"* before the §Ch19
+build. It was, technically, telling the truth.
+
+**Root cause, in two layers.** (1) It scanned a hard-coded list of two paths written before the
+chapters moved out of `early_game.py` into `modules/story/*.py`; thirteen story modules had never
+been audited. (2) Worse, after fixing that, `mossdeep_gym.py` STILL reported **0 names** while
+gating §Ch18 on `BADGE07_GET` — because the regex only matched string literals AT the call site,
+and the house idiom is a module constant (`BADGE_FLAG = "BADGE07_GET"` … `get_event_flag(BADGE_FLAG)`).
+So the audit was blindest precisely at the **completion markers**, the names whose silent
+`False`/`-1` makes a chapter unable to ever pass and unable to say why.
+
+**The fix that worked.** Glob the directory (a list goes stale as code moves; a glob cannot),
+resolve `CONST = "LITERAL"` one level, print the per-file name count, and **exit 1** on a phantom —
+it used to print its findings and exit 0, so a caller checking the status code saw a PASS. Coverage
+went 2 files/117 names → 19 files/144 names. Fault-injected A/B: with a deliberately broken
+`STATE_VAR`, the old tool says "all names valid", the new one names the constant.
+
+**Prevention rule.** *A gate must print WHAT IT SEARCHED and how much it found, and must exit
+non-zero when it finds something. "All clear" over the wrong scope is indistinguishable from "all
+clear" — and a gate that only reports is not a gate.*
+
+## 2026-08-12 — I blamed our pathfinder for a wall the STORY puts there
+
+**Symptom.** §Ch19's first driven run died instantly: `Could not find a path from (28,17) to (64,16)`.
+I wrote a probe to discriminate "the city is genuinely cut in two" from "KI-59, our planner
+over-blocks `Impassable *` tiles", flood-filled the map on raw collision, found the door approach
+**reachable**, and concluded in the probe's own verdict text: *"‼ DISAGREEMENT — my BFS reaches it,
+the planner refuses (KI-59 shape)"*.
+
+**Root cause.** My flood fill modelled collision only. Our planner also blocks **every loaded
+object's tile** (`map_path.py:710-717`), and the gym victory SPAWNS five Team Magma NPCs onto the
+only land bridge (grunts at (44,23)…(44,26), Maxie at (45,25)). The planner was **right**; my model
+was missing an actor. The story's own answer is the forced cutscene, which `removeobject`s all five.
+
+**Why I fell for it.** This is the playbook's own named trap — *a known bug in a tool is a seductive
+explanation for anything that tool reports* — and I reached for the famous bug (KI-59) over the
+boring one (an NPC is standing there) while holding a probe that could not see NPCs at all. The
+hazard note even said the earlier H5 check ran against a map the player was not standing on, so
+`get_map_objects()` returned nothing; I had the caveat and still mis-read my own instrument.
+
+**The fix that worked.** `probe_ch19_route.py` now reads live objects and prints them, and runs the
+flood fill in BOTH models (with and without NPCs) so the two hypotheses are separated by
+construction rather than by my judgement.
+
+**Prevention rule.** *Before blaming the planner, list every actor the planner sees that your model
+does not. A reachability probe that ignores live objects is not measuring the world the bot walks
+in — and a probe run against a map the avatar is not standing on cannot see NPCs at all.*
+
+## 2026-08-12 — a chapter navigated to a tile an NPC was standing on, and could never arrive
+
+**Symptom.** §Ch19 leg 2 did `_navigate_riding_out(FLOOR_1F, (13,2))` to reach the stairs.
+`(13,2)` is the tile the stair grunt **stands on**. Our planner blocks loaded object tiles, so the
+destination was unreachable by construction; the `tries=14` budget was never spent because the
+fail-fast correctly fired on try 2.
+
+**Root cause.** The module's own docstring said that grunt *"must be TALKED to"* — and no code
+talked to it. It has `sight_radius = 0` and a `lock`/`faceplayer` script: it is an **interaction**
+trainer that never starts its own battle, so waiting could not help either. The prose knew; the code
+did not.
+
+**The fix that worked.** `_talk_to_the_stair_grunt()`: walk to a free ADJACENT tile, face the NPC,
+press A, and grade on **the grunt leaving its tile** — not on "a battle happened", which a lost
+battle also satisfies. Driven PASS.
+
+**Prevention rule.** *Never make an occupied tile a navigation destination. If a doc says an NPC
+"must be talked to", grep for the code that talks to it before believing the leg exists — and grade
+an interaction on the NPC MOVING, not on a battle occurring.*
+
+## 2026-08-12 — §Ch19 ended inside Steven's living room, and every completion signal was true
+
+**Symptom.** The first end-to-end run of §Ch19 got everything right — `dive=True hm08=True
+MOSSDEEP_SPACE_CENTER_STATE=3 controllable=True whiteouts=0` — and **FAILED its acceptance**,
+because it finished standing on `MOSSDEEP_CITY_STEVENS_HOUSE (3,7)`.
+
+**Root cause.** The HM08 gift is an ON_FRAME script that fires on the doorstep, so the beat *ends
+where it begins*: one tile inside a house, with the grading flag already set. §Ch20 departs from
+Mossdeep City, so returning there would hand the next chapter an interior it never expected.
+
+**‼ THIS IS KI-56's RULE FOR THE THIRD TIME** — §Ch15 ended four floors underground, §Ch18 on an
+eleven-tile island, and §Ch19 would have ended in a living room. **The difference is that this time
+the test caught it**, because the acceptance asks for a real `calculate_path` off the end tile
+instead of asking whether the avatar is "controllable" — which it was, indoors, the entire time.
+
+**A second bug inside the fix.** `_enter_warp_by_navigation` then failed with "Could not enter the
+warp at (3,7)": both navigate-based door helpers free the tile by stepping SOUTH to `(x, y+1)`, and
+(3,7) is the **bottom row** of the house. An exit door is not an entry door. `_walk_through_warp`
+("Down") — which exists for doors that cannot be a pathfinding destination — is the right tool.
+
+**Prevention rule.** *"Controllable" is still not "able to continue", and an interior is still a
+strand. Keep the `calculate_path`-off-the-end-tile assertion in every chapter's acceptance — it is
+the only thing that has ever caught this. And to LEAVE a door, walk off it; the navigate helpers
+assume a free tile south of the door and quietly cannot serve a bottom-row exit.*
+
+## 2026-08-12 — a five-minute drive died on a name I never imported, and pyflakes was installed all along
+
+**Symptom.** `--driver spacecenter2` walked the whole way to Steven and then failed:
+`NameError: name '_ch14_say' is not defined`. Four functions in `space_center.py` called it while
+importing their other helpers locally.
+
+**Root cause.** This codebase imports helpers INSIDE functions (to keep `early_game.py`
+importable), which makes a missing import invisible to `py_compile` and fatal only when that branch
+runs. The playbook already records this shape biting **twice** (HM-learner 2026-07-23, survival mode
+2026-07-26).
+
+**‼ THE REAL FINDING.** `pyflakes` was already installed and had never been run. On its first run it
+found the bug in under a second — **and a genuine latent defect nobody knew about**:
+`battle_move_replacing.py:280` uses `party_index`, a function-local assigned 90 lines LOWER, inside
+a `try:` whose `except Exception:` sets `move_to_forget = 4` (**decline**). So the "HM moves can't be
+forgotten" recovery — whose entire purpose is to re-pick a different slot — has quite possibly
+never executed, and declining looks like a decision. Filed as **KI-65**, a candidate cause for the
+reopened `#24-teachmsgstall`.
+
+**The fix that worked.** Added `repro_undefined_names.py`, a ZERO-tolerance gate over
+`modules/story` + `plugins/custom_modes`. Scope is deliberate: upstream `modules/` still reports ~10
+harmless `TYPE_CHECKING` annotation names, and a noisy gate gets ignored.
+
+**Prevention rule.** *Run the linter you already have before driving anything — a five-minute
+emulator run is an absurdly expensive way to discover a missing import. And when a cheap tool finds
+one bug on its first run, read the REST of its output: that is where KI-65 came from.*

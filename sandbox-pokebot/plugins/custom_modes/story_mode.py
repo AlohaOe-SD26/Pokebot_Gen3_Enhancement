@@ -155,7 +155,18 @@ class LevelUpTravelBattleStrategy(LevelUpLeadBattleStrategy):
             if not foe_types:
                 return super().choose_new_lead_after_faint(battle_state)
 
+            # ‼‼ THE ALLY'S POKEMON ARE IN OUR PARTY ARRAY IN A MULTI BATTLE, and this ranking
+            # PREFERS them. §Ch19's Space Center fight puts Steven's max-IV Metang L42 / Skarmory
+            # L43 / Aggron L44 into `gPlayerParty[3..5]`; the key below sorts on (incoming damage,
+            # -outgoing, -hp_fraction, -level), and three fresh high-level mons win that comparison
+            # against our damaged party outright. The game then refuses the switch, so the party
+            # menu is handed a target it can never accept. Exclude them by INDEX — `MULTI_PARTY_SIZE`
+            # is 3, so anything at 3+ is the partner's.
+            partner_boundary = 3 if battle_state.is_double_battle_with_partner else None
+
             def _excluded(index) -> bool:
+                if partner_boundary is not None and index >= partner_boundary:
+                    return True
                 if not battle_state.is_double_battle:
                     return False
                 for battler in (battle_state.own_side.left_battler, battle_state.own_side.right_battler):
@@ -3572,11 +3583,41 @@ class StoryMode(BotMode):
             console.print("[dim]Story: Mossdeep Gym already done — skipping.[/]")
         _guard("Mossdeep Gym (Ch18)", lambda: _done("BADGE07_GET"))
 
-        # END OF BUILT CONTENT. Next build: the MOSSDEEP SPACE CENTER (§Ch19), then Steven's
-        # HM08 Dive (§Ch20) — which is the real gate on the Seafloor Cavern (§Ch21).
+        # --- Segment 19: the MOSSDEEP SPACE CENTER + HM08 DIVE (§Ch19, built 2026-08-12). ---
+        #     Ride the forced Team Magma cutscene, cross the Space Center, beat the three grunts,
+        #     fight the MULTI BATTLE alongside Steven, then collect HM08 Dive at Steven's house.
+        # ‼ GRADED ON `RECEIVED_HM_DIVE`, NOT on `MOSSDEEP_SPACE_CENTER_STATE == 3`, because that
+        #     is what `chapters.py` grades chapter 19 on and the two are set in DIFFERENT
+        #     BUILDINGS. A segment that stopped at the battle would pass its own guard while
+        #     `current_chapter()` returned 19 for ever — and on the re-run the 2F Steven has been
+        #     `removeobject`'d, so there would be nobody left to talk to.
+        # ‼ THE CITY IS CUT IN TWO until the cutscene runs: the gym victory SPAWNS five Team Magma
+        #     NPCs onto the only land bridge (x=44, y=23-26), and our planner blocks loaded object
+        #     tiles — so no route to the Space Center door exists until they leave. Measured, and
+        #     it failed the first driven run exactly this way.
+        # ‼ THE STAIR GRUNT MUST BE TALKED TO. It has `sight_radius = 0` and stands ON the only
+        #     tile the stairs are reachable from, so navigating there can never succeed.
+        # ‼ THE PARTY-SELECTION MENU IS DRIVEN, NOT MASHED. A on an already-chosen mon DESELECTS
+        #     it, so A-mash toggles one slot for ever; each pick is verified against
+        #     `gSelectedOrderFromParty`. It brings the strongest THREE — bringing fewer is strictly
+        #     worse, because the loss condition sums HP over the player's picks only.
+        # ‼ LOSING IS A RETRY, NOT AN ERROR: the script calls `SetCB2WhiteOut` itself, halves the
+        #     money and warps to the last heal location, but leaves the var at 2. Three attempts.
+        from modules.story.space_center import do_space_center_chapter
+
+        if not _done("RECEIVED_HM_DIVE"):
+            yield from do_space_center_chapter()
+        else:
+            console.print("[dim]Story: Mossdeep Space Center already done — skipping.[/]")
+        _guard("Mossdeep Space Center + Dive (Ch19)", lambda: _done("RECEIVED_HM_DIVE"))
+
+        # END OF BUILT CONTENT. Next build: the SEAFLOOR CAVERN (§Ch20/§Ch21).
+        # ‼ §Ch21 IS BLOCKED BY KI-63 — no party member can learn Dive and the party is full, so
+        # `#24-pc` is a PREREQUISITE, not a later nicety. HM08 being in the bag is not enough.
         context.message = (
-            "Story: THE MIND BADGE IS WON - end of built content. "
-            "NEXT (WIP): the Mossdeep Space Center. Handing to manual."
+            "Story: HM08 DIVE IS IN THE BAG - end of built content. "
+            "NEXT (WIP): the Seafloor Cavern, which is BLOCKED until a Dive learner exists "
+            "(KI-63). Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         # ‼ Mark a GENUINE completion. Both this path and the give-up paths call

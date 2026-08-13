@@ -1358,6 +1358,61 @@ and, after being shown that Bagon is statistically median:
 | **rare gender variant** ("Male Skitty") | Computable PRE-CATCH (`personality_value & 0xFF` vs `Species.gender_ratio`). ‼ Gen 3 has only **7** gender ratios, so only 4 cutoffs exist; the only one including Skitty (25.4%) admits **86 species** |
 | **rare species** | TWO sub-rules OR'd: **low encounter rate** (Skitty 2%, rank 11/132 — expressible) **OR access-gated / "pseudo-rare"** (Bagon 25%, rank 56/132 — NOT expressible by rate; rare because its only location is `METEOR_FALLS_B1F_2R` L25-35 behind Surf+Waterfall) |
 
+## 2026-08-12 — §Ch19 is ONE segment covering TWO beats, graded on `RECEIVED_HM_DIVE`
+
+**Decision.** Segment 19 does the Space Center defence *and* the HM08 Dive hand-over at Steven's
+house, and the ladder guard is `RECEIVED_HM_DIVE` rather than `MOSSDEEP_SPACE_CENTER_STATE == 3`.
+
+**Why.** `chapters.py` already defines chapter 19 as *"Defend the Space Center … then get HM08 Dive
+from Steven's house"* with `flag("RECEIVED_HM_DIVE")` as its milestone. Grading the segment on the
+Space Center var instead would have been a **silent ladder wedge**: the segment passes its own
+`_guard`, but `current_chapter()` keeps returning 19 because its milestone is unmet, so the
+dispatcher re-runs the chapter — and on the re-run the 2F Steven has been `removeobject`'d, leaving
+nobody to talk to. Green acceptance, wedged run.
+
+**Alternatives rejected.** *Two segments (19 = battle, 20 = Dive).* Rejected: it would need a second
+milestone the registry does not have, and the two beats are separated by one warp and no decision.
+*Grade on `VAR_STEVENS_HOUSE_STATE == 2`.* Rejected: set by the same script one line from the flag,
+so it adds nothing and is not what the registry reads.
+
+**And the acceptance asserts the ITEM, not only the flag** — `EventScript_StevenGivesDive` does
+`giveitem` then `setflag` with no result check, so a full TM/HM pocket would set the flag while HM08
+was never received. Cheap insurance against a green chapter that breaks §Ch21.
+
+## 2026-08-12 — the party-selection menu is DRIVEN AND VERIFIED, not mashed
+
+**Decision.** `choose_battle_party()` moves the cursor by reading it, presses A twice per pick, and
+**verifies every pick against `gSelectedOrderFromParty`** (the game's own record, stored as `slot + 1`).
+
+**Why.** Blind A-mashing cannot work here even in principle: A on an already-chosen mon opens
+`ACTIONS_NO_ENTRY`, whose first item DESELECTS it, so a mash toggles one slot on and off for ever
+with a healthy screen, no error and no flag movement. Two independent agents derived that from cited
+decomp; the driven run then confirmed it by matching `INTENDED-PICKS [0,4,2]` to a measured
+`gSelectedOrderFromParty=[1,5,3,0]` exactly.
+
+**And it always brings THREE.** `Cmd_checkteamslost` has an explicit case for `TRAINER_STEVEN_PARTNER`
+that sums HP over `gPlayerParty[0..2]` **only**, declaring the battle lost the moment the player's
+own picks are down — regardless of Steven's health. So "bring fewer and let the ally carry it" is
+exactly backwards: every mon left behind is a life removed from the loss condition. Selection is by
+level then HP among mons the GAME considers eligible (non-egg, HP > 0), which also avoids the
+fainted-mon submenu whose first item is SUMMARY.
+
+## 2026-08-12 — gates must REFUSE, and their scope is chosen so they stay believed
+
+**Decision.** `audit_flag_names.py` now exits 1 on a phantom name (it used to print its findings and
+exit 0), and the new `repro_undefined_names.py` holds **only our own code** (`modules/story`,
+`plugins/custom_modes`) to zero undefined names.
+
+**Why the narrow scope.** Upstream `modules/` reports ~10 `TYPE_CHECKING`-only annotation names that
+are harmless at runtime. A gate that prints ten known-benign findings every run gets ignored within a
+week — this project has already documented that failure mode — and an ignored gate is worse than
+none, because it looks like coverage. The wider tree's one REAL finding was filed as **KI-65**
+instead, with a note that widening the gate means fixing KI-65 first.
+
+**Alternative rejected.** *Whole-tree enforcement with a ratchet count* (the
+`repro_no_silent_except.py` pattern). Reasonable, but a ratchet on a number nobody can attribute
+invites tuning the number; zero-on-our-code is a claim that can be defended line by line.
+
 ‼ **The "pseudo-rare" ruling introduces a new dimension: ACCESS GATING, not scarcity.** It likely
 makes the unresearched "where is each field move first required" recon a PREREQUISITE for that
 sub-rule — under investigation. The encounter METHOD may be a cheap sufficient proxy (a species

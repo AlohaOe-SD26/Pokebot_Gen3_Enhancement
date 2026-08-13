@@ -2751,3 +2751,73 @@ cannot simply be dropped. A **Wailmer or Tentacool** — both on the water this 
 (Routes 124/126/127/128) — learns **Surf and Dive**, which makes it a single swap that covers both
 duties. To settle before building: confirm the encounter tables in `modules/data` rather than
 trusting this note.
+
+**‼ CORRECTION 2026-08-12 (measured, supersedes the swap suggestion above).** **Wailmer is ROD-ONLY
+and the bag has no rod**, and Tentacool is a surf slot spanning L5-35. The better candidate from our
+own species data is **Spheal** — ~50% of the Shoal Cave low-tide **land** table at L26-32, Ice/Water,
+and it learns **both Surf and Dive** with no rod needed. Also: `RECEIVED_SUPER_ROD` is **False** and
+the free Super Rod is in `MOSSDEEP_CITY_HOUSE3`, which would additionally make **Sharpedo** (40% of
+casts, L30-35) available — it learns both too. ⚠ Shoal Cave HIGH-tide rooms returned **no encounter
+header at all** in our ROM, so tide timing matters. Still blocked by the 6/6 party + KI-54.
+
+## KI-64 — the multi-battle faint replacer would send out the ALLY's Pokémon (2026-08-12, code-verified, ✅ FIXED)
+
+Found while building §Ch19 by an audit of our own code, and confirmed by reading both choosers.
+
+`SPECIAL_BATTLE_STEVEN` (the Mossdeep Space Center) runs `ReducePlayerPartyToSelectedMons` and then
+`FillPartnerParty`, which writes Steven's max-IV **Metang L42 / Skarmory L43 / Aggron L44 into
+`gPlayerParty[3..5]`** and sets the party count to 6. So `get_party()` returns **six** Pokémon, only
+the first three of which are ours.
+
+Both replacement choosers excluded **only the two mons currently on the field**:
+* `modules/battle_strategies/default.py` `choose_new_lead_after_faint` — ranks by highest current HP;
+* the story override in `plugins/custom_modes/story_mode.py` — ranks by `(incoming, -outgoing,
+  -hp_fraction, -level)`.
+
+Under either rule **three fresh high-level mons beat our damaged party outright**, so the chooser
+would return the ally's slot. The game then refuses ("Can't switch with ALLY!") and the party menu is
+handed a target it can never accept.
+
+‼ **The guard already existed and had ZERO callers in the entire tree:**
+`BattleState.is_double_battle_with_partner` (`modules/battle_state.py:288`). Written, never wired up.
+`BattleType.Multi` is likewise never referenced anywhere. **FIXED** by cutting the candidate list at
+`MULTI_PARTY_SIZE = 3` in both choosers when that property is true.
+
+‼ **Why it was latent, not harmless:** §Ch19 is the FIRST content in this project to reach a multi
+battle. Nothing before it could ever have exercised this path — which is exactly why "no bug has
+been observed" said nothing about whether one existed.
+
+## KI-65 — the HM-refusal re-pick has NEVER executed: `party_index` is unbound there (2026-08-12, code-verified, OPEN)
+
+Found by running **pyflakes** over the build for the first time (see `14-AGENT-PLAYBOOK.md`).
+
+`modules/battle_move_replacing.py:280`, inside `handle_move_replacement_dialogue`:
+```python
+if state == LearnMoveState.CantForgetHM:
+    ...
+    try:
+        _mv = get_party()[party_index].moves      # <-- party_index
+        ...  # re-pick a slot the game has NOT refused
+    except Exception:
+        move_to_forget = 4                        # decline
+```
+`party_index` is a **function-local assigned only at line 371** (`move_to_learn, party_index =
+_read_offered_move(...)`), far below this branch. If `CantForgetHM` is reached before that
+assignment has run in this generator's life, line 280 raises **`UnboundLocalError`** — which the
+surrounding `except Exception` converts into `move_to_forget = 4`, i.e. **decline**.
+
+**Why this is bad rather than merely untidy.** Declining is a *legal* outcome, so the failure is
+invisible: the run looks like it made a decision. The whole point of that block — its own comment
+says *"Without the second [learning from the refusal], dismissing just returns to the move list with
+the same doomed pick and the loop is infinite"* — is the re-pick, and the re-pick is exactly what
+never happens. This is the playbook's named pattern **"a fail-safe `except` that returns the SUCCESS
+value"**, and the guard is not protecting anything.
+
+‼ **Candidate cause for the REOPENED `#24-teachmsgstall`**, which is currently characterised as
+*"there is another path to `post_select=exhausted`"*. This is a path to a silent decline in the
+teach flow. **Not yet fixed and not yet proven to be that path** — it needs its own repro (force
+`CantForgetHM` and assert the re-pick runs) and an A/B, which is the honest next step rather than
+assuming the connection.
+
+**Severity:** MEDIUM, order-dependent (on iterations where line 371 already ran, the name is bound
+and the branch works), which is also why it has survived unnoticed.

@@ -30,11 +30,11 @@ burden here is so heavy, and why negative results are treated as the most valuab
 |---|---|
 | branch / HEAD | `main`, **clean, 0 unpushed** |
 | box | **IDLE.** Nothing running. Last batch `20260811-130454` (VERDICT OK, 28 runs). |
-| story content | ✅ **§Ch18 COMPLETE 2026-08-12 — the MIND BADGE is won and wired into the ladder. 19 of 24 beats.** Littleroot → 6 badges → Mt. Pyre → Magma Hideout (and out) → Slateport submarine theft → **the Lilycove AQUA HIDEOUT (with the MASTER BALL)**. (was 18 of 24 before Ch18.) |
+| story content | ✅ **§Ch19 COMPLETE 2026-08-12 — the MOSSDEEP SPACE CENTER is defended and HM08 DIVE is in the bag. 20 of 24 beats.** Littleroot → 6 badges → Mt. Pyre → Magma Hideout (and out) → Slateport submarine theft → the Lilycove AQUA HIDEOUT (with the MASTER BALL) → the MIND BADGE → **the Space Center multi battle + Dive**. (was 19 of 24 before Ch19.) |
 | ‼ is code frozen? | **No.** Nothing is running. |
 | upstream | checked **2026-08-12**, still `5dd898f8` — no change. Daily check DONE. |
 | restore point | **`restore/2026-08-11-all-promoted`** (annotated, pushed, verified on the remote) |
-| sandbox ↔ custom drift | ‼ **§Ch18 IS IN SANDBOX ONLY — NOT PROMOTED.** `modules/story/mossdeep_gym.py`, `modules/story/mossdeep_gym_puzzle.py`, Segment 18 in `plugins/custom_modes/story_mode.py`, and the three `mossdeep*` drivers exist only in `sandbox-pokebot/`. Promotion needs the user's approval AND a driven `--build custom` check, never a diff. Everything BEFORE Ch18 is drift-free: — §Ch15 exit + §Ch16 + §Ch17 + heal stops + the MASTER BALL all PROMOTED 2026-08-12 (user-approved); the first promotion was verified by driving `--build custom` to an identical frame count |
+| sandbox ↔ custom drift | ‼ **§Ch18 AND §Ch19 ARE IN SANDBOX ONLY — NOT PROMOTED.** §Ch19 adds `modules/story/space_center.py`, Segment 19 in `story_mode.py`, the KI-64 partner fix in `battle_strategies/default.py` + `story_mode.py`, and four new tools. Same rule as §Ch18: promotion needs the user's approval AND a driven `--build custom` check, never a diff. Older note follows: ‼ **§Ch18 IS IN SANDBOX ONLY — NOT PROMOTED.** `modules/story/mossdeep_gym.py`, `modules/story/mossdeep_gym_puzzle.py`, Segment 18 in `plugins/custom_modes/story_mode.py`, and the three `mossdeep*` drivers exist only in `sandbox-pokebot/`. Promotion needs the user's approval AND a driven `--build custom` check, never a diff. Everything BEFORE Ch18 is drift-free: — §Ch15 exit + §Ch16 + §Ch17 + heal stops + the MASTER BALL all PROMOTED 2026-08-12 (user-approved); the first promotion was verified by driving `--build custom` to an identical frame count |
 | **if stopped mid-task** | **NOTHING IS PARKED.** Everything is committed and pushed. Start at "NEXT ACTIONS". |
 
 ## ✅ WHAT SHIPPED THIS SESSION (2026-08-11 → 12)
@@ -161,17 +161,97 @@ include "and the bot can continue"** — was violated AGAIN by §Ch18 on 2026-08
 `badge + controllable` while parked on an eleven-tile island. It is the most re-learned lesson
 in this project. Read it before writing any chapter's acceptance test.
 
+## ✅✅ §Ch19 IS DONE (2026-08-12, later session) — the Space Center AND Dive, ladder 19 → 20 of 24
+
+**Driven end to end from `post_mossdeep_gym.ss1`, zero whiteouts:**
+```
+[ch19c] RESULT dive=True hm08=True MOSSDEEP_SPACE_CENTER_STATE=3
+        map=MOSSDEEP_CITY at=(19, 11) controllable=True whiteouts=0
+[ch19c] CAN-CONTINUE OK(15wp to the Pokemon Center)
+[ch19c] ACCEPTANCE: PASS
+```
+`modules/story/space_center.py` is the chapter; **Segment 19 is wired into `story_mode.py`**, graded
+on `RECEIVED_HM_DIVE` (‼ NOT on the Space Center var — `chapters.py` grades chapter 19 on the Dive
+flag, and the two are set in DIFFERENT BUILDINGS; a segment stopping at the battle would pass its own
+guard while `current_chapter()` returned 19 for ever, and on the re-run the 2F Steven has been
+`removeobject`'d so there would be nobody left to talk to).
+
+**New anchors:** `at_steven_2f.ss1`, `post_space_center.ss1`, `post_dive.ss1`.
+**New drivers:** `spacecenter1` (legs 1-3), `spacecenter2` (the menu + multi battle), `spacecenter`
+(whole chapter — ‼ run it from `post_space_center.ss1` as well; skipping to leg 6 is what PROVES the
+resume guards).
+
+### ‼ THE FOUR THINGS WORTH KNOWING BEFORE TOUCHING THIS CHAPTER
+1. **Mossdeep is CUT IN TWO until the forced cutscene runs.** The gym victory SPAWNS five Team Magma
+   NPCs onto the only land bridge (x=44, y=23-26) and our planner blocks loaded-object tiles, so no
+   route to the Space Center door exists yet. Leg 1 is therefore TWO legs: trigger line → **assert
+   `VAR_MOSSDEEP_CITY_STATE == 2`** → then the door. ‼ I first blamed KI-59 (our planner
+   over-blocking) because my flood fill modelled collision only and could not see NPCs — the planner
+   was right. `probe_ch19_route.py` now models live objects so it cannot tell that lie twice.
+2. **The stair grunt must be TALKED to.** `sight_radius = 0`, and it stands ON (13,2), the only tile
+   the stairs are reachable from — so navigating there can never succeed, and waiting cannot help.
+3. **‼ THE PARTY-SELECTION MENU IS SOLVED AND VERIFIED LIVE** (this was the chapter's one genuine
+   unknown). Cursor slots 0-5 are mons, **6 = CONFIRM, 7 = CANCEL**; each pick is `A` (submenu) then
+   `A` (ENTER), and **the cursor does NOT advance between picks**. A on an already-picked mon
+   DESELECTS it, so blind A-mash toggles one slot for ever with a healthy screen and no error. Every
+   pick is verified against **`gSelectedOrderFromParty`** (stored as `slot + 1`): measured `[1,5,3,0]`
+   against `INTENDED-PICKS [0,4,2]` — an exact match. **Always bring three**: `Cmd_checkteamslost`
+   sums HP over the PLAYER's picks only, so bringing fewer is strictly worse, not "letting the ally
+   carry it".
+4. **Losing is a RETRY, not an error.** The script inspects the outcome itself and calls
+   `SetCB2WhiteOut` on anything but a win — money halved, warp to the last heal location — but the
+   var stays at 2 and no trainer flag is set. ‼ Leg 1's heal matters twice over: the anchor's
+   respawn was measured to be **LILYCOVE**, across the sea with no Fly user.
+
+### ‼ AND IT NEARLY SHIPPED STRANDED — FOR THE THIRD TIME
+The first full run finished `dive=True hm08=True controllable=True` and **FAILED**, because it ended
+inside `MOSSDEEP_CITY_STEVENS_HOUSE (3,7)`. The Dive gift is an ON_FRAME script that fires on the
+doorstep, so the beat ends where it begins with every completion signal already true. **The
+acceptance caught it only because it asks for a real `calculate_path` off the end tile** rather than
+asking whether the avatar is "controllable" — which it was, indoors, the whole time. §Ch15 ended four
+floors underground, §Ch18 on an eleven-tile island, §Ch19 in a living room. *Keep that assertion in
+every chapter's acceptance.* (Second bug inside the fix: both navigate-based door helpers free the
+tile by stepping SOUTH, and (3,7) is the bottom row — an exit door needs `_walk_through_warp("Down")`.)
+
+## 🛠 TWO GATES WERE BLIND, AND FIXING THEM FOUND A REAL BUG
+* **`audit_flag_names.py` was checking TWO files** — written before the chapters moved into
+  `modules/story/*.py` — and, worse, could only see names written as literals AT the call site, while
+  the house idiom is a module constant. So it was blindest exactly at the **completion markers**.
+  Now globs 19 files, resolves `CONST = "LITERAL"`, prints per-file counts, and **exits 1** on a
+  phantom (it used to print findings and exit 0). Coverage 2 files/117 names → 19/144. A/B proven by
+  fault injection.
+* **`pyflakes` was installed and had never been run.** New gate `repro_undefined_names.py`
+  (ZERO tolerance over `modules/story` + `plugins/custom_modes`). It found my own missing import
+  *after* a five-minute drive had already paid to reach it — **and KI-65**, below.
+
+## ‼ TWO NEW ISSUES FILED
+* **KI-64 (FIXED)** — the multi-battle faint replacer would have sent out **STEVEN's** Pokémon.
+  `FillPartnerParty` writes his Metang/Skarmory/Aggron into `gPlayerParty[3..5]`; both choosers
+  excluded only the on-field mons and rank by condition, so three fresh L42-44 mons win outright.
+  ‼ The guard needed already existed with **zero callers**: `is_double_battle_with_partner`.
+* **KI-65 (OPEN, unfixed)** — `battle_move_replacing.py:280` uses `party_index`, a function-local
+  assigned 90 lines lower, inside a `try:` whose `except` **declines**. So the "HM moves can't be
+  forgotten" re-pick may never have executed, and declining looks like a decision. **Candidate cause
+  for the reopened `#24-teachmsgstall`** — needs its own repro + A/B before that claim is made.
+
 ## ⏭ NEXT ACTIONS, IN ORDER
 
 > **START HERE ON A FRESH CONTEXT.** Everything is committed and pushed; nothing is parked.
-> 1. **Run `preflight.py`.** Then read this list and the **§Ch19 section below it**.
-> 2. **The actual next build is §Ch19, the Mossdeep Space Center** — groundwork exists, hazards are
->    measured, and the one genuine unknown is the party-selection menu. Item 1 below is a *record*
->    that §Ch18 is finished, not a task.
-> 3. Two things are the USER's call, not yours: **promoting §Ch18 to `custom-pokebot/`**, and the
+> 1. **Run `preflight.py`**, then `repro_undefined_names.py` and `audit_flag_names.py`.
+> 2. **The next build is blocked and the block is the interesting part.** §Ch20/§Ch21 (Seafloor
+>    Cavern) need **Dive USED**, and **KI-63** says no party member can learn it and the party is
+>    full. HM08 being in the bag is not enough. ⇒ **`#24-pc` is now the critical path**, not a later
+>    nicety.
+>    ‼ **KI-63's suggested swap was MEASURED WRONG and corrected**: Wailmer is rod-only (we have no
+>    rod) and Tentacool spans L5-35. **Spheal** (~50% of the Shoal Cave low-tide LAND table, L26-32)
+>    learns both Surf and Dive with no rod; the free **Super Rod** in `MOSSDEEP_CITY_HOUSE3` is
+>    unclaimed (`RECEIVED_SUPER_ROD = False`) and would also open Sharpedo/Wailmer.
+> 3. **Fix KI-59 before the cavern exists** — it is armed there (115 `Impassable *` tiles across
+>    Rooms 1-9). A/B on `SEAFLOOR_CAVERN_ROOM1`.
+> 4. Two things remain the USER's call: **promoting §Ch18 + §Ch19 to `custom-pokebot/`**, and the
 >    **boss/status battle-policy** decision further down.
-> 4. Before building anything, skim `08-MISTAKES.md`'s last ten entries — six were written today and
->    three of them are about tests that passed while the bot was broken.
+> 5. Before building anything, skim `08-MISTAKES.md`'s last entries — five were written today and
+>    three of them are about tests or gates that were green while something was broken.
 
 1. **✅ §Ch18 IS DONE (2026-08-12) — the Mind Badge is won and Segment 18 is wired into the ladder.**
    The ladder now runs **19 of 24 beats**. Three drivers, all PASS:
@@ -314,6 +394,15 @@ PYTHONUTF8=1 py -3.12 probe_chapter_order.py        # KI-61 regression guard
 PYTHONUTF8=1 py -3.12 probe_ch19_hazards.py         # 3/3; H1 is now a stranding guard
 PYTHONUTF8=1 py -3.12 probe_space_center_recon.py   # §Ch19 area atlas (measured, not recalled)
 PYTHONUTF8=1 py -3.12 probe_gym_solve.py            # re-derive the 117-step gym route
+
+# --- §Ch19 gates + drivers (all exit 0 / PASS today; keep them green) ---
+PYTHONUTF8=1 py -3.12 repro_undefined_names.py      # ZERO undefined names in the story surface
+PYTHONUTF8=1 py -3.12 audit_flag_names.py           # 19 files / 144 names; exits 1 on a phantom
+PYTHONUTF8=1 py -3.12 probe_ch19_route.py           # why Mossdeep is cut in two (models live NPCs)
+PYTHONUTF8=1 py -3.12 story_harness.py post_mossdeep_gym.ss1 --driver spacecenter1 --frames 900000
+PYTHONUTF8=1 py -3.12 story_harness.py at_steven_2f.ss1      --driver spacecenter2 --frames 600000
+PYTHONUTF8=1 py -3.12 story_harness.py post_mossdeep_gym.ss1 --driver spacecenter  --frames 1500000
+PYTHONUTF8=1 py -3.12 story_harness.py post_space_center.ss1 --driver spacecenter  --frames 400000  # resume-safety
 
 # --- drivers (these run under the REAL main loop, so they can fight) ---
 PYTHONUTF8=1 py -3.12 story_harness.py post_aqua.ss1          --driver mossdeeptravel --frames 500000
