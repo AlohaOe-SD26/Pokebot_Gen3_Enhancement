@@ -274,9 +274,14 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       PID, including `RotatePokemon(i, j != 0)` — a path nothing in this project had ever driven.
       The drive found and fixed a real defect (it returned `True` with the avatar unable to walk;
       A/B proven). This is the piece the **Regi arc** needs (KI-69: Wailord first, Relicanth last).
+      ✅ **PROMOTED to `custom-pokebot/` 2026-08-13 (user-approved)** — verified by driving
+      `--driver roster --build custom` to a **frame-identical PASS**, with `find_spec` confirming
+      the custom tree was the one imported. Post-copy drift ZERO. Restore point
+      `restore/2026-08-13-pre-roster-promotion`.
       ‼ **The DEPOSIT/WITHDRAW half of `#24-roster` is still the open work** — ordering answers
       *"in what order"*, not *"which Pokémon"*. `withdraw_from_box` remains proven only by
       `--driver boxwithdraw`. Two issues filed and deliberately NOT fixed: **KI-70**, **KI-71**.
+      ‼ `reorder_party()` still has **ZERO production callers** — it is capability, not yet content.
 
 - [ ] `#24-rarepredicate` — ‼ **NOT READY TO BUILD. 2026-08-07: the dataset does not reproduce,
       and as computed it FAILS the user's own named example.**
