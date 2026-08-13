@@ -142,6 +142,20 @@ except ValueError:
 check("asking for the same mon first AND last raises", same_refused,
       "otherwise it plans nothing and looks like success")
 
+# ‼ THE OSCILLATION HOLE, found by an adversarial review before the driver was ever run.
+# A spec repeating a PID is unsatisfiable, and planning around it is the worst outcome:
+# `order.index(pid)` returns the slot it was ALREADY placed in, so the swap undoes previous work
+# and the plan NEVER converges — the driver would perform real menu swaps for its entire budget
+# and then report failure with a scrambled party. `plan_last_slot` guarded `first == last`, but a
+# direct `plan_reorder([pid, pid])` did not.
+dup_refused = False
+try:
+    plan_reorder(PARTY, [WAILORD, WAILORD])
+except ValueError:
+    dup_refused = True
+check("a spec that REPEATS a pid raises (it would otherwise never converge)", dup_refused,
+      "one Pokémon cannot occupy two slots — planning around it burns the whole swap budget")
+
 # ---------------------------------------------------------------------------------------------
 print(f"\n{BAR}\n5 — Smaller parties (the bot does not always carry six)\n{BAR}\n")
 

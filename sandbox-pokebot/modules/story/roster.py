@@ -60,6 +60,17 @@ def plan_reorder(current_pids: list[int], target_pids: list[int]) -> list[tuple[
         Pokémon we do not have) and must not be silently reordered around.
     """
     order = list(current_pids)
+    # ‼ DUPLICATES IN THE SPEC MUST BE REFUSED, NOT PLANNED AROUND. Asking for the same Pokémon
+    # twice is unsatisfiable, and the failure is the worst kind: `order.index(pid)` returns the slot
+    # it was ALREADY placed in, so `here < destination`, the swap undoes previous work, and the
+    # plan never converges — the driver would perform real menu swaps for its whole budget and then
+    # report failure with a scrambled party. `plan_last_slot` guards `first == last`, but a direct
+    # `reorder_party([pid, pid])` reached this. Refusing costs one line.
+    if len(set(target_pids)) != len(target_pids):
+        raise ValueError(
+            f"cannot reorder: the target spec {target_pids} repeats a personality value. "
+            "One Pokémon cannot occupy two slots."
+        )
     for pid in target_pids:
         if pid not in order:
             raise ValueError(
@@ -131,7 +142,18 @@ def reorder_party(target_pids: list[int], *, attempts_per_swap: int = 3) -> Gene
     )
     from modules.tasks import get_global_script_context
 
-    for _ in range(MAX_SWAPS + 1):
+    from modules.context import context
+    from modules.story.early_game import reraise_if_aborting
+
+    # ‼ ONE PASS PER *ATTEMPT*, NOT PER SWAP. The first version computed `current`/`source`/
+    # `destination` once and then retried up to 3 times against those stale indices. If attempt 1
+    # performed a WRONG swap — reachable: `navigate_to_mon` reads `gPartyMenu.slot_id` before the
+    # party menu has initialised, and its loop can exit having pressed nothing, swapping
+    # `0 <-> destination` instead of `source <-> destination` — then the party has moved and
+    # attempts 2 and 3 drive indices that no longer mean anything. Re-reading every attempt is the
+    # project's own rule: *update the world model from what actually happened.*
+    failures = 0
+    for _pass in range(MAX_SWAPS * attempts_per_swap + 1):
         _check_abort()
         current = _party_pids()
         try:
@@ -141,58 +163,94 @@ def reorder_party(target_pids: list[int], *, attempts_per_swap: int = 3) -> Gene
         if not plan:
             return True  # verified in place — the party already starts with the wanted order
 
+        if failures >= attempts_per_swap:
+            console.print(
+                f"[yellow]Story: roster — {failures} consecutive failed swaps; the party menu is "
+                f"not doing what the plan expects (KI-38 territory). Party left as: {current}.[/]"
+            )
+            return False
+
         destination, source = plan[0]
         console.print(
             f"[cyan]Story: roster — swapping party slots {source} <-> {destination} "
             f"({len(plan)} swap(s) still wanted).[/]"
         )
 
-        landed = False
-        for _attempt in range(attempts_per_swap):
-            _check_abort()
-            # ‼ NEVER OPEN A MENU UNDER A FIELD SCRIPT. A trainer approach mid-menu is the exact
-            # wedge `_rotate_lead_safely` exists for, and `RotatePokemon`'s loops are unbounded.
-            if get_global_script_context().is_active:
-                yield from _ride_out_scripted_scene("B")
-                yield from wait_until_truly_controllable()
-            try:
-                yield from _yield_bounded(RotatePokemon(source, destination).step(), SWAP_TIMEOUT_FRAMES)
-            except Exception as error:  # noqa: BLE001 - a wedged menu must not end the run here;
-                console.print(f"[yellow]Story: roster — swap attempt failed ({error!r}).[/]")
-
-            # ‼ VERIFY BY PID, NOT BY "the navigator finished". The navigator returning says only
-            # that its loops exited.
-            after = _party_pids()
-            if destination < len(after) and after[destination] == current[source]:
-                landed = True
-                break
-            # Close a half-open menu, ride out whatever interrupted us, and try again.
-            for _ in range(12):
-                from modules.context import context
-
-                context.emulator.press_button("B")
-                yield
+        _check_abort()
+        # ‼ NEVER OPEN A MENU UNDER A FIELD SCRIPT. A trainer approach mid-menu is the exact
+        # wedge `_rotate_lead_safely` exists for, and `RotatePokemon`'s loops are unbounded.
+        if get_global_script_context().is_active:
             yield from _ride_out_scripted_scene("B")
             yield from wait_until_truly_controllable()
-
-        if not landed:
-            console.print(
-                f"[yellow]Story: roster — could not move slot {source} to {destination} after "
-                f"{attempts_per_swap} attempts; leaving the party as it is.[/]"
+        try:
+            finished = yield from _yield_bounded(
+                RotatePokemon(source, destination).step(), SWAP_TIMEOUT_FRAMES
             )
-            return False
+        except Exception as error:  # noqa: BLE001 - a wedged menu must not end the run here...
+            reraise_if_aborting(error)  # ...but a WHITEOUT unwind must never be swallowed (KI-67)
+            console.print(f"[yellow]Story: roster — swap attempt failed ({error!r}).[/]")
+            finished = False
+
+        # ‼‼ THE BOUND PROTECTS AGAINST HANGS, NOT AGAINST `set_manual_mode`. Four places in the
+        # party-menu stack (`menuing.py:363, 380, 387`, and `PartyMenuExit`) drop the bot to Manual
+        # WITHOUT raising — so `_yield_bounded` returns normally, the PID check might even pass, and
+        # we would keep driving a run that is already dead. Fail honestly instead.
+        if context.bot_mode == "Manual":
+            raise BotModeError(
+                "Roster: the party-menu navigator dropped the bot to MANUAL mid-swap (one of the "
+                "menuing.py set_manual_mode paths). Not continuing against a dead run."
+            )
+
+        # ‼ VERIFY BY PID, NOT BY "the navigator finished". `finished` is kept as a DIAGNOSTIC:
+        # finished=True with a failed PID check means the navigator completed and swapped the WRONG
+        # PAIR (the stale-cursor bug above); finished=False means something interrupted us. Those
+        # are different problems and the first drive should be able to tell them apart.
+        after = _party_pids()
+        if destination < len(after) and after[destination] == current[source]:
+            failures = 0
+            continue
+
+        failures += 1
+        console.print(
+            f"[yellow]Story: roster — swap did not land (navigator {'completed' if finished else 'timed out'}); "
+            f"party is now {after}.[/]"
+        )
+        # Close a half-open menu, ride out whatever interrupted us, then re-plan from reality.
+        for _ in range(12):
+            context.emulator.press_button("B")
+            yield
+        # ‼ The scene rider can RAISE (`_wait_until_cutscene_over` gives up after 8000 frames), and
+        # a raise here would escape `reorder_party` instead of returning the truthful False this
+        # function promises. A parked SELECTION submenu is the known way to reach that.
+        try:
+            yield from _ride_out_scripted_scene("B")
+            yield from wait_until_truly_controllable()
+        except Exception as error:  # noqa: BLE001
+            reraise_if_aborting(error)
+            console.print(f"[yellow]Story: roster — recovery ride failed ({error!r}); re-planning.[/]")
 
     # ‼ FALLING OUT MEANS THE PLAN NEVER CONVERGED. Report it rather than returning a bare True:
     # a reorder that keeps re-planning is a cursor that is not doing what we think.
     final = _party_pids()
     try:
         remaining = plan_reorder(final, target_pids)
-    except ValueError:
-        remaining = [(0, 0)]
+    except ValueError as error:
+        # ‼ SAY WHY. The first version set a magic `[(0, 0)]` sentinel here and printed a generic
+        # "still N swaps short" — which would have blamed the cursor for what is actually an
+        # unsatisfiable SPEC (a missing or repeated pid), sending the next reader after the wrong
+        # bug. A guard that cannot tell "the menu misbehaved" from "you asked for the impossible"
+        # is worse than no guard. (Caught by `repro_no_silent_except.py`, which is exactly what
+        # that ratchet exists for.)
+        console.print(
+            f"[yellow]Story: roster — the target spec is unsatisfiable against the final party "
+            f"{final}: {error}[/]"
+        )
+        return False
     if remaining:
         console.print(
-            f"[yellow]Story: roster — still {len(remaining)} swap(s) short after {MAX_SWAPS + 1} "
-            f"passes. The party menu is not doing what the plan expects (KI-38 territory).[/]"
+            f"[yellow]Story: roster — still {len(remaining)} swap(s) short after the full budget. "
+            f"The party menu is not doing what the plan expects (KI-38 territory). "
+            f"Party: {final}[/]"
         )
         return False
     return True
