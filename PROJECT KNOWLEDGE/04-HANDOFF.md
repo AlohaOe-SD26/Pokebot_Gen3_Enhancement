@@ -23,6 +23,21 @@ Every banner further down is HISTORY, newest first.
   shape, on the hottest path in the bot — **measured, margin held, but n = 1**) and **KI-71**
   (roster.py's "dropped to MANUAL" guard is **unreachable**; `main.py:145-147` abandons the
   generator first).
+* **‼‼ STRATEGIC FIND, SAME DAY — `PuzzleSolverMode` ALREADY SHIPS §Ch21's DUNGEON AND THE WHOLE
+  REGI ARC.** `modules/modes/puzzle_solver.py` is **byte-identical to the upstream mirror**, is a
+  registered bot mode, and implements the Seafloor Cavern interior, the Sealed Chamber dive route
+  (`navigate → dive() → navigate underwater → surface_from_dive() → braille Dig`) and all three
+  Regi puzzles. **Do not build those as new chapters — read
+  `ai-research-notes/2026-08-13-puzzle-solver-already-ships-ch21-and-the-regi-arc.md` first.**
+  ‼ It also independently CONFIRMS KI-69 from code in our own tree:
+  `assert_pokemon_in_party_slot("Wailord", 0)` / `("Relicanth", size-1)`.
+  ‼ **But nobody here has ever RUN it**, its battle handling is `handle_encounter(auto_battle=True)`
+  and NOT our `LevelUpTravelBattleStrategy`, and **the Regi encounter is UNRECOVERABLE** — so it
+  must NOT be pointed at a tomb until that is settled.
+* **KI-72 filed (NEW, code-verified):** `calculate_path` has never heard of
+  `"Underwater Blocked Above"` / `"Seaweed No Surfacing"` — the two tile types you cannot surface
+  from — so it will route a dive to a dead end. ⇒ **NEVER let the planner choose where you
+  surface**; pick the tile explicitly, as upstream already does.
 * **Nothing is parked. Nothing is running.** All 15 gates exit 0 after the change.
 * **§Ch19 is DONE and the ladder runs 20 of 24 beats.** §Ch18 + §Ch19 are **PROMOTED** to
   `custom-pokebot/` and verified by driving `--build custom`, including the real ladder.
@@ -367,6 +382,13 @@ teaching Dive/Dig/Flash. ‼ **Relicanth is underwater-only, so Dive is upstream
 >    ‼ **What is NOT done:** the **deposit/withdraw** half of `#24-roster`. Ordering answers "in
 >    what order", not "which Pokémon". And **promotion of `roster.py` + `menuing.py` to
 >    `custom-pokebot/` has NOT been asked for — that is the USER's call.**
+>
+> 2c. **‼ READ `ai-research-notes/2026-08-13-puzzle-solver-already-ships-ch21-and-the-regi-arc.md`
+>    BEFORE ITEMS 3 AND 4 BELOW.** Both were written believing §Ch21 and the Regi arc had to be
+>    built as chapters. **Most of that content already exists in upstream code we already have.**
+>    Items 3 and 4 are still correct about the DIVE LEG — which is the real gap — but wrong about
+>    the scale of what remains. **KI-72** also lands here: never let the planner choose a surfacing
+>    tile.
 >
 > 3. **‼‼ READ KI-68 BEFORE TOUCHING §Ch21 — AND DO NOT READ "NOT ROUTABLE" AS "NOT POSSIBLE".**
 >    The party slot is **not** the blocker. `WaypointAction.Dive`/`Emerge` are declared and assigned

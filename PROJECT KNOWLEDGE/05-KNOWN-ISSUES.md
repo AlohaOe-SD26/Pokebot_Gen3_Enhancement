@@ -2893,3 +2893,42 @@ assigns it first.
 - **What a fix looks like** (not attempted): the guard has to be *inside* the frame loop's reach —
   e.g. a listener, or having the trapdoors raise instead of silently setting Manual. That is the
   real KI-38 fix (`#24-menutext`) and should not be bolted onto roster.py alone.
+
+---
+
+## KI-72 — `calculate_path` cannot see the two tile types you CANNOT SURFACE FROM, so it will happily route a dive to a dead end (2026-08-13, code-verified, OPEN, ARMED for §Ch21 and the Regi arc)
+
+- **The measurement** (verified directly, one grep):
+  ```
+  grep -rn "Underwater Blocked Above|Seaweed No Surfacing" modules/ --include=*.py
+    modules/map.py:103                              -> "Underwater Blocked Above"
+    modules/map.py:131                              -> "Seaweed No Surfacing"
+    modules/modes/util/higher_level_actions.py:718  -> the ONLY consumer
+  grep -n "Underwater Blocked Above|Seaweed No Surfacing" modules/map_path.py
+    (nothing)
+  ```
+  The tile reader emits both names; **`surface_from_dive()` is the only code in the tree that
+  looks at them**; and `map_path.py` — the pathfinder — has never heard of either.
+- **Consequence.** `map_path.py:279-280`'s generic fallback marks any tile_type it does not
+  special-case as `accessible_from_direction = [True, True, True, True]`, at ordinary cost. So an
+  underwater tile you can never surface from is, to the planner, plain open water — a perfectly
+  good place to end a route.
+- **The failure.** A chapter navigates underwater to a planner-chosen destination, calls
+  `surface_from_dive()`, and gets
+  `BotModeError: This tile does not allow surfacing from a dive.` (`higher_level_actions.py:718-719`).
+  ‼ It fails **loudly**, which is the good news. The bad news is the retry shape: re-running the
+  same `navigate_to` re-derives the same destination, so a naive retry loop cannot converge — the
+  KI-67 shape (signal something, retry without changing state).
+- **‼ THE DESIGN RULE THAT FOLLOWS — NEVER LET THE PLANNER CHOOSE WHERE YOU SURFACE.**
+  Upstream already does the right thing without saying why: `puzzle_solver.py:203-204` navigates to
+  a **hand-picked** `UNDERWATER_SEALED_CHAMBER (12, 44)` and surfaces *there*. Copy that pattern —
+  pick the surface tile explicitly, and assert its `tile_type` before calling
+  `surface_from_dive()`, exactly as `dive()` already asserts deep water before diving.
+- **How it was found.** An adversarial pre-build pass on the §Ch21 dive plan, before any code was
+  written. Not by a failure. **This is a DIFFERENT bug from KI-59** (which over-blocks
+  `Impassable *`); this one under-blocks a type the planner does not model at all.
+- **Not fixed, and why.** Fixing it properly means teaching `map_path.py` a new blocked-destination
+  concept ("you may cross this tile but may not END on it"), which is a real change to shared
+  pathfinding that every mode depends on. The design rule above costs nothing and removes the
+  hazard for the work actually in front of us. ⇒ Revisit if a chapter ever genuinely needs the
+  planner to pick a surfacing point.
