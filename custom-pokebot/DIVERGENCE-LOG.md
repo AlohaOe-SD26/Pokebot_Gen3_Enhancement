@@ -1333,3 +1333,62 @@ version left the run frame-identical to the unhealed one up to the whiteout fram
   it at `(16,9)`/`(16,10)`). §Ch17 walks past it. Being addressed next.
 * **`post_maxie.ss1` and `post_mtpyre.ss1` are still wiped-party anchors** (9% and 11%). The heal
   stops work around that; the anchors themselves were not re-captured.
+
+---
+
+## 2026-08-13 — PROMOTED: `modules/story/roster.py` (NEW) + the `modules/menuing.py` `PartyMenuExit` freeze fix
+
+**User-approved promotion.** Two files; **post-copy drift: ZERO** (every `.py` under `modules/` and
+`plugins/` compared file-by-file across both forks afterwards — 0 differing, 0 missing).
+Restore point taken first: **`restore/2026-08-13-pre-roster-promotion`** (annotated, pushed).
+
+### 1. `modules/story/roster.py` — NEW. Party ORDER, addressed by PERSONALITY VALUE.
+
+Deposit and withdraw answer *"which Pokémon are in the party"*; nothing could answer *"in what
+ORDER"*. Some content requires an order — the **Regi tombs** need a specific species first and
+another last, a hard gate that fails **silently** if wrong.
+
+* `plan_reorder` / `plan_last_slot` — PURE planners. Proven exhaustively: 720 permutations
+  replayed, `repro_roster_reorder.py` 16/16.
+* `reorder_party()` — drives `RotatePokemon` inside the bounded, script-aware harness pattern
+  `_rotate_lead_safely` already proves in production.
+* ‼ **Everything is keyed on PERSONALITY VALUE, never on slot index.** A slot is stale the instant
+  a swap happens. Every step re-reads the party and re-finds the PID.
+
+### 2. `modules/menuing.py` — `PartyMenuExit.wait_for_start_menu` now RAISES instead of spinning
+
+Upstream's give-up branch sets Manual and then **falls through with no `yield`, no `break` and no
+`raise`**, so once `counter > 60` with the loop condition still true it spins in **pure Python for
+ever** — and `_yield_bounded` counts `next()` returns, so a loop that never yields never returns.
+**A caller-side frame bound cannot save it; the process hangs.** This fork raises a `BotModeError`
+the caller already handles. ‼ Found by an **adversarial review before the first drive**, not by a
+hang — and it has still never been observed firing.
+
+### ‼ WHAT WAS VERIFIED, AND HOW — driven, not diffed
+
+`--driver roster --build custom` → **`ACCEPTANCE: PASS`**:
+```
+phases=4/4 saw_j_nonzero=True idempotent=True restored=True can_continue=True manual=False
+PHASE1 476 frames · PHASE2 258 · PHASE3 0 · PHASE4 690
+```
+**Frame-identical to the sandbox run** (476/258/0/690) — the same sequence to the frame, not merely
+"both passed". Import resolution was checked separately (`find_spec` under `custom-pokebot` on the
+path) so a frame-identical result could not be a silent fallback to the sandbox tree.
+
+Six swaps, every one landing its PID check **first attempt**, including
+**`RotatePokemon(i, j != 0)` — a path nothing in this project had ever driven.**
+
+### ‼ OUTSTANDING AT PROMOTION TIME — read before quoting any of this
+* **`reorder_party()` has ZERO production callers.** This is forward-looking capability for the
+  Regi arc; the only thing that exercises it is `--driver roster`.
+* **The driver has been run on ONE anchor** (`post_dive.ss1`, a 6-mon party). A `.ss1` replays
+  identically, so repeated passes are **n=1**. Untested: parties of <6, a party with a fainted mon
+  in a slot being swapped, and any run where a field script fires mid-menu.
+* **KI-71 (OPEN): roster.py's own "we were dropped to MANUAL" guard is UNREACHABLE mid-swap.**
+  `main.py:145-147` clears `controller_stack` on the frame after `set_manual_mode()`, abandoning the
+  suspended generator before the guard can run. The guard is honest in intent and dead in practice.
+* **KI-70 (OPEN): `_rotate_lead_safely` has the same "returns before control is back" shape** that
+  was fixed here — on the hottest path in the bot. Measured `controllable_on_return=True`, **n=1**,
+  deliberately not fixed.
+* The `PartyMenuExit` fix is proven only by construction and review — **never by a reproduced
+  freeze**.

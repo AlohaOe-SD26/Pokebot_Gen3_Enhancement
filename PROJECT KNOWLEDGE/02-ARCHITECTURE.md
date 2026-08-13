@@ -77,7 +77,8 @@ Pokebot_Gen3_Enhancement/
     │                              #   mossdeep_gym_puzzle (PURE model, UNWIRED),
     │                              #   mossdeep_gym (§Ch18 chapter + executor),
     │                              #   space_center (§Ch19 chapter — Space Center AND Dive),
-    │                              #   roster (party REORDER; planner proven, DRIVER UNPROVEN),
+    │                              #   roster (party REORDER by PID; planner + DRIVER proven,
+    │                              #     PROMOTED 2026-08-13 — zero production callers yet),
     │                              #   obstacle_clearing, pc_trip, battle_items
 ```
 ‼ **CORRECTED 2026-08-12 — there is no "sandbox-only modules" list any more, and there was not one
@@ -99,12 +100,13 @@ promotion, and the risk turned out not to exist.
 had "diverged", with `story_mode.py` at *"3,061 lines vs 2,636"*. **Measured: 3,742 in BOTH.** After
 the §Ch18/§Ch19 promotion the two trees were byte-identical across all 255 code/config files.
 
-**The current, verified drift is exactly two files**, both deliberate and both sandbox-only:
-`modules/story/roster.py` (new — ‼ **its driver IS now proven, 2026-08-13**: `--driver roster`
-drove six swaps including the never-before-driven `RotatePokemon(i, j != 0)`, all verified by PID,
-and the drive found and fixed a real defect. Promotion is still the USER's call and has not been
-asked for) and `modules/menuing.py` (the `PartyMenuExit` freeze fix, which only matters to that
-driver — still never observed firing).
+✅ **DRIFT IS ZERO AGAIN AS OF 2026-08-13.** `modules/story/roster.py` and `modules/menuing.py`
+were **PROMOTED** (user-approved) after `--driver roster --build custom` returned
+`ACCEPTANCE: PASS` **frame-identical to the sandbox run** — and after `find_spec` confirmed the
+custom tree was the one actually imported, so a frame-identical result could not be a silent
+fallback. Every `.py` under `modules/` and `plugins/` compared afterwards: 0 differing, 0 missing.
+Restore point: `restore/2026-08-13-pre-roster-promotion`. Details + what remains unproven:
+`custom-pokebot/DIVERGENCE-LOG.md`.
 
 ⇒ **Do not trust this paragraph either — MEASURE.** The drift loop is in `04-HANDOFF.md` under
 "HOW TO RUN / TEST"; it takes seconds and prints the differing files. A path written without a copy

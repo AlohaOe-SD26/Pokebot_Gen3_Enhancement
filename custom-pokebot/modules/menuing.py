@@ -809,14 +809,38 @@ class PartyMenuExit(BaseMenuNavigator):
             yield
 
     def wait_for_start_menu(self):
+        # ‼‼ FORK FIX 2026-08-12 — THIS LOOP COULD FREEZE THE WHOLE PROCESS, and no caller-side
+        # bound could save it. Upstream's give-up branch sets Manual and then **falls through with
+        # no `yield`, no `break` and no `raise`**, so once `counter > 60` with the loop condition
+        # still true it spins in PURE PYTHON for ever. `_yield_bounded` counts `next()` returns, so
+        # a loop that never yields never returns — the frame bound is worthless against it and the
+        # bot hangs rather than failing.
+        #
+        # ‼ REACHABLE BY CONSTRUCTION, not theory: the preceding `exit_menu` exits precisely when
+        # `OVERWORLD and start-menu closed`, which is exactly this loop's spin condition. Whether it
+        # fires depends on a ~1-frame alignment during the party-menu fade (the start menu is
+        # re-created by a later field callback), which is not something to leave to luck.
+        #
+        # ‼ AND IT HAS NEVER EXECUTED HERE. `PartyMenuExit` is only reachable from `RotatePokemon`,
+        # which nothing in this project had ever driven — the proven path
+        # (`change_lead_party_pokemon`) deliberately ends with `wait_for_task_to_start_and_finish`
+        # instead. Found by an adversarial review BEFORE the first drive, not by a hang.
+        #
+        # Raising converts a silent freeze into an honest failure the caller can already handle
+        # (`modules/story/roster.py` retries, closes the menu, and re-plans).
+        from modules.modes import BotModeError
+
         while get_game_state() == GameState.OVERWORLD and not parse_start_menu()["open"]:
             if self.counter > 60:
-                context.message = "Error exiting to overworld, switching to manual mode..."
-                context.set_manual_mode()
-            else:
-                context.emulator.press_button("B")
-                self.counter += 1
-                yield
+                context.message = "Error exiting to overworld after the party menu."
+                raise BotModeError(
+                    "PartyMenuExit: the start menu never reappeared after leaving the party menu "
+                    f"({self.counter} frames of B). Upstream spun here for ever; this fork raises "
+                    "so the caller can close the menu and retry."
+                )
+            context.emulator.press_button("B")
+            self.counter += 1
+            yield
 
 
 class MenuWrapper:

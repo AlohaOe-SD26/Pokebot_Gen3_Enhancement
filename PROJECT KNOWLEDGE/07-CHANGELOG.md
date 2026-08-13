@@ -12218,3 +12218,32 @@ PROPERTIES, not as stories about the bug you just fixed.*
 
 ‼ **This does NOT make §Ch21 unblocked.** The run injected Dive with a debug write (KI-68 sanctions
 exactly that). Acquiring a real Dive learner (KI-63) is still open work.
+
+## 2026-08-13 — PROMOTION: `roster.py` + the `menuing.py` freeze fix into `custom-pokebot` (user-approved)
+
+Two files. **Post-copy drift: ZERO** — every `.py` under `modules/` and `plugins/` compared
+file-by-file afterwards, 0 differing and 0 missing. Restore point taken **first**:
+`restore/2026-08-13-pre-roster-promotion` (annotated, pushed).
+
+**Verified by DRIVING `--build custom`, never by a diff:**
+```
+[roster] RESULT phases=4/4 saw_j_nonzero=True idempotent=True restored=True
+         can_continue=True manual=False        [setup] build=custom
+[roster] ACCEPTANCE: PASS
+PHASE1 476 · PHASE2 258 · PHASE3 0 · PHASE4 690   <- frame-identical to the sandbox run
+```
+‼ **And the frame-identity was itself checked for the obvious trap.** "Both passed with identical
+frame counts" is also what a silent fallback to the sandbox tree would look like, so
+`importlib.util.find_spec` was run with `custom-pokebot` on the path and confirmed both modules
+resolve to `custom-pokebot\modules\...`. `story_harness.py:50-51` does
+`BUILD = _REPO / f"{args.build}-pokebot"; sys.path.insert(0, str(BUILD))`.
+
+**What was promoted:** `reorder_party()` (party order addressed by PERSONALITY VALUE, never by
+slot) and the `PartyMenuExit.wait_for_start_menu` fix, where upstream's give-up branch falls
+through with no `yield`/`break`/`raise` and **spins in pure Python for ever** — a caller-side frame
+bound cannot save it, because `_yield_bounded` counts `next()` returns.
+
+**Recorded as OUTSTANDING in `DIVERGENCE-LOG.md` rather than implied:** `reorder_party()` has
+**zero production callers**; it has been driven on **one anchor** (n=1, since a `.ss1` replays
+identically); **KI-70** and **KI-71** are both open; and the freeze fix has still **never been
+observed firing** — it was found by adversarial review before the first drive.
