@@ -1,6 +1,13 @@
 # Known-Issues Archive
 > APPEND-ONLY history. Superseded write-ups of issues that are now resolved live here, so
 > `05-KNOWN-ISSUES.md` can stay a CURRENT-STATE file within its line budget (CLAUDE.md rule R3).
+>
+> ‼‼ **NOT EVERYTHING IN HERE IS RESOLVED — CHECK EACH HEADING.** `KI-59` (`map_path` inverts
+> `Impassable *`) and `KI-60` (`calculate_path` never validates its SOURCE) are **OPEN,
+> code-verified, unfixed bugs in the SHARED pathfinder**. They were moved here for LENGTH, not
+> because they were fixed, and a cold read of this file's header would conclude the opposite —
+> which is exactly the wrong conclusion to reach about two live bugs that are armed in the
+> Seafloor Cavern. `05-KNOWN-ISSUES.md` carries a pointer to them for this reason.
 > Nothing here is deleted — a wrong cause that was expensive to disprove is evidence, and this
 > project treats negative results as its most valuable asset.
 

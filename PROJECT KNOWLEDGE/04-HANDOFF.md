@@ -3,11 +3,26 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-08-12 — read "‼ YOU ARE HERE" immediately below.
+**Last updated:** 2026-08-12 (late) — read "‼ YOU ARE HERE" immediately below.
 Every banner further down is HISTORY, newest first.
 
 ---
-# ‼ YOU ARE HERE — 2026-08-12 (end of a very long session). Read this, then `14-AGENT-PLAYBOOK.md`.
+# ‼ YOU ARE HERE — end of the §Ch19 + PROMOTION session. Read this, then `14-AGENT-PLAYBOOK.md`.
+
+## ⏱ THE 60-SECOND VERSION (if you read nothing else)
+* **§Ch19 is DONE and the ladder runs 20 of 24 beats.** §Ch18 + §Ch19 are **PROMOTED** to
+  `custom-pokebot/` and verified by driving `--build custom`, including the real ladder.
+* **Nothing is parked. Nothing is running. 0 uncommitted, 0 unpushed.**
+* **The next content beat (§Ch21, Seafloor Cavern) is BLOCKED, and the reason changed twice** —
+  read **KI-68** before touching it. It is *not* the party slot, and Dive is *not* impossible:
+  the planner cannot AUTO-route a dive, so **a chapter must drive `dive()` explicitly.**
+* **The user asked for the REGI arc** (Relicanth/Wailmer + PC swap). Researched and measured —
+  read **KI-69**. ‼ **Emerald reversed the party order: WAILORD first, RELICANTH last**, and the
+  wrong order fails **silently**. ‼ **The Regi battle is UNRECOVERABLE** — a KO *or* a whiteout
+  deletes the encounter permanently.
+* **`modules/story/roster.py` is NEW.** Its planner is proven exhaustively (16/16); **its DRIVER
+  has never been driven.** Drive it before any content depends on party order.
+* **Run `preflight.py` first.** Then the gate list in "HOW TO RUN / TEST" — all 15 exit 0 today.
 
 ## WHAT THIS IS
 `sandbox-pokebot/` is the working build of a Pokémon Emerald bot. Its **Story mode** plays the game
@@ -32,12 +47,28 @@ burden here is so heavy, and why negative results are treated as the most valuab
 | box | **IDLE.** Nothing running. Last batch `20260811-130454` (VERDICT OK, 28 runs). |
 | story content | ✅ **§Ch19 COMPLETE 2026-08-12 — the MOSSDEEP SPACE CENTER is defended and HM08 DIVE is in the bag. 20 of 24 beats.** Littleroot → 6 badges → Mt. Pyre → Magma Hideout (and out) → Slateport submarine theft → the Lilycove AQUA HIDEOUT (with the MASTER BALL) → the MIND BADGE → **the Space Center multi battle + Dive**. (was 19 of 24 before Ch19.) |
 | ‼ is code frozen? | **No.** Nothing is running. |
-| upstream | checked **2026-08-12**, still `5dd898f8` — no change. Daily check DONE. |
-| restore point | **`restore/2026-08-11-all-promoted`** (annotated, pushed, verified on the remote) |
-| sandbox ↔ custom drift | ✅ **NONE — §Ch18 AND §Ch19 PROMOTED 2026-08-12 with the user's approval.** 8 files (3 new + 5 modified); after the copy the two trees are **byte-identical across all 255 code/config files**. Verified by DRIVING `--build custom`, never by a diff: §Ch18 `badge=True out_of_gym=True whiteouts=0`; §Ch19 `dive=True hm08=True CAN-CONTINUE OK` at **`frames=3558869`, identical to the sandbox run**; and the real `StoryMode` ladder driven end-to-end. Restore point before the copy: **`restore/2026-08-12-pre-ch1819-promotion`** (annotated, pushed). Older note follows: ‼ **§Ch18 IS IN SANDBOX ONLY — NOT PROMOTED.** `modules/story/mossdeep_gym.py`, `modules/story/mossdeep_gym_puzzle.py`, Segment 18 in `plugins/custom_modes/story_mode.py`, and the three `mossdeep*` drivers exist only in `sandbox-pokebot/`. Promotion needs the user's approval AND a driven `--build custom` check, never a diff. Everything BEFORE Ch18 is drift-free: — §Ch15 exit + §Ch16 + §Ch17 + heal stops + the MASTER BALL all PROMOTED 2026-08-12 (user-approved); the first promotion was verified by driving `--build custom` to an identical frame count |
+| upstream | checked **2026-08-13**, still `5dd898f8` — no change. ‼ This row goes stale on a CALENDAR DAY, not on an event: if today's date is later than the one shown, **the daily check is DUE** (`git fetch upstream-pokebot`, compare against `40cakes repo/UPDATE-LOG.md`). Do not read it as satisfied. |
+| restore point | **`restore/2026-08-12-pre-ch1819-promotion`** (annotated, pushed) — taken immediately BEFORE the §Ch18/§Ch19 promotion. Older: `restore/2026-08-11-all-promoted`. |
+| sandbox ↔ custom drift | ✅ **§Ch18 + §Ch19 ARE PROMOTED** (2026-08-12, user-approved). 8 files; at promotion time the trees were **byte-identical across all 255 code/config files**, verified by DRIVING `--build custom` three ways — §Ch18 `badge=True out_of_gym=True whiteouts=0`; §Ch19 `dive=True hm08=True CAN-CONTINUE OK` at `frames=3558869` **identical to sandbox**; and the real `StoryMode` ladder end-to-end. ‼ **TWO FILES HAVE DRIFTED SINCE, ON PURPOSE — both are sandbox-only and must NOT be promoted yet:** `modules/story/roster.py` (**NEW**, the party-reorder module — its *driver* is unproven) and `modules/menuing.py` (the `PartyMenuExit` freeze fix, which only matters to that unproven driver). **Verify with the loop in "HOW TO RUN / TEST" before assuming either number.** |
 | **if stopped mid-task** | **NOTHING IS PARKED.** Everything is committed and pushed. Start at "NEXT ACTIONS". |
 
-## ✅ WHAT SHIPPED THIS SESSION (2026-08-11 → 12)
+## ✅ WHAT SHIPPED IN THE LATEST SESSION (§Ch19 + promotion + roster)
+1. **§Ch19 built and driven end-to-end** — Space Center multi battle **and** HM08 Dive, wired as
+   Segment 19. Ladder **19 → 20 of 24**. Acceptance includes "and the bot can continue".
+2. **§Ch18 + §Ch19 PROMOTED** to `custom-pokebot/`, verified by driving `--build custom` three ways.
+3. **KI-64 fixed** (the multi-battle faint replacer would have sent out STEVEN's Pokémon) — ‼ and my
+   first fix was **wrong twice**: dead code on the story path, and a positional cut that inverted
+   itself once the party menu permutes `gPlayerParty`. Now keyed on **original trainer ID**.
+4. **KI-67 CLOSED, both halves** — the whiteout abort no longer burns a chapter's retry budget or
+   launders itself into a fabricated diagnosis, and the harness finally mirrors production.
+   **First driven whiteout recovery in this project** (frame deltas +7,789 / +7,087).
+5. **Two blind gates fixed:** the flag audit was checking **2 files** and could not see names behind
+   a module constant (i.e. blindest at the completion markers); and **pyflakes had never been run** —
+   it found a `NameError` on the Magma Hideout's *success* path.
+6. **New: `modules/story/roster.py`** (party reorder) + the `PartyMenuExit` freeze fix.
+7. **Regi arc researched and Phase A measured** (KI-69) at the user's request.
+
+### 📌 THE OLDER SESSION'S SUMMARY (§Ch16-§Ch18) FOLLOWS BELOW — it is HISTORY, not current state.
 The story ladder went **16 → 19 of 24 beats**.
 
 ‼ **§Ch18 (items 5, 6 and the block below) is COMMITTED AND PUSHED BUT *NOT* PROMOTED to
@@ -306,18 +337,41 @@ teaching Dive/Dig/Flash. ‼ **Relicanth is underwater-only, so Dive is upstream
 ## ⏭ NEXT ACTIONS, IN ORDER
 
 > **START HERE ON A FRESH CONTEXT.** Everything is committed and pushed; nothing is parked.
-> 1. **Run `preflight.py`**, then `repro_undefined_names.py` and `audit_flag_names.py`.
-> 2. **‼‼ READ KI-68 BEFORE TOUCHING §Ch21. THE PARTY SLOT IS NOT THE BLOCKER — DIVE IS NOT
->    ROUTABLE.** `WaypointAction.Dive`/`Emerge` are declared at `map_path.py:592-593` and assigned
->    **nowhere**; `can_dive()` has **zero callers**; `warp_graph.py:342` and `region_reach.py:68-70`
->    exclude Dive edges on purpose. So freeing a slot and catching a learner moves the failure one
->    line down and costs a party member.
->    **DO THIS FIRST, it is near-zero risk and required either way:** inject Dive with
->    `debug_utilities.py:611` onto an existing mon and drive Route 128 → Seafloor Cavern, to find out
->    what the planner actually needs.
->    ‼ And if a hunting ground is ever added, **NOT to `TRAINING_GRASS`** — measured, a Shoal Cave
->    row becomes the highest band and flips `best_training_area` for every team from ~L30 up.
->    The text below is the OLDER framing, kept for its measurements, but its conclusion is superseded:
+> 1. **Run `preflight.py`**, then the 15-gate suite in "HOW TO RUN / TEST" (all exit 0 today), and
+>    the sandbox↔custom drift loop (expect **exactly 2** differences — `roster.py`, `menuing.py`).
+>
+> 2. **DRIVE `reorder_party()`** — `modules/story/roster.py`. Its planner is proven exhaustively
+>    (16/16) but **the driver has never been driven**, and it is the capability the user asked for
+>    ("PC deposit/withdraw/swap so the bot can build teams").
+>    ‼ **YOU MUST WRITE THE DRIVER FIRST — there is NO `roster`/`reorder` entry in
+>    `story_harness.py`'s `--driver` list.** The action this handoff recommends has no vehicle yet.
+>    Model it on `--driver boxwithdraw` (it already forces a 6-mon party, drives the production call
+>    site, and asserts a second heal is a no-op); anchor on `saves/post_dive.ss1`.
+>    ‼ It sits on the unfixed side of **KI-38**; the `PartyMenuExit` freeze was already found and
+>    fixed *before* the first drive, so drive it while that is fresh. Log
+>    `get_party_menu_cursor_pos()["slot_id"]` + the active task symbols from `StartMenuNavigator`
+>    finishing until `Task_HandleChooseMonInput` appears — one trace settles both remaining unknowns
+>    (a stale-cursor read, and the exit-menu timing gap). Assert by PID, never by "the navigator
+>    finished".
+>
+> 3. **‼‼ READ KI-68 BEFORE TOUCHING §Ch21 — AND DO NOT READ "NOT ROUTABLE" AS "NOT POSSIBLE".**
+>    The party slot is **not** the blocker. `WaypointAction.Dive`/`Emerge` are declared and assigned
+>    **nowhere**, and `warp_graph.py:342` says the exclusion is **on purpose** — a dive is not a warp
+>    event, so `calculate_path` was never going to emit one. **But `dive()` already exists and
+>    works.** ⇒ **The fix is a CHAPTER that drives the transition**, exactly like §Ch18's coord-event
+>    exit and Steven's bottom-row door — *not* a planner rewrite.
+>    **DO THIS FIRST, near-zero risk and required either way:** inject Dive via
+>    `debug_utilities.py:611` and drive Route 128 → Seafloor Cavern to see what the legs really need.
+>    ‼ If a hunting ground is ever added, **NOT to `TRAINING_GRASS`** — measured, a Shoal Cave row
+>    becomes the highest band and flips `best_training_area` for every team from ~L30 up.
+>
+> 4. **The REGI arc (user-requested) — read KI-69.** ‼ **WAILORD first, RELICANTH last** (Emerald
+>    reversed it; the wrong order fails silently). ‼ **The Regi battle is UNRECOVERABLE** — a KO *or*
+>    a whiteout deletes the encounter; only fleeing is safe. Phase A is measured: we have Go-Goggles,
+>    HM08, Surf and Rock Smash; we have **no rod at all**, no TM28 Dig, and nobody knows Dive, Dig or
+>    Flash. **Relicanth is underwater-only, so Dive (item 3) is upstream of the whole arc.**
+>
+> 5. Older framing below, kept for its measurements — its CONCLUSION is superseded by items 3-4:
 
 > 2b. **‼ THE NEXT BUILD IS NO LONGER BLOCKED THE WAY THE DOCS SAID.** §Ch20/§Ch21 need **Dive
 >    USED**, and KI-63 is real (no party member learns it, party 6/6). But the thing four documents
@@ -352,7 +406,9 @@ teaching Dive/Dig/Flash. ‼ **Relicanth is underwater-only, so Dive is upstream
 >      the wrong map; and (20,30) counts as a south-arrow warp, so never spin on or below it.
 > 3. **Fix KI-59 before the cavern exists** — it is armed there (115 `Impassable *` tiles across
 >    Rooms 1-9). A/B on `SEAFLOOR_CAVERN_ROOM1`.
-> 4. Two things remain the USER's call: **promoting §Ch18 + §Ch19 to `custom-pokebot/`**, and the
+> 4. ✅ **THE PROMOTION ALREADY HAPPENED** (2026-08-12, user-approved, driven on `--build custom`).
+>    Do NOT ask for it again. The line below is superseded; only the battle-policy half is still
+>    the user's call. Superseded text: Two things remain the USER's call: **promoting §Ch18 + §Ch19 to `custom-pokebot/`**, and the
 >    **boss/status battle-policy** decision further down.
 > 5. Before building anything, skim `08-MISTAKES.md`'s last entries — five were written today and
 >    three of them are about tests or gates that were green while something was broken.
@@ -386,7 +442,10 @@ teaching Dive/Dig/Flash. ‼ **Relicanth is underwater-only, so Dive is upstream
    requires being out of the gym**, so the stranded version would fail. *This is KI-56's rule
    violated a second time in the session in which I re-read it.*
 
-## ⏭ §Ch19 — the MOSSDEEP SPACE CENTER. GROUNDWORK DONE, NOT BUILT, NOT WIRED.
+## 📌 HISTORY — §Ch19 planning notes, written BEFORE it was built. ‼ §Ch19 IS DONE AND WIRED.
+> Everything from here to the next `##` heading is the pre-build research. It is kept because the
+> measured hazards in it are still true and still useful, but its status line is **obsolete** —
+> §Ch19 shipped, was promoted, and runs in the ladder. Do not read this as a to-do.
 
 Start from **`saves/post_mossdeep_gym.ss1`** (re-captured: now standing in `MOSSDEEP_CITY (38,10)`,
 7 badges, ‼ **66% HP with one Pokémon fainted** — heal FIRST).
@@ -493,13 +552,33 @@ PYTHONUTF8=1 py -3.12 probe_status_tax.py <batch-dir>   # the status tax, with i
 PYTHONUTF8=1 py -3.12 x4_headless.py --lanes 8 --minutes 180   # a batch (3h)
 
 # --- §Ch18/§Ch19 (all exit 0 today; keep them green) ---
-PYTHONUTF8=1 py -3.12 repro_gym_whiteout_guard.py   # 4/4, fault-injected  (~1 min)
+PYTHONUTF8=1 py -3.12 repro_gym_whiteout_guard.py   # 5/5, fault-injected  (~1 min)
 PYTHONUTF8=1 py -3.12 probe_chapter_order.py        # KI-61 regression guard
 PYTHONUTF8=1 py -3.12 probe_ch19_hazards.py         # 3/3; H1 is now a stranding guard
 PYTHONUTF8=1 py -3.12 probe_space_center_recon.py   # §Ch19 area atlas (measured, not recalled)
 PYTHONUTF8=1 py -3.12 probe_gym_solve.py            # re-derive the 117-step gym route
 
+# ‼ THE 15-GATE SUITE — ALL EXIT 0 as of the last session. Run it before and after any change.
+#   preflight, lint_docs, verify_fixtures, audit_flag_names, repro_undefined_names,
+#   repro_no_silent_except, repro_roster_reorder, repro_multi_battle_partner,
+#   repro_whiteout_abort, repro_gym_whiteout_guard, probe_chapter_order, probe_dive_learner,
+#   probe_slot_free_plan, probe_regi_capabilities, probe_dive_routing
+PYTHONUTF8=1 py -3.12 probe_chapter_order.py --build custom   # ‼ also check the OTHER fork
+
+# ‼ VERIFY THE SANDBOX<->CUSTOM DRIFT ROW RATHER THAN TRUSTING IT (PowerShell, from the repo root):
+#   Get-ChildItem "sandbox-pokebot\modules","sandbox-pokebot\plugins" -Recurse -Filter *.py |
+#     ForEach-Object { $rel=$_.FullName.Substring((Resolve-Path "sandbox-pokebot").Path.Length+1)
+#                      $c="custom-pokebot\$rel"
+#                      if (Test-Path -LiteralPath $c) { git diff --no-index --quiet -- $c $_.FullName
+#                                                       if ($LASTEXITCODE -ne 0) { "differs: $rel" } }
+#                      else { "MISSING in custom: $rel" } }
+#   EXPECTED TODAY: exactly 2 — `modules/story/roster.py` (new, sandbox-only) and
+#   `modules/menuing.py` (the PartyMenuExit freeze fix). Anything else is unexplained drift.
+
 # --- §Ch19 gates + drivers (all exit 0 / PASS today; keep them green) ---
+PYTHONUTF8=1 py -3.12 repro_roster_reorder.py       # party-reorder PLANNER, 16/16 (driver UNPROVEN)
+PYTHONUTF8=1 py -3.12 probe_regi_capabilities.py    # what the Regi arc still needs (KI-69 Phase A)
+PYTHONUTF8=1 py -3.12 probe_dive_routing.py         # why a chapter must drive dive() (KI-68)
 PYTHONUTF8=1 py -3.12 repro_undefined_names.py      # ZERO undefined names in the story surface
 PYTHONUTF8=1 py -3.12 audit_flag_names.py           # 19 files / 144 names; exits 1 on a phantom
 PYTHONUTF8=1 py -3.12 probe_ch19_route.py           # why Mossdeep is cut in two (models live NPCs)
@@ -517,7 +596,13 @@ PYTHONUTF8=1 py -3.12 story_harness.py at_mossdeep_leaders.ss1 --driver mossdeep
 to a file and echo `$?` (this nearly recorded a PASS that had never run).
 ‼ **A driver can fight; a hand-driven probe cannot.** Battle handling lives in the main loop's
 listeners, not inside a bot mode's generator (`modules/battle_fault.py:5`).
-**Regression gate — 15 of 15 green (2026-08-12):** plus `repro_gym_whiteout_guard.py` (4/4, fault-injected — ‼ it is a BOUNDED prefix test, because a hand-driven generator has no battle listeners and cannot win a gym fight; see 08-MISTAKES). Previously 14 of 14 (2026-08-11): the ten standing `repro_*` plus
+**‼ THE AUTHORITATIVE GATE LIST IS THE 15 NAMED IN "HOW TO RUN / TEST" ABOVE — all exit 0.** Do not
+reconstruct it from the prose below; there are 94 `repro_*.py` files and the older text says "the
+ten standing repro_*" without naming them, which is not reproducible. Current pass counts, measured:
+`repro_gym_whiteout_guard.py` **5/5**, `repro_roster_reorder.py` **16/16**,
+`repro_whiteout_abort.py` **13/13**, `repro_multi_battle_partner.py` **5/5**.
+
+**Older text (2026-08-12, counts now stale):** plus `repro_gym_whiteout_guard.py` (4/4, fault-injected — ‼ it is a BOUNDED prefix test, because a hand-driven generator has no battle listeners and cannot win a gym fight; see 08-MISTAKES). Previously 14 of 14 (2026-08-11): the ten standing `repro_*` plus
 `repro_teach_under_dialogue`, `repro_teach_prompt_window`, `repro_maxie_whiteout_guard`,
 `repro_lead_cannot_battle`, and the `repro_no_silent_except` ratchet.
 ‼ `repro_counter_hunt` and `repro_area_item_gate` print `RESULT: ALL PASS` / `all checks pass.` —

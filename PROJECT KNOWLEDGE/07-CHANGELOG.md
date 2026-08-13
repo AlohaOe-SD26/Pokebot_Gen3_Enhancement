@@ -12008,6 +12008,63 @@ Also hardened `clear_the_three_grunts()` to **bail when it leaves 2F** rather th
 wrong map for its whole 60,000-frame budget — the two ways off that floor (answering the prompt NO,
 or losing a grunt battle) both left the old predicate false.
 
+## 2026-08-12 (late) — KI-67 CLOSED, KI-68, KI-69, roster reordering, and a health-check sweep
+
+Batched here because the per-item entries were skipped during a long session — recorded on the
+health check that caught the omission. Commits `b2744235` … `04dee4af`.
+
+* **KI-67 CLOSED, both halves.** `StoryAbort` + the latch-keyed `reraise_if_aborting` (a type-only
+  guard cannot see an abort an inner loop already replaced with a fresh error), and
+  `StoryWhiteoutRecoveryMixin` so drivers mirror production. **First driven whiteout recovery in
+  this project** — `whiteouts=3 recoveries=3`, frame deltas **+7,789 / +7,087**, proven on BOTH
+  builds. ‼ The deltas are the proof, not the counts: broken code burns three attempts in a handful
+  of frames after ONE whiteout.
+* **KI-68 filed, then REFINED.** §Ch21's blocker is not the party slot — the planner cannot emit a
+  Dive waypoint. ‼ But `warp_graph.py:342` says the exclusion is *on purpose* and `dive()` already
+  works, so **the fix is a CHAPTER that drives the transition, not a planner rewrite.** A
+  slot-freeing implementation was written and **reverted** — inert-but-defective is worse than
+  absent. `probe_dive_routing.py` + `probe_slot_free_plan.py` added.
+* **KI-69 — the Regi arc researched and Phase A measured.** ‼ **Emerald reversed the party order:
+  WAILORD first, RELICANTH last**, and the wrong order fails **silently**. ‼ **The Regi battle is
+  unrecoverable** — a KO *or* a whiteout deletes the encounter permanently. Measured: we have
+  Go-Goggles/HM08/Surf/Rock Smash; **no rod at all**, no TM28, and nobody knows Dive, Dig or Flash.
+  `probe_regi_capabilities.py` + `probe_dive_learner.py` added.
+* **NEW `modules/story/roster.py`** — party reordering. Planner proven exhaustively (720
+  permutations replayed, `repro_roster_reorder.py` 16/16); **the DRIVER is unproven and says so.**
+* **‼ `PartyMenuExit.wait_for_start_menu` could FREEZE THE PROCESS** — upstream's give-up branch
+  never yields, never breaks, never raises, so no caller-side frame bound could stop it. Found by an
+  adversarial review **before the first drive**. Now raises.
+* **`probe_chapter_order.py` gained `--build`** — the only guard on the KI-61 chapter order could
+  previously never test the fork the user runs.
+
+## 2026-08-12 (health check) — documentation repairs, all found by a COLD-RESUME test
+
+A fresh-agent simulation read `04-HANDOFF.md` with zero context and reported 17 defects. The
+engineering held (every file, driver, anchor, probe and tag it named existed; 15 gates exit 0); the
+**prose** did not. Repaired:
+* the sandbox↔custom **drift row contradicted itself in one cell** *and* was factually stale — there
+  IS drift again (`roster.py`, `menuing.py`), deliberate and sandbox-only. A **drift-verification
+  loop** is now in the handoff so the row is checkable rather than trusted;
+* `02-ARCHITECTURE.md` had **four measurably false claims** — 18 vs 19 story modules, a "sandbox-only
+  modules" list whose every member is present in custom, and "the forks have diverged: 3,061 vs
+  2,636 lines" when both are **3,742**;
+* **KI-59 and KI-60 — two OPEN pathfinder bugs — were filed in the ARCHIVE of *resolved* issues.**
+  Both files now say so; KI-59 is armed in the Seafloor Cavern;
+* ‼ **the stale code comment that caused the original four-document error was still armed in BOTH
+  forks** (`story_mode.py:2202`, 39 lines above the default that contradicts it). The docs had been
+  retracted; the root cause had not. Now marked HISTORY in both;
+* `29-DISABLED-FEATURES-REGISTRY.md` **repeated the refuted claim four lines under its own
+  retraction**;
+* stale pass counts (4/4→5/5, 15/15→16/16), a completed NEXT-ACTION still asking the user to approve
+  a promotion that had shipped, and a live `§Ch19 … NOT BUILT, NOT WIRED` heading 220 lines below
+  `§Ch19 IS DONE`.
+
+‼ **The lesson, and it is structural:** the handoff had been **appending corrections instead of
+replacing the corrected text**, so a true statement and its superseded predecessor coexisted — often
+in the same cell, with the older one still in bold. `lint_docs.py` passes such a file because it
+measures **length, not contradiction**. That is why a cold-resume test is worth more than a linter
+here, and it should be re-run at the end of any long session.
+
 ## 2026-08-12 — PROMOTION: §Ch18 + §Ch19 into `custom-pokebot` (user-approved), ladder 17 → 20 of 24
 
 Eight files (3 new, 5 modified). **Post-copy drift: ZERO** — every `.py` under `modules/` and

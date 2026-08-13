@@ -2199,7 +2199,21 @@ class StoryMode(BotMode):
                 #
                 # ‼ The BALL gate stays. Never attempt a catch without a spare — that is the
                 # resource rule `resource_blocker` enforces, and it is unrelated to party space.
-                # ‼‼ GATED OFF (`POKEBOT_BOX_OVERFLOW_CATCH`, default 0) after batch
+                # ‼‼ HISTORY ONLY — **THIS FEATURE IS ON.** The paragraph below describes why it
+                # was gated OFF on 2026-08-06; it was RE-ENABLED on 2026-08-07 and the live default
+                # is `"1"` — see the DEFAULT ON block ~35 lines down, immediately above the
+                # `environ.get` that actually decides.
+                # ‼ THIS COMMENT IS WHY THIS WARNING EXISTS. On 2026-08-11 four documents
+                # (`29-DISABLED-FEATURES-REGISTRY.md`, KI-54, and `04-HANDOFF.md` twice) were
+                # written FROM THIS PARAGRAPH instead of from the default below it, and recorded
+                # the feature as disabled and "one unhandled text box away" from working. That
+                # became the stated blocker on roster work — which is the blocker on §Ch21 — and
+                # cost a full investigation on 2026-08-12 before the live default was read.
+                # ⇒ **When a comment and the code beside it disagree, the code wins and the comment
+                # is the bug.** Leaving the comment armed after retracting it in the docs is how
+                # the same wrong conclusion gets re-derived a fifth time.
+                #
+                # (historical) GATED OFF (`POKEBOT_BOX_OVERFLOW_CATCH`, default 0) after batch
                 # `20260806-142418` graded it against its own pre-registered target and it
                 # FAILED: `withdrawing` **0** (target ≥1) and `INTO THE PC BOX` **0** — the
                 # path NEVER FIRED in 26 runs. Same batch: finish rate 52.0% → 30.8% and

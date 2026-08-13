@@ -70,19 +70,23 @@ Pokebot_Gen3_Enhancement/
 └── sandbox-pokebot/               # ★★ THE ACTIVE COPY — all current work happens HERE
     ├── SANDBOX-NOTES.md  SANDBOX-PROPOSALS.md  CHEATS-DESIGN.md  DIVERGENCE-LOG.md
     ├── plugins/custom_modes/story_mode.py   # StoryMode + StoryDebug/DebugReset/EndlessReset
-    ├── modules/story/             # 18 modules: early_game, chapters, region_reach,
+    ├── modules/story/             # 19 modules: early_game, chapters, region_reach,
     │                              #   counter_plan (plans) + counter_hunt (executes),
     │                              #   training_areas, fortree_gates, intro, progress,
     │                              #   config, team_policy (built, UNWIRED),
     │                              #   mossdeep_gym_puzzle (PURE model, UNWIRED),
     │                              #   mossdeep_gym (§Ch18 chapter + executor),
     │                              #   space_center (§Ch19 chapter — Space Center AND Dive),
+    │                              #   roster (party REORDER; planner proven, DRIVER UNPROVEN),
     │                              #   obstacle_clearing, pc_trip, battle_items
-    └── modules/…                  # sandbox-ONLY modules (absent from custom-pokebot):
-                                   #   endless_x4, tile_bridge, tile_mosaic, gui/tile_child,
-                                   #   x4_logs, remote_party, badge_log, badge_case,
-                                   #   battle_fault, story_milestones
 ```
+‼ **CORRECTED 2026-08-12 — there is no "sandbox-only modules" list any more, and there was not one
+for some time before that.** This file used to name ten modules (`endless_x4`, `tile_bridge`,
+`tile_mosaic`, `x4_logs`, `remote_party`, `badge_log`, `badge_case`, `battle_fault`,
+`story_milestones`, `gui/tile_child`) as *"absent from custom-pokebot"*. **Every one of them is
+present in `custom-pokebot/modules/`** — measured file-by-file. `CLAUDE.md` repeats the same stale
+claim. It mattered: that list was the premise of the main risk assessment before the §Ch18/§Ch19
+promotion, and the risk turned out not to exist.
 
 ### Which copy am I in? (verified 2026-07-27)
 | copy | role | edit it? |
@@ -91,11 +95,18 @@ Pokebot_Gen3_Enhancement/
 | `custom-pokebot/` | promoted/"production" fork | only when promoting an approved sandbox feature |
 | `sandbox-pokebot/` | **experimental — where enhancements are built and tested** | **YES, this is the default** |
 
-The two forks have **diverged**: `sandbox-pokebot/plugins/custom_modes/story_mode.py` is
-3,061 lines vs 2,636 in `custom-pokebot/`, and the ten sandbox-only modules listed above do
-not exist in `custom-pokebot/` at all. A path written without a copy prefix is ambiguous —
-**always prefix**. Promotion rule and the "don't touch custom during a sandbox round"
-directive: root `CLAUDE.md` §"Sandbox area".
+‼ **THE FORKS ARE ALMOST IDENTICAL TODAY — corrected 2026-08-12.** This paragraph used to say they
+had "diverged", with `story_mode.py` at *"3,061 lines vs 2,636"*. **Measured: 3,742 in BOTH.** After
+the §Ch18/§Ch19 promotion the two trees were byte-identical across all 255 code/config files.
+
+**The current, verified drift is exactly two files**, both deliberate and both sandbox-only:
+`modules/story/roster.py` (new; its driver is unproven, so it must not be promoted yet) and
+`modules/menuing.py` (the `PartyMenuExit` freeze fix, which only matters to that driver).
+
+⇒ **Do not trust this paragraph either — MEASURE.** The drift loop is in `04-HANDOFF.md` under
+"HOW TO RUN / TEST"; it takes seconds and prints the differing files. A path written without a copy
+prefix is ambiguous — **always prefix**. Promotion rule and the "don't touch custom during a
+sandbox round" directive: root `CLAUDE.md` §"Sandbox area".
 
 ‼ **The bot the USER runs is on a DIFFERENT MACHINE** (`…\Pokebot Gen 3 SECOND RUNNING
 PROFILE\Pokebot_Gen3_Enhancement_old\sandbox-pokebot\`), not this checkout. Fixes committed

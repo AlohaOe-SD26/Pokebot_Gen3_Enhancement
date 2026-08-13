@@ -2703,6 +2703,19 @@ Recorded because I wrote a draft and reverted it; these are the defects the revi
 (sole Surf carrier), Sceptile too (sole Rock Smash + Strength carrier), and the pick is Skitty L17.
 Measured, `probe_slot_free_plan.py`.
 
+## ‼ OPEN ISSUES THAT LIVE IN THE ARCHIVE — do not conclude they are fixed
+
+Two **OPEN, code-verified, unfixed** bugs were moved to `31-KNOWN-ISSUES-ARCHIVE.md` for the R3
+line budget, not because they were resolved. A cold read of that file's header says "issues that
+are now resolved live here", so they are listed here to stay findable:
+
+* **KI-59** — `map_path` **INVERTS `Impassable *` directions**, over-blocking every such tile.
+  ‼ **ARMED IN THE SEAFLOOR CAVERN**: 115 `Impassable *` tiles across Rooms 1-9. Fix it with an A/B
+  on `SEAFLOOR_CAVERN_ROOM1` **before** that chapter exists. (Archive line ~481.)
+* **KI-60** — `calculate_path` **never validates its SOURCE tile**, so a result is evidence about
+  the DESTINATION only. Every probe in this project asserts the avatar's real position because of
+  this. (Archive line ~513.)
+
 ## ‼‼ KI-69 — THE REGI ARC: the party order everyone "knows" is the RUBY/SAPPHIRE one (2026-08-12, decomp-verified, OPEN)
 
 Researched at the user's request, ahead of building Relicanth/Wailmer catch logic.
@@ -2827,7 +2840,7 @@ against an existing log before scheduling work for it.
 than a guard per call site. That is a battle-layer refactor touching every mode, so it is filed
 rather than done.
 
-## ‼ KI-67 — the chapter retry loop swallows the WHITEOUT ABORT, and no driver can detect it (2026-08-12, code-verified, OPEN)
+## KI-67 — the chapter retry loop swallows the WHITEOUT ABORT (2026-08-12, ✅ CLOSED — original filing, kept for the diagnosis)
 
 `StoryMode.on_whiteout` sets `set_story_abort(True)`; only `StoryMode.run` clears it.
 `do_space_center_chapter` catches `BotModeError` — **including the abort raised by `_check_abort()`**

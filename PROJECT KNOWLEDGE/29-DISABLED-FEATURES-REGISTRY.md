@@ -58,10 +58,17 @@ NOTHING, not because it was proven harmful."*
 |---|---|---|---|
 | `POKEBOT_BOX_OVERFLOW_CATCH` | ‼ **`1` — ON, NOT DISABLED** | lets a catch overflow into the **PC box** when the party is full (`#24-pcoverflow`) | ‼‼ **THIS ROW WAS STALE FROM 2026-08-11 TO 2026-08-12 AND BLOCKED REAL WORK.** It said `default 0` and named an "EXTRA TEXT BOX" blocker. Both were **already refuted on 2026-08-07** — four days before this row was written. The live code is `story_mode.py:2241-2243`, `_os.environ.get("POKEBOT_BOX_OVERFLOW_CATCH", "1")`, i.e. **default ON**, with the capability test recorded in the comment directly above it: `--driver boxcatch` on a full party + empty box gave `caught=True box_before=0 box_after=1 exited_clean=True exit_frames=120`, then `AFTER-CATCH usable=True second_catch=True frames=20 box_now=2`. **Zero forced presses — the existing battle handler rides the box-send message out.** The original batch verdict ("never fired in 26 runs") was true and meant only that the counter hunt never had a full party when it fired. **Set to `"0"` to disable.** |
 
-‼‼ **THIS IS THE MISSING PRECONDITION FOR ROSTER WORK (KI-54).** The box is empty at the §Ch16
-anchor because nothing ever puts anything in it. Any "swap dead weight for a better mon before a
-boss" plan needs *this* to work first — and what stands in its way is one unhandled text box, not a
-design problem.
+⛔ **RETRACTED 2026-08-12 — the paragraph that used to sit here was the refuted claim, repeated
+four lines under its own retraction.** It said this was *"THE MISSING PRECONDITION FOR ROSTER WORK
+(KI-54) … what stands in its way is one unhandled text box"*. **Both halves are false.** The flag
+has defaulted to **ON** since 2026-08-07, and the text box needs **no handling** (`--driver
+boxcatch`: `exited_clean=True exit_frames=120`, zero forced presses). Nothing stands in the way of
+box-overflow catching; it works today.
+
+‼ **Kept as a warning rather than deleted, because the failure mode is the lesson:** a retraction is
+worthless if the retracted sentence still reads as live advice elsewhere in the same file. The
+root-cause comment in `story_mode.py:2202` — which is what produced the four wrong documents — is
+now also explicitly marked HISTORY in both forks.
 
 ## B. FAULT-INJECTION SWITCHES (restore a pre-fix behaviour for A/B)
 These exist so a fixed bug can be **re-measured without reverting code** — the project's standard
