@@ -1743,3 +1743,69 @@ the ladder is one line either way.
 **Consequence to watch.** There are now two places a chapter can live. If a third such module
 appears, the convention should be made explicit in `02-ARCHITECTURE.md` rather than left as
 precedent — a split that nobody wrote down is how the next agent ends up looking in the wrong file.
+
+---
+
+## 2026-08-13 — RULING: **Shoal Cave is NOT adopted as a hunting ground.** Route 117 stays.
+
+**Decision delegated to me by the user**, with the explicit caution that *"tide levels [change at]
+certain times of in-game time and [change] the cave"*. That caution was correct and is what the
+ruling turns on.
+
+### The decision
+* **Do NOT add Shoal Cave to `TRAINING_GRASS`, and do NOT build the separate HM-ground table yet.**
+* **Keep `ROUTE117 (31,16) ['Marill']`**, which `_hm_hunting_grounds(HM08)` already returns and
+  which was **driven end-to-end to an `ACCEPTANCE: PASS` today** (`--driver divelearner`).
+
+### Why — the decisive reason is KI-73, not the tide table
+The attraction was real: Spheal is **50% of the land table at L26-32 with catch rate 255**, against
+Marill's **10% at L13, catch rate 190**, and Shoal Cave is 103 waypoints + one door away versus
+**1,055 waypoints** to Route 117. On paper it wins on every axis.
+
+**But we cannot see the room we would be hunting in.** `get_map_data` builds `_map_header_cache`
+**once, from the static compile-time `gMapGroups` ROM pointer table** (`map.py:1766-1785`), which
+can only ever yield the **compiled low-tide** layout for map (24,46). The high-tide floor is
+installed at runtime by `setmaplayoutindex` patching the live `gMapHeader` RAM struct — which that
+table never reads — and **nothing in `modules/` ever clears either cache**. Filed as **KI-73**.
+
+Three consequences, in increasing order of how much they settle the question:
+1. At high tide the planner routes over the **wrong floor plan**, and ‼ **`calculate_path` does not
+   raise** — it returns a confident path across tiles that are water or wall in the live room. That
+   failure is **invisible to a run that reports success**.
+2. ⇒ **KI-54's own supporting figure is compromised.** Its *"65 walkable tiles at high tide (332 at
+   low)"* was almost certainly measured through the same lens, making it very likely two views of
+   the **same low-tide layout**. So the claim *"the Spheal table is live at both tides, no tide
+   handling needed"* rests on evidence that cannot see high tide. That section is now retracted in
+   `05-KNOWN-ISSUES.md`.
+3. The decomp claim that the tide is *"sampled only on `ON_TRANSITION` and frozen for the visit"* —
+   the thing that would make an entry-time check sufficient — **has never been audited here**;
+   `src/time_events.c` is not vendored in this repo.
+
+**⇒ We would be choosing a hunting ground inside the one room whose geometry our tools are
+structurally unable to observe, gated on an in-game clock, to obtain a better HM slave for a
+capability we already have working.** That is a bad trade, and I am not making it.
+
+### Alternatives considered and rejected
+| option | rejected because |
+|---|---|
+| Add a Shoal row to `TRAINING_GRASS` | `best_training_area` (`training_areas.py:346-364`) reads the **same list** as `_hm_hunting_grounds`, with no per-consumer filter. A Shoal row becomes the highest band and **redirects ordinary training for every team from ~L26 up**, into a dead-end cave that has **no `NO_RETURN_GROUNDS` entry** |
+| Build the separate HM-ground table now | It cleanly decouples the two consumers, but it does **nothing** about KI-73 — we would ship a correct table pointing at an unobservable room |
+| Adopt it but gate on `FLAG_SYS_SHOAL_TIDE` | The flag is readable and this is the right *shape* — but it fences the ENTRY, not the PLANNING. KI-73 corrupts the geometry regardless of when we enter |
+| Wait for low tide | Emerald's RTC is real time; low tide is a subset of hours. Nothing in this codebase detects, waits for, or skips a tide (`modules/story/*` has **zero** references to tide or shoal), and `ensure_hm_learner`'s 40,000-frame deadline would simply burn |
+
+### What would unlock it — all three, in order
+1. **Fix or fence KI-73** — key the layout cache on the live layout pointer, or invalidate on map
+   transition. ‼ This touches shared pathfinding every mode depends on, so it needs its own A/B.
+2. **Re-measure the high-tide geometry** once (1) makes that possible, and find a spin tile that is
+   walkable **and** encountering at **both** tides.
+3. **Live two-way sweep** that tile — static evidence is not enough here (the Route 114 demotion),
+   and it must avoid `(20,30)` and its south neighbour (`MB_SHOAL_CAVE_ENTRANCE`, a south-arrow warp).
+Only then is the separate HM-ground table worth building.
+
+### What this costs us
+Nothing we have. The Dive learner is already acquired by playing. The cost is that the learner is a
+**Marill L13** rather than a Spheal L26-32, and the trip is long. Both are quality, not capability —
+and a quality upgrade is exactly the kind of thing that should wait behind a correctness fix.
+
+‼ **Revisit trigger:** if KI-73 is ever fixed for other reasons, re-open this ruling — most of the
+objection dissolves with it.

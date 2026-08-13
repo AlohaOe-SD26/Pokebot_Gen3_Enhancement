@@ -12378,3 +12378,34 @@ fixed":** `_needs_party_slot` has **no production setter**, so in a real `StoryM
 piggyback never fires and the party-full raise still ends the chapter. The capability is proven;
 wiring `story_mode.py` is the remaining work. Also untested: a party containing an **egg**, a full
 box, and a hunt that runs out of balls. One anchor, so **n=1**.
+
+## 2026-08-13 — RULING: Shoal Cave NOT adopted, and KI-73 filed (the reason it is not adopted)
+
+The user delegated this choice with the caution that tide changes the cave. The caution was right;
+the decisive reason turned out to be **our own tooling**, not the tide table.
+
+**KI-73 (NEW, code-verified, OPEN)** — `get_map_data` builds `_map_header_cache` **once from the
+static compile-time `gMapGroups` ROM pointer table** (`map.py:1766-1785`), and `_map_layout` caches
+per **map number** (`map.py:735-755`). Shoal Cave's entrance room is always map (24,46) at both
+tides; the high-tide floor is installed at runtime by `setmaplayoutindex` patching the live
+`gMapHeader`, which the static table never reads. Nothing in `modules/` clears either cache.
+⇒ **The planner sees the compiled LOW-tide layout at both tides, always** — and
+**`calculate_path` does not raise**, it returns a confident route across tiles that are water or
+wall at high tide. Invisible to a run that reports success.
+
+⇒ **KI-54's "THE TIDE IS NOT A BLOCKER" section is RETRACTED.** Its supporting figure (*"65 walkable
+tiles at high tide, 332 at low"*) was almost certainly measured through the same lens — very likely
+two views of the same low-tide layout. **We do not currently know that room's high-tide geometry.**
+Its decomp claim that the tide is "frozen for the visit" is also unaudited: `src/time_events.c` is
+not vendored here.
+
+**RULING (`06-DECISIONS-LOG.md`):** keep `ROUTE117 ['Marill']`, which already works and was driven
+to a PASS today. Rejected: adding a Shoal row to `TRAINING_GRASS` (`best_training_area` reads the
+**same list**, so it would redirect ordinary training for every team from ~L26 up into a dead-end
+cave with no `NO_RETURN_GROUNDS` entry); building the separate HM table now (correct, but it would
+point at an unobservable room); gating on `FLAG_SYS_SHOAL_TIDE` (fences entry, not planning); and
+waiting for low tide (nothing in the codebase detects or waits for a tide).
+
+**Unlock conditions, in order:** fix/fence KI-73 with its own A/B → re-measure the high-tide
+geometry → live two-way sweep a tile walkable at BOTH tides. Only then is the HM table worth
+building. The cost of waiting is a Marill L13 instead of a Spheal L26-32 — quality, not capability.

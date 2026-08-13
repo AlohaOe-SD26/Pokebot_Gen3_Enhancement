@@ -1092,3 +1092,136 @@ process. Original write-up kept below for reference.
   blocking the Oceanic Museum doors, or is the entrance clear? Then either build the faithful
   trigger or document the state-write. `deliver_devon_goods_to_stern` (interior logic sound)
   stays defined but UNWIRED; frontier honestly = Slateport arrival.
+
+---
+
+# 📦 ARCHIVED 2026-08-13 (third batch) — KI-6 and KI-7, both resolved July 2026
+
+> Moved verbatim from `05-KNOWN-ISSUES.md` when KI-73 pushed that file over its 3,000-line
+> budget (lint rule R3). Nothing deleted.
+
+## KI-6 — Tab bar overcrowds with 6 tabs — RESOLVED 2026-07-19 (sandbox)
+- **Symptom:** Adding the Hunt tab (#9) made 6 tabs overflow the ~360px
+  tool-column width — labels overlapped/truncated.
+- **Fix (done):** tab bar wraps to two balanced rows when there are >4 tabs
+  (3+3 for six), legible in both desktop and the handheld drawer
+  (screenshots ki6_1/ki6_2). Gamepad focus-nav + tab persist unaffected.
+
+## KI-7 — fly_to() checks the wrong badge for Emerald — ✅ FIXED 2026-07-24 (sandbox)
+- **Fix:** RSE branch now gates on BADGE06_GET (Feather Badge) — the stock BADGE03 check
+  was FR/LG's. Fixed ahead of Ch14's first Fly usage; DIVERGENCE-LOG entry due at
+  promotion (upstream-file edit).
+
+## (old text) KI-7 — fly_to() checks the wrong badge for Emerald (opened 2026-07-19, severity: low)
+- **Symptom:** `modules/modes/util/higher_level_actions.py` fly_to() gates on
+  BADGE03_GET (Dynamo) — correct for FR/LG but WRONG for Emerald, where Fly
+  needs the Feather Badge (BADGE06). Inherited from upstream. Story-mode #24
+  must not rely on fly_to as-is; fix when wiring Fly into story navigation.
+
+
+> Plus **KI-9** (MITIGATED 2026-07-21), moved the same day for the same reason:
+
+## KI-9 — Training spin could silently stall (no encounters) — MITIGATED 2026-07-21
+- **Symptom:** during pre-gym / pre-rival training, the grind `spin()` could end up where it
+  can't trigger wild encounters (walked out of grass, trainer line-of-sight, bad respawn spot)
+  and walk in place FOREVER — the level never reaches target, the stop-condition never fires, no
+  whiteout, no derail → hard stall (harness-repro'd from `route116team.ss1`: stuck at Marshtomp
+  L16 with no EXP for 20k+ frames). Position/RNG-dependent (a clean fresh run trains fine).
+- **Mitigation (done):** `_story_spin` now has a **no-progress watchdog** — if the party gains
+  no EXP for `_STORY_SPIN_NO_PROGRESS_FRAMES` (2400) consecutive OVERWORLD frames, it bails so
+  the caller (`train_team`'s loop) **re-navigates to the grass and retries**, which un-sticks it.
+  Overworld-only counting means a long single battle can't false-trigger it. VALIDATED: the same
+  `route116team` run that hung before now trains past L16, beats Roxanne, and reaches the rival
+  prep with all fixes. Bounded by `train_team`'s outer guard (500) → derail recovery if truly stuck.
+
+
+> Plus **KI-10** (MITIGATED 2026-07-22), moved the same day for the same reason:
+
+## KI-10 — Post-sail whiteout can respawn the run on the MAINLAND (Dewford arc) — MITIGATED 2026-07-22
+- **Scenario:** the Emerald whiteout respawn point is the last Poké Center USED. After the first
+  Briney sail (Ch6), Mr. Briney leaves his cottage (FLAG_HIDE_BRINEYS_HOUSE_MR_BRINEY) and waits
+  at his BOAT: vanilla re-sails happen by talking to him on the Route 104 beach (his Route104
+  object is un-hidden by the sail script) or at the Dewford dock (12,9). If the bot whites out on
+  the Dewford side BEFORE ever healing at the Dewford PC, it respawns at Rustboro's PC — and
+  `sail_to_dewford`'s cottage leg (Leg 3-4) would knock on an EMPTY house.
+- **Mitigation (done):** `deliver_stevens_letter` heals at the Dewford PC FIRST when starting
+  from town, so from the moment the Dewford arc begins, whiteouts respawn IN Dewford (the
+  Segment-6 whitelist also stops any Dewford-side resume from re-running the sail). Remaining
+  edge: a whiteout in the sail leg itself (route trainers) before the first Dewford heal — rare
+  (the leg heals before the rival and fights little), but if hit, the run derails to Manual at
+  the cottage instead of re-sailing.
+- **Proper fix (when Ch8 needs re-sailing anyway):** teach the sail leg to talk to BOAT-Briney —
+  if `HIDE_BRINEYS_HOUSE_MR_BRINEY` is set, engage his Route 104 beach object (live local_id via
+  `_talk_to_wandering_npc`-style lookup) instead of entering the house.
+
+> 📦 **KI-11 moved to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-08-13** — ✅ RESOLVED 2026-07-22. Moved
+> verbatim, nothing deleted, to keep this file inside its 3,000-line budget (lint rule R3).
+
+
+> 📦 **KI-14, KI-15 and KI-16 moved to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-08-13** — all three
+
+> Plus **KI-19** (FIXED-PENDING-WIRING, 2026-07-24), moved 2026-08-13 for the same budget reason:
+
+## KI-19 — Route 111 training band was paired with a heal 2.2× farther than necessary (2026-07-24) — FIXED-PENDING-WIRING
+
+`ROUTE111_OLD_LADYS_REST_STOP` (map `(18,1)`, door at ROUTE111 `(26,18)`) contains ONE NPC —
+`Route111_OldLadysRestStop_EventScript_OldLady`, `flag_id=0` so always present and ungated — that
+gives a **full HP + status + PP heal, repeatable**. PROVEN live: all four party members damaged to
+1 HP with four different status conditions and spent PP, verified in memory, then fully restored;
+repeated a second time with no change in behaviour. Static dump confirms **zero `bg_events`** — no
+bed exists in that building.
+
+**Distances from the Route 111 training tile (25,55):** rest stop **96 steps**, Fallarbor Poké
+Center **213 steps**.
+
+`training_areas.py` / `_training_area_heal_map()` currently pairs ROUTE111 with
+`PokemonCenter.FallarborTown` because that was the only heal verifiable at the time. Re-pairing
+needs a heal-at-NPC helper (the existing path is `heal_in_pokemon_center(PokemonCenter.X)`, which
+assumes a Poké Center layout) — punch-list `#24-npcheal`.
+
+
+> Plus **KI-46** (FIXED same day, 2026-08-03), moved 2026-08-13 for the same budget reason:
+
+## KI-46 — Battle ACTION SELECTION spins for ever on an unrecognised controller callback (2026-08-03, FIXED same day)
+
+**KI-45 was one instance of a pattern. This is another, at a different site.**
+
+**Observed**, batch10 (`x4-runs/20260803-164713`): lanes **H2 and H8 both wedged for ~59
+minutes**. **H8 completed 0 runs in the whole 180-minute batch**; H2 managed 2 against 4-5
+elsewhere. Both stacks stopped at `battle_action_selection.py:55`, with **zero**
+`_select_in_menu` dumps — so the KI-45 bound was not involved.
+
+```
+BattleListener.fight → handle_battle → handle_battle_action_selection  @ :55
+```
+
+**Cause.** `handle_battle_action_selection`'s loop conditions are sound (battle over, or the
+main callback moves on). But if the battle stays ACTIVE in turn-action-selection while the
+CONTROLLER callback matches none of the branches, control reaches a bare
+`else: yield; continue` and spins there indefinitely.
+
+**Fix.** `_MAX_UNRECOGNISED_FRAMES = 600` (~10 s) counting only frames where the state is NOT
+recognised; the counter **resets the moment a real decision is made**, so a long multi-turn
+battle never accumulates toward it. On exhaustion it reports via
+`battle_fault.request_mode_recovery()` — one recoverable derail for an opted-in mode — and
+raises `BotModeError` otherwise. The message carries **both observed callbacks**, because that
+is the diagnosis: it names the unrecognised state so the branch can be added properly.
+
+‼ **The fix contained the exact bug it was fixing a sibling of.** `BotModeError` is not
+imported at that module's top, so the first version would have raised `NameError` *instead of*
+the honest error — the same shape as the swallowed `get_party` NameError that made
+`#24-leadcounter` silently dead for two batches. Caught only because
+`repro_ki46_action_selection_bound.py` **drives the real generator** and asserts the exception
+is not a `NameError`. A source-text assertion would have passed.
+
+**Repro:** `repro_ki46_action_selection_bound.py` — drives the generator, and check 5 proves a
+battle that ends normally is unaffected (no false positive).
+
+‼ **THE STANDING LESSON (now twice measured): both project-level guards are structurally blind
+to any loop on the battle path.** The global watchdog needs an UNCHANGED progress signature and
+a battle keeps changing it; the per-run frame budget is KI-36's documented "cannot fire while a
+battle handler is on the stack". **Any `while` loop under `BattleListener.fight` has no safety
+net but its own bound.** Audit the remaining ones rather than waiting for the next lost lane.
+
+---
+

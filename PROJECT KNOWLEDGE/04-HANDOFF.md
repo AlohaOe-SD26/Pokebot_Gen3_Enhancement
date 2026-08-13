@@ -69,11 +69,15 @@ Every banner further down is HISTORY, newest first.
   needed**, and **deposit-first is the wrong order.**
   ✅ Already verified safe: teaching Dive **cannot** overwrite Surf (HM slots are filtered at two
   layers), and `find_dead_weight` **exempts** the sole Surf carrier.
-  ‼ A real strategic choice is queued and should NOT be made silently: the only Dive ground today
-  is **Route 117, 1,055 waypoints, a 10% L13 Marill**. Shoal Cave's Spheal (50%, L26-32, catch rate
-  255, 103 waypoints + one door) is better on every axis — but `_hm_hunting_grounds` reads
-  `TRAINING_GRASS`, and adding a Shoal row there **flips `best_training_area` for every team from
-  ~L30 up**. The clean fix is a SEPARATE HM-ground table.
+  ✅ **RULED 2026-08-13 (user delegated it to me): SHOAL CAVE IS NOT ADOPTED. Route 117 stays.**
+  Full rationale + the three conditions that would unlock it: `06-DECISIONS-LOG.md`.
+  ‼ The decisive reason is **KI-73**, not the tide table: `get_map_data` builds its header cache
+  **once from the static `gMapGroups` ROM table**, so it returns the **compiled LOW-tide layout for
+  map (24,46) at both tides, forever** — and `calculate_path` **does not raise**, it confidently
+  routes across tiles that are water at high tide. ⇒ We would be hunting in the one room our tools
+  are structurally unable to observe. ‼ It also means **KI-54's "65 walkable tiles at high tide"
+  figure is compromised** (very likely a second view of the low-tide layout), so that section is
+  now retracted.
 * **`#24-ballstarve`'s premise does not hold at `post_dive.ss1`** — 19 balls, $54,334 measured.
   ‼ **Not closed**: the item was filed from a mid-game Surf-era batch and may still be real there.
 * **Nothing is parked. Nothing is running.** All 15 gates exit 0 after the change.

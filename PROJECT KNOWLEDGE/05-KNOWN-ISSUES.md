@@ -90,23 +90,8 @@ sandbox-fixed case.
   threads, so startup is never blocked. Fix candidate: set
   `GIT_TERMINAL_PROMPT=0` in the subprocess env.
 
-## KI-6 — Tab bar overcrowds with 6 tabs — RESOLVED 2026-07-19 (sandbox)
-- **Symptom:** Adding the Hunt tab (#9) made 6 tabs overflow the ~360px
-  tool-column width — labels overlapped/truncated.
-- **Fix (done):** tab bar wraps to two balanced rows when there are >4 tabs
-  (3+3 for six), legible in both desktop and the handheld drawer
-  (screenshots ki6_1/ki6_2). Gamepad focus-nav + tab persist unaffected.
-
-## KI-7 — fly_to() checks the wrong badge for Emerald — ✅ FIXED 2026-07-24 (sandbox)
-- **Fix:** RSE branch now gates on BADGE06_GET (Feather Badge) — the stock BADGE03 check
-  was FR/LG's. Fixed ahead of Ch14's first Fly usage; DIVERGENCE-LOG entry due at
-  promotion (upstream-file edit).
-
-## (old text) KI-7 — fly_to() checks the wrong badge for Emerald (opened 2026-07-19, severity: low)
-- **Symptom:** `modules/modes/util/higher_level_actions.py` fly_to() gates on
-  BADGE03_GET (Dynamo) — correct for FR/LG but WRONG for Emerald, where Fly
-  needs the Feather Badge (BADGE06). Inherited from upstream. Story-mode #24
-  must not rely on fly_to as-is; fix when wiring Fly into story navigation.
+> 📦 **KI-6 and KI-7 moved to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-08-13** — both resolved July
+> 2026. Moved verbatim, nothing deleted, to keep this file inside its 3,000-line budget (rule R3).
 
 ## KI-8 — Mid-battle rotation execution can stall the party-menu switch (opened 2026-07-21, severity: med)
 - **Symptom:** a mid-battle switch (`TurnAction.RotateLead`) into a weak/underlevelled bench
@@ -132,60 +117,14 @@ sandbox-fixed case.
   `map_battle_party_index` / the party-menu submenu handling. Good first target: the Slateport
   **Gabby & Ty DOUBLE battle** (§Ch8) — it also validates the after-faint double-battle fix.
 
-## KI-9 — Training spin could silently stall (no encounters) — MITIGATED 2026-07-21
-- **Symptom:** during pre-gym / pre-rival training, the grind `spin()` could end up where it
-  can't trigger wild encounters (walked out of grass, trainer line-of-sight, bad respawn spot)
-  and walk in place FOREVER — the level never reaches target, the stop-condition never fires, no
-  whiteout, no derail → hard stall (harness-repro'd from `route116team.ss1`: stuck at Marshtomp
-  L16 with no EXP for 20k+ frames). Position/RNG-dependent (a clean fresh run trains fine).
-- **Mitigation (done):** `_story_spin` now has a **no-progress watchdog** — if the party gains
-  no EXP for `_STORY_SPIN_NO_PROGRESS_FRAMES` (2400) consecutive OVERWORLD frames, it bails so
-  the caller (`train_team`'s loop) **re-navigates to the grass and retries**, which un-sticks it.
-  Overworld-only counting means a long single battle can't false-trigger it. VALIDATED: the same
-  `route116team` run that hung before now trains past L16, beats Roxanne, and reaches the rival
-  prep with all fixes. Bounded by `train_team`'s outer guard (500) → derail recovery if truly stuck.
+> 📦 **KI-9 moved to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-08-13** — MITIGATED 2026-07-21.
 
-## KI-10 — Post-sail whiteout can respawn the run on the MAINLAND (Dewford arc) — MITIGATED 2026-07-22
-- **Scenario:** the Emerald whiteout respawn point is the last Poké Center USED. After the first
-  Briney sail (Ch6), Mr. Briney leaves his cottage (FLAG_HIDE_BRINEYS_HOUSE_MR_BRINEY) and waits
-  at his BOAT: vanilla re-sails happen by talking to him on the Route 104 beach (his Route104
-  object is un-hidden by the sail script) or at the Dewford dock (12,9). If the bot whites out on
-  the Dewford side BEFORE ever healing at the Dewford PC, it respawns at Rustboro's PC — and
-  `sail_to_dewford`'s cottage leg (Leg 3-4) would knock on an EMPTY house.
-- **Mitigation (done):** `deliver_stevens_letter` heals at the Dewford PC FIRST when starting
-  from town, so from the moment the Dewford arc begins, whiteouts respawn IN Dewford (the
-  Segment-6 whitelist also stops any Dewford-side resume from re-running the sail). Remaining
-  edge: a whiteout in the sail leg itself (route trainers) before the first Dewford heal — rare
-  (the leg heals before the rival and fights little), but if hit, the run derails to Manual at
-  the cottage instead of re-sailing.
-- **Proper fix (when Ch8 needs re-sailing anyway):** teach the sail leg to talk to BOAT-Briney —
-  if `HIDE_BRINEYS_HOUSE_MR_BRINEY` is set, engage his Route 104 beach object (live local_id via
-  `_talk_to_wandering_npc`-style lookup) instead of entering the house.
+> 📦 **KI-10 moved to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-08-13** — MITIGATED 2026-07-22.
 
-> 📦 **KI-11 moved to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-08-13** — ✅ RESOLVED 2026-07-22. Moved
-> verbatim, nothing deleted, to keep this file inside its 3,000-line budget (lint rule R3).
-
-
-> 📦 **KI-14, KI-15 and KI-16 moved to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-08-13** — all three
 > were ✅ FIXED same-day in July 2026. Moved verbatim, nothing deleted, because this file crossed
 > its 3,000-line budget (lint rule R3) when KI-70/KI-71 were filed.
 
-## KI-19 — Route 111 training band was paired with a heal 2.2× farther than necessary (2026-07-24) — FIXED-PENDING-WIRING
-
-`ROUTE111_OLD_LADYS_REST_STOP` (map `(18,1)`, door at ROUTE111 `(26,18)`) contains ONE NPC —
-`Route111_OldLadysRestStop_EventScript_OldLady`, `flag_id=0` so always present and ungated — that
-gives a **full HP + status + PP heal, repeatable**. PROVEN live: all four party members damaged to
-1 HP with four different status conditions and spent PP, verified in memory, then fully restored;
-repeated a second time with no change in behaviour. Static dump confirms **zero `bg_events`** — no
-bed exists in that building.
-
-**Distances from the Route 111 training tile (25,55):** rest stop **96 steps**, Fallarbor Poké
-Center **213 steps**.
-
-`training_areas.py` / `_training_area_heal_map()` currently pairs ROUTE111 with
-`PokemonCenter.FallarborTown` because that was the only heal verifiable at the time. Re-pairing
-needs a heal-at-NPC helper (the existing path is `heal_in_pokemon_center(PokemonCenter.X)`, which
-assumes a Poké Center layout) — punch-list `#24-npcheal`.
+> 📦 **KI-19 moved to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-08-13** — FIXED-PENDING-WIRING 2026-07-24.
 
 ## KI-20 — TRAPS confirmed against the decomp (2026-07-25) — read before building these systems
 
@@ -1602,48 +1541,7 @@ the battle path has no safety net but its own bound.
 
 ---
 
-## KI-46 — Battle ACTION SELECTION spins for ever on an unrecognised controller callback (2026-08-03, FIXED same day)
-
-**KI-45 was one instance of a pattern. This is another, at a different site.**
-
-**Observed**, batch10 (`x4-runs/20260803-164713`): lanes **H2 and H8 both wedged for ~59
-minutes**. **H8 completed 0 runs in the whole 180-minute batch**; H2 managed 2 against 4-5
-elsewhere. Both stacks stopped at `battle_action_selection.py:55`, with **zero**
-`_select_in_menu` dumps — so the KI-45 bound was not involved.
-
-```
-BattleListener.fight → handle_battle → handle_battle_action_selection  @ :55
-```
-
-**Cause.** `handle_battle_action_selection`'s loop conditions are sound (battle over, or the
-main callback moves on). But if the battle stays ACTIVE in turn-action-selection while the
-CONTROLLER callback matches none of the branches, control reaches a bare
-`else: yield; continue` and spins there indefinitely.
-
-**Fix.** `_MAX_UNRECOGNISED_FRAMES = 600` (~10 s) counting only frames where the state is NOT
-recognised; the counter **resets the moment a real decision is made**, so a long multi-turn
-battle never accumulates toward it. On exhaustion it reports via
-`battle_fault.request_mode_recovery()` — one recoverable derail for an opted-in mode — and
-raises `BotModeError` otherwise. The message carries **both observed callbacks**, because that
-is the diagnosis: it names the unrecognised state so the branch can be added properly.
-
-‼ **The fix contained the exact bug it was fixing a sibling of.** `BotModeError` is not
-imported at that module's top, so the first version would have raised `NameError` *instead of*
-the honest error — the same shape as the swallowed `get_party` NameError that made
-`#24-leadcounter` silently dead for two batches. Caught only because
-`repro_ki46_action_selection_bound.py` **drives the real generator** and asserts the exception
-is not a `NameError`. A source-text assertion would have passed.
-
-**Repro:** `repro_ki46_action_selection_bound.py` — drives the generator, and check 5 proves a
-battle that ends normally is unaffected (no false positive).
-
-‼ **THE STANDING LESSON (now twice measured): both project-level guards are structurally blind
-to any loop on the battle path.** The global watchdog needs an UNCHANGED progress signature and
-a battle keeps changing it; the per-run frame budget is KI-36's documented "cannot fire while a
-battle handler is on the stack". **Any `while` loop under `BattleListener.fight` has no safety
-net but its own bound.** Audit the remaining ones rather than waiting for the next lost lane.
-
----
+> 📦 **KI-46 moved to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-08-13** — FIXED same day, 2026-08-03.
 
 ## KI-47 — The battle path has a CLASS of unbounded loops; the existing watchdog is STARVED by them (2026-08-04, NET ADDED)
 
@@ -2161,7 +2059,32 @@ the new PID captured and registered, **and** a Poké Center trip anyway.
 L48−8 rule. Harmless while `POKEBOT_PC_ROTATION=0`; it becomes a **self-eviction loop** if anyone
 turns that on.
 
-### ‼ THE TIDE IS NOT A BLOCKER — measured 2026-08-12, and it removes the plan's only unknown
+### ⛔ RETRACTED 2026-08-13 — "THE TIDE IS NOT A BLOCKER" RESTS ON A MEASUREMENT THAT CANNOT SEE HIGH TIDE
+
+> **Do not act on the section below.** Its conclusion may still be right, but **its evidence does
+> not support it**, because of **KI-73**: `get_map_data` builds `_map_header_cache` **once from the
+> static compile-time `gMapGroups` ROM table** (`map.py:1766-1785`), which can only ever yield the
+> **compiled low-tide** layout for map (24,46). `setmaplayoutindex` patches the live `gMapHeader`
+> RAM struct, which that table never reads, and nothing anywhere in `modules/` clears either cache.
+>
+> ⇒ The *"65 walkable `MB_CAVE` encounter tiles at high tide (332 at low)"* figure below was almost
+> certainly produced through that same lens — i.e. it is very likely **two views of the same
+> low-tide layout**, not a measurement of the high-tide floor. **We do not currently know the
+> high-tide geometry of that room.**
+>
+> ⇒ The spin-tile candidates below ((25,30), (14,30), (20,24)) inherit the same doubt, on top of
+> already being static-only rather than live two-way swept.
+>
+> ‼ **The decomp claim that the tide is "sampled ONLY on ON_TRANSITION and frozen for the visit" is
+> ALSO unaudited** — `src/time_events.c` is not vendored anywhere in this repo, so per this
+> project's own rule that decomp claims must be checked against `pret/pokeemerald`, it has never
+> been verified here. If the tide can flip mid-visit, the stale-cache problem compounds with a live
+> floor-swap under the bot's feet.
+>
+> **RULING 2026-08-13: Shoal Cave is NOT adopted as a hunting ground.** Rationale and the exact
+> conditions that would unlock it: `06-DECISIONS-LOG.md`, 2026-08-13.
+
+### (original, 2026-08-12) ‼ THE TIDE IS NOT A BLOCKER — measured, and it removes the plan's only unknown
 
 The tide worry was **real but misdirected**. Findings, decomp- and ROM-measured:
 * `UpdateShoalTideFlag()` (`src/time_events.c:54-92`) is a **24-entry hour table**;
@@ -2985,3 +2908,72 @@ assigns it first.
   pathfinding that every mode depends on. The design rule above costs nothing and removes the
   hazard for the work actually in front of us. ⇒ Revisit if a chapter ever genuinely needs the
   planner to pick a surfacing point.
+
+---
+
+## KI-73 — the map-layout cache is keyed on MAP NUMBER, but Shoal Cave swaps its floor plan at runtime, so the planner can route against a layout that is not on screen (2026-08-13, code-verified, OPEN)
+
+- **The mechanism**, `modules/map.py:735-755`:
+  ```python
+  _map_layout_cache: dict[str, dict[tuple[int, int], bytes]] = {}
+  ...
+  @cached_property
+  def _map_layout(self) -> bytes:
+      if self.map_group_and_number not in _map_layout_cache[context.rom.id]:
+          map_layout_pointer = unpack_uint32(self._map_header[:4])
+          _map_layout_cache[context.rom.id][self.map_group_and_number] = \
+              context.emulator.read_bytes(map_layout_pointer, 24)
+      return _map_layout_cache[context.rom.id][self.map_group_and_number]
+  ```
+  The cache key is **`(rom.id) → (map_group, map_number)`**. Nothing in the key represents *which
+  layout is currently loaded*.
+- **Why that is wrong for Shoal Cave.** The entrance room is always map **(24,46)** at both tides;
+  the high-tide "maps" (24,50)/(24,51) exist only to **own a layout** that `setmaplayoutindex`
+  borrows onto (24,46). So the map NUMBER is constant while the FLOOR PLAN changes — exactly the
+  thing this cache assumes cannot happen.
+- **The failure.** Visit at low tide → the low-tide plan is cached. Return at high tide → every
+  `MapLocation` for (24,46) still returns the **low-tide** plan. `calculate_path` then routes
+  across tiles that are now water or wall. Measured scale of the difference (from KI-54): the room
+  has **332** walkable `MB_CAVE` encounter tiles at low tide and **65** at high.
+### ‼‼ ESCALATION — IT IS NOT "WHICHEVER TIDE YOU SAW FIRST". IT IS **ALWAYS LOW TIDE, FOREVER.**
+
+`get_map_data` (`map.py:1756-1785`) builds `_map_header_cache` **once, for every map in the game**,
+by walking the **static compile-time `gMapGroups` ROM pointer table**:
+```python
+map_group_pointers = read_symbol("gMapGroups", size=4 * number_of_map_groups)
+...
+map_header_pointer = unpack_uint32(context.emulator.read_bytes(group_pointer + 4 * map_index, 4))
+map_header = context.emulator.read_bytes(map_header_pointer, 0x1C)
+```
+That table can only ever yield the **compiled DEFAULT** header for (24,46) — whose layout pointer is
+the **low-tide** floor. `setmaplayoutindex` patches the **live `gMapHeader` RAM struct**, which this
+table never reads. And it is populated on the FIRST `get_map_data` call anywhere in the process —
+`PathMap.tiles` (`map_path.py:85-94`) calls it — so it is warm long before Shoal Cave is visited.
+
+⇒ **`get_map_data(SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM, …)` returns low-tide geometry at BOTH tides,
+always.** There is no `.clear()` on `_map_layout_cache` or `_map_header_cache` anywhere in
+`modules/`.
+
+⇒ ‼ **AND `calculate_path` WILL NOT RAISE.** It plans happily over the wrong grid and returns a
+route that walks the bot onto tiles that are water or wall in the live room. **Invisible to a run
+that reports success** — the failure surfaces as bumping, stalling, or a nonsensical stall dump.
+
+⇒ ‼‼ **THEREFORE KI-54's OWN "65 walkable tiles at high tide" FIGURE IS SUSPECT.** It was almost
+certainly measured through this same lens, i.e. it is very likely a second view of the **same
+low-tide layout** rather than an independent measurement of the high-tide floor. **We do not
+currently know the high-tide geometry of that room.** (Found by an adversarial pass that was asked
+to refute "the tide is not a blocker"; the static-table half verified by me directly.)
+
+- ‼ **It is a STALE-CACHE bug, not merely a static-data bug.** `05-KNOWN-ISSUES` previously
+  described this as *"`MapLocation` resolves the layout from the cached ROM map header, i.e. always
+  the LOW-tide floor plan"*. That understates it: the value is whatever was cached **first, in this
+  process**, so the direction of the error depends on which tide the bot happened to visit first,
+  and it persists for the rest of the run.
+- **Scope.** Any map whose layout is swapped at runtime. Shoal Cave is the case in front of us;
+  a sweep for other `setmaplayoutindex` users has NOT been done.
+- ‼ **CODE-VERIFIED, NOT REPRODUCED.** No run has yet driven the bot into that room at both tides.
+  Filed so the next reader does not re-derive it, and so the Shoal Cave decision has a reason with
+  a citation rather than a worry.
+- **What a fix looks like** (not attempted): include the live layout pointer in the cache key, or
+  invalidate the entry on map-transition. Both touch shared pathfinding that every mode depends on,
+  so it needs its own A/B — not a drive-by change.
