@@ -424,8 +424,18 @@ teaching Dive/Dig/Flash. ‼ **Relicanth is underwater-only, so Dive is upstream
 ## ⏭ NEXT ACTIONS, IN ORDER
 
 > **START HERE ON A FRESH CONTEXT.** Everything is committed and pushed; nothing is parked.
-> 1. **Run `preflight.py`**, then the 15-gate suite in "HOW TO RUN / TEST" (all exit 0 today), and
->    the sandbox↔custom drift loop (expect **exactly 2** differences — `roster.py`, `menuing.py`).
+> 1. **Run `preflight.py`**, then the **16**-gate suite in "HOW TO RUN / TEST" (all exit 0 as of
+>    2026-08-13), and the sandbox↔custom drift loop. ‼ **EXPECT EXACTLY 2:**
+>    `modules/story/early_game.py` and `plugins/custom_modes/story_mode.py` — KI-63's **production
+>    wiring**, driven to a PASS but **NOT promoted**. (Do NOT expect `roster.py`/`menuing.py`:
+>    those were PROMOTED on 2026-08-13 and drift on them is now zero.)
+>
+> 1b. ⛔ **THE FIRST DECISION FOR THE USER: promote the KI-63 WIRING?** Until it is promoted,
+>    `custom-pokebot`'s copy of the KI-63 fix is **INERT** — it reads `_needs_party_slot` and
+>    nothing in that tree sets it, so a real run there still dies on a full party.
+>    **Measured worth: 20 terminal run-kills in 1,129 runs (0.91% excl. a reverted party-cap
+>    bundle), #1 of 14 derail causes by frames per event (1,717k ≈ 46 min), every one five badges
+>    deep.** Restore-point-first, then verify by DRIVING `--build custom`, never by a diff.
 >
 > 2. ✅ **DONE 2026-08-13 — `reorder_party()` IS DRIVEN.** `--driver roster` exists and passes.
 >    Six swaps, all verified by PID, including the never-driven `RotatePokemon(i, j != 0)`.
