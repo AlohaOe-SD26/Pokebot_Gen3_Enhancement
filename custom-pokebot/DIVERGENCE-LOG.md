@@ -1208,9 +1208,17 @@ user runs. **Now passes on both** (`1 / 1 saves get the right next beat`).
   *and* only when a replacement is needed. Every driven run had **zero faints**, so on custom it has
   been exercised as a **no-op**. Its logic is proven offline (`repro_multi_battle_partner.py`, 5/5,
   including the permuted-array arm); the live path is not.
-* **KI-67's recovery is likewise not exercised on custom** — a clean pass never raises `StoryAbort`.
-  Proven in sandbox by a deliberate loss (`--inject-weak`: `whiteouts=3 recoveries=3`, ~7,000 frames
-  between whiteouts). Re-running that against `--build custom` is the obvious next check.
+* ✅ **KI-67's recovery IS now proven on custom too** — driven the same day, immediately after this
+  promotion, with a deliberate loss (`--driver spacecenter2 --inject-weak --build custom`):
+  ```
+  WHITEOUT #1 frame 3532810 / #2 frame 3540509 (+7,699) / #3 frame 3547594 (+7,085)
+  RESULT ... map=MOSSDEEP_CITY at=(28,17) controllable=True whiteouts=3 recoveries=3
+  ```
+  ‼ The frame deltas are the proof, not the counts — broken code burns three attempts in a handful
+  of frames after ONE whiteout; this spends ~7,000 frames per attempt and produces its own whiteout
+  each time, i.e. the bot really walked back from the Pokémon Center to Steven and fought again.
+  **Sandbox measured +7,789 / +7,087 — custom is the same behaviour, not merely the same verdict.**
+  The `ACCEPTANCE: FAIL` is correct: a lone Lv3 Poochyena cannot win that battle.
 * **Two caveats on the OT-based partner guard:** a **traded** Pokémon would be misread as the ally
   and wrongly excluded (unreachable today — no trade code exists), and a 1-in-65536 TID collision
   would silently degrade it to pre-fix behaviour.
