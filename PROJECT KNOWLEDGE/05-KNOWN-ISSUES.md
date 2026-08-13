@@ -2765,8 +2765,37 @@ never white out there. This needs its own guard and its own test before the arc 
   (Route 129 Surfing) at **1%** — too rare to plan on.
 
 **No badge/E4/story gate exists on the arc** — every real gate is traversal capability.
-⚠ **Unverified on our save and cheap to check first:** `RECEIVED_SUPER_ROD` (152),
-`RECEIVED_TM_DIG` (261), Go-Goggles in the bag, and whether any party mon knows Flash / Rock Smash.
+
+### ✅ PHASE A MEASURED 2026-08-12 — `probe_regi_capabilities.py` on `post_dive.ss1`
+The four "cheap unknowns" are now answered, and the acquisition list is **longer** than hoped:
+
+| | capability | note |
+|---|---|---|
+| ✅ | **Go-Goggles in bag** | Regirock's desert gate is already open |
+| ✅ | **HM08 in bag** | the Dive HM itself |
+| ✅ | **Surf known** — Zigzagoon (slot 1) | reaches Routes 105/120/124/126/134 |
+| ✅ | **Rock Smash known** — Sceptile (slot 0) | Regirock's puzzle move |
+| ⛔ | **NO ROD AT ALL** — `RECEIVED_SUPER_ROD` **and** `RECEIVED_GOOD_ROD` both unset | ‼ Wailmer is ROD-ONLY, so **Wailord is currently unobtainable**. The Super Rod is the Fisherman on **Route 118** (needs Surf — we have it) |
+| ⛔ | **TM28 Dig** — flag unset AND not in bag | the Sealed Chamber inner room cannot be opened. Route 114, Fossil Maniac's house, unconditional gift |
+| ⛔ | **Nobody knows DIVE** | HM08 is in the bag but unlearned — and KI-63 still blocks teaching it (no learner, party 6/6) |
+| ⛔ | **Nobody knows DIG** | needed even once TM28 is obtained |
+| ⛔ | **Nobody knows FLASH** | Registeel's puzzle move |
+| ⛔ | **No Wailord / Relicanth / Wailmer** | the two key species are not aboard |
+
+All eight arc progress flags are **unset**, as expected — nothing has been started or spoiled.
+
+⇒ **The Regi arc needs an ACQUISITION PHASE before any of its puzzles are reachable**, and all of it
+is ordinary story-bot work (walk there, take the item, teach the move) rather than new primitives:
+1. **Super Rod** (Route 118) — without it there is no Wailmer, no Wailord, no tomb.
+2. **TM28 Dig** (Route 114) and teach it.
+3. **Teach Dive** — ‼ still gated by KI-63/KI-68: no party member can learn it, the party is full,
+   and the planner cannot auto-route a dive anyway (a chapter must drive `dive()`).
+4. **Teach Flash** (Registeel only).
+‼ Note the ordering trap: **Relicanth lives ONLY underwater**, so Dive must work before the key
+party can even be assembled — Dive is upstream of everything else in this arc.
+
+⚠ Reachability of Route 118, Route 114, Route 105, the desert and the tomb islands is a **separate,
+DRIVEN question**. This probe answers "do we have it", never "can we get there".
 ⚠ **Unverified claim worth probing:** the tomb scripts appear not to check `FLAG_REGI_DOORS_OPENED`
 at all (only their own puzzle flags), which would mean the tombs are solvable without the Sealed
 Chamber. That contradicts common knowledge — **sequence the Sealed Chamber first regardless.**
@@ -2812,42 +2841,11 @@ code under test. `SpaceCenter1Mode`'s docstring claims it "MIRRORS StoryMode's o
 mirrors `on_battle_started` and **not** `on_whiteout`. So every retry-path claim in these docstrings
 is untested prose.
 
-## ✅ KI-67 — PRODUCTION HALF FIXED 2026-08-12; the DRIVEN half is still open
+## KI-67 — the earlier 'production half fixed' write-up is SUPERSEDED (ARCHIVED)
 
-‼ **MY ORIGINAL FILING ABOVE OVERSTATED IT ON TWO POINTS**, both corrected by two independent
-reviews that agreed:
-* **§Ch18 does NOT burn three attempts.** Its re-entry navigation (`mossdeep_gym.py:515-521`) sits
-  OUTSIDE the `try`, so after a whiteout `_on_gym_map()` is False, the navigation runs, and the
-  abort escapes on attempt 2. Only §Ch19 wrapped all five legs and burned the full budget.
-* **The run does not die.** `StoryMode.run` branches on `self._whiteout_pending` (not on the
-  exception), so even the fabricated "still unset after 3 attempts" error takes the WHITEOUT
-  recovery path and re-runs `_play()`. ⇒ Severity is **wasted budget and a lying error message**,
-  not a dead run. The real bound has always been `run()`'s 40-recovery cap, not the chapters' 3.
-
-**‼ AND THE WORST PART WAS NOT THE SWALLOW — IT WAS THE LAUNDERING.** Our inner loops catch an
-error and raise a BRAND-NEW one naming the goal they failed to reach. After a whiteout those
-messages are **fabricated diagnoses**: *"the Team Magma NPCs are still standing on the only land
-bridge"*, *"could not clear the grunt plugging the stairs"*, *"cannot reach Steven"* — confident,
-plausible, and wrong, about maps the player has already left. This project has lost multi-day
-investigations to exactly that shape (the reachability failures behind KI-59/KI-60).
-
-**THE FIX (two mechanisms, because one is not enough):**
-1. `StoryAbort(BotModeError)` — identity while the ORIGINAL object is in flight. Subclassing means
-   every existing `except BotModeError` behaves exactly as before.
-2. **`reraise_if_aborting(error)` — keyed on the LATCH**, which survives conversion. This is the one
-   that matters: a type-based guard cannot see an abort that an inner loop has already replaced with
-   a fresh error.
-Applied at the two chapter loops plus the three §Ch19 laundering sites and §Ch18's `require_in_gym`.
-
-**PROVEN** by `repro_whiteout_abort.py` (10/10, no emulator) and `repro_gym_whiteout_guard.py`
-(now 5/5). The controls are the point:
-```
-ARM A control  old loop      -> 3 attempts burned, 2 fabricated reasons   (the bug reproduces)
-ARM C control  type-only     -> laundered into "NPCs still on the bridge" (why the type is not enough)
-ARM C          latch-keyed   -> StoryAbort survives the conversion
-[5]            real whiteout -> escapes after ONE attempt, not three
-latch CLEAR    -> reraise_if_aborting does nothing (ordinary retries still work)
-```
+Superseded in full by the '✅✅ KI-67 FULLY CLOSED' section below, which carries the driven
+evidence. The archived text is kept only for its harness DESIGN NOTES (the four parts a driver
+must mirror, and why half a mirror is worse than none) — see `31-KNOWN-ISSUES-ARCHIVE.md`.
 
 ## ✅✅ KI-67 FULLY CLOSED 2026-08-12 — the FIRST DRIVEN WHITEOUT RECOVERY IN THIS PROJECT
 

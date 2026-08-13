@@ -279,6 +279,30 @@ and never identify a Pokémon by party index across a battle-menu boundary.
   dereference on the listener's stack; a class-counter budget; a `None`-is-success exit), plus a
   real blocker: an injected run could have silently overwritten a committed anchor.
 
+## 🆕 THE REGI ARC — researched and measured 2026-08-12 (user-requested). See **KI-69**.
+
+**‼ THE PARTY ORDER EVERYONE REMEMBERS IS THE RUBY/SAPPHIRE ONE.** Emerald reversed it:
+**WAILORD first (slot 0), RELICANTH last** (`braille_puzzles.c:92-104`, comment and all). The wrong
+order **fails silently** — no message, no error. Emerald also swapped **Regirock to ROCK SMASH**
+(was Strength) and **Registeel to FLASH** (was Fly). Pinned in `repro_roster_reorder.py`.
+
+**⛔ THE REGI BATTLE IS UNRECOVERABLE — read this before writing any battle policy.** Level 40,
+catch rate 3. `B_OUTCOME_WON` removes it forever, and the fall-through case **including
+`B_OUTCOME_LOST`** sets `FLAG_DEFEATED_*`. ⇒ **KO'ing it OR whiting out deletes the encounter
+permanently.** The only safe non-catch exit is fleeing.
+
+**✅ NEW CAPABILITY: `modules/story/roster.py`** — `plan_reorder` / `plan_last_slot` (PURE, proven
+exhaustively: 720 permutations replayed, `repro_roster_reorder.py` 15/15) and `reorder_party()`
+which drives `RotatePokemon` inside the `_rotate_lead_safely` harness. ‼ **The DRIVER is UNPROVEN** —
+`RotatePokemon(i, j)` with `j != 0` has never been driven here, and it sits on the unfixed side of
+KI-38 (four unbounded loops + a `set_manual_mode()` trapdoor). **Drive it before anything depends on
+party order.**
+
+**MEASURED capability status** (`probe_regi_capabilities.py`): ✅ Go-Goggles, HM08 in bag, Surf
+(Zigzagoon), Rock Smash (Sceptile). ⛔ **no rod at all**, no TM28 Dig, and nobody knows Dive, Dig or
+Flash. So the arc needs an acquisition phase first — Super Rod (Route 118), TM28 (Route 114), and
+teaching Dive/Dig/Flash. ‼ **Relicanth is underwater-only, so Dive is upstream of everything.**
+
 ## ⏭ NEXT ACTIONS, IN ORDER
 
 > **START HERE ON A FRESH CONTEXT.** Everything is committed and pushed; nothing is parked.

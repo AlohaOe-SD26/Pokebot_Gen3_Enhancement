@@ -826,3 +826,45 @@ KI-52), none of which has any batch evidence. Only then is a status-response pol
 
 ---
 
+---
+
+# ARCHIVED 2026-08-12 — KI-67's superseded first half, moved out of `05-KNOWN-ISSUES.md`
+> Superseded by the FULLY CLOSED section. Kept for the harness design notes.
+
+## ✅ KI-67 — PRODUCTION HALF FIXED 2026-08-12; the DRIVEN half is still open
+
+‼ **MY ORIGINAL FILING ABOVE OVERSTATED IT ON TWO POINTS**, both corrected by two independent
+reviews that agreed:
+* **§Ch18 does NOT burn three attempts.** Its re-entry navigation (`mossdeep_gym.py:515-521`) sits
+  OUTSIDE the `try`, so after a whiteout `_on_gym_map()` is False, the navigation runs, and the
+  abort escapes on attempt 2. Only §Ch19 wrapped all five legs and burned the full budget.
+* **The run does not die.** `StoryMode.run` branches on `self._whiteout_pending` (not on the
+  exception), so even the fabricated "still unset after 3 attempts" error takes the WHITEOUT
+  recovery path and re-runs `_play()`. ⇒ Severity is **wasted budget and a lying error message**,
+  not a dead run. The real bound has always been `run()`'s 40-recovery cap, not the chapters' 3.
+
+**‼ AND THE WORST PART WAS NOT THE SWALLOW — IT WAS THE LAUNDERING.** Our inner loops catch an
+error and raise a BRAND-NEW one naming the goal they failed to reach. After a whiteout those
+messages are **fabricated diagnoses**: *"the Team Magma NPCs are still standing on the only land
+bridge"*, *"could not clear the grunt plugging the stairs"*, *"cannot reach Steven"* — confident,
+plausible, and wrong, about maps the player has already left. This project has lost multi-day
+investigations to exactly that shape (the reachability failures behind KI-59/KI-60).
+
+**THE FIX (two mechanisms, because one is not enough):**
+1. `StoryAbort(BotModeError)` — identity while the ORIGINAL object is in flight. Subclassing means
+   every existing `except BotModeError` behaves exactly as before.
+2. **`reraise_if_aborting(error)` — keyed on the LATCH**, which survives conversion. This is the one
+   that matters: a type-based guard cannot see an abort that an inner loop has already replaced with
+   a fresh error.
+Applied at the two chapter loops plus the three §Ch19 laundering sites and §Ch18's `require_in_gym`.
+
+**PROVEN** by `repro_whiteout_abort.py` (10/10, no emulator) and `repro_gym_whiteout_guard.py`
+(now 5/5). The controls are the point:
+```
+ARM A control  old loop      -> 3 attempts burned, 2 fabricated reasons   (the bug reproduces)
+ARM C control  type-only     -> laundered into "NPCs still on the bridge" (why the type is not enough)
+ARM C          latch-keyed   -> StoryAbort survives the conversion
+[5]            real whiteout -> escapes after ONE attempt, not three
+latch CLEAR    -> reraise_if_aborting does nothing (ordinary retries still work)
+```
+
