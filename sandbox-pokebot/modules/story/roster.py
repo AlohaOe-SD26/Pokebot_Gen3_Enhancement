@@ -152,7 +152,22 @@ def reorder_party(target_pids: list[int], *, attempts_per_swap: int = 3) -> Gene
     # `0 <-> destination` instead of `source <-> destination` — then the party has moved and
     # attempts 2 and 3 drive indices that no longer mean anything. Re-reading every attempt is the
     # project's own rule: *update the world model from what actually happened.*
+    # ‼‼ MEASURED ON THE FIRST LIVE DRIVE (2026-08-13): THIS FUNCTION USED TO HAND BACK AN
+    # AVATAR THAT COULD NOT WALK. All four phases landed by PID, and the very next
+    # `navigate_to` raised *"The player avatar is currently not controllable. Cannot navigate."*
+    # The trace says why: the last thing the party menu does is re-show the START MENU
+    # (`Task_ShowStartMenu` was still live at f660 of a 662-frame call), so `PartyMenuExit`
+    # finishes, `plan_reorder` comes back empty, and we return True while the overworld is still
+    # restoring control. `parse_start_menu()["open"]` is already False and the game state is
+    # already OVERWORLD at that moment, so a caller checking either would be told everything is
+    # fine. ⇒ Settle before returning, and only when we actually opened a menu, so the common
+    # "already in the right order" path stays free.
+    def _settle():
+        if swapped:
+            yield from wait_until_truly_controllable()
+
     failures = 0
+    swapped = False
     for _pass in range(MAX_SWAPS * attempts_per_swap + 1):
         _check_abort()
         current = _party_pids()
@@ -161,6 +176,7 @@ def reorder_party(target_pids: list[int], *, attempts_per_swap: int = 3) -> Gene
         except ValueError as error:
             raise BotModeError(f"Roster: {error}") from error
         if not plan:
+            yield from _settle()
             return True  # verified in place — the party already starts with the wanted order
 
         if failures >= attempts_per_swap:
@@ -168,6 +184,7 @@ def reorder_party(target_pids: list[int], *, attempts_per_swap: int = 3) -> Gene
                 f"[yellow]Story: roster — {failures} consecutive failed swaps; the party menu is "
                 f"not doing what the plan expects (KI-38 territory). Party left as: {current}.[/]"
             )
+            yield from _settle()
             return False
 
         destination, source = plan[0]
@@ -182,6 +199,10 @@ def reorder_party(target_pids: list[int], *, attempts_per_swap: int = 3) -> Gene
         if get_global_script_context().is_active:
             yield from _ride_out_scripted_scene("B")
             yield from wait_until_truly_controllable()
+        # ‼ SET BEFORE THE DRIVE, NOT AFTER. `RotatePokemon` opens the Start menu on its very
+        # first step, so even an attempt that raises has left menus on screen — and that is
+        # exactly the case where the caller most needs us to settle before handing control back.
+        swapped = True
         try:
             finished = yield from _yield_bounded(
                 RotatePokemon(source, destination).step(), SWAP_TIMEOUT_FRAMES
@@ -245,6 +266,7 @@ def reorder_party(target_pids: list[int], *, attempts_per_swap: int = 3) -> Gene
             f"[yellow]Story: roster — the target spec is unsatisfiable against the final party "
             f"{final}: {error}[/]"
         )
+        yield from _settle()
         return False
     if remaining:
         console.print(
@@ -252,5 +274,7 @@ def reorder_party(target_pids: list[int], *, attempts_per_swap: int = 3) -> Gene
             f"The party menu is not doing what the plan expects (KI-38 territory). "
             f"Party: {final}[/]"
         )
+        yield from _settle()
         return False
+    yield from _settle()
     return True

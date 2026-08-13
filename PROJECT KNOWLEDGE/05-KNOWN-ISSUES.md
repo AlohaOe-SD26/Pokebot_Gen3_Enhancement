@@ -193,176 +193,9 @@ process. Original write-up kept below for reference.
   trigger or document the state-write. `deliver_devon_goods_to_stern` (interior logic sound)
   stays defined but UNWIRED; frontier honestly = Slateport arrival.
 
-## KI-14 ✅ FIXED 2026-07-23 (same day) — teach flow stranded the START MENU open → travel wedge → Manual
-The Ch10b teach itself WORKED (the new compat picker chose Grovyle L29 on a Treecko run
-— validation of #24-hm-learner on a non-Mudkip start). The failure is AFTER: the
-teach's "hard menus-closed guarantee" B-mashes out of the BAG but its exit condition is
-`game_state == OVERWORLD` — which is ALREADY true while the START MENU is open (the
-start menu is an overworld state), so the loop exits with the menu still up
-(`Task_ShowStartMenu` active, controllable=False). Then the Fallarbor travel wedges:
-`wait_until_truly_controllable` presses nothing by design, and `_wait_until_cutscene_over`
-— since the 2026-07-23 museum fix — only presses when a script is active or a text
-printer waits, and an open MENU is neither → nobody ever closes the menu → 8000-frame
-"cutscene did not end" derail → recovery hits the same wall → Manual at Mauville (32,15).
-CLASS: a latent bug (menu left open, previously papered over by blind B-mash recovery)
-EXPOSED by the museum fix making the presser conservative. FIXED (both halves, same
-day): (a) the teach's hard-close loop breaks only when the overworld is MENU-FREE
-(`_menu_task_active()` — Task_ShowStartMenu/ListMenuDummyTask/ChooseMonInput — plus
-avatar controllable); (b) `_wait_until_cutscene_over` also presses B while a menu task
-is open (B closes menus, can never start a dialogue → museum guarantee preserved).
-PROVEN: story run rocksmash_got.ss1 → teach → Mauville → Rt 111 → 112 → Fiery Path →
-Rt 113, 0 derails (ki14_run1); museum repro re-run clean.
-
-## KI-15 (2026-07-23) — post-battle STORY-RESUME hang ✅ FIXED 2026-07-24 (pending batch validation)
-**FIXED via three complementary changes, each proven on a captured state** (changelog
-2026-07-23 "KI-15 FIXED" has the full detail; 08-MISTAKES 2026-07-24 has the two lessons
-from failed intermediate designs):
-1. `navigate_to` no-progress bail → `NavigationStuckError` after ~8 progress-free re-paths
-   (walking.py; covers the ROUTE 104 `(5,6)↔(5,7)` oscillation; A/B: repro_navigate_stuck.py).
-2. `_wait_until_cutscene_over` KEPT at its old museum-green behavior (parked waits = free;
-   contract pinned by repro_cutscene_waiting_msg.py) — the wedge is reader-identical to a
-   dialogue tail and both ignore B, so the rider cannot safely clear it (3 attempts failed).
-3. The clearer: StoryMode run-loop nudge — waiting + no scripts + **position frozen** for
-   240 frames → ONE A → 1200f cooldown. Only the wedge blocks movement, so only it matches.
-   (A on the wedge clears it instantly — proven on `ki15_gotaway_wedge.ss1`; never
-   A-mashes a live dialogue — `ki15_nurse_wedge.ss1` lesson.)
-Faithful goods_recovered runs: previously-terminal wedge episodes now self-recover
-(one 90k run crossed to Dewford/Granite Cave, 0 Manual). REMAINING: watch the overnight
-fresh batches — if a lane still shows a 20k stall with `cb=ReturnFromBattleToOverworld`,
-capture the state (probe_stuck_state.py / probe_press_variants.py are the tools) rather
-than re-tuning thresholds blind.
-
-### (superseded original diagnosis below, kept for the record)
-## KI-15 (original) — post-battle STORY-RESUME hang after an inline battle ⚠ RE-DIAGNOSED 2026-07-23
-> ‼ **The original write-up (an "after-faint PARTY_MENU chooser hang" with a 1-HP Wonder Guard
-> Shedinja) was a MISDIAGNOSIS.** It was never supported by a log — `grep -r "SHEDINJA fainted"`
-> across EVERY livetest run.log (current + archive) returns ZERO hits. The party/coords/stack
-> cited (Marshtomp/Shedinja/Swellow/Poochyena/Ninjask at (7,9)) do not appear in any captured
-> hang. A long repro session chasing the party-menu sweep (burn-injection, `faintrepro`) PROVED
-> that sweep handles rapid back-to-back faints correctly (0 livelock over 5 successive faints).
-> **Do NOT chase the party menu. The real bug is below.**
-
-**Real symptom (from 3 CONFIRMED 20k-frame hangs — 002057/run05, archive/…-093125/run01,
-archive/…-101814/run01).** After an INLINE battle (trainer or wild) fires during story
-NAVIGATION or a scripted scene, the story flow fails to resume. All three share the same
-post-battle stale reads: `state=OVERWORLD`, `cb=ReturnFromBattleToOverworld`,
-`instr=BattleScript_PayDayMoneyAndPickUpItems`, `tasks=[]`, `bt='… gained … EXP'` / `'… won $…'`.
-Two distinct manifestations observed:
-  1. **Stuck cutscene-wait** (002057/run05, RUSTBORO, `return_devon_goods_and_get_pokenav`):
-     `_wait_until_cutscene_over` rides forever. Its 8000-frame timeout RAISES, the caller's
-     recovery retries, the retry re-hits the same state → raise/retry loop → 20k watchdog.
-  2. **Navigator oscillation** (both archive hangs, ROUTE 104): after a trainer battle the
-     player BOUNCES between two adjacent tiles `(5,6)↔(5,7)` — `navigate_to` re-paths back and
-     forth and never advances.
-**Frequency.** ~1/5 lanes; intermittent — needs a random battle to interrupt at a specific
-navigation/scene moment. The HEALTHY version of the same scene rides fine.
-
-**Why the existing phantom-script escape does NOT cover it** (`_wait_until_cutscene_over`,
-early_game.py). The escape (added for the Route-111 Rock-Smash case) needs **600 CONSECUTIVE
-`controllable=True` frames** while a script is active. Live trace of the real post-battle scene
-(env `KI15_TRACE=<file>`, `story_harness.py goods_recovered.ss1 --driver story`) shows the
-parked/multi-part state has `controllable` OSCILLATING (True for a stretch — phantom climbs to
-~339 — then a long `controllable=False` stretch that RESETS phantom), so 600-consecutive is
-never reached. NOTE the field-script `bytecode_pointer` DOES advance in the healthy multi-part
-scene (so a naive "frozen-pointer" escape would need care not to fire on genuine long cutscenes).
-
-**Repro status (2026-07-23).** Faithful `--driver story` runs from `goods_recovered.ss1` ride the
-scene cleanly (no live permanent hang caught yet — the hang needs the rare battle-interrupt race).
-Instrumentation is IN PLACE and env-gated (`KI15_TRACE`) inside `_wait_until_cutscene_over`
-(reader profile + script pointers + escape/raise markers) — the tool to catch the live state next.
-**NEXT STEPS (pick one; the fix is NOT to be guessed without catching the permanent state):**
-  (a) Reproduce the ROUTE 104 `(5,6)↔(5,7)` navigator oscillation from a near-there save — the
-      most concrete manifestation (2/3 hangs, identical tiles) — and fix the re-path bounce.
-  (b) Catch the live cutscene-wait hang with `KI15_TRACE` set on a batch, capture the exact
-      reader/pointer profile, and make `_wait_until_cutscene_over` escape it robustly (tolerate
-      `controllable` oscillation; e.g. don't reset the parked counter on brief False blips, and
-      turn the 8000 raise into a clean return when the state is the stale post-battle signature)
-      WITHOUT false-firing on genuine long multi-part cutscenes (whose pointers advance).
-Do NOT patch the battle handler for this — it is not a battle-handler bug.
-
-## KI-16 ✅ FIXED 2026-07-23 (same day) — the wedge was _smash_rock returning before EventScript_SmashRock finished
-**Symptom.** ALL 5 lanes resuming from `wattson_done.ss1` hang identically at frame f74383,
-at Route 111 (18,99), in `travel_to_fallarbor` → `_enter_warp_by_navigation` (Fiery Path
-south door) → navigate_to → follow_waypoints → ensure_facing_direction. A WILD BATTLE ends
-right at (18,99) (`bt='MARSHTOMP gained 110 EXP'`), and the post-battle
-ReturnFromBattleToOverworld transition leaves the avatar unable to move; the navigation
-retry loops with no progress. NO safety net fires (not the story 18k watchdog, not the
-follow_waypoints 20-frame timeout, not ensure_facing_direction) — the spin location is
-elusive (bounding ensure_facing_direction / navigate_to did NOT catch it; reverted those).
-**Scope.** SPECIFIC to the wattson_done save's state/RNG — FRESH runs pass travel_to_fallarbor
-fine (Pass 1: 3/5 reached HEAT BADGE), and `rocksmash_taught.ss1` (a nearer post-Wattson
-checkpoint) travels the same code cleanly end-to-end. So it is a NARROW post-battle navigator
-robustness gap this particular save triggers, not a broad regression.
-**REPRO (deterministic).** `story_harness.py wattson_done.ss1 --driver story --frames 120000`
-→ HANG at f74383. Use it for a focused fix (the post-battle transition freeze class —
-Bug 2 lineage; the real fix likely ensures the navigator waits for a truly-controllable
-avatar after a mid-navigation battle, or prevents the wild encounter on that leg).
-**WORKAROUND.** For milestone/continuing validation use `rocksmash_taught.ss1` (proven), not
-wattson_done, until KI-16 is fixed. Consider regenerating wattson_done (may be a stale-state
-artifact like the rocksmash_taught menu case).
-
-## KI-17 (2026-07-24) — after-faint party-menu RESHOW freeze (severity: HIGH, 2/5 fresh lanes)
-> ‼ This is the bug the original (later "re-diagnosed") KI-15 write-up was actually
-> describing — the Shedinja/Ninjask/(7,9) party from that write-up appears verbatim in
-> batch 20260724-004252/run04. It is REAL, distinct from the (fixed) KI-15 resume wedge,
-> and now the top intermittent.
-- **Symptom:** an inline wild battle where a mon faints opens the after-faint chooser;
-  a replacement IS chosen (cursor on a living slot, action=1), and the game then freezes
-  mid-transition back to battle: `state=PARTY_MENU`,
-  `main_cb=CB2_SETUPRESHOWBATTLESCREENAFTERMENU`,
-  tasks `Task_ReturnToChooseMonAfterText`+`Task_PrintAndWaitForText` (which never run —
-  that CB2 doesn't pump tasks), `instr=BattleScript_FaintedMonTryChoose`. 20k-frame hang;
-  `handle_fainted_pokemon`'s sweep presses A/B/Down to no effect (probed: the state is
-  INPUT-IMMUNE, video on or off).
-- **Evidence/states:** `saves/ki17_partymenu_wedge.ss1` (run05: Skitty 40HP alive,
-  Taillow+Grovyle fainted) + `saves/ki17_partymenu_wedge2.ss1` (run04: the Shedinja
-  party). ⚠ loaded states stay frozen — good repro material.
-- **Suspected cause:** the ReshowBattleScreenAfterMenu state machine parks on one of its
-  gfx-reload steps (or the savestate merely preserves a live race). NOT a renderer
-  dependency (video=True doesn't advance it). Needs a decomp read of
-  `CB2_SetUpReshowBattleScreenAfterMenu` / `gReshowState` — Gemini escalation drafted in
-  `sandbox-pokebot/profiles/GEMINI-PROMPTS.md` (2026-07-24 entry).
-- **Workaround:** none in-run yet; frequency ~2/5 fresh lanes at long horizons. The
-  watchdog kills the run (no silent corruption). NEXT: decomp-verify what advances
-  gReshowState; if it's waiting on a paletted/task resource our sweep's button timing
-  starves, fix the sweep's press cadence; consider a bounded state-write fallback ONLY
-  per the faithfulness rules (documented last resort).
-
-## KI-18 — DOUBLE-battle replacement swap loops forever (user report, 2026-07-24) — HIGH
-
-**Symptom.** In a double battle in Mauville Gym the bot reordered the party over and over —
-Shedinja shuffling slot 0 ↔ slot 4 while Grovyle/Ninjask/Mightyena rotated — for ~23,000 frames,
-`controllable=False`, until the mode dropped to Manual. A healthy **Beautifly L23 67/67** was
-available the whole time and never came in.
-
-**Evidence** (user log `7881406e-...20260724233227.log`):
-```
-party=['Grovyle L22 0/56', 'Ninjask L21 11/61', 'Mightyena L21 67/67',
-       'Beautifly L23 67/67', 'Shedinja L20 1/1']
-repeated [PARTY] slotN X -> Y reorderings, never resolving
-stack: StoryMode._prepare_for_fight :1108 -> train_team early_game.py:1680 -> _story_spin
-```
-Grovyle is at **0 HP** (fainted), so this is the after-faint replacement path.
-
-**HYPOTHESIS — NOT YET PROVEN.** A replacement picker written for SINGLE battles: in a double
-battle TWO slots are already on the field, so the chosen mon can be one the party menu refuses
-(already active / "NOT ABLE"), and the bot retries forever. Two existing comments in our own code
-describe adjacent symptoms and should be read first:
-* `story_mode.py:~185` — "rotating into a weak/underlevelled bench can HANG the in-battle
-  party-menu switch (battle_action_selection.py — `while PARTY_MENU: press A`)" — the Roxanne hang.
-* `story_mode.py:~1983` — "the party menu shows an incompatible mon as NOT ABLE and refuses the …"
-
-Shedinja is a likely trigger: 1 max HP + Wonder Guard means one check can judge it unusable while
-another still selects it.
-
-**Do NOT patch on the hypothesis.** Reproduce first: force a double battle with a fainted lead
-and Shedinja on the bench, and log (a) which function chooses the replacement, (b) what the party
-menu reports for each slot, (c) which press sequence the swap driver issues. The single loop in
-`battle_action_selection.py:132` (`while get_game_state() == GameState.PARTY_MENU`) is the prime
-suspect for where it spins.
-
-**Why HIGH:** it is a run-killer in a mandatory gym, and **Mossdeep gym 7 is a required DOUBLE
-battle**, so this will block Ch15 as well as costing runs now.
+> 📦 **KI-14, KI-15 and KI-16 moved to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-08-13** — all three
+> were ✅ FIXED same-day in July 2026. Moved verbatim, nothing deleted, because this file crossed
+> its 3,000-line budget (lint rule R3) when KI-70/KI-71 were filed.
 
 ## KI-19 — Route 111 training band was paired with a heal 2.2× farther than necessary (2026-07-24) — FIXED-PENDING-WIRING
 
@@ -2993,3 +2826,70 @@ repro is how `#24-teachmsgstall` got its current "the fix had no production effe
 rather than the flagged line. A linter tells you a name is not provably bound; it does not tell you
 how often that happens. Do not convert a static warning into a severity claim without tracing who
 assigns it first.
+
+---
+
+## KI-70 — `_rotate_lead_safely` returns an avatar that may not be controllable yet; its callers walk immediately (2026-08-13, MEASURED n=1, severity: LOW-but-hot-path, OPEN, deliberately NOT fixed)
+
+- **Where.** `modules/story/early_game.py:1619-1638`. Note the asymmetry: the **failure** path
+  settles (`:1637` `wait_until_truly_controllable()`), the **success** path (`:1629-1630`
+  `if ok: return`) does not. The pre-drive settle at `:1622-1624` is conditional on a field script
+  being active, so it does nothing here.
+- **Why it matters.** `_rotate_lead_safely` runs **every training round** — the hottest path in the
+  bot — and its callers navigate on the very next statement:
+  `early_game.py:1835-1843` (`do_rustboro_gym` → `navigate_to_anywhere`), `early_game.py:2028`
+  (`train_team`), and seven `_lead_best_matchup` sites in `story_mode.py` (2977/3153/3187/3286/
+  3351/3402/3528). `walking.py:178-179` raises
+  `BotModeError("The player avatar is currently not controllable. Cannot navigate.")`.
+- **How it was found.** NOT by a failure. It was found by the adversarial review of the
+  `reorder_party` fix (2026-08-13) — the same defect shape, one function over.
+- **‼ MEASURED, AND THE MARGIN HELD: `controllable_on_return=True`.**
+  `--driver roster` PHASE 6 calls `_rotate_lead_safely(2)` and reads
+  `player_avatar_is_controllable()` **on the frame it returns**, which is exactly what its callers
+  do. Transcript in `ai-research-notes/2026-08-13-roster-drive-predictions.md`.
+- **⚠ n = 1. One observation on one save is not a rate.** This project has made precisely that
+  error before (the 64.3% status-tax figure from n=2 that a real batch cut to 32.6%).
+- **WHY IT IS NOT FIXED, and what would change that.** An unconditional settle costs ~30 frames
+  (`wait_until_truly_controllable`'s `stable_frames` floor) per rotation on the hottest path, to
+  fix something never observed failing. But the reason it survives is a **margin, not a
+  guarantee**: `change_lead_party_pokemon` ends with `wait_for_task_to_start_and_finish(...)` +
+  `wait_for_n_frames(10)` (`higher_level_actions.py:309-310`), whereas the `RotatePokemon` /
+  `PartyMenuExit` path exits on the strictly weaker *"OVERWORLD and start menu closed"*
+  (`menuing.py:807-808, 833`). ⇒ **Fix it if a batch ever logs "currently not controllable" right
+  after a lead rotation**, or if `change_lead_party_pokemon`'s tail is ever shortened. Until then
+  the honest status is *structurally present, measured once, margin held*.
+- **Contrast with the fixed case.** `modules/story/roster.py`'s `reorder_party` had the identical
+  shape and DID fail live, because `PartyMenuExit`'s weaker exit condition gives it no margin at
+  all. Fixed 2026-08-13 with a `swapped`-gated `_settle()`; A/B proven.
+
+---
+
+## KI-71 — `roster.py`'s "we were dropped to MANUAL" guard is UNREACHABLE mid-swap: the frame loop abandons the generator first (2026-08-13, code-verified, OPEN)
+
+- **The guard.** `modules/story/roster.py` raises `BotModeError("Roster: the party-menu navigator
+  dropped the bot to MANUAL mid-swap ...")` after the bounded `RotatePokemon` drive, specifically
+  so a run that is already dead fails honestly instead of continuing.
+- **Why it cannot fire.** `modules/main.py:145-148`:
+  ```
+  if context.bot_mode == "Manual":
+      context.controller_stack = []
+  if len(context.controller_stack) > 0:
+      next(context.controller_stack[-1])
+  ```
+  `set_manual_mode()` only sets a flag — it raises nothing and crosses no yield boundary. So the
+  in-flight `next()` returns normally, and on the **next** frame the stack is cleared and the
+  suspended `reorder_party` generator is **abandoned, never resumed**. The guard sits after a
+  multi-frame `yield from`, so it is only reachable if the whole drive completes inside the single
+  `next()` that flipped the flag — which it cannot. ‼ `tools/story-dev/story_harness.py` mirrors
+  this (its run 1 log printed `gen -> <no controller on the stack (Manual mode / dropped out)>`).
+- **The trapdoors that reach it.** `menu_parsers.py:164-166` (`slot_id == -1`), `menuing.py:365`
+  (`wait_for_init`), `:381` (`get_index_from_option`), `:388` (`select_desired_option`). All four
+  call `set_manual_mode()` and **return/continue without raising** — the KI-38 family.
+- **What it looks like.** No exception, no non-zero exit, no crash. The process idles healthily in
+  Manual until something else declares a hang. The `menuing.py` message is printed; roster.py's
+  own diagnostic never is.
+- **‼ NOT OBSERVED IN THE FIRST DRIVE.** Six swaps, zero Manual drops, `slot_id` never read `-1`.
+  This is a structural finding from reading `main.py`, not a reproduction.
+- **What a fix looks like** (not attempted): the guard has to be *inside* the frame loop's reach —
+  e.g. a listener, or having the trapdoors raise instead of silently setting Manual. That is the
+  real KI-38 fix (`#24-menutext`) and should not be bolted onto roster.py alone.

@@ -100,8 +100,11 @@ had "diverged", with `story_mode.py` at *"3,061 lines vs 2,636"*. **Measured: 3,
 the §Ch18/§Ch19 promotion the two trees were byte-identical across all 255 code/config files.
 
 **The current, verified drift is exactly two files**, both deliberate and both sandbox-only:
-`modules/story/roster.py` (new; its driver is unproven, so it must not be promoted yet) and
-`modules/menuing.py` (the `PartyMenuExit` freeze fix, which only matters to that driver).
+`modules/story/roster.py` (new — ‼ **its driver IS now proven, 2026-08-13**: `--driver roster`
+drove six swaps including the never-before-driven `RotatePokemon(i, j != 0)`, all verified by PID,
+and the drive found and fixed a real defect. Promotion is still the USER's call and has not been
+asked for) and `modules/menuing.py` (the `PartyMenuExit` freeze fix, which only matters to that
+driver — still never observed firing).
 
 ⇒ **Do not trust this paragraph either — MEASURE.** The drift loop is in `04-HANDOFF.md` under
 "HOW TO RUN / TEST"; it takes seconds and prints the differing files. A path written without a copy
@@ -260,6 +263,16 @@ done
     `post_mossdeep_gym.ss1` (plays it all) and `post_space_center.ss1` (must SKIP to leg 6) — the
     second is what proves the resume guards, and the ladder re-runs `_play` from wherever the player
     actually is.
+  - **`--driver roster` (added 2026-08-13)** — the PARTY-ORDER capability, from `post_dive.ss1`.
+    Five phases, all verified **by PID, never by slot**: (1) a spec pinning slots 0 AND 1, which is
+    what forces `RotatePokemon(source, destination)` with `destination != 0` — the path nothing in
+    this project had ever driven; (2) the REGI shape (`plan_last_slot`, first + last pinned);
+    (3) idempotence, which must cost **0 frames**; (4) restore; (5) CAN-CONTINUE — a real
+    `calculate_path` **and an actual position change**. A sixth block MEASURES `_rotate_lead_safely`
+    (KI-70) without changing it.
+    ‼ Its tracer re-implements the `gPartyMenu` parse (`_raw_party_menu`) on purpose:
+    `get_party_menu_cursor_pos` calls `set_manual_mode()` on `slot_id == -1`
+    (`menu_parsers.py:164-166`), so the stock reader can kill the run it is observing.
   - `--driver anchorcapture` — navigate to a named map/tile and snapshot; refuses to overwrite
     an existing anchor, and refuses to write a non-arrived or non-controllable state.
   - `--driver anchorstory` — drive the REAL story bot until it stands on the wanted map, then

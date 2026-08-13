@@ -12103,3 +12103,72 @@ target it can never accept.
 ‼ The guard needed already existed and had **zero callers in the entire tree**:
 `BattleState.is_double_battle_with_partner`. It was written and never wired up. §Ch19 is the first
 content in this project to reach a multi battle, so this was latent rather than harmless.
+
+## 2026-08-13 — `reorder_party()` DRIVEN for the first time: `RotatePokemon(i, j != 0)` works, and it had a real defect
+
+**The capability the user asked for is now proven end-to-end, not just planned.**
+`modules/story/roster.py`'s planner was already exhaustive (720 permutations); its **driver had
+never run**, and `RotatePokemon(i, j)` with `j != 0` had never been driven anywhere in this
+project — every story strategy returns `None` from `choose_new_lead_after_battle`, so the only
+listener that would call it never fires.
+
+**New: `--driver roster`** (`tools/story-dev/story_harness.py`), anchored on `saves/post_dive.ss1`.
+Five phases, each re-reading the party and verifying **by PID, never by slot**:
+1. **`j != 0`** — a spec pinning slots 0 *and* 1, so the plan must emit a second swap with
+   `destination != 0`. Measured `PLANNED-SWAPS=[(0, 2), (1, 2)]`; the driver **asserts** the plan
+   contains that swap rather than assuming it, so a run that quietly proved only the old shape
+   cannot report PASS.
+2. **The REGI shape** — `plan_last_slot`, first and last pinned (KI-69).
+3. **Idempotence** — re-issue the same target; must return `True` in **0 frames**.
+4. **Restore** the original order.
+5. **CAN-CONTINUE** — KI-56's rule: a real `calculate_path` off the end tile **and an actual
+   position change**, not "controllable".
+
+**RESULT: 6 swaps, every one landing its PID check on the first attempt.** Zero Manual drops, zero
+retries, zero KI-38 give-ups. `RotatePokemon` is drivable as written.
+
+### ‼ THE DEFECT: `reorder_party()` returned `True` with the avatar unable to walk
+
+The next `navigate_to` raised *"The player avatar is currently not controllable."* The party menu's
+last act is re-showing the Start menu (`Task_ShowStartMenu` still live at f660 of a 662-frame call),
+and `PartyMenuExit` exits before control returns. **Every cheap check said it was fine** —
+`bot_mode` not Manual, state already `OVERWORLD`, `parse_start_menu()["open"]` already `False`.
+
+**Fixed** with a nested `_settle()` gated on a `swapped` flag set *before* the drive.
+**A/B, identical save and driver, only `roster.py` differing:**
+
+| phase | ARM A | ARM B | Δ |
+|---|---|---|---|
+| 1 — `j != 0` | 445 | 476 | +31 |
+| 2 — Regi shape | 227 | 258 | +31 |
+| **3 — already correct** | **0** | **0** | **0 ← control arm: the gate does not over-fire** |
+| 4 — restore | 662 | 690 | +28 |
+| `moved` | **False** (raised) | **True** `(19,11)→(21,12)` | |
+| ACCEPTANCE | **FAIL** | **PASS** | |
+
+The +28..31 deltas match `wait_until_truly_controllable`'s 30-frame `stable_frames` floor exactly.
+
+### Two issues filed, neither fixed
+
+* **KI-70** — `_rotate_lead_safely` has the **same shape** (success path returns unsettled, failure
+  path settles) and runs **every training round**. **Measured: `controllable_on_return=True`, but
+  n = 1.** Not fixed: an unconditional settle costs ~30 frames per rotation on the hottest path in
+  the bot to fix something never observed failing. What it survives on is a *margin*, not a
+  guarantee — recorded with the condition that would change the decision.
+* **KI-71** — `roster.py`'s "we were dropped to MANUAL" guard is **unreachable mid-swap**:
+  `main.py:145-147` clears `controller_stack` on the frame after `set_manual_mode()`, abandoning
+  the suspended generator before the guard can run. Structural, verified in code, not reproduced.
+
+### Method notes
+* **Predictions were pre-registered before the run and 0 of 6 fired**
+  (`ai-research-notes/2026-08-13-roster-drive-predictions.md`). The list still earned its keep: it
+  is what makes "`RotatePokemon` is drivable" a measurement rather than relief, and it isolated one
+  hazard as *live but unfired* — `gPartyMenu.slot_id` is **not reset between menu sessions** (the
+  tracer read a stale `slot_id=2` on the overworld before the menu opened), and
+  `navigate_to_mon:520-524` computes its scroll direction from exactly that global.
+* **The tracer deliberately re-implements the `gPartyMenu` parse** (`_raw_party_menu`) because
+  `get_party_menu_cursor_pos` calls `set_manual_mode()` on `slot_id == -1`
+  (`menu_parsers.py:164-166`). An observer that can kill the run it observes is not an observer.
+* A run was lost to `from modules.game import GameState` (it lives in `modules.memory`); pyflakes
+  reported it only as a style note and the harness reported it as **"HANG CONFIRMED"**. A ~15-line
+  `ast` + `importlib` symbol check now precedes each drive. Both in `08-MISTAKES.md`.

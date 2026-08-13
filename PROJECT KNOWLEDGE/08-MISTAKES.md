@@ -5472,3 +5472,69 @@ framework will actually call — an override two levels down makes your edit dea
 permutes `gPlayerParty`, so any positional rule silently swaps meaning. Key on identity (OT id).
 (3) A synthetic A/B can only prove the property its fixture models — if the live path was never
 exercised (zero faints), say the fix is UNPROVEN rather than letting three green arms imply it.*
+
+---
+
+## 2026-08-13 — a capability returned `True` with the avatar unable to walk, and every cheap check said it was fine
+
+**Symptom.** The first live drive of `reorder_party()` reordered the party perfectly — four phases,
+six swaps, all verified by PID — and then the very next `navigate_to` raised
+*"The player avatar is currently not controllable. Cannot navigate."*
+
+**Root cause.** The party menu's last act is to re-show the START MENU. The trace caught
+`Task_ShowStartMenu` still live at f660 of a 662-frame call. `PartyMenuExit` exits as soon as the
+game is `OVERWORLD` and the start menu is closed — which happens *before* control comes back — so
+`reorder_party` saw an empty plan and returned `True` into a window where the avatar could not move.
+
+**‼ WHY NO CHEAP CHECK CAUGHT IT.** At that instant `context.bot_mode` was **not** Manual,
+`get_game_state()` was already **OVERWORLD**, and `parse_start_menu()["open"]` was already
+**False**. All three of the obvious "is it safe?" reads say yes. Only asking the avatar to actually
+*move* revealed it.
+
+**The fix that worked.** A nested `_settle()` in `reorder_party` that does
+`yield from wait_until_truly_controllable()`, gated on a `swapped` flag set *before* the
+`RotatePokemon` drive (so an attempt that raises still settles, and the "already in the right
+order" path stays free). A/B: `moved=False`→`moved=True`, `ACCEPTANCE FAIL`→`PASS`, with phases
+1/2/4 costing +31/+31/+28 frames and **phase 3 costing 0 in both arms** — the control arm proving
+the gate does not over-fire.
+
+**‼ AND BOTH PREDICTION PASSES MISSED IT — 0 of 6 written-down predictions fired.** A
+pre-registered list and an independent adversarial pre-drive review both hunted the **KI-38 hang
+family**, because that is where every document in this project points. Neither asked what state the
+function *hands back*. The reviewer's best finding (KI-71, the Manual guard being unreachable) is
+architecturally true and did not fire either.
+
+**Prevention rules.** *(1) Ask of every generator that touches a menu: **what state does this hand
+back to its caller?** "Returned True" is not "the caller can act." The house pattern is that the
+helper leaves a controllable avatar (`heal_in_pokemon_center`, `interact_with_pc`, the berry and
+pokéblock helpers all end on a controllability wait) — follow it.
+(2) A liveness assertion must require the thing the caller will actually do. `bot_mode != Manual`,
+`state == OVERWORLD` and `start_menu["open"] == False` were ALL true while the avatar could not
+take a step. Make it MOVE.
+(3) When a fix adds a cost to a common path, put the free path in the same run as a control arm —
+phase 3's 0-frame delta is what turns "I gated it" into evidence.*
+
+---
+
+## 2026-08-13 — pyflakes cannot see a wrong-module import, and the harness called it "HANG CONFIRMED"
+
+**Symptom.** The first `--driver roster` run printed 20,000 frames of `NO-PROGRESS` heartbeats and
+`HANG CONFIRMED (20000 frames no progress)`. Nothing had hung.
+
+**Root cause.** `from modules.game import GameState, get_game_state` — both live in
+`modules.memory`. The `ImportError` fired at **f0**; the harness caught it, set Manual, cleared the
+controller stack, and then had nothing to run for the rest of the budget.
+
+**Why the gates did not catch it.** `pyflakes` resolves names, not module contents: it reported
+only *"redefinition of unused 'GameState'"* — indistinguishable from the same benign pattern that
+already appears four times in this file. `repro_undefined_names.py` inherits that blind spot.
+
+**The fix that worked.** A ~15-line `ast` + `importlib` check: walk the driver's `ImportFrom`
+nodes, `import_module` each module, `hasattr` each name. It verified 20 symbols in under a second
+and was run before every subsequent drive.
+
+**Prevention rules.** *(1) `pyflakes` green does not mean the imports resolve. Before spending a
+multi-minute drive on new code, import-check its symbols — it costs a second.
+(2) **"HANG CONFIRMED" is not a diagnosis.** It is what this harness prints for anything that
+empties the controller stack, including an immediate crash. Read the HEAD of the log, where the
+traceback is, not the tail.*

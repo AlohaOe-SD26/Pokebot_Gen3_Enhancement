@@ -269,6 +269,14 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       need became a hard derail (127×) and the batch collapsed 52.0% → 15.8%. A roster decouples
       "party is full" from "cannot obtain a carrier" — the exact mechanism that made the cap fatal.
       Prerequisites, in order: `#24-hmteachloop` → `#24-pcoverflow-proof` → re-baseline → slice.
+      ✅ **PARTY ORDER IS DONE AND PROVEN (2026-08-13).** `modules/story/roster.py`'s
+      `reorder_party()` is driven end-to-end by **`--driver roster`**: six swaps, all verified by
+      PID, including `RotatePokemon(i, j != 0)` — a path nothing in this project had ever driven.
+      The drive found and fixed a real defect (it returned `True` with the avatar unable to walk;
+      A/B proven). This is the piece the **Regi arc** needs (KI-69: Wailord first, Relicanth last).
+      ‼ **The DEPOSIT/WITHDRAW half of `#24-roster` is still the open work** — ordering answers
+      *"in what order"*, not *"which Pokémon"*. `withdraw_from_box` remains proven only by
+      `--driver boxwithdraw`. Two issues filed and deliberately NOT fixed: **KI-70**, **KI-71**.
 
 - [ ] `#24-rarepredicate` — ‼ **NOT READY TO BUILD. 2026-08-07: the dataset does not reproduce,
       and as computed it FAILS the user's own named example.**

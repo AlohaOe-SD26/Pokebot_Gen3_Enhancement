@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -4395,6 +4395,311 @@ class BoxWithdrawMode(BotMode):
         return
 
 
+class RosterMode(BotMode):
+    """FIRST DRIVE of `modules/story/roster.py`'s `reorder_party()` — the party-ORDER capability.
+
+    THE CLAIM UNDER TEST. `plan_reorder`/`plan_last_slot` are proven exhaustively offline
+    (`repro_roster_reorder.py`, 720 permutations replayed). **The DRIVER has never run.**
+    `RotatePokemon(i, j)` with `j != 0` has never been driven anywhere in this project: every
+    story strategy returns `None` from `choose_new_lead_after_battle`, so the only listener that
+    would have called it never fires, and the proven lead-change path
+    (`change_lead_party_pokemon`) always passes `j == 0`. So the whole `select_replacement`
+    cursor drive (`menuing.py:1044-1056`) plus `PartyMenuExit` are UNEXECUTED CODE.
+
+    ‼ PHASE 1 EXISTS SOLELY TO FORCE `j != 0`. Pinning slot 0 alone only ever emits `(0, k)` →
+    `RotatePokemon(k, 0)`, i.e. the already-proven shape. A spec that also pins slot 1 emits a
+    second swap with `destination == 1`, which is the genuinely new path. The driver ASSERTS it
+    saw a `j != 0` swap rather than assuming the plan produced one — a run that quietly emitted
+    only `j == 0` swaps would look like a PASS while proving nothing.
+
+    ‼ THE TRACE READS `gPartyMenu` RAW, NEVER `get_party_menu_cursor_pos()`. That helper has a
+    SIDE EFFECT: on `slot_id == -1` it calls `context.set_manual_mode()` and still returns
+    (`menu_parsers.py:164-166`). An observer that kills the run it is observing is not an
+    observer. `_raw_party_menu()` below re-implements the parse with no side effect.
+
+    Phases (each re-reads the party and verifies BY PID, never by slot):
+      1. `j != 0`      — target `[pid[2], pid[0]]`; expects swaps (0,2) then (1,2).
+      2. REGI SHAPE    — `plan_last_slot`: pin FIRST and LAST, middles order-preserved. This is
+                         the shape the Regi tombs need (KI-69) and the reason the module exists.
+      3. IDEMPOTENCE   — re-issue phase 2's exact target. Must return True having driven ZERO
+                         swaps and pressed nothing. The cheap path is the one content hits most.
+      4. RESTORE       — put the original order back, so the run does not end holding a party
+                         nobody asked for and so the reorder is shown to be invertible.
+      5. CAN-CONTINUE  — ‼ KI-56's rule, violated by §Ch15, §Ch18 AND §Ch19. Not "controllable":
+                         a real `calculate_path` off the end tile AND an actual position change.
+                         A wedged half-open menu leaves the avatar perfectly "controllable".
+
+        PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver roster --frames 400000
+
+    Emits: [roster] RESULT phases=<n/n> saw_j_nonzero=<bool> idempotent=<bool>
+           restored=<bool> can_continue=<bool> manual=<bool> frames=<n>
+    """
+
+    #: Frames the whole reorder may take before the driver calls it a hang. `reorder_party` is
+    #: itself bounded (MAX_SWAPS*attempts passes x SWAP_TIMEOUT_FRAMES), so overshooting this
+    #: means the bound leaked — which is the KI-38 shape and must be reported, not waited out.
+    PHASE_BUDGET_FRAMES = 90_000
+
+    @staticmethod
+    def name():
+        return "Roster"
+
+    def on_battle_started(self, encounter):
+        # Same reasoning as BoxWithdrawMode: a driver without a strategy hangs on a payout, and
+        # the TRAINER strategy must be the production one (it never flees a trainer battle).
+        # Mossdeep City has no grass, so a wild battle here would itself be a finding.
+        from modules.battle_strategies import DefaultBattleStrategy
+
+        if encounter is None:
+            from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+
+            return LevelUpTravelBattleStrategy()
+        return DefaultBattleStrategy()
+
+    @staticmethod
+    def _raw_party_menu() -> dict:
+        """`gPartyMenu` WITHOUT `get_party_menu_cursor_pos`'s `set_manual_mode()` side effect."""
+        import struct as _struct
+
+        from modules.memory import get_symbol_name, read_symbol, unpack_uint32
+
+        try:
+            p = read_symbol("gPartyMenu")
+            return {
+                "taskfunc": get_symbol_name(unpack_uint32(p[4:8]) - 1),
+                "slot_id": _struct.unpack("<b", p[9:10])[0],
+                "slot_id_2": _struct.unpack("<b", p[10:11])[0],
+                "action": _struct.unpack("<B", p[11:12])[0],
+            }
+        except Exception as error:  # noqa: BLE001 - the tracer must never break the run
+            return {"taskfunc": f"<unreadable {type(error).__name__}>", "slot_id": -99,
+                    "slot_id_2": -99, "action": -99}
+
+    def _drive_traced(self, generator, label: str):
+        """Run `reorder_party` frame by frame, logging every CHANGE in the menu state.
+
+        ‼ WHY MANUAL ITERATION RATHER THAN `yield from`. The handoff asks for one trace that
+        settles both open unknowns — the stale-cursor read and the exit-menu timing gap — and
+        those are only visible per frame while the sub-generator runs. Driving it by hand costs
+        nothing and needs no change to production code.
+        """
+        from modules.memory import get_game_state
+        from modules.tasks import get_tasks
+
+        seen, frames, result = None, 0, None
+        transitions = 0
+        while True:
+            try:
+                next(generator)
+            except StopIteration as stop:
+                result = stop.value
+                break
+            frames += 1
+            if frames > self.PHASE_BUDGET_FRAMES:
+                # ‼ REPORT, never wait it out. `reorder_party` is internally bounded; blowing
+                # this budget means a bound leaked (KI-38's exact shape).
+                generator.close()
+                log(f"[roster] {label} ‼ BUDGET BLOWN at {frames} frames — reorder_party's own "
+                    f"bound leaked. Last menu state: {seen}")
+                return None, frames
+            # Sample cheaply; log only on CHANGE, so the trace is readable rather than 90k lines.
+            if frames % 2 == 0 or frames < 4:
+                menu = self._raw_party_menu()
+                try:
+                    tasks = ",".join(sorted(t.symbol for t in get_tasks()))[:150]
+                    state = get_game_state().name
+                except Exception as error:  # noqa: BLE001
+                    tasks, state = f"<{type(error).__name__}>", "?"
+                key = (state, menu["taskfunc"], menu["slot_id"], menu["slot_id_2"],
+                       menu["action"], tasks)
+                if key != seen:
+                    seen = key
+                    transitions += 1
+                    if transitions <= 120:  # bounded trace; the interesting part is the front
+                        log(f"[roster] {label} f{frames:<6} state={state} "
+                            f"taskfunc={menu['taskfunc']} slot_id={menu['slot_id']} "
+                            f"slot_id_2={menu['slot_id_2']} action={menu['action']} "
+                            f"tasks=[{tasks}]")
+            yield
+        log(f"[roster] {label} finished after {frames} frames, {transitions} state transitions, "
+            f"returned {result!r}")
+        return result, frames
+
+    def run(self):
+        from modules.context import context as _ctx
+        from modules.map_data import MapRSE
+        from modules.memory import GameState, get_game_state
+        from modules.menu_parsers import parse_start_menu
+        from modules.player import get_player_avatar
+        from modules.pokemon_party import get_party
+        from modules.story.early_game import wait_until_truly_controllable
+        from modules.story.roster import plan_last_slot, plan_reorder, reorder_party
+
+        def party_now():
+            return [(m.personality_value, m.species.name, m.level)
+                    for m in get_party() if m is not None]
+
+        def pids_now():
+            return [p for p, _s, _l in party_now()]
+
+        yield from wait_until_truly_controllable()
+
+        start = party_now()
+        original = [p for p, _s, _l in start]
+        here = get_player_avatar()
+        log(f"[roster] start map={here.map_group_and_number} at={here.local_coordinates} "
+            f"party={[f'{s}L{l}#{p}' for p, s, l in start]}")
+
+        if len(original) < 4:
+            # ‼ A 3-mon party cannot produce a `j != 0` swap, so the run would PASS while
+            # proving nothing. Refuse rather than measure the wrong thing.
+            log(f"[roster] ABORT — need a party of at least 4 to force a `j != 0` swap; got "
+                f"{len(original)}. The test is meaningless otherwise.")
+            _ctx.set_manual_mode()
+            return
+
+        phases_ok, saw_j_nonzero, results = 0, False, {}
+
+        # ---- PHASE 1: the never-driven `j != 0` swap -------------------------------------
+        target1 = [original[2], original[0]]
+        planned1 = plan_reorder(original, target1)
+        log(f"[roster] PHASE1 target={target1} PLANNED-SWAPS={planned1} "
+            f"(destination,source) -> RotatePokemon(source, destination)")
+        # ‼ ASSERT THE PLAN IS THE ONE WE MEAN before spending a drive on it.
+        if not any(dest != 0 for dest, _src in planned1):
+            log("[roster] ‼ PHASE1 plan contains no `destination != 0` swap — this run cannot "
+                "exercise the untested path. Not a pass.")
+        ok1, f1 = yield from self._drive_traced(reorder_party(target1), "PHASE1")
+        after1 = pids_now()
+        landed1 = after1[:2] == target1
+        saw_j_nonzero = any(dest != 0 for dest, _src in planned1) and landed1
+        log(f"[roster] PHASE1 returned={ok1} landed={landed1} party={after1} frames={f1}")
+        phases_ok += 1 if (ok1 is True and landed1) else 0
+        results["phase1"] = (ok1, landed1, f1)
+
+        # ---- PHASE 2: the REGI shape — first AND last pinned ------------------------------
+        current2 = pids_now()
+        target2 = plan_last_slot(current2, first_pid=current2[-1], last_pid=current2[0])
+        planned2 = plan_reorder(current2, target2)
+        log(f"[roster] PHASE2 (REGI shape) target={target2} PLANNED-SWAPS={planned2}")
+        ok2, f2 = yield from self._drive_traced(reorder_party(target2), "PHASE2")
+        after2 = pids_now()
+        landed2 = after2[0] == target2[0] and after2[-1] == target2[-1]
+        log(f"[roster] PHASE2 returned={ok2} landed={landed2} first={after2[0]} "
+            f"last={after2[-1]} party={after2} frames={f2}")
+        phases_ok += 1 if (ok2 is True and landed2) else 0
+        results["phase2"] = (ok2, landed2, f2)
+
+        # ---- PHASE 3: idempotence — the cheap path content actually hits -------------------
+        ok3, f3 = yield from self._drive_traced(reorder_party(target2), "PHASE3")
+        after3 = pids_now()
+        # ‼ "Zero swaps" is measured as FRAMES, not as a returned flag: `reorder_party` returns
+        # True from the `if not plan` branch without yielding at all, so a correct no-op costs a
+        # handful of frames. Anything larger means it re-opened the menu for nothing.
+        idempotent = ok3 is True and after3 == after2 and f3 < 60
+        log(f"[roster] PHASE3 (idempotence) returned={ok3} unchanged={after3 == after2} "
+            f"frames={f3} idempotent={idempotent}")
+        phases_ok += 1 if idempotent else 0
+        results["phase3"] = (ok3, after3 == after2, f3)
+
+        # ---- PHASE 4: restore the original order ------------------------------------------
+        ok4, f4 = yield from self._drive_traced(reorder_party(original), "PHASE4")
+        after4 = pids_now()
+        restored = after4 == original
+        log(f"[roster] PHASE4 (restore) returned={ok4} restored={restored} frames={f4}")
+        phases_ok += 1 if (ok4 is True and restored) else 0
+        results["phase4"] = (ok4, restored, f4)
+
+        # ---- PHASE 5: CAN-CONTINUE ---------------------------------------------------------
+        # ‼ NOT `controllable`. §Ch15 ended four floors underground, §Ch18 on an eleven-tile
+        # island and §Ch19 in a living room, all three "controllable". A half-open party menu
+        # would be worse still. So: not Manual, OVERWORLD, start menu closed, a real
+        # `calculate_path` off the end tile, AND the avatar must actually MOVE.
+        manual = _ctx.bot_mode == "Manual"
+        state = get_game_state()
+        try:
+            menu_open = bool(parse_start_menu()["open"])
+        except Exception as error:  # noqa: BLE001
+            menu_open = f"<{type(error).__name__}>"
+        path_ok, path_len, step_target = False, 0, None
+        try:
+            from modules.map import get_map_data
+            from modules.map_path import calculate_path
+
+            avatar = get_player_avatar()
+            path = calculate_path(
+                get_map_data(MapRSE(tuple(avatar.map_group_and_number)),
+                             avatar.local_coordinates),
+                get_map_data(MapRSE.MOSSDEEP_CITY, (28, 17)),  # the Pokemon Center door
+            )
+            path_len = len(path)
+            path_ok = path_len > 0
+            # ‼ WALK TO A TILE ON THE REAL PATH, not to a coordinate I picked from memory. A
+            # hard-coded target that happens to be unwalkable would report `moved=False` and
+            # blame the party menu for the probe's own bad guess. Stop 3 waypoints in so the
+            # walk cannot follow the door warp into the building.
+            if path_len >= 4 and not any(w.is_warp for w in path[:3]):
+                step_target = path[2].coordinates
+        except Exception as error:  # noqa: BLE001
+            log(f"[roster] CAN-CONTINUE calculate_path raised {type(error).__name__}: "
+                f"{str(error)[:200]}")
+        moved, before_xy = False, get_player_avatar().local_coordinates
+        if step_target is None:
+            log("[roster] CAN-CONTINUE ‼ no safe on-path step target; the movement half of the "
+                "check cannot run and `moved` stays False.")
+        else:
+            try:
+                from modules.modes.util.walking import navigate_to
+
+                yield from navigate_to(MapRSE(tuple(get_player_avatar().map_group_and_number)),
+                                       step_target)
+                moved = get_player_avatar().local_coordinates != before_xy
+            except Exception as error:  # noqa: BLE001
+                log(f"[roster] CAN-CONTINUE navigate to {step_target} raised "
+                    f"{type(error).__name__}: {str(error)[:200]}")
+        can_continue = (not manual) and state == GameState.OVERWORLD and menu_open is False \
+            and path_ok and moved
+        log(f"[roster] CAN-CONTINUE manual={manual} state={state.name} start_menu_open={menu_open} "
+            f"path_ok={path_ok} path_len={path_len} moved={moved} {before_xy}->"
+            f"{get_player_avatar().local_coordinates}")
+
+        # ---- PHASE 6: MEASURE THE SAME DEFECT IN PRODUCTION (`_rotate_lead_safely`) ---------
+        # ‼ NOT A FIX — A MEASUREMENT. An adversarial review of the `reorder_party` fix found the
+        # identical shape in `early_game.py:1629-1630`: the SUCCESS path returns with no settle
+        # while the FAILURE path at :1637 does settle. Its callers walk immediately
+        # (`do_rustboro_gym:1838`, every `_lead_best_matchup` site), and it runs every training
+        # round — so it is the hottest path in the bot.
+        #
+        # It has never been seen firing, and the reviewer's explanation is a MARGIN, not a
+        # guarantee: `change_lead_party_pokemon` ends with `wait_for_task_to_start_and_finish` +
+        # `wait_for_n_frames(10)`, whereas `RotatePokemon`/`PartyMenuExit` exits on the strictly
+        # weaker "OVERWORLD and start menu closed". Adding an unconditional settle would cost
+        # ~30 frames (`stable_frames`) on every rotation of a hot path to fix something nobody
+        # has measured. So MEASURE IT: read `player_avatar_is_controllable()` on the very frame
+        # `_rotate_lead_safely` returns, which is exactly what its callers do.
+        rotate_ctrl, rotate_ran = None, False
+        try:
+            from modules.player import player_avatar_is_controllable
+            from modules.story.early_game import _rotate_lead_safely
+
+            before_lead = pids_now()
+            yield from _rotate_lead_safely(2)
+            rotate_ctrl = player_avatar_is_controllable()   # SAME FRAME the caller would walk
+            rotate_ran = True
+            log(f"[roster] PHASE6 (_rotate_lead_safely MARGIN, production) "
+                f"controllable_on_return={rotate_ctrl} party {before_lead} -> {pids_now()}")
+        except Exception as error:  # noqa: BLE001 - a measurement must never fail the run
+            log(f"[roster] PHASE6 raised {type(error).__name__}: {str(error)[:200]}")
+
+        log(f"[roster] RESULT phases={phases_ok}/4 saw_j_nonzero={saw_j_nonzero} "
+            f"idempotent={idempotent} restored={restored} can_continue={can_continue} "
+            f"manual={manual} rotate_lead_controllable_on_return={rotate_ctrl} "
+            f"rotate_lead_measured={rotate_ran} detail={results}")
+        log(f"[roster] ACCEPTANCE: {'PASS' if (phases_ok == 4 and saw_j_nonzero and can_continue) else 'FAIL'}")
+        _ctx.set_manual_mode()
+        return
+
+
 class RivalRetryMode(BotMode):
     """VALIDATE the bug fix: with MET_RIVAL_RUSTBORO already set (simulating a PRIOR LOSS),
     confirm fight_rustboro_rival still steps onto the y=53 trigger and RE-ENGAGES the rival
@@ -5290,6 +5595,8 @@ for step in range(args.frames):
             context.bot_mode_instance = BoxCatchMode()
         elif args.driver == "boxwithdraw":
             context.bot_mode_instance = BoxWithdrawMode()
+        elif args.driver == "roster":
+            context.bot_mode_instance = RosterMode()
         elif args.driver == "groundsweep":
             context.bot_mode_instance = GroundSweepMode()
         elif args.driver == "anchorcapture":

@@ -3,26 +3,36 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-08-12 (late) — read "‼ YOU ARE HERE" immediately below.
+**Last updated:** 2026-08-13 — read "‼ YOU ARE HERE" immediately below.
 Every banner further down is HISTORY, newest first.
 
 ---
-# ‼ YOU ARE HERE — end of the §Ch19 + PROMOTION session. Read this, then `14-AGENT-PLAYBOOK.md`.
+# ‼ YOU ARE HERE — end of the ROSTER-DRIVE session (2026-08-13). Read this, then `14-AGENT-PLAYBOOK.md`.
 
 ## ⏱ THE 60-SECOND VERSION (if you read nothing else)
+* **`reorder_party()` IS NOW DRIVEN AND PROVEN.** `--driver roster` (NEW) ran **six swaps, all
+  verified by PID**, including **`RotatePokemon(i, j != 0)` — a path nothing in this project had
+  ever driven.** The party-ORDER capability the Regi arc needs is real, not just planned.
+* **The drive found a real defect and it is FIXED, A/B proven:** `reorder_party()` returned `True`
+  with the avatar **unable to walk**. ‼ Every cheap check said it was fine — not Manual, state
+  already `OVERWORLD`, start menu already closed. Only asking it to MOVE revealed it.
+* **‼ 0 of 6 pre-registered predictions fired, and neither prediction pass found the real bug.**
+  Both hunted the KI-38 hang family because that is where the docs point. See
+  `ai-research-notes/2026-08-13-roster-drive-predictions.md` — it holds the full raw transcripts.
+* **Two issues filed, both deliberately NOT fixed: KI-70** (`_rotate_lead_safely` has the same
+  shape, on the hottest path in the bot — **measured, margin held, but n = 1**) and **KI-71**
+  (roster.py's "dropped to MANUAL" guard is **unreachable**; `main.py:145-147` abandons the
+  generator first).
+* **Nothing is parked. Nothing is running.** All 15 gates exit 0 after the change.
 * **§Ch19 is DONE and the ladder runs 20 of 24 beats.** §Ch18 + §Ch19 are **PROMOTED** to
   `custom-pokebot/` and verified by driving `--build custom`, including the real ladder.
-* **Nothing is parked. Nothing is running. 0 uncommitted, 0 unpushed.**
 * **The next content beat (§Ch21, Seafloor Cavern) is BLOCKED, and the reason changed twice** —
   read **KI-68** before touching it. It is *not* the party slot, and Dive is *not* impossible:
   the planner cannot AUTO-route a dive, so **a chapter must drive `dive()` explicitly.**
-* **The user asked for the REGI arc** (Relicanth/Wailmer + PC swap). Researched and measured —
-  read **KI-69**. ‼ **Emerald reversed the party order: WAILORD first, RELICANTH last**, and the
-  wrong order fails **silently**. ‼ **The Regi battle is UNRECOVERABLE** — a KO *or* a whiteout
-  deletes the encounter permanently.
-* **`modules/story/roster.py` is NEW.** Its planner is proven exhaustively (16/16); **its DRIVER
-  has never been driven.** Drive it before any content depends on party order.
-* **Run `preflight.py` first.** Then the gate list in "HOW TO RUN / TEST" — all 15 exit 0 today.
+* **The REGI arc is the user's ask** — read **KI-69**. ‼ **Emerald reversed the party order:
+  WAILORD first, RELICANTH last**, and the wrong order fails **silently**. ‼ **The Regi battle is
+  UNRECOVERABLE** — a KO *or* a whiteout deletes the encounter permanently.
+* **Run `preflight.py` first.** Then the gate list in "HOW TO RUN / TEST".
 
 ## WHAT THIS IS
 `sandbox-pokebot/` is the working build of a Pokémon Emerald bot. Its **Story mode** plays the game
@@ -47,6 +57,7 @@ burden here is so heavy, and why negative results are treated as the most valuab
 | box | **IDLE.** Nothing running. Last batch `20260811-130454` (VERDICT OK, 28 runs). |
 | story content | ✅ **§Ch19 COMPLETE 2026-08-12 — the MOSSDEEP SPACE CENTER is defended and HM08 DIVE is in the bag. 20 of 24 beats.** Littleroot → 6 badges → Mt. Pyre → Magma Hideout (and out) → Slateport submarine theft → the Lilycove AQUA HIDEOUT (with the MASTER BALL) → the MIND BADGE → **the Space Center multi battle + Dive**. (was 19 of 24 before Ch19.) |
 | ‼ is code frozen? | **No.** Nothing is running. |
+| party ORDER | ✅ **PROVEN 2026-08-13.** `--driver roster` from `saves/post_dive.ss1` → `phases=4/4 saw_j_nonzero=True idempotent=True restored=True can_continue=True ACCEPTANCE: PASS`. Raw transcripts (both A/B arms) in `ai-research-notes/2026-08-13-roster-drive-predictions.md`. ‼ The **deposit/withdraw** half of `#24-roster` is still open. |
 | upstream | checked **2026-08-13**, still `5dd898f8` — no change. ‼ This row goes stale on a CALENDAR DAY, not on an event: if today's date is later than the one shown, **the daily check is DUE** (`git fetch upstream-pokebot`, compare against `40cakes repo/UPDATE-LOG.md`). Do not read it as satisfied. |
 | restore point | **`restore/2026-08-12-pre-ch1819-promotion`** (annotated, pushed) — taken immediately BEFORE the §Ch18/§Ch19 promotion. Older: `restore/2026-08-11-all-promoted`. |
 | sandbox ↔ custom drift | ✅ **§Ch18 + §Ch19 ARE PROMOTED** (2026-08-12, user-approved). 8 files; at promotion time the trees were **byte-identical across all 255 code/config files**, verified by DRIVING `--build custom` three ways — §Ch18 `badge=True out_of_gym=True whiteouts=0`; §Ch19 `dive=True hm08=True CAN-CONTINUE OK` at `frames=3558869` **identical to sandbox**; and the real `StoryMode` ladder end-to-end. ‼ **TWO FILES HAVE DRIFTED SINCE, ON PURPOSE — both are sandbox-only and must NOT be promoted yet:** `modules/story/roster.py` (**NEW**, the party-reorder module — its *driver* is unproven) and `modules/menuing.py` (the `PartyMenuExit` freeze fix, which only matters to that unproven driver). **Verify with the loop in "HOW TO RUN / TEST" before assuming either number.** |
@@ -340,19 +351,22 @@ teaching Dive/Dig/Flash. ‼ **Relicanth is underwater-only, so Dive is upstream
 > 1. **Run `preflight.py`**, then the 15-gate suite in "HOW TO RUN / TEST" (all exit 0 today), and
 >    the sandbox↔custom drift loop (expect **exactly 2** differences — `roster.py`, `menuing.py`).
 >
-> 2. **DRIVE `reorder_party()`** — `modules/story/roster.py`. Its planner is proven exhaustively
->    (16/16) but **the driver has never been driven**, and it is the capability the user asked for
->    ("PC deposit/withdraw/swap so the bot can build teams").
->    ‼ **YOU MUST WRITE THE DRIVER FIRST — there is NO `roster`/`reorder` entry in
->    `story_harness.py`'s `--driver` list.** The action this handoff recommends has no vehicle yet.
->    Model it on `--driver boxwithdraw` (it already forces a 6-mon party, drives the production call
->    site, and asserts a second heal is a no-op); anchor on `saves/post_dive.ss1`.
->    ‼ It sits on the unfixed side of **KI-38**; the `PartyMenuExit` freeze was already found and
->    fixed *before* the first drive, so drive it while that is fresh. Log
->    `get_party_menu_cursor_pos()["slot_id"]` + the active task symbols from `StartMenuNavigator`
->    finishing until `Task_HandleChooseMonInput` appears — one trace settles both remaining unknowns
->    (a stale-cursor read, and the exit-menu timing gap). Assert by PID, never by "the navigator
->    finished".
+> 2. ✅ **DONE 2026-08-13 — `reorder_party()` IS DRIVEN.** `--driver roster` exists and passes.
+>    Six swaps, all verified by PID, including the never-driven `RotatePokemon(i, j != 0)`.
+>    **Both unknowns this item asked about are now SETTLED by the trace:**
+>    * *the exit-menu timing gap* — **REAL, and it was a bug.** The party menu's last act is
+>      re-showing the Start menu (`Task_ShowStartMenu` still live at f660 of a 662-frame call), so
+>      `reorder_party` used to return `True` while the avatar could not walk. **Fixed** with a
+>      `swapped`-gated `_settle()`; A/B proven (`moved=False`→`True`, FAIL→PASS, and phase 3 costs
+>      0 frames in BOTH arms — the control arm proving the gate does not over-fire).
+>    * *the stale-cursor read* — **the mechanism is real but did NOT fire.** `gPartyMenu.slot_id`
+>      is **not reset between menu sessions**: the tracer read a stale `slot_id=2` on the overworld
+>      before the menu had opened, and `navigate_to_mon:520-524` computes its scroll direction from
+>      exactly that global. It happened to be re-read live in time. **This is luck, not safety** —
+>      re-check it first if a future roster drive ever mis-swaps.
+>    ‼ **What is NOT done:** the **deposit/withdraw** half of `#24-roster`. Ordering answers "in
+>    what order", not "which Pokémon". And **promotion of `roster.py` + `menuing.py` to
+>    `custom-pokebot/` has NOT been asked for — that is the USER's call.**
 >
 > 3. **‼‼ READ KI-68 BEFORE TOUCHING §Ch21 — AND DO NOT READ "NOT ROUTABLE" AS "NOT POSSIBLE".**
 >    The party slot is **not** the blocker. `WaypointAction.Dive`/`Emerge` are declared and assigned
@@ -576,7 +590,11 @@ PYTHONUTF8=1 py -3.12 probe_chapter_order.py --build custom   # ‼ also check t
 #   `modules/menuing.py` (the PartyMenuExit freeze fix). Anything else is unexplained drift.
 
 # --- §Ch19 gates + drivers (all exit 0 / PASS today; keep them green) ---
-PYTHONUTF8=1 py -3.12 repro_roster_reorder.py       # party-reorder PLANNER, 16/16 (driver UNPROVEN)
+PYTHONUTF8=1 py -3.12 repro_roster_reorder.py       # party-reorder PLANNER, 16/16
+# ‼ THE PARTY-ORDER DRIVE (added 2026-08-13). ~4 min. Expect ACCEPTANCE: PASS.
+#   phases=4/4 saw_j_nonzero=True idempotent=True restored=True can_continue=True
+#   ‼ `saw_j_nonzero` is the one that matters — False means the run re-proved the OLD shape only.
+PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver roster --frames 400000
 PYTHONUTF8=1 py -3.12 probe_regi_capabilities.py    # what the Regi arc still needs (KI-69 Phase A)
 PYTHONUTF8=1 py -3.12 probe_dive_routing.py         # why a chapter must drive dive() (KI-68)
 PYTHONUTF8=1 py -3.12 repro_undefined_names.py      # ZERO undefined names in the story surface
