@@ -9,6 +9,20 @@ Every banner further down is HISTORY, newest first.
 ---
 # ‼ YOU ARE HERE — end of the ROSTER-DRIVE session (2026-08-13). Read this, then `14-AGENT-PLAYBOOK.md`.
 
+## ⛔ NAMING CORRECTION — "§Ch21" IN THIS FILE MEANS **CHAPTER 20**. Read this before acting.
+
+The Seafloor Cavern / Kyogre beat is **Chapter 20**, not 21:
+`modules/story/chapters.py:233` — `Chapter("20", 25, "Seafloor Cavern — Kyogre", …)`, and
+`:249` — `Chapter("21", 26, "Sootopolis crisis & Rayquaza", …)`. `12-STORYMODE-DESIGN.md` agrees.
+
+I used "§Ch21" for the Seafloor Cavern throughout 2026-08-13 and it leaked into artefact NAMES:
+**`--driver ch21dive`**, **`probe_ch21_topology.py`**, and two `ai-research-notes` filenames. Those
+names are **misnomers pinned to Chapter 20** — they work, they are just named wrong.
+
+‼ **Do not "fix" a chapter number by renaming files during a wrap-up.** The rename is on the punch
+list as `#24-ch20rename`. Until then: when this file says §Ch21 and means the cavern, read
+**Chapter 20**; the genuine Chapter 21 is Sootopolis/Rayquaza and has not been touched.
+
 ## ⏱ THE 60-SECOND VERSION (if you read nothing else)
 * **`reorder_party()` IS NOW DRIVEN AND PROVEN.** `--driver roster` (NEW) ran **six swaps, all
   verified by PID**, including **`RotatePokemon(i, j != 0)` — a path nothing in this project had
@@ -57,7 +71,7 @@ Every banner further down is HISTORY, newest first.
   bundle), **#1 of 14 derail causes by frames per event (1,717k avg ≈ 46 min)** — 7.2% of all
   derailed lane time from 3.4% of derails, **every one five badges deep**. Rare, but it kills the
   best runs. ⛔ **`custom-pokebot` is still INERT — promotion NOT asked for.**
-* **✅✅ KI-63 IS RESOLVED — THE BOT ACQUIRES DIVE BY PLAYING.** `--driver divelearner` (NEW) →
+* *(SUPERSEDED by the bullet above — kept for its detail; the "not wired" half is NO LONGER TRUE for sandbox, only for `custom-pokebot`.)* **KI-63 IS RESOLVED — THE BOT ACQUIRES DIVE BY PLAYING.** `--driver divelearner` (NEW) →
   `ACCEPTANCE: PASS` **on the first drive**: freed a slot (Skitty L17 deposited), hunted and caught
   a **Marill L13** (balls 19→17), taught **Dive over Defense Curl** (the 0-power move), and
   **Zigzagoon kept Surf**. `knows_dive=True can_dive=True surf_intact=True can_continue=True`.
@@ -72,7 +86,7 @@ Every banner further down is HISTORY, newest first.
 * (superseded) **THE NEXT BUILD WAS SPECIFIED AND MEASURED: KI-63.** Read
   `ai-research-notes/2026-08-13-ki63-dive-learner-acquisition-plan.md` — it has the build order,
   the pre-registered failure modes, and **two corrections to this handoff's own older text**:
-  the deposit path KI-54 named (`withdraw_from_box:331-355`) **cannot free a slot pre-catch**
+  the deposit path KI-54 named (`withdraw_from_box`'s deposit block (~`modules/story/pc_trip.py:437-461`)) **cannot free a slot pre-catch**
   (it returns immediately when nothing is boxed), and `deposit_dead_weight_if_worth_it` is a
   **silent no-op** behind `POKEBOT_PC_ROTATION`. **A new narrow ungated one-deposit function is
   needed**, and **deposit-first is the wrong order.**
@@ -493,7 +507,7 @@ teaching Dive/Dig/Flash. ‼ **Relicanth is underwater-only, so Dive is upstream
 >    * ⛔ **RETRACTED 2026-08-13 — THE DEPOSIT PATH NAMED BELOW CANNOT DO THIS JOB.** Superseded by
 >      `ai-research-notes/2026-08-13-ki63-dive-learner-acquisition-plan.md`. Verified directly:
 >      `withdraw_from_box` opens with `target = find_in_box(pids); if target is None: return`
->      (`pc_trip.py:314-315`), so with nothing yet boxed **it returns having done nothing** — its
+>      (`modules/story/pc_trip.py:420-421`), so with nothing yet boxed **it returns having done nothing** — its
 >      deposit block is only reachable as a side effect of withdrawing an already-boxed PID. And
 >      `deposit_dead_weight_if_worth_it` **is** a standalone one-deposit primitive but is a **silent
 >      no-op** behind `POKEBOT_PC_ROTATION` (`pc_trip.py:83`). ⇒ **A new narrow, ungated,
@@ -501,7 +515,7 @@ teaching Dive/Dig/Flash. ‼ **Relicanth is underwater-only, so Dive is upstream
 >      `ensure_hm_learner` checks for an existing learner *before* the party-full check, so try it
 >      first and deposit only on that specific failure. (Still true from the old text: the victim is
 >      **Skitty L17**, and Zigzagoon L15 is EXEMPT as sole Surf carrier — re-measured 2026-08-13.)
->      Superseded text: Freeing one slot reuses `withdraw_from_box:331-355`, which is live-proven and deposits exactly ONE mon.
+>      Superseded text: Freeing one slot reuses `withdraw_from_box`'s deposit block (~`modules/story/pc_trip.py:437-461`), which is live-proven and deposits exactly ONE mon.
 >    * ⛔ **Do NOT fetch the Super Rod first** — Sharpedo/Wailmer are real, but it needs three missing
 >      subsystems (no rod chapter, no fishing capability at all, and `_hm_hunting_grounds` reads
 >      land encounters only) against one `TRAINING_GRASS` row.
@@ -671,7 +685,12 @@ PYTHONUTF8=1 py -3.12 probe_ch19_hazards.py         # 3/3; H1 is now a stranding
 PYTHONUTF8=1 py -3.12 probe_space_center_recon.py   # §Ch19 area atlas (measured, not recalled)
 PYTHONUTF8=1 py -3.12 probe_gym_solve.py            # re-derive the 117-step gym route
 
-# ‼ THE 16-GATE SUITE — ALL EXIT 0 as of 2026-08-13. Run it before and after any change.
+# ‼ THE STANDING SUITE — RUN IT WITH ONE COMMAND. The list lives in CODE now, not in this prose,
+#   because this comment advertised 15 gates for a whole session after a 16th was added:
+PYTHONUTF8=1 py -3.12 run_gates.py            # all 16, exits non-zero on any failure (~123s)
+PYTHONUTF8=1 py -3.12 run_gates.py --quick    # the 10 needing no ROM (~3s)
+PYTHONUTF8=1 py -3.12 run_gates.py --list     # what is in the suite
+# (reference only — run_gates.py's GATES table is authoritative) the 16, all exit 0 2026-08-13:
 #   preflight, lint_docs, verify_fixtures, audit_flag_names, repro_undefined_names,
 #   repro_no_silent_except, repro_roster_reorder, repro_multi_battle_partner,
 #   repro_whiteout_abort, repro_gym_whiteout_guard, repro_hm_slot_wiring, probe_chapter_order,
@@ -688,8 +707,10 @@ PYTHONUTF8=1 py -3.12 probe_chapter_order.py --build custom   # ‼ also check t
 #                      if (Test-Path -LiteralPath $c) { git diff --no-index --quiet -- $c $_.FullName
 #                                                       if ($LASTEXITCODE -ne 0) { "differs: $rel" } }
 #                      else { "MISSING in custom: $rel" } }
-#   EXPECTED TODAY: exactly 2 — `modules/story/roster.py` (new, sandbox-only) and
-#   `modules/menuing.py` (the PartyMenuExit freeze fix). Anything else is unexplained drift.
+#   ‼ EXPECTED as of 2026-08-13: exactly 2 — `modules/story/early_game.py` and
+#   `plugins/custom_modes/story_mode.py` (KI-63's PRODUCTION WIRING, driven but NOT promoted).
+#   ‼ NOT `roster.py`/`menuing.py` — those were PROMOTED 2026-08-13 and now show ZERO drift.
+#   Anything else is unexplained drift.
 
 # --- §Ch19 gates + drivers (all exit 0 / PASS today; keep them green) ---
 PYTHONUTF8=1 py -3.12 repro_roster_reorder.py       # party-reorder PLANNER, 16/16
@@ -702,6 +723,9 @@ PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver roster --frames 40
 #   ‼ `got_out` is the one that matters: an underwater cavern is the best place yet to strand a run.
 PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch21dive --frames 900000
 PYTHONUTF8=1 py -3.12 probe_ch21_topology.py         # the measured route (read-only, 2 controls)
+# ‼ KI-63 END TO END (the session's headline result). ~6 min. Expect ACCEPTANCE: PASS with
+#   deposited_pids / gained_pids each exactly one PID. Drives the PRODUCTION wrapper.
+PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver divelearner --frames 3000000
 PYTHONUTF8=1 py -3.12 probe_regi_capabilities.py    # what the Regi arc still needs (KI-69 Phase A)
 PYTHONUTF8=1 py -3.12 probe_dive_routing.py         # why a chapter must drive dive() (KI-68)
 PYTHONUTF8=1 py -3.12 repro_undefined_names.py      # ZERO undefined names in the story surface
@@ -721,7 +745,7 @@ PYTHONUTF8=1 py -3.12 story_harness.py at_mossdeep_leaders.ss1 --driver mossdeep
 to a file and echo `$?` (this nearly recorded a PASS that had never run).
 ‼ **A driver can fight; a hand-driven probe cannot.** Battle handling lives in the main loop's
 listeners, not inside a bot mode's generator (`modules/battle_fault.py:5`).
-**‼ THE AUTHORITATIVE GATE LIST IS THE 16 NAMED IN "HOW TO RUN / TEST" ABOVE — all exit 0.** Do not
+**‼ THE AUTHORITATIVE GATE LIST IS `run_gates.py`'s `GATES` TABLE — not this prose.** All 16 exit 0. Do not
 reconstruct it from the prose below; there are 94 `repro_*.py` files and the older text says "the
 ten standing repro_*" without naming them, which is not reproducible. Current pass counts, measured:
 `repro_gym_whiteout_guard.py` **5/5**, `repro_roster_reorder.py` **16/16**,

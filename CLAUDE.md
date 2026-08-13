@@ -293,6 +293,14 @@ Written as PROPERTIES, not stories. **Every rule below was violated by an agent 
 written that rule down, on the same day.** That is the whole reason this block exists: a rule filed
 as "the lesson from bug X" does not fire when you are building Y.
 
+0. ⛔ **CONFLICT WITH THE MANAGED BLOCK — FLAGGED FOR THE USER, 2026-08-13, NOT silently resolved.**
+   Definition of Done **step 5 (line ~86) says "`git add -A` and commit"**, and that command is now
+   **BLOCKED** by the hook in rule 1. Step 5 is INSIDE the Project Kit managed block, so editing it
+   would be reverted by the next `Bootstrap-Project` run — which is why it is overridden here
+   instead. **Until the user rules: step 5 means "stage explicit paths".** `/wrapup` and
+   `/checkpoint` have already been corrected (they are outside the managed block).
+   ‼ Do NOT "fix" this by reaching for `POKEBOT_ALLOW_BLIND_ADD=1` — routinely using the escape
+   hatch restores the exact failure the hook exists to prevent.
 1. **Stage EXPLICIT PATHS. Never `git add -A` / `git add .`** — subagents write into the working
    tree while you work, so a wildcard stage sweeps in unreviewed files.
    ✅ **ENFORCED, not requested:** `.claude/hooks/block-blind-git-add.ps1` denies it (allows

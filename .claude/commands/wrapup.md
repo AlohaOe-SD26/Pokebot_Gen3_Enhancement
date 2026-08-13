@@ -9,7 +9,11 @@ Run the FULL Definition of Done from CLAUDE.md for the work item just completed,
 3. Append the entry to `07-CHANGELOG.md`; append to `06-DECISIONS-LOG.md` if any significant decision was made; if this item involved fixing a bug or abandoning a tried approach, append an entry to `08-MISTAKES.md` (symptom, root cause, the fix that worked, one-line prevention rule) so it isn't repeated.
 4. Record any NEW directives, design decisions, or specs the user gave this session as punch-list items with their FULL specifications — wrap-up implements nothing new.
 5. Update `04-HANDOFF.md` (current state, what was just done, next steps in order) and clear the "If stopped mid-task" section if this item was its subject.
-6. `git add -A` and commit: `<type>: <short summary> (punch-list #N)`.
+6. `git status --short`, account for EVERY untracked file by name, then stage EXPLICIT PATHS
+   (`git add <path> ...`) and commit: `<type>: <short summary> (punch-list #N)`. Name every added
+   file in the message. ‼ `git add -A` is BLOCKED by `.claude/hooks/block-blind-git-add.ps1` —
+   subagents write into the tree while you work, and it swept an unreviewed file into a pushed
+   commit twice on 2026-08-13.
 7. `git push` (on rejection: pull, verify, push again; ask before resolving conflicts destructively).
 
 End with: item closed, docs touched, branch + commit hash, push CONFIRMED (or exactly why not).

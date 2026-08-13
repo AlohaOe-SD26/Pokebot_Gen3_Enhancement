@@ -3294,3 +3294,14 @@ crawled at 1× (user-reported, fixed in `aadad944`).
 
 The CLI form above is NOT superseded — it keeps the fresh-profile-per-run and wall-clock/log-growth
 failsafes that an in-process mode cannot have, and remains the right tool for a scripted batch.
+
+- [ ] `#24-ch20rename` — **NEW 2026-08-13, SMALL AND SAFE, do it at the START of a session not the end.**
+      The Seafloor Cavern beat is **Chapter 20** (`chapters.py:233`), but 2026-08-13's work called it
+      "§Ch21" throughout and the misnomer is baked into artefact names:
+      `--driver ch21dive` (and its `Ch21DiveMode` class), `tools/story-dev/probe_ch21_topology.py`,
+      and `ai-research-notes/2026-08-13-ch21-dive-leg-predictions.md`.
+      ‼ Nothing is broken — they are correct code with wrong names. The risk is a future agent
+      building "Chapter 21" (which is really **Sootopolis / Rayquaza**) against cavern tooling.
+      **Do:** rename driver + class + probe + note, update `04-HANDOFF.md`'s naming-correction
+      block and every reference, then run `run_gates.py`. **Do NOT** rewrite git history or the
+      append-only logs — correct forward and leave the old names in the changelog where they are.
