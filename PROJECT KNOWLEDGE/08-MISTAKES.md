@@ -5581,3 +5581,41 @@ today the ROUTE was right and the CHECK was wrong.
 (3) ‼ When you write a prevention rule, write it as a PROPERTY ("every liveness check must …"), not
 as a story about the bug you just fixed. A rule filed under one feature's name will not fire when
 you build the next feature.*
+
+---
+
+## 2026-08-13 — I published a headline stronger than my evidence, and had to correct a pushed doc
+
+**Symptom.** I committed and pushed a research note titled *"`PuzzleSolverMode` ALREADY SHIPS
+§Ch21's DUNGEON AND THE WHOLE REGI ARC"*, plus a handoff bullet saying **"do not build those as new
+chapters."** An adversarial pass I commissioned refuted it, and I confirmed the refutation myself:
+
+* The Seafloor Cavern branch ends `navigate_to(ROOM9, (16,42))` → `context.set_manual_mode()`
+  (`puzzle_solver.py:456-458`). It walks to a tile and **hands control to a human** — no Archie
+  battle, no story progression, no exit. And (16,42) is **Archie's own cutscene destination tile**.
+* The Regi branches **open the door only**. Regirock ends at `DESERT_RUINS (8,29)` — the **exit
+  warp** — while the statue is at (8,7). There is no encounter logic in the file at all.
+
+**Root cause.** Everything I verified was true — byte-identical to upstream, registered mode, real
+Emerald routes, genuine KI-69 corroboration. What I did not do was **read each branch to its last
+line before naming what it accomplished.** "Implements the Seafloor Cavern puzzle" and "plays
+§Ch21" are different claims, and I let the excitement of a shortcut collapse them.
+
+**‼ The caveats were not missing.** The note carried a prominent "WHAT THIS DOES NOT PROVE" section
+listing five of the six real objections. **They were in the body; the overstatement was in the
+title** — and a title is what a future agent skims and acts on. A caveat that does not reach the
+headline does not protect anyone.
+
+**The fix that worked.** A correction block at the TOP of the note, the original demoted and
+labelled `(ORIGINAL, OVERSTATED)`, and the handoff bullet rewritten to lead with *"recipe book, not
+a shortcut — copy from it, do not drive it."* Nothing was deleted. What genuinely survives — the
+dive/surface template (which `--driver ch21dive` copied to a 6/6 PASS the same day), free room
+coordinates, and the KI-69 corroboration — is stated as what it is.
+
+**Prevention rules.** *(1) Before writing that code "already does X", read the branch to its last
+statement. `set_manual_mode()` as the final line means it hands off to a human — that is the
+opposite of automation, and it is easy to miss under 90 lines of correct-looking route.
+(2) Put the strongest caveat in the TITLE, not only in the body. If the headline and the caveats
+disagree, the headline wins with every future reader.
+(3) Commissioning an adversarial pass on your own fresh finding — before building on it — is the
+cheapest correction available. This one cost one agent and caught a bad plan before any code.*

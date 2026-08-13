@@ -23,17 +23,19 @@ Every banner further down is HISTORY, newest first.
   shape, on the hottest path in the bot — **measured, margin held, but n = 1**) and **KI-71**
   (roster.py's "dropped to MANUAL" guard is **unreachable**; `main.py:145-147` abandons the
   generator first).
-* **‼‼ STRATEGIC FIND, SAME DAY — `PuzzleSolverMode` ALREADY SHIPS §Ch21's DUNGEON AND THE WHOLE
-  REGI ARC.** `modules/modes/puzzle_solver.py` is **byte-identical to the upstream mirror**, is a
-  registered bot mode, and implements the Seafloor Cavern interior, the Sealed Chamber dive route
-  (`navigate → dive() → navigate underwater → surface_from_dive() → braille Dig`) and all three
-  Regi puzzles. **Do not build those as new chapters — read
-  `ai-research-notes/2026-08-13-puzzle-solver-already-ships-ch21-and-the-regi-arc.md` first.**
-  ‼ It also independently CONFIRMS KI-69 from code in our own tree:
-  `assert_pokemon_in_party_slot("Wailord", 0)` / `("Relicanth", size-1)`.
-  ‼ **But nobody here has ever RUN it**, its battle handling is `handle_encounter(auto_battle=True)`
-  and NOT our `LevelUpTravelBattleStrategy`, and **the Regi encounter is UNRECOVERABLE** — so it
-  must NOT be pointed at a tomb until that is settled.
+* **`puzzle_solver.py` IS A RECIPE BOOK, NOT A SHORTCUT — COPY FROM IT, DO NOT DRIVE IT.**
+  It is byte-identical to the upstream mirror and holds the Seafloor Cavern + Sealed Chamber +
+  Regi routes. ‼ **I first wrote this up as "it already ships §Ch21 and the Regi arc" and that was
+  OVERSTATED** — an adversarial pass refuted it and I verified the refutation myself:
+  the Seafloor branch ends `navigate_to(ROOM9, (16,42))` → `set_manual_mode()` (it parks the bot on
+  **Archie's own cutscene tile** and hands control to a human — no battle, no progression, no exit),
+  and the Regi branches **open the door only**, ending at the tomb's EXIT warp, never at the statue.
+  **What survives is still valuable**: the `dive() → navigate → surface_from_dive()` template (which
+  `--driver ch21dive` copied to a 6/6 PASS), free hand-derived room coordinates, and independent
+  corroboration of **KI-69**'s Emerald party order (`("Wailord", 0)` / `("Relicanth", size-1)`).
+  Read `ai-research-notes/2026-08-13-puzzle-solver-already-ships-ch21-and-the-regi-arc.md` —
+  **the correction is at the top.** ⛔ Never point it at a Regi tomb: its battle handling is
+  `handle_encounter(auto_battle=True)` and KO'ing a Regi destroys the encounter.
 * **✅ THE FIRST DRIVEN DIVE IN THIS PROJECT — KI-68 step 1 IS DONE.** `--driver ch21dive` (NEW)
   → `ACCEPTANCE: PASS legs=6/6 at_entrance=True got_out=True can_continue=True`. Mossdeep →
   `SEAFLOOR_CAVERN_ENTRANCE (10,17)` **and back out to the open ocean**.

@@ -1,4 +1,42 @@
-# ‼‼ `PuzzleSolverMode` ALREADY SHIPS §Ch21's DUNGEON *AND* THE WHOLE REGI ARC (2026-08-13)
+# ‼‼ CORRECTED — `PuzzleSolverMode` IS A RECIPE BOOK, NOT A SHORTCUT. **COPY FROM IT; DO NOT DRIVE IT.**
+
+> # ⛔ THE TITLE BELOW IS THE ORIGINAL, AND IT IS OVERSTATED. READ THIS BLOCK FIRST.
+>
+> I commissioned an explicitly adversarial pass to refute this note's headline. **It did**, and I
+> then verified its two load-bearing claims myself in our own tree:
+>
+> * **The Seafloor Cavern branch does NOT play §Ch21.** It ends
+>   `navigate_to(MapRSE.SEAFLOOR_CAVERN_ROOM9, (16, 42))` → `context.set_manual_mode()`
+>   (`puzzle_solver.py:456-458`). It walks to a tile and **hands control to a human**. There is no
+>   Archie battle, no story progression, and no exit. ‼ Worse: **(16,42) is Archie's own cutscene
+>   destination tile** — `SeafloorCavern_Room9_Movement_ArchieApproachPlayer` walks him to x=16 —
+>   so the mode parks the bot on the doorstep of an unskippable forced battle and stops.
+> * **The Regi branches open the DOOR ONLY — there is no encounter logic at all.** Regirock ends
+>   `"Regirock puzzle complete!"` then `navigate_to(MapRSE.DESERT_RUINS, (8, 29))` — which is the
+>   **exit warp to ROUTE111**. The statue is at (8,7) and the mode never goes there.
+>
+> Further reasons the "shortcut" framing fails (from the adversarial pass, not independently
+> re-verified by me): it cannot be driven without forking the file — which voids the
+> "byte-identical upstream-tested" argument that was the whole appeal; its routes appear to encode
+> **post-game** map state; `use_repel` and unbounded `walk_one_tile` are unaddressed; and our
+> fork's divergence turns some upstream spins into hard aborts.
+>
+> ## ⇒ WHAT ACTUALLY SURVIVES, and it is still genuinely valuable
+> `puzzle_solver.py` is a **recipe book and coordinate atlas**:
+> * the `dive()` → navigate → `surface_from_dive()` **sequence template** — which is exactly what
+>   `--driver ch21dive` copied, and that drive PASSED 6/6 the same day;
+> * **hand-derived room coordinates** for the Seafloor Cavern and all three tombs, free;
+> * **corroboration of KI-69's Emerald party order and move differences**, from code in our tree.
+>
+> **Do not point it at a Regi tomb**: its `on_battle_started` is
+> `handle_encounter(..., enable_auto_battle=True)`, and KO'ing a Regi destroys the encounter.
+>
+> ‼ **The lesson for me is in `08-MISTAKES.md`:** I published a headline stronger than my evidence.
+> The caveats were all present in the body — and a reader who skims takes the title.
+
+---
+
+# (ORIGINAL, OVERSTATED) `PuzzleSolverMode` ALREADY SHIPS §Ch21's DUNGEON *AND* THE WHOLE REGI ARC (2026-08-13)
 
 > **Status: VERIFIED BY ME DIRECTLY**, not recalled and not taken from an agent — the file is
 > byte-identical to the upstream mirror and the code below is quoted verbatim from our own tree.

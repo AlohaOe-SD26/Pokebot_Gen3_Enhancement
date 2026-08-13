@@ -2612,6 +2612,29 @@ fall-through (INCLUDES B_OUTCOME_LOST) -> setflag FLAG_DEFEATED_REGIROCK  -> gon
 non-catch exit is **fleeing**. Our battle policy must be provably incapable of KO'ing it and must
 never white out there. This needs its own guard and its own test before the arc is attempted.
 
+### ⚠ CHALLENGE TO THE WHITEOUT HALF — filed 2026-08-13, **UNVERIFIED, claim NOT yet edited**
+
+An adversarial agent challenged the sentence above, reading `pret/pokeemerald`:
+* `battle_setup.c:569-575` — `StartRegiBattle` sets `gMain.savedCallback = CB2_EndScriptedWildBattle`.
+* `:618-633` — that callback branches on `IsPlayerDefeated(gBattleOutcome)`; on defeat it calls
+  `SetMainCallback2(CB2_WhiteOut)` **instead of** `CB2_ReturnToFieldContinueScriptPlayMapMusic`.
+* ⇒ because the defeat path **replaces the callback rather than resuming the script**, the
+  fall-through `setflag FLAG_DEFEATED_REGIROCK` allegedly never runs, and
+  `DesertRuins_OnTransition` re-shows the Regi on the next visit.
+* ⇒ the agent's conclusion: **losing is recoverable; only KO'ing or catching is not.**
+
+‼ **THE CLAIM ABOVE IS DELIBERATELY LEFT UNCHANGED, and here is why.** This project's own rule is
+that a decomp read is a NOTE, never truth — and this is *exactly* the kind of control-flow
+reasoning that has been wrong here before. It is also the **safe** direction to be wrong in: if the
+challenge is right we lose nothing by being over-cautious, and if it is wrong and we relaxed the
+rule, the encounter is gone forever.
+
+**‼ THE OPERATIONAL RULE IS UNAFFECTED EITHER WAY** — never KO a Regi, never rely on losing.
+
+**How to settle it, cheaply (~1 run):** lose to a Regi on a save state, re-enter the tomb, and check
+whether the object is still there. **Only after that** may this section be edited — and the edit
+should quote the observed result, not the decomp.
+
 ### The chain, and what we already have
 ✅ **Better than expected:** `modules/menuing.py:862` `use_field_move()` already dispatches
 **DIG**, **FLASH** and **ROCK SMASH** from the party menu — all three puzzle moves are supported.
