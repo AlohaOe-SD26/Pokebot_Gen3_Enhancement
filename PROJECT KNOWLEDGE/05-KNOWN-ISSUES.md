@@ -2666,6 +2666,46 @@ thing, and an adversarial pass caught it before the code shipped.
 learner → teach Dive" chain, even executed perfectly, ends at `UnreachableDestinationError` on the
 first navigation into a dive spot. **It moves the failure one line down and costs a party member.**
 
+### ‼ REFINED 2026-08-12 (`probe_dive_routing.py`) — "NOT ROUTABLE" ≠ "NOT POSSIBLE"
+
+Do **not** read the above and conclude the Dive content is out of reach. Measured:
+* `warp_graph.py:20` and `:342` say it explicitly — *"Dive/Emerge connections … excluded on
+  purpose"*. **This is a DESIGN state, not a defect.** A dive is not a warp event at all: it is a
+  MOVE used on a deep-water tile that lands you on a different map at the same coordinates, so no
+  warp-graph solver could ever offer it and `calculate_path` was never going to.
+* **`dive()` ALREADY EXISTS AND WORKS** — `modules/modes/util/higher_level_actions.py:682`, drives
+  `Task_UseDive`, and refuses unless the tile really is Deep/Semi-Deep Water and the player is not
+  already underwater. So a wrong tile fails LOUDLY.
+⇒ **The fix is a CHAPTER that drives the transition, not a change to the planner** — exactly the
+pattern already used three times here (§Ch18's `(21,6)` coord-event exit, Steven's bottom-row door
+via `_walk_through_warp`, the Magma Hideout Escape Rope). The legs split cleanly:
+```
+a. surf to the deep-water tile          -> PLANNER   (Surf IS routable)
+b. call dive() standing on it           -> CHAPTER   (one call; the missing piece)
+c. navigate the UNDERWATER map          -> PLANNER   (ordinary same-map)
+d. surface / take the warp in           -> CHAPTER or PLANNER (a real warp)
+```
+
+### ✅ THE TOPOLOGY IS FULLY MAPPED, and most of it needs no Dive at all
+Read from our own ROM (`probe_dive_routing.py`):
+```
+UNDERWATER_ROUTE134      (8,8)  -> UNDERWATER_SEALED_CHAMBER
+UNDERWATER_SEALED_CHAMBER (7,1) -> UNDERWATER_ROUTE134
+SEALED_CHAMBER_OUTER_ROOM (10,2)-> SEALED_CHAMBER_INNER_ROOM
+UNDERWATER_SEAFLOOR_CAVERN (6,7)-> UNDERWATER_ROUTE128        (§Ch21)
+DESERT_RUINS  (8,29) -> ROUTE111     ISLAND_CAVE (8,29) -> ROUTE105
+ANCIENT_TOMB  (8,29) -> ROUTE120
+```
+‼ **The three Regi tombs are ORDINARY MAP WARPS from routes the bot already reaches.** Only the
+**Sealed Chamber unlock** is behind a dive. So the Regi arc is not gated on Dive end-to-end — it is
+gated on ONE underwater errand, after which the tombs are ordinary navigation.
+‼ Note `UNDERWATER_SEALED_CHAMBER` has **no warp to `SEALED_CHAMBER_OUTER_ROOM`** — that transition
+is a SURFACE/emerge, i.e. a second chapter-driven action, not a warp.
+
+‼ **`can_dive()` needs the move KNOWN, not learnable.** Measured on `post_dive.ss1`: `BADGE07_GET`
+True, party members knowing Dive **NONE** → it would return False. HM08 being in the bag is not
+enough, which is the same distinction KI-63 makes.
+
 ### ⇒ THE CORRECT ORDER (and why the obvious order is wrong)
 1. **FIRST, prove what the planner needs.** `modules/debug_utilities.py:611` can inject
    `LearnedMove.create(get_move_by_name("Dive"))` onto an existing party mon. Do that and drive
