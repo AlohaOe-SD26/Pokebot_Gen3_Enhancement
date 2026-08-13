@@ -282,6 +282,17 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       *"in what order"*, not *"which Pokémon"*. `withdraw_from_box` remains proven only by
       `--driver boxwithdraw`. Two issues filed and deliberately NOT fixed: **KI-70**, **KI-71**.
       ‼ `reorder_party()` still has **ZERO production callers** — it is capability, not yet content.
+      ✅ **THE DEPOSIT HALF SHIPPED 2026-08-13** — `pc_trip.deposit_one_dead_weight()` frees exactly
+      one slot (postcondition-verified, sole-HM-carrier exempt), wired into production via
+      `early_game.ensure_hm_learner_making_room` at both `story_mode.py` HM call sites, and gated by
+      `repro_hm_slot_wiring.py` (22/22, fault-injected). Driven: `--driver divelearner`
+      `ACCEPTANCE: PASS`, deposit asserted **by PID**.
+      **Measured worth:** 20 terminal run-kills in 1,129 runs (**0.91%** excl. a reverted party-cap
+      bundle) and **#1 of 14 derail causes by frames per event (1,717k ≈ 46 min)**, every one five
+      badges deep — rare, but it kills the deepest runs.
+      ⛔ **NOT promoted** — `custom-pokebot` is still inert (reads the flag, nothing sets it).
+      ‼ **STILL OPEN in this item:** withdraw-on-demand, catch-overflow policy, and any use of
+      `reorder_party` by real content (the Regi arc is what will need it).
 
 - [ ] `#24-rarepredicate` — ‼ **NOT READY TO BUILD. 2026-08-07: the dataset does not reproduce,
       and as computed it FAILS the user's own named example.**
