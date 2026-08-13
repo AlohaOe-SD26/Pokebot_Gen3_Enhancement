@@ -11,6 +11,18 @@
           }
         ]
       }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/block-blind-git-add.ps1",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }
