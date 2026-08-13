@@ -48,7 +48,14 @@ Every banner further down is HISTORY, newest first.
   `"Underwater Blocked Above"` / `"Seaweed No Surfacing"` — the two tile types you cannot surface
   from — so it will route a dive to a dead end. ⇒ **NEVER let the planner choose where you
   surface**; pick the tile explicitly, as upstream already does.
-* **⏭ THE NEXT BUILD IS SPECIFIED AND MEASURED: KI-63, acquiring a real Dive learner.** Read
+* **✅✅ KI-63 IS RESOLVED — THE BOT ACQUIRES DIVE BY PLAYING.** `--driver divelearner` (NEW) →
+  `ACCEPTANCE: PASS` **on the first drive**: freed a slot (Skitty L17 deposited), hunted and caught
+  a **Marill L13** (balls 19→17), taught **Dive over Defense Curl** (the 0-power move), and
+  **Zigzagoon kept Surf**. `knows_dive=True can_dive=True surf_intact=True can_continue=True`.
+  **NEW production code:** `pc_trip.deposit_one_dead_weight()` + an opt-in `_needs_party_slot`
+  piggyback in `heal_in_pokemon_center`. ‼ **§Ch21's BLOCKER is gone; §Ch21 itself still has to be
+  BUILT** — and the learner is an L13 HM slave 36 levels below the team.
+* (superseded) **THE NEXT BUILD WAS SPECIFIED AND MEASURED: KI-63.** Read
   `ai-research-notes/2026-08-13-ki63-dive-learner-acquisition-plan.md` — it has the build order,
   the pre-registered failure modes, and **two corrections to this handoff's own older text**:
   the deposit path KI-54 named (`withdraw_from_box:331-355`) **cannot free a slot pre-catch**

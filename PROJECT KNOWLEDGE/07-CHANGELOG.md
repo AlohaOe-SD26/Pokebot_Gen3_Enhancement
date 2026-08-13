@@ -12290,3 +12290,59 @@ mid-ocean" scenario is structurally prevented at both layers.
 there: a Shoal Cave row becomes the highest band in the table and **flips `best_training_area` for
 every team from ~L30 up**. The clean fix is a SEPARATE HM-ground table. Surfaced rather than
 assumed.
+
+## 2026-08-13 — ✅ KI-63 RESOLVED: the bot acquires DIVE BY PLAYING. §Ch21 is unblocked for real.
+
+`--driver divelearner` → **`ACCEPTANCE: PASS` on the first drive.** Nothing is injected: the
+learner is deposited-for, hunted, caught and taught through the real game.
+
+```
+[divelearner] STEP1 raised (EXPECTED on a full party): No party mon can learn Dive and the
+              party is full — needs PC box management (#24-pc) or a manual swap.
+[divelearner] STEP2 party 6 -> 5 freed=True          (Skitty L17 deposited)
+[divelearner] STEP3 ensure_hm_learner returned slot=5
+[divelearner] STEP3 balls 19 -> 17 caught=True  ... '5:MarillL13[Tackle,Defense Curl,Tail Whip,Water Gun]'
+[divelearner] STEP4 teaching Dive to slot 5 (Marill)
+[divelearner] VERIFY knows_dive=True can_dive=True surf_intact=True
+              ... '5:MarillL13[Tackle,Dive,Tail Whip,Water Gun]'
+[divelearner] CAN-CONTINUE moved=True (31, 16)->(31, 17) at=('ROUTE117', (31, 17))
+[divelearner] RESULT freed_slot=True caught=True knows_dive=True can_dive=True
+              surf_intact=True can_continue=True
+[divelearner] ACCEPTANCE: PASS
+```
+The teach replaced **Defense Curl** — the 0-power move — which is exactly what the expendability
+picker is supposed to choose, and **Zigzagoon kept Surf** (`surf_intact=True`), so the
+self-inflicted "forget Surf and strand the bot mid-ocean" scenario did not occur.
+
+### NEW: `modules/story/pc_trip.py :: deposit_one_dead_weight()`
+Frees **exactly one** party slot at a Poké Centre PC. It exists because **neither** existing
+deposit path can free a slot *before* a catch — the finding that came out of the adversarial pass:
+* `withdraw_from_box` opens `target = find_in_box(pids); if target is None: return` (:314-315), so
+  with nothing yet boxed it **returns having done nothing**;
+* `deposit_dead_weight_if_worth_it` **is** a standalone one-deposit primitive but is a **silent
+  no-op** behind `POKEBOT_PC_ROTATION` (:83), pinned 0 and measured harmful.
+
+Its contract is a **postcondition** ("there is now room"), verified by re-reading the party — never
+by "the PC call returned". It inherits `find_dead_weight`'s sole-HM-carrier exemption for free,
+which is why Zigzagoon was safe. Wired as an **opt-in piggyback** inside `heal_in_pokemon_center`
+gated on `_needs_party_slot`, mirroring the two hooks already there ("piggyback, do not detour").
+
+### ‼ ORDER MATTERS, AND THE OBVIOUS ORDER IS WRONG
+The driver calls `ensure_hm_learner` **first** and deposits only on the specific *"party is full"*
+failure — because `hm_learner_slot` is checked *before* the party-full check
+(`early_game.py:4338-4348`), so a deposit-first design would spend a PC trip and a team member even
+when no catch was needed. It also refuses to deposit if step 1 failed for any *other* reason:
+boxing a team member to "fix" an unrelated error leaves the run strictly worse off.
+
+### ‼ A BUG IN MY OWN PLAN, CAUGHT BEFORE THE RUN
+The plan note told the builder to assert success with `can_dive()`. **`can_dive()` is not
+importable** — it is a nested closure inside `calculate_path` (`map_path.py:690`, `nonlocal
+_can_dive`), so KI-68's *"`can_dive()` exists; zero callers"* describes a private helper, not an
+API. The import-symbol check (added after a 20,000-frame run was lost to a wrong-module import
+earlier today) caught it in under a second. The driver computes the same predicate verbatim.
+
+### Round one deliberately did NOT touch the ground table
+Route 117's Marill is 10% of the land table at L13 and 1,055 waypoints away; Shoal Cave's Spheal is
+better on every axis. But `_hm_hunting_grounds` iterates `TRAINING_GRASS`, and a Shoal row there
+**flips `best_training_area` for every team from ~L30 up**. Proving the chain and changing the
+ground table are two variables; this moved one.

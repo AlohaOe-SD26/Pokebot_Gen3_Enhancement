@@ -119,8 +119,17 @@ yet. This project demotes statically-derived grounds (the Route 114 lesson).
    expendability logic; `early_game.teach_hm_move` has the smart picker (`_is_hm_slot` → prefer
    0-power → else weakest) and should be preferred.
 5. ‼ **Assert by re-reading the party, never by a clean return.** `teach_hm_or_tm` is a generator
-   with **no return value and no post-teach verification**. The only trustworthy gate is
-   `can_dive()` / `get_party()[slot].moves`.
+   with **no return value and no post-teach verification**. The only trustworthy gate is the
+   mon's actual moveset.
+   ⛔ **CORRECTION 2026-08-13 — `can_dive()` IS NOT IMPORTABLE, so do not assert with it.** It is
+   a **nested closure inside `calculate_path`** (`map_path.py:690`, `nonlocal _can_dive`), not a
+   module-level function. KI-68's *"`can_dive()` exists; zero callers"* therefore describes a
+   private helper, not an API — and an earlier draft of this very note told the builder to call
+   it. Caught by the import-symbol check **before** the run, not by a failed one. Compute the
+   same predicate instead, verbatim:
+   ```python
+   context.rom.is_rse and get_event_flag("BADGE07_GET") and get_party().has_pokemon_with_move("Dive")
+   ```
 
 ### Predicted failure modes worth pre-registering
 * the deposit no-op above (**most likely first-run failure**);

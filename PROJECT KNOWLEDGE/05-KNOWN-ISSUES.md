@@ -162,36 +162,9 @@ sandbox-fixed case.
   if `HIDE_BRINEYS_HOUSE_MR_BRINEY` is set, engage his Route 104 beach object (live local_id via
   `_talk_to_wandering_npc`-style lookup) instead of entering the house.
 
-## KI-11 — Oceanic Museum entrance grunt-sealed at Devon-goods time — ✅ RESOLVED 2026-07-22
-**RESOLUTION:** NOT a state bug — a missing STORY STEP. The museum grunts clear when you talk
-to **Dock at Stern's Shipyard** (`SlateportCity_SternsShipyard_1F_EventScript_Dock` runs
-`setflag FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA`). User-supplied + decomp-confirmed; built into
-`deliver_devon_goods_to_stern` (Shipyard→Dock→museum). The doc was wrong (had the museum
-freely enterable) — corrected in §Ch8b. This is the motivating case for the /validate-docs
-process. Original write-up kept below for reference.
+> 📦 **KI-11 moved to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-08-13** — ✅ RESOLVED 2026-07-22. Moved
+> verbatim, nothing deleted, to keep this file inside its 3,000-line budget (lint rule R3).
 
-- **Symptom:** `deliver_devon_goods_to_stern` cannot reach the museum. The doors are city
-  warps (30,26)/(31,26); the ONLY tiles below them, (30,27)/(31,27), are occupied by two
-  Team Aqua grunts (obj id 18/5, `SlateportCity_EventScript_AquaGrunt2/1`). The whole
-  y=27 row from x=22-31 is a grunt wall (gap at x=27, but (27,26) above it is collision).
-  So the museum is physically SEALED — navigate_to (interior or door tile) plan-fails, and
-  a walk-into-door bumps the grunt forever.
-- **What's verified (probes 2026-07-22):** all 11 outside grunts share hide-flag
-  `FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA` (882). It is UNSET by default (confirmed on an
-  INDEPENDENT fresh game at Rustboro AND on slateport.ss1), `VAR_SLATEPORT_CITY_STATE=0`,
-  and the SlateportCity map.json has NO coord-trigger near the museum to reposition them
-  (its only coord_event is the Battle Tent Scott scene at (10,13)). The 2F Stern-fight
-  grunts are SEPARATE 2F objects (id 2-4 spawned at the stairs), not this outside crowd.
-- **The contradiction:** vanilla canon = the museum IS enterable on the first (Devon-goods)
-  visit, yet structurally it's sealed with flag 882 unset. Something clears/repositions the
-  crowd that our static read isn't capturing (a map ON_TRANSITION/ON_FRAME script setting a
-  var, an event on the Slateport dock arrival, or the flag being set earlier than found).
-- **DO NOT guess a state-write** (setting flag 882 hides the crowd, but proving that matches
-  vanilla's exact state at this point needs the mechanism first — house rule).
-- **Fastest ground truth = the USER:** on a real first Slateport visit, are Aqua grunts
-  blocking the Oceanic Museum doors, or is the entrance clear? Then either build the faithful
-  trigger or document the state-write. `deliver_devon_goods_to_stern` (interior logic sound)
-  stays defined but UNWIRED; frontier honestly = Slateport arrival.
 
 > 📦 **KI-14, KI-15 and KI-16 moved to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-08-13** — all three
 > were ✅ FIXED same-day in July 2026. Moved verbatim, nothing deleted, because this file crossed
@@ -2305,7 +2278,33 @@ save has got. `probe_chapter_order.py` deliberately does not assert on this save
 **To settle it:** check `MET_RIVAL_LILYCOVE` across the anchors that have plainly passed Lilycove,
 and if it is unset on all of them, the milestone is wrong rather than the run.
 
-## KI-63 — NO party member can learn Dive, and the party is full: §Ch21 is BLOCKED (2026-08-12, MEASURED, OPEN)
+## ✅ KI-63 — RESOLVED 2026-08-13. The bot acquires DIVE BY PLAYING. (filed 2026-08-12)
+
+> **`--driver divelearner` → `ACCEPTANCE: PASS` on the first drive.** Nothing injected: a slot was
+> freed, a **Marill L13** was hunted and caught (balls 19→17), and **Dive was taught over Defense
+> Curl** — the 0-power move, exactly what the expendability picker should pick.
+> `knows_dive=True can_dive=True surf_intact=True can_continue=True`, and **Zigzagoon kept Surf**.
+>
+> **What had to be BUILT:** `pc_trip.deposit_one_dead_weight()` — because **neither** existing
+> deposit path can free a slot *before* a catch (`withdraw_from_box` returns immediately with
+> nothing boxed; `deposit_dead_weight_if_worth_it` is a silent no-op behind
+> `POKEBOT_PC_ROTATION`). ‼ Our own handoff named the first of those as the path to use; that is
+> retracted. Wired as an opt-in `_needs_party_slot` piggyback inside `heal_in_pokemon_center`.
+>
+> **‼ ORDER:** call `ensure_hm_learner` FIRST and deposit only on the specific *"party is full"*
+> failure — `hm_learner_slot` is checked *before* the party-full check, so deposit-first would
+> spend a PC trip and a team member even when no catch was needed.
+>
+> ‼ **What this does NOT mean.** §Ch21 still has to be BUILT as a chapter; this removes its
+> blocker. The learner is a **Marill L13, 36 levels below the team** — an HM slave that
+> `find_dead_weight` would want to box on a later trip unless the sole-carrier exemption covers it.
+> And the ground used is Route 117 (10%, L13, 1,055 waypoints); the better Shoal Cave ground was
+> deliberately NOT adopted, because `_hm_hunting_grounds` reads `TRAINING_GRASS` and a Shoal row
+> flips `best_training_area` for every team from ~L30 up. See
+> `ai-research-notes/2026-08-13-ki63-dive-learner-acquisition-plan.md`.
+
+### (original filing, kept for its measurements)
+## KI-63 — NO party member can learn Dive, and the party is full: §Ch21 is BLOCKED (2026-08-12, MEASURED)
 
 Measured on `post_mossdeep_gym.ss1` by `tools/story-dev/probe_ch19_hazards.py`:
 ```

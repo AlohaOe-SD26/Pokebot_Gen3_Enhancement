@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "ch21dive"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "ch21dive", "divelearner"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -4995,6 +4995,267 @@ class Ch21DiveMode(BotMode):
         return
 
 
+class DiveLearnerMode(BotMode):
+    """KI-63 — acquire a REAL Dive learner: free a slot, hunt, catch, teach, verify.
+
+    ‼ THIS IS THE LAST THING BETWEEN THE BOT AND §Ch21. `--driver ch21dive` proved the whole
+    Mossdeep → Seafloor Cavern dive route, but it INJECTED Dive with a debug write. Nothing here
+    injects anything: every move must be learned by playing.
+
+    ‼ THE ORDER IS ADVERSARIALLY CORRECTED, and the obvious order is wrong twice over. Spec:
+    `ai-research-notes/2026-08-13-ki63-dive-learner-acquisition-plan.md`.
+      1. **`ensure_hm_learner` FIRST, not a deposit first.** It checks `hm_learner_slot` at
+         `early_game.py:4338-4340` — *before* the party-full check at `:4342-4348` — so an
+         unconditional deposit would cost a PC trip and a team member even when no catch was
+         ever needed.
+      2. Only on the specific "party is full" failure, free ONE slot via the new
+         `pc_trip.deposit_one_dead_weight()`, piggybacked on a heal.
+         ‼ **NOT `withdraw_from_box`** — it opens `find_in_box(pids) → if None: return`, so with
+         nothing yet boxed it does NOTHING. ‼ **NOT `deposit_dead_weight_if_worth_it`** — it is a
+         SILENT NO-OP behind `POKEBOT_PC_ROTATION`, which is pinned 0 and measured harmful.
+         Our own handoff named the first of those as the path to use; it cannot do the job.
+      3. Retry `ensure_hm_learner` — this does the bounded hunt (40,000-frame deadline) + catch.
+      4. Before teaching, check the returned slot does not ALREADY know Dive (`items.py:196-197`
+         raises a confusing "already knows it" on that happy path).
+      5. ‼ **ASSERT BY RE-READING THE PARTY, NEVER BY A CLEAN RETURN.** The teach primitives are
+         generators with no return value and no post-teach verification. The only trustworthy
+         gate is the mon's actual moveset plus `can_dive()`.
+
+    MEASURED before building (`probe_dive_learner_plan.py`, 4 controls, all PASS):
+    19 Poké Balls / $54,334 (so `#24-ballstarve` does not bite here); the only Dive ground is
+    `ROUTE117 (31,16) ['Marill']` — **10% of the land table at L13, 1,055 waypoints away**;
+    `find_dead_weight` picks **Skitty L17** and EXEMPTS Zigzagoon, our sole Surf carrier.
+
+    ‼ ROUND ONE USES THE EXISTING GROUND ON PURPOSE. Shoal Cave's Spheal is better on every axis
+    (50%, L26-32, catch rate 255, 103 waypoints + a door), but `_hm_hunting_grounds` iterates
+    `TRAINING_GRASS`, and adding a Shoal row there **flips `best_training_area` for every team
+    from ~L30 up**. Proving the CHAIN and changing the GROUND TABLE are two variables; this
+    driver moves one.
+
+        PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver divelearner --frames 3000000
+
+    Emits: [divelearner] RESULT freed_slot=<bool> caught=<bool> knows_dive=<bool>
+           can_dive=<bool> surf_intact=<bool>
+    """
+
+    @staticmethod
+    def name():
+        return "DiveLearner"
+
+    def on_battle_started(self, encounter):
+        # ‼ THE PRODUCTION STORY HANDLER, not a stand-in — the CATCH depends on it.
+        # `story_mode.py:2150-2168` is what turns an encounter with a Dive learner into
+        # `StoryCatchStrategy`, keyed on `early_game.HM_CATCH_TARGET_DEX`, which
+        # `ensure_hm_learner` sets. A driver that supplied its own strategy would walk to the
+        # grass, meet a Marill and FIGHT it — passing every step except the one under test.
+        from plugins.custom_modes.story_mode import StoryMode
+
+        shim = SimpleNamespace(_catch_team_target=4, _should_catch=lambda e: False)
+        return StoryMode.on_battle_started(shim, encounter)
+
+    @staticmethod
+    def _balls():
+        from modules.items import get_item_bag
+
+        return sum(s.quantity for s in get_item_bag().poke_balls)
+
+    @staticmethod
+    def _party_moves():
+        from modules.pokemon_party import get_party
+
+        out = []
+        for i, m in enumerate(get_party()):
+            if m is None:
+                continue
+            out.append(f"{i}:{m.species.name}L{m.level}[" +
+                       ",".join(l.move.name for l in m.moves if l is not None) + "]")
+        return out
+
+    @staticmethod
+    def _knows(move_name):
+        """True if ANY party member knows the move. The only trustworthy teach assertion."""
+        from modules.pokemon_party import get_party
+
+        for m in get_party():
+            if m is None:
+                continue
+            for l in m.moves:
+                if l is not None and l.move.name == move_name:
+                    return True
+        return False
+
+    def run(self):
+        from modules.context import context as _ctx
+        from modules.items import get_item_by_name
+        from modules.map_data import PokemonCenter
+        from modules.modes import BotModeError
+        from modules.modes.util.higher_level_actions import heal_in_pokemon_center
+        from modules.pokemon_party import get_party
+        from modules.story import early_game
+        from modules.story.early_game import (
+            ensure_hm_learner,
+            hm_learner_slot,
+            teach_hm_move,
+            wait_until_truly_controllable,
+        )
+
+        yield from wait_until_truly_controllable()
+        hm08 = get_item_by_name("HM08")
+        notes = {}
+
+        log(f"[divelearner] start party={self._party_moves()}")
+        log(f"[divelearner] balls={self._balls()} knows_dive_already={self._knows('Dive')} "
+            f"hm_learner_slot(HM08)={hm_learner_slot(hm08)}")
+
+        # ---- STEP 1: TRY FIRST. Do not pay for a deposit that may not be needed. ----------
+        slot, first_error = None, None
+        try:
+            slot = yield from ensure_hm_learner(hm08)
+            log(f"[divelearner] STEP1 ensure_hm_learner returned slot={slot} (no deposit needed)")
+        except BotModeError as error:
+            first_error = str(error)
+            log(f"[divelearner] STEP1 raised (EXPECTED on a full party): {first_error[:220]}")
+        except Exception as error:  # noqa: BLE001
+            first_error = f"{type(error).__name__}: {error}"
+            log(f"[divelearner] STEP1 raised UNEXPECTED {first_error[:220]}")
+        notes["step1"] = first_error or f"slot={slot}"
+
+        # ---- STEP 2: free EXACTLY ONE slot, only if that is what actually failed ----------
+        freed = slot is not None
+        if slot is None:
+            if first_error and "party is full" not in first_error:
+                # ‼ DO NOT PAPER OVER A DIFFERENT FAILURE WITH A DEPOSIT. Boxing a team member
+                # to "fix" an unrelated error is how a run ends up strictly worse off.
+                log("[divelearner] ‼ STEP1 did not fail on a FULL PARTY, so a deposit cannot "
+                    "help. Stopping rather than spending a team member on the wrong diagnosis.")
+            else:
+                before = len([m for m in get_party() if m is not None])
+                self._needs_party_slot = True     # the piggyback contract
+                log(f"[divelearner] STEP2 party={before}; healing at Mossdeep with "
+                    f"_needs_party_slot=True (deposit piggybacks between nurse and exit)")
+                try:
+                    yield from heal_in_pokemon_center(PokemonCenter.MossdeepCity)
+                except Exception as error:  # noqa: BLE001
+                    log(f"[divelearner] STEP2 heal raised {type(error).__name__}: "
+                        f"{str(error)[:220]}")
+                finally:
+                    self._needs_party_slot = False   # never leave the hook armed
+                after = len([m for m in get_party() if m is not None])
+                freed = after < before
+                log(f"[divelearner] STEP2 party {before} -> {after} freed={freed} "
+                    f"moves={self._party_moves()}")
+        notes["freed"] = freed
+
+        # ---- STEP 3: the hunt + catch --------------------------------------------------
+        caught, balls_before = False, self._balls()
+        if slot is None and freed:
+            log(f"[divelearner] STEP3 hunting a Dive learner; balls_before={balls_before} "
+                f"(‼ the catch gate re-checks balls>1 EVERY encounter and silently stops "
+                f"catching if they run out — that is why this number is logged)")
+            try:
+                slot = yield from ensure_hm_learner(hm08)
+                caught = slot is not None
+                log(f"[divelearner] STEP3 ensure_hm_learner returned slot={slot}")
+            except Exception as error:  # noqa: BLE001
+                log(f"[divelearner] STEP3 raised {type(error).__name__}: {str(error)[:300]}")
+        log(f"[divelearner] STEP3 balls {balls_before} -> {self._balls()} caught={caught} "
+            f"party={self._party_moves()} HM_CATCH_TARGET_DEX={early_game.HM_CATCH_TARGET_DEX}")
+        notes["caught"] = caught
+
+        # ---- STEP 4: teach, but only if it is actually needed ---------------------------
+        taught_attempted = False
+        if slot is not None:
+            party = get_party()
+            already = (slot < len(party) and party[slot] is not None
+                       and any(l is not None and l.move.name == "Dive" for l in party[slot].moves))
+            if already:
+                log(f"[divelearner] STEP4 slot {slot} ALREADY knows Dive — skipping the teach "
+                    f"(calling it anyway raises a confusing 'already knows it')")
+            else:
+                taught_attempted = True
+                log(f"[divelearner] STEP4 teaching Dive to slot {slot} "
+                    f"({party[slot].species.name if slot < len(party) and party[slot] else '?'})")
+                try:
+                    yield from teach_hm_move(hm08, slot)
+                    log("[divelearner] STEP4 teach_hm_move returned "
+                        "(‼ a clean return is NOT proof — verified below by reading the moveset)")
+                except Exception as error:  # noqa: BLE001
+                    log(f"[divelearner] STEP4 raised {type(error).__name__}: {str(error)[:300]}")
+        notes["teach_attempted"] = taught_attempted
+
+        # ---- VERIFY: read the party, never a return value -------------------------------
+        knows_dive = self._knows("Dive")
+        surf_intact = self._knows("Surf")     # the self-inflicted-strand check
+        # ‼ `can_dive()` IS NOT IMPORTABLE — it is a nested closure inside `calculate_path`
+        # (`map_path.py:690`, `nonlocal _can_dive`), so KI-68's "can_dive() exists, zero callers"
+        # describes a private helper, not an API. Caught by the import-symbol check BEFORE this
+        # run, not by a failed one. So compute the SAME predicate it computes, verbatim:
+        #     context.rom.is_rse and get_event_flag("BADGE07_GET")
+        #                        and get_party().has_pokemon_with_move("Dive")
+        try:
+            from modules.memory import get_event_flag
+
+            dive_ok = bool(
+                _ctx.rom.is_rse
+                and get_event_flag("BADGE07_GET")
+                and get_party().has_pokemon_with_move("Dive")
+            )
+        except Exception as error:  # noqa: BLE001
+            dive_ok = f"<{type(error).__name__}>"
+        log(f"[divelearner] VERIFY knows_dive={knows_dive} can_dive={dive_ok} "
+            f"surf_intact={surf_intact} party={self._party_moves()}")
+
+        # ---- CAN-CONTINUE: derived from where we ACTUALLY are ---------------------------
+        from modules.map_data import MapRSE
+        from modules.player import get_player_avatar
+
+        moved, before_xy = False, get_player_avatar().local_coordinates
+        try:
+            from modules.map import get_map_data
+            from modules.map_path import calculate_path
+            from modules.modes.util.walking import navigate_to
+
+            avatar = get_player_avatar()
+            here_map = MapRSE(tuple(avatar.map_group_and_number))
+            # Step one tile along a REAL path to a tile we are NOT standing on.
+            for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+                target = (before_xy[0] + dx, before_xy[1] + dy)
+                try:
+                    path = calculate_path(get_map_data(here_map, before_xy),
+                                          get_map_data(here_map, target))
+                except Exception:  # noqa: BLE001 - try the next direction
+                    continue
+                if path and not any(w.is_warp for w in path):
+                    yield from navigate_to(here_map, target)
+                    moved = get_player_avatar().local_coordinates != before_xy
+                    break
+        except Exception as error:  # noqa: BLE001
+            log(f"[divelearner] CAN-CONTINUE raised {type(error).__name__}: {str(error)[:200]}")
+        can_continue = moved and _ctx.bot_mode != "Manual"
+        log(f"[divelearner] CAN-CONTINUE moved={moved} {before_xy}->"
+            f"{get_player_avatar().local_coordinates} at={self._where_now()} "
+            f"manual={_ctx.bot_mode == 'Manual'}")
+
+        log(f"[divelearner] RESULT freed_slot={freed} caught={caught} knows_dive={knows_dive} "
+            f"can_dive={dive_ok} surf_intact={surf_intact} can_continue={can_continue} "
+            f"detail={notes}")
+        log(f"[divelearner] ACCEPTANCE: "
+            f"{'PASS' if (knows_dive and dive_ok is True and surf_intact and can_continue) else 'FAIL'}")
+        _ctx.set_manual_mode()
+        return
+
+    @staticmethod
+    def _where_now():
+        from modules.map_data import MapRSE
+        from modules.player import get_player_avatar
+
+        avatar = get_player_avatar()
+        try:
+            return MapRSE(tuple(avatar.map_group_and_number)).name, avatar.local_coordinates
+        except Exception:  # noqa: BLE001
+            return tuple(avatar.map_group_and_number), avatar.local_coordinates
+
+
 class RivalRetryMode(BotMode):
     """VALIDATE the bug fix: with MET_RIVAL_RUSTBORO already set (simulating a PRIOR LOSS),
     confirm fight_rustboro_rival still steps onto the y=53 trigger and RE-ENGAGES the rival
@@ -5894,6 +6155,8 @@ for step in range(args.frames):
             context.bot_mode_instance = RosterMode()
         elif args.driver == "ch21dive":
             context.bot_mode_instance = Ch21DiveMode()
+        elif args.driver == "divelearner":
+            context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":
             context.bot_mode_instance = GroundSweepMode()
         elif args.driver == "anchorcapture":

@@ -208,6 +208,100 @@ def deposit_dead_weight_if_worth_it() -> Generator:
         )
 
 
+def deposit_one_dead_weight() -> Generator:
+    """Free EXACTLY ONE party slot at the Poké Centre PC. Assumes we are INSIDE a centre.
+
+    ‼‼ WHY THIS HAS TO EXIST WHEN TWO DEPOSIT PATHS ALREADY DO (measured 2026-08-13).
+    **Neither of them can free a slot BEFORE a catch**, which is exactly what
+    `ensure_hm_learner` needs — it raises on a full party *before* it ever looks for a hunting
+    ground (`early_game.py:4342-4348`).
+      * `withdraw_from_box` (below) opens with
+        `target = find_in_box(pids); if target is None: return` (:314-315). With nothing yet
+        boxed it **returns having done nothing** — its deposit block is reachable only as a
+        SIDE EFFECT of withdrawing an already-boxed PID.
+      * `deposit_dead_weight_if_worth_it` (above) *is* a standalone one-deposit primitive, but
+        routes through `plan_deposits`, whose first act is to return `worth_it: False` unless
+        `POKEBOT_PC_ROTATION` is set (:83). That flag is pinned **0** and is **measured
+        harmful** (~1 team member/run, a 5.4% VOID batch) — so calling it today prints nothing,
+        deposits nothing and returns cleanly. **A silent no-op.**
+    ‼ `04-HANDOFF.md`/KI-54 named the FIRST of those as "the path to use, live-proven". It is
+    not. That claim is retracted; this function is the answer.
+
+    ‼ THE CONTRACT IS A POSTCONDITION, NOT AN ACTION: "there is now room in the party".
+    Returns **True** only after re-reading the party and seeing room — never on the strength of
+    "the PC call returned". If the party already has room this is a no-op success and costs no
+    PC visit at all.
+
+    ‼ CAPPED AT ONE, DELIBERATELY. Thinning the team is what made `#24-pc` a regression
+    (~1 mon/run, ~19 pts of the last funnel rung; 08-MISTAKES 2026-08-05). `find_dead_weight`
+    also EXEMPTS the party's sole carrier of any HM (`team_policy.py:119-149`), so our only
+    Surf user cannot be boxed by this — verified on `post_dive.ss1`: it picks Skitty L17 and
+    spares Zigzagoon L15.
+
+    Never raises. A PC hiccup returns False and the caller decides — unlike the heal
+    piggybacks, whose failures must not destroy a heal that already succeeded.
+    """
+    from modules.console import console
+    from modules.player import get_player_avatar
+    from modules.pokemon_party import get_party
+
+    def _alive(party):
+        return [i for i, p in enumerate(party)
+                if p is not None and not getattr(p, "is_egg", False)]
+
+    party = get_party()
+    if len(_alive(party)) < 6:
+        console.print("[green]Story: PC — the party already has room; no deposit needed.[/]")
+        return True
+
+    from modules.story.team_policy import find_dead_weight, view_from_party
+
+    try:
+        dead = find_dead_weight(view_from_party(party))  # worst-first; exempts sole HM carriers
+    except Exception as error:  # noqa: BLE001 - a scoring failure must not wedge the caller
+        console.print(f"[yellow]Story: PC — could not score dead weight ({error!r}).[/]")
+        return False
+
+    victim, reason = None, ""
+    for index, why in dead:
+        if index < len(party) and party[index] is not None:
+            victim, reason = party[index], why
+            break
+    if victim is None:
+        # ‼ SAY WHY, and say it as the FINDING it is. Every party member being worth keeping is
+        # a legitimate answer, not an error — but the caller must not read it as "deposited".
+        console.print(
+            "[yellow]Story: PC — nothing is safe to deposit (every slot is either a sole HM "
+            "carrier, a favourite, or not dead weight). The party stays full.[/]"
+        )
+        return False
+
+    name = f"{getattr(victim.species, 'name', '?')} L{victim.level}"
+    console.print(f"[bold cyan]Story: PC — depositing ONE mon to free a slot: {name} ({reason}).[/]")
+
+    try:
+        from modules.modes.util.pc_interaction import PCAction, interact_with_pc
+        from modules.modes.util.walking import ensure_facing_direction, navigate_to
+
+        here = get_player_avatar().map_group_and_number
+        yield from navigate_to(here, PC_STAND_TILE)
+        yield from ensure_facing_direction(PC_FACING)
+        # ‼ Pass the OBJECT, never an index. A deposit shifts every later party index down by
+        # one, which is the classic way this kind of code boxes the wrong Pokémon.
+        yield from interact_with_pc([PCAction.deposit_pokemon_to_box(victim)])
+    except Exception as error:  # noqa: BLE001 - report, do not wedge
+        console.print(f"[yellow]Story: PC — the deposit failed ({error!r}).[/]")
+
+    # ‼ VERIFY BY RE-READING THE PARTY. `interact_with_pc` returning is not proof.
+    after = _alive(get_party())
+    freed = len(after) < 6
+    console.print(
+        f"[{'green' if freed else 'yellow'}]Story: PC — party is now {len(after)}; "
+        f"room for a catch: {freed}.[/]"
+    )
+    return freed
+
+
 # --- PC OVERFLOW (#24-pcoverflow, user ruling 2026-08-05) ------------------------------
 #
 # ‼ WHY. Until now a FULL PARTY meant the bot simply REFUSED to catch:
