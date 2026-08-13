@@ -1225,3 +1225,26 @@ net but its own bound.** Audit the remaining ones rather than waiting for the ne
 
 ---
 
+
+> Plus **KI-32** (✅ FIXED 2026-07-29), moved 2026-08-13 for the same budget reason:
+
+## KI-32 — the stall detector was STRUCTURALLY BLIND to any in-battle wedge — ✅ FIXED 2026-07-29
+- **Symptom:** user log `20260729-122709`. A mid-battle rotation wedged the PARTY MENU in
+  Fortree Gym; the run then held `state=3 controllable=False` at one fixed position for
+  **~280,000 frames** and emitted **ZERO stuck dumps** — no generator call stack, the single
+  most useful artefact the logger produces.
+- **Cause:** `modules/debug_logger.py` stall detection did
+  `if st.get("battle_active"): _stall_frames = 0` on EVERY in-battle frame. The intent was
+  sound (a battle legitimately holds still mid-turn and during the EXP fill, so the 300-frame
+  overworld threshold would false-trigger every turn) but the implementation meant **no
+  in-battle wedge could ever be reported, however long it lasted.**
+- **Same shape as KI-27** (Weather Institute): the guard could not fire on the thing it was
+  guarding. A guard must not share its subject's failure mode.
+- **Fix:** a battle now gets a much LARGER threshold, not an exemption —
+  `_BATTLE_STALL_DUMP_AFTER = 18_000` (5 min at 60fps, ~60× the overworld threshold and
+  ~2 orders of magnitude above the longest legitimate quiet stretch). Overworld sensitivity
+  unchanged at 300.
+- **Repro:** `tools/story-dev/repro_battle_stall_blindspot.py` — proves a frozen battle now
+  dumps, a healthy/changing battle never does, 300/3,000/10,000-frame in-battle quiet is not
+  disturbed, the overworld path is unchanged, and a long wedge re-dumps periodically.
+

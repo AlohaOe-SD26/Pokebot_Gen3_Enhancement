@@ -1809,3 +1809,58 @@ and a quality upgrade is exactly the kind of thing that should wait behind a cor
 
 ‼ **Revisit trigger:** if KI-73 is ever fixed for other reasons, re-open this ruling — most of the
 objection dissolves with it.
+
+### ⚠ AMENDED the same day (2026-08-13) — the RULING STANDS, but my stated reason was partly WRONG
+
+A live measurement (`probe_shoal_tide.py`, re-run and confirmed by me) landed after the ruling
+above. **The verdict does not change. Two of its supporting claims do, and both were mine.**
+
+**WRONG #1 — "we cannot see the room."** Overstated. `get_map_data_for_current_position()`
+(`map.py:1750`) reads the **live** `gMapHeader` and *does* follow `setmaplayoutindex`; only
+`get_map_data(map, coords)` is locked to the static ROM header. KI-73's real defect is that **both
+write the same `_map_layout_cache` keyed on `(group, number)`, so the first writer wins for the
+session** — cache poisoning, not blanket blindness. Still real, still unfixed, but narrower.
+
+**WRONG #2 — "KI-54's 65-tile figure is probably a second view of the low-tide layout."**
+**Refuted.** The probe reproduced the 65 **exactly**: a genuine high-tide component of 65 tiles,
+all `Cave`, all with encounters. **The count was right.** What nobody had checked was its
+**reachability** — it is an **island**, not on-foot connected to the entrance warp.
+
+**⇒ THE REAL REASON, and it is better than the one I gave:**
+
+```
+spin tiles (on foot + has encounters + REACHABLE from the arrival warp (20,30))
+    LOW tide : 278
+    HIGH tide:   0
+```
+All three of KI-54's candidates — (25,30), (14,30), (20,24) — become `Shallow Water` with
+`has_encounters=False` at high tide. ‼ **The failure mode is a SILENT STALL, not a crash:** the tile
+is still *standable*, so `ensure_hm_learner` spins out its full 40,000-frame budget meeting nothing
+and then fails for what looks like bad luck. The 181-tile region the bot can actually reach at high
+tide contains **zero** encounter tiles.
+
+**⇒ AND THE TIDE GATE IS CHEAPER THAN I ASSUMED.** Decomp-confirmed against `pret/pokeemerald`
+(the only caller of `UpdateShoalTideFlag` is `ShoalCave_LowTideEntranceRoom/scripts.inc`
+`MAP_SCRIPT_ON_TRANSITION`): the tide is sampled **once on entry from outdoors and frozen for the
+visit**. LOW = hours **03–08 and 15–20**. And the bot can both **predict** it
+(`modules/clock.py` → `get_clock_time().hours`) and **assert** it after the transition
+(`get_event_flag("SYS_SHOAL_TIDE")`, set = HIGH). So "check the clock, then verify the flag" is a
+handful of lines, not a subsystem.
+
+### The ruling still stands — on the two objections that survived
+1. **The 278 low-tide candidates are STATIC evidence only.** No live two-way sweep. This project
+   demotes statically-derived grounds (the Route 114 lesson), and that rule is not waived because
+   the numbers are pretty.
+2. **KI-73 is unfixed.** Cache poisoning across a tide boundary is exactly the kind of defect that
+   makes a spin tile behave differently on the second visit than the first.
+3. And unchanged: **Route 117 already works**, driven end-to-end today. The gain remains **quality,
+   not capability**.
+
+**Revised unlock conditions** (shorter than before, because the tide half is now solved):
+fix/fence **KI-73** → **live two-way sweep** one of the 278 low-tide candidates → ship it behind the
+clock+flag gate above, in a **separate HM-ground table** so `best_training_area` is untouched.
+
+‼ **A METHOD NOTE I do not want lost.** I inferred "the tool is broken, therefore its numbers are
+untrustworthy" and nearly discarded a correct measurement. The tool *was* broken; the number was
+still right; the error was in what had been concluded from it. **Re-derive the number before
+throwing it away.**

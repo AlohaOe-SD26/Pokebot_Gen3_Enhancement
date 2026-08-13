@@ -71,13 +71,23 @@ Every banner further down is HISTORY, newest first.
   layers), and `find_dead_weight` **exempts** the sole Surf carrier.
   ✅ **RULED 2026-08-13 (user delegated it to me): SHOAL CAVE IS NOT ADOPTED. Route 117 stays.**
   Full rationale + the three conditions that would unlock it: `06-DECISIONS-LOG.md`.
-  ‼ The decisive reason is **KI-73**, not the tide table: `get_map_data` builds its header cache
-  **once from the static `gMapGroups` ROM table**, so it returns the **compiled LOW-tide layout for
-  map (24,46) at both tides, forever** — and `calculate_path` **does not raise**, it confidently
-  routes across tiles that are water at high tide. ⇒ We would be hunting in the one room our tools
-  are structurally unable to observe. ‼ It also means **KI-54's "65 walkable tiles at high tide"
-  figure is compromised** (very likely a second view of the low-tide layout), so that section is
-  now retracted.
+  ‼‼ **THE DECISIVE NUMBER, measured live and reproduced by me — reachable spin tiles:
+  LOW 278, HIGH 0.** At high tide every candidate becomes `Shallow Water` with
+  `has_encounters=False`, and **the failure mode is a SILENT STALL**: the tile is still standable,
+  so `ensure_hm_learner` burns its entire 40,000-frame budget meeting nothing. KI-54's 65 encounter
+  tiles at high tide are **REAL** — reproduced exactly — but form an **ISLAND** unreachable from
+  the entrance warp. What was never checked was reachability, not the count.
+  ⚠ **MY FIRST RATIONALE WAS PARTLY WRONG and is corrected in place** (`06-DECISIONS-LOG.md`,
+  `08-MISTAKES.md`): I claimed the tooling could not see the room at all. It can —
+  `get_map_data_for_current_position()` reads the **live** header. **KI-73's real defect is CACHE
+  POISONING**: both paths share one `_map_layout_cache` keyed on `(group, number)`, so the first
+  writer wins for the session. Still real, still unfixed, narrower than I said.
+  ✅ The tide gate itself is **cheap and decomp-confirmed**: LOW = hours **03-08 and 15-20**,
+  sampled **once on entry and frozen for the visit**; `get_clock_time().hours` predicts it and
+  `get_event_flag("SYS_SHOAL_TIDE")` (set = HIGH) asserts it.
+  ⇒ **Unlock is now short:** fix/fence **KI-73** → **live two-way sweep** one of the 278 low-tide
+  tiles → ship behind the clock+flag gate in a **SEPARATE HM-ground table** (so `best_training_area`,
+  which reads the same `TRAINING_GRASS` list, is untouched).
 * **`#24-ballstarve`'s premise does not hold at `post_dive.ss1`** — 19 balls, $54,334 measured.
   ‼ **Not closed**: the item was filed from a mid-game Surf-era batch and may still be real there.
 * **Nothing is parked. Nothing is running.** All 15 gates exit 0 after the change.

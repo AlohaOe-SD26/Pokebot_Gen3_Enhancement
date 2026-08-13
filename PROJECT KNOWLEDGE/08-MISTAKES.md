@@ -5691,3 +5691,41 @@ behaviour.
 (3) ‼ When a function exists to satisfy ONE specific caller's precondition, copy that caller's
 predicate VERBATIM rather than writing an equivalent-looking one. "Alive" and "occupies a slot"
 differ by exactly one case — an egg — and that case is invisible until it happens.*
+
+---
+
+## 2026-08-13 — I found the instrument broken and assumed its output was wrong. The number was right.
+
+**Symptom.** On discovering KI-73 (the map-layout cache cannot see Shoal Cave's high-tide floor
+plan), I wrote into `05-KNOWN-ISSUES.md` and the decisions log that KI-54's *"65 walkable encounter
+tiles at high tide"* was *"almost certainly two views of the same low-tide layout"*, and that **"we
+do not currently know the high-tide geometry of that room."**
+
+**It was wrong.** A live probe reproduced the 65 **exactly** — a genuine high-tide component of 65
+tiles, all `Cave`, all with encounters, at x 3–12, y 15–28. The measurement had been right all
+along. The error in KI-54 was never the count: it was that **nobody checked whether those tiles
+were REACHABLE.** They are an island, disconnected from the entrance warp.
+
+**Root cause.** "The instrument is broken" and "this specific reading is wrong" are different
+claims, and I collapsed them. Worse, the true defect was *more interesting* than my version: the
+right question was never "can we see the room" but "**can the bot walk to the encounters**" — and
+the answer (LOW 278 reachable spin tiles, **HIGH 0**) is a far stronger reason for the same ruling
+than the one I published.
+
+**What it nearly cost.** I came close to discarding a correct measurement and re-deriving it from
+scratch. In the other direction it would have been worse: had the ruling gone the other way, I'd
+have been arguing from a claim ("we don't know the geometry") that was simply false.
+
+**Also corrected in the same pass:** I described KI-73 as *"the planner sees the low-tide layout at
+both tides, forever"*. `get_map_data_for_current_position()` reads the **live** header and does
+follow the swap; the real defect is that both paths share one cache keyed on `(group, number)`, so
+the **first writer wins for the session**. Narrower, stranger, still a bug.
+
+**Prevention rules.** *(1) When you find a tool broken, **re-derive the numbers it produced before
+discarding them**. A broken instrument does not make every past reading false, and saying so in a
+doc is itself an unmeasured claim.
+(2) Separate "the instrument is unreliable" from "this reading is wrong" — write whichever you can
+actually support, and say which one you checked.
+(3) ‼ When a measurement looks suspect, ask what question it ANSWERED rather than whether it was
+taken correctly. KI-54's count was accurate and its conclusion was still wrong, because reachability
+was never part of the count.*

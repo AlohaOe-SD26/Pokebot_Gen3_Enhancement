@@ -12409,3 +12409,36 @@ waiting for low tide (nothing in the codebase detects or waits for a tide).
 **Unlock conditions, in order:** fix/fence KI-73 with its own A/B → re-measure the high-tide
 geometry → live two-way sweep a tile walkable at BOTH tides. Only then is the HM table worth
 building. The cost of waiting is a Marill L13 instead of a Spheal L26-32 — quality, not capability.
+
+### ⚠ AMENDED the same day — the Shoal Cave ruling STANDS, but two of my stated reasons were WRONG
+
+A live probe (`probe_shoal_tide.py`, re-run and confirmed by me) landed after the ruling:
+
+* **WRONG:** *"we cannot see the room."* `get_map_data_for_current_position()` reads the **live**
+  `gMapHeader` and does follow `setmaplayoutindex`. **KI-73's real defect is CACHE POISONING** —
+  both paths share one `_map_layout_cache` keyed on `(group, number)`, so the first writer wins for
+  the session. Narrower, stranger, still unfixed.
+* **WRONG:** *"KI-54's 65-tile high-tide figure is probably a second view of the low-tide layout."*
+  **Refuted** — the 65 reproduced **exactly**, a genuine all-`Cave`, all-encounter component.
+  **The count was right; its REACHABILITY was never checked.** It is an island.
+
+**The real reason, and it is stronger than the one I published:**
+```
+spin tiles (on foot + encounters + REACHABLE from the arrival warp)   LOW 278   HIGH 0
+```
+‼ **The failure mode is a SILENT STALL** — at high tide the tile is still standable but has no
+encounters, so `ensure_hm_learner` burns its whole 40,000-frame budget and fails looking like bad
+luck.
+
+✅ **And the tide gate is cheaper than assumed**, now decomp-confirmed against `pret/pokeemerald`
+(the only caller of `UpdateShoalTideFlag` is `ShoalCave_LowTideEntranceRoom/scripts.inc`
+`ON_TRANSITION`): LOW = hours **03-08 and 15-20**, sampled once on entry and **frozen for the
+visit**; `modules/clock.py` predicts it, `SYS_SHOAL_TIDE` (set = HIGH) asserts it.
+
+**Ruling unchanged**, now resting only on what survived: the 278 low-tide candidates are **static
+evidence only** (no live two-way sweep — the Route 114 rule is not waived because the numbers look
+good), **KI-73 is unfixed**, and **Route 117 already works**. Unlock: fix KI-73 → live sweep one
+tile → ship behind the clock+flag gate in a separate HM table.
+
+‼ Method note in `08-MISTAKES.md`: I inferred "the tool is broken, so its numbers are wrong" and
+nearly discarded a correct measurement. **Re-derive the number before throwing it away.**

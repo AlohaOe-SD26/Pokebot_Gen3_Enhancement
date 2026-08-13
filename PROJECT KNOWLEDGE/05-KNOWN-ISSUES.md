@@ -669,25 +669,7 @@ is simply **underlevelled** fails test (2) for ever — which is Petalburg's 32-
 - **Related:** `train_team` (`early_game.py:1738`) never consults `best_training_area` at all;
   its `grass` is a caller-supplied constant. Both belong to `#24-trainmap+`.
 
-## KI-32 — the stall detector was STRUCTURALLY BLIND to any in-battle wedge — ✅ FIXED 2026-07-29
-- **Symptom:** user log `20260729-122709`. A mid-battle rotation wedged the PARTY MENU in
-  Fortree Gym; the run then held `state=3 controllable=False` at one fixed position for
-  **~280,000 frames** and emitted **ZERO stuck dumps** — no generator call stack, the single
-  most useful artefact the logger produces.
-- **Cause:** `modules/debug_logger.py` stall detection did
-  `if st.get("battle_active"): _stall_frames = 0` on EVERY in-battle frame. The intent was
-  sound (a battle legitimately holds still mid-turn and during the EXP fill, so the 300-frame
-  overworld threshold would false-trigger every turn) but the implementation meant **no
-  in-battle wedge could ever be reported, however long it lasted.**
-- **Same shape as KI-27** (Weather Institute): the guard could not fire on the thing it was
-  guarding. A guard must not share its subject's failure mode.
-- **Fix:** a battle now gets a much LARGER threshold, not an exemption —
-  `_BATTLE_STALL_DUMP_AFTER = 18_000` (5 min at 60fps, ~60× the overworld threshold and
-  ~2 orders of magnitude above the longest legitimate quiet stretch). Overworld sensitivity
-  unchanged at 300.
-- **Repro:** `tools/story-dev/repro_battle_stall_blindspot.py` — proves a frozen battle now
-  dumps, a healthy/changing battle never does, 300/3,000/10,000-frame in-battle quiet is not
-  disturbed, the overworld path is unchanged, and a long wedge re-dumps periodically.
+> 📦 **KI-32 moved to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-08-13** — ✅ FIXED 2026-07-29.
 
 ## KI-33 — a mid-battle rotation can still wedge the PARTY MENU (opened 2026-07-29, severity: HIGH)
 - **Symptom:** the wedge KI-32 made visible. From `20260729-122709`, inside a Fortree Gym
@@ -2067,13 +2049,28 @@ turns that on.
 > **compiled low-tide** layout for map (24,46). `setmaplayoutindex` patches the live `gMapHeader`
 > RAM struct, which that table never reads, and nothing anywhere in `modules/` clears either cache.
 >
-> ⇒ The *"65 walkable `MB_CAVE` encounter tiles at high tide (332 at low)"* figure below was almost
-> certainly produced through that same lens — i.e. it is very likely **two views of the same
-> low-tide layout**, not a measurement of the high-tide floor. **We do not currently know the
-> high-tide geometry of that room.**
+> ⚠ **AND MY FIRST RETRACTION OVERSHOT — corrected the same day.** I wrote that the *"65 walkable
+> tiles at high tide"* figure was "almost certainly two views of the same low-tide layout".
+> **That is REFUTED.** `probe_shoal_tide.py` reproduced the 65 **exactly**, as a genuine high-tide
+> component: 65 tiles, all `Cave`, all with encounters, spanning x 3–12, y 15–28.
+> **The count was right. What was never checked was its REACHABILITY — it is an ISLAND**, not
+> on-foot connected to the entrance warp. The 181-tile region the bot can actually reach at high
+> tide contains **zero** encounter tiles.
 >
-> ⇒ The spin-tile candidates below ((25,30), (14,30), (20,24)) inherit the same doubt, on top of
-> already being static-only rather than live two-way swept.
+> ⇒ **THE DECISIVE MEASUREMENT, reproduced by me:** spin tiles that are on-foot, encountering AND
+> reachable from the arrival warp — **LOW: 278. HIGH: 0.** All three candidates below become
+> `Shallow Water` with `has_encounters=False` at high tide. ‼ **The failure mode is a SILENT STALL,
+> not a crash**: the tile is still standable, so `ensure_hm_learner` spins out its entire
+> 40,000-frame budget meeting nothing.
+>
+> ✅ **What KI-54 got RIGHT and is now decomp-confirmed:** the hour table (LOW = **03–08 and
+> 15–20**), `FLAG_SYS_SHOAL_TIDE` **set = HIGH**, the high-tide maps having no encounter header and
+> no warps, and the tide being sampled **once** on `ON_TRANSITION` and frozen for the visit
+> (verified against `pret/pokeemerald` — the only caller of `UpdateShoalTideFlag` is
+> `ShoalCave_LowTideEntranceRoom/scripts.inc`).
+> ✅ **And the bot CAN both read and predict the tide:** `get_event_flag("SYS_SHOAL_TIDE")` reports
+> the frozen one, and `modules/clock.py` `get_clock_time().hours` predicts what the NEXT entry from
+> outdoors will roll.
 >
 > ‼ **The decomp claim that the tide is "sampled ONLY on ON_TRANSITION and frozen for the visit" is
 > ALSO unaudited** — `src/time_events.c` is not vendored anywhere in this repo, so per this
@@ -2953,6 +2950,16 @@ table never reads. And it is populated on the FIRST `get_map_data` call anywhere
 ⇒ **`get_map_data(SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM, …)` returns low-tide geometry at BOTH tides,
 always.** There is no `.clear()` on `_map_layout_cache` or `_map_header_cache` anywhere in
 `modules/`.
+
+> ### ⚠ CORRECTION 2026-08-13 (same day) — I OVERSTATED THIS. The mechanism is CACHE POISONING.
+> A live measurement (`probe_shoal_tide.py`) refuted the "always low tide, forever" framing:
+> **`get_map_data_for_current_position()` (`map.py:1750`) reads the LIVE `gMapHeader` and therefore
+> DOES follow `setmaplayoutindex`.** Only `get_map_data(map, coords)` (`:1756`) is locked to the
+> static ROM header.
+> ‼ **The real defect is that BOTH write the same `_map_layout_cache`, keyed only on
+> `(group, number)` — so the FIRST WRITER WINS for the whole session, silently.** A static plan made
+> before entering poisons the live read afterwards, and vice versa. That is still a real bug and
+> still unfixed; it is just narrower and stranger than "always low".
 
 ⇒ ‼ **AND `calculate_path` WILL NOT RAISE.** It plans happily over the wrong grid and returns a
 route that walks the bot onto tiles that are water or wall in the live room. **Invisible to a run
