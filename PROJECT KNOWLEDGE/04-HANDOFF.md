@@ -661,11 +661,14 @@ PYTHONUTF8=1 py -3.12 probe_ch19_hazards.py         # 3/3; H1 is now a stranding
 PYTHONUTF8=1 py -3.12 probe_space_center_recon.py   # §Ch19 area atlas (measured, not recalled)
 PYTHONUTF8=1 py -3.12 probe_gym_solve.py            # re-derive the 117-step gym route
 
-# ‼ THE 15-GATE SUITE — ALL EXIT 0 as of the last session. Run it before and after any change.
+# ‼ THE 16-GATE SUITE — ALL EXIT 0 as of 2026-08-13. Run it before and after any change.
 #   preflight, lint_docs, verify_fixtures, audit_flag_names, repro_undefined_names,
 #   repro_no_silent_except, repro_roster_reorder, repro_multi_battle_partner,
-#   repro_whiteout_abort, repro_gym_whiteout_guard, probe_chapter_order, probe_dive_learner,
-#   probe_slot_free_plan, probe_regi_capabilities, probe_dive_routing
+#   repro_whiteout_abort, repro_gym_whiteout_guard, repro_hm_slot_wiring, probe_chapter_order,
+#   probe_dive_learner, probe_slot_free_plan, probe_regi_capabilities, probe_dive_routing
+#   ‼ repro_hm_slot_wiring (NEW 2026-08-13) asserts KI-63's chain is still CONNECTED end to end.
+#     It exists because the previous failure was a chain of individually-correct parts with ONE
+#     LINK MISSING, and no test, gate or green driver caught it — only a diff review did.
 PYTHONUTF8=1 py -3.12 probe_chapter_order.py --build custom   # ‼ also check the OTHER fork
 
 # ‼ VERIFY THE SANDBOX<->CUSTOM DRIFT ROW RATHER THAN TRUSTING IT (PowerShell, from the repo root):
@@ -708,7 +711,7 @@ PYTHONUTF8=1 py -3.12 story_harness.py at_mossdeep_leaders.ss1 --driver mossdeep
 to a file and echo `$?` (this nearly recorded a PASS that had never run).
 ‼ **A driver can fight; a hand-driven probe cannot.** Battle handling lives in the main loop's
 listeners, not inside a bot mode's generator (`modules/battle_fault.py:5`).
-**‼ THE AUTHORITATIVE GATE LIST IS THE 15 NAMED IN "HOW TO RUN / TEST" ABOVE — all exit 0.** Do not
+**‼ THE AUTHORITATIVE GATE LIST IS THE 16 NAMED IN "HOW TO RUN / TEST" ABOVE — all exit 0.** Do not
 reconstruct it from the prose below; there are 94 `repro_*.py` files and the older text says "the
 ten standing repro_*" without naming them, which is not reproducible. Current pass counts, measured:
 `repro_gym_whiteout_guard.py` **5/5**, `repro_roster_reorder.py` **16/16**,
