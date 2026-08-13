@@ -765,3 +765,64 @@ The third is the real fix and it is the one that needs the scope decision.
 
 ---
 
+---
+
+# ARCHIVED 2026-08-12 — KI-55 (RESOLVED 2026-08-11), moved out of `05-KNOWN-ISSUES.md`
+> Moved verbatim, not rewritten. The live file keeps a stub pointing here.
+
+## KI-55 — ✅ RESOLVED 2026-08-11 by batch `20260811-130454`: the STATUS TAX is **32.6% vs a 3.8% control, z = +62.2**
+
+**Built before changing anything:** `tools/story-dev/probe_status_tax.py` counts turns where a move
+was **selected but never executed** (PP did not decrement on the actor's next selection of that same
+move). ‼ A MISS still consumes PP, so frozen PP is "it never acted", not "it missed".
+
+**Result over the instrumented logs (588 turns):**
+| bucket | lost / total | rate |
+|---|---|---|
+| turns while **incapacitated** (Confused/Sleep/Freeze/Paralysis/Flinched/Recharging) | **18 / 28** | **64.3%** |
+| turns while **clean** — the CONTROL | **0 / 290** | **0.0%** |
+
+**The control is what makes this trustworthy: zero false positives across 290 clean turns.** The
+instrument is sound.
+
+### ‼ WHAT IS *NOT* ESTABLISHED — the rate
+n is **28 incapacitated turns across roughly TWO distinct battles**. Verified by md5-ing each run's
+turn telemetry: `ki52-old` and `ki52-new` are byte-identical (the same fight, as designed), and
+`mh-status` is a different one. **Replaying one fight five times is not five samples** — the exact
+error that produced today's withdrawn "the chapter wins 1 in 3". ⇒ **Do not change battle policy on
+this.** A policy change touches every mode using `DefaultBattleStrategy`.
+
+### ‼ TWO FLAWS THIS PROBE HAD, BOTH CAUGHT BY ITS OWN CONTROL
+1. **Not every "status" incapacitates.** `status_temporary` includes `Foresight`, `Wrapped`,
+   `Substitute`, `FocusEnergy`. Counting them diluted the tax — `mintrun1/2/3` read `0/4 lost` on
+   Foresight/Wrapped beside `2/2` on Confused. Only the incapacitating set is counted now.
+2. **The clean control was CONTAMINATED.** The status field only exists from 2026-08-11, so all 180
+   older logs carry no marker and their *confused* turns were being counted as *clean*. The first
+   draft's headline (6.2% over 145,683 turns) was therefore meaningless as a comparator. The control
+   is now computed **only over logs that carry the instrument**, and uninstrumented logs are
+   excluded and counted separately.
+‼ A silent zero is reported as "the instrument was not present", never as "no status occurred".
+
+### ✅ THE BATCH RESULT (n is now real)
+| bucket | lost / total | rate |
+|---|---|---|
+| incapacitated | **960 / 2,945** | **32.6%** |
+| clean CONTROL | 1,259 / 33,017 | 3.8% |
+**8.5×, z = +62.2, RESOLVABLE**, over 47,789 turns from 36 independent lane logs.
+
+‼ **My earlier n=2 figure of 64.3% was ~2× TOO HIGH** — the Magma Hideout fight is worse than
+typical. ‼ **And the control found a gap in the instrument**: `Infatuated` skips turns without
+consuming PP and was missing from the incapacitating set, so real losses sat in the clean bucket.
+Added. **A control that is not ~zero is telling you the buckets are wrong.**
+
+⇒ **A status response is now justified by a RATE, not an anecdote.** It remains a battle-policy
+change touching every mode using `DefaultBattleStrategy`, so it is still the user's call — but the
+evidence bar this needed has been met.
+
+### HISTORICAL — the pre-batch position
+Run a batch on the current build and re-run this probe over it. That single batch would also give
+the **first outcome data for three promoted-but-unmeasured changes** (`#24-teachmsgstall`, KI-51,
+KI-52), none of which has any batch evidence. Only then is a status-response policy justifiable.
+
+---
+

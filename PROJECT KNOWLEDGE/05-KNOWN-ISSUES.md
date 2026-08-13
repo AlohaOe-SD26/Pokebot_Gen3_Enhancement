@@ -2414,61 +2414,15 @@ deterministic fixture (`magma_door_losing.ss1`).
 
 ---
 
-## KI-55 — ✅ RESOLVED 2026-08-11 by batch `20260811-130454`: the STATUS TAX is **32.6% vs a 3.8% control, z = +62.2**
+## KI-55 — ✅ RESOLVED 2026-08-11 — the STATUS TAX is real and MEASURED (ARCHIVED)
 
-**Built before changing anything:** `tools/story-dev/probe_status_tax.py` counts turns where a move
-was **selected but never executed** (PP did not decrement on the actor's next selection of that same
-move). ‼ A MISS still consumes PP, so frozen PP is "it never acted", not "it missed".
+Incapacitated turns cost **960/2,945 = 32.6%** against a clean control of **1,259/33,017 = 3.8%**
+— **8.5x, z = +62.2**, over 47,789 turns from 36 independent lane logs. ‼ An earlier n=2 figure of
+64.3% was **~2x too high**: one dungeon fight is not a rate.
 
-**Result over the instrumented logs (588 turns):**
-| bucket | lost / total | rate |
-|---|---|---|
-| turns while **incapacitated** (Confused/Sleep/Freeze/Paralysis/Flinched/Recharging) | **18 / 28** | **64.3%** |
-| turns while **clean** — the CONTROL | **0 / 290** | **0.0%** |
-
-**The control is what makes this trustworthy: zero false positives across 290 clean turns.** The
-instrument is sound.
-
-### ‼ WHAT IS *NOT* ESTABLISHED — the rate
-n is **28 incapacitated turns across roughly TWO distinct battles**. Verified by md5-ing each run's
-turn telemetry: `ki52-old` and `ki52-new` are byte-identical (the same fight, as designed), and
-`mh-status` is a different one. **Replaying one fight five times is not five samples** — the exact
-error that produced today's withdrawn "the chapter wins 1 in 3". ⇒ **Do not change battle policy on
-this.** A policy change touches every mode using `DefaultBattleStrategy`.
-
-### ‼ TWO FLAWS THIS PROBE HAD, BOTH CAUGHT BY ITS OWN CONTROL
-1. **Not every "status" incapacitates.** `status_temporary` includes `Foresight`, `Wrapped`,
-   `Substitute`, `FocusEnergy`. Counting them diluted the tax — `mintrun1/2/3` read `0/4 lost` on
-   Foresight/Wrapped beside `2/2` on Confused. Only the incapacitating set is counted now.
-2. **The clean control was CONTAMINATED.** The status field only exists from 2026-08-11, so all 180
-   older logs carry no marker and their *confused* turns were being counted as *clean*. The first
-   draft's headline (6.2% over 145,683 turns) was therefore meaningless as a comparator. The control
-   is now computed **only over logs that carry the instrument**, and uninstrumented logs are
-   excluded and counted separately.
-‼ A silent zero is reported as "the instrument was not present", never as "no status occurred".
-
-### ✅ THE BATCH RESULT (n is now real)
-| bucket | lost / total | rate |
-|---|---|---|
-| incapacitated | **960 / 2,945** | **32.6%** |
-| clean CONTROL | 1,259 / 33,017 | 3.8% |
-**8.5×, z = +62.2, RESOLVABLE**, over 47,789 turns from 36 independent lane logs.
-
-‼ **My earlier n=2 figure of 64.3% was ~2× TOO HIGH** — the Magma Hideout fight is worse than
-typical. ‼ **And the control found a gap in the instrument**: `Infatuated` skips turns without
-consuming PP and was missing from the incapacitating set, so real losses sat in the clean bucket.
-Added. **A control that is not ~zero is telling you the buckets are wrong.**
-
-⇒ **A status response is now justified by a RATE, not an anecdote.** It remains a battle-policy
-change touching every mode using `DefaultBattleStrategy`, so it is still the user's call — but the
-evidence bar this needed has been met.
-
-### HISTORICAL — the pre-batch position
-Run a batch on the current build and re-run this probe over it. That single batch would also give
-the **first outcome data for three promoted-but-unmeasured changes** (`#24-teachmsgstall`, KI-51,
-KI-52), none of which has any batch evidence. Only then is a status-response policy justifiable.
-
----
+Full detail moved to **`31-KNOWN-ISSUES-ARCHIVE.md`** on 2026-08-12 for the R3 budget.
+‼ Keep only this here: the rate is the EVIDENCE a status response needed, but building one is a
+battle-policy change touching every mode and remains **the USER's call**.
 
 ## KI-56 / KI-57 — ✅ BOTH RESOLVED AND DRIVEN 2026-08-11 → archived
 
@@ -2748,6 +2702,74 @@ Recorded because I wrote a draft and reverted it; these are the defects the revi
 ‼ **What the victim chooser gets RIGHT, so nobody re-derives it:** Zigzagoon L15 IS correctly spared
 (sole Surf carrier), Sceptile too (sole Rock Smash + Strength carrier), and the pick is Skitty L17.
 Measured, `probe_slot_free_plan.py`.
+
+## ‼‼ KI-69 — THE REGI ARC: the party order everyone "knows" is the RUBY/SAPPHIRE one (2026-08-12, decomp-verified, OPEN)
+
+Researched at the user's request, ahead of building Relicanth/Wailmer catch logic.
+
+### ‼ THE ORDER IS **WAILORD FIRST, RELICANTH LAST** — and the wrong order FAILS SILENTLY
+`src/braille_puzzles.c:92-104`, `CheckRelicanthWailord()`, verbatim, comment and all:
+```c
+// Emerald change: why did they flip it?
+// First comes Wailord
+if (GetMonData(&gPlayerParty[0], MON_DATA_SPECIES_OR_EGG, 0) == SPECIES_WAILORD) {
+    CalculatePlayerPartyCount();
+    // Last comes Relicanth
+    if (GetMonData(&gPlayerParty[gPlayerPartyCount - 1], MON_DATA_SPECIES_OR_EGG, 0) == SPECIES_RELICANTH)
+        return TRUE;
+}
+```
+**Ruby/Sapphire is Relicanth-first; EMERALD REVERSED IT.** On a mismatch `VAR_RESULT` is FALSE, the
+script falls to `_NoEffect`, and **nothing happens — no message, no error.** Pinned in a test
+(`repro_roster_reorder.py` §3) rather than trusted to memory. Emerald flipped two more in the same
+arc: **Regirock is ROCK SMASH (was Strength)** and **Registeel is FLASH (was Fly)**.
+
+**Other conditions, exactly:** literal indices `gPlayerParty[0]` and `[gPlayerPartyCount - 1]`;
+**the party need NOT be six** — a party of exactly **two** satisfies it; **species only** (no level,
+nickname, OT or held item); **eggs FAIL** (`MON_DATA_SPECIES_OR_EGG`); fainted mons are fine.
+‼ It is a **one-time, single-scene** requirement — once `FLAG_REGI_DOORS_OPENED` is set the two
+Pokémon are never needed again and the party can be rebuilt.
+
+### ⛔ THE HIGHEST-RISK ITEM IN THE WHOLE ARC: the Regi battle is UNRECOVERABLE
+`DesertRuins/scripts.inc:57-84` and siblings: level **40**, catch rate **3**.
+```
+B_OUTCOME_WON  -> the Regi is REMOVED FOREVER
+B_OUTCOME_RAN / PLAYER_TELEPORTED -> respawns next visit (SAFE)
+fall-through (INCLUDES B_OUTCOME_LOST) -> setflag FLAG_DEFEATED_REGIROCK  -> gone FOREVER
+```
+⇒ **KO'ing it OR whiting out against it destroys the encounter permanently.** The only safe
+non-catch exit is **fleeing**. Our battle policy must be provably incapable of KO'ing it and must
+never white out there. This needs its own guard and its own test before the arc is attempted.
+
+### The chain, and what we already have
+✅ **Better than expected:** `modules/menuing.py:862` `use_field_move()` already dispatches
+**DIG**, **FLASH** and **ROCK SMASH** from the party menu — all three puzzle moves are supported.
+`dive()` / `surface_from_dive()` and `fish()` exist too.
+
+| step | detail | status |
+|---|---|---|
+| Sealed Chamber | Route 134 → dive → Underwater R134 **(8,8)** warp → Underwater Sealed Chamber (7,1) → walk to **exactly (12,44)** → surface → Outer Room (10,19) | ‼ surfacing anywhere but (12,44) **silently dumps you back on Route 134 (60,31)** — assert the map after |
+| open the inner room | stand on **(9/10/11, 3)** and use **DIG** (TM28, **no badge gate**) → `SYS_BRAILLE_DIG` | needs TM28 + a learner |
+| open the tombs | Inner Room, interact with the back wall at **(9/10/11, 4)** → `CheckRelicanthWailord` → `REGI_DOORS_OPENED` | ‼ guard on the FLAG, not on "we interacted" |
+| Registeel (cheapest) | Route 120 warp (7,55) → Ancient Tomb; stand on **exactly (8,25)**, use **FLASH** | recommended FIRST target |
+| Regirock | Route 111 desert (needs **Go-Goggles**); stand on (5/6/7, 23), use **ROCK SMASH** | second |
+| Regice | a **36-tile exact lap**; any deviation fails and needs a braille re-trigger — and the path crosses the map's own **exit warp at (8,29)** | ‼ LAST — needs a "walk this exact ordered tile list" primitive we do not have |
+
+**Catching the two key Pokémon** (measured against our `encounter_index_BPEE0.json`):
+* **RELICANTH — DIVE-ONLY, 2 entries in the whole game**: Underwater Route **124** and **126**, 5%,
+  L30-35, catch rate 25. Both are next to Mossdeep. ‼ This is why Dive gates the arc.
+* **WAILMER — ROD-ONLY** (39 Super Rod + 27 Good Rod entries, **zero** surf/grass). **Route 105 is
+  100% on the Super Rod at L20-45** — and Route 105 is also where Island Cave (Regice) is.
+* **WAILORD evolves from Wailmer at L40 by level-up.** ‼ Evolution fires on GAINING a level, so a
+  caught L42 Wailmer is still a Wailmer — **catch at ≤39 and level once**. Direct Wailord exists
+  (Route 129 Surfing) at **1%** — too rare to plan on.
+
+**No badge/E4/story gate exists on the arc** — every real gate is traversal capability.
+⚠ **Unverified on our save and cheap to check first:** `RECEIVED_SUPER_ROD` (152),
+`RECEIVED_TM_DIG` (261), Go-Goggles in the bag, and whether any party mon knows Flash / Rock Smash.
+⚠ **Unverified claim worth probing:** the tomb scripts appear not to check `FLAG_REGI_DOORS_OPENED`
+at all (only their own puzzle flags), which would mean the tombs are solvable without the Sealed
+Chamber. That contradicts common knowledge — **sequence the Sealed Chamber first regardless.**
 
 ## KI-66 — the multi-battle hazard is BROADER than the faint chooser (2026-08-12, code-verified, OPEN)
 
