@@ -49,7 +49,14 @@ list as `#24-ch20rename`. Until then: when this file says §Ch21 and means the c
   corroboration of **KI-69**'s Emerald party order (`("Wailord", 0)` / `("Relicanth", size-1)`).
   Read `ai-research-notes/2026-08-13-puzzle-solver-already-ships-ch21-and-the-regi-arc.md` —
   **the correction is at the top.** ⛔ Never point it at a Regi tomb: its battle handling is
-  `handle_encounter(auto_battle=True)` and KO'ing a Regi destroys the encounter.
+  `handle_encounter(encounter, enable_auto_battle=True)` (`puzzle_solver.py:99` — ‼ the kwarg is
+  **`enable_auto_battle`**, corrected 2026-08-13; this line used to say `auto_battle=True`, which
+  greps to nothing) and KO'ing a Regi destroys the encounter. ✅ **Re-audited 2026-08-13: the hazard
+  is REAL but currently UNREACHABLE** — every Regi branch calls `set_manual_mode()` before the statue
+  is engaged, and `main.py:145-146` discards the generator on the next frame. ‼ One residual: the
+  shared tail presses `A` once *before* its first `yield`, so a single stray A can be emitted after
+  Manual is set; on the Emerald paths the avatar is still in the OUTER room so it cannot reach a
+  statue, but the R/S paths end at `(8,11)` INSIDE and that tile was not checked.
 * **✅ THE FIRST DRIVEN DIVE IN THIS PROJECT — KI-68 step 1 IS DONE.** `--driver ch21dive` (NEW)
   → `ACCEPTANCE: PASS legs=6/6 at_entrance=True got_out=True can_continue=True`. Mossdeep →
   `SEAFLOOR_CAVERN_ENTRANCE (10,17)` **and back out to the open ocean**.
@@ -457,10 +464,15 @@ permanently.** The only safe non-catch exit is fleeing.
 
 **✅ NEW CAPABILITY: `modules/story/roster.py`** — `plan_reorder` / `plan_last_slot` (PURE, proven
 exhaustively: 720 permutations replayed, `repro_roster_reorder.py` 15/15) and `reorder_party()`
-which drives `RotatePokemon` inside the `_rotate_lead_safely` harness. ‼ **The DRIVER is UNPROVEN** —
-`RotatePokemon(i, j)` with `j != 0` has never been driven here, and it sits on the unfixed side of
-KI-38 (four unbounded loops + a `set_manual_mode()` trapdoor). **Drive it before anything depends on
-party order.**
+which drives `RotatePokemon` inside the `_rotate_lead_safely` harness.
+⛔ **STALE TEXT CORRECTED 2026-08-13 — the line below said "the DRIVER is UNPROVEN" and that has been
+FALSE since earlier the same day.** `--driver roster` ran **six swaps, all verified by PID**,
+including `RotatePokemon(i, j != 0)`, giving `phases=4/4 saw_j_nonzero=True idempotent=True
+restored=True can_continue=True ACCEPTANCE: PASS`. It contradicted this file's own 60-second summary
+and `03-PUNCH-LIST.md`, in the exact section a Regi-scoping reader opens first.
+‼ **What IS still true:** `reorder_party()` has **ZERO production callers** — it is a proven
+capability, not yet content — and **KI-71** (the Manual-drop guard is unreachable) is still open.
+Superseded text: ‼ **The DRIVER is UNPROVEN** — `RotatePokemon(i, j)` with `j != 0` has never been driven here, and it sits on the unfixed side of KI-38 (four unbounded loops + a `set_manual_mode()` trapdoor). **Drive it before anything depends on party order.**
 
 **MEASURED capability status** (`probe_regi_capabilities.py`): ✅ Go-Goggles, HM08 in bag, Surf
 (Zigzagoon), Rock Smash (Sceptile). ⛔ **no rod at all**, no TM28 Dig, and nobody knows Dive, Dig or
