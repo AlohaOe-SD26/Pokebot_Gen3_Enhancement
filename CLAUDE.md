@@ -286,3 +286,34 @@ How to get value out of them, learned from that round:
   is not a confidence signal (see the measured Gemini rules above).
 - **Prefer them for anything large or noisy** — big read-only sweeps, decomp
   spelunking, adversarial review — so the bulk stays out of the main thread.
+
+### ‼‼ SESSION DISCIPLINE — the failure modes that RECURRED WITHIN ONE SESSION (2026-08-13)
+
+Written as PROPERTIES, not stories. **Every rule below was violated by an agent who had already
+written that rule down, on the same day.** That is the whole reason this block exists: a rule filed
+as "the lesson from bug X" does not fire when you are building Y.
+
+1. **Stage EXPLICIT PATHS. Never `git add -A` / `git add .`** — subagents write into the working
+   tree while you work, so a wildcard stage sweeps in unreviewed files.
+   ✅ **ENFORCED, not requested:** `.claude/hooks/block-blind-git-add.ps1` denies it (allows
+   `-u`/`-p`/explicit paths; `POKEBOT_ALLOW_BLIND_ADD=1` is the deliberate escape hatch).
+   **Name every added file in the commit message** — if you cannot say what a staged file is, it
+   does not belong in that commit.
+2. **THE HEADLINE CARRIES THE CAVEAT.** A title that claims more than the evidence makes the
+   document wrong no matter how careful the body is — a future agent skims the title and acts on
+   it. Before writing "X already does Y", **read X to its LAST statement** (a trailing
+   `set_manual_mode()` means it hands off to a human — the opposite of automation).
+3. **Assert IDENTITY, never position or count.** PIDs — never slot indices, never party counts. A
+   count that nets to zero (one deposited, one caught) reads TRUE when nothing happened.
+4. **A liveness/acceptance check must derive its target from the state the run ACTUALLY reached,
+   and must assert something the run does not already satisfy.** Hardcode no coordinates. When a
+   probe FAILS, read the failing line before touching the thing under test — three times in one
+   day the subject was correct and the CHECK was wrong.
+5. **A broken instrument does not invalidate its past readings.** Re-derive a number before
+   discarding it, and ask what question it ANSWERED — a count can be exactly right and its
+   conclusion still wrong (reachability was never part of the count).
+6. **Anything enforceable belongs in a GATE, not in prose here.** A rule already broken twice is
+   evidence that prose failed — write the gate instead. ‼ **And FAULT-TEST every gate**: prove it
+   fails when the thing it guards is broken, and prove it does NOT fire on mere mentions in
+   comments or docstrings. A gate with false positives teaches the reader to bypass it, which is
+   strictly worse than no gate.
