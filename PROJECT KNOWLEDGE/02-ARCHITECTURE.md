@@ -70,11 +70,14 @@ Pokebot_Gen3_Enhancement/
 └── sandbox-pokebot/               # ★★ THE ACTIVE COPY — all current work happens HERE
     ├── SANDBOX-NOTES.md  SANDBOX-PROPOSALS.md  CHEATS-DESIGN.md  DIVERGENCE-LOG.md
     ├── plugins/custom_modes/story_mode.py   # StoryMode + StoryDebug/DebugReset/EndlessReset
-    ├── modules/story/             # 12 modules: early_game, chapters, region_reach,
+    ├── modules/story/             # 18 modules: early_game, chapters, region_reach,
     │                              #   counter_plan (plans) + counter_hunt (executes),
     │                              #   training_areas, fortree_gates, intro, progress,
     │                              #   config, team_policy (built, UNWIRED),
-    │                              #   mossdeep_gym_puzzle (PURE model, UNWIRED)
+    │                              #   mossdeep_gym_puzzle (PURE model, UNWIRED),
+    │                              #   mossdeep_gym (§Ch18 chapter + executor),
+    │                              #   space_center (§Ch19 chapter — Space Center AND Dive),
+    │                              #   obstacle_clearing, pc_trip, battle_items
     └── modules/…                  # sandbox-ONLY modules (absent from custom-pokebot):
                                    #   endless_x4, tile_bridge, tile_mosaic, gui/tile_child,
                                    #   x4_logs, remote_party, badge_log, badge_case,
@@ -241,6 +244,11 @@ done
   - `probe_anchor_inventory.py` — loads every save in `saves/` and prints map (**as a `MapRSE`
     enum**, because `map_name` is a display label and interiors carry their city's), tile, game
     state, controllability, badges, party, money. Carries a positive control.
+  - **`--driver spacecenter1 / spacecenter2 / spacecenter` (added 2026-08-12, §Ch19)** — legs 1-3,
+    the party menu + multi battle, and the whole chapter. ‼ Run `spacecenter` from BOTH
+    `post_mossdeep_gym.ss1` (plays it all) and `post_space_center.ss1` (must SKIP to leg 6) — the
+    second is what proves the resume guards, and the ladder re-runs `_play` from wherever the player
+    actually is.
   - `--driver anchorcapture` — navigate to a named map/tile and snapshot; refuses to overwrite
     an existing anchor, and refuses to write a non-arrived or non-controllable state.
   - `--driver anchorstory` — drive the REAL story bot until it stands on the wanted map, then
@@ -271,6 +279,32 @@ done
   * `tools/story-dev/probe_gym_arrows.py` dumps the arrow field and derives the encoding from data;
     `probe_gym_simulate.py` is the validation gate that presses a switch for real and requires the
     simulator to have predicted every loaded object, keyed on `local_id`. **PASS: 11/11.**
+- **`#24-spacecenter` (2026-08-12, COMPLETE — Segment 19 in the ladder)** — the Mossdeep Space
+  Center **and** HM08 Dive, in ONE chapter because `chapters.py` grades chapter 19 on
+  `RECEIVED_HM_DIVE`:
+  * `modules/story/space_center.py` — six legs: heal → ride the forced Team Magma cutscene → cross
+    1F → the 2F grunt gauntlet → Steven's two talks + the party menu + the multi battle → HM08 at
+    Steven's house → **and back outside**.
+  * ‼ **Leg 1 is TWO navigations, not one.** The gym victory SPAWNS five Magma NPCs onto the only
+    land bridge (x=44, y=23-26) and `map_path` blocks loaded-object tiles, so no route to the door
+    exists until the cutscene `removeobject`s them. The chapter routes to the trigger line and
+    **asserts `VAR_MOSSDEEP_CITY_STATE == 2`** before planning leg 1b.
+  * ‼ **`_talk_to_the_stair_grunt()`** — that grunt has `sight_radius = 0` and stands ON the only
+    tile the stairs are reachable from, so it is an INTERACTION trainer and its tile can never be a
+    navigation destination. Graded on the grunt MOVING, not on a battle happening.
+  * ‼ **`choose_battle_party()` drives `ChooseHalfPartyForBattle`** — the first party menu of this
+    kind this codebase has ever driven. Cursor 0-5 are mons, **6 = CONFIRM, 7 = CANCEL**; each pick
+    is A (submenu) then A (ENTER) and **the cursor does not advance**; A on a picked mon DESELECTS
+    it, so a blind mash toggles for ever. Every pick is verified against **`gSelectedOrderFromParty`**
+    (`slot + 1`). It always brings THREE — the loss condition sums HP over the player's picks only.
+  * `leave_stevens_house()` uses **`_walk_through_warp("Down")`**, because both navigate-based door
+    helpers free the tile by stepping SOUTH and the interior door is on the bottom row. An exit door
+    is not an entry door.
+  * `tools/story-dev/probe_ch19_route.py` — the reachability probe. ‼ It models **live objects**,
+    which the first version did not; without them it "found" a KI-59 planner defect that was really
+    five NPCs standing on a bridge.
+  * Drivers `--driver spacecenter1 / spacecenter2 / spacecenter`; anchors `at_steven_2f.ss1`,
+    `post_space_center.ss1`, `post_dive.ss1`.
 - **`#24-battleitems` (promoted 2026-08-10)** — the bot uses healing items in TRAINER battles:
   * `modules/story/battle_items.py` — a **PURE** policy (no emulator, no game state), so it is
     unit-testable in milliseconds by `tools/story-dev/repro_battle_items.py` (27 checks). Heal
