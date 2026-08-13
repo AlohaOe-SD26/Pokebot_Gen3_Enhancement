@@ -36,16 +36,24 @@ sys.path.insert(0, str(REPO / "sandbox-pokebot"))
 BAR = "=" * 96
 
 
-class FakeMon:
-    """Only the attributes the choosers actually read."""
+PLAYER_OT = 12345
+STEVEN_OT = 61226   # any id that is not the player's; the real one is STEVEN_OTID
 
-    def __init__(self, name, level, current_hp, total_hp):
+
+class FakeMon:
+    """Only the attributes the choosers actually read — including the ORIGINAL TRAINER.
+
+    ‼ The OT is the whole point of the second version of this repro. Position cannot identify the
+    ally (the array gets permuted); the trainer who owns the Pokémon can."""
+
+    def __init__(self, name, level, current_hp, total_hp, ot_id=PLAYER_OT):
         self.species = types.SimpleNamespace(name=name, types=[])
         self.level = level
         self.current_hp = current_hp
         self.total_hp = total_hp
         self.is_egg = False
         self.moves = []
+        self.original_trainer = types.SimpleNamespace(id=ot_id)
 
 
 def make_party():
@@ -55,12 +63,35 @@ def make_party():
     of the grunt gauntlet, and it is what makes the bug fire: any rule that ranks by condition
     prefers the ally."""
     return [
-        FakeMon("Sceptile", 48, 40, 133),     # 0 - ours, hurt
-        FakeMon("Swellow", 40, 12, 112),      # 1 - ours, badly hurt
-        FakeMon("Mightyena", 44, 55, 130),    # 2 - ours, hurt
-        FakeMon("Metang", 42, 150, 150),      # 3 - STEVEN's, full
-        FakeMon("Skarmory", 43, 160, 160),    # 4 - STEVEN's, full
-        FakeMon("Aggron", 44, 170, 170),      # 5 - STEVEN's, full
+        FakeMon("Sceptile", 48, 40, 133),                    # 0 - ours, hurt
+        FakeMon("Swellow", 40, 12, 112),                     # 1 - ours, badly hurt
+        FakeMon("Mightyena", 44, 55, 130),                   # 2 - ours, hurt
+        FakeMon("Metang", 42, 150, 150, ot_id=STEVEN_OT),    # 3 - STEVEN's, full
+        FakeMon("Skarmory", 43, 160, 160, ot_id=STEVEN_OT),  # 4 - STEVEN's, full
+        FakeMon("Aggron", 44, 170, 170, ot_id=STEVEN_OT),    # 5 - STEVEN's, full
+    ]
+
+
+def make_permuted_party():
+    """‼ THE ARRAY AS IT ACTUALLY IS WHEN A REPLACEMENT IS CHOSEN — measured, not imagined.
+
+    Opening the battle party menu runs `UpdatePartyToBattleOrder`, which PHYSICALLY PERMUTES
+    `gPlayerParty`. From our own §Ch19 run log (`ch19d.log` f37745):
+
+        [Sceptile|Mightyena|Swellow|Metang|Skarmory|Aggron]
+     -> [Sceptile|Metang   |Mightyena|Swellow|Skarmory|Aggron]
+
+    So index 1 is the ALLY's Metang and OUR Swellow has moved to index 3. Any `index < 3` rule
+    offers the ally and hides one of ours — it inverts itself in exactly the state it was written
+    for. The FIRST version of this repro used only the un-permuted order, which is why it happily
+    passed a fix that was wrong."""
+    return [
+        FakeMon("Sceptile", 49, 40, 135),                    # 0 - ours
+        FakeMon("Metang", 42, 150, 150, ot_id=STEVEN_OT),    # 1 - ‼ STEVEN's, at index 1
+        FakeMon("Mightyena", 44, 55, 130),                   # 2 - ours
+        FakeMon("Swellow", 40, 90, 112),                     # 3 - ‼ OURS, at index 3
+        FakeMon("Skarmory", 43, 160, 160, ot_id=STEVEN_OT),  # 4 - STEVEN's
+        FakeMon("Aggron", 44, 170, 170, ot_id=STEVEN_OT),    # 5 - STEVEN's
     ]
 
 
@@ -129,6 +160,13 @@ results.append(("A: old rule picks the ALLY (control)", arm_a_ok))
 print(f"\n{BAR}\nARM B — the SHIPPED code. Must pick one of OURS.\n{BAR}")
 
 import modules.battle_strategies.default as default_mod  # noqa: E402
+import modules.player as player_mod  # noqa: E402
+
+# ‼ `ally_party_indices` resolves the player's trainer id through `modules.player.get_player`,
+# which needs a running emulator. It FAILS CLOSED (excludes nobody) when that read fails — correct
+# in production, but here it would make every arm below silently test nothing. Patch the module
+# attribute, because the function imports it at call time.
+player_mod.get_player = lambda: types.SimpleNamespace(trainer_id=PLAYER_OT)
 
 # ‼ Patch the name the module RESOLVES, not some other import of it. `choose_new_lead_after_faint`
 # calls the module-global `get_party`, so that is the binding to replace.
@@ -157,6 +195,56 @@ print(f"  {'[AS PREDICTED]' if arm_c_ok else '[‼ FAIL]'} unchanged for a plain
 results.append(("C: plain double battle still picks the healthiest benched mon", arm_c_ok))
 
 # ---------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------
+print(f"\n{BAR}\nARM D — the PERMUTED array (what the chooser really sees). Must still pick OURS.\n{BAR}")
+
+# ‼ THIS ARM EXISTS BECAUSE THE FIRST VERSION OF THIS REPRO PASSED A WRONG FIX. It only ever
+# modelled the un-permuted order, so an `index < 3` cut looked correct. Opening the battle party
+# menu permutes the array: the ally lands at index 1 and one of OURS at index 3.
+perm = make_permuted_party()
+default_mod.get_party = lambda: perm
+perm_state = types.SimpleNamespace(
+    is_double_battle=True,
+    is_double_battle_with_partner=True,
+    own_side=types.SimpleNamespace(
+        left_battler=types.SimpleNamespace(party_index=0),
+        right_battler=types.SimpleNamespace(party_index=1),   # the ally's active mon
+    ),
+)
+picked_perm = default_mod.DefaultBattleStrategy.choose_new_lead_after_faint(strategy, perm_state)
+who = perm[picked_perm].species.name if picked_perm is not None else "<none>"
+ours = picked_perm is not None and perm[picked_perm].original_trainer.id == PLAYER_OT
+print(f"  shipped code returned slot {picked_perm} ({who}) -> {'OURS' if ours else 'ALLY'}")
+print(f"  ‼ a positional `index < 3` rule would have allowed slot 1 ({perm[1].species.name}, the "
+      f"ALLY) and hidden slot 3 ({perm[3].species.name}, OURS)")
+print(f"  {'[AS PREDICTED]' if ours else '[‼ FAIL]'} identity beats position: {ours}")
+results.append(("D: permuted array still picks OURS (position would have failed)", ours))
+
+# ---------------------------------------------------------------------------------------------
+print(f"\n{BAR}\nARM E — the class the STORY BOT actually uses, not the base class.\n{BAR}")
+
+# ‼‼ THE FIRST FIX WAS DEAD CODE ON THE STORY PATH and this repro could not see it, because it
+# asserted `DefaultBattleStrategy` directly. The real MRO is
+#   StoryItemBattleStrategy -> LevelUpTravelBattleStrategy -> LevelUpLeadBattleStrategy -> Default
+# and `LevelUpLeadBattleStrategy` has its OWN `choose_new_lead_after_faint`, so the base class
+# version never ran. This is the playbook's rule about routing a class down a NEW code path: check
+# what the framework actually calls, not what you returned.
+import modules.battle_strategies.level_up as level_up_mod  # noqa: E402
+
+level_up_mod.get_party = lambda: perm
+level_up_mod.ally_party_indices = lambda bs, party=None: default_mod.ally_party_indices(bs, perm)
+lead_strategy = object.__new__(level_up_mod.LevelUpLeadBattleStrategy)
+lead_strategy.pokemon_can_battle = lambda mon: mon.current_hp > 0
+picked_lead = level_up_mod.LevelUpLeadBattleStrategy.choose_new_lead_after_faint(
+    lead_strategy, perm_state
+)
+who = perm[picked_lead].species.name if picked_lead is not None else "<none>"
+lead_ours = picked_lead is not None and perm[picked_lead].original_trainer.id == PLAYER_OT
+print(f"  LevelUpLeadBattleStrategy returned slot {picked_lead} ({who}) -> "
+      f"{'OURS' if lead_ours else 'ALLY'}")
+print(f"  {'[AS PREDICTED]' if lead_ours else '[‼ FAIL]'} the story path is guarded too: {lead_ours}")
+results.append(("E: the story bot's OWN chooser also excludes the ally", lead_ours))
+
 print(f"\n{BAR}\nSUMMARY\n{BAR}\n")
 for label, ok in results:
     print(f"  {'PASS' if ok else 'FAIL'}  {label}")

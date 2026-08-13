@@ -5298,3 +5298,48 @@ harmless `TYPE_CHECKING` annotation names, and a noisy gate gets ignored.
 **Prevention rule.** *Run the linter you already have before driving anything — a five-minute
 emulator run is an absurdly expensive way to discover a missing import. And when a cheap tool finds
 one bug on its first run, read the REST of its output: that is where KI-65 came from.*
+
+## 2026-08-12 — my KI-64 fix was DEAD CODE on the story path, and my A/B "proved" it anyway
+
+**Symptom.** I fixed the multi-battle faint replacer (KI-64), wrote a fault-injected A/B, got
+**3/3 PASS**, committed it, and reported it as proven. An adversarial review then showed the fix
+could never run and, where it *could*, would have made things worse. Both halves were confirmed
+against evidence I already had.
+
+**Root cause 1 — I patched the wrong class in the hierarchy.** The story bot's MRO is
+`StoryItemBattleStrategy` → `LevelUpTravelBattleStrategy` → **`LevelUpLeadBattleStrategy`** →
+`DefaultBattleStrategy`. I put the guard on `DefaultBattleStrategy`. But `level_up.py:41` defines
+its *own* `choose_new_lead_after_faint`, and the story override's `super()` lands **there** — it
+returns non-`None`, so the base class version is never reached. My guard sat on a path the story bot
+does not take.
+
+**‼ Root cause 2 — the positional cut was in the WRONG INDEX SPACE, and it inverts itself exactly
+when it matters.** I excluded `index >= 3` because `FillPartnerParty` writes the ally into
+`gPlayerParty[3..5]`. True — until a replacement is actually needed. Opening the battle party menu
+runs `UpdatePartyToBattleOrder`, which PHYSICALLY PERMUTES the array. **Measured in my own passing
+run's log** (`ch19d.log` f37745):
+```
+   [Sceptile|Mightyena|Swellow|Metang|Skarmory|Aggron]
+-> [Sceptile|Metang   |Mightyena|Swellow|Skarmory|Aggron]
+```
+Index 1 is now the ALLY's Metang — the exact slot `TrySwitchInPokemon` refuses — and OUR Swellow has
+moved to index 3. So `index < 3` **offers the ally and hides one of our own**.
+
+**Why my A/B passed anyway.** The fixture modelled only the un-permuted order, and it exercised
+`DefaultBattleStrategy` directly rather than the class the framework actually calls. It was a fake
+proof wearing rigorous clothes: a control arm, a fix arm, a no-over-correction arm — all three
+measuring the wrong thing. ‼ **And I had already noted that the driven run had ZERO faints**, i.e.
+that nothing had exercised this live, and I still let a synthetic pass stand in for that.
+
+**The fix that worked.** `ally_party_indices(battle_state, party)` in `default.py`, keyed on
+**ORIGINAL TRAINER ID** — identity travels with the Pokémon, position does not. Applied at all three
+call sites (`default.py`, `level_up.py`, the story override). The repro gained **ARM D** (the
+permuted array — the fix returns slot 3, OURS, which the positional rule would have hidden) and
+**ARM E** (the story bot's own chooser). 5/5, and §Ch19 re-driven to a PASS afterwards.
+
+**Prevention rules.** *(1) Before "fixing" a strategy method, print the MRO and find which class the
+framework will actually call — an override two levels down makes your edit dead code.
+(2) Never identify a Pokémon by party index across a battle-menu boundary: `UpdatePartyToBattleOrder`
+permutes `gPlayerParty`, so any positional rule silently swaps meaning. Key on identity (OT id).
+(3) A synthetic A/B can only prove the property its fixture models — if the live path was never
+exercised (zero faints), say the fix is UNPROVEN rather than letting three green arms imply it.*

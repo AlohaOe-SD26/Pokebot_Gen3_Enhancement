@@ -224,7 +224,25 @@ tile by stepping SOUTH, and (3,7) is the bottom row — an exit door needs `_wal
   (ZERO tolerance over `modules/story` + `plugins/custom_modes`). It found my own missing import
   *after* a five-minute drive had already paid to reach it — **and KI-65**, below.
 
-## ‼ TWO NEW ISSUES FILED
+## ‼‼ THE ADVERSARIAL REVIEW OF THE FINISHED CHAPTER FOUND MY OWN FIX WAS WRONG TWICE
+Run AFTER §Ch19 was committed and reported proven — which is exactly why it is worth doing.
+* **KI-64's fix was DEAD CODE on the story path.** The MRO is `StoryItemBattleStrategy` →
+  `LevelUpTravelBattleStrategy` → **`LevelUpLeadBattleStrategy`** → `DefaultBattleStrategy`, and
+  `level_up.py:41` has its own `choose_new_lead_after_faint`. I had guarded the base class.
+* **‼ And the `index >= 3` cut was in the WRONG INDEX SPACE.** Opening the battle party menu runs
+  `UpdatePartyToBattleOrder`, which PHYSICALLY PERMUTES `gPlayerParty` — visible in my own passing
+  log (`ch19d.log` f37745): index 1 becomes the ALLY's Metang and OUR Swellow moves to index 3. The
+  cut **offered the ally and hid one of ours**, precisely when a replacement is needed.
+* **My fault-injected A/B passed it anyway**, because the fixture modelled only the un-permuted
+  order and asserted the base class directly. A control arm does not save you if all three arms
+  measure the wrong thing.
+* **Now fixed properly**: `ally_party_indices()` keyed on **ORIGINAL TRAINER ID** (identity travels
+  with the Pokémon; position does not), wired at all three call sites. Repro is **5/5** with the
+  permuted-array and story-class arms added; §Ch19 re-driven to a PASS afterwards.
+⇒ **Two new prevention rules in `08-MISTAKES.md`:** print the MRO before "fixing" a strategy method,
+and never identify a Pokémon by party index across a battle-menu boundary.
+
+## ‼ FOUR NEW ISSUES FILED
 * **KI-64 (FIXED)** — the multi-battle faint replacer would have sent out **STEVEN's** Pokémon.
   `FillPartnerParty` writes his Metang/Skarmory/Aggron into `gPlayerParty[3..5]`; both choosers
   excluded only the on-field mons and rank by condition, so three fresh L42-44 mons win outright.
@@ -233,6 +251,18 @@ tile by stepping SOUTH, and (3,7) is the bottom row — an exit door needs `_wal
   assigned 90 lines lower, inside a `try:` whose `except` **declines**. So the "HM moves can't be
   forgotten" re-pick may never have executed, and declining looks like a decision. **Candidate cause
   for the reopened `#24-teachmsgstall`** — needs its own repro + A/B before that claim is made.
+* **KI-66 (OPEN)** — the multi-battle hazard is BROADER than the faint chooser: **four more**
+  full-party scans on the same paths (two in `battle_handler.py`, `alive_slots`, and the rotation
+  targets feeding an **unbounded** `while PARTY_MENU: press A`). The right fix is ONE choke point —
+  `ally_party_indices()` now exists — not a guard per call site. ⚠ Also unverified and worth checking
+  FIRST, because it would fire on turn 1 rather than on a faint: a claimed `IndexError` in
+  `decide_turn_in_double_battle` from `gPlayerPartyCount` still being 3.
+* **‼ KI-67 (OPEN)** — the chapter retry loop **swallows the whiteout abort latch**, so one loss
+  consumes all three attempts in a few frames and reports two fabricated failures. And **no driver
+  can detect it**: `set_story_abort` appears ZERO times in `story_harness.py`, so `_check_abort()` is
+  dead code under test and every retry-path docstring is untested prose. Systemic — `mossdeep_gym.py`
+  has the same swallow. **To settle: make the drivers' `on_whiteout` mirror production, then drive a
+  deliberate loss.**
 
 ## ⏭ NEXT ACTIONS, IN ORDER
 

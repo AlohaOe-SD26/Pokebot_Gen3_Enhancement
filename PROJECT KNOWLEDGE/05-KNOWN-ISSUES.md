@@ -2800,11 +2800,79 @@ ARM A is the **positive control** and is the reason ARM B means anything: a fixt
 mon happened to win the ranking would pass under both arms and prove nothing. ARM C exists because a
 fix that also changed ordinary double battles would be a regression wearing a fix's clothes.
 
-**Still UNVERIFIED and worth knowing:** that `is_double_battle_with_partner` actually reads TRUE at
-the moment the chooser runs in the live battle (it depends on `BattleType.InGamePartner = 1 << 22`
-being right for Emerald). If that property is false in practice the fix is a no-op and the bug is
-still live — the repro pins the LOGIC, not the flag read. Settling it needs a driven multi battle in
-which one of our Pokémon actually faints.
+‼ **THE FIRST FIX WAS WRONG TWICE, AND THE FIRST A/B PASSED IT ANYWAY** (corrected 2026-08-12 by an
+adversarial review; full write-up in `08-MISTAKES.md`):
+1. **It was DEAD CODE on the story path.** The MRO is `StoryItemBattleStrategy` →
+   `LevelUpTravelBattleStrategy` → **`LevelUpLeadBattleStrategy`** → `DefaultBattleStrategy`, and
+   `level_up.py:41` has its own `choose_new_lead_after_faint`, so the base-class guard never ran.
+2. **The `index >= 3` cut was in the WRONG INDEX SPACE.** Opening the battle party menu runs
+   `UpdatePartyToBattleOrder`, which PHYSICALLY PERMUTES `gPlayerParty`. Measured in our own passing
+   run (`ch19d.log` f37745): `[Sceptile|Mightyena|Swellow|Metang|…]` → `[Sceptile|**Metang**|Mightyena|**Swellow**|…]`.
+   Index 1 becomes the ALLY's Metang and OUR Swellow moves to index 3 — so the cut **offers the ally
+   and hides one of ours**, precisely when a replacement is needed.
+
+**The correct fix:** `ally_party_indices(battle_state, party)` in `battle_strategies/default.py`,
+keyed on **ORIGINAL TRAINER ID** — identity travels with the Pokémon, position does not. Wired at all
+three call sites (`default.py`, `level_up.py`, the story override in `story_mode.py`). It FAILS
+CLOSED: an unreadable player/OT excludes nobody rather than everybody, because excluding everybody
+would return `None` and push the caller into its full-party fallback — the very bug this prevents.
+
+**Now 5/5 in `repro_multi_battle_partner.py`**, including the two arms that matter:
+```
+D  permuted array  -> slot 3 (Swellow) OURS   ‼ a positional `<3` rule would have hidden this
+                                                 and allowed slot 1 (Metang, the ALLY)
+E  LevelUpLead...  -> slot 3 (Swellow) OURS   the class the story bot ACTUALLY calls
+```
+§Ch19 re-driven end-to-end afterwards: still `ACCEPTANCE: PASS`, `whiteouts=0`.
+
+**RESOLVED, previously flagged unverified:** `BattleType.InGamePartner = 1 << 22` **is** correct —
+`battle_tower.c:2122` sets `TRAINER|DOUBLE|TWO_OPPONENTS|MULTI|INGAME_PARTNER`, so
+`is_double_battle_with_partner` genuinely reads True in this battle.
+
+⚠ **STILL UNPROVEN LIVE.** Every driven run had `whiteouts=0` and **zero faints**, so no chooser has
+ever run in a real multi battle. The repro pins the LOGIC; only a driven loss can pin the whole path.
+See KI-66 for the other party scans this fix does NOT cover.
+
+## KI-66 — the multi-battle hazard is BROADER than the faint chooser (2026-08-12, code-verified, OPEN)
+
+Filed from the adversarial review of the finished §Ch19. KI-64 fixed the three *faint* choosers; the
+review found **four more party scans** on the same battle's paths that still have no partner concept.
+None is fixed, and none has ever run live (every §Ch19 drive had zero faints).
+
+| site | what it does wrong |
+|---|---|
+| `battle_handler.py:541-545` | the `new_lead_index is None` fallback scans the FULL party — and KI-64's guard makes `None` *more* likely, so it feeds this |
+| `battle_handler.py:588-598` | full-party revalidation that writes a **party-order** index into a variable used as a **menu-order** index at `:600` (the KI-34 shape) |
+| `battle_handler.py:630-636` | `alive_slots` excludes only the on-field pair, so the ally's benched mons are A-press candidates; each refusal round-trips `Task_ReturnToChooseMonAfterText` — three of six slots are guaranteed-refused in this fight |
+| `_util.py:522-587` `get_potential_rotation_targets` / `select_rotation_target` | full-party, called live here from `default.py`; the result reaches `battle_action_selection.py:288`, an **unbounded** `while get_game_state() == PARTY_MENU: press A` |
+
+⚠ Also reported and NOT yet verified by me: `default.py`'s `decide_turn_in_double_battle` doing
+`get_party()[partner.party_index]` with an index of 3-5 while `gPlayerPartyCount` may still be 3
+(`ReducePlayerPartyToSelectedMons` sets 3 and `FillPartnerParty` does not update it) — claimed to be
+an `IndexError` before any menu opens. **Check this before the next multi battle**, since it would
+fire on turn 1 rather than on a faint.
+
+**The right shape of the fix** is one choke point — `ally_party_indices()` already exists — rather
+than a guard per call site. That is a battle-layer refactor touching every mode, so it is filed
+rather than done.
+
+## ‼ KI-67 — the chapter retry loop swallows the WHITEOUT ABORT, and no driver can detect it (2026-08-12, code-verified, OPEN)
+
+`StoryMode.on_whiteout` sets `set_story_abort(True)`; only `StoryMode.run` clears it.
+`do_space_center_chapter` catches `BotModeError` — **including the abort raised by `_check_abort()`**
+— and retries in place with the latch still set. Attempts 2 and 3 therefore raise instantly at the
+first `_check_abort()` inside `_navigate_riding_out`, so **one whiteout consumes the entire retry
+budget in a handful of frames** and the chapter reports three failures, two of them fabricated.
+
+‼ **And the harness cannot see it**: `set_story_abort` appears **zero** times in `story_harness.py`,
+so every driver's `on_whiteout` only increments a counter and `_check_abort()` is effectively dead
+code under test. `SpaceCenter1Mode`'s docstring claims it "MIRRORS StoryMode's own choice" — it
+mirrors `on_battle_started` and **not** `on_whiteout`. So every retry-path claim in these docstrings
+is untested prose.
+
+**Systemic, not §Ch19-specific:** `mossdeep_gym.py:511-530` has the same swallow.
+**To settle it:** make the drivers' `on_whiteout` call `set_story_abort(True)` like production, then
+drive at least one deliberate loss.
 
 ## KI-65 — the HM-refusal re-pick has NEVER executed: `party_index` is unbound there (2026-08-12, code-verified, OPEN)
 

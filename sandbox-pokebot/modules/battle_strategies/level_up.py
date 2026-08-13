@@ -1,5 +1,6 @@
 from modules.battle_state import BattleState
 from modules.battle_strategies import DefaultBattleStrategy, TurnAction, BattleStrategyUtil
+from modules.battle_strategies.default import ally_party_indices
 from modules.context import context
 from modules.pokemon import Pokemon, StatusCondition
 from modules.pokemon_party import get_party
@@ -42,7 +43,18 @@ class LevelUpLeadBattleStrategy(DefaultBattleStrategy):
         new_lead: int | None = None
         new_lead_current_hp: int = 0
         new_lead_level: int = 0
+        # ‼‼ THIS IS THE CHOOSER THE STORY BOT ACTUALLY USES, and the KI-64 guard was originally
+        # put only on `DefaultBattleStrategy` — where it was DEAD CODE for the story path. The MRO
+        # is `StoryItemBattleStrategy` -> `LevelUpTravelBattleStrategy` -> `LevelUpLeadBattleStrategy`
+        # (this class) -> `DefaultBattleStrategy`, and the story override's own `super()` fallback
+        # lands HERE, not on the base. So a fix applied one level too low never ran. Found by an
+        # adversarial review, not by the repro — which had asserted the base class directly and so
+        # could not see which class the framework would actually call.
+        ally = ally_party_indices(battle_state)
+
         for index, pokemon in enumerate(get_party()):
+            if index in ally:
+                continue
             # In a DOUBLE battle, skip the Pokémon already ON THE FIELD (our other active
             # battler): it can't be picked as the replacement, and returning its index
             # strands the bot on the "choose a Pokémon" menu. The base DefaultBattleStrategy

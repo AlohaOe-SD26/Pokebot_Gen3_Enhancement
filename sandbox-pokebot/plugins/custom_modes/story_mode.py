@@ -157,15 +157,21 @@ class LevelUpTravelBattleStrategy(LevelUpLeadBattleStrategy):
 
             # ‼‼ THE ALLY'S POKEMON ARE IN OUR PARTY ARRAY IN A MULTI BATTLE, and this ranking
             # PREFERS them. §Ch19's Space Center fight puts Steven's max-IV Metang L42 / Skarmory
-            # L43 / Aggron L44 into `gPlayerParty[3..5]`; the key below sorts on (incoming damage,
+            # L43 / Aggron L44 into the party array; the key below sorts on (incoming damage,
             # -outgoing, -hp_fraction, -level), and three fresh high-level mons win that comparison
             # against our damaged party outright. The game then refuses the switch, so the party
-            # menu is handed a target it can never accept. Exclude them by INDEX — `MULTI_PARTY_SIZE`
-            # is 3, so anything at 3+ is the partner's.
-            partner_boundary = 3 if battle_state.is_double_battle_with_partner else None
+            # menu is handed a target it can never accept.
+            # ‼ EXCLUDED BY ORIGINAL TRAINER, NOT BY INDEX. The first version of this cut at
+            # `index >= 3` was measured WRONG: opening the battle party menu runs
+            # `UpdatePartyToBattleOrder`, which physically permutes the array, so index 1 becomes
+            # the ally's Metang and OUR mon moves to index 3 (`ch19d.log` f37745). A positional cut
+            # inverts itself exactly when a replacement is needed. See `ally_party_indices`.
+            from modules.battle_strategies.default import ally_party_indices
+
+            _ally = ally_party_indices(battle_state)
 
             def _excluded(index) -> bool:
-                if partner_boundary is not None and index >= partner_boundary:
+                if index in _ally:
                     return True
                 if not battle_state.is_double_battle:
                     return False

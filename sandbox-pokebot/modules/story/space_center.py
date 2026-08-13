@@ -324,6 +324,20 @@ def _talk_to_the_stair_grunt() -> Generator:
 
         yield from _ride_out_all_scenes()
         yield from wait_until_truly_controllable()
+
+        # ‼‼ "THE GRUNT IS NOT THERE" AND "WE ARE NOT THERE" ARE DIFFERENT ANSWERS, and
+        # `_npc_is_on` returns False for BOTH — it reports False whenever the player is off the
+        # given map. Testing it alone meant a WHITEOUT during this battle logged "the stair grunt
+        # has stepped aside" while the avatar stood outside the Mossdeep Pokémon Center; the caller
+        # then navigated to (13,2), which the still-undefeated grunt still occupies, and failed with
+        # the very "could not reach (13,2)" error this module's docstring warns names the wrong
+        # problem. `clear_the_three_grunts` already got this right (`done_or_gone`); this leg did not.
+        if not _on_1f():
+            raise BotModeError(
+                f"Space Center 1F: left the floor while fighting the stair grunt (now on {_map()} "
+                f"at {_tile()}) — almost certainly a WHITEOUT. The grunt is undefeated and still "
+                f"plugs {STAIR_GRUNT_TILE}, so the chapter must re-enter and talk to it again."
+            )
         if not _npc_is_on(FLOOR_1F, STAIR_GRUNT_TILE):
             _ch14_say("Story: Ch19 the stair grunt has stepped aside")
             return
@@ -780,7 +794,15 @@ def collect_dive_from_stevens_house() -> Generator:
         wait_until_truly_controllable,
     )
 
+    # ‼ RESUMING WITH THE GIFT ALREADY TAKEN MUST STILL LEAVE THE HOUSE. The earlier version
+    # returned here on the flag alone, which made attempts 2 and 3 of the chapter's retry loop
+    # NO-OPS: if `leave_stevens_house()` had failed on attempt 1, the flag was already set, so the
+    # retry returned instantly, `_chapter_done()` stayed False (we are still indoors), and the
+    # chapter finally raised "RECEIVED_HM_DIVE still unset after 3 attempts" — with the flag SET,
+    # HM08 in the bag, and an EMPTY reasons list. The message would have named the wrong problem
+    # and the two spare attempts never retried the only thing that had actually failed.
     if get_event_flag(DIVE_FLAG) and _has_hm08():
+        yield from leave_stevens_house()
         return  # resume-safe
 
     if _map() != STEVENS_HOUSE.value:

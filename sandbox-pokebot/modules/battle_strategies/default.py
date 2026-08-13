@@ -9,6 +9,54 @@ from ._interface import BattleStrategy, TurnAction, SafariTurnAction
 from ._util import BattleStrategyUtil
 
 
+def ally_party_indices(battle_state: BattleState, party=None) -> set[int]:
+    """Party indices belonging to an IN-GAME PARTNER, identified by ORIGINAL TRAINER — never by position.
+
+    ‼‼ A POSITIONAL CUT IS WRONG, AND IT IS WRONG IN EXACTLY THE MOMENT IT MATTERS. In a multi
+    battle `FillPartnerParty` writes the ally's team into `gPlayerParty[3..5]`, so "indices >= 3 are
+    the ally" looks correct — and it is, right up until a replacement is actually needed. Opening
+    the battle party menu runs `UpdatePartyToBattleOrder`, which PHYSICALLY PERMUTES `gPlayerParty`.
+
+    MEASURED IN OUR OWN RUN LOG (`tools/story-dev/ch19d.log`, §Ch19's passing drive):
+        f37745  [Sceptile|Mightyena|Swellow|Metang|Skarmory|Aggron]
+             -> [Sceptile|Metang   |Mightyena|Swellow|Skarmory|Aggron]
+    Index 1 is now **Metang, the ALLY's** — the very slot `TrySwitchInPokemon` refuses with
+    "Can't switch with ALLY!" — while OUR Swellow has moved to index 3. So a `< 3` cut offers the
+    ally and hides one of our own: it inverts itself precisely in the state it was written for.
+
+    ORIGINAL TRAINER ID SURVIVES THE PERMUTATION because it travels with the Pokémon rather than
+    with the slot. The partner's mons are built with the partner's own OT (Steven's `STEVEN_OTID`),
+    so they never match the player's `trainer_id`.
+
+    ‼ FAILS CLOSED. If the OT or the player cannot be read, this returns an EMPTY set — i.e. it
+    excludes nobody rather than silently excluding everybody, because excluding everybody would
+    make the chooser return `None` and push the caller into its full-party fallback, which is the
+    very bug this prevents.
+    """
+    if not battle_state.is_double_battle_with_partner:
+        return set()
+    if party is None:
+        party = get_party()
+    try:
+        from modules.player import get_player
+
+        own_id = get_player().trainer_id
+    except Exception:  # noqa: BLE001 - unreadable player => exclude nobody (see FAILS CLOSED above)
+        return set()
+
+    ally: set[int] = set()
+    for index in range(len(party)):
+        pokemon = party[index]
+        if pokemon is None:
+            continue
+        try:
+            if pokemon.original_trainer.id != own_id:
+                ally.add(index)
+        except Exception:  # noqa: BLE001 - an unreadable OT must not be guessed at either way
+            continue
+    return ally
+
+
 class DefaultBattleStrategy(BattleStrategy):
     def __init__(self):
         self._first_non_fainted_party_index_before_battle = get_party().first_non_fainted.index
@@ -138,24 +186,11 @@ class DefaultBattleStrategy(BattleStrategy):
         new_lead_current_hp: int = 0
         party = get_party()
 
-        # ‼‼ IN A MULTI BATTLE, HALF OF `gPlayerParty` BELONGS TO THE ALLY — AND THEY SCORE BEST.
-        # `SPECIAL_BATTLE_STEVEN` (the Mossdeep Space Center) runs
-        # `ReducePlayerPartyToSelectedMons` and then `FillPartnerParty`, which writes Steven's
-        # Metang L42 / Skarmory L43 / Aggron L44 into `gPlayerParty[3..5]` and sets the party count
-        # to 6. `get_party()` therefore returns SIX Pokémon, only the first three of which are ours.
-        # The loop below excludes just the two mons currently ON THE FIELD, so the ally's benched
-        # pair are always candidates — and because the rule is "highest current HP wins", his fresh
-        # max-IV L42-44 mons BEAT our damaged party every time. The game then refuses the switch
-        # ("Can't switch with ALLY!") and the party menu is handed a choice it will never accept.
-        # `MULTI_PARTY_SIZE` is 3, which is why the cut is at 3.
-        # ‼ The property to test this with already existed and had ZERO callers anywhere in the
-        # tree — the guard was written and then never wired up. §Ch19 is the first content in this
-        # project to reach a multi battle, so this has been latent rather than harmless.
-        own_party_size = len(party)
-        if battle_state.is_double_battle_with_partner:
-            own_party_size = min(own_party_size, 3)
+        ally = ally_party_indices(battle_state, party)
 
-        for index in range(own_party_size):
+        for index in range(len(party)):
+            if index in ally:
+                continue
             pokemon = party[index]
             if battle_state.is_double_battle and (
                 (
