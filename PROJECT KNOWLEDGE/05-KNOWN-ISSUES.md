@@ -2874,9 +2874,65 @@ code under test. `SpaceCenter1Mode`'s docstring claims it "MIRRORS StoryMode's o
 mirrors `on_battle_started` and **not** `on_whiteout`. So every retry-path claim in these docstrings
 is untested prose.
 
-**Systemic, not §Ch19-specific:** `mossdeep_gym.py:511-530` has the same swallow.
-**To settle it:** make the drivers' `on_whiteout` call `set_story_abort(True)` like production, then
-drive at least one deliberate loss.
+## ✅ KI-67 — PRODUCTION HALF FIXED 2026-08-12; the DRIVEN half is still open
+
+‼ **MY ORIGINAL FILING ABOVE OVERSTATED IT ON TWO POINTS**, both corrected by two independent
+reviews that agreed:
+* **§Ch18 does NOT burn three attempts.** Its re-entry navigation (`mossdeep_gym.py:515-521`) sits
+  OUTSIDE the `try`, so after a whiteout `_on_gym_map()` is False, the navigation runs, and the
+  abort escapes on attempt 2. Only §Ch19 wrapped all five legs and burned the full budget.
+* **The run does not die.** `StoryMode.run` branches on `self._whiteout_pending` (not on the
+  exception), so even the fabricated "still unset after 3 attempts" error takes the WHITEOUT
+  recovery path and re-runs `_play()`. ⇒ Severity is **wasted budget and a lying error message**,
+  not a dead run. The real bound has always been `run()`'s 40-recovery cap, not the chapters' 3.
+
+**‼ AND THE WORST PART WAS NOT THE SWALLOW — IT WAS THE LAUNDERING.** Our inner loops catch an
+error and raise a BRAND-NEW one naming the goal they failed to reach. After a whiteout those
+messages are **fabricated diagnoses**: *"the Team Magma NPCs are still standing on the only land
+bridge"*, *"could not clear the grunt plugging the stairs"*, *"cannot reach Steven"* — confident,
+plausible, and wrong, about maps the player has already left. This project has lost multi-day
+investigations to exactly that shape (the reachability failures behind KI-59/KI-60).
+
+**THE FIX (two mechanisms, because one is not enough):**
+1. `StoryAbort(BotModeError)` — identity while the ORIGINAL object is in flight. Subclassing means
+   every existing `except BotModeError` behaves exactly as before.
+2. **`reraise_if_aborting(error)` — keyed on the LATCH**, which survives conversion. This is the one
+   that matters: a type-based guard cannot see an abort that an inner loop has already replaced with
+   a fresh error.
+Applied at the two chapter loops plus the three §Ch19 laundering sites and §Ch18's `require_in_gym`.
+
+**PROVEN** by `repro_whiteout_abort.py` (10/10, no emulator) and `repro_gym_whiteout_guard.py`
+(now 5/5). The controls are the point:
+```
+ARM A control  old loop      -> 3 attempts burned, 2 fabricated reasons   (the bug reproduces)
+ARM C control  type-only     -> laundered into "NPCs still on the bridge" (why the type is not enough)
+ARM C          latch-keyed   -> StoryAbort survives the conversion
+[5]            real whiteout -> escapes after ONE attempt, not three
+latch CLEAR    -> reraise_if_aborting does nothing (ordinary retries still work)
+```
+
+⛔ **STILL OPEN — THE DRIVEN HALF, AND DO NOT HALF-DO IT.** `set_story_abort` still appears **zero**
+times in `story_harness.py`. ‼ **Both reviews independently warned that adding the latch to drivers
+WITHOUT also mirroring `run()`'s clear-and-retry loop makes it a ONE-WAY DOOR** — the latch is
+process-global and nothing else clears it, so every later `_check_abort()` would raise forever and
+currently-passing drivers would go red over correct production code (`--driver spacecenter`,
+`--driver mossdeeptravel`; anchors would stop refreshing). **So it is all four or nothing:**
+`on_whiteout` sets the latch AND `_whiteout_pending`; the driver wraps the chapter in a
+clear-and-retry loop; the whiteout branch clears the latch BEFORE navigating and calls
+`exit_building_after_whiteout()`; and the RESULT line reports the recovery count. Cheapest safe
+shape is ONE shared mixin the eleven drivers inherit, so it cannot drift again.
+**Then prove it with `--driver spacecenter2 --inject-weak`** from the 2F anchor (past the grunts,
+at Steven) — a 1-mon party is legal (`GetMinBattleEntries()` is 1) and loses fast, and
+`Cmd_checkteamslost` sums HP over the player's picks only. ‼ Assert `_whiteout_pending` in the log:
+the whole severity assessment rests on it being True when the error arrives, and that was traced
+statically, never run.
+
+**Also still open (pre-existing, adjacent):** the latch is process-global and `run()` does not clear
+it in a `finally`, so an exit via `derails > 4` or `recoveries > 40` leaves it set for whatever runs
+next. Harmless today only because nothing else sets it — it goes live the moment the harness mirror
+lands. And ~48 further swallow sites remain in `early_game.py`; most self-heal because the next
+abort-aware call re-raises, but they should get the same one-line guard, enforced by an AST check
+rather than by prose.
 
 ## KI-65 — the HM-refusal re-pick has NEVER executed: `party_index` is unbound there (2026-08-12, code-verified, OPEN)
 

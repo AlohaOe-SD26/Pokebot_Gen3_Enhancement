@@ -191,7 +191,13 @@ def walk_to_the_leaders(*, verbose: bool = True) -> Generator:
         it, walks back in, and re-solves. Leaving the gym resets the puzzle, so re-solving from
         the start is not merely acceptable — it is the only correct thing to do."""
         if not _on_gym_map():
-            raise BotModeError(
+            # ‼ IF THE LATCH IS SET THIS IS THE WHITEOUT ITSELF, so raise the type the chapter
+            # re-raises rather than a lookalike. `walk_to_the_leaders` contains no `_check_abort()`
+            # of its own — this guard IS its whiteout detector — so without the distinction the
+            # chapter's retry loop could not tell "we lost the fight" from "the route broke".
+            from modules.story.early_game import StoryAbort, story_should_abort
+
+            raise (StoryAbort if story_should_abort() else BotModeError)(
                 f"Mossdeep Gym: no longer on the gym map ({context_note}) — almost certainly a "
                 "WHITEOUT. ‼ Leaving the gym RESETS the statue puzzle, so recovery is to re-enter "
                 "and solve all 117 steps again, not to walk back to where we were."
@@ -496,9 +502,11 @@ def do_mossdeep_gym_chapter() -> Generator:
     from modules.memory import get_event_flag
     from modules.modes import BotModeError
     from modules.story.early_game import (
+        StoryAbort,
         _ch14_say,
         _enter_warp_by_navigation,
         _navigate_riding_out,
+        reraise_if_aborting,
         wait_until_truly_controllable,
     )
 
@@ -523,9 +531,24 @@ def do_mossdeep_gym_chapter() -> Generator:
         try:
             yield from walk_to_the_leaders()
             yield from fight_the_leaders()
+        except StoryAbort:
+            # ‼‼ THE WHITEOUT ABORT IS NOT THIS LOOP'S TO HANDLE (KI-67). Only `StoryMode.run`
+            # clears the abort latch, so retrying in place here would hit the next `_check_abort()`
+            # immediately: one loss would consume all three attempts in a handful of frames and
+            # report three failures, two of them invented. Re-raising hands the retry to
+            # `StoryMode.run`, which clears the latch, rides out the respawn and re-runs `_play()`
+            # — and this chapter is resume-safe, so re-entering re-solves the puzzle correctly.
+            # ‼ That matters MORE here than anywhere else: leaving the gym RESETS the statue
+            # puzzle, so the recovery genuinely is "re-enter and solve all 117 steps again", which
+            # is exactly what a fresh `_play()` does and what an in-place retry could not.
+            raise
         except BotModeError as error:  # noqa: BLE001 - NOT swallowed. A whiteout is an EXPECTED
             # outcome of a gym fight, and the only recovery is to re-enter and re-solve. Every
             # attempt's reason is accumulated and raised together if all three fail.
+            # ‼ The latch check catches a whiteout whose identity was lost to a conversion; the
+            # `except StoryAbort` above catches it while the original object is still in flight.
+            # Both are needed — see `reraise_if_aborting`.
+            reraise_if_aborting(error)
             attempts.append(f"attempt {attempt}: {str(error)[:200]}")
             _ch14_say(f"Story: Ch18 attempt {attempt} failed - {str(error)[:120]}")
             continue

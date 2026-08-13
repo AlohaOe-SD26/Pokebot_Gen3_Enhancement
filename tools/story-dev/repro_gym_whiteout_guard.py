@@ -157,7 +157,14 @@ record(
 )
 
 # ---------------------------------------------------------------- [4] the recovery retries
-print("\n[4] RECOVERY — the chapter must RETRY three times, not die on the first failure")
+print("\n[4] RECOVERY — on a NON-whiteout failure the chapter must RETRY three times")
+# ‼ RENAMED AND RE-SCOPED 2026-08-12 (KI-67). This check used to be described as "pretending a
+# whiteout", and it never was one: it injects a plain `BotModeError` with the abort latch CLEAR,
+# which is a nav/scene failure, not a defeat. The distinction became load-bearing when the whiteout
+# unwind was given its own identity — a REAL whiteout must now escape on attempt 1 (see [5]) — so
+# leaving the old wording here would have left a green test documenting a contract that no longer
+# holds. The 3-attempt behaviour it asserts is still correct FOR THIS CASE, which is why the check
+# stays rather than being deleted.
 reset()
 real_walk = mossdeep_gym.walk_to_the_leaders
 real_fight = mossdeep_gym.fight_the_leaders
@@ -166,7 +173,7 @@ attempts = {"n": 0}
 
 def always_whiteout(*_args, **_kwargs):
     attempts["n"] += 1
-    raise BotModeError("injected: pretending a whiteout ended attempt %d" % attempts["n"])
+    raise BotModeError("injected: an ordinary (non-whiteout) failure on attempt %d" % attempts["n"])
     yield  # pragma: no cover — makes this a generator function, as the real one is
 
 
@@ -184,9 +191,46 @@ finally:
     mossdeep_gym.fight_the_leaders = real_fight
 
 record(
-    "[4] the chapter retried 3 times and reported every attempt",
+    "[4] a NON-whiteout failure is retried 3 times and every attempt is reported",
     attempts["n"] == 3 and isinstance(error, BotModeError) and "3 attempts" in str(error),
     f"attempts={attempts['n']} (want 3), error={type(error).__name__}: {str(error)[:160]}",
+)
+
+# ---------------------------------------------------------------------------------------------
+print("\n[5] A REAL WHITEOUT must escape on attempt 1, NOT consume the retry budget (KI-67)")
+# ‼ THE OTHER HALF OF [4], AND THE ONE THAT WAS MISSING. The abort latch is cleared ONLY by
+# `StoryMode.run`, so a chapter that caught the abort and retried in place ran straight into the
+# next `_check_abort()` and died instantly — one whiteout burned all three attempts and reported
+# two failures that never happened. Re-raising hands the retry to the layer that can actually
+# perform it: `StoryMode.run` clears the latch, rides out the respawn and re-runs `_play()`.
+reset()
+from modules.story.early_game import StoryAbort, set_story_abort  # noqa: E402
+
+wo_attempts = {"n": 0}
+
+
+def whiteout_abort(*_args, **_kwargs):
+    wo_attempts["n"] += 1
+    set_story_abort(True)
+    from modules.story.early_game import _check_abort
+
+    _check_abort()          # exactly how a real whiteout surfaces inside a segment
+    yield  # pragma: no cover
+
+
+mossdeep_gym.walk_to_the_leaders = whiteout_abort
+mossdeep_gym.fight_the_leaders = never_called
+try:
+    wo_error = drive(mossdeep_gym.do_mossdeep_gym_chapter(), limit=20_000)
+finally:
+    mossdeep_gym.walk_to_the_leaders = real_walk
+    mossdeep_gym.fight_the_leaders = real_fight
+    set_story_abort(False)   # ‼ the latch is PROCESS-GLOBAL — never leave it set for the next check
+
+record(
+    "[5] a whiteout abort escapes after ONE attempt instead of burning all three",
+    wo_attempts["n"] == 1 and isinstance(wo_error, StoryAbort),
+    f"attempts={wo_attempts['n']} (want 1), error={type(wo_error).__name__}: {str(wo_error)[:120]}",
 )
 
 # ---------------------------------------------------------------- verdict

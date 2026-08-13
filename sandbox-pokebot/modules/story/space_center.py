@@ -173,6 +173,7 @@ def walk_into_the_space_center() -> Generator:
         _enter_warp_by_navigation,
         _navigate_riding_out,
         _ride_out_all_scenes,
+        reraise_if_aborting,
         wait_until_truly_controllable,
     )
 
@@ -194,6 +195,12 @@ def walk_into_the_space_center() -> Generator:
             except BotModeError as error:  # noqa: BLE001 - NOT swallowed: six tiles fire the same
                 # scene, so one being unreachable is an expected outcome of trying them in order.
                 # Every reason is kept and raised together if none of them works.
+                # ‼ EXCEPT A WHITEOUT. Without this guard the loop swallowed the abort six times
+                # and then raised the message below — "the Team Magma NPCs are still standing on
+                # the land bridge" — which after a whiteout is a FABRICATED diagnosis: the NPCs are
+                # irrelevant and the player is outside a Pokémon Center. A laundered abort is worse
+                # than a swallowed one, because it hands the next reader a confident wrong cause.
+                reraise_if_aborting(error)
                 reasons.append(f"{trigger}: {str(error)[:90]}")
                 continue
             # Landing on the tile IS the action - the coord_event fires as the player steps on.
@@ -283,6 +290,7 @@ def _talk_to_the_stair_grunt() -> Generator:
         _ch14_say,
         _navigate_riding_out,
         _ride_out_all_scenes,
+        reraise_if_aborting,
         wait_until_truly_controllable,
     )
 
@@ -296,6 +304,10 @@ def _talk_to_the_stair_grunt() -> Generator:
             yield from _navigate_riding_out(FLOOR_1F, approach, tries=6)
         except BotModeError as error:  # noqa: BLE001 - NOT swallowed: three approaches exist, so
             # one failing is an expected outcome of trying them all. Reasons are raised together.
+            # ‼ A whiteout here would otherwise be laundered into "could not clear the grunt
+            # plugging the stairs (tried [...])" — a reachability claim about a floor we are no
+            # longer standing on.
+            reraise_if_aborting(error)
             reasons.append(f"{approach}: {str(error)[:80]}")
             continue
 
@@ -649,6 +661,7 @@ def fight_alongside_steven() -> Generator:
         _check_abort,
         _navigate_riding_out,
         _ride_out_all_scenes,
+        reraise_if_aborting,
         wait_until_truly_controllable,
     )
 
@@ -660,8 +673,12 @@ def fight_alongside_steven() -> Generator:
         for approach, facing in STEVEN_APPROACHES_2F:
             try:
                 yield from _navigate_riding_out(FLOOR_2F, approach, tries=6)
-            except BotModeError:  # noqa: BLE001 - two approaches exist; the failure is reported
-                continue          # below if NEITHER works, which is the only real problem
+            except BotModeError as error:  # noqa: BLE001 - two approaches exist; the failure is
+                # reported below if NEITHER works, which is the only real problem.
+                # ‼ A whiteout would otherwise surface as "cannot reach Steven at (1,8)" — a fake
+                # reachability failure on a map we have left.
+                reraise_if_aborting(error)
+                continue
             yield from wait_until_truly_controllable()
             yield from ensure_facing_direction(facing)
             yield
@@ -791,6 +808,7 @@ def collect_dive_from_stevens_house() -> Generator:
         _enter_warp_by_navigation,
         _navigate_riding_out,
         _ride_out_all_scenes,
+        reraise_if_aborting,
         wait_until_truly_controllable,
     )
 
@@ -920,7 +938,7 @@ def do_space_center_chapter() -> Generator:
     reason attached."""
     from modules.memory import get_event_flag, get_event_var
     from modules.modes import BotModeError
-    from modules.story.early_game import _ch14_say
+    from modules.story.early_game import StoryAbort, _ch14_say, reraise_if_aborting
 
     # ‼ "DONE" INCLUDES BEING OUT OF THE BUILDING. Grading the resume check on the flag alone would
     # let a run that was interrupted inside Steven's house return immediately and hand §Ch20 an
@@ -941,9 +959,22 @@ def do_space_center_chapter() -> Generator:
                 yield from clear_the_three_grunts()
                 yield from fight_alongside_steven()
             yield from collect_dive_from_stevens_house()
+        except StoryAbort:
+            # ‼‼ NEVER RETRY IN PLACE AFTER A WHITEOUT (KI-67). The abort latch is cleared ONLY by
+            # `StoryMode.run`, so catching this and looping would run straight into the next
+            # `_check_abort()` and die instantly — one whiteout would burn all three attempts in a
+            # handful of frames and report three failures, two of them invented. Re-raising is not
+            # giving up on the retry: `StoryMode.run` clears the latch, waits out the respawn,
+            # steps out of the Pokémon Center and re-runs `_play()`, which re-enters this chapter
+            # from wherever the player actually is. That is the retry, and it is bounded at 40.
+            raise
         except BotModeError as error:  # noqa: BLE001 - NOT swallowed. A whiteout is an EXPECTED
             # outcome of this chapter's battles; every attempt's reason is kept and raised together
             # below if all three fail.
+            # ‼ BOTH GUARDS ARE NEEDED. `except StoryAbort` above catches the abort while the
+            # ORIGINAL object is in flight; this catches one whose identity an inner loop destroyed
+            # by raising a fresh error. See `reraise_if_aborting`.
+            reraise_if_aborting(error)
             attempts.append(f"attempt {attempt}: {str(error)[:200]}")
             _ch14_say(f"Story: Ch19 attempt {attempt} failed — {str(error)[:120]}")
             continue
