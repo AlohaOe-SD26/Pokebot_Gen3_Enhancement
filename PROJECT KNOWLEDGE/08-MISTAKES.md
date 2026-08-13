@@ -5619,3 +5619,38 @@ opposite of automation, and it is easy to miss under 90 lines of correct-looking
 disagree, the headline wins with every future reader.
 (3) Commissioning an adversarial pass on your own fresh finding — before building on it — is the
 cheapest correction available. This one cost one agent and caught a bad plan before any code.*
+
+---
+
+## 2026-08-13 — ‼ A REPEAT, IN THE SAME SESSION: `git add -A` swept a running agent's file into an unrelated commit, and the second time it reached the remote
+
+**Symptom.** A commit titled `docs: punch list …` contained a **426-line probe script** written by a
+subagent that was still running. It had never been reviewed and was not mentioned in the message.
+
+**This is the second time today.** The first time (`docs: upstream puzzle_solver …`) swept in a
+406-line probe; it was still local, so a `git reset --soft` backed it out cleanly and I noted the
+cause. **I then did exactly the same thing four commits later, and that one was pushed** — so it
+cannot be amended (this project never rewrites published history).
+
+**Root cause.** `git add -A` stages the *entire working tree*, and the whole point of running
+subagents concurrently is that they are writing files into that tree while I work. The two
+practices are directly incompatible, and I had already been shown so once.
+
+**Why the first correction did not take.** I fixed the *instance* — backed the file out, moved on —
+without changing the *habit*. Nothing about the next commit was different, so it failed identically.
+This is the shape the project has recorded before: **≥12 of 164 logged mistakes are self-admitted
+repeats, several committed while the author knew the rule.**
+
+**Fixing forward** (history is published, so the record is the fix): the probe was reviewed after
+the fact — it parses, it is read-only (zero `debug_write` / `set_event_flag` / `press_button`), and
+it is a legitimate measurement tool that was going to be committed anyway. So nothing bad shipped.
+That is luck, not process.
+
+**Prevention rules.** *(1) **Never `git add -A` while a subagent is running.** Stage explicit paths.
+If the tree must be staged wholesale, check `git status --short` FIRST and account for every
+untracked file by name.
+(2) A commit message must name every file it adds. If I cannot say what a staged file is, it does
+not belong in that commit.
+(3) ‼ When a mistake recurs, fix the HABIT, not the instance. The first occurrence was corrected
+perfectly and taught me nothing, because I changed the commit instead of changing what I do before
+every commit.*
