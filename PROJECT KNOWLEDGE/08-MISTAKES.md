@@ -5813,3 +5813,40 @@ not the noun it was asked about.*
 *(3) **When a prescribed experiment is expected to show a delta, pre-compute whether it CAN.** If the
 inputs cannot reach the code under test, a green/zero result is uninformative, not exculpatory — and
 a null result on a real bug is worse than no experiment, because it retires a live issue.*
+
+## 2026-08-13 — the probe that "independently checked" the pathfinder had COPIED the pathfinder's bug, so it agreed with production while both were wrong
+
+**Symptom.** `tools/story-dev/probe_shoal_tide.py:352-370` carries a function whose own docstring
+says *"Replicates modules/map_path.py:112-132"*. It replicated it faithfully — **including the
+KI-59 inversion** (`result[(DIRECTION_INDEX[name] + 2) % 4] = True` on an all-False base). So the
+probe and production agreed perfectly, and that agreement was worth nothing: the probe could not
+have failed while production was broken, because it was the same code twice.
+
+**What it cost.** That probe produced the *"reachable spin tiles: LOW 278, HIGH 0"* figure that the
+**user-delegated "Shoal Cave is NOT adopted" ruling** rests on, over rooms carrying 89 live tiles.
+The ruling was decided on a number computed with a model we now know was wrong. *(Re-derived after
+the fix: **unchanged, 278 / 0, all controls PASS** — the conclusion was lucky, not safe. Only 12 of
+that room's 136 `Impassable *` tiles are live and none sat on the reachable boundary. A different
+map would not have been so kind.)*
+
+**Root cause.** A verification artifact was built by **copying** the implementation instead of by
+**asserting against an independent source of truth**. Copying makes the checker a mirror; a mirror
+cannot disagree. The decomp was available the whole time and is the actual authority.
+
+**The fix that worked.** The new gate `repro_impassable_dirs.py` deliberately does the opposite: it
+imports `_get_map_metadata` and reads the **real production `PathTile` objects**, comparing them
+against a truth table derived from the **decomp**, not from `map_path.py`. It is the reason the A/B
+has a meaningful BEFORE arm at all (exit 1, 29/29 wrong) rather than a green light on both sides.
+`probe_shoal_tide.py` was corrected in lockstep and gained the exit rule it never modelled.
+
+**Prevention rules.**
+*(1) **A checker that re-implements the thing it checks cannot fail.** If a probe's docstring says
+"replicates <production file>", it is a duplicate, not a check. Assert against an INDEPENDENT
+authority — the decomp, the live game, or the production object itself — never against a copy.*
+*(2) When production logic must be mirrored for offline analysis, **import it or read its output**;
+if it genuinely cannot be imported, write the mirror's provenance and a test that FAILS when the
+two diverge, so the copy cannot silently rot into a second opinion that is really the same one.*
+*(3) **Every number a DECISION rests on inherits the bugs of the instrument that produced it.**
+When an instrument is found wrong, list what was decided using it and re-derive those numbers
+explicitly — do not assume the conclusion survives, and do not quietly reopen a ruling that was the
+user's to make: re-measure, report, and let them decide.*

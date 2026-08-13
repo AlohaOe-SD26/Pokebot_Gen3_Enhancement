@@ -2446,7 +2446,16 @@ Two **OPEN, code-verified, unfixed** bugs were moved to `31-KNOWN-ISSUES-ARCHIVE
 line budget, not because they were resolved. A cold read of that file's header says "issues that
 are now resolved live here", so they are listed here to stay findable:
 
-* **KI-59** — `map_path` **INVERTS `Impassable *` directions**. ✅ **STILL REAL** (decomp-verified).
+* **✅✅ KI-59 — FIXED 2026-08-13, BOTH HALVES, A/B PROVEN, GATED.** Entry vector corrected (all-True,
+  clear `[opposite(D)]`) **and** a new `PathTile.blocked_exit_directions` added for the decomp's exit
+  rule, checked on the SOURCE tile in the A* loop. **A/B on `VICTORY_ROAD_1F`:**
+  `repro_impassable_dirs.py` exit **1 → 0**, **29/29 → 0/29** mismatches, and `calculate_path` went
+  from **NO-PATH from every direction** (all 29 tiles invisible to the planner) to `OK len=1` on the
+  legal approaches; the `MOSSDEEP_CITY` collateral control is **byte-identical** across arms. Now
+  **gate #17**. ‼ `probe_shoal_tide.py` corrected in lockstep; its numbers re-derived on the fixed
+  model are **unchanged (LOW 278 / HIGH 0)**. ⚠ **Sandbox only — drift is now 3 and promotion is the
+  USER's call.** The original diagnosis and the retraction that reprioritised it are kept below.
+* **KI-59 (original entry)** — `map_path` **INVERTS `Impassable *` directions**. ✅ **REAL** (decomp-verified).
   ⛔ **BUT ITS "ARMED IN THE SEAFLOOR CAVERN" HEADLINE IS RETRACTED, 2026-08-13, MEASURED.**
   The handler at `map_path.py:128` is the **`elif` of `if tile.collision != 0:`** (`:118`), so a
   collision≠0 tile never reaches it. **All 115 cavern tiles have `collision=1` ⇒ ZERO are live**, and

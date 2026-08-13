@@ -49,6 +49,12 @@ GATES: list[tuple[str, bool]] = [
     ("probe_slot_free_plan.py", True),
     ("probe_regi_capabilities.py", True),
     ("probe_dive_routing.py", True),
+    # KI-59 / `#24-impassabledirs`. Asserts the REAL production `PathTile` vectors match the decomp
+    # on both halves (entry AND exit), on VICTORY_ROAD_1F (29 live tiles), with a NEGATIVE control
+    # on SEAFLOOR_CAVERN_ROOM1 proving the branch is inert there. ‼ It reads production objects
+    # rather than recomputing, because the probe that DID recompute (`probe_shoal_tide.py`)
+    # reproduced the bug exactly and so could never have caught it.
+    ("repro_impassable_dirs.py", True),
 ]
 
 

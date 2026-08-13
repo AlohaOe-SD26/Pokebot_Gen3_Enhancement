@@ -12662,3 +12662,58 @@ branch is inert there, and assertions on **both** directions (entry and exit).
 **Housekeeping forced by the edits:** `05-KNOWN-ISSUES.md` went 12 lines over its 3,000-line R3
 budget, so **KI-51** (FIXED 2026-08-11) was moved to `31-KNOWN-ISSUES-ARCHIVE.md` in full, leaving
 the house-style stub — content preserved, not deleted. `lint_docs.py` passes again.
+
+## 2026-08-13 — KI-59 FIXED, both halves, A/B proven on VICTORY_ROAD_1F with a collateral control
+
+**The change** (`sandbox-pokebot/modules/map_path.py`, shared by every bot mode):
+1. **Entry half.** The `Impassable *` branch now starts `[True]*4` and **clears** `[opposite(D)]`,
+   instead of starting `[False]*4` and **setting** it. `MB_IMPASSABLE_<D>` means "this tile's `<D>`
+   EDGE is a wall" (decomp `event_object_movement.c:893-905` + `:4715-4722`).
+2. **Exit half — new capability.** `PathTile.blocked_exit_directions: set[Direction]` carries the
+   decomp's `gOppositeDirectionBlockedMetatileFuncs` rule, and the A* expansion loop checks it on
+   the **source** tile. This could not be expressed before: `is_tile_accessible()` is handed the
+   NEIGHBOUR, so an entry-only fix would still have let the planner walk north off a cliff.
+3. **Hazard closed structurally.** An `Impassable *` tile that is ALSO an `_is_optional_blocker`
+   now falls back to fully-blocked. Measured: no such tile exists today (the four salt tiles are
+   plain `Cave`), so this guards a future map — but the branch short-circuits past that test, and
+   it was only harmless while the vector came out mostly-False.
+
+**THE A/B — real production code in both arms, produced via `git stash`, never re-implemented.**
+
+| | BEFORE | AFTER |
+|---|---|---|
+| `repro_impassable_dirs.py` exit code | **1** | **0** |
+| VICTORY_ROAD_1F entry-vector mismatches | **29 / 29** (`[--S-]` vs `[NE-W]`) | **0 / 29** |
+| exit half implemented | **False** | **True** |
+| `calculate_path` onto those tiles | **NO-PATH from every direction** | `OK len=1` on the legal ones |
+| MOSSDEEP_CITY control (0 such tiles) | — | **byte-identical to BEFORE** |
+| SEAFLOOR_CAVERN_ROOM1 negative control | 0 live / 0 bad | 0 live / 0 bad |
+
+‼ **The severity was worse than "over-blocked".** Before the fix, *every* approach to all 29 live
+Victory Road tiles failed — including the legal from-the-south one — because the only direction the
+old model permitted was the one whose source tile is solid rock. **Those 29 walkable tiles were
+completely invisible to the planner**, and the same is true of the 144 in the Regi tombs and the
+89 in Shoal Cave.
+
+**New artifacts.** `tools/story-dev/repro_impassable_dirs.py` — now **gate #17** in `run_gates.py`
+(all 17 PASS, 124.3s). ‼ It reads the **real production `PathTile` objects** rather than recomputing
+the model, because the probe that *did* recompute reproduced the bug exactly and therefore could
+never have caught it. `tools/story-dev/probe_ki59_routing_ab.py` — the two-arm routing A/B with its
+collateral-damage control, with the exact stash/diff recipe in its docstring.
+
+**Lockstep correction.** `tools/story-dev/probe_shoal_tide.py:352-374` replicated the inversion and
+gained the missing exit rule. ✅ **Its headline numbers re-derived on the fixed model are UNCHANGED
+— `entrance-room spin tiles at LOW: 278`, `surviving HIGH tide: 0`, all controls PASS.** The flag
+raised earlier today therefore RESOLVES: the user-delegated **"Shoal Cave is NOT adopted"** ruling
+stands, and now rests on a correct model instead of a buggy one. *(Why it did not move: only 12 of
+that room's 136 `Impassable *` tiles are live, and none sat on the reachable region's boundary.)*
+
+**Regression evidence.** All 17 gates PASS. The `MOSSDEEP_CITY` control proves no collateral change
+on maps that cannot reach the branch — which is every map without `Impassable *` tiles, i.e. 467 of
+518. ⚠ **sandbox↔custom drift is now 3** (`map_path.py` joins `early_game.py` + `story_mode.py`);
+**promotion is the USER's call and has not been requested.**
+
+**Live-navigation regression check.** `--driver ch21dive` re-driven from `post_dive.ss1` AFTER the
+change: `legs=6/6 at_entrance=True got_out=True can_continue=True  ACCEPTANCE: PASS` — identical to
+the result on record before it. A real route (Mossdeep → ROUTE128 → dive → the cavern → back out to
+open ocean) planned and walked by the changed pathfinder, not just a static assertion.

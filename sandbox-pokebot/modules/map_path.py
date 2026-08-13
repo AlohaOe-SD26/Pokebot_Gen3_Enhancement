@@ -67,6 +67,14 @@ class PathTile:
     needs_acro_bike: bool
     needs_bunny_hop: bool
     cannot_run: bool
+    # KI-59 / `#24-impassabledirs`. Directions in which the player may not LEAVE this tile.
+    # ‼ `accessible_from_direction` can only ever express "may I ENTER this tile", because
+    # `is_tile_accessible()` is handed the NEIGHBOUR. The decomp blocks both halves — see
+    # `IsMetatileDirectionallyImpassable` (`src/event_object_movement.c:4715-4722`), which ORs
+    # `gOppositeDirectionBlockedMetatileFuncs[dir]` applied to the tile you are STANDING ON with
+    # `gDirectionBlockedMetatileFuncs[dir]` applied to the destination. This field is the first
+    # half, and it is checked on the SOURCE tile in the A* expansion loop.
+    blocked_exit_directions: set[Direction]
 
     @property
     def global_coordinates(self) -> tuple[int, int]:
@@ -110,6 +118,7 @@ class PathMap:
 
             for tile in all_tiles:
                 accessible_from_direction = [False, False, False, False]
+                blocked_exit_directions: set[Direction] = set()
                 waterfall_to = None
                 forced_movement_to: dict[Direction, tuple[tuple[int, int], tuple[int, int], int]] | None = None
                 muddy_slope_to = None
@@ -126,10 +135,33 @@ class PathMap:
                             dir = Direction[direction]
                             accessible_from_direction[dir] = True
                 elif tile.tile_type.startswith("Impassable "):
+                    # KI-59 / `#24-impassabledirs`, fixed 2026-08-13.
+                    # `MB_IMPASSABLE_<D>` means "this tile's <D> EDGE is a wall" (decomp
+                    # `src/event_object_movement.c:893-905` + `:4715-4722`): it blocks ENTERING
+                    # across that edge — i.e. travelling opposite(D) — *and* LEAVING across it,
+                    # travelling D. Every other direction is unaffected.
+                    # ‼ This used to start all-False and SET `[opposite(D)]` True, which is the
+                    # exact COMPLEMENT of the truth: it refused all three legal entries and
+                    # permitted the single illegal one. Proven on VICTORY_ROAD_1F, where all 29
+                    # live tiles read `[--S-]` against a correct `[NE-W]`.
+                    # ‼ Only tiles with collision == 0 reach this branch (see the `if` above) —
+                    # 401 of the 2,658 such tiles in the game. All 115 in the Seafloor Cavern have
+                    # collision != 0, which is why KI-59 never gated that chapter.
+                    accessible_from_direction = [True, True, True, True]
                     impassable_directions = tile.tile_type[11:].replace(" and ", "/").split("/")
                     for direction in impassable_directions:
                         dir = Direction[direction]
-                        accessible_from_direction[dir.opposite()] = True
+                        accessible_from_direction[dir.opposite()] = False
+                        blocked_exit_directions.add(dir)
+                    if self._is_optional_blocker(tile.local_position):
+                        # This branch short-circuits past the `_is_optional_blocker` test in the
+                        # final `elif`. That was harmless while the vector came out mostly-False;
+                        # now that it comes out mostly-True, a tile that is BOTH `Impassable *` and
+                        # a dynamic blocker would otherwise become walkable and defeat its flag
+                        # gate. Measured 2026-08-13: no such tile currently exists (the four salt
+                        # tiles are plain `Cave`), so this is a guard against a future map, not a
+                        # live fix — but the interaction is real and cost nothing to close.
+                        accessible_from_direction = [False, False, False, False]
                 elif tile.tile_type == "Waterfall":
                     tile_south = all_tiles[tile_index(tile.local_position[0], tile.local_position[1] + 1)]
                     if tile_south is not None:
@@ -326,6 +358,7 @@ class PathMap:
                             or not map_data.is_running_possible
                             or tile.tile_type in ("Long Grass", "No Running", "Hot Springs", "Fortree Bridge")
                         ),
+                        blocked_exit_directions=blocked_exit_directions,
                     )
                 )
             for map_object in map_data.objects:
@@ -849,6 +882,16 @@ def calculate_path(
             )
 
         for direction in potential_neighbours:
+            # KI-59 exit half. The decomp blocks LEAVING a tile across a walled edge, via
+            # `gOppositeDirectionBlockedMetatileFuncs` applied to the tile the player is STANDING
+            # ON (`src/event_object_movement.c:4715-4722`). `is_tile_accessible()` below is handed
+            # the NEIGHBOUR and can therefore never express this, so the check belongs here, on the
+            # source tile. Without it the corrected entry rule alone would still let the planner
+            # walk north off a cliff edge — real, not theoretical: 22 of Island Cave's 48 live
+            # tiles have open floor to their north.
+            if direction in tile.blocked_exit_directions:
+                continue
+
             neighbour_coordinates = potential_neighbours[direction]
             if tile.map.contains_global_coordinates(neighbour_coordinates):
                 neighbour = tile.map.get_global_tile(neighbour_coordinates)

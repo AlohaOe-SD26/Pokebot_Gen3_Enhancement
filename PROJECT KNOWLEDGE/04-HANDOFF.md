@@ -122,7 +122,20 @@ list as `#24-ch20rename`. Until then: when this file says §Ch21 and means the c
 * **The REGI arc is the user's ask** — read **KI-69**. ‼ **Emerald reversed the party order:
   WAILORD first, RELICANTH last**, and the wrong order fails **silently**. ‼ **The Regi battle is
   UNRECOVERABLE** — a KO *or* a whiteout deletes the encounter permanently.
-* **‼ NEWEST RESULT (2026-08-13, this session): KI-59's HEADLINE WAS WRONG AND IS RETRACTED IN FOUR
+* **✅✅ KI-59 IS FIXED, BOTH HALVES, A/B PROVEN (2026-08-13, latest).** `map_path.py`'s entry vector
+  now starts all-True and CLEARS `[opposite(D)]`, and a **NEW `PathTile.blocked_exit_directions`**
+  carries the decomp's *exit* rule, checked on the SOURCE tile in the A* loop — `is_tile_accessible`
+  is handed the NEIGHBOUR and structurally could never express it. **THE A/B on `VICTORY_ROAD_1F`:
+  before, `calculate_path` returned NO-PATH from EVERY direction onto all 29 live tiles — they were
+  completely invisible to the planner; after, the legal approaches return `OK len=1`.** The gate
+  `repro_impassable_dirs.py` goes **exit 1 → exit 0** (29/29 mismatches → 0/29) and is now **gate
+  #17**. **Collateral control:** the `MOSSDEEP_CITY` arm of `probe_ki59_routing_ab.py` is
+  **byte-identical** across both arms (real production code both times, via `git stash`).
+  ‼ **`probe_shoal_tide.py` was corrected in lockstep** — it had COPIED the bug, so it agreed with
+  production while both were wrong — and **its numbers re-derived on the fixed model are UNCHANGED
+  (LOW 278 / HIGH 0)**, so the **"Shoal Cave is NOT adopted"** ruling stands on a correct model.
+  ⚠ **This raises sandbox↔custom drift to 3. Promotion is the USER's call and has not been asked.**
+* **‼ THE MEASUREMENT THAT PRECEDED IT: KI-59's HEADLINE WAS WRONG AND IS RETRACTED IN FOUR
   DOCS.** The inversion in `map_path.py:128-132` is **real and decomp-confirmed** — for
   `Impassable North` the shipped `[--S-]` is the *exact complement* of correct `[NE-W]`, so it
   refuses all three legal entries **and permits the one illegal one**. ⛔ **But it was NEVER a
@@ -169,7 +182,7 @@ burden here is so heavy, and why negative results are treated as the most valuab
 | party ORDER | ✅ **PROVEN 2026-08-13.** `--driver roster` from `saves/post_dive.ss1` → `phases=4/4 saw_j_nonzero=True idempotent=True restored=True can_continue=True ACCEPTANCE: PASS`. Raw transcripts (both A/B arms) in `ai-research-notes/2026-08-13-roster-drive-predictions.md`. ‼ The **deposit/withdraw** half of `#24-roster` is still open. |
 | upstream | checked **2026-08-13**, still `5dd898f8` — no change. ‼ This row goes stale on a CALENDAR DAY, not on an event: if today's date is later than the one shown, **the daily check is DUE** (`git fetch upstream-pokebot`, compare against `40cakes repo/UPDATE-LOG.md`). Do not read it as satisfied. |
 | restore point | **`restore/2026-08-13-pre-ki63-promotion`** (annotated, pushed) — taken immediately BEFORE promoting KI-63's fix. Older: `restore/2026-08-13-pre-roster-promotion`, `restore/2026-08-12-pre-ch1819-promotion`. |
-| sandbox ↔ custom drift | ⚠ **EXACTLY 2, both deliberate and sandbox-only (2026-08-13, latest):** `modules/story/early_game.py` (the new `ensure_hm_learner_making_room`) and `plugins/custom_modes/story_mode.py` (both HM call sites wired to it). **This is KI-63's PRODUCTION WIRING, driven to a PASS but NOT promoted — promotion has not been asked for.** ⛔ Until it is, `custom-pokebot`'s copy of the KI-63 fix is **INERT**: it reads `_needs_party_slot` and nothing there sets it. Earlier today drift was ZERO twice (`restore/2026-08-13-pre-roster-promotion`, `restore/2026-08-13-pre-ki63-promotion`). ‼ **MEASURE, don't trust this row** — the loop is below in "HOW TO RUN / TEST". |
+| sandbox ↔ custom drift | ⚠ **EXACTLY 3 as of 2026-08-13 (latest).** ‼ **`modules/map_path.py` is the NEW third** — KI-59's fix (entry inversion + the new `blocked_exit_directions` exit half), A/B proven on `VICTORY_ROAD_1F` with a byte-identical `MOSSDEEP_CITY` collateral control, gated by `repro_impassable_dirs.py`. **NOT promoted — the USER's call, not asked for.** ⛔ Until it is, `custom-pokebot`'s planner still cannot see the 401 live `Impassable *` tiles (Regi tombs 144, Shoal Cave 98, Victory Road 58). The other two, unchanged, described next: **EXACTLY 2, both deliberate and sandbox-only (2026-08-13, earlier):** `modules/story/early_game.py` (the new `ensure_hm_learner_making_room`) and `plugins/custom_modes/story_mode.py` (both HM call sites wired to it). **This is KI-63's PRODUCTION WIRING, driven to a PASS but NOT promoted — promotion has not been asked for.** ⛔ Until it is, `custom-pokebot`'s copy of the KI-63 fix is **INERT**: it reads `_needs_party_slot` and nothing there sets it. Earlier today drift was ZERO twice (`restore/2026-08-13-pre-roster-promotion`, `restore/2026-08-13-pre-ki63-promotion`). ‼ **MEASURE, don't trust this row** — the loop is below in "HOW TO RUN / TEST". |
 | **if stopped mid-task** | **NOTHING IS PARKED.** Everything is committed and pushed. Start at "NEXT ACTIONS". |
 
 ## ✅ WHAT SHIPPED IN THE LATEST SESSION (§Ch19 + promotion + roster)
@@ -550,7 +563,12 @@ teaching Dive/Dig/Flash. ‼ **Relicanth is underwater-only, so Dive is upstream
 >    * ⚠ Two hazards recorded in KI-54 before anyone codes in that room: `MapLocation` always
 >      resolves the **low-tide** layout for (24,46), so in-room planning at high tide plans against
 >      the wrong map; and (20,30) counts as a south-arrow warp, so never spin on or below it.
-> 3. ⛔ **RETRACTED 2026-08-13, MEASURED — "Fix KI-59 before the cavern exists" was WRONG.** The 115
+> 3. ✅ **DONE 2026-08-13 — KI-59 IS FIXED (both halves) AND GATED as `repro_impassable_dirs.py`.**
+>    A/B on `VICTORY_ROAD_1F`: exit 1 → exit 0, 29/29 mismatches → 0/29, and `calculate_path` went
+>    from NO-PATH-from-every-direction to `OK len=1` on the legal approaches. `MOSSDEEP_CITY`
+>    collateral control byte-identical. **The only thing left on this item is PROMOTION, which is
+>    the USER's call** (drift is now 3). The retraction that reprioritised it follows.
+>    ⛔ **RETRACTED 2026-08-13, MEASURED — "Fix KI-59 before the cavern exists" was WRONG.** The 115
 >    `Impassable *` tiles in the cavern are real, but **every one has `collision=1`** and
 >    `map_path.py:128` is the **`elif` of `if tile.collision != 0:` (`:118`)** — so **none of them
 >    reach the buggy branch**, and the prescribed A/B on `SEAFLOOR_CAVERN_ROOM1` would have measured
@@ -714,14 +732,18 @@ PYTHONUTF8=1 py -3.12 probe_gym_solve.py            # re-derive the 117-step gym
 
 # ‼ THE STANDING SUITE — RUN IT WITH ONE COMMAND. The list lives in CODE now, not in this prose,
 #   because this comment advertised 15 gates for a whole session after a 16th was added:
-PYTHONUTF8=1 py -3.12 run_gates.py            # all 16, exits non-zero on any failure (~123s)
+PYTHONUTF8=1 py -3.12 run_gates.py            # all 17, exits non-zero on any failure (~124s)
 PYTHONUTF8=1 py -3.12 run_gates.py --quick    # the 10 needing no ROM (~3s)
 PYTHONUTF8=1 py -3.12 run_gates.py --list     # what is in the suite
-# (reference only — run_gates.py's GATES table is authoritative) the 16, all exit 0 2026-08-13:
+# (reference only — run_gates.py's GATES table is authoritative) the 17, all exit 0 2026-08-13:
 #   preflight, lint_docs, verify_fixtures, audit_flag_names, repro_undefined_names,
 #   repro_no_silent_except, repro_roster_reorder, repro_multi_battle_partner,
 #   repro_whiteout_abort, repro_gym_whiteout_guard, repro_hm_slot_wiring, probe_chapter_order,
-#   probe_dive_learner, probe_slot_free_plan, probe_regi_capabilities, probe_dive_routing
+#   probe_dive_learner, probe_slot_free_plan, probe_regi_capabilities, probe_dive_routing,
+#   repro_impassable_dirs
+#   ‼ repro_impassable_dirs (NEW 2026-08-13) is KI-59's A/B gate. It reads the REAL production
+#     PathTile objects and compares them to the DECOMP, because the probe that re-implemented the
+#     model (probe_shoal_tide.py) had copied the bug and so could never have failed.
 #   ‼ repro_hm_slot_wiring (NEW 2026-08-13) asserts KI-63's chain is still CONNECTED end to end.
 #     It exists because the previous failure was a chain of individually-correct parts with ONE
 #     LINK MISSING, and no test, gate or green driver caught it — only a diff review did.
@@ -734,7 +756,8 @@ PYTHONUTF8=1 py -3.12 probe_chapter_order.py --build custom   # ‼ also check t
 #                      if (Test-Path -LiteralPath $c) { git diff --no-index --quiet -- $c $_.FullName
 #                                                       if ($LASTEXITCODE -ne 0) { "differs: $rel" } }
 #                      else { "MISSING in custom: $rel" } }
-#   ‼ EXPECTED as of 2026-08-13: exactly 2 — `modules/story/early_game.py` and
+#   ‼ EXPECTED as of 2026-08-13: exactly 3 — `modules/map_path.py` (KI-59's fix, NEW),
+#   `modules/story/early_game.py` and
 #   `plugins/custom_modes/story_mode.py` (KI-63's PRODUCTION WIRING, driven but NOT promoted).
 #   ‼ NOT `roster.py`/`menuing.py` — those were PROMOTED 2026-08-13 and now show ZERO drift.
 #   Anything else is unexplained drift.
@@ -772,7 +795,7 @@ PYTHONUTF8=1 py -3.12 story_harness.py at_mossdeep_leaders.ss1 --driver mossdeep
 to a file and echo `$?` (this nearly recorded a PASS that had never run).
 ‼ **A driver can fight; a hand-driven probe cannot.** Battle handling lives in the main loop's
 listeners, not inside a bot mode's generator (`modules/battle_fault.py:5`).
-**‼ THE AUTHORITATIVE GATE LIST IS `run_gates.py`'s `GATES` TABLE — not this prose.** All 16 exit 0. Do not
+**‼ THE AUTHORITATIVE GATE LIST IS `run_gates.py`'s `GATES` TABLE — not this prose.** All 17 exit 0. Do not
 reconstruct it from the prose below; there are 94 `repro_*.py` files and the older text says "the
 ten standing repro_*" without naming them, which is not reproducible. Current pass counts, measured:
 `repro_gym_whiteout_guard.py` **5/5**, `repro_roster_reorder.py` **16/16**,

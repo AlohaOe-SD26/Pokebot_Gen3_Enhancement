@@ -364,10 +364,28 @@ def accessible_from_direction(grid, position):
                 result[DIRECTION_INDEX[name]] = True
         return result
     if tile_type.startswith("Impassable "):
+        # ‼ CORRECTED 2026-08-13 (KI-59). This used to read
+        #     result[(DIRECTION_INDEX[name] + 2) % 4] = True
+        # on an all-False base, faithfully replicating the BUG that was then in `map_path.py` —
+        # which is why this probe agreed with production while both were wrong. `Impassable <D>`
+        # means "this tile's <D> EDGE is a wall": start all-True and CLEAR opposite(D).
+        result = [True, True, True, True]
         for name in tile_type[11:].replace(" and ", "/").split("/"):
-            result[(DIRECTION_INDEX[name] + 2) % 4] = True
+            result[(DIRECTION_INDEX[name] + 2) % 4] = False
         return result
     return [True, True, True, True]
+
+
+def blocked_exit_directions(grid, position):
+    """KI-59 exit half: directions in which the player may NOT LEAVE `position`.
+
+    Mirrors `PathTile.blocked_exit_directions`. A walled edge blocks travel across it in BOTH
+    directions, and a fill that models only entry will walk straight off a cliff.
+    """
+    tile_type = grid[position][2]
+    if not tile_type.startswith("Impassable "):
+        return set()
+    return {DIRECTION_INDEX[name] for name in tile_type[11:].replace(" and ", "/").split("/")}
 
 
 DIRECTION_INDEX = {"North": 0, "East": 1, "South": 2, "West": 3}
@@ -390,12 +408,15 @@ def reachable_on_foot(grid, size, start):
     while queue:
         position = queue.pop()
         elevation = seen[position]
+        exits_blocked = blocked_exit_directions(grid, position)
         for direction, (dx, dy) in DIRECTION_STEP.items():
             neighbour = (position[0] + dx, position[1] + dy)
             if not (0 <= neighbour[0] < width and 0 <= neighbour[1] < height):
                 continue
             if neighbour in seen:
                 continue
+            if direction in exits_blocked:
+                continue  # KI-59 exit half: cannot LEAVE this tile across a walled edge
             if not accessible_from_direction(grid, neighbour)[direction]:
                 continue
             neighbour_elevation = grid[neighbour][3]
