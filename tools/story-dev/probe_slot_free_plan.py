@@ -164,13 +164,24 @@ head("4 — IS THERE ANYWHERE TO DEPOSIT TO?")
 try:
     from modules.story.pc_trip import box_views
 
-    box = box_views()
-    print(f"  box occupants: {len(box)}")
-    for view in list(box)[:8]:
+    # ‼ `box_views()` RETURNS A 2-TUPLE `(views, mons)` — parallel lists, not a list of views.
+    # The first version of this probe did `len(box_views())` and therefore printed "box
+    # occupants: 2" **for an empty box, always**, because it was measuring the tuple. That wrong
+    # number reached a commit message before an audit caught it. Unpack it.
+    # ‼ And note the honest-failure contract: `box_views` returns `([], [])` on ANY read failure,
+    # so "empty" and "unreadable" look identical from here — which is why the count is printed
+    # with that caveat rather than asserted.
+    views_in_box, mons_in_box = box_views()
+    print(f"  box occupants: {len(mons_in_box)}")
+    for view in views_in_box[:8]:
         print(f"    {view}")
+    if not mons_in_box:
+        print("    (empty — or unreadable; `box_views` cannot distinguish the two)")
 except Exception as error:  # noqa: BLE001 - an unreadable box is reported, not assumed empty
     print(f"  <could not read the box: {type(error).__name__}: {error}>")
-print("\n  (An empty box is FINE for a deposit — it only mattered for the withdraw direction.)")
+print("\n  (An empty box is FINE for a DEPOSIT — it only mattered for the withdraw direction,")
+print("   which this plan deliberately avoids: `ensure_hm_learner` tests the PARTY, so routing")
+print("   the catch through the box would need a stop-condition rewrite as well.)")
 
 head("VERDICT")
 print(f"  blocker confirmed         : {blocked}")
