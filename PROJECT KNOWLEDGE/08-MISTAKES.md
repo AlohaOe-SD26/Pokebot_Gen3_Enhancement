@@ -5850,3 +5850,54 @@ two diverge, so the copy cannot silently rot into a second opinion that is reall
 When an instrument is found wrong, list what was decided using it and re-derive those numbers
 explicitly — do not assume the conclusion survives, and do not quietly reopen a ruling that was the
 user's to make: re-measure, report, and let them decide.*
+
+## 2026-08-13 — I built an A/B whose two arms were THE SAME CODE, and the mechanism I used to build it (`git stash`) silently detonated an unrelated three-week-old stash
+
+**Symptom, in order.** To re-run the KI-59 routing A/B after extending the probe, I used the same
+recipe as before: `git stash push -- sandbox-pokebot/modules/map_path.py`, run, `git stash pop`.
+Git replied **"No local changes to save"** — because by then the fix was *already committed*, so
+there was nothing in the working tree to stash. No stash was created. The following `git stash pop`
+therefore popped **`stash@{0}`, a pre-existing stash from commit `e0f723e4` (2026-07-24), created
+three weeks ago by a session that is long gone**, and it conflicted: `UU
+sandbox-pokebot/modules/story/early_game.py`, 3 conflict-marker lines in a file I had never touched.
+
+**‼ THE DANGEROUS HALF IS NOT THE CONFLICT — IT IS THE SILENT NULL.** The conflict was loud and I
+fixed it in a minute. But the "BEFORE" arm had just run **the fixed code**, because the stash never
+happened. Both arms were identical. Had the conflict not fired, I would have diffed two identical
+outputs, seen no difference on the early-ladder maps, and reported **"no regression"** from an
+experiment that never varied anything. A green result from an experiment that did not run is worse
+than no experiment.
+
+**Root cause.** I built an experiment on `git stash` — a **global, stateful stack that may contain
+other people's work** — and I never asserted that the arm was actually the arm. `git stash push`
+"succeeding" (exit 0) is not evidence that anything was stashed.
+
+**The fix that worked.** Replaced the stash with a **file swap plus an explicit identity assertion**:
+extract the pre-fix file with `git show <rev>:<path>`, copy it in, and *prove* it is the old one by
+counting a symbol only the new one contains (`blocked_exit_directions count = 0`, expect 0; the
+fixed copy, expect > 0). Then restore and confirm `git diff HEAD -- <path>` is empty. The re-run
+produced a real difference, so the arms were genuinely different.
+
+**Recovery, non-destructively.** `git checkout HEAD -- <conflicted file>` restored it (0 markers,
+identical to HEAD) and **the stash entry survived** — git keeps it when a pop conflicts. Nothing was
+lost. ⛔ I did NOT `git stash drop`, `reset --hard`, or `clean`: the stash is not mine to discard.
+
+**What it uncovered, which is worth more than the mistake cost.** A **stranded 14-line fix from
+2026-07-24** has been sitting in `stash@{0}` for three weeks — a Fortree Gym guard whose own comment
+says the bug it fixes *"ended the DEEPEST run this project has produced"*. ✅ Checked: its substance
+(`if get_global_script_context().is_active or not player_avatar_is_controllable():` before riding out
+a scene) **IS present in today's `early_game.py`**, reimplemented during the rotating-gate rewrite —
+so the stash is **functionally superseded and safe to drop, which is the USER's call, not mine.**
+
+**Prevention rules.**
+*(1) **An A/B arm must ASSERT that it is the arm.** Before trusting any before/after measurement,
+prove the code under test actually differs — check for a symbol, a hash, or a version marker. An
+arm that silently failed to change produces a green null that looks like a pass.*
+*(2) **Never use `git stash` to build an experiment, and never `git stash pop` unqualified.** The
+stash is a global stack that can hold work from other sessions and other machines. Use
+`git show <rev>:<path>` into a temp file and swap, which is local, explicit and reversible.*
+*(3) **`exit 0` from a VCS command is not evidence that it did the thing you wanted.** "No local
+changes to save" is a success exit code and a no-op.*
+*(4) At session start, **`git stash list` is part of the sync ritual.** The kit checks branch
+ahead/behind and uncommitted files, but a stash is invisible to `git status` and can strand real
+work indefinitely — this one for three weeks.*

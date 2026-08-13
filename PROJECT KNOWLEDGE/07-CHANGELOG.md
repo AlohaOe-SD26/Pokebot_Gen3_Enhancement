@@ -12717,3 +12717,31 @@ on maps that cannot reach the branch — which is every map without `Impassable 
 change: `legs=6/6 at_entrance=True got_out=True can_continue=True  ACCEPTANCE: PASS` — identical to
 the result on record before it. A real route (Mossdeep → ROUTE128 → dive → the cavern → back out to
 open ocean) planned and walked by the changed pathfinder, not just a static assertion.
+
+### 2026-08-13 — KI-59 early-ladder regression measured (and a three-week-old stranded stash found)
+
+`probe_ki59_routing_ab.py` gained an **EARLY-LADDER REGRESSION** section. The fix changes behaviour
+by design on the 51 maps carrying `Impassable *` tiles, but almost all of those are UNBUILT content
+(Victory Road, the Regi tombs, Shoal Cave, Artisan Cave, Mirage Tower, the Contest Hall). Only three
+built-content maps carry LIVE tiles, and one of them is the room **§Ch1 begins in**. Both arms were
+produced by swapping the pre-fix file in (`git show 8288e63c:…`), never by re-implementation:
+
+| map | before | after |
+|---|---|---|
+| `LITTLEROOT_TOWN_BRENDANS_HOUSE_2F` (§Ch1 start) | 52/52 reachable, live tile `OK len=3` | **identical** |
+| `LITTLEROOT_TOWN_MAYS_HOUSE_2F` | 52/52, live tile `OK len=9` | **identical** |
+| `GRANITE_CAVE_B2F` (Steven's letter) | 50/350, same unreachable set, 4 live tiles NO-PATH | **identical** |
+| `VERDANTURF_TOWN_WANDAS_HOUSE` | live tile `(15,2)` **NO-PATH** | **`OK len=23`** |
+
+⇒ **The built ladder is unaffected.** The only change is one previously-invisible tile becoming
+reachable — a strict gain, with every other reachability set byte-identical.
+
+**‼ FOUND BY ACCIDENT, AND IT IS THE USER'S CALL: `stash@{0}` holds a 14-line fix from 2026-07-24
+(commit `e0f723e4`), stranded for three weeks.** It is a Fortree Gym guard — *"only ride out a scene
+that exists"* — whose comment says the wedge it fixes *"ended the DEEPEST run this project has
+produced"*. ✅ **Its substance is already in today's code** (`early_game.py`, the
+`get_global_script_context().is_active or not player_avatar_is_controllable()` guard before
+`_ride_out_scripted_scene`), reimplemented during the rotating-gate rewrite — so the stash is
+**functionally superseded and safe to drop**. ⛔ Not dropped: discarding a stash is destructive and
+is the user's decision. See `08-MISTAKES.md` for how it surfaced and why `git stash list` now belongs
+in the session-start ritual — a stash is invisible to `git status`.

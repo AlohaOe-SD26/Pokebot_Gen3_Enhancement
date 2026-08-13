@@ -116,4 +116,45 @@ for i in range(len(sample) - 1):
     src, dst = sample[i], sample[i + 1]
     print(f"  {str(src):<9} -> {str(dst):<9} {route(MapRSE.MOSSDEEP_CITY, src, dst)}")
 
+print(f"\n{BAR}\nEARLY-LADDER REGRESSION — the ONLY built-content maps that carry live tiles\n{BAR}")
+print("The fix changes behaviour by design on the 51 maps with `Impassable *` tiles. Most are")
+print("unbuilt content (Victory Road, the Regi tombs, Shoal Cave, Artisan Cave, the Contest Hall).")
+print("These are the ones the CURRENT ladder actually walks, so a regression here is a live bug:")
+print("  * LITTLEROOT_TOWN_BRENDANS_HOUSE_2F / MAYS_HOUSE_2F — ‼ §Ch1 BEGINS in this room")
+print("  * VERDANTURF_TOWN_WANDAS_HOUSE — the Rusturf Tunnel beat")
+print("  * GRANITE_CAVE_B2F — the Steven's-letter beat")
+print("Full reachability from a fixed anchor is printed as a canonical signature; diff the arms.\n")
+
+EARLY = [
+    MapRSE.LITTLEROOT_TOWN_BRENDANS_HOUSE_2F,
+    MapRSE.LITTLEROOT_TOWN_MAYS_HOUSE_2F,
+    MapRSE.VERDANTURF_TOWN_WANDAS_HOUSE,
+    MapRSE.GRANITE_CAVE_B2F,
+]
+
+for map_enum in EARLY:
+    g = grid_of(map_enum)
+    live = sorted(p for p, t in g.items() if t.tile_type.startswith("Impassable ") and t.collision == 0)
+    open_tiles = sorted(p for p, t in g.items() if is_open(t))
+    print(f"  --- {map_enum.name} --- open={len(open_tiles)} live_impassable={len(live)} at {live}")
+    if not open_tiles:
+        print("      (no open tiles — nothing to measure)")
+        continue
+    anchor = open_tiles[0]
+    reachable = 0
+    unreachable = []
+    for dst in open_tiles:
+        if dst == anchor:
+            continue
+        r = route(map_enum, anchor, dst)
+        if r.startswith("OK"):
+            reachable += 1
+        else:
+            unreachable.append(dst)
+    print(f"      anchor={anchor}  reachable={reachable}/{len(open_tiles) - 1}")
+    print(f"      unreachable={unreachable}")
+    # The live tiles themselves: can the planner stand on them at all?
+    for t in live:
+        print(f"      live tile {t}: from anchor -> {route(map_enum, anchor, t)}")
+
 print(f"\n{BAR}\nDONE — diff this output between the two arms.\n{BAR}")
