@@ -26,17 +26,47 @@ says for the second save, it must say the same thing for the first.
 Run:  cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_chapter_order.py
 """
 
+import argparse
 import pathlib
 import sys
 
+# ‼ `--build` ADDED 2026-08-12, AT PROMOTION TIME. This probe is the ONLY thing that validates the
+# KI-61 chapter ORDER fix — and it hard-coded `sandbox-pokebot`, so it could never test the build
+# the user actually runs. The promotion of §Ch18/§Ch19 copied `chapters.py` into `custom-pokebot`,
+# and no driver could have caught a mistake in it either: the harness drivers call the chapter
+# functions DIRECTLY and never go through `current_chapter()`. A guard that can only ever inspect
+# one of two forks is half a guard.
+_ap = argparse.ArgumentParser()
+_ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"],
+                 help="which fork to import from (default: sandbox)")
+_args, _rest = _ap.parse_known_args()
+sys.argv = [sys.argv[0]] + _rest
+
 REPO = pathlib.Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO / "sandbox-pokebot"))
+sys.path.insert(0, str(REPO / f"{_args.build}-pokebot"))
+print(f"[build] importing from {_args.build}-pokebot")
 
 from modules.context import context
 from modules.game import set_rom
 from modules.profiles import load_profile_by_name
 
-profile = load_profile_by_name("repro-ml")
+# ‼ THE PROFILE MUST EXIST IN THE BUILD BEING IMPORTED. `profiles/` is per-fork, and `repro-ml`
+# lives only in the sandbox — so `--build custom` died with "Path is not a valid profile directory"
+# on its very first run. Any profile serves here (this probe only needs a loaded ROM to read the
+# flag/var tables), so fall back rather than making the caller remember which forks have what.
+def _first_available_profile(*names):
+    for candidate in names:
+        try:
+            return load_profile_by_name(candidate)
+        except Exception:  # noqa: BLE001 - the next candidate is tried; a total failure raises below
+            continue
+    raise RuntimeError(
+        f"none of {names} is a profile in {_args.build}-pokebot/profiles — this probe needs one "
+        "only to load the ROM. Pass a build that has one, or create it."
+    )
+
+
+profile = _first_available_profile("repro-ml", "repro-custom", "cust-verify", "Nick - Emerald")
 context.profile = profile
 context.config.load(profile.path, strict=False)
 set_rom(profile.rom)

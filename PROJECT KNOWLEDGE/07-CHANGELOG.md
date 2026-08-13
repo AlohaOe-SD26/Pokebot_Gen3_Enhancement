@@ -12008,6 +12008,30 @@ Also hardened `clear_the_three_grunts()` to **bail when it leaves 2F** rather th
 wrong map for its whole 60,000-frame budget — the two ways off that floor (answering the prompt NO,
 or losing a grunt battle) both left the old predicate false.
 
+## 2026-08-12 — PROMOTION: §Ch18 + §Ch19 into `custom-pokebot` (user-approved), ladder 17 → 20 of 24
+
+Eight files (3 new, 5 modified). **Post-copy drift: ZERO** — every `.py` under `modules/` and
+`plugins/` compared file-by-file afterwards, 0 differing. Restore point taken first:
+`restore/2026-08-12-pre-ch1819-promotion`.
+
+**Verified by DRIVING `--build custom`, never by a diff** — three ways:
+* §Ch18 `--driver mossdeepbadge` → `badge=True out_of_gym=True whiteouts=0`;
+* §Ch19 `--driver spacecenter` → `dive=True hm08=True CAN-CONTINUE OK`, at **`frames=3558869`,
+  identical to the sandbox run** (the same sequence to the frame, not merely "both passed");
+* ‼ **and the REAL ladder** (`--driver story`), because an adversarial audit caught that the first
+  two do NOT exercise the Segment 18/19 wiring at all — the harness drivers call the chapter
+  functions **directly** and never run `StoryMode._play()`. Driven end-to-end on custom through the
+  actual ladder to `HM08 DIVE IS IN THE BAG - end of built content`.
+
+**Two stale claims corrected on the way:** the "sandbox-only" module list in `CLAUDE.md` /
+`02-ARCHITECTURE.md` is wrong (all of them are already in custom), and `probe_chapter_order.py` —
+the only guard on the KI-61 chapter ORDER — hard-coded the sandbox path and so could never test the
+fork the user runs. It gained a `--build` flag and now passes on both.
+
+‼ **Recorded as UNPROVEN on custom** rather than implied: KI-64 and KI-67 only do work on paths a
+clean pass never takes (a faint in a partner battle; a whiteout). Both are proven offline and, for
+KI-67, by a driven deliberate loss in sandbox — not yet on custom.
+
 ## 2026-08-12 (later) — the multi-battle faint replacer would have sent out STEVEN's Pokémon
 
 Fixed in **both** choosers (`battle_strategies/default.py` and the story override in

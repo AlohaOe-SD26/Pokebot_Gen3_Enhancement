@@ -1142,6 +1142,81 @@ and the fix. `repro_teach_prompt_window.py` also passes against this build
 
 ---
 
+## 2026-08-12 — PROMOTION: §Ch18 (Mossdeep Gym) + §Ch19 (Space Center & HM08 Dive), and the KI-64 / KI-67 battle fixes (8 files)
+
+**Promoted with explicit user approval.** The story ladder in `custom-pokebot` goes **17 → 20 of 24
+beats**. All eight files are ours (upstream has no Story mode; the two `battle_strategies` changes
+are fork-level policy changes to upstream code).
+
+| file | change | +/− |
+|---|---|---|
+| `modules/story/mossdeep_gym.py` | **NEW** — §Ch18: the rotating-tile statue puzzle executor + chapter | 466 lines |
+| `modules/story/mossdeep_gym_puzzle.py` | **NEW** — a PURE simulator of the puzzle (no emulator) | 242 lines |
+| `modules/story/space_center.py` | **NEW** — §Ch19: Space Center **and** the Dive hand-over | 813 lines |
+| `modules/story/early_game.py` | `StoryAbort` + `reraise_if_aborting` (KI-67) | +48 / −1 |
+| `modules/story/chapters.py` | the KI-61 chapter ORDER fix (the gym must precede 19) | +24 / −6 |
+| `modules/battle_strategies/default.py` | `ally_party_indices` — KI-64, the multi-battle partner guard | +53 / −0 |
+| `modules/battle_strategies/level_up.py` | the same guard on the chooser the story bot ACTUALLY calls | +12 / −0 |
+| `plugins/custom_modes/story_mode.py` | Segments 18 + 19, the partner guard, and a latch-leak fix | +80 / −4 |
+
+‼ **Post-copy drift: ZERO.** Every `.py` under `modules/` and `plugins/` was compared file-by-file
+after the copy — **0 differing files**, and an independent audit put the two trees at byte-identical
+across all 255 code/config files. A pre-copy audit also refuted a stale claim in `CLAUDE.md` /
+`02-ARCHITECTURE.md`: the "sandbox-only" modules (`endless_x4`, `tile_bridge`, `x4_logs`,
+`badge_case`, …) are **already present in custom**, so there was no sandbox-only dependency to strand.
+
+**Restore point taken BEFORE the copy:** `restore/2026-08-12-pre-ch1819-promotion` (annotated, pushed).
+
+### ✅ VERIFIED BY DRIVING `--build custom` — three ways, because one was not enough
+
+**1. §Ch18, `--driver mossdeepbadge`:**
+```
+[ch18c] RESULT badge=True map=MOSSDEEP_CITY at=(38, 10) controllable=True whiteouts=0
+[ch18c] ACCEPTANCE: PASS (needs BADGE07_GET AND controllable AND out of the gym; out_of_gym=True)
+```
+
+**2. §Ch19, `--driver spacecenter` from `post_mossdeep_gym.ss1`:**
+```
+[ch19c] RESULT dive=True hm08=True MOSSDEEP_SPACE_CENTER_STATE=3 map=MOSSDEEP_CITY at=(19, 11)
+        controllable=True whiteouts=0 frames=3558869
+[ch19c] CAN-CONTINUE OK(15wp to the Pokemon Center)
+[ch19c] ACCEPTANCE: PASS
+```
+‼ **`frames=3558869` is IDENTICAL to the sandbox run** — not merely "both passed", but the same
+sequence executed to the frame.
+
+**3. ‼ AND THE REAL LADDER, `--driver story`, because the first two do NOT exercise the wiring.**
+An adversarial audit caught this before it could become a false clean bill of health: the harness
+drivers call `do_space_center_chapter()` / `do_mossdeep_gym_chapter()` **directly** and never run
+`StoryMode._play()`, so a green driver run says nothing about the **Segment 18/19 wiring**, the
+`_done()` skip branches, or the `_guard()`s. Driven through the real ladder on custom:
+```
+Story: Ch19 party-select chose slots [0, 4, 2]; confirming
+Story: Ch19 the multi battle with Steven has started
+Story: Ch19 Space Center defended, MOSSDEEP_SPACE_CENTER_STATE=3
+Story: Ch19 HM08 Dive received (RECEIVED_HM_DIVE set, HM08 in the bag)
+Story: Ch19 out of Steven's house, in Mossdeep City at (19, 11)
+Story: HM08 DIVE IS IN THE BAG - end of built content.
+```
+
+**4.** `probe_chapter_order.py` gained a `--build` flag in the same change — it hard-coded the
+sandbox path, so the one guard that validates the KI-61 chapter ORDER could never test the fork the
+user runs. **Now passes on both** (`1 / 1 saves get the right next beat`).
+
+### ‼ OUTSTANDING AT PROMOTION TIME — read before quoting any of this
+* **KI-64 is UNPROVEN ON CUSTOM.** `ally_party_indices` only does work in the partner multi battle
+  *and* only when a replacement is needed. Every driven run had **zero faints**, so on custom it has
+  been exercised as a **no-op**. Its logic is proven offline (`repro_multi_battle_partner.py`, 5/5,
+  including the permuted-array arm); the live path is not.
+* **KI-67's recovery is likewise not exercised on custom** — a clean pass never raises `StoryAbort`.
+  Proven in sandbox by a deliberate loss (`--inject-weak`: `whiteouts=3 recoveries=3`, ~7,000 frames
+  between whiteouts). Re-running that against `--build custom` is the obvious next check.
+* **Two caveats on the OT-based partner guard:** a **traded** Pokémon would be misread as the ally
+  and wrongly excluded (unreachable today — no trade code exists), and a 1-in-65536 TID collision
+  would silently degrade it to pre-fix behaviour.
+* §Ch21 remains **blocked by KI-63** — HM08 is in the bag, but no party member can learn Dive and the
+  party is full.
+
 ## 2026-08-11 (second promotion of the day) — KI-51 whiteout guard, KI-52 fight-it-out fallback, and battle STATUS telemetry
 **Promoted with explicit user approval.** Three files, all ours (upstream has no Story mode; the
 battle-strategy change is a fork-level policy change to upstream code).

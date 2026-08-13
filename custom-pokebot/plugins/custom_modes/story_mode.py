@@ -155,7 +155,24 @@ class LevelUpTravelBattleStrategy(LevelUpLeadBattleStrategy):
             if not foe_types:
                 return super().choose_new_lead_after_faint(battle_state)
 
+            # ‼‼ THE ALLY'S POKEMON ARE IN OUR PARTY ARRAY IN A MULTI BATTLE, and this ranking
+            # PREFERS them. §Ch19's Space Center fight puts Steven's max-IV Metang L42 / Skarmory
+            # L43 / Aggron L44 into the party array; the key below sorts on (incoming damage,
+            # -outgoing, -hp_fraction, -level), and three fresh high-level mons win that comparison
+            # against our damaged party outright. The game then refuses the switch, so the party
+            # menu is handed a target it can never accept.
+            # ‼ EXCLUDED BY ORIGINAL TRAINER, NOT BY INDEX. The first version of this cut at
+            # `index >= 3` was measured WRONG: opening the battle party menu runs
+            # `UpdatePartyToBattleOrder`, which physically permutes the array, so index 1 becomes
+            # the ally's Metang and OUR mon moves to index 3 (`ch19d.log` f37745). A positional cut
+            # inverts itself exactly when a replacement is needed. See `ally_party_indices`.
+            from modules.battle_strategies.default import ally_party_indices
+
+            _ally = ally_party_indices(battle_state)
+
             def _excluded(index) -> bool:
+                if index in _ally:
+                    return True
                 if not battle_state.is_double_battle:
                     return False
                 for battler in (battle_state.own_side.left_battler, battle_state.own_side.right_battler):
@@ -2560,6 +2577,13 @@ class StoryMode(BotMode):
                 except Exception:
                     pass
                 if recoveries > 40:
+                    # ‼ CLEAR THE LATCH ON THE WAY OUT. `_STORY_ABORT` is a MODULE-GLOBAL in
+                    # `early_game`, shared by every mode, probe and driver in the process — and
+                    # this `raise` used to leave it SET. Whatever ran next (the endless loop's
+                    # next run, another mode) would then abort at its first `_check_abort()` for
+                    # no visible reason: a bug that would look like anything except this.
+                    # The `derails > 4` exit above does not leak; this one did.
+                    set_story_abort(False)
                     raise BotModeError(
                         "Story: too many whiteout recoveries in a row — stopping so I "
                         "don't loop forever. Check the team/route."
@@ -3550,11 +3574,63 @@ class StoryMode(BotMode):
             console.print("[dim]Story: Aqua Hideout already done — skipping.[/]")
         _guard("Aqua Hideout (Ch17)", lambda: _done("TEAM_AQUA_ESCAPED_IN_SUBMARINE"))
 
-        # END OF BUILT CONTENT. Next build: the SEAFLOOR CAVERN (ladder row 18) — Team Aqua
-        # fled there in the submarine, and Segment 17 is what sent them.
+        # --- Segment 18: the MOSSDEEP GYM (§Ch18, built 2026-08-12). ---
+        #     Surf from Lilycove to Mossdeep, then solve the gym's ROTATING-TILE STATUE PUZZLE
+        #     and beat Tate & Liza for the Mind Badge.
+        # ‼ THIS GYM IS NOT A MAZE AND NOT A WALK. Nine floor switches call
+        #     `moverotatingtileobjects`, which rotates every object standing on a matching
+        #     coloured arrow — including NINE OF THE TRAINERS. The corridors to three warp
+        #     panels are sealed by statues, so a plain collision planner is CORRECT to say
+        #     "no route" (that wrong answer cost four instruments and three write-ups; KI-58).
+        #     The route is searched over (player tile x every object position) on a model
+        #     validated against the live game, and re-solved after every interruption.
+        # ‼ LOSING HERE IS EXPENSIVE: a whiteout leaves the gym, and leaving RESETS the puzzle,
+        #     so the chapter re-enters and re-solves all 117 steps. It allows three attempts.
+        # ‼ Graded on the BADGE **and** controllable — `BADGE07_GET` is set mid-script, so a
+        #     flag-only test would call a `lockall`ed avatar a success.
+        from modules.story.mossdeep_gym import do_mossdeep_gym_chapter
+
+        if not _done("BADGE07_GET"):
+            yield from do_mossdeep_gym_chapter()
+        else:
+            console.print("[dim]Story: Mossdeep Gym already done — skipping.[/]")
+        _guard("Mossdeep Gym (Ch18)", lambda: _done("BADGE07_GET"))
+
+        # --- Segment 19: the MOSSDEEP SPACE CENTER + HM08 DIVE (§Ch19, built 2026-08-12). ---
+        #     Ride the forced Team Magma cutscene, cross the Space Center, beat the three grunts,
+        #     fight the MULTI BATTLE alongside Steven, then collect HM08 Dive at Steven's house.
+        # ‼ GRADED ON `RECEIVED_HM_DIVE`, NOT on `MOSSDEEP_SPACE_CENTER_STATE == 3`, because that
+        #     is what `chapters.py` grades chapter 19 on and the two are set in DIFFERENT
+        #     BUILDINGS. A segment that stopped at the battle would pass its own guard while
+        #     `current_chapter()` returned 19 for ever — and on the re-run the 2F Steven has been
+        #     `removeobject`'d, so there would be nobody left to talk to.
+        # ‼ THE CITY IS CUT IN TWO until the cutscene runs: the gym victory SPAWNS five Team Magma
+        #     NPCs onto the only land bridge (x=44, y=23-26), and our planner blocks loaded object
+        #     tiles — so no route to the Space Center door exists until they leave. Measured, and
+        #     it failed the first driven run exactly this way.
+        # ‼ THE STAIR GRUNT MUST BE TALKED TO. It has `sight_radius = 0` and stands ON the only
+        #     tile the stairs are reachable from, so navigating there can never succeed.
+        # ‼ THE PARTY-SELECTION MENU IS DRIVEN, NOT MASHED. A on an already-chosen mon DESELECTS
+        #     it, so A-mash toggles one slot for ever; each pick is verified against
+        #     `gSelectedOrderFromParty`. It brings the strongest THREE — bringing fewer is strictly
+        #     worse, because the loss condition sums HP over the player's picks only.
+        # ‼ LOSING IS A RETRY, NOT AN ERROR: the script calls `SetCB2WhiteOut` itself, halves the
+        #     money and warps to the last heal location, but leaves the var at 2. Three attempts.
+        from modules.story.space_center import do_space_center_chapter
+
+        if not _done("RECEIVED_HM_DIVE"):
+            yield from do_space_center_chapter()
+        else:
+            console.print("[dim]Story: Mossdeep Space Center already done — skipping.[/]")
+        _guard("Mossdeep Space Center + Dive (Ch19)", lambda: _done("RECEIVED_HM_DIVE"))
+
+        # END OF BUILT CONTENT. Next build: the SEAFLOOR CAVERN (§Ch20/§Ch21).
+        # ‼ §Ch21 IS BLOCKED BY KI-63 — no party member can learn Dive and the party is full, so
+        # `#24-pc` is a PREREQUISITE, not a later nicety. HM08 being in the bag is not enough.
         context.message = (
-            "Story: TEAM AQUA FLED IN THE SUBMARINE - end of built content. "
-            "NEXT (WIP): the Seafloor Cavern. Handing to manual."
+            "Story: HM08 DIVE IS IN THE BAG - end of built content. "
+            "NEXT (WIP): the Seafloor Cavern, which is BLOCKED until a Dive learner exists "
+            "(KI-63). Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         # ‼ Mark a GENUINE completion. Both this path and the give-up paths call

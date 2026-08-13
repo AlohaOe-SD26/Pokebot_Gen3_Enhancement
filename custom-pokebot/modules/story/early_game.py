@@ -108,10 +108,57 @@ def swap_train_active() -> bool:
     return _SWAP_TRAIN
 
 
+class StoryAbort(BotModeError):
+    """The whiteout unwind signal — a `BotModeError` so nothing that already catches one breaks.
+
+    ‼‼ IT NEEDS ITS OWN TYPE BECAUSE CHAPTER RETRY LOOPS WERE SWALLOWING IT (KI-67). Chapters like
+    `do_space_center_chapter` and `do_mossdeep_gym_chapter` wrap their attempts in
+    `except BotModeError` — deliberately, because losing a gym fight IS an expected outcome and the
+    recovery is "re-enter and re-solve". But the abort latch is only ever cleared by
+    `StoryMode.run`, so a chapter that caught the abort and retried IN PLACE ran straight into the
+    next `_check_abort()` and died instantly. One whiteout therefore burned all three attempts in a
+    handful of frames and the chapter reported three failures, two of them fabricated.
+
+    ‼ RE-RAISING IS NOT "GIVING UP ON THE RETRY" — it hands the retry to the only layer that can
+    perform it. `StoryMode.run` catches this, clears the latch, waits for the respawn, steps out of
+    the Pokémon Center and re-runs `_play()`, which re-enters the chapter from wherever the player
+    actually is (every chapter is resume-safe). That recovery is BOUNDED at 40 in a row.
+
+    Subclassing `BotModeError` is the whole point: every existing `except BotModeError` in the tree
+    keeps catching this exactly as before, so the only behaviour that changes is at the call sites
+    that explicitly opt to re-raise it."""
+
+
 def _check_abort() -> None:
     """Raise inside a segment's wait loop to unwind it for whiteout recovery."""
     if _STORY_ABORT:
-        raise BotModeError("Story: aborting the current step to recover from a whiteout.")
+        raise StoryAbort("Story: aborting the current step to recover from a whiteout.")
+
+
+def reraise_if_aborting(error: BaseException) -> None:
+    """First statement of any `except` that could swallow a whiteout unwind. KEYED ON THE LATCH.
+
+    ‼‼ WHY THE EXCEPTION TYPE IS NOT ENOUGH, and this predicate is. `StoryAbort` identifies the
+    abort only while the ORIGINAL object is in flight. Our retry loops routinely catch an error and
+    raise a BRAND-NEW one describing what they were trying to do — and that new error is an ordinary
+    `BotModeError`, with the abort's identity gone. Measured in our own code
+    (`space_center.py:191-214`): the six cutscene tiles are tried in a loop that catches per tile,
+    and if none succeeds the function raises *"the Team Magma NPCs are therefore still standing on
+    the only land bridge"*. After a whiteout that sentence is **a fabricated diagnosis** — the NPCs
+    are irrelevant, the player is standing outside a Pokémon Center. The same shape sits behind
+    "cannot reach the stair grunt" and "cannot reach Steven".
+
+    ‼ A LAUNDERED ABORT IS WORSE THAN A SWALLOWED ONE. A swallowed abort costs a retry budget; a
+    laundered one hands the next agent a confident, plausible, WRONG cause — and this project has
+    already lost multi-day investigations to exactly that (the reachability failures behind
+    KI-59/KI-60). Reading the latch survives every conversion, because the latch is the fact.
+
+    ‼ RE-RAISES THE ERROR IT WAS GIVEN, not a synthesized one. If a genuine navigation failure
+    happens on the same frame as a whiteout, the message will name the navigation failure — which is
+    fine: `StoryMode.run` branches on `_whiteout_pending`, not on the text, and recovers either way.
+    Do not "fix" that later by substituting a synthetic error; the original is more informative."""
+    if _STORY_ABORT:
+        raise error
 
 
 #: Overworld frames of NO party-EXP gain before `_story_spin` bails so the caller

@@ -204,14 +204,32 @@ CHAPTERS: list[Chapter] = [
             flag("TEAM_AQUA_ESCAPED_IN_SUBMARINE"),
             "Raid the Aqua Hideout (room-key + Electrode puzzle); Team Aqua "
             "escapes in the submarine."),
-    Chapter("18", 23, "Mossdeep & Space Center", "Rt 124/125 / Mossdeep",
-            flag("RECEIVED_HM_DIVE"),
-            "Surf to Mossdeep, defend the Space Center with Steven (double "
-            "battle), get HM08 Dive from Steven's house."),
-    Chapter("19", 24, "Gym 7 — Tate & Liza (Psychic)", "Mossdeep City",
+    # ‼ ORDER CORRECTED 2026-08-12 — THE GYM COMES FIRST. This pair used to be listed the other way
+    # round ("Mossdeep & Space Center" at order 23, "Gym 7" at 24), and 12-STORYMODE-DESIGN.md even
+    # recorded that order as "confirmed". It is not possible: the Space Center's Team Magma and
+    # Steven are HIDDEN until Tate & Liza are beaten. `MossdeepCity_Gym_EventScript_TateAndLizaDefeated`
+    # (`data/maps/MossdeepCity_Gym/scripts.inc:73-76`) is what CLEARS
+    # `FLAG_HIDE_MOSSDEEP_CITY_TEAM_MAGMA` and the three `..._SPACE_CENTER_*` hide flags.
+    #
+    # MEASURED IN OUR OWN HARNESS, not taken from the decomp (`probe_chapter_order.py`):
+    #     post_aqua.ss1        (6 badges) all four HIDE_ flags TRUE  MOSSDEEP_SPACE_CENTER_STATE=0
+    #     post_mossdeep_gym.ss1 (7 badges) all four HIDE_ flags FALSE MOSSDEEP_SPACE_CENTER_STATE=1
+    #
+    # ‼ WHY THE ORDER IS NOT COSMETIC. `_compute_badges_before()` derives each chapter's badge count
+    # by walking THIS LIST, and `current_chapter()` picks the bracket for the player's badge level
+    # and then the first unmet chapter in it. With the Space Center ahead of the gym it was computed
+    # as a SIX-badge chapter, so the moment the seventh badge landed it fell out of the bracket
+    # entirely and the detector reported "Seafloor Cavern — Kyogre" as the current beat, skipping
+    # both the Space Center and Dive. Measured on `post_mossdeep_gym.ss1` before this fix.
+    Chapter("18", 23, "Gym 7 — Tate & Liza (Psychic)", "Mossdeep City",
             flag("BADGE07_GET"), badge="Mind",
             objective="Win the double battle vs Tate & Liza for the Mind Badge "
-                      "(Dive becomes field-usable)."),
+                      "(Dive becomes field-usable). ‼ This also UNHIDES Team Magma and Steven at "
+                      "the Space Center, which is why it must precede chapter 19."),
+    Chapter("19", 24, "Mossdeep & Space Center", "Mossdeep City",
+            flag("RECEIVED_HM_DIVE"),
+            "Defend the Space Center from Team Magma alongside Steven (double "
+            "battle), then get HM08 Dive from Steven's house."),
     Chapter("20", 25, "Seafloor Cavern — Kyogre", "Rt 128 / Seafloor Cavern",
             flag("KYOGRE_ESCAPED_SEAFLOOR_CAVERN"),
             "Dive on Route 128 into the Seafloor Cavern; Archie awakens "
