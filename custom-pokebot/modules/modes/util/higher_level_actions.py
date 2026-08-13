@@ -215,6 +215,23 @@ def heal_in_pokemon_center(pokemon_center_door_location: PokemonCenter) -> Gener
         except Exception:  # noqa: BLE001 - never let the rotation break the heal path
             pass
 
+        # ‼ KI-63 — FREE ONE PARTY SLOT SO AN HM LEARNER CAN BE CAUGHT.
+        # Same piggyback contract as the two blocks around it: we are already inside the centre
+        # for a heal that was happening anyway, so this costs a few steps rather than a journey.
+        # ‼ OPT-IN, and deliberately NOT gated on `POKEBOT_PC_ROTATION` — that flag is pinned 0
+        # because it fires on EVERY heal and strips teams to the floor. This fires only when a
+        # caller has explicitly asked for room, exactly like `_hunted_counter_pids` below.
+        # ‼ IT IS THE CALLER'S JOB TO RE-CHECK: `deposit_one_dead_weight` returns a truthful
+        # boolean, and "nothing was safe to deposit" is a legitimate answer.
+        try:
+            from modules.context import context as _ctx
+            from modules.story.pc_trip import deposit_one_dead_weight
+
+            if getattr(_ctx.bot_mode_instance, "_needs_party_slot", False):
+                yield from deposit_one_dead_weight()
+        except Exception:  # noqa: BLE001 - never let a PC hiccup break the heal path
+            pass
+
         # ‼ #24-pcoverflow — COLLECT A COUNTER THAT LANDED IN THE BOX.
         # `resource_blocker` no longer refuses a catch when the party is full, so a hunted
         # counter can now be caught straight into the PC. Without this it would STAY there —

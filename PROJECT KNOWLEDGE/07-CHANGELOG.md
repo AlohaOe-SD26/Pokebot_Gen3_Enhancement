@@ -12362,3 +12362,19 @@ resolved — which is exactly why this project runs that pass) found two things 
   `plugins/`. Only `--driver divelearner` sets it, so in a real `StoryMode` run the piggyback never
   fires and the party-full raise still ends the chapter. **KI-63's capability is proven; production
   wiring is the remaining work.** Recorded in KI-63 and the handoff rather than left implied.
+
+## 2026-08-13 — PROMOTION: KI-63's Dive-learner acquisition into `custom-pokebot` (user-approved)
+
+Two files (`modules/story/pc_trip.py`, `modules/modes/util/higher_level_actions.py`).
+**Post-copy drift: ZERO.** Restore point taken first: `restore/2026-08-13-pre-ki63-promotion`.
+
+**Verified by DRIVING `--build custom`:** `ACCEPTANCE: PASS`, `freed_slot=True caught=True
+knows_dive=True can_dive=True surf_intact=True can_continue=True` — and **frame-identical** to the
+sandbox run (both end at f36047). `find_spec` was run separately with `custom-pokebot` on the path,
+so frame-identity could not be a silent fallback to the sandbox tree.
+
+‼ **RECORDED IN `DIVERGENCE-LOG.md` RATHER THAN IMPLIED — the headline is narrower than "KI-63 is
+fixed":** `_needs_party_slot` has **no production setter**, so in a real `StoryMode` run the
+piggyback never fires and the party-full raise still ends the chapter. The capability is proven;
+wiring `story_mode.py` is the remaining work. Also untested: a party containing an **egg**, a full
+box, and a hunt that runs out of balls. One anchor, so **n=1**.

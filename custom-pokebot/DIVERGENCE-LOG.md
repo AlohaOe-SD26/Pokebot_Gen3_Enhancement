@@ -1392,3 +1392,64 @@ Six swaps, every one landing its PID check **first attempt**, including
   deliberately not fixed.
 * The `PartyMenuExit` fix is proven only by construction and review — **never by a reproduced
   freeze**.
+
+---
+
+## 2026-08-13 (later) — PROMOTED: KI-63's Dive-learner acquisition (`deposit_one_dead_weight` + the `_needs_party_slot` piggyback)
+
+**User-approved promotion.** Two files; **post-copy drift: ZERO** across every `.py` under
+`modules/` and `plugins/`. Restore point taken first:
+**`restore/2026-08-13-pre-ki63-promotion`** (annotated, pushed).
+
+### 1. `modules/story/pc_trip.py` — NEW `deposit_one_dead_weight()`
+
+Frees **exactly one** party slot at a Poké Centre PC. It had to be written because **neither**
+existing deposit path can free a slot *before* a catch — which is what `ensure_hm_learner` needs,
+since it raises on a full party *before* it ever looks for a hunting ground:
+* `withdraw_from_box` opens `target = find_in_box(pids); if target is None: return` — with nothing
+  yet boxed it **returns having done nothing**; its deposit block is reachable only as a side
+  effect of withdrawing an already-boxed PID.
+* `deposit_dead_weight_if_worth_it` *is* a standalone one-deposit primitive but is a **silent
+  no-op** behind `POKEBOT_PC_ROTATION`, pinned 0 and measured harmful.
+
+‼ The contract is a **postcondition** ("there is now room"), verified by re-reading the party —
+never by "the PC call returned". It inherits `find_dead_weight`'s **sole-HM-carrier exemption**, so
+the party's only Surf user cannot be boxed by it.
+
+### 2. `modules/modes/util/higher_level_actions.py` — the `_needs_party_slot` piggyback
+
+An **opt-in** hook inside `heal_in_pokemon_center`, between the nurse and the exit, mirroring the
+two hooks already there ("piggyback, do not detour"). Deliberately **not** gated on
+`POKEBOT_PC_ROTATION` — that flag fires on *every* heal and strips teams to the floor; this fires
+only when a caller has explicitly asked for room.
+
+### ‼ VERIFIED BY DRIVING `--build custom`, never by a diff
+
+```
+[setup] build=custom
+[divelearner] STEP2 party 6 -> 5 freed=True            (Skitty L17 deposited)
+[divelearner] STEP3 balls 19 -> 17 caught=True         (Marill L13)
+[divelearner] VERIFY knows_dive=True can_dive=True surf_intact=True
+              '5:MarillL13[Tackle,Dive,Tail Whip,Water Gun]'
+[divelearner] ACCEPTANCE: PASS
+```
+**Frame-identical to the sandbox run** (both end at f36047). Import resolution checked separately
+with `find_spec` under `custom-pokebot`, so a frame-identical result could not be a silent fallback
+to the sandbox tree.
+
+### ‼‼ OUTSTANDING AT PROMOTION TIME — THE HEADLINE IS NARROWER THAN "KI-63 IS FIXED"
+
+* **THE CAPABILITY IS PROVEN; PRODUCTION IS NOT WIRED.** `_needs_party_slot` has **no setter
+  anywhere in `modules/` or `plugins/`** (verified by grep) — only `--driver divelearner` sets it.
+  **In a real `StoryMode` run the piggyback never fires**, `ensure_hm_learner(HM08)` still raises
+  *"the party is full"*, and the chapter still ends there. Wiring `story_mode.py` to catch that
+  error and set the flag is the remaining work. **Do not read this promotion as "§Ch21 is unblocked
+  in production".**
+* **§Ch21 itself still has to be BUILT.** This removes its blocker.
+* **The learner is a Marill L13 — 36 levels below the team.** An HM slave that `find_dead_weight`
+  would want to box on a later trip unless the sole-carrier exemption covers it.
+* **One anchor, `post_dive.ss1`.** A `.ss1` replays identically, so two passes are **n=1**.
+  Specifically untested: a party containing an **egg** (the egg-count bug this file's own history
+  records was found by review, not by a run), a box that is full, and a hunt that runs out of balls.
+* **The ground used is Route 117** (Marill, 10% of the land table at L13, 1,055 waypoints). The
+  better Shoal Cave ground was deliberately NOT adopted here.
