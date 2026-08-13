@@ -5654,3 +5654,40 @@ not belong in that commit.
 (3) ‼ When a mistake recurs, fix the HABIT, not the instance. The first occurrence was corrected
 perfectly and taught me nothing, because I changed the commit instead of changing what I do before
 every commit.*
+
+---
+
+## 2026-08-13 — four documents named a deposit path that could not do the job, and the replacement reintroduced the same silent no-op
+
+**Symptom.** `04-HANDOFF.md` and KI-54 both said: *"Freeing one slot reuses
+`withdraw_from_box:331-355`, which is live-proven and deposits exactly ONE mon."* Building KI-63 on
+that would have produced a driver that calls the named function, sees **nothing happen**, and then
+fails two calls downstream inside `ensure_hm_learner` with *"the party is full"*.
+
+**Root cause.** `withdraw_from_box` opens with `target = find_in_box(pids); if target is None:
+return` (`pc_trip.py:314-315`). Its deposit block is reachable **only as a side effect** of
+withdrawing an already-boxed PID. At the moment a slot needs freeing, nothing has been caught yet,
+so there is no PID — and the function returns having done nothing. The doc's author had read the
+deposit block (which is real, and does deposit exactly one mon) **without reading the guard six
+lines above it.**
+
+The obvious alternative, `deposit_dead_weight_if_worth_it`, *is* a standalone one-deposit
+primitive — but it routes through `plan_deposits`, whose first act is to return `worth_it: False`
+unless `POKEBOT_PC_ROTATION` is set (`pc_trip.py:83`). That flag is pinned **0** and measured
+harmful. So it too is a **silent no-op**.
+
+**‼ AND THEN THE REPLACEMENT DID IT AGAIN.** The new `deposit_one_dead_weight()` counted party
+room with a helper that **excluded eggs**, while `ensure_hm_learner` — the caller it exists to
+satisfy — counts every non-`None` slot (`early_game.py:4342`). A party of **5 mons + 1 egg** is
+FULL by the caller's test, but the new function would report *"already has room"* and return
+**True having deposited nothing**: the exact silent-no-op shape it was written to replace,
+reintroduced inside the replacement. Caught by adversarial review before it ever met an egg.
+
+**Prevention rules.** *(1) A "this function is proven" claim must name the ENTRY CONDITIONS under
+which it was proven. `withdraw_from_box`'s deposit block is genuinely live-proven — for withdrawals.
+Proven-in-context is not proven-for-your-context.
+(2) Read a function's early returns before quoting what its body does. The guard is part of the
+behaviour.
+(3) ‼ When a function exists to satisfy ONE specific caller's precondition, copy that caller's
+predicate VERBATIM rather than writing an equivalent-looking one. "Alive" and "occupies a slot"
+differ by exactly one case — an egg — and that case is invisible until it happens.*

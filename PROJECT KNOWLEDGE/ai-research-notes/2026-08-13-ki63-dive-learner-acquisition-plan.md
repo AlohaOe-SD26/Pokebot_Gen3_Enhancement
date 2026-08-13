@@ -147,3 +147,48 @@ yet. This project demotes statically-derived grounds (the Route 114 lesson).
 than starting a teach it cannot finish. `teach_hm_or_tm` (`items.py:188-205`) raises on the same
 condition. The self-inflicted "strand the bot mid-ocean by forgetting Surf" scenario is
 structurally prevented at both layers.
+
+
+---
+
+# 🔻 OUTCOME — `ACCEPTANCE: PASS` on the FIRST drive. KI-63's capability is proven.
+
+‼ `tools/story-dev/.gitignore:2` ignores `*.log` on purpose, so raw run logs are not committable
+here. The transcript is therefore transcribed verbatim, as with every other driven result today.
+This is the **control run after the egg-count fix** — the same outcome as the first drive, because
+`post_dive.ss1` has no egg (the fix is for the case that has not happened yet).
+
+```
+[divelearner] start party=['0:SceptileL49[Rock Smash,Strength,Leaf Blade,Slam]', '1:ZigzagoonL15[Tackle,Growl,Surf,Headbutt]', '2:SwellowL40[Peck,Wing Attack,Aerial Ace,Quick Attack]', '3:SkittyL17[Sing,Tackle,Tail Whip,Attract]', '4:MightyenaL44[Tackle,Taunt,Take Down,Bite]', '5:CastformL36[Powder Snow,Weather Ball,Sunny Day,Hail]']
+[divelearner] balls=19 knows_dive_already=False hm_learner_slot(HM08)=None
+[divelearner] STEP1 raised (EXPECTED on a full party): No party mon can learn Dive and the party is full — needs PC box management (#24-pc) or a manual swap.
+[divelearner] STEP2 party=6; healing at Mossdeep with _needs_party_slot=True (deposit piggybacks between nurse and exit)
+[divelearner] STEP2 party 6 -> 5 freed=True moves=['0:SceptileL49[Rock Smash,Strength,Leaf Blade,Slam]', '1:ZigzagoonL15[Tackle,Growl,Surf,Headbutt]', '2:SwellowL40[Peck,Wing Attack,Aerial Ace,Quick Attack]', '3:MightyenaL44[Tackle,Taunt,Take Down,Bite]', '4:CastformL36[Powder Snow,Weather Ball,Sunny Day,Hail]']
+[divelearner] STEP3 hunting a Dive learner; balls_before=19 (‼ the catch gate re-checks balls>1 EVERY encounter and silently stops catching if they run out — that is why this number is logged)
+[divelearner] STEP3 ensure_hm_learner returned slot=5
+[divelearner] STEP3 balls 19 -> 17 caught=True party=['0:SceptileL49[Rock Smash,Strength,Leaf Blade,Slam]', '1:ZigzagoonL15[Tackle,Growl,Surf,Headbutt]', '2:SwellowL40[Peck,Wing Attack,Aerial Ace,Quick Attack]', '3:MightyenaL44[Tackle,Taunt,Take Down,Bite]', '4:CastformL36[Powder Snow,Weather Ball,Sunny Day,Hail]', '5:MarillL13[Tackle,Defense Curl,Tail Whip,Water Gun]'] HM_CATCH_TARGET_DEX=set()
+[divelearner] STEP4 teaching Dive to slot 5 (Marill)
+[divelearner] STEP4 teach_hm_move returned (‼ a clean return is NOT proof — verified below by reading the moveset)
+[divelearner] VERIFY knows_dive=True can_dive=True surf_intact=True party=['0:SceptileL49[Rock Smash,Strength,Leaf Blade,Slam]', '1:ZigzagoonL15[Tackle,Growl,Surf,Headbutt]', '2:SwellowL40[Peck,Wing Attack,Aerial Ace,Quick Attack]', '3:MightyenaL44[Tackle,Taunt,Take Down,Bite]', '4:CastformL36[Powder Snow,Weather Ball,Sunny Day,Hail]', '5:MarillL13[Tackle,Dive,Tail Whip,Water Gun]']
+[divelearner] CAN-CONTINUE moved=True (31, 16)->(31, 17) at=('ROUTE117', (31, 17)) manual=False
+[divelearner] RESULT freed_slot=True caught=True knows_dive=True can_dive=True surf_intact=True can_continue=True detail={'step1': 'No party mon can learn Dive and the party is full — needs PC box management (#24-pc) or a manual swap.', 'freed': True, 'caught': True, 'teach_attempted': True}
+[divelearner] ACCEPTANCE: PASS
+```
+
+## What each step proves
+* **STEP1 raising is the DESIGN, not a failure** — `ensure_hm_learner` is called first precisely so
+  a deposit is only paid for when it is the actual blocker.
+* **STEP2** is the new `deposit_one_dead_weight()` on its first ever run: `Skitty L17` chosen by
+  level gap, **Zigzagoon spared by the sole-HM-carrier exemption**, postcondition verified by
+  re-reading the party (`party is now 5; room for a catch: True`).
+* **STEP4** taught Dive over **Defense Curl** — the 0-power move — and `surf_intact=True`, so the
+  self-inflicted "forget Surf and strand the bot mid-ocean" case did not occur.
+* **VERIFY** reads the actual moveset. A clean return from the teach primitive proves nothing;
+  `MarillL13[Tackle,Dive,Tail Whip,Water Gun]` does.
+
+## ‼ AND THE HONEST LIMIT — proven, not wired
+`_needs_party_slot` has **no setter anywhere in `modules/` or `plugins/`** (verified by grep); only
+the driver sets it. **In a real `StoryMode` run the piggyback never fires** and the party-full raise
+still ends the chapter. Wiring `story_mode.py` to catch that error and set the flag is the remaining
+work. Flagged by the adversarial review of this very code — after it had been driven, committed and
+reported resolved, which is exactly when this project's reviews earn their keep.

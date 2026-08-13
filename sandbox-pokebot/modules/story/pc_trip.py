@@ -245,12 +245,25 @@ def deposit_one_dead_weight() -> Generator:
     from modules.player import get_player_avatar
     from modules.pokemon_party import get_party
 
-    def _alive(party):
-        return [i for i, p in enumerate(party)
-                if p is not None and not getattr(p, "is_egg", False)]
+    def _occupied(party):
+        """‼ SLOT OCCUPANCY, NOT "alive". AN EGG OCCUPIES A PHYSICAL PARTY SLOT, so it counts.
+
+        This MUST use the same definition as the caller it exists to satisfy —
+        `ensure_hm_learner` tests `len([m for m in get_party() if m is not None]) >= 6`
+        (`early_game.py:4342-4343`), which includes eggs.
+
+        ‼ IT DID NOT, AND THAT WAS A REAL BUG (found by adversarial review, 2026-08-13, before
+        this ever ran against an egg). Excluding eggs meant a party of **5 mons + 1 egg** —
+        FULL by the caller's test — reported *"already has room"* and returned **True having
+        deposited nothing**. That is precisely the silent-no-op shape this whole function was
+        written to replace, reintroduced inside the replacement. An egg cannot be deposited
+        either (`team_policy.dead_weight` returns None for one), so the honest answer for that
+        party is False, not True.
+        """
+        return [i for i, p in enumerate(party) if p is not None]
 
     party = get_party()
-    if len(_alive(party)) < 6:
+    if len(_occupied(party)) < 6:
         console.print("[green]Story: PC — the party already has room; no deposit needed.[/]")
         return True
 
@@ -293,7 +306,7 @@ def deposit_one_dead_weight() -> Generator:
         console.print(f"[yellow]Story: PC — the deposit failed ({error!r}).[/]")
 
     # ‼ VERIFY BY RE-READING THE PARTY. `interact_with_pc` returning is not proof.
-    after = _alive(get_party())
+    after = _occupied(get_party())
     freed = len(after) < 6
     console.print(
         f"[{'green' if freed else 'yellow'}]Story: PC — party is now {len(after)}; "

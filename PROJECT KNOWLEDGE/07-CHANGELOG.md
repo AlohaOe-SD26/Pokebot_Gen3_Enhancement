@@ -12346,3 +12346,19 @@ Route 117's Marill is 10% of the land table at L13 and 1,055 waypoints away; Sho
 better on every axis. But `_hm_hunting_grounds` iterates `TRAINING_GRASS`, and a Shoal row there
 **flips `best_training_area` for every team from ~L30 up**. Proving the chain and changing the
 ground table are two variables; this moved one.
+
+### ‼ CORRECTION, same day — the capability is PROVEN, not WIRED
+Adversarial review of the finished KI-63 code (run *after* it was driven to a PASS and reported
+resolved — which is exactly why this project runs that pass) found two things worth having:
+
+* **A real bug.** `deposit_one_dead_weight`'s "already has room" fast path counted party room with
+  a helper that **excluded eggs**, while `ensure_hm_learner` — the caller it exists to satisfy —
+  counts every non-`None` slot. A party of **5 mons + 1 egg** is FULL by the caller's test, and the
+  new function would have reported *"already has room"* and returned **True having deposited
+  nothing**: the exact silent-no-op shape it was written to replace, reintroduced inside the
+  replacement. Fixed; re-driven as a control (`post_dive.ss1` has no eggs, so behaviour is
+  unchanged there — the fix is for the case that has not happened yet).
+* **`_needs_party_slot` has NO production setter** — verified by grep across `modules/` and
+  `plugins/`. Only `--driver divelearner` sets it, so in a real `StoryMode` run the piggyback never
+  fires and the party-full raise still ends the chapter. **KI-63's capability is proven; production
+  wiring is the remaining work.** Recorded in KI-63 and the handoff rather than left implied.

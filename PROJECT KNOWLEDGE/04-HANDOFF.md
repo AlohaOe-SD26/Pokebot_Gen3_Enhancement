@@ -53,8 +53,13 @@ Every banner further down is HISTORY, newest first.
   a **Marill L13** (balls 19→17), taught **Dive over Defense Curl** (the 0-power move), and
   **Zigzagoon kept Surf**. `knows_dive=True can_dive=True surf_intact=True can_continue=True`.
   **NEW production code:** `pc_trip.deposit_one_dead_weight()` + an opt-in `_needs_party_slot`
-  piggyback in `heal_in_pokemon_center`. ‼ **§Ch21's BLOCKER is gone; §Ch21 itself still has to be
-  BUILT** — and the learner is an L13 HM slave 36 levels below the team.
+  piggyback in `heal_in_pokemon_center`.
+  ‼‼ **BUT THE CAPABILITY IS PROVEN, NOT WIRED.** `_needs_party_slot` has **no setter anywhere in
+  `modules/` or `plugins/`** — only the driver sets it. In a real `StoryMode` run the piggyback
+  **never fires** and `ensure_hm_learner(HM08)` still raises *"the party is full"*. **Wiring
+  `story_mode.py` to catch that and set the flag is the remaining work** — do not read this as
+  "§Ch21 is unblocked in production". §Ch21 also still has to be BUILT, and the learner is an L13
+  HM slave 36 levels below the team.
 * (superseded) **THE NEXT BUILD WAS SPECIFIED AND MEASURED: KI-63.** Read
   `ai-research-notes/2026-08-13-ki63-dive-learner-acquisition-plan.md` — it has the build order,
   the pre-registered failure modes, and **two corrections to this handoff's own older text**:

@@ -2295,8 +2295,14 @@ and if it is unset on all of them, the milestone is wrong rather than the run.
 > failure — `hm_learner_slot` is checked *before* the party-full check, so deposit-first would
 > spend a PC trip and a team member even when no catch was needed.
 >
-> ‼ **What this does NOT mean.** §Ch21 still has to be BUILT as a chapter; this removes its
-> blocker. The learner is a **Marill L13, 36 levels below the team** — an HM slave that
+> ‼‼ **WHAT THIS DOES NOT MEAN — AND THE HONEST HEADLINE IS NARROWER THAN "KI-63 IS FIXED".**
+> **The CAPABILITY is proven; PRODUCTION IS NOT WIRED.** `_needs_party_slot` has **no setter
+> anywhere in `modules/` or `plugins/`** — only `--driver divelearner` sets it (verified by grep).
+> So in a real `StoryMode` run the piggyback **never fires**, `ensure_hm_learner(HM08)` still
+> raises *"the party is full"*, and the chapter still ends there. **Wiring `story_mode.py` to
+> catch that error and set the flag is the remaining work.** Flagged by adversarial review, which
+> was right to insist it be stated rather than implied.
+> ‼ §Ch21 also still has to be BUILT as a chapter; this removes its blocker. The learner is a **Marill L13, 36 levels below the team** — an HM slave that
 > `find_dead_weight` would want to box on a later trip unless the sole-carrier exemption covers it.
 > And the ground used is Route 117 (10%, L13, 1,055 waypoints); the better Shoal Cave ground was
 > deliberately NOT adopted, because `_hm_hunting_grounds` reads `TRAINING_GRASS` and a Shoal row
