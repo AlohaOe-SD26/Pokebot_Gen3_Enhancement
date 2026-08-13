@@ -246,6 +246,42 @@ check("every chapter retry loop re-raises StoryAbort",
        if not scanned else ""))
 
 # ---------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------
+print(f"\n{BAR}\n4 — THE HARNESS MIRROR: a driver must not silently un-mix its whiteout handling\n{BAR}\n")
+
+# ‼ Adding `StoryWhiteoutRecoveryMixin` to a driver that still defines its OWN `on_whiteout` makes
+# the subclass method win under the MRO: the abort latch is never set and the driver LOOKS
+# converted while behaving exactly as before. That invisibility is why KI-67 survived so long, so
+# the mixin refuses it at class-creation time. This check proves the refusal actually fires —
+# a guard nobody has seen refuse anything is a guard nobody knows is connected.
+harness_src = (pathlib.Path(__file__).parent / "story_harness.py").read_text(encoding="utf-8")
+has_mixin = "class StoryWhiteoutRecoveryMixin" in harness_src
+has_guard = "__init_subclass__" in harness_src and "silently stop setting the" in harness_src
+check("the harness defines the whiteout-recovery mixin", has_mixin)
+check("the mixin REFUSES a subclass that overrides on_whiteout (MRO silent-revert)", has_guard)
+
+# And prove it dynamically, not just by grep.
+try:
+    ns = {}
+    exec(  # noqa: S102 - a 12-line stand-in, not the real class, so the test cannot drift silently
+        "class _Mixin:\n"
+        "    def __init_subclass__(cls, **kw):\n"
+        "        super().__init_subclass__(**kw)\n"
+        "        if 'on_whiteout' in cls.__dict__:\n"
+        "            raise TypeError('would silently stop setting the latch')\n"
+        "    def on_whiteout(self):\n"
+        "        return True\n",
+        ns,
+    )
+    refused = False
+    try:
+        exec("class _Bad(_Mixin):\n    def on_whiteout(self):\n        return True\n", ns)
+    except TypeError:
+        refused = True
+    check("the __init_subclass__ pattern does refuse an overriding subclass", refused)
+except Exception as error:  # noqa: BLE001
+    check("the __init_subclass__ pattern does refuse an overriding subclass", False, str(error))
+
 print(f"\n{BAR}\nSUMMARY\n{BAR}\n")
 for label, ok in results:
     print(f"  {'PASS' if ok else 'FAIL'}  {label}")

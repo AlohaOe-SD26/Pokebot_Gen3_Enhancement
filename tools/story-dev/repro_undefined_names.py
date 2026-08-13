@@ -41,6 +41,14 @@ OWNED = [
     "plugins/custom_modes",
 ]
 
+#: ‼ THE HARNESS EARNED ITS PLACE HERE THE FIRST TIME IT WAS SCANNED (2026-08-12). It was outside
+#: the gate because it lives in `tools/`, not in the build — and it contained
+#: `os.environ.get(...)` in a method that never imported `os`, so `MagmaHideoutMode`'s anchor
+#: capture raised `NameError` **only on the SUCCESS path**: every failing run returned before
+#: reaching it, and a passing one would have died at the exact moment it had something worth
+#: saving. A driver is code we write and drive for hours; it belongs under the same rule as the bot.
+EXTRA_FILES = ["story_harness.py"]
+
 #: ‼ Matches only real undefined-name findings. pyflakes also emits
 #: "'from x import *' used; unable to detect undefined names", which contains the same words and is
 #: NOT a finding — grepping for the bare phrase counts those and turns a clean run into a failure.
@@ -50,7 +58,9 @@ print("=" * 96)
 print("GATE — undefined names in the story surface (a NameError waiting for the right branch)")
 print("=" * 96)
 
+HERE = pathlib.Path(__file__).parent
 targets = [str(BUILD / path) for path in OWNED]
+targets += [str(HERE / name) for name in EXTRA_FILES if (HERE / name).is_file()]
 try:
     result = subprocess.run(
         [sys.executable, "-m", "pyflakes", *targets],
@@ -69,7 +79,8 @@ findings = [line for line in lines if UNDEFINED.search(line)]
 # ‼ PRINT WHAT WAS SEARCHED. A gate that scanned nothing and a gate that found nothing print the
 # same word otherwise — the lesson from `audit_flag_names.py`, which silently checked two files.
 scanned = sorted(p for path in OWNED for p in (BUILD / path).rglob("*.py"))
-print(f"\nscanned {len(scanned)} file(s) under {OWNED}")
+scanned += [HERE / name for name in EXTRA_FILES if (HERE / name).is_file()]
+print(f"\nscanned {len(scanned)} file(s) under {OWNED} + {EXTRA_FILES}")
 print(f"pyflakes emitted {len(lines)} diagnostic(s); {len(findings)} of them are undefined names\n")
 
 if findings:

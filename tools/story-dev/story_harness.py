@@ -2851,6 +2851,144 @@ class MossdeepBadgeMode(BotMode):
         return
 
 
+class StoryWhiteoutRecoveryMixin:
+    """Makes a DRIVER behave like `StoryMode` on a whiteout — all four parts, or none of them.
+
+    ‼‼ WHY THIS EXISTS (KI-67). Production signals a whiteout with a PROCESS-GLOBAL abort latch:
+    `StoryMode.on_whiteout` sets it, `_check_abort()` raises `StoryAbort` inside whatever wait loop
+    is running, and **only `StoryMode.run` ever clears it**. The eleven harness drivers mirrored
+    exactly ONE of those four things — `return True` — and never set the latch. Consequence:
+    `_check_abort()` was DEAD CODE under test, so every "the retry loop is whiteout recovery" claim
+    in the chapter docstrings was untested prose. The bug fixed in KI-67 had been invisible for
+    precisely this reason: **in the harness the retry loops ran in their working configuration
+    while production ran the broken one.**
+
+    ‼‼ AND WHY IT IS A MIXIN RATHER THAN A ONE-LINE EDIT PER DRIVER. Two independent reviews warned
+    that adding `set_story_abort(True)` to a driver WITHOUT also mirroring the clear-and-retry loop
+    turns the latch into a ONE-WAY DOOR: nothing else clears it, so every later `_check_abort()`
+    raises for ever and drivers that pass today would go red over CORRECT production code, while
+    committed anchors quietly stopped refreshing. Half a mirror is worse than none. Putting all four
+    parts in one place is what stops the halves drifting apart again.
+
+    THE FOUR PARTS, mirroring `story_mode.py`:
+      1. `on_whiteout` sets the latch AND `_whiteout_pending`, and returns True;
+      2. the chapter runs inside a clear-and-retry loop that clears the latch at the top;
+      3. the whiteout branch clears the latch BEFORE navigating, then rides the respawn out
+         exactly as production does (controllable -> leave the Poké Center -> settle -> controllable);
+      4. the recovery count is reported, so a fabricated-failure regression is visible in the log.
+
+    ‼ AND THE LATCH IS CLEARED IN A `finally`. It is a module-global in `early_game`, shared by every
+    probe and driver in the process. Leaving it set on the way out would make the NEXT thing that
+    runs abort instantly for no visible reason — a bug that would look like anything but this.
+    """
+
+    _whiteout_pending = False
+    _whiteouts = 0
+    _recoveries = 0
+
+    def __init_subclass__(cls, **kwargs):
+        """‼ REFUSE A DRIVER THAT SILENTLY UN-MIXES ITSELF.
+
+        Ten other drivers still define their own `on_whiteout`. Adding this mixin to one WITHOUT
+        deleting that method makes the subclass method win under the MRO: the latch is never set,
+        and the driver *looks* converted while behaving exactly as before. That invisibility is the
+        precise reason KI-67 survived unnoticed for so long, so it is made impossible rather than
+        written down as a rule."""
+        super().__init_subclass__(**kwargs)
+        if "on_whiteout" in cls.__dict__:
+            raise TypeError(
+                f"{cls.__name__} mixes in StoryWhiteoutRecoveryMixin but defines its own "
+                "on_whiteout(), which would override the mixin's and silently stop setting the "
+                "abort latch. Delete the driver's on_whiteout - the mixin IS the behaviour."
+            )
+
+    def on_whiteout(self) -> bool:
+        # ‼ MIRRORS `StoryMode.on_whiteout` — the latch is the half every driver was missing.
+        # ‼ CALLED FROM THE LISTENER'S STACK, not the mode generator, so anything that raises here
+        # kills the run before the RESULT line is ever printed. `tag` is therefore read defensively:
+        # an adopter that forgot to define one would otherwise die with an AttributeError *after*
+        # the latch had already been set.
+        from modules.story.early_game import set_story_abort
+
+        set_story_abort(True)
+        self._whiteout_pending = True
+        type(self)._whiteouts += 1
+        tag = getattr(self, "tag", type(self).__name__)
+        log(f"[{tag}] WHITEOUT #{type(self)._whiteouts} - latch set, recovering as StoryMode does "
+            f"(frame {context.emulator.get_frame_count()})")
+        return True
+
+    def drive_with_recovery(self, make_generator, *, max_recoveries: int = 3):
+        """Run `make_generator()` to completion, recovering from whiteouts the way production does.
+
+        Returns `None` on success, or the `BotModeError` that ended it. ‼ A NON-whiteout failure is
+        returned IMMEDIATELY and never retried: that is the driver's measurement, and retrying it
+        would only hide it."""
+        from modules.memory import GameState, game_has_started, get_game_state
+        from modules.modes import BotModeError
+        from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
+        from modules.story.early_game import exit_building_after_whiteout, set_story_abort
+
+        tag = getattr(self, "tag", type(self).__name__)
+        # ‼ BUDGET IS A DELTA, NOT AN ABSOLUTE. `_recoveries` is a CLASS counter that is never
+        # reset, so comparing it directly to a per-call `max_recoveries` would let a second call
+        # to this helper inherit the first call's spend and give up immediately.
+        recoveries_at_entry = type(self)._recoveries
+        last_error = None
+        try:
+            for attempt in range(1, max_recoveries + 2):
+                set_story_abort(False)
+                self._whiteout_pending = False
+                try:
+                    yield from make_generator()
+                    return None
+                except Exception as error:  # noqa: BLE001 - ‼ DELIBERATELY BROADER THAN BotModeError.
+                    # `PathFindingError` is a `RuntimeError`, NOT a `BotModeError`, so a whiteout
+                    # laundered into one would escape this loop entirely, be graded as a genuine
+                    # failure, and then the `finally` below would wipe the latch so nothing
+                    # downstream could tell what had happened. Catching broadly is safe here
+                    # precisely because a non-whiteout error is RETURNED rather than retried.
+                    last_error = error
+                    if not self._whiteout_pending:
+                        # A genuine failure. Do NOT retry — the driver grades it.
+                        return error
+                    type(self)._recoveries += 1
+                    log(f"[{tag}] RECOVERY #{type(self)._recoveries} after attempt {attempt} at "
+                        f"frame {context.emulator.get_frame_count()}: "
+                        f"{type(error).__name__}: {str(error)[:160]}")
+                    if type(self)._recoveries - recoveries_at_entry > max_recoveries:
+                        return error
+
+                    # ‼ CLEAR THE LATCH BEFORE NAVIGATING. The recovery walk itself calls
+                    # `_check_abort()`, so recovering with the latch still set would abort the
+                    # recovery — the same shape as the bug this whole thing is about.
+                    set_story_abort(False)
+                    try:
+                        yield from wait_for_player_avatar_to_be_controllable()
+                        # The respawn lands INSIDE a Poké Center; step out so map checks work.
+                        # (`exit_building_after_whiteout` is a documented no-op when we are not.)
+                        yield from exit_building_after_whiteout()
+                        settle = 0
+                        while settle < 600 and not (
+                            game_has_started() and get_game_state() is GameState.OVERWORLD
+                        ):
+                            settle += 1
+                            yield
+                        yield from wait_for_player_avatar_to_be_controllable()
+                    except BotModeError:
+                        raise
+                    except Exception:  # noqa: BLE001 - mirrors StoryMode: a transient hiccup in the
+                        yield          # recovery walk must not end the run
+            # ‼ FALLING OUT OF THE LOOP MUST NOT READ AS SUCCESS. Returning `None` here would be a
+            # silent green — the worst outcome in this file, and the exact "default outcome is the
+            # SUCCESS value" pattern in `08-MISTAKES.md`. Unreachable today (the budget check fires
+            # first), which is why it is worth being explicit about.
+            return last_error
+        finally:
+            # ‼ NEVER LEAVE THE PROCESS-GLOBAL LATCH SET. See the class docstring.
+            set_story_abort(False)
+
+
 class SpaceCenter1Mode(BotMode):
     """§Ch19 LEGS 1-3 - reach Steven's floor of the Mossdeep Space Center, and capture the anchor.
 
@@ -3003,7 +3141,7 @@ class SpaceCenter1Mode(BotMode):
         return
 
 
-class SpaceCenter2Mode(BotMode):
+class SpaceCenter2Mode(StoryWhiteoutRecoveryMixin, BotMode):
     """§Ch19 LEG 5 - Steven's two talks, the PARTY-SELECTION MENU, and the multi battle.
 
         PYTHONUTF8=1 py -3.12 story_harness.py at_steven_2f.ss1 --driver spacecenter2 \
@@ -3036,6 +3174,7 @@ class SpaceCenter2Mode(BotMode):
     """
 
     _whiteouts = 0
+    tag = "ch19b"
 
     @staticmethod
     def name():
@@ -3049,11 +3188,6 @@ class SpaceCenter2Mode(BotMode):
 
             return StoryItemBattleStrategy()
         return DefaultBattleStrategy()
-
-    def on_whiteout(self) -> bool:
-        SpaceCenter2Mode._whiteouts += 1
-        log(f"[ch19b] WHITEOUT #{SpaceCenter2Mode._whiteouts} - the multi battle was lost")
-        return True
 
     def run(self):
         import os
@@ -3100,9 +3234,15 @@ class SpaceCenter2Mode(BotMode):
         except Exception as error:  # noqa: BLE001
             log(f"[ch19b] INTENDED-PICKS <unreadable: {type(error).__name__}>")
 
+        # ‼ DRIVEN THROUGH THE RECOVERY MIXIN, so this driver behaves like production on a loss.
+        # Before KI-67 it called the chapter ONCE inside a bare `except`, with the abort latch never
+        # set — i.e. it exercised the retry loops in a configuration production never runs.
         error_text = ""
         try:
-            yield from fight_alongside_steven()
+            outcome = yield from self.drive_with_recovery(fight_alongside_steven, max_recoveries=2)
+            if outcome is not None:
+                error_text = f"{type(outcome).__name__}: {str(outcome)[:900]}"
+                log(f"[ch19b] FAILED: {error_text}")
         except Exception as error:  # noqa: BLE001 - the failure IS the measurement
             error_text = f"{type(error).__name__}: {str(error)[:900]}"
             log(f"[ch19b] FAILED: {error_text}")
@@ -3122,12 +3262,22 @@ class SpaceCenter2Mode(BotMode):
         ok = state >= DONE_STATE and ctrl is True
         log(f"[ch19b] RESULT {STATE_VAR}={state} map={map_name(mgn)} at={tile} "
             f"controllable={ctrl} whiteouts={SpaceCenter2Mode._whiteouts} "
+            f"recoveries={SpaceCenter2Mode._recoveries} "
             f"frames={context.emulator.get_frame_count()}"
             + (f" error=({error_text})" if error_text else ""))
         log(f"[ch19b] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (needs {STATE_VAR}>={DONE_STATE} "
             f"AND controllable)")
 
-        if ok and os.environ.get("CH19B_CAPTURE", "1") != "0":
+        # ‼‼ NEVER CAPTURE AN ANCHOR FROM AN INJECTED RUN. `--inject-weak` replaces the party with a
+        # lone Lv3 Poochyena; if such a run ever reached the completion var it would overwrite
+        # `post_space_center.ss1` — a committed fixture that `--driver spacecenter` and
+        # `FIXTURES.md5` depend on — with a save whose party is a joke. The failure would be
+        # SILENT and would poison every downstream test. Injection is a property of the run, so the
+        # guard belongs here rather than in a remembered flag on the command line.
+        if ok and args.inject_weak:
+            log("[ch19b] anchor capture SKIPPED - this run injected a party, so its save is not a "
+                "valid fixture. (Guard added 2026-08-12; the risk was real, not theoretical.)")
+        if ok and not args.inject_weak and os.environ.get("CH19B_CAPTURE", "1") != "0":
             out = SAVES / "post_space_center.ss1"
             out.write_bytes(context.emulator.get_save_state())
             log(f"[ch19b] captured anchor -> {out}")
@@ -3788,6 +3938,13 @@ class MagmaHideoutMode(BotMode):
         # emitted NEITHER the success line NOR the failure line, and no anchor appeared — a
         # completely silent path that cost a chapter's worth of driving to notice. A branch whose
         # non-execution is invisible cannot be debugged from a log.
+        # ‼ `import os` HERE because this method never had it — `os` was undefined at this line,
+        # so the anchor-capture block raised `NameError` **only on the SUCCESS path**, after a full
+        # Magma Hideout drive. Found by pyflakes (the gate added 2026-08-12), not by any run: every
+        # failing run returned before reaching it, and a passing one would have died at the very
+        # moment it had something worth saving. Pre-existing; unrelated to §Ch19.
+        import os
+
         _cap_env = os.environ.get("MAGMA_HIDEOUT_CAPTURE", "1")
         log(f"[magmahideout] anchor capture: groudon={groudon} MAGMA_HIDEOUT_CAPTURE={_cap_env!r}")
         if groudon and _cap_env != "0":

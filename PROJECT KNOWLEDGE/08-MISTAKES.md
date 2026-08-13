@@ -5337,6 +5337,32 @@ call sites (`default.py`, `level_up.py`, the story override). The repro gained *
 permuted array — the fix returns slot 3, OURS, which the positional rule would have hidden) and
 **ARM E** (the story bot's own chooser). 5/5, and §Ch19 re-driven to a PASS afterwards.
 
+## 2026-08-12 — the harness ran the retry loops in a configuration production never runs
+
+**Symptom.** KI-67 (a whiteout burning a chapter's whole retry budget and laundering itself into a
+fabricated diagnosis) was invisible to every driver for months.
+
+**Root cause, and it is worth stating exactly.** Production signals a whiteout with a process-global
+abort latch. The eleven drivers overrode `on_whiteout` to do ONE of the four things production does
+— `return True` — and never set the latch. So `_check_abort()` was **dead code under test**, and
+**the harness exercised the retry loops in their WORKING configuration while production ran the
+broken one.** Every "the retry loop is whiteout recovery" claim in the chapter docstrings was
+untested prose, and no amount of driving would ever have found the bug.
+
+**The fix that worked.** One shared `StoryWhiteoutRecoveryMixin` carrying all four parts (set the
+latch; clear-and-retry loop; clear the latch BEFORE the recovery walk; report the recovery count),
+plus a deliberate loss (`--inject-weak`) to drive it.
+
+‼ **The count is not the measurement — the FRAME DELTA is.** Three whiteouts and three recoveries
+is what BOTH the fixed and broken code could print. What separates them: broken burns three attempts
+in a handful of frames after ONE whiteout; fixed spends **~7,000 frames per attempt and produces its
+own whiteout each time** (measured: +7,789 and +7,087). Grade a retry fix on cost-and-reach per
+attempt, never on a counter.
+
+**Prevention rule.** *A driver that mirrors HALF of production's behaviour is worse than one that
+mirrors none — it makes the untested path look tested. When a mode signals something through shared
+state, the harness must reproduce the whole signal-and-clear cycle, in one place, or not pretend to.*
+
 ## 2026-08-12 — four documents recorded a blocker that had been refuted five days earlier
 
 **Symptom.** `POKEBOT_BOX_OVERFLOW_CATCH` was recorded in `29-DISABLED-FEATURES-REGISTRY.md`,

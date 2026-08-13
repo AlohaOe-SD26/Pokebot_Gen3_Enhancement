@@ -2444,6 +2444,40 @@ the new PID captured and registered, **and** a Poké Center trip anyway.
 L48−8 rule. Harmless while `POKEBOT_PC_ROTATION=0`; it becomes a **self-eviction loop** if anyone
 turns that on.
 
+### ‼ THE TIDE IS NOT A BLOCKER — measured 2026-08-12, and it removes the plan's only unknown
+
+The tide worry was **real but misdirected**. Findings, decomp- and ROM-measured:
+* `UpdateShoalTideFlag()` (`src/time_events.c:54-92`) is a **24-entry hour table**;
+  `FLAG_SYS_SHOAL_TIDE` **set = HIGH**. LOW tide is hours **03-08 and 15-20**. It is sampled ONLY on
+  `ON_TRANSITION` into the entrance room from an OUTDOOR map, and is then frozen for the visit.
+* ‼‼ **BUT THE TIDE GATES THE DESCENT, NOT THE HUNT.** The high-tide "maps" (24,50)/(24,51) have
+  **no encounter header and zero warp edges** — they exist only to own a layout that
+  `setmaplayoutindex` borrows onto map (24,46). The player stays on **(24,46)** at both tides, and
+  `GetCurrentMapWildMonHeaderId` keys off map group/number, **not layout**. Measured from our ROM:
+  the entrance room still has **65 walkable `MB_CAVE` encounter tiles at high tide** (332 at low).
+  ⇒ **The Spheal 50% table is live at BOTH tides. No tide handling is needed at all.**
+* **Surf is the only gate**, and we have it: our planner routes `MOSSDEEP_CITY (49,35) → ROUTE125
+  (22,19)` in **119 waypoints**, and Zigzagoon L15 knows Surf (measured on the live save). Route 125
+  → the entrance room is a single warp, (22,19) ↔ (20,30).
+* Spin-tile candidates, all `MB_CAVE` with two-way static `calculate_path` PASS: **(25,30)** (5 steps
+  from the arrival warp), (14,30), (20,24). ⚠ **Static evidence only — NOT the live two-way sweep
+  this project requires** (the Route 114 demotion). Never promote a spin tile on this alone.
+* ⚠ **A REAL HAZARD FOR ANY IN-ROOM NAVIGATION:** `MapLocation` resolves the layout from the cached
+  ROM map header, i.e. **always the LOW-tide floor plan** for (24,46). At high tide the planner is
+  therefore planning against the wrong map. Fix or fence this before any code paths inside that room.
+* ⚠ Never spin on or south-adjacent to **(20,30)** — it is `MB_SHOAL_CAVE_ENTRANCE`, which counts as
+  a south-arrow warp.
+
+**‼ AND THE REAL BLOCKER IS STILL THE FULL PARTY:** `ensure_hm_learner` raises at
+`early_game.py:4342-4348` when the party is ≥6 **before it ever calls `_hm_hunting_grounds`**. So the
+hunting ground is necessary but not sufficient — freeing the slot is the gate, exactly as the
+deposit-first plan above says.
+
+**Cheapest tide-free fallback, needing ZERO new data:** `_hm_hunting_grounds(HM08)` **already**
+returns one ground today — **ROUTE117 (31,16), Marill, 10%**, already two-way swept. Route 120 is not
+in `TRAINING_GRASS` and would itself need a swept row, so Route 117 is strictly cheaper if the Shoal
+Cave sweep fails.
+
 ### ‼ THE LIKELY CAUSAL LOOP, stated as a hypothesis
 With deposits OFF, **anything caught stays in the party for ever** — so the party fills with
 passengers. The dead weight may be a *symptom* of deposits being off, and deposits are off because
@@ -2796,6 +2830,54 @@ ARM C          latch-keyed   -> StoryAbort survives the conversion
 [5]            real whiteout -> escapes after ONE attempt, not three
 latch CLEAR    -> reraise_if_aborting does nothing (ordinary retries still work)
 ```
+
+## ✅✅ KI-67 FULLY CLOSED 2026-08-12 — the FIRST DRIVEN WHITEOUT RECOVERY IN THIS PROJECT
+
+`StoryWhiteoutRecoveryMixin` (`tools/story-dev/story_harness.py`) gives a driver all four parts of
+production's behaviour, and `SpaceCenter2Mode` uses it. **Driven both ways:**
+
+| run | result |
+|---|---|
+| healthy, `--driver spacecenter2` | `PASS`, `whiteouts=0 recoveries=0`, frame-identical to before |
+| **deliberate loss, `--inject-weak`** | `whiteouts=3 recoveries=3`, ends controllable at `MOSSDEEP_CITY (28,17)` |
+
+‼ **THE FRAME DELTAS ARE THE PROOF, not the counts** — the count alone cannot tell the fixed code
+from the broken code:
+```
+WHITEOUT #1  frame 3532810
+WHITEOUT #2  frame 3540599   (+7,789)
+WHITEOUT #3  frame 3547686   (+7,087)
+```
+**Broken = three attempts in a handful of frames after ONE whiteout. Fixed = each attempt costs
+~7,000 frames and produces ITS OWN whiteout** — i.e. the bot really did walk back from the Pokémon
+Center to Steven and fight again, three times. And the error it finally reported was a
+**`StoryAbort`**, not the fabricated *"cannot reach Steven at (1,8)"* the laundering used to produce.
+The ACCEPTANCE **FAIL** is correct: a lone Lv3 Poochyena genuinely cannot win that battle.
+
+**Five defects in the mixin were found by an adversarial review BEFORE it was driven**, all fixed:
+* `except BotModeError` was too narrow — **`PathFindingError` is a `RuntimeError`**, so a laundered
+  abort would have escaped the recovery loop and been graded a genuine failure;
+* **MRO silent-revert**: ten other drivers still define their own `on_whiteout`, and mixing this in
+  without deleting theirs would leave the driver *looking* converted while never setting the latch.
+  `__init_subclass__` now REFUSES that at class-creation time (proved dynamically in the repro);
+* `self.tag` was dereferenced on the *listener's* stack, where an `AttributeError` kills the run
+  before any RESULT line — now `getattr`;
+* the recovery budget compared a never-reset CLASS counter to a per-call limit — now a delta;
+* falling out of the loop returned `None` = **success** — the silent-green pattern; now returns the
+  last error.
+
+‼ **AND A REAL BLOCKER THE REVIEW CAUGHT: an injected run could have overwritten a committed
+anchor.** `--inject-weak` replaces the party with a lone Lv3 Poochyena; had such a run reached the
+completion var it would have written `post_space_center.ss1` — a fixture `--driver spacecenter` and
+`FIXTURES.md5` depend on — with a joke party, **silently**. Anchor capture now refuses whenever the
+run injected a party. (Verified after the fact: the injected runs captured nothing; the anchor on
+disk came from the healthy run.)
+
+**Also fixed in PRODUCTION, not just the harness:** `StoryMode.run`'s `recoveries > 40` exit raised
+**without clearing the process-global latch**, so whatever ran next would abort at its first
+`_check_abort()` for no visible reason. The harness must not be stricter than the thing it mirrors.
+
+**Superseded — the old "still open" text follows for its design notes:**
 
 ⛔ **STILL OPEN — THE DRIVEN HALF, AND DO NOT HALF-DO IT.** `set_story_abort` still appears **zero**
 times in `story_harness.py`. ‼ **Both reviews independently warned that adding the latch to drivers

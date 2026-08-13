@@ -266,12 +266,18 @@ and never identify a Pokémon by party index across a battle-menu boundary.
   `ally_party_indices()` now exists — not a guard per call site. ⚠ Also unverified and worth checking
   FIRST, because it would fire on turn 1 rather than on a faint: a claimed `IndexError` in
   `decide_turn_in_double_battle` from `gPlayerPartyCount` still being 3.
-* **‼ KI-67 (OPEN)** — the chapter retry loop **swallows the whiteout abort latch**, so one loss
-  consumes all three attempts in a few frames and reports two fabricated failures. And **no driver
-  can detect it**: `set_story_abort` appears ZERO times in `story_harness.py`, so `_check_abort()` is
-  dead code under test and every retry-path docstring is untested prose. Systemic — `mossdeep_gym.py`
-  has the same swallow. **To settle: make the drivers' `on_whiteout` mirror production, then drive a
-  deliberate loss.**
+* **✅ KI-67 (CLOSED 2026-08-12)** — both halves. The chapter retry loops no longer swallow the
+  abort (`StoryAbort` + the latch-keyed `reraise_if_aborting`, because a type-only guard cannot see
+  an abort an inner loop already replaced with a fresh error), AND the harness now mirrors
+  production via `StoryWhiteoutRecoveryMixin`. **First driven whiteout recovery in this project:**
+  `--driver spacecenter2 --inject-weak` gave `whiteouts=3 recoveries=3`, ending controllable at
+  `MOSSDEEP_CITY (28,17)`. ‼ **The proof is the FRAME DELTA, not the count** — +7,789 and +7,087
+  between whiteouts, i.e. each attempt really walked back to Steven and fought again. Broken code
+  would have burned three attempts in a handful of frames after ONE whiteout.
+  ‼ Five defects in the mixin were caught by an adversarial review **before** it was driven
+  (`PathFindingError` is a `RuntimeError` and escaped the recovery; MRO silent-revert; a `tag`
+  dereference on the listener's stack; a class-counter budget; a `None`-is-success exit), plus a
+  real blocker: an injected run could have silently overwritten a committed anchor.
 
 ## ⏭ NEXT ACTIONS, IN ORDER
 
@@ -296,6 +302,18 @@ and never identify a Pokémon by party index across a battle-menu boundary.
 >    * ⛔ **Do NOT fetch the Super Rod first** — Sharpedo/Wailmer are real, but it needs three missing
 >      subsystems (no rod chapter, no fishing capability at all, and `_hm_hunting_grounds` reads
 >      land encounters only) against one `TRAINING_GRASS` row.
+>    * ✅ **THE TIDE IS NOT A BLOCKER (measured 2026-08-12).** The high-tide "maps" have no encounter
+>      header and no warps — they only own a LAYOUT that gets borrowed onto map (24,46), and the
+>      encounter table keys off map number, not layout. **The Spheal 50% table is live at BOTH
+>      tides** (65 walkable encounter tiles at high, 332 at low). No tide handling needed.
+>      **Surf is the only gate** and we have it: `MOSSDEEP_CITY → ROUTE125` routes in 119 waypoints,
+>      Zigzagoon L15 knows Surf, and Route 125 → the entrance room is one warp.
+>    * ‼ **BUT THE REAL GATE IS STILL THE FULL PARTY** — `ensure_hm_learner` raises when the party is
+>      ≥6 **before** it ever looks for a hunting ground. Free the slot first; the ground is
+>      necessary, not sufficient.
+>    * ⚠ Two hazards recorded in KI-54 before anyone codes in that room: `MapLocation` always
+>      resolves the **low-tide** layout for (24,46), so in-room planning at high tide plans against
+>      the wrong map; and (20,30) counts as a south-arrow warp, so never spin on or below it.
 > 3. **Fix KI-59 before the cavern exists** — it is armed there (115 `Impassable *` tiles across
 >    Rooms 1-9). A/B on `SEAFLOOR_CAVERN_ROOM1`.
 > 4. Two things remain the USER's call: **promoting §Ch18 + §Ch19 to `custom-pokebot/`**, and the

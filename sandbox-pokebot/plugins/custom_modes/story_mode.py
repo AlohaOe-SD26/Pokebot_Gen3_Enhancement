@@ -2577,6 +2577,13 @@ class StoryMode(BotMode):
                 except Exception:
                     pass
                 if recoveries > 40:
+                    # ‼ CLEAR THE LATCH ON THE WAY OUT. `_STORY_ABORT` is a MODULE-GLOBAL in
+                    # `early_game`, shared by every mode, probe and driver in the process — and
+                    # this `raise` used to leave it SET. Whatever ran next (the endless loop's
+                    # next run, another mode) would then abort at its first `_check_abort()` for
+                    # no visible reason: a bug that would look like anything except this.
+                    # The `derails > 4` exit above does not leak; this one did.
+                    set_story_abort(False)
                     raise BotModeError(
                         "Story: too many whiteout recoveries in a row — stopping so I "
                         "don't loop forever. Check the team/route."
