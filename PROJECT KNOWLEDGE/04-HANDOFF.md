@@ -867,6 +867,14 @@ PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch20room1 --frames
 #           in_room2=True can_continue=True   ACCEPTANCE: PASS
 #   ‼ `ab_before=False` is an ASSERTED part of the verdict: if the corridor was already reachable
 #     the run proved nothing about the puzzle. A one-armed pass here would be meaningless.
+PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch20room2 --frames 2000000
+#   Expect: room1_ok=True m1=False m2=False m3=True pushes=3/3 in_room6=True can_continue=True
+#   ‼ It RE-SOLVES ROOM 1 from scratch first (FLAG_TEMP_* objects respawn on every map load), so
+#     a ch20room2 PASS is also a Room 1 PASS. `m2=False` is the arm that matters: it attributes the
+#     opening to the PUSHES rather than to the Rock Smash.
+PYTHONUTF8=1 py -3.12 probe_route128_landing.py     # §Ch20's EXIT: 9/9, the atoll is real
+#   ‼ Read this BEFORE writing the exit leg. The landing tile has ZERO surfable neighbours, so a
+#     naive "Surf from where you land" reads as a HUNG LEG, not as a failure.
 ```
 
 ‼ **A driver keeps running after it prints ACCEPTANCE** — it drops to Manual and the harness only
@@ -878,7 +886,7 @@ exits on its own 20,000-idle-frame detector, logging **"HANG CONFIRMED"** on a r
 `28-HANDOFF-ARCHIVE.md`'s copy of this section. Expected as of 2026-08-13: **exactly 3**
 (`modules/map_path.py`, `modules/story/early_game.py`, `plugins/custom_modes/story_mode.py`).
 Anything else is unexplained drift. ‼ `tools/story-dev/` is sandbox-only and is **not** part of
-that comparison, so `--driver ch20room1` does not change the count.
+that comparison, so the `ch20*` drivers and `probe_route128_landing.py` do not change the count.
 
 ---
 
