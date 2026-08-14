@@ -3651,13 +3651,23 @@ class StoryMode(BotMode):
             console.print("[dim]Story: Mossdeep Space Center already done — skipping.[/]")
         _guard("Mossdeep Space Center + Dive (Ch19)", lambda: _done("RECEIVED_HM_DIVE"))
 
-        # END OF BUILT CONTENT. Next build: the SEAFLOOR CAVERN (§Ch20/§Ch21).
-        # ‼ §Ch21 IS BLOCKED BY KI-63 — no party member can learn Dive and the party is full, so
-        # `#24-pc` is a PREREQUISITE, not a later nicety. HM08 being in the bag is not enough.
+        # END OF BUILT CONTENT. Next build: the SEAFLOOR CAVERN — which is **Chapter 20**
+        # (`chapters.py:233`, graded on `KYOGRE_ESCAPED_SEAFLOOR_CAVERN`). Chapter 21 is
+        # Sootopolis/Rayquaza and has not been touched.
+        # ✅ **KI-63 IS RESOLVED (2026-08-13) — this comment used to say the cavern was BLOCKED by
+        # it, and that is no longer true.** The bot acquires Dive by playing (`--driver divelearner`
+        # PASS: frees a slot, catches a learner, teaches Dive, keeps Surf), and the two HM call
+        # sites above are wired to `ensure_hm_learner_making_room`. The dive leg itself is also
+        # driven end to end (`--driver ch20dive` → `legs=6/6 at_entrance=True got_out=True`).
+        # ⇒ What remains is BUILDING the chapter: the cavern INTERIOR (rooms 1-9), Archie, Kyogre.
+        # ‼ Two traps recorded before anyone starts: **KI-72** — never let the planner choose where
+        # you surface, hand-pick the tile and assert its `tile_type`; and **do not end the chapter
+        # at `ROOM9 (16,42)`**, which is Archie's cutscene tile — the standing rule is "and the bot
+        # can continue", and three chapters have already shipped stranded.
         context.message = (
             "Story: HM08 DIVE IS IN THE BAG - end of built content. "
-            "NEXT (WIP): the Seafloor Cavern, which is BLOCKED until a Dive learner exists "
-            "(KI-63). Handing to manual."
+            "NEXT (WIP): the Seafloor Cavern (Ch20). The Dive blocker (KI-63) is RESOLVED and the "
+            "dive leg is driven; the cavern INTERIOR is not built yet. Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         # ‼ Mark a GENUINE completion. Both this path and the give-up paths call

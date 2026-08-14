@@ -12817,3 +12817,45 @@ or before 2026-08-13 mean the new artefacts. `04-HANDOFF.md`'s naming-correction
 from "do not fix this yet" to "done, and here is why the old names still appear in history".
 
 17/17 gates PASS; `lint_docs.py` PASS.
+
+## 2026-08-13 — §Ch20 groundwork: the SEAFLOOR CAVERN INTERIOR is a STRENGTH-BOULDER DUNGEON (measured)
+
+New: `tools/story-dev/probe_ch20_interior.py` — the Area Atlas for the part nobody had looked at.
+`probe_ch20_topology.py` measured the way IN (driven, 6/6); this measures the **interior**.
+
+**The warp graph is complete and benign:** all ten cavern maps are reachable from the entrance by
+warps alone. The difficulty is inside the rooms.
+
+**Components over walkable tiles, and again with object-template tiles removed:**
+
+| room | walkable | components | minus objects | reading |
+|---|---|---|---|---|
+| ENTRANCE | 210 | 1 | 2 | trivial |
+| ROOM1 | 199 | 2 | **5** | boulders |
+| ROOM2 | 50 | 1 | **6** | boulders |
+| ROOM3 | 100 | 1 | **5** | boulders |
+| ROOM4 | 108 | **5** | 5 | split by TERRAIN, not objects |
+| ROOM5 | 86 | 1 | **5** | boulders |
+| ROOM6 | 346 | 1 | 1 | open water (elev 1), **0 objects** — Surf |
+| ROOM7 | 395 | 1 | 1 | open water (elev 1), **0 objects** — Surf |
+| ROOM8 | 48 | 3 | **7** | boulders (12 objects in 48 tiles) |
+| ROOM9 | 298 | 2 | 2 | split by TERRAIN — Archie / Kyogre |
+
+⇒ **§Ch20 is a boulder-puzzle dungeon**, closer in shape to §Ch18's statue gym than to a route.
+Rooms 6 and 7 are open water and need Surf, not Strength.
+
+**‼ AND THE PROBE CAUGHT ITSELF TELLING A LIE — the same lie §Ch19 already caught once.**
+Its first run reported ROOM2 and ROOM5 as NO-PATH between *every* warp pair, while also reporting
+them as ONE connected component at a single elevation — a contradiction. Cause:
+`map_path.is_tile_accessible` blocks any tile whose `dynamic_object_id` is set and whose object is
+not in `active_objects`, and `active_objects` is *the objects loaded right now*. Read from Mossdeep,
+**no cavern object is loaded, so every object-template tile is permanently blocked.** §Ch19 recorded
+exactly this trap ("I first blamed KI-59 because my flood fill could not see NPCs — the planner was
+right", and `probe_ch19_route.py` was fixed to model live objects). One chapter later, the same
+trap. The probe now prints the artifact as section 3b, labels section 4 a **LOWER BOUND**, and says
+in its own output that the interior must be re-measured **from inside the cavern** before building.
+
+Also fixed: `story_mode.py`'s END-OF-BUILT-CONTENT comment and player-facing message still said
+"§Ch21 IS BLOCKED BY KI-63 — no party member can learn Dive". **KI-63 was resolved 2026-08-13** and
+the dive leg is driven; the message now says what is actually left (the interior) and names the two
+traps (KI-72's surfacing rule; do not end on Archie's cutscene tile at `ROOM9 (16,42)`).
