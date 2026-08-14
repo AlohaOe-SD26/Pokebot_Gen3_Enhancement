@@ -1,6 +1,6 @@
-﻿# Punch List â€” Pokebot_Gen3_Enhancement
+# Punch List — Pokebot_Gen3_Enhancement
 > Current-state file: edit in place. The agreed work queue.
-> Item format: `- [ ] #N â€” description` (N never gets reused; check items
+> Item format: `- [ ] #N — description` (N never gets reused; check items
 > off with `[x]` and move them to Done with the completion date).
 > Full future-idea catalog: `09-FEATURE-BRAINSTORM.md`.
 
@@ -20,9 +20,9 @@ user rather than resolved unilaterally.
 | `#24-grounditems` | 🟡 **PARTLY DONE 2026-08-12.** The shared helper **`collect_item_ball(map, ball_tile, approach, facing, flag, item_name)` is BUILT** and has two callers (the Magma Hideout Escape Rope, refactored onto it, and the Aqua Hideout Master Ball + Nugget) — the duplication this item existed to prevent never happened. `repro_hideout_exit.py` now checks the escape-rope path DELEGATES to it, so a future edit cannot quietly fork a second copy. ‼ Lessons baked in: grade on a **bag delta** (a FULL pocket makes `finditem` set no flag AND give no item, so a flag test hangs forever); an item ball is an OBJECT you stand beside, and not every neighbour is reachable; **the ball VANISHES when taken, freeing its tile** (that is how the Master Ball is reached at all). **WHAT REMAINS:** per-area sweep LISTS so chapters collect the balls they walk past. Known uncollected in already-built content: Aqua Hideout **Max Elixir** `B1F (29,12)` (all four approaches reachable from node `(27,12)`) and **Nest Ball** `B2F (3,13)`; Magma Hideout **Rare Candy** `1F (3,20)`. |
 | `#24-npcgifts` | ‼ **NEW 2026-08-12 (user directive).** **Collect GIFT ITEMS from NPCs** — items a person hands you, which the bot currently walks straight past. Decomp-anchored starters: **EXP SHARE** — `RustboroCity_DevonCorp_3F_EventScript_MrStone`, gated on `FLAG_DELIVERED_STEVEN_LETTER`, sets `FLAG_RECEIVED_EXP_SHARE` (272); **QUICK CLAW** — `RustboroCity_PokemonSchool_EventScript_Teacher`, sets `FLAG_RECEIVED_QUICK_CLAW` (275). Both flag names verified present in `modules/data/event_flags/emerald.txt`. Shape: navigate to the NPC, face, A-ride the dialogue, grade on **the bag** (both scripts branch to `Common_EventScript_ShowBagIsFull`, which gives nothing and sets no flag). ‼ These are ORDINARY-PLAY value, not story-critical: an Exp Share collected in Rustboro compounds over every later chapter, which is exactly the organic-play goal. **Enumerate the full gift list from the decomp before building** — `giveitem` in `data/maps/*/scripts.inc` — rather than adding them one at a time. |
 | `#24-masterball` | ✅ **DONE 2026-08-12 — the MASTER BALL is collected, driven PASS.** `master_balls=1 nuggets=1 escaped=True whiteouts=0`, and the driver's acceptance now REQUIRES it (read from the BAG, since a full pocket makes `finditem` set no flag and give no item). ‼ It cannot be taken directly: both of its free neighbours are unreachable, so the route takes the **Nugget** at `(15,10)` first and steps onto the tile the vanished ball frees. No Electrode is ever faced. ‼ The return leg had to be re-derived after a driven failure — the first one walked across a warp panel; `can_walk` in `probe_aqua_hideout_graph.py` is now panel-aware. |
-| `#24-impassabledirs` | ✅ **DONE 2026-08-13 — FIXED, BOTH HALVES, A/B PROVEN, AND GATED.** `modules/map_path.py`: the entry vector now starts all-True and CLEARS `[opposite(D)]`, and a NEW `PathTile.blocked_exit_directions` carries the decomp's *exit* rule, checked on the SOURCE tile in the A* expansion loop (`is_tile_accessible` is handed the NEIGHBOUR and structurally cannot express it). **THE A/B, on `VICTORY_ROAD_1F`:** before → `repro_impassable_dirs.py` exits **1** with **29/29** live tiles reading `[--S-]` against a correct `[NE-W]`, and `calculate_path` returns **NO-PATH from every single direction** — all 29 walkable tiles were **completely invisible to the planner**; after → exits **0**, 0/29 mismatches, and the legal approaches return `OK len=1`. **COLLATERAL CONTROL:** the `MOSSDEEP_CITY` block of `probe_ki59_routing_ab.py` (a map with zero such tiles) is **byte-identical across both arms** — the two arms were produced with real production code via `git stash`, not by re-implementation. **NEGATIVE CONTROL:** `SEAFLOOR_CAVERN_ROOM1` reports **0 live tiles and 0 mismatches in both arms**, confirming from production objects that the branch is inert there. **New gate `repro_impassable_dirs.py` is in `run_gates.py` (suite is now 17, all PASS, 124.3s).** ‼ **`probe_shoal_tide.py` corrected IN LOCKSTEP** (it replicated the inversion, so it agreed with production while both were wrong) — and its headline numbers **re-derived on the fixed model are UNCHANGED: LOW 278 / HIGH 0, all controls PASS**, so the user-delegated **"Shoal Cave is NOT adopted"** ruling stands and now rests on a correct model. ⚠ **sandbox↔custom drift is now 3** — `map_path.py` joins `early_game.py` + `story_mode.py`; **promotion is the USER's call and has not been asked for.** History and the measurement that reprioritised this item follow. ‼ **MEASURED 2026-08-13 — the INVERSION IS REAL but the TARGET MAP IN THE OLD TEXT WAS WRONG.** `tools/story-dev/probe_impassable_dirs.py` (NEW) swept **all 518 maps**. **The bug is REAL:** `map_path.py:128-132` starts `accessible_from_direction` all-False and **sets** `[opposite]` True, where ground truth is start all-True and **clear** `[opposite]`. For `Impassable North` the shipped model is `[--S-]` — the *exact complement* of correct `[NE-W]` — so it refuses the three legal entries **and permits the one illegal one**. ⛔ **BUT: `map_path.py:118` is `if tile.collision != 0:` and the `Impassable` handler is its `elif`, so a collision≠0 tile NEVER REACHES IT.** Measured: **2,658 such tiles game-wide, 2,257 DORMANT (collision≠0), only 401 (15.1%) LIVE.** ‼‼ **ZERO of the Seafloor Cavern's 115 are live** (all `collision=1`) — so the old instruction "A/B on `SEAFLOOR_CAVERN_ROOM1` before the cavern chapter exists" **would have measured nothing**, and this is **NOT a §Ch20 prerequisite**. **Where it IS live:** SHOAL_CAVE inner 77 + entrance 12 + high-tide 9; **DESERT_RUINS 48 / ISLAND_CAVE 48 / ANCIENT_TOMB 48 (the REGI arc — the user's ask, 144 tiles)**; LILYCOVE contest hall 40 + lobby 8; ARTISAN_CAVE_B1F 34; VICTORY_ROAD 1F/B2F/B1F 58; MIRAGE_TOWER_4F 5; GRANITE_CAVE_B2F 4; a tail of 1-3. Live strings: `North` 347, `East` 27, `West` 24, `North and South` 3. ✅ **THE FIX IS SPECIFIED AND DE-RISKED** (decomp-verified `gOppositeDirectionBlockedMetatileFuncs` / `gDirectionBlockedMetatileFuncs`, `event_object_movement.c:893-905, 4715-4722`): `MB_IMPASSABLE_<D>` means **"the tile's `<D>` EDGE is a wall"**, blocking entry *and* exit across it. ⇒ (a) `accessible_from_direction = [True]*4` then clear `[opposite(D)]`; (b) **a NEW exit-blocking concept is required** — `PathTile` cannot express "may not LEAVE in direction D" at all, and without it the fix still lets the planner walk north off a wall (22 of Island Cave's 48 live tiles have open floor to their north). ✅ **Hazards pre-checked, all clear:** the four `_is_optional_blocker` salt tiles are plain `Cave`, not Impassable (so the fix cannot defeat the salt gates); `Secret Base Breakable Door` (0xBE, a directional impassable the code misses) and `Secret Base Impassable` (0xB9, a false friend that must stay OUT) both occur **0 times** in this ROM. ‼ **`tools/story-dev/probe_shoal_tide.py:364-367` REPLICATES the inversion** and must change in lockstep — see the note under `#24-shoalcave`/KI-54. **Per-string split (live/total), which BOUNDS the fix:** `North` **347**/2601 · `East` **27**/27 (all live) · `West` **24**/24 (all live) · `North and South` **3**/3 (all live) · `South` **0**/3 (all dormant). **Five of the ten producible strings never occur in this ROM at all.** ⚠ **THESE ARE STATIC ROM LAYOUTS, NOT RUNTIME TRUTH.** Three of the four biggest live maps rewrite themselves: `setmetatile` appears in `DesertRuins`, `IslandCave`, `AncientTomb` (those ARE the braille walls opening), `ShoalCave_LowTideInnerRoom` and `LilycoveCity_ContestLobby`; `setmaplayoutindex` in both Shoal Cave low-tide rooms. So 77/48/48/48 describe the **compiled** layout, not what is on screen. ‼ **The Seafloor conclusion is UNAFFECTED — no `SEAFLOOR_CAVERN_ROOM*` script uses either command** (checked across the full result set). **REMAINS: the fix itself + an A/B.** ⇒ **RUN IT ON `VICTORY_ROAD_1F` (29 live tiles)** — it is the cleanest target because it does NOT rewrite itself, unlike Island Cave / Shoal Cave. **With a NEGATIVE control on a Seafloor room proving the branch is inert there**, and the A/B must assert **both** directions (entry AND exit), never on the Seafloor Cavern alone. |
+| `#24-impassabledirs` | ✅ **DONE 2026-08-13 — FIXED, BOTH HALVES, A/B PROVEN, AND GATED.** `modules/map_path.py`: the entry vector now starts all-True and CLEARS `[opposite(D)]`, and a NEW `PathTile.blocked_exit_directions` carries the decomp's *exit* rule, checked on the SOURCE tile in the A* expansion loop (`is_tile_accessible` is handed the NEIGHBOUR and structurally cannot express it). **THE A/B, on `VICTORY_ROAD_1F`:** before → `repro_impassable_dirs.py` exits **1** with **29/29** live tiles reading `[--S-]` against a correct `[NE-W]`, and `calculate_path` returns **NO-PATH from every single direction** — all 29 walkable tiles were **completely invisible to the planner**; after → exits **0**, 0/29 mismatches, and the legal approaches return `OK len=1`. **COLLATERAL CONTROL:** the `MOSSDEEP_CITY` block of `probe_ki59_routing_ab.py` (a map with zero such tiles) is **byte-identical across both arms** — the two arms were produced with real production code via `git stash`, not by re-implementation. **NEGATIVE CONTROL:** `SEAFLOOR_CAVERN_ROOM1` reports **0 live tiles and 0 mismatches in both arms**, confirming from production objects that the branch is inert there. **New gate `repro_impassable_dirs.py` is in `run_gates.py` (suite reached 17 with it — 18 since `audit_doc_consistency.py`, 2026-08-14 — all PASS, 124.3s).** ‼ **`probe_shoal_tide.py` corrected IN LOCKSTEP** (it replicated the inversion, so it agreed with production while both were wrong) — and its headline numbers **re-derived on the fixed model are UNCHANGED: LOW 278 / HIGH 0, all controls PASS**, so the user-delegated **"Shoal Cave is NOT adopted"** ruling stands and now rests on a correct model. ⚠ **sandbox↔custom drift is now 3** — `map_path.py` joins `early_game.py` + `story_mode.py`; **promotion is the USER's call and has not been asked for.** History and the measurement that reprioritised this item follow. ‼ **MEASURED 2026-08-13 — the INVERSION IS REAL but the TARGET MAP IN THE OLD TEXT WAS WRONG.** `tools/story-dev/probe_impassable_dirs.py` (NEW) swept **all 518 maps**. **The bug is REAL:** `map_path.py:128-132` starts `accessible_from_direction` all-False and **sets** `[opposite]` True, where ground truth is start all-True and **clear** `[opposite]`. For `Impassable North` the shipped model is `[--S-]` — the *exact complement* of correct `[NE-W]` — so it refuses the three legal entries **and permits the one illegal one**. ⛔ **BUT: `map_path.py:118` is `if tile.collision != 0:` and the `Impassable` handler is its `elif`, so a collision≠0 tile NEVER REACHES IT.** Measured: **2,658 such tiles game-wide, 2,257 DORMANT (collision≠0), only 401 (15.1%) LIVE.** ‼‼ **ZERO of the Seafloor Cavern's 115 are live** (all `collision=1`) — so the old instruction "A/B on `SEAFLOOR_CAVERN_ROOM1` before the cavern chapter exists" **would have measured nothing**, and this is **NOT a §Ch20 prerequisite**. **Where it IS live:** SHOAL_CAVE inner 77 + entrance 12 + high-tide 9; **DESERT_RUINS 48 / ISLAND_CAVE 48 / ANCIENT_TOMB 48 (the REGI arc — the user's ask, 144 tiles)**; LILYCOVE contest hall 40 + lobby 8; ARTISAN_CAVE_B1F 34; VICTORY_ROAD 1F/B2F/B1F 58; MIRAGE_TOWER_4F 5; GRANITE_CAVE_B2F 4; a tail of 1-3. Live strings: `North` 347, `East` 27, `West` 24, `North and South` 3. ✅ **THE FIX IS SPECIFIED AND DE-RISKED** (decomp-verified `gOppositeDirectionBlockedMetatileFuncs` / `gDirectionBlockedMetatileFuncs`, `event_object_movement.c:893-905, 4715-4722`): `MB_IMPASSABLE_<D>` means **"the tile's `<D>` EDGE is a wall"**, blocking entry *and* exit across it. ⇒ (a) `accessible_from_direction = [True]*4` then clear `[opposite(D)]`; (b) **a NEW exit-blocking concept is required** — `PathTile` cannot express "may not LEAVE in direction D" at all, and without it the fix still lets the planner walk north off a wall (22 of Island Cave's 48 live tiles have open floor to their north). ✅ **Hazards pre-checked, all clear:** the four `_is_optional_blocker` salt tiles are plain `Cave`, not Impassable (so the fix cannot defeat the salt gates); `Secret Base Breakable Door` (0xBE, a directional impassable the code misses) and `Secret Base Impassable` (0xB9, a false friend that must stay OUT) both occur **0 times** in this ROM. ‼ **`tools/story-dev/probe_shoal_tide.py:364-367` REPLICATES the inversion** and must change in lockstep — see the note under `#24-shoalcave`/KI-54. **Per-string split (live/total), which BOUNDS the fix:** `North` **347**/2601 · `East` **27**/27 (all live) · `West` **24**/24 (all live) · `North and South` **3**/3 (all live) · `South` **0**/3 (all dormant). **Five of the ten producible strings never occur in this ROM at all.** ⚠ **THESE ARE STATIC ROM LAYOUTS, NOT RUNTIME TRUTH.** Three of the four biggest live maps rewrite themselves: `setmetatile` appears in `DesertRuins`, `IslandCave`, `AncientTomb` (those ARE the braille walls opening), `ShoalCave_LowTideInnerRoom` and `LilycoveCity_ContestLobby`; `setmaplayoutindex` in both Shoal Cave low-tide rooms. So 77/48/48/48 describe the **compiled** layout, not what is on screen. ‼ **The Seafloor conclusion is UNAFFECTED — no `SEAFLOOR_CAVERN_ROOM*` script uses either command** (checked across the full result set). **REMAINS: the fix itself + an A/B.** ⇒ **RUN IT ON `VICTORY_ROAD_1F` (29 live tiles)** — it is the cleanest target because it does NOT rewrite itself, unlike Island Cave / Shoal Cave. **With a NEGATIVE control on a Seafloor room proving the branch is inert there**, and the A/B must assert **both** directions (entry AND exit), never on the Seafloor Cavern alone. |
 | `#24-pathsourcecheck` | ‼ **NEW 2026-08-12 (KI-60), code-verified.** `calculate_path` never runs its SOURCE tile through `is_tile_accessible` — it seeds the queue unconditionally. So a path requested *out of solid rock* returns OK (this produced the wrong "different components" story in KI-57's first write-up), and an invalid source reports a bare "could not find a path" instead of naming itself. Low-risk fix = raise a distinct error on an inaccessible source, but it is shared code and needs its own A/B. |
-| `#24-mossdeepgym` | ✅ **DONE 2026-08-12 — §Ch18 runs END TO END and is WIRED into the ladder (Segment 18).** `--driver mossdeepbadge` gives `badge=True map=MOSSDEEP_CITY_GYM at=(23,8) controllable=True whiteouts=0`; `BADGE07_GET` set after 754 frames; anchor `saves/post_mossdeep_gym.ss1`. The ladder now runs **19 of 24 beats**. ‼ An adversarial review then found a defect the PASS could not have caught (the whiteout path checked the map only at entry, and raised `RuntimeError` where the chapter catches `BotModeError`, so the recovery could never fire) — fixed and proven by `repro_gym_whiteout_guard.py`, which INJECTS the fault. History below. ✅ Leg 1 driven PASS (`--driver mossdeeptravel`, `whiteouts=0`, anchor `in_mossdeep_gym.ss1`). ✅ **KI-58 resolved:** the gym is a **ROTATING-TILE STATUE PUZZLE** — nine floor switches call `moverotatingtileobjects`, shifting every object on a matching coloured arrow one tile. ✅ **NEW 2026-08-12: `modules/story/mossdeep_gym_puzzle.py` simulates it, and `probe_gym_simulate.py` PASSES** — 11/11 loaded objects predicted on a live press, identity-keyed on `local_id`, plus a period-4 identity control on all five colours. Encoding derived from the ROM dump: band = `(mt-0x250)//8` (`0 Yellow 1 Blue 2 Green 3 Purple 4 Red`), code = `(mt-0x250)%8` (`0 Right 1 Down 2 Left 3 Up`), **codes 4/5 = that colour's switch**. ‼ Movement is a **rigid simultaneous rotation with NO occupancy check**; **nine TRAINERS rotate too**; statues are `graphics_id == 224`. ‼ **"5 counters mod 4" is unsafe** — use the full object-position tuple. ‼ `(23,7)/(24,7)` are collision-1 — target `(23,8)/(24,8)` facing NORTH, press A; they need **≥2 usable Pokémon**. ‼ `(21,6)` ejects to `(7,30)` and is **not flag-gated**. ‼ **Leaving the gym RESETS the puzzle**; internal warps preserve it. ‼ **Solving the puzzle AIMS THE TRAINERS AT YOU** — pressing yellow at `(3,30)` puts Maura adjacent and facing you; gym battles are a consequence of the mechanic, not a derail. ✅ **SOLVER + EXECUTOR BUILT AND DRIVEN 2026-08-12:** `--driver mossdeepgym` gives `at_leaders=True map=MOSSDEEP_CITY_GYM at=(23,8) controllable=True whiteouts=0`, the 117-step route walked in a single plan with zero re-plans; anchor `saves/at_mossdeep_leaders.ss1`. The BFS route matches both agent-derived routes switch-for-switch. ✅ **The Tate & Liza DOUBLE battle is built and driven** (`fight_the_leaders`): the ≥2-usable-Pokémon gate is checked up front rather than discovered, and the chapter allows three attempts because a whiteout leaves the gym and leaving RESETS the puzzle. ‼ Still UNEXERCISED: the executor’s own interruption branch (the trainer battles that fired were handled by the standard listeners) and the real whiteout path (both driven runs had `whiteouts=0`; the guard is proven by fault injection, not by a live loss). ✅ **AND the chapter now LEAVES the gym** (it was stranding the run on an eleven-tile island; the acceptance test now requires being outside). **NEXT: §Ch19, the Mossdeep Space Center** — groundwork + measured hazards in `modules/story/space_center.py` and `tools/story-dev/probe_ch19_hazards.py`; ‼ §Ch21 is BLOCKED by KI-63 (no Dive learner, party full) — beating the leaders already sets `VAR_MOSSDEEP_SPACE_CENTER_STATE=1` and unhides Team Magma + Steven. |
+| `#24-mossdeepgym` | ✅ **DONE 2026-08-12 — §Ch18 runs END TO END and is WIRED into the ladder (Segment 18).** `--driver mossdeepbadge` gives `badge=True map=MOSSDEEP_CITY_GYM at=(23,8) controllable=True whiteouts=0`; `BADGE07_GET` set after 754 frames; anchor `saves/post_mossdeep_gym.ss1`. The ladder reached **19/24** with this item (current: **20 of 24 beats**, since §Ch19). ‼ An adversarial review then found a defect the PASS could not have caught (the whiteout path checked the map only at entry, and raised `RuntimeError` where the chapter catches `BotModeError`, so the recovery could never fire) — fixed and proven by `repro_gym_whiteout_guard.py`, which INJECTS the fault. History below. ✅ Leg 1 driven PASS (`--driver mossdeeptravel`, `whiteouts=0`, anchor `in_mossdeep_gym.ss1`). ✅ **KI-58 resolved:** the gym is a **ROTATING-TILE STATUE PUZZLE** — nine floor switches call `moverotatingtileobjects`, shifting every object on a matching coloured arrow one tile. ✅ **NEW 2026-08-12: `modules/story/mossdeep_gym_puzzle.py` simulates it, and `probe_gym_simulate.py` PASSES** — 11/11 loaded objects predicted on a live press, identity-keyed on `local_id`, plus a period-4 identity control on all five colours. Encoding derived from the ROM dump: band = `(mt-0x250)//8` (`0 Yellow 1 Blue 2 Green 3 Purple 4 Red`), code = `(mt-0x250)%8` (`0 Right 1 Down 2 Left 3 Up`), **codes 4/5 = that colour's switch**. ‼ Movement is a **rigid simultaneous rotation with NO occupancy check**; **nine TRAINERS rotate too**; statues are `graphics_id == 224`. ‼ **"5 counters mod 4" is unsafe** — use the full object-position tuple. ‼ `(23,7)/(24,7)` are collision-1 — target `(23,8)/(24,8)` facing NORTH, press A; they need **≥2 usable Pokémon**. ‼ `(21,6)` ejects to `(7,30)` and is **not flag-gated**. ‼ **Leaving the gym RESETS the puzzle**; internal warps preserve it. ‼ **Solving the puzzle AIMS THE TRAINERS AT YOU** — pressing yellow at `(3,30)` puts Maura adjacent and facing you; gym battles are a consequence of the mechanic, not a derail. ✅ **SOLVER + EXECUTOR BUILT AND DRIVEN 2026-08-12:** `--driver mossdeepgym` gives `at_leaders=True map=MOSSDEEP_CITY_GYM at=(23,8) controllable=True whiteouts=0`, the 117-step route walked in a single plan with zero re-plans; anchor `saves/at_mossdeep_leaders.ss1`. The BFS route matches both agent-derived routes switch-for-switch. ✅ **The Tate & Liza DOUBLE battle is built and driven** (`fight_the_leaders`): the ≥2-usable-Pokémon gate is checked up front rather than discovered, and the chapter allows three attempts because a whiteout leaves the gym and leaving RESETS the puzzle. ‼ Still UNEXERCISED: the executor’s own interruption branch (the trainer battles that fired were handled by the standard listeners) and the real whiteout path (both driven runs had `whiteouts=0`; the guard is proven by fault injection, not by a live loss). ✅ **AND the chapter now LEAVES the gym** (it was stranding the run on an eleven-tile island; the acceptance test now requires being outside). **NEXT: §Ch19, the Mossdeep Space Center** — groundwork + measured hazards in `modules/story/space_center.py` and `tools/story-dev/probe_ch19_hazards.py`; ‼ §Ch21 is BLOCKED by KI-63 (no Dive learner, party full) — beating the leaders already sets `VAR_MOSSDEEP_SPACE_CENTER_STATE=1` and unhides Team Magma + Steven. |
 | `#24-spacecenter` | ✅ **DONE 2026-08-12 — §Ch19 runs END TO END and is WIRED into the ladder (Segment 19).** One chapter covers BOTH the Space Center defence and the Dive hand-over, because `chapters.py` grades chapter 19 on `RECEIVED_HM_DIVE`. Driven from `post_mossdeep_gym.ss1`: `dive=True hm08=True MOSSDEEP_SPACE_CENTER_STATE=3 map=MOSSDEEP_CITY at=(19,11) controllable=True whiteouts=0`, **CAN-CONTINUE OK(15wp)**. The ladder now runs **20 of 24 beats**. Anchors captured: `at_steven_2f.ss1`, `post_space_center.ss1`, `post_dive.ss1`. Drivers: `--driver spacecenter1` (legs 1-3), `spacecenter2` (the menu + multi battle), `spacecenter` (whole chapter; run it from `post_space_center.ss1` too — that PROVES the resume guards by skipping to leg 6). ‼ **THE CITY IS CUT IN TWO** until the forced cutscene runs: the gym victory SPAWNS five Team Magma NPCs onto the only land bridge (x=44, y=23-26) and our planner blocks loaded-object tiles, so leg 1 is TWO legs — trigger line, assert `VAR_MOSSDEEP_CITY_STATE == 2`, then the door. I first mis-blamed KI-59 for this; see `08-MISTAKES.md`. ‼ **THE STAIR GRUNT MUST BE TALKED TO** (`sight_radius = 0`, stands ON the only tile the stairs are reachable from) — navigating there can never succeed. ‼ **THE PARTY-SELECT MENU IS NOW SOLVED AND VERIFIED LIVE:** cursor slots 0-5 are mons, **6 = CONFIRM**, each pick is `A` (submenu) then `A` (ENTER) and **the cursor does not advance**; A on an already-picked mon DESELECTS it, so blind A-mash toggles for ever. Every pick is verified against `gSelectedOrderFromParty` — measured `[1,5,3,0]` against `INTENDED-PICKS [0,4,2]`, an exact match (Sceptile L48 / Mightyena L44 / Swellow L40). **Always bring 3**: the loss condition sums HP over the player's picks ONLY, so bringing fewer is strictly worse. ‼ **Losing is a RETRY, not an error** — the script calls `SetCB2WhiteOut` itself, halves the money and warps to the last heal location, but leaves the var at 2; leg 1's heal matters twice over because the anchor's respawn was measured to be **LILYCOVE**, across the sea. ‼ **§Ch19 nearly ended INSIDE Steven's house** — caught by the acceptance's `calculate_path` off the end tile, KI-56's rule for the third time. |
 | `#24-remainingarc` | 🔄 **§Ch20 IS DRIVEN THROUGH ROOM 3 — THE BOT STANDS IN ROOM 8 (2026-08-13, latest). `--driver ch20room3` → `ACCEPTANCE: PASS`, reproduced twice.** The WALK route: 18 steps, **zero pushes**, ending `SEAFLOOR_CAVERN_ROOM8 (5,12)` with a real step. It re-proves every room beneath it → **Room 1 n=7, Room 2 n=4, Room 6 n=3**. ✅ **THE DOUBLE-BATTLE CLAIM IS CONFIRMED LIVE:** one trainer battle in Room 3, `is_double=True`, at exactly `(6,5)`, with `usable=6` asserted BEFORE the walk so the result is attributable. ⛔ **My own discriminator printed a false "REFUTED"** — it counted trainer battles run-wide and swept in the Room 1 grunt; **the instrument was wrong, not the claim**, and it was caught because `saw_double` was reported rather than graded and the raw log printed the map next to the judgement. ✅ Two wild encounters fired, one **between two Strength pushes** — closing a gap the Room 2 note flagged as untested. ✅ An adversarial review of increment 3 found a real BLOCKER (a design decision that lived only in a commit message, never in `06-DECISIONS-LOG.md`) — closed. ⇒ **NEXT: BUILD `--driver ch20room8`** (‼ it does **not exist yet** — it is the thing to write, not a command to run), **using OUR 9-push sequence** — ⛔ **step 9 faces LEFT, never UP** (`(5,3)` permanently seals the exit); a jam is recoverable by exiting to Room 3 and re-entering. **Then Room 9** (62-step walk to the trigger `(17,42)`, Archie, and the atoll exit). Older text follows. 🔄 **§Ch20 IS DRIVEN THROUGH THE ROOM 6 CURRENT MAZE AND THE BOT STANDS IN ROOM 3 (2026-08-13, latest). `--driver ch20room6` → `ACCEPTANCE: PASS`, first drive, 8/8 pre-registered predictions.** ‼ **THE FIRST EXECUTED CURRENT CROSSING IN THIS PROJECT** — Rooms 6/7 were planner-level only until now, and *a plan is not a walk*. ⇒ **"Rooms 6/7 need no solver" now rests on a WALK.** ⚠ The **endpoint** is proven, not the intermediate slide behaviour. ✅ **And Room 3's arbitration was confirmed LIVE in the same run:** `calculate_path((4,15)→(8,1))` = `OK len=18` **containing `(6,5)`** ⇒ **Room 3 is crossable PUSH-FREE, so its 7-boulder puzzle is OPTIONAL**, and the walk **must** take the trainer battle (decomp: a single **DOUBLE** battle, still unobserved live). ⛔ **An earlier agent pass called our build spec "REFUTED" on Room 3 and was ITSELF WRONG** — I propagated it into the docs before a deeper pass corrected it; *an agent's REFUTED needs the same two independent authorities as a CONFIRMED*. ‼ **The drivers also DERAILED instead of failing** on the one branch three green runs never took (`AttributeError` on `self.moved`) — found by adversarial review, reproduced via the new permanent hook **`POKEBOT_CH20_FAULT=room1`**, fixed, A/B proven. **Room 1 is now n=5, Room 2 n=2.** ⇒ **NEXT: `--driver ch20room3`** (the WALK: `navigate_to(ROOM3,(8,1))`, 18 steps, zero pushes, precondition ≥2 usable Pokémon, graded on both trainer flags SET), **then Room 8** with OUR 9-push sequence — ⛔ step 9 faces **LEFT, never UP**. Older text follows. 🔄 **§Ch20 IS DRIVEN THROUGH ROOM 2 (2026-08-13). `--driver ch20room2` → `ACCEPTANCE: PASS`, first drive, 10/10 pre-registered predictions.** It re-solves Room 1 from scratch every run (`FLAG_TEMP_*` objects respawn on map load), so **Room 1 is now n=3**. Route: smash `(8,7)` → **exactly three** north pushes of boulder `id 4` → `(6,1)` → `SEAFLOOR_CAVERN_ROOM6 (11,21)`, then a real `calculate_path` to the room's exit `(4,1)` = `OK len=13` **measured from inside** — matching what `probe_ch20_currents.py` predicted from outside. ‼ **THE HEADLINE IS A CORRECTION TO OUR OWN SHIPPED SOURCE:** `FLAG_SYS_USE_STRENGTH` read **False** right after the ROOM1→ROOM2 warp, so `early_game.py`'s *"NEVER CLEARED … once per SAVE"* was wrong — it is cleared on EVERY warp (`ClearTempFieldEventData` → `LoadMapFromWarp`). The old claim rested on a search for the SCRIPT MACRO `clearflag`; the clear is the C function `FlagClear`. The CODE was always safe (`strength_push` re-checks per call) — this was load-bearing documentation on top of correct code. Both comments fixed; **drift is still exactly 3** (`early_game.py` was already one of them). ‼ **KI-77 CORRECTED TWICE the day it was filed:** the despawn window is derived (20x17, predicts our live dump 5/5) so **"armed in Room 8" is REFUTED** (Room 8 is 11x14, smaller than the window — the LARGE rooms are the risk), and the game **physically resets a pushed boulder to its template tile on despawn**, so the planner is fail-safe and never under-blocks. ⚠ **THE UNTESTED DANGER IS THE EXIT:** the chapter lands on `ROUTE128 (38,22)` **facing north**, and north is a **41-tile closed lagoon** with `allow_escaping: false` ⇒ **step SOUTH to `(38,23)` and Surf**. ⇒ **NEXT: ROOM 3 — arbitrate first; it is NOT the walk the spec calls it (7-boulder puzzle omitted, trainers unavoidable on the push-free line, and a boulder can block the `(9,13)` retreat warp).** Room 8 is already adjudicated — use OUR 9-push sequence, and ‼ **step 9 faces LEFT, never UP** (`(5,3)` permanently seals the exit). Older text follows. 🔄 **§Ch20 INCREMENT 1 IS DRIVEN AND PASSING (2026-08-13): the bot is INSIDE the cavern and through ROOM 1.** `--driver ch20room1` → `ACCEPTANCE: PASS` first drive — ingress `legs 5/5`, `ROOM1 (5,18)`, Rock Smash + **two `strength_push`es verified by `local_id`** (boulder 1 → `(5,12)`, boulder 2 → `(13,11)`), ending `ROOM2 (10,7)` controllable with a real step taken. ‼ **The A/B is the result, not the arrival:** `calculate_path(→ (11,11))` went `PathFindingError` → `OK len=6` with live objects on both arms, which turns `probe_ch20_interior.py`'s Room 1 NO-PATH from a **lower bound** into a **measured fact**. 6 of 7 pre-registered predictions held (`ai-research-notes/2026-08-13-ch20-room1-drive-predictions.md`). ⛔ **AND THE ROUTE HAD TO BE ARBITRATED FIRST — our own build spec was WRONG about Room 1.** It claimed an *exhaustive* search proves the `(5,11)` boulder must be pushed **north**; the decomp and our own ROM both say `(5,10)` and `(5,12)` are `collision=0 elevation=3 'Cave'`, so **either** direction is legal and the uniqueness claim is false. Upstream's **south** push ships and was confirmed live. ⇒ ‼ **The spec's Room 2 and Room 8 "exhaustive" sequences are UNAUDITED — arbitrate each against the decomp AND `puzzle_solver.py:395-454` before driving it.** ‼ **NEW: KI-77** — `get_map_objects()` is a **camera-range window**, so a pushed boulder's vacated tile is re-blocked once it scrolls off screen; benign in Room 1, **armed in Room 8's nine pushes**. ⇒ **NEXT: arbitrate Room 2, then drive `--driver ch20room2` the same way (measure → A/B → solve → can-continue).** Older text follows. 🔄 **§Ch20 IS FULLY SCOPED AND UNBLOCKED, NOT YET BUILT (2026-08-13).** ✅ Its blockers are gone: **KI-63 resolved** (the bot acquires Dive by playing), the **dive leg is driven 6/6**, and **KI-59 never gated it** (retracted — 0 of the cavern's 115 tiles reach the buggy branch). **Artefacts to build from:** the 11-leg spec `ai-research-notes/2026-08-13-ch20-seafloor-cavern-build-spec.md`, the Area Atlas `probe_ch20_interior.py`, and `probe_ch20_currents.py`. **Shape:** Rooms 1/2/3/5/8 are **STRENGTH-BOULDER** puzzles, Rooms 6/7 are **current mazes** (‼ routable by our planner — 4/4 predictions, no solver needed), Rooms 4/9 split by terrain. ‼ **ROCK SMASH IS MANDATORY** — Strength alone is physically stuck in Room 1. ‼ **Trigger tile is `ROOM9 (17,42)`, NOT `(16,42)`.** ‼ **Grade on `VAR_ROUTE128_STATE == 2`, not the Kyogre flag** — the flag is set before a forced warp into a SECOND cutscene that lands on a **sandbar the bot must Surf off**. ‼ **Losing to Archie resets the whole dungeon**; **puzzle state resets on every map re-entry**. ⇒ **NEXT: DRIVE IT, leg by leg** — the interior was measured from OUTSIDE, so its per-room routing is a LOWER BOUND. Older text follows. 🔄 **§Ch18 + §Ch19 DONE; §Ch20/§Ch21 remain.** The path to the end of the Aqua/Magma story, decomp-gated: ✅ **§Ch18** Mossdeep Gym → `BADGE07`; ✅ **§Ch19** Mossdeep Space Center **and** Steven's **HM08 Dive** → `FLAG_RECEIVED_HM_DIVE` (both in Segment 19 — they are one chapter in `chapters.py`), which also unhides the Seafloor Cavern entrance guard; ⛔ **§Ch21** Seafloor Cavern (Kyogre) — **BLOCKED BY KI-63**: HM08 is in the bag but **no party member can learn Dive and the party is full**, so `#24-pc` is a PREREQUISITE, not a later nicety. ‼ My handoff had said the Seafloor Cavern was next — it was three beats away, and Dive was the real gate. Checking beat the assumption. ⛔ **RETRACTED 2026-08-13 — "KI-59 is armed in the Seafloor Cavern" is FALSE and was never a §Ch20/§Ch21 prerequisite.** The 115 `Impassable *` tiles are real, but **every one has `collision=1`**, and `map_path.py:128` is the `elif` of `if tile.collision != 0:` — so **none of them reach the buggy branch**. Measured over all 518 maps by `probe_impassable_dirs.py`; re-measured in a fresh process in reverse order as a cache-poisoning control (KI-73), both agree. The prescribed A/B on `SEAFLOOR_CAVERN_ROOM1` would have shown a zero delta and invited the wrong conclusion. KI-59 is still REAL — it is live on 401 other tiles, chiefly the **Regi tombs** — but it does **not** gate the cavern. See `#24-impassabledirs`. Superseded text: KI-59 is armed in the Seafloor Cavern (115 `Impassable *` tiles across Rooms 1-9) — fix it with an A/B on `SEAFLOOR_CAVERN_ROOM1` BEFORE the cavern chapter exists. |
 | `#24-aquahideout` | ✅ **DONE 2026-08-11 — §Ch17 BUILT and driven PASS.** `escaped=True controllable=True map=AQUA_HIDEOUT_B2F at=(24,19) whiteouts=0`, all **8 maze hops** in order. B1F is a warp-panel maze (‼ 21 of its 25 warps return to B1F) so the route was BFS-solved from the ROM warp table by `probe_aqua_hideout_graph.py` and every hop is graded on **(map AND tile)** — Ch15's "did the map change?" is useless when most hops are B1F→B1F. Wired as Segment 17; anchor `saves/post_aqua.ss1` captured on PASS. **Out of scope:** the Master Ball at `B1F (15,9)` behind two Electrode. |
@@ -61,7 +61,7 @@ their original text kept underneath, because IDs are never reused here and the r
 worth more than the tidiness.
 | group | canonical (still open) | why it wins |
 |---|---|---|
-| the `#24` umbrella (was 3 entries) | **"STORY AUTO-PLAYER"** | the only one carrying CURRENT state ("a cold start reaches Badge 6"); the others are roadmap-era restatements |
+| the `#24` umbrella (was 3 entries) | **"STORY AUTO-PLAYER"** | the umbrella header; ⛔ its "cold start reaches Badge 6" body went FIVE CHAPTERS stale and was corrected 2026-08-13 — **the live head is `#24-remainingarc` at the TOP of this file**, not this entry |
 | PC / box team management | **`#24-roster`** | the user APPROVED it 2026-08-06 and lifted its gate, which outranks the older `#24-pc` design entry |
 | organic team building | **`#24-organicteam`** | it carries the user's 2026-08-05 DEFERRAL, i.e. the live instruction |
 ‼ **`#24-pc` (Surf resource walls) REMAINS OPEN and was not touched** — it is a derail class, a
@@ -720,7 +720,7 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       is only valid if its LOCATION is reachable AT THAT POINT IN THE STORY. Availability is a
       function of story progress, not just of the encounter table.
 
-- [x] `#24-teachmsgstall` — ✅ **DONE 2026-08-11. ROOT-CAUSED, FIXED, A/B-PROVEN, GATE GREEN.**
+- [x] `#24-teachmsgstall` — ⚠ **FIX SHIPPED 2026-08-11 AND KEPT — BUT REOPENED THE SAME DAY: the batch showed NO production effect** (success 80.9% vs 90.5% pre-fix; the new exit fired ZERO times in 85 teaches — another path to `exhausted` exists; see the REOPENED entry at the top of this file). The fix closes a real one-frame hole and costs nothing, so it stays. Headline was ✅ **DONE … GATE GREEN** — corrected 2026-08-13: the headline carries the caveat.
 
       **THE CAUSE — a ONE-FRAME detector window.** The post-select loop waited on
       `"Task_ReplaceMoveYesNo" in t and "Task_PrintAndWaitForText" not in t`. Frame trace
@@ -2210,17 +2210,21 @@ region, where "train near the gym" is actively wrong.
       to reach Fortree after those 13 losses. Adding prep needs a Route 110 training-grass
       tile, which is a game fact that must be verified (live probe / decomp), not recalled.
 
-- [ ] **#24 — STORY AUTO-PLAYER.** The only active work. A cold start reaches
+- [ ] **#24 — STORY AUTO-PLAYER.** The only active work.
+      ⛔ **CORRECTED 2026-08-13 — the body below was FIVE CHAPTERS STALE and the TRIAGE INDEX
+      blessed it as "the only entry carrying CURRENT state". Current truth:** the ladder runs
+      **20 of 24 beats** (7 badges, Mt. Pyre, Magma Hideout and out, Slateport submarine, Aqua
+      Hideout + Master Ball, Mind Badge, Space Center + HM08 Dive), and the **Seafloor Cavern is
+      driven through Room 3 in the harness** (`#24-remainingarc`, the live head of this list).
+      The current order is `#24-remainingarc` → the queue in `04-HANDOFF.md` NEXT ACTIONS.
+      Superseded text (true on 2026-08-10): A cold start reaches
       **Badge 6 (Winona) = end of built content** (38 maps, ~2.48M frames, 0 derails).
-      Sub-items live in `## Story bot (#24) — open backlog` below; the current order is:
-      1. `#24-whiteout` (attrition dominates; the successful run still took 80)
-      2. `#24-counters` phase 2 (the chain NAMES a counter; acting on it isn't built)
-      3. `#24-regionreach` gate table + the blocked training-gate switch (KI-24b)
-      (`#24-movelearn-recovery` — DONE 2026-07-25, see Done below.)
+      Sub-items live in `## Story bot (#24) — open backlog` below; the then-current order was
+      `#24-whiteout`, `#24-counters` phase 2, `#24-regionreach` gate table (KI-24b).
       Next unbuilt chapters: **Mt. Pyre**, then the **Magma hideout**.
-- [ ] #V â€” Post-promotion verification sweep (PARKED behind #24): independent adversarial pass
+- [ ] #V — Post-promotion verification sweep (PARKED behind #24): independent adversarial pass
       on the promoted features that only had builder self-verification (not
-      an independent pass) â€” #8 global pathfinding, #12 shiny alerts, #18
+      an independent pass) — #8 global pathfinding, #12 shiny alerts, #18
       update notice, #20 cloud-sync, and the 2026-07-19 GUI polish (tabs /
       full-dex picker / XP bars / topmost dialogs). Interrupted twice by
       credit limits; run it against custom-pokebot before relying on the
@@ -2300,7 +2304,7 @@ region, where "train near the gym" is actively wrong.
       spin tiles are recorded in `training_areas.py` PENDING_GRASS: **B1F (3,18) L9-11**,
       **B2F (28,17) L10-12**, neither gated by any HM/item/flag. B1F's 62 cracked-floor
       tiles are all UNREACHABLE ON FOOT (north of an unclimbable muddy slope).
-      ‼ **BLOCKED ON ONE THING:** `_CAVE_EXITS` / `_CAVE_ENTRANCES` are SINGLE-HOP tables,
+      ⛔ **UNBLOCKED 2026-08-13 — the blocker below was CLOSED 2026-08-05** (`#24-cavethread`: multi-hop cave threading ALREADY WORKS, both directions, no chain table — see its [x] entry). This item is now limited by priority, not by a dependency. Superseded text: ‼ **BLOCKED ON ONE THING:** `_CAVE_EXITS` / `_CAVE_ENTRANCES` are SINGLE-HOP tables,
       and B1F/B2F are 2-3 hops deep from Route 106. Promoting them without making that
       threading chain-aware breaks the post-training HEAL — the global navigator cannot
       cross warp levels, and that exact failure already dropped two real-hardware runs to
@@ -2361,70 +2365,70 @@ region, where "train near the gym" is actively wrong.
 > money cheat byte-safe 56/56, GUI nav 28/28, no code bugs). AWAITING USER
 > OK to promote to custom. In-game confirms still pending (filled-slot
 > composites, hover with real stats, money effect, controller feel on Ally).
-- [ ] #30 â€” Handheld & GUI refinements (user-specified 2026-07-19):
-      (a) Persistent "Handheld Mode" button â€” move it out of the Play/
+- [ ] #30 — Handheld & GUI refinements (user-specified 2026-07-19):
+      (a) Persistent "Handheld Mode" button — move it out of the Play/
       Controls tab into an always-visible header (in the drawer: right of
       the "TOOLS" text; desktop: a header row above the tabs) so it shows on
       every tab.
-      (b) Handheld menu relocation â€” in handheld mode the Tk top menu
+      (b) Handheld menu relocation — in handheld mode the Tk top menu
       (Emulator/Profile/View/Help) must NOT appear at all (even with the
       drawer open; reverses the earlier "menu shows with drawer" behavior
       for handheld). Surface those commands as buttons/sections inside the
       PLAY tab instead. Desktop keeps the normal menu bar.
-      (c) Left Party Section â€” a vertical party strip to the LEFT of the
+      (c) Left Party Section — a vertical party strip to the LEFT of the
       emulator video, in BOTH desktop and handheld: 6 slots, 1 mon/row.
-      Empty slot = PokÃ© Ball sprite; filled slot = the mon's sprite
+      Empty slot = Poké Ball sprite; filled slot = the mon's sprite
       composited over its caught-ball sprite (ball BEHIND, from
       `pokemon.poke_ball`; ball art at sprites/items/<Ball>.png).
-      (d) Hover stats â€” hovering (mouse) over a Left Party slot shows ALL
-      that mon's stats (level/IVs/nature/ability/moves/â€¦) in a tooltip;
+      (d) Hover stats — hovering (mouse) over a Left Party slot shows ALL
+      that mon's stats (level/IVs/nature/ability/moves/…) in a tooltip;
       SAME hover-stats on the Party tab rows; must also be reachable via the
       gamepad-GUI navigation (#32).
-- [ ] #31 â€” Adjustable money cheat: in the CHEATS card, a money entry
+- [ ] #31 — Adjustable money cheat: in the CHEATS card, a money entry
       pre-filled with the character's CURRENT money (read live), editable to
       any value, + a "Lock" toggle that freezes money at the typed value
       (on = keep re-applying that exact value; off = stop). Refines the
       existing Max/Infinite money.
-- [ ] #32 â€” â˜… Gamepad-driven GUI navigation (roadmap F2, PRIORITIZED by
+- [ ] #32 — ★ Gamepad-driven GUI navigation (roadmap F2, PRIORITIZED by
       user to come right after #30/#31): drive the dashboard with the ROG/
       Xbox controller (D-pad/stick move focus across tabs/cards/buttons/
       party, A activates, incl. triggering the party hover-stats). Distinct
       from the existing in-GAME gamepad input (Manual mode).
 
 ## Adjustments (user-requested 2026-07-19)
-- [x] #36 â€” Left Party balls enlarged 52â†’104px (ball visible behind mon)
+- [x] #36 — Left Party balls enlarged 52→104px (ball visible behind mon)
       (ce66eb78).
-- [x] #37 â€” Party hover tooltip restyled PokÃ©mon-themed (type badges, IV
+- [x] #37 — Party hover tooltip restyled Pokémon-themed (type badges, IV
       grid, moves, sprite) (ce66eb78).
-- [x] #38 â€” Gamepad GUI-nav gated to drawer-open only (no more gameplay
+- [x] #38 — Gamepad GUI-nav gated to drawer-open only (no more gameplay
       interruption) (ce66eb78).
-- [x] #39 â€” Auto-DECLINE new move learning (default `new_move: cancel`;
+- [x] #39 — Auto-DECLINE new move learning (default `new_move: cancel`;
       seam for future move-intelligence at
       DefaultBattleStrategy.which_move_should_be_replaced) (25fac025).
       User's placed battle.yml also set to cancel.
-- [x] #40 â€” Catch-ball allowlist (d5573234): "CATCH BALLS" card (checkbox+
+- [x] #40 — Catch-ball allowlist (d5573234): "CATCH BALLS" card (checkbox+
       icon per ball) filters catch.py::_get_best_poke_ball; catch_balls.yml
       global+per-profile; default protects Master Ball. Live-verified on the
       real save. (Live catch in a real battle still pending.)
-- [~] #36b â€” Party balls enlarged further to 140px (~2.7Ã—); reads clearly
+- [~] #36b — Party balls enlarged further to 140px (~2.7×); reads clearly
       behind smaller mons, big sprites (Celebi/Sceptile) still partly cover.
-      Capped by column height â€” could go scrollable for a true 5Ã— if the
+      Capped by column height — could go scrollable for a true 5× if the
       user wants. (d5573234)
-- [x] #S â€” User's real save placed: "Nick - Emerald" (progressed) +
+- [x] #S — User's real save placed: "Nick - Emerald" (progressed) +
       "-restored" + global configs into custom/sandbox profiles/
       (gitignored). LIVE TEST on real party running.
 
 ## User rulings + new round (2026-07-19)
 - [x] RULINGS: Latias+Latios BOTH obtainable (218/386); Surskit unobtainable
       (c2707bad).
-- [x] #46 â€” Hover tooltip ball ~3Ã— (fixed thumbnail no-op bug) (c2707bad).
-- [x] #47 â€” Opportunistic catch: any SHINY (even owned) caught (c2707bad).
-- [x] PROMOTE-2 â€” whole batch promoted to custom w/ extensive intent docs
-      (DIVERGENCE-LOG aâ€“i + DOCUMENTATION/05-hunting-and-livingdex.md);
+- [x] #46 — Hover tooltip ball ~3× (fixed thumbnail no-op bug) (c2707bad).
+- [x] #47 — Opportunistic catch: any SHINY (even owned) caught (c2707bad).
+- [x] PROMOTE-2 — whole batch promoted to custom w/ extensive intent docs
+      (DIVERGENCE-LOG a–i + DOCUMENTATION/05-hunting-and-livingdex.md);
       live-verified on the real save; 29b9aae5.
 - [x] ~~`#24` (roadmap restatement)~~ — ‼ **SUPERSEDED by the canonical `#24`
       entry (“STORY AUTO-PLAYER”). Consolidated 2026-08-10.**
-      HISTORY, kept for the design detail — #24 â€” STORY-MODE BOT (design-first, multi-pass/triple-check): play
+      HISTORY, kept for the design detail — #24 — STORY-MODE BOT (design-first, multi-pass/triple-check): play
       from a fresh save (user-set name; Oak intro/gender/name; Littleroot
       start) OR continue existing; goal = beat Elite 4 + complete the game
       (eventually pokedex); CHUNKED into chapters; must build+maintain a
@@ -2432,7 +2436,7 @@ region, where "train near the gym" is actively wrong.
       progress + how to obtain progression items. Design â†’ 12-STORYMODE-
       DESIGN.md, several verification passes before building.
       - PROGRESS (2026-07-20): a fresh game auto-plays through **GYM 1 (Stone
-        Badge)** â€” introâ†’starterâ†’first battleâ†’PokÃ©dexâ†’trainâ†’rivalâ†’Petalburgâ†’
+        Badge)** — intro→starter→first battle→Pokédex→train→rival→Petalburg→
         Dad/Wallyâ†’Route104â†’Petalburg Woods (Aqua scene)â†’Rustboroâ†’Roxanne.
         Legs 1-2 promoted to custom; legs 3-4 + Gym 1 in sandbox (awaiting
         testâ†’promote). Fixed the Woods-door stall (ML-9) in BOTH builds. NEXT:
@@ -2446,95 +2450,95 @@ region, where "train near the gym" is actively wrong.
         chain walking). KI-15 FIXED (3 proven fixes); KI-17 opened (after-
         faint reshow freeze, 2 states captured, Gemini-diagnosed DMA race,
         sweep hardened per the analysis - validation pending).
-- [~] #24-move â€” SMART MOVE-LEARNING (user 2026-07-20): DONE â€” Story strategy
-      `which_move_should_be_replaced` override keeps every PokÃ©mon combat-capable
+- [~] #24-move — SMART MOVE-LEARNING (user 2026-07-20): DONE — Story strategy
+      `which_move_should_be_replaced` override keeps every Pokémon combat-capable
       (never trades a damaging move for a status move), preserves type coverage,
       and skips no-gain moves; overrides the stock `new_move: cancel` decline.
       In both builds, unit-verified. REMAINING (folds into #24-team): status-move
       UTILITY ranking (value Sleep Powder/heal over Growl) rather than treating
       all status moves as equal.
-- [~] #24-resume â€” RESUME-FROM-ANYWHERE (user 2026-07-20): v1 DONE â€” segmented
+- [~] #24-resume — RESUME-FROM-ANYWHERE (user 2026-07-20): v1 DONE — segmented
       flag-gated run() resumes from a fresh game / resumed save / hand-played
       state, skipping finished segments (fixed the "thinks I need Wally"
       mis-detection via the HIDE_PETALBURG_CITY_WALLYS_MOM flag). REMAINING:
       finer per-STEP resume with each step self-locating from any tile; FAST
       travel (Fly/Teleport/Escape Rope when available, gated by HMs/badges/items
       per #42); title-screen-with-save auto-Continue; reliable completion flags
-      for chapters past Gym 1. Design Â§RS.
-- [ ] #24-autosave â€” AUTO CHAPTER SAVE-STATE (sandbox testing aid; user
+      for chapters past Gym 1. Design §RS.
+- [ ] #24-autosave — AUTO CHAPTER SAVE-STATE (sandbox testing aid; user
       2026-07-20). After each scripted chapter/segment completes in StoryMode
       (SANDBOX ONLY), auto-save a save state named by chapter into `states/` so
       chapters can be tested/resumed fast. TOGGLE in the Play tab, DEFAULT ON,
       safely toggleable on/off even while the bot runs (the story generator reads
       the flag at SEGMENT BOUNDARIES, so flipping it never interrupts). Implement
-      by hooking the segment boundaries already in `StoryMode.run()` (Â§RS).
+      by hooking the segment boundaries already in `StoryMode.run()` (§RS).
       **APPLY ONLY AFTER the user green-lights the current story build** (it
       touches run()); until then this is a note. Save quickly at a boundary
-      (get_save_state + write) â€” negligible one-frame pause.
-- [x] #24-loadpage â€” LOAD-STATE POPUP PAGINATION (user 2026-07-20): DONE both
+      (get_save_state + write) — negligible one-frame pause.
+- [x] #24-loadpage — LOAD-STATE POPUP PAGINATION (user 2026-07-20): DONE both
       builds. `load_state_window.py` now shows 5 states/page and lazily renders
       only the current page's thumbnails (Prev/Next + arrow/PageUp-Down + page
       label; nav auto-hidden for one page). Fixes the slow-open with a full
       `states/` folder (was decoding up to 128 PNGs at once).
-- [ ] #24-defeat â€” DEFEAT RESPONSE (user 2026-07-20; design Â§DR). What the bot
+- [ ] #24-defeat — DEFEAT RESPONSE (user 2026-07-20; design §DR). What the bot
       does when it LOSES a battle, as a settings-popup choice:
       (A) "Reload save state" = today's watchdog behaviour, made a toggle; verify
-      the resume-after-reload rough edges (the segmented resume Â§RS already fixes
-      most â€” the old run() stranded the bot on any restart; also ensure watchdog
+      the resume-after-reload rough edges (the segmented resume §RS already fixes
+      most — the old run() stranded the bot on any restart; also ensure watchdog
       snapshots are CLEAN OVERWORLD states, never mid-battle/scene).
-      (B) "Play through & retry" = ride out the whiteout â†’ respawn (PokÃ© Center /
-      early houses) â†’ recalc position + story segment (Â§RS) â†’ MATCHUP ASSESS (avg
+      (B) "Play through & retry" = ride out the whiteout → respawn (Poké Center /
+      early houses) → recalc position + story segment (§RS) → MATCHUP ASSESS (avg
       enemy vs own level, team size, type/move coverage) â†’ train/adjust team
-      (#24-team) if outmatched â†’ escalate on repeated loss â†’ retry. Mode B = Â§RS +
+      (#24-team) if outmatched → escalate on repeated loss → retry. Mode B = §RS +
       matchup gate + #24-team, one engine. Sub-parts: a small matchup scorer;
       whiteout ride-out; failure/attempt tracking per objective.
-- [~] #24-evo â€” EVOLUTION policy (user 2026-07-20): CURRENT (sandbox+custom) =
+- [~] #24-evo — EVOLUTION policy (user 2026-07-20): CURRENT (sandbox+custom) =
       ALLOW ALL evolutions (`should_allow_evolution â†’ True`, overriding the stock
-      `stop_evolution`) â€” fixes the Lv16 evolve+move-learn hang and strengthens
+      `stop_evolution`) — fixes the Lv16 evolve+move-learn hang and strengthens
       the team. POPUP options to add (#24-ui): **allow all (default on) / random
       evolution / no evolution**. Robustness the bot must have (verify): RECOGNIZE
       when an evolution happens, navigate the evolution CUTSCENE, and handle the
       accept/deny of a new move + deleting an old one to replace it (uses the
       stock evolveâ†’learn path + `which_move_should_be_replaced`). "Random" mode =
-      per-PokÃ©mon coin-flip whether to evolve (organic team variety, ties #24-team).
+      per-Pokémon coin-flip whether to evolve (organic team variety, ties #24-team).
 - [x] ~~`#24-team`~~ — ‼ **SUPERSEDED by `#24-organicteam`**, which carries the
       user's 2026-08-05 DEFERRAL (“do not start early”) — the live instruction.
       Consolidated 2026-08-10.
-      HISTORY — #24-team â€” ORGANIC TEAM-BUILDING / helper acquisition (user 2026-07-20;
-      design in 12-STORYMODE-DESIGN Â§TB). Bot builds a team to beat gyms/trainers
+      HISTORY — #24-team — ORGANIC TEAM-BUILDING / helper acquisition (user 2026-07-20;
+      design in 12-STORYMODE-DESIGN §TB). Bot builds a team to beat gyms/trainers
       but decides to catch "helpers" ORGANICALLY: a rising "recruit urge" that
       grows with failed/struggled battles (increasing re-rolls/odds), weighted by
       real team gaps (type matchup vs the fight, team type-diversity, move
       coverage), pulling candidates from the obtainability+reachability data
       (#41/#42). Random/human-like, not a min-maxer. Needed for Torchic-vs-Roxanne
       and later type-hard gyms; implement when a gym requires it.
-- [ ] #24-shops â€” MAP SHOPS AS REACHED (user 2026-07-21; planning doc Â§4). Each mart
+- [ ] #24-shops — MAP SHOPS AS REACHED (user 2026-07-21; planning doc §4). Each mart
       has its own layout AND stock/order; the buy code is already shop-agnostic
       (universal task-driven flow + `_mart_item_row` reads stock live). So map each
       shop's ENTRY facts (mart map, clerk-approach tile, facing) when first reached,
       verify live, add an Atlas row. SPECIAL: **Lilycove Department Store** is
-      MULTI-FLOOR (per-floor shop + stock, elevator nav); the **Elite Four PokÃ©
+      MULTI-FLOOR (per-floor shop + stock, elevator nav); the **Elite Four Poké
       Center** has a shop + mart; Slateport stalls / TM sellers use non-standard
       menus. Do NOT map all shops up front (unreachable â†’ can't verify).
 - [x] ~~`#24-pc` (design entry)~~ — ‼ **SUPERSEDED by `#24-roster`**, which the
       user APPROVED 2026-08-06 with its gate lifted. Consolidated 2026-08-10.
       ‼ The OTHER `#24-pc` entry (Surf resource walls) is a DIFFERENT thing — a derail
       class — and REMAINS OPEN.
-      HISTORY — #24-pc â€” PC / BOX TEAM MANAGEMENT (user 2026-07-21; planning doc Â§4b). Advanced
-      team development via the PokÃ©mon Storage PC: store / move / withdraw PokÃ©mon
-      (and items). Map PC access points (every PokÃ© Center + player's-house PC) and
+      HISTORY — #24-pc — PC / BOX TEAM MANAGEMENT (user 2026-07-21; planning doc §4b). Advanced
+      team development via the Pokémon Storage PC: store / move / withdraw Pokémon
+      (and items). Map PC access points (every Poké Center + player's-house PC) and
       the PC UI (Deposit/Withdraw/Move, box navigation, partyâ†”box swaps, item
       storage). Enables swapping in a better-matched mon per gym and parking
       over-levelled/redundant catches. Build when a fight needs it; ties #24-team /
-      Â§7 matchup awareness. PokÃ© Centers are otherwise near-identical (generic code
-      handles them) â€” only map PC/layout exceptions (e.g. the E4 PokÃ© Center).
-- [x] #24-resume â€” SEGMENT 1 RESUME BUG FIXED (2026-07-21). Pre-PokÃ©dex
+      §7 matchup awareness. Poké Centers are otherwise near-identical (generic code
+      handles them) — only map PC/layout exceptions (e.g. the E4 Poké Center).
+- [x] #24-resume — SEGMENT 1 RESUME BUG FIXED (2026-07-21). Pre-Pokédex
       recovery/resume re-ran the scripted intro from the truck â†’ derail loop
       ("stuck after respawn"). Split Segment 1: scripted intro gated on
-      `_has_starter()`; trainâ†’rivalâ†’PokÃ©dex resumable + flag-gated. Derail budget
+      `_has_starter()`; train→rival→Pokédex resumable + flag-gated. Derail budget
       hardened (monotonic party `_progress_sig`; patient recovery). Verified in
       harness. Sandbox (early_game.py, story_mode.py). See CHANGELOG/MISTAKES 07-21.
-- [x] #24-freeze â€” OLDALE PC FREEZE **FIXED** (user 2026-07-21). Root cause (from the
+- [x] #24-freeze — OLDALE PC FREEZE **FIXED** (user 2026-07-21). Root cause (from the
       user's real-bot debug log's generator call stack): heal returned while the
       overworld was transiently non-controllable â†’ healâ†’go-to-rival navigate choked â†’
       derail â†’ re-heal â†’ endless heal/leave/re-enter loop â†’ Manual. FIX:
@@ -2551,17 +2555,17 @@ region, where "train near the gym" is actively wrong.
       user validates on real PC (force `starter: mudkip`, fresh game) and reports;
       then decide a deeper "settle before acting" fix (heal_in_pokemon_center nurse
       interaction + story navigations) vs a training-flow workaround.
-- [x] #24-debuglog â€” DEBUG LOGGING TOGGLE (user 2026-07-21). Opt-in "Debug Logging"
+- [x] #24-debuglog — DEBUG LOGGING TOGGLE (user 2026-07-21). Opt-in "Debug Logging"
       in the Run (bot-mode) menu (both GUIs), default off â†’ `modules/debug_logger.py`
       writes an extensive structured log to `<profile>/debug-logs/` (event stream +
       stuck dumps with the generator call stack). For diagnosing Bug #2 (#24-freeze)
       from a shared real-bot log. Built + validated in sandbox. See CHANGELOG 07-21.
-- [x] #24-swaptrain â€” SWAP-TRAINING **DONE** (user 2026-07-21). Fixes the
+- [x] #24-swaptrain — SWAP-TRAINING **DONE** (user 2026-07-21). Fixes the
       under-levelled-mon training loop: `SwapTrainBattleStrategy` switches a trainee
       that's â‰¥2 levels below the wild foe to the strongest team-mate turn 1 (shares
       XP, no fainting/heal-churn). Gated around `train_team`. Validated Poochyena
       L4â†’L7, 0 heals/faints. Commit ef812c0e.
-- [~] #24-trainmap â€” AREA-APPROPRIATE TRAINING (user 2026-07-21, Option 1).
+- [~] #24-trainmap — AREA-APPROPRIATE TRAINING (user 2026-07-21, Option 1).
       **ROUTING HALF DONE (2026-07-24):** `modules/story/training_areas.py` carries
       `TRAINING_GRASS` (10 areas with VERIFIED spin tiles + level bands), `AREA_PREREQ`
       (surf/region gates), `best_training_area(team_level, min_wild_max=, allow=)` and
@@ -2587,7 +2591,7 @@ region, where "train near the gym" is actively wrong.
       Segment 11d (Flannery) preps with a Water lead + heal and NO grind; a L29-31
       team wins but is marginal (one whiteout in validation run 11). First concrete
       customer for this item.
-- [ ] #24-ui â€” STORY-BOT PRE-RUN SETTINGS POPUP (user 2026-07-20). A popup/menu
+- [ ] #24-ui — STORY-BOT PRE-RUN SETTINGS POPUP (user 2026-07-20). A popup/menu
       shown BEFORE the Story bot runs to set: player name; starter nickname mode
       (none / defined / random); starter choice (specific / random); + other
       settings TBD. Front-end for the existing `<profile>/story.yml`
@@ -2598,27 +2602,27 @@ region, where "train near the gym" is actively wrong.
       section (Reload-save-state vs Play-through-and-retry + sub-toggles).
 
 ## Living-Dex deepening (user-requested 2026-07-19; DESIGN-FIRST, no cutting corners)
-- [ ] #41 â€” Obtainability model: classify every species â€” wild / evolution
-      (method+from) / in-game trade / gift / static / roamer / event â€” so the
+- [ ] #41 — Obtainability model: classify every species — wild / evolution
+      (method+from) / in-game trade / gift / static / roamer / event — so the
       Living Dex knows trade-evolutions and evolve-only / trade-only mons
       (must obtain pre-evo + evolve, or manual trade), not just "no wild â†’
       skip". (design: 11-LIVINGDEX-DESIGN.md)
-- [ ] #42 â€” Reachability/requirement gating: hunt + living-dex must skip a
+- [ ] #42 — Reachability/requirement gating: hunt + living-dex must skip a
       target when the area/encounter needs a capability the player lacks
       (Surf/Cut/Rock Smash/Dive/Waterfall HMs, the right fishing rod, badges
       for HM use, story-flag area access). Read owned HMs/rods/badges/flags
       from the save.
-- [x] #43 â€” Living Dex OPPORTUNISTIC catching: catch ANY wanted-uncaught
+- [x] #43 — Living Dex OPPORTUNISTIC catching: catch ANY wanted-uncaught
       species en route (target only drives travel); live-dex-driven
       advancement; 22/22 units (a8840769).
-- [x] #44 â€” Party ball rework: strip now clean mon sprites (no ball
+- [x] #44 — Party ball rework: strip now clean mon sprites (no ball
       backdrop); caught ball moved to the hover tooltip as an icon+name row.
       Live-verified on the real save (9c2b1f94).
-- [x] #41-evo/#42-easy â€” obtainability (evolution) + capability gating
+- [x] #41-evo/#42-easy — obtainability (evolution) + capability gating
       built (ceb7343e; 30/30 units; live save read Old/Good/Super Rod;
       panel shows 128 wild/147 evolve/102 special-trade). obtainability.py
       + capabilities.py.
-- [x] #41-research â€” compiled + fact-checked Emerald obtainability lists
+- [x] #41-research — compiled + fact-checked Emerald obtainability lists
       (gift 7/static 8/roamer 1/event 6/breeding 3/special 1/unobtainable 79;
       in-game trades rescue nothing). Census sums to 386; "show both"
       denominators exposed (217/386 obtainable without trading). 16/16 units.
@@ -2626,36 +2630,36 @@ region, where "train near the gym" is actively wrong.
       report + citations: 11-LIVINGDEX-DESIGN.md (Phase #41-research). REMAINING
       for full #41: wire living_dex_mode target selection to plan_for's gate +
       route gift/static/roamer to reset modes; auto-evolve helper.
-- [ ] #42-hard â€” HM-gated cross-map reachability in the nav graph (v2).
-- [ ] #45 â€” (FUTURE, with story-mode bot #24) enumerate story instances the
+- [ ] #42-hard — HM-gated cross-map reachability in the nav graph (v2).
+- [ ] #45 — (FUTURE, with story-mode bot #24) enumerate story instances the
       bot can automate, and let hunt/living-dex progress the story to unlock
       areas/capabilities needed for dex completion.
 
 ## Now-ish (user-added 2026-07-19, ahead of first wave)
-- [ ] #33 â€” GUI fixes (in sandbox): Left Party Section ALWAYS visible in
-      both modes regardless of drawer state; unified open/close â€” PokÃ©ball
+- [ ] #33 — GUI fixes (in sandbox): Left Party Section ALWAYS visible in
+      both modes regardless of drawer state; unified open/close — Pokéball
       opens the side tool menu + a Close/Hide collapses it in BOTH handheld
       AND desktop (desktop can hide tools to see more emulator).
-- [ ] #34 â€” Living POKÃ‰DEX tab: search all Emerald species; caught mark +
+- [ ] #34 — Living POKÉDEX tab: search all Emerald species; caught mark +
       shinies-caught count (from stats.db) + full dex info (types/abilities/
       base stats/dex#/category/flavor) + learnable moves (level-up/TM/HM/
-      tutor/egg) â€” offline Bulbapedia. Needs battle sprite + dex artwork.
+      tutor/egg) — offline Bulbapedia. Needs battle sprite + dex artwork.
       RESEARCH-FIRST (see 10-DEX-RESEARCH.md): inventory bot data â†’ gap-fill
       â†’ fact-check â†’ THEN build.
-- [ ] #35 â€” ITEM-DEX tab: search all items; total-collected-historically +
+- [ ] #35 — ITEM-DEX tab: search all items; total-collected-historically +
       currently-held counters + item info + map locations + used/held/
-      dropped-by PokÃ©mon. Needs item sprite + inventory image. Same
+      dropped-by Pokémon. Needs item sprite + inventory image. Same
       research-first flow as #34 (10-DEX-RESEARCH.md).
 
-## First wave (after #30-#32 + #33-#35 â€” agreed direction 2026-07-19)
-- [ ] #22 â€” â˜… Watchdog / auto-recovery: BUILT IN SANDBOX 2026-07-19
+## First wave (after #30-#32 + #33-#35 — agreed direction 2026-07-19)
+- [ ] #22 — ★ Watchdog / auto-recovery: BUILT IN SANDBOX 2026-07-19
       (c7d25305; encounter-stall + drop-to-Manual + frame-freeze detection,
       bounded recovery ladder [re-assert â†’ savestate-reload w/ safety backup
       â†’ give up to Manual], overworld-gated, alerts, GUI status line; 17/17
       self-tests + recovery-path safety confirmed). Remaining: live-hunt
       softlock recovery needs a progressed save; independent adversarial
       pass to bundle with the batch verification before promotion.
-- [ ] #9 â€” Hunt planner: v1 + v2 BUILT IN SANDBOX 2026-07-19 (6141d96f,
+- [ ] #9 — Hunt planner: v1 + v2 BUILT IN SANDBOX 2026-07-19 (6141d96f,
       4df17747). Encounter index from ROM (132 species/805 locations,
       19/19 fact-check); Hunt tab shows ranked locations + mode; v2 adds an
       encounter-tile finder + "Hunt (Custom)" mode = one-click travel (via
@@ -2663,40 +2667,40 @@ region, where "train near the gym" is actively wrong.
       REMAINING: live navigate+hunt on a progressed save; Rock Smash has no
       auto-tile finder (degrades to manual). Independent adversarial pass at
       promotion time.
-- [ ] #23 â€” Living-Dex orchestrator: v1 BUILT IN SANDBOX 2026-07-19
+- [ ] #23 — Living-Dex orchestrator: v1 BUILT IN SANDBOX 2026-07-19
       (34c5f461; living_dex.py target derivation + "Living Dex (Custom)"
       mode: travelâ†’huntâ†’catch-first-uncaughtâ†’advance; catch-intent verified;
       16/16 units + real-ROM fact-check 132 targets). REMAINING: live
       autonomous run needs a progressed save; screenshot harness needs a fix
       after #33 layout change; independent adversarial pass at promotion.
-- [ ] #25 â€” PokÃ©mon detail + PC box viewer: click a party/box mon â†’ full
+- [ ] #25 — Pokémon detail + PC box viewer: click a party/box mon → full
       stats (IVs/nature/ability/moves); browse PC boxes with sprites. (M)
-- [ ] #11 â€” Analytics suite: v1 BUILT IN SANDBOX 2026-07-19 (8094bb05;
+- [ ] #11 — Analytics suite: v1 BUILT IN SANDBOX 2026-07-19 (8094bb05;
       analytics.py + ANALYTICS card in Stats tab: encounter-rate sparkline,
       luck meter [actual vs binomial 1/8192, Ïƒ/z/verdict], sortable+
       filterable stats browser w/ sprites; 26/26 units). REMAINING:
       meaningful values need a populated stats.db (real hunt); independent
       pass at promotion.
-- [ ] #27 â€” Battery-aware mode (ROG Ally): throttle speed/fps on low
+- [ ] #27 — Battery-aware mode (ROG Ally): throttle speed/fps on low
       battery, pause on critical, resume on charge. (S-M)
-- [ ] #28 â€” Polished mobile remote: phone-optimized web dashboard view to
+- [ ] #28 — Polished mobile remote: phone-optimized web dashboard view to
       monitor 24/7 hunts (builds on the existing HTTP API). (M)
 
 ## Later / icebox (catalog in 09-FEATURE-BRAINSTORM.md; user re-orders/culls)
 - [x] ~~`#24` (roadmap restatement)~~ — ‼ **SUPERSEDED by the canonical `#24`
       entry (“STORY AUTO-PLAYER”, the one carrying current state). Consolidated 2026-08-10.**
-      HISTORY, kept for the reasoning trail — #24 â€” Story auto-player (trainer/gym battler) â€” most ambitious, most
+      HISTORY, kept for the reasoning trail — #24 — Story auto-player (trainer/gym battler) — most ambitious, most
       transformative: progress the game to bootstrap a save to any hunt. (L)
-- [ ] #26 â€” Theme system (selectable color themes; palette is centralized). (S-M)
-- [ ] #29 â€” Box manager / auto-release by IV/nature/shiny filter (prevents
+- [ ] #26 — Theme system (selectable color themes; palette is centralized). (S-M)
+- [ ] #29 — Box manager / auto-release by IV/nature/shiny filter (prevents
       full-box stalls in long hunts). (M)
-- [ ] #13 â€” Macro composer v2: chain macros + repeat counts + conditions. (M-L)
-- [ ] #14 â€” Profile manager UI (create/duplicate/rename/delete). (S-M)
-- [ ] #15 â€” Config editor GUI (catch_block/battle/cheats + CCF builder). (M)
-- [ ] #16 â€” PKHeX quick-export (.pk3 of any party/box mon). (S)
-- [ ] #17 â€” Multi-instance manager (several profiles, aggregating board). (L)
-- [ ] #19 â€” Stream overlay theme refresh (OBS overlay â†’ dashboard style). (S-M)
-- [ ] #6 â€” Idea backlog: everything else in 09-FEATURE-BRAINSTORM.md
+- [ ] #13 — Macro composer v2: chain macros + repeat counts + conditions. (M-L)
+- [ ] #14 — Profile manager UI (create/duplicate/rename/delete). (S-M)
+- [ ] #15 — Config editor GUI (catch_block/battle/cheats + CCF builder). (M)
+- [ ] #16 — PKHeX quick-export (.pk3 of any party/box mon). (S)
+- [ ] #17 — Multi-instance manager (several profiles, aggregating board). (L)
+- [ ] #19 — Stream overlay theme refresh (OBS overlay → dashboard style). (S-M)
+- [ ] #6 — Idea backlog: everything else in 09-FEATURE-BRAINSTORM.md
       (egg-hatch optimizer, catch profiles, Nuzlocke, goals panel, log
       viewer, setup wizard, keybinding editor, shiny gallery, hunt-summary
       cards, cross-session history, stream chat, webhooks, crash-safe
@@ -2704,18 +2708,18 @@ region, where "train near the gym" is actively wrong.
       RNG manip, cheat presets, plugin loader UI).
 
 ## Promoted to custom 2026-07-19 (built; awaiting user in-game confirmation)
-- [~] #3 â€” Custom automations + Patrol (v3 multi-map/global-nav). Awaiting
+- [~] #3 — Custom automations + Patrol (v3 multi-map/global-nav). Awaiting
       user's in-game play-test.
-- [~] #7 â€” Sandbox enhancement round (backup/restore + cloud, macros,
-      multi-map Patrol, GUI pack) â€” built, adversarially verified (16-bug
+- [~] #7 — Sandbox enhancement round (backup/restore + cloud, macros,
+      multi-map Patrol, GUI pack) — built, adversarially verified (16-bug
       round), promoted.
-- [~] #8 â€” Warp-aware global pathfinding â€” promoted; user cross-warp walk pending.
-- [~] #10 â€” Gamepad + handheld menu-hide â€” promoted; user real-pad test pending.
-- [~] #12 â€” Shiny alerts â€” promoted; user sees a live shiny fire it pending.
-- [~] #18 â€” Auto-update notice â€” promoted; observe on a stale checkout pending.
-- [~] #20 â€” Cloud save-sync v2 (off by default) â€” promoted; desktopâ†”Ally run pending.
-- [~] #21 â€” Game cheat menu (+ tabbed GUI, full-dex sprite picker, XP bars,
-      topmost dialogs) â€” promoted; user in-game effect test pending.
+- [~] #8 — Warp-aware global pathfinding — promoted; user cross-warp walk pending.
+- [~] #10 — Gamepad + handheld menu-hide — promoted; user real-pad test pending.
+- [~] #12 — Shiny alerts — promoted; user sees a live shiny fire it pending.
+- [~] #18 — Auto-update notice — promoted; observe on a stale checkout pending.
+- [~] #20 — Cloud save-sync v2 (off by default) — promoted; desktop↔Ally run pending.
+- [~] #21 — Game cheat menu (+ tabbed GUI, full-dex sprite picker, XP bars,
+      topmost dialogs) — promoted; user in-game effect test pending.
 
 ## Story bot (#24) — open backlog
 > Two groups: the PRIORITY block was added 2026-07-25 by the doc audit (these IDs were
@@ -2872,40 +2876,40 @@ region, where "train near the gym" is actively wrong.
       already sets the flag first via `get_devon_scope`.
 
 ### Moved out of `## Done` (still open)
-- [ ] #24-sanity â€” SELF-CORRECTION / SANITY-CHECK (user 2026-07-20; design Â§SC).
+- [ ] #24-sanity — SELF-CORRECTION / SANITY-CHECK (user 2026-07-20; design §SC).
       Story mode must never get permanently derailed: re-validate at every segment
       boundary (did the completion flag actually set? else retry/skip-ahead),
       handle out-of-place execution (self-locate), handle non-monotonic progress
       (reload/blackout moving backward), detect mid-run derailment (expected vs
-      actual segment) and re-sync, bounded retries + escalation (ties Â§DR/#24-team),
-      stall watch as last resort (Watchdog #22). Unifies Â§RS + Â§DR + #24-team into
+      actual segment) and re-sync, bounded retries + escalation (ties §DR/#24-team),
+      stall watch as last resort (Watchdog #22). Unifies §RS + §DR + #24-team into
       one state-machine engine. Also bounds the Treecko-Lv16 "stuck but not stopped"
       loop class.
-- [ ] #24-interrupt â€” INTERRUPTION INTELLIGENCE (user 2026-07-22): the bot should
+- [ ] #24-interrupt — INTERRUPTION INTELLIGENCE (user 2026-07-22): the bot should
       KNOW when its current task was interrupted and by WHAT (training spin â†’
-      trainer sight-line battle; navigation â†’ PokÃ©Nav call ring; heal walk â†’
+      trainer sight-line battle; navigation → PokéNav call ring; heal walk →
       scripted scene; etc.) and resume the task accordingly instead of relying on
       the generic derail/retry loop. Today large parts are handled implicitly
       (battle listeners resume travel; _ride_out_scripted_scene; the derail
-      recovery re-runs _play) â€” this item is the DELIBERATE design pass: a small
+      recovery re-runs _play) — this item is the DELIBERATE design pass: a small
       "current intent" state (what am I doing + resume point) + an interruption
       classifier, so recovery is targeted rather than re-derived. Design first
-      (fits the decision-brain seam in doc 13 Â§future).
-- [ ] #24-movelock â€” BATTLE ENGINE: move-blocking/locking effects (user
+      (fits the decision-brain seam in doc 13 §future).
+- [ ] #24-movelock — BATTLE ENGINE: move-blocking/locking effects (user
       2026-07-22): Disable (last move unusable), Encore (locked INTO a move for
-      N turns), and kin (Taunt â€” status moves blocked; Torment â€” can't repeat;
+      N turns), and kin (Taunt — status moves blocked; Torment — can't repeat;
       Imprison; Choice-item lock later). The turn chooser (get_strongest_move_
       against / move_is_usable) currently ignores these volatile statuses, so a
       blocked move can be selected â†’ wasted turns (the game refuses the input).
       Fix: read the battler's volatile status/disable struct and filter the
       usable-move set; if EVERYTHING is blocked, Struggle happens naturally.
-      Validate vs a Roxanne/Brawly-era Disable user (e.g. wild Whismur has none â€”
+      Validate vs a Roxanne/Brawly-era Disable user (e.g. wild Whismur has none —
       find a story trainer with Disable/Encore, or fault-inject the volatile
       struct in the harness).
-- [ ] #24-ch8b-museum â€” Oceanic Museum entry gating (KI-11): resolve how the
+- [ ] #24-ch8b-museum — Oceanic Museum entry gating (KI-11): resolve how the
       Aqua crowd clears so Stern is reachable; then Devon Goods â†’ Stern
       (deliver_devon_goods_to_stern is built). BLOCKS Ch8b/Ch9.
-- [ ] #24-freshbatch-rustboro â€” batch run03 (fresh game) 2026-07-22 played
+- [ ] #24-freshbatch-rustboro — batch run03 (fresh game) 2026-07-22 played
       extensively but HUNG in Rustboro (11,3)=(5,3) area after ~450k frames
       (Torchic start, 4-mon team). Under-investigated; capture a repro from the
       run03 log if it recurs in a future batch.
@@ -3192,14 +3196,14 @@ region, where "train near the gym" is actively wrong.
       a path" earlier in the log). The one run that worked looked like the worst kind of
       failure. Both tools now check the bot's own end-of-content message before calling a
       stop a hang.
-- [x] #1 â€” Vendor upstream 40Cakes/pokebot-gen3 (subtree @ 5dd898f8) (2026-07-17).
-- [x] #2 â€” Deep documentation pass + Pokemon_Emerald_AI_Notes.md (2026-07-17).
-- [x] #4 â€” install.py V2 (setup/update/heal + ROM handling) â€” "worked!" (2026-07-18).
-- [x] #5 â€” Native dashboard GUI + handheld mode â€” "worked!" (2026-07-18).
-- [~] #24-textread â€” DIALOGUE AWARENESS: read on-screen text to drive interactions
-      (user 2026-07-20; design Â§DA). FEASIBILITY CONFIRMED (decode_string of
+- [x] #1 — Vendor upstream 40Cakes/pokebot-gen3 (subtree @ 5dd898f8) (2026-07-17).
+- [x] #2 — Deep documentation pass + Pokemon_Emerald_AI_Notes.md (2026-07-17).
+- [x] #4 — install.py V2 (setup/update/heal + ROM handling) — "worked!" (2026-07-18).
+- [x] #5 — Native dashboard GUI + handheld mode — "worked!" (2026-07-18).
+- [~] #24-textread — DIALOGUE AWARENESS: read on-screen text to drive interactions
+      (user 2026-07-20; design §DA). FEASIBILITY CONFIRMED (decode_string of
       gDisplayedStringBattle / gStringVar4 reads exact text). STARTED: move-learn
-      now uses text-driven detection (both builds) â€” UNIVERSAL (matches generic
+      now uses text-driven detection (both builds) — UNIVERSAL (matches generic
       phrases + reads the offered move dynamically, not hardcoded to any move).
       â˜… ROOT CAUSE of the Lv16 hang FOUND & FIXED (ML-13): the Emerald battle Yes/No
       has no task and was detected only by a fragile script-offset; when it stayed
@@ -3208,7 +3212,7 @@ region, where "train near the gym" is actively wrong.
       `handle_evolution_scene` hand-off hardened. PROVEN by fault-injection A/B on
       both builds (old stalls ~10.6k frames & fails to learn; fix resolves in 394 &
       learns Pursuit + evolves). Faithful repro harness: scratchpad/repro_movelearn.py.
-      Still want the user's real-32Ã— confirmation. FULL SYSTEM (next big build):
+      Still want the user's real-32× confirmation. FULL SYSTEM (next big build):
       Reader (normalized current text + menu/cursor) -> Classifier (text -> interaction
       type) -> Responder (type + story progress + config -> answer; multi-valid
       decisions like fossil/starter = random). Gather conversation dumps {exact text,
@@ -3217,7 +3221,7 @@ region, where "train near the gym" is actively wrong.
       + deterministic vs flaky task-state. Backstops: no-progress watchdog + advance-
       plain-text-with-A so nothing hard-freezes.
 
-- [x] #24-evo-trainstall (FIXED 2026-07-22: interrupt-safe _rotate_lead_safely + _yield_bounded; proven on evostall.ss1; same fix covers the user's 110k-frame Joey stall) â€” `train_team`/`_story_spin` can hang right AFTER a
+- [x] #24-evo-trainstall (FIXED 2026-07-22: interrupt-safe _rotate_lead_safely + _yield_bounded; proven on evostall.ss1; same fix covers the user's 110k-frame Joey stall) — `train_team`/`_story_spin` can hang right AFTER a
       trainee EVOLVES mid-training (batch run02 2026-07-22: Grovyle evolved +
       learned Fury Cutter on Route 116, then the spin never resumed â†’ 20k-frame
       HANG). Repro save: tools/story-dev/saves/evostall.ss1. Likely the

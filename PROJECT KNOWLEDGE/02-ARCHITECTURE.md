@@ -100,7 +100,7 @@ promotion, and the risk turned out not to exist.
 had "diverged", with `story_mode.py` at *"3,061 lines vs 2,636"*. **Measured: 3,742 in BOTH.** After
 the §Ch18/§Ch19 promotion the two trees were byte-identical across all 255 code/config files.
 
-✅ **DRIFT IS ZERO AGAIN AS OF 2026-08-13.** `modules/story/roster.py` and `modules/menuing.py`
+⛔ **CORRECTED LATER THE SAME DAY — drift is now EXACTLY 3** (`modules/map_path.py`, `modules/story/early_game.py`, `plugins/custom_modes/story_mode.py` — deliberate, gated, unpromoted fixes; see `04-HANDOFF.md`'s drift row). The paragraph below was true for a few hours and went stale the same day it was written — which is why `audit_doc_consistency.py` now MEASURES drift instead of trusting any sentence, including this one. Superseded text: **DRIFT IS ZERO AGAIN AS OF 2026-08-13.** `modules/story/roster.py` and `modules/menuing.py`
 were **PROMOTED** (user-approved) after `--driver roster --build custom` returned
 `ACCEPTANCE: PASS` **frame-identical to the sandbox run** — and after `find_spec` confirmed the
 custom tree was the one actually imported, so a frame-identical result could not be a silent
@@ -206,7 +206,7 @@ is told to run first:
 ```
 cd tools/story-dev
 PYTHONUTF8=1 py -3.12 preflight.py     # git sync + fixtures + docs + live-batch detection. Exits 1.
-PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 17 gates, ~125s, non-zero on any failure
+PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 18 gates, ~125s, non-zero on any failure
 ```
 
 ‼ **`run_gates.py`'s `GATES` table is AUTHORITATIVE — prose is not.** The list lives in code

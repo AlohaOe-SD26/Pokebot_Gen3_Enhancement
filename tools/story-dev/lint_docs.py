@@ -128,9 +128,26 @@ if readme.is_file():
 # recommendation: "roster hygiene before bosses" was proposed as new work when it had already been
 # built, measured harmful and pinned off (KI-54). Only a manual pre-build check caught it.
 section_r6 = DOCS / "29-DISABLED-FEATURES-REGISTRY.md"
-flag_re = re.compile(r'environ\.get\(\s*"(POKEBOT_[A-Z0-9_]+)"')
+# ‼ WIDENED 2026-08-14 — THE OLD SCAN HAD A PROVEN HOLE, found by a cold-start audit, and it is
+# rule 6's exact shape: a gate that was never fault-tested against how flags are ACTUALLY written.
+# The old regex matched only `environ.get("POKEBOT_…")` literals, so it was blind to:
+#   * `os.getenv("POKEBOT_ENCOUNTER_BENCHMARK")`          (stats.py — different accessor)
+#   * `_TURBO_ENV = "POKEBOT_STORY_DEBUG_TURBO"`          (story_mode.py — name held in a constant,
+#     the accessor never sees the literal; intro.py's POKEBOT_RNG_DECORRELATION_FRAMES likewise)
+#   * `pokebot.py` / `tools/story-dev` flags               (outside the scan roots entirely)
+# FIVE live flags were undocumented while the gate printed "11 flag(s) in code, 11 documented" and
+# exited 0. The scan now matches ANY quoted POKEBOT_* string literal — accessor-agnostic, constant-
+# agnostic — and adds pokebot.py + tools/story-dev to the roots. Comments/docstrings mentioning a
+# flag also match; that is deliberate overreach in the SAFE direction: the registry documents the
+# flag either way, and a phantom mention would surface as an undocumented "flag" worth deleting.
+flag_re = re.compile(r'["\'](POKEBOT_[A-Z0-9_]+)["\']')
 found: set[str] = set()
-bot_roots = [REPO / "sandbox-pokebot" / "modules", REPO / "sandbox-pokebot" / "plugins"]
+bot_roots = [REPO / "sandbox-pokebot" / "modules", REPO / "sandbox-pokebot" / "plugins",
+             REPO / "tools" / "story-dev"]
+_single_files = [REPO / "sandbox-pokebot" / "pokebot.py"]
+for _f in _single_files:
+    if _f.is_file():
+        found |= set(flag_re.findall(_f.read_text(encoding="utf-8", errors="replace")))
 for root in bot_roots:
     if not root.is_dir():
         continue

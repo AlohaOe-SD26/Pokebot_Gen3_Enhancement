@@ -6124,3 +6124,44 @@ OUTPUT, and label the result a bound rather than a fact.*
   the banner — a "next action" is current-state, not narrative. And when auditing a handoff, do not
   ask "can the seven questions be answered"; ask **"does the QUEUE agree with the HEADLINE, and does
   every issue HEADER agree with its own BODY"**. Both failed here while the prose read fine.*
+
+## 2026-08-14 — a "verified" gate printed "11 flags, 11 documented" while five flags existed that its regex could not see
+
+- **Symptom.** `lint_docs.py`'s R6 check exists so that no `POKEBOT_*` flag goes undocumented —
+  the registry's own header says the gate "**fails** if one does not". It exited 0 for weeks while
+  **five** live flags were absent from the registry, including `POKEBOT_CH20_FAULT`, the hook the
+  current campaign depends on.
+- **Root cause.** The scan regex matched one accessor spelling: `environ.get("POKEBOT_…")`. It was
+  blind to `os.getenv(…)`, to names held in module constants (`_TURBO_ENV = "POKEBOT_…"` — the
+  accessor never sees the literal), and to files outside its two scan roots (`pokebot.py`,
+  `tools/story-dev`). **The same shape as the `clearflag`-vs-`FlagClear` mistake logged one day
+  earlier: a search proves absence only within the vocabulary it searched** — this time the
+  vocabulary was accessor spellings instead of symbol names, and the search was inside a GATE,
+  which made its silence look like verification.
+- **How it was caught.** A cold-start audit hunting a different failure class (stale docs) checked
+  the gate's count against a raw grep and found 16 ≠ 11. Not by the gate's own self-test — it had
+  none for this check.
+- **The fix that worked.** Match ANY quoted `POKEBOT_[A-Z0-9_]+` string literal — accessor-agnostic,
+  constant-agnostic — and widen the roots. The widened scan fired on exactly the five predicted
+  flags before the registry was updated (a live A/B of the fix), then went green at 16/16 after.
+  Over-matching a flag named in a comment is deliberate overreach in the SAFE direction: the
+  registry documents it either way.
+- **Prevention rule:** *A gate that scans for a pattern must be fault-tested against every SPELLING
+  the codebase actually uses — grep the concept, not your favourite idiom for it. When adding a
+  flag/name/idiom, adding it in a second spelling is adding a hole to every scanner that knows only
+  the first.*
+
+## 2026-08-14 — the audit's own follow-up found the archive move done BACKWARDS: the correction left, the refuted text stayed
+
+- **Symptom.** KI-39's 178-line original entry — whose stated cause the archive explicitly refutes —
+  sat unbannered in `05-KNOWN-ISSUES.md` for two weeks, while the CORRECTION lived in
+  `31-KNOWN-ISSUES-ARCHIVE.md`. The archive's "The KI-39 entry above states the cause wrongly"
+  pointed at nothing. A reader absorbed the wrong analysis in full before reaching the one-line stub
+  that says it was corrected.
+- **Root cause.** When the entry was resolved, the mover treated "move to archive" as "move the
+  RESOLUTION detail" — but the current-state file keeps the TRUTH and the archive keeps the
+  HISTORY. Moving the correction and keeping the original inverts both files' contracts at once,
+  and nothing checked which half went where.
+- **Prevention rule:** *When archiving a corrected entry, the REFUTED text is what leaves and the
+  CORRECTION is what stays. Before completing any archive move, read what remains in the
+  current-state file as if cold: is the surviving half the true half?*

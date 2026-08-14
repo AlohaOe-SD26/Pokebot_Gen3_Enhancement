@@ -35,6 +35,10 @@ HERE = Path(__file__).resolve().parent
 GATES: list[tuple[str, bool]] = [
     ("preflight.py", False),
     ("lint_docs.py", False),
+    # Tier 0 of the DOC CONSISTENCY LAYER (CLAUDE.md directive, 2026-08-13): the docs may not
+    # contradict themselves or the code. Exists because a handoff passed its own quality bar and
+    # still sent the next session to REBUILD FINISHED WORK. Self-test: `--self-test` (10 checks).
+    ("audit_doc_consistency.py", False),
     ("verify_fixtures.py", False),
     ("audit_flag_names.py", False),
     ("repro_undefined_names.py", False),

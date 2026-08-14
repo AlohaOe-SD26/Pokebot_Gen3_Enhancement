@@ -325,3 +325,58 @@ as "the lesson from bug X" does not fire when you are building Y.
    fails when the thing it guards is broken, and prove it does NOT fire on mere mentions in
    comments or docstrings. A gate with false positives teaches the reader to bypass it, which is
    strictly worse than no gate.
+
+
+### ‼‼ DOC CONSISTENCY LAYER — independent eyes on documentation (user directive, 2026-08-13)
+
+WHY: on 2026-08-13 a handoff answered all seven quality-bar questions and still sent the next
+session to REBUILD FINISHED WORK — the banner said "Room 3 driven and passing" while the queue
+490 lines below said "build Room 3"; a KI header claimed "ARMED" while its own body refuted it;
+the file `00-README.md` sends cold readers to FIRST was five chapters stale. Root cause: each
+increment updated one half of a pair and not the other. **Completeness was checked; CONSISTENCY
+was not.** Prose self-checks demonstrably fail here (see SESSION DISCIPLINE above), so this layer
+is gates + INDEPENDENT agents — ⛔ **no agent certifies text it wrote, and a fork does not count
+as independent** (a fork inherits your context, and therefore your blind spots).
+
+**THE PAIRS THAT MOVE TOGETHER.** Editing one half means editing — or explicitly re-confirming —
+the other, IN THE SAME COMMIT. These are the named cross-checks, not "review the docs":
+  P1  `04-HANDOFF` banner / YOU-ARE-HERE  ↔  `NEXT ACTIONS` queue item 0. "X is done" above
+      forbids "build X" below. The queue is what a cold agent ACTS from; the banner is only
+      what it reads first.
+  P2  every touched `05-KNOWN-ISSUES` KI HEADER (title + status words)  ↔  that KI's newest
+      dated body line. The header is the half that gets skimmed — the headline carries the caveat.
+  P3  `04-HANDOFF` STATE table + HOW TO RUN / TEST  ↔  this session's newest `07-CHANGELOG`
+      entries. What shipped must be startable from the handoff alone.
+  P4  `00-README` reading-order descriptions  ↔  the current top of each file this session
+      touched. A stale pointer misdirects EVERY future cold start, not just one.
+  (Numeric counts — gates, drift, artifact existence — are `audit_doc_consistency.py`'s job.
+  Never hand-check what a gate checks; never let a gate's PASS stand in for the semantic pairs.)
+
+**TIER 0 — every commit touching PROJECT KNOWLEDGE (mechanical, seconds, no agent):**
+  `lint_docs.py` AND `audit_doc_consistency.py` exit 0 before the commit. Both are in
+  `run_gates.py`. Committing docs over a red doc gate is the same offense as `git add -A`.
+
+**TIER 1 — per COMPLETED WORK ITEM (not per commit): ONE cheap independent agent.**
+  After the item's doc edits, BEFORE its commit: spawn ONE fresh subagent (reviewer-shape, cheap
+  model, NOT a fork) with exactly three inputs — the doc DIFF, a one-paragraph claim of what the
+  item actually did, and the pair list P1–P4. Its only question: *"for each pair, QUOTE both
+  halves — do they agree, and does the queue reflect the claim?"* ‼ A finding without both quotes
+  is DISCARDED — a noisy reviewer gets bypassed exactly like a noisy gate. Fix findings, re-run
+  Tier 0, then commit. Routine doc touches that complete no item (typo, date bump) = Tier 0 only.
+
+**TIER 2 — SESSION END (inside /wrapup, after doc edits, before the wrap-up commit):**
+  Spawn ONE fresh cold-start agent given ONLY `04-HANDOFF.md` + `00-README.md` — no chat context,
+  no claim paragraph, nothing you believe. It reports: (1) the exact FIRST ACTION a next session
+  should take and the line commanding it; (2) P1–P4 with both halves quoted; (3) any instruction
+  to do a thing the same file marks done. Compare (1) against what YOU know is true — a mismatch
+  is a DOC bug; fix and re-run Tier 0 before committing. ‼ Two clean audits in a row do NOT
+  retire this tier — agreement is not a confidence signal (measured; see the Gemini rules).
+  `/checkpoint` runs Tier 1 instead of Tier 2: the user is stopping NOW, and the pair check is
+  the cheap half that catches a lying resume pointer — the half that strands the next machine.
+
+⛔ **DoD COMPOSITION NOTE (managed block, Definition of Done steps 2–4 — an ADDITION, not a
+conflict, 2026-08-13).** Those steps say "update docs" with no consistency check; they are inside
+the managed block, so the requirement lives here: **steps 2–4 are not COMPLETE until Tier 0
+passes and (for a completed item) Tier 1 returns PASS; step 5 (commit) may not begin before
+that. The session's final step-6 push may not happen before Tier 2 returns clean.** `/wrapup`
+and `/checkpoint` carry these steps explicitly (they are outside the managed block).

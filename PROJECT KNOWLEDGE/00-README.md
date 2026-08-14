@@ -21,6 +21,7 @@ reads here FIRST. Created by the Claude Code Project Kit on 2026-07-17.
 | 11 | `27-INJECTION-SURFACE.md` | **How the bot OBSERVES and ACTS on the game** — the sensorimotor contract, every reader's silent failure mode, and the 8 timing traps. Written for the future self-training agent | reference |
 | 11 | `29-DISABLED-FEATURES-REGISTRY.md` | Every `POKEBOT_*` flag with the MEASUREMENT behind it. **Check before proposing a feature** — enforced by lint R6 | current-state |
 | 11 | `28-HANDOFF-ARCHIVE.md` | Superseded "you are here" snapshots, newest first. **Not current state** — read `04-HANDOFF.md` for the present | append-only |
+| 11 | `31-KNOWN-ISSUES-ARCHIVE.md` | Resolved/superseded known issues, moved verbatim from `05-KNOWN-ISSUES.md` — including KI-39's REFUTED original beside its correction, and resolved KI-68. **Not current state**; `04`/`05`/`07`/`08` point into it | append-only |
 | 11 | `26-REVIEW-AND-HARDENING-PLAN-2026-08-11.md` | **Point-in-time review**: progress, the 164-mistake taxonomy, why advisory rules do not prevent repeats, the hardening plan, doc-health findings and the future path | reference |
 | 11 | `25-BACKUPS-AND-RESTORE.md` | **Restore points: how to revert to a known-good version.** Naming, what a tag does/doesn't capture, restore recipes, and the full inventory | current-state |
 | 11 | `15-ESCALATION-RESEARCH.md` | Last-resort: hand a STUCK story sequence to an external research agent (Gemini) — the reusable primer + `/escalate-sequence` | reference |

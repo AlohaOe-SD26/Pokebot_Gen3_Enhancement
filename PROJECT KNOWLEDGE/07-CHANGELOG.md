@@ -13396,3 +13396,61 @@ New restore point **`restore/2026-08-13-session-end-ch20room3`**, taken before R
 session at finished work. **A doc can be complete and still be wrong about what to do next** — so
 the readiness check that matters is not "can the questions be answered" but "does the QUEUE agree
 with the HEADLINE".
+
+---
+
+## 2026-08-14 — THE DOC CONSISTENCY LAYER: a new standing gate, a multi-agent documentation directive, and a second audit that found the failure class alive in 11 more places (`#24-remainingarc` / user directive)
+
+The user directed that documentation get **another layer** — multiple agents checking and balancing
+docs as they are added, with sanity passes by *different* agents before moving on. Three agents were
+used to build it: one designed the directive, one designed the gate's checks (prototyping every
+regex against the live tree and fault-testing them), and one re-audited the docs cold.
+
+**1. NEW STANDING GATE — `tools/story-dev/audit_doc_consistency.py` (suite 17 → 18).**
+Mechanical checks: gate-count claims vs `run_gates.py`'s AST-parsed table; drift claims vs the
+**measured** drift (the byte-compare walk costs 0.06s — cheaper than trusting any sentence);
+‼ **the headline check** — no `--driver X` may be queued as WORK-TO-DO in one place and reported
+COMPLETE/PASSING in another, the exact defect the cold-start audit found; ladder "N of 24" claims
+agree; every cited driver/note/script exists. FAIL scope is **current-state files only** — history
+files keep stale numbers as correct history — and units carrying this project's supersession
+markers are exempt, which is what lets the keep-old-text-visible style survive the gate.
+**Fault-tested per rule 6 (`--self-test`, 10 checks):** proven to fire on the audit's exact bug
+reinjected, proven quiet on marked-superseded text and code fences. ‼ **It found real rot on its
+first live run** — `02-ARCHITECTURE.md` "DRIFT IS ZERO" (measured: 3) and two stale "19 of 24"
+claims — **and then caught its own wiring-in going stale** (adding it made every "17 gates" claim
+wrong; it said so on its first suite run).
+
+**2. NEW DIRECTIVE — "DOC CONSISTENCY LAYER" in `CLAUDE.md`** (outside the managed block).
+Names the **pairs that move together** (P1 banner↔queue, P2 KI header↔body, P3 STATE↔changelog,
+P4 README↔files) and three tiers: **Tier 0** (the gates, every doc commit), **Tier 1** (ONE cheap
+independent agent per completed work item — quotes both halves of each pair or the finding is
+discarded), **Tier 2** (a fresh cold-start agent at session end, given ONLY the handoff+README).
+⛔ No agent certifies text it wrote, and a fork does not count as independent. `/wrapup` carries
+Tiers 0+1+2 as steps 5b/5c; `/checkpoint` carries Tiers 0+1 (the user is stopping NOW).
+Definition-of-Done composition note added the same way the existing step-5 override was.
+
+**3. THE SECOND AUDIT — 11 more instances of the same failure class, all fixed:**
+* ⛔ The punch-list **TRIAGE INDEX** — the thing it tells readers to use first — blessed a
+  five-chapters-stale entry as "the only one carrying CURRENT state" ("a cold start reaches
+  Badge 6"; truth: 20 of 24 beats). Corrected, index row repointed at `#24-remainingarc`.
+* ⛔ 04's HOW TO RUN had its `Expect:` lines attached to the WRONG commands — the fault-injection
+  note carried ch20room2's **PASS** line as its expectation, and ch20room6's Expect sat under
+  ch20room3. Each Expect now sits directly under its own command; the fault-mode expectation now
+  says what it must: a clean `ACCEPTANCE: FAIL`, and PASS is the defect.
+* ⛔ **KI-39: the file had archived the CORRECTION and kept the REFUTED 178-line original.**
+  Backwards. The original moved to the archive beside its refutation; the stub stays.
+* ⛔ **lint_docs' R6 flag gate had a proven hole** — it matched only `environ.get("…")` literals,
+  blind to `os.getenv`, to names held in constants, and to files outside its roots. **FIVE live
+  flags were undocumented while it printed "11 flags, 11 documented" and exited 0.** Scan widened
+  (any quoted `POKEBOT_*` literal; roots + `pokebot.py` + `tools/story-dev`), fired on exactly the
+  five predicted flags (its live A/B), all five registered (16/16), including `POKEBOT_CH20_FAULT`.
+* KI-72's header said "ARMED for §Ch21" (means Chapter 20 — fixed); KI-38's first header now
+  points forward to its REOPENED successor; KI-76/KI-66 headers now carry their own caveats;
+  `#24-gymtrainers` was BLOCKED on a blocker closed 8 days earlier (unblocked);
+  `#24-teachmsgstall`'s DONE headline now carries the REOPENED caveat; 00-README now indexes
+  `31-KNOWN-ISSUES-ARCHIVE.md`; ‼ `03-PUNCH-LIST.md` had a UTF-8 BOM + 124 mojibake lines from a
+  cp1252 round-trip (repaired, 0 residual); `14-AGENT-PLAYBOOK.md` — the mandatory every-session
+  read — contained ZERO §Ch20 content (new §4c: the incremental-driver method, inheritance,
+  pre-registered predictions, the fault hook).
+
+Tier 1 was dogfooded on this very change-set before commit. 18/18 gates PASS.

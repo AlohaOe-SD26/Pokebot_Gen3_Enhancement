@@ -70,6 +70,22 @@ worthless if the retracted sentence still reads as live advice elsewhere in the 
 root-cause comment in `story_mode.py:2202` — which is what produced the four wrong documents — is
 now also explicitly marked HISTORY in both forks.
 
+## A3. FIVE FLAGS THE GATE COULD NOT SEE (registered 2026-08-14)
+
+> ⛔ **These five existed in code while `lint_docs.py` printed "11 flag(s) in code, 11 documented"
+> and exited 0.** The R6 scan matched only `environ.get("POKEBOT_…")` literals — blind to
+> `os.getenv`, to names held in constants, and to files outside its roots. The scan is now
+> accessor-agnostic and the roots include `pokebot.py` + `tools/story-dev`. Found by a cold-start
+> audit; the widened gate fired on exactly these five before this section existed (its A/B).
+
+| flag | default | what it does when ON | notes |
+|---|---|---|---|
+| `POKEBOT_ENCOUNTER_BENCHMARK` | off | grows the encounter buffer 100 → 1000 for benchmarking (`modules/stats.py:632`, via `os.getenv`) | upstream-inherited tuning knob; no measurement attached |
+| `POKEBOT_RNG_DECORRELATION_FRAMES` | on (nonzero) | frames of RNG decorrelation at story-mode start (`modules/story/intro.py:77`, name held in `_RNG_DECORRELATION_ENV`) | `=0` disables and restores fully deterministic replays — that is its A/B use |
+| `POKEBOT_STORY_DEBUG_TURBO` | on | matches x4-lane turbo settings in interactive story runs (`plugins/custom_modes/story_mode.py:3706`, name in `_TURBO_ENV`) | `=0` opts out and leaves emulator settings untouched |
+| `POKEBOT_UNTHEMED` | `0` | `=1` disables the GUI theme (`sandbox-pokebot/pokebot.py:272`, via `os.getenv`) | cosmetic; also reachable via settings |
+| `POKEBOT_CH20_FAULT` | unset | `=room1` forces the §Ch20 Room 1 solve to FAIL so the drivers' failure branch is exercisable on demand (`tools/story-dev/story_harness.py`) | ‼ A PERMANENT fault hook, not a leftover — an `AttributeError` lived on that branch precisely because no green run could reach it. A fault-mode run MUST print `ACCEPTANCE: FAIL`; printing PASS is the defect |
+
 ## B. FAULT-INJECTION SWITCHES (restore a pre-fix behaviour for A/B)
 These exist so a fixed bug can be **re-measured without reverting code** — the project's standard
 idiom. **The fix is always the default; the switch restores the bug.**

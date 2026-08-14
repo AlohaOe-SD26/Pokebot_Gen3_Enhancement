@@ -407,6 +407,41 @@ returns live, mutated positions but only for LOADED objects; and neither tells y
 identity as an NPC. Say which one you are using, every time — most of this room's wrong conclusions
 came from mixing them up.
 
+## 4c. ‼ THE §Ch20 CAVERN METHOD — incremental drivers that INHERIT, and predictions filed FIRST (added 2026-08-14)
+
+The Seafloor Cavern (Rooms 1 → 2 → 6 → 3 driven in one day, every first drive a PASS) distilled
+the chapter-building method into a repeatable shape. Reuse it for any multi-room dungeon:
+
+1. **ARBITRATE the route before driving it.** Two sources per room — upstream's shipped
+   `puzzle_solver.py` route AND our decomp/ROM reading — checked against each other by an agent
+   told to find the disagreement. Room 1's "exhaustive search" uniqueness claim was refuted this
+   way before it could ship a wrong route; Room 3's "REFUTED" verdict was itself refuted by the
+   deeper pass. ‼ An agent's REFUTED needs the same two independent authorities as a CONFIRMED.
+2. **One DRIVER per increment, and each driver INHERITS the previous one** (`Ch20Room3Mode →
+   Ch20Room6Mode → Ch20Room2Mode → Ch20Room1Mode → Ch20DiveMode`). The cavern's rocks and
+   boulders are `FLAG_TEMP_*` objects that respawn on every map load, so every deeper drive
+   RE-SOLVES and RE-PROVES every room beneath it — replication for free (Room 1 reached n=7).
+   ⛔ Copy a proven phase into a new driver and it will rot; SUBCLASS it and it cannot.
+3. **Predictions are PRE-REGISTERED in an `ai-research-notes/` file BEFORE the run**, each with
+   "if it FAILS, what that means". Scorecard so far: 6/7, 10/10, 8/8, 6/6-ish — and the single
+   most valuable output of the whole campaign (KI-77) came from the one prediction that FAILED.
+4. **The A/B is the result, not the arrival.** Measure the blocked route (NO-PATH) before the
+   solve and the open route (OK) after, with live objects both times — a one-armed "it worked"
+   cannot rule out "it was open all along". Use a THREE-point A/B when two obstacles could each
+   explain the opening (Room 2's M1/M2/M3 attributed it to the pushes, not the smash).
+5. **Failure branches get a PERMANENT env-gated fault hook, never a temporary edit** —
+   `POKEBOT_CH20_FAULT=room1` forces the Room 1 solve to fail so the drivers' failure branch is
+   exercisable on demand (registry §A3). It exists because an `AttributeError` lived on exactly
+   the branch three green runs never took, and a fault-mode run MUST print `ACCEPTANCE: FAIL`.
+6. **Measurements are REPORTED, not graded, when they test a claim rather than the run** —
+   Room 3's `saw_double` measured a decomp claim; grading on it would have turned "we learned the
+   claim was wrong" into "the run failed". And ‼ scope every count out loud: the discriminator
+   once printed a false REFUTED by counting trainer battles RUN-WIDE instead of in-room.
+
+Driver chain + expected outputs: `04-HANDOFF.md` → HOW TO RUN / TEST. Room adjudications:
+`ai-research-notes/2026-08-13-ch20-*.md` (spec corrections, Room 8's 9-push sequence — ⛔ step 9
+faces LEFT, never UP — and the Route 128 atoll exit).
+
 ## 5. Faithfulness rules (natural-first, state-write fallback)
 
 - **Do it the player way when you can.** We proved the "impossible" faithful path more than

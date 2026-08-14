@@ -1696,3 +1696,190 @@ Recorded because I wrote a draft and reverted it; these are the defects the revi
 ‼ **What the victim chooser gets RIGHT, so nobody re-derives it:** Zigzagoon L15 IS correctly spared
 (sole Surf carrier), Sceptile too (sole Rock Smash + Strength carrier), and the pick is Skitty L17.
 Measured, `probe_slot_free_plan.py`.
+
+
+---
+
+# ARCHIVED 2026-08-14 from `05-KNOWN-ISSUES.md` — KI-39's ORIGINAL (REFUTED) entry, kept verbatim beside its correction
+
+> ‼ The refutation of this entry's stated cause is earlier in THIS archive (the 2026-07-31
+> correction block, which says "The KI-39 entry above states the cause wrongly" — 'above'
+> refers to THIS text, which lived in `05-KNOWN-ISSUES.md` until 2026-08-14).
+
+## KI-39 — The bot has NO cross-map overworld route planning; long journeys are hand-coded (2026-07-30)
+
+**This is the root cause behind every "unreachable counter destination", and it is much
+bigger than `#24-counters`.** It is also the direct answer to the user's question *"is there
+a way to get the bot to map to already traveled locations?"* — today, no.
+
+### Measured, from `rocksmash_taught.ss1` (standing in MAUVILLE_CITY (32,15))
+| destination | `calculate_path` |
+|---|---|
+| ROUTE117 (31,16) — directly connected | **OK, 72 waypoints** |
+| ROUTE110 (12,60) — joined through a gate BUILDING (a warp) | FAIL |
+| ROUTE116 (11,7) — several maps west | FAIL |
+| ROUTE111 (25,55) — same map, other side of the Go-Goggles desert | FAIL |
+
+### Why `navigate_to_anywhere` does not rescue it
+It branches on REGION, and a region is the connected component over direct N/S/E/W map
+connections. Measured: `region_of(MAUVILLE_CITY) == region_of(ROUTE111) ==
+region_of(ROUTE116) == region_of(LAVARIDGE_TOWN) == region_of(FALLARBOR_TOWN) == **0**`.
+**The whole Hoenn overworld is ONE region.** So for any overworld→overworld trip the
+same-region branch is taken, the warp planner is never consulted, and the entire journey is
+handed to `calculate_path` — which only spans directly-connected maps. The warp route often
+EXISTS and is simply never asked for: `graph.plan(MAUVILLE → FIERY_PATH)` returns a valid
+one-warp edge (ROUTE112 (11,36) → FIERY_PATH), yet the navigation fails at 255 frames because
+leg 1 — *walk to that warp tile* — is itself a multi-map journey `calculate_path` cannot plan.
+
+### Why nobody noticed
+The story chapters hand-code their long journeys leg by leg (`_hold_walk_route` exists
+precisely to "bridge the planner can't cross"). Every long trip the bot makes today was
+written out by hand, so the generic capability was never exercised — and its absence looks
+exactly like "that destination is unreachable".
+
+### Consequences to hold in mind
+* A counter hunt only reaches destinations a leg or two away. FIERY_PATH (18,19) arrives in
+  2,922 frames from **Lavaridge**, but Norman is fought at **Petalburg** — so even the one
+  rung measured "live" is probably inert at the moment it actually fires. Expect the counter
+  chain to stop honestly far more often than it hunts.
+* `#24-dexhunt`, `#24-pc` (box trips), `#24-catchcap` and the whole team/PC-reserve plan all
+  assume the bot can travel to a known place on request. **They are gated on this.**
+
+### What the fix looks like (NOT built)
+A cross-map journey planner: BFS the map-connection graph **plus** warp edges to produce an
+ordered leg list, then execute leg by leg with `navigate_to`, re-planning from the real
+position after each leg (the shape `navigate_to_anywhere` already uses for cross-region
+routes — it just never gets to use it). Needs: the desert/elevation splits expressed as
+sub-map partitions (Route 111 north vs south are the same map but not mutually walkable),
+capability gates (Surf/Fly/Go-Goggles), and a frame budget per leg.
+
+‼ **Do not "fix" this by adding gateway waypoints.** Tried and refuted 2026-07-30: a gateway
+in the same region is routed by the same broken same-region branch, so it fails identically.
+Fallarbor PC, Lavaridge PC and Fiery Path were all tried as gateways from Mauville; every
+leg failed at 255 frames (`probe_counter_gateway.py`).
+
+## KI-40 — Runs stopped FINISHING and the global watchdog fires ~77x more often (2026-07-30, UNATTRIBUTED)
+
+**Measured**, bundle `20260730-204036` (build `ffb062ce`, 4 lanes, ~3h11m) vs bundle
+`20260730-062818` (build `21b587f1`, ~13h):
+
+| metric | `21b587f1` | `ffb062ce` |
+|---|---|---|
+| runs reaching `finished` | 29 of 60 run-ends (48%) | **0 of 30** |
+| `global watchdog — nothing progressed` | 5 (~0.4/h) | **94 (~29.5/h)** |
+| dominant run-end reason | `boss: N losses…` (22) | **global watchdog (23 of 30)** |
+
+**Not environmental:** RUN HEADERs are identical — Python 3.13.7, same ROM, `speed=0
+video=True audio=False`, fodder rule `xp_rate`. **Not an instrument change:** the watchdog
+message and its 18,000-frame bound are unchanged since `88a0e307`, present in both builds.
+
+**Observed wedge sites:** `training N battler(s) to Lv 31 in ROUTE117` (stage 9, map (10,0)),
+and the `Rock Smash teach skipped → Fallarbor travel not applicable → Meteor Falls scene
+already done` sequence (stage 11, map (24,12)). In both, recovery re-enters the same step and
+the watchdog fires again — derail #2, #3, #5 on the identical step.
+
+**‼ ATTRIBUTION IS OPEN.** The bundles are 16 commits apart. Ten are prior-session work
+(KI-34, KI-35, KI-36, KI-37 fixes); four are mine and touch production code (`5229e780`,
+`f74fab6c`, `31647da3`, `06807942`). The `21b587f1` bundle is the already-reviewed
+`20260730-062818` batch, i.e. it predates ALL of them. **Do not blame or clear either group
+from this data.**
+
+**Refuted already:** that `_counter_ladder`'s `_note_training_unreachable` calls poison the
+training-area picker. Only 2 blacklist events came from the ladder; `ROUTE111 (25,55)`
+dominates in both builds (14 new / 24 old) and is the training picker's own doing.
+
+**THE EXPERIMENT THAT SETTLES IT (do this before any more long batches):** ~1 hour on
+`d7d493d8` and ~1 hour on `ffb062ce`, same lanes and settings, comparing **watchdog fires per
+hour** and **finish rate**. `d7d493d8` is the last build the handoff records as
+live-validated — but note that validation was *"no unrecovered errors"* and never checked
+finish rate, so it may not be a clean baseline either. If `d7d493d8` is clean, bisect my four
+commits; if it is not, the cause is in the KI-34/35/36/37 work.
+
+### KI-40 — ATTRIBUTED 2026-07-30 by controlled A/B. The 2026-07-30 counter-chain work is CLEARED.
+
+Baseline arm run on the user's machine: bundle `20260730-214525`, build **`d7d493d8`**
+(detached HEAD via tag `baseline/ki40`), launch `212123`, ~24 min, 4 lanes.
+
+| build | window | watchdog fires | **per hour** | runs `finished` |
+|---|---|---|---|---|
+| `21b587f1` (pre-KI-34/35/36/37) | ~13 h | 5 | **0.4** | 29 of 60 |
+| **`d7d493d8` (baseline arm)** | ~0.4 h | 8 | **~20** | **0 of 2** |
+| `ffb062ce` (counter-chain work) | ~3.2 h | 94 | **~29.5** | 0 of 30 |
+
+**`d7d493d8` already wedges at ~50× the old rate**, in the same order of magnitude as
+`ffb062ce`. The discrimination required was "≈0 or ≈30 per hour"; it came back ≈20.
+⇒ **The regression entered between `21b587f1` and `d7d493d8`** — i.e. in the
+**KI-34 / KI-35 / KI-36 / KI-37** work (`00db4a81`, `4f1e02f9`, `d7d493d8`), NOT in the
+2026-07-30 counter-chain or menu commits.
+
+‼ **This also corrects the handoff.** `d7d493d8` was recorded as live-validated — but that
+validation was *"no unrecovered errors"*, and it never checked **finish rate**. On the
+finish-rate metric `d7d493d8` is badly broken, and that went unnoticed for a full day of work
+built on top of it. **A "clean" verdict is only as good as the metric it was measured on.**
+
+**The wedge is the TARGETED-TRAINING path, in both builds:**
+* `d7d493d8`: `Taillow is the answer to this gym but needs Lv 18 — targeted top-up of just
+  that mon` → wedge. Stage 7 (Brawly), map (3,3) = DEWFORD_TOWN_GYM.
+* `ffb062ce`: `prepping — training 3 battler(s) to Lv 31 in ROUTE117` → wedge. Stage 9,
+  map (10,0); also the Rock Smash→Fallarbor→Meteor Falls sequence at map (24,12).
+In both, recovery re-enters the identical step and the watchdog fires again (derail #2, #3,
+#5 on the same step), so the step itself never becomes completable.
+
+**Leading hypothesis — the mode is being STARVED, not stuck.** The watchdog reports "nothing
+progressed for 18,000 frames", which is what a listener sitting above the mode produces.
+`04-HANDOFF` Rule 2 already warns: *"Every listener that can sit above the mode must honour
+`battle_fault_pending()` and be bounded… `BattleListener` and `TrainerApproachListener` now
+do; **others are UNAUDITED**."* The window's diff is +143 lines in `battle_handler.py` and
++21 in `_listeners.py`. **Audit every remaining listener next**; a training spin walks in
+grass and is exactly where listener traffic is heaviest.
+
+**Next step is DIAGNOSIS, not more batches** — the remaining suspect set is 3 commits and the
+symptom is reproducible in-run. A further 1-hour arm on `00db4a81` or `4f1e02f9` would bisect
+it if reading the diffs does not.
+
+### KI-40 → ROOT-CAUSED 2026-07-30: it is **KI-38**, and KI-38 is not "residual" — it is the dominant run-killer
+
+`05-KNOWN-ISSUES`/`04-HANDOFF` describe KI-38 as *"3 residual after-faint give-ups"*. That
+figure came from one sample. Measured across both A/B arms it is the thing ending the runs.
+
+**The STUCK dump (baseline `d7d493d8`, P2, f623813) is unambiguous:**
+```
+message='Story: entering Dewford Gym to challenge Brawly...'
+game_state=3  controllable=False
+battle: active=True  instr=BattleScript_FaintedMonTryChoose
+tasks=['Task_HandleChooseMonInput']            <- the after-faint party menu is OPEN
+party=['Taillow L19 0/48', 'Marshtomp L17 55/55', 'Nincada L10 0/28', 'Whismur L17 51/51']
+controllers=['StoryEndlessResetMode.run']      <- ‼ NO battle handler on the stack
+===== DUMP [STUCK — 111000 frames no progress] =====
+```
+Two healthy mons (Marshtomp 55/55, Whismur 51/51) were available to send in. Nothing was
+driving the battle: the faint chooser had already given up and left the menu open.
+
+**Rates (`GAVE UP` / hour), stable across builds:** baseline `d7d493d8` 9 in ~0.4 h ≈ **22/h**;
+`ffb062ce` 75 in ~3.2 h ≈ **23/h**. Faults handed to the mode: 5 and 48 respectively.
+‼ **`NO ELIGIBLE REPLACEMENT` = 0 in BOTH.** The chooser always had a valid, living target and
+still failed to select it. This is not a "no legal move" case; it is a selection bug.
+
+**Why KI-34's fix made the SYMPTOM worse while being correct in itself.** `4f1e02f9` added
+`FAINT_CHOOSER_GIVEUP_LIMIT = 3` to bound an unbounded re-entry (previously ~35 re-entries /
+210,000 frames per battle). The bound works — but on giving up it leaves **the battle still
+active with the menu open**, hands a fault to the mode, and the mode's recovery (B-ride,
+re-orient, resume) cannot answer an in-battle party menu. So recovery re-enters the same step
+and wedges again — derail #2, #3, #5 on the identical step. Before the limit, the handler span
+forever inside one battle (wasteful, but it stayed on the stack and could still succeed, which
+is why `21b587f1` still finished 48% of its runs). **The limit converted a slow leak into a
+hard stop.** Both the index-space fix and the bound are right; what is missing is a
+give-up path that RESOLVES the battle instead of abandoning it.
+
+**Therefore the fix must be one of:**
+1. ‼ **Make the chooser actually select** — `#24-menutext`, already named in the handoff as
+   the resolver: read the party-menu text so the bot knows what the cursor is on, instead of
+   inferring from indices. **The string MUST come from the decomp.** KI-38's own evidence
+   (`presses={'Down': 3, 'A': 273}`, `cursors_seen=[0,2,3,7]` in a 4-mon party, where 7 is
+   probably CANCEL) says the cursor model is wrong, which no amount of retrying fixes.
+2. **Make the give-up SAFE** — on give-up, drive the battle to a resolved state rather than
+   returning with the menu open. A fault the mode cannot act on is worse than no fault.
+3. **Interim mitigation only:** raise `FAINT_CHOOSER_GIVEUP_LIMIT`. This trades a hard wedge
+   for the old slow leak; it keeps KI-34's index-space fix (which is correct and unrelated).
+   Cheap to try, one constant, and it should restore something like the 48% finish rate —
+   but it is a mitigation, not a fix, and it must not be mistaken for one.

@@ -9,9 +9,23 @@ Every banner further down is HISTORY, newest first.
 ---
 # ‼ YOU ARE HERE — the **§Ch20 CAVERN-INTERIOR** session (2026-08-13, latest): **Rooms 1, 2, the ROOM 6 CURRENT MAZE and ROOM 3 are all driven — the bot stands in ROOM 8.** Read this, then `14-AGENT-PLAYBOOK.md`.
 
-> **State: `main`, clean, 17/17 gates PASS, nothing parked, nothing running.** All work pushed.
+> **State: `main`, clean, 18/18 gates PASS, nothing parked, nothing running.** All work pushed.
 > **Rooms 1, 2, 6 and 3 of the Seafloor Cavern are DRIVEN and PASSING and the bot reaches ROOM 8**;
 > Rooms 8 and 9 are arbitrated but not driven.
+
+## 🛡 NEW SINCE THEN (2026-08-14): THE DOC CONSISTENCY LAYER — read `CLAUDE.md`'s new directive before editing any doc
+
+**The suite is 18 gates: `audit_doc_consistency.py` is NEW** — it mechanically forbids the docs
+contradicting themselves or the code (gate/drift/ladder counts, queue-vs-headline driver
+contradictions, cited-artifact existence; `--self-test` proves it fires). **`CLAUDE.md` now carries
+the DOC CONSISTENCY LAYER directive**: pairs P1-P4 that must move together in the same commit
+(banner↔queue, KI header↔body, STATE↔changelog, README↔files), Tier 1 = one independent agent per
+completed item's doc diff, Tier 2 = a cold-start agent at session end — both wired into `/wrapup`
+and `/checkpoint`. ‼ **Born from measurement, not caution:** two audits found ~26 instances of
+stale-text-beside-correct-text, including a TRIAGE INDEX blessing a five-chapters-stale entry, an
+archive move done BACKWARDS (the refuted text stayed, the correction left — KI-39), `Expect:`
+lines attached to the wrong commands in THIS file, and an R6 flag gate that could not see FIVE of
+the sixteen flags it existed to police (all registered now, 16/16).
 > ‼ `stash@{0}` exists **on purpose** — see the STATE table; **never drop it.**
 
 ## 🚩 …AND ACROSS THE ROOM 6 CURRENT MAZE, INTO ROOM 3 (same session, latest)
@@ -502,7 +516,10 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 > **The ordered work queue** (the cold-start orientation is the ‼ YOU ARE HERE block at the top of
 > this file, not here). Everything is committed and pushed; nothing is parked.
 >
-> 0. ‼ **THE LIVE QUEUE, 2026-08-13 (latest) — DO THESE FIRST; items 1-5 below are older framing.**
+> 0. ‼ **THE LIVE QUEUE (updated 2026-08-14) — DO THESE FIRST; items 1-5 below are older framing.**
+>    ‼ NEW STANDING RULE FOR EVERY ITEM BELOW: doc edits run Tier 0 (`lint_docs` +
+>    `audit_doc_consistency`, both exit 0) before their commit, and a completed item gets a
+>    Tier 1 independent review of its doc diff — see `CLAUDE.md`'s DOC CONSISTENCY LAYER.
 >    ✅ **(a) and (b) ARE DONE** — Room 2 arbitrated (clean) and driven to a PASS.
 >    ✅ **(c) IS OBSOLETE** — the KI-77 repro is no longer the gate on Room 8: the despawn window
 >    was derived (20x17) and Room 8 (11x14) is **smaller than it**, so KI-77 cannot fire there. See
@@ -758,7 +775,7 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    three of them are about tests or gates that were green while something was broken.
 
 1. **✅ §Ch18 IS DONE (2026-08-12) — the Mind Badge is won and Segment 18 is wired into the ladder.**
-   The ladder now runs **19 of 24 beats**. Three drivers, all PASS:
+   The ladder reached **19/24** with this item (current: **20 of 24 beats**, since §Ch19). Three drivers, all PASS:
    * `--driver mossdeeptravel` → Surf Lilycove → Mossdeep, enter the gym. Anchor
      `saves/in_mossdeep_gym.ss1`.
    * `--driver mossdeepgym` → solve the statue puzzle. `at_leaders=True at=(23,8) whiteouts=0`,
@@ -808,7 +825,7 @@ handoff's own instruction found nothing. The archive copy is longer and still us
 ```
 cd tools/story-dev
 PYTHONUTF8=1 py -3.12 preflight.py        # ‼ RUN THIS FIRST. git + fixtures + docs + freeze
-PYTHONUTF8=1 py -3.12 run_gates.py        # THE STANDING SUITE — all 17, exits non-zero on any
+PYTHONUTF8=1 py -3.12 run_gates.py        # THE STANDING SUITE — all 18, exits non-zero on any
                                           #   failure (~125s). The list lives in CODE, not prose.
 PYTHONUTF8=1 py -3.12 run_gates.py --quick   # the 10 needing no ROM (~3s)
 PYTHONUTF8=1 py -3.12 run_gates.py --list    # what is in the suite
@@ -823,22 +840,28 @@ PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch20room1 --frames
 #           in_room2=True can_continue=True   ACCEPTANCE: PASS
 #   ‼ `ab_before=False` is an ASSERTED part of the verdict: if the corridor was already reachable
 #     the run proved nothing about the puzzle. A one-armed pass here would be meaningless.
+# ⛔ THE THREE Expect: BLOCKS BELOW WERE ATTACHED TO THE WRONG COMMANDS until 2026-08-13 — the
+#   fault-injection note even carried ch20room2's PASS line as its "Expect". Each Expect now sits
+#   DIRECTLY under its own command; a cold agent grades a run against the line beneath it.
 PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch20room2 --frames 2000000
+#   Expect: room1_ok=True m1=False m2=False m3=True pushes=3/3 in_room6=True can_continue=True
+#   ‼ It RE-SOLVES ROOM 1 from scratch first (FLAG_TEMP_* objects respawn on every map load), so
+#     a ch20room2 PASS is also a Room 1 PASS. `m2=False` is the arm that matters: it attributes
+#     the opening to the PUSHES rather than to the Rock Smash.
 PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch20room6 --frames 2500000
+#   Expect: room2_ok=True crossed=True in_room3=True room3_walk=True can_continue=True
+#   ‼ `crossed` is THE FIRST EXECUTED CURRENT CROSSING here. `room3_walk` re-confirms LIVE that
+#     Room 3 is crossable PUSH-FREE and that the line enters the trainer sight tile (6,5).
 PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch20room3 --frames 3000000
 #   Expect: crossed=True usable=6 battles=1 saw_double=True in_room8=True can_continue=True
 #   ‼ `saw_double` is REPORTED, NOT GRADED — it measures a decomp claim, and grading on it
 #     would turn "we learned the claim was wrong" into "the run failed".
 #   ‼ `battles` counts trainer battles IN ROOM 3 only. Counting them run-wide once printed a
 #     false REFUTED over data that CONFIRMED the claim (the Room 1 grunt is fought every run).
-#   Expect: room2_ok=True crossed=True in_room3=True room3_walk=True can_continue=True
-#   ‼ `crossed` is THE FIRST EXECUTED CURRENT CROSSING here. `room3_walk` re-confirms LIVE that
-#     Room 3 is crossable PUSH-FREE and that the line enters the trainer sight tile (6,5).
 # ‼ FAULT INJECTION: POKEBOT_CH20_FAULT=room1 forces the Room 1 solve to fail, so the drivers'
-#   FAILURE branch can be exercised on demand. It MUST still print a clean ACCEPTANCE: FAIL.
-#   Expect: room1_ok=True m1=False m2=False m3=True pushes=3/3 in_room6=True can_continue=True
-#   ‼ It RE-SOLVES ROOM 1 from scratch first (FLAG_TEMP_* objects respawn on every map load), so
-#     a ch20room2 PASS is also a Room 1 PASS. `m2=False` is the arm that matters: it attributes the
+#   FAILURE branch can be exercised on demand.
+#   Expect: RESULT … in_room2=False can_continue=False and a clean `ACCEPTANCE: FAIL` — ‼ a run
+#   in fault mode that prints ACCEPTANCE: PASS, or no ACCEPTANCE at all, is the DEFECT.
 #     opening to the PUSHES rather than to the Rock Smash.
 PYTHONUTF8=1 py -3.12 probe_route128_landing.py     # §Ch20's EXIT: 9/9, the atoll is real
 #   ‼ Read this BEFORE writing the exit leg. The landing tile has ZERO surfable neighbours, so a
