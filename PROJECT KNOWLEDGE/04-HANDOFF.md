@@ -7,11 +7,11 @@
 Every banner further down is HISTORY, newest first.
 
 ---
-# ‼ YOU ARE HERE — the **§Ch20 CAVERN-INTERIOR** session (2026-08-13, latest): **Rooms 1, 2 and the ROOM 6 CURRENT MAZE are driven, and the bot stands in Room 3.** Read this, then `14-AGENT-PLAYBOOK.md`.
+# ‼ YOU ARE HERE — the **§Ch20 CAVERN-INTERIOR** session (2026-08-13, latest): **Rooms 1, 2, the ROOM 6 CURRENT MAZE and ROOM 3 are all driven — the bot stands in ROOM 8.** Read this, then `14-AGENT-PLAYBOOK.md`.
 
 > **State: `main`, clean, 17/17 gates PASS, nothing parked, nothing running.** All work pushed.
-> **Rooms 1, 2 and 6 of the Seafloor Cavern are DRIVEN and PASSING and the bot reaches ROOM 3**;
-> Rooms 3, 8 and 9 are arbitrated but not driven.
+> **Rooms 1, 2, 6 and 3 of the Seafloor Cavern are DRIVEN and PASSING and the bot reaches ROOM 8**;
+> Rooms 8 and 9 are arbitrated but not driven.
 > ‼ `stash@{0}` exists **on purpose** — see the STATE table; **never drop it.**
 
 ## 🚩 …AND ACROSS THE ROOM 6 CURRENT MAZE, INTO ROOM 3 (same session, latest)
@@ -42,10 +42,36 @@ a trainer sight tile**, so the walk must take the battle. ‼ Decomp says that i
 battle (Shelly + Grunt5); **that half is still unobserved live** and is the top prediction for the
 Room 3 drive.
 
-⇒ **NEXT: `--driver ch20room3`** — the WALK route (`navigate_to(ROOM3, (8,1))` riding battles out,
-18 steps, zero pushes), precondition **≥2 usable Pokémon**, graded on both trainer flags SET and
-"and the bot can continue" out of `(8,1)` into ROOM8. **Then Room 8** — already adjudicated: use
-**our** 9-push sequence, and ⛔ **step 9 faces LEFT, never UP** (`(5,3)` permanently seals the exit).
+## 🚩 …AND THROUGH ROOM 3. THE BOT NOW STANDS IN ROOM 8 (same session, latest)
+
+**`--driver ch20room3` → `ACCEPTANCE: PASS`, reproduced twice.** The WALK route — 18 steps, **zero
+pushes**, straight through the trainer sight line — ending `SEAFLOOR_CAVERN_ROOM8 (5,12)` with a
+real step taken. It re-proves every room beneath it: **Room 1 n=7, Room 2 n=4, Room 6 n=3.**
+
+**✅ THE DOUBLE-BATTLE CLAIM IS CONFIRMED LIVE.** One trainer battle in Room 3, `is_double=True`,
+fired at exactly `(6,5)` — the tile the Room 6 run had already measured the push-free path to
+contain. With `usable=6` the engine collected **both** trainers into one double battle, exactly as
+`trainer_see.c:214-217` reads. ‼ The precondition was asserted **before** the walk and reported with
+the result, so the confirmation is attributable rather than "we happened to qualify".
+
+**⛔ AND MY OWN DISCRIMINATOR PRINTED A FALSE "REFUTED".** It counted trainer battles **run-wide**,
+sweeping in the Room 1 grunt that is fought every run: two battles in the *run*, **one** in the
+*room under test*. **The instrument was wrong, not the claim.** Fixed to filter on the battle's own
+map. ✅ Contained by two earlier choices worth copying: `saw_double` was **reported, not graded**,
+and the raw per-battle log printed **the map next to the judgement** — which made it visible in
+seconds instead of going into the docs as a refutation.
+
+**✅ A KNOWN GAP CLOSED FOR FREE:** two wild encounters fired, one **between two Strength pushes**
+in Room 2. The Room 2 note flagged exactly that as untested; the idempotent `strength_push` held.
+
+⇒ **NEXT: `--driver ch20room8`** — already adjudicated, **use OUR 9-push sequence** (upstream's is
+10 and touches an extra boulder). ⛔ **Step 9 faces LEFT, never UP:** a boulder pushed north from
+`(5,4)` lands on `(5,3)` and **permanently seals the only route to the `(5,2)` exit**. ✅ A jam IS
+recoverable — exit to Room 3 via `(5,12)` and re-enter; all twelve boulders respawn. Wire that as
+the room's failure handler rather than improvising. Full table:
+`ai-research-notes/2026-08-13-ch20-decomp-blockers-and-room8.md`.
+**Then Room 9** — the 62-step walk to the trigger `(17,42)`, Archie, and the exit that lands on the
+atoll (see the banner below).
 > ‼ `stash@{0}` exists **on purpose** — see the STATE table; **never drop it.**
 
 ## 🚩 THE BOT IS INSIDE THE SEAFLOOR CAVERN AND THROUGH ROOM 1 — driven, first attempt
@@ -504,37 +530,9 @@ Moved for the R3 budget. ‼ **Keep this:** `audit_flag_names.py` was checking *
 
 Moved for the R3 budget. ‼ **Keep the two prevention rules, both re-learned since:** (1) **print the MRO before "fixing" a strategy method** — the first fix guarded the base class and was DEAD CODE on the story path; (2) **never identify a Pokémon by party INDEX across a battle-menu boundary** — opening the battle party menu runs `UpdatePartyToBattleOrder`, which PHYSICALLY PERMUTES `gPlayerParty`, so the `index >= 3` cut offered the ALLY's Pokémon and hid one of ours. Key on **original trainer ID**. ‼ And the meta-lesson: **my fault-injected A/B passed it anyway**, because all three arms modelled the un-permuted order — *a control arm does not save you if every arm measures the wrong thing.*
 
-## ‼ FOUR NEW ISSUES FILED
-* **KI-64 (FIXED)** — the multi-battle faint replacer would have sent out **STEVEN's** Pokémon.
-  `FillPartnerParty` writes his Metang/Skarmory/Aggron into `gPlayerParty[3..5]`; both choosers
-  excluded only the on-field mons and rank by condition, so three fresh L42-44 mons win outright.
-  ‼ The guard needed already existed with **zero callers**: `is_double_battle_with_partner`.
-* **KI-65 (OPEN, unfixed — ‼ and I CORRECTED MY OWN OVERSTATEMENT of it)** —
-  `battle_move_replacing.py:280` uses `party_index`, which is assigned lower down. I first wrote
-  that the HM-refusal re-pick "may never have executed"; **that was too strong.** Tracing the flow:
-  the name is bound in the `AskWhetherToLearn` branch, which normally runs first, so on an ordinary
-  teach the re-pick works. The real bug is narrower — line 371 is inside a `try:` whose `except`
-  silently defaults, and on THAT path the name is never bound, so a later `CantForgetHM` raises
-  `UnboundLocalError` into a SECOND silent `except` that declines. **Two invisible failures that
-  compound.** Still worth fixing, still needs its own repro first.
-* **KI-66 (OPEN)** — the multi-battle hazard is BROADER than the faint chooser: **four more**
-  full-party scans on the same paths (two in `battle_handler.py`, `alive_slots`, and the rotation
-  targets feeding an **unbounded** `while PARTY_MENU: press A`). The right fix is ONE choke point —
-  `ally_party_indices()` now exists — not a guard per call site. ⚠ Also unverified and worth checking
-  FIRST, because it would fire on turn 1 rather than on a faint: a claimed `IndexError` in
-  `decide_turn_in_double_battle` from `gPlayerPartyCount` still being 3.
-* **✅ KI-67 (CLOSED 2026-08-12)** — both halves. The chapter retry loops no longer swallow the
-  abort (`StoryAbort` + the latch-keyed `reraise_if_aborting`, because a type-only guard cannot see
-  an abort an inner loop already replaced with a fresh error), AND the harness now mirrors
-  production via `StoryWhiteoutRecoveryMixin`. **First driven whiteout recovery in this project:**
-  `--driver spacecenter2 --inject-weak` gave `whiteouts=3 recoveries=3`, ending controllable at
-  `MOSSDEEP_CITY (28,17)`. ‼ **The proof is the FRAME DELTA, not the count** — +7,789 and +7,087
-  between whiteouts, i.e. each attempt really walked back to Steven and fought again. Broken code
-  would have burned three attempts in a handful of frames after ONE whiteout.
-  ‼ Five defects in the mixin were caught by an adversarial review **before** it was driven
-  (`PathFindingError` is a `RuntimeError` and escaped the recovery; MRO silent-revert; a `tag`
-  dereference on the listener's stack; a class-counter budget; a `None`-is-success exit), plus a
-  real blocker: an injected run could have silently overwritten a committed anchor.
+## ‼ THE §Ch19-ERA ISSUES (KI-64 … KI-67) — MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-13)
+
+Moved for the R3 budget; all four are in `05-KNOWN-ISSUES.md` or its archive with full detail. ‼ **Keep only what is still live:** **KI-65 (OPEN)** — `battle_move_replacing.py:280` binds `party_index` on a path that a silent `except` can skip, so a later `CantForgetHM` raises `UnboundLocalError` into a SECOND silent `except` that declines: **two invisible failures that compound**. **KI-66 (OPEN, unverified)** — the multi-battle hazard is broader than the faint chooser: four more full-party scans on the same paths, and a claimed `IndexError` in `decide_turn_in_double_battle` from `gPlayerPartyCount` still being 3, which would fire on **turn 1** rather than on a faint — check that FIRST. ‼ The right fix is ONE choke point (`ally_party_indices()` now exists), not a guard per call site. KI-64 and KI-67 are CLOSED.
 
 ## 🆕 THE REGI ARC (user-requested) — DETAIL MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-13). See **KI-69**.
 
@@ -852,6 +850,12 @@ PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch20room1 --frames
 #     the run proved nothing about the puzzle. A one-armed pass here would be meaningless.
 PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch20room2 --frames 2000000
 PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch20room6 --frames 2500000
+PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch20room3 --frames 3000000
+#   Expect: crossed=True usable=6 battles=1 saw_double=True in_room8=True can_continue=True
+#   ‼ `saw_double` is REPORTED, NOT GRADED — it measures a decomp claim, and grading on it
+#     would turn "we learned the claim was wrong" into "the run failed".
+#   ‼ `battles` counts trainer battles IN ROOM 3 only. Counting them run-wide once printed a
+#     false REFUTED over data that CONFIRMED the claim (the Room 1 grunt is fought every run).
 #   Expect: room2_ok=True crossed=True in_room3=True room3_walk=True can_continue=True
 #   ‼ `crossed` is THE FIRST EXECUTED CURRENT CROSSING here. `room3_walk` re-confirms LIVE that
 #     Room 3 is crossable PUSH-FREE and that the line enters the trainer sight tile (6,5).

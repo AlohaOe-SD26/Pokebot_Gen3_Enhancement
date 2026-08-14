@@ -6073,3 +6073,32 @@ OUTPUT, and label the result a bound rather than a fact.*
 - **Prevention rule:** *A subagent's "REFUTED" is a claim like any other and needs the same two
   independent authorities as a "CONFIRMED" before it goes into a current-state doc. Negative results
   feel like skepticism and are therefore the easiest to under-verify.*
+
+## 2026-08-13 — my discriminator printed "REFUTED" over data that CONFIRMED the claim, because it counted the wrong scope
+
+- **Symptom.** `--driver ch20room3` was built to answer one question: are Room 3's two trainers
+  **one DOUBLE battle** or two singles? The run printed
+  *"‼ 2 SEPARATE trainer battles — the 'one double battle' claim is REFUTED"*.
+  **The claim was CONFIRMED.** Exactly ONE trainer battle happened *in Room 3*, it reported
+  `is_double=True`, and it fired at exactly `(6,5)`.
+- **Root cause.** The discriminator counted trainer battles **run-wide**, so it swept in the
+  **Room 1 Aqua grunt** — which is fought on every single run and was itself a pre-registered
+  prediction. Two trainer battles happened *in the run*; **one** happened *in the room under test*.
+  The scope was available the whole time: the battle log already recorded the MAP per battle.
+- ‼ **This is the failure shape this project logs most — "the instrument did not measure what it
+  claimed" — and I committed it again HOURS after writing two prevention rules about it.** Writing
+  the rule down is demonstrably not the same as applying it; the rule fires when you are debugging
+  X and not when you are building Y.
+- **The fix that worked.** Filter on `b[2][0] == "SEAFLOOR_CAVERN_ROOM3"`, and report
+  `trainer_anywhere` and `trainer_in_ROOM3` as **separate numbers** so they can never be conflated
+  again. Re-run confirmed: `trainer_anywhere=2 trainer_in_ROOM3=1 saw_double=True` →
+  *"✅ ONE trainer battle, reported DOUBLE — CONFIRMED LIVE."*
+- ✅ **Two design choices contained the damage, and both are worth copying.** (1) `saw_double` was
+  deliberately **reported, not graded**, so a false verdict line could not turn a confirmed claim
+  into a failed run. (2) The raw `BATTLE-LOG` printed the **per-battle map next to the judgement**,
+  which is what made the error visible in ten seconds instead of propagating into the docs as a
+  refutation.
+- **Prevention rule:** *A count is only a measurement once its SCOPE is stated. Before writing a
+  verdict line from a count, name the population out loud — "trainer battles **in Room 3**", not
+  "trainer battles" — and print the raw rows next to the judgement, because the judgement is the
+  part that will be wrong.*

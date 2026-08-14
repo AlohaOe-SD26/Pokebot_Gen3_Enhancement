@@ -13302,3 +13302,49 @@ take the battle — decomp says a single **DOUBLE** battle, still unobserved liv
 `ACCEPTANCE: PASS`. ⇒ **Room 1 is now n=5, Room 2 n=2**, every one a solve from scratch.
 
 17/17 gates PASS. Drift unchanged at 3 (`tools/story-dev/` is sandbox-only).
+
+---
+
+## 2026-08-13 — §Ch20 INCREMENT 4: ROOM 3 driven, the bot stands in ROOM 8, and the DOUBLE-BATTLE claim is CONFIRMED LIVE (`#24-remainingarc`)
+
+**`--driver ch20room3` → `ACCEPTANCE: PASS`, reproduced twice.** The walk route: 18 steps, **zero
+pushes**, straight through the trainer sight line, ending `SEAFLOOR_CAVERN_ROOM8 (5,12)` with a real
+step taken. It re-proves every room beneath it, so **Room 1 is now n=7, Room 2 n=4, Room 6 n=3.**
+
+```
+[ch20room3] PRECONDITION usable=6 (OK — the DOUBLE battle can form)
+[ch20room3] BATTLE #4 kind=trainer is_double=True at=('SEAFLOOR_CAVERN_ROOM3', (6, 5))
+[ch20room3] WALK (4, 15) -> ('SEAFLOOR_CAVERN_ROOM8', (5, 12)) in_room8=True
+[ch20room3] BATTLES total=4 trainer_anywhere=2 trainer_in_ROOM3=1 saw_double=True
+[ch20room3] ✅ ONE trainer battle, reported DOUBLE — `trainer_see.c:214-217` CONFIRMED LIVE.
+[ch20room3] RESULT crossed=True usable=6 battles=1 saw_double=True in_room8=True can_continue=True
+```
+
+**✅ THE DECOMP CLAIM IS CONFIRMED:** one trainer battle in Room 3, `is_double=True`, at exactly
+`(6,5)` — the tile the Room 6 run had already measured the push-free path to contain. With
+`usable=6` the engine collected **both** trainers into one double battle, exactly as
+`CheckForTrainersWantingBattle` reads. **The precondition was asserted BEFORE the walk and reported
+with the result**, so the confirmation is attributable rather than "we happened to qualify".
+
+**⛔ AND MY DISCRIMINATOR PRINTED A FALSE "REFUTED" — the instrument, not the claim, was wrong.**
+It counted trainer battles **run-wide**, sweeping in the Room 1 grunt that is fought every run. Two
+battles in the *run*; **one** in the *room under test*. Fixed to filter on the battle's own map and
+to report `trainer_anywhere` and `trainer_in_ROOM3` separately. ✅ Contained by two prior choices:
+`saw_double` was **reported, not graded**, and the raw per-battle log printed the map next to the
+judgement — which is what made it visible in seconds. Prevention rule in `08-MISTAKES.md`.
+
+**✅ S6 CLOSED A KNOWN GAP:** two wild encounters fired — one on Route 127 and one in Room 2 at
+`(4,6)` **between two Strength pushes**. The Room 2 note had flagged exactly that as untested; the
+idempotent `strength_push` design held and the run continued.
+
+**REFACTOR, PROVEN NEUTRAL:** the Room 6 crossing is now `_cross_room6()`, so Room 3 **inherits and
+re-proves** it rather than copying.
+
+**ADVERSARIAL REVIEW OF INCREMENT 3 — one BLOCKER, now closed.** It found the `crossed` widening
+was called "a design decision" in the commit message and in a code comment, but **never written to
+`06-DECISIONS-LOG.md`** — the durable file a future session is told to trust. Entry appended, with
+the rejected alternatives and the acknowledged cost (the arrow-warp branch remains UNTESTED). Its
+PLAUSIBLE concern — that a second Room 6 → Room 3 warp could launder a false "crossed" — is
+**closed**: Room 3 has exactly three warps and only `(4,15)` pairs with Room 6.
+
+17/17 gates PASS.

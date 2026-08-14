@@ -3592,3 +3592,40 @@ Superseded text: ‼ **The DRIVER is UNPROVEN** — `RotatePokemon(i, j)` with `
 (Zigzagoon), Rock Smash (Sceptile). ⛔ **no rod at all**, no TM28 Dig, and nobody knows Dive, Dig or
 Flash. So the arc needs an acquisition phase first — Super Rod (Route 118), TM28 (Route 114), and
 teaching Dive/Dig/Flash. ‼ **Relicanth is underwater-only, so Dive is upstream of everything.**
+
+
+---
+
+# ARCHIVED 2026-08-13 from `04-HANDOFF.md` (R3 budget; verbatim)
+
+## ‼ FOUR NEW ISSUES FILED
+* **KI-64 (FIXED)** — the multi-battle faint replacer would have sent out **STEVEN's** Pokémon.
+  `FillPartnerParty` writes his Metang/Skarmory/Aggron into `gPlayerParty[3..5]`; both choosers
+  excluded only the on-field mons and rank by condition, so three fresh L42-44 mons win outright.
+  ‼ The guard needed already existed with **zero callers**: `is_double_battle_with_partner`.
+* **KI-65 (OPEN, unfixed — ‼ and I CORRECTED MY OWN OVERSTATEMENT of it)** —
+  `battle_move_replacing.py:280` uses `party_index`, which is assigned lower down. I first wrote
+  that the HM-refusal re-pick "may never have executed"; **that was too strong.** Tracing the flow:
+  the name is bound in the `AskWhetherToLearn` branch, which normally runs first, so on an ordinary
+  teach the re-pick works. The real bug is narrower — line 371 is inside a `try:` whose `except`
+  silently defaults, and on THAT path the name is never bound, so a later `CantForgetHM` raises
+  `UnboundLocalError` into a SECOND silent `except` that declines. **Two invisible failures that
+  compound.** Still worth fixing, still needs its own repro first.
+* **KI-66 (OPEN)** — the multi-battle hazard is BROADER than the faint chooser: **four more**
+  full-party scans on the same paths (two in `battle_handler.py`, `alive_slots`, and the rotation
+  targets feeding an **unbounded** `while PARTY_MENU: press A`). The right fix is ONE choke point —
+  `ally_party_indices()` now exists — not a guard per call site. ⚠ Also unverified and worth checking
+  FIRST, because it would fire on turn 1 rather than on a faint: a claimed `IndexError` in
+  `decide_turn_in_double_battle` from `gPlayerPartyCount` still being 3.
+* **✅ KI-67 (CLOSED 2026-08-12)** — both halves. The chapter retry loops no longer swallow the
+  abort (`StoryAbort` + the latch-keyed `reraise_if_aborting`, because a type-only guard cannot see
+  an abort an inner loop already replaced with a fresh error), AND the harness now mirrors
+  production via `StoryWhiteoutRecoveryMixin`. **First driven whiteout recovery in this project:**
+  `--driver spacecenter2 --inject-weak` gave `whiteouts=3 recoveries=3`, ending controllable at
+  `MOSSDEEP_CITY (28,17)`. ‼ **The proof is the FRAME DELTA, not the count** — +7,789 and +7,087
+  between whiteouts, i.e. each attempt really walked back to Steven and fought again. Broken code
+  would have burned three attempts in a handful of frames after ONE whiteout.
+  ‼ Five defects in the mixin were caught by an adversarial review **before** it was driven
+  (`PathFindingError` is a `RuntimeError` and escaped the recovery; MRO silent-revert; a `tag`
+  dereference on the listener's stack; a class-counter budget; a `None`-is-success exit), plus a
+  real blocker: an injected run could have silently overwritten a committed anchor.

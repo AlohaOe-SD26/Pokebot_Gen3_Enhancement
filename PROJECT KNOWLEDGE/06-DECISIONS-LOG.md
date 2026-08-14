@@ -2068,3 +2068,47 @@ generated research, not of one vendor.
 **Consequence, carried forward:** the same spec's **Room 2** and **Room 8** (nine-push) sequences
 come from the same search and are now **unaudited**. Arbitrate each against the decomp *and*
 upstream's Emerald branch (`puzzle_solver.py:395-454`) **before** driving it.
+
+---
+
+## 2026-08-13 — an acceptance test asserts the OUTCOME, not the position you expected to see it from
+
+**The decision.** `Ch20Room6Mode`'s `crossed` test accepts **either** "the avatar is on
+`ROOM6 (4,1)`" **or** "the avatar is now in `SEAFLOOR_CAVERN_ROOM3`":
+
+```python
+crossed = (where == ("SEAFLOOR_CAVERN_ROOM6", self.ROOM6_EXIT)
+           or where[0] == "SEAFLOOR_CAVERN_ROOM3")
+```
+
+**What forced it.** The driver exists to answer one question: *can the executor actually WALK a
+current maze, or only plan one?* The current carried the avatar **straight through the `(4,1)`
+transition** into Room 3 without stopping. A strict positional test would have printed
+**`ACCEPTANCE: FAIL` over a crossing that worked perfectly** — and the natural next move would have
+been to "fix" a driver that was already right.
+
+**Why the widened test is not a weaker test.** Reaching Room 3 is a **strictly stronger** proof of
+the crossing than standing on `(4,1)`: `(4,1)` is the only tile in Room 6 that reaches Room 3, so
+being in Room 3 *implies* having been there. ‼ **Checked against the reviewer's objection** that
+another Room 6 → Room 3 warp could launder a false positive: Room 3 has exactly three warps
+(`(8,1)`→Room 8, `(9,13)`→Room 7, `(4,15)`→Room 6) and only `(4,15)` pairs with Room 6, so there is
+no second door. And the phase ordering means the only code that can move us between the `in_room6`
+check and the `crossed` check is the crossing call itself.
+
+**Alternatives rejected.**
+1. *Keep the strict positional test and stop the walk short of the warp.* Rejected: it would test
+   our ability to halt on a specific tile inside a forced-movement chain — a **harder and
+   different** question than the one being asked, and one the game may not even permit.
+2. *Grade on the plan instead of the walk.* Rejected outright — that is the exact conflation
+   (`a plan is not a walk`) the increment was built to break.
+
+**The cost, stated rather than buried.** The tile-name-derived arrow-warp branch added alongside it
+(`_walk_through_warp` with a direction derived from the tile's own name) **never executed and is
+therefore UNTESTED**. It is bounded (240 frames, raises `BotModeError`, caught) so it cannot hang,
+but it must not be described as proven.
+
+**The general rule this establishes:** *an acceptance test names the OUTCOME it wants, not the
+coordinate it expects to observe it from. When a run can legitimately overshoot the checkpoint,
+a positional assertion measures the checkpoint, not the outcome.* (This project has now paid for
+the inverse twice: §Ch18 passed `badge + controllable` while stranded on an island, and §Ch19
+passed every completion signal from inside a living room.)

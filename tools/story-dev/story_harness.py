@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "divelearner"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "divelearner"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -5748,49 +5748,23 @@ class Ch20Room6Mode(Ch20Room2Mode):
     def name():
         return "Ch20Room6"
 
-    def run(self):
-        from modules.context import context as _ctx
+    def _cross_room6(self, notes: dict):
+        """Walk the ROOM 6 CURRENT MAZE to `(4,1)` and take the transition into ROOM 3.
+
+        Sets `self.crossed` and `self.in_room3`.
+
+        ‼ A METHOD so the Room 3 driver INHERITS the crossing instead of copying it — the same
+        rule that produced `_ingress`, `_solve_room1` and `_solve_room2`. Every deeper drive
+        re-proves every room beneath it, because they are all `FLAG_TEMP_*` rooms that reset on
+        every map load, so there is no such thing as arriving with a lower room already solved.
+        """
         from modules.map_data import MapRSE
         from modules.player import get_player_avatar
-        from modules.story.early_game import _navigate_riding_out, wait_until_truly_controllable
+        from modules.story.early_game import _navigate_riding_out
 
-        room3 = MapRSE.SEAFLOOR_CAVERN_ROOM3
         room6 = MapRSE.SEAFLOOR_CAVERN_ROOM6
-        notes = {}
-        room2_ok = crossed = in_room3 = room3_walk = False
-
-        def _bail(reason: str):
-            log(f"[ch20room6] ‼ STOPPING — {reason}")
-            log(f"[ch20room6] RESULT room2_ok={room2_ok} crossed=False in_room3=False "
-                f"room3_walk=False can_continue=False detail={notes}")
-            log("[ch20room6] ACCEPTANCE: FAIL")
-            _ctx.set_manual_mode()
-
-        yield from wait_until_truly_controllable()
-        yield from self._inject_dive_fixture()
-        if not self.fixture_ok:
-            _bail("the Dive fixture failed, so the cavern is unreachable")
-            return
-        yield from self._ingress()
-        if not (self.leg1_ok and self.at_entrance):
-            _bail(f"the ingress did not surface in the cavern (legs={self.legs}/5)")
-            return
-        yield from self._enter_room1()
-        if not self.in_room1:
-            _bail("never reached ROOM1")
-            return
-        yield from self._solve_room1()
-        if not self.r1["in_room2"]:
-            _bail("Room 1 did not deliver us into ROOM2")
-            return
-        yield from self._solve_room2()
-        room2_ok = bool(self.r2["in_room6"] and self.r2["pushes"] == 3)
-        notes["room1"] = {k: self.r1[k] for k in ("ab_before", "ab_after", "pushed2", "in_room2")}
-        notes["room2"] = {k: self.r2[k] for k in ("m1", "m2", "m3", "pushes", "in_room6")}
-        log(f"[ch20room6] ROOMS 1+2 re-solved ok={room2_ok} (both reset on every map load)")
-        if not self.r2["in_room6"]:
-            _bail("Room 2 did not deliver us into ROOM6")
-            return
+        self.crossed = self.in_room3 = False
+        in_room3 = False
 
         # ---- THE CROSSING: the first current ever WALKED in this project -------------------
         entry = get_player_avatar().local_coordinates
@@ -5850,6 +5824,54 @@ class Ch20Room6Mode(Ch20Room2Mode):
             notes["room3_arrival"] = where
             log(f"[ch20room6] ROOM3 at={where} in_room3={in_room3} (PREDICTED (4,15))")
 
+        self.crossed, self.in_room3 = crossed, in_room3
+
+    def run(self):
+        from modules.context import context as _ctx
+        from modules.map_data import MapRSE
+        from modules.player import get_player_avatar
+        from modules.story.early_game import wait_until_truly_controllable
+
+        room3 = MapRSE.SEAFLOOR_CAVERN_ROOM3
+        notes = {}
+        room2_ok = crossed = in_room3 = room3_walk = False
+
+        def _bail(reason: str):
+            log(f"[ch20room6] ‼ STOPPING — {reason}")
+            log(f"[ch20room6] RESULT room2_ok={room2_ok} crossed=False in_room3=False "
+                f"room3_walk=False can_continue=False detail={notes}")
+            log("[ch20room6] ACCEPTANCE: FAIL")
+            _ctx.set_manual_mode()
+
+        yield from wait_until_truly_controllable()
+        yield from self._inject_dive_fixture()
+        if not self.fixture_ok:
+            _bail("the Dive fixture failed, so the cavern is unreachable")
+            return
+        yield from self._ingress()
+        if not (self.leg1_ok and self.at_entrance):
+            _bail(f"the ingress did not surface in the cavern (legs={self.legs}/5)")
+            return
+        yield from self._enter_room1()
+        if not self.in_room1:
+            _bail("never reached ROOM1")
+            return
+        yield from self._solve_room1()
+        if not self.r1["in_room2"]:
+            _bail("Room 1 did not deliver us into ROOM2")
+            return
+        yield from self._solve_room2()
+        room2_ok = bool(self.r2["in_room6"] and self.r2["pushes"] == 3)
+        notes["room1"] = {k: self.r1[k] for k in ("ab_before", "ab_after", "pushed2", "in_room2")}
+        notes["room2"] = {k: self.r2[k] for k in ("m1", "m2", "m3", "pushes", "in_room6")}
+        log(f"[ch20room6] ROOMS 1+2 re-solved ok={room2_ok} (both reset on every map load)")
+        if not self.r2["in_room6"]:
+            _bail("Room 2 did not deliver us into ROOM6")
+            return
+
+        yield from self._cross_room6(notes)
+        crossed, in_room3 = self.crossed, self.in_room3
+
         # ---- ‼ THE LIVE CROSS-CHECK OF THE ROOM 3 ARBITRATION ------------------------------
         # The Room 3 note claims (a) (4,15)->(8,1) is reachable PUSH-FREE, so the 7-boulder puzzle
         # is optional, and (b) that line unavoidably enters a trainer sight tile. NEITHER has been
@@ -5886,6 +5908,202 @@ class Ch20Room6Mode(Ch20Room2Mode):
             f"room3_walk={room3_walk} can_continue={can_continue}")
         log(f"[ch20room6] DETAIL {notes}")
         log(f"[ch20room6] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+        _ctx.set_manual_mode()
+        return
+
+
+class Ch20Room3Mode(Ch20Room6Mode):
+    """§Ch20 ROOM 3 — the WALK route, and the first live test of the DOUBLE-BATTLE claim.
+
+    ‼ THE ROUTE IS THE ARBITRATED ONE, AND IT DELIBERATELY DOES **NOT** SOLVE THE PUZZLE.
+    `ai-research-notes/2026-08-13-ch20-room3-arbitration.md`: `(4,15) -> (8,1)` is reachable
+    **PUSH-FREE in 18 steps** — confirmed LIVE by `--driver ch20room6`, which measured
+    `calculate_path((4,15) -> (8,1))` = `OK len=18` **containing `(6,5)`** from inside the room.
+    Room 3's 7-boulder checkerboard is therefore **OPTIONAL**: it buys only the avoidance of one
+    trainer fight, at the cost of **five irreversible pushes** in a room a mid-sequence derail can
+    WEDGE. We win that fight (L40-49 vs L35-37), so the reversible route is the right one.
+    ⛔ An earlier agent pass called our build spec "REFUTED" here and was **itself wrong**; the
+    correction is in the arbitration note and in `08-MISTAKES.md`.
+
+    ‼ THE CLAIM THIS DRIVER EXISTS TO TEST: it is **ONE DOUBLE BATTLE, NOT TWO SINGLES.**
+    `CheckForTrainersWantingBattle` (`src/trainer_see.c:191-218`) does not stop at the first
+    trainer — with **>=2 usable Pokemon** it collects both and `battle_setup.c:1272-1275` starts a
+    double. Shelly `(9,5)` sight 6 and Grunt5 `(5,5)` sight 4 both cover `{(6,5),(7,5),(8,5)}`,
+    and sight here is a **1-tile-wide LINE, not a cone** (`==` on y, no tolerance), with
+    `FACE_LEFT`/`FACE_RIGHT` movement types that **never rotate**. That is all decomp-derived and
+    **has never been observed live** — so this run counts battles and records
+    `battle_state.is_double_battle` at each one. **ONE battle that reports `is_double=True` is the
+    prediction; TWO singles refutes the decomp reading.**
+
+    ‼ PRECONDITION, AND IT CHANGES THE OUTCOME RATHER THAN JUST GUARDING IT: with **fewer than 2
+    usable** Pokemon the engine fires **two sequential singles** instead. So the count is asserted
+    BEFORE entering the sight line and reported with the result — otherwise a "two singles" reading
+    would be unattributable between "the decomp is wrong" and "our party was too weak to qualify".
+    (`modules/story/mossdeep_gym.py:315-369` already rides a double battle out behind exactly this
+    kind of gate.)
+
+    ‼ A DEFEATED TRAINER STILL OCCUPIES ITS TILE. The trainer flags are separate from
+    `FLAG_HIDE_SEAFLOOR_CAVERN_AQUA_GRUNTS` (set only when Kyogre escapes), and
+    `TrainerMoveToPlayer` WALKS each trainer toward the player — Shelly is predicted to end on
+    `(7,5)`. So the post-battle continuation is re-planned from the live position, never from the
+    plan made before the battle.
+
+        PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch20room3 --frames 3000000
+
+    Emits: [ch20room3] RESULT crossed=<b> usable=<n> battles=<n> saw_double=<b> in_room8=<b>
+           can_continue=<b>
+    """
+
+    ROOM8_ARRIVAL = (5, 12)      # ROOM3 (8,1) -> SEAFLOOR_CAVERN_ROOM8 (5,12)
+
+    @staticmethod
+    def name():
+        return "Ch20Room3"
+
+    def on_battle_started(self, encounter):
+        """Count battles and record whether the game made this one a DOUBLE.
+
+        ‼ THIS IS THE MEASUREMENT, not bookkeeping. `is_double_battle` is read HERE, at the
+        moment the battle starts, because it is the only point at which the question is
+        answerable — afterwards there is a defeated-trainer flag but no record of how many
+        trainers were in the fight. Reading it late is how a count that nets to the right number
+        can describe the wrong event."""
+        try:
+            from modules.battle_state import get_battle_state
+
+            is_double = bool(get_battle_state().is_double_battle)
+        except Exception as error:  # noqa: BLE001 - a failed read is a finding, not a crash
+            is_double = f"<unreadable {type(error).__name__}>"
+        kind = "wild" if encounter is not None else "trainer"
+        self.battle_log.append((kind, is_double, self._where()))
+        log(f"[ch20room3] BATTLE #{len(self.battle_log)} kind={kind} is_double={is_double} "
+            f"at={self._where()}")
+        return super().on_battle_started(encounter)
+
+    @staticmethod
+    def _usable_count() -> int:
+        """Party members that can still fight — the threshold the DOUBLE battle depends on."""
+        from modules.pokemon_party import get_party
+
+        return sum(1 for mon in get_party()
+                   if mon is not None and not mon.is_egg and mon.current_hp > 0)
+
+    def run(self):
+        from modules.context import context as _ctx
+        from modules.map_data import MapRSE
+        from modules.player import get_player_avatar
+        from modules.story.early_game import _navigate_riding_out, wait_until_truly_controllable
+
+        room3 = MapRSE.SEAFLOOR_CAVERN_ROOM3
+        room8 = MapRSE.SEAFLOOR_CAVERN_ROOM8
+        notes = {}
+        self.battle_log = []
+        usable = 0
+        in_room8 = False
+
+        def _bail(reason: str):
+            log(f"[ch20room3] ‼ STOPPING — {reason}")
+            log(f"[ch20room3] RESULT crossed=False usable={usable} battles=0 saw_double=False "
+                f"in_room8=False can_continue=False detail={notes}")
+            log("[ch20room3] ACCEPTANCE: FAIL")
+            _ctx.set_manual_mode()
+
+        yield from wait_until_truly_controllable()
+        yield from self._inject_dive_fixture()
+        if not self.fixture_ok:
+            _bail("the Dive fixture failed, so the cavern is unreachable")
+            return
+        yield from self._ingress()
+        if not (self.leg1_ok and self.at_entrance):
+            _bail(f"the ingress did not surface in the cavern (legs={self.legs}/5)")
+            return
+        yield from self._enter_room1()
+        if not self.in_room1:
+            _bail("never reached ROOM1")
+            return
+        yield from self._solve_room1()
+        if not self.r1.get("in_room2"):
+            _bail("Room 1 did not deliver us into ROOM2")
+            return
+        yield from self._solve_room2()
+        if not self.r2.get("in_room6"):
+            _bail("Room 2 did not deliver us into ROOM6")
+            return
+        yield from self._cross_room6(notes)
+        if not self.in_room3:
+            _bail("the ROOM 6 current crossing did not deliver us into ROOM3")
+            return
+        log(f"[ch20room3] ROOMS 1+2+6 re-proven; standing in {self._where()}")
+
+        # ---- ‼ THE PRECONDITION IS PART OF THE MEASUREMENT ---------------------------------
+        usable = self._usable_count()
+        notes["usable_before"] = usable
+        log(f"[ch20room3] PRECONDITION usable={usable} "
+            f"({'OK — the DOUBLE battle can form' if usable >= 2 else 'BELOW 2 — the engine will '
+               'fire TWO SEQUENTIAL SINGLES instead, and a two-battle reading would then say '
+               'nothing about the decomp'})")
+
+        # ---- THE WALK: 18 steps, ZERO pushes, straight through the sight line ---------------
+        # ‼ The route MUST enter (6,5). That is not a hazard to route around here — it is the
+        # chapter's cheapest way through, and the fight is one we win.
+        start = get_player_avatar().local_coordinates
+        try:
+            yield from _navigate_riding_out(room3, self.ROOM3_EXIT)
+        except Exception as error:  # noqa: BLE001
+            log(f"[ch20room3] WALK raised {type(error).__name__}: {str(error)[:300]} "
+                f"(the (8,1) door warp firing mid-walk can look like this)")
+        where = self._where()
+        in_room8 = where[0] == "SEAFLOOR_CAVERN_ROOM8"
+        notes["walk"] = (start, where)
+        log(f"[ch20room3] WALK {start} -> {where} in_room8={in_room8} "
+            f"(PREDICTED SEAFLOOR_CAVERN_ROOM8 {self.ROOM8_ARRIVAL})")
+
+        # ---- THE DISCRIMINATOR --------------------------------------------------------------
+        # ‼ SCOPED TO ROOM 3, AND IT WAS NOT ON THE FIRST RUN — THAT WAS A REAL INSTRUMENT BUG.
+        # The first version counted trainer battles RUN-WIDE, so it swept in the Room 1 Aqua grunt
+        # (predicted, and fought every single run) and printed
+        #   "2 SEPARATE trainer battles — the 'one double battle' claim is REFUTED"
+        # over data that CONFIRMED the claim: exactly one Room 3 trainer battle, `is_double=True`,
+        # at exactly (6,5). A verdict line that names the wrong event is worse than no verdict —
+        # it would have been copied into the docs as a refutation. The battle log records the MAP
+        # per battle, so the scoping is available and was simply not applied.
+        all_trainers = [b for b in self.battle_log if b[0] == "trainer"]
+        trainer_battles = [b for b in all_trainers if b[2][0] == "SEAFLOOR_CAVERN_ROOM3"]
+        saw_double = any(b[1] is True for b in trainer_battles)
+        log(f"[ch20room3] BATTLES total={len(self.battle_log)} trainer_anywhere={len(all_trainers)} "
+            f"trainer_in_ROOM3={len(trainer_battles)} saw_double={saw_double}")
+        log(f"[ch20room3] BATTLE-LOG {self.battle_log}")
+        if len(trainer_battles) == 1 and saw_double:
+            log("[ch20room3] ✅ ONE trainer battle, reported DOUBLE — the decomp reading of "
+                "`trainer_see.c:214-217` is CONFIRMED LIVE.")
+        elif len(trainer_battles) >= 2:
+            log(f"[ch20room3] ‼ {len(trainer_battles)} SEPARATE trainer battles IN ROOM 3 — the "
+                f"'one double battle' claim is REFUTED for this party/route (usable={usable}). "
+                f"That is a real correction to the Room 3 arbitration, not a run failure.")
+        elif not trainer_battles:
+            log("[ch20room3] ‼ ZERO trainer battles — either the route avoided the sight line "
+                "(contradicting the measured path containing (6,5)) or the grunts are HIDDEN. "
+                "Check FLAG_HIDE_SEAFLOOR_CAVERN_AQUA_GRUNTS before believing either.")
+        notes["battles"] = self.battle_log
+
+        # ---- CAN-CONTINUE --------------------------------------------------------------------
+        self.moved = False
+        if in_room8:
+            log(f"[ch20room3] ROOM8 at={get_player_avatar().local_coordinates} "
+                f"tile_type={self._tile_type()!r}")
+            yield from self._can_continue_step(room8, "ch20room3")
+        can_continue = self.moved and _ctx.bot_mode != "Manual"
+
+        # ‼ `saw_double` is REPORTED but NOT graded. The run's job is to deliver the bot into
+        # Room 8; the battle shape is a MEASUREMENT of a decomp claim, and grading on it would
+        # turn "we learned the claim was wrong" into "the run failed" — which is exactly how a
+        # negative result gets buried instead of recorded.
+        passed = (self.in_room3 and in_room8 and can_continue)
+        log(f"[ch20room3] RESULT crossed={self.crossed} usable={usable} "
+            f"battles={len(trainer_battles)} saw_double={saw_double} in_room8={in_room8} "
+            f"can_continue={can_continue}")
+        log(f"[ch20room3] DETAIL {notes}")
+        log(f"[ch20room3] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
         _ctx.set_manual_mode()
         return
 
@@ -7044,6 +7262,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch20Room2Mode()
         elif args.driver == "ch20room6":
             context.bot_mode_instance = Ch20Room6Mode()
+        elif args.driver == "ch20room3":
+            context.bot_mode_instance = Ch20Room3Mode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":
