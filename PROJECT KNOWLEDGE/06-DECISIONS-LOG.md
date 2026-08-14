@@ -2185,3 +2185,105 @@ world, it does not fight the odds); grading the driver's PASS on winning every t
 measured 1-in-3 game outcome into fake flakiness); healing mid-dungeon by state-write in the
 chapter (violates faithful-play; the sanctioned fixture heal exists only in the harness driver,
 documented as such).
+
+## 2026-08-14 — USER RULING: the `#24-organicteam` gate is LIFTED (re-confirmed), and the punch list was contradicting the ruling record
+
+**The ruling.** Asked to settle a contradiction between our own documents, the user said:
+> "Yes lift the gate as I believe it will help with other progress with this bot!"
+
+⇒ **`#24-organicteam` is NOT deferred. Building it is approved.** This CONFIRMS rather than
+changes RULING 1 of 2026-08-06 (*"the `#24-organicteam` GATE IS LIFTED. Build this now"*, which
+already called the 2026-08-05 deferral "reversed knowingly").
+
+**Why this entry exists at all — a documentation defect, not a decision change.** The 2026-08-10
+punch-list triage recorded the 2026-08-05 DEFERRAL as *"the live instruction"* (`03-PUNCH-LIST.md`
+entry + consolidation table) **four days after the user reversed it**, and never referenced
+Ruling 1. Both statements then sat in the docs simultaneously. Measured cost: on 2026-08-14 the
+contradiction misled THIS agent twice inside one conversation — first into telling the user their
+own directive needed a deferral lift it had already been given, then into an agent briefing that
+carried the same error onward. **A deferral and its reversal must never both read as live.**
+
+**Scope note, recorded because two agents read it differently.** One reading: Ruling 1's heading
+sits under *"`#24-roster`: USER RULINGS"* and Ruling 2 the same day says *"round one does NOT
+change catch policy"*, so only roster infrastructure was approved. The other (and the plain text
+of Ruling 1): the deferral was reversed outright. **The user's 2026-08-14 ruling above settles it
+in favour of the broad reading** — the gate is lifted, full stop. Ruling 2's *"catch policy gets
+its own round on a clean baseline"* is not contradicted by this: the user is now CALLING that
+round (see the catch-policy discussion opened 2026-08-14).
+
+**Still standing, untouched by this ruling:** `#24-rarepredicate` remains NOT READY (its dataset
+does not reproduce and its warp-depth rule fails Bagon, its own motivating example), so the
+"rare" leg of any catch policy cannot be built on it yet; and the 2026-07-31 *"catch every unseen
+species except when doing so would block progress"* ruling remains the governing definition of
+cheap-catching, with `resource_blocker()` as its pinned predicate.
+
+## 2026-08-14 — USER RULINGS: the LIVING-DEX goal, resumable runs, and a sanctioned trade-evolution deviation
+
+Given during the catch-policy discussion opened the same day. Recorded verbatim where the wording
+carries the intent, because two of these change what "faithful" means in this project.
+
+### RULING A — "catch them all" means a LIVING DEX, and it serves TWO goals at once
+> "I want it to be like the living-dex where its every species being caught and logged in the
+> pokedex (or through evolution to unlock them in the pokedex/mark them as caught works too…)
+> the idea is to kill 2 birds with 1 stone: Bot captures potential future counters AND chips at
+> completing the pokedex at the same time, more efficient this way."
+
+⇒ The objective is **breadth (one of every species, dex-credited) with depth as the payoff**
+(the same catches supply counters and HM slaves). ✅ **This ALIGNS with the code that already
+exists** rather than fighting it: `_should_catch` is already new-species-only, so "don't catch
+duplicates" is both the dex rule and the ball-economy rule. Evolution counting for dex credit is
+the user's explicit position, and it is cheaper than catching every stage.
+
+### RULING B — per-run dex filling (option A) **AND** resumable long-lived saves (option B)
+> "currently we are using the reset feature for testing from fresh saves… the goal would be
+> every run (Option A) but since the goal is to have the bot have the option through my
+> intervention to pick up where it left off… the idea would be to get it to also be able to
+> continue where it left off in the event that the bot gets turned off during sudden power loss
+> OR I turn it off for a period of time and turn it back on to have it continue (So option A
+> and B maybe?)"
+
+⇒ ‼ **These are TWO SEPARATE FEATURES and must not be conflated.** (1) Dex-filling is a
+**per-run behaviour** — every fresh run collects as it plays. (2) "Pick up where it left off" is
+a **RESUME/DURABILITY capability** (a named profile's save resumed after power loss or a
+deliberate shutdown, at the user's intervention), which is *orthogonal to the dex* and applies to
+the whole bot. Treating (2) as "a different dex model" would build the wrong thing.
+⚠ The reset gate itself ("resets once it completes the game as we logged") is explicitly marked
+by the user as **to be revisited and refined later** — do not harden it now.
+
+### RULING C — ⛔ A SANCTIONED DEVIATION FROM FAITHFUL PLAY: trade evolutions may be forced
+> "I think we can bend the rules to allow it to evolve trade evolutions in some way (we can
+> determine this later by adding our own level the pokemon must be at to enable the auto evolve
+> for trade evolution lock 'hack' which breaks organic/faithful gameplay but as far as I am
+> aware there would be no other way around it)"
+
+⇒ **APPROVED IN PRINCIPLE, PARAMETERS DEFERRED.** The user is correct that there is no faithful
+solo path: Gen 3 trade evolutions require a second console/cartridge, so a living dex is
+otherwise capped short by Alakazam/Machamp/Golem/Gengar and friends.
+‼ **This is a REAL deviation from the north star's "faithful to natural gameplay" rule and must
+be documented as one, not slipped in.** It fits the project's existing framework only as the
+sanctioned last-resort shape: *a state-write is allowed when the faithful path is impossible and
+it reproduces vanilla's EXACT end-state* — forcing the evolution does reproduce exactly what a
+traded-and-returned Pokémon would be. Requirements when built: (a) a user-chosen LEVEL threshold
+gates it (the user's own design), (b) it is FLAGGED and OFF by default, registered in
+`29-DISABLED-FEATURES-REGISTRY.md`, (c) the run log states plainly that a non-faithful evolution
+was performed, so no future measurement mistakes it for organic play.
+**Deferred:** the level threshold, which species are in scope, and whether it applies outside
+dex-completion contexts.
+
+### RULING D — party accounting must count SLOTS, not the bot's beliefs (user-designed)
+Prompted by the user identifying the real party-state hazard in their failing run: **no egg, but
+a NINJASK and a SHEDINJA** — i.e. a Nincada evolution SPAWNED a sixth party member with no
+catch, no menu and no bot action.
+> "maybe we robustly enhance the Party detection/count logic so it counts filled spaces vs empty
+> spaces (not whether it logs the pokemon as caught or moved to the party, that is still
+> valuable for knowing whats in its party when its not looking but should be a separate function
+> if this makes sense)"
+
+⇒ **Split the concern:** (1) an AUTHORITATIVE "how many slots are filled vs empty" reader taken
+from live game state, used by every fullness/space decision; (2) a SEPARATE bookkeeping function
+for "what the bot believes/tracked" (still valuable — it is how the bot knows what it has when it
+is not looking). ‼ **This is the same failure family the project has logged repeatedly** (state
+sampled from a moving frame of reference; assert identity, never a count) and it explains a class
+of bug wider than Shedinja: ANY party change the bot did not initiate desynchronises a derived
+count. Under investigation as of this entry; the egg-blind `withdraw_from_box` test
+(`pc_trip.py:429-438`) is a known instance of exactly this shape.

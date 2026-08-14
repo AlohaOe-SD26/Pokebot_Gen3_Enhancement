@@ -40,7 +40,7 @@ user rather than resolved unilaterally.
 | the boss-healing response | items / burst damage / stop promising an answer — see `04-HANDOFF.md`. ‼ **2026-08-11 sharpened it**: the Magma Hideout loss is **Crobat CONFUSING the two best attackers into killing themselves** + Maxie healing Camerupt 22→67. So the menu of answers now includes **status response** (switch out / Persim Berry), not just burst damage and items. |
 | **KI-52 — `lead_cannot_battle_action`** | ‼ **NEW 2026-08-11.** A WILD battle ends the run when the lead drops below `hp_threshold`, **with five healthy party members unused** (measured, Magma Hideout 4F). `rotate` is obviously right there — but **`flee` is CORRECT for shiny hunting**, so a global flip trades a story derail for a hunting regression. Needs a scope decision: mode-scoped override, a story battle strategy, or leave it. |
 | `#doc-policy-05` | should `05-KNOWN-ISSUES` drop an entry at sandbox-fix or at promotion? |
-| `#24-organicteam` | **deferred by the user on purpose 2026-08-05.** Do not start early. |
+| `#24-organicteam` | ✅ **APPROVED — GATE LIFTED (user 2026-08-06, re-confirmed 2026-08-14).** ⛔ This cell read *"deferred by the user on purpose 2026-08-05. Do not start early"* until 2026-08-14 and was stale by eight days; it is the line the session-start catch-up summary quotes, so it misdirected every cold start. Build order: the three PC defects first, then this. |
 
 ### 3. THE MEASUREMENT PROBLEM — affects every outcome item above
 Finish rate has been unresolvable in **every** batch: 25.0 → 33.3 → 16.1% at n≈30 runs each. To
@@ -63,7 +63,7 @@ worth more than the tidiness.
 |---|---|---|
 | the `#24` umbrella (was 3 entries) | **"STORY AUTO-PLAYER"** | the umbrella header; ⛔ its "cold start reaches Badge 6" body went FIVE CHAPTERS stale and was corrected 2026-08-13 — **the live head is `#24-remainingarc` at the TOP of this file**, not this entry |
 | PC / box team management | **`#24-roster`** | the user APPROVED it 2026-08-06 and lifted its gate, which outranks the older `#24-pc` design entry |
-| organic team building | **`#24-organicteam`** | it carries the user's 2026-08-05 DEFERRAL, i.e. the live instruction |
+| organic team building | **`#24-organicteam`** | ⛔ **CORRECTED 2026-08-14** — this cell used to read *"it carries the user's 2026-08-05 DEFERRAL, i.e. the live instruction"*, which was **already false when written on 2026-08-10**: the user reversed that deferral on 2026-08-06 (`06-DECISIONS-LOG.md` RULING 1) and re-confirmed the lift on 2026-08-14. The entry is canonical because it is the concept's home, NOT because it carries a deferral. **The gate is LIFTED.** |
 ‼ **`#24-pc` (Surf resource walls) REMAINS OPEN and was not touched** — it is a derail class, a
 different thing from the PC/box *feature* that shares its id.
 Counts after consolidation: **87 open / 22 partial / 97 done** (was 91/22/93).
@@ -123,17 +123,31 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       but it is `POKEBOT_PC_ROTATION`'s shape — disabled for costing ~19 points).
       Full rationale: `06-DECISIONS-LOG.md` 2026-08-05.
 
-- [ ] `#24-organicteam` — **DEFERRED BY USER 2026-08-05, on purpose. Do not start early.**
+- [ ] `#24-organicteam` — ✅ **THE GATE IS LIFTED. APPROVED TO BUILD (user, 2026-08-14:
+      *"Yes lift the gate as I believe it will help with other progress with this bot!"*), which
+      RE-CONFIRMS RULING 1 of 2026-08-06.**
+      ⛔ **THIS ENTRY SAID "DEFERRED — do not start early" UNTIL 2026-08-14, AND IT WAS WRONG BY
+      FOUR DAYS.** The 2026-08-05 deferral quoted below was reversed by the user on 2026-08-06
+      (`06-DECISIONS-LOG.md` RULING 1, *"reversed knowingly"*); the 2026-08-10 triage then
+      re-recorded the deferral as *"the live instruction"* without referencing that reversal, so
+      a deferral and its reversal both read as live. **Measured cost: it misled an agent twice in
+      one conversation on 2026-08-14.** Superseded text, kept for the trail:
+      *"DEFERRED BY USER 2026-08-05, on purpose. Do not start early."*
       > "we want to revisit this in the future to make the bot play more organically like a
       > regular player would (once we finish mapping the story out and can dedicate more time)"
 
-      The accepted cost meanwhile: **teams look thin EARLY**, which was the user's original
-      complaint and is knowingly unsolved. The real design question is not a seat count — it is
-      the bot CHOOSING a team on purpose (type coverage, HM duties, keeping a favourite) instead
-      of taking whatever slot is free. Likely needs PC deposit/withdraw to be trustworthy first,
-      so it subsumes `#24-pcoverflow-proof` and the retired `POKEBOT_PC_ROTATION`.
-      ‼ **GATE: story mapping must be finished first.** Starting this before then trades the
-      actual progress blocker for a cosmetic one.
+      The user's REVERSAL reason (2026-08-06, quoted in the decisions log): *"it will help the
+      story in the long run (less chance for failure, less errors with incompatible pokemon for
+      bosses/gym leaders or missing HMs to travel…) We need this."*
+      The real design question is not a seat count — it is the bot CHOOSING a team on purpose
+      (type coverage, HM duties, keeping a favourite) instead of taking whatever slot is free.
+      **Needs PC deposit/withdraw to be trustworthy first** — and as of 2026-08-14 that is
+      measurably NOT trustworthy: three cited defects (the PC-menu Manual trapdoor, the egg-blind
+      `withdraw_from_box` fullness test, and the type-only `box_counter_pid`) are being fixed
+      first. It subsumes `#24-pcoverflow-proof` and the retired `POKEBOT_PC_ROTATION`.
+      ‼ The OLD gate (*"story mapping must be finished first"*) is retired: the story IS mapped
+      through §Ch20, and the user has ruled the feature helps the remaining progress rather than
+      competing with it.
 
 - [x] `#24-pcoverflow-proof` — **CLOSED 2026-08-07. Both halves are now live-proven, each by its
       own capability test.** Catch half: `--driver boxcatch` (see `#24-pcoverflow` below).
@@ -317,6 +331,32 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       moved d99 from 34 to 1, so that choice alone dominates the answer) — write the reasoning
       down, and make that script authoritative. Then re-decide the threshold with Bagon's real
       depth known. Skitty's rate rule is unaffected and is already reproduced.
+      ✅ ‼ **USER INPUT 2026-08-14 — THIS MAY RETIRE WARP DEPTH ENTIRELY, WHICH WOULD UNBLOCK
+      THE ITEM.** Asked what makes Bagon pseudo-rare, the user did NOT describe warp distance —
+      they described **HM GATING plus LOCATION SCARCITY**, verbatim:
+      > "For the Bagon instance, it is locked behind a Surf AND Waterfall requirement, and it is
+      > only available in that one location which to me would be considered 'pseudo-rare' simply
+      > based on the gating and limited location, encounter rate may not be low enough to
+      > constitute a legit 'rare' tag but those other factors contribute to it being somewhat
+      > rare/hard to find."
+
+      > "For Feebas, that one should be considered rare due to the limited (potentially random)
+      > tiles it is available on (also gated by fishing rod and surf requirement) as well as low
+      > spawn rate"
+
+      ⇒ **The candidate replacement rule is `HM/field-move gate count` + `distinct location
+      count`, not BFS warp depth.** Bagon = 2 field-move gates (Surf, Waterfall) × 1 location ⇒
+      pseudo-rare; that is a DIRECT read of the user's reasoning rather than a proxy that has to
+      be tuned until it agrees. ‼ **This is exactly what "pin ONE definition deliberately" asked
+      for — and warp depth was never the user's mental model, it was ours.**
+      ⚠ **Feebas needs a special case regardless of the rule chosen:** it is one of the known
+      false negatives that are **absent from `encounter_index` altogether** (with Beldum, gift
+      and static species), so no rate-based or location-count rule can see it; and its real
+      mechanic (a handful of seed-chosen tiles on ROUTE119) is not expressible in the encounter
+      tables at all. Treat it as an explicit entry, not as something the predicate derives.
+      ⚠ Field-move gates are partly modelled already (`training_areas.AREA_PREREQ` uses
+      `"surf"`/`"rocksmash"`; `region_reach.KNOWN_GATES`) but **Waterfall and rod requirements
+      are not**, and `KNOWN_GATES` is admittedly incomplete — pricing that gap is step 1.
 
 - [x] HISTORY — `#24-rarepredicate` (original spec, 2026-08-06) — **the duplicate-catch exemption (`#24-roster` ruling 3). SOLVED — the
       "pseudo-rare" axis is WARP DEPTH, and it needs no new recon.**
@@ -2501,9 +2541,10 @@ region, where "train near the gym" is actively wrong.
       accept/deny of a new move + deleting an old one to replace it (uses the
       stock evolveâ†’learn path + `which_move_should_be_replaced`). "Random" mode =
       per-Pokémon coin-flip whether to evolve (organic team variety, ties #24-team).
-- [x] ~~`#24-team`~~ — ‼ **SUPERSEDED by `#24-organicteam`**, which carries the
-      user's 2026-08-05 DEFERRAL (“do not start early”) — the live instruction.
-      Consolidated 2026-08-10.
+- [x] ~~`#24-team`~~ — ‼ **SUPERSEDED by `#24-organicteam`**, which is ✅ **APPROVED — GATE
+      LIFTED** (user 2026-08-06, re-confirmed 2026-08-14). ⛔ This pointer said the target
+      "carries the user's 2026-08-05 DEFERRAL — the live instruction" until 2026-08-14; that was
+      stale (the deferral was reversed on 2026-08-06). Consolidated 2026-08-10.
       HISTORY — #24-team — ORGANIC TEAM-BUILDING / helper acquisition (user 2026-07-20;
       design in 12-STORYMODE-DESIGN §TB). Bot builds a team to beat gyms/trainers
       but decides to catch "helpers" ORGANICALLY: a rising "recruit urge" that
