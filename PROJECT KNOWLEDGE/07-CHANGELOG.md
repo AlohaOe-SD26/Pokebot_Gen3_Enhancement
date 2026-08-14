@@ -12745,3 +12745,47 @@ produced"*. ✅ **Its substance is already in today's code** (`early_game.py`, t
 **functionally superseded and safe to drop**. ⛔ Not dropped: discarding a stash is destructive and
 is the user's decision. See `08-MISTAKES.md` for how it surfaced and why `git stash list` now belongs
 in the session-start ritual — a stash is invisible to `git status`.
+
+### 2026-08-13 — post-fix hardening from an adversarial review, and the next build DECIDED
+
+**Adversarial review of my own KI-59 commit.** One claim it made was **wrong** and I checked before
+acting: it reported the early-ladder A/B as uncommitted, but it is in `47ca53b4` with a clean tree —
+the agent had snapshotted the repo before that commit landed. *Agent reports are point-in-time.*
+Three findings were **right** and are fixed here:
+* `probe_impassable_dirs.py`'s `current_model()` documented itself as "what map_path.py builds
+  TODAY" — **false the moment the fix landed**, in a committed artifact whose job is to be believed.
+  Renamed `buggy_model_before_2026_08_13()`, output columns relabelled `pre-fix=`.
+* `probe_shoal_tide.py`'s new exit half did **not** gate on `collision == 0` while production does —
+  the same "mirror does not match production" defect the correction was written for, recurring
+  inside the correction. Gated.
+* `PathTile.blocked_exit_directions` had no default and allocated a fresh `set()` for **every tile of
+  every map**. Now `field(default_factory=frozenset)` with a shared `_NO_BLOCKED_EXITS` singleton —
+  no semantic change (it is only read via `in`), and a future upstream subtree pull that
+  reintroduces a positional `PathTile(...)` can no longer break on the new argument.
+
+**Two issues filed, both from the review, both OPEN and deliberately unfixed:**
+* **KI-74 — `setmetatile` tiles are invisible to the shared map model, and my fix made that
+  fail-DANGEROUS rather than fail-safe.** `map.py:770` reads the compile-time ROM grid; the engine
+  rewrites `gBackupMapLayout`. ‼ **This has already been paid for once** — the Mauville Gym barriers
+  wedged runs 6-9 for exactly this reason, and the fix was a LOCAL live-grid reader
+  (`early_game.py:3971 _live_passable()`), so **the solution pattern exists in-tree, just not
+  shared**. Before the KI-59 fix such tiles came out mostly-`False` (over-block → detour → fail
+  safe); now they come out mostly-`True`, so on a self-rewriting map the planner will confidently
+  route onto them and bump. **242 of the 401 live tiles sit on self-rewriting maps, and the A/B
+  chose `VICTORY_ROAD_1F` precisely because it is not one** — so that blast radius is unmeasured.
+* **KI-75 — the ice/current slide simulators do not know about the new exit rule.** Latent, not
+  observed, and planted under **§Ch22 (Sootopolis, an ice-puzzle gym)**. Check it there, not after.
+
+**Regi arc decomp recon** → `ai-research-notes/2026-08-13-regi-arc-decomp-ground-truth.md`, with a
+STUB MARKER on KI-69. It **corrects four things we believed**, most importantly that
+⛔ **REGICE IS NOT A TIMED WAIT** — R/S's wait function is an empty stub; Emerald wants a **36-tile
+perimeter lap in ONE visit** ending exactly on `(8,21)`. Also: `FLAG_REGI_DOORS_OPENED` bricks the
+three OUTDOOR cave mouths rather than gating the puzzles; `CheckRelicanthWailord` gates the Sealed
+Chamber ONLY (both fish can be boxed afterwards); Ancient Tomb needs nothing to reach; and **Wailmer
+evolves at L40**, with Route 105 Super Rod being 100% Wailmer — so no 1% wild-Wailord hunt.
+
+**DECISION (`06-DECISIONS-LOG.md`): the next build is §Ch20 Seafloor Cavern, NOT the Regi arc.**
+The claim "KI-59 blocked the Regi arc, I fixed it, so build it" was **refuted three ways**, and it
+was ‼ **the same error logged that morning** — counting tiles a bug/fix applies to without checking
+whether anything REACHES them. The arc needs ~7 non-existent subsystems behind a 9-step serial
+prefix. §Ch20 is on the ladder, its dive leg is already driven 6/6, and its blast radius is additive.

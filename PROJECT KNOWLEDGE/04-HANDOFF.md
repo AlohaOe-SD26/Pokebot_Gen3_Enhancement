@@ -191,6 +191,7 @@ burden here is so heavy, and why negative results are treated as the most valuab
 | restore point | **`restore/2026-08-13-pre-ki63-promotion`** (annotated, pushed) — taken immediately BEFORE promoting KI-63's fix. Older: `restore/2026-08-13-pre-roster-promotion`, `restore/2026-08-12-pre-ch1819-promotion`. |
 | sandbox ↔ custom drift | ⚠ **EXACTLY 3 as of 2026-08-13 (latest).** ‼ **`modules/map_path.py` is the NEW third** — KI-59's fix (entry inversion + the new `blocked_exit_directions` exit half), A/B proven on `VICTORY_ROAD_1F` with a byte-identical `MOSSDEEP_CITY` collateral control, gated by `repro_impassable_dirs.py`. **NOT promoted — the USER's call, not asked for.** ⛔ Until it is, `custom-pokebot`'s planner still cannot see the 401 live `Impassable *` tiles (Regi tombs 144, Shoal Cave 98, Victory Road 58). The other two, unchanged, described next: **EXACTLY 2, both deliberate and sandbox-only (2026-08-13, earlier):** `modules/story/early_game.py` (the new `ensure_hm_learner_making_room`) and `plugins/custom_modes/story_mode.py` (both HM call sites wired to it). **This is KI-63's PRODUCTION WIRING, driven to a PASS but NOT promoted — promotion has not been asked for.** ⛔ Until it is, `custom-pokebot`'s copy of the KI-63 fix is **INERT**: it reads `_needs_party_slot` and nothing there sets it. Earlier today drift was ZERO twice (`restore/2026-08-13-pre-roster-promotion`, `restore/2026-08-13-pre-ki63-promotion`). ‼ **MEASURE, don't trust this row** — the loop is below in "HOW TO RUN / TEST". |
 | **if stopped mid-task** | **NOTHING IS PARKED.** Everything is committed and pushed. Start at "NEXT ACTIONS". |
+| ‼ **`git stash` (NEW ROW 2026-08-13 — CHECK THIS AT SESSION START)** | **`stash@{0}` exists and is NOT mine.** `WIP on main: e0f723e4` (2026-07-24) — a 14-line Fortree Gym fix, **stranded for three weeks**. ✅ Its substance is ALREADY in today's `early_game.py` (the `get_global_script_context().is_active or not player_avatar_is_controllable()` guard before `_ride_out_scripted_scene`), reimplemented during the rotating-gate rewrite ⇒ **functionally superseded, safe to drop — the USER's call, not an agent's.** ‼ **A stash is invisible to `git status` and to the kit's sync check**, which is how it survived three weeks. Run `git stash list` as part of the session-start ritual. ⛔ Never `git stash pop` in automation: it pops a GLOBAL stack that may hold another session's work (that is exactly how this was found — see `08-MISTAKES.md`). |
 
 ## ✅ WHAT SHIPPED IN THE LATEST SESSION (§Ch19 + promotion + roster)
 1. **§Ch19 built and driven end-to-end** — Space Center multi battle **and** HM08 Dive, wired as
@@ -530,7 +531,36 @@ teaching Dive/Dig/Flash. ‼ **Relicanth is underwater-only, so Dive is upstream
 >    ‼ If a hunting ground is ever added, **NOT to `TRAINING_GRASS`** — measured, a Shoal Cave row
 >    becomes the highest band and flips `best_training_area` for every team from ~L30 up.
 >
-> 4. **The REGI arc (user-requested) — read KI-69.** ‼ **WAILORD first, RELICANTH last** (Emerald
+> 3b. ⛔⛔ **THE ORDER CHANGED 2026-08-13 — READ `06-DECISIONS-LOG.md`'s entry before item 4.**
+>    The Regi arc is **NOT** next, and *"KI-59 blocked it, I fixed it, so build it"* was **REFUTED
+>    three ways**: the tombs walk their laps with `follow_path` (**"no collision checking"**), their
+>    144 tiles describe a room `setmetatile` rewrites at runtime, and upstream ships a working Regi
+>    solver **against the un-fixed inversion**. ‼ That was the SAME error logged that morning —
+>    counting tiles without checking what REACHES them — made twice in one day.
+>    **DO, IN THIS ORDER:**
+>    **(i) `#24-ch20rename`** — small, safe, start-of-session. `--driver ch21dive`,
+>    `probe_ch21_topology.py` and two note filenames are misnomers pinned to **Chapter 20**.
+>    **(ii) §Ch20 SEAFLOOR CAVERN / KYOGRE — the real next build.** It IS the ladder
+>    (`chapters.py:233`, graded `KYOGRE_ESCAPED_SEAFLOOR_CAVERN`; `story_mode.py:3654` = END OF BUILT
+>    CONTENT — ‼ that line still says "BLOCKED BY KI-63", which is **stale**, fix it). Uniquely
+>    de-risked: the dive leg is **driven 6/6**, KI-63 is wired in sandbox, and `puzzle_solver.py`
+>    hands you room coordinates free. Blast radius is **additive** — one module, one segment, no
+>    shared code. Two cheap traps: apply **KI-72** (hand-pick the surfacing tile, assert its
+>    `tile_type` — never let the planner choose), and **do not stop at `ROOM9 (16,42)`**, which is
+>    Archie's cutscene tile — the standing rule is *"and the bot can continue"*.
+>    **(iii) `#24-r110mauville` / KI-48** — the highest-frequency OBSERVED defect (72 events in one
+>    batch, 3/3 deterministic). Budget a MEASUREMENT; its root cause is still a hypothesis.
+>    **(iv) THEN the Regi arc.** ‼ Its real cost, measured: **10 missing gates and ~7 subsystems that
+>    do not exist** (fishing as a story capability — `fish()` has zero story callers and rod choice
+>    is a **human GUI prompt**; underwater encounters — `EncounterType` has no Underwater member; TM
+>    acquisition + `use_tm`; Flash acquisition; a no-KO/no-whiteout legendary policy; a **bounded**
+>    exact-tile executor; and **no chapter entry at all**), behind a hard 9-step serial prefix.
+>
+> 4. **The REGI arc (user-requested) — read KI-69 ‼ AND ITS NEW STUB MARKER.**
+>    ⛔ **REGICE IS NOT A TIMED WAIT** — R/S's wait function is an empty stub; Emerald wants a
+>    **36-tile perimeter lap in ONE visit** ending exactly on `(8,21)`, reset by any map transition
+>    and by one wrong tile. Full ground truth:
+>    `ai-research-notes/2026-08-13-regi-arc-decomp-ground-truth.md`. ‼ **WAILORD first, RELICANTH last** (Emerald
 >    reversed it; the wrong order fails silently). ‼ **The Regi battle is UNRECOVERABLE** — a KO *or*
 >    a whiteout deletes the encounter; only fleeing is safe. Phase A is measured: we have Go-Goggles,
 >    HM08, Surf and Rock Smash; we have **no rod at all**, no TM28 Dig, and nobody knows Dive, Dig or

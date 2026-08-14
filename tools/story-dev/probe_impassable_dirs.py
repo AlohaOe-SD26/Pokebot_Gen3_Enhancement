@@ -120,8 +120,12 @@ def parse_like_production(tile_type: str) -> tuple[list[str], str | None]:
         return raw, f"KeyError {exc}"
 
 
-def current_model(dirs: list[str]) -> list[bool]:
-    """What map_path.py builds TODAY: start all-False, set [opposite] = True."""
+def buggy_model_before_2026_08_13(dirs: list[str]) -> list[bool]:
+    """‼ RENAMED 2026-08-13. This was called `current_model()` and its docstring said "what
+    map_path.py builds TODAY" — which became FALSE the moment KI-59 was fixed, in a committed
+    artifact whose whole job is to be believed. It is kept because the A/B write-ups quote its
+    output; it is the HISTORICAL buggy model: start all-False, SET [opposite] True.
+    ⇒ `fix_a_clear_opposite` below is what production does today."""
     acc = [False, False, False, False]
     for d in dirs:
         acc[Direction[d].opposite()] = True
@@ -192,13 +196,13 @@ for tile_type, count in sorted(totals.items(), key=lambda kv: -kv[1]):
     if err:
         print(f"  {tile_type:<40} n={count:<5} ‼ PARSE FAILS: {err}   (a live run would crash here)")
     else:
-        cur = current_model(dirs)
+        cur = buggy_model_before_2026_08_13(dirs)
         fa = fix_a_clear_opposite(dirs)
         fb = fix_b_clear_named(dirs)
         verdict = "A==B (this string cannot discriminate)" if fa == fb else "A != B — DISCRIMINATING"
         print(
             f"  {tile_type:<40} n={count:<5} dirs={'+'.join(dirs):<14} "
-            f"current=[{fmt(cur)}]  fixA=[{fmt(fa)}]  fixB=[{fmt(fb)}]   {verdict}"
+            f"pre-fix=[{fmt(cur)}]  fixA=[{fmt(fa)}]  fixB=[{fmt(fb)}]   {verdict}"
         )
 
 head("3. WHAT EACH CANDIDATE SAYS THE CURRENT CODE GETS WRONG, weighted by real tile counts")
@@ -218,7 +222,7 @@ for label, model in (("FIX-A (clear opposite)", fix_a_clear_opposite), ("FIX-B (
         dirs, err = parse_like_production(tile_type)
         if err:
             continue
-        cur = current_model(dirs)
+        cur = buggy_model_before_2026_08_13(dirs)
         cand = model(dirs)
         overs = [names[i] for i in range(4) if cand[i] and not cur[i]]
         unders = [names[i] for i in range(4) if cur[i] and not cand[i]]
@@ -300,7 +304,7 @@ for tile_type, count in sorted(sweep_totals.items(), key=lambda kv: -kv[1]):
     fb = fix_b_clear_named(dirs)
     disc = "DISCRIMINATING" if fa != fb else "cannot discriminate A vs B"
     print(
-        f"    {tile_type:<32} n={count:<6} current=[{fmt(current_model(dirs))}] "
+        f"    {tile_type:<32} n={count:<6} pre-fix=[{fmt(buggy_model_before_2026_08_13(dirs))}] "
         f"fixA=[{fmt(fa)}] fixB=[{fmt(fb)}]  {disc}"
     )
 print("\n  ‼ Any of the ten producible strings NOT listed above never occurs in this ROM, so no")

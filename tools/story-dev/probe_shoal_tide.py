@@ -382,8 +382,12 @@ def blocked_exit_directions(grid, position):
     Mirrors `PathTile.blocked_exit_directions`. A walled edge blocks travel across it in BOTH
     directions, and a fill that models only entry will walk straight off a cliff.
     """
-    tile_type = grid[position][2]
-    if not tile_type.startswith("Impassable "):
+    collision, _has_enc, tile_type, _elevation = grid[position]
+    # ‼ Production reaches the `Impassable *` handler ONLY when collision == 0 (`map_path.py:118`
+    # is `if tile.collision != 0:` and the handler is its `elif`). Gating on that here too is what
+    # keeps this mirror honest — omitting it would reintroduce, inside the correction, exactly the
+    # "the checker does not match production" defect the correction was written for.
+    if collision != 0 or not tile_type.startswith("Impassable "):
         return set()
     return {DIRECTION_INDEX[name] for name in tile_type[11:].replace(" and ", "/").split("/")}
 

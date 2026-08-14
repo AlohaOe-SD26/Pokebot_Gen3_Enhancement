@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum, IntEnum, auto
 from queue import SimpleQueue, PriorityQueue
 from typing import TypeAlias
@@ -50,6 +50,10 @@ class Direction(IntEnum):
                 raise RuntimeError(f"Value {value} could not be converted into a direction.")
 
 
+# Every tile that blocks no exit shares this one object (see PathTile.blocked_exit_directions).
+_NO_BLOCKED_EXITS: "frozenset[Direction]" = frozenset()
+
+
 @dataclass
 class PathTile:
     map: "PathMap"
@@ -74,7 +78,10 @@ class PathTile:
     # `gOppositeDirectionBlockedMetatileFuncs[dir]` applied to the tile you are STANDING ON with
     # `gDirectionBlockedMetatileFuncs[dir]` applied to the destination. This field is the first
     # half, and it is checked on the SOURCE tile in the A* expansion loop.
-    blocked_exit_directions: set[Direction]
+    # ‼ Defaulted, so a future upstream subtree pull that reintroduces a positional
+    # `PathTile(...)` construction cannot break on the new argument. Read only via `in`,
+    # so a frozenset is interchangeable with the set the builder passes.
+    blocked_exit_directions: "frozenset[Direction] | set[Direction]" = field(default_factory=frozenset)
 
     @property
     def global_coordinates(self) -> tuple[int, int]:
@@ -118,7 +125,10 @@ class PathMap:
 
             for tile in all_tiles:
                 accessible_from_direction = [False, False, False, False]
-                blocked_exit_directions: set[Direction] = set()
+                # Shared immutable singleton: the overwhelming majority of tiles block no
+                # exit, and this loop runs over every tile of every map. Only the
+                # `Impassable *` branch below replaces it with a real (mutable) set.
+                blocked_exit_directions: "frozenset[Direction] | set[Direction]" = _NO_BLOCKED_EXITS
                 waterfall_to = None
                 forced_movement_to: dict[Direction, tuple[tuple[int, int], tuple[int, int], int]] | None = None
                 muddy_slope_to = None
@@ -148,6 +158,7 @@ class PathMap:
                     # 401 of the 2,658 such tiles in the game. All 115 in the Seafloor Cavern have
                     # collision != 0, which is why KI-59 never gated that chapter.
                     accessible_from_direction = [True, True, True, True]
+                    blocked_exit_directions = set()
                     impassable_directions = tile.tile_type[11:].replace(" and ", "/").split("/")
                     for direction in impassable_directions:
                         dir = Direction[direction]

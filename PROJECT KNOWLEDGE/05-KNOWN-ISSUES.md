@@ -2238,79 +2238,16 @@ the free Super Rod is in `MOSSDEEP_CITY_HOUSE3`, which would additionally make *
 casts, L30-35) available — it learns both too. ⚠ Shoal Cave HIGH-tide rooms returned **no encounter
 header at all** in our ROM, so tide timing matters. Still blocked by the 6/6 party + KI-54.
 
-## KI-64 — the multi-battle faint replacer would send out the ALLY's Pokémon (2026-08-12, code-verified, ✅ FIXED)
+## KI-64 — ✅ FIXED 2026-08-12 — the multi-battle faint replacer would have sent out STEVEN’s Pokémon (ARCHIVED)
 
-Found while building §Ch19 by an audit of our own code, and confirmed by reading both choosers.
+Full diagnosis moved to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-08-13 to keep this current-state file
+inside its 3,000-line R3 budget. Keep only this: **`FillPartnerParty` writes the ally’s team into
+`gPlayerParty[3..5]`, so never identify a Pokémon by PARTY INDEX across a battle-menu boundary** —
+the party menu physically permutes the array (`UpdatePartyToBattleOrder`). The fix keys on
+**original trainer ID** via `ally_party_indices()`; guard is `repro_multi_battle_partner.py` (5/5).
+‼ Print the MRO before "fixing" a strategy method — the first fix was dead code on the story path.
 
-`SPECIAL_BATTLE_STEVEN` (the Mossdeep Space Center) runs `ReducePlayerPartyToSelectedMons` and then
-`FillPartnerParty`, which writes Steven's max-IV **Metang L42 / Skarmory L43 / Aggron L44 into
-`gPlayerParty[3..5]`** and sets the party count to 6. So `get_party()` returns **six** Pokémon, only
-the first three of which are ours.
-
-Both replacement choosers excluded **only the two mons currently on the field**:
-* `modules/battle_strategies/default.py` `choose_new_lead_after_faint` — ranks by highest current HP;
-* the story override in `plugins/custom_modes/story_mode.py` — ranks by `(incoming, -outgoing,
-  -hp_fraction, -level)`.
-
-Under either rule **three fresh high-level mons beat our damaged party outright**, so the chooser
-would return the ally's slot. The game then refuses ("Can't switch with ALLY!") and the party menu is
-handed a target it can never accept.
-
-‼ **The guard already existed and had ZERO callers in the entire tree:**
-`BattleState.is_double_battle_with_partner` (`modules/battle_state.py:288`). Written, never wired up.
-`BattleType.Multi` is likewise never referenced anywhere. **FIXED** by cutting the candidate list at
-`MULTI_PARTY_SIZE = 3` in both choosers when that property is true.
-
-‼ **Why it was latent, not harmless:** §Ch19 is the FIRST content in this project to reach a multi
-battle. Nothing before it could ever have exercised this path — which is exactly why "no bug has
-been observed" said nothing about whether one existed.
-
-‼ **AND THE PASSING RUN PROVED NOTHING ABOUT THE FIX.** §Ch19's end-to-end PASS reported
-`whiteouts=0` and **zero faints**, so `choose_new_lead_after_faint` was never called once — the fix
-rode along entirely unexercised. Proven instead by **fault injection**,
-`tools/story-dev/repro_multi_battle_partner.py` (no emulator, milliseconds), **3/3**:
-```
-ARM A  old rule      -> slot 5 (Aggron)     ALLY   [AS PREDICTED] the bug reproduces
-ARM B  shipped code  -> slot 2 (Mightyena)  OURS   [AS PREDICTED] the fix holds
-ARM C  plain double  -> slot 5                     unchanged (no over-correction)
-```
-ARM A is the **positive control** and is the reason ARM B means anything: a fixture where our own
-mon happened to win the ranking would pass under both arms and prove nothing. ARM C exists because a
-fix that also changed ordinary double battles would be a regression wearing a fix's clothes.
-
-‼ **THE FIRST FIX WAS WRONG TWICE, AND THE FIRST A/B PASSED IT ANYWAY** (corrected 2026-08-12 by an
-adversarial review; full write-up in `08-MISTAKES.md`):
-1. **It was DEAD CODE on the story path.** The MRO is `StoryItemBattleStrategy` →
-   `LevelUpTravelBattleStrategy` → **`LevelUpLeadBattleStrategy`** → `DefaultBattleStrategy`, and
-   `level_up.py:41` has its own `choose_new_lead_after_faint`, so the base-class guard never ran.
-2. **The `index >= 3` cut was in the WRONG INDEX SPACE.** Opening the battle party menu runs
-   `UpdatePartyToBattleOrder`, which PHYSICALLY PERMUTES `gPlayerParty`. Measured in our own passing
-   run (`ch19d.log` f37745): `[Sceptile|Mightyena|Swellow|Metang|…]` → `[Sceptile|**Metang**|Mightyena|**Swellow**|…]`.
-   Index 1 becomes the ALLY's Metang and OUR Swellow moves to index 3 — so the cut **offers the ally
-   and hides one of ours**, precisely when a replacement is needed.
-
-**The correct fix:** `ally_party_indices(battle_state, party)` in `battle_strategies/default.py`,
-keyed on **ORIGINAL TRAINER ID** — identity travels with the Pokémon, position does not. Wired at all
-three call sites (`default.py`, `level_up.py`, the story override in `story_mode.py`). It FAILS
-CLOSED: an unreadable player/OT excludes nobody rather than everybody, because excluding everybody
-would return `None` and push the caller into its full-party fallback — the very bug this prevents.
-
-**Now 5/5 in `repro_multi_battle_partner.py`**, including the two arms that matter:
-```
-D  permuted array  -> slot 3 (Swellow) OURS   ‼ a positional `<3` rule would have hidden this
-                                                 and allowed slot 1 (Metang, the ALLY)
-E  LevelUpLead...  -> slot 3 (Swellow) OURS   the class the story bot ACTUALLY calls
-```
-§Ch19 re-driven end-to-end afterwards: still `ACCEPTANCE: PASS`, `whiteouts=0`.
-
-**RESOLVED, previously flagged unverified:** `BattleType.InGamePartner = 1 << 22` **is** correct —
-`battle_tower.c:2122` sets `TRAINER|DOUBLE|TWO_OPPONENTS|MULTI|INGAME_PARTNER`, so
-`is_double_battle_with_partner` genuinely reads True in this battle.
-
-⚠ **STILL UNPROVEN LIVE.** Every driven run had `whiteouts=0` and **zero faints**, so no chooser has
-ever run in a real multi battle. The repro pins the LOGIC; only a driven loss can pin the whole path.
-See KI-66 for the other party scans this fix does NOT cover.
-
+---
 ## ‼‼ KI-68 — §Ch21 IS NOT BLOCKED BY THE PARTY SLOT. **DIVE IS NOT ROUTABLE AT ALL.** (2026-08-12, code-verified) — ✅ **THE ROUTE IS NOW DRIVEN, 2026-08-13**
 
 > ### ✅ RESOLVED IN PRACTICE 2026-08-13 — read this before the (still accurate) analysis below.
@@ -2440,6 +2377,52 @@ Recorded because I wrote a draft and reverted it; these are the defects the revi
 (sole Surf carrier), Sceptile too (sole Rock Smash + Strength carrier), and the pick is Skitty L17.
 Measured, `probe_slot_free_plan.py`.
 
+## KI-74 — `setmetatile` tiles are INVISIBLE to the shared map model, and the KI-59 fix made that fail-DANGEROUS instead of fail-safe (2026-08-13, code-verified, OPEN)
+
+- **The mechanism.** `modules/map.py:770` takes the layout pointer from `self._map_layout[12:16]` —
+  the **compile-time ROM grid**. The engine's live grid is `gBackupMapLayout`, which is what
+  `setmetatile` rewrites. `map.py` never reads it, so `get_map_data` / `get_map_all_tiles` /
+  `calculate_path` are blind to **every runtime tile patch, on every map**.
+- **This is not theoretical — it has already been paid for once.** The Mauville Gym barriers wedged
+  runs 6-9 for exactly this reason; the fix was a LOCAL live-grid reader,
+  `early_game.py:3971 _live_passable()` (`read_symbol("gBackupMapLayout")`), whose own comment says
+  the static layout is "blind to every toggle — a 'pathable' static plan walks the player into a
+  live beam and bumps forever". ⇒ **The solution pattern exists in-tree; it is just not shared.**
+- **‼ WHERE IT IS ARMED NEXT — the REGI ARC, at the DOOR.** `Route111_OnLoad`, `Route105_OnLoad` and
+  `Route120_OnLoad` each `call_if_unset FLAG_REGI_DOORS_OPENED` a script that does
+  `setmetatile <x>, <y>, METATILE_General_RockWall_RockBase, TRUE` — **the three tomb entrances are
+  bricked over until the Sealed Chamber is solved**, and the 4th argument `TRUE` sets the impassable
+  bit in the live grid only. Our planner sees an open door and will route the bot into a wall.
+  ⚠ Reported by an adversarial agent with decomp citations; **the OUR-SIDE half is verified here**
+  (the grep above), the decomp half is NOT yet verified in our harness — do that before building.
+- **‼ HOW KI-59'S FIX INTERACTS, and this is the part to keep.** Before 2026-08-13 an
+  `Impassable *` tile came out mostly-`False` — the planner **over-blocked and detoured**, i.e.
+  failed SAFE. After the fix it comes out mostly-`True`, so on a map whose real layout has been
+  rewritten the planner will now **confidently route onto it and bump**. **242 of the 401 live tiles
+  (144 Regi + 98 Shoal Cave) sit on maps that rewrite themselves**, and the A/B deliberately chose
+  `VICTORY_ROAD_1F` *because* it does not — so every self-rewriting map was outside the proof.
+  ⇒ **The fix is still correct** (it matches the decomp on a static layout) **but its blast radius
+  on self-rewriting maps is unmeasured.** Measure before any content depends on those maps.
+- **Relationship to KI-73.** KI-73 is the narrower cousin (the layout *cache* keyed on map number).
+  This is the general case: even with a perfect cache we read the wrong grid.
+- **What a fix looks like** (not attempted): promote `_live_passable()`'s `gBackupMapLayout` read
+  into `modules/map.py` as an opt-in "live grid" mode for the CURRENTLY LOADED map only — it is
+  valid nowhere else — and have chapters that touch self-rewriting maps ask for it explicitly.
+
+---
+
+## KI-75 — the forced-movement simulators do not know about the new exit rule (2026-08-13, code-verified, OPEN, LATENT)
+
+- `map_path.py`'s current/ice slide simulators advance a slide using **collision and elevation only**.
+  A* now honours `blocked_exit_directions`, but the slide model does not, so the two can disagree:
+  the planner can emit a waypoint at a tile the sliding player never actually reaches.
+- **Not observed.** No built content combines directional-impassable tiles with ice or currents.
+  ‼ It is planted under **§Ch22 (Sootopolis Gym)**, which is an ice-puzzle gym — check it there
+  before building that chapter rather than after.
+- Filed by the adversarial review of the KI-59 fix, not by a failure.
+
+---
+
 ## ‼ OPEN ISSUES THAT LIVE IN THE ARCHIVE — do not conclude they are fixed
 
 Two **OPEN, code-verified, unfixed** bugs were moved to `31-KNOWN-ISSUES-ARCHIVE.md` for the R3
@@ -2477,6 +2460,25 @@ are now resolved live here", so they are listed here to stay findable:
   this. (Archive line ~513.)
 
 ## ‼‼ KI-69 — THE REGI ARC: the party order everyone "knows" is the RUBY/SAPPHIRE one (2026-08-12, decomp-verified, OPEN)
+> 📎 **STUB MARKER — decomp recon 2026-08-13:**
+> `ai-research-notes/2026-08-13-regi-arc-decomp-ground-truth.md`. **It is a NOTE, not truth**, but it
+> contradicts this entry in four places, and two of its findings were reached INDEPENDENTLY by two
+> agents with matching citations. Read it before acting on anything below.
+> 1. ⛔ **REGICE IS NOT A TIMED WAIT.** R/S's wait function is an **empty stub**
+>    (`braille_puzzles.c:258-261`). Emerald needs a **36-tile perimeter lap in ONE visit** ending on
+>    exactly `(8,21)`; one wrong tile fails it and `OnTransition` resets it. Tiles are in the note.
+> 2. ⛔ **`FLAG_REGI_DOORS_OPENED` is never read inside the tombs** — it `setmetatile`-BRICKS the
+>    three OUTDOOR cave mouths (Route105/111/120 `OnLoad`). ⇒ the Sealed Chamber is a **hard serial
+>    prefix**, and those patched tiles are invisible to our map model (**KI-74**).
+> 3. ⛔ **`CheckRelicanthWailord` gates the SEALED CHAMBER ONLY** — no tomb calls it, so both fish
+>    can be **boxed afterwards**. Minimum party for that step is 2.
+> 4. ⛔ **Ancient Tomb needs NOTHING to reach** (foot-reachable, `requires_flash: false`); Flash is
+>    the puzzle MOVE. Desert Ruins needs GO-GOGGLES (an item). Only Island Cave needs Surf.
+> 5. ✅ **Wailmer evolves at L40 into Wailord** (`evolution.h:147`) and **Route 105 Super Rod is
+>    100% Wailmer**, so the 1% wild-Wailord hunt this entry implies is unnecessary.
+> ⚠ **This entry names the Route 118 Fisherman as the SUPER ROD source; a second agent says that is
+> the GOOD ROD and the Super Rod is `MossdeepCity_House3`. UNRESOLVED — verify before building.**
+
 
 Researched at the user's request, ahead of building Relicanth/Wailmer catch logic.
 

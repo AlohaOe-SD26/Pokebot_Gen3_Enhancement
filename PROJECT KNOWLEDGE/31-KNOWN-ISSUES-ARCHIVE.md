@@ -1330,3 +1330,77 @@ magma_1f_fail.ss1   (24,91)  == MAGMA_HIDEOUT_4F  -> True
 game can move the player out from under it. A whiteout satisfies no flag.*
 
 ---
+
+## KI-64 — the multi-battle faint replacer would send out the ALLY's Pokémon (2026-08-12, code-verified, ✅ FIXED)
+
+Found while building §Ch19 by an audit of our own code, and confirmed by reading both choosers.
+
+`SPECIAL_BATTLE_STEVEN` (the Mossdeep Space Center) runs `ReducePlayerPartyToSelectedMons` and then
+`FillPartnerParty`, which writes Steven's max-IV **Metang L42 / Skarmory L43 / Aggron L44 into
+`gPlayerParty[3..5]`** and sets the party count to 6. So `get_party()` returns **six** Pokémon, only
+the first three of which are ours.
+
+Both replacement choosers excluded **only the two mons currently on the field**:
+* `modules/battle_strategies/default.py` `choose_new_lead_after_faint` — ranks by highest current HP;
+* the story override in `plugins/custom_modes/story_mode.py` — ranks by `(incoming, -outgoing,
+  -hp_fraction, -level)`.
+
+Under either rule **three fresh high-level mons beat our damaged party outright**, so the chooser
+would return the ally's slot. The game then refuses ("Can't switch with ALLY!") and the party menu is
+handed a target it can never accept.
+
+‼ **The guard already existed and had ZERO callers in the entire tree:**
+`BattleState.is_double_battle_with_partner` (`modules/battle_state.py:288`). Written, never wired up.
+`BattleType.Multi` is likewise never referenced anywhere. **FIXED** by cutting the candidate list at
+`MULTI_PARTY_SIZE = 3` in both choosers when that property is true.
+
+‼ **Why it was latent, not harmless:** §Ch19 is the FIRST content in this project to reach a multi
+battle. Nothing before it could ever have exercised this path — which is exactly why "no bug has
+been observed" said nothing about whether one existed.
+
+‼ **AND THE PASSING RUN PROVED NOTHING ABOUT THE FIX.** §Ch19's end-to-end PASS reported
+`whiteouts=0` and **zero faints**, so `choose_new_lead_after_faint` was never called once — the fix
+rode along entirely unexercised. Proven instead by **fault injection**,
+`tools/story-dev/repro_multi_battle_partner.py` (no emulator, milliseconds), **3/3**:
+```
+ARM A  old rule      -> slot 5 (Aggron)     ALLY   [AS PREDICTED] the bug reproduces
+ARM B  shipped code  -> slot 2 (Mightyena)  OURS   [AS PREDICTED] the fix holds
+ARM C  plain double  -> slot 5                     unchanged (no over-correction)
+```
+ARM A is the **positive control** and is the reason ARM B means anything: a fixture where our own
+mon happened to win the ranking would pass under both arms and prove nothing. ARM C exists because a
+fix that also changed ordinary double battles would be a regression wearing a fix's clothes.
+
+‼ **THE FIRST FIX WAS WRONG TWICE, AND THE FIRST A/B PASSED IT ANYWAY** (corrected 2026-08-12 by an
+adversarial review; full write-up in `08-MISTAKES.md`):
+1. **It was DEAD CODE on the story path.** The MRO is `StoryItemBattleStrategy` →
+   `LevelUpTravelBattleStrategy` → **`LevelUpLeadBattleStrategy`** → `DefaultBattleStrategy`, and
+   `level_up.py:41` has its own `choose_new_lead_after_faint`, so the base-class guard never ran.
+2. **The `index >= 3` cut was in the WRONG INDEX SPACE.** Opening the battle party menu runs
+   `UpdatePartyToBattleOrder`, which PHYSICALLY PERMUTES `gPlayerParty`. Measured in our own passing
+   run (`ch19d.log` f37745): `[Sceptile|Mightyena|Swellow|Metang|…]` → `[Sceptile|**Metang**|Mightyena|**Swellow**|…]`.
+   Index 1 becomes the ALLY's Metang and OUR Swellow moves to index 3 — so the cut **offers the ally
+   and hides one of ours**, precisely when a replacement is needed.
+
+**The correct fix:** `ally_party_indices(battle_state, party)` in `battle_strategies/default.py`,
+keyed on **ORIGINAL TRAINER ID** — identity travels with the Pokémon, position does not. Wired at all
+three call sites (`default.py`, `level_up.py`, the story override in `story_mode.py`). It FAILS
+CLOSED: an unreadable player/OT excludes nobody rather than everybody, because excluding everybody
+would return `None` and push the caller into its full-party fallback — the very bug this prevents.
+
+**Now 5/5 in `repro_multi_battle_partner.py`**, including the two arms that matter:
+```
+D  permuted array  -> slot 3 (Swellow) OURS   ‼ a positional `<3` rule would have hidden this
+                                                 and allowed slot 1 (Metang, the ALLY)
+E  LevelUpLead...  -> slot 3 (Swellow) OURS   the class the story bot ACTUALLY calls
+```
+§Ch19 re-driven end-to-end afterwards: still `ACCEPTANCE: PASS`, `whiteouts=0`.
+
+**RESOLVED, previously flagged unverified:** `BattleType.InGamePartner = 1 << 22` **is** correct —
+`battle_tower.c:2122` sets `TRAINER|DOUBLE|TWO_OPPONENTS|MULTI|INGAME_PARTNER`, so
+`is_double_battle_with_partner` genuinely reads True in this battle.
+
+⚠ **STILL UNPROVEN LIVE.** Every driven run had `whiteouts=0` and **zero faints**, so no chooser has
+ever run in a real multi battle. The repro pins the LOGIC; only a driven loss can pin the whole path.
+See KI-66 for the other party scans this fix does NOT cover.
+

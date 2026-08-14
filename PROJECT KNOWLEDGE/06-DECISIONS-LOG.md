@@ -1947,3 +1947,59 @@ rewrite), Shoal Cave (same, and it is entangled with the tide question).
 user-delegated ruling, over rooms carrying 89 live tiles. Reopening a decision the user delegated
 and received is the user's call, not an agent's. Recorded as a flag with the re-derivation named, so
 it happens deliberately after the fix instead of by surprise.
+
+## 2026-08-13 — the next BUILD is §Ch20 (Seafloor Cavern), NOT the Regi arc — and KI-59 was never the arc's blocker
+
+**The claim I was about to act on**, and it was **REFUTED** by an adversarial review plus a decomp
+recon: *"KI-59 blocked the Regi arc (144 of the 401 live tiles are the tombs); I fixed it, so the
+arc is unblocked — start building."*
+
+**Why it is wrong, in three independent ways.**
+1. **The tombs barely use the pathfinder where those tiles are.** `puzzle_solver.py` walks its laps
+   with `follow_path`, whose docstring (`modes/util/walking.py:78-83`) says *"There is no collision
+   checking"*. `calculate_path` is used only for the approach and the exit.
+2. **The 144 tiles describe a room that is not on screen.** The tombs `setmetatile` themselves —
+   that *is* the braille wall opening — and our reader takes the **compile-time ROM layout**
+   (`map.py:770`). Filed as **KI-74**.
+3. **Empirical.** Upstream, `custom-pokebot` and the 40cakes mirror all still carry the inversion
+   and ship a working Regi Puzzle Solver. Had the inversion made tomb routing impossible, that mode
+   would be dead for every upstream user.
+⇒ ‼ **This was the same error I had logged that morning** — counting tiles a bug applies to without
+checking whether anything REACHES them — committed a second time in one day, in the opposite
+direction (counting tiles a FIX applies to).
+
+**The arc's real cost, measured, not guessed.** `probe_regi_capabilities.py` reports **10 missing
+gates**, and the audit found they need ~7 subsystems that do not exist: fishing as a *story*
+capability (`fish()` is an input masher with zero story callers, and rod choice goes through a
+**human GUI prompt**), underwater wild encounters (`EncounterType` has no Underwater member), TM
+acquisition + `use_tm` (`teach_hm_move` is HM-only), Flash acquisition, a no-KO/no-whiteout
+legendary catch policy, a **bounded** exact-tile path executor, and the arc has **no chapter entry**
+in `chapters.py` at all. Plus a hard serial prefix: Dive → TM28 → Dig → Super Rod → Wailmer →
+evolve → Relicanth → reorder → Sealed Chamber, before a single tomb entrance physically exists.
+
+**DECISION — the order is:**
+1. **`#24-ch20rename`** (small, safe, the punch list already says do it at the start of a session):
+   `--driver ch21dive`, `probe_ch21_topology.py` and two note filenames are misnomers pinned to
+   **Chapter 20**. Every hour it survives raises the odds the next agent builds the wrong chapter.
+2. **§Ch20 Seafloor Cavern / Kyogre — the real next build.** It IS the ladder
+   (`chapters.py:233`, graded on `KYOGRE_ESCAPED_SEAFLOOR_CAVERN`; `story_mode.py:3654` is "END OF
+   BUILT CONTENT"), it is uniquely de-risked (the dive leg is **driven 6/6**, KI-63 is wired in
+   sandbox, `puzzle_solver.py` supplies room coordinates free), and its blast radius is **additive**
+   — one module, one segment, no shared code. Two known traps, both cheap: apply **KI-72**'s rule
+   (hand-pick the surfacing tile and assert its `tile_type`; never let the planner choose), and do
+   **not** stop at `ROOM9 (16,42)` — that is Archie's cutscene tile, and the standing rule is
+   *"and the bot can continue"*.
+3. **`#24-r110mauville` / KI-48** — the highest-frequency *observed* defect (72 `could not reach`
+   events in one batch, 3/3 deterministic, ~1,400-frame repro). Budget a MEASUREMENT, not a fix:
+   its root cause is still a hypothesis.
+4. **The Regi arc** — after §Ch20/§Ch21, or as an explicitly costed multi-session project.
+
+**Rejected:** starting the Regi arc now (a 7-subsystem side quest whose first payoff is 9 serial
+steps away, on a map model that is wrong about the door). **Also rejected:** fixing KI-70/KI-71/KI-73
+now — all three are code-verified and **never observed**, and KI-70 costs ~30 frames per rotation on
+the hottest path in the bot to fix something measured *passing*. Paying premium risk on shared code
+for zero measured events is exactly the trade this project keeps regretting.
+
+**Left explicitly to the USER:** promoting `map_path.py` (and the KI-63 wiring) to `custom-pokebot`.
+‼ Note that **KI-59 promotion is a hard prerequisite of the Regi arc in `custom-pokebot`**, so that
+decision and decision 4 are linked.
