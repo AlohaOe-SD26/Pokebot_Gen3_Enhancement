@@ -233,13 +233,38 @@ def _box_pids() -> frozenset:
 
 
 def box_counter_pid(needed_type_names, exclude_pids=frozenset()) -> "int | None":
-    """PERSONALITY VALUE of a mon IN THE PC whose own type answers the boss, or None.
+    """PERSONALITY VALUE of a mon IN THE PC that answers the boss — BY TYPE **OR BY MOVE** — or None.
 
     The box-side twin of `party_counter_slot`, and deliberately keyed on PID rather than
     (box, slot): `pc_trip.withdraw_from_box(pids)` already finds a stored mon by PID, and box
-    indices shift as mons are added or removed. Same TYPE-not-moves test as the party version —
-    see `party_counter_slot` for why the stricter move test would make a real catch look like a
-    failed hunt.
+    indices shift as mons are added or removed.
+
+    ‼‼ IT ACCEPTS A MOVE ANSWER (fixed 2026-08-14). This docstring used to say *"Same
+    TYPE-not-moves test as the party version"* — and that was WRONG, not a deliberate choice.
+    `party_counter_slot` was taught the move test on 2026-08-08 (`#24-slugmaspin`); **this twin
+    was left behind, and the fix that named Slugma in its own docstring did not reach the half
+    that handles a Slugma caught into the BOX.**
+
+    MEASURED LIVE by the user, 2026-08-14 — the whole failure falls out of this one function:
+    a Winona hunt caught **Slugma into the PC box** (the party was full because a Nincada had
+    evolved and SPAWNED a Shedinja into the last slot). Winona needs Rock/Ice/Dragon/Electric;
+    Slugma is **pure FIRE** and was hunted for its **Rock Throw**. Type-only ⇒ this returned
+    None ⇒ `hunt()` reported "found nothing" ⇒ `_hunted_counter_pids` stayed empty ⇒ the heal's
+    withdraw block (`higher_level_actions.py:246`, gated `if _pids:`) had nothing to do ⇒ the
+    ladder raised and the run dropped to Manual ⇒ on continue, `_counter_hunts` said "already
+    hunted" and the gym was re-fought with the counter still in the box.
+
+    ‼ THE PAIR IS NOW GATED, because prose did not catch the first drift:
+    `tools/story-dev/repro_box_counter_move_test.py` asserts this test and `party_counter_slot`
+    accept the SAME set, and it is fault-tested (its ARM A reproduces the type-only behaviour and
+    must fail to see the Slugma, or the repro is not measuring anything).
+
+    The move test is LENIENT on purpose, exactly as the party twin's is: it asks only that the mon
+    KNOW a **damaging** move of a needed type, not that the move clear the credible-power floor.
+    A freshly caught L15 Slugma already knows Rock Throw, and that is the case that must register.
+    ⚠ A boxed mon has no readable HP/status (those live past byte 80 of the 80-byte box record),
+    so "can it survive a hit" is unanswerable here by construction — level and moves are all there
+    is, which is another reason the strict test does not belong on this side.
     """
     try:
         from modules.pokemon_storage import get_pokemon_storage
@@ -262,9 +287,63 @@ def box_counter_pid(needed_type_names, exclude_pids=frozenset()) -> "int | None"
                     continue
                 if {str(t.name) for t in mon.species.types} & needed:
                     return pid
+                # MOVE ANSWER — the half this function was missing until 2026-08-14. A damaging
+                # move of a needed type counts even when the mon's own type does not; that is the
+                # whole point of `#24-movepoolcounters`, which lets the planner hunt a species
+                # that merely LEARNS the answer. Damaging only: a status/stat-change move answers
+                # nothing, which is why `base_power > 0` is required and not merely the type.
+                # ‼ Kept structurally identical to `party_counter_slot`'s loop (`:169-173`) on
+                # purpose — these two are a pair, they drifted once, and the parity gate now
+                # asserts they accept the same set.
+                for learned in (getattr(mon, "moves", None) or ()):
+                    if learned is None or getattr(learned, "move", None) is None:
+                        continue
+                    move = learned.move
+                    if move.base_power > 0 and str(move.type.name) in needed:
+                        return pid
     except Exception:
         return None
     return None
+
+
+def catch_confirmed(*, party_count_now, party_count_before, party_pids_now, before_party_pids,
+                    box_count_now, box_count_before, box_pids_now, before_box_pids) -> bool:
+    """Did THIS hunt actually catch something? A COUNT is the trigger; an IDENTITY is the verdict.
+
+    ‼ EXTRACTED FROM `hunt()._stop()` 2026-08-14 SO IT CAN BE PROVEN. The logic was a closure and
+    therefore untestable, which meant the Shedinja fix below was *reasoned* rather than *proven* —
+    and this project's first rule is that a fix you cannot demonstrate is a hypothesis. It is now
+    covered by `tools/story-dev/repro_box_counter_move_test.py`, including the laziness property.
+
+    ‼ WHY IDENTITY. A Nincada evolving at L20 **SPAWNS A SHEDINJA into a free party slot**
+    (`CreateShedinja`, `src/evolution_scene.c:548-583`) with no catch, no ball and no bot action —
+    in Gen 3 the ONLY precondition is a free slot (there is NO spare-ball rule; that is Gen 4+, and
+    our own `obtainability.py:88` display string is wrong about it). A bare count delta therefore
+    reports a catch that never happened, ending the spin with nothing caught.
+    ✅ And the Shedinja case resolves correctly *because* `CopyMon` is a memcpy that does not
+    overwrite personality: the twin carries its Ninjask's PID, so it can never look like a NEW
+    identity. (That PID sharing is a hazard elsewhere — see KI-78 — but here it is exactly right.)
+
+    ‼ `party_pids_now` and `box_pids_now` are CALLABLES, and that is load-bearing, not style.
+    The caller runs this on EVERY frame of a 120,000-frame spin; reading every party PID (and worse,
+    iterating 14x30 box slots) per frame would be a real regression. They are invoked ONLY on the
+    branch where the cheap count has already moved.
+    ⚠ HONEST COST NOTE (adversarial review, 2026-08-14): once the count has risen it STAYS risen,
+    so on a spawn-then-keep-hunting spin the party callable runs on every subsequent frame, not
+    once. That is <=6 party members and is accepted; the earlier comment here claimed "pays ONCE"
+    and was simply wrong — the code wins, the comment was the bug.
+    """
+    if party_count_now > party_count_before:
+        if party_pids_now() - before_party_pids:
+            return True
+        # Count rose, no new identity => an evolution spawn, not a catch. Keep hunting.
+    # A box catch is a SUCCESS, not a miss. `_box_count()` returns -1 when unreadable, so the
+    # `>= 0` guard keeps a read error from faking one — and it does double duty, because an
+    # unreadable SNAPSHOT would otherwise make every stored mon look new.
+    if box_count_before >= 0 and box_count_now > box_count_before:
+        if box_pids_now() - before_box_pids:
+            return True
+    return False
 
 
 def _ball_count() -> int:
@@ -419,11 +498,20 @@ def hunt(candidate, needed_type_names) -> Generator:
             frames["n"] += 1
             if frames["n"] > HUNT_SPIN_BUDGET_FRAMES:
                 return True
-            if _party_count() > before:
-                return True
-            # A box catch is a SUCCESS, not a miss. `_box_count()` returns -1 when unreadable,
-            # so the `>= 0` guard keeps a read error from faking one.
-            if before_box >= 0 and _box_count() > before_box:
+            # ‼ A COUNT IS THE TRIGGER; AN IDENTITY IS THE VERDICT — see `catch_confirmed`, which
+            # holds the reasoning and is GATED (this used to be inline and therefore unprovable).
+            def _party_pids_now():
+                try:
+                    return {m.personality_value for m in _gp_snapshot() if m is not None}
+                except Exception:  # noqa: BLE001 - an unreadable party must not fake a catch
+                    return set()
+
+            if catch_confirmed(
+                party_count_now=_party_count(), party_count_before=before,
+                party_pids_now=_party_pids_now, before_party_pids=before_party_pids,
+                box_count_now=_box_count(), box_count_before=before_box,
+                box_pids_now=_box_pids, before_box_pids=before_box_pids,
+            ):
                 return True
             return party_counter_slot(needed_type_names, before_party_pids) is not None
 

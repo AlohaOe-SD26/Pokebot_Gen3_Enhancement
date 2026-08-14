@@ -13511,3 +13511,46 @@ Tier 1 was dogfooded on this very change-set before commit. 18/18 gates PASS.
   decisions logged (var-gated release + loss-is-a-valid-branch); mistakes entry (museum-greeter
   recurrence); Rooms 1/2 and the 2026-08-13 Room 6/Room 3 banner blocks archived to
   `28-HANDOFF-ARCHIVE.md` for the R3 budget.
+
+## 2026-08-14 — THE USER-OBSERVED SLUGMA/WINONA DERAIL: FIXED, A/B PROVEN AND GATED — plus the count-delta that let an EVOLUTION fake a catch (`#24-counters` / `#24-roster`)
+
+**The bug the user watched.** A Winona counter-hunt caught **Slugma into the PC box**, healed, and
+**derailed to Manual**; on a forced continue it re-fought Winona without withdrawing Slugma. Every
+symptom traced to ONE function.
+
+* **FIX 1 — `counter_hunt.box_counter_pid` now accepts a MOVE answer, not only a TYPE match.**
+  Winona needs Rock/Ice/Dragon/Electric; **Slugma is pure FIRE** and was hunted for its **Rock
+  Throw**. The box test asked only about the mon's own type ⇒ `None` ⇒ `hunt()` reported "found
+  nothing" ⇒ `_hunted_counter_pids` stayed empty ⇒ the heal's withdraw block
+  (`higher_level_actions.py:246`, gated `if _pids:`) had nothing to do ⇒ the ladder raised ⇒
+  Manual ⇒ on continue `_counter_hunts` said "already hunted" and the gym was re-fought without
+  the counter. ‼ **The fix already existed on the other half of the pair**: `party_counter_slot`
+  was taught this on 2026-08-08 (`#24-slugmaspin`, a fix whose own docstring NAMES Slugma and
+  Winona) and the box twin was left behind, still asserting "Same TYPE-not-moves test" as though
+  deliberate.
+* **FIX 2 — the hunt's success test was a COUNT DELTA, so an EVOLUTION could fake a catch.**
+  A Nincada evolving at L20 **spawns a Shedinja into a free party slot** — no catch, no ball, no
+  bot action (`CreateShedinja`, `src/evolution_scene.c:548-583`; ‼ in Gen 3 the ONLY precondition
+  is a free slot — **there is no spare-ball rule**, that is Gen 4+, and our own
+  `obtainability.py:88` display string is WRONG about it). The logic moved out of the untestable
+  `_stop()` closure into a new pure `catch_confirmed()`: **the cheap count is the trigger, a PID
+  identity is the verdict**, with the expensive reads passed as CALLABLES so they never run on the
+  per-frame path unless the count actually moved.
+* **NEW GATE `repro_box_counter_move_test.py` (suite 18 → 19), fault-injected, no emulator.**
+  A/B: before the fix it exits **1** with exactly `box_counter_pid finds the move answer` and
+  `Slugma: party=True box=False`; after, exit **0**. Controls unchanged in BOTH arms: an unrelated
+  mon refused, a 0-power move of a needed type refused, a plain type match still accepted,
+  `exclude_pids` still honoured. It also carries a **PARITY GATE** (the party and box tests must
+  accept the same set on every fixture — they drifted once and prose did not catch it) and proves
+  `catch_confirmed`'s Shedinja/real-catch/unreadable cases **and its laziness contract**.
+  ✅ An adversarial reviewer independently re-ran the A/B by stashing the fix (0 → 1 → 0) and
+  re-verified the `CopyMon`/personality claim against the live decomp rather than trusting it.
+* **NEW ISSUE FILED — KI-78, and it is worse than the bug above.** `CopyMon` is a memcpy that does
+  **not** overwrite personality, so **a SHEDINJA carries the SAME PID as its NINJASK**. This
+  codebase keys "which mon do I act on" off exactly that (`Party.get_index_for_pokemon` →
+  `pc_interaction.py:464` deposit and **`:505` RELEASE**, `pc_trip.find_in_box`, the lead picker).
+  ⛔ PID is the remedy this project's own SESSION DISCIPLINE rule 3 prescribes, and Gen 3 breaks
+  it. Deliberately NOT fixed drive-by — the shared lookup serves a destructive path.
+* ⚠ **sandbox↔custom drift 3 → 4**: `modules/story/counter_hunt.py` joins. **Until promotion (the
+  USER's call, not asked for), `custom-pokebot` still cannot see a boxed counter that answers by
+  MOVE — the user-observed derail is still live there.**

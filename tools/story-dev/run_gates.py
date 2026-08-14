@@ -44,6 +44,7 @@ GATES: list[tuple[str, bool]] = [
     ("repro_undefined_names.py", False),
     ("repro_no_silent_except.py", False),
     ("repro_roster_reorder.py", False),
+    ("repro_box_counter_move_test.py", False),
     ("repro_hm_slot_wiring.py", False),
     ("repro_multi_battle_partner.py", False),
     ("repro_whiteout_abort.py", False),

@@ -2149,7 +2149,8 @@ are now resolved live here", so they are listed here to stay findable:
   from **NO-PATH from every direction** (all 29 tiles invisible to the planner) to `OK len=1` on the
   legal approaches; the `MOSSDEEP_CITY` collateral control is **byte-identical** across arms. Now
   **gate #17**. ‼ `probe_shoal_tide.py` corrected in lockstep; its numbers re-derived on the fixed
-  model are **unchanged (LOW 278 / HIGH 0)**. ⚠ **Sandbox only — drift is now 3 and promotion is the
+  model are **unchanged (LOW 278 / HIGH 0)**. ⚠ **Sandbox only — drift is now 4 (`counter_hunt.py`
+  joined 2026-08-14 with the box-counter move-test fix) and promotion is the
   USER's call.** The original diagnosis and the retraction that reprioritised it are kept below.
 * **KI-59 (original entry)** — `map_path` **INVERTS `Impassable *` directions**. ✅ **REAL** (decomp-verified).
   ⛔ **BUT ITS "ARMED IN THE SEAFLOOR CAVERN" HEADLINE IS RETRACTED, 2026-08-13, MEASURED.**
@@ -2671,6 +2672,46 @@ to refute "the tide is not a blocker"; the static-table half verified by me dire
 - **What a fix looks like** (not attempted): include the live layout pointer in the cache key, or
   invalidate the entry on map-transition. Both touch shared pathfinding that every mode depends on,
   so it needs its own A/B — not a drive-by change.
+
+## KI-78 — ⛔ **PERSONALITY VALUE IS NOT A UNIQUE IDENTITY IN GEN 3: a SHEDINJA carries the SAME PID as the NINJASK it came from** — and this codebase keys "which mon do I act on" off exactly that (2026-08-14, DECOMP-VERIFIED, OPEN, ARMED wherever a Nincada line is in the party)
+
+- **Why this is severe.** This project's standing rule — written into `CLAUDE.md`'s SESSION
+  DISCIPLINE as rule 3 — is *"Assert IDENTITY, never position or count. PIDs — never slot
+  indices."* **That remedy has a hole, and this is it.** PID is the identity key we reach for
+  precisely when a count would lie, so a PID collision defeats the fix and the prevention rule at
+  the same time.
+- **The mechanism, verified against the decomp (not recalled).** `CreateShedinja`
+  (`src/evolution_scene.c:548-583`) does `CopyMon(&gPlayerParty[gPlayerPartyCount], mon,
+  sizeof(struct Pokemon))` — a plain `memcpy` (`src/pokemon.c:4420-4423`) — and then overwrites
+  species, nickname, held item, markings, the encrypt separator, ribbons, status and mail.
+  **`MON_DATA_PERSONALITY` is NOT among them.** OT ID is likewise inherited. ⇒ Ninjask and
+  Shedinja are PID-identical and OT-identical for their whole lives.
+- ‼ **AND THE TRIGGER IS MORE COMMON THAN OUR OWN CODE CLAIMS.** In Gen 3 the ONLY precondition
+  is `gPlayerPartyCount < PARTY_SIZE` (`evolution_scene.c:551`) — **there is no spare-Poké-Ball
+  requirement**; that rule is Gen 4+. Our `modules/obtainability.py:88` display string says
+  *"level up (empty slot + spare Ball)"* and **is wrong for this ROM**. Any Nincada reaching L20
+  with one free slot spawns a Shedinja.
+- **Where it is armed (each of these picks the FIRST PID match and cannot tell the twins apart):**
+  * `modules/pokemon_party.py:96-100` `Party.get_index_for_pokemon` — matches `data[:4]`, i.e.
+    the personality, and returns the first hit. ⇒ **the function that decides WHICH PARTY SLOT a
+    PC action operates on.**
+  * `modules/modes/util/pc_interaction.py:464` (`_do_deposit_actions`) and **`:505` (RELEASE)** —
+    both resolve their target through it. ⛔ *"Deposit this one"* can deposit the twin, and one
+    branch of the same lookup **releases a Pokémon permanently.**
+  * `modules/story/pc_trip.py:384-400` `find_in_box(pids)`, and the protected-counter PID set at
+    `:136`.
+  * `modules/story/early_game.py:1655-1656` — `_hunted_counter_pids` matching in the lead picker.
+- ✅ **One place it is NOT a problem, by luck rather than design:** `counter_hunt._stop()`'s new
+  identity test (fixed 2026-08-14) *wants* the twins to share a PID — a Shedinja spawn then cannot
+  look like a new catch, which is the correct answer. Do not "fix" the collision in a way that
+  breaks that.
+- **What a fix looks like** (not attempted): key on `(personality, species)` or
+  `(personality, party_index)` wherever a PID selects a target for an ACTION. ⚠ Not a drive-by
+  change — `get_index_for_pokemon` is shared by deposit, release and the party menu, and the
+  release path is destructive. Needs its own fault-injected A/B with a fabricated twin pair.
+- **Cheap detection meanwhile:** a duplicate-PID check over the party would flag the condition in
+  one line, and it is worth logging LOUD when it fires, because every PID-keyed decision taken
+  while it holds is suspect.
 
 ## KI-77 — `get_map_objects()` is a CAMERA-RANGE WINDOW, so the planner's picture of a PUSHED BOULDER flips with the camera (2026-08-13, MEASURED LIVE, OPEN — ⛔ **NOT armed in Room 8; the LARGE rooms are the risk**)
 

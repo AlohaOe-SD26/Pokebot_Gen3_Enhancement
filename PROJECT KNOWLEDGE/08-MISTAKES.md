@@ -6218,3 +6218,45 @@ with zero initiated dialogues and hit all three milestones.
 look for the existing gated helper first.* This is the second time an adversarial review of a
 brand-new driver caught a rule-violation the author had already written down — the review layer
 is load-bearing; do not skip it for "simple" drivers.
+
+## 2026-08-14 — a fix was applied to ONE HALF of a documented pair, and the other half broke a real user run six days later
+
+**Symptom (user-observed, live).** A Winona counter-hunt caught **Slugma into the PC box**, healed
+at a Poké Center, **derailed to Manual**, and on a forced continue re-fought Winona without ever
+withdrawing the Slugma it had crossed the map to catch.
+
+**Root cause.** `counter_hunt.box_counter_pid` matched on the mon's **own TYPE only**. Winona needs
+Rock/Ice/Dragon/Electric; **Slugma is pure FIRE** and was hunted for its **Rock Throw** — so the
+box test could not see the very thing the hunt targeted. It returned `None`, the hunt reported
+"found nothing", the counter's PID was never registered, the heal's withdraw block was gated on
+that empty set and did nothing, the ladder raised, and the run dropped to Manual.
+‼ **The fix already existed twenty lines away.** `party_counter_slot` was taught to accept a MOVE
+answer on 2026-08-08 (`#24-slugmaspin`) in a change whose own docstring **names Slugma and Winona**
+— and its box twin was not updated. Its docstring even asserted *"Same TYPE-not-moves test as the
+party version"*, which read as a deliberate choice rather than an oversight, so every later reader
+was told the drift was intentional.
+
+**The fix that worked.** Mirror the move test into `box_counter_pid`, keeping it deliberately
+lenient (a *damaging* move of a needed type; a 0-power move answers nothing) exactly as the party
+twin is. A/B proven by a new fault-injected gate: exit 1 → exit 0 on the same fixture, with four
+controls unchanged in both arms.
+
+**A second bug found in the same investigation, and it is the deeper one.** The hunt's success test
+was `_party_count() > before` — a **count delta**. A Nincada evolving at L20 **spawns a Shedinja
+into a free party slot** with no catch, no ball and no bot action, so the count rises and the hunt
+declares a catch that never happened. Fixed by extracting the closure into a testable
+`catch_confirmed()`: the cheap count is the trigger, a **PID identity** is the verdict.
+‼ And that investigation surfaced **KI-78**: `CopyMon` does not overwrite personality, so **a
+Shedinja shares its Ninjask's PID** — meaning PID, *the very remedy SESSION DISCIPLINE rule 3
+prescribes for count bugs*, is **not a unique identity in Gen 3**, and it currently keys a
+destructive release path.
+
+**Prevention rules (three, because this failure had three separate enablers).**
+1. *A function with a documented TWIN needs a PARITY GATE, not a prose promise.* If two functions
+   answer the same question over different storage, assert mechanically that they accept the same
+   set — prose said "same test as the party version" while the two had already diverged.
+2. *When you fix a predicate, grep for every other implementation of the same question before
+   closing the item.* The 2026-08-08 fix named its own failing example and still shipped half done.
+3. *Logic that decides success must be reachable by a test.* `_stop()` was a closure, so its
+   count-vs-identity bug could only ever be argued about, not proven. Extracting it cost six lines
+   and turned a reasoned claim into a gated one.
