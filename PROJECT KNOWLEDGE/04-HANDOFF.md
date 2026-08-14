@@ -573,8 +573,8 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >
 >    **(d) STILL THE USER'S CALL, NOT MINE:** promoting the **three** drifted files to
 >    `custom-pokebot/`. Nothing here changes that.
-> 1. **Run `preflight.py`**, then the **17**-gate suite in "HOW TO RUN / TEST" (all exit 0 as of
->    2026-08-13), and the sandbox↔custom drift loop. ⛔ **CORRECTED — EXPECT EXACTLY 3**, not 2: `modules/map_path.py`
+> 1. **Run `preflight.py`**, then the **18**-gate suite in "HOW TO RUN / TEST" (all exit 0
+>    2026-08-14; said 17 until a Tier 2 audit — `run_gates.py` is authoritative), and the drift loop. ⛔ **CORRECTED — EXPECT EXACTLY 3**, not 2: `modules/map_path.py`
 >    joined the list with KI-59's fix. The stale "2" below would have made a deliberate, gated,
 >    A/B-proven change read as *unexplained drift*. Superseded text: **EXPECT EXACTLY 2:**
 >    `modules/story/early_game.py` and `plugins/custom_modes/story_mode.py` — KI-63's **production
