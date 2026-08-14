@@ -2843,7 +2843,13 @@ to refute "the tide is not a blocker"; the static-table half verified by me dire
   invalidate the entry on map-transition. Both touch shared pathfinding that every mode depends on,
   so it needs its own A/B — not a drive-by change.
 
-## KI-77 — `get_map_objects()` is a CAMERA-RANGE WINDOW, so the planner's picture of a PUSHED BOULDER flips with the camera (2026-08-13, MEASURED LIVE, OPEN, ARMED for §Ch20 Room 8)
+## KI-77 — `get_map_objects()` is a CAMERA-RANGE WINDOW, so the planner's picture of a PUSHED BOULDER flips with the camera (2026-08-13, MEASURED LIVE, OPEN — ⛔ **NOT armed in Room 8; the LARGE rooms are the risk**)
+
+> ‼ **THE HEADLINE USED TO SAY "ARMED for §Ch20 Room 8" AND THE BODY BELOW REFUTES IT.** Room 8 is
+> 11x14 and the despawn window is 20x17 — the map is *smaller than the window*, so nothing can
+> despawn there except on the arrival tile, before any push. Room 8 is the next thing to build, so a
+> reader skimming issue headers would have built a guard that measurement already ruled out. Fixed
+> in the header 2026-08-13; **the rule is that the headline carries the caveat.**
 
 - ⛔ **CORRECTED 2026-08-13, SAME DAY IT WAS FILED — MY FIRST FRAMING WAS TOO STRONG, AND THE REAL
   DEFECT IS WORSE BUT DIFFERENT.** I wrote *"a route planned in that state is planned against a map

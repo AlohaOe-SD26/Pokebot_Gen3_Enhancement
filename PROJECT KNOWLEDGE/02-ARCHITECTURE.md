@@ -199,6 +199,27 @@ python ..\install.py                   # same, for custom-pokebot
 ```
 
 ### ‼ Testing — the repro suite is the project's real verification bar
+⛔ **CORRECTED 2026-08-13 — READ THIS BEFORE THE PARAGRAPH BELOW.** The verification bar is no
+longer "sweep the `repro_*.py` directory". It is **two commands**, and they are what every session
+is told to run first:
+
+```
+cd tools/story-dev
+PYTHONUTF8=1 py -3.12 preflight.py     # git sync + fixtures + docs + live-batch detection. Exits 1.
+PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 17 gates, ~125s, non-zero on any failure
+```
+
+‼ **`run_gates.py`'s `GATES` table is AUTHORITATIVE — prose is not.** The list lives in code
+precisely because a comment here once advertised the wrong count for a whole session.
+**Driving the story bot** is `tools/story-dev/story_harness.py <anchor> --driver <name>`; the
+current §Ch20 chain is `ch20dive → ch20room1 → ch20room2 → ch20room6 → ch20room3`, and
+`04-HANDOFF.md`'s "HOW TO RUN / TEST" holds the expected output line for each.
+‼ A driver keeps running after it prints `ACCEPTANCE:` and the harness exits on its own idle
+detector, logging **"HANG CONFIRMED" on a run that SUCCEEDED** — read the `ACCEPTANCE:` line, not
+the last line.
+
+*(the older sweep description follows, kept because the scripts still exist and still run)*
+
 `tools/story-dev/repro_*.py` is **52 scripts**, most needing **no emulator**. Run the whole
 sweep after any change; a fix that satisfies its own new repro can still break an older
 one's contract (this happened twice on 2026-07-27).

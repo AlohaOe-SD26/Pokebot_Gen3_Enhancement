@@ -6102,3 +6102,25 @@ OUTPUT, and label the result a bound rather than a fact.*
   verdict line from a count, name the population out loud — "trainer battles **in Room 3**", not
   "trainer battles" — and print the raw rows next to the judgement, because the judgement is the
   part that will be wrong.*
+
+## 2026-08-13 — my handoff passed its own quality bar and still pointed the next session at finished work
+
+- **Symptom.** A zero-context audit of `04-HANDOFF.md` answered all seven of `CLAUDE.md`'s
+  handoff-bar questions correctly from the file alone — and then found that the file's **"NEXT
+  ACTIONS" queue told the reader to build Room 3**, which was driven, passing, committed and pushed,
+  and said so in the same file's headline 500 lines above.
+- **Root cause.** I updated the **banner** at the top after every increment and let the **queue**
+  drift. They are different sections with different lifetimes, and the queue is the one `CLAUDE.md`
+  tells a cold agent to act from (*"the ordered work queue … the cold-start orientation is the YOU
+  ARE HERE block, not here"*). Nothing in my per-increment routine touched it.
+- **The same shape, three more times in the same file:** an instruction to fix a line already fixed;
+  a pointer to KI-68 as if open, when it is resolved and archived; and "EXPECT EXACTLY 2" in the one
+  paragraph that asks the reader to *verify* a count that is 3 — in a paragraph that also says
+  "anything else is unexplained drift".
+- ‼ **Why "the docs are complete" is not the test.** Every one of these sat next to correct text. A
+  completeness check passes; a **consistency** check is what catches them. The audit found them only
+  because it was told to cross-check the queue against the headline, not to grade the prose.
+- **Prevention rule:** *When a session finishes an increment, update the QUEUE in the same commit as
+  the banner — a "next action" is current-state, not narrative. And when auditing a handoff, do not
+  ask "can the seven questions be answered"; ask **"does the QUEUE agree with the HEADLINE, and does
+  every issue HEADER agree with its own BODY"**. Both failed here while the prose read fine.*

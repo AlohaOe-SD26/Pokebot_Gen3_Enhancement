@@ -4,7 +4,11 @@
 > code terms. No jargon, no statistics. Every technical claim here has a precise version
 > elsewhere: `07-CHANGELOG.md` (what changed), `08-MISTAKES.md` (what went wrong),
 > `03-PUNCH-LIST.md` (the queue), `04-HANDOFF.md` (resume point).
-> **Last updated: 2026-08-10.**
+> **Last updated: 2026-08-13.** ‼ **This file was THREE DAYS AND FIVE CHAPTERS STALE** until a
+> cold-start audit caught it — and `00-README.md` sends new readers HERE FIRST, so it was the very
+> first thing a fresh session read and the most wrong. The "Where it gets to today" and "Where it
+> stands now" sections are corrected below. **The day-by-day narrative in between is HISTORY from
+> 2026-08-10 and is left as written.**
 
 ---
 
@@ -13,9 +17,19 @@
 A bot that plays **Pokémon Emerald by itself**, from a brand-new save, with nobody watching.
 It picks a starter, walks the routes, catches Pokémon, trains them, and fights the gyms.
 
-**Where it gets to today:** it reliably reaches and beats **six gyms**, then Mt. Pyre, and picks
-up the **Magma Emblem**. That is the end of what has been written. Everything past that point —
-starting with the **Magma Hideout** — is not built yet.
+**Where it gets to today (2026-08-13):** it plays **20 of the game's 24 story beats** by itself.
+It wins **seven gym badges**, raids the Magma Hideout and gets back out, recovers the stolen
+submarine at Slateport, clears the Aqua Hideout maze (**taking the Master Ball on the way**),
+defends the Mossdeep Space Center alongside Steven, and is handed **HM08 Dive**.
+
+**What it is doing right now:** learning the **Seafloor Cavern** — the dungeon where Team Aqua
+wakes Kyogre. It already dives to the entrance, solves the boulder puzzles in the first two rooms,
+**rides the underwater currents** through the flooded room, and walks through the room where two
+Aqua members ambush it together. It stops at the second-to-last room.
+
+‼ **An honest caveat, because it matters:** that cavern run is a **test harness**, not part of the
+real playthrough yet. It is driven room by room from a saved game, and the Dive move is handed to
+it rather than earned. Wiring it into the actual story run is still to do.
 
 ---
 
@@ -138,8 +152,18 @@ result, prove the tool can find something you already know is there.
 
 ## Where it stands now
 
-* Everything is saved, backed up, and the working copy matches the shipped copy exactly.
-* The **next chapter is fully mapped**: the route through all eight rooms of the Magma Hideout,
-  who has to be fought, and the exact in-game flag that means "done".
-* **One known risk:** on a test run the bot **fainted on the way there**. The journey needs
-  building and proving before the hideout itself does.
+*(‼ corrected 2026-08-13 — every bullet here was about the Magma Hideout, which shipped on
+2026-08-10, the day this section was written.)*
+
+* Everything is saved and backed up. ⚠ **The working copy does NOT match the shipped copy** —
+  **three files differ on purpose**, holding fixes that have been proven but not yet approved for
+  the shipped build. That approval is a decision for the project's owner, not something the bot
+  should do on its own.
+* **The next room is mapped in detail**, including the one mistake that cannot be undone: there is
+  a spot where pushing a boulder the wrong way **permanently blocks the only exit**. The plan
+  avoids it, and if it ever happened the fix is to walk out of the room and back in, which resets
+  every boulder.
+* **What is genuinely still unknown:** how the bot handles the fight with the Aqua leader at the
+  end, and the escape afterwards — the game drops the player on a **sandbar surrounded by
+  water**, and swimming the obvious direction leads into a **dead-end pool with no way out**. That
+  has been measured and the safe direction is known; it has not been driven yet.

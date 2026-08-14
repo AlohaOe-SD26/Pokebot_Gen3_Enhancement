@@ -13348,3 +13348,51 @@ PLAUSIBLE concern — that a second Room 6 → Room 3 warp could launder a false
 **closed**: Room 3 has exactly three warps and only `(4,15)` pairs with Room 6.
 
 17/17 gates PASS.
+
+---
+
+## 2026-08-13 — COLD-START READINESS PASS: an audit read the docs as a fresh session would, and found the work queue a session behind its own headline (`#24-remainingarc`)
+
+A subagent was given **zero context** and told to follow `CLAUDE.md`'s session-start ritual exactly,
+answer the seven handoff-bar questions from `04-HANDOFF.md` alone, and hunt for contradictions.
+
+**✅ The quality bar itself PASSED — all seven questions were answerable from the handoff alone**,
+with citations, and git reality matched the docs exactly (clean tree, 0 ahead/behind, the documented
+`stash@{0}` present). **The failures were stale text sitting NEXT TO correct text**, which is the
+harder kind to see and the kind that misdirects.
+
+**Fixed, in severity order — every one verified against the file before changing it:**
+1. ⛔ **The ordered work queue told a fresh agent to BUILD ROOM 3**, which is driven, passing and
+   pushed. Its own headline said so 500 lines earlier. **This was the one defect that would have
+   spent a whole session rebuilding finished work.** Item marked DONE and repointed at Room 8.
+2. ⛔ **`24-PLAIN-ENGLISH-STATUS.md` was three days and FIVE CHAPTERS stale** — and `00-README.md`
+   sends new readers *there first*, so it was the first thing read and the most wrong. It claimed
+   the Magma Hideout "is not built yet" (shipped 2026-08-10) and that the working copy "matches the
+   shipped copy exactly" (drift is 3). Rewritten in game terms, with the harness-not-chapter caveat.
+3. ⛔ **The drift loop's instruction said "EXPECT EXACTLY 2"** while every other file said 3 — and
+   the same paragraph says *"anything else is unexplained drift"*, so it would have branded a
+   deliberate, gated, A/B-proven fix as unexplained.
+4. ⛔ **KI-77's HEADER said "ARMED for §Ch20 Room 8" while its own BODY refuted it** 51 lines down.
+   Room 8 is the next thing to build, so a reader skimming headers would have built a guard that
+   measurement had already ruled out. *The headline carries the caveat* — a rule this project wrote
+   after paying for it, broken again.
+5. ⛔ The handoff ordered a fix to `story_mode.py:3654` that **was already applied**; called the
+   cavern **BLOCKED** under the **wrong chapter number** while pointing at **KI-68, which is
+   RESOLVED and lives in the archive**; said "Rooms 2-9 are still planning only"; said "no current
+   has ever been executed" in two places; and gave the gate count as 15 and 16. All corrected.
+6. `01-VISION-AND-DESIGN.md` and `02-ARCHITECTURE.md` — both **current-state files** — were stale on
+   where the bot gets to and on how it is tested. Architecture now names `preflight.py` and
+   `run_gates.py` (which the handoff says to run FIRST and which it did not mention at all) and the
+   §Ch20 driver chain.
+7. `--driver ch20room8` is now flagged as **the thing to build, not a command to run** — it does not
+   exist in the argparse choices.
+
+**Also verified this pass:** preflight PASS · 17/17 gates PASS · doc lint PASS · drift measured at
+exactly **3** · upstream re-fetched, still `5dd898f8`, UPDATE-LOG already dated today · `stash@{0}`
+intact · every `--driver` name and `ai-research-notes/*.md` path cited in the handoff exists.
+New restore point **`restore/2026-08-13-session-end-ch20room3`**, taken before Room 8.
+
+‼ **The lesson worth keeping:** the handoff passed its own quality bar *and* pointed the next
+session at finished work. **A doc can be complete and still be wrong about what to do next** — so
+the readiness check that matters is not "can the questions be answered" but "does the QUEUE agree
+with the HEADLINE".

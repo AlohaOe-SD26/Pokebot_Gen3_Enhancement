@@ -64,7 +64,7 @@ seconds instead of going into the docs as a refutation.
 **✅ A KNOWN GAP CLOSED FOR FREE:** two wild encounters fired, one **between two Strength pushes**
 in Room 2. The Room 2 note flagged exactly that as untested; the idempotent `strength_push` held.
 
-⇒ **NEXT: `--driver ch20room8`** — already adjudicated, **use OUR 9-push sequence** (upstream's is
+⇒ **NEXT: BUILD `--driver ch20room8`** — ‼ **it does not exist yet**; it is the thing to write, not a command to run. Already adjudicated, so **use OUR 9-push sequence** (upstream's is
 10 and touches an extra boulder). ⛔ **Step 9 faces LEFT, never UP:** a boulder pushed north from
 `(5,4)` lands on `(5,3)` and **permanently seals the only route to the `(5,2)` exit**. ✅ A jam IS
 recoverable — exit to Room 3 via `(5,12)` and re-enter; all twelve boulders respawn. Wire that as
@@ -141,7 +141,8 @@ which is false.
 
 **Room 6's current model survives contact with the live room:** `calculate_path((11,21) → (4,1))` =
 `OK len=13` measured from INSIDE — the same 13 waypoints `probe_ch20_currents.py` predicted from
-outside. ⚠ **Still a PLAN, not a walk.** No current has ever been executed (KI-76).
+outside. ✅ **AND IT IS NOW A WALK:** `--driver ch20room6` executed the crossing on 2026-08-13.
+What remains unproven is the *intermediate* slide behaviour, not the crossing (KI-76).
 
 **‼ KI-77 WAS CORRECTED THE SAME DAY IT WAS FILED, TWICE OVER.** The despawn window is now derived
 (`x ∈ [px-9,px+10]`, `y ∈ [py-7,py+9]` — 20x17) and **predicts our live Room 1 dump 5/5 on the
@@ -176,7 +177,7 @@ place, and it is exactly the failure shape this project logs most often.
 ⚠ **Still unmeasured:** that the cutscene releases the player *facing north*. The map is proven;
 the facing wants a live check when the chapter is driven.
 
-⇒ **NEXT: ROOM 3, AND IT IS ARBITRATED ALREADY** —
+⇒ *(superseded — Room 3 is DRIVEN and PASSING; the live queue is ROOM 8)* **NEXT: ROOM 3** —
 `ai-research-notes/2026-08-13-ch20-room3-arbitration.md`.
 ⛔ **AND IT INVERTED WHAT I WROTE HERE FIRST.** An earlier pass told me Room 3 *"is not the walk
 the spec calls it"* and I put that in this file and in the punch list. **A deeper pass — decomp
@@ -231,7 +232,8 @@ solved". Grade on the path CONTAINING `(6,5)`, on both trainer flags being set, 
 fixed** (bounded slide loop + `None` guards, fault-tested); its **correctness half is OPEN**.
 
 ⇒ ✅ **THAT LIVE DRIVE HAPPENED — see the block at the top of this file.** Room 1 is driven and the
-Area Atlas's Room 1 lower bound is now a measured fact. Rooms 2-9 are still planning only.
+Area Atlas's Room 1 lower bound is now a measured fact. ⛔ **UPDATED:** Rooms **2, 6 and 3 are now
+driven too** — only Rooms 8 and 9 remain planning-only.
 
 
 ## ⛔ NAMING CORRECTION — "§Ch21" IN THIS FILE MEANS **CHAPTER 20**. Read this before acting.
@@ -354,11 +356,15 @@ Anywhere older text says "§Ch21" and means the cavern, read **Chapter 20**.
   which reads the same `TRAINING_GRASS` list, is untouched).
 * **`#24-ballstarve`'s premise does not hold at `post_dive.ss1`** — 19 balls, $54,334 measured.
   ‼ **Not closed**: the item was filed from a mid-game Surf-era batch and may still be real there.
-* **Nothing is parked. Nothing is running.** All 15 gates exit 0 after the change.
+* **Nothing is parked. Nothing is running.** All gates exit 0 after the change. *(That said "15";
+  the suite is **17** today — `run_gates.py` is authoritative, this prose is not.)*
 * **§Ch19 is DONE and the ladder runs 20 of 24 beats.** §Ch18 + §Ch19 are **PROMOTED** to
   `custom-pokebot/` and verified by driving `--build custom`, including the real ladder.
-* **The next content beat (§Ch21, Seafloor Cavern) is BLOCKED, and the reason changed twice** —
-  read **KI-68** before touching it. It is *not* the party slot, and Dive is *not* impossible:
+* ⛔ **RETRACTED 2026-08-13 — three errors in one line.** It is **Chapter 20**, not 21 (see the
+  naming correction above); it is **NOT BLOCKED** (Rooms 1/2/6/3 are driven and passing); and
+  **KI-68 is RESOLVED and lives in `31-KNOWN-ISSUES-ARCHIVE.md`, not in `05-KNOWN-ISSUES.md`** —
+  its route is driven. Superseded text: *"The next content beat (§Ch21, Seafloor Cavern) is
+  BLOCKED, and the reason changed twice — read KI-68 before touching it."* It is *not* the party slot, and Dive is *not* impossible:
   the planner cannot AUTO-route a dive, so **a chapter must drive `dive()` explicitly.**
 * **The REGI arc is the user's ask** — read **KI-69**. ‼ **Emerald reversed the party order:
   WAILORD first, RELICANTH last**, and the wrong order fails **silently**. ‼ **The Regi battle is
@@ -428,61 +434,9 @@ burden here is so heavy, and why negative results are treated as the most valuab
 | **if stopped mid-task** | **NOTHING IS PARKED.** Everything is committed and pushed. Start at "NEXT ACTIONS". |
 | ‼ **`git stash` — KEPT ON PURPOSE (USER RULING 2026-08-13)** | **`stash@{0}` EXISTS, IS NOT YOURS, AND IS KEPT AS A RECORD. ⛔ DO NOT DROP IT.** `WIP on main: e0f723e4` (2026-07-24) — a 14-line Fortree Gym "only ride out a scene that exists" guard. Its substance is ALREADY in today's `early_game.py` (reimplemented during the rotating-gate rewrite), so it is functionally superseded — **and the user ruled that a superseded stash is still a RECORD and dropping it is a destructive act that buys nothing** (`06-DECISIONS-LOG.md`). ⛔ **Standing rule: never `git stash drop` / `clear` / `pop` in this repo.** `pop` is separately banned because it mutates a GLOBAL stack — that is how this stash was disturbed in the first place (`08-MISTAKES.md`). To read it: `git stash show -p "stash@{0}"`, and apply by hand if ever needed. ‼ A stash is invisible to `git status` and to the kit's sync check, which is how it sat unnoticed for three weeks — so `git stash list` belongs in the session-start ritual, to SEE it, not to clear it. |
 
-## ✅ WHAT SHIPPED IN THE **§Ch19 + PROMOTION + ROSTER** SESSION (2026-08-12) — HISTORY, not latest
-> ‼ This heading used to say "THE LATEST SESSION". It is not the latest — the §Ch20 cavern work
-> above it is. Renamed 2026-08-13 because a stale "latest" is exactly the kind of banner that sends
-> a cold-start agent to the wrong place; this file has been cleaned of competing START-HERE banners
-> once already.
-1. **§Ch19 built and driven end-to-end** — Space Center multi battle **and** HM08 Dive, wired as
-   Segment 19. Ladder **19 → 20 of 24**. Acceptance includes "and the bot can continue".
-2. **§Ch18 + §Ch19 PROMOTED** to `custom-pokebot/`, verified by driving `--build custom` three ways.
-3. **KI-64 fixed** (the multi-battle faint replacer would have sent out STEVEN's Pokémon) — ‼ and my
-   first fix was **wrong twice**: dead code on the story path, and a positional cut that inverted
-   itself once the party menu permutes `gPlayerParty`. Now keyed on **original trainer ID**.
-4. **KI-67 CLOSED, both halves** — the whiteout abort no longer burns a chapter's retry budget or
-   launders itself into a fabricated diagnosis, and the harness finally mirrors production.
-   **First driven whiteout recovery in this project** (frame deltas +7,789 / +7,087).
-5. **Two blind gates fixed:** the flag audit was checking **2 files** and could not see names behind
-   a module constant (i.e. blindest at the completion markers); and **pyflakes had never been run** —
-   it found a `NameError` on the Magma Hideout's *success* path.
-6. **New: `modules/story/roster.py`** (party reorder) + the `PartyMenuExit` freeze fix.
-7. **Regi arc researched and Phase A measured** (KI-69) at the user's request.
+## ✅ WHAT SHIPPED IN THE §Ch19 + PROMOTION + ROSTER SESSION (2026-08-12) — MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-13)
 
-### 📌 THE OLDER SESSION'S SUMMARY (§Ch16-§Ch18) FOLLOWS BELOW — it is HISTORY, not current state.
-The story ladder went **16 → 19 of 24 beats**.
-
-‼ **§Ch18 (items 5, 6 and the block below) is COMMITTED AND PUSHED BUT *NOT* PROMOTED to
-`custom-pokebot/`.** Items 1-4 below were promoted on 2026-08-12 with the user's approval, verified
-by driving `--build custom` to a frame-identical PASS. **§Ch18 has had no such approval and no such
-verification — the sandbox↔custom drift row above is stale the moment you read it.** Promotion is
-the user's call, and it needs its own driven check in `custom-pokebot`, not a diff.
-
-1. **KI-56 FIXED — §Ch15 now LEAVES the Magma Hideout.** It used to pass its own binary test on
-   runs that ended permanently stranded. No walk-out exists (18 of 20 warp-graph nodes reachable,
-   the exit not among them); fixed with the **Escape Rope the dungeon itself provides**. Driven
-   PASS, landing on the exact tile predicted from `escapeWarp` beforehand.
-2. **KI-57 FIXED — §Ch16 (Slateport) COMPLETE.** ‼ Beating Maxie *parks Capt. Stern on the only
-   tile touching the harbor door*: Ch15's own success spawns Ch16's blocker. The answer was not a
-   route but a conversation — talking to him `warp`s the player inside. Driven PASS x3.
-3. **§Ch17 (Lilycove Aqua Hideout) BUILT + the MASTER BALL.** An 18-hop warp-panel maze solved from
-   the ROM warp table. ‼ The Master Ball can't be taken directly — both free neighbours are
-   unreachable — so the route takes the **Nugget** first and steps onto the tile it vacates. Driven
-   PASS with `master_balls=1`.
-4. **The Ch16 haul whiteout FIXED** (`whiteouts` 1 → 0, and faster). The anchor hands the chapter a
-   party at **8.8% HP, 5 of 6 fainted**, and the chapter was passing only *because a whiteout
-   heals*. Heal stops are now nearest-first.
-5. **§Ch18 leg 1** — `--driver mossdeeptravel` Surfs Lilycove → Mossdeep and enters the gym
-   (PASS, `whiteouts=0`), capturing `saves/in_mossdeep_gym.ss1`.
-6. **KI-58 RESOLVED — the Mossdeep Gym is a ROTATING-TILE STATUE PUZZLE**, not a maze (see below).
-7. **KI-59 + KI-60 filed** — two latent bugs in the SHARED pathfinder, code-verified, deliberately
-   **not** fixed. `#24-impassabledirs`, `#24-pathsourcecheck`.
-8. **`#24-grounditems` groundwork** — `collect_item_ball()` is now shared by three callers;
-   `#24-npcgifts` and `#24-masterball` added on your direction.
-9. **New tools:** `probe_warp_maze.py` (generalised, self-checks against a DRIVEN route),
-   `probe_gym_bruteforce.py` (model-free walker), `probe_gym_components.py`, `probe_escape_warp.py`,
-   `probe_hideout_warp_graph.py`, `probe_slateport_harbor_map.py`, `repro_hideout_exit.py`.
-   `probe_anchor_inventory.py` now prints **party HP** — it immediately flagged three anchors as
-   "cannot survive a journey".
+History, moved for the R3 budget. ‼ **Keep only what a future session still needs:** §Ch18 and §Ch19 shipped and were **PROMOTED** to `custom-pokebot/` (verified by DRIVING `--build custom`, never by a diff) taking the ladder to **20 of 24**; **KI-64** was fixed after being **wrong twice** (dead code on the story path, then a positional cut in the wrong index space — now keyed on **original trainer ID**); **KI-67** closed both halves, including this project's **first driven whiteout recovery**, where the proof was the **frame delta** (+7,789 / +7,087), not the count; and two gates were found **blind** — the flag audit was checking 2 files, and `pyflakes` had never been run. `modules/story/roster.py` (party reorder) also landed here.
 
 ## ✅ §Ch18 (Mossdeep Gym + the statue puzzle) — DETAIL MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-13)
 
@@ -495,9 +449,9 @@ eleven-tile island** while passing `badge + controllable`.
 
 Moved for the R3 budget. ‼ **Keep both, they are the most reused lessons in this project:** (1) **When N of your own instruments agree on something impossible, they share a missing primitive** — four instruments agreed the Mossdeep Gym had no route to its own leaders; all four modelled it as *walk + warp*, and the gym has a **third movement primitive**. Even the model-free brute-force walker was wrong, because it *changed the map while exploring it*. (2) **EVERY DEFECT THAT MATTERED WAS FOUND BY AN ADVERSARIAL AGENT, NOT BY A TEST** — three times in one session, each over green runs, because *the happy path cannot exercise an error path* and an acceptance test written by the author of the code inherits its blind spot. ⇒ **Spend agents on REFUTING finished work, not only on researching new work**, and **write the predicted failure down BEFORE the run.**
 
-## ‼‼ THE BATCH RESULT (status tax + `#24-teachmsgstall`) — MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-13)
+## ‼‼ THE BATCH RESULT (status tax + `#24-teachmsgstall`) — MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-13)  — MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-13)
 
-An older 36-lane measurement, moved out for the R3 budget. ‼ **Keep this:** the **status tax is REAL — 32.6% of turns incapacitated vs a 3.8% control, 8.5x, z = +62.2 over 47,789 turns** (an earlier n=2 figure of 64.3% was ~2x too high). **`#24-teachmsgstall` is REOPENED**: the fix closed a real hole but had **no measurable production effect** (z = −1.28; its new exit fired **ZERO** times in 85 teaches) ⇒ **another path to `exhausted` exists.** KI-51/KI-52 never fired — still unmeasured.
+Moved for the R3 budget. ‼ **Keep only its prevention rule, which is the most re-learned lesson in this project:** *a chapter's acceptance test must include **"and the bot can continue"*** — a REAL `calculate_path` off the end tile, not a "controllable" flag. §Ch15 ended four floors underground, §Ch18 on an eleven-tile island, and §Ch19 in a living room, and **all three passed their own tests**. Every §Ch20 driver carries that assertion.
 
 ## 🛡 THE HARDENING ROUND (advisory rules → code that refuses) — MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-13)
 
@@ -555,7 +509,18 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    KI-77's corrected entry. A repro is still worth having for the LARGE rooms, but it blocks
 >    nothing.
 >
->    **(a2) ROOM 3 IS NEXT AND IS ALREADY ARBITRATED** —
+>    ✅ **(a2) ROOM 3 IS DONE — DRIVEN AND PASSING (`--driver ch20room3`, PASS ×2), AND THE
+>    DOUBLE-BATTLE CLAIM IS CONFIRMED LIVE.** Do NOT rebuild it; see the banner at the top of this
+>    file. The original item is kept below only for its route detail, which is still accurate.
+>    ‼ **THE QUEUE IS NOW: (a3) ROOM 8, then ROOM 9.** Room 8 is adjudicated — use **OUR** 9-push
+>    sequence (upstream's is 10), and ⛔ **step 9 faces LEFT, never UP**: a boulder pushed north
+>    from `(5,4)` lands on `(5,3)` and **permanently seals the only route to the `(5,2)` exit**.
+>    ✅ A jam IS recoverable — exit to Room 3 via `(5,12)` and re-enter; all twelve boulders
+>    respawn. Wire that as the room's failure handler rather than improvising. Full table:
+>    `ai-research-notes/2026-08-13-ch20-decomp-blockers-and-room8.md`.
+>    ‼ `--driver ch20room8` **DOES NOT EXIST YET** — it is the thing to build, not a command to run.
+>
+>    *(superseded, kept for the route detail)* **ROOM 3 IS NEXT AND IS ALREADY ARBITRATED** —
 >    `ai-research-notes/2026-08-13-ch20-room3-arbitration.md`. ✅ **Build the WALK route:**
 >    `navigate_to(SEAFLOOR_CAVERN_ROOM3, (8,1))` riding battles out — 18 steps, **zero pushes**.
 >    The 7-boulder puzzle is **OPTIONAL** (it only dodges the trainers) and its pushes are
@@ -564,8 +529,9 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    `mossdeep_gym.py`'s `MINIMUM_USABLE_POKEMON` gate. ‼ **The A/B cannot be a single tile** —
 >    nothing becomes reachable by solving the room. Grade on: the planned path CONTAINS `(6,5)`,
 >    both trainer flags SET afterwards, and "and the bot can continue" out of `(8,1)`.
->    ⚠ The double battle is decomp-derived and **not yet observed live** — make it the top
->    pre-registered prediction.
+>    ⛔ *(superseded)* "The double battle is decomp-derived and not yet observed live" — it **WAS**
+>    observed, on 2026-08-13: one trainer battle in Room 3, `is_double=True`, at exactly `(6,5)`,
+>    with `usable=6` asserted beforehand. See `ai-research-notes/2026-08-13-ch20-room3-drive-predictions.md`.
 >
 >    **(b2) ROOM 8 IS ALREADY ADJUDICATED — build from OUR sequence, not upstream's.** Both work;
 >    ours is **9 pushes vs upstream's 10** and never touches boulder #3. Full table in
@@ -579,8 +545,10 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >
 >    **(d) STILL THE USER'S CALL, NOT MINE:** promoting the **three** drifted files to
 >    `custom-pokebot/`. Nothing here changes that.
-> 1. **Run `preflight.py`**, then the **16**-gate suite in "HOW TO RUN / TEST" (all exit 0 as of
->    2026-08-13), and the sandbox↔custom drift loop. ‼ **EXPECT EXACTLY 2:**
+> 1. **Run `preflight.py`**, then the **17**-gate suite in "HOW TO RUN / TEST" (all exit 0 as of
+>    2026-08-13), and the sandbox↔custom drift loop. ⛔ **CORRECTED — EXPECT EXACTLY 3**, not 2: `modules/map_path.py`
+>    joined the list with KI-59's fix. The stale "2" below would have made a deliberate, gated,
+>    A/B-proven change read as *unexplained drift*. Superseded text: **EXPECT EXACTLY 2:**
 >    `modules/story/early_game.py` and `plugins/custom_modes/story_mode.py` — KI-63's **production
 >    wiring**, driven to a PASS but **NOT promoted**. (Do NOT expect `roster.py`/`menuing.py`:
 >    those were PROMOTED on 2026-08-13 and drift on them is now zero.)
@@ -693,7 +661,8 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    ✅ Measured: the four routes we actually plan spring **0** traps — `probe_ch20_currents.py`
 >    section 3b asserts it — but that is not a general guarantee. **Re-run that assertion for any
 >    NEW route through Room 6.**
->    ⚠ **Still unproven LIVE** — a plan is not a walk, and the EXECUTOR has never crossed a current.
+>    ✅ **SUPERSEDED 2026-08-13 — the executor HAS now crossed a current** (`--driver ch20room6`,
+>    `crossed=True`). Only the tile-by-tile slide model remains unverified.
 >    ℹ Upstream `puzzle_solver.py:405` DOES `navigate_to(ROOM6, (4,1))` and its wiki marks the
 >    Seafloor Cavern ✅ for Emerald — the strongest available signal that the executor can do it,
 >    and still a third-party claim, not evidence.
@@ -701,7 +670,8 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    Also: **puzzle state RESETS on every map re-entry** (`FLAG_TEMP_*`), so never cache "solved";
 >    `FLAG_SYS_USE_STRENGTH` by contrast persists. **Losing to Archie resets the whole dungeon.** It IS the ladder
 >    (`chapters.py:233`, graded `KYOGRE_ESCAPED_SEAFLOOR_CAVERN`; `story_mode.py:3654` = END OF BUILT
->    CONTENT — ‼ that line still says "BLOCKED BY KI-63", which is **stale**, fix it). Uniquely
+>    CONTENT — ✅ **that line was ALREADY FIXED** — it now reads "KI-63 IS RESOLVED"; the string "BLOCKED BY
+   KI-63" does not occur in that file. This instruction is retired, 2026-08-13). Uniquely
 >    de-risked: the dive leg is **driven 6/6**, KI-63 is wired in sandbox, and `puzzle_solver.py`
 >    hands you room coordinates free. Blast radius is **additive** — one module, one segment, no
 >    shared code. Two cheap traps: apply **KI-72** (hand-pick the surfacing tile, assert its

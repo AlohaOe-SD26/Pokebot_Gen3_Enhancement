@@ -3629,3 +3629,73 @@ teaching Dive/Dig/Flash. ‼ **Relicanth is underwater-only, so Dive is upstream
   (`PathFindingError` is a `RuntimeError` and escaped the recovery; MRO silent-revert; a `tag`
   dereference on the listener's stack; a class-counter budget; a `None`-is-success exit), plus a
   real blocker: an injected run could have silently overwritten a committed anchor.
+
+
+---
+
+# ARCHIVED 2026-08-13 from `04-HANDOFF.md` (R3 budget; verbatim)
+
+## ‼‼ THE BATCH RESULT (status tax + `#24-teachmsgstall`) — MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-13)
+
+An older 36-lane measurement, moved out for the R3 budget. ‼ **Keep this:** the **status tax is REAL — 32.6% of turns incapacitated vs a 3.8% control, 8.5x, z = +62.2 over 47,789 turns** (an earlier n=2 figure of 64.3% was ~2x too high). **`#24-teachmsgstall` is REOPENED**: the fix closed a real hole but had **no measurable production effect** (z = −1.28; its new exit fired **ZERO** times in 85 teaches) ⇒ **another path to `exhausted` exists.** KI-51/KI-52 never fired — still unmeasured.
+
+
+---
+
+# ARCHIVED 2026-08-13 from `04-HANDOFF.md` (R3 budget; verbatim)
+
+## ✅ WHAT SHIPPED IN THE **§Ch19 + PROMOTION + ROSTER** SESSION (2026-08-12) — HISTORY, not latest
+> ‼ This heading used to say "THE LATEST SESSION". It is not the latest — the §Ch20 cavern work
+> above it is. Renamed 2026-08-13 because a stale "latest" is exactly the kind of banner that sends
+> a cold-start agent to the wrong place; this file has been cleaned of competing START-HERE banners
+> once already.
+1. **§Ch19 built and driven end-to-end** — Space Center multi battle **and** HM08 Dive, wired as
+   Segment 19. Ladder **19 → 20 of 24**. Acceptance includes "and the bot can continue".
+2. **§Ch18 + §Ch19 PROMOTED** to `custom-pokebot/`, verified by driving `--build custom` three ways.
+3. **KI-64 fixed** (the multi-battle faint replacer would have sent out STEVEN's Pokémon) — ‼ and my
+   first fix was **wrong twice**: dead code on the story path, and a positional cut that inverted
+   itself once the party menu permutes `gPlayerParty`. Now keyed on **original trainer ID**.
+4. **KI-67 CLOSED, both halves** — the whiteout abort no longer burns a chapter's retry budget or
+   launders itself into a fabricated diagnosis, and the harness finally mirrors production.
+   **First driven whiteout recovery in this project** (frame deltas +7,789 / +7,087).
+5. **Two blind gates fixed:** the flag audit was checking **2 files** and could not see names behind
+   a module constant (i.e. blindest at the completion markers); and **pyflakes had never been run** —
+   it found a `NameError` on the Magma Hideout's *success* path.
+6. **New: `modules/story/roster.py`** (party reorder) + the `PartyMenuExit` freeze fix.
+7. **Regi arc researched and Phase A measured** (KI-69) at the user's request.
+
+### 📌 THE OLDER SESSION'S SUMMARY (§Ch16-§Ch18) FOLLOWS BELOW — it is HISTORY, not current state.
+The story ladder went **16 → 19 of 24 beats**.
+
+‼ **§Ch18 (items 5, 6 and the block below) is COMMITTED AND PUSHED BUT *NOT* PROMOTED to
+`custom-pokebot/`.** Items 1-4 below were promoted on 2026-08-12 with the user's approval, verified
+by driving `--build custom` to a frame-identical PASS. **§Ch18 has had no such approval and no such
+verification — the sandbox↔custom drift row above is stale the moment you read it.** Promotion is
+the user's call, and it needs its own driven check in `custom-pokebot`, not a diff.
+
+1. **KI-56 FIXED — §Ch15 now LEAVES the Magma Hideout.** It used to pass its own binary test on
+   runs that ended permanently stranded. No walk-out exists (18 of 20 warp-graph nodes reachable,
+   the exit not among them); fixed with the **Escape Rope the dungeon itself provides**. Driven
+   PASS, landing on the exact tile predicted from `escapeWarp` beforehand.
+2. **KI-57 FIXED — §Ch16 (Slateport) COMPLETE.** ‼ Beating Maxie *parks Capt. Stern on the only
+   tile touching the harbor door*: Ch15's own success spawns Ch16's blocker. The answer was not a
+   route but a conversation — talking to him `warp`s the player inside. Driven PASS x3.
+3. **§Ch17 (Lilycove Aqua Hideout) BUILT + the MASTER BALL.** An 18-hop warp-panel maze solved from
+   the ROM warp table. ‼ The Master Ball can't be taken directly — both free neighbours are
+   unreachable — so the route takes the **Nugget** first and steps onto the tile it vacates. Driven
+   PASS with `master_balls=1`.
+4. **The Ch16 haul whiteout FIXED** (`whiteouts` 1 → 0, and faster). The anchor hands the chapter a
+   party at **8.8% HP, 5 of 6 fainted**, and the chapter was passing only *because a whiteout
+   heals*. Heal stops are now nearest-first.
+5. **§Ch18 leg 1** — `--driver mossdeeptravel` Surfs Lilycove → Mossdeep and enters the gym
+   (PASS, `whiteouts=0`), capturing `saves/in_mossdeep_gym.ss1`.
+6. **KI-58 RESOLVED — the Mossdeep Gym is a ROTATING-TILE STATUE PUZZLE**, not a maze (see below).
+7. **KI-59 + KI-60 filed** — two latent bugs in the SHARED pathfinder, code-verified, deliberately
+   **not** fixed. `#24-impassabledirs`, `#24-pathsourcecheck`.
+8. **`#24-grounditems` groundwork** — `collect_item_ball()` is now shared by three callers;
+   `#24-npcgifts` and `#24-masterball` added on your direction.
+9. **New tools:** `probe_warp_maze.py` (generalised, self-checks against a DRIVEN route),
+   `probe_gym_bruteforce.py` (model-free walker), `probe_gym_components.py`, `probe_escape_warp.py`,
+   `probe_hideout_warp_graph.py`, `probe_slateport_harbor_map.py`, `repro_hideout_exit.py`.
+   `probe_anchor_inventory.py` now prints **party HP** — it immediately flagged three anchors as
+   "cannot survive a journey".

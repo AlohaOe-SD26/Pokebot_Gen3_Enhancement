@@ -237,15 +237,7 @@ it.
 **Intent (unchanged):** a Story bot that plays Emerald from a cold start the way a person
 would — faithfully, never hanging, never silently derailing — far enough to be left running.
 
-**Reality (updated 2026-08-10 night):** it reliably reaches and beats **Winona / Gym 6** at a
-**52.0% cold-start finish rate** across 8 parallel lanes, and built content now runs **two
-chapters further**: **Mt. Pyre / the Magma Emblem** (2026-08-06) and **the Magma Hideout /
-Groudon** (2026-08-10, `FLAG_GROUDON_AWAKENED_MAGMA_HIDEOUT`, wired as Segment 15). The next
-unwritten beat is the **Slateport submarine**, which Maxie's defeat opens.
-‼ The 52.0% figure is a Gym-6 measurement and says nothing about the two new chapters — they are
-graded **BINARY on their completion flags**, deliberately, because four batches at n≈30 moved the
-finish rate 25.0 → 33.3 → 16.1 → 28.6% and resolved nothing. **Content is verifiable; a finish
-rate at that sample size is not.**
+⛔ **CORRECTED 2026-08-13 — the paragraph below was stale by four chapters.** **Reality now:** the bot plays **20 of 24 story beats**, winning **seven badges** and running Mt. Pyre → the Magma Hideout (and out) → the Slateport submarine → the Lilycove Aqua Hideout (with the Master Ball) → the Mind Badge → the Mossdeep Space Center **and HM08 Dive**. The **Seafloor Cavern** is driven through Room 3 in the harness but is **not yet a wired chapter**. ‼ *Superseded text kept for provenance:* **Reality (updated 2026-08-10 night):** it reliably reaches and beats **Winona / Gym 6** at a **52.0% cold-start finish rate** across 8 parallel lanes, and built content now runs **two chapters further**: **Mt. Pyre / the Magma Emblem** (2026-08-06) and **the Magma Hideout / Groudon** (2026-08-10, `FLAG_GROUDON_AWAKENED_MAGMA_HIDEOUT`, wired as Segment 15). The next unwritten beat is the **Slateport submarine**, which Maxie's defeat opens. ‼ The 52.0% figure is a Gym-6 measurement and says nothing about the two new chapters — they are graded **BINARY on their completion flags**, deliberately, because four batches at n≈30 moved the finish rate 25.0 → 33.3 → 16.1 → 28.6% and resolved nothing. **Content is verifiable; a finish rate at that sample size is not.**
 
 **What this week actually bought.** ‼ *Written before 2026-08-06; the "no new chapters" line was
 true then and is not now — **two** chapters have since shipped (Mt. Pyre, Magma Hideout), and the
