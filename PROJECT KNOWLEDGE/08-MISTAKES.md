@@ -5931,3 +5931,50 @@ project the check has been wrong more often than the code — now five times.*
 *(5) **A measurement taken from outside the state under test inherits that distance as a bias.**
 Reading a map the avatar is not standing on silently blocks every object tile. Say so IN THE
 OUTPUT, and label the result a bound rather than a fact.*
+
+## 2026-08-13 — a research note said "every alternative was searched and fails", and the alternative it missed was the one that ships
+
+- **Symptom.** Our own §Ch20 build spec stated that Seafloor Cavern Room 1 has exactly one solution
+  and that it requires pushing boulder `(5,11)` **north**. Upstream's shipped Emerald route pushes
+  it **south**. Had the spec been driven as written, the bot would have executed an unstated
+  `(4,11)→(4,12)→(5,12)` staging detour to reach a stand tile it never named — or, more likely, a
+  chapter author would have "corrected" upstream to match the spec and broken a working route.
+- **Root cause.** The note's search **was not exhaustive**, but the note asserted that it was, in a
+  sentence written with the same confidence as its (correct) tile data. Nothing in the document
+  distinguished *measured* facts from *derived conclusions* — and the conclusion is exactly the part
+  a builder acts on.
+- **The fix that worked.** Arbitrate against two authorities that share no code with the note: the
+  decomp `map.json` **and** our own ROM reader. Both said `(5,10)` and `(5,12)` are
+  `collision=0 elevation=3 'Cave'`, so *both* directions are legal and uniqueness is false. Then
+  confirm live: `--driver ch20room1` pushed south and the sealed corridor opened (`PathFindingError`
+  → `OK len=6`). The spec now carries a correction block, and its unaudited Room 2 / Room 8
+  sequences are flagged as such.
+- ‼ **The trap in the trap.** The note's *tile facts* were all correct — `Impassable North` at
+  `(7..10,12)`, the one-tile row-11 corridor, the east-push strand at `(10,11)`. Being right about
+  the data is what made the wrong conclusion credible. **Accuracy on the inputs is not evidence
+  about the output.**
+- **Prevention rule:** *In generated research, grade NAMES, COORDINATES and TILE FACTS highly and
+  claims of OPTIMALITY or UNIQUENESS at zero. "Exhaustive", "the only way" and "every alternative
+  fails" are conclusions, not measurements — never build on one without an independent authority,
+  and prefer a route that already SHIPS over a route that was merely proven.*
+
+## 2026-08-13 — I predicted the game would hand me a map's objects, and it handed me the ones on screen
+
+- **Symptom.** Pre-registered prediction P3 of the Room 1 drive said `get_map_objects()` inside
+  `SEAFLOOR_CAVERN_ROOM1` would return the map's five objects. Standing on the arrival tile `(5,18)`
+  it returned **two** — both boulders — while the Rock Smash rock at `(5,10)` and both Aqua grunts
+  were absent. The rock was demonstrably there: the next action smashed it.
+- **Root cause.** `gObjectEvents` holds only objects the game has **spawned within camera range**.
+  It is a *window*, not a map inventory. Everything at `y≈10` and above was simply off-screen from
+  `y=18`.
+- **Why it matters far beyond this run.** `modules/map_path.py:811-818` builds the planner's entire
+  object model from that same call, so a boulder's **template** tile is blocked whenever the boulder
+  is off-camera and its **live** tile whenever it is on-camera. ⇒ after a push, walking out of range
+  **re-blocks the tile the boulder left and frees the tile it now occupies**. Filed as **KI-77**,
+  deliberately unfixed, repro specified first.
+- ‼ **The run PASSED anyway**, because Room 1's post-push route never revisits `(5,11)`. A green run
+  would have hidden this completely. It was only visible because the prediction was written down
+  **before** the run and the object dump was taken **before** anything was touched.
+- **Prevention rule:** *Treat `get_map_objects()` as "what is loaded right now", never as "what is
+  on this map". Any claim about an object you are not standing near must be re-read from close
+  range — and any route planned across a pushed object must be planned from within sight of it.*

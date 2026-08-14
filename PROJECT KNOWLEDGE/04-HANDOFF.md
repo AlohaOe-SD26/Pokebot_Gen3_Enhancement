@@ -7,12 +7,59 @@
 Every banner further down is HISTORY, newest first.
 
 ---
-# ‼ YOU ARE HERE — end of the **PATHFINDER + §Ch20-SCOPING** session (2026-08-13). Read this, then `14-AGENT-PLAYBOOK.md`.
+# ‼ YOU ARE HERE — the **§Ch20 ROOM 1 DRIVE** session (2026-08-13, latest). Read this, then `14-AGENT-PLAYBOOK.md`.
 
-> **State: `main`, clean, 0 ahead / 0 behind, 17/17 gates PASS, nothing parked.** 13 commits this
-> session, all pushed. ‼ `stash@{0}` exists **on purpose** — see the STATE table; **never drop it.**
+> **State: `main`, clean, 17/17 gates PASS, nothing parked, nothing running.**
+> ‼ `stash@{0}` exists **on purpose** — see the STATE table; **never drop it.**
 
-## 🧭 WHAT THIS SESSION DID — the cold-context orientation
+## 🚩 THE BOT IS INSIDE THE SEAFLOOR CAVERN AND THROUGH ROOM 1 — driven, first attempt
+
+**`--driver ch20room1` → `ACCEPTANCE: PASS`.** Mossdeep → dive → `SEAFLOOR_CAVERN_ENTRANCE (10,17)`
+→ `ROOM1 (5,18)` → Rock Smash + two Strength pushes → **`ROOM2 (10,7)`, controllable, real step
+taken.** Two trainer battles fired on the way and were ridden out.
+
+**‼ THE RESULT IS THE A/B, NOT THE ARRIVAL.** Same call, same target, live objects on both arms:
+
+    A/B BEFORE  (5,18) -> (11,11)   PathFindingError      <- the corridor really IS sealed
+    A/B AFTER   (5,11) -> (11,11)   OK len=6              <- and the smash+push really opens it
+
+That converts `probe_ch20_interior.py`'s Room 1 NO-PATH from a **LOWER BOUND** (it was measured from
+Mossdeep, with no cavern objects loaded) into a **measured fact**. A one-armed "it worked" could not
+have ruled out "the corridor was open all along".
+
+**‼ THE ROUTE HAD TO BE ARBITRATED BEFORE IT COULD BE DRIVEN — OUR OWN BUILD SPEC WAS WRONG.**
+`ai-research-notes/2026-08-13-ch20-seafloor-cavern-build-spec.md` claims an **exhaustive** search
+proves Room 1's `(5,11)` boulder must be pushed **NORTH**. The decomp *and* our own ROM reader both
+say `(5,10)` and `(5,12)` are `collision=0 elevation=3 'Cave'` ⇒ **either direction is legal, the
+uniqueness claim is false, the search was not exhaustive.** Upstream's **SOUTH** push
+(`puzzle_solver.py:373`) is what ships, and it was then confirmed live.
+⇒ ‼ **THAT SPEC'S ROOM 2 AND ROOM 8 "EXHAUSTIVE" SEQUENCES ARE NOW UNAUDITED.** Arbitrate each
+against the decomp **and** upstream's Emerald branch (`puzzle_solver.py:395-454`) before driving it.
+**Standing rule from `06-DECISIONS-LOG.md`: copy upstream's ROUTE, never upstream's CONTROL FLOW** —
+its second push is a bare `walk_one_tile`, unbounded by its own docstring and judging nothing; ours
+go through `strength_push`, which is bounded and verifies the boulder **by `local_id`**.
+
+**‼ NEW ISSUE — KI-77, and it was found by the ONE prediction that FAILED.** On arrival the live
+object dump returned **2 of the map's 5** objects; the rock and both grunts were absent yet
+demonstrably present. **`get_map_objects()` is a CAMERA-RANGE WINDOW, not a map inventory** — and
+`map_path.py:811-818/844-853/861` builds the planner's whole object model from it. ⇒ **after a push,
+walking out of range re-blocks the tile the boulder LEFT and frees the tile it now OCCUPIES.**
+Benign in Room 1 (the route never revisits `(5,11)`), **armed in Room 8's nine pushes in 48 tiles.**
+Code-verified, deliberately NOT fixed — the repro comes first.
+
+**Artefacts:** `--driver ch20room1` (new), pre-registered predictions + full transcript in
+`ai-research-notes/2026-08-13-ch20-room1-drive-predictions.md` (6 of 7 held).
+**Refactor, proven neutral:** `Ch20DiveMode`'s fixture and legs 1-5 are now `_inject_dive_fixture()`
+/ `_ingress()` so the new driver **reuses** the proven ingress instead of copying it — re-running
+`--driver ch20dive` gave `legs=6/6 … ACCEPTANCE: PASS`, matching its documented prior result.
+
+⇒ **NEXT: ARBITRATE ROOM 2, THEN DRIVE `--driver ch20room2` THE SAME WAY** (measure → A/B → solve →
+"and the bot can continue"). See "NEXT ACTIONS".
+
+---
+
+## 🧭 WHAT THE PREVIOUS SESSION DID (PATHFINDER + §Ch20 SCOPING) — still the best background
+
 
 **1. KI-59 (the pathfinder's inverted `Impassable *` handling) — MEASURED, FIXED, PROVEN, GATED.**
 * ⛔ **Its headline was wrong in four documents** and is retracted: *"armed in the Seafloor Cavern,
@@ -42,7 +89,8 @@ Every banner further down is HISTORY, newest first.
 **3. NEW ISSUES FILED: KI-74, KI-75, KI-76** (see `05-KNOWN-ISSUES.md`). KI-76's **safety half is
 fixed** (bounded slide loop + `None` guards, fault-tested); its **correctness half is OPEN**.
 
-⇒ **THE NEXT STEP IS A LIVE DRIVE OF §Ch20, NOT MORE PLANNING.** Details in "NEXT ACTIONS".
+⇒ ✅ **THAT LIVE DRIVE HAPPENED — see the block at the top of this file.** Room 1 is driven and the
+Area Atlas's Room 1 lower bound is now a measured fact. Rooms 2-9 are still planning only.
 
 
 ## ⛔ NAMING CORRECTION — "§Ch21" IN THIS FILE MEANS **CHAPTER 20**. Read this before acting.
@@ -529,6 +577,23 @@ teaching Dive/Dig/Flash. ‼ **Relicanth is underwater-only, so Dive is upstream
 
 > **The ordered work queue** (the cold-start orientation is the ‼ YOU ARE HERE block at the top of
 > this file, not here). Everything is committed and pushed; nothing is parked.
+>
+> 0. ‼ **THE LIVE QUEUE, 2026-08-13 (latest) — DO THESE FIRST; items 1-5 below are older framing.**
+>    **(a) ARBITRATE ROOM 2 BEFORE DRIVING IT.** Our build spec's Room 2 sequence comes from the
+>    same "exhaustive" search that was **refuted** on Room 1. Check it against the decomp
+>    (`data/maps/SeafloorCavern_Room2/map.json`, tile collisions from our own ROM) **and** upstream's
+>    Emerald branch `puzzle_solver.py:395-402` — which is: `navigate (9,7)` → `rock_smash Left`
+>    (smashes `(8,7)`) → `navigate (4,6)` → `strength Up` → **two more walk-pushes Up** (the spec's
+>    "push `(4,5)` N ×3" and upstream's "push once, then walk into it twice" are the SAME thing,
+>    because a walk into a boulder pushes it once Strength is on) → `navigate (6,1)` → ROOM6.
+>    **(b) THEN `--driver ch20room2`, built exactly like `ch20room1`:** dump live objects on
+>    arrival, A/B `calculate_path` across the solve, push through `strength_push` (never
+>    `walk_one_tile`), verify boulders **by `local_id`**, and end with "and the bot can continue".
+>    **(c) BUILD THE KI-77 REPRO BEFORE ROOM 8.** Push a boulder, walk until it despawns, then ask
+>    `calculate_path` about **both** the vacated tile and the real tile and compare to the truth.
+>    Room 8 is nine pushes in 48 tiles — do not drive it on the assumption that this is harmless.
+>    **(d) STILL THE USER'S CALL, NOT MINE:** promoting the three drifted files to
+>    `custom-pokebot/` (see the drift row). Nothing here changes that.
 > 1. **Run `preflight.py`**, then the **16**-gate suite in "HOW TO RUN / TEST" (all exit 0 as of
 >    2026-08-13), and the sandbox↔custom drift loop. ‼ **EXPECT EXACTLY 2:**
 >    `modules/story/early_game.py` and `plugins/custom_modes/story_mode.py` — KI-63's **production
@@ -777,6 +842,46 @@ flag, which the Rayquaza PokeNav call clears again), and Steven must be talked t
 
 ---
 
+
+# HOW TO RUN / TEST
+
+‼ **RESTORED 2026-08-13.** This file referenced a "HOW TO RUN / TEST" section in four places while
+the section itself lived only in `28-HANDOFF-ARCHIVE.md` — so a cold-start agent following the
+handoff's own instruction found nothing. The archive copy is longer and still useful for the §Ch18/
+§Ch19 drivers; this is the minimum a new session needs.
+
+```
+cd tools/story-dev
+PYTHONUTF8=1 py -3.12 preflight.py        # ‼ RUN THIS FIRST. git + fixtures + docs + freeze
+PYTHONUTF8=1 py -3.12 run_gates.py        # THE STANDING SUITE — all 17, exits non-zero on any
+                                          #   failure (~125s). The list lives in CODE, not prose.
+PYTHONUTF8=1 py -3.12 run_gates.py --quick   # the 10 needing no ROM (~3s)
+PYTHONUTF8=1 py -3.12 run_gates.py --list    # what is in the suite
+PYTHONUTF8=1 py -3.12 probe_chapter_order.py --build custom   # ‼ also check the OTHER fork
+
+# --- §Ch20, the live drives (each ~4-6 min; both PASS as of 2026-08-13) ---
+PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch20dive  --frames 900000
+#   Expect: legs=6/6 at_entrance=True got_out=True can_continue=True ACCEPTANCE: PASS
+#   ‼ `got_out` is the one that matters — an underwater cavern is the best place to strand a run.
+PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch20room1 --frames 1500000
+#   Expect: in_room1=True ab_before=False ab_after=True smashed=True pushed1=True pushed2=True
+#           in_room2=True can_continue=True   ACCEPTANCE: PASS
+#   ‼ `ab_before=False` is an ASSERTED part of the verdict: if the corridor was already reachable
+#     the run proved nothing about the puzzle. A one-armed pass here would be meaningless.
+```
+
+‼ **A driver keeps running after it prints ACCEPTANCE** — it drops to Manual and the harness only
+exits on its own 20,000-idle-frame detector, logging **"HANG CONFIRMED"** on a run that SUCCEEDED.
+**Read the `ACCEPTANCE:` line, not the last line.** Full transcripts land in
+`tools/story-dev/harness_sandbox.log`.
+
+‼ **VERIFY THE SANDBOX↔CUSTOM DRIFT ROW RATHER THAN TRUSTING IT** — the PowerShell loop is in
+`28-HANDOFF-ARCHIVE.md`'s copy of this section. Expected as of 2026-08-13: **exactly 3**
+(`modules/map_path.py`, `modules/story/early_game.py`, `plugins/custom_modes/story_mode.py`).
+Anything else is unexplained drift. ‼ `tools/story-dev/` is sandbox-only and is **not** part of
+that comparison, so `--driver ch20room1` does not change the count.
+
+---
 
 # 📚 EARLIER HANDOFF SNAPSHOTS → `28-HANDOFF-ARCHIVE.md`
 

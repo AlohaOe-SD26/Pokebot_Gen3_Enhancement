@@ -2026,3 +2026,45 @@ inspect it read-only with `git stash show -p "stash@{N}"` and apply the change b
 **What to do instead of dropping:** the stash is documented in `04-HANDOFF.md`'s STATE table with
 what it contains, why it is superseded, and this ruling — so it reads as an intentional artefact
 rather than as unfinished business a future session must resolve.
+
+---
+
+## 2026-08-13 — §Ch20 Room 1: DRIVE UPSTREAM'S SEQUENCE, not our own build spec's — and treat that spec's "exhaustive" claims as unaudited
+
+**The decision.** Where upstream 40Cakes' shipped Emerald Seafloor route and our decomp-derived
+build spec disagree on a push, **upstream wins until arbitrated**, and our spec's *optimality /
+uniqueness* claims carry no weight at all.
+
+**What forced it.** Room 1. Upstream (`40cakes repo/pokebot-gen3/modules/modes/puzzle_solver.py:373`)
+pushes boulder `(5,11)` **DOWN** from `(5,10)`. Our spec
+(`ai-research-notes/2026-08-13-ch20-seafloor-cavern-build-spec.md`) says an **exhaustive** Sokoban
+search proves *"the only route into the row-11 corridor requires pushing boulder `(5,11)` north"*
+and that *"every alternative was searched and fails"*. Both cannot be true.
+
+**How it was settled — two independent authorities, neither of them recall.** The decomp
+(`data/maps/SeafloorCavern_Room1/map.json` via `gh api`) and, separately, our own ROM reader:
+`(5,10)` and `(5,12)` are **both** `collision=0 elevation=3 'Cave'`. The boulder is legally pushable
+in either direction and both leave the player on `(5,11)` with the corridor open. ⇒ the spec's
+**uniqueness claim is false; the search was not exhaustive.** Then confirmed LIVE by
+`--driver ch20room1`: the south push moved boulder `local_id=1` to `(5,12)` and
+`calculate_path((5,11) → (11,11))` went from `PathFindingError` to `OK len=6`.
+
+**Rejected alternatives.**
+1. *Trust the spec because it is ours and newer.* Rejected — provenance is not evidence, and this
+   project has already been burned by an authored note that was confident and wrong.
+2. *Trust upstream wholesale and copy its code.* Rejected — upstream's second push is a bare
+   `walk_one_tile("Right")`, **unbounded by its own docstring**, judging nothing. We take its
+   **coordinates** and drive them through our own `strength_push`, which is bounded and verifies the
+   boulder by `local_id`. ⇒ **Copy upstream's ROUTE, never upstream's CONTROL FLOW.**
+3. *Re-run our own exhaustive search, fixed.* Rejected as unnecessary work: a search is only needed
+   where no shipped route exists, and upstream ships one for every room on the Kyogre path.
+
+**The general rule this establishes** (and the reason it is worth a decision entry rather than a
+footnote): **grade a research note's NAMES, COORDINATES and TILE FACTS highly, and its claims of
+OPTIMALITY or UNIQUENESS at zero.** That is the same split `CLAUDE.md` already prescribes for
+Gemini output, arrived at independently here for a *Claude*-authored note — so it is a property of
+generated research, not of one vendor.
+
+**Consequence, carried forward:** the same spec's **Room 2** and **Room 8** (nine-push) sequences
+come from the same search and are now **unaudited**. Arbitrate each against the decomp *and*
+upstream's Emerald branch (`puzzle_solver.py:395-454`) **before** driving it.

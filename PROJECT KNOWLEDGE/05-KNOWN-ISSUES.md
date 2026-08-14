@@ -2135,144 +2135,14 @@ inside its 3,000-line R3 budget. Nothing was deleted.
 
 ---
 
-## KI-64 — ✅ FIXED 2026-08-12 — the multi-battle faint replacer would have sent out STEVEN’s Pokémon (ARCHIVED)
+## KI-64 — ✅ FIXED 2026-08-12 — the multi-battle faint replacer would have sent out STEVEN's Pokémon — FULL DETAIL MOVED to `31-KNOWN-ISSUES-ARCHIVE.md` (2026-08-13)
 
-Full diagnosis moved to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-08-13 to keep this current-state file
-inside its 3,000-line R3 budget. Keep only this: **`FillPartnerParty` writes the ally’s team into
-`gPlayerParty[3..5]`, so never identify a Pokémon by PARTY INDEX across a battle-menu boundary** —
-the party menu physically permutes the array (`UpdatePartyToBattleOrder`). The fix keys on
-**original trainer ID** via `ally_party_indices()`; guard is `repro_multi_battle_partner.py` (5/5).
-‼ Print the MRO before "fixing" a strategy method — the first fix was dead code on the story path.
+Fixed, driven and gated (`repro_multi_battle_partner.py`, in the standing suite). The body was still sitting in this CURRENT-STATE file long after it closed, and it pushed the file over its 900/3000-line R3 budget when KI-77 was filed — so it was moved verbatim, not deleted.
 
----
-## ‼‼ KI-68 — §Ch21 IS NOT BLOCKED BY THE PARTY SLOT. **DIVE IS NOT ROUTABLE AT ALL.** (2026-08-12, code-verified) — ✅ **THE ROUTE IS NOW DRIVEN, 2026-08-13**
+‼ **Keep only the two prevention rules, because both were re-learned the hard way:**
+1. **Print the MRO before "fixing" a strategy method.** The first fix guarded the base class and was DEAD CODE on the story path (`LevelUpLeadBattleStrategy` has its own `choose_new_lead_after_faint`).
+2. **Never identify a Pokémon by party INDEX across a battle-menu boundary.** Opening the battle party menu runs `UpdatePartyToBattleOrder`, which physically PERMUTES `gPlayerParty` — the second fix's `index >= 3` cut was in the wrong index space and offered the ALLY's Pokémon while hiding one of ours. Key on **original trainer ID** (`ally_party_indices()`); identity travels with the Pokémon, position does not.
 
-> ### ✅ RESOLVED IN PRACTICE 2026-08-13 — read this before the (still accurate) analysis below.
-> **The first driven dive in this project: `--driver ch20dive`, `ACCEPTANCE: PASS`, `legs=6/6`,
-> Mossdeep → `SEAFLOOR_CAVERN_ENTRANCE (10,17)` AND back out to the open ocean.**
-> ```
-> ROUTE128 (38,27) Deep Water -> dive()  -> UNDERWATER_ROUTE128 (38,27)   [same x,y]
-> navigate (38,26) Water Door -> warp    -> UNDERWATER_SEAFLOOR_CAVERN (6,7)
-> navigate the pool (6,6)     -> surface -> SEAFLOOR_CAVERN_ENTRANCE (10,17)
-> ```
-> Everything KI-68 says below is confirmed. **Two corrections:**
-> 1. It says *"only (b) is missing, and it is one call."* It is **TWO** calls — `dive()` **and**
->    `surface_from_dive()`. Entering underwater and never surfacing is how a run strands.
-> 2. ‼ **THE STATIC WARP DATA IS MISLEADING AT BOTH ENDS.** `UNDERWATER_SEAFLOOR_CAVERN` has no
->    warp or connection into the entrance at all — that edge is a RUNTIME `setdivewarp` from
->    `Underwater_SeafloorCavern_OnResume`. And the table's
->    `(10,18) -> UNDERWATER_ROUTE128 (38,26)` is **not what happens live**: diving there drops you
->    back into the pool at (6,5), and the real exit is three hops. **Drive it; do not read it.**
->
-> Measured route + raw transcripts: `ai-research-notes/2026-08-13-ch20-dive-leg-predictions.md`
-> and `tools/story-dev/probe_ch20_topology.py`. ‼ **This does NOT make §Ch21 unblocked** — the run
-> injected Dive with a debug write. Acquiring a real Dive learner (KI-63) is still open. And see
-> **KI-72**: never let the planner choose a surfacing tile.
-> ‼ Also read `ai-research-notes/2026-08-13-puzzle-solver-already-ships-ch21-and-the-regi-arc.md`
-> — the cavern INTERIOR is already implemented in upstream code.
-
-
-**This supersedes the framing in KI-63 and KI-54.** I was one edit away from building the wrong
-thing, and an adversarial pass caught it before the code shipped.
-
-**THE MEASUREMENT** (verified by me, not taken on trust):
-* `modules/map_path.py:592-593` — `WaypointAction.Dive` and `WaypointAction.Emerge` are **declared
-  and assigned NOWHERE in the tree.** A repo-wide search for `WaypointAction.Dive` /
-  `WaypointAction.Emerge` returns **zero** assignments.
-* `map_path.py:690` — `can_dive()` exists; its only references are its own definition and cache
-  lines (`:678, :681, :690-696`). **Zero callers.**
-* `modules/warp_graph.py:342` — `continue  # Dive/Emerge need HM08 — excluded on purpose`;
-  `modules/story/region_reach.py:68-70` does the same; `modules/modes/util/global_navigation.py:12`
-  documents Dive routes as unsupported.
-* `modules/modes/util/higher_level_actions.py:682` `dive()` exists, but its only callers are
-  `puzzle_solver.py` and a test — **nothing in `modules/story/` or `story_mode.py`.**
-
-⇒ **The planner cannot emit a Dive waypoint.** So the whole "free a party slot → catch a Dive
-learner → teach Dive" chain, even executed perfectly, ends at `UnreachableDestinationError` on the
-first navigation into a dive spot. **It moves the failure one line down and costs a party member.**
-
-### ‼ REFINED 2026-08-12 (`probe_dive_routing.py`) — "NOT ROUTABLE" ≠ "NOT POSSIBLE"
-
-Do **not** read the above and conclude the Dive content is out of reach. Measured:
-* `warp_graph.py:20` and `:342` say it explicitly — *"Dive/Emerge connections … excluded on
-  purpose"*. **This is a DESIGN state, not a defect.** A dive is not a warp event at all: it is a
-  MOVE used on a deep-water tile that lands you on a different map at the same coordinates, so no
-  warp-graph solver could ever offer it and `calculate_path` was never going to.
-* **`dive()` ALREADY EXISTS AND WORKS** — `modules/modes/util/higher_level_actions.py:682`, drives
-  `Task_UseDive`, and refuses unless the tile really is Deep/Semi-Deep Water and the player is not
-  already underwater. So a wrong tile fails LOUDLY.
-⇒ **The fix is a CHAPTER that drives the transition, not a change to the planner** — exactly the
-pattern already used three times here (§Ch18's `(21,6)` coord-event exit, Steven's bottom-row door
-via `_walk_through_warp`, the Magma Hideout Escape Rope). The legs split cleanly:
-```
-a. surf to the deep-water tile          -> PLANNER   (Surf IS routable)
-b. call dive() standing on it           -> CHAPTER   (one call; the missing piece)
-c. navigate the UNDERWATER map          -> PLANNER   (ordinary same-map)
-d. surface / take the warp in           -> CHAPTER or PLANNER (a real warp)
-```
-
-### ✅ THE TOPOLOGY IS FULLY MAPPED, and most of it needs no Dive at all
-Read from our own ROM (`probe_dive_routing.py`):
-```
-UNDERWATER_ROUTE134      (8,8)  -> UNDERWATER_SEALED_CHAMBER
-UNDERWATER_SEALED_CHAMBER (7,1) -> UNDERWATER_ROUTE134
-SEALED_CHAMBER_OUTER_ROOM (10,2)-> SEALED_CHAMBER_INNER_ROOM
-UNDERWATER_SEAFLOOR_CAVERN (6,7)-> UNDERWATER_ROUTE128        (§Ch21)
-DESERT_RUINS  (8,29) -> ROUTE111     ISLAND_CAVE (8,29) -> ROUTE105
-ANCIENT_TOMB  (8,29) -> ROUTE120
-```
-‼ **The three Regi tombs are ORDINARY MAP WARPS from routes the bot already reaches.** Only the
-**Sealed Chamber unlock** is behind a dive. So the Regi arc is not gated on Dive end-to-end — it is
-gated on ONE underwater errand, after which the tombs are ordinary navigation.
-‼ Note `UNDERWATER_SEALED_CHAMBER` has **no warp to `SEALED_CHAMBER_OUTER_ROOM`** — that transition
-is a SURFACE/emerge, i.e. a second chapter-driven action, not a warp.
-
-‼ **`can_dive()` needs the move KNOWN, not learnable.** Measured on `post_dive.ss1`: `BADGE07_GET`
-True, party members knowing Dive **NONE** → it would return False. HM08 being in the bag is not
-enough, which is the same distinction KI-63 makes.
-
-### ⇒ THE CORRECT ORDER (and why the obvious order is wrong)
-1. **FIRST, prove what the planner needs.** `modules/debug_utilities.py:611` can inject
-   `LearnedMove.create(get_move_by_name("Dive"))` onto an existing party mon. Do that and drive
-   Route 128 → Seafloor Cavern. **This work is required no matter how the learner is acquired**, and
-   it is near-zero risk — no deposit, no new data row, no party change.
-2. `_hm_hunting_grounds(HM08)` — **already measured**: it returns `(ROUTE117, (31,16), ['Marill'])`
-   TODAY (`probe_slot_free_plan.py`). Marill learns Surf and Dive. So no new hunting ground is
-   *required*; Spheal is only a quality upgrade (50%/L26-32 vs 10%/L13).
-3. **‼ IF a new ground is ever added, it must NOT go in `TRAINING_GRASS`.** Measured with the real
-   function: a `SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM (25,30) (26,32)` row makes it the **highest band
-   in the table**, and `best_training_area` then flips for every team from ~L30 up:
-   ```
-   BEFORE  team L30/34/36/40/44/48 -> (ROUTE121, (44,14), (25,28))
-   AFTER   team L30/34/36/40/44/48 -> (SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM, (25,30), (26,32))
-   ```
-   `TRAINING_GRASS` is primarily the **training-relocation** table, not an HM registry — so the row
-   would send every post-Winona boss-prep relocation into a cave across the ocean, with **no
-   `_training_area_heal_map` entry** and **no `NO_RETURN_GROUNDS` entry**. `AREA_PREREQ = "surf"`
-   does not save it (`_training_area_allowed` passes once any mon knows Surf), and
-   `_hm_hunting_grounds` never reads `AREA_PREREQ` at all — the guard would protect every consumer
-   except the one it was added for. Use `HUNTING_GROUNDS` (catch-and-leave) or a new `HM_GROUNDS`.
-4. **Prefer the ALREADY-PROVEN route over a new deposit.** `#24-pcoverflow` solved this exact
-   problem for counters 90 lines away: `POKEBOT_BOX_OVERFLOW_CATCH` defaults ON and is live-proven,
-   `counter_hunt.hunt` already returns `{"slot": None, "pid": ...}` for a boxed catch, and
-   `withdraw_from_box` collects it at the next heal — **net-zero on party size**. The HM branch
-   (`story_mode.py:2158`) still carries the `len(party) < 6` gate the counter branch dropped.
-
-### If a `free_one_party_slot()` is ever built anyway — four things it MUST do
-Recorded because I wrote a draft and reverted it; these are the defects the review found in it:
-* **Raise on a non-Poké-Centre map.** `pc_trip`'s contract is *"PIGGYBACK, DO NOT DETOUR"*; the
-  extracted block does `navigate_to(here, PC_STAND_TILE)` on **whatever map it is on**.
-* **Honour `_hunted_counter_pids`.** That protection lives in `plan_deposits`, NOT in the block
-  being extracted — batch8 threw away 2 of 5 hunted counters exactly this way.
-* **Recompute `party_count`.** `early_game.py:4395` reuses the pre-deposit count as `before`, so
-  `_story_spin`'s `len(party) > before` stop condition could never fire.
-* **Protect the freshly caught learner.** `_only_hm_carrier` keys on **known moves**, so a Spheal is
-  unprotected in the window between the catch and the teach — and it is the lowest-level mon, i.e.
-  first in `find_dead_weight`. That is a catch → deposit → catch oscillation.
-
-‼ **What the victim chooser gets RIGHT, so nobody re-derives it:** Zigzagoon L15 IS correctly spared
-(sole Surf carrier), Sceptile too (sole Rock Smash + Strength carrier), and the pick is Skitty L17.
-Measured, `probe_slot_free_plan.py`.
 
 ## KI-74 — `setmetatile` tiles are INVISIBLE to the shared map model, and the KI-59 fix made that fail-DANGEROUS instead of fail-safe (2026-08-13, code-verified, OPEN)
 
@@ -2972,3 +2842,46 @@ to refute "the tide is not a blocker"; the static-table half verified by me dire
 - **What a fix looks like** (not attempted): include the live layout pointer in the cache key, or
   invalidate the entry on map-transition. Both touch shared pathfinding that every mode depends on,
   so it needs its own A/B — not a drive-by change.
+
+## KI-77 — `get_map_objects()` is a CAMERA-RANGE WINDOW, so the planner's picture of a PUSHED BOULDER flips with the camera (2026-08-13, MEASURED LIVE, OPEN, ARMED for §Ch20 Room 8)
+
+- **Symptom.** `modules/map_path.calculate_path` treats a boulder's **template** tile as blocked
+  whenever that boulder is not currently spawned, and its **live** tile as blocked whenever it is.
+  Both halves are individually correct; together they mean that **after a Strength push, walking
+  far enough for the boulder to despawn re-blocks the tile it vacated and frees the tile it now
+  occupies.** A route planned in that state is planned against a map that does not exist.
+- **The measurement that found it** (`--driver ch20room1`, 2026-08-13, first drive inside the
+  Seafloor Cavern). Standing on `SEAFLOOR_CAVERN_ROOM1 (5,18)` immediately after the warp, a dump
+  of every active object returned **2 of the map's 5**:
+
+      BEFORE  * local_id=1 gfx=87  at=(5,11)   <- PUSHABLE_BOULDER
+      BEFORE  * local_id=2 gfx=87  at=(12,11)  <- PUSHABLE_BOULDER
+              (local_id=3 BREAKABLE_ROCK at (5,10), and grunts 4 @ (8,6) / 5 @ (15,10), ABSENT)
+
+  The rock was demonstrably present — the very next action smashed it — and both grunts appeared in
+  later dumps, one of them battling. ⇒ `gObjectEvents` holds only what the game has spawned within
+  camera range, **not the map's object inventory**. This was a **pre-registered prediction that
+  FAILED** (P3 of `ai-research-notes/2026-08-13-ch20-room1-drive-predictions.md`).
+- **Code path, verified.** `modules/map_path.py:811-818` builds `active_objects` and
+  `blocked_coordinates` from `get_map_objects()`; `:844-853` blocks a tile whose
+  `dynamic_object_id` is **not** in `active_objects` (i.e. assumes the object sits on its template
+  tile); `:861` blocks the `current`/`previous` coordinates of objects that **are** active.
+- **Why it did not bite in Room 1.** After the two pushes the route runs up x=12 and west along
+  row 7 — it never needs `(5,11)` again. A green run therefore proves nothing about this, which is
+  exactly why it had to be measured rather than inferred.
+- ‼ **Where it is armed: §Ch20 ROOM 8** — nine pushes inside a 48-tile room with 12 objects, where
+  the route repeatedly re-crosses tiles boulders have been moved on and off. **Room 2** (three
+  pushes of one boulder) is a lesser case. Any future Sokoban-style room is a candidate.
+- **Scope beyond §Ch20.** This is shared pathfinder behaviour, not cavern-specific. It affects any
+  planning done while a relevant object is off-camera — which is *most* long-range planning.
+- ‼ **NOT YET REPRODUCED AS A FAILURE.** What is measured is the window behaviour and the code
+  path. No run has yet been shown to plan a wrong route because of it. **Do not fix this on
+  reasoning alone** — build the repro first (push a boulder, walk out of range, then ask
+  `calculate_path` about both tiles and compare against the truth) and A/B it. That repro is cheap
+  and should come before any change.
+- **What a fix might look like** (not attempted, and it is not obviously desirable): remember the
+  last-known live position of an object that has despawned, keyed by `(map, local_id)`, and prefer
+  it over the template. ‼ That cache would be wrong in the other direction after a map re-entry,
+  because the cavern's boulders are `FLAG_TEMP_*` objects that **respawn at their template tiles on
+  every map load** — so any such cache must be invalidated on map transition, and the safest
+  version may simply be "plan short routes inside boulder rooms".

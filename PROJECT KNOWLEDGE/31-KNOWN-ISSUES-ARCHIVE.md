@@ -1552,3 +1552,147 @@ to FIERY_PATH **is** found (2 candidates, both ROUTE112 doors) and **neither fir
 walkable**, because of the Rock Smash choke. The planner was never the blocker there — see
 **KI-41**, which is now the thing standing between the counter chain and acting.
 
+
+
+---
+
+# ARCHIVED 2026-08-13 from `05-KNOWN-ISSUES.md` (R3 budget; content verbatim, nothing deleted)
+
+## KI-64 — ✅ FIXED 2026-08-12 — the multi-battle faint replacer would have sent out STEVEN’s Pokémon (ARCHIVED)
+
+Full diagnosis moved to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-08-13 to keep this current-state file
+inside its 3,000-line R3 budget. Keep only this: **`FillPartnerParty` writes the ally’s team into
+`gPlayerParty[3..5]`, so never identify a Pokémon by PARTY INDEX across a battle-menu boundary** —
+the party menu physically permutes the array (`UpdatePartyToBattleOrder`). The fix keys on
+**original trainer ID** via `ally_party_indices()`; guard is `repro_multi_battle_partner.py` (5/5).
+‼ Print the MRO before "fixing" a strategy method — the first fix was dead code on the story path.
+
+---
+## ‼‼ KI-68 — §Ch21 IS NOT BLOCKED BY THE PARTY SLOT. **DIVE IS NOT ROUTABLE AT ALL.** (2026-08-12, code-verified) — ✅ **THE ROUTE IS NOW DRIVEN, 2026-08-13**
+
+> ### ✅ RESOLVED IN PRACTICE 2026-08-13 — read this before the (still accurate) analysis below.
+> **The first driven dive in this project: `--driver ch20dive`, `ACCEPTANCE: PASS`, `legs=6/6`,
+> Mossdeep → `SEAFLOOR_CAVERN_ENTRANCE (10,17)` AND back out to the open ocean.**
+> ```
+> ROUTE128 (38,27) Deep Water -> dive()  -> UNDERWATER_ROUTE128 (38,27)   [same x,y]
+> navigate (38,26) Water Door -> warp    -> UNDERWATER_SEAFLOOR_CAVERN (6,7)
+> navigate the pool (6,6)     -> surface -> SEAFLOOR_CAVERN_ENTRANCE (10,17)
+> ```
+> Everything KI-68 says below is confirmed. **Two corrections:**
+> 1. It says *"only (b) is missing, and it is one call."* It is **TWO** calls — `dive()` **and**
+>    `surface_from_dive()`. Entering underwater and never surfacing is how a run strands.
+> 2. ‼ **THE STATIC WARP DATA IS MISLEADING AT BOTH ENDS.** `UNDERWATER_SEAFLOOR_CAVERN` has no
+>    warp or connection into the entrance at all — that edge is a RUNTIME `setdivewarp` from
+>    `Underwater_SeafloorCavern_OnResume`. And the table's
+>    `(10,18) -> UNDERWATER_ROUTE128 (38,26)` is **not what happens live**: diving there drops you
+>    back into the pool at (6,5), and the real exit is three hops. **Drive it; do not read it.**
+>
+> Measured route + raw transcripts: `ai-research-notes/2026-08-13-ch20-dive-leg-predictions.md`
+> and `tools/story-dev/probe_ch20_topology.py`. ‼ **This does NOT make §Ch21 unblocked** — the run
+> injected Dive with a debug write. Acquiring a real Dive learner (KI-63) is still open. And see
+> **KI-72**: never let the planner choose a surfacing tile.
+> ‼ Also read `ai-research-notes/2026-08-13-puzzle-solver-already-ships-ch21-and-the-regi-arc.md`
+> — the cavern INTERIOR is already implemented in upstream code.
+
+
+**This supersedes the framing in KI-63 and KI-54.** I was one edit away from building the wrong
+thing, and an adversarial pass caught it before the code shipped.
+
+**THE MEASUREMENT** (verified by me, not taken on trust):
+* `modules/map_path.py:592-593` — `WaypointAction.Dive` and `WaypointAction.Emerge` are **declared
+  and assigned NOWHERE in the tree.** A repo-wide search for `WaypointAction.Dive` /
+  `WaypointAction.Emerge` returns **zero** assignments.
+* `map_path.py:690` — `can_dive()` exists; its only references are its own definition and cache
+  lines (`:678, :681, :690-696`). **Zero callers.**
+* `modules/warp_graph.py:342` — `continue  # Dive/Emerge need HM08 — excluded on purpose`;
+  `modules/story/region_reach.py:68-70` does the same; `modules/modes/util/global_navigation.py:12`
+  documents Dive routes as unsupported.
+* `modules/modes/util/higher_level_actions.py:682` `dive()` exists, but its only callers are
+  `puzzle_solver.py` and a test — **nothing in `modules/story/` or `story_mode.py`.**
+
+⇒ **The planner cannot emit a Dive waypoint.** So the whole "free a party slot → catch a Dive
+learner → teach Dive" chain, even executed perfectly, ends at `UnreachableDestinationError` on the
+first navigation into a dive spot. **It moves the failure one line down and costs a party member.**
+
+### ‼ REFINED 2026-08-12 (`probe_dive_routing.py`) — "NOT ROUTABLE" ≠ "NOT POSSIBLE"
+
+Do **not** read the above and conclude the Dive content is out of reach. Measured:
+* `warp_graph.py:20` and `:342` say it explicitly — *"Dive/Emerge connections … excluded on
+  purpose"*. **This is a DESIGN state, not a defect.** A dive is not a warp event at all: it is a
+  MOVE used on a deep-water tile that lands you on a different map at the same coordinates, so no
+  warp-graph solver could ever offer it and `calculate_path` was never going to.
+* **`dive()` ALREADY EXISTS AND WORKS** — `modules/modes/util/higher_level_actions.py:682`, drives
+  `Task_UseDive`, and refuses unless the tile really is Deep/Semi-Deep Water and the player is not
+  already underwater. So a wrong tile fails LOUDLY.
+⇒ **The fix is a CHAPTER that drives the transition, not a change to the planner** — exactly the
+pattern already used three times here (§Ch18's `(21,6)` coord-event exit, Steven's bottom-row door
+via `_walk_through_warp`, the Magma Hideout Escape Rope). The legs split cleanly:
+```
+a. surf to the deep-water tile          -> PLANNER   (Surf IS routable)
+b. call dive() standing on it           -> CHAPTER   (one call; the missing piece)
+c. navigate the UNDERWATER map          -> PLANNER   (ordinary same-map)
+d. surface / take the warp in           -> CHAPTER or PLANNER (a real warp)
+```
+
+### ✅ THE TOPOLOGY IS FULLY MAPPED, and most of it needs no Dive at all
+Read from our own ROM (`probe_dive_routing.py`):
+```
+UNDERWATER_ROUTE134      (8,8)  -> UNDERWATER_SEALED_CHAMBER
+UNDERWATER_SEALED_CHAMBER (7,1) -> UNDERWATER_ROUTE134
+SEALED_CHAMBER_OUTER_ROOM (10,2)-> SEALED_CHAMBER_INNER_ROOM
+UNDERWATER_SEAFLOOR_CAVERN (6,7)-> UNDERWATER_ROUTE128        (§Ch21)
+DESERT_RUINS  (8,29) -> ROUTE111     ISLAND_CAVE (8,29) -> ROUTE105
+ANCIENT_TOMB  (8,29) -> ROUTE120
+```
+‼ **The three Regi tombs are ORDINARY MAP WARPS from routes the bot already reaches.** Only the
+**Sealed Chamber unlock** is behind a dive. So the Regi arc is not gated on Dive end-to-end — it is
+gated on ONE underwater errand, after which the tombs are ordinary navigation.
+‼ Note `UNDERWATER_SEALED_CHAMBER` has **no warp to `SEALED_CHAMBER_OUTER_ROOM`** — that transition
+is a SURFACE/emerge, i.e. a second chapter-driven action, not a warp.
+
+‼ **`can_dive()` needs the move KNOWN, not learnable.** Measured on `post_dive.ss1`: `BADGE07_GET`
+True, party members knowing Dive **NONE** → it would return False. HM08 being in the bag is not
+enough, which is the same distinction KI-63 makes.
+
+### ⇒ THE CORRECT ORDER (and why the obvious order is wrong)
+1. **FIRST, prove what the planner needs.** `modules/debug_utilities.py:611` can inject
+   `LearnedMove.create(get_move_by_name("Dive"))` onto an existing party mon. Do that and drive
+   Route 128 → Seafloor Cavern. **This work is required no matter how the learner is acquired**, and
+   it is near-zero risk — no deposit, no new data row, no party change.
+2. `_hm_hunting_grounds(HM08)` — **already measured**: it returns `(ROUTE117, (31,16), ['Marill'])`
+   TODAY (`probe_slot_free_plan.py`). Marill learns Surf and Dive. So no new hunting ground is
+   *required*; Spheal is only a quality upgrade (50%/L26-32 vs 10%/L13).
+3. **‼ IF a new ground is ever added, it must NOT go in `TRAINING_GRASS`.** Measured with the real
+   function: a `SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM (25,30) (26,32)` row makes it the **highest band
+   in the table**, and `best_training_area` then flips for every team from ~L30 up:
+   ```
+   BEFORE  team L30/34/36/40/44/48 -> (ROUTE121, (44,14), (25,28))
+   AFTER   team L30/34/36/40/44/48 -> (SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM, (25,30), (26,32))
+   ```
+   `TRAINING_GRASS` is primarily the **training-relocation** table, not an HM registry — so the row
+   would send every post-Winona boss-prep relocation into a cave across the ocean, with **no
+   `_training_area_heal_map` entry** and **no `NO_RETURN_GROUNDS` entry**. `AREA_PREREQ = "surf"`
+   does not save it (`_training_area_allowed` passes once any mon knows Surf), and
+   `_hm_hunting_grounds` never reads `AREA_PREREQ` at all — the guard would protect every consumer
+   except the one it was added for. Use `HUNTING_GROUNDS` (catch-and-leave) or a new `HM_GROUNDS`.
+4. **Prefer the ALREADY-PROVEN route over a new deposit.** `#24-pcoverflow` solved this exact
+   problem for counters 90 lines away: `POKEBOT_BOX_OVERFLOW_CATCH` defaults ON and is live-proven,
+   `counter_hunt.hunt` already returns `{"slot": None, "pid": ...}` for a boxed catch, and
+   `withdraw_from_box` collects it at the next heal — **net-zero on party size**. The HM branch
+   (`story_mode.py:2158`) still carries the `len(party) < 6` gate the counter branch dropped.
+
+### If a `free_one_party_slot()` is ever built anyway — four things it MUST do
+Recorded because I wrote a draft and reverted it; these are the defects the review found in it:
+* **Raise on a non-Poké-Centre map.** `pc_trip`'s contract is *"PIGGYBACK, DO NOT DETOUR"*; the
+  extracted block does `navigate_to(here, PC_STAND_TILE)` on **whatever map it is on**.
+* **Honour `_hunted_counter_pids`.** That protection lives in `plan_deposits`, NOT in the block
+  being extracted — batch8 threw away 2 of 5 hunted counters exactly this way.
+* **Recompute `party_count`.** `early_game.py:4395` reuses the pre-deposit count as `before`, so
+  `_story_spin`'s `len(party) > before` stop condition could never fire.
+* **Protect the freshly caught learner.** `_only_hm_carrier` keys on **known moves**, so a Spheal is
+  unprotected in the window between the catch and the teach — and it is the lowest-level mon, i.e.
+  first in `find_dead_weight`. That is a catch → deposit → catch oscillation.
+
+‼ **What the victim chooser gets RIGHT, so nobody re-derives it:** Zigzagoon L15 IS correctly spared
+(sole Surf carrier), Sceptile too (sole Rock Smash + Strength carrier), and the pick is Skitty L17.
+Measured, `probe_slot_free_plan.py`.

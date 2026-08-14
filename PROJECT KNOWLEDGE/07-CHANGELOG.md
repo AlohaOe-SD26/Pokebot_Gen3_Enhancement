@@ -13029,3 +13029,61 @@ Regi arc) and **Ever Grande** (§Ch23). That is why an unbounded loop there is w
   was restored from a byte copy. A cap that has never been seen to fire is not a cap.
 
 17/17 gates PASS.
+
+---
+
+## 2026-08-13 — §Ch20 INCREMENT 1: the first drive INSIDE the Seafloor Cavern. Room 1 solved, and `probe_ch20_interior`'s LOWER BOUND turned into a MEASURED FACT (`#24-remainingarc`)
+
+The handoff's next action was *"a live drive of §Ch20, not more planning"*, and specifically the
+build spec's verification item 3: **re-derive the push sequences against LIVE object positions from
+inside each room**, because the Area Atlas was measured from Mossdeep and its per-room routing was a
+lower bound. This does that for Room 1, and drives it.
+
+**‼ AN ARBITRATION CAME FIRST, AND IT CHANGED THE ROUTE.** Two sources in our own repo disagreed:
+upstream `puzzle_solver.py:373` pushes the `(5,11)` boulder **DOWN**; our build spec claims an
+*exhaustive* search proves the only route pushes it **NORTH**. Ruled against the decomp
+(`data/maps/SeafloorCavern_Room1/map.json`) **and** independently against our own ROM reader:
+`(5,10)` and `(5,12)` are **both** `collision=0 elevation=3 'Cave'`, so the boulder is legally
+pushable either way and the spec's **uniqueness claim is false — its search was not exhaustive**.
+Upstream's south push is what ships and needs no staging detour. The spec now carries a correction
+block at its top, and its Room 2 / Room 8 "exhaustive" sequences are flagged as unaudited.
+
+**NEW: `--driver ch20room1`** (`tools/story-dev/story_harness.py`) — ingress, measure, solve,
+prove-it-can-continue. **`ACCEPTANCE: PASS` on the first drive**, 6 of 7 pre-registered predictions
+held (`ai-research-notes/2026-08-13-ch20-room1-drive-predictions.md`, written BEFORE the run):
+
+```
+LEGA  at=('SEAFLOOR_CAVERN_ROOM1', (5,18))          in_room1=True
+A/B BEFORE (5,18)->(11,11): PathFindingError        <- the corridor really is sealed
+SMASH ok=True   rock local_id=3 present=False
+PUSH1 ok=True   boulder local_id=1 at=(5,12)
+A/B AFTER  (5,11)->(11,11): OK len=6                <- and the push really opens it
+PUSH2 ok=True   boulder local_id=2 at=(13,11)
+LEGC  at=('SEAFLOOR_CAVERN_ROOM2', (10,7))          in_room2=True
+CAN-CONTINUE moved=True (10,7)->(10,6) manual=False
+ACCEPTANCE: PASS
+```
+
+* **The A/B is the point.** Same call, same target, live objects on both arms — a one-armed "it
+  worked" could not have ruled out "the corridor was open all along".
+* **Both pushes go through `strength_push`, not upstream's bare `walk_one_tile`** (which is
+  unbounded by its own docstring and judges nothing). Boulders verified **by `local_id`**, because
+  a push moves the player onto the vacated tile and "the old tile is empty" reads false on a push
+  that worked.
+* **Two trainer battles fired and were ridden out** (`NICK got $720 for winning!`), as predicted.
+
+**REFACTOR, proven neutral:** `Ch20DiveMode`'s Dive fixture and legs 1-5 are now
+`_inject_dive_fixture()` / `_ingress()`, so the new driver **reuses** the proven ingress instead of
+copying it — this session's headline lesson is that `probe_shoal_tide.py` had *copied* the
+pathfinder's model and so carried its bug. Proven by re-running `--driver ch20dive`:
+`legs=6/6 at_entrance=True got_out=True can_continue=True ACCEPTANCE: PASS`, matching its
+documented prior result exactly.
+
+**NEW ISSUE — KI-77, found by the one prediction that FAILED.** On arrival at `(5,18)` the live
+object dump returned **2 of the map's 5** objects; the rock and both grunts were absent yet
+demonstrably present. `get_map_objects()` is a **camera-range window, not a map inventory** — and
+`map_path.py:811-818/844-853/861` builds its whole object model from it, so **a pushed boulder's
+vacated tile is re-blocked and its real tile freed once it scrolls out of range.** Benign in Room 1;
+**armed in Room 8's nine pushes.** Code-verified, deliberately NOT fixed, repro specified first.
+
+17/17 gates PASS.

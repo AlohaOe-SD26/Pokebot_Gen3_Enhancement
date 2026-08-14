@@ -12,6 +12,36 @@
 
 ---
 
+## ⛔⛔ CORRECTION 2026-08-13 — **THE "EXHAUSTIVE SEARCH" WAS NOT EXHAUSTIVE.** Read before using any push sequence below.
+
+**Room 1's uniqueness claim is REFUTED.** This note says *"the only route into the row-11 corridor
+requires pushing boulder `(5,11)` **north**"* and *"every alternative was searched and fails"*.
+Arbitrated against the decomp (`data/maps/SeafloorCavern_Room1/map.json`) **and** independently
+against our own ROM reader: `(5,10)` and `(5,12)` are **both** `collision=0 elevation=3 'Cave'`, so
+the boulder is legally pushable **either way**, and both end with the player on `(5,11)` and the
+corridor open. The search **never evaluated the south push** — which is the one upstream
+`puzzle_solver.py:373` actually ships (`use_strength("Down")` from `(5,10)`), and it needs no
+staging detour, whereas the "north" line silently requires an unstated `(4,11)→(4,12)→(5,12)` walk.
+
+✅ **What in this note survived the audit and is worth keeping:** the *tile* facts
+(`(7..10,12)` really are `Impassable North` with `collision=1`; row 11 really is a one-tile corridor
+whose only west entrance is `(5,11)→(6,11)`, because `(6,10)` and `(6,12)` are `collision=1`), and
+the **east** analysis (pushing `(5,11)` east jams it against boulder 2 and strands the player at
+`(10,11)`). The object table and warp list check out.
+
+‼ **THE CONSEQUENCE IS NOT LOCAL TO ROOM 1.** The same "exhaustive search" produced the **Room 2**
+and **Room 8** (9-push) sequences below. Those are now **unaudited claims from a source with a
+demonstrated false-uniqueness result** — arbitrate each against the decomp *and* upstream's shipped
+Emerald branch (`40cakes repo/pokebot-gen3/modules/modes/puzzle_solver.py:395-454`) **before**
+driving it. ⇒ Grade this note's **names, coordinates and tile facts** highly; grade its
+**claims of optimality or uniqueness** at zero. (That is the same split the measured Gemini rules
+in `CLAUDE.md` prescribe, arrived at independently for a Claude-authored note.)
+
+Drive-level verification of the corrected Room 1 line: `--driver ch20room1`, predictions
+pre-registered in `2026-08-13-ch20-room1-drive-predictions.md`.
+
+---
+
 ## ⛔ THREE CORRECTIONS TO WHAT WE CURRENTLY BELIEVE
 
 ### 1. ‼ **ROCK SMASH IS MANDATORY. STRENGTH ALONE CANNOT LEAVE ROOM 1.**
