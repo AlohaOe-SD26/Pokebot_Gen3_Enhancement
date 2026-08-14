@@ -5901,3 +5901,33 @@ changes to save" is a success exit code and a no-op.*
 *(4) At session start, **`git stash list` is part of the sync ritual.** The kit checks branch
 ahead/behind and uncommitted files, but a stash is invisible to `git status` and can strand real
 work indefinitely — this one for three weeks.*
+
+## 2026-08-13 (session close) — the ONE pattern behind five of this session's errors: **the instrument did not measure what it claimed**
+
+Not a new bug. A **shape** that recurred five times in one session, in five different disguises, and
+is worth naming once so the next agent recognises it before spending a day on it.
+
+| # | what was claimed | what was actually true |
+|---|---|---|
+| 1 | "KI-59 is armed in the Seafloor Cavern, 115 tiles" | The count was right; **0 of them reach the buggy branch.** A census of things that MATCH is not a census of things the code ACTS ON. |
+| 2 | `probe_shoal_tide.py` "independently checks" the pathfinder | It had **copied** the pathfinder's bug. A mirror cannot disagree. |
+| 3 | A `git stash`-based A/B | The stash was a **no-op** (the change was already committed), so **both arms ran the same code** — and it would have reported a green "no regression" from an experiment that never varied anything. |
+| 4 | "ROOM2/ROOM5 are unroutable" | A **measurement artifact**: read from outside the map, every object-template tile is blocked. §Ch19 had already been burned by this exact thing. |
+| 5 | "This route rides a current into a warp" | **The assertion was wrong, the planner was right** — the destination sits at index `len-2` when it is itself a warp. Fourth time this project has had a failing probe be the instrument. |
+
+**The common root:** every one was an instrument that produced a *confident, plausible* answer to a
+**different question** than the one being asked. None crashed. Four of the five would have been
+believed if the numbers had not been cross-checked against a second source.
+
+**The prevention rules, generalised** (the specific ones live in each entry above):
+*(1) **Before trusting a measurement, state the question it actually answers** and check that it is
+the question you asked. "115 tiles match this pattern" ≠ "115 tiles are affected".*
+*(2) **An experiment must prove it varied.** Assert that the arm is the arm — a symbol, a hash, a
+version marker — before comparing arms. `exit 0` from a VCS command is not evidence.*
+*(3) **A verification artifact must not be built by copying the implementation.** Assert against an
+INDEPENDENT authority: the decomp, the live game, or the production object itself.*
+*(4) **When a probe reports a failure, read the failing line before touching the subject.** In this
+project the check has been wrong more often than the code — now five times.*
+*(5) **A measurement taken from outside the state under test inherits that distance as a bias.**
+Reading a map the avatar is not standing on silently blocks every object tile. Say so IN THE
+OUTPUT, and label the result a bound rather than a fact.*

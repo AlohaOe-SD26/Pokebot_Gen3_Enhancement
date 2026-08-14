@@ -3,11 +3,47 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-08-13 — read "‼ YOU ARE HERE" immediately below.
+**Last updated:** 2026-08-13 — start at the single orientation block immediately below.
 Every banner further down is HISTORY, newest first.
 
 ---
-# ‼ YOU ARE HERE — end of the ROSTER-DRIVE session (2026-08-13). Read this, then `14-AGENT-PLAYBOOK.md`.
+# ‼ YOU ARE HERE — end of the **PATHFINDER + §Ch20-SCOPING** session (2026-08-13). Read this, then `14-AGENT-PLAYBOOK.md`.
+
+> **State: `main`, clean, 0 ahead / 0 behind, 17/17 gates PASS, nothing parked.** 13 commits this
+> session, all pushed. ‼ `stash@{0}` exists **on purpose** — see the STATE table; **never drop it.**
+
+## 🧭 WHAT THIS SESSION DID — the cold-context orientation
+
+**1. KI-59 (the pathfinder's inverted `Impassable *` handling) — MEASURED, FIXED, PROVEN, GATED.**
+* ⛔ **Its headline was wrong in four documents** and is retracted: *"armed in the Seafloor Cavern,
+  A/B on `SEAFLOOR_CAVERN_ROOM1`"*. The handler is the `elif` of `if tile.collision != 0`, **all 115
+  cavern tiles have `collision=1`, so ZERO reach it** — that A/B would have measured a zero delta and
+  invited "KI-59 isn't real". Game-wide: **2,658 such tiles, 2,257 dormant, 401 (15.1%) live**,
+  chiefly the **Regi tombs (144)**, **Shoal Cave (98)**, **Victory Road (58)**.
+* ✅ **Fixed both halves** — the entry vector, **plus a new `PathTile.blocked_exit_directions`** for
+  the decomp's exit rule, which the data model previously could not express at all.
+  **A/B on `VICTORY_ROAD_1F`: `calculate_path` went from NO-PATH from EVERY direction onto all 29
+  live tiles (they were invisible to the planner) to `OK len=1` on the legal ones.** Mossdeep
+  collateral control byte-identical; gate **`repro_impassable_dirs.py`** is now #17.
+
+**2. §Ch20 (Seafloor Cavern / Kyogre) — SCOPED END TO END, NOT YET BUILT.**
+* `#24-ch20rename` **DONE** (`--driver ch20dive`, `probe_ch20_topology.py`), verified by re-running.
+* **Area Atlas** (`probe_ch20_interior.py`): warp graph benign, all rooms reachable; **Rooms 1/2/3/5/8
+  are STRENGTH-BOULDER puzzles**, Rooms 6/7 are open-water **current mazes**, Rooms 4/9 split by terrain.
+* **11-leg build spec** with assertable conditions:
+  `ai-research-notes/2026-08-13-ch20-seafloor-cavern-build-spec.md`. ‼ It corrected **our own docs**:
+  **ROCK SMASH is mandatory** (Strength alone is physically stuck in Room 1), the trigger tile is
+  **`(17,42)` not `(16,42)`**, and the chapter must be graded on **`VAR_ROUTE128_STATE == 2`**, not
+  the Kyogre flag — which is set *before* a forced warp into a SECOND cutscene, landing on a
+  **sandbar** the bot must Surf off.
+* ✅ **The current mazes are routable by our planner** (4/4 pre-registered predictions, slide model
+  proven in use), so Rooms 6/7 need **no solver**.
+
+**3. NEW ISSUES FILED: KI-74, KI-75, KI-76** (see `05-KNOWN-ISSUES.md`). KI-76's **safety half is
+fixed** (bounded slide loop + `None` guards, fault-tested); its **correctness half is OPEN**.
+
+⇒ **THE NEXT STEP IS A LIVE DRIVE OF §Ch20, NOT MORE PLANNING.** Details in "NEXT ACTIONS".
+
 
 ## ⛔ NAMING CORRECTION — "§Ch21" IN THIS FILE MEANS **CHAPTER 20**. Read this before acting.
 
@@ -491,7 +527,8 @@ teaching Dive/Dig/Flash. ‼ **Relicanth is underwater-only, so Dive is upstream
 
 ## ⏭ NEXT ACTIONS, IN ORDER
 
-> **START HERE ON A FRESH CONTEXT.** Everything is committed and pushed; nothing is parked.
+> **The ordered work queue** (the cold-start orientation is the ‼ YOU ARE HERE block at the top of
+> this file, not here). Everything is committed and pushed; nothing is parked.
 > 1. **Run `preflight.py`**, then the **16**-gate suite in "HOW TO RUN / TEST" (all exit 0 as of
 >    2026-08-13), and the sandbox↔custom drift loop. ‼ **EXPECT EXACTLY 2:**
 >    `modules/story/early_game.py` and `plugins/custom_modes/story_mode.py` — KI-63's **production
