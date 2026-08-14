@@ -12941,3 +12941,52 @@ reported it as "superseded, safe to drop"; the ruling is that a superseded stash
 and dropping it is destructive for no gain. ⛔ Standing rule now: **never `git stash drop`/`clear`/
 `pop` in this repo** — `pop` separately because it mutates a global stack, which is how this stash
 was disturbed in the first place. `git stash list` belongs in the session-start ritual to SEE it.
+
+### 2026-08-13 — an audit of the current-model claim I had just committed: KI-76 filed, and one of my own sentences corrected
+
+I committed *"our planner does model the current mazes"* off a clean 4/4 prediction run. An
+adversarial audit of that claim found the 4/4 stands but the conclusion was drawn too widely.
+
+**KI-76 (OPEN, armed for §Ch20)** — two real divergences in `map_path.py`'s current model:
+1. **A slide that ENDS ON A WARP is invisible.** `:915` applies the `cost = 1000000` warp penalty to
+   the neighbour **before** `:957` substitutes the slide destination, so the destination's
+   `warps_to` is never inspected, penalised, or flagged on the `Waypoint`. ⚠ **And A\* is actively
+   BIASED toward long slides**: under `avoid_encounters` the `+1000` is charged once per waypoint
+   *after* substitution, so a 9-tile slide costs ~1009 where nine walked steps cost ~9009 — **~9×
+   cheaper**. `ROOM6 (14,8)` is a water-level door to the cavern entrance and **9 of that room's 108
+   chains terminate on it**, one step from `(8,12)`, the room's most common terminus.
+2. **The slide ends one tile short, in the wrong movement mode.** `:284` continues only while
+   `next_tile.elevation == 1`; the game *dismounts* you onto an elevation-3 tile
+   (`CanStopSurfing` → `COLLISION_STOP_SURFING`). **44 of Room 7's 117 chains** end that way at
+   `(3,19)`. Room 6 is exact — all its terminals are collision 0 / elevation 1.
+
+✅ **Measured, not assumed:** `probe_ch20_currents.py` now asserts that no waypoint lands on a warp
+tile before the destination. **0 offenders** across all four routes; P1's waypoints are exactly the
+documented Room 6 chain termini and `(14,8)` never appears. Not a general guarantee — the assertion
+lives in the probe so any NEW Room 6 route gets re-checked.
+
+‼ **AND THE ASSERTION WAS WRONG ON ITS FIRST RUN — the planner was right.** It flagged P4 as riding
+into a warp; `(3,23)` is P4's *destination*, and when the destination is itself a warp the planner
+emits it and THEN the far-side arrival tile — so the destination sits at index `len-2` and a naive
+"is it last?" test reports the intended exit as a trap. **The fourth time in this project that a
+failing probe was the instrument, not the subject.** Fixed, with the reason recorded inline.
+
+⛔ **CORRECTION TO MY OWN CHANGELOG ENTRY ABOVE.** I wrote that our planner "reproduces the currents'
+ONE-WAY asymmetry independently of the decomp note ... two unrelated methods agreeing". The audit
+shows our one-way result comes from an **invented entry mask** — we forbid entering a current
+head-on against its flow, and **the decomp imposes no entry restriction on currents at all**. The
+mask is benign and reachability-equivalent in these rooms, so the *conclusion* stands, but the two
+methods were not as independent as I claimed. Corrected in `04-HANDOFF.md` too.
+
+Three further divergences recorded in KI-76, none armed here: `_get_connection_for_direction()` can
+return `None` and is unpacked unguarded (**`TypeError` risk, UNVERIFIED for Routes 129-134**, which
+are full of currents); `MB_SLIDE_*` is not modelled at all (zero occurrences in this cavern); and
+the slide `while` loop is unbounded (measured: no cycles here, longest chain 32 ⇒ **a cap of 64 is
+safe and should be added anyway**).
+
+📌 **Playbook §N added:** `gh api ... | base64 -d` **silently corrupts binary decomp files** — an
+800-byte `map.bin` decodes to 1176. Use `raw.githubusercontent.com` + `curl` and assert
+`width*height*2`. Any earlier conclusion drawn from a `gh api`-decoded `map.bin` is suspect.
+
+Housekeeping for the R3 budget: KI-39, KI-63's superseded original filing, and KI-67's original
+filing moved verbatim to `31-KNOWN-ISSUES-ARCHIVE.md` with stubs.

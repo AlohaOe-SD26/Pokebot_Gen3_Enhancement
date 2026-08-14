@@ -582,13 +582,26 @@ teaching Dive/Dig/Flash. ‼ **Relicanth is underwater-only, so Dive is upstream
 >    `probe_ch20_currents.py` (NEW) put **4 pre-registered predictions** to our REAL planner on the
 >    two current mazes and got **4/4, including the DISCRIMINATING one**: `ROOM6 (11,21)->(4,1)`
 >    routes, and **`ROOM6 (4,1)->(11,21)` correctly FAILS** — our planner reproduces the currents'
->    ONE-WAY asymmetry independently of the decomp note, which is real corroboration between two
->    unrelated methods. ‼ **And the slide model is PROVEN in use, not assumed**: P1 emits 13
+>    ONE-WAY asymmetry independently of the decomp note. ⚠ **BUT AN AUDIT CORRECTED HOW MUCH THAT
+>    PROVES (KI-76):** our one-way result comes from an **INVENTED entry mask** (we forbid entering a
+>    current head-on against its flow) — the decomp imposes **no entry restriction on currents at
+>    all**. The mask is benign and reachability-equivalent here, so the CONCLUSION holds, but
+>    "independently reproduced the game's asymmetry" **overstated it**. ‼ **And the slide model is PROVEN in use, not assumed**: P1 emits 13
 >    waypoints for a 27-tile Manhattan trip and P4 emits 12 for 24 — impossible with 1-tile steps.
 >    ‼ **Measurable from outside the cavern ONLY because Rooms 6/7 have ZERO objects** (so the
 >    `active_objects` artifact that invalidated the boulder rooms cannot apply here).
 >    ⇒ **Rooms 6/7 can be driven with `navigate_to`; they do NOT need a §Ch18-style solver.**
+>    ‼ **AND KI-76 IS FILED AGAINST THIS AREA:** a slide that ENDS ON A WARP is never penalised
+>    (`map_path.py:915`'s warp cost is applied one branch BEFORE `:957` substitutes the slide
+>    destination), and A* is **actively biased toward long slides** (~9x cheaper than walking under
+>    `avoid_encounters`). `ROOM6 (14,8)` is a water-level door and **9 of its 108 chains end on it**.
+>    ✅ Measured: the four routes we actually plan spring **0** traps — `probe_ch20_currents.py`
+>    section 3b asserts it — but that is not a general guarantee. **Re-run that assertion for any
+>    NEW route through Room 6.**
 >    ⚠ **Still unproven LIVE** — a plan is not a walk, and the EXECUTOR has never crossed a current.
+>    ℹ Upstream `puzzle_solver.py:405` DOES `navigate_to(ROOM6, (4,1))` and its wiki marks the
+>    Seafloor Cavern ✅ for Emerald — the strongest available signal that the executor can do it,
+>    and still a third-party claim, not evidence.
 >    That is now the first thing to drive, not the first thing to design around.
 >    Also: **puzzle state RESETS on every map re-entry** (`FLAG_TEMP_*`), so never cache "solved";
 >    `FLAG_SYS_USE_STRENGTH` by contrast persists. **Losing to Archie resets the whole dungeon.** It IS the ladder

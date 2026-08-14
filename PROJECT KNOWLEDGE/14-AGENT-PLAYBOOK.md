@@ -612,3 +612,18 @@ Write for an agent with ZERO prior context:
 
 The goal: the next agent reads `04` + this playbook and can immediately build, debug, and
 document at full speed — better than we did.
+
+## §N. ‼ `gh api ... | base64 -d` SILENTLY CORRUPTS BINARY DECOMP FILES (2026-08-13)
+
+Fetching decomp **binaries** (`data/layouts/*/map.bin`, `metatile_attributes.bin`) with
+`gh api repos/pret/pokeemerald/contents/<path> --jq .content | base64 -d` **re-encodes the bytes as
+UTF-8**. Measured: an 800-byte `map.bin` came back as **1176 bytes**. Every tile you then decode is
+garbage, and it fails *silently* — you get plausible-looking numbers, not an error.
+
+**Do instead:** fetch binaries from `raw.githubusercontent.com` with `curl`, and **assert the size**
+against `width * height * 2` before parsing a single tile. `gh api` remains fine for TEXT
+(`.inc`, `.c`, `.h`, `.json`).
+
+⇒ **Any earlier agent conclusion drawn from `gh api`-decoded `map.bin` is suspect** and should be
+re-derived. This is also a general instance of the project's standing rule: an instrument that fails
+silently is worse than one that crashes, so give it a control — here, the size check.

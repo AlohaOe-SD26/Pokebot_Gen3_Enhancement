@@ -171,6 +171,60 @@ for tag, m, src, dst, expect_ok, why in TESTS:
         print(f"      waypoint actions: {acts}")
         print(f"      len={len(wp)} vs Manhattan({src}->{dst})={manhattan}   {slide_proof}")
 
+head("3b. ‼ THE DECISIVE TEST — does a planned route RIDE A CURRENT INTO A WARP? (KI-76 / D1)")
+
+print("  `map_path.py:915` applies the 1,000,000 warp-avoidance penalty to the tile BEFORE `:957`")
+print("  substitutes the slide destination — so a slide that ENDS ON A WARP is never penalised and")
+print("  is never flagged `is_warp` on the emitted Waypoint. And under `avoid_encounters` (the")
+print("  `navigate_to` default) the +1000 encounter penalty is charged ONCE PER WAYPOINT after the")
+print("  substitution, so a 9-tile slide costs ~1009 where nine walked water steps cost ~9009:")
+print("  ‼ **A* is actively BIASED TOWARD long slides.**")
+print("  ROOM6 (14,8) is a water-level door warping to SEAFLOOR_CAVERN_ENTRANCE, and 9 of the room's")
+print("  108 current chains terminate on it. So: does any route below step on a warp mid-path?\n")
+
+trap_hits = 0
+for tag, m, src, dst, expect_ok, _why in TESTS:
+    g = grid_of(m)
+    ts = g.get(src)
+    if ts is None or ts.collision != 0:
+        continue
+    ok, _msg, wp = route(m, src, dst)
+    if not ok or not wp:
+        continue
+    md = get_map_data(m, (0, 0))
+    warp_tiles = {tuple(w.local_coordinates) for w in md.warps}
+    print(f"  {tag} {m.name} {src} -> {dst}: {len(wp)} waypoints")
+    coords_list = [tuple(w.coordinates) for w in wp]
+    # ‼ THE CHECK WAS WRONG ON ITS FIRST RUN AND THE PLANNER WAS RIGHT — recorded here so nobody
+    # re-derives it. When the DESTINATION is itself a warp tile, `calculate_path` emits the
+    # destination and THEN one more waypoint: the arrival tile on the far side of that warp. So the
+    # destination sits at index len-2, not len-1, and a naive "is it the last waypoint?" test
+    # reports the intended exit as a mid-route trap. An offender is a warp-tile waypoint that
+    # occurs BEFORE we reach the destination.
+    try:
+        dst_idx = coords_list.index(tuple(dst))
+    except ValueError:
+        dst_idx = len(coords_list) - 1
+    offenders = [
+        (idx, c) for idx, c in enumerate(coords_list) if c in warp_tiles and idx < dst_idx
+    ]
+    print(f"      warp tiles on this map: {sorted(warp_tiles)}")
+    print(f"      waypoint coords: {coords_list}")
+    print(f"      destination {tuple(dst)} sits at index {dst_idx} of {len(coords_list)}"
+          f"{'  (a post-warp arrival tile follows it)' if dst_idx == len(coords_list) - 2 else ''}")
+    if offenders:
+        trap_hits += len(offenders)
+        print(f"      ⛔ RIDES INTO A WARP MID-ROUTE at {offenders} — the bot would be teleported")
+        print("         out of the map and the chapter would then re-path from the WRONG map.")
+    else:
+        print("      ✅ no non-final waypoint lands on a warp tile — this route does not spring the trap")
+
+print(f"\n  routes that ride into a warp mid-path: {trap_hits}")
+if trap_hits == 0:
+    print("  ⇒ **These particular routes are safe.** ‼ That is NOT a general guarantee: the defect is")
+    print("     real (D1), it is simply not exercised by these two source/destination pairs. Any NEW")
+    print("     route through Room 6 must be re-checked with this same assertion.")
+
 head("4. VERDICT")
 
 fired = [(t, g, e) for t, g, e in results if g is not None]

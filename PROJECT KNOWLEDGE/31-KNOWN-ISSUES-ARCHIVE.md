@@ -1404,3 +1404,151 @@ E  LevelUpLead...  -> slot 3 (Swellow) OURS   the class the story bot ACTUALLY c
 ever run in a real multi battle. The repro pins the LOGIC; only a driven loss can pin the whole path.
 See KI-66 for the other party scans this fix does NOT cover.
 
+
+
+# ARCHIVED 2026-08-13 from 05-KNOWN-ISSUES.md (R3 budget) — KI-63's SUPERSEDED original filing
+> ‼ KI-63 is RESOLVED; its current entry lives in `05-KNOWN-ISSUES.md`. This is the ORIGINAL
+> 2026-08-12 filing, kept verbatim for its diagnosis.
+
+## KI-63 — NO party member can learn Dive, and the party is full: §Ch21 is BLOCKED (2026-08-12, MEASURED)
+
+Measured on `post_mossdeep_gym.ss1` by `tools/story-dev/probe_ch19_hazards.py`:
+```
+party 6/6: Sceptile L48, Zigzagoon L15, Swellow L40, Skitty L17, Mightyena L44, Castform L36
+Dive learners in party: NONE
+```
+Only 76 species learn Dive and none of ours is among them.
+
+**‼ WHAT THIS DOES AND DOES NOT BLOCK.** Receiving **HM08 is a scripted gift and needs no learner**,
+so §Ch19 (Space Center) and the Dive hand-over in Steven's house are unaffected — `FLAG_RECEIVED_HM_DIVE`
+will set normally, and it is that flag which removes the Seafloor Cavern entrance guard. What is
+blocked is **USING** Dive, i.e. actually reaching the Seafloor Cavern (§Ch21).
+
+**Why it is not a small fix.** The party is FULL, so a catch would go to the PC, and
+`early_game.py:4294` already refuses exactly this case:
+> `No party mon can learn {move} and the party is full — needs PC box management (#24-pc) or a
+> manual swap.`
+And `#24-roster`/`#24-pc` is itself gated by KI-54 (the box is empty and the deposit path was
+measured harmful). ⇒ **`#24-pc` is a PREREQUISITE of the Seafloor Cavern, not a later nicety.**
+
+**‼ The natural swap is not the obvious one.** Zigzagoon L15 is the party's ONLY Surf carrier, so it
+cannot simply be dropped. A **Wailmer or Tentacool** — both on the water this arc already crosses
+(Routes 124/126/127/128) — learns **Surf and Dive**, which makes it a single swap that covers both
+duties. To settle before building: confirm the encounter tables in `modules/data` rather than
+trusting this note.
+
+‼ **NOW REPRODUCIBLE — `tools/story-dev/probe_dive_learner.py` (added 2026-08-12).** The correction
+below was first committed as **docs only**, labelled "measured", with **no script and no artifact**.
+An adversarial pass called that out: every number was independently re-derived and turned out to be
+right, but it was *right by a good recall, not by anything anyone could re-run* — the exact failure
+this project's rules exist to prevent, committed by the agent enforcing them. The probe reads
+`species.json` + the encounter index and reproduces all of it:
+```
+species that learn Dive: 76      Dive learners in the party: NONE
+evolution escape: NONE — a CATCH IS MANDATORY  (Zigzagoon->Linoone, Skitty->Delcatty, neither learns it)
+ 50%  Shoal Cave (Low Tide), Entrance Room   Spheal  L26-32  +SURF (covers BOTH duties)
+ 15%  Route 120                              Marill  L25-27  +SURF      <- tide-free fallback
+```
+‼ It carries a printed CONTROL on every id→name resolution, and they earned their place at once:
+the first draft read `evolutions[].target_species` as a national dex number and produced
+*"Zigzagoon -> Slaking"*. That wrong mapping would still have returned the RIGHT ANSWER to the
+question being asked ("no evolution learns Dive") — a correct conclusion from garbage data.
+**Sanity-check an id→name mapping against a pair you already know before trusting it on pairs you
+do not.**
+
+**‼ CORRECTION 2026-08-12 (measured, supersedes the swap suggestion above).** **Wailmer is ROD-ONLY
+and the bag has no rod**, and Tentacool is a surf slot spanning L5-35. The better candidate from our
+own species data is **Spheal** — ~50% of the Shoal Cave low-tide **land** table at L26-32, Ice/Water,
+and it learns **both Surf and Dive** with no rod needed. Also: `RECEIVED_SUPER_ROD` is **False** and
+the free Super Rod is in `MOSSDEEP_CITY_HOUSE3`, which would additionally make **Sharpedo** (40% of
+casts, L30-35) available — it learns both too. ⚠ Shoal Cave HIGH-tide rooms returned **no encounter
+header at all** in our ROM, so tide timing matters. Still blocked by the 6/6 party + KI-54.
+
+
+
+# ARCHIVED 2026-08-13 from 05-KNOWN-ISSUES.md (R3 budget) — KI-67's original filing (CLOSED)
+> ‼ KI-67 is FULLY CLOSED; the closing write-up remains in `05-KNOWN-ISSUES.md`. This is the
+> original 2026-08-12 filing, kept verbatim for its diagnosis.
+
+## KI-67 — the chapter retry loop swallows the WHITEOUT ABORT (2026-08-12, ✅ CLOSED — original filing, kept for the diagnosis)
+
+`StoryMode.on_whiteout` sets `set_story_abort(True)`; only `StoryMode.run` clears it.
+`do_space_center_chapter` catches `BotModeError` — **including the abort raised by `_check_abort()`**
+— and retries in place with the latch still set. Attempts 2 and 3 therefore raise instantly at the
+first `_check_abort()` inside `_navigate_riding_out`, so **one whiteout consumes the entire retry
+budget in a handful of frames** and the chapter reports three failures, two of them fabricated.
+
+‼ **And the harness cannot see it**: `set_story_abort` appears **zero** times in `story_harness.py`,
+so every driver's `on_whiteout` only increments a counter and `_check_abort()` is effectively dead
+code under test. `SpaceCenter1Mode`'s docstring claims it "MIRRORS StoryMode's own choice" — it
+mirrors `on_battle_started` and **not** `on_whiteout`. So every retry-path claim in these docstrings
+is untested prose.
+
+
+
+# ARCHIVED 2026-08-13 from 05-KNOWN-ISSUES.md (R3 budget) — KI-39 (corrected & largely resolved 2026-07-31)
+
+## ‼ KI-39 — CORRECTED AND LARGELY RESOLVED 2026-07-31. Read this before the section above.
+
+**The KI-39 entry above states the cause wrongly, and the handoff repeated it.** The claim
+was *"`calculate_path` only spans directly-connected maps"* and *"the bot has NO cross-map
+overworld route planning"*. Both are false. Measured live from `rocksmash_taught.ss1`
+(Mauville 32,15) with the SAME `calculate_path` the production path uses
+(`tools/story-dev/probe_journey_legs.py`, `probe_journey_why.py`, `probe_journey_walls.py`):
+
+* `map_path.py` assigns **every** edge-connected map a global offset and a shared `level`,
+  and its own docstring says it "supports paths across several maps, but only if they are
+  connected". Mauville, Routes 110/111/112/116/117 and Verdanturf are **all level 459** — so
+  `calculate_path` was trying, and failing at TILE level, not refusing to plan.
+* Partial reachability proves it: **ROUTE110 17/125 tiles reachable, ROUTE111 11/173,
+  ROUTE117 22/41, VERDANTURF 14/23.** A planner that could not cross maps would score 0.
+
+### The four blocked trips had FOUR DIFFERENT causes. Only one was route planning.
+
+| trip | measured cause | status |
+|---|---|---|
+| Mauville → **ROUTE116** | Verdanturf declares a North map CONNECTION to Route 116, so the union-find merges them into one region — but **0 of 40 sampled Route 116 tiles are walkable from Verdanturf**, while the RUSTURF_TUNNEL door at VERDANTURF (8,1) is. The real link is a **warp inside one region**, and `WarpGraph.plan()` returns `[]` for any same-region pair. **This is the genuine KI-39.** | **FIXED** (see below) |
+| Mauville → **ROUTE110** (12,60) | reachable strip ends at y≈20 (column 12); the rest is behind the cycling-road gate structures — same warp-inside-a-region class | fixed in kind; specific tile still needs the gates |
+| Mauville → **ROUTE112 / FIERY_PATH** | the **Rock Smash twin-rocks choke on ROUTE111 at (18,101)**. Column-by-column probe: reachable y≥102, blocked y≤101 across columns 17–20. Route 112 scores **0/76**, and Fiery Path's only two doors are both on Route 112. | **NOT a planner problem** — see KI-41 |
+| Mauville → **ROUTE111** (25,55) | the Go-Goggles desert. Genuinely gated; the south strip is reachable, the north is not. | correct refusal |
+
+### The fix that shipped
+`WarpGraph.warp_candidates()` — warp planning at **MAP** granularity instead of REGION
+granularity, so a warp route can be returned even when start and goal share a region. The
+map-level adjacency is now kept (it was previously consumed by the union-find and discarded);
+`CACHE_VERSION` 1→2 so stale caches rebuild rather than silently loading a degraded graph.
+`navigate_to_anywhere` now (1) asks `calculate_path` whether a plain walk works — unchanged
+fast path if yes — and only then (2) asks for warp candidates and **validates each one's
+first leg with `calculate_path` before committing**, remembering warps it has taken so a
+re-plan cannot ping-pong.
+
+‼ Also fixed in the same change: `navigate_to_anywhere`'s "did the warp fire?" test compared
+**regions**. A warp between two maps of the same region — exactly the class this makes
+plannable — leaves the region unchanged, so a *working* warp would have been reported as
+`"Warp at … did not trigger (locked or event-gated?)"`. It compares maps now.
+
+### Proof
+* `tools/story-dev/repro_journey_planner.py` — 27 checks, no emulator, pins the whole
+  topology including the two traps below.
+* `tools/story-dev/probe_journey_live.py` (+ `story_harness.py --driver journey`) — live
+  fault-injected A/B in the faithful harness:
+  **OLD arm `arrived=False map=MAUVILLE_CITY`** (never left the starting map) vs
+  **NEW arm `arrived=True map=ROUTE116`, 33,725 frames**, walking Mauville → Route 117 →
+  Verdanturf → Rusturf Tunnel → Route 116.
+
+### Two traps found while building it, both pinned by the repro
+1. **The progress filter must be NON-INCREASING, not strictly decreasing.** The phantom
+   Verdanturf→Route116 connection puts the target 1 hop away, so *nothing* can be strictly
+   closer and a strict filter drops the very warp that works.
+2. **Banning the previous answer produces junk candidates.** Verdanturf→Route116 offered the
+   BATTLE TENT LOBBY and the MART as candidates 5 and 6 — real routes (walk in, walk out,
+   then take the tunnel) that make no progress. Harmless only while an earlier candidate
+   validates, which is not a guarantee.
+
+### ‼ What this does NOT fix — correct the handoff's expectations
+The handoff said `#24-journey` *"unblocks the thing that is killing runs"*. **It does not.**
+The counter the ladder names is Machop @ FIERY_PATH, and measured after the fix: a warp route
+to FIERY_PATH **is** found (2 candidates, both ROUTE112 doors) and **neither first leg is
+walkable**, because of the Rock Smash choke. The planner was never the blocker there — see
+**KI-41**, which is now the thing standing between the counter chain and acting.
+
