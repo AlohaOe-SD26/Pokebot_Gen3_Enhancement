@@ -2251,7 +2251,7 @@ the party menu physically permutes the array (`UpdatePartyToBattleOrder`). The f
 ## ‼‼ KI-68 — §Ch21 IS NOT BLOCKED BY THE PARTY SLOT. **DIVE IS NOT ROUTABLE AT ALL.** (2026-08-12, code-verified) — ✅ **THE ROUTE IS NOW DRIVEN, 2026-08-13**
 
 > ### ✅ RESOLVED IN PRACTICE 2026-08-13 — read this before the (still accurate) analysis below.
-> **The first driven dive in this project: `--driver ch21dive`, `ACCEPTANCE: PASS`, `legs=6/6`,
+> **The first driven dive in this project: `--driver ch20dive`, `ACCEPTANCE: PASS`, `legs=6/6`,
 > Mossdeep → `SEAFLOOR_CAVERN_ENTRANCE (10,17)` AND back out to the open ocean.**
 > ```
 > ROUTE128 (38,27) Deep Water -> dive()  -> UNDERWATER_ROUTE128 (38,27)   [same x,y]
@@ -2267,8 +2267,8 @@ the party menu physically permutes the array (`UpdatePartyToBattleOrder`). The f
 >    `(10,18) -> UNDERWATER_ROUTE128 (38,26)` is **not what happens live**: diving there drops you
 >    back into the pool at (6,5), and the real exit is three hops. **Drive it; do not read it.**
 >
-> Measured route + raw transcripts: `ai-research-notes/2026-08-13-ch21-dive-leg-predictions.md`
-> and `tools/story-dev/probe_ch21_topology.py`. ‼ **This does NOT make §Ch21 unblocked** — the run
+> Measured route + raw transcripts: `ai-research-notes/2026-08-13-ch20-dive-leg-predictions.md`
+> and `tools/story-dev/probe_ch20_topology.py`. ‼ **This does NOT make §Ch21 unblocked** — the run
 > injected Dive with a debug write. Acquiring a real Dive learner (KI-63) is still open. And see
 > **KI-72**: never let the planner choose a surfacing tile.
 > ‼ Also read `ai-research-notes/2026-08-13-puzzle-solver-already-ships-ch21-and-the-regi-arc.md`

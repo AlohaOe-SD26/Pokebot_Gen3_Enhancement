@@ -12789,3 +12789,31 @@ The claim "KI-59 blocked the Regi arc, I fixed it, so build it" was **refuted th
 was ‼ **the same error logged that morning** — counting tiles a bug/fix applies to without checking
 whether anything REACHES them. The arc needs ~7 non-existent subsystems behind a 9-step serial
 prefix. §Ch20 is on the ladder, its dive leg is already driven 6/6, and its blast radius is additive.
+
+## 2026-08-13 — `#24-ch20rename` DONE: the cavern artefacts are no longer named after the wrong chapter
+
+The Seafloor Cavern is **Chapter 20** (`chapters.py:233`), but 2026-08-13's work called it "§Ch21"
+throughout and the misnomer got baked into artefact NAMES. Nothing was broken — correct code, wrong
+names — and the risk was concrete: a future agent building "Chapter 21" (really Sootopolis /
+Rayquaza) against cavern tooling. Renamed:
+
+| old | new |
+|---|---|
+| `--driver ch21dive` (class `Ch21DiveMode`, 33 log tags) | `--driver ch20dive` (`Ch20DiveMode`) |
+| `tools/story-dev/probe_ch21_topology.py` | `tools/story-dev/probe_ch20_topology.py` |
+| `ai-research-notes/2026-08-13-ch21-dive-leg-predictions.md` | `...-2026-08-13-ch20-dive-leg-predictions.md` |
+
+Plus the three `§Ch21` prose occurrences inside `story_harness.py`, each checked individually to be
+about the cavern rather than about Sootopolis.
+
+**Verified by RE-RUNNING, not by a diff** — a rename that is only inspected is a rename that has not
+been tested: `probe_ch20_topology.py` exit 0, and `--driver ch20dive` →
+`[ch20dive] ACCEPTANCE: PASS legs=6/6 at_entrance=True got_out=True can_continue=True`.
+
+‼ **`06`/`07`/`08` were deliberately left alone.** They are append-only history; rewriting them to
+match a new name would be falsifying the record. Seven references to the old names remain there on
+purpose, and **both renamed files now carry a provenance header** stating that log entries dated on
+or before 2026-08-13 mean the new artefacts. `04-HANDOFF.md`'s naming-correction banner was rewritten
+from "do not fix this yet" to "done, and here is why the old names still appear in history".
+
+17/17 gates PASS; `lint_docs.py` PASS.

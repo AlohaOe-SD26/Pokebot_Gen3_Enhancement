@@ -3295,11 +3295,22 @@ crawled at 1× (user-reported, fixed in `aadad944`).
 The CLI form above is NOT superseded — it keeps the fresh-profile-per-run and wall-clock/log-growth
 failsafes that an in-process mode cannot have, and remains the right tool for a scripted batch.
 
-- [ ] `#24-ch20rename` — **NEW 2026-08-13, SMALL AND SAFE, do it at the START of a session not the end.**
+- [x] `#24-ch20rename` — ✅ **DONE 2026-08-13.** Renamed and VERIFIED BY RE-RUNNING BOTH, not by a
+      diff: `--driver ch21dive` → **`ch20dive`** (class `Ch21DiveMode` → **`Ch20DiveMode`**, all 33
+      log tags), `probe_ch21_topology.py` → **`probe_ch20_topology.py`**, and
+      `ai-research-notes/2026-08-13-ch21-dive-leg-predictions.md` → **`...-ch20-...`**. Also the
+      three `§Ch21` prose occurrences inside `story_harness.py`, each checked individually to be
+      about the cavern. **Proof:** `probe_ch20_topology.py` exit 0; `--driver ch20dive` →
+      `[ch20dive] ACCEPTANCE: PASS legs=6/6 at_entrance=True got_out=True can_continue=True`.
+      Current-state docs `03`/`04`/`05` updated (0 residual old names). ‼ **`06`/`07`/`08` were
+      deliberately NOT touched** — append-only history is not rewritten, so 7 references to the old
+      names remain there on purpose; **both renamed files carry a provenance header** saying those
+      entries mean the new artefacts. 17/17 gates PASS, `lint_docs` PASS. Original item follows.
+- [x] `#24-ch20rename` (original text) — **NEW 2026-08-13, SMALL AND SAFE, do it at the START of a session not the end.**
       The Seafloor Cavern beat is **Chapter 20** (`chapters.py:233`), but 2026-08-13's work called it
       "§Ch21" throughout and the misnomer is baked into artefact names:
-      `--driver ch21dive` (and its `Ch21DiveMode` class), `tools/story-dev/probe_ch21_topology.py`,
-      and `ai-research-notes/2026-08-13-ch21-dive-leg-predictions.md`.
+      `--driver ch20dive` (and its `Ch21DiveMode` class), `tools/story-dev/probe_ch20_topology.py`,
+      and `ai-research-notes/2026-08-13-ch20-dive-leg-predictions.md`.
       ‼ Nothing is broken — they are correct code with wrong names. The risk is a future agent
       building "Chapter 21" (which is really **Sootopolis / Rayquaza**) against cavern tooling.
       **Do:** rename driver + class + probe + note, update `04-HANDOFF.md`'s naming-correction

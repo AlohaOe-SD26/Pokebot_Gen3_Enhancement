@@ -1,4 +1,11 @@
-"""§Ch21 — MEASURE the ROUTE128 -> dive -> UNDERWATER_ROUTE128 -> SEAFLOOR_CAVERN topology.
+"""§Ch20 — MEASURE the ROUTE128 -> dive -> UNDERWATER_ROUTE128 -> SEAFLOOR_CAVERN topology.
+
+‼ RENAMED 2026-08-13 (`#24-ch20rename`): this was `probe_ch21_topology.py`, and the driver it
+  pairs with was `--driver ch21dive`. The Seafloor Cavern is **Chapter 20** (`chapters.py:233`);
+  Chapter 21 is Sootopolis/Rayquaza and has not been touched. The code was always correct — only
+  the names were wrong. **Entries in the append-only logs (`06`/`07`/`08`) dated on or before
+  2026-08-13 still say `probe_ch21_topology.py` / `ch21dive`; that is deliberate — history is not
+  rewritten — and they mean THIS file and `--driver ch20dive`.**
 
 Everything printed here comes from OUR OWN ROM/map data (`modules.map.get_map_data`,
 `modules.map.get_map_all_tiles`, `modules.map_path.calculate_path`) — nothing from recall.
@@ -22,7 +29,7 @@ CONTROLS (so a null result is attributable):
     about the ROUTE, not about the harness.
   * NEGATIVE — a `calculate_path` into a known-blocked (collision != 0) tile, expected to raise.
 
-Run:  cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_ch21_topology.py
+Run:  cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_ch20_topology.py
 """
 
 import pathlib

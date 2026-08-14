@@ -15,13 +15,19 @@ The Seafloor Cavern / Kyogre beat is **Chapter 20**, not 21:
 `modules/story/chapters.py:233` — `Chapter("20", 25, "Seafloor Cavern — Kyogre", …)`, and
 `:249` — `Chapter("21", 26, "Sootopolis crisis & Rayquaza", …)`. `12-STORYMODE-DESIGN.md` agrees.
 
-I used "§Ch21" for the Seafloor Cavern throughout 2026-08-13 and it leaked into artefact NAMES:
-**`--driver ch21dive`**, **`probe_ch21_topology.py`**, and two `ai-research-notes` filenames. Those
-names are **misnomers pinned to Chapter 20** — they work, they are just named wrong.
+✅ **THE RENAME IS DONE (2026-08-13, `#24-ch20rename`).** The artefacts are now
+**`--driver ch20dive`** (class `Ch20DiveMode`), **`tools/story-dev/probe_ch20_topology.py`** and
+**`ai-research-notes/2026-08-13-ch20-dive-leg-predictions.md`**. Verified after renaming by
+re-running both: probe exit 0, driver `ACCEPTANCE: PASS legs=6/6`.
 
-‼ **Do not "fix" a chapter number by renaming files during a wrap-up.** The rename is on the punch
-list as `#24-ch20rename`. Until then: when this file says §Ch21 and means the cavern, read
-**Chapter 20**; the genuine Chapter 21 is Sootopolis/Rayquaza and has not been touched.
+‼ **THE OLD NAMES SURVIVE ON PURPOSE IN `06`/`07`/`08`.** Those are append-only history and are not
+rewritten, so entries dated on or before 2026-08-13 still say `--driver ch21dive` /
+`probe_ch21_topology.py` / `...-ch21-dive-leg-predictions.md`. **They mean the Chapter 20
+artefacts above.** Both renamed files carry a provenance header saying so.
+
+‼ **THE UNDERLYING RULE STILL APPLIES:** the Seafloor Cavern is **Chapter 20**
+(`chapters.py:233`); the genuine **Chapter 21 is Sootopolis / Rayquaza** and has not been touched.
+Anywhere older text says "§Ch21" and means the cavern, read **Chapter 20**.
 
 ## ⏱ THE 60-SECOND VERSION (if you read nothing else)
 * **`reorder_party()` IS NOW DRIVEN AND PROVEN.** `--driver roster` (NEW) ran **six swaps, all
@@ -45,7 +51,7 @@ list as `#24-ch20rename`. Until then: when this file says §Ch21 and means the c
   **Archie's own cutscene tile** and hands control to a human — no battle, no progression, no exit),
   and the Regi branches **open the door only**, ending at the tomb's EXIT warp, never at the statue.
   **What survives is still valuable**: the `dive() → navigate → surface_from_dive()` template (which
-  `--driver ch21dive` copied to a 6/6 PASS), free hand-derived room coordinates, and independent
+  `--driver ch20dive` copied to a 6/6 PASS), free hand-derived room coordinates, and independent
   corroboration of **KI-69**'s Emerald party order (`("Wailord", 0)` / `("Relicanth", size-1)`).
   Read `ai-research-notes/2026-08-13-puzzle-solver-already-ships-ch21-and-the-regi-arc.md` —
   **the correction is at the top.** ⛔ Never point it at a Regi tomb: its battle handling is
@@ -57,7 +63,7 @@ list as `#24-ch20rename`. Until then: when this file says §Ch21 and means the c
   shared tail presses `A` once *before* its first `yield`, so a single stray A can be emitted after
   Manual is set; on the Emerald paths the avatar is still in the OUTER room so it cannot reach a
   statue, but the R/S paths end at `(8,11)` INSIDE and that tile was not checked.
-* **✅ THE FIRST DRIVEN DIVE IN THIS PROJECT — KI-68 step 1 IS DONE.** `--driver ch21dive` (NEW)
+* **✅ THE FIRST DRIVEN DIVE IN THIS PROJECT — KI-68 step 1 IS DONE.** `--driver ch20dive` (NEW)
   → `ACCEPTANCE: PASS legs=6/6 at_entrance=True got_out=True can_continue=True`. Mossdeep →
   `SEAFLOOR_CAVERN_ENTRANCE (10,17)` **and back out to the open ocean**.
   ‼ **THE STATIC WARP DATA IS MISLEADING AT BOTH ENDS OF THIS CAVERN** — the way in *and* the way
@@ -538,8 +544,8 @@ teaching Dive/Dig/Flash. ‼ **Relicanth is underwater-only, so Dive is upstream
 >    solver **against the un-fixed inversion**. ‼ That was the SAME error logged that morning —
 >    counting tiles without checking what REACHES them — made twice in one day.
 >    **DO, IN THIS ORDER:**
->    **(i) `#24-ch20rename`** — small, safe, start-of-session. `--driver ch21dive`,
->    `probe_ch21_topology.py` and two note filenames are misnomers pinned to **Chapter 20**.
+>    **(i) `#24-ch20rename`** — small, safe, start-of-session. `--driver ch20dive`,
+>    `probe_ch20_topology.py` and two note filenames are misnomers pinned to **Chapter 20**.
 >    **(ii) §Ch20 SEAFLOOR CAVERN / KYOGRE — the real next build.** It IS the ladder
 >    (`chapters.py:233`, graded `KYOGRE_ESCAPED_SEAFLOOR_CAVERN`; `story_mode.py:3654` = END OF BUILT
 >    CONTENT — ‼ that line still says "BLOCKED BY KI-63", which is **stale**, fix it). Uniquely
@@ -813,8 +819,8 @@ PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver roster --frames 40
 # ‼ THE FIRST DRIVEN DIVE (added 2026-08-13). ~3 min. Expect ACCEPTANCE: PASS, legs=6/6.
 #   Mossdeep -> ROUTE128 (38,27) -> dive -> cavern -> surface (10,17) -> and back OUT.
 #   ‼ `got_out` is the one that matters: an underwater cavern is the best place yet to strand a run.
-PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch21dive --frames 900000
-PYTHONUTF8=1 py -3.12 probe_ch21_topology.py         # the measured route (read-only, 2 controls)
+PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch20dive --frames 900000
+PYTHONUTF8=1 py -3.12 probe_ch20_topology.py         # the measured route (read-only, 2 controls)
 # ‼ KI-63 END TO END (the session's headline result). ~6 min. Expect ACCEPTANCE: PASS with
 #   deposited_pids / gained_pids each exactly one PID. Drives the PRODUCTION wrapper.
 PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver divelearner --frames 3000000

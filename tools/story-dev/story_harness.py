@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "ch21dive", "divelearner"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "ch20dive", "divelearner"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -3308,7 +3308,7 @@ class SpaceCenterMode(BotMode):
 
     ‼ AND IT ASSERTS THE ITEM, NOT ONLY THE FLAG. `EventScript_StevenGivesDive` does `giveitem` and
     then `setflag` with NO check of the result, so a full TM/HM pocket sets the flag while HM08 was
-    never received - the chapter would grade green and §Ch21 would fail on "cannot use Dive".
+    never received - the chapter would grade green and §Ch20 would fail on "cannot use Dive".
 
     ‼ AND "THE BOT CAN CONTINUE". The acceptance requires being OUT of any interior and holding a
     real path to the next beat's departure point. §Ch15 and §Ch18 each passed a binary test while
@@ -4700,7 +4700,7 @@ class RosterMode(BotMode):
         return
 
 
-class Ch21DiveMode(BotMode):
+class Ch20DiveMode(BotMode):
     """‼ THE FIRST DRIVEN DIVE IN THIS PROJECT — KI-68 step 1, Mossdeep → SEAFLOOR_CAVERN_ENTRANCE.
 
     WHAT THIS MEASURES. `dive()` and `surface_from_dive()` both exist
@@ -4709,7 +4709,7 @@ class Ch21DiveMode(BotMode):
     on a deep-water tile, not a warp — so a chapter must drive the transition itself. This proves
     whether that actually works, and produces the coordinates a chapter would need.
 
-    THE ROUTE IS MEASURED, NOT RECALLED (`probe_ch21_topology.py`):
+    THE ROUTE IS MEASURED, NOT RECALLED (`probe_ch20_topology.py`):
         ROUTE128 (38,27) Deep Water  -> dive()              -> UNDERWATER_ROUTE128 (38,27)
         navigate 1 waypoint          -> (38,26) Water Door  -> UNDERWATER_SEAFLOOR_CAVERN (6,7)
         swim into the pool           -> surface_from_dive() -> SEAFLOOR_CAVERN_ENTRANCE (10,17)
@@ -4728,12 +4728,12 @@ class Ch21DiveMode(BotMode):
     eleven-tile island, §Ch19 in a living room — all three "controllable". An underwater cavern is
     the best place yet to strand a run, so the acceptance requires the RETURN dive as well.
 
-        PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch21dive --frames 900000
+        PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch20dive --frames 900000
 
-    Emits: [ch21dive] RESULT legs=<n/6> at_entrance=<bool> got_out=<bool> can_continue=<bool>
+    Emits: [ch20dive] RESULT legs=<n/6> at_entrance=<bool> got_out=<bool> can_continue=<bool>
     """
 
-    #: Measured, not guessed — `probe_ch21_topology.py`. (38,26) is NOT deep water on the surface.
+    #: Measured, not guessed — `probe_ch20_topology.py`. (38,26) is NOT deep water on the surface.
     DIVE_TILE = (38, 27)
     CAVERN_DOOR = (38, 26)          # UNDERWATER_ROUTE128, tile_type 'Water Door'
     POOL_TILE = (6, 6)              # inside UNDERWATER_SEAFLOOR_CAVERN's 18-tile open pool
@@ -4742,7 +4742,7 @@ class Ch21DiveMode(BotMode):
 
     @staticmethod
     def name():
-        return "Ch21Dive"
+        return "Ch20Dive"
 
     def on_battle_started(self, encounter):
         # Same rule as every other driver here: a driver without a strategy hangs on a payout, and
@@ -4802,7 +4802,7 @@ class Ch21DiveMode(BotMode):
         #       KI-63 — a real blocker for the CHAPTER, but not the thing under test here.
         # ‼ KI-68 sanctions exactly this: "inject Dive … near-zero risk — no deposit, no new data
         # row, no party change". So: heal in place, and give ONE existing slot the move.
-        # ‼ THIS DOES NOT MAKE §Ch21 UNBLOCKED. Acquiring a Dive learner is still open work.
+        # ‼ THIS DOES NOT MAKE §Ch20 UNBLOCKED. Acquiring a Dive learner is still open work.
         try:
             from types import SimpleNamespace
 
@@ -4835,11 +4835,11 @@ class Ch21DiveMode(BotMode):
                     data[80:84] = b"\x00" * 4     # clear the status bitfield
                 keepers.append(SimpleNamespace(data=bytes(data)))
             debug_write_party(keepers)
-            log(f"[ch21dive] FIXTURE: healed the party and replaced slot 3 ({replaced}) with "
+            log(f"[ch20dive] FIXTURE: healed the party and replaced slot 3 ({replaced}) with "
                 f"Wailmer L40 knowing Dive+Surf. ‼ This measures the ROUTE, not the acquisition "
                 f"of a Dive learner — KI-63 is still open.")
         except Exception as error:  # noqa: BLE001
-            log(f"[ch21dive] FIXTURE FAILED ({type(error).__name__}: {str(error)[:200]}) — "
+            log(f"[ch20dive] FIXTURE FAILED ({type(error).__name__}: {str(error)[:200]}) — "
                 f"aborting, because without Dive the run cannot measure anything.")
             _ctx.set_manual_mode()
             return
@@ -4847,38 +4847,38 @@ class Ch21DiveMode(BotMode):
         yield  # let the party write settle before anything reads it
 
         # ---- LEG 1: the long sea journey (PREDICTED to be the riskiest leg) --------------
-        log(f"[ch21dive] LEG1 sailing {self._where()} -> ROUTE128 {self.DIVE_TILE}")
+        log(f"[ch20dive] LEG1 sailing {self._where()} -> ROUTE128 {self.DIVE_TILE}")
         try:
             yield from _navigate_riding_out(MapRSE.ROUTE128, self.DIVE_TILE)
         except Exception as error:  # noqa: BLE001
-            log(f"[ch21dive] LEG1 FAILED {type(error).__name__}: {str(error)[:300]}")
+            log(f"[ch20dive] LEG1 FAILED {type(error).__name__}: {str(error)[:300]}")
         where = self._where()
         tile = self._tile_type()
         arrived = where == ("ROUTE128", self.DIVE_TILE)
         legs += 1 if arrived else 0
         notes["leg1"] = (where, tile, arrived)
-        log(f"[ch21dive] LEG1 at={where} tile_type={tile!r} arrived={arrived}")
+        log(f"[ch20dive] LEG1 at={where} tile_type={tile!r} arrived={arrived}")
         if not arrived:
-            log("[ch21dive] ‼ STOPPING — every later leg is measured FROM this tile, so "
+            log("[ch20dive] ‼ STOPPING — every later leg is measured FROM this tile, so "
                 "continuing would measure the wrong thing.")
-            log(f"[ch21dive] RESULT legs={legs}/6 at_entrance=False got_out=False "
+            log(f"[ch20dive] RESULT legs={legs}/6 at_entrance=False got_out=False "
                 f"can_continue=False detail={notes}")
-            log("[ch21dive] ACCEPTANCE: FAIL")
+            log("[ch20dive] ACCEPTANCE: FAIL")
             _ctx.set_manual_mode()
             return
 
         # ---- LEG 2: THE DIVE ------------------------------------------------------------
         try:
             yield from dive()
-            log("[ch21dive] LEG2 dive() returned")
+            log("[ch20dive] LEG2 dive() returned")
         except Exception as error:  # noqa: BLE001
-            log(f"[ch21dive] LEG2 dive() raised {type(error).__name__}: {str(error)[:300]}")
+            log(f"[ch20dive] LEG2 dive() raised {type(error).__name__}: {str(error)[:300]}")
         where = self._where()
         under = self._underwater()
         ok2 = under and where == ("UNDERWATER_ROUTE128", self.DIVE_TILE)
         legs += 1 if ok2 else 0
         notes["leg2"] = (where, under, ok2)
-        log(f"[ch21dive] LEG2 at={where} underwater={under} ok={ok2} "
+        log(f"[ch20dive] LEG2 at={where} underwater={under} ok={ok2} "
             f"(‼ same (x,y) as the surface tile is the DECOMP-confirmed behaviour)")
 
         # ---- LEG 3: navigate to the Water Door; the warp should follow automatically -----
@@ -4886,12 +4886,12 @@ class Ch21DiveMode(BotMode):
             try:
                 yield from navigate_to(MapRSE.UNDERWATER_ROUTE128, self.CAVERN_DOOR, False)
             except Exception as error:  # noqa: BLE001
-                log(f"[ch21dive] LEG3 raised {type(error).__name__}: {str(error)[:300]}")
+                log(f"[ch20dive] LEG3 raised {type(error).__name__}: {str(error)[:300]}")
         where = self._where()
         ok3 = where[0] == "UNDERWATER_SEAFLOOR_CAVERN"
         legs += 1 if ok3 else 0
         notes["leg3"] = (where, ok3)
-        log(f"[ch21dive] LEG3 at={where} in_cavern={ok3}")
+        log(f"[ch20dive] LEG3 at={where} in_cavern={ok3}")
 
         # ---- LEG 4: swim to a surfaceable POOL tile — ‼ KI-72, chosen explicitly ---------
         ok4 = False
@@ -4899,7 +4899,7 @@ class Ch21DiveMode(BotMode):
             try:
                 yield from navigate_to(MapRSE.UNDERWATER_SEAFLOOR_CAVERN, self.POOL_TILE, False)
             except Exception as error:  # noqa: BLE001
-                log(f"[ch21dive] LEG4 raised {type(error).__name__}: {str(error)[:300]}")
+                log(f"[ch20dive] LEG4 raised {type(error).__name__}: {str(error)[:300]}")
             where = self._where()
             tile = self._tile_type()
             # ‼ THE KI-72 GUARD. `surface_from_dive()` refuses on these two types, and the planner
@@ -4907,7 +4907,7 @@ class Ch21DiveMode(BotMode):
             surfaceable = tile not in ("Underwater Blocked Above", "Seaweed No Surfacing")
             ok4 = where == ("UNDERWATER_SEAFLOOR_CAVERN", self.POOL_TILE) and surfaceable
             notes["leg4"] = (where, tile, surfaceable)
-            log(f"[ch21dive] LEG4 at={where} tile_type={tile!r} surfaceable={surfaceable} ok={ok4}")
+            log(f"[ch20dive] LEG4 at={where} tile_type={tile!r} surfaceable={surfaceable} ok={ok4}")
         legs += 1 if ok4 else 0
 
         # ---- LEG 5: SURFACE — the leg no static analysis can see -------------------------
@@ -4915,13 +4915,13 @@ class Ch21DiveMode(BotMode):
         if ok4:
             try:
                 yield from surface_from_dive()
-                log("[ch21dive] LEG5 surface_from_dive() returned")
+                log("[ch20dive] LEG5 surface_from_dive() returned")
             except Exception as error:  # noqa: BLE001
-                log(f"[ch21dive] LEG5 raised {type(error).__name__}: {str(error)[:300]}")
+                log(f"[ch20dive] LEG5 raised {type(error).__name__}: {str(error)[:300]}")
             where = self._where()
             ok5 = where[0] == "SEAFLOOR_CAVERN_ENTRANCE"
             notes["leg5"] = (where, self._underwater(), ok5)
-            log(f"[ch21dive] LEG5 at={where} underwater={self._underwater()} "
+            log(f"[ch20dive] LEG5 at={where} underwater={self._underwater()} "
                 f"at_entrance={ok5} (predicted (10,17) from the RUNTIME setdivewarp)")
         legs += 1 if ok5 else 0
         at_entrance = ok5
@@ -4940,17 +4940,17 @@ class Ch21DiveMode(BotMode):
         if at_entrance:
             try:
                 yield from navigate_to(MapRSE.SEAFLOOR_CAVERN_ENTRANCE, self.ENTRANCE_WATER)
-                log(f"[ch21dive] LEG6 on the exit water tile: {self._where()} "
+                log(f"[ch20dive] LEG6 on the exit water tile: {self._where()} "
                     f"tile_type={self._tile_type()!r}")
                 yield from dive()
-                log(f"[ch21dive] LEG6 dived back down to {self._where()}")
+                log(f"[ch20dive] LEG6 dived back down to {self._where()}")
                 yield from navigate_to(MapRSE.UNDERWATER_SEAFLOOR_CAVERN, self.CAVERN_EXIT, False)
             except Exception as error:  # noqa: BLE001
-                log(f"[ch21dive] LEG6 raised {type(error).__name__}: {str(error)[:300]}")
+                log(f"[ch20dive] LEG6 raised {type(error).__name__}: {str(error)[:300]}")
             where = self._where()
             got_out = self._underwater() and where[0] == "UNDERWATER_ROUTE128"
             notes["leg6"] = (where, got_out)
-            log(f"[ch21dive] LEG6 at={where} got_out={got_out}")
+            log(f"[ch20dive] LEG6 at={where} got_out={got_out}")
         legs += 1 if got_out else 0
 
         # ---- CAN-CONTINUE ----------------------------------------------------------------
@@ -4972,24 +4972,24 @@ class Ch21DiveMode(BotMode):
             if self._underwater():
                 tile = self._tile_type()
                 if tile in ("Underwater Blocked Above", "Seaweed No Surfacing"):
-                    log(f"[ch21dive] CAN-CONTINUE ‼ KI-72: cannot surface from {tile!r}.")
+                    log(f"[ch20dive] CAN-CONTINUE ‼ KI-72: cannot surface from {tile!r}.")
                 else:
                     yield from surface_from_dive()
                     surfaced = self._where()[0] == "ROUTE128"
-                    log(f"[ch21dive] CAN-CONTINUE surfaced to {self._where()} ok={surfaced}")
+                    log(f"[ch20dive] CAN-CONTINUE surfaced to {self._where()} ok={surfaced}")
             if surfaced:
                 yield from navigate_to(MapRSE.ROUTE128, (37, 27))
                 moved = get_player_avatar().local_coordinates != before
         except Exception as error:  # noqa: BLE001
-            log(f"[ch21dive] CAN-CONTINUE raised {type(error).__name__}: {str(error)[:200]}")
+            log(f"[ch20dive] CAN-CONTINUE raised {type(error).__name__}: {str(error)[:200]}")
         can_continue = surfaced and moved and _ctx.bot_mode != "Manual"
-        log(f"[ch21dive] CAN-CONTINUE surfaced={surfaced} moved={moved} {before}->"
+        log(f"[ch20dive] CAN-CONTINUE surfaced={surfaced} moved={moved} {before}->"
             f"{get_player_avatar().local_coordinates} at={self._where()} "
             f"manual={_ctx.bot_mode == 'Manual'}")
 
-        log(f"[ch21dive] RESULT legs={legs}/6 at_entrance={at_entrance} got_out={got_out} "
+        log(f"[ch20dive] RESULT legs={legs}/6 at_entrance={at_entrance} got_out={got_out} "
             f"can_continue={can_continue} detail={notes}")
-        log(f"[ch21dive] ACCEPTANCE: "
+        log(f"[ch20dive] ACCEPTANCE: "
             f"{'PASS' if (legs == 6 and at_entrance and got_out and can_continue) else 'FAIL'}")
         _ctx.set_manual_mode()
         return
@@ -4998,7 +4998,7 @@ class Ch21DiveMode(BotMode):
 class DiveLearnerMode(BotMode):
     """KI-63 — acquire a REAL Dive learner: free a slot, hunt, catch, teach, verify.
 
-    ‼ THIS IS THE LAST THING BETWEEN THE BOT AND §Ch21. `--driver ch21dive` proved the whole
+    ‼ THIS IS THE LAST THING BETWEEN THE BOT AND §Ch20. `--driver ch20dive` proved the whole
     Mossdeep → Seafloor Cavern dive route, but it INJECTED Dive with a debug write. Nothing here
     injects anything: every move must be learned by playing.
 
@@ -6141,8 +6141,8 @@ for step in range(args.frames):
             context.bot_mode_instance = BoxWithdrawMode()
         elif args.driver == "roster":
             context.bot_mode_instance = RosterMode()
-        elif args.driver == "ch21dive":
-            context.bot_mode_instance = Ch21DiveMode()
+        elif args.driver == "ch20dive":
+            context.bot_mode_instance = Ch20DiveMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":

@@ -1,5 +1,11 @@
 # PRE-REGISTERED PREDICTIONS — the first driven DIVE, Mossdeep → SEAFLOOR_CAVERN_ENTRANCE (2026-08-13)
 
+> ‼ **RENAMED 2026-08-13 (`#24-ch20rename`)**: this file was `2026-08-13-ch21-dive-leg-predictions.md`
+> and the run it describes used `--driver ch21dive` / `probe_ch21_topology.py`. The Seafloor Cavern
+> is **Chapter 20** (`chapters.py:233`); Chapter 21 is Sootopolis/Rayquaza. The artefacts are now
+> `--driver ch20dive` and `probe_ch20_topology.py`. **Append-only log entries dated on or before
+> 2026-08-13 still use the old names — history is not rewritten — and they mean these.**
+
 > Written **BEFORE** the run. Last time this project pre-registered predictions (the roster drive,
 > earlier today) **0 of 6 fired and the real defect was one nobody predicted** — so the value here
 > is not the hit rate, it is that a miss is visible instead of re-narrated afterwards.
