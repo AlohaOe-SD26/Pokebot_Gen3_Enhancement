@@ -546,7 +546,21 @@ teaching Dive/Dig/Flash. ‼ **Relicanth is underwater-only, so Dive is upstream
 >    **DO, IN THIS ORDER:**
 >    **(i) `#24-ch20rename`** — small, safe, start-of-session. `--driver ch20dive`,
 >    `probe_ch20_topology.py` and two note filenames are misnomers pinned to **Chapter 20**.
->    **(ii) §Ch20 SEAFLOOR CAVERN / KYOGRE — the real next build.** It IS the ladder
+>    **(i) IS DONE 2026-08-13** — renamed and verified by RE-RUNNING both (`probe_ch20_topology.py`
+>    exit 0; `--driver ch20dive` → `ACCEPTANCE: PASS legs=6/6`).
+>    **(ii) §Ch20 — THE AREA ATLAS IS BUILT (2026-08-13). ‼ IT IS A STRENGTH-BOULDER DUNGEON, not a
+>    route.** `probe_ch20_interior.py` (NEW) measured all ten cavern maps: **the warp graph is
+>    benign — every room is reachable from the entrance by warps alone** — and the difficulty is
+>    inside the rooms. Components over walkable tiles, then with object tiles removed:
+>    ROOM1 2→5 · **ROOM2 1→6** · ROOM3 1→5 · **ROOM4 5→5 (split by TERRAIN, not objects)** ·
+>    ROOM5 1→5 · **ROOM6 1→1 and ROOM7 1→1 (open water, elev 1, ZERO objects — these need SURF,
+>    not Strength)** · **ROOM8 3→7 (12 objects in 48 tiles)** · ROOM9 2→2 (terrain; Archie/Kyogre).
+>    ⛔ **THE NEXT STEP IS A MEASUREMENT, NOT CODE: drive INTO the cavern and re-measure the
+>    interior with LIVE objects.** The atlas was read from Mossdeep, and `is_tile_accessible` blocks
+>    every tile whose object is not in `active_objects` — so its per-room routing is a **LOWER
+>    BOUND**, and section 4's NO-PATHs are an artifact, not map facts. (‼ §Ch19 caught this exact
+>    trap once already; the probe now documents it in its own output as section 3b.)
+>    **(ii-continued) then build the chapter.** It IS the ladder
 >    (`chapters.py:233`, graded `KYOGRE_ESCAPED_SEAFLOOR_CAVERN`; `story_mode.py:3654` = END OF BUILT
 >    CONTENT — ‼ that line still says "BLOCKED BY KI-63", which is **stale**, fix it). Uniquely
 >    de-risked: the dive leg is **driven 6/6**, KI-63 is wired in sandbox, and `puzzle_solver.py`
