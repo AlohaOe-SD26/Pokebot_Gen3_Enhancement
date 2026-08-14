@@ -53,8 +53,55 @@ Code-verified, deliberately NOT fixed — the repro comes first.
 / `_ingress()` so the new driver **reuses** the proven ingress instead of copying it — re-running
 `--driver ch20dive` gave `legs=6/6 … ACCEPTANCE: PASS`, matching its documented prior result.
 
-⇒ **NEXT: ARBITRATE ROOM 2, THEN DRIVE `--driver ch20room2` THE SAME WAY** (measure → A/B → solve →
-"and the bot can continue"). See "NEXT ACTIONS".
+## 🚩 …AND THEN THROUGH ROOM 2, INTO THE ROOM 6 CURRENT MAZE (same session, later)
+
+**`--driver ch20room2` → `ACCEPTANCE: PASS`, first drive, 10 of 10 pre-registered predictions.**
+It re-solves Room 1 from scratch every run (the `FLAG_TEMP_*` objects respawn on every map load), so
+**Room 1 is now n=3.** Route 2 was arbitrated first and, unlike Room 1's, came out **clean**:
+decomp + our own ROM agree on all 8 objects and upstream `puzzle_solver.py:395-402` is correct step
+for step. Smash `(8,7)` → **exactly three** north pushes of boulder `id 4` → `(6,1)` →
+`SEAFLOOR_CAVERN_ROOM6 (11,21)`.
+
+**‼ THE HEADLINE IS A CORRECTION TO OUR OWN SHIPPED SOURCE.**
+`STRENGTH-FLAG after the ROOM1→ROOM2 warp: **False**`. `modules/story/early_game.py` said in two
+places that `FLAG_SYS_USE_STRENGTH` is *"NEVER CLEARED … once per SAVE, not once per map"*. It is
+cleared on **EVERY WARP** (`ClearTempFieldEventData` → `LoadMapFromWarp`). The old claim rested on
+"a decomp-wide search for `clearflag`" — the **script macro**; the clear is the C function
+`FlagClear`, so that search could never have found it. ✅ **The code was always safe** —
+`strength_push` re-checks per call — so this was **load-bearing documentation on top of correct
+code**, invisible to every gate, and lethal only to the next author who deletes the re-check as
+redundant. Both comments corrected. ⇒ **drift is STILL EXACTLY 3** — `early_game.py` was already
+one of the three, so this adds no new file. (Measured with the loop in HOW TO RUN / TEST.)
+
+**The three-point A/B earned its keep:** `M1 NO-PATH → M2 NO-PATH → M3 OK` attributes the opening to
+the **pushes**, not the smash. A two-point A/B would have accepted "the rock was the only obstacle",
+which is false.
+
+**Room 6's current model survives contact with the live room:** `calculate_path((11,21) → (4,1))` =
+`OK len=13` measured from INSIDE — the same 13 waypoints `probe_ch20_currents.py` predicted from
+outside. ⚠ **Still a PLAN, not a walk.** No current has ever been executed (KI-76).
+
+**‼ KI-77 WAS CORRECTED THE SAME DAY IT WAS FILED, TWICE OVER.** The despawn window is now derived
+(`x ∈ [px-9,px+10]`, `y ∈ [py-7,py+9]` — 20x17) and **predicts our live Room 1 dump 5/5 on the
+boundary**. So (a) **"armed in Room 8" is REFUTED** — Room 8 is 11x14, *smaller than the window*;
+the rooms at risk are the **large** ones. And (b) the game **physically resets a pushed boulder to
+its template tile when it despawns**, so the planner is **fail-safe and never under-blocks** —
+fixing it would have been fixing the wrong thing.
+
+## ⚠ THE ONE THAT WILL STRAND THE RUN, AND IT IS UNTESTED — read before building §Ch20's exit
+
+`ai-research-notes/2026-08-13-ch20-decomp-blockers-and-room8.md` holds four decomp blockers. Three
+are still untested; **Blocker 2 is the dangerous one.** The chapter's forced exit lands on
+`ROUTE128 (38,22)`, a shallow-water sandbar, and **releases the player facing NORTH** — and north is
+a **41-tile CLOSED LAGOON** on a map with `"allow_escaping": false`. The bot also cannot Surf from
+the landing tile at all (all four neighbours are `MB_SHALLOW_WATER`, which is not surfable).
+⇒ **Step SOUTH to `(38,23)`, face south, Surf onto `(38,24)`.** The trap points the way the camera
+does, and three chapters have already shipped stranded.
+
+⇒ **NEXT: ROOM 3 — arbitrate it first.** It is *not* the walk the spec calls it: it has a
+**7-boulder puzzle the spec omits entirely**, its two trainers are unavoidable on the push-free
+line, and it is the one room where a boulder can be parked on the `(9,13)` retreat warp. See
+"NEXT ACTIONS".
 
 ---
 
@@ -338,29 +385,13 @@ the user's call, and it needs its own driven check in `custom-pokebot`, not a di
    `probe_anchor_inventory.py` now prints **party HP** — it immediately flagged three anchors as
    "cannot survive a journey".
 
-## ✅ AND THEN, LATER ON 2026-08-12 — §Ch18 BUILT, DRIVEN, FIXED AND WIRED (ladder 18 → 19 of 24)
-10. **The Mossdeep Gym puzzle is SIMULATABLE and the model is VALIDATED.**
-    `modules/story/mossdeep_gym_puzzle.py` predicts every object's tile after a switch press;
-    `probe_gym_simulate.py` made the GAME grade it — **11/11 loaded objects, identity-keyed on
-    `local_id`** — and caught a completely wrong model on its first run. Method written up as
-    playbook **§4b**.
-11. **The route is SOLVED and DRIVEN.** BFS over `(player tile × every object position)` →
-    **117 steps**, matching two independent agent routes switch-for-switch.
-    `--driver mossdeepgym` → `at_leaders=True at=(23,8) whiteouts=0`, one plan, zero re-plans.
-12. **§Ch18 COMPLETE.** `--driver mossdeepbadge` → `badge=True controllable=True whiteouts=0`,
-    `BADGE07_GET` after 754 frames. **Segment 18 wired into the ladder.**
-13. **‼ TWO REAL DEFECTS FOUND BY ADVERSARIAL AGENTS, NOT BY MY TESTS** — both invisible to a
-    passing run: the whiteout path checked the map only at entry AND raised an error type the
-    recovery could not catch (fixed, proven by fault injection, `repro_gym_whiteout_guard.py` 4/4);
-    and **§Ch18 stranded the run on an eleven-tile island** while passing `badge + controllable`
-    (fixed; **the acceptance now requires being out of the gym**).
-14. **KI-61 FIXED** — the chapter registry had the Space Center BEFORE the gym, which made the
-    progress detector skip two whole beats. A/B proven; the design doc's "order confirmed" was wrong.
-15. **§Ch19 groundwork + measured hazards** (`space_center.py`, `probe_space_center_recon.py`,
-    `probe_ch19_hazards.py`). **NOT built, NOT wired** — and it says so.
-16. **KI-62, KI-63 filed.** KI-63 is a real blocker: **no party member can learn Dive and the party
-    is full**, so `#24-pc` is a PREREQUISITE of §Ch21.
+## ✅ §Ch18 (Mossdeep Gym + the statue puzzle) — DETAIL MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-13)
 
+Shipped, wired as Segment 18, promoted. ‼ **Keep only the lesson:** the gym is a **rotating-tile
+statue puzzle**, and four of our own instruments agreed it had no route because all four modelled it
+as *walk + warp* and it has a **third movement primitive**. ⇒ *When N of your own instruments agree
+on something impossible, they share a missing primitive.* It also **shipped stranded on an
+eleven-tile island** while passing `badge + controllable`.
 ## ‼ THE TWO THINGS THAT MATTER MOST FROM THIS SESSION
 
 **1. When N of your own instruments agree on something impossible, they share a missing primitive.**
@@ -431,58 +462,18 @@ include "and the bot can continue"** — was violated AGAIN by §Ch18 on 2026-08
 `badge + controllable` while parked on an eleven-tile island. It is the most re-learned lesson
 in this project. Read it before writing any chapter's acceptance test.
 
-## ✅✅ §Ch19 IS DONE (2026-08-12, later session) — the Space Center AND Dive, ladder 19 → 20 of 24
+## ✅✅ §Ch19 IS DONE (Space Center + HM08 Dive) — DETAIL MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-13)
 
-**Driven end to end from `post_mossdeep_gym.ss1`, zero whiteouts:**
-```
-[ch19c] RESULT dive=True hm08=True MOSSDEEP_SPACE_CENTER_STATE=3
-        map=MOSSDEEP_CITY at=(19, 11) controllable=True whiteouts=0
-[ch19c] CAN-CONTINUE OK(15wp to the Pokemon Center)
-[ch19c] ACCEPTANCE: PASS
-```
-`modules/story/space_center.py` is the chapter; **Segment 19 is wired into `story_mode.py`**, graded
-on `RECEIVED_HM_DIVE` (‼ NOT on the Space Center var — `chapters.py` grades chapter 19 on the Dive
-flag, and the two are set in DIFFERENT BUILDINGS; a segment stopping at the battle would pass its own
-guard while `current_chapter()` returned 19 for ever, and on the re-run the 2F Steven has been
-`removeobject`'d so there would be nobody left to talk to).
-
-**New anchors:** `at_steven_2f.ss1`, `post_space_center.ss1`, `post_dive.ss1`.
-**New drivers:** `spacecenter1` (legs 1-3), `spacecenter2` (the menu + multi battle), `spacecenter`
-(whole chapter — ‼ run it from `post_space_center.ss1` as well; skipping to leg 6 is what PROVES the
-resume guards).
-
-### ‼ THE FOUR THINGS WORTH KNOWING BEFORE TOUCHING THIS CHAPTER
-1. **Mossdeep is CUT IN TWO until the forced cutscene runs.** The gym victory SPAWNS five Team Magma
-   NPCs onto the only land bridge (x=44, y=23-26) and our planner blocks loaded-object tiles, so no
-   route to the Space Center door exists yet. Leg 1 is therefore TWO legs: trigger line → **assert
-   `VAR_MOSSDEEP_CITY_STATE == 2`** → then the door. ‼ I first blamed KI-59 (our planner
-   over-blocking) because my flood fill modelled collision only and could not see NPCs — the planner
-   was right. `probe_ch19_route.py` now models live objects so it cannot tell that lie twice.
-2. **The stair grunt must be TALKED to.** `sight_radius = 0`, and it stands ON (13,2), the only tile
-   the stairs are reachable from — so navigating there can never succeed, and waiting cannot help.
-3. **‼ THE PARTY-SELECTION MENU IS SOLVED AND VERIFIED LIVE** (this was the chapter's one genuine
-   unknown). Cursor slots 0-5 are mons, **6 = CONFIRM, 7 = CANCEL**; each pick is `A` (submenu) then
-   `A` (ENTER), and **the cursor does NOT advance between picks**. A on an already-picked mon
-   DESELECTS it, so blind A-mash toggles one slot for ever with a healthy screen and no error. Every
-   pick is verified against **`gSelectedOrderFromParty`** (stored as `slot + 1`): measured `[1,5,3,0]`
-   against `INTENDED-PICKS [0,4,2]` — an exact match. **Always bring three**: `Cmd_checkteamslost`
-   sums HP over the PLAYER's picks only, so bringing fewer is strictly worse, not "letting the ally
-   carry it".
-4. **Losing is a RETRY, not an error.** The script inspects the outcome itself and calls
-   `SetCB2WhiteOut` on anything but a win — money halved, warp to the last heal location — but the
-   var stays at 2 and no trainer flag is set. ‼ Leg 1's heal matters twice over: the anchor's
-   respawn was measured to be **LILYCOVE**, across the sea with no Fly user.
-
-### ‼ AND IT NEARLY SHIPPED STRANDED — FOR THE THIRD TIME
-The first full run finished `dive=True hm08=True controllable=True` and **FAILED**, because it ended
-inside `MOSSDEEP_CITY_STEVENS_HOUSE (3,7)`. The Dive gift is an ON_FRAME script that fires on the
-doorstep, so the beat ends where it begins with every completion signal already true. **The
-acceptance caught it only because it asks for a real `calculate_path` off the end tile** rather than
-asking whether the avatar is "controllable" — which it was, indoors, the whole time. §Ch15 ended four
-floors underground, §Ch18 on an eleven-tile island, §Ch19 in a living room. *Keep that assertion in
-every chapter's acceptance.* (Second bug inside the fix: both navigate-based door helpers free the
-tile by stepping SOUTH, and (3,7) is the bottom row — an exit door needs `_walk_through_warp("Down")`.)
-
+Shipped, wired as Segment 19, promoted to `custom-pokebot/`, ladder 19 → 20 of 24. Moved out of this
+current-state file for the R3 budget when the §Ch20 Room 1/Room 2 drives landed. ‼ **Keep only the
+four gotchas** — they are still true if you ever touch that chapter: (1) Mossdeep is **cut in two**
+until the forced cutscene runs, so leg 1 is two legs; (2) the stair grunt **must be talked to**
+(`sight_radius = 0`, standing on the only reachable tile); (3) the party-selection menu is **driven,
+not mashed** — A on an already-picked mon DESELECTS it, and every pick is verified against
+`gSelectedOrderFromParty`; (4) **losing is a RETRY, not an error** — the script calls
+`SetCB2WhiteOut` itself and leaves the var at 2. ‼ And it **nearly shipped stranded, in a living
+room**, with every completion signal true — which is why every chapter's acceptance must ask for a
+real `calculate_path` off the end tile.
 ## 🛠 TWO GATES WERE BLIND, AND FIXING THEM FOUND A REAL BUG
 * **`audit_flag_names.py` was checking TWO files** — written before the chapters moved into
   `modules/story/*.py` — and, worse, could only see names written as literals AT the call site, while
@@ -579,21 +570,34 @@ teaching Dive/Dig/Flash. ‼ **Relicanth is underwater-only, so Dive is upstream
 > this file, not here). Everything is committed and pushed; nothing is parked.
 >
 > 0. ‼ **THE LIVE QUEUE, 2026-08-13 (latest) — DO THESE FIRST; items 1-5 below are older framing.**
->    **(a) ARBITRATE ROOM 2 BEFORE DRIVING IT.** Our build spec's Room 2 sequence comes from the
->    same "exhaustive" search that was **refuted** on Room 1. Check it against the decomp
->    (`data/maps/SeafloorCavern_Room2/map.json`, tile collisions from our own ROM) **and** upstream's
->    Emerald branch `puzzle_solver.py:395-402` — which is: `navigate (9,7)` → `rock_smash Left`
->    (smashes `(8,7)`) → `navigate (4,6)` → `strength Up` → **two more walk-pushes Up** (the spec's
->    "push `(4,5)` N ×3" and upstream's "push once, then walk into it twice" are the SAME thing,
->    because a walk into a boulder pushes it once Strength is on) → `navigate (6,1)` → ROOM6.
->    **(b) THEN `--driver ch20room2`, built exactly like `ch20room1`:** dump live objects on
->    arrival, A/B `calculate_path` across the solve, push through `strength_push` (never
->    `walk_one_tile`), verify boulders **by `local_id`**, and end with "and the bot can continue".
->    **(c) BUILD THE KI-77 REPRO BEFORE ROOM 8.** Push a boulder, walk until it despawns, then ask
->    `calculate_path` about **both** the vacated tile and the real tile and compare to the truth.
->    Room 8 is nine pushes in 48 tiles — do not drive it on the assumption that this is harmless.
->    **(d) STILL THE USER'S CALL, NOT MINE:** promoting the three drifted files to
->    `custom-pokebot/` (see the drift row). Nothing here changes that.
+>    ✅ **(a) and (b) ARE DONE** — Room 2 arbitrated (clean) and driven to a PASS.
+>    ✅ **(c) IS OBSOLETE** — the KI-77 repro is no longer the gate on Room 8: the despawn window
+>    was derived (20x17) and Room 8 (11x14) is **smaller than it**, so KI-77 cannot fire there. See
+>    KI-77's corrected entry. A repro is still worth having for the LARGE rooms, but it blocks
+>    nothing.
+>
+>    **(a2) ROOM 3 IS NEXT, AND ARBITRATE IT FIRST.** ‼ It is **not** the walk the build spec calls
+>    it. Decomp passes found: a **7-boulder puzzle the spec omits entirely**; the push-free
+>    `(4,15) → (8,1)` line is 18 steps but **unavoidably** crosses `{(6,5),(7,5),(8,5)}`, the union
+>    of both trainer sight cones (a zero-sight route exists but needs Strength — upstream takes it,
+>    `puzzle_solver.py:427-436`); and it is **the one room where a boulder can be pushed onto a warp
+>    tile that matters** — `(9,13)`, the Room 7 retreat. That search hit a 4M-state cap, so its
+>    "no other hazard" is a lower bound, not a proof. **Then drive `--driver ch20room3` exactly like
+>    room1/room2:** dump live objects on arrival, multi-point A/B across the solve, push only through
+>    `strength_push`, verify by `local_id`, end with "and the bot can continue".
+>
+>    **(b2) ROOM 8 IS ALREADY ADJUDICATED — build from OUR sequence, not upstream's.** Both work;
+>    ours is **9 pushes vs upstream's 10** and never touches boulder #3. Full table in
+>    `ai-research-notes/2026-08-13-ch20-decomp-blockers-and-room8.md`. ⛔ **Step 9 must face LEFT,
+>    never UP** — a boulder pushed north from `(5,4)` lands on `(5,3)` and **permanently seals the
+>    only route to the `(5,2)` exit warp**. ✅ A jam IS recoverable: exit to Room 3 via `(5,12)` and
+>    re-enter; all twelve boulders respawn. Wire that as the room's failure handler.
+>
+>    **(c2) ⚠ BLOCKER 2 — THE EXIT STRANDS THE RUN, AND IT IS UNTESTED.** See the banner at the top:
+>    step **SOUTH to `(38,23)`** and Surf, never north. Build the exit leg with that assertion in it.
+>
+>    **(d) STILL THE USER'S CALL, NOT MINE:** promoting the **three** drifted files to
+>    `custom-pokebot/`. Nothing here changes that.
 > 1. **Run `preflight.py`**, then the **16**-gate suite in "HOW TO RUN / TEST" (all exit 0 as of
 >    2026-08-13), and the sandbox↔custom drift loop. ‼ **EXPECT EXACTLY 2:**
 >    `modules/story/early_game.py` and `plugins/custom_modes/story_mode.py` — KI-63's **production

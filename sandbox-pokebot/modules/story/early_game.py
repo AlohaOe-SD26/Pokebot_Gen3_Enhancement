@@ -7636,9 +7636,26 @@ def do_magma_hideout_chapter() -> Generator:
 # ---------------------------------------------------------------------------
 
 #: `FLAG_SYS_USE_STRENGTH` (2185, `modules/data/event_flags/emerald.txt:1064`; decomp
-#: `include/constants/flags.h:1399`). Set by `EventScript_ActivateStrength`, and — verified by a
-#: decomp-wide search for `clearflag` — **NEVER CLEARED**. So Strength is switched on ONCE PER
-#: SAVE, not once per map: after that, `TryPushBoulder` (`src/field_player_avatar.c:754`) pushes
+#: `include/constants/flags.h:1399`). Set by `EventScript_ActivateStrength`.
+#:
+#: ⛔⛔ **CORRECTED 2026-08-13 — MEASURED LIVE. THIS COMMENT USED TO SAY THE FLAG IS "NEVER
+#: CLEARED … switched on ONCE PER SAVE, not once per map". THAT IS FALSE.** It is cleared on
+#: **EVERY WARP**: `ClearTempFieldEventData()` (`src/event_data.c:39-48`) calls
+#: `FlagClear(FLAG_SYS_USE_STRENGTH)`, and it is invoked from `LoadMapFromWarp`
+#: (`src/overworld.c:848`) — plus on Fly/Teleport/Dig/white-out.
+#: **Proof, not argument:** `--driver ch20room2` read the flag immediately after warping
+#: `SEAFLOOR_CAVERN_ROOM1 → ROOM2`, having just activated Strength in Room 1, and got **False**.
+#: ‼ **WHY THE OLD CLAIM SURVIVED:** it rested on "a decomp-wide search for `clearflag`" — the
+#: SCRIPT MACRO. This is the C function `FlagClear`, so a macro-only search could never have
+#: found it. *A search proves absence only within the vocabulary it searched.*
+#: ✅ **THE CODE BELOW WAS ALWAYS SAFE** — it re-checks `_strength_active()` on every call and
+#: re-activates — which is exactly why the wrong comment went unnoticed for so long. ⛔ **Do NOT
+#: "optimise" that re-check away on the strength of a once-per-save assumption**: every room
+#: after the first would then walk into its boulder, get a plain wall collision, and retry with
+#: no message and no error. (Upstream's solver re-arms Strength in every room —
+#: `puzzle_solver.py:373, 399, 429, 440` — which is only sensible if the flag does NOT persist.)
+#:
+#: `TryPushBoulder` (`src/field_player_avatar.c:754`) pushes
 #: any `OBJ_EVENT_GFX_PUSHABLE_BOULDER` you walk into, one tile, and does NOTHING AT ALL if the
 #: destination is blocked — no message, no failure signal. That silence is why the test below
 #: has to watch the world.
@@ -7796,7 +7813,10 @@ def strength_push(map_enum, approach_tile, face_dir: str, *, tries: int = 8) -> 
         )
     boulder_id = getattr(boulder, "local_id", None)
 
-    # --- 1. Switch the field move ON (once per SAVE - the flag is never cleared) ------------
+    # --- 1. Switch the field move ON (‼ ONCE PER MAP - the flag is cleared by EVERY WARP) ----
+    # ‼ CORRECTED 2026-08-13, MEASURED: this line used to say "once per SAVE - the flag is never
+    # cleared". `ClearTempFieldEventData` clears it inside `LoadMapFromWarp`, so the guard below
+    # is LOAD-BEARING on every room, not a cheap idempotency nicety. See `_STRENGTH_FLAG`.
     # `EventScript_StrengthBoulder`: interacting with the boulder opens "Would you like to use
     # STRENGTH?"; A advances the messages and takes the default YES, and
     # `EventScript_ActivateStrength` sets the flag. Judged by the FLAG, never by "the script

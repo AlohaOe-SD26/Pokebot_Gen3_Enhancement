@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "ch20dive", "ch20room1", "divelearner"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "ch20dive", "ch20room1", "ch20room2", "divelearner"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -5361,6 +5361,267 @@ class Ch20Room1Mode(Ch20DiveMode):
         return
 
 
+class Ch20Room2Mode(Ch20Room1Mode):
+    """§Ch20 increment 2 — ROOM 2, the three-push corridor, into the ROOM 6 current maze.
+
+    ‼ IT RE-SOLVES ROOM 1 EVERY TIME, AND THAT IS NOT WASTE. Room 1's rock and boulders are
+    `FLAG_TEMP_*` objects that respawn on every map load, so "arrive in Room 2 with Room 1 already
+    solved" does not exist. Room 1 is inherited from `Ch20Room1Mode` as `_enter_room1()` +
+    `_solve_room1()`, so this driver also RE-PROVES Room 1 on every run rather than assuming it.
+
+    THE ROUTE IS ARBITRATED, LIKE ROOM 1'S — and unlike Room 1's, this one came out CLEAN.
+    The decomp (`data/maps/SeafloorCavern_Room2/map.json`) and our own ROM reader agree on all
+    **8 objects**, and upstream `puzzle_solver.py:395-402` is confirmed **step for step**; our build
+    spec's Room 2 line agrees too. Objects (all `MOVEMENT_TYPE_LOOK_AROUND`, `TRAINER_TYPE_NONE`):
+
+        id 4  PUSHABLE_BOULDER (4,5)  FLAG_TEMP_15   <- the corridor plug; needs THREE pushes north
+        id 6  BREAKABLE_ROCK   (8,7)  FLAG_TEMP_18   <- the only east<->west link REACHABLE from
+                                                        the arrival tile (rows 4-6 are walled at
+                                                        x=8,9); row 3 is a second corridor but is
+                                                        unreachable until after this solve
+        ids 1,2,3,5,8 boulders and id 7 rock — all off the Kyogre path
+
+    ‼ **THREE PUSHES, AND EXACTLY THREE.** `(4,4)`, `(4,3)`, `(4,2)` are each `collision=0
+    elevation=3 'Cave'`; `(4,1)` is `collision=1 elevation=0` ⇒ **a fourth push is ILLEGAL and
+    would fail SILENTLY in-game** (`TryPushBoulder` does nothing and prints nothing). Measured
+    reachability of the ROOM6 door `(6,1)` after each push: 1 push → NO, 2 pushes → NO (`(4,4)` is
+    a dead end, `(3,4)`/`(5,4)` are `collision=1`), **3 pushes → YES**. The boulder has zero slack.
+
+    ‼ **NEVER PRESS DOWN ON THE ARRIVAL TILE.** `(10,7)` is both where Room 1 drops you AND a
+    `South Arrow Warp` straight back to Room 1 — and going back resets every `FLAG_TEMP_*` object
+    in BOTH rooms. The first move is Left.
+
+    ‼ **NO TRAINERS AND NO SCRIPTS IN THIS ROOM** (`scripts.inc` is `.byte 0`; `coord_events` and
+    `bg_events` are empty) — but **wild encounters are live on every route tile** (`gSeafloorCavern
+    _Room2` land mons, Zubat L30+). A battle can fire BETWEEN two pushes, so every push is issued
+    through `strength_push`, which re-navigates to its own approach tile and is idempotent — never
+    a blind `walk_one_tile` that assumes the avatar stayed put.
+
+    THE A/B IS THREE-POINT, NOT TWO, AND THE MIDDLE POINT IS THE INTERESTING ONE:
+        M1  at arrival (10,7)      -> (6,2)   PREDICTED NO-PATH  (rock AND boulder seal it)
+        M2  after the smash, (4,6) -> (6,2)   PREDICTED NO-PATH  (‼ the smash ALONE is not enough)
+        M3  after 3 pushes, (4,3)  -> (6,2)   PREDICTED OK
+    M2 exists so a PASS cannot be explained by "the rock was the only obstacle" — it attributes the
+    opening to the PUSHES specifically. `(6,2)` was chosen because it is plain `'Cave'`, is not an
+    object-template tile (no `dynamic_object_id` noise) and is not a warp tile.
+
+    ‼ CAN-CONTINUE IS DIFFERENT HERE, ON PURPOSE. Room 6 is an open-water CURRENT maze: stepping
+    onto a current SLIDES you, so "walk to an adjacent tile" can legitimately fail while the bot is
+    in perfect shape. The GATE is therefore a real `calculate_path` from the Room 6 arrival to the
+    room's exit `(4,1)` — which is also leg 5 of the build spec, and which
+    `probe_ch20_currents.py` predicted routable from OUTSIDE the cavern. Making it the gate turns
+    that planner-level prediction into an in-room measurement. The adjacent-step attempt still
+    runs, but is REPORTED, not graded. ⚠ Neither proves the EXECUTOR can cross a current — that is
+    still unproven (KI-76), and this driver does not claim it.
+
+        PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch20room2 --frames 2000000
+
+    Emits: [ch20room2] RESULT room1_ok=<b> m1=<b> m2=<b> m3=<b> pushes=<n>/3 in_room6=<b>
+           can_continue=<b>
+    """
+
+    ROOM2_SMASH_APPROACH = (9, 7)     # stand here, face Left -> BREAKABLE_ROCK id 6 at (8,7)
+    #: The three pushes, in order: (approach_tile, face). Each moves boulder id 4 one tile north
+    #: and leaves the player on the tile it vacated — which is the NEXT approach tile.
+    ROOM2_PUSHES = (((4, 6), "Up"), ((4, 5), "Up"), ((4, 4), "Up"))
+    ROOM2_AB_TARGET = (6, 2)          # plain 'Cave', not an object tile, not a warp
+    ROOM6_DOOR = (6, 1)               # 'Non-Animated Door' -> SEAFLOOR_CAVERN_ROOM6 (11,21)
+    ROOM6_EXIT = (4, 1)               # the build spec's leg-5 target, out of the current maze
+
+    @staticmethod
+    def name():
+        return "Ch20Room2"
+
+    @staticmethod
+    def _strength_flag() -> bool:
+        """`FLAG_SYS_USE_STRENGTH` right now.
+
+        ‼ THIS IS A DELIBERATE, DISCRIMINATING MEASUREMENT, not telemetry. Two sources in our own
+        repo disagree about it:
+          * `modules/story/early_game.py:7638-7645` and `:7799` say it is *"NEVER CLEARED ... once
+            per SAVE, not once per map"*, on the strength of a decomp-wide search for `clearflag`;
+          * an adversarial decomp pass says `ClearTempFieldEventData()` (`src/event_data.c:39-48`)
+            calls `FlagClear(FLAG_SYS_USE_STRENGTH)` and is invoked from `LoadMapFromWarp`
+            (`src/overworld.c:848`) — i.e. **on every warp**.
+        The two are reconcilable: our search looked for the SCRIPT MACRO `clearflag`, and this is
+        the C function `FlagClear`, so a macro-only search would miss it by construction.
+        ‼ Either way the production CODE is safe — `strength_push` re-checks the flag on every
+        call and re-activates — so this measures a DOC claim, not a defect. Warping ROOM1 -> ROOM2
+        is a free, decisive test: read it on arrival.
+        """
+        from modules.memory import get_event_flag
+
+        return get_event_flag("SYS_USE_STRENGTH")
+
+
+    def run(self):
+        from modules.context import context as _ctx
+        from modules.map_data import MapRSE
+        from modules.player import get_player_avatar
+        from modules.story.early_game import (
+            _navigate_riding_out,
+            _smash_rock,
+            strength_push,
+            wait_until_truly_controllable,
+        )
+
+        room2 = MapRSE.SEAFLOOR_CAVERN_ROOM2
+        room6 = MapRSE.SEAFLOOR_CAVERN_ROOM6
+        notes = {}
+
+        def _bail(reason: str):
+            log(f"[ch20room2] ‼ STOPPING — {reason}")
+            log(f"[ch20room2] RESULT room1_ok={notes.get('room1_ok', False)} m1=None m2=None "
+                f"m3=None pushes=0/3 in_room6=False can_continue=False detail={notes}")
+            log("[ch20room2] ACCEPTANCE: FAIL")
+            _ctx.set_manual_mode()
+
+        yield from wait_until_truly_controllable()
+
+        yield from self._inject_dive_fixture()
+        if not self.fixture_ok:
+            _bail("the Dive fixture failed, so the cavern is unreachable")
+            return
+
+        # ---- PHASES 1-3: the proven ingress and the proven Room 1 solve, INHERITED ----------
+        yield from self._ingress()
+        notes["ingress"] = self.notes
+        if not (self.leg1_ok and self.at_entrance):
+            _bail(f"the ingress did not surface in the cavern (legs={self.legs}/5)")
+            return
+        yield from self._enter_room1()
+        if not self.in_room1:
+            _bail("never reached ROOM1")
+            return
+        yield from self._solve_room1()
+        room1_ok = bool(self.r1["in_room2"] and self.r1["pushed2"] and not self.r1["ab_before"]
+                        and self.r1["ab_after"])
+        notes["room1_ok"] = room1_ok
+        notes["room1"] = {k: self.r1[k] for k in
+                          ("ab_before", "ab_after", "smashed", "pushed1", "pushed2", "in_room2")}
+        log(f"[ch20room2] ROOM1 re-solved ok={room1_ok} (it resets on every map load — this is a "
+            f"re-proof, not a cache)")
+        if not self.r1["in_room2"]:
+            _bail("Room 1 did not deliver us into ROOM2")
+            return
+
+        # ---- ‼ THE STRENGTH-FLAG MEASUREMENT — free, and it settles a documented disagreement -
+        # Room 1 activated Strength (its first push pays the prompt). We have just WARPED into
+        # Room 2. If our own `early_game.py` comment is right, the flag is still set; if the
+        # adversarial decomp pass is right, `LoadMapFromWarp -> ClearTempFieldEventData` cleared
+        # it and Room 2's first push must pay the prompt again.
+        strength_after_warp = self._strength_flag()
+        log(f"[ch20room2] STRENGTH-FLAG after the ROOM1->ROOM2 warp: {strength_after_warp} "
+            f"(our early_game.py comment PREDICTS True = 'never cleared, once per SAVE'; the "
+            f"decomp pass PREDICTS False = cleared by ClearTempFieldEventData on every warp)")
+        notes["strength_flag_after_warp"] = strength_after_warp
+
+        # ---- M1: sealed at the arrival tile --------------------------------------------------
+        arrival = get_player_avatar().local_coordinates
+        self._dump_objects("R2-ARRIVAL", room2)
+        m1_open, m1_detail = self._path_ok(room2, arrival, self.ROOM2_AB_TARGET)
+        log(f"[ch20room2] M1 {arrival} -> {self.ROOM2_AB_TARGET}: {m1_detail}")
+        log(f"[ch20room2] M1 path_exists={m1_open} (PREDICTED False — rock (8,7) AND boulder (4,5))")
+
+        # ---- LEG 1: step Left off the warp tile, then smash ---------------------------------
+        # ‼ (10,7) is a 'South Arrow Warp' back to ROOM1. Going back resets every FLAG_TEMP_*
+        # object in BOTH rooms, so the very first move must be away from it.
+        smashed = False
+        try:
+            yield from _navigate_riding_out(room2, self.ROOM2_SMASH_APPROACH)
+            yield from _smash_rock(room2, self.ROOM2_SMASH_APPROACH, "Left")
+            smashed = True
+        except Exception as error:  # noqa: BLE001
+            log(f"[ch20room2] SMASH raised {type(error).__name__}: {str(error)[:300]}")
+        after_smash = self._dump_objects("R2-AFTER-SMASH", room2)
+        log(f"[ch20room2] SMASH ok={smashed} rock local_id=6 present={6 in after_smash} "
+            f"(PREDICTED absent)")
+
+        # ---- M2: ‼ THE MIDDLE ARM — the smash ALONE must NOT open it ------------------------
+        m2_open, m2_detail = None, "not attempted"
+        if smashed:
+            try:
+                yield from _navigate_riding_out(room2, self.ROOM2_PUSHES[0][0])
+            except Exception as error:  # noqa: BLE001
+                log(f"[ch20room2] M2 approach raised {type(error).__name__}: {str(error)[:250]}")
+            here = get_player_avatar().local_coordinates
+            m2_open, m2_detail = self._path_ok(room2, here, self.ROOM2_AB_TARGET)
+            log(f"[ch20room2] M2 {here} -> {self.ROOM2_AB_TARGET}: {m2_detail}")
+            log(f"[ch20room2] M2 path_exists={m2_open} (PREDICTED False — ‼ this arm is what "
+                f"attributes the opening to the PUSHES rather than to the smash)")
+
+        # ---- LEG 2: the three pushes, and EXACTLY three -------------------------------------
+        # ‼ A FOURTH PUSH IS ILLEGAL — (4,1) is collision=1 — and would fail SILENTLY. The loop is
+        # a fixed tuple rather than "push until it moves" for exactly that reason.
+        pushes = 0
+        if smashed:
+            for index, (approach, face) in enumerate(self.ROOM2_PUSHES, start=1):
+                try:
+                    yield from strength_push(room2, approach, face)
+                    pushes += 1
+                except Exception as error:  # noqa: BLE001
+                    log(f"[ch20room2] PUSH{index} raised {type(error).__name__}: "
+                        f"{str(error)[:300]}")
+                    break
+                seen = self._dump_objects(f"R2-AFTER-PUSH{index}", room2)
+                expected = (4, 5 - index)
+                log(f"[ch20room2] PUSH{index} ok boulder local_id=4 at={seen.get(4)} "
+                    f"(PREDICTED {expected})")
+        log(f"[ch20room2] PUSHES {pushes}/3")
+        log(f"[ch20room2] STRENGTH-FLAG after the Room 2 pushes: {self._strength_flag()} "
+            f"(it must be True here whichever source was right — `strength_push` re-activates)")
+
+        # ---- M3: the far arm -----------------------------------------------------------------
+        here = get_player_avatar().local_coordinates
+        m3_open, m3_detail = self._path_ok(room2, here, self.ROOM2_AB_TARGET)
+        log(f"[ch20room2] M3 {here} -> {self.ROOM2_AB_TARGET}: {m3_detail}")
+        log(f"[ch20room2] M3 path_exists={m3_open} (PREDICTED True)")
+        notes["ab"] = {"m1": (arrival, m1_open, m1_detail), "m2": (m2_open, m2_detail),
+                       "m3": (here, m3_open, m3_detail)}
+
+        # ---- LEG 3: the (6,1) door into ROOM 6 ----------------------------------------------
+        if pushes == 3:
+            try:
+                yield from _navigate_riding_out(room2, self.ROOM6_DOOR)
+            except Exception as error:  # noqa: BLE001
+                log(f"[ch20room2] LEG3 raised {type(error).__name__}: {str(error)[:300]} "
+                    f"(the door warp firing mid-walk can look like this)")
+        where = self._where()
+        in_room6 = where[0] == "SEAFLOOR_CAVERN_ROOM6"
+        notes["leg3"] = where
+        log(f"[ch20room2] LEG3 at={where} in_room6={in_room6} "
+            f"(PREDICTED SEAFLOOR_CAVERN_ROOM6 (11,21))")
+
+        # ---- CAN-CONTINUE: a PATH through the current maze, not a step ----------------------
+        # ‼ Room 6 is open water full of currents; stepping onto one SLIDES you, so an
+        # adjacent-tile walk can fail while the bot is perfectly fine. The GATE is a real
+        # `calculate_path` to the room's exit (4,1) — the build spec's leg-5 target, which
+        # `probe_ch20_currents.py` predicted routable from OUTSIDE the cavern. This turns that
+        # prediction into an in-room measurement. ⚠ A PLAN IS NOT A WALK: crossing a current has
+        # still never been executed (KI-76), and nothing here claims otherwise.
+        route_out, route_detail = False, "not attempted"
+        if in_room6:
+            here6 = get_player_avatar().local_coordinates
+            log(f"[ch20room2] ROOM6 arrival={here6} tile_type={self._tile_type()!r}")
+            route_out, route_detail = self._path_ok(room6, here6, self.ROOM6_EXIT)
+            log(f"[ch20room2] CAN-CONTINUE {here6} -> {self.ROOM6_EXIT}: {route_detail}")
+            # Reported, NOT graded — see the docstring.
+            yield from self._can_continue_step(room6, "ch20room2")
+            log(f"[ch20room2] CAN-CONTINUE (ungraded) adjacent-step moved={self.moved} "
+                f"now at={self._where()} tile_type={self._tile_type()!r}")
+        can_continue = route_out and _ctx.bot_mode != "Manual"
+        notes["room6"] = (route_out, route_detail)
+
+        passed = (room1_ok and (not m1_open) and (m2_open is False) and m3_open
+                  and pushes == 3 and in_room6 and can_continue)
+        log(f"[ch20room2] RESULT room1_ok={room1_ok} m1={m1_open} m2={m2_open} m3={m3_open} "
+            f"pushes={pushes}/3 in_room6={in_room6} can_continue={can_continue}")
+        log(f"[ch20room2] DETAIL {notes}")
+        log(f"[ch20room2] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+        _ctx.set_manual_mode()
+        return
+
+
 class DiveLearnerMode(BotMode):
     """KI-63 — acquire a REAL Dive learner: free a slot, hunt, catch, teach, verify.
 
@@ -6511,6 +6772,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch20DiveMode()
         elif args.driver == "ch20room1":
             context.bot_mode_instance = Ch20Room1Mode()
+        elif args.driver == "ch20room2":
+            context.bot_mode_instance = Ch20Room2Mode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":

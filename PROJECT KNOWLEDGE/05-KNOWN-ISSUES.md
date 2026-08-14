@@ -2845,11 +2845,36 @@ to refute "the tide is not a blocker"; the static-table half verified by me dire
 
 ## KI-77 — `get_map_objects()` is a CAMERA-RANGE WINDOW, so the planner's picture of a PUSHED BOULDER flips with the camera (2026-08-13, MEASURED LIVE, OPEN, ARMED for §Ch20 Room 8)
 
-- **Symptom.** `modules/map_path.calculate_path` treats a boulder's **template** tile as blocked
-  whenever that boulder is not currently spawned, and its **live** tile as blocked whenever it is.
-  Both halves are individually correct; together they mean that **after a Strength push, walking
-  far enough for the boulder to despawn re-blocks the tile it vacated and frees the tile it now
-  occupies.** A route planned in that state is planned against a map that does not exist.
+- ⛔ **CORRECTED 2026-08-13, SAME DAY IT WAS FILED — MY FIRST FRAMING WAS TOO STRONG, AND THE REAL
+  DEFECT IS WORSE BUT DIFFERENT.** I wrote *"a route planned in that state is planned against a map
+  that does not exist"*, implying the planner can be permissive. **It cannot.** A decomp pass
+  established that `RemoveObjectEvent` (`src/event_object_movement.c:1383`) only sets
+  `active = FALSE`, and **nothing on the push path ever writes the boulder's new position back to
+  `gSaveBlock1Ptr->objectEventTemplates[]`** (`OverrideTemplateCoordsForObjectEvent` `:2478` is
+  reached only from the `copyobjectxytoperm` macro and from `trainer_see.c`), while
+  `TrySpawnObjectEvents` respawns from `template->x/y`. ⇒ **THE GAME ITSELF RESETS A PUSHED BOULDER
+  TO ITS ORIGINAL TILE WHEN IT SCROLLS OUT OF RANGE.** So the planner's "despawned ⇒ block the
+  template tile" rule is **fail-safe and CORRECT on respawn**; it over-blocks only during the
+  despawn window itself, and never under-blocks.
+  ‼ **The real hazard is the PHYSICAL reset:** any route that pushes a boulder and then travels far
+  enough for it to despawn **loses the push in the game**, not merely in the model. Fix the planner
+  for this and you would be fixing the wrong thing.
+  ⚠ **DECOMP-DERIVED, NOT VERIFIED IN OUR HARNESS.** Cheap verification for whoever needs it: in
+  `SEAFLOOR_CAVERN_ROOM1`, push boulder `local_id=1` to `(5,12)`, then dump objects while standing
+  at `(6,2)` — the only reachable tile from which `(5,12)` falls outside the window. If it reads
+  `(5,11)` again, the reset is real. (Our current Room 1 route warps out on that tile, which is why
+  the existing drives cannot answer it.)
+- **Symptom (as originally filed, and still true).** `modules/map_path.calculate_path` treats a
+  boulder's **template** tile as blocked whenever that boulder is not currently spawned, and its
+  **live** tile as blocked whenever it is.
+- ✅ **THE WINDOW IS NOW DERIVED, NOT GUESSED — AND IT PREDICTS OUR LIVE DUMP EXACTLY.**
+  `TrySpawnObjectEvents` / `RemoveObjectEventIfOutsideView` (`src/event_object_movement.c:1645`,
+  `:1699`) use `pos ± {2, MAP_OFFSET_W+2, 0, MAP_OFFSET_H+2}` with `MAP_OFFSET_W 15` /
+  `MAP_OFFSET_H 14` (`include/fieldmap.h:18-20`), which in LOCAL coordinates is
+  **`x ∈ [px-9, px+10]`, `y ∈ [py-7, py+9]` — 20 wide by 17 tall.**
+  Validated against the measurement below **5 of 5, including on the boundary**: player at
+  `ROOM1 (5,18)` ⇒ `y ∈ [11,27]` ⇒ boulders `(5,11)` and `(12,11)` IN, rock `(5,10)` and grunts
+  `(8,6)` / `(15,10)` OUT. That is precisely the dump that was observed.
 - **The measurement that found it** (`--driver ch20room1`, 2026-08-13, first drive inside the
   Seafloor Cavern). Standing on `SEAFLOOR_CAVERN_ROOM1 (5,18)` immediately after the warp, a dump
   of every active object returned **2 of the map's 5**:
@@ -2869,9 +2894,19 @@ to refute "the tide is not a blocker"; the static-table half verified by me dire
 - **Why it did not bite in Room 1.** After the two pushes the route runs up x=12 and west along
   row 7 — it never needs `(5,11)` again. A green run therefore proves nothing about this, which is
   exactly why it had to be measured rather than inferred.
-- ‼ **Where it is armed: §Ch20 ROOM 8** — nine pushes inside a 48-tile room with 12 objects, where
-  the route repeatedly re-crosses tiles boulders have been moved on and off. **Room 2** (three
-  pushes of one boulder) is a lesser case. Any future Sokoban-style room is a candidate.
+- ⛔ **"ARMED IN ROOM 8" IS REFUTED (2026-08-13, same day).** I filed Room 8 as the dangerous case.
+  With the window now derived (20x17) and Room 8 measured at **11 wide x 14 tall**, the map is
+  *smaller than the window*: a sweep over every player row finds the only despawns at `y=12` (the
+  four row-4 boulders), and `y=12` is the arrival tile — occupied exactly once, **before a single
+  push**, when every boulder is still on its template tile and model == truth. After the first push
+  the route never returns below `y=8`. **Room 8 is safe.** ✅ Room 2 was likewise measured safe on
+  its live drive (`--driver ch20room2` PASS): the one planner-driven crossing of a removed object's
+  tile is the smashed rock at `(8,7)`, and smashed rocks are immune because `removeobject` **sets**
+  their `FLAG_TEMP_*`, which short-circuits the `map_path.py:843` guard.
+- ‼ **Where it may still matter:** LARGE rooms — Room 1 is 20x21, bigger than the window in both
+  axes — and any RETREAT or long-range re-plan through a room whose boulders have been moved. The
+  general rule that follows is cheap and worth keeping regardless of the fix: **plan short routes
+  inside boulder rooms, and never plan one from another room.**
 - **Scope beyond §Ch20.** This is shared pathfinder behaviour, not cavern-specific. It affects any
   planning done while a relevant object is off-camera — which is *most* long-range planning.
 - ‼ **NOT YET REPRODUCED AS A FAILURE.** What is measured is the window behaviour and the code

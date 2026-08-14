@@ -5978,3 +5978,49 @@ OUTPUT, and label the result a bound rather than a fact.*
 - **Prevention rule:** *Treat `get_map_objects()` as "what is loaded right now", never as "what is
   on this map". Any claim about an object you are not standing near must be re-read from close
   range — and any route planned across a pushed object must be planned from within sight of it.*
+
+## 2026-08-13 — "verified by a decomp-wide search" searched for the wrong word, and put a false claim into shipped source
+
+- **Symptom.** `modules/story/early_game.py` asserted, in two places and with a citation, that
+  `FLAG_SYS_USE_STRENGTH` is *"NEVER CLEARED — switched on ONCE PER SAVE, not once per map"*. It is
+  cleared on **every warp**.
+- **Root cause.** The claim rested on *"a decomp-wide search for `clearflag`"*. `clearflag` is the
+  **script macro**. The clear is the **C function `FlagClear`**, called by `ClearTempFieldEventData()`
+  (`src/event_data.c:39-48`) from `LoadMapFromWarp` (`src/overworld.c:848`). The search could not
+  have found it **by construction** — and it was reported as a verification, which is what made it
+  credible enough to write into source as fact.
+- **How it was caught.** Not by review — by a **free measurement attached to a run that was going to
+  happen anyway**. `--driver ch20room2` read the flag immediately after warping ROOM1 → ROOM2 and got
+  `False`. The prediction was pre-registered, with both candidate outcomes and what each would mean.
+- ‼ **Why nothing ever broke, and why that is the dangerous part.** `strength_push` re-checks
+  `_strength_active()` on every call and re-activates, so the code was always right. **The bug was
+  load-bearing documentation sitting on top of correct code** — invisible to every test, gate and
+  green run, and lethal only to the *next* author, who reads "once per SAVE" and deletes the
+  re-check as redundant. Every room after the first would then walk into its boulder, take a plain
+  wall collision, and retry with no message and no error.
+- **Prevention rule:** *A search proves absence only within the vocabulary it searched. Before
+  writing "never happens — verified by searching for X" into source, name X in the comment (so the
+  next reader can see the hole) and search the OTHER spellings too — script macro vs C function,
+  wrapper vs callee. Better still, prefer a one-line runtime assertion over a claim of absence:
+  attach it to a run that is happening anyway and it costs nothing.*
+
+## 2026-08-13 — I filed a known issue and named the wrong room as the dangerous one, hours before measuring it
+
+- **Symptom.** KI-77 (the `get_map_objects()` camera window) was filed with *"armed in Room 8's nine
+  pushes in 48 tiles"* as its headline consequence. **Room 8 is the one room where it cannot fire.**
+- **Root cause.** I reasoned "many pushes in a small room ⇒ most exposure" without deriving the
+  window. Once derived from the decomp — `x ∈ [px-9, px+10]`, `y ∈ [py-7, py+9]`, i.e. **20x17** —
+  Room 8 is **11x14**, *smaller than the window in both axes*: nothing can despawn except at the
+  arrival row, before any push. The rooms actually at risk are the **large** ones (Room 1 is 20x21).
+  "Small and busy" was exactly backwards; the risk scales with the ROOM, not with the boulders.
+- **And the same pass found my framing was too strong.** I wrote that a stale plan is "planned
+  against a map that does not exist", implying the planner could be permissive. It cannot: the game
+  **physically resets a pushed boulder to its template tile when it despawns**, so the planner's
+  template-blocking is fail-safe and correct on respawn. Fixing the planner would have been fixing
+  the wrong thing.
+- ‼ **The saving grace was process, not insight:** the entry was filed as *code-verified, NOT
+  reproduced*, with "do not fix this on reasoning alone — build the repro first". That instruction
+  is the only reason a wrong headline cost a paragraph instead of a wrong fix to shared pathfinding.
+- **Prevention rule:** *Before naming where a defect is ARMED, derive the quantity that bounds it and
+  compare it to the geometry — do not rank candidates by how busy they look. And when the same entry
+  says "not reproduced", write the headline as a hypothesis, because that is what it is.*

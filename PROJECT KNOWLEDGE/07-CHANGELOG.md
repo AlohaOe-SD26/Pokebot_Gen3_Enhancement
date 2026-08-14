@@ -13101,3 +13101,60 @@ smashed=True pushed1=True pushed2=True in_room2=True can_continue=True  ACCEPTAN
 same arrival `(5,18)`, the same boulder endpoints `(5,12)` / `(13,11)` by `local_id`, and the same
 `ROOM2 (10,7)`. ‼ **That also makes the Room 1 result n=2 rather than n=1** — the first drive was
 not a fluke, which matters because this route was arbitrated against our own documentation.
+
+---
+
+## 2026-08-13 — §Ch20 INCREMENT 2: ROOM 2 driven into the Room 6 current maze, 10/10 predictions, and a WRONG COMMENT IN OUR OWN SHIPPED CODE corrected by the run (`#24-remainingarc`)
+
+**`--driver ch20room2` → `ACCEPTANCE: PASS` on the first drive**, every pre-registered prediction
+held (`ai-research-notes/2026-08-13-ch20-room2-drive-predictions.md`, written before the run):
+
+```
+ROOM1 re-solved ok=True                                  <- Room 1 is now n=3
+STRENGTH-FLAG after the ROOM1->ROOM2 warp: False         <- the headline
+M1 (10,7)->(6,2) NO-PATH · SMASH ok · M2 NO-PATH · PUSH1/2/3 -> (4,4),(4,3),(4,2) · M3 OK
+LEG3 at=('SEAFLOOR_CAVERN_ROOM6', (11,21))
+CAN-CONTINUE (11,21) -> (4,1): OK len=13
+RESULT room1_ok=True m1=False m2=False m3=True pushes=3/3 in_room6=True can_continue=True
+```
+
+**‼ THE RESULT IS `STRENGTH-FLAG = False`, AND IT CORRECTS OUR OWN SOURCE.**
+`modules/story/early_game.py` stated in two places that `FLAG_SYS_USE_STRENGTH` is *"NEVER CLEARED …
+switched on ONCE PER SAVE, not once per map"*. It is cleared on **every warp** —
+`ClearTempFieldEventData()` (`src/event_data.c:39-48`) → `LoadMapFromWarp` (`src/overworld.c:848`).
+Measured directly: the flag read `False` immediately after warping ROOM1 → ROOM2, having just been
+activated in Room 1. **Why the wrong claim survived:** it rested on "a decomp-wide search for
+`clearflag`" — the *script macro*; the clear is the C function `FlagClear`, which a macro-only
+search could never find. ✅ **The code was always safe** (`strength_push` re-checks per call); the
+defect was load-bearing documentation on top of correct code, and the danger was a future author
+deleting the re-check as redundant. Both comments corrected in place.
+
+**THE A/B IS THREE-POINT AND THE MIDDLE ARM EARNED ITS KEEP.** `M1 False → M2 False → M3 True`
+attributes the opening to the **pushes**, not the smash — a two-point A/B would have been satisfied
+by "the rock was the only obstacle", which is false (the smash grows the reachable set 9 → 21 tiles
+and `(6,2)` is in neither).
+
+**The Room 6 current model survives contact with the live room:** `calculate_path((11,21) → (4,1))`
+returned `OK len=13` from *inside* — the same 13 waypoints `probe_ch20_currents.py` predicted from
+outside the cavern. ⚠ Still a PLAN, not a walk (KI-76).
+
+**KI-77 CORRECTED THE SAME DAY IT WAS FILED — my framing was too strong, and the real defect is
+worse but different.** The despawn window is now *derived* (`x ∈ [px-9,px+10]`, `y ∈ [py-7,py+9]`,
+20x17) and it **predicts our live Room 1 dump 5/5 including on the boundary**. Two consequences:
+(a) **"armed in Room 8" is REFUTED** — Room 8 is 11x14, smaller than the window; and (b) the game
+**physically resets a pushed boulder to its template tile when it despawns**
+(`RemoveObjectEvent` only clears `active`; nothing writes back to `objectEventTemplates[]`), so the
+planner is **fail-safe and never under-blocks** — fixing the planner would have been fixing the
+wrong thing.
+
+**New note: `ai-research-notes/2026-08-13-ch20-decomp-blockers-and-room8.md`** — four live-drive
+blockers (one now confirmed live, three untested), the Room 8 adjudication (both sequences work;
+**ours is shorter at 9 pushes**), the `(5,3)` hard-jam tile, and the engine rule both sequences
+silently depend on: **a push moves the boulder but walks the player IN PLACE** — the player only
+advances because our `walk_one_tile` holds the button.
+⚠ **Blocker 2 is the dangerous one and is untested:** the §Ch20 exit lands on a Route 128 sandbar,
+releases the player **facing north**, and north is a **41-tile closed lagoon** with
+`allow_escaping: false`. The correct move is **south to `(38,23)`, then Surf**.
+
+17/17 gates PASS. **Drift is still exactly 3, MEASURED not assumed** — `early_game.py` was
+already one of the three drifted files, so correcting its comments adds no new file.

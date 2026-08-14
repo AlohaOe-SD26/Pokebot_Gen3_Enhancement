@@ -3357,3 +3357,83 @@ grepping only for "ALL PASS" reports them as false failures.
 * **Report map identity as the `MapRSE` ENUM, never `map_name`** — that is a display label.
 * **`.ss1` replays IDENTICALLY.** One fight repeated five times is still n = 1.
 * **A save any driver re-captures is a CACHE, not a fixture** (`FIXTURES.md5` marks these VOLATILE).
+
+
+---
+
+# ARCHIVED 2026-08-13 from `04-HANDOFF.md` (R3 budget; verbatim, nothing deleted)
+## ✅ AND THEN, LATER ON 2026-08-12 — §Ch18 BUILT, DRIVEN, FIXED AND WIRED (ladder 18 → 19 of 24)
+10. **The Mossdeep Gym puzzle is SIMULATABLE and the model is VALIDATED.**
+    `modules/story/mossdeep_gym_puzzle.py` predicts every object's tile after a switch press;
+    `probe_gym_simulate.py` made the GAME grade it — **11/11 loaded objects, identity-keyed on
+    `local_id`** — and caught a completely wrong model on its first run. Method written up as
+    playbook **§4b**.
+11. **The route is SOLVED and DRIVEN.** BFS over `(player tile × every object position)` →
+    **117 steps**, matching two independent agent routes switch-for-switch.
+    `--driver mossdeepgym` → `at_leaders=True at=(23,8) whiteouts=0`, one plan, zero re-plans.
+12. **§Ch18 COMPLETE.** `--driver mossdeepbadge` → `badge=True controllable=True whiteouts=0`,
+    `BADGE07_GET` after 754 frames. **Segment 18 wired into the ladder.**
+13. **‼ TWO REAL DEFECTS FOUND BY ADVERSARIAL AGENTS, NOT BY MY TESTS** — both invisible to a
+    passing run: the whiteout path checked the map only at entry AND raised an error type the
+    recovery could not catch (fixed, proven by fault injection, `repro_gym_whiteout_guard.py` 4/4);
+    and **§Ch18 stranded the run on an eleven-tile island** while passing `badge + controllable`
+    (fixed; **the acceptance now requires being out of the gym**).
+14. **KI-61 FIXED** — the chapter registry had the Space Center BEFORE the gym, which made the
+    progress detector skip two whole beats. A/B proven; the design doc's "order confirmed" was wrong.
+15. **§Ch19 groundwork + measured hazards** (`space_center.py`, `probe_space_center_recon.py`,
+    `probe_ch19_hazards.py`). **NOT built, NOT wired** — and it says so.
+16. **KI-62, KI-63 filed.** KI-63 is a real blocker: **no party member can learn Dive and the party
+    is full**, so `#24-pc` is a PREREQUISITE of §Ch21.
+
+## ✅✅ §Ch19 IS DONE (2026-08-12, later session) — the Space Center AND Dive, ladder 19 → 20 of 24
+
+**Driven end to end from `post_mossdeep_gym.ss1`, zero whiteouts:**
+```
+[ch19c] RESULT dive=True hm08=True MOSSDEEP_SPACE_CENTER_STATE=3
+        map=MOSSDEEP_CITY at=(19, 11) controllable=True whiteouts=0
+[ch19c] CAN-CONTINUE OK(15wp to the Pokemon Center)
+[ch19c] ACCEPTANCE: PASS
+```
+`modules/story/space_center.py` is the chapter; **Segment 19 is wired into `story_mode.py`**, graded
+on `RECEIVED_HM_DIVE` (‼ NOT on the Space Center var — `chapters.py` grades chapter 19 on the Dive
+flag, and the two are set in DIFFERENT BUILDINGS; a segment stopping at the battle would pass its own
+guard while `current_chapter()` returned 19 for ever, and on the re-run the 2F Steven has been
+`removeobject`'d so there would be nobody left to talk to).
+
+**New anchors:** `at_steven_2f.ss1`, `post_space_center.ss1`, `post_dive.ss1`.
+**New drivers:** `spacecenter1` (legs 1-3), `spacecenter2` (the menu + multi battle), `spacecenter`
+(whole chapter — ‼ run it from `post_space_center.ss1` as well; skipping to leg 6 is what PROVES the
+resume guards).
+
+### ‼ THE FOUR THINGS WORTH KNOWING BEFORE TOUCHING THIS CHAPTER
+1. **Mossdeep is CUT IN TWO until the forced cutscene runs.** The gym victory SPAWNS five Team Magma
+   NPCs onto the only land bridge (x=44, y=23-26) and our planner blocks loaded-object tiles, so no
+   route to the Space Center door exists yet. Leg 1 is therefore TWO legs: trigger line → **assert
+   `VAR_MOSSDEEP_CITY_STATE == 2`** → then the door. ‼ I first blamed KI-59 (our planner
+   over-blocking) because my flood fill modelled collision only and could not see NPCs — the planner
+   was right. `probe_ch19_route.py` now models live objects so it cannot tell that lie twice.
+2. **The stair grunt must be TALKED to.** `sight_radius = 0`, and it stands ON (13,2), the only tile
+   the stairs are reachable from — so navigating there can never succeed, and waiting cannot help.
+3. **‼ THE PARTY-SELECTION MENU IS SOLVED AND VERIFIED LIVE** (this was the chapter's one genuine
+   unknown). Cursor slots 0-5 are mons, **6 = CONFIRM, 7 = CANCEL**; each pick is `A` (submenu) then
+   `A` (ENTER), and **the cursor does NOT advance between picks**. A on an already-picked mon
+   DESELECTS it, so blind A-mash toggles one slot for ever with a healthy screen and no error. Every
+   pick is verified against **`gSelectedOrderFromParty`** (stored as `slot + 1`): measured `[1,5,3,0]`
+   against `INTENDED-PICKS [0,4,2]` — an exact match. **Always bring three**: `Cmd_checkteamslost`
+   sums HP over the PLAYER's picks only, so bringing fewer is strictly worse, not "letting the ally
+   carry it".
+4. **Losing is a RETRY, not an error.** The script inspects the outcome itself and calls
+   `SetCB2WhiteOut` on anything but a win — money halved, warp to the last heal location — but the
+   var stays at 2 and no trainer flag is set. ‼ Leg 1's heal matters twice over: the anchor's
+   respawn was measured to be **LILYCOVE**, across the sea with no Fly user.
+
+### ‼ AND IT NEARLY SHIPPED STRANDED — FOR THE THIRD TIME
+The first full run finished `dive=True hm08=True controllable=True` and **FAILED**, because it ended
+inside `MOSSDEEP_CITY_STEVENS_HOUSE (3,7)`. The Dive gift is an ON_FRAME script that fires on the
+doorstep, so the beat ends where it begins with every completion signal already true. **The
+acceptance caught it only because it asks for a real `calculate_path` off the end tile** rather than
+asking whether the avatar is "controllable" — which it was, indoors, the whole time. §Ch15 ended four
+floors underground, §Ch18 on an eleven-tile island, §Ch19 in a living room. *Keep that assertion in
+every chapter's acceptance.* (Second bug inside the fix: both navigate-based door helpers free the
+tile by stepping SOUTH, and (3,7) is the bottom row — an exit door needs `_walk_through_warp("Down")`.)
+
