@@ -3,15 +3,57 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-08-13 — start at the single orientation block immediately below.
+**Last updated:** 2026-08-14 — start at the single orientation block immediately below.
 Every banner further down is HISTORY, newest first.
 
 ---
-# ‼ YOU ARE HERE — the **§Ch20 CAVERN-INTERIOR** session (2026-08-13, latest): **Rooms 1, 2, the ROOM 6 CURRENT MAZE and ROOM 3 are all driven — the bot stands in ROOM 8.** Read this, then `14-AGENT-PLAYBOOK.md`.
+# ‼ YOU ARE HERE — the **§Ch20 ROOM 8** session (2026-08-14, latest): **Rooms 1, 2, 6, 3 AND 8 are all driven — the bot stands in ROOM 9.** Read this, then `14-AGENT-PLAYBOOK.md`.
 
 > **State: `main`, clean, 18/18 gates PASS, nothing parked, nothing running.** All work pushed.
-> **Rooms 1, 2, 6 and 3 of the Seafloor Cavern are DRIVEN and PASSING and the bot reaches ROOM 8**;
-> Rooms 8 and 9 are arbitrated but not driven.
+> **Rooms 1, 2, 6, 3 and 8 of the Seafloor Cavern are DRIVEN and PASSING and the bot reaches
+> ROOM 9**; only Room 9 (Archie, Kyogre, the atoll exit) remains, arbitrated but not driven.
+
+## 🚩 NEW (2026-08-14): ROOM 8 IS DRIVEN — 9/9 PUSHES, AND THE JAM-RECOVERY HANDLER IS *EXERCISED*, NOT JUST WRITTEN
+
+**`--driver ch20room8` (NEW) → `ACCEPTANCE: PASS` twice.** The CLEAN run: first attempt, all
+9 pushes of OUR adjudicated sequence (⛔ step 9 faces **LEFT**), every boulder verified by
+`local_id` on its destination, exit path `(5,4)→(5,2)` `OK len=2`, **no boulder on `(5,3)`**,
+`ROOM9 (5,4)` arrival, real step taken. **9/9 pre-registered predictions held**
+(`ai-research-notes/2026-08-14-ch20-room8-drive-predictions.md`).
+
+**The FAULT run (`POKEBOT_CH20_FAULT=room8`) proved the failure handler:** attempt 1 abandoned
+after push 4 on purpose → exit to Room 3 via the `(5,12)` arrow warp → re-enter → all twelve
+boulders respawned → attempt 2 ran 9/9 clean → `RESULT … attempts=2 recovered=True` →
+`ACCEPTANCE: PASS`. ‼ The happy path cannot exercise an error path — this is the same rule that
+caught the Room 1 `AttributeError`, applied on purpose this time.
+
+**Three independent checks preceded the drive, and two of them changed the code or the claim:**
+1. An offline adversarial agent tried to REFUTE the 9-push table (our ROM + the pret decomp,
+   agreeing on all 12 boulder templates; per-step simulation with a fault-tested checker) —
+   verdict **SURVIVES**, and it supplied the template table that turned KI-77's window into the
+   exact prediction "8 of 12 visible at arrival", which the live run then matched **exactly**.
+2. An adversarial diff review found the recovery handler **hardcoded `"Down"`** at `(5,12)`
+   instead of deriving the hold direction from the live tile (the `_cross_room6` rule, whose own
+   comment says why). Fixed BEFORE driving — and the fault run then showed the arrow warp fires
+   during the navigate itself (held direction), so the map-check-first structure absorbed a case
+   the hardcode would have hit blindly.
+3. The Room-3 walk was extracted VERBATIM into `_cross_room3` so ch20room8 INHERITS it (the
+   `_ingress` rule: reuse, never copy) — **neutrality proven by re-running `--driver ch20room3` →
+   `ACCEPTANCE: PASS`**, verdict line identical to its documented 2026-08-13 result.
+
+**Re-proof counts after this session's three full runs: R1 n=10, R2 n=7, R6 n=6, R3 n=5,
+R8 n=2** — and the Room 3 DOUBLE battle at `(6,5)` reported `is_double=True` in **all three**.
+
+⇒ **NEXT: BUILD `--driver ch20room9`** — ‼ it does not exist yet. The 62-step walk to the
+trigger `(17,42)` (⛔ NOT `(16,42)` — plain floor, fires nothing), the Archie battle chain and
+Kyogre's awakening, graded on **`VAR_ROUTE128_STATE == 2`**, never the Kyogre flag (it is set
+before a forced warp into a SECOND cutscene). The exit lands on the `ROUTE128 (38,22)` sandbar:
+**step SOUTH to `(38,23)`, face Down, Surf onto `(38,24)`** — the landing tile itself has ZERO
+surfable neighbours and the western lagoon launches strand the run (measured, 9/9,
+`probe_route128_landing.py`). ⚠ Unmeasured: that the cutscene releases the player facing north.
+⛔ **Losing to Archie resets the whole dungeon.** ⛔ Still NOT a chapter — drivers inject Dive;
+the ladder remains 20 of 24.
+> ‼ `stash@{0}` exists **on purpose** — see the STATE table; **never drop it.**
 
 ## 🛡 NEW SINCE THEN (2026-08-14): THE DOC CONSISTENCY LAYER — read `CLAUDE.md`'s new directive before editing any doc
 
@@ -78,7 +120,9 @@ seconds instead of going into the docs as a refutation.
 **✅ A KNOWN GAP CLOSED FOR FREE:** two wild encounters fired, one **between two Strength pushes**
 in Room 2. The Room 2 note flagged exactly that as untested; the idempotent `strength_push` held.
 
-⇒ **NEXT: BUILD `--driver ch20room8`** — ‼ **it does not exist yet**; it is the thing to write, not a command to run. Already adjudicated, so **use OUR 9-push sequence** (upstream's is
+⇒ *(superseded 2026-08-14 — `--driver ch20room8` is BUILT, DRIVEN and PASSING ×2, with the jam
+recovery fault-proven; see the 2026-08-14 banner above. The live queue is ROOM 9.)* **NEXT: BUILD
+`--driver ch20room8`** — ‼ **it does not exist yet**; it is the thing to write, not a command to run. Already adjudicated, so **use OUR 9-push sequence** (upstream's is
 10 and touches an extra boulder). ⛔ **Step 9 faces LEFT, never UP:** a boulder pushed north from
 `(5,4)` lands on `(5,3)` and **permanently seals the only route to the `(5,2)` exit**. ✅ A jam IS
 recoverable — exit to Room 3 via `(5,12)` and re-enter; all twelve boulders respawn. Wire that as
@@ -88,82 +132,20 @@ the room's failure handler rather than improvising. Full table:
 atoll (see the banner below).
 > ‼ `stash@{0}` exists **on purpose** — see the STATE table; **never drop it.**
 
-## 🚩 THE BOT IS INSIDE THE SEAFLOOR CAVERN AND THROUGH ROOM 1 — driven, first attempt
+## ✅ ROOMS 1 AND 2 (driven 2026-08-13) — DETAIL MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-14)
 
-**`--driver ch20room1` → `ACCEPTANCE: PASS`.** Mossdeep → dive → `SEAFLOOR_CAVERN_ENTRANCE (10,17)`
-→ `ROOM1 (5,18)` → Rock Smash + two Strength pushes → **`ROOM2 (10,7)`, controllable, real step
-taken.** Two trainer battles fired on the way and were ridden out.
-
-**‼ THE RESULT IS THE A/B, NOT THE ARRIVAL.** Same call, same target, live objects on both arms:
-
-    A/B BEFORE  (5,18) -> (11,11)   PathFindingError      <- the corridor really IS sealed
-    A/B AFTER   (5,11) -> (11,11)   OK len=6              <- and the smash+push really opens it
-
-That converts `probe_ch20_interior.py`'s Room 1 NO-PATH from a **LOWER BOUND** (it was measured from
-Mossdeep, with no cavern objects loaded) into a **measured fact**. A one-armed "it worked" could not
-have ruled out "the corridor was open all along".
-
-**‼ THE ROUTE HAD TO BE ARBITRATED BEFORE IT COULD BE DRIVEN — OUR OWN BUILD SPEC WAS WRONG.**
-`ai-research-notes/2026-08-13-ch20-seafloor-cavern-build-spec.md` claims an **exhaustive** search
-proves Room 1's `(5,11)` boulder must be pushed **NORTH**. The decomp *and* our own ROM reader both
-say `(5,10)` and `(5,12)` are `collision=0 elevation=3 'Cave'` ⇒ **either direction is legal, the
-uniqueness claim is false, the search was not exhaustive.** Upstream's **SOUTH** push
-(`puzzle_solver.py:373`) is what ships, and it was then confirmed live.
-⇒ ‼ **THAT SPEC'S ROOM 2 AND ROOM 8 "EXHAUSTIVE" SEQUENCES ARE NOW UNAUDITED.** Arbitrate each
-against the decomp **and** upstream's Emerald branch (`puzzle_solver.py:395-454`) before driving it.
-**Standing rule from `06-DECISIONS-LOG.md`: copy upstream's ROUTE, never upstream's CONTROL FLOW** —
-its second push is a bare `walk_one_tile`, unbounded by its own docstring and judging nothing; ours
-go through `strength_push`, which is bounded and verifies the boulder **by `local_id`**.
-
-**‼ NEW ISSUE — KI-77, and it was found by the ONE prediction that FAILED.** On arrival the live
-object dump returned **2 of the map's 5** objects; the rock and both grunts were absent yet
-demonstrably present. **`get_map_objects()` is a CAMERA-RANGE WINDOW, not a map inventory** — and
-`map_path.py:811-818/844-853/861` builds the planner's whole object model from it. ⇒ **after a push,
-walking out of range re-blocks the tile the boulder LEFT and frees the tile it now OCCUPIES.**
-Benign in Room 1 (the route never revisits `(5,11)`), **armed in Room 8's nine pushes in 48 tiles.**
-Code-verified, deliberately NOT fixed — the repro comes first.
-
-**Artefacts:** `--driver ch20room1` (new), pre-registered predictions + full transcript in
-`ai-research-notes/2026-08-13-ch20-room1-drive-predictions.md` (6 of 7 held).
-**Refactor, proven neutral:** `Ch20DiveMode`'s fixture and legs 1-5 are now `_inject_dive_fixture()`
-/ `_ingress()` so the new driver **reuses** the proven ingress instead of copying it — re-running
-`--driver ch20dive` gave `legs=6/6 … ACCEPTANCE: PASS`, matching its documented prior result.
-
-## 🚩 …AND THEN THROUGH ROOM 2, INTO THE ROOM 6 CURRENT MAZE (same session, later)
-
-**`--driver ch20room2` → `ACCEPTANCE: PASS`, first drive, 10 of 10 pre-registered predictions.**
-It re-solves Room 1 from scratch every run (the `FLAG_TEMP_*` objects respawn on every map load), so
-**Room 1 is now n=3.** Route 2 was arbitrated first and, unlike Room 1's, came out **clean**:
-decomp + our own ROM agree on all 8 objects and upstream `puzzle_solver.py:395-402` is correct step
-for step. Smash `(8,7)` → **exactly three** north pushes of boulder `id 4` → `(6,1)` →
-`SEAFLOOR_CAVERN_ROOM6 (11,21)`.
-
-**‼ THE HEADLINE IS A CORRECTION TO OUR OWN SHIPPED SOURCE.**
-`STRENGTH-FLAG after the ROOM1→ROOM2 warp: **False**`. `modules/story/early_game.py` said in two
-places that `FLAG_SYS_USE_STRENGTH` is *"NEVER CLEARED … once per SAVE, not once per map"*. It is
-cleared on **EVERY WARP** (`ClearTempFieldEventData` → `LoadMapFromWarp`). The old claim rested on
-"a decomp-wide search for `clearflag`" — the **script macro**; the clear is the C function
-`FlagClear`, so that search could never have found it. ✅ **The code was always safe** —
-`strength_push` re-checks per call — so this was **load-bearing documentation on top of correct
-code**, invisible to every gate, and lethal only to the next author who deletes the re-check as
-redundant. Both comments corrected. ⇒ **drift is STILL EXACTLY 3** — `early_game.py` was already
-one of the three, so this adds no new file. (Measured with the loop in HOW TO RUN / TEST.)
-
-**The three-point A/B earned its keep:** `M1 NO-PATH → M2 NO-PATH → M3 OK` attributes the opening to
-the **pushes**, not the smash. A two-point A/B would have accepted "the rock was the only obstacle",
-which is false.
-
-**Room 6's current model survives contact with the live room:** `calculate_path((11,21) → (4,1))` =
-`OK len=13` measured from INSIDE — the same 13 waypoints `probe_ch20_currents.py` predicted from
-outside. ✅ **AND IT IS NOW A WALK:** `--driver ch20room6` executed the crossing on 2026-08-13.
-What remains unproven is the *intermediate* slide behaviour, not the crossing (KI-76).
-
-**‼ KI-77 WAS CORRECTED THE SAME DAY IT WAS FILED, TWICE OVER.** The despawn window is now derived
-(`x ∈ [px-9,px+10]`, `y ∈ [py-7,py+9]` — 20x17) and **predicts our live Room 1 dump 5/5 on the
-boundary**. So (a) **"armed in Room 8" is REFUTED** — Room 8 is 11x14, *smaller than the window*;
-the rooms at risk are the **large** ones. And (b) the game **physically resets a pushed boulder to
-its template tile when it despawns**, so the planner is **fail-safe and never under-blocks** —
-fixing it would have been fixing the wrong thing.
+Both blocks moved verbatim for the R3 budget when the Room 8 banner landed. ‼ **Keep only what
+later work still leans on:** (1) Room 1's A/B (`PathFindingError → OK len=6`, live objects both
+arms) is what converted the Area Atlas's NO-PATH from a lower bound into a fact — and its route
+had to be ARBITRATED first because our build spec's "exhaustive NORTH push" claim was **false**
+(either direction is legal; upstream's SOUTH ships). *Copy upstream's ROUTE, never its CONTROL
+FLOW* — our pushes go through `strength_push` (bounded, verifies by `local_id`). (2) Room 2's
+headline was a correction to our own shipped source: **`FLAG_SYS_USE_STRENGTH` is cleared on
+EVERY WARP** (`ClearTempFieldEventData` → `LoadMapFromWarp`); the code was always safe, the
+comments were wrong. (3) **KI-77** was filed from Room 1's short object dump (2 of 5) and
+corrected same-day: the despawn window is derived (20x17), the game resets a despawned boulder
+to its template, the planner never under-blocks — and the window has since predicted the Room 8
+arrival dump exactly (8 of 12, 2026-08-14).
 
 ## ✅ THE ONE THAT WOULD STRAND THE RUN — NOW MEASURED IN OUR OWN ROM (9/9). Read before building §Ch20's exit
 
@@ -439,7 +421,7 @@ burden here is so heavy, and why negative results are treated as the most valuab
 | branch / HEAD | `main`, **clean, 0 unpushed** |
 | box | **IDLE.** Nothing running. Last batch `20260811-130454` (VERDICT OK, 28 runs). |
 | story content | ✅ **§Ch19 COMPLETE 2026-08-12 — the MOSSDEEP SPACE CENTER is defended and HM08 DIVE is in the bag. 20 of 24 beats.** Littleroot → 6 badges → Mt. Pyre → Magma Hideout (and out) → Slateport submarine theft → the Lilycove AQUA HIDEOUT (with the MASTER BALL) → the MIND BADGE → **the Space Center multi battle + Dive**. (was 19 of 24 before Ch19.) |
-| ‼ **§Ch20 SEAFLOOR CAVERN** | 🔄 **DRIVEN THROUGH ROOM 3 — the bot stands in ROOM 8 (2026-08-13).** Five drivers, all `ACCEPTANCE: PASS`: `ch20dive` (6/6) → `ch20room1` → `ch20room2` → `ch20room6` (**the first EXECUTED current crossing**) → `ch20room3`. Each re-solves every room beneath it from scratch, because the cavern's rocks and boulders are `FLAG_TEMP_*` objects that **respawn on every map load** — so **Room 1 is n=7, Room 2 n=4, Room 6 n=3, Room 3 n=2**. ⛔ **NOT a chapter.** No module in `modules/story/`, nothing wired into `story_mode.py`, and the drivers **inject Dive with a debug write**. The story ladder is still **20 of 24**. **Remaining: Room 8** (9 pushes, adjudicated, ⛔ step 9 faces **LEFT not UP**) **and Room 9** (Archie, Kyogre, the atoll exit). |
+| ‼ **§Ch20 SEAFLOOR CAVERN** | 🔄 **DRIVEN THROUGH ROOM 8 — the bot stands in ROOM 9 (2026-08-14).** Six drivers, all `ACCEPTANCE: PASS`: `ch20dive` (6/6) → `ch20room1` → `ch20room2` → `ch20room6` (**the first EXECUTED current crossing**) → `ch20room3` → **`ch20room8` (NEW, PASS ×2 — clean first-attempt 9/9 pushes, plus a FAULT run proving the jam-recovery handler: `recovered=True attempts=2`)**. Each re-solves every room beneath it from scratch, because the cavern's rocks and boulders are `FLAG_TEMP_*` objects that **respawn on every map load** — so **Room 1 is n=10, Room 2 n=7, Room 6 n=6, Room 3 n=5, Room 8 n=2**. ⛔ **NOT a chapter.** No module in `modules/story/`, nothing wired into `story_mode.py`, and the drivers **inject Dive with a debug write**. The story ladder is still **20 of 24**. **Remaining: Room 9 only** (the 62-step walk to trigger `(17,42)`, Archie, Kyogre, grade on `VAR_ROUTE128_STATE == 2`, and the atoll exit — step SOUTH to `(38,23)`, face Down, Surf). |
 | ‼ is code frozen? | **No.** Nothing is running. |
 | party ORDER | ✅ **PROVEN 2026-08-13.** `--driver roster` from `saves/post_dive.ss1` → `phases=4/4 saw_j_nonzero=True idempotent=True restored=True can_continue=True ACCEPTANCE: PASS`. Raw transcripts (both A/B arms) in `ai-research-notes/2026-08-13-roster-drive-predictions.md`. ‼ The **deposit/withdraw** half of `#24-roster` is still open. |
 | upstream | checked **2026-08-13**, still `5dd898f8` — no change. ‼ This row goes stale on a CALENDAR DAY, not on an event: if today's date is later than the one shown, **the daily check is DUE** (`git fetch upstream-pokebot`, compare against `40cakes repo/UPDATE-LOG.md`). Do not read it as satisfied. |
@@ -529,13 +511,21 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    ✅ **(a2) ROOM 3 IS DONE — DRIVEN AND PASSING (`--driver ch20room3`, PASS ×2), AND THE
 >    DOUBLE-BATTLE CLAIM IS CONFIRMED LIVE.** Do NOT rebuild it; see the banner at the top of this
 >    file. The original item is kept below only for its route detail, which is still accurate.
->    ‼ **THE QUEUE IS NOW: (a3) ROOM 8, then ROOM 9.** Room 8 is adjudicated — use **OUR** 9-push
->    sequence (upstream's is 10), and ⛔ **step 9 faces LEFT, never UP**: a boulder pushed north
->    from `(5,4)` lands on `(5,3)` and **permanently seals the only route to the `(5,2)` exit**.
->    ✅ A jam IS recoverable — exit to Room 3 via `(5,12)` and re-enter; all twelve boulders
->    respawn. Wire that as the room's failure handler rather than improvising. Full table:
->    `ai-research-notes/2026-08-13-ch20-decomp-blockers-and-room8.md`.
->    ‼ `--driver ch20room8` **DOES NOT EXIST YET** — it is the thing to build, not a command to run.
+>    ✅ **(a3) ROOM 8 IS DONE (2026-08-14) — `--driver ch20room8` DRIVEN AND PASSING ×2**, clean
+>    first-attempt 9/9 plus a fault-injected run proving the jam-recovery handler
+>    (`recovered=True attempts=2`). Do NOT rebuild it; see the 2026-08-14 banner at the top.
+>    ‼ **THE QUEUE IS NOW: (a4) ROOM 9 — `--driver ch20room9` DOES NOT EXIST YET; it is the
+>    thing to build, not a command to run.** The 62-step walk to the trigger `(17,42)` (⛔ NOT
+>    `(16,42)` — plain floor, fires nothing), the Archie battle and Kyogre's awakening, graded on
+>    **`VAR_ROUTE128_STATE == 2`** (never the Kyogre flag — it is set before a forced warp into a
+>    SECOND cutscene), then the atoll exit: **step SOUTH to `(38,23)`, face Down, Surf onto
+>    `(38,24)`** (measured 9/9 by `probe_route128_landing.py`; the landing tile itself cannot
+>    Surf in any direction, and the western-shore launches strand the run in a closed lagoon).
+>    ⚠ Unmeasured: the cutscene releasing the player facing north. ⛔ **Losing to Archie resets
+>    the whole dungeon.** Blockers 3 (Rock Smash YES/NO + `water_mons` in Rooms 6/7) and 4 (the
+>    pre-flight badge/move assertion incl. Dive/BADGE07) in
+>    `ai-research-notes/2026-08-13-ch20-decomp-blockers-and-room8.md` remain untested and land
+>    in this or the chapter increment.
 >
 >    *(superseded, kept for the route detail)* **ROOM 3 IS NEXT AND IS ALREADY ARBITRATED** —
 >    `ai-research-notes/2026-08-13-ch20-room3-arbitration.md`. ✅ **Build the WALK route:**
@@ -550,6 +540,7 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    observed, on 2026-08-13: one trainer battle in Room 3, `is_double=True`, at exactly `(6,5)`,
 >    with `usable=6` asserted beforehand. See `ai-research-notes/2026-08-13-ch20-room3-drive-predictions.md`.
 >
+>    *(superseded — Room 8 is DRIVEN and PASSING ×2, 2026-08-14; kept for the hazard detail)*
 >    **(b2) ROOM 8 IS ALREADY ADJUDICATED — build from OUR sequence, not upstream's.** Both work;
 >    ours is **9 pushes vs upstream's 10** and never touches boulder #3. Full table in
 >    `ai-research-notes/2026-08-13-ch20-decomp-blockers-and-room8.md`. ⛔ **Step 9 must face LEFT,

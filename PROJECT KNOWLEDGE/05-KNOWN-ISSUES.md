@@ -2680,6 +2680,13 @@ to refute "the tide is not a blocker"; the static-table half verified by me dire
 > reader skimming issue headers would have built a guard that measurement already ruled out. Fixed
 > in the header 2026-08-13; **the rule is that the headline carries the caveat.**
 
+- ✅ **THE WINDOW MODEL IS CONFIRMED IN A SECOND ROOM, 2026-08-14 (`--driver ch20room8`, both
+  runs, PRE-REGISTERED as prediction P3 before the drive):** standing on `ROOM8 (5,12)` the dump
+  returned **exactly 8 of the room's 12 boulders** — the four `y=4` templates fall outside
+  `y ∈ [12-7, 12+9]` — and from the staging tile `(5,8)` all 12 are visible. The derived window
+  has now predicted live dumps in Rooms 1 and 8 without a miss. ‼ The physical-reset question
+  below is STILL unanswered: the ch20room8 recovery handler exercised the *map re-entry* respawn
+  (`FLAG_TEMP_*`, a different mechanism), not the despawn-window reset.
 - ⛔ **CORRECTED 2026-08-13, SAME DAY IT WAS FILED — MY FIRST FRAMING WAS TOO STRONG, AND THE REAL
   DEFECT IS WORSE BUT DIFFERENT.** I wrote *"a route planned in that state is planned against a map
   that does not exist"*, implying the planner can be permissive. **It cannot.** A decomp pass

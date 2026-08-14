@@ -2112,3 +2112,29 @@ coordinate it expects to observe it from. When a run can legitimately overshoot 
 a positional assertion measures the checkpoint, not the outcome.* (This project has now paid for
 the inverse twice: §Ch18 passed `badge + controllable` while stranded on an island, and §Ch19
 passed every completion signal from inside a living room.)
+
+## 2026-08-14 — §Ch20 Room 8: the jam response is EXIT-AND-RE-ENTER with ONE retry, wired and fault-tested — never improvised pushes, never unbounded retries
+
+**Decision.** `Ch20Room8Mode`'s only response to ANY failed push (or a completed sequence whose
+exit path does not open) is: exit to Room 3 via the `(5,12)` arrow warp, re-enter through Room 3's
+`(8,1)` door so every `FLAG_TEMP_*` boulder respawns from the map header, and retry the whole
+9-push sequence exactly ONCE. A second failure is a FAIL with the recovery at least proven. The
+handler is exercised by a permanent fault hook (`POKEBOT_CH20_FAULT=room8`), following the
+`room1` hook precedent — and in fault mode `recovered=True` is GRADED, not just reported.
+
+**Why.** (a) The adjudication note is explicit that a jam is recoverable by re-entry and that
+improvising near `(5,3)` is how the room gets permanently sealed — the side-push stands are
+occupied late in the sequence. (b) `strength_push` raises loud on a refused push; KI-34 warns the
+caller must not re-enter it in a loop of its own. A hard 2-attempt cap around a world reset is
+bounded twice over. (c) Room 3's trainer flags persist, so the retry costs no battle.
+
+**Alternatives rejected.** Improvised side-pushes to free a jammed boulder (the exact hazard the
+adjudication names); unbounded retry-until-solved (KI-34's shape); no retry at all (throws away a
+recovery the map gives us for free and that a wild-encounter desync could someday need).
+
+**Also decided:** the arrow-warp hold direction in the recovery is DERIVED from the live tile
+name (`_cross_room6`'s rule), never hardcoded — adopted from adversarial review before the first
+run; the fault run then showed the warp fires during the navigate itself, a case the hardcode
+would have hit blindly. And the 9-vs-10-push adjudication (OURS, from the 2026-08-13 note) was
+re-verified before driving by an independent offline simulation over our ROM + the decomp, whose
+checker was itself fault-tested.

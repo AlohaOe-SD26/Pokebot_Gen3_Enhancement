@@ -3699,3 +3699,86 @@ the user's call, and it needs its own driven check in `custom-pokebot`, not a di
    `probe_hideout_warp_graph.py`, `probe_slateport_harbor_map.py`, `repro_hideout_exit.py`.
    `probe_anchor_inventory.py` now prints **party HP** — it immediately flagged three anchors as
    "cannot survive a journey".
+
+---
+
+# MOVED 2026-08-14 (from 04-HANDOFF.md, for the R3 budget when the Room 8 banner landed) — the two §Ch20 Room 1 / Room 2 blocks of 2026-08-13, verbatim:
+
+## 🚩 THE BOT IS INSIDE THE SEAFLOOR CAVERN AND THROUGH ROOM 1 — driven, first attempt
+
+**`--driver ch20room1` → `ACCEPTANCE: PASS`.** Mossdeep → dive → `SEAFLOOR_CAVERN_ENTRANCE (10,17)`
+→ `ROOM1 (5,18)` → Rock Smash + two Strength pushes → **`ROOM2 (10,7)`, controllable, real step
+taken.** Two trainer battles fired on the way and were ridden out.
+
+**‼ THE RESULT IS THE A/B, NOT THE ARRIVAL.** Same call, same target, live objects on both arms:
+
+    A/B BEFORE  (5,18) -> (11,11)   PathFindingError      <- the corridor really IS sealed
+    A/B AFTER   (5,11) -> (11,11)   OK len=6              <- and the smash+push really opens it
+
+That converts `probe_ch20_interior.py`''s Room 1 NO-PATH from a **LOWER BOUND** (it was measured from
+Mossdeep, with no cavern objects loaded) into a **measured fact**. A one-armed "it worked" could not
+have ruled out "the corridor was open all along".
+
+**‼ THE ROUTE HAD TO BE ARBITRATED BEFORE IT COULD BE DRIVEN — OUR OWN BUILD SPEC WAS WRONG.**
+`ai-research-notes/2026-08-13-ch20-seafloor-cavern-build-spec.md` claims an **exhaustive** search
+proves Room 1''s `(5,11)` boulder must be pushed **NORTH**. The decomp *and* our own ROM reader both
+say `(5,10)` and `(5,12)` are `collision=0 elevation=3 ''Cave''` ⇒ **either direction is legal, the
+uniqueness claim is false, the search was not exhaustive.** Upstream''s **SOUTH** push
+(`puzzle_solver.py:373`) is what ships, and it was then confirmed live.
+⇒ ‼ **THAT SPEC''S ROOM 2 AND ROOM 8 "EXHAUSTIVE" SEQUENCES ARE NOW UNAUDITED.** Arbitrate each
+against the decomp **and** upstream''s Emerald branch (`puzzle_solver.py:395-454`) before driving it.
+**Standing rule from `06-DECISIONS-LOG.md`: copy upstream''s ROUTE, never upstream''s CONTROL FLOW** —
+its second push is a bare `walk_one_tile`, unbounded by its own docstring and judging nothing; ours
+go through `strength_push`, which is bounded and verifies the boulder **by `local_id`**.
+
+**‼ NEW ISSUE — KI-77, and it was found by the ONE prediction that FAILED.** On arrival the live
+object dump returned **2 of the map''s 5** objects; the rock and both grunts were absent yet
+demonstrably present. **`get_map_objects()` is a CAMERA-RANGE WINDOW, not a map inventory** — and
+`map_path.py:811-818/844-853/861` builds the planner''s whole object model from it. ⇒ **after a push,
+walking out of range re-blocks the tile the boulder LEFT and frees the tile it now OCCUPIES.**
+Benign in Room 1 (the route never revisits `(5,11)`), **armed in Room 8''s nine pushes in 48 tiles.**
+Code-verified, deliberately NOT fixed — the repro comes first.
+*(Archive note: the "armed in Room 8" half was REFUTED the same day — see KI-77''s corrected entry —
+and the window model went on to predict the Room 8 arrival dump exactly on 2026-08-14.)*
+
+**Artefacts:** `--driver ch20room1` (new), pre-registered predictions + full transcript in
+`ai-research-notes/2026-08-13-ch20-room1-drive-predictions.md` (6 of 7 held).
+**Refactor, proven neutral:** `Ch20DiveMode`''s fixture and legs 1-5 are now `_inject_dive_fixture()`
+/ `_ingress()` so the new driver **reuses** the proven ingress instead of copying it — re-running
+`--driver ch20dive` gave `legs=6/6 … ACCEPTANCE: PASS`, matching its documented prior result.
+
+## 🚩 …AND THEN THROUGH ROOM 2, INTO THE ROOM 6 CURRENT MAZE (same session, later)
+
+**`--driver ch20room2` → `ACCEPTANCE: PASS`, first drive, 10 of 10 pre-registered predictions.**
+It re-solves Room 1 from scratch every run (the `FLAG_TEMP_*` objects respawn on every map load), so
+**Room 1 is now n=3.** Route 2 was arbitrated first and, unlike Room 1''s, came out **clean**:
+decomp + our own ROM agree on all 8 objects and upstream `puzzle_solver.py:395-402` is correct step
+for step. Smash `(8,7)` → **exactly three** north pushes of boulder `id 4` → `(6,1)` →
+`SEAFLOOR_CAVERN_ROOM6 (11,21)`.
+
+**‼ THE HEADLINE IS A CORRECTION TO OUR OWN SHIPPED SOURCE.**
+`STRENGTH-FLAG after the ROOM1→ROOM2 warp: **False**`. `modules/story/early_game.py` said in two
+places that `FLAG_SYS_USE_STRENGTH` is *"NEVER CLEARED … once per SAVE, not once per map"*. It is
+cleared on **EVERY WARP** (`ClearTempFieldEventData` → `LoadMapFromWarp`). The old claim rested on
+"a decomp-wide search for `clearflag`" — the **script macro**; the clear is the C function
+`FlagClear`, so that search could never have found it. ✅ **The code was always safe** —
+`strength_push` re-checks per call — so this was **load-bearing documentation on top of correct
+code**, invisible to every gate, and lethal only to the next author who deletes the re-check as
+redundant. Both comments corrected. ⇒ **drift is STILL EXACTLY 3** — `early_game.py` was already
+one of the three, so this adds no new file. (Measured with the loop in HOW TO RUN / TEST.)
+
+**The three-point A/B earned its keep:** `M1 NO-PATH → M2 NO-PATH → M3 OK` attributes the opening to
+the **pushes**, not the smash. A two-point A/B would have accepted "the rock was the only obstacle",
+which is false.
+
+**Room 6''s current model survives contact with the live room:** `calculate_path((11,21) → (4,1))` =
+`OK len=13` measured from INSIDE — the same 13 waypoints `probe_ch20_currents.py` predicted from
+outside. ✅ **AND IT IS NOW A WALK:** `--driver ch20room6` executed the crossing on 2026-08-13.
+What remains unproven is the *intermediate* slide behaviour, not the crossing (KI-76).
+
+**‼ KI-77 WAS CORRECTED THE SAME DAY IT WAS FILED, TWICE OVER.** The despawn window is now derived
+(`x ∈ [px-9,px+10]`, `y ∈ [py-7,py+9]` — 20x17) and **predicts our live Room 1 dump 5/5 on the
+boundary**. So (a) **"armed in Room 8" is REFUTED** — Room 8 is 11x14, *smaller than the window*;
+the rooms at risk are the **large** ones. And (b) the game **physically resets a pushed boulder to
+its template tile when it despawns**, so the planner is **fail-safe and never under-blocks** —
+fixing it would have been fixing the wrong thing.

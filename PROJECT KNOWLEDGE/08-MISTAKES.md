@@ -6165,3 +6165,26 @@ OUTPUT, and label the result a bound rather than a fact.*
 - **Prevention rule:** *When archiving a corrected entry, the REFUTED text is what leaves and the
   CORRECTION is what stays. Before completing any archive move, read what remains in the
   current-state file as if cold: is the surviving half the true half?*
+
+## 2026-08-14 — the recovery handler hardcoded an arrow-warp direction its sibling method had already learned to derive
+
+**Symptom.** `Ch20Room8Mode._recover_room8_jam` — the one code path whose entire job is "recover
+from a jam" — called `_walk_through_warp("Down", …)` unconditionally at the `(5,12)` exit.
+Caught by the adversarial diff reviewer BEFORE the first run: `_cross_room6`, two rooms earlier
+in the same file, derives the hold direction from the tile's own name and carries a comment
+explaining exactly why. The evidence files did not corroborate the hardcode either.
+
+**Root cause.** The static note says `(5,12)` is a South Arrow Warp, so "Down" felt like a fact
+rather than an assumption — on the branch that only executes when a run is already in trouble,
+where a wrong assumption is discovered last.
+
+**The fix that worked.** Map-check first (`if still in ROOM8`), then derive the direction from
+`self._tile_type()`, fallback to the where-check. The fault run then proved the structure right
+in an unexpected way: the walk ONTO `(5,12)` fired the warp itself (the walker holds the
+direction, `TryArrowWarp` fires on a held direction), so the derived branch was legitimately
+SKIPPED — while the old code would have blindly pressed Down while already standing in Room 3.
+
+**Prevention rule.** *An arrow-warp direction is derived from `tile_type` at run time, never
+hardcoded — especially on recovery branches, which execute least and are read worst; and after
+any navigate onto a warp tile, check the MAP before acting, because the walk itself may already
+have taken the warp.*

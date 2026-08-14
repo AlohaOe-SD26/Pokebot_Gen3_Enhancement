@@ -13454,3 +13454,33 @@ Definition-of-Done composition note added the same way the existing step-5 overr
   pre-registered predictions, the fault hook).
 
 Tier 1 was dogfooded on this very change-set before commit. 18/18 gates PASS.
+
+## 2026-08-14 — §Ch20 INCREMENT 5: ROOM 8 driven (9/9 pushes, PASS ×2), the JAM-RECOVERY handler fault-proven, and the bot stands in ROOM 9 (`#24-remainingarc`)
+
+* **`--driver ch20room8` (NEW, `tools/story-dev/story_harness.py`) → `ACCEPTANCE: PASS` twice.**
+  CLEAN run: first attempt, OUR adjudicated 9-push sequence (⛔ step 9 faces **LEFT**), every
+  boulder verified by `local_id` on its destination via `strength_push`, exit path `(5,4)→(5,2)`
+  `OK len=2`, no boulder on `(5,3)`, `SEAFLOOR_CAVERN_ROOM9 (5,4)` arrival, real step taken —
+  `RESULT room3_ok=True pushes=9/9 attempts=1 recovered=False exit_path=True in_room9=True
+  can_continue=True`.
+* **FAULT run (`POKEBOT_CH20_FAULT=room8`): the recovery handler was EXERCISED, not just
+  written.** Attempt 1 abandoned after push 4 on purpose → exit to Room 3 via the `(5,12)` arrow
+  warp → re-enter through `(8,1)` → all twelve boulders respawned → attempt 2 clean 9/9 →
+  `RESULT … attempts=2 recovered=True` → `ACCEPTANCE: PASS`.
+* **9/9 pre-registered predictions held** (`ai-research-notes/2026-08-14-ch20-room8-drive-predictions.md`,
+  written BEFORE the run), including KI-77's despawn window predicting **exactly 8 of 12**
+  boulders visible at the `(5,12)` arrival (the four `y=4` templates out of range) — the window
+  model has now predicted live dumps in two rooms without a miss.
+* **Three independent checks preceded the drive:** (1) an offline adversarial agent tried to
+  refute the 9-push table — ROM reader + pret decomp agree on all 12 templates, per-step
+  simulation SURVIVES, and the checker itself was fault-tested (a reordered sequence is
+  correctly refused); (2) an adversarial diff review (verdict KICK-BACK → APPROVE after live
+  evidence) caught a hardcoded `"Down"` in the recovery before it ever ran — see `08-MISTAKES.md`;
+  (3) the Room-3 walk was extracted VERBATIM into `_cross_room3` so ch20room8 inherits it, and
+  neutrality was proven by re-running `--driver ch20room3` → `ACCEPTANCE: PASS`, verdict line
+  identical to its 2026-08-13 result.
+* Re-proof counts after the session's three full runs: **R1 n=10, R2 n=7, R6 n=6, R3 n=5,
+  R8 n=2**; the Room 3 double battle read `is_double=True` at `(6,5)` in all three.
+* Docs: handoff banner/STATE/queue moved to ROOM 9; `#24-remainingarc` updated; KI-77 body gains
+  the second-room confirmation; `06-DECISIONS-LOG.md` gains the recovery-strategy decision;
+  `40cakes repo/UPDATE-LOG.md` daily check bumped (upstream still `5dd898f8`).
