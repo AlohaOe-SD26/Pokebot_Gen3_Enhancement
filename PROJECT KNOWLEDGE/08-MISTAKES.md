@@ -6188,3 +6188,33 @@ SKIPPED — while the old code would have blindly pressed Down while already sta
 hardcoded — especially on recovery branches, which execute least and are read worst; and after
 any navigate onto a warp tile, check the MAP before acting, because the walk itself may already
 have taken the warp.*
+
+## 2026-08-14 — I re-wrote the museum-greeter bug into a brand-new ride loop, with the prevention rule already in this file
+
+**Symptom.** `Ch20Room9Mode._ride_until` — written TODAY, for the cutscene chain whose own
+docstring documents a control-release seam with Archie/Maxie/Steven on adjacent tiles — pressed
+**A unconditionally every 4 frames**. The 2026-07-xx museum-greeter entry in this very file
+records why that is wrong (*A next to an NPC is not "advance text" — it STARTS a conversation*)
+and records the fix (press only when a text printer waits on input; B can never initiate). The
+proven sail helper in the same harness file already carries the `is_waiting_for_input()` gate.
+
+**How it was caught.** The adversarial diff reviewer, BEFORE the first run — it matched the new
+loop against the recorded mistake and named the failure chain: an A-press in the seam opens a
+conversation, the loop feeds it, the VAR2 budget burns, and the FAIL reads as "the decomp claim
+about VAR_ROUTE128_STATE==2 is wrong" — an unattributable failure manufactured by the driver
+itself.
+
+**Root cause.** A prevention rule filed under "the museum" did not fire while writing "a
+cutscene ride loop" — the same shape as the SESSION DISCIPLINE preamble in `CLAUDE.md`: a rule
+filed as the lesson from X does not fire when building Y. The rule was in context; the pattern
+match was not.
+
+**The fix that worked.** `press_button("A" if is_waiting_for_input() else "B")` inside the
+loop, with the museum-greeter rule cited at the press site. The live run then crossed the seam
+with zero initiated dialogues and hit all three milestones.
+
+**Prevention rule.** *Any loop that presses buttons across scripted scenes MUST gate A on
+`is_waiting_for_input()` (B otherwise) — and a NEW ride/mash loop is a code smell in itself:
+look for the existing gated helper first.* This is the second time an adversarial review of a
+brand-new driver caught a rule-violation the author had already written down — the review layer
+is load-bearing; do not skip it for "simple" drivers.

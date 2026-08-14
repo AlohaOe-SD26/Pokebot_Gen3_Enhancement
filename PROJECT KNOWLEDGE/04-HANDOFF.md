@@ -7,13 +7,53 @@
 Every banner further down is HISTORY, newest first.
 
 ---
-# ‼ YOU ARE HERE — the **§Ch20 ROOM 8** session (2026-08-14, latest): **Rooms 1, 2, 6, 3 AND 8 are all driven — the bot stands in ROOM 9.** Read this, then `14-AGENT-PLAYBOOK.md`.
+# ‼ YOU ARE HERE — the **§Ch20 ROOMS 8+9** session (2026-08-14, latest): **THE SEAFLOOR CAVERN IS DRIVEN END TO END — Kyogre is awakened and the bot escapes the atoll onto the open ocean.** Read this, then `14-AGENT-PLAYBOOK.md`.
 
 > **State: `main`, clean, 18/18 gates PASS, nothing parked, nothing running.** All work pushed.
-> **Rooms 1, 2, 6, 3 and 8 of the Seafloor Cavern are DRIVEN and PASSING and the bot reaches
-> ROOM 9**; only Room 9 (Archie, Kyogre, the atoll exit) remains, arbitrated but not driven.
+> **Every room of the Seafloor Cavern is DRIVEN and PASSING** — `ch20dive` → rooms 1, 2, 6, 3,
+> 8, and now **9** (Archie fought, Kyogre awakened, `VAR_ROUTE128_STATE == 2`, the measured
+> atoll escape executed). **What remains of §Ch20 is the CHAPTER ASSEMBLY**, not exploration.
 
-## 🚩 NEW (2026-08-14): ROOM 8 IS DRIVEN — 9/9 PUSHES, AND THE JAM-RECOVERY HANDLER IS *EXERCISED*, NOT JUST WRITTEN
+## 🚩 NEWEST (2026-08-14): ROOM 9 — ARCHIE, KYOGRE, AND THE ATOLL ESCAPE, DRIVEN. `ACCEPTANCE: PASS` ×2, AND THE ONE LOSS IS A MEASUREMENT, NOT A FLAKE
+
+**`--driver ch20room9` (NEW) → `ACCEPTANCE: PASS` on runs 1 and 3; run 2 LOST the Archie
+fight.** The chain: re-prove Rooms 1→8, walk `(5,4) → (17,42)` (the trigger; ⛔ `(16,42)` is
+only the sparkle), ride the scene — **Archie SINGLE battle** → Kyogre awakens → forced
+`warp (38,22)` → the Route 128 Steven scene — then the measured escape: south to `(38,23)`,
+Surf onto `(38,24)`, real path to the dive tile. **10/10 pre-registered predictions held**
+(`ai-research-notes/2026-08-14-ch20-room9-drive-predictions.md`).
+
+**What the three runs measured:**
+* **The cutscene chain is DETERMINISTIC**: milestone loop-frame counts IDENTICAL across both
+  passing runs (battle ~1836, warp ~5844, var2 ~5392); every mid-warp invariant exact
+  (`kyogre_flag=True scs=1 r128=1 pos=(38,22)` — all written BEFORE the warp). **The
+  previously-unmeasured facing claim is now measured: `facing='Up'` on release, twice.**
+* ⚠ **The Archie fight is the chain's ONE stochastic element: 2W / 1L.** The party reaches him
+  CHIPPED (run 3 telemetry: Zigzagoon FAINTED, Sceptile 96/135, `usable=5`; no heal exists in
+  the cavern). ⇒ the CHAPTER must carry a **whiteout-retry policy** (Mossdeep Gym's N-attempts
+  precedent; one retry = a full ~25-min re-dive) and/or **pre-boss readiness** (potions/order).
+* ‼ **A lost run prints NO RESULT and structurally cannot** — the WhiteoutListener sets Manual
+  and the harness drops the mode generator (KI-71's shape). The driver's `PRE-ARCHIE PARTY`
+  HP-snapshot line is the loss's attribution record; grade a silent transcript by its presence.
+* **Design decisions that survived contact** (see `06-DECISIONS-LOG.md` 2026-08-14): release is
+  gated on **`VAR_ROUTE128_STATE == 2`**, never on "looks controllable" — the decomp recon
+  proved a control seam between Room 9's script tail and the Route 128 re-lock; and the ride
+  loop presses **A only when `is_waiting_for_input()`, B otherwise** — the adversarial reviewer
+  caught the museum-greeter bug being re-written into a brand-new loop BEFORE the first run
+  (`08-MISTAKES.md` 2026-08-14).
+
+⇒ **NEXT: ASSEMBLE §Ch20 AS A CHAPTER** — a module in `modules/story/`, wired as Segment 20,
+built from the driven ingredients: `_ingress`, the room solves, the walk route, the var-gated
+scene ride, the atoll escape. **The drivers inject Dive; the chapter must acquire it
+organically** (KI-63's `ensure_hm_learner_making_room` is wired in sandbox). Carry Blockers 3
+and 4 from `ai-research-notes/2026-08-13-ch20-decomp-blockers-and-room8.md` (Repel policy for
+the `water_mons` rooms; the badge/move pre-flight incl. Dive/BADGE07), the whiteout-retry
+policy above, and grade the segment on `VAR_ROUTE128_STATE == 2` + the escape + can-continue
+(`chapters.py:233` grades the LADDER chapter on `KYOGRE_ESCAPED_SEAFLOOR_CAVERN`, which is
+set pre-warp — the segment's own acceptance must be the stricter var).
+> ‼ `stash@{0}` exists **on purpose** — see the STATE table; **never drop it.**
+
+## 🚩 ROOM 8 (2026-08-14, earlier today): 9/9 PUSHES, AND THE JAM-RECOVERY HANDLER IS *EXERCISED*, NOT JUST WRITTEN
 
 **`--driver ch20room8` (NEW) → `ACCEPTANCE: PASS` twice.** The CLEAN run: first attempt, all
 9 pushes of OUR adjudicated sequence (⛔ step 9 faces **LEFT**), every boulder verified by
@@ -44,16 +84,12 @@ caught the Room 1 `AttributeError`, applied on purpose this time.
 **Re-proof counts after this session's three full runs: R1 n=10, R2 n=7, R6 n=6, R3 n=5,
 R8 n=2** — and the Room 3 DOUBLE battle at `(6,5)` reported `is_double=True` in **all three**.
 
-⇒ **NEXT: BUILD `--driver ch20room9`** — ‼ it does not exist yet. The 62-step walk to the
-trigger `(17,42)` (⛔ NOT `(16,42)` — plain floor, fires nothing), the Archie battle chain and
-Kyogre's awakening, graded on **`VAR_ROUTE128_STATE == 2`**, never the Kyogre flag (it is set
-before a forced warp into a SECOND cutscene). The exit lands on the `ROUTE128 (38,22)` sandbar:
-**step SOUTH to `(38,23)`, face Down, Surf onto `(38,24)`** — the landing tile itself has ZERO
-surfable neighbours and the western lagoon launches strand the run (measured, 9/9,
-`probe_route128_landing.py`). ⚠ Unmeasured: that the cutscene releases the player facing north.
-⛔ **Losing to Archie resets the whole dungeon.** ⛔ Still NOT a chapter — drivers inject Dive;
-the ladder remains 20 of 24.
-> ‼ `stash@{0}` exists **on purpose** — see the STATE table; **never drop it.**
+⇒ *(superseded LATER THE SAME DAY — `ch20room9` is BUILT, DRIVEN and PASSING ×2; the facing
+claim is MEASURED; see the NEWEST banner at the top. The live queue is the CHAPTER ASSEMBLY.)*
+Its route detail stays true: trigger `(17,42)` not `(16,42)`; grade on
+**`VAR_ROUTE128_STATE == 2`**, never the pre-warp Kyogre flag; escape **south to `(38,23)`,
+Surf onto `(38,24)`** (9/9, `probe_route128_landing.py`); losing to Archie whiteouts out of the
+dungeon. ⛔ Still NOT a chapter — drivers inject Dive; the ladder remains 20 of 24.
 
 ## 🛡 NEW SINCE THEN (2026-08-14): THE DOC CONSISTENCY LAYER — read `CLAUDE.md`'s new directive before editing any doc
 
@@ -68,35 +104,14 @@ stale-text-beside-correct-text, including a TRIAGE INDEX blessing a five-chapter
 archive move done BACKWARDS (the refuted text stayed, the correction left — KI-39), `Expect:`
 lines attached to the wrong commands in THIS file, and an R6 flag gate that could not see FIVE of
 the sixteen flags it existed to police (all registered now, 16/16).
-> ‼ `stash@{0}` exists **on purpose** — see the STATE table; **never drop it.**
 
-## 🚩 …AND ACROSS THE ROOM 6 CURRENT MAZE, INTO ROOM 3 (same session, latest)
+## ✅ ROOM 6 (the first executed current crossing, 2026-08-13) — DETAIL MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-14)
 
-**`--driver ch20room6` → `ACCEPTANCE: PASS`, first drive, 8/8 pre-registered predictions.**
-**‼ THIS IS THE FIRST EXECUTED CURRENT CROSSING IN THIS PROJECT.** Everything about Rooms 6/7 was
-**planner-level only** until now — and *a plan is not a walk*. It was driven as its own increment,
-deliberately NOT bundled with Room 3, so a failure would have been attributable.
-
-    ROOM6 entry=(11,21)   PLAN (11,21)->(4,1): OK len=13
-    CROSSING at=('SEAFLOOR_CAVERN_ROOM3', (4,15)) crossed=True
-    ROOM3-WALK (4,15)->(8,1): OK len=18 contains (6,5)
-    RESULT room2_ok=True crossed=True in_room3=True room3_walk=True can_continue=True
-
-⇒ **The punch list's "Rooms 6/7 need no solver" now rests on a WALK, not a plan.**
-⚠ **Precisely:** the **endpoint** is proven, not the intermediate slide behaviour. No per-slide
-telemetry; the planner's 13 waypoints were never compared step-by-step to the executor's path.
-
-**‼ A DESIGN DECISION 20 MINUTES OLD SAVED THE RUN.** The crossing did not stop on `ROOM6 (4,1)` —
-it carried straight through into Room 3. A strict `where == (ROOM6,(4,1))` test would have printed
-**FAIL over a crossing that worked perfectly**. *Assert the outcome, not the position you expected.*
-⚠ The arrow-warp branch added alongside it **never executed and is UNTESTED**.
-
-**✅ AND ROOM 3'S ARBITRATION WAS CONFIRMED LIVE, IN THE SAME RUN, FOR FREE.**
-`calculate_path((4,15) → (8,1))` = **`OK len=18`, containing `(6,5)`**. So **Room 3 is crossable
-PUSH-FREE — its 7-boulder puzzle really is OPTIONAL** — and **the push-free line unavoidably enters
-a trainer sight tile**, so the walk must take the battle. ‼ Decomp says that is a single **DOUBLE**
-battle (Shelly + Grunt5); **that half is still unobserved live** and is the top prediction for the
-Room 3 drive.
+Moved for the R3 budget. ‼ **Keep only:** the crossing carried straight through into Room 3 and
+a strict positional assert would have FAILED a perfect crossing — *assert the outcome, not the
+position you expected* (now in `06-DECISIONS-LOG.md`). ⚠ Still true: the **endpoint** is proven,
+not the per-slide behaviour (KI-76's correctness half), and the arrow-warp branch added there
+first executed later, in ch20room8's recovery context. Room 6 is now **n=9**.
 
 ## 🚩 …AND THROUGH ROOM 3. THE BOT NOW STANDS IN ROOM 8 (same session, latest)
 
@@ -421,7 +436,7 @@ burden here is so heavy, and why negative results are treated as the most valuab
 | branch / HEAD | `main`, **clean, 0 unpushed** |
 | box | **IDLE.** Nothing running. Last batch `20260811-130454` (VERDICT OK, 28 runs). |
 | story content | ✅ **§Ch19 COMPLETE 2026-08-12 — the MOSSDEEP SPACE CENTER is defended and HM08 DIVE is in the bag. 20 of 24 beats.** Littleroot → 6 badges → Mt. Pyre → Magma Hideout (and out) → Slateport submarine theft → the Lilycove AQUA HIDEOUT (with the MASTER BALL) → the MIND BADGE → **the Space Center multi battle + Dive**. (was 19 of 24 before Ch19.) |
-| ‼ **§Ch20 SEAFLOOR CAVERN** | 🔄 **DRIVEN THROUGH ROOM 8 — the bot stands in ROOM 9 (2026-08-14).** Six drivers, all `ACCEPTANCE: PASS`: `ch20dive` (6/6) → `ch20room1` → `ch20room2` → `ch20room6` (**the first EXECUTED current crossing**) → `ch20room3` → **`ch20room8` (NEW, PASS ×2 — clean first-attempt 9/9 pushes, plus a FAULT run proving the jam-recovery handler: `recovered=True attempts=2`)**. Each re-solves every room beneath it from scratch, because the cavern's rocks and boulders are `FLAG_TEMP_*` objects that **respawn on every map load** — so **Room 1 is n=10, Room 2 n=7, Room 6 n=6, Room 3 n=5, Room 8 n=2**. ⛔ **NOT a chapter.** No module in `modules/story/`, nothing wired into `story_mode.py`, and the drivers **inject Dive with a debug write**. The story ladder is still **20 of 24**. **Remaining: Room 9 only** (the 62-step walk to trigger `(17,42)`, Archie, Kyogre, grade on `VAR_ROUTE128_STATE == 2`, and the atoll exit — step SOUTH to `(38,23)`, face Down, Surf). |
+| ‼ **§Ch20 SEAFLOOR CAVERN** | ✅ **DRIVEN END TO END (2026-08-14) — Kyogre awakened, atoll escape executed.** Seven drivers, all `ACCEPTANCE: PASS`: `ch20dive` (6/6) → `ch20room1` → `ch20room2` → `ch20room6` → `ch20room3` → `ch20room8` (PASS ×2 incl. a FAULT run proving jam recovery) → **`ch20room9` (NEW, PASS ×2 — runs 1 & 3; ⚠ run 2 LOST the Archie fight, a MEASURED 2W/1L on the chain's one stochastic element)**. Each run re-solves every room beneath it (`FLAG_TEMP_*` respawn on map load) — counts now **R1 n=13, R2 n=10, R6 n=9, R3 n=8, R8 n=5, R9 scene n=3 (full chain n=2)**. The cutscene chain is deterministic (identical milestone frame counts across passing runs); release gated on `VAR_ROUTE128_STATE == 2`; facing on release MEASURED `'Up'` ×2. ⛔ **NOT a chapter.** No module in `modules/story/`, nothing wired into `story_mode.py`, drivers **inject Dive with a debug write**. Ladder still **20 of 24**. **Remaining: CHAPTER ASSEMBLY** (organic Dive via KI-63 wiring, Repel policy, badge/move pre-flight, whiteout-retry for Archie, the atoll escape leg). |
 | ‼ is code frozen? | **No.** Nothing is running. |
 | party ORDER | ✅ **PROVEN 2026-08-13.** `--driver roster` from `saves/post_dive.ss1` → `phases=4/4 saw_j_nonzero=True idempotent=True restored=True can_continue=True ACCEPTANCE: PASS`. Raw transcripts (both A/B arms) in `ai-research-notes/2026-08-13-roster-drive-predictions.md`. ‼ The **deposit/withdraw** half of `#24-roster` is still open. |
 | upstream | checked **2026-08-13**, still `5dd898f8` — no change. ‼ This row goes stale on a CALENDAR DAY, not on an event: if today's date is later than the one shown, **the daily check is DUE** (`git fetch upstream-pokebot`, compare against `40cakes repo/UPDATE-LOG.md`). Do not read it as satisfied. |
@@ -514,18 +529,23 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    ✅ **(a3) ROOM 8 IS DONE (2026-08-14) — `--driver ch20room8` DRIVEN AND PASSING ×2**, clean
 >    first-attempt 9/9 plus a fault-injected run proving the jam-recovery handler
 >    (`recovered=True attempts=2`). Do NOT rebuild it; see the 2026-08-14 banner at the top.
->    ‼ **THE QUEUE IS NOW: (a4) ROOM 9 — `--driver ch20room9` DOES NOT EXIST YET; it is the
->    thing to build, not a command to run.** The 62-step walk to the trigger `(17,42)` (⛔ NOT
->    `(16,42)` — plain floor, fires nothing), the Archie battle and Kyogre's awakening, graded on
->    **`VAR_ROUTE128_STATE == 2`** (never the Kyogre flag — it is set before a forced warp into a
->    SECOND cutscene), then the atoll exit: **step SOUTH to `(38,23)`, face Down, Surf onto
->    `(38,24)`** (measured 9/9 by `probe_route128_landing.py`; the landing tile itself cannot
->    Surf in any direction, and the western-shore launches strand the run in a closed lagoon).
->    ⚠ Unmeasured: the cutscene releasing the player facing north. ⛔ **Losing to Archie resets
->    the whole dungeon.** Blockers 3 (Rock Smash YES/NO + `water_mons` in Rooms 6/7) and 4 (the
->    pre-flight badge/move assertion incl. Dive/BADGE07) in
->    `ai-research-notes/2026-08-13-ch20-decomp-blockers-and-room8.md` remain untested and land
->    in this or the chapter increment.
+>    ✅ **(a4) ROOM 9 IS DONE (2026-08-14) — `--driver ch20room9` DRIVEN, `ACCEPTANCE: PASS` ×2
+>    (runs 1 & 3), the cavern is END-TO-END.** Do NOT rebuild it; see the NEWEST banner at the
+>    top. ⚠ Run 2 LOST the Archie fight (2W/1L measured; the party arrives chipped, no heal in
+>    the cavern) — that is CHAPTER-DESIGN input, not a driver defect. The facing-north claim is
+>    now MEASURED (`'Up'` ×2).
+>    ‼ **THE QUEUE IS NOW: (b) ASSEMBLE §Ch20 AS A CHAPTER** — a module in `modules/story/`,
+>    wired as Segment 20 in `story_mode.py`, built from the driven ingredients (`_ingress`, the
+>    room solves, the walk route, the var-gated scene ride, the atoll escape). Requirements,
+>    all measured: **organic Dive acquisition** (drivers inject it; KI-63's
+>    `ensure_hm_learner_making_room` is wired in sandbox), **whiteout-retry policy for Archie**
+>    (one retry = full re-dive of Rooms 1-8, ~25 min; Mossdeep Gym's N-attempts precedent),
+>    **pre-boss readiness** (potions/party order — run 3 entered with a fainted mon and
+>    Sceptile at 96/135), **Blocker 3** (Repel policy — Rooms 6/7 have `water_mons`; Rock Smash
+>    prompts YES/NO every smash), **Blocker 4** (pre-flight badge/move assertion incl.
+>    Dive/BADGE07), and grade the SEGMENT on **`VAR_ROUTE128_STATE == 2` + the escape +
+>    can-continue** (the ladder chapter in `chapters.py:233` grades on
+>    `KYOGRE_ESCAPED_SEAFLOOR_CAVERN`, which is set PRE-warp — too weak for the segment).
 >
 >    *(superseded, kept for the route detail)* **ROOM 3 IS NEXT AND IS ALREADY ARBITRATED** —
 >    `ai-research-notes/2026-08-13-ch20-room3-arbitration.md`. ✅ **Build the WALK route:**

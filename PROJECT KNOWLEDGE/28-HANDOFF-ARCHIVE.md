@@ -3782,3 +3782,37 @@ boundary**. So (a) **"armed in Room 8" is REFUTED** — Room 8 is 11x14, *smalle
 the rooms at risk are the **large** ones. And (b) the game **physically resets a pushed boulder to
 its template tile when it despawns**, so the planner is **fail-safe and never under-blocks** —
 fixing it would have been fixing the wrong thing.
+
+---
+
+# MOVED 2026-08-14 (from 04-HANDOFF.md, for the R3 budget when the Room 9 banner landed) — the §Ch20 Room 6 block of 2026-08-13, verbatim:
+
+## 🚩 …AND ACROSS THE ROOM 6 CURRENT MAZE, INTO ROOM 3 (same session, latest)
+
+**`--driver ch20room6` → `ACCEPTANCE: PASS`, first drive, 8/8 pre-registered predictions.**
+**‼ THIS IS THE FIRST EXECUTED CURRENT CROSSING IN THIS PROJECT.** Everything about Rooms 6/7 was
+**planner-level only** until now — and *a plan is not a walk*. It was driven as its own increment,
+deliberately NOT bundled with Room 3, so a failure would have been attributable.
+
+    ROOM6 entry=(11,21)   PLAN (11,21)->(4,1): OK len=13
+    CROSSING at=(''SEAFLOOR_CAVERN_ROOM3'', (4,15)) crossed=True
+    ROOM3-WALK (4,15)->(8,1): OK len=18 contains (6,5)
+    RESULT room2_ok=True crossed=True in_room3=True room3_walk=True can_continue=True
+
+⇒ **The punch list''s "Rooms 6/7 need no solver" now rests on a WALK, not a plan.**
+⚠ **Precisely:** the **endpoint** is proven, not the intermediate slide behaviour. No per-slide
+telemetry; the planner''s 13 waypoints were never compared step-by-step to the executor''s path.
+
+**‼ A DESIGN DECISION 20 MINUTES OLD SAVED THE RUN.** The crossing did not stop on `ROOM6 (4,1)` —
+it carried straight through into Room 3. A strict `where == (ROOM6,(4,1))` test would have printed
+**FAIL over a crossing that worked perfectly**. *Assert the outcome, not the position you expected.*
+⚠ The arrow-warp branch added alongside it **never executed and is UNTESTED**.
+*(Archive note 2026-08-14: that branch''s pattern was later exercised via ch20room8''s recovery
+design, and the tile-derived-direction rule it carried became load-bearing there.)*
+
+**✅ AND ROOM 3''S ARBITRATION WAS CONFIRMED LIVE, IN THE SAME RUN, FOR FREE.**
+`calculate_path((4,15) → (8,1))` = **`OK len=18`, containing `(6,5)`**. So **Room 3 is crossable
+PUSH-FREE — its 7-boulder puzzle really is OPTIONAL** — and **the push-free line unavoidably enters
+a trainer sight tile**, so the walk must take the battle. ‼ Decomp says that is a single **DOUBLE**
+battle (Shelly + Grunt5); **that half is still unobserved live** and is the top prediction for the
+Room 3 drive. *(Archive note: it WAS then observed live — repeatedly; the double is confirmed.)*

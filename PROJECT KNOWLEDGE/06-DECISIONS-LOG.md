@@ -2138,3 +2138,50 @@ run; the fault run then showed the warp fires during the navigate itself, a case
 would have hit blindly. And the 9-vs-10-push adjudication (OURS, from the 2026-08-13 note) was
 re-verified before driving by an independent offline simulation over our ROM + the decomp, whose
 checker was itself fault-tested.
+
+## 2026-08-14 — §Ch20 Room 9: release is gated on VAR_ROUTE128_STATE == 2, never on "looks controllable"; scene-riding presses are gated, never mashed
+
+**Decision.** `Ch20Room9Mode` treats `VAR_ROUTE128_STATE == 2` as the ONLY release signal after
+the forced warp, and rides the whole cutscene chain with three bounded, loud-on-failure
+milestones (battle seen → map==ROUTE128 → var==2) instead of a single "wait until controllable".
+All mid-warp state assertions (Kyogre flag, `VAR_SEAFLOOR_CAVERN_STATE`, `VAR_ROUTE128_STATE`,
+position) fire at the map-change instant, where they are invariants, not completion signals.
+
+**Why.** Decomp recon (independent agent, cited) showed Room 9''s script tail executes its
+`releaseall` ON ROUTE 128, before the OnFrame scene re-locks — so there is a genuine
+controllability window that is NOT the end of the chapter. A controllability-gated driver would
+act inside the Steven scene. The var is written one command before the final `releaseall` and
+has exactly two writers in the whole ROM (1 pre-warp, 2 at scene end), making it a clean binary.
+
+**Alternatives rejected.** Waiting on `wait_until_truly_controllable` alone (acts in the seam);
+grading on `FLAG_KYOGRE_ESCAPED_SEAFLOOR_CAVERN` (set BEFORE the forced warp — reports success
+from inside two nested cutscenes; the build spec called this out and the recon confirmed it);
+a single global frame budget with no milestones (a stall would be unattributable).
+
+**Also decided:** the milestone loop''s button is `A` only when `is_waiting_for_input()`, else
+`B` — adopted from adversarial review before the first run (see `08-MISTAKES.md` 2026-08-14,
+the museum-greeter recurrence).
+
+## 2026-08-14 — §Ch20: losing to Archie is a VALID BRANCH the chapter must handle, not a defect a driver should prevent
+
+**The measurement.** Three full `--driver ch20room9` runs: 2 wins, 1 loss on the Archie fight —
+the ONLY stochastic element in an otherwise deterministic chain (identical milestone frame
+counts across both passing runs). The party reaches Archie CHIPPED (run 3: one mon fainted,
+lead at 96/135, usable=5) because no heal exists inside the cavern and Rooms 1-8 cost a grunt
+fight, a forced DOUBLE, and wild encounters. A loss whiteouts to the last heal location with
+the script context dead: no vars/flags written, `VAR_SEAFLOOR_CAVERN_STATE` still 0, the
+trigger re-armed, all `FLAG_TEMP_*` boulders reset (they reset on every warp anyway), cavern
+grunts STAY defeated. The mode generator is dropped (Manual), so a lost run leaves no RESULT —
+only the `PRE-ARCHIE PARTY` telemetry line.
+
+**Decision.** The recon DRIVER treats a loss as an honestly-reported terminal outcome (bail
+loud, transcript is the record). The CHAPTER, when assembled, must treat it as a RETRY branch:
+bounded N attempts (the Mossdeep Gym precedent), each retry a full re-dive of Rooms 1-8
+(~25 min), plus a pre-boss readiness policy (heal/potions/party order before entering Room 9)
+to push the win rate up before the retry loop is ever needed.
+
+**Alternatives rejected.** Making the driver prevent the loss (a recon driver measures the
+world, it does not fight the odds); grading the driver's PASS on winning every time (turns a
+measured 1-in-3 game outcome into fake flakiness); healing mid-dungeon by state-write in the
+chapter (violates faithful-play; the sanctioned fixture heal exists only in the harness driver,
+documented as such).

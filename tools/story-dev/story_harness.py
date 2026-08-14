@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "divelearner"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "divelearner"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -6447,6 +6447,307 @@ class Ch20Room8Mode(Ch20Room3Mode):
         return
 
 
+class Ch20Room9Mode(Ch20Room8Mode):
+    """§Ch20 ROOM 9 — Archie, KYOGRE'S AWAKENING, the forced warp, and the atoll escape.
+
+    ‼ THE CHAIN IS DECOMP-RECONNED, NOT RECALLED (independent agent, 2026-08-14, every beat
+    cited; predictions pre-registered in
+    `ai-research-notes/2026-08-14-ch20-room9-drive-predictions.md`). The three facts this
+    driver is built around:
+      1. The `(17,42)` trigger's gate is **`VAR_SEAFLOOR_CAVERN_STATE == 0`**
+         (`Room9/map.json:130`) — asserted BEFORE the walk. ⛔ `(16,42)` is the SPARKLE target
+         (`scripts.inc:38`), not the trigger.
+      2. **Room 9 has NO wild encounter table and zero sight cones** — the 62-step walk is
+         uninterruptible; Archie is `addobject`-ed by the scene itself.
+      3. ⛔ **THE FIRST `releaseall` IS A TRAP.** Room 9's script tail executes on Route 128
+         BEFORE the OnFrame scene (`VAR_ROUTE128_STATE == 1`) re-locks with Steven. All
+         post-cutscene movement is gated on **`VAR_ROUTE128_STATE == 2`**
+         (`Route128/scripts.inc:77`, one command before the final `releaseall`), NEVER on
+         "looks controllable".
+
+    THE GRADING, per the build spec AND the recon agreeing: `VAR_ROUTE128_STATE == 2`, never
+    the Kyogre flag — the flag is set (`Room9/scripts.inc:128`) BEFORE the forced
+    `warp MAP_ROUTE128, 38, 22` (`:138`), so a flag-graded run reports success from inside two
+    nested cutscenes. The flag IS asserted here — at the moment the map changes, where it is a
+    mid-warp invariant, not a completion signal.
+
+    ‼ THE EXIT IS THE MEASURED ATOLL ESCAPE (Blocker 2, `probe_route128_landing.py`, 9/9):
+    the landing tile `(38,22)` has ZERO surfable neighbours, the western-shore launches strand
+    the run in a 41-tile closed lagoon, and the ONE-STEP rule is: **south to `(38,23)`, face
+    Down, Surf onto `(38,24)`** — a confirmed launch into the 1,766-tile open ocean. The
+    can-continue is a real step ON the ocean plus a real `calculate_path` back to the dive tile
+    `(38,27)`.
+
+    ‼ LOSING TO ARCHIE = whiteout to the last heal location with the script context dead —
+    `VAR_SEAFLOOR_CAVERN_STATE` stays 0, no vars/flags written. The milestone loop detects
+    "map is neither ROOM9 nor ROUTE128" and bails LOUD; dungeon re-entry is the CHAPTER's
+    design decision, not something a driver improvises.
+
+        PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch20room9 --frames 6000000
+
+    Emits: [ch20room9] RESULT rooms_ok=<b> triggered=<b> battles_r9=<n> kyogre_flag=<b>
+           var2=<b> landed=<b> escaped=<b> ocean_path=<b> can_continue=<b>
+    """
+
+    ROOM9_TRIGGER = (17, 42)      # the coord event; (16,42) is only the sparkle
+    ROUTE128_LANDING = (38, 22)   # forced-warp destination, shallow sandbar
+    ESCAPE_STAND = (38, 23)       # one step south of the landing
+    ESCAPE_WATER = (38, 24)       # the confirmed open-ocean launch
+    OCEAN_PROBE = (38, 27)        # the ch20dive DIVE_TILE — same open-ocean component
+
+    @staticmethod
+    def name():
+        return "Ch20Room9"
+
+    @staticmethod
+    def _var(name: str):
+        """An event var, or a string describing why it could not be read — an unread var must
+        never be conflated with a value (the ch20room2 STRENGTH-FLAG rule)."""
+        from modules.memory import get_event_var
+
+        try:
+            return get_event_var(name)
+        except Exception as error:  # noqa: BLE001
+            return f"<unreadable {type(error).__name__}>"
+
+    @staticmethod
+    def _flag(name: str):
+        from modules.memory import get_event_flag
+
+        try:
+            return get_event_flag(name)
+        except Exception as error:  # noqa: BLE001
+            return f"<unreadable {type(error).__name__}>"
+
+    def _ride_until(self, label: str, predicate, budget_frames: int):
+        """A-ride the cutscene chain until `predicate()` or the budget runs out. Bounded and
+        LOUD on failure, per the never-hang rule. Sets `self.milestone_ok`.
+
+        ‼ The whiteout guard is built in: if the map is neither ROOM9 nor ROUTE128 the chain is
+        dead (a loss warps to the last heal location) and waiting longer cannot help.
+        ‼ The mode generator is FROZEN during battles (the BattleListener owns those frames),
+        so this loop simply resumes after the Archie fight — it needs no battle handling.
+
+        ‼ THE BUTTON IS GATED, NOT MASHED — the museum-greeter rule (`08-MISTAKES.md`): **A next
+        to an NPC is not "advance text", it STARTS a conversation**, and milestone 3 spans the
+        documented control seam between Room 9's tail `releaseall` and the Route 128 OnFrame
+        re-lock, with Archie/Maxie/Steven on adjacent tiles. So: **A only when a text printer is
+        actually waiting on input; B otherwise** — B advances/dismisses identically but can never
+        initiate. Flagged by adversarial review before the first run; same fix shape as the
+        proven sail helper (`is_waiting_for_input()` gate)."""
+        from modules.context import context as _ctx
+        from modules.modes.util.sleep import wait_for_n_frames
+        from modules.tasks import is_waiting_for_input
+
+        self.milestone_ok = False
+        frames = 0
+        while frames < budget_frames:
+            if predicate():
+                self.milestone_ok = True
+                log(f"[ch20room9] MILESTONE {label} reached after ~{frames} loop-frames")
+                return
+            where = self._where()
+            if where[0] not in ("SEAFLOOR_CAVERN_ROOM9", "ROUTE128"):
+                log(f"[ch20room9] ‼ MILESTONE {label} ABORTED — map is {where}, which is "
+                    f"neither ROOM9 nor ROUTE128. That is the WHITEOUT signature (money "
+                    f"halved, script context dead, VAR_SEAFLOOR_CAVERN_STATE still 0).")
+                return
+            try:
+                waiting = is_waiting_for_input()
+            except Exception:  # noqa: BLE001 - an unreadable printer state must not stop the ride
+                waiting = False
+            _ctx.emulator.press_button("A" if waiting else "B")
+            yield
+            yield from wait_for_n_frames(3)
+            frames += 4
+        log(f"[ch20room9] ‼ MILESTONE {label} NOT reached within {budget_frames} frames — "
+            f"at={self._where()} r128_var={self._var('ROUTE128_STATE')} "
+            f"scs_var={self._var('SEAFLOOR_CAVERN_STATE')}")
+
+    def run(self):
+        from modules.context import context as _ctx
+        from modules.map_data import MapRSE
+        from modules.player import AvatarFlags, get_player_avatar
+        from modules.story.early_game import _navigate_riding_out, wait_until_truly_controllable
+
+        room9 = MapRSE.SEAFLOOR_CAVERN_ROOM9
+        route128 = MapRSE.ROUTE128
+        notes = {}
+        self.battle_log = []
+        triggered = kyogre_flag = var2 = landed = escaped = ocean_path = False
+
+        def _bail(reason: str):
+            log(f"[ch20room9] ‼ STOPPING — {reason}")
+            log(f"[ch20room9] RESULT rooms_ok=False triggered={triggered} battles_r9=0 "
+                f"kyogre_flag={kyogre_flag} var2={var2} landed={landed} escaped={escaped} "
+                f"ocean_path={ocean_path} can_continue=False detail={notes}")
+            log("[ch20room9] ACCEPTANCE: FAIL")
+            _ctx.set_manual_mode()
+
+        yield from wait_until_truly_controllable()
+        yield from self._inject_dive_fixture()
+        if not self.fixture_ok:
+            _bail("the Dive fixture failed, so the cavern is unreachable")
+            return
+        yield from self._ingress()
+        if not (self.leg1_ok and self.at_entrance):
+            _bail(f"the ingress did not surface in the cavern (legs={self.legs}/5)")
+            return
+        yield from self._enter_room1()
+        if not self.in_room1:
+            _bail("never reached ROOM1")
+            return
+        yield from self._solve_room1()
+        if not self.r1.get("in_room2"):
+            _bail("Room 1 did not deliver us into ROOM2")
+            return
+        yield from self._solve_room2()
+        if not self.r2.get("in_room6"):
+            _bail("Room 2 did not deliver us into ROOM6")
+            return
+        yield from self._cross_room6(notes)
+        if not self.in_room3:
+            _bail("the ROOM 6 current crossing did not deliver us into ROOM3")
+            return
+        yield from self._cross_room3(notes)
+        if not self.in_room8:
+            _bail("Room 3 did not deliver us into ROOM8")
+            return
+        yield from self._solve_room8(notes)
+        notes["room8"] = {k: self.r8[k] for k in ("pushes", "attempts", "exit_ok")}
+        if not self.r8["exit_ok"]:
+            _bail("Room 8 did not open its exit")
+            return
+        try:
+            yield from _navigate_riding_out(MapRSE.SEAFLOOR_CAVERN_ROOM8, self.ROOM9_DOOR)
+        except Exception as error:  # noqa: BLE001
+            log(f"[ch20room9] ROOM9-LEG raised {type(error).__name__}: {str(error)[:300]} "
+                f"(the (5,2) door warp firing mid-walk can look like this)")
+        rooms_ok = self._where()[0] == "SEAFLOOR_CAVERN_ROOM9"
+        if not rooms_ok:
+            _bail(f"the (5,2) door did not deliver us into ROOM9 (at={self._where()})")
+            return
+        log(f"[ch20room9] ROOMS 1+2+6+3+8 re-proven; standing in {self._where()}")
+
+        # ---- ‼ THE ARM CHECK IS PART OF THE MEASUREMENT --------------------------------------
+        # VAR_SEAFLOOR_CAVERN_STATE gates the (17,42) trigger (== 0 means armed). If it is not
+        # 0, the walk would cross the tile and fire NOTHING — and a "the scene never started"
+        # reading would be unattributable between "trigger broken" and "trigger retired".
+        scs = self._var("SEAFLOOR_CAVERN_STATE")
+        notes["arm"] = scs
+        log(f"[ch20room9] ARM-CHECK VAR_SEAFLOOR_CAVERN_STATE={scs} (PREDICTED 0 = armed; "
+            f"1 would mean the scene already ran and the walk below fires nothing)")
+
+        # ---- READINESS SNAPSHOT: the one stochastic element in this chain is the Archie
+        # fight, and a loss whiteouts to the heal location with the mode generator ABANDONED
+        # (the WhiteoutListener sets Manual; main.py drops the controller) — so the driver
+        # CANNOT self-report a loss. This line is the attribution a lost run leaves behind:
+        # measured 2026-08-14 run 2, the fight was LOST (1W/1L) and the only record was the
+        # listener's transcript. Chapter design must budget for that (retry policy / readiness).
+        from modules.pokemon_party import get_party as _get_party
+
+        hp_lines = [f"{m.species.name} L{m.level} {m.current_hp}/{m.total_hp}"
+                    for m in _get_party() if m is not None]
+        log(f"[ch20room9] PRE-ARCHIE PARTY {hp_lines} usable={self._usable_count()} "
+            f"(‼ if this run never prints a RESULT, the run was LOST to Archie and the "
+            f"whiteout listener dropped to Manual — that is the loss signature, and this "
+            f"line is what makes it attributable)")
+
+        # ---- THE WALK: 62 steps, no wilds, no sight cones, one solid Kyogre ------------------
+        start = get_player_avatar().local_coordinates
+        try:
+            yield from _navigate_riding_out(room9, self.ROOM9_TRIGGER)
+        except Exception as error:  # noqa: BLE001
+            log(f"[ch20room9] WALK raised {type(error).__name__}: {str(error)[:300]} "
+                f"(the trigger's lockall firing mid-walk can look like this)")
+        log(f"[ch20room9] WALK {start} -> {self._where()} (the trigger locks the player ON "
+            f"{self.ROOM9_TRIGGER}, so arrival and scene-start are the same event)")
+
+        # ---- MILESTONE 1: the Archie battle --------------------------------------------------
+        yield from self._ride_until(
+            "ARCHIE-BATTLE",
+            lambda: any(b for b in self.battle_log if b[2][0] == "SEAFLOOR_CAVERN_ROOM9"),
+            budget_frames=20000)
+        r9_battles = [b for b in self.battle_log if b[2][0] == "SEAFLOOR_CAVERN_ROOM9"]
+        triggered = bool(r9_battles)
+        notes["archie"] = r9_battles
+        log(f"[ch20room9] ARCHIE battles_r9={len(r9_battles)} detail={r9_battles} "
+            f"(PREDICTED exactly one, kind=trainer, is_double=False — "
+            f"trainerbattle_no_intro, .doubleBattle=FALSE)")
+
+        # ---- MILESTONE 2: the forced warp — and the mid-warp invariants ----------------------
+        yield from self._ride_until(
+            "WARP-TO-ROUTE128", lambda: self._where()[0] == "ROUTE128", budget_frames=60000)
+        if self.milestone_ok:
+            kyogre_flag = self._flag("KYOGRE_ESCAPED_SEAFLOOR_CAVERN")
+            pos = get_player_avatar().local_coordinates
+            landed = pos == self.ROUTE128_LANDING
+            notes["mid_warp"] = {"kyogre": kyogre_flag, "scs": self._var("SEAFLOOR_CAVERN_STATE"),
+                                 "r128": self._var("ROUTE128_STATE"), "pos": pos}
+            log(f"[ch20room9] MID-WARP kyogre_flag={kyogre_flag} "
+                f"scs={notes['mid_warp']['scs']} r128={notes['mid_warp']['r128']} pos={pos} "
+                f"(PREDICTED True / 1 / 1 / {self.ROUTE128_LANDING} — all written BEFORE the "
+                f"warp, Room9/scripts.inc:115-137)")
+
+        # ---- MILESTONE 3: VAR_ROUTE128_STATE == 2 — the ONLY trustworthy release signal ------
+        yield from self._ride_until(
+            "VAR2-CONTROL", lambda: self._var("ROUTE128_STATE") == 2, budget_frames=60000)
+        var2 = self.milestone_ok
+        facing = get_player_avatar().facing_direction
+        notes["release"] = (var2, facing)
+        log(f"[ch20room9] RELEASE var2={var2} facing={facing!r} (facing PREDICTED 'Up' from "
+            f"WalkInPlaceFasterUp at Route128/scripts.inc:61 — REPORTED, not graded: this is "
+            f"the one previously-unmeasured claim)")
+
+        # ---- THE ATOLL ESCAPE: the measured one-step rule ------------------------------------
+        # ‼ (38,22) has ZERO surfable neighbours — "Surf from where you land" does nothing in
+        # any direction and reads as a hung leg. And 28 of the atoll's launches strand the run
+        # in a closed lagoon. The rule is one step SOUTH, then Surf onto (38,24). KI-72's rule
+        # holds here too: the surface/launch tile is chosen EXPLICITLY, never by the planner.
+        if var2:
+            yield from wait_until_truly_controllable()
+            try:
+                yield from _navigate_riding_out(route128, self.ESCAPE_STAND)
+                yield from _navigate_riding_out(route128, self.ESCAPE_WATER)
+            except Exception as error:  # noqa: BLE001
+                log(f"[ch20room9] ESCAPE raised {type(error).__name__}: {str(error)[:300]}")
+            avatar = get_player_avatar()
+            surfing = AvatarFlags.Surfing in avatar.flags
+            here = avatar.local_coordinates
+            escaped = surfing and self._where() == ("ROUTE128", self.ESCAPE_WATER)
+            log(f"[ch20room9] ESCAPE at={self._where()} surfing={surfing} escaped={escaped} "
+                f"(PREDICTED ('ROUTE128', {self.ESCAPE_WATER}) on Surf — the confirmed "
+                f"open-ocean launch)")
+            # ‼ The lagoon is the trap the probe measured: prove we are in the OPEN component
+            # with a real path to the dive tile — the same water the chapter sailed in on.
+            ocean_path, ocean_detail = self._path_ok(route128, here, self.OCEAN_PROBE)
+            log(f"[ch20room9] OCEAN-PATH {here} -> {self.OCEAN_PROBE}: {ocean_detail}")
+            log(f"[ch20room9] OCEAN-PATH ok={ocean_path} (PREDICTED True — (38,24) is in the "
+                f"1,766-tile open component, not the 41-tile lagoon)")
+            notes["escape"] = (self._where(), surfing, ocean_path)
+
+        # ---- CAN-CONTINUE -------------------------------------------------------------------
+        self.moved = False
+        if escaped:
+            yield from self._can_continue_step(route128, "ch20room9")
+        can_continue = self.moved and _ctx.bot_mode != "Manual"
+
+        # ‼ `facing` and the battle SHAPE are REPORTED, not graded (the facing was never
+        # measured before; grading an unmeasured prediction turns "we learned something" into
+        # "the run failed"). The battle COUNT is graded via `triggered`; winning is graded
+        # implicitly by reaching ROUTE128 at all (a loss warps to the heal location).
+        passed = (rooms_ok and triggered and (kyogre_flag is True) and var2 and landed
+                  and escaped and ocean_path and can_continue)
+        log(f"[ch20room9] RESULT rooms_ok={rooms_ok} triggered={triggered} "
+            f"battles_r9={len(r9_battles)} kyogre_flag={kyogre_flag} var2={var2} "
+            f"landed={landed} escaped={escaped} ocean_path={ocean_path} "
+            f"can_continue={can_continue}")
+        log(f"[ch20room9] DETAIL {notes}")
+        log(f"[ch20room9] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+        _ctx.set_manual_mode()
+        return
+
+
 class DiveLearnerMode(BotMode):
     """KI-63 — acquire a REAL Dive learner: free a slot, hunt, catch, teach, verify.
 
@@ -7605,6 +7906,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch20Room3Mode()
         elif args.driver == "ch20room8":
             context.bot_mode_instance = Ch20Room8Mode()
+        elif args.driver == "ch20room9":
+            context.bot_mode_instance = Ch20Room9Mode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":

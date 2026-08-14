@@ -13484,3 +13484,30 @@ Tier 1 was dogfooded on this very change-set before commit. 18/18 gates PASS.
 * Docs: handoff banner/STATE/queue moved to ROOM 9; `#24-remainingarc` updated; KI-77 body gains
   the second-room confirmation; `06-DECISIONS-LOG.md` gains the recovery-strategy decision;
   `40cakes repo/UPDATE-LOG.md` daily check bumped (upstream still `5dd898f8`).
+
+## 2026-08-14 — §Ch20 INCREMENT 6: ROOM 9 DRIVEN — Archie, KYOGRE, and the atoll escape; THE SEAFLOOR CAVERN IS END TO END (`#24-remainingarc`)
+
+* **`--driver ch20room9` (NEW, `tools/story-dev/story_harness.py`) → `ACCEPTANCE: PASS` ×2
+  (runs 1 & 3).** Chain per run: Rooms 1→8 re-proven → Room 9 `(5,4)` → ARM-CHECK
+  (`VAR_SEAFLOOR_CAVERN_STATE == 0`) → the 62-step walk to `(17,42)` → Archie SINGLE battle →
+  the Kyogre awakening ridden with THREE bounded milestones (battle / map==ROUTE128 / var==2) →
+  landing `(38,22)` with all mid-warp invariants exact (`kyogre_flag=True scs=1 r128=1`) →
+  release at `VAR_ROUTE128_STATE == 2`, **facing MEASURED `'Up'`** (previously decomp-only) →
+  the measured atoll escape `(38,23)` → Surf `(38,24)` → `OCEAN-PATH OK len=5` → real step.
+  **10/10 pre-registered predictions held**
+  (`ai-research-notes/2026-08-14-ch20-room9-drive-predictions.md`).
+* **The chain is deterministic; the battle is not.** Milestone loop-frame counts IDENTICAL
+  across the passing runs (1836/5844/5392). ⚠ **Run 2 LOST the Archie fight (2W/1L)** — party
+  chipped, no heal in the cavern — and a lost run prints NO RESULT (whiteout → Manual → the
+  generator is dropped). New `PRE-ARCHIE PARTY` HP-snapshot telemetry makes a silent loss
+  attributable. Ruled a VALID BRANCH for the chapter (retry + readiness) in
+  `06-DECISIONS-LOG.md`.
+* **Method:** decomp recon by an independent agent BEFORE building (every beat cited; found the
+  trigger gate var, the no-wilds fact, and the first-`releaseall` trap), predictions
+  pre-registered, adversarial diff review BEFORE the first run — it caught the museum-greeter
+  bug being re-written into the new ride loop (fix: `A` only when `is_waiting_for_input()`,
+  else `B`; `08-MISTAKES.md`), verdict APPROVE after live evidence ×2.
+* Docs: handoff banner/STATE/queue → CHAPTER ASSEMBLY; `#24-remainingarc` updated; two
+  decisions logged (var-gated release + loss-is-a-valid-branch); mistakes entry (museum-greeter
+  recurrence); Rooms 1/2 and the 2026-08-13 Room 6/Room 3 banner blocks archived to
+  `28-HANDOFF-ARCHIVE.md` for the R3 budget.
