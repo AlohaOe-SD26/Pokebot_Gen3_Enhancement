@@ -591,7 +591,15 @@ teaching Dive/Dig/Flash. ‼ **Relicanth is underwater-only, so Dive is upstream
 >    ‼ **Measurable from outside the cavern ONLY because Rooms 6/7 have ZERO objects** (so the
 >    `active_objects` artifact that invalidated the boulder rooms cannot apply here).
 >    ⇒ **Rooms 6/7 can be driven with `navigate_to`; they do NOT need a §Ch18-style solver.**
->    ‼ **AND KI-76 IS FILED AGAINST THIS AREA:** a slide that ENDS ON A WARP is never penalised
+>    ✅ **KI-76's SAFETY HALF IS FIXED (2026-08-13):** the slide loop now has a **512-step cap that
+>    fails LOUD** (fault-tested at cap=3; A/B output byte-identical) and all four
+>    `_get_connection_for_direction()` `None` unpacks are guarded. **Measured first:** only **FIVE
+>    maps in the whole ROM have currents** — `ROUTE133` 1552, `ROUTE132` 1345, `ROUTE134` 1262,
+>    `ROOM7` 117, `ROOM6` 108 — **0 armed tiles**, and **no currently-driven map has any current at
+>    all** (`probe_current_edges.py`). ‼ **Routes 132/133/134 carry ~10x the cavern's currents and
+>    are UNMEASURED for cycles** — and they are the route to the **Sealed Chamber (Regi arc)** and
+>    **Ever Grande (§Ch23)**, so that is where these defects are really armed.
+>    ‼ **KI-76's CORRECTNESS HALF IS STILL OPEN:** a slide that ENDS ON A WARP is never penalised
 >    (`map_path.py:915`'s warp cost is applied one branch BEFORE `:957` substitutes the slide
 >    destination), and A* is **actively biased toward long slides** (~9x cheaper than walking under
 >    `avoid_encounters`). `ROOM6 (14,8)` is a water-level door and **9 of its 108 chains end on it**.
