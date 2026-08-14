@@ -12900,3 +12900,44 @@ tiles). `map_path` has `forced_movement_to`, but **no chapter has ever driven a 
 Housekeeping: `04-HANDOFF.md` hit its 900-line R3 budget, so §Ch19's PRE-build planning notes — a
 section the file itself already labelled HISTORY — moved verbatim to `28-HANDOFF-ARCHIVE.md`,
 leaving a stub that keeps the four measured hazards worth remembering. 17/17 gates PASS.
+
+### 2026-08-13 — §Ch20's biggest unknown ANSWERED: our planner does model the current mazes
+
+New `tools/story-dev/probe_ch20_currents.py`. Rooms 6 and 7 are 108 and 117 forced-slide tiles, and
+**no chapter in this project has ever driven a current maze** — so the open question was whether
+§Ch20 needs a §Ch18-style solver for them or can just call `navigate_to`.
+
+‼ **Measurable from OUTSIDE the cavern only because Rooms 6/7 contain ZERO object events.** The
+artifact that invalidated `probe_ch20_interior.py`'s boulder-room routing (`is_tile_accessible`
+blocks any tile whose object is not in `active_objects`, and nothing is loaded when the avatar is
+elsewhere) **cannot apply** where there are no objects. The probe checks and prints that, rather
+than assuming it.
+
+**Four predictions were written BEFORE the run**, from the decomp note's independent slide-aware
+search — and all four fired:
+
+| | route | predicted | got |
+|---|---|---|---|
+| P1 | `ROOM6 (11,21) -> (4,1)` | reachable | **OK, 13 waypoints** |
+| **P2** | `ROOM6 (4,1) -> (11,21)` | **NOT reachable (one-way)** | **NO-PATH** |
+| P3 | `ROOM7 (3,23) -> (5,1)` | reachable | OK, 27 waypoints |
+| P4 | `ROOM7 (5,1) -> (3,23)` | reachable | OK, 12 waypoints |
+
+**4/4, including the discriminating P2.** Our planner reproduces the currents' ONE-WAY asymmetry
+without any knowledge of the decomp note — two unrelated methods agreeing on a non-obvious fact.
+
+‼ **AND THE SLIDE MODEL IS PROVEN IN USE, NOT INFERRED FROM THE PASS.** A plain walked route emits
+about one waypoint per tile and can never be shorter than the Manhattan distance. P1 emits **13
+waypoints for a 27-tile Manhattan trip** and P4 **12 for 24** — impossible with 1-tile steps, so
+`forced_movement_to` really is doing the work. P3 (27 vs 24) is reported honestly as *not*
+demonstrating slides rather than being counted as evidence.
+
+⇒ **Rooms 6/7 can be driven with `navigate_to`; they do not need a solver.** ⚠ Still unproven LIVE —
+a plan is not a walk and the EXECUTOR has never crossed a current. That is now the first thing to
+DRIVE in §Ch20, rather than the first thing to design around.
+
+**USER RULING recorded (`06-DECISIONS-LOG.md`): `stash@{0}` is KEPT PERMANENTLY as a record.** I had
+reported it as "superseded, safe to drop"; the ruling is that a superseded stash is still a record
+and dropping it is destructive for no gain. ⛔ Standing rule now: **never `git stash drop`/`clear`/
+`pop` in this repo** — `pop` separately because it mutates a global stack, which is how this stash
+was disturbed in the first place. `git stash list` belongs in the session-start ritual to SEE it.

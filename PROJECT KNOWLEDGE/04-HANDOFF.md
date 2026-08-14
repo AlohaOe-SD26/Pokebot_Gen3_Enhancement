@@ -200,7 +200,7 @@ burden here is so heavy, and why negative results are treated as the most valuab
 | restore point | **`restore/2026-08-13-pre-ki63-promotion`** (annotated, pushed) — taken immediately BEFORE promoting KI-63's fix. Older: `restore/2026-08-13-pre-roster-promotion`, `restore/2026-08-12-pre-ch1819-promotion`. |
 | sandbox ↔ custom drift | ⚠ **EXACTLY 3 as of 2026-08-13 (latest).** ‼ **`modules/map_path.py` is the NEW third** — KI-59's fix (entry inversion + the new `blocked_exit_directions` exit half), A/B proven on `VICTORY_ROAD_1F` with a byte-identical `MOSSDEEP_CITY` collateral control, gated by `repro_impassable_dirs.py`. **NOT promoted — the USER's call, not asked for.** ⛔ Until it is, `custom-pokebot`'s planner still cannot see the 401 live `Impassable *` tiles (Regi tombs 144, Shoal Cave 98, Victory Road 58). The other two, unchanged, described next: **EXACTLY 2, both deliberate and sandbox-only (2026-08-13, earlier):** `modules/story/early_game.py` (the new `ensure_hm_learner_making_room`) and `plugins/custom_modes/story_mode.py` (both HM call sites wired to it). **This is KI-63's PRODUCTION WIRING, driven to a PASS but NOT promoted — promotion has not been asked for.** ⛔ Until it is, `custom-pokebot`'s copy of the KI-63 fix is **INERT**: it reads `_needs_party_slot` and nothing there sets it. Earlier today drift was ZERO twice (`restore/2026-08-13-pre-roster-promotion`, `restore/2026-08-13-pre-ki63-promotion`). ‼ **MEASURE, don't trust this row** — the loop is below in "HOW TO RUN / TEST". |
 | **if stopped mid-task** | **NOTHING IS PARKED.** Everything is committed and pushed. Start at "NEXT ACTIONS". |
-| ‼ **`git stash` (NEW ROW 2026-08-13 — CHECK THIS AT SESSION START)** | **`stash@{0}` exists and is NOT mine.** `WIP on main: e0f723e4` (2026-07-24) — a 14-line Fortree Gym fix, **stranded for three weeks**. ✅ Its substance is ALREADY in today's `early_game.py` (the `get_global_script_context().is_active or not player_avatar_is_controllable()` guard before `_ride_out_scripted_scene`), reimplemented during the rotating-gate rewrite ⇒ **functionally superseded, safe to drop — the USER's call, not an agent's.** ‼ **A stash is invisible to `git status` and to the kit's sync check**, which is how it survived three weeks. Run `git stash list` as part of the session-start ritual. ⛔ Never `git stash pop` in automation: it pops a GLOBAL stack that may hold another session's work (that is exactly how this was found — see `08-MISTAKES.md`). |
+| ‼ **`git stash` — KEPT ON PURPOSE (USER RULING 2026-08-13)** | **`stash@{0}` EXISTS, IS NOT YOURS, AND IS KEPT AS A RECORD. ⛔ DO NOT DROP IT.** `WIP on main: e0f723e4` (2026-07-24) — a 14-line Fortree Gym "only ride out a scene that exists" guard. Its substance is ALREADY in today's `early_game.py` (reimplemented during the rotating-gate rewrite), so it is functionally superseded — **and the user ruled that a superseded stash is still a RECORD and dropping it is a destructive act that buys nothing** (`06-DECISIONS-LOG.md`). ⛔ **Standing rule: never `git stash drop` / `clear` / `pop` in this repo.** `pop` is separately banned because it mutates a GLOBAL stack — that is how this stash was disturbed in the first place (`08-MISTAKES.md`). To read it: `git stash show -p "stash@{0}"`, and apply by hand if ever needed. ‼ A stash is invisible to `git status` and to the kit's sync check, which is how it sat unnoticed for three weeks — so `git stash list` belongs in the session-start ritual, to SEE it, not to clear it. |
 
 ## ✅ WHAT SHIPPED IN THE LATEST SESSION (§Ch19 + promotion + roster)
 1. **§Ch19 built and driven end-to-end** — Space Center multi battle **and** HM08 Dive, wired as
@@ -578,8 +578,18 @@ teaching Dive/Dig/Flash. ‼ **Relicanth is underwater-only, so Dive is upstream
 >       cutscene — so a flag-graded chapter reports success while the bot is inside two nested
 >       scenes. ‼ And `(38,22)` is a shallow-water **SANDBAR**: the bot lands on an island and must
 >       **Surf** off it. Three chapters have shipped stranded; this one strands you by design.
->    ‼ **Biggest unknown, verify FIRST:** Rooms 6 and 7 are **CURRENT mazes** (108 / 117 forced-slide
->    tiles). `map_path` has `forced_movement_to`, but **no chapter has ever driven a current maze.**
+>    ✅ **THE BIGGEST UNKNOWN IS NOW ANSWERED AT THE PLANNING LEVEL (2026-08-13):**
+>    `probe_ch20_currents.py` (NEW) put **4 pre-registered predictions** to our REAL planner on the
+>    two current mazes and got **4/4, including the DISCRIMINATING one**: `ROOM6 (11,21)->(4,1)`
+>    routes, and **`ROOM6 (4,1)->(11,21)` correctly FAILS** — our planner reproduces the currents'
+>    ONE-WAY asymmetry independently of the decomp note, which is real corroboration between two
+>    unrelated methods. ‼ **And the slide model is PROVEN in use, not assumed**: P1 emits 13
+>    waypoints for a 27-tile Manhattan trip and P4 emits 12 for 24 — impossible with 1-tile steps.
+>    ‼ **Measurable from outside the cavern ONLY because Rooms 6/7 have ZERO objects** (so the
+>    `active_objects` artifact that invalidated the boulder rooms cannot apply here).
+>    ⇒ **Rooms 6/7 can be driven with `navigate_to`; they do NOT need a §Ch18-style solver.**
+>    ⚠ **Still unproven LIVE** — a plan is not a walk, and the EXECUTOR has never crossed a current.
+>    That is now the first thing to drive, not the first thing to design around.
 >    Also: **puzzle state RESETS on every map re-entry** (`FLAG_TEMP_*`), so never cache "solved";
 >    `FLAG_SYS_USE_STRENGTH` by contrast persists. **Losing to Archie resets the whole dungeon.** It IS the ladder
 >    (`chapters.py:233`, graded `KYOGRE_ESCAPED_SEAFLOOR_CAVERN`; `story_mode.py:3654` = END OF BUILT

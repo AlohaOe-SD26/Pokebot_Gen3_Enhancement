@@ -2003,3 +2003,26 @@ for zero measured events is exactly the trade this project keeps regretting.
 **Left explicitly to the USER:** promoting `map_path.py` (and the KI-63 wiring) to `custom-pokebot`.
 ‼ Note that **KI-59 promotion is a hard prerequisite of the Regi arc in `custom-pokebot`**, so that
 decision and decision 4 are linked.
+
+## 2026-08-13 — USER RULING: `stash@{0}` is KEPT PERMANENTLY as a record. Do not drop it.
+
+**The decision.** The three-week-old stash found on 2026-08-13 (`WIP on main: e0f723e4`, 2026-07-24,
+a 14-line Fortree Gym "only ride out a scene that exists" guard) **stays**. The user's words:
+*"lets keep the stash as a record so its not destructive."*
+
+**Why this is worth writing down rather than just not-acting.** I had reported the stash as
+"functionally superseded and safe to drop" — its substance IS already in today's `early_game.py`,
+reimplemented during the rotating-gate rewrite. That made "drop it" the obvious tidy-up, and the
+next agent to notice a stale stash would reach for `git stash drop` for exactly that reason.
+**They must not.** The ruling is that a superseded stash is still a RECORD, and dropping it is a
+destructive act that buys nothing: a stash costs no space that matters, breaks no gate, and cannot
+affect a build.
+
+**Standing rule that follows:** ⛔ **never `git stash drop`, `git stash clear`, or `git stash pop`
+in this repo.** `pop` is separately banned because it mutates a global stack (that is how this stash
+was disturbed in the first place — see `08-MISTAKES.md`). If a stash's content is ever needed,
+inspect it read-only with `git stash show -p "stash@{N}"` and apply the change by hand.
+
+**What to do instead of dropping:** the stash is documented in `04-HANDOFF.md`'s STATE table with
+what it contains, why it is superseded, and this ruling — so it reads as an intentional artefact
+rather than as unfinished business a future session must resolve.
