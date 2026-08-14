@@ -5089,6 +5089,13 @@ class Ch20Room1Mode(Ch20DiveMode):
     Emits: [ch20room1] RESULT in_room1=<b> ab_before=<b> ab_after=<b> in_room2=<b> can_continue=<b>
     """
 
+    #: ‼ CLASS-LEVEL DEFAULT ON PURPOSE. `_can_continue_step` is the only writer of `moved`, so
+    #: any caller that skips it (a failure branch) would read an unset attribute and crash. The
+    #: run-level code ALSO sets it explicitly — this is the backstop for the next subclass, not
+    #: the fix. A default of False is safe because "we never took a step" and "the step failed"
+    #: mean the same thing to every verdict here.
+    moved = False
+
     ROOM1_WARP_UP = (10, 1)       # SEAFLOOR_CAVERN_ENTRANCE — the north exit into ROOM1
     ROCK_APPROACH = (4, 10)       # face Right at BREAKABLE_ROCK (5,10)
     BOULDER1_APPROACH = (5, 10)   # face Down;  boulder local_id 1 (5,11) -> (5,12)
@@ -5197,6 +5204,29 @@ class Ch20Room1Mode(Ch20DiveMode):
         room1 = MapRSE.SEAFLOOR_CAVERN_ROOM1
         self.r1 = {}
 
+        # ---- ‼ FAULT INJECTION HOOK: `POKEBOT_CH20_FAULT=room1` ---------------------------
+        # The happy path cannot exercise an error path, and this driver's whole failure branch
+        # (smash raises / a push raises => never reach ROOM2) had NEVER been executed — three
+        # green runs all went `pushed2=True in_room2=True`. An adversarial review found an
+        # `AttributeError` waiting on exactly that branch, which would have crashed the run
+        # BEFORE it could print ACCEPTANCE or drop to Manual — the "never silently derail" rule,
+        # broken on the one path nobody had run.
+        # ‼ THIS IS A PERMANENT, DOCUMENTED HOOK, NOT A TEMPORARY EDIT. Editing the file to
+        # inject a fault and editing it back is how this project detonated an unrelated stash
+        # once already; a gated hook is reproducible, greppable and cannot be left half-reverted.
+        # It is OFF unless the env var is set, so it cannot affect a normal run.
+        import os as _os
+
+        if _os.environ.get("POKEBOT_CH20_FAULT") == "room1":
+            log("[ch20room1] ‼ FAULT INJECTION ACTIVE (POKEBOT_CH20_FAULT=room1) — forcing the "
+                "Room 1 solve to fail so the FAILURE branch is exercised. A run in this mode "
+                "MUST still print a clean `ACCEPTANCE: FAIL` and drop to Manual.")
+            self.r1.update({"objects_before": {}, "ab": {}, "ab_before": None, "ab_after": None,
+                            "smashed": False, "pushed1": False, "pushed2": False,
+                            "in_room2": False, "legC": self._where(), "fault_injected": True})
+            return
+            yield  # noqa: unreachable - keeps this a generator on every path
+
         # ---- MEASURE-A: the live truth, BEFORE anything is touched ------------------------
         arrival = self.r1_arrival
         self.r1["objects_before"] = self._dump_objects("BEFORE", room1)
@@ -5284,7 +5314,14 @@ class Ch20Room1Mode(Ch20DiveMode):
             except Exception:  # noqa: BLE001 - off-map candidates are simply not candidates
                 continue
             kind = str(tile.tile_type)
-            if tile.collision == 0 and "Warp" not in kind and "Door" not in kind:
+            # ‼ "Warp"/"Door" alone is NOT the full set of map transitions: `Ladder`,
+            # `Escalator Up` and `Escalator Down` (modules/map.py) contain neither substring and
+            # would let a "we can still move" check be satisfied by LEAVING the room — the exact
+            # thing the check exists to rule out. Flagged by adversarial review as a latent gap;
+            # closed here rather than left to depend on which maps happen to have one.
+            if tile.collision == 0 and not any(
+                word in kind for word in ("Warp", "Door", "Ladder", "Escalator")
+            ):
                 step_target = candidate
                 log(f"[{tag}] CAN-CONTINUE stepping {start} -> {candidate} tile_type={kind!r}")
                 break
@@ -5342,6 +5379,15 @@ class Ch20Room1Mode(Ch20DiveMode):
         yield from self._solve_room1()
         notes["room1"] = self.r1
 
+        # ‼ `self.moved` MUST EXIST EVEN IF THE STEP IS NEVER ATTEMPTED. It is assigned only
+        # inside `_can_continue_step`, so on the failure branch (Room 1 did not reach the door)
+        # the read below used to raise `AttributeError` — crashing BEFORE the RESULT and
+        # ACCEPTANCE lines and before `set_manual_mode()`, i.e. derailing instead of failing.
+        # Found by adversarial review, then REPRODUCED with `POKEBOT_CH20_FAULT=room1`:
+        #   f4511: *** EXCEPTION: 'Ch20Room1Mode' object has no attribute 'moved'
+        # Three green runs never touched this branch — the happy path cannot exercise an error
+        # path, which is the most re-learned lesson in this project.
+        self.moved = False
         if self.r1["in_room2"]:
             yield from self._can_continue_step(MapRSE.SEAFLOOR_CAVERN_ROOM2, "ch20room1")
         can_continue = self.moved and _ctx.bot_mode != "Manual"
@@ -5510,7 +5556,13 @@ class Ch20Room2Mode(Ch20Room1Mode):
         # Room 2. If our own `early_game.py` comment is right, the flag is still set; if the
         # adversarial decomp pass is right, `LoadMapFromWarp -> ClearTempFieldEventData` cleared
         # it and Room 2's first push must pay the prompt again.
-        strength_after_warp = self._strength_flag()
+        try:
+            strength_after_warp = self._strength_flag()
+        except Exception as error:  # noqa: BLE001 - a failed read is a finding, not a crash
+            strength_after_warp = None
+            log(f"[ch20room2] STRENGTH-FLAG read raised {type(error).__name__}: "
+                f"{str(error)[:200]} — reported as None, NOT as False (an unread flag is not a "
+                f"cleared flag, and conflating them would fabricate the very result being tested)")
         log(f"[ch20room2] STRENGTH-FLAG after the ROOM1->ROOM2 warp: {strength_after_warp} "
             f"(our early_game.py comment PREDICTS True = 'never cleared, once per SAVE'; the "
             f"decomp pass PREDICTS False = cleared by ClearTempFieldEventData on every warp)")
@@ -5568,7 +5620,11 @@ class Ch20Room2Mode(Ch20Room1Mode):
                 log(f"[ch20room2] PUSH{index} ok boulder local_id=4 at={seen.get(4)} "
                     f"(PREDICTED {expected})")
         log(f"[ch20room2] PUSHES {pushes}/3")
-        log(f"[ch20room2] STRENGTH-FLAG after the Room 2 pushes: {self._strength_flag()} "
+        try:
+            _after = self._strength_flag()
+        except Exception as error:  # noqa: BLE001
+            _after = f"<unreadable {type(error).__name__}>"
+        log(f"[ch20room2] STRENGTH-FLAG after the Room 2 pushes: {_after} "
             f"(it must be True here whichever source was right — `strength_push` re-activates)")
 
         # ---- M3: the far arm -----------------------------------------------------------------

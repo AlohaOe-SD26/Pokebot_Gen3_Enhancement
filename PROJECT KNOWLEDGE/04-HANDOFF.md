@@ -116,10 +116,26 @@ place, and it is exactly the failure shape this project logs most often.
 ⚠ **Still unmeasured:** that the cutscene releases the player *facing north*. The map is proven;
 the facing wants a live check when the chapter is driven.
 
-⇒ **NEXT: ROOM 3 — arbitrate it first.** It is *not* the walk the spec calls it: it has a
-**7-boulder puzzle the spec omits entirely**, its two trainers are unavoidable on the push-free
-line, and it is the one room where a boulder can be parked on the `(9,13)` retreat warp. See
-"NEXT ACTIONS".
+⇒ **NEXT: ROOM 3, AND IT IS ARBITRATED ALREADY** —
+`ai-research-notes/2026-08-13-ch20-room3-arbitration.md`.
+⛔ **AND IT INVERTED WHAT I WROTE HERE FIRST.** An earlier pass told me Room 3 *"is not the walk
+the spec calls it"* and I put that in this file and in the punch list. **A deeper pass — decomp
+PLUS our own ROM — refuted the refutation:** `(4,15) → (8,1)` is reachable **PUSH-FREE in 18
+steps** (our real planner returns `OK, 18 waypoints`), so the **7-boulder puzzle is OPTIONAL** and
+exists only to dodge the trainers. Our build spec's "a walk (+2 trainers)" was **operationally
+right**. ‼ *An agent's "REFUTED" is a claim like any other* — Room 1's held up because two
+independent authorities checked it; this one had not been, and it was wrong.
+
+‼ **THE SPEC'S ONE REAL ERROR: it is a single DOUBLE BATTLE (Shelly AND Grunt5 at once), not two
+singles** — `trainer_see.c:214-217` does not stop at the first trainer, and both sight lines cover
+the same tiles. ✅ We already ride double battles out (`modules/story/mossdeep_gym.py:315-369`);
+**reuse its `MINIMUM_USABLE_POKEMON` precondition**, because with <2 usable the engine fires two
+sequential singles instead — a different shape.
+✅ **RECOMMENDATION: take the WALK, not the puzzle.** The pushes are irreversible within a visit and
+a mid-sequence derail can WEDGE the room; the walk has nothing to wedge, and we win the fight.
+‼ **The A/B cannot be a single tile here** — nothing becomes reachable "because the room was
+solved". Grade on the path CONTAINING `(6,5)`, on both trainer flags being set, and on
+"and the bot can continue". Details in the note.
 
 ---
 
@@ -469,34 +485,13 @@ not mashed** — A on an already-picked mon DESELECTS it, and every pick is veri
 `SetCB2WhiteOut` itself and leaves the var at 2. ‼ And it **nearly shipped stranded, in a living
 room**, with every completion signal true — which is why every chapter's acceptance must ask for a
 real `calculate_path` off the end tile.
-## 🛠 TWO GATES WERE BLIND, AND FIXING THEM FOUND A REAL BUG
-* **`audit_flag_names.py` was checking TWO files** — written before the chapters moved into
-  `modules/story/*.py` — and, worse, could only see names written as literals AT the call site, while
-  the house idiom is a module constant. So it was blindest exactly at the **completion markers**.
-  Now globs 19 files, resolves `CONST = "LITERAL"`, prints per-file counts, and **exits 1** on a
-  phantom (it used to print findings and exit 0). Coverage 2 files/117 names → 19/144. A/B proven by
-  fault injection.
-* **`pyflakes` was installed and had never been run.** New gate `repro_undefined_names.py`
-  (ZERO tolerance over `modules/story` + `plugins/custom_modes`). It found my own missing import
-  *after* a five-minute drive had already paid to reach it — **and KI-65**, below.
+## 🛠 TWO GATES WERE BLIND, AND FIXING THEM FOUND A REAL BUG — MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-13)
 
-## ‼‼ THE ADVERSARIAL REVIEW OF THE FINISHED CHAPTER FOUND MY OWN FIX WAS WRONG TWICE
-Run AFTER §Ch19 was committed and reported proven — which is exactly why it is worth doing.
-* **KI-64's fix was DEAD CODE on the story path.** The MRO is `StoryItemBattleStrategy` →
-  `LevelUpTravelBattleStrategy` → **`LevelUpLeadBattleStrategy`** → `DefaultBattleStrategy`, and
-  `level_up.py:41` has its own `choose_new_lead_after_faint`. I had guarded the base class.
-* **‼ And the `index >= 3` cut was in the WRONG INDEX SPACE.** Opening the battle party menu runs
-  `UpdatePartyToBattleOrder`, which PHYSICALLY PERMUTES `gPlayerParty` — visible in my own passing
-  log (`ch19d.log` f37745): index 1 becomes the ALLY's Metang and OUR Swellow moves to index 3. The
-  cut **offered the ally and hid one of ours**, precisely when a replacement is needed.
-* **My fault-injected A/B passed it anyway**, because the fixture modelled only the un-permuted
-  order and asserted the base class directly. A control arm does not save you if all three arms
-  measure the wrong thing.
-* **Now fixed properly**: `ally_party_indices()` keyed on **ORIGINAL TRAINER ID** (identity travels
-  with the Pokémon; position does not), wired at all three call sites. Repro is **5/5** with the
-  permuted-array and story-class arms added; §Ch19 re-driven to a PASS afterwards.
-⇒ **Two new prevention rules in `08-MISTAKES.md`:** print the MRO before "fixing" a strategy method,
-and never identify a Pokémon by party index across a battle-menu boundary.
+Moved for the R3 budget. ‼ **Keep this:** `audit_flag_names.py` was checking **TWO files** and could only see names written as literals AT the call site, while the house idiom is a module constant — so it was **blindest exactly at the completion markers**. Now 19 files / 144 names and it **exits 1** on a phantom. And **`pyflakes` was installed and had never been run**; the new `repro_undefined_names.py` gate found a `NameError` on the Magma Hideout's *success* path, plus KI-65. ⇒ *A gate that has never failed may simply not be looking.*
+
+## ‼‼ THE ADVERSARIAL REVIEW THAT FOUND MY OWN §Ch19 FIX WAS WRONG TWICE — MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-13)
+
+Moved for the R3 budget. ‼ **Keep the two prevention rules, both re-learned since:** (1) **print the MRO before "fixing" a strategy method** — the first fix guarded the base class and was DEAD CODE on the story path; (2) **never identify a Pokémon by party INDEX across a battle-menu boundary** — opening the battle party menu runs `UpdatePartyToBattleOrder`, which PHYSICALLY PERMUTES `gPlayerParty`, so the `index >= 3` cut offered the ALLY's Pokémon and hid one of ours. Key on **original trainer ID**. ‼ And the meta-lesson: **my fault-injected A/B passed it anyway**, because all three arms modelled the un-permuted order — *a control arm does not save you if every arm measures the wrong thing.*
 
 ## ‼ FOUR NEW ISSUES FILED
 * **KI-64 (FIXED)** — the multi-battle faint replacer would have sent out **STEVEN's** Pokémon.
@@ -571,15 +566,17 @@ teaching Dive/Dig/Flash. ‼ **Relicanth is underwater-only, so Dive is upstream
 >    KI-77's corrected entry. A repro is still worth having for the LARGE rooms, but it blocks
 >    nothing.
 >
->    **(a2) ROOM 3 IS NEXT, AND ARBITRATE IT FIRST.** ‼ It is **not** the walk the build spec calls
->    it. Decomp passes found: a **7-boulder puzzle the spec omits entirely**; the push-free
->    `(4,15) → (8,1)` line is 18 steps but **unavoidably** crosses `{(6,5),(7,5),(8,5)}`, the union
->    of both trainer sight cones (a zero-sight route exists but needs Strength — upstream takes it,
->    `puzzle_solver.py:427-436`); and it is **the one room where a boulder can be pushed onto a warp
->    tile that matters** — `(9,13)`, the Room 7 retreat. That search hit a 4M-state cap, so its
->    "no other hazard" is a lower bound, not a proof. **Then drive `--driver ch20room3` exactly like
->    room1/room2:** dump live objects on arrival, multi-point A/B across the solve, push only through
->    `strength_push`, verify by `local_id`, end with "and the bot can continue".
+>    **(a2) ROOM 3 IS NEXT AND IS ALREADY ARBITRATED** —
+>    `ai-research-notes/2026-08-13-ch20-room3-arbitration.md`. ✅ **Build the WALK route:**
+>    `navigate_to(SEAFLOOR_CAVERN_ROOM3, (8,1))` riding battles out — 18 steps, **zero pushes**.
+>    The 7-boulder puzzle is **OPTIONAL** (it only dodges the trainers) and its pushes are
+>    irreversible within a visit, so a derail can WEDGE the room. ‼ **Precondition: ≥2 usable
+>    Pokémon** — it is ONE **DOUBLE** battle (Shelly + Grunt5), not two singles; reuse
+>    `mossdeep_gym.py`'s `MINIMUM_USABLE_POKEMON` gate. ‼ **The A/B cannot be a single tile** —
+>    nothing becomes reachable by solving the room. Grade on: the planned path CONTAINS `(6,5)`,
+>    both trainer flags SET afterwards, and "and the bot can continue" out of `(8,1)`.
+>    ⚠ The double battle is decomp-derived and **not yet observed live** — make it the top
+>    pre-registered prediction.
 >
 >    **(b2) ROOM 8 IS ALREADY ADJUDICATED — build from OUR sequence, not upstream's.** Both work;
 >    ours is **9 pushes vs upstream's 10** and never touches boulder #3. Full table in

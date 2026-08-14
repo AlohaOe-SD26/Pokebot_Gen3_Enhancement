@@ -3478,3 +3478,42 @@ committed while the author knew the rule. **Run `preflight.py` before touching a
 
 ‼ **Three of these found real problems on their first run**: six competing START-HERE banners, an
 **11th undocumented flag** (which turned out to be the roster blocker), and 140 silent handlers.
+
+
+---
+
+# ARCHIVED 2026-08-13 from `04-HANDOFF.md` (R3 budget; verbatim)
+
+## ‼‼ THE ADVERSARIAL REVIEW OF THE FINISHED CHAPTER FOUND MY OWN FIX WAS WRONG TWICE
+Run AFTER §Ch19 was committed and reported proven — which is exactly why it is worth doing.
+* **KI-64's fix was DEAD CODE on the story path.** The MRO is `StoryItemBattleStrategy` →
+  `LevelUpTravelBattleStrategy` → **`LevelUpLeadBattleStrategy`** → `DefaultBattleStrategy`, and
+  `level_up.py:41` has its own `choose_new_lead_after_faint`. I had guarded the base class.
+* **‼ And the `index >= 3` cut was in the WRONG INDEX SPACE.** Opening the battle party menu runs
+  `UpdatePartyToBattleOrder`, which PHYSICALLY PERMUTES `gPlayerParty` — visible in my own passing
+  log (`ch19d.log` f37745): index 1 becomes the ALLY's Metang and OUR Swellow moves to index 3. The
+  cut **offered the ally and hid one of ours**, precisely when a replacement is needed.
+* **My fault-injected A/B passed it anyway**, because the fixture modelled only the un-permuted
+  order and asserted the base class directly. A control arm does not save you if all three arms
+  measure the wrong thing.
+* **Now fixed properly**: `ally_party_indices()` keyed on **ORIGINAL TRAINER ID** (identity travels
+  with the Pokémon; position does not), wired at all three call sites. Repro is **5/5** with the
+  permuted-array and story-class arms added; §Ch19 re-driven to a PASS afterwards.
+⇒ **Two new prevention rules in `08-MISTAKES.md`:** print the MRO before "fixing" a strategy method,
+and never identify a Pokémon by party index across a battle-menu boundary.
+
+
+---
+
+# ARCHIVED 2026-08-13 from `04-HANDOFF.md` (R3 budget; verbatim)
+
+## 🛠 TWO GATES WERE BLIND, AND FIXING THEM FOUND A REAL BUG
+* **`audit_flag_names.py` was checking TWO files** — written before the chapters moved into
+  `modules/story/*.py` — and, worse, could only see names written as literals AT the call site, while
+  the house idiom is a module constant. So it was blindest exactly at the **completion markers**.
+  Now globs 19 files, resolves `CONST = "LITERAL"`, prints per-file counts, and **exits 1** on a
+  phantom (it used to print findings and exit 0). Coverage 2 files/117 names → 19/144. A/B proven by
+  fault injection.
+* **`pyflakes` was installed and had never been run.** New gate `repro_undefined_names.py`
+  (ZERO tolerance over `modules/story` + `plugins/custom_modes`). It found my own missing import
+  *after* a five-minute drive had already paid to reach it — **and KI-65**, below.

@@ -6024,3 +6024,52 @@ OUTPUT, and label the result a bound rather than a fact.*
 - **Prevention rule:** *Before naming where a defect is ARMED, derive the quantity that bounds it and
   compare it to the geometry — do not rank candidates by how busy they look. And when the same entry
   says "not reproduced", write the headline as a hypothesis, because that is what it is.*
+
+## 2026-08-13 — three green runs, and the only branch none of them took crashed the bot instead of failing it
+
+- **Symptom.** `--driver ch20room1` and `--driver ch20room2` passed three times. An adversarial
+  review then found that `Ch20Room1Mode.run()` reads `can_continue = self.moved and ...`, while
+  `self.moved` is assigned **only** inside `_can_continue_step` — which is skipped whenever Room 1
+  fails to reach the door. Reproduced: `*** EXCEPTION: 'Ch20Room1Mode' object has no attribute
+  'moved'`, with **no `RESULT`, no `ACCEPTANCE`, and no `set_manual_mode()`**. That is a DERAIL,
+  not a failure — the "never hang / never silently derail" rule, broken on the one path nobody ran.
+- **Root cause.** An attribute used as a return channel between phase methods, written in one
+  branch and read unconditionally. The refactor that created the phases is what introduced it: as
+  long as the code was inline, the variable was a local initialised on every path.
+- ‼ **Why no test caught it.** The failure branch exists *because* the smash and both pushes are
+  wrapped in `try/except` — the code explicitly anticipates interruption there. But a passing run
+  never enters it, and there was no way to *make* it enter it. **The branch was unreachable by
+  construction, so its bug was unobservable by construction.**
+- **The fix that worked, and the part worth copying:** a permanent, env-gated fault hook
+  **`POKEBOT_CH20_FAULT=room1`** that forces the Room 1 solve to fail, plus initialising `moved`
+  both at the call site and as a class-level default. A/B: **before** the fix the fault run
+  crashed at f4511; **after**, it printed a clean `ACCEPTANCE: FAIL` and dropped to Manual.
+  ⛔ **Deliberately NOT done: editing the driver to inject the fault and editing it back.** That is
+  how this project detonated an unrelated three-week-old stash once already. A gated hook is
+  reproducible, greppable, and cannot be left half-reverted.
+- **Prevention rule:** *When a refactor turns locals into `self.` attributes, every attribute
+  written in only one branch is a crash waiting on the branch you did not run. Initialise it where
+  it is READ, not only where it is written — and if a failure branch cannot be reached on demand,
+  add the hook that reaches it BEFORE claiming the driver is proven. A driver with an unreachable
+  failure path is not tested, it is only unfalsified.*
+
+## 2026-08-13 — I propagated an agent's "REFUTED" into the handoff, and a deeper pass refuted the refutation
+
+- **Symptom.** I wrote in `04-HANDOFF.md` and `03-PUNCH-LIST.md` that §Ch20's Room 3 "is **not** the
+  walk the build spec calls it" and that the spec was REFUTED — on the strength of one agent's
+  report. A deeper arbitration (decomp **plus** our own ROM) found `(4,15) → (8,1)` is reachable
+  **push-free in 18 steps**; our real planner returns `OK, 18 waypoints`. The 7-boulder puzzle is
+  **optional**. The spec's "a walk (+2 trainers)" was operationally right all along.
+- **Root cause.** I applied the *conclusion* of a pass without applying the *standard* I had just
+  used on Room 1. Room 1's refutation held up because it was checked against **two independent
+  authorities**; this one was a single source, and I treated "REFUTED" as more load-bearing than
+  "CONFIRMED" would have been — as though a negative claim needs less evidence. It needs the same.
+- **What it would have cost.** Building Room 3 as a mandatory boulder puzzle: five irreversible
+  pushes, a wedge-able room, and a whole solver, to avoid one battle we win comfortably.
+- ‼ **The spec did have one real error, and it is not the one I published:** Room 3 is a single
+  **DOUBLE** battle (both trainers at once, `trainer_see.c:214-217`), not two singles. The pass that
+  got the headline wrong still found something true — which is why the answer is to *verify*
+  agent output, not to discount it.
+- **Prevention rule:** *A subagent's "REFUTED" is a claim like any other and needs the same two
+  independent authorities as a "CONFIRMED" before it goes into a current-state doc. Negative results
+  feel like skepticism and are therefore the easiest to under-verify.*

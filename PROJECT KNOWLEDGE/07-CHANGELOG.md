@@ -13192,3 +13192,65 @@ was pre-registered.
 
 ⚠ **Still unmeasured:** that the cutscene releases the player *facing north*. The MAP is proven; the
 FACING is still a decomp claim and wants a live check when the chapter is driven.
+
+---
+
+## 2026-08-13 — the adversarial review found an `AttributeError` waiting on the ONE branch three green runs never took (`#24-remainingarc`)
+
+**An adversarial review of the already-committed, already-passing §Ch20 drivers returned
+KICK-BACK.** It was right, and the finding is the shape this project logs most: *the happy path
+cannot exercise an error path.*
+
+**BLOCKER 1 — CONFIRMED, REPRODUCED, FIXED, A/B PROVEN.** `Ch20Room1Mode.run()` read
+`can_continue = self.moved and ...`, and `self.moved` is assigned **only** inside
+`_can_continue_step`, which is skipped when Room 1 fails to reach the door. Every smash/push call
+is wrapped in `try/except` **precisely because** interruption is expected there — so the failure
+branch is designed for, and it crashed:
+
+```
+ARM A (before)  f4511: *** EXCEPTION: 'Ch20Room1Mode' object has no attribute 'moved'
+                       (no RESULT, no ACCEPTANCE, no set_manual_mode — a DERAIL, not a failure)
+ARM B (after)   [ch20room1] RESULT in_room1=True ... in_room2=False can_continue=False
+                [ch20room1] ACCEPTANCE: FAIL
+```
+
+‼ **HOW THE BRANCH WAS MADE REACHABLE, AND WHY IT IS PERMANENT.** New env-gated hook
+**`POKEBOT_CH20_FAULT=room1`** forces the Room 1 solve to fail. It is a **documented hook, not a
+temporary edit** — editing a file to inject a fault and editing it back is how this project
+detonated an unrelated three-week-old stash once already. It is off unless the variable is set, so
+it cannot affect a normal run, and the failure branch is now testable forever.
+
+**BLOCKER 2 — FIXED.** The two `_strength_flag()` reads were the only unguarded calls in either new
+class, against a file whose every other primitive call guards. Now wrapped — and a failed read is
+reported as **`None`, never `False`**: an unread flag is not a cleared flag, and conflating them
+would have fabricated the very result that measurement exists to produce.
+
+**RISK — FIXED.** `_can_continue_step`'s neighbour filter excluded only `"Warp"`/`"Door"`, missing
+`Ladder`, `Escalator Up`, `Escalator Down` — map transitions containing neither substring. A
+"we can still move" check could have been satisfied by **leaving the room**, which is the exact
+thing it exists to rule out.
+
+**What the review checked and cleared, worth recording so nobody re-derives it:** the
+`(m2_open is False)` / `m2_open = None` verdict term is correct (`None is False` → `False`, so a
+skipped-smash run fails rather than false-passing); `MapRSE.value` is always a tuple, so
+`_dump_objects`'s map filter is sound; and `_dump_objects` feeds no verdict, so its per-object
+`except` can mislead a log line but cannot cause a false PASS.
+
+## 2026-08-13 — Room 3 arbitrated: the previous pass's "REFUTED" was itself wrong, and our spec was right
+
+`ai-research-notes/2026-08-13-ch20-room3-arbitration.md`. **`(4,15) → (8,1)` is reachable
+PUSH-FREE in 18 steps** — our real planner returns `OK, 18 waypoints` — so Room 3's **7-boulder
+puzzle is OPTIONAL**, existing only to dodge the trainers. An earlier pass had told me Room 3 "is
+not the walk the spec calls it" and I propagated that into the handoff and punch list **before**
+this deeper pass ran. ⇒ *An agent's REFUTED is a claim like any other.*
+
+**The spec's one real error: it is a single DOUBLE battle (Shelly AND Grunt5), not two singles** —
+`trainer_see.c:214-217` does not stop at the first trainer and both sight lines cover the same
+tiles. Also measured: sight is a **1-tile-wide line**, not a cone (`==` on y, no tolerance);
+`FACE_LEFT`/`FACE_RIGHT` never rotate, so the lines are **permanently fixed** at exactly
+`{(6,5),(7,5),(8,5)}`; and a **defeated trainer still occupies its tile** — Shelly *walks to*
+`(7,5)` afterwards, so anything positional must be recomputed from live `currentCoords`.
+
+⇒ **Recommendation recorded: take the WALK.** The pushes are irreversible within a map visit and a
+derail can wedge the room; the walk has nothing to wedge and we win the fight (L40-49 vs L35-37).
+‼ **And the A/B cannot be a single tile** — nothing becomes reachable by solving the room.
