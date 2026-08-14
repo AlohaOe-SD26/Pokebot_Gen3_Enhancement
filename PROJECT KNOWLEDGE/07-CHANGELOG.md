@@ -13087,3 +13087,17 @@ vacated tile is re-blocked and its real tile freed once it scrolls out of range.
 **armed in Room 8's nine pushes.** Code-verified, deliberately NOT fixed, repro specified first.
 
 17/17 gates PASS.
+
+## 2026-08-13 — `Ch20Room1Mode` split into reusable phases, and Room 1 REPRODUCED (n=2) (`#24-remainingarc`)
+
+`_enter_room1()`, `_solve_room1()` and `_can_continue_step(map, tag)` are now methods, because
+**every deeper cavern drive has to re-solve Room 1**: its boulders and rock are `FLAG_TEMP_*`
+objects that respawn on every map load, so there is no such thing as arriving in Room 2 with Room 1
+already solved. The Room 2 driver will subclass rather than copy — the same rule that produced
+`_ingress()` an hour earlier.
+
+**Proven neutral by re-running `--driver ch20room1`:** `in_room1=True ab_before=False ab_after=True
+smashed=True pushed1=True pushed2=True in_room2=True can_continue=True  ACCEPTANCE: PASS`, with the
+same arrival `(5,18)`, the same boulder endpoints `(5,12)` / `(13,11)` by `local_id`, and the same
+`ROOM2 (10,7)`. ‼ **That also makes the Room 1 result n=2 rather than n=1** — the first drive was
+not a fluke, which matters because this route was arbitrated against our own documentation.

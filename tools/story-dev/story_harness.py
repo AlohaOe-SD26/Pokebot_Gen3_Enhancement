@@ -5160,77 +5160,52 @@ class Ch20Room1Mode(Ch20DiveMode):
             return False, (f"{type(error).__name__}: {str(error)[:140]} "
                            f"(source collision={collision})")
 
-    def run(self):
-        from modules.context import context as _ctx
-        from modules.map import get_map_data
+    def _enter_room1(self):
+        """ENTRANCE -> ROOM1 through the north warp. Sets `self.in_room1`, `self.r1_arrival`."""
         from modules.map_data import MapRSE
         from modules.player import get_player_avatar
-        from modules.story.early_game import (
-            _navigate_riding_out,
-            _smash_rock,
-            strength_push,
-            wait_until_truly_controllable,
-        )
+        from modules.story.early_game import _navigate_riding_out
 
-        room1 = MapRSE.SEAFLOOR_CAVERN_ROOM1
-        room2 = MapRSE.SEAFLOOR_CAVERN_ROOM2
-        notes = {}
-
-        yield from wait_until_truly_controllable()
-
-        yield from self._inject_dive_fixture()
-        if not self.fixture_ok:
-            log("[ch20room1] RESULT in_room1=False ab_before=None ab_after=None in_room2=False "
-                "can_continue=False detail=fixture-failed")
-            log("[ch20room1] ACCEPTANCE: FAIL")
-            _ctx.set_manual_mode()
-            return
-
-        # ---- INGRESS: the PROVEN ch20dive legs 1-5, reused rather than copied --------------
-        yield from self._ingress()
-        notes["ingress"] = self.notes
-        if not (self.leg1_ok and self.at_entrance):
-            log(f"[ch20room1] ‼ STOPPING — the ingress did not surface in the cavern "
-                f"(legs={self.legs}/5 at_entrance={self.at_entrance}). Every measurement below "
-                f"is taken from INSIDE, so continuing would measure nothing.")
-            log(f"[ch20room1] RESULT in_room1=False ab_before=None ab_after=None in_room2=False "
-                f"can_continue=False detail={notes}")
-            log("[ch20room1] ACCEPTANCE: FAIL")
-            _ctx.set_manual_mode()
-            return
-        log(f"[ch20room1] INGRESS OK at={self._where()} (ch20dive legs {self.legs}/5)")
-
-        # ---- LEG A: ENTRANCE -> ROOM1 -----------------------------------------------------
-        # The entrance pool needs Surf; `_navigate_riding_out` owns that transition, and the
-        # north tile is a warp, so the map change is expected to happen DURING the walk. A raise
-        # here is therefore not automatically a failure — the position is what decides.
+        # The entrance pool needs Surf; `_navigate_riding_out` owns that transition, and the north
+        # tile is a warp, so the map change is expected to happen DURING the walk. A raise here is
+        # therefore not automatically a failure - the position is what decides.
         try:
             yield from _navigate_riding_out(MapRSE.SEAFLOOR_CAVERN_ENTRANCE, self.ROOM1_WARP_UP)
         except Exception as error:  # noqa: BLE001
             log(f"[ch20room1] LEGA raised {type(error).__name__}: {str(error)[:300]} "
-                f"(a warp firing mid-walk can look like this — the position below decides)")
+                f"(a warp firing mid-walk can look like this - the position below decides)")
         where = self._where()
-        in_room1 = where[0] == "SEAFLOOR_CAVERN_ROOM1"
-        notes["legA"] = where
-        log(f"[ch20room1] LEGA at={where} in_room1={in_room1} "
+        self.in_room1 = where[0] == "SEAFLOOR_CAVERN_ROOM1"
+        self.r1_arrival = get_player_avatar().local_coordinates
+        log(f"[ch20room1] LEGA at={where} in_room1={self.in_room1} "
             f"(PREDICTED SEAFLOOR_CAVERN_ROOM1 (5,18))")
-        if not in_room1:
-            log(f"[ch20room1] RESULT in_room1=False ab_before=None ab_after=None in_room2=False "
-                f"can_continue=False detail={notes}")
-            log("[ch20room1] ACCEPTANCE: FAIL")
-            _ctx.set_manual_mode()
-            return
+
+    def _solve_room1(self):
+        """MEASURE the live room, then Rock Smash + two pushes, then the (6,2) door into ROOM2.
+
+        Sets `self.r1`, a dict of every graded sub-result.
+
+        ‼ THIS IS A METHOD SO THE ROOM 2 DRIVER CAN RE-RUN IT. Puzzle state is `FLAG_TEMP_*` and
+        **resets on every map load**, so there is no such thing as arriving in Room 2 with Room 1
+        already solved - every deeper drive pays for this room again. (`FLAG_SYS_USE_STRENGTH` is
+        the exception: it is never cleared, so only the first push of a SAVE pays for the prompt.)
+        """
+        from modules.map_data import MapRSE
+        from modules.player import get_player_avatar
+        from modules.story.early_game import _navigate_riding_out, _smash_rock, strength_push
+
+        room1 = MapRSE.SEAFLOOR_CAVERN_ROOM1
+        self.r1 = {}
 
         # ---- MEASURE-A: the live truth, BEFORE anything is touched ------------------------
-        arrival = get_player_avatar().local_coordinates
-        objects_before = self._dump_objects("BEFORE", room1)
-        notes["objects_before"] = objects_before
+        arrival = self.r1_arrival
+        self.r1["objects_before"] = self._dump_objects("BEFORE", room1)
         ab_before, before_detail = self._path_ok(room1, arrival, self.CORRIDOR_PROBE)
         log(f"[ch20room1] A/B BEFORE {arrival} -> {self.CORRIDOR_PROBE}: {before_detail}")
         log(f"[ch20room1] A/B BEFORE path_exists={ab_before} "
-            f"(PREDICTED False — the corridor is sealed by rock (5,10) + boulder (5,11))")
+            f"(PREDICTED False - the corridor is sealed by rock (5,10) + boulder (5,11))")
 
-        # ---- LEG B: the arbitrated Room 1 solve ------------------------------------------
+        # ---- the arbitrated solve ---------------------------------------------------------
         smashed = pushed1 = pushed2 = False
         try:
             yield from _smash_rock(room1, self.ROCK_APPROACH, "Right")
@@ -5251,13 +5226,11 @@ class Ch20Room1Mode(Ch20DiveMode):
         log(f"[ch20room1] PUSH1 ok={pushed1} boulder local_id=1 at={after_push1.get(1)} "
             f"(PREDICTED (5,12))")
 
-        # ---- MEASURE-B: the OTHER arm of the A/B, same call, same tiles -------------------
+        # ---- MEASURE-B: the OTHER arm of the A/B, same call, same target ------------------
         here = get_player_avatar().local_coordinates
         ab_after, after_detail = self._path_ok(room1, here, self.CORRIDOR_PROBE)
         log(f"[ch20room1] A/B AFTER  {here} -> {self.CORRIDOR_PROBE}: {after_detail}")
         log(f"[ch20room1] A/B AFTER  path_exists={ab_after} (PREDICTED True)")
-        notes["ab"] = {"before": (arrival, ab_before, before_detail),
-                       "after": (here, ab_after, after_detail)}
 
         if pushed1:
             try:
@@ -5269,7 +5242,7 @@ class Ch20Room1Mode(Ch20DiveMode):
         log(f"[ch20room1] PUSH2 ok={pushed2} boulder local_id=2 at={after_push2.get(2)} "
             f"(PREDICTED (13,11))")
 
-        # ---- LEG C: ROOM1 -> ROOM2 through the (6,2) door --------------------------------
+        # ---- ROOM1 -> ROOM2 through the (6,2) door ---------------------------------------
         # ‼ The row-7 walk passes Grunt1 at (8,6), sight radius 2 and rotating, so a trainer
         # battle here is PREDICTED, not a surprise. `_navigate_riding_out` rides it out.
         if pushed2:
@@ -5280,50 +5253,108 @@ class Ch20Room1Mode(Ch20DiveMode):
                     f"(the door warp firing mid-walk can look like this)")
         where = self._where()
         in_room2 = where[0] == "SEAFLOOR_CAVERN_ROOM2"
-        notes["legC"] = where
         log(f"[ch20room1] LEGC at={where} in_room2={in_room2} "
             f"(PREDICTED SEAFLOOR_CAVERN_ROOM2 (10,7))")
 
-        # ---- CAN-CONTINUE: take a REAL step, on a target derived from where we ARE --------
-        # ‼ Never a remembered coordinate — that mistake was made twice in this file. The
-        # neighbour is chosen from live tile data, and warp/door tiles are excluded so that
-        # "it moved" cannot be satisfied by falling back out of the room.
-        moved, step_target = False, None
-        if in_room2:
-            start = get_player_avatar().local_coordinates
-            for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0)):
-                candidate = (start[0] + dx, start[1] + dy)
-                try:
-                    tile = get_map_data(room2, candidate)
-                except Exception:  # noqa: BLE001 - off-map candidates are simply not candidates
-                    continue
-                kind = str(tile.tile_type)
-                if tile.collision == 0 and "Warp" not in kind and "Door" not in kind:
-                    step_target = candidate
-                    log(f"[ch20room1] CAN-CONTINUE stepping {start} -> {candidate} "
-                        f"tile_type={kind!r}")
-                    break
-            if step_target is None:
-                log(f"[ch20room1] CAN-CONTINUE ‼ no non-warp walkable neighbour of {start} — "
-                    f"that is itself the finding.")
-            else:
-                try:
-                    yield from _navigate_riding_out(room2, step_target)
-                    moved = get_player_avatar().local_coordinates != start
-                except Exception as error:  # noqa: BLE001
-                    log(f"[ch20room1] CAN-CONTINUE raised {type(error).__name__}: "
-                        f"{str(error)[:200]}")
-            log(f"[ch20room1] CAN-CONTINUE moved={moved} {start}->"
-                f"{get_player_avatar().local_coordinates} manual={_ctx.bot_mode == 'Manual'}")
-        can_continue = moved and _ctx.bot_mode != "Manual"
+        self.r1.update({
+            "ab": {"before": (arrival, ab_before, before_detail),
+                   "after": (here, ab_after, after_detail)},
+            "ab_before": ab_before, "ab_after": ab_after,
+            "smashed": smashed, "pushed1": pushed1, "pushed2": pushed2,
+            "in_room2": in_room2, "legC": where,
+        })
+
+    def _can_continue_step(self, map_enum, tag: str):
+        """Take a REAL step onto a live-derived, NON-WARP neighbour. Sets `self.moved`.
+
+        ‼ Never a remembered coordinate - that mistake was made twice in this file, the second
+        time hours after its own prevention rule was written. Warp and door tiles are excluded so
+        that "it moved" cannot be satisfied by falling back out of the room."""
+        from modules.map import get_map_data
+        from modules.player import get_player_avatar
+        from modules.story.early_game import _navigate_riding_out
+
+        self.moved = False
+        start = get_player_avatar().local_coordinates
+        step_target = None
+        for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+            candidate = (start[0] + dx, start[1] + dy)
+            try:
+                tile = get_map_data(map_enum, candidate)
+            except Exception:  # noqa: BLE001 - off-map candidates are simply not candidates
+                continue
+            kind = str(tile.tile_type)
+            if tile.collision == 0 and "Warp" not in kind and "Door" not in kind:
+                step_target = candidate
+                log(f"[{tag}] CAN-CONTINUE stepping {start} -> {candidate} tile_type={kind!r}")
+                break
+        if step_target is None:
+            log(f"[{tag}] CAN-CONTINUE ‼ no non-warp walkable neighbour of {start} - "
+                f"that is itself the finding.")
+        else:
+            try:
+                yield from _navigate_riding_out(map_enum, step_target)
+                self.moved = get_player_avatar().local_coordinates != start
+            except Exception as error:  # noqa: BLE001
+                log(f"[{tag}] CAN-CONTINUE raised {type(error).__name__}: {str(error)[:200]}")
+        log(f"[{tag}] CAN-CONTINUE moved={self.moved} {start}->"
+            f"{get_player_avatar().local_coordinates}")
+
+    def run(self):
+        from modules.context import context as _ctx
+        from modules.map_data import MapRSE
+        from modules.story.early_game import wait_until_truly_controllable
+
+        notes = {}
+        yield from wait_until_truly_controllable()
+
+        yield from self._inject_dive_fixture()
+        if not self.fixture_ok:
+            log("[ch20room1] RESULT in_room1=False ab_before=None ab_after=None in_room2=False "
+                "can_continue=False detail=fixture-failed")
+            log("[ch20room1] ACCEPTANCE: FAIL")
+            _ctx.set_manual_mode()
+            return
+
+        # ---- INGRESS: the PROVEN ch20dive legs 1-5, reused rather than copied --------------
+        yield from self._ingress()
+        notes["ingress"] = self.notes
+        if not (self.leg1_ok and self.at_entrance):
+            log(f"[ch20room1] ‼ STOPPING - the ingress did not surface in the cavern "
+                f"(legs={self.legs}/5 at_entrance={self.at_entrance}). Every measurement below "
+                f"is taken from INSIDE, so continuing would measure nothing.")
+            log(f"[ch20room1] RESULT in_room1=False ab_before=None ab_after=None in_room2=False "
+                f"can_continue=False detail={notes}")
+            log("[ch20room1] ACCEPTANCE: FAIL")
+            _ctx.set_manual_mode()
+            return
+        log(f"[ch20room1] INGRESS OK at={self._where()} (ch20dive legs {self.legs}/5)")
+
+        yield from self._enter_room1()
+        notes["legA"] = self.r1_arrival
+        if not self.in_room1:
+            log(f"[ch20room1] RESULT in_room1=False ab_before=None ab_after=None in_room2=False "
+                f"can_continue=False detail={notes}")
+            log("[ch20room1] ACCEPTANCE: FAIL")
+            _ctx.set_manual_mode()
+            return
+
+        yield from self._solve_room1()
+        notes["room1"] = self.r1
+
+        if self.r1["in_room2"]:
+            yield from self._can_continue_step(MapRSE.SEAFLOOR_CAVERN_ROOM2, "ch20room1")
+        can_continue = self.moved and _ctx.bot_mode != "Manual"
 
         # ‼ `ab_before is False` is an ASSERTED part of the verdict, not a nice-to-have: if the
         # corridor was already reachable, the run proved nothing about the puzzle at all.
-        passed = (in_room1 and (not ab_before) and ab_after and smashed and pushed1
-                  and pushed2 and in_room2 and can_continue)
-        log(f"[ch20room1] RESULT in_room1={in_room1} ab_before={ab_before} ab_after={ab_after} "
-            f"smashed={smashed} pushed1={pushed1} pushed2={pushed2} in_room2={in_room2} "
-            f"can_continue={can_continue}")
+        passed = (self.in_room1 and (not self.r1["ab_before"]) and self.r1["ab_after"]
+                  and self.r1["smashed"] and self.r1["pushed1"] and self.r1["pushed2"]
+                  and self.r1["in_room2"] and can_continue)
+        log(f"[ch20room1] RESULT in_room1={self.in_room1} ab_before={self.r1['ab_before']} "
+            f"ab_after={self.r1['ab_after']} smashed={self.r1['smashed']} "
+            f"pushed1={self.r1['pushed1']} pushed2={self.r1['pushed2']} "
+            f"in_room2={self.r1['in_room2']} can_continue={can_continue}")
         log(f"[ch20room1] DETAIL {notes}")
         log(f"[ch20room1] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
         _ctx.set_manual_mode()
