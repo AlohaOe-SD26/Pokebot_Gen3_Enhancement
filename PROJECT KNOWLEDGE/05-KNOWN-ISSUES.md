@@ -2149,8 +2149,9 @@ are now resolved live here", so they are listed here to stay findable:
   from **NO-PATH from every direction** (all 29 tiles invisible to the planner) to `OK len=1` on the
   legal approaches; the `MOSSDEEP_CITY` collateral control is **byte-identical** across arms. Now
   **gate #17**. ‼ `probe_shoal_tide.py` corrected in lockstep; its numbers re-derived on the fixed
-  model are **unchanged (LOW 278 / HIGH 0)**. ⚠ **Sandbox only — drift is now 4 (`counter_hunt.py`
-  joined 2026-08-14 with the box-counter move-test fix) and promotion is the
+  model are **unchanged (LOW 278 / HIGH 0)**. ⚠ **Sandbox only — drift is now 5 (`counter_hunt.py`
+  and `pokemon_party.py` both joined 2026-08-14: the box-counter move-test fix and KI-78's
+  detect-only stage) and promotion is the
   USER's call.** The original diagnosis and the retraction that reprioritised it are kept below.
 * **KI-59 (original entry)** — `map_path` **INVERTS `Impassable *` directions**. ✅ **REAL** (decomp-verified).
   ⛔ **BUT ITS "ARMED IN THE SEAFLOOR CAVERN" HEADLINE IS RETRACTED, 2026-08-13, MEASURED.**
@@ -2705,10 +2706,76 @@ to refute "the tide is not a blocker"; the static-table half verified by me dire
   identity test (fixed 2026-08-14) *wants* the twins to share a PID — a Shedinja spawn then cannot
   look like a new catch, which is the correct answer. Do not "fix" the collision in a way that
   breaks that.
-- **What a fix looks like** (not attempted): key on `(personality, species)` or
-  `(personality, party_index)` wherever a PID selects a target for an ACTION. ⚠ Not a drive-by
-  change — `get_index_for_pokemon` is shared by deposit, release and the party menu, and the
-  release path is destructive. Needs its own fault-injected A/B with a fabricated twin pair.
+- **What a fix looks like:** key on **`(personality, species)`** wherever a PID selects a target
+  for an ACTION. ⚠ Not a drive-by change — `get_index_for_pokemon` is shared by deposit, release
+  and the party menu, and the release path is destructive. Needs its own fault-injected A/B with a
+  fabricated twin pair.
+- ✅ **THE COMPOSITE KEY IS NOT A NEW IDEA HERE — HALF THIS CODEBASE ALREADY USES IT.**
+  `modules/pokemon_storage.py:128` (`get_slot_for_pokemon`) already matches
+  `data[:4] == data[:4] AND species.index == species.index`. Its neighbour `:121`
+  (`contains_pokemon`) and the party-side `get_index_for_pokemon` simply never got it. ⇒ frame the
+  change as a **CONSISTENCY FIX**, which is the cheapest possible framing for review.
+
+### ‼ RULED 2026-08-14 — key on **SPECIES**, never on the NAME. And the intuitive reason is WRONG.
+
+The user proposed `(PID, name)`, reasoning that the bot never renames. An investigation fetched the
+decomp live to settle it, and **refuted the objection that had been raised against the idea**
+(mine: *"a default nickname is probably stale after evolution"*):
+
+* ⛔ **THE NICKNAME IS NOT STALE. `EvolutionRenameMon` (`src/pokemon.c:5814-5821`) rewrites a
+  DEFAULT nickname to the new species name on evolution**, and it runs at
+  `src/evolution_scene.c:766` — **before** `CreateShedinja` at `:814`. Shedinja's own nickname is
+  then set unconditionally (`:558`). So the Ninjask reads `"NINJASK"`, the Shedinja `"SHEDINJA"`,
+  and **for this specific pair a name-based key WOULD have worked.** Cross-checked against
+  `pret/pokefirered` — this is vanilla Gen 3, not a pret modernisation.
+* ✅ **SPECIES still wins, for a stronger reason: NAME is species re-encoded as text.** Because
+  `EvolutionRenameMon` keeps default-nickname and species-name in lockstep, the name carries
+  **zero information species does not already carry** — it is not a second axis of discrimination,
+  it is a lossy copy of the first, with its own failure modes:
+  - **every EGG shares ONE nickname** — `sJapaneseEggNickname` (`src/daycare.c:838-841`), and our
+    reader takes the RAW bytes (`modules/pokemon.py:1000`), so all eggs collapse to one string;
+  - **the nickname CHANGES for the same physical mon at hatch** (`src/egg_hatch.c:372-373`) — the
+    same PID and species, a different name before and after, so `(PID, name)` is unstable across
+    an event `(PID, species)` sails through;
+  - **in-game trades ship preset nicknames** (`"DOTS"`, `"PLUSES"`, `"SEASOR"`, `"MEOWOW"` —
+    `src/data/trade.h`) which never match an old species name and so **never update on evolution**;
+  - `language != GAME_LANGUAGE` **disables the rename entirely** (`pokemon.c:5819`).
+* ⛔ **AND "the bot never renames" is true only by a hair.** Every gameplay path declines the
+  naming screen (`battle_handler.py:876-881`, `_listeners.py:455-465`, `static_gift_resets.py:195-207`,
+  `starters.py:62,182`, `early_game.py:1041`, `game_corner.py:125`) — but `starter_nickname` is
+  **already wired end to end** (`modules/story/config.py:18,27-32`, a random pool at
+  `early_game.py:998-1007`) and short-circuited by one hard-coded `"No"`, `on_should_nickname_pokemon`
+  is a sanctioned plugin hook (`plugin_interface.py:196-205`), and the debug utilities/GUI set names
+  like `"Hulk"`, `"Ability"` and **`"CHEAT"`** (`debug_utilities.py:551-616,653-666`,
+  `gui/debug_menu.py:187-206`, `gui/debug_edit_party.py:199`).
+  ⇒ **Keying a DESTRUCTIVE path on a field the project is one uncommented `if` away from making
+  arbitrary is a design error regardless of the decomp.**
+
+### ⛔ THE CALL SITES THAT MUST **NOT** GET THE SPECIES COMPONENT
+
+**`counter_hunt.py`'s PID SETS DEPEND ON THE TWINS SHARING A PID** — `_party_pids_now` /
+`_box_pids_now` and the set-difference in `catch_confirmed` (`counter_hunt.py:311-342`). That fix
+(2026-08-14) works *because* a Shedinja carries its Ninjask's PID and therefore cannot look like a
+NEW identity. **Adding species there would make a Shedinja spawn report a catch that never
+happened — reintroducing the exact bug that code was written to fix.** Likewise leave the
+protected/hunted PID *sets* alone (`pc_trip.py:136,446`, `early_game.py:1769`,
+`higher_level_actions.py:245-247`): those mean "don't touch anything in this family", and a twin
+SHOULD inherit its sibling's protection — widening is the safe direction, narrowing is not.
+
+### Residual collisions after the fix (name them, do not claim uniqueness we lack)
+* **R2 — debug paths** (`debug_utilities.py:314-410`, `gui/debug_edit_party.py:199`) can fabricate
+  two identical-PID identical-species mons by hand ⇒ the key must **detect** ambiguity, not assume
+  it away.
+* **R3 — corrupt/Bad-Egg box slots** read PID 0 / species 0; the box reader filters only on
+  `is_empty` (`pokemon_storage.py:101`) where the party reader also checks `is_valid`
+  (`pokemon_party.py:120`).
+* **R5 — Battle Frontier rentals** overwrite `gPlayerParty`; a pre-entry PID is then simply absent
+  (a miss, not a mis-hit). No bot code enters the Frontier.
+* **R6 — a NEW failure mode the change introduces:** if a mon evolves between object capture and
+  key use, the composite key **misses** where PID-only would have hit — converting a silent
+  wrong-target into a loud abort. Correct for RELEASE; a behaviour change everywhere else.
+  ⇒ On a species mismatch with a unique PID hit, log LOUD and **re-resolve from the live party**;
+  raise only on genuine ambiguity, and NEVER fall back to the first PID hit.
 - **Cheap detection meanwhile:** a duplicate-PID check over the party would flag the condition in
   one line, and it is worth logging LOUD when it fires, because every PID-keyed decision taken
   while it holds is suspect.

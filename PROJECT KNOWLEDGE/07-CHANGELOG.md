@@ -13554,3 +13554,38 @@ symptom traced to ONE function.
 * ⚠ **sandbox↔custom drift 3 → 4**: `modules/story/counter_hunt.py` joins. **Until promotion (the
   USER's call, not asked for), `custom-pokebot` still cannot see a boxed counter that answers by
   MOVE — the user-observed derail is still live there.**
+
+## 2026-08-14 — KI-78 STAGE 0 (detect-only) + the NAME-vs-SPECIES ruling, which REFUTED the objection raised against the user's own idea (`#24-roster`)
+
+* **USER PROPOSAL (2026-08-14):** disambiguate the Ninjask/Shedinja PID collision by keying on the
+  PID **plus the Pokémon's NAME**, since the bot never renames. **The substance was right** — and
+  independently matched what a separate forensics pass had recommended.
+* ⛔ **THE OBJECTION RAISED AGAINST IT WAS WRONG, AND IS RETRACTED.** I argued a default nickname
+  is probably STALE after evolution and therefore a worse key. **It is not.**
+  `EvolutionRenameMon` (`src/pokemon.c:5814-5821`) rewrites a default nickname to the new species
+  name, and it runs at `src/evolution_scene.c:766` — **before** `CreateShedinja` at `:814`. The
+  Ninjask reads `"NINJASK"`, the Shedinja `"SHEDINJA"` (set unconditionally, `:558`).
+  **For that pair the user's key would have worked.** Cross-checked in `pret/pokefirered`.
+* ✅ **RULED: key on SPECIES anyway, for a better reason.** Because that rename keeps default
+  nickname and species name in lockstep, NAME carries **zero information SPECIES does not** — it
+  is a lossy text copy of the same axis, and it diverges exactly where it must not: every EGG
+  shares one nickname (`src/daycare.c:838-841`), the nickname CHANGES at hatch for the same mon
+  (`src/egg_hatch.c:372-373`), in-game trades ship preset names that never update
+  (`src/data/trade.h`), and a foreign-language mon never renames at all (`pokemon.c:5819`).
+  ‼ And "the bot never renames" is true by one hard-coded `"No"`: `starter_nickname` is already
+  wired end-to-end and `on_should_nickname_pokemon` is a sanctioned plugin hook — keying a
+  DESTRUCTIVE path on that field is a design error regardless of the decomp.
+* ✅ **STAGE 0 SHIPPED — `Party.get_index_for_pokemon` now DETECTS the ambiguity and changes
+  NOTHING ELSE.** It collects all PID matches, logs LOUD in red when there is more than one
+  (naming both species and both slots), and still returns `matches[0]` exactly as before. This is
+  the "reproduce first" half of the bar on a path where one caller is **RELEASE (permanent)**;
+  it also answers, from real runs, how often the collision actually occurs.
+* ✅ **The composite key is a CONSISTENCY fix, not a new invention:** `pokemon_storage.py:128`
+  already matches on `(personality, species)`; its neighbour `:121` and the party-side lookup
+  never got it.
+* ⛔ **RECORDED IN KI-78: the call sites that must NOT get the species component.**
+  `counter_hunt.py`'s PID sets (`catch_confirmed`, shipped hours earlier today) **depend on the
+  twins sharing a PID** so a Shedinja spawn cannot look like a new catch — adding species there
+  would reintroduce the exact bug that code fixes. Likewise the protected/hunted PID SETS, where a
+  twin SHOULD inherit its sibling's protection.
+* ⚠ drift 4 → 5 (`modules/pokemon_party.py` joins). Promotion remains the USER's call.
