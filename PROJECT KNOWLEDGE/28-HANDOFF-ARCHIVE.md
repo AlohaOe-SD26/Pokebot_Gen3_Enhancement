@@ -3150,3 +3150,210 @@ consumed it.*
 **Not yet proven:** driven from `post_maxie.ss1` (on 4F). The exit has **not** been driven from a
 run that walked all the way back down to `1F (25,34)`; the warp graph says 3F_3R is reachable from
 there, but that is static.
+
+
+# ARCHIVED 2026-08-13 from 04-HANDOFF.md (R3 line budget) — §Ch19 PRE-BUILD planning notes
+> ‼ §Ch19 SHIPPED, was promoted and runs in the ladder. This was already labelled HISTORY in the
+> handoff; it is moved here verbatim so the current-state file stays inside its budget.
+
+## 📌 HISTORY — §Ch19 planning notes, written BEFORE it was built. ‼ §Ch19 IS DONE AND WIRED.
+> Everything from here to the next `##` heading is the pre-build research. It is kept because the
+> measured hazards in it are still true and still useful, but its status line is **obsolete** —
+> §Ch19 shipped, was promoted, and runs in the ladder. Do not read this as a to-do.
+
+Start from **`saves/post_mossdeep_gym.ss1`** (re-captured: now standing in `MOSSDEEP_CITY (38,10)`,
+7 badges, ‼ **66% HP with one Pokémon fainted** — heal FIRST).
+`modules/story/space_center.py` holds the route and the first three legs and says plainly that it is
+groundwork. `probe_space_center_recon.py` is the measured area atlas.
+
+**Hazards were PREDICTED by an adversarial pass and then TESTED before building — 3/3 held**
+(`probe_ch19_hazards.py`, keep it green):
+* **The city is cut in two.** The five Team Magma NPCs the gym victory spawns occupy the ONLY land
+  bridge (x=44, y=23-26). A single route gym → Space Center cannot exist. **Route to the cutscene
+  trigger line first** — `(42,21) (41,22) (41,23) (41,24) (40,25) (40,26)` — ride the forced scene,
+  **observe `VAR_MOSSDEEP_CITY_STATE == 2`**, then plan leg 2.
+* **The 2F prompt must be answered with A.** It is a `MSGBOX_YESNO`; B answers NO, which warps you
+  back to 1F **with the var unchanged** — an infinite re-entry livelock, healthy avatar, no error.
+* **Completion is `VAR_MOSSDEEP_SPACE_CENTER_STATE == 3`.** ‼ NOT `FLAG_DEFEATED_MAGMA_SPACE_CENTER`,
+  which the Rayquaza PokéNav call **clears again** ~250 steps later — a chapter graded on it would
+  pass, then silently un-pass.
+* **Steven must be talked to TWICE**, and leaving 2F resets that (his first talk is dialogue only —
+  a bot waiting for a battle there will hang). The second talk opens a **party-selection menu**
+  (`ChooseHalfPartyForBattle`, 1-3 mons) that **nothing in this codebase has ever driven**; blind
+  A-mashing volunteers slots 0-2, i.e. Zigzagoon L15, into a fight with Maxie L42-44. **This is the
+  one genuine unknown — instrument it on the first run rather than guessing.**
+* **The multi battle puts Steven's Metang/Skarmory/Aggron into `gPlayerParty[3..5]`**, and our
+  faint-replacer picks by party index — it can try to send out the ALLY's Pokémon. Losing calls
+  `SetCB2WhiteOut` directly.
+
+⛔ **§Ch21 (Seafloor Cavern) IS BLOCKED — KI-63.** **No party member can learn Dive and the party is
+full** (measured: 0 learners, 6/6). Receiving HM08 is fine (a script gift needs no learner), so
+§Ch19/§Ch20 are unaffected — but **`#24-pc` is a PREREQUISITE of §Ch21**, not a later nicety. The
+natural single swap is a **Wailmer or Tentacool** (both learn Surf *and* Dive; Zigzagoon L15 is our
+only Surf carrier).
+
+⚠ **KI-59 is armed in the Seafloor Cavern** — 115 `Impassable *` tiles across Rooms 1-9, which
+`map_path` over-blocks. That is the reproduce-map KI-59 asked for: fix it with an A/B on
+`SEAFLOOR_CAVERN_ROOM1` **before** the cavern chapter exists.
+
+   ✅ **`sandbox-pokebot/modules/story/mossdeep_gym_puzzle.py` simulates the puzzle offline**, and
+   `probe_gym_simulate.py` **PASSES**: 11/11 loaded objects predicted on a live press, identity-keyed
+   on `local_id`, plus a period-4 identity control on all five colours. Per-press object counts
+   (Yellow 8, Blue 4, Green 3, Purple 10, Red 5) independently reproduce the decomp's pad occupancy
+   table. **A route may now be planned on this model.**
+
+   Encoding (derived from the ROM dump, not assumed): arrows are `0x250..0x27F`; band =
+   `(mt-0x250)//8` → `0 Yellow 1 Blue 2 Green 3 Purple 4 Red`; code = `(mt-0x250)%8` →
+   `0 Right 1 Down 2 Left 3 Up`; ‼ **codes 4/5 are that colour's SWITCH**. Movement is a **rigid
+   simultaneous rotation with NO occupancy check**, so four presses of a colour is the identity.
+
+   ‼ **THE THINGS THAT WILL BITE — all newly measured, all in KI-58:**
+   * **Nine TRAINERS stand on arrow pads and rotate with the statues.** A statue-only model is wrong.
+   * **Statues are `graphics_id == 224`** (21 of them), *not* `trainer_type == "None"`.
+   * **"5 counters mod 4" is UNSAFE** — not every pad holds three objects. Use the object-position
+     tuple (what the module does).
+   * **Solving the puzzle AIMS THE TRAINERS AT YOU.** Pressing yellow at `(3,30)` slides Maura to
+     `(4,30)`, adjacent and facing the player; the trainer intro fires before the bot can step off.
+     **Expect gym battles as part of the mechanic**, and never write a wait loop that assumes no
+     script will start.
+   * **Three** switches are unavoidable transit tiles: `(23,24)`, `(23,21)`, `(8,10)`.
+   * `(21,6)` ejects to `(7,30)` and is **not flag-gated**; treat as blocked. Leaving the gym RESETS
+     the puzzle; internal warps preserve it (`SKIP_OBJECT_EVENT_LOAD`).
+   * **No configuration is unsolvable** — 114,929 reachable states, 0 dead. The bot cannot strand
+     itself here, which is a change from every dungeon so far.
+
+   **HOW TO BUILD IT:** A\* over `(player tile, object-position tuple)` using
+   `mossdeep_gym_puzzle.press` / `is_walkable`, with warps and forced switch tiles as edges. The
+   116-step agent route in KI-58 is a **cross-check on the solver's answer, never the answer**. Then
+   Tate & Liza at `(23,8)/(24,8)` facing NORTH: a **DOUBLE battle** needing **≥2 usable Pokémon**,
+   and the party still carries Zigzagoon L11 / Skitty L17.
+
+2. ✅ **DONE — the Slateport-haul whiteout is FIXED** (`whiteouts=0`, PASS, and 5,457 frames
+   faster). Cause: the anchor hands Ch16 a party at **8.8% HP with 5 of 6 fainted**, and the
+   chapter was passing only *because* a whiteout heals. Fix: `SLATEPORT_ROUTE_HEALS`,
+   nearest-first (Lavaridge → Mauville → Slateport). ‼ **Three other anchors are in the same
+   state** — `post_mtpyre` 11%/3 fainted, `post_winona` 29%/3 fainted — so any NEW chapter built
+   on one inherits the same latent whiteout. `probe_anchor_inventory.py` now prints the HP line
+   and says so. **Heal early in Ch17.**
+
+3. **Optional hardening of the §Ch15 exit:** drive it from a run that walks back down to
+   `1F (25,34)` rather than from 4F. The warp graph says 3F_3R is reachable from there, but only
+   statically. `sandbox-pokebot/profiles/ch16a/current_state.ss1` is a free repro of that state.
+
+3. **`#24-teachmsgstall` is REOPENED** — the fix has no production effect (z = −1.28) and
+   `already-advanced` never fired. Start from `post_select=exhausted`, which still occurs 8/85.
+
+4. **The boss-response decision is the USER's.** The status tax is now a resolved rate
+   (32.6% vs 3.8%, z = +62.2), which is the evidence a status response needed — but it is a
+   battle-policy change touching every mode using `DefaultBattleStrategy`. **Do not build it
+   unilaterally.** ‼ And roster hygiene is blocked (KI-54) until
+   `POKEBOT_BOX_OVERFLOW_CATCH` — ⛔ **RETRACTED 2026-08-12: it is already ON and already works.**
+
+5. **Remaining hardening (designed, not built):** H5 (make `n=` structural in every analysis probe)
+   and H7 (a bounded-loop helper so an unbounded loop is a visible smell). See
+   `26-REVIEW-AND-HARDENING-PLAN-2026-08-11.md`.
+
+6. **Do NOT grade anything on the finish rate.** Eight batches, zero resolvable pairs. Use
+   `30-METRICS.md` to pick an instrument before measuring.
+
+## HOW TO RUN / TEST
+```
+cd tools/story-dev
+PYTHONUTF8=1 py -3.12 preflight.py          # ‼ RUN THIS FIRST. git + fixtures + docs + freeze
+PYTHONUTF8=1 py -3.12 lint_docs.py          # doc rules (exit 1)
+PYTHONUTF8=1 py -3.12 verify_fixtures.py    # PINNED saves byte-identical
+PYTHONUTF8=1 py -3.12 probe_status_tax.py <batch-dir>   # the status tax, with its control
+PYTHONUTF8=1 py -3.12 x4_headless.py --lanes 8 --minutes 180   # a batch (3h)
+
+# --- §Ch18/§Ch19 (all exit 0 today; keep them green) ---
+PYTHONUTF8=1 py -3.12 repro_gym_whiteout_guard.py   # 5/5, fault-injected  (~1 min)
+PYTHONUTF8=1 py -3.12 probe_chapter_order.py        # KI-61 regression guard
+PYTHONUTF8=1 py -3.12 probe_ch19_hazards.py         # 3/3; H1 is now a stranding guard
+PYTHONUTF8=1 py -3.12 probe_space_center_recon.py   # §Ch19 area atlas (measured, not recalled)
+PYTHONUTF8=1 py -3.12 probe_gym_solve.py            # re-derive the 117-step gym route
+
+# ‼ THE STANDING SUITE — RUN IT WITH ONE COMMAND. The list lives in CODE now, not in this prose,
+#   because this comment advertised 15 gates for a whole session after a 16th was added:
+PYTHONUTF8=1 py -3.12 run_gates.py            # all 17, exits non-zero on any failure (~124s)
+PYTHONUTF8=1 py -3.12 run_gates.py --quick    # the 10 needing no ROM (~3s)
+PYTHONUTF8=1 py -3.12 run_gates.py --list     # what is in the suite
+# (reference only — run_gates.py's GATES table is authoritative) the 17, all exit 0 2026-08-13:
+#   preflight, lint_docs, verify_fixtures, audit_flag_names, repro_undefined_names,
+#   repro_no_silent_except, repro_roster_reorder, repro_multi_battle_partner,
+#   repro_whiteout_abort, repro_gym_whiteout_guard, repro_hm_slot_wiring, probe_chapter_order,
+#   probe_dive_learner, probe_slot_free_plan, probe_regi_capabilities, probe_dive_routing,
+#   repro_impassable_dirs
+#   ‼ repro_impassable_dirs (NEW 2026-08-13) is KI-59's A/B gate. It reads the REAL production
+#     PathTile objects and compares them to the DECOMP, because the probe that re-implemented the
+#     model (probe_shoal_tide.py) had copied the bug and so could never have failed.
+#   ‼ repro_hm_slot_wiring (NEW 2026-08-13) asserts KI-63's chain is still CONNECTED end to end.
+#     It exists because the previous failure was a chain of individually-correct parts with ONE
+#     LINK MISSING, and no test, gate or green driver caught it — only a diff review did.
+PYTHONUTF8=1 py -3.12 probe_chapter_order.py --build custom   # ‼ also check the OTHER fork
+
+# ‼ VERIFY THE SANDBOX<->CUSTOM DRIFT ROW RATHER THAN TRUSTING IT (PowerShell, from the repo root):
+#   Get-ChildItem "sandbox-pokebot\modules","sandbox-pokebot\plugins" -Recurse -Filter *.py |
+#     ForEach-Object { $rel=$_.FullName.Substring((Resolve-Path "sandbox-pokebot").Path.Length+1)
+#                      $c="custom-pokebot\$rel"
+#                      if (Test-Path -LiteralPath $c) { git diff --no-index --quiet -- $c $_.FullName
+#                                                       if ($LASTEXITCODE -ne 0) { "differs: $rel" } }
+#                      else { "MISSING in custom: $rel" } }
+#   ‼ EXPECTED as of 2026-08-13: exactly 3 — `modules/map_path.py` (KI-59's fix, NEW),
+#   `modules/story/early_game.py` and
+#   `plugins/custom_modes/story_mode.py` (KI-63's PRODUCTION WIRING, driven but NOT promoted).
+#   ‼ NOT `roster.py`/`menuing.py` — those were PROMOTED 2026-08-13 and now show ZERO drift.
+#   Anything else is unexplained drift.
+
+# --- §Ch19 gates + drivers (all exit 0 / PASS today; keep them green) ---
+PYTHONUTF8=1 py -3.12 repro_roster_reorder.py       # party-reorder PLANNER, 16/16
+# ‼ THE PARTY-ORDER DRIVE (added 2026-08-13). ~4 min. Expect ACCEPTANCE: PASS.
+#   phases=4/4 saw_j_nonzero=True idempotent=True restored=True can_continue=True
+#   ‼ `saw_j_nonzero` is the one that matters — False means the run re-proved the OLD shape only.
+PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver roster --frames 400000
+# ‼ THE FIRST DRIVEN DIVE (added 2026-08-13). ~3 min. Expect ACCEPTANCE: PASS, legs=6/6.
+#   Mossdeep -> ROUTE128 (38,27) -> dive -> cavern -> surface (10,17) -> and back OUT.
+#   ‼ `got_out` is the one that matters: an underwater cavern is the best place yet to strand a run.
+PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch20dive --frames 900000
+PYTHONUTF8=1 py -3.12 probe_ch20_topology.py         # the measured route (read-only, 2 controls)
+# ‼ KI-63 END TO END (the session's headline result). ~6 min. Expect ACCEPTANCE: PASS with
+#   deposited_pids / gained_pids each exactly one PID. Drives the PRODUCTION wrapper.
+PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver divelearner --frames 3000000
+PYTHONUTF8=1 py -3.12 probe_regi_capabilities.py    # what the Regi arc still needs (KI-69 Phase A)
+PYTHONUTF8=1 py -3.12 probe_dive_routing.py         # why a chapter must drive dive() (KI-68)
+PYTHONUTF8=1 py -3.12 repro_undefined_names.py      # ZERO undefined names in the story surface
+PYTHONUTF8=1 py -3.12 audit_flag_names.py           # 19 files / 144 names; exits 1 on a phantom
+PYTHONUTF8=1 py -3.12 probe_ch19_route.py           # why Mossdeep is cut in two (models live NPCs)
+PYTHONUTF8=1 py -3.12 story_harness.py post_mossdeep_gym.ss1 --driver spacecenter1 --frames 900000
+PYTHONUTF8=1 py -3.12 story_harness.py at_steven_2f.ss1      --driver spacecenter2 --frames 600000
+PYTHONUTF8=1 py -3.12 story_harness.py post_mossdeep_gym.ss1 --driver spacecenter  --frames 1500000
+PYTHONUTF8=1 py -3.12 story_harness.py post_space_center.ss1 --driver spacecenter  --frames 400000  # resume-safety
+
+# --- drivers (these run under the REAL main loop, so they can fight) ---
+PYTHONUTF8=1 py -3.12 story_harness.py post_aqua.ss1          --driver mossdeeptravel --frames 500000
+PYTHONUTF8=1 py -3.12 story_harness.py in_mossdeep_gym.ss1    --driver mossdeepgym    --frames 400000
+PYTHONUTF8=1 py -3.12 story_harness.py at_mossdeep_leaders.ss1 --driver mossdeepbadge --frames 300000
+```
+‼ **Never read an exit code through a pipe** — `| head` reports ITS status, not the script's. Write
+to a file and echo `$?` (this nearly recorded a PASS that had never run).
+‼ **A driver can fight; a hand-driven probe cannot.** Battle handling lives in the main loop's
+listeners, not inside a bot mode's generator (`modules/battle_fault.py:5`).
+**‼ THE AUTHORITATIVE GATE LIST IS `run_gates.py`'s `GATES` TABLE — not this prose.** All 17 exit 0. Do not
+reconstruct it from the prose below; there are 94 `repro_*.py` files and the older text says "the
+ten standing repro_*" without naming them, which is not reproducible. Current pass counts, measured:
+`repro_gym_whiteout_guard.py` **5/5**, `repro_roster_reorder.py` **16/16**,
+`repro_whiteout_abort.py` **13/13**, `repro_multi_battle_partner.py` **5/5**.
+
+**Older text (2026-08-12, counts now stale):** plus `repro_gym_whiteout_guard.py` (4/4, fault-injected — ‼ it is a BOUNDED prefix test, because a hand-driven generator has no battle listeners and cannot win a gym fight; see 08-MISTAKES). Previously 14 of 14 (2026-08-11): the ten standing `repro_*` plus
+`repro_teach_under_dialogue`, `repro_teach_prompt_window`, `repro_maxie_whiteout_guard`,
+`repro_lead_cannot_battle`, and the `repro_no_silent_except` ratchet.
+‼ `repro_counter_hunt` and `repro_area_item_gate` print `RESULT: ALL PASS` / `all checks pass.` —
+grepping only for "ALL PASS" reports them as false failures.
+
+## GOTCHAS (still true)
+* **Never use the Grep TOOL on `tools/story-dev/x4-runs/`** — gitignored, ripgrep returns a silent
+  zero. Use Bash `grep` and print the bytes searched as a control.
+* **Event-var/flag names carry NO `VAR_`/`FLAG_` prefix**, and unknown names return `-1`/`False`
+  **silently**. Membership-test first.
+* **Report map identity as the `MapRSE` ENUM, never `map_name`** — that is a display label.
+* **`.ss1` replays IDENTICALLY.** One fight repeated five times is still n = 1.
+* **A save any driver re-captures is a CACHE, not a fixture** (`FIXTURES.md5` marks these VOLATILE).

@@ -3662,7 +3662,11 @@ class StoryMode(BotMode):
         # ⇒ What remains is BUILDING the chapter: the cavern INTERIOR (rooms 1-9), Archie, Kyogre.
         # ‼ Two traps recorded before anyone starts: **KI-72** — never let the planner choose where
         # you surface, hand-pick the tile and assert its `tile_type`; and **do not end the chapter
-        # at `ROOM9 (16,42)`**, which is Archie's cutscene tile — the standing rule is "and the bot
+        # at `ROOM9 (17,42)`**, which is the ONLY coord trigger in the cavern (‼ NOT (16,42) — that
+        # is plain floor and fires nothing; upstream's puzzle_solver stops one tile short of it).
+        # ‼ And the real release point is `VAR_ROUTE128_STATE == 2`, NOT the Kyogre flag: the flag is
+        # set BEFORE a forced warp to ROUTE128 (38,22) that starts a SECOND lockall cutscene, and
+        # (38,22) is a shallow-water SANDBAR — the bot must Surf off it. The standing rule is "and the bot
         # can continue", and three chapters have already shipped stranded.
         context.message = (
             "Story: HM08 DIVE IS IN THE BAG - end of built content. "

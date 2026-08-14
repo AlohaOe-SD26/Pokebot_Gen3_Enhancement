@@ -12859,3 +12859,44 @@ Also fixed: `story_mode.py`'s END-OF-BUILT-CONTENT comment and player-facing mes
 "§Ch21 IS BLOCKED BY KI-63 — no party member can learn Dive". **KI-63 was resolved 2026-08-13** and
 the dive leg is driven; the message now says what is actually left (the interior) and names the two
 traps (KI-72's surfacing rule; do not end on Archie's cutscene tile at `ROOM9 (16,42)`).
+
+### 2026-08-13 — §Ch20 build spec from a decomp recon, and it CORRECTED OUR OWN DOCS in two places
+
+`ai-research-notes/2026-08-13-ch20-seafloor-cavern-build-spec.md` — an 11-leg list, each leg with an
+assertable condition, from an agent that parsed the real `map.bin` block data and ran an **exhaustive
+Sokoban-style search over (player × boulder) states** using the decomp's own movement rules.
+✅ **It independently agrees with our own `probe_ch20_interior.py`**, which found the same rooms
+severed by objects and the same two open-water rooms, from ROM data, with no knowledge of the note.
+
+**Three corrections, two of them to things WE had written down:**
+1. ‼ **ROCK SMASH IS MANDATORY — Strength alone is physically stuck in Room 1.** Our docs called
+   §Ch20 a "Strength-boulder dungeon". The only way into Room 1's row-11 corridor is to push boulder
+   `(5,11)` north, and `(5,10)` is a **breakable rock**; every alternative was searched and fails
+   (`(7..10,12)` are `MB_IMPASSABLE_NORTH` *with* `collision=1`, sealing row 11 from row 12). Room 2
+   is the same shape at rock `(8,7)`. We have both moves on Sceptile — the chapter must ASSERT it.
+2. ⛔ **THE TRIGGER TILE IS `ROOM9 (17,42)`, NOT `(16,42)`.** `(16,42)` is plain floor and fires
+   nothing; the cavern's ONLY coord event is at `(17,42)` (`Room9/map.json:124-134`). **Our handoff
+   called `(16,42)` "Archie's cutscene tile" and `story_mode.py` repeated it** — both corrected.
+   Upstream's `puzzle_solver.py` also stops one tile short of the real trigger.
+3. ⛔ **GRADE THE CHAPTER ON `VAR_ROUTE128_STATE == 2`, NOT ON THE KYOGRE FLAG.** The flag is set at
+   `Room9/scripts.inc:128`, **before** `warp MAP_ROUTE128, 38, 22` at `:138` — and Route 128 then
+   immediately runs a **second `lockall` cutscene** (`Route128_OnFrame`, armed by the `VAR_ROUTE128_
+   STATE, 1` the same script set). A flag-graded chapter would report success with the bot inside two
+   nested scenes. ‼ **And `(38,22)` is `MB_SHALLOW_WATER` — a walkable SANDBAR ringed by ocean.** The
+   bot lands on an island and must **Surf** off it. Three chapters have shipped stranded; this one
+   strands you by design, which is exactly why the acceptance must include a real Surf-off move.
+
+**Other facts now on the record:** Room 6 is **ONE-WAY** (Room 7 is the two-way alternative);
+**puzzle state RESETS on every map re-entry** (`FLAG_TEMP_*`) so "solved" can never be cached, while
+`FLAG_SYS_USE_STRENGTH` persists; **losing to Archie resets the entire dungeon** (no lose-branch);
+three trainer battles are unavoidable sight-lines plus Archie (Mightyena L41 / Crobat L41 /
+Sharpedo L43, un-fleeable); Room 9 has **no wild-encounter table**; and the Entrance Aqua grunt is
+**dead content** — hidden by a flag set in the same script that gives HM Dive, so he can never be
+met in normal play. Free TM26 Earthquake at `ROOM9 (14,5)`.
+
+‼ **Biggest unknown, to verify first:** Rooms 6 and 7 are **CURRENT mazes** (108 / 117 forced-slide
+tiles). `map_path` has `forced_movement_to`, but **no chapter has ever driven a current maze.**
+
+Housekeeping: `04-HANDOFF.md` hit its 900-line R3 budget, so §Ch19's PRE-build planning notes — a
+section the file itself already labelled HISTORY — moved verbatim to `28-HANDOFF-ARCHIVE.md`,
+leaving a stub that keeps the four measured hazards worth remembering. 17/17 gates PASS.
