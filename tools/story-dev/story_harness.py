@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "ch20dive", "ch20room1", "ch20room2", "divelearner"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "divelearner"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -5500,57 +5500,22 @@ class Ch20Room2Mode(Ch20Room1Mode):
         return get_event_flag("SYS_USE_STRENGTH")
 
 
-    def run(self):
-        from modules.context import context as _ctx
+
+    def _solve_room2(self):
+        """MEASURE Room 2 live, smash `(8,7)`, push boulder id 4 north EXACTLY three times, and
+        take the `(6,1)` door into ROOM 6. Sets `self.r2`.
+
+        ‼ A METHOD for the same reason `_solve_room1` is: every DEEPER cavern drive has to redo
+        this room from scratch, because its rock and boulder are `FLAG_TEMP_*` objects that
+        respawn on every map load. A subclass inherits the solve AND re-proves it on every run.
+        """
         from modules.map_data import MapRSE
         from modules.player import get_player_avatar
-        from modules.story.early_game import (
-            _navigate_riding_out,
-            _smash_rock,
-            strength_push,
-            wait_until_truly_controllable,
-        )
+        from modules.story.early_game import _navigate_riding_out, _smash_rock, strength_push
 
         room2 = MapRSE.SEAFLOOR_CAVERN_ROOM2
-        room6 = MapRSE.SEAFLOOR_CAVERN_ROOM6
         notes = {}
-
-        def _bail(reason: str):
-            log(f"[ch20room2] ‼ STOPPING — {reason}")
-            log(f"[ch20room2] RESULT room1_ok={notes.get('room1_ok', False)} m1=None m2=None "
-                f"m3=None pushes=0/3 in_room6=False can_continue=False detail={notes}")
-            log("[ch20room2] ACCEPTANCE: FAIL")
-            _ctx.set_manual_mode()
-
-        yield from wait_until_truly_controllable()
-
-        yield from self._inject_dive_fixture()
-        if not self.fixture_ok:
-            _bail("the Dive fixture failed, so the cavern is unreachable")
-            return
-
-        # ---- PHASES 1-3: the proven ingress and the proven Room 1 solve, INHERITED ----------
-        yield from self._ingress()
-        notes["ingress"] = self.notes
-        if not (self.leg1_ok and self.at_entrance):
-            _bail(f"the ingress did not surface in the cavern (legs={self.legs}/5)")
-            return
-        yield from self._enter_room1()
-        if not self.in_room1:
-            _bail("never reached ROOM1")
-            return
-        yield from self._solve_room1()
-        room1_ok = bool(self.r1["in_room2"] and self.r1["pushed2"] and not self.r1["ab_before"]
-                        and self.r1["ab_after"])
-        notes["room1_ok"] = room1_ok
-        notes["room1"] = {k: self.r1[k] for k in
-                          ("ab_before", "ab_after", "smashed", "pushed1", "pushed2", "in_room2")}
-        log(f"[ch20room2] ROOM1 re-solved ok={room1_ok} (it resets on every map load — this is a "
-            f"re-proof, not a cache)")
-        if not self.r1["in_room2"]:
-            _bail("Room 1 did not deliver us into ROOM2")
-            return
-
+        self.r2 = notes
         # ---- ‼ THE STRENGTH-FLAG MEASUREMENT — free, and it settles a documented disagreement -
         # Room 1 activated Strength (its first push pays the prompt). We have just WARPED into
         # Room 2. If our own `early_game.py` comment is right, the flag is still set; if the
@@ -5648,6 +5613,56 @@ class Ch20Room2Mode(Ch20Room1Mode):
         log(f"[ch20room2] LEG3 at={where} in_room6={in_room6} "
             f"(PREDICTED SEAFLOOR_CAVERN_ROOM6 (11,21))")
 
+        notes.update({"m1": m1_open, "m2": m2_open, "m3": m3_open, "pushes": pushes,
+                      "smashed": smashed, "in_room6": in_room6, "where": where,
+                      "strength_flag_after_warp": strength_after_warp})
+
+    def run(self):
+        from modules.context import context as _ctx
+        from modules.map_data import MapRSE
+        from modules.player import get_player_avatar
+        from modules.story.early_game import wait_until_truly_controllable
+
+        room6 = MapRSE.SEAFLOOR_CAVERN_ROOM6
+        notes = {}
+
+        def _bail(reason: str):
+            log(f"[ch20room2] ‼ STOPPING — {reason}")
+            log(f"[ch20room2] RESULT room1_ok={notes.get('room1_ok', False)} m1=None m2=None "
+                f"m3=None pushes=0/3 in_room6=False can_continue=False detail={notes}")
+            log("[ch20room2] ACCEPTANCE: FAIL")
+            _ctx.set_manual_mode()
+
+        yield from wait_until_truly_controllable()
+        yield from self._inject_dive_fixture()
+        if not self.fixture_ok:
+            _bail("the Dive fixture failed, so the cavern is unreachable")
+            return
+        yield from self._ingress()
+        notes["ingress"] = self.notes
+        if not (self.leg1_ok and self.at_entrance):
+            _bail(f"the ingress did not surface in the cavern (legs={self.legs}/5)")
+            return
+        yield from self._enter_room1()
+        if not self.in_room1:
+            _bail("never reached ROOM1")
+            return
+        yield from self._solve_room1()
+        room1_ok = bool(self.r1["in_room2"] and self.r1["pushed2"] and not self.r1["ab_before"]
+                        and self.r1["ab_after"])
+        notes["room1_ok"] = room1_ok
+        log(f"[ch20room2] ROOM1 re-solved ok={room1_ok} (it resets on every map load — this is a "
+            f"re-proof, not a cache)")
+        if not self.r1["in_room2"]:
+            _bail("Room 1 did not deliver us into ROOM2")
+            return
+
+        yield from self._solve_room2()
+        r2 = self.r2
+        notes["room2"] = r2
+        m1_open, m2_open, m3_open = r2["m1"], r2["m2"], r2["m3"]
+        pushes, in_room6 = r2["pushes"], r2["in_room6"]
+
         # ---- CAN-CONTINUE: a PATH through the current maze, not a step ----------------------
         # ‼ Room 6 is open water full of currents; stepping onto one SLIDES you, so an
         # adjacent-tile walk can fail while the bot is perfectly fine. The GATE is a real
@@ -5674,6 +5689,203 @@ class Ch20Room2Mode(Ch20Room1Mode):
             f"pushes={pushes}/3 in_room6={in_room6} can_continue={can_continue}")
         log(f"[ch20room2] DETAIL {notes}")
         log(f"[ch20room2] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+        _ctx.set_manual_mode()
+        return
+
+
+class Ch20Room6Mode(Ch20Room2Mode):
+    """‼ THE FIRST EXECUTED CURRENT CROSSING IN THIS PROJECT — ROOM 6, then into ROOM 3.
+
+    WHY THIS IS ITS OWN INCREMENT AND NOT PART OF A ROOM 3 DRIVER. Everything about Rooms 6/7 so
+    far is **PLANNER-LEVEL ONLY**: `probe_ch20_currents.py` put 4 pre-registered predictions to
+    `calculate_path` and got 4/4, and `--driver ch20room2` reproduced one of them from inside the
+    room (`(11,21) -> (4,1)` = `OK len=13`). **A PLAN IS NOT A WALK.** No current has ever been
+    executed here, the EXECUTOR has never crossed one, and KI-76's correctness half is still open.
+    Bundling that unknown with Room 3's would have made a failure unattributable — so this drives
+    the crossing and nothing else, and Room 3 gets its own driver afterwards.
+
+    WHAT A CURRENT DOES: stepping onto `MB_*WARD_CURRENT` triggers `DoForcedMovement`
+    (`src/field_player_avatar.c:443`) and SLIDES the avatar until it hits something. Our planner
+    models this as multi-tile edges (`forced_movement_to`), which is why 13 waypoints can cover a
+    27-tile Manhattan trip. ✅ Reassuring, from the decomp: a current that shoves you into a wall
+    returns control **on that tile, the same frame** — swept over all 108 Room-6 current tiles,
+    **zero infinite loops**. ⚠ That is the TERRAIN side; whether OUR executor agrees is what this
+    measures.
+
+    ‼ ROOM 6 IS ONE-WAY. `(11,21) -> (4,1)` works; the reverse does not. If the crossing succeeds
+    the bot CANNOT come back the way it came — the retreat is Room 6's other warp `(14,8)`.
+    ‼ KI-76's OPEN half is armed in exactly this room: a slide that ENDS ON A WARP is never
+    penalised, A* is ~9x biased toward long slides under `avoid_encounters`, and `(14,8)` is a
+    water-level door that **9 of the room's 108 chains end on**. Our route is one of the four
+    already asserted trap-free by `probe_ch20_currents.py` section 3b — but that assertion is per
+    ROUTE, so it is re-checked live here rather than assumed.
+
+    ‼ AND THE ROOM HAS WATER ENCOUNTERS. `gSeafloorCavern_Room6` has a full `water_mons` table —
+    the build spec said the cavern's encounters were "on land in Rooms 1-8", which is wrong. A
+    battle can interrupt a slide, so nothing may assume the avatar stayed where a plan put it.
+
+    THE ACCEPTANCE, in order of what it proves:
+      1. `crossed`    — the avatar actually reaches `ROOM6 (4,1)` by WALKING, not by planning.
+      2. `in_room3`   — the `(4,15)` warp fires and we land in `SEAFLOOR_CAVERN_ROOM3`.
+      3. `room3_walk` — ‼ a live cross-check of the Room 3 arbitration: `calculate_path((4,15) ->
+         (8,1))` must return a path **that contains `(6,5)`**. That single assertion confirms BOTH
+         that Room 3 is crossable PUSH-FREE (so its 7-boulder puzzle really is optional) AND that
+         the push-free line really does enter the trainer sight tile — the two claims the Room 3
+         note rests on, neither of which has been checked live.
+      4. `can_continue` — a real step in Room 3.
+
+        PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch20room6 --frames 2500000
+
+    Emits: [ch20room6] RESULT room2_ok=<b> crossed=<b> in_room3=<b> room3_walk=<b> can_continue=<b>
+    """
+
+    ROOM6_ENTRY = (11, 21)       # where Room 2's (6,1) door drops us
+    ROOM3_ARRIVAL = (4, 15)      # ROOM6 (4,1) -> SEAFLOOR_CAVERN_ROOM3 (4,15)
+    ROOM3_EXIT = (8, 1)          # ROOM3's 'Non-Animated Door' -> ROOM8 (5,12)
+    ROOM3_SIGHT_TILE = (6, 5)    # the tile the push-free line must enter (both trainers see it)
+
+    @staticmethod
+    def name():
+        return "Ch20Room6"
+
+    def run(self):
+        from modules.context import context as _ctx
+        from modules.map_data import MapRSE
+        from modules.player import get_player_avatar
+        from modules.story.early_game import _navigate_riding_out, wait_until_truly_controllable
+
+        room3 = MapRSE.SEAFLOOR_CAVERN_ROOM3
+        room6 = MapRSE.SEAFLOOR_CAVERN_ROOM6
+        notes = {}
+        room2_ok = crossed = in_room3 = room3_walk = False
+
+        def _bail(reason: str):
+            log(f"[ch20room6] ‼ STOPPING — {reason}")
+            log(f"[ch20room6] RESULT room2_ok={room2_ok} crossed=False in_room3=False "
+                f"room3_walk=False can_continue=False detail={notes}")
+            log("[ch20room6] ACCEPTANCE: FAIL")
+            _ctx.set_manual_mode()
+
+        yield from wait_until_truly_controllable()
+        yield from self._inject_dive_fixture()
+        if not self.fixture_ok:
+            _bail("the Dive fixture failed, so the cavern is unreachable")
+            return
+        yield from self._ingress()
+        if not (self.leg1_ok and self.at_entrance):
+            _bail(f"the ingress did not surface in the cavern (legs={self.legs}/5)")
+            return
+        yield from self._enter_room1()
+        if not self.in_room1:
+            _bail("never reached ROOM1")
+            return
+        yield from self._solve_room1()
+        if not self.r1["in_room2"]:
+            _bail("Room 1 did not deliver us into ROOM2")
+            return
+        yield from self._solve_room2()
+        room2_ok = bool(self.r2["in_room6"] and self.r2["pushes"] == 3)
+        notes["room1"] = {k: self.r1[k] for k in ("ab_before", "ab_after", "pushed2", "in_room2")}
+        notes["room2"] = {k: self.r2[k] for k in ("m1", "m2", "m3", "pushes", "in_room6")}
+        log(f"[ch20room6] ROOMS 1+2 re-solved ok={room2_ok} (both reset on every map load)")
+        if not self.r2["in_room6"]:
+            _bail("Room 2 did not deliver us into ROOM6")
+            return
+
+        # ---- THE CROSSING: the first current ever WALKED in this project -------------------
+        entry = get_player_avatar().local_coordinates
+        log(f"[ch20room6] ROOM6 entry={entry} tile_type={self._tile_type()!r} (PREDICTED (11,21))")
+        planned, plan_detail = self._path_ok(room6, entry, self.ROOM6_EXIT)
+        log(f"[ch20room6] PLAN {entry} -> {self.ROOM6_EXIT}: {plan_detail}")
+        log(f"[ch20room6] PLAN exists={planned} — ‼ this is the PLAN. The walk is next, and the "
+            f"whole point of this run is that the two can disagree.")
+        try:
+            yield from _navigate_riding_out(room6, self.ROOM6_EXIT)
+        except Exception as error:  # noqa: BLE001
+            log(f"[ch20room6] CROSSING raised {type(error).__name__}: {str(error)[:300]}")
+        where = self._where()
+        here = get_player_avatar().local_coordinates
+        # ‼ "CROSSED" MUST TOLERATE HAVING ALREADY WARPED. If (4,1) turns out to be a step-on
+        # warp rather than an arrow warp, arriving there lands us in ROOM3 and a strict
+        # `where == (ROOM6, (4,1))` test would read False over a crossing that WORKED PERFECTLY.
+        # That is the "assert the outcome, not the position you expected" rule; this driver exists
+        # to measure the CROSSING, and reaching Room 3 is a strictly stronger proof of it.
+        crossed = (where == ("SEAFLOOR_CAVERN_ROOM6", self.ROOM6_EXIT)
+                   or where[0] == "SEAFLOOR_CAVERN_ROOM3")
+        notes["crossing"] = (entry, planned, where)
+        log(f"[ch20room6] CROSSING at={where} crossed={crossed} tile_type={self._tile_type()!r}")
+        if not crossed:
+            log(f"[ch20room6] ‼ THE PLAN AND THE WALK DISAGREE (planned={planned}, ended at "
+                f"{here}). That is a REAL FINDING about the executor, not a route problem — "
+                f"KI-76 says a slide model that plans is not a slide model that walks.")
+
+        # ---- ROOM 6 -> ROOM 3 --------------------------------------------------------------
+        # ‼ (4,1) is a warp tile; arriving on it may or may not fire the transition on its own,
+        # so the map is re-read and the result is reported either way rather than assumed.
+        # ‼ AN ARROW WARP NEEDS A **HELD** DIRECTION, NOT A NAVIGATE. `TryArrowWarp`
+        # (`src/field_control_avatar.c:688-700`) fires only while `heldDirection` matches the
+        # player's facing, so standing on the tile does nothing and `navigate_to` onto the tile we
+        # are already on is a no-op. The direction is DERIVED FROM THE TILE'S OWN NAME rather than
+        # guessed — `map.py` names them "North/South/East/West Arrow Warp" — so this is correct
+        # whichever kind (4,1) turns out to be, and a plain door needs no help at all.
+        if crossed:
+            where = self._where()
+            if where[0] != "SEAFLOOR_CAVERN_ROOM3":
+                kind = str(self._tile_type())
+                hold = next((d for d in ("North", "South", "East", "West") if d in kind), None)
+                direction = {"North": "Up", "South": "Down",
+                             "East": "Right", "West": "Left"}.get(hold)
+                log(f"[ch20room6] WARP tile_type={kind!r} -> arrow direction={direction!r}")
+                try:
+                    if direction is not None:
+                        from modules.story.early_game import _walk_through_warp
+
+                        yield from _walk_through_warp(direction, room6.value)
+                    else:
+                        yield from _navigate_riding_out(room6, self.ROOM6_EXIT)
+                except Exception as error:  # noqa: BLE001
+                    log(f"[ch20room6] WARP raised {type(error).__name__}: {str(error)[:250]}")
+                where = self._where()
+            in_room3 = where[0] == "SEAFLOOR_CAVERN_ROOM3"
+            notes["room3_arrival"] = where
+            log(f"[ch20room6] ROOM3 at={where} in_room3={in_room3} (PREDICTED (4,15))")
+
+        # ---- ‼ THE LIVE CROSS-CHECK OF THE ROOM 3 ARBITRATION ------------------------------
+        # The Room 3 note claims (a) (4,15)->(8,1) is reachable PUSH-FREE, so the 7-boulder puzzle
+        # is optional, and (b) that line unavoidably enters a trainer sight tile. NEITHER has been
+        # checked live. One `calculate_path` settles both, from inside the room, for free.
+        if in_room3:
+            start = get_player_avatar().local_coordinates
+            try:
+                from modules.map_path import calculate_path
+
+                path = calculate_path((room3, start), (room3, self.ROOM3_EXIT))
+                tiles = [tuple(getattr(wp, "coordinates", ()) or ()) for wp in path]
+                hits_sight = self.ROOM3_SIGHT_TILE in tiles
+                room3_walk = bool(path) and hits_sight
+                log(f"[ch20room6] ROOM3-WALK {start} -> {self.ROOM3_EXIT}: OK len={len(path)} "
+                    f"contains{'' if hits_sight else ' NO'} {self.ROOM3_SIGHT_TILE}")
+                log(f"[ch20room6] ROOM3-WALK push_free_reachable=True enters_sight={hits_sight} "
+                    f"(PREDICTED both True: the puzzle is OPTIONAL, and the walk MUST take the "
+                    f"double battle)")
+                notes["room3_walk"] = (len(path), hits_sight, tiles[:24])
+            except Exception as error:  # noqa: BLE001
+                log(f"[ch20room6] ROOM3-WALK raised {type(error).__name__}: {str(error)[:250]} "
+                    f"— ‼ if this is a PathFindingError the Room 3 arbitration is REFUTED and the "
+                    f"7-boulder puzzle is MANDATORY after all.")
+                notes["room3_walk"] = f"{type(error).__name__}"
+
+        # ---- CAN-CONTINUE -------------------------------------------------------------------
+        self.moved = False
+        if in_room3:
+            yield from self._can_continue_step(room3, "ch20room6")
+        can_continue = self.moved and _ctx.bot_mode != "Manual"
+
+        passed = (room2_ok and crossed and in_room3 and room3_walk and can_continue)
+        log(f"[ch20room6] RESULT room2_ok={room2_ok} crossed={crossed} in_room3={in_room3} "
+            f"room3_walk={room3_walk} can_continue={can_continue}")
+        log(f"[ch20room6] DETAIL {notes}")
+        log(f"[ch20room6] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
         _ctx.set_manual_mode()
         return
 
@@ -6830,6 +7042,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch20Room1Mode()
         elif args.driver == "ch20room2":
             context.bot_mode_instance = Ch20Room2Mode()
+        elif args.driver == "ch20room6":
+            context.bot_mode_instance = Ch20Room6Mode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":

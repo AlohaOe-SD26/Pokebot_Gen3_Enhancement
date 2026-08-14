@@ -7,11 +7,45 @@
 Every banner further down is HISTORY, newest first.
 
 ---
-# ‼ YOU ARE HERE — the **§Ch20 CAVERN-INTERIOR** session (2026-08-13, latest): Rooms 1 AND 2 are driven. Read this, then `14-AGENT-PLAYBOOK.md`.
+# ‼ YOU ARE HERE — the **§Ch20 CAVERN-INTERIOR** session (2026-08-13, latest): **Rooms 1, 2 and the ROOM 6 CURRENT MAZE are driven, and the bot stands in Room 3.** Read this, then `14-AGENT-PLAYBOOK.md`.
 
-> **State: `main`, clean, 17/17 gates PASS, nothing parked, nothing running.** Three commits
-> this session, all pushed. **Rooms 1 and 2 of the Seafloor Cavern are DRIVEN and PASSING**;
-> Rooms 3-9 are planning only.
+> **State: `main`, clean, 17/17 gates PASS, nothing parked, nothing running.** All work pushed.
+> **Rooms 1, 2 and 6 of the Seafloor Cavern are DRIVEN and PASSING and the bot reaches ROOM 3**;
+> Rooms 3, 8 and 9 are arbitrated but not driven.
+> ‼ `stash@{0}` exists **on purpose** — see the STATE table; **never drop it.**
+
+## 🚩 …AND ACROSS THE ROOM 6 CURRENT MAZE, INTO ROOM 3 (same session, latest)
+
+**`--driver ch20room6` → `ACCEPTANCE: PASS`, first drive, 8/8 pre-registered predictions.**
+**‼ THIS IS THE FIRST EXECUTED CURRENT CROSSING IN THIS PROJECT.** Everything about Rooms 6/7 was
+**planner-level only** until now — and *a plan is not a walk*. It was driven as its own increment,
+deliberately NOT bundled with Room 3, so a failure would have been attributable.
+
+    ROOM6 entry=(11,21)   PLAN (11,21)->(4,1): OK len=13
+    CROSSING at=('SEAFLOOR_CAVERN_ROOM3', (4,15)) crossed=True
+    ROOM3-WALK (4,15)->(8,1): OK len=18 contains (6,5)
+    RESULT room2_ok=True crossed=True in_room3=True room3_walk=True can_continue=True
+
+⇒ **The punch list's "Rooms 6/7 need no solver" now rests on a WALK, not a plan.**
+⚠ **Precisely:** the **endpoint** is proven, not the intermediate slide behaviour. No per-slide
+telemetry; the planner's 13 waypoints were never compared step-by-step to the executor's path.
+
+**‼ A DESIGN DECISION 20 MINUTES OLD SAVED THE RUN.** The crossing did not stop on `ROOM6 (4,1)` —
+it carried straight through into Room 3. A strict `where == (ROOM6,(4,1))` test would have printed
+**FAIL over a crossing that worked perfectly**. *Assert the outcome, not the position you expected.*
+⚠ The arrow-warp branch added alongside it **never executed and is UNTESTED**.
+
+**✅ AND ROOM 3'S ARBITRATION WAS CONFIRMED LIVE, IN THE SAME RUN, FOR FREE.**
+`calculate_path((4,15) → (8,1))` = **`OK len=18`, containing `(6,5)`**. So **Room 3 is crossable
+PUSH-FREE — its 7-boulder puzzle really is OPTIONAL** — and **the push-free line unavoidably enters
+a trainer sight tile**, so the walk must take the battle. ‼ Decomp says that is a single **DOUBLE**
+battle (Shelly + Grunt5); **that half is still unobserved live** and is the top prediction for the
+Room 3 drive.
+
+⇒ **NEXT: `--driver ch20room3`** — the WALK route (`navigate_to(ROOM3, (8,1))` riding battles out,
+18 steps, zero pushes), precondition **≥2 usable Pokémon**, graded on both trainer flags SET and
+"and the bot can continue" out of `(8,1)` into ROOM8. **Then Room 8** — already adjudicated: use
+**our** 9-push sequence, and ⛔ **step 9 faces LEFT, never UP** (`(5,3)` permanently seals the exit).
 > ‼ `stash@{0}` exists **on purpose** — see the STATE table; **never drop it.**
 
 ## 🚩 THE BOT IS INSIDE THE SEAFLOOR CAVERN AND THROUGH ROOM 1 — driven, first attempt
@@ -426,22 +460,9 @@ statue puzzle**, and four of our own instruments agreed it had no route because 
 as *walk + warp* and it has a **third movement primitive**. ⇒ *When N of your own instruments agree
 on something impossible, they share a missing primitive.* It also **shipped stranded on an
 eleven-tile island** while passing `badge + controllable`.
-## ‼ THE TWO THINGS THAT MATTER MOST FROM THIS SESSION
+## ‼ THE TWO THINGS THAT MATTER MOST FROM THE §Ch18 SESSION — MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-13)
 
-**1. When N of your own instruments agree on something impossible, they share a missing primitive.**
-Four instruments agreed the Mossdeep Gym had no route to its own leaders. All four modelled it as
-*walk + warp*; the gym has a **third movement primitive** — floor switches that relocate 21 statues
-and nine trainers. Even the model-free brute-force walker was wrong, because it *changed the map
-while exploring it*. Five parallel Claude agents found it; the explicitly ADVERSARIAL one cracked it.
-
-**2. ‼ EVERY DEFECT THAT MATTERED THIS SESSION WAS FOUND BY AN ADVERSARIAL AGENT, NOT BY A TEST.**
-Three times: the statue model (caught by a validation gate I only built because the rule says to),
-the whiteout path, and §Ch18 stranding the run. In each case my own runs were **green** — the
-happy path cannot exercise an error path, and an acceptance test written by the same person who
-wrote the code inherits the same blind spot. ⇒ *Spend the agents on REFUTING finished work, not
-only on researching new work.* And: **write the predicted failure down BEFORE the run** — the
-§Ch19 hazard checks did this and 3/3 held, which is how two traps got designed out instead of
-debugged.
+Moved for the R3 budget. ‼ **Keep both, they are the most reused lessons in this project:** (1) **When N of your own instruments agree on something impossible, they share a missing primitive** — four instruments agreed the Mossdeep Gym had no route to its own leaders; all four modelled it as *walk + warp*, and the gym has a **third movement primitive**. Even the model-free brute-force walker was wrong, because it *changed the map while exploring it*. (2) **EVERY DEFECT THAT MATTERED WAS FOUND BY AN ADVERSARIAL AGENT, NOT BY A TEST** — three times in one session, each over green runs, because *the happy path cannot exercise an error path* and an acceptance test written by the author of the code inherits its blind spot. ⇒ **Spend agents on REFUTING finished work, not only on researching new work**, and **write the predicted failure down BEFORE the run.**
 
 ## ‼‼ THE BATCH RESULT (status tax + `#24-teachmsgstall`) — MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-13)
 
@@ -451,19 +472,9 @@ An older 36-lane measurement, moved out for the R3 budget. ‼ **Keep this:** th
 
 The tool-by-tool table moved out for the R3 budget. ‼ **Keep this:** it was driven by the finding that **≥12 of 164 logged mistakes are self-admitted REPEATS**, several committed while the author knew the rule — and **three of those tools found real problems on their first run** (six competing START-HERE banners, an 11th undocumented flag which turned out to be the roster blocker, and 140 silent handlers). **Run `preflight.py` before touching anything**, and see `29-DISABLED-FEATURES-REGISTRY.md` before proposing any feature behind a `POKEBOT_*` flag.
 
-## ‼ WHAT THE USER DECIDED THIS SESSION
-* **Promotions approved twice** (teach fix; then KI-51 + KI-52 + status telemetry).
-* **"Roster hygiene before bosses"** approved as the boss-response direction — then found
-  **BLOCKED** (KI-54): the box is empty, and the deposit path was already measured harmful.
-  ⛔ **RETRACTED 2026-08-12:** the line below said the unlock was `POKEBOT_BOX_OVERFLOW_CATCH`,
-  "one unhandled text box away". **Both halves are false.** That flag has defaulted to **ON** since
-  2026-08-07 (`story_mode.py:2241-2243`, verified in the live code), and the text-box blocker was
-  refuted the same day (`exit_frames=120`, zero forced presses). Four docs repeated it because they
-  were written from a **stale code comment** instead of the default twenty lines below it. See
-  KI-54's retraction block.
-* **The boss-response design is still the user's call.** The status tax now has a resolved rate
-  behind it, but a status response is a battle-policy change touching every mode — **do not build
-  it unilaterally.**
+## ‼ WHAT THE USER DECIDED IN THE §Ch18/§Ch19 SESSION — MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-13)
+
+Moved for the R3 budget. ‼ **Keep this:** the **boss/status battle-policy change is still the USER's call and must not be built unilaterally** — the status tax now has a resolved rate behind it, but a status response touches every mode. And the "roster hygiene before bosses" unlock was **RETRACTED**: it was said to be one `POKEBOT_BOX_OVERFLOW_CATCH` flag and one text box away, and **both halves are false** — that flag has defaulted **ON** since 2026-08-07 and the text-box blocker was refuted the same day. Four docs repeated it because they were written from a **stale code comment** instead of the default twenty lines below it.
 
 ## ✅ KI-56 (Magma Hideout strand) — resolved 2026-08-11, detail ARCHIVED
 
@@ -525,34 +536,9 @@ Moved for the R3 budget. ‼ **Keep the two prevention rules, both re-learned si
   dereference on the listener's stack; a class-counter budget; a `None`-is-success exit), plus a
   real blocker: an injected run could have silently overwritten a committed anchor.
 
-## 🆕 THE REGI ARC — researched and measured 2026-08-12 (user-requested). See **KI-69**.
+## 🆕 THE REGI ARC (user-requested) — DETAIL MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-13). See **KI-69**.
 
-**‼ THE PARTY ORDER EVERYONE REMEMBERS IS THE RUBY/SAPPHIRE ONE.** Emerald reversed it:
-**WAILORD first (slot 0), RELICANTH last** (`braille_puzzles.c:92-104`, comment and all). The wrong
-order **fails silently** — no message, no error. Emerald also swapped **Regirock to ROCK SMASH**
-(was Strength) and **Registeel to FLASH** (was Fly). Pinned in `repro_roster_reorder.py`.
-
-**⛔ THE REGI BATTLE IS UNRECOVERABLE — read this before writing any battle policy.** Level 40,
-catch rate 3. `B_OUTCOME_WON` removes it forever, and the fall-through case **including
-`B_OUTCOME_LOST`** sets `FLAG_DEFEATED_*`. ⇒ **KO'ing it OR whiting out deletes the encounter
-permanently.** The only safe non-catch exit is fleeing.
-
-**✅ NEW CAPABILITY: `modules/story/roster.py`** — `plan_reorder` / `plan_last_slot` (PURE, proven
-exhaustively: 720 permutations replayed, `repro_roster_reorder.py` 15/15) and `reorder_party()`
-which drives `RotatePokemon` inside the `_rotate_lead_safely` harness.
-⛔ **STALE TEXT CORRECTED 2026-08-13 — the line below said "the DRIVER is UNPROVEN" and that has been
-FALSE since earlier the same day.** `--driver roster` ran **six swaps, all verified by PID**,
-including `RotatePokemon(i, j != 0)`, giving `phases=4/4 saw_j_nonzero=True idempotent=True
-restored=True can_continue=True ACCEPTANCE: PASS`. It contradicted this file's own 60-second summary
-and `03-PUNCH-LIST.md`, in the exact section a Regi-scoping reader opens first.
-‼ **What IS still true:** `reorder_party()` has **ZERO production callers** — it is a proven
-capability, not yet content — and **KI-71** (the Manual-drop guard is unreachable) is still open.
-Superseded text: ‼ **The DRIVER is UNPROVEN** — `RotatePokemon(i, j)` with `j != 0` has never been driven here, and it sits on the unfixed side of KI-38 (four unbounded loops + a `set_manual_mode()` trapdoor). **Drive it before anything depends on party order.**
-
-**MEASURED capability status** (`probe_regi_capabilities.py`): ✅ Go-Goggles, HM08 in bag, Surf
-(Zigzagoon), Rock Smash (Sceptile). ⛔ **no rod at all**, no TM28 Dig, and nobody knows Dive, Dig or
-Flash. So the arc needs an acquisition phase first — Super Rod (Route 118), TM28 (Route 114), and
-teaching Dive/Dig/Flash. ‼ **Relicanth is underwater-only, so Dive is upstream of everything.**
+Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. ‼ **Keep these four, every one of which fails SILENTLY if got wrong:** (1) **Emerald REVERSED the party order — WAILORD first (slot 0), RELICANTH last** (`braille_puzzles.c:92-104`); the R/S order everyone remembers is wrong and the wrong order gives no message and no error. (2) ⛔ **The Regi battle is UNRECOVERABLE** — level 40, catch rate 3, and the fall-through case **including `B_OUTCOME_LOST`** sets `FLAG_DEFEATED_*`, so **a KO *or* a whiteout deletes the encounter permanently**; the only safe non-catch exit is fleeing. (3) **REGICE IS NOT A TIMED WAIT** — Emerald wants a **36-tile perimeter lap in ONE visit** ending exactly on `(8,21)`, reset by any map transition and by one wrong tile. (4) Measured capability gaps: **no rod at all**, no TM28 Dig, and nobody knows Dive, Dig or Flash — and **Relicanth is underwater-only, so Dive is upstream of the whole arc.** Ground truth: `ai-research-notes/2026-08-13-regi-arc-decomp-ground-truth.md`.
 
 ## ⏭ NEXT ACTIONS, IN ORDER
 
@@ -865,6 +851,12 @@ PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch20room1 --frames
 #   ‼ `ab_before=False` is an ASSERTED part of the verdict: if the corridor was already reachable
 #     the run proved nothing about the puzzle. A one-armed pass here would be meaningless.
 PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch20room2 --frames 2000000
+PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch20room6 --frames 2500000
+#   Expect: room2_ok=True crossed=True in_room3=True room3_walk=True can_continue=True
+#   ‼ `crossed` is THE FIRST EXECUTED CURRENT CROSSING here. `room3_walk` re-confirms LIVE that
+#     Room 3 is crossable PUSH-FREE and that the line enters the trainer sight tile (6,5).
+# ‼ FAULT INJECTION: POKEBOT_CH20_FAULT=room1 forces the Room 1 solve to fail, so the drivers'
+#   FAILURE branch can be exercised on demand. It MUST still print a clean ACCEPTANCE: FAIL.
 #   Expect: room1_ok=True m1=False m2=False m3=True pushes=3/3 in_room6=True can_continue=True
 #   ‼ It RE-SOLVES ROOM 1 from scratch first (FLAG_TEMP_* objects respawn on every map load), so
 #     a ch20room2 PASS is also a Room 1 PASS. `m2=False` is the arm that matters: it attributes the

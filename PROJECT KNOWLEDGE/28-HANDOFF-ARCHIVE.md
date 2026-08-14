@@ -3517,3 +3517,78 @@ and never identify a Pokémon by party index across a battle-menu boundary.
 * **`pyflakes` was installed and had never been run.** New gate `repro_undefined_names.py`
   (ZERO tolerance over `modules/story` + `plugins/custom_modes`). It found my own missing import
   *after* a five-minute drive had already paid to reach it — **and KI-65**, below.
+
+
+---
+
+# ARCHIVED 2026-08-13 from `04-HANDOFF.md` (R3 budget; verbatim)
+
+## ‼ THE TWO THINGS THAT MATTER MOST FROM THIS SESSION
+
+**1. When N of your own instruments agree on something impossible, they share a missing primitive.**
+Four instruments agreed the Mossdeep Gym had no route to its own leaders. All four modelled it as
+*walk + warp*; the gym has a **third movement primitive** — floor switches that relocate 21 statues
+and nine trainers. Even the model-free brute-force walker was wrong, because it *changed the map
+while exploring it*. Five parallel Claude agents found it; the explicitly ADVERSARIAL one cracked it.
+
+**2. ‼ EVERY DEFECT THAT MATTERED THIS SESSION WAS FOUND BY AN ADVERSARIAL AGENT, NOT BY A TEST.**
+Three times: the statue model (caught by a validation gate I only built because the rule says to),
+the whiteout path, and §Ch18 stranding the run. In each case my own runs were **green** — the
+happy path cannot exercise an error path, and an acceptance test written by the same person who
+wrote the code inherits the same blind spot. ⇒ *Spend the agents on REFUTING finished work, not
+only on researching new work.* And: **write the predicted failure down BEFORE the run** — the
+§Ch19 hazard checks did this and 3/3 held, which is how two traps got designed out instead of
+debugged.
+
+
+---
+
+# ARCHIVED 2026-08-13 from `04-HANDOFF.md` (R3 budget; verbatim)
+
+## ‼ WHAT THE USER DECIDED THIS SESSION
+* **Promotions approved twice** (teach fix; then KI-51 + KI-52 + status telemetry).
+* **"Roster hygiene before bosses"** approved as the boss-response direction — then found
+  **BLOCKED** (KI-54): the box is empty, and the deposit path was already measured harmful.
+  ⛔ **RETRACTED 2026-08-12:** the line below said the unlock was `POKEBOT_BOX_OVERFLOW_CATCH`,
+  "one unhandled text box away". **Both halves are false.** That flag has defaulted to **ON** since
+  2026-08-07 (`story_mode.py:2241-2243`, verified in the live code), and the text-box blocker was
+  refuted the same day (`exit_frames=120`, zero forced presses). Four docs repeated it because they
+  were written from a **stale code comment** instead of the default twenty lines below it. See
+  KI-54's retraction block.
+* **The boss-response design is still the user's call.** The status tax now has a resolved rate
+  behind it, but a status response is a battle-policy change touching every mode — **do not build
+  it unilaterally.**
+
+
+---
+
+# ARCHIVED 2026-08-13 from `04-HANDOFF.md` (R3 budget; verbatim)
+
+## 🆕 THE REGI ARC — researched and measured 2026-08-12 (user-requested). See **KI-69**.
+
+**‼ THE PARTY ORDER EVERYONE REMEMBERS IS THE RUBY/SAPPHIRE ONE.** Emerald reversed it:
+**WAILORD first (slot 0), RELICANTH last** (`braille_puzzles.c:92-104`, comment and all). The wrong
+order **fails silently** — no message, no error. Emerald also swapped **Regirock to ROCK SMASH**
+(was Strength) and **Registeel to FLASH** (was Fly). Pinned in `repro_roster_reorder.py`.
+
+**⛔ THE REGI BATTLE IS UNRECOVERABLE — read this before writing any battle policy.** Level 40,
+catch rate 3. `B_OUTCOME_WON` removes it forever, and the fall-through case **including
+`B_OUTCOME_LOST`** sets `FLAG_DEFEATED_*`. ⇒ **KO'ing it OR whiting out deletes the encounter
+permanently.** The only safe non-catch exit is fleeing.
+
+**✅ NEW CAPABILITY: `modules/story/roster.py`** — `plan_reorder` / `plan_last_slot` (PURE, proven
+exhaustively: 720 permutations replayed, `repro_roster_reorder.py` 15/15) and `reorder_party()`
+which drives `RotatePokemon` inside the `_rotate_lead_safely` harness.
+⛔ **STALE TEXT CORRECTED 2026-08-13 — the line below said "the DRIVER is UNPROVEN" and that has been
+FALSE since earlier the same day.** `--driver roster` ran **six swaps, all verified by PID**,
+including `RotatePokemon(i, j != 0)`, giving `phases=4/4 saw_j_nonzero=True idempotent=True
+restored=True can_continue=True ACCEPTANCE: PASS`. It contradicted this file's own 60-second summary
+and `03-PUNCH-LIST.md`, in the exact section a Regi-scoping reader opens first.
+‼ **What IS still true:** `reorder_party()` has **ZERO production callers** — it is a proven
+capability, not yet content — and **KI-71** (the Manual-drop guard is unreachable) is still open.
+Superseded text: ‼ **The DRIVER is UNPROVEN** — `RotatePokemon(i, j)` with `j != 0` has never been driven here, and it sits on the unfixed side of KI-38 (four unbounded loops + a `set_manual_mode()` trapdoor). **Drive it before anything depends on party order.**
+
+**MEASURED capability status** (`probe_regi_capabilities.py`): ✅ Go-Goggles, HM08 in bag, Surf
+(Zigzagoon), Rock Smash (Sceptile). ⛔ **no rod at all**, no TM28 Dig, and nobody knows Dive, Dig or
+Flash. So the arc needs an acquisition phase first — Super Rod (Route 118), TM28 (Route 114), and
+teaching Dive/Dig/Flash. ‼ **Relicanth is underwater-only, so Dive is upstream of everything.**

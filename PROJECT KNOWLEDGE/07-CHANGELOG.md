@@ -13254,3 +13254,51 @@ tiles. Also measured: sight is a **1-tile-wide line**, not a cone (`==` on y, no
 ⇒ **Recommendation recorded: take the WALK.** The pushes are irreversible within a map visit and a
 derail can wedge the room; the walk has nothing to wedge and we win the fight (L40-49 vs L35-37).
 ‼ **And the A/B cannot be a single tile** — nothing becomes reachable by solving the room.
+
+---
+
+## 2026-08-13 — §Ch20 INCREMENT 3: **THE FIRST EXECUTED CURRENT CROSSING IN THIS PROJECT**, and the Room 3 arbitration confirmed live in the same run (`#24-remainingarc`)
+
+**`--driver ch20room6` → `ACCEPTANCE: PASS` on the first drive, 8 of 8 pre-registered predictions**
+(`ai-research-notes/2026-08-13-ch20-room6-crossing-predictions.md`, written before the run).
+
+```
+[ch20room6] ROOM6 entry=(11, 21) tile_type='South Arrow Warp'
+[ch20room6] PLAN (11, 21) -> (4, 1): OK len=13
+[ch20room6] CROSSING at=('SEAFLOOR_CAVERN_ROOM3', (4, 15)) crossed=True
+[ch20room6] ROOM3-WALK (4, 15) -> (8, 1): OK len=18 contains (6, 5)
+[ch20room6] RESULT room2_ok=True crossed=True in_room3=True room3_walk=True can_continue=True
+```
+
+**‼ THE HEADLINE: THE EXECUTOR CROSSES A CURRENT.** Everything about Rooms 6/7 was previously
+**planner-level only** — 4/4 predictions to `calculate_path` from outside the cavern, one
+reproduced from inside. **A plan is not a walk**, and KI-76's correctness half is open, so this was
+driven as its own increment rather than bundled with Room 3, precisely so a failure would be
+attributable. The avatar went `ROOM6 (11,21) → SEAFLOOR_CAVERN_ROOM3 (4,15)`, and **the only route
+between them is across the current maze.** ⇒ the punch list's "Rooms 6/7 need no solver" now rests
+on a WALK, not a plan.
+⚠ **Stated precisely:** what is proven is the **endpoint**, not the intermediate slide behaviour.
+No per-slide telemetry was captured and the planner's 13 waypoints were not compared step-by-step
+against the executor's path. *"The executor can cross THIS maze on THIS route"* is the claim;
+*"our `forced_movement_to` matches the game tile-for-tile"* is **not**.
+
+**‼ A DESIGN DECISION MADE 20 MINUTES EARLIER SAVED THE RUN.** The crossing did not stop on
+`ROOM6 (4,1)` — it carried straight through into Room 3. A strict `where == (ROOM6, (4,1))` test
+would have printed **FAIL over a crossing that worked perfectly**. The test had been widened to
+accept "or we are now in ROOM3" on the reasoning that this driver measures the CROSSING and
+reaching Room 3 is a strictly stronger proof of it — *assert the outcome, not the position you
+expected*. ⚠ Consequence: the arrow-warp branch added at the same time never executed and is
+**UNTESTED**.
+
+**✅ AND THE ROOM 3 ARBITRATION WAS CONFIRMED LIVE, IN THE SAME RUN, FOR FREE.**
+`calculate_path((4,15) → (8,1))` = **`OK len=18`, containing `(6,5)`** — exactly as predicted. Both
+of its load-bearing claims are now measured: **Room 3 is crossable PUSH-FREE** (so its 7-boulder
+puzzle really is **optional**, and the earlier pass that called our build spec "REFUTED" was itself
+wrong), and **the push-free line unavoidably enters a trainer sight tile** (so the walk route must
+take the battle — decomp says a single **DOUBLE** battle, still unobserved live).
+
+**REFACTOR, PROVEN NEUTRAL:** Room 2's body is now `_solve_room2()`, so the Room 6 driver
+**inherits and re-proves** Rooms 1 and 2 rather than copying them. `--driver ch20room2` re-run to
+`ACCEPTANCE: PASS`. ⇒ **Room 1 is now n=5, Room 2 n=2**, every one a solve from scratch.
+
+17/17 gates PASS. Drift unchanged at 3 (`tools/story-dev/` is sandbox-only).
