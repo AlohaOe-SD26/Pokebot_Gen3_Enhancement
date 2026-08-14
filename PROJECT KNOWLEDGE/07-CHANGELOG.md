@@ -13589,3 +13589,36 @@ symptom traced to ONE function.
   would reintroduce the exact bug that code fixes. Likewise the protected/hunted PID SETS, where a
   twin SHOULD inherit its sibling's protection.
 * ⚠ drift 4 → 5 (`modules/pokemon_party.py` joins). Promotion remains the USER's call.
+
+## 2026-08-14 — PROMOTION: five files to `custom-pokebot`, USER-APPROVED, verified by DRIVING. Drift ZERO. (`#24-roster` / `#24-impassabledirs` / `#24-counters`)
+
+**The user approved promotion after being told plainly that until it happened, `custom-pokebot`
+still carried the exact derail they had watched live.**
+
+* **Restore point FIRST, annotated and pushed:** `restore/2026-08-14-pre-promotion-5files`.
+* **Promoted (drift 5 → 0):** `modules/story/counter_hunt.py` (the Slugma/Winona derail fix +
+  `catch_confirmed`), `modules/pokemon_party.py` (KI-78 **Stage 0, detect-only**),
+  `modules/map_path.py` (KI-59), `modules/story/early_game.py` and
+  `plugins/custom_modes/story_mode.py` (KI-63's production wiring).
+* **VERIFIED BY DRIVING, NOT BY A DIFF** — the standing rule:
+  **`--driver ch20dive --build custom` → `legs=6/6 at_entrance=True got_out=True
+  can_continue=True  ACCEPTANCE: PASS`**, matching the documented sandbox result exactly.
+  Plus `probe_chapter_order.py --build custom` exit 0, and drift re-measured by file hash in
+  **both** directions = 0 (custom holds no file sandbox lacks).
+* ‼ **A HOLE IN OUR OWN PROMOTION PROCEDURE, FOUND AND CLOSED DURING THIS PROMOTION.**
+  `repro_box_counter_move_test.py` hard-coded `sandbox-pokebot` on its import path, so **after ANY
+  promotion nothing verified the fix had actually landed in the other fork** — the promoted tree
+  could be copied incompletely and every gate would still read green. It now takes `--build` and,
+  before testing anything, **asserts which fork it actually imported** (an instrument that cannot
+  see what it is pointed at is this project's most-logged failure family). Both runs exit 0:
+  `--build sandbox` and `--build custom`.
+* ⛔ **What this promotion does NOT mean, stated because a green promotion invites the wrong
+  reading:** §Ch20 is **still not a chapter** in either fork (no module in `modules/story/`,
+  nothing wired into `story_mode.py`, the drivers inject Dive; the ladder is still **20 of 24**),
+  and **KI-78 is not fixed** — both forks now merely DETECT the Ninjask/Shedinja PID collision and
+  still act on the first match, so `pc_interaction.py`'s deposit and **release** paths remain
+  exposed.
+* ⚠ **Still owed:** the Slugma fix is proven by a fabricated-fixture A/B, not by re-running the
+  user's original failing scenario end to end (a Nincada evolving into a full party → counter hunt
+  → heal). That repro is the honest remaining gap.
+* Full per-file rationale and evidence table: `custom-pokebot/DIVERGENCE-LOG.md`, 2026-08-14.

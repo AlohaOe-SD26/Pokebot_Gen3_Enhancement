@@ -2149,9 +2149,9 @@ are now resolved live here", so they are listed here to stay findable:
   from **NO-PATH from every direction** (all 29 tiles invisible to the planner) to `OK len=1` on the
   legal approaches; the `MOSSDEEP_CITY` collateral control is **byte-identical** across arms. Now
   **gate #17**. ‼ `probe_shoal_tide.py` corrected in lockstep; its numbers re-derived on the fixed
-  model are **unchanged (LOW 278 / HIGH 0)**. ⚠ **Sandbox only — drift is now 5 (`counter_hunt.py`
-  and `pokemon_party.py` both joined 2026-08-14: the box-counter move-test fix and KI-78's
-  detect-only stage) and promotion is the
+  model are **unchanged (LOW 278 / HIGH 0)**. ✅ **PROMOTED 2026-08-14 — drift is now ZERO** (it had
+  reached 5; `counter_hunt.py` and `pokemon_party.py` joined that day and went over with the rest,
+  verified by driving `--build custom`). Historical note, superseded: *"Sandbox only — promotion is the
   USER's call.** The original diagnosis and the retraction that reprioritised it are kept below.
 * **KI-59 (original entry)** — `map_path` **INVERTS `Impassable *` directions**. ✅ **REAL** (decomp-verified).
   ⛔ **BUT ITS "ARMED IN THE SEAFLOOR CAVERN" HEADLINE IS RETRACTED, 2026-08-13, MEASURED.**

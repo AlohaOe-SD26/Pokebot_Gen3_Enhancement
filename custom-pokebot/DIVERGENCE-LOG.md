@@ -1453,3 +1453,50 @@ to the sandbox tree.
   records was found by review, not by a run), a box that is full, and a hunt that runs out of balls.
 * **The ground used is Route 117** (Marill, 10% of the land table at L13, 1,055 waypoints). The
   better Shoal Cave ground was deliberately NOT adopted here.
+
+---
+
+## 2026-08-14 — PROMOTION: five files, USER-APPROVED. Drift sandbox↔custom is back to ZERO.
+
+**The user approved promotion in the same message that asked work to continue**, after being told
+plainly that until it happened `custom-pokebot` still carried the derail they had watched live.
+
+**Restore point taken FIRST and pushed:** `restore/2026-08-14-pre-promotion-5files` (annotated).
+Rollback target if anything below regresses.
+
+### What was promoted, and why each earns its place
+
+| file | what it carries | evidence it works |
+|---|---|---|
+| `modules/story/counter_hunt.py` | ‼ **THE USER-OBSERVED SLUGMA/WINONA DERAIL FIX.** `box_counter_pid` now accepts a MOVE answer, not only a TYPE match; and `catch_confirmed()` replaces a party-COUNT delta with an IDENTITY verdict so a Shedinja spawn cannot fake a catch. | `repro_box_counter_move_test.py` — fault-injected A/B (exit 1 → exit 0), parity gate, 22 checks. **Re-run against THIS fork: `--build custom` → exit 0.** |
+| `modules/pokemon_party.py` | **KI-78 STAGE 0 — DETECT ONLY.** Logs LOUD when two party mons share a personality value (Ninjask/Shedinja do). ⛔ Behaviour deliberately UNCHANGED; the composite-key fix is NOT written. | compile + gate suite; behaviour is by construction identical (still returns `matches[0]`) |
+| `modules/map_path.py` | KI-59: the `Impassable *` entry-vector inversion + the new `blocked_exit_directions` exit rule. | `repro_impassable_dirs.py` (exit 1 → 0, 29/29 → 0/29); A/B on `VICTORY_ROAD_1F` with a byte-identical `MOSSDEEP_CITY` collateral control |
+| `modules/story/early_game.py` | KI-63's `ensure_hm_learner_making_room` (frees ONE slot, retries once) + the corrected `FLAG_SYS_USE_STRENGTH` comments. | `repro_hm_slot_wiring.py` (22/22, fault-injected); the flag correction was MEASURED live (`False` right after the ROOM1→ROOM2 warp) |
+| `plugins/custom_modes/story_mode.py` | KI-63's two HM call sites wired to the above. | same gate — it exists precisely because this chain had one link missing before |
+
+### Verification — DRIVEN, not diffed (the standing rule)
+
+* ✅ **Drift re-measured after the copy: ZERO** (`modules/` + `plugins/`, hash-compared, both
+  directions — custom holds no file sandbox lacks).
+* ✅ `probe_chapter_order.py --build custom` → **exit 0**.
+* ✅ **`repro_box_counter_move_test.py --build custom` → exit 0**, and it now **asserts which fork
+  it imported** before testing anything.
+  ‼ **THE GATE WAS MADE BUILD-AWARE DURING THIS PROMOTION, BECAUSE IT COULD NOT SEE THIS FORK.**
+  It hard-coded `sandbox-pokebot`, so after ANY promotion nothing verified the fix had actually
+  landed here — the promoted tree could be copied incompletely and every gate would still read
+  green. That is the same "chain of correct parts with one link missing" shape
+  `repro_hm_slot_wiring.py` exists for, and it was live in our own promotion procedure.
+* ✅ **A live drive against this fork** (`--driver ch20dive --build custom`) — result recorded in
+  `07-CHANGELOG.md` for the same date.
+
+### What this does NOT mean
+
+* ⛔ **§Ch20 is still NOT a chapter in either fork.** No module in `modules/story/`, nothing wired
+  into `story_mode.py`, and the §Ch20 drivers inject Dive with a debug write. The ladder is still
+  **20 of 24** here.
+* ⛔ **KI-78 is NOT fixed** — this fork now *detects* the PID collision and still acts on the first
+  match, exactly as sandbox does. `pc_interaction.py`'s deposit and **release** paths remain
+  exposed; the composite-key stage is planned, not written.
+* ⚠ The Slugma fix is proven by a fabricated-fixture A/B, **not** by re-running the user's original
+  failing scenario end to end. That repro (a Nincada evolving into a full party, then a counter
+  hunt, then a heal) is still owed.

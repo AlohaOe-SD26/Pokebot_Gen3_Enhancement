@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum, IntEnum, auto
 from queue import SimpleQueue, PriorityQueue
 from typing import TypeAlias
@@ -50,6 +50,10 @@ class Direction(IntEnum):
                 raise RuntimeError(f"Value {value} could not be converted into a direction.")
 
 
+# Every tile that blocks no exit shares this one object (see PathTile.blocked_exit_directions).
+_NO_BLOCKED_EXITS: "frozenset[Direction]" = frozenset()
+
+
 @dataclass
 class PathTile:
     map: "PathMap"
@@ -67,6 +71,17 @@ class PathTile:
     needs_acro_bike: bool
     needs_bunny_hop: bool
     cannot_run: bool
+    # KI-59 / `#24-impassabledirs`. Directions in which the player may not LEAVE this tile.
+    # ‼ `accessible_from_direction` can only ever express "may I ENTER this tile", because
+    # `is_tile_accessible()` is handed the NEIGHBOUR. The decomp blocks both halves — see
+    # `IsMetatileDirectionallyImpassable` (`src/event_object_movement.c:4715-4722`), which ORs
+    # `gOppositeDirectionBlockedMetatileFuncs[dir]` applied to the tile you are STANDING ON with
+    # `gDirectionBlockedMetatileFuncs[dir]` applied to the destination. This field is the first
+    # half, and it is checked on the SOURCE tile in the A* expansion loop.
+    # ‼ Defaulted, so a future upstream subtree pull that reintroduces a positional
+    # `PathTile(...)` construction cannot break on the new argument. Read only via `in`,
+    # so a frozenset is interchangeable with the set the builder passes.
+    blocked_exit_directions: "frozenset[Direction] | set[Direction]" = field(default_factory=frozenset)
 
     @property
     def global_coordinates(self) -> tuple[int, int]:
@@ -110,6 +125,10 @@ class PathMap:
 
             for tile in all_tiles:
                 accessible_from_direction = [False, False, False, False]
+                # Shared immutable singleton: the overwhelming majority of tiles block no
+                # exit, and this loop runs over every tile of every map. Only the
+                # `Impassable *` branch below replaces it with a real (mutable) set.
+                blocked_exit_directions: "frozenset[Direction] | set[Direction]" = _NO_BLOCKED_EXITS
                 waterfall_to = None
                 forced_movement_to: dict[Direction, tuple[tuple[int, int], tuple[int, int], int]] | None = None
                 muddy_slope_to = None
@@ -126,10 +145,34 @@ class PathMap:
                             dir = Direction[direction]
                             accessible_from_direction[dir] = True
                 elif tile.tile_type.startswith("Impassable "):
+                    # KI-59 / `#24-impassabledirs`, fixed 2026-08-13.
+                    # `MB_IMPASSABLE_<D>` means "this tile's <D> EDGE is a wall" (decomp
+                    # `src/event_object_movement.c:893-905` + `:4715-4722`): it blocks ENTERING
+                    # across that edge — i.e. travelling opposite(D) — *and* LEAVING across it,
+                    # travelling D. Every other direction is unaffected.
+                    # ‼ This used to start all-False and SET `[opposite(D)]` True, which is the
+                    # exact COMPLEMENT of the truth: it refused all three legal entries and
+                    # permitted the single illegal one. Proven on VICTORY_ROAD_1F, where all 29
+                    # live tiles read `[--S-]` against a correct `[NE-W]`.
+                    # ‼ Only tiles with collision == 0 reach this branch (see the `if` above) —
+                    # 401 of the 2,658 such tiles in the game. All 115 in the Seafloor Cavern have
+                    # collision != 0, which is why KI-59 never gated that chapter.
+                    accessible_from_direction = [True, True, True, True]
+                    blocked_exit_directions = set()
                     impassable_directions = tile.tile_type[11:].replace(" and ", "/").split("/")
                     for direction in impassable_directions:
                         dir = Direction[direction]
-                        accessible_from_direction[dir.opposite()] = True
+                        accessible_from_direction[dir.opposite()] = False
+                        blocked_exit_directions.add(dir)
+                    if self._is_optional_blocker(tile.local_position):
+                        # This branch short-circuits past the `_is_optional_blocker` test in the
+                        # final `elif`. That was harmless while the vector came out mostly-False;
+                        # now that it comes out mostly-True, a tile that is BOTH `Impassable *` and
+                        # a dynamic blocker would otherwise become walkable and defeat its flag
+                        # gate. Measured 2026-08-13: no such tile currently exists (the four salt
+                        # tiles are plain `Cave`), so this is a guard against a future map, not a
+                        # live fix — but the interaction is real and cost nothing to close.
+                        accessible_from_direction = [False, False, False, False]
                 elif tile.tile_type == "Waterfall":
                     tile_south = all_tiles[tile_index(tile.local_position[0], tile.local_position[1] + 1)]
                     if tile_south is not None:
@@ -206,19 +249,57 @@ class PathMap:
 
                     destination = all_tiles[tile_index(tile.local_position[0], tile.local_position[1])]
                     steps = 0
+                    # ‼ KI-76 / "never hang". This loop follows a current chain whose DIRECTION is
+                    # re-read from each tile, so unlike the waterfall/ice/muddy-slope loops it can
+                    # in principle cycle — and it had no bound at all, inside a `@property` that
+                    # `calculate_path` calls. Measured 2026-08-13: no cycles exist in this ROM and
+                    # the longest real chain is 32 tiles (SEAFLOOR_CAVERN_ROOM7), so this cap is
+                    # ~16x the worst real case and cannot alter any terminating chain. It exists for
+                    # the maps nobody has simulated: ROUTE132/133/134 carry 1345/1552/1262 current
+                    # tiles — an order of magnitude more than the cavern — and are unmeasured.
+                    _slide_cap = 512
                     while destination.tile_type.endswith(" Current"):
+                        _slide_cap -= 1
+                        if _slide_cap <= 0:
+                            # Fail LOUD and leave `destination` where it got to. A silent truncation
+                            # here would emit a plausible-but-wrong slide destination, which is the
+                            # worst outcome (see KI-76's "wrong endpoint" defect).
+                            raise RuntimeError(
+                                f"Current-slide chain from {tile.local_position} on map "
+                                f"{tile.map_group_and_number} exceeded {512} steps — this map's "
+                                f"currents form a cycle, which no map in the vanilla ROM does. "
+                                f"Reached {destination.local_position}."
+                            )
                         current_map = destination.map_group_and_number
                         x, y = destination.local_position
                         if destination.tile_type == "Eastward Current":
                             if x >= destination.map_size[0] - 1:
                                 x = 0
-                                current_map, offset = _get_connection_for_direction(destination, "East")
+                                _conn = _get_connection_for_direction(destination, "East")
+                                if _conn is None:
+                                    # KI-76 / D5: no connection that way. This used to
+                                    # unpack `None` and raise TypeError from inside a
+                                    # property. Measured: 0 armed tiles in this ROM, so
+                                    # this is robustness for future/edited maps. The
+                                    # game cannot push you off a map with no connection,
+                                    # so ending the slide here is the faithful result.
+                                    break
+                                current_map, offset = _conn
                                 y += offset
                             else:
                                 x += 1
                         elif destination.tile_type == "Westward Current":
                             if x <= 0:
-                                current_map, offset = _get_connection_for_direction(destination, "West")
+                                _conn = _get_connection_for_direction(destination, "West")
+                                if _conn is None:
+                                    # KI-76 / D5: no connection that way. This used to
+                                    # unpack `None` and raise TypeError from inside a
+                                    # property. Measured: 0 armed tiles in this ROM, so
+                                    # this is robustness for future/edited maps. The
+                                    # game cannot push you off a map with no connection,
+                                    # so ending the slide here is the faithful result.
+                                    break
+                                current_map, offset = _conn
                                 y += offset
                                 x = get_map_data(current_map, (0, 0)).map_size[0] - 1
                             else:
@@ -226,13 +307,31 @@ class PathMap:
                         elif destination.tile_type == "Southward Current":
                             if y >= destination.map_size[1] - 1:
                                 y = 0
-                                current_map, offset = _get_connection_for_direction(destination, "South")
+                                _conn = _get_connection_for_direction(destination, "South")
+                                if _conn is None:
+                                    # KI-76 / D5: no connection that way. This used to
+                                    # unpack `None` and raise TypeError from inside a
+                                    # property. Measured: 0 armed tiles in this ROM, so
+                                    # this is robustness for future/edited maps. The
+                                    # game cannot push you off a map with no connection,
+                                    # so ending the slide here is the faithful result.
+                                    break
+                                current_map, offset = _conn
                                 x += offset
                             else:
                                 y += 1
                         elif destination.tile_type == "Northward Current":
                             if y <= 0:
-                                current_map, offset = _get_connection_for_direction(destination, "North")
+                                _conn = _get_connection_for_direction(destination, "North")
+                                if _conn is None:
+                                    # KI-76 / D5: no connection that way. This used to
+                                    # unpack `None` and raise TypeError from inside a
+                                    # property. Measured: 0 armed tiles in this ROM, so
+                                    # this is robustness for future/edited maps. The
+                                    # game cannot push you off a map with no connection,
+                                    # so ending the slide here is the faithful result.
+                                    break
+                                current_map, offset = _conn
                                 x += offset
                                 y = get_map_data(current_map, (0, 0)).map_size[1] - 1
                             else:
@@ -326,6 +425,7 @@ class PathMap:
                             or not map_data.is_running_possible
                             or tile.tile_type in ("Long Grass", "No Running", "Hot Springs", "Fortree Bridge")
                         ),
+                        blocked_exit_directions=blocked_exit_directions,
                     )
                 )
             for map_object in map_data.objects:
@@ -849,6 +949,16 @@ def calculate_path(
             )
 
         for direction in potential_neighbours:
+            # KI-59 exit half. The decomp blocks LEAVING a tile across a walled edge, via
+            # `gOppositeDirectionBlockedMetatileFuncs` applied to the tile the player is STANDING
+            # ON (`src/event_object_movement.c:4715-4722`). `is_tile_accessible()` below is handed
+            # the NEIGHBOUR and can therefore never express this, so the check belongs here, on the
+            # source tile. Without it the corrected entry rule alone would still let the planner
+            # walk north off a cliff edge — real, not theoretical: 22 of Island Cave's 48 live
+            # tiles have open floor to their north.
+            if direction in tile.blocked_exit_directions:
+                continue
+
             neighbour_coordinates = potential_neighbours[direction]
             if tile.map.contains_global_coordinates(neighbour_coordinates):
                 neighbour = tile.map.get_global_tile(neighbour_coordinates)

@@ -94,10 +94,51 @@ class Party:
         return None
 
     def get_index_for_pokemon(self, pokemon: Pokemon) -> int:
-        for party_index, party_pokemon in enumerate(self._pokemon):
-            if pokemon.data[:4] == party_pokemon.data[:4]:
-                return party_index
-        raise RuntimeError("This Pokémon is not in the player's party.")
+        """Party slot of `pokemon`, matched on its PERSONALITY VALUE.
+
+        ‼‼ KI-78 — **A PERSONALITY VALUE IS NOT A UNIQUE IDENTITY IN GEN 3.** `CreateShedinja`
+        (`src/evolution_scene.c:548-583`) builds Shedinja with `CopyMon`, a plain memcpy
+        (`src/pokemon.c:4419-4422`), and **does not overwrite the personality or the OT ID** — so a
+        Shedinja and the Ninjask it came from carry the SAME PID for life. This function returns
+        the FIRST match, and `CreateShedinja` places the twin AFTER its sibling, so with that pair
+        in the party a request aimed at the Shedinja resolves to the **Ninjask**.
+        ⛔ That matters because of who calls this: `pc_interaction.py:464` (DEPOSIT) and
+        **`:505` (RELEASE — permanent, no undo)**. "Box the Shedinja" boxes the Ninjask; "release
+        the Shedinja" **destroys the Ninjask**.
+
+        ‼ STAGE 0 OF THE FIX (2026-08-14): **DETECT ONLY — behaviour is deliberately UNCHANGED.**
+        The ruled fix is to match on `(personality, species)`, which `pokemon_storage.py:128`
+        already does for the box side; but this lookup feeds a destructive path, so the first step
+        is to find out how often the ambiguity actually occurs in real runs rather than to change
+        an irreversible operation on a theory. This logs LOUD and still returns `matches[0]`,
+        exactly as before. **Do not "finish" this by silently switching the key** — the follow-up
+        must land with its own fault-injected A/B (a fabricated twin pair: the OLD key picks the
+        wrong slot, the NEW key picks the right one) and with the R6 rule from KI-78: on a species
+        mismatch with a unique PID hit, re-resolve from the live party rather than falling back to
+        the first hit.
+        """
+        matches = [index for index, party_pokemon in enumerate(self._pokemon)
+                   if pokemon.data[:4] == party_pokemon.data[:4]]
+        if not matches:
+            raise RuntimeError("This Pokémon is not in the player's party.")
+        if len(matches) > 1:
+            # ‼ A silent "no" is indistinguishable from "the feature is not running" — this
+            # project has lost time to that shape repeatedly, so an ambiguity announces itself.
+            try:
+                from modules.console import console
+
+                detail = ", ".join(
+                    f"slot {i}={self._pokemon[i].species.name}" for i in matches
+                )
+                console.print(
+                    f"[bold red]‼ KI-78: {len(matches)} party Pokémon share personality value "
+                    f"{pokemon.data[:4].hex()} ({detail}). Returning slot {matches[0]} as before — "
+                    f"but any DEPOSIT or RELEASE resolved through this call may act on the wrong "
+                    f"Pokémon. Requested species: {pokemon.species.name}.[/]"
+                )
+            except Exception:  # noqa: BLE001 - telemetry must never break the caller
+                pass
+        return matches[0]
 
     def to_list(self) -> list[dict]:
         return [pokemon.to_dict() for pokemon in self._pokemon]

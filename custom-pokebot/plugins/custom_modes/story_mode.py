@@ -3223,10 +3223,16 @@ class StoryMode(BotMode):
 
         if not _party_knows_rock_smash():
             from modules.items import get_item_by_name
-            from modules.story.early_game import ensure_hm_learner, teach_hm_move
+            from modules.map_data import PokemonCenter
+            from modules.story.early_game import ensure_hm_learner_making_room, teach_hm_move
 
             _hm06 = get_item_by_name("HM06")
-            _slot = yield from ensure_hm_learner(_hm06)
+            # ‼ KI-63 WIRING: a FULL PARTY used to end the run here — this call site had no error
+            # handling, so the raise went straight to the mode handler and derailed to Manual.
+            # Centres are the ones this era already heals at, nearest-first.
+            _slot = yield from ensure_hm_learner_making_room(
+                _hm06, (PokemonCenter.MauvilleCity, PokemonCenter.SlateportCity)
+            )
             yield from teach_hm_move(_hm06, _slot)
         else:
             console.print("[dim]Story: someone already knows Rock Smash — teach skipped.[/]")
@@ -3423,10 +3429,17 @@ class StoryMode(BotMode):
 
         if not _party_knows_surf():
             from modules.items import get_item_by_name
-            from modules.story.early_game import ensure_hm_learner, teach_hm_move
+            from modules.map_data import PokemonCenter
+            from modules.story.early_game import ensure_hm_learner_making_room, teach_hm_move
 
             _hm03 = get_item_by_name("HM03")
-            _slot = yield from ensure_hm_learner(_hm03)
+            # ‼ KI-63 WIRING — and this is the one the measurements care about: "nobody can learn
+            # Surf" is the recorded top non-finish cause, and a full party turned it from a costly
+            # hunt into a hard derail. Centres are this era's own, nearest-first.
+            _slot = yield from ensure_hm_learner_making_room(
+                _hm03,
+                (PokemonCenter.PetalburgCity, PokemonCenter.LavaridgeTown, PokemonCenter.FallarborTown),
+            )
             yield from teach_hm_move(_hm03, _slot)
         else:
             console.print("[dim]Story: someone already knows Surf — teach skipped.[/]")
@@ -3638,13 +3651,27 @@ class StoryMode(BotMode):
             console.print("[dim]Story: Mossdeep Space Center already done — skipping.[/]")
         _guard("Mossdeep Space Center + Dive (Ch19)", lambda: _done("RECEIVED_HM_DIVE"))
 
-        # END OF BUILT CONTENT. Next build: the SEAFLOOR CAVERN (§Ch20/§Ch21).
-        # ‼ §Ch21 IS BLOCKED BY KI-63 — no party member can learn Dive and the party is full, so
-        # `#24-pc` is a PREREQUISITE, not a later nicety. HM08 being in the bag is not enough.
+        # END OF BUILT CONTENT. Next build: the SEAFLOOR CAVERN — which is **Chapter 20**
+        # (`chapters.py:233`, graded on `KYOGRE_ESCAPED_SEAFLOOR_CAVERN`). Chapter 21 is
+        # Sootopolis/Rayquaza and has not been touched.
+        # ✅ **KI-63 IS RESOLVED (2026-08-13) — this comment used to say the cavern was BLOCKED by
+        # it, and that is no longer true.** The bot acquires Dive by playing (`--driver divelearner`
+        # PASS: frees a slot, catches a learner, teaches Dive, keeps Surf), and the two HM call
+        # sites above are wired to `ensure_hm_learner_making_room`. The dive leg itself is also
+        # driven end to end (`--driver ch20dive` → `legs=6/6 at_entrance=True got_out=True`).
+        # ⇒ What remains is BUILDING the chapter: the cavern INTERIOR (rooms 1-9), Archie, Kyogre.
+        # ‼ Two traps recorded before anyone starts: **KI-72** — never let the planner choose where
+        # you surface, hand-pick the tile and assert its `tile_type`; and **do not end the chapter
+        # at `ROOM9 (17,42)`**, which is the ONLY coord trigger in the cavern (‼ NOT (16,42) — that
+        # is plain floor and fires nothing; upstream's puzzle_solver stops one tile short of it).
+        # ‼ And the real release point is `VAR_ROUTE128_STATE == 2`, NOT the Kyogre flag: the flag is
+        # set BEFORE a forced warp to ROUTE128 (38,22) that starts a SECOND lockall cutscene, and
+        # (38,22) is a shallow-water SANDBAR — the bot must Surf off it. The standing rule is "and the bot
+        # can continue", and three chapters have already shipped stranded.
         context.message = (
             "Story: HM08 DIVE IS IN THE BAG - end of built content. "
-            "NEXT (WIP): the Seafloor Cavern, which is BLOCKED until a Dive learner exists "
-            "(KI-63). Handing to manual."
+            "NEXT (WIP): the Seafloor Cavern (Ch20). The Dive blocker (KI-63) is RESOLVED and the "
+            "dive leg is driven; the cavern INTERIOR is not built yet. Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         # ‼ Mark a GENUINE completion. Both this path and the give-up paths call

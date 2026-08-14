@@ -38,11 +38,23 @@ Exit 0 = all checks pass. Exit 1 = a check failed (details printed).
 Run:  cd tools/story-dev && PYTHONUTF8=1 py -3.12 repro_box_counter_move_test.py
 """
 
+import argparse
 import pathlib
 import sys
 
+#: ‼ BUILD-AWARE ON PURPOSE (added 2026-08-14, during the promotion this gate's fix was part of).
+#: The gate originally hard-coded `sandbox-pokebot`, which meant that after a PROMOTION **nothing
+#: verified the fix had actually landed in `custom-pokebot`** — the promoted tree could regress or
+#: be copied incompletely and every gate would still read green. That is precisely the
+#: "a chain of correct parts with one link missing" shape `repro_hm_slot_wiring.py` exists for.
+#: `run_gates.py` runs the default (sandbox); `--build custom` is the promotion check.
+_ap = argparse.ArgumentParser(add_help=True)
+_ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"],
+                 help="which fork to test (default sandbox; use custom to verify a promotion)")
+_ARGS, _ = _ap.parse_known_args()
+
 REPO = pathlib.Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO / "sandbox-pokebot"))
+sys.path.insert(0, str(REPO / f"{_ARGS.build}-pokebot"))
 
 BAR = "=" * 96
 
@@ -165,7 +177,19 @@ def main() -> int:
 
     print(BAR)
     print("REPRO — the box-side counter test must accept a MOVE answer (the 2026-08-14 Slugma bug)")
+    print(f"BUILD UNDER TEST: {_ARGS.build}-pokebot")
     print(BAR)
+    # ‼ Prove we imported the fork we CLAIM to be testing. Without this the `--build custom` run
+    # could silently exercise sandbox (a stale sys.path entry, a leftover import) and report a
+    # promotion verified that never happened — an instrument that cannot see what it is pointed at
+    # is this project's most-logged failure family.
+    import modules.story.counter_hunt as _ch
+
+    if f"{_ARGS.build}-pokebot" not in str(pathlib.Path(_ch.__file__).resolve()):
+        print(f"  FAIL  imported counter_hunt from {_ch.__file__} — NOT the {_ARGS.build} build")
+        return 1
+    print(f"  (importing from {pathlib.Path(_ch.__file__).resolve().parents[3].name}"
+          f"/{_ARGS.build}-pokebot — verified)")
 
     from modules.story.counter_hunt import box_counter_pid, party_counter_slot
 
