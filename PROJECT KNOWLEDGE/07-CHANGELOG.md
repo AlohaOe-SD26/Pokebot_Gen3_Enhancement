@@ -12990,3 +12990,42 @@ safe and should be added anyway**).
 
 Housekeeping for the R3 budget: KI-39, KI-63's superseded original filing, and KI-67's original
 filing moved verbatim to `31-KNOWN-ISSUES-ARCHIVE.md` with stubs.
+
+### 2026-08-13 — KI-76's two SAFETY defects fixed (bounded loop + `None` guards), measured first
+
+**Measured before touching anything** (`tools/story-dev/probe_current_edges.py`, NEW): swept all 518
+maps for `* Current` tiles and checked every edge current against its map's own connection table.
+
+| map | current tiles | armed for the `None` unpack |
+|---|---|---|
+| `ROUTE133` | **1552** | 0 |
+| `ROUTE132` | **1345** | 0 |
+| `ROUTE134` | **1262** | 0 |
+| `SEAFLOOR_CAVERN_ROOM7` | 117 | 0 |
+| `SEAFLOOR_CAVERN_ROOM6` | 108 | 0 |
+
+**Only FIVE maps in the whole ROM have currents, and ZERO tiles are armed.** ‼ And **no
+currently-driven map contains a single current tile** — so neither defect was ever live, and this is
+robustness, not a hotfix. The probe distinguishes "current on an edge" from "current pushing OFF
+that edge with no connection", because counting the former would have overstated the risk.
+
+‼ **The forward-looking number is the one that matters: Routes 132/133/134 carry ~10× the cavern's
+currents and are UNMEASURED for cycles** — and they are the route to the **Sealed Chamber** (the
+Regi arc) and **Ever Grande** (§Ch23). That is why an unbounded loop there is worth closing now.
+
+**The fix** (`modules/map_path.py`):
+* the slide loop gains a **512-step cap that raises with a diagnostic** naming the start tile, map
+  and where it got to. It **fails loud rather than truncating** — a silent truncation would emit a
+  plausible-but-wrong slide destination, which is KI-76's own "wrong endpoint" defect.
+* all four `_get_connection_for_direction()` results are **`None`-guarded** and end the slide
+  instead of raising `TypeError` from inside a `@property`. Ending there is the faithful result:
+  the game cannot push you off a map that has no connection that way.
+
+**Proof, both directions:**
+* **A/B — no behaviour change:** `probe_ch20_currents.py` output is **byte-identical** before and
+  after (still 4/4 predictions, still 0 warp-trap routes, same waypoint lists).
+* **FAULT-TESTED — it fires when it should:** injecting `cap=3` produced
+  `RuntimeError: Current-slide chain from (8, 3) on map (24, 33) exceeded 512 steps…`, then the file
+  was restored from a byte copy. A cap that has never been seen to fire is not a cap.
+
+17/17 gates PASS.

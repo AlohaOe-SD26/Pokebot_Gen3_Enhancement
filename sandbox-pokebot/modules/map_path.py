@@ -249,19 +249,57 @@ class PathMap:
 
                     destination = all_tiles[tile_index(tile.local_position[0], tile.local_position[1])]
                     steps = 0
+                    # ‼ KI-76 / "never hang". This loop follows a current chain whose DIRECTION is
+                    # re-read from each tile, so unlike the waterfall/ice/muddy-slope loops it can
+                    # in principle cycle — and it had no bound at all, inside a `@property` that
+                    # `calculate_path` calls. Measured 2026-08-13: no cycles exist in this ROM and
+                    # the longest real chain is 32 tiles (SEAFLOOR_CAVERN_ROOM7), so this cap is
+                    # ~16x the worst real case and cannot alter any terminating chain. It exists for
+                    # the maps nobody has simulated: ROUTE132/133/134 carry 1345/1552/1262 current
+                    # tiles — an order of magnitude more than the cavern — and are unmeasured.
+                    _slide_cap = 512
                     while destination.tile_type.endswith(" Current"):
+                        _slide_cap -= 1
+                        if _slide_cap <= 0:
+                            # Fail LOUD and leave `destination` where it got to. A silent truncation
+                            # here would emit a plausible-but-wrong slide destination, which is the
+                            # worst outcome (see KI-76's "wrong endpoint" defect).
+                            raise RuntimeError(
+                                f"Current-slide chain from {tile.local_position} on map "
+                                f"{tile.map_group_and_number} exceeded {512} steps — this map's "
+                                f"currents form a cycle, which no map in the vanilla ROM does. "
+                                f"Reached {destination.local_position}."
+                            )
                         current_map = destination.map_group_and_number
                         x, y = destination.local_position
                         if destination.tile_type == "Eastward Current":
                             if x >= destination.map_size[0] - 1:
                                 x = 0
-                                current_map, offset = _get_connection_for_direction(destination, "East")
+                                _conn = _get_connection_for_direction(destination, "East")
+                                if _conn is None:
+                                    # KI-76 / D5: no connection that way. This used to
+                                    # unpack `None` and raise TypeError from inside a
+                                    # property. Measured: 0 armed tiles in this ROM, so
+                                    # this is robustness for future/edited maps. The
+                                    # game cannot push you off a map with no connection,
+                                    # so ending the slide here is the faithful result.
+                                    break
+                                current_map, offset = _conn
                                 y += offset
                             else:
                                 x += 1
                         elif destination.tile_type == "Westward Current":
                             if x <= 0:
-                                current_map, offset = _get_connection_for_direction(destination, "West")
+                                _conn = _get_connection_for_direction(destination, "West")
+                                if _conn is None:
+                                    # KI-76 / D5: no connection that way. This used to
+                                    # unpack `None` and raise TypeError from inside a
+                                    # property. Measured: 0 armed tiles in this ROM, so
+                                    # this is robustness for future/edited maps. The
+                                    # game cannot push you off a map with no connection,
+                                    # so ending the slide here is the faithful result.
+                                    break
+                                current_map, offset = _conn
                                 y += offset
                                 x = get_map_data(current_map, (0, 0)).map_size[0] - 1
                             else:
@@ -269,13 +307,31 @@ class PathMap:
                         elif destination.tile_type == "Southward Current":
                             if y >= destination.map_size[1] - 1:
                                 y = 0
-                                current_map, offset = _get_connection_for_direction(destination, "South")
+                                _conn = _get_connection_for_direction(destination, "South")
+                                if _conn is None:
+                                    # KI-76 / D5: no connection that way. This used to
+                                    # unpack `None` and raise TypeError from inside a
+                                    # property. Measured: 0 armed tiles in this ROM, so
+                                    # this is robustness for future/edited maps. The
+                                    # game cannot push you off a map with no connection,
+                                    # so ending the slide here is the faithful result.
+                                    break
+                                current_map, offset = _conn
                                 x += offset
                             else:
                                 y += 1
                         elif destination.tile_type == "Northward Current":
                             if y <= 0:
-                                current_map, offset = _get_connection_for_direction(destination, "North")
+                                _conn = _get_connection_for_direction(destination, "North")
+                                if _conn is None:
+                                    # KI-76 / D5: no connection that way. This used to
+                                    # unpack `None` and raise TypeError from inside a
+                                    # property. Measured: 0 armed tiles in this ROM, so
+                                    # this is robustness for future/edited maps. The
+                                    # game cannot push you off a map with no connection,
+                                    # so ending the slide here is the faithful result.
+                                    break
+                                current_map, offset = _conn
                                 x += offset
                                 y = get_map_data(current_map, (0, 0)).map_size[1] - 1
                             else:

@@ -2406,7 +2406,18 @@ SURF STATE, not merely that it arrived somewhere.
   behind our "Room 6 is ONE-WAY" result.** ⇒ The conclusion is right; describing it as "our planner
   independently reproduced the game's asymmetry" **overstates it**, and that wording is corrected in
   `07-CHANGELOG.md` and `04-HANDOFF.md`.
-* **`_get_connection_for_direction()` can return `None`** (`map_path.py:435-439`) and is unpacked
+* ✅ **FIXED 2026-08-13 (both, and MEASURED first — see below): the unbounded loop now has a
+  512-step cap that FAILS LOUD, and all four `None` unpacks are guarded.** Measured before fixing:
+  **only 5 maps in the entire ROM contain currents** — `ROUTE133` 1552, `ROUTE132` 1345,
+  `ROUTE134` 1262, `SEAFLOOR_CAVERN_ROOM7` 117, `ROOM6` 108 — and **0 tiles are ARMED** for the
+  `None` unpack (an edge current pushing off-map with no connection that way).
+  ‼ **No currently-driven map contains a single current tile**, so neither defect was ever live.
+  ‼ **BUT Routes 132/133/134 carry ~10x the cavern's currents and are UNMEASURED for cycles** — and
+  they are the route to the **Sealed Chamber (Regi arc)** and **Ever Grande (§Ch23)**. The cap is
+  ~16x the longest real chain (32), cannot alter any terminating chain (**A/B: probe output
+  byte-identical**), and was **fault-tested** by injecting `cap=3`, which raised with a diagnostic
+  naming the tile and map. `probe_current_edges.py` is the measurement.
+* *(original wording)* **`_get_connection_for_direction()` can return `None`** (`map_path.py:435-439`) and is unpacked
   unguarded at `:258/264/272/278` ⇒ **`TypeError` inside `PathMap.tiles`** if a current ever sits on
   a map edge with no connection that way. Not reachable in Rooms 6/7 (interior currents);
   **UNVERIFIED for Routes 129-134 / Pacifidlog**, which are full of currents.
