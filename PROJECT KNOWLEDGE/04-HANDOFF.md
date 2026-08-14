@@ -90,15 +90,31 @@ the rooms at risk are the **large** ones. And (b) the game **physically resets a
 its template tile when it despawns**, so the planner is **fail-safe and never under-blocks** —
 fixing it would have been fixing the wrong thing.
 
-## ⚠ THE ONE THAT WILL STRAND THE RUN, AND IT IS UNTESTED — read before building §Ch20's exit
+## ✅ THE ONE THAT WOULD STRAND THE RUN — NOW MEASURED IN OUR OWN ROM (9/9). Read before building §Ch20's exit
 
-`ai-research-notes/2026-08-13-ch20-decomp-blockers-and-room8.md` holds four decomp blockers. Three
-are still untested; **Blocker 2 is the dangerous one.** The chapter's forced exit lands on
-`ROUTE128 (38,22)`, a shallow-water sandbar, and **releases the player facing NORTH** — and north is
-a **41-tile CLOSED LAGOON** on a map with `"allow_escaping": false`. The bot also cannot Surf from
-the landing tile at all (all four neighbours are `MB_SHALLOW_WATER`, which is not surfable).
-⇒ **Step SOUTH to `(38,23)`, face south, Surf onto `(38,24)`.** The trap points the way the camera
-does, and three chapters have already shipped stranded.
+`ai-research-notes/2026-08-13-ch20-decomp-blockers-and-room8.md` holds four decomp blockers.
+**Blocker 2 is the dangerous one, and it is now CONFIRMED by `probe_route128_landing.py` (NEW)** —
+re-measured through `modules.map.get_map_all_tiles`, the reader the chapter will use, **sharing no
+code with the agent's `map.bin` decode**, and agreeing on every number (71 / 41 / 1766).
+
+The chapter's forced exit lands on `ROUTE128 (38,22)`, a shallow-water sandbar whose on-foot
+component is **71 tiles and never touches the map edge**. The water north of it is a **41-tile
+CLOSED LAGOON**, a **different component** from the 1,766-tile open ocean, on a map with
+`"allow_escaping": false`. ‼ **And the landing tile has ZERO surfable neighbours** — all four are
+shallow — so "Surf from where you land" does nothing in any direction and will read as a **hung
+leg**, not as a failure.
+
+⇒ **THE RULE, MEASURED: step SOUTH to `(38,23)`, face Down, Surf onto `(38,24)`.** One step,
+confirmed one of 46 real launches onto the open ocean.
+
+⛔ **BUT THE ORIGINAL FRAMING WAS TOO CRUDE AND WOULD HAVE PRODUCED A WRONG GUARD.** "Surf north
+and you strand" is false: the atoll **wraps around**, and **33 launch points north of the landing
+DO reach the open ocean**. The hazard is not a compass direction — it is the **28 launches into the
+closed lagoon, on the atoll's WESTERN shore (`x = 33-35`)**. ‼ My first version of the probe checked
+"no launch point lies north", got REFUTED, and **the check was wrong, not the claim** — corrected in
+place, and it is exactly the failure shape this project logs most often.
+⚠ **Still unmeasured:** that the cutscene releases the player *facing north*. The map is proven;
+the facing wants a live check when the chapter is driven.
 
 ⇒ **NEXT: ROOM 3 — arbitrate it first.** It is *not* the walk the spec calls it: it has a
 **7-boulder puzzle the spec omits entirely**, its two trainers are unavoidable on the push-free
@@ -411,36 +427,13 @@ only on researching new work.* And: **write the predicted failure down BEFORE th
 §Ch19 hazard checks did this and 3/3 held, which is how two traps got designed out instead of
 debugged.
 
-## ‼‼ THE BATCH RESULT — one thing resolved, one thing NOT
-**RESOLVED — the status tax is real:** incapacitated turns lost **960/2,945 = 32.6%** vs a clean
-control of **1,259/33,017 = 3.8%**. **8.5×, z = +62.2**, over 47,789 turns from 36 independent lane
-logs. ‼ My earlier n=2 figure of 64.3% was **~2× too high** — one dungeon fight is not a rate.
+## ‼‼ THE BATCH RESULT (status tax + `#24-teachmsgstall`) — MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-13)
 
-**NOT RESOLVED — `#24-teachmsgstall` has no production effect and is REOPENED:**
-teach success **38/47 (80.9%)** vs **38/42 (90.5%)** pre-fix, **z = −1.28**; `post_select=exhausted`
-**8/85** vs **3/80**, **z = +1.46**; and the new `already-advanced` exit fired **ZERO** times in 85
-teaches. The one-frame window was real but was **not the dominant production cause**. The fix stays
-(it closes a real hole and costs nothing); **there is another path to `exhausted`.**
+An older 36-lane measurement, moved out for the R3 budget. ‼ **Keep this:** the **status tax is REAL — 32.6% of turns incapacitated vs a 3.8% control, 8.5x, z = +62.2 over 47,789 turns** (an earlier n=2 figure of 64.3% was ~2x too high). **`#24-teachmsgstall` is REOPENED**: the fix closed a real hole but had **no measurable production effect** (z = −1.28; its new exit fired **ZERO** times in 85 teaches) ⇒ **another path to `exhausted` exists.** KI-51/KI-52 never fired — still unmeasured.
 
-**NO EVIDENCE EITHER WAY:** KI-51 and KI-52 never fired in the batch (0 events). Still unmeasured.
+## 🛡 THE HARDENING ROUND (advisory rules → code that refuses) — MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-13)
 
-## 🛡 THE HARDENING ROUND — advisory rules → code that refuses
-Driven by the finding that **≥12 of 164 logged mistakes are self-admitted REPEATS**, several
-committed while the author knew the rule. **Run `preflight.py` before touching anything.**
-| tool | what it does |
-|---|---|
-| `preflight.py` | one gate: git sync + fixtures + docs + live-batch detection. **Exits 1.** |
-| `lint_docs.py` | CLAUDE.md's doc rules enforced (R1-R6). Cut `04-HANDOFF` from 3,240 → 167 lines |
-| `verify_fixtures.py` (+`--assert name=md5`) | PINNED saves byte-identical; put the assert **in** the measurement command |
-| `repro_no_silent_except.py` | RATCHET at **140/203** silent handlers — may never rise |
-| `29-DISABLED-FEATURES-REGISTRY.md` + lint R6 | every `POKEBOT_*` flag with its MEASUREMENT. **Check before proposing a feature** |
-| `30-METRICS.md` | which instrument answers which question, at what n |
-| `27-INJECTION-SURFACE.md` | how the bot observes/acts + the 8 timing traps (for goal #2) |
-| `25-BACKUPS-AND-RESTORE.md` | restore points: naming, what a tag does/doesn't capture, recipes |
-| `26-REVIEW-AND-HARDENING-PLAN-…md` | the full review: taxonomy, doc health, future path |
-
-‼ **Three of these found real problems on their first run**: six competing START-HERE banners, an
-**11th undocumented flag** (which turned out to be the roster blocker), and 140 silent handlers.
+The tool-by-tool table moved out for the R3 budget. ‼ **Keep this:** it was driven by the finding that **≥12 of 164 logged mistakes are self-admitted REPEATS**, several committed while the author knew the rule — and **three of those tools found real problems on their first run** (six competing START-HERE banners, an 11th undocumented flag which turned out to be the roster blocker, and 140 silent handlers). **Run `preflight.py` before touching anything**, and see `29-DISABLED-FEATURES-REGISTRY.md` before proposing any feature behind a `POKEBOT_*` flag.
 
 ## ‼ WHAT THE USER DECIDED THIS SESSION
 * **Promotions approved twice** (teach fix; then KI-51 + KI-52 + status telemetry).

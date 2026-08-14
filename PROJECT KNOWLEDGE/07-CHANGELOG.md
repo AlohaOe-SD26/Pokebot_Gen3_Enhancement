@@ -13158,3 +13158,37 @@ releases the player **facing north**, and north is a **41-tile closed lagoon** w
 
 17/17 gates PASS. **Drift is still exactly 3, MEASURED not assumed** — `early_game.py` was
 already one of the three drifted files, so correcting its comments adds no new file.
+
+---
+
+## 2026-08-13 — Blocker 2 CONFIRMED IN OUR OWN ROM: §Ch20's exit lands on a 71-tile atoll, and the landing tile cannot Surf at all (`#24-remainingarc`)
+
+**New: `tools/story-dev/probe_route128_landing.py`.** A decomp subagent claimed the Kyogre cutscene
+strands the bot on `ROUTE128 (38,22)` beside a closed lagoon. That is a NOTE, and this project's
+standing rule is that a load-bearing claim gets re-measured in our own harness before code depends
+on it — the rule written after `probe_shoal_tide.py` was found to have COPIED the pathfinder's bug
+and so agreed with production while both were wrong. This probe reads the live ROM through
+`modules.map.get_map_all_tiles` — the reader the chapter will use — and **shares no code with the
+agent's `map.bin` decode.** It agrees on every number: **71 / 41 / 1766**.
+
+**9 of 9 pre-registered checks CONFIRMED:** the landing is standable `'Shallow Water'`; its on-foot
+component is **71 tiles and never reaches the map edge**; the water north is a **41-tile CLOSED
+lagoon** in a **different component** from the **1,766-tile open ocean**; 46 surf launches exist;
+the recommended `(38,23)`/Down/`(38,24)` is one of them; **the landing tile itself has ZERO surfable
+neighbours**; and **28 trap launches into the lagoon exist**.
+
+‼ **AND THE NOTE'S FRAMING WAS TOO CRUDE — "surf north and you strand" WOULD HAVE PRODUCED A WRONG
+GUARD.** The sandbar is an atoll that **wraps around**, so **33 launch points north of the landing
+DO reach the open ocean**. The hazard is not a compass direction; it is the **28 launches into the
+lagoon on the atoll's WESTERN shore (`x = 33-35`)**. The actionable rule survives unchanged and is
+now measured: **step SOUTH to `(38,23)`, face Down, Surf onto `(38,24)`** — one step.
+
+‼ **MY FIRST VERSION OF THE PROBE ASKED THE WRONG QUESTION.** Check 7 was *"no surf launch point
+lies NORTH of the landing"*; it reported **REFUTED**, and **the check was wrong, not the claim** —
+it measured a proxy (a compass direction) instead of the hazard (a component). Corrected in place,
+with the reasoning left in the source so the next reader sees why. That is the project's most
+frequently logged mistake shape, and it cost one re-run because the probe was cheap and the claim
+was pre-registered.
+
+⚠ **Still unmeasured:** that the cutscene releases the player *facing north*. The MAP is proven; the
+FACING is still a decomp claim and wants a live check when the chapter is driven.

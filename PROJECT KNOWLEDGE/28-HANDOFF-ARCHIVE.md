@@ -3437,3 +3437,44 @@ floors underground, §Ch18 on an eleven-tile island, §Ch19 in a living room. *K
 every chapter's acceptance.* (Second bug inside the fix: both navigate-based door helpers free the
 tile by stepping SOUTH, and (3,7) is the bottom row — an exit door needs `_walk_through_warp("Down")`.)
 
+
+
+---
+
+# ARCHIVED 2026-08-13 from `04-HANDOFF.md` (R3 budget; verbatim)
+
+## ‼‼ THE BATCH RESULT — one thing resolved, one thing NOT
+**RESOLVED — the status tax is real:** incapacitated turns lost **960/2,945 = 32.6%** vs a clean
+control of **1,259/33,017 = 3.8%**. **8.5×, z = +62.2**, over 47,789 turns from 36 independent lane
+logs. ‼ My earlier n=2 figure of 64.3% was **~2× too high** — one dungeon fight is not a rate.
+
+**NOT RESOLVED — `#24-teachmsgstall` has no production effect and is REOPENED:**
+teach success **38/47 (80.9%)** vs **38/42 (90.5%)** pre-fix, **z = −1.28**; `post_select=exhausted`
+**8/85** vs **3/80**, **z = +1.46**; and the new `already-advanced` exit fired **ZERO** times in 85
+teaches. The one-frame window was real but was **not the dominant production cause**. The fix stays
+(it closes a real hole and costs nothing); **there is another path to `exhausted`.**
+
+**NO EVIDENCE EITHER WAY:** KI-51 and KI-52 never fired in the batch (0 events). Still unmeasured.
+
+
+---
+
+# ARCHIVED 2026-08-13 from `04-HANDOFF.md` (R3 budget; verbatim)
+
+## 🛡 THE HARDENING ROUND — advisory rules → code that refuses
+Driven by the finding that **≥12 of 164 logged mistakes are self-admitted REPEATS**, several
+committed while the author knew the rule. **Run `preflight.py` before touching anything.**
+| tool | what it does |
+|---|---|
+| `preflight.py` | one gate: git sync + fixtures + docs + live-batch detection. **Exits 1.** |
+| `lint_docs.py` | CLAUDE.md's doc rules enforced (R1-R6). Cut `04-HANDOFF` from 3,240 → 167 lines |
+| `verify_fixtures.py` (+`--assert name=md5`) | PINNED saves byte-identical; put the assert **in** the measurement command |
+| `repro_no_silent_except.py` | RATCHET at **140/203** silent handlers — may never rise |
+| `29-DISABLED-FEATURES-REGISTRY.md` + lint R6 | every `POKEBOT_*` flag with its MEASUREMENT. **Check before proposing a feature** |
+| `30-METRICS.md` | which instrument answers which question, at what n |
+| `27-INJECTION-SURFACE.md` | how the bot observes/acts + the 8 timing traps (for goal #2) |
+| `25-BACKUPS-AND-RESTORE.md` | restore points: naming, what a tag does/doesn't capture, recipes |
+| `26-REVIEW-AND-HARDENING-PLAN-…md` | the full review: taxonomy, doc health, future path |
+
+‼ **Three of these found real problems on their first run**: six competing START-HERE banners, an
+**11th undocumented flag** (which turned out to be the roster blocker), and 140 silent handlers.

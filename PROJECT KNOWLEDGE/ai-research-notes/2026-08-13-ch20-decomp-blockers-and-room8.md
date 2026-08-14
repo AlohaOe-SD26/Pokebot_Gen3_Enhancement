@@ -31,7 +31,37 @@ comments are now corrected in place. ⛔ **The danger was never a crash; it was 
 deleting the re-check as redundant.** Then every room after the first walks into its boulder, takes
 a plain wall collision, and retries with no message and no error.
 
-### ⚠ Blocker 2 — the Route 128 landing is an ATOLL, and the obvious Surf direction strands the run. **UNTESTED.**
+### ✅ Blocker 2 — the Route 128 landing is an ATOLL. **CONFIRMED IN OUR OWN ROM 2026-08-13 — 9/9 checks — but its FRAMING needed correcting.**
+
+> **`tools/story-dev/probe_route128_landing.py` (NEW)** re-measured this through
+> `modules.map.get_map_all_tiles` — the same reader the chapter will use — **sharing no code with
+> the agent's `map.bin` decode.** Byte-for-byte agreement on every number below (71 / 41 / 1766).
+>
+> ```
+> CONFIRMED  landing is shallow/standable            (38,22) coll=0 elev=3 'Shallow Water'
+> CONFIRMED  on-foot component does NOT reach the map edge          size=71
+> CONFIRMED  north water and south water are DIFFERENT components
+> CONFIRMED  south water reaches the map edge (open ocean)          size=1766
+> CONFIRMED  north water does NOT reach the map edge (closed lagoon) size=41
+> CONFIRMED  at least one surf launch point onto the OPEN ocean exists          46 of them
+> CONFIRMED  the recommended escape (38,23)/Down/(38,24) is one of them
+> CONFIRMED  the landing tile itself CANNOT surf (all four neighbours are shallow)
+> CONFIRMED  a TRAP exists — the closed lagoon is surfable-into from the sandbar   28 launches
+> ```
+>
+> ⛔ **THE FRAMING BELOW IS CORRECTED: "surf north and you strand" IS TOO CRUDE and would have
+> produced a wrong guard.** The sandbar is a **71-tile atoll that wraps around**, so **33 launch
+> points NORTH of the landing DO reach the open ocean**. The hazard is not a compass direction — it
+> is the **28 launches into the closed lagoon**, which sit on the atoll's **WESTERN** shore
+> (`x = 33-35`), nowhere near due north of the landing.
+> ⇒ **The actionable rule is unchanged and now measured: step SOUTH to `(38,23)`, face Down, Surf
+> onto `(38,24)` — one step, confirmed a real launch.** ‼ And note the landing tile itself has
+> **zero** surfable neighbours, so a naive "Surf from where you land" does nothing at all in any
+> direction — it will look like a hung leg, not like a failure.
+> ⚠ **Still a decomp claim, not measured:** that the cutscene releases the player *facing north*.
+> The map is now proven; the facing wants a live check when the chapter is driven.
+>
+> *(original claim, kept for provenance)*
 
 Leg 11's landing tile `ROUTE128 (38,22)` after the Kyogre cutscene, from a direct decode of
 `data/layouts/Route128/map.bin` (120x40):
