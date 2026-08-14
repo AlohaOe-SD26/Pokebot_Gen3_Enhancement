@@ -7,9 +7,11 @@
 Every banner further down is HISTORY, newest first.
 
 ---
-# ‼ YOU ARE HERE — the **§Ch20 ROOM 1 DRIVE** session (2026-08-13, latest). Read this, then `14-AGENT-PLAYBOOK.md`.
+# ‼ YOU ARE HERE — the **§Ch20 CAVERN-INTERIOR** session (2026-08-13, latest): Rooms 1 AND 2 are driven. Read this, then `14-AGENT-PLAYBOOK.md`.
 
-> **State: `main`, clean, 17/17 gates PASS, nothing parked, nothing running.**
+> **State: `main`, clean, 17/17 gates PASS, nothing parked, nothing running.** Three commits
+> this session, all pushed. **Rooms 1 and 2 of the Seafloor Cavern are DRIVEN and PASSING**;
+> Rooms 3-9 are planning only.
 > ‼ `stash@{0}` exists **on purpose** — see the STATE table; **never drop it.**
 
 ## 🚩 THE BOT IS INSIDE THE SEAFLOOR CAVERN AND THROUGH ROOM 1 — driven, first attempt
