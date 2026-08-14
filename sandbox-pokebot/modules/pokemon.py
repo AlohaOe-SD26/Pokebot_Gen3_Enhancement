@@ -868,6 +868,42 @@ class PokerusStatus:
     days_remaining: int
 
 
+def same_pokemon(a: "Pokemon", b: "Pokemon") -> bool:
+    """Are these the SAME physical Pokémon? **Personality value AND species.** (KI-78)
+
+    ‼‼ A PERSONALITY VALUE IS NOT A UNIQUE IDENTITY IN GEN 3, AND THIS IS THE FIX FOR THAT.
+    `CreateShedinja` (`src/evolution_scene.c:548-583`) builds Shedinja with `CopyMon`, a plain
+    memcpy (`src/pokemon.c:4419-4422`), and **does not overwrite the personality or the OT ID** —
+    so a Shedinja and the Ninjask it came from share a PID for life. Any lookup that scans for the
+    first PID match therefore cannot tell the twins apart, and `CreateShedinja` places the twin
+    AFTER its sibling, so a request aimed at the Shedinja resolves to the Ninjask.
+    ⛔ That matters because of who those lookups serve: `pc_interaction.py` DEPOSIT and **RELEASE**.
+    "Box the Shedinja" boxed the Ninjask; **"release the Shedinja" destroyed the Ninjask.**
+
+    ✅ **NOT A NEW IDEA HERE — HALF THIS CODEBASE ALREADY DID IT.**
+    `pokemon_storage.get_slot_for_pokemon` has always matched on `(personality, species)`; its own
+    neighbour `contains_pokemon` and the party-side `get_index_for_pokemon` never got it. This
+    function is the single definition those three now share, so the pair cannot drift again.
+
+    ‼ RULED 2026-08-14 — SPECIES, NOT THE NICKNAME. The user proposed `(PID, name)`, reasoning the
+    bot never renames, and the obvious objection ("a default nickname must be stale after
+    evolution") is **FALSE**: `EvolutionRenameMon` (`src/pokemon.c:5814-5821`) rewrites a default
+    nickname to the new species name, and runs BEFORE `CreateShedinja`. Name would have worked for
+    this pair. Species wins anyway because that rename keeps name and species in lockstep, so the
+    name carries **no information species does not** — while diverging where it must not: every
+    egg shares one nickname, the nickname changes at hatch, in-game trades ship preset names that
+    never update, and a foreign-language mon never renames at all. And "the bot never renames" is
+    true by one hard-coded "No" — `starter_nickname` is already wired end to end. See KI-78.
+
+    ⛔ **DO NOT APPLY THIS TO `counter_hunt.py`'S PID SETS.** `catch_confirmed()` works *because*
+    the twins share a PID: a Shedinja spawn then cannot look like a NEW identity, which is exactly
+    the right answer. Adding species there would reintroduce the bug that code was written to fix.
+    The protected/hunted PID sets are likewise deliberate — a twin SHOULD inherit its sibling's
+    protection; widening is safe there, narrowing is not.
+    """
+    return a.data[:4] == b.data[:4] and a.species.index == b.species.index
+
+
 class Pokemon:
     """
     Represents an individual Pokémon.

@@ -13622,3 +13622,43 @@ still carried the exact derail they had watched live.**
   user's original failing scenario end to end (a Nincada evolving into a full party → counter hunt
   → heal). That repro is the honest remaining gap.
 * Full per-file rationale and evidence table: `custom-pokebot/DIVERGENCE-LOG.md`, 2026-08-14.
+
+## 2026-08-14 — KI-78 STAGE 1: identity is now `(personality, species)` — the fix for a lookup that could RELEASE the wrong Pokémon (`#24-roster`)
+
+* **THE HAZARD, decomp-verified.** `CreateShedinja` (`src/evolution_scene.c:548-583`) copies the
+  Ninjask with `CopyMon`, a plain memcpy (`src/pokemon.c:4419-4422`), and never rewrites the
+  personality or OT id — so the twins are PID-identical for life, and the spawned twin always sits
+  in the **later** party slot. `Party.get_index_for_pokemon` scanned for the FIRST `data[:4]`
+  match, and its callers are `pc_interaction.py` DEPOSIT (`:464`) and **RELEASE (`:505`,
+  permanent)**. ⇒ *"box the Shedinja"* boxed the Ninjask; ***"release the Shedinja" destroyed the
+  Ninjask.***
+* ✅ **FIXED via one shared predicate, `modules/pokemon.same_pokemon` = personality AND species.**
+  `Party.get_index_for_pokemon` and `PokemonStorage.contains_pokemon` moved onto it;
+  `get_slot_for_pokemon` **already used that key** and is refactored onto the same predicate so the
+  trio cannot drift apart again. **This is a CONSISTENCY fix — half the codebase was already
+  right.**
+* **NEW GATE `repro_pid_identity_key.py` (suite 19 → 20), fault-injected, no emulator or ROM.**
+  ‼ The fixture is a **REAL twin pair built with genuine Gen 3 substructure encryption** (XOR keyed
+  on `personality ^ OT id`, substructures placed by `personality % 24`), not duck-typed stand-ins —
+  the gate asserts the species actually DECODES out of those bytes (302 / 303) and that the twins
+  genuinely share a PID, because a fake object with a `.species` attribute would test our idea of
+  the interface rather than the real decode path. **A/B: ARM A (the old PID-only rule, inlined)
+  asked for the SHEDINJA returns the NINJASK's slot 0; ARM B (shipped) returns slot 1.**
+  Controls: a different-PID pair resolves under BOTH arms (discrimination); a fabricated
+  same-PID-SAME-species pair is **still ambiguous and says so** (honesty — we claim no uniqueness
+  we lack). **Fault-tested twice, independently**: reverting the fix turns the gate red on exactly
+  `get_index_for_pokemon(shedinja) == 1` and the ambiguous-miss check, and an adversarial reviewer
+  reproduced that by stashing the three source files back to Stage 0.
+* **R6 — the new failure mode, handled rather than ignored.** A mon that EVOLVES between capture
+  and lookup no longer matches on species. A **unique** PID hit is re-resolved from the live party
+  and reported LOUD; an ambiguous one **RAISES**, because the caller may be about to destroy
+  something. ⛔ It never falls back to "the first PID match". Rationale and rejected alternatives
+  in `06-DECISIONS-LOG.md`. ⚠ **Unexercised by any live caller today** — defensive coding, proven
+  by the gate only.
+* ⛔ **`counter_hunt.py` deliberately KEEPS PID-only semantics** — `catch_confirmed()` works
+  *because* the twins share a PID, so a Shedinja spawn cannot look like a new catch. Adding species
+  there would reintroduce the bug it was written to fix. Recorded at `same_pokemon`'s definition
+  site so a future consistency sweep cannot "tidy" it back.
+* ⚠ **drift 0 → 3** (`pokemon.py`, `pokemon_party.py`, `pokemon_storage.py`). **`custom-pokebot`
+  has the KI-78 detection warning but NOT the fix — the wrong-target release is still live there.**
+  Promotion is the USER's call and has not been asked for.

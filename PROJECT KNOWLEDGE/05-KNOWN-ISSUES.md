@@ -2149,9 +2149,12 @@ are now resolved live here", so they are listed here to stay findable:
   from **NO-PATH from every direction** (all 29 tiles invisible to the planner) to `OK len=1` on the
   legal approaches; the `MOSSDEEP_CITY` collateral control is **byte-identical** across arms. Now
   **gate #17**. ‼ `probe_shoal_tide.py` corrected in lockstep; its numbers re-derived on the fixed
-  model are **unchanged (LOW 278 / HIGH 0)**. ✅ **PROMOTED 2026-08-14 — drift is now ZERO** (it had
-  reached 5; `counter_hunt.py` and `pokemon_party.py` joined that day and went over with the rest,
-  verified by driving `--build custom`). Historical note, superseded: *"Sandbox only — promotion is the
+  model are **unchanged (LOW 278 / HIGH 0)**. ✅ **PROMOTED 2026-08-14 — that promotion took drift
+  to ZERO** (it had reached 5; `counter_hunt.py` and `pokemon_party.py` joined that day and went
+  over with the rest, verified by driving `--build custom`). ⚠ **drift is now 3 again** —
+  KI-78 **Stage 1** (`pokemon.py`, `pokemon_party.py`, `pokemon_storage.py`) landed in sandbox
+  AFTER that promotion and has NOT been promoted; promotion is the USER's call.
+  Historical note, superseded: *"Sandbox only — promotion is the
   USER's call.** The original diagnosis and the retraction that reprioritised it are kept below.
 * **KI-59 (original entry)** — `map_path` **INVERTS `Impassable *` directions**. ✅ **REAL** (decomp-verified).
   ⛔ **BUT ITS "ARMED IN THE SEAFLOOR CAVERN" HEADLINE IS RETRACTED, 2026-08-13, MEASURED.**
@@ -2674,7 +2677,17 @@ to refute "the tide is not a blocker"; the static-table half verified by me dire
   invalidate the entry on map-transition. Both touch shared pathfinding that every mode depends on,
   so it needs its own A/B — not a drive-by change.
 
-## KI-78 — ⛔ **PERSONALITY VALUE IS NOT A UNIQUE IDENTITY IN GEN 3: a SHEDINJA carries the SAME PID as the NINJASK it came from** — and this codebase keys "which mon do I act on" off exactly that (2026-08-14, DECOMP-VERIFIED, OPEN, ARMED wherever a Nincada line is in the party)
+## KI-78 — ⛔ **PERSONALITY VALUE IS NOT A UNIQUE IDENTITY IN GEN 3: a SHEDINJA carries the SAME PID as the NINJASK it came from** — and this codebase keyed "which mon do I act on" off exactly that (2026-08-14, DECOMP-VERIFIED — ✅ **FIXED IN SANDBOX (Stage 1), ⚠ STILL ARMED IN `custom-pokebot` until promoted**)
+
+> ✅ **STAGE 1 LANDED 2026-08-14 — the party/box identity lookups now key on `(personality,
+> species)`** via the shared `modules/pokemon.same_pokemon` predicate. A/B proven by
+> `tools/story-dev/repro_pid_identity_key.py` (gate #20), which builds a **real** twin pair with
+> genuine Gen 3 substructure encryption: the OLD PID-only rule, asked for the SHEDINJA, returns
+> the **NINJASK's** slot; the shipped rule returns the right one. Fault-tested both ways — revert
+> the fix and the gate goes red on exactly that check.
+> ⚠ **`custom-pokebot` HAS THE DETECTION WARNING BUT NOT THE FIX** (Stage 0 was promoted, Stage 1
+> was not — promotion is the USER's call). **The wrong-target release is still live there.**
+> ⛔ **The residual cases below are NOT closed by Stage 1** — see "Residual collisions".
 
 - **Why this is severe.** This project's standing rule — written into `CLAUDE.md`'s SESSION
   DISCIPLINE as rule 3 — is *"Assert IDENTITY, never position or count. PIDs — never slot
@@ -2692,16 +2705,34 @@ to refute "the tide is not a blocker"; the static-table half verified by me dire
   requirement**; that rule is Gen 4+. Our `modules/obtainability.py:88` display string says
   *"level up (empty slot + spare Ball)"* and **is wrong for this ROM**. Any Nincada reaching L20
   with one free slot spawns a Shedinja.
-- **Where it is armed (each of these picks the FIRST PID match and cannot tell the twins apart):**
-  * `modules/pokemon_party.py:96-100` `Party.get_index_for_pokemon` — matches `data[:4]`, i.e.
-    the personality, and returns the first hit. ⇒ **the function that decides WHICH PARTY SLOT a
-    PC action operates on.**
-  * `modules/modes/util/pc_interaction.py:464` (`_do_deposit_actions`) and **`:505` (RELEASE)** —
-    both resolve their target through it. ⛔ *"Deposit this one"* can deposit the twin, and one
-    branch of the same lookup **releases a Pokémon permanently.**
-  * `modules/story/pc_trip.py:384-400` `find_in_box(pids)`, and the protected-counter PID set at
-    `:136`.
-  * `modules/story/early_game.py:1655-1656` — `_hunted_counter_pids` matching in the lead picker.
+- **Where it WAS armed — ✅ the first two are FIXED IN SANDBOX by Stage 1, ⚠ still armed in
+  `custom-pokebot`. The rest are untouched and remain PID-only ON PURPOSE:**
+  * ✅ `modules/pokemon_party.py` `Party.get_index_for_pokemon` — **now matches via
+    `same_pokemon` (personality AND species)**, with the R6 handling below. It used to match
+    `data[:4]` alone and return the first hit, which is **the function that decides WHICH PARTY
+    SLOT a PC action operates on** — the whole hazard.
+  * ✅ `modules/pokemon_storage.py` `contains_pokemon` — was PID-only; now on `same_pokemon`.
+    Its neighbour `get_slot_for_pokemon` was **already** composite and is refactored onto the
+    shared predicate so the pair cannot drift apart again. ⚠ `contains_pokemon` has **zero callers
+    today**, so its correctness is proven by routing, not by a behavioural A/B.
+  * ⚠ `modules/modes/util/pc_interaction.py:464` (`_do_deposit_actions`) and **`:505` (RELEASE)**
+    resolve their target through `get_index_for_pokemon`, so they inherit the fix in sandbox and
+    **remain exposed in `custom-pokebot`.** ⛔ One branch of that lookup **releases a Pokémon
+    permanently.**
+  * ⛔ **DELIBERATELY LEFT PID-ONLY — do not "fix" these:** `modules/story/pc_trip.py:384-400`
+    `find_in_box(pids)` and the protected-counter PID set at `:136`;
+    `modules/story/early_game.py:1655-1656`'s `_hunted_counter_pids` matching. These mean *"do not
+    touch anything in this family"*, and a twin SHOULD inherit its sibling's protection — widening
+    is the safe direction, narrowing is not.
+- ‼ **R6 — THE NEW FAILURE MODE STAGE 1 INTRODUCES, AND HOW IT IS HANDLED.** A mon that EVOLVES
+  between the caller capturing its object and the lookup running no longer matches on species.
+  Rather than abort a working flow, a **unique** PID hit whose species disagrees is **re-resolved
+  from the live party and reported LOUD**; a species miss with two or more PID hits **RAISES**,
+  because the caller may be about to release something. ⛔ It must NEVER fall back to "the first
+  PID match" — that is the original bug. Both branches are asserted by the gate.
+  ⚠ **Unexercised by any live caller today:** every current caller re-captures its target
+  immediately before entering the PC menu, with no encounter-capable movement in between. It is
+  defensive coding, and knowing it is untested by a real flow is part of the record.
 - ✅ **One place it is NOT a problem, by luck rather than design:** `counter_hunt._stop()`'s new
   identity test (fixed 2026-08-14) *wants* the twins to share a PID — a Shedinja spawn then cannot
   look like a new catch, which is the correct answer. Do not "fix" the collision in a way that

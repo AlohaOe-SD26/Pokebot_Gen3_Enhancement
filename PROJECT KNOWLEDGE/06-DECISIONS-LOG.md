@@ -2287,3 +2287,57 @@ sampled from a moving frame of reference; assert identity, never a count) and it
 of bug wider than Shedinja: ANY party change the bot did not initiate desynchronises a derived
 count. Under investigation as of this entry; the egg-blind `withdraw_from_box` test
 (`pc_trip.py:429-438`) is a known instance of exactly this shape.
+
+## 2026-08-14 — KI-78 Stage 1: identity is `(personality, species)`, and an evolved-since-capture mon is RE-RESOLVED rather than raising — except when it is ambiguous
+
+**Decision.** `Party.get_index_for_pokemon` and `PokemonStorage.contains_pokemon` now match on
+`(personality, species)` through one shared predicate `modules/pokemon.same_pokemon`.
+`get_slot_for_pokemon` already used that key and is refactored onto the same predicate so the trio
+cannot drift apart again. ⛔ `counter_hunt.py`'s PID sets and the protected/hunted PID sets are
+DELIBERATELY excluded — see below.
+
+**Why a composite key at all.** `CreateShedinja` copies the Ninjask with a memcpy and never
+rewrites the personality, so the twins are PID-identical for life and the spawned twin always sits
+in the LATER slot. A first-PID-match scan therefore resolved a Shedinja request to the Ninjask —
+on a lookup whose callers are DEPOSIT and **RELEASE (permanent)**.
+
+### The real decision: R6 — what to do when the species disagrees
+
+The composite key introduces a failure mode PID-only did not have: a mon that EVOLVES between the
+caller capturing its object and the lookup running no longer matches. Three options were live:
+
+1. **Always RAISE on a species mismatch.** Rejected as the blanket rule: it converts flows that
+   used to work (a mon evolved en route; the caller still means *that* mon) into hard aborts, and
+   the callers largely do not catch `RuntimeError`. Trading a wrong-target bug for a run-killer is
+   not obviously a win, and this project has twice deleted winning behaviour by counting only
+   failures.
+2. **Fall back to the first PID match.** ⛔ Rejected outright — that IS the original bug.
+3. ✅ **CHOSEN — split on ambiguity.** Exactly ONE mon carrying that PID ⇒ unambiguous; it evolved;
+   re-resolve to it and report LOUD. TWO OR MORE PID hits with no species match ⇒ genuinely
+   ambiguous ⇒ **RAISE**, because the caller may be about to destroy something and a guess is not
+   recoverable. The asymmetry is deliberate: *recover where the answer is unique, refuse where it
+   is not.*
+
+**Cost, stated rather than buried.** R6 is **unexercised by any live caller today** — every current
+caller re-captures its target immediately before entering the PC menu, with no encounter-capable
+movement in between. It is defensive coding proven only by the gate, and it should not be described
+as battle-tested.
+
+### Why `counter_hunt.py` must KEEP the PID-only semantics
+
+`catch_confirmed()` (shipped hours earlier the same day) works *because* the twins share a PID: a
+Shedinja spawn cannot look like a NEW identity, which is the correct answer for "did this hunt
+catch something?". Adding species there would reintroduce the bug that function was written to fix.
+The protected/hunted PID sets are the same shape — they mean "do not touch anything in this
+family", so a twin SHOULD inherit its sibling's protection. **Widening is safe there; narrowing is
+not.** This is recorded at the definition site of `same_pokemon` as well, so a future consistency
+sweep does not "tidy" it back.
+
+**Alternatives rejected for the KEY itself:** `(personality, nickname)` — the user's proposal, and
+the objection raised against it (a stale nickname after evolution) was **refuted** by the decomp;
+it would have worked for this pair. Species wins because the game keeps default nickname and
+species in lockstep, so the name adds no discriminating power while bringing its own failure modes
+(eggs share one nickname, it changes at hatch, trades ship preset names, foreign-language mons
+never rename) — and because `starter_nickname` is already wired end to end, one hard-coded "No"
+away from making that field arbitrary. `(personality, party_index)` — rejected: the index is the
+unstable thing the identity key exists to replace.
