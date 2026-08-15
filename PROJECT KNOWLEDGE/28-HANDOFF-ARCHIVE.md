@@ -4191,3 +4191,25 @@ comments were wrong. (3) **KI-77** was filed from Room 1's short object dump (2 
 corrected same-day: the despawn window is derived (20x17), the game resets a despawned boulder
 to its template, the planner never under-blocks — and the window has since predicted the Room 8
 arrival dump exactly (8 of 12, 2026-08-14).
+
+
+# MOVED 2026-08-15 (wrap-up) — the ATOLL EXIT banner, verbatim.
+
+‼ Why: the handoff hit its 900-line cap while a session-end cross-doc sweep was correcting 19
+defects, several of which needed MORE words, not fewer. The atoll exit is DRIVEN and its rule is
+kept in the handoff in one line.
+⛔ **STILL LIVE:** the §Ch20 exit lands on `ROUTE128 (38,22)`, whose landing tile has **ZERO
+surfable neighbours** — a naive Surf does nothing in any direction and reads as a HUNG LEG, not a
+failure. ⇒ step SOUTH to `(38,23)`, face Down, Surf onto `(38,24)`. The hazard is NOT a compass
+direction: the trap is 28 launches into a 41-tile CLOSED LAGOON on the WESTERN shore.
+
+## ✅ THE ATOLL EXIT (Blocker 2) — MEASURED 9/9, then DRIVEN — DETAIL MOVED to `28-HANDOFF-ARCHIVE.md`
+
+‼ **Keep the rule, it is the whole point:** the §Ch20 exit lands on `ROUTE128 (38,22)`, a sandbar
+whose on-foot component is 71 tiles and **whose landing tile has ZERO surfable neighbours** — so a
+naive "Surf from where you land" does nothing in any direction and reads as a **HUNG LEG, not a
+failure**. ⇒ **step SOUTH to `(38,23)`, face Down, Surf onto `(38,24)`.** ✅ Driven 2026-08-14
+(`--driver ch20room9`). ⛔ The hazard is NOT a compass direction — the atoll wraps, and 33 launch
+points north DO reach open water; the trap is the **28 launches into a 41-tile CLOSED LAGOON** on
+the WESTERN shore. Full measurement: `ai-research-notes/2026-08-13-ch20-decomp-blockers-and-room8.md`
+and `tools/story-dev/probe_route128_landing.py`.

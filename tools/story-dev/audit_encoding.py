@@ -44,13 +44,46 @@ def suspect_count(text: str) -> int:
     return len(SUSPECT.findall(text))
 
 
+#: ‼‼ THE FIVE BYTES cp1252 LEAVES UNDEFINED — 0x81, 0x8D, 0x8F, 0x90, 0x9D. Python REFUSES to
+#: encode the matching characters; Windows PowerShell's decoder happily produced them. So a UTF-8
+#: sequence containing one of those bytes round-tripped into text this gate could not re-encode:
+#: `line.encode("cp1252")` RAISED, `repair_line` returned None, and the damage was reported CLEAN.
+#: That is exactly how `## ⏱` and `## ⏭` (U+23F1 / U+23ED — UTF-8 middle byte 0x8F) survived in
+#: `04-HANDOFF.md`, one of them on the NEXT ACTIONS heading, while this gate said "all 34 clean".
+#: Found 2026-08-15 by an independent cross-doc sweep, NOT by the gate written for this failure.
+#: ⇒ **a codec's REFUSAL to encode is not evidence of health.**
+_CP1252_UNDEFINED = {"": 0x81, "": 0x8D, "": 0x8F, "": 0x90, "": 0x9D}
+
+
+def _to_cp1252_bytes(line: str) -> "bytes | None":
+    """Encode as cp1252, mapping the five UNDEFINED C1 characters back to their raw bytes.
+
+    Returns None only when a character genuinely has no cp1252 byte — the honest "this was never
+    a cp1252 round-trip" answer, as opposed to the codec simply refusing.
+    """
+    out = bytearray()
+    for ch in line:
+        raw = _CP1252_UNDEFINED.get(ch)
+        if raw is not None:
+            out.append(raw)
+            continue
+        try:
+            out += ch.encode("cp1252")
+        except UnicodeEncodeError:
+            return None
+    return bytes(out)
+
+
 def repair_line(line: str) -> "str | None":
     """The reversal, returned ONLY when it provably reduces the damage (else None)."""
     if suspect_count(line) == 0:
         return None
+    encoded = _to_cp1252_bytes(line)
+    if encoded is None:
+        return None
     try:
-        candidate = line.encode("cp1252").decode("utf-8")
-    except (UnicodeEncodeError, UnicodeDecodeError):
+        candidate = encoded.decode("utf-8")
+    except UnicodeDecodeError:
         return None
     return candidate if suspect_count(candidate) < suspect_count(line) else None
 

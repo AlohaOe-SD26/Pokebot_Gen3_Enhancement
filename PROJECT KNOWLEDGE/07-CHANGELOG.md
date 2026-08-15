@@ -14194,3 +14194,45 @@ Design note (with the four premises of mine it REFUTED):
 * 🔜 **Stage 2 should now be built on `ch13_fortree_door.ss1`** and can assert against the REAL
   twins rather than injecting them. ⚠ Its box already holds one Castform, so a `sole`-style
   control must account for that rather than assuming an empty PC.
+
+## 2026-08-15 — SESSION WRAP-UP: two independent passes found **19 doc defects**, seven of which would have misdirected a fresh session (`#24-remainingarc`)
+
+* ⛔ **THE COLD-START AUDIT ALONE WAS NOT ENOUGH — and that is the finding.** A Tier 2 agent
+  reading only `04-HANDOFF.md` + `00-README.md` returned **NOT-READY** on two items. A SECOND agent
+  run in parallel on a different angle — a CROSS-DOCUMENT sweep that measured ground truth BEFORE
+  opening any doc — found **19**, including seven the first pass structurally could not see because
+  they live in files the cold-start agent is forbidden to read. ⇒ *two passes on different angles,
+  not two passes of the same question.*
+* ✅ **THE SEVEN THAT WOULD HAVE MISDIRECTED, all fixed:**
+  1. **The (P4) Stage 2 ANCHOR was asserted BOTH ways six lines apart** — "use `ch13_fortree_door`,
+     NOT `fortree_gym_wedge`" and then "use `fortree_gym_wedge`". BOTH agents flagged it
+     independently. The second line was the superseded hazard note and carried no marker.
+     Same contradiction existed in `03-PUNCH-LIST.md`.
+  2. **`debug_write_box_slot` described as UNPROVEN in the STATE table** and PROVEN LIVE 150 lines
+     later, in the same file, both unmarked.
+  3. **(P3b) still labelled "THE HEAD OF THE QUEUE"** on the line above the one declaring it
+     CLOSED — an agent acting from the queue rather than the banner would start a closed item.
+  4. **The population caveat had become FALSE.** It read *"every drive is §Ch20 DUNGEON content"*;
+     the ledger now holds `boxwrite`, `boxcounter`, `partypids` and `spin` too. Corrected to the
+     claim that is still true and still load-bearing: **no drive MUTATES THE PARTY.**
+  5. **A garbled half-edit inverting the drift expectation** — "EXPECT EXACTLY THE FIVE FILES"
+     immediately followed by "✅ nothing — everything was PROMOTED", with "do not restate the
+     figure" underneath. Measured drift is 0.
+  6. **KI-78's body still said its fix was sandbox-only and "still armed in `custom-pokebot`"**,
+     four days after promotion — a P2 pair violation the header did not share.
+  7. **`24-PLAIN-ENGLISH-STATUS.md` said the bot "stops at the second-to-last room"** of a cavern
+     driven END TO END since 2026-08-14. ‼ `00-README.md` sends HUMAN readers to that file FIRST.
+* ✅ Also fixed: `02-ARCHITECTURE` calling a promoted module "sandbox only; drift 2";
+  `01-VISION` claiming "52 `repro_*.py`" against ~100 measured; stale punch-list self-counts;
+  `--driver partypids` shipped but absent from HOW TO RUN; and "NOTHING IS PARKED" colliding with
+  §Ch20 being deliberately "PARKED".
+* ‼‼ **AND THE ENCODING GATE WAS BLIND TO THE CORRUPTION IT EXISTS FOR.** Two headings —
+  `## ⏱ THE 60-SECOND VERSION` and `## ⏭ NEXT ACTIONS` (the heading of the queue itself) — were
+  cp1252 mojibake survivors of the 2026-08-14 PowerShell incident, and `audit_encoding.py` reported
+  *"all 34 file(s) clean"* every run since. **Root cause: cp1252 leaves five bytes UNDEFINED
+  (0x81/0x8D/0x8F/0x90/0x9D). Python REFUSES to encode the matching characters, so
+  `line.encode("cp1252")` RAISED, `repair_line` returned None, and the damage was reported clean.**
+  U+23F1 and U+23ED both carry 0x8F. ✅ Fixed with `_to_cp1252_bytes()`, which maps those five back
+  to their raw bytes; fault-tested by re-injecting the real corruption (gate exit 1, file restored
+  byte-identical) and by controls proving it stays quiet on correct `⏱` and on the em dashes,
+  `20×17`, `§Ch20`, `‼`/`✅` the docs are full of.

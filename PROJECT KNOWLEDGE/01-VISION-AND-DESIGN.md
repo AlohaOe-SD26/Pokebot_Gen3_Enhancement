@@ -217,7 +217,7 @@ it.
 - **Purpose:** the reason we can claim a fix works. It holds the FAITHFUL test harness
   (`story_harness.py`, which replicates `modules/main.py`'s loop exactly so harness
   behaviour matches the real bot), focused drivers, static-recon scripts, a committed
-  `saves/` progression sampler, and **52 `repro_*.py` regression reproducers**.
+  `saves/` progression sampler, and **~100 `repro_*.py` reproducers and ~69 `probe_*.py`** (measured 2026-08-15; `run_gates.py` is the authority on which are STANDING gates).
 - **Why it matters as INTENT, not just tooling:** the project's #1 house rule is *prove
   every fix — reproduce first, fault-inject A/B where possible*. This directory is what
   makes that rule affordable: most repros need **no emulator**, so a regression sweep is

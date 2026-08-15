@@ -74,7 +74,7 @@ worth more than the tidiness.
 | organic team building | **`#24-organicteam`** | ⛔ **CORRECTED 2026-08-14** — this cell used to read *"it carries the user's 2026-08-05 DEFERRAL, i.e. the live instruction"*, which was **already false when written on 2026-08-10**: the user reversed that deferral on 2026-08-06 (`06-DECISIONS-LOG.md` RULING 1) and re-confirmed the lift on 2026-08-14. The entry is canonical because it is the concept's home, NOT because it carries a deferral. **The gate is LIFTED.** |
 ‼ **`#24-pc` (Surf resource walls) REMAINS OPEN and was not touched** — it is a derail class, a
 different thing from the PC/box *feature* that shares its id.
-Counts after consolidation: **87 open / 22 partial / 97 done** (was 91/22/93).
+Counts after consolidation: **86 open / 21 partial / 102 done (measured 2026-08-15; ‼ `lint_docs.py`'s I1/I2 lines are the authority — this prose goes stale every session)** (was 91/22/93).
 
 HISTORY — originally flagged as: duplicate / overlapping ids, not merged
 * **`#24` appears three times** as the umbrella (L≈1828 "STORY AUTO-PLAYER", L≈2040 "STORY-MODE
@@ -356,18 +356,32 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       licence to re-point the ~35 capacity call sites. ⇒ **(P4) is the better next step than
       Stage 1**: its fixture is exactly the party-mutating case this population lacks.
 
-      ## (P4) THE END-TO-END REPRO — DESIGNED IN FULL, STEPS 1-3 BUILT, DRIVER NOT STARTED
+      ## (P4) THE END-TO-END REPRO — ✅ STAGE 1 DRIVEN (both arms), ⛔ STAGE 2 NOT BUILT
       ‼ **Read `ai-research-notes/2026-08-15-p4-boxcounter-repro-design.md` before building.** It
       refuted FOUR of the premises it was briefed with, two fatally: the heal's withdraw is no
       longer gated `if _pids:`, and ⛔ **`post_dive.ss1` is POST-WINONA**, so the counter rung can
-      never fire from it (use `saves/fortree_gym_wedge.ss1`).
+      never fire from it (use `saves/ch13_fortree_door.ss1` — the wedge sits INSIDE the gym).
       ✅ **BUILT:** `debug_write_box_slot()` (`debug_utilities.py`) — the missing half of the
       fixture, mirroring the storage reader; refuses on R/S, on an occupied slot, on a short
       record. `POKEBOT_BOXCOUNTER_TYPEONLY_A` — a permanent fault hook restoring the pre-fix
       TYPE-ONLY behaviour, read INSIDE the function. And `repro_box_counter_move_test.py` now
       exercises the **REAL** hook (4 checks, 2 of them controls) — every arm in that gate was
       previously a re-implementation, so the hook could have rotted unnoticed.
-      🔜 **REMAINS:** the `boxcounter` driver, `--driver` registration, `compare_runs.py` pairing,
+      ✅ **STAGE 1 IS DRIVEN 2026-08-15 (`--driver boxcounter`), BOTH ARMS PASS** — the first time
+      `box_counter_pid` ran against REAL `gPokemonStorage` memory rather than `FakeStorage`.
+      ARM B → the Slugma's PID (found by its MOVE); ARM A (`POKEBOT_BOXCOUNTER_TYPEONLY_A=1`) →
+      `None`, the user's bug reproduced on demand. Four controls: `disjoint`, `fixture_ok`,
+      `sole`, `not_excluded`. ⛔ Stage 1 CANNOT DERAIL, which is why the decisive claim lives
+      there — under KI-71 a derailed arm prints nothing at all.
+      ✅ **ANCHOR CORRECTED BY MEASUREMENT for Stage 2: `saves/ch13_fortree_door.ss1`**, not
+      `fortree_gym_wedge.ss1` (that one sits INSIDE the gym). It holds a **REAL Shedinja+Ninjask
+      sharing `pid=42207D6F`** — the first LIVE KI-78 twin pair here. ⚠ Its box holds a Castform.
+      🔜 **SMALL OPEN ITEM (not blocking):** two docstrings still say the Shedinja twin is "the
+      LATER slot" without the *at creation* caveat — `repro_pid_identity_key.py` (tools, free to
+      edit) and `pokemon_party.get_index_for_pokemon` (PROMOTED, so editing it costs a promotion
+      cycle). The live save has them REVERSED because `reorder_party()` runs. The fix does not
+      depend on order, so this is wording, not behaviour.
+      🔜 **STAGE 2 REMAINS:** the heal → withdraw → boss-fought-WITH-the-counter half,
       a one-time natural-vs-injected byte-equivalence control, and the
       {ARM A,B}×{sandbox,custom} matrix. ⛔ **The likeliest way it ships broken:** inject the
       Slugma BEFORE `counter_hunt.py:477`'s `before_box_pids` snapshot and `exclude_pids` filters

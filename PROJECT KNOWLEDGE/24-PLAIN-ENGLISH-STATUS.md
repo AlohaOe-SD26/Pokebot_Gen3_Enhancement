@@ -23,9 +23,10 @@ submarine at Slateport, clears the Aqua Hideout maze (**taking the Master Ball o
 defends the Mossdeep Space Center alongside Steven, and is handed **HM08 Dive**.
 
 **What it is doing right now:** learning the **Seafloor Cavern** — the dungeon where Team Aqua
-wakes Kyogre. It already dives to the entrance, solves the boulder puzzles in the first two rooms,
-**rides the underwater currents** through the flooded room, and walks through the room where two
-Aqua members ambush it together. It stops at the second-to-last room.
+wakes Kyogre. ‼ **UPDATED 2026-08-15:** it now plays the cavern **END TO END** — dives to the entrance, solves
+every boulder room, rides the underwater currents, fights the Aqua ambush, beats Archie, wakes
+Kyogre and escapes the atoll. *(This paragraph said it 'stops at the second-to-last room' for a
+day after that stopped being true.)*
 
 ‼ **An honest caveat, because it matters:** that cavern run is a **test harness**, not part of the
 real playthrough yet. It is driven room by room from a saved game, and the Dive move is handed to

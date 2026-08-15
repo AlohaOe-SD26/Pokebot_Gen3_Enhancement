@@ -177,7 +177,7 @@ See the per-layer docs in `40cakes repo/DOCUMENTATION/` — the
 authoritative module reference (intent + mechanics + file:line refs).
 Custom-only behavior is documented in `custom-pokebot/DOCUMENTATION/`.
 
-### `modules/party_accounting.py` — OURS, new 2026-08-14 (sandbox only; drift 2)
+### `modules/party_accounting.py` — OURS, new 2026-08-14 (PROMOTED 2026-08-15; in BOTH forks)
 Splits the three quantities the bot used to conflate (`06-DECISIONS-LOG.md` RULING D):
 **A** `gPlayerPartyCount` (what the game says is filled — the CAPACITY authority),
 **B** `len(get_party())` (what the bot can READ — the ITERATION/INDEX authority, and it can be

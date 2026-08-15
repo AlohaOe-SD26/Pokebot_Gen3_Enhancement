@@ -6754,3 +6754,39 @@ driver's OWN TAG (`[boxwrite]`) rather than by the run completing.
    `*** EXCEPTION` at `f0`, so **read the HEAD of a transcript, not only its tail.**
 3. **Copy a sibling's import block when adding a driver.** The helpers here are deliberately
    function-local; assuming any of them is global is a `NameError` waiting for frame 0.
+
+## 2026-08-15 — THE ENCODING GATE REPORTED "ALL CLEAN" FOR A DAY OVER CORRUPTION IT WAS WRITTEN TO CATCH, INCLUDING ON THE QUEUE'S OWN HEADING
+
+**Symptom.** `04-HANDOFF.md` carried two mojibake headings — `## ⏱ THE 60-SECOND VERSION` and
+`## ⏭ NEXT ACTIONS, IN ORDER` — survivors of the 2026-08-14 PowerShell round-trip.
+`audit_encoding.py`, the gate created FOR that incident, printed *"all 34 file(s) clean"* on every
+run in between. They were found by an independent cross-document sweep, not by the gate.
+
+**Root cause.** The gate confirms a finding by round-tripping: `line.encode("cp1252").decode("utf-8")`.
+**cp1252 leaves five byte values UNDEFINED — 0x81, 0x8D, 0x8F, 0x90, 0x9D.** Python refuses to
+encode the characters those correspond to; Windows PowerShell's decoder had happily produced them.
+So for any corruption whose bytes include one of the five, `encode` raised `UnicodeEncodeError`,
+the handler returned `None`, and the line was classified CLEAN. ‼ U+23F1 (⏱) and U+23ED (⏭) both
+have 0x8F as their middle UTF-8 byte — so the two most prominent headings in the file were
+precisely the ones the gate could not see.
+
+**Why this is the sharpest instance of a pattern this project keeps hitting.** The gate was BUILT
+for this exact failure, was self-tested in both directions, and was still blind — because its
+confirmation step *treated a codec's refusal as a negative result*. **An exception while trying to
+prove damage is not evidence of health.**
+
+**The fix that worked.** `_to_cp1252_bytes()` encodes character by character and maps the five
+undefined C1 characters back to their raw byte values, so the round-trip can be attempted on
+exactly the inputs that previously aborted it. Fault-tested by RE-INJECTING the real corruption
+into the real file (gate went exit 1, then restored byte-identical), plus controls proving silence
+on a correctly-encoded `⏱` and on the em dashes, `20×17`, `§Ch20`, `‼`/`✅`/`⛔` these docs are full of.
+
+**Prevention rules.**
+1. ⛔ **WHEN A DETECTOR'S CONFIRMATION STEP CAN THROW, THE `except` IS A BLIND SPOT, NOT A FILTER.**
+   Ask what inputs make it raise and whether those are exactly the inputs you care about — here
+   they were. Prefer "could not evaluate" as a LOUD third state over folding it into "clean".
+2. *Enumerate the edge of any character-set assumption.* "cp1252 is a superset of Latin-1" is false
+   in five places, and those five are the ones a decoder that never errors will happily produce.
+3. **A gate written for a specific incident must be fault-tested against THAT incident's actual
+   bytes**, not a hand-made approximation. The self-test used clean round-trips; the real artefact
+   contained an unmappable byte and behaved differently.

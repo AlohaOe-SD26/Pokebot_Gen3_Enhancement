@@ -2708,7 +2708,10 @@ to refute "the tide is not a blocker"; the static-table half verified by me dire
   requirement**; that rule is Gen 4+. Our `modules/obtainability.py:88` display string says
   *"level up (empty slot + spare Ball)"* and **is wrong for this ROM**. Any Nincada reaching L20
   with one free slot spawns a Shedinja.
-- **Where it WAS armed — ✅ the first two are FIXED IN SANDBOX by Stage 1, ⚠ still armed in
+- ⛔ *(SUPERSEDED 2026-08-15 — Stage 1 was PROMOTED on 2026-08-14, so nothing below is 'sandbox
+  only' any more; the fix is in BOTH forks and drift is 0. The residual R2/R3/R5/R6 cases named in
+  the header are what remain open.)* **Where it WAS armed — the first two are FIXED by Stage 1, was
+  then still armed in
   `custom-pokebot`. The rest are untouched and remain PID-only ON PURPOSE:**
   * ✅ `modules/pokemon_party.py` `Party.get_index_for_pokemon` — **now matches via
     `same_pokemon` (personality AND species)**, with the R6 handling below. It used to match

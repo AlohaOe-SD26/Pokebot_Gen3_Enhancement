@@ -7,7 +7,7 @@
 Every banner further down is HISTORY, newest first.
 
 ---
-# ‼ YOU ARE HERE (2026-08-15, latest) — **THE LIVE WORK IS THE PC / PARTY ROBUSTNESS ARC. (P3) STAGE 0 AND (P3b) ITS MEASUREMENT ARE BOTH DONE — 280,707 recomputes, NO DIVERGENCE, but over DUNGEON content with a STATIC party. (P4) STAGE 1 IS DRIVEN — the Slugma/Winona bug is REPRODUCED AND FIXED against REAL GAME MEMORY, both arms. NEXT IS (P4) STAGE 2: heal -> withdraw -> boss fought WITH the counter.** §Ch20 is driven END TO END and its chapter assembly is **PARKED, NOT CANCELLED**. Read this, then `14-AGENT-PLAYBOOK.md`, then NEXT ACTIONS item 0.
+# ‼ YOU ARE HERE (2026-08-15, latest) — **THE LIVE WORK IS THE PC / PARTY ROBUSTNESS ARC. (P3) STAGE 0 AND (P3b) ITS MEASUREMENT ARE BOTH DONE — 400k+ recomputes, NO DIVERGENCE, but over content that never MUTATES the party. (P4) STAGE 1 IS DRIVEN — the Slugma/Winona bug is REPRODUCED AND FIXED against REAL GAME MEMORY, both arms. NEXT IS (P4) STAGE 2: heal -> withdraw -> boss fought WITH the counter.** §Ch20 is driven END TO END and its chapter assembly is **PARKED, NOT CANCELLED**. Read this, then `14-AGENT-PLAYBOOK.md`, then NEXT ACTIONS item 0.
 
 > ⛔ **ORDER, EXPLICITLY (a Tier 2 cold-start audit could not tell which of these came first):
 > (1) RUN THE RITUAL BELOW — it is cheap and it tells you whether the tree is sane; (2) READ
@@ -83,16 +83,10 @@ Both DRIVEN AND PASSING; ⛔ do not rebuild. ‼ **Keep only:** *copy upstream's
 CONTROL FLOW* (our pushes go through the bounded `strength_push`, verified by `local_id`), and
 **`FLAG_SYS_USE_STRENGTH` is cleared on EVERY WARP** — the code was always safe, the COMMENTS
 were wrong. KI-77's despawn window is derived (20x17) and has since predicted a live dump exactly.
-## ✅ THE ATOLL EXIT (Blocker 2) — MEASURED 9/9, then DRIVEN — DETAIL MOVED to `28-HANDOFF-ARCHIVE.md`
+## ✅ THE ATOLL EXIT — DRIVEN; banner moved to `28-HANDOFF-ARCHIVE.md` (2026-08-15)
 
-‼ **Keep the rule, it is the whole point:** the §Ch20 exit lands on `ROUTE128 (38,22)`, a sandbar
-whose on-foot component is 71 tiles and **whose landing tile has ZERO surfable neighbours** — so a
-naive "Surf from where you land" does nothing in any direction and reads as a **HUNG LEG, not a
-failure**. ⇒ **step SOUTH to `(38,23)`, face Down, Surf onto `(38,24)`.** ✅ Driven 2026-08-14
-(`--driver ch20room9`). ⛔ The hazard is NOT a compass direction — the atoll wraps, and 33 launch
-points north DO reach open water; the trap is the **28 launches into a 41-tile CLOSED LAGOON** on
-the WESTERN shore. Full measurement: `ai-research-notes/2026-08-13-ch20-decomp-blockers-and-room8.md`
-and `tools/story-dev/probe_route128_landing.py`.
+‼ **Keep the rule:** the §Ch20 exit's landing tile has **ZERO surfable neighbours**, so a naive
+Surf reads as a HUNG LEG, not a failure. ⇒ **step SOUTH to `(38,23)`, then Surf onto `(38,24)`.**
 ## 🧭 WHAT THE PREVIOUS SESSION DID (PATHFINDER + §Ch20 SCOPING) — still the best background
 
 
@@ -151,7 +145,7 @@ artefacts above.** Both renamed files carry a provenance header saying so.
 (`chapters.py:233`); the genuine **Chapter 21 is Sootopolis / Rayquaza** and has not been touched.
 Anywhere older text says "§Ch21" and means the cavern, read **Chapter 20**.
 
-## â± THE 60-SECOND VERSION (if you read nothing else)
+## ⏱ THE 60-SECOND VERSION (if you read nothing else)
 * **`reorder_party()` IS NOW DRIVEN AND PROVEN.** `--driver roster` (NEW) ran **six swaps, all
   verified by PID**, including **`RotatePokemon(i, j != 0)` — a path nothing in this project had
   ever driven.** The party-ORDER capability the Regi arc needs is real, not just planned.
@@ -307,8 +301,8 @@ burden here is so heavy, and why negative results are treated as the most valuab
 | party ORDER | ✅ **PROVEN 2026-08-13.** `--driver roster` from `saves/post_dive.ss1` → `phases=4/4 saw_j_nonzero=True idempotent=True restored=True can_continue=True ACCEPTANCE: PASS`. Raw transcripts (both A/B arms) in `ai-research-notes/2026-08-13-roster-drive-predictions.md`. ‼ The **deposit/withdraw** half of `#24-roster` is still open. |
 | upstream | checked **2026-08-13**, still `5dd898f8` — no change. ‼ This row goes stale on a CALENDAR DAY, not on an event: if today's date is later than the one shown, **the daily check is DUE** (`git fetch upstream-pokebot`, compare against `40cakes repo/UPDATE-LOG.md`). Do not read it as satisfied. |
 | restore point | **`restore/2026-08-13-session-end-ch20room3`** (annotated, pushed) — taken at the END of the §Ch20 cavern session, immediately before Room 8, which is the riskiest room in the dungeon (a boulder pushed onto `(5,3)` **permanently seals the exit**). ‼ It is also the natural rollback point if the **promotion decision** below is taken. Older: **`restore/2026-08-13-pre-ki63-promotion`** (annotated, pushed) — taken immediately BEFORE promoting KI-63's fix. Older: `restore/2026-08-13-pre-roster-promotion`, `restore/2026-08-12-pre-ch1819-promotion`. |
-| sandbox ↔ custom drift | ✅ **0 as of 2026-08-15 (latest) — every drifted file was PROMOTED, user-approved, and VERIFIED BY DRIVING.** Promoted: `modules/party_accounting.py` (new), `modules/pokemon_party.py`, `modules/modes/util/higher_level_actions.py`, `modules/debug_utilities.py`, `modules/story/counter_hunt.py`. **Evidence:** tool-side drift 0 both directions + 5/5 byte-identical; **`--driver ch20dive --build custom` → `legs=6/6 … ACCEPTANCE: PASS`**, matching sandbox; and FOUR `--build custom` gates (`repro_party_accounting` 33, `repro_heal_piggyback_reporting` 20, `repro_box_counter_move_test`, `repro_pid_identity_key`) each ASSERTING which fork it imported. Restore point **`restore/2026-08-15-pre-promotion-stage0-p4`** (annotated, pushed, verified on origin by the tool before it copied). ⛔ **Digits, not words** — this cell read a spelled-out "THREE" for a day, invisible to `audit_doc_consistency`'s drift check, and it survived two doc passes. ⛔ **What promotion does NOT mean:** party accounting is still STAGE 0 (it observes and decides nothing), `debug_write_box_slot` is still UNPROVEN against a live emulator, and (P4) is only PARTLY driven: its STAGE 1 (`--driver boxcounter`) is DRIVEN and both arms pass, but STAGE 2 — heal → withdraw → boss fought WITH the counter — is NOT built. ‼ **Anything else appearing in `promote.py --check` is unexplained drift and is worth stopping for.** ⛔ The rest of this cell is the PREVIOUS state and is kept for its promotion evidence — read "ZERO" below as *"zero at that moment"*, not as today's figure: ✅ **ZERO as of 2026-08-14 (earlier) — KI-78 STAGE 1 WAS PROMOTED, user-approved, and it is the first promotion executed by `tools/story-dev/promote.py` rather than by hand.** The tool refuses on a dirty tree, a missing or UNPUSHED restore point, a diverged remote, or a no-op, and it re-measures drift in BOTH directions plus byte-equality per file — it also refuses to claim the driven verification it cannot perform. Restore point **`restore/2026-08-14-pre-promotion-ki78`**. **Evidence:** drift 0 both directions, 3/3 byte-identical; **`repro_pid_identity_key.py --build custom` exit 0** and **`repro_box_counter_move_test.py --build custom` exit 0** (both ASSERT which fork they imported before testing); plus a live drive against custom. ⛔ **KI-78 is still not fully closed** — its residual cases (R2 debug-fabricated pairs, R3 corrupt box slots, R5 Frontier rentals, R6 evolved-since-capture) stay open. ‼ **MEASURE, don't trust this row** — `promote.py --check` (in HOW TO RUN / TEST) reports it BOTH ways in seconds; expect **the five files named at the top of this cell, and 0 orphaned** (that superseded an earlier "0 differing, 0 orphaned"). 📚 Every earlier drift state — including the 2026-08-13/14 rounds where `map_path.py`, `early_game.py`, `story_mode.py`, `counter_hunt.py` and `pokemon_party.py` were awaiting promotion — moved to `28-HANDOFF-ARCHIVE.md` on 2026-08-14, because stacking four supersessions in one cell made a promoted file read as still pending. |
-| **if stopped mid-task** | **NOTHING IS PARKED.** Everything is committed and pushed. Start at "NEXT ACTIONS". |
+| sandbox ↔ custom drift | ✅ **0 as of 2026-08-15 (latest) — every drifted file was PROMOTED, user-approved, and VERIFIED BY DRIVING.** Promoted: `modules/party_accounting.py` (new), `modules/pokemon_party.py`, `modules/modes/util/higher_level_actions.py`, `modules/debug_utilities.py`, `modules/story/counter_hunt.py`. **Evidence:** tool-side drift 0 both directions + 5/5 byte-identical; **`--driver ch20dive --build custom` → `legs=6/6 … ACCEPTANCE: PASS`**, matching sandbox; and FOUR `--build custom` gates (`repro_party_accounting` 33, `repro_heal_piggyback_reporting` 20, `repro_box_counter_move_test`, `repro_pid_identity_key`) each ASSERTING which fork it imported. Restore point **`restore/2026-08-15-pre-promotion-stage0-p4`** (annotated, pushed, verified on origin by the tool before it copied). ⛔ **Digits, not words** — this cell read a spelled-out "THREE" for a day, invisible to `audit_doc_consistency`'s drift check, and it survived two doc passes. ⛔ **What promotion does NOT mean:** party accounting is still STAGE 0 (it observes and decides nothing), `debug_write_box_slot` is PROVEN LIVE (`--driver boxwrite` → PASS, 2026-08-15), and (P4) is only PARTLY driven: its STAGE 1 (`--driver boxcounter`) is DRIVEN and both arms pass, but STAGE 2 — heal → withdraw → boss fought WITH the counter — is NOT built. ‼ **Anything else appearing in `promote.py --check` is unexplained drift and is worth stopping for.** ⛔ The rest of this cell is the PREVIOUS state and is kept for its promotion evidence — read "ZERO" below as *"zero at that moment"*, not as today's figure: ✅ **ZERO as of 2026-08-14 (earlier) — KI-78 STAGE 1 WAS PROMOTED, user-approved, and it is the first promotion executed by `tools/story-dev/promote.py` rather than by hand.** The tool refuses on a dirty tree, a missing or UNPUSHED restore point, a diverged remote, or a no-op, and it re-measures drift in BOTH directions plus byte-equality per file — it also refuses to claim the driven verification it cannot perform. Restore point **`restore/2026-08-14-pre-promotion-ki78`**. **Evidence:** drift 0 both directions, 3/3 byte-identical; **`repro_pid_identity_key.py --build custom` exit 0** and **`repro_box_counter_move_test.py --build custom` exit 0** (both ASSERT which fork they imported before testing); plus a live drive against custom. ⛔ **KI-78 is still not fully closed** — its residual cases (R2 debug-fabricated pairs, R3 corrupt box slots, R5 Frontier rentals, R6 evolved-since-capture) stay open. ‼ **MEASURE, don't trust this row** — `promote.py --check` (in HOW TO RUN / TEST) reports it BOTH ways in seconds; expect **0 differing and 0 orphaned** (everything is promoted) (that superseded an earlier "0 differing, 0 orphaned"). 📚 Every earlier drift state — including the 2026-08-13/14 rounds where `map_path.py`, `early_game.py`, `story_mode.py`, `counter_hunt.py` and `pokemon_party.py` were awaiting promotion — moved to `28-HANDOFF-ARCHIVE.md` on 2026-08-14, because stacking four supersessions in one cell made a promoted file read as still pending. |
+| **if stopped mid-task** | **NO UNCOMMITTED WORK IS PARKED** (‼ distinct from §Ch20's chapter assembly, which is deliberately PARKED as a work item). Everything is committed and pushed. Start at "NEXT ACTIONS". |
 | ‼ **`git stash` — KEPT ON PURPOSE (USER RULING 2026-08-13)** | **`stash@{0}` EXISTS, IS NOT YOURS, AND IS KEPT AS A RECORD. ⛔ DO NOT DROP IT.** `WIP on main: e0f723e4` (2026-07-24) — a 14-line Fortree Gym "only ride out a scene that exists" guard. Its substance is ALREADY in today's `early_game.py` (reimplemented during the rotating-gate rewrite), so it is functionally superseded — **and the user ruled that a superseded stash is still a RECORD and dropping it is a destructive act that buys nothing** (`06-DECISIONS-LOG.md`). ⛔ **Standing rule: never `git stash drop` / `clear` / `pop` in this repo.** `pop` is separately banned because it mutates a GLOBAL stack — that is how this stash was disturbed in the first place (`08-MISTAKES.md`). To read it: `git stash show -p "stash@{0}"`, and apply by hand if ever needed. ‼ A stash is invisible to `git status` and to the kit's sync check, which is how it sat unnoticed for three weeks — so `git stash list` belongs in the session-start ritual, to SEE it, not to clear it. |
 
 ## ✅ WHAT SHIPPED IN THE §Ch19 + PROMOTION + ROSTER SESSION (2026-08-12) — MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-13)
@@ -374,7 +368,7 @@ Moved for the R3 budget; all four are in `05-KNOWN-ISSUES.md` or its archive wit
 
 Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. ‼ **Keep these four, every one of which fails SILENTLY if got wrong:** (1) **Emerald REVERSED the party order — WAILORD first (slot 0), RELICANTH last** (`braille_puzzles.c:92-104`); the R/S order everyone remembers is wrong and the wrong order gives no message and no error. (2) ⛔ **The Regi battle is UNRECOVERABLE** — level 40, catch rate 3, and the fall-through case **including `B_OUTCOME_LOST`** sets `FLAG_DEFEATED_*`, so **a KO *or* a whiteout deletes the encounter permanently**; the only safe non-catch exit is fleeing. (3) **REGICE IS NOT A TIMED WAIT** — Emerald wants a **36-tile perimeter lap in ONE visit** ending exactly on `(8,21)`, reset by any map transition and by one wrong tile. (4) Measured capability gaps: **no rod at all**, no TM28 Dig, and nobody knows Dive, Dig or Flash — and **Relicanth is underwater-only, so Dive is upstream of the whole arc.** Ground truth: `ai-research-notes/2026-08-13-regi-arc-decomp-ground-truth.md`.
 
-## â­ NEXT ACTIONS, IN ORDER
+## ⏭ NEXT ACTIONS, IN ORDER
 
 > **The ordered work queue** (the cold-start orientation is the ‼ YOU ARE HERE block at the top of
 > this file, not here). Everything is committed and pushed; nothing is parked.
@@ -432,17 +426,17 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    that must break the LOG and never the read (three injections, gate failed each).
 >    ‼ Index/menu-cursor call sites MUST STILL stay on B — if A > B an index from A is out of range
 >    for the list the bot holds, most likely MID-BATTLE.
->    🔜 **(P3b) — THE HEAD OF THE QUEUE. IT IS NOW EXECUTABLE; IT USED TO SAY ONLY "wait".**
+>    ✅ **(P3b) — CLOSED 2026-08-15. ⛔ NOT the head of the queue; that is (P4) STAGE 2.**
 >    ⛔ **THE EXIT CRITERION, so nobody has to guess what "several" meant** (a Tier 2 audit called
 >    this the file's worst gap — a rule you may not break with no way to earn past it):
 >    **STOP when EITHER (a) ≥5 drives across ≥3 DIFFERENT drivers AND ≥250,000 total recomputes
 >    report clean, OR (b) the FIRST divergence of any class is observed.** Either answers the
 >    question; (b) answers it faster and is the more useful outcome.
 >    ✅✅ **(P3b) IS ANSWERED — CRITERION (a) MET 2026-08-15; `collect_party_accounting.py` exits
->    0** (>300k recomputes, 7 distinct drivers, NO DIVERGENCE). ⛔ **RUN THE COMMAND rather than
+>    0** (>400k recomputes, 11 drivers, NO DIVERGENCE — the figure keeps growing). ⛔ **RUN THE COMMAND rather than
 >    trusting that figure** — it grows every drive; it reads the durable, COMMITTED
 >    `party_accounting_ledger.jsonl`. ‼ Report it as *"not observed in N"*, never *"cannot happen"*.
->    ⛔⛔ **READ THE POPULATION: every drive is §Ch20 DUNGEON content with a STATIC party** — no
+>    ⛔⛔ **READ THE POPULATION: no drive MUTATES THE PARTY.** Most are §Ch20 dungeon content; the rest are PC/box or read-only (`boxwrite`, `boxcounter`, `partypids`, `spin`) — no
 >    catching, evolving or PC traffic, so the cases most likely to make A differ from B (a catch
 >    into a FULL party; a Shedinja spawning unbidden) were never exercised. The criterion was
 >    pre-registered and is honestly met, so P3b CLOSES — but **(P4) beats Stage 1 as the next
@@ -477,7 +471,7 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    twin pair here, so Stage 2 need not fabricate one. ⚠ Its box already holds a Castform.
 >    ⛔ **TWO THINGS WILL BREAK IT:** (a) injecting the Slugma BEFORE `counter_hunt.py:477`'s
 >    `before_box_pids` snapshot — `exclude_pids` filters it out, `None` in BOTH arms, ARM A
->    "passes" wrongly; (b) `post_dive.ss1` is POST-WINONA — use `saves/fortree_gym_wedge.ss1`.
+>    "passes" wrongly; (b) ⛔ **`post_dive.ss1` is POST-WINONA** so the rung cannot fire — use the anchor named just above, `ch13_fortree_door.ss1`. *(This line used to name `fortree_gym_wedge.ss1`; superseded by measurement — the wedge sits INSIDE the gym.)*
 >    🔜 **(P5) The CATCH POLICY round** — the user CALLED it (`06-DECISIONS-LOG` 2026-08-14,
 >    rulings A-D): a **LIVING DEX**, per-run, breadth with depth as the payoff. Gate lifted on
 >    `#24-organicteam`. ⛔ The RARE leg is blocked on `#24-rarepredicate`, whose fix is now
@@ -513,8 +507,7 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    anything drifted TODAY remains the USER's call and has not been asked for.
 > 1. **Run `preflight.py`**, then the **23**-gate suite in "HOW TO RUN / TEST" (all exit 0
 >    2026-08-14; it has said 17, 18, 19, 20, 21 and 22 on its way to **23** — `run_gates.py` is authoritative, never this prose), and the drift check below.
->    ✅ **EXPECT EXACTLY THE FIVE FILES NAMED IN THE STATE BLOCK AT THE TOP** — deliberately
->    ✅ nothing — everything was PROMOTED 2026-08-15. ‼ ANY file listed now is unexplained drift.
+>    ✅ **EXPECT 0 — everything was PROMOTED 2026-08-15.** Anything listed is unexplained drift.
 >    ⛔ Do not restate the figure here; it has been wrong at 2, 3 and 3 again. `promote.py --check`
 >    is the authority. (Earlier EXPECT-2 / EXPECT-3 trails moved to `28-HANDOFF-ARCHIVE.md`.)
 >
@@ -838,6 +831,9 @@ POKEBOT_BOXCOUNTER_TYPEONLY_A=1 PYTHONUTF8=1 py -3.12 story_harness.py post_dive
 #   ‼ BOTH ARMS PASS when the code is correct; `pid_match` means "matched THIS ARM's expectation".
 #   ‼ Grade by `grep "boxcounter]"` — a driver that throws at f0 still produces a clean [done] line.
 PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver boxwrite --frames 200000
+PYTHONUTF8=1 py -3.12 story_harness.py ch13_fortree_door.ss1 --driver partypids --frames 200000
+#   READ-ONLY identity dump (party + box: species, level, PID) — flags shared PIDs. On this save
+#   it prints the REAL KI-78 twin pair: Shedinja L30 and Ninjask L29 both pid=42207D6F.
 #   Proves `debug_write_box_slot` writes a box slot the PRODUCTION reader can read. ACCEPTANCE: PASS.
 
 # --- PARTY ACCOUNTING STAGE 0 — the readers, the divergence log, and its gate ---
