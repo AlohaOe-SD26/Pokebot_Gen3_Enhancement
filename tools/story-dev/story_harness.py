@@ -8343,4 +8343,47 @@ try:
         log(line)
 except Exception as e:
     log(f"[PARTY-ACCT] err {e} — treat this run as UNMEASURED for party accounting, not as clean")
+
+# ‼‼ AND APPEND IT TO A DURABLE LEDGER, because THE LOG IS NOT ONE.
+# `LOG` is `harness_<build>.log` and is opened `"w"` — **every drive TRUNCATES the previous one**.
+# So (P3b)'s criterion ("≥5 drives across ≥3 drivers") was UNREACHABLE by log-scanning: the
+# collector could only ever see the most recent run. Found 2026-08-15 by asking whether the tool
+# shipped the day before could actually produce the reading it demands. It could not.
+# ⇒ The measurement now accumulates in its OWN append-only file, independent of the harness log.
+# ‼ APPEND MODE ONLY — `open(..., "a")` never reads the existing bytes, so this cannot round-trip-
+# corrupt the ledger the way a read-modify-write would (`08-MISTAKES.md`, twice).
+# ⛔ And it is written OUTSIDE the try above on purpose: if the summary itself failed, the run must
+# still be recorded — as UNMEASURED. A run that vanishes from the ledger is indistinguishable from
+# a run that never happened, which is how a broken observer would quietly improve the statistics.
+try:
+    import json as _json
+    import time as _time
+
+    from modules import party_accounting as _pa
+
+    _recomputes, _scans = _pa.sample_counts()
+    _entry = {
+        "when": _time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "driver": getattr(args, "driver", None) or "<none>",
+        "state": str(getattr(args, "state", "")),
+        "frames_run": step + 1,
+        "recomputes": _recomputes,
+        "scans": _scans,
+        "divergences": _pa.observed(),
+        # ‼ The observer's own fault latch lives in `pokemon_party`, not here — read it from the
+        # module that sets it rather than inferring it. A run whose observer broke is UNMEASURED
+        # and must not be counted as a clean drive by the collector.
+        "observer_broke": bool(
+            getattr(__import__("modules.pokemon_party", fromlist=["x"]),
+                    "_accounting_fault_reported", False)),
+    }
+    with open(SCRATCH / "party_accounting_ledger.jsonl", "a", encoding="utf-8") as _ledger:
+        _ledger.write(_json.dumps(_entry) + "\n")
+    log(f"[PARTY-ACCT] ledger += {_entry['driver']} {_recomputes} recomputes "
+        f"(party_accounting_ledger.jsonl)")
+except Exception as e:
+    # A ledger failure must be LOUD: a silently missing row makes the population look smaller and
+    # cleaner than it is, which is the exact bias (P3b) is trying to avoid.
+    log(f"[PARTY-ACCT] ‼ LEDGER WRITE FAILED ({e!r}) — this run is NOT counted toward (P3b). "
+        f"Do not treat the collector's totals as complete for this session.")
 logf.close()

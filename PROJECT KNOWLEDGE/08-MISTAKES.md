@@ -6618,3 +6618,45 @@ inline Markdown into a `bash -c` double-quoted string.
    Read stderr before believing stdout.
 3. *A gate suite that checks encoding, line counts and numbers can still be blind to DELETION of
    valid text.* After any scripted document edit, read the region you changed.
+
+## 2026-08-15 — I SHIPPED A MEASUREMENT TOOL WHOSE DATA SOURCE IS TRUNCATED ON EVERY RUN
+
+**Symptom.** `collect_party_accounting.py` (shipped the previous day) gates (P3b) on *"≥5 drives
+across ≥3 different drivers"* and read them by scanning `harness*.log`. On the first real attempt
+to feed it, it could never have counted more than one drive: `story_harness.py:70` is
+`logf = open(LOG, "w", encoding="utf-8")` and `LOG` defaults to `harness_<build>.log`
+(`:54`) — **every drive truncates the previous one.**
+
+**Root cause.** I designed the criterion and the reader in the same sitting and never asked where
+the data physically lives between runs. The tool was correct about everything except whether its
+input could exist.
+
+**Why it is the same failure as four before it.** *The `?`-placeholder species that echoed its own
+index; the doc gate blinded by fence-stripping; the grep truncated by `head -20`; the collector
+reading a truncated log.* Each time the SUBJECT was fine and the INSTRUMENT could not see. ⇒ the
+standing question is now explicit: **"can this instrument produce the reading it demands?"** — ask
+it of every new detector BEFORE trusting a negative from it.
+
+**The fix that worked.** The harness appends one JSON row per drive to a durable
+`party_accounting_ledger.jsonl`, written OUTSIDE the summary's `try` so a failed run is recorded as
+UNMEASURED rather than vanishing. Proven by ACCUMULATION — two drives, two rows — not by reading
+the code.
+
+**A second bug the fix immediately exposed, and it is worse.** With log-scanning still enabled the
+collector reported **"2 drives / 2 distinct drivers / 51,046 recomputes" from ONE run**: the ledger
+stores `args.driver` (`ch20dive`) while the log yields `Ch20Dive` (from `Ch20DiveMode.run`), so the
+dedupe fingerprints differed. **A tool whose only job is to declare "there is enough evidence now"
+had silently doubled the evidence.**
+
+**Prevention rules.**
+1. ⛔ **BEFORE SHIPPING A COLLECTOR, ASK WHERE ITS INPUT LIVES BETWEEN RUNS.** A reader of
+   overwritten state can only ever report the last sample. If a criterion counts N of something,
+   something must durably persist N of them — check that, not the parser.
+2. **Prove an accumulator by ACCUMULATING.** One successful read proves parsing. Only a second,
+   different run proves the thing the tool exists for. This is the only class of bug where n=1 is
+   *guaranteed* to look healthy.
+3. ⛔ **A DEDUPE KEY BUILT FROM TWO DIFFERENT SOURCES MUST BE NORMALISED, OR IT IS NOT A DEDUPE.**
+   Same run, two spellings, double count. When one source is authoritative, prefer reading ONLY
+   that source and make the other opt-in — removing the second source removes the whole bug class.
+4. *For any tool that decides "is there enough evidence yet", the dangerous direction is
+   OVER-counting.* Bias every ambiguity toward counting less.

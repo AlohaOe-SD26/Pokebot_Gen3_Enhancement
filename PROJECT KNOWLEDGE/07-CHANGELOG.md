@@ -13987,3 +13987,64 @@ still carried the exact derail they had watched live.**
   line. Repaired with the editor; `audit_encoding` clean. ⇒ new prevention rule in `08-MISTAKES.md`:
   **never pass Markdown through `bash -c`** — it is the same read-modify-write hazard as the
   PowerShell one, through a different shell.
+
+## 2026-08-15 — (P3b) THE LEDGER: the collector I shipped yesterday COULD NOT REACH ITS OWN CRITERION, plus the first three P4 build steps (`#24-roster` / `#24-counters`)
+
+* ⛔⛔ **THE COLLECTOR WAS UNREACHABLE BY CONSTRUCTION, AND I SHIPPED IT.**
+  `collect_party_accounting.py` demanded *"≥5 drives across ≥3 drivers"* and read them from
+  `harness*.log`. `story_harness.py:70` opens `harness_<build>.log` with **`open(LOG, "w")`** —
+  **every drive TRUNCATES the previous one.** The collector could only ever see ONE run, so its
+  own exit criterion was unsatisfiable. Caught on the first attempt to actually USE it, by asking
+  the standing question: *can this instrument produce the reading it demands?*
+* ✅ **FIX — a durable append-only ledger.** `story_harness.py` now appends one JSON row per drive
+  to `tools/story-dev/party_accounting_ledger.jsonl` (driver, state, frames, recomputes, scans,
+  per-class divergences, `observer_broke`). Append mode only, so it cannot round-trip-corrupt.
+  ‼ Written OUTSIDE the summary's `try` on purpose: a run whose summary FAILED must still be
+  recorded, as UNMEASURED — a run that vanishes from the ledger is indistinguishable from one that
+  never happened, which is how a broken observer would quietly improve the statistics.
+  ✅ **PROVEN BY ACCUMULATION, not by inspection:** two drives, two rows, two distinct drivers.
+* ‼‼ **AND THE FIRST FIXED RUN DOUBLE-COUNTED.** With log-scanning still on, the collector reported
+  **"2 drives / 2 distinct drivers / 51,046 recomputes" from a SINGLE run** — the ledger records
+  `args.driver` (`ch20dive`) while the log yields `Ch20Dive` from `CONTROLLER -> Ch20DiveMode.run`,
+  so the fingerprints differed and the dedupe missed. ⛔ **For a tool whose only job is to say
+  "there is now enough evidence", inflating the evidence is the worst failure available.**
+  Fingerprints are casefolded and `mode`-stripped, and **log scanning is now OFF by default**
+  (`--logs GLOB` opts in, with a warning).
+* ✅ **THE MEASUREMENT SO FAR — 3 drives, 3 distinct drivers, 123,532 recomputes, 414 scans, NO
+  DIVERGENCE.** `ch20dive` 25,523 · `ch20room1` 28,364 (`ACCEPTANCE: PASS`) · `ch20room9` 69,645.
+  ‼ **`ch20room9` LOST the Archie fight** — no `ACCEPTANCE` line, `final mode=Manual`, one
+  `PRE-ARCHIE PARTY` attribution record: the documented 2W/1L stochastic element behaving exactly
+  as documented. **The party-accounting row was still written**, which is the useful property: the
+  measurement is independent of the driver's verdict.
+  ✅ **And it settles a number I INVENTED**: 250,000 recomputes looked unreachable at ~27k/drive,
+  but the long drivers produce 70k+, so the criterion is achievable — **verified by measurement,
+  not by assertion**, which is the whole point of the rule I broke writing it.
+
+### The first three (P4) build steps — the driver itself is NOT started
+Design note (with the four premises of mine it REFUTED):
+`ai-research-notes/2026-08-15-p4-boxcounter-repro-design.md`.
+* ✅ **`debug_write_box_slot()`** (`modules/debug_utilities.py`) — writes a Pokémon straight into a
+  PC box slot, mirroring the reader exactly (`gPokemonStoragePtr`, `0x4 + box*30*80 + slot*80`,
+  80 bytes). The (P4) repro needs *a FULL party AND a boxed counter simultaneously*, which the bot
+  cannot cheaply reach. ✅ No count field to desynchronise — box occupancy is DERIVED. It REFUSES
+  on R/S (different base address), on an occupied slot, and on a short record, and its docstring
+  states the caller must **yield a frame** before reading back (`state_cache`).
+* ✅ **`POKEBOT_BOXCOUNTER_TYPEONLY_A`** — a permanent, documented fault hook inside
+  `box_counter_pid` that restores the pre-fix TYPE-ONLY behaviour on demand, so the user's derail
+  can be reproduced without reverting code. Read INSIDE the function, never at import.
+* ✅ **`repro_box_counter_move_test.py` now exercises the REAL hook** (4 new checks). Every arm in
+  that gate was previously a RE-IMPLEMENTATION of type-only against fabricated mons — proving the
+  RULE while saying nothing about the shipped function, so the hook could rot unnoticed. Two of
+  the four are CONTROLS: with the hook set a plain TYPE match must still be accepted (or ARM A
+  would reproduce the bug for the wrong reason), and unsetting it must restore the fix in the same
+  process (which an import-time read would fail). Fault-tested: deleting the hook fires the gate.
+* ⛔ **STILL NOT BUILT: the `boxcounter` driver itself** and its 4-run matrix. The design note
+  records the single most likely way it ships broken — inject the Slugma BEFORE
+  `counter_hunt.py:477`'s `before_box_pids` snapshot and `exclude_pids` filters it out, so
+  `box_counter_pid` returns `None` in BOTH arms and ARM A "reproduces" the bug for entirely the
+  wrong reason.
+* ⚠ **Two of my own premises were refuted by the planning agent and are worth repeating:** the
+  heal's withdraw is no longer gated `if _pids:` (I rewrote it the day before and briefed from
+  memory), and **`post_dive.ss1` is POST-WINONA**, so the Winona rung can never fire from it — the
+  repro must start from `saves/fortree_gym_wedge.ss1`.
+* ⚠ drift 3 → 5 (`debug_utilities.py`, `story/counter_hunt.py` join). Unpromoted; the USER's call.

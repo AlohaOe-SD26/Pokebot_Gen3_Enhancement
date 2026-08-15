@@ -308,6 +308,77 @@ def main() -> int:
     check("party count moved => the PARTY read runs, the BOX read still does not",
           calls == {"party": 1, "box": 0}, f"got {calls}")
 
+    # ---------------------------------------------------------------------------------------
+    print("\n[ ⛔ THE FAULT HOOK ITSELF — it must flip the REAL function, or it can rot ]")
+    # ---------------------------------------------------------------------------------------
+    # ‼ EVERY ARM ABOVE IS A RE-IMPLEMENTATION. This gate has always fault-injected ARM A by
+    # inlining a type-only rule against fabricated mons — which proves the RULE but says nothing
+    # about the shipped function. `POKEBOT_BOXCOUNTER_TYPEONLY_A` (added 2026-08-15 so the (P4)
+    # end-to-end repro can reproduce the user's derail on demand) is a hook in PRODUCTION code,
+    # and an unexercised hook rots silently. These checks flip the real variable and assert the
+    # REAL `box_counter_pid` changes its answer — the same drift this whole item is about.
+    import os as _os
+
+    _saved = _os.environ.get("POKEBOT_BOXCOUNTER_TYPEONLY_A")
+    try:
+        _install_storage([SLUGMA])               # pure FIRE, hunted for its ROCK move
+
+        _os.environ.pop("POKEBOT_BOXCOUNTER_TYPEONLY_A", None)
+        fixed = box_counter_pid(WINONA_NEEDED)
+        check("‼ hook UNSET (default) — the REAL function finds the MOVE answer",
+              fixed == SLUGMA_PID, f"got {fixed!r}")
+
+        _os.environ["POKEBOT_BOXCOUNTER_TYPEONLY_A"] = "1"
+        legacy = box_counter_pid(WINONA_NEEDED)
+        check("‼ hook SET — the REAL function reverts to TYPE-ONLY and misses it",
+              legacy is None, f"got {legacy!r}")
+
+        # ⛔ CONTROL: the hook must disable ONLY the move branch. If it also broke the TYPE test,
+        # ARM A of the (P4) repro would "reproduce" the user's bug for the wrong reason — and a
+        # repro that fails for the wrong reason is worse than no repro.
+        _install_storage([TYPEMATCH])
+        still = box_counter_pid(WINONA_NEEDED)
+        check("⛔ CONTROL: with the hook SET a plain TYPE match is STILL accepted",
+              still == TYPEMATCH_PID, f"got {still!r}")
+
+        # ⛔ CONTROL: the hook must not leak. Unsetting it must restore the fix in the same process
+        # — an import-time read would fail exactly here (`training_areas.py:432` anti-pattern).
+        _os.environ.pop("POKEBOT_BOXCOUNTER_TYPEONLY_A", None)
+        _install_storage([SLUGMA])
+        restored = box_counter_pid(WINONA_NEEDED)
+        check("⛔ CONTROL: unsetting the hook RESTORES the fix in the same process",
+              restored == SLUGMA_PID, f"got {restored!r}")
+    finally:
+        if _saved is None:
+            _os.environ.pop("POKEBOT_BOXCOUNTER_TYPEONLY_A", None)
+        else:
+            _os.environ["POKEBOT_BOXCOUNTER_TYPEONLY_A"] = _saved
+
+    # ---------------------------------------------------------------------------------------
+    print("\n[ ⛔ THE BOXED-RECORD SLICE — `debug_write_box_slot` writes data[:80] ]")
+    # ---------------------------------------------------------------------------------------
+    # ‼ THE (P4) FIXTURE RESTS ENTIRELY ON THIS. `debug_write_box_slot` builds a 100-byte PARTY
+    # record and writes its first 80 bytes into a box slot, because a boxed Pokémon is the party
+    # record minus the 20 bytes of battle stats the game recomputes on withdrawal. If that slice
+    # were subtly wrong the record would decode as garbage — and `box_counter_pid` wraps everything
+    # in `except: return None`, so a BROKEN FIXTURE would be INDISTINGUISHABLE from ARM A's
+    # expected miss. The repro would "reproduce" the user's bug while proving nothing.
+    # ⇒ assert the slice against the REAL decoder, on a REAL encrypted record.
+    try:
+        from repro_party_accounting import build_mon, TREECKO
+        from modules.pokemon import Pokemon as _Pokemon
+
+        _full = build_mon(0x1F2E3D4C, 0x00BEEF01, TREECKO)
+        _boxed = _Pokemon(_full[:80])
+        check("a 100-byte party record's first 80 bytes decode as the SAME species",
+              _boxed.species.name == "Treecko", _boxed.species.name)
+        check("...and the boxed slice is neither empty nor checksum-invalid",
+              (not _boxed.is_empty) and _boxed.is_valid,
+              f"is_empty={_boxed.is_empty} is_valid={_boxed.is_valid}")
+    except Exception as _error:  # noqa: BLE001 — a fixture we cannot build is a FAILED check, not
+        # a skipped one. Silently passing here would remove the only guard on the P4 fixture.
+        check("the boxed-record slice check could run at all", False, repr(_error))
+
     print("\n" + BAR)
     if failures:
         print(f"FAILED {len(failures)} check(s): " + "; ".join(failures))

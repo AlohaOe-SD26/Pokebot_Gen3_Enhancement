@@ -95,6 +95,7 @@ idiom. **The fix is always the default; the switch restores the bug.**
 | `POKEBOT_HMTEACH_POSTLEARN_A` | `0` | the `#24-hmteachloop` bug: keep A-mashing after the move is learned, which re-arms "teach it to another POKéMON?" |
 | `POKEBOT_TEACHWINDOW_A` | `0` | the `#24-teachmsgstall` bug: the **one-frame** `Task_ReplaceMoveYesNo` detector, and the pre-fix ride ladder |
 | `POKEBOT_LEADCANTBATTLE_A` | `0` | the KI-52 bug: raise (and wedge mid-battle) instead of fighting it out |
+| `POKEBOT_BOXCOUNTER_TYPEONLY_A` | `0` | the user-observed **Slugma/Winona** bug: `box_counter_pid` skips its MOVE branch and matches on TYPE only, so a boxed counter hunted for its move is missed. Exists for (P4)'s ARM A. ‼ Exercised against the REAL function by `repro_box_counter_move_test.py`, so the hook cannot rot |
 
 ## C. TUNING KNOBS (not results)
 | flag | default | what it tunes |

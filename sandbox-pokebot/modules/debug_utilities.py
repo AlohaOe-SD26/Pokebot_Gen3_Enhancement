@@ -15,6 +15,7 @@ from modules.memory import (
     get_event_var,
     set_event_flag,
     set_event_var,
+    read_symbol,
     write_symbol,
     write_to_save_block,
     pack_uint8,
@@ -389,6 +390,83 @@ def debug_create_pokemon(
     )
 
     return Pokemon(data[:32] + encrypted_data.tobytes() + data[80:100])
+
+
+#: A boxed Pokémon record is 80 bytes — the 100-byte party record minus the battle stats the game
+#: recomputes on withdrawal. 30 slots per box, 14 boxes (`pokemon_storage.py:86-100`).
+BOX_RECORD_SIZE = 80
+BOX_SLOT_COUNT = 30
+
+
+def debug_write_box_slot(pokemon: Pokemon, box_index: int | None = None,
+                         slot_index: int | None = None) -> "tuple[int, int]":
+    """Write a Pokémon straight into a PC box slot. TEST FIXTURES ONLY. Returns `(box, slot)`.
+
+    ‼ WHY THIS EXISTS. The (P4) end-to-end repro of the user-observed Slugma/Winona derail needs a
+    state the bot cannot cheaply reach: **a FULL party AND a specific counter sitting in the PC at
+    the same time**. `debug_write_party` covers the party half; there was no box half, so the repro
+    was blocked on it. The rejected alternative — inject 7 mons' worth, drive a real deposit, then
+    inject a 6th — is strictly MORE fabrication for byte-identical results, and it re-tests a
+    deposit path already proven live in four runs.
+
+    ‼ MIRRORS THE READER EXACTLY (`modules/pokemon_storage.py`): base address from
+    `gPokemonStoragePtr` (`:148-149`), records at `0x4 + box*30*80 + slot*80` (`:93-97`).
+    ⛔ `write_symbol` CANNOT be used — Emerald's storage lives behind a pointer, not at the symbol.
+
+    ✅ **Nothing else needs updating.** Box occupancy is DERIVED, not counted: `slots` only appends
+    when `not pokemon.is_empty` and `pokemon_count` sums that (`:97-105`). There is no count field
+    to desynchronise — which is exactly the class of bug party accounting exists to catch, and the
+    box side is structurally immune to it.
+
+    ‼ **THE CALLER MUST YIELD A FRAME BEFORE READING BACK.** `get_pokemon_storage()` returns a
+    cached object while `age_in_frames == 0` (`:146-147`), so a same-frame read-back sees the
+    PRE-write box and looks like a failed write. The party equivalent of this trap already burned a
+    run (`story_harness.py:4288-4293`).
+
+    ⛔⛔ **NOT YET PROVEN AGAINST A LIVE EMULATOR — DO NOT TRUST IT UNTIL IT IS.** What HAS been
+    proven, and only this: the address arithmetic matches `pokemon_storage.py:93-97,148-149`
+    line for line, and **`pokemon.data[:80]` is a valid boxed record** — a real encrypted 100-byte
+    party record's first 80 bytes decode to the same species with `is_empty=False` and
+    `is_valid=True`, asserted by `repro_box_counter_move_test.py`. What has NOT been proven is that
+    `write_bytes` at this address lands where the reader looks. ‼ The (P4) driver that will use
+    this MUST therefore open with a write → yield → `get_pokemon_storage()` read-back control that
+    ABORTS (with a message distinct from any test failure) if the record does not come back.
+    Without it, a bad write is indistinguishable from the very bug the repro exists to reproduce,
+    because `box_counter_pid` swallows everything into `return None`. Raised by adversarial review.
+    """
+    if len(pokemon.data) < BOX_RECORD_SIZE:
+        raise ValueError(f"Need at least {BOX_RECORD_SIZE} bytes, got {len(pokemon.data)}.")
+    if context.rom.is_rs:
+        # ‼ REFUSED rather than guessed: R/S resolves storage from `get_symbol("gPokemonStorage")`
+        # directly instead of through the pointer (`pokemon_storage.py:152-153`). Writing to the
+        # Emerald address on R/S would corrupt unrelated memory, silently.
+        raise NotImplementedError("debug_write_box_slot: R/S storage is not behind gPokemonStoragePtr.")
+
+    # Imported here rather than at module scope: `debug_utilities` is imported early and widely,
+    # and this is the only function in the file that needs the storage reader.
+    from modules.pokemon_storage import get_pokemon_storage
+
+    storage = get_pokemon_storage()
+    if box_index is None:
+        box_index = storage.active_box_index
+    if not 0 <= box_index < len(storage.boxes):
+        raise ValueError(f"box_index {box_index} out of range.")
+    if slot_index is None:
+        slot_index = storage.boxes[box_index].first_empty_slot_index
+        if slot_index is None:
+            raise ValueError(f"Box {box_index} is full; no empty slot to write into.")
+    if not 0 <= slot_index < BOX_SLOT_COUNT:
+        raise ValueError(f"slot_index {slot_index} out of range.")
+    # ⛔ Refuse to overwrite an occupied slot. A fixture that silently destroys a Pokémon it did not
+    # put there would make an unrelated later assertion fail for an unattributable reason.
+    occupied = {slot.slot_index for slot in storage.boxes[box_index].slots}
+    if slot_index in occupied:
+        raise ValueError(f"Box {box_index} slot {slot_index} is occupied; refusing to overwrite.")
+
+    base = unpack_uint32(read_symbol("gPokemonStoragePtr"))
+    address = base + 0x4 + (box_index * BOX_SLOT_COUNT * BOX_RECORD_SIZE) + (slot_index * BOX_RECORD_SIZE)
+    context.emulator.write_bytes(address, pokemon.data[:BOX_RECORD_SIZE])
+    return box_index, slot_index
 
 
 def debug_write_party(party_pokemon: list[Pokemon]) -> None:

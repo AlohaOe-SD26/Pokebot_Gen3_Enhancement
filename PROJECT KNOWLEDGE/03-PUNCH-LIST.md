@@ -333,9 +333,44 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       ✅ **DRIVEN:** `--driver ch20dive` → `ACCEPTANCE: PASS` unchanged, and the run reported
       **25,523 recomputes / 86 scans / NO DIVERGENCE** — which also empirically confirms the
       once-per-frame bound (25,523 recomputes over 25,523 frames).
-      🔜 **NEXT IS MORE MEASUREMENT, NOT STAGE 1.** One clean short run is not a population, and
-      the summary line says so itself. ⛔ Do not re-point the ~35 capacity-shaped call sites at A
-      until several LONG runs have reported. ⚠ Unpromoted on purpose — the USER's call.
+      🔜 **NEXT IS MORE MEASUREMENT, NOT STAGE 1.** ⛔ Do not re-point the ~35 capacity-shaped
+      call sites at A until `collect_party_accounting.py` exits 0. ⚠ Unpromoted — the USER's call.
+      ‼ **(P3b) 2026-08-15 — the collector I shipped COULD NOT REACH ITS OWN CRITERION.** It
+      demanded ≥5 drives and read them from `harness*.log`, which `story_harness.py:70` opens
+      `"w"` — **every drive truncates the previous**. Fixed with a durable append-only
+      `party_accounting_ledger.jsonl`; proven by ACCUMULATING, not by inspection. And its first
+      fixed run **double-counted one drive as two** (`ch20dive` vs `Ch20Dive`), so fingerprints are
+      normalised and log-scanning is OFF by default. ⇒ *for a tool that decides "is there enough
+      evidence yet", over-counting is the dangerous direction.*
+      ✅✅ **(P3b) ANSWERED 2026-08-15 — CRITERION (a) MET, the collector exits 0.
+      7 clean drives / 7 distinct drivers / 280,707 recomputes / 940 scans / NO DIVERGENCE.**
+      `ch20dive` 25,523 · `room1` 28,364 · `room9` 69,645 · `room2` 31,275 · `room8` 47,585 ·
+      `room3` 46,118 · `room6` 32,197. ‼ `ch20room9` LOST its Archie fight (documented 2W/1L) and
+      its row was written anyway — the measurement is independent of the driver's verdict.
+      ⛔⛔ **READ THE POPULATION, NOT JUST THE ZERO.** All seven drives are §Ch20 DUNGEON content
+      with a STATIC party — no catching, no evolving, no PC traffic. The scenarios most likely to
+      make A differ from B (catch into a full party; a Shedinja spawning unbidden) were never
+      exercised. The criterion was pre-registered and is honestly met, so P3b CLOSES — but the
+      finding is *"the dungeon path is clean"*, **not** *"A cannot differ from B"*, and it is NOT
+      licence to re-point the ~35 capacity call sites. ⇒ **(P4) is the better next step than
+      Stage 1**: its fixture is exactly the party-mutating case this population lacks.
+
+      ## (P4) THE END-TO-END REPRO — DESIGNED IN FULL, STEPS 1-3 BUILT, DRIVER NOT STARTED
+      ‼ **Read `ai-research-notes/2026-08-15-p4-boxcounter-repro-design.md` before building.** It
+      refuted FOUR of the premises it was briefed with, two fatally: the heal's withdraw is no
+      longer gated `if _pids:`, and ⛔ **`post_dive.ss1` is POST-WINONA**, so the counter rung can
+      never fire from it (use `saves/fortree_gym_wedge.ss1`).
+      ✅ **BUILT:** `debug_write_box_slot()` (`debug_utilities.py`) — the missing half of the
+      fixture, mirroring the storage reader; refuses on R/S, on an occupied slot, on a short
+      record. `POKEBOT_BOXCOUNTER_TYPEONLY_A` — a permanent fault hook restoring the pre-fix
+      TYPE-ONLY behaviour, read INSIDE the function. And `repro_box_counter_move_test.py` now
+      exercises the **REAL** hook (4 checks, 2 of them controls) — every arm in that gate was
+      previously a re-implementation, so the hook could have rotted unnoticed.
+      🔜 **REMAINS:** the `boxcounter` driver, `--driver` registration, `compare_runs.py` pairing,
+      a one-time natural-vs-injected byte-equivalence control, and the
+      {ARM A,B}×{sandbox,custom} matrix. ⛔ **The likeliest way it ships broken:** inject the
+      Slugma BEFORE `counter_hunt.py:477`'s `before_box_pids` snapshot and `exclude_pids` filters
+      it out — `None` in BOTH arms, so ARM A "reproduces" the bug for entirely the wrong reason.
 
       ## THE HEAL'S PC PIGGYBACKS NOW REPORT — the OTHER half of the Slugma/Winona derail (2026-08-14)
       ✅ **Gate #23 `repro_heal_piggyback_reporting.py` (20 checks, no emulator; ‼ it PRINTS its own count — believe that, not this).** The three PC

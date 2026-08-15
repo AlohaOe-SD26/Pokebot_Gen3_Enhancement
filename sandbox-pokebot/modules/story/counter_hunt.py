@@ -267,6 +267,8 @@ def box_counter_pid(needed_type_names, exclude_pids=frozenset()) -> "int | None"
     is, which is another reason the strict test does not belong on this side.
     """
     try:
+        import os as _os
+
         from modules.pokemon_storage import get_pokemon_storage
 
         needed = {str(n) for n in (needed_type_names or []) if n}
@@ -295,6 +297,18 @@ def box_counter_pid(needed_type_names, exclude_pids=frozenset()) -> "int | None"
                 # ‼ Kept structurally identical to `party_counter_slot`'s loop (`:169-173`) on
                 # purpose — these two are a pair, they drifted once, and the parity gate now
                 # asserts they accept the same set.
+                #
+                # ⛔ FAULT INJECTION — `POKEBOT_BOXCOUNTER_TYPEONLY_A=1` RESTORES THE PRE-2026-08-14
+                # TYPE-ONLY BEHAVIOUR by skipping this loop, so the user-observed Slugma/Winona
+                # derail can be reproduced ON DEMAND without reverting code. Default (unset) = the
+                # fix. This is a PERMANENT, DOCUMENTED HOOK, not a temporary edit: "the error
+                # stopped" is not proof a fix worked; an arm that reproduces the bug on request is
+                # (the `POKEBOT_LEADCANTBATTLE_A` precedent, `battle_strategies/default.py:328`).
+                # ‼ READ INSIDE THE FUNCTION, never at import: a module-scope read is unresettable
+                # within a process and silently ignores a driver that sets the variable after
+                # import (`training_areas.py:432` is that anti-pattern).
+                if _os.environ.get("POKEBOT_BOXCOUNTER_TYPEONLY_A", "0") == "1":
+                    continue
                 for learned in (getattr(mon, "moves", None) or ()):
                     if learned is None or getattr(learned, "move", None) is None:
                         continue

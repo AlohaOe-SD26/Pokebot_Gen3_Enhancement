@@ -2386,3 +2386,33 @@ party read in the bot goes through here. Swallowing quietly — ⛔ rejected out
 broken observer reports "no divergence" forever and the negative gets believed, which is the exact
 shape of five entries in `08-MISTAKES.md`. **Chosen: swallow, but announce ONCE and loudly**, and
 have the gate assert the announcement fires.
+
+## 2026-08-15 — `party_accounting_ledger.jsonl` IS COMMITTED, not gitignored (and harness logs stay ignored)
+
+**Decision.** The (P3b) measurement ledger is tracked in git. `tools/story-dev/.gitignore` ignores
+`*.log`, so the harness transcripts it was originally read from are NOT shared between machines —
+and the ledger deliberately breaks that pattern.
+
+**Why.** ‼ **This project is worked on from multiple computers** (the standing sync directive in
+`CLAUDE.md` exists for exactly that). (P3b)'s criterion is *cumulative* — "≥5 drives across ≥3
+drivers AND ≥250,000 recomputes". A per-machine ledger would make that criterion depend on which
+laptop happened to run the drives, and a machine that had run four drives would silently start
+again from zero. Committing it makes the population the PROJECT's, not the machine's.
+Cost: a few hundred bytes per drive, append-only, human-readable, one JSON object per line.
+
+**Alternatives rejected.** *Gitignore it like the logs* — that is what makes the criterion
+un-earnable across machines, and it is the shape of the bug that prompted the ledger in the first
+place (a data source that does not survive). *Aggregate into a single summary file the harness
+rewrites* — a read-modify-write on a shared file is a merge conflict per drive AND reintroduces the
+round-trip corruption hazard logged twice this month; append-only JSONL merges cleanly because two
+machines' drives are independent lines.
+
+**The sharp edge, accepted knowingly.** A drive killed mid-append leaves a truncated last line, and
+the collector REFUSES the whole population rather than skipping the row — silently dropping a row
+would bias a count whose entire purpose is to say "there is enough evidence now". ⇒ the failure
+message now names the line and states the repair (delete that line, re-run that driver; never
+hand-write a row). *A conservative check with an obvious repair is fine; one without is a blocker.*
+
+**What is NOT in the ledger, on purpose.** No timestamps beyond the local wall clock, no machine
+identity, no save hash. If cross-machine attribution ever matters, add it then — the file is
+append-only and a new key is backward-compatible, whereas a schema nobody needed is dead weight.
