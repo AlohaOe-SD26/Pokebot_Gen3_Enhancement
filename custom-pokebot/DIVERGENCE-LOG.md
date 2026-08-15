@@ -1550,3 +1550,43 @@ Ninjask. Until this promotion `custom-pokebot` carried the **warning** for that 
 * ⛔ **§Ch20 is still NOT a chapter** in either fork; the ladder remains **20 of 24**.
 * ⚠ The identity fix is proven by fabricated-fixture A/B and by gates, **not** by reproducing the
   user's original failing run end to end. That repro is still owed.
+
+
+## 2026-08-15 — PROMOTED: party accounting Stage 0, the heal's PC reporting, and the (P4) foundations (5 files, USER-APPROVED)
+
+Promoted from `sandbox-pokebot/` with `tools/story-dev/promote.py`, the tool that refuses.
+Restore point: **`restore/2026-08-15-pre-promotion-stage0-p4`** (annotated, pushed, and verified
+present ON ORIGIN by the tool before it would copy anything).
+
+| file | what it brings to this fork |
+|---|---|
+| `modules/party_accounting.py` (NEW) | PARTY ACCOUNTING STAGE 0 — readers for **A** (`gPlayerPartyCount`) and per-slot occupancy, plus a divergence log (HOLE / OVERFLOW / INVALID exact, STALE sampled 1-in-300). ⛔ Wires NO call site. |
+| `modules/pokemon_party.py` | Stage 0's three log-only observer hooks inside `get_party()`, and a docstring on `get_party_size()` saying which question **B** answers. |
+| `modules/modes/util/higher_level_actions.py` | ‼ **The heal's three PC piggybacks now REPORT instead of failing silently.** Until this promotion, this fork's heal path collapsed *worked* / *nothing to do* / *it threw* into one silence — the state in which the user's Slugma/Winona derail was invisible. Adds `_piggyback_report()` and the pure `counter_withdraw_outcome()`. |
+| `modules/debug_utilities.py` | `debug_write_box_slot()` — the (P4) fixture's missing half. ⛔ **UNPROVEN AGAINST A LIVE EMULATOR**; its own docstring says so and the P4 driver must open with a read-back control. |
+| `modules/story/counter_hunt.py` | `POKEBOT_BOXCOUNTER_TYPEONLY_A` — a permanent fault hook restoring the pre-fix TYPE-ONLY behaviour on demand. Default OFF; the fix is what runs. |
+
+### Evidence — a copy is NOT evidence, so this fork was DRIVEN
+
+* ✅ Tool-side: drift **0 in both directions**, **5/5 byte-identical**, 0 orphans.
+* ✅ **`--driver ch20dive --build custom` → `legs=6/6 at_entrance=True got_out=True
+  can_continue=True  ACCEPTANCE: PASS`** — matching the sandbox result exactly.
+* ✅ **Four `--build custom` gates, each ASSERTING which fork it imported before testing:**
+  `repro_party_accounting.py` (33 checks), `repro_heal_piggyback_reporting.py` (20 checks),
+  `repro_box_counter_move_test.py`, `repro_pid_identity_key.py` — all exit 0.
+  That assertion is the check that was missing from an earlier promotion, when a gate hard-coded
+  `sandbox` and therefore could not see whether the promoted fix had landed at all.
+
+### What this does NOT mean
+
+* ⛔ **(P4) — the end-to-end repro of the user's actual failing run — is STILL OWED.** What landed
+  here is its *observability* half plus build steps 1-3. The `boxcounter` driver does not exist in
+  either fork. Design: `PROJECT KNOWLEDGE/ai-research-notes/2026-08-15-p4-boxcounter-repro-design.md`.
+* ⛔ **`debug_write_box_slot` has never written to a live emulator.** Its address arithmetic is
+  verified against the reader and `data[:80]` is proven a valid boxed record by gate — but the
+  write itself is unexercised. Do not build on it without a read-back control.
+* ⚠ **Party accounting is STAGE 0 only: it OBSERVES and decides nothing.** The measurement it
+  produced (7 drives, 280,707 recomputes, no divergence) is over §Ch20 DUNGEON content with a
+  STATIC party, so the party-mutating cases were never exercised. It is **not** licence to
+  re-point the ~35 capacity-shaped call sites at A.
+* ⛔ **§Ch20 is still NOT a chapter** in either fork; the ladder remains **20 of 24**.

@@ -125,9 +125,14 @@ def main() -> int:
                 print(f"     line is one independent drive, so removing a broken one loses exactly")
                 print(f"     that drive — never re-hand-write a row, just re-run the driver.")
                 return 1
+            # ‼ Rows carry a `build` since 2026-08-15. Older rows predate it and are all sandbox;
+            # the driver label shows the fork so a promotion-verification run cannot masquerade as
+            # another sandbox sample.
+            _build = row.get("build", "sandbox")
             ledger_rows.append({
                 "log": f"ledger:{lineno}",
-                "driver": row.get("driver") or "<none>",
+                "driver": (f"{row.get('driver') or '<none>'}"
+                           + ("" if _build == "sandbox" else f" [{_build}]")),
                 "recomputes": int(row.get("recomputes", 0)),
                 "scans": int(row.get("scans", 0)),
                 "divergences": [(sig.split(":", 1)[0], sig.split(":", 1)[-1], n)
@@ -182,7 +187,12 @@ def main() -> int:
 
     total_recomputes = sum(r["recomputes"] for r in runs)
     total_scans = sum(r["scans"] for r in runs)
-    drivers = {r["driver"] for r in runs}
+    # ‼ DISTINCT DRIVERS COUNTS THE *DRIVER*, NOT THE DRIVER×BUILD LABEL. The display name gained a
+    # ` [custom]` suffix when the ledger started recording the fork, and that immediately made one
+    # driver run on two forks read as TWO distinct drivers — the same content, counted twice. The
+    # criterion asks for CONTENT VARIETY, and re-running identical content on the other fork adds
+    # none. Third time this collector has had to be taught not to inflate itself; strip the label.
+    drivers = {r["driver"].split(" [", 1)[0] for r in runs}
     # ‼ A run whose observer broke proves NOTHING either way and must not count toward the target.
     unmeasured = [r for r in runs if r["observer_broke"]]
     clean_drives = [r for r in runs if not r["observer_broke"]]

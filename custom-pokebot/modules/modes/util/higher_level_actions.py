@@ -38,12 +38,94 @@ from .walking import (
     wait_for_player_avatar_to_be_controllable,
 )
 from .._interface import BotModeError
+
+
 from ...game import get_symbol_name_before
 from ...items import Item, get_item_bag, ItemPocket, Pokeblock, get_pokeblocks
 from ...map import get_map_objects, get_map_data_for_current_position
 from ...map_path import calculate_path, PathFindingError, Direction
 from ...mart import get_mart_buyable_items, get_mart_buy_menu_scroll_position, get_mart_main_menu_scroll_position
 from ...pokeblock_feeder import get_active_pokeblock_feeder_for_location
+
+
+def counter_withdraw_outcome(pids) -> "tuple[bool, str]":
+    """Should the heal's counter-withdraw run, and what should it SAY? Pure, and therefore GATED.
+
+    Returns `(should_withdraw, message)`.
+
+    ‼ WHY THIS IS A FUNCTION AND NOT AN `if` INSIDE THE GENERATOR. The same lesson as
+    `counter_hunt.catch_confirmed`, extracted the same week: *logic that decides an outcome must be
+    reachable by a test.* Inside the generator this branch could only be argued about — and the
+    argument would have been "it is obviously correct", which it IS. The bug was never the
+    decision; it was that both answers looked identical from outside.
+
+    ⛔ THE EMPTY CASE IS NOT AN ERROR AND MUST NOT READ AS ONE. Most heals have no hunted counter.
+    But in the user-observed Slugma/Winona derail the set was empty *because the registration
+    upstream had already failed*, so the message names that possibility explicitly — that is the
+    sentence that turns a silent day-long hunt into a one-line diagnosis.
+    """
+    # ‼‼ THE DECISION IS `bool(pids)` AND NOTHING ELSE — byte-for-byte the `if _pids:` this
+    # replaced. It must NEVER depend on `len()` succeeding: today `_hunted_counter_pids` is a
+    # `set` (`story_mode.py:1201`) so `len` is safe, but a refactor that made the decision hinge
+    # on a `len()` call would turn a TypeError into "do not withdraw" — silently skipping the
+    # collection, which is the EXACT user-visible symptom this whole line of work exists to stop.
+    # The count below is COSMETIC: it improves the message and can never change the outcome.
+    if pids:
+        try:
+            count = len(pids)
+        except Exception:  # noqa: BLE001 — ‼ WIDER THAN `TypeError` ON PURPOSE. The decision is
+            # ALREADY MADE by the `if pids:` above; everything in here is cosmetic. Narrowing this
+            # to TypeError leaves a pathological `__len__` free to raise something else, escape to
+            # the caller's outer `except Exception`, and SKIP THE WITHDRAW — turning a message
+            # detail into the exact user-visible symptom this function exists to prevent. Nothing
+            # can hide here: `pids` was truthy, so we withdraw either way, and the message says the
+            # count is unknown rather than inventing one. (Raised by adversarial review.)
+            count = "an unknown number of"
+        return True, f"starting for {count} hunted PID(s)"
+    return False, (
+        "SKIPPED — `_hunted_counter_pids` is empty. Normal when no counter was hunted; but if one "
+        "WAS hunted, its registration upstream failed (the Slugma/Winona shape) and the counter is "
+        "still sitting in the PC."
+    )
+
+
+def _piggyback_report(what: str, outcome: str, console_too: bool = False) -> None:
+    """Announce the outcome of a PC action piggybacked onto a heal. NEVER raises.
+
+    ‼ WHY THIS EXISTS. Three PC actions ride along with `heal_in_pokemon_center` — the rotation
+    deposit, the KI-63 slot-freeing deposit, and the hunted-counter withdraw. All three were
+    wrapped in `except Exception: pass` under the contract *"a PC hiccup must not destroy a heal
+    that already succeeded"*. That contract is right; the SILENCE was not. It made three different
+    states indistinguishable: *it worked*, *there was nothing to do*, and *it threw*.
+
+    ⛔ That is not a theoretical objection. The user-observed Slugma/Winona derail (2026-08-14,
+    `08-MISTAKES.md`) ran straight through the withdraw block, which skipped because its input set
+    was empty — correct behaviour for a bug that had already happened upstream, and completely
+    invisible. A single line saying *"skipped, no PIDs registered"* would have named the failure
+    on sight instead of costing a day. This is the project's own recurring shape: *a guard that
+    cannot tell "no" from "I broke" is worse than no guard* (`repro_no_silent_except.py`).
+
+    `console_too=False` sends the line to the RUN LOG only. Most heals legitimately have no
+    counter to collect, so routine skips on screen would be noise — and a noisy diagnostic is one
+    that gets ignored, which puts us back where we started. Failures always go to both.
+    """
+    message = f"Story: PC — {what}: {outcome}"
+    if console_too or "FAILED" in outcome:
+        try:
+            from modules.console import console
+
+            colour = "yellow" if "FAILED" in outcome else "cyan"
+            console.print(f"[{colour}]{message}[/]")
+        except Exception:  # noqa: BLE001 — reporting a piggyback outcome must never itself become
+            # the thing that breaks the heal. The run-log write below is attempted independently.
+            pass
+    try:
+        from modules import debug_logger
+
+        debug_logger.event(message, category="PC")
+    except Exception:  # noqa: BLE001 — same contract; `debug_logger.event` is already a no-op when
+        # logging is disabled, so a failure here costs a diagnostic line and nothing else.
+        pass
 
 
 @isolate_inputs
@@ -212,8 +294,10 @@ def heal_in_pokemon_center(pokemon_center_door_location: PokemonCenter) -> Gener
             from modules.story.pc_trip import deposit_dead_weight_if_worth_it
 
             yield from deposit_dead_weight_if_worth_it()
-        except Exception:  # noqa: BLE001 - never let the rotation break the heal path
-            pass
+        except Exception as error:  # noqa: BLE001 - the heal must survive a PC hiccup, but it may
+            # not survive it SILENTLY: `_piggyback_report` announces the failure and the heal
+            # then continues exactly as before. See that function for why this matters here.
+            _piggyback_report("the rotation deposit", f"FAILED ({error!r})")
 
         # ‼ KI-63 — FREE ONE PARTY SLOT SO AN HM LEARNER CAN BE CAUGHT.
         # Same piggyback contract as the two blocks around it: we are already inside the centre
@@ -229,8 +313,9 @@ def heal_in_pokemon_center(pokemon_center_door_location: PokemonCenter) -> Gener
 
             if getattr(_ctx.bot_mode_instance, "_needs_party_slot", False):
                 yield from deposit_one_dead_weight()
-        except Exception:  # noqa: BLE001 - never let a PC hiccup break the heal path
-            pass
+        except Exception as error:  # noqa: BLE001 - same contract as the block above: the heal
+            # survives, but the failure is announced rather than swallowed.
+            _piggyback_report("the KI-63 slot-freeing deposit", f"FAILED ({error!r})")
 
         # ‼ #24-pcoverflow — COLLECT A COUNTER THAT LANDED IN THE BOX.
         # `resource_blocker` no longer refuses a catch when the party is full, so a hunted
@@ -238,15 +323,29 @@ def heal_in_pokemon_center(pokemon_center_door_location: PokemonCenter) -> Gener
         # caught, paid for with a cross-Hoenn journey, and unusable, which is strictly worse
         # than the old refusal. The two changes only make sense shipped together.
         # Same piggyback contract as the deposit above: we are already inside for a heal.
+        # ‼‼ THIS IS THE EXACT BLOCK THAT DID NOTHING IN THE USER-OBSERVED SLUGMA/WINONA DERAIL
+        # (2026-08-14, `08-MISTAKES.md`). `box_counter_pid` was type-only, so the hunt registered
+        # no PID, `_pids` was empty, and this block skipped — CORRECTLY, given its input, and
+        # therefore INVISIBLY. The bug was upstream and this was where it became unobservable.
+        # ⇒ both outcomes now SAY which one happened. "Nothing to withdraw" and "the withdraw
+        # exploded" used to be the same silence, and that silence is what cost a day.
         try:
             from modules.context import context as _ctx
             from modules.story.pc_trip import withdraw_from_box
 
             _pids = getattr(_ctx.bot_mode_instance, "_hunted_counter_pids", None)
-            if _pids:
+            _should_withdraw, _why = counter_withdraw_outcome(_pids)
+            # ‼ The SKIP goes to the run log only, not the console: most heals legitimately have no
+            # hunted counter, so this on screen would be noise — and a noisy diagnostic is one that
+            # gets ignored, which puts us right back where we started. In the transcript it is the
+            # line that names the failure instantly.
+            _piggyback_report("counter withdraw", _why, console_too=_should_withdraw)
+            if _should_withdraw:
                 yield from withdraw_from_box(_pids)
-        except Exception:  # noqa: BLE001 - never let a PC hiccup break the heal path
-            pass
+        except Exception as error:  # noqa: BLE001 - the heal must survive a PC hiccup, but a
+            # swallowed failure here reproduces the user's symptom with no diagnostic at all.
+            _piggyback_report("counter withdraw", f"FAILED ({error!r}) — the counter is STILL "
+                                                  f"BOXED and the run will fight without it")
 
         # Get out — robustly. `navigate_to` onto the exit warp (7,8) can stop ON the
         # tile without firing it, leaving the player stuck in the doorway (ML-9,

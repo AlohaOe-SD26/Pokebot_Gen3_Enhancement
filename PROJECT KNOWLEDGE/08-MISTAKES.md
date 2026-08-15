@@ -6690,3 +6690,34 @@ the quoted stale figure was removed rather than re-quoted.
 3. **Never quote a stale figure, even inside `Superseded:`** — `audit_doc_consistency` cannot tell
    a quotation from a claim, so quoting one turns the line red. Describe the old claim in words
    and omit its number; the archive keeps the verbatim text.
+
+## 2026-08-15 — THE COLLECTOR INFLATED ITSELF A THIRD TIME: adding a `build` label made ONE driver read as TWO distinct drivers
+
+**Symptom.** Verifying the promotion, a `--driver ch20dive --build custom` run was added to the
+(P3b) ledger. The collector's display name gained a ` [custom]` suffix so the fork would be
+attributable — and the "distinct drivers" count jumped from 7 to **8**, because
+`ch20dive` and `ch20dive [custom]` are different strings.
+
+**Root cause.** `drivers = {r["driver"] for r in runs}` built the DISTINCT-DRIVER set out of the
+DISPLAY LABEL. The criterion asks for **content variety** ("≥3 different drivers"); re-running
+identical content on the other fork adds none. Changing a label silently changed a gate's input.
+
+**Why it is the third time.** Same tool, same direction, three distinct causes: (1) reading a
+truncated log so the criterion was unreachable; (2) a case-sensitive dedupe that counted one drive
+as two; (3) this. ⇒ **every one was an OVER- or UNDER-count in a tool whose only job is to say
+"there is enough evidence now".**
+
+**The fix that worked.** Strip the label before counting: `r["driver"].split(" [", 1)[0]`. The
+count went back to 7 while the display still shows `ch20dive [custom]`, so attribution survives
+without inflating the criterion.
+
+**Prevention rules.**
+1. ⛔ **NEVER DERIVE A GATE'S INPUT FROM A DISPLAY STRING.** A label exists to be read by humans
+   and WILL be changed for readability; a key exists to be compared and must be derived from the
+   underlying field. If the same expression feeds both, a cosmetic edit becomes a logic change.
+2. *When you add a dimension to a record (build, machine, profile), re-check every set, count and
+   dedupe that touches it* — the new dimension multiplies the key space by default, which is
+   almost never what a "distinct X" count wants.
+3. **A tool that decides "is there enough evidence" deserves a standing suspicion of inflation.**
+   Every one of this collector's three bugs pointed the same way; bias every ambiguity toward
+   counting less, and re-run the count after ANY change to how a row is written.

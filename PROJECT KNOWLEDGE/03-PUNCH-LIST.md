@@ -334,7 +334,8 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       **25,523 recomputes / 86 scans / NO DIVERGENCE** — which also empirically confirms the
       once-per-frame bound (25,523 recomputes over 25,523 frames).
       🔜 **NEXT IS MORE MEASUREMENT, NOT STAGE 1.** ⛔ Do not re-point the ~35 capacity-shaped
-      call sites at A until `collect_party_accounting.py` exits 0. ⚠ Unpromoted — the USER's call.
+      call sites at A until `collect_party_accounting.py` exits 0. ✅ PROMOTED 2026-08-15 (user-approved,
+      verified by driving `--build custom` to an ACCEPTANCE: PASS); drift is back to nil.
       ‼ **(P3b) 2026-08-15 — the collector I shipped COULD NOT REACH ITS OWN CRITERION.** It
       demanded ≥5 drives and read them from `harness*.log`, which `story_harness.py:70` opens
       `"w"` — **every drive truncates the previous**. Fixed with a durable append-only

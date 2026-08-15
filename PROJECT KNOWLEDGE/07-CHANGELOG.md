@@ -14048,3 +14048,37 @@ Design note (with the four premises of mine it REFUTED):
   memory), and **`post_dive.ss1` is POST-WINONA**, so the Winona rung can never fire from it — the
   repro must start from `saves/fortree_gym_wedge.ss1`.
 * ⚠ drift 3 → 5 (`debug_utilities.py`, `story/counter_hunt.py` join). Unpromoted; the USER's call.
+
+## 2026-08-15 — PROMOTION: party accounting Stage 0, the heal's PC reporting, and the (P4) foundations — 5 files, USER-APPROVED, VERIFIED BY DRIVING (`#24-roster` / `#24-counters`)
+
+* **USER-APPROVED.** Promoted with `tools/story-dev/promote.py` — the tool that refuses on a dirty
+  tree, a missing or UNPUSHED restore point, a diverged remote, or a no-op. Restore point
+  **`restore/2026-08-15-pre-promotion-stage0-p4`** (annotated, pushed, and verified present ON
+  ORIGIN by the tool before it would copy a byte). **Drift 5 → 0**, 5/5 byte-identical, 0 orphans.
+* **What this fork gains, and the middle one is the point:**
+  `modules/party_accounting.py` (STAGE 0 readers + divergence log, wiring no call site) ·
+  `modules/pokemon_party.py` (its three log-only hooks) ·
+  ‼ **`modules/modes/util/higher_level_actions.py` — until now `custom-pokebot`'s heal path still
+  collapsed *worked* / *nothing to do* / *it threw* into ONE SILENCE**, which is the state the
+  user's Slugma/Winona derail was invisible in · `modules/debug_utilities.py`
+  (`debug_write_box_slot`) · `modules/story/counter_hunt.py` (the `POKEBOT_BOXCOUNTER_TYPEONLY_A`
+  fault hook, default OFF).
+* ✅ **VERIFIED BY DRIVING, NOT DIFFING** — the standing rule, because a copy is not evidence:
+  **`--driver ch20dive --build custom` → `legs=6/6 at_entrance=True got_out=True
+  can_continue=True  ACCEPTANCE: PASS`**, matching the sandbox result exactly.
+* ✅ **FOUR `--build custom` GATES, each ASSERTING WHICH FORK IT IMPORTED before testing anything:**
+  `repro_party_accounting.py` (33 checks) · `repro_heal_piggyback_reporting.py` (20 checks) ·
+  `repro_box_counter_move_test.py` · `repro_pid_identity_key.py` — all exit 0. ‼ That assertion is
+  precisely the check a previous promotion lacked, when a gate hard-coded `sandbox` and so could
+  not see whether the promoted fix had landed at all.
+* ✅ **A gap closed DURING the verification: the ledger now records which BUILD produced a row.**
+  A `--build custom` drive and a sandbox drive were previously indistinguishable in
+  `party_accounting_ledger.jsonl`, so this promotion-verification run would have silently joined
+  the (P3b) population as though it were another sandbox sample. Attribution beats a bigger n.
+  The collector labels non-sandbox rows `driver [build]`.
+* ⛔ **WHAT PROMOTION DOES NOT MEAN.** Party accounting is still **STAGE 0** — it observes and
+  decides nothing, and its measurement (7 drives / 280,707 recomputes / no divergence) is over
+  DUNGEON content with a STATIC party. `debug_write_box_slot` has **never written to a live
+  emulator**. **(P4)'s `boxcounter` driver does not exist in either fork** and the end-to-end repro
+  of the user's actual run is **still owed**. §Ch20 is still not a chapter; the ladder is 20 of 24.
+* Full per-file rationale and evidence: `custom-pokebot/DIVERGENCE-LOG.md`, 2026-08-15.

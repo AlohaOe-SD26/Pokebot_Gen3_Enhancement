@@ -8365,6 +8365,11 @@ try:
     _entry = {
         "when": _time.strftime("%Y-%m-%dT%H:%M:%S"),
         "driver": getattr(args, "driver", None) or "<none>",
+        # ‼ WHICH FORK PRODUCED THIS ROW. Added 2026-08-15 during the promotion verification: a
+        # `--build custom` drive and a sandbox drive were previously INDISTINGUISHABLE in the
+        # ledger, so a promotion-verification run would have silently joined the (P3b) population
+        # as though it were another sandbox sample. Attribution beats a bigger n.
+        "build": getattr(args, "build", "sandbox"),
         "state": str(getattr(args, "state", "")),
         "frames_run": step + 1,
         "recomputes": _recomputes,

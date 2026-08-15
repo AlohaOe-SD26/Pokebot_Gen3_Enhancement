@@ -182,7 +182,93 @@ class Party:
 
 
 def get_party_size() -> int:
+    """**B** — how many party Pokémon this bot can actually READ.
+
+    ‼ This is NOT necessarily what the game says the party holds. `get_party()` COMPACTS, so a
+    near-empty slot below `gPlayerPartyCount` is skipped and this number comes out LOWER. Use it
+    for ITERATION and INDEXING (it is the length of the list you will index into); for CAPACITY
+    questions — *is the party full? is there room for a catch, an egg, or a Shedinja?* — the
+    game's own authority is `party_accounting.game_party_count()`.
+    ⛔ Stage 0 has re-pointed NO call site; see `modules/party_accounting.py` for why not.
+    """
     return len(get_party())
+
+
+#: Set once, so a broken observer complains exactly one time instead of on every party read.
+_accounting_fault_reported = False
+
+
+def _report_accounting_fault(error: BaseException) -> None:
+    """A broken observer must SAY it is broken — a silent one reports 'no divergence' forever."""
+    global _accounting_fault_reported
+    if _accounting_fault_reported:
+        return
+    _accounting_fault_reported = True
+    try:
+        from modules.console import console
+
+        console.print(
+            f"[bold red]‼ [PARTY-ACCT] the Stage 0 party-accounting observer FAILED "
+            f"({type(error).__name__}: {error}). Party reads are UNAFFECTED, but treat any "
+            f"'no divergence observed' summary from this run as UNMEASURED, not as clean.[/]"
+        )
+    except Exception:  # noqa: BLE001 — reporting a telemetry fault must not itself become one.
+        pass
+
+
+def _account_recompute(game_count: int) -> None:
+    """‼ STAGE 0 PARTY ACCOUNTING (`modules/party_accounting.py`) — OBSERVATION ONLY.
+
+    Runs once per `get_party()` recompute, right after `gPlayerPartyCount` (**A**) is read. It
+    records the count-byte sanity check — exact and free, the byte is already in hand — and, on a
+    sampled subset of recomputes, a full six-slot scan, which is the only way to see occupied
+    slots PAST the count. ⛔ Nothing below consumes its result. Stage 0 answers *"does A ever
+    actually differ from B in a real run?"* before any decision is re-pointed at A.
+    """
+    try:
+        from modules import party_accounting
+
+        scan_due = party_accounting.note_recompute()
+        if game_count > party_accounting.PARTY_SIZE:
+            party_accounting.record_divergence(
+                "OVERFLOW",
+                f"gPlayerPartyCount={game_count} exceeds the {party_accounting.PARTY_SIZE} "
+                f"physical slots, so this reader is about to read past the end of gPlayerParty "
+                f"(pre-existing behaviour, deliberately unchanged by Stage 0)",
+            )
+        if scan_due:
+            accounting = party_accounting.read_party_accounting()
+            if accounting.stale:
+                party_accounting.record_divergence(
+                    "STALE",
+                    f"slots {list(accounting.stale)} hold data past gPlayerPartyCount="
+                    f"{game_count}; the game does NOT count them as party members, so a naive "
+                    f"'count the filled slots' reader would over-count here",
+                )
+    except Exception as error:  # noqa: BLE001 — accounting is telemetry hanging off the party
+        # reader, and every party read in the bot goes through here. A fault must not break the
+        # read; it is swallowed, but reported LOUDLY once, because a silently broken observer
+        # would keep answering "no divergence" and the negative would be believed.
+        _report_accounting_fault(error)
+
+
+def _account_slot_anomaly(kind: str, index: int, game_count: int, detail: str) -> None:
+    """‼ STAGE 0 PARTY ACCOUNTING — OBSERVATION ONLY. Records one anomalous physical slot.
+
+    Hung off `get_party()`'s OWN branches, so a HOLE is observed EXACTLY — every occurrence, at
+    zero extra memory reads — rather than sampled. Changes no control flow: each branch behaves
+    exactly as it did before this call was added.
+    """
+    try:
+        from modules import party_accounting
+
+        party_accounting.record_divergence(
+            kind, f"slot {index} of gPlayerPartyCount={game_count}: {detail}"
+        )
+    except Exception as error:  # noqa: BLE001 — same contract as `_account_recompute`: telemetry
+        # may not break a party read, and a broken observer must announce itself rather than
+        # quietly degrading into a permanent clean bill of health.
+        _report_accounting_fault(error)
 
 
 def get_party() -> Party:
@@ -199,6 +285,13 @@ def get_party() -> Party:
 
     list_of_pokemon = []
     number_of_pokemon_in_party = read_symbol("gPlayerPartyCount", size=1)[0]
+
+    # ‼ STAGE 0 PARTY ACCOUNTING — OBSERVATION ONLY (`modules/party_accounting.py`). This call and
+    # the two `_account_slot_anomaly` calls below are the ONLY additions; they read memory and log,
+    # and no branch below consults them. `number_of_pokemon_in_party` is quantity **A**; the length
+    # of `list_of_pokemon` at the end of this function is quantity **B**.
+    _account_recompute(number_of_pokemon_in_party)
+
     for index in range(number_of_pokemon_in_party):
         pokemon = read_party_pokemon(index)
 
@@ -218,8 +311,24 @@ def get_party() -> Party:
                         context.emulator._core.run_frame()
         if pokemon is None:
             if read_symbol("gPlayerParty", offset=index * 100, size=100).count(b"\x00") >= 99:
+                # ‼ THIS `continue` IS THE ENTIRE REASON B CAN BE LESS THAN A. The slot is counted
+                # by the game and skipped by us, so every Pokémon after it sits at a list position
+                # that is NOT its physical `gPlayerParty` slot. Observed exactly, here, for free.
+                _account_slot_anomaly(
+                    "HOLE",
+                    index,
+                    number_of_pokemon_in_party,
+                    "counted by the game but (near-)all zero, so it is skipped — B is now < A and "
+                    "every later Pokémon's list position no longer equals its physical slot",
+                )
                 continue
             else:
+                _account_slot_anomaly(
+                    "INVALID",
+                    index,
+                    number_of_pokemon_in_party,
+                    "neither decodable nor empty after two frames — get_party() is about to raise",
+                )
                 raise RuntimeError(f"Party Pokémon #{index + 1} was invalid for two frames in a row.")
 
         list_of_pokemon.append(pokemon)
