@@ -6448,3 +6448,36 @@ fixed: `# the 14 needing no ROM` was stale at 15.
 3. *When a check compares against a "correct" number, verify it is comparing against the RIGHT
    number.* A variant invocation (`--quick`) has a different truth, and grading it against the
    main one produces a confident, wrong failure.
+
+## 2026-08-14 — A "STALE" MARKER WHOSE SCOPE IS AMBIGUOUS IS AN INSTRUCTION, NOT A WARNING
+
+**Symptom.** A Tier 2 cold-start agent — given ONLY `04-HANDOFF.md` and `00-README.md`, no chat
+context — reported that `04-HANDOFF.md` still told it to *"drive INTO the cavern and re-measure
+the interior with LIVE objects"*, work that the SAME FILE elsewhere marks
+*"ALL NINE ROOMS ARE DRIVEN ... ⛔ DO NOT REBUILD ANY OF THEM."* Following it would have burned a
+4-25 minute re-drive of a finished dungeon.
+
+**Root cause.** The line was tagged — `⛔ *(STALE — DONE: ...)*` — but the tag sat on its OWN
+sentence, and the imperative followed in **bold** on the next line. A marker reads as covering the
+sentence it is in; a reader skimming sees the bold imperative, not the italic parenthetical before
+it. The second instance was worse: the line AFTER its stale block was genuinely LIVE advice, so
+the block had no discernible end at all.
+
+**Why no gate caught it.** `lint_docs` counts lines and banners; `audit_doc_consistency` compares
+numbers and named pairs. **Neither can judge how far a natural-language marker extends.** This is
+the residual class the DOC CONSISTENCY LAYER's Tier 2 exists for, and it is exactly what Tier 2
+found on the one file a cold session reads first.
+
+**The fix that worked.** Both blocks rewritten so the superseded imperative is quoted as history
+(*"It used to command ..."* — grammatically impossible to read as a live order) and each stale
+block states **where it ENDS** ("this ⛔ covers everything to the END OF THIS BULLET" / "the ⛔ ends
+HERE"). The live advice that followed one of them is now explicitly labelled *"LIVE, not stale"*.
+
+**Prevention rules.**
+1. ⛔ **NEVER LEAVE A SUPERSEDED IMPERATIVE IN THE IMPERATIVE MOOD.** Rewrite it into reported
+   speech — *"it used to say X"* — so no amount of skimming turns it back into an order. A
+   parenthetical warning ABOVE a bold command loses to the bold command.
+2. **A stale block must declare its own END** when anything live follows it, and the live text
+   should say it is live. "Marked stale" is not the same as "scoped stale".
+3. *Tier 2 earns its cost on exactly this class.* Numbers are mechanically checkable and were all
+   green; only a reader with no context could see that a tagged sentence still read as a command.

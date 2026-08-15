@@ -567,10 +567,11 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    works.** ⇒ **The fix is a CHAPTER that drives the transition**, exactly like §Ch18's coord-event
 >    exit and Steven's bottom-row door — *not* a planner rewrite.
 >    ⛔ *(STALE — this was DONE: `--driver ch20dive` → `ACCEPTANCE: PASS legs=6/6`, and all nine
->    cavern rooms have since been driven. Do not re-do it.)* **DO THIS FIRST, near-zero risk and required either way:** inject Dive via
->    `debug_utilities.py:611` and drive Route 128 → Seafloor Cavern to see what the legs really need.
->    ‼ If a hunting ground is ever added, **NOT to `TRAINING_GRASS`** — measured, a Shoal Cave row
->    becomes the highest band and flips `best_training_area` for every team from ~L30 up.
+>    cavern rooms have since been driven. Do not re-do it.)* It used to command *"DO THIS FIRST:
+>    inject Dive via `debug_utilities.py:611` and drive Route 128 → Seafloor Cavern"* — DONE, and
+>    **the ⛔ ends HERE**, at the end of this sentence.
+>    ‼ **LIVE, not stale:** if a hunting ground is ever added, **NOT to `TRAINING_GRASS`** — measured,
+>    a Shoal Cave row becomes the highest band and flips `best_training_area` for every team ~L30 up.
 >
 > 3b. ⛔⛔ **THE ORDER CHANGED 2026-08-13 — READ `06-DECISIONS-LOG.md`'s entry before item 4.**
 >    The Regi arc is **NOT** next, and *"KI-59 blocked it, I fixed it, so build it"* was **REFUTED
@@ -590,12 +591,12 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    ROOM1 2→5 · **ROOM2 1→6** · ROOM3 1→5 · **ROOM4 5→5 (split by TERRAIN, not objects)** ·
 >    ROOM5 1→5 · **ROOM6 1→1 and ROOM7 1→1 (open water, elev 1, ZERO objects — these need SURF,
 >    not Strength)** · **ROOM8 3→7 (12 objects in 48 tiles)** · ROOM9 2→2 (terrain; Archie/Kyogre).
->    ⛔ *(STALE — DONE: the interior was re-measured from inside and all nine rooms are driven.)*
->    **THE NEXT STEP IS A MEASUREMENT, NOT CODE: drive INTO the cavern and re-measure the
->    interior with LIVE objects.** The atlas was read from Mossdeep, and `is_tile_accessible` blocks
->    every tile whose object is not in `active_objects` — so its per-room routing is a **LOWER
->    BOUND**, and section 4's NO-PATHs are an artifact, not map facts. (‼ §Ch19 caught this exact
->    trap once already; the probe now documents it in its own output as section 3b.)
+>    ⛔ *(STALE — and this ⛔ covers everything to the END OF THIS BULLET: the interior WAS
+>    re-measured from inside, all nine rooms are driven, do NOT re-drive.)* It used to command
+>    *"drive INTO the cavern and re-measure with LIVE objects"* — that is DONE. ‼ **The LESSON
+>    survives:** the atlas was read from Mossdeep, and `is_tile_accessible` blocks every tile whose
+>    object is not in `active_objects`, so a remote read's routing is a **LOWER BOUND** and its
+>    NO-PATHs are an artifact, not map facts. (§Ch19 hit this trap too; probe output section 3b.)
 >    **(ii-continued) THE BUILD SPEC IS WRITTEN:**
 >    `ai-research-notes/2026-08-13-ch20-seafloor-cavern-build-spec.md` — an 11-leg list, each with an
 >    assertable condition, from a decomp recon that ran an exhaustive Sokoban search over
