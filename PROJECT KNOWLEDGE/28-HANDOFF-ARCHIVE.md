@@ -4163,3 +4163,31 @@ attributable. ⛔ **And my own discriminator printed a false "REFUTED"** — it 
 battles RUN-WIDE, sweeping in the Room 1 grunt that is fought every run. **The instrument was
 wrong, not the claim**, and it was caught only because `saw_double` was REPORTED rather than
 GRADED and the raw log printed the MAP beside each judgement.
+
+
+# MOVED 2026-08-15 (later, from 04-HANDOFF.md) — the ROOMS 1 AND 2 summary banner, verbatim.
+
+‼ Why it moved: the line budget again, when (P4) Stage 1's runnable commands were added to
+HOW TO RUN / TEST (a Tier 1 reviewer found the driver was not runnable from the handoff at all —
+the more serious of its two findings). Rooms 1 and 2 are DRIVEN AND PASSING; the handoff keeps
+that status and the rules below in condensed form.
+⛔ **STILL LIVE:** *copy upstream's ROUTE, never its CONTROL FLOW* (our pushes go through
+`strength_push`, bounded and verified by `local_id`); **`FLAG_SYS_USE_STRENGTH` is cleared on
+EVERY WARP** (`ClearTempFieldEventData` → `LoadMapFromWarp`) — the code was always safe, the
+COMMENTS were wrong; and KI-77's despawn window is derived (20x17) and has since predicted a
+live arrival dump exactly.
+
+## ✅ ROOMS 1 AND 2 (driven 2026-08-13) — DETAIL MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-14)
+
+Both blocks moved verbatim for the R3 budget when the Room 8 banner landed. ‼ **Keep only what
+later work still leans on:** (1) Room 1's A/B (`PathFindingError → OK len=6`, live objects both
+arms) is what converted the Area Atlas's NO-PATH from a lower bound into a fact — and its route
+had to be ARBITRATED first because our build spec's "exhaustive NORTH push" claim was **false**
+(either direction is legal; upstream's SOUTH ships). *Copy upstream's ROUTE, never its CONTROL
+FLOW* — our pushes go through `strength_push` (bounded, verifies by `local_id`). (2) Room 2's
+headline was a correction to our own shipped source: **`FLAG_SYS_USE_STRENGTH` is cleared on
+EVERY WARP** (`ClearTempFieldEventData` → `LoadMapFromWarp`); the code was always safe, the
+comments were wrong. (3) **KI-77** was filed from Room 1's short object dump (2 of 5) and
+corrected same-day: the despawn window is derived (20x17), the game resets a despawned boulder
+to its template, the planner never under-blocks — and the window has since predicted the Room 8
+arrival dump exactly (8 of 12, 2026-08-14).
