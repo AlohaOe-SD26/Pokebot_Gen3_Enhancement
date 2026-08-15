@@ -13890,3 +13890,60 @@ still carried the exact derail they had watched live.**
   per-item claim, never the repo's current number. ‼ The first wording of that note turned the doc
   gate red, because it quoted the literal figure and **the gate cannot tell a quotation from a
   claim** — the note now says so inline.
+
+## 2026-08-14 — THE OTHER HALF OF THE SLUGMA/WINONA DERAIL: not the bug, but WHY IT WAS INVISIBLE (`#24-counters` / `#24-roster`)
+
+* ⛔ **THE OBSERVATION THAT STARTED THIS.** The root cause of the user-observed derail is fixed and
+  gated. But re-reading the failure path end to end for the owed P4 repro, the pivot itself —
+  `higher_level_actions.py`'s hunted-counter withdraw — turned out to be wrapped in
+  `except Exception: pass`, as were its two sibling PC piggybacks. **All three made three states
+  indistinguishable: it worked · there was nothing to do · it threw.** In the user's run the
+  withdraw took the middle branch, correctly, given an input set that a bug upstream had left
+  empty — and said nothing. ‼ *A single line naming the empty set would have named the bug on
+  sight.* That silence is most of why it cost a day.
+* ✅ **ALL THREE PIGGYBACKS NOW REPORT.** New `_piggyback_report()` keeps the original contract —
+  *a PC hiccup must never destroy a heal that already succeeded* — and adds the half that was
+  missing: it SAYS which of the three states occurred. Failures go to the console AND the run log;
+  routine skips go to the run log only, because most heals legitimately have no counter to collect
+  and a diagnostic that cries wolf on every heal is one the reader learns to ignore.
+* ✅ **THE DECISION IS NOW A PURE FUNCTION, `counter_withdraw_outcome()`** — extracted exactly as
+  `catch_confirmed()` was days earlier, and for the same stated reason: *logic that decides an
+  outcome must be reachable by a test.* The branch was never wrong; it was unobservable and
+  untestable. Its empty-case message names `_hunted_counter_pids` AND the Slugma/Winona shape.
+* ✅ **NEW GATE `repro_heal_piggyback_reporting.py` (suite 22 → 23), 20 checks, no emulator.** ‼ **It PRINTS its own count — believe that line, not this one**, which has already said 16 and 19 as adversarial review added cases.
+  Proves the two outcomes are DISTINGUISHABLE (they used to be the same silence), that the empty
+  message carries its own diagnosis, and ⛔ **that the empty case does NOT read as an error** —
+  it is the common case, and a false alarm on every heal would be worse than the silence it
+  replaces. The reporter is fault-injected against a broken console, a broken run log, and **both
+  at once**, and must never raise. Plus a STRUCTURAL check: an AST sweep asserting no handler in
+  `heal_in_pokemon_center` swallows without reporting — because a behavioural test of the reporter
+  proves nothing if a handler quietly reverts to `pass`. **Fault-tested both ways** (revert one
+  handler to `pass` → fires; strip the variable name from the message → fires).
+* ‼‼ **AND THE REASON NO GATE EVER CAUGHT THIS — worth more than the fix.** `repro_no_silent_except`
+  did not scan `modules/modes/util/` at all. Worse: **its rule 3 escape hatch (`# noqa: BLE001`
+  plus prose) had already been used on all three of these handlers**, so the gate would have
+  counted them LOUD had it seen them. A justification comment documents INTENT; it does not make
+  a failure OBSERVABLE. The three handlers on the user's failure path were *gate-approved silence*.
+* ✅ **SCOPE EXTENDED + THE RATCHET MADE PER-ROOT.** `modules/modes/util/` is now scanned, bringing
+  9 pre-existing silent handlers; baseline 140 → 149. ⛔ **A raised total is exactly how a ratchet
+  gets defeated** — 9 units of headroom would let someone re-add 9 silent handlers in
+  `modules/story/` and still see PASS. The budget is now enforced **per scan root** as well as in
+  total (133/4/3/9, all MEASURED), and a root belonging to no budget **fails LOUD** rather than
+  going unpoliced. Fault-tested both ways: one root over budget while the total is exactly at
+  baseline → fires; a root with no budget entry → fires.
+* ‼ **THE NEW DOC GATE IMMEDIATELY EARNED ITS KEEP.** Adding gate #23 moved the suite count, and
+  `check_gate_count_in_commands` (written hours earlier) caught **all four** stale numbers on the
+  spot — including the two runnable command comments in two different files that had previously
+  taken four rounds of human review to find one at a time. It also caught the `--quick` no-ROM
+  count (15 → 16). ⚠ It did NOT catch the STATE-table drift figure spelled as the WORD "TWO" —
+  a real, now-documented limitation.
+* ⚠ **drift 2 → 3** — `modules/modes/util/higher_level_actions.py` joins. Unpromoted; the USER's
+  call. ⛔ Until then `custom-pokebot`'s heal path still fails silently.
+* ⛔ **WHAT THIS IS NOT. This is NOT (P4).** P4 is the END-TO-END live repro of the user's actual
+  run — full party, counter caught to the box, heal, withdraw, boss fought WITH the counter — and
+  it is **still owed**. This is the observability half, done first because it is cheap, provable
+  without an emulator, and makes the live repro *legible* when it is built. Recon for P4 is done
+  and recorded in the punch list: no committed save holds a Nincada, so the party state must be
+  fabricated with `debug_create_pokemon`/`debug_write_party`, and ‼ **KI-71 means a derailed arm
+  prints NO RESULT and cannot** — the generator is abandoned when the stack clears — so the A/B
+  must be graded on an attribution record printed BEFORE the risky step, as `ch20room9` does.

@@ -6481,3 +6481,102 @@ HERE"). The live advice that followed one of them is now explicitly labelled *"L
    should say it is live. "Marked stale" is not the same as "scoped stale".
 3. *Tier 2 earns its cost on exactly this class.* Numbers are mechanically checkable and were all
    green; only a reader with no context could see that a tagged sentence still read as a command.
+
+## 2026-08-14 — THE SILENT-EXCEPT GATE HAD ALREADY APPROVED THE THREE HANDLERS THAT HID THE USER'S BUG
+
+**Symptom.** Re-reading the Slugma/Winona failure path to build the owed end-to-end repro, the
+pivot — the hunted-counter withdraw inside `heal_in_pokemon_center` — was
+`except Exception: pass`, as were its two sibling PC piggybacks. Three states collapsed into one
+silence: *it worked*, *there was nothing to do*, *it threw*. The user's run took the middle branch
+and said nothing.
+
+**Root cause, and it is two-layered.**
+1. `repro_no_silent_except.py` **did not scan `modules/modes/util/` at all** — the heal path,
+   the PC path, and the walking helpers were all outside its three scan roots.
+2. ⛔ **Worse: its rule 3 would have PASSED them anyway.** Rule 3 accepts a handler that carries
+   `# noqa: BLE001` plus prose, on the reasoning that this makes an existing convention
+   load-bearing. All three handlers carried exactly that (*"never let a PC hiccup break the heal
+   path"*). **A justification comment documents INTENT; it does not make a failure OBSERVABLE.**
+   The handlers on the user's failure path were *gate-approved silence*.
+
+**The fix that worked.** All three now call `_piggyback_report()`, which keeps the real contract
+(the heal survives anything) and adds the missing half (it SAYS which state occurred). The decision
+became a pure `counter_withdraw_outcome()` so it is testable at all. Scope extended to
+`modules/modes/util/`; new gate `repro_heal_piggyback_reporting.py` includes an AST check that no
+handler in the heal swallows without reporting, so a revert to `pass` fails loudly.
+
+**A trap avoided on the way, deliberately.** Extending the scope raised the ratchet's baseline
+140 → 149. **That headroom is itself a hazard**: 9 spare units would let someone re-add 9 silent
+handlers in `modules/story/` and still see PASS. The budget is now enforced **per scan root**, and
+an offender belonging to no known root **fails loud** rather than going unpoliced.
+
+**Prevention rules.**
+1. ⛔ **A JUSTIFICATION COMMENT IS NOT OBSERVABILITY.** "We swallow this on purpose, and here is
+   why" answers *should it be caught?* — never *how will anyone know it happened?* When a handler
+   sits on a path whose failure is INDISTINGUISHABLE from success, prose does not discharge it;
+   only a report does.
+2. **When a bug is fixed, walk its whole path and ask what ELSE on it is unobservable.** The root
+   cause was fixed days earlier and correctly; the thing that made it expensive was three lines
+   further down and survived the fix untouched.
+3. **Widening a gate's scope must not widen its BUDGET for the code it already covered.** Enforce
+   the old roots at their old numbers, or the extension silently buys the old code slack.
+
+## 2026-08-14 — I INVENTED FOUR PER-ROOT BASELINE NUMBERS THAT SUMMED TO THE RIGHT TOTAL AND WERE ALL WRONG
+
+**Symptom.** Adding per-scan-root budgets to `repro_no_silent_except.py`, I wrote
+`{"modules/story": 119, "modules/battle_strategies": 21, "modules/battle_action_selection.py": 0,
+"modules/modes/util": 9}`. The measured values are **133 / 4 / 3 / 9**. Three of four were wrong.
+
+**Root cause.** I knew the TOTAL (149) because I had just measured it, and I distributed it across
+the roots by plausibility instead of measuring each one. It summed correctly, which is exactly what
+made it dangerous: the one arithmetic check available said "consistent".
+
+**Why it mattered more than a typo.** Those numbers are a GATE's budget. Shipped, `modules/story`
+would have been policed at 119 against a real 133 — permanently red, so the gate gets bypassed —
+while `battle_strategies` would have carried 17 units of unearned slack. **A per-root budget nobody
+measured is worse than no per-root budget, because it looks rigorous.**
+
+**The fix that worked.** Measure each root with the gate's own `handler_is_loud`, and record in the
+file that the first draft was invented and wrong, so the next editor re-measures instead of
+adjusting the numbers by feel.
+
+**Prevention rule.** ⛔ *A number that a gate ENFORCES must be produced by running something, never
+by apportioning a total you happen to know.* If the components are not individually measured, do
+not write them down — and a correct SUM is not evidence that the parts are right.
+
+## 2026-08-14 — I "REFUTED" A REVIEWER WITH A GREP THAT `head -20` HAD TRUNCATED. THE REVIEWER WAS RIGHT.
+
+**Symptom.** An adversarial reviewer reported that two new functions had been inserted *into the
+middle of* `higher_level_actions.py`'s import block. I checked with
+`grep -n "^from \|^import \|^def " file | head -20`, saw no import after the functions, and wrote
+**"the risk is refuted"** in my own response. There WERE imports — six of them, at lines 115-120.
+`head -20` had cut the output twenty matches earlier.
+
+**Root cause.** `head` was there to protect my context budget, and it silently changed the
+question. I asked *"are there imports after line 43?"* and the command answered *"among the first
+twenty matching lines, are there imports after line 43?"* — which is a different question with a
+different, useless answer. **The absence of a match in a TRUNCATED search is not evidence of
+absence, and it looks exactly like evidence of absence.**
+
+**What makes this the same old failure in new clothes.** The playbook's pre-flight question 4 is
+*"could my detector have returned POSITIVE at all?"* — written about probes and gates. It applies
+verbatim to a one-line shell command. A `| head -N` on a search whose answer is "no hits" is a
+detector that provably could not have returned positive beyond hit N.
+
+‼ **And the aggravating factor: I used it to contradict a reviewer.** A negative result that
+overturns someone else's positive finding deserves MORE scrutiny than one that agrees, not less.
+The correct move was to re-run without the limit before typing the word "refuted".
+
+**The fix that worked.** Re-ran with `tail -5` instead (showing the END of the match list rather
+than the start), found the six imports immediately, moved both functions below the final import.
+
+**Prevention rules.**
+1. ⛔ **NEVER conclude "there are none" from a search you truncated.** If the answer is a COUNT or
+   an ABSENCE, drop `head`/`tail`/`| head -N` entirely, or use `grep -c`, or search for the
+   negation. Truncation is for reading samples, never for proving emptiness.
+2. *A negative that CONTRADICTS an independent reviewer must be re-derived with a second,
+   differently-shaped instrument before it is published.* Cheap, and it is exactly the case where
+   being wrong is most expensive — it discards a correct finding.
+3. This is the third time this session an instrument's blind spot, not the subject, produced the
+   wrong conclusion (the `?`-placeholder species echo, the fence-stripped gate, this). ⇒ **When a
+   result surprises you, interrogate the INSTRUMENT first.**

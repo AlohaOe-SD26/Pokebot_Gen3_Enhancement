@@ -53,6 +53,12 @@ GATES: list[tuple[str, bool]] = [
     # a byte-identical A/B against the hooks stubbed out, silence on a healthy party, and a
     # fault-injected observer that must break the LOG and never the party read.
     ("repro_party_accounting.py", False),
+    # The SECOND half of the user-observed Slugma/Winona derail — not the bug, but why it took a
+    # day to find. The heal's three PC piggybacks swallowed every exception, so "nothing to do"
+    # and "it threw" were the same silence. Proves the two outcomes are now distinguishable, that
+    # the reporter survives a broken console AND a broken run log, and — structurally — that no
+    # handler in the heal has quietly reverted to `pass`.
+    ("repro_heal_piggyback_reporting.py", False),
     ("repro_hm_slot_wiring.py", False),
     ("repro_multi_battle_partner.py", False),
     ("repro_whiteout_abort.py", False),

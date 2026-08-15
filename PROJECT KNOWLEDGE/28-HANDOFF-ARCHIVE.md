@@ -4060,3 +4060,26 @@ nothing in that tree sets it, so a real run there still dies on a full party.
 **Measured worth: 20 terminal run-kills in 1,129 runs (0.91% excl. a reverted party-cap
 bundle), #1 of 14 derail causes by frames per event (1,717k ≈ 46 min), every one five badges
 deep.** Restore-point-first, then verify by DRIVING `--build custom`, never by a diff.
+
+
+# MOVED 2026-08-14 (later, from 04-HANDOFF.md NEXT ACTIONS item 2) — the reorder_party TRACE DETAIL, verbatim.
+
+‼ Why it moved: line budget again, when the heal-piggyback observability work landed. Item 2 is
+**DONE** (`--driver roster` passes, both files promoted to BOTH forks). What stays in the handoff is
+the STATUS and the one thing still OPEN (the deposit/withdraw half of `#24-roster`). What moved is
+the settled trace detail below — valuable, but it is evidence for a closed question.
+⚠ **The stale-cursor note is the one worth re-reading if a future roster drive ever mis-swaps.**
+
+> 2. ✅ **DONE 2026-08-13 — `reorder_party()` IS DRIVEN.** `--driver roster` exists and passes.
+>    Six swaps, all verified by PID, including the never-driven `RotatePokemon(i, j != 0)`.
+>    **Both unknowns this item asked about are now SETTLED by the trace:**
+>    * *the exit-menu timing gap* — **REAL, and it was a bug.** The party menu's last act is
+>      re-showing the Start menu (`Task_ShowStartMenu` still live at f660 of a 662-frame call), so
+>      `reorder_party` used to return `True` while the avatar could not walk. **Fixed** with a
+>      `swapped`-gated `_settle()`; A/B proven (`moved=False`→`True`, FAIL→PASS, and phase 3 costs
+>      0 frames in BOTH arms — the control arm proving the gate does not over-fire).
+>    * *the stale-cursor read* — **the mechanism is real but did NOT fire.** `gPartyMenu.slot_id`
+>      is **not reset between menu sessions**: the tracer read a stale `slot_id=2` on the overworld
+>      before the menu had opened, and `navigate_to_mon:520-524` computes its scroll direction from
+>      exactly that global. It happened to be re-read live in time. **This is luck, not safety** —
+>      re-check it first if a future roster drive ever mis-swaps.

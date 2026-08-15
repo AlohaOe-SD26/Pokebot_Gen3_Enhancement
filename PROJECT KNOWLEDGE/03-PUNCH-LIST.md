@@ -335,7 +335,26 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       once-per-frame bound (25,523 recomputes over 25,523 frames).
       🔜 **NEXT IS MORE MEASUREMENT, NOT STAGE 1.** One clean short run is not a population, and
       the summary line says so itself. ⛔ Do not re-point the ~35 capacity-shaped call sites at A
-      until several LONG runs have reported. ⚠ Unpromoted on purpose (drift 2) — the USER's call.
+      until several LONG runs have reported. ⚠ Unpromoted on purpose — the USER's call.
+
+      ## THE HEAL'S PC PIGGYBACKS NOW REPORT — the OTHER half of the Slugma/Winona derail (2026-08-14)
+      ✅ **Gate #23 `repro_heal_piggyback_reporting.py` (20 checks, no emulator; ‼ it PRINTS its own count — believe that, not this).** The three PC
+      actions riding on `heal_in_pokemon_center` (rotation deposit, KI-63 slot-freeing deposit,
+      hunted-counter withdraw) each wrapped everything in `except Exception: pass`, collapsing
+      *worked* / *nothing to do* / *threw* into one silence. **The user's run took the middle
+      branch and said nothing** — that silence is most of why the bug cost a day. All three now
+      report; the decision is a pure, testable `counter_withdraw_outcome()`; the empty-case message
+      names `_hunted_counter_pids` AND the Slugma shape. ⛔ The empty case must NOT read as an
+      error — it is the common case, and that is a gate check, because a diagnostic that cries
+      wolf on every heal is worse than the silence it replaced.
+      ‼ **Why no gate caught it:** `repro_no_silent_except` did not scan `modules/modes/util/`, and
+      **its rule-3 escape hatch had already approved all three handlers** — a justification comment
+      documents intent, it does not make a failure observable. Scope extended (baseline 140 → 149)
+      and the ratchet is now **per scan root** (133/4/3/9, all measured), so the widened budget
+      cannot fund new debt in the roots it already covered. Both halves fault-tested.
+      ⛔ **THIS IS NOT (P4).** P4 — the END-TO-END live repro — is **still owed**. Recon is done and
+      its three constraints are recorded in `04-HANDOFF.md`'s queue item P4 (no save holds a
+      Nincada; KI-71 means a derailed arm prints NO RESULT; do not depend on a stochastic catch).
 
 - [ ] `#24-rarepredicate` — ‼ **NOT READY TO BUILD. 2026-08-07: the dataset does not reproduce,
       and as computed it FAILS the user's own named example.**
