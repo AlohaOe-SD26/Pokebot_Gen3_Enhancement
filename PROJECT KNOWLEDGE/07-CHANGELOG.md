@@ -13947,3 +13947,43 @@ still carried the exact derail they had watched live.**
   fabricated with `debug_create_pokemon`/`debug_write_party`, and ‼ **KI-71 means a derailed arm
   prints NO RESULT and cannot** — the generator is abandoned when the stack clears — so the A/B
   must be graded on an attribution record printed BEFORE the risky step, as `ch20room9` does.
+
+## 2026-08-14 — TIER 2 FOUND THE HEAD OF THE QUEUE WAS NOT EXECUTABLE, so (P3b) is now a TOOL with an exit criterion (`#24-roster` / `#24-remainingarc`)
+
+* ⛔ **THE FINDING, and it is the sharpest a cold-start audit has produced here.** A Tier 2 agent
+  given ONLY `04-HANDOFF.md` + `00-README.md` re-ran all five documented commands (every one
+  matched its stated expectation exactly) and then reported that the **live queue's item 0 had no
+  concrete next step**. It said *"do not start Stage 1 until several LONG runs have reported"* —
+  **no number, no command, no owner.** A prohibition with no way to earn past it. Everything else
+  in the file was precisely actionable; the one thing a session was supposed to DO was not.
+* ✅ **NEW TOOL `tools/story-dev/collect_party_accounting.py`.** Aggregates every
+  `[PARTY-ACCT] STAGE 0 SUMMARY` out of the harness logs and **exits 1 until the criterion is
+  met**, so progress cannot be eyeballed. The criterion now lives in CODE, not prose:
+  **(a) ≥5 drives across ≥3 DIFFERENT drivers AND ≥250,000 recomputes, all clean — OR (b) the
+  FIRST divergence of any class.** ‼ (b) is the *more useful* outcome and arrives sooner: one real
+  hole beats a million clean frames, because it turns "A can differ from B" into a reproduction.
+  Today it reports **1 drive / Ch20Dive / 25,523 recomputes / clean → 1 of 5, exit 1.**
+* ‼ **Three honesty properties it was built with, each from a logged past failure:** it **excludes
+  runs whose observer BROKE** from the target (an unmeasured run proves nothing either way); it
+  **fails LOUD when no log matches** — *"this is 'I could not look', NOT 'there is no
+  divergence'"*; and it **refuses to claim the reading it cannot take**, stating that it measures
+  logs and cannot drive an emulator. Verified on the real log, on a synthetic divergence (criterion
+  (b) → exit 0, naming the class, count and driver), on a broken-observer run, and on no-logs.
+* ✅ **Two more Tier 2 findings fixed.** (1) **The FIRST ACTION was ambiguous** — the banner said
+  *"Read this, then the playbook, then item 0"* while the line immediately below said
+  *"‼ FIRST, ALWAYS: run preflight and run_gates"*, and a cold agent could not tell which
+  outranked which. The order is now stated explicitly, with the reason (reading is wasted if the
+  tree is broken). (2) **"Stage 1" is OVERLOADED** — *KI-78* Stage 1 is DONE and PROMOTED while
+  *party-accounting* Stage 1 is FORBIDDEN; a skim could read one for the other. Both now say which.
+* ✅ **And a `(superseded)` tag with UNBOUNDED SCOPE** — the same defect class caught earlier the
+  same day, a third instance. Its 34-line KI-63/Shoal Cave block moved to `28-HANDOFF-ARCHIVE.md`
+  with the ⛔ **still-live** parts kept in the handoff in seven lines: the *SHOAL CAVE IS NOT
+  ADOPTED* ruling (LOW 278 / HIGH 0, and at high tide the failure is a SILENT STALL) and **KI-73 =
+  cache poisoning** in a shared `_map_layout_cache`.
+* ‼ **A self-inflicted corruption, caught and repaired in the same breath.** The archive move was
+  scripted through `bash -c "... python ..."` and **bash ate every backtick as command
+  substitution**, blanking six inline-code spans (filenames, `_map_layout_cache`) in BOTH files.
+  Found by reading the written result rather than trusting the script's "archived 34 lines" success
+  line. Repaired with the editor; `audit_encoding` clean. ⇒ new prevention rule in `08-MISTAKES.md`:
+  **never pass Markdown through `bash -c`** — it is the same read-modify-write hazard as the
+  PowerShell one, through a different shell.

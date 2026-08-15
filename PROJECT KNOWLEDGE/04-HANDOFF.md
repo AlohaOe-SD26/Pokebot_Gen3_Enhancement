@@ -9,6 +9,11 @@ Every banner further down is HISTORY, newest first.
 ---
 # ‼ YOU ARE HERE (2026-08-14, latest) — **THE LIVE WORK IS THE PC / PARTY ROBUSTNESS ARC. (P3) PARTY-ACCOUNTING STAGE 0 IS BUILT, GATED (#22) AND DRIVEN; NEXT IS (P3b) — ACCUMULATE `[PARTY-ACCT]` SUMMARIES FROM LONG RUNS BEFORE STAGE 1.** §Ch20 is driven END TO END and its chapter assembly is **PARKED, NOT CANCELLED**. Read this, then `14-AGENT-PLAYBOOK.md`, then NEXT ACTIONS item 0.
 
+> ⛔ **ORDER, EXPLICITLY (a Tier 2 cold-start audit could not tell which of these came first):
+> (1) RUN THE RITUAL BELOW — it is cheap and it tells you whether the tree is sane; (2) READ
+> `14-AGENT-PLAYBOOK.md`; (3) GO TO `NEXT ACTIONS` item 0.** The banner sentence above lists the
+> READING order only; the ritual outranks it, because reading is wasted if the tree is broken.
+>
 > ‼ **FIRST, ALWAYS:** `cd tools/story-dev` **from the repo root** (the folder holding `sandbox-pokebot/`, `custom-pokebot/` and `40cakes repo/`), then
 > `PYTHONUTF8=1 py -3.12 preflight.py` and `PYTHONUTF8=1 py -3.12 run_gates.py`
 > — **both must exit 0; the suite is 23 gates** (it prints its own count — believe that, not this
@@ -238,34 +243,13 @@ Anywhere older text says "§Ch21" and means the cavern, read **Chapter 20**.
   `story_mode.py` to catch that and set the flag is the remaining work** — do not read this as
   "§Ch21 is unblocked in production". §Ch21 also still has to be BUILT, and the learner is an L13
   HM slave 36 levels below the team.
-* (superseded) **THE NEXT BUILD WAS SPECIFIED AND MEASURED: KI-63.** Read
-  `ai-research-notes/2026-08-13-ki63-dive-learner-acquisition-plan.md` — it has the build order,
-  the pre-registered failure modes, and **two corrections to this handoff's own older text**:
-  the deposit path KI-54 named (`withdraw_from_box`'s deposit block (~`modules/story/pc_trip.py:437-461`)) **cannot free a slot pre-catch**
-  (it returns immediately when nothing is boxed), and `deposit_dead_weight_if_worth_it` is a
-  **silent no-op** behind `POKEBOT_PC_ROTATION`. **A new narrow ungated one-deposit function is
-  needed**, and **deposit-first is the wrong order.**
-  ✅ Already verified safe: teaching Dive **cannot** overwrite Surf (HM slots are filtered at two
-  layers), and `find_dead_weight` **exempts** the sole Surf carrier.
-  ✅ **RULED 2026-08-13 (user delegated it to me): SHOAL CAVE IS NOT ADOPTED. Route 117 stays.**
-  Full rationale + the three conditions that would unlock it: `06-DECISIONS-LOG.md`.
-  ‼‼ **THE DECISIVE NUMBER, measured live and reproduced by me — reachable spin tiles:
-  LOW 278, HIGH 0.** At high tide every candidate becomes `Shallow Water` with
-  `has_encounters=False`, and **the failure mode is a SILENT STALL**: the tile is still standable,
-  so `ensure_hm_learner` burns its entire 40,000-frame budget meeting nothing. KI-54's 65 encounter
-  tiles at high tide are **REAL** — reproduced exactly — but form an **ISLAND** unreachable from
-  the entrance warp. What was never checked was reachability, not the count.
-  ⚠ **MY FIRST RATIONALE WAS PARTLY WRONG and is corrected in place** (`06-DECISIONS-LOG.md`,
-  `08-MISTAKES.md`): I claimed the tooling could not see the room at all. It can —
-  `get_map_data_for_current_position()` reads the **live** header. **KI-73's real defect is CACHE
-  POISONING**: both paths share one `_map_layout_cache` keyed on `(group, number)`, so the first
-  writer wins for the session. Still real, still unfixed, narrower than I said.
-  ✅ The tide gate itself is **cheap and decomp-confirmed**: LOW = hours **03-08 and 15-20**,
-  sampled **once on entry and frozen for the visit**; `get_clock_time().hours` predicts it and
-  `get_event_flag("SYS_SHOAL_TIDE")` (set = HIGH) asserts it.
-  ⇒ **Unlock is now short:** fix/fence **KI-73** → **live two-way sweep** one of the 278 low-tide
-  tiles → ship behind the clock+flag gate in a **SEPARATE HM-ground table** (so `best_training_area`,
-  which reads the same `TRAINING_GRASS` list, is untouched).
+* ✅ **KI-63 (the Dive-learner acquisition) SHIPPED AND WAS PROMOTED.** Its 33-line plan block
+  moved to `28-HANDOFF-ARCHIVE.md` 2026-08-14 (line budget; a Tier 2 audit had flagged its
+  `(superseded)` tag as unbounded). ⛔ **Two things in it are STILL LIVE:** (1) ✅ **SHOAL CAVE IS
+  NOT ADOPTED, Route 117 stays** — reachable spin tiles **LOW 278 / HIGH 0**, and at high tide the
+  failure is a **SILENT STALL**, not an error (rationale + the three unlock conditions:
+  `06-DECISIONS-LOG.md`); (2) **KI-73 is CACHE POISONING** — both paths share one
+  `_map_layout_cache` keyed on `(group, number)`, so the first writer wins for the session.
 * **`#24-ballstarve`'s premise does not hold at `post_dive.ss1`** — 19 balls, $54,334 measured.
   ‼ **Not closed**: the item was filed from a mid-game Surf-era batch and may still be real there.
 * **Nothing is parked. Nothing is running.** All gates exit 0 after the change. *(That said "15";
@@ -472,11 +456,23 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    observer that must break the LOG and never the read (three injections, gate failed each).
 >    ‼ Index/menu-cursor call sites MUST STILL stay on B — if A > B an index derived from A is out
 >    of range for the list the bot holds, most likely MID-BATTLE.
->    🔜 **(P3b) THE MEASUREMENT IS THE POINT, AND IT IS NOT FINISHED.** The one `--driver ch20dive`
->    run so far reported **25,523 recomputes / 86 scans / NO DIVERGENCE** — not a population.
->    ⛔ **Do NOT start Stage 1 (re-pointing the ~35 capacity-shaped call sites at A) until several
->    LONG runs have reported their `[PARTY-ACCT]` summaries**, printed by `story_harness.py` at the
->    end of every drive. A "no divergence" line from one run answers nothing, and it says so.
+>    🔜 **(P3b) — THE HEAD OF THE QUEUE. IT IS NOW EXECUTABLE; IT USED TO SAY ONLY "wait".**
+>    ⛔ **THE EXIT CRITERION, so nobody has to guess what "several" meant** (a Tier 2 audit called
+>    this the file's worst gap — a rule you may not break with no way to earn past it):
+>    **STOP when EITHER (a) ≥5 drives across ≥3 DIFFERENT drivers AND ≥250,000 total recomputes
+>    report clean, OR (b) the FIRST divergence of any class is observed.** Either answers the
+>    question; (b) answers it faster and is the more useful outcome.
+>    ‼ **RUN:** `PYTHONUTF8=1 py -3.12 collect_party_accounting.py` — it aggregates every
+>    `[PARTY-ACCT] STAGE 0 SUMMARY` out of the harness logs, prints progress against the criterion
+>    above, and **exits 1 until it is met**, so this cannot be eyeballed. Feed it by running the
+>    `ch20room1/2/3/6/8/9` drives in "HOW TO RUN / TEST" (they already exist and PASS — the
+>    measurement rides along free on regression runs you would want anyway).
+>    ⚠ So far: **1 drive, `ch20dive`, 25,523 recomputes / 86 scans / NO DIVERGENCE.** Not a
+>    population, and the summary line says so itself.
+>    ⛔ **Only then may PARTY-ACCOUNTING Stage 1 begin** (re-pointing the ~35 capacity-shaped call
+>    sites at A). ‼ **"Stage 1" is OVERLOADED in this file and the audit flagged it:** *KI-78*
+>    Stage 1 is the identity fix and is **DONE and PROMOTED**; *party-accounting* Stage 1 is this
+>    one and is **FORBIDDEN until the criterion above is met**. Never read one for the other.
 >    🔜 **(P4) The END-TO-END repro of the user's actual scenario — STILL OWED.** Nincada evolves
 >    into a full party → counter hunt → heal. **The honest gap: P1 is proven by a fabricated
 >    fixture, not by reality.** ✅ **Its OBSERVABILITY half shipped 2026-08-14** (gate #23): the
@@ -853,7 +849,12 @@ PYTHONUTF8=1 py -3.12 repro_party_accounting.py     # PARTY ACCOUNTING STAGE 0 (
 #     memory, so it tests the shipped reader, not a copy. ‼ The CONTROLS are the point: a healthy
 #     party must record NOTHING, and get_party() must be byte-identical with the observer stubbed.
 #   ‼ THE MEASUREMENT IT EXISTS FOR IS NOT IN THE GATE — it is the `[PARTY-ACCT] STAGE 0 SUMMARY`
-#     that every `story_harness.py` drive now prints at the end. Collect those from LONG runs.
+#     that every `story_harness.py` drive now prints at the end. Collect those from LONG runs:
+PYTHONUTF8=1 py -3.12 collect_party_accounting.py   # (P3b) aggregate every drive's summary
+#   Exits 1 until the criterion is met (>=5 drives / >=3 drivers / >=250k recomputes, OR the first
+#   divergence), so P3b cannot be eyeballed into "good enough". Today: 1 drive, 25,523, clean.
+#   ‼ It MEASURES ONLY — it cannot drive the emulator, and it says so rather than implying a log
+#     read is a reading. It also fails LOUD when no log matches ("I could not look" != "clean").
 
 # --- THE DOC GATES — MANDATORY before ANY commit touching PROJECT KNOWLEDGE (Tier 0) ---
 PYTHONUTF8=1 py -3.12 lint_docs.py                  # line budgets, banners, flag registry

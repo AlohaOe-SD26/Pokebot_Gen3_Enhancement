@@ -6580,3 +6580,41 @@ than the start), found the six imports immediately, moved both functions below t
 3. This is the third time this session an instrument's blind spot, not the subject, produced the
    wrong conclusion (the `?`-placeholder species echo, the fence-stripped gate, this). ⇒ **When a
    result surprises you, interrogate the INSTRUMENT first.**
+
+## 2026-08-14 — `bash -c` ATE EVERY BACKTICK IN THE MARKDOWN I WAS WRITING, AND THE SCRIPT REPORTED SUCCESS
+
+**Symptom.** Archiving a block out of `04-HANDOFF.md` via
+`bash -c "PYTHONUTF8=1 py -3.12 -c '...python that writes markdown...'"`, the script printed
+`archived 34 lines, replaced with 7` and `lint_docs` PASSED. The written text was **corrupted**:
+every `` `inline code` `` span inside the Python string literals had been **removed** —
+`` `28-HANDOFF-ARCHIVE.md` ``, `` `06-DECISIONS-LOG.md` ``, `` `_map_layout_cache` ``,
+`` `(group, number)` `` — leaving sentences like *"moved to  2026-08-14"* and *"keyed on , so the
+first writer wins"*, in BOTH the handoff and the archive.
+
+**Root cause.** The outer `bash -c "…"` is DOUBLE-quoted, so bash performs command substitution on
+every backtick pair before Python ever sees the string. Backticks are Markdown's most common
+character and bash's oldest substitution syntax; putting Markdown inside a double-quoted shell
+string destroys it silently. **Nothing errored** — bash ran `28-HANDOFF-ARCHIVE.md` as a command,
+got "command not found" on stderr, substituted empty string, and carried on.
+
+**Why every gate missed it.** `lint_docs` counts lines and banners. `audit_encoding` looks for
+mojibake and BOMs — this was not an encoding fault, it was *deletion of valid ASCII*.
+`audit_doc_consistency` compares numbers. **Removing an inline-code span leaves grammatical,
+correctly-encoded, correctly-counted text that is simply missing its nouns.**
+
+**How it was caught.** By READING the written result instead of trusting the script's success line
+— the "command not found" noise on stderr was the tell, and it appeared *above* a success message.
+
+**The fix that worked.** Repaired both files with the editor (no shell in the path). ⇒ For anything
+Markdown-shaped: use the Write/Edit tools, or write the Python to a FILE and run that file. Never
+inline Markdown into a `bash -c` double-quoted string.
+
+**Prevention rules.**
+1. ⛔ **NEVER PASS MARKDOWN THROUGH `bash -c "…"`.** Backticks are command substitution there. This
+   is the same read-modify-write hazard as the PowerShell `Get-Content`/`Set-Content` corruption
+   logged earlier today, arriving through a different shell — the general rule is *no shell should
+   ever be in the path between you and a document*.
+2. **"command not found" on stderr ABOVE a success message means the success message is lying.**
+   Read stderr before believing stdout.
+3. *A gate suite that checks encoding, line counts and numbers can still be blind to DELETION of
+   valid text.* After any scripted document edit, read the region you changed.

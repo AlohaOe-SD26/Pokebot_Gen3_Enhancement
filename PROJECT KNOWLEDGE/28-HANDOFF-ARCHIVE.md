@@ -4083,3 +4083,50 @@ the settled trace detail below — valuable, but it is evidence for a closed que
 >      before the menu had opened, and `navigate_to_mon:520-524` computes its scroll direction from
 >      exactly that global. It happened to be re-read live in time. **This is luck, not safety** —
 >      re-check it first if a future roster drive ever mis-swaps.
+
+
+# MOVED 2026-08-14 (later, from 04-HANDOFF.md) — the KI-63 / SHOAL CAVE block, verbatim.
+
+‼ Why it moved: the line budget, when (P3b) was made executable. A Tier 2 cold-start audit had
+flagged this block as a `(superseded)` tag with UNBOUNDED SCOPE spanning ~28 lines — including a
+ruling that is still LIVE. Rather than leave an ambiguous tag in the current-state file, the whole
+block moved here and the handoff keeps a short pointer to the parts that are still true.
+⛔ **STILL LIVE inside it:** the *SHOAL CAVE IS NOT ADOPTED* ruling (LOW 278 / HIGH 0 reachable
+spin tiles, re-derived on the corrected model) and **KI-73 = cache poisoning** in a shared
+`_map_layout_cache`. ✅ SUPERSEDED: the *this is the NEXT build* framing — KI-63 shipped and was
+promoted. Full rationale for the ruling: `06-DECISIONS-LOG.md`.
+
+* *(superseded — ‼ **SCOPE: only the "this is the NEXT build" FRAMING is stale; KI-63 shipped and
+  was promoted.** The ⛔ ends at the `#24-ballstarve` bullet below. **Everything inside is still
+  factually LIVE** — in particular the ✅ **"SHOAL CAVE IS NOT ADOPTED"** ruling and its LOW 278 /
+  HIGH 0 numbers, which were re-derived on the corrected model and still stand. A Tier 2 cold-start
+  audit flagged this tag as unbounded across ~28 lines; it is bounded here rather than deleted,
+  because the content is worth keeping and only the ordering claim expired.)*
+  **THE NEXT BUILD WAS SPECIFIED AND MEASURED: KI-63.** Read
+  `ai-research-notes/2026-08-13-ki63-dive-learner-acquisition-plan.md` — it has the build order,
+  the pre-registered failure modes, and **two corrections to this handoff's own older text**:
+  the deposit path KI-54 named (`withdraw_from_box`'s deposit block (~`modules/story/pc_trip.py:437-461`)) **cannot free a slot pre-catch**
+  (it returns immediately when nothing is boxed), and `deposit_dead_weight_if_worth_it` is a
+  **silent no-op** behind `POKEBOT_PC_ROTATION`. **A new narrow ungated one-deposit function is
+  needed**, and **deposit-first is the wrong order.**
+  ✅ Already verified safe: teaching Dive **cannot** overwrite Surf (HM slots are filtered at two
+  layers), and `find_dead_weight` **exempts** the sole Surf carrier.
+  ✅ **RULED 2026-08-13 (user delegated it to me): SHOAL CAVE IS NOT ADOPTED. Route 117 stays.**
+  Full rationale + the three conditions that would unlock it: `06-DECISIONS-LOG.md`.
+  ‼‼ **THE DECISIVE NUMBER, measured live and reproduced by me — reachable spin tiles:
+  LOW 278, HIGH 0.** At high tide every candidate becomes `Shallow Water` with
+  `has_encounters=False`, and **the failure mode is a SILENT STALL**: the tile is still standable,
+  so `ensure_hm_learner` burns its entire 40,000-frame budget meeting nothing. KI-54's 65 encounter
+  tiles at high tide are **REAL** — reproduced exactly — but form an **ISLAND** unreachable from
+  the entrance warp. What was never checked was reachability, not the count.
+  ⚠ **MY FIRST RATIONALE WAS PARTLY WRONG and is corrected in place** (`06-DECISIONS-LOG.md`,
+  `08-MISTAKES.md`): I claimed the tooling could not see the room at all. It can —
+  `get_map_data_for_current_position()` reads the **live** header. **KI-73's real defect is CACHE
+  POISONING**: both paths share one `_map_layout_cache` keyed on `(group, number)`, so the first
+  writer wins for the session. Still real, still unfixed, narrower than I said.
+  ✅ The tide gate itself is **cheap and decomp-confirmed**: LOW = hours **03-08 and 15-20**,
+  sampled **once on entry and frozen for the visit**; `get_clock_time().hours` predicts it and
+  `get_event_flag("SYS_SHOAL_TIDE")` (set = HIGH) asserts it.
+  ⇒ **Unlock is now short:** fix/fence **KI-73** → **live two-way sweep** one of the 278 low-tide
+  tiles → ship behind the clock+flag gate in a **SEPARATE HM-ground table** (so `best_training_area`,
+  which reads the same `TRAINING_GRASS` list, is untouched).
