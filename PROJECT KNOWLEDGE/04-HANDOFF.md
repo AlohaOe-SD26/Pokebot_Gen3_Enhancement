@@ -868,8 +868,8 @@ PYTHONUTF8=1 py -3.12 audit_encoding.py             # mojibake + BOM; --repair f
 
 # --- THE SANDBOX <-> CUSTOM DRIFT CHECK (was only in the ARCHIVE; it belongs here) ---
 PYTHONUTF8=1 py -3.12 promote.py --check            # measures drift BOTH ways, changes nothing
-#   Expect as of 2026-08-14 (later): exactly THREE differing — modules/party_accounting.py,
-#     modules/pokemon_party.py and modules/modes/util/higher_level_actions.py, unpromoted — 0 orphaned.
+#   Expect as of 2026-08-15: exactly 5 differing (the set named in the STATE row), 0 orphaned.
+#   ‼ DIGITS, NOT WORDS: a spelled-out "THREE" here went stale for a day and no gate could see it.
 #     (Superseded: "0 differing, 0 orphaned. Everything has been PROMOTED.")
 #   To PROMOTE (the USER's call, never assume it): create + PUSH an annotated restore tag,
 #   then `promote.py --restore-point <tag> --go`. It REFUSES on a dirty tree, a missing or
@@ -888,7 +888,7 @@ exits on its own 20,000-idle-frame detector, logging **"HANG CONFIRMED"** on a r
 **Read the `ACCEPTANCE:` line, not the last line.** Full transcripts land in
 `tools/story-dev/harness_sandbox.log`.
 
-‼ **VERIFY THE SANDBOX↔CUSTOM DRIFT ROW RATHER THAN TRUSTING IT** — `promote.py --check` is in the block above and measures it BOTH ways in seconds. ✅ **Expected as of 2026-08-14 (later): exactly three — `modules/party_accounting.py`, `modules/pokemon_party.py` and `modules/modes/util/higher_level_actions.py`, unpromoted on purpose.** Superseded: *"the PowerShell loop is in `28-HANDOFF-ARCHIVE.md`'s copy of this section. Expected as of 2026-08-13: exactly 3"* (`modules/map_path.py`, `modules/story/early_game.py`, `plugins/custom_modes/story_mode.py`) — those three are all PROMOTED now and are not part of the current drift set. ‼ `tools/story-dev/` is sandbox-only and is **not** part of that comparison, so the `ch20*` drivers, `probe_route128_landing.py` and `repro_party_accounting.py` do not change the count.
+‼ **VERIFY THE SANDBOX↔CUSTOM DRIFT ROW RATHER THAN TRUSTING IT** — `promote.py --check` is in the block above and measures it BOTH ways in seconds. ✅ **Expected as of 2026-08-15: exactly 5 — the set named in the STATE row; do not restate it here.** Superseded: *"the PowerShell loop is in `28-HANDOFF-ARCHIVE.md`'s copy of this section"*, together with an older expected-count naming `modules/map_path.py`, `modules/story/early_game.py` and `plugins/custom_modes/story_mode.py` — all PROMOTED now and not part of the current drift set. ‼ **The old FIGURE is deliberately not reprinted**: `audit_doc_consistency` cannot tell a quotation from a claim, so quoting a stale count turns this line red (it did). ‼ `tools/story-dev/` is sandbox-only and is **not** part of that comparison, so the `ch20*` drivers, `probe_route128_landing.py` and `repro_party_accounting.py` do not change the count.
 
 ---
 

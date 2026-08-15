@@ -6660,3 +6660,33 @@ had silently doubled the evidence.**
    that source and make the other opt-in — removing the second source removes the whole bug class.
 4. *For any tool that decides "is there enough evidence yet", the dangerous direction is
    OVER-counting.* Bias every ambiguity toward counting less.
+
+## 2026-08-15 — A DRIFT FIGURE SPELLED AS A WORD ("THREE") HID FROM THE GATE IN THREE PLACES
+
+**Symptom.** After updating every drift figure to 5, `audit_doc_consistency` passed — and two
+successive cold-start audits then found, BY EYE, that `04-HANDOFF.md` still said
+*"⚠ **THREE as of 2026-08-14**"* in its STATE table and *"exactly THREE differing"* inside the
+**copy-run HOW TO RUN / TEST block**, the one section written to be trusted literally.
+
+**Root cause.** Every alternation in `check_drift` demanded `(\d{1,2}|ZERO)`. `THREE` is not
+`\d`, and `ZERO` was the only word the pattern knew — added because someone once wrote *that*
+word. The check was never wrong; it was **incomplete in a way nothing could reveal**, because a
+figure it cannot parse is a figure it reports as absent.
+
+**The fix that worked.** Word-numbers zero..ten are first-class in `check_drift` now, plus the
+`expected as of <date>: exactly N` phrasing the docs actually use. Fault-tested six ways
+(digit right/wrong, WORD right/wrong, the exact HOW-TO-RUN phrasing, and a control proving
+*"the Route 121 gate is three tiles wide"* stays quiet). ‼ **It immediately found a THIRD instance
+neither audit had reported** — a stale count inside a `Superseded:` quotation, which the gate
+cannot distinguish from a claim. Both live sites now also say **"DIGITS, NOT WORDS"** inline, and
+the quoted stale figure was removed rather than re-quoted.
+
+**Prevention rules.**
+1. ⛔ **A NUMERIC GATE MUST ACCEPT THE FORMS HUMANS ACTUALLY WRITE** — digits, spelled-out words,
+   and bolded/`**`-wrapped variants. If it only matches one form, its silence means "I found no
+   number in the form I know", which is NOT "the number is right".
+2. *When a gate is extended, expect it to find things immediately.* If it does not, suspect the
+   extension. This one found a third instance on its first run.
+3. **Never quote a stale figure, even inside `Superseded:`** — `audit_doc_consistency` cannot tell
+   a quotation from a claim, so quoting one turns the line red. Describe the old claim in words
+   and omit its number; the archive keeps the verbatim text.

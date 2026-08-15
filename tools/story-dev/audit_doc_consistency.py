@@ -276,20 +276,33 @@ def check_gate_counts(files: dict[str, str]) -> list[str]:
     return out
 
 
+#: ‼ SPELLED-OUT NUMBERS COUNT. A drift figure written as a WORD ("exactly THREE differing") went
+#: stale for a day in TWO places — including inside the copy-run HOW TO RUN / TEST block — and this
+#: check could not see either, because every pattern demanded `\d`. Two separate cold-start audits
+#: had to find them by eye. Words are now first-class, and the docs additionally say "digits, not
+#: words" at both sites so the next author does not reintroduce the blind spot.
+_WORD_NUMBERS = {"zero": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+                 "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10}
+_NUM = r"\d{1,2}|" + "|".join(_WORD_NUMBERS)
+
+
 def check_drift(files: dict[str, str]) -> list[str]:
     measured, _ = real_drift()
     claims = re.compile(
-        r"\bdrift\s+is\s+(?:now\s+|still\s+)?(?:exactly\s+)?(\d{1,2}|ZERO)\b"
-        r"|\bEXPECT\s+EXACTLY\s+(\d{1,2})\b"
-        r"|\bdrift\s+(?:unchanged\s+|measured\s+)?at\s+(?:exactly\s+)?(\d{1,2})\b"
-        r"|\bDRIFT\s+IS\s+(ZERO)\b"
-        r"|\b(\d{1,2})\s+drifted\s+files?\b", re.I)
+        rf"\bdrift\s+is\s+(?:now\s+|still\s+)?(?:exactly\s+)?({_NUM})\b"
+        rf"|\bEXPECT\s+EXACTLY\s+({_NUM})\b"
+        rf"|\bexpect(?:ed)?\s+(?:as of [^:]{{0,24}}:\s*)?exactly\s+({_NUM})\b"
+        rf"|\bdrift\s+(?:unchanged\s+|measured\s+)?at\s+(?:exactly\s+)?({_NUM})\b"
+        rf"|\bDRIFT\s+IS\s+({_NUM})\b"
+        rf"|\b({_NUM})\s+drifted\s+files?\b", re.I)
     out = []
     for name, text in files.items():
         units = _units(text)
         for m in claims.finditer(text):
             raw = next(g for g in m.groups() if g)
-            n = 0 if raw.upper() == "ZERO" else int(raw)
+            n = _WORD_NUMBERS.get(raw.lower(), None)
+            if n is None:
+                n = int(raw)
             if n != measured:
                 a, b = next(((a, b) for a, b in units if a <= m.start() < b), (0, len(text)))
                 if SUPERSEDE_RE.search(text[a:b]):
