@@ -2341,3 +2341,48 @@ species in lockstep, so the name adds no discriminating power while bringing its
 never rename) — and because `starter_nickname` is already wired end to end, one hard-coded "No"
 away from making that field arbitrary. `(personality, party_index)` — rejected: the index is the
 unstable thing the identity key exists to replace.
+
+## 2026-08-14 — Party accounting Stage 0: observe from INSIDE the reader, ship no consumer, and say which classes are sampled
+
+**Decision.** Implement RULING D as a **measurement-only Stage 0**: readers plus a divergence log,
+**zero call sites re-pointed**, with the observation hung off `get_party()`'s own branches.
+
+**Why observe from inside `get_party()` rather than from a caller or a polling loop.** The
+divergence IS the compaction: `get_party()` reads A, loops it, and `continue`s the near-empty
+slots. At that exact branch both numbers are already in hand, so a HOLE is observed **exhaustively
+and at zero extra memory reads**. Any external observer would have to re-read memory on its own
+cadence and would therefore SAMPLE the one class we can otherwise get for free — and would sample
+it from a different frame of reference than the reader it is measuring, which is the
+"state sampled from a moving frame" family this project has logged repeatedly.
+
+**Why STALE is sampled anyway, and why that is written into the output.** An occupied slot at or
+past A cannot be seen without reading slots `get_party()` never touches. Rejected: scanning all six
+every recompute (600 extra bytes ~60x/second for a class we have never once observed). Chosen:
+1-in-300, **with the sample count printed beside the result**. ⛔ The alternative explicitly refused
+is printing a bare `STALE: 0` — that is a claim the instrument may not have been able to falsify,
+and believing exactly that kind of negative is item 4 of the playbook's pre-flight.
+
+**Why STALE is measured at all, given the game ignores those bytes.** Because the obvious way to
+write the "filled vs empty spaces" reader the user asked for is to count non-empty slots — and that
+reader would COUNT them and be wrong. Measuring how often they exist is what justifies making A the
+capacity authority instead. `occupied_count` is exported for this and carries a warning in its
+docstring saying it is not a party size.
+
+**Why no call site was wired, when 35 of them are capacity-shaped and arguably wrong today.**
+Rejected: migrate them now. The honest state is that **nobody has ever measured whether A differs
+from B in a real run** — the first run to look reported 25,523 recomputes and zero divergences. A
+migration justified by an unmeasured hazard could only be graded on "nothing broke", which is not a
+result. Stage 1 is gated on accumulating summaries from long runs.
+‼ And the migration is **not symmetric**: index/menu-cursor sites must stay on B forever, because
+if A > B an index from A is out of range for the list that exists — surfacing mid-battle, in the
+faint chooser. "Use the authoritative number everywhere" would be an actively harmful tidy-up.
+
+**Why C (the belief ledger) is not in Stage 0.** The user called it valuable and it is. But a
+ledger disagreeing with the game is only diagnosable once the two GAME numbers can be told apart;
+building all three at once would mean debugging a three-way disagreement with no trusted leg.
+
+**Alternatives rejected for the observer's failure behaviour.** Letting it raise — rejected: every
+party read in the bot goes through here. Swallowing quietly — ⛔ rejected outright: a silently
+broken observer reports "no divergence" forever and the negative gets believed, which is the exact
+shape of five entries in `08-MISTAKES.md`. **Chosen: swallow, but announce ONCE and loudly**, and
+have the gate assert the announcement fires.

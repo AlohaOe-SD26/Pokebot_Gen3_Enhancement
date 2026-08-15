@@ -47,6 +47,12 @@ GATES: list[tuple[str, bool]] = [
     ("audit_encoding.py", False),
     ("repro_box_counter_move_test.py", False),
     ("repro_pid_identity_key.py", False),
+    # PARTY ACCOUNTING STAGE 0 (`06-DECISIONS-LOG.md` RULING D). Drives the REAL `get_party()` over
+    # fabricated `gPlayerParty` memory to prove the divergence observer SEES each class
+    # (HOLE/OVERFLOW/STALE/INVALID) and — the part that actually matters — that it changes NOTHING:
+    # a byte-identical A/B against the hooks stubbed out, silence on a healthy party, and a
+    # fault-injected observer that must break the LOG and never the party read.
+    ("repro_party_accounting.py", False),
     ("repro_hm_slot_wiring.py", False),
     ("repro_multi_battle_partner.py", False),
     ("repro_whiteout_abort.py", False),

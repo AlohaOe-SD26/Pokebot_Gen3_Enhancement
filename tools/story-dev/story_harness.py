@@ -8328,4 +8328,19 @@ try:
         log(f"[moveset] {p.species.name} L{p.level}: {mv}")
 except Exception as e:
     log(f"[moveset] err {e}")
+
+# PARTY ACCOUNTING STAGE 0 (`modules/party_accounting.py`, `06-DECISIONS-LOG.md` RULING D).
+# ‼ THIS IS THE MEASUREMENT STAGE 0 EXISTS TO PRODUCE: over a whole driven run, did A
+# (`gPlayerPartyCount`) ever actually differ from B (`len(get_party())`)? Reporting it here rather
+# than from bot code keeps Stage 0's promise that NO call site is wired — the harness is a test
+# tool, not a decision path. ‼ Read the SAMPLE COUNTS on the summary line: a zero beside "0 scans"
+# is not a measurement, and this project has twice believed a negative from a detector that could
+# not have returned positive.
+try:
+    from modules import party_accounting
+
+    for line in party_accounting.summary_lines():
+        log(line)
+except Exception as e:
+    log(f"[PARTY-ACCT] err {e} — treat this run as UNMEASURED for party accounting, not as clean")
 logf.close()

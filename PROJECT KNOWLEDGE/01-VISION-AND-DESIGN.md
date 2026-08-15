@@ -196,6 +196,23 @@ it.
 - **Must do:** each is a drop-in `BotMode` — prefer this extension point over editing
   vendored files, so `git subtree pull` stays cheap.
 
+### Party accounting (`sandbox-pokebot/modules/party_accounting.py`, new 2026-08-14)
+- **Purpose:** make the bot's idea of "how big is my party" HONEST. The user identified the real
+  hazard from a failing run — *no egg, but a NINJASK and a SHEDINJA*, i.e. a sixth party member
+  that appeared with no catch, no menu and no bot action — and asked for detection that
+  *"counts filled spaces vs empty spaces"*, kept SEPARATE from *"what the bot logged as caught"*
+  (`06-DECISIONS-LOG.md` RULING D). That split is this module.
+- **The three quantities, and which question each answers:** **A** `gPlayerPartyCount` answers
+  CAPACITY (*is there a free slot? can a Shedinja spawn?*); **B** `len(get_party())` answers
+  ITERATION and INDEXING (*what can I address?*) and can be SMALLER than A; **C** — what the bot
+  believes it put there — is the bookkeeping half the user called valuable, and is **not built
+  yet, on purpose**.
+- **Must do:** ⛔ never let an INDEX or menu cursor derive from A — if A > B that index is out of
+  range for the list the bot actually holds, and the likeliest place to discover it is mid-battle.
+- **Where it stands:** **STAGE 0 — readers and a divergence log, wiring NO call site.** It exists
+  to answer *"does A ever actually differ from B in a real run?"* before any decision depends on
+  it. Re-pointing the capacity-shaped call sites is Stage 1 and is gated on that measurement.
+
 ### The verification harness (`tools/story-dev/`)
 - **Purpose:** the reason we can claim a fix works. It holds the FAITHFUL test harness
   (`story_harness.py`, which replicates `modules/main.py`'s loop exactly so harness

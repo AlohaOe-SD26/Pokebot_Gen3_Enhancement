@@ -4008,3 +4008,55 @@ solved". Grade on the path CONTAINING `(6,5)`, on both trainer flags being set, 
 ‼ Why it moved: four supersessions in ONE table cell meant a sentence deep inside it ("`map_path.py` is the NEW third … NOT promoted — the USER's call") read as live and contradicted the same cell's own promoted-file list. **Everything below is HISTORY. As of 2026-08-14 drift is ZERO and every file named here was promoted.**
 
 **3 as of 2026-08-14 — KI-78 STAGE 1, awaiting the USER's promotion call.** `modules/pokemon.py` (the new shared `same_pokemon` predicate), `modules/pokemon_party.py` and `modules/pokemon_storage.py` now key identity on **(personality, species)** instead of the personality alone. ‼ **This is the fix for the destructive path**: a Shedinja shares its Ninjask's PID, so "release the Shedinja" destroyed the Ninjask. A/B proven by `repro_pid_identity_key.py` (the OLD rule returns the WRONG slot on a real fabricated twin pair; the new one is correct), which is **gate #20**. ⛔ Until promotion, `custom-pokebot` has the KI-78 *detection warning* but NOT the fix — the wrong-target release is still live there. **Earlier the same day drift was ZERO**, described next: ✅ **the five drifted files were PROMOTED, user-approved, and that promotion was VERIFIED BY DRIVING.** Promoted: `modules/story/counter_hunt.py` (the user-observed Slugma/Winona derail fix), `modules/pokemon_party.py` (KI-78 **Stage 0, detect-only**), `modules/map_path.py` (KI-59), `modules/story/early_game.py` + `plugins/custom_modes/story_mode.py` (KI-63's wiring). **Evidence:** drift re-measured by hash in BOTH directions = 0; `probe_chapter_order.py --build custom` exit 0; **`repro_box_counter_move_test.py --build custom` exit 0** (the gate was made build-aware during this promotion — it hard-coded `sandbox` and so could not see the promoted fork at all); and a live drive **`--driver ch20dive --build custom` → `legs=6/6 at_entrance=True got_out=True can_continue=True ACCEPTANCE: PASS`**, matching the sandbox result. Restore point **`restore/2026-08-14-pre-promotion-5files`** (annotated, pushed) taken BEFORE the copy. ⛔ **This does NOT mean §Ch20 is a chapter** (it is not, in either fork — ladder still 20 of 24) **nor that KI-78 is fixed** (both forks now merely DETECT the PID collision). Full detail: `custom-pokebot/DIVERGENCE-LOG.md`, 2026-08-14. ‼ **MEASURE, don't trust this row** — the loop is below in "HOW TO RUN / TEST". ‼ **`modules/map_path.py` is the NEW third** — KI-59's fix (entry inversion + the new `blocked_exit_directions` exit half), A/B proven on `VICTORY_ROAD_1F` with a byte-identical `MOSSDEEP_CITY` collateral control, gated by `repro_impassable_dirs.py`. **NOT promoted — the USER's call, not asked for.** ⛔ Until it is, `custom-pokebot`'s planner still cannot see the 401 live `Impassable *` tiles (Regi tombs 144, Shoal Cave 98, Victory Road 58). The other two, unchanged, described next: **EXACTLY 2, both deliberate and sandbox-only (2026-08-13, earlier):** `modules/story/early_game.py` (the new `ensure_hm_learner_making_room`) and `plugins/custom_modes/story_mode.py` (both HM call sites wired to it). **This is KI-63's PRODUCTION WIRING, driven to a PASS but NOT promoted — promotion has not been asked for.** ⛔ Until it is, `custom-pokebot`'s copy of the KI-63 fix is **INERT**: it reads `_needs_party_slot` and nothing there sets it. Earlier today drift was ZERO twice (`restore/2026-08-13-pre-roster-promotion`, `restore/2026-08-13-pre-ki63-promotion`). ‼ **MEASURE, don't trust this row** — the loop is below in "HOW TO RUN / TEST".
+
+
+# MOVED 2026-08-14 (later, from 04-HANDOFF.md's NEXT ACTIONS) — the ROOM 3 and ROOM 8 build blocks, verbatim.
+
+‼ Why they moved: 04-HANDOFF.md hit its 900-line budget when PARTY ACCOUNTING STAGE 0 landed, and
+these two were the largest blocks the file itself already labelled *(superseded)*. **Both rooms are
+DRIVEN AND PASSING** (`--driver ch20room3` PASS x2, `--driver ch20room8` PASS x2, 2026-08-14) and
+every reusable lesson in them is ALREADY carried by the ROOM 3 / ROOM 8 banners at the top of the
+handoff — the walk route and the confirmed DOUBLE battle, and "step 9 faces LEFT, never UP".
+⛔ **The move direction was checked deliberately**: what left is the SUPERSEDED build instruction,
+what stayed is the CORRECTION. That is the opposite of the KI-39 archive move, which shipped the
+refuted text and archived the fix. Nothing below should be acted on — it is a trail.
+⚠ And note one line inside the block above this one is now itself stale: it says "as of 2026-08-14
+drift is ZERO". That was true when written; PARTY ACCOUNTING STAGE 0 has since moved it. This file
+is append-only history — `promote.py --check` is the only authority on the current figure.
+
+*(superseded, kept for the route detail)* **ROOM 3 IS NEXT AND IS ALREADY ARBITRATED** —
+`ai-research-notes/2026-08-13-ch20-room3-arbitration.md`. ✅ **Build the WALK route:**
+`navigate_to(SEAFLOOR_CAVERN_ROOM3, (8,1))` riding battles out — 18 steps, **zero pushes**.
+The 7-boulder puzzle is **OPTIONAL** (it only dodges the trainers) and its pushes are
+irreversible within a visit, so a derail can WEDGE the room. ‼ **Precondition: ≥2 usable
+Pokémon** — it is ONE **DOUBLE** battle (Shelly + Grunt5), not two singles; reuse
+`mossdeep_gym.py`'s `MINIMUM_USABLE_POKEMON` gate. ‼ **The A/B cannot be a single tile** —
+nothing becomes reachable by solving the room. Grade on: the planned path CONTAINS `(6,5)`,
+both trainer flags SET afterwards, and "and the bot can continue" out of `(8,1)`.
+⛔ *(superseded)* "The double battle is decomp-derived and not yet observed live" — it **WAS**
+observed, on 2026-08-13: one trainer battle in Room 3, `is_double=True`, at exactly `(6,5)`,
+with `usable=6` asserted beforehand. See `ai-research-notes/2026-08-13-ch20-room3-drive-predictions.md`.
+
+*(superseded — Room 8 is DRIVEN and PASSING x2, 2026-08-14; kept for the hazard detail)*
+**(b2) ROOM 8 IS ALREADY ADJUDICATED — build from OUR sequence, not upstream's.** Both work;
+ours is **9 pushes vs upstream's 10** and never touches boulder #3. Full table in
+`ai-research-notes/2026-08-13-ch20-decomp-blockers-and-room8.md`. ⛔ **Step 9 must face LEFT,
+never UP** — a boulder pushed north from `(5,4)` lands on `(5,3)` and **permanently seals the
+only route to the `(5,2)` exit warp**. ✅ A jam IS recoverable: exit to Room 3 via `(5,12)` and
+re-enter; all twelve boulders respawn. Wire that as the room's failure handler.
+
+
+# MOVED 2026-08-14 (later, from 04-HANDOFF.md NEXT ACTIONS item 1b) — verbatim.
+
+‼ Why it moved: line budget, and item 1b was already answered — the KI-63 wiring WAS promoted on
+2026-08-14 and is in both forks. The text below self-labelled as "the first decision for the user"
+and would send a cold session to ask for something already granted. **The measured-worth figures
+are the part worth keeping**, which is why they were also summarised in the surviving 1b line
+rather than only archived here.
+
+*(superseded)* ⛔ **THE FIRST DECISION FOR THE USER: promote the KI-63 WIRING?** Until it is promoted,
+`custom-pokebot`'s copy of the KI-63 fix is **INERT** — it reads `_needs_party_slot` and
+nothing in that tree sets it, so a real run there still dies on a full party.
+**Measured worth: 20 terminal run-kills in 1,129 runs (0.91% excl. a reverted party-cap
+bundle), #1 of 14 derail causes by frames per event (1,717k ≈ 46 min), every one five badges
+deep.** Restore-point-first, then verify by DRIVING `--build custom`, never by a diff.

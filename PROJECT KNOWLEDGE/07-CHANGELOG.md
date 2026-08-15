@@ -13772,3 +13772,121 @@ still carried the exact derail they had watched live.**
   And the identity fix is proven by fabricated-fixture A/B and by gates, **not** by reproducing
   the user's original failing run — that repro is still owed.
 * Full per-file rationale and evidence: `custom-pokebot/DIVERGENCE-LOG.md`, 2026-08-14 (later).
+
+## 2026-08-14 — PARTY ACCOUNTING **STAGE 0**: the three quantities are SPLIT, the divergence is LOGGED, and NOTHING is wired (`#24-roster`)
+
+* ✅ **NEW MODULE `sandbox-pokebot/modules/party_accounting.py`.** `06-DECISIONS-LOG.md` RULING D
+  (the user's own design) named three quantities the bot used interchangeably: **A** what the GAME
+  says is filled (`gPlayerPartyCount`), **B** what the bot can READ (`len(get_party())`), **C** what
+  the bot BELIEVES it put there. **B can be LESS than A** — `get_party()` COMPACTS, skipping any
+  slot below A whose 100 bytes are 99-or-more zeros, which is precisely what makes a list position
+  stop equalling a physical `gPlayerParty` slot (the same divergence behind the KI-78 wrong-target
+  RELEASE). The module adds A, a per-slot occupancy reader, and a divergence log.
+* ⛔ **IT WIRES NO CALL SITE, AND THE GATE ASSERTS THAT RATHER THAN TRUSTING IT.** None of the 207
+  party-count reads in the tree was re-pointed. That is not timidity — it is this project's own
+  pre-flight question *"could my detector have returned POSITIVE at all?"* applied before the fact:
+  **we did not know whether A ever actually differs from B in a real run.** Stage 0 exists to find
+  out. ‼ Index/menu-cursor sites must stay on **B** permanently: if A > B, an index derived from A
+  is out of range for the list the bot holds, and the likeliest place to discover that is
+  MID-BATTLE. **C is deliberately not built** — a belief ledger is only diagnosable once the two
+  GAME numbers can be measured.
+* **Four divergence classes, and the coverage of each is stated rather than implied.** HOLE
+  (empty slot below A), OVERFLOW (A > 6) and INVALID are observed **EXACTLY**, from `get_party()`'s
+  own branches, at zero extra memory reads. **STALE** (an occupied slot at or past A — bytes the
+  game does not count, which a naive "count the filled slots" reader would wrongly include) is
+  ⛔ **SAMPLED at 1-in-300 recomputes.** The summary prints its own sample size beside every zero,
+  because a bare zero from a detector that may not have looked is not a measurement.
+* ✅ **NEW GATE `repro_party_accounting.py` (suite 21 to 22), 33 checks, no emulator, ~1s.** It
+  now **PRINTS ITS OWN CHECK COUNT** (`ALL 33 CHECKS PASS`), added because this very line first
+  said "34" — a hand-typed count in prose is a number nobody re-derives, and the Tier 1 reviewer
+  caught it disagreeing with the handoff's "30" for the same gate on the same day. It
+  drives the **REAL `get_party()`** over fabricated `gPlayerParty` memory — with a stub emulator
+  supplying the `peek_frame()` retry an empty slot actually takes — so it tests the shipped reader
+  instead of a re-implementation. Fixtures are GENUINE Gen 3 party records: real substructure
+  order, real `personality XOR OT id` encryption, a computed checksum and the `SANITY_HAS_SPECIES`
+  bit, because `is_empty`/`is_valid` are the predicates under test.
+  **The CONTROLS are the point:** a healthy party must record **NOTHING**; `get_party()` must be
+  **byte-identical** with the observer stubbed out (four fixtures, comparing length, physical
+  indices and raw bytes); a **fault-injected raising observer** must break the LOG and never the
+  party read, and must ANNOUNCE itself — a silently broken observer would answer "no divergence"
+  forever and the negative would be believed.
+* ‼ **FAULT-TESTED THREE WAYS AT SOURCE LEVEL, each restored byte-identical afterwards:** blinding
+  the HOLE call gave 4 FAILs; narrowing `except Exception` to `except ZeroDivisionError` gave 2
+  FAILs; making the observer corrupt `read_symbol` gave 15 FAILs including all four byte-identical
+  controls. An independent adversarial reviewer **reproduced the first injection itself** rather
+  than taking the report's word for it.
+* ✅ **DRIVEN, not just gated.** `--driver ch20dive` produced `legs=6/6 at_entrance=True
+  got_out=True can_continue=True  ACCEPTANCE: PASS`, unchanged from before the hooks. **The run's
+  own measurement: 25,523 `get_party()` recomputes, 86 six-slot scans, NO DIVERGENCE OBSERVED.**
+  ‼ That is ONE run and is reported as such — it is not evidence that A cannot differ from B.
+  It did prove something else outright: 25,523 recomputes over 25,523 frames confirms the
+  once-per-frame bound the cost estimate rested on, which the reviewer had flagged as an
+  unverified assertion.
+* **Two adversarial-review findings fixed before commit** (both non-blocking, both real):
+  the unverifiable cadence claim, now replaced by the measurement above; and an unbounded tally —
+  a signature embeds the count byte and a slot subset, so corrupt memory could generate thousands.
+  It is now **capped at 200 and SAYS when it truncates**, keeps counting signatures it already
+  holds, and is covered by four new gate checks. *A silent cap would make a saturated log read
+  exactly like a quiet one.*
+* **Telemetry:** `story_harness.py` prints the `[PARTY-ACCT] STAGE 0 SUMMARY` at the end of every
+  drive. Reporting from the HARNESS rather than from bot code is what keeps the no-call-site
+  promise — a test tool is not a decision path.
+* **Docs:** `01-VISION-AND-DESIGN.md` (component intent + which question each quantity answers),
+  `02-ARCHITECTURE.md` (module entry), `03-PUNCH-LIST.md`, `04-HANDOFF.md`.
+  ⛔ **Also corrected two stale claims found while editing:** `03-PUNCH-LIST.md` still said the
+  KI-63 wiring was *"NOT promoted, `custom-pokebot` is still inert"* hours after it was promoted
+  (contradicting the handoff and the changelog), and three handoff lines asserted a drift figure
+  that Stage 0 had moved. Both found by MEASURING (`promote.py --check`), not by reading.
+* ⚠ **drift 0 to 2** (`modules/party_accounting.py`, `modules/pokemon_party.py`). **Unpromoted on
+  purpose:** promotion is the USER's call, and Stage 0 is a measurement that has been taken once.
+* ‼ **NEXT IS MORE MEASUREMENT, NOT STAGE 1.** Do not re-point the ~35 capacity-shaped call sites
+  at A until several LONG runs have reported their summaries.
+
+## 2026-08-14 — A NEW DOC-GATE CHECK FOR THE FAILURE THAT RECURRED FOUR TIMES IN ONE SESSION: a stale gate count inside a RUNNABLE command (`#24-remainingarc`)
+
+* ⛔ **THE MEASURED PROBLEM.** Landing PARTY ACCOUNTING STAGE 0 moved the suite 21 → 22, and the
+  new number had to be written into the docs by hand. **Four separate places were missed**, and a
+  Tier 1 reviewer found them one round at a time: `04-HANDOFF.md` at line 272 (`**21** today`), at
+  line 790 (`# THE STANDING SUITE — all 21,`), at line 55, and — a round later, in a different
+  file — `02-ARCHITECTURE.md` line 226 (`# THE STANDING SUITE — 18 gates`, four versions stale).
+  ‼ **Two of the four were inside COPY-PASTEABLE COMMAND BLOCKS**, which is the worst place for a
+  stale number: an agent runs the command and reads the count beside it.
+* ‼ **WHY THE EXISTING CHECK MISSED THEM — two independent blind spots.** `check_gate_counts`
+  required the word "gates" immediately after the number (so `all 21,` slipped through), **and** it
+  exempts any block carrying a supersede marker — right for prose, wrong for a command, which is
+  how `02-ARCHITECTURE.md`'s lived under a `⛔ CORRECTED` banner unnoticed.
+* ✅ **NEW CHECK `audit_doc_consistency.check_gate_count_in_commands`.** It grades ONLY lines that
+  are a real `py`/`python` invocation of `run_gates.py`, against `run_gates.py`'s AST-parsed table,
+  and ⛔ **grants no supersede exemption** — the surrounding paragraph's status is irrelevant to a
+  command someone is about to run. `--quick` is graded against the no-ROM subset, not the total.
+* ‼‼ **AND ITS FIRST VERSION WAS BLIND — caught by the LIVE injection, not by its own self-test.**
+  Six self-test cases passed in both directions while the check could not see a single real
+  command, because `_read()` blanks ```-fences and every command lives in one. **Re-injecting the
+  real 18-gate bug produced `all consistency checks PASS`.** It is now handed RAW text, and
+  self-test case **D1h feeds a genuinely fenced input** so a future rewiring fails loudly.
+  ⛔ Same shape as the P2 check's failure earlier the same day — logged in `08-MISTAKES.md` with
+  the rule that a self-test must feed input in the shape the live run receives it.
+* ✅ **Fault-tested in BOTH directions, 14 self-test cases (8 fire, 6 stay quiet) plus a live
+  injection into the real file.** The quiet ones are the point: a punch-list TABLE ROW whose
+  `#24-` tag looked like a shell comment, a `~130s` timing, prose that merely MENTIONS
+  `run_gates.py`, a correct `--quick` count, and a command that states no count at all.
+  **Two of those false positives were produced for real during development** and are kept as
+  permanent controls — a noisy gate teaches bypass, which is worse than no gate.
+  ⛔ *(This bullet first read "9 cases (5 fire, 4 stay quiet)" — the split was backwards and the
+  reviewer caught it against the source. A wrong number, in a bullet about wrong numbers, written
+  minutes after measuring it. The counts above were re-derived from the live self-test output.)*
+* ‼ **AND THE REVIEWER THEN TRIED TO DEFEAT IT, WHICH IS WHY IT IS WORTH ANYTHING.** It wrote a
+  probe script against the function and demonstrated **five live bypasses**: a comment WRAPPED
+  onto the next line (this file does that constantly — one reformat from hiding on the check's own
+  flagship example), `python3`/`py3` (`\\b` does not match inside `python3`, because a trailing
+  digit is a word character), and a bare `./run_gates.py` with no interpreter. **All closed**, each
+  now a named self-test case (D1k-D1n). ⚠ **Two known limits, stated rather than buried:** a
+  backslash-continued command, and a count spelled as a WORD, are still invisible.
+* ✅ **It found a fifth stale number nobody had reported:** `# the 14 needing no ROM` — the no-ROM
+  subset is **15** now that `repro_party_accounting.py` joined it. Corrected.
+* **Also fixed while sweeping:** `02-ARCHITECTURE.md` asserted "drift is now EXACTLY 3" naming
+  three files all long since promoted — replaced with a pointer to `promote.py --check` as the sole
+  authority; and `03-PUNCH-LIST.md` gained a header note that an in-item drift figure is a DATED
+  per-item claim, never the repo's current number. ‼ The first wording of that note turned the doc
+  gate red, because it quoted the literal figure and **the gate cannot tell a quotation from a
+  claim** — the note now says so inline.

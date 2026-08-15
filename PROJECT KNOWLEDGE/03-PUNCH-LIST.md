@@ -3,6 +3,14 @@
 > Item format: `- [ ] #N — description` (N never gets reused; check items
 > off with `[x]` and move them to Done with the completion date).
 > Full future-idea catalog: `09-FEATURE-BRAINSTORM.md`.
+>
+> ⛔ **A SANDBOX↔CUSTOM DRIFT FIGURE QUOTED INSIDE AN ITEM IS A DATED CLAIM ABOUT THAT ITEM'S
+> FILES, NEVER THE REPO'S CURRENT NUMBER.** Several items quote one, each true on its own
+> promotion date. **The only authority is `promote.py --check`**, and `04-HANDOFF.md`'s STATE row
+> names the currently expected set. Added 2026-08-14 after a `#24-roster` line claimed the KI-63
+> wiring was "NOT promoted" for hours after it was — the same failure in the other direction.
+> ‼ Note the phrasing here is deliberate: `audit_doc_consistency.py` matches the literal figure
+> and **cannot tell a quotation from a claim**, so naming it even as a warning turns this line red.
 
 ## ‼ TRIAGE INDEX (2026-08-10) — read this before scanning 100+ entries
 
@@ -304,9 +312,30 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       **Measured worth:** 20 terminal run-kills in 1,129 runs (**0.91%** excl. a reverted party-cap
       bundle) and **#1 of 14 derail causes by frames per event (1,717k ≈ 46 min)**, every one five
       badges deep — rare, but it kills the deepest runs.
-      ⛔ **NOT promoted** — `custom-pokebot` is still inert (reads the flag, nothing sets it).
+      ✅ **PROMOTED 2026-08-14 — `custom-pokebot` is no longer inert.** ⛔ Corrected 2026-08-14:
+      this line read *"NOT promoted — `custom-pokebot` is still inert (reads the flag, nothing
+      sets it)"* for hours AFTER the promotion landed, contradicting `04-HANDOFF.md` item 1b and
+      the changelog. Caught by MEASURING (`promote.py --check` lists only the two PARTY ACCOUNTING
+      STAGE 0 files), not by reading. ‼ *A promotion updates the handoff AND every punch-list item
+      that claims the file is unpromoted — that is a P-pair, and it was missed.*
       ‼ **STILL OPEN in this item:** withdraw-on-demand, catch-overflow policy, and any use of
       `reorder_party` by real content (the Regi arc is what will need it).
+
+      ## PARTY ACCOUNTING — STAGE 0 SHIPPED 2026-08-14 (the ROOT beneath the P1/P2 fixes)
+      ✅ **`modules/party_accounting.py` + gate `repro_party_accounting.py` (#22).** Splits the
+      three quantities RULING D named: **A** `gPlayerPartyCount` (CAPACITY authority), **B**
+      `len(get_party())` (ITERATION/INDEX authority, can be LESS than A), **C** the belief ledger
+      — **not built, deliberately**. Divergence classes: HOLE / OVERFLOW / INVALID observed
+      EXACTLY from `get_party()`'s own branches; STALE ⛔ **SAMPLED 1-in-300, never exhaustive.**
+      ✅ **It wires NO call site, and the gate ASSERTS that** rather than trusting it — alongside
+      a byte-identical observer-on/off A/B, silence on a healthy party, and a raising observer
+      that must break the LOG and never the read. Three source injections each made it fail.
+      ✅ **DRIVEN:** `--driver ch20dive` → `ACCEPTANCE: PASS` unchanged, and the run reported
+      **25,523 recomputes / 86 scans / NO DIVERGENCE** — which also empirically confirms the
+      once-per-frame bound (25,523 recomputes over 25,523 frames).
+      🔜 **NEXT IS MORE MEASUREMENT, NOT STAGE 1.** One clean short run is not a population, and
+      the summary line says so itself. ⛔ Do not re-point the ~35 capacity-shaped call sites at A
+      until several LONG runs have reported. ⚠ Unpromoted on purpose (drift 2) — the USER's call.
 
 - [ ] `#24-rarepredicate` — ‼ **NOT READY TO BUILD. 2026-08-07: the dataset does not reproduce,
       and as computed it FAILS the user's own named example.**

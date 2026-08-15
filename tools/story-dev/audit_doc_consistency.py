@@ -156,6 +156,88 @@ def real_drift() -> tuple[int, list[str]]:
 
 
 # ---------------------------------------------------------------------------- checks
+#: A line that INVOKES `run_gates.py` and states a count in its trailing shell comment.
+#: ‼ ANCHORED ON A REAL INVOCATION — the line must START with a `py`/`python` command. The first
+#: draft only required the line to CONTAIN "run_gates.py" plus a `#`, and it immediately produced
+#: a FALSE POSITIVE on a punch-list table row where the issue tag `#24-impassabledirs` read as the
+#: comment marker and "24" as the count. A gate with false positives teaches the reader to bypass
+#: it, which is strictly worse than no gate (CLAUDE.md rule 6) — hence the anchor and the D1f
+#: control below. `\d{1,2}` also keeps timings like `~130s` out of the capture.
+#: Line 1 of a command: optional `VAR=value` env prefixes, an optional interpreter (`py`, `py3`,
+#: `python`, `python3`, with or without a `-3.12`-style flag) or a bare `./`, then `run_gates.py`.
+#: ‼ `(?:py|python)[0-9]*` rather than `(?:py|python)\b` — `\b` does NOT match inside "python3",
+#: because a trailing digit is itself a word character. That let `python3`/`py3` through.
+_RUNGATES_INVOKE = re.compile(
+    r"^[ \t]*(?:[A-Za-z_][A-Za-z0-9_]*=\S+[ \t]+)*"
+    r"(?:(?:py|python)[0-9]*(?:[ \t]+-[0-9.]+)?[ \t]+|\./)?"
+    r"run_gates\.py\b", re.M)
+
+#: A comment-only continuation line — this file wraps long command comments onto them constantly.
+_COMMENT_ONLY_LINE = re.compile(r"^[ \t]*#")
+
+#: The count inside a comment. `\d{1,2}` keeps timings like `~130s` out of the capture.
+_COUNT_IN_COMMENT = re.compile(r"#[^\n]*?\b(?:all[ \t]+)?(\d{1,2})\b")
+
+
+def check_gate_count_in_commands(files: dict[str, str]) -> list[str]:
+    """‼ A COPY-PASTEABLE COMMAND COMMENT MAY NEVER CARRY A STALE GATE COUNT — no exemptions.
+
+    WHY THIS EXISTS AS A SEPARATE CHECK. `check_gate_counts` above skips any block carrying a
+    supersede marker, which is right for PROSE (a superseded sentence is history worth keeping)
+    and **wrong for a command**: an agent copies the command and reads the number beside it, and
+    the surrounding paragraph's status is irrelevant to that. On 2026-08-14 that gap hid FOUR
+    stale counts at once — `04-HANDOFF.md` had `# THE STANDING SUITE — all 21,` (the older regex
+    needed the word "gates" immediately after the number, and this line has a comma) and
+    `02-ARCHITECTURE.md` had `# THE STANDING SUITE — 18 gates` sitting inside a block whose
+    opening `⛔ CORRECTED` banner exempted the whole unit. Two independent blind spots, same shape.
+
+    ⛔ THE APPEND-ONLY HISTORY FILES ARE OUT OF SCOPE by construction — this only ever sees the
+    current-state files its caller passes, so an archived transcript quoting "all 17" stays legal.
+
+    ‼‼ **IT MUST BE HANDED *RAW* TEXT, NOT `_read()`'s OUTPUT.** `_read()` blanks every ```-fence
+    so the other checks do not fire on example text — but a runnable command lives INSIDE a fence,
+    so fence-stripped input makes this check permanently blind. That is not hypothetical: the
+    first version was wired to the stripped text, its 6-case self-test passed in both directions,
+    and it **did not fire on a live re-injection of the real 18-gate bug**. Identical in shape to
+    the P2 check's 2026-08-14 failure — *a self-test that exercises the DECISION and bypasses the
+    PARSING proves nothing.* The self-test now includes a genuinely fenced case (D1h).
+    """
+    total, fast = real_gate_counts()
+    out = []
+    for name, text in files.items():
+        lines = text.splitlines()
+        for index, raw_line in enumerate(lines):
+            if not _RUNGATES_INVOKE.match(raw_line):
+                continue
+            # ‼ THE COMMENT MAY WRAP. This file routinely continues a command's comment onto the
+            # next `#`-only line, so the count is not always on the invocation line. An adversarial
+            # probe demonstrated that as a live bypass — and one reformat away from hiding on this
+            # check's own flagship example. Scan the invocation line PLUS its comment-only tail.
+            block = [raw_line]
+            for follower in lines[index + 1:]:
+                if not _COMMENT_ONLY_LINE.match(follower):
+                    break
+                block.append(follower)
+            found = _COUNT_IN_COMMENT.search("\n".join(block))
+            if not found:
+                continue                      # a command with no count claims nothing. Stay quiet.
+            # ‼ `--quick` runs only the no-ROM subset, so its comment must be graded against the
+            # FAST count. Grading it against the total was this check's second false positive
+            # (caught live on `# the 14 needing no ROM`, where 14 was stale but 22 was never the
+            # right answer either) — comparing against the wrong truth is still a broken check.
+            quick = "--quick" in raw_line
+            expected = fast if quick else total
+            if int(found.group(1)) != expected:
+                # ‼ The line number is the INVOCATION's (`index + 1`), not a match offset: `found`
+                # matched against the joined block, so its offset means nothing in `text`.
+                out.append(
+                    f"{name}:{index + 1} is a RUNNABLE `run_gates.py"
+                    f"{' --quick' if quick else ''}` command whose comment says {found.group(1)}; "
+                    f"the {'no-ROM subset' if quick else 'suite'} has {expected}. ‼ No supersede "
+                    f"marker exempts a command line: {raw_line.strip()[:90]!r}")
+    return out
+
+
 def check_gate_counts(files: dict[str, str]) -> list[str]:
     total, fast = real_gate_counts()
     claims = re.compile(
@@ -514,6 +596,63 @@ def self_test() -> int:
     total, fast = real_gate_counts()
     expect("D1 wrong gate count", check_gate_counts({"T": f"the {total + 1}-gate suite\n"}), True)
     expect("D2 right gate count", check_gate_counts({"T": f"the {total}-gate suite\n"}), False)
+    # D1b-D1e: the COMMAND-COMMENT check. Both real 2026-08-14 shapes, plus the two controls that
+    # keep it from becoming noise — a correct count, and a bare mention with no invocation.
+    expect("D1b stale command count (comma form, no 'gates' word)",
+           check_gate_count_in_commands(
+               {"T": f"py -3.12 run_gates.py   # THE STANDING SUITE — all {total + 1}, exits\n"}), True)
+    expect("D1c stale command count SURVIVES a supersede marker (the whole point)",
+           check_gate_count_in_commands(
+               {"T": f"⛔ SUPERSEDED — read below.\npy -3.12 run_gates.py  # {total + 1} gates\n"}), True)
+    expect("D1d correct command count is quiet",
+           check_gate_count_in_commands(
+               {"T": f"py -3.12 run_gates.py   # THE STANDING SUITE — all {total}, exits\n"}), False)
+    expect("D1e prose MENTIONING run_gates without a command comment is quiet",
+           check_gate_count_in_commands(
+               {"T": "`run_gates.py` is authoritative; it has said 17, 18 and 21 over time.\n"}), False)
+    # D1f — THE FALSE POSITIVE THIS CHECK ACTUALLY PRODUCED on its first live run, kept as a
+    # permanent control: a punch-list table row whose ISSUE TAG (`#24-...`) looked like a shell
+    # comment introducing the count "24". Not a command; must stay silent.
+    expect("D1f a table row with a `#24-` tag near run_gates.py is NOT a command",
+           check_gate_count_in_commands(
+               {"T": "| `#24-impassabledirs` | DONE — gated, see run_gates.py for the suite |\n"}), False)
+    # D1g — a timing in the comment must not be mistaken for the count.
+    expect("D1g a timing like ~130s is not read as a gate count",
+           check_gate_count_in_commands(
+               {"T": f"py -3.12 run_gates.py   # THE STANDING SUITE — {total} gates, ~130s\n"}), False)
+    # D1h — ‼ THE PARSING HALF, and the reason this check exists at all. Every real command sits
+    # inside a ```-fence, and `_read()` blanks fences. The first version was wired to that stripped
+    # text: D1b-D1g all passed while the check could not see a single real command. This case feeds
+    # a genuine fence, so a future rewiring to `files` fails here instead of going quietly blind.
+    expect("D1h ‼ a stale count INSIDE a ``` fence is seen (the blind-parse regression guard)",
+           check_gate_count_in_commands(
+               {"T": f"prose above\n```\ncd tools/story-dev\npy -3.12 run_gates.py  # all "
+                     f"{total + 1} gates\n```\nprose below\n"}), True)
+    # D1i/D1j — `--quick` is the no-ROM SUBSET and must be graded against `fast`, never `total`.
+    # Grading it against the total was this check's second live false positive.
+    expect("D1i --quick graded against the FAST count, not the total",
+           check_gate_count_in_commands(
+               {"T": f"py -3.12 run_gates.py --quick   # the {fast} needing no ROM\n"}), False)
+    expect("D1j --quick with a stale fast count still fires",
+           check_gate_count_in_commands(
+               {"T": f"py -3.12 run_gates.py --quick   # the {fast - 1} needing no ROM\n"}), True)
+    # D1k-D1o — ‼ EVERY ONE OF THESE WAS A DEMONSTRATED BYPASS, found by an adversarial reviewer
+    # who wrote a probe script against this function rather than trusting the self-test. They are
+    # kept as cases because "I closed that gap" is a claim, and a claim needs a test.
+    expect("D1k the count on a WRAPPED comment line is seen (was a bypass)",
+           check_gate_count_in_commands(
+               {"T": f"py -3.12 run_gates.py        # THE STANDING SUITE\n"
+                     f"                             #   all {total + 1} gates, ~130s\n"}), True)
+    expect("D1l `python3` is an interpreter (was a bypass: \\b does not match inside 'python3')",
+           check_gate_count_in_commands(
+               {"T": f"PYTHONUTF8=1 python3 run_gates.py   # all {total + 1} gates\n"}), True)
+    expect("D1m `py3` likewise",
+           check_gate_count_in_commands({"T": f"py3 run_gates.py   # all {total + 1} gates\n"}), True)
+    expect("D1n a bare `./run_gates.py` with no interpreter",
+           check_gate_count_in_commands({"T": f"./run_gates.py   # all {total + 1} gates\n"}), True)
+    expect("D1o a command whose comment states NO count claims nothing and stays quiet",
+           check_gate_count_in_commands(
+               {"T": "py -3.12 run_gates.py --list    # what is in the suite\n"}), False)
     measured, _ = real_drift()
     expect("D3 wrong drift", check_drift({"T": f"drift is exactly {measured + 1}\n"}), True)
     expect("D4 right drift", check_drift({"T": f"drift is exactly {measured}\n"}), False)
@@ -565,6 +704,11 @@ def main() -> int:
     files = {name: _read(DOCS / name) for name in CURRENT_STATE if (DOCS / name).exists()}
     failures: list[str] = []
     failures += check_gate_counts(files)
+    # ‼ RAW text, deliberately: `_read()` blanks code fences, and every runnable command lives in
+    # one. See this check's docstring — wiring it to `files` made it silently blind.
+    raw_files = {name: (DOCS / name).read_text(encoding="utf-8", errors="replace")
+                 for name in CURRENT_STATE if (DOCS / name).exists()}
+    failures += check_gate_count_in_commands(raw_files)
     failures += check_drift(files)
     failures += check_queue_vs_headline(files)
     failures += check_ladder(files)

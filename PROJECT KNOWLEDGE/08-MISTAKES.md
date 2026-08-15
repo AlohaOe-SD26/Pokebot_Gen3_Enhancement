@@ -6372,3 +6372,79 @@ arrows, `20×17`, `§Ch20`, emoji headings and box drawing).
 3. *A detector built from a LIST of known-bad values is blind by construction.* Prefer a pattern
    plus a confirmation step that proves the finding is real — and when a list-based detector says
    "clean", that is the moment to doubt it.
+
+## 2026-08-14 — MY OWN NEW GATE PASSED VACUOUSLY: I built its Pokémon out of National Dex numbers, and the `?` placeholders they addressed ECHOED THE INDEX BACK
+
+**Symptom.** `repro_party_accounting.py` shipped its first green run with the check
+*"species decode correctly, so is_valid/is_empty really were satisfied"* reading **PASS** — while
+the detail column beside it printed `['?', '?', '?']`. The check compared
+`[p.species.index for p in party]` against the three constants the fixture was built from, and it
+matched. The Pokémon did not exist.
+
+**Root cause.** I named the constants `TREECKO, POOCHYENA, ZIGZAGOON = 252, 261, 263` — **National
+Dex numbers**. Gen 3's INTERNAL species table (which is what a party record stores, and what our
+own `modules/data/species.json` is indexed by) keeps **252-276 as unused `?` placeholders** and
+starts the Hoenn species at **277**. So the fixture encoded three non-existent species, and
+`species.index` for a placeholder returns the index it was looked up by — making the assertion
+**circular**. The sibling gate `repro_pid_identity_key.py` had it right all along (301/302/303).
+
+**Why it still passed everything else.** `is_empty` reads a flag bit and `is_valid` compares a
+checksum; neither consults the species table. So the HOLE/OVERFLOW/STALE/INVALID results were all
+genuinely sound. That is exactly what made it dangerous: the ONE check whose job was to prove the
+fixture was real was the only one that was hollow, and every other PASS around it looked like
+corroboration.
+
+**The fix that worked.** Indices re-derived by READING `modules/data/species.json` rather than from
+recall (277/286/288, confirmed by name lookup in both directions), **plus a second assertion that
+the decoded NAMES are `["Treecko", "Poochyena", "Zigzagoon"]`** — a value a placeholder cannot
+produce. The name check is the positive control; the index check alone cannot fail.
+
+**Prevention rules.**
+1. ⛔ **An identifier that ECHOES ITSELF cannot be an assertion.** If `f(x).id == x` holds for
+   invalid `x`, that comparison proves nothing. Assert a value the lookup had to LOOK UP — a name,
+   a stat, a string — not the key you searched with.
+2. **National Dex number is NOT the Gen 3 internal species index.** They diverge from 252 up. Read
+   the index out of `modules/data/species.json`; never type one from memory. (This is the third
+   Gen 3 mechanic asserted from recall to be wrong THIS DAY — see the two entries above.)
+3. *A fixture builder must assert its fixture is REAL before the test asserts anything about it.*
+   Print what decoded, and grade it — `['?', '?', '?']` was visible in the output the whole time.
+
+## 2026-08-14 — I WROTE A GATE TO CATCH STALE GATE COUNTS, ITS 6-CASE SELF-TEST PASSED BOTH WAYS, AND IT COULD NOT SEE A SINGLE REAL COMMAND
+
+**Symptom.** A stale gate count (`# THE STANDING SUITE — 18 gates`, against a live suite of 22) had
+survived in `02-ARCHITECTURE.md`'s runnable command block. I added
+`audit_doc_consistency.check_gate_count_in_commands` for exactly that shape, wrote six self-test
+cases, watched all six pass in both directions — then **re-injected the real 18-gate bug into the
+real file and the audit printed `all consistency checks PASS`.**
+
+**Root cause.** `audit_doc_consistency._read()` blanks every ```-fence before handing text to the
+checks, so example snippets cannot trip the prose rules. **Every runnable command lives inside a
+fence.** Wiring the new check to that stripped text made it blind by construction. The self-test
+fed it RAW strings with no fences, so it exercised the DECISION and never the PARSING.
+
+⛔ **This is a REPEAT, three entries above, from the same day.** The P2 KI-header check failed in
+precisely this way: 5-case self-test green, silent on a live injection, because the self-test
+bypassed the attribution logic. I had that entry in front of me and reproduced the shape anyway.
+
+**The fix that worked.** The check is handed RAW file text (`main()` builds a second, unstripped
+dict for it alone, with the reason at the call site), and the self-test gained **D1h — a case whose
+input contains a genuine ```-fence**, so any future rewiring to the stripped text fails there
+instead of going quietly blind.
+
+**Two false positives it produced on the way, both now permanent controls.** (1) A punch-list TABLE
+ROW matched, because `#24-impassabledirs` read as a shell comment introducing the count "24" — now
+anchored on a real `py`/`python` invocation (D1f). (2) `run_gates.py --quick` was graded against the
+TOTAL when it runs the no-ROM SUBSET — comparing against the wrong truth is still a broken check,
+and it is now graded against the fast count (D1i/D1j). ✅ It found a REAL second bug while being
+fixed: `# the 14 needing no ROM` was stale at 15.
+
+**Prevention rules.**
+1. ⛔ **A GATE'S SELF-TEST MUST FEED IT INPUT IN THE SAME SHAPE THE LIVE RUN DOES.** If production
+   pre-processes the input (strips fences, normalises, decodes), at least one case must carry that
+   pre-processing, or the self-test only proves the decision logic.
+2. **A green self-test NEVER retires the live fault injection.** Break the real thing in the real
+   file and watch the gate go red. This is now twice that only the live injection caught a blind
+   gate — the self-test was green both times.
+3. *When a check compares against a "correct" number, verify it is comparing against the RIGHT
+   number.* A variant invocation (`--quick`) has a different truth, and grading it against the
+   main one produces a confident, wrong failure.

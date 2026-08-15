@@ -100,7 +100,13 @@ promotion, and the risk turned out not to exist.
 had "diverged", with `story_mode.py` at *"3,061 lines vs 2,636"*. **Measured: 3,742 in BOTH.** After
 the §Ch18/§Ch19 promotion the two trees were byte-identical across all 255 code/config files.
 
-⛔ **CORRECTED LATER THE SAME DAY — drift is now EXACTLY 3** (`modules/map_path.py`, `modules/story/early_game.py`, `plugins/custom_modes/story_mode.py` — deliberate, gated, unpromoted fixes; see `04-HANDOFF.md`'s drift row). The paragraph below was true for a few hours and went stale the same day it was written — which is why `audit_doc_consistency.py` now MEASURES drift instead of trusting any sentence, including this one. Superseded text: **DRIFT IS ZERO AGAIN AS OF 2026-08-13.** `modules/story/roster.py` and `modules/menuing.py`
+⛔ **DO NOT READ A DRIFT FIGURE OUT OF THIS FILE. Run `promote.py --check`** — it measures both
+directions in seconds and is the only authority; `04-HANDOFF.md`'s STATE row names the currently
+expected set. This paragraph has carried THREE different figures (zero, then "EXACTLY 3" —
+`map_path.py`, `early_game.py`, `story_mode.py`, all of which have since been PROMOTED — and the
+set is different again today after PARTY ACCOUNTING STAGE 0). Each was true for hours. That is
+precisely why `audit_doc_consistency.py` MEASURES drift rather than trusting any sentence,
+including this one. Superseded text: **DRIFT IS ZERO AGAIN AS OF 2026-08-13.** `modules/story/roster.py` and `modules/menuing.py`
 were **PROMOTED** (user-approved) after `--driver roster --build custom` returned
 `ACCEPTANCE: PASS` **frame-identical to the sandbox run** — and after `find_spec` confirmed the
 custom tree was the one actually imported, so a frame-identical result could not be a silent
@@ -171,6 +177,17 @@ See the per-layer docs in `40cakes repo/DOCUMENTATION/` — the
 authoritative module reference (intent + mechanics + file:line refs).
 Custom-only behavior is documented in `custom-pokebot/DOCUMENTATION/`.
 
+### `modules/party_accounting.py` — OURS, new 2026-08-14 (sandbox only; drift 2)
+Splits the three quantities the bot used to conflate (`06-DECISIONS-LOG.md` RULING D):
+**A** `gPlayerPartyCount` (what the game says is filled — the CAPACITY authority),
+**B** `len(get_party())` (what the bot can READ — the ITERATION/INDEX authority, and it can be
+LESS than A because `get_party()` skips near-empty slots), and **C** (what the bot believes it
+has — deliberately not built yet).
+‼ **It is STAGE 0: readers plus a divergence log, and it wires NO call site.** Three log-only
+hooks inside `get_party()` record HOLE / OVERFLOW / INVALID exactly and STALE by sampling; the
+run summary is printed by `story_harness.py` at the end of a drive. Nothing consumes the readers
+— that is asserted by the gate, not just intended. Gate: `repro_party_accounting.py`.
+
 ## External dependencies & services
 - **ROMs**: user-supplied in each copy's `roms/`, SHA-1 whitelisted,
   never committed.
@@ -206,7 +223,9 @@ is told to run first:
 ```
 cd tools/story-dev
 PYTHONUTF8=1 py -3.12 preflight.py     # git sync + fixtures + docs + live-batch detection. Exits 1.
-PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 18 gates, ~125s, non-zero on any failure
+PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 22 gates, ~130s, non-zero on any failure
+#  ‼ It PRINTS its own count. Believe that, not this comment: it has read 17, 18, 21 and 22, and a
+#  stale count here is invisible to every gate — three separate copies of it existed on 2026-08-14.
 ```
 
 ‼ **`run_gates.py`'s `GATES` table is AUTHORITATIVE — prose is not.** The list lives in code
