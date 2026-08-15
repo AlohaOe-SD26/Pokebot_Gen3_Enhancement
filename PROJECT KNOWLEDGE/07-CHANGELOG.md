@@ -14111,3 +14111,47 @@ Design note (with the four premises of mine it REFUTED):
 * ✅ Docstring updated from *"NOT YET PROVEN AGAINST A LIVE EMULATOR"* to the evidence — while
   KEEPING the requirement that the (P4) driver still open with its own read-back control, because
   this function working in isolation does not make a fixture correct on the day.
+
+## 2026-08-15 — (P4) STAGE 1: the Slugma/Winona bug is REPRODUCED AND FIXED **AGAINST REAL GAME MEMORY**, both arms (`#24-counters`)
+
+* ⛔ **WHAT NO TEST COVERED UNTIL NOW.** The root cause of the user's derail — `box_counter_pid`
+  being TYPE-ONLY — has been gated since 2026-08-14, but **only against `FakeStorage` holding
+  fabricated mons**. Nothing had ever run that function against real `gPokemonStorage` memory on a
+  Pokémon the game's own reader decodes. `--driver boxcounter` does, under both arms.
+* ✅ **BOTH ARMS PASS — a real live A/B, same fixture, opposite answers:**
+  * **ARM B (shipped fix):** `box_counter_pid(...) -> 3E446C89` — the Slugma's own PID, found by
+    its **MOVE**. `ACCEPTANCE: PASS`.
+  * **ARM A (`POKEBOT_BOXCOUNTER_TYPEONLY_A=1`, pre-fix):** `-> None`. **That is the user's bug,
+    reproduced on demand against real memory.** `ACCEPTANCE: PASS` (the arm's expectation IS
+    `None`).
+  ‼ Both arms passing is correct and is stated in the driver: `pid_match` means *"matched THIS
+  ARM's expectation"*, not *"found something"*.
+* ‼‼ **THE ORDERING THAT WOULD HAVE MADE THIS TEST LIE, and the design agent caught it before a
+  line was written.** `hunt()` snapshots `before_box_pids` (`counter_hunt.py:476-477`) and passes
+  it as `exclude_pids` (`:542`); `:284-285` skips anything in that set. **A Slugma injected BEFORE
+  the snapshot is filtered out and the function returns `None` in BOTH arms** — ARM A would
+  "reproduce" the bug for entirely the wrong reason and ARM B would fail. The driver snapshots
+  FIRST, injects AFTER, and **asserts and prints `slugma_pid not in before_box_pids`**. ⛔ The
+  tempting shortcut — an empty exclude set — would have deleted the production guard from the test.
+* ✅ **FOUR CONTROLS, each closing a way this could pass for the wrong reason:**
+  * **`disjoint_from_needed`** — Slugma is pure FIRE and Winona needs Rock/Ice/Dragon/Electric, so
+    the TYPE branch is provably INERT. Pick a Numel (Fire/**Ground**) instead and both arms return
+    at the type branch and the move branch is never measured.
+  * **`fixture_ok`** — species, level and `knows_move("Rock Throw")` read back through the
+    PRODUCTION reader. ⛔ Mandatory, because `box_counter_pid` swallows everything into
+    `return None`: a fixture that failed to decode is **indistinguishable from ARM A's expected
+    miss**. A control failure ABORTS with a message that says *"FIXTURE defect, NOT a verdict on
+    the fix"*, rather than grading FAIL.
+  * **`sole`** — the function returns the FIRST match in box order, so any other qualifying mon
+    would make ARM B green without the move branch running. Hence also `== slugma_pid`, never
+    `is not None`.
+  * **`not_excluded`** — the ordering guard above.
+* ⛔ **STAGE 1 ONLY, DELIBERATELY.** It calls `box_counter_pid` and stops; it does NOT drive the
+  heal/withdraw. **Reason: Stage 1 cannot derail, so ARM A still emits a RESULT.** Under KI-71 a
+  derailed run has its generator abandoned and prints nothing, so putting the decisive claim behind
+  the risky step would make the bug's own arm unreportable. **Stage 2 remains specified and NOT
+  built** (`ai-research-notes/2026-08-15-p4-boxcounter-repro-design.md`).
+* ⚠ **What (P4) still owes:** the heal → withdraw → *boss fought WITH the counter* half, from
+  `saves/fortree_gym_wedge.ss1` (‼ `post_dive.ss1` is POST-WINONA, so the rung cannot fire there —
+  fine for Stage 1, which calls the function directly, fatal for Stage 2). And the `needed` set is
+  currently an explicit constant; Stage 2 should DERIVE it from the live boss plan and assert it.

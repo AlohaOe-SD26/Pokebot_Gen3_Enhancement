@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "boxwrite", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "divelearner"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "boxcounter", "boxwrite", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "divelearner"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -4803,6 +4803,139 @@ class BoxWriteMode(BotMode):
         return
 
 
+class BoxCounterMode(BotMode):
+    """(P4) STAGE 1 — `box_counter_pid` against a REAL PC BOX, both arms. THE DECISIVE CLAIM.
+
+    ‼ WHAT NO EXISTING TEST COVERS. The user-observed Slugma/Winona derail's root cause is
+    `box_counter_pid` having been TYPE-ONLY. That fix is gated — but `repro_box_counter_move_test`
+    proves it against **`FakeStorage` with fabricated mons**. This driver is the first time the
+    function runs against **real `gPokemonStorage` memory, on a real Pokémon the game's own reader
+    decodes**, under both arms.
+
+    ⛔ **STAGE 1 ONLY, AND THAT IS DELIBERATE.** It calls `box_counter_pid` directly and stops.
+    It does NOT drive the heal/withdraw (Stage 2). Reason: Stage 1 **cannot derail**, so ARM A —
+    the arm that reproduces the bug — still emits a RESULT. Under KI-71 a derailed run has its
+    generator abandoned and prints nothing at all, so putting the decisive claim behind the risky
+    step would make the bug's own arm unreportable. Stage 2 is specified in
+    `ai-research-notes/2026-08-15-p4-boxcounter-repro-design.md` and is NOT built.
+
+    ‼‼ THE ORDERING THAT MAKES OR BREAKS THIS TEST. `hunt()` snapshots `before_box_pids` at
+    `counter_hunt.py:476-477` and passes it as `exclude_pids` at `:542`; `:284-285` skips any PID
+    in that set. **A Slugma injected BEFORE the snapshot is filtered out and the function returns
+    `None` in BOTH arms** — ARM A would "reproduce" the bug for entirely the wrong reason and ARM B
+    would fail. So the snapshot is taken FIRST, the injection happens AFTER, and
+    `slugma_pid not in before_box_pids` is ASSERTED and printed. ⛔ The tempting shortcut — passing
+    an empty exclude set — would delete the production guard from the test.
+
+    ⛔ WHY SLUGMA AND NOT ANY BOXED MON. Slugma is **pure FIRE**; Winona needs
+    Rock/Ice/Dragon/Electric. The type branch (`:286-287`) must therefore be provably INERT, or the
+    move branch is never measured and both arms pass. The fixture's own types are asserted disjoint
+    from `needed`. And the verdict is `== slugma_pid`, never `is not None`: the function returns the
+    FIRST match in box order, so any other qualifying mon would make ARM B green without the move
+    branch ever running. The box is asserted to contain nothing else.
+
+    ARMS (`POKEBOT_BOXCOUNTER_TYPEONLY_A`, a permanent hook — never edit code to inject a fault):
+        unset  = ARM B, the shipped fix  -> must return the Slugma's PID
+        "1"    = ARM A, pre-fix type-only -> must return None
+
+    Run:  POKEBOT_BOXCOUNTER_TYPEONLY_A=  PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 \\
+              --driver boxcounter --frames 200000
+    Expect ARM B: arm=B fixture_ok=True disjoint=True not_excluded=True pid_match=True
+                  ACCEPTANCE: PASS
+    Expect ARM A: arm=A ... pid_match=True (its expectation is `None`)  ACCEPTANCE: PASS
+    ‼ BOTH ARMS PASS when the code is correct — `pid_match` means "matched THIS ARM's expectation".
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "BoxCounter"
+
+    def run(self):
+        import os as _os
+
+        from modules.context import context as _ctx
+        from modules.debug_utilities import debug_create_pokemon, debug_write_box_slot
+        from modules.pokemon import get_species_by_name
+        from modules.pokemon_storage import get_pokemon_storage
+        from modules.modes.util import wait_for_n_frames
+        from modules.story.counter_hunt import _box_pids, box_counter_pid
+        from modules.story.early_game import wait_until_truly_controllable
+
+        NEEDED = {"Rock", "Ice", "Dragon", "Electric"}   # Winona's ace types' answers
+        arm = "A" if _os.environ.get("POKEBOT_BOXCOUNTER_TYPEONLY_A", "0") == "1" else "B"
+
+        yield from wait_until_truly_controllable()
+        log(f"[boxcounter] ARM={arm} (POKEBOT_BOXCOUNTER_TYPEONLY_A="
+            f"{_os.environ.get('POKEBOT_BOXCOUNTER_TYPEONLY_A', '<unset>')!r}) needed={sorted(NEEDED)}")
+
+        # ---- 1. SNAPSHOT FIRST. See the docstring: injecting before this makes the test lie. ----
+        before = _box_pids()
+        log(f"[boxcounter] SNAPSHOT before_box_pids={len(before)} entries (taken BEFORE injection, "
+            f"exactly as hunt() does at counter_hunt.py:476-477)")
+
+        # ---- 2. INJECT the fixture ----
+        mon = debug_create_pokemon(species=get_species_by_name("Slugma"), level=15)
+        pid = mon.personality_value
+        try:
+            where = debug_write_box_slot(mon)
+        except Exception as error:  # noqa: BLE001 — a refused write is an ABORT, not a FAIL
+            log(f"[boxcounter] ‼ FIXTURE ABORT — write raised {type(error).__name__}: {error}")
+            log("[boxcounter] ACCEPTANCE: FAIL")
+            _ctx.set_manual_mode()
+            return
+        yield from wait_for_n_frames(2)   # storage is cached per frame; read-back needs a yield
+
+        # ---- 3. READ-BACK CONTROL. ⛔ MANDATORY. `box_counter_pid` swallows every exception into
+        #         `return None`, so a fixture that failed to decode is INDISTINGUISHABLE from ARM
+        #         A's expected miss. Without this, ARM A "passes" on a broken fixture.
+        found = None
+        for b in get_pokemon_storage().boxes:
+            for s in (b.slots or []):
+                if s.pokemon.personality_value == pid:
+                    found = s.pokemon
+        types = [] if found is None else [t.name for t in found.species.types]
+        fixture_ok = bool(found is not None and found.species.name == "Slugma"
+                          and found.level == 15 and found.knows_move("Rock Throw"))
+        disjoint = bool(found is not None and not (set(types) & NEEDED))
+        not_excluded = pid not in before
+        log(f"[boxcounter] FIXTURE at box{where} pid={pid:08X} species="
+            f"{None if found is None else found.species.name} level="
+            f"{None if found is None else found.level} rock_throw="
+            f"{None if found is None else found.knows_move('Rock Throw')} types={types}")
+        log(f"[boxcounter] CONTROLS fixture_ok={fixture_ok} disjoint_from_needed={disjoint} "
+            f"not_in_before_box_pids={not_excluded}")
+        if not (fixture_ok and disjoint and not_excluded):
+            # ‼ ABORT with a message DISTINCT from a test failure. A fixture defect graded as FAIL
+            # would be read as "the fix is broken", which is the wrong conclusion entirely.
+            log("[boxcounter] ‼ FIXTURE ABORT — the controls above did not hold, so neither arm's "
+                "answer would mean anything. This is a FIXTURE defect, NOT a verdict on the fix.")
+            log("[boxcounter] ACCEPTANCE: FAIL")
+            _ctx.set_manual_mode()
+            return
+
+        # ⛔ Sole-candidate control: the function returns the FIRST match in box order.
+        occupants = [s.pokemon.personality_value
+                     for b in get_pokemon_storage().boxes for s in (b.slots or [])]
+        sole = occupants == [pid]
+        log(f"[boxcounter] SOLE-CANDIDATE storage holds {len(occupants)} mon(s); sole={sole}")
+
+        # ---- 4. THE CALL, with the REAL production exclude set ----
+        got = box_counter_pid(NEEDED, exclude_pids=before)
+        expected = None if arm == "A" else pid
+        pid_match = got == expected
+        log(f"[boxcounter] CALL box_counter_pid(needed, exclude_pids=before) -> "
+            f"{'None' if got is None else format(got, '08X')} ; ARM {arm} expected "
+            f"{'None' if expected is None else format(expected, '08X')} ; match={pid_match}")
+
+        ok = bool(fixture_ok and disjoint and not_excluded and sole and pid_match)
+        log(f"[boxcounter] RESULT arm={arm} fixture_ok={fixture_ok} disjoint={disjoint} "
+            f"not_excluded={not_excluded} sole={sole} pid_match={pid_match}")
+        log(f"[boxcounter] ACCEPTANCE: {'PASS' if ok else 'FAIL'}")
+        log("[boxcounter] ‼ STAGE 1 ONLY — the heal/withdraw half (Stage 2) is NOT driven here.")
+        _ctx.set_manual_mode()
+        return
+
+
 class Ch20DiveMode(BotMode):
     """‼ THE FIRST DRIVEN DIVE IN THIS PROJECT — KI-68 step 1, Mossdeep → SEAFLOOR_CAVERN_ENTRANCE.
 
@@ -7997,6 +8130,8 @@ for step in range(args.frames):
             context.bot_mode_instance = BoxWithdrawMode()
         elif args.driver == "roster":
             context.bot_mode_instance = RosterMode()
+        elif args.driver == "boxcounter":
+            context.bot_mode_instance = BoxCounterMode()
         elif args.driver == "boxwrite":
             context.bot_mode_instance = BoxWriteMode()
         elif args.driver == "ch20dive":

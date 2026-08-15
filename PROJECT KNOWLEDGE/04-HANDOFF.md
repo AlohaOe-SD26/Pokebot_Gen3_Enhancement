@@ -7,7 +7,7 @@
 Every banner further down is HISTORY, newest first.
 
 ---
-# ‼ YOU ARE HERE (2026-08-15, latest) — **THE LIVE WORK IS THE PC / PARTY ROBUSTNESS ARC. (P3) STAGE 0 AND (P3b) ITS MEASUREMENT ARE BOTH DONE — 280,707 recomputes, NO DIVERGENCE, but over DUNGEON content with a STATIC party. NEXT IS (P4): the end-to-end Slugma/Winona repro, DESIGNED IN FULL with build steps 1-3 shipped.** §Ch20 is driven END TO END and its chapter assembly is **PARKED, NOT CANCELLED**. Read this, then `14-AGENT-PLAYBOOK.md`, then NEXT ACTIONS item 0.
+# ‼ YOU ARE HERE (2026-08-15, latest) — **THE LIVE WORK IS THE PC / PARTY ROBUSTNESS ARC. (P3) STAGE 0 AND (P3b) ITS MEASUREMENT ARE BOTH DONE — 280,707 recomputes, NO DIVERGENCE, but over DUNGEON content with a STATIC party. (P4) STAGE 1 IS DRIVEN — the Slugma/Winona bug is REPRODUCED AND FIXED against REAL GAME MEMORY, both arms. NEXT IS (P4) STAGE 2: heal -> withdraw -> boss fought WITH the counter.** §Ch20 is driven END TO END and its chapter assembly is **PARKED, NOT CANCELLED**. Read this, then `14-AGENT-PLAYBOOK.md`, then NEXT ACTIONS item 0.
 
 > ⛔ **ORDER, EXPLICITLY (a Tier 2 cold-start audit could not tell which of these came first):
 > (1) RUN THE RITUAL BELOW — it is cheap and it tells you whether the tree is sane; (2) READ
@@ -69,27 +69,14 @@ archive move done BACKWARDS (the refuted text stayed, the correction left — KI
 lines attached to the wrong commands in THIS file, and an R6 flag gate that could not see FIVE of
 the sixteen flags it existed to police (all registered now, 16/16).
 
-## ✅ ROOM 6 (the first executed current crossing, 2026-08-13) — DETAIL MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-14)
+## ✅ ROOMS 6 AND 3 (driven 2026-08-13) — BANNERS MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-15)
 
-Moved for the R3 budget. ‼ **Keep only:** the crossing carried straight through into Room 3 and
-a strict positional assert would have FAILED a perfect crossing — *assert the outcome, not the
-position you expected* (now in `06-DECISIONS-LOG.md`). ⚠ Still true: the **endpoint** is proven,
-not the per-slide behaviour (KI-76's correctness half). ⛔ **CORRECTED 2026-08-14:** this said the
-arrow-warp branch "first executed later, in ch20room8's recovery" — **it did not.** Both there and
-here the warp fired DURING the navigate (the walker holds the direction), so the derived-direction
-branch was SKIPPED in both. **It remains UNEXECUTED.** Room 6 is now **n=9**.
-
-## ✅ ROOM 3 (driven 2026-08-13) — DETAIL MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-14)
-
-Moved for the R3 budget. ‼ **Keep only the two reusable lessons:** the WALK route through Room 3
-is 18 steps and **zero pushes** (its 7-boulder puzzle is OPTIONAL — it only dodges the trainers),
-and the decomp's **single DOUBLE battle** claim (Shelly + Grunt5 collected into one fight) was
-**CONFIRMED LIVE** at exactly `(6,5)` with `usable=6` asserted BEFORE the walk, so the result is
-attributable. ⛔ **And my own discriminator printed a false "REFUTED"** — it counted trainer
-battles RUN-WIDE, sweeping in the Room 1 grunt that is fought every run. **The instrument was
-wrong, not the claim**, and it was caught only because `saw_double` was REPORTED rather than
-GRADED and the raw log printed the MAP beside each judgement.
-
+Both DRIVEN AND PASSING; ⛔ **do not rebuild them.** Moved on the line budget when (P4) Stage 1
+landed. ‼ **Keep only the two reusable rules:** Room 6 — *assert the OUTCOME, not the position you
+expected* (a strict positional assert would have FAILED a perfect crossing); Room 3 — *the
+instrument was wrong, not the claim* (a discriminator counted battles RUN-WIDE and printed a false
+REFUTED over data that CONFIRMED the single-DOUBLE-battle claim). ⚠ Room 6's arrow-warp
+derived-direction branch is still UNEXECUTED.
 ## ✅ ROOMS 1 AND 2 (driven 2026-08-13) — DETAIL MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-14)
 
 Both blocks moved verbatim for the R3 budget when the Room 8 banner landed. ‼ **Keep only what
@@ -484,7 +471,15 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    four of my own premises. ✅ **Steps 1-3 DONE:** `debug_write_box_slot()` (‼ **PROVEN LIVE**,
 >    `--driver boxwrite` → PASS; the P4 driver must still open with its own read-back control),
 >    the `POKEBOT_BOXCOUNTER_TYPEONLY_A` fault hook, and the gate exercising the REAL hook.
->    🔜 **Steps 4-8 REMAIN: the `boxcounter` driver + its {ARM A,B}×{sandbox,custom} matrix.**
+>    ✅✅ **STAGE 1 IS DRIVEN (`--driver boxcounter`), BOTH ARMS PASS — the first time
+>    `box_counter_pid` ran against REAL `gPokemonStorage` memory rather than `FakeStorage`.**
+>    ARM B → the Slugma's PID (found by its MOVE); ARM A
+>    (`POKEBOT_BOXCOUNTER_TYPEONLY_A=1`) → `None`, **the user's bug reproduced on demand**.
+>    Four controls: `disjoint` (pure FIRE, so the type branch is provably inert), `fixture_ok`
+>    (read back through the PRODUCTION reader — mandatory, since a bad fixture is
+>    indistinguishable from ARM A's expected miss), `sole`, and `not_excluded`.
+>    🔜 **STAGE 2 REMAINS:** heal → withdraw → boss fought WITH the counter, from
+>    `saves/fortree_gym_wedge.ss1`, plus deriving `needed` from the live boss plan.
 >    ⛔ **TWO THINGS WILL BREAK IT:** (a) injecting the Slugma BEFORE `counter_hunt.py:477`'s
 >    `before_box_pids` snapshot — `exclude_pids` filters it out, `None` in BOTH arms, ARM A
 >    "passes" wrongly; (b) `post_dive.ss1` is POST-WINONA — use `saves/fortree_gym_wedge.ss1`.

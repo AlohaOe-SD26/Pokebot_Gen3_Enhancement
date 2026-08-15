@@ -4130,3 +4130,36 @@ promoted. Full rationale for the ruling: `06-DECISIONS-LOG.md`.
   ⇒ **Unlock is now short:** fix/fence **KI-73** → **live two-way sweep** one of the 278 low-tide
   tiles → ship behind the clock+flag gate in a **SEPARATE HM-ground table** (so `best_training_area`,
   which reads the same `TRAINING_GRASS` list, is untouched).
+
+# MOVED 2026-08-15 (from 04-HANDOFF.md) — the ROOM 6 and ROOM 3 summary banners, verbatim.
+
+‼ Why they moved: the line budget, when (P4) Stage 1 landed. These were already REDUCED summaries
+of blocks archived on 2026-08-14 — a summary of a summary. Both rooms are DRIVEN AND PASSING and
+the handoff keeps that status; what moved is the evidence detail.
+⛔ **STILL LIVE, and kept in the handoff rather than only here:** Room 6's rule *assert the
+OUTCOME, not the position you expected* (a strict positional assert would have FAILED a perfect
+crossing — `06-DECISIONS-LOG.md`), and Room 3's *the instrument was wrong, not the claim* (a
+discriminator counted trainer battles RUN-WIDE and printed a false REFUTED over data that
+CONFIRMED the decomp's single-DOUBLE-battle claim). ⚠ Also still true: Room 6's arrow-warp
+derived-direction branch remains UNEXECUTED.
+
+## ✅ ROOM 6 (the first executed current crossing, 2026-08-13) — DETAIL MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-14)
+
+Moved for the R3 budget. ‼ **Keep only:** the crossing carried straight through into Room 3 and
+a strict positional assert would have FAILED a perfect crossing — *assert the outcome, not the
+position you expected* (now in `06-DECISIONS-LOG.md`). ⚠ Still true: the **endpoint** is proven,
+not the per-slide behaviour (KI-76's correctness half). ⛔ **CORRECTED 2026-08-14:** this said the
+arrow-warp branch "first executed later, in ch20room8's recovery" — **it did not.** Both there and
+here the warp fired DURING the navigate (the walker holds the direction), so the derived-direction
+branch was SKIPPED in both. **It remains UNEXECUTED.** Room 6 is now **n=9**.
+
+## ✅ ROOM 3 (driven 2026-08-13) — DETAIL MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-14)
+
+Moved for the R3 budget. ‼ **Keep only the two reusable lessons:** the WALK route through Room 3
+is 18 steps and **zero pushes** (its 7-boulder puzzle is OPTIONAL — it only dodges the trainers),
+and the decomp's **single DOUBLE battle** claim (Shelly + Grunt5 collected into one fight) was
+**CONFIRMED LIVE** at exactly `(6,5)` with `usable=6` asserted BEFORE the walk, so the result is
+attributable. ⛔ **And my own discriminator printed a false "REFUTED"** — it counted trainer
+battles RUN-WIDE, sweeping in the Room 1 grunt that is fought every run. **The instrument was
+wrong, not the claim**, and it was caught only because `saw_double` was REPORTED rather than
+GRADED and the raw log printed the MAP beside each judgement.
