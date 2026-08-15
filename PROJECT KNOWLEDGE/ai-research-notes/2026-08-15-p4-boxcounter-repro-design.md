@@ -94,6 +94,22 @@ absence — it names `_hunted_counter_pids` and the Slugma shape (`higher_level_
 
 ## 7. ANCHOR AND COST
 
+⛔ **SUPERSEDED BY MEASUREMENT (2026-08-15, same day) — USE `ch13_fortree_door.ss1`, NOT
+`fortree_gym_wedge.ss1`.** Both were probed: same era (badges 12345, Winona unbeaten), both a FULL
+party of 6 — but the wedge save sits **INSIDE** `FORTREE_CITY_GYM (4,19)` while `ch13_fortree_door`
+is on `ROUTE120 (13,16)`, outside. Stage 2 drives a Pokémon Center heal; starting inside the gym
+adds a gym-exit leg that is pure risk for a test about the PC.
+✅✅ **And `ch13_fortree_door.ss1` carries the bug's own fixture for free: a REAL
+`Shedinja L30` and `Ninjask L29` BOTH with `pid=42207D6F`** (`--driver partypids`). Stage 2 can
+assert against the genuine twins instead of injecting them.
+⛔ **It also refutes a detail this note repeats from KI-78:** the twin is NOT always the later slot
+— here Shedinja is slot 2 and Ninjask slot 3. The decomp claim is about the moment of CREATION;
+party order changes afterwards (`reorder_party()` ships and is driven). No test may rely on order.
+⚠ Its box already holds one Castform, so a "sole candidate" control must account for that.
+
+The original recommendation follows, kept for its cost estimate, which still stands:
+
+
 **`saves/fortree_gym_wedge.ss1`** — the FORTREE anchor (`03-PUNCH-LIST.md:630`), and its team was
 measured driving *"10 Winona attempts without converging … no super-effective answer to Flying"*
 (`:1414-1418`), i.e. exactly the `_boss_plan_is_hopeless` precondition. `PokemonCenter.FortreeCity`

@@ -14155,3 +14155,42 @@ Design note (with the four premises of mine it REFUTED):
   `saves/fortree_gym_wedge.ss1` (‼ `post_dive.ss1` is POST-WINONA, so the rung cannot fire there —
   fine for Stage 1, which calls the function directly, fatal for Stage 2). And the `needed` set is
   currently an explicit constant; Stage 2 should DERIVE it from the live boss plan and assert it.
+
+## 2026-08-15 — A REAL NINJASK/SHEDINJA PID COLLISION EXISTS IN A COMMITTED SAVE, and it changes (P4) Stage 2's anchor (`#24-counters` / `#24-roster`)
+
+* ⛔ **THE DESIGN NAMED AN ANCHOR FROM A DOC CITATION. MEASURING IT FOUND A BETTER ONE.**
+  `ai-research-notes/2026-08-15-p4-boxcounter-repro-design.md` recommended
+  `saves/fortree_gym_wedge.ss1` for Stage 2, citing the punch list. Both Fortree anchors were then
+  actually probed:
+  | save | badges | where | party |
+  |---|---|---|---|
+  | `fortree_gym_wedge.ss1` | 12345 | **INSIDE** `FORTREE_CITY_GYM (4,19)` | full (6) |
+  | `ch13_fortree_door.ss1` | 12345 | `ROUTE120 (13,16)` — **outside** | full (6) |
+  Both are the right era (Winona is badge 6 and unbeaten). ✅ **`ch13_fortree_door.ss1` is the
+  better Stage 2 anchor**: Stage 2 must drive `heal_in_pokemon_center(PokemonCenter.FortreeCity)`,
+  and starting INSIDE the gym adds a gym-exit leg — pure risk for a test about the PC.
+* ✅✅ **AND THE BETTER ANCHOR CARRIES THE BUG'S OWN FIXTURE, FOR FREE.**
+  `--driver partypids` on it: **`Shedinja L30 pid=42207D6F`** and **`Ninjask L29 pid=42207D6F`** —
+  the SAME personality value, in a real committed save. ‼ **This is the first LIVE instance of the
+  KI-78 twin pair in this project.** Every prior test of it — `repro_pid_identity_key.py` included
+  — used a FABRICATED pair. The decomp claim (`CreateShedinja` memcpies its sibling and never
+  rewrites the PID) is now confirmed against real game data, not just source.
+* ⛔ **AND THE REAL SAVE REFUTES A DOCUMENTED DETAIL.** KI-78 states the twin *"is always the LATER
+  slot"* — that is why a first-PID-match resolved a Shedinja request to the Ninjask. In this save
+  the order is **REVERSED: Shedinja at slot 2, Ninjask at slot 3.** Both facts are true and the
+  distinction matters: the decomp claim describes the moment of CREATION, and party order changes
+  afterwards (this project ships and drives `reorder_party()`). ⇒ **"the twin is later" is NOT a
+  durable property and no test may rely on it.** It also strengthens the composite-key fix: an
+  ordering-based remedy would have been wrong here.
+* ✅ **NEW `--driver partypids`** — a read-only dump of party AND box by IDENTITY (species, level,
+  PID), flagging any PID shared by two entries. It exists because nothing else could answer this:
+  `probe_anchor_inventory.py` reports badges and map but no party, and the harness's own
+  `party=[...]` line carries species and level but **no PIDs** — and a PID is the whole question.
+  It changes nothing: no writes, no navigation, no battles.
+  ‼ Its first run threw `AttributeError: 'PokemonStorageBox' object has no attribute 'index'` —
+  the field is `number` (`pokemon_storage.py:34-38`). The PARTY dump had already printed, so the
+  decisive finding survived; the box half did not. *Read the whole transcript, not the part that
+  answered your question.*
+* 🔜 **Stage 2 should now be built on `ch13_fortree_door.ss1`** and can assert against the REAL
+  twins rather than injecting them. ⚠ Its box already holds one Castform, so a `sole`-style
+  control must account for that rather than assuming an empty PC.

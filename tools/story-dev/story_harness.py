@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "boxcounter", "boxwrite", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "divelearner"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxwrite", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "divelearner"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -4803,6 +4803,58 @@ class BoxWriteMode(BotMode):
         return
 
 
+class PartyPidsMode(BotMode):
+    """Dump the party and PC box by IDENTITY — species, level and PERSONALITY VALUE. Read-only.
+
+    ‼ WHY A DRIVER AND NOT A PROBE. `probe_anchor_inventory.py` reports badges and map but not the
+    party, and the harness's own `party=[...]` line carries species/level but **not PIDs** — and a
+    PID is the only thing that can answer the question this exists for: **do a save's Ninjask and
+    Shedinja share a personality value?** (KI-78: `CreateShedinja` memcpies its sibling and never
+    rewrites the PID, so the twins are PID-identical for life, and that keys a RELEASE path.)
+
+    ⛔ It CHANGES NOTHING — no writes, no navigation, no battles. Answering "what is in this save"
+    must not perturb the save it is answering about.
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "PartyPids"
+
+    def run(self):
+        from modules.context import context as _ctx
+        from modules.pokemon_party import get_party
+        from modules.pokemon_storage import get_pokemon_storage
+        from modules.story.early_game import wait_until_truly_controllable
+
+        yield from wait_until_truly_controllable()
+
+        seen: "dict[int, list[str]]" = {}
+        for p in get_party():
+            log(f"[partypids] PARTY slot={p.index} {p.species.name:<12} L{p.level:<3} "
+                f"pid={p.personality_value:08X} egg={p.is_egg}")
+            seen.setdefault(p.personality_value, []).append(f"{p.species.name}(party{p.index})")
+        n_box = 0
+        for b in get_pokemon_storage().boxes:
+            for s in (b.slots or []):
+                mon = s.pokemon
+                n_box += 1
+                log(f"[partypids] BOX{b.number:<2} slot={s.slot_index:<2} {mon.species.name:<12} "
+                    f"L{mon.level:<3} pid={mon.personality_value:08X}")
+                seen.setdefault(mon.personality_value, []).append(
+                    f"{mon.species.name}(box{b.number}.{s.slot_index})")
+
+        # ‼ THE POINT. A shared PID across two DIFFERENT species is the KI-78 twin signature.
+        collisions = {pid: who for pid, who in seen.items() if len(who) > 1}
+        for pid, who in collisions.items():
+            log(f"[partypids] ‼‼ PID COLLISION {pid:08X} shared by {who} — this is the KI-78 shape "
+                f"(a Shedinja carries its Ninjask's personality value for life)")
+        log(f"[partypids] RESULT party={len(list(get_party()))} boxed={n_box} "
+            f"collisions={len(collisions)}")
+        log(f"[partypids] ACCEPTANCE: PASS (read-only dump; it reports, it does not grade)")
+        _ctx.set_manual_mode()
+        return
+
+
 class BoxCounterMode(BotMode):
     """(P4) STAGE 1 — `box_counter_pid` against a REAL PC BOX, both arms. THE DECISIVE CLAIM.
 
@@ -8130,6 +8182,8 @@ for step in range(args.frames):
             context.bot_mode_instance = BoxWithdrawMode()
         elif args.driver == "roster":
             context.bot_mode_instance = RosterMode()
+        elif args.driver == "partypids":
+            context.bot_mode_instance = PartyPidsMode()
         elif args.driver == "boxcounter":
             context.bot_mode_instance = BoxCounterMode()
         elif args.driver == "boxwrite":

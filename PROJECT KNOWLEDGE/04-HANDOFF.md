@@ -469,8 +469,12 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    Four controls: `disjoint` (pure FIRE, so the type branch is provably inert), `fixture_ok`
 >    (read back through the PRODUCTION reader — mandatory, since a bad fixture is
 >    indistinguishable from ARM A's expected miss), `sole`, and `not_excluded`.
->    🔜 **STAGE 2 REMAINS:** heal → withdraw → boss fought WITH the counter, from
->    `saves/fortree_gym_wedge.ss1`, plus deriving `needed` from the live boss plan.
+>    🔜 **STAGE 2 REMAINS:** heal → withdraw → boss fought WITH the counter, plus deriving
+>    `needed` from the live boss plan. ⛔ **ANCHOR CORRECTED BY MEASUREMENT: use
+>    `saves/ch13_fortree_door.ss1`, NOT `fortree_gym_wedge.ss1`** — same era and both full parties,
+>    but the wedge sits INSIDE the gym while this one is on ROUTE120, and ✅✅ **it holds a REAL
+>    `Shedinja`+`Ninjask` sharing `pid=42207D6F`** (`--driver partypids`) — the first LIVE KI-78
+>    twin pair here, so Stage 2 need not fabricate one. ⚠ Its box already holds a Castform.
 >    ⛔ **TWO THINGS WILL BREAK IT:** (a) injecting the Slugma BEFORE `counter_hunt.py:477`'s
 >    `before_box_pids` snapshot — `exclude_pids` filters it out, `None` in BOTH arms, ARM A
 >    "passes" wrongly; (b) `post_dive.ss1` is POST-WINONA — use `saves/fortree_gym_wedge.ss1`.
