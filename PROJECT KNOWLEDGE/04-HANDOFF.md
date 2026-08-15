@@ -21,11 +21,11 @@ Every banner further down is HISTORY, newest first.
 > priority redirect and is NOT part of the superseded "older framing".
 
 > **State: `main`, clean, 23/23 gates PASS, nothing parked, nothing running.** All work pushed.
-> ⚠ **Sandbox→custom drift is 1 — `modules/debug_utilities.py`, a DOCSTRING-ONLY correction**
-> (`debug_write_box_slot` is now PROVEN LIVE, so its "not yet proven" warning is retracted).
-> Everything substantive was PROMOTED 2026-08-15, user-approved and VERIFIED BY DRIVING
-> (`--driver ch20dive --build custom` → `ACCEPTANCE: PASS`, plus four `--build custom` gates that
-> each assert which fork they imported). ‼ **`promote.py --check` is the authority.**
+> ✅ **Sandbox→custom drift is 0.** Everything was PROMOTED 2026-08-15, user-approved and VERIFIED
+> BY DRIVING (`--driver ch20dive --build custom` → `ACCEPTANCE: PASS`, plus four `--build custom`
+> gates that each assert which fork they imported); a later docstring-only correction was
+> re-promoted the same day. ‼ **`promote.py --check` is the authority — ANY file it lists now is
+> unexplained drift and a reason to stop.**
 > **Every room of the Seafloor Cavern is DRIVEN and PASSING** — `ch20dive` → rooms 1, 2, 6, 3,
 > 8, and now **9** (Archie fought, Kyogre awakened, `VAR_ROUTE128_STATE == 2`, the measured
 > atoll escape executed). **What remains of §Ch20 is the CHAPTER ASSEMBLY**, not exploration.

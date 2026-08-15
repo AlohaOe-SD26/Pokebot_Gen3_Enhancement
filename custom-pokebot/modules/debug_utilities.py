@@ -423,16 +423,20 @@ def debug_write_box_slot(pokemon: Pokemon, box_index: int | None = None,
     PRE-write box and looks like a failed write. The party equivalent of this trap already burned a
     run (`story_harness.py:4288-4293`).
 
-    ⛔⛔ **NOT YET PROVEN AGAINST A LIVE EMULATOR — DO NOT TRUST IT UNTIL IT IS.** What HAS been
-    proven, and only this: the address arithmetic matches `pokemon_storage.py:93-97,148-149`
-    line for line, and **`pokemon.data[:80]` is a valid boxed record** — a real encrypted 100-byte
-    party record's first 80 bytes decode to the same species with `is_empty=False` and
-    `is_valid=True`, asserted by `repro_box_counter_move_test.py`. What has NOT been proven is that
-    `write_bytes` at this address lands where the reader looks. ‼ The (P4) driver that will use
-    this MUST therefore open with a write → yield → `get_pokemon_storage()` read-back control that
-    ABORTS (with a message distinct from any test failure) if the record does not come back.
-    Without it, a bad write is indistinguishable from the very bug the repro exists to reproduce,
-    because `box_counter_pid` swallows everything into `return None`. Raised by adversarial review.
+    ✅ **PROVEN AGAINST A LIVE EMULATOR, 2026-08-15** — `--driver boxwrite` (`story_harness.py`),
+    `ACCEPTANCE: PASS`: a Slugma L15 was written to box 0 slot 0 and read back **through the
+    PRODUCTION reader** with matching PID, species, level and `knows_move("Rock Throw")`, and
+    `not_in_party=True`. Also proven separately: the address arithmetic matches
+    `pokemon_storage.py:93-97,148-149` line for line, and **`pokemon.data[:80]` is a valid boxed
+    record** (`repro_box_counter_move_test.py` decodes a real encrypted party record's first 80
+    bytes to the same species, `is_valid=True`).
+
+    ‼ **THE (P4) DRIVER MUST STILL OPEN WITH ITS OWN READ-BACK CONTROL.** This function working in
+    isolation does not make a FIXTURE correct on the day. `box_counter_pid` swallows everything
+    into `return None` (`counter_hunt.py:302-303`), so a record that fails to decode for any
+    reason is indistinguishable from ARM A's expected miss — the repro would "reproduce" the
+    user's bug while proving nothing. Abort on a failed read-back, with a message distinct from
+    any test failure. (Both the gap and this requirement were raised by adversarial review.)
     """
     if len(pokemon.data) < BOX_RECORD_SIZE:
         raise ValueError(f"Need at least {BOX_RECORD_SIZE} bytes, got {len(pokemon.data)}.")

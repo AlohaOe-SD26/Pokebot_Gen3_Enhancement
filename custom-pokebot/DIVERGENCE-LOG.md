@@ -1590,3 +1590,14 @@ present ON ORIGIN by the tool before it would copy anything).
   STATIC party, so the party-mutating cases were never exercised. It is **not** licence to
   re-point the ~35 capacity-shaped call sites at A.
 * ⛔ **§Ch20 is still NOT a chapter** in either fork; the ladder remains **20 of 24**.
+
+### 2026-08-15 (later) — re-promoted `modules/debug_utilities.py`, DOCSTRING ONLY
+
+`debug_write_box_slot` is now **PROVEN AGAINST A LIVE EMULATOR** — `--driver boxwrite` →
+`ACCEPTANCE: PASS` (a Slugma L15 written to box 0 slot 0 and read back through the PRODUCTION
+reader with matching PID, species, level and `knows_move("Rock Throw")`, `not_in_party=True`), so
+its `NOT YET PROVEN` warning was retracted. ⛔ **No behaviour change — a comment only**, which is
+why this was not re-driven; the drive that matters is the one named above. The docstring still
+requires the (P4) driver to open with its own read-back control, because this function working in
+isolation does not make a fixture correct on the day. Restore point
+`restore/2026-08-15-pre-promotion-boxwrite-docstring`. Drift 1 → 0, 1/1 byte-identical.
