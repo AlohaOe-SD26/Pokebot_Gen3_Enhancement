@@ -23,9 +23,8 @@ Every banner further down is HISTORY, newest first.
 > **State: `main`, clean, 23/23 gates PASS, nothing parked, nothing running.** All work pushed.
 > ✅ **Sandbox→custom drift is 0.** Everything was PROMOTED 2026-08-15, user-approved and VERIFIED
 > BY DRIVING (`--driver ch20dive --build custom` → `ACCEPTANCE: PASS`, plus four `--build custom`
-> gates that each assert which fork they imported); a later docstring-only correction was
-> re-promoted the same day. ‼ **`promote.py --check` is the authority — ANY file it lists now is
-> unexplained drift and a reason to stop.**
+> gates that each assert which fork they imported); a docstring-only correction was re-promoted the
+> same day. ‼ **`promote.py --check` is the authority — ANY file it lists is a reason to stop.**
 > **Every room of the Seafloor Cavern is DRIVEN and PASSING** — `ch20dive` → rooms 1, 2, 6, 3,
 > 8, and now **9** (Archie fought, Kyogre awakened, `VAR_ROUTE128_STATE == 2`, the measured
 > atoll escape executed). **What remains of §Ch20 is the CHAPTER ASSEMBLY**, not exploration.
@@ -462,10 +461,9 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    report clean, OR (b) the FIRST divergence of any class is observed.** Either answers the
 >    question; (b) answers it faster and is the more useful outcome.
 >    ✅✅ **(P3b) IS ANSWERED — CRITERION (a) MET 2026-08-15; `collect_party_accounting.py` exits
->    0** (>300,000 recomputes, 7 distinct drivers, NO DIVERGENCE). ⛔ **RUN THE COMMAND rather than
->    trusting that figure** — it grows with every drive and this line cannot. It reads the durable,
->    COMMITTED `party_accounting_ledger.jsonl`, so it accumulates across machines. ‼ Report it as
->    *"not observed in N"*, never *"cannot happen"*.
+>    0** (>300k recomputes, 7 distinct drivers, NO DIVERGENCE). ⛔ **RUN THE COMMAND rather than
+>    trusting that figure** — it grows every drive; it reads the durable, COMMITTED
+>    `party_accounting_ledger.jsonl`. ‼ Report it as *"not observed in N"*, never *"cannot happen"*.
 >    ⛔⛔ **READ THE POPULATION: every drive is §Ch20 DUNGEON content with a STATIC party** — no
 >    catching, evolving or PC traffic, so the cases most likely to make A differ from B (a catch
 >    into a FULL party; a Shedinja spawning unbidden) were never exercised. The criterion was
@@ -658,7 +656,9 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    acquisition + `use_tm`; Flash acquisition; a no-KO/no-whiteout legendary policy; a **bounded**
 >    exact-tile executor; and **no chapter entry at all**), behind a hard 9-step serial prefix.
 >
-> 4. **The REGI arc (user-requested) — read KI-69 ‼ AND ITS NEW STUB MARKER.**
+> 4. ⛔ **NOT NEXT — OLDER FRAMING; a Tier 2 audit flagged that a skimmer could start the Regi arc
+>    from here. The live queue is item 0 and its head is (P4). Background only.**
+>    **The REGI arc (user-requested) — read KI-69 ‼ AND ITS NEW STUB MARKER.**
 >    ⛔ **REGICE IS NOT A TIMED WAIT** — R/S's wait function is an empty stub; Emerald wants a
 >    **36-tile perimeter lap in ONE visit** ending exactly on `(8,21)`, reset by any map transition
 >    and by one wrong tile. Full ground truth:
@@ -668,7 +668,7 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    HM08, Surf and Rock Smash; we have **no rod at all**, no TM28 Dig, and nobody knows Dive, Dig or
 >    Flash. **Relicanth is underwater-only, so Dive (item 3) is upstream of the whole arc.**
 >
-> 5. Older framing below, kept for its measurements — its CONCLUSION is superseded by items 3-4:
+> 5. Older framing (measurements only; CONCLUSION superseded by items 3-4) — ⛔ also NOT next:
 
 > 2b. **‼ THE NEXT BUILD IS NO LONGER BLOCKED THE WAY THE DOCS SAID.** §Ch20/§Ch21 need **Dive
 >    USED**, and KI-63 is real (no party member learns it, party 6/6). But the thing four documents
