@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "divelearner"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "boxwrite", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "divelearner"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -4700,6 +4700,109 @@ class RosterMode(BotMode):
         return
 
 
+class BoxWriteMode(BotMode):
+    """‼ PROVE `debug_write_box_slot()` AGAINST A LIVE EMULATOR. It has never been run against one.
+
+    WHY THIS EXISTS, AND WHY IT IS SEPARATE FROM (P4). `debug_write_box_slot` is the fixture half
+    the (P4) Slugma/Winona repro needs — that repro requires a FULL party AND a boxed counter at
+    the same time, which the bot cannot cheaply reach. Two things about it are already proven:
+    its address arithmetic matches the reader line-for-line (`pokemon_storage.py:93-97,148-149`),
+    and `pokemon.data[:80]` is a valid boxed record (`repro_box_counter_move_test.py` decodes a
+    real encrypted party record's first 80 bytes to the same species, `is_valid=True`).
+    ⛔ **What was NOT proven is that `write_bytes` at that address lands where the reader looks.**
+
+    ‼ AND THAT GAP IS DANGEROUS SPECIFICALLY HERE. `box_counter_pid` wraps its whole body in
+    `except: return None` (`counter_hunt.py:302-303`), so a record that fails to decode is
+    INDISTINGUISHABLE from "no counter in the box" — which is exactly ARM A's expected answer in
+    the (P4) A/B. A bad write would make that repro "reproduce" the user's bug while proving
+    nothing. Proving the write here, ONCE, in isolation, removes that confound before any test
+    depends on it. (Raised by adversarial review; the reviewer declined to block on it and asked
+    for it before the driver is built.)
+
+    ⛔ GRADED ON IDENTITY, NEVER ON A COUNT. A box-count delta could be produced by anything; the
+    verdict is that the PID we wrote is readable back through the PRODUCTION reader, with the right
+    species, level and move — and that it did NOT land in the party.
+
+    Run:  PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver boxwrite --frames 200000
+    Expect: wrote=True readback=True pid_match=True species_ok=True move_ok=True
+            not_in_party=True  ACCEPTANCE: PASS
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "BoxWrite"
+
+    def run(self):
+        from modules.context import context as _ctx
+        from modules.debug_utilities import debug_create_pokemon, debug_write_box_slot
+        from modules.pokemon import get_species_by_name
+        from modules.pokemon_party import get_party
+        from modules.pokemon_storage import get_pokemon_storage
+        from modules.modes.util import wait_for_n_frames
+        # ‼ NOT a module-level name in this harness — every driver imports it locally from
+        # `modules.story.early_game`. Assuming it was global cost this driver its first run:
+        # the harness caught the NameError, logged it, and the run completed with NO
+        # `[boxwrite]` lines at all — a silent no-op that looked like a finished run.
+        from modules.story.early_game import wait_until_truly_controllable
+
+        yield from wait_until_truly_controllable()
+
+        def box_pids():
+            return {s.pokemon.personality_value
+                    for b in get_pokemon_storage().boxes for s in (b.slots or [])}
+
+        before = box_pids()
+        log(f"[boxwrite] BEFORE: {len(before)} mon(s) in storage")
+
+        # ‼ Slugma L15 — the (P4) fixture exactly: pure FIRE, and at L15 its natural learnset
+        # includes ROCK THROW, which is the MOVE answer Winona needs. Built by the production
+        # fabricator so the bytes are the ones the real code path produces.
+        mon = debug_create_pokemon(species=get_species_by_name("Slugma"), level=15)
+        pid = mon.personality_value
+        knows_rock_throw = mon.knows_move("Rock Throw")
+        log(f"[boxwrite] FIXTURE Slugma L{mon.level} pid={pid:08X} "
+            f"rock_throw={knows_rock_throw} types={[t.name for t in mon.species.types]}")
+
+        wrote, where = False, None
+        try:
+            where = debug_write_box_slot(mon)
+            wrote = True
+            log(f"[boxwrite] WROTE to box {where[0]} slot {where[1]}")
+        except Exception as error:  # noqa: BLE001 — a refused write is a RESULT, not a crash
+            log(f"[boxwrite] WRITE RAISED {type(error).__name__}: {str(error)[:200]}")
+
+        # ‼‼ YIELD BEFORE READING BACK. `get_pokemon_storage()` is cached while `age_in_frames==0`
+        # (`pokemon_storage.py:146-147`), so a same-frame read sees the PRE-write box and looks
+        # exactly like a failed write. The party equivalent of this trap already burned a run.
+        yield from wait_for_n_frames(2)
+
+        after = box_pids()
+        readback = pid in after and pid not in before
+        found = None
+        for b in get_pokemon_storage().boxes:
+            for s in (b.slots or []):
+                if s.pokemon.personality_value == pid:
+                    found = s.pokemon
+        species_ok = found is not None and found.species.name == "Slugma"
+        move_ok = found is not None and found.knows_move("Rock Throw")
+        level_ok = found is not None and found.level == 15
+        # ⛔ It must be in the BOX, not the party — a write to the wrong address could plausibly
+        # land in `gPlayerParty`, which is adjacent in the kind of mistake this is checking for.
+        not_in_party = all(p.personality_value != pid for p in get_party())
+
+        log(f"[boxwrite] READBACK pid_in_box={readback} species_ok={species_ok} "
+            f"level_ok={level_ok} move_ok={move_ok} not_in_party={not_in_party} "
+            f"storage_now={len(after)}")
+
+        ok = bool(wrote and readback and species_ok and level_ok and move_ok and not_in_party)
+        log(f"[boxwrite] RESULT wrote={wrote} at={where} readback={readback} "
+            f"species_ok={species_ok} level_ok={level_ok} move_ok={move_ok} "
+            f"not_in_party={not_in_party}")
+        log(f"[boxwrite] ACCEPTANCE: {'PASS' if ok else 'FAIL'}")
+        _ctx.set_manual_mode()
+        return
+
+
 class Ch20DiveMode(BotMode):
     """‼ THE FIRST DRIVEN DIVE IN THIS PROJECT — KI-68 step 1, Mossdeep → SEAFLOOR_CAVERN_ENTRANCE.
 
@@ -7894,6 +7997,8 @@ for step in range(args.frames):
             context.bot_mode_instance = BoxWithdrawMode()
         elif args.driver == "roster":
             context.bot_mode_instance = RosterMode()
+        elif args.driver == "boxwrite":
+            context.bot_mode_instance = BoxWriteMode()
         elif args.driver == "ch20dive":
             context.bot_mode_instance = Ch20DiveMode()
         elif args.driver == "ch20room1":

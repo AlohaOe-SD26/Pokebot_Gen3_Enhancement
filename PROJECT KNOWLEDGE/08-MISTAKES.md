@@ -6721,3 +6721,36 @@ without inflating the criterion.
 3. **A tool that decides "is there enough evidence" deserves a standing suspicion of inflation.**
    Every one of this collector's three bugs pointed the same way; bias every ambiguity toward
    counting less, and re-run the count after ANY change to how a row is written.
+
+## 2026-08-15 — A DRIVER THREW ON ITS FIRST STATEMENT AND THE RUN "COMPLETED" — 20,003 frames, exit 0, and NOT ONE LINE OF ITS OWN OUTPUT
+
+**Symptom.** A new `--driver boxwrite` was run to prove `debug_write_box_slot` against a live
+emulator. The command exited **0**. The log ended with a normal `[done] ran 20003 frames`, a normal
+`[PARTY-ACCT] STAGE 0 SUMMARY`, and a normal ledger append. `grep "boxwrite]"` returned **nothing**.
+The driver had done absolutely nothing.
+
+**Root cause.** `yield from wait_until_truly_controllable()` — which every other driver in the file
+imports LOCALLY from `modules.story.early_game` — is not a module-level name in the harness. The
+driver raised `NameError` at `f0`. The harness's top-level loop catches driver exceptions, logs
+`*** EXCEPTION`, drops the controller, and keeps running the emulator to the frame budget. So a
+totally dead driver produces a transcript that is, at a glance, indistinguishable from a healthy
+one — same shape, same tail lines, same exit code.
+
+**Why the usual defences did not help.** The harness's "did it hang?" detector is about PROGRESS,
+not about whether the driver ran. The `[PARTY-ACCT]` ledger row was written correctly — by the
+harness, not the driver — which made the run look *more* legitimate, not less. And I had checked
+the exit code, which was 0.
+
+**The fix that worked.** Import it locally like every other driver does, and grade by grepping the
+driver's OWN TAG (`[boxwrite]`) rather than by the run completing.
+
+**Prevention rules.**
+1. ⛔ **GRADE A DRIVER BY ITS OWN TAG, NEVER BY "THE RUN COMPLETED".** Exit 0, a `[done]` line and a
+   full frame count are all produced by the HARNESS and survive a driver that never executed a
+   statement. The first thing to check after any drive is that the driver's own prefix appears —
+   and specifically that its `ACCEPTANCE:` line exists at all.
+2. *A harness that catches driver exceptions to stay alive converts a crash into a silence.* That
+   is the right behaviour for the harness and a trap for the reader; the log DOES say
+   `*** EXCEPTION` at `f0`, so **read the HEAD of a transcript, not only its tail.**
+3. **Copy a sibling's import block when adding a driver.** The helpers here are deliberately
+   function-local; assuming any of them is global is a `NameError` waiting for frame 0.

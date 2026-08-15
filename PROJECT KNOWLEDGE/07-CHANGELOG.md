@@ -14082,3 +14082,32 @@ Design note (with the four premises of mine it REFUTED):
   emulator**. **(P4)'s `boxcounter` driver does not exist in either fork** and the end-to-end repro
   of the user's actual run is **still owed**. §Ch20 is still not a chapter; the ladder is 20 of 24.
 * Full per-file rationale and evidence: `custom-pokebot/DIVERGENCE-LOG.md`, 2026-08-15.
+
+## 2026-08-15 — `debug_write_box_slot` is PROVEN LIVE (`--driver boxwrite`) — the last unproven foundation under (P4) (`#24-counters`)
+
+* ⛔ **THE GAP, self-flagged and then flagged again by review.** `debug_write_box_slot` shipped
+  with its address arithmetic verified against the reader and `data[:80]` proven a valid boxed
+  record — but **`write_bytes` at that address had never been executed against a live emulator.**
+  ‼ That gap is uniquely dangerous here: `box_counter_pid` wraps its body in
+  `except: return None` (`counter_hunt.py:302-303`), so a record that fails to decode is
+  **indistinguishable from ARM A's expected miss** in the (P4) A/B. A bad write would let that
+  repro "reproduce" the user's bug while proving nothing.
+* ✅ **NEW `--driver boxwrite`, and it PASSED.** `[boxwrite] RESULT wrote=True at=(0, 0)
+  readback=True species_ok=True level_ok=True move_ok=True not_in_party=True` →
+  **`ACCEPTANCE: PASS`**. It writes the exact (P4) fixture — a **Slugma L15, pure FIRE, knowing
+  ROCK THROW** from its natural learnset — and reads it back **through the PRODUCTION reader**
+  (`get_pokemon_storage()`), asserting PID, species, level and move. ⛔ Graded on IDENTITY, never
+  on a box count. It also asserts `not_in_party`, because a write to a wrong address could
+  plausibly land in `gPlayerParty` — which is the shape of mistake being checked for.
+  ‼ It yields two frames before reading back: `get_pokemon_storage()` is cached while
+  `age_in_frames == 0`, so a same-frame read sees the PRE-write box and looks exactly like a
+  failed write.
+* ‼‼ **AND ITS FIRST RUN WAS A SILENT NO-OP THAT LOOKED LIKE A FINISHED RUN.** The driver raised
+  `NameError: wait_until_truly_controllable` on its FIRST statement (it is not a module-level name
+  in the harness; every driver imports it locally from `modules.story.early_game`). The harness
+  caught it, logged it at `f0`, and the run proceeded to completion — 20,003 frames, a clean
+  `[done]` line, a `[PARTY-ACCT]` summary, **and not one `[boxwrite]` line.** Exit code 0.
+  ⇒ new rule in `08-MISTAKES.md`: **grade a driver by ITS OWN TAG, never by "the run completed".**
+* ✅ Docstring updated from *"NOT YET PROVEN AGAINST A LIVE EMULATOR"* to the evidence — while
+  KEEPING the requirement that the (P4) driver still open with its own read-back control, because
+  this function working in isolation does not make a fixture correct on the day.

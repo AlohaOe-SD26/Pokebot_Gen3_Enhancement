@@ -21,11 +21,11 @@ Every banner further down is HISTORY, newest first.
 > priority redirect and is NOT part of the superseded "older framing".
 
 > **State: `main`, clean, 23/23 gates PASS, nothing parked, nothing running.** All work pushed.
-> ✅ **Sandbox→custom drift is 0 — all five files were PROMOTED 2026-08-15 (user-approved) and
-> VERIFIED BY DRIVING** (`--driver ch20dive --build custom` → `ACCEPTANCE: PASS`, plus four
-> `--build custom` gates that each assert which fork they imported). Restore point
-> `restore/2026-08-15-pre-promotion-stage0-p4`. ‼ **`promote.py --check` is the authority — ANY
-> file it lists now is unexplained drift and a reason to stop.**
+> ⚠ **Sandbox→custom drift is 1 — `modules/debug_utilities.py`, a DOCSTRING-ONLY correction**
+> (`debug_write_box_slot` is now PROVEN LIVE, so its "not yet proven" warning is retracted).
+> Everything substantive was PROMOTED 2026-08-15, user-approved and VERIFIED BY DRIVING
+> (`--driver ch20dive --build custom` → `ACCEPTANCE: PASS`, plus four `--build custom` gates that
+> each assert which fork they imported). ‼ **`promote.py --check` is the authority.**
 > **Every room of the Seafloor Cavern is DRIVEN and PASSING** — `ch20dive` → rooms 1, 2, 6, 3,
 > 8, and now **9** (Archie fought, Kyogre awakened, `VAR_ROUTE128_STATE == 2`, the measured
 > atoll escape executed). **What remains of §Ch20 is the CHAPTER ASSEMBLY**, not exploration.
@@ -481,15 +481,15 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    fixture, not by reality.** ✅ **Its OBSERVABILITY half shipped 2026-08-14** (gate #23): the
 >    heal's three PC piggybacks swallowed everything, so *worked* / *nothing to do* / *threw* were
 >    one silence — the user's run took the middle branch, said nothing. They report now.
->    ⛔ **That is NOT P4.** ‼ **DESIGNED IN FULL 2026-08-15 —
->    `ai-research-notes/2026-08-15-p4-boxcounter-repro-design.md`. READ IT BEFORE BUILDING**; it
->    refuted four of my own premises. ✅ **Build steps 1-3 are DONE:** `debug_write_box_slot()`,
->    the `POKEBOT_BOXCOUNTER_TYPEONLY_A` fault hook, and the gate that exercises the REAL hook.
+>    ⛔ **That is NOT P4.** ‼ **DESIGNED IN FULL — read
+>    `ai-research-notes/2026-08-15-p4-boxcounter-repro-design.md` BEFORE BUILDING**; it refuted
+>    four of my own premises. ✅ **Steps 1-3 DONE:** `debug_write_box_slot()` (‼ **PROVEN LIVE**,
+>    `--driver boxwrite` → PASS; the P4 driver must still open with its own read-back control),
+>    the `POKEBOT_BOXCOUNTER_TYPEONLY_A` fault hook, and the gate exercising the REAL hook.
 >    🔜 **Steps 4-8 REMAIN: the `boxcounter` driver + its {ARM A,B}×{sandbox,custom} matrix.**
->    ⛔ **THE TWO THINGS THAT WILL BREAK IT:** (a) inject the Slugma BEFORE
->    `counter_hunt.py:477`'s `before_box_pids` snapshot and `exclude_pids` filters it out —
->    `None` in BOTH arms, ARM A "passes" for the wrong reason; (b) ⛔ **`post_dive.ss1` is
->    POST-WINONA** so the rung can never fire — start from `saves/fortree_gym_wedge.ss1`.
+>    ⛔ **TWO THINGS WILL BREAK IT:** (a) injecting the Slugma BEFORE `counter_hunt.py:477`'s
+>    `before_box_pids` snapshot — `exclude_pids` filters it out, `None` in BOTH arms, ARM A
+>    "passes" wrongly; (b) `post_dive.ss1` is POST-WINONA — use `saves/fortree_gym_wedge.ss1`.
 >    🔜 **(P5) The CATCH POLICY round** — the user CALLED it (`06-DECISIONS-LOG` 2026-08-14,
 >    rulings A-D): a **LIVING DEX**, per-run, breadth with depth as the payoff. Gate lifted on
 >    `#24-organicteam`. ⛔ The RARE leg is blocked on `#24-rarepredicate`, whose fix is now

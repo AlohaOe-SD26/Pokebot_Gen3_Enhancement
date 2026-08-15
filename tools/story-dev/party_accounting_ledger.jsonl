@@ -6,3 +6,5 @@
 {"when": "2026-08-15T07:16:41", "driver": "ch20room3", "state": "post_dive.ss1", "frames_run": 46118, "recomputes": 46118, "scans": 154, "divergences": {}, "observer_broke": false}
 {"when": "2026-08-15T07:27:31", "driver": "ch20room6", "state": "post_dive.ss1", "frames_run": 32197, "recomputes": 32197, "scans": 108, "divergences": {}, "observer_broke": false}
 {"when": "2026-08-15T08:48:25", "driver": "ch20dive", "build": "custom", "state": "post_dive.ss1", "frames_run": 25523, "recomputes": 25523, "scans": 86, "divergences": {}, "observer_broke": false}
+{"when": "2026-08-15T09:06:52", "driver": "boxwrite", "build": "sandbox", "state": "post_dive.ss1", "frames_run": 20003, "recomputes": 20003, "scans": 67, "divergences": {}, "observer_broke": false}
+{"when": "2026-08-15T09:18:12", "driver": "boxwrite", "build": "sandbox", "state": "post_dive.ss1", "frames_run": 20034, "recomputes": 20034, "scans": 67, "divergences": {}, "observer_broke": false}
