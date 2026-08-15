@@ -94,6 +94,23 @@ absence — it names `_hunted_counter_pids` and the Slugma shape (`higher_level_
 
 ## 7. ANCHOR AND COST
 
+⛔⛔ **SUPERSEDED AGAIN, BY A DRIVE (2026-08-15, later the same day) — STAGE 2 USES
+`fortree_gym_wedge.ss1` AFTER ALL. The correction immediately below is REVERSED.** The reasoning
+below compared the two saves by POSITION and never tested ROUTING. The first Stage 2 drive from
+`ch13_fortree_door.ss1` died on its first leg:
+`BotModeError -> Manual: Cannot reach FORTREE_CITY: it is not walkable from ROUTE120, and none of
+the 6 candidate warp route(s) start at a tile that can be walked to from here`.
+⇒ That is **KI-24**, documented in our own `region_reach.py:7-11`: *Routes 118/119/120 are the
+dual-elevation-bridge maps `calculate_path` reads as WALLS.* Every Winona-era anchor we own is on
+ROUTE119/120 **except** the gym wedge, so the wedge is the ONLY one the production heal can route
+from — and the feared gym-exit leg cost nothing (`navigate_to_anywhere` walked out first try).
+⚠ **What the swap gives up:** the wedge has NO Shedinja/Ninjask twin pair, so Stage 2 no longer
+runs over a live KI-78 collision; `ch13_fortree_door.ss1` remains the right anchor for any test
+whose SUBJECT is that collision. Full detail + the scorecard:
+`2026-08-15-p4-stage2-drive-predictions.md`.
+‼ *Lesson worth keeping: an anchor is not "verified" until something has ROUTED from it.*
+
+*(The 2026-08-15 earlier correction, kept because its party/era measurements are still true:)*
 ⛔ **SUPERSEDED BY MEASUREMENT (2026-08-15, same day) — USE `ch13_fortree_door.ss1`, NOT
 `fortree_gym_wedge.ss1`.** Both were probed: same era (badges 12345, Winona unbeaten), both a FULL
 party of 6 — but the wedge save sits **INSIDE** `FORTREE_CITY_GYM (4,19)` while `ch13_fortree_door`
@@ -142,5 +159,28 @@ round-trips in ~24,841 driven frames. Budget `--frames 400000`. Matrix: {ARM A, 
 1. `debug_write_box_slot()` in `debug_utilities.py` — **BUILT 2026-08-15**, see the changelog.
 2. `POKEBOT_BOXCOUNTER_TYPEONLY_A` hook in `box_counter_pid` — **BUILT 2026-08-15**.
 3. extend `repro_box_counter_move_test.py` to flip the REAL hook — **BUILT 2026-08-15**.
-4-8. the `boxcounter` driver, `--driver` registration, `compare_runs.py` pairing, the one-time
-   natural-vs-injected byte-equivalence control, and the 4-run matrix — **NOT BUILT.**
+4-8. the `boxcounter` driver, `--driver` registration, and the 4-run matrix — ✅ **BUILT AND
+   DRIVEN.** Stage 1 = `--driver boxcounter` (2026-08-15). Stage 2 = `--driver boxcounter2`
+   (2026-08-15), a SUBCLASS of Stage 1, matrix `{ARM A, ARM B} × {sandbox, custom}` = **4/4
+   `ACCEPTANCE: PASS`**. See `2026-08-15-p4-stage2-drive-predictions.md`.
+   ⚠ Still NOT built: `compare_runs.py` pairing and the natural-vs-injected byte-equivalence
+   control. Neither blocks anything today; the byte-equivalence control is the one that would
+   close the last "is an injected mon really like a caught one" gap.
+
+## 10. ⛔ WHAT §5 GOT WRONG, CORRECTED BY THE BUILD (2026-08-15)
+
+* **`needed` is `{Rock, Ice, Dragon}` — NOT `{Rock, Ice, Dragon, Electric}`.** This note repeated
+  the four-type set; so did `counter_hunt.py:250` and the handoff. Production derives `needed`
+  from the ACE alone, the ace is Altaria (Dragon/Flying), and Electric is 0.5×2.0 = **1.0,
+  neutral**. Caught on the FIRST run of the driver's new `needed_ok` control, which asks the live
+  type chart instead of asking another document.
+* **The `sole` control could not survive a real box.** §8 risk #4 (bystander shadowing) was LIVE
+  on the then-recommended anchor: a Castform that qualifies via Powder Snow sits at box0.slot0,
+  ahead of any injected fixture. Replaced with a production-asked control —
+  `box_counter_pid(needed, exclude_pids=before | {fixture}) is None`.
+* **§5 step 7 could not fail as specified.** "Puts the PID in slot 0" passes trivially if the
+  fixture already had the best matchup. The driver now runs a `hunted_pids=None` CONTROL first and
+  reports `lead_decisive` — measured `control=Mightyena L38`, `real=Slugma L15`, so the mechanism
+  was decisive rather than incidental.
+* **A new production defect fell out of writing the identity assertions: KI-79** —
+  `withdraw_from_box` prints *"{name} is in the party"* from `len(get_party())` alone.

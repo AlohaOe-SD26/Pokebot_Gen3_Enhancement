@@ -7,7 +7,7 @@
 Every banner further down is HISTORY, newest first.
 
 ---
-# ‼ YOU ARE HERE (2026-08-15, latest) — **THE LIVE WORK IS THE PC / PARTY ROBUSTNESS ARC. (P3) STAGE 0 AND (P3b) ITS MEASUREMENT ARE BOTH DONE — 400k+ recomputes, NO DIVERGENCE, but over content that never MUTATES the party. (P4) STAGE 1 IS DRIVEN — the Slugma/Winona bug is REPRODUCED AND FIXED against REAL GAME MEMORY, both arms. NEXT IS (P4) STAGE 2: heal -> withdraw -> boss fought WITH the counter.** §Ch20 is driven END TO END and its chapter assembly is **PARKED, NOT CANCELLED**. Read this, then `14-AGENT-PLAYBOOK.md`, then NEXT ACTIONS item 0.
+# ‼ YOU ARE HERE (2026-08-15, latest) — **THE LIVE WORK IS THE PC / PARTY ROBUSTNESS ARC. (P4) IS NOW DRIVEN THROUGH STAGE 2: the real heal COLLECTS the boxed counter and leads with it (ARM B), and ARM A leaves it boxed — the user's derail reproduced ORGANICALLY. Matrix {ARM A, ARM B} x {sandbox, custom} = 4/4 ACCEPTANCE: PASS.** ⛔ **NEXT IS NOT MORE (P4) DRIVING — it is the PROMOTION DECISION (drift is no longer 0) plus KI-79.** (P3) Stage 0 and (P3b) are DONE. §Ch20 is driven END TO END and its chapter assembly is **PARKED, NOT CANCELLED**. Read this, then `14-AGENT-PLAYBOOK.md`, then NEXT ACTIONS item 0.
 
 > ⛔ **ORDER, EXPLICITLY (a Tier 2 cold-start audit could not tell which of these came first):
 > (1) RUN THE RITUAL BELOW — it is cheap and it tells you whether the tree is sane; (2) READ
@@ -21,10 +21,13 @@ Every banner further down is HISTORY, newest first.
 > priority redirect and is NOT part of the superseded "older framing".
 
 > **State: `main`, clean, 23/23 gates PASS, nothing parked, nothing running.** All work pushed.
-> ✅ **Sandbox→custom drift is 0.** Everything was PROMOTED 2026-08-15, user-approved and VERIFIED
-> BY DRIVING (`--driver ch20dive --build custom` → `ACCEPTANCE: PASS`, plus four `--build custom`
-> gates that each assert which fork they imported); a docstring-only correction was re-promoted the
-> same day. ‼ **`promote.py --check` is the authority — ANY file it lists is a reason to stop.**
+> ⛔ **Sandbox→custom drift is 1 — `modules/story/counter_hunt.py`, COMMENT-ONLY, awaiting a USER
+> promotion decision** (it corrects the "Winona needs …/Electric" error; no behaviour changed, and
+> BOTH forks were driven green afterwards: `--driver boxcounter2 --build custom`, ARM A and ARM B).
+> Everything else was PROMOTED 2026-08-15, user-approved and VERIFIED BY DRIVING
+> (`--driver ch20dive --build custom` → `ACCEPTANCE: PASS`, plus four `--build custom` gates that
+> each assert which fork they imported). ‼ **`promote.py --check` is the authority — expect exactly
+> that ONE file; ANY OTHER file it lists is a reason to stop.**
 > **Every room of the Seafloor Cavern is DRIVEN and PASSING** — `ch20dive` → rooms 1, 2, 6, 3,
 > 8, and now **9** (Archie fought, Kyogre awakened, `VAR_ROUTE128_STATE == 2`, the measured
 > atoll escape executed). **What remains of §Ch20 is the CHAPTER ASSEMBLY**, not exploration.
@@ -87,192 +90,57 @@ were wrong. KI-77's despawn window is derived (20x17) and has since predicted a 
 
 ‼ **Keep the rule:** the §Ch20 exit's landing tile has **ZERO surfable neighbours**, so a naive
 Surf reads as a HUNG LEG, not a failure. ⇒ **step SOUTH to `(38,23)`, then Surf onto `(38,24)`.**
-## 🧭 WHAT THE PREVIOUS SESSION DID (PATHFINDER + §Ch20 SCOPING) — still the best background
+## PATHFINDER + §Ch20 SCOPING BACKGROUND — MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-15)
+
+Moved on the R3 line budget when (P4) Stage 2 landed. ‼ **Keep only these, which later work
+leans on:** (1) **KI-59** (the pathfinder's inverted `Impassable *` handling) is **FIXED, PROVEN
+and GATED** (`repro_impassable_dirs.py`) — and its headline was wrong in FOUR documents: it is
+**NOT** armed in the Seafloor Cavern (all 115 cavern tiles are `collision=1`, so ZERO reach the
+handler); game-wide **401 of 2,658 such tiles are live**, chiefly the Regi tombs (144), Shoal
+Cave (98) and Victory Road (58). (2) §Ch20's spec corrected our own docs: **ROCK SMASH is
+mandatory**, the trigger tile is **`(17,42)` not `(16,42)`**, and the chapter grades on
+**`VAR_ROUTE128_STATE == 2`**, never the Kyogre flag (which is set BEFORE a forced warp).
+(3) **KI-74/75/76** were filed there; KI-76's safety half is fixed and fault-tested, its
+**correctness half is OPEN**.
+⇒ ✅ **ALL NINE ROOMS ARE DRIVEN — the cavern is END TO END (2026-08-14). ⛔ DO NOT REBUILD ANY.**
 
 
-**1. KI-59 (the pathfinder's inverted `Impassable *` handling) — MEASURED, FIXED, PROVEN, GATED.**
-* ⛔ **Its headline was wrong in four documents** and is retracted: *"armed in the Seafloor Cavern,
-  A/B on `SEAFLOOR_CAVERN_ROOM1`"*. The handler is the `elif` of `if tile.collision != 0`, **all 115
-  cavern tiles have `collision=1`, so ZERO reach it** — that A/B would have measured a zero delta and
-  invited "KI-59 isn't real". Game-wide: **2,658 such tiles, 2,257 dormant, 401 (15.1%) live**,
-  chiefly the **Regi tombs (144)**, **Shoal Cave (98)**, **Victory Road (58)**.
-* ✅ **Fixed both halves** — the entry vector, **plus a new `PathTile.blocked_exit_directions`** for
-  the decomp's exit rule, which the data model previously could not express at all.
-  **A/B on `VICTORY_ROAD_1F`: `calculate_path` went from NO-PATH from EVERY direction onto all 29
-  live tiles (they were invisible to the planner) to `OK len=1` on the legal ones.** Mossdeep
-  collateral control byte-identical; gate **`repro_impassable_dirs.py`** is now #17.
+## ⛔ NAMING CORRECTION — "§Ch21" IN OLDER TEXT MEANS **CHAPTER 20**. Read before acting.
 
-**2. §Ch20 (Seafloor Cavern / Kyogre) — SCOPED END TO END, NOT YET BUILT.**
-* `#24-ch20rename` **DONE** (`--driver ch20dive`, `probe_ch20_topology.py`), verified by re-running.
-* **Area Atlas** (`probe_ch20_interior.py`): warp graph benign, all rooms reachable; **Rooms 1/2/3/5/8
-  are STRENGTH-BOULDER puzzles**, Rooms 6/7 are open-water **current mazes**, Rooms 4/9 split by terrain.
-* **11-leg build spec** with assertable conditions:
-  `ai-research-notes/2026-08-13-ch20-seafloor-cavern-build-spec.md`. ‼ It corrected **our own docs**:
-  **ROCK SMASH is mandatory** (Strength alone is physically stuck in Room 1), the trigger tile is
-  **`(17,42)` not `(16,42)`**, and the chapter must be graded on **`VAR_ROUTE128_STATE == 2`**, not
-  the Kyogre flag — which is set *before* a forced warp into a SECOND cutscene, landing on a
-  **sandbar** the bot must Surf off.
-* ✅ **The current mazes are routable by our planner** (4/4 pre-registered predictions, slide model
-  proven in use), so Rooms 6/7 need **no solver**.
+The Seafloor Cavern / Kyogre beat is **Chapter 20** (`modules/story/chapters.py:233`); the genuine
+**Chapter 21 is Sootopolis / Rayquaza** and has not been touched. ✅ **The rename is DONE**
+(2026-08-13, `#24-ch20rename`, verified by re-running): the artefacts are `--driver ch20dive`
+(`Ch20DiveMode`), `probe_ch20_topology.py`, and `2026-08-13-ch20-dive-leg-predictions.md`.
+‼ **The old `ch21*` names SURVIVE ON PURPOSE in `06`/`07`/`08`** — those are append-only history
+and are never rewritten, so entries dated on or before 2026-08-13 still say `ch21dive`. They mean
+the Chapter 20 artefacts; both renamed files carry a provenance header saying so.
 
-**3. NEW ISSUES FILED: KI-74, KI-75, KI-76** (see `05-KNOWN-ISSUES.md`). KI-76's **safety half is
-fixed** (bounded slide loop + `None` guards, fault-tested); its **correctness half is OPEN**.
+## ⏱ THE 60-SECOND VERSION (if you read nothing else) — rewritten 2026-08-15
 
-⇒ ✅ **ALL NINE ROOMS ARE DRIVEN — the cavern is END TO END (2026-08-14).** Seven drivers,
-all `ACCEPTANCE: PASS`. ⛔ **DO NOT REBUILD ANY OF THEM.**
-⛔ **The line below is STALE and is kept only for its trail — it says Rooms 8 and 9 are still
-planning-only, which was true for a few hours on 2026-08-13 and is not true now:**
-*(stale)* ⛔ **UPDATED:** Rooms **2, 6 and 3 are now driven too** — only Rooms 8 and 9 remain planning-only.
-
-
-## ⛔ NAMING CORRECTION — "§Ch21" IN THIS FILE MEANS **CHAPTER 20**. Read this before acting.
-
-The Seafloor Cavern / Kyogre beat is **Chapter 20**, not 21:
-`modules/story/chapters.py:233` — `Chapter("20", 25, "Seafloor Cavern — Kyogre", …)`, and
-`:249` — `Chapter("21", 26, "Sootopolis crisis & Rayquaza", …)`. `12-STORYMODE-DESIGN.md` agrees.
-
-✅ **THE RENAME IS DONE (2026-08-13, `#24-ch20rename`).** The artefacts are now
-**`--driver ch20dive`** (class `Ch20DiveMode`), **`tools/story-dev/probe_ch20_topology.py`** and
-**`ai-research-notes/2026-08-13-ch20-dive-leg-predictions.md`**. Verified after renaming by
-re-running both: probe exit 0, driver `ACCEPTANCE: PASS legs=6/6`.
-
-‼ **THE OLD NAMES SURVIVE ON PURPOSE IN `06`/`07`/`08`.** Those are append-only history and are not
-rewritten, so entries dated on or before 2026-08-13 still say `--driver ch21dive` /
-`probe_ch21_topology.py` / `...-ch21-dive-leg-predictions.md`. **They mean the Chapter 20
-artefacts above.** Both renamed files carry a provenance header saying so.
-
-‼ **THE UNDERLYING RULE STILL APPLIES:** the Seafloor Cavern is **Chapter 20**
-(`chapters.py:233`); the genuine **Chapter 21 is Sootopolis / Rayquaza** and has not been touched.
-Anywhere older text says "§Ch21" and means the cavern, read **Chapter 20**.
-
-## ⏱ THE 60-SECOND VERSION (if you read nothing else)
-* **`reorder_party()` IS NOW DRIVEN AND PROVEN.** `--driver roster` (NEW) ran **six swaps, all
-  verified by PID**, including **`RotatePokemon(i, j != 0)` — a path nothing in this project had
-  ever driven.** The party-ORDER capability the Regi arc needs is real, not just planned.
-* **The drive found a real defect and it is FIXED, A/B proven:** `reorder_party()` returned `True`
-  with the avatar **unable to walk**. ‼ Every cheap check said it was fine — not Manual, state
-  already `OVERWORLD`, start menu already closed. Only asking it to MOVE revealed it.
-* **‼ 0 of 6 pre-registered predictions fired, and neither prediction pass found the real bug.**
-  Both hunted the KI-38 hang family because that is where the docs point. See
-  `ai-research-notes/2026-08-13-roster-drive-predictions.md` — it holds the full raw transcripts.
-* **Two issues filed, both deliberately NOT fixed: KI-70** (`_rotate_lead_safely` has the same
-  shape, on the hottest path in the bot — **measured, margin held, but n = 1**) and **KI-71**
-  (roster.py's "dropped to MANUAL" guard is **unreachable**; `main.py:145-147` abandons the
-  generator first).
-* **`puzzle_solver.py` IS A RECIPE BOOK, NOT A SHORTCUT — COPY FROM IT, DO NOT DRIVE IT.**
-  It is byte-identical to the upstream mirror and holds the Seafloor Cavern + Sealed Chamber +
-  Regi routes. ‼ **I first wrote this up as "it already ships §Ch21 and the Regi arc" and that was
-  OVERSTATED** — an adversarial pass refuted it and I verified the refutation myself:
-  the Seafloor branch ends `navigate_to(ROOM9, (16,42))` → `set_manual_mode()` — ‼ **and (16,42) is
-  PLAIN FLOOR that fires NOTHING; the real coord trigger is `(17,42)`, one tile EAST**
-  (`Room9/map.json:124-134`, decomp-verified 2026-08-13). So upstream stops one tile short of the
-  event as well as handing off. (it parks the bot on
-  **Archie's own cutscene tile** and hands control to a human — no battle, no progression, no exit),
-  and the Regi branches **open the door only**, ending at the tomb's EXIT warp, never at the statue.
-  **What survives is still valuable**: the `dive() → navigate → surface_from_dive()` template (which
-  `--driver ch20dive` copied to a 6/6 PASS), free hand-derived room coordinates, and independent
-  corroboration of **KI-69**'s Emerald party order (`("Wailord", 0)` / `("Relicanth", size-1)`).
-  Read `ai-research-notes/2026-08-13-puzzle-solver-already-ships-ch21-and-the-regi-arc.md` —
-  **the correction is at the top.** ⛔ Never point it at a Regi tomb: its battle handling is
-  `handle_encounter(encounter, enable_auto_battle=True)` (`puzzle_solver.py:99` — ‼ the kwarg is
-  **`enable_auto_battle`**, corrected 2026-08-13; this line used to say `auto_battle=True`, which
-  greps to nothing) and KO'ing a Regi destroys the encounter. ✅ **Re-audited 2026-08-13: the hazard
-  is REAL but currently UNREACHABLE** — every Regi branch calls `set_manual_mode()` before the statue
-  is engaged, and `main.py:145-146` discards the generator on the next frame. ‼ One residual: the
-  shared tail presses `A` once *before* its first `yield`, so a single stray A can be emitted after
-  Manual is set; on the Emerald paths the avatar is still in the OUTER room so it cannot reach a
-  statue, but the R/S paths end at `(8,11)` INSIDE and that tile was not checked.
-* **✅ THE FIRST DRIVEN DIVE IN THIS PROJECT — KI-68 step 1 IS DONE.** `--driver ch20dive` (NEW)
-  → `ACCEPTANCE: PASS legs=6/6 at_entrance=True got_out=True can_continue=True`. Mossdeep →
-  `SEAFLOOR_CAVERN_ENTRANCE (10,17)` **and back out to the open ocean**.
-  ‼ **THE STATIC WARP DATA IS MISLEADING AT BOTH ENDS OF THIS CAVERN** — the way in *and* the way
-  out are RUNTIME `setdivewarp`s that no warp-graph or path scan can see. **Drive it; do not read
-  it.** The way out is three hops, not the one the table implies.
-  ‼ **This does NOT make §Ch21 unblocked** — the run INJECTED Dive with a debug write. Acquiring a
-  real Dive learner (KI-63) is still open.
-* **KI-72 filed (NEW, code-verified):** `calculate_path` has never heard of
-  `"Underwater Blocked Above"` / `"Seaweed No Surfacing"` — the two tile types you cannot surface
-  from — so it will route a dive to a dead end. ⇒ **NEVER let the planner choose where you
-  surface**; pick the tile explicitly, as upstream already does.
-* **✅✅✅ KI-63 IS RESOLVED *AND NOW WIRED INTO PRODUCTION* (sandbox).** `story_mode.py`'s two HM
-  call sites (Rock Smash, Surf) call the new `ensure_hm_learner_making_room`, which frees ONE slot
-  and retries once — **only** on the specific "party is full" failure. New gate
-  **`repro_hm_slot_wiring.py` (22/22, fault-injected)** keeps the chain connected, because the
-  previous failure was *a chain of correct parts with one link missing* and nothing caught it.
-  **📊 MEASURED WORTH (1,129 runs):** 20 terminal run-kills (**0.91%** excl. a reverted party-cap
-  bundle), **#1 of 14 derail causes by frames per event (1,717k avg ≈ 46 min)** — 7.2% of all
-  derailed lane time from 3.4% of derails, **every one five badges deep**. Rare, but it kills the
-  best runs. ✅ **PROMOTED 2026-08-14 — `custom-pokebot` is NO LONGER inert.** Superseded: *that it was still inert and promotion had not been asked for*.
-* *(SUPERSEDED by the bullet above — kept for its detail. ⛔ **This marker used to say the "not wired" half was still true for `custom-pokebot`; that is FALSE since the 2026-08-14 promotion — it is wired in BOTH forks and drift is ZERO.**)* **KI-63 IS RESOLVED — THE BOT ACQUIRES DIVE BY PLAYING.** `--driver divelearner` (NEW) →
-  `ACCEPTANCE: PASS` **on the first drive**: freed a slot (Skitty L17 deposited), hunted and caught
-  a **Marill L13** (balls 19→17), taught **Dive over Defense Curl** (the 0-power move), and
-  **Zigzagoon kept Surf**. `knows_dive=True can_dive=True surf_intact=True can_continue=True`.
-  **NEW production code:** `pc_trip.deposit_one_dead_weight()` + an opt-in `_needs_party_slot`
-  piggyback in `heal_in_pokemon_center`.
-  ‼‼ **BUT THE CAPABILITY IS PROVEN, NOT WIRED.** `_needs_party_slot` has **no setter anywhere in
-  `modules/` or `plugins/`** — only the driver sets it. In a real `StoryMode` run the piggyback
-  **never fires** and `ensure_hm_learner(HM08)` still raises *"the party is full"*. **Wiring
-  `story_mode.py` to catch that and set the flag is the remaining work** — do not read this as
-  "§Ch21 is unblocked in production". §Ch21 also still has to be BUILT, and the learner is an L13
-  HM slave 36 levels below the team.
-* ✅ **KI-63 (the Dive-learner acquisition) SHIPPED AND WAS PROMOTED.** Its 33-line plan block
-  moved to `28-HANDOFF-ARCHIVE.md` 2026-08-14 (line budget; a Tier 2 audit had flagged its
-  `(superseded)` tag as unbounded). ⛔ **Two things in it are STILL LIVE:** (1) ✅ **SHOAL CAVE IS
-  NOT ADOPTED, Route 117 stays** — reachable spin tiles **LOW 278 / HIGH 0**, and at high tide the
-  failure is a **SILENT STALL**, not an error (rationale + the three unlock conditions:
-  `06-DECISIONS-LOG.md`); (2) **KI-73 is CACHE POISONING** — both paths share one
-  `_map_layout_cache` keyed on `(group, number)`, so the first writer wins for the session.
-* **`#24-ballstarve`'s premise does not hold at `post_dive.ss1`** — 19 balls, $54,334 measured.
-  ‼ **Not closed**: the item was filed from a mid-game Surf-era batch and may still be real there.
-* **Nothing is parked. Nothing is running.** All gates exit 0 after the change. *(That said "15";
-  the suite is **23** today — `run_gates.py` PRINTS the count and is authoritative, this prose is not, and this line alone has claimed 15, 17, 21 and 22.)*
-* **§Ch19 is DONE and the ladder runs 20 of 24 beats.** §Ch18 + §Ch19 are **PROMOTED** to
-  `custom-pokebot/` and verified by driving `--build custom`, including the real ladder.
-* ⛔ **RETRACTED 2026-08-13 — three errors in one line.** It is **Chapter 20**, not 21 (see the
-  naming correction above); it is **NOT BLOCKED** (Rooms 1/2/6/3 are driven and passing); and
-  **KI-68 is RESOLVED and lives in `31-KNOWN-ISSUES-ARCHIVE.md`, not in `05-KNOWN-ISSUES.md`** —
-  its route is driven. Superseded text: *"The next content beat (§Ch21, Seafloor Cavern) is
-  BLOCKED, and the reason changed twice — read KI-68 before touching it."* It is *not* the party slot, and Dive is *not* impossible:
-  the planner cannot AUTO-route a dive, so **a chapter must drive `dive()` explicitly.**
-* **The REGI arc is the user's ask** — read **KI-69**. ‼ **Emerald reversed the party order:
-  WAILORD first, RELICANTH last**, and the wrong order fails **silently**. ‼ **The Regi battle is
-  UNRECOVERABLE** — a KO *or* a whiteout deletes the encounter permanently.
-* **✅✅ KI-59 IS FIXED, BOTH HALVES, A/B PROVEN (2026-08-13, latest).** `map_path.py`'s entry vector
-  now starts all-True and CLEARS `[opposite(D)]`, and a **NEW `PathTile.blocked_exit_directions`**
-  carries the decomp's *exit* rule, checked on the SOURCE tile in the A* loop — `is_tile_accessible`
-  is handed the NEIGHBOUR and structurally could never express it. **THE A/B on `VICTORY_ROAD_1F`:
-  before, `calculate_path` returned NO-PATH from EVERY direction onto all 29 live tiles — they were
-  completely invisible to the planner; after, the legal approaches return `OK len=1`.** The gate
-  `repro_impassable_dirs.py` goes **exit 1 → exit 0** (29/29 mismatches → 0/29) and is now **gate
-  #17**. **Collateral control:** the `MOSSDEEP_CITY` arm of `probe_ki59_routing_ab.py` is
-  **byte-identical** across both arms (real production code both times, via `git stash`).
-  ‼ **`probe_shoal_tide.py` was corrected in lockstep** — it had COPIED the bug, so it agreed with
-  production while both were wrong — and **its numbers re-derived on the fixed model are UNCHANGED
-  (LOW 278 / HIGH 0)**, so the **"Shoal Cave is NOT adopted"** ruling stands on a correct model.
-  ✅ **PROMOTED 2026-08-14 — this file is in BOTH forks.** ‼ It took drift to nil AT THAT MOMENT;
-  do not read it as a statement about drift TODAY, which PARTY ACCOUNTING STAGE 0 has since moved
-  (see the STATE line at the top — `promote.py --check` is the only authority on the current
-  figure, and no prose here should restate it).
-* **‼ THE MEASUREMENT THAT PRECEDED IT: KI-59's HEADLINE WAS WRONG AND IS RETRACTED IN FOUR
-  DOCS.** The inversion in `map_path.py:128-132` is **real and decomp-confirmed** — for
-  `Impassable North` the shipped `[--S-]` is the *exact complement* of correct `[NE-W]`, so it
-  refuses all three legal entries **and permits the one illegal one**. ⛔ **But it was NEVER a
-  Seafloor Cavern blocker.** The handler is the `elif` of `if tile.collision != 0:`, and **all 115
-  cavern tiles have `collision=1` ⇒ zero reach it**; the A/B four documents prescribed
-  (`SEAFLOOR_CAVERN_ROOM1`) would have measured a **zero delta**. Swept over **all 518 maps**:
-  **2,658 tiles, 2,257 dormant, 401 live (15.1%)**, concentrated on the **REGI TOMBS (144)**,
-  **SHOAL CAVE (98)** and **VICTORY ROAD (58)**. ⇒ **KI-59 gates the REGI ARC, not the cavern.**
-  New artifact `tools/story-dev/probe_impassable_dirs.py`; a fresh-process reverse-order control
-  rules out KI-73 cache poisoning, and an **adversarial reviewer re-derived every number by parsing
-  the `.gba` off disk with ZERO shared code** — byte-for-byte agreement. **The fix is specified and
-  its hazards are pre-checked, but NOT YET WRITTEN** — see `#24-impassabledirs`. ⇒ **Run the A/B on
-  `VICTORY_ROAD_1F` (29 live tiles) with a Seafloor room as the negative control**, and assert BOTH
-  directions: ⚠ the counts are **static ROM layouts**, and the Regi tombs / Shoal Cave / Lilycove
-  lobby all rewrite their own tiles at runtime (`setmetatile`/`setmaplayoutindex`) — **no Seafloor
-  Cavern script does**, so that conclusion is unaffected. ‼ Knock-on: `probe_shoal_tide.py:364-367`
-  replicates the inversion, and that probe produced the number behind the **"Shoal Cave is NOT
-  adopted"** ruling.
-* **Run `preflight.py` first.** Then the gate list in "HOW TO RUN / TEST".
+* **The live arc is PC / PARTY ROBUSTNESS**, redirected here by the user on 2026-08-14 after a real
+  run caught a Slugma for Winona, healed, derailed to Manual, and re-fought her WITHOUT the counter.
+* ✅ **(P4) IS NOW DRIVEN THROUGH STAGE 2.** `--driver boxcounter2` (a SUBCLASS of `boxcounter`, so
+  Stage 1 re-proves every run): the real Poké-Center heal **collects the boxed counter and leads
+  with it** (ARM B), and ARM A — the shipped fault hook — **leaves it boxed**, reproducing the
+  user's derail *organically*, from production logic rather than from the test.
+  **{ARM A, ARM B} × {sandbox, custom} = 4/4 `ACCEPTANCE: PASS`.**
+* ‼ **Three things the build corrected that four documents had agreed on:** `needed` for Winona is
+  **{Rock, Ice, Dragon}, NOT {…Electric}** (her ace Altaria is Dragon/Flying and Electric is
+  0.5×2.0 = **neutral**); the Stage 2 anchor is **`fortree_gym_wedge.ss1`, NOT
+  `ch13_fortree_door.ss1`** (ROUTE120 is a KI-24 bridge map — the run cannot even reach the PC);
+  and the `sole` control only ever passed because `post_dive.ss1`'s boxes are empty.
+  ⇒ **Agreement between documents is not evidence — they may all be copies of one another.**
+* ⛔ **NEXT IS NOT MORE DRIVING.** It is (i) a **PROMOTION DECISION — drift is 1**
+  (`counter_hunt.py`, comment-only) and (ii) **KI-79**, a production line that announces an
+  IDENTITY from a COUNT. Both are in NEXT ACTIONS item (P4b).
+* **What (P4) still does NOT prove:** anything UPSTREAM of registration. The Slugma is INJECTED and
+  its PID published by the driver, so the real `hunt()` → `story_mode.py:1750` wiring is untested.
+* **§Ch20 (Seafloor Cavern) is DRIVEN END TO END** — all nine rooms, `ACCEPTANCE: PASS`. Its
+  CHAPTER ASSEMBLY is **PARKED, NOT CANCELLED**. ⛔ Do not rebuild any room.
+* 📚 The 2026-08-13-era 60-second version (roster / `puzzle_solver.py` / the first driven dive, all
+  still true) moved to `28-HANDOFF-ARCHIVE.md` — it was two arcs stale in the FIRST thing a cold
+  reader saw. ‼ Two of its rules still bite: **never let the planner choose a surfacing tile**
+  (KI-72), and **`puzzle_solver.py` is a recipe book to COPY FROM, never to drive.**
 
 ## WHAT THIS IS
 `sandbox-pokebot/` is the working build of a Pokémon Emerald bot. Its **Story mode** plays the game
@@ -299,9 +167,9 @@ burden here is so heavy, and why negative results are treated as the most valuab
 | ‼ **§Ch20 SEAFLOOR CAVERN** | ✅ **DRIVEN END TO END (2026-08-14) — Kyogre awakened, atoll escape executed.** Seven drivers, all `ACCEPTANCE: PASS`: `ch20dive` (6/6) → `ch20room1` → `ch20room2` → `ch20room6` → `ch20room3` → `ch20room8` (PASS ×2 incl. a FAULT run proving jam recovery) → **`ch20room9` (NEW, PASS ×2 — runs 1 & 3; ⚠ run 2 LOST the Archie fight, a MEASURED 2W/1L on the chain's one stochastic element)**. Each run re-solves every room beneath it (`FLAG_TEMP_*` respawn on map load) — counts now **R1 n=13, R2 n=10, R6 n=9, R3 n=8, R8 n=5, R9 scene n=3 (full chain n=2)**. The cutscene chain is deterministic (identical milestone frame counts across passing runs); release gated on `VAR_ROUTE128_STATE == 2`; facing on release MEASURED `'Up'` ×2. ⛔ **NOT a chapter.** No module in `modules/story/`, nothing wired into `story_mode.py`, drivers **inject Dive with a debug write**. Ladder still **20 of 24**. **Remaining: CHAPTER ASSEMBLY** (organic Dive via KI-63 wiring, Repel policy, badge/move pre-flight, whiteout-retry for Archie, the atoll escape leg). |
 | ‼ is code frozen? | **No.** Nothing is running. |
 | party ORDER | ✅ **PROVEN 2026-08-13.** `--driver roster` from `saves/post_dive.ss1` → `phases=4/4 saw_j_nonzero=True idempotent=True restored=True can_continue=True ACCEPTANCE: PASS`. Raw transcripts (both A/B arms) in `ai-research-notes/2026-08-13-roster-drive-predictions.md`. ‼ The **deposit/withdraw** half of `#24-roster` is still open. |
-| upstream | checked **2026-08-13**, still `5dd898f8` — no change. ‼ This row goes stale on a CALENDAR DAY, not on an event: if today's date is later than the one shown, **the daily check is DUE** (`git fetch upstream-pokebot`, compare against `40cakes repo/UPDATE-LOG.md`). Do not read it as satisfied. |
+| upstream | checked **2026-08-15**, still `5dd898f8` — no change (re-fetched this session; `40cakes repo/UPDATE-LOG.md` already recorded the same date, and THAT file is the authority — this row only mirrors it). ‼ This row goes stale on a CALENDAR DAY, not on an event: if today's date is later than the one shown, **the daily check is DUE** (`git fetch upstream-pokebot`, compare against `40cakes repo/UPDATE-LOG.md`). Do not read it as satisfied. |
 | restore point | **`restore/2026-08-13-session-end-ch20room3`** (annotated, pushed) — taken at the END of the §Ch20 cavern session, immediately before Room 8, which is the riskiest room in the dungeon (a boulder pushed onto `(5,3)` **permanently seals the exit**). ‼ It is also the natural rollback point if the **promotion decision** below is taken. Older: **`restore/2026-08-13-pre-ki63-promotion`** (annotated, pushed) — taken immediately BEFORE promoting KI-63's fix. Older: `restore/2026-08-13-pre-roster-promotion`, `restore/2026-08-12-pre-ch1819-promotion`. |
-| sandbox ↔ custom drift | ✅ **0 as of 2026-08-15 (latest) — every drifted file was PROMOTED, user-approved, and VERIFIED BY DRIVING.** Promoted: `modules/party_accounting.py` (new), `modules/pokemon_party.py`, `modules/modes/util/higher_level_actions.py`, `modules/debug_utilities.py`, `modules/story/counter_hunt.py`. **Evidence:** tool-side drift 0 both directions + 5/5 byte-identical; **`--driver ch20dive --build custom` → `legs=6/6 … ACCEPTANCE: PASS`**, matching sandbox; and FOUR `--build custom` gates (`repro_party_accounting` 33, `repro_heal_piggyback_reporting` 20, `repro_box_counter_move_test`, `repro_pid_identity_key`) each ASSERTING which fork it imported. Restore point **`restore/2026-08-15-pre-promotion-stage0-p4`** (annotated, pushed, verified on origin by the tool before it copied). ⛔ **Digits, not words** — this cell read a spelled-out "THREE" for a day, invisible to `audit_doc_consistency`'s drift check, and it survived two doc passes. ⛔ **What promotion does NOT mean:** party accounting is still STAGE 0 (it observes and decides nothing), `debug_write_box_slot` is PROVEN LIVE (`--driver boxwrite` → PASS, 2026-08-15), and (P4) is only PARTLY driven: its STAGE 1 (`--driver boxcounter`) is DRIVEN and both arms pass, but STAGE 2 — heal → withdraw → boss fought WITH the counter — is NOT built. ‼ **Anything else appearing in `promote.py --check` is unexplained drift and is worth stopping for.** ⛔ The rest of this cell is the PREVIOUS state and is kept for its promotion evidence — read "ZERO" below as *"zero at that moment"*, not as today's figure: ✅ **ZERO as of 2026-08-14 (earlier) — KI-78 STAGE 1 WAS PROMOTED, user-approved, and it is the first promotion executed by `tools/story-dev/promote.py` rather than by hand.** The tool refuses on a dirty tree, a missing or UNPUSHED restore point, a diverged remote, or a no-op, and it re-measures drift in BOTH directions plus byte-equality per file — it also refuses to claim the driven verification it cannot perform. Restore point **`restore/2026-08-14-pre-promotion-ki78`**. **Evidence:** drift 0 both directions, 3/3 byte-identical; **`repro_pid_identity_key.py --build custom` exit 0** and **`repro_box_counter_move_test.py --build custom` exit 0** (both ASSERT which fork they imported before testing); plus a live drive against custom. ⛔ **KI-78 is still not fully closed** — its residual cases (R2 debug-fabricated pairs, R3 corrupt box slots, R5 Frontier rentals, R6 evolved-since-capture) stay open. ‼ **MEASURE, don't trust this row** — `promote.py --check` (in HOW TO RUN / TEST) reports it BOTH ways in seconds; expect **0 differing and 0 orphaned** (everything is promoted) (that superseded an earlier "0 differing, 0 orphaned"). 📚 Every earlier drift state — including the 2026-08-13/14 rounds where `map_path.py`, `early_game.py`, `story_mode.py`, `counter_hunt.py` and `pokemon_party.py` were awaiting promotion — moved to `28-HANDOFF-ARCHIVE.md` on 2026-08-14, because stacking four supersessions in one cell made a promoted file read as still pending. |
+| sandbox ↔ custom drift | ⛔ **1 as of 2026-08-15 (LATEST) — `modules/story/counter_hunt.py`, a COMMENT-ONLY correction awaiting a USER promotion decision.** It fixes the "Winona needs …/Electric" error (the ace is Dragon/Flying; Electric is neutral on it). No behaviour changed, and BOTH forks were driven green after it: `--driver boxcounter2 --build custom` ARM B and ARM A → `ACCEPTANCE: PASS`. ‼ **MEASURE, don't trust this row** — `promote.py --check` is the authority; expect exactly ONE file. ⛔ Digits, not words. **The rest of this cell is the PREVIOUS state, kept for its promotion evidence — read "0"/"ZERO" below as *"zero at that moment"*, not as today's figure.** ✅ **0 as of 2026-08-15 (earlier) — every drifted file was PROMOTED, user-approved, and VERIFIED BY DRIVING.** Promoted: `modules/party_accounting.py` (new), `modules/pokemon_party.py`, `modules/modes/util/higher_level_actions.py`, `modules/debug_utilities.py`, `modules/story/counter_hunt.py`. **Evidence:** tool-side drift 0 both directions + 5/5 byte-identical; **`--driver ch20dive --build custom` → `legs=6/6 … ACCEPTANCE: PASS`**, matching sandbox; and FOUR `--build custom` gates (`repro_party_accounting` 33, `repro_heal_piggyback_reporting` 20, `repro_box_counter_move_test`, `repro_pid_identity_key`) each ASSERTING which fork it imported. Restore point **`restore/2026-08-15-pre-promotion-stage0-p4`** (annotated, pushed, verified on origin by the tool before it copied). ⛔ **Digits, not words** — this cell read a spelled-out "THREE" for a day, invisible to `audit_doc_consistency`'s drift check, and it survived two doc passes. ⛔ **What promotion does NOT mean:** party accounting is still STAGE 0 (it observes and decides nothing), `debug_write_box_slot` is PROVEN LIVE (`--driver boxwrite` → PASS, 2026-08-15), and (P4) is driven through **STAGE 2** (`--driver boxcounter2`, 4/4 across both forks, 2026-08-15) — ⛔ *this sentence read "STAGE 2 … is NOT built" until Stage 2 landed the same day; the drift figures around it are historical, this clause is CURRENT.* ‼ **Anything else appearing in `promote.py --check` is unexplained drift and is worth stopping for.** ⛔ The rest of this cell is the PREVIOUS state and is kept for its promotion evidence — read "ZERO" below as *"zero at that moment"*, not as today's figure: ✅ **ZERO as of 2026-08-14 (earlier) — KI-78 STAGE 1 WAS PROMOTED, user-approved, and it is the first promotion executed by `tools/story-dev/promote.py` rather than by hand.** The tool refuses on a dirty tree, a missing or UNPUSHED restore point, a diverged remote, or a no-op, and it re-measures drift in BOTH directions plus byte-equality per file — it also refuses to claim the driven verification it cannot perform. Restore point **`restore/2026-08-14-pre-promotion-ki78`**. **Evidence:** drift 0 both directions, 3/3 byte-identical; **`repro_pid_identity_key.py --build custom` exit 0** and **`repro_box_counter_move_test.py --build custom` exit 0** (both ASSERT which fork they imported before testing); plus a live drive against custom. ⛔ **KI-78 is still not fully closed** — its residual cases (R2 debug-fabricated pairs, R3 corrupt box slots, R5 Frontier rentals, R6 evolved-since-capture) stay open. ‼ **MEASURE, don't trust this row** — `promote.py --check` (in HOW TO RUN / TEST) reports it BOTH ways in seconds; expect **0 differing and 0 orphaned** (everything is promoted) (that superseded an earlier "0 differing, 0 orphaned"). 📚 Every earlier drift state — including the 2026-08-13/14 rounds where `map_path.py`, `early_game.py`, `story_mode.py`, `counter_hunt.py` and `pokemon_party.py` were awaiting promotion — moved to `28-HANDOFF-ARCHIVE.md` on 2026-08-14, because stacking four supersessions in one cell made a promoted file read as still pending. |
 | **if stopped mid-task** | **NO UNCOMMITTED WORK IS PARKED** (‼ distinct from §Ch20's chapter assembly, which is deliberately PARKED as a work item). Everything is committed and pushed. Start at "NEXT ACTIONS". |
 | ‼ **`git stash` — KEPT ON PURPOSE (USER RULING 2026-08-13)** | **`stash@{0}` EXISTS, IS NOT YOURS, AND IS KEPT AS A RECORD. ⛔ DO NOT DROP IT.** `WIP on main: e0f723e4` (2026-07-24) — a 14-line Fortree Gym "only ride out a scene that exists" guard. Its substance is ALREADY in today's `early_game.py` (reimplemented during the rotating-gate rewrite), so it is functionally superseded — **and the user ruled that a superseded stash is still a RECORD and dropping it is a destructive act that buys nothing** (`06-DECISIONS-LOG.md`). ⛔ **Standing rule: never `git stash drop` / `clear` / `pop` in this repo.** `pop` is separately banned because it mutates a GLOBAL stack — that is how this stash was disturbed in the first place (`08-MISTAKES.md`). To read it: `git stash show -p "stash@{0}"`, and apply by hand if ever needed. ‼ A stash is invisible to `git status` and to the kit's sync check, which is how it sat unnoticed for three weeks — so `git stash list` belongs in the session-start ritual, to SEE it, not to clear it. |
 
@@ -377,23 +245,15 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    ‼ NEW STANDING RULE FOR EVERY ITEM BELOW: doc edits run Tier 0 (`lint_docs` +
 >    `audit_doc_consistency`, both exit 0) before their commit, and a completed item gets a
 >    Tier 1 independent review of its doc diff — see `CLAUDE.md`'s DOC CONSISTENCY LAYER.
->    ✅ **(a) and (b) ARE DONE** — Room 2 arbitrated (clean) and driven to a PASS.
->    ✅ **(c) IS OBSOLETE** — the KI-77 repro is no longer the gate on Room 8: the despawn window
->    was derived (20x17) and Room 8 (11x14) is **smaller than it**, so KI-77 cannot fire there. See
->    KI-77's corrected entry. A repro is still worth having for the LARGE rooms, but it blocks
->    nothing.
->
->    ✅ **(a2) ROOM 3 IS DONE — DRIVEN AND PASSING (`--driver ch20room3`, PASS ×2), AND THE
->    DOUBLE-BATTLE CLAIM IS CONFIRMED LIVE.** Do NOT rebuild it; see the banner at the top of this
->    file. The original item is kept below only for its route detail, which is still accurate.
->    ✅ **(a3) ROOM 8 IS DONE (2026-08-14) — `--driver ch20room8` DRIVEN AND PASSING ×2**, clean
->    first-attempt 9/9 plus a fault-injected run proving the jam-recovery handler
->    (`recovered=True attempts=2`). Do NOT rebuild it; see the 2026-08-14 banner at the top.
->    ✅ **(a4) ROOM 9 IS DONE (2026-08-14) — `--driver ch20room9` DRIVEN, `ACCEPTANCE: PASS` ×2
->    (runs 1 & 3), the cavern is END-TO-END.** Do NOT rebuild it; see the NEWEST banner at the
->    top. ⚠ Run 2 LOST the Archie fight (2W/1L measured; the party arrives chipped, no heal in
->    the cavern) — that is CHAPTER-DESIGN input, not a driver defect. The facing-north claim is
->    now MEASURED (`'Up'` ×2).
+>    ✅ **(a) (b) (a2) (a3) (a4) ARE ALL DONE, AND (c) IS OBSOLETE — every §Ch20 room is DRIVEN
+>    AND PASSING. ⛔ DO NOT REBUILD ANY OF THEM.** `ch20room2/3/8/9` all reached
+>    `ACCEPTANCE: PASS` (Room 3 ×2 with the DOUBLE-battle claim confirmed live; Room 8 ×2 incl. a
+>    fault run proving jam recovery, `recovered=True attempts=2`; Room 9 ×2, the cavern END TO
+>    END). (c) died because KI-77's despawn window is **20x17** and Room 8 is **11x14**, smaller
+>    than it, so KI-77 cannot fire there — a repro is still worth having for the LARGE rooms but
+>    blocks nothing. ⚠ Room 9 run 2 LOST the Archie fight (**2W/1L measured** — the party arrives
+>    chipped and there is no heal in the cavern): that is CHAPTER-DESIGN input, not a driver
+>    defect, and it is why the chapter needs a whiteout-retry policy.
 >    ⛔⛔ **THE USER REDIRECTED PRIORITIES ON 2026-08-14, AFTER Room 9 landed. §Ch20 CHAPTER
 >    ASSEMBLY IS NO LONGER QUEUE ITEM 0 — IT IS PARKED, READY, AND WAITING.** The live queue is
 >    the **PC / PARTY ROBUSTNESS ARC** below. This was triggered by a live user test: a Winona
@@ -436,12 +296,17 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    0** (>400k recomputes, 11 drivers, NO DIVERGENCE — the figure keeps growing). ⛔ **RUN THE COMMAND rather than
 >    trusting that figure** — it grows every drive; it reads the durable, COMMITTED
 >    `party_accounting_ledger.jsonl`. ‼ Report it as *"not observed in N"*, never *"cannot happen"*.
->    ⛔⛔ **READ THE POPULATION: no drive MUTATES THE PARTY.** Most are §Ch20 dungeon content; the rest are PC/box or read-only (`boxwrite`, `boxcounter`, `partypids`, `spin`) — no
->    catching, evolving or PC traffic, so the cases most likely to make A differ from B (a catch
->    into a FULL party; a Shedinja spawning unbidden) were never exercised. The criterion was
->    pre-registered and is honestly met, so P3b CLOSES — but **(P4) beats Stage 1 as the next
->    step**: its fixture is exactly the party-mutating case this population lacks. The collector
->    prints this caveat itself.
+>    ⛔⛔ **READ THE POPULATION — but it has CHANGED as of 2026-08-15.** Through (P3b) it was true
+>    that **no drive MUTATED THE PARTY**: §Ch20 dungeon content plus PC/box or read-only drivers
+>    (`boxwrite`, `boxcounter`, `partypids`, `spin`), so the cases most likely to make A differ
+>    from B (a catch into a FULL party; a Shedinja spawning unbidden) were never exercised. The
+>    criterion was pre-registered and honestly met, so P3b CLOSED on that population.
+>    ✅ **`--driver boxcounter2` (Stage 2) IS THE FIRST PARTY-MUTATING MEMBER** — it drives a real
+>    PC deposit AND withdraw through production (`depositing Skitty L17` → withdrawing the
+>    Slugma), on a FULL party of 6, four times. ‼ **That is a NEW and SMALL population (n=4), not
+>    a re-answer to (P3b)** — do not report it as one. It is, however, exactly the shape (P3b)
+>    said was missing, so the next `collect_party_accounting.py` run is worth reading with that in
+>    mind. The collector prints its own caveat.
 >    ⛔ **Only then may PARTY-ACCOUNTING Stage 1 begin** (re-pointing the ~35 capacity-shaped call
 >    sites at A). ‼ **"Stage 1" is OVERLOADED in this file and the audit flagged it:** *KI-78*
 >    Stage 1 is the identity fix and is **DONE and PROMOTED**; *party-accounting* Stage 1 is this
@@ -463,19 +328,55 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    Four controls: `disjoint` (pure FIRE, so the type branch is provably inert), `fixture_ok`
 >    (read back through the PRODUCTION reader — mandatory, since a bad fixture is
 >    indistinguishable from ARM A's expected miss), `sole`, and `not_excluded`.
->    ‼ **FIRST ACTION FOR STAGE 2 (it is scoped here but SPECIFIED in the note):** read
->    `ai-research-notes/2026-08-15-p4-boxcounter-repro-design.md` §5 (the 8-step ACCEPTANCE
->    chain) and §9 (build order), then add a `boxcounter2` driver beside `BoxCounterMode`
->    and register it in BOTH the `--driver` choices list (`:35`) and the dispatch chain.
->    🔜 **STAGE 2 REMAINS:** heal → withdraw → boss fought WITH the counter, plus deriving
->    `needed` from the live boss plan. ⛔ **ANCHOR CORRECTED BY MEASUREMENT: use
->    `saves/ch13_fortree_door.ss1`, NOT `fortree_gym_wedge.ss1`** — same era and both full parties,
->    but the wedge sits INSIDE the gym while this one is on ROUTE120, and ✅✅ **it holds a REAL
->    `Shedinja`+`Ninjask` sharing `pid=42207D6F`** (`--driver partypids`) — the first LIVE KI-78
->    twin pair here, so Stage 2 need not fabricate one. ⚠ Its box already holds a Castform.
->    ⛔ **TWO THINGS WILL BREAK IT:** (a) injecting the Slugma BEFORE `counter_hunt.py:477`'s
->    `before_box_pids` snapshot — `exclude_pids` filters it out, `None` in BOTH arms, ARM A
->    "passes" wrongly; (b) ⛔ **`post_dive.ss1` is POST-WINONA** so the rung cannot fire — use the anchor named just above, `ch13_fortree_door.ss1`. *(This line used to name `fortree_gym_wedge.ss1`; superseded by measurement — the wedge sits INSIDE the gym.)*
+>    ✅✅ **STAGE 2 IS DRIVEN (2026-08-15) — `--driver boxcounter2`, matrix {ARM A, ARM B} ×
+>    {sandbox, custom} = 4/4 `ACCEPTANCE: PASS`. ⛔ DO NOT REBUILD IT.**
+>    It SUBCLASSES `BoxCounterMode`, so every Stage 2 run re-proves Stage 1 first.
+>    **ARM B:** the real `heal_in_pokemon_center(FortreeCity)` collected the boxed Slugma —
+>    `moved=True` (in party AND gone from box), `knows_rock_throw=True`, `lead_is_counter=True`
+>    with a `hunted_pids=None` CONTROL proving the mechanism was decisive
+>    (`control=Mightyena L38` → `real=Slugma L15`), and a second heal that NO-OPed *for the
+>    attributed reason* (`find_in_box=None` AND still in party). Production made room itself
+>    (`depositing Skitty L17`). **ARM A:** `box_counter_pid` → `None` → `_hunted_counter_pids`
+>    published EMPTY → the withdraw piggyback did nothing → `still_boxed=True not_in_party=True`
+>    and **no deposit at all** — the user's derail, produced by production, not simulated.
+>    ‼ The PID is published ONLY from `box_counter_pid`'s return; `boxwithdraw` HAND-SETS it,
+>    which is exactly why that driver never caught this bug.
+>    ⛔⛔ **ANCHOR IS `saves/fortree_gym_wedge.ss1` — the "use `ch13_fortree_door.ss1`" correction
+>    is REVERSED BY A DRIVE.** `ch13_fortree_door` is on ROUTE120 and the run died on its first
+>    leg: `Cannot reach FORTREE_CITY: it is not walkable from ROUTE120`. That is **KI-24**,
+>    documented in our own `region_reach.py:7-11` — Routes 118/119/120 are dual-elevation-bridge
+>    maps `calculate_path` reads as WALLS. Every Winona-era anchor we own is on ROUTE119/120
+>    EXCEPT the wedge. The feared gym-exit leg cost nothing.
+>    ⚠ **What the swap gives up:** the wedge has NO Shedinja/Ninjask twins, so Stage 2 no longer
+>    runs over a live KI-78 collision; `ch13_fortree_door.ss1` (which DOES hold a real pair
+>    sharing `pid=42207D6F`) stays the anchor for any test whose SUBJECT is that collision.
+>    ⛔ **`needed` IS `{Rock, Ice, Dragon}` — NOT `{...Electric}`.** Corrected by the driver's new
+>    `needed_ok` control on its FIRST run: production derives `needed` from the ACE alone, the ace
+>    is Altaria (Dragon/Flying), and Electric is 0.5× into Dragon × 2.0× into Flying = **1.0,
+>    NEUTRAL**. The four-type set was in `counter_hunt.py:250`, the design note, THIS file and the
+>    driver — four copies of one another. All corrected.
+>    ‼ **STILL NOT PROVEN BY STAGE 2 — the honest gap:** everything UPSTREAM of registration. The
+>    Slugma is INJECTED and the PID is published by the driver, so the real `hunt()` →
+>    `story_mode.py:1750` wiring remains untested end-to-end.
+>    ‼‼ **(P4b) THE HEAD OF THE QUEUE NOW — TWO THINGS, NEITHER OF WHICH IS MORE DRIVING.**
+>    **(i) A PROMOTION DECISION IS OWED — ⛔ DRIFT IS NO LONGER 0.** `modules/story/counter_hunt.py`
+>    differs from `custom-pokebot/`: a **comment-only** correction (the Electric error above). No
+>    behaviour changed and both forks were driven green (`--build custom` 2/2). ⛔ **Promotion is
+>    the USER's call and has NOT been asked for.** Run `promote.py --check` — expect exactly that
+>    one file; anything else is unexplained drift and is worth stopping for.
+>    **(ii) KI-79 (NEW, OPEN) — `withdraw_from_box` prints a success it never verified.**
+>    `pc_trip.py:472-474` does `after = len(get_party())` and then announces
+>    *"{name} is in the party"* — a COUNT wearing an IDENTITY's clothes, live in production, on
+>    the PC path, inside the arc whose whole subject is PC robustness. Found by READING; no green
+>    run could surface it (the line prints identically whether or not it is true). ⚠ **NOT
+>    OBSERVED FAILING** — report it as *"cannot be trusted"*, never *"is wrong"*. The fix must
+>    assert `(personality_value, species)` + `contains_pokemon`, and ⛔ must NOT assert that the
+>    COUNT changed: on the make-room path it correctly does not.
+>    **What (P4) still does NOT cover, if you want to extend it rather than promote:** everything
+>    upstream of registration — a real `hunt()` catch feeding `story_mode.py:1750`. ⚠ `hunt()`
+>    snapshots its OWN `before_box_pids` AFTER travel, so an injected fixture is excluded a second
+>    time; that leg needs a real catch, not an injection.
+>
 >    🔜 **(P5) The CATCH POLICY round** — the user CALLED it (`06-DECISIONS-LOG` 2026-08-14,
 >    rulings A-D): a **LIVING DEX**, per-run, breadth with depth as the payoff. Gate lifted on
 >    `#24-organicteam`. ⛔ The RARE leg is blocked on `#24-rarepredicate`, whose fix is now
@@ -511,7 +412,13 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    anything drifted TODAY remains the USER's call and has not been asked for.
 > 1. **Run `preflight.py`**, then the **23**-gate suite in "HOW TO RUN / TEST" (all exit 0
 >    2026-08-14; it has said 17, 18, 19, 20, 21 and 22 on its way to **23** — `run_gates.py` is authoritative, never this prose), and the drift check below.
->    ✅ **EXPECT 0 — everything was PROMOTED 2026-08-15.** Anything listed is unexplained drift.
+>    ⛔ **EXPECT EXACTLY ONE FILE — `modules/story/counter_hunt.py`, the comment-only correction
+>    named in the STATE row and in queue item (P4b). ANY OTHER file is unexplained drift.**
+>    *(This line read "EXPECT 0 — everything was PROMOTED 2026-08-15" until 2026-08-15, when Stage 2
+>    corrected a wrong type-set comment in that file. A Tier 1 audit caught that the drift figure had
+>    been updated in the STATE row and the banner but NOT here, fifteen lines away — so a cold agent
+>    running `promote.py --check`, getting one file back, would have read an EXPECTED result as an
+>    alarm. The three drift statements in this file move together or not at all.)*
 >    ⛔ Do not restate the figure here; it has been wrong at 2, 3 and 3 again. `promote.py --check`
 >    is the authority. (Earlier EXPECT-2 / EXPECT-3 trails moved to `28-HANDOFF-ARCHIVE.md`.)
 >
@@ -834,7 +741,27 @@ POKEBOT_BOXCOUNTER_TYPEONLY_A=1 PYTHONUTF8=1 py -3.12 story_harness.py post_dive
 #   ARM A (pre-fix): expect `-> None` and ACCEPTANCE: PASS — its expectation IS None.
 #   ‼ BOTH ARMS PASS when the code is correct; `pid_match` means "matched THIS ARM's expectation".
 #   ‼ Grade by `grep "boxcounter]"` — a driver that throws at f0 still produces a clean [done] line.
+
+# --- (P4) STAGE 2 — the REAL heal collects the counter. ~4 min each. ⛔ ANCHOR IS THE GYM WEDGE:
+#     `ch13_fortree_door.ss1` is on ROUTE120, which `calculate_path` reads as a WALL (KI-24), and
+#     the run dies on its first leg with "Cannot reach FORTREE_CITY". This is measured, not feared.
+PYTHONUTF8=1 py -3.12 story_harness.py fortree_gym_wedge.ss1 --driver boxcounter2 --frames 400000
+#   ARM B: expect moved=True knows_rock_throw=True lead_is_counter=True noop_attributed=True,
+#          ACCEPTANCE: PASS. Production prints `depositing Skitty L17` to make room — that deposit
+#          is REPORTED, never graded.
+POKEBOT_BOXCOUNTER_TYPEONLY_A=1 PYTHONUTF8=1 py -3.12 story_harness.py fortree_gym_wedge.ss1 --driver boxcounter2 --frames 400000
+#   ARM A (the user's derail, reproduced): expect _hunted_counter_pids=[] and
+#          still_boxed=True not_in_party=True, ACCEPTANCE: PASS — and NO deposit at all.
+#   Add `--build custom` to either for the other fork (all four cells pass as of 2026-08-15).
+#   ‼ Stage 2 SUBCLASSES Stage 1, so each run re-proves Stage 1 first — read the STAGE-1 GATE line.
+#   ⛔ The gym leg is OFF by default and REPORTED-NOT-GRADED: POKEBOT_BOXCOUNTER2_GYM=1 enables it.
+
 PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver boxwrite --frames 200000
+PYTHONUTF8=1 py -3.12 probe_box_contents.py ch13_fortree_door.ss1
+#   READ-ONLY dump of EVERY box + party slot: species, level, PID, types, full moves, and per mon
+#   `type_match`/`move_match` against NEEDED. Takes any save name (defaults to ch13_fortree_door).
+#   ‼ This is what turned "the anchor's box might matter" into a measurement: it found the boxed
+#   Castform whose Powder Snow (Ice) qualifies it as a counter, sitting AHEAD of any injected mon.
 PYTHONUTF8=1 py -3.12 story_harness.py ch13_fortree_door.ss1 --driver partypids --frames 200000
 #   READ-ONLY identity dump (party + box: species, level, PID) — flags shared PIDs. On this save
 #   it prints the REAL KI-78 twin pair: Shedinja L30 and Ninjask L29 both pid=42207D6F.

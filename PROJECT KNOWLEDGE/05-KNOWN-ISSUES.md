@@ -2907,3 +2907,47 @@ SHOULD inherit its sibling's protection — widening is the safe direction, narr
   because the cavern's boulders are `FLAG_TEMP_*` objects that **respawn at their template tiles on
   every map load** — so any such cache must be invalidated on map transition, and the safest
   version may simply be "plan short routes inside boulder rooms".
+
+---
+
+## KI-79 — `withdraw_from_box` PRINTS A SUCCESS IT NEVER VERIFIED: `len(get_party())` wearing an identity's clothes (2026-08-15, code-verified while driving (P4) Stage 2, OPEN)
+
+- **The line.** `modules/story/pc_trip.py:472-474`, the tail of `withdraw_from_box()`:
+  ```
+  after = len(get_party())
+  console.print(f"[green]Story: PC — {name} is in the party; party is now {after}.[/]")
+  context.message = f"Story: withdrew {name} — party {after}."
+  ```
+  It reads a **COUNT** and announces an **IDENTITY**. Nothing between the `interact_with_pc(actions)`
+  call and this print asks whether `name` actually arrived.
+- **Why it can lie, concretely.** The whole body is wrapped in a blanket
+  `except Exception: ... "could not withdraw {name} ... it stays in the box"` (`:475-478`), so the
+  function **never raises**. But a PC interaction that silently completes the WRONG action — or
+  completes the make-room deposit and then fails the withdraw — leaves the count **exactly the
+  same** (the deposit cancels the withdraw), takes no exception path, and prints the green
+  success line. ‼ **MEASURED, not theorised:** on a genuinely SUCCESSFUL withdraw this project
+  records `party_before=6 party_after=6 box_before=2 box_after=2` — every count unchanged. A
+  metric that is invariant across success is invariant across failure too.
+- **Why it matters beyond cosmetics.** This is the project's #1 recurring bug shape
+  (`CLAUDE.md` SESSION DISCIPLINE rule 3: *assert IDENTITY, never position or count*; the same
+  shape produced `catch_confirmed()`'s party-COUNT delta that a Shedinja spawn could fake, fixed
+  under (P1)). It is **live in production**, on the PC path, in the middle of the arc whose whole
+  purpose is PC/party robustness. And a future driver or log-scraper that greps for
+  `"is in the party"` would inherit the lie — `--driver boxcounter2` deliberately does NOT.
+- **How it was found.** Not by a test — by reading `withdraw_from_box` end-to-end while building
+  (P4) Stage 2's acceptance chain, precisely because the design note required every claim to be an
+  identity. The happy path prints the same line whether or not it is true, so **no green run could
+  ever have surfaced it.**
+- **NOT OBSERVED FAILING.** Every (P4) Stage 2 drive so far shows the line printing truthfully
+  (ARM B: `moved=True`, verified independently by PID+species and by `contains_pokemon`). This is
+  a structural finding from reading the code, not a reproduction. ‼ Report it as *"cannot be
+  trusted"*, never as *"is wrong"*.
+- **What a fix looks like** (NOT attempted — it is a production change and promotion is the
+  user's call): resolve the target's identity after the interaction — `contains_pokemon(target)`
+  is now False **and** a party member matches `(personality_value, species)` — and print
+  success/failure from THAT, keeping the count in the message as colour rather than as evidence.
+  ⛔ Do not "fix" it by asserting the count changed: on the make-room path it correctly does not.
+- **Related:** KI-78 (identity is `(personality, species)`, because a Shedinja shares its
+  Ninjask's PID — so even a PID-only check is not enough here), and the (P4) Stage 2 driver, whose
+  `party_map()` is keyed on that pair for exactly this reason after a PID-keyed first draft
+  reported a full party of 6 as 5.

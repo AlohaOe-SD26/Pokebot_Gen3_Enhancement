@@ -14236,3 +14236,66 @@ Design note (with the four premises of mine it REFUTED):
   to their raw bytes; fault-tested by re-injecting the real corruption (gate exit 1, file restored
   byte-identical) and by controls proving it stays quiet on correct `⏱` and on the em dashes,
   `20×17`, `§Ch20`, `‼`/`✅` the docs are full of.
+
+## 2026-08-15 — ✅ (P4) STAGE 2 IS DRIVEN: the heal COLLECTS the counter, and ARM A leaves it boxed — 4/4 across both forks (punch-list #24-counters)
+
+**What shipped.** `--driver boxcounter2` (`tools/story-dev/story_harness.py`), a **SUBCLASS** of
+`BoxCounterMode`, driving §5 steps 5-7 of the P4 design note against REAL game memory:
+publish the PID `box_counter_pid` returned → the real
+`heal_in_pokemon_center(PokemonCenter.FortreeCity)` with its three PC piggybacks → assert the
+Slugma MOVED box→party → `_lead_best_matchup` → a SECOND heal whose withdraw must NO-OP.
+Matrix `{ARM A, ARM B} × {sandbox, custom}` = **4/4 `ACCEPTANCE: PASS`**.
+* **ARM B:** `moved=True` (in party AND gone from box), `knows_rock_throw=True`,
+  `lead_is_counter=True`, `noop_attributed=True`. Production made room itself
+  (`depositing Skitty L17`). `PARTY-COUNT before=6 after=6` — the count is unchanged on SUCCESS,
+  which is why nothing is graded on it.
+* **ARM A (the user's bug, END TO END and ORGANIC):** `box_counter_pid` returned `None`, so
+  `_hunted_counter_pids` was published EMPTY, so the heal's withdraw piggyback had nothing to act
+  on and did nothing — `still_boxed=True not_in_party=True`, and **no deposit at all**, against
+  ARM B's `['Skitty L17']`. Nothing in the driver simulates the failure; production produces it.
+* ‼ **The PID is published ONLY from `box_counter_pid`'s return value.** `boxwithdraw` HAND-SETS
+  `_hunted_counter_pids`, which is exactly why that driver never caught this bug.
+
+**Stage 1 (`BoxCounterMode`) was refactored, not copied** — the body moved to `_stage1()`, which
+does NOT call `set_manual_mode()`; only `run()` does. A subclass inheriting that terminator would
+have dropped to Manual before its own first line, and under KI-71 that failure is SILENT.
+Stage 1 re-verified green after the refactor: ARM A and ARM B on `post_dive.ss1`, plus ARM B on
+`ch13_fortree_door.ss1`.
+
+**Three controls added to Stage 1, two of which found real defects on their first run:**
+* ⛔ **`needed_ok` — FOUND A DOCUMENTATION DEFECT THAT HAD STOOD FOR A YEAR.** `NEEDED` is now
+  DERIVED from the live type chart seeded with Winona's real `ace_types = ("Dragon","Flying")`,
+  and graded against the expectation. First run printed
+  `derived=['Dragon','Ice','Rock'] ; literal=['Dragon','Electric','Ice','Rock'] ; needed_ok=False`
+  and **aborted the fixture rather than testing a set production would never pass.** Electric is
+  **0.5x into Dragon** × 2.0x into Flying = **1.0, NEUTRAL on Altaria**. The four-type set was in
+  `counter_hunt.py:250`, the design note, the handoff and the driver — four copies of one another.
+  Corrected in all four. (Mis-scoped, not invented: Electric IS 2.0x on her other four Flying mons.)
+* ⛔ **`sole` — the old control could not survive a real box.** It asserted `occupants == [pid]`,
+  which passes only because `post_dive.ss1`'s 14 boxes are ALL empty. Replaced with a control that
+  asks PRODUCTION instead of re-deriving the predicate:
+  `box_counter_pid(needed, exclude_pids=before | {fixture}) is None`.
+* **`not_in_party`** — `debug_create_pokemon` does NOT guarantee a fresh PID.
+
+**`probe_box_contents.py` (NEW, read-only)** — dumps every box/party slot of any save with
+species/level/PID/types/moves and per-mon `type_match`/`move_match` against a needed set. It is
+what turned "the anchor's box might matter" into a measurement.
+
+**⛔ THE STAGE 2 ANCHOR CHANGED, BY MEASUREMENT: `fortree_gym_wedge.ss1`, NOT
+`ch13_fortree_door.ss1`.** The design note's own "superseded by measurement" correction compared
+the saves by POSITION and never tested ROUTING. The first drive died on its first leg —
+`Cannot reach FORTREE_CITY: it is not walkable from ROUTE120` — which is **KI-24**, documented in
+our own `region_reach.py:7-11` (Routes 118/119/120 are dual-elevation-bridge maps `calculate_path`
+reads as WALLS). Every Winona-era anchor we own is on ROUTE119/120 except the wedge.
+⚠ The wedge has no Shedinja/Ninjask twins, so Stage 2 no longer runs over a live KI-78 collision.
+
+**Filed: KI-79** — `withdraw_from_box` (`pc_trip.py:472-474`) prints *"{name} is in the party"*
+after reading only `len(get_party())`. A COUNT announcing an IDENTITY, live in production, on the
+PC path, inside the arc about PC robustness. Found by READING, because no green run could surface
+it. NOT fixed (production change; promotion is the user's call).
+
+**Docs:** `2026-08-15-p4-stage2-drive-predictions.md` (predictions PRE-REGISTERED before the run,
+results appended after — 9/11 held, P3 refuted productively), design note §7 reversed and a new
+§10 added, `counter_hunt.py:250` corrected, KI-79 filed.
+‼ **Drift is no longer 0:** `modules/story/counter_hunt.py` now differs from `custom-pokebot/`
+(a comment-only correction). Promotion is the USER's call.

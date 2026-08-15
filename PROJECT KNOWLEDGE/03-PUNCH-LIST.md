@@ -356,6 +356,31 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       licence to re-point the ~35 capacity call sites. ⇒ **(P4) is the better next step than
       Stage 1**: its fixture is exactly the party-mutating case this population lacks.
 
+      ## (P4) THE END-TO-END REPRO — ✅ STAGE 1 **AND STAGE 2** DRIVEN, 4/4 ACROSS BOTH FORKS
+      ✅✅ **STAGE 2 IS DRIVEN 2026-08-15 (`--driver boxcounter2`) — matrix {ARM A, ARM B} ×
+      {sandbox, custom} = 4/4 `ACCEPTANCE: PASS`. ⛔ DO NOT REBUILD IT.** A SUBCLASS of
+      `BoxCounterMode`, so every Stage 2 run re-proves Stage 1 first. ARM B: the real
+      `heal_in_pokemon_center(FortreeCity)` collected the boxed Slugma — `moved=True` (in party
+      AND gone from the box), `knows_rock_throw=True`, `lead_is_counter=True` with a
+      `hunted_pids=None` CONTROL proving the mechanism was decisive (`control=Mightyena L38` →
+      `real=Slugma L15`), and a second heal that NO-OPed for the ATTRIBUTED reason. ARM A: the
+      derail reproduced organically — `_hunted_counter_pids` published EMPTY, counter left boxed,
+      **no deposit at all**. ‼ The PID is published ONLY from `box_counter_pid`'s return value.
+      ⛔⛔ **THE ANCHOR IS `fortree_gym_wedge.ss1` — the "use `ch13_fortree_door.ss1`" correction
+      further down this entry is REVERSED BY A DRIVE.** `ch13_fortree_door` is on ROUTE120 and the
+      run died on its first leg (`Cannot reach FORTREE_CITY: it is not walkable from ROUTE120`) —
+      **KI-24**, documented in our own `region_reach.py:7-11`. ⚠ The wedge has NO Shedinja/Ninjask
+      twins, so `ch13_fortree_door.ss1` stays the anchor for tests whose SUBJECT is that collision.
+      ⛔ **`needed` IS `{Rock, Ice, Dragon}` — NOT `{…Electric}`** (the ace is Altaria,
+      Dragon/Flying; Electric is 0.5×2.0 = 1.0, NEUTRAL). Caught by the new `needed_ok` control on
+      its first run; the four-type set was in four documents that were copies of one another.
+      🔜 **WHAT (P4) STILL DOES NOT COVER:** everything UPSTREAM of registration — a real `hunt()`
+      catch feeding `story_mode.py:1750`. The Slugma is INJECTED and the PID published by the
+      driver. Also still unbuilt: the natural-vs-injected byte-equivalence control.
+      ‼ **A PROMOTION DECISION IS OWED (drift is 1):** `counter_hunt.py`, comment-only.
+
+      *(Everything below is the Stage-1-era text. It is kept for its build detail; where it
+      predicts Stage 2 or names the anchor, the block above supersedes it.)*
       ## (P4) THE END-TO-END REPRO — ✅ STAGE 1 DRIVEN (both arms), ⛔ STAGE 2 NOT BUILT
       ‼ **Read `ai-research-notes/2026-08-15-p4-boxcounter-repro-design.md` before building.** It
       refuted FOUR of the premises it was briefed with, two fatally: the heal's withdraw is no

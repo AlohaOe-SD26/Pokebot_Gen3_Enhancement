@@ -96,6 +96,7 @@ idiom. **The fix is always the default; the switch restores the bug.**
 | `POKEBOT_TEACHWINDOW_A` | `0` | the `#24-teachmsgstall` bug: the **one-frame** `Task_ReplaceMoveYesNo` detector, and the pre-fix ride ladder |
 | `POKEBOT_LEADCANTBATTLE_A` | `0` | the KI-52 bug: raise (and wedge mid-battle) instead of fighting it out |
 | `POKEBOT_BOXCOUNTER_TYPEONLY_A` | `0` | the user-observed **Slugma/Winona** bug: `box_counter_pid` skips its MOVE branch and matches on TYPE only, so a boxed counter hunted for its move is missed. Exists for (P4)'s ARM A. ‼ Exercised against the REAL function by `repro_box_counter_move_test.py`, so the hook cannot rot |
+| `POKEBOT_BOXCOUNTER2_GYM` | `0` | ⛔ **NOT a fault hook and NOT a bug — an OPT-IN for an UNGRADED observation.** `=1` makes `--driver boxcounter2` (P4 Stage 2) attempt the Fortree gym leg after its verdict is already printed. **Off by default ON PURPOSE:** an L15 Slugma will likely lose to Altaria L33, and a whiteout drops the run to Manual where **KI-71** abandons the generator and NOTHING prints — so an enabled gym leg can only ever add noise or a silent death, never evidence. The `ACCEPTANCE:` line is emitted BEFORE it and nothing in the leg can change that verdict (design note §5 step 8: *reported, never graded*) |
 
 ## C. TUNING KNOBS (not results)
 | flag | default | what it tunes |

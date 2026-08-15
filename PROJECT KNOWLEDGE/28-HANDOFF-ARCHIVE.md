@@ -13,7 +13,12 @@ place so they always describe present reality. Remove stale content."*) and it t
 retractions — and this project treats negative results as its most valuable asset. The split was
 verified byte-identical to the original tail before it was written.
 
-Newest first, exactly as they stood in `04-HANDOFF.md`.
+⛔ **ORDER: OLDEST FIRST — APPEND-ONLY. New snapshots go at the BOTTOM.** *(This line claimed
+"Newest first" until 2026-08-15, when a Tier 1 audit measured it against reality: every move ever
+made here was APPENDED, so the 2026-08-10 block sits at the top and the newest is at the end. The
+claim was corrected rather than the file reordered — `28` is append-only history, and CLAUDE.md
+forbids rewriting or reordering it. ‼ To find the latest snapshot, read the END of this file.)*
+Each block is verbatim, exactly as it stood in `04-HANDOFF.md`.
 
 ---
 
@@ -4213,3 +4218,187 @@ failure**. ⇒ **step SOUTH to `(38,23)`, face Down, Surf onto `(38,24)`.** ✅ 
 points north DO reach open water; the trap is the **28 launches into a 41-tile CLOSED LAGOON** on
 the WESTERN shore. Full measurement: `ai-research-notes/2026-08-13-ch20-decomp-blockers-and-room8.md`
 and `tools/story-dev/probe_route128_landing.py`.
+---
+
+## 🧭 THE PATHFINDER + §Ch20 SCOPING BACKGROUND — MOVED here from `04-HANDOFF.md` (2026-08-15, on the R3 line budget when (P4) Stage 2 landed)
+
+> Verbatim as it stood in the handoff. ‼ Its reusable content is summarised in a 6-line pointer
+> that replaced it there; this is the full text.
+
+## 🧭 WHAT THE PREVIOUS SESSION DID (PATHFINDER + §Ch20 SCOPING) — still the best background
+
+
+**1. KI-59 (the pathfinder's inverted `Impassable *` handling) — MEASURED, FIXED, PROVEN, GATED.**
+* ⛔ **Its headline was wrong in four documents** and is retracted: *"armed in the Seafloor Cavern,
+  A/B on `SEAFLOOR_CAVERN_ROOM1`"*. The handler is the `elif` of `if tile.collision != 0`, **all 115
+  cavern tiles have `collision=1`, so ZERO reach it** — that A/B would have measured a zero delta and
+  invited "KI-59 isn't real". Game-wide: **2,658 such tiles, 2,257 dormant, 401 (15.1%) live**,
+  chiefly the **Regi tombs (144)**, **Shoal Cave (98)**, **Victory Road (58)**.
+* ✅ **Fixed both halves** — the entry vector, **plus a new `PathTile.blocked_exit_directions`** for
+  the decomp's exit rule, which the data model previously could not express at all.
+  **A/B on `VICTORY_ROAD_1F`: `calculate_path` went from NO-PATH from EVERY direction onto all 29
+  live tiles (they were invisible to the planner) to `OK len=1` on the legal ones.** Mossdeep
+  collateral control byte-identical; gate **`repro_impassable_dirs.py`** is now #17.
+
+**2. §Ch20 (Seafloor Cavern / Kyogre) — SCOPED END TO END, NOT YET BUILT.**
+* `#24-ch20rename` **DONE** (`--driver ch20dive`, `probe_ch20_topology.py`), verified by re-running.
+* **Area Atlas** (`probe_ch20_interior.py`): warp graph benign, all rooms reachable; **Rooms 1/2/3/5/8
+  are STRENGTH-BOULDER puzzles**, Rooms 6/7 are open-water **current mazes**, Rooms 4/9 split by terrain.
+* **11-leg build spec** with assertable conditions:
+  `ai-research-notes/2026-08-13-ch20-seafloor-cavern-build-spec.md`. ‼ It corrected **our own docs**:
+  **ROCK SMASH is mandatory** (Strength alone is physically stuck in Room 1), the trigger tile is
+  **`(17,42)` not `(16,42)`**, and the chapter must be graded on **`VAR_ROUTE128_STATE == 2`**, not
+  the Kyogre flag — which is set *before* a forced warp into a SECOND cutscene, landing on a
+  **sandbar** the bot must Surf off.
+* ✅ **The current mazes are routable by our planner** (4/4 pre-registered predictions, slide model
+  proven in use), so Rooms 6/7 need **no solver**.
+
+**3. NEW ISSUES FILED: KI-74, KI-75, KI-76** (see `05-KNOWN-ISSUES.md`). KI-76's **safety half is
+fixed** (bounded slide loop + `None` guards, fault-tested); its **correctness half is OPEN**.
+
+⇒ ✅ **ALL NINE ROOMS ARE DRIVEN — the cavern is END TO END (2026-08-14).** Seven drivers,
+all `ACCEPTANCE: PASS`. ⛔ **DO NOT REBUILD ANY OF THEM.**
+⛔ **The line below is STALE and is kept only for its trail — it says Rooms 8 and 9 are still
+planning-only, which was true for a few hours on 2026-08-13 and is not true now:**
+*(stale)* ⛔ **UPDATED:** Rooms **2, 6 and 3 are now driven too** — only Rooms 8 and 9 remain planning-only.
+
+
+---
+
+## ⏱ THE 2026-08-13-ERA "60-SECOND VERSION" — MOVED here from `04-HANDOFF.md` (2026-08-15)
+
+> ‼ **Why it moved:** it was still titled *"THE 60-SECOND VERSION (if you read nothing else)"* at
+> the TOP of the handoff while describing the roster/puzzle-solver/dive session of **2026-08-13** —
+> so the summary a cold reader hit FIRST was two arcs stale. A current 60-second version replaced
+> it in place. Nothing here is deleted; several of these items are still true and are cited from
+> the replacement.
+
+## ⏱ THE 60-SECOND VERSION (if you read nothing else)
+* **`reorder_party()` IS NOW DRIVEN AND PROVEN.** `--driver roster` (NEW) ran **six swaps, all
+  verified by PID**, including **`RotatePokemon(i, j != 0)` — a path nothing in this project had
+  ever driven.** The party-ORDER capability the Regi arc needs is real, not just planned.
+* **The drive found a real defect and it is FIXED, A/B proven:** `reorder_party()` returned `True`
+  with the avatar **unable to walk**. ‼ Every cheap check said it was fine — not Manual, state
+  already `OVERWORLD`, start menu already closed. Only asking it to MOVE revealed it.
+* **‼ 0 of 6 pre-registered predictions fired, and neither prediction pass found the real bug.**
+  Both hunted the KI-38 hang family because that is where the docs point. See
+  `ai-research-notes/2026-08-13-roster-drive-predictions.md` — it holds the full raw transcripts.
+* **Two issues filed, both deliberately NOT fixed: KI-70** (`_rotate_lead_safely` has the same
+  shape, on the hottest path in the bot — **measured, margin held, but n = 1**) and **KI-71**
+  (roster.py's "dropped to MANUAL" guard is **unreachable**; `main.py:145-147` abandons the
+  generator first).
+* **`puzzle_solver.py` IS A RECIPE BOOK, NOT A SHORTCUT — COPY FROM IT, DO NOT DRIVE IT.**
+  It is byte-identical to the upstream mirror and holds the Seafloor Cavern + Sealed Chamber +
+  Regi routes. ‼ **I first wrote this up as "it already ships §Ch21 and the Regi arc" and that was
+  OVERSTATED** — an adversarial pass refuted it and I verified the refutation myself:
+  the Seafloor branch ends `navigate_to(ROOM9, (16,42))` → `set_manual_mode()` — ‼ **and (16,42) is
+  PLAIN FLOOR that fires NOTHING; the real coord trigger is `(17,42)`, one tile EAST**
+  (`Room9/map.json:124-134`, decomp-verified 2026-08-13). So upstream stops one tile short of the
+  event as well as handing off. (it parks the bot on
+  **Archie's own cutscene tile** and hands control to a human — no battle, no progression, no exit),
+  and the Regi branches **open the door only**, ending at the tomb's EXIT warp, never at the statue.
+  **What survives is still valuable**: the `dive() → navigate → surface_from_dive()` template (which
+  `--driver ch20dive` copied to a 6/6 PASS), free hand-derived room coordinates, and independent
+  corroboration of **KI-69**'s Emerald party order (`("Wailord", 0)` / `("Relicanth", size-1)`).
+  Read `ai-research-notes/2026-08-13-puzzle-solver-already-ships-ch21-and-the-regi-arc.md` —
+  **the correction is at the top.** ⛔ Never point it at a Regi tomb: its battle handling is
+  `handle_encounter(encounter, enable_auto_battle=True)` (`puzzle_solver.py:99` — ‼ the kwarg is
+  **`enable_auto_battle`**, corrected 2026-08-13; this line used to say `auto_battle=True`, which
+  greps to nothing) and KO'ing a Regi destroys the encounter. ✅ **Re-audited 2026-08-13: the hazard
+  is REAL but currently UNREACHABLE** — every Regi branch calls `set_manual_mode()` before the statue
+  is engaged, and `main.py:145-146` discards the generator on the next frame. ‼ One residual: the
+  shared tail presses `A` once *before* its first `yield`, so a single stray A can be emitted after
+  Manual is set; on the Emerald paths the avatar is still in the OUTER room so it cannot reach a
+  statue, but the R/S paths end at `(8,11)` INSIDE and that tile was not checked.
+* **✅ THE FIRST DRIVEN DIVE IN THIS PROJECT — KI-68 step 1 IS DONE.** `--driver ch20dive` (NEW)
+  → `ACCEPTANCE: PASS legs=6/6 at_entrance=True got_out=True can_continue=True`. Mossdeep →
+  `SEAFLOOR_CAVERN_ENTRANCE (10,17)` **and back out to the open ocean**.
+  ‼ **THE STATIC WARP DATA IS MISLEADING AT BOTH ENDS OF THIS CAVERN** — the way in *and* the way
+  out are RUNTIME `setdivewarp`s that no warp-graph or path scan can see. **Drive it; do not read
+  it.** The way out is three hops, not the one the table implies.
+  ‼ **This does NOT make §Ch21 unblocked** — the run INJECTED Dive with a debug write. Acquiring a
+  real Dive learner (KI-63) is still open.
+* **KI-72 filed (NEW, code-verified):** `calculate_path` has never heard of
+  `"Underwater Blocked Above"` / `"Seaweed No Surfacing"` — the two tile types you cannot surface
+  from — so it will route a dive to a dead end. ⇒ **NEVER let the planner choose where you
+  surface**; pick the tile explicitly, as upstream already does.
+* **✅✅✅ KI-63 IS RESOLVED *AND NOW WIRED INTO PRODUCTION* (sandbox).** `story_mode.py`'s two HM
+  call sites (Rock Smash, Surf) call the new `ensure_hm_learner_making_room`, which frees ONE slot
+  and retries once — **only** on the specific "party is full" failure. New gate
+  **`repro_hm_slot_wiring.py` (22/22, fault-injected)** keeps the chain connected, because the
+  previous failure was *a chain of correct parts with one link missing* and nothing caught it.
+  **📊 MEASURED WORTH (1,129 runs):** 20 terminal run-kills (**0.91%** excl. a reverted party-cap
+  bundle), **#1 of 14 derail causes by frames per event (1,717k avg ≈ 46 min)** — 7.2% of all
+  derailed lane time from 3.4% of derails, **every one five badges deep**. Rare, but it kills the
+  best runs. ✅ **PROMOTED 2026-08-14 — `custom-pokebot` is NO LONGER inert.** Superseded: *that it was still inert and promotion had not been asked for*.
+* *(SUPERSEDED by the bullet above — kept for its detail. ⛔ **This marker used to say the "not wired" half was still true for `custom-pokebot`; that is FALSE since the 2026-08-14 promotion — it is wired in BOTH forks and drift is ZERO.**)* **KI-63 IS RESOLVED — THE BOT ACQUIRES DIVE BY PLAYING.** `--driver divelearner` (NEW) →
+  `ACCEPTANCE: PASS` **on the first drive**: freed a slot (Skitty L17 deposited), hunted and caught
+  a **Marill L13** (balls 19→17), taught **Dive over Defense Curl** (the 0-power move), and
+  **Zigzagoon kept Surf**. `knows_dive=True can_dive=True surf_intact=True can_continue=True`.
+  **NEW production code:** `pc_trip.deposit_one_dead_weight()` + an opt-in `_needs_party_slot`
+  piggyback in `heal_in_pokemon_center`.
+  ‼‼ **BUT THE CAPABILITY IS PROVEN, NOT WIRED.** `_needs_party_slot` has **no setter anywhere in
+  `modules/` or `plugins/`** — only the driver sets it. In a real `StoryMode` run the piggyback
+  **never fires** and `ensure_hm_learner(HM08)` still raises *"the party is full"*. **Wiring
+  `story_mode.py` to catch that and set the flag is the remaining work** — do not read this as
+  "§Ch21 is unblocked in production". §Ch21 also still has to be BUILT, and the learner is an L13
+  HM slave 36 levels below the team.
+* ✅ **KI-63 (the Dive-learner acquisition) SHIPPED AND WAS PROMOTED.** Its 33-line plan block
+  moved to `28-HANDOFF-ARCHIVE.md` 2026-08-14 (line budget; a Tier 2 audit had flagged its
+  `(superseded)` tag as unbounded). ⛔ **Two things in it are STILL LIVE:** (1) ✅ **SHOAL CAVE IS
+  NOT ADOPTED, Route 117 stays** — reachable spin tiles **LOW 278 / HIGH 0**, and at high tide the
+  failure is a **SILENT STALL**, not an error (rationale + the three unlock conditions:
+  `06-DECISIONS-LOG.md`); (2) **KI-73 is CACHE POISONING** — both paths share one
+  `_map_layout_cache` keyed on `(group, number)`, so the first writer wins for the session.
+* **`#24-ballstarve`'s premise does not hold at `post_dive.ss1`** — 19 balls, $54,334 measured.
+  ‼ **Not closed**: the item was filed from a mid-game Surf-era batch and may still be real there.
+* **Nothing is parked. Nothing is running.** All gates exit 0 after the change. *(That said "15";
+  the suite is **23** today — `run_gates.py` PRINTS the count and is authoritative, this prose is not, and this line alone has claimed 15, 17, 21 and 22.)*
+* **§Ch19 is DONE and the ladder runs 20 of 24 beats.** §Ch18 + §Ch19 are **PROMOTED** to
+  `custom-pokebot/` and verified by driving `--build custom`, including the real ladder.
+* ⛔ **RETRACTED 2026-08-13 — three errors in one line.** It is **Chapter 20**, not 21 (see the
+  naming correction above); it is **NOT BLOCKED** (Rooms 1/2/6/3 are driven and passing); and
+  **KI-68 is RESOLVED and lives in `31-KNOWN-ISSUES-ARCHIVE.md`, not in `05-KNOWN-ISSUES.md`** —
+  its route is driven. Superseded text: *"The next content beat (§Ch21, Seafloor Cavern) is
+  BLOCKED, and the reason changed twice — read KI-68 before touching it."* It is *not* the party slot, and Dive is *not* impossible:
+  the planner cannot AUTO-route a dive, so **a chapter must drive `dive()` explicitly.**
+* **The REGI arc is the user's ask** — read **KI-69**. ‼ **Emerald reversed the party order:
+  WAILORD first, RELICANTH last**, and the wrong order fails **silently**. ‼ **The Regi battle is
+  UNRECOVERABLE** — a KO *or* a whiteout deletes the encounter permanently.
+* **✅✅ KI-59 IS FIXED, BOTH HALVES, A/B PROVEN (2026-08-13, latest).** `map_path.py`'s entry vector
+  now starts all-True and CLEARS `[opposite(D)]`, and a **NEW `PathTile.blocked_exit_directions`**
+  carries the decomp's *exit* rule, checked on the SOURCE tile in the A* loop — `is_tile_accessible`
+  is handed the NEIGHBOUR and structurally could never express it. **THE A/B on `VICTORY_ROAD_1F`:
+  before, `calculate_path` returned NO-PATH from EVERY direction onto all 29 live tiles — they were
+  completely invisible to the planner; after, the legal approaches return `OK len=1`.** The gate
+  `repro_impassable_dirs.py` goes **exit 1 → exit 0** (29/29 mismatches → 0/29) and is now **gate
+  #17**. **Collateral control:** the `MOSSDEEP_CITY` arm of `probe_ki59_routing_ab.py` is
+  **byte-identical** across both arms (real production code both times, via `git stash`).
+  ‼ **`probe_shoal_tide.py` was corrected in lockstep** — it had COPIED the bug, so it agreed with
+  production while both were wrong — and **its numbers re-derived on the fixed model are UNCHANGED
+  (LOW 278 / HIGH 0)**, so the **"Shoal Cave is NOT adopted"** ruling stands on a correct model.
+  ✅ **PROMOTED 2026-08-14 — this file is in BOTH forks.** ‼ It took drift to nil AT THAT MOMENT;
+  do not read it as a statement about drift TODAY, which PARTY ACCOUNTING STAGE 0 has since moved
+  (see the STATE line at the top — `promote.py --check` is the only authority on the current
+  figure, and no prose here should restate it).
+* **‼ THE MEASUREMENT THAT PRECEDED IT: KI-59's HEADLINE WAS WRONG AND IS RETRACTED IN FOUR
+  DOCS.** The inversion in `map_path.py:128-132` is **real and decomp-confirmed** — for
+  `Impassable North` the shipped `[--S-]` is the *exact complement* of correct `[NE-W]`, so it
+  refuses all three legal entries **and permits the one illegal one**. ⛔ **But it was NEVER a
+  Seafloor Cavern blocker.** The handler is the `elif` of `if tile.collision != 0:`, and **all 115
+  cavern tiles have `collision=1` ⇒ zero reach it**; the A/B four documents prescribed
+  (`SEAFLOOR_CAVERN_ROOM1`) would have measured a **zero delta**. Swept over **all 518 maps**:
+  **2,658 tiles, 2,257 dormant, 401 live (15.1%)**, concentrated on the **REGI TOMBS (144)**,
+  **SHOAL CAVE (98)** and **VICTORY ROAD (58)**. ⇒ **KI-59 gates the REGI ARC, not the cavern.**
+  New artifact `tools/story-dev/probe_impassable_dirs.py`; a fresh-process reverse-order control
+  rules out KI-73 cache poisoning, and an **adversarial reviewer re-derived every number by parsing
+  the `.gba` off disk with ZERO shared code** — byte-for-byte agreement. **The fix is specified and
+  its hazards are pre-checked, but NOT YET WRITTEN** — see `#24-impassabledirs`. ⇒ **Run the A/B on
+  `VICTORY_ROAD_1F` (29 live tiles) with a Seafloor room as the negative control**, and assert BOTH
+  directions: ⚠ the counts are **static ROM layouts**, and the Regi tombs / Shoal Cave / Lilycove
+  lobby all rewrite their own tiles at runtime (`setmetatile`/`setmaplayoutindex`) — **no Seafloor
+  Cavern script does**, so that conclusion is unaffected. ‼ Knock-on: `probe_shoal_tide.py:364-367`
+  replicates the inversion, and that probe produced the number behind the **"Shoal Cave is NOT
+  adopted"** ruling.
+* **Run `preflight.py` first.** Then the gate list in "HOW TO RUN / TEST".
+

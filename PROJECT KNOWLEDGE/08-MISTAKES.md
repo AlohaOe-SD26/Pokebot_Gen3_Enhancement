@@ -6790,3 +6790,61 @@ on a correctly-encoded `⏱` and on the em dashes, `20×17`, `§Ch20`, `‼`/`�
 3. **A gate written for a specific incident must be fault-tested against THAT incident's actual
    bytes**, not a hand-made approximation. The self-test used clean round-trips; the real artefact
    contained an unmappable byte and behaved differently.
+
+## 2026-08-15 — FOUR DOCUMENTS AGREED ON A TYPE MATCHUP FOR A YEAR, AND ALL FOUR WERE COPIES OF ONE ANOTHER
+
+- **Symptom.** `Winona needs Rock/Ice/Dragon/Electric` appeared in `counter_hunt.py:250`, the P4
+  design note, `04-HANDOFF.md`, and hardcoded in the Stage 1 driver. It was never true of anything
+  production computes.
+- **Root cause.** `_boss_plan_is_hopeless` derives `needed` from `cfg["ace_types"]` **alone**, and
+  Winona's `cfg` names the ACE — Altaria L33, **Dragon/Flying**. Electric is **0.5x into Dragon**
+  × 2.0x into Flying = **1.0, NEUTRAL**. The claim was mis-scoped rather than invented: Electric IS
+  2.0x on her other four (Flying) mons. Someone reasoned about the TEAM, wrote it next to code that
+  reasons about the ACE, and three later documents copied it.
+- **The fix that worked.** Stop hardcoding the answer; DERIVE it from the live type chart seeded
+  with `ace_types`, and grade the derivation against the written expectation. It failed on its
+  FIRST run and aborted the fixture rather than testing a set production would never pass.
+- ‼ **Prevention rule.** *Agreement between documents is not evidence — they may all be copies.
+  A control must ask the SOURCE OF TRUTH (the live chart, the decomp, the running game), never
+  another document.* This is the doc-layer twin of the measured Gemini rule *"agreement is not a
+  confidence signal"*, and it is why the four-way agreement here survived so long.
+
+## 2026-08-15 — THE INSTRUMENT I WROTE TO CATCH PID COLLISIONS WAS ITSELF BROKEN BY ONE
+
+- **Symptom.** The first (P4) Stage 2 drive printed `party_before={...}` with **5 members** for a
+  save whose party is **FULL at 6**.
+- **Root cause.** My `party_map()` helper was `{pid: label}`. The anchor `ch13_fortree_door.ss1`
+  holds a REAL Shedinja+Ninjask pair BOTH with `pid=42207D6F`, so the dict collapsed two Pokémon
+  into one key — on the very save that was chosen BECAUSE it contains that collision, in a driver
+  written to test the arc whose headline issue (KI-78) is that exact collision.
+- **The fix that worked.** Key on `(personality_value, species.name)` — the same identity KI-78's
+  production fix shipped — everywhere: the party map, the in-party check, the second-heal check,
+  and the lead-slot check.
+- ‼ **Prevention rule.** *"Assert identity, not count" is not satisfied by "use the PID". In Gen 3
+  the PID is not unique — the identity is `(personality, species)`. Any dict, set, or `in` test
+  keyed on a bare PID is a latent collision bug, including in test instruments.*
+- **Why it matters beyond this driver.** It cost nothing here only because the Slugma's own PID was
+  unique, so the graded claims stayed correct. The reported ones (party contents, what got
+  deposited) were already wrong, and a count derived from that dict would have been wrong too.
+
+## 2026-08-15 — AN ANCHOR WAS "CORRECTED BY MEASUREMENT" TWICE, AND THE FIRST CORRECTION HAD NEVER TESTED THE THING THAT MATTERED
+
+- **Symptom.** (P4) Stage 2's first drive died on its FIRST leg:
+  `BotModeError -> Manual: Cannot reach FORTREE_CITY: it is not walkable from ROUTE120, and none of
+  the 6 candidate warp route(s) start at a tile that can be walked to from here`.
+- **Root cause.** The design note had already "superseded by measurement" its anchor choice,
+  switching from `fortree_gym_wedge.ss1` to `ch13_fortree_door.ss1` because the wedge sits INSIDE
+  the gym and "adds a gym-exit leg that is pure risk". Every measurement behind that switch was
+  about POSITION, ERA and PARTY — all correct, and none of them asked **whether the bot can route
+  from there.** ROUTE120 is one of the dual-elevation-bridge maps `calculate_path` reads as WALLS,
+  which **our own `region_reach.py:7-11` documents** (KI-24).
+- **The fix that worked.** Swap back to `fortree_gym_wedge.ss1`. The feared gym-exit leg cost
+  nothing — `navigate_to_anywhere` walked out through the warp and reached the PC first try.
+- ‼ **Prevention rule.** *An anchor is not verified until something has ROUTED from it. Era, map,
+  position and party are necessary and NOT sufficient — add "and `calculate_path`/`navigate_to`
+  reaches the first destination the test needs" to every anchor check.*
+- **The meta-lesson.** The word "MEASURED" on a claim does not say WHICH question was measured.
+  Both corrections were honest and both cited real probes; the second one measured the load-bearing
+  variable and the first did not. **State the question a measurement answered, not just that one
+  happened** — the same failure shape as the counting-tiles-without-checking-reachability mistake
+  logged on 2026-08-13.

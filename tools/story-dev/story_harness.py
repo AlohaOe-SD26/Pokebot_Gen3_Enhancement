@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxwrite", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "divelearner"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "divelearner"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -4866,26 +4866,48 @@ class BoxCounterMode(BotMode):
     decodes**, under both arms.
 
     ⛔ **STAGE 1 ONLY, AND THAT IS DELIBERATE.** It calls `box_counter_pid` directly and stops.
-    It does NOT drive the heal/withdraw (Stage 2). Reason: Stage 1 **cannot derail**, so ARM A —
-    the arm that reproduces the bug — still emits a RESULT. Under KI-71 a derailed run has its
-    generator abandoned and prints nothing at all, so putting the decisive claim behind the risky
-    step would make the bug's own arm unreportable. Stage 2 is specified in
-    `ai-research-notes/2026-08-15-p4-boxcounter-repro-design.md` and is NOT built.
+    It does NOT drive the heal/withdraw — that is Stage 2, `BoxCounter2Mode`, which **SUBCLASSES
+    this class** and therefore RE-PROVES Stage 1 on every Stage 2 run (playbook §4c rule 2: copy a
+    proven phase and it rots; subclass it and it cannot). Reason for the split: Stage 1 **cannot
+    derail**, so ARM A — the arm that reproduces the bug — still emits a RESULT. Under KI-71 a
+    derailed run has its generator abandoned and prints nothing at all, so putting the decisive
+    claim behind the risky step would make the bug's own arm unreportable.
+    ‼ The body lives in `_stage1()`, which does NOT call `set_manual_mode()`; only `run()` does.
+    A subclass that called `super().run()` would drop to Manual before its own first line.
 
     ‼‼ THE ORDERING THAT MAKES OR BREAKS THIS TEST. `hunt()` snapshots `before_box_pids` at
-    `counter_hunt.py:476-477` and passes it as `exclude_pids` at `:542`; `:284-285` skips any PID
-    in that set. **A Slugma injected BEFORE the snapshot is filtered out and the function returns
+    `counter_hunt.py:491` and passes it as `exclude_pids` at `:556`; `:288` skips any PID in that
+    set. **A Slugma injected BEFORE the snapshot is filtered out and the function returns
     `None` in BOTH arms** — ARM A would "reproduce" the bug for entirely the wrong reason and ARM B
     would fail. So the snapshot is taken FIRST, the injection happens AFTER, and
     `slugma_pid not in before_box_pids` is ASSERTED and printed. ⛔ The tempting shortcut — passing
     an empty exclude set — would delete the production guard from the test.
+    (These citations read `:476-477`/`:542`/`:284-285` until 2026-08-15; the file had moved and the
+    numbers were stale in four places. Verified against the file, not copied forward.)
 
     ⛔ WHY SLUGMA AND NOT ANY BOXED MON. Slugma is **pure FIRE**; Winona needs
-    Rock/Ice/Dragon/Electric. The type branch (`:286-287`) must therefore be provably INERT, or the
+    Rock/Ice/Dragon/Electric. The type branch (`:290`) must therefore be provably INERT, or the
     move branch is never measured and both arms pass. The fixture's own types are asserted disjoint
     from `needed`. And the verdict is `== slugma_pid`, never `is not None`: the function returns the
     FIRST match in box order, so any other qualifying mon would make ARM B green without the move
-    branch ever running. The box is asserted to contain nothing else.
+    branch ever running.
+
+    ⛔⛔ THE SOLE-CANDIDATE CONTROL IS NOT "THE BOX IS EMPTY" (corrected 2026-08-15, by measurement).
+    It used to assert `occupants == [pid]`, which passes only because `post_dive.ss1`'s 14 boxes are
+    ALL EMPTY (measured, `probe_box_contents.py`). Stage 2's anchor `ch13_fortree_door.ss1` holds
+    **Castform L25 `pid=6ADF9056`** at box0.slot0 — pure Normal, so no TYPE match, but it knows
+    **Powder Snow (Ice, damaging)**, so it qualifies on the MOVE branch and sits AHEAD of anything
+    injected. The old control would have ABORTED there. ‼ Production is not fooled — the Castform
+    is in the box BEFORE the run, hence in `before_box_pids`, hence excluded at `:288`. So the
+    control now asks PRODUCTION the question instead of re-deriving it:
+        `sole = box_counter_pid(NEEDED, exclude_pids=before | {slugma_pid}) is None`
+    *If nothing else can be returned once the Slugma is taken away, the Slugma is the only thing
+    that could have been returned.* Zero re-implementation (re-deriving "does this bystander
+    qualify?" in the driver is the exact sin that let `repro_box_counter_move_test` test a COPY of
+    the fault instead of the real hook), and it is the right question in BOTH arms: under ARM B it
+    rules out type AND move bystanders; under ARM A it rules out TYPE bystanders, which is exactly
+    what ARM A's expected `None` needs. Bystanders are still printed — but for DIAGNOSIS only, and
+    the verdict never depends on driver-side logic.
 
     ARMS (`POKEBOT_BOXCOUNTER_TYPEONLY_A`, a permanent hook — never edit code to inject a fault):
         unset  = ARM B, the shipped fix  -> must return the Slugma's PID
@@ -4893,49 +4915,121 @@ class BoxCounterMode(BotMode):
 
     Run:  POKEBOT_BOXCOUNTER_TYPEONLY_A=  PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 \\
               --driver boxcounter --frames 200000
-    Expect ARM B: arm=B fixture_ok=True disjoint=True not_excluded=True pid_match=True
-                  ACCEPTANCE: PASS
+    Expect ARM B: arm=B fixture_ok=True disjoint=True not_excluded=True not_in_party=True
+                  needed_ok=True sole=True pid_match=True     ACCEPTANCE: PASS
     Expect ARM A: arm=A ... pid_match=True (its expectation is `None`)  ACCEPTANCE: PASS
     ‼ BOTH ARMS PASS when the code is correct — `pid_match` means "matched THIS ARM's expectation".
+
+    Two controls added 2026-08-15, both from an adversarial pass over the Stage 2 plan:
+    * `not_in_party` — `debug_create_pokemon` does NOT guarantee a fresh PID: it starts from the
+      template's `personality_value` (`debug_utilities.py:350-357`, `0x00000000` when
+      `original_pokemon is None`) and only re-rolls if nature/gender/shiny disagree. A fixture PID
+      that already exists in the party would make Stage 2's "it reached the party" check read TRUE
+      before the heal even ran. Asserted against party AND box, printed either way.
+    * `needed_ok` — `NEEDED` is re-derived from the LIVE type chart seeded with Winona's real
+      `ace_types = ("Dragon", "Flying")` (`story_mode.py`'s Winona `cfg`) using the same
+      `>= 2.0` rule as `_boss_plan_is_hopeless` (`:1600-1606`), then compared to the literal above,
+      so a type-data change is LOUD instead of silently making the fixture meaningless.
+      ⛔ `_boss_plan_is_hopeless()` itself CANNOT be called for this: it returns `(False, [])`
+      until losses have PLATEAUED (`:1507`, `:1512`), and a fresh anchor has zero losses.
     """
 
     @staticmethod
     def name() -> str:
         return "BoxCounter"
 
-    def run(self):
+    #: ⛔⛔ **NOT `{Rock, Ice, Dragon, Electric}` — MEASURED 2026-08-15, and the older set is WRONG.**
+    #: Winona's ace is **Altaria L33, Dragon/Flying**, and `_boss_plan_is_hopeless` derives `needed`
+    #: from `ace_types` ALONE (`story_mode.py:1600-1606`), requiring the product across BOTH ace
+    #: types to be `>= 2.0`. Electric is **0.5x into Dragon** and 2.0x into Flying — product
+    #: **1.0**, i.e. NEUTRAL on Altaria — so production never yields it. The live chart agrees:
+    #: the first run of the `needed_ok` control printed `derived=['Dragon','Ice','Rock']` and
+    #: ABORTED the fixture rather than testing a set production would never pass.
+    #: ‼ The old claim is not crazy, just mis-scoped: Electric IS 2.0x on her other four mons
+    #: (Swablu/Tropius/Pelipper/Skarmory are all Flying) — but the ACE is what `cfg` names.
+    #: It is repeated in `counter_hunt.py:250` and in the P4 design note; both are corrected.
+    NEEDED_EXPECTED = {"Rock", "Ice", "Dragon"}
+    #: The `cfg["ace_types"]` of the Winona fight in `story_mode.py`. If that dict ever changes,
+    #: `needed_ok` still passes (both sides move together) — so the STATIC gate
+    #: `repro_boxcounter_needed_parity.py` asserts this tuple against the production source.
+    ACE_TYPES = ("Dragon", "Flying")
+
+    @staticmethod
+    def _derive_needed(ace_type_names) -> set:
+        """The attacking types that are >= 2.0x against ALL of `ace_type_names`.
+
+        ‼ Deliberately the SAME rule as `_boss_plan_is_hopeless` (`story_mode.py:1600-1606`),
+        read off the LIVE type chart so a type-data change is loud. ⛔ We cannot call that
+        function itself: it short-circuits to `(False, [])` until losses have plateaued
+        (`:1507` needs `losses >= PLATEAU_LOSS_THRESHOLD`, `:1512` needs >=6 KO-history
+        entries), and a fresh anchor has zero losses.
+        """
+        from modules.pokemon import _types_by_name, get_type_by_name
+
+        aces = [get_type_by_name(n) for n in ace_type_names]
+        out = set()
+        for atk_name, atk_type in _types_by_name.items():
+            eff = 1.0
+            for t in aces:
+                eff *= atk_type.get_effectiveness_against(t)
+            if eff >= 2.0:
+                out.add(atk_name)
+        return out
+
+    def _stage1(self, tag: str = "boxcounter"):
+        """Steps 1-4 of the design note's §5 chain. Sets `self.s1_*`; returns True on PASS.
+
+        ⛔ DOES NOT call `set_manual_mode()` and DOES NOT print `ACCEPTANCE:` — those belong to
+        whoever owns the run. A subclass that inherited a terminator here would drop to Manual
+        before its own first line, and (KI-71) that failure is SILENT: no exception, no crash,
+        just a healthy-looking idle. `run()` below is the only Stage 1 terminator.
+        """
         import os as _os
 
-        from modules.context import context as _ctx
         from modules.debug_utilities import debug_create_pokemon, debug_write_box_slot
         from modules.pokemon import get_species_by_name
+        from modules.pokemon_party import get_party
         from modules.pokemon_storage import get_pokemon_storage
         from modules.modes.util import wait_for_n_frames
         from modules.story.counter_hunt import _box_pids, box_counter_pid
         from modules.story.early_game import wait_until_truly_controllable
 
-        NEEDED = {"Rock", "Ice", "Dragon", "Electric"}   # Winona's ace types' answers
         arm = "A" if _os.environ.get("POKEBOT_BOXCOUNTER_TYPEONLY_A", "0") == "1" else "B"
+        self.s1_arm = arm
+        self.s1_pid = None
+        self.s1_got = None
+        self.s1_before = frozenset()
 
         yield from wait_until_truly_controllable()
-        log(f"[boxcounter] ARM={arm} (POKEBOT_BOXCOUNTER_TYPEONLY_A="
+
+        # ---- 0. THE OPERATIVE `needed` IS THE DERIVED ONE — what production would actually pass.
+        #         The literal is only the EXPECTATION it is checked against, so a type-data change
+        #         is loud instead of silently making the fixture meaningless.
+        NEEDED = self._derive_needed(self.ACE_TYPES)
+        needed_ok = NEEDED == self.NEEDED_EXPECTED
+        self.s1_needed = NEEDED
+        log(f"[{tag}] ARM={arm} (POKEBOT_BOXCOUNTER_TYPEONLY_A="
             f"{_os.environ.get('POKEBOT_BOXCOUNTER_TYPEONLY_A', '<unset>')!r}) needed={sorted(NEEDED)}")
+        log(f"[{tag}] NEEDED-DERIVATION ace_types={self.ACE_TYPES} -> derived={sorted(NEEDED)} ; "
+            f"expected={sorted(self.NEEDED_EXPECTED)} ; needed_ok={needed_ok}")
 
         # ---- 1. SNAPSHOT FIRST. See the docstring: injecting before this makes the test lie. ----
         before = _box_pids()
-        log(f"[boxcounter] SNAPSHOT before_box_pids={len(before)} entries (taken BEFORE injection, "
-            f"exactly as hunt() does at counter_hunt.py:476-477)")
+        self.s1_before = before
+        log(f"[{tag}] SNAPSHOT before_box_pids={len(before)} entries "
+            f"({sorted(format(p, '08X') for p in before)}) — taken BEFORE injection, exactly as "
+            f"hunt() does at counter_hunt.py:491")
 
         # ---- 2. INJECT the fixture ----
         mon = debug_create_pokemon(species=get_species_by_name("Slugma"), level=15)
         pid = mon.personality_value
+        self.s1_pid = pid
+        self.s1_mon = mon
         try:
             where = debug_write_box_slot(mon)
         except Exception as error:  # noqa: BLE001 — a refused write is an ABORT, not a FAIL
-            log(f"[boxcounter] ‼ FIXTURE ABORT — write raised {type(error).__name__}: {error}")
-            log("[boxcounter] ACCEPTANCE: FAIL")
-            _ctx.set_manual_mode()
-            return
+            log(f"[{tag}] ‼ FIXTURE ABORT — write raised {type(error).__name__}: {error}")
+            return False
         yield from wait_for_n_frames(2)   # storage is cached per frame; read-back needs a yield
 
         # ---- 3. READ-BACK CONTROL. ⛔ MANDATORY. `box_counter_pid` swallows every exception into
@@ -4951,40 +5045,308 @@ class BoxCounterMode(BotMode):
                           and found.level == 15 and found.knows_move("Rock Throw"))
         disjoint = bool(found is not None and not (set(types) & NEEDED))
         not_excluded = pid not in before
-        log(f"[boxcounter] FIXTURE at box{where} pid={pid:08X} species="
+        # ‼ THE FIXTURE'S PID MUST BE NEW. `debug_create_pokemon` starts from the template's
+        # `personality_value` (`debug_utilities.py:350-357`; `0x00000000` when `original_pokemon
+        # is None`) and only re-rolls it if nature/gender/shiny disagree — it does NOT guarantee
+        # a PID nothing else already owns. If the party already held this PID, Stage 2's "the
+        # Slugma reached the party" check would read TRUE before the heal ever ran. ⛔ And this
+        # anchor is exactly where that matters: `ch13_fortree_door.ss1` already contains a REAL
+        # PID collision (Shedinja+Ninjask both `42207D6F`).
+        party_pids = {m.personality_value for m in get_party() if m is not None}
+        not_in_party = pid not in party_pids
+        log(f"[{tag}] FIXTURE at box{where} pid={pid:08X} species="
             f"{None if found is None else found.species.name} level="
             f"{None if found is None else found.level} rock_throw="
             f"{None if found is None else found.knows_move('Rock Throw')} types={types}")
-        log(f"[boxcounter] CONTROLS fixture_ok={fixture_ok} disjoint_from_needed={disjoint} "
-            f"not_in_before_box_pids={not_excluded}")
-        if not (fixture_ok and disjoint and not_excluded):
+        log(f"[{tag}] CONTROLS fixture_ok={fixture_ok} disjoint_from_needed={disjoint} "
+            f"not_in_before_box_pids={not_excluded} not_in_party={not_in_party} "
+            f"needed_ok={needed_ok}")
+        if not (fixture_ok and disjoint and not_excluded and not_in_party and needed_ok):
             # ‼ ABORT with a message DISTINCT from a test failure. A fixture defect graded as FAIL
             # would be read as "the fix is broken", which is the wrong conclusion entirely.
-            log("[boxcounter] ‼ FIXTURE ABORT — the controls above did not hold, so neither arm's "
+            log(f"[{tag}] ‼ FIXTURE ABORT — the controls above did not hold, so neither arm's "
                 "answer would mean anything. This is a FIXTURE defect, NOT a verdict on the fix.")
-            log("[boxcounter] ACCEPTANCE: FAIL")
-            _ctx.set_manual_mode()
-            return
+            return False
 
-        # ⛔ Sole-candidate control: the function returns the FIRST match in box order.
-        occupants = [s.pokemon.personality_value
-                     for b in get_pokemon_storage().boxes for s in (b.slots or [])]
-        sole = occupants == [pid]
-        log(f"[boxcounter] SOLE-CANDIDATE storage holds {len(occupants)} mon(s); sole={sole}")
+        # ⛔ SOLE-CANDIDATE CONTROL — asked of PRODUCTION, not re-derived. See the class docstring:
+        # the anchor's box is NOT empty (Castform `6ADF9056`, which qualifies on Powder Snow), so
+        # `occupants == [pid]` was wrong. If nothing can be returned once the Slugma is ALSO
+        # excluded, then the Slugma is the only thing that could have been returned.
+        shadow = box_counter_pid(NEEDED, exclude_pids=(set(before) | {pid}))
+        sole = shadow is None
+        bystanders = [(s.pokemon.personality_value, s.pokemon.species.name)
+                      for b in get_pokemon_storage().boxes for s in (b.slots or [])
+                      if s.pokemon.personality_value != pid]
+        log(f"[{tag}] SOLE-CANDIDATE box_counter_pid(needed, exclude=before|{{fixture}}) -> "
+            f"{'None' if shadow is None else format(shadow, '08X')} ; sole={sole}")
+        log(f"[{tag}] BYSTANDERS (diagnosis only, never the verdict): "
+            + (", ".join(f"{n}:{p:08X}{' EXCLUDED' if p in before else ' NOT-EXCLUDED'}"
+                         for p, n in bystanders) or "(none)"))
 
         # ---- 4. THE CALL, with the REAL production exclude set ----
         got = box_counter_pid(NEEDED, exclude_pids=before)
+        self.s1_got = got
         expected = None if arm == "A" else pid
         pid_match = got == expected
-        log(f"[boxcounter] CALL box_counter_pid(needed, exclude_pids=before) -> "
+        log(f"[{tag}] CALL box_counter_pid(needed, exclude_pids=before) -> "
             f"{'None' if got is None else format(got, '08X')} ; ARM {arm} expected "
             f"{'None' if expected is None else format(expected, '08X')} ; match={pid_match}")
 
-        ok = bool(fixture_ok and disjoint and not_excluded and sole and pid_match)
-        log(f"[boxcounter] RESULT arm={arm} fixture_ok={fixture_ok} disjoint={disjoint} "
-            f"not_excluded={not_excluded} sole={sole} pid_match={pid_match}")
+        ok = bool(fixture_ok and disjoint and not_excluded and not_in_party and needed_ok
+                  and sole and pid_match)
+        log(f"[{tag}] RESULT arm={arm} fixture_ok={fixture_ok} disjoint={disjoint} "
+            f"not_excluded={not_excluded} not_in_party={not_in_party} needed_ok={needed_ok} "
+            f"sole={sole} pid_match={pid_match}")
+        return ok
+
+    def run(self):
+        from modules.context import context as _ctx
+
+        ok = yield from self._stage1("boxcounter")
         log(f"[boxcounter] ACCEPTANCE: {'PASS' if ok else 'FAIL'}")
-        log("[boxcounter] ‼ STAGE 1 ONLY — the heal/withdraw half (Stage 2) is NOT driven here.")
+        log("[boxcounter] ‼ STAGE 1 ONLY — the heal/withdraw half is `--driver boxcounter2`.")
+        _ctx.set_manual_mode()
+        return
+
+
+class BoxCounter2Mode(BoxCounterMode):
+    """(P4) STAGE 2 — the REAL heal collects the counter, or (ARM A) provably does not.
+
+    ‼ WHAT THIS ADDS OVER STAGE 1. Stage 1 proves `box_counter_pid` returns the right PID.
+    It does NOT prove the bot then USES it. This drives the production
+    `heal_in_pokemon_center(PokemonCenter.FortreeCity)` — with its three PC piggybacks — and
+    grades §5 steps 5-7 of `ai-research-notes/2026-08-15-p4-boxcounter-repro-design.md`:
+    the Slugma MOVED box→party (identity, both directions), it still knows Rock Throw, it takes
+    slot 0, and a SECOND heal's withdraw NO-OPs *for the right reason*.
+
+    ‼‼ WHY THE PID MUST COME FROM PRODUCTION, AND WHAT THAT BUYS. `boxwithdraw` HAND-SETS
+    `_hunted_counter_pids`, bypassing `box_counter_pid` entirely — **that is exactly why the
+    existing driver never caught the user's bug**. Here the set is filled ONLY with what
+    `box_counter_pid` returned:
+        `self._hunted_counter_pids = set() if got is None else {got}`
+    ⇒ ARM A reproduces the user's derail ORGANICALLY and end-to-end: `got is None` → empty set →
+    `counter_withdraw_outcome()` False (`higher_level_actions.py:337`) → the SKIP is logged and
+    `withdraw_from_box` is never called (`:342-344`) → the heal completes and the counter STAYS
+    BOXED. Nothing in the driver simulates that; production does it.
+    ⛔ **WHAT THIS STILL DOES NOT PROVE:** the `hunt()` → `story_mode.py:1750` registration wiring.
+    The Slugma is INJECTED, and the PID is published by the driver rather than by a real catch.
+    Stage 2 tests everything DOWNSTREAM of registration, and nothing upstream of it.
+
+    ⛔ SUBCLASS, NOT COPY (playbook §4c rule 2) — every Stage 2 run re-proves Stage 1 first, on
+    this anchor, so the two cannot drift. It calls `_stage1()`, never `super().run()`: `run()`
+    ends in `set_manual_mode()`, and inheriting that would drop the bot to Manual before Stage 2's
+    first line — silently, since KI-71 means an abandoned generator raises nothing at all.
+
+    ‼ ANCHOR: `saves/ch13_fortree_door.ss1` (ROUTE120, badges 12345, Winona UNBEATEN, party FULL
+    at 6 so the make-room deposit path is exercised). ⛔ NOT `post_dive.ss1` — that save is
+    POST-Winona, so the counter rung cannot fire. ⛔ NOT `fortree_gym_wedge.ss1` — measured to sit
+    INSIDE the gym, which adds a gym-exit leg of pure risk to a test about the PC.
+    ⚠ Its box already holds Castform `6ADF9056`, which qualifies on the MOVE branch (Powder Snow)
+    and sits AHEAD of the fixture — harmless, because it is in `before_box_pids` and therefore
+    excluded, and the sole-candidate control proves that rather than assuming it.
+
+    ⛔ EVERY CLAIM IS AN IDENTITY. `withdraw_from_box` NEVER RAISES (`pc_trip.py:475-478`), so "no
+    exception" is not evidence; and `pc_trip.py:472-473` PRINTS "{name} is in the party" after
+    reading only `len(get_party())` — a COUNT wearing an identity's clothes. Never grade on that
+    line. Counts here are REPORTED only: on a successful withdraw every count is unchanged,
+    because the make-room deposit cancels the withdraw.
+
+    ARMS: the same permanent `POKEBOT_BOXCOUNTER_TYPEONLY_A` hook Stage 1 uses.
+        unset = ARM B — the counter is collected and leads.
+        "1"   = ARM A — the counter stays boxed. THE USER'S BUG, END TO END.
+    Both arms PASS when the code is correct; each grades its OWN expectation.
+
+    Run:  PYTHONUTF8=1 py -3.12 story_harness.py ch13_fortree_door.ss1 \\
+              --driver boxcounter2 --frames 400000
+    Expect ARM B: STEPS 5,6,7 all -> True, ACCEPTANCE: PASS
+    Expect ARM A: hunted_counter_pids=set(), still_boxed=True, in_party=False, ACCEPTANCE: PASS
+
+    ⛔ THE GYM LEG IS OFF BY DEFAULT (`POKEBOT_BOXCOUNTER2_GYM=1` to enable) and is REPORTED,
+    NEVER GRADED (§5 step 8). An L15 Slugma will likely lose to Altaria L33, and a whiteout drops
+    to Manual where KI-71 abandons the generator and NOTHING prints — so the `ACCEPTANCE:` line is
+    emitted BEFORE any gym attempt, exactly as Stage 1 is emitted before Stage 2's risky leg.
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "BoxCounter2"
+
+    def run(self):
+        import os as _os
+
+        from modules.context import context as _ctx
+        from modules.map_data import PokemonCenter
+        from modules.modes.util import wait_for_n_frames
+        from modules.modes.util.higher_level_actions import heal_in_pokemon_center
+        from modules.player import get_player_avatar
+        from modules.pokemon_party import get_party
+        from modules.pokemon_storage import get_pokemon_storage
+        from modules.story.early_game import _lead_best_matchup
+        from modules.story.pc_trip import find_in_box
+
+        TAG = "boxcounter2"
+
+        def party_map():
+            """{(pid, species): "Species L<n>"} — the KI-78 identity, never index, never bare PID.
+
+            ⛔⛔ KEYED ON `(personality_value, species.name)`, AND THAT IS NOT PEDANTRY. Keyed on
+            PID alone this dict SILENTLY LOSES A POKÉMON on this very anchor: `ch13_fortree_door`
+            holds a real Shedinja+Ninjask pair BOTH with `pid=42207D6F` (a Shedinja inherits its
+            Ninjask's PID), so a PID-keyed map reported a FULL PARTY OF 6 AS 5 on the first drive.
+            That is exactly the collision KI-78 was filed for, and the identity fix it shipped is
+            `(personality, species)` — the same key used here.
+            """
+            return {(m.personality_value, m.species.name): f"{m.species.name} L{m.level}"
+                    for m in get_party() if m is not None}
+
+        SLUG = "Slugma"
+
+        def step(n, what: str) -> None:
+            # ‼ A HEARTBEAT, not decoration. If the generator is abandoned mid-flight (KI-71:
+            # no exception, no crash, the process just idles), the LAST STEP printed is the only
+            # thing that says where it died. Silence must never be readable as success.
+            log(f"[{TAG}] STEP {n}/8 — {what}")
+
+        # ---- STAGE 1 RE-PROVES ITSELF FIRST, on this anchor, under this arm. ----
+        ok1 = yield from self._stage1(TAG)
+        log(f"[{TAG}] STAGE-1 GATE -> {'PASS' if ok1 else 'FAIL'}")
+        if not ok1:
+            # ⛔ Distinct from a Stage 2 verdict: Stage 2 was never attempted, so it is neither
+            # proven nor refuted. Saying "FAIL" alone would read as "the withdraw is broken".
+            log(f"[{TAG}] ACCEPTANCE: FAIL — Stage 1 did not hold, so Stage 2 was NOT ATTEMPTED. "
+                f"This is a verdict on the FIXTURE/Stage 1, NOT on the heal/withdraw path.")
+            _ctx.set_manual_mode()
+            return
+
+        arm, pid, got, mon = self.s1_arm, self.s1_pid, self.s1_got, self.s1_mon
+
+        # ---- PUBLISH ONLY WHAT PRODUCTION RETURNED. See the class docstring. ----
+        self._hunted_counter_pids = set() if got is None else {got}
+        log(f"[{TAG}] PUBLISHED _hunted_counter_pids="
+            f"{sorted(format(p, '08X') for p in self._hunted_counter_pids)} "
+            f"(from box_counter_pid's return value ONLY — never hand-set from the fixture)")
+
+        before_party = party_map()
+        boxed_before = get_pokemon_storage().contains_pokemon(mon)
+        avatar = get_player_avatar()
+        # PRE-RISK ATTRIBUTION (the `ch20room9` pattern): everything needed to attribute a silent
+        # death, printed BEFORE the leg that can cause one.
+        log(f"[{TAG}] PRE-RISK arm={arm} map={avatar.map_group_and_number} "
+            f"pos={avatar.local_coordinates} fixture_pid={pid:08X} boxed_before={boxed_before} "
+            f"party_before={before_party}")
+
+        step(5, "the REAL heal — heal_in_pokemon_center(FortreeCity), with its PC piggybacks")
+        yield from heal_in_pokemon_center(PokemonCenter.FortreeCity)
+        # ‼ storage AND party are cached per frame (`pokemon_storage.py:146-147`); a same-frame
+        # read after the PC interaction sees the PRE-withdraw state. Yield before every check.
+        yield from wait_for_n_frames(2)
+
+        after_party = party_map()
+        in_party = (pid, SLUG) in after_party
+        still_boxed = get_pokemon_storage().contains_pokemon(mon)
+        party_copy = next((m for m in get_party()
+                           if m is not None and m.personality_value == pid
+                           and m.species.name == "Slugma"), None)
+        # ⛔ "MOVED" needs BOTH halves. In the party alone could be a copy; gone from the box
+        # alone could be a release. Only the pair proves a move.
+        moved = bool(party_copy is not None and in_party and not still_boxed)
+        deposited = sorted(set(before_party) - set(after_party))
+        log(f"[{TAG}] AFTER-HEAL in_party={in_party} still_boxed={still_boxed} moved={moved}")
+        log(f"[{TAG}] DEPOSITED-TO-MAKE-ROOM {[before_party[k] for k in deposited]} "
+            f"(pids {[format(p, '08X') for p, _s in deposited]}) — REPORTED, not graded. "
+            f"‼ `find_dead_weight` picks this, and nothing stops it choosing a twin.")
+        log(f"[{TAG}] PARTY-COUNT before={len(before_party)} after={len(after_party)} — ⛔ REPORTED "
+            f"ONLY: a successful withdraw leaves every count unchanged, because the make-room "
+            f"deposit cancels it. A count cannot tell success from doing nothing.")
+
+        if arm == "A":
+            # ---- ARM A: the user's bug, reproduced by production. Assert the POSITIVE facts of
+            #      the failure, never merely the absence of a success.
+            hunted_empty = self._hunted_counter_pids == set()
+            a_ok = bool(hunted_empty and still_boxed and not in_party)
+            log(f"[{TAG}] ARM-A RESULT hunted_counter_pids_empty={hunted_empty} "
+                f"still_boxed={still_boxed} not_in_party={not in_party}")
+            log(f"[{TAG}] ARM A is the DERAIL REPRODUCED: box_counter_pid returned None, so the "
+                f"heal's counter-withdraw piggyback had nothing to act on and correctly — and "
+                f"therefore INVISIBLY — did nothing. The counter is still in the box.")
+            log(f"[{TAG}] ACCEPTANCE: {'PASS' if a_ok else 'FAIL'}")
+            _ctx.set_manual_mode()
+            return
+
+        # ---- ARM B: steps 6 and 7. ----
+        step(6, "the withdrawn Slugma must still know Rock Throw")
+        knows = bool(party_copy is not None and party_copy.knows_move("Rock Throw"))
+        log(f"[{TAG}] MOVESET-SURVIVED knows_rock_throw={knows}")
+
+        step("7a", "lead selection — WITH a hunted_pids=None control, so the step CAN fail")
+        # ⛔ WITHOUT THE CONTROL THIS STEP CANNOT FAIL. `lead_rank_key` sorts
+        # (wonder_guard, can_attack, incoming, is_hunted_counter, -level) — `is_hunted_counter`
+        # only breaks a tie on `incoming`. If the Slugma already had the best matchup it would
+        # take slot 0 with an EMPTY hunted set, and the assertion would prove nothing about the
+        # mechanism. So: run it once with no hunted set, record who leads, then run it for real.
+        def lead_id():
+            """(pid, species, label) of whoever is in slot 0 — identity, never the index itself."""
+            head = get_party()[0]
+            return (head.personality_value, head.species.name,
+                    f"{head.species.name} L{head.level}")
+
+        yield from _lead_best_matchup(["Flying"], hunted_pids=None)
+        yield from wait_for_n_frames(2)
+        c_pid, c_species, c_label = lead_id()
+        yield from _lead_best_matchup(["Flying"], hunted_pids=self._hunted_counter_pids)
+        yield from wait_for_n_frames(2)
+        r_pid, r_species, r_label = lead_id()
+        lead_is_counter = bool(r_pid == pid and r_species == SLUG)
+        control_was_counter = bool(c_pid == pid and c_species == SLUG)
+        lead_decisive = bool(not control_was_counter and lead_is_counter)
+        log(f"[{TAG}] LEAD control(hunted=None)={c_pid:08X} ({c_label}) ; "
+            f"real(hunted={{fixture}})={r_pid:08X} ({r_label}) ; "
+            f"lead_is_counter={lead_is_counter}")
+        log(f"[{TAG}] LEAD-MECHANISM-DECISIVE={lead_decisive} — REPORTED. False means the Slugma "
+            f"would have led anyway, so this run does not attribute slot 0 to hunted_pids.")
+
+        step("7b", "a SECOND full heal — the withdraw must NO-OP, and for the RIGHT reason")
+        pids_before_h2 = set(party_map())
+        yield from heal_in_pokemon_center(PokemonCenter.FortreeCity)
+        yield from wait_for_n_frames(2)
+        pids_after_h2 = set(party_map())
+        unchanged = pids_after_h2 == pids_before_h2
+        # ⛔ A NO-OP HAS INNOCENT CAUSES — an unreadable box (`box_views` swallows every error into
+        # `([], [])`), or a full party with nothing safe to deposit. `_hunted_counter_pids` is
+        # never cleared, so `counter_withdraw_outcome` still says "withdraw" and the console looks
+        # identical. ⇒ ATTRIBUTE it: the mon is in the PARTY, and `find_in_box` says the BOX no
+        # longer has it. That is "already collected", not "we failed to look".
+        still_in_party_h2 = (pid, SLUG) in pids_after_h2
+        find_says = find_in_box(self._hunted_counter_pids)
+        noop_attributed = bool(unchanged and still_in_party_h2 and find_says is None)
+        log(f"[{TAG}] SECOND-HEAL party_unchanged={unchanged} still_in_party={still_in_party_h2} "
+            f"find_in_box={'None' if find_says is None else find_says.species.name} "
+            f"noop_attributed={noop_attributed}")
+
+        ok = bool(moved and knows and lead_is_counter and noop_attributed)
+        log(f"[{TAG}] RESULT arm=B moved={moved} knows_rock_throw={knows} "
+            f"lead_is_counter={lead_is_counter} noop_attributed={noop_attributed} "
+            f"(reported: lead_decisive={lead_decisive})")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'}")
+
+        # ---- STEP 8 — REPORTED, NEVER GRADED, AND OFF BY DEFAULT. Everything above is already
+        #      decided and printed; nothing below can change the verdict.
+        if _os.environ.get("POKEBOT_BOXCOUNTER2_GYM", "0") == "1":
+            step(8, "the gym leg — REPORTED ONLY, may whiteout, may derail to Manual (KI-71)")
+            try:
+                from modules.story.early_game import do_fortree_gym
+
+                yield from do_fortree_gym()
+                log(f"[{TAG}] GYM-LEG returned without raising — REPORTED ONLY. Whether the badge "
+                    f"was won is NOT graded here and NOT inferred from this line.")
+            except Exception as error:  # noqa: BLE001 — an ungraded observation must not rewrite
+                # the verdict already printed above.
+                log(f"[{TAG}] GYM-LEG raised {type(error).__name__}: {error} — REPORTED, the "
+                    f"ACCEPTANCE above stands.")
+        else:
+            log(f"[{TAG}] STEP 8/8 — gym leg SKIPPED (set POKEBOT_BOXCOUNTER2_GYM=1 to run it). "
+                f"It is reported-not-graded by design.")
+
         _ctx.set_manual_mode()
         return
 
@@ -8187,6 +8549,8 @@ for step in range(args.frames):
             context.bot_mode_instance = PartyPidsMode()
         elif args.driver == "boxcounter":
             context.bot_mode_instance = BoxCounterMode()
+        elif args.driver == "boxcounter2":
+            context.bot_mode_instance = BoxCounter2Mode()
         elif args.driver == "boxwrite":
             context.bot_mode_instance = BoxWriteMode()
         elif args.driver == "ch20dive":
