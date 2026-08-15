@@ -4701,7 +4701,8 @@ class RosterMode(BotMode):
 
 
 class BoxWriteMode(BotMode):
-    """‼ PROVE `debug_write_box_slot()` AGAINST A LIVE EMULATOR. It has never been run against one.
+    """‼ PROVE `debug_write_box_slot()` AGAINST A LIVE EMULATOR. ✅ **IT NOW HAS BEEN — this
+    driver PASSED 2026-08-15.** What follows is why it was WRITTEN, not current state.
 
     WHY THIS EXISTS, AND WHY IT IS SEPARATE FROM (P4). `debug_write_box_slot` is the fixture half
     the (P4) Slugma/Winona repro needs — that repro requires a FULL party AND a boxed counter at

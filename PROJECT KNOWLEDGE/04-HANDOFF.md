@@ -463,6 +463,10 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    Four controls: `disjoint` (pure FIRE, so the type branch is provably inert), `fixture_ok`
 >    (read back through the PRODUCTION reader — mandatory, since a bad fixture is
 >    indistinguishable from ARM A's expected miss), `sole`, and `not_excluded`.
+>    ‼ **FIRST ACTION FOR STAGE 2 (it is scoped here but SPECIFIED in the note):** read
+>    `ai-research-notes/2026-08-15-p4-boxcounter-repro-design.md` §5 (the 8-step ACCEPTANCE
+>    chain) and §9 (build order), then add a `boxcounter2` driver beside `BoxCounterMode`
+>    and register it in BOTH the `--driver` choices list (`:35`) and the dispatch chain.
 >    🔜 **STAGE 2 REMAINS:** heal → withdraw → boss fought WITH the counter, plus deriving
 >    `needed` from the live boss plan. ⛔ **ANCHOR CORRECTED BY MEASUREMENT: use
 >    `saves/ch13_fortree_door.ss1`, NOT `fortree_gym_wedge.ss1`** — same era and both full parties,
