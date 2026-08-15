@@ -328,6 +328,145 @@ def warn_ki_headers() -> list[str]:
     return out
 
 
+#: A body line that ANNOUNCES a closed/changed status. Deliberately narrow: it must be a marker
+#: (✅/⛔/‼) or a bullet followed by a status word in caps, not a passing mention in prose.
+_CLOSED_CLAIM_RE = re.compile(
+    r"(?:[✅⛔]|^\s*[-*>]\s*)[^\n]{0,80}?"
+    r"\b(?:FIXED|RESOLVED|CLOSED|REFUTED|LANDED|STAGE\s+\d+\s+LANDED|NO LONGER)\b",
+    re.M,
+)
+#: A header that already carries nuance is doing what the rule asks — never flag it.
+_HEADER_NUANCE_RE = re.compile(
+    r"\bFIXED\b|\bRESOLVED\b|\bCLOSED\b|REFUTED|CORRECTED|SUPERSEDED|NOT\s+armed|"
+    r"HALF|PARTLY|STAGE\s+\d|IN SANDBOX|watch",
+    re.I,
+)
+
+
+def _ki_diff_hunks() -> "dict[str, tuple[bool, list[str]]] | None":
+    """Per KI touched in the working diff: (was its HEADER line changed?, its ADDED body lines).
+
+    Returns None when git cannot answer (offline, detached, file untracked) — an unavailable
+    diff is not a documentation defect and must never fail the gate.
+    """
+    import subprocess
+
+    rel = "PROJECT KNOWLEDGE/05-KNOWN-ISSUES.md"
+    try:
+        diff = subprocess.run(["git", "diff", "-U0", "HEAD", "--", rel],
+                              cwd=REPO, capture_output=True, text=True, timeout=30)
+        if diff.returncode != 0:
+            return None
+    except Exception:  # noqa: BLE001
+        return None
+
+    # ‼ ATTRIBUTE BY LINE NUMBER, NOT BY WHAT THE DIFF HAPPENS TO CONTAIN.
+    # The first version of this tracked "which KI am I in" from ADDED header lines only — so a
+    # BODY-ONLY edit (the exact case this gate exists for) belonged to no KI and the check stayed
+    # silent. Its self-test passed because it exercised the DECISION while bypassing this PARSING.
+    # Caught by a LIVE fault injection into the real file; the lesson is the project's own:
+    # an instrument must be pointed at the thing it claims to measure, and only a live test proves
+    # that. So: read the hunk's NEW-FILE line numbers and map them onto the section ranges of the
+    # file as it stands now.
+    text = _read(DOCS / "05-KNOWN-ISSUES.md")
+    headers = [(m.start(), m.group(1), _line(text, m.start()))
+               for m in re.finditer(r"^##+\s+(KI-\d+[a-z]?)\b", text, re.M)]
+    if not headers:
+        return None
+
+    def _owner(line_no: int) -> "tuple[str, int] | None":
+        """(KI name, its header's line number) for the section containing `line_no`."""
+        found = None
+        for _pos, name, hline in headers:
+            if hline <= line_no:
+                found = (name, hline)
+            else:
+                break
+        return found
+
+    touched: dict[str, tuple[bool, list[str]]] = {}
+    new_line = 0
+    for raw in diff.stdout.splitlines():
+        hunk = re.match(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@", raw)
+        if hunk:
+            new_line = int(hunk.group(1))
+            continue
+        if raw.startswith("+++") or raw.startswith("---"):
+            continue
+        if raw.startswith("+"):
+            line = raw[1:]
+            owner = _owner(new_line)
+            if owner is not None:
+                name, hline = owner
+                was_header, body = touched.get(name, (False, []))
+                # The HEADER LINE ITSELF being among the added lines means the author touched it.
+                if new_line == hline or re.match(r"^##+\s+KI-\d", line):
+                    touched[name] = (True, body)
+                else:
+                    touched[name] = (was_header, body + [line])
+            new_line += 1
+        elif not raw.startswith("-"):
+            new_line += 1
+    return touched
+
+
+def check_touched_ki_pairs(_files: dict[str, str] | None = None) -> list[str]:
+    """‼ THE P2 PAIR, ENFORCED — but only on KI entries THIS CHANGE ACTUALLY TOUCHES.
+
+    WHY THIS EXISTS, AND WHY IT IS NOT `warn_ki_headers`. That warning scans the whole file and
+    was measured at ~4-in-5 false positives, so it is advisory by design — and CLAUDE.md is
+    explicit that a noisy gate is worse than none. **But the failure it is meant to catch happened
+    anyway, on 2026-08-14, to the agent who had just written the rule down:** KI-78's body gained
+    a "✅ STAGE 1 LANDED / FIXED" claim while its header still read *"OPEN, ARMED wherever a
+    Nincada line is in the party"*, and its "where it is armed" bullet still described the replaced
+    code. An adversarial reviewer caught it; no gate did.
+
+    The fix is SCOPE, not sensitivity: a whole-file scan is noisy, but *"you edited this entry's
+    body to announce it is fixed and did not touch its header"* is close to false-positive-free,
+    because it only speaks about text the author is writing right now. Editing the header — in any
+    way at all — satisfies it, which is exactly the P2 instruction ("editing one half means editing
+    or explicitly re-confirming the other, IN THE SAME COMMIT").
+
+    Fails CLOSED-safe: an unreadable diff yields no findings.
+    """
+    touched = _ki_diff_hunks()
+    if not touched:
+        return []
+    text = _read(DOCS / "05-KNOWN-ISSUES.md")
+    total_kis = len(re.findall(r"^##+\s+KI-\d+[a-z]?\b", text, re.M))
+    out = []
+
+    # ‼ NEVER FAIL SILENTLY OPEN. If a large fraction of entries read as "header touched", the diff
+    # is a whole-file rewrite (line-ending churn, a re-encode, a reflow) and attribution is
+    # meaningless — every entry would be exempted and the gate would print nothing, which is
+    # indistinguishable from "you did it right". MEASURED 2026-08-14: a PowerShell `Set-Content`
+    # that flipped LF to CRLF did exactly this, and the check went quiet on a fault that was
+    # genuinely present. A check that cannot see must SAY it cannot see.
+    if total_kis and sum(1 for changed, _ in touched.values() if changed) > max(3, total_kis // 2):
+        return [
+            f"05-KNOWN-ISSUES.md: {len(touched)} of {total_kis} KI entries read as header-touched "
+            f"— that is a WHOLE-FILE REWRITE (line-ending or encoding churn), not an edit. The "
+            f"KI header↔body pair check CANNOT ATTRIBUTE changes in this state and is reporting "
+            f"that rather than passing silently. Re-save the file with its original line endings."
+        ]
+    for name, (header_changed, added) in sorted(touched.items()):
+        if header_changed or not added:
+            continue
+        claim = _CLOSED_CLAIM_RE.search("\n".join(added))
+        if not claim:
+            continue
+        head = re.search(rf"^##+\s+{re.escape(name)}\b(.*)$", text, re.M)
+        if head and _HEADER_NUANCE_RE.search(head.group(1)):
+            continue  # the header already names its own caveat
+        out.append(
+            f"05-KNOWN-ISSUES.md {name}: this change adds a CLOSED-STATUS claim to the body "
+            f"({claim.group(0).strip()[:60]!r}) but does NOT touch {name}'s header, and that "
+            f"header carries no caveat. P2 says both halves move together — the header is the "
+            f"half that gets skimmed. Edit the header, or re-confirm it in the same commit."
+        )
+    return out
+
+
 def warn_handoff_date() -> list[str]:
     import subprocess
     text = (DOCS / "04-HANDOFF.md").read_text(encoding="utf-8", errors="replace")
@@ -384,6 +523,36 @@ def self_test() -> int:
     expect("E2 to-build driver exempt",
            check_artifacts({"T": "NEXT: BUILD `--driver nosuchthing` — does not exist yet\n"}), False)
 
+    # F: the P2 pair, diff-scoped (added 2026-08-14 after KI-78's body said FIXED while its
+    #    header still said ARMED). The real check reads `git diff`; here the parsing and the
+    #    decision are exercised directly, because a self-test must not depend on the working tree.
+    def _decide(header_changed, added, header_text):
+        """Mirror of the decision in `check_touched_ki_pairs`, over injected inputs."""
+        if header_changed or not added:
+            return []
+        if not _CLOSED_CLAIM_RE.search("\n".join(added)):
+            return []
+        if _HEADER_NUANCE_RE.search(header_text):
+            return []
+        return ["would fire"]
+
+    expect("F1 body claims FIXED, header untouched and plain OPEN",
+           _decide(False, ["- ✅ **FIXED** by Stage 1, A/B proven."], " — (2026-08-14, OPEN, ARMED)"),
+           True)
+    expect("F2 ...but the header was edited in the same change",
+           _decide(True, ["- ✅ **FIXED** by Stage 1, A/B proven."], " — (OPEN, ARMED)"), False)
+    expect("F3 ...or the header already carries the caveat",
+           _decide(False, ["- ✅ **FIXED** in sandbox."],
+                   " — (FIXED IN SANDBOX, ARMED IN CUSTOM until promoted)"), False)
+    expect("F4 a body edit with no status claim is silent",
+           _decide(False, ["- Added a citation for the decomp line."], " — (OPEN)"), False)
+    # ‼ THE FALSE-POSITIVE CONTROL. CLAUDE.md rule 6: prove the gate does NOT fire on mere
+    # mentions in prose — a gate that cries wolf teaches the reader to bypass it.
+    expect("F5 prose that merely MENTIONS a fix does not fire",
+           _decide(False, ["  the same egg bug that was fixed thirty lines above it on 2026-08-13",
+                           "  (see the resolved KI-64 for the shape of this failure)"],
+                   " — (OPEN)"), False)
+
     print(f"\nSELF-TEST {'PASS' if fails == 0 else 'FAIL'} ({fails} deviation(s))")
     return 0 if fails == 0 else 1
 
@@ -400,6 +569,7 @@ def main() -> int:
     failures += check_queue_vs_headline(files)
     failures += check_ladder(files)
     failures += check_artifacts(files)
+    failures += check_touched_ki_pairs(files)
     warnings = warn_ki_headers() + warn_handoff_date()
 
     print("=" * 92)

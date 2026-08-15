@@ -2400,7 +2400,7 @@ region, where "train near the gym" is actively wrong.
       `modules/badge_case.py`); they need that before the type check can use them.
       Still open: preference strength; per-run vs per-lane (recommend per run).
 
-## Next (user-set order 2026-07-19: #30 â†’ #31 â†’ #32, THEN the first wave below)
+## Next (user-set order 2026-07-19: #30 → #31 → #32, THEN the first wave below)
 > #30/#31/#32 are BUILT + ADVERSARIALLY VERIFIED in sandbox (clean pass:
 > money cheat byte-safe 56/56, GUI nav 28/28, no code bugs). AWAITING USER
 > OK to promote to custom. In-game confirms still pending (filled-slot
@@ -2473,14 +2473,14 @@ region, where "train near the gym" is actively wrong.
       start) OR continue existing; goal = beat Elite 4 + complete the game
       (eventually pokedex); CHUNKED into chapters; must build+maintain a
       team; enumerate EVERY key event/interaction/item/requirement to
-      progress + how to obtain progression items. Design â†’ 12-STORYMODE-
+      progress + how to obtain progression items. Design → 12-STORYMODE-
       DESIGN.md, several verification passes before building.
       - PROGRESS (2026-07-20): a fresh game auto-plays through **GYM 1 (Stone
         Badge)** — intro→starter→first battle→Pokédex→train→rival→Petalburg→
-        Dad/Wallyâ†’Route104â†’Petalburg Woods (Aqua scene)â†’Rustboroâ†’Roxanne.
+        Dad/Wally→Route104→Petalburg Woods (Aqua scene)→Rustboro→Roxanne.
         Legs 1-2 promoted to custom; legs 3-4 + Gym 1 in sandbox (awaiting
-        testâ†’promote). Fixed the Woods-door stall (ML-9) in BOTH builds. NEXT:
-        Chapter 4 (deliver Devon Goods â†’ Rusturf Tunnel â†’ Dewford / Gym 2).
+        test→promote). Fixed the Woods-door stall (ML-9) in BOTH builds. NEXT:
+        Chapter 4 (deliver Devon Goods → Rusturf Tunnel → Dewford / Gym 2).
         Low-pri OPEN: chapters.py Ch2 completion-flag bug.
       - PROGRESS (2026-07-24 overnight): fresh runs auto-play through GYM 4
         (Heat Badge) organically (3/5 lanes, batch 20260724-004252). Ch12
@@ -2528,18 +2528,18 @@ region, where "train near the gym" is actively wrong.
       snapshots are CLEAN OVERWORLD states, never mid-battle/scene).
       (B) "Play through & retry" = ride out the whiteout → respawn (Poké Center /
       early houses) → recalc position + story segment (§RS) → MATCHUP ASSESS (avg
-      enemy vs own level, team size, type/move coverage) â†’ train/adjust team
+      enemy vs own level, team size, type/move coverage) → train/adjust team
       (#24-team) if outmatched → escalate on repeated loss → retry. Mode B = §RS +
       matchup gate + #24-team, one engine. Sub-parts: a small matchup scorer;
       whiteout ride-out; failure/attempt tracking per objective.
 - [~] #24-evo — EVOLUTION policy (user 2026-07-20): CURRENT (sandbox+custom) =
-      ALLOW ALL evolutions (`should_allow_evolution â†’ True`, overriding the stock
+      ALLOW ALL evolutions (`should_allow_evolution → True`, overriding the stock
       `stop_evolution`) — fixes the Lv16 evolve+move-learn hang and strengthens
       the team. POPUP options to add (#24-ui): **allow all (default on) / random
       evolution / no evolution**. Robustness the bot must have (verify): RECOGNIZE
       when an evolution happens, navigate the evolution CUTSCENE, and handle the
       accept/deny of a new move + deleting an old one to replace it (uses the
-      stock evolveâ†’learn path + `which_move_should_be_replaced`). "Random" mode =
+      stock evolve→learn path + `which_move_should_be_replaced`). "Random" mode =
       per-Pokémon coin-flip whether to evolve (organic team variety, ties #24-team).
 - [x] ~~`#24-team`~~ — ‼ **SUPERSEDED by `#24-organicteam`**, which is ✅ **APPROVED — GATE
       LIFTED** (user 2026-08-06, re-confirmed 2026-08-14). ⛔ This pointer said the target
@@ -2560,7 +2560,7 @@ region, where "train near the gym" is actively wrong.
       verify live, add an Atlas row. SPECIAL: **Lilycove Department Store** is
       MULTI-FLOOR (per-floor shop + stock, elevator nav); the **Elite Four Poké
       Center** has a shop + mart; Slateport stalls / TM sellers use non-standard
-      menus. Do NOT map all shops up front (unreachable â†’ can't verify).
+      menus. Do NOT map all shops up front (unreachable → can't verify).
 - [x] ~~`#24-pc` (design entry)~~ — ‼ **SUPERSEDED by `#24-roster`**, which the
       user APPROVED 2026-08-06 with its gate lifted. Consolidated 2026-08-10.
       ‼ The OTHER `#24-pc` entry (Surf resource walls) is a DIFFERENT thing — a derail
@@ -2568,28 +2568,28 @@ region, where "train near the gym" is actively wrong.
       HISTORY — #24-pc — PC / BOX TEAM MANAGEMENT (user 2026-07-21; planning doc §4b). Advanced
       team development via the Pokémon Storage PC: store / move / withdraw Pokémon
       (and items). Map PC access points (every Poké Center + player's-house PC) and
-      the PC UI (Deposit/Withdraw/Move, box navigation, partyâ†”box swaps, item
+      the PC UI (Deposit/Withdraw/Move, box navigation, party↔box swaps, item
       storage). Enables swapping in a better-matched mon per gym and parking
       over-levelled/redundant catches. Build when a fight needs it; ties #24-team /
       §7 matchup awareness. Poké Centers are otherwise near-identical (generic code
       handles them) — only map PC/layout exceptions (e.g. the E4 Poké Center).
 - [x] #24-resume — SEGMENT 1 RESUME BUG FIXED (2026-07-21). Pre-Pokédex
-      recovery/resume re-ran the scripted intro from the truck â†’ derail loop
+      recovery/resume re-ran the scripted intro from the truck → derail loop
       ("stuck after respawn"). Split Segment 1: scripted intro gated on
       `_has_starter()`; train→rival→Pokédex resumable + flag-gated. Derail budget
       hardened (monotonic party `_progress_sig`; patient recovery). Verified in
       harness. Sandbox (early_game.py, story_mode.py). See CHANGELOG/MISTAKES 07-21.
 - [x] #24-freeze — OLDALE PC FREEZE **FIXED** (user 2026-07-21). Root cause (from the
       user's real-bot debug log's generator call stack): heal returned while the
-      overworld was transiently non-controllable â†’ healâ†’go-to-rival navigate choked â†’
-      derail â†’ re-heal â†’ endless heal/leave/re-enter loop â†’ Manual. FIX:
+      overworld was transiently non-controllable → heal→go-to-rival navigate choked →
+      derail → re-heal → endless heal/leave/re-enter loop → Manual. FIX:
       heal_in_pokemon_center waits for a STABLE controllable overworld after the exit
       warp. Downstream: StoryCatchStrategy flees instead of Manual when out of balls.
-      Validated route103â†’Rustboroâ†’Route116 catching, 0 derails/Manual. Old note below
+      Validated route103→Rustboro→Route116 catching, 0 derails/Manual. Old note below
       kept for history.
       ~~POST-BATTLE TRANSITION FREEZE (the likely real "stuck at Oldale PC").~~ After a training battle (flee/level-up/move-learn, e.g.
       Mudkip Water Gun @L10) the return-to-overworld transition leaves the overworld
-      non-controllable while the bot acts (navigate / walk to the Oldale nurse) â†’ can
+      non-controllable while the bot acts (navigate / walk to the Oldale nurse) → can
       hard-freeze (nurse heal dialogue never starts). REAL (harness == real
       main_loop), timing/starter-sensitive (default starter "random"; Treecko passed,
       Mudkip hits it). Offline repro hampered by save-state reload artifacts. NEXT:
@@ -2597,15 +2597,15 @@ region, where "train near the gym" is actively wrong.
       then decide a deeper "settle before acting" fix (heal_in_pokemon_center nurse
       interaction + story navigations) vs a training-flow workaround.
 - [x] #24-debuglog — DEBUG LOGGING TOGGLE (user 2026-07-21). Opt-in "Debug Logging"
-      in the Run (bot-mode) menu (both GUIs), default off â†’ `modules/debug_logger.py`
+      in the Run (bot-mode) menu (both GUIs), default off → `modules/debug_logger.py`
       writes an extensive structured log to `<profile>/debug-logs/` (event stream +
       stuck dumps with the generator call stack). For diagnosing Bug #2 (#24-freeze)
       from a shared real-bot log. Built + validated in sandbox. See CHANGELOG 07-21.
 - [x] #24-swaptrain — SWAP-TRAINING **DONE** (user 2026-07-21). Fixes the
       under-levelled-mon training loop: `SwapTrainBattleStrategy` switches a trainee
-      that's â‰¥2 levels below the wild foe to the strongest team-mate turn 1 (shares
+      that's ≥2 levels below the wild foe to the strongest team-mate turn 1 (shares
       XP, no fainting/heal-churn). Gated around `train_team`. Validated Poochyena
-      L4â†’L7, 0 heals/faints. Commit ef812c0e.
+      L4→L7, 0 heals/faints. Commit ef812c0e.
 - [~] #24-trainmap — AREA-APPROPRIATE TRAINING (user 2026-07-21, Option 1).
       **ROUTING HALF DONE (2026-07-24):** `modules/story/training_areas.py` carries
       `TRAINING_GRASS` (10 areas with VERIFIED spin tiles + level bands), `AREA_PREREQ`
@@ -2646,7 +2646,7 @@ region, where "train near the gym" is actively wrong.
 - [ ] #41 — Obtainability model: classify every species — wild / evolution
       (method+from) / in-game trade / gift / static / roamer / event — so the
       Living Dex knows trade-evolutions and evolve-only / trade-only mons
-      (must obtain pre-evo + evolve, or manual trade), not just "no wild â†’
+      (must obtain pre-evo + evolve, or manual trade), not just "no wild →
       skip". (design: 11-LIVINGDEX-DESIGN.md)
 - [ ] #42 — Reachability/requirement gating: hunt + living-dex must skip a
       target when the area/encounter needs a capability the player lacks
@@ -2685,8 +2685,8 @@ region, where "train near the gym" is actively wrong.
       shinies-caught count (from stats.db) + full dex info (types/abilities/
       base stats/dex#/category/flavor) + learnable moves (level-up/TM/HM/
       tutor/egg) — offline Bulbapedia. Needs battle sprite + dex artwork.
-      RESEARCH-FIRST (see 10-DEX-RESEARCH.md): inventory bot data â†’ gap-fill
-      â†’ fact-check â†’ THEN build.
+      RESEARCH-FIRST (see 10-DEX-RESEARCH.md): inventory bot data → gap-fill
+      → fact-check → THEN build.
 - [ ] #35 — ITEM-DEX tab: search all items; total-collected-historically +
       currently-held counters + item info + map locations + used/held/
       dropped-by Pokémon. Needs item sprite + inventory image. Same
@@ -2695,8 +2695,8 @@ region, where "train near the gym" is actively wrong.
 ## First wave (after #30-#32 + #33-#35 — agreed direction 2026-07-19)
 - [ ] #22 — ★ Watchdog / auto-recovery: BUILT IN SANDBOX 2026-07-19
       (c7d25305; encounter-stall + drop-to-Manual + frame-freeze detection,
-      bounded recovery ladder [re-assert â†’ savestate-reload w/ safety backup
-      â†’ give up to Manual], overworld-gated, alerts, GUI status line; 17/17
+      bounded recovery ladder [re-assert → savestate-reload w/ safety backup
+      → give up to Manual], overworld-gated, alerts, GUI status line; 17/17
       self-tests + recovery-path safety confirmed). Remaining: live-hunt
       softlock recovery needs a progressed save; independent adversarial
       pass to bundle with the batch verification before promotion.
@@ -2710,7 +2710,7 @@ region, where "train near the gym" is actively wrong.
       promotion time.
 - [ ] #23 — Living-Dex orchestrator: v1 BUILT IN SANDBOX 2026-07-19
       (34c5f461; living_dex.py target derivation + "Living Dex (Custom)"
-      mode: travelâ†’huntâ†’catch-first-uncaughtâ†’advance; catch-intent verified;
+      mode: travel→hunt→catch-first-uncaught→advance; catch-intent verified;
       16/16 units + real-ROM fact-check 132 targets). REMAINING: live
       autonomous run needs a progressed save; screenshot harness needs a fix
       after #33 layout change; independent adversarial pass at promotion.
@@ -2927,7 +2927,7 @@ region, where "train near the gym" is actively wrong.
       one state-machine engine. Also bounds the Treecko-Lv16 "stuck but not stopped"
       loop class.
 - [ ] #24-interrupt — INTERRUPTION INTELLIGENCE (user 2026-07-22): the bot should
-      KNOW when its current task was interrupted and by WHAT (training spin â†’
+      KNOW when its current task was interrupted and by WHAT (training spin →
       trainer sight-line battle; navigation → PokéNav call ring; heal walk →
       scripted scene; etc.) and resume the task accordingly instead of relying on
       the generic derail/retry loop. Today large parts are handled implicitly
@@ -2941,14 +2941,14 @@ region, where "train near the gym" is actively wrong.
       N turns), and kin (Taunt — status moves blocked; Torment — can't repeat;
       Imprison; Choice-item lock later). The turn chooser (get_strongest_move_
       against / move_is_usable) currently ignores these volatile statuses, so a
-      blocked move can be selected â†’ wasted turns (the game refuses the input).
+      blocked move can be selected → wasted turns (the game refuses the input).
       Fix: read the battler's volatile status/disable struct and filter the
       usable-move set; if EVERYTHING is blocked, Struggle happens naturally.
       Validate vs a Roxanne/Brawly-era Disable user (e.g. wild Whismur has none —
       find a story trainer with Disable/Encore, or fault-inject the volatile
       struct in the harness).
 - [ ] #24-ch8b-museum — Oceanic Museum entry gating (KI-11): resolve how the
-      Aqua crowd clears so Stern is reachable; then Devon Goods â†’ Stern
+      Aqua crowd clears so Stern is reachable; then Devon Goods → Stern
       (deliver_devon_goods_to_stern is built). BLOCKS Ch8b/Ch9.
 - [ ] #24-freshbatch-rustboro — batch run03 (fresh game) 2026-07-22 played
       extensively but HUNG in Rustboro (11,3)=(5,3) area after ~450k frames
@@ -3248,7 +3248,7 @@ region, where "train near the gym" is actively wrong.
       phrases + reads the offered move dynamically, not hardcoded to any move).
       â˜… ROOT CAUSE of the Lv16 hang FOUND & FIXED (ML-13): the Emerald battle Yes/No
       has no task and was detected only by a fragile script-offset; when it stayed
-      `Unknown` the old code pressed nothing (is_waiting_for_input gate) â†’ froze.
+      `Unknown` the old code pressed nothing (is_waiting_for_input gate) → froze.
       `handle_move_replacement_dialogue` rewritten fully text/task-driven;
       `handle_evolution_scene` hand-off hardened. PROVEN by fault-injection A/B on
       both builds (old stalls ~10.6k frames & fails to learn; fix resolves in 394 &
@@ -3264,7 +3264,7 @@ region, where "train near the gym" is actively wrong.
 
 - [x] #24-evo-trainstall (FIXED 2026-07-22: interrupt-safe _rotate_lead_safely + _yield_bounded; proven on evostall.ss1; same fix covers the user's 110k-frame Joey stall) — `train_team`/`_story_spin` can hang right AFTER a
       trainee EVOLVES mid-training (batch run02 2026-07-22: Grovyle evolved +
-      learned Fury Cutter on Route 116, then the spin never resumed â†’ 20k-frame
+      learned Fury Cutter on Route 116, then the spin never resumed → 20k-frame
       HANG). Repro save: tools/story-dev/saves/evostall.ss1. Likely the
       post-evolution return-to-overworld transition isn''t ridden out before the
       next spin action (cf. the move-learn / dock-arrival family). Prove + fix.

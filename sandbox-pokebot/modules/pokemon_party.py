@@ -130,11 +130,12 @@ class Party:
             pid_only = [index for index, party_pokemon in enumerate(self._pokemon)
                         if party_pokemon.data[:4] == pokemon.data[:4]]
             if len(pid_only) == 1:
-                index = pid_only[0]
+                position = pid_only[0]
+                index = self._pokemon[position].index
                 self._warn(
                     f"‼ KI-78/R6: no (PID, species) match for {pokemon.species.name}, but exactly "
                     f"ONE party Pokémon carries that personality value — slot {index} is now "
-                    f"{self._pokemon[index].species.name}. It evolved since the caller captured "
+                    f"{self._pokemon[position].species.name}. It evolved since the caller captured "
                     f"it. Re-resolving to slot {index} from the LIVE party."
                 )
                 return index
@@ -146,11 +147,25 @@ class Party:
             # indistinguishable from "the feature is not running", so it announces itself.
             self._warn(
                 f"‼ KI-78: {len(matches)} party Pokémon share BOTH personality value "
-                f"{pokemon.data[:4].hex()} AND species {pokemon.species.name} (slots {matches}). "
-                f"The composite key cannot separate them; returning slot {matches[0]}. Any DEPOSIT "
-                f"or RELEASE resolved through this call may act on the wrong Pokémon."
+                f"{pokemon.data[:4].hex()} AND species {pokemon.species.name} (slots "
+                f"{[self._pokemon[m].index for m in matches]}). The composite key cannot separate "
+                f"them; returning slot {self._pokemon[matches[0]].index}. Any DEPOSIT or RELEASE "
+                f"resolved through this call may act on the wrong Pokémon."
             )
-        return matches[0]
+        # ‼‼ RETURN THE **PHYSICAL** SLOT, NOT THE LIST POSITION (fixed 2026-08-14, found by an
+        # adversarial audit of party accounting — hours after KI-78 Stage 1 shipped WITHOUT it).
+        # `self._pokemon` is COMPACTED: `get_party()` loops `range(gPlayerPartyCount)` and
+        # `continue`s any slot whose 100 bytes are all zero (`:204-208`), so a HOLE makes the list
+        # position and the real `gPlayerParty` slot diverge for every mon after it. `PartyPokemon`
+        # has carried the true slot all along (`:182`) and this function ignored it.
+        # ⛔ WHY IT MATTERS: the consumers are `pc_interaction.py` DEPOSIT (`:464`) and **RELEASE
+        # (`:505`, permanent)**, which drive a cursor over the PHYSICAL party. A list position
+        # handed to them selects the wrong Pokémon — the same harm KI-78 exists to stop, arriving
+        # through a different door.
+        # ⚠ HONEST REACHABILITY: holes are rare, and the game's own `CompactPartySlots` pushes them
+        # to the TAIL (where positions still align), so this is defence rather than a reproduced
+        # failure. It costs one attribute lookup and is identical when no hole exists.
+        return self._pokemon[matches[0]].index
 
     @staticmethod
     def _warn(message: str) -> None:

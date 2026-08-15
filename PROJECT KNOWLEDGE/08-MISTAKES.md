@@ -6260,3 +6260,115 @@ destructive release path.
 3. *Logic that decides success must be reachable by a test.* `_stop()` was a closure, so its
    count-vs-identity bug could only ever be argued about, not proven. Extracting it cost six lines
    and turned a reasoned claim into a gated one.
+
+## 2026-08-14 — I wrote a gate, its self-test passed, and the gate was BLIND. The self-test exercised the DECISION and bypassed the PARSING.
+
+**Symptom.** A new check (`check_touched_ki_pairs`) was added to enforce the P2 doc pair
+mechanically. Its self-test passed 5/5 in both directions. A **live** fault injection into the
+real file then showed it **did not fire on the fault it exists to catch**.
+
+**Root cause.** The self-test called the decision logic with hand-built inputs. The bug was one
+layer earlier, in `_ki_diff_hunks`: it attributed added lines to a KI **only when the KI's HEADER
+line was itself among the added lines** — so a BODY-ONLY edit, which is the entire case the gate
+exists for, belonged to no entry and was silently dropped. Every injected case bypassed that code.
+
+**The fix that worked.** Attribute by **line number**: parse the hunk's new-file line range and map
+it onto the section boundaries of the file as it stands. Then re-run the LIVE injection and watch
+it fire (it named the right KI and the right reason).
+
+**A second defect the live test exposed, and it is the more dangerous one.** My first injection
+method (PowerShell `Set-Content`) flipped LF to CRLF, so `git diff` reported a whole-file rewrite,
+**every** KI header read as "touched", every entry was exempted, and the gate printed **nothing** —
+indistinguishable from "you did it right". ⇒ the check now **fails LOUD when it cannot attribute**
+(more than half the entries reading as header-touched is a rewrite, not an edit) instead of
+passing silently.
+
+**Prevention rules.**
+1. *A gate's fault test must inject through the REAL input path — the file, the diff, the emulator
+   — not into its internals.* An injected-input test proves the decision; only a live one proves
+   the instrument can SEE. Keep both: the injected cases are fast and precise, the live case is
+   the one that catches blindness.
+2. *A check that cannot see must SAY SO, never pass.* Silence and correctness must not look
+   identical. Any gate whose attribution can be defeated (by encoding, by a missing file, by an
+   unavailable diff) needs an explicit "I could not evaluate this" failure.
+3. *When a fault test does not fire, suspect the TEST first.* Three times today the subject was
+   correct and the check was wrong — and this project has logged that pattern repeatedly.
+
+## 2026-08-14 — TWO Gen 3 mechanic claims asserted from RECALL in one session; both wrong, both load-bearing
+
+**Symptom.** (a) I told the user Shedinja requires *"an empty party slot AND a spare Poké Ball"*.
+It does not — Gen 3's only precondition is a free slot (`evolution_scene.c:551`); the ball rule is
+Gen 4+. (b) I argued against the user's `(PID, name)` proposal on the grounds that a default
+nickname is *stale after evolution*. It is not — `EvolutionRenameMon` (`pokemon.c:5814-5821`)
+rewrites it, and runs BEFORE `CreateShedinja`. **Their idea would have worked for that pair; my
+objection was wrong.**
+
+**Root cause.** Both were plausible, both were recalled rather than read, and both were stated to
+the user as fact in the same breath as properly-cited claims — so the citation density made the
+uncited ones look equally solid. ‼ Note (a) is ALSO wrong in our own code
+(`modules/obtainability.py:88` says "empty slot + spare Ball"), which is probably where the
+confident memory came from: **a wrong comment in our repo is a recall trap, not just dead text.**
+
+**Prevention rule.** *A claim about GAME MECHANICS carries a decomp citation (`file:line`) or is
+explicitly marked unverified — in the same sentence, not the same paragraph.* When a mechanic
+claim is load-bearing for a decision, fetch the source; agents do this cheaply and were right both
+times I was wrong. And when our own code states a mechanic, treat it as a claim needing a citation,
+not as evidence.
+
+## 2026-08-14 — a fix landed on ONE HALF of a pair, TWICE, hours apart
+
+**Symptom.** Morning: `box_counter_pid` was type-only while its party twin had accepted MOVE
+answers since 2026-08-08 — a fix applied to one of two implementations of the same question, which
+cost the user a real run. Afternoon: **KI-78 Stage 1 shipped the composite identity key and left
+`get_index_for_pokemon` returning a LIST POSITION where its callers (deposit, and permanent
+RELEASE) consume a PHYSICAL SLOT** — the same class of harm, through a different door, in the very
+fix meant to close it. Found by an adversarial audit, not by me.
+
+**Prevention rule (sharpened from this morning's).** *When fixing an identity/lookup defect, ask
+what the RETURN VALUE means to its callers, not only what the COMPARISON does.* This morning's
+rule said "grep for every other implementation of the same question" — that catches sibling
+functions but NOT a caller that reinterprets the answer. Both halves are needed: the predicate and
+the coordinate space it returns.
+
+## 2026-08-14 — ‼‼ I CORRUPTED 343 LINES OF `04-HANDOFF.md` WITH POWERSHELL, EVERY DOC GATE PASSED, AND THE SAME ROUND-TRIP HAD ALREADY HAPPENED ONCE BEFORE
+
+**Symptom.** While splicing archive blocks out of the handoff I used
+`Get-Content … | … | Set-Content -Encoding utf8`. **Windows PowerShell 5.1's `Get-Content` decodes
+with the system ANSI codepage**, so a UTF-8 file comes back as mojibake (`—` → `â€"`), and
+`Set-Content -Encoding utf8` then writes that damage back permanently — plus a BOM. Measured
+afterwards: **946 corrupted sequences across 343 lines** of the project's most important file,
+and 3 lines in the archive. `git show HEAD` was clean, so all of it was mine, from this session.
+
+**Why nothing caught it.** Every doc gate passed the entire time — `lint_docs`,
+`audit_doc_consistency`, the whole 20-gate suite — because **not one of them reads bytes.** The
+corruption is invisible to a line-count budget and to a semantic pair check. It was found only
+because an unrelated string match failed and I went looking at the raw bytes.
+
+⛔ **AND IT WAS A REPEAT.** `03-PUNCH-LIST.md` had already suffered *"a UTF-8 BOM + 124 mojibake
+lines from a cp1252 round-trip"*, been repaired, and been written up. The lesson existed; the
+enforcement did not. (The sweep also found **29 lines still corrupted in that same punch list** —
+so the earlier "repaired, 0 residual" claim was itself made by a detector that could not see.)
+
+**‼ THE DETECTOR I FIRST WROTE FOR IT WAS ALSO BLIND, AND REPORTED THE PUNCH LIST CLEAN.**
+It used a hand-written list of known-bad sequences (`â€"`, `âœ…`, …). `Ã—` — a mangled `×` — was
+not on the list, so 29 corrupted lines read as **0**. I only noticed by eye, in output I was
+reading for a different reason. The replacement is PATTERN-based (a Latin-1 lead byte followed by
+more non-ASCII) and **confirms every hit by round-tripping**: a line is reported only when
+`encode('cp1252').decode('utf-8')` succeeds AND yields strictly fewer suspect runs, which is what
+keeps the emoji, arrows and box-drawing these docs are full of from firing it.
+
+**The fix that worked.** Repair all three files (38 + 3 + 29 lines, BOM stripped), then make it
+impossible to repeat: **new gate `tools/story-dev/audit_encoding.py`, registered as gate #21**,
+self-tested in both directions (fires on a genuine round-trip; silent on em dashes, ‼/✅/⛔/⚠,
+arrows, `20×17`, `§Ch20`, emoji headings and box drawing).
+
+**Prevention rules.**
+1. ⛔ **NEVER edit a repo document with PowerShell `Get-Content` + `Set-Content`.** Use the Edit
+   tool, or Python with an explicit `encoding="utf-8"`. `Add-Content -Encoding utf8` is SAFE for
+   appending (it never reads the existing bytes) — the danger is exclusively the read-modify-write
+   round trip.
+2. *A gate suite that never reads BYTES cannot see encoding damage.* Any file the project treats
+   as load-bearing needs at least one check that looks at it as bytes, not as lines.
+3. *A detector built from a LIST of known-bad values is blind by construction.* Prefer a pattern
+   plus a confirmation step that proves the finding is real — and when a list-based detector says
+   "clean", that is the moment to doubt it.

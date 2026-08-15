@@ -3816,3 +3816,87 @@ PUSH-FREE — its 7-boulder puzzle really is OPTIONAL** — and **the push-free 
 a trainer sight tile**, so the walk must take the battle. ‼ Decomp says that is a single **DOUBLE**
 battle (Shelly + Grunt5); **that half is still unobserved live** and is the top prediction for the
 Room 3 drive. *(Archive note: it WAS then observed live — repeatedly; the double is confirmed.)*
+
+
+---
+
+# MOVED 2026-08-14 (from 04-HANDOFF.md, for the R3 budget when the PC/PARTY ROBUSTNESS queue replaced the Ch20 queue) — the ROOM 8 banner, verbatim:
+
+## 🚩 ROOM 8 (2026-08-14, earlier today): 9/9 PUSHES, AND THE JAM-RECOVERY HANDLER IS *EXERCISED*, NOT JUST WRITTEN
+
+**`--driver ch20room8` (NEW) → `ACCEPTANCE: PASS` twice.** The CLEAN run: first attempt, all
+9 pushes of OUR adjudicated sequence (⛔ step 9 faces **LEFT**), every boulder verified by
+`local_id` on its destination, exit path `(5,4)→(5,2)` `OK len=2`, **no boulder on `(5,3)`**,
+`ROOM9 (5,4)` arrival, real step taken. **9/9 pre-registered predictions held**
+(`ai-research-notes/2026-08-14-ch20-room8-drive-predictions.md`).
+
+**The FAULT run (`POKEBOT_CH20_FAULT=room8`) proved the failure handler:** attempt 1 abandoned
+after push 4 on purpose → exit to Room 3 via the `(5,12)` arrow warp → re-enter → all twelve
+boulders respawned → attempt 2 ran 9/9 clean → `RESULT … attempts=2 recovered=True` →
+`ACCEPTANCE: PASS`. ‼ The happy path cannot exercise an error path — this is the same rule that
+caught the Room 1 `AttributeError`, applied on purpose this time.
+
+**Three independent checks preceded the drive, and two of them changed the code or the claim:**
+1. An offline adversarial agent tried to REFUTE the 9-push table (our ROM + the pret decomp,
+   agreeing on all 12 boulder templates; per-step simulation with a fault-tested checker) —
+   verdict **SURVIVES**, and it supplied the template table that turned KI-77's window into the
+   exact prediction "8 of 12 visible at arrival", which the live run then matched **exactly**.
+2. An adversarial diff review found the recovery handler **hardcoded `"Down"`** at `(5,12)`
+   instead of deriving the hold direction from the live tile (the `_cross_room6` rule, whose own
+   comment says why). Fixed BEFORE driving — and the fault run then showed the arrow warp fires
+   during the navigate itself (held direction), so the map-check-first structure absorbed a case
+   the hardcode would have hit blindly.
+3. The Room-3 walk was extracted VERBATIM into `_cross_room3` so ch20room8 INHERITS it (the
+   `_ingress` rule: reuse, never copy) — **neutrality proven by re-running `--driver ch20room3` →
+   `ACCEPTANCE: PASS`**, verdict line identical to its documented 2026-08-13 result.
+
+**Re-proof counts after this session's three full runs: R1 n=10, R2 n=7, R6 n=6, R3 n=5,
+R8 n=2** — and the Room 3 DOUBLE battle at `(6,5)` reported `is_double=True` in **all three**.
+
+⇒ *(superseded LATER THE SAME DAY — `ch20room9` is BUILT, DRIVEN and PASSING ×2; the facing
+claim is MEASURED; see the NEWEST banner at the top. The live queue is the CHAPTER ASSEMBLY.)*
+Its route detail stays true: trigger `(17,42)` not `(16,42)`; grade on
+**`VAR_ROUTE128_STATE == 2`**, never the pre-warp Kyogre flag; escape **south to `(38,23)`,
+Surf onto `(38,24)`** (9/9, `probe_route128_landing.py`); losing to Archie whiteouts out of the
+dungeon. ⛔ Still NOT a chapter — drivers inject Dive; the ladder remains 20 of 24.
+
+
+
+---
+
+# MOVED 2026-08-14 (from 04-HANDOFF.md, same R3-budget pass) — the ROOM 3 banner of 2026-08-13, verbatim:
+
+## 🚩 …AND THROUGH ROOM 3. THE BOT NOW STANDS IN ROOM 8 (same session, latest)
+
+**`--driver ch20room3` → `ACCEPTANCE: PASS`, reproduced twice.** The WALK route — 18 steps, **zero
+pushes**, straight through the trainer sight line — ending `SEAFLOOR_CAVERN_ROOM8 (5,12)` with a
+real step taken. It re-proves every room beneath it: **Room 1 n=7, Room 2 n=4, Room 6 n=3.**
+
+**✅ THE DOUBLE-BATTLE CLAIM IS CONFIRMED LIVE.** One trainer battle in Room 3, `is_double=True`,
+fired at exactly `(6,5)` — the tile the Room 6 run had already measured the push-free path to
+contain. With `usable=6` the engine collected **both** trainers into one double battle, exactly as
+`trainer_see.c:214-217` reads. ‼ The precondition was asserted **before** the walk and reported with
+the result, so the confirmation is attributable rather than "we happened to qualify".
+
+**⛔ AND MY OWN DISCRIMINATOR PRINTED A FALSE "REFUTED".** It counted trainer battles **run-wide**,
+sweeping in the Room 1 grunt that is fought every run: two battles in the *run*, **one** in the
+*room under test*. **The instrument was wrong, not the claim.** Fixed to filter on the battle's own
+map. ✅ Contained by two earlier choices worth copying: `saw_double` was **reported, not graded**,
+and the raw per-battle log printed **the map next to the judgement** — which made it visible in
+seconds instead of going into the docs as a refutation.
+
+**✅ A KNOWN GAP CLOSED FOR FREE:** two wild encounters fired, one **between two Strength pushes**
+in Room 2. The Room 2 note flagged exactly that as untested; the idempotent `strength_push` held.
+
+⇒ *(superseded 2026-08-14 — `--driver ch20room8` is BUILT, DRIVEN and PASSING ×2, with the jam
+recovery fault-proven; see the 2026-08-14 banner above. The live queue is ROOM 9.)* **NEXT: BUILD
+`--driver ch20room8`** — ‼ **it does not exist yet**; it is the thing to write, not a command to run. Already adjudicated, so **use OUR 9-push sequence** (upstream's is
+10 and touches an extra boulder). ⛔ **Step 9 faces LEFT, never UP:** a boulder pushed north from
+`(5,4)` lands on `(5,3)` and **permanently seals the only route to the `(5,2)` exit**. ✅ A jam IS
+recoverable — exit to Room 3 via `(5,12)` and re-enter; all twelve boulders respawn. Wire that as
+the room's failure handler rather than improvising. Full table:
+`ai-research-notes/2026-08-13-ch20-decomp-blockers-and-room8.md`.
+**Then Room 9** — the 62-step walk to the trigger `(17,42)`, Archie, and the exit that lands on the
+atoll (see the banner below).
+> ‼ `stash@{0}` exists **on purpose** — see the STATE table; **never drop it.**
+

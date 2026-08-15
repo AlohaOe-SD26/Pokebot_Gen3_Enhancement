@@ -13662,3 +13662,78 @@ still carried the exact derail they had watched live.**
 * ⚠ **drift 0 → 3** (`pokemon.py`, `pokemon_party.py`, `pokemon_storage.py`). **`custom-pokebot`
   has the KI-78 detection warning but NOT the fix — the wrong-target release is still live there.**
   Promotion is the USER's call and has not been asked for.
+
+## 2026-08-14 — THE P2 DOC PAIR IS NOW A GATE, NOT PROSE; plus the physical-slot half of KI-78 that Stage 1 missed (`#24-roster`)
+
+* ✅ **`get_index_for_pokemon` now returns the PHYSICAL party slot, not the list position.**
+  `get_party()` COMPACTS — it loops `range(gPlayerPartyCount)` and `continue`s any all-zero slot —
+  so a hole makes list position and real `gPlayerParty` slot diverge for every mon after it.
+  `PartyPokemon` has carried the true slot all along (`pokemon_party.py:182`) and this function
+  ignored it, while its consumers (`pc_interaction.py` DEPOSIT `:464`, **RELEASE `:505`,
+  permanent**) drive a cursor over the PHYSICAL party. ‼ **KI-78 Stage 1 shipped without this** —
+  the same harm as KI-78 itself, through a different door, inside the fix meant to close it. Found
+  by an adversarial party-accounting audit. Gate extended: with a hole at slot 0, the Ninjask must
+  resolve to physical slot 1, not position 0 (and R6's re-resolve likewise).
+  ⚠ Honest reachability: `CompactPartySlots` pushes holes to the TAIL where positions still align,
+  so this is DEFENCE, not a reproduced failure. One attribute lookup; identical when no hole exists.
+* ✅ **NEW GATE CHECK — the P2 pair (KI header ↔ its own body) is now MECHANICAL**,
+  `audit_doc_consistency.check_touched_ki_pairs`. Born from a failure the same day: **KI-78's body
+  gained a "Stage 1 LANDED / FIXED" claim while its header still read "OPEN, ARMED"** — the exact
+  contradiction the DOC CONSISTENCY LAYER exists for, committed by the agent working on that issue.
+  An adversarial reviewer caught it; no gate did.
+  ‼ **It is DIFF-SCOPED, and that is the whole design.** The pre-existing `warn_ki_headers` scans
+  the whole file and was MEASURED at ~4-in-5 false positives, so it is advisory by choice — and a
+  noisy gate teaches bypass, which is worse than none. Restricting the question to *"you edited
+  this entry's body to announce a closed status and did not touch its header"* removes almost all
+  of that surface: it only speaks about text the author is writing right now, and editing the
+  header in ANY way satisfies it.
+* ‼ **AND THE GATE'S OWN FAULT TEST CAUGHT THE GATE BEING BLIND.** Its 5-case self-test passed in
+  both directions while the check **did not fire on a live injection**: the self-test exercised the
+  DECISION and bypassed the PARSING, which attributed added lines to a KI only when the HEADER line
+  was itself added — so a BODY-ONLY edit, the entire point, belonged to no entry. Re-written to
+  attribute by hunk LINE NUMBER; the live injection then fired correctly, naming the entry and the
+  reason.
+* ‼ **A second, worse defect the live test exposed: the check could FAIL SILENTLY OPEN.** A
+  line-ending rewrite (LF→CRLF) made every KI header read as "touched", every entry was exempted,
+  and it printed nothing — indistinguishable from "you did it right". It now **fails LOUD when it
+  cannot attribute** (>half the entries reading as header-touched is a rewrite, not an edit).
+  ⇒ new standing rule in `08-MISTAKES.md`: *a check that cannot see must SAY so, never pass.*
+* **Fault-tested four ways, all recorded:** fires on a genuine single-line body edit (named KI-73);
+  quiet when the header was edited too; quiet when the header already carries a caveat; quiet on
+  prose that merely MENTIONS a fix (the false-positive control CLAUDE.md rule 6 demands); and fails
+  loud on an unattributable diff. Clean tree passes.
+* Docs: `08-MISTAKES.md` gains three entries with prevention rules — the blind-self-test lesson,
+  **two Gen 3 mechanic claims asserted from RECALL and both wrong** (the Shedinja ball rule, and
+  the nickname-staleness objection that was used to argue against the user's own correct idea), and
+  the sharpened one-half-of-a-pair rule (*ask what the RETURN VALUE means to callers, not only what
+  the COMPARISON does*).
+* ⚠ drift unchanged at 3 (`pokemon.py`, `pokemon_party.py`, `pokemon_storage.py`) — the physical-slot
+  fix lands in a file already drifted. Promotion remains the USER's call.
+
+## 2026-08-14 — ENCODING IS NOW GATED (#21): I corrupted 343 lines of the handoff with PowerShell and every existing gate passed (`#24-remainingarc`)
+
+* ⛔ **THE DAMAGE, self-inflicted this session.** Splicing archive blocks out of `04-HANDOFF.md`
+  with `Get-Content | … | Set-Content -Encoding utf8` produced **946 mojibake sequences across
+  343 lines** plus a BOM. Windows PowerShell 5.1's `Get-Content` decodes with the ANSI codepage,
+  so a UTF-8 file returns as mojibake and is then written back permanently. `git show HEAD` was
+  clean ⇒ all of it was mine.
+* ‼ **EVERY DOC GATE PASSED THROUGHOUT** — `lint_docs`, `audit_doc_consistency`, all 20 — because
+  none of them reads BYTES. A line-budget and a semantic pair check cannot see encoding damage.
+* ⛔ **AND IT WAS A REPEAT:** `03-PUNCH-LIST.md` had already suffered the identical round-trip,
+  been "repaired", and been written up. The sweep found **29 lines still corrupted there**, so
+  that repair had been graded by a detector that could not see.
+* ‼ **THE FIRST DETECTOR WRITTEN FOR THIS WAS ITSELF BLIND** — a hand-written list of known-bad
+  sequences reported the punch list as **0 mojibake** while it carried 29 corrupted lines, because
+  `Ã—` (a mangled `×`) was not on the list.
+* ✅ **NEW GATE `tools/story-dev/audit_encoding.py` (#21).** PATTERN-based (a Latin-1 lead byte
+  followed by more non-ASCII) and every hit is **confirmed by round-tripping** — reported only when
+  `encode('cp1252').decode('utf-8')` succeeds AND yields strictly fewer suspect runs. That
+  confirmation is what stops it firing on the em dashes, ‼/✅/⛔/⚠ markers, arrows, `20×17`,
+  `§Ch20`, emoji headings and box-drawing these docs are full of.
+  **Self-tested both ways** (fires on a genuine round-trip and repairs it to the original; silent
+  on five categories of legitimate non-ASCII). `--repair` fixes in place.
+* ✅ **All three files repaired** (38 + 3 + 29 lines, BOM stripped). **All 34 documents now clean.**
+* New prevention rules in `08-MISTAKES.md`: never read-modify-write a repo doc with PowerShell
+  (`Add-Content` is safe — it never reads the existing bytes); a gate suite that never reads BYTES
+  cannot see encoding damage; and a detector built from a LIST of known-bad values is blind by
+  construction — prefer a pattern plus a confirmation step.

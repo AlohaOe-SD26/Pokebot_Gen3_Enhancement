@@ -186,6 +186,25 @@ def main() -> int:
     except RuntimeError:
         check("‼ an AMBIGUOUS species miss RAISES rather than guessing", True)
 
+    print("\n5b — ‼ the returned index must be the PHYSICAL slot, not the LIST POSITION")
+    print("     `get_party()` COMPACTS: it loops range(gPlayerPartyCount) and skips an all-zero")
+    print("     slot, so a HOLE makes list position != gPlayerParty slot for every mon after it —")
+    print("     and the consumers (DEPOSIT, and RELEASE which is permanent) drive a cursor over")
+    print("     the PHYSICAL party.")
+    # Slot 0 is a hole: the party list holds only the mons from physical slots 1 and 2.
+    holed = Party([PartyPokemon(ninjask.data, 1), PartyPokemon(shedinja.data, 2)])
+    check("with a hole at slot 0, the Ninjask resolves to PHYSICAL slot 1 (not position 0)",
+          holed.get_index_for_pokemon(ninjask) == 1,
+          f"got {holed.get_index_for_pokemon(ninjask)!r}")
+    check("...and the Shedinja to PHYSICAL slot 2 (not position 1)",
+          holed.get_index_for_pokemon(shedinja) == 2,
+          f"got {holed.get_index_for_pokemon(shedinja)!r}")
+    # R6 must return a physical slot too, not a position.
+    holed_one = Party([PartyPokemon(ninjask.data, 3)])
+    check("R6's re-resolve also returns the PHYSICAL slot",
+          holed_one.get_index_for_pokemon(nincada) == 3,
+          f"got {holed_one.get_index_for_pokemon(nincada)!r}")
+
     print("\n6 — the shared predicate itself")
     check("same_pokemon(ninjask, shedinja) is False despite the shared PID",
           same_pokemon(ninjask, shedinja) is False)
