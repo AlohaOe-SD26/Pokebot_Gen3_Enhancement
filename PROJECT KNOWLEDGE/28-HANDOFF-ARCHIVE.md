@@ -3900,3 +3900,111 @@ the room's failure handler rather than improvising. Full table:
 atoll (see the banner below).
 > ‼ `stash@{0}` exists **on purpose** — see the STATE table; **never drop it.**
 
+
+
+---
+
+# MOVED 2026-08-14 (from 04-HANDOFF.md, for the R3 budget once the PC/PARTY arc became the live queue) — the ROOM 9 banner, verbatim:
+
+## 🚩 NEWEST (2026-08-14): ROOM 9 — ARCHIE, KYOGRE, AND THE ATOLL ESCAPE, DRIVEN. `ACCEPTANCE: PASS` ×2, AND THE ONE LOSS IS A MEASUREMENT, NOT A FLAKE
+
+**`--driver ch20room9` (NEW) → `ACCEPTANCE: PASS` on runs 1 and 3; run 2 LOST the Archie
+fight.** The chain: re-prove Rooms 1→8, walk `(5,4) → (17,42)` (the trigger; ⛔ `(16,42)` is
+only the sparkle), ride the scene — **Archie SINGLE battle** → Kyogre awakens → forced
+`warp (38,22)` → the Route 128 Steven scene — then the measured escape: south to `(38,23)`,
+Surf onto `(38,24)`, real path to the dive tile. **10/10 pre-registered predictions held**
+(`ai-research-notes/2026-08-14-ch20-room9-drive-predictions.md`).
+
+**What the three runs measured:**
+* **The cutscene chain is DETERMINISTIC**: milestone loop-frame counts IDENTICAL across both
+  passing runs (battle ~1836, warp ~5844, var2 ~5392); every mid-warp invariant exact
+  (`kyogre_flag=True scs=1 r128=1 pos=(38,22)` — all written BEFORE the warp). **The
+  previously-unmeasured facing claim is now measured: `facing='Up'` on release, twice.**
+* ⚠ **The Archie fight is the chain's ONE stochastic element: 2W / 1L.** The party reaches him
+  CHIPPED (run 3 telemetry: Zigzagoon FAINTED, Sceptile 96/135, `usable=5`; no heal exists in
+  the cavern). ⇒ the CHAPTER must carry a **whiteout-retry policy** (Mossdeep Gym's N-attempts
+  precedent; one retry = a full ~25-min re-dive) and/or **pre-boss readiness** (potions/order).
+* ‼ **A lost run prints NO RESULT and structurally cannot** — the WhiteoutListener sets Manual
+  and the harness drops the mode generator (KI-71's shape). The driver's `PRE-ARCHIE PARTY`
+  HP-snapshot line is the loss's attribution record; grade a silent transcript by its presence.
+* **Design decisions that survived contact** (see `06-DECISIONS-LOG.md` 2026-08-14): release is
+  gated on **`VAR_ROUTE128_STATE == 2`**, never on "looks controllable" — the decomp recon
+  proved a control seam between Room 9's script tail and the Route 128 re-lock; and the ride
+  loop presses **A only when `is_waiting_for_input()`, B otherwise** — the adversarial reviewer
+  caught the museum-greeter bug being re-written into a brand-new loop BEFORE the first run
+  (`08-MISTAKES.md` 2026-08-14).
+
+⇒ ⛔ **THIS IS NO LONGER THE NEXT ACTION — READ "NEXT ACTIONS" ITEM 0.** The user redirected priorities on 2026-08-14 after a live PC bug; the live queue is the **PC / PARTY ROBUSTNESS ARC**, and §Ch20 chapter assembly is **PARKED, NOT CANCELLED** — its requirements below stay accurate and are what to pick up when it resumes.
+*(parked)* **ASSEMBLE §Ch20 AS A CHAPTER** — a module in `modules/story/`, wired as Segment 20,
+built from the driven ingredients: `_ingress`, the room solves, the walk route, the var-gated
+scene ride, the atoll escape. **The drivers inject Dive; the chapter must acquire it organically** (KI-63's
+`ensure_hm_learner_making_room` is wired in **BOTH forks** — promoted 2026-08-14; ✅ **drift is ZERO** — KI-78 Stage 1 was promoted later the same day too, see the STATE table. ‼ This line briefly carried a non-zero figure after that promotion had already happened; the number is not restated here because the doc gate scans for it and cannot tell a quotation from a claim). Carry Blockers 3
+and 4 from `ai-research-notes/2026-08-13-ch20-decomp-blockers-and-room8.md` (Repel policy for
+the `water_mons` rooms; the badge/move pre-flight incl. Dive/BADGE07), the whiteout-retry
+policy above, and grade the segment on `VAR_ROUTE128_STATE == 2` + the escape + can-continue
+(`chapters.py:233` grades the LADDER chapter on `KYOGRE_ESCAPED_SEAFLOOR_CAVERN`, which is
+set pre-warp — the segment's own acceptance must be the stricter var).
+> ‼ `stash@{0}` exists **on purpose** — see the STATE table; **never drop it.**
+
+
+---
+
+# MOVED 2026-08-14 (from 04-HANDOFF.md, R3 budget) — the ATOLL / Blocker-2 section, verbatim:
+
+## ✅ THE ONE THAT WOULD STRAND THE RUN — NOW MEASURED IN OUR OWN ROM (9/9). Read before building §Ch20's exit
+
+`ai-research-notes/2026-08-13-ch20-decomp-blockers-and-room8.md` holds four decomp blockers.
+**Blocker 2 is the dangerous one, and it is now CONFIRMED by `probe_route128_landing.py` (NEW)** —
+re-measured through `modules.map.get_map_all_tiles`, the reader the chapter will use, **sharing no
+code with the agent's `map.bin` decode**, and agreeing on every number (71 / 41 / 1766).
+
+The chapter's forced exit lands on `ROUTE128 (38,22)`, a shallow-water sandbar whose on-foot
+component is **71 tiles and never touches the map edge**. The water north of it is a **41-tile
+CLOSED LAGOON**, a **different component** from the 1,766-tile open ocean, on a map with
+`"allow_escaping": false`. ‼ **And the landing tile has ZERO surfable neighbours** — all four are
+shallow — so "Surf from where you land" does nothing in any direction and will read as a **hung
+leg**, not as a failure.
+
+⇒ **THE RULE, MEASURED: step SOUTH to `(38,23)`, face Down, Surf onto `(38,24)`.** One step,
+confirmed one of 46 real launches onto the open ocean.
+
+⛔ **BUT THE ORIGINAL FRAMING WAS TOO CRUDE AND WOULD HAVE PRODUCED A WRONG GUARD.** "Surf north
+and you strand" is false: the atoll **wraps around**, and **33 launch points north of the landing
+DO reach the open ocean**. The hazard is not a compass direction — it is the **28 launches into the
+closed lagoon, on the atoll's WESTERN shore (`x = 33-35`)**. ‼ My first version of the probe checked
+"no launch point lies north", got REFUTED, and **the check was wrong, not the claim** — corrected in
+place, and it is exactly the failure shape this project logs most often.
+✅ **MEASURED 2026-08-14** — the cutscene releases the player facing **`'Up'`**, observed on two
+separate `--driver ch20room9` runs. Superseded: *"still unmeasured … the facing wants a live check"*.
+
+⇒ *(superseded — Room 3 is DRIVEN and PASSING; the live queue is ROOM 8)* **NEXT: ROOM 3** —
+`ai-research-notes/2026-08-13-ch20-room3-arbitration.md`.
+⛔ **AND IT INVERTED WHAT I WROTE HERE FIRST.** An earlier pass told me Room 3 *"is not the walk
+the spec calls it"* and I put that in this file and in the punch list. **A deeper pass — decomp
+PLUS our own ROM — refuted the refutation:** `(4,15) → (8,1)` is reachable **PUSH-FREE in 18
+steps** (our real planner returns `OK, 18 waypoints`), so the **7-boulder puzzle is OPTIONAL** and
+exists only to dodge the trainers. Our build spec's "a walk (+2 trainers)" was **operationally
+right**. ‼ *An agent's "REFUTED" is a claim like any other* — Room 1's held up because two
+independent authorities checked it; this one had not been, and it was wrong.
+
+‼ **THE SPEC'S ONE REAL ERROR: it is a single DOUBLE BATTLE (Shelly AND Grunt5 at once), not two
+singles** — `trainer_see.c:214-217` does not stop at the first trainer, and both sight lines cover
+the same tiles. ✅ We already ride double battles out (`modules/story/mossdeep_gym.py:315-369`);
+**reuse its `MINIMUM_USABLE_POKEMON` precondition**, because with <2 usable the engine fires two
+sequential singles instead — a different shape.
+✅ **RECOMMENDATION: take the WALK, not the puzzle.** The pushes are irreversible within a visit and
+a mid-sequence derail can WEDGE the room; the walk has nothing to wedge, and we win the fight.
+‼ **The A/B cannot be a single tile here** — nothing becomes reachable "because the room was
+solved". Grade on the path CONTAINING `(6,5)`, on both trainer flags being set, and on
+"and the bot can continue". Details in the note.
+
+---
+
+
+---
+
+# MOVED 2026-08-14 (from 04-HANDOFF.md's STATE table) — the DRIFT ROW's stacked history, verbatim.
+
+‼ Why it moved: four supersessions in ONE table cell meant a sentence deep inside it ("`map_path.py` is the NEW third … NOT promoted — the USER's call") read as live and contradicted the same cell's own promoted-file list. **Everything below is HISTORY. As of 2026-08-14 drift is ZERO and every file named here was promoted.**
+
+**3 as of 2026-08-14 — KI-78 STAGE 1, awaiting the USER's promotion call.** `modules/pokemon.py` (the new shared `same_pokemon` predicate), `modules/pokemon_party.py` and `modules/pokemon_storage.py` now key identity on **(personality, species)** instead of the personality alone. ‼ **This is the fix for the destructive path**: a Shedinja shares its Ninjask's PID, so "release the Shedinja" destroyed the Ninjask. A/B proven by `repro_pid_identity_key.py` (the OLD rule returns the WRONG slot on a real fabricated twin pair; the new one is correct), which is **gate #20**. ⛔ Until promotion, `custom-pokebot` has the KI-78 *detection warning* but NOT the fix — the wrong-target release is still live there. **Earlier the same day drift was ZERO**, described next: ✅ **the five drifted files were PROMOTED, user-approved, and that promotion was VERIFIED BY DRIVING.** Promoted: `modules/story/counter_hunt.py` (the user-observed Slugma/Winona derail fix), `modules/pokemon_party.py` (KI-78 **Stage 0, detect-only**), `modules/map_path.py` (KI-59), `modules/story/early_game.py` + `plugins/custom_modes/story_mode.py` (KI-63's wiring). **Evidence:** drift re-measured by hash in BOTH directions = 0; `probe_chapter_order.py --build custom` exit 0; **`repro_box_counter_move_test.py --build custom` exit 0** (the gate was made build-aware during this promotion — it hard-coded `sandbox` and so could not see the promoted fork at all); and a live drive **`--driver ch20dive --build custom` → `legs=6/6 at_entrance=True got_out=True can_continue=True ACCEPTANCE: PASS`**, matching the sandbox result. Restore point **`restore/2026-08-14-pre-promotion-5files`** (annotated, pushed) taken BEFORE the copy. ⛔ **This does NOT mean §Ch20 is a chapter** (it is not, in either fork — ladder still 20 of 24) **nor that KI-78 is fixed** (both forks now merely DETECT the PID collision). Full detail: `custom-pokebot/DIVERGENCE-LOG.md`, 2026-08-14. ‼ **MEASURE, don't trust this row** — the loop is below in "HOW TO RUN / TEST". ‼ **`modules/map_path.py` is the NEW third** — KI-59's fix (entry inversion + the new `blocked_exit_directions` exit half), A/B proven on `VICTORY_ROAD_1F` with a byte-identical `MOSSDEEP_CITY` collateral control, gated by `repro_impassable_dirs.py`. **NOT promoted — the USER's call, not asked for.** ⛔ Until it is, `custom-pokebot`'s planner still cannot see the 401 live `Impassable *` tiles (Regi tombs 144, Shoal Cave 98, Victory Road 58). The other two, unchanged, described next: **EXACTLY 2, both deliberate and sandbox-only (2026-08-13, earlier):** `modules/story/early_game.py` (the new `ensure_hm_learner_making_room`) and `plugins/custom_modes/story_mode.py` (both HM call sites wired to it). **This is KI-63's PRODUCTION WIRING, driven to a PASS but NOT promoted — promotion has not been asked for.** ⛔ Until it is, `custom-pokebot`'s copy of the KI-63 fix is **INERT**: it reads `_needs_party_slot` and nothing there sets it. Earlier today drift was ZERO twice (`restore/2026-08-13-pre-roster-promotion`, `restore/2026-08-13-pre-ki63-promotion`). ‼ **MEASURE, don't trust this row** — the loop is below in "HOW TO RUN / TEST".

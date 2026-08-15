@@ -64,5 +64,23 @@ following the reading order above, which stopped at 16.*
 
 ## Definition of Done (summary)
 Verified change → current-state docs updated → changelog/decisions appended
-→ handoff updated → commit → push. Full version: see the managed block in
-the project root's `CLAUDE.md`.
+→ handoff updated → **Tier 0 doc gates** → **Tier 1 review** → commit → push.
+Full version: see the managed block in the project root's `CLAUDE.md`.
+
+‼ **The two gate steps are NOT optional and were missing from this summary until
+2026-08-14** — a session orienting from this file alone would have committed over
+an unrun gate. From `tools/story-dev/`, all three must exit 0 before ANY commit
+touching `PROJECT KNOWLEDGE/`:
+
+```
+PYTHONUTF8=1 py -3.12 lint_docs.py              # line budgets, banners, flag registry
+PYTHONUTF8=1 py -3.12 audit_doc_consistency.py  # docs vs code vs each other
+PYTHONUTF8=1 py -3.12 audit_encoding.py         # mojibake + BOM (--repair fixes in place)
+```
+
+**Tier 1** = one INDEPENDENT agent reviews the doc diff of a completed item (never a
+fork of yourself — it inherits your blind spots). **Tier 2** = at session end, a
+cold-start agent given ONLY this file and `04-HANDOFF.md`. Both are defined in
+`CLAUDE.md`'s DOC CONSISTENCY LAYER. ‼ They exist because prose self-checks
+demonstrably fail here: a Tier 2 audit on 2026-08-14 found five defects that would
+have misdirected a fresh session, on a tree where every mechanical gate was green.
