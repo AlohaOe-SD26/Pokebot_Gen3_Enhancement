@@ -4,7 +4,7 @@ from functools import cached_property
 from modules.context import context
 from modules.game import decode_string, get_symbol
 from modules.memory import read_symbol, unpack_uint32
-from modules.pokemon import Pokemon, Species
+from modules.pokemon import Pokemon, Species, same_pokemon
 from modules.state_cache import state_cache
 
 
@@ -116,16 +116,21 @@ class PokemonStorage:
         return False
 
     def contains_pokemon(self, pokemon: Pokemon) -> bool:
+        # ‼ KI-78: was PID-only while `get_slot_for_pokemon` (twenty lines down) already matched on
+        # (personality, species). Two neighbours answering the same question differently is the
+        # drift shape that cost a real run on 2026-08-14; both now share `same_pokemon`.
         for box in self.boxes:
             for slot in box.slots:
-                if slot.pokemon.data[:4] == pokemon.data[:4]:
+                if same_pokemon(slot.pokemon, pokemon):
                     return True
         return False
 
     def get_slot_for_pokemon(self, pokemon: Pokemon) -> tuple[int, int]:
+        # ‼ This one was ALREADY correct — it is refactored onto the shared predicate so the pair
+        # cannot drift apart again, not because its behaviour was wrong.
         for box_index, box in enumerate(self.boxes):
             for slot_index, slot in enumerate(box.slots):
-                if slot.pokemon.data[:4] == pokemon.data[:4] and slot.pokemon.species.index == pokemon.species.index:
+                if same_pokemon(slot.pokemon, pokemon):
                     return box_index, slot.slot_index
         raise RuntimeError("Could not find this Pokémon in the PC storage system.")
 

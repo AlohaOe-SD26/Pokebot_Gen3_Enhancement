@@ -2,7 +2,7 @@ from typing import Generator
 
 from modules.context import context
 from modules.memory import read_symbol, get_event_var
-from modules.pokemon import Pokemon, Move, Species, Ability
+from modules.pokemon import Pokemon, Move, Species, Ability, same_pokemon
 from modules.state_cache import state_cache
 
 
@@ -106,39 +106,76 @@ class Party:
         **`:505` (RELEASE — permanent, no undo)**. "Box the Shedinja" boxes the Ninjask; "release
         the Shedinja" **destroys the Ninjask**.
 
-        ‼ STAGE 0 OF THE FIX (2026-08-14): **DETECT ONLY — behaviour is deliberately UNCHANGED.**
-        The ruled fix is to match on `(personality, species)`, which `pokemon_storage.py:128`
-        already does for the box side; but this lookup feeds a destructive path, so the first step
-        is to find out how often the ambiguity actually occurs in real runs rather than to change
-        an irreversible operation on a theory. This logs LOUD and still returns `matches[0]`,
-        exactly as before. **Do not "finish" this by silently switching the key** — the follow-up
-        must land with its own fault-injected A/B (a fabricated twin pair: the OLD key picks the
-        wrong slot, the NEW key picks the right one) and with the R6 rule from KI-78: on a species
-        mismatch with a unique PID hit, re-resolve from the live party rather than falling back to
-        the first hit.
+        ✅ **STAGE 1 (2026-08-14): the match is now `(personality, species)` via the shared
+        `same_pokemon` predicate** — the same key `pokemon_storage.get_slot_for_pokemon` has always
+        used. Proven by `tools/story-dev/repro_pid_identity_key.py`: on a fabricated twin pair the
+        OLD key returns the WRONG slot and the new one returns the right one, with controls.
+
+        ‼ **R6 — THE NEW FAILURE MODE THE COMPOSITE KEY INTRODUCES, HANDLED DELIBERATELY.**
+        A mon that EVOLVES between the moment the caller captured its object and the moment this
+        runs now MISSES, where a PID-only match would have hit. For a destructive path a loud miss
+        beats a silent wrong target — but a bare miss would also turn working flows into aborts.
+        So: a unique PID hit whose species disagrees is **re-resolved from the live party** and
+        reported, never silently accepted and never quietly dropped. ⛔ **What must NEVER happen
+        is falling back to "the first PID match"** — that is precisely the old bug.
         """
         matches = [index for index, party_pokemon in enumerate(self._pokemon)
-                   if pokemon.data[:4] == party_pokemon.data[:4]]
-        if not matches:
-            raise RuntimeError("This Pokémon is not in the player's party.")
-        if len(matches) > 1:
-            # ‼ A silent "no" is indistinguishable from "the feature is not running" — this
-            # project has lost time to that shape repeatedly, so an ambiguity announces itself.
-            try:
-                from modules.console import console
+                   if same_pokemon(party_pokemon, pokemon)]
 
-                detail = ", ".join(
-                    f"slot {i}={self._pokemon[i].species.name}" for i in matches
+        if not matches:
+            # ‼ R6: nothing matched on (PID, species). Before failing, ask whether exactly ONE mon
+            # carries this PID — that is the evolved-since-capture case, and it is recoverable and
+            # unambiguous. More than one PID hit with no species match is genuinely ambiguous and
+            # must NOT be guessed at, because the caller may be about to release something.
+            pid_only = [index for index, party_pokemon in enumerate(self._pokemon)
+                        if party_pokemon.data[:4] == pokemon.data[:4]]
+            if len(pid_only) == 1:
+                position = pid_only[0]
+                index = self._pokemon[position].index
+                self._warn(
+                    f"‼ KI-78/R6: no (PID, species) match for {pokemon.species.name}, but exactly "
+                    f"ONE party Pokémon carries that personality value — slot {index} is now "
+                    f"{self._pokemon[position].species.name}. It evolved since the caller captured "
+                    f"it. Re-resolving to slot {index} from the LIVE party."
                 )
-                console.print(
-                    f"[bold red]‼ KI-78: {len(matches)} party Pokémon share personality value "
-                    f"{pokemon.data[:4].hex()} ({detail}). Returning slot {matches[0]} as before — "
-                    f"but any DEPOSIT or RELEASE resolved through this call may act on the wrong "
-                    f"Pokémon. Requested species: {pokemon.species.name}.[/]"
-                )
-            except Exception:  # noqa: BLE001 - telemetry must never break the caller
-                pass
-        return matches[0]
+                return index
+            raise RuntimeError("This Pokémon is not in the player's party.")
+
+        if len(matches) > 1:
+            # Residual ambiguity the composite key cannot close (KI-78 R2: the debug utilities can
+            # fabricate two identical-PID identical-species mons). A silent "no" is
+            # indistinguishable from "the feature is not running", so it announces itself.
+            self._warn(
+                f"‼ KI-78: {len(matches)} party Pokémon share BOTH personality value "
+                f"{pokemon.data[:4].hex()} AND species {pokemon.species.name} (slots "
+                f"{[self._pokemon[m].index for m in matches]}). The composite key cannot separate "
+                f"them; returning slot {self._pokemon[matches[0]].index}. Any DEPOSIT or RELEASE "
+                f"resolved through this call may act on the wrong Pokémon."
+            )
+        # ‼‼ RETURN THE **PHYSICAL** SLOT, NOT THE LIST POSITION (fixed 2026-08-14, found by an
+        # adversarial audit of party accounting — hours after KI-78 Stage 1 shipped WITHOUT it).
+        # `self._pokemon` is COMPACTED: `get_party()` loops `range(gPlayerPartyCount)` and
+        # `continue`s any slot whose 100 bytes are all zero (`:204-208`), so a HOLE makes the list
+        # position and the real `gPlayerParty` slot diverge for every mon after it. `PartyPokemon`
+        # has carried the true slot all along (`:182`) and this function ignored it.
+        # ⛔ WHY IT MATTERS: the consumers are `pc_interaction.py` DEPOSIT (`:464`) and **RELEASE
+        # (`:505`, permanent)**, which drive a cursor over the PHYSICAL party. A list position
+        # handed to them selects the wrong Pokémon — the same harm KI-78 exists to stop, arriving
+        # through a different door.
+        # ⚠ HONEST REACHABILITY: holes are rare, and the game's own `CompactPartySlots` pushes them
+        # to the TAIL (where positions still align), so this is defence rather than a reproduced
+        # failure. It costs one attribute lookup and is identical when no hole exists.
+        return self._pokemon[matches[0]].index
+
+    @staticmethod
+    def _warn(message: str) -> None:
+        """Announce an identity ambiguity. Telemetry must never break the caller."""
+        try:
+            from modules.console import console
+
+            console.print(f"[bold red]{message}[/]")
+        except Exception:  # noqa: BLE001
+            pass
 
     def to_list(self) -> list[dict]:
         return [pokemon.to_dict() for pokemon in self._pokemon]

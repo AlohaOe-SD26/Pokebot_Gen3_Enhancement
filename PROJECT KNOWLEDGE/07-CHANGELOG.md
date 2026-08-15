@@ -13737,3 +13737,38 @@ still carried the exact derail they had watched live.**
   (`Add-Content` is safe — it never reads the existing bytes); a gate suite that never reads BYTES
   cannot see encoding damage; and a detector built from a LIST of known-bad values is blind by
   construction — prefer a pattern plus a confirmation step.
+
+## 2026-08-14 — PROMOTION: KI-78 Stage 1 (the identity fix), executed by a TOOL that refuses — drift back to ZERO (`#24-roster`)
+
+* **USER-APPROVED.** Promoted `modules/pokemon.py` (the shared `same_pokemon` predicate),
+  `modules/pokemon_party.py` (the composite key + R6 re-resolve + the physical-slot return) and
+  `modules/pokemon_storage.py` (`contains_pokemon` onto the shared predicate). **Drift 3 → 0.**
+* ‼ **THE FIRST PROMOTION RUN THROUGH `tools/story-dev/promote.py` INSTEAD OF BY HAND** — written
+  because the previous hand-run promotion the SAME DAY followed the checklist correctly and still
+  shipped with a hole (the gate proving the promoted fix hard-coded `sandbox-pokebot`, so nothing
+  verified the fix had landed in the other fork). A checklist cannot notice that; a tool can
+  refuse.
+  **Every refusal path was demonstrated live BEFORE it was trusted to execute:** dirty working
+  tree (it refused its OWN promotion, the dirty file being the tool itself), no restore point,
+  a nonexistent restore point, and — the subtle one a human check would miss — a restore point
+  that **exists locally but was never pushed**. It also refuses a diverged remote and a no-op
+  promotion, and it re-measures drift in **BOTH directions** plus byte-equality per file.
+  ✅ **And it refuses to CLAIM the verification it cannot perform**: it cannot drive the bot, so
+  it prints the verify-by-driving instruction and the `--build`-aware gate commands rather than
+  implying a copy is evidence.
+* **VERIFIED BY DRIVING, NOT DIFFING** — the standing rule:
+  **`--driver ch20dive --build custom` → `legs=6/6 at_entrance=True got_out=True
+  can_continue=True  ACCEPTANCE: PASS`**, matching the sandbox result exactly.
+  Plus **`repro_pid_identity_key.py --build custom` exit 0** and
+  **`repro_box_counter_move_test.py --build custom` exit 0** — both **assert which fork they
+  imported** before testing anything, which is the check that was missing last time.
+  Tool-side: drift **0 both directions**, **3/3 byte-identical**, 0 orphans.
+* **Restore point `restore/2026-08-14-pre-promotion-ki78`** (annotated, pushed, and verified
+  present ON ORIGIN by the tool before it would copy).
+* ⛔ **WHAT THIS DOES NOT MEAN.** KI-78 is **not fully closed** — its header now reads *fixed in
+  both forks, residual cases open*: R2 debug-fabricated identical pairs, R3 corrupt/Bad-Egg box
+  slots, R5 Frontier rentals, and R6 (evolved-since-capture, handled but **unexercised by any
+  live caller**). §Ch20 is **still not a chapter** in either fork; the ladder remains **20 of 24**.
+  And the identity fix is proven by fabricated-fixture A/B and by gates, **not** by reproducing
+  the user's original failing run — that repro is still owed.
+* Full per-file rationale and evidence: `custom-pokebot/DIVERGENCE-LOG.md`, 2026-08-14 (later).

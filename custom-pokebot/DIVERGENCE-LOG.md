@@ -1500,3 +1500,53 @@ Rollback target if anything below regresses.
 * ⚠ The Slugma fix is proven by a fabricated-fixture A/B, **not** by re-running the user's original
   failing scenario end to end. That repro (a Nincada evolving into a full party, then a counter
   hunt, then a heal) is still owed.
+
+---
+
+## 2026-08-14 (later) — PROMOTION: KI-78 Stage 1, the identity fix. USER-APPROVED. Drift back to ZERO.
+
+**The first promotion executed by `tools/story-dev/promote.py` rather than by hand** — the
+procedure encoded as a tool that REFUSES, written because the previous hand-run promotion the same
+day still shipped with a hole (a gate that could not see this fork at all).
+
+**Restore point:** `restore/2026-08-14-pre-promotion-ki78` (annotated, pushed, and **verified
+present on origin by the tool before it would copy anything** — a rollback target that exists only
+on one machine is not a rollback target, and the tool refuses on exactly that).
+
+### Promoted (3 files, drift 3 → 0)
+
+| file | what it carries |
+|---|---|
+| `modules/pokemon.py` | the shared `same_pokemon` predicate — identity is **(personality, species)** |
+| `modules/pokemon_party.py` | `get_index_for_pokemon` on that predicate, the **R6** evolved-since-capture re-resolve, and the **physical-slot return** fix |
+| `modules/pokemon_storage.py` | `contains_pokemon` moved onto the shared predicate (`get_slot_for_pokemon` already used that key — refactored so the pair cannot drift again) |
+
+### Why this one mattered more than most
+
+⛔ **A Shedinja carries the SAME personality value as the Ninjask it came from** (`CopyMon` is a
+memcpy that never rewrites it — `src/evolution_scene.c:548-583`, `src/pokemon.c:4419-4422`), and
+the spawned twin always sits in the LATER slot. The old first-match lookup therefore resolved a
+request aimed at one twin to the other — and its callers are `pc_interaction.py` **DEPOSIT
+(`:464`)** and **RELEASE (`:505`, permanent, no undo)**. *"Release the Shedinja"* destroyed the
+Ninjask. Until this promotion `custom-pokebot` carried the **warning** for that and not the
+**fix**.
+
+### Verification — DRIVEN and BUILD-SCOPED, not diffed
+
+* ✅ Copy verified by the tool: drift **0 in both directions**, **3/3 byte-identical**, 0 orphans.
+* ✅ **`repro_pid_identity_key.py --build custom` → exit 0**, and it **asserts which fork it
+  imported** before testing anything. Includes the hole case: with a gap at slot 0 the Ninjask
+  must resolve to **physical slot 1**, not list position 0.
+* ✅ **`repro_box_counter_move_test.py --build custom` → exit 0** (the earlier Slugma fix,
+  re-confirmed live in this fork).
+* ✅ A live drive against this fork — result recorded in `07-CHANGELOG.md` for the same date.
+
+### What this does NOT mean
+
+* ⛔ **KI-78 is not fully closed.** The residual collisions stay open and are named in its entry:
+  debug-fabricated identical pairs (R2), corrupt/Bad-Egg box slots (R3), Battle Frontier rentals
+  (R5), and **R6** — a mon that evolves between capture and lookup, which is handled but
+  **unexercised by any live caller today**.
+* ⛔ **§Ch20 is still NOT a chapter** in either fork; the ladder remains **20 of 24**.
+* ⚠ The identity fix is proven by fabricated-fixture A/B and by gates, **not** by reproducing the
+  user's original failing run end to end. That repro is still owed.

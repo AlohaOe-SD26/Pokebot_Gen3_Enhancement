@@ -2151,7 +2151,7 @@ are now resolved live here", so they are listed here to stay findable:
   **gate #17**. ‼ `probe_shoal_tide.py` corrected in lockstep; its numbers re-derived on the fixed
   model are **unchanged (LOW 278 / HIGH 0)**. ✅ **PROMOTED 2026-08-14 — that promotion took drift
   to ZERO** (it had reached 5; `counter_hunt.py` and `pokemon_party.py` joined that day and went
-  over with the rest, verified by driving `--build custom`). ⚠ **drift is now 3 again** —
+  over with the rest, verified by driving `--build custom`). ✅ **drift is ZERO again — KI-78 Stage 1 was PROMOTED later the same day** (superseded: *drift is now 3 again*) —
   KI-78 **Stage 1** (`pokemon.py`, `pokemon_party.py`, `pokemon_storage.py`) landed in sandbox
   AFTER that promotion and has NOT been promoted; promotion is the USER's call.
   Historical note, superseded: *"Sandbox only — promotion is the
@@ -2677,7 +2677,7 @@ to refute "the tide is not a blocker"; the static-table half verified by me dire
   invalidate the entry on map-transition. Both touch shared pathfinding that every mode depends on,
   so it needs its own A/B — not a drive-by change.
 
-## KI-78 — ⛔ **PERSONALITY VALUE IS NOT A UNIQUE IDENTITY IN GEN 3: a SHEDINJA carries the SAME PID as the NINJASK it came from** — and this codebase keyed "which mon do I act on" off exactly that (2026-08-14, DECOMP-VERIFIED — ✅ **FIXED IN SANDBOX (Stage 1), ⚠ STILL ARMED IN `custom-pokebot` until promoted**)
+## KI-78 — ⛔ **PERSONALITY VALUE IS NOT A UNIQUE IDENTITY IN GEN 3: a SHEDINJA carries the SAME PID as the NINJASK it came from** — and this codebase keyed "which mon do I act on" off exactly that (2026-08-14, DECOMP-VERIFIED — ✅ **FIXED IN BOTH FORKS (Stage 1, promoted 2026-08-14) — ⚠ RESIDUAL CASES REMAIN OPEN**)
 
 > ✅ **STAGE 1 LANDED 2026-08-14 — the party/box identity lookups now key on `(personality,
 > species)`** via the shared `modules/pokemon.same_pokemon` predicate. A/B proven by
@@ -2685,8 +2685,11 @@ to refute "the tide is not a blocker"; the static-table half verified by me dire
 > genuine Gen 3 substructure encryption: the OLD PID-only rule, asked for the SHEDINJA, returns
 > the **NINJASK's** slot; the shipped rule returns the right one. Fault-tested both ways — revert
 > the fix and the gate goes red on exactly that check.
-> ⚠ **`custom-pokebot` HAS THE DETECTION WARNING BUT NOT THE FIX** (Stage 0 was promoted, Stage 1
-> was not — promotion is the USER's call). **The wrong-target release is still live there.**
+> ✅ **PROMOTED TO `custom-pokebot` 2026-08-14** (user-approved; the FIRST promotion executed
+> through `tools/story-dev/promote.py` rather than by hand). Verified IN THAT FORK by
+> `repro_pid_identity_key.py --build custom` → exit 0, which **asserts which fork it imported**
+> before testing anything, plus a live drive. Superseded: *"custom-pokebot has the detection
+> warning but not the fix — the wrong-target release is still live there."*
 > ⛔ **The residual cases below are NOT closed by Stage 1** — see "Residual collisions".
 
 - **Why this is severe.** This project's standing rule — written into `CLAUDE.md`'s SESSION
