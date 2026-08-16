@@ -31,6 +31,13 @@ changes, THIS FILE MUST BE UPDATED WITH IT.** Both constants are duplicated belo
 reader can diff them by eye against `story_mode.py:1087` and `:1573-1596`.
 
 ⛔ READ-ONLY. No writes to any save, no edits to `modules/`, `plugins/`, or `story_mode.py`.
+⚠ **"READ-ONLY" MEANS IT CHANGES NOTHING YOU CARE ABOUT — not that it writes zero bytes.**
+Booting mGBA makes the emulator drop a state file into
+`sandbox-pokebot/profiles/repro-ml/states/` (and refresh `current_state.ss1`) on shutdown.
+Both are GITIGNORED, so `git status` stays clean and no committed save, module or plugin is
+touched — but the claim is scoped, not absolute. (Flagged by a cold-start agent that ran this
+and then checked the tree; an unqualified "READ-ONLY" is the kind of small overclaim this
+project keeps getting caught by.)
 
 Run:  cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_credible_answer.py [save_name.ss1]
       (defaults to ch13_fortree_door.ss1)

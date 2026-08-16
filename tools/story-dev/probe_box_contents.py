@@ -11,6 +11,13 @@ and full move list — plus, per mon, whether it matches a NEEDED type set eithe
 type or by a known move's type.
 
 ⛔ READ-ONLY. No writes to the save, no edits to `modules/`, no edits to `story_harness.py`.
+⚠ **"READ-ONLY" MEANS IT CHANGES NOTHING YOU CARE ABOUT — not that it writes zero bytes.**
+Booting mGBA makes the emulator drop a state file into
+`sandbox-pokebot/profiles/repro-ml/states/` (and refresh `current_state.ss1`) on shutdown.
+Both are GITIGNORED, so `git status` stays clean and no committed save, module or plugin is
+touched — but the claim is scoped, not absolute. (Flagged by a cold-start agent that ran this
+and then checked the tree; an unqualified "READ-ONLY" is the kind of small overclaim this
+project keeps getting caught by.)
 It only loads a `.ss1`, reads memory, and prints.
 
 Run:  cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_box_contents.py [save_name.ss1]
