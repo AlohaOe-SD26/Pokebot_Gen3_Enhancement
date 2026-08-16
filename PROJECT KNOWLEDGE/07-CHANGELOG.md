@@ -14383,3 +14383,46 @@ that was designed in after an adversarial pass flagged it.
 Sandbox→custom drift is **1** (`modules/story/pc_trip.py`). ⛔ **This one CHANGES BEHAVIOUR** — the
 earlier `counter_hunt.py` promotion was a comment — so it is explicitly the USER's call and has not
 been asked for.
+
+## 2026-08-15 — ✅✅ PROMOTED the KI-79 fix (BEHAVIOUR change, user-approved) — proven by a THREE-POINT A/B that the new branch actually RUNS in custom (punch-list #24-counters)
+
+**Promoted:** `modules/story/pc_trip.py`, sandbox → custom. **User-approved 2026-08-15.**
+Restore point `restore/2026-08-15-pre-promotion-ki79-pctrip`. Drift **1 → 0**, 1/1 byte-identical.
+⛔ **Unlike the `counter_hunt.py` promotion earlier the same day, this one CHANGES BEHAVIOUR** —
+so the verification bar was raised deliberately.
+
+**‼‼ THE VERIFICATION THAT MATTERS: A BYTE-COMPARE CANNOT PROVE WHAT RUNS.** `promote.py` saying
+"1/1 byte-identical" proves only that the file was COPIED. For a behaviour change the question is
+whether the NEW BRANCH EXECUTES in custom — and the fault hook can answer it, where a diff cannot:
+
+| # | run (`--driver boxcounter2 --build custom`) | result | proves |
+|---|---|---|---|
+| 1 | **BEFORE** promotion, `POKEBOT_PCWITHDRAW_FAULT=1` | `Slugma is in the party` → **ACCEPTANCE: PASS** | the hook is ABSENT in custom; the variable is INERT |
+| 2 | **AFTER** promotion, **identical command** | `‼ SKIPPING the PC interaction` + `‼ THE WITHDRAW DID NOT LAND` → **ACCEPTANCE: FAIL** | ⇒ **the new code is LIVE in custom** |
+| 3 | **AFTER** promotion, unfaulted | green line → **ACCEPTANCE: PASS** | no regression on the happy path |
+
+⛔ **Run 1 does NOT prove the variable was 'inert' — a run of code that never READS a variable cannot show anything about it, and its output is indistinguishable from an unfaulted run.** (A Tier 1 reviewer caught exactly that overclaim.) What run 1 DOES prove is that the identical command PASSED before the promotion. The *absence of the hook* is proven from git instead, which is stronger and re-runnable by anyone: `git show restore/2026-08-15-pre-promotion-ki79-pctrip:custom-pokebot/modules/story/pc_trip.py | grep -c POKEBOT_PCWITHDRAW_FAULT` → **0** (sandbox at the same tag → **3**; custom now → **3**).
+‼ **Run 1 can only ever be captured BEFORE the copy** — it is gone the moment the promotion
+happens — so it was run first and COMMITTED. That ordering was a deliberate consequence of this
+session's earlier Tier 1 kick-back about evidence durability.
+📁 `tools/story-dev/evidence/2026-08-15-ki79-promotion-{BEFORE-custom-faultvar-set,AFTER-custom-FAULTED,AFTER-custom-UNFAULTED}.stdout.txt` (+ `.driver.txt` twins).
+Also green on custom: `boxcounter2 --build custom` **ARM A** → `ACCEPTANCE: PASS` (transcript: `tools/story-dev/evidence/2026-08-15-ki79-promotion-AFTER-custom-ARMA.stdout.txt`, which logs `ARM=A (POKEBOT_BOXCOUNTER_TYPEONLY_A='1')` so the arm is self-evidencing), and four `--build custom` gates that each ASSERT which fork
+they imported → exit 0.
+
+**‼ `promote.py` REFUSED THE FIRST ATTEMPT — dirty tree** (the baseline run had created evidence
+files and appended the ledger). That refusal is the tool doing its job, so the promotion diff is
+exactly the promotion; the baseline was committed first and the promotion re-run from clean.
+⛔ The wrong move there would have been to route around the refusal.
+
+**Also learned, and it is a doc-hygiene finding, not a code one:** the drift figure had to be
+swept to 0 across **nine** statements in two files, and one line in `04-HANDOFF.md` has now gone
+stale **three times in a single day** — every time because it spells the count as an ENGLISH WORD
+naming a file, so a sweep for the numeral misses it. See `08-MISTAKES.md`.
+⚠ Also recorded: `audit_doc_consistency` cannot tell a QUOTATION from a claim — it red-flagged a
+parenthetical that merely RECITED the stale wording, which is why that note now describes the old
+phrasing instead of reproducing it.
+
+⚠ **WHAT THE FIX STILL DOES NOT DO:** the message is trustworthy now, but **no CALLER acts on it.**
+`withdraw_from_box` still returns nothing and still never raises. A caller that must KNOW whether
+the counter arrived has to check identity itself — `--driver boxcounter2` does; production does
+not. Deliberate scope line, recorded so it is not mistaken for an oversight.

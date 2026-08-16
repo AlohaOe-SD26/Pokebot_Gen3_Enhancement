@@ -423,8 +423,10 @@ def withdraw_from_box(pids) -> Generator:
 
     name = getattr(getattr(target, "species", None), "name", "?")
     try:
+        from modules.modes.util import wait_for_n_frames
         from modules.modes.util.pc_interaction import PCAction, interact_with_pc
         from modules.modes.util.walking import ensure_facing_direction, navigate_to
+        from modules.pokemon_storage import get_pokemon_storage
 
         party = get_party()
         alive = [i for i, p in enumerate(party)
@@ -467,11 +469,63 @@ def withdraw_from_box(pids) -> Generator:
         here = get_player_avatar().map_group_and_number
         yield from navigate_to(here, PC_STAND_TILE)
         yield from ensure_facing_direction(PC_FACING)
-        yield from interact_with_pc(actions)
 
+        # ⛔ FAULT INJECTION (KI-79, permanent hook — never edit code to inject a fault).
+        # `POKEBOT_PCWITHDRAW_FAULT=1` SKIPS the PC interaction entirely, so the withdraw
+        # provably does not happen while everything around it still runs. It exists because the
+        # verification below is an ERROR PATH, and a green happy-path run cannot exercise an
+        # error path — before this hook, "the mon arrived" and "we never even tried" produced
+        # the SAME green line. Read INSIDE the function, never at import.
+        import os as _os
+
+        if _os.environ.get("POKEBOT_PCWITHDRAW_FAULT", "0") == "1":
+            console.print(
+                "[magenta]Story: PC — ‼ POKEBOT_PCWITHDRAW_FAULT=1, SKIPPING the PC interaction "
+                "on purpose. The withdraw will NOT happen; the check below must say so.[/]"
+            )
+        else:
+            yield from interact_with_pc(actions)
+
+        # ‼‼ KI-79 — VERIFY BY IDENTITY, NEVER BY COUNT. This block used to be:
+        #       after = len(get_party())
+        #       console.print(f"... {name} is in the party; party is now {after}.")
+        #   which reads a COUNT and announces an IDENTITY. It could not fail: on the make-room
+        #   path the deposit CANCELS the withdraw, so the count is UNCHANGED on success
+        #   (measured: party 6 -> 6, box 2 -> 2), and it is equally unchanged when nothing
+        #   happened at all. Combined with the blanket `except` below — which means this
+        #   function NEVER RAISES — a silent PC failure printed a green success.
+        # ⛔ Do NOT "fix" this by asserting the count CHANGED: on the make-room path it correctly
+        #   does not. The count stays in the message as colour, never as evidence.
+        # ‼ The party and the storage are cached PER FRAME, so a same-frame read after the PC
+        #   interaction can still see the PRE-withdraw state. Yield before reading, or the
+        #   verification itself becomes the new false negative.
+        yield from wait_for_n_frames(2)
+
+        # Identity = (personality_value, species) — ⛔ NOT the PID alone. A Shedinja carries its
+        # Ninjask's PID (KI-78), so a bare-PID check is a latent collision bug.
+        target_key = (target.personality_value, getattr(target.species, "name", None))
+        in_party_now = any(
+            (p.personality_value, getattr(p.species, "name", None)) == target_key
+            for p in get_party()
+            if p is not None
+        )
+        still_boxed = get_pokemon_storage().contains_pokemon(target)
         after = len(get_party())
-        console.print(f"[green]Story: PC — {name} is in the party; party is now {after}.[/]")
-        context.message = f"Story: withdrew {name} — party {after}."
+
+        if in_party_now and not still_boxed:
+            # BOTH halves: in the party AND gone from the box. Either alone is not a move —
+            # in-party-only could be a copy, gone-from-box-only could be a release.
+            console.print(f"[green]Story: PC — {name} is in the party; party is now {after}.[/]")
+            context.message = f"Story: withdrew {name} — party {after}."
+        else:
+            # ‼ LOUD, NAMED, and it does NOT raise — the heal that already succeeded must survive
+            # (same contract as before). What changes is that the caller is no longer LIED TO.
+            console.print(
+                f"[bold red]Story: PC — ‼ THE WITHDRAW DID NOT LAND. {name} "
+                f"in_party={in_party_now} still_boxed={still_boxed} (party is {after}). "
+                f"The counter is NOT usable this fight; this used to print as a SUCCESS.[/]"
+            )
+            context.message = f"Story: withdraw of {name} FAILED — it is still boxed."
     except Exception as error:  # noqa: BLE001
         console.print(
             f"[yellow]Story: could not withdraw {name} ({error!r}) — it stays in the box.[/]"

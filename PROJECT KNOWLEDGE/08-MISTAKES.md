@@ -6902,3 +6902,36 @@ on a correctly-encoded `⏱` and on the em dashes, `20×17`, `§Ch20`, `‼`/`�
 - **Meta-lesson worth more than the fix:** the reviewer was WRONG about the substance (the code is
   correct, and the very next run proved it) and RIGHT about the epistemics. ⇒ **A kick-back that
   says "I cannot verify this" is not a disagreement to argue with; it is a gap to close.**
+
+## 2026-08-15 — THE SAME LINE WENT STALE THREE TIMES IN ONE DAY, BECAUSE IT SPELLED THE NUMBER AS A WORD
+
+- **Symptom.** A drift-count sentence in `04-HANDOFF.md` was corrected, went stale, was corrected
+  again, and went stale again — **three times between morning and evening**, across two promotions.
+  Each time it was found by a different mechanism (a Tier 1 reviewer, then
+  `audit_doc_consistency.py`, then the gate again), never by the sweep that was supposed to catch it.
+- **Root cause.** The sweep greps for the FIGURE. That line writes it as an **English word naming a
+  file** — the phrasing pattern is "expect exactly ⟨word⟩ file, ⟨name⟩" — so a search for the
+  numeral walks straight past it. This is the same defect as the spelled-out "THREE" that sat in
+  the drift cell for a day, and it survived precisely because the fix for THAT one was applied to
+  the cell, not to the class.
+- **What actually helped this time.** (1) The sweep was performed by a THROWAWAY script that
+  asserted every expected string was present and unique and **applied nothing on any miss** — a
+  partial sweep is the real hazard, and an atomic one fails loud. It aborted twice on my own bad
+  assumptions (a missing `**`, a different dash) and, because it is all-or-nothing, left the file
+  untouched both times. (2) The offending line now states the expectation in digits.
+- ⛔ **HONESTY CORRECTION, forced by a Tier 1 reviewer (and it was right to force it): that script
+  is NOT COMMITTED and NO GATE ENFORCES ANY OF THIS.** An earlier draft of this very entry said
+  "the drift sweep is now a SCRIPT", which reads as *structurally fixed* — describing a fix that
+  does not exist is worse than describing no fix, because it stops the next agent from building
+  one. The durable output of this incident is a PREVENTION RULE in `14-AGENT-PLAYBOOK.md` and
+  nothing more. ‼ **The real structural fix is still unbuilt**: teach `audit_doc_consistency.py`
+  the WORD forms of a count, so the numeral-only blind spot closes for good. Until then this rule
+  is prose, and prose has already failed here three times in one day.
+- ‼ **Prevention rule.** *A drift/gate/count figure is a MULTI-FILE, MULTI-SPELLING fact. When you
+  change one, grep the WORD forms too — `ONE`, `zero`, "everything is promoted", "that one file" —
+  not just the numeral, and never edit it only in the place you happen to be looking.*
+- ⚠ **Second finding, about the gate itself:** `audit_doc_consistency` matches literal strings and
+  **cannot tell a QUOTATION from a claim.** It red-flagged a parenthetical that merely RECITED the
+  old stale wording in order to explain it, and separately red-flagged a line for saying the figure
+  was NOT zero. ⇒ **describe superseded wording, do not reproduce it** — and do not "fix" the gate
+  by loosening it, because the literal match is exactly what makes it catch the real cases.

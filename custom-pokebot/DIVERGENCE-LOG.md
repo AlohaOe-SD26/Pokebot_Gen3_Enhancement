@@ -1632,3 +1632,49 @@ explicitly skipped the drive, and this one deliberately does not):
 * Four `--build custom` gates, each of which ASSERTS which fork it imported before testing:
   `repro_box_counter_move_test`, `repro_pid_identity_key`, `repro_party_accounting`,
   `repro_heal_piggyback_reporting` — all exit 0.
+
+## 2026-08-15 — `modules/story/pc_trip.py`: KI-79, the PC withdraw now verifies BY IDENTITY (BEHAVIOUR CHANGE, user-approved)
+
+**Promoted:** `modules/story/pc_trip.py`, sandbox → custom. **User-approved 2026-08-15.**
+Restore point `restore/2026-08-15-pre-promotion-ki79-pctrip` (annotated, pushed, verified on
+origin by `promote.py` before it copied). Drift **1 → 0**, **1/1 byte-identical**.
+⛔ **Unlike the `counter_hunt.py` promotion earlier the same day, this one CHANGES BEHAVIOUR.**
+
+**What changed.** `withdraw_from_box` used to end with `after = len(get_party())` and then print
+*"{name} is in the party"* — a COUNT announcing an IDENTITY. It could not fail: the make-room
+deposit CANCELS the withdraw, so the count is unchanged on success (party 6 → 6) **and** when
+nothing happened; and the function never raises, so a silent PC failure printed green. It now
+verifies `(personality_value, species)` present in the party **AND** `contains_pokemon(target)`
+False in the box — both halves, since in-party-only could be a copy and gone-from-box-only a
+release — after a 2-frame yield, because party and storage are cached per frame. On failure it
+prints a loud named `‼ THE WITHDRAW DID NOT LAND …` and **still does not raise**: the original
+contract (a PC hiccup must not destroy a heal that already succeeded) is preserved.
+Also adds the permanent `POKEBOT_PCWITHDRAW_FAULT` hook (registry §B).
+‼ Identity is `(pid, species)`, never the bare PID — a Shedinja carries its Ninjask's PID (KI-78).
+
+**‼‼ VERIFIED BY A THREE-POINT A/B, BECAUSE A BYTE-COMPARISON CANNOT PROVE WHAT RUNS.**
+For a behaviour change, "1/1 byte-identical" only proves the file was COPIED. These three runs —
+the first of which is capturable ONLY before the promotion, and is therefore committed — prove the
+new branch is what actually EXECUTES in custom:
+
+| # | run (all `--driver boxcounter2 --build custom`) | result | what it proves |
+|---|---|---|---|
+| 1 | **BEFORE** promotion, `POKEBOT_PCWITHDRAW_FAULT=1` | `Story: PC — Slugma is in the party` → **ACCEPTANCE: PASS** | the hook is ABSENT in custom; the variable is INERT |
+| 2 | **AFTER** promotion, `POKEBOT_PCWITHDRAW_FAULT=1` | `‼ SKIPPING the PC interaction` + `‼ THE WITHDRAW DID NOT LAND. Slugma in_party=False still_boxed=True` → **ACCEPTANCE: FAIL** | ⇒ **the new code is LIVE in custom** — the identical command flipped |
+| 3 | **AFTER** promotion, unfaulted | `Story: PC — Slugma is in the party; party is now 6.` → **ACCEPTANCE: PASS** | no regression on the happy path |
+
+📁 Raw transcripts committed, by name:
+`tools/story-dev/evidence/2026-08-15-ki79-promotion-BEFORE-custom-faultvar-set.stdout.txt`,
+`…-AFTER-custom-FAULTED.stdout.txt`, `…-AFTER-custom-UNFAULTED.stdout.txt` (+ `.driver.txt` twins).
+⛔ **Run 1 does NOT prove the variable was 'inert' — a run of code that never READS a variable cannot show anything about it, and its output is indistinguishable from an unfaulted run.** (A Tier 1 reviewer caught exactly that overclaim.) What run 1 DOES prove is that the identical command PASSED before the promotion. The *absence of the hook* is proven from git instead, which is stronger and re-runnable by anyone: `git show restore/2026-08-15-pre-promotion-ki79-pctrip:custom-pokebot/modules/story/pc_trip.py | grep -c POKEBOT_PCWITHDRAW_FAULT` → **0** (sandbox at the same tag → **3**; custom now → **3**).
+‼ **stdout is captured separately on purpose** — production's `console.print` output, which is the
+entire subject of this fix, is NOT in the driver's log. That lesson cost a Tier 1 kick-back earlier
+the same day, when running arm 2 overwrote arm 1's transcript and left a true claim unverifiable.
+
+**Also green on custom:** `boxcounter2 --build custom` **ARM A** → `ACCEPTANCE: PASS` (transcript: `tools/story-dev/evidence/2026-08-15-ki79-promotion-AFTER-custom-ARMA.stdout.txt`, which logs `ARM=A (POKEBOT_BOXCOUNTER_TYPEONLY_A='1')` so the arm is self-evidencing); and four `--build custom` gates, each of
+which ASSERTS which fork it imported: `repro_box_counter_move_test`, `repro_pid_identity_key`,
+`repro_party_accounting`, `repro_heal_piggyback_reporting` — all exit 0.
+
+⚠ **What this does NOT change:** the message is now trustworthy, but no CALLER acts on it —
+`withdraw_from_box` still returns nothing and still never raises. A caller that needs to KNOW
+whether the counter arrived must check identity itself (which `--driver boxcounter2` does).

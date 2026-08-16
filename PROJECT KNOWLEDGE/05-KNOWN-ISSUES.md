@@ -2910,7 +2910,7 @@ SHOULD inherit its sibling's protection — widening is the safe direction, narr
 
 ---
 
-## KI-79 — `withdraw_from_box` PRINTED A SUCCESS IT NEVER VERIFIED: `len(get_party())` wearing an identity's clothes (2026-08-15, code-verified while driving (P4) Stage 2 — ✅ **FIXED AND FAULT-PROVEN IN SANDBOX; ⚠ NOT YET PROMOTED to `custom-pokebot/`**)
+## KI-79 — `withdraw_from_box` PRINTED A SUCCESS IT NEVER VERIFIED: `len(get_party())` wearing an identity's clothes (2026-08-15, code-verified while driving (P4) Stage 2 — ✅✅ **FIXED, FAULT-PROVEN, AND PROMOTED TO BOTH FORKS 2026-08-15, user-approved. CLOSED.**)
 
 - **The line.** `modules/story/pc_trip.py:472-474`, the tail of `withdraw_from_box()`:
   ```
@@ -2974,9 +2974,24 @@ SHOULD inherit its sibling's protection — widening is the safe direction, narr
   `console.print` output — the `‼ THE WITHDRAW DID NOT LAND` and green-success lines live in
   stdout). The faulted stdout also carries `POKEBOT_PCWITHDRAW_FAULT=1, SKIPPING the PC
   interaction`, which is what proves the fault was actually armed for that run.
-- ⚠ **NOT YET PROMOTED.** The fix lives in `sandbox-pokebot/` only, so `custom-pokebot/` still
-  carries the count-based print. Sandbox→custom drift is **1** (`modules/story/pc_trip.py`) and
-  **promotion is the USER's call.**
+- ✅✅ **PROMOTED TO BOTH FORKS 2026-08-15 (user-approved); drift is 0.** Restore point
+  `restore/2026-08-15-pre-promotion-ki79-pctrip`.
+  ‼‼ **VERIFIED BY A THREE-POINT A/B, NOT BY A BYTE-COMPARE — and the distinction is the whole
+  point for a BEHAVIOUR change.** `promote.py` reporting "1/1 byte-identical" only proves the file
+  was COPIED; it cannot prove the new branch is what EXECUTES. The fault hook can:
+  | # | run (`--driver boxcounter2 --build custom`) | result | proves |
+  |---|---|---|---|
+  | 1 | **BEFORE** promotion, `POKEBOT_PCWITHDRAW_FAULT=1` | `Slugma is in the party` → **PASS** | the hook is ABSENT in custom — the variable is INERT |
+  | 2 | **AFTER** promotion, same command | `‼ THE WITHDRAW DID NOT LAND` → **FAIL** | ⇒ **the new code is LIVE in custom** |
+  | 3 | **AFTER** promotion, unfaulted | green line → **PASS** | no regression on the happy path |
+  ‼ Run 1 is capturable ONLY before the copy and is therefore committed. ⛔ **Run 1 does NOT prove the variable was 'inert' — a run of code that never READS a variable cannot show anything about it, and its output is indistinguishable from an unfaulted run.** (A Tier 1 reviewer caught exactly that overclaim.) What run 1 DOES prove is that the identical command PASSED before the promotion. The *absence of the hook* is proven from git instead, which is stronger and re-runnable by anyone: `git show restore/2026-08-15-pre-promotion-ki79-pctrip:custom-pokebot/modules/story/pc_trip.py | grep -c POKEBOT_PCWITHDRAW_FAULT` → **0** (sandbox at the same tag → **3**; custom now → **3**).
+  Transcripts:
+  `tools/story-dev/evidence/2026-08-15-ki79-promotion-{BEFORE-custom-faultvar-set,AFTER-custom-FAULTED,AFTER-custom-UNFAULTED}.stdout.txt`.
+  Also green on custom: `boxcounter2 --build custom` **ARM A** → `ACCEPTANCE: PASS` (transcript: `tools/story-dev/evidence/2026-08-15-ki79-promotion-AFTER-custom-ARMA.stdout.txt`, which logs `ARM=A (POKEBOT_BOXCOUNTER_TYPEONLY_A='1')` so the arm is self-evidencing), and four `--build custom` gates that each ASSERT which fork they imported.
+- ⚠ **WHAT IS STILL TRUE AFTER THE FIX:** the message is now trustworthy, but **no CALLER acts on
+  it.** `withdraw_from_box` still returns nothing and still never raises, so a caller that needs to
+  KNOW whether the counter arrived must check identity itself — which `--driver boxcounter2` does
+  and production does not. That is a deliberate scope line, not an oversight.
 - **Related:** KI-78 (identity is `(personality, species)`, because a Shedinja shares its
   Ninjask's PID — so even a PID-only check is not enough here), and the (P4) Stage 2 driver, whose
   `party_map()` is keyed on that pair for exactly this reason after a PID-keyed first draft
