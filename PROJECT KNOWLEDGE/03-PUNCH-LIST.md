@@ -2047,6 +2047,23 @@ criterion**, and the honest way to test the pair against each other.
 level-matched encounters maintenance needs. Done together they are one activity, not two.
 
 ### ‼‼ THE BIG ONE — `#24-trainmap+` : area-aware training, party>4, PC rotation
+
+> ⛔⛔ **BEFORE YOU TOUCH ANY BOSS `cfg["grass"]` OR `TRAINING_GRASS`, READ KI-80 (2026-08-15).**
+> The handoff's (P6) framing of this — *"Norman's patch is L3-5 against a band of L27-31, and
+> Winona has no patch at all"* — is **WRONG ON BOTH EXAMPLES**, and acting on it regresses the
+> bot. In one line: `grass_is_fodder` (`story_mode.py:1899`) is the SOLE gate on KI-23's
+> `_boss_plan_is_hopeless`/`_counter_ladder`, and it is TRUE for Winona *only because she has no
+> `grass` key* — so giving her one SKIPS her counter machinery for any team at L30-35 (her own
+> band), silently. Norman's L3-5 patch is the DELIBERATE fodder trigger for the only relocation
+> this bot has ever performed (70-83% measured). And a new `TRAINING_GRASS` row re-ranks ONE
+> GLOBAL table for every caller, including the counter picker for every other boss.
+> ✅ **ENFORCED, not requested:** `repro_boss_grass_gate.py` (suite #24) fails the build if an
+> at-risk fight gains a `grass` key while the coupling stands. It is AST-based (a comment cannot
+> trip it) and SELF-RETIRING (it stops enforcing once the ladder is decoupled).
+> ‼ **The real work here is KI-80's decoupling, and it may not ship on reading alone** — it needs
+> the KI-23 repro DRIVEN at `losses >= 2` with `kos >= 1` and no type answer. A test at
+> `losses < 2` is vacuously green.
+
 **User directive 2026-07-29.** The bot trains in whatever grass is next to the objective,
 often below L5, so XP is near worthless — and Norman is the 5th gym but sits in the STARTING
 region, where "train near the gym" is actively wrong.

@@ -47,6 +47,13 @@ GATES: list[tuple[str, bool]] = [
     ("audit_encoding.py", False),
     ("repro_box_counter_move_test.py", False),
     ("repro_pid_identity_key.py", False),
+    # ‼ KI-80. A boss cfg may not gain a `"grass"` key while `grass_is_fodder` is still the sole
+    # gate on `_boss_plan_is_hopeless`/`_counter_ladder` — doing so SKIPS the counter machinery
+    # for teams above the patch's band + 8, silently, behind a healthy-looking log line. The
+    # punch list's own (P6) item asked for exactly that edit; this gate is why it cannot land by
+    # accident. AST-based (a mention in a comment cannot trigger it) and SELF-RETIRING (it stops
+    # enforcing the moment the coupling is removed). `--self-test` proves all four directions.
+    ("repro_boss_grass_gate.py", False),
     # PARTY ACCOUNTING STAGE 0 (`06-DECISIONS-LOG.md` RULING D). Drives the REAL `get_party()` over
     # fabricated `gPlayerParty` memory to prove the divergence observer SEES each class
     # (HOLE/OVERFLOW/STALE/INVALID) and — the part that actually matters — that it changes NOTHING:

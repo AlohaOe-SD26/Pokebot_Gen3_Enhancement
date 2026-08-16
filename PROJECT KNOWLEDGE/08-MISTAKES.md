@@ -6947,3 +6947,32 @@ on a correctly-encoded `⏱` and on the em dashes, `20×17`, `§Ch20`, `‼`/`�
   old stale wording in order to explain it, and separately red-flagged a line for saying the figure
   was NOT zero. ⇒ **describe superseded wording, do not reproduce it** — and do not "fix" the gate
   by loosening it, because the literal match is exactly what makes it catch the real cases.
+
+## 2026-08-15 — A PUNCH-LIST ITEM NAMED TWO "MEASURED HOLES" AND BOTH WERE THE DESIGN WORKING
+
+- **Symptom.** (P6) read: *"TRAINING-AREA MAPS per gym AND per boss — Norman's configured patch is
+  L3-5 against a boss band of L27-31, and Winona has no patch configured at all, so the whole
+  relocation machinery is skipped for her."* Every fact in that sentence is TRUE. Both conclusions
+  are wrong, and the edit it invites — add a `grass` key, fix Norman's patch — is a regression.
+- **Root cause of the misreading.** Both observations were made from the CONFIG (`cfg["grass"]`)
+  without reading what CONSUMES it. `grass_is_fodder` (`story_mode.py:1899`) conflates *"no patch
+  configured"* with *"the patch is weak"* and is the SOLE gate on KI-23's counter ladder; and
+  `story_mode.py:1981-1991` says in so many words that Norman's weak local patch is the
+  deliberate FODDER TRIGGER for the only relocation this bot has ever performed.
+- ‼ **Prevention rule.** *An absence in a config is not a gap until you have read the code that
+  reads it.* A missing key can be load-bearing — here it is the ONLY thing keeping a documented
+  safety net armed — and the code comment saying so was ~1,600 lines away from the dict.
+- ‼ **Second rule, about our own backlog.** *A punch-list item is a HYPOTHESIS, including its
+  stated evidence.* The playbook already says to verify "is it unbuilt?" in code before building.
+  This extends it: **verify the DIAGNOSIS too, not just the status.** Three items have been found
+  already-shipped; this is the first found already-CORRECT-and-mislabelled-as-broken.
+- **What made the difference.** An explicitly ADVERSARIAL agent, briefed with the plan and told to
+  find how it ships broken, and given the one documented trap as a starting point. It found the
+  `grass_is_fodder` coupling — which no amount of reading the config would have surfaced — and its
+  load-bearing claim was then verified by hand against the source before anything was written.
+  ⇒ *Spend an agent on REFUTING the item you are about to start, not only on researching it.*
+- **The output is a GATE, not a note** (`repro_boss_grass_gate.py`, suite #24), because the next
+  agent will read the same punch-list sentence and reach for the same edit. It is SELF-RETIRING:
+  the prohibition exists only as a consequence of the coupling, so it stops enforcing when the
+  coupling goes. ‼ A rule that outlives its cause is exactly the stale "don't do X" line
+  `/reconcile` exists to retire.

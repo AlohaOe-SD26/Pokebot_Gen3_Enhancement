@@ -1883,3 +1883,88 @@ give-up path that RESOLVES the battle instead of abandoning it.
    for the old slow leak; it keeps KI-34's index-space fix (which is correct and unrelated).
    Cheap to try, one constant, and it should restore something like the 48% finish rate —
    but it is a mitigation, not a fix, and it must not be mistaken for one.
+
+---
+
+# KI-67 — FULL ENTRY, MOVED here from `05-KNOWN-ISSUES.md` (2026-08-15, on the R3 line budget when KI-79 and KI-80 were filed)
+
+> ‼ **Why it moved:** KI-67 is CLOSED and DRIVEN, and its 77 lines were sitting in a
+> CURRENT-STATE file. Verbatim below; a 4-line pointer replaced it there. Nothing deleted.
+
+## KI-67 — the earlier 'production half fixed' write-up is SUPERSEDED (ARCHIVED)
+
+Superseded in full by the '✅✅ KI-67 FULLY CLOSED' section below, which carries the driven
+evidence. The archived text is kept only for its harness DESIGN NOTES (the four parts a driver
+must mirror, and why half a mirror is worse than none) — see `31-KNOWN-ISSUES-ARCHIVE.md`.
+
+## ✅✅ KI-67 FULLY CLOSED 2026-08-12 — the FIRST DRIVEN WHITEOUT RECOVERY IN THIS PROJECT
+
+`StoryWhiteoutRecoveryMixin` (`tools/story-dev/story_harness.py`) gives a driver all four parts of
+production's behaviour, and `SpaceCenter2Mode` uses it. **Driven both ways:**
+
+| run | result |
+|---|---|
+| healthy, `--driver spacecenter2` | `PASS`, `whiteouts=0 recoveries=0`, frame-identical to before |
+| **deliberate loss, `--inject-weak`** | `whiteouts=3 recoveries=3`, ends controllable at `MOSSDEEP_CITY (28,17)` |
+
+‼ **THE FRAME DELTAS ARE THE PROOF, not the counts** — the count alone cannot tell the fixed code
+from the broken code:
+```
+WHITEOUT #1  frame 3532810
+WHITEOUT #2  frame 3540599   (+7,789)
+WHITEOUT #3  frame 3547686   (+7,087)
+```
+**Broken = three attempts in a handful of frames after ONE whiteout. Fixed = each attempt costs
+~7,000 frames and produces ITS OWN whiteout** — i.e. the bot really did walk back from the Pokémon
+Center to Steven and fight again, three times. And the error it finally reported was a
+**`StoryAbort`**, not the fabricated *"cannot reach Steven at (1,8)"* the laundering used to produce.
+The ACCEPTANCE **FAIL** is correct: a lone Lv3 Poochyena genuinely cannot win that battle.
+
+**Five defects in the mixin were found by an adversarial review BEFORE it was driven**, all fixed:
+* `except BotModeError` was too narrow — **`PathFindingError` is a `RuntimeError`**, so a laundered
+  abort would have escaped the recovery loop and been graded a genuine failure;
+* **MRO silent-revert**: ten other drivers still define their own `on_whiteout`, and mixing this in
+  without deleting theirs would leave the driver *looking* converted while never setting the latch.
+  `__init_subclass__` now REFUSES that at class-creation time (proved dynamically in the repro);
+* `self.tag` was dereferenced on the *listener's* stack, where an `AttributeError` kills the run
+  before any RESULT line — now `getattr`;
+* the recovery budget compared a never-reset CLASS counter to a per-call limit — now a delta;
+* falling out of the loop returned `None` = **success** — the silent-green pattern; now returns the
+  last error.
+
+‼ **AND A REAL BLOCKER THE REVIEW CAUGHT: an injected run could have overwritten a committed
+anchor.** `--inject-weak` replaces the party with a lone Lv3 Poochyena; had such a run reached the
+completion var it would have written `post_space_center.ss1` — a fixture `--driver spacecenter` and
+`FIXTURES.md5` depend on — with a joke party, **silently**. Anchor capture now refuses whenever the
+run injected a party. (Verified after the fact: the injected runs captured nothing; the anchor on
+disk came from the healthy run.)
+
+**Also fixed in PRODUCTION, not just the harness:** `StoryMode.run`'s `recoveries > 40` exit raised
+**without clearing the process-global latch**, so whatever ran next would abort at its first
+`_check_abort()` for no visible reason. The harness must not be stricter than the thing it mirrors.
+
+**Superseded — the old "still open" text follows for its design notes:**
+
+⛔ **STILL OPEN — THE DRIVEN HALF, AND DO NOT HALF-DO IT.** `set_story_abort` still appears **zero**
+times in `story_harness.py`. ‼ **Both reviews independently warned that adding the latch to drivers
+WITHOUT also mirroring `run()`'s clear-and-retry loop makes it a ONE-WAY DOOR** — the latch is
+process-global and nothing else clears it, so every later `_check_abort()` would raise forever and
+currently-passing drivers would go red over correct production code (`--driver spacecenter`,
+`--driver mossdeeptravel`; anchors would stop refreshing). **So it is all four or nothing:**
+`on_whiteout` sets the latch AND `_whiteout_pending`; the driver wraps the chapter in a
+clear-and-retry loop; the whiteout branch clears the latch BEFORE navigating and calls
+`exit_building_after_whiteout()`; and the RESULT line reports the recovery count. Cheapest safe
+shape is ONE shared mixin the eleven drivers inherit, so it cannot drift again.
+**Then prove it with `--driver spacecenter2 --inject-weak`** from the 2F anchor (past the grunts,
+at Steven) — a 1-mon party is legal (`GetMinBattleEntries()` is 1) and loses fast, and
+`Cmd_checkteamslost` sums HP over the player's picks only. ‼ Assert `_whiteout_pending` in the log:
+the whole severity assessment rests on it being True when the error arrives, and that was traced
+statically, never run.
+
+**Also still open (pre-existing, adjacent):** the latch is process-global and `run()` does not clear
+it in a `finally`, so an exit via `derails > 4` or `recoveries > 40` leaves it set for whatever runs
+next. Harmless today only because nothing else sets it — it goes live the moment the harness mirror
+lands. And ~48 further swallow sites remain in `early_game.py`; most self-heal because the next
+abort-aware call re-raises, but they should get the same one-line guard, enforced by an AST check
+rather than by prose.
+

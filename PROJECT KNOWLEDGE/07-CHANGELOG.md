@@ -14426,3 +14426,45 @@ phrasing instead of reproducing it.
 `withdraw_from_box` still returns nothing and still never raises. A caller that must KNOW whether
 the counter arrived has to check identity itself — `--driver boxcounter2` does; production does
 not. Deliberate scope line, recorded so it is not mistaken for an oversight.
+
+## 2026-08-15 — ⛔ (P6) INVESTIGATED AND REFUTED: its "obvious" fix would have silently disabled Winona's counter-ladder. KI-80 filed and GATED (punch-list #24-trainmap)
+
+**Nothing was built for (P6), and that is the result.** The item read: *"TRAINING-AREA MAPS per gym
+AND per boss — Norman's configured patch is L3-5 against a boss band of L27-31, and Winona has no
+patch configured at all, so the whole relocation machinery is skipped for her."* **Both examples
+are wrong**, and the edit they invite is a regression:
+
+* ⛔ **Winona.** `grass_is_fodder` (`story_mode.py:1899`) is
+  `("grass" not in cfg) or (wild_max + 8 < team_max)`, and `:1901` makes it the **SOLE gate** on
+  `_boss_plan_is_hopeless` **and** `_counter_ladder`. Her MISSING key is the only reason KI-23's
+  counter machinery can fire for her. Give her the Route 119 patch the adjacent comment suggests
+  (band 24-27, `wild_max` read from the ROM land table) and for any team at **L30-35** — her own
+  band is (29,33) — `27+8=35` is NOT `< team_max`, so the ladder is **SKIPPED**. Control falls to
+  the plain escalation that KI-23 measured failing **198 attempts / 41 losses / 41 whiteouts**.
+  ⛔ And it is INVISIBLE: the run prints a healthy `"training harder before re-attempting"` line.
+* ⛔ **Norman.** The L3-5-vs-L27-31 gap is real and **DELIBERATE** — `story_mode.py:1981-1991`
+  names him as the pathological case BY DESIGN, because the local patch is the FODDER TRIGGER that
+  fires relocation, and `training_areas.py` records ROUTE111 as **the only training relocation this
+  bot has ever performed** (70-83% Balance→Feather). "Correcting" it would disable that.
+* ⛔ **And not a `TRAINING_GRASS` row either** — `best_training_area` ranks ONE GLOBAL table by
+  `(abs(hi - team_level), -hi)`, so a row near L29-33 changes the pick for every other caller,
+  including `counter_hunt.py:647`'s picker for EVERY boss. That is the measured Shoal Cave
+  incident restated.
+
+**✅ THE DELIVERABLE IS A GATE, NOT PROSE** — `tools/story-dev/repro_boss_grass_gate.py`, suite
+**#24**. It re-derives the coupling from the LIVE AST, then forbids a `"grass"` key on
+`winona_fight`, `flannery_fight` and `rival110_fight` while that coupling stands. **AST-based**, so
+a mention in a comment or docstring cannot trip it; **SELF-RETIRING**, so it stops enforcing (and
+says so) the moment someone properly decouples the ladder — a rule that outlives its cause is how
+stale "don't do X" lines accumulate. `--self-test` fault-tests **all four directions**: fires when
+broken, quiet when healthy, quiet when decoupled, quiet on comment-only mentions.
+
+**Filed KI-80** — the underlying defect is not a missing patch, it is that ONE boolean carries two
+unrelated meanings (*"no patch configured"* / *"the patch is weak"*) and gates the counter ladder.
+The fix is to split them, and ⛔ it may NOT ship on reading alone: it needs the KI-23 repro DRIVEN
+(`losses >= 2`, `kos >= 1`, no type answer) before and after. ⚠ A test at `losses < 2` is
+**vacuously green** — the whole branch lives behind `losses >= 2`.
+
+**Housekeeping forced by the above:** the suite is now **24** gates (four doc sites updated, caught
+by `audit_doc_consistency` immediately), and KI-67 — CLOSED, 77 lines — moved to
+`31-KNOWN-ISSUES-ARCHIVE.md` to bring `05-KNOWN-ISSUES.md` back under its 3000-line budget.

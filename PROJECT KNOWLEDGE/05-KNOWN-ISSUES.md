@@ -2352,82 +2352,15 @@ fresh error** — hence `StoryAbort` plus the latch-keyed `reraise_if_aborting`.
 
 ---
 
-## KI-67 — the earlier 'production half fixed' write-up is SUPERSEDED (ARCHIVED)
+## KI-67 — ✅✅ FULLY CLOSED 2026-08-12 (the FIRST DRIVEN WHITEOUT RECOVERY here) — FULL ENTRY MOVED to `31-KNOWN-ISSUES-ARCHIVE.md` (2026-08-15)
 
-Superseded in full by the '✅✅ KI-67 FULLY CLOSED' section below, which carries the driven
-evidence. The archived text is kept only for its harness DESIGN NOTES (the four parts a driver
-must mirror, and why half a mirror is worse than none) — see `31-KNOWN-ISSUES-ARCHIVE.md`.
-
-## ✅✅ KI-67 FULLY CLOSED 2026-08-12 — the FIRST DRIVEN WHITEOUT RECOVERY IN THIS PROJECT
-
-`StoryWhiteoutRecoveryMixin` (`tools/story-dev/story_harness.py`) gives a driver all four parts of
-production's behaviour, and `SpaceCenter2Mode` uses it. **Driven both ways:**
-
-| run | result |
-|---|---|
-| healthy, `--driver spacecenter2` | `PASS`, `whiteouts=0 recoveries=0`, frame-identical to before |
-| **deliberate loss, `--inject-weak`** | `whiteouts=3 recoveries=3`, ends controllable at `MOSSDEEP_CITY (28,17)` |
-
-‼ **THE FRAME DELTAS ARE THE PROOF, not the counts** — the count alone cannot tell the fixed code
-from the broken code:
-```
-WHITEOUT #1  frame 3532810
-WHITEOUT #2  frame 3540599   (+7,789)
-WHITEOUT #3  frame 3547686   (+7,087)
-```
-**Broken = three attempts in a handful of frames after ONE whiteout. Fixed = each attempt costs
-~7,000 frames and produces ITS OWN whiteout** — i.e. the bot really did walk back from the Pokémon
-Center to Steven and fight again, three times. And the error it finally reported was a
-**`StoryAbort`**, not the fabricated *"cannot reach Steven at (1,8)"* the laundering used to produce.
-The ACCEPTANCE **FAIL** is correct: a lone Lv3 Poochyena genuinely cannot win that battle.
-
-**Five defects in the mixin were found by an adversarial review BEFORE it was driven**, all fixed:
-* `except BotModeError` was too narrow — **`PathFindingError` is a `RuntimeError`**, so a laundered
-  abort would have escaped the recovery loop and been graded a genuine failure;
-* **MRO silent-revert**: ten other drivers still define their own `on_whiteout`, and mixing this in
-  without deleting theirs would leave the driver *looking* converted while never setting the latch.
-  `__init_subclass__` now REFUSES that at class-creation time (proved dynamically in the repro);
-* `self.tag` was dereferenced on the *listener's* stack, where an `AttributeError` kills the run
-  before any RESULT line — now `getattr`;
-* the recovery budget compared a never-reset CLASS counter to a per-call limit — now a delta;
-* falling out of the loop returned `None` = **success** — the silent-green pattern; now returns the
-  last error.
-
-‼ **AND A REAL BLOCKER THE REVIEW CAUGHT: an injected run could have overwritten a committed
-anchor.** `--inject-weak` replaces the party with a lone Lv3 Poochyena; had such a run reached the
-completion var it would have written `post_space_center.ss1` — a fixture `--driver spacecenter` and
-`FIXTURES.md5` depend on — with a joke party, **silently**. Anchor capture now refuses whenever the
-run injected a party. (Verified after the fact: the injected runs captured nothing; the anchor on
-disk came from the healthy run.)
-
-**Also fixed in PRODUCTION, not just the harness:** `StoryMode.run`'s `recoveries > 40` exit raised
-**without clearing the process-global latch**, so whatever ran next would abort at its first
-`_check_abort()` for no visible reason. The harness must not be stricter than the thing it mirrors.
-
-**Superseded — the old "still open" text follows for its design notes:**
-
-⛔ **STILL OPEN — THE DRIVEN HALF, AND DO NOT HALF-DO IT.** `set_story_abort` still appears **zero**
-times in `story_harness.py`. ‼ **Both reviews independently warned that adding the latch to drivers
-WITHOUT also mirroring `run()`'s clear-and-retry loop makes it a ONE-WAY DOOR** — the latch is
-process-global and nothing else clears it, so every later `_check_abort()` would raise forever and
-currently-passing drivers would go red over correct production code (`--driver spacecenter`,
-`--driver mossdeeptravel`; anchors would stop refreshing). **So it is all four or nothing:**
-`on_whiteout` sets the latch AND `_whiteout_pending`; the driver wraps the chapter in a
-clear-and-retry loop; the whiteout branch clears the latch BEFORE navigating and calls
-`exit_building_after_whiteout()`; and the RESULT line reports the recovery count. Cheapest safe
-shape is ONE shared mixin the eleven drivers inherit, so it cannot drift again.
-**Then prove it with `--driver spacecenter2 --inject-weak`** from the 2F anchor (past the grunts,
-at Steven) — a 1-mon party is legal (`GetMinBattleEntries()` is 1) and loses fast, and
-`Cmd_checkteamslost` sums HP over the player's picks only. ‼ Assert `_whiteout_pending` in the log:
-the whole severity assessment rests on it being True when the error arrives, and that was traced
-statically, never run.
-
-**Also still open (pre-existing, adjacent):** the latch is process-global and `run()` does not clear
-it in a `finally`, so an exit via `derails > 4` or `recoveries > 40` leaves it set for whatever runs
-next. Harmless today only because nothing else sets it — it goes live the moment the harness mirror
-lands. And ~48 further swallow sites remain in `early_game.py`; most self-heal because the next
-abort-aware call re-raises, but they should get the same one-line guard, enforced by an AST check
-rather than by prose.
+Moved on the R3 line budget when KI-79/KI-80 were filed; it is CLOSED and was 77 lines of a
+CURRENT-STATE file. ‼ **Keep only what later work leans on:** the proof was the **FRAME DELTA**
+(+7,789 / +7,087), **not** a count — a whiteout recovery that changes no count still moves the
+clock; and the archived text's real value is its harness DESIGN NOTES (the four parts a driver
+must mirror, and **why half a mirror is worse than none**). ⚠ Still open there: ~48 swallow sites
+in `early_game.py` that should get the same one-line abort-aware guard, **enforced by an assert
+rather than by prose**.
 
 ## KI-65 — the HM-refusal re-pick has NEVER executed: `party_index` is unbound there (2026-08-12, code-verified, OPEN)
 
@@ -2996,3 +2929,63 @@ SHOULD inherit its sibling's protection — widening is the safe direction, narr
   Ninjask's PID — so even a PID-only check is not enough here), and the (P4) Stage 2 driver, whose
   `party_map()` is keyed on that pair for exactly this reason after a PID-keyed first draft
   reported a full party of 6 as 5.
+
+---
+
+## KI-80 — `grass_is_fodder` CONFLATES "no training patch configured" with "the patch is too weak", and it is the SOLE gate on the counter-ladder — so giving a boss a training area silently disables its KI-23 machinery (2026-08-15, code-verified, OPEN, GATED)
+
+- **The line.** `plugins/custom_modes/story_mode.py:1899`:
+  ```
+  grass_is_fodder = ("grass" not in cfg) or (wild_max is not None and wild_max + 8 < team_max)
+  ```
+  and `:1901`:
+  ```
+  if grass_is_fodder and boss_teaches:
+      hopeless, needed = self._boss_plan_is_hopeless(cfg)     # the ONLY call site
+      if hopeless:
+          acted = yield from self._counter_ladder(cfg, losses, needed)   # ditto
+  ```
+- **The defect.** One boolean carries two unrelated meanings — *"this boss has no patch"* and
+  *"this boss's patch is far below the team"* — and it gates **KI-23's** hopeless-detector and
+  counter-catch ladder. The two facts justify boss-training mode for the same reason, but they say
+  nothing in common about whether the party has a TYPE ANSWER, which is what the counter ladder is
+  for. ⇒ **A boss cannot be given a training patch without losing its counter machinery.**
+- **‼ DERIVED CONSEQUENCE — ARITHMETIC ON MEASURED BANDS, *NOT* A REPRODUCTION** (see "NOT OBSERVED FAILING" below; the 198/41/41 figures ARE measured, but they are KI-23's history, not this scenario). On the exact boss KI-23 was filed for: `wild_max` is read from the
+  ROM's LAND table for `cfg["grass"][0]` (`:1886-1890`). Winona's band is **(29,33)**; the patch
+  the adjacent code comment suggests is **Route 119, band 24-27**. For any team at **L30-35** —
+  i.e. her own band — `27 + 8 = 35 < team_max` is **FALSE**, so `grass_is_fodder` flips to False
+  and the counter ladder is SKIPPED. Control falls to the plain
+  `plus5_max`/`plus5_avg`/`escalate_band` escalation at `:1937-1951` — **the path KI-23 measured
+  failing 198 attempts / 41 losses / 41 whiteouts, never converging**, because it does not
+  converge when the party has no super-effective answer.
+- ⛔ **AND IT IS INVISIBLE.** The regression prints a healthy-looking
+  `"Story: lost here N× — training harder before re-attempting (target Lv X, plus5_max)"`.
+  Nothing errors, nothing derails. The only symptom is the ABSENCE of the counter-catch message —
+  and this project has been caught by absence-as-signal repeatedly.
+- **How it was found.** An adversarial pass over `03-PUNCH-LIST`'s **(P6)** item, which asked for
+  *"TRAINING-AREA MAPS per gym AND per boss"* and cited as its hole: *"Winona has no patch
+  configured at all, so the whole relocation machinery is skipped for her."* ‼ **Acting on that
+  sentence would have caused this regression.** Both of (P6)'s stated examples turned out to be
+  wrong — see the (P6) entry in `03-PUNCH-LIST.md`, now corrected.
+- ✅ **GATED — `tools/story-dev/repro_boss_grass_gate.py` (suite #24).** It re-derives the coupling
+  from the live AST and then forbids a `"grass"` key on `winona_fight`, `flannery_fight` and
+  `rival110_fight` while it stands. **AST-based**, so a mention in a comment or docstring cannot
+  trigger it, and **SELF-RETIRING**: decouple the ladder and the gate stops enforcing and says so.
+  `--self-test` proves all four directions (fires when broken; quiet when healthy; quiet when
+  decoupled; quiet on comment-only mentions).
+- **NOT OBSERVED FAILING.** No run has been made with a `grass` key on an at-risk boss — the gate
+  exists so none is. This is a structural finding from reading the code plus arithmetic on the
+  real bands, not a reproduction. ‼ Report it as *"would fire"*, never *"has fired"*.
+- **What a fix looks like** (NOT attempted — it changes boss prep for EVERY gym, and KI-23's own
+  entry warns about the mirror regression): split the two meanings. The counter ladder should be
+  gated on *"is this fight hopeless"* — which `_boss_plan_is_hopeless` already answers on its own —
+  not on whether a patch happens to be configured. ⛔ **The change may not ship on reading alone:**
+  it needs the KI-23 repro conditions DRIVEN (a Winona attempt at `losses >= 2`, at least one
+  recent attempt with `kos >= 1`, and no type answer in the party) both before and after,
+  confirming `_counter_ladder` still fires rather than falling through to the plain escalation.
+  ⚠ A test that only exercises `losses < 2` is **vacuously green** — the whole branch lives behind
+  `losses >= 2`.
+- **Related:** **KI-23** (explicitly NOT closed; its own watch-item is the mirror of this),
+  **KI-31** (the fodder rule as a pure function), and the `xp_rate`-vs-`legacy` `FODDER_RULE` flag,
+  whose repro `repro_fodder_grass.py` *"still has not been run, on any machine"* — a separate,
+  already-tracked axis that must not be conflated with this one.

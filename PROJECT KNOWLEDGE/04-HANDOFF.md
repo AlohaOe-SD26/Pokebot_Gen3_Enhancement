@@ -16,11 +16,11 @@ Every banner further down is HISTORY, newest first.
 >
 > ‼ **FIRST, ALWAYS:** `cd tools/story-dev` **from the repo root** (the folder holding `sandbox-pokebot/`, `custom-pokebot/` and `40cakes repo/`), then
 > `PYTHONUTF8=1 py -3.12 preflight.py` and `PYTHONUTF8=1 py -3.12 run_gates.py`
-> — **both must exit 0; the suite is 23 gates** (it prints its own count — believe that, not this
+> — **both must exit 0; the suite is 24 gates** (it prints its own count — believe that, not this
 > line, which has been wrong at 17, 18, 19, 20 and 21 on the way here). That ritual survived the 2026-08-14
 > priority redirect and is NOT part of the superseded "older framing".
 
-> **State: `main`, clean, 23/23 gates PASS, nothing parked, nothing running.** All work pushed.
+> **State: `main`, clean, 24/24 gates PASS, nothing parked, nothing running.** All work pushed.
 > ✅ **The tree is clean AND the sandbox→custom drift figure is zero** — everything is promoted.
 > *(⚠ Keep those two ideas separate anyway: they are independent, and this line existed to say so
 > loudly while they disagreed. ‼ `audit_doc_consistency` matches the literal string and cannot
@@ -423,9 +423,31 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    `#24-organicteam`. ⛔ The RARE leg is blocked on `#24-rarepredicate`, whose fix is now
 >    specified (HM-gating + location count, NOT warp depth — the user's Bagon/Feebas reasoning).
 >    Trade evolutions are a SANCTIONED non-faithful deviation with four conditions attached.
->    🔜 **(P6) TRAINING-AREA MAPS per gym AND per boss** — measured hole: Norman's configured patch
->    is **L3-5** against a boss band of **L27-31**, and **Winona has no patch configured at all**,
->    so the whole relocation machinery is skipped for her.
+>    ⛔⛔ **(P6) TRAINING-AREA MAPS — ‼ THIS ITEM WAS WRONG ON BOTH ITS EXAMPLES. DO NOT ACT ON
+>    THE OLD WORDING; READ KI-80 FIRST.** Investigated 2026-08-15; the investigation is the
+>    deliverable, and it is now GATED (`repro_boss_grass_gate.py`, suite #24).
+>    * ⛔ **"Winona has no patch configured, so the relocation machinery is skipped for her"** — the
+>      skip is REAL but giving her one is a **REGRESSION**. `grass_is_fodder`
+>      (`story_mode.py:1899`) is `("grass" not in cfg) or (wild_max + 8 < team_max)`, and `:1901`
+>      makes it the **SOLE gate** on `_boss_plan_is_hopeless` **and** `_counter_ladder`. Her
+>      missing key is the only reason KI-23's counter machinery can fire for her. Add the Route 119
+>      patch (band 24-27) and for any team at **L30-35** — her own band is (29,33) — `27+8=35` is
+>      NOT `< team_max`, so the counter ladder is **SKIPPED**, silently, behind a healthy-looking
+>      `"training harder before re-attempting"` line. That is the path KI-23 measured failing
+>      **198 attempts / 41 losses / 41 whiteouts**.
+>    * ⛔ **"Norman's patch is L3-5 against a band of L27-31"** — TRUE, and **DELIBERATE**.
+>      `story_mode.py:1981-1991` names Norman as the pathological case *by design*: the local patch
+>      is the FODDER TRIGGER that fires the relocation, and `training_areas.py` records that
+>      ROUTE111 is **the only training relocation this bot has ever performed**, at a measured
+>      70-83% Balance→Feather success. "Correcting" his patch would DISABLE that.
+>    * ⛔ **Do NOT add a row to `TRAINING_GRASS`** either: `best_training_area` ranks ONE GLOBAL
+>      table by `(abs(hi - team_level), -hi)`, so a new row near L29-33 changes the pick for every
+>      other caller too, including `counter_hunt.py:647`'s candidate picker for EVERY boss. That is
+>      the measured Shoal Cave incident (`08-MISTAKES.md`), restated.
+>    ✅ **WHAT IS ACTUALLY LEFT HERE** is KI-80: decouple the counter-ladder from `grass_is_fodder`
+>    so the two meanings stop sharing a boolean — and it may NOT ship on reading alone. It needs
+>    the KI-23 repro conditions DRIVEN (`losses >= 2`, `kos >= 1`, no type answer) before and
+>    after. ⚠ A test at `losses < 2` is **vacuously green**: the whole branch is behind `losses >= 2`.
 >
 >    **(PARKED, NOT CANCELLED) ASSEMBLE §Ch20 AS A CHAPTER** — a module in `modules/story/`,
 >    wired as Segment 20 in `story_mode.py`, built from the driven ingredients (`_ingress`, the
@@ -488,18 +510,14 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    the scale of what remains. **KI-72** also lands here: never let the planner choose a surfacing
 >    tile.
 >
-> 3. **‼‼ READ KI-68 BEFORE TOUCHING §Ch21 — AND DO NOT READ "NOT ROUTABLE" AS "NOT POSSIBLE".**
->    The party slot is **not** the blocker. `WaypointAction.Dive`/`Emerge` are declared and assigned
->    **nowhere**, and `warp_graph.py:342` says the exclusion is **on purpose** — a dive is not a warp
->    event, so `calculate_path` was never going to emit one. **But `dive()` already exists and
->    works.** ⇒ **The fix is a CHAPTER that drives the transition**, exactly like §Ch18's coord-event
->    exit and Steven's bottom-row door — *not* a planner rewrite.
->    ⛔ *(STALE — this was DONE: `--driver ch20dive` → `ACCEPTANCE: PASS legs=6/6`, and all nine
->    cavern rooms have since been driven. Do not re-do it.)* It used to command *"DO THIS FIRST:
->    inject Dive via `debug_utilities.py:611` and drive Route 128 → Seafloor Cavern"* — DONE, and
->    **the ⛔ ends HERE**, at the end of this sentence.
->    ‼ **LIVE, not stale:** if a hunting ground is ever added, **NOT to `TRAINING_GRASS`** — measured,
->    a Shoal Cave row becomes the highest band and flips `best_training_area` for every team ~L30 up.
+> 3. ✅ **DONE — DO NOT RE-DO.** KI-68's dive leg is driven (`--driver ch20dive` →
+>    `ACCEPTANCE: PASS legs=6/6`) and all nine cavern rooms with it. ‼ **Keep the RULE, not the
+>    task:** `WaypointAction.Dive`/`Emerge` are assigned NOWHERE and `warp_graph.py:342` excludes
+>    dives from `calculate_path` **on purpose** — so *"not routable" never meant "not possible"*;
+>    the answer is a CHAPTER that drives the transition, never a planner rewrite.
+>    ‼ **LIVE, not stale:** if a hunting ground is ever added, **NOT to `TRAINING_GRASS`** —
+>    measured, a Shoal Cave row becomes the highest band and flips `best_training_area` for every
+>    team ~L30 up. ⇒ see **KI-80**, the same table's second sharp edge.
 >
 > 3b. ⛔⛔ **THE ORDER CHANGED 2026-08-13 — READ `06-DECISIONS-LOG.md`'s entry before item 4.**
 >    The Regi arc is **NOT** next, and *"KI-59 blocked it, I fixed it, so build it"* was **REFUTED
@@ -718,11 +736,11 @@ handoff's own instruction found nothing. The archive copy is longer and still us
 ```
 cd tools/story-dev
 PYTHONUTF8=1 py -3.12 preflight.py        # ‼ RUN THIS FIRST. git + fixtures + docs + freeze
-PYTHONUTF8=1 py -3.12 run_gates.py        # THE STANDING SUITE — all 23, exits non-zero on any
+PYTHONUTF8=1 py -3.12 run_gates.py        # THE STANDING SUITE — all 24, exits non-zero on any
                                           #   failure (~130s). ‼ The list lives in CODE, not prose — `run_gates.py` is the only
 #   authority on how many gates there are. Every prose count in this file has been
 #   wrong at some point.
-PYTHONUTF8=1 py -3.12 run_gates.py --quick   # the 16 needing no ROM (was 10, 14, 15; MEASURE)
+PYTHONUTF8=1 py -3.12 run_gates.py --quick   # the 17 needing no ROM (was 10, 14, 15, 16; MEASURE)
 PYTHONUTF8=1 py -3.12 run_gates.py --list    # what is in the suite
 PYTHONUTF8=1 py -3.12 probe_chapter_order.py --build custom   # ‼ also check the OTHER fork
 
