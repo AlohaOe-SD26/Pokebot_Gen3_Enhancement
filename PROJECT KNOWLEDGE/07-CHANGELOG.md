@@ -14468,3 +14468,40 @@ The fix is to split them, and ⛔ it may NOT ship on reading alone: it needs the
 **Housekeeping forced by the above:** the suite is now **24** gates (four doc sites updated, caught
 by `audit_doc_consistency` immediately), and KI-67 — CLOSED, 77 lines — moved to
 `31-KNOWN-ISSUES-ARCHIVE.md` to bring `05-KNOWN-ISSUES.md` back under its 3000-line budget.
+
+## 2026-08-15 — KI-80's repro is now SPECIFIED AND ITS FIXTURE MEASURED — and the spec I wrote hours earlier was wrong enough to have produced a vacuous test (punch-list #24-trainmap)
+
+**No production code changed.** This is the de-risking step that has to precede KI-80's decoupling.
+
+**⛔ THE SPEC WAS WRONG, AND I CAUGHT IT BY READING THE SOURCE.** KI-80 (filed earlier the same
+day) said the repro needs *"`losses >= 2`, `kos >= 1`, no type answer"*. Measured from
+`story_mode.py`: `_boss_plan_is_hopeless` **short-circuits at `losses < PLATEAU_LOSS_THRESHOLD`,
+which is 6** (`:1507`, `:1046`), and separately needs `len(_loss_ko_history) >= 6` (`:1512`) and a
+non-improving KO series (`:1514-1517`). ⇒ **at `losses` 2-5 the counter ladder cannot fire whatever
+the grass key is.** A test built to the old wording would have shown NO DIFFERENCE between the arms
+and read as a **REFUTATION of a true finding** — the most expensive possible outcome. The full
+seven-condition table is now in KI-80; a flat run of six losses each with `kos = 1` satisfies four
+of them at once.
+
+**⛔ AND THE OBVIOUS FIXTURE DOES NOT WORK.** `fortree_gym_wedge.ss1` — the anchor (P4) Stage 2
+uses, and the one a next session would reach for — **fails the no-answer condition**: its
+**Castform L25 knows Powder Snow** (Ice, base_power 40), which against Altaria (Dragon/Flying) is
+`40 x (2.0 x 2.0) x 1.0 = **160**` against `CREDIBLE_ANSWER_POWER = 75`. So
+`_boss_plan_is_hopeless` returns **not hopeless** and the ladder can never fire from it.
+✅ **9 of 10 Winona-era saves DO qualify**, including **`ch13_fortree_door.ss1`** — measured live,
+and re-verified by hand on that save.
+
+**NEW instrument: `tools/story-dev/probe_credible_answer.py`** (read-only). Drives production's own
+type chart and `_battler_slots()` against a real save and prints, per move, `base_power` / `eff` /
+`stab` / `score` and a HAS_ANSWER / NO_ANSWER verdict.
+‼ **Its limitation is STATED, not hidden:** it is a COPY of the predicate, because
+`_boss_plan_is_hopeless` is a method that short-circuits on loss history long before the no-answer
+test and cannot be called standalone. What keeps the copy honest is that it mirrors production's
+**gate ORDER** — `i in battlers`, then `eff >= 2.0` (which `continue`s), then `score >= 75`.
+⇒ **That ordering is the whole discriminator:** the qualifying saves hold moves scoring **97.5**
+(Loudred/Stomp) and **90.0** (Mightyena/Bite), both above the threshold, that never count because
+`eff` is 1.0. A probe written as "score >= 75" alone would call every one of them HAS_ANSWER and be
+confidently, silently wrong.
+
+**Housekeeping:** KI-54 (218 lines, severity *informational*, subject RETRACTED) moved to
+`31-KNOWN-ISSUES-ARCHIVE.md` to bring `05-KNOWN-ISSUES.md` back under its 3000-line budget.

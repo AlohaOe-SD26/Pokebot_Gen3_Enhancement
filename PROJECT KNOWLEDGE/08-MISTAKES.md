@@ -6976,3 +6976,33 @@ on a correctly-encoded `⏱` and on the em dashes, `20×17`, `§Ch20`, `‼`/`�
   the prohibition exists only as a consequence of the coupling, so it stops enforcing when the
   coupling goes. ‼ A rule that outlives its cause is exactly the stale "don't do X" line
   `/reconcile` exists to retire.
+
+## 2026-08-15 — I SPECIFIED A REPRO FROM THE WRONG THRESHOLD, AND THE TEST IT DESCRIBED WOULD HAVE "REFUTED" A TRUE FINDING
+
+- **Symptom.** KI-80, filed hours earlier, told the next session the repro needs
+  *"`losses >= 2`, `kos >= 1`, no type answer"*. Every clause is a real condition. The set is
+  **incomplete**, and a test built to it is **vacuous**.
+- **Root cause.** I read the OUTER gate (`if losses >= 2:`, `story_mode.py:1877`) and stopped there,
+  because it was the branch the adversarial agent had named. The DECIDING threshold is two calls
+  deeper: `_boss_plan_is_hopeless` returns `(False, [])` immediately unless
+  `losses >= PLATEAU_LOSS_THRESHOLD`, **which is 6** — plus `len(history) >= 6` and a non-improving
+  KO series. At `losses` 2-5 the counter ladder cannot fire *whatever* the grass key is.
+- ‼ **Why this one was expensive-shaped.** The A/B would have run clean, shown NO DIFFERENCE between
+  the arms, and been read as **evidence that the KI-80 coupling is not real** — retiring a true
+  finding and re-opening the regression it guards. *A test that cannot distinguish its arms does not
+  return "no effect", it returns a false negative dressed as a result.*
+- **The fix that worked.** Read every short-circuit between the entry point and the decision, and
+  write them ALL down as a numbered condition table with file:line — not a prose sentence.
+- ‼ **Prevention rule.** *When you specify repro conditions, trace the gates from the ENTRY POINT to
+  the DECISION and list every early `return`/`continue` on the way. Quoting the outermost `if` is
+  not a spec — the threshold that matters is usually the innermost one.*
+- **Second finding from the same pass, same shape:** the obvious fixture save FAILS its condition.
+  `fortree_gym_wedge.ss1`'s Castform knows Powder Snow — `40 x 4.0 = 160` vs a threshold of 75 — so
+  that party HAS a credible answer and the ladder can never fire there. ⇒ *"Does my fixture actually
+  CREATE its condition?" is not satisfied by "it is the right era and the right boss."* Nine other
+  saves do qualify; the check took one probe and would have cost a whole build round.
+- ⚠ **And the discriminator was nearly missed:** the qualifying saves contain moves scoring **97.5**
+  and **90.0**, both above the 75 threshold, that do NOT count — `eff` is 1.0, and production's
+  `eff < 2.0` branch `continue`s before the score is ever compared. A check written as "score >= 75"
+  would have called every qualifying save unqualified. ⇒ *when you copy a predicate, copy its GATE
+  ORDER, not just its constants.*

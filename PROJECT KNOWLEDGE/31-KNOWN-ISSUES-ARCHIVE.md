@@ -1968,3 +1968,230 @@ lands. And ~48 further swallow sites remain in `early_game.py`; most self-heal b
 abort-aware call re-raises, but they should get the same one-line guard, enforced by an AST check
 rather than by prose.
 
+
+---
+
+# KI-54 — FULL ENTRY, MOVED here from `05-KNOWN-ISSUES.md` (2026-08-15, on the R3 line budget when KI-80's repro spec was measured)
+
+> ‼ **Why it moved:** 218 lines of a CURRENT-STATE file for an entry whose own severity is
+> *informational* and whose subject ("roster hygiene before bosses") was RETRACTED. Verbatim
+> below; a short pointer replaced it there. Nothing deleted.
+
+## KI-54 — "Roster hygiene before bosses" is BLOCKED: the box is EMPTY, and the deposit path it would need was already measured harmful (2026-08-11, severity: informational — a plan-blocker, not a defect)
+
+**Context.** The user approved "roster hygiene before bosses" on 2026-08-11 after the Magma Hideout
+loss showed **two dead party slots** (Zigzagoon L6, Skitty L17) in a **L38-39** boss fight, one of
+which (Skitty) cost the kill on Camerupt at 22/110 immediately before Maxie healed it to 67.
+**Verification before building found two blockers.**
+
+### ‼ BLOCKER 1 — there is nothing to swap TO. The box is EMPTY.
+```
+post_maxie.ss1         party 6, BOX 0
+magma_door_losing.ss1  party 6, BOX 0
+POSITIVE CONTROL boxwithdraw.ss1 -> 2 in box: ['Poochyena:L26', 'Shuppet:L26']
+```
+The control matters: an empty box and a broken box reader look identical. The reader works.
+
+### ‼ BLOCKER 2 — the deposit path EXISTS and is pinned OFF with measured harm
+`modules/story/pc_trip.py: deposit_dead_weight_if_worth_it()`, gated by `POKEBOT_PC_ROTATION`
+(default **0**) since 2026-08-05:
+| batch | PC deposits | avg team size at Feather | Balance→Feather |
+|---|---|---|---|
+| b3 / b4 / b5 (OFF) | 0 | 5.65 / 5.72 / 5.81 | 83 / 75 / 70% |
+| b8 (ON) | 14 | **4.45** | **52%** |
+| b13 (ON) | 18 | **4.75** | **57%** |
+It removed ~**one whole team member permanently** and the last funnel rung collapsed over exactly
+that transition.
+
+⇒ **The SWAP version is impossible (empty box); the DEPOSIT-ONLY version is that disproven feature
+in narrower clothing.** Do not rebuild it from the boss-fight evidence alone.
+
+### ⛔⛔ THE "MISSING PIECE" BELOW IS WRONG — RETRACTED 2026-08-12. READ THIS FIRST.
+
+**`POKEBOT_BOX_OVERFLOW_CATCH` IS NOT DISABLED. It has defaulted to ON since 2026-08-07** —
+`plugins/custom_modes/story_mode.py:2241-2243` reads
+`_os.environ.get("POKEBOT_BOX_OVERFLOW_CATCH", "1")`. **Verified in the live code**, not recalled.
+
+And the "one unhandled text box" blocker was **refuted on 2026-08-07, four days before the section
+below was written**. The capability test is recorded in the comment right above the flag read:
+`--driver boxcatch` on a full party with an empty box gave `caught=True box_before=0 box_after=1
+exited_clean=True exit_frames=120`, then `AFTER-CATCH usable=True second_catch=True frames=20
+box_now=2` — **zero forced presses**; the existing battle handler rides the box-send message out.
+(The message is real decomp — `Cmd_givecaughtmon` → `B_MSG_SENT_SOMEONES_PC` — it simply needs no
+handling.) `03-PUNCH-LIST.md` says so plainly: *"I 'confirmed' that wedge twice and both were my
+probe idling."*
+
+‼ **HOW THIS HAPPENED, because it is the more valuable lesson.** Four documents were written on
+2026-08-11 by reading a **stale comment block** (`story_mode.py:2202-2226`, which still said
+"GATED OFF … default 0") instead of the **live default twenty lines below it**. That is precisely
+the failure the flag registry was created to prevent, committed one level up — in the registry
+itself. ⇒ **A registry row is a claim with an expiry date too. Read the code the row describes,
+not the prose next to it.**
+
+**Consequence:** BLOCKER 1 below is void as a blocker. The box being empty was never a gate; the
+counter hunt simply never had a full party when it fired.
+
+<details><summary>Superseded text, kept because the batch evidence in it is still real</summary>
+
+`POKEBOT_BOX_OVERFLOW_CATCH` (default **0**, `#24-pcoverflow`) is the feature that lets a catch
+overflow **into the PC box** when the party is full. **It is off, so nothing ever puts anything in
+the box.** That is the direct cause of BLOCKER 1.
+
+It was gated after batch `20260806-142418` graded it against its own **pre-registered** target and
+it FAILED: `withdrawing` **0** (target ≥1) and `INTO THE PC BOX` **0** — the path **never fired in
+26 runs**. ‼ The code is careful to add that it is off because it **delivered nothing**, not
+because it was proven harmful (only 10 of 43 watchdog dumps had a full party; the wedges were
+battle-handler shaped).
+
+‼‼ **AND THE BLOCKER IS NAMED AND SMALL:** a box-send shows an **EXTRA TEXT BOX** that the
+party-catch path never shows, and the bot has no handling for it (user-identified 2026-08-06, then
+decomp-confirmed).
+
+⇒ **This re-orders the roster options.** Option (a) "populate the box first" is not a large new
+project — it is **one unhandled text box** away from firing. That is a far better first move than
+(b) re-enabling the measured-harmful deposit path.
+
+‼ **How this was found is the point:** the measurement lived in a code comment in
+`story_mode.py`, where nobody looks before proposing a feature. `lint_docs.py`'s new R6 rule forced
+every `POKEBOT_*` flag into `29-DISABLED-FEATURES-REGISTRY.md`, and this flag surfaced immediately —
+an 11th flag that my own hand-written grep had missed.
+
+</details>
+
+### ✅ THE ACTUAL PLAN, 2026-08-12 — deposit-first, and it is SMALLER than the box round-trip
+
+With BLOCKER 1 void, the remaining question is only how to free one party slot for a Dive learner.
+**Measured against `modules/data`, not recalled:**
+* **76 species learn Dive; NONE of ours does**, and there is no evolution escape — **Linoone NO,
+  Delcatty NO**, Castform has no evolution, and Beldum is post-Champion. **A catch is mandatory.**
+* **Spheal is the answer: ~50% of the `SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM` LAND table at L26-32,
+  catch rate 255 (the maximum), and it learns BOTH Surf and Dive.** `MOSSDEEP_CITY` connects
+  directly to `ROUTE125`, and Route 125 → the entrance room is **one warp** — no cave threading.
+  ⚠ **TIDE IS THE RISK:** only the five LOW-tide maps have an encounter header in our ROM; the high
+  tide maps have **none at all**. Which RTC hours give low tide is **UNVERIFIED**.
+* **Fallback with no tide dependency: Marill on Route 120**, 15% at L25-27, learns both.
+* ⛔ **Do NOT fetch the Super Rod first.** Sharpedo/Wailmer are real (40%/60% Super Rod off
+  Mossdeep, both learn Surf+Dive) but need **three missing subsystems**: no rod-fetch chapter
+  exists, the story bot has **no fishing capability at all**, and `_hm_hunting_grounds` reads
+  `land_encounters` ONLY. One `TRAINING_GRASS` row versus three subsystems.
+
+‼ **AND THE BOX ROUND-TRIP IS THE LONGER PATH, NOT THE SHORTER ONE** — the opposite of what I
+assumed. `ensure_hm_learner`'s success test reads the **party** (`hm_learner_slot(item) is not
+None`), so a catch that lands in the box never satisfies it: the spin burns its whole 40,000-frame
+budget and raises "never caught one". Routing through the box would need the stop condition changed,
+the new PID captured and registered, **and** a Poké Center trip anyway.
+
+**Deposit-first is strictly smaller and reuses only PROVEN code:**
+1. one `TRAINING_GRASS` row for the Shoal Cave entrance room (spin tile derived and two-way swept
+   from a real anchor — never from recall);
+2. replace the `raise` in `ensure_hm_learner` with a `free_one_party_slot()` factored out of
+   **`withdraw_from_box:331-355`**, which already deposits **exactly one** mon, worst-first, and is
+   live-proven by `--driver boxwithdraw` (three identical consecutive runs, `deposited=True
+   withdrew=True party_after=6`, and the second heal produced exactly one withdraw line).
+   ‼ **This is NOT the measured-harmful rotation.** That harm was `POKEBOT_PC_ROTATION`, which fires
+   on **every heal** and deposits up to 2 mons down to a floor of 3. Freeing one slot once is a
+   different act, and KI-54 says so itself.
+3. **Verified offline against our exact party:** the real predicate picks **Skitty L17** — and
+   correctly **spares Zigzagoon L15 despite it being the lowest level**, because `_only_hm_carrier`
+   protects our sole Surf carrier. That is exactly the mon KI-54 named as "the real passenger".
+⚠ Second-order: Spheal arrives at L26-32 against an L48 lead, so it is itself "dead weight" by the
+L48−8 rule. Harmless while `POKEBOT_PC_ROTATION=0`; it becomes a **self-eviction loop** if anyone
+turns that on.
+
+### ⛔ RETRACTED 2026-08-13 — "THE TIDE IS NOT A BLOCKER" RESTS ON A MEASUREMENT THAT CANNOT SEE HIGH TIDE
+
+> **Do not act on the section below.** Its conclusion may still be right, but **its evidence does
+> not support it**, because of **KI-73**: `get_map_data` builds `_map_header_cache` **once from the
+> static compile-time `gMapGroups` ROM table** (`map.py:1766-1785`), which can only ever yield the
+> **compiled low-tide** layout for map (24,46). `setmaplayoutindex` patches the live `gMapHeader`
+> RAM struct, which that table never reads, and nothing anywhere in `modules/` clears either cache.
+>
+> ⚠ **AND MY FIRST RETRACTION OVERSHOT — corrected the same day.** I wrote that the *"65 walkable
+> tiles at high tide"* figure was "almost certainly two views of the same low-tide layout".
+> **That is REFUTED.** `probe_shoal_tide.py` reproduced the 65 **exactly**, as a genuine high-tide
+> component: 65 tiles, all `Cave`, all with encounters, spanning x 3–12, y 15–28.
+> **The count was right. What was never checked was its REACHABILITY — it is an ISLAND**, not
+> on-foot connected to the entrance warp. The 181-tile region the bot can actually reach at high
+> tide contains **zero** encounter tiles.
+>
+> ⇒ **THE DECISIVE MEASUREMENT, reproduced by me:** spin tiles that are on-foot, encountering AND
+> reachable from the arrival warp — **LOW: 278. HIGH: 0.** All three candidates below become
+> `Shallow Water` with `has_encounters=False` at high tide. ‼ **The failure mode is a SILENT STALL,
+> not a crash**: the tile is still standable, so `ensure_hm_learner` spins out its entire
+> 40,000-frame budget meeting nothing.
+>
+> ✅ **What KI-54 got RIGHT and is now decomp-confirmed:** the hour table (LOW = **03–08 and
+> 15–20**), `FLAG_SYS_SHOAL_TIDE` **set = HIGH**, the high-tide maps having no encounter header and
+> no warps, and the tide being sampled **once** on `ON_TRANSITION` and frozen for the visit
+> (verified against `pret/pokeemerald` — the only caller of `UpdateShoalTideFlag` is
+> `ShoalCave_LowTideEntranceRoom/scripts.inc`).
+> ✅ **And the bot CAN both read and predict the tide:** `get_event_flag("SYS_SHOAL_TIDE")` reports
+> the frozen one, and `modules/clock.py` `get_clock_time().hours` predicts what the NEXT entry from
+> outdoors will roll.
+>
+> ‼ **The decomp claim that the tide is "sampled ONLY on ON_TRANSITION and frozen for the visit" is
+> ALSO unaudited** — `src/time_events.c` is not vendored anywhere in this repo, so per this
+> project's own rule that decomp claims must be checked against `pret/pokeemerald`, it has never
+> been verified here. If the tide can flip mid-visit, the stale-cache problem compounds with a live
+> floor-swap under the bot's feet.
+>
+> **RULING 2026-08-13: Shoal Cave is NOT adopted as a hunting ground.** Rationale and the exact
+> conditions that would unlock it: `06-DECISIONS-LOG.md`, 2026-08-13.
+
+### (original, 2026-08-12) ‼ THE TIDE IS NOT A BLOCKER — measured, and it removes the plan's only unknown
+
+The tide worry was **real but misdirected**. Findings, decomp- and ROM-measured:
+* `UpdateShoalTideFlag()` (`src/time_events.c:54-92`) is a **24-entry hour table**;
+  `FLAG_SYS_SHOAL_TIDE` **set = HIGH**. LOW tide is hours **03-08 and 15-20**. It is sampled ONLY on
+  `ON_TRANSITION` into the entrance room from an OUTDOOR map, and is then frozen for the visit.
+* ‼‼ **BUT THE TIDE GATES THE DESCENT, NOT THE HUNT.** The high-tide "maps" (24,50)/(24,51) have
+  **no encounter header and zero warp edges** — they exist only to own a layout that
+  `setmaplayoutindex` borrows onto map (24,46). The player stays on **(24,46)** at both tides, and
+  `GetCurrentMapWildMonHeaderId` keys off map group/number, **not layout**. Measured from our ROM:
+  the entrance room still has **65 walkable `MB_CAVE` encounter tiles at high tide** (332 at low).
+  ⇒ **The Spheal 50% table is live at BOTH tides. No tide handling is needed at all.**
+* **Surf is the only gate**, and we have it: our planner routes `MOSSDEEP_CITY (49,35) → ROUTE125
+  (22,19)` in **119 waypoints**, and Zigzagoon L15 knows Surf (measured on the live save). Route 125
+  → the entrance room is a single warp, (22,19) ↔ (20,30).
+* Spin-tile candidates, all `MB_CAVE` with two-way static `calculate_path` PASS: **(25,30)** (5 steps
+  from the arrival warp), (14,30), (20,24). ⚠ **Static evidence only — NOT the live two-way sweep
+  this project requires** (the Route 114 demotion). Never promote a spin tile on this alone.
+* ⚠ **A REAL HAZARD FOR ANY IN-ROOM NAVIGATION:** `MapLocation` resolves the layout from the cached
+  ROM map header, i.e. **always the LOW-tide floor plan** for (24,46). At high tide the planner is
+  therefore planning against the wrong map. Fix or fence this before any code paths inside that room.
+* ⚠ Never spin on or south-adjacent to **(20,30)** — it is `MB_SHOAL_CAVE_ENTRANCE`, which counts as
+  a south-arrow warp.
+
+**‼ AND THE REAL BLOCKER IS STILL THE FULL PARTY:** `ensure_hm_learner` raises at
+`early_game.py:4342-4348` when the party is ≥6 **before it ever calls `_hm_hunting_grounds`**. So the
+hunting ground is necessary but not sufficient — freeing the slot is the gate, exactly as the
+deposit-first plan above says.
+
+**Cheapest tide-free fallback, needing ZERO new data:** `_hm_hunting_grounds(HM08)` **already**
+returns one ground today — **ROUTE117 (31,16), Marill, 10%**, already two-way swept. Route 120 is not
+in `TRAINING_GRASS` and would itself need a swept row, so Route 117 is strictly cheaper if the Shoal
+Cave sweep fails.
+
+### ‼ THE LIKELY CAUSAL LOOP, stated as a hypothesis
+With deposits OFF, **anything caught stays in the party for ever** — so the party fills with
+passengers. The dead weight may be a *symptom* of deposits being off, and deposits are off because
+they thinned the team. That is a genuine tension, not an oversight.
+‼ One nuance worth keeping: the old rotation policy was bad at **choosing** — it deposited a
+*hunted counter* and a Machop 25 levels behind the team's best. "That policy was harmful" is not
+the same claim as "depositing is harmful", but neither has been measured separately.
+
+### What is NOT blocked
+* Zigzagoon is the **HM slave** (Surf / Rock Smash / Strength) — it has a job and should not be
+  treated as dead weight. **Skitty L17 has no stated job**; it is the real passenger.
+* Passengers only reach the field after the competent mons faint — but that is exactly when the
+  fight is decided, and in the measured fight it cost the kill. The marginal value is real but it
+  is second-order to whatever fainted the first four.
+
+### DECISION REQUIRED (not taken)
+Options: (a) populate the box first — `#24-roster`'s actual scope, catch-overflow, with its own
+prerequisites; (b) re-enable deposits under a much tighter policy (never a hunted counter, never
+an HM carrier, never below party 5, only >N levels behind) — ‼ re-opens a measured-harmful path and
+must not ship without a batch; (c) a catch/keep policy so passengers never enter the party;
+(d) park roster work and do the STATUS response instead, which needs no box and has a
+deterministic fixture (`magma_door_losing.ss1`).
+

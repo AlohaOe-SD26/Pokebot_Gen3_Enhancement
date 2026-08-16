@@ -445,9 +445,21 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >      other caller too, including `counter_hunt.py:647`'s candidate picker for EVERY boss. That is
 >      the measured Shoal Cave incident (`08-MISTAKES.md`), restated.
 >    ✅ **WHAT IS ACTUALLY LEFT HERE** is KI-80: decouple the counter-ladder from `grass_is_fodder`
->    so the two meanings stop sharing a boolean — and it may NOT ship on reading alone. It needs
->    the KI-23 repro conditions DRIVEN (`losses >= 2`, `kos >= 1`, no type answer) before and
->    after. ⚠ A test at `losses < 2` is **vacuously green**: the whole branch is behind `losses >= 2`.
+>    so the two meanings stop sharing a boolean — and it may NOT ship on reading alone; it needs the
+>    KI-23 repro DRIVEN before and after. ✅ **THE REPRO IS NOW FULLY SPECIFIED AND ITS FIXTURE IS
+>    IDENTIFIED (2026-08-15) — read KI-80's condition table before building it.**
+>    ⛔ **`losses >= 2` IS NOT ENOUGH** — that was this file's earlier wording and a test built to
+>    it is **VACUOUS**: `_boss_plan_is_hopeless` short-circuits below **`losses >= 6`**
+>    (`PLATEAU_LOSS_THRESHOLD`), so at 2-5 the ladder cannot fire *whatever* the grass key is, and
+>    the A/B would show no difference — reading as a REFUTATION of a true finding. Seven conditions
+>    must hold together; a flat run of **six** losses each with `kos = 1` satisfies four of them.
+>    ⛔ **AND THE OBVIOUS FIXTURE FAILS.** `fortree_gym_wedge.ss1` — the (P4) Stage 2 anchor — has a
+>    **credible answer**: its Castform knows **Powder Snow** (Ice 40 BP), `40 x (2.0 x 2.0) = 160`
+>    against Altaria's Dragon/Flying, vs a threshold of **75**. ✅ **9 of 10 Winona-era saves DO
+>    qualify, including `ch13_fortree_door.ss1`** — measured live by the NEW
+>    `tools/story-dev/probe_credible_answer.py`. ‼ The discriminator is the GATE ORDER, not the
+>    score: those saves hold moves scoring 97.5 and 90.0 that never count, because `eff` is 1.0 and
+>    the `eff < 2.0` branch fires first.
 >
 >    **(PARKED, NOT CANCELLED) ASSEMBLE §Ch20 AS A CHAPTER** — a module in `modules/story/`,
 >    wired as Segment 20 in `story_mode.py`, built from the driven ingredients (`_ingress`, the
@@ -519,30 +531,18 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    measured, a Shoal Cave row becomes the highest band and flips `best_training_area` for every
 >    team ~L30 up. ⇒ see **KI-80**, the same table's second sharp edge.
 >
-> 3b. ⛔⛔ **THE ORDER CHANGED 2026-08-13 — READ `06-DECISIONS-LOG.md`'s entry before item 4.**
->    The Regi arc is **NOT** next, and *"KI-59 blocked it, I fixed it, so build it"* was **REFUTED
->    three ways**: the tombs walk their laps with `follow_path` (**"no collision checking"**), their
->    144 tiles describe a room `setmetatile` rewrites at runtime, and upstream ships a working Regi
->    solver **against the un-fixed inversion**. ‼ That was the SAME error logged that morning —
->    counting tiles without checking what REACHES them — made twice in one day.
->    **DO, IN THIS ORDER:**
->    **(i) `#24-ch20rename`** — small, safe, start-of-session. `--driver ch20dive`,
->    `probe_ch20_topology.py` and two note filenames are misnomers pinned to **Chapter 20**.
->    **(i) IS DONE 2026-08-13** — renamed and verified by RE-RUNNING both (`probe_ch20_topology.py`
->    exit 0; `--driver ch20dive` → `ACCEPTANCE: PASS legs=6/6`).
->    **(ii) §Ch20 — THE AREA ATLAS IS BUILT (2026-08-13). ‼ IT IS A STRENGTH-BOULDER DUNGEON, not a
->    route.** `probe_ch20_interior.py` (NEW) measured all ten cavern maps: **the warp graph is
->    benign — every room is reachable from the entrance by warps alone** — and the difficulty is
->    inside the rooms. Components over walkable tiles, then with object tiles removed:
->    ROOM1 2→5 · **ROOM2 1→6** · ROOM3 1→5 · **ROOM4 5→5 (split by TERRAIN, not objects)** ·
->    ROOM5 1→5 · **ROOM6 1→1 and ROOM7 1→1 (open water, elev 1, ZERO objects — these need SURF,
->    not Strength)** · **ROOM8 3→7 (12 objects in 48 tiles)** · ROOM9 2→2 (terrain; Archie/Kyogre).
->    ⛔ *(STALE — and this ⛔ covers everything to the END OF THIS BULLET: the interior WAS
->    re-measured from inside, all nine rooms are driven, do NOT re-drive.)* It used to command
->    *"drive INTO the cavern and re-measure with LIVE objects"* — that is DONE. ‼ **The LESSON
->    survives:** the atlas was read from Mossdeep, and `is_tile_accessible` blocks every tile whose
->    object is not in `active_objects`, so a remote read's routing is a **LOWER BOUND** and its
->    NO-PATHs are an artifact, not map facts. (§Ch19 hit this trap too; probe output section 3b.)
+> 3b. ⛔⛔ **THE ORDER CHANGED 2026-08-13 — READ `06-DECISIONS-LOG.md` before item 4.** The Regi
+>    arc is **NOT** next: *"KI-59 blocked it, I fixed it, so build it"* was **REFUTED three ways**
+>    (the tombs walk with `follow_path`, **"no collision checking"**; their 144 tiles describe a
+>    room `setmetatile` rewrites at runtime; and upstream ships a working Regi solver against the
+>    UN-fixed inversion). ‼ That was the SAME error logged that morning — counting tiles without
+>    checking what REACHES them — made twice in one day.
+>    ✅ **(i) `#24-ch20rename` and (ii) the §Ch20 AREA ATLAS ARE BOTH DONE, and all nine rooms are
+>    DRIVEN — do NOT re-measure or re-drive.** ‼ **Keep the two lessons:** §Ch20 is a
+>    **STRENGTH-BOULDER dungeon, not a route** (Rooms 6/7 are open water needing SURF, not
+>    Strength); and an atlas read REMOTELY is a **LOWER BOUND** — `is_tile_accessible` blocks every
+>    tile whose object is not in `active_objects`, so a remote read's NO-PATHs are an ARTIFACT, not
+>    a map fact (§Ch19 hit this too).
 >    **(ii-continued) THE BUILD SPEC IS WRITTEN:**
 >    `ai-research-notes/2026-08-13-ch20-seafloor-cavern-build-spec.md` — an 11-leg list, each with an
 >    assertable condition, from a decomp recon that ran an exhaustive Sokoban search over
