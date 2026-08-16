@@ -2174,7 +2174,14 @@ must mirror, and **why half a mirror is worse than none**). ⚠ Still open there
 in `early_game.py` that should get the same one-line abort-aware guard, **enforced by an assert
 rather than by prose**.
 
-## KI-65 — the HM-refusal re-pick has NEVER executed: `party_index` is unbound there (2026-08-12, code-verified, OPEN)
+## KI-65 — the HM-refusal re-pick raises `UnboundLocalError` into a silent `except` **WHEN `_read_offered_move` HAS ALREADY FAILED**, so two invisible failures compound into a silent decline (2026-08-12, code-verified, OPEN)
+
+> ⛔ **HEADER CORRECTED 2026-08-16 (P2).** It read *"the HM-refusal re-pick has NEVER executed"* —
+> which **this entry's own CORRECTION section, written the same day it was filed, calls too strong**
+> and refutes: on an ordinary teach, branch (2) binds `party_index` at `:371` BEFORE the game can
+> refuse, so the re-pick DOES run. The header outlived its own retraction by four days and is the
+> half a skimmer reads. ‼ *An entry that corrects itself in the body must correct its TITLE in the
+> same edit.*
 
 Found by running **pyflakes** over the build for the first time (see `14-AGENT-PLAYBOOK.md`).
 
