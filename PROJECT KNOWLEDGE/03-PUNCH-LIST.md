@@ -2046,6 +2046,47 @@ criterion**, and the honest way to test the pair against each other.
 **Interacts with `#24-dexhunt` above:** hunting for new species generates exactly the
 level-matched encounters maintenance needs. Done together they are one activity, not two.
 
+### ‼‼ `#24-orphans` — SIX REAL RESIDUALS THAT WERE WRITTEN DOWN BUT NEVER TRACKED (filed 2026-08-15)
+
+> ⛔ **WHY THIS ITEM EXISTS.** An audit asked a question nobody had asked: *for every "still open /
+> still owed / not built" sentence written this session, would a future session ever FIND it?* Six
+> would not. ‼ **Four of the six share one shape — a live residual recorded inside a document half
+> that is marked DONE or ARCHIVED** (a CLOSED KI's body, an "older framing" queue block, an
+> archived handoff section, a research note). That is the P2 header-vs-body failure applied to
+> TRACKING rather than to STATUS, and prose alone did not catch it — the question did.
+
+- [ ] **(1) ‼ HIGHEST COST — `withdraw_from_box` has NO CALLER THAT CHECKS ITS VERDICT.** KI-79 made
+      the *message* honest (identity-verified, loud on failure) but production still cannot REACT:
+      the function returns nothing and never raises, so a failed withdraw is now *reported* and
+      still silently tolerated. ⛔ It was filed in the body of a KI whose header read only
+      "CLOSED" — any session scanning for open issues skips it. (KI-79's header now carries the
+      caveat.) The next Slugma-class derail is still invisible to callers.
+- [ ] **(2) KI-65 — `battle_move_replacing.py:280`: `party_index` is unbound on the HM-refusal
+      re-pick, so that path has NEVER executed.** OPEN and code-verified since 2026-08-12, absent
+      from this list and from NEXT ACTIONS. ‼ It is also the standing candidate cause for the
+      REOPENED `#24-teachmsgstall`, so orphaning it broke a live investigation's only lead.
+- [ ] **(3) KI-66 — the multi-battle hazard is BROADER than the faint chooser:** four more
+      full-party scans are unguarded, one feeding an UNBOUNDED `while … press A`. OPEN,
+      code-verified, never live-run, and untracked until now.
+- [ ] **(4) `story_harness.py` OVERWRITES `harness_<build>.log` every run** — one fixed name per
+      build — so running the second arm of an A/B DESTROYS the first arm's transcript. ‼ This is an
+      instrument that silently eats evidence: it already forced a Tier 1 kick-back on 2026-08-15.
+      The countermeasure shipped as a PROSE HABIT only ("give each arm a distinct `--log`"), which
+      a fresh session has no reason to know. ⇒ the real fix is a default that cannot collide
+      (timestamped or driver-named), not a rule.
+- [ ] **(5) `compare_runs.py` pairing for the (P4) matrix — never built.** Blocks nothing today; it
+      lives only in `ai-research-notes/2026-08-15-p4-boxcounter-repro-design.md`, and a research
+      note is explicitly "a NOTE, never a source of truth" — nobody mines those for backlog.
+- [ ] **(6) KI-76's CORRECTNESS half is OPEN and MIS-SHELVED.** Its only queue mention sits inside a
+      block the handoff brackets as *"older framing … ⛔ also NOT next"*. ⚠ It is ARMED on Routes
+      132/133/134 — the approach to the Regi arc and §Ch23 — so it will resurface as a "new" bug at
+      the worst possible moment.
+
+‼ **PREVENTION, and it is a question rather than a rule:** at wrap-up, for every *"still open /
+owed / not built / residual"* sentence written that session, ask **"where would a future session
+FIND this?"** If the only answer is an append-only log, a CLOSED KI's body, or a research note, it
+is ORPHANED — put it here. ⇒ `08-MISTAKES.md`, 2026-08-15.
+
 ### ‼‼ THE BIG ONE — `#24-trainmap+` : area-aware training, party>4, PC rotation
 
 > ⛔⛔ **BEFORE YOU TOUCH ANY BOSS `cfg["grass"]` OR `TRAINING_GRASS`, READ KI-80 (2026-08-15).**

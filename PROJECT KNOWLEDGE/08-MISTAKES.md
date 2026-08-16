@@ -7033,3 +7033,29 @@ on a correctly-encoded `⏱` and on the em dashes, `20×17`, `§Ch20`, `‼`/`�
   by an agent told to **TRY TO BEGIN THE TASK** from the docs alone and report where it got stuck.
   ⇒ *The strongest audit of a spec is not "is it consistent?" but "can someone start from it?"*
   Add that pass whenever a session ends by handing off a specified-but-unbuilt item.
+
+## 2026-08-15 — SIX REAL RESIDUALS WERE WRITTEN DOWN CAREFULLY AND TRACKED NOWHERE
+
+- **Symptom.** A wrap-up audit asked a question nobody had asked all session: *for every "still
+  open / still owed / not built" sentence written today, where would a future session FIND it?*
+  **Six had no answer.** Among them a live production gap on the PC path (`withdraw_from_box` has
+  no caller that checks its verdict) and two OPEN, code-verified defects (KI-65, KI-66) that appear
+  in no queue at all.
+- **Root cause, and it is a SHAPE rather than an oversight.** Four of the six were recorded inside a
+  document half that is marked DONE or ARCHIVED: the body of a KI whose header says **CLOSED**; a
+  NEXT-ACTIONS block bracketed as *"older framing … NOT next"*; an archived handoff section; and a
+  research note (a class this project explicitly calls *"a NOTE, never a source of truth"*). Each
+  sentence was true, careful, and in a place nobody reads for work.
+  ⇒ **This is the P2 header-vs-body failure applied to TRACKING instead of to STATUS.** P2 asks
+  "does the header agree with the body?"; nobody was asking "does anything ACT on the body?"
+- **The fix that worked.** File them as one tracked item (`#24-orphans`) with the cost of each
+  spelled out, put a pointer in the handoff queue, and — for the worst one — **push the residual up
+  into the KI's HEADER**, so a header reading "CLOSED" cannot hide an open gap.
+- ‼ **Prevention rule, deliberately a QUESTION and not a rule** (a rule would have been obeyed and
+  still missed this): *at wrap-up, for every "still open / owed / not built / residual" sentence you
+  wrote, ask **"where would a future session FIND this?"** If the only answer is an append-only log,
+  a CLOSED KI's body, or a research note, it is ORPHANED — promote it to the punch list.*
+- **Why the question beat the rule.** Every one of these six was already written down, in the place
+  the documentation rules told me to write it. Completeness was satisfied; REACHABILITY was not.
+  The same distinction the DOC CONSISTENCY LAYER was born from — *completeness was checked,
+  consistency was not* — one level further out.

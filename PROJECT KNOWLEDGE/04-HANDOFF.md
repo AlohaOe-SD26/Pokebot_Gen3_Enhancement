@@ -423,6 +423,13 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    snapshots its OWN `before_box_pids` AFTER travel, so an injected fixture is excluded a second
 >    time; that leg needs a real catch, not an injection.
 >
+>    🆕 **(P4c) `#24-orphans` — SIX REAL RESIDUALS THAT WERE WRITTEN DOWN BUT NEVER TRACKED**
+>    (filed 2026-08-15, full list in `03-PUNCH-LIST.md`). ‼ **Four of the six were recorded inside
+>    a document half marked DONE or ARCHIVED** — a CLOSED KI's body, an "older framing" block, a
+>    research note — which is the P2 header-vs-body failure applied to TRACKING. Highest cost:
+>    **no caller acts on `withdraw_from_box`'s verdict** (KI-79 made the message honest; production
+>    still cannot REACT), plus **KI-65** and **KI-66**, both OPEN and code-verified and absent from
+>    every queue. ⛔ Cheap to pick up, and each is a real defect rather than a nicety.
 >    🔜 **(P5) The CATCH POLICY round** — the user CALLED it (`06-DECISIONS-LOG` 2026-08-14,
 >    rulings A-D): a **LIVING DEX**, per-run, breadth with depth as the payoff. Gate lifted on
 >    `#24-organicteam`. ⛔ The RARE leg is blocked on `#24-rarepredicate`, whose fix is now

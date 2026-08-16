@@ -371,6 +371,22 @@ the other, IN THE SAME COMMIT. These are the named cross-checks, not "review the
   to do a thing the same file marks done. Compare (1) against what YOU know is true — a mismatch
   is a DOC bug; fix and re-run Tier 0 before committing. ‼ Two clean audits in a row do NOT
   retire this tier — agreement is not a confidence signal (measured; see the Gemini rules).
+
+  ‼‼ **(4) AND — ADDED 2026-08-15 BECAUSE (1)–(3) PASSED TWICE OVER A BROKEN HANDOFF — THE AGENT
+  MUST TRY TO *BEGIN* THE NEXT ITEM AND REPORT WHERE IT GETS STUCK.** Not implement it: prepare it.
+  It must state the plan, NAME the fixture/save/anchor it would use, list which values the docs GIVE
+  it and which they WITHHOLD, and answer one blunt question — *"could I start right now with no
+  human input, yes or no?"* ⛔ **If the item is an A/B or a repro, it must COMPUTE THE DISCRIMINATOR
+  on the named fixture and show the arms actually differ.**
+  **WHY (measured, this session, not theory):** a handed-off spec passed the consistency checks
+  twice while naming a fixture that made its own A/B **vacuous** — `team_max 39` against a
+  threshold of `wild_max + 8 = 35`, so the flag under test was identical in BOTH arms and the run
+  would have shown "no difference", reading as a REFUTATION of a true finding. Consistency checks
+  cannot see that: the document was perfectly self-consistent and perfectly unusable. The next pass
+  then found the FIX had been applied to the history block while the QUEUE HEAD kept the stale
+  text — so ⇒ **when a Tier 2 finding is fixed, re-run Tier 2 and check WHERE the fix landed, not
+  merely THAT it landed.** ‼ *The strongest audit of a handoff is not "is it consistent?" but "can
+  someone START from it?"*
   `/checkpoint` runs Tier 1 instead of Tier 2: the user is stopping NOW, and the pair check is
   the cheap half that catches a lying resume pointer — the half that strands the next machine.
 

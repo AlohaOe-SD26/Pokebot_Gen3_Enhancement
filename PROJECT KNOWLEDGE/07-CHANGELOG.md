@@ -14548,3 +14548,40 @@ treating `--help` as a save name.
 It came from agents told to **TRY TO BEGIN THE TASK** from the docs alone and report where they got
 stuck. ⇒ *The strongest audit of a handoff is not "is it consistent?" but "can someone start from
 it?"* — see `08-MISTAKES.md`.
+
+## 2026-08-15 — WRAP-UP PASS 4: six real residuals were written down carefully and tracked NOWHERE; plus Tier 2 upgraded to "can you START from it?" (punch-list #24-orphans)
+
+**No code changed.** Two additive outcomes, both from asking questions the earlier passes had not.
+
+**1. `#24-orphans` FILED — six residuals with no home.** The audit asked: *for every "still open /
+owed / not built" sentence written today, where would a future session FIND it?* Six had no answer:
+* ‼ **`withdraw_from_box` has no caller that checks its verdict** — KI-79 made the message honest,
+  but production still returns nothing and never raises, so it can REPORT a failed withdraw and
+  still not REACT to one. It sat in the body of a KI whose header read only **CLOSED**.
+* **KI-65** (`party_index` unbound on the HM-refusal re-pick — also the standing candidate cause for
+  the REOPENED `#24-teachmsgstall`) and **KI-66** (four unguarded full-party scans, one feeding an
+  UNBOUNDED `while … press A`) — both OPEN, code-verified, in no queue at all.
+* `story_harness.py` **overwriting `harness_<build>.log` every run**, so an A/B's second arm eats the
+  first arm's transcript — an instrument that silently destroys evidence, countered so far by a
+  PROSE HABIT a fresh session has no reason to know.
+* `compare_runs.py` pairing (lives only in a research note); **KI-76's correctness half**, mis-shelved
+  inside an "older framing / NOT next" block while ARMED on Routes 132-134.
+‼ **Four of the six share one shape: a live residual recorded inside a document half marked DONE or
+ARCHIVED.** That is the P2 header-vs-body failure applied to **TRACKING** rather than to STATUS —
+completeness was satisfied, REACHABILITY was not. KI-79's header now carries its own residual so a
+"CLOSED" header cannot hide an open gap.
+
+**2. `CLAUDE.md`'s TIER 2 UPGRADED — it must now TRY TO BEGIN THE NEXT ITEM.** Tier 2 as written is
+a CONSISTENCY check, and it **passed twice this session over a handoff that named a fixture making
+its own A/B vacuous** (`team_max 39` against a `wild_max + 8 = 35` threshold — the flag under test
+identical in both arms). A self-consistent document can be perfectly unusable, and only an agent
+told to START found it. Tier 2 now also requires: state the plan, NAME the fixture, list what the
+docs give vs withhold, answer *"could I start with no human input, yes or no?"* — and, for an A/B
+or repro, **COMPUTE THE DISCRIMINATOR and show the arms differ**. Plus: when a Tier 2 finding is
+fixed, **re-run Tier 2 and check WHERE the fix landed** — pass 3 caught pass 2's fix applied to the
+history block while the queue head kept the stale text.
+
+**Audited clean this pass:** `14-AGENT-PLAYBOOK.md`'s eight new §7 rows (each verified against the
+code it cites — the word-form drift catch, the log overwrite, `promote.py`'s dirty-tree refusal,
+the Shedinja PID identity, the ask-production control) and `00-README.md`'s reading order against
+the current top of every file it lists. Both APPROVE, no blockers.

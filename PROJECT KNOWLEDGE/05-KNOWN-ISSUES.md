@@ -2635,7 +2635,7 @@ SHOULD inherit its sibling's protection — widening is the safe direction, narr
 
 ---
 
-## KI-79 — `withdraw_from_box` PRINTED A SUCCESS IT NEVER VERIFIED: `len(get_party())` wearing an identity's clothes (2026-08-15, code-verified while driving (P4) Stage 2 — ✅✅ **FIXED, FAULT-PROVEN, AND PROMOTED TO BOTH FORKS 2026-08-15, user-approved. CLOSED.**)
+## KI-79 — `withdraw_from_box` PRINTED A SUCCESS IT NEVER VERIFIED: `len(get_party())` wearing an identity's clothes (2026-08-15, code-verified while driving (P4) Stage 2 — ✅✅ **FIXED, FAULT-PROVEN, AND PROMOTED TO BOTH FORKS 2026-08-15, user-approved — ⚠ CLOSED *FOR THE MESSAGE*, WITH ONE RESIDUAL: NO CALLER ACTS ON THE VERDICT.** `withdraw_from_box` still returns nothing and still never raises, so production can now TELL the truth about a failed withdraw and still cannot REACT to one — tracked as an open thread in `03-PUNCH-LIST.md`, because a residual filed under a header reading only "CLOSED" is a residual nobody finds)
 
 - **The line.** `modules/story/pc_trip.py:472-474`, the tail of `withdraw_from_box()`:
   ```
