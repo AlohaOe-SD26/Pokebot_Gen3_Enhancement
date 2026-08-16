@@ -161,6 +161,7 @@ project's git conduct rule requires asking the user before any of them.** Never 
 | **2026-08-15** | **`restore/2026-08-15-pre-promotion-boxwrite-docstring`** | ✅ | before the `boxwrite` docstring promotion |
 | **2026-08-15** | **`restore/2026-08-15-pre-promotion-counterhunt-comment`** | ✅ | before the comment-only `counter_hunt.py` Electric correction |
 | **2026-08-15** | **`restore/2026-08-15-pre-promotion-ki79-pctrip`** | ✅ | taken before the KI-79 `pc_trip.py` promotion (a BEHAVIOUR change, proven by a THREE-POINT A/B) |
+| **2026-08-16** | **`restore/2026-08-16-pre-promotion-credible-answer-comment`** | ✅ | before the COMMENT-ONLY `story_mode.py` `CREDIBLE_ANSWER_POWER` correction. ‼ Proved behaviour-neutral by **AST equality** (`ast.dump(parse(sandbox)) == ast.dump(parse(custom))`, 323,580 chars each) BEFORE copying — and that check was fault-tested by flipping `75→76`. Both forks 4135 lines, so no `story_mode.py:NNNN` citation shifted in either |
 
 ‼ **KNOWN WART on `restore/2026-08-11-all-promoted`:** its tag message points at
 `PROJECT KNOWLEDGE/15-BACKUPS-AND-RESTORE.md`, which was renumbered to **`25-`** minutes later

@@ -404,7 +404,7 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       SUPPRESSED."* Keep `boss_mode = True` (`:1925`) behind `grass_is_fodder`.
       Transcripts: `evidence/2026-08-16-ki80ladder-FAULT-naive-edit-*`. The BEFORE run is committed FIRST because
       it is unrepeatable afterwards. `repro_boss_grass_gate.py` SELF-RETIRES on the fix — designed.
-      ✅ **BOTH PROMOTIONS ARE DONE (user-approved 2026-08-15).** *(⚠ Drift is 1 today for an UNRELATED comment-only `story_mode.py` fix, NOT promoted — the user's call.)* The KI-79 fix `pc_trip.py` (a BEHAVIOUR change) was proven by a THREE-POINT A/B showing the new branch actually RUNS in custom, not merely that the file copied. And `counter_hunt.py`
+      ✅ **BOTH PROMOTIONS ARE DONE (user-approved 2026-08-15).** *(✅ And the comment-only `story_mode.py` fix was PROMOTED 2026-08-16, user-approved — drift is 0.)* The KI-79 fix `pc_trip.py` (a BEHAVIOUR change) was proven by a THREE-POINT A/B showing the new branch actually RUNS in custom, not merely that the file copied. And `counter_hunt.py`
       (comment-only, the Electric correction) promoted with restore point
       `restore/2026-08-15-pre-promotion-counterhunt-comment`: 1/1 byte-identical, and VERIFIED BY
       DRIVING — `--driver boxcounter2 --build custom` ARM A and ARM B both `ACCEPTANCE: PASS`,

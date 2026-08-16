@@ -14896,3 +14896,33 @@ reverted, because those rows are a measurement record.
 
 **Daily upstream check (2026-08-16):** `upstream-pokebot/main` still `5dd898f8`, unchanged; nothing
 pulled, `40cakes repo/UPDATE-LOG.md`'s last-check date advanced per the standing directive.
+
+## 2026-08-16 — chore: the comment-only `story_mode.py` correction PROMOTED (user-approved) — drift is 0, and behaviour-neutrality was PROVED rather than asserted (punch-list #24-counters)
+
+**The user ruled: promote.** `plugins/custom_modes/story_mode.py` copied sandbox → custom. Restore
+point **`restore/2026-08-16-pre-promotion-credible-answer-comment`** (annotated, pushed, verified on
+origin by `promote.py` before it copied). Result: **`0 differing, 0 orphaned`, 1/1 byte-identical.**
+
+**‼ THE PROOF IS AST EQUALITY, NOT "THE DIFF LOOKS LIKE COMMENTS".**
+`ast.dump(ast.parse(sandbox)) == ast.dump(ast.parse(custom))` — **identical, 323,580 chars each**.
+⛔ **And that check was FAULT-TESTED before being relied on:** flipping `CREDIBLE_ANSWER_POWER`
+from `75` to `76` in memory makes it return **False**. *A check that cannot fail proves nothing* —
+the rule this session already had to learn twice, applied up front this time.
+
+**⚠ HONEST SCOPE — and it is the opposite of the KI-79 promotion's.** There is **no three-point A/B
+here and there cannot be one**: a comment has no branch to flip, so no command can go
+PASS→FAIL→PASS across it. ⇒ **cite the AST identity and the byte-compare for "the fix is live",
+never the drives.** The `--build custom` drives exist only to show the file still loads and behaves:
+`--driver ki80ladder` arms 1-3 → `ACCEPTANCE: PASS`, and `POKEBOT_KI80_ARM4=1` → `ACCEPTANCE: PASS`
+with both controls green, plus four `--build custom` gates (each asserting which fork it imported)
+at exit 0. Transcripts: `evidence/2026-08-16-promotion-credible-comment-AFTER-custom-*`.
+
+**All twelve drift claims across four current-state files flipped 1 → 0 in the same commit**, swept
+with the explicit spelling list this project recorded after the gate missed 4 of 7 last time
+(`drift is 0` · `drift is ZERO` · `figure is zero` · `0 as of` · `0 differing` · `1 differing` ·
+`1 file differs` · `one comment-only`). ‼ The `audit_doc_consistency` drift check is a FLOOR, not a
+sweep — it validates the numeral it can parse and cannot see a count spelled as a word or phrased
+as "0 as of".
+
+⇒ **`04-HANDOFF.md`'s `if stopped mid-task` row is back to "NO PROMOTION DECISION IS OWED"**, and it
+is true this time: nothing is awaiting a user ruling.

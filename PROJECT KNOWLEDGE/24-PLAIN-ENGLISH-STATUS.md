@@ -192,10 +192,10 @@ result, prove the tool can find something you already know is there.
 *(‼ corrected 2026-08-13 — every bullet here was about the Magma Hideout, which shipped on
 2026-08-10, the day this section was written.)*
 
-* Everything is saved and backed up. ⚠ **The working copy does NOT match the shipped copy** —
-  **1 file differs on purpose** (measured 2026-08-16), holding a correction that has been made but
-  not yet approved for the shipped build. That approval is a decision for the project's owner, not
-  something the bot should do on its own. *(This line said "three files" for days; the count was
+* Everything is saved and backed up, and ✅ **the working copy now MATCHES the shipped copy** —
+  **0 files differ** (measured 2026-08-16, after the owner approved the last outstanding
+  correction). Approving those copies is a decision for the project's owner, not something the bot
+  does on its own. *(This line said "three files" for days; the count was
   spelled as a WORD, which is invisible to the automatic check that polices that number.)*
 * **The next room is mapped in detail**, including the one mistake that cannot be undone: there is
   a spot where pushing a boulder the wrong way **permanently blocks the only exit**. The plan

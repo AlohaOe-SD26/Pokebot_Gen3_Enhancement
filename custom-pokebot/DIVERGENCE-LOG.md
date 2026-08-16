@@ -1678,3 +1678,58 @@ which ASSERTS which fork it imported: `repro_box_counter_move_test`, `repro_pid_
 ⚠ **What this does NOT change:** the message is now trustworthy, but no CALLER acts on it —
 `withdraw_from_box` still returns nothing and still never raises. A caller that needs to KNOW
 whether the counter arrived must check identity itself (which `--driver boxcounter2` does).
+
+---
+
+## 2026-08-16 — `plugins/custom_modes/story_mode.py`: the `CREDIBLE_ANSWER_POWER` example corrected (COMMENT-ONLY, user-approved)
+
+**Promoted:** `plugins/custom_modes/story_mode.py`, sandbox → custom. **User-approved 2026-08-16.**
+Restore point **`restore/2026-08-16-pre-promotion-credible-answer-comment`** (annotated, pushed,
+and verified on origin by `promote.py` before it copied).
+
+**What changed, in full.** The explanatory comment on `CREDIBLE_ANSWER_POWER = 75` justified the
+threshold with a worked example that **does not exist**: *"Thunderbolt vs Winona (270)"*. Winona's
+ace is **Altaria, Dragon/Flying**, and Electric is `0.5x` into Dragon `x 2.0x` into Flying = **1.0,
+NEUTRAL**. Production agrees — it derives `needed = ['Rock', 'Ice', 'Dragon']`, with no Electric.
+Replaced with a real example: **Ice Beam into Altaria (`95 x 4.0 = 380`)**, plus an inline
+`⛔ NOT Thunderbolt` marker so the false example cannot come back quietly.
+
+**⛔ WHY IT MATTERED ENOUGH TO PROMOTE.** It is the only worked example attached to the constant
+that `_boss_plan_is_hopeless` uses to decide whether a party has an answer — the exact predicate the
+whole KI-80 round is built on. Anyone re-tuning that threshold from its own comment would have been
+calibrating against a matchup that cannot occur. It was the **FIFTH** surviving copy of that error,
+and it hid from the sweep that fixed the other four because it is *prose about a threshold* and
+names no type list.
+
+### ✅ PROVED BEHAVIOUR-NEUTRAL BEFORE COPYING — not asserted from "the diff looks like comments"
+
+```
+ast.dump(ast.parse(sandbox story_mode.py)) == ast.dump(ast.parse(custom story_mode.py))
+  -> IDENTICAL, 323,580 chars each
+```
+‼ **And that check was FAULT-TESTED so it cannot be vacuous:** flipping
+`CREDIBLE_ANSWER_POWER = 75` to `76` in memory makes the comparison return **False**. A check that
+cannot fail proves nothing; this one demonstrably can.
+⛔ Both forks are **4135 lines** — the edit was deliberately made **net-zero on line count**, so no
+`story_mode.py:NNNN` citation shifts in EITHER fork. That matters because `06`/`07`/`08` are
+**append-only** and are full of such citations; they may not be rewritten to follow a line shift.
+
+### VERIFIED BY DRIVING — because a copy is not evidence
+
+| run (`--build custom`) | result |
+|---|---|
+| `--driver ki80ladder` arms 1-3, `batch2_run04_wedge.ss1` | `NOGRASS → LADDER`, `GRASS_FODDER → LADDER`, `GRASS_STRONG → PLAIN_ESCALATION` — **ACCEPTANCE: PASS** |
+| `POKEBOT_KI80_ARM4=1 --driver ki80ladder`, `fortree_gym_wedge.ss1` | CONTROL-A `hopeless=False`, CONTROL-B `VICTORY_ROAD_1F 40 vs 39 → fodder False`, `OUTCOME=PLAIN_ESCALATION` — **ACCEPTANCE: PASS** |
+
+Plus four `--build custom` gates, each of which ASSERTS which fork it imported:
+`repro_box_counter_move_test`, `repro_pid_identity_key`, `repro_party_accounting`,
+`repro_heal_piggyback_reporting` — **all exit 0**.
+📁 Transcripts: `tools/story-dev/evidence/2026-08-16-promotion-credible-comment-AFTER-custom-arms123.stdout.txt`
+and `…-arm4.stdout.txt`.
+
+⚠ **HONEST SCOPE — what driving can and cannot prove here.** Unlike the KI-79 promotion, there is
+**no three-point A/B and there cannot be one**: a comment change has no branch to flip, so no
+command can go PASS→FAIL→PASS across it. The AST equality above is the *stronger* proof for this
+class of change, and the drives exist to show the file still loads and behaves in custom — not to
+show a new branch running. ⛔ Do not cite these drives as evidence that "the fix is live"; cite the
+AST identity and the byte-compare (`1/1 byte-identical`, drift 0 both directions) for that.

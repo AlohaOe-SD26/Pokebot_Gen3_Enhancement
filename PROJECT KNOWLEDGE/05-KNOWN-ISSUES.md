@@ -2746,7 +2746,7 @@ SHOULD inherit its sibling's protection — widening is the safe direction, narr
 
 ---
 
-## KI-80 — `grass_is_fodder` CONFLATES "no training patch configured" with "the patch is too weak", and it is the SOLE gate on the counter-ladder — so giving a boss a training area silently disables its KI-23 machinery (2026-08-15, ✅ **REPRODUCED AND DRIVEN** — `--driver ki80ladder`, 3 arms, both forks; OPEN, GATED)
+## KI-80 — `grass_is_fodder` CONFLATES "no training patch configured" with "the patch is too weak", and it is the SOLE gate on the counter-ladder — so giving a boss a training area silently disables its KI-23 machinery (2026-08-16, ✅ **REPRODUCED AND DRIVEN** — `--driver ki80ladder` is COMPLETE and PASSING: **4 arms**, both forks, mirror-regression guard fault-tested against the real naive edit. ⛔ **THIS KI REMAINS OPEN BECAUSE THE DECOUPLING ITSELF HAS NOT SHIPPED** — the defect is reproduced, not repaired; GATED; promotion no longer entangled)
 
 - **The line.** `plugins/custom_modes/story_mode.py:1899`:
   ```
@@ -2880,12 +2880,16 @@ SHOULD inherit its sibling's protection — widening is the safe direction, narr
   with *"this save is NO_ANSWER (hopeless=True), so it cannot exercise the `:1925 boss_mode` path at
   all"*; CONTROL-B re-derives condition 9 INVERTED from the live ROM. Transcripts:
   `evidence/2026-08-16-ki80ladder-ARM4-*`.
-- ⚠ **PROMOTION IS ENTANGLED, and this is the USER's call, not a technical one.**
-  `plugins/custom_modes/story_mode.py` is **the one file currently drifted** (the comment-only
-  `CREDIBLE_ANSWER_POWER` correction, NOT promoted). A KI-80 behaviour fix lands in **that same
-  file**, so `promote.py` cannot separate them — promoting the fix would carry the undecided
-  comment edit with it. ⇒ **ask the user to rule on the comment-only promotion BEFORE promoting any
-  KI-80 fix.** It does not block BUILDING the fix in sandbox. ⛔ And when the fix ships, `repro_boss_grass_gate.py`
+- ✅ **THE PROMOTION ENTANGLEMENT IS RESOLVED (2026-08-16).** This bullet used to warn that a KI-80
+  fix could not be promoted separately from an unapproved comment-only edit sitting in the SAME
+  file (`plugins/custom_modes/story_mode.py`). **The user ruled, the comment-only correction was
+  promoted, and drift is 0** — so a future KI-80 fix promotes cleanly on its own.
+  *(⚠ The superseded wording is DESCRIBED rather than reprinted: `audit_doc_consistency` matches
+  literal strings and cannot tell a quotation from a claim — it red-flagged the first draft of this
+  very bullet for reciting the old figure.)*
+  ‼ **Keep the general rule, which is what actually matters:** *`promote.py` moves whole FILES, so
+  two unrelated edits to one file cannot be promoted separately.* Land an approved edit before
+  starting an unapproved one in the same file, or they become a single decision. ⛔ And when the fix ships, `repro_boss_grass_gate.py`
   (suite #24) **SELF-RETIRES** — it stops enforcing and says so; that is designed, not a failure.
 - ⛔⛔ **THE REPRO CONDITIONS, READ FROM THE SOURCE 2026-08-15 (a static code read, not a live
   measurement — every row carries its file:line so it is checkable) — AND THEY ARE NOT WHAT THIS
