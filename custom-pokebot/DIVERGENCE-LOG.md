@@ -1601,3 +1601,34 @@ why this was not re-driven; the drive that matters is the one named above. The d
 requires the (P4) driver to open with its own read-back control, because this function working in
 isolation does not make a fixture correct on the day. Restore point
 `restore/2026-08-15-pre-promotion-boxwrite-docstring`. Drift 1 → 0, 1/1 byte-identical.
+
+## 2026-08-15 — `modules/story/counter_hunt.py`: the "Winona needs …/Electric" error corrected (COMMENT-ONLY, user-approved)
+
+**Promoted:** `modules/story/counter_hunt.py`, sandbox → custom. **User-approved 2026-08-15.**
+Restore point `restore/2026-08-15-pre-promotion-counterhunt-comment` (annotated, pushed, and
+verified on origin by `promote.py` before it copied). Drift **1 → 0**, **1/1 byte-identical**.
+
+**What changed, and why it is worth a promotion at all.** `box_counter_pid`'s docstring said
+*"Winona needs Rock/Ice/Dragon/Electric"*. **Electric is wrong**, and had been for a year.
+`needed` is derived from the boss's ACE alone (`_boss_plan_is_hopeless`, `story_mode.py:1600-1606`,
+requiring `>= 2.0` across ALL ace types); Winona's ace is **Altaria L33, Dragon/Flying**; Electric
+is **0.5x into Dragon** × 2.0x into Flying = **1.0 — NEUTRAL**. Production therefore never yields
+it. The claim was mis-scoped rather than invented: Electric IS 2.0x on her other four (Flying)
+mons. The same wrong set stood in FOUR places that were copies of one another — this file, the P4
+design note, `04-HANDOFF.md`, and the Stage 1 driver — and none of them was ever checked against
+the type chart until `--driver boxcounter`'s new `needed_ok` control DERIVED it and refused to run
+(`derived=['Dragon','Ice','Rock'] ; literal=['Dragon','Electric','Ice','Rock'] ; needed_ok=False`).
+
+⛔ **NO BEHAVIOUR CHANGE — every changed line is inside the docstring**, proven by a full
+`diff -u custom … sandbox` read BEFORE the restore point was tagged, not asserted afterwards.
+
+‼ **VERIFIED BY DRIVING ANYWAY, because a copy is not evidence** (and the standing rule does not
+carve out comment-only changes — the previous comment-only promotion, `boxwrite-docstring` above,
+explicitly skipped the drive, and this one deliberately does not):
+* `--driver boxcounter2 --build custom` **ARM B** → `moved=True knows_rock_throw=True
+  lead_is_counter=True noop_attributed=True`, `ACCEPTANCE: PASS`.
+* `--driver boxcounter2 --build custom` **ARM A** (`POKEBOT_BOXCOUNTER_TYPEONLY_A=1`) →
+  `_hunted_counter_pids=[]`, `still_boxed=True not_in_party=True`, `ACCEPTANCE: PASS`.
+* Four `--build custom` gates, each of which ASSERTS which fork it imported before testing:
+  `repro_box_counter_move_test`, `repro_pid_identity_key`, `repro_party_accounting`,
+  `repro_heal_piggyback_reporting` — all exit 0.

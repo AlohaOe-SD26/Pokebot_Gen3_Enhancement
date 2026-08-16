@@ -14299,3 +14299,87 @@ results appended after — 9/11 held, P3 refuted productively), design note §7 
 §10 added, `counter_hunt.py:250` corrected, KI-79 filed.
 ‼ **Drift is no longer 0:** `modules/story/counter_hunt.py` now differs from `custom-pokebot/`
 (a comment-only correction). Promotion is the USER's call.
+
+## 2026-08-15 — ✅ PROMOTED the comment-only `counter_hunt.py` correction (USER-APPROVED) — and drove it anyway, because a copy is not evidence (punch-list #24-counters)
+
+**Promoted:** `modules/story/counter_hunt.py`, sandbox → custom. **User-approved 2026-08-15.**
+Executed by `promote.py --restore-point restore/2026-08-15-pre-promotion-counterhunt-comment --go`.
+Result: **1/1 byte-identical, drift 0 in BOTH directions, 0 orphaned.**
+
+**What it corrects.** The docstring claim *"Winona needs Rock/Ice/Dragon/Electric"*. Electric is
+**neutral on her ace** — Altaria is Dragon/Flying and Electric is 0.5x into Dragon x 2.0x into
+Flying = 1.0 — so `_boss_plan_is_hopeless`, which derives `needed` from `ace_types` ALONE, never
+yields it. Found by `--driver boxcounter`'s `needed_ok` control on its first run.
+
+**⛔ THE SAFETY STEPS, IN THE ORDER THEY WERE DONE** (each one exists because of a logged mistake):
+1. **PROVED the change was comment-only BEFORE tagging** — a full `diff -u custom … sandbox`,
+   read, not asserted. Every changed line lies inside `box_counter_pid`'s docstring.
+   *(Claiming "it's only a comment" and then promoting on that claim is how a behaviour change
+   would slip through under a reassuring label.)*
+2. **Restore point tagged, pushed, and confirmed present on origin** before any copy —
+   `restore/2026-08-15-pre-promotion-counterhunt-comment`. `promote.py` re-verifies this itself
+   and refuses on a dirty tree, an unpushed tag, a diverged remote, or a no-op.
+3. ‼ **VERIFIED BY DRIVING — and "comment-only" was deliberately NOT treated as an exemption.**
+   The previous comment-only promotion (`boxwrite-docstring`) skipped the drive on exactly that
+   reasoning. This one did not:
+   * `--driver boxcounter2 --build custom` **ARM B** → `moved=True knows_rock_throw=True
+     lead_is_counter=True noop_attributed=True`, `ACCEPTANCE: PASS`.
+   * `--driver boxcounter2 --build custom` **ARM A** → `_hunted_counter_pids=[]`,
+     `still_boxed=True not_in_party=True`, `ACCEPTANCE: PASS`.
+   * Four `--build custom` gates, each ASSERTING which fork it imported: exit 0.
+4. **Logged in `custom-pokebot/DIVERGENCE-LOG.md`** and the drift figure moved to 0 in **all nine**
+   places that assert it — eight in `04-HANDOFF.md` plus one in `03-PUNCH-LIST.md`.
+   ‼ **The ninth was found by `audit_doc_consistency.py`, not by me** (`03-PUNCH-LIST.md:380
+   claims drift=1; MEASURED drift is 0`). That is the second session running in which a drift
+   figure was updated in most places and missed in one — the gate and the Tier 2 cold-start have
+   now each caught one. ⇒ **a drift figure is a MULTI-FILE fact; sweep for it, never edit it
+   in the place you happen to be looking.**
+
+## 2026-08-15 — ✅ KI-79 FIXED AND FAULT-PROVEN: the PC withdraw now verifies BY IDENTITY instead of announcing one from a COUNT (punch-list #24-counters)
+
+**The defect.** `modules/story/pc_trip.py`, the tail of `withdraw_from_box()`, did:
+`after = len(get_party())` and then printed *"{name} is in the party; party is now {after}."*
+It read a **COUNT** and announced an **IDENTITY**. It could not fail: on the make-room path the
+deposit CANCELS the withdraw, so the count is unchanged on SUCCESS (measured: party 6 → 6, box
+2 → 2) — and equally unchanged when nothing happened at all. Combined with the blanket `except`
+that means the function **never raises**, a silent PC failure printed a green success.
+
+**The fix.** After the interaction, yield two frames (party AND storage are cached per frame, so a
+same-frame read sees the PRE-withdraw state — the verification would otherwise become the new
+false negative), then resolve the target by `(personality_value, species.name)` **and**
+`contains_pokemon(target)` being False. ‼ **Both halves are required**: in-party-only could be a
+copy, gone-from-box-only could be a release. On failure it prints a loud named
+`‼ THE WITHDRAW DID NOT LAND … in_party=… still_boxed=…` and ⛔ **still does not raise** — the
+original contract (a PC hiccup must not destroy a heal that already succeeded) is preserved; what
+changed is that the caller is no longer LIED TO. ⛔ It is NOT fixed by asserting the count changed.
+‼ Identity is `(pid, species)`, **never the bare PID** — a Shedinja carries its Ninjask's PID
+(KI-78), so a PID-only check would be a latent collision bug.
+
+**‼ PROVEN BY FAULT INJECTION, because a green run cannot exercise an error path.** New permanent
+hook **`POKEBOT_PCWITHDRAW_FAULT=1`** (registered in `29-DISABLED-FEATURES-REGISTRY.md`) skips the
+PC interaction so the withdraw provably does not happen. Measured live, both arms:
+* **FAULTED** → `Story: PC — ‼ THE WITHDRAW DID NOT LAND. Slugma in_party=False still_boxed=True`,
+  and `--driver boxcounter2` → **`ACCEPTANCE: FAIL`** with `moved=False knows_rock_throw=False
+  lead_is_counter=False noop_attributed=False`. ‼ It ran to COMPLETION and reported rather than
+  throwing — worth knowing, since `moved=False` leaves `party_copy` as `None` downstream.
+* **UNFAULTED** → `Story: PC — Slugma is in the party; party is now 6.` (now identity-verified)
+  → **`ACCEPTANCE: PASS`**. No regression.
+⇒ **The old code printed the SAME green line in BOTH of those runs.** That is the defect, shown.
+📁 **Raw transcripts COMMITTED by name:** `tools/story-dev/evidence/2026-08-15-ki79-armB-UNFAULTED.stdout.txt` and `…-FAULTED.stdout.txt` (plus their `.driver.txt` twins).
+‼ They exist because a **Tier 1 reviewer could not verify this entry from disk and kicked it
+back.** `story_harness.py` writes `harness_<build>.log` — ONE fixed filename per build,
+**overwritten by the next run** — so the unfaulted PASS transcript had already been destroyed
+by the faulted run, leaving only a FAIL on disk. The claim was true and UNVERIFIABLE, which
+for this project is the same as unproven. ⇒ **A/B runs get distinct `--log` names AND stdout
+redirected** (the driver log does not contain `console.print` output).
+
+**Bonus — the same fault run FAULT-TESTS the (P4) Stage 2 driver.** All FOUR of its graded claims
+flip to False when the withdraw is sabotaged, so it is demonstrably not rubber-stamping. And its
+second-heal attribution did exactly its job: `find_in_box=Slugma noop_attributed=False`, correctly
+distinguishing *"still in the box"* from *"already collected"* — the innocent-cause discrimination
+that was designed in after an adversarial pass flagged it.
+
+⚠ **NOT PROMOTED.** The fix is sandbox-only; `custom-pokebot/` still carries the unverified print.
+Sandbox→custom drift is **1** (`modules/story/pc_trip.py`). ⛔ **This one CHANGES BEHAVIOUR** — the
+earlier `counter_hunt.py` promotion was a comment — so it is explicitly the USER's call and has not
+been asked for.

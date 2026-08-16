@@ -7,7 +7,7 @@
 Every banner further down is HISTORY, newest first.
 
 ---
-# ‼ YOU ARE HERE (2026-08-15, latest) — **THE LIVE WORK IS THE PC / PARTY ROBUSTNESS ARC. (P4) IS NOW DRIVEN THROUGH STAGE 2: the real heal COLLECTS the boxed counter and leads with it (ARM B), and ARM A leaves it boxed — the user's derail reproduced ORGANICALLY. Matrix {ARM A, ARM B} x {sandbox, custom} = 4/4 ACCEPTANCE: PASS.** ⛔ **NEXT IS NOT MORE (P4) DRIVING — it is the PROMOTION DECISION (drift is no longer 0) plus KI-79.** (P3) Stage 0 and (P3b) are DONE. §Ch20 is driven END TO END and its chapter assembly is **PARKED, NOT CANCELLED**. Read this, then `14-AGENT-PLAYBOOK.md`, then NEXT ACTIONS item 0.
+# ‼ YOU ARE HERE (2026-08-15, latest) — **THE LIVE WORK IS THE PC / PARTY ROBUSTNESS ARC. (P4) IS NOW DRIVEN THROUGH STAGE 2: the real heal COLLECTS the boxed counter and leads with it (ARM B), and ARM A leaves it boxed — the user's derail reproduced ORGANICALLY. Matrix {ARM A, ARM B} x {sandbox, custom} = 4/4 ACCEPTANCE: PASS.** ✅ **`counter_hunt.py` PROMOTED (user-approved, verified by driving) AND KI-79 IS FIXED AND FAULT-PROVEN. ⛔ NEXT IS A PROMOTION DECISION for the KI-79 fix — drift is 1 (`pc_trip.py`), and it is a BEHAVIOUR change, so it needs the user.** (P3) Stage 0 and (P3b) are DONE. §Ch20 is driven END TO END and its chapter assembly is **PARKED, NOT CANCELLED**. Read this, then `14-AGENT-PLAYBOOK.md`, then NEXT ACTIONS item 0.
 
 > ⛔ **ORDER, EXPLICITLY (a Tier 2 cold-start audit could not tell which of these came first):
 > (1) RUN THE RITUAL BELOW — it is cheap and it tells you whether the tree is sane; (2) READ
@@ -21,13 +21,26 @@ Every banner further down is HISTORY, newest first.
 > priority redirect and is NOT part of the superseded "older framing".
 
 > **State: `main`, clean, 23/23 gates PASS, nothing parked, nothing running.** All work pushed.
-> ⛔ **Sandbox→custom drift is 1 — `modules/story/counter_hunt.py`, COMMENT-ONLY, awaiting a USER
-> promotion decision** (it corrects the "Winona needs …/Electric" error; no behaviour changed, and
-> BOTH forks were driven green afterwards: `--driver boxcounter2 --build custom`, ARM A and ARM B).
+> ⛔ **"Clean" describes the GIT TREE ONLY — it says nothing about the sandbox→custom drift
+> figure**, which is ONE (`pc_trip.py`, the KI-79 fix: committed, proven, and deliberately
+> UNPROMOTED pending a user decision). See the drift row. *(Phrased without the two-word form of
+> that figure on purpose: `audit_doc_consistency` matches the literal string and cannot tell a
+> NEGATION from a claim — it red-flagged this very line when it read "does not mean drift is
+> <zero>".)*
+> ⛔ **Sandbox→custom drift is 1 — `modules/story/pc_trip.py`, the KI-79 fix, awaiting a USER
+> promotion decision. ‼ Unlike the last one this is a BEHAVIOUR change, not a comment.** It is
+> FIXED and FAULT-PROVEN in sandbox (see KI-79), but `custom-pokebot/` still prints the unverified
+> success. ✅ The earlier comment-only `counter_hunt.py` correction WAS promoted 2026-08-15,
+> user-approved, and — because a copy is not evidence — VERIFIED BY DRIVING:
+> `--driver boxcounter2 --build custom` ARM A **and** ARM B both `ACCEPTANCE: PASS`, plus four
+> `--build custom` gates. Restore point `restore/2026-08-15-pre-promotion-counterhunt-comment`.
 > Everything else was PROMOTED 2026-08-15, user-approved and VERIFIED BY DRIVING
 > (`--driver ch20dive --build custom` → `ACCEPTANCE: PASS`, plus four `--build custom` gates that
-> each assert which fork they imported). ‼ **`promote.py --check` is the authority — expect exactly
-> that ONE file; ANY OTHER file it lists is a reason to stop.**
+> each assert which fork they imported). ‼ **`promote.py --check` is the authority — expect
+> exactly ONE file, `modules/story/pc_trip.py`; ANY OTHER file it lists is a reason to stop.** *(This read "expect exactly
+> that ONE file" until the promotion landed. A Tier 1 audit caught it: a literal sweep for
+> "drift is 1" missed it because it says the number in WORDS. ⛔ **Digits, not words** — the same
+> rule that caught a spelled-out "THREE" here for a day.)*
 > **Every room of the Seafloor Cavern is DRIVEN and PASSING** — `ch20dive` → rooms 1, 2, 6, 3,
 > 8, and now **9** (Archie fought, Kyogre awakened, `VAR_ROUTE128_STATE == 2`, the measured
 > atoll escape executed). **What remains of §Ch20 is the CHAPTER ASSEMBLY**, not exploration.
@@ -130,9 +143,12 @@ the Chapter 20 artefacts; both renamed files carry a provenance header saying so
   `ch13_fortree_door.ss1`** (ROUTE120 is a KI-24 bridge map — the run cannot even reach the PC);
   and the `sole` control only ever passed because `post_dive.ss1`'s boxes are empty.
   ⇒ **Agreement between documents is not evidence — they may all be copies of one another.**
-* ⛔ **NEXT IS NOT MORE DRIVING.** It is (i) a **PROMOTION DECISION — drift is 1**
-  (`counter_hunt.py`, comment-only) and (ii) **KI-79**, a production line that announces an
-  IDENTITY from a COUNT. Both are in NEXT ACTIONS item (P4b).
+* ✅ **Both halves of (P4b) are DONE.** `counter_hunt.py` (comment-only) was promoted,
+  user-approved and verified by driving. **KI-79 is FIXED and FAULT-PROVEN** — `withdraw_from_box`
+  now verifies BY IDENTITY instead of announcing one from `len(get_party())`, and the new
+  `POKEBOT_PCWITHDRAW_FAULT` hook makes the sabotaged case print `‼ THE WITHDRAW DID NOT LAND`
+  where the old code printed green success. ⛔ **NEXT: a PROMOTION DECISION for that fix — drift
+  is 1 (`pc_trip.py`) and this one CHANGES BEHAVIOUR, so it is the user's call.**
 * **What (P4) still does NOT prove:** anything UPSTREAM of registration. The Slugma is INJECTED and
   its PID published by the driver, so the real `hunt()` → `story_mode.py:1750` wiring is untested.
 * **§Ch20 (Seafloor Cavern) is DRIVEN END TO END** — all nine rooms, `ACCEPTANCE: PASS`. Its
@@ -168,9 +184,9 @@ burden here is so heavy, and why negative results are treated as the most valuab
 | ‼ is code frozen? | **No.** Nothing is running. |
 | party ORDER | ✅ **PROVEN 2026-08-13.** `--driver roster` from `saves/post_dive.ss1` → `phases=4/4 saw_j_nonzero=True idempotent=True restored=True can_continue=True ACCEPTANCE: PASS`. Raw transcripts (both A/B arms) in `ai-research-notes/2026-08-13-roster-drive-predictions.md`. ‼ The **deposit/withdraw** half of `#24-roster` is still open. |
 | upstream | checked **2026-08-15**, still `5dd898f8` — no change (re-fetched this session; `40cakes repo/UPDATE-LOG.md` already recorded the same date, and THAT file is the authority — this row only mirrors it). ‼ This row goes stale on a CALENDAR DAY, not on an event: if today's date is later than the one shown, **the daily check is DUE** (`git fetch upstream-pokebot`, compare against `40cakes repo/UPDATE-LOG.md`). Do not read it as satisfied. |
-| restore point | **`restore/2026-08-13-session-end-ch20room3`** (annotated, pushed) — taken at the END of the §Ch20 cavern session, immediately before Room 8, which is the riskiest room in the dungeon (a boulder pushed onto `(5,3)` **permanently seals the exit**). ‼ It is also the natural rollback point if the **promotion decision** below is taken. Older: **`restore/2026-08-13-pre-ki63-promotion`** (annotated, pushed) — taken immediately BEFORE promoting KI-63's fix. Older: `restore/2026-08-13-pre-roster-promotion`, `restore/2026-08-12-pre-ch1819-promotion`. |
-| sandbox ↔ custom drift | ⛔ **1 as of 2026-08-15 (LATEST) — `modules/story/counter_hunt.py`, a COMMENT-ONLY correction awaiting a USER promotion decision.** It fixes the "Winona needs …/Electric" error (the ace is Dragon/Flying; Electric is neutral on it). No behaviour changed, and BOTH forks were driven green after it: `--driver boxcounter2 --build custom` ARM B and ARM A → `ACCEPTANCE: PASS`. ‼ **MEASURE, don't trust this row** — `promote.py --check` is the authority; expect exactly ONE file. ⛔ Digits, not words. **The rest of this cell is the PREVIOUS state, kept for its promotion evidence — read "0"/"ZERO" below as *"zero at that moment"*, not as today's figure.** ✅ **0 as of 2026-08-15 (earlier) — every drifted file was PROMOTED, user-approved, and VERIFIED BY DRIVING.** Promoted: `modules/party_accounting.py` (new), `modules/pokemon_party.py`, `modules/modes/util/higher_level_actions.py`, `modules/debug_utilities.py`, `modules/story/counter_hunt.py`. **Evidence:** tool-side drift 0 both directions + 5/5 byte-identical; **`--driver ch20dive --build custom` → `legs=6/6 … ACCEPTANCE: PASS`**, matching sandbox; and FOUR `--build custom` gates (`repro_party_accounting` 33, `repro_heal_piggyback_reporting` 20, `repro_box_counter_move_test`, `repro_pid_identity_key`) each ASSERTING which fork it imported. Restore point **`restore/2026-08-15-pre-promotion-stage0-p4`** (annotated, pushed, verified on origin by the tool before it copied). ⛔ **Digits, not words** — this cell read a spelled-out "THREE" for a day, invisible to `audit_doc_consistency`'s drift check, and it survived two doc passes. ⛔ **What promotion does NOT mean:** party accounting is still STAGE 0 (it observes and decides nothing), `debug_write_box_slot` is PROVEN LIVE (`--driver boxwrite` → PASS, 2026-08-15), and (P4) is driven through **STAGE 2** (`--driver boxcounter2`, 4/4 across both forks, 2026-08-15) — ⛔ *this sentence read "STAGE 2 … is NOT built" until Stage 2 landed the same day; the drift figures around it are historical, this clause is CURRENT.* ‼ **Anything else appearing in `promote.py --check` is unexplained drift and is worth stopping for.** ⛔ The rest of this cell is the PREVIOUS state and is kept for its promotion evidence — read "ZERO" below as *"zero at that moment"*, not as today's figure: ✅ **ZERO as of 2026-08-14 (earlier) — KI-78 STAGE 1 WAS PROMOTED, user-approved, and it is the first promotion executed by `tools/story-dev/promote.py` rather than by hand.** The tool refuses on a dirty tree, a missing or UNPUSHED restore point, a diverged remote, or a no-op, and it re-measures drift in BOTH directions plus byte-equality per file — it also refuses to claim the driven verification it cannot perform. Restore point **`restore/2026-08-14-pre-promotion-ki78`**. **Evidence:** drift 0 both directions, 3/3 byte-identical; **`repro_pid_identity_key.py --build custom` exit 0** and **`repro_box_counter_move_test.py --build custom` exit 0** (both ASSERT which fork they imported before testing); plus a live drive against custom. ⛔ **KI-78 is still not fully closed** — its residual cases (R2 debug-fabricated pairs, R3 corrupt box slots, R5 Frontier rentals, R6 evolved-since-capture) stay open. ‼ **MEASURE, don't trust this row** — `promote.py --check` (in HOW TO RUN / TEST) reports it BOTH ways in seconds — ⛔ **and the figure it expected HERE was 0 because that was true on 2026-08-14; TODAY expect ONE (`counter_hunt.py`). Do not act on this historical sentence.** 📚 Every earlier drift state — including the 2026-08-13/14 rounds where `map_path.py`, `early_game.py`, `story_mode.py`, `counter_hunt.py` and `pokemon_party.py` were awaiting promotion — moved to `28-HANDOFF-ARCHIVE.md` on 2026-08-14, because stacking four supersessions in one cell made a promoted file read as still pending. |
-| **if stopped mid-task** | **NO UNCOMMITTED WORK IS PARKED** (‼ distinct from §Ch20's chapter assembly, which is deliberately PARKED as a work item). Everything is committed and pushed. Start at "NEXT ACTIONS". |
+| restore point | **NEWEST: `restore/2026-08-15-pre-promotion-counterhunt-comment`** (annotated, pushed, and verified on origin by `promote.py` BEFORE it copied) — taken immediately before the user-approved comment-only `counter_hunt.py` promotion, and therefore the rollback point for it. ⛔ *The promotion HAS been taken; the older row below still called it "the promotion decision below" as if pending.* Older: **`restore/2026-08-13-session-end-ch20room3`** (annotated, pushed) — taken at the END of the §Ch20 cavern session, immediately before Room 8, which is the riskiest room in the dungeon (a boulder pushed onto `(5,3)` **permanently seals the exit**). ‼ It is also the natural rollback point if the **promotion decision** below is taken. Older: **`restore/2026-08-13-pre-ki63-promotion`** (annotated, pushed) — taken immediately BEFORE promoting KI-63's fix. Older: `restore/2026-08-13-pre-roster-promotion`, `restore/2026-08-12-pre-ch1819-promotion`. |
+| sandbox ↔ custom drift | ⛔ **1 as of 2026-08-15 (LATEST) — `modules/story/pc_trip.py`, the KI-79 fix, awaiting a USER promotion decision. ‼ This one CHANGES BEHAVIOUR (the last one was a comment), so it is not a formality.** It is FIXED and FAULT-PROVEN in sandbox — faulted run prints `‼ THE WITHDRAW DID NOT LAND` and `--driver boxcounter2` returns `ACCEPTANCE: FAIL`; unfaulted returns `ACCEPTANCE: PASS`. ⛔ Digits, not words. **Earlier the same day:** ✅ the COMMENT-ONLY `modules/story/counter_hunt.py` correction was PROMOTED, USER-APPROVED, and VERIFIED BY DRIVING.** It fixed the "Winona needs …/Electric" error (the ace is Altaria, Dragon/Flying; Electric is 0.5× into Dragon, so NEUTRAL). ⛔ **A copy is not evidence, and "comment-only" earns no exemption** — the drive was run anyway: `--driver boxcounter2 --build custom` **ARM A and ARM B both `ACCEPTANCE: PASS`**, plus four `--build custom` gates (`repro_box_counter_move_test`, `repro_pid_identity_key`, `repro_party_accounting`, `repro_heal_piggyback_reporting`) each asserting which fork it imported. `promote.py` reported **1/1 byte-identical, drift 0 both directions**. Restore point **`restore/2026-08-15-pre-promotion-counterhunt-comment`** (annotated, pushed, verified on origin by the tool before it copied). Logged in `custom-pokebot/DIVERGENCE-LOG.md`. ‼ **MEASURE, don't trust this row** — `promote.py --check` is the authority; expect **0 differing, 0 orphaned**. ⛔ Digits, not words. **The rest of this cell is the PREVIOUS state, kept for its promotion evidence — read "0"/"ZERO" below as *"zero at that moment"*, not as today's figure.** ✅ **0 as of 2026-08-15 (earlier) — every drifted file was PROMOTED, user-approved, and VERIFIED BY DRIVING.** Promoted: `modules/party_accounting.py` (new), `modules/pokemon_party.py`, `modules/modes/util/higher_level_actions.py`, `modules/debug_utilities.py`, `modules/story/counter_hunt.py`. **Evidence:** tool-side drift 0 both directions + 5/5 byte-identical; **`--driver ch20dive --build custom` → `legs=6/6 … ACCEPTANCE: PASS`**, matching sandbox; and FOUR `--build custom` gates (`repro_party_accounting` 33, `repro_heal_piggyback_reporting` 20, `repro_box_counter_move_test`, `repro_pid_identity_key`) each ASSERTING which fork it imported. Restore point **`restore/2026-08-15-pre-promotion-stage0-p4`** (annotated, pushed, verified on origin by the tool before it copied). ⛔ **Digits, not words** — this cell read a spelled-out "THREE" for a day, invisible to `audit_doc_consistency`'s drift check, and it survived two doc passes. ⛔ **What promotion does NOT mean:** party accounting is still STAGE 0 (it observes and decides nothing), `debug_write_box_slot` is PROVEN LIVE (`--driver boxwrite` → PASS, 2026-08-15), and (P4) is driven through **STAGE 2** (`--driver boxcounter2`, 4/4 across both forks, 2026-08-15) — ⛔ *this sentence read "STAGE 2 … is NOT built" until Stage 2 landed the same day; the drift figures around it are historical, this clause is CURRENT.* ‼ **Anything else appearing in `promote.py --check` is unexplained drift and is worth stopping for.** ⛔ The rest of this cell is the PREVIOUS state and is kept for its promotion evidence — read "ZERO" below as *"zero at that moment"*, not as today's figure: ✅ **ZERO as of 2026-08-14 (earlier) — KI-78 STAGE 1 WAS PROMOTED, user-approved, and it is the first promotion executed by `tools/story-dev/promote.py` rather than by hand.** The tool refuses on a dirty tree, a missing or UNPUSHED restore point, a diverged remote, or a no-op, and it re-measures drift in BOTH directions plus byte-equality per file — it also refuses to claim the driven verification it cannot perform. Restore point **`restore/2026-08-14-pre-promotion-ki78`**. **Evidence:** drift 0 both directions, 3/3 byte-identical; **`repro_pid_identity_key.py --build custom` exit 0** and **`repro_box_counter_move_test.py --build custom` exit 0** (both ASSERT which fork they imported before testing); plus a live drive against custom. ⛔ **KI-78 is still not fully closed** — its residual cases (R2 debug-fabricated pairs, R3 corrupt box slots, R5 Frontier rentals, R6 evolved-since-capture) stay open. ‼ **MEASURE, don't trust this row** — `promote.py --check` (in HOW TO RUN / TEST) reports it BOTH ways in seconds — ⛔ **this historical sentence expected 0 because that was true on 2026-08-14; it is 0 again TODAY after the counter_hunt.py promotion — but do not act on a historical sentence, run the command.** 📚 Every earlier drift state — including the 2026-08-13/14 rounds where `map_path.py`, `early_game.py`, `story_mode.py`, `counter_hunt.py` and `pokemon_party.py` were awaiting promotion — moved to `28-HANDOFF-ARCHIVE.md` on 2026-08-14, because stacking four supersessions in one cell made a promoted file read as still pending. |
+| **if stopped mid-task** | **NO UNCOMMITTED WORK IS PARKED.** Everything is committed and pushed. ‼ **But note what IS outstanding and is NOT a code task:** the KI-79 fix to `sandbox-pokebot/modules/story/pc_trip.py` is COMMITTED and PROVEN but **NOT PROMOTED** to `custom-pokebot/`, so `promote.py --check` will list exactly that one file — that is EXPECTED, not an anomaly, and clearing it needs a USER decision because it changes behaviour. *(§Ch20's chapter assembly is deliberately PARKED as a work item, which is a different thing again.)* Start at "NEXT ACTIONS". |
 | ‼ **`git stash` — KEPT ON PURPOSE (USER RULING 2026-08-13)** | **`stash@{0}` EXISTS, IS NOT YOURS, AND IS KEPT AS A RECORD. ⛔ DO NOT DROP IT.** `WIP on main: e0f723e4` (2026-07-24) — a 14-line Fortree Gym "only ride out a scene that exists" guard. Its substance is ALREADY in today's `early_game.py` (reimplemented during the rotating-gate rewrite), so it is functionally superseded — **and the user ruled that a superseded stash is still a RECORD and dropping it is a destructive act that buys nothing** (`06-DECISIONS-LOG.md`). ⛔ **Standing rule: never `git stash drop` / `clear` / `pop` in this repo.** `pop` is separately banned because it mutates a GLOBAL stack — that is how this stash was disturbed in the first place (`08-MISTAKES.md`). To read it: `git stash show -p "stash@{0}"`, and apply by hand if ever needed. ‼ A stash is invisible to `git status` and to the kit's sync check, which is how it sat unnoticed for three weeks — so `git stash list` belongs in the session-start ritual, to SEE it, not to clear it. |
 
 ## ✅ WHAT SHIPPED IN THE §Ch19 + PROMOTION + ROSTER SESSION (2026-08-12) — MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-13)
@@ -359,19 +375,31 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    Slugma is INJECTED and the PID is published by the driver, so the real `hunt()` →
 >    `story_mode.py:1750` wiring remains untested end-to-end.
 >    ‼‼ **(P4b) THE HEAD OF THE QUEUE NOW — TWO THINGS, NEITHER OF WHICH IS MORE DRIVING.**
->    **(i) A PROMOTION DECISION IS OWED — ⛔ DRIFT IS NO LONGER 0.** `modules/story/counter_hunt.py`
->    differs from `custom-pokebot/`: a **comment-only** correction (the Electric error above). No
->    behaviour changed and both forks were driven green (`--build custom` 2/2). ⛔ **Promotion is
->    the USER's call and has NOT been asked for.** Run `promote.py --check` — expect exactly that
->    one file; anything else is unexplained drift and is worth stopping for.
->    **(ii) KI-79 (NEW, OPEN) — `withdraw_from_box` prints a success it never verified.**
->    `pc_trip.py:472-474` does `after = len(get_party())` and then announces
+>    **(i) ✅ THE PROMOTION IS DONE (user-approved 2026-08-15) — DRIFT IS 0 AGAIN.**
+>    `modules/story/counter_hunt.py` (comment-only, the Electric correction) was promoted via
+>    `promote.py --restore-point restore/2026-08-15-pre-promotion-counterhunt-comment --go`:
+>    1/1 byte-identical, drift 0 both directions, and **VERIFIED BY DRIVING** — ARM A and ARM B
+>    of `--driver boxcounter2 --build custom` both `ACCEPTANCE: PASS`, plus four `--build custom`
+>    gates. Logged in `custom-pokebot/DIVERGENCE-LOG.md`. ‼ Run `promote.py --check` anyway —
+>    expect **0 differing, 0 orphaned**; anything listed is unexplained drift and is worth
+>    stopping for.
+>    **(ii) ✅ KI-79 IS FIXED AND FAULT-PROVEN (sandbox) — ⛔ BUT NOT PROMOTED, AND THAT IS THE
+>    NEXT DECISION.** `withdraw_from_box` used to do `after = len(get_party())` and then announce
 >    *"{name} is in the party"* — a COUNT wearing an IDENTITY's clothes, live in production, on
->    the PC path, inside the arc whose whole subject is PC robustness. Found by READING; no green
->    run could surface it (the line prints identically whether or not it is true). ⚠ **NOT
->    OBSERVED FAILING** — report it as *"cannot be trusted"*, never *"is wrong"*. The fix must
->    assert `(personality_value, species)` + `contains_pokemon`, and ⛔ must NOT assert that the
->    COUNT changed: on the make-room path it correctly does not.
+>    the PC path, inside the arc whose whole subject is PC robustness. It now verifies by
+>    `(personality_value, species)` **plus** `contains_pokemon(target)` being False (both halves —
+>    in-party-only could be a copy, gone-from-box-only could be a release), after a 2-frame yield
+>    because party and storage are cached per frame. On failure it prints a loud named
+>    `‼ THE WITHDRAW DID NOT LAND …` and ⛔ **still does not raise** — the original contract
+>    (a PC hiccup must not destroy a heal that already succeeded) is preserved.
+>    ‼ **PROVEN BY FAULT INJECTION** (`POKEBOT_PCWITHDRAW_FAULT=1`, registered): faulted →
+>    `‼ THE WITHDRAW DID NOT LAND. Slugma in_party=False still_boxed=True` and
+>    `--driver boxcounter2` → **`ACCEPTANCE: FAIL`** on all four graded claims, having run to
+>    COMPLETION rather than thrown; unfaulted → green line and **`ACCEPTANCE: PASS`**.
+>    **The old code printed the same green line in BOTH runs — that is the defect, shown.**
+>    ⛔ **THE DECISION OWED: promote `modules/story/pc_trip.py`?** This one CHANGES BEHAVIOUR
+>    (the earlier `counter_hunt.py` promotion was a comment), so it is explicitly the USER's call
+>    and has NOT been asked for. Until then `custom-pokebot/` still carries the unverified print.
 >    **What (P4) still does NOT cover, if you want to extend it rather than promote:** everything
 >    upstream of registration — a real `hunt()` catch feeding `story_mode.py:1750`. ⚠ `hunt()`
 >    snapshots its OWN `before_box_pids` AFTER travel, so an injected fixture is excluded a second
@@ -412,8 +440,9 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    anything drifted TODAY remains the USER's call and has not been asked for.
 > 1. **Run `preflight.py`**, then the **23**-gate suite in "HOW TO RUN / TEST" (all exit 0
 >    2026-08-14; it has said 17, 18, 19, 20, 21 and 22 on its way to **23** — `run_gates.py` is authoritative, never this prose), and the drift check below.
->    ⛔ **EXPECT EXACTLY ONE FILE — `modules/story/counter_hunt.py`, the comment-only correction
->    named in the STATE row and in queue item (P4b). ANY OTHER file is unexplained drift.**
+>    ⛔ **EXPECT EXACTLY ONE FILE — `modules/story/pc_trip.py`, the KI-79 fix awaiting a USER
+>    promotion decision. ANY OTHER file listed is unexplained drift.** (`counter_hunt.py` was
+>    promoted earlier the same day and must NOT appear.)
 >    *(This line read "EXPECT 0 — everything was PROMOTED 2026-08-15" until 2026-08-15, when Stage 2
 >    corrected a wrong type-set comment in that file. A Tier 1 audit caught that the drift figure had
 >    been updated in the STATE row and the banner but NOT here, fifteen lines away — so a cold agent
@@ -795,9 +824,8 @@ PYTHONUTF8=1 py -3.12 audit_encoding.py             # mojibake + BOM; --repair f
 
 # --- THE SANDBOX <-> CUSTOM DRIFT CHECK (was only in the ARCHIVE; it belongs here) ---
 PYTHONUTF8=1 py -3.12 promote.py --check            # measures drift BOTH ways, changes nothing
-#   Expect as of 2026-08-15 (LATEST): ONE differing — `modules/story/counter_hunt.py`, the
-#   comment-only correction awaiting a USER promotion decision — and 0 orphaned. ANY OTHER
-#   file is unexplained drift. (Superseded the same day: "0 differing, 0 orphaned"; a Tier 2
+#   Expect as of 2026-08-15 (LATEST): ONE differing — modules/story/pc_trip.py, the KI-79 fix
+#   awaiting a USER promotion decision — and 0 orphaned. ANY OTHER file is unexplained drift. (Superseded the same day: "0 differing, 0 orphaned"; a Tier 2
 #   cold-start caught that TWO lines in this command block still said 0 after the STATE row,
 #   the banner and NEXT ACTIONS item 1 had all been moved to 1.)
 #   ‼ DIGITS, NOT WORDS: a spelled-out "THREE" here went stale for a day and no gate could see it.
@@ -819,7 +847,7 @@ exits on its own 20,000-idle-frame detector, logging **"HANG CONFIRMED"** on a r
 **Read the `ACCEPTANCE:` line, not the last line.** Full transcripts land in
 `tools/story-dev/harness_sandbox.log`.
 
-‼ **VERIFY THE SANDBOX↔CUSTOM DRIFT ROW RATHER THAN TRUSTING IT** — `promote.py --check` is in the block above and measures it BOTH ways in seconds. ⛔ **Expected as of 2026-08-15 (LATEST): ONE differing — `modules/story/counter_hunt.py`, awaiting a USER promotion decision — and 0 orphaned.** *(This line said "0 differing, 0 orphaned" until a Tier 2 cold-start audit found it, along with the sibling line in the command block above, still claiming 0 after three other places in this file had been corrected to 1. All five drift statements in this file move together or not at all.)* Superseded: *"the PowerShell loop is in `28-HANDOFF-ARCHIVE.md`'s copy of this section"*, together with an older expected-count naming `modules/map_path.py`, `modules/story/early_game.py` and `plugins/custom_modes/story_mode.py` — all PROMOTED now and not part of the current drift set. ‼ **The old FIGURE is deliberately not reprinted**: `audit_doc_consistency` cannot tell a quotation from a claim, so quoting a stale count turns this line red (it did). ‼ `tools/story-dev/` is sandbox-only and is **not** part of that comparison, so the `ch20*` drivers, `probe_route128_landing.py` and `repro_party_accounting.py` do not change the count.
+‼ **VERIFY THE SANDBOX↔CUSTOM DRIFT ROW RATHER THAN TRUSTING IT** — `promote.py --check` is in the block above and measures it BOTH ways in seconds. ⛔ **Expected as of 2026-08-15 (LATEST): ONE differing — `modules/story/pc_trip.py` (the KI-79 fix, awaiting a USER promotion decision) — and 0 orphaned.** *(This line said "0 differing, 0 orphaned" until a Tier 2 cold-start audit found it, along with the sibling line in the command block above, still claiming 0 after three other places in this file had been corrected to 1. All five drift statements in this file move together or not at all.)* Superseded: *"the PowerShell loop is in `28-HANDOFF-ARCHIVE.md`'s copy of this section"*, together with an older expected-count naming `modules/map_path.py`, `modules/story/early_game.py` and `plugins/custom_modes/story_mode.py` — all PROMOTED now and not part of the current drift set. ‼ **The old FIGURE is deliberately not reprinted**: `audit_doc_consistency` cannot tell a quotation from a claim, so quoting a stale count turns this line red (it did). ‼ `tools/story-dev/` is sandbox-only and is **not** part of that comparison, so the `ch20*` drivers, `probe_route128_landing.py` and `repro_party_accounting.py` do not change the count.
 
 ---
 

@@ -2910,7 +2910,7 @@ SHOULD inherit its sibling's protection — widening is the safe direction, narr
 
 ---
 
-## KI-79 — `withdraw_from_box` PRINTS A SUCCESS IT NEVER VERIFIED: `len(get_party())` wearing an identity's clothes (2026-08-15, code-verified while driving (P4) Stage 2, OPEN)
+## KI-79 — `withdraw_from_box` PRINTED A SUCCESS IT NEVER VERIFIED: `len(get_party())` wearing an identity's clothes (2026-08-15, code-verified while driving (P4) Stage 2 — ✅ **FIXED AND FAULT-PROVEN IN SANDBOX; ⚠ NOT YET PROMOTED to `custom-pokebot/`**)
 
 - **The line.** `modules/story/pc_trip.py:472-474`, the tail of `withdraw_from_box()`:
   ```
@@ -2942,11 +2942,41 @@ SHOULD inherit its sibling's protection — widening is the safe direction, narr
   (ARM B: `moved=True`, verified independently by PID+species and by `contains_pokemon`). This is
   a structural finding from reading the code, not a reproduction. ‼ Report it as *"cannot be
   trusted"*, never as *"is wrong"*.
-- **What a fix looks like** (NOT attempted — it is a production change and promotion is the
-  user's call): resolve the target's identity after the interaction — `contains_pokemon(target)`
-  is now False **and** a party member matches `(personality_value, species)` — and print
-  success/failure from THAT, keeping the count in the message as colour rather than as evidence.
-  ⛔ Do not "fix" it by asserting the count changed: on the make-room path it correctly does not.
+- ✅ **FIXED 2026-08-15 (sandbox), exactly as scoped below.** After the PC interaction the
+  function now yields two frames (party AND storage are cached per frame, so a same-frame read
+  sees the PRE-withdraw state and the verification would become the new false negative), then
+  resolves the target BY IDENTITY: a party member matching `(personality_value, species.name)`
+  **and** `contains_pokemon(target)` now False. Both halves are required — in-party-only could be
+  a copy, gone-from-box-only could be a release. On success it prints the same green line; on
+  failure it prints a loud named `‼ THE WITHDRAW DID NOT LAND … in_party=… still_boxed=…` and
+  ⛔ **still does not raise**, because the original contract stands: a PC hiccup must not destroy
+  a heal that already succeeded. What changed is that the caller is no longer LIED TO.
+  ⛔ It is NOT fixed by asserting the count changed: on the make-room path it correctly does not.
+- ‼ **PROVEN BY FAULT INJECTION, because a green run cannot exercise an error path.** New
+  permanent hook **`POKEBOT_PCWITHDRAW_FAULT=1`** (registered in `29-DISABLED-FEATURES-REGISTRY.md`)
+  skips the PC interaction so the withdraw provably does not happen. Measured, both arms, live:
+  * **FAULTED** → `Story: PC — ‼ THE WITHDRAW DID NOT LAND. Slugma in_party=False
+    still_boxed=True`, and `--driver boxcounter2` reported `moved=False knows_rock_throw=False
+    lead_is_counter=False noop_attributed=False` → **`ACCEPTANCE: FAIL`**. ‼ It ran to COMPLETION
+    and reported — it did not throw, which is itself worth knowing.
+  * **UNFAULTED** → `Story: PC — Slugma is in the party; party is now 6.` (now identity-verified)
+    → **`ACCEPTANCE: PASS`**, no regression.
+  ⇒ The old code printed the SAME green line in BOTH of those runs. That is the defect, shown.
+  ⇒ Bonus: this also FAULT-TESTS the Stage 2 driver — all four of its graded claims flip to False
+  when the thing they check is sabotaged, so it is not rubber-stamping.
+- 📁 **THE RAW TRANSCRIPTS ARE COMMITTED, BY NAME** — `tools/story-dev/evidence/2026-08-15-ki79-armB-UNFAULTED.stdout.txt` and `…-FAULTED.stdout.txt` (plus their `.driver.txt` twins).
+  ‼ **They exist because a Tier 1 reviewer could not verify this entry and said so.** The harness
+  writes `harness_<build>.log` — **one fixed filename per build, overwritten by the very next
+  run** — so the unfaulted PASS transcript had already been destroyed by the faulted run that
+  followed it, and all that remained on disk was a FAIL. The claim was true and *unverifiable*,
+  which for this project's purposes is the same as unproven. ⇒ **A/B runs must be captured with
+  distinct `--log` names, and stdout redirected too** (the driver's own log does NOT contain
+  `console.print` output — the `‼ THE WITHDRAW DID NOT LAND` and green-success lines live in
+  stdout). The faulted stdout also carries `POKEBOT_PCWITHDRAW_FAULT=1, SKIPPING the PC
+  interaction`, which is what proves the fault was actually armed for that run.
+- ⚠ **NOT YET PROMOTED.** The fix lives in `sandbox-pokebot/` only, so `custom-pokebot/` still
+  carries the count-based print. Sandbox→custom drift is **1** (`modules/story/pc_trip.py`) and
+  **promotion is the USER's call.**
 - **Related:** KI-78 (identity is `(personality, species)`, because a Shedinja shares its
   Ninjask's PID — so even a PID-only check is not enough here), and the (P4) Stage 2 driver, whose
   `party_map()` is keyed on that pair for exactly this reason after a PID-keyed first draft

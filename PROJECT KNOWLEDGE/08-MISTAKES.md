@@ -6848,3 +6848,57 @@ on a correctly-encoded `⏱` and on the em dashes, `20×17`, `§Ch20`, `‼`/`�
   variable and the first did not. **State the question a measurement answered, not just that one
   happened** — the same failure shape as the counting-tiles-without-checking-reachability mistake
   logged on 2026-08-13.
+
+## 2026-08-15 — A SUCCESS MESSAGE THAT READ A COUNT AND ANNOUNCED AN IDENTITY, LIVE IN PRODUCTION, ON THE PATH THE WHOLE ARC WAS ABOUT
+
+- **Symptom.** None. That is the entry. `withdraw_from_box` printed
+  *"{name} is in the party; party is now {after}"* on every run, and it was **true every time we
+  looked** — so nothing ever surfaced it.
+- **Root cause.** `after = len(get_party())` — a COUNT — used to assert an IDENTITY. It could not
+  fail: the make-room deposit cancels the withdraw, so the count is identical on success
+  (party 6 → 6) **and** when nothing happened. The function also never raises (blanket `except`),
+  so a silent PC failure had no other channel either.
+- **How it was found.** By READING the function end to end while writing (P4) Stage 2's acceptance
+  chain — specifically because the design required every claim to be an identity, which made the
+  production line's shape stand out. **No test found it and no test could have**, which is why it
+  sat in the middle of the PC-robustness arc unnoticed.
+- **The fix that worked.** Verify `(personality_value, species)` in the party **and**
+  `contains_pokemon(target)` False in the box, after a 2-frame yield (both caches are per-frame).
+  Print a loud named failure otherwise, and still never raise.
+- ‼ **Prevention rule.** *A message is a CLAIM, and it needs the same evidence bar as a return
+  value. If a log line names a Pokémon, a tile, or an outcome, whatever computed that line must
+  have checked THAT THING — not a count, not a length, not "no exception was raised".*
+- ‼ **Second prevention rule, about how to prove it.** *An unfalsifiable success needs a FAULT
+  HOOK, not a test.* `POKEBOT_PCWITHDRAW_FAULT=1` skips the PC interaction; faulted, the code now
+  says `‼ THE WITHDRAW DID NOT LAND` where it used to print green. **The old code printed the same
+  green line in both arms** — that side-by-side is the only thing that actually demonstrates the
+  defect, and it is not obtainable from any green run.
+- **Bonus finding worth copying:** the same fault run doubled as a fault-test of the NEW driver —
+  all four of its graded claims flipped to False. ⇒ *when you add a fault hook to production, run
+  your acceptance driver under it; you get a free proof that the driver is not rubber-stamping.*
+
+## 2026-08-15 — THE A/B WAS REAL, AND I DESTROYED ITS EVIDENCE BY RUNNING THE SECOND ARM
+
+- **Symptom.** A Tier 1 reviewer KICKED BACK the KI-79 write-up: the docs quoted an UNFAULTED
+  `ACCEPTANCE: PASS` transcript as proof the new identity-check does not false-negative on a real
+  successful withdraw, and **no such transcript existed on disk**. The only sandbox log present
+  was a FAIL.
+- **Root cause.** `story_harness.py` writes `harness_<build>.log` — **one fixed filename per
+  build, overwritten by the very next run.** I ran the arms in the order clean → faulted, so the
+  faulted run overwrote the clean run's transcript. The reviewer could see only the FAIL and
+  correctly refused to certify the claim; it could not even confirm the fault hook had been armed,
+  because the env var appears nowhere in the driver's own log.
+- **‼ The claim was TRUE.** I watched the clean sandbox arm print the green line and
+  `ACCEPTANCE: PASS`. That is not the point: **for this project an unverifiable claim is an
+  unproven one**, and a future agent auditing the docs would have found the same nothing.
+- **The fix that worked.** Re-ran BOTH arms with distinct `--log` names AND stdout redirected into
+  committed files under `tools/story-dev/evidence/`, then cited them by name from KI-79, the
+  changelog and the registry. ‼ **stdout matters separately**: production's `console.print` output
+  — the `‼ THE WITHDRAW DID NOT LAND` and green-success lines, the whole subject of the fix — is
+  NOT in the driver's log. The faulted stdout also carries
+  `POKEBOT_PCWITHDRAW_FAULT=1, SKIPPING the PC interaction`, which is what proves the arm was armed.
+- ‼ **Prevention rule.** *An A/B is not done when you have SEEN both arms — it is done when both
+  arms are on disk under names that the next run cannot overwrite, and the write-up cites them.*
+- **Meta-lesson worth more than the fix:** the reviewer was WRONG about the substance (the code is
+  correct, and the very next run proved it) and RIGHT about the epistemics. ⇒ **A kick-back that
+  says "I cannot verify this" is not a disagreement to argue with; it is a gap to close.**

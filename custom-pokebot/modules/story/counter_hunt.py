@@ -247,7 +247,13 @@ def box_counter_pid(needed_type_names, exclude_pids=frozenset()) -> "int | None"
 
     MEASURED LIVE by the user, 2026-08-14 — the whole failure falls out of this one function:
     a Winona hunt caught **Slugma into the PC box** (the party was full because a Nincada had
-    evolved and SPAWNED a Shedinja into the last slot). Winona needs Rock/Ice/Dragon/Electric;
+    evolved and SPAWNED a Shedinja into the last slot). Winona needs **Rock/Ice/Dragon** —
+    ⛔ **NOT Electric; that was wrong here for a year and is corrected by MEASUREMENT
+    (2026-08-15, `--driver boxcounter`'s `needed_ok` control on its first run).** `needed` comes
+    from the ACE alone (`_boss_plan_is_hopeless`, `story_mode.py:1600-1606`), the ace is
+    **Altaria L33, Dragon/Flying**, and Electric is **0.5x into Dragon** x 2.0x into Flying =
+    **1.0, NEUTRAL** — so production never yields it. (Electric IS 2.0x on her other four mons,
+    which are all Flying; the old claim was mis-scoped, not invented.)
     Slugma is **pure FIRE** and was hunted for its **Rock Throw**. Type-only ⇒ this returned
     None ⇒ `hunt()` reported "found nothing" ⇒ `_hunted_counter_pids` stayed empty ⇒ the heal's
     withdraw block (`higher_level_actions.py:246`, gated `if _pids:`) had nothing to do ⇒ the

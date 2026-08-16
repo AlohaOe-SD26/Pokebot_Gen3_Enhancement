@@ -377,7 +377,11 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       🔜 **WHAT (P4) STILL DOES NOT COVER:** everything UPSTREAM of registration — a real `hunt()`
       catch feeding `story_mode.py:1750`. The Slugma is INJECTED and the PID published by the
       driver. Also still unbuilt: the natural-vs-injected byte-equivalence control.
-      ‼ **A PROMOTION DECISION IS OWED (drift is 1):** `counter_hunt.py`, comment-only.
+      ✅ **THE PROMOTION IS DONE (user-approved 2026-08-15).** ⛔ **Drift is 1 again — `pc_trip.py`, the KI-79 fix, awaiting a NEW user promotion decision (a BEHAVIOUR change).** `counter_hunt.py`
+      (comment-only, the Electric correction) promoted with restore point
+      `restore/2026-08-15-pre-promotion-counterhunt-comment`: 1/1 byte-identical, and VERIFIED BY
+      DRIVING — `--driver boxcounter2 --build custom` ARM A and ARM B both `ACCEPTANCE: PASS`,
+      plus four `--build custom` gates. See `custom-pokebot/DIVERGENCE-LOG.md`.
 
       *(Everything below is the Stage-1-era text. It is kept for its build detail; where it
       predicts Stage 2 or names the anchor, the block above supersedes it.)*
