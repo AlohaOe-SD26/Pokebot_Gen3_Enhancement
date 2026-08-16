@@ -14585,3 +14585,33 @@ history block while the queue head kept the stale text.
 code it cites — the word-form drift catch, the log overwrite, `promote.py`'s dirty-tree refusal,
 the Shedinja PID identity, the ask-production control) and `00-README.md`'s reading order against
 the current top of every file it lists. Both APPROVE, no blockers.
+
+## 2026-08-15 — ✅✅ (P3b) IS ANSWERED BY CRITERION (b): A DIVERGENCE WAS OBSERVED — and it had been sitting in the committed ledger for three commits while two wrap-up passes said "NO DIVERGENCE" (punch-list #24-counters)
+
+**`collect_party_accounting.py` now reports `✅ CRITERION (b) MET — A DIVERGENCE WAS OBSERVED`:**
+**`HOLE ×30` in `boxcounter2`, in BOTH forks** — *slot 5 of `gPlayerPartyCount=6`: counted by the
+game but (near-)all zero.* Totals **967,970 recomputes · 39 drives · 12 drivers**.
+
+**‼ THIS IS THE GOOD OUTCOME, AND (P3b) PREDICTED IT EXACTLY.** Its standing caveat was that the
+population contained **no PARTY-MUTATING drive**, so the cases most likely to make A differ from B
+were never exercised. `--driver boxcounter2` (Stage 2, built earlier the same day) became the first
+such drive — a real PC deposit **and** withdraw on a FULL party of 6 — and **the divergence appeared
+immediately, in both forks.** The make-room deposit is the moment A and B disagree.
+⇒ **PARTY-ACCOUNTING STAGE 1 IS UNBLOCKED.** It was gated on "the criterion above is met"; (b) is
+met, and the collector says what to do next: *reproduce the `HOLE` case, then design Stage 1 around
+it.* ⛔ Index/menu-cursor call sites still stay on B.
+
+**⛔ THE DOC FAILURE, WHICH IS THE MORE USEFUL HALF.** The ledger row was committed in `2333cab8`
+(the KI-79 promotion) — **three commits before this one** — and `04-HANDOFF.md` went on asserting
+*"CRITERION (a) MET … NO DIVERGENCE"* in two places, through **two full wrap-up passes**, while the
+same file predicted at the time that *"the next `collect_party_accounting.py` run is worth reading
+with that in mind."* **Nobody ran it.** The two stale figures (">400k / 11 drivers" and "7 drives /
+280,707") also disagreed with each other under the same date, and the claim *"all 7 are DUNGEON
+content with a STATIC party"* was contradicted 500 lines away in the same file.
+‼ **Prevention:** *a figure quoted from memory is not a measurement.* Every one of these numbers had
+a one-command authority (`collect_party_accounting.py`) named in the very sentence that got it
+wrong. RUN IT — that is why the file says "RUN THE COMMAND rather than trusting that figure".
+
+**How it was found:** by the upgraded **Tier 2** standard added hours earlier — a cold-start agent
+told to *try to BEGIN the next item* ran the collector as part of orienting, rather than reading
+about it. The consistency checks had passed over this three times.

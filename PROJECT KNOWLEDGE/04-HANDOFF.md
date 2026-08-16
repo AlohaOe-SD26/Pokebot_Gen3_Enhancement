@@ -300,40 +300,35 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    ⛔ **KI-78 is NOT fully closed** — residual cases stay open (debug-fabricated identical
 >    pairs, corrupt box slots, Frontier rentals, and the evolved-since-capture path, which is
 >    handled but **unexercised by any live caller**). See its entry.
->    ✅ **(P3) STAGE 0 — BUILT, GATED (#22), DRIVEN (2026-08-14).** `modules/party_accounting.py`
->    adds the readers (**A** `gPlayerPartyCount`, per-slot occupancy) and a divergence log: **HOLE**
->    (empty slot below A — what makes B < A), **OVERFLOW**, **INVALID** — all EXACT, from
->    `get_party()`'s own branches — plus **STALE**, ⛔ **SAMPLED 1-in-300**; read the scan count,
->    never the bare zero. ✅ **It wires NO call site and the gate ASSERTS that**, with a
->    byte-identical observer-on/off A/B, silence on a healthy party, and a fault-injected observer
->    that must break the LOG and never the read (three injections, gate failed each).
->    ‼ Index/menu-cursor call sites MUST STILL stay on B — if A > B an index from A is out of range
->    for the list the bot holds, most likely MID-BATTLE.
->    ✅ **(P3b) — CLOSED 2026-08-15. ⛔ NOT the head of the queue; that is (P4) STAGE 2.**
->    ⛔ **THE EXIT CRITERION, so nobody has to guess what "several" meant** (a Tier 2 audit called
->    this the file's worst gap — a rule you may not break with no way to earn past it):
->    **STOP when EITHER (a) ≥5 drives across ≥3 DIFFERENT drivers AND ≥250,000 total recomputes
->    report clean, OR (b) the FIRST divergence of any class is observed.** Either answers the
->    question; (b) answers it faster and is the more useful outcome.
->    ✅✅ **(P3b) IS ANSWERED — CRITERION (a) MET 2026-08-15; `collect_party_accounting.py` exits
->    0** (>400k recomputes, 11 drivers, NO DIVERGENCE — the figure keeps growing). ⛔ **RUN THE COMMAND rather than
->    trusting that figure** — it grows every drive; it reads the durable, COMMITTED
->    `party_accounting_ledger.jsonl`. ‼ Report it as *"not observed in N"*, never *"cannot happen"*.
->    ⛔⛔ **READ THE POPULATION — but it has CHANGED as of 2026-08-15.** Through (P3b) it was true
->    that **no drive MUTATED THE PARTY**: §Ch20 dungeon content plus PC/box or read-only drivers
->    (`boxwrite`, `boxcounter`, `partypids`, `spin`), so the cases most likely to make A differ
->    from B (a catch into a FULL party; a Shedinja spawning unbidden) were never exercised. The
->    criterion was pre-registered and honestly met, so P3b CLOSED on that population.
->    ✅ **`--driver boxcounter2` (Stage 2) IS THE FIRST PARTY-MUTATING MEMBER** — it drives a real
->    PC deposit AND withdraw through production (`depositing Skitty L17` → withdrawing the
->    Slugma), on a FULL party of 6, four times. ‼ **That is a NEW and SMALL population (n=4), not
->    a re-answer to (P3b)** — do not report it as one. It is, however, exactly the shape (P3b)
->    said was missing, so the next `collect_party_accounting.py` run is worth reading with that in
->    mind. The collector prints its own caveat.
->    ⛔ **Only then may PARTY-ACCOUNTING Stage 1 begin** (re-pointing the ~35 capacity-shaped call
->    sites at A). ‼ **"Stage 1" is OVERLOADED in this file and the audit flagged it:** *KI-78*
->    Stage 1 is the identity fix and is **DONE and PROMOTED**; *party-accounting* Stage 1 is this
->    one and is **FORBIDDEN until the criterion above is met**. Never read one for the other.
+>    ✅ **(P3) STAGE 0 — BUILT, GATED (#22), DRIVEN.** `modules/party_accounting.py` adds the
+>    readers (**A** `gPlayerPartyCount`, per-slot occupancy) and a divergence log: **HOLE** (empty
+>    slot below A — what makes B < A), **OVERFLOW**, **INVALID**, all EXACT from `get_party()`'s own
+>    branches, plus **STALE**, ⛔ SAMPLED 1-in-300 (read the scan count, never the bare zero).
+>    ✅ It wires NO call site and the gate ASSERTS that, with a byte-identical observer-on/off A/B
+>    and a fault-injected observer that must break the LOG and never the read.
+>    ✅✅✅ **(P3b) IS ANSWERED BY CRITERION (b) — A DIVERGENCE WAS OBSERVED (2026-08-15). ⛔ THIS
+>    SUPERSEDES THIS FILE'S EARLIER "CRITERION (a) MET … NO DIVERGENCE" — THAT CLAIM IS RETRACTED.**
+>    `collect_party_accounting.py` now reports **`✅ CRITERION (b) MET — A DIVERGENCE WAS OBSERVED`**:
+>    **`HOLE x30` in `boxcounter2`, in BOTH forks** — *slot 5 of `gPlayerPartyCount=6`: counted by
+>    the game but (near-)all zero*. Totals are now **967,970 recomputes · 39 drives · 12 drivers**
+>    (the earlier ">400k / 11 drivers" and "7 drives / 280,707" figures are both superseded and
+>    disagreed with each other).
+>    ‼ **THIS IS THE GOOD OUTCOME, AND IT IS EXACTLY WHAT (P3b) PREDICTED.** Its own caveat said the
+>    population lacked any PARTY-MUTATING drive, so the cases most likely to make A differ from B
+>    were never exercised. `--driver boxcounter2` (Stage 2) became the first such drive — a real PC
+>    deposit AND withdraw on a FULL party of 6 — and **the divergence appeared immediately, in both
+>    forks.** The make-room deposit is the moment A and B disagree.
+>    ⛔ **THE DATA SAT IN THE COMMITTED LEDGER FOR THREE COMMITS WHILE TWO WRAP-UP PASSES RE-ASSERTED
+>    "NO DIVERGENCE"** — nobody ran the command this file itself calls the authority. ⇒ *a figure
+>    quoted from memory is not a measurement; RUN `collect_party_accounting.py`.*
+>    ✅✅ **PARTY-ACCOUNTING STAGE 1 IS THEREFORE UNBLOCKED** (re-pointing the ~35 capacity-shaped
+>    call sites at A). It was gated on "the criterion above is met"; criterion (b) IS met, and the
+>    collector says what to do next: **reproduce the `HOLE` case, then design Stage 1 around it.**
+>    ⛔ Index/menu-cursor call sites STILL stay on B — if A > B an index from A is out of range for
+>    the list the bot holds, most likely MID-BATTLE.
+>    ‼ **"Stage 1" is OVERLOADED in this file:** *KI-78* Stage 1 is the identity fix and is **DONE
+>    and PROMOTED**; *party-accounting* Stage 1 is this one and is now **UNBLOCKED, not forbidden**.
+>    Never read one for the other.
 >    🔜 **(P4) The END-TO-END repro of the user's actual scenario — STILL OWED.** Nincada evolves
 >    into a full party → counter hunt → heal. **The honest gap: P1 is proven by a fabricated
 >    fixture, not by reality.** ✅ **Its OBSERVABILITY half shipped 2026-08-14** (gate #23): the
@@ -844,7 +839,11 @@ PYTHONUTF8=1 py -3.12 repro_party_accounting.py     # PARTY ACCOUNTING STAGE 0 (
 PYTHONUTF8=1 py -3.12 collect_party_accounting.py   # (P3b) aggregate every drive's summary
 #   Exits 1 until the criterion is met (>=5 drives / >=3 drivers / >=250k recomputes, OR the first
 #   divergence), so P3b cannot be eyeballed. ✅ AS OF 2026-08-15 IT EXITS 0: 7 drives, 7 drivers,
-#   280,707 recomputes, NO DIVERGENCE. ‼ But all 7 are DUNGEON content with a STATIC party.
+#   ⛔ SUPERSEDED 2026-08-15: it now reports ✅ CRITERION (b) MET — A DIVERGENCE WAS OBSERVED.
+#   967,970 recomputes · 39 drives · 12 drivers, with HOLE x30 in `boxcounter2` in BOTH forks
+#   (slot 5 of gPlayerPartyCount=6, counted by the game but near-all zero). The old line said
+#   "7 drives, 280,707, NO DIVERGENCE … all DUNGEON content with a STATIC party" — true of that
+#   population, false now that a party-MUTATING driver exists. ‼ RUN IT; do not quote it.
 #   ‼ It MEASURES ONLY — it cannot drive the emulator, and it says so rather than implying a log
 #     read is a reading. It also fails LOUD when no log matches ("I could not look" != "clean").
 
